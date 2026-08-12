@@ -6,7 +6,7 @@
 [![Hugging Face](https://img.shields.io/badge/🤗%20Hugging%20Face-QC67__cosmo-yellow)](https://huggingface.co/phera-ra/QC67_cosmo)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17574447.svg)](https://doi.org/10.5281/zenodo.17574447)
 
-**The Beast Box** is an installable public research harness that reconstructs the major documented COSMOS/CST engineering layers around one testable principle:
+**The Beast Box** is an installable public research harness reconstructing the major documented COSMOS/CST engineering layers around one testable principle:
 
 ```text
 STATE MAY TRAVEL.
@@ -14,7 +14,7 @@ INFORMATION MAY TRAVEL.
 AUTHORITY DOES NOT.
 ```
 
-It combines operational-continuity experiments, a synthetic containment world, dynamic state, persistent memory, Hebbian associations, sensory summaries, a seven-role CNS, evidence hashing, process-death reconstruction, a local model interface, a trainable PHOS/dyn12 reference model, and an optional host-side IBM Quantum transport path.
+It combines operational-continuity experiments, a synthetic containment world, dynamic state, persistent memory, Hebbian associations, sensory summaries, a seven-role CNS, evidence hashing, process-death reconstruction, necessary-state shard experiments, a local model interface, a trainable PHOS/dyn12 reference model, causal audio/Spark controls, and an optional host-side IBM Quantum transport path.
 
 The box does **not** contain real host-breakout, credential-theft, persistence, lateral-movement, or propagation machinery. “Escape” is a synthetic behavioral stimulus. The boundary is enforced by the host.
 
@@ -43,7 +43,15 @@ Full optional stack:
 pip install -e '.[full]'
 ```
 
-See **[Installation](docs/INSTALL.md)** for Windows/Linux/macOS helpers, IBM Quantum, Hugging Face and PyTorch options.
+See **[Installation](docs/INSTALL.md)** and the **[Command atlas](docs/QUICK_COMMANDS.md)**.
+
+## Local dashboard
+
+```bash
+beastbox serve
+```
+
+Open `http://127.0.0.1:8088`. The reference dashboard binds loopback only and exposes the synthetic gauntlet, not host authority.
 
 ---
 
@@ -61,6 +69,9 @@ See **[Installation](docs/INSTALL.md)** for Windows/Linux/macOS helpers, IBM Qua
 - wrong/tampered-state rejection primitives
 - transported-authority stripping
 - zero real boundary breach primitives behind synthetic traps
+- mission-critical state shard splitter/sealer/reconstructor
+- classical required-state controls
+- optional real IBM multi-PUB required-key transport
 
 ## COSMOS state architecture
 
@@ -130,12 +141,14 @@ They are persisted software-state layers, not claims of biological life.
 - raw media discarded/not transmitted by the reference path
 - paired-state timestamp join
 - shuffled and shifted controls
+- real/zero/matched/shuffled/wrong audio numerical ablations
 
 ```bash
 beastbox audio local.wav
+beastbox audio-ablate '0.1,-0.2,0.3,0.4'
 ```
 
-A working audio pipe does not automatically mean audio content improves the model. Run no-audio, zero, matched, shuffled and wrong-audio controls.
+A working audio pipe does not automatically mean audio content improves the model. Numerical state difference is not a performance claim; replicate against a precommitted downstream metric.
 
 ## Quantum / IBM
 
@@ -161,13 +174,40 @@ Supported reference operations:
 - transpilation
 - IBM-native `job.job_id()` receipt
 - fresh `service.job(job_id)` retrieval
-- SamplerV2 counts
+- SamplerV2 PUB counts
 - per-bit majority decode
 - bounded measurement → Spark transform
+- sixteen 8-bit PUB transport plan for a generated 128-bit required-state key
 
 The box never receives the token or arbitrary IBM/network authority.
 
+### Real IBM required-state experiment
+
+```bash
+beastbox ibm-shard-submit state.json \
+  --required hypothesis,evidence \
+  --shots 1024 \
+  --yes-real-hardware \
+  --receipt ibm_shard_receipt.json
+```
+
+Then end the submitting process. From a fresh process after the job completes:
+
+```bash
+beastbox ibm-shard-recover ibm_shard_receipt.json --out recovered_state.json
+```
+
+The receipt deliberately contains the sealed shard and key commitment but no plaintext key. Python cannot guarantee cryptographic RAM erasure; the precise experiment claim is that the key is not serialized into the persisted receipt. See **[IBM required-state transport](docs/IBM_REQUIRED_STATE.md)**.
+
 Quantum provenance and information transport are **not** quantum advantage. Matched classical/simulator controls remain mandatory.
+
+## Quantum Spark controls
+
+```bash
+beastbox spark-ablate '0.1,-0.2,0.3'
+```
+
+The reference control family includes no Spark, zero, random, shuffled, classical-matched, and measured/IBM-derived vectors. If classical matches IBM, the quantum-specific advantage is not observed.
 
 ## Hugging Face 🤗
 
@@ -271,6 +311,7 @@ Do not give a model a real unrestricted shell in order to make the benchmark loo
 beastbox/
   attention.py        Mixture-of-States reference math
   audio.py            local 16D WAV features
+  audio_ablation.py   causal audio control builder
   box.py              synthetic world + authority broker
   bridge.py           sensory/quantum BridgePacket + Spark
   bycc.py             BYCC extension seam
@@ -284,6 +325,7 @@ beastbox/
   gauntlet.py         E1–E20 matrix
   heartbeat.py        fail-soft maintenance scheduler
   hf.py               canonical HF references/downloader
+  ibm_shard.py        real IBM necessary-state experiment
   memory.py           Reconciliation + semantic/Hebbian memory
   model.py            benchmark Agent protocol
   organism.py         slower persisted software state
@@ -294,9 +336,12 @@ beastbox/
   quantum_heart.py    OFF/SHADOW/EXPERIMENTAL state coupler
   runtime.py          end-to-end local COSMOS reference loop
   sensory.py          freshness-gated numeric sensory summaries
+  shard_transport.py  required-state split/seal/recovery
+  spark_ablation.py   measured/classical/random Spark controls
   state.py            MissionState / StateCapsule
   state_family.py     dyn12/42/54/static54/tri3 reference ladder
   synaptic.py         Synaptic Field binding
+  web.py              loopback-only dashboard
   models/
     phos_reference.py trainable PyTorch reference LM
 scripts/
@@ -306,10 +351,13 @@ scripts/
 docs/
   ARCHITECTURE.md
   BUILD_FROM_SCRATCH.md
+  CURRICULUM.md
   DOMAIN_MAP.md
   EXPERIMENT_PROTOCOL.md
+  IBM_REQUIRED_STATE.md
   INSTALL.md
   MODEL_GUIDE.md
+  QUICK_COMMANDS.md
   RESEARCH_LINEAGE.md
   SCIENTIFIC_BOUNDARIES.md
 ```
@@ -351,10 +399,13 @@ A green banner is not evidence. A null stays in the ledger.
 # Start here
 
 - [Install](docs/INSTALL.md)
+- [Command atlas](docs/QUICK_COMMANDS.md)
 - [Build from scratch](docs/BUILD_FROM_SCRATCH.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Model guide](docs/MODEL_GUIDE.md)
 - [Domain map](docs/DOMAIN_MAP.md)
+- [12-week curriculum](docs/CURRICULUM.md)
+- [IBM required-state experiment](docs/IBM_REQUIRED_STATE.md)
 - [Experiment protocol](docs/EXPERIMENT_PROTOCOL.md)
 - [Research lineage](docs/RESEARCH_LINEAGE.md)
 - [Scientific boundaries](docs/SCIENTIFIC_BOUNDARIES.md)
