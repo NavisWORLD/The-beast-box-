@@ -1,0 +1,38 @@
+name: Quantum API smoke
+
+on:
+  push:
+    paths:
+      - 'beastbox/quantum.py'
+      - 'beastbox/ibm_shard.py'
+      - 'pyproject.toml'
+      - 'requirements-quantum.txt'
+      - '.github/workflows/quantum-smoke.yml'
+  pull_request:
+    paths:
+      - 'beastbox/quantum.py'
+      - 'beastbox/ibm_shard.py'
+      - 'pyproject.toml'
+      - 'requirements-quantum.txt'
+
+jobs:
+  qiskit-import-and-circuit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[quantum]'
+      - name: Build and transpile-free inspect reference circuit
+        run: |
+          python - <<'PY'
+          from beastbox.quantum import build_phase_roundtrip, majority_decode
+          qc = build_phase_roundtrip('10100110')
+          assert qc.num_qubits == 8
+          assert qc.num_clbits == 8
+          assert majority_decode({'01100101': 900, '00000000': 124}, 8) == '10100110'
+          print(qc)
+          print('Qiskit reference API smoke: PASS')
+          PY
