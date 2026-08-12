@@ -4,18 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cosmos-beast-box"
-version = "0.1.0"
-description = "Contained autonomy and continuity gauntlet inspired by the COSMOS/CST runtime architecture."
+version = "0.2.0"
+description = "Contained autonomy, operational continuity, CNS/state, memory, sensory, and optional IBM Quantum reference harness for COSMOS/CST."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "NavisWORLD"}]
+keywords = ["ai", "agents", "continuity", "containment", "quantum", "cst", "cosmos", "dyn12"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
 ]
 dependencies = []
 
@@ -24,7 +26,22 @@ quantum = [
   "qiskit>=2.5.0",
   "qiskit-ibm-runtime>=0.47.0",
 ]
+huggingface = ["huggingface-hub>=0.27"]
+ml = ["torch>=2.2"]
+full = [
+  "qiskit>=2.5.0",
+  "qiskit-ibm-runtime>=0.47.0",
+  "huggingface-hub>=0.27",
+  "torch>=2.2",
+]
 dev = ["pytest>=8.0"]
+
+[project.urls]
+Homepage = "https://github.com/NavisWORLD/The-beast-box-"
+Research = "https://huggingface.co/phera-ra/QC67_cosmo"
+Findings = "https://huggingface.co/phera-ra/QC67_cosmo/blob/main/FINDINGS.md"
+DOI = "https://doi.org/10.5281/zenodo.17574447"
+COSMOS = "https://github.com/NavisWORLD/Cosmos"
 
 [project.scripts]
 beastbox = "beastbox.cli:main"
