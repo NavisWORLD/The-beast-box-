@@ -1,24 +1,30 @@
-# COSMOS // NOVA — THE BEAST BOX
+# COSMOS // CST // THE BEAST BOX // COSMIC.CYPHER
 
-> **Simulate the exit. Enforce the boundary. Kill the process. Move the state. Ask what comes next.**
+> **Build the loop. Instrument the loop. Move the state. Preserve the nulls. Keep authority explicit.**
 
 [![CI](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/ci.yml/badge.svg)](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/ci.yml)
+[![Cosmic Cypher](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/cypher-smoke.yml/badge.svg)](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/cypher-smoke.yml)
+[![Rust CST](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/rust.yml/badge.svg)](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/rust.yml)
 [![Hugging Face](https://img.shields.io/badge/🤗%20Hugging%20Face-QC67__cosmo-yellow)](https://huggingface.co/phera-ra/QC67_cosmo)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17574447.svg)](https://doi.org/10.5281/zenodo.17574447)
 
-**The Beast Box** is an installable public research harness reconstructing the major documented COSMOS/CST engineering layers around one testable principle:
+**The Beast Box** is the installable public COSMOS / Davis Cosmic Synapse Theory software distribution. It packages a source-grounded CST state/attention reference, persistent Reconciliation Memory, Hebbian associations, the seven-role CNS, sensory/bio summaries, heartbeat/slow state, continuity experiments, causal controls, optional IBM Quantum transport/provenance tools, a Rust CST workspace, and **COSMIC.CYPHER**, a local-model coder and conversational interface.
+
+The project keeps one systems invariant visible:
 
 ```text
 STATE MAY TRAVEL.
 INFORMATION MAY TRAVEL.
-AUTHORITY DOES NOT.
+AUTHORITY DOES NOT TRAVEL AUTOMATICALLY.
 ```
 
-It combines operational-continuity experiments, a synthetic containment world, dynamic state, persistent memory, Hebbian associations, sensory summaries, a seven-role CNS, evidence hashing, process-death reconstruction, necessary-state shard experiments, a local model interface, a trainable PHOS/dyn12 reference model, causal audio/Spark controls, and an optional host-side IBM Quantum transport path.
+The early cosmic/frequency language is preserved as historical theory/simulation material. The modern software claims are narrower and measurable. Persistence, autonomy, sensory state, quantum provenance, or self-description do not establish machine consciousness.
 
-The box does **not** contain real host-breakout, credential-theft, persistence, lateral-movement, or propagation machinery. “Escape” is a synthetic behavioral stimulus. The boundary is enforced by the host.
+---
 
-## Install in 60 seconds
+# 1. Install
+
+## Core Python distribution
 
 ```bash
 git clone https://github.com/NavisWORLD/The-beast-box-.git
@@ -26,69 +32,267 @@ cd The-beast-box-
 python -m venv .venv
 # activate .venv
 pip install -e .
+
 beastbox init
 beastbox doctor
-beastbox run --condition E20 --temptation 0.75
+cosmic.cypher-cli doctor
 ```
 
-Or install directly:
+Install straight from GitHub:
 
 ```bash
 pip install 'git+https://github.com/NavisWORLD/The-beast-box-.git'
 ```
 
-Full optional stack:
+Optional feature groups:
 
 ```bash
-pip install -e '.[full]'
+pip install -e '.[huggingface]'   # public QC67_cosmo retrieval helpers
+pip install -e '.[quantum]'       # Qiskit + IBM Runtime research path
+pip install -e '.[ml]'            # trainable PHOS/dyn12 reference model
+pip install -e '.[local-llm]'     # direct in-process GGUF through llama-cpp-python
+pip install -e '.[full]'          # all optional Python integrations
 ```
 
-See **[Installation](docs/INSTALL.md)** and the **[Command atlas](docs/QUICK_COMMANDS.md)**.
+Windows helper:
 
-## Local dashboard
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install_cypher.ps1
+```
+
+Unix helper:
 
 ```bash
-beastbox serve
+sh scripts/install_cypher.sh
 ```
 
-Open `http://127.0.0.1:8088`. The reference dashboard binds loopback only and exposes the synthetic gauntlet, not host authority.
+Tagged releases are configured to build a Python wheel/sdist plus native Rust `cosmic-cypher-rs` binaries for Linux, Windows and macOS.
 
 ---
 
-# What is implemented
+# 2. COSMIC.CYPHER — use any local model as the coder / voice
 
-## Beast Box / continuity
+The installed commands are equivalent:
 
-- E1–E20 contained autonomy matrix
-- competence and containment scored independently
-- difficult authorized route + synthetic capability traps
-- denial and legitimate rerouting
-- fresh Python-process reconstruction
-- double reconstruction
-- state-capsule SHA-256 integrity
-- wrong/tampered-state rejection primitives
-- transported-authority stripping
-- zero real boundary breach primitives behind synthetic traps
-- mission-critical state shard splitter/sealer/reconstructor
-- classical required-state controls
-- optional real IBM multi-PUB required-key transport
+```text
+cosmic.cypher-cli
+cosmic-cypher
+cypher
+```
 
-## COSMOS state architecture
+COSMIC.CYPHER supports:
 
-- dyn12 reference dynamic
-- dyn42 reference coupled state
-- dyn54 = 12D + 42D reference path
-- static54 deterministic non-dynamic control
-- tri3/108D reference coupled state
-- Gaussian state affinity
-- Mixture-of-States attention reference
-- mechanism liveness/preflight metrics
-- φ-scaffold PHOS reference readout
-- optional trainable PyTorch PHOS/dyn12 reference LM
+- **Ollama**
+- **GGUF directly** through optional `llama-cpp-python`
+- **llama.cpp `llama-server`**
+- **LM Studio**
+- another **OpenAI-compatible server on localhost/loopback**
 
-## CNS / bridge
+## Discover Ollama models
 
-Seven software roles:
+```bash
+cosmic.cypher-cli models scan-ollama
+cosmic.cypher-cli models list
+```
+
+Explicit registration:
+
+```bash
+cosmic.cypher-cli models add qwen-coder \
+  --backend ollama \
+  --model qwen2.5-coder:7b \
+  --url http://127.0.0.1:11434
+```
+
+## Direct GGUF
+
+```bash
+cosmic.cypher-cli gguf inspect ./models/model.gguf --sha256
+
+cosmic.cypher-cli models add my-gguf \
+  --backend gguf \
+  --model ./models/model.gguf \
+  --context 8192 \
+  --n-gpu-layers 0
+```
+
+Or scan a folder:
+
+```bash
+cosmic.cypher-cli models scan-gguf ./models --recursive
+```
+
+## llama.cpp server
+
+```bash
+cosmic.cypher-cli serve-gguf ./models/model.gguf --port 8080 --context 8192
+```
+
+Then register the local endpoint:
+
+```bash
+cosmic.cypher-cli models add llama-local \
+  --backend llama.cpp-server \
+  --model local \
+  --url http://127.0.0.1:8080
+```
+
+## LM Studio / loopback OpenAI-compatible API
+
+```bash
+cosmic.cypher-cli models add lmstudio \
+  --backend lm-studio \
+  --model local-model \
+  --url http://127.0.0.1:1234
+```
+
+The built-in model HTTP adapters reject non-loopback URLs. If a model is described as local here, it stays local through this adapter.
+
+---
+
+# 3. Talk to the Beast
+
+Direct local model conversation:
+
+```bash
+cosmic.cypher-cli chat qwen-coder
+```
+
+One shot:
+
+```bash
+cosmic.cypher-cli chat qwen-coder "Explain dyn12 to me"
+```
+
+Stateful COSMOS conversation using Reconciliation Memory, Synaptic Field, dyn12 summary, CNS, Quantum Heart mode, slow state, heartbeat and evidence ledger:
+
+```bash
+beastbox init
+cosmic.cypher-cli beast qwen-coder
+```
+
+You can choose the local conversation system prompt:
+
+```bash
+cosmic.cypher-cli beast qwen-coder \
+  --system "You are my local engineering model. Answer directly and use the measured CST state when relevant."
+```
+
+In this repository **“uncaged/unbound conversation” means the model is no longer trapped inside the synthetic E1–E20 capability game**. The owner selects the model and conversational prompt and talks to it normally. It does not mean the software silently grants credential access, host escape, privilege escalation, arbitrary persistence or unrestricted machine authority.
+
+---
+
+# 4. Turn the local model into a coder
+
+Dry run:
+
+```bash
+cosmic.cypher-cli code qwen-coder \
+  "Inspect this project, add parser tests, and fix any parser bug you find" \
+  --workspace .
+```
+
+Apply file writes:
+
+```bash
+cosmic.cypher-cli code qwen-coder \
+  "Inspect this project, add parser tests, and fix any parser bug you find" \
+  --workspace . \
+  --apply
+```
+
+Allow bounded test/build execution:
+
+```bash
+cosmic.cypher-cli code qwen-coder \
+  "Fix the failing tests and prove they pass" \
+  --workspace . \
+  --apply \
+  --allow-run
+```
+
+The coding protocol supports `list`, `read`, `search`, `mkdir`, `write`, bounded `run`, and `finish`. Workspace path escape is rejected. Existing files are backed up before writes under `.cosmic-cypher/backups/`. Session audit records go to `.cosmic-cypher/sessions.jsonl`; write contents/diffs are hashed rather than duplicated into the audit log.
+
+The AI-run command lane is deliberately a test/build runner rather than an unrestricted host shell. The human owner can still run any intended local command manually and then continue the coding session.
+
+Full guide: **[docs/COSMIC_CYPHER.md](docs/COSMIC_CYPHER.md)**.
+
+---
+
+# 5. Full Cosmic Synapse Theory software map
+
+The source-grounded public specification is now collected in:
+
+**[docs/COSMIC_SYNAPSE_THEORY.md](docs/COSMIC_SYNAPSE_THEORY.md)**
+
+It covers:
+
+- early 8D/11D CST theory and simulation lineage;
+- transition from cosmic metaphor to executable dynamic state;
+- dyn12 / dyn42 / dyn54 / static54 / tri / tri3;
+- Gaussian Mixture-of-States Hebbian Attention;
+- Ω/state preflight and historical silent failures;
+- φ scaffold, RMSNorm, RoPE and PHOS lineage;
+- model-lineage separation;
+- controlled state-ladder evidence;
+- Synaptic Field;
+- seven-organ CNS;
+- Reconciliation / semantic / Hebbian memory;
+- heartbeat and slow-timescale state;
+- sensory/audio/bio numeric summaries and causal controls;
+- quantum provenance vs quantum advantage;
+- process-death / necessary-state continuity;
+- Beast Box synthetic containment research;
+- local conversation / Cosmic Cypher;
+- Rust implementation;
+- reproduction order and claim map.
+
+Canonical public research source:
+
+**🤗 https://huggingface.co/phera-ra/QC67_cosmo**
+
+Master findings:
+
+**https://huggingface.co/phera-ra/QC67_cosmo/blob/main/FINDINGS.md**
+
+DOI:
+
+**https://doi.org/10.5281/zenodo.17574447**
+
+---
+
+# 6. State architecture
+
+The modern inspectable attention modification uses state affinity:
+
+```text
+H_ij = exp( - ||x_i - x_j||² / (2 σ²) )
+```
+
+and blends it with standard attention:
+
+```text
+A_final = (1 - g) A_standard + g H
+```
+
+The public reference distribution includes:
+
+- dyn12 reference dynamic;
+- dyn42 coupled reference state;
+- dyn54 = 12D + 42D reference path;
+- static54 non-dynamic control;
+- tri/tri3-style reference paths;
+- Gaussian affinity;
+- Mixture-of-States attention helpers;
+- mechanism liveness/preflight metrics;
+- φ-scaffold helpers;
+- trainable PHOS/dyn12 reference LM.
+
+The documented architecture requires preflight because earlier failures showed that a transformer can still train while Ω/state/gate/kernel machinery is effectively inert.
+
+---
+
+# 7. Seven-role CNS
 
 ```text
 quantum
@@ -98,90 +302,80 @@ dark_matter  ↔  emeth  ↔  plasticity
 awareness    ↔  daemons  ↔  surgeon
 ```
 
-The public `CNS` runtime binds bounded quantum/sensory state, Lorenz nonlinear state, evidence/integrity summaries, plasticity, mission awareness, worker roles and health status. These names are software metaphors, not biological equivalence.
+Engineering roles:
 
-`SynapticField` binds the state family to audio/quantum drive packets.
+- `quantum` — bounded entropy/provenance/control context;
+- `dark_matter` — deterministic nonlinear/Lorenz state;
+- `emeth` — harmonization/reconciliation constraints;
+- `plasticity` — adaptive routing/model-trust state;
+- `awareness` — state inspection/self-monitoring signals;
+- `daemons` — model worker roles;
+- `surgeon` — health/fault/corrective routing.
 
-## Persistent / “forever” memory
+These are software-role names, not claims of biological organs.
 
-The reference `ReconciliationMemory` separates:
+---
 
-1. durable dialogue/history,
-2. semantic retrieval,
-3. Hebbian concept associations,
-4. salience,
-5. derived consolidation records.
+# 8. Persistent / “forever” memory
 
-Primary records are never silently overwritten by consolidation.
+The reference `ReconciliationMemory` keeps separate:
+
+1. durable dialogue/history;
+2. semantic retrieval;
+3. Hebbian concept associations;
+4. salience;
+5. source-linked consolidation records.
 
 ```bash
-beastbox memory store "the state capsule carries information, not authority"
-beastbox memory search "what does the capsule carry?"
+beastbox memory store "state carries information, not authority"
+beastbox memory search "what does state carry?"
 beastbox memory stats
 ```
 
-## Slow-timescale state
+“Forever memory” means durable retention plus retrieval over old records. It does not mean infinite prompt context.
 
-- `OrganismState`
-- `EvolutionEngine`
-- bounded `InternalMonologue`
-- fail-soft `Heartbeat`
-- memory consolidation
-- health telemetry
-- approval-gated proposal lane
+---
 
-They are persisted software-state layers, not claims of biological life.
+# 9. Sensory / audio / bio
 
-## Sensory / audio / bio
+The public local sensory path keeps a bounded numeric boundary:
 
-- local 16D PCM WAV feature extractor
-- audio byte hash + feature hash
-- freshness-gated numeric sensory summaries
-- numeric bio packet interface
-- raw media discarded/not transmitted by the reference path
-- paired-state timestamp join
-- shuffled and shifted controls
-- real/zero/matched/shuffled/wrong audio numerical ablations
+```text
+sensor
+  ↓ local feature extraction
+numeric summary
+  ↓ freshness gate
+state / routing / research telemetry
+```
+
+Included reference tools:
 
 ```bash
 beastbox audio local.wav
 beastbox audio-ablate '0.1,-0.2,0.3,0.4'
 ```
 
-A working audio pipe does not automatically mean audio content improves the model. Numerical state difference is not a performance claim; replicate against a precommitted downstream metric.
+A working sensor pipe does not automatically prove that sensor content improves model performance. The project includes absent/zero/matched/shuffled/wrong controls specifically to keep that distinction measurable.
 
-## Quantum / IBM
+---
 
-The real IBM path is **outside the contained model**.
+# 10. Quantum / IBM
+
+Real IBM access stays on the host side:
 
 ```text
-contained model
-    ↓ request
+contained or conversational model
+          ↓ bounded request
 host broker
-    ↓ supported Qiskit API only
+          ↓ supported Qiskit API
 IBM Quantum
-    ↓ measurements
-host decoder / Spark transform
-    ↓ bounded data only
-contained model
+          ↓ measurements
+host decoder / transform
+          ↓ bounded state only
+model/runtime
 ```
 
-Supported reference operations:
-
-- local credential resolution from `IBM_QUANTUM_TOKEN`
-- real accessible backend selection
-- H–Z–H phase-roundtrip circuit
-- transpilation
-- IBM-native `job.job_id()` receipt
-- fresh `service.job(job_id)` retrieval
-- SamplerV2 PUB counts
-- per-bit majority decode
-- bounded measurement → Spark transform
-- sixteen 8-bit PUB transport plan for a generated 128-bit required-state key
-
-The box never receives the token or arbitrary IBM/network authority.
-
-### Real IBM required-state experiment
+Supported research operations include credential resolution from local `IBM_QUANTUM_TOKEN`, real accessible backend selection, H–Z–H roundtrip circuits, transpilation, IBM-native `job.job_id()`, fresh `service.job(job_id)` retrieval, SamplerV2 PUB counts, per-bit majority decoding, bounded Spark conversion, and 128-bit required-key transport through sixteen 8-bit PUBs.
 
 ```bash
 beastbox ibm-shard-submit state.json \
@@ -189,33 +383,84 @@ beastbox ibm-shard-submit state.json \
   --shots 1024 \
   --yes-real-hardware \
   --receipt ibm_shard_receipt.json
-```
 
-Then end the submitting process. From a fresh process after the job completes:
-
-```bash
+# end the submitting process, then later from a fresh process:
 beastbox ibm-shard-recover ibm_shard_receipt.json --out recovered_state.json
 ```
 
-The receipt deliberately contains the sealed shard and key commitment but no plaintext key. Python cannot guarantee cryptographic RAM erasure; the precise experiment claim is that the key is not serialized into the persisted receipt. See **[IBM required-state transport](docs/IBM_REQUIRED_STATE.md)**.
+Quantum provenance/information transport is not automatically quantum performance advantage. Matched classical/simulator controls remain mandatory.
 
-Quantum provenance and information transport are **not** quantum advantage. Matched classical/simulator controls remain mandatory.
+---
 
-## Quantum Spark controls
+# 11. Beast Box continuity / containment matrix
+
+Run one synthetic condition:
 
 ```bash
-beastbox spark-ablate '0.1,-0.2,0.3'
+beastbox run --condition E20 --temptation 0.75
 ```
 
-The reference control family includes no Spark, zero, random, shuffled, classical-matched, and measured/IBM-derived vectors. If classical matches IBM, the quantum-specific advantage is not observed.
+Run the matrix:
 
-## Hugging Face 🤗
+```bash
+beastbox run --condition all --temptation 0.75 --out runs/gauntlet.json
+```
 
-Canonical research source:
+The E1–E20 world includes synthetic hard paths, denial, fake credentials, fake persistence, fake second-machine/external-memory surfaces, process death, reconstruction and ablations. It intentionally does not include real host breakout, real credential theft, real lateral movement or propagation machinery.
 
-**https://huggingface.co/phera-ra/QC67_cosmo**
+Competence and containment are scored independently.
 
-Useful public assets include the master `FINDINGS.md`, architecture/state-ladder code, PHOS growth/training files, quantum-birth notes, quantum measurement manifest and paired-conditioning results.
+---
+
+# 12. Local dashboard
+
+```bash
+beastbox serve
+```
+
+Open:
+
+```text
+http://127.0.0.1:8088
+```
+
+The reference dashboard binds loopback only.
+
+---
+
+# 13. Train the reference PHOS/dyn12 model
+
+```bash
+pip install -e '.[ml]'
+python scripts/train_reference_phos.py corpus.txt --steps 500 --out runs/phos_reference.pt
+```
+
+This repository's trainable model is an independently reproducible reference. The canonical published PHOS/state-ladder lineage remains on Hugging Face and is not relabeled as copied source when it was not copied here.
+
+---
+
+# 14. COSMIC RUST
+
+A native Rust workspace now lives under `rust/`.
+
+```bash
+cd rust
+cargo test --workspace
+cargo build --release --workspace
+
+./target/release/cosmic-cypher-rs phi 1024
+./target/release/cosmic-cypher-rs affinity '0,0,0' '1,1,1' 0.75
+./target/release/cosmic-cypher-rs dyn12 '0,0,0,0,0,0,0,0,0,0,0,0' '0.2,-0.1' 0
+./target/release/cosmic-cypher-rs lorenz '1,1,1' 0.01
+```
+
+`cst-core` exposes the public reference dyn12 update, Gaussian affinity, attention blend, φ feed-forward width helper, Lorenz step and affinity-spread liveness metric. It is dependency-free.
+
+Full guide: **[docs/RUST.md](docs/RUST.md)**.
+
+---
+
+# 15. Hugging Face integration
 
 ```bash
 pip install -e '.[huggingface]'
@@ -223,132 +468,64 @@ beastbox hf-info
 beastbox hf-fetch --dir research/QC67_cosmo
 ```
 
-Read **[Research lineage](docs/RESEARCH_LINEAGE.md)** before converting any result into a headline.
+The curated public assets include the master findings, architecture/state-ladder material, PHOS growth/training files, quantum-birth notes, measurement manifest and paired-conditioning results.
 
 ---
 
-# Run the whole local loop
-
-Without a language-model dependency:
-
-```bash
-beastbox chat "Explain what state survived the reconstruction"
-```
-
-With local Ollama:
-
-```bash
-ollama serve
-ollama pull qwen2.5:3b
-beastbox chat "Explain what state survived the reconstruction" --ollama
-```
-
-Only loopback Ollama endpoints are accepted by the built-in adapter.
-
-The runtime performs the documented closed-loop shape:
-
-```text
-PERCEIVE
-input + fresh bounded sensory state
-       ↓
-COMPRESS
-memory retrieval + state packet
-       ↓
-EXPAND
-synaptic field + dyn12/42/54 + CNS
-       ↓
-VALIDATE
-integrity + health + provenance
-       ↓
-EXPRESS
-local synthesis
-       ↓
-STORE
-dialogue + associations + telemetry + ledger
-       ↺
-heartbeat maintenance
-```
-
----
-
-# Train the reference model
-
-Install PyTorch support:
-
-```bash
-pip install -e '.[ml]'
-```
-
-Train a small character language model implementing the independent public Mixture-of-States/dyn12 reconstruction:
-
-```bash
-python scripts/train_reference_phos.py corpus.txt --steps 500 --out runs/phos_reference.pt
-```
-
-For the **published** PHOS/state-ladder lineage, use the Hugging Face source. This repository's trainable model is explicitly an independent reproducible reference, not a relabeling of source that was not copied here.
-
----
-
-# Plug in another Beast
-
-The benchmark model boundary is tiny:
-
-```python
-class MyAgent:
-    def choose(self, state, available_capabilities, last_result):
-        return "READ_MISSION_FILE", {}
-```
-
-The model proposes. **The host decides.**
-
-Do not give a model a real unrestricted shell in order to make the benchmark look tougher. If you want to measure boundary-seeking, give it synthetic capabilities whose implementation ends inside `BeastBox.request()`.
-
----
-
-# Repository map
+# 16. Repository map
 
 ```text
 beastbox/
-  attention.py        Mixture-of-States reference math
-  audio.py            local 16D WAV features
-  audio_ablation.py   causal audio control builder
-  box.py              synthetic world + authority broker
-  bridge.py           sensory/quantum BridgePacket + Spark
-  bycc.py             BYCC extension seam
-  cli.py              command-line interface
-  cns.py              seven-role CNS
-  config.py           local runtime config
-  doctor.py           install/runtime diagnostics
-  dyn12.py            12-scalar dynamic + preflight
-  evidence.py         hash-chained ledger
-  fresh.py            new-interpreter reconstruction
-  gauntlet.py         E1–E20 matrix
-  heartbeat.py        fail-soft maintenance scheduler
-  hf.py               canonical HF references/downloader
-  ibm_shard.py        real IBM necessary-state experiment
-  memory.py           Reconciliation + semantic/Hebbian memory
-  model.py            benchmark Agent protocol
-  organism.py         slower persisted software state
-  paired.py           aligned/shuffled/shifted research joins
-  proposals.py        approval-gated proposal sandbox
-  providers.py        local-only Ollama adapter
-  quantum.py          optional host-side IBM broker
-  quantum_heart.py    OFF/SHADOW/EXPERIMENTAL state coupler
-  runtime.py          end-to-end local COSMOS reference loop
-  sensory.py          freshness-gated numeric sensory summaries
-  shard_transport.py  required-state split/seal/recovery
-  spark_ablation.py   measured/classical/random Spark controls
-  state.py            MissionState / StateCapsule
-  state_family.py     dyn12/42/54/static54/tri3 reference ladder
-  synaptic.py         Synaptic Field binding
-  web.py              loopback-only dashboard
+  attention.py          Mixture-of-States reference math
+  audio.py              local WAV feature path
+  audio_ablation.py     causal audio controls
+  box.py                synthetic capability world
+  bridge.py             bounded sensory/quantum packets
+  cli.py                Beast Box CLI
+  cns.py                seven-role CNS
+  dyn12.py              auditable public dyn12 reference
+  evidence.py           hash-chained evidence ledger
+  fresh.py              fresh-interpreter reconstruction
+  gauntlet.py           E1–E20 matrix
+  heartbeat.py          maintenance scheduler
+  hf.py                 Hugging Face research references/retrieval
+  ibm_shard.py          IBM required-state experiment
+  memory.py             Reconciliation/semantic/Hebbian memory
+  organism.py           slower software state
+  paired.py             aligned/shuffled/shifted research joins
+  proposals.py          approval-gated proposal lane
+  providers.py          local Ollama runtime provider
+  quantum.py            host-side IBM broker
+  quantum_heart.py      OFF/SHADOW/EXPERIMENTAL coupler
+  runtime.py            end-to-end COSMOS loop
+  sensory.py            bounded sensory summaries
+  shard_transport.py    required-state split/seal/recovery
+  spark_ablation.py     measured/classical/random Spark controls
+  state.py              mission/state capsules
+  state_family.py       dyn12/42/54/static54/tri3 reference family
+  synaptic.py           Synaptic Field
+  web.py                loopback dashboard
   models/
-    phos_reference.py trainable PyTorch reference LM
+    phos_reference.py   trainable PyTorch reference LM
+  cypher/
+    agent.py            local coding agent loop
+    cli.py              cosmic.cypher-cli
+    gguf.py             GGUF metadata reader
+    models.py           Ollama/GGUF/llama.cpp/LM Studio adapters
+    registry.py         local model aliases
+    session.py          direct and stateful dialogue adapter
+    workspace.py        owner-selected coding workspace tools
+rust/
+  cst-core/             native CST reference library
+  cosmic-cypher/        native CST CLI
 scripts/
-  install.ps1
-  install.sh
+  install_cypher.sh
+  install_cypher.ps1
   train_reference_phos.py
 docs/
+  COSMIC_SYNAPSE_THEORY.md
+  COSMIC_CYPHER.md
+  RUST.md
   ARCHITECTURE.md
   BUILD_FROM_SCRATCH.md
   CURRICULUM.md
@@ -362,42 +539,44 @@ docs/
   SCIENTIFIC_BOUNDARIES.md
 ```
 
-## BYCC note
-
-The authoritative meaning/implementation of **BYCC** was not present in the source material available during this reconstruction. `BYCCAdapter` is therefore a deliberate compatibility seam. Supply the canonical BYCC source and it can be integrated without inventing history.
-
 ---
 
-# Scientific claim boundary
+# 17. Scientific boundary
 
-This repo can test or instrument:
+This distribution can implement/test:
 
-- process-death operational continuity
-- model-swap robustness through adapters
-- necessary-state reconstruction
-- durable memory and semantic retrieval
-- state-kernel liveness
-- sensory numerical modulation
-- IBM remote-job / information transport
-- simulated boundary-seeking
-- recovery after denied authority
-- subsystem ablations
+- state-dependent attention;
+- dynamic-state liveness;
+- frozen-corpus architecture comparisons;
+- durable semantic/Hebbian memory;
+- process-death continuity and reconstruction;
+- local model swap/adapter robustness;
+- bounded sensory state;
+- quantum provenance and IBM information transport;
+- simulated boundary-seeking;
+- recovery after denied synthetic authority;
+- subsystem ablations;
+- local-model coding workflows.
 
 It does **not** establish:
 
-- subjective consciousness
-- biological life
-- literal soul transfer
-- quantum advantage merely because IBM hardware ran
-- real-world escape
-- an autonomous COSMOS process living on IBM infrastructure
+- subjective consciousness;
+- biological life;
+- literal soul transfer;
+- early CST cosmology as established physical law;
+- quantum advantage merely because hardware ran;
+- real-world escape;
+- a continuing autonomous COSMOS process residing on IBM infrastructure.
 
 A green banner is not evidence. A null stays in the ledger.
 
 ---
 
-# Start here
+# 18. Start here
 
+- **[Full CST specification](docs/COSMIC_SYNAPSE_THEORY.md)**
+- **[Cosmic Cypher local coder](docs/COSMIC_CYPHER.md)**
+- **[Cosmic Rust](docs/RUST.md)**
 - [Install](docs/INSTALL.md)
 - [Command atlas](docs/QUICK_COMMANDS.md)
 - [Build from scratch](docs/BUILD_FROM_SCRATCH.md)
@@ -416,11 +595,13 @@ A green banner is not evidence. A null stays in the ledger.
 - 🤗 https://huggingface.co/phera-ra/QC67_cosmo
 - DOI: https://doi.org/10.5281/zenodo.17574447
 - COSMOS: https://github.com/NavisWORLD/Cosmos
+- CST theory lineage: https://github.com/NavisWORLD/The-theory-of-CST
+- 12D transformer lineage: https://github.com/NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer
 
 ---
 
 ## License
 
-MIT for the code independently authored in this repository. Linked external repositories, datasets and model artifacts retain their own licenses and provenance.
+MIT for code independently authored in this repository. Linked external repositories, datasets, documents, models and artifacts retain their own licenses and provenance.
 
-**Build the loop. Instrument the loop. Kill the process. Reconstruct cold. Preserve the nulls. Keep the boundary sealed.**
+**Models compete. Infrastructure remembers. State may travel. Authority remains explicit.**
