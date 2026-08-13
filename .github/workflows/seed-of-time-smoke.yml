@@ -1,0 +1,33 @@
+name: Seed of Time smoke
+
+on:
+  push:
+    paths:
+      - 'single_file/COSMIC_SEED_OF_TIME.py'
+      - 'docs/SEED_OF_TIME.md'
+      - '.github/workflows/seed-of-time-smoke.yml'
+  pull_request:
+    paths:
+      - 'single_file/COSMIC_SEED_OF_TIME.py'
+      - 'docs/SEED_OF_TIME.md'
+
+jobs:
+  standalone:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Compile standalone file
+        run: python -m py_compile single_file/COSMIC_SEED_OF_TIME.py
+      - name: Run offline deterministic self-test
+        run: python single_file/COSMIC_SEED_OF_TIME.py selftest
+      - name: Verify help surface
+        run: |
+          python single_file/COSMIC_SEED_OF_TIME.py --help
+          python single_file/COSMIC_SEED_OF_TIME.py birth --help
+          python single_file/COSMIC_SEED_OF_TIME.py chat --help
