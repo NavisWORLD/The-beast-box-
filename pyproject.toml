@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cosmos-beast-box"
-version = "0.2.0"
-description = "Contained autonomy, operational continuity, CNS/state, memory, sensory, and optional IBM Quantum reference harness for COSMOS/CST."
+version = "0.3.0"
+description = "Installable COSMOS/CST runtime, Beast Box continuity harness, Cosmic Cypher local-model coder, and optional IBM Quantum research tools."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "NavisWORLD"}]
-keywords = ["ai", "agents", "continuity", "containment", "quantum", "cst", "cosmos", "dyn12"]
+keywords = ["ai", "agents", "coding-agent", "gguf", "llama", "ollama", "continuity", "containment", "quantum", "cst", "cosmos", "dyn12"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
@@ -28,11 +28,13 @@ quantum = [
 ]
 huggingface = ["huggingface-hub>=0.27"]
 ml = ["torch>=2.2"]
+local-llm = ["llama-cpp-python>=0.3.9"]
 full = [
   "qiskit>=2.5.0",
   "qiskit-ibm-runtime>=0.47.0",
   "huggingface-hub>=0.27",
   "torch>=2.2",
+  "llama-cpp-python>=0.3.9",
 ]
 dev = ["pytest>=8.0"]
 
@@ -45,6 +47,9 @@ COSMOS = "https://github.com/NavisWORLD/Cosmos"
 
 [project.scripts]
 beastbox = "beastbox.cli:main"
+"cosmic.cypher-cli" = "beastbox.cypher.cli:main"
+cosmic-cypher = "beastbox.cypher.cli:main"
+cypher = "beastbox.cypher.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["beastbox*"]

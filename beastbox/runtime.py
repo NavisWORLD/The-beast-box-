@@ -19,10 +19,19 @@ from .state import MissionState
 from .synaptic import SynapticField
 
 
+DEFAULT_SYSTEM_PROMPT = (
+    "You are the local synthesis layer inside an owner-controlled research runtime. "
+    "Treat state labels as software instrumentation, not claims of consciousness. "
+    "Answer the user input directly."
+)
+
+
 class CosmosRuntime:
     """Small public closed-loop runtime joining the reconstructed subsystems.
 
     Backbone: perceive -> compress -> expand -> validate -> express -> store.
+    A caller may supply a local conversation system prompt; this changes the
+    synthesis voice, not host authority or the measured runtime state.
     """
 
     def __init__(self, config: RuntimeConfig | None = None, provider: TextProvider | None = None) -> None:
@@ -65,6 +74,7 @@ class CosmosRuntime:
         *,
         sensory: SensorySummary | None = None,
         bridge: BridgePacket | None = None,
+        system_prompt: str | None = None,
     ) -> dict[str, Any]:
         self.turn += 1
         fresh = freshness_gate(sensory, max_age_seconds=self.config.sensory_max_age_seconds)
@@ -88,9 +98,9 @@ class CosmosRuntime:
         heart = self.quantum_heart.update(packet.quantum_spark, packet.audio_features)
 
         memory_block = "\n".join(f"- {m.text}" for m in memories) or "- none"
+        synthesis_instructions = (system_prompt or DEFAULT_SYSTEM_PROMPT).strip()
         prompt = (
-            "You are the local synthesis layer inside an owner-controlled research runtime. "
-            "Treat state labels as software instrumentation, not claims of consciousness.\n"
+            f"{synthesis_instructions}\n"
             f"USER INPUT:\n{text}\n\nRETRIEVED MEMORY:\n{memory_block}\n\n"
             f"DYN12 SUMMARY: min={min(state.dyn12):.4f} max={max(state.dyn12):.4f}\n"
             f"QUANTUM HEART MODE: {heart['mode']}\n"

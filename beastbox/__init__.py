@@ -1,7 +1,9 @@
-"""COSMOS // NOVA — Beast Box public reference harness.
+"""COSMOS // CST — Beast Box public software distribution.
 
-This package intentionally tests continuity and containment without providing
-real breakout, persistence, credential theft, or privilege-escalation paths.
+The package contains the synthetic continuity/containment harness, source-grounded
+CST reference mechanics, persistent runtime services, and Cosmic Cypher local-model
+interfaces. Synthetic boundary tests intentionally avoid real breakout, credential
+theft, privilege escalation, lateral movement, or propagation primitives.
 """
 
 from .state import MissionState, StateCapsule
@@ -19,4 +21,4 @@ __all__ = [
     "Agent",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"
