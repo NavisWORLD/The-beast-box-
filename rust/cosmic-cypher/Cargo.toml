@@ -1,0 +1,13 @@
+[package]
+name = "cosmic-cypher-rs"
+version = "0.1.0"
+edition = "2021"
+description = "Native Rust CLI for COSMOS/CST reference state primitives"
+license = "MIT"
+
+[[bin]]
+name = "cosmic-cypher-rs"
+path = "src/main.rs"
+
+[dependencies]
+cst-core = { path = "../cst-core" }

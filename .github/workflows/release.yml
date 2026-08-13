@@ -1,0 +1,63 @@
+name: Build downloadable releases
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  python-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip build
+      - run: python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cosmic-synapse-python
+          path: dist/*
+
+  rust-binaries:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: cosmic-cypher-rust-linux
+            binary: rust/target/release/cosmic-cypher-rs
+          - os: windows-latest
+            artifact: cosmic-cypher-rust-windows
+            binary: rust/target/release/cosmic-cypher-rs.exe
+          - os: macos-latest
+            artifact: cosmic-cypher-rust-macos
+            binary: rust/target/release/cosmic-cypher-rs
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build native binary
+        working-directory: rust
+        run: cargo build --release --workspace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.binary }}
+
+  github-release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [python-package, rust-binaries]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/**/*
+          generate_release_notes: true
