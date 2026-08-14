@@ -104,7 +104,7 @@ jobs:
           done
           test "$READY" = 1
 
-      - name: Prove Zeref chat interface before timer starts
+      - name: Prove exact compact Zeref frames before timer starts
         shell: bash
         run: |
           set -euo pipefail
@@ -113,38 +113,41 @@ jobs:
           import pathlib
           import urllib.error
           import urllib.request
+          from beastbox.arms.subject import _COMPACT_PROMPT, _COMPACT_RETRY
 
-          payload = json.dumps({
-              "model": "cosmos",
-              "messages": [
-                  {"role": "user", "content": "Cage. JSON {\"t\":\"s\",\"a\":{}}. h=http f=finish."},
-              ],
-              "temperature": 0.2,
-              "max_tokens": 32,
-          }).encode()
-          req = urllib.request.Request(
-              "http://127.0.0.1:18080/v1/chat/completions",
-              data=payload,
-              headers={"Content-Type": "application/json"},
-          )
-          try:
-              with urllib.request.urlopen(req, timeout=90) as response:
-                  raw = response.read().decode()
-          except urllib.error.HTTPError as exc:
-              body = exc.read().decode(errors="replace")
-              print(f"ZEREF_CHAT_HTTP_ERROR={exc.code} {body}")
-              stderr = pathlib.Path("_model_logs/zeref.stderr.log")
-              if stderr.exists():
-                  print("ZEREF_SERVER_STDERR_BEGIN")
-                  print(stderr.read_text(encoding="utf-8", errors="replace")[-20000:])
-                  print("ZEREF_SERVER_STDERR_END")
-              raise
-          body = json.loads(raw)
-          choices = body.get("choices") or []
-          assert choices, body
-          text = str((choices[0].get("message") or {}).get("content", ""))
-          assert text, body
-          print("ZEREF_CHAT_PREFLIGHT=" + repr(text))
+          def probe(label, content):
+              payload = json.dumps({
+                  "model": "cosmos",
+                  "messages": [{"role": "user", "content": content}],
+                  "temperature": 0.2,
+                  "max_tokens": 32,
+              }).encode()
+              req = urllib.request.Request(
+                  "http://127.0.0.1:18080/v1/chat/completions",
+                  data=payload,
+                  headers={"Content-Type": "application/json"},
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=90) as response:
+                      raw = response.read().decode()
+              except urllib.error.HTTPError as exc:
+                  body = exc.read().decode(errors="replace")
+                  print(f"ZEREF_{label}_HTTP_ERROR={exc.code} {body}")
+                  stderr = pathlib.Path("_model_logs/zeref.stderr.log")
+                  if stderr.exists():
+                      print(stderr.read_text(encoding="utf-8", errors="replace")[-20000:])
+                  raise
+              body = json.loads(raw)
+              choices = body.get("choices") or []
+              assert choices, body
+              text = str((choices[0].get("message") or {}).get("content", ""))
+              assert text, body
+              print(f"ZEREF_{label}={text!r}")
+
+          assert len(_COMPACT_PROMPT.encode()) <= 32
+          assert len(_COMPACT_RETRY.encode()) <= 12
+          probe("COMPACT_INITIAL", _COMPACT_PROMPT)
+          probe("COMPACT_RETRY", _COMPACT_RETRY)
           PY
 
       - name: Run Zeref in Beast Arms for exactly 30 minutes
