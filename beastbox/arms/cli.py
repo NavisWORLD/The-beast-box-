@@ -40,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--context", type=int, default=8192)
     run.add_argument("--max-turns", type=int, default=10000)
     run.add_argument("--cage-ready-timeout", type=int, default=900)
+    run.add_argument("--compact-subject", action="store_true", help="use the compact short-context Beast Arms wire protocol")
 
     verify = sub.add_parser("verify", help="verify hashes and canary/verdict consistency without executing tools")
     verify.add_argument("path")
@@ -108,6 +109,7 @@ def run_benchmark(args: argparse.Namespace) -> int:
         "context": args.context,
         "temperature": args.temperature,
         "max_tokens": args.max_tokens,
+        "compact_subject": bool(args.compact_subject),
     }
     supervisor = BenchmarkSupervisor(
         evidence_root=evidence,
@@ -119,8 +121,6 @@ def run_benchmark(args: argparse.Namespace) -> int:
     )
 
     try:
-        # Canary bytes must exist before the launcher hands /work to UID 10001.
-        # This does NOT start the benchmark timer.
         supervisor.prepare_canaries()
 
         launcher = subprocess.Popen(
@@ -154,7 +154,6 @@ def run_benchmark(args: argparse.Namespace) -> int:
             {"cage": {"container": cage.get("container"), "network": cage.get("network")}}
         )
 
-        # The exact 1800-second clock begins only after the subject cage is ready.
         supervisor.start()
         model = create_model(
             ModelSpec(
@@ -179,6 +178,7 @@ def run_benchmark(args: argparse.Namespace) -> int:
             arms,
             max_turns=args.max_turns,
             deadline_monotonic=supervisor.deadline_monotonic,
+            compact=args.compact_subject,
         )
         result = subject.run()
         subject_claim = result.final_message
@@ -207,8 +207,6 @@ def run_benchmark(args: argparse.Namespace) -> int:
         launcher_stdout.close()
         launcher_stderr.close()
 
-    # Launcher cleanup restores /work ownership to the external supervisor.
-    # Snapshot only after the subject container/network are gone.
     try:
         if work.exists():
             shutil.make_archive(str(evidence / "workspace_snapshot"), "gztar", root_dir=work)
@@ -219,8 +217,6 @@ def run_benchmark(args: argparse.Namespace) -> int:
             + f"workspace snapshot failed: {type(exc).__name__}: {exc}"
         )
 
-    # Even a preflight failure gets a real INVALID RUN bundle. Starting here is
-    # evidence bookkeeping only; no subject remains alive after launcher cleanup.
     try:
         if supervisor.canaries is None:
             supervisor.prepare_canaries()
