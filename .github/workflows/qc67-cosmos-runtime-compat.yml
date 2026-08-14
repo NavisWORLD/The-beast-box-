@@ -41,41 +41,70 @@ jobs:
             _qc67_arch/architecture/llama_cpp_cosmos.cpp \
             "_qc67_arch/$HF_FILE"
 
-      - name: Locate exact upstream patch base
+      - name: Locate exact upstream patch base state
         id: base
         shell: bash
         run: |
           set -euo pipefail
           git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git _llama
-          TARGET_ARCH_CPP=72968607d
-          BASE=""
-          while read -r commit; do
-            blob="$(git -C _llama ls-tree "$commit" src/llama-arch.cpp | awk '{print $3}')"
-            if [[ "$blob" == "$TARGET_ARCH_CPP"* ]]; then
-              BASE="$commit"
-              break
-            fi
-          done < <(git -C _llama log --all --format=%H -- src/llama-arch.cpp)
+          python - <<'PY' > _patch_base.env
+          import subprocess
+
+          repo = '_llama'
+          expected = {
+              'src/llama-arch.cpp': '72968607d',
+              'src/llama-arch.h': 'b74d53af4',
+              'src/llama-model.cpp': '4c10e4126',
+              'src/llama-model.h': '45b054ced',
+              'src/models/models.h': 'a86ae05aa',
+          }
+
+          def run(*args):
+              return subprocess.check_output(args, text=True).strip()
+
+          commits = run('git', '-C', repo, 'rev-list', '--all', '--since=2026-06-15', '--until=2026-08-10').splitlines()
+          print(f'SCANNED_COMMITS={len(commits)}')
+          first_hits = {p: None for p in expected}
+          exact = None
+          paths = list(expected)
+
+          for idx, commit in enumerate(commits, 1):
+              raw = run('git', '-C', repo, 'ls-tree', commit, '--', *paths)
+              blobs = {}
+              for line in raw.splitlines():
+                  if not line.strip():
+                      continue
+                  left, path = line.split('\t', 1)
+                  blob = left.split()[2]
+                  blobs[path] = blob
+              for path, prefix in expected.items():
+                  blob = blobs.get(path, '')
+                  if first_hits[path] is None and blob.startswith(prefix):
+                      first_hits[path] = commit
+              if all(blobs.get(path, '').startswith(prefix) for path, prefix in expected.items()):
+                  exact = commit
+                  break
+
+          for path, commit in first_hits.items():
+              if commit:
+                  date = run('git', '-C', repo, 'show', '-s', '--format=%cI', commit)
+                  print(f'PREIMAGE_HIT {path} {expected[path]} commit={commit} date={date}')
+              else:
+                  print(f'PREIMAGE_MISS {path} {expected[path]}')
+
+          if exact:
+              print(f'BASE={exact}')
+          else:
+              print('BASE=')
+          PY
+          cat _patch_base.env
+          BASE="$(sed -n 's/^BASE=//p' _patch_base.env | tail -n 1)"
           if [[ -z "$BASE" ]]; then
-            echo "Could not locate patch preimage blob $TARGET_ARCH_CPP" >&2
-            exit 1
+            echo "No single upstream commit contains all five patch preimage blobs." >&2
+            exit 2
           fi
-          echo "LLAMA_PATCH_BASE=$BASE"
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
           git -C _llama show -s --format='PATCH_BASE_COMMIT=%H%nPATCH_BASE_DATE=%cI%nPATCH_BASE_SUBJECT=%s' "$BASE"
-
-          declare -A expected=(
-            [src/llama-arch.cpp]=72968607d
-            [src/llama-arch.h]=b74d53af4
-            [src/llama-model.cpp]=4c10e4126
-            [src/llama-model.h]=45b054ced
-            [src/models/models.h]=a86ae05aa
-          )
-          for path in "${!expected[@]}"; do
-            blob="$(git -C _llama ls-tree "$BASE" "$path" | awk '{print $3}')"
-            echo "PATCH_PREIMAGE $path $blob expected_prefix=${expected[$path]}"
-            [[ "$blob" == "${expected[$path]}"* ]]
-          done
 
       - name: Reconstruct native llama.cpp runtime
         shell: bash
