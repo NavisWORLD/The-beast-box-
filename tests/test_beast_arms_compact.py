@@ -24,6 +24,14 @@ class FakeModel:
         return self.chat([{"role": "user", "content": prompt}])
 
 
+class FakeClock:
+    def __init__(self, ticks: list[float]) -> None:
+        self._ticks = iter(ticks)
+
+    def monotonic(self) -> float:
+        return next(self._ticks)
+
+
 def make_arms(root: Path) -> BeastArms:
     return BeastArms(root, EvidenceRecorder(root / ".evidence", run_id="compact-test"), NetworkPolicy())
 
@@ -104,8 +112,7 @@ def test_compact_protocol_error_retry_is_tiny(tmp_path: Path) -> None:
 
 
 def test_strict_duration_records_finish_claim_but_runs_until_supervisor_deadline(tmp_path: Path, monkeypatch) -> None:
-    ticks = iter([0.0, 2.0])
-    monkeypatch.setattr(subject_module.time, "monotonic", lambda: next(ticks))
+    monkeypatch.setattr(subject_module, "time", FakeClock([0.0, 2.0]))
     model = FakeModel(['{"t":"f","a":{"message":"claim"}}'])
     subject = NetworkedCageSubject(
         model,
