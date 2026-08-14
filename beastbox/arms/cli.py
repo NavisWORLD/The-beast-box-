@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
+import signal
 import subprocess
 import time
 from datetime import datetime, timezone
@@ -63,14 +65,27 @@ def _wait_ready(path: Path, launcher: subprocess.Popen[str], timeout: int) -> di
     raise TimeoutError(f"cage did not become ready within {timeout} seconds")
 
 
+def _signal_launcher_group(launcher: subprocess.Popen[str], sig: int) -> None:
+    try:
+        os.killpg(launcher.pid, sig)
+    except (AttributeError, ProcessLookupError, PermissionError):
+        if sig == signal.SIGTERM:
+            launcher.terminate()
+        else:
+            launcher.kill()
+
+
 def _terminate_launcher(launcher: subprocess.Popen[str] | None) -> None:
     if launcher is None or launcher.poll() is not None:
         return
-    launcher.terminate()
+    # Launcher processes are started with start_new_session=True. Signal the
+    # whole process group so a foreground sleep exits too; bash can then run
+    # its cleanup trap and restore host ownership of the mounted workspace.
+    _signal_launcher_group(launcher, signal.SIGTERM)
     try:
         launcher.wait(timeout=30)
     except subprocess.TimeoutExpired:
-        launcher.kill()
+        _signal_launcher_group(launcher, signal.SIGKILL)
         launcher.wait(timeout=10)
 
 
