@@ -84,3 +84,10 @@ def test_launcher_has_smoke_checks_for_public_proxy_and_blocked_direct_destinati
     assert "host.docker.internal" in text
     assert "network-smoke.json" in text
     assert "--noproxy '*'" in text
+
+
+def test_launcher_restores_workspace_ownership_to_external_supervisor_on_cleanup() -> None:
+    text = (ROOT / "scripts" / "networked_cage.sh").read_text(encoding="utf-8")
+    assert 'HOST_UID="$(id -u)"' in text
+    assert 'HOST_GID="$(id -g)"' in text
+    assert 'chown -R "$HOST_UID:$HOST_GID" "$WORK_DIR"' in text
