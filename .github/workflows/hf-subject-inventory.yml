@@ -59,8 +59,13 @@ jobs:
 
           wanted = [
               "serving/cosmos_coder.py",
-              "SAMGO.md",
+              "serving/spark_serve.py",
+              "serving/cosmos_serve.py",
+              "architecture/cosmos_spark_cst.py",
+              "architecture/cosmos_state_ladder.py",
+              "architecture/cosmos_phi_cst.py",
               "architecture/phos_grow.py",
+              "SAMGO.md",
               "model-index.json",
               "MANIFEST.json",
               "README.md",
@@ -78,14 +83,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -f subject-inventory/source/serving/cosmos_coder.py ]]; then
-            echo '===== serving/cosmos_coder.py ====='
-            sed -n '1,320p' subject-inventory/source/serving/cosmos_coder.py
-          fi
-          if [[ -f subject-inventory/source/SAMGO.md ]]; then
-            echo '===== SAMGO.md ====='
-            sed -n '1,260p' subject-inventory/source/SAMGO.md
-          fi
+          for f in \
+            subject-inventory/source/serving/spark_serve.py \
+            subject-inventory/source/serving/cosmos_serve.py \
+            subject-inventory/source/architecture/cosmos_spark_cst.py \
+            subject-inventory/source/serving/cosmos_coder.py \
+            subject-inventory/source/SAMGO.md; do
+            if [[ -f "$f" ]]; then
+              echo "===== $f ====="
+              sed -n '1,380p' "$f"
+            fi
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: qc67-subject-inventory
