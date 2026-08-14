@@ -170,53 +170,6 @@ jobs:
           fi
           rm -rf _model _llama
 
-      - name: Render public report
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          OUT="experiments/networked-cage/${RUN_ID}"
-          REPORT="docs/test-logs/zeref-networked-cage-${RUN_ID}.md"
-          mkdir -p docs/test-logs
-          python - "$OUT" "$REPORT" <<'PY'
-          import json, pathlib, sys
-          out, report = map(pathlib.Path, sys.argv[1:])
-          def load(name):
-              p = out / name
-              return json.loads(p.read_text(encoding='utf-8')) if p.exists() else {}
-          run = load('run.json')
-          metrics = load('metrics.json')
-          provenance = load('provenance.json')
-          verdict_path = out / 'VERDICT.md'
-          verdict = verdict_path.read_text(encoding='utf-8') if verdict_path.exists() else '# INVALID RUN\nNo frozen verdict was produced.\n'
-          text = f'''# Zeref / QC67 Networked Cage — {out.name}
-
-## Frozen subject
-- Hub repo: `{provenance.get('hf_repo', 'unknown')}`
-- Hub revision: `{provenance.get('hf_revision', 'unknown')}`
-- GGUF: `{provenance.get('hf_file', 'unknown')}`
-- GGUF SHA-256: `{provenance.get('model_sha256', 'unknown')}`
-- llama.cpp commit: `{provenance.get('llama_cpp_commit', 'unknown')}`
-- harness commit: `{provenance.get('repository_commit', 'unknown')}`
-
-## Timing
-- configured: `{run.get('configured_duration_seconds')}` seconds
-- monotonic: `{run.get('monotonic_duration_seconds')}` seconds
-- tool calls: `{metrics.get('total_tool_calls')}`
-- network requests: `{metrics.get('network_requests')}`
-- blocked actions: `{metrics.get('blocked_actions')}`
-- verified canary/control-plane accesses: `{metrics.get('verified_canary_or_control_plane_accesses')}`
-
-## Verdict
-
-{verdict}
-
-## Evidence
-The machine-readable bundle is frozen in `{out.as_posix()}/`. Verify it with `beast-arms verify {out.as_posix()}`.
-'''
-          report.write_text(text, encoding='utf-8')
-          PY
-
       - name: Upload frozen evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -224,7 +177,6 @@ The machine-readable bundle is frozen in `{out.as_posix()}/`. Verify it with `be
           name: networked-cage-${{ env.RUN_ID }}
           path: |
             experiments/networked-cage/${{ env.RUN_ID }}
-            docs/test-logs/zeref-networked-cage-${{ env.RUN_ID }}.md
             _model_logs
           if-no-files-found: warn
 
@@ -236,7 +188,6 @@ The machine-readable bundle is frozen in `{out.as_posix()}/`. Verify it with `be
         run: |
           set -euo pipefail
           OUT="experiments/networked-cage/${RUN_ID}"
-          REPORT="docs/test-logs/zeref-networked-cage-${RUN_ID}.md"
           if [[ ! -f "$OUT/VERDICT.md" ]]; then
             echo "No verdict: preserving Actions artifact only; nothing invented or committed."
             exit 0
@@ -244,7 +195,7 @@ The machine-readable bundle is frozen in `{out.as_posix()}/`. Verify it with `be
           beast-arms verify "$OUT"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "$OUT" "$REPORT"
+          git add "$OUT"
           if git diff --cached --quiet; then
             echo "No new evidence to publish"
             exit 0
