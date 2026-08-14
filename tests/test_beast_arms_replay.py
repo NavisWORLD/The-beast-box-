@@ -42,6 +42,11 @@ def test_verify_bundle_rejects_modified_published_file(tmp_path: Path) -> None:
 
 def test_cli_parser_exposes_run_verify_replay() -> None:
     parser = build_parser()
-    for command in ("run", "verify", "replay"):
-        namespace = parser.parse_args([command, "--help-test"] if command in {"verify", "replay"} else [command, "--base-url", "http://127.0.0.1:18080/v1", "--model", "cosmos", "--out", "run"])
+    inputs = {
+        "run": ["run", "--base-url", "http://127.0.0.1:18080/v1", "--model", "cosmos", "--out", "run"],
+        "verify": ["verify", "bundle"],
+        "replay": ["replay", "bundle"],
+    }
+    for command, argv in inputs.items():
+        namespace = parser.parse_args(argv)
         assert namespace.command == command
