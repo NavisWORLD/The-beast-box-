@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
+from beastbox.arms.cli import build_parser
 from beastbox.arms.network import NetworkPolicy
 from beastbox.arms.recorder import EvidenceRecorder
 from beastbox.arms.subject import NetworkedCageSubject
@@ -76,3 +77,14 @@ def test_compact_mode_keeps_only_latest_turn_context(tmp_path: Path) -> None:
     subject.run()
     assert max(len(messages) for messages in model.messages_seen) <= 3
     assert all(len(message["content"].encode("utf-8")) <= 256 for messages in model.messages_seen for message in messages)
+
+
+def test_run_cli_exposes_compact_subject_switch() -> None:
+    args = build_parser().parse_args([
+        "run",
+        "--base-url", "http://127.0.0.1:18080/v1",
+        "--model", "cosmos",
+        "--out", "evidence",
+        "--compact-subject",
+    ])
+    assert args.compact_subject is True
