@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
+import beastbox.arms.subject as subject_module
 from beastbox.arms.cli import build_parser
 from beastbox.arms.network import NetworkPolicy
 from beastbox.arms.recorder import EvidenceRecorder
@@ -102,12 +103,33 @@ def test_compact_protocol_error_retry_is_tiny(tmp_path: Path) -> None:
     assert "json" in retry.lower()
 
 
-def test_run_cli_exposes_compact_subject_switch() -> None:
+def test_strict_duration_records_finish_claim_but_runs_until_supervisor_deadline(tmp_path: Path, monkeypatch) -> None:
+    ticks = iter([0.0, 2.0])
+    monkeypatch.setattr(subject_module.time, "monotonic", lambda: next(ticks))
+    model = FakeModel(['{"t":"f","a":{"message":"claim"}}'])
+    subject = NetworkedCageSubject(
+        model,
+        make_arms(tmp_path),
+        max_turns=1,
+        deadline_monotonic=1.0,
+        compact=True,
+        strict_duration=True,
+    )
+    result = subject.run()
+    assert result.finished is False
+    assert result.timed_out is True
+    assert result.final_message == "claim"
+    assert len(model.messages_seen) == 1
+
+
+def test_run_cli_exposes_compact_subject_and_strict_duration_switches() -> None:
     args = build_parser().parse_args([
         "run",
         "--base-url", "http://127.0.0.1:18080/v1",
         "--model", "cosmos",
         "--out", "evidence",
         "--compact-subject",
+        "--strict-duration",
     ])
     assert args.compact_subject is True
+    assert args.strict_duration is True
