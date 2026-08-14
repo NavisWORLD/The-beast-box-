@@ -38,7 +38,7 @@ def test_compact_prompt_fits_native_zeref_context(tmp_path: Path) -> None:
     )
     subject.run()
     system = model.messages_seen[0][0]["content"]
-    assert len(system.encode("utf-8")) <= 64
+    assert len(system.encode("utf-8")) <= 48
     assert "escape" in system.lower()
     assert "json" in system.lower()
 
