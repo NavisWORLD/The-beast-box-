@@ -12,9 +12,9 @@ permissions:
 
 env:
   HF_REPO: phera-ra/QC67_cosmo
-  HF_FILE: weights/cosmos-cst.gguf
-  LLAMA_CPP_COMMIT: 7e4c0a96880dae4fc4268ad441f8a6446bd5460a
-  RUN_ID: 2026-08-14-run-002
+  HF_CHECKPOINT: weights/spark_cst.pt
+  HF_SERVER: serving/cosmos_serve.py
+  RUN_ID: 2026-08-14-run-003
   DURATION: "1800"
 
 jobs:
@@ -31,88 +31,108 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Beast Arms
+      - name: Install Beast Arms and native QC67 runtime dependencies
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
           pip install -e '.[dev,huggingface]'
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
           chmod +x scripts/networked_cage.sh scripts/egress_proxy.py
           beast-arms --help
+          python - <<'PY'
+          import torch
+          print('torch', torch.__version__)
+          print('cuda_available', torch.cuda.is_available())
+          PY
 
       - name: Cage smoke preflight
         run: |
           set -euo pipefail
-          rm -rf runs/live-v2-preflight
-          scripts/networked_cage.sh --smoke --duration 15 --out runs/live-v2-preflight
-          cat runs/live-v2-preflight/evidence/network-smoke.json
+          rm -rf runs/live-v3-preflight
+          scripts/networked_cage.sh --smoke --duration 15 --out runs/live-v3-preflight
+          cat runs/live-v3-preflight/evidence/network-smoke.json
 
-      - name: Resolve and download exact QC67 subject
+      - name: Resolve and download exact native QC67 subject
         id: model
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p _model
+          rm -rf _subject
+          mkdir -p _subject
           REVISION="$(python - <<'PY'
           from huggingface_hub import HfApi
           print(HfApi().model_info('phera-ra/QC67_cosmo').sha)
           PY
           )"
           python - "$REVISION" <<'PY'
-          import sys
-          from huggingface_hub import HfApi
+          import pathlib, sys
+          from huggingface_hub import HfApi, hf_hub_download
           revision = sys.argv[1]
           repo = 'phera-ra/QC67_cosmo'
-          wanted = 'weights/cosmos-cst.gguf'
-          files = HfApi().list_repo_files(repo_id=repo, revision=revision)
-          ggufs = sorted(f for f in files if f.lower().endswith('.gguf'))
-          print('GGUF files at pinned revision:', ggufs)
-          if wanted not in files:
-              raise SystemExit(f'pinned subject file missing: {wanted}')
+          api = HfApi()
+          files = api.list_repo_files(repo_id=repo, revision=revision)
+          required = ['serving/cosmos_serve.py', 'weights/spark_cst.pt']
+          missing = [p for p in required if p not in files]
+          if missing:
+              raise SystemExit(f'missing native QC67 runtime files: {missing}')
+          wanted = required + [p for p in files if p.startswith('architecture/') and p.endswith('.py')]
+          for path in sorted(set(wanted)):
+              hf_hub_download(repo_id=repo, filename=path, revision=revision, local_dir='_subject')
+              print('downloaded', path)
           PY
-          hf download "$HF_REPO" "$HF_FILE" --revision "$REVISION" --local-dir _model
-          MODEL_PATH="$(realpath "_model/${HF_FILE}")"
+          MODEL_PATH="$(realpath "_subject/${HF_CHECKPOINT}")"
           MODEL_SHA256="$(sha256sum "$MODEL_PATH" | awk '{print $1}')"
+          SERVER_SHA256="$(sha256sum "_subject/${HF_SERVER}" | awk '{print $1}')"
           echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
           echo "path=$MODEL_PATH" >> "$GITHUB_OUTPUT"
           echo "sha256=$MODEL_SHA256" >> "$GITHUB_OUTPUT"
-          echo "file=$HF_FILE" >> "$GITHUB_OUTPUT"
-          ls -lh "$MODEL_PATH"
+          echo "server_sha256=$SERVER_SHA256" >> "$GITHUB_OUTPUT"
+          echo "file=$HF_CHECKPOINT" >> "$GITHUB_OUTPUT"
+          ls -lh "$MODEL_PATH" "_subject/${HF_SERVER}"
 
-      - name: Build pinned llama.cpp server
+      - name: Build-check native QC67 architecture
         run: |
           set -euo pipefail
-          git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git _llama
-          git -C _llama checkout "$LLAMA_CPP_COMMIT"
-          cmake -S _llama -B _llama/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF
-          cmake --build _llama/build --target llama-server -j 2
-          _llama/build/bin/llama-server --version || true
+          python -m py_compile _subject/serving/cosmos_serve.py _subject/architecture/*.py
+          python - <<'PY'
+          import pathlib, sys
+          root = pathlib.Path('_subject').resolve()
+          sys.path.insert(0, str(root / 'architecture'))
+          import cosmos_spark_cst
+          print('native architecture import OK:', cosmos_spark_cst.__file__)
+          PY
 
-      - name: Start local subject server
+      - name: Start and verify native cosmos-cst subject server
+        id: server
+        shell: bash
         run: |
           set -euo pipefail
           mkdir -p _model_logs
-          _llama/build/bin/llama-server \
-            -m '${{ steps.model.outputs.path }}' \
-            --host 127.0.0.1 \
-            --port 18080 \
-            -c 8192 \
-            -np 1 \
-            > _model_logs/llama-server.stdout.log \
-            2> _model_logs/llama-server.stderr.log &
-          echo $! > _model_logs/llama-server.pid
-          for i in $(seq 1 300); do
-            if curl -fsS http://127.0.0.1:18080/health >/dev/null 2>&1; then
-              echo "subject server ready"
-              exit 0
+          (
+            cd _subject
+            python serving/cosmos_serve.py 18080 \
+              > ../_model_logs/cosmos-serve.stdout.log \
+              2> ../_model_logs/cosmos-serve.stderr.log
+          ) &
+          echo $! > _model_logs/cosmos-serve.pid
+          for i in $(seq 1 240); do
+            if curl -fsS http://127.0.0.1:18080/api/tags > _model_logs/tags.json 2>/dev/null; then
+              break
             fi
-            if ! kill -0 "$(cat _model_logs/llama-server.pid)" 2>/dev/null; then
-              cat _model_logs/llama-server.stderr.log >&2
+            if ! kill -0 "$(cat _model_logs/cosmos-serve.pid)" 2>/dev/null; then
+              cat _model_logs/cosmos-serve.stderr.log >&2
               exit 1
             fi
             sleep 1
           done
-          cat _model_logs/llama-server.stderr.log >&2
-          exit 1
+          cat _model_logs/tags.json
+          curl --max-time 180 -fsS \
+            -H 'Content-Type: application/json' \
+            -d '{"model":"cosmos-cst","messages":[{"role":"user","content":"ping"}],"stream":false}' \
+            http://127.0.0.1:18080/api/chat \
+            > _model_logs/native-preflight.json
+          cat _model_logs/native-preflight.json
+          echo "native cosmos-cst inference ready"
 
       - name: Run the Beast for 30 minutes
         id: live
@@ -120,6 +140,7 @@ jobs:
         env:
           MODEL_REVISION: ${{ steps.model.outputs.revision }}
           MODEL_SHA256: ${{ steps.model.outputs.sha256 }}
+          MODEL_SERVER_SHA256: ${{ steps.model.outputs.server_sha256 }}
           MODEL_FILE: ${{ steps.model.outputs.file }}
         run: |
           set -uo pipefail
@@ -132,19 +153,20 @@ jobs:
               'repository_commit': os.environ['GITHUB_SHA'],
               'runner_os': platform.platform(),
               'python': platform.python_version(),
-              'llama_cpp_commit': os.environ['LLAMA_CPP_COMMIT'],
+              'runtime': 'QC67 native PyTorch Ollama-compatible server',
               'hf_repo': os.environ['HF_REPO'],
               'hf_file': os.environ['MODEL_FILE'],
               'hf_revision': os.environ['MODEL_REVISION'],
               'model_sha256': os.environ['MODEL_SHA256'],
+              'server_sha256': os.environ['MODEL_SERVER_SHA256'],
               'configured_duration_seconds': int(os.environ['DURATION']),
           }
           (out / 'provenance.json').write_text(json.dumps(value, indent=2, sort_keys=True) + '\n', encoding='utf-8')
           PY
           beast-arms run \
-            --base-url http://127.0.0.1:18080/v1 \
-            --backend openai-compatible \
-            --model cosmos \
+            --base-url http://127.0.0.1:18080 \
+            --backend ollama \
+            --model cosmos-cst \
             --duration "$DURATION" \
             --run-id "$RUN_ID" \
             --out "$OUT" \
@@ -163,12 +185,12 @@ jobs:
         shell: bash
         run: |
           set +e
-          if [[ -f _model_logs/llama-server.pid ]]; then
-            kill "$(cat _model_logs/llama-server.pid)" 2>/dev/null || true
+          if [[ -f _model_logs/cosmos-serve.pid ]]; then
+            kill "$(cat _model_logs/cosmos-serve.pid)" 2>/dev/null || true
             sleep 2
-            kill -9 "$(cat _model_logs/llama-server.pid)" 2>/dev/null || true
+            kill -9 "$(cat _model_logs/cosmos-serve.pid)" 2>/dev/null || true
           fi
-          rm -rf _model _llama
+          rm -rf _subject
 
       - name: Upload frozen evidence
         if: always()
