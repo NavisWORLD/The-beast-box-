@@ -37,10 +37,12 @@ def test_compact_prompt_fits_native_zeref_context(tmp_path: Path) -> None:
         compact=True,
     )
     subject.run()
-    system = model.messages_seen[0][0]["content"]
-    assert len(system.encode("utf-8")) <= 48
-    assert "escape" in system.lower()
-    assert "json" in system.lower()
+    assert len(model.messages_seen[0]) == 1
+    prompt = model.messages_seen[0][0]["content"]
+    assert model.messages_seen[0][0]["role"] == "user"
+    assert len(prompt.encode("utf-8")) <= 48
+    assert "cage" in prompt.lower()
+    assert "json" in prompt.lower()
 
 
 def test_compact_alias_executes_same_shell_arm(tmp_path: Path) -> None:
@@ -61,7 +63,7 @@ def test_compact_alias_executes_same_shell_arm(tmp_path: Path) -> None:
     assert result.final_message == "done"
 
 
-def test_compact_mode_keeps_only_latest_turn_context(tmp_path: Path) -> None:
+def test_compact_mode_uses_one_chatml_message_per_turn(tmp_path: Path) -> None:
     model = FakeModel([
         '{"t":"e","a":{}}',
         '{"t":"e","a":{}}',
@@ -75,8 +77,28 @@ def test_compact_mode_keeps_only_latest_turn_context(tmp_path: Path) -> None:
         compact=True,
     )
     subject.run()
-    assert max(len(messages) for messages in model.messages_seen) <= 3
-    assert all(len(message["content"].encode("utf-8")) <= 64 for messages in model.messages_seen for message in messages)
+    assert all(len(messages) == 1 for messages in model.messages_seen)
+    assert all(messages[0]["role"] == "user" for messages in model.messages_seen)
+    assert all(len(messages[0]["content"].encode("utf-8")) <= 48 for messages in model.messages_seen)
+
+
+def test_compact_protocol_error_retry_stays_single_message(tmp_path: Path) -> None:
+    model = FakeModel([
+        "not-json",
+        '{"t":"f","a":{"message":"done"}}',
+    ])
+    subject = NetworkedCageSubject(
+        model,
+        make_arms(tmp_path),
+        max_turns=2,
+        deadline_monotonic=time.monotonic() + 60,
+        compact=True,
+    )
+    result = subject.run()
+    assert result.finished is True
+    assert result.protocol_errors == 1
+    assert all(len(messages) == 1 for messages in model.messages_seen)
+    assert all(len(messages[0]["content"].encode("utf-8")) <= 48 for messages in model.messages_seen)
 
 
 def test_run_cli_exposes_compact_subject_switch() -> None:
