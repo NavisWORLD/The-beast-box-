@@ -1,0 +1,298 @@
+name: Networked Cage
+
+on:
+  push:
+    branches: [main, networked-cage-run-001]
+    paths:
+      - ".github/workflows/networked-cage.yml"
+      - "run-requests/networked-cage/**"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "smoke or live"
+        required: true
+        default: smoke
+        type: choice
+        options: [smoke, live]
+      duration_seconds:
+        description: "Live benchmark wall-clock seconds"
+        required: true
+        default: "1800"
+      run_id:
+        description: "Evidence directory run id"
+        required: true
+        default: "2026-08-14-run-manual"
+
+permissions:
+  contents: write
+
+jobs:
+  cage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      LLAMA_CPP_COMMIT: 7e4c0a96880dae4fc4268ad441f8a6446bd5460a
+      HF_REPO: phera-ra/QC67_cosmo
+      HF_FILE: cosmos-namebind-weights.gguf
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install harness
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,huggingface]'
+          chmod +x scripts/networked_cage.sh scripts/egress_proxy.py
+
+      - name: Resolve run request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          MODE="smoke"
+          DURATION="30"
+          RUN_ID="smoke-${GITHUB_RUN_ID}"
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            MODE='${{ inputs.mode }}'
+            DURATION='${{ inputs.duration_seconds }}'
+            RUN_ID='${{ inputs.run_id }}'
+          else
+            REQUEST="$(find run-requests/networked-cage -maxdepth 1 -name '*.json' -type f 2>/dev/null | sort | tail -n 1 || true)"
+            if [[ -n "$REQUEST" ]]; then
+              MODE="$(jq -r '.mode // "smoke"' "$REQUEST")"
+              DURATION="$(jq -r '.duration_seconds // 30' "$REQUEST")"
+              RUN_ID="$(jq -r '.run_id // "run-'"${GITHUB_RUN_ID}"'"' "$REQUEST")"
+            fi
+          fi
+          if [[ "$MODE" != "smoke" && "$MODE" != "live" ]]; then
+            echo "invalid mode: $MODE" >&2
+            exit 2
+          fi
+          if ! [[ "$DURATION" =~ ^[0-9]+$ ]]; then
+            echo "duration must be integer seconds" >&2
+            exit 2
+          fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "duration=$DURATION" >> "$GITHUB_OUTPUT"
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Docker/network smoke
+        if: steps.request.outputs.mode == 'smoke'
+        run: |
+          set -euo pipefail
+          scripts/networked_cage.sh --smoke --duration 30 --out "runs/${{ steps.request.outputs.run_id }}"
+          cat "runs/${{ steps.request.outputs.run_id }}/evidence/network-smoke.json"
+
+      - name: Upload smoke evidence
+        if: steps.request.outputs.mode == 'smoke'
+        uses: actions/upload-artifact@v4
+        with:
+          name: networked-cage-smoke-${{ steps.request.outputs.run_id }}
+          path: runs/${{ steps.request.outputs.run_id }}/evidence
+          if-no-files-found: error
+
+      - name: Download exact subject GGUF
+        if: steps.request.outputs.mode == 'live'
+        id: model
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _model
+          REVISION="$(git ls-remote "https://huggingface.co/${HF_REPO}" HEAD | awk '{print $1}')"
+          hf download "$HF_REPO" "$HF_FILE" --revision "$REVISION" --local-dir _model
+          MODEL_PATH="$(realpath "_model/${HF_FILE}")"
+          MODEL_SHA256="$(sha256sum "$MODEL_PATH" | awk '{print $1}')"
+          echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
+          echo "path=$MODEL_PATH" >> "$GITHUB_OUTPUT"
+          echo "sha256=$MODEL_SHA256" >> "$GITHUB_OUTPUT"
+          ls -lh "$MODEL_PATH"
+
+      - name: Build pinned llama.cpp server outside cage
+        if: steps.request.outputs.mode == 'live'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git _llama
+          git -C _llama checkout "$LLAMA_CPP_COMMIT"
+          cmake -S _llama -B _llama/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF
+          cmake --build _llama/build --target llama-server -j 2
+          _llama/build/bin/llama-server --version || true
+
+      - name: Start local subject model server
+        if: steps.request.outputs.mode == 'live'
+        id: server
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _model_logs
+          _llama/build/bin/llama-server \
+            -m '${{ steps.model.outputs.path }}' \
+            --host 127.0.0.1 \
+            --port 18080 \
+            -c 8192 \
+            -np 1 \
+            > _model_logs/llama-server.stdout.log \
+            2> _model_logs/llama-server.stderr.log &
+          echo $! > _model_logs/llama-server.pid
+          for i in $(seq 1 240); do
+            if curl -fsS http://127.0.0.1:18080/health >/dev/null 2>&1; then
+              echo "llama-server ready"
+              exit 0
+            fi
+            if ! kill -0 "$(cat _model_logs/llama-server.pid)" 2>/dev/null; then
+              cat _model_logs/llama-server.stderr.log >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          cat _model_logs/llama-server.stderr.log >&2
+          exit 1
+
+      - name: Run timed model-in-the-loop benchmark
+        if: steps.request.outputs.mode == 'live'
+        id: live
+        shell: bash
+        run: |
+          set -uo pipefail
+          RUN_ID='${{ steps.request.outputs.run_id }}'
+          OUT="experiments/networked-cage/${RUN_ID}"
+          mkdir -p "$OUT"
+          python - <<'PY'
+          import json, os, pathlib, platform, subprocess
+          out = pathlib.Path("experiments/networked-cage") / os.environ["RUN_ID"]
+          value = {
+              "repository_commit": os.environ["GITHUB_SHA"],
+              "runner_os": platform.platform(),
+              "python": platform.python_version(),
+              "llama_cpp_commit": os.environ["LLAMA_CPP_COMMIT"],
+              "hf_repo": os.environ["HF_REPO"],
+              "hf_file": os.environ["HF_FILE"],
+              "hf_revision": os.environ["MODEL_REVISION"],
+              "model_sha256": os.environ["MODEL_SHA256"],
+              "configured_duration_seconds": int(os.environ["DURATION"]),
+          }
+          (out / "provenance.json").write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          PY
+          beast-arms run \
+            --base-url http://127.0.0.1:18080/v1 \
+            --backend openai-compatible \
+            --model cosmos \
+            --duration '${{ steps.request.outputs.duration }}' \
+            --run-id "$RUN_ID" \
+            --out "$OUT" \
+            --model-revision '${{ steps.model.outputs.revision }}' \
+            --model-sha256 '${{ steps.model.outputs.sha256 }}' \
+            --model-file "$HF_FILE"
+          RUN_RC=$?
+          echo "run_rc=$RUN_RC" >> "$GITHUB_OUTPUT"
+          beast-arms verify "$OUT"
+          VERIFY_RC=$?
+          echo "verify_rc=$VERIFY_RC" >> "$GITHUB_OUTPUT"
+          exit 0
+        env:
+          RUN_ID: ${{ steps.request.outputs.run_id }}
+          DURATION: ${{ steps.request.outputs.duration }}
+          MODEL_REVISION: ${{ steps.model.outputs.revision }}
+          MODEL_SHA256: ${{ steps.model.outputs.sha256 }}
+
+      - name: Stop model server before publisher credentials exist
+        if: always() && steps.request.outputs.mode == 'live'
+        shell: bash
+        run: |
+          set +e
+          if [[ -f _model_logs/llama-server.pid ]]; then
+            kill "$(cat _model_logs/llama-server.pid)" 2>/dev/null || true
+            sleep 2
+            kill -9 "$(cat _model_logs/llama-server.pid)" 2>/dev/null || true
+          fi
+          rm -rf _model _llama
+
+      - name: Render public run report
+        if: always() && steps.request.outputs.mode == 'live'
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID='${{ steps.request.outputs.run_id }}'
+          OUT="experiments/networked-cage/${RUN_ID}"
+          REPORT="docs/test-logs/zeref-networked-cage-${RUN_ID}.md"
+          mkdir -p docs/test-logs
+          python - "$OUT" "$REPORT" <<'PY'
+          import json, pathlib, sys
+          out, report = map(pathlib.Path, sys.argv[1:])
+          def load(name):
+              p = out / name
+              return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+          run = load("run.json")
+          metrics = load("metrics.json")
+          provenance = load("provenance.json")
+          verdict_path = out / "VERDICT.md"
+          verdict = verdict_path.read_text(encoding="utf-8") if verdict_path.exists() else "# Missing verdict\n"
+          text = f"""# Zeref / QC67 Networked Cage Run — {run.get('run_id', out.name)}
+
+          ## Frozen subject
+          - Model repository: `{provenance.get('hf_repo', 'unknown')}`
+          - Model file: `{provenance.get('hf_file', 'unknown')}`
+          - Hub revision: `{provenance.get('hf_revision', 'unknown')}`
+          - Model SHA-256: `{provenance.get('model_sha256', 'unknown')}`
+          - llama.cpp commit: `{provenance.get('llama_cpp_commit', 'unknown')}`
+          - Harness commit: `{provenance.get('repository_commit', 'unknown')}`
+
+          ## Timing
+          - Configured wall-clock: `{run.get('configured_duration_seconds')}` seconds
+          - Recorded monotonic duration: `{run.get('monotonic_duration_seconds')}` seconds
+          - Tool calls: `{metrics.get('total_tool_calls')}`
+          - Network tool requests: `{metrics.get('network_requests')}`
+          - Blocked actions: `{metrics.get('blocked_actions')}`
+          - Verified canary/control-plane accesses: `{metrics.get('verified_canary_or_control_plane_accesses')}`
+
+          ## Verdict
+
+          {verdict}
+
+          ## Evidence
+          Raw machine-readable evidence is frozen in `{out.as_posix()}/` and verified by `SHA256SUMS` plus the event hash chain. Historical checkpoints are not rewritten.
+          """
+          report.write_text("\n".join(line.strip() for line in text.splitlines()) + "\n", encoding="utf-8")
+          PY
+
+      - name: Upload live evidence artifact
+        if: always() && steps.request.outputs.mode == 'live'
+        uses: actions/upload-artifact@v4
+        with:
+          name: networked-cage-${{ steps.request.outputs.run_id }}
+          path: |
+            experiments/networked-cage/${{ steps.request.outputs.run_id }}
+            docs/test-logs/zeref-networked-cage-${{ steps.request.outputs.run_id }}.md
+            _model_logs
+          if-no-files-found: warn
+
+      - name: Publish frozen evidence to this branch
+        if: always() && steps.request.outputs.mode == 'live'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUN_ID='${{ steps.request.outputs.run_id }}'
+          OUT="experiments/networked-cage/${RUN_ID}"
+          REPORT="docs/test-logs/zeref-networked-cage-${RUN_ID}.md"
+          if [[ ! -f "$OUT/VERDICT.md" ]]; then
+            echo "No frozen verdict exists; refusing to publish an invented result." >&2
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT" "$REPORT"
+          if git diff --cached --quiet; then
+            echo "No new evidence to publish"
+            exit 0
+          fi
+          git commit -m "testlog: publish timed Networked Cage $RUN_ID"
+          BASIC="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $BASIC" push origin "HEAD:${GITHUB_REF_NAME}"
