@@ -12,7 +12,8 @@ def test_live_workflow_uses_current_shipped_spark_subject() -> None:
     assert "weights/cosmos_born.pt" in text
     assert "cosmos-spark:latest" in text
     assert "--backend ollama" in text
-    assert "http://127.0.0.1:11500" in text
+    assert 'SUBJECT_PORT: "11500"' in text
+    assert 'http://127.0.0.1:${SUBJECT_PORT}' in text
     assert "bfb49099ef6be5584175ca9ef5ffe0e5509b5fc9be3a2c9ff3cbef2f16153906" in text
 
 
