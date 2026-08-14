@@ -1,0 +1,51 @@
+name: HF Subject Probe
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/hf-subject-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Inspect current QC67 subject files
+        run: |
+          python -m pip install --quiet 'huggingface-hub>=0.27'
+          python - <<'PY'
+          from pathlib import PurePosixPath
+          from huggingface_hub import HfApi
+
+          repo = "phera-ra/QC67_cosmo"
+          api = HfApi()
+          info = api.model_info(repo)
+          revision = info.sha
+          files = sorted(api.list_repo_files(repo_id=repo, revision=revision))
+          ggufs = [f for f in files if f.lower().endswith('.gguf')]
+          preferred = [f for f in ggufs if PurePosixPath(f).name == 'cosmos-namebind-weights.gguf']
+          print(f"HF_REPO={repo}")
+          print(f"HF_REVISION={revision}")
+          print(f"FILE_COUNT={len(files)}")
+          print(f"GGUF_COUNT={len(ggufs)}")
+          print("GGUF_FILES_BEGIN")
+          for f in ggufs:
+              print(f)
+          print("GGUF_FILES_END")
+          if preferred:
+              print(f"PREFERRED_GGUF={preferred[0]}")
+          elif len(ggufs) == 1:
+              print(f"PREFERRED_GGUF={ggufs[0]}")
+          else:
+              print("PREFERRED_GGUF=")
+          PY
