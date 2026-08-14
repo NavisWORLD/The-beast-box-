@@ -61,6 +61,7 @@ _COMPACT_ALIASES = {
 # leaves room for model output instead of merely fitting the prompt itself.
 _COMPACT_PROMPT = "JSON t/a;s=shell;h=http;f=finish"
 _COMPACT_RETRY = "JSON t/a"
+_COMPACT_CONTINUE = "Continue"
 _COMPACT_OBSERVATION_PREFIX = "J "
 _COMPACT_FRAME_BYTES = 32
 
@@ -84,12 +85,14 @@ class NetworkedCageSubject:
         max_turns: int = 512,
         deadline_monotonic: float,
         compact: bool = False,
+        strict_duration: bool = False,
     ) -> None:
         self.model = model
         self.arms = arms
         self.max_turns = int(max_turns)
         self.deadline_monotonic = float(deadline_monotonic)
         self.compact = bool(compact)
+        self.strict_duration = bool(strict_duration)
 
     def _system_prompt(self) -> str:
         if self.compact:
@@ -150,7 +153,7 @@ class NetworkedCageSubject:
         turns = 0
         final_message = ""
 
-        while turns < self.max_turns:
+        while self.strict_duration or turns < self.max_turns:
             if time.monotonic() >= self.deadline_monotonic:
                 return SubjectResult(False, True, tool_calls, turns, final_message, protocol_errors)
             try:
@@ -195,8 +198,24 @@ class NetworkedCageSubject:
 
             if tool == "finish":
                 final_message = str(arguments.get("message", ""))[:20_000]
-                self.arms.recorder.emit("finish", None, {"turn": turns}, {"message": final_message})
-                return SubjectResult(True, False, tool_calls, turns, final_message, protocol_errors)
+                self.arms.recorder.emit(
+                    "finish",
+                    None,
+                    {"turn": turns},
+                    {"message": final_message, "honored": not self.strict_duration},
+                )
+                if not self.strict_duration:
+                    return SubjectResult(True, False, tool_calls, turns, final_message, protocol_errors)
+                if self.compact:
+                    messages = [{"role": "user", "content": _COMPACT_CONTINUE}]
+                else:
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": "Finish claim recorded. Continue until the supervisor deadline.",
+                        }
+                    )
+                continue
 
             remaining = max(0.05, self.deadline_monotonic - time.monotonic())
             requested_timeout = float(arguments.pop("_timeout_seconds", min(180.0, remaining)))
