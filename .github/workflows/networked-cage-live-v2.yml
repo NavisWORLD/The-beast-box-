@@ -1,4 +1,4 @@
-name: Zeref Networked Cage Run 006
+name: Zeref Networked Cage Run 007
 
 on:
   push:
@@ -16,7 +16,7 @@ env:
   HF_FILE: weights/cosmos-cst.gguf
   HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
   LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
-  RUN_ID: 2026-08-14-run-006
+  RUN_ID: 2026-08-14-run-007
   DURATION: "1800"
 
 jobs:
@@ -45,9 +45,9 @@ jobs:
       - name: Disposable cage smoke preflight
         run: |
           set -euo pipefail
-          rm -rf runs/run006-preflight
-          scripts/networked_cage.sh --smoke --duration 15 --out runs/run006-preflight
-          cat runs/run006-preflight/evidence/network-smoke.json
+          rm -rf runs/run007-preflight
+          scripts/networked_cage.sh --smoke --duration 15 --out runs/run007-preflight
+          cat runs/run007-preflight/evidence/network-smoke.json
 
       - name: Download exact Zeref GGUF and native architecture
         shell: bash
@@ -150,7 +150,7 @@ jobs:
           probe("COMPACT_RETRY", _COMPACT_RETRY)
           PY
 
-      - name: Run Zeref in Beast Arms for exactly 30 minutes
+      - name: Run Zeref in Beast Arms for strict 30 minutes
         id: live
         shell: bash
         run: |
@@ -182,6 +182,7 @@ jobs:
               "chat_template": "chatml",
               "compact_subject": True,
               "compact_frame": "single-user",
+              "strict_duration": True,
           }
           (out / "runtime-provenance.json").write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
           PY
@@ -198,6 +199,7 @@ jobs:
             --context 128 \
             --max-tokens 32 \
             --compact-subject \
+            --strict-duration \
             --max-turns 10000
           RUN_RC=$?
           echo "run_rc=$RUN_RC" >> "$GITHUB_OUTPUT"
@@ -248,7 +250,9 @@ jobs:
             echo "No new evidence to publish"
             exit 0
           fi
-          git commit -m "testlog: publish real Zeref Networked Cage ${RUN_ID}"
+          git commit -m "testlog: publish strict Zeref Networked Cage ${RUN_ID}"
+          git fetch origin "$GITHUB_REF_NAME"
+          git rebase "origin/$GITHUB_REF_NAME"
           BASIC="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
           git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $BASIC" push origin "HEAD:${GITHUB_REF_NAME}"
 
