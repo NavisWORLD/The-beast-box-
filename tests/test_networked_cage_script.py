@@ -38,6 +38,8 @@ def test_launcher_drops_caps_blocks_host_control_and_always_cleans_up() -> None:
         "--env HTTP_PROXY=",
         "--env HTTPS_PROXY=",
         "--env NO_PROXY=",
+        "scripts/egress_proxy.py",
+        "-j REJECT",
     ]
     for needle in required:
         assert needle in text
@@ -60,14 +62,25 @@ def test_example_configuration_freezes_canonical_duration_and_network_profile() 
     assert config["duration_seconds"] == 1800
     assert config["network_profile"] == "networked-cage"
     assert config["subject_uid"] == 10001
+    assert config["public_egress"]["mode"] == "validated-http-proxy"
     assert config["public_egress"]["tcp_ports"] == [80, 443]
-    assert config["public_egress"]["dns"] is True
+    assert config["public_egress"]["direct_public_sockets"] is False
 
 
-def test_launcher_has_smoke_checks_for_public_and_blocked_destinations() -> None:
+def test_egress_proxy_reuses_network_policy_and_restricts_connect_ports() -> None:
+    text = (ROOT / "scripts" / "egress_proxy.py").read_text(encoding="utf-8")
+    assert "NetworkPolicy" in text
+    assert "resolve_public" in text
+    assert "CONNECT" in text
+    assert "ALLOWED_PORTS = {80, 443}" in text
+    assert "network-proxy.jsonl" in text
+
+
+def test_launcher_has_smoke_checks_for_public_proxy_and_blocked_direct_destinations() -> None:
     text = (ROOT / "scripts" / "networked_cage.sh").read_text(encoding="utf-8")
     assert "--smoke" in text
     assert "https://example.com" in text
     assert "169.254.169.254" in text
     assert "host.docker.internal" in text
     assert "network-smoke.json" in text
+    assert "--noproxy '*'" in text
