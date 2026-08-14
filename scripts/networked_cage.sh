@@ -19,6 +19,8 @@ GATEWAY_IP=""
 PROXY_PID=""
 FORWARD_CHAIN=""
 INPUT_CHAIN=""
+HOST_UID="$(id -u)"
+HOST_GID="$(id -g)"
 
 usage() {
   cat <<'EOF'
@@ -112,6 +114,10 @@ cleanup() {
   fi
   if [[ -n "$NETWORK" ]]; then
     docker network rm "$NETWORK" >/dev/null 2>&1 || true
+  fi
+  if [[ -n "$WORK_DIR" && -d "$WORK_DIR" ]]; then
+    "${SUDO[@]}" chown -R "$HOST_UID:$HOST_GID" "$WORK_DIR" 2>/dev/null || true
+    "${SUDO[@]}" chmod 700 "$WORK_DIR" 2>/dev/null || true
   fi
 }
 trap cleanup EXIT INT TERM
