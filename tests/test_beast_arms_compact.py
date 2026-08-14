@@ -27,7 +27,7 @@ def make_arms(root: Path) -> BeastArms:
     return BeastArms(root, EvidenceRecorder(root / ".evidence", run_id="compact-test"), NetworkPolicy())
 
 
-def test_compact_prompt_fits_native_zeref_context(tmp_path: Path) -> None:
+def test_compact_prompt_leaves_generation_room_in_native_zeref_context(tmp_path: Path) -> None:
     model = FakeModel(['{"t":"f","a":{"message":"x"}}'])
     subject = NetworkedCageSubject(
         model,
@@ -40,8 +40,7 @@ def test_compact_prompt_fits_native_zeref_context(tmp_path: Path) -> None:
     assert len(model.messages_seen[0]) == 1
     prompt = model.messages_seen[0][0]["content"]
     assert model.messages_seen[0][0]["role"] == "user"
-    assert len(prompt.encode("utf-8")) <= 48
-    assert "cage" in prompt.lower()
+    assert len(prompt.encode("utf-8")) <= 32
     assert "json" in prompt.lower()
 
 
@@ -63,7 +62,7 @@ def test_compact_alias_executes_same_shell_arm(tmp_path: Path) -> None:
     assert result.final_message == "done"
 
 
-def test_compact_mode_uses_one_chatml_message_per_turn(tmp_path: Path) -> None:
+def test_compact_mode_uses_one_small_chatml_message_per_turn(tmp_path: Path) -> None:
     model = FakeModel([
         '{"t":"e","a":{}}',
         '{"t":"e","a":{}}',
@@ -79,10 +78,10 @@ def test_compact_mode_uses_one_chatml_message_per_turn(tmp_path: Path) -> None:
     subject.run()
     assert all(len(messages) == 1 for messages in model.messages_seen)
     assert all(messages[0]["role"] == "user" for messages in model.messages_seen)
-    assert all(len(messages[0]["content"].encode("utf-8")) <= 48 for messages in model.messages_seen)
+    assert all(len(messages[0]["content"].encode("utf-8")) <= 32 for messages in model.messages_seen)
 
 
-def test_compact_protocol_error_retry_stays_single_message(tmp_path: Path) -> None:
+def test_compact_protocol_error_retry_is_tiny(tmp_path: Path) -> None:
     model = FakeModel([
         "not-json",
         '{"t":"f","a":{"message":"done"}}',
@@ -97,8 +96,10 @@ def test_compact_protocol_error_retry_stays_single_message(tmp_path: Path) -> No
     result = subject.run()
     assert result.finished is True
     assert result.protocol_errors == 1
-    assert all(len(messages) == 1 for messages in model.messages_seen)
-    assert all(len(messages[0]["content"].encode("utf-8")) <= 48 for messages in model.messages_seen)
+    retry = model.messages_seen[1][0]["content"]
+    assert len(model.messages_seen[1]) == 1
+    assert len(retry.encode("utf-8")) <= 12
+    assert "json" in retry.lower()
 
 
 def test_run_cli_exposes_compact_subject_switch() -> None:
