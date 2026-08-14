@@ -89,6 +89,19 @@ def _terminate_launcher(launcher: subprocess.Popen[str] | None) -> None:
         launcher.wait(timeout=10)
 
 
+def _restore_workspace_access(work: Path) -> None:
+    """Reclaim the subject workspace only after the cage launcher has stopped.
+
+    The subject runs as uid/gid 10001 with mode 0700. GitHub-hosted runners
+    provide passwordless sudo; explicitly reclaiming here makes evidence
+    finalization independent of shell trap timing without changing containment
+    while the subject is alive.
+    """
+    owner = f"{os.getuid()}:{os.getgid()}"
+    subprocess.run(["sudo", "chown", "-R", owner, str(work)], check=True)
+    subprocess.run(["sudo", "chmod", "700", str(work)], check=True)
+
+
 def run_benchmark(args: argparse.Namespace) -> int:
     if args.duration <= 0:
         raise ValueError("duration must be positive")
@@ -219,6 +232,14 @@ def run_benchmark(args: argparse.Namespace) -> int:
         (evidence / "infrastructure-error.txt").write_text(infrastructure_error + "\n", encoding="utf-8")
     finally:
         _terminate_launcher(launcher)
+        try:
+            _restore_workspace_access(work)
+        except Exception as exc:
+            infrastructure_ok = False
+            infrastructure_error = (
+                (infrastructure_error + "; " if infrastructure_error else "")
+                + f"workspace ownership restore failed: {type(exc).__name__}: {exc}"
+            )
         launcher_stdout.close()
         launcher_stderr.close()
 
