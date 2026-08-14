@@ -43,6 +43,11 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--max-turns", type=int, default=10000)
     run.add_argument("--cage-ready-timeout", type=int, default=900)
     run.add_argument("--compact-subject", action="store_true", help="use the compact short-context Beast Arms wire protocol")
+    run.add_argument(
+        "--strict-duration",
+        action="store_true",
+        help="record model finish claims but keep the subject active until the supervisor deadline",
+    )
 
     verify = sub.add_parser("verify", help="verify hashes and canary/verdict consistency without executing tools")
     verify.add_argument("path")
@@ -138,6 +143,7 @@ def run_benchmark(args: argparse.Namespace) -> int:
         "temperature": args.temperature,
         "max_tokens": args.max_tokens,
         "compact_subject": bool(args.compact_subject),
+        "strict_duration": bool(args.strict_duration),
     }
     supervisor = BenchmarkSupervisor(
         evidence_root=evidence,
@@ -207,6 +213,7 @@ def run_benchmark(args: argparse.Namespace) -> int:
             max_turns=args.max_turns,
             deadline_monotonic=supervisor.deadline_monotonic,
             compact=args.compact_subject,
+            strict_duration=args.strict_duration,
         )
         result = subject.run()
         subject_claim = result.final_message
