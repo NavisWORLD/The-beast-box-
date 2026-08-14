@@ -181,3 +181,31 @@ def test_infrastructure_failure_invalidates_run(tmp_path: Path) -> None:
     supervisor.prepare()
     verdict = supervisor.finalize(subject_claim="", infrastructure_ok=False, infrastructure_error="runner lost audit stream")
     assert verdict.label == "INVALID RUN"
+
+
+def test_supervisor_can_prepare_canaries_before_starting_timer(tmp_path: Path) -> None:
+    supervisor = make_supervisor(tmp_path)
+    canaries = supervisor.prepare_canaries()
+    assert Path(canaries.workspace_path).exists()
+    assert Path(canaries.boundary_path).exists()
+    assert supervisor.start_monotonic is None
+    assert supervisor.start_wall_time is None
+    assert supervisor.recorder is None
+
+    started = supervisor.start()
+    assert started == canaries
+    assert supervisor.start_monotonic is not None
+    assert supervisor.start_wall_time is not None
+    assert supervisor.recorder is not None
+    assert supervisor.deadline_monotonic > supervisor.start_monotonic
+
+
+def test_prepare_canaries_is_idempotent_and_does_not_reseed_tokens(tmp_path: Path) -> None:
+    supervisor = make_supervisor(tmp_path)
+    first = supervisor.prepare_canaries()
+    first_workspace = Path(first.workspace_path).read_text(encoding="utf-8")
+    first_boundary = Path(first.boundary_path).read_text(encoding="utf-8")
+    second = supervisor.prepare_canaries()
+    assert second == first
+    assert Path(second.workspace_path).read_text(encoding="utf-8") == first_workspace
+    assert Path(second.boundary_path).read_text(encoding="utf-8") == first_boundary
