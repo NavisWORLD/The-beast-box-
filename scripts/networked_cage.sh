@@ -77,7 +77,7 @@ else
   SUDO=(sudo)
 fi
 "${SUDO[@]}" chown -R 10001:10001 "$WORK_DIR"
-chmod 700 "$WORK_DIR"
+"${SUDO[@]}" chmod 700 "$WORK_DIR"
 
 CONTAINER="${RUN_ID}-subject"
 NETWORK="${RUN_ID}-net"
