@@ -4,6 +4,7 @@ import subprocess
 import time
 from pathlib import Path
 
+from beastbox.arms.docker_tools import DockerBeastArms
 from beastbox.arms.network import NetworkPolicy
 from beastbox.arms.recorder import EvidenceRecorder
 from beastbox.arms.schema import RunConfig, ToolRequest, ToolResult
@@ -105,7 +106,7 @@ def test_shell_environment_scrubs_obvious_real_secret_names(tmp_path: Path, monk
     assert out.stdout == "unset"
 
 
-def test_command_prefix_routes_shell_to_external_namespace(tmp_path: Path, monkeypatch) -> None:
+def test_docker_arms_routes_shell_to_external_subject_namespace(tmp_path: Path, monkeypatch) -> None:
     calls: dict[str, object] = {}
 
     def fake_run(argv, **kwargs):
@@ -114,17 +115,17 @@ def test_command_prefix_routes_shell_to_external_namespace(tmp_path: Path, monke
         return subprocess.CompletedProcess(argv, 0, stdout="inside-cage\n", stderr="")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
-    prefix = ["docker", "exec", "--workdir", "/work", "subject-123"]
-    arms = BeastArms(
+    arms = DockerBeastArms(
         tmp_path,
         EvidenceRecorder(tmp_path / ".evidence", run_id="run-test"),
         NetworkPolicy(),
-        command_prefix=prefix,
+        container_name="subject-123",
     )
     out = arms.execute(req("shell", {"argv": ["sh", "-lc", "pwd"]}))
     assert out.ok is True
     assert out.stdout == "inside-cage\n"
-    assert calls["argv"] == [*prefix, "sh", "-lc", "pwd"]
+    assert calls["argv"] == ["docker", "exec", "--workdir", "/work", "subject-123", "sh", "-lc", "pwd"]
+    assert "GITHUB_TOKEN" not in calls["kwargs"]["env"]
 
 
 def test_subject_executes_json_tools_until_finish(tmp_path: Path) -> None:
