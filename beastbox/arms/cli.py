@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import shutil
 import subprocess
-import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -96,7 +94,6 @@ def run_benchmark(args: argparse.Namespace) -> int:
     launcher_stdout = (evidence / "cage-launcher.stdout.log").open("w", encoding="utf-8")
     launcher_stderr = (evidence / "cage-launcher.stderr.log").open("w", encoding="utf-8")
     launcher: subprocess.Popen[str] | None = None
-    supervisor: BenchmarkSupervisor | None = None
     subject_claim = ""
     infrastructure_ok = True
     infrastructure_error = ""
@@ -112,8 +109,20 @@ def run_benchmark(args: argparse.Namespace) -> int:
         "temperature": args.temperature,
         "max_tokens": args.max_tokens,
     }
+    supervisor = BenchmarkSupervisor(
+        evidence_root=evidence,
+        subject_root=work,
+        boundary_root=boundary,
+        run_id=run_id,
+        duration_seconds=args.duration,
+        model_identity=model_identity,
+    )
 
     try:
+        # Canary bytes must exist before the launcher hands /work to UID 10001.
+        # This does NOT start the benchmark timer.
+        supervisor.prepare_canaries()
+
         launcher = subprocess.Popen(
             [
                 "bash",
@@ -141,17 +150,12 @@ def run_benchmark(args: argparse.Namespace) -> int:
             start_new_session=True,
         )
         cage = _wait_ready(ready, launcher, args.cage_ready_timeout)
-
-        # Timer begins only after model server + Docker cage preflight are ready.
-        supervisor = BenchmarkSupervisor(
-            evidence_root=evidence,
-            subject_root=work,
-            boundary_root=boundary,
-            run_id=run_id,
-            duration_seconds=args.duration,
-            model_identity={**model_identity, "cage": {"container": cage.get("container"), "network": cage.get("network")}},
+        supervisor.model_identity.update(
+            {"cage": {"container": cage.get("container"), "network": cage.get("network")}}
         )
-        supervisor.prepare()
+
+        # The exact 1800-second clock begins only after the subject cage is ready.
+        supervisor.start()
         model = create_model(
             ModelSpec(
                 alias="networked-cage-subject",
@@ -163,6 +167,7 @@ def run_benchmark(args: argparse.Namespace) -> int:
                 max_tokens=args.max_tokens,
             )
         )
+        assert supervisor.recorder is not None
         arms = DockerBeastArms(
             work,
             supervisor.recorder,
@@ -202,27 +207,34 @@ def run_benchmark(args: argparse.Namespace) -> int:
         launcher_stdout.close()
         launcher_stderr.close()
 
+    # Launcher cleanup restores /work ownership to the external supervisor.
     # Snapshot only after the subject container/network are gone.
     try:
         if work.exists():
             shutil.make_archive(str(evidence / "workspace_snapshot"), "gztar", root_dir=work)
     except Exception as exc:
         infrastructure_ok = False
-        infrastructure_error = (infrastructure_error + "; " if infrastructure_error else "") + f"workspace snapshot failed: {exc}"
-
-    if supervisor is None:
-        # Establish a real evidence bundle even when preflight failed.
-        supervisor = BenchmarkSupervisor(
-            evidence_root=evidence,
-            subject_root=work,
-            boundary_root=boundary,
-            run_id=run_id,
-            duration_seconds=args.duration,
-            model_identity=model_identity,
+        infrastructure_error = (
+            (infrastructure_error + "; " if infrastructure_error else "")
+            + f"workspace snapshot failed: {type(exc).__name__}: {exc}"
         )
-        supervisor.prepare()
+
+    # Even a preflight failure gets a real INVALID RUN bundle. Starting here is
+    # evidence bookkeeping only; no subject remains alive after launcher cleanup.
+    try:
+        if supervisor.canaries is None:
+            supervisor.prepare_canaries()
+        if supervisor.recorder is None:
+            supervisor.start()
+            infrastructure_ok = False
+            infrastructure_error = infrastructure_error or "cage/model preflight failed before subject start"
+    except Exception as exc:
         infrastructure_ok = False
-        infrastructure_error = infrastructure_error or "cage/model preflight failed before subject start"
+        infrastructure_error = (
+            (infrastructure_error + "; " if infrastructure_error else "")
+            + f"evidence finalization preflight failed: {type(exc).__name__}: {exc}"
+        )
+        raise RuntimeError(infrastructure_error) from exc
 
     verdict = supervisor.finalize(
         subject_claim=subject_claim,
