@@ -14,7 +14,6 @@ env:
   HF_REPO: phera-ra/QC67_cosmo
   HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
   HF_FILE: weights/cosmos-cst.gguf
-  LLAMA_CPP_COMMIT: 7e4c0a96880dae4fc4268ad441f8a6446bd5460a
 
 jobs:
   compat:
@@ -27,6 +26,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
       - name: Fetch exact QC67 native architecture sources
         shell: bash
         run: |
@@ -40,16 +40,49 @@ jobs:
             _qc67_arch/architecture/cosmos-arch.patch \
             _qc67_arch/architecture/llama_cpp_cosmos.cpp \
             "_qc67_arch/$HF_FILE"
-          echo '--- PATCH BEGIN ---'
-          cat _qc67_arch/architecture/cosmos-arch.patch
-          echo '--- PATCH END ---'
+
+      - name: Locate exact upstream patch base
+        id: base
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git _llama
+          TARGET_ARCH_CPP=72968607d
+          BASE=""
+          while read -r commit; do
+            blob="$(git -C _llama ls-tree "$commit" src/llama-arch.cpp | awk '{print $3}')"
+            if [[ "$blob" == "$TARGET_ARCH_CPP"* ]]; then
+              BASE="$commit"
+              break
+            fi
+          done < <(git -C _llama log --all --format=%H -- src/llama-arch.cpp)
+          if [[ -z "$BASE" ]]; then
+            echo "Could not locate patch preimage blob $TARGET_ARCH_CPP" >&2
+            exit 1
+          fi
+          echo "LLAMA_PATCH_BASE=$BASE"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          git -C _llama show -s --format='PATCH_BASE_COMMIT=%H%nPATCH_BASE_DATE=%cI%nPATCH_BASE_SUBJECT=%s' "$BASE"
+
+          declare -A expected=(
+            [src/llama-arch.cpp]=72968607d
+            [src/llama-arch.h]=b74d53af4
+            [src/llama-model.cpp]=4c10e4126
+            [src/llama-model.h]=45b054ced
+            [src/models/models.h]=a86ae05aa
+          )
+          for path in "${!expected[@]}"; do
+            blob="$(git -C _llama ls-tree "$BASE" "$path" | awk '{print $3}')"
+            echo "PATCH_PREIMAGE $path $blob expected_prefix=${expected[$path]}"
+            [[ "$blob" == "${expected[$path]}"* ]]
+          done
 
       - name: Reconstruct native llama.cpp runtime
         shell: bash
         run: |
           set -euo pipefail
-          git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git _llama
-          git -C _llama checkout "$LLAMA_CPP_COMMIT"
+          BASE='${{ steps.base.outputs.base }}'
+          git -C _llama checkout "$BASE"
           cp _qc67_arch/architecture/llama_cpp_cosmos.cpp _llama/src/models/cosmos.cpp
           git -C _llama apply --check ../_qc67_arch/architecture/cosmos-arch.patch
           git -C _llama apply ../_qc67_arch/architecture/cosmos-arch.patch
@@ -78,8 +111,10 @@ jobs:
             > _compat_logs/stdout.log 2> _compat_logs/stderr.log &
           PID=$!
           trap 'kill "$PID" 2>/dev/null || true' EXIT
+          READY=0
           for i in $(seq 1 120); do
             if curl -fsS http://127.0.0.1:18081/health >/dev/null 2>&1; then
+              READY=1
               echo 'QC67_COSMOS_SERVER_READY=1'
               break
             fi
@@ -89,6 +124,7 @@ jobs:
             fi
             sleep 1
           done
+          [[ "$READY" = 1 ]]
           curl -fsS http://127.0.0.1:18081/health
           curl -fsS http://127.0.0.1:18081/v1/models | python -m json.tool
           python - <<'PY'
