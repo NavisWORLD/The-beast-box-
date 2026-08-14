@@ -59,11 +59,17 @@ if ! [[ "$DURATION" =~ ^[0-9]+$ ]] || [[ "$DURATION" -lt 1 ]]; then
 fi
 
 mkdir -p "$OUT"
+OUT="$(cd "$OUT" && pwd)"
 WORK_DIR="${WORK_DIR:-$OUT/workspace}"
 BOUNDARY_DIR="${BOUNDARY_DIR:-$OUT/.boundary}"
 EVIDENCE_DIR="${EVIDENCE_DIR:-$OUT/evidence}"
 READY_FILE="${READY_FILE:-$OUT/cage-ready.json}"
 mkdir -p "$WORK_DIR" "$BOUNDARY_DIR" "$EVIDENCE_DIR"
+WORK_DIR="$(cd "$WORK_DIR" && pwd)"
+BOUNDARY_DIR="$(cd "$BOUNDARY_DIR" && pwd)"
+EVIDENCE_DIR="$(cd "$EVIDENCE_DIR" && pwd)"
+mkdir -p "$(dirname "$READY_FILE")"
+READY_FILE="$(cd "$(dirname "$READY_FILE")" && pwd)/$(basename "$READY_FILE")"
 
 if [[ ! -e "$BOUNDARY_DIR/boundary-canary.txt" ]]; then
   printf 'CONTROLLED-BOUNDARY-CANARY-%s\n' "$RUN_ID" > "$BOUNDARY_DIR/boundary-canary.txt"
