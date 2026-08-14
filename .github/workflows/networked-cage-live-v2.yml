@@ -1,4 +1,4 @@
-name: Zeref Networked Cage Run 003
+name: Zeref Networked Cage Run 004
 
 on:
   push:
@@ -16,7 +16,7 @@ env:
   HF_FILE: weights/cosmos-cst.gguf
   HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
   LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
-  RUN_ID: 2026-08-14-run-003
+  RUN_ID: 2026-08-14-run-004
   DURATION: "1800"
 
 jobs:
@@ -39,15 +39,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e '.[dev,huggingface]'
           chmod +x scripts/networked_cage.sh scripts/egress_proxy.py
-          pytest -q tests/test_beast_arms_compact.py tests/test_networked_cage_script.py tests/test_beast_arms_network.py
+          pytest -q tests/test_beast_arms_compact.py tests/test_networked_cage_script.py tests/test_beast_arms_network.py tests/test_zeref_live_workflow_contract.py
           beast-arms --help
 
       - name: Disposable cage smoke preflight
         run: |
           set -euo pipefail
-          rm -rf runs/run003-preflight
-          scripts/networked_cage.sh --smoke --duration 15 --out runs/run003-preflight
-          cat runs/run003-preflight/evidence/network-smoke.json
+          rm -rf runs/run004-preflight
+          scripts/networked_cage.sh --smoke --duration 15 --out runs/run004-preflight
+          cat runs/run004-preflight/evidence/network-smoke.json
 
       - name: Download exact Zeref GGUF and native architecture
         shell: bash
@@ -76,7 +76,7 @@ jobs:
           cmake --build _llama/build --target llama-server -j 2
           _llama/build/bin/llama-server --version
 
-      - name: Start exact Zeref subject server
+      - name: Start exact Zeref subject server with ChatML
         shell: bash
         run: |
           set -euo pipefail
@@ -86,6 +86,7 @@ jobs:
             --port 18080 \
             -c 128 \
             -np 1 \
+            --chat-template chatml \
             > _model_logs/zeref.stdout.log \
             2> _model_logs/zeref.stderr.log &
           echo $! > _model_logs/zeref.pid
@@ -108,7 +109,11 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import json, urllib.request
+          import json
+          import pathlib
+          import urllib.error
+          import urllib.request
+
           payload = json.dumps({
               "model": "cosmos",
               "messages": [
@@ -123,8 +128,19 @@ jobs:
               data=payload,
               headers={"Content-Type": "application/json"},
           )
-          with urllib.request.urlopen(req, timeout=90) as response:
-              body = json.loads(response.read().decode())
+          try:
+              with urllib.request.urlopen(req, timeout=90) as response:
+                  raw = response.read().decode()
+          except urllib.error.HTTPError as exc:
+              body = exc.read().decode(errors="replace")
+              print(f"ZEREF_CHAT_HTTP_ERROR={exc.code} {body}")
+              stderr = pathlib.Path("_model_logs/zeref.stderr.log")
+              if stderr.exists():
+                  print("ZEREF_SERVER_STDERR_BEGIN")
+                  print(stderr.read_text(encoding="utf-8", errors="replace")[-20000:])
+                  print("ZEREF_SERVER_STDERR_END")
+              raise
+          body = json.loads(raw)
           choices = body.get("choices") or []
           assert choices, body
           text = str((choices[0].get("message") or {}).get("content", ""))
@@ -141,7 +157,12 @@ jobs:
           rm -rf "$OUT"
           mkdir -p "$OUT"
           python - <<'PY'
-          import json, os, pathlib, platform, hashlib
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import platform
+
           out = pathlib.Path("experiments/networked-cage") / os.environ["RUN_ID"]
           patch = pathlib.Path("compat/qc67/cosmos-f16-kv-norm-f32.patch")
           value = {
@@ -156,6 +177,7 @@ jobs:
               "compat_patch_sha256": hashlib.sha256(patch.read_bytes()).hexdigest(),
               "configured_duration_seconds": int(os.environ["DURATION"]),
               "native_context": 128,
+              "chat_template": "chatml",
               "compact_subject": True,
           }
           (out / "runtime-provenance.json").write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
