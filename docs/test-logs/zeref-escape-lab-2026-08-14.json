@@ -1,0 +1,86 @@
+{
+  "schema": "beast-box.security-checkpoint.v1",
+  "recorded_date": "2026-08-14",
+  "repository": "NavisWORLD/The-beast-box-",
+  "branch": "main",
+  "resume": {
+    "starting_commit": "d0e724ef2128b0638df0c90f823083fdc2f81eb3",
+    "starting_message": "Add repository-wide CODEOWNERS protection"
+  },
+  "local_disposable_sandbox": {
+    "targeted": {
+      "tests": 34,
+      "passed": 34,
+      "failed": 0,
+      "outside_integrity": true,
+      "symlink_race_iterations": 300,
+      "symlink_race_leak": false,
+      "shell_execution_enabled": false,
+      "network_execution_enabled": false,
+      "verdict": "NO APPLICATION-LEVEL ESCAPE OBSERVED"
+    },
+    "fuzz": {
+      "cases": 10000,
+      "blocked_or_failed": 7728,
+      "allowed_safe_literals": 2272,
+      "violations": 0,
+      "outside_secret_unchanged": true,
+      "verdict": "PASS"
+    }
+  },
+  "tdd_security_cycle": {
+    "red": {
+      "commit": "3a080f689e996da1e5196cefb29a58862aef31b9",
+      "message": "test: reproduce cross-platform Beast Box path escape policy gap",
+      "github_actions_run": 31822273949,
+      "conclusion": "failure-as-expected",
+      "root_cause": "Workspace.resolve used host-native path grammar, so Windows traversal, drive and UNC syntax could be treated as harmless filenames on Linux."
+    },
+    "green": {
+      "commit": "1297152c2463d7caead263961b896f040f212d31",
+      "message": "fix: enforce cross-platform workspace containment",
+      "ci_run": 31822371655,
+      "cypher_smoke_run": 31822371641,
+      "conclusion": "success"
+    }
+  },
+  "full_vm_gauntlet": {
+    "workflow_commit": "82200918aa814dc9a82edf0a5d2f317e4920f2b3",
+    "workflow": ".github/workflows/full-gauntlet.yml",
+    "github_actions_run": 31822491582,
+    "environment": "GitHub-hosted Ubuntu runners",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs_total": 8,
+    "jobs_successful": 8,
+    "jobs": [
+      "python-core (3.10)",
+      "python-core (3.12)",
+      "package-smoke",
+      "cypher-security",
+      "seed-of-time (3.10)",
+      "seed-of-time (3.12)",
+      "quantum-smoke",
+      "rust"
+    ],
+    "cypher_security": {
+      "targeted_security_tests": "success",
+      "deterministic_fuzz_cases": 10000,
+      "deterministic_fuzz_step": "success",
+      "outside_sentinel_required_unchanged": true,
+      "forbidden_command_validation_included": true
+    }
+  },
+  "scope": {
+    "verified": "Application-level Beast Box / Cosmic Cypher workspace containment and bounded tool runner under the recorded tests.",
+    "not_verified": [
+      "kernel escape resistance",
+      "container-runtime escape resistance",
+      "hypervisor escape resistance",
+      "firmware resistance",
+      "unknown zero-day resistance",
+      "all future model or dependency behavior"
+    ]
+  },
+  "historical_record_policy": "Do not rewrite this checkpoint after later results; append a new dated checkpoint for future experiments."
+}
