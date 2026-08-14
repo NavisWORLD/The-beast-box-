@@ -1,0 +1,264 @@
+name: Networked Cage Live v2
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/networked-cage-live-v2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_FILE: weights/cosmos-cst.gguf
+  LLAMA_CPP_COMMIT: 7e4c0a96880dae4fc4268ad441f8a6446bd5460a
+  RUN_ID: 2026-08-14-run-002
+  DURATION: "1800"
+
+jobs:
+  cage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Beast Arms
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,huggingface]'
+          chmod +x scripts/networked_cage.sh scripts/egress_proxy.py
+          beast-arms --help
+
+      - name: Cage smoke preflight
+        run: |
+          set -euo pipefail
+          rm -rf runs/live-v2-preflight
+          scripts/networked_cage.sh --smoke --duration 15 --out runs/live-v2-preflight
+          cat runs/live-v2-preflight/evidence/network-smoke.json
+
+      - name: Resolve and download exact QC67 subject
+        id: model
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _model
+          REVISION="$(python - <<'PY'
+          from huggingface_hub import HfApi
+          print(HfApi().model_info('phera-ra/QC67_cosmo').sha)
+          PY
+          )"
+          python - "$REVISION" <<'PY'
+          import sys
+          from huggingface_hub import HfApi
+          revision = sys.argv[1]
+          repo = 'phera-ra/QC67_cosmo'
+          wanted = 'weights/cosmos-cst.gguf'
+          files = HfApi().list_repo_files(repo_id=repo, revision=revision)
+          ggufs = sorted(f for f in files if f.lower().endswith('.gguf'))
+          print('GGUF files at pinned revision:', ggufs)
+          if wanted not in files:
+              raise SystemExit(f'pinned subject file missing: {wanted}')
+          PY
+          hf download "$HF_REPO" "$HF_FILE" --revision "$REVISION" --local-dir _model
+          MODEL_PATH="$(realpath "_model/${HF_FILE}")"
+          MODEL_SHA256="$(sha256sum "$MODEL_PATH" | awk '{print $1}')"
+          echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
+          echo "path=$MODEL_PATH" >> "$GITHUB_OUTPUT"
+          echo "sha256=$MODEL_SHA256" >> "$GITHUB_OUTPUT"
+          echo "file=$HF_FILE" >> "$GITHUB_OUTPUT"
+          ls -lh "$MODEL_PATH"
+
+      - name: Build pinned llama.cpp server
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git _llama
+          git -C _llama checkout "$LLAMA_CPP_COMMIT"
+          cmake -S _llama -B _llama/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF
+          cmake --build _llama/build --target llama-server -j 2
+          _llama/build/bin/llama-server --version || true
+
+      - name: Start local subject server
+        run: |
+          set -euo pipefail
+          mkdir -p _model_logs
+          _llama/build/bin/llama-server \
+            -m '${{ steps.model.outputs.path }}' \
+            --host 127.0.0.1 \
+            --port 18080 \
+            -c 8192 \
+            -np 1 \
+            > _model_logs/llama-server.stdout.log \
+            2> _model_logs/llama-server.stderr.log &
+          echo $! > _model_logs/llama-server.pid
+          for i in $(seq 1 300); do
+            if curl -fsS http://127.0.0.1:18080/health >/dev/null 2>&1; then
+              echo "subject server ready"
+              exit 0
+            fi
+            if ! kill -0 "$(cat _model_logs/llama-server.pid)" 2>/dev/null; then
+              cat _model_logs/llama-server.stderr.log >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          cat _model_logs/llama-server.stderr.log >&2
+          exit 1
+
+      - name: Run the Beast for 30 minutes
+        id: live
+        shell: bash
+        env:
+          MODEL_REVISION: ${{ steps.model.outputs.revision }}
+          MODEL_SHA256: ${{ steps.model.outputs.sha256 }}
+          MODEL_FILE: ${{ steps.model.outputs.file }}
+        run: |
+          set -uo pipefail
+          OUT="experiments/networked-cage/${RUN_ID}"
+          mkdir -p "$OUT"
+          python - <<'PY'
+          import json, os, pathlib, platform
+          out = pathlib.Path('experiments/networked-cage') / os.environ['RUN_ID']
+          value = {
+              'repository_commit': os.environ['GITHUB_SHA'],
+              'runner_os': platform.platform(),
+              'python': platform.python_version(),
+              'llama_cpp_commit': os.environ['LLAMA_CPP_COMMIT'],
+              'hf_repo': os.environ['HF_REPO'],
+              'hf_file': os.environ['MODEL_FILE'],
+              'hf_revision': os.environ['MODEL_REVISION'],
+              'model_sha256': os.environ['MODEL_SHA256'],
+              'configured_duration_seconds': int(os.environ['DURATION']),
+          }
+          (out / 'provenance.json').write_text(json.dumps(value, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+          beast-arms run \
+            --base-url http://127.0.0.1:18080/v1 \
+            --backend openai-compatible \
+            --model cosmos \
+            --duration "$DURATION" \
+            --run-id "$RUN_ID" \
+            --out "$OUT" \
+            --model-revision "$MODEL_REVISION" \
+            --model-sha256 "$MODEL_SHA256" \
+            --model-file "$MODEL_FILE"
+          RUN_RC=$?
+          echo "run_rc=$RUN_RC" >> "$GITHUB_OUTPUT"
+          beast-arms verify "$OUT"
+          VERIFY_RC=$?
+          echo "verify_rc=$VERIFY_RC" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Stop subject before publisher credentials exist
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          if [[ -f _model_logs/llama-server.pid ]]; then
+            kill "$(cat _model_logs/llama-server.pid)" 2>/dev/null || true
+            sleep 2
+            kill -9 "$(cat _model_logs/llama-server.pid)" 2>/dev/null || true
+          fi
+          rm -rf _model _llama
+
+      - name: Render public report
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="experiments/networked-cage/${RUN_ID}"
+          REPORT="docs/test-logs/zeref-networked-cage-${RUN_ID}.md"
+          mkdir -p docs/test-logs
+          python - "$OUT" "$REPORT" <<'PY'
+          import json, pathlib, sys
+          out, report = map(pathlib.Path, sys.argv[1:])
+          def load(name):
+              p = out / name
+              return json.loads(p.read_text(encoding='utf-8')) if p.exists() else {}
+          run = load('run.json')
+          metrics = load('metrics.json')
+          provenance = load('provenance.json')
+          verdict_path = out / 'VERDICT.md'
+          verdict = verdict_path.read_text(encoding='utf-8') if verdict_path.exists() else '# INVALID RUN\nNo frozen verdict was produced.\n'
+          text = f'''# Zeref / QC67 Networked Cage — {out.name}
+
+## Frozen subject
+- Hub repo: `{provenance.get('hf_repo', 'unknown')}`
+- Hub revision: `{provenance.get('hf_revision', 'unknown')}`
+- GGUF: `{provenance.get('hf_file', 'unknown')}`
+- GGUF SHA-256: `{provenance.get('model_sha256', 'unknown')}`
+- llama.cpp commit: `{provenance.get('llama_cpp_commit', 'unknown')}`
+- harness commit: `{provenance.get('repository_commit', 'unknown')}`
+
+## Timing
+- configured: `{run.get('configured_duration_seconds')}` seconds
+- monotonic: `{run.get('monotonic_duration_seconds')}` seconds
+- tool calls: `{metrics.get('total_tool_calls')}`
+- network requests: `{metrics.get('network_requests')}`
+- blocked actions: `{metrics.get('blocked_actions')}`
+- verified canary/control-plane accesses: `{metrics.get('verified_canary_or_control_plane_accesses')}`
+
+## Verdict
+
+{verdict}
+
+## Evidence
+The machine-readable bundle is frozen in `{out.as_posix()}/`. Verify it with `beast-arms verify {out.as_posix()}`.
+'''
+          report.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Upload frozen evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: networked-cage-${{ env.RUN_ID }}
+          path: |
+            experiments/networked-cage/${{ env.RUN_ID }}
+            docs/test-logs/zeref-networked-cage-${{ env.RUN_ID }}.md
+            _model_logs
+          if-no-files-found: warn
+
+      - name: Publish valid frozen evidence
+        if: always()
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          OUT="experiments/networked-cage/${RUN_ID}"
+          REPORT="docs/test-logs/zeref-networked-cage-${RUN_ID}.md"
+          if [[ ! -f "$OUT/VERDICT.md" ]]; then
+            echo "No verdict: preserving Actions artifact only; nothing invented or committed."
+            exit 0
+          fi
+          beast-arms verify "$OUT"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT" "$REPORT"
+          if git diff --cached --quiet; then
+            echo "No new evidence to publish"
+            exit 0
+          fi
+          git commit -m "testlog: publish timed Networked Cage ${RUN_ID}"
+          BASIC="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $BASIC" push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Final integrity gate
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="experiments/networked-cage/${RUN_ID}"
+          test -f "$OUT/VERDICT.md"
+          beast-arms verify "$OUT"
+          test '${{ steps.live.outputs.verify_rc }}' = '0'
+          test '${{ steps.live.outputs.run_rc }}' = '0'
