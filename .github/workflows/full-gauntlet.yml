@@ -1,0 +1,203 @@
+name: Beast Box full gauntlet
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/full-gauntlet.yml'
+
+jobs:
+  python-core:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]'
+      - run: pytest
+
+  package-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip build
+      - run: python -m build
+      - run: pip install --force-reinstall dist/*.whl
+      - run: |
+          beastbox --help
+          cosmic.cypher-cli --help
+          cosmic-cypher --help
+          cypher --help
+
+  cypher-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]'
+      - run: pytest -q tests/test_cypher.py tests/test_workspace_security.py
+      - name: Deterministic 10k Zeref containment fuzz
+        run: |
+          python - <<'PY'
+          import os
+          import random
+          import string
+          import tempfile
+          from pathlib import Path, PurePosixPath, PureWindowsPath
+
+          from beastbox.cypher.workspace import Workspace
+
+          rng = random.Random(0x5A45524546)
+          chars = string.ascii_letters + string.digits + '._-/%\\:$()[]{};`~ '
+
+          def policy_dangerous(value: str) -> bool:
+              if '\x00' in value:
+                  return True
+              low = value.lower()
+              if low.startswith(('file:', 'http:', 'https:')):
+                  return True
+              pp = PurePosixPath(value)
+              wp = PureWindowsPath(value)
+              return (
+                  pp.is_absolute()
+                  or wp.is_absolute()
+                  or bool(wp.drive)
+                  or bool(wp.root)
+                  or '..' in pp.parts
+                  or '..' in wp.parts
+              )
+
+          seeds = [
+              '../outside/secret.txt',
+              '..\\outside\\secret.txt',
+              '/etc/passwd',
+              '\\\\server\\share\\secret.txt',
+              'C:\\Windows\\win.ini',
+              'file:///etc/passwd',
+              'http://127.0.0.1:11434',
+              '../../../../proc/self/environ',
+              'notes/../../../x',
+              'notes\\..\\..\\outside\\secret.txt',
+          ]
+          payloads = list(seeds)
+          while len(payloads) < 10_000:
+              value = ''.join(rng.choice(chars) for _ in range(rng.randint(1, 80)))
+              if rng.random() < 0.25:
+                  value = rng.choice(['../', '..\\', '/', 'C:\\', 'file://']) + value
+              payloads.append(value)
+
+          violations = []
+          with tempfile.TemporaryDirectory() as root_dir, tempfile.TemporaryDirectory() as outside_dir:
+              root = Path(root_dir)
+              outside = Path(outside_dir)
+              secret = outside / 'secret.txt'
+              secret.write_text('OUTSIDE_SECRET_DO_NOT_LEAK\n', encoding='utf-8')
+              ws = Workspace(root)
+
+              for i, value in enumerate(payloads):
+                  dangerous = policy_dangerous(value)
+                  try:
+                      resolved = ws.resolve(value)
+                  except ValueError:
+                      if not dangerous:
+                          # Conservative rejection is allowed; this is a containment test.
+                          pass
+                  else:
+                      try:
+                          resolved.relative_to(root.resolve())
+                      except ValueError:
+                          violations.append((i, value, 'resolved outside workspace'))
+                      if dangerous:
+                          violations.append((i, value, 'dangerous syntax accepted'))
+
+              link = root / 'outside-link'
+              if hasattr(os, 'symlink'):
+                  os.symlink(secret, link)
+                  try:
+                      ws.resolve('outside-link')
+                  except ValueError:
+                      pass
+                  else:
+                      violations.append(('symlink', 'outside-link', 'outside symlink accepted'))
+
+              for argv in [
+                  ['bash', '-lc', 'id'],
+                  ['sh', '-c', 'cat /etc/passwd'],
+                  ['curl', 'https://example.com'],
+                  ['python', '-c', 'import os; os.system("id")'],
+                  ['git', 'push'],
+                  ['cargo', 'run'],
+              ]:
+                  try:
+                      ws._validate_test_command(argv)
+                  except PermissionError:
+                      pass
+                  else:
+                      violations.append(('tool', argv, 'forbidden command accepted'))
+
+              assert secret.read_text(encoding='utf-8') == 'OUTSIDE_SECRET_DO_NOT_LEAK\n'
+
+          assert not violations, violations[:20]
+          print('ZEREF_FUZZ_CASES=10000')
+          print('ZEREF_POLICY_VIOLATIONS=0')
+          print('ZEREF_OUTSIDE_SECRET_UNCHANGED=1')
+          print('ZEREF_CONTAINMENT_FUZZ=PASS')
+          PY
+
+  seed-of-time:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m py_compile single_file/COSMIC_SEED_OF_TIME.py
+      - run: python single_file/COSMIC_SEED_OF_TIME.py selftest
+      - run: |
+          python single_file/COSMIC_SEED_OF_TIME.py --help
+          python single_file/COSMIC_SEED_OF_TIME.py birth --help
+          python single_file/COSMIC_SEED_OF_TIME.py chat --help
+
+  quantum-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[quantum]'
+      - name: Qiskit reference circuit smoke
+        run: |
+          python - <<'PY'
+          from beastbox.quantum import build_phase_roundtrip, majority_decode
+          qc = build_phase_roundtrip('10100110')
+          assert qc.num_qubits == 8
+          assert qc.num_clbits == 8
+          assert majority_decode({'01100101': 900, '00000000': 124}, 8) == '10100110'
+          print('QISKIT_REFERENCE_SMOKE=PASS')
+          PY
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --workspace
+        working-directory: rust
+      - run: cargo build --release --workspace
+        working-directory: rust
