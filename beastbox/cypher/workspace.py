@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import time
 import uuid
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Iterable
 
 _DEFAULT_IGNORES = {".git", ".venv", "venv", "node_modules", ".cosmic-cypher", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", "target"}
@@ -23,9 +23,19 @@ class Workspace:
         self.state_dir = self.root / ".cosmic-cypher"
 
     def resolve(self, relative: str | Path) -> Path:
-        raw = Path(relative)
-        if raw.is_absolute():
+        text = os.fspath(relative)
+        if "\x00" in text:
+            raise ValueError("workspace paths may not contain NUL bytes")
+        low = text.lower()
+        if low.startswith(("file:", "http:", "https:")):
+            raise ValueError("URI-like workspace paths are not allowed")
+        posix = PurePosixPath(text)
+        windows = PureWindowsPath(text)
+        if posix.is_absolute() or windows.is_absolute() or windows.drive or windows.root:
             raise ValueError("workspace paths must be relative")
+        if ".." in posix.parts or ".." in windows.parts:
+            raise ValueError("path escapes the selected workspace")
+        raw = Path(text.replace("\\", "/"))
         path = (self.root / raw).resolve()
         try:
             path.relative_to(self.root)
