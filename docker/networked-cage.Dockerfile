@@ -5,6 +5,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
+RUN python3 --version && python --version
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     ca-certificates \
