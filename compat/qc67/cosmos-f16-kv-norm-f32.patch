@@ -1,6 +1,6 @@
 --- a/src/models/cosmos.cpp
 +++ b/src/models/cosmos.cpp
-@@ -178,7 +178,9 @@ llama_model_cosmos::graph::graph(const llama_model & model, const llm_graph_para
+@@ -178,7 +178,10 @@ llama_model_cosmos::graph::graph(const llama_model & model, const llm_graph_para
              ggml_tensor * hdot = ggml_mul_mat(ctx0, s54, q54);
              ggml_mul_mat_set_prec(hdot, GGML_PREC_F32);
  
