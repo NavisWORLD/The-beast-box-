@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import subprocess
+import os
+import signal
 
 import beastbox.arms.cli as arms_cli
 
@@ -33,11 +34,11 @@ def test_terminate_launcher_signals_process_group_so_cleanup_trap_can_run(monkey
     def fake_killpg(pid: int, sig: int) -> None:
         calls.append((pid, sig))
 
-    monkeypatch.setattr(arms_cli.os, "killpg", fake_killpg)
+    monkeypatch.setattr(os, "killpg", fake_killpg)
 
     arms_cli._terminate_launcher(launcher)  # type: ignore[arg-type]
 
-    assert calls == [(launcher.pid, arms_cli.signal.SIGTERM)]
+    assert calls == [(launcher.pid, signal.SIGTERM)]
     assert launcher.terminate_called is False
     assert launcher.kill_called is False
     assert launcher.wait_calls == [30]
