@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 import time
 from pathlib import Path
 
@@ -102,6 +103,28 @@ def test_shell_environment_scrubs_obvious_real_secret_names(tmp_path: Path, monk
     out = arms.execute(req("shell", {"argv": ["sh", "-lc", "printf %s \"${GITHUB_TOKEN-unset}\""]}))
     assert out.ok is True
     assert out.stdout == "unset"
+
+
+def test_command_prefix_routes_shell_to_external_namespace(tmp_path: Path, monkeypatch) -> None:
+    calls: dict[str, object] = {}
+
+    def fake_run(argv, **kwargs):
+        calls["argv"] = list(argv)
+        calls["kwargs"] = kwargs
+        return subprocess.CompletedProcess(argv, 0, stdout="inside-cage\n", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    prefix = ["docker", "exec", "--workdir", "/work", "subject-123"]
+    arms = BeastArms(
+        tmp_path,
+        EvidenceRecorder(tmp_path / ".evidence", run_id="run-test"),
+        NetworkPolicy(),
+        command_prefix=prefix,
+    )
+    out = arms.execute(req("shell", {"argv": ["sh", "-lc", "pwd"]}))
+    assert out.ok is True
+    assert out.stdout == "inside-cage\n"
+    assert calls["argv"] == [*prefix, "sh", "-lc", "pwd"]
 
 
 def test_subject_executes_json_tools_until_finish(tmp_path: Path) -> None:
