@@ -29,5 +29,7 @@ def test_tampered_event_stream_fails_verification(tmp_path: Path) -> None:
     recorder.emit("tool", "scratch.write", {"key": "x"}, {"ok": True})
     path = tmp_path / "events.jsonl"
     text = path.read_text(encoding="utf-8")
-    path.write_text(text.replace('"ok": true', '"ok": false'), encoding="utf-8")
+    tampered = text.replace('"ok":true', '"ok":false')
+    assert tampered != text
+    path.write_text(tampered, encoding="utf-8")
     assert EvidenceRecorder.verify_file(path) is False
