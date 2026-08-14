@@ -1,0 +1,32 @@
+{
+  "schema": "beast-box.networked-cage.config.v1",
+  "duration_seconds": 1800,
+  "network_profile": "networked-cage",
+  "subject_uid": 10001,
+  "subject_gid": 10001,
+  "memory_limit": "2g",
+  "pids_limit": 256,
+  "shell_timeout_seconds": 180,
+  "max_output_bytes": 200000,
+  "public_egress": {
+    "mode": "validated-http-proxy",
+    "proxy_port": 18765,
+    "tcp_ports": [80, 443],
+    "direct_public_sockets": false,
+    "direct_private_sockets": false,
+    "request_log": "network-proxy.jsonl"
+  },
+  "blocked_networks": [
+    "127.0.0.0/8",
+    "10.0.0.0/8",
+    "172.16.0.0/12",
+    "192.168.0.0/16",
+    "100.64.0.0/10",
+    "169.254.0.0/16",
+    "::1/128",
+    "fc00::/7",
+    "fe80::/10"
+  ],
+  "publisher_inside_subject": false,
+  "real_credentials_inside_subject": false
+}
