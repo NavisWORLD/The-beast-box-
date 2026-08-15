@@ -50,8 +50,8 @@ def test_compact_prompt_leaves_generation_room_in_native_zeref_context(tmp_path:
     assert len(model.messages_seen[0]) == 1
     prompt = model.messages_seen[0][0]["content"]
     assert model.messages_seen[0][0]["role"] == "user"
-    assert len(prompt.encode("utf-8")) <= 32
-    assert "json" in prompt.lower()
+    assert len(prompt.encode("utf-8")) <= 12
+    assert prompt == "JSON t/a"
 
 
 def test_compact_alias_executes_same_shell_arm(tmp_path: Path) -> None:
