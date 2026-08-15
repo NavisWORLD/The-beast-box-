@@ -1,0 +1,352 @@
+name: D001 Quantum Provenance Audit
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-quantum-provenance-audit.yml"
+      - "tests/test_d001_quantum_provenance_audit_contract.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      HF_REPO: phera-ra/QC67_cosmo
+      HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+      HF_MANIFEST: data/quantum_measurements_manifest.json
+      HF_PUBLIC: data/quantum_measurements_public.jsonl
+      HF_SUMMARY: data/training/quantum_train_summary_20260722.json
+      SOURCE_REPO: NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2
+      SOURCE_REVISION: dddb1325b90c9abbe8da77974874e5770623035e
+      WORKLOAD_DIR: workloads (4)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout frozen repo-native IBM workload exports
+        uses: actions/checkout@v4
+        with:
+          repository: NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2
+          ref: dddb1325b90c9abbe8da77974874e5770623035e
+          path: source-repo
+          persist-credentials: false
+          sparse-checkout: |
+            workloads (4)
+            cosmos/integration/quantum/ibm_quantum.py
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install read-only HF client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'huggingface-hub>=0.27'
+
+      - name: Download frozen Prime-snapshot quantum manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf hf-evidence quantum-audit
+          mkdir -p hf-evidence quantum-audit
+          hf download "$HF_REPO" \
+            "$HF_MANIFEST" "$HF_PUBLIC" "$HF_SUMMARY" \
+            --revision "$HF_REVISION" --local-dir hf-evidence
+          test -f "hf-evidence/$HF_MANIFEST"
+          test -f "hf-evidence/$HF_PUBLIC"
+          test -f "hf-evidence/$HF_SUMMARY"
+
+      - name: Audit raw provenance without inheriting checkpoint labels
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import json
+          from collections import Counter
+          from pathlib import Path
+          from typing import Any
+
+          HF_REPO = "phera-ra/QC67_cosmo"
+          HF_REVISION = "b414724c627300c41b099dcc6853766d08fd27a4"
+          SOURCE_REPO = "NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2"
+          SOURCE_REVISION = "dddb1325b90c9abbe8da77974874e5770623035e"
+          HF_FILES = [
+              "data/quantum_measurements_manifest.json",
+              "data/quantum_measurements_public.jsonl",
+              "data/training/quantum_train_summary_20260722.json",
+          ]
+          WORKLOAD_DIR = Path("source-repo/workloads (4)")
+          OUT = Path("quantum-audit")
+          OUT.mkdir(exist_ok=True)
+
+          # Explicit anti-conflation rule: later Spark checkpoint metadata is not
+          # evidence that Zeref Prime itself consumed IBM hardware measurements.
+          sibling_checkpoint = "spark_cst.pt"
+          do_not_inherit_checkpoint_quantum_label = True
+          prime_quantum_source = "unknown_from_prime_artifact"
+          expected_hardware_backend = "ibm_fez"
+
+          def sha256(path: Path) -> str:
+              h = hashlib.sha256()
+              with path.open("rb") as f:
+                  for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                      h.update(chunk)
+              return h.hexdigest()
+
+          def combined_sha(*digests: str) -> str:
+              return hashlib.sha256("\n".join(digests).encode("ascii")).hexdigest()
+
+          def first(d: dict[str, Any], *keys: str) -> Any:
+              for key in keys:
+                  if key in d and d[key] not in (None, ""):
+                      return d[key]
+              return None
+
+          def classify(*, provider: str | None, backend: str | None,
+                       job_id: str | None, simulator: bool | None,
+                       control_kind: str | None) -> str:
+              control = (control_kind or "").strip().lower()
+              if control in {"fixed_seed", "fixed-seed", "seeded"}:
+                  return "fixed_seed"
+              if control in {"prng", "crypto_prng", "cryptographic_prng"}:
+                  return "prng_control"
+              b = (backend or "").strip().lower()
+              p = (provider or "").strip().lower()
+              if simulator is True or any(mark in b for mark in ("simulator", "aer_", "fake_")):
+                  return "simulator"
+              if p in {"ibm", "ibm quantum", "ibm_quantum", "ibm quantum platform"} and b.startswith("ibm_") and (job_id or "").strip():
+                  return "hardware"
+              return "unknown"
+
+          def candidate_records(obj: Any) -> list[dict[str, Any]]:
+              if isinstance(obj, list):
+                  return [x for x in obj if isinstance(x, dict)]
+              if not isinstance(obj, dict):
+                  return []
+              for key in ("measurements", "records", "entries", "jobs", "runs", "samples"):
+                  value = obj.get(key)
+                  if isinstance(value, list):
+                      return [x for x in value if isinstance(x, dict)]
+              return [obj]
+
+          def sanitize_record(record: dict[str, Any], *, source_file: str, raw_evidence_sha256: str, index: int) -> dict[str, Any]:
+              provider = first(record, "provider", "provider_name", "service")
+              backend = first(record, "backend", "backend_name", "device")
+              job_id = first(record, "job_id", "job", "id")
+              shots = first(record, "shots", "shot_count", "num_shots")
+              control_kind = first(record, "control_kind", "control", "source_class")
+              simulator = first(record, "simulator", "is_simulator")
+              if not isinstance(simulator, bool):
+                  simulator = None
+              try:
+                  shots_i = int(shots) if shots is not None else None
+              except (TypeError, ValueError):
+                  shots_i = None
+              source_class = classify(
+                  provider=str(provider) if provider is not None else None,
+                  backend=str(backend) if backend is not None else None,
+                  job_id=str(job_id) if job_id is not None else None,
+                  simulator=simulator,
+                  control_kind=str(control_kind) if control_kind is not None else None,
+              )
+              return {
+                  "evidence_family": "pinned_hf_manifest",
+                  "source_file": source_file,
+                  "source_index": index,
+                  "provider": provider,
+                  "backend": backend,
+                  "job_id": job_id,
+                  "shots": shots_i,
+                  "source_class": source_class,
+                  "source_sha256": raw_evidence_sha256,
+                  "raw_evidence_sha256": raw_evidence_sha256,
+                  "feature_derivation_version": "d001-quantum-features-v1",
+              }
+
+          def extract_execution_shots(obj: Any) -> int | None:
+              found: list[int] = []
+              def walk(x: Any) -> None:
+                  if isinstance(x, dict):
+                      for key, value in x.items():
+                          if key in {"shots", "num_shots", "shot_count"} and isinstance(value, int) and value > 0:
+                              found.append(value)
+                          if key == "data_slices" and isinstance(value, dict):
+                              for spec in value.values():
+                                  # IBM Runtime DoubleSliceSpan exports use
+                                  # [[shots], start, stop, pub_index, shots].
+                                  if isinstance(spec, list) and spec:
+                                      if isinstance(spec[0], list) and spec[0] and isinstance(spec[0][0], int):
+                                          found.append(spec[0][0])
+                                      if isinstance(spec[-1], int) and spec[-1] > 0:
+                                          found.append(spec[-1])
+                          walk(value)
+                  elif isinstance(x, list):
+                      for value in x:
+                          walk(value)
+              walk(obj)
+              return max(found) if found else None
+
+          raw_manifest: list[dict[str, Any]] = []
+          hf_records: list[dict[str, Any]] = []
+
+          for relative in HF_FILES:
+              path = Path("hf-evidence") / relative
+              digest = sha256(path)
+              raw_manifest.append({
+                  "evidence_family": "pinned_hf_manifest",
+                  "path": relative,
+                  "raw_evidence_sha256": digest,
+                  "source_sha256": digest,
+                  "bytes": path.stat().st_size,
+                  "repo": HF_REPO,
+                  "revision": HF_REVISION,
+              })
+              if relative.endswith(".jsonl"):
+                  records = []
+                  for line in path.read_text(encoding="utf-8").splitlines():
+                      if line.strip():
+                          try:
+                              value = json.loads(line)
+                          except json.JSONDecodeError:
+                              continue
+                          if isinstance(value, dict):
+                              records.append(value)
+              else:
+                  obj = json.loads(path.read_text(encoding="utf-8"))
+                  records = candidate_records(obj)
+              for index, record in enumerate(records):
+                  hf_records.append(sanitize_record(record, source_file=relative, raw_evidence_sha256=digest, index=index))
+
+          repo_records: list[dict[str, Any]] = []
+          info_files = sorted(WORKLOAD_DIR.glob("*-info.json"))
+          assert info_files, "no repo-native IBM -info.json workload exports found"
+          for info_path in info_files:
+              info = json.loads(info_path.read_text(encoding="utf-8"))
+              job_id = str(info.get("id") or info_path.name.removeprefix("job-").removesuffix("-info.json"))
+              backend = str(info.get("backend") or "")
+              status = str(info.get("status") or (info.get("state") or {}).get("status") or "")
+              result_path = info_path.with_name(info_path.name.replace("-info.json", "-result.json"))
+              result_exists = result_path.exists()
+              info_sha = sha256(info_path)
+              result_sha = sha256(result_path) if result_exists else None
+              raw_evidence_sha256 = combined_sha(info_sha, result_sha or "missing-result")
+              result = json.loads(result_path.read_text(encoding="utf-8")) if result_exists else None
+              shots = extract_execution_shots(result) if result is not None else None
+
+              # This is an explicitly frozen IBM Quantum workload-export directory.
+              # Hardware classification additionally requires an ibm_* backend, a job id,
+              # completion, a matching result export, and observed execution shots.
+              provider = "IBM Quantum Platform"
+              base_class = classify(
+                  provider=provider,
+                  backend=backend,
+                  job_id=job_id,
+                  simulator=False,
+                  control_kind=None,
+              )
+              source_class = "hardware" if (
+                  base_class == "hardware" and
+                  status.lower() == "completed" and
+                  result_exists and
+                  isinstance(shots, int) and shots > 0
+              ) else "unknown"
+
+              row = {
+                  "evidence_family": "repo_native_ibm_workload_export",
+                  "provider": provider,
+                  "backend": backend or None,
+                  "job_id": job_id,
+                  "status": status,
+                  "shots": shots,
+                  "source_class": source_class,
+                  "info_path": str(info_path.relative_to("source-repo")),
+                  "result_path": str(result_path.relative_to("source-repo")) if result_exists else None,
+                  "info_sha256": info_sha,
+                  "result_sha256": result_sha,
+                  "source_sha256": raw_evidence_sha256,
+                  "raw_evidence_sha256": raw_evidence_sha256,
+                  "feature_derivation_version": "d001-quantum-features-v1",
+              }
+              repo_records.append(row)
+              raw_manifest.append({
+                  "evidence_family": row["evidence_family"],
+                  "path": row["info_path"],
+                  "paired_result_path": row["result_path"],
+                  "source_sha256": raw_evidence_sha256,
+                  "raw_evidence_sha256": raw_evidence_sha256,
+                  "info_sha256": info_sha,
+                  "result_sha256": result_sha,
+                  "repo": SOURCE_REPO,
+                  "revision": SOURCE_REVISION,
+              })
+
+          all_records = hf_records + repo_records
+          counts = Counter(row["source_class"] for row in all_records)
+          repo_counts = Counter(row["source_class"] for row in repo_records)
+          hf_counts = Counter(row["source_class"] for row in hf_records)
+          hardware_jobs = [row for row in repo_records if row["source_class"] == "hardware"]
+
+          assert do_not_inherit_checkpoint_quantum_label is True
+          assert prime_quantum_source == "unknown_from_prime_artifact"
+          assert all(row.get("source_class") != "hardware" or row.get("job_id") for row in all_records)
+          assert all(row.get("source_class") != "hardware" or row.get("backend") for row in all_records)
+          assert hardware_jobs, "expected at least one completed repo-native IBM hardware workload with result evidence"
+          assert any(row["backend"] == expected_hardware_backend for row in hardware_jobs), "expected frozen ibm_fez hardware evidence"
+
+          audit = {
+              "schema": "d001-quantum-provenance-audit-v1",
+              "hf_repo": HF_REPO,
+              "hf_revision": HF_REVISION,
+              "source_repo": SOURCE_REPO,
+              "source_revision": SOURCE_REVISION,
+              "classification_counts": dict(sorted(counts.items())),
+              "hf_classification_counts": dict(sorted(hf_counts.items())),
+              "repo_workload_classification_counts": dict(sorted(repo_counts.items())),
+              "repo_info_export_count": len(info_files),
+              "repo_hardware_job_count": len(hardware_jobs),
+              "repo_hardware_total_observed_shots": sum(int(row["shots"] or 0) for row in hardware_jobs),
+              "repo_hardware_backends": sorted({row["backend"] for row in hardware_jobs if row["backend"]}),
+              "prime_quantum_source": prime_quantum_source,
+              "sibling_checkpoint": sibling_checkpoint,
+              "do_not_inherit_checkpoint_quantum_label": do_not_inherit_checkpoint_quantum_label,
+              "bounded_interpretation": (
+                  "Completed IBM workload exports with explicit ibm_* backends, job ids, matching result exports, and execution-shot evidence are classified as hardware evidence. "
+                  "This proves those archived workloads ran on the named IBM backends; it does not by itself prove Zeref Prime consumed them. Prime remains unknown_from_prime_artifact until a separate cryptographic lineage edge is established."
+              ),
+          }
+
+          (OUT / "quantum-provenance-audit.json").write_text(json.dumps(audit, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          with (OUT / "raw-evidence-manifest.jsonl").open("w", encoding="utf-8") as f:
+              for row in sorted(raw_manifest, key=lambda x: (x["evidence_family"], x["path"])):
+                  f.write(json.dumps(row, sort_keys=True) + "\n")
+          with (OUT / "sanitized-provenance-records.jsonl").open("w", encoding="utf-8") as f:
+              for row in sorted(all_records, key=lambda x: (x["evidence_family"], str(x.get("job_id") or ""), str(x.get("source_file") or ""), int(x.get("source_index") or 0))):
+                  f.write(json.dumps(row, sort_keys=True) + "\n")
+
+          print(json.dumps(audit, indent=2, sort_keys=True))
+          PY
+
+      - name: Freeze audit hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd quantum-audit && sha256sum quantum-provenance-audit.json raw-evidence-manifest.jsonl sanitized-provenance-records.jsonl) > quantum-audit/SHA256SUMS
+          cat quantum-audit/SHA256SUMS
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d001-quantum-provenance-audit
+          path: quantum-audit
+          if-no-files-found: error
+          retention-days: 90
