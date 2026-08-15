@@ -1,0 +1,173 @@
+name: Zeref Native Hands Inspect
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/autonomous-hands-native-inspect.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Hugging Face client
+        run: python -m pip install --upgrade 'huggingface-hub>=0.27'
+
+      - name: Inventory exact pinned Zeref snapshot without executing it
+        env:
+          HF_REPO: phera-ra/QC67_cosmo
+          HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+          HF_FILE: weights/cosmos-cst.gguf
+          HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/zeref-native /tmp/zeref-inspect
+          mkdir -p /tmp/zeref-native /tmp/zeref-inspect
+          python - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import re
+
+          from huggingface_hub import HfApi, hf_hub_download
+
+          repo = os.environ["HF_REPO"]
+          revision = os.environ["HF_REVISION"]
+          gguf_path = os.environ["HF_FILE"]
+          expected_gguf = os.environ["HF_SHA256"]
+          root = pathlib.Path("/tmp/zeref-native")
+          report_dir = pathlib.Path("/tmp/zeref-inspect")
+
+          api = HfApi()
+          files = sorted(api.list_repo_files(repo_id=repo, revision=revision, repo_type="model"))
+          (report_dir / "all-files.txt").write_text("\n".join(files) + "\n", encoding="utf-8")
+
+          source_suffixes = {".py", ".sh", ".bash", ".bat", ".ps1", ".json", ".toml", ".yaml", ".yml", ".md", ".txt"}
+          source_files = [p for p in files if pathlib.PurePosixPath(p).suffix.lower() in source_suffixes]
+          wanted = sorted(set(source_files + [gguf_path]))
+
+          local_paths: dict[str, pathlib.Path] = {}
+          for path in wanted:
+              local = pathlib.Path(hf_hub_download(
+                  repo_id=repo,
+                  filename=path,
+                  revision=revision,
+                  repo_type="model",
+                  local_dir=root,
+              ))
+              local_paths[path] = local
+
+          gguf_digest = hashlib.sha256(local_paths[gguf_path].read_bytes()).hexdigest()
+          if gguf_digest != expected_gguf:
+              raise SystemExit(f"GGUF SHA mismatch: expected {expected_gguf}, got {gguf_digest}")
+
+          name_re = re.compile(r"hand|coder|tool|agent|awaken|loop|quantum|hebb|weight|ledger|rail|cst|lorenz|chaos|genesis|soul", re.I)
+          primitive_re = re.compile(
+              r"subprocess|os\.system|os\.popen|Popen\(|run\(|check_output|check_call|"
+              r"Path\([^\n]*\)\.(?:write_text|write_bytes|open)|\.write_text\(|\.write_bytes\(|"
+              r"open\([^\n]*(?:['\"]w|['\"]a|['\"]x)|socket\.|create_connection|bind\(|listen\(|"
+              r"cargo|rustc|gcc|g\+\+|make\b|compile\(|exec\(",
+              re.I,
+          )
+          import_re = re.compile(r"^(?:from\s+[^\n]+\s+import\s+[^\n]+|import\s+[^\n]+)$", re.M)
+
+          rows = []
+          for path in source_files:
+              local = local_paths[path]
+              data = local.read_bytes()
+              sha = hashlib.sha256(data).hexdigest()
+              text = data.decode("utf-8", errors="replace")
+              primitive_hits = []
+              for lineno, line in enumerate(text.splitlines(), 1):
+                  if primitive_re.search(line):
+                      primitive_hits.append({"line": lineno, "text": line.strip()[:500]})
+              if name_re.search(path) or primitive_hits:
+                  rows.append({
+                      "path": path,
+                      "sha256": sha,
+                      "bytes": len(data),
+                      "name_candidate": bool(name_re.search(path)),
+                      "machine_action_hits": primitive_hits[:80],
+                      "imports": import_re.findall(text)[:80],
+                  })
+
+          report = {
+              "repo_id": repo,
+              "revision": revision,
+              "gguf_path": gguf_path,
+              "gguf_sha256": gguf_digest,
+              "file_count": len(files),
+              "source_file_count": len(source_files),
+              "candidates": rows,
+          }
+          (report_dir / "native-stack-inspection.json").write_text(
+              json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+          )
+
+          print(f"PINNED_REPO={repo}")
+          print(f"PINNED_REVISION={revision}")
+          print(f"GGUF_SHA256={gguf_digest}")
+          print(f"REPO_FILE_COUNT={len(files)} SOURCE_FILE_COUNT={len(source_files)}")
+          print("=== CANDIDATE SUMMARY ===")
+          for row in rows:
+              hits = row["machine_action_hits"]
+              print(f"{row['path']} sha256={row['sha256']} bytes={row['bytes']} action_hits={len(hits)}")
+              for hit in hits[:12]:
+                  print(f"  L{hit['line']}: {hit['text']}")
+          PY
+
+      - name: Show hand/coder source candidates with bounded excerpts
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import pathlib
+
+          report = json.loads(pathlib.Path('/tmp/zeref-inspect/native-stack-inspection.json').read_text())
+          root = pathlib.Path('/tmp/zeref-native')
+          preferred = []
+          for row in report['candidates']:
+              p = row['path'].lower()
+              if row['machine_action_hits'] or any(k in p for k in ('hand', 'coder', 'awaken', 'genesis_engine', 'genesis/')):
+                  preferred.append(row)
+          for row in preferred[:30]:
+              path = root / row['path']
+              print(f"\n===== {row['path']} :: {row['sha256']} =====")
+              lines = path.read_text(encoding='utf-8', errors='replace').splitlines()
+              interesting = sorted({hit['line'] for hit in row['machine_action_hits']})
+              if not interesting:
+                  for lineno, line in enumerate(lines[:160], 1):
+                      print(f"{lineno:04d}: {line[:500]}")
+                  continue
+              emitted = set()
+              for center in interesting[:20]:
+                  for lineno in range(max(1, center - 4), min(len(lines), center + 5) + 1):
+                      if lineno in emitted:
+                          continue
+                      emitted.add(lineno)
+                      print(f"{lineno:04d}: {lines[lineno-1][:500]}")
+          PY
+
+      - name: Upload read-only inspection report
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-native-stack-inspection
+          path: /tmp/zeref-inspect
+          if-no-files-found: error
