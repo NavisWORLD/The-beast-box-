@@ -58,10 +58,10 @@ _COMPACT_ALIASES = {
     "f": "finish",
 }
 
-# The first turn stays tiny for compatibility with the immutable 128-token
-# training context. Later turns use a larger runtime window but keep a bounded
-# rolling frame plus a deterministic continuity capsule.
-_COMPACT_PROMPT = "JSON t/a;s=shell;h=http;f=finish"
+# Keep the active prompt minimal for the immutable 128-token training context.
+# Tool aliases are enforced by the native grammar; long-horizon state remains
+# in the persistent continuity ledger plus bounded rolling capsules.
+_COMPACT_PROMPT = "JSON t/a"
 _COMPACT_RETRY = "JSON t/a"
 _COMPACT_CONTINUE = "Continue"
 _COMPACT_OBSERVATION_PREFIX = "J "
