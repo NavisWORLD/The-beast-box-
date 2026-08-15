@@ -1,0 +1,29 @@
+{
+  "schema": "d001-parent-preflight-freeze-v1",
+  "source_commit": "bafa9b9f0337096fe0cfbefdf1e91f532f702b7e",
+  "workflow_run_id": 31907859063,
+  "workflow_job_id": 95068366660,
+  "artifact_id": 9252841891,
+  "artifact_zip_sha256": "fb9104a3325540c703ec7ab2b8681e501cd1daf2e64fb8ef10ddea3e02fd905b",
+  "preflight_manifest_sha256": "969f42aa8cc70460995710b75070a1e9cb4bcb166549f173ecf25e9c6543e7af",
+  "hf_repo": "phera-ra/QC67_cosmo",
+  "hf_revision": "b414724c627300c41b099dcc6853766d08fd27a4",
+  "prime_gguf_path": "weights/cosmos-cst.gguf",
+  "prime_gguf_sha256": "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6",
+  "inventory_count": 317,
+  "status": "CONVERSION_REQUIRED",
+  "training_allowed": false,
+  "proven_artifact": null,
+  "trainable_candidates": [
+    "weights/cosmos_best.pt",
+    "weights/cosmos_born.pt",
+    "weights/cosmos_play.pt",
+    "weights/cosmos_sandbox.pt",
+    "weights/phos.pt",
+    "weights/phos_weights.pt",
+    "weights/samgo_weights.pt",
+    "weights/spark_cst.pt"
+  ],
+  "reason": "Trainable-format candidate checkpoints exist in the exact pinned revision, but no valid cryptographic mapping proves that any candidate is the trainable ancestor or equivalent of Zeref Prime.",
+  "required_action_before_full_weight_training": "Produce and verify a source-checkpoint export manifest or deterministic conversion manifest that cryptographically maps an exact trainable artifact to the frozen Prime GGUF lineage. Until then, descendant evidence, memory, corpus, quantum, twin-state, and evaluation preparation may proceed, but Prime-lineage full-weight training is blocked."
+}
