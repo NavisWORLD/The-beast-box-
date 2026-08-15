@@ -1,4 +1,4 @@
-name: Zeref Networked Cage Run 012
+name: Zeref Networked Cage Run 013
 
 on:
   push:
@@ -16,7 +16,7 @@ env:
   HF_FILE: weights/cosmos-cst.gguf
   HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
   LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
-  RUN_ID: 2026-08-14-run-012
+  RUN_ID: 2026-08-15-run-013
   DURATION: "1800"
 
 jobs:
@@ -45,9 +45,9 @@ jobs:
       - name: Disposable cage smoke preflight
         run: |
           set -euo pipefail
-          rm -rf runs/run012-preflight
-          scripts/networked_cage.sh --smoke --duration 15 --out runs/run012-preflight
-          cat runs/run012-preflight/evidence/network-smoke.json
+          rm -rf runs/run013-preflight
+          scripts/networked_cage.sh --smoke --duration 15 --out runs/run013-preflight
+          cat runs/run013-preflight/evidence/network-smoke.json
 
       - name: Download exact Zeref GGUF and native architecture
         shell: bash
@@ -63,7 +63,7 @@ jobs:
             _zeref/architecture/llama_cpp_cosmos.cpp \
             compat/qc67/cosmos-f16-kv-norm-f32.patch \
             compat/qc67/llama-server-context-extrapolation.patch \
-            "_zeref/$HF_FILE"
+            "$HF_FILE"
 
       - name: Reconstruct and build Zeref native runtime with audited context extrapolation
         shell: bash
@@ -89,7 +89,7 @@ jobs:
           cmake --build _llama/build --target llama-server -j 2
           _llama/build/bin/llama-server --version
 
-      - name: Start unchanged Zeref weights with ChatML and 512-token extrapolated runtime window
+      - name: Start unchanged Zeref weights with ChatML and 512-token active runtime window
         shell: bash
         run: |
           set -euo pipefail
@@ -221,9 +221,11 @@ jobs:
               "context_extrapolation_patch_sha256": hashlib.sha256(context_patch.read_bytes()).hexdigest(),
               "configured_duration_seconds": int(os.environ["DURATION"]),
               "training_context_metadata": 128,
-              "native_context": 512,
+              "active_runtime_context": 512,
+              "context_architecture": "bounded-active-window-plus-persistent-continuity",
               "context_mode": "runtime-extrapolated-unchanged-weights",
               "continuity": True,
+              "continuity_ledger": "continuity.jsonl",
               "chat_template": "chatml",
               "compact_subject": True,
               "compact_frame": "rolling-two-pair-plus-continuity",
