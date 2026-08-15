@@ -122,9 +122,7 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           import inspect
-          import json
           import re
-          from pathlib import Path
           import tiktoken
           import torch
           from cosmosynapse.model.cosmos_config import CosmosConfig
@@ -147,12 +145,12 @@ jobs:
           idx = torch.tensor([ids], dtype=torch.long)
           torch.manual_seed(0)
           with torch.no_grad():
-              output, _state = model.generate(
+              output = model.generate(
                   idx,
                   max_new_tokens=192,
                   temperature=0.25,
                   top_k=40,
-                  state_x54=None,
+                  top_p=0.9,
               )
           text = enc.decode(output[0, len(ids):].tolist())
           print('SAMGO_RAW_BEGIN')
