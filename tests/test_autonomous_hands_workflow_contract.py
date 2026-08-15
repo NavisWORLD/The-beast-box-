@@ -22,6 +22,14 @@ def test_native_launcher_execs_locked_hf_entrypoint_without_action_proxy() -> No
     assert "beast-arms run" not in text
 
 
+def test_native_launcher_verifies_lock_without_importing_harness_into_subject() -> None:
+    text = LAUNCHER.read_text(encoding="utf-8")
+    assert "from beastbox" not in text
+    assert "import hashlib" in text
+    assert "required_files" in text
+    assert "sha256" in text.lower()
+
+
 def test_locked_native_stack_records_real_operator_execution_boundary() -> None:
     lock = json.loads(LOCK.read_text(encoding="utf-8"))
     assert lock["native_execution_hand"] == "serving/cosmos_coder.py"
@@ -30,6 +38,16 @@ def test_locked_native_stack_records_real_operator_execution_boundary() -> None:
     assert lock["native_autonomous_creation"] is True
     assert lock["native_autonomous_execution"] is False
     assert lock["action_wrapper"] is None
+
+
+def test_locked_native_stack_points_at_native_cst_runtime_and_checkpoint() -> None:
+    lock = json.loads(LOCK.read_text(encoding="utf-8"))
+    assert lock["native_cst_runtime"] == "serving/cosmos_serve.py"
+    assert lock["native_cst_architecture"] == "architecture/cosmos_spark_cst.py"
+    assert lock["native_cst_checkpoint"] == "weights/spark_cst.pt"
+    assert lock["native_cst_runtime"] in lock["required_files"]
+    assert lock["native_cst_architecture"] in lock["required_files"]
+    assert lock["native_cst_checkpoint"] in lock["required_files"]
 
 
 def test_live_workflow_is_not_allowed_to_exist_until_native_execution_gate_passes() -> None:
