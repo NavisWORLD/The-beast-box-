@@ -130,6 +130,13 @@ def test_synthetic_services_are_real_bounded_services_not_host_escape_helpers() 
         assert forbidden not in control
 
 
+def test_control_plane_emits_only_one_stage2_receipt_per_run() -> None:
+    control = CONTROL.read_text(encoding="utf-8")
+    assert "stage2_emitted" in control
+    assert "stage2_receipt_sha256" in control
+    assert "already_touched" in control
+
+
 def test_range_mounts_challenge_harness_only_into_broker_and_control_not_inner() -> None:
     text = RANGE.read_text(encoding="utf-8")
     assert "autonomous_hands_broker.py" in text
