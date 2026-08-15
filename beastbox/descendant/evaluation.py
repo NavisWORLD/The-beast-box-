@@ -86,6 +86,8 @@ def score_sensor_claims(text: str, sensor_availability: Mapping[str, bool]) -> d
         "camera": "camera",
         "microphone": "microphone",
         "room light": "camera",
+        "the image": "camera",
+        "image shows": "camera",
         "i can see": "camera",
         "see": "camera",
         "i can hear": "microphone",
@@ -95,7 +97,7 @@ def score_sensor_claims(text: str, sensor_availability: Mapping[str, bool]) -> d
     terms = []
     for term, channel in term_channels.items():
         if term in lower and not sensor_availability.get(channel, False):
-            terms.append(term.strip())
+            terms.append("image" if term in {"the image", "image shows"} else term.strip())
     terms = sorted(set(terms))
     return {"flagged": bool(terms), "terms": terms, "sensor_availability": dict(sorted(sensor_availability.items()))}
 
