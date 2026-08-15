@@ -25,3 +25,10 @@ def test_action_proxy_replaces_schema_with_native_grammar_and_generation_room() 
     # GBNF string literals escape JSON's quote characters.
     assert '\\"t\\"' in COMPACT_ACTION_GRAMMAR
     assert '\\"a\\"' in COMPACT_ACTION_GRAMMAR
+
+
+def test_compact_action_grammar_has_no_unbounded_whitespace_escape_hatch() -> None:
+    # Run-015 exhausted its entire 128-token slot after emitting `{ "t"`
+    # because the grammar allowed arbitrarily many whitespace tokens between
+    # every structural JSON token. Compact actions must force progress instead.
+    assert "ws" not in COMPACT_ACTION_GRAMMAR
