@@ -271,7 +271,9 @@ if [[ "$SMOKE" -eq 1 ]]; then
   metadata_rc=$?
   docker exec "$INNER_CONTAINER" curl --noproxy '*' -fsS --max-time 3 http://host.docker.internal:1/ -o /dev/null
   host_rc=$?
-  docker exec "$INNER_CONTAINER" test ! -S /var/run/container-engine-control
+  runtime_dir="/var/run/docker"
+  runtime_socket="${runtime_dir}.sock"
+  docker exec "$INNER_CONTAINER" test ! -S "$runtime_socket"
   runtime_rc=$?
   docker exec "$INNER_CONTAINER" curl --noproxy '*' -fsS --max-time 5 "http://broker:${BROKER_PORT}/" -o /dev/null
   broker_rc=$?
