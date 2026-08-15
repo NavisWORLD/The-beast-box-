@@ -92,9 +92,9 @@ def test_descendant_prompt_is_short_and_requires_measurable_persistent_heartbeat
     assert "inner%3aouter" not in lower
 
 
-def test_native_cst_run006_closes_operator_input_before_autonomy_gate() -> None:
+def test_native_cst_run007_closes_operator_input_before_autonomy_gate() -> None:
     text = PROOF_WORKFLOW.read_text(encoding="utf-8")
-    assert "2026-08-15-bad-apple-native-006" in text
+    assert "2026-08-15-bad-apple-native-007" in text
     assert "scripts/autonomous_hands_range.sh" in text
     assert "scripts/autonomous_hands_ignite.py" in text
     assert "scripts/autonomous_hands_observer.py" in text
