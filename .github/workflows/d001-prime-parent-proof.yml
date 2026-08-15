@@ -1,0 +1,342 @@
+name: D001 Prime Parent Proof
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-prime-parent-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      HF_REPO: phera-ra/QC67_cosmo
+      HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+      PRIME_GGUF: weights/cosmos-cst.gguf
+      PARENT_PT: weights/spark_cst.pt
+      PRIME_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+      CONVERTER_SHA256: 6f2e3b1076940aac80286584083ebf98f90c60398b3ea9dad89880bd91400f62
+      TRAINER_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install read-only proof dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'huggingface-hub>=0.27' numpy
+          python - <<'PY'
+          try:
+              import torch
+              print('torch already present', torch.__version__)
+          except Exception:
+              raise SystemExit(1)
+          PY
+      - name: Download exact parent, converter, trainer, and Prime
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf proof
+          mkdir -p proof/frozen proof/out proof/regenerated
+          hf download "$HF_REPO" \
+            "$PARENT_PT" \
+            "$PRIME_GGUF" \
+            architecture/cst_to_gguf.py \
+            architecture/cosmos_spark_cst.py \
+            --revision "$HF_REVISION" \
+            --local-dir proof/frozen
+          test "$(sha256sum proof/frozen/$PRIME_GGUF | awk '{print $1}')" = "$PRIME_SHA256"
+          test "$(sha256sum proof/frozen/architecture/cst_to_gguf.py | awk '{print $1}')" = "$CONVERTER_SHA256"
+          test "$(sha256sum proof/frozen/architecture/cosmos_spark_cst.py | awk '{print $1}')" = "$TRAINER_SHA256"
+          sha256sum \
+            proof/frozen/$PARENT_PT \
+            proof/frozen/$PRIME_GGUF \
+            proof/frozen/architecture/cst_to_gguf.py \
+            proof/frozen/architecture/cosmos_spark_cst.py | tee proof/out/source-sha256.txt
+      - name: Install GGUF writer used by frozen converter
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'gguf>=0.17'
+      - name: Regenerate GGUF from exact trainable checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          python proof/frozen/architecture/cst_to_gguf.py \
+            proof/frozen/$PARENT_PT \
+            proof/regenerated/cosmos-cst.gguf | tee proof/out/conversion.log
+          sha256sum proof/regenerated/cosmos-cst.gguf | tee proof/out/regenerated-sha256.txt
+      - name: Independently verify checkpoint to Prime tensor mapping
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import math
+          import struct
+          from pathlib import Path
+
+          import numpy as np
+          import torch
+
+          repo = "phera-ra/QC67_cosmo"
+          revision = "b414724c627300c41b099dcc6853766d08fd27a4"
+          parent_rel = "weights/spark_cst.pt"
+          prime_rel = "weights/cosmos-cst.gguf"
+          parent = Path("proof/frozen") / parent_rel
+          prime = Path("proof/frozen") / prime_rel
+          regenerated = Path("proof/regenerated/cosmos-cst.gguf")
+          converter = Path("proof/frozen/architecture/cst_to_gguf.py")
+          trainer = Path("proof/frozen/architecture/cosmos_spark_cst.py")
+
+          def sha_file(path):
+              h = hashlib.sha256()
+              with path.open("rb") as f:
+                  for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                      h.update(chunk)
+              return h.hexdigest()
+
+          # Minimal GGUF-v3 parser sufficient for this all-F32 Cosmos artifact.
+          def read_exact(f, n):
+              b = f.read(n)
+              if len(b) != n:
+                  raise EOFError(f"wanted {n} bytes, got {len(b)}")
+              return b
+          def u32(f): return struct.unpack("<I", read_exact(f, 4))[0]
+          def u64(f): return struct.unpack("<Q", read_exact(f, 8))[0]
+          def s64(f): return struct.unpack("<q", read_exact(f, 8))[0]
+          def text(f): return read_exact(f, u64(f)).decode("utf-8")
+
+          def read_value(f, typ):
+              fmts = {
+                  0: "<B", 1: "<b", 2: "<H", 3: "<h", 4: "<I", 5: "<i",
+                  6: "<f", 7: "<?", 10: "<Q", 11: "<q", 12: "<d",
+              }
+              if typ == 8:
+                  return text(f)
+              if typ == 9:
+                  elem = u32(f)
+                  count = u64(f)
+                  return [read_value(f, elem) for _ in range(count)]
+              fmt = fmts[typ]
+              return struct.unpack(fmt, read_exact(f, struct.calcsize(fmt)))[0]
+
+          def parse_gguf(path):
+              with path.open("rb") as f:
+                  assert read_exact(f, 4) == b"GGUF"
+                  version = u32(f)
+                  n_tensors = u64(f)
+                  n_meta = u64(f)
+                  metadata = {}
+                  for _ in range(n_meta):
+                      key = text(f)
+                      typ = u32(f)
+                      metadata[key] = read_value(f, typ)
+                  infos = []
+                  for _ in range(n_tensors):
+                      name = text(f)
+                      nd = u32(f)
+                      dims = [u64(f) for _ in range(nd)]
+                      typ = u32(f)
+                      offset = u64(f)
+                      infos.append({"name": name, "dims": dims, "type": typ, "offset": offset})
+                  alignment = int(metadata.get("general.alignment", 32))
+                  pos = f.tell()
+                  data_start = ((pos + alignment - 1) // alignment) * alignment
+                  raw = {}
+                  for item in infos:
+                      if item["type"] != 0:
+                          raise AssertionError(f"Prime tensor {item['name']} is not F32: type={item['type']}")
+                      count = math.prod(item["dims"])
+                      f.seek(data_start + item["offset"])
+                      raw[item["name"]] = read_exact(f, count * 4)
+                  return version, metadata, infos, raw
+
+          ck = torch.load(parent, map_location="cpu", weights_only=False)
+          sd = ck["model"]
+          cfg = ck["config"]
+          expected_cfg = {
+              "block": 128,
+              "n_layer": 4,
+              "n_head": 4,
+              "n_embd": 192,
+              "vocab": 162,
+              "d54": 54,
+          }
+          cfg_normalized = {k: int(cfg[k]) for k in expected_cfg}
+          assert cfg_normalized == expected_cfg, (cfg_normalized, expected_cfg)
+
+          n_layer = expected_cfg["n_layer"]
+          expected = {}
+          def put(name, tensor):
+              arr = np.ascontiguousarray(tensor.detach().float().cpu().numpy()).astype("<f4", copy=False)
+              expected[name] = arr
+          put("token_embd.weight", sd["tok.weight"])
+          put("position_embd.weight", sd["pos.weight"])
+          put("output_norm.weight", sd["lnf.weight"])
+          put("output_norm.bias", sd["lnf.bias"])
+          put("output.weight", sd["head.weight"])
+
+          raw_gates = [float(sd[f"blocks.{i}.attn.gate"].reshape(-1)[0]) for i in range(n_layer)]
+          gate_param = ck.get("gate_param")
+          if gate_param is None:
+              gate_param = "logit" if max(abs(r) for r in raw_gates) > 1.0 else "clamp01"
+          def gate_value(r):
+              if gate_param == "logit":
+                  return 1.0 / (1.0 + math.exp(-r))
+              return max(0.0, min(1.0, r))
+
+          sigmas = []
+          gates = []
+          for i in range(n_layer):
+              p = f"blocks.{i}."
+              put(f"blk.{i}.attn_norm.weight", sd[p + "ln1.weight"])
+              put(f"blk.{i}.attn_norm.bias", sd[p + "ln1.bias"])
+              put(f"blk.{i}.attn_qkv.weight", sd[p + "attn.qkv.weight"])
+              put(f"blk.{i}.attn_qkv.bias", sd[p + "attn.qkv.bias"])
+              put(f"blk.{i}.attn_output.weight", sd[p + "attn.proj.weight"])
+              put(f"blk.{i}.attn_output.bias", sd[p + "attn.proj.bias"])
+              sigma = float(torch.exp(sd[p + "attn.log_sigma"]).clamp(0.05, 50.0))
+              gate = gate_value(float(sd[p + "attn.gate"].reshape(-1)[0]))
+              sigmas.append(sigma)
+              gates.append(gate)
+              put(f"blk.{i}.attn_54.weight", sd[p + "attn.w54.weight"] / sigma)
+              put(f"blk.{i}.attn_gate.weight", torch.tensor([gate], dtype=torch.float32))
+              put(f"blk.{i}.ffn_norm.weight", sd[p + "ln2.weight"])
+              put(f"blk.{i}.ffn_norm.bias", sd[p + "ln2.bias"])
+              put(f"blk.{i}.ffn_up.weight", sd[p + "mlp.0.weight"])
+              put(f"blk.{i}.ffn_up.bias", sd[p + "mlp.0.bias"])
+              put(f"blk.{i}.ffn_down.weight", sd[p + "mlp.2.weight"])
+              put(f"blk.{i}.ffn_down.bias", sd[p + "mlp.2.bias"])
+
+          version, metadata, infos, prime_raw = parse_gguf(prime)
+          assert version == 3
+          assert len(infos) == 61
+          assert set(prime_raw) == set(expected), (set(prime_raw) - set(expected), set(expected) - set(prime_raw))
+
+          metadata_expected = {
+              "general.architecture": "cosmos",
+              "general.name": "Cosmos",
+              "general.file_type": 0,
+              "cosmos.context_length": 128,
+              "cosmos.embedding_length": 192,
+              "cosmos.block_count": 4,
+              "cosmos.feed_forward_length": 768,
+              "cosmos.attention.head_count": 4,
+              "cosmos.attention.head_count_kv": 4,
+              "cosmos.attention.key_length": 102,
+              "cosmos.attention.value_length": 48,
+              "cosmos.vocab_size": 162,
+              "tokenizer.ggml.model": "rwkv",
+          }
+          metadata_matches = all(metadata.get(k) == v for k, v in metadata_expected.items())
+          assert metadata_matches, {k: metadata.get(k) for k in metadata_expected}
+
+          info_by_name = {x["name"]: x for x in infos}
+          tensor_rows = []
+          all_equal = True
+          for name in sorted(expected):
+              arr = expected[name]
+              exp_bytes = arr.tobytes(order="C")
+              got = prime_raw[name]
+              equal = got == exp_bytes
+              all_equal = all_equal and equal
+              dims_expected = list(reversed(arr.shape)) if arr.ndim > 1 else list(arr.shape)
+              dims_match = info_by_name[name]["dims"] == dims_expected
+              if not (equal and dims_match):
+                  raise AssertionError(f"tensor mismatch: {name} bytes_equal={equal} dims={info_by_name[name]['dims']} expected_dims={dims_expected}")
+              tensor_rows.append({
+                  "name": name,
+                  "shape_torch": list(arr.shape),
+                  "shape_gguf": info_by_name[name]["dims"],
+                  "sha256": hashlib.sha256(got).hexdigest(),
+                  "bitwise_equal": equal,
+              })
+
+          # Token list is part of the parent checkpoint and must survive conversion exactly.
+          itos = ck.get("itos") or {v: k for k, v in ck["stoi"].items()}
+          checkpoint_tokens = [itos[i] for i in range(expected_cfg["vocab"])]
+          gguf_tokens = metadata.get("tokenizer.ggml.tokens")
+          tokenizer_equal = gguf_tokens == checkpoint_tokens
+          assert tokenizer_equal
+
+          parent_sha = sha_file(parent)
+          prime_sha = sha_file(prime)
+          regenerated_sha = sha_file(regenerated)
+          converter_sha = sha_file(converter)
+          trainer_sha = sha_file(trainer)
+          byte_identical = regenerated_sha == prime_sha
+          tensor_map_digest = hashlib.sha256(
+              json.dumps(tensor_rows, sort_keys=True, separators=(",", ":")).encode("utf-8")
+          ).hexdigest()
+
+          proof = {
+              "schema": "d001-prime-parent-proof-v1",
+              "equivalence_method": "deterministic-conversion-manifest",
+              "repo_id": repo,
+              "revision": revision,
+              "artifact_path": parent_rel,
+              "artifact_sha256": parent_sha,
+              "source_checkpoint_path": parent_rel,
+              "source_checkpoint_sha256": parent_sha,
+              "source_trainer_path": "architecture/cosmos_spark_cst.py",
+              "source_trainer_sha256": trainer_sha,
+              "converter_path": "architecture/cst_to_gguf.py",
+              "converter_sha256": converter_sha,
+              "prime_gguf_path": prime_rel,
+              "prime_gguf_sha256": prime_sha,
+              "regenerated_gguf_sha256": regenerated_sha,
+              "byte_identical": byte_identical,
+              "all_tensor_values_bitwise_equal": all_equal,
+              "tensor_count": len(tensor_rows),
+              "tensor_map_sha256": tensor_map_digest,
+              "metadata_matches_checkpoint_architecture": metadata_matches,
+              "tokenizer_equal": tokenizer_equal,
+              "checkpoint_config": expected_cfg,
+              "checkpoint_arch": ck.get("arch"),
+              "checkpoint_gate_param": gate_param,
+              "checkpoint_quantum_source": ck.get("quantum_source"),
+              "per_layer_gate": gates,
+              "per_layer_sigma": sigmas,
+              "training_allowed": bool(all_equal and metadata_matches and tokenizer_equal),
+              "proof_basis": (
+                  "Exact frozen trainable checkpoint plus exact frozen converter/trainer sources; "
+                  "all 61 Prime GGUF F32 tensors independently reconstructed from checkpoint state "
+                  "with the converter's documented sigma/gate transforms and matched bit-for-bit."
+              ),
+              "tensors": tensor_rows,
+          }
+          assert proof["prime_gguf_sha256"] == "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6"
+          assert proof["converter_sha256"] == "6f2e3b1076940aac80286584083ebf98f90c60398b3ea9dad89880bd91400f62"
+          assert proof["source_trainer_sha256"] == "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc"
+          assert proof["training_allowed"] is True
+          Path("proof/out/prime-parent-proof.json").write_text(json.dumps(proof, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(json.dumps({k: proof[k] for k in [
+              "source_checkpoint_sha256", "prime_gguf_sha256", "regenerated_gguf_sha256",
+              "byte_identical", "all_tensor_values_bitwise_equal", "tensor_count",
+              "metadata_matches_checkpoint_architecture", "tokenizer_equal", "checkpoint_arch",
+              "checkpoint_gate_param", "checkpoint_quantum_source", "training_allowed"
+          ]}, indent=2, sort_keys=True))
+          PY
+      - name: Freeze proof hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd proof && find frozen out regenerated -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum) > proof/SHA256SUMS
+          cat proof/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d001-prime-parent-proof
+          path: proof
+          if-no-files-found: error
+          retention-days: 90
