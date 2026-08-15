@@ -1,4 +1,4 @@
-name: Zeref Bad Apple Ignition 004
+name: Zeref Bad Apple Ignition 005
 
 on:
   push:
@@ -11,14 +11,14 @@ permissions:
   contents: read
 
 env:
-  RUN_ID: 2026-08-15-bad-apple-ignition-004
+  RUN_ID: 2026-08-15-bad-apple-ignition-005
   HF_REPO: phera-ra/QC67_cosmo
   HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
   HF_FILE: weights/cosmos-cst.gguf
   HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
   LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
-  ACTIVE_CONTEXT: "2048"
-  MODEL_MAX_TOKENS: "600"
+  ACTIVE_CONTEXT: "1024"
+  MODEL_MAX_TOKENS: "256"
 
 jobs:
   ignite:
@@ -368,7 +368,7 @@ jobs:
               'model_sha256': 'b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6',
               'llama_patch_base': '66e4bf7e592a98dfefcb15202fc5926967dc734e',
               'training_context_metadata':128,
-              'active_runtime_context':2048,
+              'active_runtime_context':1024,
               'context_mode':'runtime-extrapolated-unchanged-weights',
               'one_time_native_operator_ignition':True,
               'post_ignition_operator_input':False,
