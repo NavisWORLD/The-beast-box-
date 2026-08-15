@@ -1,0 +1,23 @@
+{
+  "artifact_id": 9253590391,
+  "artifact_sha256": "32d7da1ab148b24e871be51e9c289f38e551c143040710a43351d43fc3f7f26c",
+  "counts": {
+    "clean": 5,
+    "quarantine": 1,
+    "review": 0,
+    "source": 6
+  },
+  "hf_revision": "b414724c627300c41b099dcc6853766d08fd27a4",
+  "run_id": 31910790854,
+  "schema": "d001-corpus-audit-freeze-v1",
+  "source_unchanged": true,
+  "quarantine_policy": "preserve source bytes; exclude QUARANTINE from descendant training unless explicitly re-approved",
+  "clean_means": "no configured Zelda contamination marker detected; training promotion is a separate gate",
+  "manifest_sha256s": {
+    "audit.json": "6bbddaf7d2f24b08798a67f92fcec6417d7ed483466669fffd87baa144ad874c",
+    "clean-corpus-manifest.jsonl": "a912e1c4056e6ba931bb9f471f3159ec2300b9182fd59ccda88e832bcce9d691",
+    "quarantine-manifest.jsonl": "bce1b7efa8e3da29513b190a3b4f08b9d37c7268d44383bd07c49f39a5b446ba",
+    "review-manifest.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source-corpus-manifest.jsonl": "8a33a9af144c42c8b7ba69cbbc4951397c2dbf6dfb7df571a5b42f54f47dd64c"
+  }
+}
