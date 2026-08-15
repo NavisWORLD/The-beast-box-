@@ -3,8 +3,11 @@
   "entrypoint": "serving/cosmos_coder.py",
   "gguf_path": "weights/cosmos-cst.gguf",
   "gguf_sha256": "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6",
+  "native_autonomous_creation": true,
+  "native_autonomous_execution": false,
   "native_autonomy_component": "genesis_engine/soul/loop.py",
   "native_execution_hand": "serving/cosmos_coder.py",
+  "native_execution_policy": "operator-gated-save-build-run",
   "native_physics_bridge": "soul/cosmos_bridge.py",
   "repo_id": "phera-ra/QC67_cosmo",
   "required_files": {
