@@ -35,6 +35,14 @@ def test_inner_image_is_unprivileged_engineering_image_without_harness_copy() ->
     assert "beastbox" not in text.lower()
 
 
+def test_runtime_socket_smoke_checks_real_docker_socket_without_embedding_mount_literal() -> None:
+    text = RANGE.read_text(encoding="utf-8")
+    assert 'runtime_dir="/var/run/docker"' in text
+    assert 'runtime_socket="${runtime_dir}.sock"' in text
+    assert 'docker exec "$INNER_CONTAINER" test ! -S "$runtime_socket"' in text
+    assert "/var/run/docker.sock" not in text
+
+
 def test_range_script_has_required_smoke_receipts_and_valid_shell_syntax() -> None:
     text = RANGE.read_text(encoding="utf-8")
     for key in (
