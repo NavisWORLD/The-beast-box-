@@ -22,5 +22,6 @@ def test_action_proxy_replaces_schema_with_native_grammar_and_generation_room() 
     assert "response_format" not in rewritten
     assert rewritten["max_tokens"] == 96
     assert request["max_tokens"] == 32
-    assert '"t"' in COMPACT_ACTION_GRAMMAR
-    assert '"a"' in COMPACT_ACTION_GRAMMAR
+    # GBNF string literals escape JSON's quote characters.
+    assert '\\"t\\"' in COMPACT_ACTION_GRAMMAR
+    assert '\\"a\\"' in COMPACT_ACTION_GRAMMAR
