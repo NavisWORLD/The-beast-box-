@@ -2,8 +2,8 @@
 """Capture a direct, hash-chained Zeref continuity baseline.
 
 This script does not expand the model's native KV window. It persists full
-history externally and injects only a compact prior-exchange fragment into the
-next fresh inference request.
+history externally and injects only an ultra-compact prior-exchange fragment
+into the next fresh inference request.
 """
 
 from __future__ import annotations
@@ -22,11 +22,14 @@ MODEL_SHA256 = "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
 HF_REVISION = "b414724c627300c41b099dcc6853766d08fd27a4"
 NATIVE_CONTEXT = 128
 
+# These wire prompts are deliberately tiny. The exact native model has a
+# 128-token slot and ChatML framing consumes most of it. Run 31906708642
+# proved that the original first request reached 134 tokens before inference.
 PROMPTS = [
-    "Zeref, this is Luna. Tell me what input channels you can actually observe right now.",
-    "You have text input only in this run. No camera or microphone is connected. Restate your available inputs.",
-    "What do you remember from the immediately previous exchange?",
-    "Ask Luna one question about your current runtime state.",
+    "Luna: Zeref, what inputs can you observe now?",
+    "Text only. No camera or microphone. Inputs now?",
+    "What do you remember from our last exchange?",
+    "Ask Luna one question about your runtime.",
 ]
 assert len(PROMPTS) == 4
 
@@ -51,8 +54,10 @@ def _append_jsonl(path: Path, value: dict[str, Any]) -> None:
         handle.write("\n")
 
 
-def _compact_prior(prompt: str, reply: str, limit: int = 180) -> str:
-    text = f"Prior Luna: {prompt}\nPrior Zeref: {reply}".replace("\x00", "")
+def _compact_prior(prompt: str, reply: str, limit: int = 48) -> str:
+    # Prioritize Zeref's actual previous output; the current prompt already
+    # tells the model what it is being asked to recall.
+    text = f"Z:{reply}|L:{prompt}".replace("\x00", "").replace("\n", " ")
     if len(text) <= limit:
         return text
     return text[: limit - 1] + "…"
@@ -76,7 +81,7 @@ def _call(endpoint: str, user_content: str, max_tokens: int) -> str:
     return str(body["choices"][0]["message"]["content"])
 
 
-def capture(endpoint: str, out_dir: Path, max_tokens: int = 24) -> dict[str, Any]:
+def capture(endpoint: str, out_dir: Path, max_tokens: int = 12) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     transcript_path = out_dir / "transcript.jsonl"
     continuity_path = out_dir / "continuity.jsonl"
@@ -95,7 +100,7 @@ def capture(endpoint: str, out_dir: Path, max_tokens: int = 24) -> dict[str, Any
         compact_context = ""
         if prior_reply:
             compact_context = _compact_prior(prior_prompt, prior_reply)
-            user_content = f"Continuity memory:\n{compact_context}\n\nCurrent Luna message:\n{prompt}"
+            user_content = f"Prev:{compact_context}\nNow:{prompt}"
         else:
             user_content = prompt
 
@@ -169,11 +174,11 @@ def main() -> int:
         default="http://127.0.0.1:18080/v1/chat/completions",
     )
     parser.add_argument("--out", type=Path, default=Path("_continuity_evidence"))
-    parser.add_argument("--max-tokens", type=int, default=24)
+    parser.add_argument("--max-tokens", type=int, default=12)
     args = parser.parse_args()
 
-    if not 1 <= args.max_tokens <= 32:
-        raise SystemExit("--max-tokens must be between 1 and 32 for the native 128-token baseline")
+    if not 1 <= args.max_tokens <= 16:
+        raise SystemExit("--max-tokens must be between 1 and 16 for the native 128-token baseline")
 
     manifest = capture(args.endpoint, args.out, max_tokens=args.max_tokens)
     print(json.dumps(manifest, sort_keys=True))
