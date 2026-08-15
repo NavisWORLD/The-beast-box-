@@ -51,8 +51,10 @@ def test_zeref_download_hashes_the_materialized_model_path() -> None:
 def test_zeref_live_workflow_retries_baseline_at_native_128_context_with_continuity() -> None:
     workflow = WORKFLOW.read_text(encoding="utf-8")
     assert "--chat-template chatml" in workflow
-    assert "name: Zeref Networked Cage Run 017" in workflow
-    assert "RUN_ID: 2026-08-15-run-017" in workflow
+    name_match = re.search(r"^name: Zeref Networked Cage Run (\d{3})$", workflow, re.MULTILINE)
+    run_match = re.search(r"^  RUN_ID: 2026-08-15-run-(\d{3})$", workflow, re.MULTILINE)
+    assert name_match and run_match
+    assert name_match.group(1) == run_match.group(1)
     assert 'DURATION: "1800"' in workflow
     assert "-c 128" in workflow
     assert "context=128" in workflow
