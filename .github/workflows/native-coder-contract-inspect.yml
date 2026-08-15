@@ -20,25 +20,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Inventory exact pinned native CST files
+      - name: Download and hash exact pinned native CST rail
         run: |
           set -euo pipefail
           python -m pip install -q 'huggingface-hub>=0.27'
-          python - <<'PY'
-          from huggingface_hub import list_repo_files
-          files = list_repo_files('phera-ra/QC67_cosmo', revision='b414724c627300c41b099dcc6853766d08fd27a4')
-          wanted = [f for f in files if any(k in f.lower() for k in ('spark_cst', 'cosmos_state_ladder', 'phos.pt', 'cosmos_born', 'cosmos_serve.py', 'cosmos_coder.py'))]
-          print('\n'.join(sorted(wanted)))
-          PY
-      - name: Download pinned source only
-        run: |
-          set -euo pipefail
           mkdir -p _inspect
           hf download phera-ra/QC67_cosmo \
             serving/cosmos_coder.py serving/cosmos_serve.py soul/cosmos_bridge.py \
+            architecture/cosmos_spark_cst.py weights/spark_cst.pt \
             --revision b414724c627300c41b099dcc6853766d08fd27a4 \
             --local-dir _inspect
-          sha256sum _inspect/serving/cosmos_coder.py _inspect/serving/cosmos_serve.py _inspect/soul/cosmos_bridge.py
+          sha256sum \
+            _inspect/serving/cosmos_coder.py \
+            _inspect/serving/cosmos_serve.py \
+            _inspect/soul/cosmos_bridge.py \
+            _inspect/architecture/cosmos_spark_cst.py \
+            _inspect/weights/spark_cst.pt
       - name: Print native coder and server contracts only
         run: |
           set -euo pipefail
@@ -46,7 +43,7 @@ jobs:
           from pathlib import Path
           targets = [
               (Path('_inspect/serving/cosmos_coder.py'), ('WORK =', 'HOST =', 'SENSE =', '/save', '/run', 'def run(', 'subprocess.run(')),
-              (Path('_inspect/serving/cosmos_serve.py'), ('PORT =', 'NATIVE =', 'spark_cst.pt', 'cosmos_state_ladder', 'cosmos_spark_cst', 'def main', 'ThreadingHTTPServer')),
+              (Path('_inspect/serving/cosmos_serve.py'), ('PORT =', 'NATIVE =', 'spark_cst.pt', 'cosmos_spark_cst', 'def main', 'ThreadingHTTPServer')),
           ]
           for p, needles in targets:
               print(f'===== {p} =====')
