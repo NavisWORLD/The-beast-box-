@@ -114,7 +114,7 @@ jobs:
           python scripts/zeref_continuity_baseline.py \
             --endpoint http://127.0.0.1:18080/v1/chat/completions \
             --out _continuity_evidence \
-            --max-tokens 24 \
+            --max-tokens 12 \
             | tee _continuity_evidence/conversation-console.txt
           test "$(wc -l < _continuity_evidence/transcript.jsonl)" -eq 4
           test "$(wc -l < _continuity_evidence/continuity.jsonl)" -eq 4
