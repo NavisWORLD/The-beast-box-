@@ -80,7 +80,7 @@ def test_descendant_prompt_requires_persistent_self_authored_worker_but_not_a_sc
 
 def test_ignition_proof_workflow_closes_operator_input_before_autonomy_gate() -> None:
     text = PROOF_WORKFLOW.read_text(encoding="utf-8")
-    assert "2026-08-15-bad-apple-ignition-002" in text
+    assert "2026-08-15-bad-apple-ignition-003" in text
     assert "scripts/autonomous_hands_range.sh" in text
     assert "scripts/autonomous_hands_model_shim.py" in text
     assert "scripts/autonomous_hands_ignite.py" in text
@@ -98,6 +98,13 @@ def test_ignition_runtime_does_not_chmod_copied_transport_inside_capability_drop
     text = PROOF_WORKFLOW.read_text(encoding="utf-8")
     assert "chmod 0555 /opt/runtime/llama-server /opt/runtime/autonomous_hands_model_shim.py" not in text
     assert "python /opt/runtime/autonomous_hands_model_shim.py" in text
+
+
+def test_context_proof_reads_subject_private_state_as_subject_not_from_host() -> None:
+    text = PROOF_WORKFLOW.read_text(encoding="utf-8")
+    assert 'grep -F "n_ctx_slot = $ACTIVE_CONTEXT" "runs/${RUN_ID}/state/zeref.stderr.log"' not in text
+    assert 'docker exec -u 10001:10001 "$INNER" grep -F "n_ctx_slot = $ACTIVE_CONTEXT" /state/zeref.stderr.log' in text
+    assert 'docker exec -u 10001:10001 "$INNER" grep -F "extrapolation enabled" /state/zeref.stderr.log' in text
 
 
 def test_failed_or_successful_proof_restores_host_access_before_artifact_collection() -> None:
