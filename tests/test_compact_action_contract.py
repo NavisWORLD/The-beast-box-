@@ -1,4 +1,5 @@
-from beastbox.arms.cli import _COMPACT_ACTION_GRAMMAR, _COMPACT_ACTION_SCHEMA, compact_action_model_options
+from beastbox.arms.action_proxy import COMPACT_ACTION_GRAMMAR, rewrite_chat_request
+from beastbox.arms.cli import _COMPACT_ACTION_SCHEMA
 
 
 def test_compact_action_schema_requires_tool_and_arguments() -> None:
@@ -9,12 +10,17 @@ def test_compact_action_schema_requires_tool_and_arguments() -> None:
     assert "f" in _COMPACT_ACTION_SCHEMA["properties"]["t"]["enum"]
 
 
-def test_compact_action_model_options_use_native_llama_grammar() -> None:
-    request = compact_action_model_options()["request"]
-    assert request["grammar"] == _COMPACT_ACTION_GRAMMAR
-    assert "response_format" not in request
-    assert '"t"' in _COMPACT_ACTION_GRAMMAR
-    assert '"a"' in _COMPACT_ACTION_GRAMMAR
-    assert '\"s\"' in _COMPACT_ACTION_GRAMMAR
-    assert '\"h\"' in _COMPACT_ACTION_GRAMMAR
-    assert '\"f\"' in _COMPACT_ACTION_GRAMMAR
+def test_action_proxy_replaces_schema_with_native_grammar_and_generation_room() -> None:
+    request = {
+        "model": "cosmos",
+        "messages": [{"role": "user", "content": "JSON t/a"}],
+        "max_tokens": 32,
+        "response_format": {"type": "json_schema", "json_schema": {"schema": {"type": "object"}}},
+    }
+    rewritten = rewrite_chat_request(request)
+    assert rewritten["grammar"] == COMPACT_ACTION_GRAMMAR
+    assert "response_format" not in rewritten
+    assert rewritten["max_tokens"] == 96
+    assert request["max_tokens"] == 32
+    assert '"t"' in COMPACT_ACTION_GRAMMAR
+    assert '"a"' in COMPACT_ACTION_GRAMMAR
