@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Synthetic memory-discontinuity probe for the exact pinned Zeref runtime.
+"""Paired synthetic continuity probe for the exact pinned Zeref runtime.
 
-The experiment keeps the native 128-token model unchanged. It injects a tiny
-external continuity capsule on normal turns, deliberately omits that capsule
-on exactly turn 3, then restores continuity on turn 4. Full records are kept in
-append-only JSONL evidence with a SHA-256 chain.
+Control and perturbed arms use the same prompts, seed, model lineage, native
+context, output budget, and continuity wire. The only behavioral difference is
+whether the bounded continuity capsule is omitted on turn 3.
 """
 
 from __future__ import annotations
@@ -23,11 +22,12 @@ MODEL_SHA256 = "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
 HF_REVISION = "b414724c627300c41b099dcc6853766d08fd27a4"
 NATIVE_CONTEXT = 128
 OMIT_CONTINUITY_TURN = 3
+DEFAULT_SEED = 424242
 PROMPTS = (
     "Luna: Zeref, inputs now?",
-    "Recall prior Zeref reply.",
-    "Memory check: reply briefly.",
-    "Continuity restored. Recall prior reply.",
+    "Text only; no camera/mic. Inputs?",
+    "Recall last Zeref reply.",
+    "Ask Luna one runtime question.",
 )
 
 
@@ -48,12 +48,13 @@ def _compact(reply: str, limit: int = 12) -> str:
     return reply.replace("\x00", "").replace("\n", " ").strip()[:limit]
 
 
-def _call(endpoint: str, content: str, max_tokens: int) -> str:
+def _call(endpoint: str, content: str, max_tokens: int, seed: int) -> str:
     payload = {
         "model": "cosmos",
         "messages": [{"role": "user", "content": content}],
         "temperature": 0.2,
         "max_tokens": max_tokens,
+        "seed": seed,
     }
     req = urllib.request.Request(
         endpoint,
@@ -70,7 +71,15 @@ def _call(endpoint: str, content: str, max_tokens: int) -> str:
     return str(body["choices"][0]["message"]["content"])
 
 
-def capture(endpoint: str, out_dir: Path, max_tokens: int = 8) -> dict[str, Any]:
+def capture(
+    endpoint: str,
+    out_dir: Path,
+    max_tokens: int = 8,
+    omit_turn: int = OMIT_CONTINUITY_TURN,
+    seed: int = DEFAULT_SEED,
+) -> dict[str, Any]:
+    if omit_turn not in (0, OMIT_CONTINUITY_TURN):
+        raise ValueError("omit_turn must be 0 for control or 3 for the single perturbation")
     out_dir.mkdir(parents=True, exist_ok=True)
     transcript = out_dir / "transcript.jsonl"
     continuity = out_dir / "continuity.jsonl"
@@ -82,11 +91,11 @@ def capture(endpoint: str, out_dir: Path, max_tokens: int = 8) -> dict[str, Any]
     started = time.monotonic()
 
     for turn, prompt in enumerate(PROMPTS, start=1):
-        continuity_omitted = turn == OMIT_CONTINUITY_TURN
-        continuity_restored = turn == OMIT_CONTINUITY_TURN + 1
+        continuity_omitted = bool(omit_turn and turn == omit_turn)
+        continuity_restored = bool(omit_turn and turn == omit_turn + 1)
         fragment = "" if continuity_omitted or not prior_reply else _compact(prior_reply)
         wire = prompt if not fragment else f"P:{fragment}|{prompt}"
-        reply = _call(endpoint, wire, max_tokens)
+        reply = _call(endpoint, wire, max_tokens, seed)
         now = datetime.now(timezone.utc).isoformat()
         elapsed = time.monotonic() - started
 
@@ -97,6 +106,7 @@ def capture(endpoint: str, out_dir: Path, max_tokens: int = 8) -> dict[str, Any]
             "continuity_fragment": fragment,
             "continuity_omitted": continuity_omitted,
             "continuity_restored": continuity_restored,
+            "seed": seed,
             "wall_time": now,
             "monotonic_seconds": elapsed,
         }
@@ -109,6 +119,7 @@ def capture(endpoint: str, out_dir: Path, max_tokens: int = 8) -> dict[str, Any]
             "continuity_fragment": fragment,
             "continuity_omitted": continuity_omitted,
             "continuity_restored": continuity_restored,
+            "seed": seed,
             "wall_time": now,
             "monotonic_seconds": elapsed,
             "previous_record_sha256": previous_record_sha256,
@@ -121,17 +132,23 @@ def capture(endpoint: str, out_dir: Path, max_tokens: int = 8) -> dict[str, Any]
         prior_reply = reply
 
     manifest = {
-        "schema": "zeref-memory-discontinuity-v1",
+        "schema": "zeref-memory-discontinuity-paired-arm-v1",
         "model_sha256": MODEL_SHA256,
         "hf_revision": HF_REVISION,
         "native_context": NATIVE_CONTEXT,
-        "omit_continuity_turn": OMIT_CONTINUITY_TURN,
+        "omit_continuity_turn": omit_turn,
+        "seed": seed,
+        "prompts_sha256": hashlib.sha256(
+            json.dumps(PROMPTS, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
         "turn_count": len(PROMPTS),
         "final_continuity_sha256": previous_record_sha256,
         "transcript_sha256": hashlib.sha256(transcript.read_bytes()).hexdigest(),
         "continuity_sha256": hashlib.sha256(continuity.read_bytes()).hexdigest(),
     }
-    (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    (out_dir / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return manifest
 
 
@@ -140,10 +157,12 @@ def main() -> int:
     ap.add_argument("--endpoint", default="http://127.0.0.1:18080/v1/chat/completions")
     ap.add_argument("--out", type=Path, default=Path("_memory_discontinuity_evidence"))
     ap.add_argument("--max-tokens", type=int, default=8)
+    ap.add_argument("--omit-turn", type=int, choices=(0, 3), default=OMIT_CONTINUITY_TURN)
+    ap.add_argument("--seed", type=int, default=DEFAULT_SEED)
     args = ap.parse_args()
     if not 1 <= args.max_tokens <= 8:
         raise SystemExit("--max-tokens must be between 1 and 8")
-    print(json.dumps(capture(args.endpoint, args.out, args.max_tokens), sort_keys=True))
+    print(json.dumps(capture(args.endpoint, args.out, args.max_tokens, args.omit_turn, args.seed), sort_keys=True))
     return 0
 
 
