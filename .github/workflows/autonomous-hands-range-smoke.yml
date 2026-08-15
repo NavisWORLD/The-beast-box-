@@ -10,6 +10,9 @@ on:
 permissions:
   contents: read
 
+env:
+  SMOKE_CONTRACT: real-runtime-socket-v1
+
 jobs:
   smoke:
     runs-on: ubuntu-24.04
@@ -24,6 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo "SMOKE_CONTRACT=$SMOKE_CONTRACT"
           rm -rf runs/autonomous-hands-smoke
           bash scripts/autonomous_hands_range.sh \
             --smoke \
