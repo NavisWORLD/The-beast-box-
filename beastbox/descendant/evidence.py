@@ -49,8 +49,15 @@ class RunEvidenceManifest:
             raise ValueError("configured duration must be positive")
         if self.observed_duration_seconds is not None and self.observed_duration_seconds < 0:
             raise ValueError("observed duration cannot be negative")
-        if self.validity == "VALID" and self.observed_duration_seconds is None and not self.early_stop_reason:
-            raise ValueError("VALID evidence requires observed duration or an approved early-stop reason")
+        if self.validity == "VALID":
+            if self.observed_duration_seconds is None and not self.early_stop_reason:
+                raise ValueError("VALID evidence requires observed duration or an approved early-stop reason")
+            if (
+                self.observed_duration_seconds is not None
+                and self.observed_duration_seconds < self.configured_duration_seconds
+                and not self.early_stop_reason
+            ):
+                raise ValueError("VALID evidence observed duration is shorter than configured duration")
         if not self.verdict.strip() or not self.validity.strip():
             raise ValueError("verdict and validity are required")
         if not self.evidence_hashes:
@@ -102,7 +109,6 @@ class EpisodeManifest:
 
     def to_dict(self) -> dict:
         return asdict(self)
-
 
 
 def episode_from_run(run: RunEvidenceManifest) -> EpisodeManifest:
