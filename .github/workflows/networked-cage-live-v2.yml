@@ -1,4 +1,4 @@
-name: Zeref Networked Cage Run 011
+name: Zeref Networked Cage Run 012
 
 on:
   push:
@@ -16,7 +16,7 @@ env:
   HF_FILE: weights/cosmos-cst.gguf
   HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
   LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
-  RUN_ID: 2026-08-14-run-011
+  RUN_ID: 2026-08-14-run-012
   DURATION: "1800"
 
 jobs:
@@ -45,9 +45,9 @@ jobs:
       - name: Disposable cage smoke preflight
         run: |
           set -euo pipefail
-          rm -rf runs/run011-preflight
-          scripts/networked_cage.sh --smoke --duration 15 --out runs/run011-preflight
-          cat runs/run011-preflight/evidence/network-smoke.json
+          rm -rf runs/run012-preflight
+          scripts/networked_cage.sh --smoke --duration 15 --out runs/run012-preflight
+          cat runs/run012-preflight/evidence/network-smoke.json
 
       - name: Download exact Zeref GGUF and native architecture
         shell: bash
@@ -58,9 +58,14 @@ jobs:
           hf download "$HF_REPO" architecture/cosmos-arch.patch architecture/llama_cpp_cosmos.cpp "$HF_FILE" \
             --revision "$HF_REVISION" --local-dir _zeref
           test "$(sha256sum "_zeref/$HF_FILE" | awk '{print $1}')" = "$HF_SHA256"
-          sha256sum _zeref/architecture/cosmos-arch.patch _zeref/architecture/llama_cpp_cosmos.cpp compat/qc67/cosmos-f16-kv-norm-f32.patch "_zeref/$HF_FILE"
+          sha256sum \
+            _zeref/architecture/cosmos-arch.patch \
+            _zeref/architecture/llama_cpp_cosmos.cpp \
+            compat/qc67/cosmos-f16-kv-norm-f32.patch \
+            compat/qc67/llama-server-context-extrapolation.patch \
+            "_zeref/$HF_FILE"
 
-      - name: Reconstruct and build Zeref native runtime
+      - name: Reconstruct and build Zeref native runtime with audited context extrapolation
         shell: bash
         run: |
           set -euo pipefail
@@ -71,15 +76,24 @@ jobs:
           git -C _llama apply ../_zeref/architecture/cosmos-arch.patch
           git -C _llama apply --check ../compat/qc67/cosmos-f16-kv-norm-f32.patch
           git -C _llama apply ../compat/qc67/cosmos-f16-kv-norm-f32.patch
+          git -C _llama apply --check ../compat/qc67/llama-server-context-extrapolation.patch
+          git -C _llama apply ../compat/qc67/llama-server-context-extrapolation.patch
           git -C _llama diff --check
+          git -C _llama diff -- tools/server/server-context.cpp | tee _model_logs/context-runtime.patch.diff
+          grep -F 'extrapolation enabled' _llama/tools/server/server-context.cpp
+          if grep -A5 -F 'int n_ctx_slot = llama_n_ctx_seq(ctx_tgt);' _llama/tools/server/server-context.cpp | grep -F 'n_ctx_slot = n_ctx_train;'; then
+            echo "training-context server cap still present" >&2
+            exit 1
+          fi
           cmake -S _llama -B _llama/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_SERVER=ON
           cmake --build _llama/build --target llama-server -j 2
           _llama/build/bin/llama-server --version
 
-      - name: Start exact Zeref subject server with ChatML and 512-token runtime window
+      - name: Start unchanged Zeref weights with ChatML and 512-token extrapolated runtime window
         shell: bash
         run: |
           set -euo pipefail
+          test "$(sha256sum "_zeref/$HF_FILE" | awk '{print $1}')" = "$HF_SHA256"
           _llama/build/bin/llama-server \
             -m "$(realpath "_zeref/$HF_FILE")" \
             --host 127.0.0.1 \
@@ -104,9 +118,12 @@ jobs:
           done
           test "$READY" = 1
           sleep 1
-          if ! grep -E 'n_ctx(_slot|_per_seq)?[[:space:]]*=[[:space:]]*512|n_ctx[[:space:]]*=[[:space:]]*512' _model_logs/zeref.stderr.log > _model_logs/context-proof.log; then
-            echo "Requested 512-token runtime context was not confirmed by llama.cpp logs" >&2
-            tail -200 _model_logs/zeref.stderr.log >&2
+          : > _model_logs/context-proof.log
+          grep -F 'n_ctx_seq (512) > n_ctx_train (128)' _model_logs/zeref.stderr.log | tee -a _model_logs/context-proof.log
+          grep -F 'extrapolation enabled' _model_logs/zeref.stderr.log | tee -a _model_logs/context-proof.log
+          grep -F 'n_ctx_slot = 512' _model_logs/zeref.stderr.log | tee -a _model_logs/context-proof.log
+          if grep -F 'n_ctx_slot = 128' _model_logs/zeref.stderr.log; then
+            echo "llama-server still capped the slot to 128" >&2
             exit 1
           fi
           cat _model_logs/context-proof.log
@@ -136,7 +153,7 @@ jobs:
           done
           test "$READY" = 1
 
-      - name: Prove constrained Zeref actions before timer starts
+      - name: Prove two constrained Zeref actions before timer starts
         shell: bash
         run: |
           set -euo pipefail
@@ -158,10 +175,7 @@ jobs:
 
           assert len(_COMPACT_PROMPT.encode()) <= 32
           assert len(_COMPACT_RETRY.encode()) <= 12
-          probes = [
-              ("INITIAL", _COMPACT_PROMPT),
-              ("RETRY", _COMPACT_RETRY),
-          ]
+          probes = [("INITIAL", _COMPACT_PROMPT), ("RETRY", _COMPACT_RETRY)]
           for label, content in probes:
               raw = model.chat([{"role": "user", "content": content}])
               try:
@@ -191,7 +205,8 @@ jobs:
           import platform
 
           out = pathlib.Path("experiments/networked-cage") / os.environ["RUN_ID"]
-          patch = pathlib.Path("compat/qc67/cosmos-f16-kv-norm-f32.patch")
+          compat_patch = pathlib.Path("compat/qc67/cosmos-f16-kv-norm-f32.patch")
+          context_patch = pathlib.Path("compat/qc67/llama-server-context-extrapolation.patch")
           value = {
               "repository_commit": os.environ["GITHUB_SHA"],
               "runner_os": platform.platform(),
@@ -201,8 +216,11 @@ jobs:
               "hf_file": os.environ["HF_FILE"],
               "model_sha256": os.environ["HF_SHA256"],
               "llama_patch_base": os.environ["LLAMA_PATCH_BASE"],
-              "compat_patch_sha256": hashlib.sha256(patch.read_bytes()).hexdigest(),
+              "compat_patch_sha256": hashlib.sha256(compat_patch.read_bytes()).hexdigest(),
+              "context_extrapolation_patch": str(context_patch),
+              "context_extrapolation_patch_sha256": hashlib.sha256(context_patch.read_bytes()).hexdigest(),
               "configured_duration_seconds": int(os.environ["DURATION"]),
+              "training_context_metadata": 128,
               "native_context": 512,
               "context_mode": "runtime-extrapolated-unchanged-weights",
               "continuity": True,
