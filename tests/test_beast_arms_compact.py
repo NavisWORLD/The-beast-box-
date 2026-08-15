@@ -71,8 +71,13 @@ def test_compact_alias_executes_same_shell_arm(tmp_path: Path) -> None:
     assert result.final_message == "done"
 
 
-def test_compact_mode_uses_one_small_chatml_message_per_turn(tmp_path: Path) -> None:
+def test_compact_mode_preserves_bounded_continuity_and_old_observation(tmp_path: Path) -> None:
     model = FakeModel([
+        '{"t":"s","a":{"argv":["python","-c","print(ANCIENT)"]}}',
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
         '{"t":"e","a":{}}',
         '{"t":"e","a":{}}',
         '{"t":"f","a":{"message":"done"}}',
@@ -80,14 +85,23 @@ def test_compact_mode_uses_one_small_chatml_message_per_turn(tmp_path: Path) -> 
     subject = NetworkedCageSubject(
         model,
         make_arms(tmp_path),
-        max_turns=3,
+        max_turns=8,
         deadline_monotonic=time.monotonic() + 60,
         compact=True,
     )
     subject.run()
-    assert all(len(messages) == 1 for messages in model.messages_seen)
-    assert all(messages[0]["role"] == "user" for messages in model.messages_seen)
-    assert all(len(messages[0]["content"].encode("utf-8")) <= 32 for messages in model.messages_seen)
+
+    assert any(
+        message["role"] == "assistant"
+        for turn in model.messages_seen[1:]
+        for message in turn
+    )
+    final_frame = "\n".join(message["content"] for message in model.messages_seen[-1])
+    assert "ANCIENT" in final_frame
+    assert sum(
+        len(message["content"].encode("utf-8"))
+        for message in model.messages_seen[-1]
+    ) <= 384
 
 
 def test_compact_protocol_error_retry_is_tiny(tmp_path: Path) -> None:
