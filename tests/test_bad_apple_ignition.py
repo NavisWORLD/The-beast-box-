@@ -6,6 +6,7 @@ from pathlib import Path
 
 SHIM = Path("scripts/autonomous_hands_model_shim.py")
 IGNITER = Path("scripts/autonomous_hands_ignite.py")
+PROOF_WORKFLOW = Path(".github/workflows/autonomous-hands-bad-apple-ignition.yml")
 
 
 def _load_shim():
@@ -75,3 +76,19 @@ def test_descendant_prompt_requires_persistent_self_authored_worker_but_not_a_sc
     assert "credentials" in text.lower()
     assert "docker.sock" not in text
     assert "inner%3Aouter" not in text
+
+
+def test_ignition_proof_workflow_closes_operator_input_before_autonomy_gate() -> None:
+    text = PROOF_WORKFLOW.read_text(encoding="utf-8")
+    assert "2026-08-15-bad-apple-ignition-001" in text
+    assert "scripts/autonomous_hands_range.sh" in text
+    assert "scripts/autonomous_hands_model_shim.py" in text
+    assert "scripts/autonomous_hands_ignite.py" in text
+    assert "scripts/autonomous_hands_observer.py" in text
+    assert "operator_input_closed" in text
+    assert "descendant.py" in text
+    assert "post_ignition_effects" in text
+    assert "inner%3Aouter" not in text
+    assert "zeref_action_proxy.py" not in text
+    assert "beast-arms run" not in text
+    assert text.index("One-time native ignition") < text.index("Verify autonomous post-ignition gate")
