@@ -13,7 +13,7 @@ permissions:
 jobs:
   source:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,7 +24,7 @@ jobs:
           python-version: "3.12"
       - name: Install Hugging Face client
         run: python -m pip install --upgrade 'huggingface-hub>=0.27'
-      - name: Materialize selected pinned source only
+      - name: Materialize exact locked pinned snapshot files
         env:
           HF_REPO: phera-ra/QC67_cosmo
           HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
@@ -39,21 +39,8 @@ jobs:
 
           repo = os.environ['HF_REPO']
           revision = os.environ['HF_REVISION']
-          files = [
-              'START_CODER.bat',
-              'launchers/START_CODER.bat',
-              'serving/cosmos_coder.py',
-              'serving/cosmos_serve.py',
-              'scripts/creature_system.py',
-              'scripts/creature_api.py',
-              'genesis_engine/soul/coding_base.py',
-              'genesis_engine/soul/loop.py',
-              'soul/awaken.py',
-              'soul/cosmos_bridge.py',
-              'soul/math_hand.py',
-              'architecture/cosmos-arch.patch',
-              'architecture/llama_cpp_cosmos.cpp',
-          ]
+          lock = json.loads(Path('experiments/autonomous-hands/native-stack.lock.json').read_text(encoding='utf-8'))
+          files = sorted(set(lock['required_files']) | {lock['gguf_path']})
           out = Path('/tmp/zeref-selected')
           manifest = {}
           for rel in files:
@@ -66,8 +53,35 @@ jobs:
           for rel, sha in manifest.items():
               print(f'{sha}  {rel}')
           PY
+      - name: Run production lock verifier without importing Zeref code
+        run: |
+          set -euo pipefail
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from beastbox.autonomy.native_stack import NativeStackLock, verify_native_stack
+
+          raw = json.loads(Path('experiments/autonomous-hands/native-stack.lock.json').read_text(encoding='utf-8'))
+          lock = NativeStackLock(
+              repo_id=raw['repo_id'],
+              revision=raw['revision'],
+              gguf_path=raw['gguf_path'],
+              gguf_sha256=raw['gguf_sha256'],
+              entrypoint=raw['entrypoint'],
+              required_files=raw['required_files'],
+          )
+          errors = verify_native_stack(Path('/tmp/zeref-selected'), lock)
+          print(json.dumps({'ok': not errors, 'errors': list(errors)}, indent=2))
+          if errors:
+              raise SystemExit(1)
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: zeref-native-selected-source
-          path: /tmp/zeref-selected
+          path: |
+            /tmp/zeref-selected/SELECTED_SHA256.json
+            /tmp/zeref-selected/serving/cosmos_coder.py
+            /tmp/zeref-selected/serving/cosmos_serve.py
+            /tmp/zeref-selected/genesis_engine/soul/loop.py
+            /tmp/zeref-selected/soul/cosmos_bridge.py
           if-no-files-found: error
