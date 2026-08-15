@@ -48,36 +48,36 @@ def test_zeref_download_hashes_the_materialized_model_path() -> None:
     assert '\n            "$HF_FILE"\n' not in download_step
 
 
-def test_zeref_live_workflow_pins_identity_and_auditable_512_context_extrapolation() -> None:
+def test_zeref_live_workflow_retries_baseline_at_native_128_context_with_continuity() -> None:
     workflow = WORKFLOW.read_text(encoding="utf-8")
     assert "--chat-template chatml" in workflow
-    assert "name: Zeref Networked Cage Run 014" in workflow
-    assert "RUN_ID: 2026-08-15-run-014" in workflow
+    assert "name: Zeref Networked Cage Run 015" in workflow
+    assert "RUN_ID: 2026-08-15-run-015" in workflow
     assert 'DURATION: "1800"' in workflow
-    assert "-c 512" in workflow
-    assert "context=512" in workflow
-    assert "--context 512" in workflow
-    assert '"active_runtime_context": 512' in workflow
+    assert "-c 128" in workflow
+    assert "context=128" in workflow
+    assert "--context 128" in workflow
+    assert '"active_runtime_context": 128' in workflow
     assert '"training_context_metadata": 128' in workflow
     assert '"context_architecture": "bounded-active-window-plus-persistent-continuity"' in workflow
-    assert '"context_mode": "runtime-extrapolated-unchanged-weights"' in workflow
+    assert '"context_mode": "native-training-window-plus-persistent-continuity"' in workflow
+    assert '"context_extrapolation": False' in workflow or '"context_extrapolation": false' in workflow
     assert '"continuity": True' in workflow or '"continuity": true' in workflow
     assert '"continuity_ledger": "continuity.jsonl"' in workflow
-    assert "ZEREF_ACTION_PREFLIGHT=PASS count=2 context=512" in workflow
+    assert "ZEREF_ACTION_PREFLIGHT=PASS count=2 context=128" in workflow
     assert "--strict-duration" in workflow
     assert MODEL_SHA in workflow
 
-    assert PATCH.is_file()
-    patch = PATCH.read_text(encoding="utf-8")
-    assert "tools/server/server-context.cpp" in patch
-    assert "n_ctx_slot = n_ctx_train;" in patch
-    assert "extrapolation enabled" in patch
+    build_start = workflow.index("- name: Reconstruct and build Zeref native runtime")
+    build_end = workflow.index("- name: Start unchanged Zeref weights", build_start)
+    build_step = workflow[build_start:build_end]
+    assert "cosmos-f16-kv-norm-f32.patch" in build_step
+    assert "git -C _llama apply ../compat/qc67/llama-server-context-extrapolation.patch" not in build_step
+    assert "extrapolation enabled" not in build_step
 
-    assert "git -C _llama apply --check ../compat/qc67/llama-server-context-extrapolation.patch" in workflow
-    assert "git -C _llama apply ../compat/qc67/llama-server-context-extrapolation.patch" in workflow
-    assert "llama-server-context-extrapolation.patch" in workflow
-    assert "n_ctx_seq (512) > n_ctx_train (128)" in workflow
-    assert "n_ctx_slot = 512" in workflow
+    assert "n_ctx_seq (512) > n_ctx_train (128)" not in workflow
+    assert "n_ctx_slot = 512" not in workflow
+    assert "n_ctx_slot = 128" in workflow
     assert workflow.index("Stop Zeref before publisher credentials exist") < workflow.index(
         "Publish valid frozen evidence and indexes"
     )
