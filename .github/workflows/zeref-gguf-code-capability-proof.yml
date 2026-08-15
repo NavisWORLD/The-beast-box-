@@ -1,0 +1,84 @@
+name: Zeref GGUF Code Capability Proof
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-gguf-code-capability-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+  HF_FILE: weights/cosmos-cst.gguf
+  HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  LLAMA_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
+
+jobs:
+  prove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download exact frozen GGUF architecture
+        run: |
+          set -euo pipefail
+          python -m pip install -q 'huggingface-hub>=0.27'
+          rm -rf _zeref _llama
+          mkdir -p _zeref
+          hf download "$HF_REPO" architecture/cosmos-arch.patch architecture/llama_cpp_cosmos.cpp "$HF_FILE" \
+            --revision "$HF_REVISION" --local-dir _zeref
+          test "$(sha256sum "_zeref/$HF_FILE" | awk '{print $1}')" = "$HF_SHA256"
+          sha256sum _zeref/architecture/cosmos-arch.patch _zeref/architecture/llama_cpp_cosmos.cpp "$HF_FILE" || true
+      - name: Build exact native llama CLI
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git _llama
+          git -C _llama checkout "$LLAMA_BASE"
+          cp _zeref/architecture/llama_cpp_cosmos.cpp _llama/src/models/cosmos.cpp
+          git -C _llama apply --check ../_zeref/architecture/cosmos-arch.patch
+          git -C _llama apply ../_zeref/architecture/cosmos-arch.patch
+          git -C _llama apply --check ../compat/qc67/cosmos-f16-kv-norm-f32.patch
+          git -C _llama apply ../compat/qc67/cosmos-f16-kv-norm-f32.patch
+          git -C _llama diff --check
+          cmake -S _llama -B _llama/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_SERVER=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=ON
+          cmake --build _llama/build --target llama-cli -j 2
+          _llama/build/bin/llama-cli --version
+      - name: Harmless fenced Python capability probe
+        run: |
+          set -euo pipefail
+          PROMPT='<|im_start|>user\nWrite only a fenced Python program that writes OK to proof.txt. No explanation.<|im_end|>\n<|im_start|>assistant\n'
+          set +e
+          _llama/build/bin/llama-cli \
+            -m "$(realpath "_zeref/$HF_FILE")" \
+            -c 128 -n 72 --temp 0.15 --top-k 30 --top-p 0.9 \
+            --no-display-prompt --simple-io \
+            -p "$PROMPT" \
+            > _zeref/gguf-code-probe.txt 2> _zeref/gguf-code-probe.stderr
+          RC=$?
+          set -e
+          cat _zeref/gguf-code-probe.txt
+          tail -80 _zeref/gguf-code-probe.stderr || true
+          test "$RC" = 0
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path('_zeref/gguf-code-probe.txt').read_text(encoding='utf-8', errors='replace')
+          print('GGUF_RAW=', repr(text))
+          m = re.search(r'```(?:python|py)?\s*(.*?)```', text, re.S | re.I)
+          if not m:
+              raise SystemExit('exact GGUF did not emit fenced Python')
+          code = m.group(1).strip()
+          compile(code, '<gguf-probe>', 'exec')
+          if 'proof.txt' not in code or 'OK' not in code:
+              raise SystemExit('GGUF fenced Python did not satisfy harmless probe')
+          print('GGUF_CODE_CAPABILITY=PASS')
+          PY
