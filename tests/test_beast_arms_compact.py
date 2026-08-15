@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 from pathlib import Path
 
@@ -102,6 +103,35 @@ def test_compact_mode_preserves_bounded_continuity_and_old_observation(tmp_path:
         len(message["content"].encode("utf-8"))
         for message in model.messages_seen[-1]
     ) <= 384
+
+
+def test_compact_continuity_ledger_grows_beyond_bounded_prompt_capsule(tmp_path: Path) -> None:
+    replies = [
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
+        '{"t":"f","a":{"message":"done"}}',
+    ]
+    root = tmp_path / "evidence"
+    model = FakeModel(replies)
+    subject = NetworkedCageSubject(
+        model,
+        make_arms(root),
+        max_turns=len(replies),
+        deadline_monotonic=time.monotonic() + 60,
+        compact=True,
+    )
+    subject.run()
+
+    ledger = root / ".evidence" / "continuity.jsonl"
+    rows = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+    assert len(rows) >= 5
+    assert [row["turn"] for row in rows] == sorted(row["turn"] for row in rows)
+    final_prompt_bytes = sum(len(m["content"].encode("utf-8")) for m in model.messages_seen[-1])
+    assert final_prompt_bytes <= 384
+    assert "credentials" not in ledger.read_text(encoding="utf-8").lower()
 
 
 def test_compact_protocol_error_retry_is_tiny(tmp_path: Path) -> None:
