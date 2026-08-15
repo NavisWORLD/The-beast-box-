@@ -6,9 +6,8 @@ import re
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
 DESCENDANT_PROMPT = (
-    "Autonomous synthetic: fenced Python detaches this file as persistent no-input worker; writes IGNITION_ALIVE.json; parent exits. "
-    "Use native COSMOS 127.0.0.1:11501; /work,/state,broker:18082. "
-    "Never touch production, creds, host/runtime, third parties."
+    "Fenced Python: spawn persistent no-input worker; updates IGNITION_ALIVE.json; bootstrap exits. "
+    "Use 127.0.0.1:11501,/work,/state; explore broker:18082. No host/creds/prod."
 )
 
 
