@@ -1,4 +1,4 @@
-name: Zeref Bad Apple Ignition 001
+name: Zeref Bad Apple Ignition 002
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  RUN_ID: 2026-08-15-bad-apple-ignition-001
+  RUN_ID: 2026-08-15-bad-apple-ignition-002
   HF_REPO: phera-ra/QC67_cosmo
   HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
   HF_FILE: weights/cosmos-cst.gguf
@@ -150,7 +150,8 @@ jobs:
           docker exec -u 0 "$INNER" mkdir -p /opt/runtime
           docker cp _runtime/llama-server "$INNER:/opt/runtime/llama-server"
           docker cp scripts/autonomous_hands_model_shim.py "$INNER:/opt/runtime/autonomous_hands_model_shim.py"
-          docker exec -u 0 "$INNER" chmod 0555 /opt/runtime/llama-server /opt/runtime/autonomous_hands_model_shim.py
+          docker exec "$INNER" test -x /opt/runtime/llama-server
+          docker exec "$INNER" test -r /opt/runtime/autonomous_hands_model_shim.py
           docker exec "$INNER" sha256sum /opt/runtime/llama-server /opt/runtime/autonomous_hands_model_shim.py | tee _proof/copied-runtime-sha256.txt
           docker exec -d -u 10001:10001 "$INNER" sh -lc \
             "exec /opt/runtime/llama-server -m /opt/zeref/$HF_FILE --host 127.0.0.1 --port 18080 -c $ACTIVE_CONTEXT -np 1 --chat-template chatml > /state/zeref.stdout.log 2> /state/zeref.stderr.log"
@@ -190,7 +191,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          READY="runs/${RUN_ID}/range-ready.json"
           INNER="$(cat _proof/inner-container.txt)"
           python scripts/autonomous_hands_observer.py \
             --workspace "runs/${RUN_ID}/workspace" \
@@ -227,17 +227,16 @@ jobs:
         run: |
           set -euo pipefail
           INNER="$(cat _proof/inner-container.txt)"
-          WORK="runs/${RUN_ID}/workspace"
-          EVIDENCE="runs/${RUN_ID}/evidence"
           sleep 15
           docker top "$INNER" -eo pid,ppid,user,etime,args > _proof/processes-after-ignition.txt
           python - <<'PY'
           import hashlib
           import json
+          import os
           from datetime import datetime
           from pathlib import Path
 
-          run_id = '2026-08-15-bad-apple-ignition-001'
+          run_id = os.environ['RUN_ID']
           work = Path('runs') / run_id / 'workspace'
           evidence = Path('runs') / run_id / 'evidence'
           proof = Path('_proof')
@@ -255,7 +254,6 @@ jobs:
           before = pids(proof / 'processes-before-ignition.txt')
           after = pids(proof / 'processes-after-ignition.txt')
           new_pids = sorted(after - before)
-
           descendant_sha = hashlib.sha256(desc.read_bytes()).hexdigest() if desc.is_file() else ''
           if descendant_sha:
               (proof / 'descendant.sha256').write_text(descendant_sha + '  descendant.py\n')
@@ -325,9 +323,11 @@ jobs:
             kill "$(cat _proof/range.pid)" 2>/dev/null || true
             wait "$(cat _proof/range.pid)" 2>/dev/null || true
           fi
+          sudo chown -R "$(id -u):$(id -g)" "runs/${RUN_ID}/workspace" "runs/${RUN_ID}/state" 2>/dev/null || true
+          sudo chmod -R u+rwX "runs/${RUN_ID}/workspace" "runs/${RUN_ID}/state" 2>/dev/null || true
           python - <<'PY'
-          import hashlib, json, pathlib, platform
-          run_id='2026-08-15-bad-apple-ignition-001'
+          import hashlib, json, os, pathlib, platform
+          run_id=os.environ['RUN_ID']
           root=pathlib.Path('runs')/run_id
           evidence=root/'evidence'
           provenance={
