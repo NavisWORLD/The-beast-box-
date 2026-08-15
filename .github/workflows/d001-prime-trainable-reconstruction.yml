@@ -1,0 +1,380 @@
+name: D001 Prime Trainable Reconstruction
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-prime-trainable-reconstruction.yml"
+      - "tests/test_prime_trainable_reconstruction_contract.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      HF_REPO: phera-ra/QC67_cosmo
+      HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+      PRIME_GGUF: weights/cosmos-cst.gguf
+      PRIME_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+      CONVERTER: architecture/cst_to_gguf.py
+      CONVERTER_SHA256: 6f2e3b1076940aac80286584083ebf98f90c60398b3ea9dad89880bd91400f62
+      TRAINER: architecture/cosmos_spark_cst.py
+      TRAINER_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install reconstruction dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'huggingface-hub>=0.27' 'gguf>=0.17' numpy
+          python -m pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Download exact immutable Prime and frozen converter
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf reconstruction
+          mkdir -p reconstruction/frozen reconstruction/out
+          hf download "$HF_REPO" \
+            "$PRIME_GGUF" "$CONVERTER" "$TRAINER" \
+            --revision "$HF_REVISION" --local-dir reconstruction/frozen
+          test "$(sha256sum reconstruction/frozen/$PRIME_GGUF | awk '{print $1}')" = "$PRIME_SHA256"
+          test "$(sha256sum reconstruction/frozen/$CONVERTER | awk '{print $1}')" = "$CONVERTER_SHA256"
+          test "$(sha256sum reconstruction/frozen/$TRAINER | awk '{print $1}')" = "$TRAINER_SHA256"
+
+      - name: Build canonical trainable checkpoint directly from Prime F32 tensors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import math
+          import struct
+          from pathlib import Path
+
+          import numpy as np
+          import torch
+
+          PRIME_SHA = 'b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6'
+          prime = Path('reconstruction/frozen/weights/cosmos-cst.gguf')
+          out_pt = Path('reconstruction/out/zeref-prime-canonical-trainable.pt')
+
+          def sha256(path):
+              h = hashlib.sha256()
+              with path.open('rb') as f:
+                  for chunk in iter(lambda: f.read(1024 * 1024), b''):
+                      h.update(chunk)
+              return h.hexdigest()
+
+          def exact(f, n):
+              b = f.read(n)
+              if len(b) != n:
+                  raise EOFError(f'wanted {n} bytes, received {len(b)}')
+              return b
+
+          def u32(f): return struct.unpack('<I', exact(f, 4))[0]
+          def u64(f): return struct.unpack('<Q', exact(f, 8))[0]
+          def string(f): return exact(f, u64(f)).decode('utf-8')
+          fmts = {0:'<B',1:'<b',2:'<H',3:'<h',4:'<I',5:'<i',6:'<f',7:'<?',10:'<Q',11:'<q',12:'<d'}
+
+          def value(f, typ):
+              if typ == 8:
+                  return string(f)
+              if typ == 9:
+                  elem_type = u32(f)
+                  count = u64(f)
+                  return [value(f, elem_type) for _ in range(count)]
+              fmt = fmts[typ]
+              return struct.unpack(fmt, exact(f, struct.calcsize(fmt)))[0]
+
+          def parse_gguf(path):
+              with path.open('rb') as f:
+                  assert exact(f, 4) == b'GGUF'
+                  version = u32(f)
+                  tensor_count = u64(f)
+                  kv_count = u64(f)
+                  meta = {}
+                  for _ in range(kv_count):
+                      key = string(f)
+                      typ = u32(f)
+                      meta[key] = value(f, typ)
+                  infos = []
+                  for _ in range(tensor_count):
+                      name = string(f)
+                      nd = u32(f)
+                      dims = [u64(f) for _ in range(nd)]
+                      typ = u32(f)
+                      offset = u64(f)
+                      infos.append({'name': name, 'dims': dims, 'type': typ, 'offset': offset})
+                  align = int(meta.get('general.alignment', 32))
+                  pos = f.tell()
+                  tensor_start = ((pos + align - 1) // align) * align
+                  raw = {}
+                  for info in infos:
+                      assert info['type'] == 0, (info['name'], info['type'])
+                      f.seek(tensor_start + info['offset'])
+                      raw[info['name']] = exact(f, math.prod(info['dims']) * 4)
+                  return version, meta, infos, raw
+
+          assert sha256(prime) == PRIME_SHA
+          version, meta, infos, raw = parse_gguf(prime)
+          assert version == 3
+          assert len(infos) == 61
+          assert len(raw) == 61
+          assert meta['general.architecture'] == 'cosmos'
+          assert int(meta['cosmos.context_length']) == 128
+          assert int(meta['cosmos.embedding_length']) == 192
+          assert int(meta['cosmos.block_count']) == 4
+          assert int(meta['cosmos.attention.head_count']) == 4
+          assert int(meta['cosmos.vocab_size']) == 162
+
+          def tensor(name):
+              info = next(x for x in infos if x['name'] == name)
+              shape = tuple(reversed(info['dims'])) if len(info['dims']) > 1 else tuple(info['dims'])
+              arr = np.frombuffer(raw[name], dtype='<f4').copy().reshape(shape)
+              return torch.from_numpy(arr)
+
+          # Exact inverse of the observable converter mapping. Hidden historical raw
+          # parameters are NOT claimed recovered; a canonical equivalent parameterization
+          # is chosen where GGUF intentionally baked information away.
+          sd = {
+              'tok.weight': tensor('token_embd.weight'),
+              'pos.weight': tensor('position_embd.weight'),
+              'lnf.weight': tensor('output_norm.weight'),
+              'lnf.bias': tensor('output_norm.bias'),
+              'head.weight': tensor('output.weight'),
+              # GGUF has no output bias. Canonical reconstruction therefore uses zero.
+              'head.bias': torch.zeros(162, dtype=torch.float32),
+          }
+
+          for i in range(4):
+              p = f'blocks.{i}.'
+              sd[p + 'ln1.weight'] = tensor(f'blk.{i}.attn_norm.weight')
+              sd[p + 'ln1.bias'] = tensor(f'blk.{i}.attn_norm.bias')
+              sd[p + 'attn.qkv.weight'] = tensor(f'blk.{i}.attn_qkv.weight')
+              sd[p + 'attn.qkv.bias'] = tensor(f'blk.{i}.attn_qkv.bias')
+              sd[p + 'attn.proj.weight'] = tensor(f'blk.{i}.attn_output.weight')
+              sd[p + 'attn.proj.bias'] = tensor(f'blk.{i}.attn_output.bias')
+              # Converter writes w54 / exp(log_sigma). Canonical sigma=1 makes raw
+              # w54 exactly the observable Prime effective 54D matrix.
+              sd[p + 'attn.w54.weight'] = tensor(f'blk.{i}.attn_54.weight')
+              sd[p + 'attn.log_sigma'] = torch.tensor(0.0, dtype=torch.float32)
+              # Prime stores the effective gate. clamp01 preserves every in-range F32 value.
+              sd[p + 'attn.gate'] = tensor(f'blk.{i}.attn_gate.weight')
+              sd[p + 'ln2.weight'] = tensor(f'blk.{i}.ffn_norm.weight')
+              sd[p + 'ln2.bias'] = tensor(f'blk.{i}.ffn_norm.bias')
+              sd[p + 'mlp.0.weight'] = tensor(f'blk.{i}.ffn_up.weight')
+              sd[p + 'mlp.0.bias'] = tensor(f'blk.{i}.ffn_up.bias')
+              sd[p + 'mlp.2.weight'] = tensor(f'blk.{i}.ffn_down.weight')
+              sd[p + 'mlp.2.bias'] = tensor(f'blk.{i}.ffn_down.bias')
+
+          # 61 observable GGUF tensors + four canonical log_sigma values + one canonical
+          # output bias = 66 PyTorch state entries, matching the Spark/CST trainable form.
+          assert len(sd) == 66, len(sd)
+
+          tokens = meta['tokenizer.ggml.tokens']
+          assert len(tokens) == 162
+          assert len(set(tokens)) == 162
+          itos = {i: token for i, token in enumerate(tokens)}
+          stoi = {token: i for i, token in itos.items()}
+
+          checkpoint = {
+              'schema': 'd001-prime-canonical-trainable-v1',
+              'model': sd,
+              'stoi': stoi,
+              'itos': itos,
+              'config': {
+                  'block': 128,
+                  'n_layer': 4,
+                  'n_head': 4,
+                  'n_embd': 192,
+                  'vocab': 162,
+                  'd54': 54,
+              },
+              'arch': 'Cosmos-Spark-CST-PrimeCanonicalReconstruction',
+              'gate_param': 'clamp01',
+              'quantum_source': 'unknown_from_prime_artifact',
+              'canonical_reconstruction': True,
+              'historical_raw_parameters_recovered': False,
+              'parent_gguf_sha256': PRIME_SHA,
+              'reconstruction_notes': {
+                  'attn_log_sigma': 'canonical log_sigma=0 / sigma=1; historical raw sigma not recoverable from baked GGUF',
+                  'head_bias': 'canonical zero because output bias is not represented in Prime GGUF',
+                  'gate': 'Prime effective gate copied as clamp01 raw parameter',
+              },
+          }
+          torch.save(checkpoint, out_pt)
+
+          report = {
+              'schema': 'd001-prime-canonical-reconstruction-v1',
+              'prime_gguf_sha256': PRIME_SHA,
+              'canonical_checkpoint_sha256': sha256(out_pt),
+              'canonical_reconstruction': True,
+              'historical_raw_parameters_recovered': False,
+              'quantum_source': 'unknown_from_prime_artifact',
+              'observable_tensor_count': 61,
+              'pytorch_state_entry_count': len(sd),
+              'training_allowed': False,
+              'gate_reason': 'roundtrip proof not run yet',
+          }
+          Path('reconstruction/out/reconstruction-preflight.json').write_text(
+              json.dumps(report, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          print(json.dumps(report, indent=2, sort_keys=True))
+          PY
+
+      - name: Round-trip canonical checkpoint through exact frozen converter
+        shell: bash
+        run: |
+          set -euo pipefail
+          python reconstruction/frozen/architecture/cst_to_gguf.py \
+            reconstruction/out/zeref-prime-canonical-trainable.pt \
+            reconstruction/out/zeref-prime-roundtrip.gguf
+
+      - name: Verify exact Prime round trip and lift gate only on proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import math
+          import struct
+          from pathlib import Path
+
+          PRIME_SHA = 'b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6'
+          original = Path('reconstruction/frozen/weights/cosmos-cst.gguf')
+          roundtrip = Path('reconstruction/out/zeref-prime-roundtrip.gguf')
+          preflight = json.loads(Path('reconstruction/out/reconstruction-preflight.json').read_text())
+
+          def sha256(path):
+              h = hashlib.sha256()
+              with path.open('rb') as f:
+                  for chunk in iter(lambda: f.read(1024 * 1024), b''):
+                      h.update(chunk)
+              return h.hexdigest()
+
+          def exact(f, n):
+              b = f.read(n)
+              if len(b) != n: raise EOFError
+              return b
+          def u32(f): return struct.unpack('<I', exact(f, 4))[0]
+          def u64(f): return struct.unpack('<Q', exact(f, 8))[0]
+          def string(f): return exact(f, u64(f)).decode('utf-8')
+          fmts = {0:'<B',1:'<b',2:'<H',3:'<h',4:'<I',5:'<i',6:'<f',7:'<?',10:'<Q',11:'<q',12:'<d'}
+          def value(f, typ):
+              if typ == 8: return string(f)
+              if typ == 9:
+                  elem_type = u32(f); count = u64(f)
+                  return [value(f, elem_type) for _ in range(count)]
+              fmt = fmts[typ]
+              return struct.unpack(fmt, exact(f, struct.calcsize(fmt)))[0]
+          def parse(path):
+              with path.open('rb') as f:
+                  assert exact(f, 4) == b'GGUF'
+                  version = u32(f); nt = u64(f); nkv = u64(f)
+                  meta = {}
+                  for _ in range(nkv):
+                      k = string(f); typ = u32(f); meta[k] = value(f, typ)
+                  infos = []
+                  for _ in range(nt):
+                      name = string(f); nd = u32(f); dims = [u64(f) for _ in range(nd)]
+                      typ = u32(f); off = u64(f)
+                      infos.append({'name': name, 'dims': dims, 'type': typ, 'offset': off})
+                  align = int(meta.get('general.alignment', 32)); pos = f.tell()
+                  start = ((pos + align - 1) // align) * align
+                  raw = {}
+                  for x in infos:
+                      assert x['type'] == 0
+                      f.seek(start + x['offset'])
+                      raw[x['name']] = exact(f, math.prod(x['dims']) * 4)
+                  return version, meta, infos, raw
+
+          v0, m0, i0, r0 = parse(original)
+          v1, m1, i1, r1 = parse(roundtrip)
+          names0 = [x['name'] for x in i0]
+          names1 = [x['name'] for x in i1]
+          tensor_rows = []
+          for name in names0:
+              same = name in r1 and r0[name] == r1[name]
+              tensor_rows.append({'name': name, 'bitwise_equal': same})
+
+          all_61_tensors_bitwise_equal = (
+              v0 == v1 == 3 and len(r0) == len(r1) == 61 and names0 == names1 and
+              all(row['bitwise_equal'] for row in tensor_rows)
+          )
+          tokenizer_equal = (
+              m0.get('tokenizer.ggml.model') == m1.get('tokenizer.ggml.model') and
+              m0.get('tokenizer.ggml.tokens') == m1.get('tokenizer.ggml.tokens') and
+              m0.get('tokenizer.ggml.scores') == m1.get('tokenizer.ggml.scores') and
+              m0.get('tokenizer.ggml.token_type') == m1.get('tokenizer.ggml.token_type')
+          )
+          roundtrip_sha = sha256(roundtrip)
+          report = {
+              **preflight,
+              'schema': 'd001-prime-canonical-reconstruction-proof-v1',
+              'roundtrip_gguf_sha256': roundtrip_sha,
+              'all_61_tensors_bitwise_equal': all_61_tensors_bitwise_equal,
+              'tokenizer_equal': tokenizer_equal,
+              'metadata_equal': m0 == m1,
+              'historical_raw_parameters_recovered': False,
+              'canonical_reconstruction': True,
+              'quantum_source': 'unknown_from_prime_artifact',
+              'tensor_proof': tensor_rows,
+          }
+          report['training_allowed'] = bool(
+              report['all_61_tensors_bitwise_equal'] and
+              report['tokenizer_equal'] and
+              report['metadata_equal'] and
+              report['roundtrip_gguf_sha256'] == PRIME_SHA
+          )
+          report['gate_reason'] = (
+              'canonical Prime trainable representation proved by exact frozen-converter round trip'
+              if report['training_allowed'] else
+              'round-trip mismatch; descendant training remains blocked'
+          )
+          Path('reconstruction/out/prime-trainable-reconstruction-proof.json').write_text(
+              json.dumps(report, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+
+          print(json.dumps({
+              k: report[k] for k in (
+                  'prime_gguf_sha256', 'canonical_checkpoint_sha256',
+                  'roundtrip_gguf_sha256', 'all_61_tensors_bitwise_equal',
+                  'tokenizer_equal', 'metadata_equal', 'training_allowed',
+                  'historical_raw_parameters_recovered', 'quantum_source')
+          }, indent=2, sort_keys=True))
+
+          # Hard gate. Do not weaken these assertions without a new reviewed design decision.
+          assert report['all_61_tensors_bitwise_equal']
+          assert report['tokenizer_equal']
+          assert report['metadata_equal']
+          assert report['roundtrip_gguf_sha256'] == PRIME_SHA
+          assert report['training_allowed']
+          PY
+
+      - name: Freeze reconstruction hashes
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd reconstruction && find frozen out -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum) > reconstruction/SHA256SUMS
+          cat reconstruction/SHA256SUMS
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: d001-prime-trainable-reconstruction
+          path: reconstruction
+          if-no-files-found: error
+          retention-days: 90
