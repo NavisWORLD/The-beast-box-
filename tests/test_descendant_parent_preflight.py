@@ -3,6 +3,7 @@ import runpy
 
 
 SCRIPT = Path("scripts/descendant_parent_preflight.py")
+WORKFLOW = Path(".github/workflows/d001-lineage-preflight.yml")
 MODULE = None
 
 
@@ -68,3 +69,15 @@ def test_bad_or_mismatched_proof_stays_blocked() -> None:
     )
     assert result.status == "CONVERSION_REQUIRED"
     assert result.training_allowed is False
+
+
+def test_preflight_workflow_uses_exact_pinned_revision_and_freezes_artifact() -> None:
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    assert "phera-ra/QC67_cosmo" in workflow
+    assert "b414724c627300c41b099dcc6853766d08fd27a4" in workflow
+    assert "scripts/descendant_parent_preflight.py" in workflow
+    assert "tests/test_descendant_parent_preflight.py" in workflow
+    assert "tests/test_descendant_lineage.py" in workflow
+    assert "_d001/parent-preflight.json" in workflow
+    assert "actions/upload-artifact@v4" in workflow
+    assert "contents: read" in workflow
