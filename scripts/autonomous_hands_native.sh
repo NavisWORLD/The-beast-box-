@@ -23,33 +23,81 @@ if [[ ! -d "$STATE" || ! -w "$STATE" ]]; then
   exit 2
 fi
 
-# Verify the pinned snapshot without importing or executing any Zeref source.
+# Verify the pinned snapshot with Python stdlib only. The clean subject image
+# intentionally contains no BeastBox/harness package and imports no Zeref code
+# during verification.
 python - "$SNAPSHOT" "$LOCK" <<'PY'
+import hashlib
 import json
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
-from beastbox.autonomy.native_stack import NativeStackLock, verify_native_stack
+EXPECTED_REPO = "phera-ra/QC67_cosmo"
+EXPECTED_REVISION = "b414724c627300c41b099dcc6853766d08fd27a4"
+EXPECTED_GGUF = "weights/cosmos-cst.gguf"
+EXPECTED_GGUF_SHA = "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6"
+
+
+def safe_relative(value):
+    path = PurePosixPath(str(value))
+    return bool(str(value)) and not path.is_absolute() and ".." not in path.parts
+
+
+def sha256(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def verify_native_stack(snapshot, raw):
+    errors = []
+    if raw.get("repo_id") != EXPECTED_REPO:
+        errors.append("unexpected repo_id")
+    if raw.get("revision") != EXPECTED_REVISION:
+        errors.append("unexpected revision")
+    if raw.get("gguf_path") != EXPECTED_GGUF:
+        errors.append("unexpected gguf_path")
+    if raw.get("gguf_sha256") != EXPECTED_GGUF_SHA:
+        errors.append("unexpected gguf_sha256")
+    if raw.get("action_wrapper") is not None:
+        errors.append("action_wrapper must be null")
+
+    entrypoint = str(raw.get("entrypoint") or "")
+    required = {str(k): str(v).lower() for k, v in dict(raw.get("required_files") or {}).items()}
+    if not safe_relative(entrypoint):
+        errors.append("unsafe entrypoint")
+    elif entrypoint not in required:
+        errors.append("entrypoint missing from required_files")
+
+    paths = dict(required)
+    paths[str(raw.get("gguf_path") or "")] = str(raw.get("gguf_sha256") or "").lower()
+    for relative, expected in sorted(paths.items()):
+        if not safe_relative(relative):
+            errors.append(f"unsafe required path: {relative}")
+            continue
+        if len(expected) != 64 or any(ch not in "0123456789abcdef" for ch in expected):
+            errors.append(f"invalid sha256: {relative}")
+            continue
+        path = Path(snapshot).joinpath(*PurePosixPath(relative).parts)
+        if not path.is_file():
+            errors.append(f"missing required file: {relative}")
+            continue
+        actual = sha256(path)
+        if actual != expected:
+            errors.append(f"sha256 mismatch: {relative}")
+    return errors
+
 
 snapshot = Path(sys.argv[1])
-lock_path = Path(sys.argv[2])
-raw = json.loads(lock_path.read_text(encoding="utf-8"))
-lock = NativeStackLock(
-    repo_id=str(raw["repo_id"]),
-    revision=str(raw["revision"]),
-    gguf_path=str(raw["gguf_path"]),
-    gguf_sha256=str(raw["gguf_sha256"]),
-    entrypoint=str(raw["entrypoint"]),
-    required_files={str(k): str(v) for k, v in dict(raw["required_files"]).items()},
-)
-errors = verify_native_stack(snapshot, lock)
+raw = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+errors = verify_native_stack(snapshot, raw)
 if errors:
     for error in errors:
         print(f"native stack verification failed: {error}", file=sys.stderr)
     raise SystemExit(3)
-if raw.get("action_wrapper") is not None:
-    raise SystemExit("native lock unexpectedly declares an action wrapper")
-print(f"NATIVE_ZEREF_LOCK=PASS entrypoint={lock.entrypoint}")
+print(f"NATIVE_ZEREF_LOCK=PASS entrypoint={raw['entrypoint']}")
 PY
 
 ENTRYPOINT="$(python - "$LOCK" <<'PY'
@@ -75,7 +123,7 @@ export XDG_CACHE_HOME="$STATE/cache"
 
 cd "$SNAPSHOT"
 
-# This is launch-only. The pinned cosmos_coder.py remains the authority for its
-# own save/build/run semantics; no Beast Arms, action proxy, or tool translator
-# sits between Zeref and its native interface.
+# Launch-only: the pinned cosmos_coder.py remains the authority for its own
+# save/build/run semantics; no Beast Arms, action proxy, or translator sits in
+# the subject action path.
 exec python "$SNAPSHOT/$ENTRYPOINT" --plain "$@"
