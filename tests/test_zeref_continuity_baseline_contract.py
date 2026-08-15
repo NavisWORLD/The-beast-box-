@@ -1,12 +1,15 @@
 from pathlib import Path
-
-from scripts.zeref_continuity_baseline import PROMPTS, _compact_prior
+import runpy
 
 
 WORKFLOW = Path(".github/workflows/zeref-continuity-baseline.yml")
 SCRIPT = Path("scripts/zeref_continuity_baseline.py")
 MODEL_SHA = "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6"
 REVISION = "b414724c627300c41b099dcc6853766d08fd27a4"
+
+MODULE = runpy.run_path(str(SCRIPT))
+PROMPTS = MODULE["PROMPTS"]
+_compact_prior = MODULE["_compact_prior"]
 
 
 def test_continuity_workflow_is_direct_exact_prime() -> None:
