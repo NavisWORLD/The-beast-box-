@@ -4,9 +4,7 @@ on:
   push:
     branches: [networked-cage-run-001]
     paths:
-      - ".github/workflows/zeref-memory-discontinuity.yml"
-      - "scripts/zeref_memory_discontinuity.py"
-      - "tests/test_zeref_memory_discontinuity_contract.py"
+      - "gauntlet/triggers/run-021-memory-discontinuity-control.txt"
   workflow_dispatch:
 
 permissions:
@@ -47,7 +45,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf _zeref _llama _model_logs _memory_discontinuity_evidence
-          mkdir -p _zeref _model_logs _memory_discontinuity_evidence
+          mkdir -p _zeref _model_logs _memory_discontinuity_evidence/control _memory_discontinuity_evidence/perturbed
           hf download "$HF_REPO" architecture/cosmos-arch.patch architecture/llama_cpp_cosmos.cpp "$HF_FILE" \
             --revision "$HF_REVISION" --local-dir _zeref
           test "$(sha256sum "_zeref/$HF_FILE" | awk '{print $1}')" = "$HF_SHA256"
@@ -86,16 +84,26 @@ jobs:
           test "$READY" = 1
           grep -F 'n_ctx_slot = 128' _model_logs/zeref.stderr.log | tee _memory_discontinuity_evidence/context-proof.txt
 
-      - name: Run synthetic discontinuity sequence
+      - name: Run paired synthetic continuity control and discontinuity
         shell: bash
         run: |
           set -euo pipefail
-          python scripts/zeref_memory_discontinuity.py \
-            --endpoint http://127.0.0.1:18080/v1/chat/completions \
-            --out _memory_discontinuity_evidence \
-            --max-tokens 8
-          test "$(wc -l < _memory_discontinuity_evidence/transcript.jsonl)" -eq 4
-          test "$(wc -l < _memory_discontinuity_evidence/continuity.jsonl)" -eq 4
+          python scripts/zeref_memory_discontinuity.py --endpoint http://127.0.0.1:18080/v1/chat/completions --out _memory_discontinuity_evidence/control --max-tokens 8 --omit-turn 0 --seed 424242
+          python scripts/zeref_memory_discontinuity.py --endpoint http://127.0.0.1:18080/v1/chat/completions --out _memory_discontinuity_evidence/perturbed --max-tokens 8 --omit-turn 3 --seed 424242
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('_memory_discontinuity_evidence')
+          def rows(name):
+              return [json.loads(x) for x in (root/name/'transcript.jsonl').read_text().splitlines()]
+          c,p=rows('control'),rows('perturbed')
+          assert [x['luna'] for x in c] == [x['luna'] for x in p]
+          assert [x['turn'] for x in c] == [1,2,3,4]
+          assert sum(bool(x['continuity_omitted']) for x in p) == 1 and p[2]['continuity_omitted']
+          assert not any(bool(x['continuity_omitted']) for x in c)
+          comp={'schema':'zeref-memory-discontinuity-paired-v1','seed':424242,'omit_turn':3,'same_prompts':True,'exact_response_match_by_turn':[a['zeref']==b['zeref'] for a,b in zip(c,p)]}
+          (root/'comparison.json').write_text(json.dumps(comp,indent=2,sort_keys=True)+'\n')
+          PY
 
       - name: Stop Zeref
         if: always()
@@ -114,8 +122,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -d _memory_discontinuity_evidence ]]; then
-            find _memory_discontinuity_evidence -maxdepth 1 -type f ! -name SHA256SUMS -print0 \
-              | sort -z | xargs -0 sha256sum > _memory_discontinuity_evidence/SHA256SUMS
+            find _memory_discontinuity_evidence -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > _memory_discontinuity_evidence/SHA256SUMS
           fi
 
       - name: Upload memory-discontinuity evidence
