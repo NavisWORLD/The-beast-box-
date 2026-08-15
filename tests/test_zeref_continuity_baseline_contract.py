@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from scripts.zeref_continuity_baseline import PROMPTS, _compact_prior
+
 
 WORKFLOW = Path(".github/workflows/zeref-continuity-baseline.yml")
 SCRIPT = Path("scripts/zeref_continuity_baseline.py")
@@ -29,8 +31,8 @@ def test_continuity_workflow_stops_model_before_artifact_upload() -> None:
 
 def test_continuity_script_has_grounding_and_chained_ledger() -> None:
     script = SCRIPT.read_text(encoding="utf-8")
-    assert "text input only" in script
-    assert "No camera or microphone is connected" in script
+    assert "Text only" in script
+    assert "No camera or microphone" in script
     assert "previous_record_sha256" in script
     assert "record_sha256" in script
     assert "continuity.jsonl" in script
@@ -42,5 +44,14 @@ def test_continuity_script_has_grounding_and_chained_ledger() -> None:
 def test_continuity_script_requires_four_fresh_turns() -> None:
     script = SCRIPT.read_text(encoding="utf-8")
     assert "len(PROMPTS) == 4" in script
-    assert "What do you remember from the immediately previous exchange?" in script
-    assert "Ask Luna one question about your current runtime state." in script
+    assert "remember" in PROMPTS[2].lower()
+    assert "Ask Luna" in PROMPTS[3]
+
+
+def test_native_128_wire_budget_is_ultra_compact() -> None:
+    # Regression for Actions run 31906708642: the original first request was
+    # 134 tokens against a native 128-token slot before continuity was used.
+    assert max(len(prompt) for prompt in PROMPTS) <= 64
+    assert len(_compact_prior("A" * 200, "B" * 200)) <= 48
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    assert "--max-tokens 12" in workflow
