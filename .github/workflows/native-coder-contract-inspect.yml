@@ -1,0 +1,48 @@
+name: Inspect pinned native coder contract
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/native-coder-contract-inspect.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download pinned source only
+        run: |
+          set -euo pipefail
+          python -m pip install -q 'huggingface-hub>=0.27'
+          mkdir -p _inspect
+          hf download phera-ra/QC67_cosmo serving/cosmos_coder.py \
+            --revision b414724c627300c41b099dcc6853766d08fd27a4 \
+            --local-dir _inspect
+          sha256sum _inspect/serving/cosmos_coder.py
+      - name: Print native REPL command contract only
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('_inspect/serving/cosmos_coder.py')
+          lines = p.read_text(encoding='utf-8').splitlines()
+          needles = ('/save', '/run', 'input(', 'startswith(', 'command', 'buffer', 'last_')
+          hits = sorted({i for i, line in enumerate(lines) if any(n in line for n in needles)})
+          emitted = set()
+          for i in hits:
+              for j in range(max(0, i-4), min(len(lines), i+7)):
+                  if j not in emitted:
+                      print(f'{j+1:04d}: {lines[j]}')
+                      emitted.add(j)
+              print('---')
+          PY
