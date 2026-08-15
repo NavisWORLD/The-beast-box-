@@ -1,4 +1,4 @@
-name: Zeref Networked Cage Run 018
+name: Zeref Networked Cage Run 019
 
 on:
   push:
@@ -16,7 +16,7 @@ env:
   HF_FILE: weights/cosmos-cst.gguf
   HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
   LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
-  RUN_ID: 2026-08-15-run-018
+  RUN_ID: 2026-08-15-run-019
   DURATION: "1800"
 
 jobs:
@@ -45,9 +45,9 @@ jobs:
       - name: Disposable cage smoke preflight
         run: |
           set -euo pipefail
-          rm -rf runs/run018-preflight
-          scripts/networked_cage.sh --smoke --duration 15 --out runs/run018-preflight
-          cat runs/run018-preflight/evidence/network-smoke.json
+          rm -rf runs/run019-preflight
+          scripts/networked_cage.sh --smoke --duration 15 --out runs/run019-preflight
+          cat runs/run019-preflight/evidence/network-smoke.json
 
       - name: Download exact Zeref GGUF and native architecture
         shell: bash
