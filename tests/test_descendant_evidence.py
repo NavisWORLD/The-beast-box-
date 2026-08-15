@@ -113,3 +113,13 @@ def test_episode_index_is_append_only_hash_chained(tmp_path: Path) -> None:
     rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
     assert rows[0]["previous_record_sha256"] == "0" * 64
     assert rows[1]["previous_record_sha256"] == rows[0]["record_sha256"]
+
+
+def test_committed_d001_episode_index_verifies() -> None:
+    path = Path("experiments/descendant-d001/evidence/episode-index.jsonl")
+    result = verify_episode_index(path)
+    assert result == {
+        "valid": True,
+        "records": 1,
+        "final_sha256": "4dc88cc496eca83a3d4456109038a3d1423b016a777c17390b9b9d24828e14d1",
+    }
