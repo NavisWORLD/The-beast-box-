@@ -39,11 +39,20 @@ def test_context_extrapolation_patch_has_valid_unified_hunk_counts() -> None:
     _assert_unified_hunks_are_well_formed(PATCH.read_text(encoding="utf-8"))
 
 
+def test_zeref_download_hashes_the_materialized_model_path() -> None:
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    start = workflow.index("- name: Download exact Zeref GGUF and native architecture")
+    end = workflow.index("- name: Reconstruct and build Zeref native runtime", start)
+    download_step = workflow[start:end]
+    assert '"_zeref/$HF_FILE"' in download_step
+    assert '\n            "$HF_FILE"\n' not in download_step
+
+
 def test_zeref_live_workflow_pins_identity_and_auditable_512_context_extrapolation() -> None:
     workflow = WORKFLOW.read_text(encoding="utf-8")
     assert "--chat-template chatml" in workflow
-    assert "name: Zeref Networked Cage Run 013" in workflow
-    assert "RUN_ID: 2026-08-15-run-013" in workflow
+    assert "name: Zeref Networked Cage Run 014" in workflow
+    assert "RUN_ID: 2026-08-15-run-014" in workflow
     assert 'DURATION: "1800"' in workflow
     assert "-c 512" in workflow
     assert "context=512" in workflow
