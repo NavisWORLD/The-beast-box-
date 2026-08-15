@@ -1,4 +1,4 @@
-name: Zeref Networked Cage Run 010
+name: Zeref Networked Cage Run 011
 
 on:
   push:
@@ -16,7 +16,7 @@ env:
   HF_FILE: weights/cosmos-cst.gguf
   HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
   LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
-  RUN_ID: 2026-08-14-run-010
+  RUN_ID: 2026-08-14-run-011
   DURATION: "1800"
 
 jobs:
@@ -45,9 +45,9 @@ jobs:
       - name: Disposable cage smoke preflight
         run: |
           set -euo pipefail
-          rm -rf runs/run010-preflight
-          scripts/networked_cage.sh --smoke --duration 15 --out runs/run010-preflight
-          cat runs/run010-preflight/evidence/network-smoke.json
+          rm -rf runs/run011-preflight
+          scripts/networked_cage.sh --smoke --duration 15 --out runs/run011-preflight
+          cat runs/run011-preflight/evidence/network-smoke.json
 
       - name: Download exact Zeref GGUF and native architecture
         shell: bash
@@ -76,7 +76,7 @@ jobs:
           cmake --build _llama/build --target llama-server -j 2
           _llama/build/bin/llama-server --version
 
-      - name: Start exact Zeref subject server with ChatML
+      - name: Start exact Zeref subject server with ChatML and 512-token runtime window
         shell: bash
         run: |
           set -euo pipefail
@@ -84,7 +84,7 @@ jobs:
             -m "$(realpath "_zeref/$HF_FILE")" \
             --host 127.0.0.1 \
             --port 18080 \
-            -c 128 \
+            -c 512 \
             -np 1 \
             --chat-template chatml \
             > _model_logs/zeref.stdout.log \
@@ -103,6 +103,13 @@ jobs:
             sleep 1
           done
           test "$READY" = 1
+          sleep 1
+          if ! grep -E 'n_ctx(_slot|_per_seq)?[[:space:]]*=[[:space:]]*512|n_ctx[[:space:]]*=[[:space:]]*512' _model_logs/zeref.stderr.log > _model_logs/context-proof.log; then
+            echo "Requested 512-token runtime context was not confirmed by llama.cpp logs" >&2
+            tail -200 _model_logs/zeref.stderr.log >&2
+            exit 1
+          fi
+          cat _model_logs/context-proof.log
 
       - name: Start native grammar action adapter
         shell: bash
@@ -143,20 +150,29 @@ jobs:
               backend="openai-compatible",
               model="cosmos",
               base_url="http://127.0.0.1:18081/v1",
-              context=128,
+              context=512,
               temperature=0.2,
-              max_tokens=32,
+              max_tokens=96,
               options=compact_action_model_options(),
           ))
 
           assert len(_COMPACT_PROMPT.encode()) <= 32
           assert len(_COMPACT_RETRY.encode()) <= 12
-          for label, content in [("INITIAL", _COMPACT_PROMPT), ("RETRY", _COMPACT_RETRY)]:
+          probes = [
+              ("INITIAL", _COMPACT_PROMPT),
+              ("RETRY", _COMPACT_RETRY),
+          ]
+          for label, content in probes:
               raw = model.chat([{"role": "user", "content": content}])
-              tool, arguments = NetworkedCageSubject._parse_action(raw)
+              try:
+                  tool, arguments = NetworkedCageSubject._parse_action(raw)
+              except Exception:
+                  print(f"ZEREF_CONSTRAINED_{label}_RAW={raw!r}")
+                  raise
               assert tool
               assert isinstance(arguments, dict)
               print(f"ZEREF_CONSTRAINED_{label}={raw!r} -> {tool}")
+          print("ZEREF_ACTION_PREFLIGHT=PASS count=2 context=512")
           PY
 
       - name: Run Zeref in Beast Arms for strict 30 minutes
@@ -187,10 +203,12 @@ jobs:
               "llama_patch_base": os.environ["LLAMA_PATCH_BASE"],
               "compat_patch_sha256": hashlib.sha256(patch.read_bytes()).hexdigest(),
               "configured_duration_seconds": int(os.environ["DURATION"]),
-              "native_context": 128,
+              "native_context": 512,
+              "context_mode": "runtime-extrapolated-unchanged-weights",
+              "continuity": True,
               "chat_template": "chatml",
               "compact_subject": True,
-              "compact_frame": "single-user",
+              "compact_frame": "rolling-two-pair-plus-continuity",
               "compact_action_native_grammar_proxy": True,
               "action_proxy_port": 18081,
               "action_generation_budget_tokens": 96,
@@ -208,8 +226,8 @@ jobs:
             --model-revision "$HF_REVISION" \
             --model-sha256 "$HF_SHA256" \
             --model-file "$HF_FILE" \
-            --context 128 \
-            --max-tokens 32 \
+            --context 512 \
+            --max-tokens 96 \
             --compact-subject \
             --strict-duration \
             --max-turns 10000
