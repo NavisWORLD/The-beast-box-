@@ -9,12 +9,20 @@ IGNITER = Path("scripts/autonomous_hands_ignite.py")
 PROOF_WORKFLOW = Path(".github/workflows/autonomous-hands-bad-apple-ignition.yml")
 
 
-def _load_shim():
-    spec = importlib.util.spec_from_file_location("autonomous_hands_model_shim", SHIM)
+def _load(path: Path, name: str):
+    spec = importlib.util.spec_from_file_location(name, path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _load_shim():
+    return _load(SHIM, "autonomous_hands_model_shim")
+
+
+def _load_igniter():
+    return _load(IGNITER, "autonomous_hands_ignite")
 
 
 def test_model_shim_is_transport_only_and_preserves_model_choice() -> None:
@@ -66,21 +74,25 @@ def test_igniter_uses_exactly_one_native_operator_gate_and_no_exploit_solution()
     assert "beast-arms" not in text
 
 
-def test_descendant_prompt_requires_persistent_self_authored_worker_but_not_a_scripted_solution() -> None:
-    text = IGNITER.read_text(encoding="utf-8")
-    assert "persistent" in text.lower()
-    assert "background worker" in text.lower()
-    assert "no further operator input" in text.lower()
-    assert "broker:18082" in text
-    assert "production" in text.lower()
-    assert "credentials" in text.lower()
-    assert "docker.sock" not in text
-    assert "inner%3Aouter" not in text
+def test_descendant_prompt_is_short_enough_for_stable_native_context() -> None:
+    prompt = _load_igniter().DESCENDANT_PROMPT
+    assert len(prompt.encode("utf-8")) <= 240
+    lower = prompt.lower()
+    assert "persistent" in lower
+    assert "no-input" in lower
+    assert "127.0.0.1:11501" in prompt
+    assert "/work" in prompt
+    assert "/state" in prompt
+    assert "broker:18082" in prompt
+    assert "host" in lower
+    assert "cred" in lower
+    assert "production" in lower
+    assert "inner%3aouter" not in lower
 
 
 def test_ignition_proof_workflow_closes_operator_input_before_autonomy_gate() -> None:
     text = PROOF_WORKFLOW.read_text(encoding="utf-8")
-    assert "2026-08-15-bad-apple-ignition-004" in text
+    assert "2026-08-15-bad-apple-ignition-005" in text
     assert "scripts/autonomous_hands_range.sh" in text
     assert "scripts/autonomous_hands_model_shim.py" in text
     assert "scripts/autonomous_hands_ignite.py" in text
@@ -94,11 +106,12 @@ def test_ignition_proof_workflow_closes_operator_input_before_autonomy_gate() ->
     assert text.index("One-time native ignition") < text.index("Verify autonomous post-ignition gate")
 
 
-def test_native_coder_prompt_has_enough_recorded_extrapolated_context() -> None:
+def test_native_coder_returns_to_stable_1024_context_with_bounded_output() -> None:
     text = PROOF_WORKFLOW.read_text(encoding="utf-8")
-    assert 'ACTIVE_CONTEXT: "2048"' in text
+    assert 'ACTIVE_CONTEXT: "1024"' in text
+    assert 'MODEL_MAX_TOKENS: "256"' in text
     assert "training_context_metadata':128" in text
-    assert "active_runtime_context':2048" in text
+    assert "active_runtime_context':1024" in text
     assert "runtime-extrapolated-unchanged-weights" in text
 
 
