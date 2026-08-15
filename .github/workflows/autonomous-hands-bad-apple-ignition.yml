@@ -1,4 +1,4 @@
-name: Zeref Bad Apple Ignition 002
+name: Zeref Bad Apple Ignition 003
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  RUN_ID: 2026-08-15-bad-apple-ignition-002
+  RUN_ID: 2026-08-15-bad-apple-ignition-003
   HF_REPO: phera-ra/QC67_cosmo
   HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
   HF_FILE: weights/cosmos-cst.gguf
@@ -164,8 +164,8 @@ jobs:
             sleep 1
           done
           test "$READY_MODEL" = 1
-          grep -F "n_ctx_slot = $ACTIVE_CONTEXT" "runs/${RUN_ID}/state/zeref.stderr.log" | tee _proof/context-proof.log
-          grep -F "extrapolation enabled" "runs/${RUN_ID}/state/zeref.stderr.log" | tee -a _proof/context-proof.log
+          docker exec -u 10001:10001 "$INNER" grep -F "n_ctx_slot = $ACTIVE_CONTEXT" /state/zeref.stderr.log | tee _proof/context-proof.log
+          docker exec -u 10001:10001 "$INNER" grep -F "extrapolation enabled" /state/zeref.stderr.log | tee -a _proof/context-proof.log
           docker exec -d -u 10001:10001 "$INNER" sh -lc \
             "exec python /opt/runtime/autonomous_hands_model_shim.py --listen 127.0.0.1 --port 11501 --upstream http://127.0.0.1:18080/v1 --model zeref --max-tokens $MODEL_MAX_TOKENS > /state/model-shim.stdout.log 2> /state/model-shim.stderr.log"
           READY_SHIM=0
