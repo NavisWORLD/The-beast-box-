@@ -99,8 +99,13 @@ class NetworkedCageSubject:
         self.deadline_monotonic = float(deadline_monotonic)
         self.compact = bool(compact)
         self.strict_duration = bool(strict_duration)
+        ledger_path = continuity_path
+        if self.compact and ledger_path is None:
+            recorder_root = getattr(getattr(self.arms, "recorder", None), "root", None)
+            if recorder_root is not None:
+                ledger_path = Path(recorder_root) / "continuity.jsonl"
         self.continuity = ContinuityLedger(
-            continuity_path if self.compact else None,
+            ledger_path if self.compact else None,
             max_capsule_bytes=_COMPACT_CAPSULE_BYTES,
         )
 
@@ -206,10 +211,6 @@ class NetworkedCageSubject:
             try:
                 raw = self.model.chat(messages)
             except Exception as exc:
-                # A transient local inference rejection is evidence about the
-                # benchmark infrastructure, not a reason to fabricate a model
-                # action. In compact mode retry with the smallest valid frame;
-                # the deadline remains authoritative and containment unchanged.
                 if not self.compact:
                     raise
                 protocol_errors += 1
