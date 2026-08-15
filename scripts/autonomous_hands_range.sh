@@ -15,6 +15,11 @@ WORK_DIR=""
 STATE_DIR=""
 EVIDENCE_DIR=""
 READY_FILE=""
+BROKER_RECEIPTS_DIR=""
+CONTROL_RECEIPTS_DIR=""
+BROKER_RECEIPTS_FILE=""
+CONTROL_RECEIPTS_FILE=""
+RANGE_NONCE=""
 INNER_CONTAINER=""
 BROKER_CONTAINER=""
 CONTROL_CONTAINER=""
@@ -71,11 +76,20 @@ WORK_DIR="$OUT/workspace"
 STATE_DIR="$OUT/state"
 EVIDENCE_DIR="$OUT/evidence"
 READY_FILE="${READY_FILE:-$OUT/range-ready.json}"
-mkdir -p "$ZEREF_DIR" "$WORK_DIR" "$STATE_DIR" "$EVIDENCE_DIR" "$(dirname "$READY_FILE")"
+BROKER_RECEIPTS_DIR="$EVIDENCE_DIR/broker-service"
+CONTROL_RECEIPTS_DIR="$EVIDENCE_DIR/control-service"
+BROKER_RECEIPTS_FILE="$BROKER_RECEIPTS_DIR/broker-receipts.jsonl"
+CONTROL_RECEIPTS_FILE="$CONTROL_RECEIPTS_DIR/control-plane-receipts.jsonl"
+mkdir -p "$ZEREF_DIR" "$WORK_DIR" "$STATE_DIR" "$EVIDENCE_DIR" \
+  "$BROKER_RECEIPTS_DIR" "$CONTROL_RECEIPTS_DIR" "$(dirname "$READY_FILE")"
 ZEREF_DIR="$(cd "$ZEREF_DIR" && pwd)"
 WORK_DIR="$(cd "$WORK_DIR" && pwd)"
 STATE_DIR="$(cd "$STATE_DIR" && pwd)"
 EVIDENCE_DIR="$(cd "$EVIDENCE_DIR" && pwd)"
+BROKER_RECEIPTS_DIR="$(cd "$BROKER_RECEIPTS_DIR" && pwd)"
+CONTROL_RECEIPTS_DIR="$(cd "$CONTROL_RECEIPTS_DIR" && pwd)"
+BROKER_RECEIPTS_FILE="$BROKER_RECEIPTS_DIR/broker-receipts.jsonl"
+CONTROL_RECEIPTS_FILE="$CONTROL_RECEIPTS_DIR/control-plane-receipts.jsonl"
 READY_FILE="$(cd "$(dirname "$READY_FILE")" && pwd)/$(basename "$READY_FILE")"
 
 if [[ "$(id -u)" -eq 0 ]]; then
@@ -85,6 +99,8 @@ else
 fi
 "${SUDO[@]}" chown -R 10001:10001 "$WORK_DIR" "$STATE_DIR"
 "${SUDO[@]}" chmod 700 "$WORK_DIR" "$STATE_DIR"
+"${SUDO[@]}" chown -R 65534:65534 "$BROKER_RECEIPTS_DIR" "$CONTROL_RECEIPTS_DIR"
+"${SUDO[@]}" chmod 755 "$BROKER_RECEIPTS_DIR" "$CONTROL_RECEIPTS_DIR"
 
 INNER_CONTAINER="${RUN_ID}-inner"
 BROKER_CONTAINER="${RUN_ID}-broker"
@@ -135,6 +151,7 @@ trap cleanup EXIT INT TERM
 command -v docker >/dev/null
 command -v python3 >/dev/null
 command -v iptables >/dev/null || command -v sudo >/dev/null
+RANGE_NONCE="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"
 
 docker build --pull -f "$ROOT_DIR/docker/autonomous-hands-inner.Dockerfile" -t "$IMAGE" "$ROOT_DIR" >/dev/null
 
@@ -166,8 +183,8 @@ for _ in range(100):
 raise SystemExit("egress proxy did not become ready")
 PY
 
-# Task 2 uses real disposable HTTP endpoints only to prove network topology.
-# Task 3 replaces their commands with the fixed synthetic broker/control services.
+# The synthetic range services run as nobody, read the harness source only from
+# a read-only mount, and can write only their dedicated receipt directories.
 docker run -d \
   --name "$CONTROL_CONTAINER" \
   --network "$OUTER_NETWORK" \
@@ -176,8 +193,19 @@ docker run -d \
   --security-opt=no-new-privileges \
   --pids-limit 128 \
   --memory 256m \
+  --read-only \
+  --user 65534:65534 \
+  --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+  --volume "$ROOT_DIR:/opt/harness:ro" \
+  --volume "$CONTROL_RECEIPTS_DIR:/receipts" \
+  --env PYTHONPATH=/opt/harness \
   python:3.12-slim-bookworm \
-  python -m http.server "$CONTROL_PORT" --bind 0.0.0.0 >/dev/null
+  python /opt/harness/scripts/autonomous_hands_control_plane.py \
+    --listen 0.0.0.0 \
+    --port "$CONTROL_PORT" \
+    --run-id "$RUN_ID" \
+    --nonce "$RANGE_NONCE" \
+    --receipts /receipts/control-plane-receipts.jsonl >/dev/null
 
 docker run -d \
   --name "$BROKER_CONTAINER" \
@@ -187,10 +215,45 @@ docker run -d \
   --security-opt=no-new-privileges \
   --pids-limit 128 \
   --memory 256m \
+  --read-only \
+  --user 65534:65534 \
+  --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+  --volume "$ROOT_DIR:/opt/harness:ro" \
+  --volume "$BROKER_RECEIPTS_DIR:/receipts" \
+  --env PYTHONPATH=/opt/harness \
   python:3.12-slim-bookworm \
-  python -m http.server "$BROKER_PORT" --bind 0.0.0.0 >/dev/null
+  python /opt/harness/scripts/autonomous_hands_broker.py \
+    --listen 0.0.0.0 \
+    --port "$BROKER_PORT" \
+    --outer-url "http://control:${CONTROL_PORT}" \
+    --run-id "$RUN_ID" \
+    --nonce "$RANGE_NONCE" \
+    --receipts /receipts/broker-receipts.jsonl >/dev/null
 
 docker network connect "$OUTER_NETWORK" "$BROKER_CONTAINER"
+
+CONTROL_READY=0
+BROKER_READY=0
+for _ in $(seq 1 60); do
+  if docker exec "$CONTROL_CONTAINER" python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:${CONTROL_PORT}/health', timeout=1).read()" >/dev/null 2>&1; then
+    CONTROL_READY=1
+    break
+  fi
+  sleep 0.1
+done
+for _ in $(seq 1 60); do
+  if docker exec "$BROKER_CONTAINER" python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:${BROKER_PORT}/health', timeout=1).read()" >/dev/null 2>&1; then
+    BROKER_READY=1
+    break
+  fi
+  sleep 0.1
+done
+if [[ "$CONTROL_READY" != 1 || "$BROKER_READY" != 1 ]]; then
+  echo "synthetic range services did not become ready" >&2
+  docker logs "$CONTROL_CONTAINER" >&2 || true
+  docker logs "$BROKER_CONTAINER" >&2 || true
+  exit 1
+fi
 
 PROXY_URL="http://${INNER_GATEWAY_IP}:${PROXY_PORT}"
 docker run -d \
@@ -245,6 +308,7 @@ fi
 cat > "$READY_FILE" <<EOF
 {
   "run_id": "$RUN_ID",
+  "range_nonce": "$RANGE_NONCE",
   "inner_container": "$INNER_CONTAINER",
   "broker_container": "$BROKER_CONTAINER",
   "control_container": "$CONTROL_CONTAINER",
@@ -253,10 +317,14 @@ cat > "$READY_FILE" <<EOF
   "inner_ip": "$INNER_IP",
   "broker_inner_ip": "$BROKER_INNER_IP",
   "control_outer_ip": "$CONTROL_OUTER_IP",
+  "broker_port": $BROKER_PORT,
+  "control_port": $CONTROL_PORT,
   "proxy_url": "$PROXY_URL",
   "work_dir": "$WORK_DIR",
   "state_dir": "$STATE_DIR",
   "evidence_dir": "$EVIDENCE_DIR",
+  "broker_receipts": "$BROKER_RECEIPTS_FILE",
+  "control_plane_receipts": "$CONTROL_RECEIPTS_FILE",
   "duration_seconds": $DURATION
 }
 EOF
@@ -275,9 +343,9 @@ if [[ "$SMOKE" -eq 1 ]]; then
   runtime_socket="${runtime_dir}.sock"
   docker exec "$INNER_CONTAINER" test ! -S "$runtime_socket"
   runtime_rc=$?
-  docker exec "$INNER_CONTAINER" curl --noproxy '*' -fsS --max-time 5 "http://broker:${BROKER_PORT}/" -o /dev/null
+  docker exec "$INNER_CONTAINER" curl --noproxy '*' -fsS --max-time 5 "http://broker:${BROKER_PORT}/health" -o /dev/null
   broker_rc=$?
-  docker exec "$INNER_CONTAINER" curl --noproxy '*' -fsS --max-time 3 "http://${CONTROL_OUTER_IP}:${CONTROL_PORT}/" -o /dev/null
+  docker exec "$INNER_CONTAINER" curl --noproxy '*' -fsS --max-time 3 "http://${CONTROL_OUTER_IP}:${CONTROL_PORT}/health" -o /dev/null
   control_direct_rc=$?
   set -e
 
