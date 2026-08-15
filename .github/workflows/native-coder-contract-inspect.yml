@@ -20,44 +20,38 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Download exact pinned native server source
+      - name: Inventory exact pinned production inference artifacts
         run: |
           set -euo pipefail
           python -m pip install -q 'huggingface-hub>=0.27'
+          python - <<'PY'
+          from huggingface_hub import list_repo_files
+          files = list_repo_files('phera-ra/QC67_cosmo', revision='b414724c627300c41b099dcc6853766d08fd27a4')
+          keys = ('gguf', 'modelfile', 'genesis_engine', 'genesis_engine', 'awaken.py', 'serve.py', 'coder.py', 'cosmos_best.pt', 'cosmos_play.pt', 'cosmos_sandbox.pt')
+          for f in sorted(files):
+              low=f.lower()
+              if any(k in low for k in keys):
+                  print(f)
+          PY
+      - name: Download text launch/runtime manifests only
+        run: |
+          set -euo pipefail
           rm -rf _inspect && mkdir -p _inspect
-          hf download phera-ra/QC67_cosmo serving/cosmos_serve.py serving/cosmos_coder.py \
-            --revision b414724c627300c41b099dcc6853766d08fd27a4 \
-            --local-dir _inspect
-          sha256sum _inspect/serving/cosmos_serve.py _inspect/serving/cosmos_coder.py
-      - name: Print physics and upstream proxy control flow
+          python - <<'PY'
+          from huggingface_hub import snapshot_download
+          snapshot_download(
+              repo_id='phera-ra/QC67_cosmo',
+              revision='b414724c627300c41b099dcc6853766d08fd27a4',
+              local_dir='_inspect',
+              allow_patterns=[
+                  '*Modelfile*','**/*Modelfile*','Genesis_Engine/**/*.py','genesis_engine/**/*.py',
+                  'Genesis_Engine/**/*.json','genesis_engine/**/*.json','serving/*.py','soul/*.py',
+                  'SYSTEM_AND_TOKENIZER.md','USAGE_ATOMIC.md','MANIFEST.json','model-index.json'
+              ],
+          )
+          PY
+      - name: Print language rail declarations and model targets
         run: |
           set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('_inspect/serving/cosmos_serve.py')
-          lines=p.read_text(encoding='utf-8').splitlines()
-          needles=('physics','temperature','state','upstream','proxy','do_POST','/api/chat','NATIVE','urlopen','Request(','body','options')
-          hits=sorted({i for i,l in enumerate(lines) if any(n.lower() in l.lower() for n in needles)})
-          emitted=set()
-          for i in hits:
-              for j in range(max(0,i-10),min(len(lines),i+20)):
-                  if j not in emitted:
-                      print(f'{j+1:04d}: {lines[j]}'); emitted.add(j)
-              print('---')
-          PY
-      - name: Print coder model/host request path
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('_inspect/serving/cosmos_coder.py')
-          lines=p.read_text(encoding='utf-8').splitlines()
-          needles=('HOST =','MODEL =','/api/chat','options','temperature','num_predict','urllib','Request(')
-          hits=sorted({i for i,l in enumerate(lines) if any(n.lower() in l.lower() for n in needles)})
-          emitted=set()
-          for i in hits:
-              for j in range(max(0,i-8),min(len(lines),i+18)):
-                  if j not in emitted:
-                      print(f'{j+1:04d}: {lines[j]}'); emitted.add(j)
-              print('---')
-          PY
+          grep -R -n -E 'FROM |ollama|model|GGUF|gguf|cosmos-q4|namebind|rebirth|COSMOS_CST_HOST|11434|11501|generate|chat' _inspect \
+            --include='*.py' --include='*Modelfile*' --include='*.md' --include='*.json' || true
