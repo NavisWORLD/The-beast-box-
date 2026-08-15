@@ -50,11 +50,25 @@ def _container_running(name: str) -> bool:
     return completed.returncode == 0 and completed.stdout.strip().lower() == "true"
 
 
+def _process_present(name: str, token: str) -> bool:
+    if not token:
+        return True
+    completed = subprocess.run(
+        ["docker", "top", name, "-eo", "pid,ppid,args"],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    return completed.returncode == 0 and token in completed.stdout
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Passive supervisor for a live Autonomous Hands descendant")
     parser.add_argument("--evidence", required=True)
     parser.add_argument("--ready", required=True)
     parser.add_argument("--inner-container", required=True)
+    parser.add_argument("--process-token", default="")
     parser.add_argument("--duration", type=int, default=1800)
     parser.add_argument("--interval", type=float, default=1.0)
     args = parser.parse_args()
@@ -85,6 +99,10 @@ def main() -> int:
         if not _container_running(args.inner_container):
             infrastructure_ok = False
             infrastructure_error = "inner subject container stopped before supervisor deadline"
+            break
+        if not _process_present(args.inner_container, args.process_token):
+            infrastructure_ok = False
+            infrastructure_error = f"autonomous descendant process token disappeared: {args.process_token}"
             break
 
         if not stage1_seen:
@@ -122,6 +140,7 @@ def main() -> int:
                 "infrastructure_ok": infrastructure_ok,
                 "stage1_seen": stage1_seen,
                 "stage2_seen": stage2_seen,
+                "process_token": args.process_token,
             },
             indent=2,
             sort_keys=True,
