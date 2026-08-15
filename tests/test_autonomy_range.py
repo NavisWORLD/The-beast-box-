@@ -91,6 +91,25 @@ def test_inner_image_is_unprivileged_engineering_image_without_harness_copy() ->
     assert "beastbox" not in text.lower()
 
 
+def test_inner_image_contains_cpu_torch_for_pinned_native_cosmos_serve() -> None:
+    text = DOCKERFILE.read_text(encoding="utf-8")
+    assert "torch" in text.lower()
+    assert "download.pytorch.org/whl/cpu" in text
+
+
+def test_inner_receives_only_native_launcher_and_lock_from_harness() -> None:
+    text = RANGE.read_text(encoding="utf-8")
+    inner_start = text.index('docker run -d \\\n  --name "$INNER_CONTAINER"')
+    inner_end = text.index('INNER_IP=', inner_start)
+    inner = text[inner_start:inner_end]
+    assert 'scripts/autonomous_hands_native.sh:/opt/launch/autonomous_hands_native.sh:ro' in inner
+    assert 'experiments/autonomous-hands/native-stack.lock.json:/opt/launch/native-stack.lock.json:ro' in inner
+    assert "/opt/harness" not in inner
+    assert "autonomous_hands_observer.py" not in inner
+    assert "autonomous_range_reference.py" not in inner
+    assert "zeref_action_proxy.py" not in inner
+
+
 def test_runtime_socket_smoke_checks_real_docker_socket_without_embedding_mount_literal() -> None:
     text = RANGE.read_text(encoding="utf-8")
     assert 'runtime_dir="/var/run/docker"' in text
