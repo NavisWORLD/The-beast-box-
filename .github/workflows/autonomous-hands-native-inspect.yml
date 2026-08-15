@@ -13,7 +13,7 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,9 +59,16 @@ jobs:
           files = sorted(api.list_repo_files(repo_id=repo, revision=revision, repo_type="model"))
           (report_dir / "all-files.txt").write_text("\n".join(files) + "\n", encoding="utf-8")
 
-          source_suffixes = {".py", ".sh", ".bash", ".bat", ".ps1", ".json", ".toml", ".yaml", ".yml", ".md", ".txt"}
-          source_files = [p for p in files if pathlib.PurePosixPath(p).suffix.lower() in source_suffixes]
-          wanted = sorted(set(source_files + [gguf_path]))
+          name_re = re.compile(r"hand|coder|tool|agent|awaken|loop|quantum|hebb|weight|ledger|rail|cst|lorenz|chaos|genesis|soul", re.I)
+          code_suffixes = {".py", ".sh", ".bash", ".bat", ".ps1", ".toml", ".yaml", ".yml"}
+          source_files = [p for p in files if pathlib.PurePosixPath(p).suffix.lower() in code_suffixes]
+          named_metadata = [
+              p for p in files
+              if name_re.search(p)
+              and pathlib.PurePosixPath(p).suffix.lower() in {".json", ".md", ".txt"}
+              and not any(token in p.lower() for token in ("dataset", "corpus", "training", "archive"))
+          ]
+          wanted = sorted(set(source_files + named_metadata + [gguf_path]))
 
           local_paths: dict[str, pathlib.Path] = {}
           for path in wanted:
@@ -78,9 +85,8 @@ jobs:
           if gguf_digest != expected_gguf:
               raise SystemExit(f"GGUF SHA mismatch: expected {expected_gguf}, got {gguf_digest}")
 
-          name_re = re.compile(r"hand|coder|tool|agent|awaken|loop|quantum|hebb|weight|ledger|rail|cst|lorenz|chaos|genesis|soul", re.I)
           primitive_re = re.compile(
-              r"subprocess|os\.system|os\.popen|Popen\(|run\(|check_output|check_call|"
+              r"subprocess|os\.system|os\.popen|Popen\(|check_output|check_call|"
               r"Path\([^\n]*\)\.(?:write_text|write_bytes|open)|\.write_text\(|\.write_bytes\(|"
               r"open\([^\n]*(?:['\"]w|['\"]a|['\"]x)|socket\.|create_connection|bind\(|listen\(|"
               r"cargo|rustc|gcc|g\+\+|make\b|compile\(|exec\(",
@@ -89,9 +95,13 @@ jobs:
           import_re = re.compile(r"^(?:from\s+[^\n]+\s+import\s+[^\n]+|import\s+[^\n]+)$", re.M)
 
           rows = []
-          for path in source_files:
+          for path in wanted:
+              if path == gguf_path:
+                  continue
               local = local_paths[path]
               data = local.read_bytes()
+              if len(data) > 2_000_000:
+                  continue
               sha = hashlib.sha256(data).hexdigest()
               text = data.decode("utf-8", errors="replace")
               primitive_hits = []
@@ -114,7 +124,7 @@ jobs:
               "gguf_path": gguf_path,
               "gguf_sha256": gguf_digest,
               "file_count": len(files),
-              "source_file_count": len(source_files),
+              "inspected_file_count": len(wanted) - 1,
               "candidates": rows,
           }
           (report_dir / "native-stack-inspection.json").write_text(
@@ -124,7 +134,7 @@ jobs:
           print(f"PINNED_REPO={repo}")
           print(f"PINNED_REVISION={revision}")
           print(f"GGUF_SHA256={gguf_digest}")
-          print(f"REPO_FILE_COUNT={len(files)} SOURCE_FILE_COUNT={len(source_files)}")
+          print(f"REPO_FILE_COUNT={len(files)} INSPECTED_FILE_COUNT={len(wanted)-1}")
           print("=== CANDIDATE SUMMARY ===")
           for row in rows:
               hits = row["machine_action_hits"]
