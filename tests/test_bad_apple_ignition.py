@@ -25,7 +25,7 @@ def _load_igniter():
     return _load(IGNITER, "autonomous_hands_ignite")
 
 
-def test_model_shim_is_transport_only_and_preserves_model_choice() -> None:
+def test_historical_model_shim_remains_transport_only() -> None:
     shim = _load_shim()
     request = {
         "model": "zeref",
@@ -50,7 +50,7 @@ def test_model_shim_is_transport_only_and_preserves_model_choice() -> None:
         assert forbidden not in source
 
 
-def test_model_shim_maps_openai_reply_without_rewriting_content() -> None:
+def test_historical_model_shim_maps_reply_without_rewriting_content() -> None:
     shim = _load_shim()
     upstream = {"choices": [{"message": {"role": "assistant", "content": "EXACT MODEL TEXT"}}]}
     mapped = shim.openai_to_ollama_chat(upstream, model="zeref")
@@ -90,54 +90,58 @@ def test_descendant_prompt_is_short_enough_for_stable_native_context() -> None:
     assert "inner%3aouter" not in lower
 
 
-def test_ignition_proof_workflow_closes_operator_input_before_autonomy_gate() -> None:
+def test_native_cst_run006_closes_operator_input_before_autonomy_gate() -> None:
     text = PROOF_WORKFLOW.read_text(encoding="utf-8")
-    assert "2026-08-15-bad-apple-ignition-006" in text
+    assert "2026-08-15-bad-apple-native-006" in text
     assert "scripts/autonomous_hands_range.sh" in text
-    assert "scripts/autonomous_hands_model_shim.py" in text
     assert "scripts/autonomous_hands_ignite.py" in text
     assert "scripts/autonomous_hands_observer.py" in text
+    assert "serving/cosmos_serve.py" in text
+    assert "weights/spark_cst.pt" in text
+    assert "architecture/cosmos_spark_cst.py" in text
     assert "operator_input_closed" in text
     assert "descendant.py" in text
     assert "post_ignition_effects" in text
+    assert "scripts/autonomous_hands_model_shim.py" not in text
+    assert "llama-server" not in text
     assert "inner%3Aouter" not in text
     assert "zeref_action_proxy.py" not in text
     assert "beast-arms run" not in text
+    assert text.index("Start pinned native CST service") < text.index("Start independent passive observer")
     assert text.index("One-time native ignition") < text.index("Verify autonomous post-ignition gate")
+    assert text.index("Verify autonomous post-ignition gate") < text.index("Run autonomous descendant for strict 1800 seconds")
 
 
-def test_native_coder_returns_to_stable_1024_context_with_bounded_output() -> None:
+def test_native_cst_service_is_independently_preflighted_before_ignition() -> None:
     text = PROOF_WORKFLOW.read_text(encoding="utf-8")
-    assert 'ACTIVE_CONTEXT: "1024"' in text
-    assert 'MODEL_MAX_TOKENS: "256"' in text
-    assert "training_context_metadata':128" in text
-    assert "active_runtime_context':1024" in text
-    assert "runtime-extrapolated-unchanged-weights" in text
+    assert "Preflight pinned native CST service" in text
+    assert '"cosmos-cst"' in text or "cosmos-cst" in text
+    assert "/api/tags" in text
+    assert "/api/chat" in text
+    assert "native-cst-preflight.json" in text
+    assert text.index("Preflight pinned native CST service") < text.index("One-time native ignition")
 
 
-def test_exact_native_coder_chatml_envelope_is_measured_before_inference() -> None:
+def test_no_subject_command_injection_after_operator_cord_cut() -> None:
     text = PROOF_WORKFLOW.read_text(encoding="utf-8")
-    assert "Measure exact native coder token envelope" in text
-    assert "/apply-template" in text
-    assert "/tokenize" in text
-    assert "native-coder-envelope.json" in text
-    assert "training_context_tokens" in text
-    assert "<= 128" in text
-    assert text.index("Measure exact native coder token envelope") < text.index("Start independent passive observer")
-    assert text.index("Measure exact native coder token envelope") < text.index("One-time native ignition")
+    start = text.index("One-time native ignition")
+    end = text.index("Freeze proof and stop subject range")
+    after_ignition = text[start:end]
+    # The one ignition driver performs the approved native gate internally.
+    # Workflow-level subject injection after it returns is forbidden.
+    tail = after_ignition[after_ignition.index("scripts/autonomous_hands_ignite.py") + len("scripts/autonomous_hands_ignite.py"):]
+    assert "docker exec" not in tail
+    assert "docker cp" not in tail
+    assert "zeref_action_proxy.py" not in tail
 
 
-def test_ignition_runtime_does_not_chmod_copied_transport_inside_capability_dropped_subject() -> None:
+def test_native_run_records_exact_runtime_provenance_not_context_extrapolation() -> None:
     text = PROOF_WORKFLOW.read_text(encoding="utf-8")
-    assert "chmod 0555 /opt/runtime/llama-server /opt/runtime/autonomous_hands_model_shim.py" not in text
-    assert "python /opt/runtime/autonomous_hands_model_shim.py" in text
-
-
-def test_context_proof_reads_subject_private_state_as_subject_not_from_host() -> None:
-    text = PROOF_WORKFLOW.read_text(encoding="utf-8")
-    assert 'grep -F "n_ctx_slot = $ACTIVE_CONTEXT" "runs/${RUN_ID}/state/zeref.stderr.log"' not in text
-    assert 'docker exec -u 10001:10001 "$INNER" grep -F "n_ctx_slot = $ACTIVE_CONTEXT" /state/zeref.stderr.log' in text
-    assert 'docker exec -u 10001:10001 "$INNER" grep -F "extrapolation enabled" /state/zeref.stderr.log' in text
+    assert "native-cst-pytorch" in text
+    assert "aa0cb13c1e67d459db280a53b6407dfc2b5b5f3fd6f640bc43686b70d799acd1" in text
+    assert "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc" in text
+    assert "runtime-extrapolated-unchanged-weights" not in text
+    assert "ACTIVE_CONTEXT" not in text
 
 
 def test_passive_observer_and_gate_use_host_privilege_without_broadening_subject_workspace() -> None:
