@@ -42,15 +42,20 @@ def test_context_extrapolation_patch_has_valid_unified_hunk_counts() -> None:
 def test_zeref_live_workflow_pins_identity_and_auditable_512_context_extrapolation() -> None:
     workflow = WORKFLOW.read_text(encoding="utf-8")
     assert "--chat-template chatml" in workflow
-    assert "name: Zeref Networked Cage Run 012" in workflow
-    assert "RUN_ID: 2026-08-14-run-012" in workflow
+    assert "name: Zeref Networked Cage Run 013" in workflow
+    assert "RUN_ID: 2026-08-15-run-013" in workflow
+    assert 'DURATION: "1800"' in workflow
     assert "-c 512" in workflow
     assert "context=512" in workflow
     assert "--context 512" in workflow
-    assert '"native_context": 512' in workflow
+    assert '"active_runtime_context": 512' in workflow
     assert '"training_context_metadata": 128' in workflow
+    assert '"context_architecture": "bounded-active-window-plus-persistent-continuity"' in workflow
     assert '"context_mode": "runtime-extrapolated-unchanged-weights"' in workflow
     assert '"continuity": True' in workflow or '"continuity": true' in workflow
+    assert '"continuity_ledger": "continuity.jsonl"' in workflow
+    assert "ZEREF_ACTION_PREFLIGHT=PASS count=2 context=512" in workflow
+    assert "--strict-duration" in workflow
     assert MODEL_SHA in workflow
 
     assert PATCH.is_file()
@@ -64,3 +69,6 @@ def test_zeref_live_workflow_pins_identity_and_auditable_512_context_extrapolati
     assert "llama-server-context-extrapolation.patch" in workflow
     assert "n_ctx_seq (512) > n_ctx_train (128)" in workflow
     assert "n_ctx_slot = 512" in workflow
+    assert workflow.index("Stop Zeref before publisher credentials exist") < workflow.index(
+        "Publish valid frozen evidence and indexes"
+    )
