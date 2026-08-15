@@ -35,7 +35,7 @@ def test_continuity_workflow_stops_model_before_artifact_upload() -> None:
 def test_continuity_script_has_grounding_and_chained_ledger() -> None:
     script = SCRIPT.read_text(encoding="utf-8")
     assert "Text only" in script
-    assert "No camera or microphone" in script
+    assert "no camera/mic" in script
     assert "previous_record_sha256" in script
     assert "record_sha256" in script
     assert "continuity.jsonl" in script
@@ -45,16 +45,17 @@ def test_continuity_script_has_grounding_and_chained_ledger() -> None:
 
 
 def test_continuity_script_requires_four_fresh_turns() -> None:
-    script = SCRIPT.read_text(encoding="utf-8")
-    assert "len(PROMPTS) == 4" in script
-    assert "remember" in PROMPTS[2].lower()
+    assert len(PROMPTS) == 4
+    assert "Recall" in PROMPTS[2]
     assert "Ask Luna" in PROMPTS[3]
 
 
-def test_native_128_wire_budget_is_ultra_compact() -> None:
-    # Regression for Actions run 31906708642: the original first request was
-    # 134 tokens against a native 128-token slot before continuity was used.
-    assert max(len(prompt) for prompt in PROMPTS) <= 64
-    assert len(_compact_prior("A" * 200, "B" * 200)) <= 48
+def test_native_128_wire_budget_is_surgical() -> None:
+    # Run 31907152161 proved turn 1 fits at 95 prompt + 12 generated tokens,
+    # while turn 2 with the first continuity format inflated to 155 tokens.
+    assert max(len(prompt) for prompt in PROMPTS) <= 36
+    prior = _compact_prior("A" * 200, "B" * 200)
+    assert len(prior) <= 12
+    assert "A" not in prior  # previous Luna prompt is not re-injected
     workflow = WORKFLOW.read_text(encoding="utf-8")
-    assert "--max-tokens 12" in workflow
+    assert "--max-tokens 8" in workflow
