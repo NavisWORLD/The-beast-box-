@@ -55,6 +55,7 @@ def main() -> int:
         "exec",
         "-i",
         args.container,
+        "bash",
         args.launcher,
         "--model",
         args.model,
