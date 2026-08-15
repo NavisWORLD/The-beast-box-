@@ -1,0 +1,17 @@
+{
+  "blocked_records": 2,
+  "episode_index": {
+    "final_sha256": "4dc88cc496eca83a3d4456109038a3d1423b016a777c17390b9b9d24828e14d1",
+    "records": 1,
+    "valid": true
+  },
+  "episodic_records": 1,
+  "evidence_records": 3,
+  "notes": [
+    "Run 005 is evidence-only: the frozen artifact contains infrastructure-error.txt with HTTP 400 and no valid completed verdict bundle.",
+    "Run 006 is evidence-only for the 30-minute program: configured duration was 1800 seconds but committed metrics report 246.302928179 seconds.",
+    "Run 007 is the proven full-duration episode: observed monotonic duration 1800.4976200400001 seconds. The workflow failure occurred in publication, while the strict run, evidence upload, and final integrity gate succeeded."
+  ],
+  "policy": "all audited evidence preserved; only VALID records enter episodic memory",
+  "schema": "d001-evidence-inventory-v1"
+}
