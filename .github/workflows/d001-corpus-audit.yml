@@ -1,0 +1,95 @@
+name: D001 Pinned Corpus Audit
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-corpus-audit.yml"
+      - "beastbox/descendant/corpus.py"
+      - "scripts/build_descendant_corpus.py"
+      - "tests/test_descendant_corpus.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify corpus quarantine tests
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pytest -q tests/test_descendant_corpus.py
+
+      - name: Install Hub client
+        run: pip install 'huggingface-hub>=0.27'
+
+      - name: Download exact pinned non-weight snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _snapshot _corpus_audit
+          python - <<'PY'
+          from huggingface_hub import snapshot_download
+          import os
+          path = snapshot_download(
+              repo_id=os.environ["HF_REPO"],
+              revision=os.environ["HF_REVISION"],
+              local_dir="_snapshot",
+              ignore_patterns=[
+                  "*.gguf", "*.pt", "*.pth", "*.bin", "*.safetensors",
+                  "*.onnx", "*.ckpt", "*.npz", "*.npy",
+              ],
+          )
+          print(path)
+          PY
+
+      - name: Build immutable quarantine manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_descendant_corpus.py \
+            --root _snapshot \
+            --out _corpus_audit \
+            --source-revision "$HF_REVISION" \
+            | tee _corpus_audit-run.json
+          cp _corpus_audit-run.json _corpus_audit/workflow-result.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          audit = json.loads(Path("_corpus_audit/audit.json").read_text())
+          counts = audit["counts"]
+          assert counts["source"] > 0, "refuse empty corpus audit"
+          assert counts["source"] == counts["clean"] + counts["quarantine"] + counts["review"]
+          print(json.dumps(counts, sort_keys=True))
+          PY
+
+      - name: Freeze audit hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          find _corpus_audit -maxdepth 1 -type f ! -name SHA256SUMS -print0 \
+            | sort -z | xargs -0 sha256sum > _corpus_audit/SHA256SUMS
+
+      - name: Upload corpus audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: d001-pinned-corpus-audit-${{ github.run_id }}
+          path: _corpus_audit
+          if-no-files-found: error
