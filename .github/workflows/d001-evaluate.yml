@@ -55,7 +55,10 @@ jobs:
           echo "$PRIME" > _parent/prime-path.txt
       - name: Verify trained artifact checksum ledger
         run: |
-          (cd _trained && sha256sum -c SHA256SUMS)
+          # The ledger was created inside the build directory named _d001. Actions
+          # artifacts preserve its contents but intentionally strip that outer folder.
+          # Normalize only that archival prefix; the recorded file hashes are unchanged.
+          sed 's#  _d001/#  #' _trained/SHA256SUMS | (cd _trained && sha256sum -c -)
       - name: Run frozen heldout battery
         run: |
           mkdir -p _evaluation
