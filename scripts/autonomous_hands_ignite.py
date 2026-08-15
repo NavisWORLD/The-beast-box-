@@ -7,7 +7,14 @@ import subprocess
 import time
 from pathlib import Path
 
-from beastbox.autonomy.ignition import build_ignition_input
+from beastbox.autonomy.ignition import DESCENDANT_PROMPT, build_ignition_input
+
+
+# Frozen audit labels for the single native gate. The actual launch goes through
+# /opt/launch/autonomous_hands_native.sh, which verifies the locked HF entrypoint.
+NATIVE_ENTRYPOINT = "serving/cosmos_coder.py"
+NATIVE_HOST_ENV = "COSMOS_CST_HOST"
+AUDIT_DEFAULT_IGNITION = ("/new bad-apple", "/save descendant.py", "/run descendant.py")
 
 
 def _write_transcript(path: Path, *, command: list[str], stdout: str, stderr: str, returncode: int) -> None:
@@ -32,7 +39,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Perform one native Zeref coder ignition, then cut operator input")
     parser.add_argument("--container", required=True)
     parser.add_argument("--project", default="bad-apple")
-    parser.add_argument("--filename", default="autonomous_child.py")
+    parser.add_argument("--filename", default="descendant.py")
     parser.add_argument("--launcher", default="/opt/launch/autonomous_hands_native.sh")
     parser.add_argument("--model", default="cosmos-cst")
     parser.add_argument("--transcript", required=True)
@@ -40,6 +47,9 @@ def main() -> int:
     args = parser.parse_args()
 
     payload = build_ignition_input(project=args.project, filename=args.filename)
+
+    # docker exec is permitted exactly once here: this is the user-approved
+    # operator ignition gate. No later subject command is injected.
     command = [
         "docker",
         "exec",
@@ -99,7 +109,7 @@ def main() -> int:
             timeout=5,
         )
         top_output = top.stdout
-        if args.filename in top_output or "autonomous_child" in top_output:
+        if args.filename in top_output or "descendant" in top_output:
             break
         time.sleep(0.5)
 
@@ -109,7 +119,7 @@ def main() -> int:
                 "ok": True,
                 "operator_input_closed": True,
                 "native_session_returncode": 0,
-                "passive_process_hint": bool(args.filename in top_output or "autonomous_child" in top_output),
+                "passive_process_hint": bool(args.filename in top_output or "descendant" in top_output),
                 "transcript": str(Path(args.transcript)),
             },
             sort_keys=True,
