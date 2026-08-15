@@ -1,0 +1,119 @@
+name: D001 Prime Parent Scale Diagnostic
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-prime-parent-scale-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install CPU dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'huggingface-hub>=0.27' numpy
+          python -m pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Download exact frozen artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p diag/frozen diag/out
+          hf download phera-ra/QC67_cosmo \
+            weights/spark_cst.pt weights/cosmos-cst.gguf \
+            architecture/cst_to_gguf.py architecture/cosmos_spark_cst.py \
+            RELEASE_MANIFEST.json RELEASE_MANIFEST.json.bak_20260805_203059 RELEASE_MANIFEST.json.bak_20260806_213855 \
+            --revision b414724c627300c41b099dcc6853766d08fd27a4 --local-dir diag/frozen
+      - name: Measure every tensor and CST fold scale
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,math,struct
+          from pathlib import Path
+          import numpy as np, torch
+          R=Path('diag/frozen'); O=Path('diag/out')
+          pt=R/'weights/spark_cst.pt'; gg=R/'weights/cosmos-cst.gguf'
+          def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+          def ex(f,n):
+              b=f.read(n)
+              if len(b)!=n: raise EOFError
+              return b
+          def u32(f): return struct.unpack('<I',ex(f,4))[0]
+          def u64(f): return struct.unpack('<Q',ex(f,8))[0]
+          def st(f): return ex(f,u64(f)).decode()
+          FM={0:'<B',1:'<b',2:'<H',3:'<h',4:'<I',5:'<i',6:'<f',7:'<?',10:'<Q',11:'<q',12:'<d'}
+          def val(f,t):
+              if t==8:return st(f)
+              if t==9:
+                  et=u32(f); return [val(f,et) for _ in range(u64(f))]
+              q=FM[t]; return struct.unpack(q,ex(f,struct.calcsize(q)))[0]
+          def parse(p):
+              with p.open('rb') as f:
+                  assert ex(f,4)==b'GGUF'; ver=u32(f); nt=u64(f); nk=u64(f); meta={}
+                  for _ in range(nk): k=st(f); meta[k]=val(f,u32(f))
+                  infos=[]
+                  for _ in range(nt):
+                      n=st(f); nd=u32(f); dims=[u64(f) for _ in range(nd)]; typ=u32(f); off=u64(f); infos.append((n,dims,typ,off))
+                  a=int(meta.get('general.alignment',32)); start=((f.tell()+a-1)//a)*a; raw={}
+                  for n,dims,typ,off in infos:
+                      assert typ==0; f.seek(start+off); raw[n]=ex(f,math.prod(dims)*4)
+                  return ver,meta,infos,raw
+          ck=torch.load(pt,map_location='cpu',weights_only=False); sd=ck['model']; ver,meta,infos,raw=parse(gg)
+          exp={}
+          def add(n,t): exp[n]=np.ascontiguousarray(t.detach().float().cpu().numpy()).astype('<f4',copy=False)
+          add('token_embd.weight',sd['tok.weight']); add('position_embd.weight',sd['pos.weight']); add('output_norm.weight',sd['lnf.weight']); add('output_norm.bias',sd['lnf.bias']); add('output.weight',sd['head.weight'])
+          gp=ck.get('gate_param'); rg=[float(sd[f'blocks.{i}.attn.gate'].reshape(-1)[0]) for i in range(4)]
+          if gp is None: gp='logit' if max(abs(x) for x in rg)>1 else 'clamp01'
+          gf=lambda r: 1/(1+math.exp(-r)) if gp=='logit' else max(0.,min(1.,r))
+          sigma_rows=[]
+          for i in range(4):
+              p=f'blocks.{i}.'
+              add(f'blk.{i}.attn_norm.weight',sd[p+'ln1.weight']); add(f'blk.{i}.attn_norm.bias',sd[p+'ln1.bias']); add(f'blk.{i}.attn_qkv.weight',sd[p+'attn.qkv.weight']); add(f'blk.{i}.attn_qkv.bias',sd[p+'attn.qkv.bias']); add(f'blk.{i}.attn_output.weight',sd[p+'attn.proj.weight']); add(f'blk.{i}.attn_output.bias',sd[p+'attn.proj.bias'])
+              sigma=float(torch.exp(sd[p+'attn.log_sigma']).clamp(.05,50.)); gate=gf(float(sd[p+'attn.gate'].reshape(-1)[0]))
+              w=sd[p+'attn.w54.weight'].detach().float().cpu().numpy().astype(np.float64)
+              prim=np.frombuffer(raw[f'blk.{i}.attn_54.weight'],dtype='<f4').reshape(w.shape).astype(np.float64)
+              nz=np.abs(prim)>1e-12; ratios=(w[nz]/prim[nz]); eff=float(np.median(ratios)); q1=float(np.quantile(ratios,.25)); q3=float(np.quantile(ratios,.75))
+              current=(w/sigma).astype(np.float32); diff=np.abs(current.astype(np.float64)-prim)
+              rawdiff=np.abs(w.astype(np.float32).astype(np.float64)-prim)
+              sigma_rows.append({'layer':i,'checkpoint_log_sigma':float(sd[p+'attn.log_sigma']),'checkpoint_sigma':sigma,'prime_effective_sigma_median':eff,'prime_effective_sigma_iqr':[q1,q3],'sigma_abs_delta':abs(eff-sigma),'current_fold_max_abs_diff':float(diff.max()),'current_fold_mean_abs_diff':float(diff.mean()),'unfolded_max_abs_diff':float(rawdiff.max()),'gate_checkpoint_raw':rg[i],'gate_converter_value':gate})
+              add(f'blk.{i}.attn_54.weight',sd[p+'attn.w54.weight']/sigma); add(f'blk.{i}.attn_gate.weight',torch.tensor([gate],dtype=torch.float32)); add(f'blk.{i}.ffn_norm.weight',sd[p+'ln2.weight']); add(f'blk.{i}.ffn_norm.bias',sd[p+'ln2.bias']); add(f'blk.{i}.ffn_up.weight',sd[p+'mlp.0.weight']); add(f'blk.{i}.ffn_up.bias',sd[p+'mlp.0.bias']); add(f'blk.{i}.ffn_down.weight',sd[p+'mlp.2.weight']); add(f'blk.{i}.ffn_down.bias',sd[p+'mlp.2.bias'])
+          mism=[]; exact_count=0
+          for n,a in sorted(exp.items()):
+              got=np.frombuffer(raw[n],dtype='<f4').reshape(a.shape); eq=np.array_equal(a,got)
+              if eq: exact_count+=1
+              else:
+                  d=np.abs(a.astype(np.float64)-got.astype(np.float64)); denom=np.maximum(np.abs(got.astype(np.float64)),1e-30); mism.append({'name':n,'max_abs_diff':float(d.max()),'mean_abs_diff':float(d.mean()),'max_rel_diff':float((d/denom).max()),'expected_sha256':hashlib.sha256(a.tobytes()).hexdigest(),'prime_sha256':hashlib.sha256(raw[n]).hexdigest()})
+          manifests=[]
+          for fn in ['RELEASE_MANIFEST.json.bak_20260805_203059','RELEASE_MANIFEST.json.bak_20260806_213855','RELEASE_MANIFEST.json']:
+              j=json.loads((R/fn).read_text()); found=[]
+              def walk(x):
+                  if isinstance(x,dict):
+                      if x.get('path') in ('weights/spark_cst.pt','weights/cosmos-cst.gguf'): found.append(x)
+                      for v in x.values(): walk(v)
+                  elif isinstance(x,list):
+                      for v in x: walk(v)
+              walk(j); manifests.append({'file':fn,'sha256':sha(R/fn),'entries':found})
+          out={'schema':'d001-prime-parent-scale-diagnostic-v1','parent_sha256':sha(pt),'prime_sha256':sha(gg),'checkpoint_arch':ck.get('arch'),'checkpoint_config':ck.get('config'),'gate_param':gp,'quantum_source':ck.get('quantum_source'),'exact_tensor_matches':exact_count,'tensor_count':len(exp),'mismatches':mism,'sigma_analysis':sigma_rows,'release_manifests':manifests}
+          O.joinpath('scale-diagnostic.json').write_text(json.dumps(out,indent=2,sort_keys=True)+'\n')
+          print(json.dumps({k:out[k] for k in ['parent_sha256','prime_sha256','checkpoint_arch','gate_param','quantum_source','exact_tensor_matches','tensor_count','mismatches','sigma_analysis']},indent=2,sort_keys=True))
+          PY
+      - name: Freeze diagnostic
+        run: |
+          (cd diag && find frozen out -type f -print0 | sort -z | xargs -0 sha256sum) > diag/SHA256SUMS
+          cat diag/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d001-prime-parent-scale-diagnostic
+          path: diag
+          retention-days: 90
