@@ -1,4 +1,4 @@
-name: Zeref Bad Apple Native CST 006
+name: Zeref Bad Apple Native CST 007
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  RUN_ID: 2026-08-15-bad-apple-native-006
+  RUN_ID: 2026-08-15-bad-apple-native-007
   HF_REPO: phera-ra/QC67_cosmo
   HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
   HF_FILE: weights/cosmos-cst.gguf
@@ -371,21 +371,7 @@ jobs:
             FREEZE_RC=${PIPESTATUS[0]}
             cp _proof/hf-snapshot-manifest.json "runs/${RUN_ID}/evidence/hf-snapshot-manifest.json" 2>/dev/null || true
           else
-            python - <<'PY'
-            import json, os
-            from pathlib import Path
-            run_id = os.environ['RUN_ID']
-            root = Path('runs') / run_id / 'evidence'
-            root.mkdir(parents=True, exist_ok=True)
-            value = {
-                'run_id': run_id,
-                'status': 'setup-failure-before-supervisor-timer',
-                'ignition_gate_passed': '${{ steps.gate.outputs.passed }}' == 'true',
-                'ignition_rc': '${{ steps.ignite.outputs.rc }}',
-            }
-            (root / 'setup-failure.json').write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
-            print(json.dumps(value, indent=2, sort_keys=True))
-            PY
+            GATE_PASSED="${{ steps.gate.outputs.passed }}" IGNITION_RC="${{ steps.ignite.outputs.rc }}" python -c 'import json, os; from pathlib import Path; run_id=os.environ["RUN_ID"]; root=Path("runs")/run_id/"evidence"; root.mkdir(parents=True, exist_ok=True); value={"run_id":run_id,"status":"setup-failure-before-supervisor-timer","ignition_gate_passed":os.environ.get("GATE_PASSED","")=="true","ignition_rc":os.environ.get("IGNITION_RC","")}; (root/"setup-failure.json").write_text(json.dumps(value,indent=2,sort_keys=True)+"\n"); print(json.dumps(value,indent=2,sort_keys=True))'
             FREEZE_RC=5
           fi
           echo "rc=$FREEZE_RC" >> "$GITHUB_OUTPUT"
@@ -413,5 +399,5 @@ jobs:
           import json
           value = json.load(open('_proof/formal-verification.json'))
           assert value['ok'] is True, value
-          print('BAD_APPLE_NATIVE_CST_006=VERIFIED')
+          print('BAD_APPLE_NATIVE_CST_007=VERIFIED')
           PY
