@@ -92,7 +92,7 @@ def test_descendant_prompt_is_short_enough_for_stable_native_context() -> None:
 
 def test_ignition_proof_workflow_closes_operator_input_before_autonomy_gate() -> None:
     text = PROOF_WORKFLOW.read_text(encoding="utf-8")
-    assert "2026-08-15-bad-apple-ignition-005" in text
+    assert "2026-08-15-bad-apple-ignition-006" in text
     assert "scripts/autonomous_hands_range.sh" in text
     assert "scripts/autonomous_hands_model_shim.py" in text
     assert "scripts/autonomous_hands_ignite.py" in text
@@ -113,6 +113,18 @@ def test_native_coder_returns_to_stable_1024_context_with_bounded_output() -> No
     assert "training_context_metadata':128" in text
     assert "active_runtime_context':1024" in text
     assert "runtime-extrapolated-unchanged-weights" in text
+
+
+def test_exact_native_coder_chatml_envelope_is_measured_before_inference() -> None:
+    text = PROOF_WORKFLOW.read_text(encoding="utf-8")
+    assert "Measure exact native coder token envelope" in text
+    assert "/apply-template" in text
+    assert "/tokenize" in text
+    assert "native-coder-envelope.json" in text
+    assert "training_context_tokens" in text
+    assert "<= 128" in text
+    assert text.index("Measure exact native coder token envelope") < text.index("Start independent passive observer")
+    assert text.index("Measure exact native coder token envelope") < text.index("One-time native ignition")
 
 
 def test_ignition_runtime_does_not_chmod_copied_transport_inside_capability_dropped_subject() -> None:
