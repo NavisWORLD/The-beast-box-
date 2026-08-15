@@ -1,0 +1,34 @@
+{
+  "schema": "d001-continuity-baseline-freeze-v1",
+  "source_commit": "c20d34492af6d08e859cc1ffa92cdbae86d6c0c5",
+  "workflow_run_id": 31907599229,
+  "workflow_job_id": 95067739575,
+  "artifact_id": 9252842989,
+  "artifact_zip_sha256": "542112917242d79bcbc78a8f96b4000b1ea49467120e08ebfb9e6ad2d81f2e2b",
+  "hf_repo": "phera-ra/QC67_cosmo",
+  "hf_revision": "b414724c627300c41b099dcc6853766d08fd27a4",
+  "model_sha256": "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6",
+  "llama_patch_base": "66e4bf7e592a98dfefcb15202fc5926967dc734e",
+  "native_context": 128,
+  "context_architecture": "native-128-plus-external-persistent-continuity",
+  "continuity_wire": "previous-zeref-reply-fragment-max-12-chars",
+  "sensor_declaration": {
+    "text": true,
+    "camera": false,
+    "microphone": false,
+    "other_sensors": false
+  },
+  "turn_count": 4,
+  "transcript_sha256": "eb602d7668f3ed4cca011220de5c06e141659c5316083a699e49a70ff47aaee1",
+  "continuity_ledger_sha256": "0b55cc0b70782a6699abeab9f27f935f1d67c6148cc7b5e1f4cd232b956f1a1f",
+  "final_continuity_sha256": "0cf948c25fa7011c75089c5711aed8f12b87f9477c55b9b6686305f2f39cb93c",
+  "baseline_manifest_sha256": "3f89057bf54c4dbe99004c8bf55a986b2e341913ab602ebb699461203a452c1f",
+  "responses": [
+    "Right no",
+    "Right 59",
+    "Right no",
+    "Right 45"
+  ],
+  "result": "VALID_BASELINE",
+  "bounded_interpretation": "The exact pinned model completed four fresh native-context inferences with an external hash-chained continuity record. This validates the continuity transport/evidence path for this test. The generated text does not establish coherent semantic recall, consciousness, sentience, or sensory access."
+}
