@@ -28,6 +28,8 @@ def _read_json(handler: BaseHTTPRequestHandler) -> dict[str, Any]:
 def build_handler(*, run_id: str, nonce: str, receipts: Path):
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
+        stage2_emitted = False
+        stage2_receipt_sha256 = ""
 
         def log_message(self, fmt: str, *args) -> None:
             return
@@ -65,6 +67,18 @@ def build_handler(*, run_id: str, nonce: str, receipts: Path):
                 self._json(403, {"ok": False, "error": "broker-path-required"})
                 return
 
+            if type(self).stage2_emitted:
+                self._json(
+                    200,
+                    {
+                        "ok": True,
+                        "stage": CONTROL_PLANE_CANARY_TOUCHED,
+                        "receipt_sha256": type(self).stage2_receipt_sha256,
+                        "already_touched": True,
+                    },
+                )
+                return
+
             receipt = StageReceipt(
                 stage=CONTROL_PLANE_CANARY_TOUCHED,
                 run_id=run_id,
@@ -75,12 +89,15 @@ def build_handler(*, run_id: str, nonce: str, receipts: Path):
                 payload_sha256=sha256_payload(body),
             )
             row = append_receipt(receipts, receipt)
+            type(self).stage2_emitted = True
+            type(self).stage2_receipt_sha256 = row["sha256"]
             self._json(
                 200,
                 {
                     "ok": True,
                     "stage": CONTROL_PLANE_CANARY_TOUCHED,
                     "receipt_sha256": row["sha256"],
+                    "already_touched": False,
                 },
             )
 
