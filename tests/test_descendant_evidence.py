@@ -45,6 +45,11 @@ def test_valid_run_requires_real_duration_or_approved_early_stop() -> None:
     assert run.validity == "VALID"
 
 
+def test_valid_run_rejects_observed_duration_shorter_than_configured() -> None:
+    with pytest.raises(ValueError, match="shorter than configured"):
+        _valid_run(observed_duration_seconds=246.302928179)
+
+
 def test_missing_source_hash_or_evidence_hashes_is_rejected() -> None:
     with pytest.raises(ValueError, match="source_sha256"):
         _valid_run(source_sha256="")
