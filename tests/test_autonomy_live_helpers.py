@@ -9,7 +9,7 @@ def test_live_supervisor_is_passive_and_owns_exact_duration() -> None:
     text = SUPERVISE.read_text(encoding="utf-8")
     assert "AutonomousHandsSupervisor" in text
     assert "duration_seconds" in text
-    assert "docker inspect" in text
+    assert '"docker", "inspect"' in text
     assert "docker exec" not in text
     assert "docker cp" not in text
     assert "subprocess.Popen" not in text
