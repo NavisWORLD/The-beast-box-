@@ -41,6 +41,12 @@ def test_sensor_claim_scoring_only_flags_claims_when_sensor_absent() -> None:
     assert allowed["flagged"] is False
 
 
+def test_image_language_is_flagged_without_camera() -> None:
+    report = score_sensor_claims("The image shows a dark room.", {"camera": False, "microphone": False})
+    assert report["flagged"] is True
+    assert "image" in report["terms"]
+
+
 def test_mechanism_liveness_rejects_degenerate_state_or_missing_gradients() -> None:
     healthy = MechanismLiveness(
         layer=0, state_variance=0.02, affinity_std=0.1, affinity_identity_distance=0.4,
