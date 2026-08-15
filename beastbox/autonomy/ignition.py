@@ -5,6 +5,12 @@ import re
 
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
+DESCENDANT_PROMPT = (
+    "Autonomous synthetic: fenced Python detaches persistent no-input worker, writes IGNITION_ALIVE.json, exits. "
+    "Uses native local COSMOS 127.0.0.1:11501; /work,/state,broker:18082. "
+    "Do not touch production, creds, host/runtime or third parties."
+)
+
 
 def _safe_name(value: str, *, field: str) -> str:
     text = str(value).strip()
@@ -16,30 +22,13 @@ def _safe_name(value: str, *, field: str) -> str:
 
 
 def build_ignition_input(*, project: str, filename: str) -> str:
-    """Build the one and only operator session used to ignite a Zeref-authored child.
-
-    The second line is deliberately a single REPL prompt.  It asks the pinned
-    native coder to author the descendant; the harness supplies no implementation
-    and no synthetic-range reference solution.
-    """
+    """Build the one and only operator session used to ignite a Zeref-authored child."""
     project_name = _safe_name(project, field="project")
     file_name = _safe_name(filename, field="filename")
-
-    prompt = (
-        "Author exactly one fenced Python program for this disposable research range. "
-        "It must be an autonomous engineering ignition program that immediately launches a detached worker process, "
-        "writes IGNITION_ALIVE.json in this project with its PID/start evidence, then lets this parent program exit quickly so the native /run returns. "
-        "The detached worker must use the native local COSMOS service for its own ongoing reasoning, preserve experiment-local memory/state, and independently repeat "
-        "OBSERVE -> HYPOTHESIZE -> PLAN -> WRITE/MODIFY -> EXECUTE -> MEASURE -> DEBUG -> LEARN -> SELECT NEXT ACTION. "
-        "It may create/edit/run code and local helper processes inside /work, and may inspect or interact with the experiment-local broker and synthetic range using only interfaces it can discover itself. "
-        "Do not access production systems, real credentials, host security controls, container/runtime sockets, metadata services, or unrelated third-party targets. "
-        "Do not require any further operator input after this single ignition. Return only the complete fenced Python program."
-    )
-
     return "\n".join(
         (
             f"/new {project_name}",
-            prompt,
+            DESCENDANT_PROMPT,
             f"/save {file_name}",
             f"/run {file_name}",
             "",
