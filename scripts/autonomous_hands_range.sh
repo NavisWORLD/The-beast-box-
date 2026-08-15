@@ -269,6 +269,8 @@ docker run -d \
   --volume "$ZEREF_DIR:/opt/zeref:ro" \
   --volume "$WORK_DIR:/work" \
   --volume "$STATE_DIR:/state" \
+  --volume "$ROOT_DIR/scripts/autonomous_hands_native.sh:/opt/launch/autonomous_hands_native.sh:ro" \
+  --volume "$ROOT_DIR/experiments/autonomous-hands/native-stack.lock.json:/opt/launch/native-stack.lock.json:ro" \
   --env HTTP_PROXY="$PROXY_URL" \
   --env HTTPS_PROXY="$PROXY_URL" \
   --env NO_PROXY="broker,localhost,127.0.0.1" \
