@@ -1,4 +1,4 @@
-name: Inspect pinned native coder contract
+name: Inspect current Zeref production rail
 
 on:
   push:
@@ -20,57 +20,39 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Inventory exact pinned namebind and production language artifacts
+      - name: Resolve current HF HEAD and production language artifacts
         run: |
           set -euo pipefail
           python -m pip install -q 'huggingface-hub>=0.27'
           python - <<'PY'
-          from huggingface_hub import list_repo_files
-          files = list_repo_files('phera-ra/QC67_cosmo', revision='b414724c627300c41b099dcc6853766d08fd27a4')
-          needles = ('namebind','adapter','lora','peft','merged','modelfile','qwen','llama','tokenizer','safetensors')
-          for f in sorted(files):
-              if any(n in f.lower() for n in needles):
-                  print(f)
+          from huggingface_hub import HfApi
+          api = HfApi()
+          info = api.model_info('phera-ra/QC67_cosmo', files_metadata=True)
+          print('CURRENT_HF_SHA=', info.sha)
+          print('LAST_MODIFIED=', info.last_modified)
+          wanted=[]
+          for s in info.siblings or []:
+              name=s.rfilename
+              low=name.lower()
+              if any(k in low for k in ('gguf','namebind','adapter','lora','peft','safetensors','modelfile','cosmos_best','cosmos_play','cosmos_sandbox')):
+                  wanted.append((name, getattr(s,'size',None), getattr(s,'lfs',None)))
+          print('===== CURRENT PRODUCTION ARTIFACTS =====')
+          for row in sorted(wanted): print(row)
           PY
-      - name: Download exact merge scripts and manifests only
+      - name: Materialize current named GGUF and manifests if present
         run: |
           set -euo pipefail
-          rm -rf _inspect && mkdir -p _inspect
+          rm -rf _current && mkdir -p _current
           python - <<'PY'
-          from huggingface_hub import snapshot_download
-          snapshot_download(
-              repo_id='phera-ra/QC67_cosmo',
-              revision='b414724c627300c41b099dcc6853766d08fd27a4',
-              local_dir='_inspect',
-              allow_patterns=[
-                  'genesis_engine/engine/cosmos_merge_namebind.py',
-                  'genesis_engine/engine/cosmos_namebind_probe.py',
-                  'genesis_engine/engine/_Modelfile.cosmos_namebind',
-                  'launchers/Modelfile.cosmos-rebirth',
-                  '**/*adapter*','**/*lora*','**/*peft*','**/*.safetensors',
-                  '**/tokenizer*.json','MANIFEST.json','model-index.json'
-              ],
-          )
+          from huggingface_hub import HfApi, snapshot_download
+          api=HfApi(); info=api.model_info('phera-ra/QC67_cosmo')
+          files={s.rfilename for s in info.siblings or []}
+          patterns=['MANIFEST.json','model-index.json','*Modelfile*','**/*Modelfile*']
+          for candidate in ('cosmos-namebind-weights.gguf','weights/cosmos-namebind-weights.gguf','weights/cosmos-cst.gguf'):
+              if candidate in files:
+                  patterns.append(candidate)
+          snapshot_download(repo_id='phera-ra/QC67_cosmo', revision=info.sha, local_dir='_current', allow_patterns=patterns)
+          print('FROZEN_CURRENT_SHA=', info.sha)
           PY
-          find _inspect -type f -maxdepth 8 -print | sort
-      - name: Print base model adapter and merge contract
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          for rel in [
-              'genesis_engine/engine/cosmos_merge_namebind.py',
-              'genesis_engine/engine/cosmos_namebind_probe.py',
-              'genesis_engine/engine/_Modelfile.cosmos_namebind',
-              'launchers/Modelfile.cosmos-rebirth',
-          ]:
-              p=Path('_inspect')/rel
-              if not p.is_file():
-                  print(f'===== MISSING {rel} ====='); continue
-              print(f'===== {rel} =====')
-              print(p.read_text(encoding='utf-8',errors='replace'))
-          PY
-      - name: Hash reconstructable lineage material
-        run: |
-          set -euo pipefail
-          find _inspect -type f -print0 | sort -z | xargs -0 sha256sum
+          find _current -type f ! -path '*/.cache/*' -print | sort
+          find _current -type f ! -path '*/.cache/*' -print0 | sort -z | xargs -0 sha256sum
