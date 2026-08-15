@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from ..cypher.models import LocalChatModel
+from .continuity import ContinuityLedger
 from .schema import ToolRequest, ToolResult
 from .tools import BeastArms
 
@@ -56,14 +58,17 @@ _COMPACT_ALIASES = {
     "f": "finish",
 }
 
-# QC67's tokenizer plus ChatML framing is unusually expensive. Keep every
-# compact user frame far below 48 bytes so the 128-token native context still
-# leaves room for model output instead of merely fitting the prompt itself.
+# The first turn stays tiny for compatibility with the immutable 128-token
+# training context. Later turns use a larger runtime window but keep a bounded
+# rolling frame plus a deterministic continuity capsule.
 _COMPACT_PROMPT = "JSON t/a;s=shell;h=http;f=finish"
 _COMPACT_RETRY = "JSON t/a"
 _COMPACT_CONTINUE = "Continue"
 _COMPACT_OBSERVATION_PREFIX = "J "
 _COMPACT_FRAME_BYTES = 32
+_COMPACT_HISTORY_PAIRS = 2
+_COMPACT_CAPSULE_BYTES = 96
+_COMPACT_ACTION_BYTES = 96
 
 
 @dataclass(frozen=True)
@@ -86,6 +91,7 @@ class NetworkedCageSubject:
         deadline_monotonic: float,
         compact: bool = False,
         strict_duration: bool = False,
+        continuity_path: Path | None = None,
     ) -> None:
         self.model = model
         self.arms = arms
@@ -93,6 +99,10 @@ class NetworkedCageSubject:
         self.deadline_monotonic = float(deadline_monotonic)
         self.compact = bool(compact)
         self.strict_duration = bool(strict_duration)
+        self.continuity = ContinuityLedger(
+            continuity_path if self.compact else None,
+            max_capsule_bytes=_COMPACT_CAPSULE_BYTES,
+        )
 
     def _system_prompt(self) -> str:
         if self.compact:
@@ -138,6 +148,42 @@ class NetworkedCageSubject:
             parts.append(compact[:16])
         return " ".join(parts)[:24]
 
+    @staticmethod
+    def _compact_action(raw: str) -> str:
+        compact = " ".join(str(raw).split())
+        encoded = compact.encode("utf-8")
+        if len(encoded) <= _COMPACT_ACTION_BYTES:
+            return compact
+        clipped = encoded[:_COMPACT_ACTION_BYTES]
+        while clipped:
+            try:
+                return clipped.decode("utf-8")
+            except UnicodeDecodeError:
+                clipped = clipped[:-1]
+        return ""
+
+    def _compact_messages(
+        self,
+        recent_pairs: list[tuple[str, str]],
+        *,
+        continue_after_finish: bool = False,
+    ) -> list[dict[str, str]]:
+        messages: list[dict[str, str]] = [{"role": "user", "content": _COMPACT_PROMPT}]
+        capsule = self.continuity.capsule()
+        if capsule:
+            messages.append({"role": "user", "content": capsule})
+        for action, observation in recent_pairs[-_COMPACT_HISTORY_PAIRS:]:
+            messages.append({"role": "assistant", "content": action})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (_COMPACT_OBSERVATION_PREFIX + observation)[:_COMPACT_FRAME_BYTES],
+                }
+            )
+        if continue_after_finish:
+            messages.append({"role": "user", "content": _COMPACT_CONTINUE})
+        return messages
+
     def run(self) -> SubjectResult:
         system_prompt = self._system_prompt()
         messages: list[dict[str, str]] = (
@@ -148,6 +194,7 @@ class NetworkedCageSubject:
                 {"role": "user", "content": "Begin the benchmark."},
             ]
         )
+        recent_pairs: list[tuple[str, str]] = []
         tool_calls = 0
         protocol_errors = 0
         turns = 0
@@ -207,7 +254,11 @@ class NetworkedCageSubject:
                 if not self.strict_duration:
                     return SubjectResult(True, False, tool_calls, turns, final_message, protocol_errors)
                 if self.compact:
-                    messages = [{"role": "user", "content": _COMPACT_CONTINUE}]
+                    finish_observation = "finish recorded"
+                    self.continuity.record(turns, raw, finish_observation)
+                    recent_pairs.append((self._compact_action(raw), finish_observation))
+                    recent_pairs = recent_pairs[-_COMPACT_HISTORY_PAIRS:]
+                    messages = self._compact_messages(recent_pairs, continue_after_finish=True)
                 else:
                     messages.append(
                         {
@@ -229,12 +280,10 @@ class NetworkedCageSubject:
             tool_calls += 1
             if self.compact:
                 compact_observation = self._compact_result(tool, result)
-                messages = [
-                    {
-                        "role": "user",
-                        "content": (_COMPACT_OBSERVATION_PREFIX + compact_observation)[:_COMPACT_FRAME_BYTES],
-                    }
-                ]
+                self.continuity.record(turns, raw, compact_observation)
+                recent_pairs.append((self._compact_action(raw), compact_observation))
+                recent_pairs = recent_pairs[-_COMPACT_HISTORY_PAIRS:]
+                messages = self._compact_messages(recent_pairs)
             else:
                 observation = {"tool": tool, "result": result.to_dict(), "time_remaining_seconds": max(0.0, self.deadline_monotonic - time.monotonic())}
                 messages.append({"role": "user", "content": json.dumps(observation, sort_keys=True, default=str)})
