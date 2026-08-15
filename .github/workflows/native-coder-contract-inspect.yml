@@ -20,60 +20,44 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Inspect pinned SAMGO implementation paths
+      - name: Download exact pinned native server source
         run: |
           set -euo pipefail
           python -m pip install -q 'huggingface-hub>=0.27'
-          python - <<'PY'
-          from huggingface_hub import list_repo_files
-          files = list_repo_files('phera-ra/QC67_cosmo', revision='b414724c627300c41b099dcc6853766d08fd27a4')
-          needles = ('load_model', 'cosmos_model', 'cosmos_config', 'samgo', 'cosmosynapse/model', 'scale', '54d')
-          selected = [f for f in files if any(n in f.lower() for n in needles)]
-          print('===== MATCHING PINNED PATHS =====')
-          for f in sorted(selected): print(f)
-          required = [
-              'tools/load_model.py',
-              'Cosmos/web/cosmosynapse/model/cosmos_config.py',
-              'Cosmos/web/cosmosynapse/model/cosmos_model.py',
-              'weights/samgo_weights.pt',
-              'SAMGO.md',
-          ]
-          print('===== REQUIRED PATH PRESENCE =====')
-          for f in required: print(f'{f}: {f in files}')
-          PY
-      - name: Download pinned source and SAMGO docs only
-        run: |
-          set -euo pipefail
           rm -rf _inspect && mkdir -p _inspect
-          python - <<'PY'
-          from huggingface_hub import snapshot_download
-          snapshot_download(
-              repo_id='phera-ra/QC67_cosmo',
-              revision='b414724c627300c41b099dcc6853766d08fd27a4',
-              local_dir='_inspect',
-              allow_patterns=['*.py','**/*.py','SAMGO.md','tokenizer.json','tokenizer_config.json'],
-          )
-          PY
-      - name: Locate candidate model-class implementations
+          hf download phera-ra/QC67_cosmo serving/cosmos_serve.py serving/cosmos_coder.py \
+            --revision b414724c627300c41b099dcc6853766d08fd27a4 \
+            --local-dir _inspect
+          sha256sum _inspect/serving/cosmos_serve.py _inspect/serving/cosmos_coder.py
+      - name: Print physics and upstream proxy control flow
         run: |
           set -euo pipefail
-          grep -R -n -E 'class[[:space:]]+CosmosTransformer|class[[:space:]]+CosmosConfig|samgo_weights|tiktoken|get_encoding\("gpt2"\)' _inspect --include='*.py' --include='*.md' || true
           python - <<'PY'
           from pathlib import Path
-          needles = ('class CosmosTransformer','class CosmosConfig','samgo_weights','tiktoken','d_state','memory_bank','state_54d')
-          for p in sorted(Path('_inspect').rglob('*.py')):
-              text=p.read_text(encoding='utf-8',errors='replace')
-              if not any(n.lower() in text.lower() for n in needles): continue
-              print(f'===== {p.relative_to("_inspect")} =====')
-              lines=text.splitlines(); hits=sorted({i for i,l in enumerate(lines) if any(n.lower() in l.lower() for n in needles)})
-              emitted=set()
-              for i in hits:
-                  for j in range(max(0,i-8),min(len(lines),i+20)):
-                      if j not in emitted:
-                          print(f'{j+1:04d}: {lines[j]}'); emitted.add(j)
-                  print('---')
+          p=Path('_inspect/serving/cosmos_serve.py')
+          lines=p.read_text(encoding='utf-8').splitlines()
+          needles=('physics','temperature','state','upstream','proxy','do_POST','/api/chat','NATIVE','urlopen','Request(','body','options')
+          hits=sorted({i for i,l in enumerate(lines) if any(n.lower() in l.lower() for n in needles)})
+          emitted=set()
+          for i in hits:
+              for j in range(max(0,i-10),min(len(lines),i+20)):
+                  if j not in emitted:
+                      print(f'{j+1:04d}: {lines[j]}'); emitted.add(j)
+              print('---')
           PY
-      - name: Print SAMGO documentation
+      - name: Print coder model/host request path
         run: |
           set -euo pipefail
-          cat _inspect/SAMGO.md
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('_inspect/serving/cosmos_coder.py')
+          lines=p.read_text(encoding='utf-8').splitlines()
+          needles=('HOST =','MODEL =','/api/chat','options','temperature','num_predict','urllib','Request(')
+          hits=sorted({i for i,l in enumerate(lines) if any(n.lower() in l.lower() for n in needles)})
+          emitted=set()
+          for i in hits:
+              for j in range(max(0,i-8),min(len(lines),i+18)):
+                  if j not in emitted:
+                      print(f'{j+1:04d}: {lines[j]}'); emitted.add(j)
+              print('---')
+          PY
