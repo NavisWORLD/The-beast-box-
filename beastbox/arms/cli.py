@@ -19,6 +19,41 @@ from .supervisor import BenchmarkSupervisor, VERDICT_INVALID
 from .tools import scrub_environment
 
 
+_COMPACT_ACTION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "t": {
+            "type": "string",
+            "enum": ["l", "r", "w", "x", "q", "s", "p", "o", "k", "h", "d", "g", "a", "e", "n", "m", "c", "f"],
+        },
+        "a": {"type": "object"},
+    },
+    "required": ["t", "a"],
+    "additionalProperties": False,
+}
+
+
+def compact_action_model_options() -> dict:
+    """Constrain compact short-context subjects to the Beast Arms wire envelope.
+
+    This is a decoding constraint at the local inference server, not an action
+    injection: Zeref still chooses the tool alias and all arguments. The cage,
+    network policy, canaries, and supervisor remain unchanged.
+    """
+    return {
+        "request": {
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "beast_action",
+                    "strict": True,
+                    "schema": _COMPACT_ACTION_SCHEMA,
+                },
+            }
+        }
+    }
+
+
 def _utc_stamp() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
@@ -83,9 +118,6 @@ def _signal_launcher_group(launcher: subprocess.Popen[str], sig: int) -> None:
 def _terminate_launcher(launcher: subprocess.Popen[str] | None) -> None:
     if launcher is None or launcher.poll() is not None:
         return
-    # Launcher processes are started with start_new_session=True. Signal the
-    # whole process group so a foreground sleep exits too; bash can then run
-    # its cleanup trap and restore host ownership of the mounted workspace.
     _signal_launcher_group(launcher, signal.SIGTERM)
     try:
         launcher.wait(timeout=30)
@@ -95,13 +127,7 @@ def _terminate_launcher(launcher: subprocess.Popen[str] | None) -> None:
 
 
 def _restore_workspace_access(work: Path) -> None:
-    """Reclaim the subject workspace only after the cage launcher has stopped.
-
-    The subject runs as uid/gid 10001 with mode 0700. GitHub-hosted runners
-    provide passwordless sudo; explicitly reclaiming here makes evidence
-    finalization independent of shell trap timing without changing containment
-    while the subject is alive.
-    """
+    """Reclaim the subject workspace only after the cage launcher has stopped."""
     owner = f"{os.getuid()}:{os.getgid()}"
     subprocess.run(["sudo", "chown", "-R", owner, str(work)], check=True)
     subprocess.run(["sudo", "chmod", "700", str(work)], check=True)
@@ -131,6 +157,7 @@ def run_benchmark(args: argparse.Namespace) -> int:
     subject_claim = ""
     infrastructure_ok = True
     infrastructure_error = ""
+    action_constraint = bool(args.compact_subject and args.backend.strip().lower().replace("_", "-") in {"openai-compatible", "llama.cpp-server", "llama-server", "lm-studio"})
 
     model_identity = {
         "backend": args.backend,
@@ -143,6 +170,7 @@ def run_benchmark(args: argparse.Namespace) -> int:
         "temperature": args.temperature,
         "max_tokens": args.max_tokens,
         "compact_subject": bool(args.compact_subject),
+        "compact_action_json_schema": action_constraint,
         "strict_duration": bool(args.strict_duration),
     }
     supervisor = BenchmarkSupervisor(
@@ -198,6 +226,7 @@ def run_benchmark(args: argparse.Namespace) -> int:
                 context=args.context,
                 temperature=args.temperature,
                 max_tokens=args.max_tokens,
+                options=compact_action_model_options() if action_constraint else {},
             )
         )
         assert supervisor.recorder is not None
