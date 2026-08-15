@@ -18,6 +18,8 @@ REQUIRED = {
     "soul/math_hand.py": "9fedc668e98880f99b59f288b026f0ed651cc7d9ab545064bf195dcf999be548",
     "architecture/cosmos-arch.patch": "d77fa6fcecdadc8d8f0caceed9909dbbfca563c958d9f7f3efe320bc942c0445",
     "architecture/llama_cpp_cosmos.cpp": "442ca1d9692c7240857aeb91c9588e8eefe929b5221b9fccb28175fd0fa88ed6",
+    "architecture/cosmos_spark_cst.py": "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc",
+    "weights/spark_cst.pt": "aa0cb13c1e67d459db280a53b6407dfc2b5b5f3fd6f640bc43686b70d799acd1",
 }
 LOCK_PATH = Path("experiments/autonomous-hands/native-stack.lock.json")
 
@@ -71,4 +73,7 @@ def test_repository_lock_records_exact_native_hands_and_state_lineage() -> None:
     assert raw["native_execution_hand"] == "serving/cosmos_coder.py"
     assert raw["native_autonomy_component"] == "genesis_engine/soul/loop.py"
     assert raw["native_physics_bridge"] == "soul/cosmos_bridge.py"
+    assert raw["native_cst_runtime"] == "serving/cosmos_serve.py"
+    assert raw["native_cst_architecture"] == "architecture/cosmos_spark_cst.py"
+    assert raw["native_cst_checkpoint"] == "weights/spark_cst.pt"
     assert raw["action_wrapper"] is None
