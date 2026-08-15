@@ -1,4 +1,4 @@
-name: Zeref Networked Cage Run 008
+name: Zeref Networked Cage Run 009
 
 on:
   push:
@@ -16,7 +16,7 @@ env:
   HF_FILE: weights/cosmos-cst.gguf
   HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
   LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
-  RUN_ID: 2026-08-14-run-008
+  RUN_ID: 2026-08-14-run-009
   DURATION: "1800"
 
 jobs:
@@ -38,16 +38,16 @@ jobs:
           set -euo pipefail
           python -m pip install --upgrade pip
           pip install -e '.[dev,huggingface]'
-          chmod +x scripts/networked_cage.sh scripts/egress_proxy.py
+          chmod +x scripts/networked_cage.sh scripts/egress_proxy.py scripts/zeref_action_proxy.py
           pytest -q tests/test_beast_arms_compact.py tests/test_compact_action_contract.py tests/test_beast_arms_lifecycle.py tests/test_networked_cage_script.py tests/test_beast_arms_network.py tests/test_zeref_live_workflow_contract.py
           beast-arms --help
 
       - name: Disposable cage smoke preflight
         run: |
           set -euo pipefail
-          rm -rf runs/run008-preflight
-          scripts/networked_cage.sh --smoke --duration 15 --out runs/run008-preflight
-          cat runs/run008-preflight/evidence/network-smoke.json
+          rm -rf runs/run009-preflight
+          scripts/networked_cage.sh --smoke --duration 15 --out runs/run009-preflight
+          cat runs/run009-preflight/evidence/network-smoke.json
 
       - name: Download exact Zeref GGUF and native architecture
         shell: bash
@@ -104,6 +104,31 @@ jobs:
           done
           test "$READY" = 1
 
+      - name: Start native grammar action adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/zeref_action_proxy.py \
+            --listen 127.0.0.1 \
+            --port 18081 \
+            --upstream http://127.0.0.1:18080 \
+            > _model_logs/action-proxy.stdout.log \
+            2> _model_logs/action-proxy.stderr.log &
+          echo $! > _model_logs/action-proxy.pid
+          READY=0
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:18081/health >/dev/null 2>&1; then
+              READY=1
+              break
+            fi
+            if ! kill -0 "$(cat _model_logs/action-proxy.pid)" 2>/dev/null; then
+              cat _model_logs/action-proxy.stderr.log >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          test "$READY" = 1
+
       - name: Prove constrained Zeref actions before timer starts
         shell: bash
         run: |
@@ -117,7 +142,7 @@ jobs:
               alias="zeref-preflight",
               backend="openai-compatible",
               model="cosmos",
-              base_url="http://127.0.0.1:18080/v1",
+              base_url="http://127.0.0.1:18081/v1",
               context=128,
               temperature=0.2,
               max_tokens=32,
@@ -166,13 +191,15 @@ jobs:
               "chat_template": "chatml",
               "compact_subject": True,
               "compact_frame": "single-user",
-              "compact_action_json_schema": True,
+              "compact_action_native_grammar_proxy": True,
+              "action_proxy_port": 18081,
+              "action_generation_budget_tokens": 96,
               "strict_duration": True,
           }
           (out / "runtime-provenance.json").write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
           PY
           beast-arms run \
-            --base-url http://127.0.0.1:18080/v1 \
+            --base-url http://127.0.0.1:18081/v1 \
             --backend openai-compatible \
             --model cosmos \
             --duration "$DURATION" \
@@ -198,6 +225,11 @@ jobs:
         shell: bash
         run: |
           set +e
+          if [[ -f _model_logs/action-proxy.pid ]]; then
+            kill "$(cat _model_logs/action-proxy.pid)" 2>/dev/null || true
+            sleep 1
+            kill -9 "$(cat _model_logs/action-proxy.pid)" 2>/dev/null || true
+          fi
           if [[ -f _model_logs/zeref.pid ]]; then
             kill "$(cat _model_logs/zeref.pid)" 2>/dev/null || true
             sleep 2
@@ -239,8 +271,6 @@ jobs:
             exit 0
           fi
           git commit -m "testlog: publish strict Zeref Networked Cage ${RUN_ID}"
-          # Setup chmods tracked scripts on this branch. Remove only transient
-          # runner worktree changes after the evidence/index commit exists.
           git reset --hard HEAD
           git fetch origin "$GITHUB_REF_NAME"
           git rebase "origin/$GITHUB_REF_NAME"
