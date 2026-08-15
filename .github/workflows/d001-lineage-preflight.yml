@@ -1,0 +1,80 @@
+name: D001 Lineage Preflight
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-lineage-preflight.yml"
+      - "scripts/descendant_parent_preflight.py"
+      - "beastbox/descendant/**"
+      - "tests/test_descendant_parent_preflight.py"
+      - "tests/test_descendant_lineage.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+
+jobs:
+  parent-provenance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test and Hub dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pip install 'huggingface-hub>=0.27'
+
+      - name: Verify lineage contracts
+        run: |
+          set -euo pipefail
+          pytest -q \
+            tests/test_descendant_parent_preflight.py \
+            tests/test_descendant_lineage.py
+
+      - name: Inventory exact pinned Hugging Face revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _d001
+          mkdir -p _d001
+          python scripts/descendant_parent_preflight.py \
+            --repo "$HF_REPO" \
+            --revision "$HF_REVISION" \
+            --out _d001/parent-preflight.json \
+            | tee _d001/parent-preflight.console.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('_d001/parent-preflight.json').read_text(encoding='utf-8'))
+          assert data['repo_id'] == 'phera-ra/QC67_cosmo'
+          assert data['revision'] == 'b414724c627300c41b099dcc6853766d08fd27a4'
+          assert data['prime_gguf_sha256'] == 'b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6'
+          assert data['status'] in {'PROVEN', 'CONVERSION_REQUIRED', 'NO_TRAINABLE_PARENT'}
+          print('PARENT_PREFLIGHT_STATUS=' + data['status'])
+          print('TRAINING_ALLOWED=' + str(data['training_allowed']))
+          print('TRAINABLE_CANDIDATES=' + json.dumps(data['trainable_candidates']))
+          PY
+          sha256sum _d001/parent-preflight.json > _d001/SHA256SUMS
+          cat _d001/SHA256SUMS
+
+      - name: Upload parent preflight evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: d001-parent-preflight-${{ github.run_id }}
+          path: _d001
+          if-no-files-found: error
