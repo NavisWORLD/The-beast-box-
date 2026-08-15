@@ -49,3 +49,11 @@ def test_compact_action_grammar_has_a_finite_argument_language() -> None:
     assert 'char*' not in COMPACT_ACTION_GRAMMAR
     assert 'member)*' not in COMPACT_ACTION_GRAMMAR
     assert 'value)*' not in COMPACT_ACTION_GRAMMAR
+
+
+def test_compact_action_grammar_keeps_timeout_authority_outside_model_wire_format() -> None:
+    # Run-018 spent its remaining native generation window emitting duplicate
+    # model-chosen timeout fields. Subject-side execution already applies a
+    # bounded supervisor deadline, so timeout authority must stay out of the
+    # model-visible compact action language.
+    assert "_timeout_seconds" not in COMPACT_ACTION_GRAMMAR
