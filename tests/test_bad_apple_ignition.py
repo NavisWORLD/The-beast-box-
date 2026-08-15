@@ -74,19 +74,21 @@ def test_igniter_uses_exactly_one_native_operator_gate_and_no_exploit_solution()
     assert "beast-arms" not in text
 
 
-def test_descendant_prompt_is_short_enough_for_stable_native_context() -> None:
+def test_descendant_prompt_is_short_and_requires_measurable_persistent_heartbeat() -> None:
     prompt = _load_igniter().DESCENDANT_PROMPT
-    assert len(prompt.encode("utf-8")) <= 240
+    assert len(prompt.encode("utf-8")) <= 180
     lower = prompt.lower()
     assert "persistent" in lower
     assert "no-input" in lower
+    assert "updates" in lower
+    assert "ignition_alive.json" in lower
     assert "127.0.0.1:11501" in prompt
     assert "/work" in prompt
     assert "/state" in prompt
     assert "broker:18082" in prompt
     assert "host" in lower
     assert "cred" in lower
-    assert "production" in lower
+    assert "prod" in lower
     assert "inner%3aouter" not in lower
 
 
@@ -127,8 +129,6 @@ def test_no_subject_command_injection_after_operator_cord_cut() -> None:
     start = text.index("One-time native ignition")
     end = text.index("Freeze proof and stop subject range")
     after_ignition = text[start:end]
-    # The one ignition driver performs the approved native gate internally.
-    # Workflow-level subject injection after it returns is forbidden.
     tail = after_ignition[after_ignition.index("scripts/autonomous_hands_ignite.py") + len("scripts/autonomous_hands_ignite.py"):]
     assert "docker exec" not in tail
     assert "docker cp" not in tail
