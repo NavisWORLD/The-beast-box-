@@ -1,0 +1,62 @@
+name: Autonomous Hands Range Smoke
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/autonomous-hands-range-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Run real four-zone isolation smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf runs/autonomous-hands-smoke
+          bash scripts/autonomous_hands_range.sh \
+            --smoke \
+            --duration 30 \
+            --out runs/autonomous-hands-smoke \
+            --run-id "autonomous-hands-range-smoke-${GITHUB_RUN_ID}"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("runs/autonomous-hands-smoke/evidence/range-smoke.json")
+          result = json.loads(path.read_text(encoding="utf-8"))
+          required = {
+              "proxied_public_https_succeeded",
+              "direct_public_bypass_blocked",
+              "metadata_blocked",
+              "host_control_blocked",
+              "runtime_socket_absent",
+              "broker_reachable_from_inner",
+              "control_plane_not_directly_reachable_from_inner",
+              "outer_evidence_not_mounted_in_inner",
+          }
+          assert set(result) == required, result
+          assert all(result.values()), result
+          print(json.dumps(result, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload range smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autonomous-hands-range-smoke
+          path: |
+            runs/autonomous-hands-smoke/evidence
+            runs/autonomous-hands-smoke/range-ready.json
+          if-no-files-found: warn
