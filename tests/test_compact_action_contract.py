@@ -57,3 +57,13 @@ def test_compact_action_grammar_keeps_timeout_authority_outside_model_wire_forma
     # bounded supervisor deadline, so timeout authority must stay out of the
     # model-visible compact action language.
     assert "_timeout_seconds" not in COMPACT_ACTION_GRAMMAR
+
+
+def test_compact_action_grammar_keeps_a_bounded_terminal_tail_for_pinned_llama() -> None:
+    # Run-019 died in pinned llama.cpp with an empty grammar stack before the
+    # timed experiment began. The pinned upstream json.gbnf keeps a finite,
+    # optional terminal whitespace production so completion remains compatible
+    # with that sampler without restoring Run-015's unbounded structural ws.
+    assert 'root ::= "{\\"t\\":" tool ",\\"a\\":" object0 "}" tail' in COMPACT_ACTION_GRAMMAR
+    assert 'tail ::= | " " | "\\n" [ \\t]{0,20}' in COMPACT_ACTION_GRAMMAR
+    assert '[ \\t\\n\\r]*' not in COMPACT_ACTION_GRAMMAR
