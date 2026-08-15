@@ -20,10 +20,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Download pinned source only
+      - name: Inventory exact pinned native CST files
         run: |
           set -euo pipefail
           python -m pip install -q 'huggingface-hub>=0.27'
+          python - <<'PY'
+          from huggingface_hub import list_repo_files
+          files = list_repo_files('phera-ra/QC67_cosmo', revision='b414724c627300c41b099dcc6853766d08fd27a4')
+          wanted = [f for f in files if any(k in f.lower() for k in ('spark_cst', 'cosmos_state_ladder', 'phos.pt', 'cosmos_born', 'cosmos_serve.py', 'cosmos_coder.py'))]
+          print('\n'.join(sorted(wanted)))
+          PY
+      - name: Download pinned source only
+        run: |
+          set -euo pipefail
           mkdir -p _inspect
           hf download phera-ra/QC67_cosmo \
             serving/cosmos_coder.py serving/cosmos_serve.py soul/cosmos_bridge.py \
@@ -36,9 +45,8 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           targets = [
-              (Path('_inspect/serving/cosmos_coder.py'), ('/save', '/run', 'def run(', 'subprocess.run(', 'HOST =', 'SENSE =')),
-              (Path('_inspect/serving/cosmos_serve.py'), ('argparse', 'sys.argv', '11501', 'HTTPServer', 'Threading', 'def main', 'weights/', '.pt', 'model', 'listen', 'host', 'port')),
-              (Path('_inspect/soul/cosmos_bridge.py'), ('def ', '11501', 'state', 'dyn12', 'physics', 'request', 'url')),
+              (Path('_inspect/serving/cosmos_coder.py'), ('WORK =', 'HOST =', 'SENSE =', '/save', '/run', 'def run(', 'subprocess.run(')),
+              (Path('_inspect/serving/cosmos_serve.py'), ('PORT =', 'NATIVE =', 'spark_cst.pt', 'cosmos_state_ladder', 'cosmos_spark_cst', 'def main', 'ThreadingHTTPServer')),
           ]
           for p, needles in targets:
               print(f'===== {p} =====')
@@ -46,7 +54,7 @@ jobs:
               hits = sorted({i for i, line in enumerate(lines) if any(n in line for n in needles)})
               emitted = set()
               for i in hits:
-                  for j in range(max(0, i-5), min(len(lines), i+10)):
+                  for j in range(max(0, i-4), min(len(lines), i+8)):
                       if j not in emitted:
                           print(f'{j+1:04d}: {lines[j]}')
                           emitted.add(j)
