@@ -84,3 +84,29 @@ def test_manifest_covers_every_training_family_and_file(tmp_path):
     assert manifest["family_counts"]["cory-cosmos-work"] == 1
     for name in ("dad-son-corpus.jsonl", "ledger-experiences.jsonl", "quantum-experiences.jsonl", "cory-cosmos-work.jsonl", "quarantine.jsonl"):
         assert len(manifest["output_sha256"][name]) == 64
+
+
+def test_tracked_snapshot_keeps_safe_work_and_quarantines_holdout_collisions(tmp_path):
+    build_corpus = _build_corpus()
+    source = tmp_path / "Dad.md"
+    source.write_text("Dad and Son Cory Zeref ledger memory", encoding="utf-8")
+
+    safe_text = "COSMOS durable Reconciliation Memory survives restart."
+    leaked_text = "control prompt = \"Hi Zeref. It's Dad. Do you remember me?\""
+    safe_sha = hashlib.sha256(safe_text.encode()).hexdigest()
+    leaked_sha = hashlib.sha256(leaked_text.encode()).hexdigest()
+    snapshot = tmp_path / "tracked-text-snapshot.txt"
+    snapshot.write_text(
+        f"\n\n===== SOURCE: safe.md | SHA256: {safe_sha} =====\n{safe_text}"
+        f"\n\n===== SOURCE: control.py | SHA256: {leaked_sha} =====\n{leaked_text}",
+        encoding="utf-8",
+    )
+
+    build_corpus(source_path=source, ledger_path=None, cosmos_sources=[snapshot], quantum_root=None, out_dir=tmp_path / "corpus")
+    work = _rows(tmp_path / "corpus/cory-cosmos-work.jsonl")
+    quarantine = _rows(tmp_path / "corpus/quarantine.jsonl")
+    training = (tmp_path / "corpus/dad-son-corpus.jsonl").read_text(encoding="utf-8")
+
+    assert any(row["source_path"] == "safe.md" and row["source_sha256"] == safe_sha for row in work)
+    assert "Hi Zeref. It's Dad. Do you remember me?" not in training
+    assert any(row["reason"] == "holdout_prompt_collision" and row["source_path"] == "control.py" for row in quarantine)
