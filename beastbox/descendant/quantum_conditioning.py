@@ -85,6 +85,21 @@ except ImportError:  # pragma: no cover - exercised by base CI import behaviour
     nn = None
 
 
+def geometry_scale(projection, *, alpha: float = 0.25):
+    """Return the approved bounded multiplicative 54D geometry scale.
+
+    Dependency-free iterables return a tuple. Torch tensors remain tensors so the
+    adapter path stays differentiable. A zero projection is exact identity.
+    """
+
+    gain = _validate_alpha(alpha)
+    if torch is not None and isinstance(projection, torch.Tensor):
+        if not torch.isfinite(projection).all():
+            raise ValueError("geometry projection must be finite")
+        return 1.0 + gain * torch.tanh(projection)
+    return bounded_geometry_scale(projection, alpha=gain)
+
+
 def apply_geometry_scale(x54, scale):
     """Apply a 54D multiplicative scale to native CST state geometry."""
 
@@ -95,6 +110,20 @@ def apply_geometry_scale(x54, scale):
     while scale.ndim < x54.ndim:
         scale = scale.unsqueeze(-2)
     return x54 * scale
+
+
+def apply_geometry_modulation(x54, adapter_output, *, alpha: float = 0.25):
+    """Apply the approved 7→54D adapter output as multiplicative CST geometry.
+
+    The adapter output is bounded through tanh before scaling. This is deliberately
+    not an additive common translation, which would cancel from pairwise distances.
+    """
+
+    if torch is None:
+        raise ImportError("apply_geometry_modulation requires the optional 'ml' dependency (torch)")
+    if x54.shape[-1] != 54 or adapter_output.shape[-1] != 54:
+        raise ValueError("expected 54D CST geometry")
+    return apply_geometry_scale(x54, geometry_scale(adapter_output, alpha=alpha))
 
 
 if nn is not None:
@@ -122,8 +151,7 @@ if nn is not None:
         def geometry_scale(self, values, *, alpha: float = 0.25):
             """Return a bounded multiplicative 54D scale; exact identity at zero init."""
 
-            gain = _validate_alpha(alpha)
-            return 1.0 + gain * torch.tanh(self.forward(values))
+            return geometry_scale(self.forward(values), alpha=alpha)
 else:
     class Quantum54Adapter:  # pragma: no cover - only used without optional ML extra
         def __init__(self, *args, **kwargs) -> None:
