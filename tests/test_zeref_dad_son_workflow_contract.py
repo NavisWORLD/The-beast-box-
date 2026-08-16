@@ -34,3 +34,12 @@ def test_artifact_checksum_manifests_exclude_transient_huggingface_caches():
     # upload-artifact excludes hidden files by default. Checksum manifests must
     # therefore omit transient .cache files so a downloaded artifact verifies.
     assert text.count("! -path '*/.cache/*'") >= 2
+
+
+def test_artifact_checksums_are_written_relative_to_uploaded_root():
+    text = Path(".github/workflows/zeref-dad-son-001.yml").read_text(encoding="utf-8")
+    # GitHub uploads the contents of _dadson as the artifact root. Generate
+    # checksums from inside _dadson so `sha256sum -c` works immediately after unzip.
+    assert text.count("cd _dadson &&") >= 3
+    assert "find . -type f" in text
+    assert "find quantum -type f" in text
