@@ -1,0 +1,50 @@
+{
+  "schema": "d001-zeref-direct-chat-freeze-v1",
+  "status": "COMPLETED_GREEDY_LANGUAGE_NULL",
+  "run": {
+    "run_id": 31924773296,
+    "head_sha": "6923633f4e5d6f9a080a5708ba437034f3ca45cc",
+    "artifact_id": 9257492049,
+    "artifact_name": "d001-zeref-chat-31924773296",
+    "artifact_digest": "sha256:216cb79dfd7b9eecf933bdaae54a2be80df50a809df1c0839e5f6788d77ddeec"
+  },
+  "lineage": {
+    "memory_checkpoint_sha256": "c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f",
+    "hardware_adapter_sha256": "05aa635cff9a7c39bf5507c017334d4db62d3543192d3ee080b1273f3edb5312",
+    "quantum_source_run_id": 31924591769
+  },
+  "files": {
+    "summary_sha256": "095698bdcf6253598a5f218f6dbfe53e4576baf701273149761a9d5cbc7e4e58",
+    "memory_transcript_sha256": "d8564583090ebb37711f05671eb8c0ba8d47a8b639ffef936af67c3f2227bf72",
+    "quantum_transcript_sha256": "668199a7616c70e777e324fed9777059ef1f468647a3e796ded8eb3e9e94e7c8",
+    "quantum_report_sha256": "e6dd6526b1faa49147a5bb017d287778d417784079fb96445ff9d68481c4bf6c"
+  },
+  "generation": {
+    "decoding": "greedy-argmax",
+    "generated_tokens_per_prompt": 40,
+    "prompts": [
+      "Luna: Hi Zeref. Cory says hi.\nZeref:",
+      "Luna: What should Cory know?\nZeref:"
+    ],
+    "sensors_attached": false,
+    "action_proxy": false,
+    "beast_arms": false
+  },
+  "outputs_escaped": {
+    "memory": [
+      " \\n\\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n ",
+      "\\n\\n\\n\\n\\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n "
+    ],
+    "quantum": [
+      " \\n\\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n ",
+      "\\n\\n\\n\\n\\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n "
+    ]
+  },
+  "interpretation": {
+    "memory_and_quantum_argmax_outputs_equal": true,
+    "sensor_claims_flagged": false,
+    "signal_claim_allowed": false,
+    "quantum_advantage_claimed": false,
+    "bounded_verdict": "Direct D001 inference completed reproducibly, but greedy decoding collapsed to whitespace/newline tokens for both prompts. The trained hardware adapter did not alter the argmax output sequence on this probe. This is a null language-output effect, not a setup failure and not evidence that the quantum geometry mechanism was inactive."
+  }
+}
