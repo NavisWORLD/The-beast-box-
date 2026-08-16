@@ -66,3 +66,39 @@ def test_torch_adapter_is_exact_zero_at_initialization():
     assert torch.count_nonzero(y).item() == 0
     assert torch.count_nonzero(adapter.linear.weight).item() == 0
     assert torch.count_nonzero(adapter.linear.bias).item() == 0
+
+
+def test_geometry_scale_is_exact_identity_at_zero_init():
+    torch = pytest.importorskip("torch")
+    from beastbox.descendant.quantum_conditioning import Quantum54Adapter
+
+    adapter = Quantum54Adapter()
+    f = torch.tensor([[0.9, 0.51, 0.01, 2.5, 0.49, 32.0, 4.5]], dtype=torch.float32)
+    scale = adapter.geometry_scale(f, alpha=0.25)
+    assert tuple(scale.shape) == (1, 54)
+    assert torch.equal(scale, torch.ones_like(scale))
+
+
+def test_nonzero_adapter_changes_pairwise_geometry():
+    torch = pytest.importorskip("torch")
+    from beastbox.descendant.quantum_conditioning import Quantum54Adapter, apply_geometry_scale
+
+    adapter = Quantum54Adapter()
+    with torch.no_grad():
+        adapter.linear.weight[0, 0] = 1.0
+    f = torch.tensor([[0.9, 0.51, 0.01, 2.5, 0.49, 32.0, 4.5]], dtype=torch.float32)
+    x54 = torch.randn(1, 4, 54, generator=torch.Generator().manual_seed(7))
+    before = torch.cdist(x54, x54) ** 2
+    after_x = apply_geometry_scale(x54, adapter.geometry_scale(f, alpha=0.25))
+    after = torch.cdist(after_x, after_x) ** 2
+    assert not torch.equal(before, after)
+
+
+def test_geometry_scale_rejects_unbounded_alpha():
+    torch = pytest.importorskip("torch")
+    from beastbox.descendant.quantum_conditioning import Quantum54Adapter
+
+    adapter = Quantum54Adapter()
+    f = torch.zeros((1, 7), dtype=torch.float32)
+    with pytest.raises(ValueError, match="alpha"):
+        adapter.geometry_scale(f, alpha=1.1)
