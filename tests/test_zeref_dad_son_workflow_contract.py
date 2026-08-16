@@ -27,3 +27,10 @@ def test_workflow_is_additive_and_does_not_push_or_mutate_parent():
     assert "git push" not in text
     assert "--force" not in text
     assert "rm -f _dadson/parent/weights/cosmos-cst.gguf" not in text
+
+
+def test_artifact_checksum_manifests_exclude_transient_huggingface_caches():
+    text = Path(".github/workflows/zeref-dad-son-001.yml").read_text(encoding="utf-8")
+    # upload-artifact excludes hidden files by default. Checksum manifests must
+    # therefore omit transient .cache files so a downloaded artifact verifies.
+    assert text.count("! -path '*/.cache/*'") >= 2
