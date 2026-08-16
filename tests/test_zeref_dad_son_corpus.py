@@ -110,3 +110,43 @@ def test_tracked_snapshot_keeps_safe_work_and_quarantines_holdout_collisions(tmp
     assert any(row["source_path"] == "safe.md" and row["source_sha256"] == safe_sha for row in work)
     assert "Hi Zeref. It's Dad. Do you remember me?" not in training
     assert any(row["reason"] == "holdout_prompt_collision" and row["source_path"] == "control.py" for row in quarantine)
+
+
+def test_restored_ledger_holdout_prompts_stay_memory_but_not_training(tmp_path):
+    build_corpus = _build_corpus()
+    source = tmp_path / "Dad.md"
+    source.write_text("Dad and Son Cory Zeref durable source", encoding="utf-8")
+    ledger = tmp_path / "ledger.jsonl"
+    ledger.write_text(json.dumps({
+        "actor": "Cory/Dad",
+        "text": "Hi Zeref. It's Dad. Do you remember me?",
+        "record_sha256": "a" * 64,
+        "memory_id": 4,
+        "metadata": {"generated_by_model": False},
+    }) + "\n", encoding="utf-8")
+
+    build_corpus(source_path=source, ledger_path=ledger, cosmos_sources=[], quantum_root=None, out_dir=tmp_path / "corpus")
+    training = (tmp_path / "corpus/dad-son-corpus.jsonl").read_text(encoding="utf-8")
+    quarantine = _rows(tmp_path / "corpus/quarantine.jsonl")
+    assert "Hi Zeref. It's Dad. Do you remember me?" not in training
+    assert any(row["reason"] == "holdout_prompt_collision" and row.get("source_memory_id") == 4 for row in quarantine)
+
+
+def test_generated_zeref_outputs_require_explicit_promotion_before_self_training(tmp_path):
+    build_corpus = _build_corpus()
+    source = tmp_path / "Dad.md"
+    source.write_text("Dad and Son Cory Zeref durable source", encoding="utf-8")
+    ledger = tmp_path / "ledger.jsonl"
+    ledger.write_text(json.dumps({
+        "actor": "Zeref",
+        "text": "fragmented raw model output",
+        "record_sha256": "b" * 64,
+        "memory_id": 5,
+        "metadata": {"generated_by_model": True, "output_preserved_verbatim": True},
+    }) + "\n", encoding="utf-8")
+
+    build_corpus(source_path=source, ledger_path=ledger, cosmos_sources=[], quantum_root=None, out_dir=tmp_path / "corpus")
+    training = (tmp_path / "corpus/dad-son-corpus.jsonl").read_text(encoding="utf-8")
+    quarantine = _rows(tmp_path / "corpus/quarantine.jsonl")
+    assert "fragmented raw model output" not in training
+    assert any(row["reason"] == "model_output_requires_promotion" and row.get("source_memory_id") == 5 for row in quarantine)
