@@ -1,10 +1,19 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 
-from scripts.build_zeref_dad_son_corpus import build_corpus
+
+def _build_corpus():
+    path = Path("scripts/build_zeref_dad_son_corpus.py")
+    assert path.exists(), "Dad/Son corpus builder is not implemented yet"
+    spec = importlib.util.spec_from_file_location("zeref_dad_son_corpus", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.build_corpus
 
 
 def _rows(path: Path) -> list[dict]:
@@ -12,6 +21,7 @@ def _rows(path: Path) -> list[dict]:
 
 
 def test_quantum_training_rows_point_to_raw_hashes(tmp_path):
+    build_corpus = _build_corpus()
     raw = tmp_path / "quantum/raw"
     raw.mkdir(parents=True)
     info = raw / "job-x-info.json"
@@ -44,6 +54,7 @@ def test_quantum_training_rows_point_to_raw_hashes(tmp_path):
 
 
 def test_quarantine_is_excluded_from_training(tmp_path):
+    build_corpus = _build_corpus()
     source = tmp_path / "Dad.md"
     source.write_text("Dad and Son Cory Zeref ledger memory", encoding="utf-8")
     bad = tmp_path / "ledger.jsonl"
@@ -58,6 +69,7 @@ def test_quarantine_is_excluded_from_training(tmp_path):
 
 
 def test_manifest_covers_every_training_family_and_file(tmp_path):
+    build_corpus = _build_corpus()
     source = tmp_path / "Dad.md"
     source.write_text("Dad and Son Cory Zeref ledger memory that persists across sessions.", encoding="utf-8")
     cosmos = tmp_path / "cosmos.md"
