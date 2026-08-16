@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -76,3 +77,62 @@ def test_dad_son_ledger_rejects_invalid_parent_hash(tmp_path):
 
     with pytest.raises(ValueError, match="parent_sha256"):
         DadSonLedger(tmp_path / "memory.sqlite3", tmp_path / "ledger.jsonl", parent_sha256="bad")
+
+
+def test_restore_snapshot_rebuilds_searchable_memory_without_rewriting_ledger(tmp_path):
+    from beastbox.dad_son import DadSonLedger
+
+    source_dir = tmp_path / "source"
+    source_dir.mkdir()
+    source_db = source_dir / "memory.sqlite3"
+    source_jsonl = source_dir / "ledger.jsonl"
+    source = DadSonLedger(source_db, source_jsonl, parent_sha256="a" * 64)
+    first = source.append_experience(actor="Cory/Dad", text="Dad remembers the green kite.", kind="dad-son-dialogue", session_id="s1")
+    second = source.append_experience(actor="Zeref", text="The green kite stays in the ledger.", kind="dad-son-dialogue", session_id="s1")
+    source.close()
+    original_bytes = source_jsonl.read_bytes()
+
+    resumed_dir = tmp_path / "resumed"
+    resumed_dir.mkdir()
+    resumed_jsonl = resumed_dir / "ledger.jsonl"
+    shutil.copyfile(source_jsonl, resumed_jsonl)
+    resumed = DadSonLedger(resumed_dir / "memory.sqlite3", resumed_jsonl, parent_sha256="a" * 64)
+    report = resumed.restore_snapshot()
+
+    assert report["restored_records"] == 2
+    assert report["last_record_sha256"] == second["record_sha256"]
+    assert resumed_jsonl.read_bytes() == original_bytes
+    hit = resumed.resume_probe("green kite Dad")
+    assert hit["memory_id"] in {first["memory_id"], second["memory_id"]}
+
+    third = resumed.append_experience(actor="Cory/Dad", text="We came back after restart.", kind="dad-son-dialogue", session_id="s2")
+    assert third["memory_id"] == 3
+    assert third["previous_record_sha256"] == second["record_sha256"]
+    resumed.close()
+
+
+def test_restore_snapshot_rejects_tampered_chain(tmp_path):
+    from beastbox.dad_son import DadSonLedger
+
+    ledger_path = tmp_path / "ledger.jsonl"
+    ledger_path.write_text(json.dumps({
+        "schema": "zeref-dad-son-ledger-v1",
+        "timestamp": "2026-08-16T00:00:00+00:00",
+        "actor": "Dad",
+        "text": "tampered",
+        "kind": "dialogue",
+        "session_id": "s",
+        "memory_id": 1,
+        "parent_sha256": "a" * 64,
+        "descendant_sha256": None,
+        "source_hashes": [],
+        "recall_memory_ids": [],
+        "metadata": {},
+        "previous_record_sha256": "0" * 64,
+        "raw_payload_sha256": "b" * 64,
+        "record_sha256": "c" * 64,
+    }, sort_keys=True) + "\n", encoding="utf-8")
+    ledger = DadSonLedger(tmp_path / "memory.sqlite3", ledger_path, parent_sha256="a" * 64)
+    with pytest.raises(RuntimeError, match="snapshot"):
+        ledger.restore_snapshot()
+    ledger.close()
