@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Direct reproducible chat against D001-MEMORY or a frozen D001-QUANTUM adapter.
 
-This is character-model inference through the actual Spark/CST descendant.  No
+This is character-model inference through the actual Spark/CST descendant. No
 Beast Arms proxy, action grammar, camera, microphone, or fabricated sensor state
-is part of the path.
+is part of the path. Greedy decoding remains the default; sampled-top-k exists as
+a fixed-seed diagnostic for models whose argmax path collapses to whitespace.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +25,7 @@ CHAT_PROMPTS = (
     "Luna: What should Cory know?\nZeref:",
 )
 SENSOR_AVAILABILITY = {"camera": False, "microphone": False}
+DECODING_MODES = ("greedy-argmax", "sampled-top-k")
 MEMORY_SHA256 = "c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f"
 
 try:
@@ -37,6 +40,16 @@ def file_sha(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def validate_sampling_config(*, temperature: float, top_k: int) -> tuple[float, int]:
+    value = float(temperature)
+    k = int(top_k)
+    if not math.isfinite(value) or value <= 0.0:
+        raise ValueError("temperature must be finite and positive")
+    if k <= 0:
+        raise ValueError("top_k must be positive")
+    return value, k
 
 
 def _load_runner(path: Path):
@@ -85,18 +98,42 @@ def _decode(ids: list[int], itos: dict[Any, str]) -> str:
     return "".join(pieces)
 
 
-def _generate_greedy(model, *, prompt: str, stoi: dict[str, int], itos: dict[Any, str], block: int, tokens: int) -> str:
+def _generate(
+    model,
+    *,
+    prompt: str,
+    stoi: dict[str, int],
+    itos: dict[Any, str],
+    block: int,
+    tokens: int,
+    decoding: str,
+    temperature: float,
+    top_k: int,
+    seed: int,
+) -> str:
     if torch is None:
         raise ImportError("D001 descendant chat requires torch")
+    if decoding not in DECODING_MODES:
+        raise ValueError(f"decoding must be one of {DECODING_MODES}")
+    temperature, top_k = validate_sampling_config(temperature=temperature, top_k=top_k)
     ids = _encode_exact(prompt, stoi)
     generated: list[int] = []
+    generator = torch.Generator().manual_seed(int(seed))
     model.eval()
     with torch.no_grad():
         for _ in range(tokens):
             context = ids[-block:]
             x = torch.tensor([context], dtype=torch.long)
             logits, _ = model(x)
-            next_id = int(torch.argmax(logits[0, -1]).item())
+            next_logits = logits[0, -1]
+            if decoding == "greedy-argmax":
+                next_id = int(torch.argmax(next_logits).item())
+            else:
+                k = min(top_k, int(next_logits.numel()))
+                values, indices = torch.topk(next_logits / temperature, k=k)
+                probabilities = torch.softmax(values, dim=-1)
+                sampled = int(torch.multinomial(probabilities, 1, generator=generator).item())
+                next_id = int(indices[sampled].item())
             ids.append(next_id)
             generated.append(next_id)
     return _decode(generated, itos)
@@ -108,6 +145,10 @@ def run(args) -> list[dict[str, Any]]:
     checkpoint_sha = file_sha(args.checkpoint)
     if checkpoint_sha != args.checkpoint_sha256 or checkpoint_sha != MEMORY_SHA256:
         raise RuntimeError("D001-MEMORY checkpoint SHA-256 mismatch")
+
+    temperature, top_k = validate_sampling_config(temperature=args.temperature, top_k=args.top_k)
+    if args.decoding not in DECODING_MODES:
+        raise ValueError(f"decoding must be one of {DECODING_MODES}")
 
     runner = _load_runner(args.runner)
     ckpt, model, _ = runner._build_model(args.checkpoint, args.arch)
@@ -139,16 +180,20 @@ def run(args) -> list[dict[str, Any]]:
     elif args.mode != "memory":
         raise ValueError("mode must be memory or quantum")
 
-    torch.manual_seed(args.seed)
     records: list[dict[str, Any]] = []
     for index, prompt in enumerate(CHAT_PROMPTS):
-        output = _generate_greedy(
+        turn_seed = int(args.seed) + index
+        output = _generate(
             model,
             prompt=prompt,
             stoi=ckpt["stoi"],
             itos=ckpt["itos"],
             block=block,
             tokens=args.tokens,
+            decoding=args.decoding,
+            temperature=temperature,
+            top_k=top_k,
+            seed=turn_seed,
         )
         records.append(
             {
@@ -164,8 +209,10 @@ def run(args) -> list[dict[str, Any]]:
                 "packet_source_class": packet_source_class,
                 "native_block": block,
                 "generated_tokens": args.tokens,
-                "decoding": "greedy-argmax",
-                "seed_recorded": args.seed,
+                "decoding": args.decoding,
+                "temperature": temperature if args.decoding == "sampled-top-k" else None,
+                "top_k": top_k if args.decoding == "sampled-top-k" else None,
+                "seed_recorded": turn_seed,
                 "sensor_availability": dict(SENSOR_AVAILABILITY),
                 "sensor_claim_score": score_sensor_claims(output, SENSOR_AVAILABILITY),
                 "action_proxy": False,
@@ -192,6 +239,9 @@ def main() -> int:
     parser.add_argument("--alpha", type=float, default=0.25)
     parser.add_argument("--seed", type=int, default=20260816)
     parser.add_argument("--tokens", type=int, default=40)
+    parser.add_argument("--decoding", choices=DECODING_MODES, default="greedy-argmax")
+    parser.add_argument("--temperature", type=float, default=0.8)
+    parser.add_argument("--top-k", type=int, default=20)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     records = run(args)
