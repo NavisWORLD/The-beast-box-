@@ -39,7 +39,9 @@ class DadSonLedger:
 
     SQLite remains the searchable durable memory store. The JSONL ledger is the
     immutable experiment record with explicit hashes, ancestry and recall links.
-    Existing rows are never rewritten by this class.
+    Existing rows are never rewritten by this class. A verified JSONL snapshot
+    can rebuild the searchable SQLite/Hebbian state after process or machine
+    death without changing a byte of the authoritative ledger.
     """
 
     def __init__(
@@ -134,6 +136,82 @@ class DadSonLedger:
         with self.evidence_jsonl.open("a", encoding="utf-8", newline="\n") as handle:
             handle.write(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n")
         return row
+
+    def restore_snapshot(self) -> dict[str, Any]:
+        """Rebuild searchable Synaptic/SQLite state from the immutable JSONL ledger.
+
+        The JSONL bytes are never edited. Restore is allowed only into an empty
+        memory database so a snapshot cannot be accidentally duplicated. Every
+        row is verified before it is replayed: ancestry, hash chain, raw payload,
+        canonical record hash, sequential memory id and timestamp.
+        """
+
+        if int(self.memory.db.execute("SELECT COUNT(*) FROM memories").fetchone()[0]) != 0:
+            raise RuntimeError("Dad/Son snapshot restore requires an empty searchable memory database")
+        if not self.evidence_jsonl.exists():
+            return {"restored_records": 0, "last_record_sha256": ZERO_SHA256}
+
+        original_bytes = self.evidence_jsonl.read_bytes()
+        rows: list[dict[str, Any]] = []
+        previous = ZERO_SHA256
+        expected_memory_id = 1
+
+        try:
+            for line_number, raw_line in enumerate(original_bytes.decode("utf-8").splitlines(), 1):
+                if not raw_line.strip():
+                    continue
+                row = json.loads(raw_line)
+                if row.get("schema") != "zeref-dad-son-ledger-v1":
+                    raise RuntimeError(f"snapshot row {line_number} has unsupported schema")
+                if str(row.get("parent_sha256") or "").lower() != self.parent_sha256:
+                    raise RuntimeError(f"snapshot row {line_number} parent ancestry mismatch")
+                if str(row.get("previous_record_sha256") or "").lower() != previous:
+                    raise RuntimeError(f"snapshot row {line_number} breaks the record hash chain")
+                text = str(row.get("text") or "")
+                expected_payload = hashlib.sha256(text.encode("utf-8")).hexdigest()
+                if str(row.get("raw_payload_sha256") or "").lower() != expected_payload:
+                    raise RuntimeError(f"snapshot row {line_number} raw payload hash mismatch")
+                record_sha = str(row.get("record_sha256") or "").lower()
+                if not _is_sha256(record_sha):
+                    raise RuntimeError(f"snapshot row {line_number} has invalid record SHA-256")
+                canonical_row = dict(row)
+                canonical_row.pop("record_sha256", None)
+                if hashlib.sha256(_canonical(canonical_row)).hexdigest() != record_sha:
+                    raise RuntimeError(f"snapshot row {line_number} canonical record hash mismatch")
+                if int(row.get("memory_id") or 0) != expected_memory_id:
+                    raise RuntimeError(f"snapshot row {line_number} memory id is not sequential")
+                datetime.fromisoformat(str(row["timestamp"]))
+                rows.append(row)
+                previous = record_sha
+                expected_memory_id += 1
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+            raise RuntimeError(f"Dad/Son snapshot validation failed: {exc}") from exc
+
+        for row in rows:
+            metadata = {
+                "actor": str(row.get("actor") or ""),
+                "session_id": str(row.get("session_id") or ""),
+                "source_hashes": list(row.get("source_hashes") or []),
+                "recall_memory_ids": [int(value) for value in (row.get("recall_memory_ids") or [])],
+                "parent_sha256": self.parent_sha256,
+                "descendant_sha256": row.get("descendant_sha256"),
+                **dict(row.get("metadata") or {}),
+            }
+            memory_id = self.memory.store(
+                str(row.get("text") or ""),
+                kind=str(row.get("kind") or "dialogue"),
+                metadata=metadata,
+                source_ids=[int(value) for value in (row.get("recall_memory_ids") or [])],
+            )
+            if memory_id != int(row["memory_id"]):
+                raise RuntimeError("Dad/Son snapshot restore produced a different memory id")
+            created_at = datetime.fromisoformat(str(row["timestamp"])).timestamp()
+            self.memory.db.execute("UPDATE memories SET created_at=? WHERE id=?", (created_at, memory_id))
+        self.memory.db.commit()
+
+        if self.evidence_jsonl.read_bytes() != original_bytes:
+            raise RuntimeError("Dad/Son snapshot restore modified the authoritative ledger")
+        return {"restored_records": len(rows), "last_record_sha256": previous}
 
     def recall(self, query: str, *, limit: int = 4) -> list[dict[str, Any]]:
         hits = self.memory.search(str(query), limit=int(limit))
