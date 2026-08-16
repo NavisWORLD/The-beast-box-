@@ -1,0 +1,45 @@
+name: Zeref quantum divergence
+
+on:
+  push:
+    branches:
+      - 'agent/zeref-quantum-divergence'
+    paths:
+      - 'beastbox/quantum_divergence/**'
+      - 'tests/test_quantum_divergence_*.py'
+      - '.github/workflows/zeref-quantum-divergence.yml'
+      - 'docs/ZEREF_QUANTUM_DIVERGENCE.md'
+  pull_request:
+    paths:
+      - 'beastbox/quantum_divergence/**'
+      - 'tests/test_quantum_divergence_*.py'
+      - '.github/workflows/zeref-quantum-divergence.yml'
+  workflow_dispatch:
+
+jobs:
+  validate-harness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+      - name: Run divergence tests
+        run: pytest -q tests/test_quantum_divergence_*.py | tee quantum-divergence-pytest.log
+      - name: Run evidence validation
+        run: python -m beastbox.quantum_divergence.cli validate --output evidence/zeref-quantum-divergence-validation
+      - name: Verify and print summary
+        run: python -m beastbox.quantum_divergence.cli analyze evidence/zeref-quantum-divergence-validation
+      - name: Upload complete validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-quantum-divergence-validation-${{ github.run_id }}
+          path: |
+            evidence/zeref-quantum-divergence-validation/**
+            quantum-divergence-pytest.log
+          if-no-files-found: warn
