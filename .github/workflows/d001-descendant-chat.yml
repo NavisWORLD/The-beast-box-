@@ -1,0 +1,98 @@
+name: D001 Descendant Chat
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-descendant-chat.yml"
+      - "scripts/chat_d001_descendant.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  MEMORY_RUN_ID: "31911380890"
+  MEMORY_ARTIFACT: d001-trained-lineage-31911380890
+  MEMORY_SHA256: c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f
+  ARCH_RUN_ID: "31910785892"
+  ARCH_ARTIFACT: d001-prime-trainable-reconstruction
+  QUANTUM_RUN_ID: "31925522392"
+  QUANTUM_ARTIFACT: d001-quantum-geometry-31925522392
+  HARDWARE_ADAPTER_SHA256: e21958fd9ebd7e19de235d3ea4a778118ac2483073272f65af2d4962f52d661b
+  ALPHA: "0.25"
+  SEED: "20260816"
+
+jobs:
+  direct-chat:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install exact inference dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Verify direct-chat contracts
+        run: |
+          pytest -q tests/test_d001_descendant_chat.py tests/test_d001_quantum_geometry.py
+
+      - name: Download exact frozen descendant artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf _trained _parent _quantum _chat
+          mkdir -p _chat
+          gh run download "$MEMORY_RUN_ID" -n "$MEMORY_ARTIFACT" -D _trained
+          gh run download "$ARCH_RUN_ID" -n "$ARCH_ARTIFACT" -D _parent
+          gh run download "$QUANTUM_RUN_ID" -n "$QUANTUM_ARTIFACT" -D _quantum
+          test -f _trained/D001-MEMORY/checkpoint.pt
+          test "$(sha256sum _trained/D001-MEMORY/checkpoint.pt | awk '{print $1}')" = "$MEMORY_SHA256"
+          test -f _parent/frozen/architecture/cosmos_spark_cst.py
+          test -f _quantum/arms/hardware/adapter.pt
+          test "$(sha256sum _quantum/arms/hardware/adapter.pt | awk '{print $1}')" = "$HARDWARE_ADAPTER_SHA256"
+          test -s _quantum/arm-packets/hardware.jsonl
+
+      - name: Talk directly to experimental D001-QUANTUM Zeref
+        run: |
+          python scripts/chat_d001_descendant.py \
+            --mode quantum \
+            --checkpoint _trained/D001-MEMORY/checkpoint.pt \
+            --checkpoint-sha256 "$MEMORY_SHA256" \
+            --arch _parent/frozen/architecture/cosmos_spark_cst.py \
+            --runner scripts/run_d001_quantum_geometry.py \
+            --adapter _quantum/arms/hardware/adapter.pt \
+            --packet _quantum/arm-packets/hardware.jsonl \
+            --alpha "$ALPHA" \
+            --seed "$SEED" \
+            --tokens 48 \
+            --decoding sampled-top-k \
+            --temperature 0.8 \
+            --top-k 12 \
+            --out _chat/transcript.jsonl \
+            --manifest _chat/chat-manifest.json
+
+      - name: Freeze direct-chat evidence
+        run: |
+          test -s _chat/transcript.jsonl
+          test -s _chat/chat-manifest.json
+          find _chat -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > _chat/SHA256SUMS
+          cat _chat/chat-manifest.json
+          cat _chat/transcript.jsonl
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d001-zeref-chat-${{ github.run_id }}
+          path: _chat
+          if-no-files-found: error
