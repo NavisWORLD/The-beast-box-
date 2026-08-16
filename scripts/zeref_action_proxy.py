@@ -7,7 +7,7 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from beastbox.arms.action_proxy import rewrite_chat_request
+from beastbox.arms.action_proxy import rewrite_chat_request, rewrite_completion_response
 
 
 def build_handler(upstream: str):
@@ -21,11 +21,14 @@ def build_handler(upstream: str):
             length = int(self.headers.get("Content-Length", "0") or "0")
             body = self.rfile.read(length) if length else b""
             headers = {"Content-Type": self.headers.get("Content-Type", "application/json")}
-            if body and self.path.endswith("/chat/completions"):
+            chat_bridge = bool(body and self.path.endswith("/chat/completions"))
+            target_path = self.path
+            if chat_bridge:
                 payload = json.loads(body.decode("utf-8"))
                 body = json.dumps(rewrite_chat_request(payload), separators=(",", ":")).encode("utf-8")
+                target_path = self.path[: -len("/chat/completions")] + "/completions"
             request = urllib.request.Request(
-                upstream.rstrip("/") + self.path,
+                upstream.rstrip("/") + target_path,
                 data=body if self.command != "GET" else None,
                 headers=headers,
                 method=self.command,
@@ -33,8 +36,13 @@ def build_handler(upstream: str):
             try:
                 with urllib.request.urlopen(request, timeout=180) as response:
                     data = response.read()
+                    content_type = response.headers.get("Content-Type", "application/json")
+                    if chat_bridge and data:
+                        completion = json.loads(data.decode("utf-8"))
+                        data = json.dumps(rewrite_completion_response(completion), separators=(",", ":")).encode("utf-8")
+                        content_type = "application/json"
                     self.send_response(response.status)
-                    self.send_header("Content-Type", response.headers.get("Content-Type", "application/json"))
+                    self.send_header("Content-Type", content_type)
                     self.send_header("Content-Length", str(len(data)))
                     self.end_headers()
                     self.wfile.write(data)
