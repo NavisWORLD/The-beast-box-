@@ -10,7 +10,7 @@ def test_compact_action_schema_requires_tool_and_arguments() -> None:
     assert "f" in _COMPACT_ACTION_SCHEMA["properties"]["t"]["enum"]
 
 
-def test_action_proxy_strips_server_side_grammar_constraints_after_run_020_crash() -> None:
+def test_action_proxy_strips_native_constraints_and_chatml_after_run_021() -> None:
     request = {
         "model": "cosmos",
         "messages": [{"role": "user", "content": "JSON t/a"}],
@@ -19,13 +19,14 @@ def test_action_proxy_strips_server_side_grammar_constraints_after_run_020_crash
         "response_format": {"type": "json_schema", "json_schema": {"schema": {"type": "object"}}},
     }
     rewritten = rewrite_chat_request(request)
-    # Run 020 proved that the pinned llama.cpp sampler can crash when a native
-    # grammar reaches an empty stack. Keep validation in the strict post-parser
-    # and Beast Arms authorization layer instead of asking this runtime to
-    # enforce the wire format during token sampling.
+    # Run 020 proved native grammar sampling can crash. Run 021 then measured
+    # 58 prompt tokens for the tiny ChatML request. Run 022 therefore uses a
+    # raw prefixed completion while keeping strict validation after generation.
     assert "grammar" not in rewritten
     assert "response_format" not in rewritten
-    assert rewritten["max_tokens"] == 96
+    assert "messages" not in rewritten
+    assert rewritten["prompt"].endswith('{"t":"')
+    assert rewritten["max_tokens"] <= 36
     assert request["max_tokens"] == 32
     assert request["grammar"] == "stale-native-grammar"
 
@@ -34,7 +35,7 @@ def test_compact_action_grammar_has_no_unbounded_whitespace_escape_hatch() -> No
     # Run-015 exhausted its entire 128-token slot after emitting `{ "t"`
     # because the grammar allowed arbitrarily many whitespace tokens between
     # every structural JSON token. The retained grammar fixture documents the
-    # old bounded language even though Run 021 no longer sends it to llama.cpp.
+    # old bounded language even though Run 022 no longer sends it to llama.cpp.
     assert "ws" not in COMPACT_ACTION_GRAMMAR
 
 
