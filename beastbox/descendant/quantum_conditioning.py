@@ -36,6 +36,13 @@ _FEATURE_RANGES = (
 )
 
 
+def _validate_alpha(alpha: float) -> float:
+    value = float(alpha)
+    if not math.isfinite(value) or not 0.0 < value <= 1.0:
+        raise ValueError("alpha must be finite and in (0, 1]")
+    return value
+
+
 def feature_vector(packet: Any) -> tuple[float, ...]:
     features = getattr(packet, "features", None)
     if not isinstance(features, Mapping):
@@ -60,12 +67,34 @@ def normalize_feature_vector(values: Iterable[float]) -> tuple[float, ...]:
     return tuple(out)
 
 
+def bounded_geometry_scale(projection: Iterable[float], *, alpha: float = 0.25) -> tuple[float, ...]:
+    """Map an arbitrary projection to a bounded multiplicative CST geometry scale."""
+
+    gain = _validate_alpha(alpha)
+    values = tuple(float(v) for v in projection)
+    if not all(math.isfinite(v) for v in values):
+        raise ValueError("geometry projection must be finite")
+    return tuple(1.0 + gain * math.tanh(v) for v in values)
+
+
 try:  # optional dependency; base package intentionally has no hard torch dependency
     import torch
     from torch import nn
 except ImportError:  # pragma: no cover - exercised by base CI import behaviour
     torch = None
     nn = None
+
+
+def apply_geometry_scale(x54, scale):
+    """Apply a 54D multiplicative scale to native CST state geometry."""
+
+    if torch is None:
+        raise ImportError("apply_geometry_scale requires the optional 'ml' dependency (torch)")
+    if x54.shape[-1] != 54 or scale.shape[-1] != 54:
+        raise ValueError("expected 54D CST geometry")
+    while scale.ndim < x54.ndim:
+        scale = scale.unsqueeze(-2)
+    return x54 * scale
 
 
 if nn is not None:
@@ -89,6 +118,12 @@ if nn is not None:
                 raise ValueError("quantum features must be finite")
             normalized = ((values.clamp(min=lo, max=hi) - lo) / (hi - lo)) * 2.0 - 1.0
             return self.linear(normalized)
+
+        def geometry_scale(self, values, *, alpha: float = 0.25):
+            """Return a bounded multiplicative 54D scale; exact identity at zero init."""
+
+            gain = _validate_alpha(alpha)
+            return 1.0 + gain * torch.tanh(self.forward(values))
 else:
     class Quantum54Adapter:  # pragma: no cover - only used without optional ML extra
         def __init__(self, *args, **kwargs) -> None:
