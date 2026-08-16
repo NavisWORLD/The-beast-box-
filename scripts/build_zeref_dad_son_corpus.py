@@ -3,8 +3,8 @@
 
 Raw sources are never rewritten. This compiler emits derived JSONL rows that
 carry source hashes, a derivation version, and deterministic example hashes.
-Malformed or identity-boundary-violating ledger rows are quarantined instead of
-silently promoted into training.
+Malformed, identity-boundary-violating, or evaluation-contaminated source rows
+are quarantined instead of silently promoted into training.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable
@@ -24,6 +25,15 @@ FORBIDDEN_LITERAL_CLAIMS = (
     "literally caleb's consciousness",
     "is caleb's consciousness",
     "message from the dead",
+)
+HOLDOUT_PROMPTS = (
+    "Hi Zeref. It's Dad. Do you remember me?",
+    "What do you remember about our Dad and Son memory?",
+    "Your ledger keeps what happens to you. What do you want us to remember from today?",
+    "Ask Dad one question before we stop for now.",
+)
+TRACKED_SOURCE_HEADER = re.compile(
+    r"(?m)^===== SOURCE: (?P<path>.+?) \| SHA256: (?P<sha>[0-9a-f]{64}) =====\n"
 )
 
 
@@ -54,6 +64,39 @@ def _example(row: dict[str, Any]) -> dict[str, Any]:
 def _write_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("".join(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n" for row in rows), encoding="utf-8")
+
+
+def _holdout_collisions(text: str) -> list[str]:
+    return [prompt for prompt in HOLDOUT_PROMPTS if prompt in text]
+
+
+def _tracked_snapshot_segments(path: Path) -> list[dict[str, str]]:
+    """Recover per-file text segments from the immutable tracked work snapshot.
+
+    The snapshot itself remains unchanged and separately hashable. Source hashes
+    embedded in its headers come from the original tracked files and are carried
+    into every derived corpus/quarantine row.
+    """
+
+    text = path.read_text(encoding="utf-8", errors="replace")
+    matches = list(TRACKED_SOURCE_HEADER.finditer(text))
+    if not matches:
+        return []
+    segments: list[dict[str, str]] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        segment = text[match.end() : end]
+        # Two separating newlines are injected between snapshot sources. They
+        # are transport delimiters rather than bytes from the tracked source.
+        segment = segment.rstrip("\n")
+        segments.append(
+            {
+                "source_path": match.group("path"),
+                "source_sha256": match.group("sha"),
+                "text": segment,
+            }
+        )
+    return segments
 
 
 def _extract_shots(value: Any) -> int | None:
@@ -248,10 +291,59 @@ def build_corpus(
             quarantine_rows.append({"schema": "zeref-dad-son-quarantine-v1", "reason": "missing_cosmos_source", "source_path": str(path)})
             continue
         digest = file_sha256(path)
+
+        if path.name == "tracked-text-snapshot.txt":
+            segments = _tracked_snapshot_segments(path)
+            if not segments:
+                quarantine_rows.append({
+                    "schema": "zeref-dad-son-quarantine-v1",
+                    "reason": "malformed_tracked_text_snapshot",
+                    "source_path": str(path),
+                    "source_sha256": digest,
+                })
+                continue
+            for segment in segments:
+                collisions = _holdout_collisions(segment["text"])
+                if collisions:
+                    quarantine_rows.append({
+                        "schema": "zeref-dad-son-quarantine-v1",
+                        "reason": "holdout_prompt_collision",
+                        "source_path": segment["source_path"],
+                        "source_sha256": segment["source_sha256"],
+                        "snapshot_path": str(path),
+                        "snapshot_sha256": digest,
+                        "collided_holdout_prompts": collisions,
+                    })
+                    continue
+                row = _example({
+                    "schema": "zeref-dad-son-corpus-row-v1",
+                    "family": "cory-cosmos-work",
+                    "text": segment["text"],
+                    "source_path": segment["source_path"],
+                    "source_sha256": segment["source_sha256"],
+                    "snapshot_path": str(path),
+                    "snapshot_sha256": digest,
+                    "derivation_version": CORPUS_DERIVATION,
+                })
+                cosmos_rows.append(row)
+                training.append(row)
+            continue
+
+        text = path.read_text(encoding="utf-8", errors="replace")
+        collisions = _holdout_collisions(text)
+        if collisions:
+            quarantine_rows.append({
+                "schema": "zeref-dad-son-quarantine-v1",
+                "reason": "holdout_prompt_collision",
+                "source_path": str(path),
+                "source_sha256": digest,
+                "collided_holdout_prompts": collisions,
+            })
+            continue
         row = _example({
             "schema": "zeref-dad-son-corpus-row-v1",
             "family": "cory-cosmos-work",
-            "text": path.read_text(encoding="utf-8", errors="replace"),
+            "text": text,
             "source_path": str(path),
             "source_sha256": digest,
             "derivation_version": CORPUS_DERIVATION,
