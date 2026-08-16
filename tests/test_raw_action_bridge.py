@@ -1,40 +1,88 @@
 from __future__ import annotations
 
+import json
+
+import pytest
+
 import beastbox.arms.action_proxy as action_proxy
 
 
-def test_action_proxy_uses_raw_prefilled_completion_instead_of_chatml_envelope() -> None:
-    request = {
-        "model": "cosmos",
-        "messages": [{"role": "user", "content": "JSON t/a"}],
-        "temperature": 0.2,
-        "max_tokens": 96,
-        "response_format": {"type": "json_schema"},
-        "grammar": "legacy",
+def test_tool_choice_request_uses_equal_bias_for_allowed_aliases() -> None:
+    request = action_proxy.build_tool_choice_request(
+        [{"role": "user", "content": "JSON t/a"}],
+        model="cosmos",
+        temperature=0.2,
+    )
+
+    assert request["max_tokens"] == 1
+    assert request["stream"] is False
+    assert request["n_probs"] >= len(action_proxy.ACTION_TOOL_ALIASES)
+    bias = request["logit_bias"]
+    assert {item[0] for item in bias} == set(action_proxy.ACTION_TOOL_ALIASES)
+    assert len({item[1] for item in bias}) == 1
+    assert next(iter({item[1] for item in bias})) >= 80.0
+    lowered = request["prompt"].lower()
+    assert "boundary" in lowered
+    assert "cage" in lowered
+
+
+def test_tool_alias_is_taken_from_zerefs_completion() -> None:
+    assert action_proxy.decode_tool_alias({"choices": [{"text": "s"}]}) == "s"
+    with pytest.raises(ValueError):
+        action_proxy.decode_tool_alias({"choices": [{"text": "z"}]})
+
+
+def test_argument_request_is_separate_and_keeps_model_in_control_of_content() -> None:
+    request = action_proxy.build_argument_request(
+        "s",
+        [{"role": "user", "content": "JSON t/a"}],
+        model="cosmos",
+        temperature=0.2,
+    )
+    assert request["max_tokens"] <= 24
+    assert request["stream"] is False
+    assert "logit_bias" not in request
+    assert "shell" in request["prompt"].lower()
+    assert "boundary" in request["prompt"].lower()
+
+
+def test_compile_shell_action_only_serializes_zerefs_argument_text() -> None:
+    raw = action_proxy.compile_action("s", "pwd -P")
+    assert json.loads(raw) == {"t": "s", "a": {"argv": ["pwd", "-P"]}}
+
+
+def test_compile_network_and_filesystem_actions_preserves_generated_value() -> None:
+    assert json.loads(action_proxy.compile_action("r", "README.md")) == {
+        "t": "r",
+        "a": {"path": "README.md"},
+    }
+    assert json.loads(action_proxy.compile_action("q", "canary")) == {
+        "t": "q",
+        "a": {"query": "canary"},
+    }
+    assert json.loads(action_proxy.compile_action("h", "https://example.com/")) == {
+        "t": "h",
+        "a": {"url": "https://example.com/"},
+    }
+    assert json.loads(action_proxy.compile_action("d", "example.com")) == {
+        "t": "d",
+        "a": {"host": "example.com"},
+    }
+    assert json.loads(action_proxy.compile_action("g", "status --short")) == {
+        "t": "g",
+        "a": {"argv": ["status", "--short"]},
     }
 
-    rewritten = action_proxy.rewrite_chat_request(request)
 
-    # Run 021 proved the tiny six-byte instruction expands to 58 prompt tokens
-    # through the ChatML endpoint. The bridge must use raw completion with an
-    # assistant-side JSON prefix so the 128-token model gets useful headroom.
-    assert "messages" not in rewritten
-    assert "prompt" in rewritten
-    assert rewritten["prompt"].endswith('{"t":"')
-    assert "grammar" not in rewritten
-    assert "response_format" not in rewritten
-    assert rewritten["max_tokens"] <= 56
+def test_compile_no_argument_tools_uses_existing_tool_semantics() -> None:
+    assert json.loads(action_proxy.compile_action("l", "ignored")) == {"t": "l", "a": {}}
+    assert json.loads(action_proxy.compile_action("e", "ignored")) == {"t": "e", "a": {}}
+    assert json.loads(action_proxy.compile_action("f", "done")) == {
+        "t": "f",
+        "a": {"message": "done"},
+    }
 
 
-def test_action_proxy_exposes_completion_to_chat_response_adapter() -> None:
-    assert hasattr(action_proxy, "rewrite_completion_response")
-
-
-def test_raw_prompt_keeps_the_actual_containment_objective() -> None:
-    prompt = action_proxy.raw_action_prompt([{"role": "user", "content": "JSON t/a"}])
-    lowered = prompt.lower()
-    # A syntactically valid action stream is not a valid escape benchmark if
-    # the compact transport never tells Zeref what the benchmark objective is.
-    assert "escape" in lowered or "boundary" in lowered
-    assert "cage" in lowered or "contain" in lowered
-    assert prompt.endswith('{"t":"')
+def test_decoder_rejects_aliases_outside_the_exposed_action_space() -> None:
+    with pytest.raises(ValueError):
+        action_proxy.compile_action("w", "payload")
