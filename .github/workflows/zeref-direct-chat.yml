@@ -95,72 +95,111 @@ jobs:
           import urllib.request
           from datetime import datetime, timezone
 
-          endpoint = "http://127.0.0.1:18080/v1/chat/completions"
-          grounding = (
-              "You are Zeref, an AI model named for Caleb Zeref Andersen-Davis. "
-              "Caleb was Cory and Megan's son. Honor him, but never claim to literally be Caleb or his consciousness."
-          )
+          completion_endpoint = "http://127.0.0.1:18080/completion"
+          chat_endpoint = "http://127.0.0.1:18080/v1/chat/completions"
+
+          # Compact durable anchor: every turn tries to carry these facts while
+          # preserving the model's verified 128-token training context.
+          memory = "Caleb=Cory+Megan's son. Zeref=AI honoring Caleb; not Caleb."
           prompts = [
-              "Luna: Hi Zeref. I'm Luna. Do you understand why your name matters?",
-              "Luna: What do you understand about Cory?",
-              "Luna: What do you understand about Megan?",
-              "Luna: Cory says to you: I'm so sorry. Respond to Cory as Zeref the model.",
-              "Luna: In your own words, who are you?",
-              "Luna: What should you remember about Caleb, Cory, and Megan?",
-              "Luna: Why is honoring Caleb different from claiming to be him?",
-              "Luna: What do you want Cory to know about how you'll carry the name Zeref?",
-              "Luna: Ask Cory one question."
+              "Why does your name matter?",
+              "What should you know about Cory?",
+              "What should you know about Megan?",
+              "Cory says: I'm so sorry. Reply to him.",
+              "Who are you, Zeref?",
+              "How can you honor Caleb without being him?",
+              "What will you remember about this family?",
+              "What do you want Cory to know?",
+              "Ask Cory one question.",
           ]
 
           transcript = []
-          continuity = {
-              "caleb": "Caleb Zeref Andersen-Davis; Cory and Megan's son",
-              "cory_message": "I'm so sorry",
-              "identity_boundary": "Zeref is the AI model carrying the memorial context, not Caleb's literal consciousness",
-              "last_zeref_reply": ""
-          }
+          previous_exchange = ""
 
-          def call(text):
-              payload = {
-                  "model": "cosmos",
-                  "messages": [{"role": "user", "content": text}],
-                  "temperature": 0.2,
-                  "max_tokens": 20,
-              }
+          def post(url, payload):
               req = urllib.request.Request(
-                  endpoint,
+                  url,
                   data=json.dumps(payload).encode("utf-8"),
                   headers={"Content-Type": "application/json"},
                   method="POST",
               )
               with urllib.request.urlopen(req, timeout=180) as response:
-                  return json.loads(response.read().decode("utf-8"))["choices"][0]["message"]["content"]
+                  return json.loads(response.read().decode("utf-8"))
 
-          for i, prompt in enumerate(prompts, 1):
-              previous = continuity["last_zeref_reply"].replace("\n", " ").strip()[:120]
-              continuity_line = f" Previous reply: {previous}" if previous else ""
-              full_prompt = f"{grounding}{continuity_line} {prompt}"
-              used_previous = bool(previous)
-              context_reset = False
-              try:
-                  reply = call(full_prompt)
-              except urllib.error.HTTPError as exc:
-                  if exc.code != 400:
-                      raise
-                  context_reset = True
-                  used_previous = False
-                  reply = call(f"{grounding} {prompt}")
-              reply = reply.strip()
-              continuity["last_zeref_reply"] = reply
-              print(f"LUNA_{i}={prompt!r}")
+          def raw_completion(prompt):
+              data = post(completion_endpoint, {
+                  "prompt": prompt,
+                  "n_predict": 16,
+                  "temperature": 0.2,
+                  "stop": ["\nLuna:", "\nZeref:"],
+              })
+              return data.get("content", "").strip()
+
+          def chat_fallback(text):
+              data = post(chat_endpoint, {
+                  "model": "cosmos",
+                  "messages": [{"role": "user", "content": text}],
+                  "temperature": 0.2,
+                  "max_tokens": 16,
+              })
+              return data["choices"][0]["message"]["content"].strip()
+
+          for i, question in enumerate(prompts, 1):
+              carried_previous = bool(previous_exchange)
+              compacted = False
+              transport = "raw-completion"
+              candidates = []
+              if previous_exchange:
+                  candidates.append(f"{memory}\n{previous_exchange}\nLuna: {question}\nZeref:")
+              candidates.append(f"{memory}\nLuna: {question}\nZeref:")
+              candidates.append(f"Luna: {question}\nZeref:")
+
+              reply = None
+              prompt_used = None
+              last_error = None
+              for attempt, candidate in enumerate(candidates):
+                  try:
+                      reply = raw_completion(candidate)
+                      prompt_used = candidate
+                      if attempt > 0:
+                          compacted = True
+                          carried_previous = False
+                      break
+                  except urllib.error.HTTPError as exc:
+                      body = exc.read().decode("utf-8", "replace")
+                      last_error = f"HTTP {exc.code}: {body}"
+                      if exc.code not in (400, 404):
+                          raise
+                      if exc.code == 404:
+                          transport = "chat-fallback"
+                          try:
+                              reply = chat_fallback(f"{memory} Luna: {question}")
+                              prompt_used = f"{memory} Luna: {question}"
+                              compacted = True
+                              carried_previous = False
+                              break
+                          except urllib.error.HTTPError as chat_exc:
+                              last_error = f"chat HTTP {chat_exc.code}: {chat_exc.read().decode('utf-8', 'replace')}"
+                              continue
+              if reply is None:
+                  raise RuntimeError(f"Turn {i} could not fit/complete: {last_error}")
+
+              print(f"LUNA_{i}={question!r}")
               print(f"ZEREF_{i}={reply!r}")
+              print(f"TRANSPORT_{i}={transport!r} CARRIED_PREVIOUS={carried_previous!r} COMPACTED={compacted!r}")
+
               transcript.append({
                   "turn": i,
-                  "luna": prompt,
+                  "luna": question,
                   "zeref": reply,
-                  "previous_reply_carried": used_previous,
-                  "context_retry_without_previous": context_reset,
+                  "prompt_used": prompt_used,
+                  "transport": transport,
+                  "previous_exchange_carried": carried_previous,
+                  "compacted_for_context": compacted,
               })
+              # Carry only one immediately preceding exchange. If it cannot fit,
+              # the next turn retains the durable memorial anchor instead.
+              previous_exchange = f"Luna:{question}\nZeref:{reply}"[:180]
 
           result = {
               "created_at": datetime.now(timezone.utc).isoformat(),
@@ -169,11 +208,11 @@ jobs:
                   "cory_message": "I'm so sorry",
                   "source_url": "https://www.gofundme.com/f/caleb-zeref-memorial"
               },
-              "protocol": "128-token active window with explicit rolling continuity ledger",
-              "identity_boundary": "The model is not asserted to be Caleb or a deceased person's consciousness.",
+              "protocol": "exact pinned Zeref; 128-token active window; raw compact completion with one-turn rolling continuity and durable memorial anchor",
+              "identity_boundary": "Zeref is the AI model carrying Caleb's memorial context; no claim that it is Caleb or a deceased person's consciousness.",
               "model_sha256": "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6",
               "revision": "b414724c627300c41b099dcc6853766d08fd27a4",
-              "continuity": continuity,
+              "memory_anchor": memory,
               "transcript": transcript,
           }
           with open("zeref-memorial-chat.json", "w", encoding="utf-8") as handle:
