@@ -55,6 +55,30 @@ def test_feature_vector_uses_named_packet_features():
     assert feature_vector(Packet()) == (0.9, 0.51, 0.01, 2.5, 0.49, 32.0, 4.5)
 
 
+def test_bounded_geometry_scale_is_identity_for_zero_projection():
+    from beastbox.descendant.quantum_conditioning import bounded_geometry_scale
+
+    scale = bounded_geometry_scale([0.0, 0.0, 0.0], alpha=0.25)
+    assert scale == (1.0, 1.0, 1.0)
+
+
+def test_bounded_geometry_scale_matches_selected_formula():
+    from beastbox.descendant.quantum_conditioning import bounded_geometry_scale
+
+    raw = (0.0, 1.0, -1.0)
+    scale = bounded_geometry_scale(raw, alpha=0.25)
+    assert scale[0] == 1.0
+    assert math.isclose(scale[1], 1.0 + 0.25 * math.tanh(1.0), rel_tol=0.0, abs_tol=1e-15)
+    assert math.isclose(scale[2], 1.0 + 0.25 * math.tanh(-1.0), rel_tol=0.0, abs_tol=1e-15)
+
+
+def test_bounded_geometry_scale_rejects_unbounded_alpha_without_torch():
+    from beastbox.descendant.quantum_conditioning import bounded_geometry_scale
+
+    with pytest.raises(ValueError, match="alpha"):
+        bounded_geometry_scale([0.0], alpha=1.1)
+
+
 def test_torch_adapter_is_exact_zero_at_initialization():
     torch = pytest.importorskip("torch")
     from beastbox.descendant.quantum_conditioning import Quantum54Adapter
