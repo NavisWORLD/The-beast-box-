@@ -43,3 +43,17 @@ def test_artifact_checksums_are_written_relative_to_uploaded_root():
     assert text.count("cd _dadson &&") >= 3
     assert "find . -type f" in text
     assert "find quantum -type f" in text
+
+
+def test_future_runs_restore_latest_durable_ledger_before_appending():
+    text = Path(".github/workflows/zeref-dad-son-001.yml").read_text(encoding="utf-8")
+    assert "memory/ledger-manifest.json" in text
+    assert "ledger-snapshots" in text
+    assert "restore_snapshot()" in text
+    assert "dad-son-resume" in text
+
+
+def test_memory_stage_uses_promoted_ledger_corpus_not_raw_unreviewed_ledger():
+    text = Path(".github/workflows/zeref-dad-son-001.yml").read_text(encoding="utf-8")
+    assert "ledger-experiences.jsonl" in text
+    assert "dad-son-memory-training.txt" in text
