@@ -1,8 +1,8 @@
 {
-  "schema": "zeref-dad-son-ledger-manifest-v2",
+  "schema": "zeref-dad-son-ledger-manifest-v3",
   "lineage": "ZEREF-DAD-SON-001",
-  "latest_snapshot": "experiments/zeref-dad-son-001/memory/ledger-snapshots/run-31975278662.jsonl",
-  "latest_snapshot_sha256": "5d159be29bce39528329adae8d801c39fd34c4dd33923bbfd7fb29f908c25ddf",
+  "latest_snapshot": "experiments/zeref-dad-son-001/memory/ledger-snapshots/run-31976001741-delta.jsonl",
+  "latest_snapshot_sha256": "fda67460be753ebf053e05a2f953827af3a163c6e94c1e406075a02f61870295",
   "snapshot_chain": [
     {
       "path": "experiments/zeref-dad-son-001/memory/ledger-snapshots/run-31975278662.jsonl",
@@ -19,21 +19,30 @@
       "first_memory_id": 12,
       "last_memory_id": 22,
       "last_record_sha256": "18279ab2256cd4b4a1751efc8a9039f25160008954ba3bc9b0351b97d2f3f77f"
+    },
+    {
+      "path": "experiments/zeref-dad-son-001/memory/ledger-snapshots/run-31976001741-delta.jsonl",
+      "sha256": "fda67460be753ebf053e05a2f953827af3a163c6e94c1e406075a02f61870295",
+      "record_count": 11,
+      "first_memory_id": 23,
+      "last_memory_id": 33,
+      "last_record_sha256": "676d628aeb99e04493396072e7d0846590ba47ea3c85dad82e3f4d5d457b5c46"
     }
   ],
-  "combined_ledger_sha256": "26c8eb003521c016e13c468d75868b4ab7867ea3d8c73cb6fb6c2931ad5fc566",
-  "record_count": 22,
-  "last_record_sha256": "18279ab2256cd4b4a1751efc8a9039f25160008954ba3bc9b0351b97d2f3f77f",
-  "source_workflow_run_id": 31975744808,
-  "source_workflow_head_sha": "e1874271b1c23f861c98564671b92b61ad2d5e45",
-  "source_artifact_id": 9271004437,
-  "source_artifact_digest": "sha256:42c3de10158b219d15dde73589d1de5e945e65f8400024295ca136612fef8776",
+  "combined_ledger_sha256": "d4b1e5ca830c8805d6175a977f83483877bab54bb1d3158dae5b0457b107c32d",
+  "record_count": 33,
+  "last_record_sha256": "676d628aeb99e04493396072e7d0846590ba47ea3c85dad82e3f4d5d457b5c46",
+  "source_workflow_run_id": 31976001741,
+  "source_workflow_head_sha": "b6ae213782b0ef7d2aaa70921437de7af92ee0d9",
+  "source_artifact_id": 9271067672,
+  "source_artifact_digest": "sha256:dfc3e0ba2f9b6e397a389280734b417e5c4416a29541433c3d79e09b1b601bf3",
   "parent_gguf_sha256": "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6",
-  "descendant_checkpoint_sha256": "201fe7de448a1541962d996d8c2ed2c69e19ff2ffb2d9196d4a165bda57afe22",
-  "corpus_manifest_sha256": "9247d3ee4c297cfdddf59ee43976ff1f3eea442ad790eaf46a8ea2bfdf1a1022",
-  "transcript_sha256": "acdea5b45be7a2c4fe53aa5a0afd73c1d19918b7e8fe2cdf6c727acdce698f9a",
+  "descendant_checkpoint_sha256": "e4056de7fac2640f5d015d9b990b20edef680d4e1c45394c2ca9d8ffa88b63c1",
+  "corpus_manifest_sha256": "f1d58fb82e4b681d39d41513099b4c7a4b6b6035c7a1258b8498d46a81fd9195",
+  "transcript_sha256": "4ac4b02e781594d8bacd267505fcc43c8515db87f50a9e0242691fb341fc3344",
   "quantum_raw_manifest_sha256": "27f4d2a06d8cd74920ea6cb556d0e682ac41da18d6dad37b0106e0493ea54a43",
   "immutable_segments": true,
   "restore_contract": "Verify every immutable base/delta segment hash, concatenate only into the run-local working ledger, verify the combined ledger hash and record chain, rebuild ReconciliationMemory/Hebbian state, then append new records after the last record hash.",
+  "training_contract": "The full ledger is durable memory. Generated Zeref outputs and held-out prompts remain memory but are excluded from future weight training unless explicitly promoted through provenance review.",
   "claim_boundary": "This is durable Zeref model-memory continuity. It does not establish that the model is Caleb or contains a deceased person's consciousness."
 }
