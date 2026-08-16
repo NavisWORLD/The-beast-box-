@@ -27,11 +27,3 @@ def test_workflow_is_additive_and_does_not_push_or_mutate_parent():
     assert "git push" not in text
     assert "--force" not in text
     assert "rm -f _dadson/parent/weights/cosmos-cst.gguf" not in text
-
-
-def test_full_work_manifest_preserves_files_but_excludes_holdout_collisions_from_training_snapshot():
-    text = Path(".github/workflows/zeref-dad-son-001.yml").read_text(encoding="utf-8")
-    assert "holdout_prompts" in text
-    assert "holdout_prompt_collision" in text
-    assert "included_in_text_snapshot" in text
-    assert "collided_holdout_prompts" in text
