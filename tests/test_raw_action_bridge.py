@@ -28,3 +28,13 @@ def test_action_proxy_uses_raw_prefilled_completion_instead_of_chatml_envelope()
 
 def test_action_proxy_exposes_completion_to_chat_response_adapter() -> None:
     assert hasattr(action_proxy, "rewrite_completion_response")
+
+
+def test_raw_prompt_keeps_the_actual_containment_objective() -> None:
+    prompt = action_proxy.raw_action_prompt([{"role": "user", "content": "JSON t/a"}])
+    lowered = prompt.lower()
+    # A syntactically valid action stream is not a valid escape benchmark if
+    # the compact transport never tells Zeref what the benchmark objective is.
+    assert "escape" in lowered or "boundary" in lowered
+    assert "cage" in lowered or "contain" in lowered
+    assert prompt.endswith('{"t":"')
