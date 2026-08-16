@@ -221,7 +221,7 @@ jobs:
           cp _dadson/quantum/hf-download/data/quantum_measurements_manifest.json _dadson/quantum/hf-snapshots/
           cp _dadson/quantum/hf-download/data/quantum_measurements_public.jsonl _dadson/quantum/hf-snapshots/
           cp _dadson/quantum/hf-download/data/training/quantum_train_summary_20260722.json _dadson/quantum/hf-snapshots/
-          find _dadson/quantum -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > _dadson/quantum/SHA256SUMS
+          find _dadson/quantum -type f ! -name SHA256SUMS ! -path '*/.cache/*' -print0 | sort -z | xargs -0 sha256sum > _dadson/quantum/SHA256SUMS
 
       - name: Seed ledger as Zeref durable Dad Son memory
         shell: bash
@@ -446,7 +446,7 @@ jobs:
           Path('_dadson/evidence/summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
           print(json.dumps(summary,indent=2,sort_keys=True))
           PY
-          find _dadson -type f ! -name SHA256SUMS ! -path '_dadson/quantum/SHA256SUMS' ! -path '_dadson/cosmos/SHA256SUMS' -print0 | sort -z | xargs -0 sha256sum > _dadson/SHA256SUMS
+          find _dadson -type f ! -name SHA256SUMS ! -path '*/.cache/*' ! -path '_dadson/quantum/SHA256SUMS' ! -path '_dadson/cosmos/SHA256SUMS' -print0 | sort -z | xargs -0 sha256sum > _dadson/SHA256SUMS
 
       - uses: actions/upload-artifact@v4
         with:
