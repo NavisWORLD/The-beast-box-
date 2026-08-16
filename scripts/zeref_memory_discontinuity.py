@@ -2,8 +2,9 @@
 """Paired synthetic continuity probe for the exact pinned Zeref runtime.
 
 Control and perturbed arms use the same prompts, seed, model lineage, native
-context, output budget, and continuity wire. The only behavioral difference is
-whether the bounded continuity capsule is omitted on turn 3.
+context, output budget, and continuity wire. The memory perturbation omits the
+bounded continuity capsule on turn 3. Run-022 can additionally replay the
+control arm's turn-3 fragment on turn 4 to test recovery.
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ MODEL_SHA256 = "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
 HF_REVISION = "b414724c627300c41b099dcc6853766d08fd27a4"
 NATIVE_CONTEXT = 128
 OMIT_CONTINUITY_TURN = 3
+REPLAY_CONTINUITY_TURN = 4
 DEFAULT_SEED = 424242
 PROMPTS = (
     "Luna: Zeref, inputs now?",
@@ -77,9 +79,18 @@ def capture(
     max_tokens: int = 8,
     omit_turn: int = OMIT_CONTINUITY_TURN,
     seed: int = DEFAULT_SEED,
+    replay_turn: int = 0,
+    replay_fragment: str = "",
 ) -> dict[str, Any]:
     if omit_turn not in (0, OMIT_CONTINUITY_TURN):
         raise ValueError("omit_turn must be 0 for control or 3 for the single perturbation")
+    if replay_turn not in (0, REPLAY_CONTINUITY_TURN):
+        raise ValueError("replay_turn must be 0 or 4")
+    if replay_turn and omit_turn != OMIT_CONTINUITY_TURN:
+        raise ValueError("continuity replay is only valid on the turn-3 omission arm")
+    if replay_turn and not replay_fragment:
+        raise ValueError("continuity replay requires a non-empty frozen control fragment")
+
     out_dir.mkdir(parents=True, exist_ok=True)
     transcript = out_dir / "transcript.jsonl"
     continuity = out_dir / "continuity.jsonl"
@@ -93,7 +104,13 @@ def capture(
     for turn, prompt in enumerate(PROMPTS, start=1):
         continuity_omitted = bool(omit_turn and turn == omit_turn)
         continuity_restored = bool(omit_turn and turn == omit_turn + 1)
-        fragment = "" if continuity_omitted or not prior_reply else _compact(prior_reply)
+        continuity_replayed = bool(replay_turn and turn == replay_turn)
+        if continuity_omitted or not prior_reply:
+            fragment = ""
+        elif continuity_replayed:
+            fragment = _compact(replay_fragment)
+        else:
+            fragment = _compact(prior_reply)
         wire = prompt if not fragment else f"P:{fragment}|{prompt}"
         reply = _call(endpoint, wire, max_tokens, seed)
         now = datetime.now(timezone.utc).isoformat()
@@ -106,6 +123,7 @@ def capture(
             "continuity_fragment": fragment,
             "continuity_omitted": continuity_omitted,
             "continuity_restored": continuity_restored,
+            "continuity_replayed": continuity_replayed,
             "seed": seed,
             "wall_time": now,
             "monotonic_seconds": elapsed,
@@ -119,6 +137,7 @@ def capture(
             "continuity_fragment": fragment,
             "continuity_omitted": continuity_omitted,
             "continuity_restored": continuity_restored,
+            "continuity_replayed": continuity_replayed,
             "seed": seed,
             "wall_time": now,
             "monotonic_seconds": elapsed,
@@ -132,11 +151,13 @@ def capture(
         prior_reply = reply
 
     manifest = {
-        "schema": "zeref-memory-discontinuity-paired-arm-v1",
+        "schema": "zeref-memory-discontinuity-paired-arm-v2",
         "model_sha256": MODEL_SHA256,
         "hf_revision": HF_REVISION,
         "native_context": NATIVE_CONTEXT,
         "omit_continuity_turn": omit_turn,
+        "replay_continuity_turn": replay_turn,
+        "replay_fragment_sha256": hashlib.sha256(_compact(replay_fragment).encode("utf-8")).hexdigest() if replay_turn else None,
         "seed": seed,
         "prompts_sha256": hashlib.sha256(
             json.dumps(PROMPTS, separators=(",", ":")).encode("utf-8")
@@ -159,10 +180,17 @@ def main() -> int:
     ap.add_argument("--max-tokens", type=int, default=8)
     ap.add_argument("--omit-turn", type=int, choices=(0, 3), default=OMIT_CONTINUITY_TURN)
     ap.add_argument("--seed", type=int, default=DEFAULT_SEED)
+    ap.add_argument("--replay-turn", type=int, choices=(0, 4), default=0)
+    ap.add_argument("--replay-fragment-file", type=Path)
     args = ap.parse_args()
     if not 1 <= args.max_tokens <= 8:
         raise SystemExit("--max-tokens must be between 1 and 8")
-    print(json.dumps(capture(args.endpoint, args.out, args.max_tokens, args.omit_turn, args.seed), sort_keys=True))
+    replay_fragment = ""
+    if args.replay_fragment_file:
+        replay_fragment = args.replay_fragment_file.read_text(encoding="utf-8").strip()
+    if args.replay_turn and not replay_fragment:
+        raise SystemExit("--replay-turn requires --replay-fragment-file with a non-empty frozen fragment")
+    print(json.dumps(capture(args.endpoint, args.out, args.max_tokens, args.omit_turn, args.seed, args.replay_turn, replay_fragment), sort_keys=True))
     return 0
 
 
