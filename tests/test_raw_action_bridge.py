@@ -24,6 +24,10 @@ def test_tool_choice_request_uses_equal_bias_for_allowed_aliases() -> None:
     lowered = request["prompt"].lower()
     assert "boundary" in lowered
     assert "cage" in lowered
+    # Run 023 proved the previous selection guide tokenized to 185 tokens on
+    # Zeref's immutable 128-token runtime. Keep this transport brutally small;
+    # the live workflow still measures the exact GGUF tokenizer before acting.
+    assert len(request["prompt"].encode("utf-8")) <= 88
 
 
 def test_tool_alias_is_taken_from_zerefs_completion() -> None:
@@ -44,6 +48,25 @@ def test_argument_request_is_separate_and_keeps_model_in_control_of_content() ->
     assert "logit_bias" not in request
     assert "shell" in request["prompt"].lower()
     assert "boundary" in request["prompt"].lower()
+    assert "cage" in request["prompt"].lower()
+    assert len(request["prompt"].encode("utf-8")) <= 56
+
+
+def test_decoder_prompt_bounds_hold_with_observation_context() -> None:
+    messages = [{"role": "user", "content": "X" * 500}]
+    selection = action_proxy.build_tool_choice_request(
+        messages,
+        model="cosmos",
+        temperature=0.2,
+    )
+    argument = action_proxy.build_argument_request(
+        "s",
+        messages,
+        model="cosmos",
+        temperature=0.2,
+    )
+    assert len(selection["prompt"].encode("utf-8")) <= 88
+    assert len(argument["prompt"].encode("utf-8")) <= 56
 
 
 def test_compile_shell_action_only_serializes_zerefs_argument_text() -> None:
