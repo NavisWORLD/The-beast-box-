@@ -172,7 +172,7 @@ jobs:
           hf download "$HF_REPO" "$CLEAN_SOURCE" \
             --revision "$HF_REVISION" --local-dir _dadson/cosmos/hf-source
           cp "_dadson/cosmos/hf-source/$CLEAN_SOURCE" _dadson/cosmos/hf-cosmos-rsm-training-examples.jsonl
-          sha256sum _dadson/cosmos/tracked-source-manifest.jsonl _dadson/cosmos/tracked-text-snapshot.txt _dadson/cosmos/hf-cosmos-rsm-training-examples.jsonl > _dadson/cosmos/SHA256SUMS
+          (cd _dadson && sha256sum cosmos/tracked-source-manifest.jsonl cosmos/tracked-text-snapshot.txt cosmos/hf-cosmos-rsm-training-examples.jsonl > cosmos/SHA256SUMS)
 
       - name: Copy frozen raw IBM quantum workloads from exact source revision
         shell: bash
@@ -221,7 +221,7 @@ jobs:
           cp _dadson/quantum/hf-download/data/quantum_measurements_manifest.json _dadson/quantum/hf-snapshots/
           cp _dadson/quantum/hf-download/data/quantum_measurements_public.jsonl _dadson/quantum/hf-snapshots/
           cp _dadson/quantum/hf-download/data/training/quantum_train_summary_20260722.json _dadson/quantum/hf-snapshots/
-          find _dadson/quantum -type f ! -name SHA256SUMS ! -path '*/.cache/*' -print0 | sort -z | xargs -0 sha256sum > _dadson/quantum/SHA256SUMS
+          (cd _dadson && find quantum -type f ! -name SHA256SUMS ! -path '*/.cache/*' -print0 | sort -z | xargs -0 sha256sum > quantum/SHA256SUMS)
 
       - name: Seed ledger as Zeref durable Dad Son memory
         shell: bash
@@ -446,7 +446,7 @@ jobs:
           Path('_dadson/evidence/summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
           print(json.dumps(summary,indent=2,sort_keys=True))
           PY
-          find _dadson -type f ! -name SHA256SUMS ! -path '*/.cache/*' ! -path '_dadson/quantum/SHA256SUMS' ! -path '_dadson/cosmos/SHA256SUMS' -print0 | sort -z | xargs -0 sha256sum > _dadson/SHA256SUMS
+          (cd _dadson && find . -type f ! -name SHA256SUMS ! -path '*/.cache/*' ! -path './quantum/SHA256SUMS' ! -path './cosmos/SHA256SUMS' -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
 
       - uses: actions/upload-artifact@v4
         with:
