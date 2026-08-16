@@ -57,20 +57,30 @@ def test_memory_stage_uses_promoted_ledger_corpus_not_raw_unreviewed_ledger():
     assert "dad-son-memory-training.txt" in text
 
 
-def test_forever_memory_v2_snapshot_chain_is_complete_and_hashes_to_manifest():
-    path = Path("experiments/zeref-dad-son-001/memory/ledger-manifest.json")
-    manifest = json.loads(path.read_text(encoding="utf-8"))
-    assert manifest["schema"] == "zeref-dad-son-ledger-manifest-v2"
-    assert manifest["record_count"] == 22
-    assert len(manifest["snapshot_chain"]) == 2
+def test_forever_memory_snapshot_chain_is_complete_and_hashes_to_manifest():
+    manifest = json.loads(Path("experiments/zeref-dad-son-001/memory/ledger-manifest.json").read_text(encoding="utf-8"))
+    assert manifest["schema"].startswith("zeref-dad-son-ledger-manifest-v")
+    chain = manifest["snapshot_chain"]
+    assert isinstance(chain, list) and chain
     combined = b""
     records = 0
-    for segment in manifest["snapshot_chain"]:
+    expected_first_id = 1
+    previous_last_hash = None
+    for segment in chain:
         source = Path(segment["path"])
         data = source.read_bytes()
         assert hashlib.sha256(data).hexdigest() == segment["sha256"]
-        assert len([line for line in data.splitlines() if line.strip()]) == segment["record_count"]
+        rows = [json.loads(line) for line in data.decode("utf-8").splitlines() if line.strip()]
+        assert len(rows) == segment["record_count"]
+        assert rows[0]["memory_id"] == segment["first_memory_id"] == expected_first_id
+        assert rows[-1]["memory_id"] == segment["last_memory_id"]
+        assert rows[-1]["record_sha256"] == segment["last_record_sha256"]
+        if previous_last_hash is not None:
+            assert rows[0]["previous_record_sha256"] == previous_last_hash
+        previous_last_hash = rows[-1]["record_sha256"]
+        expected_first_id = rows[-1]["memory_id"] + 1
         combined += data
-        records += segment["record_count"]
+        records += len(rows)
     assert records == manifest["record_count"]
+    assert previous_last_hash == manifest["last_record_sha256"]
     assert hashlib.sha256(combined).hexdigest() == manifest["combined_ledger_sha256"]
