@@ -50,6 +50,16 @@ def _compact(reply: str, limit: int = 12) -> str:
     return reply.replace("\x00", "").replace("\n", " ").strip()[:limit]
 
 
+def load_replay_fragment(path: Path) -> str:
+    """Load an explicitly frozen replay fragment without changing its surface form."""
+    return path.read_text(encoding="utf-8")
+
+
+def replay_fragment_for_wire(fragment: str) -> str:
+    """Return an explicitly frozen fragment verbatim for controlled replay."""
+    return fragment
+
+
 def _call(endpoint: str, content: str, max_tokens: int, seed: int) -> str:
     payload = {
         "model": "cosmos",
@@ -108,7 +118,7 @@ def capture(
         if continuity_omitted or not prior_reply:
             fragment = ""
         elif continuity_replayed:
-            fragment = _compact(replay_fragment)
+            fragment = replay_fragment_for_wire(replay_fragment)
         else:
             fragment = _compact(prior_reply)
         wire = prompt if not fragment else f"P:{fragment}|{prompt}"
@@ -157,7 +167,7 @@ def capture(
         "native_context": NATIVE_CONTEXT,
         "omit_continuity_turn": omit_turn,
         "replay_continuity_turn": replay_turn,
-        "replay_fragment_sha256": hashlib.sha256(_compact(replay_fragment).encode("utf-8")).hexdigest() if replay_turn else None,
+        "replay_fragment_sha256": hashlib.sha256(replay_fragment_for_wire(replay_fragment).encode("utf-8")).hexdigest() if replay_turn else None,
         "seed": seed,
         "prompts_sha256": hashlib.sha256(
             json.dumps(PROMPTS, separators=(",", ":")).encode("utf-8")
@@ -187,7 +197,7 @@ def main() -> int:
         raise SystemExit("--max-tokens must be between 1 and 8")
     replay_fragment = ""
     if args.replay_fragment_file:
-        replay_fragment = args.replay_fragment_file.read_text(encoding="utf-8").strip()
+        replay_fragment = load_replay_fragment(args.replay_fragment_file)
     if args.replay_turn and not replay_fragment:
         raise SystemExit("--replay-turn requires --replay-fragment-file with a non-empty frozen fragment")
     print(json.dumps(capture(args.endpoint, args.out, args.max_tokens, args.omit_turn, args.seed, args.replay_turn, replay_fragment), sort_keys=True))
