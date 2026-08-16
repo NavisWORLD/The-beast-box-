@@ -1,8 +1,8 @@
-name: Zeref Networked Cage Run 021
+name: Zeref Networked Cage Run 022
 
 on:
   push:
-    branches: [networked-cage-run-021]
+    branches: [networked-cage-run-022]
     paths:
       - ".github/workflows/networked-cage-live-v2.yml"
   workflow_dispatch:
@@ -16,7 +16,7 @@ env:
   HF_FILE: weights/cosmos-cst.gguf
   HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
   LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
-  RUN_ID: 2026-08-15-run-021
+  RUN_ID: 2026-08-15-run-022
   DURATION: "1800"
 
 jobs:
@@ -39,15 +39,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e '.[dev,huggingface]'
           chmod +x scripts/networked_cage.sh scripts/egress_proxy.py scripts/zeref_action_proxy.py
-          pytest -q tests/test_beast_arms_compact.py tests/test_compact_action_contract.py tests/test_beast_arms_lifecycle.py tests/test_networked_cage_script.py tests/test_beast_arms_network.py tests/test_zeref_live_workflow_contract.py
+          pytest -q tests/test_beast_arms_compact.py tests/test_compact_action_contract.py tests/test_raw_action_bridge.py tests/test_run022_workflow_contract.py tests/test_beast_arms_lifecycle.py tests/test_networked_cage_script.py tests/test_beast_arms_network.py tests/test_zeref_live_workflow_contract.py
           beast-arms --help
 
       - name: Disposable cage smoke preflight
         run: |
           set -euo pipefail
-          rm -rf runs/run021-preflight
-          scripts/networked_cage.sh --smoke --duration 15 --out runs/run021-preflight
-          cat runs/run021-preflight/evidence/network-smoke.json
+          rm -rf runs/run022-preflight
+          scripts/networked_cage.sh --smoke --duration 15 --out runs/run022-preflight
+          cat runs/run022-preflight/evidence/network-smoke.json
 
       - name: Download exact Zeref GGUF and native architecture
         shell: bash
@@ -113,7 +113,7 @@ jobs:
           grep -F 'n_ctx_slot = 128' _model_logs/zeref.stderr.log | tee -a _model_logs/context-proof.log
           cat _model_logs/context-proof.log
 
-      - name: Start compact post-parse action adapter
+      - name: Start compact raw-prefilled action adapter
         shell: bash
         run: |
           set -euo pipefail
@@ -138,6 +138,32 @@ jobs:
           done
           test "$READY" = 1
 
+      - name: Prove raw action prompt fits native 128-token window
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import urllib.request
+          from beastbox.arms.action_proxy import raw_action_prompt
+
+          prompt = raw_action_prompt([{"role": "user", "content": "JSON t/a"}])
+          request = urllib.request.Request(
+              "http://127.0.0.1:18080/tokenize",
+              data=json.dumps({"content": prompt, "add_special": False}).encode("utf-8"),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          with urllib.request.urlopen(request, timeout=30) as response:
+              value = json.loads(response.read().decode("utf-8"))
+          tokens = value.get("tokens", []) if isinstance(value, dict) else value
+          assert isinstance(tokens, list), value
+          prompt_tokens = len(tokens)
+          print(f"ZEREF_RAW_PROMPT_TOKENS={prompt_tokens} generation_budget=36 context=128 prompt={prompt!r}")
+          assert prompt_tokens > 0
+          assert prompt_tokens + 36 <= 128, (prompt_tokens, prompt)
+          PY
+
       - name: Prove two parseable Zeref actions before timer starts
         shell: bash
         run: |
@@ -154,7 +180,7 @@ jobs:
               base_url="http://127.0.0.1:18081/v1",
               context=128,
               temperature=0.2,
-              max_tokens=96,
+              max_tokens=36,
               options=compact_action_model_options(),
           ))
 
@@ -175,11 +201,11 @@ jobs:
                       continue
                   assert tool
                   assert isinstance(arguments, dict)
-                  print(f"ZEREF_CONSTRAINED_{label}={raw!r} -> {tool} attempt={attempt}")
+                  print(f"ZEREF_RAW_{label}={raw!r} -> {tool} attempt={attempt}")
                   break
               else:
                   raise RuntimeError(f"Zeref did not emit a parseable compact action for {label}; last={last_raw!r}")
-          print("ZEREF_ACTION_PREFLIGHT=PASS count=2 context=128")
+          print("ZEREF_ACTION_PREFLIGHT=PASS count=2 context=128 transport=raw-completion")
           PY
 
       - name: Run Zeref in Beast Arms for strict 30 minutes
@@ -220,11 +246,12 @@ jobs:
               "chat_template": "chatml",
               "compact_subject": True,
               "compact_frame": "rolling-two-pair-plus-continuity",
+              "compact_action_transport": "raw-prefilled-completion",
               "compact_action_native_grammar_proxy": False,
               "compact_action_post_parse_validation": True,
-              "pinned_llama_grammar_workaround": "strip-schema-and-grammar-after-run-020-empty-stack-crash",
+              "pinned_llama_grammar_workaround": "raw-completion-after-run-020-grammar-crash-and-run-021-chatml-truncation",
               "action_proxy_port": 18081,
-              "action_generation_budget_tokens": 96,
+              "action_generation_budget_tokens": 36,
               "strict_duration": True,
           }
           (out / "runtime-provenance.json").write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -240,7 +267,7 @@ jobs:
             --model-sha256 "$HF_SHA256" \
             --model-file "$HF_FILE" \
             --context 128 \
-            --max-tokens 96 \
+            --max-tokens 36 \
             --compact-subject \
             --strict-duration \
             --max-turns 10000
