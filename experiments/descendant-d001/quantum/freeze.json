@@ -1,0 +1,29 @@
+{
+  "schema": "d001-quantum-geometry-freeze-v1",
+  "status": "COMPLETED_NULL_ADVANTAGE",
+  "workflow_run_id": 31925522392,
+  "artifact_id": 9257716203,
+  "artifact_zip_sha256": "72bbcd851595a30b7bf31182956d718161ad96a600f3e599c954a1f215ad3cbf",
+  "parent_release_checkpoint": {
+    "stage": "D001-MEMORY",
+    "sha256": "c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f"
+  },
+  "experimental_quantum_bundle": {
+    "arm": "hardware",
+    "adapter_sha256": "e21958fd9ebd7e19de235d3ea4a778118ac2483073272f65af2d4962f52d661b",
+    "alpha": 0.25,
+    "quantum_source": "measurement-conditioned-v1",
+    "base_model_mutated": false,
+    "geometry_live": true
+  },
+  "release_decision": {
+    "formal_release_parent": "D001-MEMORY",
+    "formal_release_parent_sha256": "c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f",
+    "hardware_bundle_status": "EXPERIMENTAL_CANDIDATE_PENDING_NO_SENSOR_CHAT",
+    "reason": "The adapter-only hardware bundle is numerically stable, zero-impact at initialization, geometry-live, and leaves MEMORY tensors unchanged. The matched-control holdout shows no hardware-specific advantage, and a direct no-camera/no-microphone hallucination check has not yet been frozen for this bundle. Preserve the quantum experiment but keep MEMORY as the formal release parent until that check is completed."
+  },
+  "signal_claim_allowed": false,
+  "quantum_advantage_claimed": false,
+  "quantum_advantage_result": "NULL",
+  "next_action": "Run a direct four-turn inference chat against D001-MEMORY plus the frozen hardware adapter and provenance-locked packet, explicitly declaring camera=false and microphone=false. Freeze generated transcript and sensor-claim score before any release-parent promotion decision."
+}
