@@ -35,14 +35,7 @@ def file_sha256(path: str | Path) -> str:
 
 
 class DadSonLedger:
-    """Append-only Dad/Son evidence layered over ReconciliationMemory.
-
-    SQLite remains the searchable durable memory store. The JSONL ledger is the
-    immutable experiment record with explicit hashes, ancestry and recall links.
-    Existing rows are never rewritten by this class. A verified JSONL snapshot
-    can rebuild the searchable SQLite/Hebbian state after process or machine
-    death without changing a byte of the authoritative ledger.
-    """
+    """Append-only Dad/Son evidence layered over ReconciliationMemory."""
 
     def __init__(
         self,
@@ -109,12 +102,7 @@ class DadSonLedger:
             "descendant_sha256": descendant_sha256.lower() if descendant_sha256 else None,
             **dict(metadata or {}),
         }
-        memory_id = self.memory.store(
-            text,
-            kind=kind,
-            metadata=memory_metadata,
-            source_ids=normalized_recall_ids,
-        )
+        memory_id = self.memory.store(text, kind=kind, metadata=memory_metadata, source_ids=normalized_recall_ids)
 
         row: dict[str, Any] = {
             "schema": "zeref-dad-son-ledger-v1",
@@ -137,25 +125,56 @@ class DadSonLedger:
             handle.write(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n")
         return row
 
+    def _materialize_declared_snapshot_chain(self) -> int:
+        """Assemble immutable base+delta segments into this run's working ledger."""
+        manifest_path = self.evidence_jsonl.parent / "ledger-manifest.json"
+        if not manifest_path.exists():
+            return 0
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        chain = manifest.get("snapshot_chain")
+        if not isinstance(chain, list) or not chain:
+            return 0
+
+        chunks: list[bytes] = []
+        total_records = 0
+        for index, segment in enumerate(chain, 1):
+            path = Path(str(segment["path"]))
+            if not path.is_file():
+                raise RuntimeError(f"Dad/Son snapshot chain segment {index} is missing: {path}")
+            expected_sha = str(segment["sha256"]).lower()
+            if file_sha256(path) != expected_sha:
+                raise RuntimeError(f"Dad/Son snapshot chain segment {index} hash mismatch")
+            data = path.read_bytes()
+            chunks.append(data)
+            total_records += int(segment["record_count"])
+
+        combined = b"".join(chunks)
+        expected_combined = str(manifest.get("combined_ledger_sha256") or "").lower()
+        if expected_combined and hashlib.sha256(combined).hexdigest() != expected_combined:
+            raise RuntimeError("Dad/Son combined snapshot chain hash mismatch")
+        if int(manifest.get("record_count") or total_records) != total_records:
+            raise RuntimeError("Dad/Son snapshot chain record count mismatch")
+        self.evidence_jsonl.write_bytes(combined)
+        return len(chain)
+
     def restore_snapshot(self) -> dict[str, Any]:
-        """Rebuild searchable Synaptic/SQLite state from the immutable JSONL ledger.
+        """Verify ledger ancestry and rebuild searchable SQLite/Hebbian state.
 
-        The JSONL bytes are never edited. Restore is allowed only into an empty
-        memory database so a snapshot cannot be accidentally duplicated. Every
-        row is verified before it is replayed: ancestry, hash chain, raw payload,
-        canonical record hash, sequential memory id and timestamp.
+        A normal standalone snapshot is never rewritten during replay. When a
+        sibling `ledger-manifest.json` declares `snapshot_chain`, immutable
+        repository base/delta segments are first verified and concatenated into
+        this run's disposable working ledger; the source segments remain intact.
         """
-
         if int(self.memory.db.execute("SELECT COUNT(*) FROM memories").fetchone()[0]) != 0:
             raise RuntimeError("Dad/Son snapshot restore requires an empty searchable memory database")
+        chain_segments = self._materialize_declared_snapshot_chain()
         if not self.evidence_jsonl.exists():
-            return {"restored_records": 0, "last_record_sha256": ZERO_SHA256}
+            return {"restored_records": 0, "last_record_sha256": ZERO_SHA256, "snapshot_segments": chain_segments}
 
         original_bytes = self.evidence_jsonl.read_bytes()
         rows: list[dict[str, Any]] = []
         previous = ZERO_SHA256
         expected_memory_id = 1
-
         try:
             for line_number, raw_line in enumerate(original_bytes.decode("utf-8").splitlines(), 1):
                 if not raw_line.strip():
@@ -168,15 +187,12 @@ class DadSonLedger:
                 if str(row.get("previous_record_sha256") or "").lower() != previous:
                     raise RuntimeError(f"snapshot row {line_number} breaks the record hash chain")
                 text = str(row.get("text") or "")
-                expected_payload = hashlib.sha256(text.encode("utf-8")).hexdigest()
-                if str(row.get("raw_payload_sha256") or "").lower() != expected_payload:
+                if str(row.get("raw_payload_sha256") or "").lower() != hashlib.sha256(text.encode("utf-8")).hexdigest():
                     raise RuntimeError(f"snapshot row {line_number} raw payload hash mismatch")
                 record_sha = str(row.get("record_sha256") or "").lower()
-                if not _is_sha256(record_sha):
-                    raise RuntimeError(f"snapshot row {line_number} has invalid record SHA-256")
                 canonical_row = dict(row)
                 canonical_row.pop("record_sha256", None)
-                if hashlib.sha256(_canonical(canonical_row)).hexdigest() != record_sha:
+                if not _is_sha256(record_sha) or hashlib.sha256(_canonical(canonical_row)).hexdigest() != record_sha:
                     raise RuntimeError(f"snapshot row {line_number} canonical record hash mismatch")
                 if int(row.get("memory_id") or 0) != expected_memory_id:
                     raise RuntimeError(f"snapshot row {line_number} memory id is not sequential")
@@ -188,21 +204,17 @@ class DadSonLedger:
             raise RuntimeError(f"Dad/Son snapshot validation failed: {exc}") from exc
 
         for row in rows:
+            recall_ids = [int(value) for value in (row.get("recall_memory_ids") or [])]
             metadata = {
                 "actor": str(row.get("actor") or ""),
                 "session_id": str(row.get("session_id") or ""),
                 "source_hashes": list(row.get("source_hashes") or []),
-                "recall_memory_ids": [int(value) for value in (row.get("recall_memory_ids") or [])],
+                "recall_memory_ids": recall_ids,
                 "parent_sha256": self.parent_sha256,
                 "descendant_sha256": row.get("descendant_sha256"),
                 **dict(row.get("metadata") or {}),
             }
-            memory_id = self.memory.store(
-                str(row.get("text") or ""),
-                kind=str(row.get("kind") or "dialogue"),
-                metadata=metadata,
-                source_ids=[int(value) for value in (row.get("recall_memory_ids") or [])],
-            )
+            memory_id = self.memory.store(str(row.get("text") or ""), kind=str(row.get("kind") or "dialogue"), metadata=metadata, source_ids=recall_ids)
             if memory_id != int(row["memory_id"]):
                 raise RuntimeError("Dad/Son snapshot restore produced a different memory id")
             created_at = datetime.fromisoformat(str(row["timestamp"])).timestamp()
@@ -210,21 +222,13 @@ class DadSonLedger:
         self.memory.db.commit()
 
         if self.evidence_jsonl.read_bytes() != original_bytes:
-            raise RuntimeError("Dad/Son snapshot restore modified the authoritative ledger")
-        return {"restored_records": len(rows), "last_record_sha256": previous}
+            raise RuntimeError("Dad/Son snapshot restore modified the assembled working ledger during replay")
+        return {"restored_records": len(rows), "last_record_sha256": previous, "snapshot_segments": chain_segments}
 
     def recall(self, query: str, *, limit: int = 4) -> list[dict[str, Any]]:
-        hits = self.memory.search(str(query), limit=int(limit))
         return [
-            {
-                "memory_id": hit.id,
-                "text": hit.text,
-                "score": hit.score,
-                "created_at": hit.created_at,
-                "kind": hit.kind,
-                "source_ids": list(hit.source_ids),
-            }
-            for hit in hits
+            {"memory_id": hit.id, "text": hit.text, "score": hit.score, "created_at": hit.created_at, "kind": hit.kind, "source_ids": list(hit.source_ids)}
+            for hit in self.memory.search(str(query), limit=int(limit))
         ]
 
     def resume_probe(self, query: str) -> dict[str, Any]:
