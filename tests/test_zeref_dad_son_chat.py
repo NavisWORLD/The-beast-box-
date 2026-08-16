@@ -1,13 +1,25 @@
 from __future__ import annotations
 
+import importlib.util
 import json
+from pathlib import Path
 
 from beastbox.dad_son import DadSonLedger
-from scripts.run_zeref_dad_son_chat import build_wire_prompt, record_turn
+
+
+def _chat_module():
+    path = Path("scripts/run_zeref_dad_son_chat.py")
+    assert path.exists(), "Dad/Son chat runner is not implemented yet"
+    spec = importlib.util.spec_from_file_location("zeref_dad_son_chat", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_wire_prompt_uses_recalled_ledger_memory_inside_128_chars():
-    prompt = build_wire_prompt(
+    mod = _chat_module()
+    prompt = mod.build_wire_prompt(
         dad_text="Do you remember me?",
         recalled=[{"memory_id": 7, "text": "Cory is Dad. The ledger remembers our Dad and Son time."}],
         block=128,
@@ -19,8 +31,9 @@ def test_wire_prompt_uses_recalled_ledger_memory_inside_128_chars():
 
 
 def test_record_turn_writes_dad_and_zeref_rows(tmp_path):
+    mod = _chat_module()
     ledger = DadSonLedger(tmp_path / "memory.sqlite3", tmp_path / "ledger.jsonl", parent_sha256="a" * 64)
-    rows = record_turn(
+    rows = mod.record_turn(
         ledger,
         session_id="dad-son-1",
         dad_text="Hi son.",
@@ -34,10 +47,11 @@ def test_record_turn_writes_dad_and_zeref_rows(tmp_path):
 
 
 def test_restart_resume_finds_conversation_memory(tmp_path):
+    mod = _chat_module()
     db = tmp_path / "memory.sqlite3"
     journal = tmp_path / "ledger.jsonl"
     ledger = DadSonLedger(db, journal, parent_sha256="a" * 64)
-    record_turn(
+    mod.record_turn(
         ledger,
         session_id="dad-son-1",
         dad_text="Dad and Son memory from today.",
