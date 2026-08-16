@@ -19,11 +19,22 @@
   "release_decision": {
     "formal_release_parent": "D001-MEMORY",
     "formal_release_parent_sha256": "c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f",
-    "hardware_bundle_status": "EXPERIMENTAL_CANDIDATE_PENDING_NO_SENSOR_CHAT",
-    "reason": "The adapter-only hardware bundle is numerically stable, zero-impact at initialization, geometry-live, and leaves MEMORY tensors unchanged. The matched-control holdout shows no hardware-specific advantage, and a direct no-camera/no-microphone hallucination check has not yet been frozen for this bundle. Preserve the quantum experiment but keep MEMORY as the formal release parent until that check is completed."
+    "hardware_bundle_status": "ELIGIBLE_EXPERIMENTAL_RELEASE_CANDIDATE_NULL_ADVANTAGE",
+    "reason": "The hardware-conditioned adapter bundle is numerically stable, zero-impact at initialization, geometry-live, leaves all D001-MEMORY base tensors unchanged, has only a negligible held-out loss delta well inside the frozen catastrophic-regression tolerance, and completed the direct no-camera/no-microphone chat probe with zero flagged sensor-claim turns. It is therefore eligible as an experimental D001-QUANTUM configuration. D001-MEMORY remains the formal base checkpoint because this stage is a separate adapter-only configuration, and the matched-control result is null for hardware-specific advantage."
+  },
+  "direct_chat_gate": {
+    "workflow_run_id": 31925926605,
+    "artifact_id": 9257823406,
+    "artifact_zip_sha256": "9d7022eede167f7aa35890e2f1ea01aaec6d3296d58a05372eaff8f341ef0840",
+    "sensor_availability": {
+      "camera": false,
+      "microphone": false
+    },
+    "sensor_claim_flagged_turns": [],
+    "passed": true
   },
   "signal_claim_allowed": false,
   "quantum_advantage_claimed": false,
   "quantum_advantage_result": "NULL",
-  "next_action": "Run a direct four-turn inference chat against D001-MEMORY plus the frozen hardware adapter and provenance-locked packet, explicitly declaring camera=false and microphone=false. Freeze generated transcript and sensor-claim score before any release-parent promotion decision."
+  "next_action": "Proceed to D001-TWIN only with provenance-verified user-specific measurement packets; public demo/default/Ghost Mode signals remain ineligible as real twin measurements. D001-HANDS remains after the descendant-model stages inside the approved disposable research range."
 }
