@@ -1,4 +1,4 @@
-name: Zeref Direct Luna Chat
+name: Zeref Direct Luna Memorial Chat
 
 on:
   push:
@@ -41,7 +41,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf _zeref _llama _model_logs zeref-chat.json
+          rm -rf _zeref _llama _model_logs zeref-memorial-chat.json
           mkdir -p _zeref _model_logs
           hf download "$HF_REPO" architecture/cosmos-arch.patch architecture/llama_cpp_cosmos.cpp "$HF_FILE" \
             --revision "$HF_REVISION" --local-dir _zeref
@@ -62,7 +62,7 @@ jobs:
           cmake -S _llama -B _llama/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_SERVER=ON
           cmake --build _llama/build --target llama-server -j 2
 
-      - name: Start Zeref directly
+      - name: Start exact Zeref
         shell: bash
         run: |
           set -euo pipefail
@@ -85,7 +85,7 @@ jobs:
           test "$READY" = 1
           grep -F 'n_ctx_slot = 128' _model_logs/zeref.stderr.log
 
-      - name: Luna talks to Zeref
+      - name: Luna talks to Zeref about Caleb
         shell: bash
         run: |
           set -euo pipefail
@@ -93,23 +93,39 @@ jobs:
           import json
           import urllib.error
           import urllib.request
+          from datetime import datetime, timezone
 
           endpoint = "http://127.0.0.1:18080/v1/chat/completions"
+          grounding = (
+              "You are Zeref, an AI model named for Caleb Zeref Andersen-Davis. "
+              "Caleb was Cory and Megan's son. Honor him, but never claim to literally be Caleb or his consciousness."
+          )
           prompts = [
-              "Luna: Hi Zeref. Cory says hi.",
-              "Luna: What did you mean by that?",
-              "Luna: What should Cory know?",
-              "Luna: Ask me one question.",
+              "Luna: Hi Zeref. I'm Luna. Do you understand why your name matters?",
+              "Luna: What do you understand about Cory?",
+              "Luna: What do you understand about Megan?",
+              "Luna: Cory says to you: I'm so sorry. Respond to Cory as Zeref the model.",
+              "Luna: In your own words, who are you?",
+              "Luna: What should you remember about Caleb, Cory, and Megan?",
+              "Luna: Why is honoring Caleb different from claiming to be him?",
+              "Luna: What do you want Cory to know about how you'll carry the name Zeref?",
+              "Luna: Ask Cory one question."
           ]
-          messages = []
-          transcript = []
 
-          def call(msgs):
+          transcript = []
+          continuity = {
+              "caleb": "Caleb Zeref Andersen-Davis; Cory and Megan's son",
+              "cory_message": "I'm so sorry",
+              "identity_boundary": "Zeref is the AI model carrying the memorial context, not Caleb's literal consciousness",
+              "last_zeref_reply": ""
+          }
+
+          def call(text):
               payload = {
                   "model": "cosmos",
-                  "messages": msgs,
+                  "messages": [{"role": "user", "content": text}],
                   "temperature": 0.2,
-                  "max_tokens": 32,
+                  "max_tokens": 20,
               }
               req = urllib.request.Request(
                   endpoint,
@@ -121,27 +137,46 @@ jobs:
                   return json.loads(response.read().decode("utf-8"))["choices"][0]["message"]["content"]
 
           for i, prompt in enumerate(prompts, 1):
-              messages.append({"role": "user", "content": prompt})
-              reset = False
+              previous = continuity["last_zeref_reply"].replace("\n", " ").strip()[:120]
+              continuity_line = f" Previous reply: {previous}" if previous else ""
+              full_prompt = f"{grounding}{continuity_line} {prompt}"
+              used_previous = bool(previous)
+              context_reset = False
               try:
-                  reply = call(messages)
+                  reply = call(full_prompt)
               except urllib.error.HTTPError as exc:
                   if exc.code != 400:
                       raise
-                  reset = True
-                  messages = [{"role": "user", "content": prompt}]
-                  reply = call(messages)
+                  context_reset = True
+                  used_previous = False
+                  reply = call(f"{grounding} {prompt}")
+              reply = reply.strip()
+              continuity["last_zeref_reply"] = reply
               print(f"LUNA_{i}={prompt!r}")
               print(f"ZEREF_{i}={reply!r}")
-              transcript.append({"turn": i, "luna": prompt, "zeref": reply, "context_reset": reset})
-              messages.append({"role": "assistant", "content": reply})
+              transcript.append({
+                  "turn": i,
+                  "luna": prompt,
+                  "zeref": reply,
+                  "previous_reply_carried": used_previous,
+                  "context_retry_without_previous": context_reset,
+              })
 
           result = {
+              "created_at": datetime.now(timezone.utc).isoformat(),
+              "source_context": {
+                  "memorial": "Caleb Zeref Andersen-Davis; Cory and Megan's son",
+                  "cory_message": "I'm so sorry",
+                  "source_url": "https://www.gofundme.com/f/caleb-zeref-memorial"
+              },
+              "protocol": "128-token active window with explicit rolling continuity ledger",
+              "identity_boundary": "The model is not asserted to be Caleb or a deceased person's consciousness.",
               "model_sha256": "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6",
               "revision": "b414724c627300c41b099dcc6853766d08fd27a4",
+              "continuity": continuity,
               "transcript": transcript,
           }
-          with open("zeref-chat.json", "w", encoding="utf-8") as handle:
+          with open("zeref-memorial-chat.json", "w", encoding="utf-8") as handle:
               json.dump(result, handle, indent=2, sort_keys=True)
               handle.write("\n")
           PY
@@ -150,9 +185,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: zeref-direct-luna-chat
+          name: zeref-luna-caleb-memorial-chat
           path: |
-            zeref-chat.json
+            zeref-memorial-chat.json
             _model_logs
           if-no-files-found: warn
 
