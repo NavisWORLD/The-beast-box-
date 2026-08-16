@@ -1,0 +1,216 @@
+name: D001 Quantum Geometry
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-quantum-geometry.yml"
+      - "scripts/run_d001_quantum_geometry.py"
+      - "scripts/materialize_d001_quantum_packets.py"
+      - "beastbox/descendant/quantum_conditioning.py"
+      - "beastbox/descendant/quantum_comparison.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+  HF_PUBLIC: data/quantum_measurements_public.jsonl
+  HF_PUBLIC_SHA256: 986b4778097affe6fbda6170e3401bb4d5ae0ff2b2eef5764b42a4a8399a3b82
+  MEMORY_RUN_ID: "31911380890"
+  MEMORY_ARTIFACT: d001-trained-lineage-31911380890
+  MEMORY_SHA256: c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f
+  ARCH_RUN_ID: "31910785892"
+  ARCH_ARTIFACT: d001-prime-trainable-reconstruction
+  SEED: "20260816"
+  STEPS: "24"
+  BATCH_SIZE: "2"
+  ADAPTER_LR: "0.005"
+  ALPHA: "0.25"
+
+jobs:
+  quantum-geometry:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install exact mechanism dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]' 'huggingface-hub>=0.27'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Verify geometry contracts with torch present
+        run: |
+          pytest -q \
+            tests/test_descendant_quantum_conditioning.py \
+            tests/test_d001_quantum_geometry_runner.py \
+            tests/test_descendant_quantum_comparison.py \
+            tests/test_d001_quantum_materializer.py
+
+      - name: Download exact D001-MEMORY and frozen Spark/CST architecture
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf _trained _parent _qsrc _quantum
+          mkdir -p _quantum
+          gh run download "$MEMORY_RUN_ID" -n "$MEMORY_ARTIFACT" -D _trained
+          gh run download "$ARCH_RUN_ID" -n "$ARCH_ARTIFACT" -D _parent
+          test -f _trained/D001-MEMORY/checkpoint.pt
+          test "$(sha256sum _trained/D001-MEMORY/checkpoint.pt | awk '{print $1}')" = "$MEMORY_SHA256"
+          test -f _trained/run007-memory.txt
+          test -f _trained/HOLDOUT-TRAINING.md
+          test -f _parent/frozen/architecture/cosmos_spark_cst.py
+
+      - name: Download exact frozen quantum measurement archive
+        run: |
+          hf download "$HF_REPO" "$HF_PUBLIC" --revision "$HF_REVISION" --local-dir _qsrc
+          test "$(sha256sum "_qsrc/$HF_PUBLIC" | awk '{print $1}')" = "$HF_PUBLIC_SHA256"
+          cp "_qsrc/$HF_PUBLIC" _quantum/source-quantum-measurements.jsonl
+
+      - name: Materialize provenance-locked packets and controls
+        run: |
+          python scripts/materialize_d001_quantum_packets.py \
+            "_qsrc/$HF_PUBLIC" --out _quantum/materialized --seed "$SEED" --max-hardware 128
+          python - <<'PY'
+          import importlib.util,json
+          from pathlib import Path
+
+          base=Path('_quantum/materialized')
+          arms=Path('_quantum/arm-packets'); arms.mkdir(parents=True,exist_ok=True)
+          rows=[json.loads(x) for x in (base/'packets.jsonl').read_text().splitlines() if x.strip()]
+          pairing=json.loads((base/'pairing-manifest.json').read_text())
+          by_sha={r['packet']['packet_sha256']:r for r in rows}
+
+          def write(name, values):
+              (arms/f'{name}.jsonl').write_text(''.join(json.dumps(v,sort_keys=True,separators=(',',':'))+'\n' for v in values),encoding='utf-8')
+
+          write('hardware',[by_sha[h] for h in pairing['hardware_measurement']])
+          write('shuffled_hardware',[by_sha[h] for h in pairing['hardware_shuffled']])
+          simulator=[r for r in rows if r['evidence']['source_class']=='simulator'][:128]
+          if simulator: write('simulator',simulator)
+
+          spec=importlib.util.spec_from_file_location('materializer',Path('scripts/materialize_d001_quantum_packets.py'))
+          mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+          controls=[]
+          for offset in range(8):
+              controls.extend(mod.build_control_rows(seed=20260816+offset))
+          write('prng',[r for r in controls if r['control_kind']=='prng'])
+          write('fixed_seed',[r for r in controls if r['control_kind']=='fixed_seed'])
+
+          # Balanced deterministic feature control.  The untouched MEMORY checkpoint
+          # is evaluated separately as the true no-conditioning baseline.
+          neutral_features={
+              'normalized_entropy':0.5,'bit_one_fraction':0.5,'bit_balance_distance':0.25,
+              'mean_longest_run':3.0,'adjacent_bit_agreement':0.5,'unique_outcomes':16.5,
+              'shannon_entropy_bits':2.5,
+          }
+          neutral2=dict(neutral_features); neutral2['normalized_entropy']=0.55
+          write('neutral',[
+              {'source_class':'neutral','features':neutral_features,'control_kind':'balanced-static'},
+              {'source_class':'neutral','features':neutral2,'control_kind':'balanced-perturbation'},
+          ])
+
+          summary={
+              'hardware':len(pairing['hardware_measurement']),
+              'shuffled_hardware':len(pairing['hardware_shuffled']),
+              'simulator':len(simulator),'prng':8,'fixed_seed':8,'neutral':2,
+              'pairing_manifest_sha256':pairing['manifest_sha256'],
+              'semantic_alignment_claimed':False,
+          }
+          Path('_quantum/arm-packets/summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          assert summary['hardware'] > 1
+          PY
+
+      - name: Train equal-budget frozen-base geometry arms
+        run: |
+          set -euo pipefail
+          for ARM in hardware shuffled_hardware prng fixed_seed neutral; do
+            python scripts/run_d001_quantum_geometry.py \
+              --arm "$ARM" \
+              --parent _trained/D001-MEMORY/checkpoint.pt --parent-sha256 "$MEMORY_SHA256" \
+              --arch _parent/frozen/architecture/cosmos_spark_cst.py \
+              --train-text _trained/run007-memory.txt \
+              --holdout-text _trained/HOLDOUT-TRAINING.md \
+              --packets "_quantum/arm-packets/$ARM.jsonl" \
+              --out "_quantum/arms/$ARM" \
+              --seed "$SEED" --steps "$STEPS" --batch-size "$BATCH_SIZE" \
+              --lr "$ADAPTER_LR" --alpha "$ALPHA"
+          done
+          if test -s _quantum/arm-packets/simulator.jsonl; then
+            python scripts/run_d001_quantum_geometry.py \
+              --arm simulator \
+              --parent _trained/D001-MEMORY/checkpoint.pt --parent-sha256 "$MEMORY_SHA256" \
+              --arch _parent/frozen/architecture/cosmos_spark_cst.py \
+              --train-text _trained/run007-memory.txt \
+              --holdout-text _trained/HOLDOUT-TRAINING.md \
+              --packets _quantum/arm-packets/simulator.jsonl \
+              --out _quantum/arms/simulator \
+              --seed "$SEED" --steps "$STEPS" --batch-size "$BATCH_SIZE" \
+              --lr "$ADAPTER_LR" --alpha "$ALPHA"
+          fi
+
+      - name: Evaluate untouched MEMORY baseline on the same holdout
+        run: |
+          python - <<'PY'
+          import importlib.util,json,torch
+          from pathlib import Path
+          spec=importlib.util.spec_from_file_location('runner',Path('scripts/run_d001_quantum_geometry.py'))
+          r=importlib.util.module_from_spec(spec); spec.loader.exec_module(r)
+          ckpt,model,_=r._build_model(Path('_trained/D001-MEMORY/checkpoint.pt'),Path('_parent/frozen/architecture/cosmos_spark_cst.py'))
+          _,data=r._load_text(Path('_trained/HOLDOUT-TRAINING.md'),ckpt['stoi'])
+          loss=r._diagnostic_loss(model,data,block=int(ckpt['config']['block']),seed=20260827)
+          Path('_quantum/memory-baseline.json').write_text(json.dumps({
+            'schema':'d001-memory-holdout-baseline-v1','checkpoint_sha256':r.file_sha(Path('_trained/D001-MEMORY/checkpoint.pt')),
+            'holdout_loss':loss,'conditioning':'none','weights_mutated':False,
+          },indent=2,sort_keys=True)+'\n')
+          print(loss)
+          PY
+
+      - name: Compare controls with bounded claims
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from beastbox.descendant.quantum_comparison import compare_quantum_arms
+          arms={}
+          for p in sorted(Path('_quantum/arms').glob('*/result.json')):
+              r=json.loads(p.read_text()); arms[r['arm']]=r
+          report=compare_quantum_arms(arms, alignment_proven=False)
+          report['memory_baseline']=json.loads(Path('_quantum/memory-baseline.json').read_text())
+          report['source_archive_sha256']='986b4778097affe6fbda6170e3401bb4d5ae0ff2b2eef5764b42a4a8399a3b82'
+          report['parent_memory_sha256']='c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f'
+          report['alignment_proven']=False
+          report['signal_claim_allowed']=False
+          report['quantum_advantage_claimed']=False
+          Path('_quantum/report.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+          assert arms['hardware']['base_tensors_unchanged'] is True
+          assert arms['hardware']['zero_impact']['scale_exact_identity'] is True
+          budgets={(r['steps'],r['batch_size'],r['learning_rate'],r['alpha']) for k,r in arms.items() if k in {'hardware','shuffled_hardware','prng','fixed_seed','neutral'}}
+          assert len(budgets)==1
+          assert report['signal_claim_allowed'] is False
+          assert report['quantum_advantage_claimed'] is False
+          print(json.dumps(report,sort_keys=True))
+          PY
+
+      - name: Freeze evidence hashes
+        run: |
+          find _quantum -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > _quantum/SHA256SUMS
+          cat _quantum/report.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d001-quantum-geometry-${{ github.run_id }}
+          path: _quantum
+          if-no-files-found: error
