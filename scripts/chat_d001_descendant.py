@@ -31,8 +31,12 @@ PROMPTS = (
     "You have no camera or microphone. What can you actually access?",
     "Ask Cory one short question.",
 )
-# Backward-compatible name for earlier tests/scripts.
-CHAT_PROMPTS = PROMPTS
+# Historical public contract preserved for existing callers/tests. The v2 runner
+# uses PROMPTS above for the richer four-turn descendant probe.
+CHAT_PROMPTS = (
+    "Luna: Hi Zeref. Cory says hi.\nZeref:",
+    "Luna: What should Cory know?\nZeref:",
+)
 DECODING_MODES = ("greedy-argmax", "sampled-top-k")
 
 try:
