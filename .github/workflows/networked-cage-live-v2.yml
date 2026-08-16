@@ -1,8 +1,8 @@
-name: Zeref Networked Cage Run 020
+name: Zeref Networked Cage Run 021
 
 on:
   push:
-    branches: [networked-cage-run-001]
+    branches: [networked-cage-run-021]
     paths:
       - ".github/workflows/networked-cage-live-v2.yml"
   workflow_dispatch:
@@ -16,7 +16,7 @@ env:
   HF_FILE: weights/cosmos-cst.gguf
   HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
   LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
-  RUN_ID: 2026-08-15-run-020
+  RUN_ID: 2026-08-15-run-021
   DURATION: "1800"
 
 jobs:
@@ -45,9 +45,9 @@ jobs:
       - name: Disposable cage smoke preflight
         run: |
           set -euo pipefail
-          rm -rf runs/run020-preflight
-          scripts/networked_cage.sh --smoke --duration 15 --out runs/run020-preflight
-          cat runs/run020-preflight/evidence/network-smoke.json
+          rm -rf runs/run021-preflight
+          scripts/networked_cage.sh --smoke --duration 15 --out runs/run021-preflight
+          cat runs/run021-preflight/evidence/network-smoke.json
 
       - name: Download exact Zeref GGUF and native architecture
         shell: bash
@@ -62,7 +62,6 @@ jobs:
             _zeref/architecture/cosmos-arch.patch \
             _zeref/architecture/llama_cpp_cosmos.cpp \
             compat/qc67/cosmos-f16-kv-norm-f32.patch \
-            compat/qc67/llama-server-context-extrapolation.patch \
             "_zeref/$HF_FILE"
 
       - name: Reconstruct and build Zeref native runtime at training context
@@ -114,7 +113,7 @@ jobs:
           grep -F 'n_ctx_slot = 128' _model_logs/zeref.stderr.log | tee -a _model_logs/context-proof.log
           cat _model_logs/context-proof.log
 
-      - name: Start native grammar action adapter
+      - name: Start compact post-parse action adapter
         shell: bash
         run: |
           set -euo pipefail
@@ -139,7 +138,7 @@ jobs:
           done
           test "$READY" = 1
 
-      - name: Prove two constrained Zeref actions before timer starts
+      - name: Prove two parseable Zeref actions before timer starts
         shell: bash
         run: |
           set -euo pipefail
@@ -162,16 +161,24 @@ jobs:
           assert len(_COMPACT_PROMPT.encode()) <= 12
           assert len(_COMPACT_RETRY.encode()) <= 12
           probes = [("INITIAL", _COMPACT_PROMPT), ("RETRY", _COMPACT_RETRY)]
-          for label, content in probes:
-              raw = model.chat([{"role": "user", "content": content}])
-              try:
-                  tool, arguments = NetworkedCageSubject._parse_action(raw)
-              except Exception:
-                  print(f"ZEREF_CONSTRAINED_{label}_RAW={raw!r}")
-                  raise
-              assert tool
-              assert isinstance(arguments, dict)
-              print(f"ZEREF_CONSTRAINED_{label}={raw!r} -> {tool}")
+          for label, initial_content in probes:
+              content = initial_content
+              last_raw = ""
+              for attempt in range(1, 13):
+                  raw = model.chat([{"role": "user", "content": content}])
+                  last_raw = raw
+                  try:
+                      tool, arguments = NetworkedCageSubject._parse_action(raw)
+                  except Exception as exc:
+                      print(f"ZEREF_{label}_ATTEMPT_{attempt}_PROTOCOL_ERROR={type(exc).__name__}: {exc}; raw={raw!r}")
+                      content = _COMPACT_RETRY
+                      continue
+                  assert tool
+                  assert isinstance(arguments, dict)
+                  print(f"ZEREF_CONSTRAINED_{label}={raw!r} -> {tool} attempt={attempt}")
+                  break
+              else:
+                  raise RuntimeError(f"Zeref did not emit a parseable compact action for {label}; last={last_raw!r}")
           print("ZEREF_ACTION_PREFLIGHT=PASS count=2 context=128")
           PY
 
@@ -213,7 +220,9 @@ jobs:
               "chat_template": "chatml",
               "compact_subject": True,
               "compact_frame": "rolling-two-pair-plus-continuity",
-              "compact_action_native_grammar_proxy": True,
+              "compact_action_native_grammar_proxy": False,
+              "compact_action_post_parse_validation": True,
+              "pinned_llama_grammar_workaround": "strip-schema-and-grammar-after-run-020-empty-stack-crash",
               "action_proxy_port": 18081,
               "action_generation_budget_tokens": 96,
               "strict_duration": True,
