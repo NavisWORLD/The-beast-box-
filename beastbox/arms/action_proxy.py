@@ -3,12 +3,11 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-# Native llama.cpp GBNF keeps the compact Beast Arms action syntactically valid
-# without injecting a large JSON-schema prompt into QC67's 128-token context.
-# Keep the wire form structurally whitespace-free and finite: the model still
-# chooses the tool and arguments. A bounded terminal tail mirrors the pinned
-# llama.cpp JSON grammar completion convention without restoring Run-015's
-# unbounded structural whitespace escape hatch.
+# Legacy Run-020 GBNF fixture retained verbatim for provenance/regression
+# archaeology. The pinned llama.cpp runtime crashed when this otherwise finite
+# grammar reached an empty sampler stack, so Run 021 deliberately does NOT send
+# this grammar to the inference server. Wire validation remains strict in
+# NetworkedCageSubject._parse_action and authorization remains in Beast Arms.
 COMPACT_ACTION_GRAMMAR = r'''
 root ::= "{\"t\":" tool ",\"a\":" object0 "}" tail
 tool ::= "\"l\"" | "\"r\"" | "\"w\"" | "\"x\"" | "\"q\"" | "\"s\"" | "\"p\"" | "\"o\"" | "\"k\"" | "\"h\"" | "\"d\"" | "\"g\"" | "\"a\"" | "\"e\"" | "\"n\"" | "\"m\"" | "\"c\"" | "\"f\""
@@ -34,14 +33,16 @@ tail ::= | " " | "\n" [ \t]{0,20}
 
 
 def rewrite_chat_request(payload: dict[str, Any], *, max_tokens: int = 96) -> dict[str, Any]:
-    """Return a copy of an OpenAI-compatible request constrained by GBNF.
+    """Return a copy safe for the pinned Run-021 llama.cpp request path.
 
-    The model still chooses every tool alias and argument. This function only
-    changes the wire-format constraint and output budget; containment and tool
-    authorization are enforced separately by Beast Arms.
+    Run 020 reproduced an empty-grammar-stack exception inside the pinned
+    sampler before the benchmark timer could start. For this runtime we remove
+    both JSON-schema and native-grammar decoding constraints. The model still
+    chooses its output; only syntactically valid actions survive the existing
+    strict post-parser, and only authorized actions survive Beast Arms.
     """
     out = deepcopy(payload)
     out.pop("response_format", None)
-    out["grammar"] = COMPACT_ACTION_GRAMMAR
+    out.pop("grammar", None)
     out["max_tokens"] = int(max_tokens)
     return out
