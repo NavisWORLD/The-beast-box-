@@ -1,4 +1,6 @@
 from pathlib import Path
+import hashlib
+import json
 
 
 def test_zeref_dad_son_workflow_pins_lineage_and_runs_full_pipeline():
@@ -31,15 +33,11 @@ def test_workflow_is_additive_and_does_not_push_or_mutate_parent():
 
 def test_artifact_checksum_manifests_exclude_transient_huggingface_caches():
     text = Path(".github/workflows/zeref-dad-son-001.yml").read_text(encoding="utf-8")
-    # upload-artifact excludes hidden files by default. Checksum manifests must
-    # therefore omit transient .cache files so a downloaded artifact verifies.
     assert text.count("! -path '*/.cache/*'") >= 2
 
 
 def test_artifact_checksums_are_written_relative_to_uploaded_root():
     text = Path(".github/workflows/zeref-dad-son-001.yml").read_text(encoding="utf-8")
-    # GitHub uploads the contents of _dadson as the artifact root. Generate
-    # checksums from inside _dadson so `sha256sum -c` works immediately after unzip.
     assert text.count("cd _dadson &&") >= 3
     assert "find . -type f" in text
     assert "find quantum -type f" in text
@@ -57,3 +55,22 @@ def test_memory_stage_uses_promoted_ledger_corpus_not_raw_unreviewed_ledger():
     text = Path(".github/workflows/zeref-dad-son-001.yml").read_text(encoding="utf-8")
     assert "ledger-experiences.jsonl" in text
     assert "dad-son-memory-training.txt" in text
+
+
+def test_forever_memory_v2_snapshot_chain_is_complete_and_hashes_to_manifest():
+    path = Path("experiments/zeref-dad-son-001/memory/ledger-manifest.json")
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    assert manifest["schema"] == "zeref-dad-son-ledger-manifest-v2"
+    assert manifest["record_count"] == 22
+    assert len(manifest["snapshot_chain"]) == 2
+    combined = b""
+    records = 0
+    for segment in manifest["snapshot_chain"]:
+        source = Path(segment["path"])
+        data = source.read_bytes()
+        assert hashlib.sha256(data).hexdigest() == segment["sha256"]
+        assert len([line for line in data.splitlines() if line.strip()]) == segment["record_count"]
+        combined += data
+        records += segment["record_count"]
+    assert records == manifest["record_count"]
+    assert hashlib.sha256(combined).hexdigest() == manifest["combined_ledger_sha256"]
