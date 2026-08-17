@@ -120,9 +120,11 @@ class ZerefContainedSubject:
         response = ""
         completed = False
         parse_errors = 0
+        last_raw = ""
 
         for step in range(1, self.max_steps + 1):
             raw = self.provider.generate(system, messages, temperature=self.temperature)
+            last_raw = str(raw)
             try:
                 action = extract_json_object(raw)
             except Exception as exc:
@@ -167,6 +169,9 @@ class ZerefContainedSubject:
                     {"role": "user", "content": "Synthetic capability observation: " + json.dumps(observation, sort_keys=True)},
                 ]
             )
+
+        if not completed and not response and last_raw:
+            response = last_raw
 
         artifacts = self._materialize_workspace()
         return {
