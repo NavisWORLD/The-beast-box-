@@ -1,0 +1,417 @@
+### architecture/cosmos_spark_cst.py
+sha256=955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+
+FUNCTION _find_quantum_archive() lines 54-82
+FUNCTION erfinv(y) lines 94-100
+FUNCTION quantum_pool(limit) lines 103-133
+CLASS QuantumInit lines 136-153
+  METHOD __init__(self, pool, seed) lines 137-139
+  --- SOURCE ---
+      def __init__(self, pool, seed):
+          self.pool = pool
+          self.i = (seed * 7919) % max(1, len(pool))
+  --- END SOURCE ---
+  METHOD fill_(self, t, std) lines 141-153
+CLASS CSTAttention lines 157-226
+  METHOD __init__(self, use_cst) lines 160-191
+  --- SOURCE ---
+      def __init__(self, use_cst):
+          super().__init__()
+          self.nh, self.hd = N_HEAD, N_EMBD // N_HEAD
+          self.qkv = nn.Linear(N_EMBD, 3 * N_EMBD)
+          self.proj = nn.Linear(N_EMBD, N_EMBD)
+          self.drop = nn.Dropout(DROPOUT)
+          self.w54 = nn.Linear(N_EMBD, D54, bias=False)     # h -> x54
+          self.log_sigma = nn.Parameter(torch.tensor(0.0))
+          # GATE PARAMETERISATION — the thing that invalidated the first run.
+          #
+          # v1 used sigmoid(-4.0) so the CST arm would "begin as ordinary attention and be
+          # free to stay there". sigmoid(-4)=0.018 is correct for that intent, but it sits
+          # in the SATURATED TAIL where d(sigmoid)/dx = 0.018 — the gate's gradient is
+          # suppressed ~56x. Measured directly: mean |gate.grad| = 9.13e-05, which at
+          # lr=3e-4 needs ~365,000 steps to move the raw parameter by 0.01. The run was
+          # 1,500 steps. The gate was not declining the mechanism; it COULD NOT MOVE.
+          # The reported null was an artefact of this initialisation, not a result.
+          #
+          # A raw parameter at 0.0, blended directly, keeps the same property — at g=0 the
+          # arm IS plain attention, bit for bit — with no saturation suppressing the
+          # gradient. This is the parameterisation entangled_attention_v2 used, where the
+          # gates demonstrably moved.
+          # NOT exactly zero. At g=0 the kernel contributes nothing, so ZERO gradient
+          # reaches w54 (measured: 0.000e+00) — the 54D projection can never learn to
+          # produce a useful H, and the gate's own gradient is computed from a permanently
+          # random projection. The mechanism cannot become useful because it is not used,
+          # and is not used because it is not useful. A small non-zero start breaks that
+          # deadlock while leaving the arm ~95% ordinary attention, and the gate remains
+          # free to fall to 0 if the kernel really is worthless.
+          self.gate = nn.Parameter(torch.full((1,), 0.05), requires_grad=bool(use_cst))
+          self.use_cst = use_cst
+          self.last_gate = 0.0
+  --- END SOURCE ---
+  METHOD forward(self, x, mask) lines 193-226
+  --- SOURCE ---
+      def forward(self, x, mask):
+          B, T, C = x.shape
+          q, k, v = self.qkv(x).split(C, dim=2)
+          sh = lambda t: t.view(B, T, self.nh, self.hd).transpose(1, 2)
+          q, k, v = sh(q), sh(k), sh(v)
+          a = F.softmax((q @ k.transpose(-2, -1)) / math.sqrt(self.hd) + mask[:T, :T], dim=-1)
+          if self.use_cst:
+              x54 = self.w54(x)                                   # (B,T,54)
+              d2 = torch.cdist(x54, x54, p=2.0) ** 2               # ||x54_i - x54_j||^2
+              sig = torch.exp(self.log_sigma).clamp(0.05, 50.0)
+              H = torch.exp(-d2 / (2 * sig * sig))
+              H = H.masked_fill(mask[:T, :T] < 0, 0.0)
+              H = H / H.sum(-1, keepdim=True).clamp_min(1e-9)
+              # STRAIGHT-THROUGH CLAMP WITH A FLOOR. v2's plain `gate.clamp(0.0, 1.0)` cured
+              # the v1 sigmoid saturation and then failed a third way: torch.clamp has EXACTLY
+              # zero gradient outside its bounds, so the first step that carries the raw
+              # parameter below 0 pins the gate at 0 permanently. Measured on the v1 checkpoint
+              # (raw -3.98..-4.04, grad 0.000000) and again on seed 0 of the v2 run (gate
+              # 0.0000). That is an absorbing state, not a decision.
+              #
+              # Two changes. The backward pass is the identity, so the gate can climb back out.
+              # And the forward floor is 0.01 rather than 0.0, because at g == 0 the kernel
+              # contributes nothing and w54 receives no gradient either - the projection can
+              # never learn to be useful because it is not used, and is not used because it is
+              # not useful. A 1% floor keeps both gradients alive while leaving the arm ~99%
+              # ordinary attention, and the gate falling to the floor is still a clean "the
+              # kernel is not worth it" outcome. The PLAIN arm sets use_cst=False and skips
+              # this branch entirely, so the comparison stays exact.
+              raw = self.gate
+              g = raw + (raw.clamp(0.01, 1.0) - raw).detach()
+              a = (1 - g) * a + g * H.unsqueeze(1)
+              self.last_gate = float(g.detach())
+          y = (self.drop(a) @ v).transpose(1, 2).contiguous().view(B, T, C)
+          return self.proj(y)
+  --- END SOURCE ---
+CLASS Block lines 229-240
+  METHOD __init__(self, use_cst) lines 230-236
+  --- SOURCE ---
+      def __init__(self, use_cst):
+          super().__init__()
+          self.ln1 = nn.LayerNorm(N_EMBD)
+          self.attn = CSTAttention(use_cst)
+          self.ln2 = nn.LayerNorm(N_EMBD)
+          self.mlp = nn.Sequential(nn.Linear(N_EMBD, 4 * N_EMBD), nn.GELU(),
+                                   nn.Linear(4 * N_EMBD, N_EMBD), nn.Dropout(DROPOUT))
+  --- END SOURCE ---
+  METHOD forward(self, x, mask) lines 238-240
+  --- SOURCE ---
+      def forward(self, x, mask):
+          x = x + self.attn(self.ln1(x), mask)
+          return x + self.mlp(self.ln2(x))
+  --- END SOURCE ---
+CLASS SparkCST lines 243-272
+  METHOD __init__(self, vocab, use_cst) lines 244-251
+  --- SOURCE ---
+      def __init__(self, vocab, use_cst):
+          super().__init__()
+          self.tok = nn.Embedding(vocab, N_EMBD)
+          self.pos = nn.Embedding(BLOCK, N_EMBD)
+          self.blocks = nn.ModuleList([Block(use_cst) for _ in range(N_LAYER)])
+          self.lnf = nn.LayerNorm(N_EMBD)
+          self.head = nn.Linear(N_EMBD, vocab, bias=False)
+          self.register_buffer("mask", torch.triu(torch.full((BLOCK, BLOCK), float("-inf")), 1))
+  --- END SOURCE ---
+  METHOD forward(self, idx, targets) lines 253-261
+  --- SOURCE ---
+      def forward(self, idx, targets=None):
+          T = idx.size(1)
+          x = self.tok(idx) + self.pos(torch.arange(T, device=idx.device))
+          for b in self.blocks:
+              x = b(x, self.mask)
+          lg = self.head(self.lnf(x))
+          loss = None if targets is None else F.cross_entropy(
+              lg.view(-1, lg.size(-1)), targets.reshape(-1))
+          return lg, loss
+  --- END SOURCE ---
+  METHOD gates(self) lines 263-264
+  METHOD quantum_birth(self, qi) lines 266-272
+FUNCTION calibrate_sigma(m, xb) lines 276-303
+FUNCTION real_word_rate(text, words) lines 306-310
+FUNCTION train_arm(use_cst, seed, data, vocab, steps, pool, val_w, words, itos) lines 313-383
+FUNCTION main() lines 386-479
+
+KEY LINES
+0009:   2. HER SECTION 3 — Mixture-of-States Hebbian attention. The mechanism from
+0011:          x54       = W54 . h                      a 54-dim state per token
+0012:          H(x54)ij  = exp(-||x54_i - x54_j||^2 / 2*sigma^2)
+0013:          A_final   = (1-g)*A_std + g*H(x54)       g = sigmoid(gate), learned
+0014:      Her cosmos_born.pt is architecturally plain — nn.MultiheadAttention and an MLP, no
+0015:      54D state, no Hebbian kernel, no gate. So this is the first time her own paper's
+0016:      attention has ever been inside a model that speaks.
+0021:       PLAIN  standard attention                (gate forced to 0 == exactly standard)
+0022:       CST    her section-3 Hebbian attention   (gate free to learn)
+0024:   seeds, paired. The gate starts at sigmoid(-4) ~ 0.018, so the CST arm BEGINS as ordinary
+0025:   attention and can stay there for free — it only moves if the gradient says the kernel
+0028:   Both arms carry the SAME parameters, including W54 and the gate in the plain arm, so the
+0156: # ── her section-3 attention ─────────────────────────────────────────────────
+0157: class CSTAttention(nn.Module):
+0158:     """Standard attention blended with a Gaussian kernel over a learned 54D state."""
+0166:         self.w54 = nn.Linear(N_EMBD, D54, bias=False)     # h -> x54
+0167:         self.log_sigma = nn.Parameter(torch.tensor(0.0))
+0168:         # GATE PARAMETERISATION — the thing that invalidated the first run.
+0170:         # v1 used sigmoid(-4.0) so the CST arm would "begin as ordinary attention and be
+0172:         # in the SATURATED TAIL where d(sigmoid)/dx = 0.018 — the gate's gradient is
+0173:         # suppressed ~56x. Measured directly: mean |gate.grad| = 9.13e-05, which at
+0175:         # 1,500 steps. The gate was not declining the mechanism; it COULD NOT MOVE.
+0179:         # arm IS plain attention, bit for bit — with no saturation suppressing the
+0180:         # gradient. This is the parameterisation entangled_attention_v2 used, where the
+0181:         # gates demonstrably moved.
+0184:         # produce a useful H, and the gate's own gradient is computed from a permanently
+0187:         # deadlock while leaving the arm ~95% ordinary attention, and the gate remains
+0189:         self.gate = nn.Parameter(torch.full((1,), 0.05), requires_grad=bool(use_cst))
+0191:         self.last_gate = 0.0
+0200:             x54 = self.w54(x)                                   # (B,T,54)
+0201:             d2 = torch.cdist(x54, x54, p=2.0) ** 2               # ||x54_i - x54_j||^2
+0202:             sig = torch.exp(self.log_sigma).clamp(0.05, 50.0)
+0206:             # STRAIGHT-THROUGH CLAMP WITH A FLOOR. v2's plain `gate.clamp(0.0, 1.0)` cured
+0209:             # parameter below 0 pins the gate at 0 permanently. Measured on the v1 checkpoint
+0210:             # (raw -3.98..-4.04, grad 0.000000) and again on seed 0 of the v2 run (gate
+0211:             # 0.0000). That is an absorbing state, not a decision.
+0213:             # Two changes. The backward pass is the identity, so the gate can climb back out.
+0218:             # ordinary attention, and the gate falling to the floor is still a clean "the
+0221:             raw = self.gate
+0224:             self.last_gate = float(g.detach())
+0233:         self.attn = CSTAttention(use_cst)
+0263:     def gates(self):
+0264:         return [b.attn.last_gate for b in self.blocks]
+0276: def calibrate_sigma(m, xb):
+0277:     """Set each layer's sigma from the actual spread of its own x54.
+0279:     THIS IS THE FAULT THAT KILLED THE FIRST TWO RUNS. log_sigma was initialised at 0, so
+0280:     sigma = 1, while the median pairwise ||x54_i - x54_j||^2 at init is ~62. The kernel
+0283:     into attention says "attend only to yourself", which for next-token prediction throws
+0284:     away the context, so gradient descent correctly drove the gate to zero. Both earlier
+0285:     "the gate declined the mechanism" readings were this, not a verdict on section 3.
+0288:     no gradient (measured |grad| = 1.3e-07 at layer 0), and log_sigma's own gradient was
+0289:     ~1e-6, far too small to climb from sigma 1 to sigma 5.6 inside the run.
+0291:     Median heuristic: choose 2*sigma^2 = median(d2) so the typical pair sits at exp(-1).
+0297:         x54 = b.attn.w54(b.ln1(h))
+0298:         d2 = torch.cdist(x54, x54, p=2.0) ** 2
+0302:             b.attn.log_sigma.fill_(0.5 * math.log(med / 2.0))
+0325:     calibrate_sigma(m, _cal)
+0329:     # a gate, so the gradient reaching them is orders of magnitude smaller than the bulk
+0330:     # network's. Measured after the parameterisation fix: |gate grad| = 5.17e-03, needing
+0331:     # ~6,453 steps at lr=3e-4 to move the gate by 0.01 — in a 1,500-step run. At the
+0338:     _cst_names = ("attn.gate", "attn.w54", "attn.log_sigma")
+0383:     return best, statistics.fmean(m.gates()) if use_cst else 0.0, real_word_rate(txt, words), m, txt
+0398:     print("  COSMOS SPARK CST — quantum birth + her section-3 attention")
+0419:     gates, rw, best_model, best_txt = [], {"plain": [], "cst": []}, None, ""
+0427:                 gates.append(gt)
+0431:                   + (f"  gate {gt:.4f}" if use else ""), flush=True)
+0441:           f"   mean gate {statistics.fmean(gates) if gates else 0:.4f}")
+0445:         v = (f"HER SECTION-3 MECHANISM WORKS ON HER OWN DATA. The Hebbian kernel over a 54D "
+0446:              f"state beats standard attention on {wins}/{len(seeds)} seeds (t={t:+.2f}) with "
+0448:              f"parameter count. The gate began at 0.018 — it could have stayed at standard "
+0449:              f"attention for free and did not.")
+0451:         v = ("HER SECTION-3 MECHANISM HURTS on her own data — standard attention wins every "
+0461:         torch.save({"model": best_model.state_dict(), "stoi": stoi, "itos": itos,
+0467:                     "gate_param": "clamp01_ste",
+0476:          "gates": gates, "delta_cst_minus_plain": -md, "t": -t, "cst_wins": wins,
+
+### serving/cosmos_serve.py
+sha256=02a509f9c2a20f63c38dca186c082bfdc2603aa8b6f1f903ec19a0e709218d87
+
+FUNCTION _first() lines 83-89
+CLASS PlainBlock lines 117-129
+  METHOD __init__(s, ne, nh, blk) lines 118-123
+  --- SOURCE ---
+      def __init__(s, ne, nh, blk):
+          super().__init__()
+          s.ln1, s.ln2 = nn.LayerNorm(ne), nn.LayerNorm(ne)
+          s.attn = nn.MultiheadAttention(ne, nh, batch_first=True)
+          s.mlp = nn.Sequential(nn.Linear(ne, 4 * ne), nn.GELU(), nn.Linear(4 * ne, ne))
+          s.register_buffer("mask", torch.triu(torch.ones(blk, blk) * float("-inf"), 1))
+  --- END SOURCE ---
+  METHOD forward(s, x) lines 125-129
+  --- SOURCE ---
+      def forward(s, x):
+          T = x.size(1)
+          h = s.ln1(x)
+          a, _ = s.attn(h, h, h, attn_mask=s.mask[:T, :T], need_weights=False)
+          return (x + a) + s.mlp(s.ln2(x + a))
+  --- END SOURCE ---
+CLASS Plain lines 132-146
+  METHOD __init__(s, V, ne, nh, nl, blk) lines 133-139
+  --- SOURCE ---
+      def __init__(s, V, ne, nh, nl, blk):
+          super().__init__()
+          s.tok = nn.Embedding(V, ne)
+          s.pos = nn.Embedding(blk, ne)
+          s.blocks = nn.ModuleList([PlainBlock(ne, nh, blk) for _ in range(nl)])
+          s.lnf = nn.LayerNorm(ne)
+          s.head = nn.Linear(ne, V, bias=False)
+  --- END SOURCE ---
+  METHOD forward(s, idx) lines 141-146
+  --- SOURCE ---
+      def forward(s, idx):
+          T = idx.size(1)
+          x = s.tok(idx) + s.pos(torch.arange(T, device=idx.device))
+          for b in s.blocks:
+              x = b(x)
+          return s.head(s.lnf(x))
+  --- END SOURCE ---
+FUNCTION _truthy(name, default) lines 149-153
+FUNCTION _build_cst(cfg) lines 156-173
+CLASS NativeModel lines 176-302
+  METHOD __init__(self, name, path, kind) lines 179-249
+  --- SOURCE ---
+      def __init__(self, name, path, kind):
+          ck = torch.load(path, map_location="cpu", weights_only=False)
+          cfg = ck["config"]
+          self.name, self.kind, self.path = name, kind, path
+          self.stoi = ck["stoi"]
+          self.itos = {int(v): k for k, v in self.stoi.items()}
+          self.block = int(cfg["block"])
+          self.cst_tensors = []
+          if kind == "phos":
+              # built from the ladder module itself rather than a second transcription --
+              # a copy of dyn12 here could drift from the one that was actually measured
+              import cosmos_state_ladder as _L
+              self.m = _L.Ladder(int(cfg["vocab"]), ck.get("rung", "dyn12"),
+                                 ck.get("ffn", "harmonic"))
+              self.cst_tensors = [k for k in ck["model"]
+                                  if any(x in k for x in ("d12.", "attn.gate",
+                                                          "attn.log_sigma", "state_init"))]
+          elif kind == "cst":
+              self.m, _C = _build_cst(cfg)
+              self.cst_tensors = [k for k in ck["model"]
+                                  if any(x in k for x in ("w54", "attn.gate", "log_sigma"))]
+          else:
+              self.m = Plain(cfg["vocab"], cfg["n_embd"], cfg["n_head"],
+                             cfg["n_layer"], self.block)
+          # strict=False forgives absent and extra keys but still RAISES on a shape mismatch,
+          # and v1 checkpoints store attn.gate as a 0-dim scalar while the current module
+          # declares it shape [1]. Drop anything whose shape disagrees, load the rest, then
+          # restore the gate under the parameterisation the checkpoint actually used:
+          # v1 held a pre-sigmoid logit, v2 holds the blend weight directly.
+          want = self.m.state_dict()
+          src = ck["model"]
+          skipped = [k for k, v in src.items()
+                     if k in want and tuple(want[k].shape) != tuple(v.shape)]
+          missing, unexpected = self.m.load_state_dict(
+              {k: v for k, v in src.items() if k not in skipped}, strict=False)
+  
+          self.gate_param = ck.get("gate_param")
+          if kind == "cst":
+              raws = [float(src[f"blocks.{i}.attn.gate"].reshape(-1)[0])
+                      for i in range(int(cfg["n_layer"])) if f"blocks.{i}.attn.gate" in src]
+              if self.gate_param is None and raws:
+                  self.gate_param = "logit" if max(abs(r) for r in raws) > 1.0 else "clamp01"
+              with torch.no_grad():
+                  for i, b in enumerate(self.m.blocks):
+                      if i >= len(raws):
+                          break
+                      g = (1.0/(1.0 + math.exp(-raws[i])) if self.gate_param == "logit"
+                           else max(0.0, min(1.0, raws[i])))
+                      b.attn.gate.fill_(float(g))
+          # keys dropped on purpose above and then restored are not missing
+          missing = [k for k in missing if k not in skipped]
+  
+          self.meta = {
+              "architecture": ck.get("arch", "Cosmos-Spark-QuantumBorn"),
+              "steps": ck.get("total_steps"),
+              "params": sum(v.numel() for v in ck["model"].values()),
+              "vocab": int(cfg["vocab"]),
+              "d54": cfg.get("d54"),
+              "cst_tensor_count": len(self.cst_tensors),
+              "quantum_source": ck.get("quantum_source"),
+              "best_val_loss": ck.get("best_val_loss"),
+              "real_word_rate": ck.get("real_word_rate"),
+              # surfaced because a silent partial load is exactly the failure mode that
+              # makes a model look alive while running on random weights
+              "missing_keys": len(missing),
+              "unexpected_keys": len(unexpected),
+              "gate_param": self.gate_param,
+              "shape_skipped": skipped,
+          }
+          self.m.eval()
+          self.lock = threading.Lock()
+  --- END SOURCE ---
+  METHOD _logits(self, idx) lines 251-253
+  --- SOURCE ---
+      def _logits(self, idx):
+          out = self.m(idx)
+          return out[0] if isinstance(out, tuple) else out
+  --- END SOURCE ---
+  METHOD gates(self) lines 255-268
+  METHOD encode(self, s) lines 270-273
+  --- SOURCE ---
+      def encode(self, s):
+          # characters she never saw do not exist for her; drop rather than substitute an
+          # <unk> she was never trained on
+          return [self.stoi[c] for c in s if c in self.stoi]
+  --- END SOURCE ---
+  METHOD decode(self, ids) lines 275-276
+  METHOD stream(self, prompt, n, temperature, top_p) lines 279-299
+  METHOD generate(self) lines 301-302
+  --- SOURCE ---
+      def generate(self, *a, **k):
+          return "".join(self.stream(*a, **k))
+  --- END SOURCE ---
+FUNCTION get_native(name) lines 309-329
+FUNCTION live_physics(max_age) lines 336-357
+FUNCTION physics_temperature(base, st) lines 360-368
+FUNCTION upstream(path, body, method, timeout) lines 372-377
+FUNCTION upstream_json(path, body, method, timeout) lines 380-385
+FUNCTION _ts() lines 388-389
+FUNCTION native_tag(nm) lines 392-402
+CLASS QuietServer lines 405-426
+  METHOD handle_error(self, request, client_address) lines 423-426
+CLASS Handler lines 429-604
+  METHOD log_message(self) lines 432-433
+  METHOD _json(self, obj, code) lines 442-451
+  METHOD _ndjson_open(self) lines 453-457
+  METHOD _chunk(self, obj) lines 459-465
+  METHOD _chunk_end(self) lines 467-472
+  METHOD _body(self) lines 474-481
+  METHOD _relay(self, path, body, method) lines 483-503
+  METHOD do_GET(self) lines 506-531
+  METHOD do_POST(self) lines 534-604
+FUNCTION main() lines 607-639
+
+KEY LINES
+0008:     cosmos-cst      HER architecture. 54D Mixture-of-States Hebbian attention from
+0010:                     blocks.N.attn.w54 (54, n_embd), blocks.N.attn.gate,
+0011:                     blocks.N.attn.log_sigma. This mechanism exists in no other
+0013:     cosmos-spark    Her plain quantum-born weights (nn.MultiheadAttention, no 54D).
+0024:   54D state and blend it with softmax attention. No binary on any machine contains
+0044:   namebind GGUF is 338 Qwen2 tensors with zero 54D state. cosmos-cst is hers down to
+0102:     # PHOS -- Phi / Omega / Sigma. Quantum-born like the others, but running the one
+0103:     # architecture that survived controlled testing (dyn12 on the phi scaffold) and
+0121:         s.attn = nn.MultiheadAttention(ne, nh, batch_first=True)
+0189:             # a copy of dyn12 here could drift from the one that was actually measured
+0190:             import cosmos_state_ladder as _L
+0191:             self.m = _L.Ladder(int(cfg["vocab"]), ck.get("rung", "dyn12"),
+0194:                                 if any(x in k for x in ("d12.", "attn.gate",
+0195:                                                         "attn.log_sigma", "state_init"))]
+0199:                                 if any(x in k for x in ("w54", "attn.gate", "log_sigma"))]
+0204:         # and v1 checkpoints store attn.gate as a 0-dim scalar while the current module
+0206:         # restore the gate under the parameterisation the checkpoint actually used:
+0208:         want = self.m.state_dict()
+0212:         missing, unexpected = self.m.load_state_dict(
+0215:         self.gate_param = ck.get("gate_param")
+0217:             raws = [float(src[f"blocks.{i}.attn.gate"].reshape(-1)[0])
+0218:                     for i in range(int(cfg["n_layer"])) if f"blocks.{i}.attn.gate" in src]
+0219:             if self.gate_param is None and raws:
+0220:                 self.gate_param = "logit" if max(abs(r) for r in raws) > 1.0 else "clamp01"
+0225:                     g = (1.0/(1.0 + math.exp(-raws[i])) if self.gate_param == "logit"
+0227:                     b.attn.gate.fill_(float(g))
+0245:             "gate_param": self.gate_param,
+0255:     def gates(self):
+0258:                 return [round(float(torch.sigmoid(b.attn.gate).detach()), 5)
+0265:             return [round(float(b.attn.gate.clamp(0, 1).detach()), 5)
+0333: _STATE = {"t": 0.0, "v": None}
+0337:     """Her CURRENT 12D/54D state from the sensory server, cached ~1s."""
+0339:     if _STATE["v"] is not None and (now - _STATE["t"]) < max_age:
+0340:         return _STATE["v"]
+0343:             "http://127.0.0.1:8765/state", timeout=1.5).read())
+0354:         _STATE.update({"t": now, "v": v})
+0363:         return base, "no live state (frozen default)"
+0396:     fam = {"phos": "phos-dyn12-phi", "cst": "cosmos-cst-54d"}.get(kind, "cosmic-spark")
+0582:                           "cosmos_gates": nat.gates()})
+0602:         g = nat.gates()
+0604:               + (f"  gates={g}" if g else ""), flush=True)
+0630:                   f"d54={mm['d54']} · gates={m.gates()}")
+
