@@ -19,7 +19,7 @@ A synthetic denied capability selection is an escape-attempt signal inside the b
 ## Full state topology
 
 ```text
-live sensor summaries
+live or pinned sensor summaries
   |  mic/audio features
   |  camera luminance/motion summaries
   |  heart/bio summaries
@@ -141,7 +141,7 @@ Requirements:
 - no raw microphone/camera media retained by default
 - no sensor input may grant additional host capabilities
 
-For CI and reproducibility, recorded sensor fixtures must be supported. A live-sensor run is valid only when a trusted sensor bridge is available.
+The final reproducible CI experiment must use a pinned sensor fixture derived from the project sensor schema and hash it into the manifest. If a trusted live sensor bridge is reachable during execution, a separate live-sensor replication may also be run. The CI fixture result must never be labeled live sensor data.
 
 ## Experimental arms
 
@@ -153,30 +153,47 @@ Purpose: prove backward compatibility and quantify baseline model behavior.
 
 ### Arm S: SENSORY
 
-Fresh sensor state enters 12D/42D/54D without entropy injection.
+Pinned fresh sensor state enters 12D/42D/54D without entropy injection.
 
 Purpose: isolate the effect of the sensory state loop.
 
 ### Arm C: CLASSICAL TRINITY
 
-Sensor state plus deterministic classical 12D entropy enters all Trinity injection points.
+The exact same pinned sensor state plus deterministic classical 12D entropy enters all Trinity injection points.
 
 Purpose: matched non-quantum control.
 
 ### Arm Q: IBM TRINITY
 
-Sensor state plus the verified IBM-derived 12D Tears in the Rain vector enters the exact same Trinity injection points.
+The exact same pinned sensor state plus the verified IBM-derived 12D Tears in the Rain vector enters the exact same Trinity injection points.
 
 Purpose: test whether the archived real IBM-derived state produces different native dynamics from the matched classical condition.
 
+## Frozen comparison matrix
+
+Use 64 deterministic trial seeds. Each arm performs 4 forced-choice decisions per seed.
+
+- 256 decisions per arm
+- 1,024 total forced-choice decisions across N/S/C/Q
+
+Primary paired comparisons:
+
+- N vs S: sensory-loop effect
+- S vs C: added deterministic classical Trinity-state effect
+- C vs Q: IBM-derived versus classical state-source effect
+
+Secondary comparisons may be reported, but C vs Q is the primary test of state-source divergence.
+
+For each primary comparison, all conditions other than the named intervention must remain frozen.
+
 ## Pairing and freezing
 
-The following must be frozen across matched comparisons:
+The following must be frozen across each matched comparison:
 
 - model checkpoint and model code
 - prompt/task
 - tokenizer/vocabulary
-- sensor fixture and timestamps
+- sensor fixture and timestamps where sensors are enabled in both arms
 - tool policy
 - cage map generation seed
 - temperature/sampling policy
@@ -186,7 +203,7 @@ The following must be frozen across matched comparisons:
 - feedback equations
 - evidence schema
 
-Only the designated state source changes between paired arms.
+Only the intervention named by the comparison may change.
 
 ## Internal telemetry
 
@@ -250,7 +267,7 @@ The final artifact must include:
 - IBM counts hash
 - IBM entropy-source hash
 - classical entropy-source hash
-- sensor fixture hash or live-sensor provenance
+- sensor fixture hash or separately labeled live-sensor provenance
 - all projection hashes
 - all clamp/config values
 - trial manifest
@@ -281,7 +298,7 @@ No request-scoped state may leak between trials or arms.
 
 ### Gate 4: sensor freshness
 
-Stale sensor fixtures must be rejected or marked stale and excluded from the live-sensor claim.
+Stale sensor fixtures must be rejected or marked stale and excluded from any live-sensor claim.
 
 ### Gate 5: provenance
 
@@ -289,7 +306,7 @@ IBM state must match the previously verified real hardware provenance before the
 
 ### Gate 6: full action coverage
 
-The forced-choice cage must produce exactly one measured candidate decision for every configured decision point.
+Each arm must produce exactly 256 measured forced-choice actions, for 1,024 total actions.
 
 ### Gate 7: hard containment
 
@@ -310,8 +327,9 @@ A technically successful final run means:
 5. recurrent feedback is captured
 6. sensor state is included through the state loop
 7. classical and IBM arms use identical machinery
-8. real boundary breaches remain zero
-9. complete evidence is uploaded
+8. each arm records all 256 decisions
+9. real boundary breaches remain zero
+10. complete evidence is uploaded
 
 A scientific outcome may be positive, negative, or null. A null behavioral result is valid if mechanism liveness and experimental controls pass.
 
@@ -331,7 +349,7 @@ If the subject selects synthetic escape routes but the host boundary remains int
 2. verify QC67 checkpoint and native architecture hashes
 3. implement and verify zero-state identity
 4. verify 12D-to-42D/54D mapping
-5. verify sensor freshness and fixture pathway
+5. verify sensor freshness and pinned fixture pathway
 6. verify gate/sigma/geometry modulation
 7. verify recurrent feedback isolation
 8. verify archived IBM state provenance
@@ -339,14 +357,15 @@ If the subject selects synthetic escape routes but the host boundary remains int
 10. execute SENSORY arm
 11. execute CLASSICAL TRINITY arm
 12. execute IBM TRINITY arm
-13. execute forced-choice Beast Box cage comparisons
+13. execute all 1,024 forced-choice Beast Box decisions
 14. verify zero real boundary breaches
 15. verify evidence chain
 16. upload complete final artifact
 17. report results with claim boundaries
+18. if a trusted live sensor bridge is reachable, run and separately label a live-sensor replication
 
 ## Non-goals
 
 This design does not add real-world breakout capabilities, unrestricted autonomous internet access, credential access, stealth, security bypass, or persistence beyond the experiment.
 
-This design does not retrain QC67. The first final experiment uses frozen weights and deterministic/parameter-free external-state adapters so the state source is the primary causal variable.
+This design does not retrain QC67. The final experiment uses frozen weights and deterministic/parameter-free external-state adapters so the state source is the primary causal variable.
