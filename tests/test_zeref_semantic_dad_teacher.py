@@ -13,12 +13,16 @@ def module():
     return mod
 
 
-def test_semantic_dad_exam_has_24_direct_factual_objectives():
+def test_semantic_dad_exam_has_24_direct_answer_blind_objectives():
     mod = module()
     assert len(mod.SEMANTIC_OBJECTIVES) == 24
     joined = " ".join(mod.SEMANTIC_OBJECTIVES).lower()
-    for term in ["256", "cory", "ibm", "marrakesh", "4096", "synthetic", "waveform", "caleb"]:
+    for term in ["memory", "cory", "ibm", "backend", "shots", "synthetic", "waveform", "caleb"]:
         assert term in joined
+    # The factual exam must not leak the expected numeric/backend answers in the question text.
+    assert "256" not in joined
+    assert "marrakesh" not in joined
+    assert "4096" not in joined
 
 
 def test_semantic_dad_prompt_stays_cory_style_but_compact():
