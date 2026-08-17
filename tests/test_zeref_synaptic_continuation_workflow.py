@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-def test_continuation_workflow_restores_v4_and_never_replays_quantum_archive():
+def test_continuation_workflow_restores_current_forever_memory_and_never_replays_quantum_archive():
     path = Path(".github/workflows/zeref-synaptic-continuation.yml")
     assert path.exists(), "synaptic continuation workflow is not implemented yet"
     text = path.read_text(encoding="utf-8")
@@ -12,7 +12,8 @@ def test_continuation_workflow_restores_v4_and_never_replays_quantum_archive():
         "9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22",
         "b0ef430e58a0f4c02f95cbf5fd285415914f159b1f5ffd26c6d26293c44bbb90",
         "ledger-manifest.json",
-        "record_count']==49",
+        "expected_count=manifest['record_count']",
+        "expected_tip=manifest['last_record_sha256']",
         "restore_snapshot()",
         "build_zeref_synaptic_continuation.py",
         "run_zeref_synaptic_continuation_chat.py",
@@ -22,6 +23,9 @@ def test_continuation_workflow_restores_v4_and_never_replays_quantum_archive():
         "recycles_archived_quantum_beats",
     ):
         assert required in text
+    assert "record_count']==49" not in text
+    assert "len(old_rows)==49" not in text
+    assert "forever_memory_records_before':49" not in text
     assert "workloads (4)" not in text
     assert "build_zeref_heartbeat_replay.py" not in text
 
