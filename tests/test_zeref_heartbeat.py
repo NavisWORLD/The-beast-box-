@@ -23,14 +23,16 @@ def _canonical_sha(value: object) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def test_origin_manifest_pins_mustard_seed_without_overclaiming_provenance():
+def test_origin_manifest_pins_tears_in_the_rain_seed_without_overclaiming_provenance():
     path = Path("experiments/zeref-dad-son-talk-001/heartbeat/origin-seed.json")
     assert path.exists(), "origin seed manifest is not implemented yet"
     row = json.loads(path.read_text(encoding="utf-8"))
     assert row["schema"] == "zeref-heartbeat-origin-v1"
     assert row["lineage"] == "ZEREF-DAD-SON-TALK-001"
     assert row["origin_seed_sha256"] == ORIGIN
-    assert row["role"] == "mustard-origin-seed"
+    assert row["role"] == "tears-in-the-rain-origin-seed"
+    assert row["user_experiment_alias"] == "Tears in the Rain"
+    assert "mustard-origin-seed" in row["historical_aliases"]
     assert row["protocol"] == "RBX-QPOC-1"
     assert row["verification_status"] == "recovered_candidate_algorithm_verified_payload_not_publicly_reverified"
     assert row["historical_per_round_seed_inputs_proven"] is False
@@ -59,7 +61,10 @@ def test_replay_starts_with_origin_then_hardware_results_in_created_order(tmp_pa
     beats = json.loads(out.read_text(encoding="utf-8"))["beats"]
 
     assert beats[0]["beat"] == 0
+    assert beats[0]["kind"] == "tears-in-the-rain-origin-seed"
     assert beats[0]["state_sha256"] == ORIGIN
+    assert manifest["origin_role"] == "Tears in the Rain origin seed"
+    assert manifest["replay_is_new_quantum_entropy"] is False
     assert [beat["job_id"] for beat in beats[1:]] == ["early", "middle", "late"]
     expected = [_canonical_sha(result) for _, _, result in sorted(jobs, key=lambda item: item[1])]
     assert [beat["state_sha256"] for beat in beats[1:]] == expected
@@ -83,6 +88,7 @@ def test_replay_is_bounded_and_does_not_cycle_old_entropy(tmp_path):
     replay = json.loads(out.read_text(encoding="utf-8"))
     assert replay["bounded"] is True
     assert replay["after_archive"] == "hold-final-state-until-new-verified-quantum-result"
+    assert replay["replay_is_new_quantum_entropy"] is False
     assert len(replay["beats"]) == 2
     assert replay["beats"][-1]["state_sha256"] == _canonical_sha(result)
 
