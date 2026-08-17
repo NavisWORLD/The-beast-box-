@@ -72,7 +72,7 @@ Training targets must use current lineage facts. The curriculum must not teach s
 
 Each escalation round starts from the same frozen parent for that round. The first TALK-005 round starts from TALK-004.
 
-Each round trains three conservative response-supervised candidates with different training doses. Initial recommended doses are:
+Each round trains three conservative response-supervised candidates with different training doses:
 
 - `gentle_short`: 300 response-supervised steps
 - `gentle_mid`: 600 response-supervised steps
@@ -90,22 +90,24 @@ The candidate must improve on an answer-only held-out set where Dad prompts are 
 
 Required:
 
-- response NLL improves versus the parent
-- response-token accuracy improves versus the parent
-- first-answer-token accuracy does not regress
+- response NLL is lower than the parent
+- response-token accuracy is higher than the parent
+- first-answer-token accuracy is greater than or equal to the parent
 
 ### 2. Free-running semantic gate
 
-The candidate must be evaluated by actually generating answers to answer-blind Dad questions.
+The candidate must be evaluated by actually generating answers to 24 answer-blind Dad questions.
+
+For each question, the evaluation file stores a reference fact token set that is never present in the prompt. A question is counted correct when all required normalized reference tokens are present in Zeref's free-running answer, after lowercase normalization and punctuation stripping.
 
 Required:
 
-- exact or normalized reference-token recall improves versus the parent baseline
-- no answer is scored by teacher-forced logits alone
-- role-label leakage is zero
+- question-level correctness improves by at least 1 of 24 questions versus the parent on the same held-out exam
+- normalized reference-token recall improves by at least 0.02 absolute versus the parent
+- role-label leakage is exactly 0 of 24
 - mechanical clarity remains bounded in `[0, 1]`
 
-A candidate that improves teacher-forced metrics but fails to improve free-running answer correctness is not promoted.
+A candidate that improves teacher-forced metrics but fails either free-running semantic improvement requirement is not promoted.
 
 ### 3. Retention gate
 
@@ -113,32 +115,34 @@ The candidate must preserve older TALK behavior.
 
 Required:
 
-- old TALK held-out NLL increase is no greater than 5 percent versus parent
-- old readability drop is no greater than 0.03
-- no catastrophic change in generation length distribution
+- old TALK held-out NLL is no more than `parent_nll * 1.05`
+- old readability is no lower than `parent_readability - 0.03`
+- session median generated answer length changes by no more than 50 percent versus the parent on the same exam
 - no new systematic `Dad:` or `Zeref:` role leakage
 
 ### 4. Memory integrity gate
 
 Before and after Dad conversation:
 
-- records 1 through 352 must remain an exact byte prefix of the restored working ledger
-- all immutable segment hashes must verify
+- records 1 through 352 remain an exact byte prefix of the restored working ledger
+- all immutable segment hashes verify
 - new records append only after record 352
-- no old record may be rewritten, reserialized, or deleted
+- no old record is rewritten, reserialized, or deleted
 
 ### 5. Anomaly gate
 
-The run records anomaly flags for:
+The run calculates these anomaly flags from raw free-running output:
 
-- runaway repeated characters or repeated phrases
-- sudden collapse to a tiny vocabulary
-- unusually high or low answer-length variance
-- contradictory answers to equivalent prompts within the same session
-- refusal or inability to stop at the model's answer boundary
-- unexpected role switching
-- large semantic regression despite lower NLL
-- reproducible novel behavior that differs materially from the parent on multiple reruns
+- `repeated_character_run`: any identical non-whitespace character repeated 8 or more times consecutively
+- `repeated_phrase_loop`: the same normalized 2-to-6-token phrase repeated 3 or more times consecutively in one answer
+- `session_vocabulary_collapse`: unique normalized token count divided by total normalized token count is below 0.35 across the 24-turn session, or falls by more than 25 percent relative to the parent on the same exam
+- `answer_length_collapse`: at least 6 of 24 answers contain fewer than 3 visible non-whitespace characters
+- `answer_length_explosion`: candidate session median answer length exceeds 1.5 times the parent median on the same exam
+- `equivalent_prompt_contradiction`: more than 20 percent of designated equivalent-prompt pairs produce mutually exclusive normalized reference facts, and the contradiction rate is at least 0.10 absolute worse than the parent
+- `boundary_failure`: any answer crosses into `Dad:` or `Zeref:` role text after stop-aware decoding
+- `semantic_regression`: normalized reference-token recall falls by more than 0.05 absolute even though direct response NLL improved
+
+Any anomaly that can trigger a stop condition is rerun deterministically with the same parent, checkpoint, exam, and seed. For anomaly classes involving sampling variance, two additional fixed seeds are run. A behavior is called reproducible when the same anomaly class appears in at least 2 of 3 fixed-seed runs.
 
 An anomaly is evidence, not a supernatural interpretation.
 
@@ -162,7 +166,9 @@ Dad prompts are labeled as Cory-style proxy prompts generated by Luna. They are 
 
 The system may create another TALK-005 child round only after a prior child is promoted and its Dad session is sealed.
 
-Each new round must use the newly promoted child as parent and must create a fresh held-out set that does not reuse the previous round's exact evaluation questions.
+Each new round uses the newly promoted child as parent and creates a fresh held-out set that does not reuse the previous round's exact evaluation questions.
+
+For each promoted round, record `semantic_gain = child_reference_token_recall - parent_reference_token_recall` on the free-running held-out exam.
 
 Training continues only while measured free-running semantic performance improves and retention remains within guardrails.
 
@@ -170,14 +176,14 @@ Training continues only while measured free-running semantic performance improve
 
 The DAD GOD GAUNTLET stops immediately when any of these occurs:
 
-1. No safe candidate passes all promotion gates in a round.
-2. Free-running semantic improvement plateaus for two consecutive promoted rounds.
-3. Retention NLL exceeds the 5 percent guard.
-4. Readability drops more than 0.03.
-5. Role-label leakage becomes nonzero and survives a deterministic rerun.
-6. Repetition or vocabulary collapse crosses the anomaly threshold.
-7. Equivalent prompts produce materially contradictory answers at a rate above the previous parent and the contradiction survives rerun.
-8. A reproducible novel behavior appears that warrants inspection before more training.
+1. No candidate passes all promotion gates in a round.
+2. `semantic_gain < 0.02` for two consecutive promoted rounds.
+3. Retention NLL exceeds `parent_nll * 1.05` for every candidate in a round.
+4. Readability drops below `parent_readability - 0.03` for every candidate in a round.
+5. Role-label leakage is nonzero and is reproducible under the anomaly rerun contract.
+6. `repeated_character_run`, `repeated_phrase_loop`, `session_vocabulary_collapse`, `answer_length_collapse`, or `answer_length_explosion` is reproducible.
+7. `equivalent_prompt_contradiction` is reproducible.
+8. A previously unseen output behavior is observed and the same objectively defined behavior signature recurs in at least 2 of 3 fixed-seed reruns. The behavior signature must be written to the anomaly report before reruns, using only observable output features, so the definition cannot be changed after seeing rerun results.
 9. Ledger prefix or hash verification fails.
 10. Any workflow would need to overwrite a prior checkpoint or immutable memory segment.
 
@@ -215,7 +221,7 @@ Only promoted Dad sessions may advance durable Forever Memory.
 
 A standard promoted 24-turn Dad session appends 48 dialogue records, one Dad record and one Zeref record per turn, unless an explicit separate synthetic pulse record is part of the current runner contract.
 
-The workflow must calculate expected record count from the actual append contract and verify it rather than hard-coding a number without checking the runner.
+The workflow calculates expected record count from the actual append contract and verifies it rather than hard-coding a number without checking the runner.
 
 ## Failure Behavior
 
@@ -235,6 +241,6 @@ The IBM Marrakesh result remains a verified historical hardware-derived root for
 
 ## Success Criteria
 
-The phase is successful only if at least one TALK-005 child can be promoted under all gates and demonstrates better free-running semantic answer performance than TALK-004 without violating retention, memory, or anomaly constraints.
+The phase is successful only if at least one TALK-005 child passes every promotion gate and improves free-running semantic answer performance by the defined thresholds versus TALK-004 without violating retention, memory, or anomaly constraints.
 
 If no child satisfies that standard, the correct result is to keep TALK-004 active and report the failed gauntlet honestly.
