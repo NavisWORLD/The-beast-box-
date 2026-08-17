@@ -52,11 +52,11 @@ def build_phase_roundtrip(bits: str):
 
 def _service():
     _, _, _, QiskitRuntimeService, _ = _imports()
-    token = os.environ.get("IBM_QUANTUM_TOKEN")
+    token = (os.environ.get("IBM_QUANTUM_TOKEN") or "").strip()
     if not token:
         raise RuntimeError("IBM_QUANTUM_TOKEN is not set")
     kwargs: dict[str, Any] = {"channel": "ibm_quantum_platform", "token": token}
-    instance = os.environ.get("IBM_QUANTUM_INSTANCE")
+    instance = (os.environ.get("IBM_QUANTUM_INSTANCE") or "").strip()
     if instance:
         kwargs["instance"] = instance
     return QiskitRuntimeService(**kwargs)
