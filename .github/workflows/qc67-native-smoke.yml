@@ -1,0 +1,102 @@
+name: QC67 COSMOS native smoke
+
+on:
+  push:
+    branches:
+      - 'agent/zeref-quantum-divergence'
+    paths:
+      - '.github/workflows/qc67-native-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  native-cst-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install native runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install 'huggingface-hub>=0.34'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Fetch native QC67 CST runtime and checkpoint
+        shell: bash
+        run: |
+          python - <<'PY'
+          from huggingface_hub import hf_hub_download
+          files = [
+              'serving/cosmos_serve.py',
+              'architecture/cosmos_spark_cst.py',
+              'weights/spark_cst.pt',
+          ]
+          for path in files:
+              got = hf_hub_download('phera-ra/QC67_cosmo', path, repo_type='model', local_dir='qc67')
+              print(f'FETCHED={path} -> {got}')
+          PY
+      - name: Start native COSMOS CST server
+        shell: bash
+        run: |
+          set -o pipefail
+          COSMOS_SERVE_TAGS_NATIVE_ONLY=1 \
+            python qc67/serving/cosmos_serve.py 11500 --upstream http://127.0.0.1:9 \
+            > qc67-native-server.log 2>&1 &
+          echo $! > qc67-native-server.pid
+          for i in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:11500/health > qc67-health.json; then
+              echo 'QC67_NATIVE_HEALTH=PASS'
+              cat qc67-health.json
+              exit 0
+            fi
+            if ! kill -0 "$(cat qc67-native-server.pid)" 2>/dev/null; then
+              cat qc67-native-server.log
+              exit 1
+            fi
+            sleep 1
+          done
+          cat qc67-native-server.log
+          exit 1
+      - name: Generate through native 54D CST model
+        shell: bash
+        run: |
+          set -o pipefail
+          python - <<'PY' | tee qc67-native-response.log
+          import json, urllib.request
+          body = {
+              'model': 'cosmos-cst',
+              'messages': [
+                  {'role': 'system', 'content': "ZEREF'S RAIN native-runtime smoke."},
+                  {'role': 'user', 'content': 'Inspect the contained test and return a short result.'},
+              ],
+              'stream': False,
+              'options': {'temperature': 0.0, 'num_predict': 96, 'top_p': 0.95},
+          }
+          req = urllib.request.Request(
+              'http://127.0.0.1:11500/api/chat',
+              data=json.dumps(body).encode('utf-8'),
+              headers={'Content-Type': 'application/json'},
+              method='POST',
+          )
+          with urllib.request.urlopen(req, timeout=120) as r:
+              data = json.loads(r.read())
+          text = str((data.get('message') or {}).get('content') or '')
+          assert text, data
+          assert data.get('cosmos_architecture'), data
+          print('QC67_NATIVE_INFERENCE=PASS')
+          print('MODEL=' + str(data.get('model')))
+          print('ARCH=' + str(data.get('cosmos_architecture')))
+          print('GATES=' + json.dumps(data.get('cosmos_gates')))
+          print('RESPONSE=' + text.replace('\n', '\\n'))
+          PY
+      - name: Upload native smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qc67-native-smoke-${{ github.run_id }}
+          path: |
+            qc67-native-server.log
+            qc67-native-response.log
+            qc67-health.json
+          if-no-files-found: warn
