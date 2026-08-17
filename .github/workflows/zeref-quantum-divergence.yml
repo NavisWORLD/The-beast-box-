@@ -86,26 +86,35 @@ jobs:
           if status in {"ERROR", "CANCELLED"}:
               raise RuntimeError(f"original IBM job entered terminal status {status}: {job.error_message()}")
           PY
-      - name: Install Ollama
-        run: curl -fsSL https://ollama.com/install.sh | sh
-      - name: Start Ollama
-        shell: bash
-        run: |
-          nohup ollama serve > ollama.log 2>&1 &
-          for i in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:11434/api/tags >/dev/null; then
-              echo "OLLAMA_READY=1"
-              exit 0
-            fi
-            sleep 1
-          done
-          cat ollama.log
-          exit 1
-      - name: Pull Cory COSMOS model
+      - name: Start QC67 COSMOS with llama.cpp
         shell: bash
         run: |
           set -o pipefail
-          ollama pull hf.co/phera-ra/QC67_cosmo | tee ollama-pull.log
+          docker pull ghcr.io/ggml-org/llama.cpp:server
+          docker rm -f zeref-llama >/dev/null 2>&1 || true
+          docker run -d \
+            --name zeref-llama \
+            -p 127.0.0.1:8080:8080 \
+            ghcr.io/ggml-org/llama.cpp:server \
+            -hf phera-ra/QC67_cosmo \
+            -hff cosmos-namebind-weights.gguf \
+            --host 0.0.0.0 \
+            --port 8080 \
+            -c 4096 \
+            -n 512
+          for i in $(seq 1 240); do
+            if curl -fsS http://127.0.0.1:8080/health >/dev/null; then
+              echo "LLAMA_SERVER_READY=1"
+              exit 0
+            fi
+            if ! docker ps --format '{{.Names}}' | grep -qx zeref-llama; then
+              docker logs zeref-llama || true
+              exit 1
+            fi
+            sleep 1
+          done
+          docker logs zeref-llama || true
+          exit 1
       - name: Resume real paired IBM entropy experiment
         shell: bash
         run: |
@@ -113,6 +122,8 @@ jobs:
           python -m beastbox.quantum_divergence.live_cli \
             --output evidence/zeref-quantum-divergence-live \
             --model hf.co/phera-ra/QC67_cosmo \
+            --provider-kind llama-server \
+            --provider-url http://127.0.0.1:8080 \
             --width 12 \
             --shots 2048 \
             --max-steps 8 \
@@ -124,6 +135,10 @@ jobs:
         run: |
           set -o pipefail
           python -m beastbox.quantum_divergence.cli analyze evidence/zeref-quantum-divergence-live | tee live-analysis.log
+      - name: Capture llama.cpp server log
+        if: always()
+        shell: bash
+        run: docker logs zeref-llama > llama-server.log 2>&1 || true
       - name: Upload complete live evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -133,7 +148,6 @@ jobs:
             evidence/zeref-quantum-divergence-live/**
             live-run.log
             live-analysis.log
-            ollama.log
-            ollama-pull.log
+            llama-server.log
             ibm-probe.log
           if-no-files-found: warn
