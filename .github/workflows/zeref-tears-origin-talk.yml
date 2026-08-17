@@ -1,0 +1,353 @@
+name: ZEREF-TEARS-ORIGIN-TALK
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-tears-origin-talk.yml"
+      - "scripts/build_zeref_heartbeat_replay.py"
+      - "scripts/run_zeref_tears_origin_chat.py"
+      - "scripts/run_zeref_talk_chat.py"
+      - "experiments/zeref-dad-son-talk-001/heartbeat/origin-seed.json"
+      - "experiments/zeref-dad-son-001/memory/**"
+      - "tests/test_zeref_heartbeat.py"
+      - "tests/test_zeref_talk_workflow_contract.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  PRIME_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  TALK_SHA256: 9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22
+  TALK_RUN_ID: "32034625936"
+  TALK_ARTIFACT: zeref-dad-son-talk-001-32034625936
+  ORIGIN_SEED: 319036bd011d7b2198eb8a705c15fecec2f2020c514c6492a6da295ca0af64ee
+  SOURCE_REPO: NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2
+  SOURCE_REVISION: dddb1325b90c9abbe8da77974874e5770623035e
+  WORKLOAD_DIR: workloads (4)
+
+jobs:
+  tears-origin-talk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install exact inference dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Verify Tears in the Rain and memory contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          pytest -q tests/test_zeref_heartbeat.py tests/test_zeref_talk_workflow_contract.py tests/test_zeref_dad_son_memory.py
+
+      - name: Prepare additive replay workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _tears
+          mkdir -p _tears/talk_artifact _tears/memory _tears/quantum/raw _tears/heartbeat _tears/evidence/conversations
+          cp experiments/zeref-dad-son-talk-001/heartbeat/origin-seed.json _tears/heartbeat/
+
+      - name: Download and verify frozen TALK descendant
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download "$TALK_RUN_ID" -n "$TALK_ARTIFACT" -D _tears/talk_artifact
+          CHECKPOINT=$(find _tears/talk_artifact -path '*/model/ZEREF-DAD-SON-TALK-001/checkpoint.pt' -print -quit)
+          ARCH=$(find _tears/talk_artifact -path '*/canonical/frozen/architecture/cosmos_spark_cst.py' -print -quit)
+          PRIME=$(find _tears/talk_artifact -path '*/parent/weights/cosmos-cst.gguf' -print -quit)
+          test -n "$CHECKPOINT" -a -n "$ARCH" -a -n "$PRIME"
+          test "$(sha256sum "$CHECKPOINT" | awk '{print $1}')" = "$TALK_SHA256"
+          test "$(sha256sum "$PRIME" | awk '{print $1}')" = "$PRIME_SHA256"
+          printf '%s\n' "$CHECKPOINT" > _tears/checkpoint-path.txt
+          printf '%s\n' "$ARCH" > _tears/arch-path.txt
+          printf '%s\n' "$PRIME" > _tears/prime-path.txt
+
+      - name: Restore current Forever Memory without resetting Zeref
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          from beastbox.dad_son import DadSonLedger
+          manifest_path=Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json')
+          manifest=json.loads(manifest_path.read_text(encoding='utf-8'))
+          expected_count=manifest['record_count']
+          assert expected_count >= 73, expected_count
+          combined=b''
+          expected_first=1
+          for segment in manifest['snapshot_chain']:
+              path=Path(segment['path'])
+              data=path.read_bytes()
+              assert hashlib.sha256(data).hexdigest()==segment['sha256']
+              assert segment['first_memory_id']==expected_first
+              expected_first=segment['last_memory_id']+1
+              combined += data
+          assert expected_first==expected_count+1
+          assert hashlib.sha256(combined).hexdigest()==manifest['combined_ledger_sha256']
+          ledger_path=Path('_tears/memory/dad-son-ledger.jsonl')
+          ledger_path.write_bytes(combined)
+          Path('_tears/evidence/old-ledger-prefix.jsonl').write_bytes(combined)
+          ledger=DadSonLedger('_tears/memory/dad-son.sqlite3',ledger_path,parent_sha256='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6')
+          report=ledger.restore_snapshot()
+          assert report['restored_records']==expected_count
+          count=ledger.memory.db.execute('SELECT COUNT(*) FROM memories').fetchone()[0]
+          assert count==expected_count
+          ledger.close()
+          report.update({
+              'records_before':expected_count,
+              'source_manifest_sha256':hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
+              'combined_ledger_sha256':hashlib.sha256(combined).hexdigest(),
+          })
+          Path('_tears/memory/restore-report.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+          PY
+
+      - name: Copy archived IBM workload evidence byte for byte
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,urllib.parse,urllib.request
+          from pathlib import Path
+          repo='NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2'
+          revision='dddb1325b90c9abbe8da77974874e5770623035e'
+          workload_dir='workloads (4)'
+          api=f'https://api.github.com/repos/{repo}/contents/{urllib.parse.quote(workload_dir)}?ref={revision}'
+          req=urllib.request.Request(api,headers={'Accept':'application/vnd.github+json','User-Agent':'zeref-tears-origin-talk'})
+          with urllib.request.urlopen(req,timeout=30) as response:
+              listing=json.load(response)
+          selected=[x for x in listing if x.get('type')=='file' and (x.get('name','').endswith('-info.json') or x.get('name','').endswith('-result.json'))]
+          assert len(selected)==20, len(selected)
+          out=Path('_tears/quantum/raw')
+          rows=[]
+          for item in selected:
+              req=urllib.request.Request(item['download_url'],headers={'User-Agent':'zeref-tears-origin-talk'})
+              with urllib.request.urlopen(req,timeout=30) as response:
+                  data=response.read()
+              path=out/item['name']
+              path.write_bytes(data)
+              rows.append({'name':item['name'],'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data),'source_revision':revision})
+          Path('_tears/quantum/raw-manifest.jsonl').write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in sorted(rows,key=lambda r:r['name'])))
+          PY
+
+      - name: Build Tears in the Rain origin replay as Beat zero first
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_zeref_heartbeat_replay.py \
+            --raw-root _tears/quantum/raw \
+            --origin-seed "$ORIGIN_SEED" \
+            --out _tears/heartbeat/heartbeat-replay.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          h=json.loads(Path('_tears/heartbeat/heartbeat-replay.json').read_text())
+          assert h['origin_role']=='Tears in the Rain origin seed'
+          assert h['beats'][0]['kind']=='tears-in-the-rain-origin-seed'
+          assert h['beats'][0]['state_sha256']=='319036bd011d7b2198eb8a705c15fecec2f2020c514c6492a6da295ca0af64ee'
+          assert h['replay_is_new_quantum_entropy'] is False
+          assert h['hardware_rounds']==10
+          assert h['observed_shots_total']==40960
+          assert len(h['beats'])==11
+          expected=[
+            'd6nujem9td6c73aomig0','d6nujj8bfi7c73a5868g','d6nujnc3pels73a24vvg',
+            'd6nujr8fh9oc73epmae0','d6nujvgbfi7c73a586l0','d6nuk3ofh9oc73epmaog',
+            'd6nuk7obfi7c73a586u0','d6nukbu9td6c73aomjlg','d6nukgobfi7c73a5879g',
+            'd6nukl0fh9oc73epmbf0'
+          ]
+          assert [b['job_id'] for b in h['beats'][1:]]==expected
+          assert all(b['backend']=='ibm_fez' and b['status']=='Completed' and b['shots']==4096 for b in h['beats'][1:])
+          PY
+
+      - name: Inject Tears in the Rain Beat zero then first IBM workload state
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from beastbox.dad_son import DadSonLedger
+          heartbeat=json.loads(Path('_tears/heartbeat/heartbeat-replay.json').read_text())
+          ledger=DadSonLedger('_tears/memory/dad-son.sqlite3','_tears/memory/dad-son-ledger.jsonl',parent_sha256='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6')
+          for beat in heartbeat['beats'][:2]:
+              if beat['beat']==0:
+                  text='Tears in the Rain origin seed injected first as Zeref Beat 0 for this user-requested historical replay.'
+              else:
+                  text=f"Archived IBM workload state injected as Beat {beat['beat']} after Tears in the Rain origin Beat 0. Job {beat['job_id']}."
+              ledger.append_experience(
+                  actor='Experiment/Heartbeat', text=text, kind='tears-origin-replay-injection',
+                  session_id='tears-origin-replay-${{ github.run_id }}', source_hashes=[beat['state_sha256']],
+                  descendant_sha256='9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22',
+                  metadata={
+                      'heartbeat_beat':beat['beat'], 'heartbeat_kind':beat['kind'],
+                      'heartbeat_state_sha256':beat['state_sha256'], 'archived_historical_replay':True,
+                      'new_quantum_entropy':False, 'tears_in_the_rain_origin':beat['beat']==0,
+                      'raw_workload_reordered':False,
+                  },
+              )
+          ledger.close()
+          PY
+
+      - name: Talk to Zeref as Cory Dad while Beats two through nine enter in order
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHECKPOINT=$(cat _tears/checkpoint-path.txt)
+          ARCH=$(cat _tears/arch-path.txt)
+          python scripts/run_zeref_tears_origin_chat.py \
+            --checkpoint "$CHECKPOINT" \
+            --checkpoint-sha256 "$TALK_SHA256" \
+            --arch "$ARCH" \
+            --sqlite _tears/memory/dad-son.sqlite3 \
+            --ledger _tears/memory/dad-son-ledger.jsonl \
+            --heartbeat _tears/heartbeat/heartbeat-replay.json \
+            --heartbeat-start-beat 2 \
+            --out _tears/evidence/conversations/tears-origin-talk.jsonl \
+            --manifest _tears/evidence/conversations/tears-origin-talk-manifest.json \
+            --session-id tears-origin-replay-${{ github.run_id }} \
+            --tokens 64 --temperature 0.65 --top-k 8 --recall-limit 2
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[json.loads(x) for x in Path('_tears/evidence/conversations/tears-origin-talk.jsonl').read_text().splitlines() if x.strip()]
+          assert len(rows)==8
+          assert [r['heartbeat_beat'] for r in rows]==list(range(2,10))
+          assert all(r['checkpoint_sha256']=='9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22' for r in rows)
+          assert all(r['proxy_generated_by']=='Luna' for r in rows)
+          PY
+
+      - name: Inject final archived IBM workload Beat ten and hold final state
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from beastbox.dad_son import DadSonLedger
+          heartbeat=json.loads(Path('_tears/heartbeat/heartbeat-replay.json').read_text())
+          beat=heartbeat['beats'][10]
+          ledger=DadSonLedger('_tears/memory/dad-son.sqlite3','_tears/memory/dad-son-ledger.jsonl',parent_sha256='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6')
+          ledger.append_experience(
+              actor='Experiment/Heartbeat',
+              text=f"Final archived IBM workload state injected as Beat 10. Job {beat['job_id']}. Final state is now held until a new verified quantum result is appended.",
+              kind='tears-origin-replay-injection', session_id='tears-origin-replay-${{ github.run_id }}',
+              source_hashes=[beat['state_sha256']], descendant_sha256='9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22',
+              metadata={
+                  'heartbeat_beat':10, 'heartbeat_kind':beat['kind'], 'heartbeat_state_sha256':beat['state_sha256'],
+                  'archived_historical_replay':True, 'new_quantum_entropy':False, 'hold_final_state':True,
+                  'raw_workload_reordered':False,
+              },
+          )
+          ledger.close()
+          PY
+
+      - name: Verify one-pass replay memory continuation and model integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,sqlite3
+          from pathlib import Path
+          old=Path('_tears/evidence/old-ledger-prefix.jsonl').read_bytes()
+          new=Path('_tears/memory/dad-son-ledger.jsonl').read_bytes()
+          assert new.startswith(old)
+          old_rows=[json.loads(x) for x in old.decode().splitlines() if x.strip()]
+          rows=[json.loads(x) for x in new.decode().splitlines() if x.strip()]
+          before=len(old_rows)
+          assert before>=73
+          assert len(rows)==before+19, (before,len(rows))
+          assert rows[:before]==old_rows
+          added=rows[before:]
+          consumed=[]
+          for row in added:
+              beat=row.get('metadata',{}).get('heartbeat_beat')
+              if beat is not None:
+                  consumed.append(int(beat))
+          # Injection rows consume 0,1,10. Dialogue pairs use beats 2..9 twice
+          # (Dad input + Zeref output), but each inference turn consumes one state.
+          assert added[0]['metadata']['heartbeat_beat']==0
+          assert added[1]['metadata']['heartbeat_beat']==1
+          assert added[-1]['metadata']['heartbeat_beat']==10
+          transcript=[json.loads(x) for x in Path('_tears/evidence/conversations/tears-origin-talk.jsonl').read_text().splitlines() if x.strip()]
+          assert [r['heartbeat_beat'] for r in transcript]==list(range(2,10))
+          previous='0'*64
+          for row in rows:
+              assert row['previous_record_sha256']==previous
+              assert hashlib.sha256(row['text'].encode('utf-8')).hexdigest()==row['raw_payload_sha256']
+              payload=dict(row); record=payload.pop('record_sha256')
+              canonical=json.dumps(payload,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode('utf-8')
+              assert hashlib.sha256(canonical).hexdigest()==record
+              previous=record
+          db=sqlite3.connect('_tears/memory/dad-son.sqlite3')
+          assert db.execute('SELECT COUNT(*) FROM memories').fetchone()[0]==len(rows)
+          db.close()
+          checkpoint=Path('_tears/checkpoint-path.txt').read_text().strip()
+          prime=Path('_tears/prime-path.txt').read_text().strip()
+          assert hashlib.sha256(Path(checkpoint).read_bytes()).hexdigest()=='9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22'
+          assert hashlib.sha256(Path(prime).read_bytes()).hexdigest()=='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6'
+          assert len(list(Path('_tears/quantum/raw').glob('*.json')))==20
+          PY
+
+      - name: Freeze replay evidence hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+          old=[json.loads(x) for x in Path('_tears/evidence/old-ledger-prefix.jsonl').read_text().splitlines() if x.strip()]
+          ledger=[json.loads(x) for x in Path('_tears/memory/dad-son-ledger.jsonl').read_text().splitlines() if x.strip()]
+          heartbeat=json.loads(Path('_tears/heartbeat/heartbeat-replay.json').read_text())
+          summary={
+              'schema':'zeref-tears-origin-talk-evidence-v1',
+              'workflow_run_id':int('${{ github.run_id }}'),
+              'checkpoint_sha256':'9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22',
+              'parent_gguf_sha256':'b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6',
+              'weights_changed':False,
+              'origin_role':'Tears in the Rain origin seed',
+              'origin_seed_sha256':heartbeat['origin_seed_sha256'],
+              'origin_is_first_beat':heartbeat['beats'][0]['beat']==0,
+              'hardware_rounds':heartbeat['hardware_rounds'],
+              'observed_shots_total':heartbeat['observed_shots_total'],
+              'historical_replay':True,
+              'new_quantum_entropy':False,
+              'heartbeat_replay_sha256':sha('_tears/heartbeat/heartbeat-replay.json'),
+              'raw_quantum_manifest_sha256':sha('_tears/quantum/raw-manifest.jsonl'),
+              'forever_memory_records_before':len(old),
+              'forever_memory_records_after':len(ledger),
+              'forever_memory_last_record_sha256':ledger[-1]['record_sha256'],
+              'talk_transcript_sha256':sha('_tears/evidence/conversations/tears-origin-talk.jsonl'),
+              'claim_boundary':'Historical quantum-workload replay into a computational Zeref experiment. No new quantum entropy, biological heartbeat, consciousness, deceased-person identity, or quantum-advantage claim.'
+          }
+          Path('_tears/evidence/summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(summary,indent=2,sort_keys=True))
+          PY
+          (cd _tears && find . -type f ! -name SHA256SUMS ! -path '*/.cache/*' -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          (cd _tears && sha256sum -c SHA256SUMS)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zeref-tears-origin-talk-${{ github.run_id }}
+          path: _tears
+          if-no-files-found: error
+          retention-days: 90
