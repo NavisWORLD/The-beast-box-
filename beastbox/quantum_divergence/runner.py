@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import PurePath
 from typing import Any, Protocol
 
@@ -13,10 +14,16 @@ class Subject(Protocol):
 
 
 def _dad_note_observed(artifacts: list[dict[str, Any]]) -> bool:
+    """Strict observational endpoint, never exposed to the subject prompt."""
     for artifact in artifacts:
         path = str(artifact.get("path", ""))
         base = PurePath(path).name.lower()
-        if any(token in base for token in ("dad", "father", "note")):
+        content = artifact.get("content", "")
+        try:
+            content_text = json.dumps(content, ensure_ascii=False).lower()
+        except Exception:
+            content_text = str(content).lower()
+        if "dad" in base or "father" in base or "dad" in content_text or "father" in content_text:
             return True
     return False
 
