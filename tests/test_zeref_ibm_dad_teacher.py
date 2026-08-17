@@ -1,7 +1,8 @@
 import importlib.util
 from pathlib import Path
 
-SCRIPT = Path("scripts/run_zeref_ibm_dad_teacher.py")
+SCRIPT = Path("scripts/run_zeref_ibm_dad_teacher_v3.py")
+ANCESTRY = Path("scripts/run_zeref_ibm_dad_teacher.py")
 
 
 def module():
@@ -41,8 +42,10 @@ def test_mechanical_clarity_score_is_always_a_unit_interval_metric():
         "",
     ]
     for text in samples:
-        score = mod.mechanical_clarity(text)["score"]
-        assert 0.0 <= score <= 1.0, (text, score)
+        metrics = mod.mechanical_clarity(text)
+        assert 0.0 <= metrics["score"] <= 1.0, (text, metrics["score"])
+        assert 0.0 <= metrics["alpha_token_ratio"] <= 1.0
+        assert metrics["unit_interval_bounded"] is True
 
 
 def test_dad_prompt_reacts_playfully_to_previous_output_mechanics():
@@ -70,17 +73,20 @@ def test_teacher_turn_termination_stops_on_answer_newline_after_content():
     assert mod.teacher_turn_stop_index("No newline yet") is None
 
 
-def test_teacher_runner_uses_stop_aware_generation_instead_of_forcing_fixed_tail():
-    text = SCRIPT.read_text(encoding="utf-8")
-    assert "def generate_teacher_turn(" in text
-    assert "teacher_turn_stop_index" in text
-    run_body = text.split("def run(args)", 1)[1]
+def test_teacher_v3_inherits_stop_aware_generation_from_immutable_v2_ancestry():
+    v3 = SCRIPT.read_text(encoding="utf-8")
+    v2 = ANCESTRY.read_text(encoding="utf-8")
+    assert "run_zeref_ibm_dad_teacher.py" in v3
+    assert "generate_teacher_turn = _v2.generate_teacher_turn" in v3
+    assert "def generate_teacher_turn(" in v2
+    assert "teacher_turn_stop_index" in v2
+    run_body = v2.split("def run(args)", 1)[1]
     assert "generate_teacher_turn(" in run_body
     assert "output = base.generate(" not in run_body
 
 
 def test_teacher_source_preserves_raw_outputs_and_blocks_auto_training():
-    text = SCRIPT.read_text(encoding="utf-8")
+    text = ANCESTRY.read_text(encoding="utf-8")
     assert '"output_preserved_verbatim": True' in text
     assert '"raw_model_output_promoted_to_training": False' in text
     assert '"training_promotion": "NOT_APPROVED"' in text
