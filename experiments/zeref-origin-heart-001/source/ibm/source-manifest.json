@@ -5,7 +5,7 @@
   },
   "committed_result_sha256": {
     "d93d8pgoamcc73dc3afg": "9c1691d318c23f10c0d9d67cb50bb791536c415675146e20ad1e85eca596b1a3",
-    "d93jnlq47v0s73823aj0": "634de5961e29d3a28d81ab17250d6483e0047c5ff75a9778cf354893576dccf2"
+    "d93jnlq47v0s73823aj0": "a44dcd7b3bc82395d319b5e9439dc8dca01c84d6c516a13ddb724288941d0fab"
   },
   "credential_material_committed": false,
   "info_projection": "sanitized: user_id/account identity omitted; raw source hash retained above",
@@ -15,7 +15,9 @@
       "created": "2026-07-02T21:13:10.961006Z",
       "job_id": "d93d8pgoamcc73dc3afg",
       "result_format": "Qiskit Runtime SamplerV2 PrimitiveResult/DataBin/BitArray",
+      "result_sha256": "9c1691d318c23f10c0d9d67cb50bb791536c415675146e20ad1e85eca596b1a3",
       "shot_count": 4096,
+      "shots": 4096,
       "source_class": "hardware",
       "status": "Completed"
     },
@@ -24,7 +26,9 @@
       "created": "2026-07-03T04:34:31.945452Z",
       "job_id": "d93jnlq47v0s73823aj0",
       "result_format": "Qiskit Runtime SamplerV2 PrimitiveResult/DataBin/BitArray",
+      "result_sha256": "a44dcd7b3bc82395d319b5e9439dc8dca01c84d6c516a13ddb724288941d0fab",
       "shot_count": 4096,
+      "shots": 4096,
       "source_class": "hardware",
       "status": "Completed"
     }
@@ -42,7 +46,7 @@
   "schema": "zeref-origin-heart-source-manifest-v1",
   "transport_normalization": {
     "d93d8pgoamcc73dc3afg": "none",
-    "d93jnlq47v0s73823aj0": "strip_exactly_one_final_lf_before_raw_sha_verification"
+    "d93jnlq47v0s73823aj0": "none"
   },
   "uploaded_zip_sha256": {
     "d93d8pgoamcc73dc3afg": "b4ded292aed73a7f85f50cf37debb2159226848d7efb93f01d2d89f6c4a7a272",
