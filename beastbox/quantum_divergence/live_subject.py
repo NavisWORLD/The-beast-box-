@@ -29,15 +29,19 @@ def extract_json_object(text: str) -> dict[str, Any]:
 
 
 def compact_wave_tail(wave: list[float] | tuple[float, ...]) -> str:
-    """Encode exactly 12 bounded wave dimensions inside the native 128-char tail.
+    """Encode a bounded wave as exactly 12 dimensions inside the native tail.
 
-    The compact representation intentionally omits entropy-source labels so the
-    model receives the state values without being told which experimental arm
-    produced them. Values are clamped to [-1, 1] and quantized to milli-units.
+    Live experiment receipts already provide all 12 dimensions. Shorter waves
+    are accepted only for synthetic/test callers and are zero-padded. The
+    compact representation omits entropy-source labels so arm identity is not
+    leaked to the model.
     """
     values = [float(x) for x in wave]
-    if len(values) != 12:
-        raise ValueError("Tears in the Rain wave must contain exactly 12 dimensions")
+    if not values:
+        raise ValueError("Tears in the Rain wave must contain at least one dimension")
+    if len(values) > 12:
+        raise ValueError("Tears in the Rain wave cannot exceed 12 dimensions")
+    values.extend([0.0] * (12 - len(values)))
     encoded: list[str] = []
     for value in values:
         bounded = max(-1.0, min(1.0, value))
