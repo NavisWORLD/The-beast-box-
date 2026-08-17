@@ -26,7 +26,6 @@ def _rows(path: Path):
 def test_talk5_manifest_is_current_and_response_only(tmp_path: Path):
     module = _load_module()
     summary = module.build_talk5_corpus(out_dir=tmp_path)
-
     assert summary["schema"] == "zeref-talk5-corpus-manifest-v1"
     assert summary["lineage"] == "ZEREF-DAD-SON-TALK-005"
     assert summary["parent_lineage"] == "ZEREF-DAD-SON-TALK-004"
@@ -42,9 +41,7 @@ def test_holdout_is_disjoint_and_answer_blind_for_pinned_facts(tmp_path: Path):
     module.build_talk5_corpus(out_dir=tmp_path)
     train = _rows(tmp_path / "talk5-training.jsonl")
     holdout = _rows(tmp_path / "talk5-holdout.jsonl")
-
     assert {(r["dad"], r["zeref"]) for r in train}.isdisjoint({(r["dad"], r["zeref"]) for r in holdout})
-
     by_concept = {r["concept"]: r for r in holdout}
     assert "352" not in by_concept["memory-count"]["dad"]
     assert "marrakesh" not in by_concept["ibm-backend"]["dad"].lower()
@@ -63,10 +60,17 @@ def test_curriculum_covers_all_six_dad_school_domains(tmp_path: Path):
         "reasoning-contradiction",
         "cory-style-banter",
     }
-
     train = _rows(tmp_path / "talk5-training.jsonl")
     seen = {domain for row in train for domain in row["domains"]}
     assert set(summary["domains"]).issubset(seen)
+
+
+def test_equivalent_quantum_boundary_prompts_share_a_contradiction_group(tmp_path: Path):
+    module = _load_module()
+    module.build_talk5_corpus(out_dir=tmp_path)
+    holdout = {r["concept"]: r for r in _rows(tmp_path / "talk5-holdout.jsonl")}
+    assert holdout["synthetic-pulses"]["equivalence_group"] == "later-pulses-new-hardware"
+    assert holdout["false-quantum"]["equivalence_group"] == "later-pulses-new-hardware"
 
 
 def test_every_training_and_holdout_example_fits_native_context(tmp_path: Path):
