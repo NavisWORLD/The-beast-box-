@@ -60,6 +60,6 @@ def test_hardware_origin_seed_requires_exact_shot_total_and_tag():
     assert len(seed["origin_seed_sha256"]) == 64
 
     with pytest.raises(ValueError, match="4096"):
-        build_hardware_origin_seed(packet=packet, backend="ibm_example", job_id="j", counts={"0": 1}, tags=[TAG])
+        build_hardware_origin_seed(packet=packet, backend="ibm_example", job_id="j", counts={"00000": 1}, tags=[TAG])
     with pytest.raises(ValueError, match="tag"):
         build_hardware_origin_seed(packet=packet, backend="ibm_example", job_id="j", counts=counts, tags=[])
