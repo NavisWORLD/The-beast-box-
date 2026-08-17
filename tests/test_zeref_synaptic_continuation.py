@@ -5,6 +5,7 @@ import importlib.util
 import json
 from pathlib import Path
 
+# Quantum archive is already consumed; these tests define the non-quantum continuation pulse.
 FINAL_QUANTUM = "b0ef430e58a0f4c02f95cbf5fd285415914f159b1f5ffd26c6d26293c44bbb90"
 LEDGER_TIP = "96a9d6be43758a9571ba91c3dbcdd633011936cc958581c0d07e18e991f0ec39"
 
