@@ -1,0 +1,108 @@
+name: ZEREF-FINALIZE-TALK4-PROVENANCE
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-finalize-talk4-provenance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-finalize-talk4-provenance
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout durable lineage
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Read TALK-004 artifact metadata from GitHub API and patch manifest only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api repos/${GITHUB_REPOSITORY}/actions/runs/32075092605/artifacts > /tmp/artifacts.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest_path=Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json')
+          m=json.loads(manifest_path.read_text(encoding='utf-8'))
+          assert m['schema']=='zeref-dad-son-ledger-manifest-v13'
+          assert m['record_count']==352
+          assert m['combined_ledger_sha256']=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert m['last_record_sha256']=='b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'
+          assert m['descendant_checkpoint_sha256']=='9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'
+          assert m['source_workflow_run_id']==32075092605
+
+          payload=json.loads(Path('/tmp/artifacts.json').read_text())
+          matches=[a for a in payload['artifacts'] if a['name']=='zeref-talk4-tuned-response-32075092605' and not a['expired']]
+          assert len(matches)==1, matches
+          a=matches[0]
+          assert a['id']==9303224833
+          assert a['digest']=='sha256:7171d8fb7b03b08594e68d8649a2df7990bccf86aebbde5f44f63832edf61e6d'
+          assert a['size_in_bytes']==70014927
+          assert a['workflow_run']['id']==32075092605
+          assert a['workflow_run']['head_sha']=='147110b9a77a7f94ec48099eefcea4486eec79fa'
+
+          # Provenance metadata only. No snapshot, ledger, model, IBM, or memory content changes.
+          m['source_artifact_id']=a['id']
+          m['source_artifact_digest']=a['digest']
+          m['talk4_source_artifact_name']=a['name']
+          m['talk4_source_artifact_size_bytes']=a['size_in_bytes']
+          m['talk4_source_workflow_run_id']=a['workflow_run']['id']
+          m['talk4_source_workflow_head_sha']=a['workflow_run']['head_sha']
+          m['talk4_artifact_provenance_finalized']=True
+          manifest_path.write_text(json.dumps(m,indent=2,sort_keys=False,ensure_ascii=False)+'\n',encoding='utf-8')
+          print(json.dumps({
+            'record_count':m['record_count'],
+            'combined_ledger_sha256':m['combined_ledger_sha256'],
+            'last_record_sha256':m['last_record_sha256'],
+            'descendant_checkpoint_sha256':m['descendant_checkpoint_sha256'],
+            'source_artifact_id':m['source_artifact_id'],
+            'source_artifact_digest':m['source_artifact_digest'],
+            'artifact_name':m['talk4_source_artifact_name']
+          },indent=2,sort_keys=True))
+          PY
+
+      - name: Prove only manifest provenance metadata changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git diff --name-only | wc -l)" -eq 1
+          test "$(git diff --name-only)" = "experiments/zeref-dad-son-001/memory/ledger-manifest.json"
+          git diff --check
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          m=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text())
+          latest=Path(m['latest_snapshot'])
+          assert hashlib.sha256(latest.read_bytes()).hexdigest()==m['latest_snapshot_sha256']=='59944db06f6c9c68c57931ea0dc54eade18fe2d354996a17312961d194703c03'
+          assert m['record_count']==352
+          assert m['combined_ledger_sha256']=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert m['last_record_sha256']=='b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'
+          assert m['descendant_checkpoint_sha256']=='9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'
+          assert m['source_artifact_id']==9303224833
+          assert m['source_artifact_digest']=='sha256:7171d8fb7b03b08594e68d8649a2df7990bccf86aebbde5f44f63832edf61e6d'
+          PY
+
+      - name: Commit provenance-only correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "NavisWORLD Zeref Evidence Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add experiments/zeref-dad-son-001/memory/ledger-manifest.json
+          git commit -m "evidence: finalize TALK-004 artifact provenance [skip ci]"
+          git push origin HEAD:networked-cage-run-001
