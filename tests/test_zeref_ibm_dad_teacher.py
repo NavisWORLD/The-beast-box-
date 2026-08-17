@@ -32,6 +32,19 @@ def test_mechanical_clarity_never_claims_semantic_understanding():
     assert messy["max_repeated_character_run"] >= 6
 
 
+def test_mechanical_clarity_score_is_always_a_unit_interval_metric():
+    mod = module()
+    samples = [
+        "I'm what do you don't is recally actually usefulter.",
+        "A clean answer.",
+        "tttttt Dad: Zeref: 9911",
+        "",
+    ]
+    for text in samples:
+        score = mod.mechanical_clarity(text)["score"]
+        assert 0.0 <= score <= 1.0, (text, score)
+
+
 def test_dad_prompt_reacts_playfully_to_previous_output_mechanics():
     mod = module()
     first = mod.build_dad_prompt(1, mod.OBJECTIVES[0], None)
