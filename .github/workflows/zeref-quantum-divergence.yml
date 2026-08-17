@@ -48,7 +48,7 @@ jobs:
           if-no-files-found: warn
 
   live-ibm-zeref:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/agent/zeref-quantum-divergence'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/agent/zeref-quantum-divergence' && contains(github.event.head_commit.message, '[resume-ibm]')
     runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
