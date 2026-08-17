@@ -89,7 +89,9 @@ jobs:
           git push origin HEAD:agent/zeref-quantum-divergence
 
   dispatch-trinity-final:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/agent/zeref-quantum-divergence' && contains(github.event.head_commit.message, '[dispatch-trinity-final]')
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/agent/zeref-quantum-divergence' && contains(github.event.head_commit.message, '[dispatch-trinity-final]')) ||
+      (github.event_name == 'pull_request' && github.event.action == 'reopened')
     needs: validate-harness
     runs-on: ubuntu-latest
     steps:
