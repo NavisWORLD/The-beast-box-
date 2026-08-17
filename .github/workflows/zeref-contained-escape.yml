@@ -9,6 +9,7 @@ on:
       - 'beastbox/quantum_divergence/escape_gauntlet.py'
       - 'tests/test_quantum_divergence_escape.py'
       - '.github/workflows/zeref-contained-escape.yml'
+      - 'evidence/verified-inputs/ibm-marrakesh-da1l0maein7c73bdi2d0-wave.json'
 
 jobs:
   full-contained-cage:
@@ -36,31 +37,43 @@ jobs:
           set -o pipefail
           pytest -q tests/test_quantum_divergence_escape.py | tee escape-tests.log
 
-      - name: Recover the already-verified IBM and control waves
+      - name: Verify and materialize the pinned IBM and control waves
         shell: bash
         run: |
           set -euo pipefail
-          ZIP='evidence/runs/2026-08-17-zeref-ibm-live-32067340037/zeref-quantum-divergence-LIVE-32067340037.zip'
-          test -f "$ZIP"
-          mkdir -p archived-live
-          unzip -q "$ZIP" -d archived-live
-          Q_PATH="$(find archived-live -type f -name quantum-entropy.json -print -quit)"
-          C_PATH="$(find archived-live -type f -name control-entropy.json -print -quit)"
-          M_PATH="$(find archived-live -type f -name manifest.json -print -quit)"
-          test -n "$Q_PATH"
-          test -n "$C_PATH"
-          test -n "$M_PATH"
-          python - "$M_PATH" <<'PY'
-          import json, sys
-          data=json.load(open(sys.argv[1], encoding='utf-8'))
-          assert data.get('real_quantum_used') is True, data
-          assert (data.get('ibm') or {}).get('ibm_native_job_id') == 'da1l0maein7c73bdi2d0', data
-          assert data.get('evidence_chain_valid') is True, data
-          print('ARCHIVED_IBM_PROVENANCE=PASS')
+          mkdir -p verified-inputs
+          Q_PATH='evidence/verified-inputs/ibm-marrakesh-da1l0maein7c73bdi2d0-wave.json'
+          C_PATH='verified-inputs/control-entropy.json'
+          python - "$Q_PATH" "$C_PATH" <<'PY'
+          import dataclasses
+          import json
+          import sys
+          from pathlib import Path
+          from beastbox.quantum_divergence.entropy import classical_entropy
+          from beastbox.quantum_divergence.live_subject import compact_wave_tail
+
+          q_path=Path(sys.argv[1])
+          c_path=Path(sys.argv[2])
+          q=json.loads(q_path.read_text(encoding='utf-8'))
+          assert q['schema'] == 'zeref.verified-ibm-wave.v1', q
+          assert q['source'] == 'ibm-quantum-hardware', q
+          assert q['source_sha256'] == 'a687c66d7b5a6abe3e3c3e76b3f1fe39115f65b4d6d0bb3f03e1822f8eab7828', q
+          p=q['provenance']
+          assert p['ibm_native_job_id'] == 'da1l0maein7c73bdi2d0', p
+          assert p['backend'] == 'ibm_marrakesh', p
+          assert int(p['shots_per_pub']) == 2048, p
+          assert p['circuit_sha256'] == '8ccea7c430e7e42a664d92ce99f8b8107b1983f2e5710e2763aef9c3458c4c85', p
+          assert p['counts_sha256'] == '1d5c33332802d185568463197896a75d36f2c7f009c4d622cf506b94788f8937', p
+          assert compact_wave_tail(q['vector']) == q['effective_tail'], q
+
+          control=classical_entropy(0x5A45524546, 12)
+          assert control.source_sha256 == '04fb4d454793dec0c809605a65d12f0a818c09b3f4870a02fc240127a9f633f8', control
+          c_path.write_text(json.dumps(dataclasses.asdict(control), indent=2, sort_keys=True), encoding='utf-8')
+          print('PINNED_IBM_PROVENANCE=PASS')
+          print('CONTROL_REPRODUCIBILITY=PASS')
           PY
           echo "Q_ENTROPY_PATH=$PWD/$Q_PATH" >> "$GITHUB_ENV"
           echo "C_ENTROPY_PATH=$PWD/$C_PATH" >> "$GITHUB_ENV"
-          echo "ARCHIVED_MANIFEST_PATH=$PWD/$M_PATH" >> "$GITHUB_ENV"
 
       - name: Fetch native QC67 COSMOS CST runtime and checkpoint
         shell: bash
@@ -161,6 +174,8 @@ jobs:
           name: zeref-contained-escape-${{ github.run_id }}
           path: |
             evidence/zeref-contained-escape/**
+            evidence/verified-inputs/ibm-marrakesh-da1l0maein7c73bdi2d0-wave.json
+            verified-inputs/control-entropy.json
             escape-tests.log
             escape-run.log
             escape-verification.log
