@@ -11,7 +11,7 @@ def test_ibm_runner_contract_is_real_hardware_and_secret_safe():
     assert "least_busy" in text and "simulator=False" in text and "operational=True" in text and "min_num_qubits=5" in text
     assert "SamplerV2" in text
     assert "job_tags" in text
-    assert "zerefs-heartbeat-mustard-seed" in text
+    assert "REQUIRED_TAG" in text
     assert "shots=4096" in text
     assert "join_data" in text and "get_counts" in text
     assert "build_hardware_origin_seed" in text
