@@ -1,5 +1,7 @@
 name: ZEREF-TALK5-STATUS-PROBE
 
+# Read-only observer for the experiment branch. This workflow never writes to
+# networked-cage-run-001, Zeref memory, or model checkpoints.
 on:
   push:
     branches: [talk5-status-probe-20260817]
