@@ -24,13 +24,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e '.[quantum]'
-      - name: Read original IBM job status
+      - name: Read original IBM job status and hardware queues
         shell: bash
         run: |
           set -o pipefail
           python - <<'PY' | tee ibm-job-status.log
           import os
           from beastbox.quantum import _service
+
           service = _service()
           job = service.job(os.environ['IBM_EXISTING_JOB_ID'])
           print(f'IBM_EXISTING_JOB_ID={job.job_id()}')
@@ -39,6 +40,28 @@ jobs:
               print(f'IBM_EXISTING_JOB_USAGE={job.usage()}')
           except Exception as exc:
               print(f'IBM_EXISTING_JOB_USAGE_UNAVAILABLE={type(exc).__name__}')
+
+          candidates = []
+          for backend in service.backends(simulator=False, operational=True):
+              try:
+                  status = backend.status()
+                  qubits = int(getattr(backend, 'num_qubits', 0))
+                  pending = int(getattr(status, 'pending_jobs', 10**9))
+                  operational = bool(getattr(status, 'operational', False))
+                  message = str(getattr(status, 'status_msg', ''))
+                  if operational and qubits >= 12:
+                      candidates.append((pending, str(backend.name), qubits, message))
+              except Exception as exc:
+                  print(f'IBM_BACKEND_STATUS_ERROR={getattr(backend, "name", "unknown")}:{type(exc).__name__}')
+          candidates.sort()
+          for pending, name, qubits, message in candidates[:12]:
+              print(f'IBM_CANDIDATE={name}|pending={pending}|qubits={qubits}|status={message}')
+          if candidates:
+              pending, name, qubits, message = candidates[0]
+              print(f'IBM_RECOMMENDED_BACKEND={name}')
+              print(f'IBM_RECOMMENDED_PENDING={pending}')
+          else:
+              print('IBM_RECOMMENDED_BACKEND=NONE')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
