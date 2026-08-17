@@ -1,0 +1,88 @@
+name: QC67 Trinity source inspect
+
+on:
+  push:
+    branches:
+      - 'agent/zeref-quantum-divergence'
+    paths:
+      - '.github/workflows/qc67-trinity-source-inspect.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  inspect-native-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/zeref-quantum-divergence
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download and inspect exact QC67 source
+        run: |
+          python - <<'PY'
+          import ast
+          import hashlib
+          import json
+          import urllib.request
+          from pathlib import Path
+
+          files = {
+              'architecture/cosmos_spark_cst.py': 'https://huggingface.co/phera-ra/QC67_cosmo/resolve/main/architecture/cosmos_spark_cst.py',
+              'serving/cosmos_serve.py': 'https://huggingface.co/phera-ra/QC67_cosmo/resolve/main/serving/cosmos_serve.py',
+          }
+          root = Path('evidence/inspection')
+          root.mkdir(parents=True, exist_ok=True)
+          report = []
+          manifest = {'schema': 'qc67.trinity-source-inspection.v1', 'files': {}}
+
+          for name, url in files.items():
+              data = urllib.request.urlopen(url, timeout=60).read()
+              text = data.decode('utf-8')
+              digest = hashlib.sha256(data).hexdigest()
+              manifest['files'][name] = {'sha256': digest, 'bytes': len(data), 'url': url}
+              report.append(f'### {name}')
+              report.append(f'sha256={digest}')
+              report.append('')
+              tree = ast.parse(text, filename=name)
+              lines = text.splitlines()
+              for node in tree.body:
+                  if isinstance(node, ast.ClassDef):
+                      report.append(f'CLASS {node.name} lines {node.lineno}-{node.end_lineno}')
+                      for child in node.body:
+                          if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                              args = [a.arg for a in child.args.args]
+                              report.append(f'  METHOD {child.name}({", ".join(args)}) lines {child.lineno}-{child.end_lineno}')
+                              if child.name in {'__init__', 'forward', '_logits', 'generate', 'encode'}:
+                                  report.append('  --- SOURCE ---')
+                                  report.extend('  ' + line for line in lines[child.lineno-1:child.end_lineno])
+                                  report.append('  --- END SOURCE ---')
+                  elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                      args = [a.arg for a in node.args.args]
+                      report.append(f'FUNCTION {node.name}({", ".join(args)}) lines {node.lineno}-{node.end_lineno}')
+              report.append('')
+              report.append('KEY LINES')
+              keywords = ('gate', 'sigma', 'omega', 'state', 'dyn12', 'dyn42', 'dyn54', 'x54', 'hebb', 'attention', 'q_proj', 'k_proj', 'v_proj')
+              for i, line in enumerate(lines, 1):
+                  lowered = line.lower()
+                  if any(key in lowered for key in keywords):
+                      report.append(f'{i:04d}: {line}')
+              report.append('')
+
+          (root / 'qc67-trinity-source-report.txt').write_text('\n'.join(report) + '\n', encoding='utf-8')
+          (root / 'qc67-trinity-source-manifest.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+      - name: Commit inspection report
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add evidence/inspection/qc67-trinity-source-report.txt evidence/inspection/qc67-trinity-source-manifest.json
+          if git diff --cached --quiet; then
+            echo 'Inspection report unchanged.'
+          else
+            git commit -m 'evidence: capture QC67 Trinity source inspection'
+            git push origin HEAD:agent/zeref-quantum-divergence
+          fi
