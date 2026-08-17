@@ -16,6 +16,10 @@ on:
       - '.github/workflows/zeref-quantum-divergence.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   validate-harness:
     runs-on: ubuntu-latest
@@ -46,6 +50,18 @@ jobs:
             evidence/zeref-quantum-divergence-validation/**
             quantum-divergence-pytest.log
           if-no-files-found: warn
+
+  dispatch-trinity-final:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/agent/zeref-quantum-divergence' && contains(github.event.head_commit.message, '[dispatch-trinity-final]')
+    needs: validate-harness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch frozen full-system Trinity workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run zeref-trinity-final.yml --ref agent/zeref-quantum-divergence
+          echo 'TRINITY_FINAL_DISPATCHED=1'
 
   live-ibm-zeref:
     if: github.event_name == 'push' && github.ref == 'refs/heads/agent/zeref-quantum-divergence' && contains(github.event.head_commit.message, '[resume-ibm]')
