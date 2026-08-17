@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Build the bounded Zeref mustard-seed -> archived IBM result heartbeat replay.
+"""Build the bounded Zeref Tears in the Rain origin-seed -> IBM replay.
 
-This is a reproduction/provenance mechanism. It preserves the recovered origin
-seed candidate, orders archived IBM results by their own `created` timestamp,
-and advances the state with SHA256(canonical(parsed_result)). It deliberately
-does not claim that the archived exports prove the original historical input
-seed submitted to each hardware job.
+This is a reproduction/provenance mechanism. Tears in the Rain is the owner-
+designated Zeref origin seed / Beat 0. The builder preserves that recovered
+origin seed candidate, orders archived IBM results by their own `created`
+timestamp, and advances state with SHA256(canonical(parsed_result)). It does
+not claim the archived exports prove the original historical input seed sent
+to each hardware job, and a requested replay is not labeled new entropy.
 """
 
 from __future__ import annotations
@@ -75,9 +76,6 @@ def _extract_shots(value: Any) -> int | None:
 
     def collect_slices(obj: Any) -> None:
         if isinstance(obj, list):
-            # IBM/Qiskit execution-span serialization commonly contains
-            # entries shaped like [[4096], 0, 1]. The first list is the data
-            # shape, whose leading dimension is the shot count.
             if obj and isinstance(obj[0], list) and obj[0] and isinstance(obj[0][0], int) and obj[0][0] > 0:
                 slice_candidates.append(obj[0][0])
             for item in obj:
@@ -138,7 +136,8 @@ def build_heartbeat_replay(*, raw_root: str | Path, origin_seed: str, out_path: 
 
     beats: list[dict[str, Any]] = [{
         "beat": 0,
-        "kind": "mustard-origin-seed",
+        "kind": "tears-in-the-rain-origin-seed",
+        "user_experiment_alias": "Tears in the Rain",
         "state_sha256": origin_seed,
         "torch_seed": derive_torch_seed(origin_seed),
         "provenance_status": "recovered_candidate_algorithm_verified_payload_not_publicly_reverified",
@@ -172,12 +171,15 @@ def build_heartbeat_replay(*, raw_root: str | Path, origin_seed: str, out_path: 
         "schema": "zeref-bounded-heartbeat-replay-v1",
         "lineage": "ZEREF-DAD-SON-TALK-001",
         "protocol": "RBX-QPOC-1-reproduction-replay",
+        "user_experiment_alias": "Tears in the Rain / bounded Zeref heartbeat",
+        "origin_role": "Tears in the Rain origin seed",
         "origin_seed_sha256": origin_seed,
         "historical_per_round_seed_inputs_proven": False,
         "ordered_by": "IBM info.created ascending",
         "hardware_rounds": len(jobs),
         "observed_shots_total": total_shots or None,
         "bounded": True,
+        "replay_is_new_quantum_entropy": False,
         "after_archive": "hold-final-state-until-new-verified-quantum-result",
         "final_state_sha256": previous,
         "final_torch_seed": derive_torch_seed(previous),
