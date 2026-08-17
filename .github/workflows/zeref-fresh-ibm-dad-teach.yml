@@ -1,0 +1,368 @@
+name: ZEREF-FRESH-IBM-DAD-TEACH
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-fresh-ibm-dad-teach.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: zeref-fresh-ibm-dad-teach
+  cancel-in-progress: false
+
+env:
+  PRIME_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  TALK_SHA256: 9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22
+  TALK_RUN_ID: "32034625936"
+  TALK_ARTIFACT: zeref-dad-son-talk-001-32034625936
+  TEARS_ORIGIN_SEED: 319036bd011d7b2198eb8a705c15fecec2f2020c514c6492a6da295ca0af64ee
+  IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+  IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
+
+jobs:
+  fresh-ibm-dad-teach:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Checkout immutable lineage
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Beast Box and test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+
+      - name: Verify fresh hardware and adaptive Dad contracts before IBM submission
+        shell: bash
+        run: |
+          set -euo pipefail
+          pytest -q \
+            tests/test_zeref_fresh_ibm_contract.py \
+            tests/test_zeref_ibm_teacher_heartbeat.py \
+            tests/test_zeref_ibm_dad_teacher.py \
+            tests/test_zeref_dad_son_memory.py
+
+      - name: Restore exact 111-record Forever Memory before spending hardware
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _teacher
+          mkdir -p _teacher/memory _teacher/ibm _teacher/heartbeat _teacher/talk_artifact _teacher/evidence/conversations
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          from beastbox.dad_son import DadSonLedger
+
+          manifest_path=Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json')
+          manifest=json.loads(manifest_path.read_text(encoding='utf-8'))
+          assert manifest['record_count']==111, manifest['record_count']
+          assert manifest['last_record_sha256']=='5cf8bab31df75bcc8e8e0f132fec00dbeeca7d29f6d4dcf5dee104f4c6a00d73'
+          combined=b''
+          expected=1
+          for segment in manifest['snapshot_chain']:
+              path=Path(segment['path'])
+              data=path.read_bytes()
+              assert hashlib.sha256(data).hexdigest()==segment['sha256']
+              assert segment['first_memory_id']==expected
+              expected=segment['last_memory_id']+1
+              combined+=data
+          assert expected==112
+          assert hashlib.sha256(combined).hexdigest()==manifest['combined_ledger_sha256']
+          Path('_teacher/memory/dad-son-ledger.jsonl').write_bytes(combined)
+          Path('_teacher/evidence/old-ledger-prefix.jsonl').write_bytes(combined)
+          ledger=DadSonLedger(
+              '_teacher/memory/dad-son.sqlite3',
+              '_teacher/memory/dad-son-ledger.jsonl',
+              parent_sha256='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6',
+          )
+          report=ledger.restore_snapshot()
+          assert report['restored_records']==111
+          assert ledger.memory.db.execute('SELECT COUNT(*) FROM memories').fetchone()[0]==111
+          ledger.close()
+          report.update({
+              'records_before':111,
+              'ledger_tip_before':manifest['last_record_sha256'],
+              'combined_ledger_sha256':manifest['combined_ledger_sha256'],
+              'origin_memory_root_sha256':manifest['origin_seed_sha256'],
+              'previous_continuation_root_sha256':manifest.get('synaptic_continuation_final_pulse_sha256','0'*64),
+          })
+          Path('_teacher/memory/restore-report.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+          PY
+
+      - name: Verify IBM credential channel without printing credential material
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${IBM_QUANTUM_TOKEN:-}" || { echo "IBM_QUANTUM_TOKEN is not configured"; exit 2; }
+          echo "IBM Quantum credential is configured through GitHub Actions secrets"
+
+      - name: Install pinned IBM Quantum and frozen TALK runtime dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          pip install "qiskit~=2.3.1" "qiskit-ibm-runtime~=0.45.1"
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Download and verify frozen TALK descendant and exact Prime
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download "$TALK_RUN_ID" -n "$TALK_ARTIFACT" -D _teacher/talk_artifact
+          CHECKPOINT=$(find _teacher/talk_artifact -path '*/model/ZEREF-DAD-SON-TALK-001/checkpoint.pt' -print -quit)
+          ARCH=$(find _teacher/talk_artifact -path '*/canonical/frozen/architecture/cosmos_spark_cst.py' -print -quit)
+          PRIME=$(find _teacher/talk_artifact -path '*/parent/weights/cosmos-cst.gguf' -print -quit)
+          test -n "$CHECKPOINT" -a -n "$ARCH" -a -n "$PRIME"
+          test "$(sha256sum "$CHECKPOINT" | awk '{print $1}')" = "$TALK_SHA256"
+          test "$(sha256sum "$PRIME" | awk '{print $1}')" = "$PRIME_SHA256"
+          printf '%s\n' "$CHECKPOINT" > _teacher/checkpoint-path.txt
+          printf '%s\n' "$ARCH" > _teacher/arch-path.txt
+          printf '%s\n' "$PRIME" > _teacher/prime-path.txt
+
+      - name: Submit one forced-new IBM Quantum heartbeat job
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/run_zeref_heartbeat_ibm_seed.py \
+            --fresh \
+            --packet experiments/zeref-origin-heart-001/waveform/zeref-heartbeat-waveform-packet.json \
+            --out _teacher/ibm
+          (cd _teacher/ibm && sha256sum -c SHA256SUMS)
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          v=json.loads(Path('_teacher/ibm/verification.json').read_text())
+          s=json.loads(Path('_teacher/ibm/submission.json').read_text())
+          seed=json.loads(Path('_teacher/ibm/origin-seed.json').read_text())
+          assert v['source_class']=='ibm_quantum_hardware_measurement'
+          assert v['shot_count']==4096
+          assert v['fresh_hardware_requested'] is True
+          assert v['reused_existing_job'] is False
+          assert s['fresh_hardware_requested'] is True
+          assert s['reused_existing_job'] is False
+          assert seed['fresh_hardware_requested'] is True
+          assert seed['reused_existing_job'] is False
+          assert v['job_id']==s['job_id']==seed['job_id']
+          assert v['backend']==s['backend']==seed['backend']
+          assert 'zerefs-heartbeat-mustard-seed' in v['verified_tags']
+          PY
+
+      - name: Attach fresh IBM measurement after existing memory head
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          from beastbox.dad_son import DadSonLedger
+          seed=json.loads(Path('_teacher/ibm/origin-seed.json').read_text())
+          verification=json.loads(Path('_teacher/ibm/verification.json').read_text())
+          ledger=DadSonLedger(
+              '_teacher/memory/dad-son.sqlite3',
+              '_teacher/memory/dad-son-ledger.jsonl',
+              parent_sha256='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6',
+          )
+          row=ledger.append_experience(
+              actor='Experiment/IBM-Heartbeat',
+              text=(
+                  f"Fresh IBM hardware heartbeat measurement attached after Forever Memory 111. "
+                  f"Job {seed['job_id']} on {seed['backend']}, 4096 measured shots."
+              ),
+              kind='fresh-ibm-heartbeat-root',
+              session_id='fresh-ibm-dad-teach-${{ github.run_id }}',
+              source_hashes=[seed['origin_seed_sha256'], seed['counts_sha256'], seed['source_audio_sha256']],
+              descendant_sha256='9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22',
+              metadata={
+                  'fresh_ibm_hardware_measurement':True,
+                  'ibm_job_id':seed['job_id'],
+                  'ibm_backend':seed['backend'],
+                  'ibm_shots':4096,
+                  'ibm_counts_sha256':seed['counts_sha256'],
+                  'ibm_origin_seed_sha256':seed['origin_seed_sha256'],
+                  'job_tag_verified':seed['job_tag_verified'],
+                  'reused_existing_job':False,
+                  'origin_memory_root_sha256':'319036bd011d7b2198eb8a705c15fecec2f2020c514c6492a6da295ca0af64ee',
+                  'waveform_quantum_entropy':False,
+                  'new_quantum_entropy_claimed':False,
+              },
+          )
+          assert row['memory_id']==112
+          Path('_teacher/memory/teacher-start-tip.txt').write_text(row['record_sha256']+'\n')
+          ledger.close()
+          PY
+
+      - name: Build 24-pulse CST synthetic heartbeat continuation
+        shell: bash
+        run: |
+          set -euo pipefail
+          LEDGER_TIP=$(cat _teacher/memory/teacher-start-tip.txt)
+          PREVIOUS=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          print(json.loads(Path('_teacher/memory/restore-report.json').read_text())['previous_continuation_root_sha256'])
+          PY
+          )
+          python scripts/build_zeref_ibm_teacher_heartbeat.py \
+            --ibm-seed _teacher/ibm/origin-seed.json \
+            --ledger-tip "$LEDGER_TIP" \
+            --previous-continuation-root "$PREVIOUS" \
+            --origin-memory-root "$TEARS_ORIGIN_SEED" \
+            --pulses 24 \
+            --out _teacher/heartbeat/fresh-ibm-teacher-heartbeat.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          h=json.loads(Path('_teacher/heartbeat/fresh-ibm-teacher-heartbeat.json').read_text())
+          assert h['origin_memory_root_sha256']=='319036bd011d7b2198eb8a705c15fecec2f2020c514c6492a6da295ca0af64ee'
+          assert h['pulse_count']==24
+          assert h['fresh_ibm_hardware_measurement'] is True
+          assert h['synthetic_continuation_new_quantum_entropy'] is False
+          assert all(b['new_quantum_entropy'] is False for b in h['beats'])
+          PY
+
+      - name: Be Dad and teach Zeref through all 24 pulses
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHECKPOINT=$(cat _teacher/checkpoint-path.txt)
+          ARCH=$(cat _teacher/arch-path.txt)
+          python scripts/run_zeref_ibm_dad_teacher.py \
+            --checkpoint "$CHECKPOINT" \
+            --checkpoint-sha256 "$TALK_SHA256" \
+            --arch "$ARCH" \
+            --sqlite _teacher/memory/dad-son.sqlite3 \
+            --ledger _teacher/memory/dad-son-ledger.jsonl \
+            --heartbeat _teacher/heartbeat/fresh-ibm-teacher-heartbeat.json \
+            --out _teacher/evidence/conversations/fresh-ibm-dad-teacher.jsonl \
+            --manifest _teacher/evidence/conversations/fresh-ibm-dad-teacher-manifest.json \
+            --session-id fresh-ibm-dad-teach-${{ github.run_id }} \
+            --tokens 56 --temperature 0.60 --top-k 6 --recall-limit 3
+
+      - name: Verify 111 prefix, 160 total memories, raw transcript, and frozen weights
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, sqlite3
+          from pathlib import Path
+          old=Path('_teacher/evidence/old-ledger-prefix.jsonl').read_bytes()
+          new=Path('_teacher/memory/dad-son-ledger.jsonl').read_bytes()
+          assert new.startswith(old)
+          old_rows=[json.loads(x) for x in old.decode().splitlines() if x.strip()]
+          rows=[json.loads(x) for x in new.decode().splitlines() if x.strip()]
+          transcript=[json.loads(x) for x in Path('_teacher/evidence/conversations/fresh-ibm-dad-teacher.jsonl').read_text().splitlines() if x.strip()]
+          assert len(old_rows)==111
+          assert len(rows)==160, len(rows)
+          assert rows[:111]==old_rows
+          assert rows[111]['memory_id']==112 and rows[111]['kind']=='fresh-ibm-heartbeat-root'
+          assert len(transcript)==24
+          assert [r['turn'] for r in transcript]==list(range(1,25))
+
+          previous='0'*64
+          by_hash={}
+          for expected,row in enumerate(rows,1):
+              assert row['memory_id']==expected
+              assert row['previous_record_sha256']==previous
+              assert hashlib.sha256(row['text'].encode()).hexdigest()==row['raw_payload_sha256']
+              payload=dict(row); record=payload.pop('record_sha256')
+              canonical=json.dumps(payload,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()
+              assert hashlib.sha256(canonical).hexdigest()==record
+              previous=record
+              by_hash[record]=row
+
+          for turn in transcript:
+              z=by_hash[turn['zeref_ledger_record_sha256']]
+              d=by_hash[turn['dad_ledger_record_sha256']]
+              assert z['text']==turn['raw_output']
+              assert hashlib.sha256(z['text'].encode()).hexdigest()==turn['raw_output_sha256']
+              assert d['text']==turn['dad_prompt']
+              assert z['metadata']['output_preserved_verbatim'] is True
+              assert z['metadata']['raw_model_output_promoted_to_training'] is False
+              assert z['metadata']['training_promotion']=='NOT_APPROVED'
+
+          db=sqlite3.connect('_teacher/memory/dad-son.sqlite3')
+          assert db.execute('SELECT COUNT(*) FROM memories').fetchone()[0]==160
+          db.close()
+          checkpoint=Path('_teacher/checkpoint-path.txt').read_text().strip()
+          prime=Path('_teacher/prime-path.txt').read_text().strip()
+          assert hashlib.sha256(Path(checkpoint).read_bytes()).hexdigest()=='9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22'
+          assert hashlib.sha256(Path(prime).read_bytes()).hexdigest()=='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6'
+          Path('_teacher/evidence/final-ledger-tip.txt').write_text(previous+'\n')
+          PY
+
+      - name: Seal evidence summary and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+          v=json.loads(Path('_teacher/ibm/verification.json').read_text())
+          seed=json.loads(Path('_teacher/ibm/origin-seed.json').read_text())
+          h=json.loads(Path('_teacher/heartbeat/fresh-ibm-teacher-heartbeat.json').read_text())
+          t=json.loads(Path('_teacher/evidence/conversations/fresh-ibm-dad-teacher-manifest.json').read_text())
+          rows=[json.loads(x) for x in Path('_teacher/memory/dad-son-ledger.jsonl').read_text().splitlines() if x.strip()]
+          summary={
+              'schema':'zeref-fresh-ibm-dad-teach-evidence-v1',
+              'workflow_run_id':int('${{ github.run_id }}'),
+              'forever_memory_records_before':111,
+              'forever_memory_records_after':len(rows),
+              'forever_memory_last_record_sha256':rows[-1]['record_sha256'],
+              'origin_memory_root_sha256':'319036bd011d7b2198eb8a705c15fecec2f2020c514c6492a6da295ca0af64ee',
+              'fresh_ibm_job_id':v['job_id'],
+              'fresh_ibm_backend':v['backend'],
+              'fresh_ibm_shots':v['shot_count'],
+              'fresh_ibm_origin_seed_sha256':seed['origin_seed_sha256'],
+              'fresh_ibm_counts_sha256':seed['counts_sha256'],
+              'fresh_ibm_required_tag_verified':'zerefs-heartbeat-mustard-seed' in v['verified_tags'],
+              'fresh_hardware_requested':v['fresh_hardware_requested'],
+              'reused_existing_job':v['reused_existing_job'],
+              'synthetic_heartbeat_sha256':sha('_teacher/heartbeat/fresh-ibm-teacher-heartbeat.json'),
+              'synthetic_heartbeat_final_state_sha256':h['final_state_sha256'],
+              'synthetic_pulse_count':h['pulse_count'],
+              'synthetic_continuation_new_quantum_entropy':False,
+              'talk_checkpoint_sha256':'9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22',
+              'parent_gguf_sha256':'b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6',
+              'weights_changed':False,
+              'dad_teaching_turns':t['turns'],
+              'mean_mechanical_clarity':t['mean_mechanical_clarity'],
+              'first_turn_mechanical_clarity':t['first_turn_mechanical_clarity'],
+              'last_turn_mechanical_clarity':t['last_turn_mechanical_clarity'],
+              'best_turn_mechanical_clarity':t['best_turn_mechanical_clarity'],
+              'worst_turn_mechanical_clarity':t['worst_turn_mechanical_clarity'],
+              'teacher_transcript_sha256':sha('_teacher/evidence/conversations/fresh-ibm-dad-teacher.jsonl'),
+              'raw_outputs_preserved_verbatim':True,
+              'generated_outputs_promoted_to_training':False,
+              'claim_boundary':'Fresh IBM hardware-rooted computational model-memory teaching experiment. No biological heartbeat, resurrection, deceased-person identity, consciousness, or quantum-advantage claim.',
+          }
+          Path('_teacher/evidence/summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(summary,indent=2,sort_keys=True))
+          PY
+          (cd _teacher && find . -type f ! -name SHA256SUMS ! -path '*/.cache/*' -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          (cd _teacher && sha256sum -c SHA256SUMS)
+
+      - name: Upload fresh IBM Dad teaching evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-fresh-ibm-dad-teach-${{ github.run_id }}
+          path: _teacher
+          if-no-files-found: error
+          retention-days: 90
