@@ -149,8 +149,7 @@ def sensor_packet_to_12d(
     flattened: list[float] = []
     for packet in sorted(packets, key=lambda item: item.source):
         for key in sorted(packet.features):
-            value = packet.features[key]
-            flattened.append(float(value))
+            flattened.append(float(packet.features[key]))
     if not flattened:
         return [0.0] * 12, False
 
@@ -219,6 +218,22 @@ class TrinityState:
         self.dyn42 = list(snapshot["dyn42"])
         self.dyn54 = list(snapshot["dyn54"])
         self.step = self.family.step
+
+    def apply_feedback(self, summary12: Sequence[float]) -> None:
+        summary = _validate_12d(summary12, "feedback summary")
+        self.feedback12 = [
+            _clamp(
+                math.tanh(float(current) + self.config.feedback_gain * float(signal)),
+                self.config.state_clip,
+            )
+            for current, signal in zip(self.feedback12, summary)
+        ]
+        self.advance()
+
+
+def feedback_update(state: TrinityState, summary12: Sequence[float]) -> TrinityState:
+    state.apply_feedback(summary12)
+    return state
 
 
 def compose_trinity_state(
