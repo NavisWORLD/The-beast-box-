@@ -1,0 +1,46 @@
+name: IBM backend availability
+
+on:
+  push:
+    branches:
+      - 'agent/zeref-quantum-divergence'
+    paths:
+      - '.github/workflows/ibm-backend-availability.yml'
+  workflow_dispatch:
+
+jobs:
+  availability-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'qiskit-ibm-runtime>=0.49.0'
+      - name: List operational hardware only
+        shell: bash
+        run: |
+          set -o pipefail
+          python - <<'PY' | tee ibm-backend-availability.log
+          import os
+          from qiskit_ibm_runtime import QiskitRuntimeService
+          token = (os.environ.get('IBM_QUANTUM_TOKEN') or '').strip()
+          service = QiskitRuntimeService(channel='ibm_quantum_platform', token=token)
+          rows = []
+          for backend in service.backends(simulator=False, operational=True, min_num_qubits=12):
+              status = backend.status()
+              rows.append((int(getattr(status, 'pending_jobs', 10**9)), backend.name, bool(getattr(status, 'operational', False)), str(getattr(status, 'status_msg', ''))))
+          for pending, name, operational, message in sorted(rows)[:12]:
+              print(f'BACKEND={name} OPERATIONAL={int(operational)} PENDING={pending} STATUS={message}')
+          if not rows:
+              raise RuntimeError('No operational real IBM backend with >=12 qubits')
+          PY
+      - name: Upload availability evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ibm-backend-availability-${{ github.run_id }}
+          path: ibm-backend-availability.log
+          if-no-files-found: error
