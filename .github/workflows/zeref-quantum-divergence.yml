@@ -27,9 +27,12 @@ jobs:
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e '.[dev]'
+          pip install -e '.[dev,quantum]'
       - name: Run divergence tests
-        run: pytest -q tests/test_quantum_divergence_*.py | tee quantum-divergence-pytest.log
+        shell: bash
+        run: |
+          set -o pipefail
+          pytest -q tests/test_quantum_divergence_*.py | tee quantum-divergence-pytest.log
       - name: Run evidence validation
         run: python -m beastbox.quantum_divergence.cli validate --output evidence/zeref-quantum-divergence-validation
       - name: Verify and print summary
