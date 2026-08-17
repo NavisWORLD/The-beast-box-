@@ -46,3 +46,83 @@ jobs:
             evidence/zeref-quantum-divergence-validation/**
             quantum-divergence-pytest.log
           if-no-files-found: warn
+
+  live-ibm-zeref:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/agent/zeref-quantum-divergence'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify encrypted IBM secret is available
+        shell: bash
+        run: |
+          test -n "$IBM_QUANTUM_TOKEN"
+          echo "IBM_QUANTUM_TOKEN_PRESENT=1"
+      - name: Install Beast Box quantum runtime
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[quantum]'
+      - name: Verify IBM authentication and real hardware backend
+        shell: bash
+        run: |
+          set -o pipefail
+          python - <<'PY' | tee ibm-probe.log
+          from beastbox.quantum import _backend, _service
+          service = _service()
+          backend = _backend(service, 12, None)
+          print("IBM_AUTH=PASS")
+          print(f"IBM_HARDWARE_BACKEND={backend.name}")
+          PY
+      - name: Install Ollama
+        run: curl -fsSL https://ollama.com/install.sh | sh
+      - name: Start Ollama
+        shell: bash
+        run: |
+          nohup ollama serve > ollama.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:11434/api/tags >/dev/null; then
+              echo "OLLAMA_READY=1"
+              exit 0
+            fi
+            sleep 1
+          done
+          cat ollama.log
+          exit 1
+      - name: Pull Cory COSMOS model
+        shell: bash
+        run: |
+          set -o pipefail
+          ollama pull hf.co/phera-ra/QC67_cosmo | tee ollama-pull.log
+      - name: Run real paired IBM entropy experiment
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m beastbox.quantum_divergence.live_cli \
+            --output evidence/zeref-quantum-divergence-live \
+            --model hf.co/phera-ra/QC67_cosmo \
+            --width 12 \
+            --shots 2048 \
+            --max-steps 8 | tee live-run.log
+      - name: Verify live evidence chain and summary
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m beastbox.quantum_divergence.cli analyze evidence/zeref-quantum-divergence-live | tee live-analysis.log
+      - name: Upload complete live evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-quantum-divergence-LIVE-${{ github.run_id }}
+          path: |
+            evidence/zeref-quantum-divergence-live/**
+            live-run.log
+            live-analysis.log
+            ollama.log
+            ollama-pull.log
+            ibm-probe.log
+          if-no-files-found: warn
