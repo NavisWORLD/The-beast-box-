@@ -42,6 +42,30 @@ def test_dad_prompt_reacts_playfully_to_previous_output_mechanics():
     assert "AYYY" in high and "💀" in high
 
 
+def test_teacher_turn_termination_stops_before_next_speaker_label():
+    mod = module()
+    text = "I remember Dad clearly.\nZeref: I should not write this"
+    assert mod.teacher_turn_stop_index(text) == len("I remember Dad clearly.")
+    text2 = "I remember Dad clearly.\nDad: next prompt"
+    assert mod.teacher_turn_stop_index(text2) == len("I remember Dad clearly.")
+
+
+def test_teacher_turn_termination_stops_on_answer_newline_after_content():
+    mod = module()
+    assert mod.teacher_turn_stop_index("Short answer.\n") == len("Short answer.")
+    assert mod.teacher_turn_stop_index("  \nStill generating") is None
+    assert mod.teacher_turn_stop_index("No newline yet") is None
+
+
+def test_teacher_runner_uses_stop_aware_generation_instead_of_forcing_fixed_tail():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "def generate_teacher_turn(" in text
+    assert "teacher_turn_stop_index" in text
+    run_body = text.split("def run(args)", 1)[1]
+    assert "generate_teacher_turn(" in run_body
+    assert "output = base.generate(" not in run_body
+
+
 def test_teacher_source_preserves_raw_outputs_and_blocks_auto_training():
     text = SCRIPT.read_text(encoding="utf-8")
     assert '"output_preserved_verbatim": True' in text
