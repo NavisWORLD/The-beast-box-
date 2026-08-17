@@ -1,0 +1,50 @@
+name: IBM existing job status
+
+on:
+  push:
+    branches:
+      - 'agent/zeref-quantum-divergence'
+    paths:
+      - '.github/workflows/ibm-existing-job-status.yml'
+  workflow_dispatch:
+
+jobs:
+  status-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+      IBM_EXISTING_JOB_ID: da1l0maein7c73bdi2d0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install IBM Runtime client
+        run: pip install 'qiskit-ibm-runtime>=0.49.0'
+      - name: Inspect existing job without mutation
+        shell: bash
+        run: |
+          set -o pipefail
+          python - <<'PY' | tee ibm-existing-job-status.log
+          import os
+          from qiskit_ibm_runtime import QiskitRuntimeService
+          token = (os.environ.get('IBM_QUANTUM_TOKEN') or '').strip()
+          if not token:
+              raise RuntimeError('IBM_QUANTUM_TOKEN missing')
+          service = QiskitRuntimeService(channel='ibm_quantum_platform', token=token)
+          job = service.job(os.environ['IBM_EXISTING_JOB_ID'])
+          print(f'IBM_EXISTING_JOB_ID={job.job_id()}')
+          print(f'IBM_EXISTING_JOB_STATUS={job.status()}')
+          backend = job.backend()
+          print(f'IBM_EXISTING_JOB_BACKEND={getattr(backend, "name", "unknown")}')
+          if job.status() == 'ERROR':
+              print(f'IBM_EXISTING_JOB_ERROR={job.error_message()}')
+          PY
+      - name: Upload status evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ibm-existing-job-status-${{ github.run_id }}
+          path: ibm-existing-job-status.log
+          if-no-files-found: error
