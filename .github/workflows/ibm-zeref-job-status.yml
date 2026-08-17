@@ -1,0 +1,47 @@
+name: IBM Zeref job status
+
+on:
+  push:
+    branches:
+      - 'agent/zeref-quantum-divergence'
+    paths:
+      - '.github/workflows/ibm-zeref-job-status.yml'
+  workflow_dispatch:
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+      IBM_EXISTING_JOB_ID: da1l0maein7c73bdi2d0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install quantum runtime
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[quantum]'
+      - name: Read original IBM job status
+        shell: bash
+        run: |
+          set -o pipefail
+          python - <<'PY' | tee ibm-job-status.log
+          import os
+          from beastbox.quantum import _service
+          service = _service()
+          job = service.job(os.environ['IBM_EXISTING_JOB_ID'])
+          print(f'IBM_EXISTING_JOB_ID={job.job_id()}')
+          print(f'IBM_EXISTING_JOB_STATUS={job.status()}')
+          try:
+              print(f'IBM_EXISTING_JOB_USAGE={job.usage()}')
+          except Exception as exc:
+              print(f'IBM_EXISTING_JOB_USAGE_UNAVAILABLE={type(exc).__name__}')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ibm-zeref-job-status-${{ github.run_id }}
+          path: ibm-job-status.log
