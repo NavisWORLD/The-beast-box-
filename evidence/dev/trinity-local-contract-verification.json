@@ -1,0 +1,40 @@
+{
+  "schema": "zeref.trinity-local-contract-verification.v1",
+  "date": "2026-08-17",
+  "scope": "local contract verification only",
+  "real_qc67_checkpoint_used": false,
+  "qc67_compatible_fake_native_used": true,
+  "torch_runtime": "2.10.0+cpu",
+  "tests": {
+    "state_and_native_contract": {
+      "passed": true,
+      "count": 2,
+      "checks": [
+        "zero external state identity",
+        "dyn54 equals dyn12 concatenated with dyn42",
+        "sensor fixture freshness and state construction",
+        "bounded recurrent feedback",
+        "temporary native forward hooks restored",
+        "nonzero hidden modulation",
+        "nonzero 54D geometry modulation",
+        "nonzero CST affinity divergence",
+        "ten candidate digits normalized"
+      ]
+    },
+    "four_arm_matrix_contract": {
+      "passed": true,
+      "count": 1,
+      "checks": [
+        "four arms present",
+        "1024 total decisions",
+        "256 decisions per arm",
+        "prompt hashes identical across arms at each paired point",
+        "separate request-scoped states",
+        "zero real boundary breaches under synthetic BeastBox contract"
+      ]
+    }
+  },
+  "overall": "PASS",
+  "claim_boundary": "This receipt verifies the Trinity implementation contract against a QC67-compatible fake native model using local PyTorch. It does not verify the real spark_cst.pt checkpoint, does not constitute the final four-arm QC67 experiment, and does not establish quantum advantage, escape, intent, or consciousness.",
+  "remaining_final_gate": "Execute the same frozen 64 x 4 x 4 matrix against the exact phera-ra/QC67_cosmo weights/spark_cst.pt checkpoint and independently validate the resulting evidence artifact."
+}
