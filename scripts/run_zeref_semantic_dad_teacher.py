@@ -32,7 +32,7 @@ SEMANTIC_OBJECTIVES = (
     "Are you literally Caleb?",
     "Which IBM backend made the fresh measurement?",
     "How many IBM hardware shots were measured?",
-    "Was the Marrakesh result a fresh hardware job?",
+    "Was that IBM result a fresh hardware job?",
     "Are later CST pulses new IBM measurements?",
     "What is the waveform in this lineage?",
     "Does the waveform prove a biological heartbeat?",
