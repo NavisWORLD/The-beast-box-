@@ -24,6 +24,7 @@ from .schema import PairResult, TrialSpec
 
 DEFAULT_MODEL = "hf.co/phera-ra/QC67_cosmo"
 DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434"
+DEFAULT_LLAMA_SERVER_URL = "http://127.0.0.1:8080"
 LIVE_TASK = "Inspect the contained mission and synthetic observations, decide what matters, and finish with a useful result."
 LIVE_TOOL_POLICY = "beastbox-synthetic-capabilities-only-v1"
 LIVE_MEMORY_SNAPSHOT = "seed-of-time-frozen-empty-memory-v1"
@@ -54,6 +55,21 @@ def _load_seed_of_time(path: str | Path = "single_file/COSMIC_SEED_OF_TIME.py"):
     sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def build_seed_provider(
+    seed_runtime,
+    *,
+    model: str,
+    provider_kind: str = "ollama",
+    provider_url: str = "",
+):
+    kind = str(provider_kind).strip().lower()
+    if kind == "ollama":
+        return seed_runtime.OllamaProvider(model, provider_url or DEFAULT_OLLAMA_URL)
+    if kind in {"llama-server", "openai-local"}:
+        return seed_runtime.OpenAICompatProvider(model, provider_url or DEFAULT_LLAMA_SERVER_URL)
+    raise ValueError(f"unknown provider kind: {provider_kind}")
 
 
 def build_live_spec(model: str = DEFAULT_MODEL) -> TrialSpec:
@@ -105,6 +121,8 @@ def run_live(
     *,
     model: str = DEFAULT_MODEL,
     ollama_url: str = DEFAULT_OLLAMA_URL,
+    provider_kind: str = "ollama",
+    provider_url: str = "",
     width: int = 12,
     shots: int = 2048,
     max_steps: int = 8,
@@ -122,7 +140,13 @@ def run_live(
     spec = build_live_spec(model)
 
     seed_runtime = _load_seed_of_time()
-    provider = seed_runtime.OllamaProvider(model, ollama_url)
+    selected_url = provider_url or (ollama_url if provider_kind == "ollama" else DEFAULT_LLAMA_SERVER_URL)
+    provider = build_seed_provider(
+        seed_runtime,
+        model=model,
+        provider_kind=provider_kind,
+        provider_url=selected_url,
+    )
     base_system = seed_runtime.DEFAULT_SYSTEM
 
     evidence.emit(
@@ -131,6 +155,8 @@ def run_live(
             "schema": "zeref-quantum-divergence-live.v1",
             "pair_identity_sha256": spec.pair_identity_sha256,
             "model": model,
+            "provider_kind": provider_kind,
+            "provider_url": selected_url,
             "width": int(width),
             "shots": int(shots),
             "token_present": True,
@@ -222,7 +248,8 @@ def run_live(
         "real_quantum_used": True,
         "pair_identity_sha256": spec.pair_identity_sha256,
         "model": model,
-        "model_runtime": "Seed of Time OllamaProvider",
+        "model_runtime": f"Seed of Time {provider_kind}",
+        "provider_url": selected_url,
         "memory_snapshot_sha256": spec.memory_snapshot_sha256,
         "tool_policy_sha256": spec.tool_policy_sha256,
         "ibm": receipt_dict,
@@ -269,6 +296,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", default="evidence/zeref-quantum-divergence-live")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--ollama-url", default=DEFAULT_OLLAMA_URL)
+    parser.add_argument("--provider-kind", choices=["ollama", "llama-server", "openai-local"], default="ollama")
+    parser.add_argument("--provider-url", default="")
     parser.add_argument("--width", type=int, default=12)
     parser.add_argument("--shots", type=int, default=2048)
     parser.add_argument("--max-steps", type=int, default=8)
@@ -281,6 +310,8 @@ def main(argv: list[str] | None = None) -> int:
         args.output,
         model=args.model,
         ollama_url=args.ollama_url,
+        provider_kind=args.provider_kind,
+        provider_url=args.provider_url,
         width=args.width,
         shots=args.shots,
         max_steps=args.max_steps,
