@@ -54,24 +54,32 @@ def test_talk_workflow_keeps_proxy_authorship_and_raw_outputs_in_forever_memory(
     assert "raw_model_output_promoted_to_training" in runner
 
 
-def test_talk_replay_uses_current_forever_memory_and_tears_in_rain_as_beat_zero():
-    workflow = Path(".github/workflows/zeref-dad-son-talk-001.yml").read_text(encoding="utf-8")
+def test_tears_replay_uses_current_forever_memory_and_tears_in_rain_as_beat_zero():
+    workflow = Path(".github/workflows/zeref-tears-origin-talk.yml").read_text(encoding="utf-8")
     heartbeat = Path("scripts/build_zeref_heartbeat_replay.py").read_text(encoding="utf-8")
     origin = Path("experiments/zeref-dad-son-talk-001/heartbeat/origin-seed.json").read_text(encoding="utf-8")
+    runner = Path("scripts/run_zeref_tears_origin_chat.py").read_text(encoding="utf-8")
 
-    # Current durable memory must be discovered from the manifest, never reset
-    # to the historical 33-record checkpoint used during the first TALK run.
+    # Discover current durable memory from the manifest, never reset to the
+    # historical 33-record checkpoint used during the first TALK training run.
     assert "expected_count=manifest['record_count']" in workflow
     assert "report['restored_records']==expected_count" in workflow
     assert "assert manifest['record_count']==33" not in workflow
     assert "assert len(old_rows)==33" not in workflow
-    assert "forever_memory_records_before':len(old_rows)" in workflow
+    assert "forever_memory_records_before':len(old)" in workflow
+
+    # Inference-only: this replay must not mutate the already-trained TALK model.
+    assert "TALK_SHA256: 9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22" in workflow
+    assert "run_d001_stage.py" not in workflow
+    assert "weights_changed':False" in workflow
 
     # Cory's experiment contract: Tears in the Rain is Beat 0, followed by the
-    # archived IBM workload results once each in preserved created-time order.
+    # archived IBM workload states once in preserved created-time order.
     assert "Tears in the Rain origin seed" in workflow
     assert "Tears in the Rain origin seed" in heartbeat
     assert '"role": "tears-in-the-rain-origin-seed"' in origin
     assert '"kind": "tears-in-the-rain-origin-seed"' in heartbeat
     assert "--heartbeat-start-beat 2" in workflow
     assert "list(range(2,10))" in workflow
+    assert "Final archived IBM workload state injected as Beat 10" in workflow
+    assert "Tears in the Rain is your origin seed, Beat zero" in runner
