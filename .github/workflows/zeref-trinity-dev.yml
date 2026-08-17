@@ -1,0 +1,85 @@
+name: Zeref Trinity development tests
+
+on:
+  push:
+    branches:
+      - 'agent/zeref-quantum-divergence'
+    paths:
+      - 'beastbox/quantum_divergence/trinity_*.py'
+      - 'beastbox/quantum_divergence/native_trinity.py'
+      - 'tests/test_quantum_divergence_trinity_*.py'
+      - 'tests/test_quantum_divergence_native_trinity.py'
+      - '.github/workflows/zeref-trinity-dev.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  trinity-dev-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/zeref-quantum-divergence
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Run Trinity development tests
+        id: tests
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          pytest -q tests/test_quantum_divergence_trinity_*.py tests/test_quantum_divergence_native_trinity.py 2>&1 | tee /tmp/trinity-tests.log
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+      - name: Write sanitized test receipt
+        if: always()
+        env:
+          TEST_EXIT: ${{ steps.tests.outputs.exit_code }}
+          TESTED_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          log_path = Path('/tmp/trinity-tests.log')
+          text = log_path.read_text(encoding='utf-8', errors='replace') if log_path.exists() else ''
+          forbidden = ('IBM_QUANTUM_TOKEN', 'sk-', 'hf_')
+          if any(token in text for token in forbidden):
+              text = '[REDACTED: forbidden credential-like pattern detected in test log]'
+          payload = {
+              'schema': 'zeref.trinity-dev-test.v1',
+              'tested_head_sha': os.environ['TESTED_SHA'],
+              'run_id': int(os.environ['RUN_ID']),
+              'exit_code': int(os.environ.get('TEST_EXIT') or 1),
+              'passed': int(os.environ.get('TEST_EXIT') or 1) == 0,
+              'log_sha256': hashlib.sha256(text.encode('utf-8')).hexdigest(),
+              'log_tail': text.splitlines()[-80:],
+          }
+          root = Path('evidence/dev')
+          root.mkdir(parents=True, exist_ok=True)
+          (root / 'trinity-test-status.json').write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+      - name: Commit test receipt
+        if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin agent/zeref-quantum-divergence
+          git add evidence/dev/trinity-test-status.json
+          git commit -m "evidence: record Trinity development test ${GITHUB_RUN_ID}" || true
+          git push origin HEAD:agent/zeref-quantum-divergence
+      - name: Enforce test result
+        if: always()
+        env:
+          TEST_EXIT: ${{ steps.tests.outputs.exit_code }}
+        run: exit "${TEST_EXIT:-1}"
