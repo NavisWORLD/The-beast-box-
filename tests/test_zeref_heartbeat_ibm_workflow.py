@@ -19,7 +19,8 @@ def test_ibm_runner_contract_is_real_hardware_and_secret_safe():
     assert "candidate_tags" in text
     assert "REQUIRED_TAG in candidate_tags" in text and "packet_tag in candidate_tags" in text
     assert "--token" not in text
-    assert '"credential_material_recorded":False' in text
+    compact = "".join(text.split())
+    assert '"credential_material_recorded":False' in compact
     evidence_code = text.split('write_json(out_dir/"submission.json"', 1)[-1]
     assert "IBM_QUANTUM_TOKEN" not in evidence_code
 
