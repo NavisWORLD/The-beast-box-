@@ -28,21 +28,27 @@ def test_talk_workflow_is_additive_heartbeat_seeded_and_evidence_gated():
 
 
 def test_talk_workflow_never_pushes_or_mutates_parent_and_uses_full_heartbeat_seed():
-    text = Path(".github/workflows/zeref-dad-son-talk-001.yml").read_text(encoding="utf-8")
-    assert "persist-credentials: false" in text
-    assert "contents: read" in text
-    assert "git push" not in text
-    assert "--force" not in text
-    assert "derive_torch_seed" in text
-    assert "origin_seed_sha256" in text
-    assert "historical_per_round_seed_inputs_proven" in text
-    assert "parent checkpoint changed" in text.lower()
+    workflow = Path(".github/workflows/zeref-dad-son-talk-001.yml").read_text(encoding="utf-8")
+    heartbeat = Path("scripts/build_zeref_heartbeat_replay.py").read_text(encoding="utf-8")
+    assert "persist-credentials: false" in workflow
+    assert "contents: read" in workflow
+    assert "git push" not in workflow
+    assert "--force" not in workflow
+    assert "torch_seed" in workflow
+    assert "origin_seed_sha256" in workflow
+    assert "historical_per_round_seed_inputs_proven" in workflow
+    assert "parent checkpoint changed" in workflow.lower()
+    assert "def derive_torch_seed" in heartbeat
+    assert "state_sha256" in heartbeat
 
 
 def test_talk_workflow_keeps_proxy_authorship_and_raw_outputs_in_forever_memory():
-    text = Path(".github/workflows/zeref-dad-son-talk-001.yml").read_text(encoding="utf-8")
-    assert "proxy_generated_by" in text
-    assert "Luna" in text
-    assert "generated_by_model" in text
-    assert "output_preserved_verbatim" in text
-    assert "old_ledger_prefix" in text
+    workflow = Path(".github/workflows/zeref-dad-son-talk-001.yml").read_text(encoding="utf-8")
+    runner = Path("scripts/run_zeref_talk_chat.py").read_text(encoding="utf-8")
+    assert "proxy_generated_by" in workflow
+    assert "Luna" in workflow
+    assert "old_ledger_prefix" in workflow
+    assert "generated_by_model" in runner
+    assert "output_preserved_verbatim" in runner
+    assert "proxy_generated_by" in runner
+    assert "raw_model_output_promoted_to_training" in runner
