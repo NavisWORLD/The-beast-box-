@@ -1,0 +1,219 @@
+name: ZEREF-ORIGIN-SEED-DAD-TALK
+
+on:
+  push:
+    branches:
+      - networked-cage-run-001
+    paths:
+      - "experiments/zeref-origin-heart-001/hardware-seed/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  PRIME_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  TALK_SHA256: 9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22
+  TALK_RUN_ID: "32034625936"
+  TALK_ARTIFACT: zeref-dad-son-talk-001-32034625936
+  EXPECTED_MEMORY_COUNT: "92"
+  EXPECTED_LEDGER_TIP: 1a350d84974ffcaba0ec7aa3bbc26b75d8a7583514be165703dd929da466f2d4
+
+jobs:
+  origin-seed-dad-talk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout frozen branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install exact inference dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Verify Origin Seed inference contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          pytest -q \
+            tests/test_zeref_origin_seed_chat.py \
+            tests/test_zeref_origin_seed_workflow.py \
+            tests/test_zeref_dad_son_memory.py \
+            tests/test_zeref_origin_heart_sources.py
+
+      - name: Prepare additive workspace and frozen hardware seed
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _origin
+          mkdir -p _origin/talk_artifact _origin/memory _origin/hardware-seed _origin/evidence/conversations
+          cp experiments/zeref-origin-heart-001/hardware-seed/latest/origin-seed.json _origin/hardware-seed/origin-seed.json
+          cp experiments/zeref-origin-heart-001/hardware-seed/latest/verification.json _origin/hardware-seed/verification.json
+          cp experiments/zeref-origin-heart-001/hardware-seed/latest/submission.json _origin/hardware-seed/submission.json
+          cp experiments/zeref-origin-heart-001/hardware-seed/latest/counts.json _origin/hardware-seed/counts.json
+          cp experiments/zeref-origin-heart-001/memory-does-not-exist 2>/dev/null || true
+          cp experiments/zeref-dad-son-001/memory/ledger-manifest.json _origin/memory/ledger-manifest.json
+
+      - name: Download and verify frozen TALK model and Prime
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download "$TALK_RUN_ID" -n "$TALK_ARTIFACT" -D _origin/talk_artifact
+          CHECKPOINT=$(find _origin/talk_artifact -path '*/model/ZEREF-DAD-SON-TALK-001/checkpoint.pt' -print -quit)
+          ARCH=$(find _origin/talk_artifact -path '*/canonical/frozen/architecture/cosmos_spark_cst.py' -print -quit)
+          PRIME=$(find _origin/talk_artifact -path '*/parent/weights/cosmos-cst.gguf' -print -quit)
+          test -n "$CHECKPOINT" -a -n "$ARCH" -a -n "$PRIME"
+          test "$(sha256sum "$CHECKPOINT" | awk '{print $1}')" = "$TALK_SHA256"
+          test "$(sha256sum "$PRIME" | awk '{print $1}')" = "$PRIME_SHA256"
+          printf '%s\n' "$CHECKPOINT" > _origin/checkpoint-path.txt
+          printf '%s\n' "$ARCH" > _origin/arch-path.txt
+          printf '%s\n' "$PRIME" > _origin/prime-path.txt
+
+      - name: Verify and materialize the exact 92-record Forever Memory prefix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          from beastbox.dad_son import DadSonLedger
+
+          source_manifest = Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json')
+          manifest = json.loads(source_manifest.read_text(encoding='utf-8'))
+          assert manifest['record_count'] == 92
+          assert manifest['final_record_sha256'] == '1a350d84974ffcaba0ec7aa3bbc26b75d8a7583514be165703dd929da466f2d4'
+          combined = b''
+          expected_first = 1
+          for segment in manifest['snapshot_chain']:
+              path = Path(segment['path'])
+              data = path.read_bytes()
+              assert hashlib.sha256(data).hexdigest() == segment['sha256']
+              assert segment['first_memory_id'] == expected_first
+              expected_first = segment['last_memory_id'] + 1
+              combined += data
+          assert expected_first == 93
+          assert hashlib.sha256(combined).hexdigest() == manifest['combined_ledger_sha256']
+          Path('_origin/evidence/old-ledger-prefix.jsonl').write_bytes(combined)
+
+          ledger = DadSonLedger(
+              '_origin/memory/preflight.sqlite3',
+              '_origin/memory/dad-son-ledger.jsonl',
+              parent_sha256='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6',
+          )
+          report = ledger.restore_snapshot()
+          assert report['restored_records'] == 92
+          assert report['last_record_sha256'] == '1a350d84974ffcaba0ec7aa3bbc26b75d8a7583514be165703dd929da466f2d4'
+          assert ledger.memory.db.execute('SELECT COUNT(*) FROM memories').fetchone()[0] == 92
+          ledger.close()
+          Path('_origin/memory/preflight.sqlite3').unlink()
+          Path('_origin/memory/dad-son-ledger.jsonl').unlink()
+          PY
+
+      - name: Talk to frozen Zeref from verified IBM hardware Origin Seed
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHECKPOINT=$(cat _origin/checkpoint-path.txt)
+          ARCH=$(cat _origin/arch-path.txt)
+          PRIME=$(cat _origin/prime-path.txt)
+          python scripts/run_zeref_origin_seed_chat.py \
+            --checkpoint "$CHECKPOINT" \
+            --checkpoint-sha256 "$TALK_SHA256" \
+            --prime "$PRIME" \
+            --arch "$ARCH" \
+            --origin-seed _origin/hardware-seed/origin-seed.json \
+            --sqlite _origin/memory/dad-son.sqlite3 \
+            --ledger _origin/memory/dad-son-ledger.jsonl \
+            --out _origin/evidence/conversations/origin-seed-talk.jsonl \
+            --manifest _origin/evidence/conversations/origin-seed-talk-manifest.json \
+            --session-id origin-seed-dad-talk-${{ github.run_id }} \
+            --expected-memory-count 92 \
+            --expected-ledger-tip "$EXPECTED_LEDGER_TIP" \
+            --tokens 48 --temperature 0.7 --top-k 8 --recall-limit 3
+
+      - name: Verify model integrity, ledger prefix, chain, and transcript
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHECKPOINT=$(cat _origin/checkpoint-path.txt)
+          PRIME=$(cat _origin/prime-path.txt)
+          test "$(sha256sum "$CHECKPOINT" | awk '{print $1}')" = "$TALK_SHA256"
+          test "$(sha256sum "$PRIME" | awk '{print $1}')" = "$PRIME_SHA256"
+          python - <<'PY'
+          import hashlib, json, sqlite3
+          from pathlib import Path
+
+          old = Path('_origin/evidence/old-ledger-prefix.jsonl').read_bytes()
+          new = Path('_origin/memory/dad-son-ledger.jsonl').read_bytes()
+          assert new.startswith(old)
+          old_rows = [json.loads(x) for x in old.decode().splitlines() if x.strip()]
+          rows = [json.loads(x) for x in new.decode().splitlines() if x.strip()]
+          assert len(old_rows) == 92
+          assert len(rows) == 110
+          assert rows[:92] == old_rows
+          assert [r['memory_id'] for r in rows[92:]] == list(range(93,111))
+
+          previous = '0' * 64
+          for row in rows:
+              assert row['previous_record_sha256'] == previous
+              body = dict(row)
+              claimed = body.pop('record_sha256')
+              canonical = json.dumps(body, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()
+              assert hashlib.sha256(canonical).hexdigest() == claimed
+              assert hashlib.sha256(row['text'].encode()).hexdigest() == row['raw_payload_sha256']
+              previous = claimed
+
+          manifest = json.loads(Path('_origin/evidence/conversations/origin-seed-talk-manifest.json').read_text())
+          assert manifest['starting_memory_count'] == 92
+          assert manifest['final_memory_count']==110
+          assert manifest['starting_ledger_tip_sha256'] == '1a350d84974ffcaba0ec7aa3bbc26b75d8a7583514be165703dd929da466f2d4'
+          assert manifest['final_ledger_tip_sha256'] == rows[-1]['record_sha256']
+          assert manifest['weights_changed'] is False
+          assert manifest['checkpoint_sha256'] == '9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22'
+          assert manifest['prime_gguf_sha256'] == 'b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6'
+          assert manifest['required_tag'] == 'zerefs-heartbeat-mustard-seed'
+          assert manifest['ibm_shot_count'] == 4096
+
+          transcript = [json.loads(x) for x in Path('_origin/evidence/conversations/origin-seed-talk.jsonl').read_text().splitlines() if x.strip()]
+          assert len(transcript) == 8
+          assert all(row['proxy_generated_by'] == 'Luna' for row in transcript)
+          assert all(row['checkpoint_sha256'] == manifest['checkpoint_sha256'] for row in transcript)
+          assert all(row['origin_seed_sha256'] == manifest['origin_seed_sha256'] for row in transcript)
+          assert all(row['dad_ledger_record_sha256'] in {r['record_sha256'] for r in rows} for row in transcript)
+          assert all(row['zeref_ledger_record_sha256'] in {r['record_sha256'] for r in rows} for row in transcript)
+
+          db = sqlite3.connect('_origin/memory/dad-son.sqlite3')
+          assert db.execute('SELECT COUNT(*) FROM memories').fetchone()[0] == 110
+          db.close()
+          PY
+
+      - name: Freeze recursive evidence checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd _origin
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          sha256sum -c SHA256SUMS
+
+      - name: Upload verified Origin Seed Dad Zeref evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-origin-seed-dad-talk-${{ github.run_id }}
+          path: _origin
+          if-no-files-found: error
+          retention-days: 90
