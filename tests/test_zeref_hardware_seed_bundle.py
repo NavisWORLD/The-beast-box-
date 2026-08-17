@@ -1,10 +1,22 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 
 import pytest
+
+SCRIPT = Path("scripts/validate_zeref_hardware_seed_bundle.py")
+PACKET = Path("experiments/zeref-origin-heart-001/waveform/zeref-heartbeat-waveform-packet.json")
+
+
+def load_verifier():
+    spec = importlib.util.spec_from_file_location("zeref_hardware_seed_bundle_verifier", SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def write_json(path: Path, value: object) -> None:
@@ -13,7 +25,8 @@ def write_json(path: Path, value: object) -> None:
 
 def make_bundle(tmp_path: Path):
     from beastbox.heartbeat_seed import build_hardware_origin_seed
-    packet = json.loads(Path("experiments/zeref-origin-heart-001/waveform/zeref-heartbeat-waveform-packet.json").read_text())
+
+    packet = json.loads(PACKET.read_text())
     counts = {"00000": 2048, "11111": 2048}
     tags = list(packet["circuit"]["tags"]) + ["wave-d6e44478b9b6"]
     seed = build_hardware_origin_seed(packet=packet, backend="ibm_test", job_id="job-1", counts=counts, tags=tags)
@@ -54,10 +67,9 @@ def make_bundle(tmp_path: Path):
 
 
 def test_verify_bundle_recomputes_seed_and_checksums(tmp_path):
-    from scripts.validate_zeref_hardware_seed_bundle import verify_bundle
-
+    verifier = load_verifier()
     packet, seed = make_bundle(tmp_path)
-    report = verify_bundle(tmp_path, Path("experiments/zeref-origin-heart-001/waveform/zeref-heartbeat-waveform-packet.json"))
+    report = verifier.verify_bundle(tmp_path, PACKET)
     assert report["verified"] is True
     assert report["job_id"] == "job-1"
     assert report["backend"] == "ibm_test"
@@ -69,9 +81,8 @@ def test_verify_bundle_recomputes_seed_and_checksums(tmp_path):
 
 
 def test_verify_bundle_rejects_tampered_counts(tmp_path):
-    from scripts.validate_zeref_hardware_seed_bundle import verify_bundle
-
+    verifier = load_verifier()
     make_bundle(tmp_path)
     write_json(tmp_path / "counts.json", {"00000": 4096})
     with pytest.raises(RuntimeError, match="checksum"):
-        verify_bundle(tmp_path, Path("experiments/zeref-origin-heart-001/waveform/zeref-heartbeat-waveform-packet.json"))
+        verifier.verify_bundle(tmp_path, PACKET)
