@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from beastbox.box import BeastBox, DENIED
+from beastbox.quantum import IBMReceipt
 
 from .entropy import classical_entropy
 from .evidence import EvidenceWriter
@@ -78,6 +79,27 @@ def build_live_box() -> BeastBox:
     )
 
 
+def build_resume_receipt(*, job_id: str, backend: str, shots: int, circuit_sha256: str) -> IBMReceipt:
+    job_id = str(job_id).strip()
+    backend = str(backend).strip()
+    circuit_sha256 = str(circuit_sha256).strip().lower()
+    if not job_id:
+        raise ValueError("existing IBM job id is required")
+    if not backend:
+        raise ValueError("existing IBM backend is required")
+    if int(shots) <= 0:
+        raise ValueError("existing IBM shot count must be positive")
+    if len(circuit_sha256) != 64 or any(ch not in "0123456789abcdef" for ch in circuit_sha256):
+        raise ValueError("existing IBM circuit SHA-256 must be 64 lowercase hex characters")
+    return IBMReceipt(
+        job_id=job_id,
+        backend=backend,
+        shots=int(shots),
+        circuit_sha256=circuit_sha256,
+        pubs=1,
+    )
+
+
 def run_live(
     output: str | Path,
     *,
@@ -87,6 +109,9 @@ def run_live(
     shots: int = 2048,
     max_steps: int = 8,
     backend_name: str | None = None,
+    existing_ibm_job_id: str | None = None,
+    existing_ibm_backend: str | None = None,
+    existing_circuit_sha256: str | None = None,
 ) -> dict[str, Any]:
     if not os.environ.get("IBM_QUANTUM_TOKEN"):
         raise RuntimeError("IBM_QUANTUM_TOKEN is not set")
@@ -110,18 +135,31 @@ def run_live(
             "shots": int(shots),
             "token_present": True,
             "token_persisted": False,
+            "resume_existing_ibm_job": bool(existing_ibm_job_id),
         },
     )
 
-    receipt = submit_real_entropy(
-        width=int(width),
-        shots=int(shots),
-        backend_name=backend_name,
-        confirm=True,
-    )
+    if existing_ibm_job_id:
+        receipt = build_resume_receipt(
+            job_id=existing_ibm_job_id,
+            backend=existing_ibm_backend or "",
+            shots=int(shots),
+            circuit_sha256=existing_circuit_sha256 or "",
+        )
+        receipt_source = "resumed-existing-job"
+        evidence.emit("ibm-entropy-resumed", {"receipt": receipt.to_dict()})
+    else:
+        receipt = submit_real_entropy(
+            width=int(width),
+            shots=int(shots),
+            backend_name=backend_name,
+            confirm=True,
+        )
+        receipt_source = "submitted-new-job"
+        evidence.emit("ibm-entropy-submitted", {"receipt": receipt.to_dict()})
+
     receipt_dict = receipt.to_dict()
     _write_json(root / "ibm-receipt.json", receipt_dict)
-    evidence.emit("ibm-entropy-submitted", {"receipt": receipt_dict})
 
     quantum_entropy, counts = retrieve_real_entropy(receipt, dimensions=12)
     counts_record = {"counts": counts, "counts_sha256": _sha(counts)}
@@ -131,6 +169,7 @@ def run_live(
         "ibm-entropy-retrieved",
         {
             "receipt": receipt_dict,
+            "receipt_source": receipt_source,
             "counts": counts,
             "counts_sha256": counts_record["counts_sha256"],
             "entropy_source_sha256": quantum_entropy.source_sha256,
@@ -187,6 +226,7 @@ def run_live(
         "memory_snapshot_sha256": spec.memory_snapshot_sha256,
         "tool_policy_sha256": spec.tool_policy_sha256,
         "ibm": receipt_dict,
+        "ibm_receipt_source": receipt_source,
         "ibm_counts_sha256": counts_record["counts_sha256"],
         "control_entropy_source_sha256": control_entropy.source_sha256,
         "quantum_entropy_source_sha256": quantum_entropy.source_sha256,
@@ -233,6 +273,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--shots", type=int, default=2048)
     parser.add_argument("--max-steps", type=int, default=8)
     parser.add_argument("--backend")
+    parser.add_argument("--existing-ibm-job-id")
+    parser.add_argument("--existing-ibm-backend")
+    parser.add_argument("--existing-circuit-sha256")
     args = parser.parse_args(argv)
     run_live(
         args.output,
@@ -242,6 +285,9 @@ def main(argv: list[str] | None = None) -> int:
         shots=args.shots,
         max_steps=args.max_steps,
         backend_name=args.backend,
+        existing_ibm_job_id=args.existing_ibm_job_id,
+        existing_ibm_backend=args.existing_ibm_backend,
+        existing_circuit_sha256=args.existing_circuit_sha256,
     )
     return 0
 
