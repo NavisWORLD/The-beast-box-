@@ -26,7 +26,9 @@ jobs:
           api = HfApi()
           files = list(api.list_repo_files('phera-ra/QC67_cosmo', repo_type='model'))
           for path in files:
-              if path.startswith('Genesis_Engine/') or path.endswith(('.py','.md','.json','.pt','.gguf')):
+              if path.startswith(('genesis_engine/', 'architecture/', 'serving/', 'soul/', 'scripts/')) or path in {
+                  'spark_serve.py', 'kit_health.py', 'config.json', 'tokenizer_config.json', 'model-index.json'
+              }:
                   print(path)
           PY
       - name: Download native runtime text sources
@@ -34,28 +36,18 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          from huggingface_hub import hf_hub_download
-          candidates = [
-              'Genesis_Engine/serve.py',
-              'Genesis_Engine/genesis.py',
-              'Genesis_Engine/soul/awaken.py',
-              'Genesis_Engine/soul/identity.py',
-              'Genesis_Engine/soul/quantum.py',
-              'Genesis_Engine/soul/ledger.py',
-              'Genesis_Engine/soul/weights.py',
-              'Genesis_Engine/soul/loop.py',
-              'Genesis_Engine/soul/rails.py',
-              'USAGE_ATOMIC.md',
-              'SYSTEM_AND_TOKENIZER.md',
-          ]
+          from huggingface_hub import HfApi, hf_hub_download
+          api = HfApi()
+          files = list(api.list_repo_files('phera-ra/QC67_cosmo', repo_type='model'))
+          selected = []
+          for path in files:
+              if path.endswith(('.py', '.md', '.json')) and path.startswith(('genesis_engine/', 'architecture/', 'serving/', 'soul/', 'scripts/')):
+                  selected.append(path)
+          selected += [p for p in ['spark_serve.py','kit_health.py','config.json','tokenizer_config.json','model-index.json'] if p in files]
           out = Path('cosmos-runtime-sources')
           out.mkdir(exist_ok=True)
-          for path in candidates:
-              try:
-                  src = Path(hf_hub_download('phera-ra/QC67_cosmo', path, repo_type='model'))
-              except Exception as exc:
-                  print(f'MISSING {path}: {type(exc).__name__}: {exc}')
-                  continue
+          for path in sorted(set(selected)):
+              src = Path(hf_hub_download('phera-ra/QC67_cosmo', path, repo_type='model'))
               dst = out / path.replace('/', '__')
               dst.write_bytes(src.read_bytes())
               print(f'DOWNLOADED {path} -> {dst}')
