@@ -66,10 +66,12 @@ jobs:
         run: |
           test -n "$IBM_QUANTUM_TOKEN"
           echo "IBM_QUANTUM_TOKEN_PRESENT=1"
-      - name: Install Beast Box quantum runtime
+      - name: Install Beast Box, IBM, and native COSMOS runtime dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e '.[quantum]'
+          pip install 'huggingface-hub>=0.34'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
       - name: Inspect original IBM job without resubmitting
         shell: bash
         run: |
@@ -86,34 +88,52 @@ jobs:
           if status in {"ERROR", "CANCELLED"}:
               raise RuntimeError(f"original IBM job entered terminal status {status}: {job.error_message()}")
           PY
-      - name: Start QC67 COSMOS with llama.cpp
+      - name: Fetch native QC67 COSMOS CST runtime and checkpoint
+        shell: bash
+        run: |
+          python - <<'PY'
+          from huggingface_hub import hf_hub_download
+          for path in (
+              'serving/cosmos_serve.py',
+              'architecture/cosmos_spark_cst.py',
+              'weights/spark_cst.pt',
+          ):
+              got = hf_hub_download('phera-ra/QC67_cosmo', path, repo_type='model', local_dir='qc67')
+              print(f'FETCHED={path} -> {got}')
+          PY
+      - name: Start native QC67 COSMOS CST server
         shell: bash
         run: |
           set -o pipefail
-          docker pull ghcr.io/ggml-org/llama.cpp:server
-          docker rm -f zeref-llama >/dev/null 2>&1 || true
-          docker run -d \
-            --name zeref-llama \
-            -p 127.0.0.1:8080:8080 \
-            ghcr.io/ggml-org/llama.cpp:server \
-            -hf phera-ra/QC67_cosmo \
-            -hff weights/cosmos-cst.gguf \
-            --host 0.0.0.0 \
-            --port 8080 \
-            -c 4096 \
-            -n 512
-          for i in $(seq 1 240); do
-            if curl -fsS http://127.0.0.1:8080/health >/dev/null; then
-              echo "LLAMA_SERVER_READY=1"
+          COSMOS_SERVE_TAGS_NATIVE_ONLY=1 \
+            python qc67/serving/cosmos_serve.py 11500 --upstream http://127.0.0.1:9 \
+            > cosmos-native-server.log 2>&1 &
+          echo $! > cosmos-native-server.pid
+          for i in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:11500/health > cosmos-native-health.json; then
+              python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('cosmos-native-health.json').read_text())
+          meta = (data.get('native') or {}).get('cosmos-cst')
+          assert meta, data
+          assert meta.get('architecture') == 'Cosmos-Spark-CST-QuantumBorn', meta
+          assert int(meta.get('d54') or 0) == 54, meta
+          assert int(meta.get('cst_tensor_count') or 0) == 12, meta
+          assert int(meta.get('missing_keys') or 0) == 0, meta
+          assert int(meta.get('unexpected_keys') or 0) == 0, meta
+          print('QC67_NATIVE_HEALTH=PASS')
+          print(json.dumps(meta, sort_keys=True))
+          PY
               exit 0
             fi
-            if ! docker ps --format '{{.Names}}' | grep -qx zeref-llama; then
-              docker logs zeref-llama || true
+            if ! kill -0 "$(cat cosmos-native-server.pid)" 2>/dev/null; then
+              cat cosmos-native-server.log
               exit 1
             fi
             sleep 1
           done
-          docker logs zeref-llama || true
+          cat cosmos-native-server.log
           exit 1
       - name: Resume real paired IBM entropy experiment
         shell: bash
@@ -121,9 +141,9 @@ jobs:
           set -o pipefail
           python -m beastbox.quantum_divergence.live_cli \
             --output evidence/zeref-quantum-divergence-live \
-            --model hf.co/phera-ra/QC67_cosmo \
-            --provider-kind llama-server \
-            --provider-url http://127.0.0.1:8080 \
+            --model cosmos-cst \
+            --provider-kind ollama \
+            --ollama-url http://127.0.0.1:11500 \
             --width 12 \
             --shots 2048 \
             --max-steps 8 \
@@ -135,10 +155,10 @@ jobs:
         run: |
           set -o pipefail
           python -m beastbox.quantum_divergence.cli analyze evidence/zeref-quantum-divergence-live | tee live-analysis.log
-      - name: Capture llama.cpp server log
+      - name: Capture native COSMOS server log
         if: always()
         shell: bash
-        run: docker logs zeref-llama > llama-server.log 2>&1 || true
+        run: cat cosmos-native-server.log > native-cosmos-server.log 2>&1 || true
       - name: Upload complete live evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -148,6 +168,7 @@ jobs:
             evidence/zeref-quantum-divergence-live/**
             live-run.log
             live-analysis.log
-            llama-server.log
+            native-cosmos-server.log
+            cosmos-native-health.json
             ibm-probe.log
           if-no-files-found: warn
