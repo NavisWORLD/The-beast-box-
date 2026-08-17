@@ -97,7 +97,7 @@ jobs:
             -p 127.0.0.1:8080:8080 \
             ghcr.io/ggml-org/llama.cpp:server \
             -hf phera-ra/QC67_cosmo \
-            -hff cosmos-namebind-weights.gguf \
+            -hff weights/cosmos-cst.gguf \
             --host 0.0.0.0 \
             --port 8080 \
             -c 4096 \
