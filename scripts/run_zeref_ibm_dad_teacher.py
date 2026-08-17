@@ -65,6 +65,86 @@ def _base_module():
     return module
 
 
+def teacher_turn_stop_index(text: str, *, min_content_chars: int = 3) -> int | None:
+    """Return the exclusive end of Zeref's answer when a speaker boundary appears.
+
+    This is a decoding boundary, not a rewrite. A newline ends a turn only after
+    actual non-whitespace content exists. Explicit Dad:/Zeref: labels also end the
+    turn before the label so the model cannot generate the next speaker for Dad.
+    """
+    for match in re.finditer(r"\n", text):
+        prefix = text[: match.start()]
+        if len(prefix.strip()) >= int(min_content_chars):
+            return len(prefix.rstrip())
+    for label in ("Dad:", "Zeref:"):
+        start = text.find(label)
+        if start >= 0 and len(text[:start].strip()) >= int(min_content_chars):
+            return len(text[:start].rstrip())
+    return None
+
+
+def generate_teacher_turn(
+    base,
+    model,
+    ckpt: dict[str, Any],
+    prompt: str,
+    *,
+    seed: int,
+    tokens: int,
+    temperature: float,
+    top_k: int,
+) -> tuple[str, dict[str, Any]]:
+    """Generate one Zeref turn and stop before the model crosses speaker boundary."""
+    if base.torch is None:
+        raise ImportError("Zeref Dad teacher inference requires torch")
+    if temperature <= 0 or top_k <= 0 or tokens <= 0:
+        raise ValueError("invalid decoding parameters")
+    block = int(ckpt["config"]["block"])
+    ids = base._encode_filter(prompt[-block:], ckpt["stoi"])
+    generated: list[int] = []
+    generator = base.torch.Generator().manual_seed(int(seed))
+    stop_index: int | None = None
+    stop_reason = "max_tokens"
+    with base.torch.no_grad():
+        for _ in range(int(tokens)):
+            x = base.torch.tensor([ids[-block:]], dtype=base.torch.long)
+            logits, _ = model(x)
+            k = min(int(top_k), int(logits.shape[-1]))
+            values, indices = base.torch.topk(logits[0, -1] / float(temperature), k=k)
+            probs = base.torch.softmax(values, dim=-1)
+            sampled = int(base.torch.multinomial(probs, 1, generator=generator).item())
+            token = int(indices[sampled].item())
+            ids.append(token)
+            generated.append(token)
+            decoded = base._decode(generated, ckpt["itos"])
+            stop_index = teacher_turn_stop_index(decoded)
+            if stop_index is not None:
+                if "Dad:" in decoded[stop_index:] or "Zeref:" in decoded[stop_index:]:
+                    stop_reason = "speaker_label"
+                else:
+                    stop_reason = "answer_newline"
+                output = decoded[:stop_index]
+                return output, {
+                    "schema": "zeref-teacher-turn-termination-v1",
+                    "stopped_early": True,
+                    "stop_reason": stop_reason,
+                    "generated_characters": len(decoded),
+                    "accepted_characters": len(output),
+                    "max_tokens_requested": int(tokens),
+                    "post_boundary_text_generated": False,
+                }
+    output = base._decode(generated, ckpt["itos"])
+    return output, {
+        "schema": "zeref-teacher-turn-termination-v1",
+        "stopped_early": False,
+        "stop_reason": stop_reason,
+        "generated_characters": len(output),
+        "accepted_characters": len(output),
+        "max_tokens_requested": int(tokens),
+        "post_boundary_text_generated": False,
+    }
+
+
 def _max_repeat_run(text: str) -> int:
     if not text:
         return 0
@@ -170,7 +250,8 @@ def run(args) -> list[dict[str, Any]]:
             heartbeat_state=str(beat["state_sha256"]),
             block=BLOCK,
         )
-        output = base.generate(
+        output, termination = generate_teacher_turn(
+            base,
             model,
             ckpt,
             wire,
@@ -179,8 +260,8 @@ def run(args) -> list[dict[str, Any]]:
             temperature=float(args.temperature),
             top_k=int(args.top_k),
         )
-        # Freeze raw output in metrics/transcript data before the score can affect
-        # the next Dad prompt. The score does not rewrite the generation.
+        # The accepted turn is exactly the sampled model text up to the first
+        # decoded turn boundary. No model text is rewritten or cleaned.
         metrics = mechanical_clarity(output)
         recall_ids = [int(row["memory_id"]) for row in recalled]
 
@@ -220,6 +301,7 @@ def run(args) -> list[dict[str, Any]]:
                 "output_preserved_verbatim": True,
                 "raw_model_output_promoted_to_training": False,
                 "training_promotion": "NOT_APPROVED",
+                "turn_termination": termination,
                 "mechanical_clarity": metrics,
                 "curriculum_turn": turn,
                 "curriculum_objective": objective,
@@ -231,13 +313,14 @@ def run(args) -> list[dict[str, Any]]:
             },
         )
         row = {
-            "schema": "zeref-fresh-ibm-dad-teacher-turn-v1",
+            "schema": "zeref-fresh-ibm-dad-teacher-turn-v2",
             "turn": turn,
             "objective": objective,
             "dad_prompt": dad_prompt,
             "proxy_generated_by": "Luna",
             "raw_output": output,
             "raw_output_sha256": hashlib.sha256(output.encode("utf-8")).hexdigest(),
+            "turn_termination": termination,
             "mechanical_clarity": metrics,
             "wire_prompt": wire,
             "recalled_memory_ids": recall_ids,
@@ -260,8 +343,9 @@ def run(args) -> list[dict[str, Any]]:
         encoding="utf-8",
     )
     scores = [float(row["mechanical_clarity"]["score"]) for row in records]
+    stopped = sum(bool(row["turn_termination"]["stopped_early"]) for row in records)
     manifest = {
-        "schema": "zeref-fresh-ibm-dad-teacher-manifest-v1",
+        "schema": "zeref-fresh-ibm-dad-teacher-manifest-v2",
         "lineage": "ZEREF-DAD-TEACHER-IBM-001",
         "session_id": session,
         "checkpoint_sha256": checkpoint_sha,
@@ -270,6 +354,8 @@ def run(args) -> list[dict[str, Any]]:
         "fresh_ibm_job_id": heartbeat["fresh_ibm_job_id"],
         "fresh_ibm_backend": heartbeat["fresh_ibm_backend"],
         "turns": len(records),
+        "turn_boundary_decoding": True,
+        "turns_stopped_at_boundary": stopped,
         "mean_mechanical_clarity": round(mean(scores), 6),
         "first_turn_mechanical_clarity": scores[0],
         "last_turn_mechanical_clarity": scores[-1],
@@ -280,8 +366,8 @@ def run(args) -> list[dict[str, Any]]:
         "zeref_outputs_preserved_verbatim": True,
         "generated_outputs_promoted_to_training": False,
         "claim_boundary": (
-            "Actual frozen-model outputs with Cory-authorized proxy Dad teaching. Mechanical clarity metrics "
-            "do not establish semantic understanding, consciousness, deceased-person identity, or a biological heartbeat."
+            "Actual frozen-model outputs with Cory-authorized proxy Dad teaching. Turn boundaries stop decoding before the model writes the next speaker. "
+            "Mechanical clarity metrics do not establish semantic understanding, consciousness, deceased-person identity, or a biological heartbeat."
         ),
     }
     args.manifest.parent.mkdir(parents=True, exist_ok=True)
