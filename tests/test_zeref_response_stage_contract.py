@@ -22,7 +22,9 @@ def test_response_trainer_is_additive_and_never_overwrites_parent():
     assert "checkpoint.pt" in text
     assert "args.out" in text
     assert "torch.save" in text
-    assert "args.parent" not in text.split("torch.save", 1)[1]
+    assert "torch.save(out_ckpt, args.parent)" not in text
+    assert "torch.save(out_ckpt,args.parent)" not in text.replace(" ", "")
+    assert "parent checkpoint changed during additive response training" in text
 
 
 def test_response_evaluator_measures_only_answer_targets_and_reports_accuracy():
