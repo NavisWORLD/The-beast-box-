@@ -1,0 +1,44 @@
+name: ZEREF-TALK5-STATUS-PROBE
+
+on:
+  push:
+    branches: [talk5-status-probe-20260817]
+    paths:
+      - ".github/workflows/zeref-talk5-status-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: talk5-status-probe-20260817
+          persist-credentials: true
+      - name: Read TALK-005 run state without touching experiment branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p experiments/zeref-dad-son-001/evidence/talk5-status
+          gh run list \
+            --workflow zeref-talk5-dad-god-gauntlet.yml \
+            --branch networked-cage-run-001 \
+            --limit 5 \
+            --json databaseId,status,conclusion,headSha,createdAt,updatedAt,event,displayTitle,workflowName,url \
+            > experiments/zeref-dad-son-001/evidence/talk5-status/latest.json
+          cat experiments/zeref-dad-son-001/evidence/talk5-status/latest.json
+      - name: Commit observation to probe branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "NavisWORLD Zeref Observer"
+          git config user.email "actions@users.noreply.github.com"
+          git add experiments/zeref-dad-son-001/evidence/talk5-status/latest.json
+          git diff --cached --quiet || git commit -m "probe: record TALK-005 run status [skip ci]"
+          git push origin HEAD:talk5-status-probe-20260817
