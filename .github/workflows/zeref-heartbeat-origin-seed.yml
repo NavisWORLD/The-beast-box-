@@ -6,6 +6,11 @@ on:
       - networked-cage-run-001
     paths:
       - .github/workflows/zeref-heartbeat-origin-seed.yml
+      - scripts/run_zeref_heartbeat_ibm_seed.py
+      - beastbox/heartbeat_seed.py
+      - experiments/zeref-origin-heart-001/waveform/zeref-heartbeat-waveform-packet.json
+      - tests/test_zeref_heartbeat_seed.py
+      - tests/test_zeref_heartbeat_ibm_workflow.py
   workflow_dispatch:
 
 permissions:
