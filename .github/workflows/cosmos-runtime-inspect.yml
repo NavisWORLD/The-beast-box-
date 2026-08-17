@@ -1,0 +1,70 @@
+name: Inspect QC67 COSMOS native runtime
+
+on:
+  push:
+    branches:
+      - 'agent/zeref-quantum-divergence'
+    paths:
+      - '.github/workflows/cosmos-runtime-inspect.yml'
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Hugging Face client
+        run: pip install 'huggingface-hub>=0.34'
+      - name: List QC67 COSMOS runtime files
+        shell: bash
+        run: |
+          python - <<'PY' | tee cosmos-runtime-files.log
+          from huggingface_hub import HfApi
+          api = HfApi()
+          files = list(api.list_repo_files('phera-ra/QC67_cosmo', repo_type='model'))
+          for path in files:
+              if path.startswith('Genesis_Engine/') or path.endswith(('.py','.md','.json','.pt','.gguf')):
+                  print(path)
+          PY
+      - name: Download native runtime text sources
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from huggingface_hub import hf_hub_download
+          candidates = [
+              'Genesis_Engine/serve.py',
+              'Genesis_Engine/genesis.py',
+              'Genesis_Engine/soul/awaken.py',
+              'Genesis_Engine/soul/identity.py',
+              'Genesis_Engine/soul/quantum.py',
+              'Genesis_Engine/soul/ledger.py',
+              'Genesis_Engine/soul/weights.py',
+              'Genesis_Engine/soul/loop.py',
+              'Genesis_Engine/soul/rails.py',
+              'USAGE_ATOMIC.md',
+              'SYSTEM_AND_TOKENIZER.md',
+          ]
+          out = Path('cosmos-runtime-sources')
+          out.mkdir(exist_ok=True)
+          for path in candidates:
+              try:
+                  src = Path(hf_hub_download('phera-ra/QC67_cosmo', path, repo_type='model'))
+              except Exception as exc:
+                  print(f'MISSING {path}: {type(exc).__name__}: {exc}')
+                  continue
+              dst = out / path.replace('/', '__')
+              dst.write_bytes(src.read_bytes())
+              print(f'DOWNLOADED {path} -> {dst}')
+          PY
+      - name: Upload native runtime inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: qc67-cosmos-native-runtime-${{ github.run_id }}
+          path: |
+            cosmos-runtime-files.log
+            cosmos-runtime-sources/**
+          if-no-files-found: error
