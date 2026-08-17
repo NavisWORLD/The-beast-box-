@@ -1,0 +1,36 @@
+name: Zeref native model introspection
+
+on:
+  push:
+    branches:
+      - 'agent/zeref-quantum-divergence'
+    paths:
+      - '.github/workflows/zeref-model-introspect.yml'
+  workflow_dispatch:
+
+jobs:
+  inspect-native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'huggingface-hub>=0.34'
+      - name: Fetch native source
+        run: |
+          python - <<'PY'
+          from huggingface_hub import hf_hub_download
+          for path in ('architecture/cosmos_spark_cst.py','serving/cosmos_serve.py'):
+              print(hf_hub_download('phera-ra/QC67_cosmo', path, repo_type='model', local_dir='qc67'))
+          PY
+      - name: Print model and tokenizer interfaces
+        run: |
+          echo '=== ARCHITECTURE SYMBOLS ==='
+          grep -nE 'class |def forward|vocab|stoi|itos|encode|decode|logit|token' qc67/architecture/cosmos_spark_cst.py || true
+          echo '=== ARCHITECTURE SOURCE ==='
+          sed -n '1,280p' qc67/architecture/cosmos_spark_cst.py
+          echo '=== SERVER SYMBOLS ==='
+          grep -nE 'vocab|stoi|itos|encode|decode|logit|generate|token|spark_cst|load' qc67/serving/cosmos_serve.py || true
+          echo '=== SERVER SOURCE ==='
+          sed -n '1,360p' qc67/serving/cosmos_serve.py
