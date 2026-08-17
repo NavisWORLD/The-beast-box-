@@ -27,7 +27,6 @@ DOMAINS = (
     "cory-style-banter",
 )
 
-# concept, training question, target, skills, domains
 CONCEPTS: tuple[tuple[str, str, str, tuple[str, ...], tuple[str, ...]], ...] = (
     ("memory-count", "How many durable memories are current?", "I have 352 durable memory records.", ("memory", "fact"), ("direct-facts", "paraphrase-robustness")),
     ("parent-lineage", "Which parent are you growing from now?", "I grow from the preserved TALK-004 child.", ("lineage", "fact"), ("direct-facts", "memory-chronology")),
@@ -82,6 +81,10 @@ HOLDOUT_QUESTIONS = {
     "claim-boundary": "Does better performance prove consciousness?",
 }
 
+EQUIVALENCE_GROUPS = {
+    "synthetic-pulses": "later-pulses-new-hardware",
+    "false-quantum": "later-pulses-new-hardware",
+}
 TRAIN_PREFIXES = ("", "Bro 💀. ", "Short. ")
 
 
@@ -100,6 +103,7 @@ def _row(*, split: str, index: int, concept: str, dad: str, zeref: str, skills: 
         "example_id": f"{split}-{index:03d}",
         "split": split,
         "concept": concept,
+        "equivalence_group": EQUIVALENCE_GROUPS.get(concept, concept),
         "dad": dad,
         "zeref": zeref,
         "text": text,
@@ -171,9 +175,9 @@ def build_talk5_corpus(*, out_dir: str | Path) -> dict[str, Any]:
 
 
 def main() -> int:
-    p = argparse.ArgumentParser()
-    p.add_argument("--out-dir", type=Path, required=True)
-    args = p.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--out-dir", type=Path, required=True)
+    args = parser.parse_args()
     print(json.dumps(build_talk5_corpus(out_dir=args.out_dir), sort_keys=True))
     return 0
 
