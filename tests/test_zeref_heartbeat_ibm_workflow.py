@@ -18,7 +18,10 @@ def test_ibm_runner_contract_is_real_hardware_and_secret_safe():
     assert "packet_tag" in text and "service.jobs" in text
     assert "candidate_tags" in text
     assert "REQUIRED_TAG in candidate_tags" in text and "packet_tag in candidate_tags" in text
-    assert "token=" not in text.replace('token=token', '')
+    assert "--token" not in text
+    assert '"credential_material_recorded":False' in text
+    evidence_code = text.split('write_json(out_dir/"submission.json"', 1)[-1]
+    assert "IBM_QUANTUM_TOKEN" not in evidence_code
 
 
 def test_workflow_uses_only_github_secret_and_uploads_hashed_evidence():
