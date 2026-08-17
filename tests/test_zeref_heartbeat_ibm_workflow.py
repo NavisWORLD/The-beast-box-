@@ -21,8 +21,11 @@ def test_ibm_runner_contract_is_real_hardware_and_secret_safe():
     assert "--token" not in text
     compact = "".join(text.split())
     assert '"credential_material_recorded":False' in compact
-    evidence_code = text.split('write_json(out_dir/"submission.json"', 1)[-1]
+    payload_start = text.index('"schema": "zeref-heartbeat-ibm-submission-v2"')
+    payload_end = text.index("verified_job = service.job(job_id)", payload_start)
+    evidence_code = text[payload_start:payload_end]
     assert "IBM_QUANTUM_TOKEN" not in evidence_code
+    assert "token" not in evidence_code.lower()
 
 
 def test_workflow_uses_only_github_secret_and_uploads_hashed_evidence():
