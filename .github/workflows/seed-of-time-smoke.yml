@@ -11,6 +11,9 @@ on:
       - 'single_file/COSMIC_SEED_OF_TIME.py'
       - 'docs/SEED_OF_TIME.md'
 
+permissions:
+  contents: read
+
 jobs:
   standalone:
     runs-on: ubuntu-latest
