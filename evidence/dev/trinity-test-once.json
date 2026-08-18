@@ -1,29 +1,11 @@
 {
-  "exit_code": 1,
-  "log_sha256": "464dbcce4d380a70ffcfc91de69ddd8ddcbab888c25bf18e485c6a79f51c83c2",
+  "exit_code": 0,
+  "log_sha256": "f44919a3367dc52929a8af8f8919d5f9536d2eb90b5c6c6d38b1e58904be21bc",
   "log_tail": [
-    "...........F.....                                                        [100%]",
-    "=================================== FAILURES ===================================",
-    "__________ test_native_effective_54_balances_12d_and_42d_block_energy __________",
-    "",
-    "    def test_native_effective_54_balances_12d_and_42d_block_energy():",
-    "        state = _state([0.0] * 12, include_sensors=False)",
-    "        state.external54 = [0.5] * 54",
-    "        state.dyn54 = [0.5] * 54",
-    "        effective = _effective54(state)",
-    "        e12 = sum(x * x for x in effective[:12])",
-    "        e42 = sum(x * x for x in effective[12:])",
-    ">       assert abs(e12 - e42) < 1e-12",
-    "E       assert 6.406568011022177 < 1e-12",
-    "E        +  where 6.406568011022177 = abs((2.5626272044088707 - 8.969195215431048))",
-    "",
-    "tests/test_quantum_divergence_native_trinity.py:147: AssertionError",
-    "=========================== short test summary info ============================",
-    "FAILED tests/test_quantum_divergence_native_trinity.py::test_native_effective_54_balances_12d_and_42d_block_energy - assert 6.406568011022177 < 1e-12",
-    " +  where 6.406568011022177 = abs((2.5626272044088707 - 8.969195215431048))"
+    ".................                                                        [100%]"
   ],
-  "passed": false,
-  "run_id": 32175109746,
+  "passed": true,
+  "run_id": 32175553868,
   "schema": "zeref.trinity-test-once.v1",
-  "tested_head_sha": "b010aace28aae6ce43097444dde634f91b61b195"
+  "tested_head_sha": "5df7a49cc3d844e35538d3037d3a73cb918e3c4b"
 }
