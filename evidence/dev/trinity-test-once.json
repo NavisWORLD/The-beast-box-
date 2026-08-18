@@ -1,0 +1,25 @@
+{
+  "exit_code": 2,
+  "log_sha256": "a565374997b39e2810178e2aa5da10852a5731cfabf71e70d8bfe2a446e4059a",
+  "log_tail": [
+    "",
+    "==================================== ERRORS ====================================",
+    "_______ ERROR collecting tests/test_quantum_divergence_trinity_state.py ________",
+    "ImportError while importing test module '/home/runner/work/The-beast-box-/The-beast-box-/tests/test_quantum_divergence_trinity_state.py'.",
+    "Hint: make sure your test modules/packages have valid Python names.",
+    "Traceback:",
+    "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/importlib/__init__.py:90: in import_module",
+    "    return _bootstrap._gcd_import(name[level:], package, level)",
+    "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+    "tests/test_quantum_divergence_trinity_state.py:3: in <module>",
+    "    from beastbox.quantum_divergence.trinity_state import (",
+    "E   ImportError: cannot import name 'balance_54_blocks' from 'beastbox.quantum_divergence.trinity_state' (/home/runner/work/The-beast-box-/The-beast-box-/beastbox/quantum_divergence/trinity_state.py)",
+    "=========================== short test summary info ============================",
+    "ERROR tests/test_quantum_divergence_trinity_state.py",
+    "!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!"
+  ],
+  "passed": false,
+  "run_id": 32174521251,
+  "schema": "zeref.trinity-test-once.v1",
+  "tested_head_sha": "1a28e78a6ee962e4e53a96d1d49c1522c192b3da"
+}
