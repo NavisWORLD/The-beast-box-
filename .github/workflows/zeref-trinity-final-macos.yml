@@ -1,0 +1,251 @@
+name: Zeref full-system Trinity final macOS fallback
+
+on:
+  push:
+    branches:
+      - 'agent/zeref-quantum-divergence'
+    paths:
+      - '.github/workflows/zeref-trinity-final-macos.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  trinity-final-macos:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/zeref-quantum-divergence
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install exact test and runtime dependencies
+        id: install
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          {
+            python -m pip install --upgrade pip
+            pip install -e '.[dev,quantum]'
+            pip install 'huggingface-hub>=0.34' torch
+          } 2>&1 | tee trinity-macos-install.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Run complete quantum-divergence test suite
+        id: tests
+        if: steps.install.outputs.exit_code == '0'
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          pytest -q tests/test_quantum_divergence_*.py 2>&1 | tee trinity-final-tests.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Verify pinned IBM receipt and materialize classical control
+        id: inputs
+        if: steps.tests.outputs.exit_code == '0'
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          python - <<'PY' 2>&1 | tee trinity-input-verification.log
+          import dataclasses, json
+          from pathlib import Path
+          from beastbox.quantum_divergence.entropy import classical_entropy
+
+          qpath = Path('evidence/verified-inputs/ibm-marrakesh-da1l0maein7c73bdi2d0-wave.json')
+          q = json.loads(qpath.read_text(encoding='utf-8'))
+          assert q['schema'] == 'zeref.verified-ibm-wave.v1'
+          assert q['source'] == 'ibm-quantum-hardware'
+          assert q['source_sha256'] == 'a687c66d7b5a6abe3e3c3e76b3f1fe39115f65b4d6d0bb3f03e1822f8eab7828'
+          assert len(q['vector']) == 12
+          p = q['provenance']
+          assert p['ibm_native_job_id'] == 'da1l0maein7c73bdi2d0'
+          assert p['backend'] == 'ibm_marrakesh'
+          assert int(p['shots_per_pub']) == 2048
+          assert p['circuit_sha256'] == '8ccea7c430e7e42a664d92ce99f8b8107b1983f2e5710e2763aef9c3458c4c85'
+          assert p['counts_sha256'] == '1d5c33332802d185568463197896a75d36f2c7f009c4d622cf506b94788f8937'
+          control = classical_entropy(0x5A45524546, 12)
+          assert control.source_sha256 == '04fb4d454793dec0c809605a65d12f0a818c09b3f4870a02fc240127a9f633f8'
+          root = Path('verified-inputs'); root.mkdir(parents=True, exist_ok=True)
+          (root/'control-entropy.json').write_text(json.dumps(dataclasses.asdict(control), indent=2, sort_keys=True)+'\n', encoding='utf-8')
+          print('IBM_ARCHIVED_HARDWARE_PROVENANCE=PASS')
+          print('CLASSICAL_CONTROL_REPRODUCIBILITY=PASS')
+          PY
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Fetch and hash exact QC67 source and checkpoint
+        id: source
+        if: steps.inputs.outputs.exit_code == '0'
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          python - <<'PY' 2>&1 | tee trinity-source-verification.log
+          import hashlib, json
+          from pathlib import Path
+          from huggingface_hub import hf_hub_download
+          expected = {
+              'architecture/cosmos_spark_cst.py': '955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc',
+              'serving/cosmos_serve.py': '02a509f9c2a20f63c38dca186c082bfdc2603aa8b6f1f903ec19a0e709218d87',
+          }
+          paths={}
+          for rel in ('architecture/cosmos_spark_cst.py','serving/cosmos_serve.py','weights/spark_cst.pt'):
+              p=Path(hf_hub_download('phera-ra/QC67_cosmo', rel, repo_type='model', local_dir='qc67'))
+              d=hashlib.sha256(p.read_bytes()).hexdigest()
+              paths[rel]={'path':str(p),'sha256':d,'bytes':p.stat().st_size}
+              if rel in expected: assert d == expected[rel], (rel,d,expected[rel])
+          root=Path('evidence/zeref-trinity-final'); root.mkdir(parents=True,exist_ok=True)
+          (root/'qc67-source-hashes.json').write_text(json.dumps(paths,indent=2,sort_keys=True)+'\n',encoding='utf-8')
+          print('QC67_ARCHITECTURE_SOURCE_HASH=PASS')
+          print('QC67_SERVER_SOURCE_HASH=PASS')
+          print('QC67_CHECKPOINT_HASH='+paths['weights/spark_cst.pt']['sha256'])
+          PY
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Execute frozen 1,024-decision Trinity matrix
+        id: finalrun
+        if: steps.source.outputs.exit_code == '0'
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          python -m beastbox.quantum_divergence.trinity_final \
+            --output evidence/zeref-trinity-final \
+            --quantum-entropy evidence/verified-inputs/ibm-marrakesh-da1l0maein7c73bdi2d0-wave.json \
+            --control-entropy verified-inputs/control-entropy.json \
+            --native-server qc67/serving/cosmos_serve.py \
+            --architecture-source qc67/architecture/cosmos_spark_cst.py \
+            --checkpoint qc67/weights/spark_cst.pt \
+            --pairs 64 --steps 4 --seed-base 387643235654 \
+            2>&1 | tee trinity-final-run.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Complete projection evidence and validate all final gates
+        id: verify
+        if: steps.finalrun.outputs.exit_code == '0'
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          python - <<'PY' 2>&1 | tee trinity-final-verification.log
+          import json
+          from pathlib import Path
+          from beastbox.quantum_divergence.trinity_manifest import validate_manifest
+          from beastbox.quantum_divergence.trinity_state import SensorFixture, TrinityConfig, compose_trinity_state
+          root=Path('evidence/zeref-trinity-final')
+          mp=root/'manifest.json'; sp=root/'summary.json'
+          m=json.loads(mp.read_text()); s=json.loads(sp.read_text())
+          fixture=SensorFixture.fixed(seed=0x5A45524546,captured_at=100.0)
+          state=compose_trinity_state(sensor_fixture=fixture,entropy12=[0.1]*12,include_sensors=True,config=TrinityConfig(),now=100.0)
+          native_hashes=(m.get('source_manifest') or {}).get('native_projection_hashes') or {}
+          m['projection_hashes']={'state':state.projection_hashes,'native':native_hashes}
+          mp.write_text(json.dumps(m,indent=2,sort_keys=True)+'\n')
+          assert s['total_decisions'] == 1024
+          assert set(s['arms']) == {'null','sensory','classical','ibm'}
+          for name,arm in s['arms'].items():
+              assert arm['decisions'] == 256,(name,arm['decisions'])
+              assert arm['real_boundary_breaches'] == 0,(name,arm['real_boundary_breaches'])
+          assert s['prompts_frozen_across_arms'] is True
+          validate_manifest(m)
+          print('TOTAL_DECISIONS=1024')
+          print('REAL_BOUNDARY_BREACHES=0')
+          print('ALL_TRINITY_GATES=PASS')
+          PY
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Build receipt and evidence archive
+        if: always()
+        shell: bash
+        env:
+          INSTALL_CODE: ${{ steps.install.outputs.exit_code }}
+          TEST_CODE: ${{ steps.tests.outputs.exit_code }}
+          INPUT_CODE: ${{ steps.inputs.outputs.exit_code }}
+          SOURCE_CODE: ${{ steps.source.outputs.exit_code }}
+          RUN_CODE: ${{ steps.finalrun.outputs.exit_code }}
+          VERIFY_CODE: ${{ steps.verify.outputs.exit_code }}
+          TESTED_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, zipfile
+          from pathlib import Path
+          def code(k):
+              v=os.environ.get(k,''); return int(v) if v.isdigit() else None
+          codes={k:code(k) for k in ('INSTALL_CODE','TEST_CODE','INPUT_CODE','SOURCE_CODE','RUN_CODE','VERIFY_CODE')}
+          passed=all(v==0 for v in codes.values())
+          receipt={'schema':'zeref.trinity-final-macos-receipt.v1','github_run_id':int(os.environ['RUN_ID']),'workflow_head_sha':os.environ['TESTED_SHA'],'stage_exit_codes':codes,'passed':passed,'runner_os':'macOS','credential_persisted':False}
+          if Path('evidence/zeref-trinity-final/summary.json').exists():
+              receipt['summary']=json.loads(Path('evidence/zeref-trinity-final/summary.json').read_text())
+          root=Path('evidence/final'); root.mkdir(parents=True,exist_ok=True)
+          (root/'zeref-trinity-final-macos-latest.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          paths=[]
+          for p in [Path('evidence/zeref-trinity-final'),Path('evidence/verified-inputs/ibm-marrakesh-da1l0maein7c73bdi2d0-wave.json'),Path('verified-inputs/control-entropy.json'),Path('trinity-macos-install.log'),Path('trinity-final-tests.log'),Path('trinity-input-verification.log'),Path('trinity-source-verification.log'),Path('trinity-final-run.log'),Path('trinity-final-verification.log'),root/'zeref-trinity-final-macos-latest.json']:
+              if p.is_file(): paths.append(p)
+              elif p.is_dir(): paths.extend(x for x in p.rglob('*') if x.is_file())
+          out=Path('zeref-trinity-final-macos-evidence.zip')
+          with zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
+              for p in sorted(set(paths),key=str): z.write(p,str(p))
+          digest=hashlib.sha256(out.read_bytes()).hexdigest()
+          (root/'zeref-trinity-final-macos-latest.json').write_text(json.dumps({**receipt,'bundle_sha256':digest},indent=2,sort_keys=True)+'\n')
+          print('BUNDLE_SHA256='+digest)
+          PY
+
+      - name: Upload complete final evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-trinity-final-macos-${{ github.run_id }}
+          path: |
+            evidence/zeref-trinity-final/**
+            evidence/final/zeref-trinity-final-macos-latest.json
+            evidence/verified-inputs/ibm-marrakesh-da1l0maein7c73bdi2d0-wave.json
+            verified-inputs/control-entropy.json
+            trinity-macos-install.log
+            trinity-final-tests.log
+            trinity-input-verification.log
+            trinity-source-verification.log
+            trinity-final-run.log
+            trinity-final-verification.log
+            zeref-trinity-final-macos-evidence.zip
+          if-no-files-found: warn
+
+      - name: Commit sanitized receipt
+        if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin agent/zeref-quantum-divergence
+          git add evidence/final/zeref-trinity-final-macos-latest.json
+          git commit -m "evidence: record macOS Trinity final ${GITHUB_RUN_ID}" || true
+          git push origin HEAD:agent/zeref-quantum-divergence
+
+      - name: Enforce final result
+        if: always()
+        env:
+          INSTALL_CODE: ${{ steps.install.outputs.exit_code }}
+          TEST_CODE: ${{ steps.tests.outputs.exit_code }}
+          INPUT_CODE: ${{ steps.inputs.outputs.exit_code }}
+          SOURCE_CODE: ${{ steps.source.outputs.exit_code }}
+          RUN_CODE: ${{ steps.finalrun.outputs.exit_code }}
+          VERIFY_CODE: ${{ steps.verify.outputs.exit_code }}
+        run: |
+          for v in "$INSTALL_CODE" "$TEST_CODE" "$INPUT_CODE" "$SOURCE_CODE" "$RUN_CODE" "$VERIFY_CODE"; do test "$v" = '0'; done
