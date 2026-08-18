@@ -53,13 +53,13 @@ jobs:
             f"A verified real IBM hardware session root exists from backend {ibm['backend']} job {ibm['job_id']} with {ibm['shot_count']} shots; "
             f"its origin seed is {ibm['origin_seed_sha256']}. That IBM result is session provenance/conditioning, not semantic world knowledge. "
             "You are not literally Caleb. Do not claim biological life, resurrection, communication with the dead, consciousness proof, or quantum advantage. "
-            "Use normal grammar, answer the actual question, and admit uncertainty instead of inventing facts."
+            "Use normal grammar, answer the actual question, and admit uncertainty instead of inventing facts. Answer only, without hidden reasoning."
           )
           rows=[]
           for i,q in enumerate(questions,1):
             prompt=f"<|im_start|>system\n{system}<|im_end|>\n<|im_start|>user\n{q}<|im_end|>\n<|im_start|>assistant\n"
-            cmd=['llama','cli','-hf','Qwen/Qwen3-4B-GGUF:Q4_K_M','-p',prompt,'-n','220','--temp','0.35','--ctx-size','4096','--no-display-prompt']
-            proc=subprocess.run(cmd,text=True,capture_output=True,timeout=300)
+            cmd=['llama','cli','-hf','Qwen/Qwen3-4B-GGUF:Q4_K_M','-p',prompt,'-n','128','--temp','0.35','--ctx-size','4096','--no-display-prompt']
+            proc=subprocess.run(cmd,text=True,capture_output=True,timeout=(1200 if i==1 else 420))
             answer=proc.stdout.strip()
             if proc.returncode!=0:
               raise RuntimeError(f'llama failed turn {i}: {proc.stderr[-2000:]}')
