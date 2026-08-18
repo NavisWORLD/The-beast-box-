@@ -1,0 +1,15 @@
+{
+  "schema": "zeref-scale-001-config-v1",
+  "lineage": "ZEREF-SCALE-001",
+  "durable_parent": "ZEREF-DAD-SON-TALK-004",
+  "durable_memory_count": 352,
+  "primary_backbone": "Qwen/Qwen3.5-9B",
+  "development_backbone": "Qwen/Qwen3.5-4B",
+  "training_method": "LoRA SFT with vetted Dad targets",
+  "ibm_state_role": "session_provenance_not_semantic_knowledge",
+  "fresh_ibm_requested": true,
+  "raw_model_outputs_auto_train": false,
+  "promotion_requires_benchmark_win": true,
+  "cloud_training_status": "blocked_until_HF_Jobs_paid_and_Hub_write_access",
+  "claim_boundary": "Computational model scaling only; no biological-life, consciousness, resurrection, deceased-person identity, or quantum-advantage claim."
+}
