@@ -26,9 +26,9 @@ The Gaussian function implements the documented state-kernel form:
 H_ij = exp(-||x_i - x_j||² / (2σ²))
 ```
 
-`phos_ffn_width(d)` implements the documented φ-scaffold width rule `floor(d × φ)`.
+`phos_ffn_width(d)` implements the documented phi scaffold width rule `floor(d * phi)`.
 
-`update_dyn12` deliberately mirrors the **public Beast Box reference dynamic**. The source material describes dyn12 as twelve Ω-driven leaky-state scalars but does not provide enough canonical private source to justify inventing a byte-identical historical Ω equation.
+`update_dyn12` deliberately mirrors the public Beast Box reference dynamic. The source material describes dyn12 as twelve Omega-driven leaky-state scalars but does not provide enough canonical private source to justify inventing a byte-identical historical Omega equation.
 
 `lorenz_step` is a conventional Lorenz numerical primitive used for chaos/state experimentation. It does not assert literal dark-matter physics.
 
@@ -38,7 +38,7 @@ A small native command-line executable:
 
 ```bash
 cd rust
-cargo build --release --workspace
+cargo build --release --workspace --locked
 
 ./target/release/cosmic-cypher-rs phi 1024
 ./target/release/cosmic-cypher-rs affinity '0,0,0' '1,1,1' 0.75
@@ -48,10 +48,24 @@ cargo build --release --workspace
 
 ## Validation
 
+Linux/macOS:
+
 ```bash
-cd rust
-cargo test --workspace
-cargo build --release --workspace
+bash rust/verify.sh
 ```
 
-The GitHub Rust workflow runs the same tests on supported pushes/pull requests.
+Windows PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File rust/verify.ps1
+```
+
+Manual equivalent:
+
+```bash
+cd rust
+cargo test --workspace --locked
+cargo build --release --workspace --locked
+```
+
+The GitHub Rust workflow runs the locked tests, builds the release binary, and exercises every CLI command. It only counts as a Rust verdict after a runner starts and Cargo executes. A zero-step hosted-runner failure is infrastructure evidence, not a Cargo failure.
