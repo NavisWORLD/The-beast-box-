@@ -6,6 +6,9 @@ on:
     paths:
       - '.github/workflows/full-gauntlet.yml'
 
+permissions:
+  contents: read
+
 jobs:
   python-core:
     runs-on: ubuntu-latest
