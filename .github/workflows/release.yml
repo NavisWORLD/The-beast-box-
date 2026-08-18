@@ -55,6 +55,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - name: Test native workspace
+        working-directory: rust
+        run: cargo test --workspace --locked
       - name: Build native binary
         working-directory: rust
         run: cargo build --release --workspace --locked
