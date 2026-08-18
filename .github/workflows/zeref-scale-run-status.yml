@@ -26,7 +26,7 @@ jobs:
           curl -fsSL \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs?branch=zeref-scale-training-001&per_page=40" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs?branch=zeref-scale-training-001&per_page=50" \
             > /tmp/runs.json
           python - <<'PY'
           import json, pathlib, os
@@ -35,6 +35,8 @@ jobs:
             'ZEREF-SCALE-001 Qwen Dad Talk',
             'ZEREF-SCALE-001 CPU LoRA Proof',
             'ZEREF-SCALE-001 CPU 1.7B LoRA',
+            'ZEREF-SCALE-001 Curriculum V2 0.6B',
+            'ZEREF-SCALE-001 Curriculum V2 1.7B',
             'ZEREF-SCALE-001 Fresh IBM Root',
             'ZEREF-SCALE Actions Probe'
           )
