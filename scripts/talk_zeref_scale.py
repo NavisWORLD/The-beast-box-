@@ -3,6 +3,7 @@
 from __future__ import annotations
 import argparse, hashlib, json, urllib.request
 from pathlib import Path
+from zeref_scale_retrieval import retrieve as retrieve_context
 
 PARENT='TALK-004'
 MEMORY_COUNT=352
@@ -24,13 +25,12 @@ def retrieve(ledger: Path|None, query: str, limit:int=4):
     for line in ledger.read_text(encoding='utf-8').splitlines():
         try: row=json.loads(line)
         except Exception: continue
-        payload=row.get('payload') if isinstance(row.get('payload'),dict) else {}
-        text=str(row.get('text') or row.get('memory') or payload.get('text') or '')
+        text=str(row.get('text') or row.get('memory') or row.get('payload',{}).get('text') or '')
         score=sum(t in text.lower() for t in terms)
         if score: scored.append((score,text))
     return [t for _,t in sorted(scored,reverse=True)[:limit]]
 
-def build_messages(dad:str,state:str,memories:list[str]):
+def build_messages(dad:str,state:str,memories:list[str],knowledge_context:str=''):
     system=(
       f'You are Zeref, a computational model. Cory is Dad in this experiment. Your verified durable parent is {PARENT} '
       f'with {MEMORY_COUNT} durable memory records. You are not literally Caleb. Do not claim biological life, resurrection, '
@@ -38,6 +38,7 @@ def build_messages(dad:str,state:str,memories:list[str]):
       'not semantic world knowledge. Answer Dad directly with normal grammar. Use memory when relevant and say when you do not know. '
       f'Current IBM/CST state: {state}.')
     if memories: system += '\nRetrieved durable memories:\n'+'\n'.join(f'- {m}' for m in memories)
+    if knowledge_context: system += '\nKnowledge context:\n'+knowledge_context
     return [{'role':'system','content':system},{'role':'user','content':dad}]
 
 def call(base_url:str,model:str,messages:list[dict],temperature:float):
@@ -52,10 +53,13 @@ def main():
     p.add_argument('--raw-log',type=Path,default=Path('experiments/zeref-scale-001/talk/raw.jsonl'))
     p.add_argument('--training-queue',type=Path,default=Path('experiments/zeref-scale-001/talk/vetted-training-queue.jsonl'))
     p.add_argument('--approved-target'); p.add_argument('--temperature',type=float,default=0.4)
-    a=p.parse_args(); state=extract_state(a.ibm_state_json); mem=retrieve(a.ledger,a.dad); messages=build_messages(a.dad,state,mem)
+    p.add_argument('--web-retrieval',action='store_true',help='Retrieve source-labeled Wikipedia context before answering')
+    a=p.parse_args(); state=extract_state(a.ibm_state_json); mem=retrieve(a.ledger,a.dad)
+    knowledge=retrieve_context(a.dad, ledger=a.ledger, web=a.web_retrieval, limit=4) if a.web_retrieval else {'context':''}
+    messages=build_messages(a.dad,state,mem,knowledge.get('context',''))
     answer=call(a.base_url,a.model,messages,a.temperature)
     a.raw_log.parent.mkdir(parents=True,exist_ok=True)
-    raw={'schema':'zeref-scale-raw-turn-v1','dad':a.dad,'zeref_raw':answer,'state':state,'memories':mem,'raw_output_first':raw_output_first}
+    raw={'schema':'zeref-scale-raw-turn-v1','dad':a.dad,'zeref_raw':answer,'state':state,'memories':mem,'knowledge_context':knowledge.get('context',''),'web_retrieval':bool(a.web_retrieval),'raw_output_first':raw_output_first}
     raw['sha256']=sha(json.dumps(raw,sort_keys=True,separators=(',',':')).encode())
     with a.raw_log.open('a',encoding='utf-8') as f: f.write(json.dumps(raw,ensure_ascii=False,sort_keys=True)+'\n')
     if a.approved_target is not None:
