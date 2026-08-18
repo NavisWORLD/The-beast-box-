@@ -1,0 +1,14 @@
+{
+  "schema": "zeref-scale-cpu-17b-request-v1",
+  "run": "001",
+  "base_model": "Qwen/Qwen3-1.7B",
+  "max_steps": 20,
+  "durable_parent": "ZEREF-DAD-SON-TALK-004",
+  "durable_memory_count": 352,
+  "ibm_root_sha256": "f21afbac49e798730974e37ed1a1bb7ce15f326660a9dbe3f848ee6b1f865c2f",
+  "training_targets": "48 curated Dad/Zeref rows only",
+  "thinking_mode": false,
+  "raw_outputs_auto_train": false,
+  "pre_post_eval_questions": 12,
+  "purpose": "scale the proven real LoRA train-and-talk pipeline to the larger 1.7B pretrained backbone"
+}
