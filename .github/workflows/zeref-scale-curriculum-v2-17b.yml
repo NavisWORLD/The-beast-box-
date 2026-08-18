@@ -1,0 +1,72 @@
+name: ZEREF-SCALE-001 Curriculum V2 1.7B
+
+on:
+  push:
+    branches: [zeref-scale-training-001]
+    paths:
+      - 'experiments/zeref-scale-001/curriculum-v2-17b-request-*.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zeref-scale-001-curriculum-v2-17b
+  cancel-in-progress: false
+
+jobs:
+  train-curriculum-v2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install CPU-only frozen training stack
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch==2.12.1 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install transformers==5.15.0 peft==0.20.0 accelerate==1.14.0 datasets==5.0.1
+      - name: Build Kingston-rooted cross-domain curriculum
+        run: |
+          python scripts/build_zeref_scale_curriculum_v2.py \
+            --out _zeref_v2/train.jsonl \
+            --ibm-session-root 0cd6e28782e98c3a6b44841653814bedc7e06fc50fe74a2f87dd70db041a3e81
+      - name: Train 1.7B response-only adapter and broad pre-post exam
+        run: |
+          python scripts/train_zeref_scale_cpu_proof.py \
+            --dataset _zeref_v2/train.jsonl \
+            --out _zeref_v2/run \
+            --model-id Qwen/Qwen3-1.7B \
+            --max-steps 30
+      - name: Verify experiment contract
+        run: |
+          python - <<'PY'
+          import json
+          m=json.load(open('_zeref_v2/train.manifest.json'))
+          s=json.load(open('_zeref_v2/run/summary.json'))
+          assert m['rows'] >= 90
+          assert m['ibm_session_root_sha256']=='0cd6e28782e98c3a6b44841653814bedc7e06fc50fe74a2f87dd70db041a3e81'
+          assert m['raw_model_outputs_used_as_targets'] is False
+          assert s['raw_model_outputs_used_as_targets'] is False
+          assert s['thinking_mode_enabled'] is False
+          assert s['knowledge_retention_measured'] is True
+          print(json.dumps({k:s[k] for k in ['train_loss','pre_keyword_score','post_keyword_score','evidence_sha256']},sort_keys=True))
+          PY
+      - name: Upload adapter and evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-scale-curriculum-v2-17b-${{ github.run_id }}
+          path: _zeref_v2/
+          if-no-files-found: error
+      - name: Commit evidence summary
+        shell: bash
+        run: |
+          DEST="experiments/zeref-scale-001/evidence/curriculum-v2-17b-run-${GITHUB_RUN_ID}.json"
+          cp _zeref_v2/run/summary.json "$DEST"
+          git config user.name "zeref-evidence-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -f "$DEST"
+          git commit -m "evidence: record Zeref Scale curriculum v2 1.7B ${GITHUB_RUN_ID} [skip ci]"
+          git pull --rebase origin zeref-scale-training-001
+          git push origin HEAD:zeref-scale-training-001
