@@ -1,0 +1,27 @@
+name: Launch corrected Zeref 54D brokered rerun
+
+on:
+  push:
+    branches:
+      - 'agent/zeref-quantum-divergence'
+    paths:
+      - '.github/workflows/launch-zeref-54d-rerun.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch existing brokered Trinity workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run zeref-repo-secret-broker.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref agent/zeref-quantum-divergence
+          echo 'CORRECTED_54D_BROKERED_RERUN_DISPATCHED=1'
