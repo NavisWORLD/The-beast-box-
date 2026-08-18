@@ -22,27 +22,62 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install divergence dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e '.[dev,quantum]'
-      - name: Run tests and persist summary
+
+      - name: Install divergence dependencies without losing diagnostics
+        id: install
         shell: bash
         run: |
           set +e
-          pytest -vv -x tests/test_quantum_divergence_*.py > trinity-diagnostic-full.log 2>&1
-          code=$?
-          python - "$code" <<'PY'
-          import sys
+          set -o pipefail
+          {
+            python -m pip install --upgrade pip
+            pip install -e '.[dev,quantum]'
+          } 2>&1 | tee trinity-diagnostic-install.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Run divergence tests when install passed
+        id: tests
+        if: steps.install.outputs.exit_code == '0'
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          pytest -vv -x tests/test_quantum_divergence_*.py 2>&1 | tee trinity-diagnostic-tests.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Persist sanitized diagnostic receipt
+        if: always()
+        shell: bash
+        env:
+          INSTALL_CODE: ${{ steps.install.outputs.exit_code }}
+          TEST_CODE: ${{ steps.tests.outputs.exit_code }}
+        run: |
+          python - <<'PY'
+          import os
           from pathlib import Path
-          code=int(sys.argv[1])
-          lines=Path('trinity-diagnostic-full.log').read_text(encoding='utf-8', errors='replace').splitlines()
-          tail='\n'.join(lines[-240:])
-          root=Path('evidence/dev')
-          root.mkdir(parents=True, exist_ok=True)
-          (root/'trinity-diagnostic-latest.txt').write_text(
-              f'EXIT_CODE={code}\n\n{tail}\n', encoding='utf-8'
+
+          def tail(path, n=220):
+              p = Path(path)
+              if not p.exists():
+                  return '<not produced>'
+              lines = p.read_text(encoding='utf-8', errors='replace').splitlines()
+              return '\n'.join(lines[-n:])
+
+          install_code = os.environ.get('INSTALL_CODE') or '<unset>'
+          test_code = os.environ.get('TEST_CODE') or '<unset>'
+          text = (
+              f'INSTALL_EXIT_CODE={install_code}\n'
+              f'TEST_EXIT_CODE={test_code}\n\n'
+              '=== INSTALL TAIL ===\n' + tail('trinity-diagnostic-install.log') + '\n\n'
+              '=== TEST TAIL ===\n' + tail('trinity-diagnostic-tests.log') + '\n'
           )
+          root = Path('evidence/dev')
+          root.mkdir(parents=True, exist_ok=True)
+          (root / 'trinity-diagnostic-latest.txt').write_text(text, encoding='utf-8')
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -50,4 +85,12 @@ jobs:
           git add evidence/dev/trinity-diagnostic-latest.txt
           git commit -m "evidence: persist Trinity diagnostic ${GITHUB_RUN_ID}" || true
           git push origin HEAD:agent/zeref-quantum-divergence
-          exit "$code"
+
+      - name: Fail after receipt if a gate failed
+        if: always()
+        env:
+          INSTALL_CODE: ${{ steps.install.outputs.exit_code }}
+          TEST_CODE: ${{ steps.tests.outputs.exit_code }}
+        run: |
+          test "${INSTALL_CODE:-1}" = '0'
+          test "${TEST_CODE:-1}" = '0'
