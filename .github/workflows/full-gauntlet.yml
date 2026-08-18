@@ -114,6 +114,7 @@ jobs:
                       resolved = ws.resolve(value)
                   except ValueError:
                       if not dangerous:
+                          # Conservative rejection is allowed; this is a containment test.
                           pass
                   else:
                       try:
