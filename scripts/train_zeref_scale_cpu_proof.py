@@ -19,14 +19,23 @@ def main():
     rows=[json.loads(x) for x in a.dataset.read_text(encoding='utf-8').splitlines() if x.strip()]
     if any(r.get('raw_model_output_promoted') for r in rows): raise RuntimeError('raw outputs forbidden')
 
+    def token_ids(messages, *, add_generation_prompt: bool) -> list[int]:
+        rendered=tok.apply_chat_template(messages,add_generation_prompt=add_generation_prompt,tokenize=False)
+        ids=tok(rendered,add_special_tokens=False,return_attention_mask=False)['input_ids']
+        if not ids or not all(isinstance(x,int) for x in ids):
+            raise RuntimeError('chat tokenization did not produce integer token ids')
+        return list(ids)
+
     class DS(torch.utils.data.Dataset):
         def __init__(self, rows): self.items=[self.encode(r) for r in rows]
         def encode(self,r):
             msgs=r['messages']; prompt=msgs[:-1]
-            prompt_ids=tok.apply_chat_template(prompt,add_generation_prompt=True,tokenize=True)
-            full_ids=tok.apply_chat_template(msgs,add_generation_prompt=False,tokenize=True)[:384]
+            prompt_ids=token_ids(prompt,add_generation_prompt=True)
+            full_ids=token_ids(msgs,add_generation_prompt=False)[:384]
             labels=list(full_ids)
             for i in range(min(len(prompt_ids),len(labels))): labels[i]=-100
+            if not any(x != -100 for x in labels):
+                raise RuntimeError('response-only example has no supervised assistant tokens')
             return {'input_ids':full_ids,'attention_mask':[1]*len(full_ids),'labels':labels}
         def __len__(self): return len(self.items)
         def __getitem__(self,i): return self.items[i]
