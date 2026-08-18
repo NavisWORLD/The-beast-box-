@@ -53,8 +53,9 @@ def test_zeref_live_workflow_retries_baseline_at_native_128_context_with_continu
     assert "--chat-template chatml" in workflow
     name_match = re.search(r"^name: Zeref Networked Cage Run (\d{3})$", workflow, re.MULTILINE)
     run_match = re.search(r"^  RUN_ID: 2026-08-15-run-(\d{3})$", workflow, re.MULTILINE)
-    assert name_match and run_match
-    assert name_match.group(1) == run_match.group(1)
+    branch_match = re.search(r"^    branches: \[networked-cage-run-(\d{3})\]$", workflow, re.MULTILINE)
+    assert name_match and run_match and branch_match
+    assert name_match.group(1) == run_match.group(1) == branch_match.group(1)
     assert 'DURATION: "1800"' in workflow
     assert "-c 128" in workflow
     assert "context=128" in workflow
@@ -66,6 +67,8 @@ def test_zeref_live_workflow_retries_baseline_at_native_128_context_with_continu
     assert '"context_extrapolation": False' in workflow or '"context_extrapolation": false' in workflow
     assert '"continuity": True' in workflow or '"continuity": true' in workflow
     assert '"continuity_ledger": "continuity.jsonl"' in workflow
+    assert '"compact_action_native_grammar_proxy": False' in workflow
+    assert '"compact_action_post_parse_validation": True' in workflow
     assert "ZEREF_ACTION_PREFLIGHT=PASS count=2 context=128" in workflow
     assert "--strict-duration" in workflow
     assert MODEL_SHA in workflow

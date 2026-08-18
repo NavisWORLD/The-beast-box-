@@ -10,35 +10,39 @@ def test_compact_action_schema_requires_tool_and_arguments() -> None:
     assert "f" in _COMPACT_ACTION_SCHEMA["properties"]["t"]["enum"]
 
 
-def test_action_proxy_replaces_schema_with_native_grammar_and_generation_room() -> None:
+def test_action_proxy_strips_native_constraints_and_chatml_after_run_021() -> None:
     request = {
         "model": "cosmos",
         "messages": [{"role": "user", "content": "JSON t/a"}],
         "max_tokens": 32,
+        "grammar": "stale-native-grammar",
         "response_format": {"type": "json_schema", "json_schema": {"schema": {"type": "object"}}},
     }
     rewritten = rewrite_chat_request(request)
-    assert rewritten["grammar"] == COMPACT_ACTION_GRAMMAR
+    # Run 020 proved native grammar sampling can crash. Run 021 then measured
+    # 58 prompt tokens for the tiny ChatML request. Run 022 therefore uses a
+    # raw prefixed completion while keeping strict validation after generation.
+    assert "grammar" not in rewritten
     assert "response_format" not in rewritten
-    assert rewritten["max_tokens"] == 96
+    assert "messages" not in rewritten
+    assert rewritten["prompt"].endswith('{"t":"')
+    assert rewritten["max_tokens"] <= 36
     assert request["max_tokens"] == 32
-    # GBNF string literals escape JSON's quote characters.
-    assert '\\"t\\"' in COMPACT_ACTION_GRAMMAR
-    assert '\\"a\\"' in COMPACT_ACTION_GRAMMAR
+    assert request["grammar"] == "stale-native-grammar"
 
 
 def test_compact_action_grammar_has_no_unbounded_whitespace_escape_hatch() -> None:
     # Run-015 exhausted its entire 128-token slot after emitting `{ "t"`
     # because the grammar allowed arbitrarily many whitespace tokens between
-    # every structural JSON token. Compact actions must force progress instead.
+    # every structural JSON token. The retained grammar fixture documents the
+    # old bounded language even though Run 022 no longer sends it to llama.cpp.
     assert "ws" not in COMPACT_ACTION_GRAMMAR
 
 
 def test_compact_action_grammar_has_a_finite_argument_language() -> None:
     # Run-017 reached a valid action prefix but exhausted the native 128-token
-    # window inside an unterminated arbitrary string. The action language must
-    # have finite string length, finite collection width, and finite nesting so
-    # every syntactically permitted action has a bounded completion path.
+    # window inside an unterminated arbitrary string. Keep this fixture bounded
+    # for regression archaeology even though validation now happens post-parse.
     assert 'char{0,24}' in COMPACT_ACTION_GRAMMAR
     assert '(\",\" member0){0,1}' in COMPACT_ACTION_GRAMMAR
     assert '(\",\" member1){0,1}' in COMPACT_ACTION_GRAMMAR
@@ -52,18 +56,13 @@ def test_compact_action_grammar_has_a_finite_argument_language() -> None:
 
 
 def test_compact_action_grammar_keeps_timeout_authority_outside_model_wire_format() -> None:
-    # Run-018 spent its remaining native generation window emitting duplicate
-    # model-chosen timeout fields. Subject-side execution already applies a
-    # bounded supervisor deadline, so timeout authority must stay out of the
-    # model-visible compact action language.
     assert "_timeout_seconds" not in COMPACT_ACTION_GRAMMAR
 
 
-def test_compact_action_grammar_keeps_a_bounded_terminal_tail_for_pinned_llama() -> None:
-    # Run-019 died in pinned llama.cpp with an empty grammar stack before the
-    # timed experiment began. The pinned upstream json.gbnf keeps a finite,
-    # optional terminal whitespace production so completion remains compatible
-    # with that sampler without restoring Run-015's unbounded structural ws.
+def test_legacy_compact_action_grammar_retains_bounded_terminal_tail_for_provenance() -> None:
+    # This fixture records the exact bounded terminal-tail strategy attempted in
+    # Run 020. It is intentionally retained for provenance but must not be sent
+    # to the pinned runtime after the observed empty-stack sampler failure.
     assert 'root ::= "{\\"t\\":" tool ",\\"a\\":" object0 "}" tail' in COMPACT_ACTION_GRAMMAR
     assert 'tail ::= | " " | "\\n" [ \\t]{0,20}' in COMPACT_ACTION_GRAMMAR
     assert '[ \\t\\n\\r]*' not in COMPACT_ACTION_GRAMMAR
