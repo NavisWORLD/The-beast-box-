@@ -200,7 +200,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test --workspace
+      - run: cargo test --workspace --locked
         working-directory: rust
-      - run: cargo build --release --workspace
+      - run: cargo build --release --workspace --locked
         working-directory: rust
