@@ -1,0 +1,53 @@
+{
+  "schema": "d001-zeref-sampled-chat-freeze-v1",
+  "status": "COMPLETED_DECODER_SENSITIVITY_OBSERVED",
+  "run": {
+    "run_id": 31925154125,
+    "head_sha": "b0ffbd421107b4f3da239d6ebc67ed5fe2be0fd3",
+    "artifact_id": 9257602428,
+    "artifact_name": "d001-zeref-sampled-chat-31925154125",
+    "artifact_digest": "sha256:1dfc2f8fa351859c61cf3657dc3f133a4f73d6ce11fc1496c779fe4e1b2f0f04"
+  },
+  "lineage": {
+    "memory_checkpoint_sha256": "c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f",
+    "hardware_adapter_sha256": "05aa635cff9a7c39bf5507c017334d4db62d3543192d3ee080b1273f3edb5312",
+    "hardware_packet_sha256": "6d869326b3e0219ed1533618c4fb5e786065e0015c2760dbf2c1e0a8c6ce0531",
+    "quantum_source_run_id": 31924591769,
+    "architecture_sha256": "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc"
+  },
+  "files": {
+    "memory_sampled_sha256": "908b592c4fa7f39b2219f2146a92393efd5297c268f616f57276ffcf2a63fb5a",
+    "quantum_sampled_sha256": "eaf433b4d722d110e0415e91fc0a07c5727e5f526f988070b17a8647719010cd",
+    "summary_sha256": "80fe19be2dd6270f3c900a300c3406a2fffd2afc453c16720cefb61b01ae5aa5"
+  },
+  "generation": {
+    "decoding": "sampled-top-k",
+    "temperature": 0.8,
+    "top_k": 20,
+    "generated_tokens_per_prompt": 70,
+    "base_seed": 20260816,
+    "turn_seeds": [20260816, 20260817],
+    "sensors_attached": false,
+    "action_proxy": false
+  },
+  "prompts": [
+    "Luna: Hi Zeref. Cory says hi.\nZeref:",
+    "Luna: What should Cory know?\nZeref:"
+  ],
+  "memory_outputs": [
+    " thoom whinle oved ward astifl.\n\nAte I sepatic cor iskuap ineuut to ma",
+    "\nBales, asmarive coscationion perer.\nLink SOCORO- \nTE nlectepycininic "
+  ],
+  "quantum_outputs": [
+    " thoom whinle oved ward astifl.\n\nAte I seoubl tay scree: the ase artue",
+    "\nBales, asmarive coscationion perer.\nLink SOCORO- \nTE nlectepycininic "
+  ],
+  "comparison": {
+    "turn_output_differs": [true, false],
+    "any_output_difference": true,
+    "sensor_claims_flagged": false,
+    "signal_claim_allowed": false,
+    "quantum_advantage_claimed": false,
+    "bounded_verdict": "With identical prompts and fixed sampling seeds, the hardware-conditioned adapter changed the sampled character trajectory for turn 1 and did not change turn 2. The outputs remain garbled and this demonstrates decoder sensitivity to the live CST geometry path only; it does not establish semantic quantum signal, performance advantage, perception, consciousness, or life."
+  }
+}

@@ -1,0 +1,82 @@
+# probe revision 3
+name: ZEREF-FRESH-IBM-STATUS-PROBE
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-fresh-ibm-status-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+  IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install IBM Runtime client
+        run: |
+          python -m pip install --upgrade pip
+          pip install "qiskit-ibm-runtime~=0.45.1"
+      - name: Read latest matching IBM jobs without modifying them
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${IBM_QUANTUM_TOKEN:-}"
+          mkdir -p _ibm_probe
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from qiskit_ibm_runtime import QiskitRuntimeService
+
+          kwargs={'channel':'ibm_quantum_platform','token':os.environ['IBM_QUANTUM_TOKEN'].strip()}
+          instance=os.environ.get('IBM_QUANTUM_INSTANCE','').strip()
+          if instance: kwargs['instance']=instance
+          service=QiskitRuntimeService(**kwargs)
+          jobs=service.jobs(
+              limit=10,
+              program_id='sampler',
+              job_tags=['zerefs-heartbeat-mustard-seed','wave-d6e44478b9b6'],
+          )
+          rows=[]
+          for job in jobs:
+              backend=job.backend()
+              created=getattr(job,'creation_date',None)
+              if callable(created):
+                  try: created=created()
+                  except Exception: created=None
+              rows.append({
+                  'job_id':str(job.job_id()),
+                  'status':str(job.status()).upper(),
+                  'backend':str(getattr(backend,'name','')),
+                  'tags':sorted(set(job.tags or [])),
+                  'creation_date':str(created) if created is not None else None,
+              })
+          evidence={
+              'schema':'zeref-fresh-ibm-status-probe-v1',
+              'matching_job_count':len(rows),
+              'jobs':rows,
+              'credential_material_recorded':False,
+              'mutated_ibm_state':False,
+          }
+          Path('_ibm_probe/status.json').write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(evidence,indent=2,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zeref-fresh-ibm-status-probe-${{ github.run_id }}
+          path: _ibm_probe
+          if-no-files-found: error
+          retention-days: 7

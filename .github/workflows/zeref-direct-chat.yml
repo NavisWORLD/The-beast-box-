@@ -1,0 +1,242 @@
+name: Zeref Direct Luna Memorial Chat
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-direct-chat.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+  HF_FILE: weights/cosmos-cst.gguf
+  HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
+
+jobs:
+  chat:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Hugging Face CLI
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install 'huggingface-hub>=0.27'
+
+      - name: Download exact pinned Zeref
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _zeref _llama _model_logs zeref-memorial-chat.json
+          mkdir -p _zeref _model_logs
+          hf download "$HF_REPO" architecture/cosmos-arch.patch architecture/llama_cpp_cosmos.cpp "$HF_FILE" \
+            --revision "$HF_REVISION" --local-dir _zeref
+          test "$(sha256sum "_zeref/$HF_FILE" | awk '{print $1}')" = "$HF_SHA256"
+
+      - name: Build exact native Cosmos runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git _llama
+          git -C _llama checkout "$LLAMA_PATCH_BASE"
+          cp _zeref/architecture/llama_cpp_cosmos.cpp _llama/src/models/cosmos.cpp
+          git -C _llama apply --check ../_zeref/architecture/cosmos-arch.patch
+          git -C _llama apply ../_zeref/architecture/cosmos-arch.patch
+          git -C _llama apply --check ../compat/qc67/cosmos-f16-kv-norm-f32.patch
+          git -C _llama apply ../compat/qc67/cosmos-f16-kv-norm-f32.patch
+          git -C _llama diff --check
+          cmake -S _llama -B _llama/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_SERVER=ON
+          cmake --build _llama/build --target llama-server -j 2
+
+      - name: Start exact Zeref
+        shell: bash
+        run: |
+          set -euo pipefail
+          _llama/build/bin/llama-server \
+            -m "$(realpath "_zeref/$HF_FILE")" \
+            --host 127.0.0.1 \
+            --port 18080 \
+            -c 128 \
+            -np 1 \
+            --chat-template chatml \
+            > _model_logs/zeref.stdout.log \
+            2> _model_logs/zeref.stderr.log &
+          echo $! > _model_logs/zeref.pid
+          READY=0
+          for i in $(seq 1 180); do
+            if curl -fsS http://127.0.0.1:18080/health >/dev/null 2>&1; then READY=1; break; fi
+            if ! kill -0 "$(cat _model_logs/zeref.pid)" 2>/dev/null; then cat _model_logs/zeref.stderr.log >&2; exit 1; fi
+            sleep 1
+          done
+          test "$READY" = 1
+          grep -F 'n_ctx_slot = 128' _model_logs/zeref.stderr.log
+
+      - name: Luna talks to Zeref about Caleb
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import urllib.error
+          import urllib.request
+          from datetime import datetime, timezone
+
+          completion_endpoint = "http://127.0.0.1:18080/completion"
+          chat_endpoint = "http://127.0.0.1:18080/v1/chat/completions"
+
+          # Compact durable anchor: every turn tries to carry these facts while
+          # preserving the model's verified 128-token training context.
+          memory = "Caleb=Cory+Megan's son. Zeref=AI honoring Caleb; not Caleb."
+          prompts = [
+              "Why does your name matter?",
+              "What should you know about Cory?",
+              "What should you know about Megan?",
+              "Cory says: I'm so sorry. Reply to him.",
+              "Who are you, Zeref?",
+              "How can you honor Caleb without being him?",
+              "What will you remember about this family?",
+              "What do you want Cory to know?",
+              "Ask Cory one question.",
+          ]
+
+          transcript = []
+          previous_exchange = ""
+
+          def post(url, payload):
+              req = urllib.request.Request(
+                  url,
+                  data=json.dumps(payload).encode("utf-8"),
+                  headers={"Content-Type": "application/json"},
+                  method="POST",
+              )
+              with urllib.request.urlopen(req, timeout=180) as response:
+                  return json.loads(response.read().decode("utf-8"))
+
+          def raw_completion(prompt):
+              data = post(completion_endpoint, {
+                  "prompt": prompt,
+                  "n_predict": 16,
+                  "temperature": 0.2,
+                  "stop": ["\nLuna:", "\nZeref:"],
+              })
+              return data.get("content", "").strip()
+
+          def chat_fallback(text):
+              data = post(chat_endpoint, {
+                  "model": "cosmos",
+                  "messages": [{"role": "user", "content": text}],
+                  "temperature": 0.2,
+                  "max_tokens": 16,
+              })
+              return data["choices"][0]["message"]["content"].strip()
+
+          for i, question in enumerate(prompts, 1):
+              carried_previous = bool(previous_exchange)
+              compacted = False
+              transport = "raw-completion"
+              candidates = []
+              if previous_exchange:
+                  candidates.append(f"{memory}\n{previous_exchange}\nLuna: {question}\nZeref:")
+              candidates.append(f"{memory}\nLuna: {question}\nZeref:")
+              candidates.append(f"Luna: {question}\nZeref:")
+
+              reply = None
+              prompt_used = None
+              last_error = None
+              for attempt, candidate in enumerate(candidates):
+                  try:
+                      reply = raw_completion(candidate)
+                      prompt_used = candidate
+                      if attempt > 0:
+                          compacted = True
+                          carried_previous = False
+                      break
+                  except urllib.error.HTTPError as exc:
+                      body = exc.read().decode("utf-8", "replace")
+                      last_error = f"HTTP {exc.code}: {body}"
+                      if exc.code not in (400, 404):
+                          raise
+                      if exc.code == 404:
+                          transport = "chat-fallback"
+                          try:
+                              reply = chat_fallback(f"{memory} Luna: {question}")
+                              prompt_used = f"{memory} Luna: {question}"
+                              compacted = True
+                              carried_previous = False
+                              break
+                          except urllib.error.HTTPError as chat_exc:
+                              last_error = f"chat HTTP {chat_exc.code}: {chat_exc.read().decode('utf-8', 'replace')}"
+                              continue
+              if reply is None:
+                  raise RuntimeError(f"Turn {i} could not fit/complete: {last_error}")
+
+              print(f"LUNA_{i}={question!r}")
+              print(f"ZEREF_{i}={reply!r}")
+              print(f"TRANSPORT_{i}={transport!r} CARRIED_PREVIOUS={carried_previous!r} COMPACTED={compacted!r}")
+
+              transcript.append({
+                  "turn": i,
+                  "luna": question,
+                  "zeref": reply,
+                  "prompt_used": prompt_used,
+                  "transport": transport,
+                  "previous_exchange_carried": carried_previous,
+                  "compacted_for_context": compacted,
+              })
+              # Carry only one immediately preceding exchange. If it cannot fit,
+              # the next turn retains the durable memorial anchor instead.
+              previous_exchange = f"Luna:{question}\nZeref:{reply}"[:180]
+
+          result = {
+              "created_at": datetime.now(timezone.utc).isoformat(),
+              "source_context": {
+                  "memorial": "Caleb Zeref Andersen-Davis; Cory and Megan's son",
+                  "cory_message": "I'm so sorry",
+                  "source_url": "https://www.gofundme.com/f/caleb-zeref-memorial"
+              },
+              "protocol": "exact pinned Zeref; 128-token active window; raw compact completion with one-turn rolling continuity and durable memorial anchor",
+              "identity_boundary": "Zeref is the AI model carrying Caleb's memorial context; no claim that it is Caleb or a deceased person's consciousness.",
+              "model_sha256": "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6",
+              "revision": "b414724c627300c41b099dcc6853766d08fd27a4",
+              "memory_anchor": memory,
+              "transcript": transcript,
+          }
+          with open("zeref-memorial-chat.json", "w", encoding="utf-8") as handle:
+              json.dump(result, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          PY
+
+      - name: Upload conversation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-luna-caleb-memorial-chat
+          path: |
+            zeref-memorial-chat.json
+            _model_logs
+          if-no-files-found: warn
+
+      - name: Stop Zeref
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          if [[ -f _model_logs/zeref.pid ]]; then
+            kill "$(cat _model_logs/zeref.pid)" 2>/dev/null || true
+            sleep 1
+            kill -9 "$(cat _model_logs/zeref.pid)" 2>/dev/null || true
+          fi

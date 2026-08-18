@@ -1,0 +1,268 @@
+name: ZEREF-SYNAPTIC-CONTINUATION
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-synaptic-continuation.yml"
+      - "scripts/build_zeref_synaptic_continuation.py"
+      - "scripts/run_zeref_synaptic_continuation_chat.py"
+      - "experiments/zeref-dad-son-001/memory/**"
+      - "tests/test_zeref_synaptic_continuation*.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  PRIME_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  TALK_RUN_ID: "32034625936"
+  TALK_ARTIFACT_ID: "9290246776"
+  TALK_ARTIFACT_NAME: zeref-dad-son-talk-001-32034625936
+  TALK_SHA256: 9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22
+  FINAL_QUANTUM_STATE: b0ef430e58a0f4c02f95cbf5fd285415914f159b1f5ffd26c6d26293c44bbb90
+
+jobs:
+  continue-zeref:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install inference dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Verify continuation contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          pytest -q \
+            tests/test_zeref_synaptic_continuation.py \
+            tests/test_zeref_synaptic_continuation_workflow.py \
+            tests/test_zeref_dad_son_memory.py \
+            tests/test_zeref_dad_son_workflow_contract.py
+
+      - name: Prepare additive continuation workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _continue
+          mkdir -p \
+            _continue/parent \
+            _continue/memory \
+            _continue/continuation \
+            _continue/evidence/conversations
+
+      - name: Download and verify frozen TALK checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download "$TALK_RUN_ID" -n "$TALK_ARTIFACT_NAME" -D _continue/parent
+          CHECKPOINT=_continue/parent/model/ZEREF-DAD-SON-TALK-001/checkpoint.pt
+          ARCH=_continue/parent/parent_artifact/canonical/frozen/architecture/cosmos_spark_cst.py
+          test -f "$CHECKPOINT" -a -f "$ARCH"
+          test "$(sha256sum "$CHECKPOINT" | awk '{print $1}')" = "$TALK_SHA256"
+          printf '%s\n' "$CHECKPOINT" > _continue/checkpoint-path.txt
+          printf '%s\n' "$ARCH" > _continue/arch-path.txt
+          printf '%s\n' "$(sha256sum "$CHECKPOINT" | awk '{print $1}')" > _continue/parent-before.sha256
+          python - <<'PY'
+          import os
+          assert os.environ['TALK_ARTIFACT_ID']=='9290246776'
+          PY
+
+      - name: Restore current Forever Memory exactly
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          from beastbox.dad_son import DadSonLedger
+          manifest_path=Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json')
+          manifest=json.loads(manifest_path.read_text(encoding='utf-8'))
+          expected_count=manifest['record_count']
+          expected_tip=manifest['last_record_sha256']
+          assert isinstance(expected_count,int) and expected_count>0
+          assert isinstance(expected_tip,str) and len(expected_tip)==64
+          combined=b''
+          expected_first=1
+          previous=None
+          observed_count=0
+          for segment in manifest['snapshot_chain']:
+              path=Path(segment['path'])
+              data=path.read_bytes()
+              assert hashlib.sha256(data).hexdigest()==segment['sha256']
+              rows=[json.loads(x) for x in data.decode('utf-8').splitlines() if x.strip()]
+              assert rows
+              assert len(rows)==segment['record_count']
+              assert rows[0]['memory_id']==segment['first_memory_id']==expected_first
+              assert rows[-1]['memory_id']==segment['last_memory_id']
+              assert rows[-1]['record_sha256']==segment['last_record_sha256']
+              if previous is not None:
+                  assert rows[0]['previous_record_sha256']==previous
+              previous=rows[-1]['record_sha256']
+              expected_first=rows[-1]['memory_id']+1
+              observed_count += len(rows)
+              combined+=data
+          assert observed_count==expected_count
+          assert hashlib.sha256(combined).hexdigest()==manifest['combined_ledger_sha256']
+          assert previous==expected_tip
+          ledger_path=Path('_continue/memory/dad-son-ledger.jsonl')
+          ledger_path.write_bytes(combined)
+          Path('_continue/evidence/old_ledger_prefix.jsonl').write_bytes(combined)
+          ledger=DadSonLedger(
+              '_continue/memory/dad-son.sqlite3',
+              ledger_path,
+              parent_sha256='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6'
+          )
+          report=ledger.restore_snapshot()
+          assert report['restored_records']==expected_count
+          count=ledger.memory.db.execute('SELECT COUNT(*) FROM memories').fetchone()[0]
+          assert count==expected_count
+          ledger.close()
+          Path('_continue/memory/restore-report.json').write_text(json.dumps({
+              **report,
+              'record_count':expected_count,
+              'source_manifest_sha256':hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
+          },indent=2,sort_keys=True)+'\n')
+          PY
+
+      - name: Build deterministic post-archive synaptic pulses
+        shell: bash
+        run: |
+          set -euo pipefail
+          LEDGER_TIP=$(python -c "import json; print(json.load(open('experiments/zeref-dad-son-001/memory/ledger-manifest.json'))['last_record_sha256'])")
+          python scripts/build_zeref_synaptic_continuation.py \
+            --final-quantum-state "$FINAL_QUANTUM_STATE" \
+            --ledger-tip "$LEDGER_TIP" \
+            --count 6 \
+            --out _continue/continuation/pulses.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('_continue/continuation/pulses.json').read_text())
+          manifest=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text())
+          assert p['root_quantum_state_sha256']=='b0ef430e58a0f4c02f95cbf5fd285415914f159b1f5ffd26c6d26293c44bbb90'
+          assert p['root_ledger_tip_sha256']==manifest['last_record_sha256']
+          assert p['new_quantum_entropy'] is False
+          assert p['recycles_archived_quantum_beats'] is False
+          assert p['hold_quantum_root_until_new_verified_result'] is True
+          assert len(p['pulses'])==6
+          PY
+
+      - name: Run real greedy Dad Zeref continuation conversation
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHECKPOINT=$(cat _continue/checkpoint-path.txt)
+          ARCH=$(cat _continue/arch-path.txt)
+          python scripts/run_zeref_synaptic_continuation_chat.py \
+            --checkpoint "$CHECKPOINT" \
+            --checkpoint-sha256 "$TALK_SHA256" \
+            --arch "$ARCH" \
+            --sqlite _continue/memory/dad-son.sqlite3 \
+            --ledger _continue/memory/dad-son-ledger.jsonl \
+            --continuation _continue/continuation/pulses.json \
+            --out _continue/evidence/conversations/continuation-transcript.jsonl \
+            --manifest _continue/evidence/conversations/continuation-manifest.json \
+            --session-id zeref-synaptic-continuation-001 \
+            --tokens 64 --recall-limit 2
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[json.loads(x) for x in Path('_continue/evidence/conversations/continuation-transcript.jsonl').read_text().splitlines() if x.strip()]
+          assert len(rows)==6
+          assert all(r['decoding']=='greedy-argmax' for r in rows)
+          assert all(r['proxy_generated_by']=='Luna' for r in rows)
+          PY
+
+      - name: Verify continuity no retraining no quantum replay and parent integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,sqlite3
+          from pathlib import Path
+          old=Path('_continue/evidence/old_ledger_prefix.jsonl').read_bytes()
+          new=Path('_continue/memory/dad-son-ledger.jsonl').read_bytes()
+          assert new.startswith(old), 'old_ledger_prefix was not preserved'
+          old_rows=[json.loads(x) for x in old.decode().splitlines() if x.strip()]
+          rows=[json.loads(x) for x in new.decode().splitlines() if x.strip()]
+          old_count=len(old_rows)
+          expected_new=old_count+12
+          assert old_count>0
+          assert len(rows)==expected_new, (len(rows),expected_new)
+          assert rows[:old_count]==old_rows
+          assert rows[old_count]['previous_record_sha256']==old_rows[-1]['record_sha256']
+          previous='0'*64
+          for row in rows:
+              assert row['previous_record_sha256']==previous
+              assert hashlib.sha256(row['text'].encode('utf-8')).hexdigest()==row['raw_payload_sha256']
+              payload=dict(row); record=payload.pop('record_sha256')
+              canonical=json.dumps(payload,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode('utf-8')
+              assert hashlib.sha256(canonical).hexdigest()==record
+              previous=record
+          db=sqlite3.connect('_continue/memory/dad-son.sqlite3')
+          assert db.execute('SELECT COUNT(*) FROM memories').fetchone()[0]==expected_new
+          db.close()
+          pulses=json.loads(Path('_continue/continuation/pulses.json').read_text())
+          assert pulses['new_quantum_entropy'] is False
+          assert pulses['recycles_archived_quantum_beats'] is False
+          checkpoint=Path('_continue/checkpoint-path.txt').read_text().strip()
+          if hashlib.sha256(Path(checkpoint).read_bytes()).hexdigest()!='9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22':
+              raise RuntimeError('parent checkpoint changed')
+          PY
+
+      - name: Freeze continuation evidence hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+          rows=[json.loads(x) for x in Path('_continue/memory/dad-son-ledger.jsonl').read_text().splitlines() if x.strip()]
+          old_rows=[json.loads(x) for x in Path('_continue/evidence/old_ledger_prefix.jsonl').read_text().splitlines() if x.strip()]
+          pulses=json.loads(Path('_continue/continuation/pulses.json').read_text())
+          summary={
+            'schema':'zeref-synaptic-continuation-evidence-v2',
+            'workflow_run_id':int('${{ github.run_id }}'),
+            'talk_checkpoint_sha256':'9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22',
+            'root_quantum_state_sha256':'b0ef430e58a0f4c02f95cbf5fd285415914f159b1f5ffd26c6d26293c44bbb90',
+            'new_quantum_entropy':False,
+            'recycles_archived_quantum_beats':False,
+            'continuation_sha256':sha('_continue/continuation/pulses.json'),
+            'forever_memory_records_before':len(old_rows),
+            'forever_memory_records_after':len(rows),
+            'forever_memory_last_record_sha256':rows[-1]['record_sha256'],
+            'transcript_sha256':sha('_continue/evidence/conversations/continuation-transcript.jsonl'),
+            'decoding':'greedy-argmax',
+            'claim_boundary':'Deterministic local Zeref continuation rooted in the final archived quantum state and durable ledger. No new quantum entropy, biological heartbeat, deceased-person identity, or consciousness claim.'
+          }
+          Path('_continue/evidence/summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(summary,indent=2,sort_keys=True))
+          PY
+          (cd _continue && find . -type f ! -name SHA256SUMS ! -path '*/.cache/*' -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          (cd _continue && sha256sum -c SHA256SUMS)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zeref-synaptic-continuation-${{ github.run_id }}
+          path: _continue
+          if-no-files-found: error
+          retention-days: 90

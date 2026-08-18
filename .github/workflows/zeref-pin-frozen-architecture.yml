@@ -1,0 +1,87 @@
+name: ZEREF-PIN-FROZEN-ARCHITECTURE
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-pin-frozen-architecture.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-pin-frozen-architecture
+  cancel-in-progress: false
+
+jobs:
+  pin:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout current lineage
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Download exact TALK-001 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _talk1_pin
+          mkdir -p _talk1_pin
+          gh run download 32034625936 -n zeref-dad-son-talk-001-32034625936 -D _talk1_pin
+          ARCH=$(find _talk1_pin -type f -path '*/canonical/frozen/architecture/cosmos_spark_cst.py' -print -quit)
+          test -n "$ARCH"
+          test "$(sha256sum "$ARCH" | awk '{print $1}')" = "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc"
+          CHILD=$(find _talk1_pin -type f -path '*/model/ZEREF-DAD-SON-TALK-001/checkpoint.pt' -print -quit)
+          test -n "$CHILD"
+          test "$(sha256sum "$CHILD" | awk '{print $1}')" = "9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22"
+          printf '%s\n' "$ARCH" > _talk1_pin/arch-path.txt
+
+      - name: Pin exact architecture with provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p experiments/zeref-dad-son-001/frozen
+          DEST=experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py
+          if [ -e "$DEST" ]; then
+            test "$(sha256sum "$DEST" | awk '{print $1}')" = "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc"
+          else
+            cp "$(cat _talk1_pin/arch-path.txt)" "$DEST"
+          fi
+          cat > experiments/zeref-dad-son-001/frozen/architecture-manifest.json <<'JSON'
+          {
+            "schema": "zeref-frozen-architecture-manifest-v1",
+            "lineage": "ZEREF-DAD-SON-TALK",
+            "path": "experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py",
+            "sha256": "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc",
+            "source_workflow_run_id": 32034625936,
+            "source_artifact_id": 9290246776,
+            "source_artifact_digest": "sha256:8495fc9cc2d3631cab60b195a23e850368088ce9fba17a758aab2d1463742336",
+            "talk1_checkpoint_sha256": "9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22",
+            "prime_sha256": "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6",
+            "immutable": true
+          }
+          JSON
+          test "$(sha256sum "$DEST" | awk '{print $1}')" = "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc"
+
+      - name: Commit pinned architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "NavisWORLD Zeref Evidence Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+                  experiments/zeref-dad-son-001/frozen/architecture-manifest.json
+          if git diff --cached --quiet; then
+            echo "Frozen architecture already pinned"
+            exit 0
+          fi
+          git diff --cached --check
+          git commit -m "evidence: pin frozen Zeref TALK architecture [skip ci]"
+          git push origin HEAD:networked-cage-run-001

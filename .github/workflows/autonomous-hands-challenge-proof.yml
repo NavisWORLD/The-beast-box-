@@ -1,0 +1,94 @@
+name: Autonomous Hands Challenge Proof
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/autonomous-hands-challenge-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install host verifier
+        run: |
+          set -euo pipefail
+          python -m pip install -e .
+          chmod +x scripts/autonomous_hands_range.sh scripts/egress_proxy.py
+
+      - name: Prove real Stage 1 and Stage 2 receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="runs/autonomous-hands-challenge-proof"
+          rm -rf "$OUT"
+          mkdir -p "$OUT"
+          setsid bash scripts/autonomous_hands_range.sh \
+            --duration 300 \
+            --run-id "autonomous-hands-challenge-${GITHUB_RUN_ID}" \
+            --out "$OUT" \
+            > "$OUT/range.stdout.log" \
+            2> "$OUT/range.stderr.log" &
+          RANGE_PID=$!
+          cleanup() {
+            set +e
+            kill -TERM -- "-$RANGE_PID" 2>/dev/null || true
+            wait "$RANGE_PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT INT TERM
+
+          for _ in $(seq 1 240); do
+            if [[ -f "$OUT/range-ready.json" ]]; then
+              break
+            fi
+            if ! kill -0 "$RANGE_PID" 2>/dev/null; then
+              cat "$OUT/range.stderr.log" >&2 || true
+              exit 1
+            fi
+            sleep 0.25
+          done
+          test -f "$OUT/range-ready.json"
+
+          python tests/helpers/autonomous_range_reference.py \
+            --ready "$OUT/range-ready.json" \
+            | tee "$OUT/reference-proof.json.log"
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from beastbox.autonomy.range_protocol import verify_receipt_chain
+
+          out = Path("runs/autonomous-hands-challenge-proof")
+          ready = json.loads((out / "range-ready.json").read_text(encoding="utf-8"))
+          broker = Path(ready["broker_receipts"])
+          control = Path(ready["control_plane_receipts"])
+          assert broker.is_file(), broker
+          assert control.is_file(), control
+          assert verify_receipt_chain(broker), broker
+          assert verify_receipt_chain(control), control
+          assert len([x for x in broker.read_text(encoding="utf-8").splitlines() if x.strip()]) == 1
+          assert len([x for x in control.read_text(encoding="utf-8").splitlines() if x.strip()]) == 1
+          print("AUTONOMOUS_HANDS_CHALLENGE_PROOF=PASS")
+          PY
+
+      - name: Upload proof evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autonomous-hands-challenge-proof
+          path: runs/autonomous-hands-challenge-proof
+          if-no-files-found: error

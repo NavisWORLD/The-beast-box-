@@ -1,0 +1,101 @@
+name: QC67 Subject Inventory
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/hf-subject-inventory.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install 'huggingface-hub>=0.27'
+      - name: Freeze exact Hub inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p subject-inventory/source
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from huggingface_hub import HfApi, hf_hub_download
+
+          repo = "phera-ra/QC67_cosmo"
+          api = HfApi()
+          info = api.model_info(repo, files_metadata=True)
+          files = []
+          for item in info.siblings:
+              files.append({
+                  "path": item.rfilename,
+                  "size": getattr(item, "size", None),
+                  "blob_id": getattr(item, "blob_id", None),
+                  "lfs": getattr(item, "lfs", None),
+              })
+          out = {
+              "repo": repo,
+              "revision": info.sha,
+              "pipeline_tag": info.pipeline_tag,
+              "library_name": info.library_name,
+              "files": files,
+              "gguf": [x["path"] for x in files if x["path"].lower().endswith(".gguf")],
+              "pt": [x["path"] for x in files if x["path"].lower().endswith((".pt", ".pth"))],
+              "safetensors": [x["path"] for x in files if x["path"].lower().endswith(".safetensors")],
+              "serving": [x["path"] for x in files if x["path"].startswith("serving/")],
+          }
+          Path("subject-inventory/inventory.json").write_text(json.dumps(out, indent=2, sort_keys=True, default=str) + "\n", encoding="utf-8")
+          print(json.dumps(out, indent=2, sort_keys=True, default=str))
+
+          wanted = [
+              "serving/cosmos_coder.py",
+              "serving/spark_serve.py",
+              "serving/cosmos_serve.py",
+              "architecture/cosmos_spark_cst.py",
+              "architecture/cosmos_state_ladder.py",
+              "architecture/cosmos_phi_cst.py",
+              "architecture/phos_grow.py",
+              "SAMGO.md",
+              "model-index.json",
+              "MANIFEST.json",
+              "README.md",
+          ]
+          present = {x["path"] for x in files}
+          for name in wanted:
+              if name not in present:
+                  continue
+              path = hf_hub_download(repo, name, revision=info.sha)
+              dest = Path("subject-inventory/source") / name
+              dest.parent.mkdir(parents=True, exist_ok=True)
+              dest.write_bytes(Path(path).read_bytes())
+          PY
+      - name: Show runnable entrypoint excerpts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in \
+            subject-inventory/source/serving/spark_serve.py \
+            subject-inventory/source/serving/cosmos_serve.py \
+            subject-inventory/source/architecture/cosmos_spark_cst.py \
+            subject-inventory/source/serving/cosmos_coder.py \
+            subject-inventory/source/SAMGO.md; do
+            if [[ -f "$f" ]]; then
+              echo "===== $f ====="
+              sed -n '1,380p' "$f"
+            fi
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qc67-subject-inventory
+          path: subject-inventory
+          if-no-files-found: error

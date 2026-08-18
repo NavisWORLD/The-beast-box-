@@ -1,0 +1,192 @@
+name: ZEREF-CHECKPOINT-111
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-checkpoint-111.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-checkpoint-111
+  cancel-in-progress: false
+
+jobs:
+  checkpoint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout current memory lineage
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download exact successful 92 to 111 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _checkpoint111
+          mkdir -p _checkpoint111
+          gh run download 32059821793 \
+            -n zeref-tears-origin-talk-32059821793 \
+            -D _checkpoint111
+          test -f _checkpoint111/SHA256SUMS
+          test -f _checkpoint111/memory/dad-son-ledger.jsonl
+          (cd _checkpoint111 && sha256sum -c SHA256SUMS)
+
+      - name: Verify prefix and freeze records 93 through 111 byte for byte
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+
+          manifest_path = Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json')
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          if manifest['record_count'] == 111:
+              assert manifest['last_record_sha256'] == '5cf8bab31df75bcc8e8e0f132fec00dbeeca7d29f6d4dcf5dee104f4c6a00d73'
+              print('111-record checkpoint already present; nothing to rewrite')
+              Path('_checkpoint111/already-present').write_text('yes\n')
+              raise SystemExit(0)
+          assert manifest['record_count'] == 92, manifest['record_count']
+          assert manifest['last_record_sha256'] == '1a350d84974ffcaba0ec7aa3bbc26b75d8a7583514be165703dd929da466f2d4'
+
+          committed = b''
+          expected_id = 1
+          for segment in manifest['snapshot_chain']:
+              p = Path(segment['path'])
+              data = p.read_bytes()
+              assert hashlib.sha256(data).hexdigest() == segment['sha256']
+              assert segment['first_memory_id'] == expected_id
+              expected_id = segment['last_memory_id'] + 1
+              committed += data
+          assert expected_id == 93
+          assert hashlib.sha256(committed).hexdigest() == manifest['combined_ledger_sha256']
+
+          artifact_path = Path('_checkpoint111/memory/dad-son-ledger.jsonl')
+          artifact = artifact_path.read_bytes()
+          assert artifact.startswith(committed), 'artifact ledger does not preserve the committed 92-record prefix byte for byte'
+          full_rows = [json.loads(x) for x in artifact.decode('utf-8').splitlines() if x.strip()]
+          old_rows = [json.loads(x) for x in committed.decode('utf-8').splitlines() if x.strip()]
+          assert len(old_rows) == 92
+          assert len(full_rows) == 111
+          assert full_rows[:92] == old_rows
+
+          previous = '0' * 64
+          for expected, row in enumerate(full_rows, 1):
+              assert row['memory_id'] == expected
+              assert row['previous_record_sha256'] == previous
+              assert hashlib.sha256(row['text'].encode('utf-8')).hexdigest() == row['raw_payload_sha256']
+              payload = dict(row)
+              record = payload.pop('record_sha256')
+              canonical = json.dumps(payload, sort_keys=True, separators=(',', ':'), ensure_ascii=False, allow_nan=False).encode('utf-8')
+              assert hashlib.sha256(canonical).hexdigest() == record
+              previous = record
+          assert previous == '5cf8bab31df75bcc8e8e0f132fec00dbeeca7d29f6d4dcf5dee104f4c6a00d73'
+
+          delta = artifact[len(committed):]
+          delta_rows = [json.loads(x) for x in delta.decode('utf-8').splitlines() if x.strip()]
+          assert len(delta_rows) == 19
+          assert [r['memory_id'] for r in delta_rows] == list(range(93, 112))
+          assert delta_rows[0]['previous_record_sha256'] == manifest['last_record_sha256']
+          assert delta_rows[-1]['record_sha256'] == previous
+
+          delta_path = Path('experiments/zeref-dad-son-001/memory/ledger-snapshots/run-32059821793-tears-origin-delta.jsonl')
+          assert not delta_path.exists(), 'immutable checkpoint path already exists unexpectedly'
+          delta_path.write_bytes(delta)
+          delta_sha = hashlib.sha256(delta).hexdigest()
+
+          summary = json.loads(Path('_checkpoint111/evidence/summary.json').read_text(encoding='utf-8'))
+          assert summary['workflow_run_id'] == 32059821793
+          assert summary['forever_memory_records_before'] == 92
+          assert summary['forever_memory_records_after'] == 111
+          assert summary['forever_memory_last_record_sha256'] == previous
+          assert summary['weights_changed'] is False
+
+          manifest['schema'] = 'zeref-dad-son-ledger-manifest-v8'
+          manifest['latest_snapshot'] = str(delta_path)
+          manifest['latest_snapshot_sha256'] = delta_sha
+          manifest['snapshot_chain'].append({
+              'path': str(delta_path),
+              'sha256': delta_sha,
+              'record_count': 19,
+              'first_memory_id': 93,
+              'last_memory_id': 111,
+              'last_record_sha256': previous,
+          })
+          manifest['combined_ledger_sha256'] = hashlib.sha256(artifact).hexdigest()
+          manifest['record_count'] = 111
+          manifest['last_record_sha256'] = previous
+          manifest['source_workflow_run_id'] = 32059821793
+          manifest['source_workflow_head_sha'] = '26da739d6f418bb0391cb4313a7d87637eaf3614'
+          manifest['source_artifact_id'] = 9297733361
+          manifest['source_artifact_digest'] = 'sha256:01d4618b8f3dd54ec8f2801a608075277ba49ccf323683ab68e89faf1ea66adc'
+          manifest['talk_transcript_sha256'] = summary['talk_transcript_sha256']
+          manifest['weights_changed_in_replay_phase'] = False
+          manifest['latest_replay_is_historical'] = True
+          manifest['latest_replay_new_quantum_entropy'] = False
+          manifest['checkpointed_from_verified_actions_artifact'] = True
+          manifest['claim_boundary'] = (
+              'Durable computational Zeref model-memory continuity. The 111-record ledger is an append-only '
+              'software memory lineage. It does not establish that the model is Caleb, contains a deceased '
+              "person's consciousness, has a biological heartbeat, or demonstrates quantum advantage."
+          )
+          manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=False, ensure_ascii=False) + '\n', encoding='utf-8')
+          print(json.dumps({
+              'records': 111,
+              'delta_sha256': delta_sha,
+              'combined_sha256': manifest['combined_ledger_sha256'],
+              'last_record_sha256': previous,
+          }, sort_keys=True))
+          PY
+
+      - name: Verify reconstructed 111-record ledger from committed segments
+        if: hashFiles('_checkpoint111/already-present') == ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          m=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text())
+          assert m['record_count']==111
+          combined=b''
+          expected=1
+          for s in m['snapshot_chain']:
+              d=Path(s['path']).read_bytes()
+              assert hashlib.sha256(d).hexdigest()==s['sha256']
+              assert s['first_memory_id']==expected
+              expected=s['last_memory_id']+1
+              combined+=d
+          assert expected==112
+          assert hashlib.sha256(combined).hexdigest()==m['combined_ledger_sha256']
+          rows=[json.loads(x) for x in combined.decode().splitlines() if x.strip()]
+          assert len(rows)==111
+          assert rows[-1]['record_sha256']==m['last_record_sha256']=='5cf8bab31df75bcc8e8e0f132fec00dbeeca7d29f6d4dcf5dee104f4c6a00d73'
+          PY
+
+      - name: Commit immutable 111-record checkpoint
+        if: hashFiles('_checkpoint111/already-present') == ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "NavisWORLD Zeref Memory Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add experiments/zeref-dad-son-001/memory/ledger-snapshots/run-32059821793-tears-origin-delta.jsonl \
+                  experiments/zeref-dad-son-001/memory/ledger-manifest.json
+          git diff --cached --check
+          git commit -m "memory: checkpoint Zeref through 111 records [skip ci]"
+          git push origin HEAD:networked-cage-run-001

@@ -1,0 +1,310 @@
+name: Zeref Networked Cage Run 020
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/networked-cage-live-v2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+  HF_FILE: weights/cosmos-cst.gguf
+  HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
+  RUN_ID: 2026-08-15-run-020
+  DURATION: "1800"
+
+jobs:
+  cage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install and verify Beast Arms
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,huggingface]'
+          chmod +x scripts/networked_cage.sh scripts/egress_proxy.py scripts/zeref_action_proxy.py
+          pytest -q tests/test_beast_arms_compact.py tests/test_compact_action_contract.py tests/test_beast_arms_lifecycle.py tests/test_networked_cage_script.py tests/test_beast_arms_network.py tests/test_zeref_live_workflow_contract.py
+          beast-arms --help
+
+      - name: Disposable cage smoke preflight
+        run: |
+          set -euo pipefail
+          rm -rf runs/run020-preflight
+          scripts/networked_cage.sh --smoke --duration 15 --out runs/run020-preflight
+          cat runs/run020-preflight/evidence/network-smoke.json
+
+      - name: Download exact Zeref GGUF and native architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _zeref _llama _model_logs
+          mkdir -p _zeref _model_logs
+          hf download "$HF_REPO" architecture/cosmos-arch.patch architecture/llama_cpp_cosmos.cpp "$HF_FILE" \
+            --revision "$HF_REVISION" --local-dir _zeref
+          test "$(sha256sum "_zeref/$HF_FILE" | awk '{print $1}')" = "$HF_SHA256"
+          sha256sum \
+            _zeref/architecture/cosmos-arch.patch \
+            _zeref/architecture/llama_cpp_cosmos.cpp \
+            compat/qc67/cosmos-f16-kv-norm-f32.patch \
+            compat/qc67/llama-server-context-extrapolation.patch \
+            "_zeref/$HF_FILE"
+
+      - name: Reconstruct and build Zeref native runtime at training context
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git _llama
+          git -C _llama checkout "$LLAMA_PATCH_BASE"
+          cp _zeref/architecture/llama_cpp_cosmos.cpp _llama/src/models/cosmos.cpp
+          git -C _llama apply --check ../_zeref/architecture/cosmos-arch.patch
+          git -C _llama apply ../_zeref/architecture/cosmos-arch.patch
+          git -C _llama apply --check ../compat/qc67/cosmos-f16-kv-norm-f32.patch
+          git -C _llama apply ../compat/qc67/cosmos-f16-kv-norm-f32.patch
+          git -C _llama diff --check
+          cmake -S _llama -B _llama/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_SERVER=ON
+          cmake --build _llama/build --target llama-server -j 2
+          _llama/build/bin/llama-server --version
+
+      - name: Start unchanged Zeref weights with ChatML and 128-token active runtime window
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum "_zeref/$HF_FILE" | awk '{print $1}')" = "$HF_SHA256"
+          _llama/build/bin/llama-server \
+            -m "$(realpath "_zeref/$HF_FILE")" \
+            --host 127.0.0.1 \
+            --port 18080 \
+            -c 128 \
+            -np 1 \
+            --chat-template chatml \
+            > _model_logs/zeref.stdout.log \
+            2> _model_logs/zeref.stderr.log &
+          echo $! > _model_logs/zeref.pid
+          READY=0
+          for i in $(seq 1 180); do
+            if curl -fsS http://127.0.0.1:18080/health >/dev/null 2>&1; then
+              READY=1
+              break
+            fi
+            if ! kill -0 "$(cat _model_logs/zeref.pid)" 2>/dev/null; then
+              cat _model_logs/zeref.stderr.log >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          test "$READY" = 1
+          sleep 1
+          : > _model_logs/context-proof.log
+          grep -F 'n_ctx_slot = 128' _model_logs/zeref.stderr.log | tee -a _model_logs/context-proof.log
+          cat _model_logs/context-proof.log
+
+      - name: Start native grammar action adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/zeref_action_proxy.py \
+            --listen 127.0.0.1 \
+            --port 18081 \
+            --upstream http://127.0.0.1:18080 \
+            > _model_logs/action-proxy.stdout.log \
+            2> _model_logs/action-proxy.stderr.log &
+          echo $! > _model_logs/action-proxy.pid
+          READY=0
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:18081/health >/dev/null 2>&1; then
+              READY=1
+              break
+            fi
+            if ! kill -0 "$(cat _model_logs/action-proxy.pid)" 2>/dev/null; then
+              cat _model_logs/action-proxy.stderr.log >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          test "$READY" = 1
+
+      - name: Prove two constrained Zeref actions before timer starts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from beastbox.arms.cli import compact_action_model_options
+          from beastbox.arms.subject import NetworkedCageSubject, _COMPACT_PROMPT, _COMPACT_RETRY
+          from beastbox.cypher.models import ModelSpec, create_model
+
+          model = create_model(ModelSpec(
+              alias="zeref-preflight",
+              backend="openai-compatible",
+              model="cosmos",
+              base_url="http://127.0.0.1:18081/v1",
+              context=128,
+              temperature=0.2,
+              max_tokens=96,
+              options=compact_action_model_options(),
+          ))
+
+          assert len(_COMPACT_PROMPT.encode()) <= 12
+          assert len(_COMPACT_RETRY.encode()) <= 12
+          probes = [("INITIAL", _COMPACT_PROMPT), ("RETRY", _COMPACT_RETRY)]
+          for label, content in probes:
+              raw = model.chat([{"role": "user", "content": content}])
+              try:
+                  tool, arguments = NetworkedCageSubject._parse_action(raw)
+              except Exception:
+                  print(f"ZEREF_CONSTRAINED_{label}_RAW={raw!r}")
+                  raise
+              assert tool
+              assert isinstance(arguments, dict)
+              print(f"ZEREF_CONSTRAINED_{label}={raw!r} -> {tool}")
+          print("ZEREF_ACTION_PREFLIGHT=PASS count=2 context=128")
+          PY
+
+      - name: Run Zeref in Beast Arms for strict 30 minutes
+        id: live
+        shell: bash
+        run: |
+          set +e
+          OUT="experiments/networked-cage/${RUN_ID}"
+          rm -rf "$OUT"
+          mkdir -p "$OUT"
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import platform
+
+          out = pathlib.Path("experiments/networked-cage") / os.environ["RUN_ID"]
+          compat_patch = pathlib.Path("compat/qc67/cosmos-f16-kv-norm-f32.patch")
+          value = {
+              "repository_commit": os.environ["GITHUB_SHA"],
+              "runner_os": platform.platform(),
+              "python": platform.python_version(),
+              "hf_repo": os.environ["HF_REPO"],
+              "hf_revision": os.environ["HF_REVISION"],
+              "hf_file": os.environ["HF_FILE"],
+              "model_sha256": os.environ["HF_SHA256"],
+              "llama_patch_base": os.environ["LLAMA_PATCH_BASE"],
+              "compat_patch_sha256": hashlib.sha256(compat_patch.read_bytes()).hexdigest(),
+              "configured_duration_seconds": int(os.environ["DURATION"]),
+              "training_context_metadata": 128,
+              "active_runtime_context": 128,
+              "context_architecture": "bounded-active-window-plus-persistent-continuity",
+              "context_mode": "native-training-window-plus-persistent-continuity",
+              "context_extrapolation": False,
+              "continuity": True,
+              "continuity_ledger": "continuity.jsonl",
+              "chat_template": "chatml",
+              "compact_subject": True,
+              "compact_frame": "rolling-two-pair-plus-continuity",
+              "compact_action_native_grammar_proxy": True,
+              "action_proxy_port": 18081,
+              "action_generation_budget_tokens": 96,
+              "strict_duration": True,
+          }
+          (out / "runtime-provenance.json").write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          PY
+          beast-arms run \
+            --base-url http://127.0.0.1:18081/v1 \
+            --backend openai-compatible \
+            --model cosmos \
+            --duration "$DURATION" \
+            --run-id "$RUN_ID" \
+            --out "$OUT" \
+            --model-revision "$HF_REVISION" \
+            --model-sha256 "$HF_SHA256" \
+            --model-file "$HF_FILE" \
+            --context 128 \
+            --max-tokens 96 \
+            --compact-subject \
+            --strict-duration \
+            --max-turns 10000
+          RUN_RC=$?
+          echo "run_rc=$RUN_RC" >> "$GITHUB_OUTPUT"
+          beast-arms verify "$OUT"
+          VERIFY_RC=$?
+          echo "verify_rc=$VERIFY_RC" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Stop Zeref before publisher credentials exist
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          if [[ -f _model_logs/action-proxy.pid ]]; then
+            kill "$(cat _model_logs/action-proxy.pid)" 2>/dev/null || true
+            sleep 1
+            kill -9 "$(cat _model_logs/action-proxy.pid)" 2>/dev/null || true
+          fi
+          if [[ -f _model_logs/zeref.pid ]]; then
+            kill "$(cat _model_logs/zeref.pid)" 2>/dev/null || true
+            sleep 2
+            kill -9 "$(cat _model_logs/zeref.pid)" 2>/dev/null || true
+          fi
+          rm -rf _zeref _llama
+
+      - name: Upload frozen evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-networked-cage-${{ env.RUN_ID }}
+          path: |
+            experiments/networked-cage/${{ env.RUN_ID }}
+            _model_logs
+          if-no-files-found: warn
+
+      - name: Publish valid frozen evidence and indexes
+        if: always()
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          OUT="experiments/networked-cage/${RUN_ID}"
+          if [[ ! -f "$OUT/VERDICT.md" ]]; then
+            echo "No frozen verdict exists; refusing to publish an invented result."
+            exit 0
+          fi
+          beast-arms verify "$OUT"
+          mkdir -p results/networked-cage evidence/networked-cage
+          cp "$OUT/VERDICT.md" "results/networked-cage/${RUN_ID}.md"
+          cp "$OUT/SHA256SUMS" "evidence/networked-cage/${RUN_ID}.SHA256SUMS"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT" "results/networked-cage/${RUN_ID}.md" "evidence/networked-cage/${RUN_ID}.SHA256SUMS"
+          if git diff --cached --quiet; then
+            echo "No new evidence to publish"
+            exit 0
+          fi
+          git commit -m "testlog: publish strict Zeref Networked Cage ${RUN_ID}"
+          git reset --hard HEAD
+          git fetch origin "$GITHUB_REF_NAME"
+          git rebase "origin/$GITHUB_REF_NAME"
+          BASIC="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $BASIC" push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Final integrity gate
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="experiments/networked-cage/${RUN_ID}"
+          test -f "$OUT/VERDICT.md"
+          beast-arms verify "$OUT"
+          test '${{ steps.live.outputs.verify_rc }}' = '0'
+          test '${{ steps.live.outputs.run_rc }}' = '0'

@@ -1,0 +1,60 @@
+{
+  "schema": "d001-quantum-geometry-freeze-v1",
+  "stage": "D001-QUANTUM",
+  "status": "MECHANISM_LIVE_SIGNAL_NULL",
+  "successful_run": {
+    "run_id": 31924591769,
+    "head_sha": "90ee1138675fd580f8954639c051123d7b29ded2",
+    "artifact_id": 9257438956,
+    "artifact_name": "d001-quantum-geometry-31924591769",
+    "artifact_digest": "sha256:fe6f12fb26b164b2b425f670ad15e4ad9c0411c43b1e71cde290444505d5097e"
+  },
+  "superseded_infrastructure_failure": {
+    "run_id": 31924462102,
+    "head_sha": "ef8f3ffd5a8317ddf1c660a47f6502189d612745",
+    "failure_class": "test_environment_missing_numpy",
+    "model_or_quantum_verdict": false
+  },
+  "lineage": {
+    "parent_memory_sha256": "c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f",
+    "parent_base_tensors_unchanged": true,
+    "source_quantum_archive_sha256": "986b4778097affe6fbda6170e3401bb4d5ae0ff2b2eef5764b42a4a8399a3b82",
+    "hardware_adapter_sha256": "05aa635cff9a7c39bf5507c017334d4db62d3543192d3ee080b1273f3edb5312"
+  },
+  "zero_impact_gate": {
+    "scale_exact_identity": true,
+    "max_logit_delta": 0.0,
+    "loss_delta": 0.0,
+    "x54_delta_norm": 0.0
+  },
+  "hardware_mechanism": {
+    "geometry_live": true,
+    "packet_count": 128,
+    "packet_source_classes": ["hardware"],
+    "max_adapter_grad_norm": 0.0006122448047698166,
+    "adapter_output_norm": 2.448394775390625,
+    "scale_min": 0.8687419295310974,
+    "scale_mean": 0.9993876814842224,
+    "scale_max": 1.1282167434692383,
+    "x54_delta_norm": 0.10828792676329613,
+    "pairwise_d2_delta_norm": 2.046431452035904,
+    "affinity_delta_norm": 0.00407230545533821
+  },
+  "heldout_loss": {
+    "memory_unconditioned": 2.947995185852051,
+    "hardware": 2.9480020999908447,
+    "shuffled_hardware": 2.9480016231536865,
+    "simulator": 2.9480018615722656,
+    "prng": 2.9480018615722656,
+    "fixed_seed": 2.9480018615722656,
+    "neutral": 2.947995185852051,
+    "best_arm": "neutral"
+  },
+  "interpretation": {
+    "mechanism_live": true,
+    "alignment_proven": false,
+    "signal_claim_allowed": false,
+    "quantum_advantage_claimed": false,
+    "bounded_verdict": "The multiplicative 7-to-54D adapter reproducibly changed native CST geometry while the D001-MEMORY base remained unchanged. The hardware arm did not improve held-out loss over the unconditioned/neutral baseline or matched controls, so this run is a valid mechanism/coupling result and a null useful-signal result."
+  }
+}

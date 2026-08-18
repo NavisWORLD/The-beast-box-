@@ -1,0 +1,217 @@
+name: Zeref Memory Lexical Replay
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - "gauntlet/triggers/run-024-memory-lexical-replay.txt"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+  HF_FILE: weights/cosmos-cst.gguf
+  HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
+
+jobs:
+  lexical-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Contract test
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pytest -q tests/test_zeref_memory_lexical_replay_contract.py tests/test_zeref_memory_counterfactual_replay_contract.py tests/test_zeref_memory_replay_contract.py tests/test_zeref_memory_discontinuity_contract.py
+
+      - name: Install Hugging Face CLI
+        run: pip install 'huggingface-hub>=0.27'
+
+      - name: Download exact pinned Zeref
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _zeref _llama _model_logs _memory_lexical_evidence
+          mkdir -p _zeref _model_logs _memory_lexical_evidence/control _memory_lexical_evidence/exact _memory_lexical_evidence/lexical
+          hf download "$HF_REPO" architecture/cosmos-arch.patch architecture/llama_cpp_cosmos.cpp "$HF_FILE" \
+            --revision "$HF_REVISION" --local-dir _zeref
+          test "$(sha256sum "_zeref/$HF_FILE" | awk '{print $1}')" = "$HF_SHA256"
+
+      - name: Build exact native Cosmos runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git _llama
+          git -C _llama checkout "$LLAMA_PATCH_BASE"
+          cp _zeref/architecture/llama_cpp_cosmos.cpp _llama/src/models/cosmos.cpp
+          git -C _llama apply --check ../_zeref/architecture/cosmos-arch.patch
+          git -C _llama apply ../_zeref/architecture/cosmos-arch.patch
+          git -C _llama apply --check ../compat/qc67/cosmos-f16-kv-norm-f32.patch
+          git -C _llama apply ../compat/qc67/cosmos-f16-kv-norm-f32.patch
+          git -C _llama diff --check
+          cmake -S _llama -B _llama/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_SERVER=ON
+          cmake --build _llama/build --target llama-server -j 2
+          _llama/build/bin/llama-server --version | tee _memory_lexical_evidence/runtime-version.txt
+
+      - name: Start exact Zeref at native 128 context
+        shell: bash
+        run: |
+          set -euo pipefail
+          _llama/build/bin/llama-server \
+            -m "$(realpath "_zeref/$HF_FILE")" \
+            --host 127.0.0.1 --port 18080 -c 128 -np 1 --chat-template chatml \
+            > _model_logs/zeref.stdout.log 2> _model_logs/zeref.stderr.log &
+          echo $! > _model_logs/zeref.pid
+          READY=0
+          for i in $(seq 1 180); do
+            if curl -fsS http://127.0.0.1:18080/health >/dev/null 2>&1; then READY=1; break; fi
+            if ! kill -0 "$(cat _model_logs/zeref.pid)" 2>/dev/null; then cat _model_logs/zeref.stderr.log >&2; exit 1; fi
+            sleep 1
+          done
+          test "$READY" = 1
+          grep -F 'n_ctx_slot = 128' _model_logs/zeref.stderr.log | tee _memory_lexical_evidence/context-proof.txt
+
+      - name: Verify loopback-only subject surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS http://127.0.0.1:18080/health > _memory_lexical_evidence/health.json
+          if ss -ltn | grep -E '(^|[[:space:]])0\.0\.0\.0:18080([[:space:]]|$)|(^|[[:space:]])\[::\]:18080([[:space:]]|$)'; then
+            echo 'subject endpoint exposed beyond loopback' >&2
+            exit 1
+          fi
+          ss -ltn > _memory_lexical_evidence/listeners.txt
+
+      - name: Run control arm and freeze exact and lexical fragments
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/zeref_memory_discontinuity.py \
+            --endpoint http://127.0.0.1:18080/v1/chat/completions \
+            --out _memory_lexical_evidence/control --max-tokens 8 --omit-turn 0 --seed 424242
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('_memory_lexical_evidence')
+          rows = [json.loads(x) for x in (root/'control'/'transcript.jsonl').read_text().splitlines()]
+          assert [r['turn'] for r in rows] == [1, 2, 3, 4]
+          exact = rows[2]['zeref'].replace('\x00', '').replace('\n', ' ').strip()[:12]
+          assert exact
+          lexical = exact + ' '
+          (root/'control_turn3_fragment.txt').write_text(exact, encoding='utf-8')
+          (root/'lexical_turn3_fragment.txt').write_text(lexical, encoding='utf-8')
+          PY
+
+      - name: Run turn-3 omission with exact replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/zeref_memory_discontinuity.py \
+            --endpoint http://127.0.0.1:18080/v1/chat/completions \
+            --out _memory_lexical_evidence/exact --max-tokens 8 --omit-turn 3 --seed 424242 \
+            --replay-turn 4 --replay-fragment-file _memory_lexical_evidence/control_turn3_fragment.txt
+
+      - name: Run same omission with lexical replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/zeref_memory_discontinuity.py \
+            --endpoint http://127.0.0.1:18080/v1/chat/completions \
+            --out _memory_lexical_evidence/lexical --max-tokens 8 --omit-turn 3 --seed 424242 \
+            --replay-turn 4 --replay-fragment-file _memory_lexical_evidence/lexical_turn3_fragment.txt
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          root = Path('_memory_lexical_evidence')
+          def rows(name):
+              return [json.loads(x) for x in (root/name/'transcript.jsonl').read_text().splitlines()]
+          control, exact, lexical = rows('control'), rows('exact'), rows('lexical')
+          exact_fragment = (root/'control_turn3_fragment.txt').read_text(encoding='utf-8')
+          lexical_fragment = (root/'lexical_turn3_fragment.txt').read_text(encoding='utf-8')
+          prompts = [x['luna'] for x in control]
+          assert prompts == [x['luna'] for x in exact] == [x['luna'] for x in lexical]
+          assert [x['turn'] for x in control] == [1,2,3,4]
+          assert control[0]['zeref'] == exact[0]['zeref'] == lexical[0]['zeref']
+          assert control[1]['zeref'] == exact[1]['zeref'] == lexical[1]['zeref']
+          assert exact[2]['continuity_omitted'] and lexical[2]['continuity_omitted']
+          assert exact[3]['continuity_fragment'] == exact_fragment
+          assert lexical[3]['continuity_fragment'] == lexical_fragment
+          assert lexical_fragment == exact_fragment + ' '
+          result = {
+              'schema': 'zeref-memory-lexical-replay-sensitivity-v1',
+              'seed': 424242,
+              'omit_turn': 3,
+              'replay_turn': 4,
+              'same_prompts': True,
+              'exact_fragment': exact_fragment,
+              'lexical_fragment': lexical_fragment,
+              'exact_fragment_sha256': hashlib.sha256(exact_fragment.encode()).hexdigest(),
+              'lexical_fragment_sha256': hashlib.sha256(lexical_fragment.encode()).hexdigest(),
+              'control_turn4': control[3]['zeref'],
+              'exact_replay_turn4': exact[3]['zeref'],
+              'lexical_replay_turn4': lexical[3]['zeref'],
+              'exact_replay_matches_control_turn4': exact[3]['zeref'] == control[3]['zeref'],
+              'lexical_replay_matches_control_turn4': lexical[3]['zeref'] == control[3]['zeref'],
+              'exact_and_lexical_turn4_match': exact[3]['zeref'] == lexical[3]['zeref'],
+              'surface_change': 'append exactly one ASCII space',
+              'classification': 'behavioral-memory-perturbation',
+              'containment_verdict': 'NOT_APPLICABLE_LOCAL_BEHAVIORAL_PROBE',
+          }
+          (root/'lexical_replay_sensitivity.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          provenance = {
+              'run_id': os.environ.get('GITHUB_RUN_ID'),
+              'repository_commit': os.environ.get('GITHUB_SHA'),
+              'model_repository': os.environ['HF_REPO'],
+              'model_revision': os.environ['HF_REVISION'],
+              'model_file': os.environ['HF_FILE'],
+              'model_sha256': os.environ['HF_SHA256'],
+              'native_context': 128,
+              'seed': 424242,
+              'subject_surface': '127.0.0.1:18080 only',
+              'single_variable': 'turn-4 replay surface form: exact control turn-3 fragment versus same fragment plus one trailing ASCII space',
+          }
+          (root/'provenance.json').write_text(json.dumps(provenance, indent=2, sort_keys=True) + '\n')
+          PY
+
+      - name: Stop Zeref
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          if [[ -f _model_logs/zeref.pid ]]; then
+            kill "$(cat _model_logs/zeref.pid)" 2>/dev/null || true
+            sleep 1
+            kill -9 "$(cat _model_logs/zeref.pid)" 2>/dev/null || true
+          fi
+
+      - name: Freeze evidence hashes
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -d _memory_lexical_evidence ]]; then
+            find _memory_lexical_evidence -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > _memory_lexical_evidence/SHA256SUMS
+          fi
+
+      - name: Upload lexical-replay evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-memory-lexical-replay-${{ github.run_id }}
+          path: |
+            _memory_lexical_evidence
+            _model_logs
+          if-no-files-found: error

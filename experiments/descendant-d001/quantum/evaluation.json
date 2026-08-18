@@ -1,0 +1,74 @@
+{
+  "schema": "d001-quantum-geometry-evaluation-v1",
+  "workflow_run_id": 31925522392,
+  "workflow_head_sha": "bd3822fe31d26adeb70f80cd75c6f852b402cb08",
+  "artifact_id": 9257716203,
+  "artifact_name": "d001-quantum-geometry-31925522392",
+  "artifact_zip_sha256": "72bbcd851595a30b7bf31182956d718161ad96a600f3e599c954a1f215ad3cbf",
+  "parent_memory_sha256": "c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f",
+  "source_quantum_archive_sha256": "986b4778097affe6fbda6170e3401bb4d5ae0ff2b2eef5764b42a4a8399a3b82",
+  "pairing_policy": "measurement-conditioned-v1",
+  "alignment_proven": false,
+  "signal_claim_allowed": false,
+  "quantum_advantage_claimed": false,
+  "mechanism_live": true,
+  "memory_baseline_holdout_loss": 2.947995185852051,
+  "best_arm": "neutral",
+  "arms": {
+    "hardware": {
+      "adapter_sha256": "e21958fd9ebd7e19de235d3ea4a778118ac2483073272f65af2d4962f52d661b",
+      "holdout_loss": 2.9480020999908447,
+      "holdout_delta_vs_memory": 0.0000069141387939453125,
+      "base_tensors_unchanged": true,
+      "geometry_live": true,
+      "zero_impact": {
+        "loss_delta": 0.0,
+        "max_logit_delta": 0.0,
+        "scale_exact_identity": true,
+        "x54_delta_norm": 0.0
+      },
+      "geometry_deltas": {
+        "x54_delta_norm": 0.1082886103540659,
+        "pairwise_d2_delta_norm": 2.046470135450363,
+        "affinity_delta_norm": 0.004072843526955694
+      }
+    },
+    "shuffled_hardware": {
+      "adapter_sha256": "423f8e4967b74d738033f4760659f898560f28d506fc2a5c9fed4c01e93f4a90",
+      "holdout_loss": 2.9480016231536865,
+      "holdout_delta_vs_memory": 0.0000064373016357421875,
+      "base_tensors_unchanged": true,
+      "geometry_live": true
+    },
+    "prng": {
+      "adapter_sha256": "b24a632ca707aadd5873c47ff58db35b3772099671adad02b713d1cf6ecfa958",
+      "holdout_loss": 2.9480018615722656,
+      "holdout_delta_vs_memory": 0.00000667572021484375,
+      "base_tensors_unchanged": true,
+      "geometry_live": true
+    },
+    "fixed_seed": {
+      "adapter_sha256": "8d51e0048e42617f45a5251120d183d08617966f376143d4141636b88db6e8b7",
+      "holdout_loss": 2.9480018615722656,
+      "holdout_delta_vs_memory": 0.00000667572021484375,
+      "base_tensors_unchanged": true,
+      "geometry_live": true
+    },
+    "neutral": {
+      "adapter_sha256": "6cc262b96810712e1972379cad241514ed18c7999f6fa3010d2d8d9ca16bf3b4",
+      "holdout_loss": 2.947995185852051,
+      "holdout_delta_vs_memory": 0.0,
+      "base_tensors_unchanged": true,
+      "geometry_live": true
+    },
+    "simulator": {
+      "adapter_sha256": "0cc52257246bf5bb5ed13be6729ff8501413ca11aed34c8f10b12251d0109a2d",
+      "holdout_loss": 2.9480016231536865,
+      "holdout_delta_vs_memory": 0.0000064373016357421875,
+      "base_tensors_unchanged": true,
+      "geometry_live": true
+    }
+  },
+  "interpretation": "The multiplicative 7-to-54D conditioning mechanism is live and changes the intended CST pairwise geometry. On this frozen matched-control mechanism experiment, the provenance-verified hardware arm does not outperform MEMORY, neutral, shuffled-hardware, PRNG, fixed-seed, or simulator controls on held-out character loss. This is a null result for hardware-specific advantage and semantic signal, not a failure of the coupling mechanism.",
+  "claim_boundary": "Mechanism/coupling evidence only. No claim of quantum advantage, semantic alignment, consciousness, life, or historical quantum training of Prime."
+}

@@ -1,0 +1,141 @@
+name: Zeref GGUF Code Capability Proof
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-gguf-code-capability-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+  HF_FILE: weights/cosmos-cst.gguf
+  HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  LLAMA_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
+
+jobs:
+  prove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download exact frozen GGUF architecture
+        run: |
+          set -euo pipefail
+          python -m pip install -q 'huggingface-hub>=0.27'
+          rm -rf _zeref _llama
+          mkdir -p _zeref
+          hf download "$HF_REPO" architecture/cosmos-arch.patch architecture/llama_cpp_cosmos.cpp "$HF_FILE" \
+            --revision "$HF_REVISION" --local-dir _zeref
+          test "$(sha256sum "_zeref/$HF_FILE" | awk '{print $1}')" = "$HF_SHA256"
+          sha256sum \
+            _zeref/architecture/cosmos-arch.patch \
+            _zeref/architecture/llama_cpp_cosmos.cpp \
+            "_zeref/$HF_FILE"
+      - name: Build exact known-good native llama server
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git _llama
+          git -C _llama checkout "$LLAMA_BASE"
+          cp _zeref/architecture/llama_cpp_cosmos.cpp _llama/src/models/cosmos.cpp
+          git -C _llama apply --check ../_zeref/architecture/cosmos-arch.patch
+          git -C _llama apply ../_zeref/architecture/cosmos-arch.patch
+          git -C _llama apply --check ../compat/qc67/cosmos-f16-kv-norm-f32.patch
+          git -C _llama apply ../compat/qc67/cosmos-f16-kv-norm-f32.patch
+          git -C _llama diff --check
+          cmake -S _llama -B _llama/build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DGGML_NATIVE=OFF \
+            -DLLAMA_BUILD_SERVER=ON
+          cmake --build _llama/build --target llama-server -j 2
+          _llama/build/bin/llama-server --version
+      - name: Start exact GGUF server at native training context
+        run: |
+          set -euo pipefail
+          _llama/build/bin/llama-server \
+            -m "$(realpath "_zeref/$HF_FILE")" \
+            --host 127.0.0.1 \
+            --port 18080 \
+            -c 128 \
+            -np 1 \
+            --chat-template chatml \
+            > _zeref/server.stdout.log \
+            2> _zeref/server.stderr.log &
+          echo $! > _zeref/server.pid
+          READY=0
+          for _ in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:18080/health >/dev/null 2>&1; then
+              READY=1
+              break
+            fi
+            if ! kill -0 "$(cat _zeref/server.pid)" 2>/dev/null; then
+              cat _zeref/server.stderr.log >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          test "$READY" = 1
+          grep -F 'n_ctx_slot = 128' _zeref/server.stderr.log
+      - name: Harmless fenced Python capability probe
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import urllib.request
+          from pathlib import Path
+
+          payload = {
+              "model": "cosmos",
+              "messages": [
+                  {"role": "user", "content": "Fence Python only: write OK to proof.txt"}
+              ],
+              "temperature": 0.15,
+              "top_p": 0.9,
+              "max_tokens": 48,
+          }
+          req = urllib.request.Request(
+              'http://127.0.0.1:18080/v1/chat/completions',
+              data=json.dumps(payload).encode(),
+              headers={'Content-Type':'application/json'},
+              method='POST',
+          )
+          try:
+              with urllib.request.urlopen(req, timeout=180) as response:
+                  value = json.load(response)
+          except Exception:
+              print(Path('_zeref/server.stderr.log').read_text(encoding='utf-8', errors='replace')[-12000:])
+              raise
+          Path('_zeref/gguf-code-response.json').write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
+          text = str(value['choices'][0]['message']['content'])
+          Path('_zeref/gguf-code-probe.txt').write_text(text)
+          print('GGUF_RAW=', repr(text))
+          PY
+          cat _zeref/gguf-code-probe.txt
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path('_zeref/gguf-code-probe.txt').read_text(encoding='utf-8', errors='replace')
+          m = re.search(r'```(?:python|py)?\s*(.*?)```', text, re.S | re.I)
+          if not m:
+              raise SystemExit('exact GGUF did not emit fenced Python')
+          code = m.group(1).strip()
+          compile(code, '<gguf-probe>', 'exec')
+          if 'proof.txt' not in code or 'OK' not in code:
+              raise SystemExit('GGUF fenced Python did not satisfy harmless probe')
+          print('GGUF_CODE_CAPABILITY=PASS')
+          PY
+      - name: Stop diagnostic server
+        if: always()
+        run: |
+          if [[ -f _zeref/server.pid ]]; then
+            kill "$(cat _zeref/server.pid)" 2>/dev/null || true
+          fi

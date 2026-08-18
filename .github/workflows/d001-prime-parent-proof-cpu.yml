@@ -1,0 +1,198 @@
+name: D001 Prime Parent Proof CPU
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-prime-parent-proof-cpu.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      HF_REPO: phera-ra/QC67_cosmo
+      HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+      PRIME_GGUF: weights/cosmos-cst.gguf
+      PARENT_PT: weights/spark_cst.pt
+      PRIME_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+      CONVERTER_SHA256: 6f2e3b1076940aac80286584083ebf98f90c60398b3ea9dad89880bd91400f62
+      TRAINER_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install CPU proof dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'huggingface-hub>=0.27' numpy
+          python -m pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
+          python - <<'PY'
+          import torch
+          print('TORCH_VERSION=' + torch.__version__)
+          print('CUDA_AVAILABLE=' + str(torch.cuda.is_available()))
+          PY
+      - name: Download exact frozen mapping inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf proof
+          mkdir -p proof/frozen proof/out
+          hf download "$HF_REPO" \
+            "$PARENT_PT" "$PRIME_GGUF" \
+            architecture/cst_to_gguf.py architecture/cosmos_spark_cst.py \
+            --revision "$HF_REVISION" --local-dir proof/frozen
+          test "$(sha256sum proof/frozen/$PRIME_GGUF | awk '{print $1}')" = "$PRIME_SHA256"
+          test "$(sha256sum proof/frozen/architecture/cst_to_gguf.py | awk '{print $1}')" = "$CONVERTER_SHA256"
+          test "$(sha256sum proof/frozen/architecture/cosmos_spark_cst.py | awk '{print $1}')" = "$TRAINER_SHA256"
+          sha256sum proof/frozen/$PARENT_PT proof/frozen/$PRIME_GGUF \
+            proof/frozen/architecture/cst_to_gguf.py \
+            proof/frozen/architecture/cosmos_spark_cst.py | tee proof/out/source-sha256.txt
+      - name: Prove exact checkpoint-to-Prime tensor equivalence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, math, struct
+          from pathlib import Path
+          import numpy as np
+          import torch
+
+          FROZEN = Path('proof/frozen')
+          OUT = Path('proof/out')
+          parent = FROZEN / 'weights/spark_cst.pt'
+          prime = FROZEN / 'weights/cosmos-cst.gguf'
+          converter = FROZEN / 'architecture/cst_to_gguf.py'
+          trainer = FROZEN / 'architecture/cosmos_spark_cst.py'
+
+          def sha(path):
+              h=hashlib.sha256()
+              with path.open('rb') as f:
+                  for chunk in iter(lambda:f.read(1024*1024), b''): h.update(chunk)
+              return h.hexdigest()
+          def exact(f,n):
+              b=f.read(n)
+              if len(b)!=n: raise EOFError
+              return b
+          def u32(f): return struct.unpack('<I', exact(f,4))[0]
+          def u64(f): return struct.unpack('<Q', exact(f,8))[0]
+          def string(f): return exact(f,u64(f)).decode('utf-8')
+          FMTS={0:'<B',1:'<b',2:'<H',3:'<h',4:'<I',5:'<i',6:'<f',7:'<?',10:'<Q',11:'<q',12:'<d'}
+          def value(f,t):
+              if t==8: return string(f)
+              if t==9:
+                  et=u32(f); n=u64(f)
+                  return [value(f,et) for _ in range(n)]
+              fmt=FMTS[t]
+              return struct.unpack(fmt, exact(f,struct.calcsize(fmt)))[0]
+          def parse(path):
+              with path.open('rb') as f:
+                  assert exact(f,4)==b'GGUF'
+                  version=u32(f); nt=u64(f); nkv=u64(f)
+                  meta={}
+                  for _ in range(nkv):
+                      k=string(f); t=u32(f); meta[k]=value(f,t)
+                  infos=[]
+                  for _ in range(nt):
+                      name=string(f); nd=u32(f); dims=[u64(f) for _ in range(nd)]; typ=u32(f); off=u64(f)
+                      infos.append({'name':name,'dims':dims,'type':typ,'offset':off})
+                  align=int(meta.get('general.alignment',32)); pos=f.tell(); start=((pos+align-1)//align)*align
+                  raw={}
+                  for x in infos:
+                      assert x['type']==0, (x['name'],x['type'])
+                      f.seek(start+x['offset']); raw[x['name']]=exact(f, math.prod(x['dims'])*4)
+                  return version,meta,infos,raw
+
+          ck=torch.load(parent,map_location='cpu',weights_only=False)
+          sd=ck['model']; cfg=ck['config']
+          cfg_actual={k:int(cfg[k]) for k in ('block','n_layer','n_head','n_embd','vocab','d54')}
+          cfg_expected={'block':128,'n_layer':4,'n_head':4,'n_embd':192,'vocab':162,'d54':54}
+          assert cfg_actual==cfg_expected, (cfg_actual,cfg_expected)
+
+          exp={}
+          def put(name,t): exp[name]=np.ascontiguousarray(t.detach().float().cpu().numpy()).astype('<f4',copy=False)
+          put('token_embd.weight',sd['tok.weight']); put('position_embd.weight',sd['pos.weight'])
+          put('output_norm.weight',sd['lnf.weight']); put('output_norm.bias',sd['lnf.bias']); put('output.weight',sd['head.weight'])
+          raw_gates=[float(sd[f'blocks.{i}.attn.gate'].reshape(-1)[0]) for i in range(4)]
+          gate_param=ck.get('gate_param') or ('logit' if max(abs(x) for x in raw_gates)>1 else 'clamp01')
+          def gate(r): return 1/(1+math.exp(-r)) if gate_param=='logit' else max(0.0,min(1.0,r))
+          gates=[]; sigmas=[]
+          for i in range(4):
+              p=f'blocks.{i}.'
+              put(f'blk.{i}.attn_norm.weight',sd[p+'ln1.weight']); put(f'blk.{i}.attn_norm.bias',sd[p+'ln1.bias'])
+              put(f'blk.{i}.attn_qkv.weight',sd[p+'attn.qkv.weight']); put(f'blk.{i}.attn_qkv.bias',sd[p+'attn.qkv.bias'])
+              put(f'blk.{i}.attn_output.weight',sd[p+'attn.proj.weight']); put(f'blk.{i}.attn_output.bias',sd[p+'attn.proj.bias'])
+              sigma=float(torch.exp(sd[p+'attn.log_sigma']).clamp(0.05,50.0)); g=gate(float(sd[p+'attn.gate'].reshape(-1)[0]))
+              sigmas.append(sigma); gates.append(g)
+              put(f'blk.{i}.attn_54.weight',sd[p+'attn.w54.weight']/sigma); put(f'blk.{i}.attn_gate.weight',torch.tensor([g],dtype=torch.float32))
+              put(f'blk.{i}.ffn_norm.weight',sd[p+'ln2.weight']); put(f'blk.{i}.ffn_norm.bias',sd[p+'ln2.bias'])
+              put(f'blk.{i}.ffn_up.weight',sd[p+'mlp.0.weight']); put(f'blk.{i}.ffn_up.bias',sd[p+'mlp.0.bias'])
+              put(f'blk.{i}.ffn_down.weight',sd[p+'mlp.2.weight']); put(f'blk.{i}.ffn_down.bias',sd[p+'mlp.2.bias'])
+
+          version,meta,infos,raw=parse(prime)
+          assert version==3 and len(infos)==61 and set(raw)==set(exp)
+          meta_expected={
+            'general.architecture':'cosmos','general.name':'Cosmos','general.file_type':0,
+            'cosmos.context_length':128,'cosmos.embedding_length':192,'cosmos.block_count':4,
+            'cosmos.feed_forward_length':768,'cosmos.attention.head_count':4,'cosmos.attention.head_count_kv':4,
+            'cosmos.attention.key_length':102,'cosmos.attention.value_length':48,'cosmos.vocab_size':162,
+            'tokenizer.ggml.model':'rwkv'}
+          meta_ok=all(meta.get(k)==v for k,v in meta_expected.items()); assert meta_ok
+          itos=ck.get('itos') or {v:k for k,v in ck['stoi'].items()}
+          tokens=[itos[i] for i in range(162)]; tok_ok=(meta.get('tokenizer.ggml.tokens')==tokens); assert tok_ok
+
+          by={x['name']:x for x in infos}; rows=[]
+          for name in sorted(exp):
+              arr=exp[name]; expected_bytes=arr.tobytes(order='C'); actual_bytes=raw[name]
+              eq=(expected_bytes==actual_bytes); dims=list(reversed(arr.shape)) if arr.ndim>1 else list(arr.shape)
+              assert eq and by[name]['dims']==dims, (name,eq,by[name]['dims'],dims)
+              rows.append({'name':name,'torch_shape':list(arr.shape),'gguf_shape':by[name]['dims'],'sha256':hashlib.sha256(actual_bytes).hexdigest(),'bitwise_equal':True})
+
+          converter_text=converter.read_text(encoding='utf-8')
+          required_converter_anchors=['ck = torch.load(SRC','sd, cfg = ck["model"], ck["config"]','sd[p + "attn.w54.weight"] / sigma','w.add_tensor(name, a)']
+          converter_semantics_ok=all(x in converter_text for x in required_converter_anchors); assert converter_semantics_ok
+          trainer_text=trainer.read_text(encoding='utf-8')
+          trainer_semantics_ok=all(x in trainer_text for x in ['class SparkCST(nn.Module):','OUTDIR / "spark_cst.pt"','"arch": "Cosmos-Spark-CST-QuantumBorn"']); assert trainer_semantics_ok
+
+          proof={
+            'schema':'d001-prime-parent-proof-v1','equivalence_method':'deterministic-conversion-manifest',
+            'repo_id':'phera-ra/QC67_cosmo','revision':'b414724c627300c41b099dcc6853766d08fd27a4',
+            'artifact_path':'weights/spark_cst.pt','artifact_sha256':sha(parent),
+            'source_checkpoint_path':'weights/spark_cst.pt','source_checkpoint_sha256':sha(parent),
+            'source_trainer_path':'architecture/cosmos_spark_cst.py','source_trainer_sha256':sha(trainer),
+            'converter_path':'architecture/cst_to_gguf.py','converter_sha256':sha(converter),
+            'prime_gguf_path':'weights/cosmos-cst.gguf','prime_gguf_sha256':sha(prime),
+            'tensor_count':len(rows),'all_tensor_values_bitwise_equal':True,'metadata_matches_checkpoint_architecture':meta_ok,
+            'tokenizer_equal':tok_ok,'converter_semantics_verified':converter_semantics_ok,'trainer_semantics_verified':trainer_semantics_ok,
+            'tensor_map_sha256':hashlib.sha256(json.dumps(rows,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
+            'checkpoint_config':cfg_actual,'checkpoint_arch':ck.get('arch'),'checkpoint_gate_param':gate_param,
+            'checkpoint_quantum_source':ck.get('quantum_source'),'per_layer_gate':gates,'per_layer_sigma':sigmas,
+            'training_allowed':True,
+            'proof_basis':'Exact frozen spark_cst.pt independently reconstructs every F32 tensor in exact frozen Prime GGUF bit-for-bit under the exact frozen converter transforms; architecture metadata and tokenizer also match.' ,
+            'tensors':rows}
+          assert proof['prime_gguf_sha256']=='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6'
+          assert proof['converter_sha256']=='6f2e3b1076940aac80286584083ebf98f90c60398b3ea9dad89880bd91400f62'
+          assert proof['source_trainer_sha256']=='955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc'
+          OUT.joinpath('prime-parent-proof.json').write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n')
+          print(json.dumps({k:proof[k] for k in ('source_checkpoint_sha256','prime_gguf_sha256','tensor_count','all_tensor_values_bitwise_equal','metadata_matches_checkpoint_architecture','tokenizer_equal','checkpoint_arch','checkpoint_gate_param','checkpoint_quantum_source','training_allowed')},indent=2,sort_keys=True))
+          PY
+      - name: Freeze proof hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd proof && find frozen out -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum) > proof/SHA256SUMS
+          cat proof/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d001-prime-parent-proof-cpu
+          path: proof
+          if-no-files-found: error
+          retention-days: 90

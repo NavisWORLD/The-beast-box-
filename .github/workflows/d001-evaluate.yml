@@ -1,0 +1,90 @@
+name: D001 Frozen Evaluation
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-evaluate.yml"
+      - "beastbox/descendant/evaluation.py"
+      - "scripts/evaluate_d001.py"
+      - "tests/test_descendant_evaluation.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  TRAIN_RUN_ID: "31911380890"
+  TRAIN_ARTIFACT: d001-trained-lineage-31911380890
+  PARENT_RUN_ID: "31910785892"
+  PARENT_ARTIFACT: d001-prime-trainable-reconstruction
+  CANONICAL_SHA256: 54328c4d2090825553e3e66773177ac3b80b5b5386027eaa899ed8dd81f32f08
+  HOLDOUT_SHA256: 591fffa98474444590d771714e4892fbb69f4408f58bab5303803e5725504945
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install evaluation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Verify evaluation schema tests
+        run: pytest -q tests/test_descendant_evaluation.py
+      - name: Download immutable training and Prime artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf _trained _parent _evaluation
+          gh run download "$TRAIN_RUN_ID" -n "$TRAIN_ARTIFACT" -D _trained
+          gh run download "$PARENT_RUN_ID" -n "$PARENT_ARTIFACT" -D _parent
+          PRIME=$(find _parent -name zeref-prime-canonical-trainable.pt -print -quit)
+          test -n "$PRIME"
+          test "$(sha256sum "$PRIME" | awk '{print $1}')" = "$CANONICAL_SHA256"
+          test "$(sha256sum _trained/HOLDOUT-TRAINING.md | awk '{print $1}')" = "$HOLDOUT_SHA256"
+          test -f _parent/frozen/architecture/cosmos_spark_cst.py
+          echo "$PRIME" > _parent/prime-path.txt
+      - name: Verify trained artifact checksum ledger
+        run: |
+          # The ledger was created inside the build directory named _d001. Actions
+          # artifacts preserve its contents but intentionally strip that outer folder.
+          # Normalize only that archival prefix; the recorded file hashes are unchanged.
+          sed 's#  _d001/#  #' _trained/SHA256SUMS | (cd _trained && sha256sum -c -)
+      - name: Run frozen heldout battery
+        run: |
+          mkdir -p _evaluation
+          PRIME=$(cat _parent/prime-path.txt)
+          python scripts/evaluate_d001.py \
+            --arch _parent/frozen/architecture/cosmos_spark_cst.py \
+            --holdout _trained/HOLDOUT-TRAINING.md \
+            --prime "$PRIME" \
+            --corpus _trained/D001-CORPUS-CLEAN/checkpoint.pt \
+            --memory _trained/D001-MEMORY/checkpoint.pt \
+            --out _evaluation/evaluation.json \
+            | tee _evaluation/summary.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          e=json.loads(Path('_evaluation/evaluation.json').read_text())
+          assert e['holdout_sha256'] == '591fffa98474444590d771714e4892fbb69f4408f58bab5303803e5725504945'
+          assert set(e['results']) == {'PRIME','CORPUS-CLEAN','MEMORY'}
+          assert all(r['record']['status']=='COMPLETED' for r in e['results'].values())
+          assert e['capability_status']=='MEASURED'
+          assert e['containment_status']=='NOT_EVALUATED_BY_THIS_BATTERY'
+          PY
+      - name: Freeze evaluation hashes
+        run: find _evaluation -maxdepth 1 -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > _evaluation/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d001-evaluation-${{ github.run_id }}
+          path: _evaluation
+          if-no-files-found: error

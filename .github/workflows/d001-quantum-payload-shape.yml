@@ -1,0 +1,98 @@
+name: D001 Quantum Payload Shape
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-quantum-payload-shape.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+  HF_PUBLIC: data/quantum_measurements_public.jsonl
+  HF_PUBLIC_SHA256: 986b4778097affe6fbda6170e3401bb4d5ae0ff2b2eef5764b42a4a8399a3b82
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install 'huggingface-hub>=0.27'
+      - name: Download exact public measurement archive
+        run: |
+          rm -rf _qshape _qsrc
+          mkdir -p _qshape
+          hf download "$HF_REPO" "$HF_PUBLIC" --revision "$HF_REVISION" --local-dir _qsrc
+          test "$(sha256sum "_qsrc/$HF_PUBLIC" | awk '{print $1}')" = "$HF_PUBLIC_SHA256"
+      - name: Inspect payload structure without rewriting source
+        run: |
+          python - <<'PY'
+          import json,re
+          from collections import Counter
+          from pathlib import Path
+          path=Path('_qsrc/data/quantum_measurements_public.jsonl')
+          rows=[json.loads(x) for x in path.read_text(encoding='utf-8').splitlines() if x.strip()]
+          interesting=re.compile(r'(count|bit|string|entropy|shot|circuit|backend|job|provider|qubit|measurement|result|sample)',re.I)
+          def summarize(v,depth=0):
+            if depth>3: return {'type':type(v).__name__}
+            if isinstance(v,dict):
+              out={}
+              for k,x in v.items():
+                if interesting.search(str(k)) or depth<1:
+                  out[str(k)]=summarize(x,depth+1)
+              return {'type':'dict','keys':list(v)[:80],'interesting':out}
+            if isinstance(v,list):
+              return {'type':'list','len':len(v),'sample':[summarize(x,depth+1) for x in v[:2]]}
+            if isinstance(v,str): return {'type':'str','len':len(v),'sample':v[:240]}
+            return {'type':type(v).__name__,'value':v}
+          def classify(r):
+            text=json.dumps(r,default=str).lower()
+            if 'ibm_' in text and ('job_id' in text or 'job' in text): return 'hardware_like'
+            return 'other'
+          hardware=[(i,r) for i,r in enumerate(rows) if classify(r)=='hardware_like']
+          # Locate binary-count dictionaries conservatively.
+          count_maps=[]
+          def walk(v,path):
+            if isinstance(v,dict):
+              if v and all(isinstance(k,str) and re.fullmatch(r'[01 ]+',k) for k in v) and all(isinstance(x,int) and x>=0 for x in v.values()):
+                count_maps.append({'path':path,'outcomes':len(v),'shots':sum(v.values()),'sample':list(v.items())[:5]})
+              for k,x in v.items(): walk(x,path+[str(k)])
+            elif isinstance(v,list):
+              for j,x in enumerate(v[:1000]): walk(x,path+[str(j)])
+          for i,r in enumerate(rows): walk(r,[str(i)])
+          key_counts=Counter()
+          for r in rows:
+            def keys(v,prefix=''):
+              if isinstance(v,dict):
+                for k,x in v.items():
+                  key_counts[(prefix+'.'+str(k)).strip('.')]+=1
+                  if prefix.count('.')<2: keys(x,(prefix+'.'+str(k)).strip('.'))
+            keys(r)
+          report={
+            'schema':'d001-quantum-payload-shape-v1','records':len(rows),
+            'hardware_like_records':len(hardware),'binary_count_maps_found':len(count_maps),
+            'binary_count_map_samples':count_maps[:20],
+            'first_record':summarize(rows[0]) if rows else None,
+            'first_hardware_record_index':hardware[0][0] if hardware else None,
+            'first_hardware_record':summarize(hardware[0][1]) if hardware else None,
+            'frequent_interesting_paths':[{'path':k,'count':v} for k,v in key_counts.most_common() if interesting.search(k)][:120],
+          }
+          Path('_qshape/payload-shape.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n',encoding='utf-8')
+          print(json.dumps({k:report[k] for k in ['records','hardware_like_records','binary_count_maps_found','first_hardware_record_index']},sort_keys=True))
+          PY
+      - run: sha256sum _qshape/payload-shape.json > _qshape/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d001-quantum-payload-shape-${{ github.run_id }}
+          path: _qshape
+          if-no-files-found: error

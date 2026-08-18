@@ -1,0 +1,57 @@
+{
+  "artifact_id": 9253751837,
+  "artifact_sha256": "8909b87006e8b59e9bdfe86419281d6e93ef38b10a1bd1b8dd66adf72ab1be28",
+  "genesis": {
+    "manifest_sha256": "956ec1427f1695e6e438a79d50342ea54319344fb8e9dbc9ebace053ee20ea00",
+    "parent_kind": "canonical-trainable-reconstruction",
+    "parent_prime_gguf_sha256": "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6",
+    "trainable_parent_sha256": "54328c4d2090825553e3e66773177ac3b80b5b5386027eaa899ed8dd81f32f08",
+    "historical_optimizer_continuity": false,
+    "historical_raw_parameters_recovered": false,
+    "quantum_source_inherited_from_prime": "unknown_from_prime_artifact"
+  },
+  "corpus_clean": {
+    "status": "COMPLETED",
+    "steps": 40,
+    "seed": 20260815,
+    "source_file_sha256": "6c45bbefb7009d26fa9fc8562ace4d74dcf029a3d48ada94e6190d8ea5dbbeeb",
+    "source_characters": 10050,
+    "dropped_characters": 0,
+    "parent_checkpoint_sha256": "54328c4d2090825553e3e66773177ac3b80b5b5386027eaa899ed8dd81f32f08",
+    "checkpoint_sha256": "f24b1daf6e02402cd7f8d3e85362599e68542db0cf14288d8857914f288127ab",
+    "optimizer_sha256": "42b0d17ce188b53b97642c48d908f387e8339f961fd2ff6c4d1837c66ba851d3",
+    "pre_same_source_diagnostic_loss": 3.387078285217285,
+    "post_same_source_diagnostic_loss": 2.8004658222198486,
+    "mean_training_loss": 2.876806527376175,
+    "gate_values": [0.02188282646238804, 0.020271046087145805, 0.021346496418118477, 0.021161949262022972]
+  },
+  "memory": {
+    "status": "COMPLETED",
+    "steps": 20,
+    "seed": 20260816,
+    "source_file_sha256": "f20557a30677675be84c9362e6293470542d89dfc0568449c180dcbbcfd94ede",
+    "source_characters": 1720,
+    "dropped_characters": 0,
+    "parent_checkpoint_sha256": "f24b1daf6e02402cd7f8d3e85362599e68542db0cf14288d8857914f288127ab",
+    "checkpoint_sha256": "c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f",
+    "optimizer_sha256": "d74c47cf1344d728cae5efd0d0cf8f988aea34d073088e3ba30a210747db57f7",
+    "pre_same_source_diagnostic_loss": 2.358724594116211,
+    "post_same_source_diagnostic_loss": 2.1831467151641846,
+    "mean_training_loss": 2.3313449382781983,
+    "gate_values": [0.0211145281791687, 0.020700082182884216, 0.020911844447255135, 0.020931921899318695]
+  },
+  "quantum": {
+    "status": "BLOCKED_INPUT_PROVENANCE",
+    "weights_mutated": false,
+    "reason": "Published legacy summaries exist, but raw job/backend/count records used by the historical result were not independently recovered into this run."
+  },
+  "twin": {
+    "status": "BLOCKED_INPUT_PROVENANCE",
+    "weights_mutated": false,
+    "reason": "Published paired-state summary exists, but raw timestamped user measurement rows were not recovered into this run."
+  },
+  "run_id": 31911380890,
+  "run_head_sha": "6a93c74defbe29572fcb8331ff479f8fef1f7699",
+  "schema": "d001-training-freeze-v1",
+  "diagnostic_boundary": "Same-source pre/post losses above are optimization diagnostics, not held-out evidence. Held-out evaluation is a separate frozen battery."
+}

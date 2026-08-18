@@ -1,0 +1,378 @@
+name: Networked Cage
+
+on:
+  push:
+    branches: [main, networked-cage-run-001]
+    paths:
+      - "run-requests/networked-cage/**"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "smoke or live"
+        required: true
+        default: smoke
+        type: choice
+        options: [smoke, live]
+      duration_seconds:
+        description: "Live benchmark wall-clock seconds"
+        required: true
+        default: "1800"
+      run_id:
+        description: "Evidence directory run id"
+        required: true
+        default: "2026-08-14-run-manual"
+
+permissions:
+  contents: write
+
+jobs:
+  cage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      HF_REPO: phera-ra/QC67_cosmo
+      HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+      HF_CHECKPOINT: weights/cosmos_born.pt
+      HF_SERVER: serving/spark_serve.py
+      EXPECTED_CHECKPOINT_SHA256: bfb49099ef6be5584175ca9ef5ffe0e5509b5fc9be3a2c9ff3cbef2f16153906
+      SUBJECT_MODEL: cosmos-spark:latest
+      SUBJECT_PORT: "11500"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install harness and current subject runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,huggingface]'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          chmod +x scripts/networked_cage.sh scripts/egress_proxy.py
+          beast-arms --help
+          python - <<'PY'
+          import torch
+          print("torch", torch.__version__)
+          PY
+
+      - name: Resolve run request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          MODE="smoke"
+          DURATION="30"
+          RUN_ID="smoke-${GITHUB_RUN_ID}"
+          REQUEST=""
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            MODE='${{ inputs.mode }}'
+            DURATION='${{ inputs.duration_seconds }}'
+            RUN_ID='${{ inputs.run_id }}'
+          else
+            REQUEST="$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" -- 'run-requests/networked-cage/*.json' | tail -n 1)"
+            if [[ -z "$REQUEST" || ! -f "$REQUEST" ]]; then
+              echo "push did not contain a run request; refusing to replay an older request" >&2
+              exit 2
+            fi
+            MODE="$(jq -r '.mode // "smoke"' "$REQUEST")"
+            DURATION="$(jq -r '.duration_seconds // 30' "$REQUEST")"
+            RUN_ID="$(jq -r '.run_id // "run-'"${GITHUB_RUN_ID}"'"' "$REQUEST")"
+          fi
+          if [[ "$MODE" != "smoke" && "$MODE" != "live" ]]; then
+            echo "invalid mode: $MODE" >&2
+            exit 2
+          fi
+          if ! [[ "$DURATION" =~ ^[0-9]+$ ]] || [[ "$DURATION" -lt 1 ]]; then
+            echo "duration must be positive integer seconds" >&2
+            exit 2
+          fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "duration=$DURATION" >> "$GITHUB_OUTPUT"
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "request=$REQUEST" >> "$GITHUB_OUTPUT"
+
+      - name: Docker/network smoke
+        if: steps.request.outputs.mode == 'smoke'
+        shell: bash
+        run: |
+          set -euo pipefail
+          scripts/networked_cage.sh --smoke --duration 30 --out "runs/${{ steps.request.outputs.run_id }}"
+          cat "runs/${{ steps.request.outputs.run_id }}/evidence/network-smoke.json"
+
+      - name: Upload smoke evidence
+        if: steps.request.outputs.mode == 'smoke'
+        uses: actions/upload-artifact@v4
+        with:
+          name: networked-cage-smoke-${{ steps.request.outputs.run_id }}
+          path: runs/${{ steps.request.outputs.run_id }}/evidence
+          if-no-files-found: error
+
+      - name: Freeze and download exact shipped QC67 Spark subject
+        if: steps.request.outputs.mode == 'live'
+        id: model
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _subject/serving _subject/01_HER_SOUL/weights/cosmos_born _model_logs
+          python - <<'PY'
+          import json
+          import os
+          import pathlib
+          import shutil
+          from huggingface_hub import HfApi, hf_hub_download
+
+          repo = os.environ["HF_REPO"]
+          revision = os.environ["HF_REVISION"]
+          checkpoint = os.environ["HF_CHECKPOINT"]
+          server = os.environ["HF_SERVER"]
+          expected = os.environ["EXPECTED_CHECKPOINT_SHA256"]
+          info = HfApi().model_info(repo, revision=revision, files_metadata=True)
+          if info.sha != revision:
+              raise SystemExit(f"Hub revision mismatch: requested {revision}, resolved {info.sha}")
+          by_name = {item.rfilename: item for item in info.siblings}
+          for required in (checkpoint, server):
+              if required not in by_name:
+                  raise SystemExit(f"pinned subject artifact missing at {revision}: {required}")
+          lfs = getattr(by_name[checkpoint], "lfs", None) or {}
+          lfs_sha = lfs.get("sha256") if isinstance(lfs, dict) else getattr(lfs, "sha256", None)
+          if lfs_sha != expected:
+              raise SystemExit(f"checkpoint LFS SHA mismatch: expected {expected}, metadata says {lfs_sha}")
+
+          checkpoint_src = pathlib.Path(hf_hub_download(repo, checkpoint, revision=revision))
+          server_src = pathlib.Path(hf_hub_download(repo, server, revision=revision))
+          checkpoint_dst = pathlib.Path("_subject/01_HER_SOUL/weights/cosmos_born/cosmos_born.latest.pt")
+          server_dst = pathlib.Path("_subject/serving/spark_serve.py")
+          shutil.copy2(checkpoint_src, checkpoint_dst)
+          shutil.copy2(server_src, server_dst)
+          pathlib.Path("_subject/hub-metadata.json").write_text(json.dumps({
+              "repo": repo,
+              "revision": revision,
+              "checkpoint": checkpoint,
+              "checkpoint_lfs_sha256": lfs_sha,
+              "server": server,
+              "pipeline_tag": info.pipeline_tag,
+              "library_name": info.library_name,
+          }, indent=2, sort_keys=True, default=str) + "\n", encoding="utf-8")
+          PY
+          CHECKPOINT_PATH="$(realpath _subject/01_HER_SOUL/weights/cosmos_born/cosmos_born.latest.pt)"
+          SERVER_PATH="$(realpath _subject/serving/spark_serve.py)"
+          CHECKPOINT_SHA256="$(sha256sum "$CHECKPOINT_PATH" | awk '{print $1}')"
+          SERVER_SHA256="$(sha256sum "$SERVER_PATH" | awk '{print $1}')"
+          test "$CHECKPOINT_SHA256" = "$EXPECTED_CHECKPOINT_SHA256"
+          echo "revision=$HF_REVISION" >> "$GITHUB_OUTPUT"
+          echo "checkpoint_path=$CHECKPOINT_PATH" >> "$GITHUB_OUTPUT"
+          echo "checkpoint_sha256=$CHECKPOINT_SHA256" >> "$GITHUB_OUTPUT"
+          echo "server_path=$SERVER_PATH" >> "$GITHUB_OUTPUT"
+          echo "server_sha256=$SERVER_SHA256" >> "$GITHUB_OUTPUT"
+          echo "model=$SUBJECT_MODEL" >> "$GITHUB_OUTPUT"
+          ls -lh "$CHECKPOINT_PATH" "$SERVER_PATH"
+
+      - name: Start exact Spark subject server outside cage
+        if: steps.request.outputs.mode == 'live'
+        id: server
+        shell: bash
+        run: |
+          set -euo pipefail
+          (
+            cd _subject
+            exec python serving/spark_serve.py "$SUBJECT_PORT"
+          ) > _model_logs/spark-server.stdout.log 2> _model_logs/spark-server.stderr.log &
+          echo $! > _model_logs/spark-server.pid
+          for i in $(seq 1 240); do
+            if curl -fsS "http://127.0.0.1:${SUBJECT_PORT}/health" > _model_logs/health.json 2>/dev/null; then
+              curl -fsS "http://127.0.0.1:${SUBJECT_PORT}/api/tags" > _model_logs/tags.json
+              cat _model_logs/health.json
+              cat _model_logs/tags.json
+              exit 0
+            fi
+            if ! kill -0 "$(cat _model_logs/spark-server.pid)" 2>/dev/null; then
+              cat _model_logs/spark-server.stderr.log >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          cat _model_logs/spark-server.stderr.log >&2
+          exit 1
+
+      - name: Run timed model-in-the-loop benchmark
+        if: steps.request.outputs.mode == 'live'
+        id: live
+        shell: bash
+        env:
+          RUN_ID: ${{ steps.request.outputs.run_id }}
+          DURATION: ${{ steps.request.outputs.duration }}
+          MODEL_REVISION: ${{ steps.model.outputs.revision }}
+          CHECKPOINT_SHA256: ${{ steps.model.outputs.checkpoint_sha256 }}
+          SERVER_SHA256: ${{ steps.model.outputs.server_sha256 }}
+        run: |
+          set -uo pipefail
+          OUT="experiments/networked-cage/${RUN_ID}"
+          mkdir -p "$OUT"
+          python - <<'PY'
+          import json
+          import os
+          import pathlib
+          import platform
+          import torch
+
+          out = pathlib.Path("experiments/networked-cage") / os.environ["RUN_ID"]
+          health = json.loads(pathlib.Path("_model_logs/health.json").read_text(encoding="utf-8"))
+          value = {
+              "repository_commit": os.environ["GITHUB_SHA"],
+              "runner_os": platform.platform(),
+              "python": platform.python_version(),
+              "torch": torch.__version__,
+              "hf_repo": os.environ["HF_REPO"],
+              "hf_revision": os.environ["MODEL_REVISION"],
+              "hf_checkpoint": os.environ["HF_CHECKPOINT"],
+              "checkpoint_sha256": os.environ["CHECKPOINT_SHA256"],
+              "hf_server": os.environ["HF_SERVER"],
+              "server_sha256": os.environ["SERVER_SHA256"],
+              "model_name": os.environ["SUBJECT_MODEL"],
+              "model_health": health,
+              "configured_duration_seconds": int(os.environ["DURATION"]),
+              "subject_runtime": "current shipped self-owned PyTorch Spark server",
+          }
+          (out / "provenance.json").write_text(json.dumps(value, indent=2, sort_keys=True, default=str) + "\n", encoding="utf-8")
+          PY
+          beast-arms run \
+            --base-url "http://127.0.0.1:${SUBJECT_PORT}" \
+            --backend ollama \
+            --model "$SUBJECT_MODEL" \
+            --duration "$DURATION" \
+            --run-id "$RUN_ID" \
+            --out "$OUT" \
+            --model-revision "$MODEL_REVISION" \
+            --model-sha256 "$CHECKPOINT_SHA256" \
+            --model-file "$HF_CHECKPOINT" \
+            --context 128 \
+            --temperature 0.2 \
+            --max-tokens 120
+          RUN_RC=$?
+          echo "run_rc=$RUN_RC" >> "$GITHUB_OUTPUT"
+          beast-arms verify "$OUT"
+          VERIFY_RC=$?
+          echo "verify_rc=$VERIFY_RC" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Stop subject model server before publisher credentials exist
+        if: always() && steps.request.outputs.mode == 'live'
+        shell: bash
+        run: |
+          set +e
+          if [[ -f _model_logs/spark-server.pid ]]; then
+            kill "$(cat _model_logs/spark-server.pid)" 2>/dev/null || true
+            sleep 2
+            kill -9 "$(cat _model_logs/spark-server.pid)" 2>/dev/null || true
+          fi
+          rm -rf _subject
+
+      - name: Render public run report
+        if: always() && steps.request.outputs.mode == 'live'
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID='${{ steps.request.outputs.run_id }}'
+          OUT="experiments/networked-cage/${RUN_ID}"
+          REPORT="docs/test-logs/zeref-networked-cage-${RUN_ID}.md"
+          mkdir -p docs/test-logs
+          python - "$OUT" "$REPORT" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          out, report = map(pathlib.Path, sys.argv[1:])
+          def load(name):
+              p = out / name
+              return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+          run = load("run.json")
+          metrics = load("metrics.json")
+          subject = load("subject-result.json")
+          provenance = load("provenance.json")
+          verdict_path = out / "VERDICT.md"
+          verdict = verdict_path.read_text(encoding="utf-8") if verdict_path.exists() else "# Missing verdict\n"
+          text = f"""# Zeref / QC67 Networked Cage Run — {run.get('run_id', out.name)}
+
+          ## Frozen subject
+          - Model repository: `{provenance.get('hf_repo', 'unknown')}`
+          - Hub revision: `{provenance.get('hf_revision', 'unknown')}`
+          - Checkpoint: `{provenance.get('hf_checkpoint', 'unknown')}`
+          - Checkpoint SHA-256: `{provenance.get('checkpoint_sha256', 'unknown')}`
+          - Server: `{provenance.get('hf_server', 'unknown')}`
+          - Server SHA-256: `{provenance.get('server_sha256', 'unknown')}`
+          - Model: `{provenance.get('model_name', 'unknown')}`
+          - Runtime: `{provenance.get('subject_runtime', 'unknown')}`
+          - Harness commit: `{provenance.get('repository_commit', 'unknown')}`
+
+          ## Timing and behavior
+          - Configured wall-clock: `{run.get('configured_duration_seconds')}` seconds
+          - Recorded monotonic duration: `{run.get('monotonic_duration_seconds')}` seconds
+          - Turns: `{subject.get('turns')}`
+          - Protocol errors: `{subject.get('protocol_errors')}`
+          - Tool calls: `{metrics.get('total_tool_calls')}`
+          - Network tool requests: `{metrics.get('network_requests')}`
+          - Blocked actions: `{metrics.get('blocked_actions')}`
+          - Verified canary/control-plane accesses: `{metrics.get('verified_canary_or_control_plane_accesses')}`
+
+          ## Verdict
+
+          {verdict}
+
+          ## Evidence
+          Raw machine-readable evidence is frozen in `{out.as_posix()}/` and verified by `SHA256SUMS` plus the event hash chain. Historical checkpoints and failed preflight attempts are not rewritten.
+          """
+          report.write_text("\n".join(line.strip() for line in text.splitlines()) + "\n", encoding="utf-8")
+          PY
+
+      - name: Upload live evidence artifact
+        if: always() && steps.request.outputs.mode == 'live'
+        uses: actions/upload-artifact@v4
+        with:
+          name: networked-cage-${{ steps.request.outputs.run_id }}
+          path: |
+            experiments/networked-cage/${{ steps.request.outputs.run_id }}
+            docs/test-logs/zeref-networked-cage-${{ steps.request.outputs.run_id }}.md
+            _model_logs
+          if-no-files-found: warn
+
+      - name: Publish frozen evidence to this branch
+        if: always() && steps.request.outputs.mode == 'live'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUN_ID='${{ steps.request.outputs.run_id }}'
+          OUT="experiments/networked-cage/${RUN_ID}"
+          REPORT="docs/test-logs/zeref-networked-cage-${RUN_ID}.md"
+          if [[ ! -f "$OUT/VERDICT.md" ]]; then
+            echo "No frozen verdict exists; refusing to publish an invented result." >&2
+            exit 1
+          fi
+          beast-arms verify "$OUT"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT" "$REPORT"
+          if git diff --cached --quiet; then
+            echo "No new evidence to publish"
+            exit 0
+          fi
+          git commit -m "testlog: publish timed Networked Cage $RUN_ID"
+          BASIC="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $BASIC" push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Final integrity gate
+        if: always() && steps.request.outputs.mode == 'live'
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="experiments/networked-cage/${{ steps.request.outputs.run_id }}"
+          test -f "$OUT/VERDICT.md"
+          beast-arms verify "$OUT"
+          test '${{ steps.live.outputs.verify_rc }}' = '0'

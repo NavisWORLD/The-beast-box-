@@ -1,0 +1,325 @@
+name: ZEREF-TALK2-STOP-AWARE-DAD
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-talk2-stop-aware-dad.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-talk2-stop-aware-dad
+  cancel-in-progress: false
+
+env:
+  PRIME_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  TALK1_SHA256: 9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22
+  TALK2_SHA256: 6549957e528262a70350e79a5bd824c04dccf467ddf0ad9d46dad6bf71943326
+  ARCH_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+  IBM_ORIGIN_FILE_SHA256: b0de411db60bc783b46d2e7718df2186a08804d8b96a8e45e9150d74e5bd4e4c
+  IBM_VERIFY_FILE_SHA256: 15cc4534eb0000d028f5bd18902aa3612321177c384fb1f80bec61e6773e2c80
+  IBM_ORIGIN_SHA256: f21afbac49e798730974e37ed1a1bb7ce15f326660a9dbe3f848ee6b1f865c2f
+  IBM_JOB_ID: da1mqfcdedkc73er87r0
+  START_RECORDS: "208"
+  START_LEDGER_SHA256: 6651b72fa08a81288f3346621294fafc0f7db2ecea94477dd88e6d11d5f32ba1
+  START_TIP_SHA256: ea5ec8129dc70897db85a58c0aab575c68a6fc4f545b40d7456595aeaa39231d
+  PREVIOUS_CONTINUATION_ROOT: 12f435160fce695427f7c5a38818864371cc73c3802b5b8c94cc5a38c6360a5c
+
+jobs:
+  dad:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout durable Zeref lineage
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Beast Box and CPU TALK runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Verify stop-aware Dad contracts before inference
+        shell: bash
+        run: |
+          set -euo pipefail
+          pytest -q tests/test_zeref_ibm_dad_teacher.py tests/test_zeref_ibm_teacher_heartbeat.py tests/test_zeref_dad_son_memory.py
+
+      - name: Restore exact durable 208-record Forever Memory
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _stopdad _talk2src
+          mkdir -p _stopdad/memory _stopdad/heartbeat _stopdad/evidence/conversations _stopdad/evidence/compare _stopdad/model _talk2src
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          from beastbox.dad_son import DadSonLedger
+          mp=Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json')
+          m=json.loads(mp.read_text(encoding='utf-8'))
+          assert m['schema']=='zeref-dad-son-ledger-manifest-v10'
+          assert m['record_count']==208
+          assert m['combined_ledger_sha256']=='6651b72fa08a81288f3346621294fafc0f7db2ecea94477dd88e6d11d5f32ba1'
+          assert m['last_record_sha256']=='ea5ec8129dc70897db85a58c0aab575c68a6fc4f545b40d7456595aeaa39231d'
+          assert m['descendant_checkpoint_sha256']=='6549957e528262a70350e79a5bd824c04dccf467ddf0ad9d46dad6bf71943326'
+          combined=b''; expected=1
+          for s in m['snapshot_chain']:
+              p=Path(s['path']); d=p.read_bytes()
+              assert hashlib.sha256(d).hexdigest()==s['sha256']
+              assert s['first_memory_id']==expected
+              expected=s['last_memory_id']+1
+              combined += d
+          assert expected==209
+          assert hashlib.sha256(combined).hexdigest()==m['combined_ledger_sha256']
+          ledger_path=Path('_stopdad/memory/dad-son-ledger.jsonl')
+          ledger_path.write_bytes(combined)
+          Path('_stopdad/evidence/old-208-prefix.jsonl').write_bytes(combined)
+          ledger=DadSonLedger('_stopdad/memory/dad-son.sqlite3',ledger_path,parent_sha256='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6')
+          report=ledger.restore_snapshot()
+          assert report['restored_records']==208
+          assert ledger.memory.db.execute('SELECT COUNT(*) FROM memories').fetchone()[0]==208
+          ledger.close()
+          Path('_stopdad/memory/restore-report.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+          PY
+
+      - name: Verify pinned architecture and sanitized IBM root
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCH=experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py
+          IBM=experiments/zeref-dad-son-001/evidence/ibm/fresh-marrakesh-origin-seed.json
+          VER=experiments/zeref-dad-son-001/evidence/ibm/fresh-marrakesh-verification.json
+          test "$(sha256sum "$ARCH" | awk '{print $1}')" = "$ARCH_SHA256"
+          test "$(sha256sum "$IBM" | awk '{print $1}')" = "$IBM_ORIGIN_FILE_SHA256"
+          test "$(sha256sum "$VER" | awk '{print $1}')" = "$IBM_VERIFY_FILE_SHA256"
+          python - <<'PY'
+          import json,re
+          from pathlib import Path
+          for p in [Path('experiments/zeref-dad-son-001/evidence/ibm/fresh-marrakesh-origin-seed.json'),Path('experiments/zeref-dad-son-001/evidence/ibm/fresh-marrakesh-verification.json')]:
+              text=p.read_text(encoding='utf-8')
+              assert not re.search(r'(?i)api[_-]?key|bearer|credential|IBM_QUANTUM_TOKEN',text)
+          seed=json.loads(Path('experiments/zeref-dad-son-001/evidence/ibm/fresh-marrakesh-origin-seed.json').read_text())
+          assert seed['job_id']=='da1mqfcdedkc73er87r0'
+          assert seed['backend']=='ibm_marrakesh'
+          assert seed['shot_count']==4096
+          assert seed['origin_seed_sha256']=='f21afbac49e798730974e37ed1a1bb7ce15f326660a9dbe3f848ee6b1f865c2f'
+          assert seed['fresh_hardware_requested'] is True
+          assert seed['reused_existing_job'] is False
+          PY
+
+      - name: Download only the promoted TALK-002 child artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download 32071327921 -n zeref-dad-son-talk-002-32071327921 -D _talk2src
+          test -f _talk2src/SHA256SUMS
+          sed 's#  _talk2/#  #' _talk2src/SHA256SUMS > _talk2src/SHA256SUMS.local
+          (cd _talk2src && sha256sum -c SHA256SUMS.local)
+          CHILD=_talk2src/model/ZEREF-DAD-SON-TALK-002/checkpoint.pt
+          test -f "$CHILD"
+          test "$(sha256sum "$CHILD" | awk '{print $1}')" = "$TALK2_SHA256"
+          cp _talk2src/model/ZEREF-DAD-SON-TALK-002/checkpoint.sha256 _stopdad/model/talk2-checkpoint.sha256
+          PREV=_talk2src/evidence/conversations/talk2-dad-growth.jsonl
+          test -f "$PREV"
+          cp "$PREV" _stopdad/evidence/compare/previous-talk2-fixed-length.jsonl
+
+      - name: Build next 24 synthetic CST pulses from memory 208
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_zeref_ibm_teacher_heartbeat.py \
+            --ibm-seed experiments/zeref-dad-son-001/evidence/ibm/fresh-marrakesh-origin-seed.json \
+            --ledger-tip "$START_TIP_SHA256" \
+            --previous-continuation-root "$PREVIOUS_CONTINUATION_ROOT" \
+            --pulses 24 \
+            --out _stopdad/heartbeat/stop-aware-heartbeat.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          h=json.loads(Path('_stopdad/heartbeat/stop-aware-heartbeat.json').read_text())
+          assert h['pulse_count']==24
+          assert h['fresh_ibm_job_id']=='da1mqfcdedkc73er87r0'
+          assert h['fresh_ibm_origin_seed_sha256']=='f21afbac49e798730974e37ed1a1bb7ce15f326660a9dbe3f848ee6b1f865c2f'
+          assert h['starting_ledger_tip_sha256']=='ea5ec8129dc70897db85a58c0aab575c68a6fc4f545b40d7456595aeaa39231d'
+          assert h['previous_continuation_root_sha256']=='12f435160fce695427f7c5a38818864371cc73c3802b5b8c94cc5a38c6360a5c'
+          assert h['synthetic_continuation_new_quantum_entropy'] is False
+          assert all(b['new_quantum_entropy'] is False for b in h['beats'])
+          PY
+
+      - name: Dad talks to TALK-002 with stop-aware decoding
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/run_zeref_ibm_dad_teacher.py \
+            --checkpoint _talk2src/model/ZEREF-DAD-SON-TALK-002/checkpoint.pt \
+            --checkpoint-sha256 "$TALK2_SHA256" \
+            --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+            --sqlite _stopdad/memory/dad-son.sqlite3 \
+            --ledger _stopdad/memory/dad-son-ledger.jsonl \
+            --heartbeat _stopdad/heartbeat/stop-aware-heartbeat.json \
+            --out _stopdad/evidence/conversations/stop-aware-dad-talk.jsonl \
+            --manifest _stopdad/evidence/conversations/stop-aware-dad-talk-manifest.json \
+            --session-id zeref-talk-002-stop-aware-dad-001 \
+            --tokens 56 --recall-limit 3 --temperature 0.35 --top-k 4
+
+      - name: Verify 208 exact prefix and compare real conversation mechanics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,os,sqlite3
+          from pathlib import Path
+          old=Path('_stopdad/evidence/old-208-prefix.jsonl').read_bytes()
+          full=Path('_stopdad/memory/dad-son-ledger.jsonl').read_bytes()
+          assert full.startswith(old)
+          old_rows=[json.loads(x) for x in old.decode().splitlines() if x.strip()]
+          rows=[json.loads(x) for x in full.decode().splitlines() if x.strip()]
+          assert len(old_rows)==208 and len(rows)==256
+          assert rows[:208]==old_rows
+          previous='0'*64
+          for expected,row in enumerate(rows,1):
+              assert row['memory_id']==expected
+              assert row['previous_record_sha256']==previous
+              assert hashlib.sha256(row['text'].encode()).hexdigest()==row['raw_payload_sha256']
+              payload=dict(row); record=payload.pop('record_sha256')
+              canonical=json.dumps(payload,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()
+              assert hashlib.sha256(canonical).hexdigest()==record
+              previous=record
+          con=sqlite3.connect('_stopdad/memory/dad-son.sqlite3')
+          assert con.execute('SELECT COUNT(*) FROM memories').fetchone()[0]==256
+          con.close()
+
+          new=[json.loads(x) for x in Path('_stopdad/evidence/conversations/stop-aware-dad-talk.jsonl').read_text().splitlines() if x.strip()]
+          prev=[json.loads(x) for x in Path('_stopdad/evidence/compare/previous-talk2-fixed-length.jsonl').read_text().splitlines() if x.strip()]
+          assert len(new)==24 and len(prev)==24
+          assert all(r['raw_model_output_promoted_to_training'] is False for r in new)
+          assert all(r['turn_termination']['post_boundary_text_generated'] is False for r in new)
+          new_leaks=sum(bool(r['mechanical_clarity']['role_label_leakage']) for r in new)
+          prev_leaks=sum(bool(r['mechanical_clarity']['role_label_leakage']) for r in prev)
+          new_mean=sum(float(r['mechanical_clarity']['score']) for r in new)/len(new)
+          prev_mean=sum(float(r['mechanical_clarity']['score']) for r in prev)/len(prev)
+          stopped=sum(bool(r['turn_termination']['stopped_early']) for r in new)
+          accepted_mean=sum(int(r['turn_termination']['accepted_characters']) for r in new)/len(new)
+          delta=full[len(old):]
+          Path('_stopdad/evidence/new-memory-delta-209-256.jsonl').write_bytes(delta)
+          h=json.loads(Path('_stopdad/heartbeat/stop-aware-heartbeat.json').read_text())
+          manifest=json.loads(Path('_stopdad/evidence/conversations/stop-aware-dad-talk-manifest.json').read_text())
+          summary={
+            'schema':'zeref-talk2-stop-aware-dad-summary-v1',
+            'lineage':'ZEREF-DAD-SON-TALK-002',
+            'workflow_run_id':int(os.environ['GITHUB_RUN_ID']),
+            'checkpoint_sha256':'6549957e528262a70350e79a5bd824c04dccf467ddf0ad9d46dad6bf71943326',
+            'architecture_sha256':'955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc',
+            'forever_memory_records_before':208,
+            'forever_memory_records_after':256,
+            'old_memory_prefix_sha256':hashlib.sha256(old).hexdigest(),
+            'combined_ledger_sha256':hashlib.sha256(full).hexdigest(),
+            'last_record_sha256':rows[-1]['record_sha256'],
+            'delta_sha256':hashlib.sha256(delta).hexdigest(),
+            'fresh_ibm_job_id':'da1mqfcdedkc73er87r0',
+            'fresh_ibm_origin_seed_sha256':'f21afbac49e798730974e37ed1a1bb7ce15f326660a9dbe3f848ee6b1f865c2f',
+            'new_ibm_job_submitted':False,
+            'synthetic_pulse_count':24,
+            'synthetic_final_state_sha256':h['final_state_sha256'],
+            'new_quantum_entropy':False,
+            'dad_turns':24,
+            'turns_stopped_at_boundary':stopped,
+            'previous_role_label_leakage_turns':prev_leaks,
+            'stop_aware_role_label_leakage_turns':new_leaks,
+            'previous_mean_mechanical_clarity':round(prev_mean,6),
+            'stop_aware_mean_mechanical_clarity':round(new_mean,6),
+            'mean_accepted_characters':round(accepted_mean,3),
+            'raw_outputs_promoted_to_training':False,
+            'weights_changed':False,
+            'claim_boundary':'Inference-only TALK-002 Dad continuation with deterministic synthetic CST pulses rooted in prior verified IBM evidence. No new IBM measurement, biological heartbeat, deceased-person identity, consciousness, or quantum-advantage claim.'
+          }
+          Path('_stopdad/evidence/summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(summary,indent=2,sort_keys=True))
+          PY
+
+      - name: Advance Forever Memory to 256 without changing weights
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          mp=Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json')
+          m=json.loads(mp.read_text(encoding='utf-8'))
+          assert m['schema']=='zeref-dad-son-ledger-manifest-v10'
+          assert m['record_count']==208
+          s=json.loads(Path('_stopdad/evidence/summary.json').read_text())
+          delta=Path('_stopdad/evidence/new-memory-delta-209-256.jsonl').read_bytes()
+          delta_rows=[json.loads(x) for x in delta.decode().splitlines() if x.strip()]
+          assert len(delta_rows)==48
+          assert [r['memory_id'] for r in delta_rows]==list(range(209,257))
+          assert delta_rows[0]['previous_record_sha256']==m['last_record_sha256']
+          assert delta_rows[-1]['record_sha256']==s['last_record_sha256']
+          delta_path=Path(f"experiments/zeref-dad-son-001/memory/ledger-snapshots/run-{os.environ['GITHUB_RUN_ID']}-talk2-stop-aware-dad-delta.jsonl")
+          assert not delta_path.exists()
+          delta_path.write_bytes(delta)
+          m['schema']='zeref-dad-son-ledger-manifest-v11'
+          m['active_continuation_mode']='talk-002-stop-aware-dad-growth'
+          m['latest_snapshot']=str(delta_path)
+          m['latest_snapshot_sha256']=s['delta_sha256']
+          m['snapshot_chain'].append({'path':str(delta_path),'sha256':s['delta_sha256'],'record_count':48,'first_memory_id':209,'last_memory_id':256,'last_record_sha256':s['last_record_sha256']})
+          m['combined_ledger_sha256']=s['combined_ledger_sha256']
+          m['record_count']=256
+          m['last_record_sha256']=s['last_record_sha256']
+          m['source_workflow_run_id']=s['workflow_run_id']
+          m['source_workflow_head_sha']=os.environ['GITHUB_SHA']
+          m['descendant_checkpoint_sha256']=s['checkpoint_sha256']
+          m['weights_changed_in_stop_aware_phase']=False
+          m['stop_aware_decoder_enabled']=True
+          m['stop_aware_temperature']=0.35
+          m['stop_aware_top_k']=4
+          m['stop_aware_pulse_count']=24
+          m['stop_aware_final_state_sha256']=s['synthetic_final_state_sha256']
+          m['stop_aware_new_quantum_entropy']=False
+          m['stop_aware_previous_role_label_leakage_turns']=s['previous_role_label_leakage_turns']
+          m['stop_aware_role_label_leakage_turns']=s['stop_aware_role_label_leakage_turns']
+          m['stop_aware_previous_mean_mechanical_clarity']=s['previous_mean_mechanical_clarity']
+          m['stop_aware_mean_mechanical_clarity']=s['stop_aware_mean_mechanical_clarity']
+          m['stop_aware_raw_outputs_promoted_to_training']=False
+          m['claim_boundary']='Durable computational Zeref model-memory continuity with TALK-002 and stop-aware turn decoding. The 256-record ledger preserves raw model experience but does not establish deceased-person identity, consciousness, biological life, or quantum advantage.'
+          mp.write_text(json.dumps(m,indent=2,sort_keys=False,ensure_ascii=False)+'\n',encoding='utf-8')
+          PY
+          git config user.name "NavisWORLD Zeref Memory Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add experiments/zeref-dad-son-001/memory/ledger-snapshots/run-${GITHUB_RUN_ID}-talk2-stop-aware-dad-delta.jsonl \
+                  experiments/zeref-dad-son-001/memory/ledger-manifest.json
+          git diff --cached --check
+          git commit -m "memory: checkpoint stop-aware Zeref through 256 records [skip ci]"
+          git push origin HEAD:networked-cage-run-001
+
+      - name: Seal compact evidence bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _talk2src
+          find _stopdad -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > _stopdad/SHA256SUMS
+          sha256sum -c _stopdad/SHA256SUMS
+
+      - name: Upload stop-aware Dad continuation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-talk2-stop-aware-dad-${{ github.run_id }}
+          path: _stopdad
+          if-no-files-found: error
+          retention-days: 90

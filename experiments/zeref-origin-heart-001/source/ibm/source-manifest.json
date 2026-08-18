@@ -1,0 +1,55 @@
+{
+  "canonical_result_sha256": {
+    "d93d8pgoamcc73dc3afg": "e9d50e2dd24c032ad873adafd41f958bf8a491d547fc6b19b8aeda8cef22e69e",
+    "d93jnlq47v0s73823aj0": "6bc75389f0bea57ce9ecda47d45a4842882cba06387a559774d6c2113b660c68"
+  },
+  "committed_result_sha256": {
+    "d93d8pgoamcc73dc3afg": "9c1691d318c23f10c0d9d67cb50bb791536c415675146e20ad1e85eca596b1a3",
+    "d93jnlq47v0s73823aj0": "a44dcd7b3bc82395d319b5e9439dc8dca01c84d6c516a13ddb724288941d0fab"
+  },
+  "credential_material_committed": false,
+  "info_projection": "sanitized account identity omitted; raw source hash retained above",
+  "jobs": [
+    {
+      "backend": "ibm_marrakesh",
+      "created": "2026-07-02T21:13:10.961006Z",
+      "job_id": "d93d8pgoamcc73dc3afg",
+      "result_format": "Qiskit Runtime SamplerV2 PrimitiveResult/DataBin/BitArray",
+      "result_sha256": "9c1691d318c23f10c0d9d67cb50bb791536c415675146e20ad1e85eca596b1a3",
+      "shot_count": 4096,
+      "shots": 4096,
+      "source_class": "hardware",
+      "status": "Completed"
+    },
+    {
+      "backend": "ibm_kingston",
+      "created": "2026-07-03T04:34:31.945452Z",
+      "job_id": "d93jnlq47v0s73823aj0",
+      "result_format": "Qiskit Runtime SamplerV2 PrimitiveResult/DataBin/BitArray",
+      "result_sha256": "a44dcd7b3bc82395d319b5e9439dc8dca01c84d6c516a13ddb724288941d0fab",
+      "shot_count": 4096,
+      "shots": 4096,
+      "source_class": "hardware",
+      "status": "Completed"
+    }
+  ],
+  "lineage": "ZEREF-ORIGIN-HEART-001",
+  "ordered_by": "IBM info.created ascending",
+  "raw_info_sha256": {
+    "d93d8pgoamcc73dc3afg": "591db87bea4c1aea405c4d34508d3eb6f9c2d1602e0f3e9a717312fcb2d1c3ac",
+    "d93jnlq47v0s73823aj0": "415b1740529117a4c331f884e277cafff91caad404595b30848876c3687f511b"
+  },
+  "raw_result_sha256": {
+    "d93d8pgoamcc73dc3afg": "9c1691d318c23f10c0d9d67cb50bb791536c415675146e20ad1e85eca596b1a3",
+    "d93jnlq47v0s73823aj0": "a44dcd7b3bc82395d319b5e9439dc8dca01c84d6c516a13ddb724288941d0fab"
+  },
+  "schema": "zeref-origin-heart-source-manifest-v1",
+  "transport_normalization": {
+    "d93d8pgoamcc73dc3afg": "none",
+    "d93jnlq47v0s73823aj0": "none"
+  },
+  "uploaded_zip_sha256": {
+    "d93d8pgoamcc73dc3afg": "b4ded292aed73a7f85f50cf37debb2159226848d7efb93f01d2d89f6c4a7a272",
+    "d93jnlq47v0s73823aj0": "cc6568ce58787a2db9245b43907646147ba991ec50a788651cad8937fc2eeaae"
+  }
+}

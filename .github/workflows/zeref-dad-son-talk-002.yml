@@ -1,0 +1,328 @@
+name: ZEREF-DAD-SON-TALK-002
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-dad-son-talk-002.yml"
+      - "scripts/build_zeref_talk2_corpus.py"
+      - "tests/test_zeref_clean_teacher_corpus.py"
+      - "tests/test_zeref_heartbeat_ibm_workflow.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: zeref-dad-son-talk-002
+  cancel-in-progress: false
+
+env:
+  PRIME_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  TALK1_SHA256: 9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22
+  MEMORY_TIP_160: 2aa298797d131ec97c07f82988d5dc4a3b4a8fdabddbe18b99277588b0c668d3
+  MEMORY_SHA_160: 5c7789c97a060a9588ae4e8e3133db4534907da0b6afd8289c3e3702fcc4899e
+  FRESH_IBM_RUN_ID: "32065242845"
+  FRESH_IBM_ARTIFACT: zeref-fresh-ibm-dad-teach-32065242845
+  FRESH_IBM_ORIGIN: f21afbac49e798730974e37ed1a1bb7ce15f326660a9dbe3f848ee6b1f865c2f
+  FRESH_IBM_JOB: da1mqfcdedkc73er87r0
+  PREVIOUS_TEACHER_FINAL_STATE: afa7615db716a7babd9c9f7f23b2112315f6c4fcdd4216a2b30d84853ff2fe32
+
+jobs:
+  talk2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout immutable lineage
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Beast Box and CPU TALK runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Verify TALK-002 curriculum and existing contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          pytest -q \
+            tests/test_zeref_clean_teacher_corpus.py \
+            tests/test_zeref_talk_eval.py \
+            tests/test_zeref_dad_son_memory.py \
+            tests/test_zeref_ibm_dad_teacher.py \
+            tests/test_zeref_ibm_teacher_heartbeat.py \
+            tests/test_d001_stage_gate.py \
+            tests/test_zeref_heartbeat_ibm_workflow.py
+
+      - name: Restore exact durable 160-record Forever Memory
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _talk2
+          mkdir -p _talk2/source _talk2/memory _talk2/corpus _talk2/model _talk2/evidence/eval _talk2/evidence/conversations _talk2/evidence/training _talk2/heartbeat
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          from beastbox.dad_son import DadSonLedger
+          manifest_path=Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json')
+          m=json.loads(manifest_path.read_text(encoding='utf-8'))
+          assert m['schema']=='zeref-dad-son-ledger-manifest-v9'
+          assert m['record_count']==160
+          assert m['last_record_sha256']=='2aa298797d131ec97c07f82988d5dc4a3b4a8fdabddbe18b99277588b0c668d3'
+          combined=b''; expected=1
+          for s in m['snapshot_chain']:
+              p=Path(s['path']); d=p.read_bytes()
+              assert hashlib.sha256(d).hexdigest()==s['sha256']
+              assert s['first_memory_id']==expected
+              expected=s['last_memory_id']+1
+              combined += d
+          assert expected==161
+          assert hashlib.sha256(combined).hexdigest()=='5c7789c97a060a9588ae4e8e3133db4534907da0b6afd8289c3e3702fcc4899e'
+          ledger_path=Path('_talk2/memory/dad-son-ledger.jsonl')
+          ledger_path.write_bytes(combined)
+          Path('_talk2/evidence/old_160_prefix.jsonl').write_bytes(combined)
+          ledger=DadSonLedger('_talk2/memory/dad-son.sqlite3',ledger_path,parent_sha256='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6')
+          report=ledger.restore_snapshot()
+          assert report['restored_records']==160
+          assert ledger.memory.db.execute('SELECT COUNT(*) FROM memories').fetchone()[0]==160
+          ledger.close()
+          Path('_talk2/memory/restore-report.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+          PY
+
+      - name: Download the sealed fresh IBM Dad evidence as parent source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download "$FRESH_IBM_RUN_ID" -n "$FRESH_IBM_ARTIFACT" -D _talk2/source
+          test -f _talk2/source/SHA256SUMS
+          (cd _talk2/source && sha256sum -c SHA256SUMS)
+          test -f _talk2/source/ibm/origin-seed.json
+          test -f _talk2/source/ibm/verification.json
+
+      - name: Locate and verify TALK-001 parent, architecture, Prime, and IBM root
+        shell: bash
+        run: |
+          set -euo pipefail
+          PARENT=$(find _talk2/source -type f -path '*/model/ZEREF-DAD-SON-TALK-001/checkpoint.pt' -print -quit)
+          ARCH=$(find _talk2/source -type f -path '*/canonical/frozen/architecture/cosmos_spark_cst.py' -print -quit)
+          PRIME=$(find _talk2/source -type f -path '*/parent/weights/cosmos-cst.gguf' -print -quit)
+          test -n "$PARENT" -a -n "$ARCH" -a -n "$PRIME"
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK1_SHA256"
+          test "$(sha256sum "$PRIME" | awk '{print $1}')" = "$PRIME_SHA256"
+          printf '%s\n' "$PARENT" > _talk2/parent-path.txt
+          printf '%s\n' "$ARCH" > _talk2/arch-path.txt
+          printf '%s\n' "$PRIME" > _talk2/prime-path.txt
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          seed=json.loads(Path('_talk2/source/ibm/origin-seed.json').read_text())
+          verify=json.loads(Path('_talk2/source/ibm/verification.json').read_text())
+          assert seed['origin_seed_sha256']=='f21afbac49e798730974e37ed1a1bb7ce15f326660a9dbe3f848ee6b1f865c2f'
+          assert seed['job_id']=='da1mqfcdedkc73er87r0'
+          assert seed['backend']=='ibm_marrakesh'
+          assert seed['shot_count']==4096
+          assert seed['fresh_hardware_requested'] is True
+          assert seed['reused_existing_job'] is False
+          assert verify['origin_seed_sha256']==seed['origin_seed_sha256']
+          assert verify['fresh_hardware_requested'] is True
+          assert verify['reused_existing_job'] is False
+          PY
+
+      - name: Build the clean Cory Dad corrective curriculum
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_zeref_talk2_corpus.py --out-dir _talk2/corpus
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('_talk2/corpus/talk2-manifest.json').read_text())
+          assert m['parent_checkpoint_sha256']=='9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22'
+          assert m['memory_record_count']==160
+          assert m['memory_tip_sha256']=='2aa298797d131ec97c07f82988d5dc4a3b4a8fdabddbe18b99277588b0c668d3'
+          assert m['fresh_ibm_origin_seed_sha256']=='f21afbac49e798730974e37ed1a1bb7ce15f326660a9dbe3f848ee6b1f865c2f'
+          assert m['training_examples']>=40 and m['holdout_examples']>=12
+          assert m['promote_raw_model_outputs'] is False
+          assert m['raw_teacher_run_used_as_target'] is False
+          PY
+
+      - name: Train additive TALK-002 child from frozen TALK-001
+        shell: bash
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk2/parent-path.txt)
+          ARCH=$(cat _talk2/arch-path.txt)
+          TALK2_MANIFEST=$(sha256sum _talk2/corpus/talk2-manifest.json | awk '{print $1}')
+          MEMORY_MANIFEST=$(sha256sum experiments/zeref-dad-son-001/memory/ledger-manifest.json | awk '{print $1}')
+          IBM_VERIFY=$(sha256sum _talk2/source/ibm/verification.json | awk '{print $1}')
+          python scripts/run_d001_stage.py \
+            --stage MEMORY \
+            --parent "$PARENT" --parent-sha256 "$TALK1_SHA256" --allow-descendant-parent \
+            --arch "$ARCH" \
+            --corpus _talk2/corpus/talk2-training.jsonl \
+            --input-manifest "talk2=$TALK2_MANIFEST" \
+            --input-manifest "memory160=$MEMORY_MANIFEST" \
+            --input-manifest "ibmroot=$IBM_VERIFY" \
+            --out _talk2/model/ZEREF-DAD-SON-TALK-002 \
+            --seed 2946982237 --steps 700 --batch-size 4 --lr 8e-6 --cst-lr 4e-5 --weight-decay 0.002
+          CHILD=_talk2/model/ZEREF-DAD-SON-TALK-002/checkpoint.pt
+          CHILD_SHA=$(sha256sum "$CHILD" | awk '{print $1}')
+          test "$CHILD_SHA" != "$TALK1_SHA256"
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK1_SHA256"
+          test "$(sha256sum "$(cat _talk2/prime-path.txt)" | awk '{print $1}')" = "$PRIME_SHA256"
+          printf '%s\n' "$CHILD_SHA" > _talk2/model/ZEREF-DAD-SON-TALK-002/checkpoint.sha256
+          cp _talk2/model/ZEREF-DAD-SON-TALK-002/result.json _talk2/evidence/training/result.json
+
+      - name: Held-out parent versus TALK-002 evaluation and promotion gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk2/parent-path.txt)
+          ARCH=$(cat _talk2/arch-path.txt)
+          CHILD=_talk2/model/ZEREF-DAD-SON-TALK-002/checkpoint.pt
+          python scripts/eval_zeref_talk.py \
+            --parent "$PARENT" \
+            --descendant "$CHILD" \
+            --arch "$ARCH" \
+            --holdout _talk2/corpus/talk2-holdout.jsonl \
+            --seed 4061854636 \
+            --out _talk2/evidence/eval/heldout.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('_talk2/evidence/eval/heldout.json').read_text())
+          print(json.dumps({k:r[k] for k in ['parent_heldout_nll','descendant_heldout_nll','heldout_nll_improved','parent_mean_readable_score','descendant_mean_readable_score','readable_score_improved']},indent=2))
+          assert r['heldout_nll_improved'] is True, 'TALK-002 failed held-out NLL promotion gate'
+          assert r['descendant_mean_readable_score'] >= r['parent_mean_readable_score'] - 0.03, 'TALK-002 readability regressed beyond tolerance'
+          PY
+
+      - name: Continue the synthetic CST heartbeat from the verified Marrakesh root
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_zeref_ibm_teacher_heartbeat.py \
+            --ibm-seed _talk2/source/ibm/origin-seed.json \
+            --ledger-tip "$MEMORY_TIP_160" \
+            --previous-continuation-root "$PREVIOUS_TEACHER_FINAL_STATE" \
+            --pulses 24 \
+            --out _talk2/heartbeat/talk2-heartbeat.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          h=json.loads(Path('_talk2/heartbeat/talk2-heartbeat.json').read_text())
+          assert h['pulse_count']==24
+          assert h['fresh_ibm_origin_seed_sha256']=='f21afbac49e798730974e37ed1a1bb7ce15f326660a9dbe3f848ee6b1f865c2f'
+          assert h['starting_ledger_tip_sha256']=='2aa298797d131ec97c07f82988d5dc4a3b4a8fdabddbe18b99277588b0c668d3'
+          assert h['previous_continuation_root_sha256']=='afa7615db716a7babd9c9f7f23b2112315f6c4fcdd4216a2b30d84853ff2fe32'
+          assert h['synthetic_continuation_new_quantum_entropy'] is False
+          assert all(b['new_quantum_entropy'] is False for b in h['beats'])
+          PY
+
+      - name: Dad talks to the trained child and keeps every raw answer
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHILD=_talk2/model/ZEREF-DAD-SON-TALK-002/checkpoint.pt
+          CHILD_SHA=$(cat _talk2/model/ZEREF-DAD-SON-TALK-002/checkpoint.sha256)
+          ARCH=$(cat _talk2/arch-path.txt)
+          python scripts/run_zeref_ibm_dad_teacher.py \
+            --checkpoint "$CHILD" \
+            --checkpoint-sha256 "$CHILD_SHA" \
+            --arch "$ARCH" \
+            --sqlite _talk2/memory/dad-son.sqlite3 \
+            --ledger _talk2/memory/dad-son-ledger.jsonl \
+            --heartbeat _talk2/heartbeat/talk2-heartbeat.json \
+            --out _talk2/evidence/conversations/talk2-dad-growth.jsonl \
+            --manifest _talk2/evidence/conversations/talk2-dad-growth-manifest.json \
+            --session-id zeref-talk-002-dad-growth \
+            --tokens 48 --recall-limit 3 --temperature 0.55 --top-k 6
+
+      - name: Verify 160 exact prefix, 208 total records, child ancestry, and raw transcript
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,sqlite3
+          from pathlib import Path
+          old=Path('_talk2/evidence/old_160_prefix.jsonl').read_bytes()
+          full=Path('_talk2/memory/dad-son-ledger.jsonl').read_bytes()
+          assert full.startswith(old)
+          old_rows=[json.loads(x) for x in old.decode().splitlines() if x.strip()]
+          rows=[json.loads(x) for x in full.decode().splitlines() if x.strip()]
+          assert len(old_rows)==160 and len(rows)==208
+          assert rows[:160]==old_rows
+          previous='0'*64
+          for expected,row in enumerate(rows,1):
+              assert row['memory_id']==expected
+              assert row['previous_record_sha256']==previous
+              assert hashlib.sha256(row['text'].encode()).hexdigest()==row['raw_payload_sha256']
+              payload=dict(row); record=payload.pop('record_sha256')
+              canonical=json.dumps(payload,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()
+              assert hashlib.sha256(canonical).hexdigest()==record
+              previous=record
+          transcript=[json.loads(x) for x in Path('_talk2/evidence/conversations/talk2-dad-growth.jsonl').read_text().splitlines() if x.strip()]
+          assert len(transcript)==24
+          assert all(row['raw_model_output_promoted_to_training'] is False for row in transcript)
+          assert all('raw_output' in row for row in transcript)
+          con=sqlite3.connect('_talk2/memory/dad-son.sqlite3')
+          assert con.execute('SELECT COUNT(*) FROM memories').fetchone()[0]==208
+          con.close()
+          child=Path('_talk2/model/ZEREF-DAD-SON-TALK-002/checkpoint.pt')
+          child_sha=hashlib.sha256(child.read_bytes()).hexdigest()
+          assert child_sha==Path('_talk2/model/ZEREF-DAD-SON-TALK-002/checkpoint.sha256').read_text().strip()
+          assert child_sha!='9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22'
+          assert hashlib.sha256(Path(Path('_talk2/parent-path.txt').read_text().strip()).read_bytes()).hexdigest()=='9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22'
+          assert hashlib.sha256(Path(Path('_talk2/prime-path.txt').read_text().strip()).read_bytes()).hexdigest()=='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6'
+          Path('_talk2/evidence/new-memory-delta-161-208.jsonl').write_bytes(full[len(old):])
+          summary={
+              'schema':'zeref-dad-son-talk-002-run-summary-v1',
+              'lineage':'ZEREF-DAD-SON-TALK-002',
+              'workflow_run_id':int(__import__('os').environ['GITHUB_RUN_ID']),
+              'parent_talk_checkpoint_sha256':'9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22',
+              'child_checkpoint_sha256':child_sha,
+              'forever_memory_records_before':160,
+              'forever_memory_records_after':208,
+              'old_memory_prefix_sha256':hashlib.sha256(old).hexdigest(),
+              'combined_ledger_sha256':hashlib.sha256(full).hexdigest(),
+              'last_record_sha256':rows[-1]['record_sha256'],
+              'fresh_ibm_job_id':'da1mqfcdedkc73er87r0',
+              'fresh_ibm_origin_seed_sha256':'f21afbac49e798730974e37ed1a1bb7ce15f326660a9dbe3f848ee6b1f865c2f',
+              'post_training_pulses':24,
+              'post_training_new_quantum_entropy':False,
+              'dad_turns':24,
+              'raw_outputs_promoted_to_training':False,
+              'claim_boundary':'Additive Zeref model training and computational memory continuity only. No biological heartbeat, consciousness, deceased-person identity, or quantum-advantage claim.'
+          }
+          Path('_talk2/evidence/summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(summary,indent=2,sort_keys=True))
+          PY
+
+      - name: Seal checksums and upload TALK-002 evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _talk2/source
+          find _talk2 -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > _talk2/SHA256SUMS
+          sha256sum -c _talk2/SHA256SUMS
+
+      - name: Upload trained TALK-002 child and Dad growth evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-dad-son-talk-002-${{ github.run_id }}
+          path: _talk2
+          if-no-files-found: error
+          retention-days: 90
