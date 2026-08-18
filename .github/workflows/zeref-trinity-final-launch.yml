@@ -1,11 +1,13 @@
 name: Gate and launch Zeref Trinity final
 
 on:
-  push:
+  pull_request:
     branches:
-      - 'agent/zeref-quantum-divergence'
-    paths:
-      - '.github/workflows/zeref-trinity-final-launch.yml'
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
   workflow_dispatch:
 
 permissions:
@@ -31,12 +33,34 @@ jobs:
         run: |
           set -o pipefail
           pytest -vv -x tests/test_quantum_divergence_*.py 2>&1 | tee trinity-launch-pytest.log
-      - name: Dispatch frozen final workflow
+      - name: Dispatch and watch frozen final workflow
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
+          set -euo pipefail
           gh workflow run zeref-trinity-final.yml --ref agent/zeref-quantum-divergence
-          echo 'TRINITY_FINAL_DISPATCHED=1'
+          final_run_id=''
+          for _ in $(seq 1 30); do
+            final_run_id="$(gh run list \
+              --workflow zeref-trinity-final.yml \
+              --branch agent/zeref-quantum-divergence \
+              --event workflow_dispatch \
+              --limit 20 \
+              --json databaseId,headSha \
+              --jq ".[] | select(.headSha == \"${GITHUB_SHA}\") | .databaseId" \
+              | head -n 1)"
+            if [ -n "$final_run_id" ]; then
+              break
+            fi
+            sleep 2
+          done
+          if [ -z "$final_run_id" ]; then
+            echo 'Could not discover dispatched Trinity final run id' >&2
+            exit 1
+          fi
+          echo "TRINITY_FINAL_RUN_ID=$final_run_id"
+          gh run watch "$final_run_id" --exit-status
       - name: Upload launch-gate evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -44,5 +68,3 @@ jobs:
           name: zeref-trinity-launch-gate-${{ github.run_id }}
           path: trinity-launch-pytest.log
           if-no-files-found: warn
-
-# Relaunch marker: 2026-08-18T00:20-05:00
