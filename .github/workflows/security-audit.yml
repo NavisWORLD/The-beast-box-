@@ -10,9 +10,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: repository-security-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   security-policy:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -71,10 +71,13 @@ beastbox ibm-shard-recover ibm_shard_receipt.json --out recovered_state.json
 # train the independent PHOS/dyn12 reference model
 python scripts/train_reference_phos.py corpus.txt --steps 500
 
-# Rust CST
+# Rust CST from repository root
+bash rust/verify.sh
+
+# Rust CST manual equivalent
 cd rust
-cargo test --workspace
-cargo build --release --workspace
+cargo test --workspace --locked
+cargo build --release --workspace --locked
 ./target/release/cosmic-cypher-rs phi 1024
 ```
 
