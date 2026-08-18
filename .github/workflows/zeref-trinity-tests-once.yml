@@ -94,4 +94,4 @@ jobs:
           TEST_EXIT: ${{ steps.tests.outputs.exit_code }}
         run: exit "${TEST_EXIT:-1}"
 
-# RED proof for native consumption of the 54D block-balanced metric, 2026-08-18.
+# GREEN verification for native 54D block-balanced geometry, 2026-08-18.
