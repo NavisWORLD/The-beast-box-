@@ -15,6 +15,9 @@ on:
       - 'pyproject.toml'
       - 'requirements-quantum.txt'
 
+permissions:
+  contents: read
+
 jobs:
   qiskit-import-and-circuit:
     runs-on: ubuntu-latest
