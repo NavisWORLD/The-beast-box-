@@ -1,0 +1,53 @@
+name: Persist Trinity validation diagnostics
+
+on:
+  push:
+    branches:
+      - 'agent/zeref-quantum-divergence'
+    paths:
+      - '.github/workflows/zeref-trinity-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/zeref-quantum-divergence
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install divergence dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum]'
+      - name: Run tests and persist summary
+        shell: bash
+        run: |
+          set +e
+          pytest -vv -x tests/test_quantum_divergence_*.py > trinity-diagnostic-full.log 2>&1
+          code=$?
+          python - "$code" <<'PY'
+          import sys
+          from pathlib import Path
+          code=int(sys.argv[1])
+          lines=Path('trinity-diagnostic-full.log').read_text(encoding='utf-8', errors='replace').splitlines()
+          tail='\n'.join(lines[-240:])
+          root=Path('evidence/dev')
+          root.mkdir(parents=True, exist_ok=True)
+          (root/'trinity-diagnostic-latest.txt').write_text(
+              f'EXIT_CODE={code}\n\n{tail}\n', encoding='utf-8'
+          )
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin agent/zeref-quantum-divergence
+          git add evidence/dev/trinity-diagnostic-latest.txt
+          git commit -m "evidence: persist Trinity diagnostic ${GITHUB_RUN_ID}" || true
+          git push origin HEAD:agent/zeref-quantum-divergence
+          exit "$code"
