@@ -3,6 +3,7 @@ from __future__ import annotations
 from beastbox.quantum_divergence.trinity_state import (
     SensorFixture,
     TrinityConfig,
+    balance_54_blocks,
     compose_trinity_state,
     projection_matrix,
 )
@@ -35,6 +36,15 @@ def test_dyn54_is_exact_12_plus_42():
     assert len(state.dyn12) == 12
     assert len(state.dyn42) == 42
     assert len(state.dyn54) == 54
+
+
+def test_54d_metric_balances_12d_and_42d_block_energy_without_changing_total_scale():
+    balanced = balance_54_blocks([1.0] * 54)
+    e12 = sum(x * x for x in balanced[:12])
+    e42 = sum(x * x for x in balanced[12:])
+    assert abs(e12 - e42) < 1e-12
+    assert abs((e12 + e42) - 54.0) < 1e-12
+    assert balance_54_blocks([0.0] * 54) == [0.0] * 54
 
 
 def test_projection_is_deterministic_and_bounded():
