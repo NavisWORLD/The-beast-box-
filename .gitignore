@@ -6,13 +6,32 @@ venv/
 dist/
 build/
 *.egg-info/
+
+# Credentials / local configuration
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+credentials.json
+credentials-*.json
+service-account.json
+service-account-*.json
+
+# Runtime/research outputs and private local data
 runs/
 *.wav
 *.qpy
 *.sqlite*
 *.gguf
 *.safetensors
+*.log
 .cosmic-cypher/
+
+# Build/system artifacts
 rust/target/
 .DS_Store
