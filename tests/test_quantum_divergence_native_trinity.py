@@ -9,7 +9,7 @@ torch = pytest.importorskip("torch")
 from torch import nn
 import torch.nn.functional as F
 
-from beastbox.quantum_divergence.native_trinity import NativeTrinityAdapter
+from beastbox.quantum_divergence.native_trinity import NativeTrinityAdapter, _effective54
 from beastbox.quantum_divergence.trinity_state import (
     SensorFixture,
     TrinityConfig,
@@ -135,6 +135,16 @@ def test_zero_external_state_is_identity_even_when_enabled():
     torch.testing.assert_close(got, baseline, atol=1e-6, rtol=1e-5)
     assert telemetry.zero_state_identity is True
     assert adapter.hooks_remaining == 0
+
+
+def test_native_effective_54_balances_12d_and_42d_block_energy():
+    state = _state([0.0] * 12, include_sensors=False)
+    state.external54 = [0.5] * 54
+    state.dyn54 = [0.5] * 54
+    effective = _effective54(state)
+    e12 = sum(x * x for x in effective[:12])
+    e42 = sum(x * x for x in effective[12:])
+    assert abs(e12 - e42) < 1e-12
 
 
 def test_nonzero_state_moves_all_three_injection_channels_and_logits():
