@@ -1,0 +1,24 @@
+name: Runner pool probe
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/runner-pool-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Prove runner acquired
+        shell: bash
+        run: |
+          echo "RUNNER_ACQUIRED=${{ matrix.os }}"
+          uname -a || true
