@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, Iterator, Sequence
 
-from .trinity_state import TrinityState, projection_matrix
+from .trinity_state import TrinityState, balance_54_blocks, projection_matrix
 
 
 def _torch():
@@ -51,10 +51,11 @@ def _zero_state(state: TrinityState, tol: float = 1e-15) -> bool:
 def _effective54(state: TrinityState) -> list[float]:
     if _zero_state(state):
         return [0.0] * 54
-    return [
+    mixed = [
         math.tanh(0.5 * float(ext) + 0.5 * float(dyn))
         for ext, dyn in zip(state.external54, state.dyn54)
     ]
+    return balance_54_blocks(mixed)
 
 
 def _effective12(state: TrinityState) -> list[float]:
@@ -349,6 +350,11 @@ def projection_hashes_for_native(embd: int, layers: int) -> dict[str, str]:
         "gate": [projection_matrix(1, 12, f"trinity-gate-v1:{i}") for i in range(layers)],
         "sigma": [projection_matrix(1, 12, f"trinity-sigma-v1:{i}") for i in range(layers)],
         "feedback": [f"trinity-feedback-v1:{i}" for i in range(layers)],
-        "geometry": "token-phase-multiplicative-v1",
+        "geometry": "token-phase-multiplicative-block-balanced-v2",
+        "54_block_balance": {
+            "version": "trinity-54-block-balance-v1",
+            "scale12": math.sqrt(54.0 / (2.0 * 12.0)),
+            "scale42": math.sqrt(54.0 / (2.0 * 42.0)),
+        },
     }
     return {"native_trinity": hashlib.sha256(_canonical(payload)).hexdigest()}
