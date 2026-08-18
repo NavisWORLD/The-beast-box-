@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout immutable lineage
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
           fetch-depth: 1

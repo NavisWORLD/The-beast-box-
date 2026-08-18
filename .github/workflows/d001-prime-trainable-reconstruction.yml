@@ -25,7 +25,7 @@ jobs:
       TRAINER: architecture/cosmos_spark_cst.py
       TRAINER_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 

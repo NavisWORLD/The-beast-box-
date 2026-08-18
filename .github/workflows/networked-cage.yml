@@ -38,7 +38,7 @@ jobs:
       SUBJECT_MODEL: cosmos-spark:latest
       SUBJECT_PORT: "11500"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
           fetch-depth: 2

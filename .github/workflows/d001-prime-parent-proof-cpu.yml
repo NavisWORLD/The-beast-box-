@@ -23,7 +23,7 @@ jobs:
       CONVERTER_SHA256: 6f2e3b1076940aac80286584083ebf98f90c60398b3ea9dad89880bd91400f62
       TRAINER_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: actions/setup-python@v5
