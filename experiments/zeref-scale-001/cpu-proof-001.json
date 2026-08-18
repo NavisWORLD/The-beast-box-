@@ -1,0 +1,11 @@
+{
+  "schema": "zeref-scale-cpu-proof-request-v1",
+  "run": "001",
+  "base_model": "Qwen/Qwen3-0.6B",
+  "max_steps": 20,
+  "training_targets": "curated Dad/Zeref scale seed only",
+  "response_only_loss": true,
+  "ibm_root_sha256": "f21afbac49e798730974e37ed1a1bb7ce15f326660a9dbe3f848ee6b1f865c2f",
+  "raw_outputs_auto_train": false,
+  "purpose": "prove real pretrained-backbone LoRA training followed by Dad conversation on CPU"
+}
