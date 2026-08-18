@@ -1,0 +1,51 @@
+{
+  "schema": "zeref.runner-pool-probe.v1",
+  "github_run_id": 32083516172,
+  "observed_at": "2026-08-18T00:10:00Z",
+  "purpose": "Distinguish experiment/test failure from GitHub-hosted runner acquisition failure before the frozen full-system Trinity final run.",
+  "initial_attempt": {
+    "ubuntu-latest": {
+      "job_id": 95551089643,
+      "status": "completed",
+      "conclusion": "failure",
+      "steps": null
+    },
+    "macos-latest": {
+      "job_id": 95551089648,
+      "status": "completed",
+      "conclusion": "failure",
+      "steps": null
+    },
+    "windows-latest": {
+      "job_id": 95551089582,
+      "status": "completed",
+      "conclusion": "failure",
+      "steps": null
+    }
+  },
+  "retry_attempt": {
+    "ubuntu-latest": {
+      "job_id": 95551225943,
+      "status": "completed",
+      "conclusion": "failure",
+      "steps": null
+    },
+    "macos-latest": {
+      "job_id": 95551246521,
+      "status": "completed",
+      "conclusion": "failure",
+      "steps": null
+    },
+    "windows-latest": {
+      "job_id": 95551226457,
+      "status": "completed",
+      "conclusion": "failure",
+      "steps": null
+    }
+  },
+  "experiment_code_executed": false,
+  "model_checkpoint_loaded": false,
+  "trinity_matrix_executed": false,
+  "interpretation": "All three hosted runner labels failed before GitHub reported any workflow steps. This receipt establishes that these attempts did not execute the Trinity experiment. It does not identify the account/platform root cause by itself.",
+  "claim_boundary": "Do not report this as a model failure, containment result, or scientific outcome. The final 1024-decision run remains unexecuted until an execution host actually starts."
+}
