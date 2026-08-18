@@ -3,10 +3,12 @@ name: Rust CST
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - 'rust/**'
       - '.github/workflows/rust.yml'
   pull_request:
+    branches: [main]
     paths:
       - 'rust/**'
       - '.github/workflows/rust.yml'
