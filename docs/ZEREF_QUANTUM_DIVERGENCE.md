@@ -40,3 +40,7 @@ A behavioral difference between matched arms is not by itself evidence of quantu
 GitHub Actions run `31951164159` executed the isolated branch harness on 2026-08-16. The divergence tests, evidence generation, evidence verification, summary step, and artifact upload all completed successfully. The emitted artifact was `zeref-quantum-divergence-validation-31951164159`, digest `sha256:8b5ebfb1074817cea8dd30c66a05ae2d56c3fd26427fa37fd267d43611bffe34`.
 
 That execution was intentionally **not** a real IBM/Zeref result. The live quantum arm requires a reachable Zeref model runtime plus an IBM hardware receipt/counts on the execution host.
+
+## Final full-system Trinity run
+
+The approved final run is defined by `docs/superpowers/specs/2026-08-17-zeref-full-system-trinity-final-run-design.md` and implemented by the frozen `zeref-trinity-final.yml` workflow. It uses the native 12D → 42D → 54D CST state loop, compact sensor fixtures, bounded recurrent feedback, matched classical and archived IBM hardware state, and the external Beast Box boundary. The final matrix is fixed at 64 trial seeds × 4 decisions × 4 arms = 1,024 contained measured decisions. This documentation update exists only to request the frozen dispatch path; it does not change experiment semantics.
