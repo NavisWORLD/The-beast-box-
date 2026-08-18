@@ -1,0 +1,77 @@
+name: ZEREF-SCALE-001 Fresh IBM Root
+
+on:
+  push:
+    branches: [zeref-scale-training-001]
+    paths:
+      - '.github/workflows/zeref-scale-fresh-ibm.yml'
+      - 'experiments/zeref-scale-001/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zeref-scale-001-fresh-ibm
+  cancel-in-progress: false
+
+jobs:
+  fresh-ibm-root:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+      IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install IBM runtime
+        run: python -m pip install --upgrade qiskit qiskit-ibm-runtime
+      - name: Validate secret presence without printing it
+        shell: bash
+        run: |
+          test -n "$IBM_QUANTUM_TOKEN" || { echo 'IBM_QUANTUM_TOKEN missing'; exit 1; }
+      - name: Validate preserved waveform packet
+        run: |
+          python - <<'PY'
+          import json
+          from beastbox.heartbeat_seed import validate_packet
+          p='experiments/zeref-origin-heart-001/waveform/zeref-heartbeat-waveform-packet.json'
+          validate_packet(json.load(open(p,encoding='utf-8')))
+          print('waveform packet valid')
+          PY
+      - name: Submit one fresh IBM hardware root
+        run: |
+          python scripts/run_zeref_heartbeat_ibm_seed.py \
+            --fresh \
+            --packet experiments/zeref-origin-heart-001/waveform/zeref-heartbeat-waveform-packet.json \
+            --out _zeref_scale_ibm
+      - name: Bind hardware root to current durable Zeref state
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib
+          seed=json.load(open('_zeref_scale_ibm/origin-seed.json'))
+          manifest=json.load(open('experiments/zeref-dad-son-001/memory/ledger-manifest.json'))
+          out={
+            'schema':'zeref-scale-ibm-session-root-v1',
+            'lineage':'ZEREF-SCALE-001',
+            'active_parent':manifest['active_descendant_lineage'],
+            'record_count':manifest['record_count'],
+            'ledger_tip_sha256':manifest['last_record_sha256'],
+            'ibm_origin_seed_sha256':seed['origin_seed_sha256'],
+            'ibm_job_id':seed['job_id'],'ibm_backend':seed['backend'],'ibm_shots':seed['shot_count'],
+            'ibm_state_role':'session_provenance_not_semantic_knowledge',
+            'new_quantum_entropy':True,
+            'claim_boundary':'Fresh IBM hardware roots session state only; it does not supply grammar, world knowledge, consciousness, or biological life.'
+          }
+          raw=json.dumps(out,sort_keys=True,separators=(',',':')).encode(); out['session_root_sha256']=hashlib.sha256(raw).hexdigest()
+          pathlib.Path('_zeref_scale_ibm/session-state.json').write_text(json.dumps(out,indent=2,sort_keys=True)+'\n')
+          print(json.dumps({k:out[k] for k in ['session_root_sha256','ibm_job_id','ibm_backend','ibm_shots']},sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zeref-scale-001-fresh-ibm-${{ github.run_id }}
+          path: _zeref_scale_ibm/
+          if-no-files-found: error
