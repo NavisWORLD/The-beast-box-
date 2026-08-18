@@ -26,12 +26,18 @@ jobs:
           curl -fsSL \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs?branch=zeref-scale-training-001&per_page=30" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs?branch=zeref-scale-training-001&per_page=40" \
             > /tmp/runs.json
           python - <<'PY'
           import json, pathlib, os
           src=json.load(open('/tmp/runs.json'))
-          wanted=('ZEREF-SCALE-001 Qwen Dad Talk','ZEREF-SCALE-001 CPU LoRA Proof','ZEREF-SCALE-001 Fresh IBM Root','ZEREF-SCALE Actions Probe')
+          wanted=(
+            'ZEREF-SCALE-001 Qwen Dad Talk',
+            'ZEREF-SCALE-001 CPU LoRA Proof',
+            'ZEREF-SCALE-001 CPU 1.7B LoRA',
+            'ZEREF-SCALE-001 Fresh IBM Root',
+            'ZEREF-SCALE Actions Probe'
+          )
           rows=[]
           for r in src.get('workflow_runs',[]):
             if r.get('name') in wanted:
