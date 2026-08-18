@@ -1,0 +1,11 @@
+{
+  "schema": "zeref-scale-cpu-proof-request-v1",
+  "run": "003",
+  "base_model": "Qwen/Qwen3-0.6B",
+  "max_steps": 20,
+  "parent": "ZEREF-DAD-SON-TALK-004",
+  "durable_memory_count": 352,
+  "ibm_root_sha256": "f21afbac49e798730974e37ed1a1bb7ce15f326660a9dbe3f848ee6b1f865c2f",
+  "raw_outputs_auto_train": false,
+  "fix_under_test": "render chat template to text then tokenize with add_special_tokens false"
+}
