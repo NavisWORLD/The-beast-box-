@@ -84,9 +84,9 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git pull --rebase origin agent/zeref-quantum-divergence
           git add evidence/dev/trinity-test-once.json
           git commit -m "evidence: record Trinity implementation verification ${GITHUB_RUN_ID}" || true
+          git pull --rebase origin agent/zeref-quantum-divergence
           git push origin HEAD:agent/zeref-quantum-divergence
       - name: Enforce verification result
         if: always()
@@ -94,4 +94,4 @@ jobs:
           TEST_EXIT: ${{ steps.tests.outputs.exit_code }}
         run: exit "${TEST_EXIT:-1}"
 
-# GREEN check for the 54D block-energy primitive, 2026-08-18.
+# RED proof for native consumption of the 54D block-balanced metric, 2026-08-18.
