@@ -5,7 +5,7 @@ on:
     branches: [zeref-scale-training-001]
     paths:
       - '.github/workflows/zeref-scale-fresh-ibm.yml'
-      - 'experiments/zeref-scale-001/**'
+      - 'experiments/zeref-scale-001/ibm-session-request-*.json'
   workflow_dispatch:
 
 permissions:
@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
+      PYTHONPATH: ${{ github.workspace }}
       IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
       IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
     steps:
