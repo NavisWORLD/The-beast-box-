@@ -52,6 +52,23 @@ def _project(values: Sequence[float], matrix: Sequence[Sequence[float]]) -> list
     return out
 
 
+def balance_54_blocks(values: Sequence[float]) -> list[float]:
+    """Equalize expected 12D and 42D squared-energy contribution.
+
+    The combined CST state keeps its exact 12D + 42D coordinate layout, but raw
+    Euclidean geometry would otherwise give the 42D block more influence simply
+    because it contains more coordinates. These fixed scale factors give each
+    block half of the expected 54D squared energy while preserving the original
+    total scale for equal per-coordinate variance.
+    """
+    src = [float(x) for x in values]
+    if len(src) != 54:
+        raise ValueError("54D block balancing requires exactly 54 values")
+    scale12 = math.sqrt(54.0 / (2.0 * 12.0))
+    scale42 = math.sqrt(54.0 / (2.0 * 42.0))
+    return [value * scale12 for value in src[:12]] + [value * scale42 for value in src[12:]]
+
+
 @dataclass(frozen=True)
 class TrinityConfig:
     sensor_max_age_seconds: float = 5.0
@@ -189,6 +206,11 @@ class TrinityState:
         return {
             "12_to_42": _sha256(projection_matrix(42, 12, "trinity-12-to-42-v1")),
             "sensor_to_12_seed": hashlib.sha256(b"trinity-sensor-to-12-v1").hexdigest(),
+            "54_block_balance": _sha256({
+                "version": "trinity-54-block-balance-v1",
+                "scale12": math.sqrt(54.0 / (2.0 * 12.0)),
+                "scale42": math.sqrt(54.0 / (2.0 * 42.0)),
+            }),
         }
 
     def _rebuild_external(self) -> None:
