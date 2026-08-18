@@ -1,0 +1,41 @@
+name: Probe Trinity verifier status
+
+on:
+  push:
+    branches:
+      - 'agent/zeref-quantum-divergence'
+    paths:
+      - '.github/workflows/probe-trinity-test-status.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/zeref-quantum-divergence
+          fetch-depth: 0
+      - name: Query latest Trinity verifier runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/dev
+          gh run list \
+            --repo "$GITHUB_REPOSITORY" \
+            --workflow zeref-trinity-tests-once.yml \
+            --branch agent/zeref-quantum-divergence \
+            --limit 5 \
+            --json databaseId,status,conclusion,headSha,url,createdAt,updatedAt \
+            > evidence/dev/trinity-test-status-probe.json
+          cat evidence/dev/trinity-test-status-probe.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin agent/zeref-quantum-divergence
+          git add evidence/dev/trinity-test-status-probe.json
+          git commit -m "evidence: probe Trinity verifier status" || true
+          git push origin HEAD:agent/zeref-quantum-divergence
