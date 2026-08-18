@@ -125,7 +125,7 @@ if env_example.is_file():
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        value = value.strip().strip('"\'')
+        value = value.strip().strip("\"'")
         if value and not (
             value.startswith("${")
             or value.startswith("<")
