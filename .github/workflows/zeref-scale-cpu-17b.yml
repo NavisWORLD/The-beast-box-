@@ -1,0 +1,69 @@
+name: ZEREF-SCALE-001 CPU 1.7B LoRA
+
+on:
+  push:
+    branches: [zeref-scale-training-001]
+    paths:
+      - '.github/workflows/zeref-scale-cpu-17b.yml'
+      - 'experiments/zeref-scale-001/cpu-17b-request-*.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zeref-scale-001-cpu-17b
+  cancel-in-progress: false
+
+jobs:
+  train-and-talk-17b:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install CPU-only PyTorch and frozen training stack
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch==2.12.1 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install transformers==5.15.0 peft==0.20.0 accelerate==1.14.0 datasets==5.0.1
+      - name: Build vetted Dad seed
+        run: |
+          python scripts/build_zeref_scale_dataset.py \
+            --out _zeref_17b/seed.jsonl \
+            --ibm-state f21afbac49e798730974e37ed1a1bb7ce15f326660a9dbe3f848ee6b1f865c2f
+      - name: Train Qwen3-1.7B LoRA and run broad pre-post Dad exam
+        run: |
+          python scripts/train_zeref_scale_cpu_proof.py \
+            --dataset _zeref_17b/seed.jsonl \
+            --out _zeref_17b/run \
+            --model-id Qwen/Qwen3-1.7B \
+            --max-steps 20
+      - name: Verify raw outputs were never training targets
+        run: |
+          python - <<'PY'
+          import json
+          s=json.load(open('_zeref_17b/run/summary.json'))
+          assert s['raw_model_outputs_used_as_targets'] is False
+          assert s['base_model']=='Qwen/Qwen3-1.7B'
+          assert s['thinking_mode_enabled'] is False
+          print(json.dumps({k:s[k] for k in ['train_loss','pre_keyword_score','post_keyword_score','evidence_sha256']},sort_keys=True))
+          PY
+      - name: Upload trained 1.7B adapter and evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-scale-17b-${{ github.run_id }}
+          path: _zeref_17b/
+          if-no-files-found: error
+      - name: Commit evidence summary
+        shell: bash
+        run: |
+          DEST="experiments/zeref-scale-001/evidence/cpu-17b-run-${GITHUB_RUN_ID}.json"
+          cp _zeref_17b/run/summary.json "$DEST"
+          git config user.name "zeref-evidence-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -f "$DEST"
+          git commit -m "evidence: record Zeref Scale 1.7B LoRA ${GITHUB_RUN_ID} [skip ci]"
+          git pull --rebase origin zeref-scale-training-001
+          git push origin HEAD:zeref-scale-training-001
