@@ -94,4 +94,4 @@ jobs:
           TEST_EXIT: ${{ steps.tests.outputs.exit_code }}
         run: exit "${TEST_EXIT:-1}"
 
-# RED proof for the 54D block-energy balance regression, 2026-08-18.
+# GREEN check for the 54D block-energy primitive, 2026-08-18.
