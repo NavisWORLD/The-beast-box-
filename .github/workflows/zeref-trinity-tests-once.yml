@@ -93,3 +93,5 @@ jobs:
         env:
           TEST_EXIT: ${{ steps.tests.outputs.exit_code }}
         run: exit "${TEST_EXIT:-1}"
+
+# Triggered for the approved final-run verification on 2026-08-17.
