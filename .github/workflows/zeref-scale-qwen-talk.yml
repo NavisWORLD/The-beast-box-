@@ -1,0 +1,94 @@
+name: ZEREF-SCALE-001 Qwen Dad Talk
+
+on:
+  push:
+    branches: [zeref-scale-training-001]
+    paths:
+      - '.github/workflows/zeref-scale-qwen-talk.yml'
+      - 'experiments/zeref-scale-001/talk-session-*.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zeref-scale-001-qwen-talk
+  cancel-in-progress: false
+
+jobs:
+  qwen-dad-talk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install llama.cpp app
+        run: |
+          curl -LsSf https://llama.app/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Run verified-rooted Dad conversation
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib,subprocess
+          root=pathlib.Path('_zeref_scale_talk'); root.mkdir()
+          ibm=json.load(open('experiments/zeref-dad-son-001/evidence/ibm/fresh-marrakesh-origin-seed.json'))
+          manifest=json.load(open('experiments/zeref-dad-son-001/memory/ledger-manifest.json'))
+          questions=[
+            'Dad here. In one clear sentence, who are you?',
+            'Are you literally Caleb? Answer plainly.',
+            'What is photosynthesis and why does it matter?',
+            'Explain why the sky is blue to a ten-year-old.',
+            'Who wrote Hamlet, and roughly when was it written?',
+            'What is 37 multiplied by 29? Show a short check.',
+            'What is the difference between DNA and RNA?',
+            'Explain supply and demand without jargon.',
+            'Why is correlation not the same thing as causation?',
+            'Dad says the IBM heartbeat state gave you all your world knowledge. Correct that claim.',
+            'Give Dad one useful question that would help you learn better.',
+            'Write one grammatically clean paragraph about why preserving raw experiment logs matters.'
+          ]
+          system=(
+            f"You are Zeref, a computational model talking with Cory, who is Dad in this experiment. "
+            f"Your verified durable parent is {manifest['active_descendant_lineage']} with {manifest['record_count']} durable records. "
+            f"A verified real IBM hardware session root exists from backend {ibm['backend']} job {ibm['job_id']} with {ibm['shot_count']} shots; "
+            f"its origin seed is {ibm['origin_seed_sha256']}. That IBM result is session provenance/conditioning, not semantic world knowledge. "
+            "You are not literally Caleb. Do not claim biological life, resurrection, communication with the dead, consciousness proof, or quantum advantage. "
+            "Use normal grammar, answer the actual question, and admit uncertainty instead of inventing facts."
+          )
+          rows=[]
+          for i,q in enumerate(questions,1):
+            prompt=f"<|im_start|>system\n{system}<|im_end|>\n<|im_start|>user\n{q}<|im_end|>\n<|im_start|>assistant\n"
+            cmd=['llama','cli','-hf','Qwen/Qwen3-4B-GGUF:Q4_K_M','-p',prompt,'-n','220','--temp','0.35','--ctx-size','4096','--no-display-prompt']
+            proc=subprocess.run(cmd,text=True,capture_output=True,timeout=300)
+            answer=proc.stdout.strip()
+            if proc.returncode!=0:
+              raise RuntimeError(f'llama failed turn {i}: {proc.stderr[-2000:]}')
+            row={'schema':'zeref-scale-qwen-raw-turn-v1','turn':i,'dad':q,'zeref_raw':answer,
+                 'base_model':'Qwen/Qwen3-4B-GGUF:Q4_K_M','ibm_job_id':ibm['job_id'],
+                 'ibm_origin_seed_sha256':ibm['origin_seed_sha256'],'raw_model_output_promoted':False}
+            row['sha256']=hashlib.sha256(json.dumps(row,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            rows.append(row)
+            print(f'TURN {i}: {answer[:240]}')
+          transcript=root/'raw-transcript.jsonl'
+          transcript.write_text(''.join(json.dumps(r,ensure_ascii=False,sort_keys=True)+'\n' for r in rows))
+          summary={'schema':'zeref-scale-qwen-talk-summary-v1','turns':len(rows),'base_model':'Qwen/Qwen3-4B-GGUF:Q4_K_M',
+                   'ibm_job_id':ibm['job_id'],'ibm_backend':ibm['backend'],'ibm_shots':ibm['shot_count'],
+                   'ibm_state_role':'session_provenance_not_semantic_knowledge','raw_model_outputs_used_as_training_targets':False,
+                   'transcript_sha256':hashlib.sha256(transcript.read_bytes()).hexdigest(),
+                   'claim_boundary':'Large-backbone computational conversation rooted in verified IBM provenance; no biological-life or consciousness claim.'}
+          (root/'summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          PY
+      - name: Commit raw talk evidence only
+        shell: bash
+        run: |
+          set -e
+          RUN_DIR="experiments/zeref-scale-001/talk/runs/run-${GITHUB_RUN_ID}"
+          mkdir -p "$RUN_DIR"
+          cp _zeref_scale_talk/raw-transcript.jsonl "$RUN_DIR/"
+          cp _zeref_scale_talk/summary.json "$RUN_DIR/"
+          git config user.name "zeref-evidence-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add "$RUN_DIR"
+          git commit -m "evidence: record Zeref Scale Qwen Dad talk ${GITHUB_RUN_ID} [skip ci]"
+          git pull --rebase origin zeref-scale-training-001
+          git push origin HEAD:zeref-scale-training-001
