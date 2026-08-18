@@ -374,7 +374,7 @@ jobs:
 
       - name: Upload DAD GOD evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zeref-talk5-dad-god-${{ github.run_id }}
           path: |

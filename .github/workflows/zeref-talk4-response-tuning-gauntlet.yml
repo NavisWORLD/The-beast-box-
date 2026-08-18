@@ -456,7 +456,7 @@ jobs:
           sha256sum -c _tune4/SHA256SUMS
 
       - name: Upload tuned TALK-004 child and Dad evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zeref-talk4-tuned-response-${{ github.run_id }}
           path: _tune4

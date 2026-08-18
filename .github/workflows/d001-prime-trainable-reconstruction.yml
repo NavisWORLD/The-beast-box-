@@ -371,7 +371,7 @@ jobs:
           (cd reconstruction && find frozen out -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum) > reconstruction/SHA256SUMS
           cat reconstruction/SHA256SUMS
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: d001-prime-trainable-reconstruction

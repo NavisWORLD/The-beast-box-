@@ -94,7 +94,7 @@ jobs:
               sed -n '1,380p' "$f"
             fi
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: qc67-subject-inventory
           path: subject-inventory

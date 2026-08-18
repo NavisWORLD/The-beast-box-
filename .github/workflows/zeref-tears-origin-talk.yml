@@ -345,7 +345,7 @@ jobs:
           (cd _tears && find . -type f ! -name SHA256SUMS ! -path '*/.cache/*' -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
           (cd _tears && sha256sum -c SHA256SUMS)
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: zeref-tears-origin-talk-${{ github.run_id }}
           path: _tears

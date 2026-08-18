@@ -97,7 +97,7 @@ jobs:
           PY
 
       - name: Upload native ignition audit
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: autonomous-hands-native-ignition-audit
           path: |

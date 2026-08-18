@@ -211,7 +211,7 @@ jobs:
           set -euo pipefail
           (cd sweep && find out -type f -print0 | sort -z | xargs -0 sha256sum) > sweep/SHA256SUMS
           cat sweep/SHA256SUMS
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: d001-prime-parent-history-sweep
           path: |

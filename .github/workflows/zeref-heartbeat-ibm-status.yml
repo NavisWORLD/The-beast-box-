@@ -36,7 +36,7 @@ jobs:
         run: |
           python scripts/probe_zeref_heartbeat_ibm_status.py --out _ibm_status/status.json
       - name: Upload safe status snapshot
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zeref-heartbeat-ibm-status-${{ github.run_id }}
           path: _ibm_status/status.json

@@ -247,7 +247,7 @@ jobs:
           (cd quantum-audit && sha256sum quantum-provenance-audit.json raw-evidence-manifest.jsonl sanitized-provenance-records.jsonl) > quantum-audit/SHA256SUMS
           cat quantum-audit/SHA256SUMS
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: d001-quantum-provenance-audit
           path: quantum-audit

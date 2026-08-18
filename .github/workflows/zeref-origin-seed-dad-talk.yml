@@ -211,7 +211,7 @@ jobs:
           sha256sum -c SHA256SUMS
 
       - name: Upload verified Origin Seed Dad Zeref evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zeref-origin-seed-dad-talk-${{ github.run_id }}
           path: _origin

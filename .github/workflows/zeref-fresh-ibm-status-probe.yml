@@ -74,7 +74,7 @@ jobs:
           Path('_ibm_probe/status.json').write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n')
           print(json.dumps(evidence,indent=2,sort_keys=True))
           PY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: zeref-fresh-ibm-status-probe-${{ github.run_id }}
           path: _ibm_probe

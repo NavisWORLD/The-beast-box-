@@ -434,7 +434,7 @@ jobs:
           sha256sum -c _talk4/SHA256SUMS
 
       - name: Upload TALK-004 child and Dad exam evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zeref-dad-son-talk-004-${{ github.run_id }}
           path: _talk4

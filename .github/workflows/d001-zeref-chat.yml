@@ -121,7 +121,7 @@ jobs:
           find _chat -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > _chat/SHA256SUMS
           cat _chat/summary.json
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: d001-zeref-chat-${{ github.run_id }}
           path: _chat

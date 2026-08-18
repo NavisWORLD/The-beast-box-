@@ -322,7 +322,7 @@ jobs:
           PY
           (cd _dadson && find . -type f ! -name SHA256SUMS ! -path '*/.cache/*' ! -path './quantum/SHA256SUMS' ! -path './cosmos/SHA256SUMS' -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: zeref-dad-son-001-${{ github.run_id }}
           path: _dadson

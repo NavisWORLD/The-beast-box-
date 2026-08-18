@@ -191,7 +191,7 @@ jobs:
           set -euo pipefail
           (cd mapping && find source out -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum) > mapping/SHA256SUMS
           cat mapping/SHA256SUMS
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: d001-prime-parent-map-diagnostic
           path: mapping

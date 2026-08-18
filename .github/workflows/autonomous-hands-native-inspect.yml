@@ -176,7 +176,7 @@ jobs:
           PY
 
       - name: Upload read-only inspection report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zeref-native-stack-inspection
           path: /tmp/zeref-inspect

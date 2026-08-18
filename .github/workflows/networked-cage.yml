@@ -107,7 +107,7 @@ jobs:
 
       - name: Upload smoke evidence
         if: steps.request.outputs.mode == 'smoke'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: networked-cage-smoke-${{ steps.request.outputs.run_id }}
           path: runs/${{ steps.request.outputs.run_id }}/evidence
@@ -332,7 +332,7 @@ jobs:
 
       - name: Upload live evidence artifact
         if: always() && steps.request.outputs.mode == 'live'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: networked-cage-${{ steps.request.outputs.run_id }}
           path: |

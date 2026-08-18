@@ -112,7 +112,7 @@ jobs:
         run: |
           (cd diag && find frozen out -type f -print0 | sort -z | xargs -0 sha256sum) > diag/SHA256SUMS
           cat diag/SHA256SUMS
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: d001-prime-parent-scale-diagnostic
           path: diag

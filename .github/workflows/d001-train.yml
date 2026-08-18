@@ -181,7 +181,7 @@ jobs:
           cat _d001/D001-QUANTUM/status.json
           cat _d001/D001-TWIN/status.json
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: d001-trained-lineage-${{ github.run_id }}
           path: _d001

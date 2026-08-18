@@ -91,7 +91,7 @@ jobs:
           print(json.dumps({k:report[k] for k in ['records','hardware_like_records','binary_count_maps_found','first_hardware_record_index']},sort_keys=True))
           PY
       - run: sha256sum _qshape/payload-shape.json > _qshape/SHA256SUMS
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: d001-quantum-payload-shape-${{ github.run_id }}
           path: _qshape
