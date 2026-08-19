@@ -9,7 +9,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
@@ -39,3 +39,11 @@ jobs:
             huggingface/ZEREF_OLLAMA_KIT \
             ZEREF_OLLAMA_KIT \
             --commit-message "Publish Zeref Ollama kit from ${GITHUB_SHA::7}"
+      - name: Record successful publication
+        run: |
+          printf 'Hugging Face publication succeeded from GitHub commit %s at %s\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > huggingface/HF_PUBLISH_SUCCESS.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add huggingface/HF_PUBLISH_SUCCESS.txt
+          git commit -m "Record successful QC67 Hugging Face publication"
+          git push
