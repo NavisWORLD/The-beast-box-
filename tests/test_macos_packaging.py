@@ -46,6 +46,13 @@ def test_macos_distribution_builder_creates_app_and_dmg():
     assert "Applications" in text
 
 
+def test_macos_checksum_manifest_uses_portable_filenames():
+    text = (ROOT / "scripts" / "build_macos_dist.sh").read_text(encoding="utf-8")
+    assert 'cd "$OUT_DIR"' in text
+    assert 'basename "$DMG"' in text
+    assert 'basename "$ZIP"' in text
+
+
 def test_macos_ci_builds_apple_silicon_and_intel_artifacts():
     workflow = ROOT / ".github" / "workflows" / "macos-zeref.yml"
     assert workflow.is_file()
