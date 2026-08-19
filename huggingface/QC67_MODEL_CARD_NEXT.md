@@ -140,6 +140,8 @@ Public software:
 https://github.com/NavisWORLD/The-beast-box-
 ```
 
+Publication lineage: the Zeref/macOS/QC67 publishing work was merged in GitHub commit `f3f0c6adabcfd4f6778518e60267177eeff3db4b`; the HF-facing card then received only the legal-metadata preservation correction described below plus this reproducibility note.
+
 ## License
 
 This publication intentionally preserves the existing Hugging Face repository metadata `license: other`. Consult the legal files and terms already distributed with the model repository for the controlling rights for each artifact. The Beast Box software repository contains its own licensing terms for the software distribution.
