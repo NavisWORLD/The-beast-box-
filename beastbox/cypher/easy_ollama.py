@@ -14,6 +14,31 @@ DEFAULT_PROFILE = os.environ.get("ZEREF_OLLAMA_PROFILE", "zeref")
 DEFAULT_URL = "http://127.0.0.1:11434"
 
 
+def default_user_config_path() -> Path:
+    root = Path(os.environ.get("ZEREF_HOME", Path.home() / ".cosmos-zeref")).expanduser()
+    return root / "beastbox.json"
+
+
+def load_zeref_runtime_config(path: str | Path):
+    from ..config import RuntimeConfig
+
+    p = Path(path).expanduser()
+    if p.exists():
+        return RuntimeConfig.load(p)
+
+    root = p.parent.resolve()
+    cfg = RuntimeConfig(
+        data_dir=str(root / "data"),
+        memory_db=str(root / "reconciliation.sqlite3"),
+        evidence_dir=str(root / "evidence"),
+        proposals_dir=str(root / "proposals"),
+        local_model_url=DEFAULT_URL,
+        local_model_name=DEFAULT_PROFILE,
+    )
+    cfg.save(p)
+    return cfg
+
+
 def make_zeref_modelfile(base_model: str = DEFAULT_BASE_MODEL) -> str:
     return (
         f"FROM {base_model}\n"
@@ -131,11 +156,10 @@ def ensure_zeref_profile(
 
     listing = list_models or list_ollama_models
     installed = set(listing(base_url))
-    if base_model not in installed:
-        (pull or pull_ollama_model)(base_model)
-        installed = set(listing(base_url))
-
     if profile_name not in installed or rebuild:
+        if base_model not in installed:
+            (pull or pull_ollama_model)(base_model)
+            installed = set(listing(base_url))
         (create_profile or create_ollama_profile)(
             profile_name,
             make_zeref_modelfile(base_model),
@@ -201,15 +225,38 @@ def choose_startup_spec(
     profile_name: str = DEFAULT_PROFILE,
     base_url: str = DEFAULT_URL,
     rebuild_zeref: bool = False,
+    installed_models: set[str] | None = None,
 ):
+    def ensure_registered_available(spec):
+        if (
+            installed_models is not None
+            and spec.backend == "ollama"
+            and spec.model not in installed_models
+        ):
+            if spec.alias == "zeref" or spec.model == profile_name:
+                return ensure_zeref_profile(
+                    registry,
+                    base_model=base_model,
+                    profile_name=profile_name,
+                    base_url=base_url,
+                    rebuild=True,
+                )
+            return ensure_plain_ollama_model(
+                registry,
+                spec.model,
+                alias=spec.alias,
+                base_url=base_url,
+            )
+        registry.set_active(spec.alias)
+        return spec
+
     if requested:
         try:
             spec = registry.get(requested)
         except KeyError:
             spec = None
         if spec is not None:
-            registry.set_active(spec.alias)
-            return spec
+            return ensure_registered_available(spec)
         if requested == "zeref":
             return ensure_zeref_profile(
                 registry,
@@ -222,7 +269,7 @@ def choose_startup_spec(
 
     active = registry.active()
     if active is not None:
-        return active
+        return ensure_registered_available(active)
 
     return ensure_zeref_profile(
         registry,
@@ -284,10 +331,13 @@ def _interactive(runtime, registry, *, system_prompt: str, base_url: str = DEFAU
                 print("usage> /use <ollama-model-or-registered-alias>")
                 continue
             try:
+                from .models import list_ollama_models
+
                 spec = choose_startup_spec(
                     registry,
                     requested=requested,
                     base_url=base_url,
+                    installed_models=set(list_ollama_models(base_url)),
                 )
                 switch_runtime_backend(runtime, spec)
             except Exception as exc:
@@ -323,8 +373,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--config",
         type=Path,
-        default=Path("beastbox.json"),
-        help="COSMOS runtime config; created automatically when missing",
+        default=default_user_config_path(),
+        help="COSMOS runtime config; defaults to a stable per-user Zeref home",
     )
     parser.add_argument("--registry", type=Path, help="override ~/.cosmic-cypher/models.json")
     parser.add_argument(
@@ -341,7 +391,6 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    from ..config import RuntimeConfig
     from ..runtime import CosmosRuntime
     from .models import create_model
     from .registry import ModelRegistry
@@ -351,7 +400,7 @@ def main(argv: list[str] | None = None) -> int:
     registry = ModelRegistry(args.registry) if args.registry else ModelRegistry()
 
     try:
-        ensure_ollama_service(base_url=DEFAULT_URL)
+        installed_models = set(ensure_ollama_service(base_url=DEFAULT_URL))
         spec = choose_startup_spec(
             registry,
             requested=args.model,
@@ -359,6 +408,7 @@ def main(argv: list[str] | None = None) -> int:
             profile_name=DEFAULT_PROFILE,
             base_url=DEFAULT_URL,
             rebuild_zeref=args.rebuild_zeref,
+            installed_models=installed_models,
         )
     except Exception as exc:
         print(f"Zeref setup failed: {exc}")
@@ -370,7 +420,7 @@ def main(argv: list[str] | None = None) -> int:
         print("Run `zeref` to start talking.")
         return 0
 
-    cfg = RuntimeConfig.load(args.config)
+    cfg = load_zeref_runtime_config(args.config)
     runtime = CosmosRuntime(cfg, provider=BackendTextProvider(create_model(spec)))
     try:
         return _interactive(runtime, registry, system_prompt=OWNER_PROFILE)
