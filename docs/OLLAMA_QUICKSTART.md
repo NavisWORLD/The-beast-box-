@@ -38,7 +38,7 @@ The launcher:
 3. downloads the default lightweight base model when it is missing;
 4. creates a local Ollama model named `zeref`;
 5. registers it as the active COSMIC.CYPHER model;
-6. creates/loads the COSMOS runtime configuration;
+6. creates/loads the per-user COSMOS runtime configuration and memory home;
 7. opens a stateful conversation backed by Reconciliation Memory.
 
 The default base is `qwen2.5:1.5b`. Override it at setup time:
@@ -61,7 +61,7 @@ Inside a Zeref session:
 /use zeref
 ```
 
-If `/use` names an Ollama model that is not installed, the launcher downloads it first. The selected backend changes while the same COSMOS runtime and Reconciliation Memory remain attached.
+If `/use` names an Ollama model that is not installed, the launcher downloads it first. The selected backend changes while the same COSMOS runtime and Reconciliation Memory remain attached. If a previously selected local Ollama model was later deleted, startup repairs or re-downloads it instead of leaving a dead selection.
 
 You can also choose at launch:
 
@@ -70,6 +70,16 @@ zeref --model llama3.2:3b
 ```
 
 The active selection is saved in `~/.cosmic-cypher/models.json` and reused on the next launch.
+
+By default, Zeref's growing runtime data lives in a stable per-user home rather than the folder you launched from:
+
+```text
+~/.cosmos-zeref/beastbox.json
+~/.cosmos-zeref/reconciliation.sqlite3
+~/.cosmos-zeref/evidence/
+```
+
+Set `ZEREF_HOME` if you want that persistent home somewhere else. This means switching folders or changing Ollama backends does not create a fresh memory database by accident.
 
 ## What “growing” means
 
