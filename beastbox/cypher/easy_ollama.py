@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 from typing import Callable
 
-DEFAULT_BASE_MODEL = os.environ.get("ZEREF_BASE_MODEL", "qwen2.5:1.5b")
+DEFAULT_BASE_MODEL = os.environ.get("ZEREF_BASE_MODEL", "hf.co/phera-ra/QC67_cosmo")
 DEFAULT_PROFILE = os.environ.get("ZEREF_OLLAMA_PROFILE", "zeref")
 DEFAULT_URL = "http://127.0.0.1:11434"
 
