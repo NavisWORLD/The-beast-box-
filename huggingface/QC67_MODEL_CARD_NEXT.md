@@ -1,7 +1,7 @@
 ---
 language:
   - en
-license: cc-by-4.0
+license: other
 library_name: gguf
 pipeline_tag: text-generation
 tags:
@@ -76,6 +76,8 @@ The Beast Box repository includes a real Finder-launchable `Zeref.app` packaging
 
 The packaged app includes the Python runtime needed for the Zeref CLI. Ollama remains the local inference runtime. If Ollama is missing, the app guides the user to install it.
 
+The macOS packaging workflow has passed on GitHub-hosted macOS runners for both Apple Silicon and Intel build targets.
+
 Source users can also double-click:
 
 ```text
@@ -140,7 +142,7 @@ https://github.com/NavisWORLD/The-beast-box-
 
 ## License
 
-Check the license/NOTICE files accompanying each artifact. The Hugging Face model card metadata identifies the published model materials as CC BY 4.0; the Beast Box software repository contains its own licensing terms for the software distribution.
+This publication intentionally preserves the existing Hugging Face repository metadata `license: other`. Consult the legal files and terms already distributed with the model repository for the controlling rights for each artifact. The Beast Box software repository contains its own licensing terms for the software distribution.
 
 ## Reproducibility note
 
