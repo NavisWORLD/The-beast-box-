@@ -11,7 +11,7 @@ def test_macos_double_click_launcher_exists_and_bootstraps_zeref():
     launcher = ROOT / "START_ZEREF.command"
     assert launcher.is_file()
     text = launcher.read_text(encoding="utf-8")
-    assert "beastbox.cypher.easy_ollama" in text or "zeref" in text
+    assert "START_ZEREF.sh" in text
     assert "uname -m" in text
     assert "ollama" in text.lower()
 
