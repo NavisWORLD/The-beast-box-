@@ -3,6 +3,8 @@ name: Publish QC67 kit to Hugging Face
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
 
