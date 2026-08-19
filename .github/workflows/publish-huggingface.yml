@@ -46,6 +46,7 @@ jobs:
         if: always()
         run: |
           {
+            echo "run_id=$GITHUB_RUN_ID"
             echo "source_sha=$GITHUB_SHA"
             echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             echo "install_hf=${{ steps.install_hf.outcome }}"
