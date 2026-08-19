@@ -29,6 +29,12 @@ def test_macos_app_bundle_metadata_is_valid():
     assert data["LSMinimumSystemVersion"]
 
 
+def test_finder_launcher_searches_common_ollama_paths():
+    launcher = (ROOT / "macos" / "Zeref").read_text(encoding="utf-8")
+    assert "/opt/homebrew/bin" in launcher
+    assert "/usr/local/bin" in launcher
+
+
 def test_macos_distribution_builder_creates_app_and_dmg():
     builder = ROOT / "scripts" / "build_macos_dist.sh"
     assert builder.is_file()
