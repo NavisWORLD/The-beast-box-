@@ -6,6 +6,11 @@ RESOURCES="$(CDPATH= cd -- "$HERE/../Resources" && pwd)"
 CLI="$RESOURCES/zeref-cli"
 ARCH="$(uname -m)"
 
+# Finder-launched apps do not inherit a user's interactive shell PATH.
+# Include the standard Apple Silicon Homebrew and Intel/local binary paths
+# so a normally installed Ollama CLI is discoverable before Terminal opens.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 if [[ ! -x "$CLI" ]]; then
   /usr/bin/osascript -e 'display alert "Zeref is incomplete" message "The bundled zeref-cli executable is missing. Reinstall Zeref from the DMG." as critical' >/dev/null 2>&1 || true
   exit 2
