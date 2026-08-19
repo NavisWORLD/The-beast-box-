@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from beastbox.cypher.easy_ollama import (
+    DEFAULT_BASE_MODEL,
     build_parser,
     choose_startup_spec,
     ensure_plain_ollama_model,
@@ -14,6 +15,11 @@ from beastbox.cypher.easy_ollama import (
 )
 from beastbox.cypher.models import ModelSpec
 from beastbox.cypher.registry import ModelRegistry
+
+
+def test_default_zeref_base_is_published_qc67_model():
+    assert DEFAULT_BASE_MODEL == "hf.co/phera-ra/QC67_cosmo"
+    assert "FROM hf.co/phera-ra/QC67_cosmo" in make_zeref_modelfile()
 
 
 def test_registry_persists_active_model(tmp_path: Path):

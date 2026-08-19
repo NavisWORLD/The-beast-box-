@@ -1,0 +1,39 @@
+name: Publish QC67 kit to Hugging Face
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Hugging Face CLI with OIDC support
+        run: python -m pip install --upgrade 'huggingface_hub>=1.19.0'
+      - name: Publish corrected QC67 model card
+        env:
+          HF_OIDC_RESOURCE: phera-ra/QC67_cosmo
+        run: |
+          hf upload phera-ra/QC67_cosmo \
+            huggingface/QC67_MODEL_CARD_NEXT.md \
+            README.md \
+            --commit-message "Update QC67 COSMOS/Zeref model card from ${GITHUB_SHA::7}"
+      - name: Publish Zeref Ollama kit
+        env:
+          HF_OIDC_RESOURCE: phera-ra/QC67_cosmo
+        run: |
+          hf upload phera-ra/QC67_cosmo \
+            huggingface/ZEREF_OLLAMA_KIT \
+            ZEREF_OLLAMA_KIT \
+            --commit-message "Publish Zeref Ollama kit from ${GITHUB_SHA::7}"
