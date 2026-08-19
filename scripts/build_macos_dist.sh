@@ -74,6 +74,12 @@ rm -f "$DMG" "$ZIP"
 /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
 
 CHECKSUMS="$OUT_DIR/Zeref-macOS-$ARCH_TAG.sha256"
-/usr/bin/shasum -a 256 "$DMG" "$ZIP" > "$CHECKSUMS"
+DMG_NAME="$(basename "$DMG")"
+ZIP_NAME="$(basename "$ZIP")"
+CHECKSUM_NAME="$(basename "$CHECKSUMS")"
+(
+  cd "$OUT_DIR"
+  /usr/bin/shasum -a 256 "$DMG_NAME" "$ZIP_NAME" > "$CHECKSUM_NAME"
+)
 
 printf '\n[Zeref] macOS artifacts ready:\n  %s\n  %s\n  %s\n' "$DMG" "$ZIP" "$CHECKSUMS"
