@@ -19,7 +19,7 @@ class ModelRegistry:
 
     def _load_raw(self) -> dict:
         if not self.path.exists():
-            return {"version": 1, "models": {}}
+            return {"version": 2, "models": {}}
         data = json.loads(self.path.read_text(encoding="utf-8"))
         if not isinstance(data, dict) or not isinstance(data.get("models", {}), dict):
             raise ValueError(f"invalid model registry: {self.path}")
@@ -41,6 +41,24 @@ class ModelRegistry:
             raise KeyError(f"unknown local model alias {alias!r}")
         return ModelSpec.from_dict(raw[alias])
 
+    def active_alias(self) -> str | None:
+        data = self._load_raw()
+        alias = data.get("active")
+        if not alias or alias not in data.get("models", {}):
+            return None
+        return str(alias)
+
+    def active(self) -> ModelSpec | None:
+        alias = self.active_alias()
+        return self.get(alias) if alias else None
+
+    def set_active(self, alias: str) -> None:
+        self.get(alias)
+        data = self._load_raw()
+        data["version"] = max(2, int(data.get("version", 1)))
+        data["active"] = alias
+        self._save_raw(data)
+
     def register(self, spec: ModelSpec, *, overwrite: bool = False) -> None:
         if not spec.alias.strip():
             raise ValueError("model alias cannot be empty")
@@ -55,6 +73,8 @@ class ModelRegistry:
         data = self._load_raw()
         existed = alias in data.setdefault("models", {})
         data["models"].pop(alias, None)
+        if data.get("active") == alias:
+            data.pop("active", None)
         self._save_raw(data)
         return existed
 
@@ -63,14 +83,26 @@ class ModelRegistry:
         for name in list_ollama_models(base_url):
             alias = f"ollama-{name.replace(':', '-').replace('/', '-')}"
             try:
-                self.register(ModelSpec(alias=alias, backend="ollama", model=name, base_url=base_url), overwrite=overwrite)
+                self.register(
+                    ModelSpec(alias=alias, backend="ollama", model=name, base_url=base_url),
+                    overwrite=overwrite,
+                )
                 added.append(alias)
             except ValueError:
                 if overwrite:
                     raise
         return added
 
-    def register_gguf_paths(self, paths: Iterable[str | Path], *, recursive: bool = False, backend: str = "llama-cpp-python", overwrite: bool = False, context: int = 8192, n_gpu_layers: int = 0) -> list[str]:
+    def register_gguf_paths(
+        self,
+        paths: Iterable[str | Path],
+        *,
+        recursive: bool = False,
+        backend: str = "llama-cpp-python",
+        overwrite: bool = False,
+        context: int = 8192,
+        n_gpu_layers: int = 0,
+    ) -> list[str]:
         files: list[Path] = []
         for raw in paths:
             p = Path(raw).expanduser()
@@ -85,7 +117,16 @@ class ModelRegistry:
             suffix, original = 2, alias
             while True:
                 try:
-                    self.register(ModelSpec(alias=alias, backend=backend, model=str(p), context=context, options={"n_gpu_layers": n_gpu_layers}), overwrite=overwrite)
+                    self.register(
+                        ModelSpec(
+                            alias=alias,
+                            backend=backend,
+                            model=str(p),
+                            context=context,
+                            options={"n_gpu_layers": n_gpu_layers},
+                        ),
+                        overwrite=overwrite,
+                    )
                     break
                 except ValueError:
                     if overwrite:
