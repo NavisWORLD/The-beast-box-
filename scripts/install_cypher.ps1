@@ -1,7 +1,8 @@
 param(
     [string]$Python = "python",
     [string]$EnvDir = ".venv",
-    [switch]$DirectGGUF
+    [switch]$DirectGGUF,
+    [switch]$SetupZeref
 )
 $ErrorActionPreference = "Stop"
 & $Python -m venv $EnvDir
@@ -13,4 +14,8 @@ if ($DirectGGUF) {
     & $Py -m pip install -e .
 }
 Write-Host "Cosmic Cypher installed."
-Write-Host "Run: $EnvDir\Scripts\cosmic.cypher-cli.exe doctor"
+Write-Host "Easy Ollama launch: $EnvDir\Scripts\zeref.exe"
+Write-Host "Or double-click START_ZEREF.bat"
+if ($SetupZeref) {
+    & $Py -m beastbox.cypher.easy_ollama --setup-only
+}
