@@ -8,6 +8,7 @@ from beastbox.cypher.easy_ollama import (
     choose_startup_spec,
     ensure_plain_ollama_model,
     ensure_zeref_profile,
+    load_zeref_runtime_config,
     make_zeref_modelfile,
     switch_runtime_backend,
 )
@@ -144,3 +145,46 @@ def test_choose_startup_spec_uses_registered_requested_alias(tmp_path: Path):
     chosen = choose_startup_spec(reg, requested="b")
     assert chosen.model == "beta"
     assert reg.active_alias() == "b"
+
+
+def test_existing_zeref_profile_does_not_redownload_base(tmp_path: Path):
+    reg = ModelRegistry(tmp_path / "models.json")
+    spec = ensure_zeref_profile(
+        reg,
+        base_model="qwen2.5:1.5b",
+        list_models=lambda _url: ["zeref"],
+        pull=lambda _model: (_ for _ in ()).throw(AssertionError("should not pull")),
+        create_profile=lambda _name, _text: (_ for _ in ()).throw(AssertionError("should not rebuild")),
+    )
+    assert spec.model == "zeref"
+    assert reg.active_alias() == "zeref"
+
+
+def test_default_runtime_config_uses_stable_absolute_memory_path(tmp_path: Path):
+    cfg_path = tmp_path / "user-home" / "beastbox.json"
+    cfg = load_zeref_runtime_config(cfg_path)
+    assert Path(cfg.memory_db).is_absolute()
+    assert Path(cfg.memory_db).parent == cfg_path.parent.resolve()
+    assert cfg.local_model_name == "zeref"
+    assert cfg_path.exists()
+
+
+def test_missing_active_zeref_profile_is_repaired(monkeypatch, tmp_path: Path):
+    import beastbox.cypher.easy_ollama as easy
+
+    reg = ModelRegistry(tmp_path / "models.json")
+    reg.register(ModelSpec(alias="zeref", backend="ollama", model="zeref"))
+    reg.set_active("zeref")
+    replacement = ModelSpec(alias="zeref", backend="ollama", model="zeref")
+    called = []
+
+    def fake_ensure(registry, **kwargs):
+        called.append(kwargs)
+        registry.register(replacement, overwrite=True)
+        registry.set_active("zeref")
+        return replacement
+
+    monkeypatch.setattr(easy, "ensure_zeref_profile", fake_ensure)
+    chosen = easy.choose_startup_spec(reg, installed_models=set())
+    assert chosen.model == "zeref"
+    assert called and called[0]["rebuild"] is True
