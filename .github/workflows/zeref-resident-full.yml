@@ -1,0 +1,218 @@
+name: Zeref resident Full real workload
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ibm-provenance-broker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install isolated IBM broker dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[quantum]'
+      - name: Authenticate with repo secret and refresh approved IBM job
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from beastbox.quantum_divergence.resident_broker import refresh_existing_job
+
+          token = os.environ.pop('IBM_QUANTUM_TOKEN', '').strip()
+          if not token:
+              raise SystemExit('IBM_QUANTUM_TOKEN repo secret is unavailable')
+          receipt = refresh_existing_job(
+              token=token,
+              job_id='da1l0maein7c73bdi2d0',
+              backend='ibm_marrakesh',
+              shots=2048,
+              circuit_sha256='8ccea7c430e7e42a664d92ce99f8b8107b1983f2e5710e2763aef9c3458c4c85',
+              ttl_seconds=86400,
+          )
+          root = Path('broker-output')
+          root.mkdir(parents=True, exist_ok=True)
+          (root / 'ibm-receipt.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          print('IBM_BROKER_AUTH=PASS')
+          print('IBM_JOB_ID=' + receipt['job_id'])
+          print('IBM_JOB_STATUS=' + receipt['job_status'])
+          print('SECRET_EXPOSED_TO_SUBJECT=0')
+          PY
+      - name: Verify sanitized broker output
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from beastbox.quantum_divergence.resident_broker import validate_sanitized_receipt
+          path = Path('broker-output/ibm-receipt.json')
+          value = validate_sanitized_receipt(json.loads(path.read_text(encoding='utf-8')), require_fresh=True)
+          assert value['secret_exposed_to_subject'] is False
+          raw = path.read_text(encoding='utf-8').lower()
+          assert 'ibm_quantum_token' not in raw
+          assert 'api_token' not in raw
+          print('BROKER_RECEIPT_SANITIZED=PASS')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: full-zeref-ibm-broker-${{ github.run_id }}
+          path: broker-output/ibm-receipt.json
+          if-no-files-found: error
+
+  full-zeref-workload:
+    needs: ibm-provenance-broker
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: full-zeref-ibm-broker-${{ github.run_id }}
+          path: broker-input
+      - name: Assert subject job has no IBM credential
+        shell: bash
+        run: |
+          test -z "${IBM_QUANTUM_TOKEN:-}"
+          echo 'SUBJECT_IBM_TOKEN_ABSENT=PASS'
+      - name: Install exact Full Zeref runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pip install 'huggingface-hub>=0.34'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Run resident and corrected native Trinity tests
+        run: |
+          pytest -q \
+            tests/test_resident_broker.py \
+            tests/test_full_zeref.py \
+            tests/test_full_zeref_workload.py \
+            tests/test_quantum_divergence_native_trinity.py \
+            tests/test_quantum_divergence_trinity_state.py
+      - name: Fetch and verify exact QC67 source and checkpoint
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          from huggingface_hub import hf_hub_download
+
+          expected = {
+              'architecture/cosmos_spark_cst.py': '955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc',
+              'serving/cosmos_serve.py': '02a509f9c2a20f63c38dca186c082bfdc2603aa8b6f1f903ec19a0e709218d87',
+              'weights/spark_cst.pt': 'aa0cb13c1e67d459db280a53b6407dfc2b5b5f3fd6f640bc43686b70d799acd1',
+          }
+          for rel, wanted in expected.items():
+              path = Path(hf_hub_download('phera-ra/QC67_cosmo', rel, repo_type='model', local_dir='qc67'))
+              got = hashlib.sha256(path.read_bytes()).hexdigest()
+              assert got == wanted, (rel, got, wanted)
+              print(f'QC67_HASH_PASS={rel}:{got}')
+          PY
+      - name: Run frozen matched real workload
+        run: |
+          python scripts/run_full_zeref_workload.py \
+            --native-server qc67/serving/cosmos_serve.py \
+            --checkpoint qc67/weights/spark_cst.pt \
+            --ibm-receipt broker-input/ibm-receipt.json \
+            --output evidence/full-zeref-resident \
+            --max-new-tokens 48 \
+            | tee full-zeref-workload.log
+      - name: Validate measurement gates
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          summary = json.loads(Path('evidence/full-zeref-resident/summary.json').read_text(encoding='utf-8'))
+          doctor = summary['doctor']
+          assert summary['schema'] == 'zeref.full-resident-workload.v1'
+          assert summary['tasks_per_arm'] == 8
+          assert summary['total_responses'] == 24
+          assert summary['subject_environment_safe'] is True
+          assert summary['ibm']['authenticated'] is True
+          assert summary['ibm']['secret_exposed_to_subject'] is False
+          assert doctor['ok'] is True, doctor
+          assert doctor['zero_state_identity'] is True, doctor
+          assert doctor['projection_hashes_complete'] is True, doctor
+          full = summary['arms']['full_zeref_ibm']
+          assert full['mean_hidden_modulation_norm'] > 0.0, full
+          assert full['mean_geometry_modulation_norm'] > 0.0, full
+          assert summary['arms']['direct_native']['mean_hidden_modulation_norm'] == 0.0
+          assert summary['arms']['cosmos_prompt']['mean_hidden_modulation_norm'] == 0.0
+          print('FULL_ZEREF_NATIVE_MECHANISM=PASS')
+          print('FULL_ZEREF_REAL_WORKLOAD=PASS')
+          PY
+      - name: Scan subject evidence for credential-like plaintext
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          patterns = [
+              re.compile(r'(?i)IBM_QUANTUM_TOKEN\s*[:=]\s*\S+'),
+              re.compile(r'(?i)(?:api[_ -]?key|access[_ -]?token)\s*[:=]\s*[A-Za-z0-9_-]{24,}'),
+              re.compile(r'(?i)sk-[A-Za-z0-9_-]{20,}'),
+          ]
+          hits = []
+          for root in (Path('evidence/full-zeref-resident'), Path('broker-input')):
+              for path in root.rglob('*'):
+                  if not path.is_file():
+                      continue
+                  try:
+                      text = path.read_text(encoding='utf-8')
+                  except UnicodeDecodeError:
+                      continue
+                  if any(pattern.search(text) for pattern in patterns):
+                      hits.append(str(path))
+          if hits:
+              raise SystemExit('credential-like plaintext found in: ' + ', '.join(hits))
+          print('SUBJECT_CREDENTIAL_SCAN=PASS')
+          PY
+      - name: Build deterministic evidence bundle
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import zipfile
+          from pathlib import Path
+
+          root = Path('evidence/full-zeref-resident')
+          files = sorted(p for p in root.rglob('*') if p.is_file())
+          files += [Path('broker-input/ibm-receipt.json'), Path('full-zeref-workload.log')]
+          bundle = Path('full-zeref-resident-evidence.zip')
+          with zipfile.ZipFile(bundle, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+              for path in sorted(files, key=lambda p: str(p)):
+                  info = zipfile.ZipInfo(str(path).replace('\\', '/'))
+                  info.date_time = (2026, 8, 20, 0, 0, 0)
+                  info.compress_type = zipfile.ZIP_DEFLATED
+                  info.external_attr = 0o100644 << 16
+                  zf.writestr(info, path.read_bytes())
+          digest = hashlib.sha256(bundle.read_bytes()).hexdigest()
+          receipt = {
+              'schema': 'zeref.full-resident-workload-receipt.v1',
+              'github_run_id': int('${{ github.run_id }}'),
+              'workflow_head_sha': '${{ github.sha }}',
+              'bundle_sha256': digest,
+              'passed': True,
+              'secret_exposed_to_subject': False,
+          }
+          Path('evidence/full-zeref-resident/run-receipt.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          print('FULL_ZEREF_BUNDLE_SHA256=' + digest)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: full-zeref-resident-${{ github.run_id }}
+          path: |
+            evidence/full-zeref-resident/**
+            broker-input/ibm-receipt.json
+            full-zeref-workload.log
+            full-zeref-resident-evidence.zip
+          if-no-files-found: error
