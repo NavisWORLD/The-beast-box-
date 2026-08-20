@@ -48,33 +48,31 @@ def projection_readiness(state_hashes: Mapping[str, Any], native_hashes: Mapping
 
 def _telemetry_dict(value: Any) -> dict[str, Any]:
     if dataclasses.is_dataclass(value):
-        raw = dataclasses.asdict(value)
-    elif isinstance(value, dict):
-        raw = dict(value)
-    else:
-        raw = {
-            name: getattr(value, name)
-            for name in (
-                "enabled",
-                "zero_state_identity",
-                "hidden_modulation_norm",
-                "geometry_modulation_norm",
-                "gate_before",
-                "gate_after",
-                "sigma_before",
-                "sigma_after",
-                "affinity_divergence",
-                "logits_sha256",
-                "internal12_summary",
-                "layer_count",
-            )
-            if hasattr(value, name)
-        }
-    return raw
+        return dataclasses.asdict(value)
+    if isinstance(value, dict):
+        return dict(value)
+    return {
+        name: getattr(value, name)
+        for name in (
+            "enabled",
+            "zero_state_identity",
+            "hidden_modulation_norm",
+            "geometry_modulation_norm",
+            "gate_before",
+            "gate_after",
+            "sigma_before",
+            "sigma_after",
+            "affinity_divergence",
+            "logits_sha256",
+            "internal12_summary",
+            "layer_count",
+        )
+        if hasattr(value, name)
+    }
 
 
 class NativeTrinityTextProvider:
-    """Character generator that applies native QC67 Trinity state at every step."""
+    """Deterministic QC67 character generator with optional native Trinity injection."""
 
     def __init__(
         self,
@@ -82,6 +80,7 @@ class NativeTrinityTextProvider:
         state: TrinityState,
         *,
         adapter: Any | None = None,
+        enabled: bool = True,
         max_new_tokens: int = 192,
         token_selector: Callable[[Any], int] | None = None,
         stop_on_newline: bool = True,
@@ -89,11 +88,12 @@ class NativeTrinityTextProvider:
         self.native = native
         self.state = state
         self.adapter = adapter or NativeTrinityAdapter(native)
+        self.enabled = bool(enabled)
         self.max_new_tokens = max(1, int(max_new_tokens))
         self.token_selector = token_selector or self._default_token_selector
         self.stop_on_newline = bool(stop_on_newline)
         self.last_telemetry: dict[str, Any] = {
-            "native_enabled": True,
+            "native_enabled": self.enabled,
             "generated_tokens": 0,
             "state_step": int(state.step),
         }
@@ -115,10 +115,7 @@ class NativeTrinityTextProvider:
         mapping = getattr(self.native, "itos", None)
         if mapping is None:
             raise ValueError("native QC67 runtime does not expose itos vocabulary")
-        if isinstance(mapping, dict):
-            value = mapping.get(int(index))
-        else:
-            value = mapping[int(index)]
+        value = mapping.get(int(index)) if isinstance(mapping, dict) else mapping[int(index)]
         if value is None:
             raise ValueError(f"native vocabulary does not contain token index {index}")
         return str(value)
@@ -128,12 +125,13 @@ class NativeTrinityTextProvider:
         out: list[str] = []
         telemetry_rows: list[dict[str, Any]] = []
         for _ in range(self.max_new_tokens):
-            logits, telemetry = self.adapter.score(running, self.state, enabled=True)
+            logits, telemetry = self.adapter.score(running, self.state, enabled=self.enabled)
             row = _telemetry_dict(telemetry)
             telemetry_rows.append(row)
-            summary = [float(x) for x in row.get("internal12_summary", [0.0] * 12)]
-            if len(summary) == 12:
-                self.state.apply_feedback(summary)
+            if self.enabled:
+                summary = [float(x) for x in row.get("internal12_summary", [0.0] * 12)]
+                if len(summary) == 12:
+                    self.state.apply_feedback(summary)
             token = self._decode(int(self.token_selector(logits)))
             out.append(token)
             running += token
@@ -145,7 +143,7 @@ class NativeTrinityTextProvider:
             return sum(values) / len(values) if values else 0.0
 
         self.last_telemetry = {
-            "native_enabled": True,
+            "native_enabled": self.enabled,
             "generated_tokens": len(out),
             "state_step": int(self.state.step),
             "hidden_modulation_norm": mean("hidden_modulation_norm"),
@@ -176,7 +174,8 @@ class FullZerefRuntime:
         self.receipt = validate_sanitized_receipt(dict(ibm_receipt), require_fresh=require_fresh_ibm)
         self.receipt_fresh = receipt_is_fresh(self.receipt)
         self.state = state_from_entropy12(self.receipt["entropy12"])
-        self.provider = NativeTrinityTextProvider(native, self.state, max_new_tokens=max_new_tokens)
+        self.provider = NativeTrinityTextProvider(native, self.state, enabled=True, max_new_tokens=max_new_tokens)
+        config.local_model_name = "qc67-cosmos-cst"
         self.runtime = CosmosRuntime(config, provider=self.provider)
         self.native = native
 
@@ -217,9 +216,12 @@ class FullZerefRuntime:
         return out
 
     def doctor(self) -> dict[str, Any]:
-        layers = len(getattr(getattr(self.native, "m", None), "blocks", []))
+        blocks = list(getattr(getattr(self.native, "m", None), "blocks", []) or [])
+        layers = len(blocks)
         meta = getattr(self.native, "meta", {})
         embd = int(getattr(getattr(self.native, "m", None), "embd", 0) or (meta.get("embd", 0) if isinstance(meta, dict) else 0) or 0)
+        if embd <= 0 and blocks:
+            embd = int(getattr(getattr(blocks[0].attn, "qkv", None), "in_features", 0) or 0)
         native_hashes = projection_hashes_for_native(embd, layers) if embd > 0 and layers > 0 else {}
         projection_ok = projection_readiness(self.state.projection_hashes, native_hashes)
         env_safe = subject_environment_safe()
