@@ -13,6 +13,17 @@ on:
       - tests/test_full_zeref.py
       - tests/test_resident_broker.py
       - .github/workflows/resident-full-zeref.yml
+  pull_request:
+    branches:
+      - agent/zeref-quantum-divergence
+    paths:
+      - beastbox/full_zeref.py
+      - beastbox/quantum_divergence/resident_broker.py
+      - beastbox/quantum_divergence/native_trinity.py
+      - beastbox/quantum_divergence/trinity_state.py
+      - tests/test_full_zeref.py
+      - tests/test_resident_broker.py
+      - .github/workflows/resident-full-zeref.yml
 
 permissions:
   contents: read
