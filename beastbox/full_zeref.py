@@ -4,6 +4,7 @@ import argparse
 import dataclasses
 import json
 import os
+import socket
 import time
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
@@ -170,11 +171,17 @@ class FullZerefRuntime:
         ibm_receipt: dict[str, Any],
         max_new_tokens: int = 192,
         require_fresh_ibm: bool = False,
+        native_enabled: bool = True,
     ) -> None:
         self.receipt = validate_sanitized_receipt(dict(ibm_receipt), require_fresh=require_fresh_ibm)
         self.receipt_fresh = receipt_is_fresh(self.receipt)
         self.state = state_from_entropy12(self.receipt["entropy12"])
-        self.provider = NativeTrinityTextProvider(native, self.state, enabled=True, max_new_tokens=max_new_tokens)
+        self.provider = NativeTrinityTextProvider(
+            native,
+            self.state,
+            enabled=native_enabled,
+            max_new_tokens=max_new_tokens,
+        )
         config.local_model_name = "qc67-cosmos-cst"
         self.runtime = CosmosRuntime(config, provider=self.provider)
         self.native = native
@@ -189,6 +196,7 @@ class FullZerefRuntime:
         ibm_receipt: str | Path,
         max_new_tokens: int = 192,
         require_fresh_ibm: bool = False,
+        native_enabled: bool = True,
     ) -> "FullZerefRuntime":
         config = RuntimeConfig.load(Path(config_path))
         native = load_qc67_native(str(native_server), str(checkpoint))
@@ -199,6 +207,7 @@ class FullZerefRuntime:
             ibm_receipt=receipt,
             max_new_tokens=max_new_tokens,
             require_fresh_ibm=require_fresh_ibm,
+            native_enabled=native_enabled,
         )
 
     def respond(self, text: str, *, system_prompt: str | None = None) -> dict[str, Any]:
@@ -240,7 +249,7 @@ class FullZerefRuntime:
             zero_error = type(exc).__name__
         return {
             "ok": bool(layers and projection_ok and env_safe and zero_identity),
-            "native_trinity": True,
+            "native_trinity": self.provider.enabled,
             "zero_state_identity": zero_identity,
             "zero_state_check_error": zero_error,
             "subject_environment_safe": env_safe,
@@ -262,15 +271,75 @@ class FullZerefRuntime:
         self.runtime.close()
 
 
+def handle_resident_request(runtime: Any, request: Mapping[str, Any]) -> dict[str, Any]:
+    op = str(request.get("op", ""))
+    if op == "doctor":
+        return dict(runtime.doctor())
+    if op == "chat":
+        text = str(request.get("text", ""))
+        if not text.strip():
+            raise ValueError("resident chat requires non-empty text")
+        system_prompt = request.get("system_prompt")
+        return dict(runtime.respond(text, system_prompt=None if system_prompt is None else str(system_prompt)))
+    raise ValueError(f"unsupported resident operation: {op or '<empty>'}")
+
+
+def serve_unix(runtime: Any, socket_path: str | Path) -> None:
+    path = Path(socket_path).expanduser()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() or path.is_socket():
+        path.unlink()
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        server.bind(str(path))
+        os.chmod(path, 0o600)
+        server.listen(8)
+        while True:
+            conn, _ = server.accept()
+            with conn:
+                chunks: list[bytes] = []
+                total = 0
+                while True:
+                    chunk = conn.recv(65536)
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > 1024 * 1024:
+                        chunks = []
+                        break
+                    chunks.append(chunk)
+                    if b"\n" in chunk:
+                        break
+                try:
+                    if not chunks:
+                        raise ValueError("resident request empty or too large")
+                    raw = b"".join(chunks).split(b"\n", 1)[0]
+                    request = json.loads(raw.decode("utf-8"))
+                    if not isinstance(request, dict):
+                        raise ValueError("resident request must be a JSON object")
+                    response = {"ok": True, "result": handle_resident_request(runtime, request)}
+                except Exception as exc:
+                    response = {"ok": False, "error": type(exc).__name__, "message": str(exc)}
+                conn.sendall(json.dumps(response, sort_keys=True, default=str).encode("utf-8") + b"\n")
+    finally:
+        server.close()
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            pass
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="full-zeref", description="QC67 + COSMOS + native Trinity + sanitized IBM provenance")
-    parser.add_argument("command", choices=["doctor", "chat"])
+    parser.add_argument("command", choices=["doctor", "chat", "serve"])
     parser.add_argument("--config", default="beastbox.json")
     parser.add_argument("--native-server", required=True)
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--ibm-receipt", required=True)
     parser.add_argument("--max-new-tokens", type=int, default=192)
     parser.add_argument("--require-fresh-ibm", action="store_true")
+    parser.add_argument("--native-disabled", action="store_true")
+    parser.add_argument("--socket", default="/tmp/full-zeref.sock")
     parser.add_argument("message", nargs="?")
     args = parser.parse_args(argv)
 
@@ -281,10 +350,14 @@ def main(argv: list[str] | None = None) -> int:
         ibm_receipt=args.ibm_receipt,
         max_new_tokens=args.max_new_tokens,
         require_fresh_ibm=args.require_fresh_ibm,
+        native_enabled=not args.native_disabled,
     )
     try:
         if args.command == "doctor":
             print(json.dumps(runtime.doctor(), indent=2, sort_keys=True))
+            return 0
+        if args.command == "serve":
+            serve_unix(runtime, args.socket)
             return 0
         if args.message:
             print(json.dumps(runtime.respond(args.message), indent=2, sort_keys=True, default=str))
