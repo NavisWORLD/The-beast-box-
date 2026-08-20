@@ -10,7 +10,10 @@ on:
       - beastbox/quantum_divergence/resident_broker.py
       - beastbox/quantum_divergence/native_trinity.py
       - beastbox/quantum_divergence/trinity_state.py
+      - scripts/__init__.py
+      - scripts/run_full_zeref_workload.py
       - tests/test_full_zeref.py
+      - tests/test_full_zeref_workload.py
       - tests/test_resident_broker.py
       - .github/workflows/resident-full-zeref.yml
   pull_request:
@@ -21,7 +24,10 @@ on:
       - beastbox/quantum_divergence/resident_broker.py
       - beastbox/quantum_divergence/native_trinity.py
       - beastbox/quantum_divergence/trinity_state.py
+      - scripts/__init__.py
+      - scripts/run_full_zeref_workload.py
       - tests/test_full_zeref.py
+      - tests/test_full_zeref_workload.py
       - tests/test_resident_broker.py
       - .github/workflows/resident-full-zeref.yml
 
@@ -127,7 +133,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          pytest -q tests/test_full_zeref.py tests/test_resident_broker.py tests/test_quantum_divergence_*.py
+          pytest -q tests/test_full_zeref.py tests/test_full_zeref_workload.py tests/test_resident_broker.py tests/test_quantum_divergence_*.py
       - name: Fetch exact QC67 native source and checkpoint
         run: |
           python - <<'PY'
@@ -255,6 +261,35 @@ jobs:
           print('FULL_ZEREF_RESIDENT_CHAT=PASS')
           print('STATE_STEP_BEFORE=' + str(before['state_step']))
           print('STATE_STEP_AFTER=' + str(after['state_step']))
+          PY
+      - name: Run four-arm measured workload gauntlet
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python scripts/run_full_zeref_workload.py \
+            --native-server qc67/serving/cosmos_serve.py \
+            --checkpoint qc67/weights/spark_cst.pt \
+            --ibm-receipt broker/latest.json \
+            --output evidence/resident-full-zeref/workload \
+            --max-new-tokens 32 \
+            > evidence/resident-full-zeref/workload-console.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          summary = json.loads(Path('evidence/resident-full-zeref/workload/summary.json').read_text())
+          assert summary['schema'] == 'zeref.full-resident-workload.v2'
+          assert summary['arms_count'] == 4
+          assert summary['tasks_per_arm'] == 8
+          assert summary['total_responses'] == 32
+          assert summary['subject_environment_safe'] is True
+          assert summary['ibm']['authenticated'] is True
+          assert summary['ibm']['secret_exposed_to_subject'] is False
+          assert summary['arms']['direct']['mean_geometry_modulation_norm'] == 0.0
+          assert summary['arms']['cosmos_prompt']['mean_geometry_modulation_norm'] == 0.0
+          assert summary['arms']['cosmos_native_classical']['mean_geometry_modulation_norm'] > 0.0
+          assert summary['arms']['cosmos_native_ibm']['mean_geometry_modulation_norm'] > 0.0
+          print('FULL_ZEREF_FOUR_ARM_WORKLOAD=PASS')
+          print('IBM_VS_CLASSICAL_RESPONSE_DIVERGENCE=' + str(summary['pairwise']['ibm_vs_classical_native']['response_divergence_rate']))
           PY
       - name: Scan Full Zeref evidence for credential-like plaintext
         run: |
