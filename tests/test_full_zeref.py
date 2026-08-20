@@ -35,10 +35,18 @@ class FakeNative:
 class FakeAdapter:
     def __init__(self):
         self.calls = 0
+        self.enabled_values = []
 
     def score(self, prompt, state, *, enabled):
         self.calls += 1
-        return {"step": self.calls, "prompt": prompt}, FakeTelemetry()
+        self.enabled_values.append(enabled)
+        telemetry = FakeTelemetry(enabled=enabled)
+        if not enabled:
+            telemetry.hidden_modulation_norm = 0.0
+            telemetry.geometry_modulation_norm = 0.0
+            telemetry.affinity_divergence = 0.0
+            telemetry.internal12_summary = [0.0] * 12
+        return {"step": self.calls, "prompt": prompt}, telemetry
 
 
 def test_native_text_provider_generates_and_advances_feedback_state():
@@ -58,11 +66,35 @@ def test_native_text_provider_generates_and_advances_feedback_state():
 
     assert text == "A\n"
     assert adapter.calls == 2
+    assert adapter.enabled_values == [True, True]
     assert state.feedback12 != before
     assert state.step >= 3
     assert provider.last_telemetry["native_enabled"] is True
     assert provider.last_telemetry["geometry_modulation_norm"] > 0
     assert provider.last_telemetry["generated_tokens"] == 2
+
+
+def test_native_disabled_provider_does_not_feed_back_state():
+    state = state_from_entropy12([0.25] * 12)
+    before_feedback = list(state.feedback12)
+    before_step = state.step
+    adapter = FakeAdapter()
+    chosen = iter([0, 1])
+    provider = NativeTrinityTextProvider(
+        FakeNative(),
+        state,
+        adapter=adapter,
+        enabled=False,
+        max_new_tokens=8,
+        token_selector=lambda _logits: next(chosen),
+    )
+
+    assert provider.generate("hello") == "A\n"
+    assert adapter.enabled_values == [False, False]
+    assert state.feedback12 == before_feedback
+    assert state.step == before_step
+    assert provider.last_telemetry["native_enabled"] is False
+    assert provider.last_telemetry["geometry_modulation_norm"] == 0.0
 
 
 def test_zero_entropy_state_preserves_exact_12_42_54_shapes():
