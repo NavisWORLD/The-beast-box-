@@ -2,6 +2,11 @@ name: Zeref resident Full real workload
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - 'feature/resident-full-zeref'
+    paths:
+      - 'evidence/dev/full-zeref-run-request.txt'
 
 permissions:
   contents: read
