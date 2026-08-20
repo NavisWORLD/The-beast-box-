@@ -1,6 +1,11 @@
 from dataclasses import dataclass
 
-from beastbox.full_zeref import NativeTrinityTextProvider, state_from_entropy12
+from beastbox.full_zeref import (
+    NativeTrinityTextProvider,
+    projection_readiness,
+    state_from_entropy12,
+    subject_environment_safe,
+)
 
 
 @dataclass
@@ -33,7 +38,6 @@ class FakeAdapter:
 
     def score(self, prompt, state, *, enabled):
         self.calls += 1
-        # The injected selector below avoids any torch dependency in this unit test.
         return {"step": self.calls, "prompt": prompt}, FakeTelemetry()
 
 
@@ -68,3 +72,20 @@ def test_zero_entropy_state_preserves_exact_12_42_54_shapes():
     assert len(state.external54) == 54
     assert state.external54 == state.external12 + state.external42
     assert "54_block_balance" in state.projection_hashes
+
+
+def test_subject_environment_rejects_ibm_token_presence():
+    assert subject_environment_safe({"PATH": "/usr/bin"}) is True
+    assert subject_environment_safe({"IBM_QUANTUM_TOKEN": "masked-value"}) is False
+
+
+def test_projection_readiness_requires_balanced_state_and_native_hashes():
+    state_hashes = {
+        "sensor_to_12_seed": "a" * 64,
+        "12_to_42": "b" * 64,
+        "54_block_balance": "c" * 64,
+    }
+    native_hashes = {"native_trinity": "d" * 64}
+    assert projection_readiness(state_hashes, native_hashes) is True
+    assert projection_readiness({"12_to_42": "b" * 64}, native_hashes) is False
+    assert projection_readiness(state_hashes, {}) is False
