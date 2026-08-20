@@ -12,6 +12,7 @@ from .entropy import quantum_entropy_from_counts
 _SCHEMA = "synapse.zeref.ibm-receipt.v1"
 _SECRET_KEY_FRAGMENTS = ("token", "secret", "password", "passwd", "api_key", "apikey", "credential")
 _ALLOWED_SECRET_METADATA_KEYS = {"secret_exposed_to_subject"}
+DEFAULT_RECEIPT_TTL_SECONDS = 24 * 60 * 60
 
 
 def _canonical(value: Any) -> bytes:
@@ -36,7 +37,12 @@ def _find_secret_like_key(value: Any, path: str = "$") -> str | None:
     return None
 
 
-def validate_sanitized_receipt(value: dict[str, Any]) -> dict[str, Any]:
+def validate_sanitized_receipt(
+    value: dict[str, Any],
+    *,
+    now: int | float | None = None,
+    require_fresh: bool = False,
+) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError("IBM resident receipt must be a JSON object")
     secret_key = _find_secret_like_key(value)
@@ -80,7 +86,17 @@ def validate_sanitized_receipt(value: dict[str, Any]) -> dict[str, Any]:
     expires = int(value["expires_at"])
     if expires < generated:
         raise ValueError("IBM resident receipt expires_at precedes generated_at")
+    if require_fresh:
+        current = int(time.time() if now is None else now)
+        if current > expires:
+            raise ValueError("IBM resident receipt expired")
     return dict(value)
+
+
+def receipt_is_fresh(value: dict[str, Any], *, now: int | float | None = None) -> bool:
+    clean = validate_sanitized_receipt(value)
+    current = int(time.time() if now is None else now)
+    return current <= int(clean["expires_at"])
 
 
 def build_sanitized_receipt(
@@ -89,7 +105,7 @@ def build_sanitized_receipt(
     *,
     job_status: str,
     now: int | float | None = None,
-    ttl_seconds: int = 3600,
+    ttl_seconds: int = DEFAULT_RECEIPT_TTL_SECONDS,
 ) -> dict[str, Any]:
     generated_at = int(time.time() if now is None else now)
     ttl = max(0, int(ttl_seconds))
@@ -122,7 +138,7 @@ def refresh_existing_job(
     shots: int,
     circuit_sha256: str,
     instance: str | None = None,
-    ttl_seconds: int = 3600,
+    ttl_seconds: int = DEFAULT_RECEIPT_TTL_SECONDS,
 ) -> dict[str, Any]:
     """Retrieve one already-approved IBM job and emit only sanitized provenance.
 
