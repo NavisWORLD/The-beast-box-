@@ -50,16 +50,29 @@ def build_phase_roundtrip(bits: str):
     return qc
 
 
-def _service():
+def service_from_token(token: str, instance: str | None = None):
+    """Construct IBM Runtime service from an in-process broker credential.
+
+    The token is accepted as a direct argument so a dedicated broker can use a
+    systemd/GitHub credential without exporting it into the model environment.
+    """
     _, _, _, QiskitRuntimeService, _ = _imports()
+    clean_token = str(token).strip()
+    if not clean_token:
+        raise RuntimeError("IBM Quantum token is empty")
+    kwargs: dict[str, Any] = {"channel": "ibm_quantum_platform", "token": clean_token}
+    clean_instance = str(instance or "").strip()
+    if clean_instance:
+        kwargs["instance"] = clean_instance
+    return QiskitRuntimeService(**kwargs)
+
+
+def _service():
     token = (os.environ.get("IBM_QUANTUM_TOKEN") or "").strip()
     if not token:
         raise RuntimeError("IBM_QUANTUM_TOKEN is not set")
-    kwargs: dict[str, Any] = {"channel": "ibm_quantum_platform", "token": token}
-    instance = (os.environ.get("IBM_QUANTUM_INSTANCE") or "").strip()
-    if instance:
-        kwargs["instance"] = instance
-    return QiskitRuntimeService(**kwargs)
+    instance = (os.environ.get("IBM_QUANTUM_INSTANCE") or "").strip() or None
+    return service_from_token(token, instance=instance)
 
 
 def _backend(service, min_qubits: int, backend_name: str | None):
