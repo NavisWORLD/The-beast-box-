@@ -3,14 +3,15 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import json
+import os
 import time
 from pathlib import Path
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 from .config import RuntimeConfig
 from .runtime import CosmosRuntime
 from .quantum_divergence.native_trinity import NativeTrinityAdapter, load_qc67_native, projection_hashes_for_native
-from .quantum_divergence.resident_broker import validate_sanitized_receipt
+from .quantum_divergence.resident_broker import receipt_is_fresh, validate_sanitized_receipt
 from .quantum_divergence.trinity_state import SensorFixture, TrinityConfig, TrinityState, compose_trinity_state
 
 
@@ -30,9 +31,19 @@ def state_from_entropy12(
     )
 
 
-def load_ibm_receipt(path: str | Path) -> dict[str, Any]:
+def load_ibm_receipt(path: str | Path, *, require_fresh: bool = False) -> dict[str, Any]:
     value = json.loads(Path(path).read_text(encoding="utf-8"))
-    return validate_sanitized_receipt(value)
+    return validate_sanitized_receipt(value, require_fresh=require_fresh)
+
+
+def subject_environment_safe(environ: Mapping[str, str] | None = None) -> bool:
+    env = os.environ if environ is None else environ
+    return "IBM_QUANTUM_TOKEN" not in env
+
+
+def projection_readiness(state_hashes: Mapping[str, Any], native_hashes: Mapping[str, Any]) -> bool:
+    required_state = {"sensor_to_12_seed", "12_to_42", "54_block_balance"}
+    return required_state.issubset(set(state_hashes)) and bool(native_hashes.get("native_trinity"))
 
 
 def _telemetry_dict(value: Any) -> dict[str, Any]:
@@ -160,8 +171,10 @@ class FullZerefRuntime:
         native: Any,
         ibm_receipt: dict[str, Any],
         max_new_tokens: int = 192,
+        require_fresh_ibm: bool = False,
     ) -> None:
-        self.receipt = validate_sanitized_receipt(dict(ibm_receipt))
+        self.receipt = validate_sanitized_receipt(dict(ibm_receipt), require_fresh=require_fresh_ibm)
+        self.receipt_fresh = receipt_is_fresh(self.receipt)
         self.state = state_from_entropy12(self.receipt["entropy12"])
         self.provider = NativeTrinityTextProvider(native, self.state, max_new_tokens=max_new_tokens)
         self.runtime = CosmosRuntime(config, provider=self.provider)
@@ -176,11 +189,18 @@ class FullZerefRuntime:
         checkpoint: str | Path,
         ibm_receipt: str | Path,
         max_new_tokens: int = 192,
+        require_fresh_ibm: bool = False,
     ) -> "FullZerefRuntime":
         config = RuntimeConfig.load(Path(config_path))
         native = load_qc67_native(str(native_server), str(checkpoint))
-        receipt = load_ibm_receipt(ibm_receipt)
-        return cls(config=config, native=native, ibm_receipt=receipt, max_new_tokens=max_new_tokens)
+        receipt = load_ibm_receipt(ibm_receipt, require_fresh=require_fresh_ibm)
+        return cls(
+            config=config,
+            native=native,
+            ibm_receipt=receipt,
+            max_new_tokens=max_new_tokens,
+            require_fresh_ibm=require_fresh_ibm,
+        )
 
     def respond(self, text: str, *, system_prompt: str | None = None) -> dict[str, Any]:
         out = self.runtime.respond(str(text), system_prompt=system_prompt)
@@ -189,6 +209,7 @@ class FullZerefRuntime:
             "backend": self.receipt["backend"],
             "job_id": self.receipt["job_id"],
             "job_status": self.receipt["job_status"],
+            "fresh": receipt_is_fresh(self.receipt),
             "entropy_source_sha256": self.receipt["entropy_source_sha256"],
             "counts_sha256": self.receipt["counts_sha256"],
             "secret_exposed_to_subject": False,
@@ -197,15 +218,37 @@ class FullZerefRuntime:
 
     def doctor(self) -> dict[str, Any]:
         layers = len(getattr(getattr(self.native, "m", None), "blocks", []))
-        embd = int(getattr(getattr(self.native, "m", None), "embd", 0) or getattr(getattr(self.native, "meta", {}), "get", lambda *_: 0)("embd", 0) or 0)
+        meta = getattr(self.native, "meta", {})
+        embd = int(getattr(getattr(self.native, "m", None), "embd", 0) or (meta.get("embd", 0) if isinstance(meta, dict) else 0) or 0)
+        native_hashes = projection_hashes_for_native(embd, layers) if embd > 0 and layers > 0 else {}
+        projection_ok = projection_readiness(self.state.projection_hashes, native_hashes)
+        env_safe = subject_environment_safe()
+        zero_identity = False
+        zero_error: str | None = None
+        try:
+            zero_state = state_from_entropy12([0.0] * 12)
+            _, telemetry = self.provider.adapter.score("0", zero_state, enabled=True)
+            zero_identity = bool(
+                telemetry.zero_state_identity
+                and float(telemetry.hidden_modulation_norm) == 0.0
+                and float(telemetry.geometry_modulation_norm) == 0.0
+                and float(telemetry.affinity_divergence or 0.0) == 0.0
+            )
+        except Exception as exc:
+            zero_error = type(exc).__name__
         return {
-            "ok": bool(layers),
+            "ok": bool(layers and projection_ok and env_safe and zero_identity),
             "native_trinity": True,
+            "zero_state_identity": zero_identity,
+            "zero_state_check_error": zero_error,
+            "subject_environment_safe": env_safe,
+            "projection_hashes_complete": projection_ok,
             "state_step": int(self.state.step),
             "projection_hashes": self.state.projection_hashes,
-            "native_projection_hashes": projection_hashes_for_native(embd, layers) if embd > 0 and layers > 0 else {},
+            "native_projection_hashes": native_hashes,
             "ibm": {
                 "authenticated": self.receipt["authenticated"],
+                "fresh": receipt_is_fresh(self.receipt),
                 "backend": self.receipt["backend"],
                 "job_id": self.receipt["job_id"],
                 "job_status": self.receipt["job_status"],
@@ -225,6 +268,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--ibm-receipt", required=True)
     parser.add_argument("--max-new-tokens", type=int, default=192)
+    parser.add_argument("--require-fresh-ibm", action="store_true")
     parser.add_argument("message", nargs="?")
     args = parser.parse_args(argv)
 
@@ -234,6 +278,7 @@ def main(argv: list[str] | None = None) -> int:
         checkpoint=args.checkpoint,
         ibm_receipt=args.ibm_receipt,
         max_new_tokens=args.max_new_tokens,
+        require_fresh_ibm=args.require_fresh_ibm,
     )
     try:
         if args.command == "doctor":
