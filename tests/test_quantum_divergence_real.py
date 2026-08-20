@@ -1,3 +1,7 @@
+import pytest
+
+pytest.importorskip("qiskit")
+
 from beastbox.quantum_divergence.real import build_hardware_entropy_circuit
 
 
