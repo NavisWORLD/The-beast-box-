@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from beastbox.full_zeref import (
     NativeTrinityTextProvider,
+    handle_resident_request,
     projection_readiness,
     state_from_entropy12,
     subject_environment_safe,
@@ -47,6 +48,14 @@ class FakeAdapter:
             telemetry.affinity_divergence = 0.0
             telemetry.internal12_summary = [0.0] * 12
         return {"step": self.calls, "prompt": prompt}, telemetry
+
+
+class FakeResidentRuntime:
+    def doctor(self):
+        return {"ok": True, "state_step": 7}
+
+    def respond(self, text, *, system_prompt=None):
+        return {"response": f"echo:{text}", "system_prompt": system_prompt}
 
 
 def test_native_text_provider_generates_and_advances_feedback_state():
@@ -121,3 +130,21 @@ def test_projection_readiness_requires_balanced_state_and_native_hashes():
     assert projection_readiness(state_hashes, native_hashes) is True
     assert projection_readiness({"12_to_42": "b" * 64}, native_hashes) is False
     assert projection_readiness(state_hashes, {}) is False
+
+
+def test_resident_request_protocol_keeps_one_runtime_for_chat_and_doctor():
+    runtime = FakeResidentRuntime()
+    assert handle_resident_request(runtime, {"op": "doctor"}) == {"ok": True, "state_step": 7}
+    out = handle_resident_request(runtime, {"op": "chat", "text": "hello", "system_prompt": "local"})
+    assert out["response"] == "echo:hello"
+    assert out["system_prompt"] == "local"
+
+
+def test_resident_request_protocol_rejects_unknown_operation():
+    runtime = FakeResidentRuntime()
+    try:
+        handle_resident_request(runtime, {"op": "root-shell"})
+    except ValueError as exc:
+        assert "unsupported resident operation" in str(exc)
+    else:
+        raise AssertionError("unknown operation must fail closed")
