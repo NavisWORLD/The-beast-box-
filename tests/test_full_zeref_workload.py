@@ -1,4 +1,4 @@
-from scripts.run_full_zeref_workload import FROZEN_WORKLOAD, workload_sha256
+from beastbox.full_zeref_workload import FROZEN_WORKLOAD, workload_sha256
 
 
 def test_workload_is_frozen_and_covers_stateful_real_tasks():
