@@ -5,6 +5,7 @@ import pytest
 from beastbox.quantum import IBMReceipt
 from beastbox.quantum_divergence.resident_broker import (
     build_sanitized_receipt,
+    receipt_is_fresh,
     validate_sanitized_receipt,
 )
 
@@ -65,3 +66,17 @@ def test_sanitized_receipt_rejects_exposed_subject_flag():
     value["secret_exposed_to_subject"] = True
     with pytest.raises(ValueError, match="secret_exposed_to_subject"):
         validate_sanitized_receipt(value)
+
+
+def test_receipt_freshness_is_measured_against_expiry():
+    receipt = IBMReceipt(job_id="job-123", backend="ibm_marrakesh", shots=32, circuit_sha256="d" * 64)
+    value = build_sanitized_receipt(receipt, {"0": 16, "1": 16}, job_status="DONE", now=1000, ttl_seconds=3600)
+    assert receipt_is_fresh(value, now=4599) is True
+    assert receipt_is_fresh(value, now=4601) is False
+
+
+def test_validate_can_require_fresh_receipt():
+    receipt = IBMReceipt(job_id="job-123", backend="ibm_marrakesh", shots=32, circuit_sha256="d" * 64)
+    value = build_sanitized_receipt(receipt, {"0": 16, "1": 16}, job_status="DONE", now=1000, ttl_seconds=60)
+    with pytest.raises(ValueError, match="expired"):
+        validate_sanitized_receipt(value, now=2000, require_fresh=True)
