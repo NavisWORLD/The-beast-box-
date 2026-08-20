@@ -79,6 +79,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -212,7 +214,8 @@ jobs:
           Path('evidence/full-zeref-resident/run-receipt.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
           print('FULL_ZEREF_BUNDLE_SHA256=' + digest)
           PY
-      - uses: actions/upload-artifact@v4
+      - id: upload
+        uses: actions/upload-artifact@v4
         with:
           name: full-zeref-resident-${{ github.run_id }}
           path: |
@@ -221,3 +224,49 @@ jobs:
             full-zeref-workload.log
             full-zeref-resident-evidence.zip
           if-no-files-found: error
+
+  record-sanitized-receipt:
+    needs: full-zeref-workload
+    if: success()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/resident-full-zeref
+          fetch-depth: 0
+      - name: Rebase recorder checkout before writing evidence
+        run: git pull --rebase origin feature/resident-full-zeref
+      - uses: actions/download-artifact@v4
+        with:
+          name: full-zeref-resident-${{ github.run_id }}
+          path: record-input
+      - name: Commit sanitized Full Zeref run pointer
+        env:
+          RUN_ID: ${{ github.run_id }}
+          RUN_SHA: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          source = Path('record-input/evidence/full-zeref-resident')
+          summary = json.loads((source / 'summary.json').read_text(encoding='utf-8'))
+          doctor = json.loads((source / 'doctor.json').read_text(encoding='utf-8'))
+          receipt = json.loads((source / 'run-receipt.json').read_text(encoding='utf-8'))
+          receipt['recorded_by'] = 'separate-secret-free-recorder-job'
+          receipt['subject_had_repo_write_authority'] = False
+          receipt['subject_had_ibm_secret'] = False
+          final = Path('evidence/final')
+          final.mkdir(parents=True, exist_ok=True)
+          (final / 'full-zeref-resident-latest.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          (final / 'full-zeref-resident-summary.json').write_text(json.dumps(summary, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          (final / 'full-zeref-resident-doctor.json').write_text(json.dumps(doctor, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add evidence/final/full-zeref-resident-latest.json evidence/final/full-zeref-resident-summary.json evidence/final/full-zeref-resident-doctor.json
+          git commit -m "evidence: record Full Zeref resident run ${RUN_ID}" || true
+          git push origin HEAD:feature/resident-full-zeref
