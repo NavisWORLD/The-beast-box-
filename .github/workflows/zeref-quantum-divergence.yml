@@ -57,10 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: agent/zeref-quantum-divergence
-          fetch-depth: 0
-      - name: Commit validation receipt
+      - name: Materialize validation receipt
         env:
           VALIDATION_RESULT: ${{ needs.validate-harness.result }}
           RUN_ID: ${{ github.run_id }}
@@ -71,22 +68,23 @@ jobs:
           import os
           from pathlib import Path
           payload = {
-              'schema': 'zeref.validation-dispatch-receipt.v1',
+              'schema': 'zeref.validation-dispatch-receipt.v2',
               'github_run_id': int(os.environ['RUN_ID']),
               'tested_head_sha': os.environ['TESTED_SHA'],
               'validation_result': os.environ['VALIDATION_RESULT'],
               'passed': os.environ['VALIDATION_RESULT'] == 'success',
+              'publication': 'actions-artifact',
           }
           root = Path('evidence/dev')
           root.mkdir(parents=True, exist_ok=True)
           (root / 'zeref-validation-latest.json').write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8')
           PY
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git pull --rebase origin agent/zeref-quantum-divergence
-          git add evidence/dev/zeref-validation-latest.json
-          git commit -m "evidence: record Zeref validation ${GITHUB_RUN_ID}" || true
-          git push origin HEAD:agent/zeref-quantum-divergence
+      - name: Upload validation receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-validation-receipt-${{ github.run_id }}
+          path: evidence/dev/zeref-validation-latest.json
+          if-no-files-found: error
 
   dispatch-trinity-final:
     if: >-
