@@ -21,7 +21,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: read
   id-token: write
 
 concurrency:
@@ -37,9 +37,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Record broker attempt before external authentication
+      - name: Record broker attempt locally without mutating source control
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -50,18 +48,14 @@ jobs:
           path = Path('evidence/qc67-bundle-attempt.json')
           path.parent.mkdir(parents=True, exist_ok=True)
           path.write_text(json.dumps({
-              'schema': 'qc67.gated-actions-attempt.v1',
+              'schema': 'qc67.gated-actions-attempt.v2',
               'github_run_id': int(os.environ['GITHUB_RUN_ID']),
               'github_sha': os.environ['GITHUB_SHA'],
               'status': 'started',
               'credential_persisted': False,
+              'source_control_mutated': False,
           }, indent=2, sort_keys=True) + '\n', encoding='utf-8')
           PY
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add evidence/qc67-bundle-attempt.json
-          git commit -m "evidence: start QC67 bundle ${GITHUB_RUN_ID}" || true
-          git push origin HEAD:main
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -100,13 +94,14 @@ jobs:
                   raise SystemExit(f'QC67 hash mismatch: {rel}: {digest} != {wanted}')
               actual[rel] = digest
           manifest = {
-              'schema': 'qc67.gated-actions-bundle.v1',
+              'schema': 'qc67.gated-actions-bundle.v2',
               'repo': 'phera-ra/QC67_cosmo',
               'github_run_id': int(os.environ['GITHUB_RUN_ID']),
               'github_sha': os.environ['GITHUB_SHA'],
               'files': actual,
               'credential_persisted': False,
               'oidc_short_lived': True,
+              'source_control_mutated': False,
           }
           Path('qc67/bundle-manifest.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
           print('QC67_GATED_BUNDLE_HASHES=PASS')
@@ -120,21 +115,20 @@ jobs:
           path: qc67
           if-no-files-found: error
           retention-days: 90
-      - name: Record sanitized QC67 artifact receipt
+      - name: Write sanitized broker receipt locally
         env:
           ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
           ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
         shell: bash
         run: |
           set -Eeuo pipefail
-          git pull --ff-only origin main
           python - <<'PY'
           import json
           import os
           from pathlib import Path
           source = json.loads(Path('qc67/bundle-manifest.json').read_text())
           receipt = {
-              'schema': 'qc67.gated-actions-receipt.v1',
+              'schema': 'qc67.gated-actions-receipt.v2',
               'github_run_id': int(os.environ['GITHUB_RUN_ID']),
               'github_sha': os.environ['GITHUB_SHA'],
               'artifact_id': int(os.environ['ARTIFACT_ID']),
@@ -143,22 +137,31 @@ jobs:
               'files': source['files'],
               'credential_persisted': False,
               'oidc_short_lived': True,
+              'source_control_mutated': False,
               'passed': True,
           }
-          Path('evidence/qc67-bundle-latest.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
-          Path('evidence/qc67-bundle-attempt.json').write_text(json.dumps({
-              'schema': 'qc67.gated-actions-attempt.v1',
+          path = Path('evidence/qc67-bundle-receipt.json')
+          path.parent.mkdir(parents=True, exist_ok=True)
+          path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          attempt = Path('evidence/qc67-bundle-attempt.json')
+          attempt.write_text(json.dumps({
+              'schema': 'qc67.gated-actions-attempt.v2',
               'github_run_id': int(os.environ['GITHUB_RUN_ID']),
               'github_sha': os.environ['GITHUB_SHA'],
               'status': 'passed',
               'credential_persisted': False,
+              'source_control_mutated': False,
           }, indent=2, sort_keys=True) + '\n', encoding='utf-8')
           PY
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add evidence/qc67-bundle-latest.json evidence/qc67-bundle-attempt.json
-          git commit -m "evidence: record QC67 bundle ${GITHUB_RUN_ID}" || true
-          git push origin HEAD:main
+      - name: Upload sanitized QC67 broker receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: qc67-pinned-receipt-${{ github.run_id }}
+          path: |
+            evidence/qc67-bundle-attempt.json
+            evidence/qc67-bundle-receipt.json
+          if-no-files-found: error
+          retention-days: 90
 
   publish:
     if: >-
