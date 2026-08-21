@@ -2,7 +2,21 @@ name: Publish QC67 kit to Hugging Face
 
 on:
   workflow_dispatch:
+    inputs:
+      operation:
+        description: Trusted Publisher operation
+        required: true
+        type: choice
+        default: bundle
+        options:
+          - bundle
+          - publish
   push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-huggingface.yml'
+      - 'huggingface/.qc67-bundle-refresh'
     tags:
       - 'v*'
 
@@ -11,7 +25,76 @@ permissions:
   id-token: write
 
 jobs:
+  bundle-qc67:
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.operation == 'bundle')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Hugging Face CLI with OIDC support
+        run: python -m pip install --upgrade 'huggingface_hub>=1.19.0'
+      - name: Download exact gated QC67 assets with short-lived OIDC identity
+        env:
+          HF_OIDC_RESOURCE: phera-ra/QC67_cosmo
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p qc67
+          hf download phera-ra/QC67_cosmo architecture/cosmos_spark_cst.py --local-dir qc67
+          hf download phera-ra/QC67_cosmo serving/cosmos_serve.py --local-dir qc67
+          hf download phera-ra/QC67_cosmo weights/spark_cst.pt --local-dir qc67
+      - name: Verify pinned QC67 bytes and write sanitized manifest
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          expected = {
+              'architecture/cosmos_spark_cst.py': '955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc',
+              'serving/cosmos_serve.py': '02a509f9c2a20f63c38dca186c082bfdc2603aa8b6f1f903ec19a0e709218d87',
+              'weights/spark_cst.pt': 'aa0cb13c1e67d459db280a53b6407dfc2b5b5f3fd6f640bc43686b70d799acd1',
+          }
+          actual = {}
+          for rel, wanted in expected.items():
+              path = Path('qc67') / rel
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              if digest != wanted:
+                  raise SystemExit(f'QC67 hash mismatch: {rel}: {digest} != {wanted}')
+              actual[rel] = digest
+          manifest = {
+              'schema': 'qc67.gated-actions-bundle.v1',
+              'repo': 'phera-ra/QC67_cosmo',
+              'github_run_id': int(os.environ['GITHUB_RUN_ID']),
+              'github_sha': os.environ['GITHUB_SHA'],
+              'files': actual,
+              'credential_persisted': False,
+              'oidc_short_lived': True,
+          }
+          Path('qc67/bundle-manifest.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          print('QC67_GATED_BUNDLE_HASHES=PASS')
+          print('HF_CREDENTIAL_PERSISTED=0')
+          PY
+      - name: Upload verified QC67 broker artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qc67-pinned-${{ github.run_id }}
+          path: qc67
+          if-no-files-found: error
+          retention-days: 90
+
   publish:
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && inputs.operation == 'publish')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
