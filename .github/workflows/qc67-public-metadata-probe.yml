@@ -1,0 +1,71 @@
+name: QC67 public metadata probe
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/qc67-public-metadata-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch only public Hugging Face model metadata
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          curl -fsSL 'https://huggingface.co/api/models/phera-ra/QC67_cosmo?blobs=true' -o /tmp/qc67-model.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('/tmp/qc67-model.json').read_text())
+          wanted = {'architecture/cosmos_spark_cst.py', 'serving/cosmos_serve.py', 'weights/spark_cst.pt'}
+          found = []
+          for sibling in data.get('siblings') or []:
+              name = sibling.get('rfilename')
+              if name in wanted:
+                  found.append({
+                      'rfilename': name,
+                      'size': sibling.get('size'),
+                      'blob_id': sibling.get('blobId') or sibling.get('blob_id'),
+                      'lfs': sibling.get('lfs'),
+                      'xet_hash': sibling.get('xetHash') or sibling.get('xet_hash'),
+                  })
+          if {x['rfilename'] for x in found} != wanted:
+              raise SystemExit(f'missing expected siblings: {found}')
+          payload = {
+              'schema': 'qc67.public-metadata.v1',
+              'model_id': data.get('id'),
+              'sha': data.get('sha'),
+              'gated': data.get('gated'),
+              'private': data.get('private'),
+              'siblings': sorted(found, key=lambda x: x['rfilename']),
+              'protected_bytes_accessed': False,
+          }
+          Path('/tmp/qc67-public-metadata.json').write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          PY
+      - name: Commit sanitized public metadata receipt
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p evidence
+            cp /tmp/qc67-public-metadata.json evidence/qc67-public-metadata.json
+            git add evidence/qc67-public-metadata.json
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "evidence: record QC67 public metadata ${GITHUB_RUN_ID}"
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
