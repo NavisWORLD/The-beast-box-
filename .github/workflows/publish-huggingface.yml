@@ -21,7 +21,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 concurrency:
@@ -53,7 +53,7 @@ jobs:
               'github_sha': os.environ['GITHUB_SHA'],
               'status': 'started',
               'credential_persisted': False,
-              'source_control_mutated': False,
+              'source_control_mutated_before_auth': False,
           }, indent=2, sort_keys=True) + '\n', encoding='utf-8')
           PY
       - uses: actions/setup-python@v5
@@ -62,6 +62,7 @@ jobs:
       - name: Install Hugging Face CLI with OIDC support
         run: python -m pip install --upgrade 'huggingface_hub>=1.19.0'
       - name: Download exact gated QC67 assets with short-lived OIDC identity
+        id: download
         env:
           HF_OIDC_RESOURCE: phera-ra/QC67_cosmo
         shell: bash
@@ -72,6 +73,7 @@ jobs:
           hf download phera-ra/QC67_cosmo serving/cosmos_serve.py --local-dir qc67
           hf download phera-ra/QC67_cosmo weights/spark_cst.pt --local-dir qc67
       - name: Verify pinned QC67 bytes and write sanitized manifest
+        id: verify
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -101,7 +103,7 @@ jobs:
               'files': actual,
               'credential_persisted': False,
               'oidc_short_lived': True,
-              'source_control_mutated': False,
+              'source_control_mutated_before_auth': False,
           }
           Path('qc67/bundle-manifest.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
           print('QC67_GATED_BUNDLE_HASHES=PASS')
@@ -116,6 +118,7 @@ jobs:
           if-no-files-found: error
           retention-days: 90
       - name: Write sanitized broker receipt locally
+        id: local_receipt
         env:
           ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
           ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
@@ -137,23 +140,15 @@ jobs:
               'files': source['files'],
               'credential_persisted': False,
               'oidc_short_lived': True,
-              'source_control_mutated': False,
+              'source_control_mutated_before_auth': False,
               'passed': True,
           }
           path = Path('evidence/qc67-bundle-receipt.json')
           path.parent.mkdir(parents=True, exist_ok=True)
           path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
-          attempt = Path('evidence/qc67-bundle-attempt.json')
-          attempt.write_text(json.dumps({
-              'schema': 'qc67.gated-actions-attempt.v2',
-              'github_run_id': int(os.environ['GITHUB_RUN_ID']),
-              'github_sha': os.environ['GITHUB_SHA'],
-              'status': 'passed',
-              'credential_persisted': False,
-              'source_control_mutated': False,
-          }, indent=2, sort_keys=True) + '\n', encoding='utf-8')
           PY
       - name: Upload sanitized QC67 broker receipt
+        id: upload_receipt
         uses: actions/upload-artifact@v4
         with:
           name: qc67-pinned-receipt-${{ github.run_id }}
@@ -162,6 +157,68 @@ jobs:
             evidence/qc67-bundle-receipt.json
           if-no-files-found: error
           retention-days: 90
+      - name: Record sanitized broker outcome after authentication attempt
+        if: always()
+        env:
+          DOWNLOAD_OUTCOME: ${{ steps.download.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          UPLOAD_OUTCOME: ${{ steps.upload.outcome }}
+          RECEIPT_OUTCOME: ${{ steps.local_receipt.outcome }}
+          RECEIPT_UPLOAD_OUTCOME: ${{ steps.upload_receipt.outcome }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p /tmp/qc67-broker-status
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          outcomes = {
+              'download': os.environ.get('DOWNLOAD_OUTCOME') or 'not_run',
+              'verify': os.environ.get('VERIFY_OUTCOME') or 'not_run',
+              'bundle_upload': os.environ.get('UPLOAD_OUTCOME') or 'not_run',
+              'receipt': os.environ.get('RECEIPT_OUTCOME') or 'not_run',
+              'receipt_upload': os.environ.get('RECEIPT_UPLOAD_OUTCOME') or 'not_run',
+          }
+          passed = all(outcomes[name] == 'success' for name in ('download', 'verify', 'bundle_upload', 'receipt', 'receipt_upload'))
+          artifact_raw = os.environ.get('ARTIFACT_ID', '')
+          payload = {
+              'schema': 'qc67.gated-actions-status.v1',
+              'github_run_id': int(os.environ['GITHUB_RUN_ID']),
+              'github_sha': os.environ['GITHUB_SHA'],
+              'passed': passed,
+              'outcomes': outcomes,
+              'artifact_id': int(artifact_raw) if artifact_raw.isdigit() else None,
+              'artifact_digest': os.environ.get('ARTIFACT_DIGEST') or None,
+              'credential_persisted': False,
+              'source_control_mutated_before_auth': False,
+          }
+          Path('/tmp/qc67-broker-status/status.json').write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p evidence
+            cp /tmp/qc67-broker-status/status.json evidence/qc67-bundle-latest-status.json
+            git add evidence/qc67-bundle-latest-status.json
+            if git diff --cached --quiet; then
+              echo 'QC67_BROKER_STATUS_ALREADY_CURRENT=1'
+              exit 0
+            fi
+            git commit -m "evidence: record QC67 broker ${GITHUB_RUN_ID}"
+            if git push origin HEAD:main; then
+              echo 'QC67_BROKER_STATUS_COMMIT=PASS'
+              exit 0
+            fi
+            echo "status push attempt ${attempt} raced with main; retrying" >&2
+          done
+          echo 'failed to persist sanitized broker status after 3 attempts' >&2
+          exit 1
 
   publish:
     if: >-
