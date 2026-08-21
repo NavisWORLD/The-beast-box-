@@ -1,0 +1,124 @@
+name: QC67 user-scoped gated broker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/qc67-user-broker.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Hugging Face CLI with OIDC support
+        run: python -m pip install --upgrade 'huggingface_hub>=1.19.0'
+      - name: Download QC67 using user-scoped gated-repo OIDC token
+        id: download
+        env:
+          HF_OIDC_RESOURCE: phera-ra
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p qc67
+          hf download phera-ra/QC67_cosmo architecture/cosmos_spark_cst.py --local-dir qc67
+          hf download phera-ra/QC67_cosmo serving/cosmos_serve.py --local-dir qc67
+          hf download phera-ra/QC67_cosmo weights/spark_cst.pt --local-dir qc67
+      - name: Verify exact frozen QC67 identities
+        id: verify
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          expected = {
+              'architecture/cosmos_spark_cst.py': '955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc',
+              'serving/cosmos_serve.py': '02a509f9c2a20f63c38dca186c082bfdc2603aa8b6f1f903ec19a0e709218d87',
+              'weights/spark_cst.pt': 'aa0cb13c1e67d459db280a53b6407dfc2b5b5f3fd6f640bc43686b70d799acd1',
+          }
+          actual = {}
+          for rel, wanted in expected.items():
+              path = Path('qc67') / rel
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              assert digest == wanted, (rel, digest, wanted)
+              actual[rel] = digest
+          Path('qc67/user-broker-manifest.json').write_text(json.dumps({
+              'schema': 'qc67.user-gated-bundle.v1',
+              'github_run_id': int(os.environ['GITHUB_RUN_ID']),
+              'resource': 'phera-ra',
+              'repo': 'phera-ra/QC67_cosmo',
+              'files': actual,
+              'credential_persisted': False,
+              'oidc_short_lived': True,
+          }, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          print('QC67_USER_OIDC_HASHES=PASS')
+          PY
+      - name: Upload exact QC67 bundle
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: qc67-user-pinned-${{ github.run_id }}
+          path: qc67
+          if-no-files-found: error
+          retention-days: 90
+      - name: Record sanitized user-broker result
+        if: always()
+        env:
+          DOWNLOAD_OUTCOME: ${{ steps.download.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          UPLOAD_OUTCOME: ${{ steps.upload.outcome }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p /tmp/qc67-user-status
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          outcomes = {
+              'download': os.environ.get('DOWNLOAD_OUTCOME') or 'not_run',
+              'verify': os.environ.get('VERIFY_OUTCOME') or 'not_run',
+              'upload': os.environ.get('UPLOAD_OUTCOME') or 'not_run',
+          }
+          artifact = os.environ.get('ARTIFACT_ID', '')
+          payload = {
+              'schema': 'qc67.user-gated-broker-status.v1',
+              'github_run_id': int(os.environ['GITHUB_RUN_ID']),
+              'github_sha': os.environ['GITHUB_SHA'],
+              'resource': 'phera-ra',
+              'passed': all(value == 'success' for value in outcomes.values()),
+              'outcomes': outcomes,
+              'artifact_id': int(artifact) if artifact.isdigit() else None,
+              'artifact_digest': os.environ.get('ARTIFACT_DIGEST') or None,
+              'credential_persisted': False,
+          }
+          Path('/tmp/qc67-user-status/status.json').write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p evidence
+            cp /tmp/qc67-user-status/status.json evidence/qc67-user-broker-latest.json
+            git add evidence/qc67-user-broker-latest.json
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "evidence: record QC67 user broker ${GITHUB_RUN_ID}"
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
