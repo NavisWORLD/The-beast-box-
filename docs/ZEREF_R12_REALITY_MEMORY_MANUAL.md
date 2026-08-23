@@ -302,3 +302,6 @@ New adapters should first enter R12 memory in a non-training mode. Model adaptat
 This system demonstrates persistent computational memory, provenance handling, deterministic canonical reconstruction, bounded retrieval/adaptation state, and fail-closed model-selection machinery for the tested artifacts.
 
 It does **not** establish biological life, consciousness, a literal biological heartbeat, deceased-person identity, resurrection, communication with the dead, supernatural effects, or quantum advantage.
+
+
+For avoidance of doubt, this persistent computational memory result does not establish biological life, consciousness, deceased-person identity, resurrection, communication with the dead, or quantum advantage.
