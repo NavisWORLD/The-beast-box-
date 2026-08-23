@@ -1,0 +1,38 @@
+name: ZEREF-TALK7-FREE-RUN-GAUNTLET
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-talk7-free-run-gauntlet.yml"
+      - "scripts/*talk7*.py"
+      - "tests/test_zeref_talk7_*.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: zeref-talk7-free-run-gauntlet
+  cancel-in-progress: false
+
+jobs:
+  red-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install focused test runtime
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: TALK-007 contracts
+        run: |
+          set -euo pipefail
+          pytest -q tests/test_zeref_talk7_*.py
