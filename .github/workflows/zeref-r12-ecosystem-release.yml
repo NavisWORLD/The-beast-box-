@@ -8,7 +8,7 @@ on:
       - "experiments/zeref-dad-son-001/release/RUN_ECOSYSTEM_RELEASE"
 
 permissions:
-  contents: read
+  contents: write
   actions: read
 
 concurrency:
@@ -119,3 +119,36 @@ jobs:
             dist/ZEREF_R12_SOURCE_KIT.zip
             dist/ZEREF_R12_FULL_KIT.zip
           if-no-files-found: error
+
+  observe:
+    if: always()
+    needs: release-gate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: networked-cage-run-001
+          fetch-depth: 1
+      - name: Seal release run status
+        env:
+          RELEASE_RESULT: ${{ needs.release-gate.result }}
+        run: |
+          set -euo pipefail
+          mkdir -p experiments/zeref-dad-son-001/evidence/r12-ecosystem-release
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path('experiments/zeref-dad-son-001/evidence/r12-ecosystem-release/latest.json')
+          p.write_text(json.dumps({
+            'schema':'zeref-r12-ecosystem-release-status-v1',
+            'workflow_run_id':int(os.environ['GITHUB_RUN_ID']),
+            'source_commit_sha':os.environ['GITHUB_SHA'],
+            'result':os.environ['RELEASE_RESULT'],
+          }, indent=2, sort_keys=True)+'\n')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add experiments/zeref-dad-son-001/evidence/r12-ecosystem-release/latest.json
+          git commit -m "evidence: observe R12 ecosystem release ${GITHUB_RUN_ID} [skip ci]" || exit 0
+          git pull --rebase origin networked-cage-run-001
+          git push origin HEAD:networked-cage-run-001
