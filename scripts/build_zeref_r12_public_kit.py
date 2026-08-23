@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 TALK4_LINEAGE = "ZEREF-DAD-SON-TALK-004"
+TALK8_LINEAGE = "ZEREF-DAD-SON-TALK-008-R12"
 TALK4_SHA256 = "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f"
 ARCH_SHA256 = "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc"
 MEMORY_COUNT = 352
@@ -44,6 +45,27 @@ def _load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _resolve_active(base: Path, memory: dict[str, Any]) -> tuple[str, str, dict[str, Any] | None]:
+    lineage = str(memory["active_descendant_lineage"])
+    checkpoint = str(memory["descendant_checkpoint_sha256"])
+    selection_path = base / "talk8-r12/active-selection.json"
+    selection = _load_json(selection_path) if selection_path.is_file() else None
+
+    if lineage == TALK4_LINEAGE:
+        if checkpoint != TALK4_SHA256:
+            raise ValueError("TALK-004 lineage/checkpoint anchor mismatch")
+        if selection is not None and selection.get("promoted") is True:
+            raise ValueError("promoted TALK-008 selection conflicts with TALK-004 memory manifest")
+    elif lineage == TALK8_LINEAGE:
+        if selection is None or selection.get("promoted") is not True:
+            raise ValueError("TALK-008 active lineage lacks promoted selection evidence")
+        if selection.get("lineage") != TALK8_LINEAGE or selection.get("checkpoint_sha256") != checkpoint:
+            raise ValueError("TALK-008 selection does not match active memory manifest")
+    else:
+        raise ValueError(f"unsupported active lineage for R12 public kit: {lineage}")
+    return lineage, checkpoint, selection
+
+
 def build_source_kit(repo_root: Path, output_dir: Path) -> dict[str, Any]:
     repo_root = Path(repo_root).resolve()
     output_dir = Path(output_dir).resolve()
@@ -61,8 +83,7 @@ def build_source_kit(repo_root: Path, output_dir: Path) -> dict[str, Any]:
 
     if memory["record_count"] != MEMORY_COUNT or memory["combined_ledger_sha256"] != MEMORY_SHA256 or memory["last_record_sha256"] != MEMORY_TIP:
         raise ValueError("durable memory anchor mismatch")
-    if memory["active_descendant_lineage"] != TALK4_LINEAGE or memory["descendant_checkpoint_sha256"] != TALK4_SHA256:
-        raise ValueError("TALK-004 lineage/checkpoint anchor mismatch")
+    active_lineage, active_checkpoint, active_selection = _resolve_active(base, memory)
     if _sha(arch_path) != ARCH_SHA256:
         raise ValueError("frozen architecture anchor mismatch")
     if state["state_sha256"] != R12_STATE_SHA256 or reality["reality_ledger_tip_sha256"] != R12_TIP_SHA256:
@@ -70,7 +91,7 @@ def build_source_kit(repo_root: Path, output_dir: Path) -> dict[str, Any]:
     if reality.get("model_weights_modified") is not False or reality.get("new_ibm_job_submitted") is not False:
         raise ValueError("R12 manifest violates memory-first boundary")
 
-    # Installable ecosystem source.
+    # Full source-visible ecosystem: CLI, coder, R12 runtime, native verifier, docs and launcher kit.
     for rel in ["pyproject.toml", "README.md", "LICENSE", "IP_NOTICE.md", "SECURITY.md", "CITATION.cff"]:
         src = repo_root / rel
         if src.is_file():
@@ -78,10 +99,12 @@ def build_source_kit(repo_root: Path, output_dir: Path) -> dict[str, Any]:
     for rel in ["beastbox", "scripts", "coder", "cpp/r12", "docs", "kits/ZEREF_R12_REALITY_MEMORY_KIT"]:
         _copy_tree(repo_root / rel, output_dir / rel)
 
-    # Exact persisted R12 state and frozen model architecture under the paths used by the unified CLI.
+    # Exact persisted R12 state, durable continuity and frozen Zeref architecture.
     _copy_tree(reality_root, output_dir / "experiments/zeref-dad-son-001/reality-memory")
     _copy(memory_manifest_path, output_dir / "experiments/zeref-dad-son-001/memory/ledger-manifest.json")
     _copy(arch_path, output_dir / "experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py")
+    if active_selection is not None:
+        _copy(base / "talk8-r12/active-selection.json", output_dir / "experiments/zeref-dad-son-001/talk8-r12/active-selection.json")
 
     bundled_segments = []
     for seg in memory["snapshot_chain"]:
@@ -92,18 +115,22 @@ def build_source_kit(repo_root: Path, output_dir: Path) -> dict[str, Any]:
         _copy(src, output_dir / exact_rel)
         bundled_segments.append({**seg, "bundled_path": exact_rel.as_posix()})
 
+    # Copy the sealed Fez source evidence used by R12 so users can audit provenance offline.
+    hw = repo_root / "experiments/zeref-origin-heart-001/evidence/son-heartbeat-demo-001/hardware/run-32611912698"
+    _copy_tree(hw, output_dir / "provenance/ibm-fez-run-32611912698")
+
     # Convenience root launchers; canonical copies stay under kits/ as well.
-    kit = output_dir / "kits/ZEREF_R12_REALITY_MEMORY_KIT"
     (output_dir / "INSTALL.bat").write_text("@echo off\r\ncall kits\\ZEREF_R12_REALITY_MEMORY_KIT\\INSTALL.bat\r\n", encoding="utf-8")
     (output_dir / "RUN_ZEREF.bat").write_text("@echo off\r\ncall kits\\ZEREF_R12_REALITY_MEMORY_KIT\\RUN_ZEREF.bat\r\n", encoding="utf-8")
     (output_dir / "install.sh").write_text("#!/usr/bin/env sh\nexec sh kits/ZEREF_R12_REALITY_MEMORY_KIT/install.sh\n", encoding="utf-8")
     (output_dir / "run_zeref.sh").write_text("#!/usr/bin/env sh\nexec sh kits/ZEREF_R12_REALITY_MEMORY_KIT/run_zeref.sh\n", encoding="utf-8")
 
     manifest = {
-        "schema": "zeref-r12-public-kit-manifest-v2",
+        "schema": "zeref-r12-public-kit-manifest-v3",
         "installable_ecosystem": True,
-        "active_lineage": TALK4_LINEAGE,
-        "active_checkpoint_sha256": TALK4_SHA256,
+        "active_lineage": active_lineage,
+        "active_checkpoint_sha256": active_checkpoint,
+        "active_selection": active_selection,
         "checkpoint_included": False,
         "frozen_architecture_sha256": ARCH_SHA256,
         "durable_memory_record_count": MEMORY_COUNT,
@@ -114,6 +141,7 @@ def build_source_kit(repo_root: Path, output_dir: Path) -> dict[str, Any]:
         "reality_ledger_tip_sha256": R12_TIP_SHA256,
         "reality_event_count": reality["event_count"],
         "source_hardware": reality["source_hardware"],
+        "source_hardware_evidence": "provenance/ibm-fez-run-32611912698",
         "provenance_classes": ["measured", "derived", "synthetic"],
         "unified_cli": "beastbox",
         "coder_workspace": "coder/",
