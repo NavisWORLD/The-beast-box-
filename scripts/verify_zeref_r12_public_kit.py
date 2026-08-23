@@ -8,7 +8,12 @@ import sys
 from pathlib import Path
 from typing import Any
 
-CREDENTIAL_RE = re.compile(r"(?i)(ibm_quantum_token|github_token|ghp_[A-Za-z0-9]+|bearer\s+[A-Za-z0-9._-]+)")
+# Variable names are safe to ship in source code; token-shaped values are not.
+TOKEN_VALUE_RE = re.compile(
+    r"(?im)^\s*(?:ibm_quantum_token|github_token)\s*[:=]\s*[\"']?([A-Za-z0-9._-]{16,})"
+)
+GITHUB_PAT_RE = re.compile(r"ghp_[A-Za-z0-9]{20,}")
+BEARER_RE = re.compile(r"(?i)bearer\s+[A-Za-z0-9._-]{20,}")
 
 
 def _sha(path: Path) -> str:
@@ -23,6 +28,10 @@ def _verify_checksums(root: Path) -> None:
         path = root / rel
         if not path.is_file() or _sha(path) != digest:
             raise ValueError(f"kit checksum mismatch: {rel}")
+
+
+def _contains_credential_value(text: str) -> bool:
+    return bool(TOKEN_VALUE_RE.search(text) or GITHUB_PAT_RE.search(text) or BEARER_RE.search(text))
 
 
 def verify_kit(bundle_root: Path, require_checkpoint: bool = False) -> dict[str, Any]:
@@ -68,10 +77,10 @@ def verify_kit(bundle_root: Path, require_checkpoint: bool = False) -> dict[str,
             raise ValueError("checkpoint sha256 mismatch")
 
     for path in root.rglob("*"):
-        if path.is_file() and path.suffix.lower() in {".json", ".jsonl", ".md", ".py", ".txt"}:
+        if path.is_file() and path.suffix.lower() in {".json", ".jsonl", ".md", ".py", ".txt", ".sh", ".ps1", ".bat"}:
             text = path.read_text(encoding="utf-8", errors="ignore")
-            if CREDENTIAL_RE.search(text):
-                raise ValueError(f"credential-like material found in {path.relative_to(root)}")
+            if _contains_credential_value(text):
+                raise ValueError(f"credential-like value found in {path.relative_to(root)}")
 
     return {
         "schema": "zeref-r12-public-kit-verification-v1",
