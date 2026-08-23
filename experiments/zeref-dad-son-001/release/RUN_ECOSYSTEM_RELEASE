@@ -1,6 +1,7 @@
 ZEREF R12 ecosystem release validation.
-RED contract: post-training R12 ledger/state/history/manifest immutability is mandatory for promotion.
-Observer-enabled workflow commit: 068b9338329ab335f6a46c505a11a4d9a1e0fc3f
+GREEN target: post-training R12 ledger/state/history/manifest immutability is mandatory and independently hashed by the selector.
+Selector implementation: f52b0381afa8c25bc8f94238012e47daa5adc2f5
+Sealed-hash regression test: 3587cefb1d979cb9809d0b5a029fc7b67575d626
 TALK-004 SHA-256: 9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f
 R12 state SHA-256: 48994584e13d8e2b6fcb21cb682b0b9501af12e2ce8742e99384b604235c9f20
 Never lower promotion gates.
