@@ -1,0 +1,16 @@
+{
+  "schema": "cosmos.creature-ecosystem.v1",
+  "sdk": "beastbox.creature",
+  "cli": "cosmos-creature",
+  "state": {
+    "input_dimensions": 12,
+    "projected_dimensions": 42,
+    "combined_dimensions": 54,
+    "block_balance": true,
+    "zero_state_identity_required": true
+  },
+  "weight_classes": ["native", "gguf", "adapters"],
+  "bridges": ["classical", "ibm", "azure"],
+  "credential_policy": "broker-only; never creature/model context",
+  "claim_boundary": "state/provenance effects are not quantum advantage or consciousness claims"
+}
