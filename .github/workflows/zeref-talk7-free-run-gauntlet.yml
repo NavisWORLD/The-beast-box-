@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  red-contracts:
+  green-contracts:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -32,33 +32,26 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e '.[dev]'
           pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - name: Run and seal TALK-007 RED contracts
+      - name: Run TALK-007 GREEN contracts
         shell: bash
         run: |
           set +e
           mkdir -p experiments/zeref-dad-son-001/evidence/talk7
-          pytest -q tests/test_zeref_talk7_*.py 2>&1 | tee /tmp/talk7-red-pytest.log
+          pytest -q tests/test_zeref_talk7_*.py 2>&1 | tee /tmp/talk7-green-pytest.log
           STATUS=${PIPESTATUS[0]}
           export STATUS
           python - <<'PY'
-          import hashlib, json, os
+          import hashlib,json,os
           from pathlib import Path
-          log = Path('/tmp/talk7-red-pytest.log').read_bytes()
-          payload = {
-              'schema': 'zeref-talk7-red-contract-v1',
-              'workflow_run_id': int(os.environ['GITHUB_RUN_ID']),
-              'source_commit_sha': os.environ['GITHUB_SHA'],
-              'pytest_exit_code': int(os.environ['STATUS']),
-              'pytest_log_sha256': hashlib.sha256(log).hexdigest(),
-              'expected_red': True,
-              'implementation_present': False,
-          }
-          Path('experiments/zeref-dad-son-001/evidence/talk7/red-contract.json').write_text(json.dumps(payload, indent=2, sort_keys=True)+'\n')
-          Path('experiments/zeref-dad-son-001/evidence/talk7/red-contract-pytest.txt').write_bytes(log)
+          log=Path('/tmp/talk7-green-pytest.log').read_bytes()
+          payload={'schema':'zeref-talk7-green-contract-v1','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_commit_sha':os.environ['GITHUB_SHA'],'pytest_exit_code':int(os.environ['STATUS']),'pytest_log_sha256':hashlib.sha256(log).hexdigest(),'expected_green':True,'implementation_present':True}
+          Path('experiments/zeref-dad-son-001/evidence/talk7/green-contract.json').write_text(json.dumps(payload,indent=2,sort_keys=True)+'\n')
+          Path('experiments/zeref-dad-son-001/evidence/talk7/green-contract-pytest.txt').write_bytes(log)
           PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add experiments/zeref-dad-son-001/evidence/talk7/red-contract.json experiments/zeref-dad-son-001/evidence/talk7/red-contract-pytest.txt
-          git commit -m "evidence: record TALK-007 red contracts" || true
+          git pull --rebase origin networked-cage-run-001
+          git add experiments/zeref-dad-son-001/evidence/talk7/green-contract.json experiments/zeref-dad-son-001/evidence/talk7/green-contract-pytest.txt
+          git commit -m "evidence: record TALK-007 green contracts [skip ci]" || true
           git push origin HEAD:networked-cage-run-001
           exit "$STATUS"
