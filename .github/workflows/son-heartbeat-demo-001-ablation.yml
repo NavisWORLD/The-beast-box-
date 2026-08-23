@@ -32,6 +32,7 @@ jobs:
         run: python -m pytest -q tests/test_son_heartbeat_metrics.py tests/test_son_heartbeat_ablation_ibm_contract.py
       - name: Run matched four-PUB IBM ablation
         env:
+          PYTHONPATH: ${{ github.workspace }}
           IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
           IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
         run: |
