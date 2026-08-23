@@ -15,7 +15,7 @@ jobs:
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
-      TARGET_HEAD_SHA: 1722cea6c238d140f8b5de36e9dc3e281b5132c5
+      TARGET_HEAD_SHA: d26fb6054c17bd73b851c103adfb67aef409fc94
     steps:
       - uses: actions/checkout@v4
       - name: Query hardware workflow runs
