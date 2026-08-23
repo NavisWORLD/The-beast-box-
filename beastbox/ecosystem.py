@@ -99,7 +99,7 @@ def verify_ecosystem(repo_root: str | Path | None = None) -> dict[str, Any]:
     state = status["r12_state"]
     if state.get("state_sha256") != R12_STATE_SHA256:
         errors["r12_state_sha256"] = f"expected {R12_STATE_SHA256}, got {state.get('state_sha256')}"
-    rebuilt, history = rebuild_r12(ledger.events(), query="IBM Fez matched reality measurement")
+    rebuilt, history = rebuild_r12(ledger.events())
     if rebuilt.get("state_sha256") != R12_STATE_SHA256:
         errors["deterministic_rebuild"] = f"expected {R12_STATE_SHA256}, got {rebuilt.get('state_sha256')}"
     r12_manifest = status["r12_manifest"]
@@ -279,7 +279,7 @@ def handle_ecosystem(args, parser: argparse.ArgumentParser | None = None, repo_r
         if args.r12_cmd == "status": _json(ecosystem_status(root)["r12_state"]); return 0
         if args.r12_cmd == "context": _json(r12_context(args.query, root)); return 0
         if args.r12_cmd == "rebuild":
-            ledger = RealityLedger(_paths(root)["r12_ledger"]); report = ledger.verify(); state, history = rebuild_r12(ledger.events(), query="IBM Fez matched reality measurement")
+            ledger = RealityLedger(_paths(root)["r12_ledger"]); report = ledger.verify(); state, history = rebuild_r12(ledger.events())
             out = {"chain_valid": report["chain_valid"], "event_count": report["event_count"], "history_count": len(history), "state": state, "matches_sealed": state["state_sha256"] == R12_STATE_SHA256}
             _json(out); return 0 if out["matches_sealed"] else 1
     if args.cmd == "zeref":
