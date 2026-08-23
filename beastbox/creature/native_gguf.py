@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
+from .gguf import export_gguf
 from .weights import inspect_weight
 
 
@@ -170,3 +172,57 @@ def build_conversion_plan(
         },
         "notes": recipe.notes,
     }
+
+
+def run_native_conversion(
+    model_id: str,
+    *,
+    source: str | Path | None = None,
+    output_dir: str | Path = ".",
+    converter: Sequence[str] | None = None,
+) -> dict[str, Any]:
+    if not converter:
+        raise ValueError("a real model-specific converter command is required")
+
+    plan = build_conversion_plan(model_id, source=source, output_dir=output_dir)
+    if plan["status"] != "SOURCE_READY":
+        raise FileNotFoundError(plan["source"]["path"])
+
+    src = Path(plan["source"]["path"])
+    out = Path(plan["output"])
+    out.parent.mkdir(parents=True, exist_ok=True)
+    export_gguf(src, out, converter=converter)
+    output_info = inspect_weight(out)
+    if output_info["format"] != "gguf":
+        raise RuntimeError("native converter did not produce a valid GGUF container")
+
+    recipe = conversion_recipe(model_id)
+    receipt_path = out.with_name(out.name + ".receipt.json")
+    receipt: dict[str, Any] = {
+        "schema": "cosmos.native-gguf-receipt.v1",
+        "status": "CONVERTED",
+        "model_id": recipe.model_id,
+        "architecture": recipe.architecture,
+        "tokenizer": recipe.tokenizer,
+        "source": {
+            "path": str(src),
+            "size": plan["source"]["size"],
+            "sha256": plan["source"]["sha256"],
+            "format": plan["source"]["format"],
+        },
+        "output": {
+            "path": str(out),
+            "filename": output_info["filename"],
+            "size": output_info["size"],
+            "sha256": output_info["sha256"],
+            "format": output_info["format"],
+        },
+        "runtime": {
+            "stock_llamacpp": recipe.stock_llamacpp,
+            "requirement": recipe.runtime_requirement,
+        },
+        "converter": [str(part) for part in converter],
+        "receipt_path": str(receipt_path),
+    }
+    receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return receipt
