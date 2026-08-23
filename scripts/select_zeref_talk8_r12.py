@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Mapping
@@ -16,6 +17,47 @@ R12_IMMUTABILITY_FIELDS = (
     ("r12_history_unchanged", "r12_history"),
     ("r12_manifest_unchanged", "r12_manifest"),
 )
+R12_EXPECTED_FILES = {
+    "r12_ledger_unchanged": (
+        "experiments/zeref-dad-son-001/reality-memory/ledger/reality-events.jsonl",
+        "5b1fbc1b62143dc0e866f2ee7512933291f8c2210b365f7c158859a5b1df1724",
+    ),
+    "r12_state_unchanged": (
+        "experiments/zeref-dad-son-001/reality-memory/state/r12-state.json",
+        "d3ab9f014bc79b0d0bb4bfbde76e6cf67ddffd3a3c032763bef10e25e234a9a9",
+    ),
+    "r12_history_unchanged": (
+        "experiments/zeref-dad-son-001/reality-memory/state/r12-history.jsonl",
+        "ebeb95cf0d0929819cb8e3a049fa0ce9148d3343f2d669a570219df1b08165fc",
+    ),
+    "r12_manifest_unchanged": (
+        "experiments/zeref-dad-son-001/reality-memory/manifest.json",
+        "456154b2708bcb1709d70e8ef8fd7dcc010edd15f26d0c48bf2ef9a35545dcbb",
+    ),
+}
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def r12_immutability_receipt(repo_root: str | Path = ".") -> dict[str, Any]:
+    root = Path(repo_root).resolve()
+    receipt: dict[str, Any] = {
+        "schema": "zeref-talk8-r12-immutability-v1",
+        "repo_root": str(root),
+        "files": {},
+    }
+    all_ok = True
+    for field, (rel, expected) in R12_EXPECTED_FILES.items():
+        path = root / rel
+        actual = _sha256(path) if path.is_file() else None
+        ok = actual == expected
+        receipt[field] = ok
+        receipt["files"][rel] = {"expected_sha256": expected, "actual_sha256": actual, "ok": ok}
+        all_ok = all_ok and ok
+    receipt["all_unchanged"] = all_ok
+    return receipt
 
 
 def evaluate_candidate(parent: Mapping[str, Any], candidate: Mapping[str, Any]) -> dict[str, Any]:
@@ -104,8 +146,23 @@ def select(parent: Mapping[str, Any], candidate: Mapping[str, Any], checkpoint_s
 
 
 def main() -> int:
-    p=argparse.ArgumentParser(); p.add_argument("--parent",type=Path,required=True); p.add_argument("--candidate",type=Path,required=True); p.add_argument("--checkpoint-sha256",required=True); p.add_argument("--out",type=Path,required=True); a=p.parse_args()
-    result=select(json.loads(a.parent.read_text()),json.loads(a.candidate.read_text()),a.checkpoint_sha256)
-    a.out.parent.mkdir(parents=True,exist_ok=True); a.out.write_text(json.dumps(result,indent=2,sort_keys=True)+"\n"); print(json.dumps(result,sort_keys=True)); return 0
+    p=argparse.ArgumentParser()
+    p.add_argument("--parent",type=Path,required=True)
+    p.add_argument("--candidate",type=Path,required=True)
+    p.add_argument("--checkpoint-sha256",required=True)
+    p.add_argument("--out",type=Path,required=True)
+    p.add_argument("--repo-root",type=Path,default=Path("."))
+    a=p.parse_args()
+    parent=json.loads(a.parent.read_text())
+    candidate=dict(json.loads(a.candidate.read_text()))
+    receipt=r12_immutability_receipt(a.repo_root)
+    for field, _ in R12_IMMUTABILITY_FIELDS:
+        candidate[field]=receipt[field]
+    result=select(parent,candidate,a.checkpoint_sha256)
+    result["r12_immutability_receipt"]=receipt
+    a.out.parent.mkdir(parents=True,exist_ok=True)
+    a.out.write_text(json.dumps(result,indent=2,sort_keys=True)+"\n")
+    print(json.dumps(result,sort_keys=True))
+    return 0
 
 if __name__=="__main__": raise SystemExit(main())
