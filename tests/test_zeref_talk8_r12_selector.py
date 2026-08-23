@@ -27,6 +27,10 @@ def good_candidate():
         "retention_descendant_nll": 1.03,
         "first_352_byte_identical": True,
         "parent_checkpoint_unchanged": True,
+        "r12_ledger_unchanged": True,
+        "r12_state_unchanged": True,
+        "r12_history_unchanged": True,
+        "r12_manifest_unchanged": True,
     }
 
 
@@ -48,6 +52,10 @@ def test_every_hard_gate_fails_closed():
         "retention_readability": ("readability", 0.919),
         "memory_prefix": ("first_352_byte_identical", False),
         "parent_checkpoint": ("parent_checkpoint_unchanged", False),
+        "r12_ledger": ("r12_ledger_unchanged", False),
+        "r12_state": ("r12_state_unchanged", False),
+        "r12_history": ("r12_history_unchanged", False),
+        "r12_manifest": ("r12_manifest_unchanged", False),
     }
     for reason, (key, value) in mutations.items():
         row = good_candidate()
@@ -55,3 +63,12 @@ def test_every_hard_gate_fails_closed():
         result = evaluate_candidate(BASE_PARENT, row)
         assert result["eligible"] is False, reason
         assert reason in result["rejection_reasons"], (reason, result)
+
+
+def test_missing_r12_immutability_receipts_fail_closed():
+    row = good_candidate()
+    for key in ("r12_ledger_unchanged", "r12_state_unchanged", "r12_history_unchanged", "r12_manifest_unchanged"):
+        row.pop(key)
+    result = evaluate_candidate(BASE_PARENT, row)
+    assert result["eligible"] is False
+    assert {"r12_ledger", "r12_state", "r12_history", "r12_manifest"}.issubset(result["rejection_reasons"])
