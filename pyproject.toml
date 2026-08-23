@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cosmos-beast-box"
-version = "0.3.0"
-description = "Installable COSMOS/CST runtime, Beast Box continuity harness, Cosmic Cypher local-model coder, and optional IBM Quantum research tools."
+version = "0.4.0"
+description = "Installable COSMOS/CST runtime, Beast Box continuity harness, Cosmic Cypher, COSMOS Creature SDK, and optional IBM Quantum research tools."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "NavisWORLD"}]
-keywords = ["ai", "agents", "coding-agent", "gguf", "llama", "ollama", "continuity", "containment", "quantum", "cst", "cosmos", "dyn12"]
+keywords = ["ai", "agents", "coding-agent", "gguf", "llama", "ollama", "continuity", "containment", "quantum", "cst", "cosmos", "dyn12", "creature-sdk"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
@@ -51,6 +51,7 @@ beastbox = "beastbox.cli:main"
 cosmic-cypher = "beastbox.cypher.cli:main"
 cypher = "beastbox.cypher.cli:main"
 full-zeref = "beastbox.full_zeref:main"
+cosmos-creature = "beastbox.creature.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["beastbox*"]
