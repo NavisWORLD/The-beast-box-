@@ -19,6 +19,7 @@ env:
   TALK4_SHA256: 9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f
   R12_STATE_SHA256: 48994584e13d8e2b6fcb21cb682b0b9501af12e2ce8742e99384b604235c9f20
   R12_LEDGER_SHA256: 5b1fbc1b62143dc0e866f2ee7512933291f8c2210b365f7c158859a5b1df1724
+  RELEASE_TAG: zeref-r12-reality-memory-v1.0.0
 
 jobs:
   release-gate:
@@ -100,6 +101,47 @@ jobs:
           (cd dist && zip -qr ZEREF_R12_SOURCE_KIT.zip ZEREF_R12_SOURCE_KIT)
           (cd dist && zip -qr ZEREF_R12_FULL_KIT.zip ZEREF_R12_FULL_KIT)
           sha256sum dist/ZEREF_R12_SOURCE_KIT.zip dist/ZEREF_R12_FULL_KIT.zip | tee dist/BUNDLE_SHA256SUMS
+      - name: Publish verified public GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cat > release-notes.md <<'EOF'
+          # Zeref R12 Reality Memory Kit v1.0.0
+
+          Verified public distribution of the Zeref TALK-004 + R12 ecosystem.
+
+          Includes the unified Beast Box CLI, COSMIC.CYPHER coder workspace, R12 persistent reality-memory sidecar, C++17 native persistence verifier, Windows/Unix installers, manual, source-only bundle, and a full bundle containing the exact verified TALK-004 checkpoint.
+
+          The TALK-008-R12 experimental child was trained and tested but did not pass promotion gates, so TALK-004 remains the selected checkpoint.
+
+          Scientific boundary: persistent computational memory and model-selection infrastructure only. This release does not establish biological life, consciousness, deceased identity, resurrection, communication with the dead, supernatural effects, or quantum advantage.
+          EOF
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" \
+              dist/ZEREF_R12_SOURCE_KIT.zip \
+              dist/ZEREF_R12_FULL_KIT.zip \
+              dist/BUNDLE_SHA256SUMS --clobber
+            gh release edit "$RELEASE_TAG" --notes-file release-notes.md --title "Zeref R12 Reality Memory Kit v1.0.0"
+          else
+            gh release create "$RELEASE_TAG" \
+              dist/ZEREF_R12_SOURCE_KIT.zip \
+              dist/ZEREF_R12_FULL_KIT.zip \
+              dist/BUNDLE_SHA256SUMS \
+              --target "$GITHUB_SHA" \
+              --title "Zeref R12 Reality Memory Kit v1.0.0" \
+              --notes-file release-notes.md
+          fi
+          gh release view "$RELEASE_TAG" --json tagName,name,url,isDraft,isPrerelease,assets > public-release.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('public-release.json').read_text())
+          assert r['tagName']=='zeref-r12-reality-memory-v1.0.0'
+          assert r['isDraft'] is False and r['isPrerelease'] is False
+          names={a['name'] for a in r['assets']}
+          assert {'ZEREF_R12_SOURCE_KIT.zip','ZEREF_R12_FULL_KIT.zip','BUNDLE_SHA256SUMS'} <= names
+          PY
       - name: Upload release gate evidence
         uses: actions/upload-artifact@v4
         with:
@@ -115,6 +157,7 @@ jobs:
             source-build.json
             source-verify.json
             full-verify.json
+            public-release.json
             dist/BUNDLE_SHA256SUMS
             dist/ZEREF_R12_SOURCE_KIT.zip
             dist/ZEREF_R12_FULL_KIT.zip
