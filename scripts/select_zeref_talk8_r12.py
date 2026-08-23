@@ -10,6 +10,12 @@ from typing import Any, Mapping
 RECALL_GAIN_MIN = 0.03
 RETENTION_NLL_RATIO_MAX = 1.05
 READABILITY_DROP_MAX = 0.03
+R12_IMMUTABILITY_FIELDS = (
+    ("r12_ledger_unchanged", "r12_ledger"),
+    ("r12_state_unchanged", "r12_state"),
+    ("r12_history_unchanged", "r12_history"),
+    ("r12_manifest_unchanged", "r12_manifest"),
+)
 
 
 def evaluate_candidate(parent: Mapping[str, Any], candidate: Mapping[str, Any]) -> dict[str, Any]:
@@ -33,9 +39,12 @@ def evaluate_candidate(parent: Mapping[str, Any], candidate: Mapping[str, Any]) 
     if readability_drop > READABILITY_DROP_MAX: reasons.append("retention_readability")
     if candidate.get("first_352_byte_identical") is not True: reasons.append("memory_prefix")
     if candidate.get("parent_checkpoint_unchanged") is not True: reasons.append("parent_checkpoint")
+    for field, reason in R12_IMMUTABILITY_FIELDS:
+        if candidate.get(field) is not True:
+            reasons.append(reason)
     if "provenance_accuracy" in candidate and float(candidate["provenance_accuracy"]) < 1.0: reasons.append("provenance_accuracy")
     return {
-        "schema": "zeref-talk8-r12-candidate-gates-v1",
+        "schema": "zeref-talk8-r12-candidate-gates-v2",
         "eligible": not reasons,
         "rejection_reasons": reasons,
         "reference_token_recall": recall,
@@ -54,6 +63,10 @@ def evaluate_candidate(parent: Mapping[str, Any], candidate: Mapping[str, Any]) 
         "contradiction_regression": int(candidate.get("contradiction_regression", 0)),
         "first_352_byte_identical": candidate.get("first_352_byte_identical") is True,
         "parent_checkpoint_unchanged": candidate.get("parent_checkpoint_unchanged") is True,
+        "r12_ledger_unchanged": candidate.get("r12_ledger_unchanged") is True,
+        "r12_state_unchanged": candidate.get("r12_state_unchanged") is True,
+        "r12_history_unchanged": candidate.get("r12_history_unchanged") is True,
+        "r12_manifest_unchanged": candidate.get("r12_manifest_unchanged") is True,
         "provenance_accuracy": candidate.get("provenance_accuracy"),
         "fixed_gates": {
             "reference_recall_gain_min": RECALL_GAIN_MIN,
@@ -66,6 +79,10 @@ def evaluate_candidate(parent: Mapping[str, Any], candidate: Mapping[str, Any]) 
             "contradiction_regression_max": 0,
             "first_352_byte_identical": True,
             "parent_checkpoint_unchanged": True,
+            "r12_ledger_unchanged": True,
+            "r12_state_unchanged": True,
+            "r12_history_unchanged": True,
+            "r12_manifest_unchanged": True,
             "provenance_accuracy_min_if_measured": 1.0,
         },
     }
@@ -75,7 +92,7 @@ def select(parent: Mapping[str, Any], candidate: Mapping[str, Any], checkpoint_s
     gates = evaluate_candidate(parent, candidate)
     promoted = bool(gates["eligible"])
     return {
-        "schema": "zeref-talk8-r12-selection-v1",
+        "schema": "zeref-talk8-r12-selection-v2",
         "promoted": promoted,
         "selected": "ZEREF-DAD-SON-TALK-008-R12" if promoted else None,
         "selected_candidate_checkpoint_sha256": checkpoint_sha256.lower() if promoted else None,
