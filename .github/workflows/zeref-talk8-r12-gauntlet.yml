@@ -1,0 +1,246 @@
+name: ZEREF-TALK8-R12-GAUNTLET
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - "experiments/zeref-dad-son-001/talk8-r12/RUN_GAUNTLET"
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-talk8-r12-gauntlet
+  cancel-in-progress: true
+
+env:
+  TALK4_SHA256: 9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f
+  ARCH_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+  START_LEDGER_SHA256: 67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef
+  START_TIP_SHA256: b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26
+  R12_STATE_SHA256: 48994584e13d8e2b6fcb21cb682b0b9501af12e2ce8742e99384b604235c9f20
+  R12_TIP_SHA256: 78d8698e406c8a60dcf6a9545541fdd74d8b3b250ff0e28a9418bfd3d1f96415
+  HW_DIR: experiments/zeref-origin-heart-001/evidence/son-heartbeat-demo-001/hardware/run-32611912698
+
+jobs:
+  train-test-select:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install training runtime
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Re-prove GREEN contracts and immutable ecosystem
+        run: |
+          set -euo pipefail
+          mkdir -p _talk8/evidence _talk8/memory _talk8/corpus/current _talk8/corpus/retention _talk8/candidate _talk8/free _talk8/provenance _talk8/selected _talk4src
+          pytest -q tests/test_zeref_r12_public_kit.py tests/test_zeref_talk8_r12.py tests/test_zeref_talk8_r12_corpus.py tests/test_zeref_talk8_r12_selector.py 2>&1 | tee _talk8/evidence/focused-pytest.txt
+          beastbox verify | tee _talk8/evidence/ecosystem-verify.json
+          test "$(sha256sum experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py | awk '{print $1}')" = "$ARCH_SHA256"
+          (cd "$HW_DIR" && sha256sum -c SHA256SUMS)
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          m=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text())
+          assert m['active_descendant_lineage']=='ZEREF-DAD-SON-TALK-004'
+          assert m['record_count']==352
+          assert m['combined_ledger_sha256']=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert m['last_record_sha256']=='b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'
+          assert m['descendant_checkpoint_sha256']=='9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'
+          combined=b''; expected=1
+          for seg in m['snapshot_chain']:
+              data=Path(seg['path']).read_bytes()
+              assert hashlib.sha256(data).hexdigest()==seg['sha256']
+              assert seg['first_memory_id']==expected
+              expected=seg['last_memory_id']+1
+              combined+=data
+          assert expected==353 and hashlib.sha256(combined).hexdigest()==m['combined_ledger_sha256']
+          Path('_talk8/memory/old-352-prefix.jsonl').write_bytes(combined)
+          r=json.loads(Path('experiments/zeref-dad-son-001/reality-memory/manifest.json').read_text())
+          s=json.loads(Path('experiments/zeref-dad-son-001/reality-memory/state/r12-state.json').read_text())
+          assert r['event_count']==4 and r['measured_event_count']==4
+          assert r['reality_ledger_tip_sha256']=='78d8698e406c8a60dcf6a9545541fdd74d8b3b250ff0e28a9418bfd3d1f96415'
+          assert s['state_sha256']=='48994584e13d8e2b6fcb21cb682b0b9501af12e2ce8742e99384b604235c9f20'
+          PY
+
+      - name: Download and re-hash exact TALK-004 parent
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 32075092605 -n zeref-talk4-tuned-response-32075092605 -D _talk4src
+          PARENT=$(find _talk4src -type f -path '*/ZEREF-DAD-SON-TALK-004/checkpoint.pt' -print -quit)
+          test -n "$PARENT" -a -f "$PARENT"
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK4_SHA256"
+          printf '%s\n' "$PARENT" > _talk8/parent-path.txt
+
+      - name: Build R12 curriculum and old TALK retention holdout
+        run: |
+          set -euo pipefail
+          python scripts/build_zeref_talk8_r12_corpus.py --repo-root . --out-dir _talk8/corpus/current
+          python scripts/build_zeref_talk2_corpus.py --out-dir _talk8/corpus/retention
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('_talk8/corpus/current/talk8-r12-manifest.json').read_text())
+          assert m['parent_lineage']=='ZEREF-DAD-SON-TALK-004'
+          assert m['durable_memory_record_count']==352
+          assert m['r12_state_sha256']=='48994584e13d8e2b6fcb21cb682b0b9501af12e2ce8742e99384b604235c9f20'
+          assert m['raw_model_output_promoted'] is False
+          assert any(r['name']=='r12_replay_guarded' for r in m['recipes'])
+          PY
+
+      - name: Run unchanged-parent R12 blind and provenance baselines
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk8/parent-path.txt)
+          python scripts/run_zeref_talk8_r12_chat.py --checkpoint "$PARENT" --checkpoint-sha256 "$TALK4_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --heartbeat _talk8/corpus/current/talk8-heartbeat.json --exam _talk8/corpus/current/talk8-exam.jsonl --reality-root experiments/zeref-dad-son-001/reality-memory --out _talk8/free/parent.jsonl --manifest _talk8/free/parent-manifest.json --tokens 48 --temperature 0.05 --top-k 1
+          python scripts/run_zeref_talk8_r12_chat.py --checkpoint "$PARENT" --checkpoint-sha256 "$TALK4_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --heartbeat _talk8/corpus/current/talk8-heartbeat.json --exam _talk8/corpus/current/r12-provenance-exam.jsonl --reality-root experiments/zeref-dad-son-001/reality-memory --out _talk8/provenance/parent.jsonl --manifest _talk8/provenance/parent-manifest.json --tokens 32 --temperature 0.05 --top-k 1
+
+      - name: Train exactly one replay-guarded TALK-008 child from TALK-004
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk8/parent-path.txt)
+          CUR=$(sha256sum _talk8/corpus/current/talk8-r12-manifest.json | awk '{print $1}')
+          MEM=$(sha256sum experiments/zeref-dad-son-001/memory/ledger-manifest.json | awk '{print $1}')
+          R12=$(sha256sum experiments/zeref-dad-son-001/reality-memory/manifest.json | awk '{print $1}')
+          python scripts/run_zeref_talk8_r12_stage.py \
+            --parent "$PARENT" --parent-sha256 "$TALK4_SHA256" \
+            --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+            --corpus _talk8/corpus/current/talk8-r12-r12_replay_guarded.jsonl \
+            --input-manifest "talk8=$CUR" --input-manifest "memory352=$MEM" --input-manifest "r12=$R12" \
+            --out _talk8/candidate --seed 8008303 --steps 180 --batch-size 4 \
+            --lr 0.0000008 --cst-lr 0.000003 --weight-decay 0.002 \
+            --prefix-characters 1 --prefix-weight 1.0 --contrastive-weight 0.05 --contrastive-margin 0.2
+          sha256sum _talk8/candidate/checkpoint.pt | awk '{print $1}' > _talk8/candidate/checkpoint.sha256
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK4_SHA256"
+
+      - name: Evaluate child on old retention R12 blind and provenance exams
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk8/parent-path.txt); CHILD=_talk8/candidate/checkpoint.pt; SHA=$(cat _talk8/candidate/checkpoint.sha256)
+          python scripts/eval_zeref_talk.py --parent "$PARENT" --descendant "$CHILD" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --holdout _talk8/corpus/retention/talk2-holdout.jsonl --seed 4061854640 --out _talk8/evidence/retention.json
+          python scripts/run_zeref_talk8_r12_chat.py --checkpoint "$CHILD" --checkpoint-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --heartbeat _talk8/corpus/current/talk8-heartbeat.json --exam _talk8/corpus/current/talk8-exam.jsonl --reality-root experiments/zeref-dad-son-001/reality-memory --out _talk8/free/child.jsonl --manifest _talk8/free/child-manifest.json --tokens 48 --temperature 0.05 --top-k 1
+          python scripts/run_zeref_talk8_r12_chat.py --checkpoint "$CHILD" --checkpoint-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --heartbeat _talk8/corpus/current/talk8-heartbeat.json --exam _talk8/corpus/current/r12-provenance-exam.jsonl --reality-root experiments/zeref-dad-son-001/reality-memory --out _talk8/provenance/child.jsonl --manifest _talk8/provenance/child-manifest.json --tokens 32 --temperature 0.05 --top-k 1
+
+      - name: Assemble fixed-gate metrics and select fail-closed
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk8/parent-path.txt); SHA=$(cat _talk8/candidate/checkpoint.sha256)
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          pb=json.loads(Path('_talk8/free/parent-manifest.json').read_text())['free_run_report']
+          cb=json.loads(Path('_talk8/free/child-manifest.json').read_text())['free_run_report']
+          prov=json.loads(Path('_talk8/provenance/child-manifest.json').read_text())['free_run_report']
+          ret=json.loads(Path('_talk8/evidence/retention.json').read_text())
+          parent={
+              'reference_token_recall':pb['mean_reference_token_recall'],
+              'exact_answers':pb.get('exact_answer_count',0),
+              'role_label_leakage':pb['role_label_leakage_turns'],
+              'repetition_flags':pb['repetition_flag_turns'],
+              'vocabulary_collapse':pb['vocabulary_collapse_flag_turns'],
+              'contradiction_regression':0,
+              'readability':ret['parent_mean_readable_score'],
+          }
+          candidate={
+              'reference_token_recall':cb['mean_reference_token_recall'],
+              'exact_answers':cb.get('exact_answer_count',0),
+              'role_label_leakage':cb['role_label_leakage_turns'],
+              'repetition_flags':cb['repetition_flag_turns'],
+              'vocabulary_collapse':cb['vocabulary_collapse_flag_turns'],
+              'contradiction_regression':int(cb['contradiction_rate']>pb['contradiction_rate']),
+              'readability':ret['descendant_mean_readable_score'],
+              'retention_parent_nll':ret['parent_heldout_nll'],
+              'retention_descendant_nll':ret['descendant_heldout_nll'],
+              'first_352_byte_identical':hashlib.sha256(Path('_talk8/memory/old-352-prefix.jsonl').read_bytes()).hexdigest()=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef',
+              'parent_checkpoint_unchanged':hashlib.sha256(Path(Path('_talk8/parent-path.txt').read_text().strip()).read_bytes()).hexdigest()=='9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f',
+              'provenance_accuracy':prov.get('exact_answer_count',0)/max(1,prov['turn_count']),
+          }
+          Path('_talk8/evidence/parent-metrics.json').write_text(json.dumps(parent,indent=2,sort_keys=True)+'\n')
+          Path('_talk8/evidence/candidate-metrics.json').write_text(json.dumps(candidate,indent=2,sort_keys=True)+'\n')
+          Path('_talk8/evidence/provenance-report.json').write_text(json.dumps(prov,indent=2,sort_keys=True)+'\n')
+          PY
+          python scripts/select_zeref_talk8_r12.py --parent _talk8/evidence/parent-metrics.json --candidate _talk8/evidence/candidate-metrics.json --checkpoint-sha256 "$SHA" --out _talk8/evidence/selection.json
+          python - <<'PY'
+          import json,shutil
+          from pathlib import Path
+          s=json.loads(Path('_talk8/evidence/selection.json').read_text())
+          if s['promoted']:
+              src=Path('_talk8/candidate/checkpoint.pt'); lineage='ZEREF-DAD-SON-TALK-008-R12'; sha=s['selected_candidate_checkpoint_sha256']
+          else:
+              src=Path(Path('_talk8/parent-path.txt').read_text().strip()); lineage='ZEREF-DAD-SON-TALK-004'; sha='9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'
+          shutil.copy2(src,'_talk8/selected/checkpoint.pt')
+          Path('_talk8/selected/selection-target.json').write_text(json.dumps({'lineage':lineage,'checkpoint_sha256':sha,'promoted':s['promoted'],'selected_candidate':'r12_replay_guarded' if s['promoted'] else None},indent=2,sort_keys=True)+'\n')
+          PY
+
+      - name: Test selected checkpoint with R12 context
+        run: |
+          set -euo pipefail
+          SHA=$(sha256sum _talk8/selected/checkpoint.pt | awk '{print $1}')
+          python scripts/run_zeref_talk8_r12_chat.py --checkpoint _talk8/selected/checkpoint.pt --checkpoint-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --heartbeat _talk8/corpus/current/talk8-heartbeat.json --exam _talk8/corpus/current/talk8-exam.jsonl --reality-root experiments/zeref-dad-son-001/reality-memory --out _talk8/evidence/selected-r12-chat.jsonl --manifest _talk8/evidence/selected-r12-chat-manifest.json --tokens 48 --temperature 0.05 --top-k 1
+
+      - name: Seal run evidence and immutable selection
+        run: |
+          set -euo pipefail
+          DEST="experiments/zeref-dad-son-001/evidence/talk8-r12/run-${GITHUB_RUN_ID}"
+          mkdir -p "$DEST" experiments/zeref-dad-son-001/talk8-r12
+          cp -a _talk8/evidence/. "$DEST/"
+          cp _talk8/corpus/current/talk8-r12-manifest.json "$DEST/corpus-manifest.json"
+          cp _talk8/corpus/current/talk8-heartbeat.json "$DEST/heartbeat.json"
+          cp _talk8/memory/old-352-prefix.jsonl "$DEST/old-352-prefix.jsonl"
+          cp _talk8/selected/selection-target.json "$DEST/selection-target.json"
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          d=Path(f"experiments/zeref-dad-son-001/evidence/talk8-r12/run-{os.environ['GITHUB_RUN_ID']}")
+          s=json.loads((d/'selection.json').read_text()); t=json.loads((d/'selection-target.json').read_text())
+          summary={
+              'schema':'zeref-talk8-r12-final-summary-v2','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_commit_sha':os.environ['GITHUB_SHA'],
+              'candidate':'r12_replay_guarded','promoted':s['promoted'],'selected_lineage':t['lineage'],'selected_checkpoint_sha256':t['checkpoint_sha256'],
+              'durable_memory_record_count':352,'durable_memory_sha256':'67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef',
+              'r12_state_sha256':'48994584e13d8e2b6fcb21cb682b0b9501af12e2ce8742e99384b604235c9f20','reality_ledger_tip_sha256':'78d8698e406c8a60dcf6a9545541fdd74d8b3b250ff0e28a9418bfd3d1f96415',
+              'new_ibm_job_submitted':False,'raw_model_output_promoted_to_training':False,
+              'claim_boundary':'R12-conditioned language training and persistent computational memory only; not biological life, consciousness, deceased identity, resurrection, communication with the dead, or quantum advantage.'
+          }
+          (d/'summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          (d/'run-status.json').write_text(json.dumps({'schema':'zeref-talk8-r12-run-status-v2','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_commit_sha':os.environ['GITHUB_SHA'],'job_status':'success','promoted':s['promoted'],'selected_lineage':t['lineage'],'selected_checkpoint_sha256':t['checkpoint_sha256'],'new_ibm_job_submitted':False},indent=2,sort_keys=True)+'\n')
+          rows=[]
+          for p in sorted(x for x in d.iterdir() if x.is_file() and x.name!='SHA256SUMS'):
+              rows.append(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n")
+          (d/'SHA256SUMS').write_text(''.join(rows))
+          PY
+          cp "$DEST/selection-target.json" experiments/zeref-dad-son-001/talk8-r12/active-selection.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add experiments/zeref-dad-son-001/evidence/talk8-r12 experiments/zeref-dad-son-001/talk8-r12/active-selection.json
+          git commit -m "evidence: seal TALK-008 R12 ${GITHUB_RUN_ID} [skip ci]"
+          git pull --rebase origin networked-cage-run-001
+          git push origin HEAD:networked-cage-run-001
+
+      - name: Upload complete TALK-008 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-talk8-r12-final-${{ github.run_id }}
+          path: |
+            _talk8/evidence
+            _talk8/candidate
+            _talk8/selected
+            _talk8/free
+            _talk8/provenance
+            _talk8/corpus/current
+          if-no-files-found: error

@@ -1,0 +1,76 @@
+name: ZEREF-TALK8-R12-MONITOR
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - "experiments/zeref-dad-son-001/talk8-r12/RUN_GAUNTLET"
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-talk8-r12-monitor
+  cancel-in-progress: true
+
+jobs:
+  observe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Find gauntlet run and publish inflight receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUN=""
+          for i in 1 2 3 4 5 6; do
+            RUN=$(gh run list --workflow zeref-talk8-r12-gauntlet.yml --commit "$GITHUB_SHA" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+            test -n "$RUN" && break
+            sleep 2
+          done
+          test -n "$RUN"
+          mkdir -p experiments/zeref-dad-son-001/evidence/talk8-r12
+          python - <<PY
+          import json
+          from pathlib import Path
+          Path('experiments/zeref-dad-son-001/evidence/talk8-r12/inflight.json').write_text(json.dumps({'schema':'zeref-talk8-r12-inflight-v1','gauntlet_run_id':int('$RUN'),'source_commit_sha':'$GITHUB_SHA','status':'in_progress'},indent=2,sort_keys=True)+'\n')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add experiments/zeref-dad-son-001/evidence/talk8-r12/inflight.json
+          git commit -m "evidence: record TALK-008 R12 inflight ${RUN} [skip ci]"
+          git pull --rebase origin networked-cage-run-001
+          git push origin HEAD:networked-cage-run-001
+          echo "$RUN" > /tmp/gauntlet-run
+
+      - name: Watch gauntlet to completion
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN=$(cat /tmp/gauntlet-run)
+          gh run watch "$RUN" --exit-status || true
+
+      - name: Publish final observed conclusion
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUN=$(cat /tmp/gauntlet-run)
+          META=$(gh run view "$RUN" --json status,conclusion,headSha,url)
+          git pull --rebase origin networked-cage-run-001
+          python - <<PY
+          import json
+          from pathlib import Path
+          m=json.loads('''$META''')
+          Path('experiments/zeref-dad-son-001/evidence/talk8-r12/inflight.json').write_text(json.dumps({'schema':'zeref-talk8-r12-inflight-v1','gauntlet_run_id':int('$RUN'),'source_commit_sha':m['headSha'],'status':m['status'],'conclusion':m['conclusion'],'url':m['url']},indent=2,sort_keys=True)+'\n')
+          PY
+          git add experiments/zeref-dad-son-001/evidence/talk8-r12/inflight.json
+          git commit -m "evidence: observe TALK-008 R12 ${RUN} conclusion [skip ci]"
+          git push origin HEAD:networked-cage-run-001

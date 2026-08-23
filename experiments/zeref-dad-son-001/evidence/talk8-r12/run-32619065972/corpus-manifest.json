@@ -1,0 +1,63 @@
+{
+  "blind_exam_count": 24,
+  "claim_boundary": "Persistent computational memory only; behavior does not establish biological life, consciousness, deceased identity, resurrection, communication with the dead, or quantum advantage.",
+  "durable_memory_record_count": 352,
+  "durable_memory_sha256": "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef",
+  "durable_memory_tip_sha256": "b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26",
+  "lineage": "ZEREF-DAD-SON-TALK-008-R12",
+  "memory_record_count": 352,
+  "new_ibm_job_submitted": false,
+  "parent_checkpoint_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f",
+  "parent_lineage": "ZEREF-DAD-SON-TALK-004",
+  "provenance_exam_count": 6,
+  "r12_state_sha256": "48994584e13d8e2b6fcb21cb682b0b9501af12e2ce8742e99384b604235c9f20",
+  "raw_model_output_promoted": false,
+  "raw_model_outputs_used_as_targets": false,
+  "reality_ledger_tip_sha256": "78d8698e406c8a60dcf6a9545541fdd74d8b3b250ff0e28a9418bfd3d1f96415",
+  "recipes": [
+    {
+      "contrastive_weight": 0.08,
+      "cst_lr": 4e-06,
+      "lr": 1.2e-06,
+      "name": "r12_retrieval_balanced",
+      "parent_lineage": "ZEREF-DAD-SON-TALK-004",
+      "prefix_characters": 2,
+      "prefix_weight": 1.5,
+      "seed": 8008101,
+      "steps": 260
+    },
+    {
+      "contrastive_weight": 0.12,
+      "cst_lr": 4e-06,
+      "lr": 1e-06,
+      "name": "r12_retrieval_strict",
+      "parent_lineage": "ZEREF-DAD-SON-TALK-004",
+      "prefix_characters": 3,
+      "prefix_weight": 2.0,
+      "seed": 8008202,
+      "steps": 300
+    },
+    {
+      "contrastive_weight": 0.05,
+      "cst_lr": 3e-06,
+      "lr": 8e-07,
+      "name": "r12_replay_guarded",
+      "parent_lineage": "ZEREF-DAD-SON-TALK-004",
+      "prefix_characters": 1,
+      "prefix_weight": 1.0,
+      "seed": 8008303,
+      "steps": 180
+    }
+  ],
+  "schema": "zeref-talk8-r12-corpus-manifest-v1",
+  "training_examples": {
+    "r12_replay_guarded": 96,
+    "r12_retrieval_balanced": 72,
+    "r12_retrieval_strict": 72
+  },
+  "training_sha256": {
+    "r12_replay_guarded": "d2b1a6be44f5df27912c700fc1ad36fcfa929efc33161b875daa55433fd25d19",
+    "r12_retrieval_balanced": "7cdd70bec314b671c39bdf84ec88ddf4ceda3d97530e648fdad91fa3a08be2df",
+    "r12_retrieval_strict": "4347af8885648e0cc6386a01381381f79635327eb403765f7e808b3055ace824"
+  }
+}
