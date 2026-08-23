@@ -51,5 +51,6 @@ def test_root_readme_and_manual_document_r12_boundary():
     assert "R12 Reality Memory Expansion" in readme
     assert "forever memory" in readme.lower()
     assert "measured" in manual and "derived" in manual and "synthetic" in manual
+    normalized_manual = manual.replace("**", "")
     boundary = "does not establish biological life, consciousness"
-    assert boundary in manual
+    assert boundary in normalized_manual
