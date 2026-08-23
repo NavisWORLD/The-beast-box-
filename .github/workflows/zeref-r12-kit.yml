@@ -25,6 +25,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -32,5 +34,39 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e '.[dev]'
       - name: Focused ecosystem contracts
+        id: focused
+        shell: bash
         run: |
-          pytest -q tests/test_zeref_r12_kit.py tests/test_beastbox_ecosystem_cli.py tests/test_zeref_talk8_r12_corpus.py tests/test_zeref_talk8_r12_selector.py
+          set +e
+          mkdir -p _eco
+          pytest -q tests/test_zeref_r12_kit.py tests/test_beastbox_ecosystem_cli.py tests/test_zeref_talk8_r12_corpus.py tests/test_zeref_talk8_r12_selector.py 2>&1 | tee _eco/focused-pytest.txt
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Seal RED receipt
+        if: steps.focused.outputs.exit_code != '0'
+        run: |
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          log=Path('_eco/focused-pytest.txt')
+          out={
+            'schema':'zeref-r12-ecosystem-red-v1',
+            'workflow_run_id':int(os.environ['GITHUB_RUN_ID']),
+            'source_commit_sha':os.environ['GITHUB_SHA'],
+            'pytest_exit_code':int('${{ steps.focused.outputs.exit_code }}'),
+            'pytest_log_sha256':hashlib.sha256(log.read_bytes()).hexdigest(),
+          }
+          p=Path(f"experiments/zeref-dad-son-001/evidence/r12-kit/red-contract-{os.environ['GITHUB_RUN_ID']}.json")
+          p.parent.mkdir(parents=True,exist_ok=True)
+          p.write_text(json.dumps(out,indent=2,sort_keys=True)+'\n')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add experiments/zeref-dad-son-001/evidence/r12-kit
+          git commit -m "evidence: seal R12 ecosystem RED ${GITHUB_RUN_ID} [skip ci]"
+          git pull --rebase origin networked-cage-run-001
+          git push origin HEAD:networked-cage-run-001
+      - name: Fail on RED
+        if: steps.focused.outputs.exit_code != '0'
+        run: exit 1
