@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from scripts.select_zeref_talk8_r12 import evaluate_candidate
+from pathlib import Path
+
+from scripts.select_zeref_talk8_r12 import evaluate_candidate, r12_immutability_receipt
 
 
+ROOT = Path(__file__).resolve().parents[1]
 BASE_PARENT = {
     "reference_token_recall": 0.0,
     "exact_answers": 0,
@@ -72,3 +75,12 @@ def test_missing_r12_immutability_receipts_fail_closed():
     result = evaluate_candidate(BASE_PARENT, row)
     assert result["eligible"] is False
     assert {"r12_ledger", "r12_state", "r12_history", "r12_manifest"}.issubset(result["rejection_reasons"])
+
+
+def test_current_sealed_r12_sidecar_matches_all_immutability_hashes():
+    receipt = r12_immutability_receipt(ROOT)
+    assert receipt["all_unchanged"] is True
+    assert receipt["r12_ledger_unchanged"] is True
+    assert receipt["r12_state_unchanged"] is True
+    assert receipt["r12_history_unchanged"] is True
+    assert receipt["r12_manifest_unchanged"] is True
