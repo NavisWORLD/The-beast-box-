@@ -91,7 +91,7 @@ def build_source_kit(repo_root: Path, output_dir: Path) -> dict[str, Any]:
     if reality.get("model_weights_modified") is not False or reality.get("new_ibm_job_submitted") is not False:
         raise ValueError("R12 manifest violates memory-first boundary")
 
-    # Full source-visible ecosystem: CLI, coder, R12 runtime, native verifier, docs and launcher kit.
+    # Full installable ecosystem source.
     for rel in ["pyproject.toml", "README.md", "LICENSE", "IP_NOTICE.md", "SECURITY.md", "CITATION.cff"]:
         src = repo_root / rel
         if src.is_file():
@@ -99,23 +99,31 @@ def build_source_kit(repo_root: Path, output_dir: Path) -> dict[str, Any]:
     for rel in ["beastbox", "scripts", "coder", "cpp/r12", "docs", "kits/ZEREF_R12_REALITY_MEMORY_KIT"]:
         _copy_tree(repo_root / rel, output_dir / rel)
 
-    # Exact persisted R12 state, durable continuity and frozen Zeref architecture.
+    # Compatibility runtime layout used by the standalone verifier and early kit contract.
+    _copy_tree(repo_root / "beastbox", output_dir / "runtime/beastbox")
+    _copy_tree(repo_root / "scripts", output_dir / "runtime/scripts")
+
+    # Exact persisted R12 state and durable continuity in both canonical and portable aliases.
     _copy_tree(reality_root, output_dir / "experiments/zeref-dad-son-001/reality-memory")
+    _copy_tree(reality_root, output_dir / "reality-memory")
     _copy(memory_manifest_path, output_dir / "experiments/zeref-dad-son-001/memory/ledger-manifest.json")
+    _copy(memory_manifest_path, output_dir / "memory/ledger-manifest.json")
     _copy(arch_path, output_dir / "experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py")
     if active_selection is not None:
         _copy(base / "talk8-r12/active-selection.json", output_dir / "experiments/zeref-dad-son-001/talk8-r12/active-selection.json")
 
     bundled_segments = []
-    for seg in memory["snapshot_chain"]:
+    for index, seg in enumerate(memory["snapshot_chain"], 1):
         src = repo_root / seg["path"]
         if _sha(src) != seg["sha256"]:
             raise ValueError(f"memory snapshot hash mismatch: {src}")
         exact_rel = Path(seg["path"])
         _copy(src, output_dir / exact_rel)
-        bundled_segments.append({**seg, "bundled_path": exact_rel.as_posix()})
+        portable_rel = Path("memory/snapshots") / f"{index:03d}-{src.name}"
+        _copy(src, output_dir / portable_rel)
+        bundled_segments.append({**seg, "bundled_path": portable_rel.as_posix(), "canonical_bundled_path": exact_rel.as_posix()})
 
-    # Copy the sealed Fez source evidence used by R12 so users can audit provenance offline.
+    # Sealed Fez source evidence used by R12 so provenance is auditable offline.
     hw = repo_root / "experiments/zeref-origin-heart-001/evidence/son-heartbeat-demo-001/hardware/run-32611912698"
     _copy_tree(hw, output_dir / "provenance/ibm-fez-run-32611912698")
 
@@ -151,7 +159,17 @@ def build_source_kit(repo_root: Path, output_dir: Path) -> dict[str, Any]:
     }
     (output_dir / "KIT_MANIFEST.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     _checksums(output_dir)
-    return {k: manifest[k] for k in ["schema", "active_lineage", "active_checkpoint_sha256", "durable_memory_record_count", "r12_state_sha256", "reality_ledger_tip_sha256", "checkpoint_included", "installable_ecosystem"]}
+    return {
+        "schema": "zeref-r12-source-kit-receipt-v1",
+        "manifest_schema": manifest["schema"],
+        "active_lineage": active_lineage,
+        "active_checkpoint_sha256": active_checkpoint,
+        "durable_memory_record_count": MEMORY_COUNT,
+        "r12_state_sha256": R12_STATE_SHA256,
+        "reality_ledger_tip_sha256": R12_TIP_SHA256,
+        "checkpoint_included": False,
+        "installable_ecosystem": True,
+    }
 
 
 def add_verified_checkpoint(bundle_root: Path, checkpoint: Path) -> dict[str, Any]:
