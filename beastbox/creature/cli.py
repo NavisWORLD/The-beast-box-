@@ -8,6 +8,7 @@ from typing import Sequence
 from .bridges import classical_receipt
 from .doctor import doctor_project
 from .gguf import export_gguf
+from .native_gguf import build_conversion_plan, conversion_matrix
 from .project import create_creature_project
 from .weights import build_weight_manifest, inspect_weight
 
@@ -48,6 +49,11 @@ def _parser() -> argparse.ArgumentParser:
     convert.add_argument("source")
     convert.add_argument("output")
     convert.add_argument("--converter", nargs="+")
+    weight_sub.add_parser("native-recipes", help="show the audited PHOS/Born/samgo/cosmos-best GGUF recipes")
+    native_plan = weight_sub.add_parser("native-plan", help="build a hash-aware native COSMOS GGUF conversion plan")
+    native_plan.add_argument("model_id", choices=["phos", "cosmos-born", "samgo-5.7", "cosmos-best"])
+    native_plan.add_argument("--source")
+    native_plan.add_argument("--output-dir", default=".")
 
     bridge = sub.add_parser("bridge", help="emit sanitized bridge receipts")
     bridge_sub = bridge.add_subparsers(dest="bridge_command", required=True)
@@ -91,6 +97,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.weight_command == "export-gguf":
             path = export_gguf(args.source, args.output, converter=args.converter)
             _print(inspect_weight(path))
+            return 0
+        if args.weight_command == "native-recipes":
+            _print(conversion_matrix())
+            return 0
+        if args.weight_command == "native-plan":
+            _print(build_conversion_plan(
+                args.model_id,
+                source=args.source,
+                output_dir=args.output_dir,
+            ))
             return 0
     if args.command == "bridge" and args.bridge_command == "classical":
         _print(classical_receipt(args.seed, ttl_seconds=args.ttl).to_dict())
