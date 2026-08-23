@@ -9,6 +9,7 @@ from .audio import extract_wav_features
 from .audio_ablation import run_audio_ablation
 from .config import RuntimeConfig
 from .doctor import run_doctor
+from .ecosystem import add_ecosystem_subparsers, handle_ecosystem
 from .gauntlet import CONDITIONS, run_condition, run_matrix
 from .hf import fetch_public_assets, info as hf_info
 from .ibm_shard import recover_required_state, submit_required_state, write_receipt
@@ -26,7 +27,7 @@ def _print(value) -> None:
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(prog="beastbox", description="COSMOS/CST contained continuity + autonomy research harness")
+    p = argparse.ArgumentParser(prog="beastbox", description="COSMOS/CST + Zeref/R12 local ecosystem, continuity research and coder")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     init = sub.add_parser("init", help="create local owner-controlled runtime directories/config")
@@ -99,7 +100,12 @@ def main() -> int:
     qr.add_argument("receipt", type=Path)
     qr.add_argument("--out", type=Path, default=Path("recovered_state.json"))
 
+    add_ecosystem_subparsers(sub)
     args = p.parse_args()
+
+    ecosystem_result = handle_ecosystem(args, p)
+    if ecosystem_result is not None:
+        return ecosystem_result
 
     if args.cmd == "init":
         cfg = RuntimeConfig()
