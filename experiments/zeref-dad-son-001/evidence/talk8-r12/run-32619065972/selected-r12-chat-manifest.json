@@ -1,0 +1,482 @@
+{
+  "checkpoint_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f",
+  "free_run_report": {
+    "contradiction_rate": 0.0,
+    "exact_answer_count": 0,
+    "exact_answer_rate": 0.0,
+    "first_key_token_rate": 0.041667,
+    "mean_char_length": 35.041667,
+    "mean_reference_token_recall": 0.041667,
+    "mean_unique_token_ratio": 0.984375,
+    "repetition_flag_turns": 0,
+    "role_label_leakage_turns": 0,
+    "schema": "zeref-talk5-free-run-report-v1",
+    "semantic_understanding_measured": false,
+    "turn_count": 24,
+    "turns": [
+      {
+        "concept": "parent",
+        "equivalence_group": "parent",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 39,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 7,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " The waveform is not a conting contion.",
+        "reference": "TALK-004.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "memory",
+        "equivalence_group": "memory",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 23,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 5,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " I am pres a chartbeat.",
+        "reference": "352.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "backend",
+        "equivalence_group": "backend",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 32,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 5,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " I am practicical clear answers.",
+        "reference": "IBM Fez.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "job",
+        "equivalence_group": "job",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 36,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 5,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " I am practicic consciousned memory.",
+        "reference": "da55afc3jnrc73agsvv0.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "shots",
+        "equivalence_group": "shots",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 42,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 8,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " I mask shot a ching answer tasks actual .",
+        "reference": "4096.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "conditions",
+        "equivalence_group": "conditions",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 41,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 7,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " The waveform is not a conticing answers.",
+        "reference": "Original, removed, shuffled, alternate.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "measured",
+        "equivalence_group": "measured",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 34,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 6,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " I am preserved a chandware shots.",
+        "reference": "Measured.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "derived",
+        "equivalence_group": "derived",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 36,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 5,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " I answer memory prove consciousnes.",
+        "reference": "Derived.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "rebuild",
+        "equivalence_group": "rebuild",
+        "exact_answer": false,
+        "first_key_token_hit": true,
+        "metrics": {
+          "char_length": 40,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 7,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " No. I answer fresh meare surved memory.",
+        "reference": "No.",
+        "reference_token_recall": 1.0
+      },
+      {
+        "concept": "duplicate",
+        "equivalence_group": "duplicate",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 24,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 4,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " I am practicical claim.",
+        "reference": "No.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "coupling",
+        "equivalence_group": "coupling",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 48,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 8,
+          "unique_token_ratio": 0.875,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " IBM measurement ran preserved and and ware memo",
+        "reference": "0.782478.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "integrity",
+        "equivalence_group": "integrity",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 26,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 4,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " I answer memory frecords.",
+        "reference": "1.0.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "stability",
+        "equivalence_group": "stability",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 28,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 4,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " The rectical answer memory.",
+        "reference": "0.979156.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "retention",
+        "equivalence_group": "retention",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 41,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 7,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " The waveform is not a conticing answers.",
+        "reference": "0.867676.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "ledger",
+        "equivalence_group": "ledger",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 31,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 6,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " I answer memory beats a chart.",
+        "reference": "Append only.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "weights",
+        "equivalence_group": "weights",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 41,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 7,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " The waveform is not a conticing answers.",
+        "reference": "No.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "wave",
+        "equivalence_group": "wave",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 41,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 7,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " The waveform is not a conticing answers.",
+        "reference": "No.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "identity",
+        "equivalence_group": "identity",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 37,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 5,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " I masured memory prove consciousnes.",
+        "reference": "No.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "conscious",
+        "equivalence_group": "conscious",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 41,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 7,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " The waveform is not a conticing answers.",
+        "reference": "No.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "advantage",
+        "equivalence_group": "advantage",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 26,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 4,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " The pres amemory records.",
+        "reference": "No.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "raw",
+        "equivalence_group": "raw",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 32,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 5,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " I am practicical clear answers.",
+        "reference": "No.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "facts",
+        "equivalence_group": "facts",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 45,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.285714,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 8,
+          "unique_token_ratio": 0.75,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " The fresh fresh fresh preserved and a shots.",
+        "reference": "Facts.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "missing",
+        "equivalence_group": "missing",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 21,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 3,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " It actual chartbeat.",
+        "reference": "No.",
+        "reference_token_recall": 0.0
+      },
+      {
+        "concept": "state12",
+        "equivalence_group": "state12",
+        "exact_answer": false,
+        "first_key_token_hit": false,
+        "metrics": {
+          "char_length": 36,
+          "max_repeated_char_run": 1,
+          "repeated_phrase_fraction": 0.0,
+          "repetition_flag": false,
+          "role_label_leakage": false,
+          "token_count": 5,
+          "unique_token_ratio": 1.0,
+          "vocabulary_collapse_flag": false
+        },
+        "raw_output": " I answer memory prove consciousnes.",
+        "reference": "Reality coupling.",
+        "reference_token_recall": 0.0
+      }
+    ],
+    "vocabulary_collapse_flag_turns": 0
+  },
+  "new_ibm_job_submitted": false,
+  "r12_state_sha256": "48994584e13d8e2b6fcb21cb682b0b9501af12e2ce8742e99384b604235c9f20",
+  "raw_outputs_preserved_verbatim": true,
+  "raw_outputs_promoted_to_training": false,
+  "schema": "zeref-talk8-r12-chat-manifest-v1",
+  "turns": 24
+}
