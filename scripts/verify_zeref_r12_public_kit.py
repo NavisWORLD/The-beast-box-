@@ -14,6 +14,7 @@ TOKEN_VALUE_RE = re.compile(
 )
 GITHUB_PAT_RE = re.compile(r"ghp_[A-Za-z0-9]{20,}")
 BEARER_RE = re.compile(r"(?i)bearer\s+[A-Za-z0-9._-]{20,}")
+SEALED_QUERY = "IBM Fez matched reality measurement"
 
 
 def _sha(path: Path) -> str:
@@ -45,7 +46,7 @@ def verify_kit(bundle_root: Path, require_checkpoint: bool = False) -> dict[str,
         from beastbox.reality_memory import RealityLedger, rebuild_r12
         ledger = RealityLedger(root / "reality-memory/ledger/reality-events.jsonl")
         report = ledger.verify()
-        state, history = rebuild_r12(ledger.events())
+        state, history = rebuild_r12(ledger.events(), query=SEALED_QUERY)
     finally:
         if sys.path and sys.path[0] == str(runtime):
             sys.path.pop(0)
@@ -88,6 +89,7 @@ def verify_kit(bundle_root: Path, require_checkpoint: bool = False) -> dict[str,
         "checkpoint_present": checkpoint_present,
         "r12_chain_valid": bool(report["chain_valid"]),
         "r12_rebuild_verified": True,
+        "sealed_query": SEALED_QUERY,
         "event_count": report["event_count"],
         "r12_state_sha256": state["state_sha256"],
         "reality_ledger_tip_sha256": report["tip_sha256"],
