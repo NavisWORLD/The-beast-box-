@@ -12,7 +12,8 @@ from typing import Any
 TOKEN_VALUE_RE = re.compile(r"(?im)^\s*(?:ibm_quantum_token|github_token)\s*[:=]\s*[\"']?([A-Za-z0-9._-]{16,})")
 GITHUB_PAT_RE = re.compile(r"ghp_[A-Za-z0-9]{20,}")
 BEARER_RE = re.compile(r"(?i)bearer\s+[A-Za-z0-9._-]{20,}")
-SEALED_QUERY = "IBM Fez matched reality measurement"
+CANONICAL_REBUILD_QUERY = ""
+RETRIEVAL_EXAMPLE_QUERY = "IBM Fez matched reality measurement"
 
 
 def _sha(path: Path) -> str:
@@ -37,7 +38,7 @@ def _contains_credential_value(text: str) -> bool:
 
 
 def _rebuild_with_bundle_code(root: Path) -> dict[str, Any]:
-    """Rebuild R12 in a fresh interpreter using only the bundle's Python package."""
+    """Rebuild the canonical persisted R12 state in a fresh bundle-only interpreter."""
     script = r'''
 import json
 import sys
@@ -50,7 +51,7 @@ from beastbox.reality_memory import RealityLedger, rebuild_r12
 rr = root / "experiments/zeref-dad-son-001/reality-memory"
 ledger = RealityLedger(rr / "ledger/reality-events.jsonl")
 report = ledger.verify()
-state, history = rebuild_r12(ledger.events(), query="IBM Fez matched reality measurement")
+state, history = rebuild_r12(ledger.events(), query="")
 print(json.dumps({"report": report, "state": state, "history": history}, sort_keys=True))
 '''
     proc = subprocess.run(
@@ -119,14 +120,15 @@ def verify_kit(bundle_root: Path, require_checkpoint: bool = False) -> dict[str,
                 raise ValueError(f"credential-like value found in {path.relative_to(root)}")
 
     return {
-        "schema": "zeref-r12-public-kit-verification-v3",
+        "schema": "zeref-r12-public-kit-verification-v4",
         "ok": True,
         "installable_ecosystem": True,
         "checkpoint_present": checkpoint_present,
         "r12_chain_valid": bool(report["chain_valid"]),
         "r12_rebuild_verified": True,
         "bundle_code_isolated": True,
-        "sealed_query": SEALED_QUERY,
+        "canonical_rebuild_query": CANONICAL_REBUILD_QUERY,
+        "retrieval_example_query": RETRIEVAL_EXAMPLE_QUERY,
         "event_count": report["event_count"],
         "r12_state_sha256": state["state_sha256"],
         "reality_ledger_tip_sha256": report["tip_sha256"],
