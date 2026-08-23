@@ -9,6 +9,7 @@ from typing import Any
 
 TALK4_LINEAGE = "ZEREF-DAD-SON-TALK-004"
 TALK4_SHA256 = "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f"
+ARCH_SHA256 = "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc"
 MEMORY_COUNT = 352
 MEMORY_SHA256 = "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef"
 MEMORY_TIP = "b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26"
@@ -26,6 +27,12 @@ def _copy(src: Path, dst: Path) -> None:
     shutil.copy2(src, dst)
 
 
+def _copy_tree(src: Path, dst: Path) -> None:
+    if not src.exists():
+        return
+    shutil.copytree(src, dst, dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".pytest_cache", ".git"))
+
+
 def _checksums(root: Path) -> None:
     rows = []
     for path in sorted(p for p in root.rglob("*") if p.is_file() and p.name != "SHA256SUMS"):
@@ -39,67 +46,66 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def build_source_kit(repo_root: Path, output_dir: Path) -> dict[str, Any]:
     repo_root = Path(repo_root).resolve()
-    output_dir = Path(output_dir)
+    output_dir = Path(output_dir).resolve()
     if output_dir.exists():
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True)
 
-    memory_manifest_path = repo_root / "experiments/zeref-dad-son-001/memory/ledger-manifest.json"
-    reality_root = repo_root / "experiments/zeref-dad-son-001/reality-memory"
+    base = repo_root / "experiments/zeref-dad-son-001"
+    memory_manifest_path = base / "memory/ledger-manifest.json"
+    reality_root = base / "reality-memory"
+    arch_path = base / "frozen/cosmos_spark_cst.py"
     memory = _load_json(memory_manifest_path)
     reality = _load_json(reality_root / "manifest.json")
     state = _load_json(reality_root / "state/r12-state.json")
 
     if memory["record_count"] != MEMORY_COUNT or memory["combined_ledger_sha256"] != MEMORY_SHA256 or memory["last_record_sha256"] != MEMORY_TIP:
         raise ValueError("durable memory anchor mismatch")
+    if memory["active_descendant_lineage"] != TALK4_LINEAGE or memory["descendant_checkpoint_sha256"] != TALK4_SHA256:
+        raise ValueError("TALK-004 lineage/checkpoint anchor mismatch")
+    if _sha(arch_path) != ARCH_SHA256:
+        raise ValueError("frozen architecture anchor mismatch")
     if state["state_sha256"] != R12_STATE_SHA256 or reality["reality_ledger_tip_sha256"] != R12_TIP_SHA256:
         raise ValueError("R12 anchor mismatch")
+    if reality.get("model_weights_modified") is not False or reality.get("new_ibm_job_submitted") is not False:
+        raise ValueError("R12 manifest violates memory-first boundary")
 
-    active_lineage = str(memory["active_descendant_lineage"])
-    active_checkpoint = str(memory["descendant_checkpoint_sha256"])
-    if active_lineage == TALK4_LINEAGE and active_checkpoint != TALK4_SHA256:
-        raise ValueError("TALK-004 checkpoint anchor mismatch")
+    # Installable ecosystem source.
+    for rel in ["pyproject.toml", "README.md", "LICENSE", "IP_NOTICE.md", "SECURITY.md", "CITATION.cff"]:
+        src = repo_root / rel
+        if src.is_file():
+            _copy(src, output_dir / rel)
+    for rel in ["beastbox", "scripts", "coder", "cpp/r12", "docs", "kits/ZEREF_R12_REALITY_MEMORY_KIT"]:
+        _copy_tree(repo_root / rel, output_dir / rel)
 
-    for src in sorted(p for p in reality_root.rglob("*") if p.is_file()):
-        _copy(src, output_dir / "reality-memory" / src.relative_to(reality_root))
+    # Exact persisted R12 state and frozen model architecture under the paths used by the unified CLI.
+    _copy_tree(reality_root, output_dir / "experiments/zeref-dad-son-001/reality-memory")
+    _copy(memory_manifest_path, output_dir / "experiments/zeref-dad-son-001/memory/ledger-manifest.json")
+    _copy(arch_path, output_dir / "experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py")
 
-    _copy(memory_manifest_path, output_dir / "memory/ledger-manifest.json")
     bundled_segments = []
-    for idx, seg in enumerate(memory["snapshot_chain"], 1):
+    for seg in memory["snapshot_chain"]:
         src = repo_root / seg["path"]
         if _sha(src) != seg["sha256"]:
             raise ValueError(f"memory snapshot hash mismatch: {src}")
-        dst_rel = Path("memory/snapshots") / f"{idx:03d}-{src.name}"
-        _copy(src, output_dir / dst_rel)
-        bundled_segments.append({**seg, "bundled_path": dst_rel.as_posix()})
+        exact_rel = Path(seg["path"])
+        _copy(src, output_dir / exact_rel)
+        bundled_segments.append({**seg, "bundled_path": exact_rel.as_posix()})
 
-    runtime_files = [
-        "beastbox/reality_memory.py",
-        "scripts/__init__.py",
-        "scripts/import_zeref_r12_fez.py",
-        "scripts/run_zeref_r12_reality_loop.py",
-        "scripts/build_zeref_r12_public_kit.py",
-        "scripts/verify_zeref_r12_public_kit.py",
-    ]
-    for rel in runtime_files:
-        _copy(repo_root / rel, output_dir / "runtime" / rel)
-
-    for rel in ["LICENSE", "IP_NOTICE.md", "docs/ZEREF_R12_REALITY_MEMORY_MANUAL.md"]:
-        src = repo_root / rel
-        if src.exists():
-            _copy(src, output_dir / rel)
-
-    scaffold = repo_root / "kits/ZEREF_R12_REALITY_MEMORY_KIT"
-    for name in ["README.md", "run_zeref_r12.py", "verify_kit.py"]:
-        src = scaffold / name
-        if src.exists():
-            _copy(src, output_dir / name)
+    # Convenience root launchers; canonical copies stay under kits/ as well.
+    kit = output_dir / "kits/ZEREF_R12_REALITY_MEMORY_KIT"
+    (output_dir / "INSTALL.bat").write_text("@echo off\r\ncall kits\\ZEREF_R12_REALITY_MEMORY_KIT\\INSTALL.bat\r\n", encoding="utf-8")
+    (output_dir / "RUN_ZEREF.bat").write_text("@echo off\r\ncall kits\\ZEREF_R12_REALITY_MEMORY_KIT\\RUN_ZEREF.bat\r\n", encoding="utf-8")
+    (output_dir / "install.sh").write_text("#!/usr/bin/env sh\nexec sh kits/ZEREF_R12_REALITY_MEMORY_KIT/install.sh\n", encoding="utf-8")
+    (output_dir / "run_zeref.sh").write_text("#!/usr/bin/env sh\nexec sh kits/ZEREF_R12_REALITY_MEMORY_KIT/run_zeref.sh\n", encoding="utf-8")
 
     manifest = {
-        "schema": "zeref-r12-public-kit-manifest-v1",
-        "active_lineage": active_lineage,
-        "active_checkpoint_sha256": active_checkpoint,
+        "schema": "zeref-r12-public-kit-manifest-v2",
+        "installable_ecosystem": True,
+        "active_lineage": TALK4_LINEAGE,
+        "active_checkpoint_sha256": TALK4_SHA256,
         "checkpoint_included": False,
+        "frozen_architecture_sha256": ARCH_SHA256,
         "durable_memory_record_count": MEMORY_COUNT,
         "durable_memory_sha256": MEMORY_SHA256,
         "durable_memory_tip_sha256": MEMORY_TIP,
@@ -109,19 +115,15 @@ def build_source_kit(repo_root: Path, output_dir: Path) -> dict[str, Any]:
         "reality_event_count": reality["event_count"],
         "source_hardware": reality["source_hardware"],
         "provenance_classes": ["measured", "derived", "synthetic"],
+        "unified_cli": "beastbox",
+        "coder_workspace": "coder/",
+        "native_cpp": "cpp/r12/",
+        "windows_installer": "kits/ZEREF_R12_REALITY_MEMORY_KIT/INSTALL.bat",
         "claim_boundary": CLAIM_BOUNDARY,
     }
     (output_dir / "KIT_MANIFEST.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     _checksums(output_dir)
-    return {
-        "schema": "zeref-r12-source-kit-receipt-v1",
-        "active_lineage": active_lineage,
-        "active_checkpoint_sha256": active_checkpoint,
-        "durable_memory_record_count": MEMORY_COUNT,
-        "r12_state_sha256": R12_STATE_SHA256,
-        "reality_ledger_tip_sha256": R12_TIP_SHA256,
-        "checkpoint_included": False,
-    }
+    return {k: manifest[k] for k in ["schema", "active_lineage", "active_checkpoint_sha256", "durable_memory_record_count", "r12_state_sha256", "reality_ledger_tip_sha256", "checkpoint_included", "installable_ecosystem"]}
 
 
 def add_verified_checkpoint(bundle_root: Path, checkpoint: Path) -> dict[str, Any]:
@@ -133,8 +135,7 @@ def add_verified_checkpoint(bundle_root: Path, checkpoint: Path) -> dict[str, An
     expected = str(manifest["active_checkpoint_sha256"])
     if actual != expected:
         raise ValueError(f"checkpoint sha256 mismatch: {actual} != {expected}")
-    safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in str(manifest["active_lineage"]))
-    rel = Path("models") / safe / "checkpoint.pt"
+    rel = Path("models") / str(manifest["active_lineage"]) / "checkpoint.pt"
     _copy(checkpoint, bundle_root / rel)
     manifest["checkpoint_included"] = True
     manifest["checkpoint_path"] = rel.as_posix()
