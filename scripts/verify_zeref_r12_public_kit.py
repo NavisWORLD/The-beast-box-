@@ -8,10 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# Variable names are safe to ship in source code; token-shaped values are not.
-TOKEN_VALUE_RE = re.compile(
-    r"(?im)^\s*(?:ibm_quantum_token|github_token)\s*[:=]\s*[\"']?([A-Za-z0-9._-]{16,})"
-)
+TOKEN_VALUE_RE = re.compile(r"(?im)^\s*(?:ibm_quantum_token|github_token)\s*[:=]\s*[\"']?([A-Za-z0-9._-]{16,})")
 GITHUB_PAT_RE = re.compile(r"ghp_[A-Za-z0-9]{20,}")
 BEARER_RE = re.compile(r"(?i)bearer\s+[A-Za-z0-9._-]{20,}")
 SEALED_QUERY = "IBM Fez matched reality measurement"
@@ -22,7 +19,10 @@ def _sha(path: Path) -> str:
 
 
 def _verify_checksums(root: Path) -> None:
-    for line in (root / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
+    sums = root / "SHA256SUMS"
+    if not sums.is_file():
+        raise ValueError("kit SHA256SUMS missing")
+    for line in sums.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
         digest, rel = line.split("  ", 1)
@@ -39,22 +39,27 @@ def verify_kit(bundle_root: Path, require_checkpoint: bool = False) -> dict[str,
     root = Path(bundle_root).resolve()
     _verify_checksums(root)
     manifest = json.loads((root / "KIT_MANIFEST.json").read_text(encoding="utf-8"))
+    if manifest.get("installable_ecosystem") is not True:
+        raise ValueError("bundle is not marked installable_ecosystem")
+    for rel in ["pyproject.toml", "beastbox/cli.py", "beastbox/ecosystem.py", "coder/README.md", "cpp/r12/CMakeLists.txt", "kits/ZEREF_R12_REALITY_MEMORY_KIT/INSTALL.bat"]:
+        if not (root / rel).is_file():
+            raise ValueError(f"installable ecosystem file missing: {rel}")
 
-    runtime = root / "runtime"
-    sys.path.insert(0, str(runtime))
+    sys.path.insert(0, str(root))
     try:
         from beastbox.reality_memory import RealityLedger, rebuild_r12
-        ledger = RealityLedger(root / "reality-memory/ledger/reality-events.jsonl")
+        rr = root / "experiments/zeref-dad-son-001/reality-memory"
+        ledger = RealityLedger(rr / "ledger/reality-events.jsonl")
         report = ledger.verify()
         state, history = rebuild_r12(ledger.events(), query=SEALED_QUERY)
     finally:
-        if sys.path and sys.path[0] == str(runtime):
+        if sys.path and sys.path[0] == str(root):
             sys.path.pop(0)
 
-    persisted = json.loads((root / "reality-memory/state/r12-state.json").read_text(encoding="utf-8"))
+    persisted = json.loads((rr / "state/r12-state.json").read_text(encoding="utf-8"))
     if state["state_sha256"] != persisted["state_sha256"] or state["state_sha256"] != manifest["r12_state_sha256"]:
         raise ValueError("R12 deterministic rebuild mismatch")
-    persisted_history = [json.loads(x) for x in (root / "reality-memory/state/r12-history.jsonl").read_text(encoding="utf-8").splitlines() if x.strip()]
+    persisted_history = [json.loads(x) for x in (rr / "state/r12-history.jsonl").read_text(encoding="utf-8").splitlines() if x.strip()]
     if persisted_history != history:
         raise ValueError("R12 history mismatch")
     if report["tip_sha256"] != manifest["reality_ledger_tip_sha256"]:
@@ -79,13 +84,13 @@ def verify_kit(bundle_root: Path, require_checkpoint: bool = False) -> dict[str,
 
     for path in root.rglob("*"):
         if path.is_file() and path.suffix.lower() in {".json", ".jsonl", ".md", ".py", ".txt", ".sh", ".ps1", ".bat"}:
-            text = path.read_text(encoding="utf-8", errors="ignore")
-            if _contains_credential_value(text):
+            if _contains_credential_value(path.read_text(encoding="utf-8", errors="ignore")):
                 raise ValueError(f"credential-like value found in {path.relative_to(root)}")
 
     return {
-        "schema": "zeref-r12-public-kit-verification-v1",
+        "schema": "zeref-r12-public-kit-verification-v2",
         "ok": True,
+        "installable_ecosystem": True,
         "checkpoint_present": checkpoint_present,
         "r12_chain_valid": bool(report["chain_valid"]),
         "r12_rebuild_verified": True,
@@ -100,8 +105,5 @@ def verify_kit(bundle_root: Path, require_checkpoint: bool = False) -> dict[str,
 
 if __name__ == "__main__":
     import argparse
-    p = argparse.ArgumentParser()
-    p.add_argument("root", type=Path)
-    p.add_argument("--require-checkpoint", action="store_true")
-    a = p.parse_args()
+    p = argparse.ArgumentParser(); p.add_argument("root", type=Path); p.add_argument("--require-checkpoint", action="store_true"); a = p.parse_args()
     print(json.dumps(verify_kit(a.root, a.require_checkpoint), indent=2, sort_keys=True))
