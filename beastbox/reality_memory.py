@@ -55,6 +55,23 @@ def _clamp(value: float) -> float:
     return max(0.0, min(1.0, float(value)))
 
 
+def _stable_float_sum(values) -> float:
+    """Version-stable Neumaier compensated sum matching Python 3.12 float sum semantics."""
+    total = 0.0
+    compensation = 0.0
+    for raw in values:
+        value = float(raw)
+        updated = total + value
+        if abs(total) >= abs(value):
+            compensation += (total - updated) + value
+        else:
+            compensation += (value - updated) + total
+        total = updated
+    if compensation and math.isfinite(compensation):
+        total += compensation
+    return total
+
+
 def _validate_sha(value: str, field: str) -> str:
     value = str(value).lower()
     if not _SHA_RE.fullmatch(value):
@@ -247,14 +264,24 @@ def _counts_distribution(event: Mapping[str, Any]) -> dict[str, float]:
 
 
 def _tvd(left: Mapping[str, float], right: Mapping[str, float]) -> float:
-    keys = set(left) | set(right)
-    return _clamp(0.5 * sum(abs(float(left.get(k, 0.0)) - float(right.get(k, 0.0))) for k in keys))
+    keys = sorted(set(left) | set(right))
+    return _clamp(
+        0.5
+        * _stable_float_sum(
+            abs(float(left.get(key, 0.0)) - float(right.get(key, 0.0)))
+            for key in keys
+        )
+    )
 
 
 def _entropy32(distribution: Mapping[str, float]) -> float:
     if not distribution:
         return 0.0
-    entropy = -sum(p * math.log2(p) for p in distribution.values() if p > 0.0)
+    entropy = _stable_float_sum(
+        -distribution[key] * math.log2(distribution[key])
+        for key in sorted(distribution)
+        if distribution[key] > 0.0
+    )
     return _clamp(entropy / 5.0)
 
 
@@ -327,7 +354,11 @@ def derive_r12_transition(
     novelty = 0.0 if any(str(old.get("source_id", "")) == source_id for old in prior_events) else 1.0
 
     distribution = _counts_distribution(event)
-    energy = _clamp(sum(value * value for value in distribution.values())) if distribution else 0.0
+    energy = (
+        _clamp(_stable_float_sum(distribution[key] * distribution[key] for key in sorted(distribution)))
+        if distribution
+        else 0.0
+    )
     entropy = _entropy32(distribution)
 
     payload = event.get("payload") if isinstance(event.get("payload"), Mapping) else {}
@@ -346,16 +377,20 @@ def derive_r12_transition(
             sibling_distributions.append(old_distribution)
 
     if distribution and sibling_distributions:
-        agreement = _clamp(sum(1.0 - _tvd(distribution, other) for other in sibling_distributions) / len(sibling_distributions))
+        agreement = _clamp(
+            _stable_float_sum(1.0 - _tvd(distribution, other) for other in sibling_distributions)
+            / len(sibling_distributions)
+        )
     elif distribution:
         agreement = 0.5
     else:
         agreement = 0.0
 
     if distribution and measured_prior_distributions:
-        keys = set().union(*(set(item) for item in measured_prior_distributions), set(distribution))
+        keys = sorted(set().union(*(set(item) for item in measured_prior_distributions), set(distribution)))
         baseline = {
-            key: sum(item.get(key, 0.0) for item in measured_prior_distributions) / len(measured_prior_distributions)
+            key: _stable_float_sum(item.get(key, 0.0) for item in measured_prior_distributions)
+            / len(measured_prior_distributions)
             for key in keys
         }
         surprise = _tvd(distribution, baseline)
@@ -397,7 +432,7 @@ def derive_r12_transition(
         stability = 1.0
     else:
         diffs = [abs(value - float(previous_vector.get(name, 0.0))) for name, value in zip(R12_NAMES[:10], first_ten)]
-        stability = _clamp(1.0 - sum(diffs) / len(diffs))
+        stability = _clamp(1.0 - _stable_float_sum(diffs) / len(diffs))
 
     previous_coupling = _clamp(float(previous_vector.get("reality_coupling", 0.0)))
     last_measured = _clamp(float(previous_state.get("last_measured_reality_coupling", previous_coupling)))
