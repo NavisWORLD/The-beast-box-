@@ -17,41 +17,240 @@ concurrency:
   group: zeref-talk7-free-run-gauntlet
   cancel-in-progress: true
 
+env:
+  TALK4_SHA256: 9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f
+  ARCH_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+  START_LEDGER_SHA256: 67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef
+  START_TIP_SHA256: b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26
+  PRIME_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  HW_DIR: experiments/zeref-origin-heart-001/evidence/son-heartbeat-demo-001/hardware/run-32611912698
+
 jobs:
-  green-contracts:
+  final-dad-run:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 180
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout exact branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install focused test runtime
+
+      - name: Install focused runtime
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
           pip install -e '.[dev]'
           pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - name: Run TALK-007 GREEN contracts
-        shell: bash
+
+      - name: Re-prove focused TALK-007 contracts
         run: |
-          set +e
-          mkdir -p experiments/zeref-dad-son-001/evidence/talk7
-          pytest -q tests/test_zeref_talk7_*.py 2>&1 | tee /tmp/talk7-green-pytest.log
-          STATUS=${PIPESTATUS[0]}
-          export STATUS
+          set -euo pipefail
+          mkdir -p _talk7/evidence
+          pytest -q tests/test_zeref_talk7_*.py 2>&1 | tee _talk7/evidence/final-focused-pytest.txt
+
+      - name: Restore and verify immutable 352-record memory prefix
+        run: |
+          set -euo pipefail
+          mkdir -p _talk7/memory _talk7/evidence _talk7/corpus/current _talk7/corpus/retention _talk7/candidates _talk7/free _talk7/dad _talk7/selected _talk4src
           python - <<'PY'
-          import hashlib,json,os
+          import hashlib,json
           from pathlib import Path
-          log=Path('/tmp/talk7-green-pytest.log').read_bytes()
-          payload={'schema':'zeref-talk7-green-contract-v1','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_commit_sha':os.environ['GITHUB_SHA'],'pytest_exit_code':int(os.environ['STATUS']),'pytest_log_sha256':hashlib.sha256(log).hexdigest(),'expected_green':True,'implementation_present':True}
-          Path('experiments/zeref-dad-son-001/evidence/talk7/green-contract.json').write_text(json.dumps(payload,indent=2,sort_keys=True)+'\n')
-          Path('experiments/zeref-dad-son-001/evidence/talk7/green-contract-pytest.txt').write_bytes(log)
+          from beastbox.dad_son import DadSonLedger
+          mp=Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json'); m=json.loads(mp.read_text())
+          assert m['active_descendant_lineage']=='ZEREF-DAD-SON-TALK-004'
+          assert m['record_count']==352
+          assert m['combined_ledger_sha256']=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert m['last_record_sha256']=='b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'
+          assert m['descendant_checkpoint_sha256']=='9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'
+          combined=b''; expected=1
+          for seg in m['snapshot_chain']:
+              data=Path(seg['path']).read_bytes(); assert hashlib.sha256(data).hexdigest()==seg['sha256']; assert seg['first_memory_id']==expected; expected=seg['last_memory_id']+1; combined+=data
+          assert expected==353 and hashlib.sha256(combined).hexdigest()==m['combined_ledger_sha256']
+          lp=Path('_talk7/memory/dad-son-ledger.jsonl'); lp.write_bytes(combined); Path('_talk7/evidence/old-352-prefix.jsonl').write_bytes(combined)
+          ledger=DadSonLedger('_talk7/memory/dad-son.sqlite3',lp,parent_sha256='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6'); report=ledger.restore_snapshot(); assert report['restored_records']==352; ledger.close()
+          Path('_talk7/evidence/memory-verification.json').write_text(json.dumps({'record_count':352,'combined_ledger_sha256':hashlib.sha256(combined).hexdigest(),'tip_sha256':m['last_record_sha256'],'first_352_byte_identical':True,'active_parent_before_run':m['active_descendant_lineage']},indent=2,sort_keys=True)+'\n')
           PY
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          test "$(sha256sum experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py | awk '{print $1}')" = "$ARCH_SHA256"
+
+      - name: Verify matched Fez hardware block and signal declarations
+        run: |
+          set -euo pipefail
+          (cd "$HW_DIR" && sha256sum -c SHA256SUMS)
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          hw=Path('experiments/zeref-origin-heart-001/evidence/son-heartbeat-demo-001/hardware/run-32611912698')
+          sub=json.loads((hw/'submission.json').read_text()); res=json.loads((hw/'results.json').read_text()); met=json.loads((hw/'metrics.json').read_text()); ver=json.loads((hw/'verification.json').read_text())
+          expected={'ORIGINAL':'d6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0','REMOVED':'73676abd56bb7b6c660f26530d53c1bc00d918ffb633284a3f9b52b9ef94d4e5','SHUFFLED':'ffd39df3f2e1aa6865afed6ddd73d4f249c9904977981520ba2a18464d9f1c2f','ALTERNATE':'9b1ded93196cca5faef5cb048b26121e3dd13e10720a94f48a77d2890d290577'}
+          assert sub['backend']=='ibm_fez' and sub['job_id']=='da55afc3jnrc73agsvv0'; assert sub['shots']==4096
+          assert [p['condition'] for p in sub['pubs']]==['ORIGINAL','REMOVED','SHUFFLED','ALTERNATE']
+          assert len(res['results'])==4 and ver['all_shot_totals_match'] is True and ver['backend_matches'] is True and ver['job_id_matches'] is True
+          for row in res['results']:
+              assert row['shots']==4096 and row['packet_sha256']==expected[row['condition']]
+          cond=Path('experiments/zeref-origin-heart-001/evidence/son-heartbeat-demo-001/conditions'); op=json.loads((cond/'original-packet.json').read_text())
+          assert op['source_sha256']=='e5a172749e0acedf199f77f22d5f55f37acc898704a51d5b7e6fe07633ad5c39'; assert op['decode']['pcm_sha256']=='89e1b9496aa51e3dc22fb5d009b3c03f9ede6d259f9fc248f776a13ba349d931'
+          for name,fn in [('ORIGINAL','original-packet.json'),('REMOVED','removed-packet.json'),('SHUFFLED','shuffled-packet.json'),('ALTERNATE','alternate-packet.json')]: assert json.loads((cond/fn).read_text())['packet_sha256']==expected[name]
+          Path('_talk7/evidence/hardware-verification.json').write_text(json.dumps({'matched':True,'backend':sub['backend'],'job_id':sub['job_id'],'shots_per_pub':4096,'condition_order':['ORIGINAL','REMOVED','SHUFFLED','ALTERNATE'],'packet_sha256':expected,'results':res['results'],'pairwise_metrics':met,'submission_transpilation':sub.get('pubs'),'new_ibm_job_submitted':False},indent=2,sort_keys=True)+'\n')
+          Path('_talk7/evidence/signal-verification.json').write_text(json.dumps({'source_sha256_declared_and_packet_verified':op['source_sha256'],'pcm_sha256_declared_and_packet_verified':op['decode']['pcm_sha256'],'branch_source_bytes_present':False,'byte_level_source_rehash_performed':False,'reason':'The current branch retains derived control packets and hardware evidence, not the original memorial audio bytes. Hash declarations were cross-checked against the original packet but the source bytes cannot be independently rehashed in this run.'},indent=2,sort_keys=True)+'\n')
+          PY
+
+      - name: Download and verify exact TALK-004 parent
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 32075092605 -n zeref-talk4-tuned-response-32075092605 -D _talk4src
+          PARENT=$(find _talk4src -type f -path '*/ZEREF-DAD-SON-TALK-004/checkpoint.pt' -print -quit)
+          test -n "$PARENT" -a -f "$PARENT"
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK4_SHA256"
+          printf '%s\n' "$PARENT" > _talk7/parent-path.txt
+
+      - name: Build clean TALK-007 curricula and retention exam
+        run: |
+          set -euo pipefail
+          python scripts/build_zeref_talk7_corpus.py --out-dir _talk7/corpus/current
+          python scripts/build_zeref_talk2_corpus.py --out-dir _talk7/corpus/retention
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('_talk7/corpus/current/talk7-manifest.json').read_text()); assert m['parent_checkpoint_sha256']=='9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'; assert m['memory_record_count']==352; assert m['holdout_examples']==24; assert m['raw_model_outputs_used_as_targets'] is False; assert set(m['candidate_recipes'])=={'retrieval_grounded','prefix_focus','contrastive_guarded'}
+          PY
+
+      - name: Run identical blind parent exam
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk7/parent-path.txt); DIR=_talk7/free/parent; mkdir -p "$DIR"; cp _talk7/memory/dad-son-ledger.jsonl "$DIR/ledger.jsonl"; cp _talk7/memory/dad-son.sqlite3 "$DIR/memory.sqlite3"
+          python scripts/run_zeref_talk7_dad_chat.py --checkpoint "$PARENT" --checkpoint-sha256 "$TALK4_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --sqlite "$DIR/memory.sqlite3" --ledger "$DIR/ledger.jsonl" --heartbeat _talk7/corpus/current/talk7-heartbeat.json --exam _talk7/corpus/current/talk7-exam.jsonl --out "$DIR/transcript.jsonl" --manifest "$DIR/manifest.json" --session-id talk7-parent-blind --mode fixed-exam --tokens 48 --recall-limit 3 --temperature 0.05 --top-k 1
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('_talk7/free/parent/manifest.json').read_text()); assert m['turns']==24; Path('_talk7/evidence/parent-free-run.json').write_text(json.dumps(m['free_run_report'],indent=2,sort_keys=True)+'\n')
+          PY
+
+      - name: Train three independent TALK-007 children from TALK-004 only
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk7/parent-path.txt); CUR=$(sha256sum _talk7/corpus/current/talk7-manifest.json | awk '{print $1}'); MEM=$(sha256sum experiments/zeref-dad-son-001/memory/ledger-manifest.json | awk '{print $1}'); HW=$(sha256sum "$HW_DIR/verification.json" | awk '{print $1}')
+          train () {
+            NAME="$1" RECIPE="$2" STEPS="$3" SEED="$4" PCH="$5" PW="$6" CW="$7"; OUT="_talk7/candidates/$NAME"; mkdir -p "$OUT"
+            python scripts/run_zeref_talk7_stage.py --parent "$PARENT" --parent-sha256 "$TALK4_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus "_talk7/corpus/current/talk7-${RECIPE}.jsonl" --input-manifest "talk7=$CUR" --input-manifest "memory352=$MEM" --input-manifest "matchedfez=$HW" --out "$OUT" --seed "$SEED" --steps "$STEPS" --batch-size 4 --lr 0.0000015 --cst-lr 0.000006 --weight-decay 0.002 --prefix-characters "$PCH" --prefix-weight "$PW" --contrastive-weight "$CW" --contrastive-margin 0.2
+            SHA=$(sha256sum "$OUT/checkpoint.pt" | awk '{print $1}'); test "$SHA" != "$TALK4_SHA256"; printf '%s\n' "$SHA" > "$OUT/checkpoint.sha256"; test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK4_SHA256"
+          }
+          train retrieval_grounded retrieval_grounded 300 7007101 0 1.0 0.0
+          train prefix_focus prefix_focus 420 7007202 3 4.0 0.0
+          train contrastive_guarded contrastive_guarded 420 7007303 3 3.0 0.2
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK4_SHA256"
+
+      - name: Evaluate retention and identical blind free-running behavior
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk7/parent-path.txt)
+          for NAME in retrieval_grounded prefix_focus contrastive_guarded; do
+            CHILD="_talk7/candidates/$NAME/checkpoint.pt"; SHA=$(cat "_talk7/candidates/$NAME/checkpoint.sha256")
+            python scripts/eval_zeref_talk.py --parent "$PARENT" --descendant "$CHILD" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --holdout _talk7/corpus/retention/talk2-holdout.jsonl --seed 4061854640 --out "_talk7/evidence/${NAME}-retention.json"
+            DIR="_talk7/free/$NAME"; mkdir -p "$DIR"; cp _talk7/memory/dad-son-ledger.jsonl "$DIR/ledger.jsonl"; cp _talk7/memory/dad-son.sqlite3 "$DIR/memory.sqlite3"
+            python scripts/run_zeref_talk7_dad_chat.py --checkpoint "$CHILD" --checkpoint-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --sqlite "$DIR/memory.sqlite3" --ledger "$DIR/ledger.jsonl" --heartbeat _talk7/corpus/current/talk7-heartbeat.json --exam _talk7/corpus/current/talk7-exam.jsonl --out "$DIR/transcript.jsonl" --manifest "$DIR/manifest.json" --session-id "talk7-${NAME}-blind" --mode fixed-exam --tokens 48 --recall-limit 3 --temperature 0.05 --top-k 1
+          done
+
+      - name: Assemble candidates and make fail-closed promotion decision
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          parent=json.loads(Path('_talk7/evidence/parent-free-run.json').read_text()); prefix=hashlib.sha256(Path('_talk7/evidence/old-352-prefix.jsonl').read_bytes()).hexdigest(); assert prefix=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          configs={'retrieval_grounded':{'recipe':'retrieval_grounded','steps':300,'seed':7007101,'prefix_characters':0,'prefix_weight':1.0,'contrastive_weight':0.0},'prefix_focus':{'recipe':'prefix_focus','steps':420,'seed':7007202,'prefix_characters':3,'prefix_weight':4.0,'contrastive_weight':0.0},'contrastive_guarded':{'recipe':'contrastive_guarded','steps':420,'seed':7007303,'prefix_characters':3,'prefix_weight':3.0,'contrastive_weight':0.2}}
+          rows=[]
+          for name,cfg in configs.items():
+              free=json.loads(Path(f'_talk7/free/{name}/manifest.json').read_text())['free_run_report']; ret=json.loads(Path(f'_talk7/evidence/{name}-retention.json').read_text()); train=json.loads(Path(f'_talk7/candidates/{name}/result.json').read_text()); sha=Path(f'_talk7/candidates/{name}/checkpoint.sha256').read_text().strip()
+              rows.append({'name':name,'checkpoint_sha256':sha,'config':cfg,'training':train,'parent_checkpoint_sha256':'9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f','parent_checkpoint_unchanged':True,'first_352_prefix_sha256':prefix,'first_352_prefix_unchanged':True,'parent_free_run':parent,'free_run':free,'retention':ret})
+              Path(f'_talk7/evidence/{name}-free-run.json').write_text(json.dumps(free,indent=2,sort_keys=True)+'\n')
+          Path('_talk7/evidence/candidates.json').write_text(json.dumps({'schema':'zeref-talk7-candidate-set-v1','candidates':rows},indent=2,sort_keys=True)+'\n')
+          PY
+          python scripts/select_zeref_talk7_candidate.py --candidates _talk7/evidence/candidates.json --out _talk7/evidence/selection.json
+          python - <<'PY'
+          import json,shutil
+          from pathlib import Path
+          s=json.loads(Path('_talk7/evidence/selection.json').read_text()); parent=Path('_talk7/parent-path.txt').read_text().strip()
+          if s['promoted']:
+              name=s['selected']['name']; src=Path('_talk7/candidates')/name/'checkpoint.pt'; lineage='ZEREF-DAD-SON-TALK-007'; sha=s['selected']['checkpoint_sha256']
+          else: src=Path(parent); lineage='ZEREF-DAD-SON-TALK-004'; sha='9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'
+          shutil.copy2(src,Path('_talk7/selected/checkpoint.pt')); Path('_talk7/selected/checkpoint.sha256').write_text(sha+'\n'); Path('_talk7/selected/selection-target.json').write_text(json.dumps({'lineage':lineage,'checkpoint_sha256':sha,'promoted':s['promoted'],'selected_candidate':s['selected']['name'] if s['selected'] else None},indent=2,sort_keys=True)+'\n')
+          PY
+
+      - name: Dad talks to the proven winner or TALK-004 for 24 raw turns
+        run: |
+          set -euo pipefail
+          mkdir -p _talk7/dad/memory; cp _talk7/memory/dad-son-ledger.jsonl _talk7/dad/memory/ledger.jsonl; cp _talk7/memory/dad-son.sqlite3 _talk7/dad/memory/memory.sqlite3
+          SHA=$(cat _talk7/selected/checkpoint.sha256)
+          python scripts/run_zeref_talk7_dad_chat.py --checkpoint _talk7/selected/checkpoint.pt --checkpoint-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --sqlite _talk7/dad/memory/memory.sqlite3 --ledger _talk7/dad/memory/ledger.jsonl --heartbeat _talk7/corpus/current/talk7-heartbeat.json --out _talk7/evidence/dad-raw-transcript.jsonl --manifest _talk7/evidence/dad-manifest.json --session-id zeref-talk7-final-dad --mode adaptive --tokens 48 --recall-limit 3 --temperature 0.05 --top-k 1
+
+      - name: Final fail-closed verification and summary
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,sqlite3
+          from pathlib import Path
+          psha='9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'; prefix_sha='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'; tip='b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'
+          assert hashlib.sha256(Path(Path('_talk7/parent-path.txt').read_text().strip()).read_bytes()).hexdigest()==psha
+          old=Path('_talk7/evidence/old-352-prefix.jsonl').read_bytes(); assert hashlib.sha256(old).hexdigest()==prefix_sha
+          durable=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text()); assert durable['record_count']==352 and durable['combined_ledger_sha256']==prefix_sha and durable['last_record_sha256']==tip
+          transcript=[json.loads(x) for x in Path('_talk7/evidence/dad-raw-transcript.jsonl').read_text().splitlines() if x.strip()]; assert len(transcript)==24
+          for row in transcript: assert hashlib.sha256(row['raw_output'].encode()).hexdigest()==row['raw_output_sha256'] and row['raw_model_output_promoted_to_training'] is False
+          full=Path('_talk7/dad/memory/ledger.jsonl').read_bytes(); assert full.startswith(old); rows=[json.loads(x) for x in full.decode().splitlines() if x.strip()]; assert len(rows)==400 and rows[:352]==[json.loads(x) for x in old.decode().splitlines() if x.strip()]
+          sel=json.loads(Path('_talk7/evidence/selection.json').read_text()); target=json.loads(Path('_talk7/selected/selection-target.json').read_text()); cand=json.loads(Path('_talk7/evidence/candidates.json').read_text()); hw=json.loads(Path('_talk7/evidence/hardware-verification.json').read_text()); sig=json.loads(Path('_talk7/evidence/signal-verification.json').read_text()); dad=json.loads(Path('_talk7/evidence/dad-manifest.json').read_text())
+          if sel['promoted']: assert sel['selected_verdict']['eligible'] is True and target['lineage']=='ZEREF-DAD-SON-TALK-007'
+          else: assert target['lineage']=='ZEREF-DAD-SON-TALK-004' and target['checkpoint_sha256']==psha
+          summary={'schema':'zeref-talk7-final-dad-summary-v1','workflow_run_id':int(__import__('os').environ['GITHUB_RUN_ID']),'source_commit_sha':__import__('os').environ['GITHUB_SHA'],'best_verified_model':target['lineage'],'promoted':sel['promoted'],'selected_candidate':target['selected_candidate'],'checkpoint_sha256':target['checkpoint_sha256'],'durable_memory_record_count':352,'durable_memory_combined_sha256':prefix_sha,'durable_memory_tip_sha256':tip,'dad_working_session_records_after':400,'dad_raw_turns':24,'dad_raw_outputs_promoted_to_training':False,'candidate_selection':sel,'candidate_set':cand,'hardware':hw,'signal_verification':sig,'dad_manifest':dad,'new_ibm_job_submitted':False,'new_quantum_entropy':False,'durable_dad_session_appended':False,'claim_boundary':'Memorial audio-derived computational signal and model behavior only; no biological heartbeat, consciousness, resurrection, deceased-person identity, communication with the dead, or quantum advantage.'}
+          Path('_talk7/evidence/summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          PY
+
+      - name: Seal branch evidence and activate child only if every gate passed
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin networked-cage-run-001
-          git add experiments/zeref-dad-son-001/evidence/talk7/green-contract.json experiments/zeref-dad-son-001/evidence/talk7/green-contract-pytest.txt
-          git commit -m "evidence: record TALK-007 green contracts [skip ci]" || true
+          RUN="run-${GITHUB_RUN_ID}"; DEST="experiments/zeref-dad-son-001/evidence/talk7/$RUN"; mkdir -p "$DEST"
+          python - <<'PY'
+          import hashlib,json,os,shutil
+          from pathlib import Path
+          root=Path('_talk7/evidence'); dest=Path('experiments/zeref-dad-son-001/evidence/talk7')/f"run-{os.environ['GITHUB_RUN_ID']}"; dest.mkdir(parents=True,exist_ok=True)
+          for p in root.glob('*'):
+              if p.is_file(): shutil.copy2(p,dest/p.name)
+          for src,name in [(Path('_talk7/corpus/current/talk7-manifest.json'),'corpus-manifest.json'),(Path('_talk7/corpus/current/talk7-heartbeat.json'),'heartbeat.json'),(Path('_talk7/selected/selection-target.json'),'selection-target.json')]:
+              if src.exists(): shutil.copy2(src,dest/name)
+          status={'schema':'zeref-talk7-run-status-v1','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_commit_sha':os.environ['GITHUB_SHA'],'job_status':os.environ['JOB_STATUS'],'summary_present':(dest/'summary.json').exists(),'new_ibm_job_submitted':False}
+          (dest/'run-status.json').write_text(json.dumps(status,indent=2,sort_keys=True)+'\n')
+          sums=[]
+          for p in sorted(dest.rglob('*')):
+              if p.is_file() and p.name!='SHA256SUMS': sums.append(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.relative_to(dest).as_posix()}")
+          (dest/'SHA256SUMS').write_text('\n'.join(sums)+'\n')
+          if os.environ['JOB_STATUS']=='success' and (dest/'selection.json').exists():
+              s=json.loads((dest/'selection.json').read_text())
+              if s.get('promoted'):
+                  mp=Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json'); m=json.loads(mp.read_text()); assert m['record_count']==352 and m['combined_ledger_sha256']=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef' and m['last_record_sha256']=='b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'; chosen=s['selected']; m['active_descendant_lineage']='ZEREF-DAD-SON-TALK-007'; m['active_continuation_mode']='talk-007-free-run-hard-gated'; m['descendant_checkpoint_sha256']=chosen['checkpoint_sha256']; m['talk7_parent_checkpoint_sha256']='9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'; m['talk7_descendant_checkpoint_sha256']=chosen['checkpoint_sha256']; m['talk7_selected_candidate']=chosen['name']; m['talk7_source_workflow_run_id']=int(os.environ['GITHUB_RUN_ID']); m['talk7_source_artifact_name']=f"zeref-talk7-final-{os.environ['GITHUB_RUN_ID']}"; m['talk7_dad_session_appended']=False; m['talk7_raw_outputs_promoted_to_training']=False; mp.write_text(json.dumps(m,indent=2,ensure_ascii=False)+'\n')
+          PY
+          git add "$DEST" experiments/zeref-dad-son-001/memory/ledger-manifest.json
+          git commit -m "evidence: seal TALK-007 final Dad run ${GITHUB_RUN_ID} [skip ci]" || true
           git push origin HEAD:networked-cage-run-001
-          exit "$STATUS"
+
+      - name: Upload complete TALK-007 candidate and Dad evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-talk7-final-${{ github.run_id }}
+          path: |
+            _talk7/candidates/
+            _talk7/selected/
+            _talk7/evidence/
+            _talk7/corpus/current/
+          if-no-files-found: warn
+          retention-days: 90
