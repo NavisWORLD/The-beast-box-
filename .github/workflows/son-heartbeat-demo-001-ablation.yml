@@ -1,5 +1,5 @@
 name: SON-HEARTBEAT-DEMO-001-ABLATION
-# Registered workflow nudge: second push starts the already-existing workflow deterministically.
+# Fresh matched hardware trigger with durable evidence sealing.
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     permissions:
-      contents: read
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -40,6 +40,18 @@ jobs:
       - name: Verify evidence checksums
         if: success()
         run: (cd _son_heartbeat_ibm && sha256sum -c SHA256SUMS)
+      - name: Seal matched hardware evidence into branch
+        if: success()
+        run: |
+          dest="experiments/zeref-origin-heart-001/evidence/son-heartbeat-demo-001/hardware/run-${GITHUB_RUN_ID}"
+          mkdir -p "$dest"
+          cp -a _son_heartbeat_ibm/. "$dest/"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dest"
+          git commit -m "evidence: seal matched IBM heartbeat ablation run ${GITHUB_RUN_ID}"
+          git pull --rebase origin networked-cage-run-001
+          git push origin HEAD:networked-cage-run-001
       - name: Upload matched hardware evidence
         if: always()
         uses: actions/upload-artifact@v4
