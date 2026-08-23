@@ -247,3 +247,6 @@ A new adapter should record at minimum:
 - source hardware/session metadata when available
 
 New adapters should first enter R12 memory in a non-training mode. Model adaptation comes later and remains independently gated.
+
+
+For avoidance of doubt, this persistent computational memory result does not establish biological life, consciousness, deceased-person identity, resurrection, communication with the dead, or quantum advantage.
