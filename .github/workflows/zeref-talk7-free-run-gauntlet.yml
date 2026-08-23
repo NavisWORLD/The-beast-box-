@@ -87,15 +87,19 @@ jobs:
           hw=Path('experiments/zeref-origin-heart-001/evidence/son-heartbeat-demo-001/hardware/run-32611912698')
           sub=json.loads((hw/'submission.json').read_text()); res=json.loads((hw/'results.json').read_text()); met=json.loads((hw/'metrics.json').read_text()); ver=json.loads((hw/'verification.json').read_text())
           expected={'ORIGINAL':'d6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0','REMOVED':'73676abd56bb7b6c660f26530d53c1bc00d918ffb633284a3f9b52b9ef94d4e5','SHUFFLED':'ffd39df3f2e1aa6865afed6ddd73d4f249c9904977981520ba2a18464d9f1c2f','ALTERNATE':'9b1ded93196cca5faef5cb048b26121e3dd13e10720a94f48a77d2890d290577'}
-          assert sub['backend']=='ibm_fez' and sub['job_id']=='da55afc3jnrc73agsvv0'; assert sub['shots']==4096
-          assert [p['condition'] for p in sub['pubs']]==['ORIGINAL','REMOVED','SHUFFLED','ALTERNATE']
-          assert len(res['results'])==4 and ver['all_shot_totals_match'] is True and ver['backend_matches'] is True and ver['job_id_matches'] is True
-          for row in res['results']:
-              assert row['shots']==4096 and row['packet_sha256']==expected[row['condition']]
+          order=['ORIGINAL','REMOVED','SHUFFLED','ALTERNATE']
+          assert sub['backend']=='ibm_fez' and sub['job_id']=='da55afc3jnrc73agsvv0'
+          assert sub['shots_per_pub']==4096 and sub['pub_count']==4 and sub['conditions']==order
+          assert ver['backend']=='ibm_fez' and ver['job_id']==sub['job_id'] and ver['matched_same_job'] is True and ver['pub_count']==4 and ver['shot_count_per_pub']==4096 and ver['condition_order']==order
+          assert set(res['conditions'])==set(order) and res['matched_same_job'] is True and res['job_id']==sub['job_id']
+          for idx,name in enumerate(order):
+              row=res['conditions'][name]
+              assert row['pub_index']==idx and row['shot_count']==4096 and sum(row['counts'].values())==4096 and row['packet_sha256']==expected[name]
+          assert sub['packet_sha256']==expected and ver['source_packets']==expected
           cond=Path('experiments/zeref-origin-heart-001/evidence/son-heartbeat-demo-001/conditions'); op=json.loads((cond/'original-packet.json').read_text())
           assert op['source_sha256']=='e5a172749e0acedf199f77f22d5f55f37acc898704a51d5b7e6fe07633ad5c39'; assert op['decode']['pcm_sha256']=='89e1b9496aa51e3dc22fb5d009b3c03f9ede6d259f9fc248f776a13ba349d931'
           for name,fn in [('ORIGINAL','original-packet.json'),('REMOVED','removed-packet.json'),('SHUFFLED','shuffled-packet.json'),('ALTERNATE','alternate-packet.json')]: assert json.loads((cond/fn).read_text())['packet_sha256']==expected[name]
-          Path('_talk7/evidence/hardware-verification.json').write_text(json.dumps({'matched':True,'backend':sub['backend'],'job_id':sub['job_id'],'shots_per_pub':4096,'condition_order':['ORIGINAL','REMOVED','SHUFFLED','ALTERNATE'],'packet_sha256':expected,'results':res['results'],'pairwise_metrics':met,'submission_transpilation':sub.get('pubs'),'new_ibm_job_submitted':False},indent=2,sort_keys=True)+'\n')
+          Path('_talk7/evidence/hardware-verification.json').write_text(json.dumps({'matched':True,'backend':sub['backend'],'job_id':sub['job_id'],'shots_per_pub':4096,'condition_order':order,'packet_sha256':expected,'results':res['conditions'],'pairwise_metrics':met,'submission_transpilation':sub['transpile'],'new_ibm_job_submitted':False},indent=2,sort_keys=True)+'\n')
           Path('_talk7/evidence/signal-verification.json').write_text(json.dumps({'source_sha256_declared_and_packet_verified':op['source_sha256'],'pcm_sha256_declared_and_packet_verified':op['decode']['pcm_sha256'],'branch_source_bytes_present':False,'byte_level_source_rehash_performed':False,'reason':'The current branch retains derived control packets and hardware evidence, not the original memorial audio bytes. Hash declarations were cross-checked against the original packet but the source bytes cannot be independently rehashed in this run.'},indent=2,sort_keys=True)+'\n')
           PY
 
@@ -194,7 +198,7 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import hashlib,json,sqlite3
+          import hashlib,json
           from pathlib import Path
           psha='9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'; prefix_sha='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'; tip='b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'
           assert hashlib.sha256(Path(Path('_talk7/parent-path.txt').read_text().strip()).read_bytes()).hexdigest()==psha
