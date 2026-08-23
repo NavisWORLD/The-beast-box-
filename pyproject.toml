@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cosmos-beast-box"
-version = "0.3.0"
+version = "0.3.1"
 description = "Installable COSMOS/CST runtime, Beast Box continuity harness, Cosmic Cypher local-model coder, and optional IBM Quantum research tools."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
 authors = [{name = "NavisWORLD"}]
-keywords = ["ai", "agents", "coding-agent", "gguf", "llama", "ollama", "continuity", "containment", "quantum", "cst", "cosmos", "dyn12"]
+keywords = ["ai", "agents", "coding-agent", "gguf", "llama", "ollama", "zeref", "persistent-memory", "continuity", "containment", "quantum", "cst", "cosmos", "dyn12"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
@@ -50,6 +50,7 @@ beastbox = "beastbox.cli:main"
 "cosmic.cypher-cli" = "beastbox.cypher.cli:main"
 cosmic-cypher = "beastbox.cypher.cli:main"
 cypher = "beastbox.cypher.cli:main"
+zeref = "beastbox.cypher.easy_ollama:main"
 beast-arms = "beastbox.arms.cli:main"
 
 [tool.setuptools.packages.find]

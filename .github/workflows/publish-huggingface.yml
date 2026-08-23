@@ -1,0 +1,251 @@
+name: Publish QC67 kit to Hugging Face
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Trusted Publisher operation
+        required: true
+        type: choice
+        default: bundle
+        options:
+          - bundle
+          - publish
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-huggingface.yml'
+      - 'huggingface/.qc67-bundle-refresh'
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: qc67-trusted-publisher-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bundle-qc67:
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.operation == 'bundle')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record broker attempt locally without mutating source control
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          path = Path('evidence/qc67-bundle-attempt.json')
+          path.parent.mkdir(parents=True, exist_ok=True)
+          path.write_text(json.dumps({
+              'schema': 'qc67.gated-actions-attempt.v2',
+              'github_run_id': int(os.environ['GITHUB_RUN_ID']),
+              'github_sha': os.environ['GITHUB_SHA'],
+              'status': 'started',
+              'credential_persisted': False,
+              'source_control_mutated_before_auth': False,
+          }, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Hugging Face CLI with OIDC support
+        run: python -m pip install --upgrade 'huggingface_hub>=1.19.0'
+      - name: Download exact gated QC67 assets with short-lived OIDC identity
+        id: download
+        env:
+          HF_OIDC_RESOURCE: phera-ra/QC67_cosmo
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p qc67
+          hf download phera-ra/QC67_cosmo architecture/cosmos_spark_cst.py --local-dir qc67
+          hf download phera-ra/QC67_cosmo serving/cosmos_serve.py --local-dir qc67
+          hf download phera-ra/QC67_cosmo weights/spark_cst.pt --local-dir qc67
+      - name: Verify pinned QC67 bytes and write sanitized manifest
+        id: verify
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          expected = {
+              'architecture/cosmos_spark_cst.py': '955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc',
+              'serving/cosmos_serve.py': '02a509f9c2a20f63c38dca186c082bfdc2603aa8b6f1f903ec19a0e709218d87',
+              'weights/spark_cst.pt': 'aa0cb13c1e67d459db280a53b6407dfc2b5b5f3fd6f640bc43686b70d799acd1',
+          }
+          actual = {}
+          for rel, wanted in expected.items():
+              path = Path('qc67') / rel
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              if digest != wanted:
+                  raise SystemExit(f'QC67 hash mismatch: {rel}: {digest} != {wanted}')
+              actual[rel] = digest
+          manifest = {
+              'schema': 'qc67.gated-actions-bundle.v2',
+              'repo': 'phera-ra/QC67_cosmo',
+              'github_run_id': int(os.environ['GITHUB_RUN_ID']),
+              'github_sha': os.environ['GITHUB_SHA'],
+              'files': actual,
+              'credential_persisted': False,
+              'oidc_short_lived': True,
+              'source_control_mutated_before_auth': False,
+          }
+          Path('qc67/bundle-manifest.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          print('QC67_GATED_BUNDLE_HASHES=PASS')
+          print('HF_CREDENTIAL_PERSISTED=0')
+          PY
+      - name: Upload verified QC67 broker artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: qc67-pinned-${{ github.run_id }}
+          path: qc67
+          if-no-files-found: error
+          retention-days: 90
+      - name: Write sanitized broker receipt locally
+        id: local_receipt
+        env:
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          source = json.loads(Path('qc67/bundle-manifest.json').read_text())
+          receipt = {
+              'schema': 'qc67.gated-actions-receipt.v2',
+              'github_run_id': int(os.environ['GITHUB_RUN_ID']),
+              'github_sha': os.environ['GITHUB_SHA'],
+              'artifact_id': int(os.environ['ARTIFACT_ID']),
+              'artifact_digest': os.environ.get('ARTIFACT_DIGEST') or None,
+              'artifact_name': f"qc67-pinned-{os.environ['GITHUB_RUN_ID']}",
+              'files': source['files'],
+              'credential_persisted': False,
+              'oidc_short_lived': True,
+              'source_control_mutated_before_auth': False,
+              'passed': True,
+          }
+          path = Path('evidence/qc67-bundle-receipt.json')
+          path.parent.mkdir(parents=True, exist_ok=True)
+          path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+      - name: Upload sanitized QC67 broker receipt
+        id: upload_receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: qc67-pinned-receipt-${{ github.run_id }}
+          path: |
+            evidence/qc67-bundle-attempt.json
+            evidence/qc67-bundle-receipt.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Record sanitized broker outcome after authentication attempt
+        if: always()
+        env:
+          DOWNLOAD_OUTCOME: ${{ steps.download.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          UPLOAD_OUTCOME: ${{ steps.upload.outcome }}
+          RECEIPT_OUTCOME: ${{ steps.local_receipt.outcome }}
+          RECEIPT_UPLOAD_OUTCOME: ${{ steps.upload_receipt.outcome }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p /tmp/qc67-broker-status
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          outcomes = {
+              'download': os.environ.get('DOWNLOAD_OUTCOME') or 'not_run',
+              'verify': os.environ.get('VERIFY_OUTCOME') or 'not_run',
+              'bundle_upload': os.environ.get('UPLOAD_OUTCOME') or 'not_run',
+              'receipt': os.environ.get('RECEIPT_OUTCOME') or 'not_run',
+              'receipt_upload': os.environ.get('RECEIPT_UPLOAD_OUTCOME') or 'not_run',
+          }
+          passed = all(outcomes[name] == 'success' for name in ('download', 'verify', 'bundle_upload', 'receipt', 'receipt_upload'))
+          artifact_raw = os.environ.get('ARTIFACT_ID', '')
+          payload = {
+              'schema': 'qc67.gated-actions-status.v1',
+              'github_run_id': int(os.environ['GITHUB_RUN_ID']),
+              'github_sha': os.environ['GITHUB_SHA'],
+              'passed': passed,
+              'outcomes': outcomes,
+              'artifact_id': int(artifact_raw) if artifact_raw.isdigit() else None,
+              'artifact_digest': os.environ.get('ARTIFACT_DIGEST') or None,
+              'credential_persisted': False,
+              'source_control_mutated_before_auth': False,
+          }
+          Path('/tmp/qc67-broker-status/status.json').write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p evidence
+            cp /tmp/qc67-broker-status/status.json evidence/qc67-bundle-latest-status.json
+            git add evidence/qc67-bundle-latest-status.json
+            if git diff --cached --quiet; then
+              echo 'QC67_BROKER_STATUS_ALREADY_CURRENT=1'
+              exit 0
+            fi
+            git commit -m "evidence: record QC67 broker ${GITHUB_RUN_ID}"
+            if git push origin HEAD:main; then
+              echo 'QC67_BROKER_STATUS_COMMIT=PASS'
+              exit 0
+            fi
+            echo "status push attempt ${attempt} raced with main; retrying" >&2
+          done
+          echo 'failed to persist sanitized broker status after 3 attempts' >&2
+          exit 1
+
+  publish:
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && inputs.operation == 'publish')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Hugging Face CLI with OIDC support
+        run: python -m pip install --upgrade 'huggingface_hub>=1.19.0'
+      - name: Publish corrected QC67 model card
+        env:
+          HF_OIDC_RESOURCE: phera-ra/QC67_cosmo
+        run: |
+          hf upload phera-ra/QC67_cosmo \
+            huggingface/QC67_MODEL_CARD_NEXT.md \
+            README.md \
+            --commit-message "Update QC67 COSMOS/Zeref model card from ${GITHUB_SHA::7}"
+      - name: Publish Zeref Ollama kit
+        env:
+          HF_OIDC_RESOURCE: phera-ra/QC67_cosmo
+        run: |
+          hf upload phera-ra/QC67_cosmo \
+            huggingface/ZEREF_OLLAMA_KIT \
+            ZEREF_OLLAMA_KIT \
+            --commit-message "Publish Zeref Ollama kit from ${GITHUB_SHA::7}"
