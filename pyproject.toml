@@ -53,7 +53,7 @@ cypher = "beastbox.cypher.cli:main"
 beast-arms = "beastbox.arms.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["beastbox*"]
+include = ["beastbox*", "scripts*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
