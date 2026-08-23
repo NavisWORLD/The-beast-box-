@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Any
+
+from .weights import inspect_weight
 
 
 @dataclass(frozen=True)
@@ -116,3 +119,54 @@ def conversion_recipe(model_id: str) -> NativeGGUFRecipe:
     except KeyError as exc:
         known = ", ".join(sorted(_RECIPES))
         raise KeyError(f"unknown COSMOS model recipe {model_id!r}; choose one of: {known}") from exc
+
+
+def build_conversion_plan(
+    model_id: str,
+    *,
+    source: str | Path | None = None,
+    output_dir: str | Path = ".",
+) -> dict[str, Any]:
+    recipe = conversion_recipe(model_id)
+    src = Path(source) if source is not None else Path(recipe.source_path)
+    out = Path(output_dir) / recipe.output_name
+
+    source_record: dict[str, Any] = {
+        "path": str(src),
+        "expected_path": recipe.source_path,
+        "exists": src.is_file(),
+    }
+    status = "SOURCE_MISSING"
+    if src.is_file():
+        info = inspect_weight(src)
+        source_record.update(
+            {
+                "filename": info["filename"],
+                "size": info["size"],
+                "sha256": info["sha256"],
+                "format": info["format"],
+            }
+        )
+        status = "SOURCE_READY"
+
+    return {
+        "schema": "cosmos.native-gguf-plan.v1",
+        "model_id": recipe.model_id,
+        "status": status,
+        "architecture": recipe.architecture,
+        "tokenizer": recipe.tokenizer,
+        "source": source_record,
+        "output": str(out),
+        "runtime": {
+            "stock_llamacpp": recipe.stock_llamacpp,
+            "requirement": recipe.runtime_requirement,
+        },
+        "checkpoint_state_key": recipe.checkpoint_state_key,
+        "model_shape": {
+            "d_model": recipe.d_model,
+            "layers": recipe.layers,
+            "heads": recipe.heads,
+            "vocab_size": recipe.vocab_size,
+        },
+        "notes": recipe.notes,
+    }
