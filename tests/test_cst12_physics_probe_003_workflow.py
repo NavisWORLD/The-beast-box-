@@ -13,9 +13,18 @@ def test_probe003_hardware_requires_approved_push_and_freeze_guard():
     text = Path(".github/workflows/cst12-physics-probe-003.yml").read_text(encoding="utf-8")
     assert "github.event_name == 'push'" in text
     assert "needs.prehardware.outputs.approved == 'true'" in text
-    assert "RUN_APPROVED" in text
+    assert "RUN_APPROVED_V2" in text
+    assert "preregistered-v2" in text
     assert "git diff --exit-code" in text
     assert "PREREGISTRATION_SHA256" in text
+
+
+def test_probe003_v1_preregistration_is_not_used_for_new_hardware():
+    text = Path(".github/workflows/cst12-physics-probe-003.yml").read_text(encoding="utf-8")
+    _, hardware = text.split("\n  hardware:", 1)
+    assert "preregistered-v2/preregistration.json" in hardware
+    assert "RUN_APPROVED_V2" in hardware
+    assert "preregistered/preregistration.json" not in hardware
 
 
 def test_probe003_evidence_commit_cannot_recurse():
