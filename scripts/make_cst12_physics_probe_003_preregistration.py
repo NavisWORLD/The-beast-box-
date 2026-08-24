@@ -16,12 +16,15 @@ from beastbox.cst12_physics_probe_003 import (
     validate_bridge_packet,
 )
 
-DESIGN_VERSION = "geometry-preserving-v2-canonical-bridge"
+DESIGN_VERSION = "geometry-preserving-v2-canonical-bridge-semantic-sensitivity"
 READOUT_VERSION = "controlled-rx-amendment-1"
 MEASUREMENT_CONVENTION = "p0-minus-p1-amendment-2"
 BRIDGE_QUANTIZATION_DECIMALS = 6
 STATE_SCHEMA = "cst12-physics-probe-003-state-v2-canonical-bridge"
+PREFLIGHT_SCHEMA = "cst12-physics-probe-003-preflight-v2-semantic-sensitivity"
 PREREG_SCHEMA = "cst12-physics-probe-003-preregistration-v2-canonical-bridge"
+SENSITIVITY_GATE = "actual_preregistered_semantic_interventions"
+SENSITIVITY_MIN = 1e-6
 BLOCKS_PER_STAGE = 32
 SHOTS_PER_PUB = 4096
 BASES = ("X", "Y")
@@ -47,6 +50,8 @@ def derive_seed_root(implementation_freeze_commit: str) -> str:
             "readout_version": READOUT_VERSION,
             "measurement_convention": MEASUREMENT_CONVENTION,
             "bridge_quantization_decimals": BRIDGE_QUANTIZATION_DECIMALS,
+            "sensitivity_gate": SENSITIVITY_GATE,
+            "sensitivity_min_abs_delta_Z": SENSITIVITY_MIN,
         }
     )
 
@@ -68,8 +73,22 @@ def build_preregistration(
         raise ValueError("state receipt is not the canonical-bridge v2 schema")
     if int(state_receipt.get("bridge_quantization_decimals", -1)) != BRIDGE_QUANTIZATION_DECIMALS:
         raise ValueError("state receipt bridge quantization does not match v2 contract")
+    if preflight_receipt.get("schema") != PREFLIGHT_SCHEMA:
+        raise ValueError("preflight receipt is not the semantic-sensitivity v2 schema")
     if preflight_receipt.get("implementation_freeze_commit") != implementation_freeze_commit:
         raise ValueError("preflight implementation freeze mismatch")
+    if preflight_receipt.get("sensitivity_gate") != SENSITIVITY_GATE:
+        raise ValueError("preflight sensitivity gate mismatch")
+    if float(preflight_receipt.get("sensitivity_min_abs_delta_Z", 0.0)) != SENSITIVITY_MIN:
+        raise ValueError("preflight sensitivity threshold mismatch")
+
+    sensitivity = preflight_receipt.get("sensitivity")
+    required_sensitivity = {"phase12", "dynamic12", "hebbian24", "chaos18", "phi_weighting"}
+    if not isinstance(sensitivity, Mapping) or set(sensitivity) != required_sensitivity:
+        raise ValueError("preflight semantic sensitivity report is incomplete")
+    failed_sensitivity = [key for key in sorted(required_sensitivity) if sensitivity[key].get("passed") is not True]
+    if failed_sensitivity:
+        raise ValueError(f"preflight semantic sensitivity gate failed: {failed_sensitivity}")
 
     packet = state_receipt.get("bridge_packet")
     if not isinstance(packet, Mapping):
@@ -106,6 +125,7 @@ def build_preregistration(
                 "docs/superpowers/specs/2026-08-24-cst12-physics-probe-003-amendment-1.md",
                 "docs/superpowers/specs/2026-08-24-cst12-physics-probe-003-amendment-2.md",
                 "docs/superpowers/specs/2026-08-24-cst12-physics-probe-003-amendment-3.md",
+                "docs/superpowers/specs/2026-08-24-cst12-physics-probe-003-amendment-4.md",
             ],
         },
         "corrected_cst_source": {
@@ -133,6 +153,12 @@ def build_preregistration(
             "bridge_quantization_rule": "round finite source-derived scalars to 6 decimal places before hashing; dynamic12 evolves from canonical phase12 and Omega and is rounded to the same resolution",
             "omega_definition": "mean_heads(sum_queries(A[..., final_reference_key])) from the final block, reconstructed read-only and canonicalized before dynamic12",
             "dynamic12_rule": "64 scalar Euler steps: x <- x + 0.1*(0.1*Omega - 0.05*x), x0=canonical phase12; final values rounded to 6 decimals",
+        },
+        "sensitivity_preflight": {
+            "gate": SENSITIVITY_GATE,
+            "minimum_abs_delta_Z": SENSITIVITY_MIN,
+            "interventions": dict(sensitivity),
+            "local_coordinate_scan_is_diagnostic_only": True,
         },
         "quantum_compiler": {
             "qubits": 7,
