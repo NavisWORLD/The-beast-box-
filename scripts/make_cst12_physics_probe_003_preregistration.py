@@ -16,9 +16,12 @@ from beastbox.cst12_physics_probe_003 import (
     validate_bridge_packet,
 )
 
-DESIGN_VERSION = "geometry-preserving-v1"
+DESIGN_VERSION = "geometry-preserving-v2-canonical-bridge"
 READOUT_VERSION = "controlled-rx-amendment-1"
 MEASUREMENT_CONVENTION = "p0-minus-p1-amendment-2"
+BRIDGE_QUANTIZATION_DECIMALS = 6
+STATE_SCHEMA = "cst12-physics-probe-003-state-v2-canonical-bridge"
+PREREG_SCHEMA = "cst12-physics-probe-003-preregistration-v2-canonical-bridge"
 BLOCKS_PER_STAGE = 32
 SHOTS_PER_PUB = 4096
 BASES = ("X", "Y")
@@ -43,6 +46,7 @@ def derive_seed_root(implementation_freeze_commit: str) -> str:
             "design_version": DESIGN_VERSION,
             "readout_version": READOUT_VERSION,
             "measurement_convention": MEASUREMENT_CONVENTION,
+            "bridge_quantization_decimals": BRIDGE_QUANTIZATION_DECIMALS,
         }
     )
 
@@ -60,6 +64,10 @@ def build_preregistration(
         raise ValueError("preflight seed root does not match implementation freeze")
     if state_receipt.get("source_commit") not in {None, CORRECTED_SOURCE_SHA}:
         raise ValueError("corrected CST source commit mismatch")
+    if state_receipt.get("schema") != STATE_SCHEMA:
+        raise ValueError("state receipt is not the canonical-bridge v2 schema")
+    if int(state_receipt.get("bridge_quantization_decimals", -1)) != BRIDGE_QUANTIZATION_DECIMALS:
+        raise ValueError("state receipt bridge quantization does not match v2 contract")
     if preflight_receipt.get("implementation_freeze_commit") != implementation_freeze_commit:
         raise ValueError("preflight implementation freeze mismatch")
 
@@ -86,7 +94,7 @@ def build_preregistration(
         raise ValueError("preflight thresholds are invalid")
 
     packet_out: dict[str, Any] = {
-        "schema": "cst12-physics-probe-003-preregistration-v1",
+        "schema": PREREG_SCHEMA,
         "probe_id": PROBE_ID,
         "implementation_freeze_commit": implementation_freeze_commit,
         "design": {
@@ -97,6 +105,7 @@ def build_preregistration(
             "amendments": [
                 "docs/superpowers/specs/2026-08-24-cst12-physics-probe-003-amendment-1.md",
                 "docs/superpowers/specs/2026-08-24-cst12-physics-probe-003-amendment-2.md",
+                "docs/superpowers/specs/2026-08-24-cst12-physics-probe-003-amendment-3.md",
             ],
         },
         "corrected_cst_source": {
@@ -120,8 +129,10 @@ def build_preregistration(
             "transformer_state_dimension_remains": 54,
             "bridge_packet_sha256": state_sha,
             "seed_root": seed_root,
-            "omega_definition": "mean_heads(sum_queries(A[..., final_reference_key])) from the final block, reconstructed read-only",
-            "dynamic12_rule": "64 Euler steps: x <- x + 0.1*(0.1*Omega - 0.05*x), x0=phase12",
+            "bridge_quantization_decimals": BRIDGE_QUANTIZATION_DECIMALS,
+            "bridge_quantization_rule": "round finite source-derived scalars to 6 decimal places before hashing; dynamic12 evolves from canonical phase12 and Omega and is rounded to the same resolution",
+            "omega_definition": "mean_heads(sum_queries(A[..., final_reference_key])) from the final block, reconstructed read-only and canonicalized before dynamic12",
+            "dynamic12_rule": "64 scalar Euler steps: x <- x + 0.1*(0.1*Omega - 0.05*x), x0=canonical phase12; final values rounded to 6 decimals",
         },
         "quantum_compiler": {
             "qubits": 7,
@@ -208,6 +219,8 @@ def build_preregistration(
         "no_early_stopping": True,
         "results_may_not_modify_preregistered_hypothesis": True,
         "probe_001_and_002_evidence_immutable": True,
+        "supersedes_preregistration_sha256": "dd1316996849cc711da1218055e08e5912664d6b9d9b7059ad71521282f5f021",
+        "supersession_reason": "v1 failed cross-run byte reproducibility before any Probe 003 IBM hardware result was submitted or read",
     }
     return packet_out
 
@@ -222,7 +235,7 @@ def _write(path: Path, value: object) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build byte-exact CST12 Physics Probe 003 preregistration")
+    parser = argparse.ArgumentParser(description="Build byte-exact CST12 Physics Probe 003 v2 preregistration")
     parser.add_argument("--state", type=Path, required=True)
     parser.add_argument("--preflight", type=Path, required=True)
     parser.add_argument("--implementation-freeze", required=True)
