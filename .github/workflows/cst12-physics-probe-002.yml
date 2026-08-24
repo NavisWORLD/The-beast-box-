@@ -1,0 +1,176 @@
+name: CST12 Physics Probe 002
+
+on:
+  push:
+    branches: [cst12-physics-probe-002]
+    paths:
+      - '.github/workflows/cst12-physics-probe-002.yml'
+      - 'beastbox/cst12_physics_probe.py'
+      - 'scripts/run_cst12_physics_probe_002_ibm.py'
+      - 'scripts/analyze_cst12_physics_probe_002.py'
+      - 'scripts/make_cst12_physics_probe_002_preregistration.py'
+      - 'scripts/preflight_cst12_physics_probe_002.py'
+      - 'tests/test_cst12_physics_probe_002.py'
+      - 'docs/superpowers/specs/2026-08-24-cst12-physics-probe-002.md'
+      - 'experiments/cst12-physics-probe-002/preregistered/**'
+      - 'experiments/cst12-physics-probe-002/RUN_APPROVED'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: cst12-physics-probe-002-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 480
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Probe 002 dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum]'
+
+      - name: Run Probe 002 contracts
+        run: pytest -q tests/test_cst12_physics_probe_002.py
+
+      - name: Detect explicit hardware approval
+        id: gate
+        shell: bash
+        run: |
+          if test -f experiments/cst12-physics-probe-002/RUN_APPROVED; then
+            echo 'approved=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'approved=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify frozen preregistration and implementation
+        if: steps.gate.outputs.approved == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=experiments/cst12-physics-probe-002/preregistered
+          test -f "$ROOT/preregistration.json"
+          test -f "$ROOT/PREREGISTRATION_SHA256"
+          FREEZE="$(python - <<'PY'
+          import json
+          p=json.load(open('experiments/cst12-physics-probe-002/preregistered/preregistration.json'))
+          print(p['implementation_freeze_commit'])
+          PY
+          )"
+          git merge-base --is-ancestor "$FREEZE" HEAD
+          git diff --exit-code "$FREEZE"..HEAD -- \
+            beastbox/cst12_physics_probe.py \
+            scripts/run_cst12_physics_probe_002_ibm.py \
+            scripts/analyze_cst12_physics_probe_002.py \
+            scripts/make_cst12_physics_probe_002_preregistration.py \
+            scripts/preflight_cst12_physics_probe_002.py \
+            tests/test_cst12_physics_probe_002.py \
+            .github/workflows/cst12-physics-probe-002.yml
+          rm -rf /tmp/cst12-prereg-rebuild
+          python scripts/make_cst12_physics_probe_002_preregistration.py \
+            --implementation-freeze-commit "$FREEZE" \
+            --out /tmp/cst12-prereg-rebuild
+          cmp "$ROOT/preregistration.json" /tmp/cst12-prereg-rebuild/preregistration.json
+          cmp "$ROOT/PREREGISTRATION_SHA256" /tmp/cst12-prereg-rebuild/PREREGISTRATION_SHA256
+
+      - name: Verify pinned corrected CST source commit
+        if: steps.gate.outputs.approved == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          CST_SHA=0e2bca3895bd40243cc12a9d64ad119544759f95
+          rm -rf /tmp/cst12-source
+          git init -q /tmp/cst12-source
+          git -C /tmp/cst12-source remote add origin https://github.com/NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2.git
+          git -C /tmp/cst12-source fetch --depth=1 origin "$CST_SHA"
+          git -C /tmp/cst12-source checkout -q --detach FETCH_HEAD
+          test "$(git -C /tmp/cst12-source rev-parse HEAD)" = "$CST_SHA"
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('/tmp/cst12-source')
+          model=(root/'cosmos/web/cosmosynapse/model/cosmos_model.py').read_text()
+          config=(root/'cosmos/web/cosmosynapse/model/cosmos_config.py').read_text()
+          train=(root/'scripts/train_12d_brain.py').read_text()
+          assert 'torch.stack((phase_sin, phase_cos), dim=-1).flatten(-2)' in model
+          assert 'n_chaos_oscillators: int = 6' in config
+          assert 'loss.backward()' in train
+          assert 'optimizer.step()' in train
+          assert 'from Cosmos.' not in train
+          print('Pinned corrected CST source contracts: PASS')
+          PY
+
+      - name: Run exact-QM and 1000-dataset synthetic-null preflight
+        if: steps.gate.outputs.approved == 'true'
+        run: |
+          rm -rf experiments/cst12-physics-probe-002/synthetic
+          python scripts/preflight_cst12_physics_probe_002.py \
+            --prereg experiments/cst12-physics-probe-002/preregistered/preregistration.json \
+            --prereg-sha experiments/cst12-physics-probe-002/preregistered/PREREGISTRATION_SHA256 \
+            --datasets 1000 \
+            --out experiments/cst12-physics-probe-002/synthetic
+          cat experiments/cst12-physics-probe-002/synthetic/preflight-receipt.json
+
+      - name: Submit full real IBM discovery and replication workloads
+        if: steps.gate.outputs.approved == 'true'
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
+        run: |
+          set -euo pipefail
+          test -n "$IBM_QUANTUM_TOKEN"
+          rm -rf experiments/cst12-physics-probe-002/measured experiments/cst12-physics-probe-002/derived
+          python scripts/run_cst12_physics_probe_002_ibm.py \
+            --prereg experiments/cst12-physics-probe-002/preregistered/preregistration.json \
+            --prereg-sha experiments/cst12-physics-probe-002/preregistered/PREREGISTRATION_SHA256 \
+            --out experiments/cst12-physics-probe-002
+
+      - name: Analyze preregistered discovery and replication evidence
+        if: steps.gate.outputs.approved == 'true'
+        run: |
+          python scripts/analyze_cst12_physics_probe_002.py \
+            --root experiments/cst12-physics-probe-002 \
+            --prereg experiments/cst12-physics-probe-002/preregistered/preregistration.json \
+            --prereg-sha experiments/cst12-physics-probe-002/preregistered/PREREGISTRATION_SHA256
+          cat experiments/cst12-physics-probe-002/derived/final-verdict.json
+
+      - name: Verify final evidence checksum manifest
+        if: steps.gate.outputs.approved == 'true'
+        run: |
+          cd experiments/cst12-physics-probe-002
+          sha256sum -c SHA256SUMS
+
+      - name: Upload Probe 002 evidence
+        if: always() && steps.gate.outputs.approved == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cst12-physics-probe-002-${{ github.run_id }}
+          path: experiments/cst12-physics-probe-002
+          if-no-files-found: warn
+
+      - name: Seal verified Probe 002 evidence to feature branch
+        if: success() && steps.gate.outputs.approved == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add experiments/cst12-physics-probe-002
+          if git diff --cached --quiet; then
+            echo 'No new evidence to seal.'
+            exit 0
+          fi
+          git commit -m "evidence: seal CST12 Physics Probe 002 run ${GITHUB_RUN_ID} [skip ci]"
+          git pull --rebase origin cst12-physics-probe-002
+          git push origin HEAD:cst12-physics-probe-002
