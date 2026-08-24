@@ -1,0 +1,150 @@
+{
+  "angle_mapping": "theta_i = pi * (c_i - 0.25)",
+  "arms": {
+    "CANONICAL": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "CYCLIC_3": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      0,
+      1,
+      2
+    ],
+    "HASHED_PERM": [
+      8,
+      9,
+      0,
+      3,
+      10,
+      4,
+      1,
+      11,
+      2,
+      6,
+      7,
+      5
+    ],
+    "PAIR_SWAP": [
+      1,
+      0,
+      3,
+      2,
+      5,
+      4,
+      7,
+      6,
+      9,
+      8,
+      11,
+      10
+    ],
+    "REVERSED": [
+      11,
+      10,
+      9,
+      8,
+      7,
+      6,
+      5,
+      4,
+      3,
+      2,
+      1,
+      0
+    ],
+    "UNIFORM_SUM": "12 copies of mean(theta)"
+  },
+  "claim_boundary": "Probe 002 can classify a preregistered order-sensitive IBM-hardware residual as an ANOMALY_CANDIDATE. It cannot by itself prove a new physical dimension, a violation of quantum mechanics, consciousness, resurrection, or quantum advantage.",
+  "corrected_cst_source": {
+    "commit_sha": "0e2bca3895bd40243cc12a9d64ad119544759f95",
+    "repository": "NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2",
+    "state_definition": "corrected interleaved six sin/cos pairs at position=1 with zero content, sigmoid=0.5"
+  },
+  "cst12_vector": [
+    0.42073549240394825,
+    0.2701511529340699,
+    0.10689033302764948,
+    0.4884408425850956,
+    0.023199611732365642,
+    0.4994614880203152,
+    0.004999916667083332,
+    0.49997500020833263,
+    0.0010772165116828022,
+    0.49999883960324043,
+    0.0002320794333473056,
+    0.49999994613913373
+  ],
+  "gates": {
+    "effect_floor_abs": 0.005,
+    "leave_one_job_out": "every omission keeps the same sign and at least 50% of full-stage |effect|",
+    "leave_one_qubit_out": "every omission keeps the same sign and at least 50% of full-stage |effect|",
+    "p_value_max": 0.001,
+    "randomizations_per_stage": 100000,
+    "replication_same_sign_required": true,
+    "uniform_specificity": "abs(uniform diagnostic) <= 0.5 * abs(primary effect)"
+  },
+  "implementation_freeze_commit": "e1fdb87c8670dab52654c4aa0fbcaff5cb193c2d",
+  "no_early_stopping": true,
+  "null_model": "For every arm, sequential Rx rotations share one axis and have equal total angle. Ideal standard QM predicts identical P(1)=0.5 regardless of order.",
+  "preparation_offset": 1.3530767300053426,
+  "primary_statistic": "mean over matched blocks of P1(CANONICAL) - mean(P1(REVERSED,PAIR_SWAP,CYCLIC_3,HASHED_PERM))",
+  "probe_id": "cst12-physics-probe-002",
+  "randomization_test": "Within every block, exchange the canonical label among the five same-multiset primary arms; two-sided stage test.",
+  "results_may_not_modify_the_preregistered_hypothesis": true,
+  "rotation_angles": [
+    0.5363813686432798,
+    0.06330671401903835,
+    -0.4495922784180182,
+    0.7490839993810967,
+    -0.7125144336129128,
+    0.7837063781182004,
+    -0.7696904619275782,
+    0.7853196242356048,
+    -0.78201398791802,
+    0.7853945179035131,
+    -0.7846690643545952,
+    0.7853979941885465
+  ],
+  "schema": "cst12-physics-probe-002-preregistration-v1",
+  "seeds": {
+    "arm_order_seed": 15367199680156924649,
+    "discovery_randomization_seed": 15506072657163334169,
+    "replication_randomization_seed": 2756326545735452306,
+    "root_sha256": "d54342b0b03ffae9d730a2ed4f9e321926407063c38a8692f3671012b88f1dd3",
+    "synthetic_preflight_seed": 17539004946409528787
+  },
+  "workload": {
+    "blocks_per_job": 8,
+    "blocks_per_stage": 48,
+    "independent_backend_replication_required": true,
+    "physical_qubits_per_backend": 4,
+    "planned_hardware_shots": 4718592,
+    "planned_pubs": 576,
+    "pubs_per_block": 6,
+    "shots_per_pub": 8192,
+    "stages": [
+      "discovery",
+      "replication"
+    ],
+    "target_jobs_per_stage": 6
+  }
+}
