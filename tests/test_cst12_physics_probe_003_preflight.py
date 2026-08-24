@@ -24,6 +24,46 @@ def test_probability_from_expectation_is_inverse():
         assert abs(recovered - m) < 2e-5
 
 
+def test_intervention_sensitivity_uses_actual_scientific_arms():
+    from scripts.preflight_cst12_physics_probe_003 import intervention_sensitivity
+
+    predictions = {
+        "FULL_CST": 0.0 + 0.0j,
+        "PAIR_SWAP": 2.0e-6 + 0.0j,
+        "PAIR_PERMUTE": 0.5e-6 + 0.0j,
+        "HEBBIAN_SHUFFLE": 3.0e-6 + 0.0j,
+        "CHAOS_SHUFFLE": 4.0e-6 + 0.0j,
+        "PHI_ABLATE": 5.0e-6 + 0.0j,
+        "DYNAMIC_FREEZE": 6.0e-6 + 0.0j,
+        "MIRROR_CAL": 0.0 + 0.0j,
+    }
+    report = intervention_sensitivity(predictions, minimum=1e-6)
+    assert report["phase12"]["passed"] is True
+    assert report["phase12"]["arm"] == "PAIR_SWAP"
+    assert report["hebbian24"]["passed"] is True
+    assert report["chaos18"]["passed"] is True
+    assert report["dynamic12"]["passed"] is True
+    assert report["phi_weighting"]["passed"] is True
+
+
+def test_intervention_sensitivity_fails_invisible_chaos_without_lowering_threshold():
+    from scripts.preflight_cst12_physics_probe_003 import intervention_sensitivity
+
+    predictions = {
+        "FULL_CST": 0.0 + 0.0j,
+        "PAIR_SWAP": 2.0e-6 + 0.0j,
+        "PAIR_PERMUTE": 2.0e-6 + 0.0j,
+        "HEBBIAN_SHUFFLE": 2.0e-6 + 0.0j,
+        "CHAOS_SHUFFLE": 0.9e-6 + 0.0j,
+        "PHI_ABLATE": 2.0e-6 + 0.0j,
+        "DYNAMIC_FREEZE": 2.0e-6 + 0.0j,
+        "MIRROR_CAL": 0.0 + 0.0j,
+    }
+    report = intervention_sensitivity(predictions, minimum=1e-6)
+    assert report["chaos18"]["passed"] is False
+    assert report["chaos18"]["abs_delta_Z"] == pytest.approx(0.9e-6)
+
+
 def test_preflight_rejects_wrong_state_hash(tmp_path):
     from scripts.preflight_cst12_physics_probe_003 import run_preflight
 
