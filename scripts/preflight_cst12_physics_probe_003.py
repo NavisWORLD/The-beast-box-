@@ -61,6 +61,43 @@ def derive_seeds(seed_root: str) -> dict[str, int]:
     }
 
 
+def intervention_sensitivity(
+    predictions: Mapping[str, complex], *, minimum: float = SENSITIVITY_MIN
+) -> dict[str, dict[str, Any]]:
+    """Gate observability using the actual preregistered scientific interventions.
+
+    A uniform raw-coordinate finite difference is retained separately as a
+    diagnostic because the four source families are compiled through different
+    nonlinear maps and angular scales.  The pass/fail gate therefore asks the
+    scientifically relevant question: does the intervention that will actually
+    be run on hardware change the exact-QM observable by at least the frozen
+    minimum?
+    """
+    required = set(ARM_ORDER)
+    missing = required - set(predictions)
+    if missing:
+        raise ValueError(f"predictions missing Probe 003 arms: {sorted(missing)}")
+    minimum = float(minimum)
+    if not math.isfinite(minimum) or minimum <= 0.0:
+        raise ValueError("minimum intervention sensitivity must be positive and finite")
+
+    baseline = complex(predictions["FULL_CST"])
+
+    def one(family: str, arm: str) -> dict[str, Any]:
+        delta = float(abs(complex(predictions[arm]) - baseline))
+        return {"arm": arm, "abs_delta_Z": delta, "passed": bool(delta >= minimum)}
+
+    phase_candidates = [one("phase12", "PAIR_SWAP"), one("phase12", "PAIR_PERMUTE")]
+    phase = max(phase_candidates, key=lambda row: row["abs_delta_Z"])
+    return {
+        "phase12": phase,
+        "dynamic12": one("dynamic12", "DYNAMIC_FREEZE"),
+        "hebbian24": one("hebbian24", "HEBBIAN_SHUFFLE"),
+        "chaos18": one("chaos18", "CHAOS_SHUFFLE"),
+        "phi_weighting": one("phi_weighting", "PHI_ABLATE"),
+    }
+
+
 def _topology_fingerprint(qc: Any) -> list[tuple[str, tuple[int, ...]]]:
     rows: list[tuple[str, tuple[int, ...]]] = []
     for item in qc.data:
@@ -247,7 +284,7 @@ def run_preflight(
         raise RuntimeError("Probe 003 arms do not have matched topology")
 
     baseline = predictions["FULL_CST"]
-    sensitivity: dict[str, Any] = {}
+    local_coordinate_sensitivity: dict[str, Any] = {}
     for family in ("phase12", "dynamic12", "hebbian24", "chaos18"):
         best = 0.0
         best_index = None
@@ -259,12 +296,17 @@ def run_preflight(
             diff = abs(z - baseline)
             if diff > best:
                 best, best_index = float(diff), int(idx)
-        sensitivity[family] = {"max_abs_delta_Z": best, "coordinate": best_index, "passed": best >= SENSITIVITY_MIN}
-    phi_diff = abs(predictions["PHI_ABLATE"] - baseline)
-    sensitivity["phi_weighting"] = {"max_abs_delta_Z": float(phi_diff), "passed": bool(phi_diff >= SENSITIVITY_MIN)}
+        local_coordinate_sensitivity[family] = {
+            "raw_coordinate_step": SENSITIVITY_EPS,
+            "max_abs_delta_Z": best,
+            "coordinate": best_index,
+            "diagnostic_only": True,
+        }
+
+    sensitivity = intervention_sensitivity(predictions, minimum=SENSITIVITY_MIN)
     failed = [k for k, v in sensitivity.items() if not v["passed"]]
     if failed:
-        raise RuntimeError(f"Probe 003 component sensitivity gate failed: {failed}")
+        raise RuntimeError(f"Probe 003 semantic intervention sensitivity gate failed: {failed}")
 
     synthetic = _synthetic_null(
         predictions,
@@ -273,7 +315,7 @@ def run_preflight(
         randomizations=int(randomizations),
     )
     return {
-        "schema": "cst12-physics-probe-003-preflight-v1",
+        "schema": "cst12-physics-probe-003-preflight-v2-semantic-sensitivity",
         "implementation_freeze_commit": implementation_freeze_commit,
         "state_packet_sha256": actual_state_sha,
         "seed_root": state_receipt["seed_root"],
@@ -289,7 +331,10 @@ def run_preflight(
         },
         "topology": topology,
         "matched_topology": True,
+        "sensitivity_gate": "actual_preregistered_semantic_interventions",
+        "sensitivity_min_abs_delta_Z": SENSITIVITY_MIN,
         "sensitivity": sensitivity,
+        "local_coordinate_sensitivity": local_coordinate_sensitivity,
         "synthetic_null": synthetic,
         "ibm_result_data_read": False,
         "credential_material_recorded": False,
@@ -324,6 +369,7 @@ def main() -> int:
         "effect_floor": receipt["synthetic_null"]["effect_floor"],
         "mirror_tolerance": receipt["synthetic_null"]["mirror_tolerance"],
         "false_positive_count": receipt["synthetic_null"]["false_positive_count"],
+        "semantic_sensitivity": receipt["sensitivity"],
     }, sort_keys=True))
     return 0
 
