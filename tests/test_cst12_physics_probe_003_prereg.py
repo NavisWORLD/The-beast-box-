@@ -15,9 +15,11 @@ def fake_state(seed_root: str) -> dict:
         "chaos18": [0.04] * 18,
     }
     return {
+        "schema": "cst12-physics-probe-003-state-v2-canonical-bridge",
         "seed_root": seed_root,
         "bridge_packet": packet,
         "bridge_packet_sha256": sha256_json(packet),
+        "bridge_quantization_decimals": 6,
         "source_commit": "0e2bca3895bd40243cc12a9d64ad119544759f95",
     }
 
@@ -63,6 +65,10 @@ def test_preregistration_is_byte_deterministic():
     a = build_preregistration(state, pre, implementation_freeze_commit=freeze)
     b = build_preregistration(copy.deepcopy(state), copy.deepcopy(pre), implementation_freeze_commit=freeze)
     assert a == b
+    assert a["schema"] == "cst12-physics-probe-003-preregistration-v2-canonical-bridge"
+    assert a["design"]["version"] == "geometry-preserving-v2-canonical-bridge"
+    assert "docs/superpowers/specs/2026-08-24-cst12-physics-probe-003-amendment-3.md" in a["design"]["amendments"]
+    assert a["state_bridge"]["bridge_quantization_decimals"] == 6
     assert a["workload"]["planned_hardware_shots"] == 4194304
     assert a["no_early_stopping"] is True
 
