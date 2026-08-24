@@ -27,6 +27,16 @@ def test_state_builder_rejects_bad_seed(tmp_path: Path):
         build_state_packet(tmp_path, "not-a-sha")
 
 
+def test_bridge_canonicalization_collapses_observed_cross_runner_drift():
+    from scripts.build_cst12_physics_probe_003_state import BRIDGE_DECIMALS, canonicalize_scalar
+
+    assert BRIDGE_DECIMALS == 6
+    runner_a = 0.08276709914207458
+    runner_b = 0.08276709169149399
+    assert canonicalize_scalar(runner_a) == canonicalize_scalar(runner_b) == 0.082767
+    assert canonicalize_scalar(canonicalize_scalar(runner_a)) == canonicalize_scalar(runner_a)
+
+
 def test_full_source_snapshot_is_byte_reproducible(tmp_path: Path):
     source = os.environ.get("CST12_CORRECTED_SOURCE_ROOT", "").strip()
     if not source:
