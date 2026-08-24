@@ -25,7 +25,15 @@ def fake_state(seed_root: str) -> dict:
 
 
 def fake_preflight(seed_root: str, freeze: str, state_sha: str) -> dict:
+    sensitivity = {
+        "phase12": {"arm": "PAIR_SWAP", "abs_delta_Z": 2e-6, "passed": True},
+        "dynamic12": {"arm": "DYNAMIC_FREEZE", "abs_delta_Z": 2e-6, "passed": True},
+        "hebbian24": {"arm": "HEBBIAN_SHUFFLE", "abs_delta_Z": 2e-6, "passed": True},
+        "chaos18": {"arm": "CHAOS_SHUFFLE", "abs_delta_Z": 2e-6, "passed": True},
+        "phi_weighting": {"arm": "PHI_ABLATE", "abs_delta_Z": 2e-6, "passed": True},
+    }
     return {
+        "schema": "cst12-physics-probe-003-preflight-v2-semantic-sensitivity",
         "implementation_freeze_commit": freeze,
         "state_packet_sha256": state_sha,
         "seed_root": seed_root,
@@ -37,6 +45,9 @@ def fake_preflight(seed_root: str, freeze: str, state_sha: str) -> dict:
             "synthetic": 5,
         },
         "exact_qm": {"FULL_CST": {"real": 0.5, "imag": 0.1, "magnitude": 0.51, "phase": 0.2}},
+        "sensitivity_gate": "actual_preregistered_semantic_interventions",
+        "sensitivity_min_abs_delta_Z": 1e-6,
+        "sensitivity": sensitivity,
         "synthetic_null": {"effect_floor": 0.01, "mirror_tolerance": 0.02, "false_positive_count": 0, "datasets": 10000},
         "matched_topology": True,
         "ibm_result_data_read": False,
@@ -66,9 +77,13 @@ def test_preregistration_is_byte_deterministic():
     b = build_preregistration(copy.deepcopy(state), copy.deepcopy(pre), implementation_freeze_commit=freeze)
     assert a == b
     assert a["schema"] == "cst12-physics-probe-003-preregistration-v2-canonical-bridge"
-    assert a["design"]["version"] == "geometry-preserving-v2-canonical-bridge"
+    assert a["design"]["version"] == "geometry-preserving-v2-canonical-bridge-semantic-sensitivity"
     assert "docs/superpowers/specs/2026-08-24-cst12-physics-probe-003-amendment-3.md" in a["design"]["amendments"]
+    assert "docs/superpowers/specs/2026-08-24-cst12-physics-probe-003-amendment-4.md" in a["design"]["amendments"]
     assert a["state_bridge"]["bridge_quantization_decimals"] == 6
+    assert a["sensitivity_preflight"]["gate"] == "actual_preregistered_semantic_interventions"
+    assert a["sensitivity_preflight"]["minimum_abs_delta_Z"] == 1e-6
+    assert a["sensitivity_preflight"]["interventions"]["chaos18"]["passed"] is True
     assert a["workload"]["planned_hardware_shots"] == 4194304
     assert a["no_early_stopping"] is True
 
