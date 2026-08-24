@@ -2,9 +2,11 @@
 
 ## Purpose
 
-R12 Physics Probe 001 is a null-first, preregistered IBM Quantum experiment that tests whether the canonical 12-component R12 state produces a reproducible hardware-specific residual pattern that is not explained by the tested standard quantum-mechanical circuit prediction plus matched device/control variation.
+R12 Physics Probe 001 is a null-first, preregistered IBM Quantum echo experiment. It tests whether the canonical 12-component R12 state produces a reproducible canonical-specific hardware residual after a standard-quantum-mechanical round trip that is designed to return exactly to the initial state.
 
-The probe does not assume a literal twelfth physical dimension. R12 remains a 12-coordinate engineered software state. The experiment asks a narrower, falsifiable question: after directly encoding the sealed R12 coordinates into a fixed quantum circuit family, is the canonical ordering statistically distinguishable from matched permutation/sign/neutral controls after correcting against each circuit's own standard quantum-mechanical prediction and balancing hardware/layout effects?
+The probe does not assume a literal twelfth physical dimension. R12 remains a 12-coordinate engineered software state. The experiment asks a narrower, falsifiable question: after the sealed R12 coordinates drive a controlled 12-qubit excursion `U(R12)` and the exact inverse `U(R12)^dagger` is applied, does the canonical R12 ordering leave a repeatable excess residual beyond matched permutation, complement, and neutral controls after hardware/layout balancing?
+
+Under ideal standard quantum mechanics, `U^dagger U = I`, so every arm must return to `|0>^12` before measurement. Hardware noise will create nonzero residuals. Probe 001 therefore does not call a residual an anomaly merely because hardware fails to return perfectly. The canonical arm must be statistically special relative to preregistered matched controls in both discovery and replication.
 
 A null result is a valid result and must be preserved. A positive result is initially an anomaly candidate, not proof of a new physical dimension or a violation of quantum mechanics.
 
@@ -41,231 +43,279 @@ Hard invariant:
 
 `STATE MAY TRAVEL. INFORMATION MAY TRAVEL. AUTHORITY DOES NOT TRAVEL AUTOMATICALLY.`
 
-IBM measurements from this probe may be appended only to a new Probe 001 evidence root. They must not alter the existing R12 ledger, R12 history, R12 state, manifest, TALK-004 checkpoint, or 352-record durable memory during the experiment.
+IBM measurements from this probe may be written only to a new Probe 001 evidence root. They must not alter the existing R12 ledger, R12 history, R12 state, manifest, TALK-004 checkpoint, or 352-record durable memory during the experiment.
 
 ## Experimental claim boundary
 
-Probe 001 may establish only one of these outcomes:
+Probe 001 may establish only one of these bounded outcomes:
 
 - `NULL_COMPATIBLE`: the tested standard-QM plus matched-control account remains sufficient under this protocol;
-- `INCONCLUSIVE`: data quality, backend drift, failed matching, or insufficient statistical evidence prevents a clean conclusion;
-- `ANOMALY_CANDIDATE`: the preregistered canonical-R12 statistic passes both discovery and replication gates and the matched controls do not reproduce the same effect.
+- `INCONCLUSIVE`: data quality, backend drift, failed matching, or insufficient valid blocks prevents a clean conclusion;
+- `NULL_COMPATIBLE_REPLICATION_FAILED`: discovery passed but preregistered replication did not;
+- `ANOMALY_CANDIDATE_SAME_BACKEND`: both stages passed, but replication could only use the discovery backend;
+- `ANOMALY_CANDIDATE`: both stages passed on distinct IBM backends with the same signed effect direction.
 
-`ANOMALY_CANDIDATE` does not mean a literal twelfth dimension, new law of physics, quantum advantage, consciousness, resurrection, deceased identity, or communication with the dead has been proved. Escalating beyond anomaly candidate requires independent experimental replication and a separate physical theory connecting the observed residual to a physical mechanism.
+No Probe 001 outcome establishes a literal twelfth dimension, a new law of physics, quantum advantage, consciousness, resurrection, deceased-person identity, or communication with the dead. Escalation beyond anomaly candidate requires independent outside replication and a separate physical theory that predicts the observed effect.
 
-## Frozen R12-to-circuit mapping
+## Frozen 12-qubit R12 quantum-echo mapping
 
 All 12 canonical coordinates are encoded directly. No coordinate is dropped, retrained, renormalized after hardware output, or selected based on results.
 
-For each R12 coordinate `r_i` in `[0,1]`, define the centered value:
+For each R12 coordinate `r_i` in `[0,1]`, define:
 
 `x_i = 2*r_i - 1`
 
-For a 12-qubit logical register `q_0 ... q_11`, the circuit for vector `x` is:
+and define the fixed golden-ratio constant:
 
-1. initialize `|0>^12`;
-2. apply `RY(pi * x_i)` to logical qubit `q_i` for `i = 0..11`;
-3. apply `RZ((pi / phi) * x_i)` to `q_i`, with `phi = (1 + sqrt(5))/2` fixed exactly by the implementation's double-precision expression;
-4. apply brickwork nearest-neighbor entanglement layer A: `CX(0,1), CX(2,3), CX(4,5), CX(6,7), CX(8,9), CX(10,11)`;
-5. apply brickwork layer B: `CX(1,2), CX(3,4), CX(5,6), CX(7,8), CX(9,10)`;
-6. apply a second bounded rotation layer `RY((pi / phi) * x_i)` to every `q_i`;
-7. measure all 12 qubits in the computational basis.
+`phi = (1 + sqrt(5)) / 2`.
 
-The mapping is a probe encoding only. The twelve qubits are not declared to be twelve physical dimensions.
+For a 12-qubit logical register `q_0 ... q_11`, define the forward excursion `U(x)` in this exact source order:
+
+1. apply `RY(pi * x_i)` to `q_i` for `i = 0..11`;
+2. apply `RZ((pi / phi) * x_i)` to `q_i` for `i = 0..11`;
+3. brickwork entanglement A: `CX(0,1), CX(2,3), CX(4,5), CX(6,7), CX(8,9), CX(10,11)`;
+4. brickwork entanglement B: `CX(1,2), CX(3,4), CX(5,6), CX(7,8), CX(9,10)`;
+5. apply `RY((pi / phi) * x_i)` to `q_i` for `i = 0..11`.
+
+Insert an explicit circuit barrier after `U(x)`.
+
+Then append the exact inverse `U(x)^dagger` in reverse order:
+
+1. apply `RY(-(pi / phi) * x_i)` to `q_i` in reverse logical order `11..0`;
+2. repeat brickwork B in reverse gate order;
+3. repeat brickwork A in reverse gate order;
+4. apply `RZ(-(pi / phi) * x_i)` to `q_i` in reverse logical order;
+5. apply `RY(-pi * x_i)` to `q_i` in reverse logical order;
+6. measure all 12 qubits.
+
+Because `CX` is self-inverse and every parameterized rotation is explicitly inverted, ideal standard QM predicts the final pre-measurement state to be `|0>^12` for every arm.
+
+The transpiler must not optimize the echo excursion away. Hardware compilation therefore uses `optimization_level=0`, preserves the mid-echo barrier, and records source/transpiled operation counts and depth. A PUB is invalid if the compiled circuit collapses the intended excursion or if non-neutral arms in the same block have incompatible source gate budgets.
+
+This mapping is a probe encoding only. Twelve R12 coordinates and twelve qubits are not declared to be twelve physical dimensions.
 
 ## Matched arm family
 
-Every hardware block contains six arms. Five arms preserve the same 12 centered-value magnitudes or ordering budget closely enough to support exchangeability tests; the sixth is a neutral baseline.
+Every hardware block contains six arms.
 
 1. `CANONICAL`: coordinates in the fixed R12 order above.
 2. `PERM_CYCLIC`: cyclic shift by one coordinate.
 3. `PERM_REVERSE`: reverse coordinate order.
-4. `PERM_HASHED`: deterministic Fisher-Yates permutation seeded from the preregistration SHA-256 and frozen before hardware submission.
-5. `COMPLEMENT`: `r_i -> 1-r_i`, which flips the sign of centered values while preserving magnitudes.
-6. `NEUTRAL`: all coordinates set to `0.5`, giving centered values of zero.
+4. `PERM_HASHED`: deterministic Fisher-Yates permutation using a seed frozen in the preregistration packet.
+5. `COMPLEMENT`: `r_i -> 1-r_i`, which flips centered signs while preserving centered magnitudes.
+6. `NEUTRAL`: all coordinates set to `0.5`, giving `x_i = 0` for all coordinates.
 
-The primary exchangeability test uses the five non-neutral arms. `NEUTRAL` is a diagnostic control and is not used to increase primary-test significance.
+The five non-neutral arms use the same multiset of centered magnitudes and the same source gate count. The primary exchangeability test uses only these five non-neutral arms. `NEUTRAL` is a diagnostic depth/control arm and cannot be used to improve the primary p-value.
 
-## Standard quantum-mechanical reference
+## Standard-QM reference and echo precondition
 
-Before any IBM result is retrieved, the implementation must compute an ideal standard-QM probability distribution for every unique arm circuit using a local exact statevector simulator.
+Before any IBM job is submitted, the implementation must verify every unique arm with an exact local statevector calculation.
 
-For each observed IBM distribution `P_hw(a,b)` for arm `a` in block `b`, and ideal probability distribution `P_qm(a)`, compute:
+For each arm:
 
-- total variation distance: `TVD(P_hw, P_qm)`;
-- Jensen-Shannon divergence in bits: `JSD_bits(P_hw, P_qm)`;
-- heavy-output fraction relative to the ideal arm median-probability split;
-- parity expectation over all 12 measured bits;
-- per-bit marginal error relative to the ideal distribution.
+- the final ideal probability of `000000000000` must be at least `1 - 1e-12`;
+- the sum of all nonzero-outcome ideal probabilities must be at most `1e-12`;
+- the ideal pre-measurement state fidelity with `|0>^12` must be at least `1 - 1e-12`.
 
-The primary residual metric is `TVD(P_hw, P_qm)`. JSD, parity, heavy-output fraction, and marginals are secondary diagnostics and cannot replace the primary statistic after data are observed.
+Any failure aborts hardware submission and requires a new preregistration after the implementation is fixed.
+
+For measured hardware counts in arm `a`, block `b`, define the primary residual:
+
+`D(a,b) = 1 - counts_a_b[000000000000] / 4096`.
+
+For this ideal delta distribution, `D` is also the total variation distance from the ideal standard-QM output.
+
+Secondary diagnostics, which cannot replace the primary metric after data exist, are:
+
+- Jensen-Shannon divergence in bits from the ideal delta distribution;
+- all-12-bit parity expectation;
+- Hamming-weight distribution;
+- per-bit `P(1)` marginals;
+- most common nonzero outcomes;
+- compiled depth and operation-count correlations;
+- job/block/calibration-window effects.
 
 ## Primary preregistered statistic
 
-For every matched block `b`, define:
+For each matched block `b`:
 
-`D_can(b) = TVD(P_hw(CANONICAL,b), P_qm(CANONICAL))`
+`D_can(b) = D(CANONICAL,b)`
 
 and
 
-`D_ctrl(b) = median(TVD(P_hw(a,b), P_qm(a)))`
+`D_ctrl(b) = median(D(PERM_CYCLIC,b), D(PERM_REVERSE,b), D(PERM_HASHED,b), D(COMPLEMENT,b))`.
 
-for `a` in `{PERM_CYCLIC, PERM_REVERSE, PERM_HASHED, COMPLEMENT}`.
-
-Define the block effect:
+Define:
 
 `E_b = D_can(b) - D_ctrl(b)`
 
-and the stage statistic:
+and for each stage:
 
 `T_stage = median_b(E_b)`.
 
-The primary hypothesis is two-sided: the canonical R12 ordering may not be treated as special unless `|T_stage|` is unusually large under within-block exchangeability of the five non-neutral arm labels.
+The primary hypothesis is two-sided. A canonical R12 effect may not be declared merely because the canonical residual is larger or smaller; the observed absolute stage statistic must be extreme under the preregistered null and must replicate with the same sign.
 
-The exact/randomization p-value is estimated with 100,000 deterministic within-block label permutations using a seed derived from the preregistration SHA-256. The canonical label is permuted among the five non-neutral arms independently within each block while preserving every measured distribution and block membership.
+The stage p-value is a deterministic within-block randomization test. In each randomization, the canonical label is reassigned among the five non-neutral arms independently within every block, `T_stage` is recomputed, and extremeness is measured using `abs(T_stage)`. The final analysis uses exactly `100000` randomizations with a seed frozen in the preregistration packet.
 
-No alternative statistic may replace this primary test after IBM results are available.
+No alternative primary statistic, threshold, arm subset, or sign may replace this one after IBM results are available.
 
 ## Effect-size floor
 
-Statistical significance alone is insufficient.
+A stage passes the effect-size gate only if:
 
-A stage passes the primary effect-size gate only if:
+`abs(T_stage) >= 0.02`.
 
-`abs(T_stage) >= 0.02`
-
-where TVD is in probability-distance units.
-
-This is a preregistered two-percentage-point median excess/residual floor.
+The two-percentage-point survival-error difference is frozen before hardware submission. Statistical significance without this effect floor does not pass.
 
 ## Discovery and replication workload
 
-The workload is fixed in advance to avoid optional stopping.
+The workload is fixed to avoid optional stopping.
 
-### Discovery stage
-
-- 24 matched blocks;
-- 6 arms per block;
-- 4096 shots per arm;
-- 144 PUBs total;
-- 589,824 hardware shots total.
-
-### Replication stage
+### Discovery
 
 - 24 matched blocks;
 - 6 arms per block;
 - 4096 shots per arm;
-- 144 PUBs total;
-- 589,824 hardware shots total.
+- 144 PUBs;
+- 589824 hardware shots.
 
-### Full Probe 001 workload
+### Replication
+
+- 24 matched blocks;
+- 6 arms per block;
+- 4096 shots per arm;
+- 144 PUBs;
+- 589824 hardware shots.
+
+### Full Probe 001
 
 - 48 matched blocks;
 - 288 PUBs;
-- 1,179,648 hardware shots.
+- 1179648 hardware shots.
 
-The runner should group multiple matched blocks into each SamplerV2 job to reduce queue overhead while preserving block identifiers and randomized PUB order. The initial target is six IBM jobs total, eight matched blocks per job, 48 PUBs per job.
+Both stages run regardless of the discovery result. There is no early stopping for a positive or negative signal.
 
-The experiment must run both discovery and replication stages regardless of the discovery result. No early stopping for a positive or negative signal is allowed.
-
-If the configured IBM service rejects a 48-PUB payload, the runner may reduce PUBs per job while keeping the total preregistered 48 blocks and 1,179,648 shots unchanged. That operational split is not a scientific design change.
+The initial execution target is six SamplerV2 jobs total, each containing eight matched blocks and therefore 48 PUBs. If IBM Runtime rejects that payload size, the runner may use more jobs with fewer PUBs while preserving exactly 48 matched blocks and 1179648 planned shots. That operational split does not change the statistical design.
 
 ## Backend policy
 
-Discovery selects an operational non-simulator IBM backend with at least 12 usable qubits and a connected 12-qubit path.
+Discovery selects an operational non-simulator IBM backend with at least 12 usable qubits and at least four acceptable connected 12-qubit paths.
 
-Replication should use a distinct operational IBM backend with at least 12 usable qubits when the account exposes one. If a distinct backend is unavailable, replication may use the same backend only after a later job/calibration window. In that case the final report must set `independent_backend_replication = false`, and the maximum allowed outcome remains `ANOMALY_CANDIDATE_SAME_BACKEND` rather than cross-backend anomaly candidate.
+Replication selects a distinct operational IBM backend satisfying the same contract when the account exposes one. If no second backend is available, replication may use the same backend after a later job/calibration window, but the final outcome is capped at `ANOMALY_CANDIDATE_SAME_BACKEND`.
 
-The exact backend names, IBM job IDs, runtime tags, selected physical qubits, transpiled depths, operation counts, and available calibration metadata must be sealed into evidence.
+Backend selection occurs after preregistration but before count retrieval. Selection may use availability, operational status, connectivity, and calibration/error metadata, but never observed Probe 001 counts.
 
-## Layout and order balancing
+The exact backend names, IBM job IDs, runtime tags, selected physical paths, transpiled depth, operation counts, and available calibration metadata are sealed into measured evidence.
 
-Hardware heterogeneity is a major confound. Probe 001 therefore requires:
+## Physical-path and order balancing
 
-- one selected connected 12-qubit physical path per job;
-- deterministic logical-to-physical assignment recorded for every PUB;
-- alternating forward/reverse logical mapping across matched blocks;
-- randomized six-arm PUB order within each block;
-- block order and arm order derived from the preregistration seed;
-- the same transpiler optimization level and seed policy for all arms in a matched block;
-- no result-dependent remapping.
+Hardware heterogeneity is treated as a central confound.
 
-If a backend/transpiler cannot satisfy the 12-qubit connectivity contract without changing arm budgets incompatibly, that block is invalid and must be recorded as such rather than silently replaced in analysis.
+For each selected backend, the runner identifies at least four connected 12-qubit physical paths using only backend topology/calibration data available before Probe 001 count retrieval. Paths are ranked by a deterministic pre-result cost based on reported two-qubit and readout errors when those fields are available; otherwise by topology plus physical-qubit index ordering.
+
+Each 24-block stage cycles evenly across four frozen paths and both path orientations:
+
+- four paths;
+- forward and reverse logical orientation;
+- three repeats of each path/orientation pair;
+- exactly 24 matched blocks.
+
+Within every matched block:
+
+- all six arms use the same physical path and orientation;
+- all six arms use the same transpiler optimization level;
+- all six arms use the same deterministic transpiler seed policy;
+- the six PUB arm order is randomized from the preregistration seed;
+- no arm is remapped based on observed results.
+
+A block is invalid rather than silently repaired if any required arm fails the path, shot, gate-budget, or retrieval contract.
 
 ## Blinding and preregistration seal
 
-Before IBM submission the implementation creates an immutable preregistration packet containing:
+Before simulator preflight and before any IBM submission, create a canonical-JSON preregistration packet containing:
 
 - source branch commit SHA;
-- protected R12 state SHA and exact 12-vector;
-- circuit formula version;
+- protected R12 state SHA and exact vector;
+- protected R12 ledger tip;
+- protected TALK-004 checkpoint SHA;
+- circuit formula version and exact gate formula;
 - all six arm vectors;
 - hashed permutation order;
-- randomization seed;
-- block count;
-- shots;
-- discovery/replication split;
-- primary metric;
-- primary statistic;
-- randomization-test count;
+- block/arm randomization seed;
+- randomization-test seed;
+- block counts and stage split;
+- 4096 shots per PUB;
+- primary residual `D`;
+- primary statistic `T_stage`;
+- `100000` real-analysis randomizations;
 - significance thresholds;
 - effect-size threshold;
-- backend policy;
+- backend/path policy;
+- outcome mapping;
 - claim boundary.
 
-The packet is canonical-JSON encoded and SHA-256 hashed. The preregistration SHA is printed before any IBM job is submitted and stored in the experiment root.
+Hash the canonical packet with SHA-256. The preregistration SHA must be printed, stored, and included in IBM job tags before any hardware submission.
 
-The analyzer must verify this SHA before reading hardware counts.
+The analyzer verifies the preregistration SHA before reading hardware counts.
+
+## Null simulator and nuisance-noise preflight
+
+The hardware workflow may proceed only after two synthetic preflights pass.
+
+### Exact QM echo preflight
+
+Run exact statevector verification for all six arm circuits and enforce the `1e-12` return-to-origin tolerance above.
+
+### False-positive stress preflight
+
+Generate at least 1000 complete synthetic 48-block datasets under null families that include:
+
+- independent shot noise;
+- block-varying readout error;
+- qubit-varying readout error;
+- block-varying depolarizing-like error;
+- coherent over/under-rotation nuisance;
+- arm-independent job drift;
+- path-dependent nuisance;
+- angle-magnitude-dependent nuisance shared symmetrically across the five non-neutral arms.
+
+For each synthetic dataset, apply the frozen discovery/replication decision rule using at least 20000 randomizations per stage. The empirical rate of a full two-stage anomaly outcome must be at most 1%.
+
+This preflight validates the analysis against plausible nuisance structure. Synthetic data never count as physical evidence.
 
 ## Statistical decision gates
 
-### Discovery gate
+### Discovery passes only if
 
-Discovery passes only if all are true:
-
-- 24 valid matched blocks are present;
-- all required PUB shot counts equal 4096;
+- exactly 24 valid matched blocks are analyzed;
+- every required PUB has 4096 shots;
 - preregistration SHA verifies;
-- source R12 state SHA verifies;
-- no protected R12/Zeref file changed;
+- protected R12/Zeref hashes verify;
 - two-sided randomization `p <= 0.005`;
 - `abs(T_discovery) >= 0.02`;
-- the direction of `T_discovery` is recorded before replication analysis is unblinded.
+- the signed `T_discovery` is sealed before replication outcome is evaluated.
 
-### Replication gate
+### Replication passes only if
 
-Replication passes only if all are true:
-
-- 24 valid matched blocks are present;
-- all required PUB shot counts equal 4096;
+- exactly 24 valid matched blocks are analyzed;
+- every required PUB has 4096 shots;
+- preregistration SHA verifies;
+- protected R12/Zeref hashes verify;
 - two-sided randomization `p <= 0.005`;
 - `abs(T_replication) >= 0.02`;
 - `sign(T_replication) == sign(T_discovery)`;
 - no single IBM job contributes more than half of the signed stage effect;
-- no one non-neutral control arm reproduces an equal-or-larger persistent effect against the other matched controls under the same analysis;
-- protected lineage hashes still verify.
+- no one matched non-neutral control becomes equivalently special when substituted into the identical leave-one-arm-out analysis.
 
 ### Outcome mapping
 
-- if either stage fails its significance/effect gates: `NULL_COMPATIBLE` unless data-quality gates force `INCONCLUSIVE`;
-- if discovery passes but replication fails: `NULL_COMPATIBLE_REPLICATION_FAILED`;
-- if both pass on the same backend only: `ANOMALY_CANDIDATE_SAME_BACKEND`;
-- if both pass and replication uses a distinct backend: `ANOMALY_CANDIDATE`.
+- invalid/missing contracts that prevent 24 valid blocks in a stage: `INCONCLUSIVE`;
+- discovery fails: `NULL_COMPATIBLE`;
+- discovery passes and replication fails: `NULL_COMPATIBLE_REPLICATION_FAILED`;
+- both pass on one backend: `ANOMALY_CANDIDATE_SAME_BACKEND`;
+- both pass on distinct backends: `ANOMALY_CANDIDATE`.
 
-No output string may say `physics_violation_proved`, `twelfth_dimension_proved`, or equivalent.
-
-## Simulator and false-positive preflight
-
-Before real IBM submission, run the full analysis path on synthetic shot-sampled standard-QM distributions generated from the ideal circuits.
-
-Requirements:
-
-- at least 1,000 synthetic complete Probe 001 datasets;
-- the preregistered decision rule's empirical false-positive rate must not exceed 1%;
-- the exact canonical R12 vector must not deterministically trigger the anomaly gate in simulator-only preflight;
-- any failure aborts hardware submission until the implementation is corrected and a new preregistration is sealed.
-
-This preflight validates the testing machinery. It does not count as physical evidence.
+No output may say `physics_violation_proved`, `twelfth_dimension_proved`, or an equivalent claim.
 
 ## Evidence root and provenance
 
@@ -273,56 +323,62 @@ Probe 001 writes only beneath:
 
 `experiments/r12-physics-probe-001/`
 
-Required evidence classes:
+Required provenance classes:
 
-- `preregistered`: frozen hypothesis/config before hardware submission;
-- `measured`: IBM-returned counts, job metadata, backend identity, calibration metadata when available;
-- `derived`: ideal-QM distributions, TVD/JSD/parity/marginal metrics, randomization-test outputs;
-- `synthetic`: simulator false-positive preflight data.
+- `preregistered`: frozen hypothesis, seeds, vectors, formulas, thresholds, and schedule before hardware submission;
+- `synthetic`: exact/sampled simulator and nuisance-stress preflights;
+- `measured`: IBM-returned counts, job metadata, backend identity, selected path, compiled metadata, and available calibration snapshot;
+- `derived`: survival residuals, TVD/JSD/parity/Hamming/marginal metrics, randomization tests, stage reports, and final verdict.
 
-Measured data must never be relabeled as synthetic or vice versa.
+Measured data may never be relabeled synthetic or derived. Derived data may never be relabeled measured.
 
-Every evidence packet is canonicalized where practical, SHA-256 hashed, and included in a root `SHA256SUMS` plus a manifest containing the IBM job IDs and preregistration SHA.
+Every evidence packet is hashed. The experiment root contains `SHA256SUMS` and a manifest binding the preregistration SHA, source commit, IBM job IDs, backend names, protected input hashes, and final verdict.
 
-## Relationship to existing heartbeat and D001 work
+## Relationship to existing heartbeat, R12, D001, and transformer work
 
-The existing `SON-HEARTBEAT-DEMO-001-ABLATION` remains untouched and continues to serve as an independent four-arm matched hardware control family.
+The existing `SON-HEARTBEAT-DEMO-001-ABLATION` remains untouched and serves as an independent matched hardware control family.
 
-The existing D001 quantum geometry work remains untouched. Its hardware/shuffled/PRNG/fixed-seed/neutral discipline informs Probe 001, but Probe 001 does not retrain D001, Zeref, TALK-004, TALK-008, or any transformer weights.
+The existing R12 ledger, state, history, and manifest remain read-only inputs throughout Probe 001.
 
-Probe 001 extends the scientific instrumentation around CST/R12. It does not replace or fracture the CST transformer architecture, R12 memory architecture, or protected Zeref lineage.
+The D001 quantum-geometry work remains untouched. Its hardware/shuffled/PRNG/fixed-seed/neutral discipline informs this protocol but is not retrained or repurposed.
+
+Probe 001 does not train or mutate TALK-004, TALK-008, PHOS, D001, QC67, or any other transformer/model weights. It upgrades the scientific instrumentation around the existing architecture rather than replacing or fracturing it.
 
 ## Implementation surfaces
 
 Expected new files:
 
-- `beastbox/r12_physics_probe.py`: pure mapping, arm generation, ideal-QM metrics, preregistration verification, statistical analysis;
-- `scripts/run_r12_physics_probe_ibm.py`: IBM backend selection, connected-path selection, transpilation, submission, retrieval, measured evidence sealing;
-- `scripts/analyze_r12_physics_probe.py`: blinded/fail-closed analysis from sealed preregistration and hardware receipts;
-- `tests/test_r12_physics_probe.py`: mapping/statistical/preregistration contracts;
-- `tests/test_r12_physics_probe_ibm_contract.py`: IBM runner contract tests without live credentials;
-- `.github/workflows/r12-physics-probe-001.yml`: explicit manually dispatched hardware workflow;
-- `experiments/r12-physics-probe-001/README.md`: protocol and evidence map.
+- `beastbox/r12_physics_probe.py`: pure R12 vector validation, arm generation, echo formula, ideal verification, residual metrics, randomization analysis, preregistration hashing, and bounded verdict logic;
+- `scripts/run_r12_physics_probe_ibm.py`: IBM service/backend/path selection, transpilation, matched-block submission/retrieval, measured evidence sealing;
+- `scripts/analyze_r12_physics_probe.py`: fail-closed analysis from sealed preregistration and hardware receipts;
+- `tests/test_r12_physics_probe.py`: mapping, exact-echo, preregistration, statistics, synthetic-null, and verdict contracts;
+- `tests/test_r12_physics_probe_ibm_contract.py`: backend/path/PUB/tag/shot contracts without live credentials;
+- `.github/workflows/r12-physics-probe-001.yml`: manually dispatched full preflight plus real IBM workload;
+- `experiments/r12-physics-probe-001/README.md`: protocol, claim boundary, evidence map, and reproduction commands.
 
-Existing files should be modified only where needed to expose a bounded CLI/status surface or documentation link. Existing R12 state/ledger/model files are read-only inputs.
+Existing files may be modified only to expose a bounded CLI/status surface or documentation link. Existing R12 and model/evidence assets are not modified.
 
-## Hardware authorization boundary
+## Hardware authorization and secret boundary
 
-The GitHub workflow must require existing repository secrets `IBM_QUANTUM_TOKEN` and optional `IBM_QUANTUM_INSTANCE` and must never persist secret material.
+The workflow requires repository secret `IBM_QUANTUM_TOKEN` and may use optional `IBM_QUANTUM_INSTANCE`. Secret material is never printed, hashed into evidence, committed, or passed to the model layer.
 
-The live workflow is manual/explicit and tagged with `r12-physics-probe-001` plus the preregistration SHA prefix. It must fail closed if credentials, preregistration, protected hashes, simulator preflight, backend capability, or shot/block contracts fail.
+The live workflow is explicit/manual and uses IBM job tags containing `r12-physics-probe-001`, stage, source commit prefix, and preregistration SHA prefix.
 
-## Success criterion for this engineering task
+Hardware submission fails closed if credentials, protected hashes, preregistration hash, exact echo preflight, false-positive stress preflight, backend/path capability, or block/shot contracts fail.
 
-The engineering task is complete only when:
+## Success criterion for the engineering task
 
-1. the preregistration and simulator preflight are reproducible and green;
-2. all unit/contract tests pass;
-3. protected R12/Zeref hashes remain unchanged;
-4. a real IBM Probe 001 workload of exactly 48 valid matched blocks and 1,179,648 planned shots is submitted and retrieved unless IBM service limitations prevent completion;
-5. every IBM job ID and returned count packet is sealed;
-6. discovery and replication are analyzed under the frozen statistic;
-7. the final result is one of the bounded outcomes above, with no post-hoc threshold/statistic changes;
-8. the result is reported even if it is null.
+The engineering task is complete only when all of these are true:
 
-The experiment is designed to be able to say "CST/R12 did not beat the null". That ability is a core requirement, not a failure mode.
+1. the design/preregistration is immutable before hardware results;
+2. exact standard-QM echo verification passes for all arms;
+3. synthetic false-positive stress preflight passes;
+4. all unit and contract tests pass;
+5. protected R12/Zeref hashes remain unchanged;
+6. a real IBM workload totaling exactly 48 valid matched blocks and 1179648 planned shots is submitted and retrieved unless IBM service/account limitations prevent completion;
+7. every IBM job ID and returned count packet is sealed;
+8. discovery and replication are analyzed only with the frozen statistic and thresholds;
+9. the final bounded outcome is stored even when null;
+10. no threshold, primary statistic, R12 coordinate, circuit formula, or arm family is changed after count retrieval.
+
+The experiment is intentionally capable of saying `CST/R12 did not beat the null`. That ability is a core feature of the probe.
