@@ -35,16 +35,17 @@ The experiment therefore consumes a 66-value composite bridge state (`phase12 + 
 
 The implementation must create one frozen, reproducible offline snapshot from the corrected source before any IBM submission.
 
-1. Use a preregistration-derived deterministic seed.
-2. Instantiate the smallest corrected CST model/block configuration that still contains the 12D phase, 24D Hebbian, 18D chaos, and attention/connectivity path.
-3. Disable dropout and nondeterministic kernels.
-4. Reset persistent Hebbian, chaos, and memory buffers to their deterministic initial state.
-5. Generate a fixed synthetic content tensor from SHA-256-derived bytes mapped to `[-1, 1]`. No human prompt or post-hoc chosen text is allowed.
-6. Run exactly one forward snapshot and extract `phase12`, `hebbian24`, `chaos18`, and the scalar connectivity `Omega` from that same computation.
-7. Initialize `dynamic12(0) = phase12` and integrate the documented leaky rule for exactly 64 Euler steps using the frozen `Omega`.
-8. Serialize the full 66-value bridge packet and SHA-256 seal it.
+1. Use a preregistration-derived deterministic seed for Python, NumPy, and Torch and enable deterministic Torch algorithms.
+2. Instantiate the corrected full `CosmosTransformer` with the source-default architecture (`d_model=512`, `n_layers=6`, `n_heads=8`, `d_ff=2048`, `d_cst=12`, `d_hebbian=24`, `d_chaos=18`, six chaos oscillators) and override only `dropout=0.0` for deterministic inference.
+3. Reset persistent Hebbian, chaos, and memory buffers to the deterministic post-constructor state and put the model in eval mode.
+4. Derive exactly 12 token IDs from SHA-256 expansion of the preregistration seed, each reduced modulo the source vocabulary size. No human prompt, semantic text, or post-hoc chosen token sequence is allowed.
+5. Run exactly one full-model forward snapshot.
+6. Define `phase12` as the same final-layer sequence-mean 12D CST phase vector used by the source model's existing `state_54d` aggregator. Define `hebbian24` as that final layer's 24D Hebbian state and `chaos18` as the model's 18D chaos state from the same forward pass.
+7. Obtain the CST connectivity drive without changing forward behavior: capture the final block's pre-attention input with a read-only hook, recompute that block's phase-modulated normalized attention with `need_weights=True` and per-head weights, and define `Omega` as attention received by the final reference token, `mean_heads(sum_queries(A[..., final_key]))`. Do not use a global mean, because normalization would make it structurally uninformative.
+8. Initialize `dynamic12(0) = phase12` and integrate the documented leaky rule for exactly 64 Euler steps using the frozen scalar `Omega`.
+9. Serialize the full 66-value bridge packet, model configuration, token IDs, seed, and `Omega`; SHA-256 seal the packet.
 
-The state compiler is read-only with respect to trained model weights and all persistent user memory.
+This is a source-defined deterministic architecture snapshot, not a claim about a trained intelligence checkpoint. Substituting a learned checkpoint would be a materially different experiment and requires a new preregistration. The state compiler is read-only with respect to trained model weights and all persistent user memory.
 
 ## 5. Geometry-preserving quantum compiler
 
@@ -88,15 +89,21 @@ Measure the ancilla in both X and Y bases for every arm and block:
 - `<X>` estimates `Re(Z)`.
 - `<Y>` estimates `Im(Z)`.
 
-Before hardware, exact statevector simulation computes `Z_QM` for every arm. The per-block phase residual is
+Before hardware, exact statevector simulation computes `Z_QM` for every arm. The per-arm, per-block phase residual is
 
-`epsilon = wrap(arg(Z_measured) - arg(Z_QM))`.
+`epsilon_a,b = wrap(arg(Z_measured,a,b) - arg(Z_QM,a))`.
 
-The primary statistic is the matched-block difference
+The six primary ablation controls are `PAIR_SWAP`, `PAIR_PERMUTE`, `HEBBIAN_SHUFFLE`, `CHAOS_SHUFFLE`, `PHI_ABLATE`, and `DYNAMIC_FREEZE`. `MIRROR_CAL` is a diagnostic and is not included in the primary control mean.
 
-`T = median_b[ epsilon_FULL,b - mean(epsilon_CONTROL,b) ]`.
+For each block, compute the circular control center
 
-The test is two-sided. Probe 003 does not invent a preferred positive or negative direction after seeing data.
+`epsilon_control,b = arg(mean_a exp(i * epsilon_a,b))`
+
+across those six controls, then
+
+`delta_b = wrap(epsilon_FULL_CST,b - epsilon_control,b)`.
+
+The stage statistic is `T = median_b(delta_b)`. The test is two-sided. Probe 003 does not invent a preferred positive or negative direction after seeing data.
 
 ## 7. Matched arms
 
@@ -109,7 +116,7 @@ Every arm must have identical qubit count, gate topology, measurement bases, and
 5. `CHAOS_SHUFFLE`: deterministic preregistered permutation of the six chaos triplets.
 6. `PHI_ABLATE`: replace phi-weighted Hebbian chunk coefficients with equal weights while keeping identical gate topology.
 7. `DYNAMIC_FREEZE`: replace evolved dynamic12 with its phase12 initialization, keeping the same gates.
-8. `MIRROR_CAL`: depth-matched calibration arm constructed so its ideal interferometric residual is zero and it diagnoses coherent/systematic hardware drift.
+8. `MIRROR_CAL`: identical topology with preregistered inverse/sign parameterization chosen before hardware so its ideal interferometric phase is zero; it diagnoses coherent/systematic hardware drift.
 
 All parameter permutations are derived from the final preregistration seed before hardware.
 
@@ -132,17 +139,23 @@ No IBM credentials may be used until all gates below pass:
 - exact reproduction of the sealed 66-value bridge packet;
 - exact statevector calculation of every arm's `Z_QM`;
 - proof that all eight arms have matched topology and gate counts;
-- proof that the canonical compiler uses all 12 phase values, all 12 dynamic values, all 24 Hebbian values, and all 18 chaos values;
-- sensitivity tests showing that perturbing each component family changes the exact simulated observable;
+- proof that the canonical compiler consumes all 12 phase values, all 12 dynamic values, all 24 Hebbian values, and all 18 chaos values;
+- sensitivity tests showing that a deterministic perturbation of each component family changes the exact complex observable by at least `1e-6` in magnitude;
 - 10,000 complete synthetic null experiments with no more false positives than allowed by the preregistered alpha;
-- no test may read IBM result data;
+- no pre-hardware test may read Probe 003 IBM result data;
 - frozen source hashes, compiler hashes, statistics, seeds, arm definitions, and workload must be SHA-256 sealed.
 
 The effect floor is fixed by rule before IBM hardware:
 
-`effect_floor = max(0.01 radians, 5 * q999_synthetic_null_abs_T)`
+`effect_floor = max(0.01 radians, q999_synthetic_null_abs_T)`
 
-where `q999_synthetic_null_abs_T` is the 99.9th percentile of absolute `T` across the 10,000 synthetic null experiments. The rule itself is frozen in this design; the resulting numerical floor is sealed in the final preregistration packet before hardware.
+where `q999_synthetic_null_abs_T` is the 99.9th percentile of absolute `T` across the 10,000 synthetic null experiments.
+
+The mirror diagnostic tolerance is also fixed before hardware:
+
+`mirror_tolerance = max(0.01 radians, q999_synthetic_mirror_abs_epsilon)`.
+
+The rules themselves are frozen in this design; the resulting numerical values are sealed in the final preregistration packet before hardware.
 
 ## 10. Hardware workload
 
@@ -164,7 +177,7 @@ Target workload after preflight:
 
 The runner may choose operational IBM backends and connected 7-qubit layouts only by a preregistered deterministic ranking based on availability and calibration metadata. It may not choose a backend after inspecting Probe 003 measurement outcomes.
 
-## 11. Analysis gates
+## 11. Analysis gates and decision table
 
 A stage passes only if all of the following hold:
 
@@ -173,18 +186,14 @@ A stage passes only if all of the following hold:
 - the FULL_CST residual is not reproduced by any individual ablation arm at the same sign and comparable magnitude;
 - leave-one-job-out keeps the same sign and at least 50% of the full-stage effect for every omission;
 - leave-one-layout-out keeps the same sign and at least 50% of the full-stage effect for every omission;
-- mirror/calibration diagnostics remain within their preregistered tolerance;
+- `abs(epsilon_MIRROR_CAL) <= mirror_tolerance` under the preregistered stage aggregation;
 - evidence hashes and source hashes remain unchanged.
 
-`ANOMALY_CANDIDATE` additionally requires:
+`ANOMALY_CANDIDATE` requires discovery and replication both to pass, the two stage effects to have the same sign, replication to use a different IBM backend, and all protected CST/R12/Zeref evidence/model anchors to remain unchanged.
 
-- discovery passes;
-- replication passes independently;
-- replication has the same sign as discovery;
-- replication uses a different IBM backend;
-- all protected CST/R12/Zeref evidence and model anchors remain unchanged.
+`NULL_COMPATIBLE` requires complete valid hardware evidence from both stages with intact checksums and calibration diagnostics, but failure of one or more anomaly gates.
 
-Otherwise the result is `NULL_COMPATIBLE` or `INCONCLUSIVE` according to the frozen decision table.
+`INCONCLUSIVE` is mandatory if any required job/result is missing, the independent-backend or layout requirement is not met, the mirror diagnostic exceeds tolerance, a source/evidence hash changes, or the evidence bundle is otherwise incomplete. An infrastructure or calibration failure may never be converted into `NULL_COMPATIBLE` or `ANOMALY_CANDIDATE`.
 
 ## 12. Evidence and immutability
 
