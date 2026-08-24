@@ -14,6 +14,19 @@ on:
       - 'docs/superpowers/specs/2026-08-24-cst12-physics-probe-002.md'
       - 'experiments/cst12-physics-probe-002/preregistered/**'
       - 'experiments/cst12-physics-probe-002/RUN_APPROVED'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/cst12-physics-probe-002.yml'
+      - 'beastbox/cst12_physics_probe.py'
+      - 'scripts/run_cst12_physics_probe_002_ibm.py'
+      - 'scripts/analyze_cst12_physics_probe_002.py'
+      - 'scripts/make_cst12_physics_probe_002_preregistration.py'
+      - 'scripts/preflight_cst12_physics_probe_002.py'
+      - 'tests/test_cst12_physics_probe_002.py'
+      - 'docs/superpowers/specs/2026-08-24-cst12-physics-probe-002.md'
+      - 'experiments/cst12-physics-probe-002/preregistered/**'
+      - 'experiments/cst12-physics-probe-002/RUN_APPROVED'
   workflow_dispatch:
 
 permissions:
@@ -49,7 +62,7 @@ jobs:
         id: gate
         shell: bash
         run: |
-          if test -f experiments/cst12-physics-probe-002/RUN_APPROVED; then
+          if test -f experiments/cst12-physics-probe-002/RUN_APPROVED && test "$GITHUB_EVENT_NAME" = "push"; then
             echo 'approved=true' >> "$GITHUB_OUTPUT"
           else
             echo 'approved=false' >> "$GITHUB_OUTPUT"
