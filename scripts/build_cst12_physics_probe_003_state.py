@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import random
 import subprocess
 import sys
@@ -14,6 +15,18 @@ from beastbox.cst12_physics_probe_003 import CORRECTED_SOURCE_SHA, sha256_json, 
 
 TOKEN_DOMAIN = "cst12-probe003-token-v1"
 SEED_DOMAIN = "cst12-probe003-model-seed-v1"
+BRIDGE_DECIMALS = 6
+
+
+def canonicalize_scalar(value: float) -> float:
+    value = float(value)
+    if not math.isfinite(value):
+        raise ValueError("bridge values must be finite")
+    return round(value, BRIDGE_DECIMALS)
+
+
+def _canonicalize_values(values: Any) -> list[float]:
+    return [canonicalize_scalar(v) for v in values]
 
 
 def derive_token_ids(seed_root: str, vocab_size: int, count: int = 12) -> tuple[int, ...]:
@@ -138,9 +151,9 @@ def build_state_packet(source_root: Path, seed_root: str) -> dict[str, Any]:
     finally:
         handle.remove()
 
-    phase = result["layer_states"][-1]["cst_phase_12d"].mean(dim=1)[0].detach().double()
-    hebbian = result["layer_states"][-1]["hebbian_state_24d"][0].detach().double()
-    chaos = result["state_54d"][0, 36:54].detach().double()
+    phase_raw = result["layer_states"][-1]["cst_phase_12d"].mean(dim=1)[0].detach().double()
+    hebbian_raw = result["layer_states"][-1]["hebbian_state_24d"][0].detach().double()
+    chaos_raw = result["state_54d"][0, 36:54].detach().double()
     if "x" not in captured:
         raise RuntimeError("failed to capture final-block input for Omega reconstruction")
 
@@ -159,24 +172,39 @@ def build_state_packet(source_root: Path, seed_root: str) -> dict[str, Any]:
             need_weights=True,
             average_attn_weights=False,
         )
-        omega = float(attn_weights[0, :, :, -1].sum(dim=-1).mean().item())
+        omega_raw = float(attn_weights[0, :, :, -1].sum(dim=-1).mean().item())
 
-    dynamic = phase.clone()
-    for _ in range(64):
-        dynamic = dynamic + 0.1 * (0.1 * omega - 0.05 * dynamic)
+    # Canonicalize at the source-model -> scientific-bridge boundary.  The full
+    # PyTorch model may differ in its final few floating-point bits across CPU
+    # kernels/runners even with deterministic algorithms enabled.  Those raw
+    # machine-level differences are deliberately not part of the experiment's
+    # scientific identity.
+    phase = _canonicalize_values(phase_raw.tolist())
+    hebbian = _canonicalize_values(hebbian_raw.tolist())
+    chaos = _canonicalize_values(chaos_raw.tolist())
+    omega = canonicalize_scalar(omega_raw)
+
+    # Dynamic12 is reconstructed from canonical inputs using scalar arithmetic,
+    # then canonicalized again at the same declared bridge resolution.
+    dynamic: list[float] = []
+    for x0 in phase:
+        x = float(x0)
+        for _ in range(64):
+            x = x + 0.1 * (0.1 * omega - 0.05 * x)
+        dynamic.append(canonicalize_scalar(x))
 
     bridge_packet = {
-        "phase12": [float(v) for v in phase.tolist()],
-        "dynamic12": [float(v) for v in dynamic.tolist()],
-        "hebbian24": [float(v) for v in hebbian.tolist()],
-        "chaos18": [float(v) for v in chaos.tolist()],
+        "phase12": phase,
+        "dynamic12": dynamic,
+        "hebbian24": hebbian,
+        "chaos18": chaos,
     }
     validate_bridge_packet(bridge_packet)
     packet_sha = sha256_json(bridge_packet)
     token_sha = hashlib.sha256(json.dumps(list(token_ids), separators=(",", ":")).encode("utf-8")).hexdigest()
 
     return {
-        "schema": "cst12-physics-probe-003-state-v1",
+        "schema": "cst12-physics-probe-003-state-v2-canonical-bridge",
         "probe_id": "cst12-physics-probe-003",
         "source_commit": CORRECTED_SOURCE_SHA,
         "source_root_recorded": source_root.name,
@@ -186,6 +214,8 @@ def build_state_packet(source_root: Path, seed_root: str) -> dict[str, Any]:
         "token_ids": list(token_ids),
         "token_ids_sha256": token_sha,
         "omega": omega,
+        "bridge_quantization_decimals": BRIDGE_DECIMALS,
+        "bridge_quantization_rule": "round finite source-derived scalars to 6 decimal places before hashing; dynamic12 evolves from canonical phase12 and Omega and is rounded to the same resolution",
         "dynamic_rule": {"k": 0.1, "gamma": 0.05, "dt": 0.1, "steps": 64},
         "bridge_packet": bridge_packet,
         "bridge_packet_sha256": packet_sha,
