@@ -1,0 +1,24 @@
+{
+  "schema": "cst12-physics-probe-003-v1-reproducibility-failure-v1",
+  "probe_id": "cst12-physics-probe-003",
+  "status": "PREHARDWARE_REPRODUCIBILITY_FAILURE",
+  "v1_implementation_freeze_commit": "e31e9d53cd4d1d412091813ec2bd897ff86175f1",
+  "v1_preregistration_sha256": "dd1316996849cc711da1218055e08e5912664d6b9d9b7059ad71521282f5f021",
+  "v1_authorization_commit": "1c136d97132fdae55a0b3ea546af37faa5d8ab75",
+  "failed_authorization_workflow_run": 32786067741,
+  "failed_step": "Verify committed preregistration bytes",
+  "hardware_job_skipped": true,
+  "probe003_ibm_hardware_results_submitted": false,
+  "probe003_ibm_hardware_results_read": false,
+  "planned_hardware_shots_not_submitted": 4194304,
+  "observed_cross_runner_omega": {
+    "freeze_runner": 0.08276709914207458,
+    "authorization_runner": 0.08276709169149399,
+    "absolute_difference_approx": 7.45058059e-9
+  },
+  "freeze_runner_bridge_packet_sha256": "b9eae5be139262ead43b795ed8145fde7c636a7974059af50cb891e45fd0ce0f",
+  "authorization_runner_bridge_packet_sha256": "07f3d09aea8313313b64b6eb1b713a9a3325d6c980e5dfb8cf664009c836373c",
+  "authorization_runner_regenerated_preregistration_sha256": "28926eb020277e3dec29d669408d51657dd51887fcd6b04014d1f539f49f2880",
+  "resolution": "superseded by Probe 003 v2 canonical bridge Amendment 3; v1 remains immutable and must not authorize hardware",
+  "results_peeked": false
+}
