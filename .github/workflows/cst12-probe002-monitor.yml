@@ -1,0 +1,59 @@
+name: CST12 Probe 002 Run Monitor
+
+on:
+  push:
+    branches: [cst12-physics-probe-002]
+    paths:
+      - '.github/workflows/cst12-probe002-monitor.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  observe:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cst12-physics-probe-002
+          fetch-depth: 1
+
+      - name: Resolve latest push-triggered Probe 002 run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p experiments/cst12-physics-probe-002/observer
+          gh run list \
+            --repo "$GITHUB_REPOSITORY" \
+            --workflow cst12-physics-probe-002.yml \
+            --branch cst12-physics-probe-002 \
+            --event push \
+            --limit 1 \
+            --json databaseId,status,conclusion,headSha,createdAt,updatedAt,url,event,workflowName \
+            > experiments/cst12-physics-probe-002/observer/latest.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('experiments/cst12-physics-probe-002/observer/latest.json')
+          rows=json.loads(p.read_text())
+          if len(rows) != 1:
+              raise SystemExit('expected exactly one latest Probe 002 push run')
+          row=rows[0]
+          if row.get('event') != 'push':
+              raise SystemExit('observer resolved a non-push run')
+          print(json.dumps(row, indent=2, sort_keys=True))
+          PY
+
+      - name: Commit observer receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add experiments/cst12-physics-probe-002/observer/latest.json
+          git commit -m 'evidence: observe CST12 Probe 002 push run [skip ci]'
+          git pull --rebase origin cst12-physics-probe-002
+          git push origin HEAD:cst12-physics-probe-002
