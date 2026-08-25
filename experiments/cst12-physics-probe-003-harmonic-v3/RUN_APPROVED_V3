@@ -1,0 +1,26 @@
+CST12 PHYSICS PROBE 003 HARMONIC CALIBRATION V3 — HARDWARE AUTHORIZATION
+
+Authorized by the user on 2026-08-24 America/Chicago after the harmonic v3 prehardware contracts, sealed-v2 checksum verification, 10,000-dataset synthetic calibration, and byte-identical preregistration rebuild passed.
+
+This authorization applies only to the fresh v3 run tied to:
+- preregistration SHA-256: 116595bb55874dbb83ee2f3ece396beff6ff0c5e114ffd010a48fa94766b5f2c
+- implementation freeze commit: b47d4cfac99892c660a338a3489a37e792c11105
+- sealed source v2 preregistration SHA-256: 614bd1ec33d2371a804b6df7e51f0524309f61026b802a03c023779e3bc376c5
+- state packet SHA-256: 31b7bc1b4afbf05db49360776d52eafeda69830f36694f789951293338c47e21
+
+Authorized workload:
+- fresh real IBM hardware only
+- discovery and replication on distinct backends
+- 32 blocks per stage
+- 8 arms x 2 ancilla bases per block
+- 4096 shots per PUB
+- 1024 PUBs / 4,194,304 total shots
+- all discovery and replication jobs submitted before any result retrieval
+- no early stopping
+
+Scientific safeguards remain binding:
+- Probe 003 v2 evidence remains immutable and formally INCONCLUSIVE
+- do not use v2 hardware values to alter the v3 calibration tolerance
+- do not alter the exact-QM target, CST state bridge, scientific arms, effect floor, p-value threshold, specificity rule, stability gates, or replication rule
+- do not tune a null scientific result into a positive result
+- held-out harmonic mirror calibration must pass independently on each stage before the scientific outcome can be considered valid
