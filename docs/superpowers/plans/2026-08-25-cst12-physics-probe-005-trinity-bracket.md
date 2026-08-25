@@ -42,7 +42,7 @@ Tests assert:
 assert len(LOGICAL_SLOTS) == 20
 assert plan[0:6] == list(PRE_BRACKET)
 assert plan[-6:] == list(POST_BRACKET)
-assert plan.index("MID_REF_HOLDOUT") == 10
+assert plan.index("MID_REF_HOLDOUT") == 9
 assert basis_order_for_block(0) == ("X", "Y")
 assert basis_order_for_block(1) == ("Y", "X")
 ```
