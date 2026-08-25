@@ -1,0 +1,31 @@
+name: CNS7 Body Fabric
+
+on:
+  push:
+    branches: [cns7-body-fabric]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cns7-body-fabric-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cns7-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]'
+      - name: CNS7 focused contract
+        run: pytest -q tests/test_cns7_body_fabric.py
