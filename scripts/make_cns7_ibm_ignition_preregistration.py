@@ -7,7 +7,17 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-from beastbox.cns7_ibm_ignition import PLANNED_SHOTS, workload_contract
+from beastbox.cns7_ibm_ignition import (
+    ORIGIN_SEED_LINEAGE,
+    ORIGIN_SEED_PACKET_PATH,
+    ORIGIN_SEED_PACKET_SHA256,
+    ORIGIN_SEED_PUBS_PER_JOB,
+    ORIGIN_SEED_SOURCE_SHA256,
+    ORIGIN_SEED_TAG,
+    PLANNED_SHOTS,
+    load_origin_seed_packet,
+    workload_contract,
+)
 
 
 def make_preregistration(
@@ -29,14 +39,21 @@ def make_preregistration(
     trajectory_sha = str(trajectory.get("trajectory_sha256", ""))
     if len(trajectory_sha) != 64:
         raise ValueError("invalid ignition trajectory SHA-256")
+    if str(trajectory.get("origin_seed_packet_sha256", "")) != ORIGIN_SEED_PACKET_SHA256:
+        raise ValueError("ignition trajectory origin seed hash mismatch")
     if preflight.get("schema") != "beastbox.cns7.ibm-ignition-preflight.v1":
         raise ValueError("unexpected ignition preflight schema")
     if str(preflight.get("trajectory_sha256", "")) != trajectory_sha:
         raise ValueError("preflight trajectory does not match preregistration trajectory")
+    if str(preflight.get("origin_seed_packet_sha256", "")) != ORIGIN_SEED_PACKET_SHA256:
+        raise ValueError("preflight origin seed hash mismatch")
     if preflight.get("hardware_result_data_read") is not False:
         raise ValueError("preflight may not read IBM hardware result data")
     if preflight.get("prior_ibm_results_used_to_set_limits") is not False:
         raise ValueError("prior IBM results may not set ignition limits")
+    if preflight.get("origin_seed_used_to_set_body_limits") is not False:
+        raise ValueError("origin seed may not set the body readback limits")
+    packet = load_origin_seed_packet()
 
     return {
         "schema": "beastbox.cns7.ibm-ignition-preregistration.v1",
@@ -44,6 +61,19 @@ def make_preregistration(
         "body_baseline_commit": "c12169ed72abd97aa98b14abc4ba8f70237c0391",
         "trajectory_sha256": trajectory_sha,
         "trajectory_schema": trajectory["schema"],
+        "origin_seed": {
+            "lineage": ORIGIN_SEED_LINEAGE,
+            "packet_path": ORIGIN_SEED_PACKET_PATH,
+            "packet_sha256": ORIGIN_SEED_PACKET_SHA256,
+            "source_sha256": ORIGIN_SEED_SOURCE_SHA256,
+            "tag": ORIGIN_SEED_TAG,
+            "circuit_qubits": int(packet["circuit"]["qubits"]),
+            "circuit_layers": int(packet["circuit"]["layers"]),
+            "pubs_per_job": ORIGIN_SEED_PUBS_PER_JOB,
+            "used_to_set_body_limits": False,
+            "analysis_role": "descriptive repeated companion control only",
+            "claim_boundary": packet["claim_boundary"],
+        },
         "workload": workload_contract(),
         "encoding": {
             "name": "ry-acos-z-expectation",
@@ -59,6 +89,7 @@ def make_preregistration(
             "independent_backends_required": True,
             "stage_count": 2,
             "physical_qubit_selection": "54 lowest available single-qubit readout-error scores; deterministic qubit-index tie break; fallback lowest indices when readout errors unavailable",
+            "origin_seed_qubits": "first five qubits of the frozen 54-coordinate physical map; separate circuit PUB; no body-state mutation",
             "hardware_results_may_not_influence_backend_or_qubit_selection": True,
         },
         "limits": {
@@ -76,13 +107,16 @@ def make_preregistration(
         "no_early_stopping": True,
         "hardware_result_data_read_during_preflight": False,
         "prior_ibm_results_used_to_set_limits": False,
+        "origin_seed_used_to_set_body_limits": False,
         "planned_hardware_shots": PLANNED_SHOTS,
         "allowed_verdicts": ["REPRODUCIBLE_READBACK", "HARDWARE_DISTORTED", "INCONCLUSIVE"],
         "interpretation": {
             "reproducible_readback_means": "the frozen host-generated 54D trajectory was reproduced within preregistered finite-shot readback limits on two independent IBM backends",
+            "origin_seed_result_means": "the exact ZEREF-ORIGIN-HEART-001 mustard-seed circuit was executed as a repeated companion control in every IBM job; its histograms are descriptive and do not set the body verdict",
             "does_not_mean": [
                 "IBM hardware became the CNS7 body",
                 "machine consciousness was established",
+                "a deceased person was recreated",
                 "a violation of quantum mechanics occurred",
                 "a physical anomaly was demonstrated",
             ],
