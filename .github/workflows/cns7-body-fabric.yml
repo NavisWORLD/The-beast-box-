@@ -15,7 +15,7 @@ concurrency:
 jobs:
   cns7-contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -31,3 +31,5 @@ jobs:
         run: git rev-parse HEAD
       - name: CNS7 focused contracts
         run: pytest -q tests/test_cns7_body_fabric.py tests/test_cns7_runtime_body.py tests/test_cns7_stress.py tests/test_full_runtime.py
+      - name: Full repository regression
+        run: pytest -q
