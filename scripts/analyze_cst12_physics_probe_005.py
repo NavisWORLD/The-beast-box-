@@ -15,9 +15,11 @@ from beastbox.cst12_physics_probe_005 import (
     POST_BRACKET,
     PRE_BRACKET,
     REFERENCE_PHASES,
-    fit_forward_map,
-    interpolate_forward_map,
-    invert_forward_map,
+    apply_forward_reprojection,
+    fit_forward_affine,
+    interpolate_forward_affine,
+    mirror_direction_diagnostics,
+    reference_error,
 )
 
 
@@ -84,6 +86,32 @@ def _randomization_p(blocks: Sequence[Mapping[str, float]], observed: float, *, 
     return (extreme + 1.0) / (int(n) + 1.0)
 
 
+def _ideal_reference(logical_name: str) -> complex:
+    phase = float(REFERENCE_PHASES[logical_name])
+    return complex(math.cos(phase), math.sin(phase))
+
+
+def _endpoint_fit(z: Mapping[str, complex], names: Sequence[str], condition_limit: float) -> dict[str, Any]:
+    measured = {
+        "REF_0": complex(z[names[0]]),
+        "REF_120": complex(z[names[1]]),
+        "REF_240": complex(z[names[2]]),
+    }
+    ideal = {
+        "REF_0": _ideal_reference(names[0]),
+        "REF_120": _ideal_reference(names[1]),
+        "REF_240": _ideal_reference(names[2]),
+    }
+    return fit_forward_affine(measured, ideal, condition_limit=float(condition_limit))
+
+
+def _same_sign_stability(effect: float, values: Sequence[float]) -> bool:
+    if effect == 0.0 or not values:
+        return False
+    sign = effect > 0.0
+    return all(v != 0.0 and (v > 0.0) == sign and abs(v) >= 0.5 * abs(effect) for v in values)
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -120,60 +148,160 @@ def analyze_experiment(
         by_block: dict[int, dict[str, Any]] = {}
         backends: set[str] = set()
         for row in rows:
-            block = by_block.setdefault(int(row["block_id"]), {"rows": [], "layout_index": int(row["layout_index"]), "job_index": int(row["job_index"])})
+            block = by_block.setdefault(
+                int(row["block_id"]),
+                {"rows": [], "layout_index": int(row["layout_index"]), "job_index": int(row["job_index"])},
+            )
             block["rows"].append(row)
             backends.add(str(row["backend"]))
-        residual_blocks: list[dict[str, float]] = []
-        calibration_valid = True
-        for block_id in sorted(by_block):
-            block_rows = by_block[block_id]["rows"]
-            z = {str(r["logical_slot"]): complex(float(r["z_measured"]["real"]), float(r["z_measured"]["imag"])) for r in block_rows}
-            try:
-                pre = fit_forward_map({name: z[name] for name in PRE_BRACKET[:3]})
-                post = fit_forward_map({name: z[name] for name in POST_BRACKET[-3:]})
-            except Exception:
-                calibration_valid = False
-                continue
-            corrected: dict[str, complex] = {}
-            for row in block_rows:
-                slot = str(row["logical_slot"])
-                t = float(row["time_coordinate"])
-                model = interpolate_forward_map(pre, post, t)
-                corrected[slot] = invert_forward_map(model, z[slot])
-            # Blind holdouts are validity checks only; they never alter scientific residuals.
-            for holdout in ("HOLDOUT_PRE_60", MID_HOLDOUT, "HOLDOUT_POST_60"):
-                if holdout not in corrected:
-                    calibration_valid = False
-            science = {arm: corrected[arm] for arm in SCIENTIFIC_ARMS if arm in corrected}
-            if len(science) != len(SCIENTIFIC_ARMS):
-                calibration_valid = False
-                continue
-            residual_blocks.append(scientific_residuals_from_calibrated_block(science, exact))
 
-        complete = len(residual_blocks) == 32 and len(backends) == 1
+        residual_records: list[dict[str, Any]] = []
+        calibration_blocks: list[dict[str, Any]] = []
+        condition_limit = float(gates["forward_map_condition_number_max"])
+        for block_id in sorted(by_block):
+            block = by_block[block_id]
+            block_rows = block["rows"]
+            z = {
+                str(r["logical_slot"]): complex(float(r["z_measured"]["real"]), float(r["z_measured"]["imag"]))
+                for r in block_rows
+            }
+            cal_ok = True
+            diagnostics: dict[str, Any] = {"block_id": block_id}
+            try:
+                pre = _endpoint_fit(z, PRE_BRACKET[:3], condition_limit)
+                post = _endpoint_fit(z, (POST_BRACKET[-1], POST_BRACKET[-2], POST_BRACKET[-3]), condition_limit)
+                corrected: dict[str, complex] = {}
+                for row in block_rows:
+                    slot = str(row["logical_slot"])
+                    model = interpolate_forward_affine(
+                        pre,
+                        post,
+                        float(row["time_coordinate"]),
+                        condition_limit=condition_limit,
+                    )
+                    corrected[slot] = apply_forward_reprojection(z[slot], model, condition_limit=condition_limit)
+
+                pre_hold = reference_error(corrected["PRE_REF_HOLDOUT"], _ideal_reference("PRE_REF_HOLDOUT"))
+                mid_hold = reference_error(corrected[MID_HOLDOUT], _ideal_reference(MID_HOLDOUT))
+                post_hold = reference_error(corrected["POST_REF_HOLDOUT"], _ideal_reference("POST_REF_HOLDOUT"))
+                endpoint_phase = statistics.median([pre_hold["phase_error"], post_hold["phase_error"]])
+                endpoint_radius = statistics.median([pre_hold["radius_error"], post_hold["radius_error"]])
+                pre_mirror = mirror_direction_diagnostics(corrected["PRE_MIRROR_PM"], corrected["PRE_MIRROR_MP"])
+                post_mirror = mirror_direction_diagnostics(corrected["POST_MIRROR_PM"], corrected["POST_MIRROR_MP"])
+                common_phase = statistics.median([pre_mirror["common_abs_phase"], post_mirror["common_abs_phase"]])
+                anti_phase = statistics.median([pre_mirror["antisymmetric_abs_phase"], post_mirror["antisymmetric_abs_phase"]])
+                common_drift = abs(wrap_phase(post_mirror["common_phase"] - pre_mirror["common_phase"]))
+                anti_drift = abs(post_mirror["antisymmetric_phase"] - pre_mirror["antisymmetric_phase"])
+                cal_ok = all(
+                    (
+                        endpoint_phase <= float(gates["endpoint_holdout_phase_tolerance_radians"]),
+                        endpoint_radius <= float(gates["endpoint_holdout_radius_tolerance"]),
+                        mid_hold["phase_error"] <= float(gates["midpoint_holdout_phase_tolerance_radians"]),
+                        mid_hold["radius_error"] <= float(gates["midpoint_holdout_radius_tolerance"]),
+                        common_phase <= float(gates["mirror_common_phase_tolerance_radians"]),
+                        anti_phase <= float(gates["mirror_antisymmetric_phase_tolerance_radians"]),
+                        common_drift <= float(gates["mirror_common_drift_tolerance_radians"]),
+                        anti_drift <= float(gates["mirror_antisymmetric_drift_tolerance_radians"]),
+                        float(pre["condition_number"]) <= condition_limit,
+                        float(post["condition_number"]) <= condition_limit,
+                    )
+                )
+                science = {arm: corrected[arm] for arm in SCIENTIFIC_ARMS}
+                residuals = scientific_residuals_from_calibrated_block(science, exact)
+                residual_records.append(
+                    {
+                        "block_id": block_id,
+                        "job_index": int(block["job_index"]),
+                        "layout_index": int(block["layout_index"]),
+                        "residuals": residuals,
+                    }
+                )
+                diagnostics.update(
+                    {
+                        "passed": cal_ok,
+                        "endpoint_holdout_phase": endpoint_phase,
+                        "endpoint_holdout_radius": endpoint_radius,
+                        "midpoint_holdout_phase": mid_hold["phase_error"],
+                        "midpoint_holdout_radius": mid_hold["radius_error"],
+                        "mirror_common_phase": common_phase,
+                        "mirror_antisymmetric_phase": anti_phase,
+                        "mirror_common_drift": common_drift,
+                        "mirror_antisymmetric_drift": anti_drift,
+                        "pre_condition_number": pre["condition_number"],
+                        "post_condition_number": post["condition_number"],
+                    }
+                )
+            except Exception as exc:
+                diagnostics.update({"passed": False, "error": f"{type(exc).__name__}: {exc}"})
+            calibration_blocks.append(diagnostics)
+
+        residual_blocks = [r["residuals"] for r in residual_records]
+        job_ids = sorted({r["job_index"] for r in residual_records})
+        layout_ids = sorted({r["layout_index"] for r in residual_records})
+        complete = (
+            len(residual_records) == 32
+            and len(by_block) == 32
+            and len(backends) == 1
+            and len(job_ids) == 8
+            and len(layout_ids) >= 4
+        )
+        calibration_gate = complete and len(calibration_blocks) == 32 and all(bool(v.get("passed")) for v in calibration_blocks)
         effect = float(statistics.median(_target_effect(v, "FULL_CST") for v in residual_blocks)) if residual_blocks else 0.0
-        p = _randomization_p(
-            residual_blocks,
-            effect,
-            seed=int(prereg["seeds"]["randomization"]),
-            n=int(gates["randomizations_per_real_stage"]),
-        ) if residual_blocks else 1.0
+        p = (
+            _randomization_p(
+                residual_blocks,
+                effect,
+                seed=int(prereg["seeds"]["randomization"]),
+                n=int(gates["randomizations_per_real_stage"]),
+            )
+            if residual_blocks
+            else 1.0
+        )
+        pseudo = {
+            arm: float(statistics.median(_target_effect(v, arm) for v in residual_blocks))
+            for arm in SCIENTIFIC_ARMS
+        } if residual_blocks else {arm: 0.0 for arm in SCIENTIFIC_ARMS}
+        specificity = True
+        if effect == 0.0:
+            specificity = False
+        else:
+            for arm in SCIENTIFIC_ARMS[1:]:
+                v = pseudo[arm]
+                if v != 0.0 and (v > 0.0) == (effect > 0.0) and abs(v) >= 0.5 * abs(effect):
+                    specificity = False
+                    break
+        job_loo = []
+        for job in job_ids:
+            keep = [r["residuals"] for r in residual_records if r["job_index"] != job]
+            if keep:
+                job_loo.append(float(statistics.median(_target_effect(v, "FULL_CST") for v in keep)))
+        layout_loo = []
+        for layout in layout_ids:
+            keep = [r["residuals"] for r in residual_records if r["layout_index"] != layout]
+            if keep:
+                layout_loo.append(float(statistics.median(_target_effect(v, "FULL_CST") for v in keep)))
+        job_stability = _same_sign_stability(effect, job_loo)
+        layout_stability = _same_sign_stability(effect, layout_loo)
         effect_gate = abs(effect) >= float(gates["effect_floor_abs_radians"])
         p_gate = p <= float(gates["randomization_p_value_max"])
-        passed = complete and calibration_valid and effect_gate and p_gate
+        passed = all((complete, calibration_gate, effect_gate, p_gate, specificity, job_stability, layout_stability))
         summaries[stage] = {
             "complete": complete,
             "integrity_passed": complete,
-            "calibration_gate": calibration_valid and complete,
+            "calibration_gate": calibration_gate,
             "backend": next(iter(backends)) if len(backends) == 1 else "",
             "effect": effect,
             "p_value": p,
             "effect_gate": effect_gate,
             "p_gate": p_gate,
-            "specificity_passed": False,
-            "job_stability_passed": False,
-            "layout_stability_passed": False,
-            "passed": passed and False,
+            "pseudo_target_effects": pseudo,
+            "specificity_passed": specificity,
+            "job_stability_passed": job_stability,
+            "layout_stability_passed": layout_stability,
+            "leave_one_job_out_effects": job_loo,
+            "leave_one_layout_out_effects": layout_loo,
+            "calibration_blocks": calibration_blocks,
+            "passed": passed,
         }
 
     verdict = classify_final_verdict(summaries["discovery"], summaries["replication"])
