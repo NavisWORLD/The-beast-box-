@@ -29,5 +29,5 @@ jobs:
       - run: pip install -e '.[dev]'
       - name: Record tested head
         run: git rev-parse HEAD
-      - name: CNS7 focused contract
-        run: pytest -q tests/test_cns7_body_fabric.py
+      - name: CNS7 focused contracts
+        run: pytest -q tests/test_cns7_body_fabric.py tests/test_cns7_runtime_body.py tests/test_full_runtime.py
