@@ -24,17 +24,259 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: cst12-probe003-harmonic-v3-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  contracts:
+  prehardware:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    outputs:
+      approved: ${{ steps.gate.outputs.approved }}
+      prereg_ready: ${{ steps.gate.outputs.prereg_ready }}
+      freeze_sha: ${{ steps.gate.outputs.freeze_sha }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout exact harmonic v3 head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install unit-test dependencies
+
+      - name: Install Probe 003 harmonic v3 dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e '.[dev]'
-      - name: Run harmonic calibration contract
-        run: pytest -q tests/test_cst12_physics_probe_003_harmonic_v3.py
+          pip install -e '.[dev,quantum]'
+
+      - name: Verify sealed Probe 003 v2 evidence remains byte-valid
+        working-directory: experiments/cst12-physics-probe-003
+        run: sha256sum -c SHA256SUMS
+
+      - name: Run harmonic calibration contracts
+        run: |
+          python -m compileall -q beastbox/cst12_probe003_harmonic_calibration.py scripts/*cst12_physics_probe_003_harmonic_v3*.py
+          pytest -q tests/test_cst12_physics_probe_003_harmonic_v3.py
+
+      - name: Resolve immutable v3 freeze and approval gate
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=experiments/cst12-physics-probe-003-harmonic-v3
+          if [[ -f "$ROOT/preregistered/preregistration.json" ]]; then
+            prereg_ready=true
+            freeze_sha="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('experiments/cst12-physics-probe-003-harmonic-v3/preregistered/preregistration.json').read_text())
+          print(p['implementation_freeze_commit'])
+          PY
+          )"
+          else
+            prereg_ready=false
+            freeze_sha="$(git rev-parse HEAD)"
+          fi
+          approved=false
+          if [[ -f "$ROOT/RUN_APPROVED_V3" ]]; then
+            if [[ "$prereg_ready" != true ]]; then
+              echo 'RUN_APPROVED_V3 exists without a sealed harmonic v3 preregistration' >&2
+              exit 1
+            fi
+            approved=true
+          fi
+          echo "prereg_ready=$prereg_ready" >> "$GITHUB_OUTPUT"
+          echo "freeze_sha=$freeze_sha" >> "$GITHUB_OUTPUT"
+          echo "approved=$approved" >> "$GITHUB_OUTPUT"
+
+      - name: Prove v3 scientific implementation unchanged after freeze
+        if: steps.gate.outputs.prereg_ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          FREEZE='${{ steps.gate.outputs.freeze_sha }}'
+          git merge-base --is-ancestor "$FREEZE" HEAD
+          git diff --exit-code "$FREEZE"..HEAD -- \
+            beastbox/cst12_probe003_harmonic_calibration.py \
+            scripts/preflight_cst12_physics_probe_003_harmonic_v3.py \
+            scripts/make_cst12_physics_probe_003_harmonic_v3_preregistration.py \
+            scripts/analyze_cst12_physics_probe_003_harmonic_v3.py \
+            tests/test_cst12_physics_probe_003_harmonic_v3.py \
+            docs/superpowers/specs/2026-08-24-cst12-physics-probe-003-harmonic-v3.md \
+            .github/workflows/cst12-physics-probe-003-harmonic-v3.yml
+
+      - name: Run 10,000-dataset synthetic harmonic holdout preflight
+        run: |
+          rm -rf _probe003_harmonic_v3 _probe003_harmonic_v3_rebuild
+          mkdir -p _probe003_harmonic_v3
+          python scripts/preflight_cst12_physics_probe_003_harmonic_v3.py \
+            --v2-prereg experiments/cst12-physics-probe-003/preregistered-v2/preregistration.json \
+            --v2-prereg-sha-file experiments/cst12-physics-probe-003/preregistered-v2/PREREGISTRATION_SHA256 \
+            --datasets 10000 \
+            --output _probe003_harmonic_v3/preflight-receipt.json
+
+      - name: Build harmonic v3 preregistration twice byte-identically
+        run: |
+          mkdir -p _probe003_harmonic_v3_rebuild
+          python scripts/make_cst12_physics_probe_003_harmonic_v3_preregistration.py \
+            --v2-prereg experiments/cst12-physics-probe-003/preregistered-v2/preregistration.json \
+            --v2-prereg-sha-file experiments/cst12-physics-probe-003/preregistered-v2/PREREGISTRATION_SHA256 \
+            --preflight _probe003_harmonic_v3/preflight-receipt.json \
+            --implementation-freeze '${{ steps.gate.outputs.freeze_sha }}' \
+            --output _probe003_harmonic_v3/preregistration.json \
+            --sha-output _probe003_harmonic_v3/PREREGISTRATION_SHA256
+          python scripts/make_cst12_physics_probe_003_harmonic_v3_preregistration.py \
+            --v2-prereg experiments/cst12-physics-probe-003/preregistered-v2/preregistration.json \
+            --v2-prereg-sha-file experiments/cst12-physics-probe-003/preregistered-v2/PREREGISTRATION_SHA256 \
+            --preflight _probe003_harmonic_v3/preflight-receipt.json \
+            --implementation-freeze '${{ steps.gate.outputs.freeze_sha }}' \
+            --output _probe003_harmonic_v3_rebuild/preregistration.json \
+            --sha-output _probe003_harmonic_v3_rebuild/PREREGISTRATION_SHA256
+          cmp _probe003_harmonic_v3/preregistration.json _probe003_harmonic_v3_rebuild/preregistration.json
+          cmp _probe003_harmonic_v3/PREREGISTRATION_SHA256 _probe003_harmonic_v3_rebuild/PREREGISTRATION_SHA256
+
+      - name: Verify committed harmonic v3 preregistration bytes
+        if: steps.gate.outputs.prereg_ready == 'true'
+        run: |
+          ROOT=experiments/cst12-physics-probe-003-harmonic-v3/preregistered
+          cmp _probe003_harmonic_v3/preflight-receipt.json "$ROOT/preflight-receipt.json"
+          cmp _probe003_harmonic_v3/preregistration.json "$ROOT/preregistration.json"
+          cmp _probe003_harmonic_v3/PREREGISTRATION_SHA256 "$ROOT/PREREGISTRATION_SHA256"
+
+      - name: Upload harmonic v3 prehardware freeze bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: cst12-probe003-harmonic-v3-prehardware-${{ steps.gate.outputs.freeze_sha }}
+          path: _probe003_harmonic_v3/
+          if-no-files-found: error
+
+  freeze-preregistration:
+    needs: prehardware
+    if: github.event_name == 'push' && needs.prehardware.outputs.prereg_ready == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cst12-physics-probe-003-harmonic-calibration
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: cst12-probe003-harmonic-v3-prehardware-${{ needs.prehardware.outputs.freeze_sha }}
+          path: _probe003_harmonic_v3
+
+      - name: Verify branch has not moved since harmonic v3 freeze
+        run: test "$(git rev-parse HEAD)" = '${{ needs.prehardware.outputs.freeze_sha }}'
+
+      - name: Commit exact harmonic v3 preregistration bundle
+        run: |
+          ROOT=experiments/cst12-physics-probe-003-harmonic-v3/preregistered
+          mkdir -p "$ROOT"
+          cp _probe003_harmonic_v3/preflight-receipt.json "$ROOT/preflight-receipt.json"
+          cp _probe003_harmonic_v3/preregistration.json "$ROOT/preregistration.json"
+          cp _probe003_harmonic_v3/PREREGISTRATION_SHA256 "$ROOT/PREREGISTRATION_SHA256"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$ROOT"
+          git commit -m 'experiment: freeze Probe 003 harmonic v3 preregistration'
+          git push origin HEAD:cst12-physics-probe-003-harmonic-calibration
+
+  hardware:
+    needs: prehardware
+    if: github.event_name == 'push' && needs.prehardware.outputs.approved == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install real-hardware dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum]'
+
+      - name: Verify sealed v2 evidence and frozen harmonic v3 approval
+        run: |
+          cd experiments/cst12-physics-probe-003
+          sha256sum -c SHA256SUMS
+          cd ../..
+          test -s experiments/cst12-physics-probe-003-harmonic-v3/RUN_APPROVED_V3
+          FREEZE="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('experiments/cst12-physics-probe-003-harmonic-v3/preregistered/preregistration.json').read_text())
+          print(p['implementation_freeze_commit'])
+          PY
+          )"
+          git diff --exit-code "$FREEZE"..HEAD -- \
+            beastbox/cst12_probe003_harmonic_calibration.py \
+            scripts/preflight_cst12_physics_probe_003_harmonic_v3.py \
+            scripts/make_cst12_physics_probe_003_harmonic_v3_preregistration.py \
+            scripts/analyze_cst12_physics_probe_003_harmonic_v3.py \
+            tests/test_cst12_physics_probe_003_harmonic_v3.py \
+            docs/superpowers/specs/2026-08-24-cst12-physics-probe-003-harmonic-v3.md \
+            .github/workflows/cst12-physics-probe-003-harmonic-v3.yml
+
+      - name: Run all 4,194,304 fresh IBM hardware shots
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
+        run: |
+          rm -rf experiments/cst12-physics-probe-003-harmonic-v3/measured \
+                 experiments/cst12-physics-probe-003-harmonic-v3/derived \
+                 experiments/cst12-physics-probe-003-harmonic-v3/hardware-plan.json \
+                 experiments/cst12-physics-probe-003-harmonic-v3/hardware-run.json \
+                 experiments/cst12-physics-probe-003-harmonic-v3/manifest.json \
+                 experiments/cst12-physics-probe-003-harmonic-v3/SHA256SUMS
+          python scripts/run_cst12_physics_probe_003_ibm.py \
+            --prereg experiments/cst12-physics-probe-003-harmonic-v3/preregistered/preregistration.json \
+            --prereg-sha-file experiments/cst12-physics-probe-003-harmonic-v3/preregistered/PREREGISTRATION_SHA256 \
+            --state experiments/cst12-physics-probe-003/preregistered-v2/state-packet.json \
+            --out experiments/cst12-physics-probe-003-harmonic-v3
+
+      - name: Analyze only after every fresh IBM job is complete
+        run: |
+          python scripts/analyze_cst12_physics_probe_003_harmonic_v3.py \
+            --experiment-root experiments/cst12-physics-probe-003-harmonic-v3 \
+            --prereg experiments/cst12-physics-probe-003-harmonic-v3/preregistered/preregistration.json \
+            --prereg-sha-file experiments/cst12-physics-probe-003-harmonic-v3/preregistered/PREREGISTRATION_SHA256 \
+            --state experiments/cst12-physics-probe-003/preregistered-v2/state-packet.json \
+            --preflight experiments/cst12-physics-probe-003-harmonic-v3/preregistered/preflight-receipt.json
+          cat experiments/cst12-physics-probe-003-harmonic-v3/derived/final-verdict.json
+
+      - name: Verify sealed harmonic v3 evidence checksums
+        working-directory: experiments/cst12-physics-probe-003-harmonic-v3
+        run: sha256sum -c SHA256SUMS
+
+      - name: Upload complete harmonic v3 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: cst12-physics-probe-003-harmonic-v3-${{ github.run_id }}
+          path: experiments/cst12-physics-probe-003-harmonic-v3/
+          if-no-files-found: error
+
+      - name: Seal harmonic v3 evidence back to branch without recursion
+        run: |
+          REMOTE_HEAD="$(git ls-remote origin refs/heads/cst12-physics-probe-003-harmonic-calibration | cut -f1)"
+          test "$REMOTE_HEAD" = "$(git rev-parse HEAD)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add experiments/cst12-physics-probe-003-harmonic-v3
+          git commit -m "evidence: seal Probe 003 harmonic v3 run ${{ github.run_id }} [skip ci]"
+          git push origin HEAD:cst12-physics-probe-003-harmonic-calibration
