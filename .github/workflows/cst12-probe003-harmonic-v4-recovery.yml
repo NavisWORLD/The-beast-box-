@@ -32,18 +32,26 @@ jobs:
             --prereg-sha 3f877b4a2b83e0dc06b09cb795524c4cf2744850f8688ace0c71143652772974 \
             --freeze-sha 8280b4e3e0d804c1ab808ff9bb4afacca4942948 \
             --output _harmonic_v4_recovery/inventory.json
-      - name: Inspect one completed IBM job payload without mutation
+      - name: Recover existing IBM results and run frozen harmonic v4 analyzer
         env:
           IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
           IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
         run: |
-          python scripts/inspect_cst12_probe003_harmonic_v4_job.py \
-            --job-id da6hpdu0ukec738239kg \
-            --output _harmonic_v4_recovery/job-input-inspection.json
-      - name: Upload read-only recovery inventory
+          python scripts/recover_cst12_probe003_harmonic_v4_evidence.py \
+            --inventory _harmonic_v4_recovery/inventory.json \
+            --prereg experiments/cst12-physics-probe-003-harmonic-v4/preregistered/preregistration.json \
+            --prereg-sha-file experiments/cst12-physics-probe-003-harmonic-v4/preregistered/PREREGISTRATION_SHA256 \
+            --state experiments/cst12-physics-probe-003/preregistered-v2/state-packet.json \
+            --preflight experiments/cst12-physics-probe-003-harmonic-v4/preregistered/preflight-receipt.json \
+            --out _harmonic_v4_recovered_evidence/experiment
+      - name: Verify recovered evidence checksums
+        run: |
+          cd _harmonic_v4_recovered_evidence/experiment
+          sha256sum -c SHA256SUMS
+      - name: Upload complete recovered harmonic v4 evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cst12-probe003-harmonic-v4-recovery-inventory
-          path: _harmonic_v4_recovery/
+          name: cst12-probe003-harmonic-v4-recovered-evidence-${{ github.run_id }}
+          path: _harmonic_v4_recovered_evidence/
           if-no-files-found: warn
