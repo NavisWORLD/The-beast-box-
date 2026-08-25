@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Iterable
+from typing import Any, Iterable, Sequence
 
 from .hashutil import sha256_obj
+from .state_family import StateFamily, _coupled_step
 
 CNS7_ROLES: tuple[str, ...] = (
     "quantum",
@@ -17,6 +18,42 @@ CNS7_ROLES: tuple[str, ...] = (
 )
 FEATURES_PER_ORGAN = 6
 CNS42_DIMENSIONS = len(CNS7_ROLES) * FEATURES_PER_ORGAN
+
+
+def _hash_unit(value: Any, slot: int) -> float:
+    digest = sha256_obj({"value": value, "slot": int(slot)})
+    raw = int(digest[:8], 16) / 0xFFFFFFFF
+    return 2.0 * raw - 1.0
+
+
+def _collect_numeric(value: Any, out: list[float]) -> None:
+    if isinstance(value, bool):
+        out.append(1.0 if value else -1.0)
+        return
+    if isinstance(value, (int, float)) and math.isfinite(float(value)):
+        out.append(math.tanh(float(value)))
+        return
+    if isinstance(value, str):
+        out.append(_hash_unit(value, len(out)))
+        return
+    if isinstance(value, dict):
+        out.append(math.tanh(len(value) / 6.0))
+        for key in sorted(value):
+            _collect_numeric(value[key], out)
+        return
+    if isinstance(value, (list, tuple, set)):
+        seq = list(value)
+        out.append(math.tanh(len(seq) / 6.0))
+        for item in seq:
+            _collect_numeric(item, out)
+
+
+def _organ_features(value: Any) -> tuple[float, ...]:
+    collected: list[float] = []
+    _collect_numeric(value, collected)
+    while len(collected) < FEATURES_PER_ORGAN:
+        collected.append(_hash_unit(value, len(collected)))
+    return tuple(max(-1.0, min(1.0, float(x))) for x in collected[:FEATURES_PER_ORGAN])
 
 
 @dataclass(frozen=True)
@@ -167,3 +204,72 @@ class CNS7EpochFabric:
             if produced is not None:
                 frame = produced
         return frame
+
+
+def organ_samples_from_cns_state(
+    cns_state: dict[str, Any],
+    *,
+    epoch_id: str,
+    sequence: int,
+    monotonic_ns: int,
+) -> tuple[SensorSample, ...]:
+    """Convert all seven live CNS organ states into a canonical 7 x 6 sensor epoch."""
+
+    missing = [role for role in CNS7_ROLES if role not in cns_state]
+    if missing:
+        raise ValueError(f"CNS state missing organs: {missing}")
+    return tuple(
+        SensorSample(
+            sensor_id=role,
+            epoch_id=epoch_id,
+            sequence=sequence,
+            monotonic_ns=monotonic_ns,
+            features=_organ_features(cns_state[role]),
+        )
+        for role in CNS7_ROLES
+    )
+
+
+@dataclass
+class CNS7Body:
+    """Persistent model-independent 12D/42D/54D body state.
+
+    The model is an adapter/consumer of this state. The body owns the CNS7 epoch
+    barrier and the coupled dyn42 state. dyn12 enters through the existing CST
+    dynamic path; dyn54 is always exact concatenation dyn12 + dyn42.
+    """
+
+    fabric: CNS7EpochFabric = field(default_factory=CNS7EpochFabric)
+    state_family: StateFamily = field(default_factory=StateFamily)
+    epochs: int = 0
+
+    def update(self, frame: CNS7Frame, *, dyn12: Sequence[float]) -> dict[str, Any]:
+        dyn12_values = [float(x) for x in dyn12]
+        if len(dyn12_values) != 12:
+            raise ValueError("CNS7 body requires exactly 12 dyn12 values")
+        if len(frame.vector42) != CNS42_DIMENSIONS:
+            raise ValueError("CNS7 body requires exactly 42 CNS organ features")
+
+        self.epochs += 1
+        self.state_family.dyn12 = dyn12_values
+        self.state_family.dyn42 = _coupled_step(self.state_family.dyn42, frame.vector42)
+        self.state_family.dyn54 = list(self.state_family.dyn12) + list(self.state_family.dyn42)
+
+        body_hash = sha256_obj(
+            {
+                "schema": "beastbox.cns7.body.v1",
+                "epoch": self.epochs,
+                "frame_sha256": frame.sha256,
+                "dyn12": list(self.state_family.dyn12),
+                "dyn42": list(self.state_family.dyn42),
+                "dyn54": list(self.state_family.dyn54),
+            }
+        )
+        return {
+            "epoch": self.epochs,
+            "frame_sha256": frame.sha256,
+            "body_hash": body_hash,
+            "dyn12": list(self.state_family.dyn12),
+            "dyn42": list(self.state_family.dyn42),
+            "dyn54": list(self.state_family.dyn54),
+        }
