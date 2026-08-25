@@ -1,0 +1,127 @@
+{
+  "all_jobs_submitted_before_any_result_retrieval": true,
+  "independent_backend_replication": true,
+  "jobs": [
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6ona3sq5js73bj0pc0",
+      "job_index": 0,
+      "stage": "discovery",
+      "submission_path": "measured/discovery/job-00-da6ona3sq5js73bj0pc0/submission.json"
+    },
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6onajsq5js73bj0peg",
+      "job_index": 1,
+      "stage": "discovery",
+      "submission_path": "measured/discovery/job-01-da6onajsq5js73bj0peg/submission.json"
+    },
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6onbc6l22c73dmk9dg",
+      "job_index": 2,
+      "stage": "discovery",
+      "submission_path": "measured/discovery/job-02-da6onbc6l22c73dmk9dg/submission.json"
+    },
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6onbu0ukec7382bhc0",
+      "job_index": 3,
+      "stage": "discovery",
+      "submission_path": "measured/discovery/job-03-da6onbu0ukec7382bhc0/submission.json"
+    },
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6oncu0ukec7382bhe0",
+      "job_index": 4,
+      "stage": "discovery",
+      "submission_path": "measured/discovery/job-04-da6oncu0ukec7382bhe0/submission.json"
+    },
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6ondesidac73aeeaeg",
+      "job_index": 5,
+      "stage": "discovery",
+      "submission_path": "measured/discovery/job-05-da6ondesidac73aeeaeg/submission.json"
+    },
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6ondrsq5js73bj0pjg",
+      "job_index": 6,
+      "stage": "discovery",
+      "submission_path": "measured/discovery/job-06-da6ondrsq5js73bj0pjg/submission.json"
+    },
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6onec6l22c73dmk9l0",
+      "job_index": 7,
+      "stage": "discovery",
+      "submission_path": "measured/discovery/job-07-da6onec6l22c73dmk9l0/submission.json"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6oneusidac73aeeahg",
+      "job_index": 0,
+      "stage": "replication",
+      "submission_path": "measured/replication/job-00-da6oneusidac73aeeahg/submission.json"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6onfbsq5js73bj0pn0",
+      "job_index": 1,
+      "stage": "replication",
+      "submission_path": "measured/replication/job-01-da6onfbsq5js73bj0pn0/submission.json"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6onfs6l22c73dmk9n0",
+      "job_index": 2,
+      "stage": "replication",
+      "submission_path": "measured/replication/job-02-da6onfs6l22c73dmk9n0/submission.json"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6ongbsq5js73bj0pog",
+      "job_index": 3,
+      "stage": "replication",
+      "submission_path": "measured/replication/job-03-da6ongbsq5js73bj0pog/submission.json"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6onh3sq5js73bj0pq0",
+      "job_index": 4,
+      "stage": "replication",
+      "submission_path": "measured/replication/job-04-da6onh3sq5js73bj0pq0/submission.json"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6onhm0ukec7382bhj0",
+      "job_index": 5,
+      "stage": "replication",
+      "submission_path": "measured/replication/job-05-da6onhm0ukec7382bhj0/submission.json"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6oni3sq5js73bj0psg",
+      "job_index": 6,
+      "stage": "replication",
+      "submission_path": "measured/replication/job-06-da6oni3sq5js73bj0psg/submission.json"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6onimsidac73aeeam0",
+      "job_index": 7,
+      "stage": "replication",
+      "submission_path": "measured/replication/job-07-da6onimsidac73aeeam0/submission.json"
+    }
+  ],
+  "planned_hardware_shots": 4194304,
+  "planned_pubs": 1024,
+  "preregistration_sha256": "6c3d06bd75254b6ffd8216a591af956c330ae75ff8feb5661d7eb887493a1db6",
+  "result_retrieval_performed": false,
+  "schema": "cst12-physics-probe-003-harmonic-v3-submission-run-v1",
+  "stage_backends": {
+    "discovery": "ibm_marrakesh",
+    "replication": "ibm_kingston"
+  }
+}

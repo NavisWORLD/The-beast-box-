@@ -1,0 +1,2437 @@
+{
+  "backend": "ibm_marrakesh",
+  "block_ids": [
+    24,
+    25,
+    26,
+    27
+  ],
+  "corrected_cst_source_sha": "0e2bca3895bd40243cc12a9d64ad119544759f95",
+  "credential_material_recorded": false,
+  "implementation_freeze_commit": "4917922490d53d61cd966a5bf8afc77ef1f5e3f4",
+  "job_id": "da6ondrsq5js73bj0pjg",
+  "job_index": 6,
+  "job_tags": [
+    "cst12-physics-probe-003",
+    "discovery",
+    "job-6",
+    "prereg-6c3d06bd",
+    "cst-0e2bca38",
+    "freeze-49179224"
+  ],
+  "preregistration_sha256": "6c3d06bd75254b6ffd8216a591af956c330ae75ff8feb5661d7eb887493a1db6",
+  "pub_count": 64,
+  "pub_metadata": [
+    {
+      "arm": "DYNAMIC_FREEZE",
+      "basis": "Y",
+      "block_id": 24,
+      "block_pub_index": 0,
+      "compiled_count_ops": {
+        "cz": 114,
+        "measure": 1,
+        "rz": 293,
+        "sx": 290
+      },
+      "compiled_depth": 379,
+      "compiled_size": 698,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 9586022288376263693
+    },
+    {
+      "arm": "MIRROR_CAL",
+      "basis": "Y",
+      "block_id": 24,
+      "block_pub_index": 1,
+      "compiled_count_ops": {
+        "cz": 108,
+        "measure": 1,
+        "rz": 293,
+        "sx": 278
+      },
+      "compiled_depth": 347,
+      "compiled_size": 680,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 5974011429483195356
+    },
+    {
+      "arm": "FULL_CST",
+      "basis": "X",
+      "block_id": 24,
+      "block_pub_index": 2,
+      "compiled_count_ops": {
+        "cz": 108,
+        "measure": 1,
+        "rz": 292,
+        "sx": 278
+      },
+      "compiled_depth": 359,
+      "compiled_size": 679,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 16594671817911623969
+    },
+    {
+      "arm": "FULL_CST",
+      "basis": "Y",
+      "block_id": 24,
+      "block_pub_index": 3,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 293,
+        "sx": 284
+      },
+      "compiled_depth": 356,
+      "compiled_size": 689,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 2383249878504241719
+    },
+    {
+      "arm": "PAIR_PERMUTE",
+      "basis": "Y",
+      "block_id": 24,
+      "block_pub_index": 4,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 293,
+        "sx": 284
+      },
+      "compiled_depth": 363,
+      "compiled_size": 689,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 3900352408094122963
+    },
+    {
+      "arm": "PAIR_PERMUTE",
+      "basis": "X",
+      "block_id": 24,
+      "block_pub_index": 5,
+      "compiled_count_ops": {
+        "cz": 108,
+        "measure": 1,
+        "rz": 292,
+        "sx": 278
+      },
+      "compiled_depth": 354,
+      "compiled_size": 679,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 6682906331634902460
+    },
+    {
+      "arm": "HEBBIAN_SHUFFLE",
+      "basis": "Y",
+      "block_id": 24,
+      "block_pub_index": 6,
+      "compiled_count_ops": {
+        "cz": 114,
+        "measure": 1,
+        "rz": 293,
+        "sx": 290
+      },
+      "compiled_depth": 358,
+      "compiled_size": 698,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 13799847168003749695
+    },
+    {
+      "arm": "PHI_ABLATE",
+      "basis": "Y",
+      "block_id": 24,
+      "block_pub_index": 7,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 293,
+        "sx": 284
+      },
+      "compiled_depth": 351,
+      "compiled_size": 689,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 9328635994667039571
+    },
+    {
+      "arm": "MIRROR_CAL",
+      "basis": "X",
+      "block_id": 24,
+      "block_pub_index": 8,
+      "compiled_count_ops": {
+        "cz": 114,
+        "measure": 1,
+        "rz": 292,
+        "sx": 290
+      },
+      "compiled_depth": 360,
+      "compiled_size": 697,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 8941613943308736420
+    },
+    {
+      "arm": "PHI_ABLATE",
+      "basis": "X",
+      "block_id": 24,
+      "block_pub_index": 9,
+      "compiled_count_ops": {
+        "cz": 117,
+        "measure": 1,
+        "rz": 292,
+        "sx": 296
+      },
+      "compiled_depth": 350,
+      "compiled_size": 706,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 12360963063639891260
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "basis": "X",
+      "block_id": 24,
+      "block_pub_index": 10,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 292,
+        "sx": 284
+      },
+      "compiled_depth": 368,
+      "compiled_size": 688,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 6068541501782222337
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "basis": "Y",
+      "block_id": 24,
+      "block_pub_index": 11,
+      "compiled_count_ops": {
+        "cz": 108,
+        "measure": 1,
+        "rz": 293,
+        "sx": 278
+      },
+      "compiled_depth": 355,
+      "compiled_size": 680,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 9175551195250830406
+    },
+    {
+      "arm": "DYNAMIC_FREEZE",
+      "basis": "X",
+      "block_id": 24,
+      "block_pub_index": 12,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 292,
+        "sx": 284
+      },
+      "compiled_depth": 366,
+      "compiled_size": 688,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 8736100183880431119
+    },
+    {
+      "arm": "CHAOS_SHUFFLE",
+      "basis": "Y",
+      "block_id": 24,
+      "block_pub_index": 13,
+      "compiled_count_ops": {
+        "cz": 114,
+        "measure": 1,
+        "rz": 293,
+        "sx": 290
+      },
+      "compiled_depth": 360,
+      "compiled_size": 698,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 1787157192632316633
+    },
+    {
+      "arm": "HEBBIAN_SHUFFLE",
+      "basis": "X",
+      "block_id": 24,
+      "block_pub_index": 14,
+      "compiled_count_ops": {
+        "cz": 117,
+        "measure": 1,
+        "rz": 292,
+        "sx": 296
+      },
+      "compiled_depth": 365,
+      "compiled_size": 706,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 12402198678503612345
+    },
+    {
+      "arm": "CHAOS_SHUFFLE",
+      "basis": "X",
+      "block_id": 24,
+      "block_pub_index": 15,
+      "compiled_count_ops": {
+        "cz": 108,
+        "measure": 1,
+        "rz": 292,
+        "sx": 278
+      },
+      "compiled_depth": 352,
+      "compiled_size": 679,
+      "layout": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "layout_index": 0,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 16319688231692203193
+    },
+    {
+      "arm": "FULL_CST",
+      "basis": "Y",
+      "block_id": 25,
+      "block_pub_index": 0,
+      "compiled_count_ops": {
+        "cz": 114,
+        "measure": 1,
+        "rz": 293,
+        "sx": 290
+      },
+      "compiled_depth": 359,
+      "compiled_size": 698,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 767244234408129954
+    },
+    {
+      "arm": "PHI_ABLATE",
+      "basis": "Y",
+      "block_id": 25,
+      "block_pub_index": 1,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 293,
+        "sx": 284
+      },
+      "compiled_depth": 356,
+      "compiled_size": 689,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 15522331288714362100
+    },
+    {
+      "arm": "HEBBIAN_SHUFFLE",
+      "basis": "Y",
+      "block_id": 25,
+      "block_pub_index": 2,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 293,
+        "sx": 284
+      },
+      "compiled_depth": 371,
+      "compiled_size": 689,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 4794687654062521152
+    },
+    {
+      "arm": "PHI_ABLATE",
+      "basis": "X",
+      "block_id": 25,
+      "block_pub_index": 3,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 292,
+        "sx": 284
+      },
+      "compiled_depth": 388,
+      "compiled_size": 688,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 17482867859261695630
+    },
+    {
+      "arm": "CHAOS_SHUFFLE",
+      "basis": "X",
+      "block_id": 25,
+      "block_pub_index": 4,
+      "compiled_count_ops": {
+        "cz": 114,
+        "measure": 1,
+        "rz": 292,
+        "sx": 290
+      },
+      "compiled_depth": 360,
+      "compiled_size": 697,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 472062747494481115
+    },
+    {
+      "arm": "PAIR_PERMUTE",
+      "basis": "Y",
+      "block_id": 25,
+      "block_pub_index": 5,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 293,
+        "sx": 284
+      },
+      "compiled_depth": 340,
+      "compiled_size": 689,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 18429085133269332781
+    },
+    {
+      "arm": "CHAOS_SHUFFLE",
+      "basis": "Y",
+      "block_id": 25,
+      "block_pub_index": 6,
+      "compiled_count_ops": {
+        "cz": 117,
+        "measure": 1,
+        "rz": 293,
+        "sx": 296
+      },
+      "compiled_depth": 367,
+      "compiled_size": 707,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 6905505797060796493
+    },
+    {
+      "arm": "MIRROR_CAL",
+      "basis": "Y",
+      "block_id": 25,
+      "block_pub_index": 7,
+      "compiled_count_ops": {
+        "cz": 117,
+        "measure": 1,
+        "rz": 293,
+        "sx": 296
+      },
+      "compiled_depth": 359,
+      "compiled_size": 707,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 717941781970185108
+    },
+    {
+      "arm": "FULL_CST",
+      "basis": "X",
+      "block_id": 25,
+      "block_pub_index": 8,
+      "compiled_count_ops": {
+        "cz": 117,
+        "measure": 1,
+        "rz": 292,
+        "sx": 296
+      },
+      "compiled_depth": 366,
+      "compiled_size": 706,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 2191602354092593492
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "basis": "Y",
+      "block_id": 25,
+      "block_pub_index": 9,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 293,
+        "sx": 284
+      },
+      "compiled_depth": 359,
+      "compiled_size": 689,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 9768859354801243132
+    },
+    {
+      "arm": "PAIR_PERMUTE",
+      "basis": "X",
+      "block_id": 25,
+      "block_pub_index": 10,
+      "compiled_count_ops": {
+        "cz": 108,
+        "measure": 1,
+        "rz": 292,
+        "sx": 278
+      },
+      "compiled_depth": 368,
+      "compiled_size": 679,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 2672099733972343428
+    },
+    {
+      "arm": "MIRROR_CAL",
+      "basis": "X",
+      "block_id": 25,
+      "block_pub_index": 11,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 292,
+        "sx": 284
+      },
+      "compiled_depth": 360,
+      "compiled_size": 688,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 16099695825771438684
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "basis": "X",
+      "block_id": 25,
+      "block_pub_index": 12,
+      "compiled_count_ops": {
+        "cz": 105,
+        "measure": 1,
+        "rz": 292,
+        "sx": 272
+      },
+      "compiled_depth": 345,
+      "compiled_size": 670,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 17197132582004831011
+    },
+    {
+      "arm": "HEBBIAN_SHUFFLE",
+      "basis": "X",
+      "block_id": 25,
+      "block_pub_index": 13,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 292,
+        "sx": 284
+      },
+      "compiled_depth": 362,
+      "compiled_size": 688,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 7381448208944739095
+    },
+    {
+      "arm": "DYNAMIC_FREEZE",
+      "basis": "Y",
+      "block_id": 25,
+      "block_pub_index": 14,
+      "compiled_count_ops": {
+        "cz": 108,
+        "measure": 1,
+        "rz": 293,
+        "sx": 278
+      },
+      "compiled_depth": 353,
+      "compiled_size": 680,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 7825667764387071838
+    },
+    {
+      "arm": "DYNAMIC_FREEZE",
+      "basis": "X",
+      "block_id": 25,
+      "block_pub_index": 15,
+      "compiled_count_ops": {
+        "cz": 108,
+        "measure": 1,
+        "rz": 292,
+        "sx": 278
+      },
+      "compiled_depth": 350,
+      "compiled_size": 679,
+      "layout": [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      "layout_index": 1,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 6381455677293719740
+    },
+    {
+      "arm": "FULL_CST",
+      "basis": "X",
+      "block_id": 26,
+      "block_pub_index": 0,
+      "compiled_count_ops": {
+        "cz": 114,
+        "measure": 1,
+        "rz": 292,
+        "sx": 290
+      },
+      "compiled_depth": 351,
+      "compiled_size": 697,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 12930835005281399727
+    },
+    {
+      "arm": "FULL_CST",
+      "basis": "Y",
+      "block_id": 26,
+      "block_pub_index": 1,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 293,
+        "sx": 284
+      },
+      "compiled_depth": 354,
+      "compiled_size": 689,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 6871919337309663655
+    },
+    {
+      "arm": "MIRROR_CAL",
+      "basis": "X",
+      "block_id": 26,
+      "block_pub_index": 2,
+      "compiled_count_ops": {
+        "cz": 117,
+        "measure": 1,
+        "rz": 292,
+        "sx": 296
+      },
+      "compiled_depth": 339,
+      "compiled_size": 706,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 8284459280277143567
+    },
+    {
+      "arm": "CHAOS_SHUFFLE",
+      "basis": "X",
+      "block_id": 26,
+      "block_pub_index": 3,
+      "compiled_count_ops": {
+        "cz": 105,
+        "measure": 1,
+        "rz": 292,
+        "sx": 272
+      },
+      "compiled_depth": 366,
+      "compiled_size": 670,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 6625821286621859826
+    },
+    {
+      "arm": "PHI_ABLATE",
+      "basis": "Y",
+      "block_id": 26,
+      "block_pub_index": 4,
+      "compiled_count_ops": {
+        "cz": 126,
+        "measure": 1,
+        "rz": 293,
+        "sx": 314
+      },
+      "compiled_depth": 356,
+      "compiled_size": 734,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 17542464061238148987
+    },
+    {
+      "arm": "HEBBIAN_SHUFFLE",
+      "basis": "Y",
+      "block_id": 26,
+      "block_pub_index": 5,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 293,
+        "sx": 284
+      },
+      "compiled_depth": 349,
+      "compiled_size": 689,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 8938933007920496764
+    },
+    {
+      "arm": "DYNAMIC_FREEZE",
+      "basis": "X",
+      "block_id": 26,
+      "block_pub_index": 6,
+      "compiled_count_ops": {
+        "cz": 117,
+        "measure": 1,
+        "rz": 292,
+        "sx": 296
+      },
+      "compiled_depth": 377,
+      "compiled_size": 706,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 18165418812317787220
+    },
+    {
+      "arm": "PAIR_PERMUTE",
+      "basis": "Y",
+      "block_id": 26,
+      "block_pub_index": 7,
+      "compiled_count_ops": {
+        "cz": 123,
+        "measure": 1,
+        "rz": 293,
+        "sx": 308
+      },
+      "compiled_depth": 388,
+      "compiled_size": 725,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 16217862586193811396
+    },
+    {
+      "arm": "MIRROR_CAL",
+      "basis": "Y",
+      "block_id": 26,
+      "block_pub_index": 8,
+      "compiled_count_ops": {
+        "cz": 114,
+        "measure": 1,
+        "rz": 293,
+        "sx": 290
+      },
+      "compiled_depth": 376,
+      "compiled_size": 698,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 16461860827383484634
+    },
+    {
+      "arm": "PHI_ABLATE",
+      "basis": "X",
+      "block_id": 26,
+      "block_pub_index": 9,
+      "compiled_count_ops": {
+        "cz": 114,
+        "measure": 1,
+        "rz": 292,
+        "sx": 290
+      },
+      "compiled_depth": 375,
+      "compiled_size": 697,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 18232944962643439155
+    },
+    {
+      "arm": "HEBBIAN_SHUFFLE",
+      "basis": "X",
+      "block_id": 26,
+      "block_pub_index": 10,
+      "compiled_count_ops": {
+        "cz": 117,
+        "measure": 1,
+        "rz": 292,
+        "sx": 296
+      },
+      "compiled_depth": 356,
+      "compiled_size": 706,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 15058933439710997365
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "basis": "X",
+      "block_id": 26,
+      "block_pub_index": 11,
+      "compiled_count_ops": {
+        "cz": 108,
+        "measure": 1,
+        "rz": 292,
+        "sx": 278
+      },
+      "compiled_depth": 354,
+      "compiled_size": 679,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 4402907145975085399
+    },
+    {
+      "arm": "CHAOS_SHUFFLE",
+      "basis": "Y",
+      "block_id": 26,
+      "block_pub_index": 12,
+      "compiled_count_ops": {
+        "cz": 117,
+        "measure": 1,
+        "rz": 293,
+        "sx": 296
+      },
+      "compiled_depth": 364,
+      "compiled_size": 707,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 1903960167902853169
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "basis": "Y",
+      "block_id": 26,
+      "block_pub_index": 13,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 293,
+        "sx": 284
+      },
+      "compiled_depth": 371,
+      "compiled_size": 689,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 10923681736545192964
+    },
+    {
+      "arm": "DYNAMIC_FREEZE",
+      "basis": "Y",
+      "block_id": 26,
+      "block_pub_index": 14,
+      "compiled_count_ops": {
+        "cz": 114,
+        "measure": 1,
+        "rz": 293,
+        "sx": 290
+      },
+      "compiled_depth": 362,
+      "compiled_size": 698,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 7263487921447199895
+    },
+    {
+      "arm": "PAIR_PERMUTE",
+      "basis": "X",
+      "block_id": 26,
+      "block_pub_index": 15,
+      "compiled_count_ops": {
+        "cz": 102,
+        "measure": 1,
+        "rz": 292,
+        "sx": 266
+      },
+      "compiled_depth": 352,
+      "compiled_size": 661,
+      "layout": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      "layout_index": 2,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 15735808917494810131
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "basis": "Y",
+      "block_id": 27,
+      "block_pub_index": 0,
+      "compiled_count_ops": {
+        "cz": 108,
+        "measure": 1,
+        "rz": 293,
+        "sx": 278
+      },
+      "compiled_depth": 384,
+      "compiled_size": 680,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 970810687820093643
+    },
+    {
+      "arm": "CHAOS_SHUFFLE",
+      "basis": "X",
+      "block_id": 27,
+      "block_pub_index": 1,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 292,
+        "sx": 284
+      },
+      "compiled_depth": 353,
+      "compiled_size": 688,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 6113971045898086766
+    },
+    {
+      "arm": "FULL_CST",
+      "basis": "X",
+      "block_id": 27,
+      "block_pub_index": 2,
+      "compiled_count_ops": {
+        "cz": 123,
+        "measure": 1,
+        "rz": 292,
+        "sx": 308
+      },
+      "compiled_depth": 347,
+      "compiled_size": 724,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 17692463055354568267
+    },
+    {
+      "arm": "PAIR_PERMUTE",
+      "basis": "Y",
+      "block_id": 27,
+      "block_pub_index": 3,
+      "compiled_count_ops": {
+        "cz": 117,
+        "measure": 1,
+        "rz": 293,
+        "sx": 296
+      },
+      "compiled_depth": 353,
+      "compiled_size": 707,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 4878536743732461708
+    },
+    {
+      "arm": "DYNAMIC_FREEZE",
+      "basis": "X",
+      "block_id": 27,
+      "block_pub_index": 4,
+      "compiled_count_ops": {
+        "cz": 120,
+        "measure": 1,
+        "rz": 292,
+        "sx": 302
+      },
+      "compiled_depth": 359,
+      "compiled_size": 715,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 1710030141459702589
+    },
+    {
+      "arm": "PHI_ABLATE",
+      "basis": "Y",
+      "block_id": 27,
+      "block_pub_index": 5,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 293,
+        "sx": 284
+      },
+      "compiled_depth": 371,
+      "compiled_size": 689,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 9135624826134771886
+    },
+    {
+      "arm": "HEBBIAN_SHUFFLE",
+      "basis": "Y",
+      "block_id": 27,
+      "block_pub_index": 6,
+      "compiled_count_ops": {
+        "cz": 120,
+        "measure": 1,
+        "rz": 293,
+        "sx": 302
+      },
+      "compiled_depth": 367,
+      "compiled_size": 716,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 2666415821846216136
+    },
+    {
+      "arm": "PAIR_PERMUTE",
+      "basis": "X",
+      "block_id": 27,
+      "block_pub_index": 7,
+      "compiled_count_ops": {
+        "cz": 111,
+        "measure": 1,
+        "rz": 292,
+        "sx": 284
+      },
+      "compiled_depth": 368,
+      "compiled_size": 688,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 6441244432395641937
+    },
+    {
+      "arm": "FULL_CST",
+      "basis": "Y",
+      "block_id": 27,
+      "block_pub_index": 8,
+      "compiled_count_ops": {
+        "cz": 117,
+        "measure": 1,
+        "rz": 293,
+        "sx": 296
+      },
+      "compiled_depth": 345,
+      "compiled_size": 707,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 12984900266794821718
+    },
+    {
+      "arm": "DYNAMIC_FREEZE",
+      "basis": "Y",
+      "block_id": 27,
+      "block_pub_index": 9,
+      "compiled_count_ops": {
+        "cz": 123,
+        "measure": 1,
+        "rz": 293,
+        "sx": 308
+      },
+      "compiled_depth": 369,
+      "compiled_size": 725,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 9015679669549541032
+    },
+    {
+      "arm": "HEBBIAN_SHUFFLE",
+      "basis": "X",
+      "block_id": 27,
+      "block_pub_index": 10,
+      "compiled_count_ops": {
+        "cz": 117,
+        "measure": 1,
+        "rz": 292,
+        "sx": 296
+      },
+      "compiled_depth": 369,
+      "compiled_size": 706,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 14926308990063875426
+    },
+    {
+      "arm": "MIRROR_CAL",
+      "basis": "X",
+      "block_id": 27,
+      "block_pub_index": 11,
+      "compiled_count_ops": {
+        "cz": 114,
+        "measure": 1,
+        "rz": 292,
+        "sx": 290
+      },
+      "compiled_depth": 374,
+      "compiled_size": 697,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 9875156829000506992
+    },
+    {
+      "arm": "MIRROR_CAL",
+      "basis": "Y",
+      "block_id": 27,
+      "block_pub_index": 12,
+      "compiled_count_ops": {
+        "cz": 105,
+        "measure": 1,
+        "rz": 293,
+        "sx": 272
+      },
+      "compiled_depth": 378,
+      "compiled_size": 671,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 3834509596675216481
+    },
+    {
+      "arm": "PHI_ABLATE",
+      "basis": "X",
+      "block_id": 27,
+      "block_pub_index": 13,
+      "compiled_count_ops": {
+        "cz": 117,
+        "measure": 1,
+        "rz": 292,
+        "sx": 296
+      },
+      "compiled_depth": 369,
+      "compiled_size": 706,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 17116207855282315708
+    },
+    {
+      "arm": "CHAOS_SHUFFLE",
+      "basis": "Y",
+      "block_id": 27,
+      "block_pub_index": 14,
+      "compiled_count_ops": {
+        "cz": 123,
+        "measure": 1,
+        "rz": 293,
+        "sx": 308
+      },
+      "compiled_depth": 333,
+      "compiled_size": 725,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6,
+        "sdg": 1
+      },
+      "source_depth": 26,
+      "source_size": 52,
+      "stage": "discovery",
+      "transpile_seed": 2997196058746626433
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "basis": "X",
+      "block_id": 27,
+      "block_pub_index": 15,
+      "compiled_count_ops": {
+        "cz": 108,
+        "measure": 1,
+        "rz": 292,
+        "sx": 278
+      },
+      "compiled_depth": 358,
+      "compiled_size": 679,
+      "layout": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ],
+      "layout_index": 3,
+      "source_count_ops": {
+        "crx": 12,
+        "h": 2,
+        "measure": 1,
+        "rx": 6,
+        "ry": 12,
+        "rz": 12,
+        "rzz": 6
+      },
+      "source_depth": 25,
+      "source_size": 51,
+      "stage": "discovery",
+      "transpile_seed": 10077360764290021793
+    }
+  ],
+  "schema": "cst12-physics-probe-003-submission-v1",
+  "shots_per_pub": 4096,
+  "stage": "discovery",
+  "verified_tags": [
+    "cst-0e2bca38",
+    "cst12-physics-probe-003",
+    "discovery",
+    "freeze-49179224",
+    "job-6",
+    "prereg-6c3d06bd"
+  ]
+}
