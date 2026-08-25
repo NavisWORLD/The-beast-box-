@@ -1,0 +1,684 @@
+{
+  "anomaly_candidate": false,
+  "claim_boundary": "Probe 003 may classify a preregistered full-state CST-compiled IBM-hardware residual as an ANOMALY_CANDIDATE. It cannot by itself prove a literal physical twelfth dimension, a global violation of quantum mechanics, consciousness, resurrection, or quantum advantage.",
+  "corrected_cst_source": {
+    "commit_sha": "0e2bca3895bd40243cc12a9d64ad119544759f95",
+    "model_architecture": {
+      "d_chaos": 18,
+      "d_cst": 12,
+      "d_ff": 2048,
+      "d_hebbian": 24,
+      "d_model": 512,
+      "dropout_override": 0.0,
+      "n_chaos_oscillators": 6,
+      "n_heads": 8,
+      "n_layers": 6
+    },
+    "repository": "NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2"
+  },
+  "discovery": {
+    "backend": "ibm_marrakesh",
+    "block_count": 32,
+    "calibration_method": "leave-one-out-circular-mean-by-layout",
+    "complete": true,
+    "effect": -0.06868969520308488,
+    "effect_floor_abs": 0.014365704724149757,
+    "effect_gate": true,
+    "harmonic_calibration_gate": false,
+    "harmonic_holdout_tolerance": 0.019425055266277885,
+    "harmonic_reference_counts": [
+      7
+    ],
+    "harmonic_stage_median_abs_heldout_mirror_epsilon": 0.12753480592383742,
+    "integrity_passed": true,
+    "job_count": 8,
+    "layout_calibration_biases": [
+      {
+        "block_biases": [
+          {
+            "block_id": 3,
+            "harmonic_bias": -0.1615258985036186
+          },
+          {
+            "block_id": 7,
+            "harmonic_bias": -0.17531457543145737
+          },
+          {
+            "block_id": 11,
+            "harmonic_bias": -0.19484846693168958
+          },
+          {
+            "block_id": 15,
+            "harmonic_bias": -0.15511430982866042
+          },
+          {
+            "block_id": 19,
+            "harmonic_bias": -0.18385492361073866
+          },
+          {
+            "block_id": 23,
+            "harmonic_bias": -0.15971693814012128
+          },
+          {
+            "block_id": 27,
+            "harmonic_bias": -0.16056861223466018
+          },
+          {
+            "block_id": 31,
+            "harmonic_bias": -0.15254544352182192
+          }
+        ],
+        "block_count": 8,
+        "layout_key": "10,11,12,13,14,15,19",
+        "reference_counts": [
+          7
+        ]
+      },
+      {
+        "block_biases": [
+          {
+            "block_id": 2,
+            "harmonic_bias": -0.5154765591919779
+          },
+          {
+            "block_id": 6,
+            "harmonic_bias": -0.45203899253797897
+          },
+          {
+            "block_id": 10,
+            "harmonic_bias": -0.5539683535321976
+          },
+          {
+            "block_id": 14,
+            "harmonic_bias": -0.4694626805145389
+          },
+          {
+            "block_id": 18,
+            "harmonic_bias": -0.49613226686009815
+          },
+          {
+            "block_id": 22,
+            "harmonic_bias": -0.5236759114700072
+          },
+          {
+            "block_id": 26,
+            "harmonic_bias": -0.48532596464570343
+          },
+          {
+            "block_id": 30,
+            "harmonic_bias": -0.4969489207854014
+          }
+        ],
+        "block_count": 8,
+        "layout_key": "131,132,133,134,135,139,155",
+        "reference_counts": [
+          7
+        ]
+      },
+      {
+        "block_biases": [
+          {
+            "block_id": 1,
+            "harmonic_bias": -0.41205732540975504
+          },
+          {
+            "block_id": 5,
+            "harmonic_bias": -0.461972481313447
+          },
+          {
+            "block_id": 9,
+            "harmonic_bias": -0.40784813057475916
+          },
+          {
+            "block_id": 13,
+            "harmonic_bias": -0.4416952301493121
+          },
+          {
+            "block_id": 17,
+            "harmonic_bias": -0.3857244410466692
+          },
+          {
+            "block_id": 21,
+            "harmonic_bias": -0.4103700059387349
+          },
+          {
+            "block_id": 25,
+            "harmonic_bias": -0.37402919419174174
+          },
+          {
+            "block_id": 29,
+            "harmonic_bias": -0.3880704240786943
+          }
+        ],
+        "block_count": 8,
+        "layout_key": "138,131,132,133,134,135,139",
+        "reference_counts": [
+          7
+        ]
+      },
+      {
+        "block_biases": [
+          {
+            "block_id": 0,
+            "harmonic_bias": -0.18028949007800193
+          },
+          {
+            "block_id": 4,
+            "harmonic_bias": -0.15896992981434918
+          },
+          {
+            "block_id": 8,
+            "harmonic_bias": -0.1382982173188466
+          },
+          {
+            "block_id": 12,
+            "harmonic_bias": -0.18889408075476857
+          },
+          {
+            "block_id": 16,
+            "harmonic_bias": -0.17857328294095565
+          },
+          {
+            "block_id": 20,
+            "harmonic_bias": -0.1709979420571107
+          },
+          {
+            "block_id": 24,
+            "harmonic_bias": -0.12878704784603265
+          },
+          {
+            "block_id": 28,
+            "harmonic_bias": -0.14550510965242378
+          }
+        ],
+        "block_count": 8,
+        "layout_key": "9,10,11,12,13,14,15",
+        "reference_counts": [
+          7
+        ]
+      }
+    ],
+    "layout_count": 4,
+    "leave_one_job_out": {
+      "key": "job_id",
+      "passed": false,
+      "rows": [
+        {
+          "effect": -0.06868969520308488,
+          "omitted": "da6ona3sq5js73bj0pc0",
+          "passes": true
+        },
+        {
+          "effect": -0.06868969520308488,
+          "omitted": "da6onajsq5js73bj0peg",
+          "passes": true
+        },
+        {
+          "effect": -0.06868969520308488,
+          "omitted": "da6onbc6l22c73dmk9dg",
+          "passes": true
+        },
+        {
+          "effect": -0.049830426263565666,
+          "omitted": "da6onbu0ukec7382bhc0",
+          "passes": true
+        },
+        {
+          "effect": -0.08050127474730202,
+          "omitted": "da6oncu0ukec7382bhe0",
+          "passes": true
+        },
+        {
+          "effect": -0.08666368305724345,
+          "omitted": "da6ondesidac73aeeaeg",
+          "passes": true
+        },
+        {
+          "effect": -0.08050127474730202,
+          "omitted": "da6ondrsq5js73bj0pjg",
+          "passes": true
+        },
+        {
+          "effect": -0.020851212642420323,
+          "omitted": "da6onec6l22c73dmk9l0",
+          "passes": false
+        }
+      ]
+    },
+    "leave_one_layout_out": {
+      "key": "layout_key",
+      "passed": false,
+      "rows": [
+        {
+          "effect": -0.08050127474730202,
+          "omitted": "10,11,12,13,14,15,19",
+          "passes": true
+        },
+        {
+          "effect": -0.03971048158193954,
+          "omitted": "131,132,133,134,135,139,155",
+          "passes": true
+        },
+        {
+          "effect": -0.020851212642420323,
+          "omitted": "138,131,132,133,134,135,139",
+          "passes": false
+        },
+        {
+          "effect": -0.08050127474730202,
+          "omitted": "9,10,11,12,13,14,15",
+          "passes": true
+        }
+      ]
+    },
+    "p_gate": false,
+    "p_value_max": 0.001,
+    "passed": false,
+    "pseudo_target_effects": {
+      "CHAOS_SHUFFLE": -0.05058508227829296,
+      "DYNAMIC_FREEZE": -0.023588125504653803,
+      "FULL_CST": -0.06868969520308488,
+      "HEBBIAN_SHUFFLE": -0.03077563773522863,
+      "PAIR_PERMUTE": -0.022739228274011713,
+      "PAIR_SWAP": 0.25150800358666875,
+      "PHI_ABLATE": -0.05027186495299406
+    },
+    "randomization": {
+      "extreme_count": 8519,
+      "p_value": 0.08519914800851991,
+      "randomizations": 100000,
+      "seed": 13331735525624628021,
+      "two_sided": true
+    },
+    "schema": "cst12-physics-probe-003-harmonic-v3-stage-v1",
+    "scientific_contrast_invariant_under_common_phase_calibration": true,
+    "specificity_gate": false,
+    "stage": "discovery"
+  },
+  "implementation_freeze_commit": "4917922490d53d61cd966a5bf8afc77ef1f5e3f4",
+  "independent_backend_replication": true,
+  "preregistration_sha256": "6c3d06bd75254b6ffd8216a591af956c330ae75ff8feb5661d7eb887493a1db6",
+  "probe_003_v2_evidence_immutable": true,
+  "replication": {
+    "backend": "ibm_kingston",
+    "block_count": 32,
+    "calibration_method": "leave-one-out-circular-mean-by-layout",
+    "complete": true,
+    "effect": 0.005957658413940629,
+    "effect_floor_abs": 0.014365704724149757,
+    "effect_gate": false,
+    "harmonic_calibration_gate": false,
+    "harmonic_holdout_tolerance": 0.019425055266277885,
+    "harmonic_reference_counts": [
+      7
+    ],
+    "harmonic_stage_median_abs_heldout_mirror_epsilon": 0.0649844843407583,
+    "integrity_passed": true,
+    "job_count": 8,
+    "layout_calibration_biases": [
+      {
+        "block_biases": [
+          {
+            "block_id": 1,
+            "harmonic_bias": -0.043171912213776004
+          },
+          {
+            "block_id": 5,
+            "harmonic_bias": -0.030752595107552298
+          },
+          {
+            "block_id": 9,
+            "harmonic_bias": -0.026631976250830254
+          },
+          {
+            "block_id": 13,
+            "harmonic_bias": -0.025502174097908153
+          },
+          {
+            "block_id": 17,
+            "harmonic_bias": -0.02689680009249353
+          },
+          {
+            "block_id": 21,
+            "harmonic_bias": -0.028796831602659237
+          },
+          {
+            "block_id": 25,
+            "harmonic_bias": -0.044334650518139146
+          },
+          {
+            "block_id": 29,
+            "harmonic_bias": -0.054295572941504805
+          }
+        ],
+        "block_count": 8,
+        "layout_key": "55,59,75,74,73,79,93",
+        "reference_counts": [
+          7
+        ]
+      },
+      {
+        "block_biases": [
+          {
+            "block_id": 2,
+            "harmonic_bias": -0.06400216697423615
+          },
+          {
+            "block_id": 6,
+            "harmonic_bias": -0.08251725861389449
+          },
+          {
+            "block_id": 10,
+            "harmonic_bias": -0.0815988699066234
+          },
+          {
+            "block_id": 14,
+            "harmonic_bias": -0.11008133369093996
+          },
+          {
+            "block_id": 18,
+            "harmonic_bias": -0.07500960172800311
+          },
+          {
+            "block_id": 22,
+            "harmonic_bias": -0.1083485047951665
+          },
+          {
+            "block_id": 26,
+            "harmonic_bias": -0.09948638371289843
+          },
+          {
+            "block_id": 30,
+            "harmonic_bias": -0.07190629691958425
+          }
+        ],
+        "block_count": 8,
+        "layout_key": "59,75,74,73,79,93,94",
+        "reference_counts": [
+          7
+        ]
+      },
+      {
+        "block_biases": [
+          {
+            "block_id": 3,
+            "harmonic_bias": -0.21431683616700936
+          },
+          {
+            "block_id": 7,
+            "harmonic_bias": -0.19964494145076853
+          },
+          {
+            "block_id": 11,
+            "harmonic_bias": -0.21954805159930935
+          },
+          {
+            "block_id": 15,
+            "harmonic_bias": -0.2025065040253931
+          },
+          {
+            "block_id": 19,
+            "harmonic_bias": -0.21307945974286163
+          },
+          {
+            "block_id": 23,
+            "harmonic_bias": -0.21550315361104003
+          },
+          {
+            "block_id": 27,
+            "harmonic_bias": -0.2181802455234506
+          },
+          {
+            "block_id": 31,
+            "harmonic_bias": -0.21498386502729047
+          }
+        ],
+        "block_count": 8,
+        "layout_key": "75,74,73,79,93,92,91",
+        "reference_counts": [
+          7
+        ]
+      },
+      {
+        "block_biases": [
+          {
+            "block_id": 0,
+            "harmonic_bias": -0.07423833905794906
+          },
+          {
+            "block_id": 4,
+            "harmonic_bias": -0.06992878721084218
+          },
+          {
+            "block_id": 8,
+            "harmonic_bias": -0.07023352250906492
+          },
+          {
+            "block_id": 12,
+            "harmonic_bias": -0.08063083007734544
+          },
+          {
+            "block_id": 16,
+            "harmonic_bias": -0.1009075416291398
+          },
+          {
+            "block_id": 20,
+            "harmonic_bias": -0.08039640168506756
+          },
+          {
+            "block_id": 24,
+            "harmonic_bias": -0.08471924605707797
+          },
+          {
+            "block_id": 28,
+            "harmonic_bias": -0.0782187722402634
+          }
+        ],
+        "block_count": 8,
+        "layout_key": "82,83,96,103,102,101,116",
+        "reference_counts": [
+          7
+        ]
+      }
+    ],
+    "layout_count": 4,
+    "leave_one_job_out": {
+      "key": "job_id",
+      "passed": false,
+      "rows": [
+        {
+          "effect": 0.005957658413940629,
+          "omitted": "da6oneusidac73aeeahg",
+          "passes": true
+        },
+        {
+          "effect": 0.005957658413940629,
+          "omitted": "da6onfbsq5js73bj0pn0",
+          "passes": true
+        },
+        {
+          "effect": 0.005957658413940629,
+          "omitted": "da6onfs6l22c73dmk9n0",
+          "passes": true
+        },
+        {
+          "effect": 0.008242566238506801,
+          "omitted": "da6ongbsq5js73bj0pog",
+          "passes": true
+        },
+        {
+          "effect": 0.0097506236179753,
+          "omitted": "da6onh3sq5js73bj0pq0",
+          "passes": true
+        },
+        {
+          "effect": 0.002592182950965331,
+          "omitted": "da6onhm0ukec7382bhj0",
+          "passes": false
+        },
+        {
+          "effect": 0.002592182950965331,
+          "omitted": "da6oni3sq5js73bj0psg",
+          "passes": false
+        },
+        {
+          "effect": -0.0015034572661386195,
+          "omitted": "da6onimsidac73aeeam0",
+          "passes": false
+        }
+      ]
+    },
+    "leave_one_layout_out": {
+      "key": "layout_key",
+      "passed": false,
+      "rows": [
+        {
+          "effect": 0.005957658413940629,
+          "omitted": "55,59,75,74,73,79,93",
+          "passes": true
+        },
+        {
+          "effect": -0.0015034572661386195,
+          "omitted": "59,75,74,73,79,93,94",
+          "passes": false
+        },
+        {
+          "effect": 0.01383847644562788,
+          "omitted": "75,74,73,79,93,92,91",
+          "passes": true
+        },
+        {
+          "effect": 0.005957658413940629,
+          "omitted": "82,83,96,103,102,101,116",
+          "passes": true
+        }
+      ]
+    },
+    "p_gate": false,
+    "p_value_max": 0.001,
+    "passed": false,
+    "pseudo_target_effects": {
+      "CHAOS_SHUFFLE": -0.04565097622765035,
+      "DYNAMIC_FREEZE": -0.04121579900155785,
+      "FULL_CST": 0.005957658413940629,
+      "HEBBIAN_SHUFFLE": -0.004809803968837369,
+      "PAIR_PERMUTE": -0.016195688424991778,
+      "PAIR_SWAP": 0.09821835398412712,
+      "PHI_ABLATE": -0.01615969796211588
+    },
+    "randomization": {
+      "extreme_count": 72253,
+      "p_value": 0.7225327746722533,
+      "randomizations": 100000,
+      "seed": 9669990312621845424,
+      "two_sided": true
+    },
+    "schema": "cst12-physics-probe-003-harmonic-v3-stage-v1",
+    "scientific_contrast_invariant_under_common_phase_calibration": true,
+    "specificity_gate": false,
+    "stage": "replication"
+  },
+  "same_sign_replication": false,
+  "schema": "cst12-physics-probe-003-harmonic-v3-final-verdict-v1",
+  "state_packet_sha256": "31b7bc1b4afbf05db49360776d52eafeda69830f36694f789951293338c47e21",
+  "supersedes_preregistration_sha256": "614bd1ec33d2371a804b6df7e51f0524309f61026b802a03c023779e3bc376c5",
+  "verdict": "INCONCLUSIVE",
+  "verified_ibm_jobs": [
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6ona3sq5js73bj0pc0",
+      "job_index": 0,
+      "stage": "discovery"
+    },
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6onajsq5js73bj0peg",
+      "job_index": 1,
+      "stage": "discovery"
+    },
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6onbc6l22c73dmk9dg",
+      "job_index": 2,
+      "stage": "discovery"
+    },
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6onbu0ukec7382bhc0",
+      "job_index": 3,
+      "stage": "discovery"
+    },
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6oncu0ukec7382bhe0",
+      "job_index": 4,
+      "stage": "discovery"
+    },
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6ondesidac73aeeaeg",
+      "job_index": 5,
+      "stage": "discovery"
+    },
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6ondrsq5js73bj0pjg",
+      "job_index": 6,
+      "stage": "discovery"
+    },
+    {
+      "backend": "ibm_marrakesh",
+      "job_id": "da6onec6l22c73dmk9l0",
+      "job_index": 7,
+      "stage": "discovery"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6oneusidac73aeeahg",
+      "job_index": 0,
+      "stage": "replication"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6onfbsq5js73bj0pn0",
+      "job_index": 1,
+      "stage": "replication"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6onfs6l22c73dmk9n0",
+      "job_index": 2,
+      "stage": "replication"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6ongbsq5js73bj0pog",
+      "job_index": 3,
+      "stage": "replication"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6onh3sq5js73bj0pq0",
+      "job_index": 4,
+      "stage": "replication"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6onhm0ukec7382bhj0",
+      "job_index": 5,
+      "stage": "replication"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6oni3sq5js73bj0psg",
+      "job_index": 6,
+      "stage": "replication"
+    },
+    {
+      "backend": "ibm_kingston",
+      "job_id": "da6onimsidac73aeeam0",
+      "job_index": 7,
+      "stage": "replication"
+    }
+  ]
+}
