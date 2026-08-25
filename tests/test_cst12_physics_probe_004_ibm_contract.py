@@ -42,12 +42,7 @@ def test_compiler_api_has_no_arm_argument_and_binds_after_transpile():
         coupling_map=[(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 5), (5, 4), (4, 3), (3, 2), (2, 1), (1, 0)],
         seed=1234,
     )
-    compiled = compile_template_for_layout(
-        backend,
-        "X",
-        list(range(7)),
-        transpile_seed=918273,
-    )
+    compiled = compile_template_for_layout(backend, "X", list(range(7)), transpile_seed=918273)
     assert compiled.parameters
     frozen = native_fingerprint(compiled)
     assert frozen["two_qubit_sequence"]
@@ -120,3 +115,60 @@ def test_hardware_approval_must_match_frozen_prereg_and_implementation():
     broken = dict(receipt, approved=False)
     with pytest.raises(ValueError, match="approved"):
         validate_hardware_approval(broken, prereg_sha=prereg, freeze_sha=freeze)
+
+
+def test_balanced_plan_contains_every_arm_and_basis_once_per_block():
+    from beastbox.cst12_physics_probe_004 import ALL_ARMS
+    from scripts.run_cst12_physics_probe_004_ibm import balanced_block_plan, chunk_block_plan
+
+    layouts = [list(range(i, i + 7)) for i in range(4)]
+    plan = balanced_block_plan("discovery", layouts, arm_order_seed=7788)
+    assert len(plan) == 32
+    expected = {(arm, basis) for arm in ALL_ARMS for basis in ("X", "Y")}
+    for block in plan:
+        got = {(row["arm"], row["basis"]) for row in block["pub_order"]}
+        assert got == expected
+        assert len(block["pub_order"]) == 26
+    chunks = chunk_block_plan(plan)
+    assert len(chunks) == 8
+    assert all(len(chunk) == 4 for chunk in chunks)
+
+
+def test_template_cache_compiles_exactly_once_per_layout_basis(monkeypatch):
+    import scripts.run_cst12_physics_probe_004_ibm as runner
+
+    calls = []
+
+    class FakeCircuit:
+        num_qubits = 7
+        num_clbits = 1
+        parameters = {"p"}
+        data = []
+        def depth(self): return 1
+        def size(self): return 1
+
+    def fake_compile(backend, basis, layout, *, transpile_seed):
+        calls.append((basis, tuple(layout), transpile_seed))
+        return FakeCircuit()
+
+    monkeypatch.setattr(runner, "compile_template_for_layout", fake_compile)
+    monkeypatch.setattr(runner, "native_fingerprint", lambda qc: {
+        "num_qubits": 7, "num_clbits": 1, "depth": 1, "size": 1,
+        "operation_sequence": [], "two_qubit_sequence": [{"name": "cz", "qubits": [0, 1]}],
+    })
+    layouts = [list(range(i, i + 7)) for i in range(4)]
+    cache, audit = runner.build_template_cache(object(), "discovery", layouts, prereg_sha="a" * 64)
+    assert len(calls) == 8
+    assert len(cache) == 8
+    assert len(audit) == 8
+    assert len({(basis, layout) for basis, layout, _seed in calls}) == 8
+
+
+def test_workload_arithmetic_is_frozen():
+    import scripts.run_cst12_physics_probe_004_ibm as runner
+
+    assert runner.PUBS_PER_BLOCK == 26
+    assert runner.BLOCKS_PER_STAGE == 32
+    assert runner.JOBS_PER_STAGE == 8
+    assert 2 * runner.BLOCKS_PER_STAGE * runner.PUBS_PER_BLOCK == 1664
+    assert 1664 * runner.SHOTS_PER_PUB == 6_815_744
