@@ -1,0 +1,5526 @@
+{
+  "all_jobs_submitted_before_any_result_retrieval": true,
+  "backend_ranking": [
+    {
+      "backend": "ibm_marrakesh",
+      "score": [
+        1,
+        0.0032276269848314776,
+        "ibm_marrakesh"
+      ]
+    },
+    {
+      "backend": "ibm_kingston",
+      "score": [
+        2,
+        0.002002251246100775,
+        "ibm_kingston"
+      ]
+    },
+    {
+      "backend": "ibm_fez",
+      "score": [
+        150,
+        0.0026924467789765233,
+        "ibm_fez"
+      ]
+    }
+  ],
+  "calibration_at_selection": {
+    "discovery": {
+      "backend": "ibm_marrakesh",
+      "layouts": [
+        {
+          "physical_qubits": [
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "readout_errors": [
+            0.015380859375,
+            0.008056640625,
+            0.048583984375,
+            0.006103515625,
+            0.005615234375,
+            0.01220703125,
+            0.005126953125
+          ],
+          "score": [
+            0.0015697669407852832,
+            0.014439174107142858,
+            [
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ]
+          ]
+        },
+        {
+          "physical_qubits": [
+            138,
+            131,
+            132,
+            133,
+            134,
+            135,
+            139
+          ],
+          "readout_errors": [
+            0.156005859375,
+            0.015380859375,
+            0.00341796875,
+            0.014892578125,
+            0.00244140625,
+            0.020751953125,
+            0.005615234375
+          ],
+          "score": [
+            0.0015812939678194193,
+            0.031215122767857144,
+            [
+              138,
+              131,
+              132,
+              133,
+              134,
+              135,
+              139
+            ]
+          ]
+        },
+        {
+          "physical_qubits": [
+            131,
+            132,
+            133,
+            134,
+            135,
+            139,
+            155
+          ],
+          "readout_errors": [
+            0.015380859375,
+            0.00341796875,
+            0.014892578125,
+            0.00244140625,
+            0.020751953125,
+            0.005615234375,
+            0.036865234375
+          ],
+          "score": [
+            0.0016211908576698464,
+            0.014195033482142858,
+            [
+              131,
+              132,
+              133,
+              134,
+              135,
+              139,
+              155
+            ]
+          ]
+        },
+        {
+          "physical_qubits": [
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            19
+          ],
+          "readout_errors": [
+            0.008056640625,
+            0.048583984375,
+            0.006103515625,
+            0.005615234375,
+            0.01220703125,
+            0.005126953125,
+            0.00732421875
+          ],
+          "score": [
+            0.001705390244749569,
+            0.013288225446428572,
+            [
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              19
+            ]
+          ]
+        }
+      ],
+      "median_available_two_qubit_error": 0.0032276269848314776,
+      "num_qubits": 156,
+      "operational": true,
+      "pending_jobs_at_selection": 1
+    },
+    "replication": {
+      "backend": "ibm_kingston",
+      "layouts": [
+        {
+          "physical_qubits": [
+            82,
+            83,
+            96,
+            103,
+            102,
+            101,
+            116
+          ],
+          "readout_errors": [
+            0.012451171875,
+            0.0335693359375,
+            0.011962890625,
+            0.0185546875,
+            0.01708984375,
+            0.01904296875,
+            0.0345458984375
+          ],
+          "score": [
+            0.0011716215066914226,
+            0.021030970982142856,
+            [
+              82,
+              83,
+              96,
+              103,
+              102,
+              101,
+              116
+            ]
+          ]
+        },
+        {
+          "physical_qubits": [
+            55,
+            59,
+            75,
+            74,
+            73,
+            79,
+            93
+          ],
+          "readout_errors": [
+            0.01171875,
+            0.0081787109375,
+            0.015380859375,
+            0.007568359375,
+            0.0235595703125,
+            0.0162353515625,
+            0.018310546875
+          ],
+          "score": [
+            0.0012071182009807668,
+            0.014421735491071428,
+            [
+              55,
+              59,
+              75,
+              74,
+              73,
+              79,
+              93
+            ]
+          ]
+        },
+        {
+          "physical_qubits": [
+            59,
+            75,
+            74,
+            73,
+            79,
+            93,
+            94
+          ],
+          "readout_errors": [
+            0.0081787109375,
+            0.015380859375,
+            0.007568359375,
+            0.0235595703125,
+            0.0162353515625,
+            0.018310546875,
+            0.0184326171875
+          ],
+          "score": [
+            0.0012071182009807668,
+            0.015380859375,
+            [
+              59,
+              75,
+              74,
+              73,
+              79,
+              93,
+              94
+            ]
+          ]
+        },
+        {
+          "physical_qubits": [
+            75,
+            74,
+            73,
+            79,
+            93,
+            92,
+            91
+          ],
+          "readout_errors": [
+            0.015380859375,
+            0.007568359375,
+            0.0235595703125,
+            0.0162353515625,
+            0.018310546875,
+            0.053955078125,
+            0.006591796875
+          ],
+          "score": [
+            0.0012071182009807668,
+            0.020228794642857144,
+            [
+              75,
+              74,
+              73,
+              79,
+              93,
+              92,
+              91
+            ]
+          ]
+        }
+      ],
+      "median_available_two_qubit_error": 0.002002251246100775,
+      "num_qubits": 156,
+      "operational": true,
+      "pending_jobs_at_selection": 2
+    }
+  },
+  "independent_backend_replication": true,
+  "layouts": {
+    "discovery": [
+      [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      [
+        138,
+        131,
+        132,
+        133,
+        134,
+        135,
+        139
+      ],
+      [
+        131,
+        132,
+        133,
+        134,
+        135,
+        139,
+        155
+      ],
+      [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19
+      ]
+    ],
+    "replication": [
+      [
+        82,
+        83,
+        96,
+        103,
+        102,
+        101,
+        116
+      ],
+      [
+        55,
+        59,
+        75,
+        74,
+        73,
+        79,
+        93
+      ],
+      [
+        59,
+        75,
+        74,
+        73,
+        79,
+        93,
+        94
+      ],
+      [
+        75,
+        74,
+        73,
+        79,
+        93,
+        92,
+        91
+      ]
+    ]
+  },
+  "no_early_stopping": true,
+  "plans": {
+    "discovery": [
+      {
+        "block_id": 0,
+        "layout": [
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 1,
+        "layout": [
+          138,
+          131,
+          132,
+          133,
+          134,
+          135,
+          139
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 2,
+        "layout": [
+          131,
+          132,
+          133,
+          134,
+          135,
+          139,
+          155
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 3,
+        "layout": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          19
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 4,
+        "layout": [
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 5,
+        "layout": [
+          138,
+          131,
+          132,
+          133,
+          134,
+          135,
+          139
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 6,
+        "layout": [
+          131,
+          132,
+          133,
+          134,
+          135,
+          139,
+          155
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 7,
+        "layout": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          19
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 8,
+        "layout": [
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 9,
+        "layout": [
+          138,
+          131,
+          132,
+          133,
+          134,
+          135,
+          139
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 10,
+        "layout": [
+          131,
+          132,
+          133,
+          134,
+          135,
+          139,
+          155
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 11,
+        "layout": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          19
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 12,
+        "layout": [
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 13,
+        "layout": [
+          138,
+          131,
+          132,
+          133,
+          134,
+          135,
+          139
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 14,
+        "layout": [
+          131,
+          132,
+          133,
+          134,
+          135,
+          139,
+          155
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 15,
+        "layout": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          19
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 16,
+        "layout": [
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 17,
+        "layout": [
+          138,
+          131,
+          132,
+          133,
+          134,
+          135,
+          139
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 18,
+        "layout": [
+          131,
+          132,
+          133,
+          134,
+          135,
+          139,
+          155
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 19,
+        "layout": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          19
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 20,
+        "layout": [
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 21,
+        "layout": [
+          138,
+          131,
+          132,
+          133,
+          134,
+          135,
+          139
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 22,
+        "layout": [
+          131,
+          132,
+          133,
+          134,
+          135,
+          139,
+          155
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 23,
+        "layout": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          19
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 24,
+        "layout": [
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 25,
+        "layout": [
+          138,
+          131,
+          132,
+          133,
+          134,
+          135,
+          139
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 26,
+        "layout": [
+          131,
+          132,
+          133,
+          134,
+          135,
+          139,
+          155
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 27,
+        "layout": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          19
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 28,
+        "layout": [
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 29,
+        "layout": [
+          138,
+          131,
+          132,
+          133,
+          134,
+          135,
+          139
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 30,
+        "layout": [
+          131,
+          132,
+          133,
+          134,
+          135,
+          139,
+          155
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      },
+      {
+        "block_id": 31,
+        "layout": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          19
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          }
+        ],
+        "stage": "discovery"
+      }
+    ],
+    "replication": [
+      {
+        "block_id": 0,
+        "layout": [
+          82,
+          83,
+          96,
+          103,
+          102,
+          101,
+          116
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 1,
+        "layout": [
+          55,
+          59,
+          75,
+          74,
+          73,
+          79,
+          93
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 2,
+        "layout": [
+          59,
+          75,
+          74,
+          73,
+          79,
+          93,
+          94
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 3,
+        "layout": [
+          75,
+          74,
+          73,
+          79,
+          93,
+          92,
+          91
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 4,
+        "layout": [
+          82,
+          83,
+          96,
+          103,
+          102,
+          101,
+          116
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 5,
+        "layout": [
+          55,
+          59,
+          75,
+          74,
+          73,
+          79,
+          93
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 6,
+        "layout": [
+          59,
+          75,
+          74,
+          73,
+          79,
+          93,
+          94
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 7,
+        "layout": [
+          75,
+          74,
+          73,
+          79,
+          93,
+          92,
+          91
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 8,
+        "layout": [
+          82,
+          83,
+          96,
+          103,
+          102,
+          101,
+          116
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 9,
+        "layout": [
+          55,
+          59,
+          75,
+          74,
+          73,
+          79,
+          93
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 10,
+        "layout": [
+          59,
+          75,
+          74,
+          73,
+          79,
+          93,
+          94
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 11,
+        "layout": [
+          75,
+          74,
+          73,
+          79,
+          93,
+          92,
+          91
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 12,
+        "layout": [
+          82,
+          83,
+          96,
+          103,
+          102,
+          101,
+          116
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 13,
+        "layout": [
+          55,
+          59,
+          75,
+          74,
+          73,
+          79,
+          93
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 14,
+        "layout": [
+          59,
+          75,
+          74,
+          73,
+          79,
+          93,
+          94
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 15,
+        "layout": [
+          75,
+          74,
+          73,
+          79,
+          93,
+          92,
+          91
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 16,
+        "layout": [
+          82,
+          83,
+          96,
+          103,
+          102,
+          101,
+          116
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 17,
+        "layout": [
+          55,
+          59,
+          75,
+          74,
+          73,
+          79,
+          93
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 18,
+        "layout": [
+          59,
+          75,
+          74,
+          73,
+          79,
+          93,
+          94
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 19,
+        "layout": [
+          75,
+          74,
+          73,
+          79,
+          93,
+          92,
+          91
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 20,
+        "layout": [
+          82,
+          83,
+          96,
+          103,
+          102,
+          101,
+          116
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 21,
+        "layout": [
+          55,
+          59,
+          75,
+          74,
+          73,
+          79,
+          93
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 22,
+        "layout": [
+          59,
+          75,
+          74,
+          73,
+          79,
+          93,
+          94
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 23,
+        "layout": [
+          75,
+          74,
+          73,
+          79,
+          93,
+          92,
+          91
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 24,
+        "layout": [
+          82,
+          83,
+          96,
+          103,
+          102,
+          101,
+          116
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 25,
+        "layout": [
+          55,
+          59,
+          75,
+          74,
+          73,
+          79,
+          93
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 26,
+        "layout": [
+          59,
+          75,
+          74,
+          73,
+          79,
+          93,
+          94
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 27,
+        "layout": [
+          75,
+          74,
+          73,
+          79,
+          93,
+          92,
+          91
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 28,
+        "layout": [
+          82,
+          83,
+          96,
+          103,
+          102,
+          101,
+          116
+        ],
+        "layout_index": 0,
+        "pub_order": [
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 29,
+        "layout": [
+          55,
+          59,
+          75,
+          74,
+          73,
+          79,
+          93
+        ],
+        "layout_index": 1,
+        "pub_order": [
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 30,
+        "layout": [
+          59,
+          75,
+          74,
+          73,
+          79,
+          93,
+          94
+        ],
+        "layout_index": 2,
+        "pub_order": [
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      },
+      {
+        "block_id": 31,
+        "layout": [
+          75,
+          74,
+          73,
+          79,
+          93,
+          92,
+          91
+        ],
+        "layout_index": 3,
+        "pub_order": [
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "Y"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "Y"
+          },
+          {
+            "arm": "DYNAMIC_FREEZE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PHI_ABLATE",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_SWAP",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "MIRROR_CAL",
+            "basis": "X"
+          },
+          {
+            "arm": "FULL_CST",
+            "basis": "X"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "Y"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "X"
+          },
+          {
+            "arm": "CHAOS_SHUFFLE",
+            "basis": "Y"
+          },
+          {
+            "arm": "PAIR_PERMUTE",
+            "basis": "X"
+          },
+          {
+            "arm": "HEBBIAN_SHUFFLE",
+            "basis": "X"
+          }
+        ],
+        "stage": "replication"
+      }
+    ]
+  },
+  "preregistration_sha256": "6c3d06bd75254b6ffd8216a591af956c330ae75ff8feb5661d7eb887493a1db6",
+  "result_retrieval_performed": false,
+  "schema": "cst12-physics-probe-003-harmonic-v3-hardware-plan-v2-durable-submit",
+  "stage_backends": {
+    "discovery": "ibm_marrakesh",
+    "replication": "ibm_kingston"
+  }
+}

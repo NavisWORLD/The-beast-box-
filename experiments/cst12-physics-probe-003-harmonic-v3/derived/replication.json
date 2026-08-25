@@ -1,0 +1,279 @@
+{
+  "backend": "ibm_kingston",
+  "block_count": 32,
+  "calibration_method": "leave-one-out-circular-mean-by-layout",
+  "complete": true,
+  "effect": 0.005957658413940629,
+  "effect_floor_abs": 0.014365704724149757,
+  "effect_gate": false,
+  "harmonic_calibration_gate": false,
+  "harmonic_holdout_tolerance": 0.019425055266277885,
+  "harmonic_reference_counts": [
+    7
+  ],
+  "harmonic_stage_median_abs_heldout_mirror_epsilon": 0.0649844843407583,
+  "integrity_passed": true,
+  "job_count": 8,
+  "layout_calibration_biases": [
+    {
+      "block_biases": [
+        {
+          "block_id": 1,
+          "harmonic_bias": -0.043171912213776004
+        },
+        {
+          "block_id": 5,
+          "harmonic_bias": -0.030752595107552298
+        },
+        {
+          "block_id": 9,
+          "harmonic_bias": -0.026631976250830254
+        },
+        {
+          "block_id": 13,
+          "harmonic_bias": -0.025502174097908153
+        },
+        {
+          "block_id": 17,
+          "harmonic_bias": -0.02689680009249353
+        },
+        {
+          "block_id": 21,
+          "harmonic_bias": -0.028796831602659237
+        },
+        {
+          "block_id": 25,
+          "harmonic_bias": -0.044334650518139146
+        },
+        {
+          "block_id": 29,
+          "harmonic_bias": -0.054295572941504805
+        }
+      ],
+      "block_count": 8,
+      "layout_key": "55,59,75,74,73,79,93",
+      "reference_counts": [
+        7
+      ]
+    },
+    {
+      "block_biases": [
+        {
+          "block_id": 2,
+          "harmonic_bias": -0.06400216697423615
+        },
+        {
+          "block_id": 6,
+          "harmonic_bias": -0.08251725861389449
+        },
+        {
+          "block_id": 10,
+          "harmonic_bias": -0.0815988699066234
+        },
+        {
+          "block_id": 14,
+          "harmonic_bias": -0.11008133369093996
+        },
+        {
+          "block_id": 18,
+          "harmonic_bias": -0.07500960172800311
+        },
+        {
+          "block_id": 22,
+          "harmonic_bias": -0.1083485047951665
+        },
+        {
+          "block_id": 26,
+          "harmonic_bias": -0.09948638371289843
+        },
+        {
+          "block_id": 30,
+          "harmonic_bias": -0.07190629691958425
+        }
+      ],
+      "block_count": 8,
+      "layout_key": "59,75,74,73,79,93,94",
+      "reference_counts": [
+        7
+      ]
+    },
+    {
+      "block_biases": [
+        {
+          "block_id": 3,
+          "harmonic_bias": -0.21431683616700936
+        },
+        {
+          "block_id": 7,
+          "harmonic_bias": -0.19964494145076853
+        },
+        {
+          "block_id": 11,
+          "harmonic_bias": -0.21954805159930935
+        },
+        {
+          "block_id": 15,
+          "harmonic_bias": -0.2025065040253931
+        },
+        {
+          "block_id": 19,
+          "harmonic_bias": -0.21307945974286163
+        },
+        {
+          "block_id": 23,
+          "harmonic_bias": -0.21550315361104003
+        },
+        {
+          "block_id": 27,
+          "harmonic_bias": -0.2181802455234506
+        },
+        {
+          "block_id": 31,
+          "harmonic_bias": -0.21498386502729047
+        }
+      ],
+      "block_count": 8,
+      "layout_key": "75,74,73,79,93,92,91",
+      "reference_counts": [
+        7
+      ]
+    },
+    {
+      "block_biases": [
+        {
+          "block_id": 0,
+          "harmonic_bias": -0.07423833905794906
+        },
+        {
+          "block_id": 4,
+          "harmonic_bias": -0.06992878721084218
+        },
+        {
+          "block_id": 8,
+          "harmonic_bias": -0.07023352250906492
+        },
+        {
+          "block_id": 12,
+          "harmonic_bias": -0.08063083007734544
+        },
+        {
+          "block_id": 16,
+          "harmonic_bias": -0.1009075416291398
+        },
+        {
+          "block_id": 20,
+          "harmonic_bias": -0.08039640168506756
+        },
+        {
+          "block_id": 24,
+          "harmonic_bias": -0.08471924605707797
+        },
+        {
+          "block_id": 28,
+          "harmonic_bias": -0.0782187722402634
+        }
+      ],
+      "block_count": 8,
+      "layout_key": "82,83,96,103,102,101,116",
+      "reference_counts": [
+        7
+      ]
+    }
+  ],
+  "layout_count": 4,
+  "leave_one_job_out": {
+    "key": "job_id",
+    "passed": false,
+    "rows": [
+      {
+        "effect": 0.005957658413940629,
+        "omitted": "da6oneusidac73aeeahg",
+        "passes": true
+      },
+      {
+        "effect": 0.005957658413940629,
+        "omitted": "da6onfbsq5js73bj0pn0",
+        "passes": true
+      },
+      {
+        "effect": 0.005957658413940629,
+        "omitted": "da6onfs6l22c73dmk9n0",
+        "passes": true
+      },
+      {
+        "effect": 0.008242566238506801,
+        "omitted": "da6ongbsq5js73bj0pog",
+        "passes": true
+      },
+      {
+        "effect": 0.0097506236179753,
+        "omitted": "da6onh3sq5js73bj0pq0",
+        "passes": true
+      },
+      {
+        "effect": 0.002592182950965331,
+        "omitted": "da6onhm0ukec7382bhj0",
+        "passes": false
+      },
+      {
+        "effect": 0.002592182950965331,
+        "omitted": "da6oni3sq5js73bj0psg",
+        "passes": false
+      },
+      {
+        "effect": -0.0015034572661386195,
+        "omitted": "da6onimsidac73aeeam0",
+        "passes": false
+      }
+    ]
+  },
+  "leave_one_layout_out": {
+    "key": "layout_key",
+    "passed": false,
+    "rows": [
+      {
+        "effect": 0.005957658413940629,
+        "omitted": "55,59,75,74,73,79,93",
+        "passes": true
+      },
+      {
+        "effect": -0.0015034572661386195,
+        "omitted": "59,75,74,73,79,93,94",
+        "passes": false
+      },
+      {
+        "effect": 0.01383847644562788,
+        "omitted": "75,74,73,79,93,92,91",
+        "passes": true
+      },
+      {
+        "effect": 0.005957658413940629,
+        "omitted": "82,83,96,103,102,101,116",
+        "passes": true
+      }
+    ]
+  },
+  "p_gate": false,
+  "p_value_max": 0.001,
+  "passed": false,
+  "pseudo_target_effects": {
+    "CHAOS_SHUFFLE": -0.04565097622765035,
+    "DYNAMIC_FREEZE": -0.04121579900155785,
+    "FULL_CST": 0.005957658413940629,
+    "HEBBIAN_SHUFFLE": -0.004809803968837369,
+    "PAIR_PERMUTE": -0.016195688424991778,
+    "PAIR_SWAP": 0.09821835398412712,
+    "PHI_ABLATE": -0.01615969796211588
+  },
+  "randomization": {
+    "extreme_count": 72253,
+    "p_value": 0.7225327746722533,
+    "randomizations": 100000,
+    "seed": 9669990312621845424,
+    "two_sided": true
+  },
+  "schema": "cst12-physics-probe-003-harmonic-v3-stage-v1",
+  "scientific_contrast_invariant_under_common_phase_calibration": true,
+  "specificity_gate": false,
+  "stage": "replication"
+}

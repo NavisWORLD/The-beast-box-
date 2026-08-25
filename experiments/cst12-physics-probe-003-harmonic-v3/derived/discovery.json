@@ -1,0 +1,279 @@
+{
+  "backend": "ibm_marrakesh",
+  "block_count": 32,
+  "calibration_method": "leave-one-out-circular-mean-by-layout",
+  "complete": true,
+  "effect": -0.06868969520308488,
+  "effect_floor_abs": 0.014365704724149757,
+  "effect_gate": true,
+  "harmonic_calibration_gate": false,
+  "harmonic_holdout_tolerance": 0.019425055266277885,
+  "harmonic_reference_counts": [
+    7
+  ],
+  "harmonic_stage_median_abs_heldout_mirror_epsilon": 0.12753480592383742,
+  "integrity_passed": true,
+  "job_count": 8,
+  "layout_calibration_biases": [
+    {
+      "block_biases": [
+        {
+          "block_id": 3,
+          "harmonic_bias": -0.1615258985036186
+        },
+        {
+          "block_id": 7,
+          "harmonic_bias": -0.17531457543145737
+        },
+        {
+          "block_id": 11,
+          "harmonic_bias": -0.19484846693168958
+        },
+        {
+          "block_id": 15,
+          "harmonic_bias": -0.15511430982866042
+        },
+        {
+          "block_id": 19,
+          "harmonic_bias": -0.18385492361073866
+        },
+        {
+          "block_id": 23,
+          "harmonic_bias": -0.15971693814012128
+        },
+        {
+          "block_id": 27,
+          "harmonic_bias": -0.16056861223466018
+        },
+        {
+          "block_id": 31,
+          "harmonic_bias": -0.15254544352182192
+        }
+      ],
+      "block_count": 8,
+      "layout_key": "10,11,12,13,14,15,19",
+      "reference_counts": [
+        7
+      ]
+    },
+    {
+      "block_biases": [
+        {
+          "block_id": 2,
+          "harmonic_bias": -0.5154765591919779
+        },
+        {
+          "block_id": 6,
+          "harmonic_bias": -0.45203899253797897
+        },
+        {
+          "block_id": 10,
+          "harmonic_bias": -0.5539683535321976
+        },
+        {
+          "block_id": 14,
+          "harmonic_bias": -0.4694626805145389
+        },
+        {
+          "block_id": 18,
+          "harmonic_bias": -0.49613226686009815
+        },
+        {
+          "block_id": 22,
+          "harmonic_bias": -0.5236759114700072
+        },
+        {
+          "block_id": 26,
+          "harmonic_bias": -0.48532596464570343
+        },
+        {
+          "block_id": 30,
+          "harmonic_bias": -0.4969489207854014
+        }
+      ],
+      "block_count": 8,
+      "layout_key": "131,132,133,134,135,139,155",
+      "reference_counts": [
+        7
+      ]
+    },
+    {
+      "block_biases": [
+        {
+          "block_id": 1,
+          "harmonic_bias": -0.41205732540975504
+        },
+        {
+          "block_id": 5,
+          "harmonic_bias": -0.461972481313447
+        },
+        {
+          "block_id": 9,
+          "harmonic_bias": -0.40784813057475916
+        },
+        {
+          "block_id": 13,
+          "harmonic_bias": -0.4416952301493121
+        },
+        {
+          "block_id": 17,
+          "harmonic_bias": -0.3857244410466692
+        },
+        {
+          "block_id": 21,
+          "harmonic_bias": -0.4103700059387349
+        },
+        {
+          "block_id": 25,
+          "harmonic_bias": -0.37402919419174174
+        },
+        {
+          "block_id": 29,
+          "harmonic_bias": -0.3880704240786943
+        }
+      ],
+      "block_count": 8,
+      "layout_key": "138,131,132,133,134,135,139",
+      "reference_counts": [
+        7
+      ]
+    },
+    {
+      "block_biases": [
+        {
+          "block_id": 0,
+          "harmonic_bias": -0.18028949007800193
+        },
+        {
+          "block_id": 4,
+          "harmonic_bias": -0.15896992981434918
+        },
+        {
+          "block_id": 8,
+          "harmonic_bias": -0.1382982173188466
+        },
+        {
+          "block_id": 12,
+          "harmonic_bias": -0.18889408075476857
+        },
+        {
+          "block_id": 16,
+          "harmonic_bias": -0.17857328294095565
+        },
+        {
+          "block_id": 20,
+          "harmonic_bias": -0.1709979420571107
+        },
+        {
+          "block_id": 24,
+          "harmonic_bias": -0.12878704784603265
+        },
+        {
+          "block_id": 28,
+          "harmonic_bias": -0.14550510965242378
+        }
+      ],
+      "block_count": 8,
+      "layout_key": "9,10,11,12,13,14,15",
+      "reference_counts": [
+        7
+      ]
+    }
+  ],
+  "layout_count": 4,
+  "leave_one_job_out": {
+    "key": "job_id",
+    "passed": false,
+    "rows": [
+      {
+        "effect": -0.06868969520308488,
+        "omitted": "da6ona3sq5js73bj0pc0",
+        "passes": true
+      },
+      {
+        "effect": -0.06868969520308488,
+        "omitted": "da6onajsq5js73bj0peg",
+        "passes": true
+      },
+      {
+        "effect": -0.06868969520308488,
+        "omitted": "da6onbc6l22c73dmk9dg",
+        "passes": true
+      },
+      {
+        "effect": -0.049830426263565666,
+        "omitted": "da6onbu0ukec7382bhc0",
+        "passes": true
+      },
+      {
+        "effect": -0.08050127474730202,
+        "omitted": "da6oncu0ukec7382bhe0",
+        "passes": true
+      },
+      {
+        "effect": -0.08666368305724345,
+        "omitted": "da6ondesidac73aeeaeg",
+        "passes": true
+      },
+      {
+        "effect": -0.08050127474730202,
+        "omitted": "da6ondrsq5js73bj0pjg",
+        "passes": true
+      },
+      {
+        "effect": -0.020851212642420323,
+        "omitted": "da6onec6l22c73dmk9l0",
+        "passes": false
+      }
+    ]
+  },
+  "leave_one_layout_out": {
+    "key": "layout_key",
+    "passed": false,
+    "rows": [
+      {
+        "effect": -0.08050127474730202,
+        "omitted": "10,11,12,13,14,15,19",
+        "passes": true
+      },
+      {
+        "effect": -0.03971048158193954,
+        "omitted": "131,132,133,134,135,139,155",
+        "passes": true
+      },
+      {
+        "effect": -0.020851212642420323,
+        "omitted": "138,131,132,133,134,135,139",
+        "passes": false
+      },
+      {
+        "effect": -0.08050127474730202,
+        "omitted": "9,10,11,12,13,14,15",
+        "passes": true
+      }
+    ]
+  },
+  "p_gate": false,
+  "p_value_max": 0.001,
+  "passed": false,
+  "pseudo_target_effects": {
+    "CHAOS_SHUFFLE": -0.05058508227829296,
+    "DYNAMIC_FREEZE": -0.023588125504653803,
+    "FULL_CST": -0.06868969520308488,
+    "HEBBIAN_SHUFFLE": -0.03077563773522863,
+    "PAIR_PERMUTE": -0.022739228274011713,
+    "PAIR_SWAP": 0.25150800358666875,
+    "PHI_ABLATE": -0.05027186495299406
+  },
+  "randomization": {
+    "extreme_count": 8519,
+    "p_value": 0.08519914800851991,
+    "randomizations": 100000,
+    "seed": 13331735525624628021,
+    "two_sided": true
+  },
+  "schema": "cst12-physics-probe-003-harmonic-v3-stage-v1",
+  "scientific_contrast_invariant_under_common_phase_calibration": true,
+  "specificity_gate": false,
+  "stage": "discovery"
+}
