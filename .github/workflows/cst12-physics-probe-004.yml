@@ -1,0 +1,26 @@
+name: CST12 Physics Probe 004
+
+on:
+  push:
+    branches: [cst12-physics-probe-004]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tdd-core:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Probe 004 dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum]'
+      - name: Run Probe 004 core contract
+        run: pytest -q tests/test_cst12_physics_probe_004.py
