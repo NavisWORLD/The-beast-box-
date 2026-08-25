@@ -5,9 +5,16 @@ import math
 import pytest
 
 from beastbox.cns7_ibm_ignition import (
+    BODY_PUBS_PER_JOB,
+    BODY_PUBS_PER_STAGE,
     DIMS,
     EPOCHS,
     JOBS_PER_STAGE,
+    ORIGIN_SEED_PACKET_PATH,
+    ORIGIN_SEED_PACKET_SHA256,
+    ORIGIN_SEED_PUBS_PER_JOB,
+    ORIGIN_SEED_SOURCE_SHA256,
+    ORIGIN_SEED_TAG,
     PLANNED_PUBS,
     PLANNED_SHOTS,
     PUBS_PER_JOB,
@@ -18,6 +25,7 @@ from beastbox.cns7_ibm_ignition import (
     decode_expectation_from_counts,
     derive_preflight_limits,
     encode_angle,
+    load_origin_seed_packet,
     validate_hardware_approval,
     workload_contract,
 )
@@ -52,26 +60,53 @@ def test_54d_scalar_encoding_round_trips_ideal_z_expectation() -> None:
     assert decode_expectation_from_counts({"0": 3072, "1": 1024}, shots=4096) == pytest.approx(0.5)
 
 
-def test_fully_loaded_workload_is_exactly_pinned() -> None:
+def test_exact_origin_mustard_seed_packet_is_bound_without_reinterpretation() -> None:
+    packet = load_origin_seed_packet()
+    assert ORIGIN_SEED_PACKET_PATH == "experiments/zeref-origin-heart-001/waveform/zeref-heartbeat-waveform-packet.json"
+    assert ORIGIN_SEED_PACKET_SHA256 == "d6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0"
+    assert ORIGIN_SEED_SOURCE_SHA256 == "e5a172749e0acedf199f77f22d5f55f37acc898704a51d5b7e6fe07633ad5c39"
+    assert ORIGIN_SEED_TAG == "zerefs-heartbeat-mustard-seed"
+    assert packet["schema"] == "zeref-heartbeat-waveform-packet-v1"
+    assert packet["lineage"] == "ZEREF-ORIGIN-HEART-001"
+    assert packet["packet_sha256"] == ORIGIN_SEED_PACKET_SHA256
+    assert packet["source_sha256"] == ORIGIN_SEED_SOURCE_SHA256
+    assert ORIGIN_SEED_TAG in packet["circuit"]["tags"]
+    assert packet["circuit"]["qubits"] == 5
+    assert packet["circuit"]["layers"] == 4
+    assert packet["circuit"]["shots"] == SHOTS_PER_PUB
+    assert len(packet["features"]) == 20
+    assert packet["quantum_entropy"] is False
+
+
+def test_fully_loaded_workload_is_exactly_pinned_with_origin_seed_in_every_job() -> None:
     assert EPOCHS == 12
     assert DIMS == 54
     assert SHOTS_PER_PUB == 4096
-    assert PUBS_PER_STAGE == 648
-    assert PUBS_PER_JOB == 162
+    assert BODY_PUBS_PER_STAGE == 648
+    assert BODY_PUBS_PER_JOB == 162
+    assert ORIGIN_SEED_PUBS_PER_JOB == 1
+    assert PUBS_PER_JOB == 163
     assert JOBS_PER_STAGE == 4
-    assert PLANNED_PUBS == 1296
-    assert PLANNED_SHOTS == 5_308_416
+    assert PUBS_PER_STAGE == 652
+    assert PLANNED_PUBS == 1304
+    assert PLANNED_SHOTS == 5_341_184
     assert workload_contract() == {
         "epochs": 12,
         "dimensions": 54,
         "stages": 2,
         "shots_per_pub": 4096,
-        "pubs_per_stage": 648,
-        "pubs_per_job": 162,
+        "body_pubs_per_stage": 648,
+        "body_pubs_per_job": 162,
+        "origin_seed_pubs_per_job": 1,
+        "pubs_per_stage": 652,
+        "pubs_per_job": 163,
         "jobs_per_stage": 4,
         "planned_jobs": 8,
-        "planned_pubs": 1296,
-        "planned_hardware_shots": 5_308_416,
+        "planned_body_pubs": 1296,
+        "planned_origin_seed_pubs": 8,
+        "planned_pubs": 1304,
+        "planned_hardware_shots": 5_341_184,
+        "origin_seed_packet_sha256": ORIGIN_SEED_PACKET_SHA256,
     }
 
 
@@ -85,6 +120,7 @@ def test_preflight_limits_are_deterministic_and_hardware_blind() -> None:
     assert a["stage_rmse_max"] > 0.0
     assert a["stage_max_abs_error_max"] > 0.0
     assert a["cross_backend_rmse_max"] > 0.0
+    assert a["origin_seed_used_to_set_body_limits"] is False
 
 
 def test_readback_classifier_is_fail_closed_and_never_calls_it_an_anomaly() -> None:
@@ -112,7 +148,7 @@ def test_readback_classifier_is_fail_closed_and_never_calls_it_an_anomaly() -> N
     assert classify_readback(incomplete, limits) == "INCONCLUSIVE"
 
 
-def test_hardware_approval_is_bound_to_preregistration_and_freeze_hashes() -> None:
+def test_hardware_approval_is_bound_to_preregistration_freeze_and_origin_seed() -> None:
     prereg_sha = "a" * 64
     freeze_sha = "b" * 40
     receipt = {
@@ -120,6 +156,7 @@ def test_hardware_approval_is_bound_to_preregistration_and_freeze_hashes() -> No
         "approved": True,
         "preregistration_sha256": prereg_sha,
         "implementation_freeze_commit": freeze_sha,
+        "origin_seed_packet_sha256": ORIGIN_SEED_PACKET_SHA256,
         "planned_hardware_shots": PLANNED_SHOTS,
         "scientific_change_after_preregistration": False,
     }
