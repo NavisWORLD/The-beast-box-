@@ -1,0 +1,121 @@
+{
+  "common_phase_invariance": {
+    "max_abs_block_effect_delta_radians": 8.326672684688674e-17,
+    "statement": "one common circular phase offset is subtracted from FULL_CST and every ablation, so the primary circular contrast is invariant",
+    "verified": true
+  },
+  "credential_material_recorded": false,
+  "cst_conversion_lock": {
+    "alpha": [
+      2.08588819848,
+      0.999273805039,
+      0.241117402407,
+      0.047649621606,
+      0.013297527305,
+      0.001823220841
+    ],
+    "bridge_packet_sha256": "31b7bc1b4afbf05db49360776d52eafeda69830f36694f789951293338c47e21",
+    "canonical_radians_decimals": 12,
+    "chaos_xyz": [
+      [
+        0.193814153615,
+        0.196340889192,
+        0.171113793305
+      ],
+      [
+        0.19242421421,
+        0.196327120885,
+        0.160699602136
+      ],
+      [
+        0.192798995848,
+        0.196331821597,
+        0.164346538604
+      ],
+      [
+        0.193905583257,
+        0.196341570753,
+        0.16876736934
+      ],
+      [
+        0.193508928136,
+        0.196338696661,
+        0.153275010921
+      ],
+      [
+        0.193758777814,
+        0.196340781789,
+        0.161212211452
+      ]
+    ],
+    "conversion_statement": "alpha_j=atan2(phase12[2j],phase12[2j+1]); theta_j=(pi/2)*(1+tanh(mean(dynamic pair))); chaos rotations=(pi/16)*tanh(chaos triplet); lambda_rzz=(pi/8)*tanh(phi-weighted Hebbian quartet); MIRROR_CAL readout layers are +alpha then -alpha",
+    "lambda_rzz": [
+      0.015346783775,
+      0.004632099952,
+      -0.019268079894,
+      0.014738662305,
+      0.014911565232,
+      -0.007931412411
+    ],
+    "readout_layer_1": [
+      2.08588819848,
+      0.999273805039,
+      0.241117402407,
+      0.047649621606,
+      0.013297527305,
+      0.001823220841
+    ],
+    "readout_layer_2": [
+      -2.08588819848,
+      -0.999273805039,
+      -0.241117402407,
+      -0.047649621606,
+      -0.013297527305,
+      -0.001823220841
+    ],
+    "schema": "cst12-probe003-harmonic-v4-conversion-lock-v1",
+    "sha256": "78296ee91aaf72fbabf23366d0660a893ad7102d99b8ede47b762f742d17c8d1",
+    "theta": [
+      1.649316981441,
+      1.908248873443,
+      1.988067166644,
+      1.906033681714,
+      1.941358262666,
+      1.971780677507
+    ]
+  },
+  "exact_qm_unchanged": true,
+  "ibm_result_data_read": false,
+  "randomization_p_value_max_unchanged": 0.001,
+  "repair_statement": "v4 canonicalizes only synthetic prehardware diagnostic radians; IBM counts and scientific effects are not quantized or retuned",
+  "schema": "cst12-physics-probe-003-harmonic-v4-preflight-v1",
+  "scientific_arms_unchanged": true,
+  "scientific_effect_floor_unchanged": 0.014365704724149757,
+  "source_v2_implementation_freeze_commit": "898d933f55980fed9fa151d64196942d86f30b4a",
+  "source_v2_preregistration_sha256": "614bd1ec33d2371a804b6df7e51f0524309f61026b802a03c023779e3bc376c5",
+  "state_packet_sha256": "31b7bc1b4afbf05db49360776d52eafeda69830f36694f789951293338c47e21",
+  "synthetic_harmonic_holdout": {
+    "blocks_per_stage": 32,
+    "calibration_method": "leave-one-out-circular-mean-by-layout",
+    "canonical_radians_decimals": 12,
+    "datasets": 10000,
+    "harmonic_holdout_tolerance_radians": 0.019491326173,
+    "ibm_result_data_read": false,
+    "layouts_per_stage": 4,
+    "q999_stage_median_abs_heldout_mirror_epsilon": 0.019491326173,
+    "raw_stage_metric_values_stored": false,
+    "references_per_block": [
+      7
+    ],
+    "seed": 9151999991160269095,
+    "shots_per_pub": 4096,
+    "stage_metric_count": 20000,
+    "stage_metric_max_radians": 0.023916787832,
+    "stage_metric_median_radians": 0.011269019603,
+    "stage_metric_min_radians": 0.004185043218,
+    "stage_metric_sha256": "bcc1cac53f668e60b3746a16b39fee15ea4165998df51fd59050df6676047715",
+    "stages_per_dataset": 2
+  },
+  "v3_failure_preserved": true,
+  "workload_unchanged": true
+}
