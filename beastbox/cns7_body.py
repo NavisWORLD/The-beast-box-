@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import math
+import random
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Sequence
 
@@ -147,55 +150,54 @@ class CNS7Frame:
 
 @dataclass
 class CNS7EpochFabric:
-    """Fail-closed epoch barrier for the seven canonical CNS organ sensors.
-
-    Canonical organ samples are the only inputs allowed to form the 42D core.
-    Any eighth, ninth, or later sensor loop is stored in an auxiliary sidecar and
-    cannot append to, reorder, replace, or otherwise mutate the core vector.
-    """
+    """Thread-safe, fail-closed epoch barrier for seven canonical CNS organs."""
 
     _core_by_epoch: dict[str, dict[str, SensorSample]] = field(default_factory=dict)
     _aux_by_epoch: dict[str, dict[str, SensorSample]] = field(default_factory=dict)
     _latest_sequence: dict[str, int] = field(default_factory=dict)
     _completed_epochs: set[str] = field(default_factory=set)
     last_frame: CNS7Frame | None = None
+    _lock: threading.RLock = field(default_factory=threading.RLock, repr=False, compare=False)
 
     def ingest(self, sample: SensorSample) -> CNS7Frame | None:
-        previous = self._latest_sequence.get(sample.sensor_id)
-        if previous is not None and sample.sequence <= previous:
-            raise ValueError(
-                f"stale or duplicate sequence for {sample.sensor_id}: {sample.sequence} <= {previous}"
-            )
-        self._latest_sequence[sample.sensor_id] = sample.sequence
+        with self._lock:
+            previous = self._latest_sequence.get(sample.sensor_id)
+            if previous is not None and sample.sequence <= previous:
+                raise ValueError(
+                    f"stale or duplicate sequence for {sample.sensor_id}: {sample.sequence} <= {previous}"
+                )
+            self._latest_sequence[sample.sensor_id] = sample.sequence
 
-        if sample.sensor_id not in CNS7_ROLES:
-            self._aux_by_epoch.setdefault(sample.epoch_id, {})[sample.sensor_id] = sample
-            return None
+            if sample.sensor_id not in CNS7_ROLES:
+                self._aux_by_epoch.setdefault(sample.epoch_id, {})[sample.sensor_id] = sample
+                return None
 
-        if sample.epoch_id in self._completed_epochs:
-            raise ValueError(f"CNS7 epoch already completed: {sample.epoch_id}")
+            if sample.epoch_id in self._completed_epochs:
+                raise ValueError(f"CNS7 epoch already completed: {sample.epoch_id}")
 
-        bucket = self._core_by_epoch.setdefault(sample.epoch_id, {})
-        if sample.sensor_id in bucket:
-            raise ValueError(f"duplicate CNS7 organ in epoch: {sample.sensor_id}")
-        bucket[sample.sensor_id] = sample
+            bucket = self._core_by_epoch.setdefault(sample.epoch_id, {})
+            if sample.sensor_id in bucket:
+                raise ValueError(f"duplicate CNS7 organ in epoch: {sample.sensor_id}")
+            bucket[sample.sensor_id] = sample
 
-        if len(bucket) != len(CNS7_ROLES):
-            return None
-        if any(role not in bucket for role in CNS7_ROLES):
-            return None
+            if len(bucket) != len(CNS7_ROLES):
+                return None
+            if any(role not in bucket for role in CNS7_ROLES):
+                return None
 
-        frame = CNS7Frame.from_samples(sample.epoch_id, bucket)
-        self.last_frame = frame
-        self._completed_epochs.add(sample.epoch_id)
-        return frame
+            frame = CNS7Frame.from_samples(sample.epoch_id, bucket)
+            self.last_frame = frame
+            self._completed_epochs.add(sample.epoch_id)
+            return frame
 
     def auxiliary_samples(self, epoch_id: str) -> dict[str, SensorSample]:
-        return dict(self._aux_by_epoch.get(str(epoch_id), {}))
+        with self._lock:
+            return dict(self._aux_by_epoch.get(str(epoch_id), {}))
 
     def pending_organs(self, epoch_id: str) -> tuple[str, ...]:
-        bucket = self._core_by_epoch.get(str(epoch_id), {})
-        return tuple(role for role in CNS7_ROLES if role not in bucket)
+        with self._lock:
+            bucket = self._core_by_epoch.get(str(epoch_id), {})
+            return tuple(role for role in CNS7_ROLES if role not in bucket)
 
     def ingest_many(self, samples: Iterable[SensorSample]) -> CNS7Frame | None:
         frame = None
@@ -232,12 +234,7 @@ def organ_samples_from_cns_state(
 
 @dataclass
 class CNS7Body:
-    """Persistent model-independent 12D/42D/54D body state.
-
-    The model is an adapter/consumer of this state. The body owns the CNS7 epoch
-    barrier and the coupled dyn42 state. dyn12 enters through the existing CST
-    dynamic path; dyn54 is always exact concatenation dyn12 + dyn42.
-    """
+    """Persistent model-independent 12D/42D/54D body state."""
 
     fabric: CNS7EpochFabric = field(default_factory=CNS7EpochFabric)
     state_family: StateFamily = field(default_factory=StateFamily)
@@ -273,3 +270,114 @@ class CNS7Body:
             "dyn42": list(self.state_family.dyn42),
             "dyn54": list(self.state_family.dyn54),
         }
+
+
+def _stress_sample(sensor_id: str, *, epoch: str, sequence: int, monotonic_ns: int) -> SensorSample:
+    if sensor_id in CNS7_ROLES:
+        base = CNS7_ROLES.index(sensor_id)
+    else:
+        base = 20 + int(sensor_id.split(":")[-1])
+    return SensorSample(
+        sensor_id=sensor_id,
+        epoch_id=epoch,
+        sequence=sequence,
+        monotonic_ns=monotonic_ns,
+        features=tuple(math.tanh((base + i + 1) / 12.0) for i in range(FEATURES_PER_ORGAN)),
+    )
+
+
+def run_cns7_stress_gauntlet(*, rounds: int = 64, seed: int = 0xC057) -> dict[str, Any]:
+    """Exercise 5..10 simultaneous producers and prove core identity is schedule invariant."""
+
+    if rounds <= 0:
+        raise ValueError("rounds must be positive")
+    rng = random.Random(int(seed))
+    incomplete_counts = {"5": 0, "6": 0}
+    complete_counts = {str(n): 0 for n in range(7, 11)}
+    failures: list[str] = []
+    core_hash_mismatches = 0
+    aux_mutations = 0
+    stale_rejections = 0
+    duplicate_rejections = 0
+
+    for round_index in range(rounds):
+        epoch = f"stress-{round_index:04d}"
+        sequence = round_index + 1
+        monotonic_ns = 1_000_000_000 + round_index
+        baseline_hash: str | None = None
+        baseline_vector: tuple[float, ...] | None = None
+
+        for producer_count in range(5, 11):
+            ids = list(CNS7_ROLES[: min(producer_count, 7)])
+            ids.extend(f"aux:{idx}" for idx in range(8, producer_count + 1))
+            samples = [
+                _stress_sample(
+                    sensor_id,
+                    epoch=epoch,
+                    sequence=sequence,
+                    monotonic_ns=monotonic_ns,
+                )
+                for sensor_id in ids
+            ]
+            rng.shuffle(samples)
+            fabric = CNS7EpochFabric()
+            try:
+                with ThreadPoolExecutor(max_workers=producer_count) as pool:
+                    outputs = list(pool.map(fabric.ingest, samples))
+            except Exception as exc:  # pragma: no cover - reported as a gauntlet failure
+                failures.append(f"round={round_index}; producers={producer_count}; error={type(exc).__name__}:{exc}")
+                continue
+
+            frames = [item for item in outputs if item is not None]
+            frame = frames[-1] if frames else None
+            if producer_count < 7:
+                if frame is None:
+                    incomplete_counts[str(producer_count)] += 1
+                else:
+                    failures.append(f"round={round_index}; producers={producer_count}; unexpectedly-complete")
+                continue
+
+            if frame is None:
+                failures.append(f"round={round_index}; producers={producer_count}; incomplete")
+                continue
+            complete_counts[str(producer_count)] += 1
+
+            if producer_count == 7:
+                baseline_hash = frame.sha256
+                baseline_vector = frame.vector42
+            else:
+                if baseline_hash is None or frame.sha256 != baseline_hash:
+                    core_hash_mismatches += 1
+                if baseline_vector is None or frame.vector42 != baseline_vector:
+                    aux_mutations += 1
+
+        stale_fabric = CNS7EpochFabric()
+        stale_fabric.ingest(_stress_sample(CNS7_ROLES[0], epoch=f"stale-{round_index}", sequence=2, monotonic_ns=2))
+        try:
+            stale_fabric.ingest(_stress_sample(CNS7_ROLES[0], epoch=f"stale-{round_index}", sequence=1, monotonic_ns=1))
+        except ValueError:
+            stale_rejections += 1
+        else:
+            failures.append(f"round={round_index}; stale-not-rejected")
+
+        duplicate_fabric = CNS7EpochFabric()
+        duplicate = _stress_sample(CNS7_ROLES[0], epoch=f"duplicate-{round_index}", sequence=1, monotonic_ns=1)
+        duplicate_fabric.ingest(duplicate)
+        try:
+            duplicate_fabric.ingest(duplicate)
+        except ValueError:
+            duplicate_rejections += 1
+        else:
+            failures.append(f"round={round_index}; duplicate-not-rejected")
+
+    return {
+        "rounds": rounds,
+        "producer_counts": [5, 6, 7, 8, 9, 10],
+        "incomplete_counts": incomplete_counts,
+        "complete_counts": complete_counts,
+        "core_hash_mismatches": core_hash_mismatches,
+        "aux_mutations": aux_mutations,
+        "stale_rejections": stale_rejections,
+        "duplicate_rejections": duplicate_rejections,
+        "failures": failures,
+    }
