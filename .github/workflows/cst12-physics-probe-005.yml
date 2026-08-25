@@ -1,0 +1,29 @@
+name: CST12 Physics Probe 005
+
+on:
+  push:
+    branches: [cst12-physics-probe-005-trinity-bracket]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cst12-probe005-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prehardware:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Probe 005 test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum]'
+      - name: Run Probe 005 contracts
+        run: pytest -q tests/test_cst12_physics_probe_005_*.py
