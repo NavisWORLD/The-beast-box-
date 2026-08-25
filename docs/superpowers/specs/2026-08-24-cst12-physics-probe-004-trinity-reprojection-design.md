@@ -41,9 +41,13 @@ Probe 004 separates the measurement path into three diagnostic legs while preser
 
 A parameterized reference family probes the ancilla X/Y measurement map without using CST results for calibration.
 
-Three preregistered complex reference targets are placed at phases separated by 2π/3 on the unit circle. They are used only to estimate a deterministic affine complex-plane reprojection from measured `(X,Y)` to ideal `(X,Y)`.
+Three preregistered complex reference target directions are separated by `2π/3` in phase. A deterministic exact-QM-only prehardware procedure selects parameter bindings of the **same symbolic 7-qubit template** whose ideal complex observables best realize those target directions while satisfying a frozen conditioning requirement. Their exact ideal complex values, parameter bindings, selection rule, and conditioning threshold are frozen before hardware.
 
-A fourth preregistered blind holdout reference is never used to fit the reprojection. Its corrected residual is a hard validity gate.
+A fourth preregistered fit-holdout reference uses a distinct target direction and the same template-selection procedure. It is never used to fit the reprojection. Its corrected residual is a hard validity gate.
+
+Calibration references are not allowed to use a shallower circuit, omit CST preparation structure, omit controlled-readout slots, or otherwise travel through a cheaper native path. They differ from scientific arms only through preregistered parameter bindings on the shared symbolic template.
+
+If the deterministic exact-QM-only reference selection cannot produce a sufficiently conditioned reference set without changing the shared template, prehardware fails and no IBM submission is allowed.
 
 ### Leg B — Forward mirror
 
@@ -81,6 +85,8 @@ At minimum, the audit freezes and checks:
 - compiled depth and operation fingerprint;
 - one common transpilation seed per `(stage, layout, basis, symbolic-template)` rather than one seed per arm.
 
+The compiler fingerprint is defined on operation names plus ordered physical-qubit operands after transpilation but before numerical parameter binding. Parameter values are intentionally excluded from the topology fingerprint and are hashed separately.
+
 If exact post-transpile parameter binding is unsupported for any required parameter, Probe 004 must fail closed or use an explicitly preregistered equivalent compiler strategy that proves identical native topology before hardware. It may not silently fall back to independent per-arm transpilation.
 
 ## Reprojection model
@@ -91,21 +97,21 @@ Let a measured complex ancilla observable be
 
 `z_meas = X + iY`.
 
-Probe 004 fits a real 2D affine map using only the three calibration references:
+Probe 004 fits a real 2D affine map using only the three fit references:
 
 `v_ideal ≈ A v_meas + b`,
 
-where `v = [X, Y]^T`, `A` is 2x2, and `b` is length 2.
+where `v = [X, Y]^T`, `A` is `2x2`, and `b` is length `2`.
 
-The fitting rule, solver, conditioning limit, and failure policy are frozen before hardware.
+The fitting rule, solver, conditioning limit, determinant/sign constraints if any, and failure policy are frozen before hardware.
 
-No CST scientific-arm measurement may enter the fit.
+No CST scientific-arm measurement, mirror measurement, or holdout measurement may enter the fit.
 
-The fit is applied to the blind holdout and all scientific/mirror measurements only after all jobs in both stages are complete.
+The fit is applied to the fit-holdout, mirror arms, and scientific arms only after all jobs in both stages are complete.
 
-## Blind holdout validity gate
+## Fit-holdout validity gate
 
-The holdout phase and expected exact-QM complex value are preregistered and excluded from calibration fitting.
+The holdout parameter binding and expected exact-QM complex value are preregistered and excluded from calibration fitting.
 
 A stage is `INCONCLUSIVE` if the reprojected holdout error exceeds its frozen tolerance.
 
@@ -115,7 +121,9 @@ The tolerance must be determined before hardware from synthetic experiments that
 
 Both reprojected mirror residuals are diagnostic gates.
 
-A stage is invalid if either `MIRROR_PM` or `MIRROR_MP` exceeds its frozen tolerance, or if their preregistered antisymmetry/symmetry relation fails.
+A stage is invalid if either `MIRROR_PM` or `MIRROR_MP` exceeds its frozen tolerance, or if their preregistered orientation-consistency relation fails.
+
+The orientation-consistency statistic and threshold must be derived and frozen prehardware. Probe 003 hardware data may motivate the existence of this diagnostic but may not set its Probe 004 numeric threshold.
 
 No mirror result may be used to relax a gate after hardware.
 
@@ -153,11 +161,11 @@ The Probe 003 scientific intervention family is retained:
 Probe 004 adds calibration/reference arms outside the scientific randomization target set:
 
 - three fit references;
-- one blind holdout reference;
+- one fit-holdout reference;
 - `MIRROR_PM`;
 - `MIRROR_MP`.
 
-Calibration/reference arms may not be selected as pseudo-targets in the primary scientific randomization test.
+Calibration/reference and mirror arms may not be selected as pseudo-targets in the primary scientific randomization test.
 
 ## Primary statistic
 
@@ -173,9 +181,11 @@ Probe 004 requires two separate prehardware suites.
 
 ### Exact-QM / shot-noise suite
 
-- exact-QM predictions for every scientific and calibration arm;
+- exact-QM predictions for every scientific, mirror, fit-reference, and holdout arm;
 - semantic intervention observability gate;
-- deterministic reproducibility and byte-exact rebuild;
+- deterministic reference-selection reproducibility;
+- shared-template compiler fingerprint tests;
+- deterministic reproducibility and byte-exact preregistration rebuild;
 - complete shot-noise synthetic null.
 
 ### Calibration-distortion suite
@@ -185,11 +195,12 @@ A preregistered family of artificial measurement maps and noise processes stress
 - affine X/Y rotation and gain mismatch;
 - additive X/Y bias;
 - finite-shot noise;
-- bounded reference corruption;
+- bounded fit-reference corruption;
+- bounded holdout corruption;
 - orientation-sensitive forward/reverse mirror phase bias;
 - layout-dependent distortion draws.
 
-The preflight must demonstrate that the fitted reprojection recovers blind holdouts within the frozen tolerance over the accepted distortion family and fails closed outside the accepted validity region.
+The preflight must demonstrate that the fitted reprojection recovers holdouts within the frozen tolerance over the accepted distortion family and fails closed outside the accepted validity region.
 
 No noise parameter is estimated from Probe 004 hardware before preregistration.
 
@@ -201,7 +212,7 @@ No noise parameter is estimated from Probe 004 hardware before preregistration.
 - deterministic block balancing;
 - no early stopping;
 - all discovery and replication jobs submitted before any scientific result retrieval or primary-statistic computation;
-- job IDs, backend names, calibration snapshots, compiled-template fingerprints, result hashes, and manifests preserved.
+- job IDs, backend names, calibration snapshots, compiled-template fingerprints, parameter-binding hashes, result hashes, and manifests preserved.
 
 ## Decision table
 
@@ -212,8 +223,8 @@ Only if:
 - both stages are complete and integrity-valid;
 - compiled-template invariants pass;
 - calibration fit is well-conditioned;
-- blind holdout gate passes in both stages;
-- both forward and reverse mirror gates pass;
+- fit-holdout gate passes in both stages;
+- both forward and reverse mirror gates and their orientation-consistency gate pass;
 - all frozen scientific anomaly gates pass in both stages;
 - discovery and replication use different IBM backends;
 - replicated effect signs agree.
@@ -224,7 +235,7 @@ Both stages are valid under every calibration/integrity gate, but one or more sc
 
 ### `INCONCLUSIVE`
 
-Any protected hash change, incomplete evidence, compiler-template mismatch, calibration-conditioning failure, blind-holdout failure, mirror failure, backend/layout violation, or other integrity failure.
+Any protected hash change, incomplete evidence, compiler-template mismatch, calibration-conditioning failure, fit-holdout failure, mirror/orientation failure, backend/layout violation, or other integrity failure.
 
 ## Evidence sealing
 
@@ -235,9 +246,10 @@ Probe 004 evidence must include:
 - canonical state packet SHA-256;
 - exact-QM receipt;
 - synthetic/noisy preflight receipt;
-- compiler-template fingerprints;
+- symbolic-template and compiled-template fingerprints;
+- parameter-binding hashes;
 - calibration-reference definitions;
-- blind-holdout definition;
+- fit-holdout definition;
 - hardware plan;
 - all IBM job IDs and submissions;
 - all raw counts/results;
