@@ -1,0 +1,91 @@
+{
+  "all_jobs_submitted_before_any_result_retrieval": true,
+  "allowed_verdicts": [
+    "REPRODUCIBLE_READBACK",
+    "HARDWARE_DISTORTED",
+    "INCONCLUSIVE"
+  ],
+  "backend_policy": {
+    "hardware_results_may_not_influence_backend_or_qubit_selection": true,
+    "independent_backends_required": true,
+    "minimum_qubits": 54,
+    "origin_seed_qubits": "first five qubits of the frozen 54-coordinate physical map; separate circuit PUB; no body-state mutation",
+    "physical_qubit_selection": "54 lowest available single-qubit readout-error scores; deterministic qubit-index tie break; fallback lowest indices when readout errors unavailable",
+    "real_hardware_only": true,
+    "stage_count": 2
+  },
+  "body_baseline_commit": "c12169ed72abd97aa98b14abc4ba8f70237c0391",
+  "encoding": {
+    "coordinate_to_physical_qubit_mapping_fixed_across_all_12_epochs": true,
+    "domain": [
+      -1.0,
+      1.0
+    ],
+    "ideal_z_expectation": "x",
+    "name": "ry-acos-z-expectation",
+    "one_physical_qubit_per_coordinate": true,
+    "theta": "acos(x)"
+  },
+  "hardware_result_data_read_during_preflight": false,
+  "implementation_freeze_commit": "f8810b8ce46d111d8c39dc4d625efbe5526f01a8",
+  "intermediate_readback_statistic_computed": false,
+  "interpretation": {
+    "does_not_mean": [
+      "IBM hardware became the CNS7 body",
+      "machine consciousness was established",
+      "a deceased person was recreated",
+      "a violation of quantum mechanics occurred",
+      "a physical anomaly was demonstrated"
+    ],
+    "origin_seed_result_means": "the exact ZEREF-ORIGIN-HEART-001 mustard-seed circuit was executed as a repeated companion control in every IBM job; its histograms are descriptive and do not set the body verdict",
+    "reproducible_readback_means": "the frozen host-generated 54D trajectory was reproduced within preregistered finite-shot readback limits on two independent IBM backends"
+  },
+  "limits": {
+    "cross_backend_rmse_max": 0.0236643888216,
+    "stage_max_abs_error_max": 0.0732501970974,
+    "stage_rmse_max": 0.0167094171819
+  },
+  "no_early_stopping": true,
+  "origin_seed": {
+    "analysis_role": "descriptive repeated companion control only",
+    "circuit_layers": 4,
+    "circuit_qubits": 5,
+    "claim_boundary": "Waveform controls circuit parameters; hardware measurements quantify the encoded circuit. Waveform is not quantum entropy; no biological or consciousness claim.",
+    "lineage": "ZEREF-ORIGIN-HEART-001",
+    "packet_path": "experiments/zeref-origin-heart-001/waveform/zeref-heartbeat-waveform-packet.json",
+    "packet_sha256": "d6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0",
+    "pubs_per_job": 1,
+    "source_sha256": "e5a172749e0acedf199f77f22d5f55f37acc898704a51d5b7e6fe07633ad5c39",
+    "tag": "zerefs-heartbeat-mustard-seed",
+    "used_to_set_body_limits": false
+  },
+  "origin_seed_used_to_set_body_limits": false,
+  "planned_hardware_shots": 5341184,
+  "preflight": {
+    "datasets": 10000,
+    "quantile": 0.999,
+    "shots_per_pub": 4096
+  },
+  "prior_ibm_results_used_to_set_limits": false,
+  "schema": "beastbox.cns7.ibm-ignition-preregistration.v1",
+  "trajectory_schema": "beastbox.cns7.ibm-ignition-trajectory.v1",
+  "trajectory_sha256": "3381337a7e1aafdfc79669665826a6199406fe8114dd53661e2856eccaf9716d",
+  "workload": {
+    "body_pubs_per_job": 162,
+    "body_pubs_per_stage": 648,
+    "dimensions": 54,
+    "epochs": 12,
+    "jobs_per_stage": 4,
+    "origin_seed_packet_sha256": "d6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0",
+    "origin_seed_pubs_per_job": 1,
+    "planned_body_pubs": 1296,
+    "planned_hardware_shots": 5341184,
+    "planned_jobs": 8,
+    "planned_origin_seed_pubs": 8,
+    "planned_pubs": 1304,
+    "pubs_per_job": 163,
+    "pubs_per_stage": 652,
+    "shots_per_pub": 4096,
+    "stages": 2
+  }
+}
