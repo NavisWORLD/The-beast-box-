@@ -27,3 +27,28 @@ jobs:
           pip install -e '.[dev,quantum]'
       - name: Run Probe 005 contracts
         run: pytest -q tests/test_cst12_physics_probe_005_*.py
+      - name: Run first full 10,000-dataset Probe 005 preflight
+        run: |
+          mkdir -p _probe005_preflight
+          python scripts/preflight_cst12_physics_probe_005.py \
+            --state experiments/cst12-physics-probe-003/preregistered-v2/state-packet.json \
+            --implementation-freeze "$GITHUB_SHA" \
+            --datasets 10000 \
+            --randomizations 100000 \
+            --output _probe005_preflight/preflight-a.json
+      - name: Independently rebuild full Probe 005 preflight
+        run: |
+          python scripts/preflight_cst12_physics_probe_005.py \
+            --state experiments/cst12-physics-probe-003/preregistered-v2/state-packet.json \
+            --implementation-freeze "$GITHUB_SHA" \
+            --datasets 10000 \
+            --randomizations 100000 \
+            --output _probe005_preflight/preflight-b.json
+          cmp _probe005_preflight/preflight-a.json _probe005_preflight/preflight-b.json
+          sha256sum _probe005_preflight/preflight-a.json _probe005_preflight/preflight-b.json
+      - name: Upload Probe 005 preflight receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cst12-probe005-preflight-${{ github.sha }}
+          path: _probe005_preflight/
+          if-no-files-found: error
