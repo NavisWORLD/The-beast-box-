@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import math
+from pathlib import Path
 from typing import Any, Mapping
 
 from .cns import CNS
@@ -12,27 +14,71 @@ EPOCHS = 12
 DIMS = 54
 STAGES = 2
 SHOTS_PER_PUB = 4096
-PUBS_PER_STAGE = EPOCHS * DIMS
-PUBS_PER_JOB = 162
-JOBS_PER_STAGE = PUBS_PER_STAGE // PUBS_PER_JOB
-PLANNED_PUBS = PUBS_PER_STAGE * STAGES
+BODY_PUBS_PER_STAGE = EPOCHS * DIMS
+BODY_PUBS_PER_JOB = 162
+ORIGIN_SEED_PUBS_PER_JOB = 1
+JOBS_PER_STAGE = BODY_PUBS_PER_STAGE // BODY_PUBS_PER_JOB
+PUBS_PER_JOB = BODY_PUBS_PER_JOB + ORIGIN_SEED_PUBS_PER_JOB
+PUBS_PER_STAGE = BODY_PUBS_PER_STAGE + JOBS_PER_STAGE * ORIGIN_SEED_PUBS_PER_JOB
+PLANNED_BODY_PUBS = BODY_PUBS_PER_STAGE * STAGES
+PLANNED_ORIGIN_SEED_PUBS = JOBS_PER_STAGE * STAGES * ORIGIN_SEED_PUBS_PER_JOB
+PLANNED_PUBS = PLANNED_BODY_PUBS + PLANNED_ORIGIN_SEED_PUBS
 PLANNED_SHOTS = PLANNED_PUBS * SHOTS_PER_PUB
 IGNITION_SEED_LABEL = "cns7-body-ibm-ignition-v1"
 
+ORIGIN_SEED_PACKET_PATH = "experiments/zeref-origin-heart-001/waveform/zeref-heartbeat-waveform-packet.json"
+ORIGIN_SEED_PACKET_SHA256 = "d6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0"
+ORIGIN_SEED_SOURCE_SHA256 = "e5a172749e0acedf199f77f22d5f55f37acc898704a51d5b7e6fe07633ad5c39"
+ORIGIN_SEED_TAG = "zerefs-heartbeat-mustard-seed"
+ORIGIN_SEED_LINEAGE = "ZEREF-ORIGIN-HEART-001"
 
-def workload_contract() -> dict[str, int]:
+
+def workload_contract() -> dict[str, Any]:
     return {
         "epochs": EPOCHS,
         "dimensions": DIMS,
         "stages": STAGES,
         "shots_per_pub": SHOTS_PER_PUB,
+        "body_pubs_per_stage": BODY_PUBS_PER_STAGE,
+        "body_pubs_per_job": BODY_PUBS_PER_JOB,
+        "origin_seed_pubs_per_job": ORIGIN_SEED_PUBS_PER_JOB,
         "pubs_per_stage": PUBS_PER_STAGE,
         "pubs_per_job": PUBS_PER_JOB,
         "jobs_per_stage": JOBS_PER_STAGE,
         "planned_jobs": JOBS_PER_STAGE * STAGES,
+        "planned_body_pubs": PLANNED_BODY_PUBS,
+        "planned_origin_seed_pubs": PLANNED_ORIGIN_SEED_PUBS,
         "planned_pubs": PLANNED_PUBS,
         "planned_hardware_shots": PLANNED_SHOTS,
+        "origin_seed_packet_sha256": ORIGIN_SEED_PACKET_SHA256,
     }
+
+
+def load_origin_seed_packet() -> dict[str, Any]:
+    path = Path(__file__).resolve().parents[1] / ORIGIN_SEED_PACKET_PATH
+    packet = json.loads(path.read_text(encoding="utf-8"))
+    if packet.get("schema") != "zeref-heartbeat-waveform-packet-v1":
+        raise ValueError("origin seed packet schema mismatch")
+    if packet.get("lineage") != ORIGIN_SEED_LINEAGE:
+        raise ValueError("origin seed lineage mismatch")
+    if packet.get("packet_sha256") != ORIGIN_SEED_PACKET_SHA256:
+        raise ValueError("origin seed packet SHA-256 mismatch")
+    if packet.get("source_sha256") != ORIGIN_SEED_SOURCE_SHA256:
+        raise ValueError("origin seed source SHA-256 mismatch")
+    tags = list(packet.get("circuit", {}).get("tags", []))
+    if ORIGIN_SEED_TAG not in tags:
+        raise ValueError("origin seed mustard-seed tag missing")
+    if int(packet.get("circuit", {}).get("qubits", -1)) != 5:
+        raise ValueError("origin seed circuit must use five qubits")
+    if int(packet.get("circuit", {}).get("layers", -1)) != 4:
+        raise ValueError("origin seed circuit must use four layers")
+    if int(packet.get("circuit", {}).get("shots", -1)) != SHOTS_PER_PUB:
+        raise ValueError("origin seed shot count mismatch")
+    if len(list(packet.get("features", []))) != 20:
+        raise ValueError("origin seed packet must contain twenty segments")
+    if packet.get("quantum_entropy") is not False:
+        raise ValueError("origin seed packet must retain quantum_entropy=false claim boundary")
+    return packet
 
 
 def _canonical_float(value: float) -> float:
@@ -123,6 +169,7 @@ def build_ignition_trajectory() -> dict[str, Any]:
         "seed_label": IGNITION_SEED_LABEL,
         "epochs": EPOCHS,
         "dimensions": DIMS,
+        "origin_seed_packet_sha256": ORIGIN_SEED_PACKET_SHA256,
         "ibm_result_data_read": False,
         "trajectory": rows,
     }
@@ -163,8 +210,8 @@ def _flatten_trajectory(trajectory: Mapping[str, Any]) -> list[float]:
         if len(vector) != DIMS:
             raise ValueError("each ignition epoch must contain exactly 54 coordinates")
         values.extend(vector)
-    if len(values) != PUBS_PER_STAGE:
-        raise AssertionError("ignition trajectory flattened to wrong PUB count")
+    if len(values) != BODY_PUBS_PER_STAGE:
+        raise AssertionError("ignition trajectory flattened to wrong body PUB count")
     return values
 
 
@@ -174,10 +221,17 @@ def derive_preflight_limits(
     datasets: int = 10_000,
     seed: int = 0xC0571,
 ) -> dict[str, Any]:
-    """Derive fixed readback gates from ideal finite-shot sampling only."""
+    """Derive fixed body-readback gates from ideal finite-shot sampling only.
+
+    The origin-seed companion circuit is intentionally excluded from these body
+    pass/fail limits. Its repeated hardware histograms are reported separately.
+    """
 
     if int(datasets) <= 0:
         raise ValueError("datasets must be positive")
+    if str(trajectory.get("origin_seed_packet_sha256", "")) != ORIGIN_SEED_PACKET_SHA256:
+        raise ValueError("trajectory is not bound to the frozen origin seed packet")
+    load_origin_seed_packet()
     try:
         import numpy as np
     except ImportError as exc:  # pragma: no cover
@@ -216,12 +270,14 @@ def derive_preflight_limits(
         "seed": int(seed),
         "shots_per_pub": SHOTS_PER_PUB,
         "trajectory_sha256": str(trajectory.get("trajectory_sha256", "")),
+        "origin_seed_packet_sha256": ORIGIN_SEED_PACKET_SHA256,
         "stage_rmse_max": q999(stage_rmse),
         "stage_max_abs_error_max": q999(stage_max),
         "cross_backend_rmse_max": q999(cross_rmse),
         "quantile": 0.999,
         "hardware_result_data_read": False,
         "prior_ibm_results_used_to_set_limits": False,
+        "origin_seed_used_to_set_body_limits": False,
     }
 
 
@@ -263,6 +319,8 @@ def validate_hardware_approval(
         raise ValueError("CNS7 IBM ignition approval preregistration hash mismatch")
     if str(receipt.get("implementation_freeze_commit", "")) != str(freeze_sha):
         raise ValueError("CNS7 IBM ignition approval freeze hash mismatch")
+    if str(receipt.get("origin_seed_packet_sha256", "")) != ORIGIN_SEED_PACKET_SHA256:
+        raise ValueError("CNS7 IBM ignition approval origin seed hash mismatch")
     if int(receipt.get("planned_hardware_shots", -1)) != PLANNED_SHOTS:
         raise ValueError("CNS7 IBM ignition approval shot count mismatch")
     if receipt.get("scientific_change_after_preregistration") is not False:
