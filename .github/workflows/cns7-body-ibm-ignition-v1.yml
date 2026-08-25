@@ -10,17 +10,339 @@ permissions:
 
 concurrency:
   group: cns7-body-ibm-ignition-v1-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  contract:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+  prehardware:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    outputs:
+      approved: ${{ steps.gate.outputs.approved }}
+      prereg_ready: ${{ steps.gate.outputs.prereg_ready }}
+      freeze_sha: ${{ steps.gate.outputs.freeze_sha }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout exact ignition head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m pip install --upgrade pip
-      - run: pip install -e '.[dev,quantum]'
-      - run: pytest -q tests/test_cns7_ibm_ignition.py tests/test_cns7_ibm_ignition_lifecycle.py
+      - name: Install test and IBM dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum]'
+      - name: Run focused ignition contracts
+        run: pytest -q tests/test_cns7_ibm_ignition.py tests/test_cns7_ibm_ignition_lifecycle.py tests/test_cns7_body_fabric.py tests/test_cns7_runtime_body.py tests/test_cns7_stress.py
+      - name: Run full repository regression
+        run: pytest -q
+      - name: Resolve immutable freeze and approval gate
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT='experiments/cns7-body-ibm-ignition-v1'
+          PREREG="$ROOT/preregistered-v1/preregistration.json"
+          APPROVAL="$ROOT/RUN_APPROVED_ORIGIN_SEED_V1.json"
+          if [[ -f "$PREREG" ]]; then
+            prereg_ready=true
+            freeze_sha="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('experiments/cns7-body-ibm-ignition-v1/preregistered-v1/preregistration.json').read_text())
+          print(p['implementation_freeze_commit'])
+          PY
+          )"
+          else
+            prereg_ready=false
+            freeze_sha="$(git rev-parse HEAD)"
+          fi
+          approved=false
+          if [[ -f "$APPROVAL" ]]; then
+            if [[ "$prereg_ready" != true ]]; then
+              echo 'approval exists without frozen preregistration' >&2
+              exit 1
+            fi
+            approved=true
+          fi
+          echo "prereg_ready=$prereg_ready" >> "$GITHUB_OUTPUT"
+          echo "freeze_sha=$freeze_sha" >> "$GITHUB_OUTPUT"
+          echo "approved=$approved" >> "$GITHUB_OUTPUT"
+      - name: Prove no scientific code changed after freeze
+        if: steps.gate.outputs.prereg_ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          FREEZE='${{ steps.gate.outputs.freeze_sha }}'
+          git merge-base --is-ancestor "$FREEZE" HEAD
+          git diff --exit-code "$FREEZE"..HEAD -- . ':(exclude)experiments/cns7-body-ibm-ignition-v1/**'
+      - name: Build deterministic prehardware bundle twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          FREEZE='${{ steps.gate.outputs.freeze_sha }}'
+          rm -rf _ignition_a _ignition_b
+          mkdir -p _ignition_a _ignition_b
+          for OUT in _ignition_a _ignition_b; do
+            python scripts/preflight_cns7_ibm_ignition.py \
+              --implementation-freeze "$FREEZE" \
+              --datasets 10000 \
+              --seed 787825 \
+              --trajectory-output "$OUT/trajectory.json" \
+              --output "$OUT/preflight.json"
+            python scripts/make_cns7_ibm_ignition_preregistration.py \
+              --trajectory "$OUT/trajectory.json" \
+              --preflight "$OUT/preflight.json" \
+              --implementation-freeze "$FREEZE" \
+              --output "$OUT/preregistration.json" \
+              --sha-output "$OUT/PREREGISTRATION_SHA256"
+            cp experiments/zeref-origin-heart-001/waveform/zeref-heartbeat-waveform-packet.json "$OUT/origin-seed-packet.json"
+          done
+          cmp _ignition_a/trajectory.json _ignition_b/trajectory.json
+          cmp _ignition_a/preflight.json _ignition_b/preflight.json
+          cmp _ignition_a/preregistration.json _ignition_b/preregistration.json
+          cmp _ignition_a/PREREGISTRATION_SHA256 _ignition_b/PREREGISTRATION_SHA256
+          cmp _ignition_a/origin-seed-packet.json _ignition_b/origin-seed-packet.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          packet=json.loads(Path('_ignition_a/origin-seed-packet.json').read_text())
+          assert packet['packet_sha256']=='d6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0'
+          assert packet['source_sha256']=='e5a172749e0acedf199f77f22d5f55f37acc898704a51d5b7e6fe07633ad5c39'
+          assert 'zerefs-heartbeat-mustard-seed' in packet['circuit']['tags']
+          print(json.dumps({'origin_seed_packet_sha256':packet['packet_sha256'],'source_sha256':packet['source_sha256']},sort_keys=True))
+          PY
+          sha256sum _ignition_a/trajectory.json _ignition_a/preflight.json _ignition_a/preregistration.json _ignition_a/origin-seed-packet.json
+          cat _ignition_a/PREREGISTRATION_SHA256
+      - name: Verify committed preregistration bytes
+        if: steps.gate.outputs.prereg_ready == 'true'
+        run: |
+          cmp _ignition_a/trajectory.json experiments/cns7-body-ibm-ignition-v1/preregistered-v1/trajectory.json
+          cmp _ignition_a/preflight.json experiments/cns7-body-ibm-ignition-v1/preregistered-v1/preflight.json
+          cmp _ignition_a/preregistration.json experiments/cns7-body-ibm-ignition-v1/preregistered-v1/preregistration.json
+          cmp _ignition_a/PREREGISTRATION_SHA256 experiments/cns7-body-ibm-ignition-v1/preregistered-v1/PREREGISTRATION_SHA256
+          cmp _ignition_a/origin-seed-packet.json experiments/cns7-body-ibm-ignition-v1/preregistered-v1/origin-seed-packet.json
+      - name: Upload prehardware freeze bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: cns7-ibm-ignition-prehardware-${{ steps.gate.outputs.freeze_sha }}
+          path: _ignition_a/
+          if-no-files-found: error
+
+  freeze-preregistration:
+    needs: prehardware
+    if: github.event_name == 'push' && needs.prehardware.outputs.prereg_ready == 'false'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cns7-body-ibm-ignition-v1
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: cns7-ibm-ignition-prehardware-${{ needs.prehardware.outputs.freeze_sha }}
+          path: _ignition_generated
+      - name: Verify branch has not moved since freeze
+        run: test "$(git rev-parse HEAD)" = '${{ needs.prehardware.outputs.freeze_sha }}'
+      - name: Commit exact preregistration and hash-bound user approval
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT='experiments/cns7-body-ibm-ignition-v1'
+          mkdir -p "$ROOT/preregistered-v1"
+          cp _ignition_generated/trajectory.json "$ROOT/preregistered-v1/trajectory.json"
+          cp _ignition_generated/preflight.json "$ROOT/preregistered-v1/preflight.json"
+          cp _ignition_generated/preregistration.json "$ROOT/preregistered-v1/preregistration.json"
+          cp _ignition_generated/PREREGISTRATION_SHA256 "$ROOT/preregistered-v1/PREREGISTRATION_SHA256"
+          cp _ignition_generated/origin-seed-packet.json "$ROOT/preregistered-v1/origin-seed-packet.json"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('experiments/cns7-body-ibm-ignition-v1')
+          prereg=json.loads((root/'preregistered-v1/preregistration.json').read_text())
+          prereg_sha=(root/'preregistered-v1/PREREGISTRATION_SHA256').read_text().strip()
+          receipt={
+            'schema':'beastbox.cns7.ibm-ignition-hardware-approval.v1',
+            'approved':True,
+            'authorization_basis':'explicit user instruction: submit the fully loaded IBM workload alongside the origin seed',
+            'preregistration_sha256':prereg_sha,
+            'implementation_freeze_commit':prereg['implementation_freeze_commit'],
+            'origin_seed_packet_sha256':prereg['origin_seed']['packet_sha256'],
+            'planned_pubs':prereg['workload']['planned_pubs'],
+            'planned_hardware_shots':prereg['workload']['planned_hardware_shots'],
+            'all_jobs_submitted_before_any_result_retrieval':True,
+            'scientific_change_after_preregistration':False,
+          }
+          (root/'RUN_APPROVED_ORIGIN_SEED_V1.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$ROOT/preregistered-v1" "$ROOT/RUN_APPROVED_ORIGIN_SEED_V1.json"
+          git commit -m 'experiment: freeze CNS7 IBM ignition v1 with origin seed approval'
+          git push origin HEAD:cns7-body-ibm-ignition-v1
+
+  submit-hardware:
+    needs: prehardware
+    if: github.event_name == 'push' && needs.prehardware.outputs.approved == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install IBM runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum]'
+      - name: Reverify hash-bound approval and scientific freeze
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT='experiments/cns7-body-ibm-ignition-v1'
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from beastbox.cns7_ibm_ignition import validate_hardware_approval
+          root=Path('experiments/cns7-body-ibm-ignition-v1')
+          prereg=json.loads((root/'preregistered-v1/preregistration.json').read_text())
+          approval=json.loads((root/'RUN_APPROVED_ORIGIN_SEED_V1.json').read_text())
+          prereg_sha=(root/'preregistered-v1/PREREGISTRATION_SHA256').read_text().strip()
+          validate_hardware_approval(approval, prereg_sha=prereg_sha, freeze_sha=prereg['implementation_freeze_commit'])
+          print(json.dumps({'approved':True,'planned_hardware_shots':approval['planned_hardware_shots'],'origin_seed_packet_sha256':approval['origin_seed_packet_sha256']},sort_keys=True))
+          PY
+          FREEZE="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          print(json.loads(Path('experiments/cns7-body-ibm-ignition-v1/preregistered-v1/preregistration.json').read_text())['implementation_freeze_commit'])
+          PY
+          )"
+          git merge-base --is-ancestor "$FREEZE" HEAD
+          git diff --exit-code "$FREEZE"..HEAD -- . ':(exclude)experiments/cns7-body-ibm-ignition-v1/**'
+      - name: Submit all jobs before any result retrieval
+        id: submit
+        continue-on-error: true
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
+        run: |
+          python scripts/run_cns7_ibm_ignition_ibm.py \
+            --mode submit \
+            --prereg experiments/cns7-body-ibm-ignition-v1/preregistered-v1/preregistration.json \
+            --prereg-sha-file experiments/cns7-body-ibm-ignition-v1/preregistered-v1/PREREGISTRATION_SHA256 \
+            --trajectory experiments/cns7-body-ibm-ignition-v1/preregistered-v1/trajectory.json \
+            --approval experiments/cns7-body-ibm-ignition-v1/RUN_APPROVED_ORIGIN_SEED_V1.json \
+            --out experiments/cns7-body-ibm-ignition-v1
+      - name: Upload submission evidence even on partial failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cns7-ibm-ignition-submissions-${{ github.run_id }}
+          path: experiments/cns7-body-ibm-ignition-v1/
+          if-no-files-found: error
+      - name: Require complete eight-job manifest
+        shell: bash
+        run: |
+          test '${{ steps.submit.outcome }}' = 'success'
+          test -s experiments/cns7-body-ibm-ignition-v1/submission-manifest.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('experiments/cns7-body-ibm-ignition-v1/submission-manifest.json').read_text())
+          assert len(p['jobs']) == 8
+          assert all(j['pub_count'] == 163 for j in p['jobs'])
+          assert p['planned_pubs'] == 1304
+          assert p['planned_hardware_shots'] == 5341184
+          assert p['origin_seed_packet_sha256'] == 'd6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0'
+          print(json.dumps({'submitted_jobs':[(j['stage'],j['job_index'],j['backend'],j['job_id']) for j in p['jobs']]},sort_keys=True))
+          PY
+
+  retrieve-and-analyze:
+    needs: [prehardware, submit-hardware]
+    if: github.event_name == 'push' && needs.submit-hardware.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install IBM runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum]'
+      - name: Download immutable submission manifest and job IDs
+        uses: actions/download-artifact@v4
+        with:
+          name: cns7-ibm-ignition-submissions-${{ github.run_id }}
+          path: experiments/cns7-body-ibm-ignition-v1
+      - name: Retrieve only the eight sealed IBM job IDs
+        id: retrieve
+        continue-on-error: true
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
+        run: |
+          python scripts/run_cns7_ibm_ignition_ibm.py \
+            --mode retrieve \
+            --prereg experiments/cns7-body-ibm-ignition-v1/preregistered-v1/preregistration.json \
+            --prereg-sha-file experiments/cns7-body-ibm-ignition-v1/preregistered-v1/PREREGISTRATION_SHA256 \
+            --manifest experiments/cns7-body-ibm-ignition-v1/submission-manifest.json \
+            --out experiments/cns7-body-ibm-ignition-v1
+      - name: Upload retrieval evidence even on partial failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cns7-ibm-ignition-retrieval-${{ github.run_id }}
+          path: experiments/cns7-body-ibm-ignition-v1/
+          if-no-files-found: error
+      - name: Require full retrieval before analysis
+        run: |
+          test '${{ steps.retrieve.outcome }}' = 'success'
+          test -s experiments/cns7-body-ibm-ignition-v1/measured-readback.json
+          test -s experiments/cns7-body-ibm-ignition-v1/origin-seed-readback.json
+      - name: Analyze body and origin seed separately
+        run: |
+          python scripts/analyze_cns7_ibm_ignition.py \
+            --experiment-root experiments/cns7-body-ibm-ignition-v1 \
+            --prereg experiments/cns7-body-ibm-ignition-v1/preregistered-v1/preregistration.json
+          python - <<'PY'
+          from pathlib import Path
+          from scripts.run_cns7_ibm_ignition_ibm import _write_sha256s
+          _write_sha256s(Path('experiments/cns7-body-ibm-ignition-v1'))
+          PY
+      - name: Verify sealed evidence checksums
+        working-directory: experiments/cns7-body-ibm-ignition-v1
+        run: sha256sum -c SHA256SUMS
+      - name: Upload complete sealed ignition evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: cns7-body-ibm-ignition-v1-${{ github.run_id }}
+          path: experiments/cns7-body-ibm-ignition-v1/
+          if-no-files-found: error
+      - name: Seal completed evidence back to branch without recursion
+        shell: bash
+        run: |
+          set -euo pipefail
+          REMOTE_HEAD="$(git ls-remote origin refs/heads/cns7-body-ibm-ignition-v1 | cut -f1)"
+          test "$REMOTE_HEAD" = "$(git rev-parse HEAD)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add experiments/cns7-body-ibm-ignition-v1
+          git commit -m "evidence: seal CNS7 IBM ignition v1 run ${{ github.run_id }} [skip ci]"
+          git push origin HEAD:cns7-body-ibm-ignition-v1
