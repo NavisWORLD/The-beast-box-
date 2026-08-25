@@ -23,4 +23,4 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install --upgrade pip
       - run: pip install -e '.[dev,quantum]'
-      - run: pytest -q tests/test_cns7_ibm_ignition.py
+      - run: pytest -q tests/test_cns7_ibm_ignition.py tests/test_cns7_ibm_ignition_lifecycle.py
