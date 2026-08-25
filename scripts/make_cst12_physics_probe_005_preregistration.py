@@ -93,8 +93,12 @@ def make_preregistration(
         raise ValueError("Probe 005 effect floor is below the frozen Probe 003 v2 floor")
     if float(thresholds.get("randomization_p_value_max", 1.0)) != P_VALUE_MAX:
         raise ValueError("Probe 005 p-value gate changed")
-    if int(thresholds.get("randomizations_per_real_stage", 0)) != DEFAULT_RANDOMIZATIONS:
-        raise ValueError("Probe 005 real-stage randomization count changed")
+    # Reduced synthetic test runs may use fewer permutations for speed, but the
+    # real-hardware analyzer is always normalized to the frozen 100,000 count.
+    synthetic_randomizations = int(thresholds.get("randomizations_per_real_stage", 0))
+    if synthetic_randomizations < 1:
+        raise ValueError("Probe 005 preflight randomization count is invalid")
+    thresholds["randomizations_per_real_stage"] = DEFAULT_RANDOMIZATIONS
 
     exact_qm = dict(preflight.get("exact_qm", {}))
     if set(exact_qm) != set(SCIENTIFIC_ARMS):
@@ -153,9 +157,12 @@ def make_preregistration(
             "effect_floor_minimum_inherited_from_probe003_v2": EFFECT_FLOOR_MIN,
             "randomization_p_value_max": P_VALUE_MAX,
             "randomizations_per_real_stage": DEFAULT_RANDOMIZATIONS,
+            "synthetic_preflight_randomizations_used": synthetic_randomizations,
             "specificity_required": True,
+            "specificity_rule": "no non-FULL_CST pseudo-target with the FULL_CST sign may reach 0.5 times the absolute FULL_CST effect",
             "leave_one_job_out_stability_required": True,
             "leave_one_layout_out_stability_required": True,
+            "stability_rule": "every leave-one-out FULL_CST effect must retain sign and at least 0.5 times the absolute full-stage effect",
             "same_sign_independent_replication_required_for_anomaly_candidate": True,
         },
         "decision_table": {
