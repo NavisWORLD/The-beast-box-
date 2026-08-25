@@ -1,0 +1,40 @@
+name: CST12 Physics Probe 003 Harmonic Calibration v3
+
+on:
+  push:
+    branches: [cst12-physics-probe-003-harmonic-calibration]
+    paths:
+      - 'beastbox/cst12_probe003_harmonic_calibration.py'
+      - 'scripts/*cst12_physics_probe_003_harmonic_v3*'
+      - 'tests/test_cst12_physics_probe_003_harmonic_v3.py'
+      - 'experiments/cst12-physics-probe-003-harmonic-v3/**'
+      - 'docs/superpowers/specs/2026-08-24-cst12-physics-probe-003-harmonic-v3.md'
+      - '.github/workflows/cst12-physics-probe-003-harmonic-v3.yml'
+  pull_request:
+    branches: [cst12-physics-probe-003]
+    paths:
+      - 'beastbox/cst12_probe003_harmonic_calibration.py'
+      - 'scripts/*cst12_physics_probe_003_harmonic_v3*'
+      - 'tests/test_cst12_physics_probe_003_harmonic_v3.py'
+      - 'experiments/cst12-physics-probe-003-harmonic-v3/**'
+      - 'docs/superpowers/specs/2026-08-24-cst12-physics-probe-003-harmonic-v3.md'
+      - '.github/workflows/cst12-physics-probe-003-harmonic-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install unit-test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+      - name: Run harmonic calibration contract
+        run: pytest -q tests/test_cst12_physics_probe_003_harmonic_v3.py
