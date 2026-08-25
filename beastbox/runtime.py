@@ -7,6 +7,7 @@ from typing import Any
 
 from .bridge import BridgePacket
 from .cns import CNS
+from .cns7_body import CNS7Body, organ_samples_from_cns_state
 from .config import RuntimeConfig
 from .evidence import EvidenceLedger
 from .heartbeat import Heartbeat
@@ -32,6 +33,9 @@ class CosmosRuntime:
     Backbone: perceive -> compress -> expand -> validate -> express -> store.
     A caller may supply a local conversation system prompt; this changes the
     synthesis voice, not host authority or the measured runtime state.
+
+    CNS7 body state belongs to the runtime, not to the text provider. Providers
+    may therefore be swapped while the same 12D/42D/54D body continues.
     """
 
     def __init__(self, config: RuntimeConfig | None = None, provider: TextProvider | None = None) -> None:
@@ -40,6 +44,7 @@ class CosmosRuntime:
         self.memory = ReconciliationMemory(self.config.memory_db)
         self.provider = provider or ReferenceTextProvider()
         self.cns = CNS()
+        self.body = CNS7Body()
         self.synaptic = SynapticField()
         try:
             mode = HeartMode(self.config.quantum_heart_mode)
@@ -63,6 +68,8 @@ class CosmosRuntime:
             {
                 "memory": self.memory.stats(),
                 "cns_step": self.cns.step,
+                "body_epoch": self.body.epochs,
+                "body_hash": None if self.body.fabric.last_frame is None else self.body.fabric.last_frame.sha256,
                 "ledger_valid": self.ledger.verify(),
                 "slow_experiences": self.slow.organism.experiences,
             },
@@ -83,6 +90,7 @@ class CosmosRuntime:
         if fresh and fresh.source.startswith("audio") and not packet.audio_features:
             packet.audio_features = [float(v) for v in fresh.features.values() if isinstance(v, (int, float))]
 
+        packet_dict = packet.safe_dict()
         syn = self.synaptic.step(audio_features=packet.audio_features, quantum_spark=packet.quantum_spark)
         state = MissionState(
             mission_id=f"conversation-{self.turn}",
@@ -92,9 +100,24 @@ class CosmosRuntime:
             audio_features=list(packet.audio_features),
             quantum_spark=list(packet.quantum_spark),
             dyn12=list(syn["states"]["dyn12"]),
-            provenance={"turn": self.turn, "bridge_hash": packet.safe_dict()["packet_sha256"]},
+            provenance={"turn": self.turn, "bridge_hash": packet_dict["packet_sha256"]},
         )
-        cns_state = self.cns.tick(state, packet.safe_dict())
+        cns_state = self.cns.tick(state, packet_dict)
+
+        epoch_id = f"conversation-{self.turn}:cns7"
+        timestamp_ns = time.monotonic_ns()
+        samples = organ_samples_from_cns_state(
+            cns_state,
+            epoch_id=epoch_id,
+            sequence=self.turn,
+            monotonic_ns=timestamp_ns,
+        )
+        frame = self.body.fabric.ingest_many(samples)
+        if frame is None:
+            raise RuntimeError("CNS7 body failed closed: seven-organ epoch did not complete")
+        body_state = self.body.update(frame, dyn12=state.dyn12)
+        body_state["sensor_ids"] = list(frame.sensor_ids)
+
         heart = self.quantum_heart.update(packet.quantum_spark, packet.audio_features)
 
         memory_block = "\n".join(f"- {m.text}" for m in memories) or "- none"
@@ -102,7 +125,10 @@ class CosmosRuntime:
         prompt = (
             f"{synthesis_instructions}\n"
             f"USER INPUT:\n{text}\n\nRETRIEVED MEMORY:\n{memory_block}\n\n"
-            f"DYN12 SUMMARY: min={min(state.dyn12):.4f} max={max(state.dyn12):.4f}\n"
+            f"CNS7 BODY: body_hash={body_state['body_hash']} frame_sha256={body_state['frame_sha256']}\n"
+            f"DYN12 SUMMARY: min={min(body_state['dyn12']):.4f} max={max(body_state['dyn12']):.4f}\n"
+            f"DYN42 SUMMARY: min={min(body_state['dyn42']):.4f} max={max(body_state['dyn42']):.4f}\n"
+            f"DYN54 SUMMARY: min={min(body_state['dyn54']):.4f} max={max(body_state['dyn54']):.4f}\n"
             f"QUANTUM HEART MODE: {heart['mode']}\n"
             "Answer the user input directly."
         )
@@ -111,7 +137,9 @@ class CosmosRuntime:
         response_id = self.memory.store(response, kind="assistant_turn", metadata={"turn": self.turn}, source_ids=[memory_id])
         self.slow.organism.observe(1.0)
         self.slow.evolution.learn("conversation_turn")
-        self.slow.monologue.add(f"turn={self.turn}; evidence={len(memories)}; state={state.digest()[:12]}")
+        self.slow.monologue.add(
+            f"turn={self.turn}; evidence={len(memories)}; state={state.digest()[:12]}; body={body_state['body_hash'][:12]}"
+        )
         ran = self.heartbeat.tick()
         self.ledger.append(
             "conversation_turn",
@@ -122,6 +150,7 @@ class CosmosRuntime:
                 "state_hash": state.digest(),
                 "fresh_sensory": bool(fresh),
                 "cns": cns_state,
+                "body": body_state,
                 "heartbeat_tasks": ran,
             },
         )
@@ -130,6 +159,7 @@ class CosmosRuntime:
             "state_hash": state.digest(),
             "memory_hits": [asdict(m) for m in memories],
             "cns": cns_state,
+            "body": body_state,
             "quantum_heart": heart,
             "ledger_head": self.ledger.head,
         }
