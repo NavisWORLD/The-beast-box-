@@ -21,4 +21,4 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e '.[dev,quantum]'
       - name: Run harmonic v4 contracts
-        run: pytest -q tests/test_cst12_physics_probe_003_harmonic_v4.py
+        run: pytest -q tests/test_cst12_physics_probe_003_harmonic_v4*.py
