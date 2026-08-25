@@ -27,5 +27,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install --upgrade pip
       - run: pip install -e '.[dev]'
+      - name: Record tested head
+        run: git rev-parse HEAD
       - name: CNS7 focused contract
         run: pytest -q tests/test_cns7_body_fabric.py
