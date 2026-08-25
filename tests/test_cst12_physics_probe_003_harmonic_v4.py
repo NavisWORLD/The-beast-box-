@@ -35,7 +35,9 @@ def test_conversion_lock_matches_frozen_probe003_conversion_map():
     assert lock["alpha"] == pytest.approx(expected["alpha"], abs=5e-13)
     assert lock["theta"] == pytest.approx(expected["theta"], abs=5e-13)
     assert lock["lambda_rzz"] == pytest.approx(expected["lambda_rzz"], abs=5e-13)
-    assert lock["chaos_xyz"] == pytest.approx(expected["chaos_xyz"], abs=5e-13)
+    assert len(lock["chaos_xyz"]) == len(expected["chaos_xyz"])
+    for got_triplet, expected_triplet in zip(lock["chaos_xyz"], expected["chaos_xyz"]):
+        assert got_triplet == pytest.approx(expected_triplet, abs=5e-13)
     assert len(lock["sha256"]) == 64
 
 
