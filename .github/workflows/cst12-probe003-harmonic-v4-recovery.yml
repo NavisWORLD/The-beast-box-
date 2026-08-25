@@ -1,0 +1,41 @@
+name: CST12 Probe003 Harmonic v4 Read-Only Recovery
+
+on:
+  push:
+    branches: [cst12-probe003-harmonic-v4-recovery]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install recovery dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum]'
+      - name: Run recovery contracts
+        run: pytest -q tests/test_cst12_probe003_harmonic_v4_recovery.py
+      - name: Inventory only the exact frozen IBM jobs
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
+        run: |
+          python scripts/recover_cst12_probe003_harmonic_v4_ibm.py \
+            --prereg-sha 3f877b4a2b83e0dc06b09cb795524c4cf2744850f8688ace0c71143652772974 \
+            --freeze-sha 8280b4e3e0d804c1ab808ff9bb4afacca4942948 \
+            --output _harmonic_v4_recovery/inventory.json
+      - name: Upload read-only recovery inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cst12-probe003-harmonic-v4-recovery-inventory
+          path: _harmonic_v4_recovery/
+          if-no-files-found: warn
