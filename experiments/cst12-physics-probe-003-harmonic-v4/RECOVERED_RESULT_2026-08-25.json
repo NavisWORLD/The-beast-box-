@@ -1,0 +1,78 @@
+{
+  "schema": "cst12-probe003-harmonic-v4-recovered-result-receipt-v1",
+  "recorded_at_utc": "2026-08-25T15:39:32Z",
+  "original_authorized_workflow_run_id": 32809776366,
+  "original_authorized_hardware_job_id": 97686877105,
+  "original_runner_outcome": "cancelled_at_github_six_hour_execution_boundary_before_analysis",
+  "recovery_workflow_run_id": 32867020315,
+  "recovery_branch": "cst12-probe003-harmonic-v4-recovery",
+  "recovery_head_sha": "91f4d6aa8f7378a9bf9deb84a77c8f6516353660",
+  "recovery_was_read_only_until_existing_result_retrieval": true,
+  "submitted_new_ibm_jobs_during_recovery": false,
+  "matching_original_ibm_jobs": 16,
+  "all_original_ibm_jobs_status": "DONE",
+  "artifact": {
+    "id": 9570540985,
+    "name": "cst12-probe003-harmonic-v4-recovered-evidence-32867020315",
+    "sha256": "5c861d4a44825e75d8910328da759cd231643d669942641c2d33ff7cbc13f8d1",
+    "file_count": 72
+  },
+  "lineage": {
+    "implementation_freeze_commit": "8280b4e3e0d804c1ab808ff9bb4afacca4942948",
+    "preregistration_sha256": "3f877b4a2b83e0dc06b09cb795524c4cf2744850f8688ace0c71143652772974",
+    "cst_conversion_lock_sha256": "78296ee91aaf72fbabf23366d0660a893ad7102d99b8ede47b762f742d17c8d1",
+    "state_packet_sha256": "31b7bc1b4afbf05db49360776d52eafeda69830f36694f789951293338c47e21"
+  },
+  "frozen_gates": {
+    "effect_floor_abs_radians": 0.014365704724149757,
+    "harmonic_holdout_tolerance_radians": 0.019491326173,
+    "randomization_p_value_max": 0.001,
+    "randomizations_per_stage": 100000
+  },
+  "discovery": {
+    "backend": "ibm_fez",
+    "blocks": 32,
+    "jobs": 8,
+    "layouts": 4,
+    "complete": true,
+    "integrity_passed": true,
+    "effect_radians": -0.0551699044157621,
+    "effect_gate": true,
+    "harmonic_stage_median_abs_heldout_mirror_epsilon": 0.17313543868558542,
+    "harmonic_calibration_gate": false,
+    "randomization_p_value": 0.22648773512264878,
+    "p_gate": false,
+    "specificity_gate": false,
+    "leave_one_job_out_passed": true,
+    "leave_one_layout_out_passed": true,
+    "stage_passed": false
+  },
+  "replication": {
+    "backend": "ibm_kingston",
+    "blocks": 32,
+    "jobs": 8,
+    "layouts": 4,
+    "complete": true,
+    "integrity_passed": true,
+    "effect_radians": 0.024691312257111617,
+    "effect_gate": true,
+    "harmonic_stage_median_abs_heldout_mirror_epsilon": 0.2516740933831846,
+    "harmonic_calibration_gate": false,
+    "randomization_p_value": 0.5787942120578794,
+    "p_gate": false,
+    "specificity_gate": false,
+    "leave_one_job_out_passed": true,
+    "leave_one_layout_out_passed": false,
+    "stage_passed": false
+  },
+  "same_sign_replication": false,
+  "independent_backend_replication": true,
+  "final_verdict": "INCONCLUSIVE",
+  "anomaly_candidate": false,
+  "verification": {
+    "recovery_workflow_conclusion": "success",
+    "workflow_checksum_step": "success",
+    "downloaded_artifact_sha256_manifest_verified_locally": true
+  },
+  "claim_boundary": "This result is not evidence of a confirmed physical anomaly, a literal twelfth physical dimension, or a violation of quantum mechanics. The preregistered harmonic calibration gate failed on both independent hardware stages, the randomization p-value gate failed on both stages, specificity failed on both stages, and the measured effects reversed sign between backends."
+}
