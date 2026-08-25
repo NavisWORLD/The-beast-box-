@@ -14,9 +14,6 @@ from beastbox.cst12_physics_probe_004 import SCIENTIFIC_ARMS
 from beastbox.cst12_physics_probe_005 import (
     EXPECTED_CST_CONVERSION_LOCK_SHA256,
     EXPECTED_STATE_PACKET_SHA256,
-    MID_HOLDOUT,
-    POST_BRACKET,
-    PRE_BRACKET,
     REFERENCE_PHASES,
     block_slot_plan,
     cst_conversion_lock,
@@ -66,6 +63,15 @@ def _q999(values: np.ndarray) -> float:
     return _canonical_float(np.quantile(flat, 0.999, method="higher"))
 
 
+def _effect_floor(values: np.ndarray) -> float:
+    """Preserve the exact Probe 003 v2 floor; never round it downward."""
+    flat = np.asarray(values, dtype=float).reshape(-1)
+    if flat.size == 0 or not np.all(np.isfinite(flat)):
+        raise ValueError("Probe 005 effect-floor distribution must be finite and nonempty")
+    synthetic = float(np.quantile(np.abs(flat), 0.999, method="higher"))
+    return float(max(EFFECT_FLOOR_MIN, synthetic))
+
+
 def _rotation_matrix(angle: np.ndarray) -> np.ndarray:
     c = np.cos(angle)
     s = np.sin(angle)
@@ -93,7 +99,6 @@ def _make_map(
 
 
 def _forward_fit_batch(measured: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """measured shape (..., 3, 2), reference order 0,120,240."""
     s3 = math.sqrt(3.0) / 2.0
     design = np.array([[1.0, 0.0, 1.0], [-0.5, s3, 1.0], [-0.5, -s3, 1.0]], dtype=float)
     coeff = np.einsum("ij,...jk->...ik", np.linalg.inv(design), measured)
@@ -126,13 +131,10 @@ def _apply_inverse_batch(measured: np.ndarray, M: np.ndarray, c: np.ndarray) -> 
 def _phase_radius_error(corrected: np.ndarray, ideal: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     z = corrected[..., 0] + 1j * corrected[..., 1]
     target = ideal[..., 0] + 1j * ideal[..., 1]
-    phase = np.abs(np.angle(z * np.conj(target)))
-    radius = np.abs(np.abs(z) - np.abs(target))
-    return phase, radius
+    return np.abs(np.angle(z * np.conj(target))), np.abs(np.abs(z) - np.abs(target))
 
 
 def _stage_effect(residuals: np.ndarray) -> np.ndarray:
-    """residuals shape (batch, stages, blocks, seven science arms)."""
     controls = residuals[..., 1:]
     center = np.angle(np.sum(np.exp(1j * controls), axis=-1))
     delta = np.angle(np.exp(1j * (residuals[..., 0] - center)))
@@ -161,9 +163,9 @@ def _ideal_schedule(packet: Mapping[str, Any]) -> tuple[np.ndarray, list[list[st
 
 def _science_positions(plans: list[list[str]]) -> np.ndarray:
     pos = np.empty((BLOCKS_PER_STAGE, len(SCIENTIFIC_ARMS)), dtype=int)
-    for b, plan in enumerate(plans):
-        for a, arm in enumerate(SCIENTIFIC_ARMS):
-            pos[b, a] = plan.index(arm)
+    for block, plan in enumerate(plans):
+        for arm_idx, arm in enumerate(SCIENTIFIC_ARMS):
+            pos[block, arm_idx] = plan.index(arm)
     return pos
 
 
@@ -194,11 +196,7 @@ def _simulate_batch(
     M0 = _make_map(rot0, gx0, gy0, sxy0, syx0)
     M1 = _make_map(rot1, gx1, gy1, sxy1, syx1)
 
-    mirror0 = rng.uniform(
-        -f["mirror_orientation_bias_abs_max_radians"],
-        f["mirror_orientation_bias_abs_max_radians"],
-        size=shape,
-    )
+    mirror0 = rng.uniform(-f["mirror_orientation_bias_abs_max_radians"], f["mirror_orientation_bias_abs_max_radians"], size=shape)
     mirror1 = mirror0 + rng.uniform(
         -d["mirror_orientation_endpoint_delta_abs_max_radians"],
         d["mirror_orientation_endpoint_delta_abs_max_radians"],
@@ -206,23 +204,17 @@ def _simulate_batch(
     )
 
     t = np.arange(20, dtype=float) / 19.0
-    M_t = (1.0 - t[None, None, None, :, None, None]) * M0[..., None, :, :] + t[
-        None, None, None, :, None, None
-    ] * M1[..., None, :, :]
-    c_t = (1.0 - t[None, None, None, :, None]) * bias0[..., None, :] + t[
-        None, None, None, :, None
-    ] * bias1[..., None, :]
+    M_t = (1.0 - t[None, None, None, :, None, None]) * M0[..., None, :, :] + t[None, None, None, :, None, None] * M1[..., None, :, :]
+    c_t = (1.0 - t[None, None, None, :, None]) * bias0[..., None, :] + t[None, None, None, :, None] * bias1[..., None, :]
 
     ideal = np.broadcast_to(ideal_schedule[None, None, ...], (batch, STAGES) + ideal_schedule.shape).copy()
-    # Direction-specific mirror phase is a physical-channel stressor, not a fitted correction.
     for idx, sign in ((4, 1.0), (5, -1.0), (14, -1.0), (15, 1.0)):
-        mt = (1.0 - t[idx]) * mirror0 + t[idx] * mirror1
-        ideal[..., idx, 0] = np.cos(sign * mt)
-        ideal[..., idx, 1] = np.sin(sign * mt)
+        mirror_t = (1.0 - t[idx]) * mirror0 + t[idx] * mirror1
+        ideal[..., idx, 0] = np.cos(sign * mirror_t)
+        ideal[..., idx, 1] = np.sin(sign * mirror_t)
 
     mean = np.einsum("...ij,...j->...i", M_t, ideal) + c_t
     corruption = float(f["reference_corruption_abs_max"])
-    # Only the six fit references are corrupted; holdouts stay blind.
     for idx in (0, 1, 2, 17, 18, 19):
         mean[..., idx, :] += rng.uniform(-corruption, corruption, size=shape + (2,))
     mean = np.clip(mean, -0.999999, 0.999999)
@@ -232,20 +224,13 @@ def _simulate_batch(
     measured = 1.0 - 2.0 * ones / float(SHOTS_PER_PUB)
 
     pre_M, pre_c, pre_cond = _forward_fit_batch(measured[..., [0, 1, 2], :])
-    # Reorder post fit references to ideal order REF_0, REF_120, REF_240.
     post_M, post_c, post_cond = _forward_fit_batch(measured[..., [19, 18, 17], :])
-
-    M_fit_t = (1.0 - t[None, None, None, :, None, None]) * pre_M[..., None, :, :] + t[
-        None, None, None, :, None, None
-    ] * post_M[..., None, :, :]
-    c_fit_t = (1.0 - t[None, None, None, :, None]) * pre_c[..., None, :] + t[
-        None, None, None, :, None
-    ] * post_c[..., None, :]
+    M_fit_t = (1.0 - t[None, None, None, :, None, None]) * pre_M[..., None, :, :] + t[None, None, None, :, None, None] * post_M[..., None, :, :]
+    c_fit_t = (1.0 - t[None, None, None, :, None]) * pre_c[..., None, :] + t[None, None, None, :, None] * post_c[..., None, :]
     corrected = _apply_inverse_batch(measured, M_fit_t, c_fit_t)
 
     ideal_nominal = np.broadcast_to(ideal_schedule[None, None, ...], corrected.shape)
     phase_err, radius_err = _phase_radius_error(corrected, ideal_nominal)
-
     endpoint_phase = np.median(np.stack([phase_err[..., 3], phase_err[..., 16]], axis=-1), axis=(-1, -2))
     endpoint_radius = np.median(np.stack([radius_err[..., 3], radius_err[..., 16]], axis=-1), axis=(-1, -2))
     midpoint_phase = np.median(phase_err[..., 9], axis=-1)
@@ -264,7 +249,6 @@ def _simulate_batch(
     mirror_anti = np.median(np.stack([np.abs(pre_anti), np.abs(post_anti)], axis=-1), axis=(-1, -2))
     mirror_common_drift = np.median(np.abs(np.angle(np.exp(1j * (post_common - pre_common)))), axis=-1)
     mirror_anti_drift = np.median(np.abs(post_anti - pre_anti), axis=-1)
-
     condition_max = np.maximum(np.max(pre_cond, axis=-1), np.max(post_cond, axis=-1))
 
     residuals = np.empty((batch, STAGES, BLOCKS_PER_STAGE, len(SCIENTIFIC_ARMS)), dtype=float)
@@ -320,21 +304,19 @@ def run_preflight(
     ideal_schedule, plans, exact = _ideal_schedule(packet)
     science_positions = _science_positions(plans)
     rng = np.random.default_rng(FROZEN_SEEDS["synthetic"])
-    collected: dict[str, list[np.ndarray]] = {
-        key: []
-        for key in (
-            "effect",
-            "endpoint_phase",
-            "endpoint_radius",
-            "midpoint_phase",
-            "midpoint_radius",
-            "mirror_common",
-            "mirror_anti",
-            "mirror_common_drift",
-            "mirror_anti_drift",
-            "condition_max",
-        )
-    }
+    keys = (
+        "effect",
+        "endpoint_phase",
+        "endpoint_radius",
+        "midpoint_phase",
+        "midpoint_radius",
+        "mirror_common",
+        "mirror_anti",
+        "mirror_common_drift",
+        "mirror_anti_drift",
+        "condition_max",
+    )
+    collected: dict[str, list[np.ndarray]] = {key: [] for key in keys}
     left = n
     while left:
         batch = min(BATCH_SIZE, left)
@@ -345,7 +327,7 @@ def run_preflight(
     arrays = {key: np.concatenate(parts, axis=0) for key, parts in collected.items()}
 
     thresholds = {
-        "effect_floor_abs_radians": _canonical_float(max(EFFECT_FLOOR_MIN, _q999(np.abs(arrays["effect"])))),
+        "effect_floor_abs_radians": _effect_floor(arrays["effect"]),
         "endpoint_holdout_phase_tolerance_radians": _q999(arrays["endpoint_phase"]),
         "endpoint_holdout_radius_tolerance": _q999(arrays["endpoint_radius"]),
         "midpoint_holdout_phase_tolerance_radians": _q999(arrays["midpoint_phase"]),
@@ -359,7 +341,7 @@ def run_preflight(
         "randomizations_per_real_stage": rands,
     }
 
-    cal = (
+    calibration_valid = (
         (arrays["endpoint_phase"] <= thresholds["endpoint_holdout_phase_tolerance_radians"])
         & (arrays["endpoint_radius"] <= thresholds["endpoint_holdout_radius_tolerance"])
         & (arrays["midpoint_phase"] <= thresholds["midpoint_holdout_phase_tolerance_radians"])
@@ -372,7 +354,7 @@ def run_preflight(
     )
     effect_gate = np.abs(arrays["effect"]) >= thresholds["effect_floor_abs_radians"]
     same_sign = np.sign(arrays["effect"][:, 0]) == np.sign(arrays["effect"][:, 1])
-    conservative = cal[:, 0] & cal[:, 1] & effect_gate[:, 0] & effect_gate[:, 1] & same_sign
+    conservative = calibration_valid[:, 0] & calibration_valid[:, 1] & effect_gate[:, 0] & effect_gate[:, 1] & same_sign
     conservative_count = int(np.count_nonzero(conservative))
 
     exact_table = {
@@ -384,11 +366,8 @@ def run_preflight(
         }
         for arm, value in exact.items()
     }
-    semantic_sensitivity = {
-        arm: float(abs(exact[arm] - exact["FULL_CST"]))
-        for arm in SCIENTIFIC_ARMS[1:]
-    }
-    receipt = {
+    semantic_sensitivity = {arm: float(abs(exact[arm] - exact["FULL_CST"])) for arm in SCIENTIFIC_ARMS[1:]}
+    return {
         "schema": "cst12-physics-probe-005-preflight-v1",
         "probe_id": "cst12-physics-probe-005",
         "implementation_freeze_commit": freeze,
@@ -401,7 +380,7 @@ def run_preflight(
             "quantile": 0.999,
             "method": "higher",
             "uses_prior_probe_hardware_values": False,
-            "effect_floor_rule": "max(Probe003-v2 frozen effect floor, q999 absolute Probe005 synthetic null effect)",
+            "effect_floor_rule": "max(Probe003-v2 frozen effect floor, q999 absolute Probe005 synthetic null effect) without downward decimal rounding",
             "calibration_tolerance_rule": "q999 of each stage-level blind calibration diagnostic under the frozen Probe005 synthetic distortion family",
             "false_positive_definition": "conservative upper bound requiring both stages calibration-valid, both effects above floor, and same sign; later p-value, specificity, job-stability, and layout-stability gates are not credited and can only reduce this count",
         },
@@ -433,7 +412,6 @@ def run_preflight(
             "mirrors": "PM/MP direction diagnostics only; never fitted into or subtracted from scientific residuals",
         },
     }
-    return receipt
 
 
 def main() -> int:
@@ -452,20 +430,12 @@ def main() -> int:
         randomizations=args.randomizations,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        json.dumps(receipt, indent=2, sort_keys=True, ensure_ascii=False, allow_nan=False) + "\n",
-        encoding="utf-8",
-    )
-    print(
-        json.dumps(
-            {
-                "datasets": receipt["synthetic_null"]["datasets"],
-                "false_positive_count": receipt["synthetic_null"]["false_positive_count"],
-                "effect_floor": receipt["thresholds"]["effect_floor_abs_radians"],
-            },
-            sort_keys=True,
-        )
-    )
+    args.output.write_text(json.dumps(receipt, indent=2, sort_keys=True, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")
+    print(json.dumps({
+        "datasets": receipt["synthetic_null"]["datasets"],
+        "false_positive_count": receipt["synthetic_null"]["false_positive_count"],
+        "effect_floor": receipt["thresholds"]["effect_floor_abs_radians"],
+    }, sort_keys=True))
     return 0
 
 
