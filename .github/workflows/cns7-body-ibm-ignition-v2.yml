@@ -28,3 +28,49 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: pip install -e '.[dev,quantum]'
       - run: pytest -q tests/test_cns7_ibm_ignition_v2.py tests/test_cns7_ibm_ignition_v2_preflight.py
+
+  preflight-10k:
+    needs: contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev,quantum]'
+      - name: Full repository regression before V2 freeze
+        run: pytest -q
+      - name: Run full hardware-blind V2 preflight A
+        run: |
+          python scripts/preflight_cns7_ibm_ignition_v2.py \
+            --datasets 10000 \
+            --seed 787826 \
+            --trajectory-output experiments/cns7-body-ibm-ignition-v2/prehardware-a/trajectory.json \
+            --preflight-output experiments/cns7-body-ibm-ignition-v2/prehardware-a/preflight.json \
+            --sha-output experiments/cns7-body-ibm-ignition-v2/prehardware-a/PREFLIGHT_SHA256
+      - name: Run full hardware-blind V2 preflight B
+        run: |
+          python scripts/preflight_cns7_ibm_ignition_v2.py \
+            --datasets 10000 \
+            --seed 787826 \
+            --trajectory-output experiments/cns7-body-ibm-ignition-v2/prehardware-b/trajectory.json \
+            --preflight-output experiments/cns7-body-ibm-ignition-v2/prehardware-b/preflight.json \
+            --sha-output experiments/cns7-body-ibm-ignition-v2/prehardware-b/PREFLIGHT_SHA256
+      - name: Require byte-identical V2 trajectory and preflight receipts
+        run: |
+          cmp experiments/cns7-body-ibm-ignition-v2/prehardware-a/trajectory.json experiments/cns7-body-ibm-ignition-v2/prehardware-b/trajectory.json
+          cmp experiments/cns7-body-ibm-ignition-v2/prehardware-a/preflight.json experiments/cns7-body-ibm-ignition-v2/prehardware-b/preflight.json
+          cmp experiments/cns7-body-ibm-ignition-v2/prehardware-a/PREFLIGHT_SHA256 experiments/cns7-body-ibm-ignition-v2/prehardware-b/PREFLIGHT_SHA256
+          sha256sum experiments/cns7-body-ibm-ignition-v2/prehardware-a/trajectory.json
+          sha256sum experiments/cns7-body-ibm-ignition-v2/prehardware-a/preflight.json
+          cat experiments/cns7-body-ibm-ignition-v2/prehardware-a/preflight.json
+      - name: Upload V2 prehardware freeze candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: cns7-ibm-ignition-v2-prehardware-${{ github.sha }}
+          path: |
+            experiments/cns7-body-ibm-ignition-v2/DESIGN.md
+            experiments/cns7-body-ibm-ignition-v2/prehardware-a/
+          if-no-files-found: error
