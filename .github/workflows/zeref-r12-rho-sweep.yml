@@ -1,0 +1,30 @@
+name: Zeref R12 Rho Sweep
+
+on:
+  push:
+    branches:
+      - zeref-r12-rho-sweep-001
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  red-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install project test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pip install numpy
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Verify existing repository before rho sweep contract
+        run: pytest -q --ignore=tests/test_zeref_r12_rho_sweep.py
+      - name: Run rho sweep RED contract
+        run: pytest -q tests/test_zeref_r12_rho_sweep.py
