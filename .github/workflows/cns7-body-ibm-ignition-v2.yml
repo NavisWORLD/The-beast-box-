@@ -27,7 +27,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install --upgrade pip
       - run: pip install -e '.[dev,quantum]'
-      - run: pytest -q tests/test_cns7_ibm_ignition_v2.py tests/test_cns7_ibm_ignition_v2_preflight.py
+      - run: pytest -q tests/test_cns7_ibm_ignition_v2.py tests/test_cns7_ibm_ignition_v2_preflight.py tests/test_cns7_ibm_ignition_v2_hardware.py
 
   preflight-10k:
     needs: contract
@@ -40,7 +40,14 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install --upgrade pip
       - run: pip install -e '.[dev,quantum]'
-      - name: Full repository regression before V2 freeze
+      - name: Prove frozen V2 scientific core is unchanged
+        run: |
+          git diff --exit-code 49e41897877797d570291d0f4a96e411ff379209..HEAD -- \
+            beastbox/cns7_ibm_ignition_v2.py \
+            beastbox/cns7_ibm_ignition_v2_preflight.py \
+            scripts/preflight_cns7_ibm_ignition_v2.py \
+            experiments/cns7-body-ibm-ignition-v2/DESIGN.md
+      - name: Full repository regression before V2 execution freeze
         run: pytest -q
       - name: Run full hardware-blind V2 preflight A
         run: |
@@ -63,10 +70,9 @@ jobs:
           cmp experiments/cns7-body-ibm-ignition-v2/prehardware-a/trajectory.json experiments/cns7-body-ibm-ignition-v2/prehardware-b/trajectory.json
           cmp experiments/cns7-body-ibm-ignition-v2/prehardware-a/preflight.json experiments/cns7-body-ibm-ignition-v2/prehardware-b/preflight.json
           cmp experiments/cns7-body-ibm-ignition-v2/prehardware-a/PREFLIGHT_SHA256 experiments/cns7-body-ibm-ignition-v2/prehardware-b/PREFLIGHT_SHA256
-          sha256sum experiments/cns7-body-ibm-ignition-v2/prehardware-a/trajectory.json
-          sha256sum experiments/cns7-body-ibm-ignition-v2/prehardware-a/preflight.json
-          cat experiments/cns7-body-ibm-ignition-v2/prehardware-a/preflight.json
-      - name: Upload V2 prehardware freeze candidate
+          test "$(sha256sum experiments/cns7-body-ibm-ignition-v2/prehardware-a/trajectory.json | cut -d' ' -f1)" = f42b284057a0be7e8b77524a3f3f6fae97c65af2d9548e69fbfdc52d8b7080fb
+          test "$(sha256sum experiments/cns7-body-ibm-ignition-v2/prehardware-a/preflight.json | cut -d' ' -f1)" = da5b73fcab70141a91c79d76732eaa1437ae7841b2e1ffc20c6b44ea9f3aa19d
+      - name: Upload V2 execution freeze candidate
         uses: actions/upload-artifact@v4
         with:
           name: cns7-ibm-ignition-v2-prehardware-${{ github.sha }}
