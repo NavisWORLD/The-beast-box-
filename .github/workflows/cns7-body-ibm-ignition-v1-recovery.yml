@@ -35,16 +35,46 @@ jobs:
       - name: Verify recovery contracts
         run: pytest -q tests/test_cns7_ibm_ignition_recovery.py tests/test_cns7_ibm_ignition.py tests/test_cns7_ibm_ignition_lifecycle.py
 
-      - name: Prove frozen experiment code is unchanged
+      - name: Prove frozen scientific code is unchanged
         run: |
           git diff --exit-code f8810b8ce46d111d8c39dc4d625efbe5526f01a8 -- \
             beastbox/cns7_ibm_ignition.py \
             scripts/run_cns7_ibm_ignition_ibm.py \
             scripts/analyze_cns7_ibm_ignition.py \
             scripts/preflight_cns7_ibm_ignition.py \
-            scripts/make_cns7_ibm_ignition_preregistration.py \
-            experiments/cns7-body-ibm-ignition-v1/preregistered-v1 \
-            experiments/cns7-body-ibm-ignition-v1/RUN_APPROVED_ORIGIN_SEED_V1.json
+            scripts/make_cns7_ibm_ignition_preregistration.py
+
+      - name: Verify frozen preregistration and approval hashes
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+
+          root = Path('experiments/cns7-body-ibm-ignition-v1')
+          prereg_path = root/'preregistered-v1'/'preregistration.json'
+          sha_path = root/'preregistered-v1'/'PREREGISTRATION_SHA256'
+          approval_path = root/'RUN_APPROVED_ORIGIN_SEED_V1.json'
+
+          expected_prereg = '92b6ecb7231dda6d678a3145cc9cf93b6d9563c50ecdbe8f119497e84d474dae'
+          expected_freeze = 'f8810b8ce46d111d8c39dc4d625efbe5526f01a8'
+          expected_seed = 'd6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0'
+
+          computed = hashlib.sha256(prereg_path.read_bytes()).hexdigest()
+          recorded = sha_path.read_text(encoding='utf-8').strip()
+          approval = json.loads(approval_path.read_text(encoding='utf-8'))
+
+          assert computed == recorded == expected_prereg
+          assert approval['approved'] is True
+          assert approval['preregistration_sha256'] == expected_prereg
+          assert approval['implementation_freeze_commit'] == expected_freeze
+          assert approval['origin_seed_packet_sha256'] == expected_seed
+          assert approval['planned_hardware_shots'] == 5_341_184
+          assert approval['planned_pubs'] == 1_304
+          assert approval['scientific_change_after_preregistration'] is False
+          assert approval['all_jobs_submitted_before_any_result_retrieval'] is True
+          print('preregistration_sha256=', computed)
+          print('approval=BOUND')
+          PY
 
       - name: Download preserved 6-of-8 retrieval evidence
         uses: actions/download-artifact@v4
