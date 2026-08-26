@@ -21,7 +21,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install 'qiskit>=2.5.0' 'qiskit-ibm-runtime>=0.49.0'
-      - name: Read-only inspect current V2 lineage
+      - name: Read-only inspect current V2 lineage across instances
         env:
           IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
           IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
@@ -34,39 +34,67 @@ jobs:
           token=os.environ.get('IBM_QUANTUM_TOKEN','').strip()
           if not token:
               raise RuntimeError('IBM_QUANTUM_TOKEN is empty')
-          kwargs={'channel':'ibm_quantum_platform','token':token}
-          instance=os.environ.get('IBM_QUANTUM_INSTANCE','').strip()
-          if instance:
-              kwargs['instance']=instance
-          service=QiskitRuntimeService(**kwargs)
 
-          required=['cns7-body-ibm-ignition-v2','prereg-4a500ea2']
-          jobs=list(service.jobs(limit=100, job_tags=required, descending=True))
-          rows=[]
-          done=[]
-          for job in jobs:
-              status_obj=job.status()
-              status=str(getattr(status_obj,'name',status_obj)).upper().split('.')[-1]
+          experiment='cns7-body-ibm-ignition-v2'
+          prereg='prereg-4a500ea2'
+          freeze='freeze-a52824cc'
+          candidates=[]
+          explicit=os.environ.get('IBM_QUANTUM_INSTANCE','').strip()
+          if explicit:
+              candidates.append(explicit)
+          for name in ('open-instance','Cosmo'):
+              if name not in candidates:
+                  candidates.append(name)
+          candidates.append(None)
+
+          seen={}
+          service_errors=[]
+          for instance in candidates:
+              kwargs={'channel':'ibm_quantum_platform','token':token}
+              if instance:
+                  kwargs['instance']=instance
               try:
-                  metrics=job.metrics()
-                  if not isinstance(metrics,dict): metrics={'raw':str(metrics)}
+                  service=QiskitRuntimeService(**kwargs)
+                  jobs=list(service.jobs(limit=250, descending=True))
               except Exception as exc:
-                  metrics={'metrics_error':f'{type(exc).__name__}:{exc}'}
-              tags=list(getattr(job,'tags',[]) or [])
-              backend=getattr(job,'backend',None)
-              backend_name=''
-              if backend is not None:
-                  value=getattr(backend,'name','')
-                  backend_name=str(value() if callable(value) else value)
-              row={'job_id':str(job.job_id()),'status':status,'backend':backend_name,'tags':tags,'metrics':metrics}
-              rows.append(row)
-              if status=='DONE': done.append((job,row))
+                  service_errors.append({'instance':instance,'error':f'{type(exc).__name__}:{exc}'})
+                  continue
+              for job in jobs:
+                  try:
+                      tags=list(getattr(job,'tags',[]) or [])
+                  except Exception:
+                      tags=[]
+                  if experiment not in tags and prereg not in tags and freeze not in tags:
+                      continue
+                  jid=str(job.job_id())
+                  if jid in seen:
+                      continue
+                  status_obj=job.status()
+                  status=str(getattr(status_obj,'name',status_obj)).upper().split('.')[-1]
+                  try:
+                      metrics=job.metrics()
+                      if not isinstance(metrics,dict): metrics={'raw':str(metrics)}
+                  except Exception as exc:
+                      metrics={'metrics_error':f'{type(exc).__name__}:{exc}'}
+                  backend=getattr(job,'backend',None)
+                  backend_name=''
+                  if backend is not None:
+                      value=getattr(backend,'name','')
+                      backend_name=str(value() if callable(value) else value)
+                  seen[jid]={'job':job,'instance':instance,'row':{'job_id':jid,'status':status,'backend':backend_name,'tags':tags,'metrics':metrics,'instance_query':instance}}
 
+          ordered=list(seen.values())
+          ordered.sort(key=lambda x:x['row']['job_id'])
           out=Path('_live_v2_inspect'); out.mkdir(exist_ok=True)
-          (out/'statuses.json').write_text(json.dumps({'required_tags':required,'job_count':len(rows),'jobs':rows},indent=2,sort_keys=True,default=str)+'\n')
+          rows=[x['row'] for x in ordered]
+          (out/'statuses.json').write_text(json.dumps({'job_count':len(rows),'jobs':rows,'service_errors':service_errors},indent=2,sort_keys=True,default=str)+'\n')
 
           pulled=[]
-          for job,row in done:
+          for item in ordered:
+              row=item['row']
+              if row['status']!='DONE':
+                  continue
+              job=item['job']
               result=job.result()
               pubs=[]
               for idx,pub in enumerate(result):
@@ -74,7 +102,7 @@ jobs:
                   pubs.append({'pub_index':idx,'counts':counts,'shots':sum(counts.values())})
               pulled.append({**row,'pub_count':len(pubs),'pubs':pubs})
           (out/'done-results.json').write_text(json.dumps({'done_job_count':len(pulled),'jobs':pulled},indent=2,sort_keys=True,default=str)+'\n')
-          print(json.dumps({'matching_jobs':len(rows),'done_jobs':len(pulled),'statuses':[{'job_id':r['job_id'],'status':r['status'],'backend':r['backend'],'tags':r['tags']} for r in rows]},sort_keys=True))
+          print(json.dumps({'matching_jobs':len(rows),'done_jobs':len(pulled),'statuses':[{'job_id':r['job_id'],'status':r['status'],'backend':r['backend'],'tags':r['tags'],'instance_query':r['instance_query']} for r in rows],'service_errors':service_errors},sort_keys=True))
           PY
       - uses: actions/upload-artifact@v4
         with:
