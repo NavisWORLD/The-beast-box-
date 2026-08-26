@@ -17,6 +17,7 @@ from scripts.run_zeref_r12_rho_sweep import (
     force_probe_rho,
     rank_with_frozen_clock,
 )
+from scripts.run_zeref_r12_rho_sweep_sanitized import adjacent_pairs
 
 PARENT = "b" * 64
 
@@ -65,6 +66,11 @@ def test_supplement_is_sanitized_to_frozen_tokenizer_vocabulary():
     stoi = {"a": 0, "b": 1, " ": 2}
     assert sanitize_for_frozen_tokenizer("a💀b", stoi) == "a b"
     assert sanitize_for_frozen_tokenizer("💀💀", stoi) == ""
+
+
+def test_six_rho_conditions_have_exactly_five_adjacent_pairs():
+    pairs = adjacent_pairs(list(RHO_GRID))
+    assert pairs == [(0.0, 0.2), (0.2, 0.4), (0.4, 0.6), (0.6, 0.8), (0.8, 1.0)]
 
 
 def test_frozen_wire_contains_no_rho_or_r12_hash_text():
