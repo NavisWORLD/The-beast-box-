@@ -1,0 +1,86 @@
+{
+  "schema": "beastbox.cns7.ibm-ignition-partial-result.v1",
+  "recorded_date": "2026-08-25",
+  "original_run_id": 32909483099,
+  "recovery_run_id": 32914331172,
+  "implementation_freeze_commit": "f8810b8ce46d111d8c39dc4d625efbe5526f01a8",
+  "preregistration_sha256": "92b6ecb7231dda6d678a3145cc9cf93b6d9563c50ecdbe8f119497e84d474dae",
+  "origin_seed_packet_sha256": "d6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0",
+  "planned_jobs": 8,
+  "complete_jobs": 7,
+  "missing_jobs": 1,
+  "complete_job_ids": [
+    "da721susidac73aepo20",
+    "da721te0ukec7382n6b0",
+    "da721trsq5js73bjcclg",
+    "da721uc6l22c73dn08ag",
+    "da721us6l22c73dn08bg",
+    "da721ve0ukec7382n6dg",
+    "da7220c6l22c73dn08e0"
+  ],
+  "missing_job": {
+    "stage": "replication",
+    "backend": "ibm_kingston",
+    "job_index": 2,
+    "job_id": "da721vu0ukec7382n6f0",
+    "status_before_result": "ERROR",
+    "result_retrieval_error_code": 1319,
+    "result_retrieval_error": "Job was out of sync and in an unexpected state",
+    "bounded_recovery_attempts": 4,
+    "all_recovery_attempts_returned_same_1319": true
+  },
+  "new_hardware_jobs_submitted_during_recovery": 0,
+  "new_hardware_shots_submitted_during_recovery": 0,
+  "frozen_analyzer_executed": false,
+  "formal_experiment_status": "INCONCLUSIVE_DUE_TO_INCOMPLETE_HARDWARE_EVIDENCE",
+  "frozen_limits": {
+    "stage_rmse_max": 0.0167094171819,
+    "stage_max_abs_error_max": 0.0732501970974,
+    "cross_backend_rmse_max": 0.0236643888216
+  },
+  "complete_discovery_stage": {
+    "backend": "ibm_fez",
+    "body_pubs": 648,
+    "rmse": 0.025064825885484684,
+    "max_abs_error": 0.09580542770825701,
+    "mean_error": 0.013886712414975824,
+    "median_abs_error": 0.015382059601627005,
+    "rmse_gate_pass": false,
+    "max_abs_error_gate_pass": false,
+    "reproducible_readback_already_ruled_out_by_complete_discovery_stage": true
+  },
+  "partial_replication_descriptive_only": {
+    "backend": "ibm_kingston",
+    "available_body_pubs": 486,
+    "available_epochs": [1, 2, 3, 4, 5, 6, 10, 11, 12],
+    "missing_epochs_due_to_failed_job": [7, 8, 9],
+    "rmse_on_available_rows": 0.0300378408895901,
+    "max_abs_error_on_available_rows": 0.1500098917899275,
+    "mean_error_on_available_rows": 0.014712328646767024,
+    "median_abs_error_on_available_rows": 0.015964405400899957,
+    "not_a_preregistered_stage_verdict": true
+  },
+  "overlap_descriptive_only": {
+    "matched_body_coordinates": 486,
+    "cross_backend_rmse_on_available_overlap": 0.03464867608850146,
+    "not_a_preregistered_cross_backend_verdict": true
+  },
+  "origin_seed_descriptive_only": {
+    "available_seed_repetitions": 7,
+    "discovery_repetitions": 4,
+    "replication_repetitions": 3,
+    "mean_pairwise_tv_within_discovery": 0.047281901041666664,
+    "mean_pairwise_tv_within_replication": 0.041422526041666664,
+    "tv_between_available_backend_mean_histograms": 0.24412027994791666,
+    "used_to_set_body_verdict": false,
+    "interpretation": "Descriptive hardware-dependent companion-circuit readback only; no anomaly, entropy, biological identity, or consciousness inference."
+  },
+  "recovery_evidence": {
+    "artifact_id": 9587625579,
+    "artifact_sha256": "42750819420fb744f31a7d596e62d7eb6926b6227dc786164b2e9d70407536f5",
+    "recovery_report_sha256": "2f14124733a101c8b69c01bef85e7f390ea5751ec1830e550bce60c8db65dc3b",
+    "recovered_job_3_results_sha256": "6b9355a5bafe521ad3978c0c882c5c2466bf17afd1278dc7da4a3888f373ef62",
+    "recovered_job_3_verification_sha256": "a74858223344c8c508932f09fce6bc1a76a53e62f498c903ca7e49635abd8f49"
+  },
+  "claim_boundary": "This receipt preserves a seven-of-eight hardware snapshot. The preregistered final analyzer was not run because one original IBM job has terminal ERROR state and no result. No replacement hardware was submitted."
+}
