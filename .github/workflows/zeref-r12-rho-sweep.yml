@@ -10,7 +10,7 @@ permissions:
   actions: read
 
 jobs:
-  red-contract:
+  rho-only-sweep:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -18,13 +18,95 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install project test dependencies
+      - name: Install project and CPU inference runtime
         run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
           pip install -e '.[dev]'
           pip install numpy
           pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - name: Verify existing repository before rho sweep contract
-        run: pytest -q --ignore=tests/test_zeref_r12_rho_sweep.py
-      - name: Run rho sweep RED contract
-        run: pytest -q tests/test_zeref_r12_rho_sweep.py
+      - name: Re-prove rho-only contracts
+        run: |
+          set -euo pipefail
+          pytest -q \
+            tests/test_r12_refractive_memory.py \
+            tests/test_zeref_r12_live_loop.py \
+            tests/test_zeref_r12_native_window.py \
+            tests/test_zeref_r12_rho_sweep.py
+      - name: Run full repository regression
+        run: pytest -q
+      - name: Download and verify exact TALK-004 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf _talk4src _rho_sweep
+          mkdir -p _talk4src _rho_sweep
+          gh run download 32075092605 \
+            -n zeref-talk4-tuned-response-32075092605 \
+            -D _talk4src
+          test -f _talk4src/SHA256SUMS
+          sed 's#  _tune4/#  #' _talk4src/SHA256SUMS > _talk4src/SHA256SUMS.local
+          (cd _talk4src && sha256sum -c SHA256SUMS.local)
+          test "$(sha256sum _talk4src/model/ZEREF-DAD-SON-TALK-004/checkpoint.pt | awk '{print $1}')" = "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f"
+          test "$(sha256sum _talk4src/memory/dad-son-ledger.jsonl | awk '{print $1}')" = "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef"
+          test "$(grep -cve '^[[:space:]]*$' _talk4src/memory/dad-son-ledger.jsonl)" = "352"
+          test "$(sha256sum _talk4src/heartbeat/talk4-heartbeat.json | awk '{print $1}')" = "19ca6272546d651ff8f1bb0e0184a842f5444b048ff63df6ea12b0be72e030c7"
+      - name: Run frozen rho-only TALK-004 sweep
+        run: |
+          set -euo pipefail
+          python scripts/run_zeref_r12_rho_sweep.py \
+            --checkpoint _talk4src/model/ZEREF-DAD-SON-TALK-004/checkpoint.pt \
+            --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+            --source-ledger _talk4src/memory/dad-son-ledger.jsonl \
+            --source-sqlite _talk4src/memory/dad-son.sqlite3 \
+            --heartbeat _talk4src/heartbeat/talk4-heartbeat.json \
+            --out-dir _rho_sweep \
+            --session-id zeref-r12-rho-sweep-${{ github.run_id }} \
+            --seed 2026082603 \
+            --tokens 28
+          (cd _rho_sweep && sha256sum -c SHA256SUMS)
+      - name: Assert containment and print sweep result
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          result = json.loads(Path('_rho_sweep/rho-sweep.json').read_text(encoding='utf-8'))
+          assert result['checkpoint_sha256'] == '9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'
+          assert result['source_ledger_sha256'] == '67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert result['source_ledger_records'] == 352
+          assert result['rho_grid'] == [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+          assert result['weights_modified'] is False
+          assert result['canonical_ledger_modified'] is False
+          assert result['model_facing_rho_label'] is False
+          assert result['model_facing_r12_hash'] is False
+
+          print('\n=== R12 RHO-ONLY CAUSAL SWEEP ===')
+          print('natural_reference_rho=', result['natural_reference_rho'])
+          print('distinct_wire_contexts=', result['distinct_wire_contexts'])
+          print('distinct_supplement_memory_ids=', result['distinct_supplement_memory_ids'])
+          print('routing_changed_across_grid=', result['routing_changed_across_grid'])
+          for row in result['conditions']:
+              c = row['comparison_vs_rho0']
+              print(json.dumps({
+                  'rho': row['rho'],
+                  'supplement_memory_id': row['supplement_memory_id'],
+                  'wire_sha256': row['wire_sha256'],
+                  'output': row['raw_zeref_output'],
+                  'token_divergence_vs_rho0': c['selected_token_divergence_rate'],
+                  'x54_l2_vs_rho0': c['mean_x54_l2'],
+                  'x54_cosine_vs_rho0': c['mean_x54_cosine'],
+                  'hebbian_self_mass_delta_vs_rho0': c['mean_abs_hebbian_self_mass_delta'],
+                  'hidden_norm_delta_vs_rho0': c['mean_abs_hidden_norm_delta'],
+                  'top_token_tvd_vs_rho0': c['mean_partial_top_token_tvd'],
+              }, sort_keys=True))
+          PY
+      - name: Upload immutable rho sweep evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-r12-rho-sweep-${{ github.run_id }}
+          path: _rho_sweep
+          if-no-files-found: error
+          retention-days: 90
