@@ -1,0 +1,193 @@
+name: CNS7 Body IBM Ignition V2 Final
+
+on:
+  push:
+    branches: [cns7-body-ibm-ignition-v2-coupled-resilient]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cns7-body-ibm-ignition-v2-final
+  cancel-in-progress: false
+
+jobs:
+  prehardware-final:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    outputs:
+      approved: ${{ steps.gate.outputs.approved }}
+      freeze_sha: ${{ steps.gate.outputs.freeze_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install frozen dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum]'
+      - name: Verify final execution code and full regression
+        run: |
+          python -m py_compile scripts/run_cns7_ibm_ignition_v2_ibm.py beastbox/cns7_ibm_ignition_v2_hardware.py
+          pytest -q tests/test_cns7_ibm_ignition_v2.py tests/test_cns7_ibm_ignition_v2_preflight.py tests/test_cns7_ibm_ignition_v2_hardware.py
+          pytest -q
+      - name: Prove original scientific core is unchanged from 10k freeze
+        run: |
+          git diff --exit-code 49e41897877797d570291d0f4a96e411ff379209..HEAD -- \
+            beastbox/cns7_ibm_ignition_v2.py \
+            beastbox/cns7_ibm_ignition_v2_preflight.py \
+            scripts/preflight_cns7_ibm_ignition_v2.py \
+            experiments/cns7-body-ibm-ignition-v2/DESIGN.md
+      - name: Regenerate and verify exact frozen trajectory and preflight bytes
+        run: |
+          rm -rf _v2_frozen
+          mkdir -p _v2_frozen
+          python scripts/preflight_cns7_ibm_ignition_v2.py \
+            --datasets 10000 \
+            --seed 787826 \
+            --trajectory-output _v2_frozen/trajectory.json \
+            --preflight-output _v2_frozen/preflight.json \
+            --sha-output _v2_frozen/PREFLIGHT_SHA256
+          test "$(sha256sum _v2_frozen/trajectory.json | cut -d' ' -f1)" = f42b284057a0be7e8b77524a3f3f6fae97c65af2d9548e69fbfdc52d8b7080fb
+          test "$(sha256sum _v2_frozen/preflight.json | cut -d' ' -f1)" = da5b73fcab70141a91c79d76732eaa1437ae7841b2e1ffc20c6b44ea9f3aa19d
+          test "$(cat _v2_frozen/PREFLIGHT_SHA256)" = da5b73fcab70141a91c79d76732eaa1437ae7841b2e1ffc20c6b44ea9f3aa19d
+      - name: Resolve preregistration and approval gate
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=experiments/cns7-body-ibm-ignition-v2/preregistered-final
+          APPROVAL=experiments/cns7-body-ibm-ignition-v2/RUN_APPROVED_FINAL_V2.json
+          approved=false
+          freeze_sha="$(git rev-parse HEAD)"
+          if [[ -f "$ROOT/preregistration.json" && -f "$ROOT/PREREGISTRATION_SHA256" && -f "$ROOT/PREREGISTRATION_FILE_SHA256" && -f "$APPROVAL" ]]; then
+            approved=true
+            freeze_sha="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          print(json.loads(Path('experiments/cns7-body-ibm-ignition-v2/preregistered-final/preregistration.json').read_text())['implementation_freeze_commit'])
+          PY
+          )"
+          fi
+          echo "approved=$approved" >> "$GITHUB_OUTPUT"
+          echo "freeze_sha=$freeze_sha" >> "$GITHUB_OUTPUT"
+      - name: Verify preregistration, approval and post-freeze immutability
+        if: steps.gate.outputs.approved == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=experiments/cns7-body-ibm-ignition-v2/preregistered-final
+          APPROVAL=experiments/cns7-body-ibm-ignition-v2/RUN_APPROVED_FINAL_V2.json
+          FREEZE='${{ steps.gate.outputs.freeze_sha }}'
+          git merge-base --is-ancestor "$FREEZE" HEAD
+          git diff --exit-code "$FREEZE"..HEAD -- . \
+            ':(exclude)experiments/cns7-body-ibm-ignition-v2/preregistered-final/**' \
+            ':(exclude)experiments/cns7-body-ibm-ignition-v2/RUN_APPROVED_FINAL_V2.json'
+          ACTUAL_FILE_SHA="$(sha256sum "$ROOT/preregistration.json" | cut -d' ' -f1)"
+          test "$ACTUAL_FILE_SHA" = "$(cat "$ROOT/PREREGISTRATION_FILE_SHA256")"
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('experiments/cns7-body-ibm-ignition-v2/preregistered-final')
+          prereg=json.loads((root/'preregistration.json').read_text())
+          approval=json.loads(Path('experiments/cns7-body-ibm-ignition-v2/RUN_APPROVED_FINAL_V2.json').read_text())
+          canonical=dict(prereg)
+          recorded=canonical.pop('preregistration_sha256')
+          payload=json.dumps(canonical,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()
+          calculated=hashlib.sha256(payload).hexdigest()
+          assert recorded == calculated == (root/'PREREGISTRATION_SHA256').read_text().strip()
+          assert approval['approved'] is True
+          assert approval['preregistration_sha256'] == calculated
+          assert approval['preregistration_file_sha256'] == (root/'PREREGISTRATION_FILE_SHA256').read_text().strip()
+          assert approval['implementation_freeze_commit'] == prereg['implementation_freeze_commit']
+          assert approval['planned_hardware_shots'] == 1032192
+          assert prereg['preflight_file_sha256'] == 'da5b73fcab70141a91c79d76732eaa1437ae7841b2e1ffc20c6b44ea9f3aa19d'
+          assert prereg['trajectory_file_sha256'] == 'f42b284057a0be7e8b77524a3f3f6fae97c65af2d9548e69fbfdc52d8b7080fb'
+          print(json.dumps({'approved':True,'preregistration_sha256':calculated,'implementation_freeze_commit':prereg['implementation_freeze_commit']},sort_keys=True))
+          PY
+      - name: Upload exact final prehardware inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: cns7-v2-final-prehardware-${{ github.run_id }}
+          path: _v2_frozen/
+          if-no-files-found: error
+
+  hardware-final:
+    needs: prehardware-final
+    if: needs.prehardware-final.outputs.approved == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install IBM runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum]'
+      - uses: actions/download-artifact@v4
+        with:
+          name: cns7-v2-final-prehardware-${{ github.run_id }}
+          path: _v2_frozen
+      - name: Reverify frozen files immediately before IBM access
+        run: |
+          test "$(sha256sum _v2_frozen/trajectory.json | cut -d' ' -f1)" = f42b284057a0be7e8b77524a3f3f6fae97c65af2d9548e69fbfdc52d8b7080fb
+          test "$(sha256sum _v2_frozen/preflight.json | cut -d' ' -f1)" = da5b73fcab70141a91c79d76732eaa1437ae7841b2e1ffc20c6b44ea9f3aa19d
+      - name: Run final 12-job V2 IBM ignition
+        id: ignition
+        continue-on-error: true
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
+        run: |
+          rm -rf _v2_final_evidence
+          mkdir -p _v2_final_evidence
+          python scripts/run_cns7_ibm_ignition_v2_ibm.py \
+            --prereg experiments/cns7-body-ibm-ignition-v2/preregistered-final/preregistration.json \
+            --prereg-sha-file experiments/cns7-body-ibm-ignition-v2/preregistered-final/PREREGISTRATION_SHA256 \
+            --approval experiments/cns7-body-ibm-ignition-v2/RUN_APPROVED_FINAL_V2.json \
+            --trajectory _v2_frozen/trajectory.json \
+            --preflight _v2_frozen/preflight.json \
+            --out _v2_final_evidence
+      - name: Verify evidence checksums when present
+        if: always()
+        run: |
+          if [[ -s _v2_final_evidence/SHA256SUMS ]]; then
+            (cd _v2_final_evidence && sha256sum -c SHA256SUMS)
+          fi
+      - name: Upload final V2 evidence regardless of verdict
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cns7-v2-final-evidence-${{ github.run_id }}
+          path: _v2_final_evidence/
+          if-no-files-found: error
+      - name: Commit durable final result receipt
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -s _v2_final_evidence/final-result.json ]]; then
+            cp _v2_final_evidence/final-result.json experiments/cns7-body-ibm-ignition-v2/FINAL_RESULT_V2.json
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add experiments/cns7-body-ibm-ignition-v2/FINAL_RESULT_V2.json
+            if ! git diff --cached --quiet; then
+              git commit -m 'experiment: seal final CNS7 IBM ignition v2 result [skip ci]'
+              git push origin HEAD:cns7-body-ibm-ignition-v2-coupled-resilient
+            fi
+          fi
+      - name: Require a formal final receipt
+        if: always()
+        run: test -s _v2_final_evidence/final-result.json
