@@ -22,7 +22,6 @@ from typing import Any, Literal
 from beastbox.dad_son import DadSonLedger
 from beastbox.refractive_memory import LIVE_KIND, RefractiveMemoryRouter
 from beastbox.reality_memory import (
-    CLAIM_BOUNDARY,
     ZERO_SHA256,
     derive_r12_transition,
     initial_r12_state,
@@ -216,6 +215,19 @@ def append_live_epoch_memory(
     )
 
 
+def _compact_live_wire_row(live: Mapping[str, Any], epoch: Mapping[str, Any]) -> dict[str, Any]:
+    """Keep the durable semantic record intact but fit its verified identity in 128 chars."""
+    row = dict(live)
+    row["text"] = (
+        f"LSRC {epoch['epoch_id']} "
+        f"r12={str(epoch['r12']['state_sha256'])[:8]} "
+        f"d54={str(epoch['dyn54_sha256'])[:8]}"
+    )
+    row["wire_compacted"] = True
+    row["durable_text_sha256"] = hashlib.sha256(str(live["text"]).encode("utf-8")).hexdigest()
+    return row
+
+
 def build_active_context(
     *,
     ledger: DadSonLedger,
@@ -238,6 +250,7 @@ def build_active_context(
     ranked: list[dict[str, Any]] = []
     if mode == "lexical":
         recalled = ledger.recall(str(prompt), limit=int(recall_limit))
+        wire_recalled = recalled
     elif mode == "refractive-live":
         ranked = router.rank(
             str(prompt),
@@ -248,16 +261,17 @@ def build_active_context(
         )
         supplements = [row for row in ranked if int(row["memory_id"]) != current_id]
         recalled = [live] + supplements[: max(0, int(recall_limit) - 1)]
+        wire_recalled = [_compact_live_wire_row(live, epoch)] + supplements[: max(0, int(recall_limit) - 1)]
     else:
         raise ValueError("mode must be lexical or refractive-live")
 
     recalled_ids = [int(row["memory_id"]) for row in recalled]
     live_lane_satisfied = bool(recalled_ids and recalled_ids[0] == current_id)
-    wire = build_wire_prompt(dad_text=str(prompt), recalled=recalled, block=int(block))
+    wire = build_wire_prompt(dad_text=str(prompt), recalled=wire_recalled, block=int(block))
     if mode == "refractive-live":
         if not live_lane_satisfied:
             raise RuntimeError("refractive-live current-epoch lane was not placed first")
-        if str(epoch["epoch_id"]) not in wire:
+        if f"LSRC {epoch['epoch_id']}" not in wire:
             raise RuntimeError("current live epoch was truncated from TALK-004 active context")
     return {
         "mode": mode,
@@ -265,6 +279,7 @@ def build_active_context(
         "live_lane_satisfied": live_lane_satisfied,
         "recalled_memory_ids": recalled_ids,
         "recalled": recalled,
+        "wire_recalled": wire_recalled,
         "ranked": ranked,
         "wire_prompt": wire,
     }
