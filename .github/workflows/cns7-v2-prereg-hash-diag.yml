@@ -1,0 +1,39 @@
+name: CNS7 V2 Prereg Hash Diagnostic
+
+on:
+  push:
+    branches: [cns7-v2-prereg-hash-diag]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hash:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compute exact file and canonical hashes
+        run: |
+          set -euo pipefail
+          ROOT=experiments/cns7-body-ibm-ignition-v2/preregistered-final
+          echo "FILE_SHA=$(sha256sum $ROOT/preregistration.json | cut -d' ' -f1)"
+          echo "STORED_FILE_SHA=$(cat $ROOT/PREREGISTRATION_FILE_SHA256)"
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root=Path('experiments/cns7-body-ibm-ignition-v2/preregistered-final')
+          p=root/'preregistration.json'
+          obj=json.loads(p.read_text())
+          recorded=obj['preregistration_sha256']
+          canonical=dict(obj)
+          canonical.pop('preregistration_sha256')
+          payload=json.dumps(canonical,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()
+          print('CANONICAL_SHA='+hashlib.sha256(payload).hexdigest())
+          print('RECORDED_CANONICAL_SHA='+recorded)
+          print('STORED_CANONICAL_SHA='+(root/'PREREGISTRATION_SHA256').read_text().strip())
+          print('FILE_BYTES='+str(len(p.read_bytes())))
+          PY
