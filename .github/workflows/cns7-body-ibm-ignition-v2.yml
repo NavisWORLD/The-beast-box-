@@ -27,4 +27,4 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install --upgrade pip
       - run: pip install -e '.[dev,quantum]'
-      - run: pytest -q tests/test_cns7_ibm_ignition_v2.py
+      - run: pytest -q tests/test_cns7_ibm_ignition_v2.py tests/test_cns7_ibm_ignition_v2_preflight.py
