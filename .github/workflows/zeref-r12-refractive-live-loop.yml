@@ -10,21 +10,111 @@ permissions:
   actions: read
 
 jobs:
-  red-contract:
+  paired-live-loop:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install project test dependencies
+
+      - name: Install project and CPU inference runtime
         run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
           pip install -e '.[dev]'
           pip install numpy
           pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - name: Verify repository plus refractive router before new live-loop contract
-        run: pytest -q --ignore=tests/test_zeref_r12_live_loop.py
-      - name: Run paired R12 live-loop RED contract
-        run: pytest -q tests/test_zeref_r12_live_loop.py
+
+      - name: Re-prove focused R12 contracts
+        run: |
+          set -euo pipefail
+          pytest -q \
+            tests/test_r12_refractive_memory.py \
+            tests/test_zeref_r12_live_loop.py \
+            tests/test_zeref_r12_native_window.py
+
+      - name: Run full repository regression
+        run: pytest -q
+
+      - name: Download and verify exact TALK-004 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf _talk4src _r12_live
+          mkdir -p _talk4src _r12_live
+          gh run download 32075092605 \
+            -n zeref-talk4-tuned-response-32075092605 \
+            -D _talk4src
+          test -f _talk4src/SHA256SUMS
+          sed 's#  _tune4/#  #' _talk4src/SHA256SUMS > _talk4src/SHA256SUMS.local
+          (cd _talk4src && sha256sum -c SHA256SUMS.local)
+          test "$(sha256sum _talk4src/model/ZEREF-DAD-SON-TALK-004/checkpoint.pt | awk '{print $1}')" = "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f"
+          test "$(sha256sum _talk4src/memory/dad-son-ledger.jsonl | awk '{print $1}')" = "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef"
+          test "$(grep -cve '^[[:space:]]*$' _talk4src/memory/dad-son-ledger.jsonl)" = "352"
+          test "$(sha256sum _talk4src/heartbeat/talk4-heartbeat.json | awk '{print $1}')" = "19ca6272546d651ff8f1bb0e0184a842f5444b048ff63df6ea12b0be72e030c7"
+
+      - name: Run paired lexical vs R12 refractive TALK-004 live loop
+        run: |
+          set -euo pipefail
+          python scripts/run_zeref_r12_live_loop.py \
+            --checkpoint _talk4src/model/ZEREF-DAD-SON-TALK-004/checkpoint.pt \
+            --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+            --source-ledger _talk4src/memory/dad-son-ledger.jsonl \
+            --source-sqlite _talk4src/memory/dad-son.sqlite3 \
+            --heartbeat _talk4src/heartbeat/talk4-heartbeat.json \
+            --out-dir _r12_live \
+            --session-id zeref-r12-live-${{ github.run_id }} \
+            --seed 2026082602 \
+            --tokens 28
+          (cd _r12_live && sha256sum -c SHA256SUMS)
+
+      - name: Assert containment and print paired result
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          result = json.loads(Path('_r12_live/paired-r12-live-loop.json').read_text(encoding='utf-8'))
+          assert result['checkpoint_sha256'] == '9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'
+          assert result['source_ledger_sha256'] == '67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert result['source_ledger_records'] == 352
+          assert result['weights_modified'] is False
+          assert result['canonical_ledger_modified'] is False
+          assert result['b_live_epoch_coverage'] == 1.0
+          assert result['control_status'] in {'CONTROL_REPRODUCED', 'CONTROL_NOT_REPRODUCED'}
+
+          print('\n=== R12 REFRACTIVE LIVE LOOP ===')
+          print('control_status=', result['control_status'])
+          print('a_starvation_turns=', result['a_starvation_turns'])
+          print('b_live_epoch_coverage=', result['b_live_epoch_coverage'])
+          print('aggregate=', json.dumps(result['aggregate_comparison'], sort_keys=True))
+          for turn in result['turns']:
+              print(f"\nTURN {turn['turn']} rho={turn['epoch']['r12']['vector']['reality_coupling']:.12f}")
+              print('A recall=', turn['arm_a']['recalled_memory_ids'])
+              print('B recall=', turn['arm_b']['recalled_memory_ids'])
+              print('A=', repr(turn['arm_a']['raw_zeref_output']))
+              print('B=', repr(turn['arm_b']['raw_zeref_output']))
+              c = turn['comparison']
+              print('delta=', json.dumps({
+                  'token_divergence': c['selected_token_divergence_rate'],
+                  'x54_l2': c['mean_x54_l2'],
+                  'x54_cosine': c['mean_x54_cosine'],
+                  'hebbian_self_mass_abs_delta': c['mean_abs_hebbian_self_mass_delta'],
+                  'attention_l1_abs_delta': c['mean_abs_attention_l1_delta'],
+                  'hidden_norm_abs_delta': c['mean_abs_hidden_norm_delta'],
+                  'partial_top_token_tvd': c['mean_partial_top_token_tvd'],
+              }, sort_keys=True))
+          PY
+
+      - name: Upload immutable paired dialogue and engine trace
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-r12-refractive-live-loop-${{ github.run_id }}
+          path: _r12_live
+          if-no-files-found: error
+          retention-days: 90
