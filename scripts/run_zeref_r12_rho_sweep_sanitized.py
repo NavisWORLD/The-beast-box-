@@ -2,21 +2,34 @@
 """Tokenizer-safe entry point for the frozen R12 rho sweep.
 
 The scientific sweep remains implemented in run_zeref_r12_rho_sweep.py. This
-wrapper only maps retrieved characters that are absent from TALK-004's frozen
-character vocabulary to spaces before constructing the model-facing wire.
+wrapper maps retrieved characters absent from TALK-004's frozen character
+vocabulary to spaces and fixes the post-analysis adjacent-pair iterator. Neither
+compatibility fix changes the frozen sweep variables or model-facing rho label.
 """
 from __future__ import annotations
 
 import argparse
+import builtins
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence, TypeVar
 
 import scripts.run_zeref_r12_rho_sweep as base
 from scripts.rho_sweep_tokenizer import sanitize_for_frozen_tokenizer
 from scripts.run_zeref_dad_son_chat import file_sha256
 
 SANITIZATION = "unsupported retrieved characters -> space, then whitespace collapse"
+T = TypeVar("T")
+
+
+def adjacent_pairs(items: Sequence[T]) -> list[tuple[T, T]]:
+    """Return the N-1 neighboring pairs of an ordered N-item sweep."""
+    return list(builtins.zip(items, items[1:]))
+
+
+def _zip_compat(*iterables: Any, strict: bool = False):
+    """Compatibility shim for the base runner's intentional N vs N-1 adjacency zip."""
+    return builtins.zip(*iterables)
 
 
 def _regenerate_sums(out_dir: Path) -> None:
@@ -32,6 +45,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     stoi = dict(checkpoint["stoi"])
     original_builder = base.build_sweep_wire_prompt
+    had_zip = "zip" in base.__dict__
+    original_zip = base.__dict__.get("zip")
 
     def safe_builder(*, prompt: str, live_alias: str, supplement_text: str, block: int) -> str:
         return original_builder(
@@ -42,12 +57,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
 
     base.build_sweep_wire_prompt = safe_builder
+    base.zip = _zip_compat
     try:
         result = base.run(args)
     finally:
         base.build_sweep_wire_prompt = original_builder
+        if had_zip:
+            base.zip = original_zip
+        else:
+            del base.zip
 
     result["tokenizer_sanitization"] = SANITIZATION
+    result["adjacent_pairing"] = "ordered N-item grid -> N-1 neighboring pairs"
     for row in result["conditions"]:
         row["supplement_text_model_facing"] = sanitize_for_frozen_tokenizer(row["supplement_text"], stoi)
     base._write_json(args.out_dir / "rho-sweep.json", result)
@@ -55,6 +76,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     summary_path = args.out_dir / "summary.json"
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     summary["tokenizer_sanitization"] = SANITIZATION
+    summary["adjacent_pairing"] = result["adjacent_pairing"]
     summary["conditions"] = [
         {
             **row,
