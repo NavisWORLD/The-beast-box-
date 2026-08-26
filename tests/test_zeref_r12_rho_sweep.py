@@ -9,10 +9,12 @@ from beastbox.dad_son import DadSonLedger
 from beastbox.reality_memory import initial_r12_state
 from beastbox.refractive_memory import RefractiveMemoryRouter
 from scripts.run_zeref_r12_rho_sweep import (
+    FIXED_ROUTER_NOW,
     FROZEN_PROMPT,
     RHO_GRID,
     build_sweep_wire_prompt,
     force_probe_rho,
+    rank_with_frozen_clock,
 )
 
 PARENT = "b" * 64
@@ -45,13 +47,15 @@ def test_force_probe_rho_changes_only_coupling_plus_commit_hash():
         force_probe_rho(base, 1.01)
 
 
-def test_router_rank_can_freeze_wall_clock(tmp_path: Path):
+def test_sweep_harness_freezes_router_wall_clock(tmp_path: Path):
+    assert FIXED_ROUTER_NOW == 2_000_000_000.0
     ledger = DadSonLedger(tmp_path / "x.sqlite3", tmp_path / "x.jsonl", parent_sha256=PARENT)
     ledger.append_experience(actor="old", text="preserved evidence memory", kind="dialogue", session_id="s")
     router = RefractiveMemoryRouter(ledger)
     state = initial_r12_state()
-    first = router.rank("evidence", sequence=0, dyn12=[0.0] * 12, r12_state=state, limit=1, now=2_000_000_000.0)
-    second = router.rank("evidence", sequence=0, dyn12=[0.0] * 12, r12_state=state, limit=1, now=2_000_000_000.0)
+    kwargs = dict(query="evidence", sequence=0, dyn12=[0.0] * 12, r12_state=state, limit=1)
+    first = rank_with_frozen_clock(router, **kwargs)
+    second = rank_with_frozen_clock(router, **kwargs)
     assert first == second
     ledger.close()
 
