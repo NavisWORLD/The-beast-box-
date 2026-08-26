@@ -1,0 +1,83 @@
+name: CNS7 V2 Live Result Inspect
+
+on:
+  push:
+    branches: [cns7-v2-prereg-hash-diag]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install IBM runtime
+        run: |
+          python -m pip install --upgrade pip
+          pip install 'qiskit>=2.5.0' 'qiskit-ibm-runtime>=0.49.0'
+      - name: Read-only inspect current V2 lineage
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from qiskit_ibm_runtime import QiskitRuntimeService
+
+          token=os.environ.get('IBM_QUANTUM_TOKEN','').strip()
+          if not token:
+              raise RuntimeError('IBM_QUANTUM_TOKEN is empty')
+          kwargs={'channel':'ibm_quantum_platform','token':token}
+          instance=os.environ.get('IBM_QUANTUM_INSTANCE','').strip()
+          if instance:
+              kwargs['instance']=instance
+          service=QiskitRuntimeService(**kwargs)
+
+          required=['cns7-body-ibm-ignition-v2','prereg-4a500ea2']
+          jobs=list(service.jobs(limit=100, job_tags=required, descending=True))
+          rows=[]
+          done=[]
+          for job in jobs:
+              status_obj=job.status()
+              status=str(getattr(status_obj,'name',status_obj)).upper().split('.')[-1]
+              try:
+                  metrics=job.metrics()
+                  if not isinstance(metrics,dict): metrics={'raw':str(metrics)}
+              except Exception as exc:
+                  metrics={'metrics_error':f'{type(exc).__name__}:{exc}'}
+              tags=list(getattr(job,'tags',[]) or [])
+              backend=getattr(job,'backend',None)
+              backend_name=''
+              if backend is not None:
+                  value=getattr(backend,'name','')
+                  backend_name=str(value() if callable(value) else value)
+              row={'job_id':str(job.job_id()),'status':status,'backend':backend_name,'tags':tags,'metrics':metrics}
+              rows.append(row)
+              if status=='DONE': done.append((job,row))
+
+          out=Path('_live_v2_inspect'); out.mkdir(exist_ok=True)
+          (out/'statuses.json').write_text(json.dumps({'required_tags':required,'job_count':len(rows),'jobs':rows},indent=2,sort_keys=True,default=str)+'\n')
+
+          pulled=[]
+          for job,row in done:
+              result=job.result()
+              pubs=[]
+              for idx,pub in enumerate(result):
+                  counts={str(k).replace(' ',''):int(v) for k,v in pub.join_data().get_counts().items()}
+                  pubs.append({'pub_index':idx,'counts':counts,'shots':sum(counts.values())})
+              pulled.append({**row,'pub_count':len(pubs),'pubs':pubs})
+          (out/'done-results.json').write_text(json.dumps({'done_job_count':len(pulled),'jobs':pulled},indent=2,sort_keys=True,default=str)+'\n')
+          print(json.dumps({'matching_jobs':len(rows),'done_jobs':len(pulled),'statuses':[{'job_id':r['job_id'],'status':r['status'],'backend':r['backend'],'tags':r['tags']} for r in rows]},sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cns7-v2-live-result-inspect-${{ github.run_id }}
+          path: _live_v2_inspect
+          if-no-files-found: error
