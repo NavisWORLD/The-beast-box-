@@ -27,7 +27,8 @@ jobs:
           import json, os
           from qiskit_ibm_runtime import QiskitRuntimeService
 
-          kwargs = {'channel': 'ibm_quantum_platform', 'token': os.environ['IBM_QUANTUM_TOKEN']}
+          token = os.environ['IBM_QUANTUM_TOKEN'].strip()
+          kwargs = {'channel': 'ibm_quantum_platform', 'token': token}
           instance = os.environ.get('IBM_QUANTUM_INSTANCE', '').strip()
           if instance:
               kwargs['instance'] = instance
@@ -37,21 +38,20 @@ jobs:
           for job_id in ids:
               job = service.job(job_id)
               row = {'job_id': job_id}
-              for label, getter in [
-                  ('status', lambda: str(job.status())),
-                  ('backend', lambda: str(job.backend().name)),
-                  ('tags', lambda: list(job.tags or [])),
-                  ('creation_date', lambda: str(job.creation_date)),
-                  ('usage_estimation', lambda: str(job.usage_estimation)),
-              ]:
+              probes = [
+                  ('status', lambda job=job: str(job.status())),
+                  ('backend', lambda job=job: str(getattr(job.backend(), 'name', ''))),
+                  ('tags', lambda job=job: list(job.tags or [])),
+                  ('creation_date', lambda job=job: str(job.creation_date)),
+                  ('usage_estimation', lambda job=job: str(job.usage_estimation)),
+                  ('error_message', lambda job=job: str(job.error_message())),
+                  ('metrics', lambda job=job: job.metrics()),
+              ]
+              for label, getter in probes:
                   try:
                       row[label] = getter()
                   except Exception as exc:
                       row[label] = f'ERROR:{type(exc).__name__}:{exc}'
-              try:
-                  row['metrics'] = job.metrics()
-              except Exception as exc:
-                  row['metrics'] = f'ERROR:{type(exc).__name__}:{exc}'
               rows.append(row)
           print(json.dumps(rows, indent=2, sort_keys=True, default=str))
           PY
