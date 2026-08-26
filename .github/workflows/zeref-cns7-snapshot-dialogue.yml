@@ -1,0 +1,28 @@
+name: Zeref CNS7 Snapshot Dialogue
+
+on:
+  push:
+    branches: [zeref-cns7-snapshot-dialogue-001]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: zeref-cns7-snapshot-dialogue-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]'
+      - name: Snapshot dialogue contract
+        run: pytest -q tests/test_zeref_snapshot_dialogue.py
