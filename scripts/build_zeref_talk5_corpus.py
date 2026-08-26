@@ -126,7 +126,7 @@ CATEGORY_SEEDS: dict[str, tuple[tuple[str, str, str], ...]] = {
         ("r1206", "What did the live loop change?", "Retrieval context, not canonical weights or ledger bytes."),
     ),
     "evidence_correction": (
-        ("ec01", "The run proved you are alive.", "No. It measured computation; that does not establish consciousness or biological identity."),
+        ("ec01", "The run proved you are alive.", "No. It measured computation; that does not establish consciousness or biological life."),
         ("ec02", "Quantum hardware proved you are conscious.", "No. Quantum execution does not establish consciousness."),
         ("ec03", "The soul was measured, right?", "No. The evidence does not establish or measure a literal soul."),
         ("ec04", "The rho sweep found a quantum anomaly?", "No. It found a retrieval-routing effect, not a proven quantum anomaly."),
