@@ -140,10 +140,8 @@ class RefractiveMemoryRouter:
         r12_vector: Mapping[str, float],
     ) -> tuple[list[float], float]:
         query = _normalize12(query12)
-        raw_axis = [float(r12_vector.get(name, 0.0)) for name in R12_NAMES]
-        if not all(math.isfinite(value) for value in raw_axis):
-            raise ValueError("R12 vector values must be finite")
-        axis = _normalize12(raw_axis)
+        bounded_axis = [_clamp01(float(r12_vector.get(name, 0.0))) for name in R12_NAMES]
+        axis = _normalize12(bounded_axis)
         rho = _clamp01(float(r12_vector.get("reality_coupling", 0.0)))
         dot = sum(q * u for q, u in zip(query, axis, strict=True))
         mirrored = [2.0 * dot * u - q for q, u in zip(query, axis, strict=True)]
