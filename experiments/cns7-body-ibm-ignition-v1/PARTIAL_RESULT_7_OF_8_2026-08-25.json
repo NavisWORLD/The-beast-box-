@@ -3,12 +3,17 @@
   "recorded_date": "2026-08-25",
   "original_run_id": 32909483099,
   "recovery_run_id": 32914331172,
+  "read_only_status_probe_run_id": 32914584604,
   "implementation_freeze_commit": "f8810b8ce46d111d8c39dc4d625efbe5526f01a8",
   "preregistration_sha256": "92b6ecb7231dda6d678a3145cc9cf93b6d9563c50ecdbe8f119497e84d474dae",
   "origin_seed_packet_sha256": "d6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0",
   "planned_jobs": 8,
   "complete_jobs": 7,
-  "missing_jobs": 1,
+  "failed_before_qpu_execution_jobs": 1,
+  "planned_pubs": 1304,
+  "returned_complete_pubs": 1141,
+  "planned_hardware_shots": 5341184,
+  "returned_counted_shots_from_complete_jobs": 4673536,
   "complete_job_ids": [
     "da721susidac73aepo20",
     "da721te0ukec7382n6b0",
@@ -18,21 +23,42 @@
     "da721ve0ukec7382n6dg",
     "da7220c6l22c73dn08e0"
   ],
-  "missing_job": {
+  "failed_job": {
     "stage": "replication",
     "backend": "ibm_kingston",
     "job_index": 2,
     "job_id": "da721vu0ukec7382n6f0",
-    "status_before_result": "ERROR",
-    "result_retrieval_error_code": 1319,
-    "result_retrieval_error": "Job was out of sync and in an unexpected state",
-    "bounded_recovery_attempts": 4,
-    "all_recovery_attempts_returned_same_1319": true
+    "created": "2026-08-25T23:10:55.637491Z",
+    "running_timestamp": "2026-08-25T23:10:57.125023Z",
+    "finished": "2026-08-25T23:15:04.906934Z",
+    "status": "ERROR",
+    "error_code": 1319,
+    "error_message": "Job was out of sync and in an unexpected state",
+    "circuits_execution_time_ns": 0,
+    "qpu_charge_time_seconds": 0,
+    "ibm_usage_status": "complete",
+    "usage_estimation_quantum_seconds": 246.95319288,
+    "bounded_result_recovery_attempts": 4,
+    "all_result_recovery_attempts_returned_same_1319": true,
+    "interpretation": "IBM job metadata reports zero circuit execution time and zero QPU charge time. No result exists for this job; it is not counted as an executed/returned body workload."
+  },
+  "neighboring_recovered_job": {
+    "stage": "replication",
+    "backend": "ibm_kingston",
+    "job_index": 3,
+    "job_id": "da7220c6l22c73dn08e0",
+    "created": "2026-08-25T23:10:57.623284Z",
+    "running_timestamp": "2026-08-25T23:10:58.983948Z",
+    "finished": "2026-08-25T23:22:10.951740Z",
+    "status": "DONE",
+    "circuits_execution_time_ns": 171478520320,
+    "qpu_charge_time_seconds": 174,
+    "recovered_on_first_read_only_attempt": true
   },
   "new_hardware_jobs_submitted_during_recovery": 0,
   "new_hardware_shots_submitted_during_recovery": 0,
   "frozen_analyzer_executed": false,
-  "formal_experiment_status": "INCONCLUSIVE_DUE_TO_INCOMPLETE_HARDWARE_EVIDENCE",
+  "formal_experiment_status": "INCONCLUSIVE_DUE_TO_INCOMPLETE_HARDWARE_EXECUTION",
   "frozen_limits": {
     "stage_rmse_max": 0.0167094171819,
     "stage_max_abs_error_max": 0.0732501970974,
@@ -82,5 +108,5 @@
     "recovered_job_3_results_sha256": "6b9355a5bafe521ad3978c0c882c5c2466bf17afd1278dc7da4a3888f373ef62",
     "recovered_job_3_verification_sha256": "a74858223344c8c508932f09fce6bc1a76a53e62f498c903ca7e49635abd8f49"
   },
-  "claim_boundary": "This receipt preserves a seven-of-eight hardware snapshot. The preregistered final analyzer was not run because one original IBM job has terminal ERROR state and no result. No replacement hardware was submitted."
+  "claim_boundary": "This receipt preserves a seven-of-eight hardware execution. The preregistered final analyzer was not run because one original IBM job entered terminal ERROR state before QPU circuit execution. No replacement hardware was submitted."
 }
