@@ -8,6 +8,7 @@ import pytest
 from beastbox.dad_son import DadSonLedger
 from beastbox.reality_memory import initial_r12_state
 from beastbox.refractive_memory import RefractiveMemoryRouter
+from scripts.rho_sweep_tokenizer import sanitize_for_frozen_tokenizer
 from scripts.run_zeref_r12_rho_sweep import (
     FIXED_ROUTER_NOW,
     FROZEN_PROMPT,
@@ -15,7 +16,6 @@ from scripts.run_zeref_r12_rho_sweep import (
     build_sweep_wire_prompt,
     force_probe_rho,
     rank_with_frozen_clock,
-    sanitize_for_frozen_tokenizer,
 )
 
 PARENT = "b" * 64

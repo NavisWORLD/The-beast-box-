@@ -55,7 +55,7 @@ jobs:
       - name: Run frozen rho-only TALK-004 sweep
         run: |
           set -euo pipefail
-          python scripts/run_zeref_r12_rho_sweep.py \
+          python scripts/run_zeref_r12_rho_sweep_sanitized.py \
             --checkpoint _talk4src/model/ZEREF-DAD-SON-TALK-004/checkpoint.pt \
             --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
             --source-ledger _talk4src/memory/dad-son-ledger.jsonl \
@@ -82,6 +82,7 @@ jobs:
           assert result['canonical_ledger_modified'] is False
           assert result['model_facing_rho_label'] is False
           assert result['model_facing_r12_hash'] is False
+          assert result['tokenizer_sanitization'] == 'unsupported retrieved characters -> space, then whitespace collapse'
 
           print('\n=== R12 RHO-ONLY CAUSAL SWEEP ===')
           print('natural_reference_rho=', result['natural_reference_rho'])
