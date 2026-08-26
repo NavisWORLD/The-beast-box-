@@ -1,0 +1,113 @@
+{
+  "authorization_basis": "User explicitly instructed on 2026-08-25 America/Chicago: 'Now fix it and run the final run'.",
+  "backend_selection_rule": "choose two distinct operational real IBM backends with >=54 qubits sorted by pending_jobs, then median readout error, then backend name; discovery=rank0, replication=rank1",
+  "body": {
+    "arms": [
+      "PLUS",
+      "ZERO",
+      "MINUS"
+    ],
+    "bases": [
+      "X",
+      "Y",
+      "Z"
+    ],
+    "coupling_coefficient": 0.06,
+    "dimensions": 54,
+    "dyn12_qubits": [
+      0,
+      11
+    ],
+    "dyn42_qubits": [
+      12,
+      53
+    ],
+    "organs": {
+      "awareness": [36, 41],
+      "daemons": [42, 47],
+      "dark_matter": [18, 23],
+      "emeth": [24, 29],
+      "plasticity": [30, 35],
+      "quantum": [12, 17],
+      "surgeon": [48, 53]
+    },
+    "parameter_binding": "after backend transpilation of one symbolic template per basis",
+    "topology": "independent 12-node and 42-node rings, 54 RZZ edges"
+  },
+  "calibration_contract": {
+    "coordinates": 54,
+    "ill_conditioned_fails_closed": true,
+    "inverse": "per-coordinate assignment-error inverse",
+    "may_not_change_thresholds": true,
+    "per_job": ["CAL0", "CAL1"]
+  },
+  "claim_boundary": "This experiment tests reproducible hardware readback of a deliberately encoded coupled software-state geometry. It does not establish consciousness, biological continuation, a literal 12th physical dimension, nonlocal causation, or failure of quantum mechanics.",
+  "classifier": {
+    "all_stage_and_cross_backend_gates_pass": "COUPLED_BODY_REPRODUCED",
+    "anomaly_classifier": false,
+    "complete_valid_outside_frozen_scientific_envelope": "HARDWARE_DISTORTED",
+    "incomplete_or_integrity_or_calibration_failure": "INCONCLUSIVE"
+  },
+  "compiler_contract": {
+    "all_12_QPY_payloads_serialized_and_sha256_hashed_before_first_submission": true,
+    "fail_closed_if_basis_measurement_maps_differ": true,
+    "optimization_level": 0,
+    "retry_loads_exact_original_QPY_bytes": true,
+    "same_final_measurement_map_all_XYZ": true,
+    "same_initial_layout_all_XYZ": true
+  },
+  "implementation_freeze_commit": "a52824cc0152429f0800748b8925b91b48ec57a5",
+  "limits": {
+    "calibration_assignment_error_max": 0.029052734375,
+    "calibration_inverse_denominator_min": 0.950439453125,
+    "cross_backend_response_rmse_max": 0.0180073095795,
+    "leave_one_job_out_response_rmse_max": 0.012925856382,
+    "stage_response_rmse_max": 0.0126593874699,
+    "stage_x_even_rmse_max": 0.00905251527659,
+    "stage_y_zero_rmse_max": 0.0190586932819,
+    "stage_z_arm_rmse_max": 0.0244589031729
+  },
+  "origin_seed_packet_sha256": "d6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0",
+  "preflight_file_sha256": "da5b73fcab70141a91c79d76732eaa1437ae7841b2e1ffc20c6b44ea9f3aa19d",
+  "prehardware_reference": {
+    "artifact_id": 9588048780,
+    "artifact_zip_sha256": "9daf4bb95b63d29cbfe2ebcf239ef3fc68de1db86c1c78cf2f503b18d10f118a",
+    "datasets": 10000,
+    "hardware_result_data_read": false,
+    "runs_byte_identical": true,
+    "v1_measured_values_used": false,
+    "workflow_run_id": 32915518491
+  },
+  "preregistration_sha256": "4a500ea2a5744a71fb1b2b2576112ab0ed6b0d3f0d5680e9fd4680c4de902df8",
+  "retry_contract": {
+    "all_original_jobs_submitted_before_status_gate": true,
+    "eligible_only_if": {
+      "circuits_execution_time_ns": 0,
+      "qpu_charge_time_seconds": 0,
+      "status": "ERROR"
+    },
+    "errors_after_nonzero_execution_never_retried": true,
+    "max_retries_per_primary": 1,
+    "result_calls_before_all_retry_decisions": 0,
+    "same_QPY_sha": true,
+    "same_backend": true
+  },
+  "schema": "beastbox.cns7.ibm-ignition-v2-preregistration.v1",
+  "scientific_core_freeze_commit": "49e41897877797d570291d0f4a96e411ff379209",
+  "trajectory_file_sha256": "f42b284057a0be7e8b77524a3f3f6fae97c65af2d9548e69fbfdc52d8b7080fb",
+  "trajectory_object_sha256": "3381337a7e1aafdfc79669665826a6199406fe8114dd53661e2856eccaf9716d",
+  "workload": {
+    "body_pubs_per_job": 18,
+    "calibration_pubs_per_job": 2,
+    "epochs": 12,
+    "epochs_per_job": 2,
+    "independent_backends": 2,
+    "jobs_per_backend": 6,
+    "origin_seed_pubs_per_job": 1,
+    "planned_hardware_shots": 1032192,
+    "planned_jobs": 12,
+    "planned_pubs": 252,
+    "pubs_per_job": 21,
+    "shots_per_pub": 4096
+  }
+}
