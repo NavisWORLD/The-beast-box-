@@ -1,0 +1,27 @@
+name: CNS7 Body IBM Ignition v1 Recovery
+
+on:
+  push:
+    branches: [cns7-body-ibm-ignition-v1-recovery]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: cns7-body-ibm-ignition-v1-recovery-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  recovery-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev,quantum]'
+      - run: pytest -q tests/test_cns7_ibm_ignition_recovery.py tests/test_cns7_ibm_ignition.py tests/test_cns7_ibm_ignition_lifecycle.py
