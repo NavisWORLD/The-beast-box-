@@ -24,7 +24,7 @@ jobs:
           pip install -e '.[dev]'
           pip install numpy
           pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - name: Verify existing repository baseline excluding new RED contract
-        run: pytest -q --ignore=tests/test_r12_refractive_memory.py
-      - name: Run R12 refractive memory RED contract
-        run: pytest -q tests/test_r12_refractive_memory.py
+      - name: Verify repository plus refractive router before new live-loop contract
+        run: pytest -q --ignore=tests/test_zeref_r12_live_loop.py
+      - name: Run paired R12 live-loop RED contract
+        run: pytest -q tests/test_zeref_r12_live_loop.py
