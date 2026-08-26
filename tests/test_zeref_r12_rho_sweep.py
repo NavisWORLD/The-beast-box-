@@ -15,6 +15,7 @@ from scripts.run_zeref_r12_rho_sweep import (
     build_sweep_wire_prompt,
     force_probe_rho,
     rank_with_frozen_clock,
+    sanitize_for_frozen_tokenizer,
 )
 
 PARENT = "b" * 64
@@ -58,6 +59,12 @@ def test_sweep_harness_freezes_router_wall_clock(tmp_path: Path):
     second = rank_with_frozen_clock(router, **kwargs)
     assert first == second
     ledger.close()
+
+
+def test_supplement_is_sanitized_to_frozen_tokenizer_vocabulary():
+    stoi = {"a": 0, "b": 1, " ": 2}
+    assert sanitize_for_frozen_tokenizer("a💀b", stoi) == "a b"
+    assert sanitize_for_frozen_tokenizer("💀💀", stoi) == ""
 
 
 def test_frozen_wire_contains_no_rho_or_r12_hash_text():
