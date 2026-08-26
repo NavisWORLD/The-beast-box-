@@ -14,14 +14,127 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  recovery-contract:
+  recover-sealed-jobs:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout recovery branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m pip install --upgrade pip
-      - run: pip install -e '.[dev,quantum]'
-      - run: pytest -q tests/test_cns7_ibm_ignition_recovery.py tests/test_cns7_ibm_ignition.py tests/test_cns7_ibm_ignition_lifecycle.py
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum]'
+
+      - name: Verify recovery contracts
+        run: pytest -q tests/test_cns7_ibm_ignition_recovery.py tests/test_cns7_ibm_ignition.py tests/test_cns7_ibm_ignition_lifecycle.py
+
+      - name: Prove frozen experiment code is unchanged
+        run: |
+          git diff --exit-code f8810b8ce46d111d8c39dc4d625efbe5526f01a8 -- \
+            beastbox/cns7_ibm_ignition.py \
+            scripts/run_cns7_ibm_ignition_ibm.py \
+            scripts/analyze_cns7_ibm_ignition.py \
+            scripts/preflight_cns7_ibm_ignition.py \
+            scripts/make_cns7_ibm_ignition_preregistration.py \
+            experiments/cns7-body-ibm-ignition-v1/preregistered-v1 \
+            experiments/cns7-body-ibm-ignition-v1/RUN_APPROVED_ORIGIN_SEED_V1.json
+
+      - name: Download preserved 6-of-8 retrieval evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: cns7-ibm-ignition-retrieval-32909483099
+          path: experiments/cns7-body-ibm-ignition-v1
+          repository: ${{ github.repository }}
+          run-id: 32909483099
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Confirm recovery targets before IBM access
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from scripts.recover_cns7_ibm_ignition import complete_job_ids, missing_jobs
+          root = Path('experiments/cns7-body-ibm-ignition-v1')
+          manifest = json.loads((root/'submission-manifest.json').read_text())
+          done = sorted(complete_job_ids(root, manifest))
+          missing = [(x['stage'], x['job_index'], x['job_id']) for x in missing_jobs(root, manifest)]
+          print('complete:', done)
+          print('missing:', missing)
+          assert len(done) == 6
+          assert missing == [
+              ('replication', 2, 'da721vu0ukec7382n6f0'),
+              ('replication', 3, 'da7220c6l22c73dn08e0'),
+          ]
+          PY
+
+      - name: Recover only the two missing sealed IBM job IDs
+        id: recover
+        continue-on-error: true
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
+        run: |
+          python scripts/recover_cns7_ibm_ignition.py \
+            --root experiments/cns7-body-ibm-ignition-v1 \
+            --manifest experiments/cns7-body-ibm-ignition-v1/submission-manifest.json \
+            --prereg experiments/cns7-body-ibm-ignition-v1/preregistered-v1/preregistration.json \
+            --attempts 4 \
+            --retry-seconds 15
+
+      - name: Upload recovery evidence regardless of outcome
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cns7-ibm-ignition-recovery-${{ github.run_id }}
+          path: experiments/cns7-body-ibm-ignition-v1/
+          if-no-files-found: error
+
+      - name: Analyze only if all eight original jobs are complete
+        if: steps.recover.outcome == 'success'
+        run: |
+          python scripts/analyze_cns7_ibm_ignition.py \
+            --experiment-root experiments/cns7-body-ibm-ignition-v1 \
+            --prereg experiments/cns7-body-ibm-ignition-v1/preregistered-v1/preregistration.json
+
+      - name: Seal and verify complete evidence
+        if: steps.recover.outcome == 'success'
+        working-directory: experiments/cns7-body-ibm-ignition-v1
+        run: |
+          rm -f SHA256SUMS
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          sha256sum -c SHA256SUMS
+
+      - name: Upload complete sealed evidence
+        if: steps.recover.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cns7-ibm-ignition-complete-${{ github.run_id }}
+          path: experiments/cns7-body-ibm-ignition-v1/
+          if-no-files-found: error
+
+      - name: Commit final recovery receipts without retriggering
+        if: steps.recover.outcome == 'success'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            experiments/cns7-body-ibm-ignition-v1/recovery-report.json \
+            experiments/cns7-body-ibm-ignition-v1/hardware-run.json \
+            experiments/cns7-body-ibm-ignition-v1/analysis.json \
+            experiments/cns7-body-ibm-ignition-v1/verdict.json
+          git commit -m 'experiment: seal recovered CNS7 ignition verdict [skip ci]'
+          git push origin HEAD:cns7-body-ibm-ignition-v1-recovery
+
+      - name: Require complete recovery
+        if: steps.recover.outcome != 'success'
+        run: |
+          cat experiments/cns7-body-ibm-ignition-v1/recovery-report.json
+          echo 'One or more original IBM jobs remain unretrievable; no replacement jobs were submitted.' >&2
+          exit 1
