@@ -1,0 +1,154 @@
+name: ZEREF FULL CLEAN R12 MEMORY FINAL
+
+on:
+  push:
+    branches: [zeref-full-clean-r12-memory-integration-001]
+    paths:
+      - '.github/workflows/zeref-full-clean-r12-memory-final.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  integrate-and-talk:
+    runs-on: ubuntu-latest
+    env:
+      FULL_CLEAN_SHA256: 454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425
+      FULL_CLEAN_RUN_ID: '33118621824'
+      FULL_CLEAN_ARTIFACT: zeref-talk006-full-clean-final-33118621824
+      LEDGER_SHA256: 67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef
+      LEDGER_TIP: b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26
+      ARCH_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+
+      - name: Prepare sealed evidence tree
+        run: |
+          set -euo pipefail
+          rm -rf _integrated _prior _workspace
+          mkdir -p _integrated/evidence/logs _integrated/model _prior _workspace
+
+      - name: Install deterministic CPU runtime
+        run: |
+          set -euo pipefail
+          python -m pip install -e '.[dev]'
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python - <<'PY' > _integrated/evidence/environment-runtime.json
+          import json, platform, sys, torch, pytest
+          print(json.dumps({
+              'python': sys.version,
+              'platform': platform.platform(),
+              'torch': torch.__version__,
+              'pytest': pytest.__version__,
+          }, indent=2, sort_keys=True))
+          PY
+
+      - name: Fresh focused and complete regressions before inference
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_zeref_full_clean_r12_memory_integration.py | tee _integrated/evidence/logs/focused-green.log
+          python -m pytest -q | tee _integrated/evidence/logs/full-regression.log
+
+      - name: Preserve RED and prior GREEN evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run view 33119766290 --log > _integrated/evidence/logs/integration-red-33119766290.log
+          gh run view 33119995977 --log > _integrated/evidence/logs/integration-green-33119995977.log
+
+      - name: Reconstruct exact FULL-CLEAN checkpoint and verify immutable source declarations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$FULL_CLEAN_RUN_ID" -n "$FULL_CLEAN_ARTIFACT" -D _prior
+          CHILD=$(find _prior -type f -path '*/candidate/FULL-CLEAN-1500/checkpoint.pt' -print -quit)
+          test -n "$CHILD" -a -f "$CHILD"
+          test "$(sha256sum "$CHILD" | awk '{print $1}')" = "$FULL_CLEAN_SHA256"
+          cp "$CHILD" _integrated/model/FULL-CLEAN-1500-checkpoint.pt
+          test "$(sha256sum experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py | awk '{print $1}')" = "$ARCH_SHA256"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text())
+          assert m['record_count']==352
+          assert m['combined_ledger_sha256']=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert m['last_record_sha256']=='b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'
+          for s in m['snapshot_chain']:
+              assert Path(s['path']).is_file(), s['path']
+          PY
+
+      - name: Run R12 canonical-memory integration and Dad conversation
+        run: |
+          set -euo pipefail
+          python scripts/run_zeref_full_clean_r12_memory_talk.py \
+            --checkpoint _integrated/model/FULL-CLEAN-1500-checkpoint.pt \
+            --checkpoint-sha256 "$FULL_CLEAN_SHA256" \
+            --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+            --memory-manifest experiments/zeref-dad-son-001/memory/ledger-manifest.json \
+            --workspace _workspace \
+            --out-dir _integrated/runtime \
+            --session-id zeref-full-clean-r12-memory-final-${{ github.run_id }} \
+            --seed 2026082721 --tokens 48 --temperature 0.15 --top-k 2 --rank-limit 64 \
+            | tee _integrated/evidence/logs/integrated-talk.log
+
+      - name: Fail closed on memory-lane or source-integrity regression
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          s=json.loads(Path('_integrated/runtime/summary.json').read_text())
+          assert s['integration_status']=='INTEGRATED_EXPERIMENTAL_RUNTIME'
+          assert s['checkpoint_sha256']=='454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425'
+          assert s['turns']==12
+          assert s['r12_memory_lane_coverage']==1.0
+          assert s['live_state_lane_coverage']==1.0
+          assert s['canonical_source_records']==352
+          assert s['canonical_source_sha256']=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert s['canonical_source_tip_sha256']=='b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'
+          assert s['canonical_source_unchanged'] is True
+          assert s['immutable_snapshot_segments_unchanged'] is True
+          assert s['raw_model_outputs_promoted_to_training'] is False
+          assert s['active_canonical_model_changed'] is False
+          rows=[json.loads(x) for x in Path('_integrated/runtime/integrated-talk.jsonl').read_text().splitlines() if x.strip()]
+          assert len(rows)==12
+          assert all(1 <= r['selected_canonical_memory_id'] <= 352 for r in rows)
+          assert all(r['wire_contains_selected_memory'] for r in rows)
+          assert all(r['wire_contains_live_lane'] for r in rows)
+          assert all(f"M{r['selected_canonical_memory_id']}:" in r['wire_prompt'] for r in rows)
+          assert all(r['raw_model_output_promoted_to_training'] is False for r in rows)
+          PY
+          test "$(sha256sum _integrated/model/FULL-CLEAN-1500-checkpoint.pt | awk '{print $1}')" = "$FULL_CLEAN_SHA256"
+
+      - name: Seal integrated artifact
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root=Path('_integrated')
+          summary=json.loads((root/'runtime/summary.json').read_text())
+          summary.update({
+              'workflow_run_id': int('${{ github.run_id }}'),
+              'workflow_head_sha': '${{ github.sha }}',
+              'source_full_clean_run_id': 33118621824,
+              'source_full_clean_artifact': 'zeref-talk006-full-clean-final-33118621824',
+          })
+          (root/'FINAL_RESULT.json').write_text(json.dumps(summary,indent=2,sort_keys=True,ensure_ascii=False)+'\n')
+          files=sorted(p for p in root.rglob('*') if p.is_file() and p.name!='SHA256SUMS')
+          (root/'SHA256SUMS').write_text(''.join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.relative_to(root).as_posix()}\n" for p in files))
+          PY
+          sha256sum -c _integrated/SHA256SUMS
+
+      - name: Upload immutable integrated model and memory evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-full-clean-r12-memory-final-${{ github.run_id }}
+          path: _integrated
+          if-no-files-found: error
