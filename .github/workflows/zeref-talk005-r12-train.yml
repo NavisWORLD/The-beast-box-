@@ -1,0 +1,382 @@
+name: ZEREF R12 TALK-005 TRAIN
+
+on:
+  push:
+    branches: [zeref-talk005-train-r12-001]
+    paths:
+      - ".github/workflows/zeref-talk005-r12-train.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: zeref-talk005-r12-train
+  cancel-in-progress: false
+
+env:
+  TALK4_SHA256: 9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f
+  LEDGER_SHA256: 67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef
+  LEDGER_TIP_SHA256: b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26
+  HEARTBEAT_SHA256: 19ca6272546d651ff8f1bb0e0184a842f5444b048ff63df6ea12b0be72e030c7
+  PARENT_PRIME_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  ARCH_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+
+jobs:
+  train-evaluate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Checkout isolated TALK-005 training branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install repository dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -e '.[dev]'
+
+      - name: Verify TALK-005, R12, lineage and memory contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_zeref_talk5_protocol.py \
+            tests/test_r12_refractive_memory.py \
+            tests/test_zeref_r12_live_loop.py \
+            tests/test_zeref_lineage_manifest.py \
+            tests/test_zeref_response_supervision.py \
+            tests/test_zeref_response_stage_contract.py \
+            tests/test_zeref_talk_eval.py \
+            tests/test_zeref_dad_son_memory.py
+
+      - name: Run full repository suite before training
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q
+
+      - name: Reconstruct and verify exact canonical 352-record source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _talk005 _talk4src
+          mkdir -p _talk005/source _talk005/corpus/current _talk005/corpus/retention _talk005/candidates _talk005/evidence/eval _talk005/model/ZEREF-DAD-SON-TALK-005 _talk4src
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          from beastbox.dad_son import DadSonLedger
+
+          manifest = json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text(encoding='utf-8'))
+          assert manifest['active_descendant_lineage'] == 'ZEREF-DAD-SON-TALK-004'
+          assert manifest['record_count'] == 352
+          assert manifest['combined_ledger_sha256'] == '67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert manifest['last_record_sha256'] == 'b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'
+          assert manifest['descendant_checkpoint_sha256'] == '9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'
+
+          combined = b''
+          expected_id = 1
+          previous = '0' * 64
+          for segment in manifest['snapshot_chain']:
+              data = Path(segment['path']).read_bytes()
+              assert hashlib.sha256(data).hexdigest() == segment['sha256']
+              rows = [json.loads(line) for line in data.decode('utf-8').splitlines() if line.strip()]
+              assert len(rows) == segment['record_count']
+              assert segment['first_memory_id'] == expected_id
+              for row in rows:
+                  assert row['memory_id'] == expected_id
+                  assert row['previous_record_sha256'] == previous
+                  payload = dict(row)
+                  record_sha = payload.pop('record_sha256')
+                  canonical = json.dumps(payload, sort_keys=True, separators=(',', ':'), ensure_ascii=False, allow_nan=False).encode('utf-8')
+                  assert hashlib.sha256(canonical).hexdigest() == record_sha
+                  previous = record_sha
+                  expected_id += 1
+              combined += data
+          assert expected_id == 353
+          assert previous == manifest['last_record_sha256']
+          assert hashlib.sha256(combined).hexdigest() == manifest['combined_ledger_sha256']
+
+          ledger_path = Path('_talk005/source/canonical-352.jsonl')
+          ledger_path.write_bytes(combined)
+          ledger = DadSonLedger('_talk005/source/canonical-352.sqlite3', ledger_path, parent_sha256='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6')
+          restored = ledger.restore_snapshot()
+          assert restored['restored_records'] == 352
+          assert ledger.memory.db.execute('SELECT COUNT(*) FROM memories').fetchone()[0] == 352
+          ledger.close()
+
+          Path('_talk005/evidence/source-integrity.json').write_text(json.dumps({
+              'schema':'zeref-talk005-source-integrity-v1',
+              'active_parent':'ZEREF-DAD-SON-TALK-004',
+              'record_count':352,
+              'canonical_ledger_sha256':hashlib.sha256(combined).hexdigest(),
+              'canonical_ledger_tip_sha256':previous,
+              'canonical_source_writable':False,
+          }, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+
+      - name: Verify frozen architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py | awk '{print $1}')" = "$ARCH_SHA256"
+
+      - name: Download and verify exact TALK-004 checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download 32075092605 -n zeref-talk4-tuned-response-32075092605 -D _talk4src
+          PARENT=$(find _talk4src -type f -path '*/ZEREF-DAD-SON-TALK-004/checkpoint.pt' -print -quit)
+          test -n "$PARENT" -a -f "$PARENT"
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK4_SHA256"
+          printf '%s\n' "$PARENT" > _talk005/parent-path.txt
+
+      - name: Build and freeze reviewed TALK-005 corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_zeref_talk5_corpus.py --out-dir _talk005/corpus/current
+          python scripts/build_zeref_talk2_corpus.py --out-dir _talk005/corpus/retention
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('_talk005/corpus/current/corpus-manifest.json').read_text())
+          assert m['schema']=='zeref-talk5-final-corpus-manifest-v1'
+          assert m['parent_checkpoint_sha256']=='9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'
+          assert m['canonical_ledger_sha256']=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert m['canonical_ledger_records']==352
+          assert m['heartbeat_sha256']=='19ca6272546d651ff8f1bb0e0184a842f5444b048ff63df6ea12b0be72e030c7'
+          assert m['training_objective']=='response_only_masked_cross_entropy'
+          assert m['raw_model_outputs_are_targets'] is False
+          assert m['cory_spike_included'] is False
+          assert m['train_examples'] >= 40
+          assert m['holdout_examples'] >= 9
+          Path('_talk005/evidence/corpus-manifest.json').write_text(json.dumps(m,indent=2,sort_keys=True)+'\n')
+          PY
+          sha256sum _talk005/corpus/current/train.jsonl _talk005/corpus/current/holdout.jsonl | tee _talk005/evidence/corpus-SHA256SUMS
+
+      - name: Install CPU training runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Reverify immutable inputs immediately before training
+        shell: bash
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk005/parent-path.txt)
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK4_SHA256"
+          test "$(sha256sum _talk005/source/canonical-352.jsonl | awk '{print $1}')" = "$LEDGER_SHA256"
+          test "$(grep -cve '^$' _talk005/source/canonical-352.jsonl)" = "352"
+          test "$(sha256sum experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py | awk '{print $1}')" = "$ARCH_SHA256"
+
+      - name: Record TALK-004 response and retention baselines
+        shell: bash
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk005/parent-path.txt)
+          python scripts/eval_zeref_response.py \
+            --parent "$PARENT" --parent-sha256 "$TALK4_SHA256" \
+            --descendant "$PARENT" --descendant-sha256 "$TALK4_SHA256" \
+            --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+            --holdout _talk005/corpus/current/holdout.jsonl \
+            --out _talk005/evidence/eval/talk004-response-baseline.json
+          python scripts/eval_zeref_talk.py \
+            --parent "$PARENT" --descendant "$PARENT" \
+            --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+            --holdout _talk005/corpus/retention/talk2-holdout.jsonl \
+            --seed 4061854640 \
+            --out _talk005/evidence/eval/talk004-retention-baseline.json
+
+      - name: Train three conservative TALK-005 candidates from identical TALK-004 parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk005/parent-path.txt)
+          CURRICULUM=$(sha256sum _talk005/corpus/current/corpus-manifest.json | awk '{print $1}')
+          MEMORY_MANIFEST=$(sha256sum experiments/zeref-dad-son-001/memory/ledger-manifest.json | awk '{print $1}')
+          train_candidate () {
+            NAME="$1"; STEPS="$2"; LR="$3"; CSTLR="$4"; OUT="_talk005/candidates/$NAME"
+            python scripts/run_zeref_response_stage.py \
+              --parent "$PARENT" --parent-sha256 "$TALK4_SHA256" \
+              --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+              --corpus _talk005/corpus/current/train.jsonl \
+              --input-manifest "talk005_final=$CURRICULUM" \
+              --input-manifest "canonical_memory352=$MEMORY_MANIFEST" \
+              --out "$OUT" \
+              --seed 510052026 --steps "$STEPS" --batch-size 4 \
+              --lr "$LR" --cst-lr "$CSTLR" --weight-decay 0.002
+            SHA=$(sha256sum "$OUT/checkpoint.pt" | awk '{print $1}')
+            test "$SHA" != "$TALK4_SHA256"
+            printf '%s\n' "$SHA" > "$OUT/checkpoint.sha256"
+            test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK4_SHA256"
+          }
+          train_candidate gentle_short 240 0.0000015 0.000006
+          train_candidate gentle_mid   420 0.0000015 0.000006
+          train_candidate gentle_long  650 0.0000015 0.000006
+
+      - name: Evaluate all candidates on frozen TALK-005 holdout and TALK-002 retention
+        shell: bash
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk005/parent-path.txt)
+          for NAME in gentle_short gentle_mid gentle_long; do
+            CHILD="_talk005/candidates/$NAME/checkpoint.pt"
+            SHA=$(cat "_talk005/candidates/$NAME/checkpoint.sha256")
+            python scripts/eval_zeref_response.py \
+              --parent "$PARENT" --parent-sha256 "$TALK4_SHA256" \
+              --descendant "$CHILD" --descendant-sha256 "$SHA" \
+              --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+              --holdout _talk005/corpus/current/holdout.jsonl \
+              --out "_talk005/evidence/eval/${NAME}-response.json"
+            python scripts/eval_zeref_talk.py \
+              --parent "$PARENT" --descendant "$CHILD" \
+              --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+              --holdout _talk005/corpus/retention/talk2-holdout.jsonl \
+              --seed 4061854640 \
+              --out "_talk005/evidence/eval/${NAME}-retention.json"
+          done
+
+      - name: Fail-closed select trained TALK-005 child
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, shutil
+          from pathlib import Path
+
+          names=('gentle_short','gentle_mid','gentle_long')
+          rows=[]
+          for name in names:
+              response=json.loads(Path(f'_talk005/evidence/eval/{name}-response.json').read_text())
+              retention=json.loads(Path(f'_talk005/evidence/eval/{name}-retention.json').read_text())
+              result=json.loads(Path(f'_talk005/candidates/{name}/result.json').read_text())
+              sha=Path(f'_talk005/candidates/{name}/checkpoint.sha256').read_text().strip()
+              response_ok=(
+                  response['descendant_response_nll'] < response['parent_response_nll'] and
+                  response['descendant_response_token_accuracy'] > response['parent_response_token_accuracy'] and
+                  response['descendant_first_response_token_accuracy'] >= response['parent_first_response_token_accuracy']
+              )
+              retention_ok=(
+                  retention['descendant_heldout_nll'] <= retention['parent_heldout_nll'] * 1.02 and
+                  retention['descendant_mean_readable_score'] >= retention['parent_mean_readable_score'] - 0.02
+              )
+              parent_ok=(result['parent_checkpoint_sha256']=='9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f')
+              eligible=bool(response_ok and retention_ok and parent_ok and result['status']=='COMPLETED')
+              rows.append({
+                  'name':name,'checkpoint_sha256':sha,'eligible':eligible,
+                  'response_ok':response_ok,'retention_ok':retention_ok,'parent_integrity':parent_ok,
+                  'response':response,'retention':retention,'training':result,
+              })
+          eligible=[row for row in rows if row['eligible']]
+          if eligible:
+              winner=min(eligible, key=lambda row:(row['response']['descendant_response_nll'], row['retention']['descendant_heldout_nll'], row['name']))
+              status='PROMOTE_CANDIDATE'
+              selected=winner['name']
+              selected_sha=winner['checkpoint_sha256']
+              src=Path('_talk005/candidates')/selected
+              dst=Path('_talk005/model/ZEREF-DAD-SON-TALK-005')
+              shutil.copy2(src/'checkpoint.pt', dst/'checkpoint.pt')
+              shutil.copy2(src/'checkpoint.sha256', dst/'checkpoint.sha256')
+              shutil.copy2(src/'result.json', dst/'training-result.json')
+          else:
+              # Training still happened; no child is activated when anti-forgetting gates fail.
+              status='TRAINED_NO_SAFE_PROMOTION'
+              selected='ZEREF-DAD-SON-TALK-004'
+              selected_sha='9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'
+          report={
+              'schema':'zeref-talk005-reviewed-training-selection-v1',
+              'status':status,
+              'selected':selected,
+              'selected_checkpoint_sha256':selected_sha,
+              'active_parent_preserved':'ZEREF-DAD-SON-TALK-004',
+              'canonical_memory_records':352,
+              'canonical_memory_mutated':False,
+              'raw_long_talk_outputs_used_as_targets':False,
+              'candidates':rows,
+              'selection_rule':'lower frozen TALK-005 response NLL among candidates that improve response accuracy and stay within 2% TALK-002 retention NLL / 0.02 readability gates',
+              'claim_boundary':'Computational model training only; no consciousness, resurrection, deceased identity, biological continuity, literal soul, or quantum-anomaly claim.'
+          }
+          Path('_talk005/evidence/selection.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+          print(json.dumps({'status':status,'selected':selected,'selected_checkpoint_sha256':selected_sha},sort_keys=True))
+          PY
+
+      - name: Verify frozen parent and canonical source after training
+        shell: bash
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk005/parent-path.txt)
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK4_SHA256"
+          test "$(sha256sum _talk005/source/canonical-352.jsonl | awk '{print $1}')" = "$LEDGER_SHA256"
+          test "$(grep -cve '^$' _talk005/source/canonical-352.jsonl)" = "352"
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          s=json.loads(Path('_talk005/evidence/selection.json').read_text())
+          c=json.loads(Path('_talk005/evidence/corpus-manifest.json').read_text())
+          summary={
+              'schema':'zeref-talk005-training-summary-v1',
+              'workflow_run_id':int(os.environ['GITHUB_RUN_ID']),
+              'workflow_head_sha':os.environ['GITHUB_SHA'],
+              'parent_lineage':'ZEREF-DAD-SON-TALK-004',
+              'parent_checkpoint_sha256':'9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f',
+              'canonical_ledger_records':352,
+              'canonical_ledger_sha256':'67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef',
+              'canonical_ledger_tip_sha256':'b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26',
+              'training_objective':'response_only_masked_cross_entropy',
+              'train_examples':c['train_examples'],
+              'holdout_examples':c['holdout_examples'],
+              'train_sha256':c['train_sha256'],
+              'holdout_sha256':c['holdout_sha256'],
+              'raw_model_outputs_are_targets':False,
+              'selection_status':s['status'],
+              'selected':s['selected'],
+              'selected_checkpoint_sha256':s['selected_checkpoint_sha256'],
+              'candidate_count':len(s['candidates']),
+              'canonical_source_unchanged_after_training':True,
+              'talk004_checkpoint_unchanged_after_training':True,
+              'claim_boundary':s['claim_boundary'],
+          }
+          Path('_talk005/evidence/summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          PY
+
+      - name: Seal evidence and checkpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          roots=[Path('_talk005/evidence'),Path('_talk005/candidates'),Path('_talk005/model')]
+          files=[]
+          for root in roots:
+              files.extend(p for p in root.rglob('*') if p.is_file() and p.name!='SHA256SUMS')
+          lines=[]
+          for p in sorted(files, key=lambda x:x.as_posix()):
+              h=hashlib.sha256(p.read_bytes()).hexdigest()
+              lines.append(f'{h}  {p.as_posix()}')
+          Path('_talk005/SHA256SUMS').write_text('\n'.join(lines)+'\n',encoding='utf-8')
+          print('\n'.join(lines))
+          PY
+
+      - name: Upload immutable TALK-005 training evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-talk005-r12-training-${{ github.run_id }}
+          path: |
+            _talk005/evidence
+            _talk005/candidates
+            _talk005/model
+            _talk005/SHA256SUMS
+          retention-days: 90
