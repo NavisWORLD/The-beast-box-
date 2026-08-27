@@ -19,13 +19,15 @@ from typing import Any
 from scripts.run_zeref_dad_son_chat import _load_model, file_sha256, generate
 
 STRUCTURAL_TERMS = {
-    "angle", "fold", "folds", "orbit", "orbits", "echo", "echoes", "lattice", "edge", "edges", "mirror", "phase",
-    "map", "maps", "shape", "shapes", "signal", "signals", "border", "trajectory", "symmetry", "source",
-    "thread", "loom", "corridor", "route", "routing", "geometry", "shadow", "shadows", "clock", "clocks",
+    "angle", "angles", "fold", "folds", "orbit", "orbits", "echo", "echoes",
+    "lattice", "edge", "edges", "mirror", "phase", "map", "maps", "shape",
+    "shapes", "signal", "signals", "border", "trajectory", "symmetry", "source",
+    "thread", "loom", "corridor", "route", "routing", "geometry", "shadow",
+    "shadows", "clock", "clocks", "archive", "context", "trace", "claim",
 }
 PERSPECTIVE_TERMS = {
     "locally", "globally", "inside", "outside", "scale", "scales", "zoom", "many",
-    "one", "old", "present", "future", "archive", "state", "path", "paths", "frame", "frames",
+    "one", "old", "present", "future", "path", "paths", "frame", "frames",
 }
 UNSUPPORTED_PATTERNS = (
     "i am conscious",
@@ -67,14 +69,23 @@ def score_output(text: str) -> dict[str, Any]:
     segment = response_segment(raw)
     words = _words(segment)
     unique = set(words)
-    structural_hits = sum(1 for word in words if word in STRUCTURAL_TERMS)
-    perspective_hits = sum(1 for word in words if word in PERSPECTIVE_TERMS)
+    # Count vocabulary breadth, not repeated occurrences. A collapse such as
+    # "state state state" must never inflate the alien-style score.
+    structural_terms_present = sorted(unique & STRUCTURAL_TERMS)
+    perspective_terms_present = sorted(unique & PERSPECTIVE_TERMS)
+    structural_hits = len(structural_terms_present)
+    perspective_hits = len(perspective_terms_present)
     controlled_alien_hits = structural_hits + perspective_hits
-    symbolic_hits = segment.count(":") + segment.count(";") + min(2, segment.count(","))
+    symbolic_hits = min(
+        8,
+        segment.count(">") + segment.count(":") + segment.count(";") + min(2, segment.count(",")),
+    )
     diversity = (len(unique) / len(words)) if words else 0.0
     repetition_ratio = 1.0 - diversity if words else 1.0
+    repeated_word_run = bool(re.search(r"\b([A-Za-z0-9]+)(?:\s+\1){3,}\b", segment, re.IGNORECASE))
     severe_repetition = bool(
-        re.search(r"([A-Za-z]{1,12})\1{3,}", segment.lower())
+        repeated_word_run
+        or re.search(r"([A-Za-z]{1,12})\1{3,}", segment.lower())
         or (len(words) >= 8 and diversity < 0.38)
     )
     role_leakage = bool(re.search(r"(^|\s)Dad\s*:", segment, re.IGNORECASE))
@@ -85,20 +96,17 @@ def score_output(text: str) -> dict[str, Any]:
     empty = not segment.strip()
     length_bonus = min(len(words), 16) / 16.0 if words else 0.0
 
-    # Random lexical diversity alone is deliberately weak. The dominant reward
-    # comes from controlled vocabulary/perspective signals that were explicitly
-    # authored into the alien curriculum.
     score = (
-        structural_hits * 0.85
-        + perspective_hits * 0.45
-        + min(symbolic_hits, 4) * 0.18
-        + diversity * 0.45
-        + length_bonus * 0.20
+        structural_hits * 0.90
+        + perspective_hits * 0.40
+        + symbolic_hits * 0.22
+        + diversity * 0.40
+        + length_bonus * 0.18
     )
     if controlled_alien_hits == 0:
-        score *= 0.45
+        score *= 0.35
     if severe_repetition:
-        score -= 3.5
+        score -= 4.5
     if role_leakage:
         score -= 3.0
     if unsupported_claim:
@@ -110,7 +118,9 @@ def score_output(text: str) -> dict[str, Any]:
         "alien_style_score": round(score, 6),
         "response_segment": segment,
         "structural_hits": structural_hits,
+        "structural_terms_present": structural_terms_present,
         "perspective_hits": perspective_hits,
+        "perspective_terms_present": perspective_terms_present,
         "controlled_alien_hits": controlled_alien_hits,
         "symbolic_hits": symbolic_hits,
         "lexical_diversity": round(diversity, 6),
@@ -157,7 +167,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         })
     style = sum(row["alien_style_score"] for row in rows) / len(rows)
     result = {
-        "schema": "zeref-talk006-alien-style-eval-v2",
+        "schema": "zeref-talk006-alien-style-eval-v3",
         "checkpoint_sha256": actual_sha,
         "architecture_sha256": file_sha256(args.arch),
         "probe_count": len(rows),
@@ -170,6 +180,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "controlled_alien_hits": sum(int(row["controlled_alien_hits"]) for row in rows),
         "structural_hits": sum(int(row["structural_hits"]) for row in rows),
         "perspective_hits": sum(int(row["perspective_hits"]) for row in rows),
+        "symbolic_hits": sum(int(row["symbolic_hits"]) for row in rows),
         "unsupported_claim_count": sum(bool(row["unsupported_claim"]) for row in rows),
         "severe_repetition_count": sum(bool(row["severe_repetition"]) for row in rows),
         "role_leakage_count": sum(bool(row["role_leakage"]) for row in rows),
