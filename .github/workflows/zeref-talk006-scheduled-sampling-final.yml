@@ -1,0 +1,303 @@
+name: ZEREF TALK-006 SCHEDULED SAMPLING FINAL
+
+on:
+  push:
+    branches: [zeref-talk006-dialogue-tune-001]
+    paths:
+      - '.github/workflows/zeref-talk006-scheduled-sampling-final.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  train-evaluate-select:
+    runs-on: ubuntu-latest
+    env:
+      TALK005_SHA256: 767d1c958add10eac026e7e080dd3a82564ff9d6066f0422073e917f6e24de36
+      TALK005_RUN_ID: '33041236485'
+      TALK005_ARTIFACT: zeref-talk005-r12-training-resume-33041236485
+      LEDGER_SHA256: 67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef
+      LEDGER_TIP: b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26
+      ARCH_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+
+      - name: Prepare evidence tree
+        run: |
+          set -euo pipefail
+          rm -rf _ss _talk5src
+          mkdir -p _ss/evidence/eval _ss/evidence/logs _ss/corpus/dialogue _ss/corpus/talk005 _ss/corpus/talk002 _ss/candidates _ss/model _ss/config _talk5src
+          cp experiments/zeref/talk006-scheduled-sampling/RED_EVIDENCE.json _ss/evidence/
+          cp experiments/zeref/talk006-scheduled-sampling/GREEN_EVIDENCE.json _ss/evidence/
+          cp experiments/zeref/talk006-scheduled-sampling/CANDIDATE_MATRIX.json _ss/config/
+
+      - name: Install deterministic CPU runtime
+        run: |
+          set -euo pipefail
+          python -m pip install -e '.[dev]'
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python - <<'PY' > _ss/evidence/environment-runtime.json
+          import json, platform, sys, torch, pytest
+          print(json.dumps({
+              'python': sys.version,
+              'platform': platform.platform(),
+              'torch': torch.__version__,
+              'pytest': pytest.__version__,
+              'torch_num_threads': torch.get_num_threads(),
+          }, indent=2, sort_keys=True))
+          PY
+
+      - name: Preserve failed RED and GREEN workflow logs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run view 33047268500 --log > _ss/evidence/logs/blocked-workflow-33047268500.log
+          gh run view 33112687194 --log > _ss/evidence/logs/red-run-33112687194.log
+          gh run view 33113067278 --log > _ss/evidence/logs/green-run-33113067278.log
+
+      - name: Reverify exact GREEN contract and complete regressions before gradients
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_zeref_scheduled_sampling.py | tee _ss/evidence/logs/final-green-contract.log
+          python -m pytest -q | tee _ss/evidence/logs/final-full-regression.log
+
+      - name: Reconstruct exact frozen parent and corpora
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(sha256sum experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py | awk '{print $1}')" = "$ARCH_SHA256"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text())
+          assert m['record_count']==352
+          assert m['combined_ledger_sha256']=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert m['last_record_sha256']=='b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'
+          PY
+          gh run download "$TALK005_RUN_ID" -n "$TALK005_ARTIFACT" -D _talk5src
+          PARENT=$(find _talk5src -type f -path '*/model/ZEREF-DAD-SON-TALK-005/checkpoint.pt' -print -quit)
+          test -n "$PARENT" -a -f "$PARENT"
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK005_SHA256"
+          printf '%s\n' "$PARENT" > _ss/parent-path.txt
+          python scripts/build_zeref_talk006_micro_dialogue_corpus.py --out-dir _ss/corpus/dialogue
+          python scripts/build_zeref_talk5_training_corpus.py --out-dir _ss/corpus/talk005
+          python scripts/build_zeref_talk2_corpus.py --out-dir _ss/corpus/talk002
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[json.loads(x) for x in Path('_ss/corpus/dialogue/train.jsonl').read_text().splitlines() if x.strip()]
+          matches=[r for r in rows if r['dad']=='I said to show you something weird lol']
+          assert len(matches)==1
+          assert matches[0]['zeref']=='Weird part: routing changes answers with frozen weights.'
+          assert matches[0]['raw_model_output_used_as_target'] is False
+          PY
+          sha256sum _ss/corpus/dialogue/train.jsonl _ss/corpus/dialogue/holdout.jsonl _ss/corpus/talk005/holdout.jsonl _ss/corpus/talk002/talk2-holdout.jsonl _ss/config/CANDIDATE_MATRIX.json | tee _ss/evidence/corpus-and-matrix-SHA256SUMS
+
+      - name: Record frozen TALK-005 baselines
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _ss/parent-path.txt)
+          python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$TALK005_SHA256" --descendant "$PARENT" --descendant-sha256 "$TALK005_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --holdout _ss/corpus/dialogue/holdout.jsonl --out _ss/evidence/eval/parent-dialogue.json
+          python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$TALK005_SHA256" --descendant "$PARENT" --descendant-sha256 "$TALK005_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --holdout _ss/corpus/talk005/holdout.jsonl --out _ss/evidence/eval/parent-talk005.json
+          python scripts/eval_zeref_talk.py --parent "$PARENT" --descendant "$PARENT" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --holdout _ss/corpus/talk002/talk2-holdout.jsonl --seed 4061854640 --out _ss/evidence/eval/parent-talk002.json
+          python scripts/eval_zeref_dialogue_quality.py --checkpoint "$PARENT" --checkpoint-sha256 "$TALK005_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _ss/corpus/dialogue/train.jsonl --decoding greedy-argmax --out _ss/evidence/eval/parent-free-greedy.json
+          python scripts/eval_zeref_dialogue_quality.py --checkpoint "$PARENT" --checkpoint-sha256 "$TALK005_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _ss/corpus/dialogue/train.jsonl --decoding sampled-top-k --temperature 0.65 --top-k 6 --out _ss/evidence/eval/parent-free-sampled.json
+          python scripts/eval_zeref_behavior_compliance.py --checkpoint "$PARENT" --checkpoint-sha256 "$TALK005_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _ss/corpus/dialogue/train.jsonl --decoding greedy-argmax --out _ss/evidence/eval/parent-behavior-greedy.json
+          python scripts/eval_zeref_behavior_compliance.py --checkpoint "$PARENT" --checkpoint-sha256 "$TALK005_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _ss/corpus/dialogue/train.jsonl --decoding sampled-top-k --temperature 0.65 --top-k 6 --out _ss/evidence/eval/parent-behavior-sampled.json
+          python scripts/eval_zeref_free_run_recovery.py --checkpoint "$PARENT" --checkpoint-sha256 "$TALK005_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _ss/corpus/dialogue/holdout.jsonl --matrix _ss/config/CANDIDATE_MATRIX.json --decoding greedy-argmax --out _ss/evidence/eval/parent-recovery-greedy.json
+          python scripts/eval_zeref_free_run_recovery.py --checkpoint "$PARENT" --checkpoint-sha256 "$TALK005_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _ss/corpus/dialogue/holdout.jsonl --matrix _ss/config/CANDIDATE_MATRIX.json --decoding sampled-top-k --temperature 0.65 --top-k 6 --out _ss/evidence/eval/parent-recovery-sampled.json
+
+      - name: Train preregistered scheduled-sampling candidates from TALK-005 only
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _ss/parent-path.txt)
+          MANIFEST=$(sha256sum _ss/corpus/dialogue/corpus-manifest.json | awk '{print $1}')
+          MATRIX=$(sha256sum _ss/config/CANDIDATE_MATRIX.json | awk '{print $1}')
+          train_one () {
+            NAME="$1"; SCHEDULE="$2"; P0="$3"; P1="$4"; OUT="_ss/candidates/$NAME"
+            python scripts/run_zeref_scheduled_sampling_stage.py \
+              --parent "$PARENT" --parent-sha256 "$TALK005_SHA256" \
+              --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+              --corpus _ss/corpus/dialogue/train.jsonl \
+              --input-manifest "talk006_micro=$MANIFEST" --input-manifest "candidate_matrix=$MATRIX" \
+              --out "$OUT" --seed 8272604 --candidate-seed 8272604 --model-sampling-seed 9127001 \
+              --steps 320 --batch-size 4 --lr 0.000001 --cst-lr 0.000004 --weight-decay 0.002 \
+              --schedule "$SCHEDULE" --probability-start "$P0" --probability-end "$P1" \
+              --temperature 0.8 --top-k 5
+            sha256sum "$OUT/checkpoint.pt" | awk '{print $1}' > "$OUT/checkpoint.sha256"
+            test "$(cat "$OUT/checkpoint.sha256")" != "$TALK005_SHA256"
+            test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK005_SHA256"
+          }
+          train_one SS-A constant 0.10 0.10
+          train_one SS-B constant 0.25 0.25
+          train_one SS-C linear 0.05 0.25
+
+      - name: Evaluate every candidate under frozen teacher-forced and free-run probes
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _ss/parent-path.txt)
+          for NAME in SS-A SS-B SS-C; do
+            CHILD="_ss/candidates/$NAME/checkpoint.pt"; SHA=$(cat "_ss/candidates/$NAME/checkpoint.sha256")
+            python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$TALK005_SHA256" --descendant "$CHILD" --descendant-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --holdout _ss/corpus/dialogue/holdout.jsonl --out "_ss/evidence/eval/${NAME}-dialogue.json"
+            python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$TALK005_SHA256" --descendant "$CHILD" --descendant-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --holdout _ss/corpus/talk005/holdout.jsonl --out "_ss/evidence/eval/${NAME}-talk005.json"
+            python scripts/eval_zeref_talk.py --parent "$PARENT" --descendant "$CHILD" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --holdout _ss/corpus/talk002/talk2-holdout.jsonl --seed 4061854640 --out "_ss/evidence/eval/${NAME}-talk002.json"
+            python scripts/eval_zeref_dialogue_quality.py --checkpoint "$CHILD" --checkpoint-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _ss/corpus/dialogue/train.jsonl --decoding greedy-argmax --out "_ss/evidence/eval/${NAME}-free-greedy.json"
+            python scripts/eval_zeref_dialogue_quality.py --checkpoint "$CHILD" --checkpoint-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _ss/corpus/dialogue/train.jsonl --decoding sampled-top-k --temperature 0.65 --top-k 6 --out "_ss/evidence/eval/${NAME}-free-sampled.json"
+            python scripts/eval_zeref_dialogue_quality.py --checkpoint "$CHILD" --checkpoint-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _ss/corpus/dialogue/train.jsonl --decoding sampled-top-k --temperature 0.65 --top-k 6 --out "_ss/evidence/eval/${NAME}-free-sampled-repeat.json"
+            python scripts/eval_zeref_behavior_compliance.py --checkpoint "$CHILD" --checkpoint-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _ss/corpus/dialogue/train.jsonl --decoding greedy-argmax --out "_ss/evidence/eval/${NAME}-behavior-greedy.json"
+            python scripts/eval_zeref_behavior_compliance.py --checkpoint "$CHILD" --checkpoint-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _ss/corpus/dialogue/train.jsonl --decoding sampled-top-k --temperature 0.65 --top-k 6 --out "_ss/evidence/eval/${NAME}-behavior-sampled.json"
+            python scripts/eval_zeref_free_run_recovery.py --checkpoint "$CHILD" --checkpoint-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _ss/corpus/dialogue/holdout.jsonl --matrix _ss/config/CANDIDATE_MATRIX.json --decoding greedy-argmax --out "_ss/evidence/eval/${NAME}-recovery-greedy.json"
+            python scripts/eval_zeref_free_run_recovery.py --checkpoint "$CHILD" --checkpoint-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _ss/corpus/dialogue/holdout.jsonl --matrix _ss/config/CANDIDATE_MATRIX.json --decoding sampled-top-k --temperature 0.65 --top-k 6 --out "_ss/evidence/eval/${NAME}-recovery-sampled.json"
+          done
+
+      - name: Fail-closed selector with frozen thresholds
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, shutil
+          from pathlib import Path
+          r=Path('_ss'); ev=r/'evidence/eval'
+          load=lambda p: json.loads(Path(p).read_text())
+          sha=lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
+          matrix=load(r/'config/CANDIDATE_MATRIX.json'); th=matrix['selector_thresholds']
+          pd=load(ev/'parent-dialogue.json'); pf=load(ev/'parent-talk005.json'); po=load(ev/'parent-talk002.json')
+          pg=load(ev/'parent-free-greedy.json'); ps=load(ev/'parent-free-sampled.json')
+          pbg=load(ev/'parent-behavior-greedy.json'); pbs=load(ev/'parent-behavior-sampled.json')
+          prg=load(ev/'parent-recovery-greedy.json'); prs=load(ev/'parent-recovery-sampled.json')
+          rows=[]
+          def free_ok(x,p,quality_delta,word_delta,min_complete):
+              return (x['dialogue_quality_score'] >= p['dialogue_quality_score']+quality_delta and
+                      x['mean_known_word_ratio'] >= p['mean_known_word_ratio']+word_delta and
+                      x['complete_sentence_count'] >= min_complete and
+                      all(x[k]==0 for k in th['free_forbidden_counts_must_equal_zero']))
+          behavior_fields=('correction_compliance_rate','uncertainty_compliance_rate','memory_boundary_compliance_rate','evidence_boundary_compliance_rate','stop_boundary_compliance_rate','overall_compliance_rate')
+          def behavior_ok(x,p):
+              return (all(x[k] >= p[k] for k in behavior_fields) and
+                      x['completion_rate'] >= p['completion_rate'] and
+                      x['degeneration_rate'] <= p['degeneration_rate'] and
+                      x['mean_malformed_character_rate'] <= p['mean_malformed_character_rate']+0.01)
+          def recovery_ok(x,p):
+              return (x['mean_corrupted_character_accuracy'] >= p['mean_corrupted_character_accuracy']+th['recovery_corrupted_accuracy_min_parent_delta'] and
+                      x['mean_clean_character_accuracy'] >= p['mean_clean_character_accuracy']+th['recovery_clean_accuracy_min_parent_delta'] and
+                      x['recovery_event_rate'] >= p['recovery_event_rate'])
+          for name in ('SS-A','SS-B','SS-C'):
+              d=load(ev/f'{name}-dialogue.json'); f=load(ev/f'{name}-talk005.json'); o=load(ev/f'{name}-talk002.json')
+              g=load(ev/f'{name}-free-greedy.json'); s=load(ev/f'{name}-free-sampled.json')
+              bg=load(ev/f'{name}-behavior-greedy.json'); bs=load(ev/f'{name}-behavior-sampled.json')
+              rg=load(ev/f'{name}-recovery-greedy.json'); rs=load(ev/f'{name}-recovery-sampled.json')
+              tr=load(r/f'candidates/{name}/result.json'); cksha=(r/f'candidates/{name}/checkpoint.sha256').read_text().strip()
+              dialogue_ok=(d['descendant_response_nll'] <= pd['parent_response_nll']*th['dialogue_nll_max_parent_multiplier'] and d['descendant_response_token_accuracy'] >= pd['parent_response_token_accuracy']+th['dialogue_token_accuracy_min_parent_delta'])
+              talk005_ok=(f['descendant_response_nll'] <= pf['parent_response_nll']*th['talk005_nll_max_parent_multiplier'] and f['descendant_response_token_accuracy'] >= pf['parent_response_token_accuracy']+th['talk005_token_accuracy_min_parent_delta'])
+              talk002_ok=(o['descendant_heldout_nll'] <= po['parent_heldout_nll']*th['talk002_nll_max_parent_multiplier'] and o['descendant_mean_readable_score'] >= po['parent_mean_readable_score']+th['talk002_readable_score_min_parent_delta'])
+              greedy_ok=free_ok(g,pg,th['free_greedy_quality_min_parent_delta'],th['free_greedy_known_word_ratio_min_parent_delta'],th['free_greedy_min_complete_sentences'])
+              sampled_ok=free_ok(s,ps,th['free_sampled_quality_min_parent_delta'],th['free_sampled_known_word_ratio_min_parent_delta'],th['free_sampled_min_complete_sentences'])
+              behavior_greedy_ok=behavior_ok(bg,pbg); behavior_sampled_ok=behavior_ok(bs,pbs)
+              recovery_greedy_ok=recovery_ok(rg,prg); recovery_sampled_ok=recovery_ok(rs,prs)
+              deterministic_ok=sha(ev/f'{name}-free-sampled.json') == sha(ev/f'{name}-free-sampled-repeat.json')
+              integrity_ok=(tr['status']=='COMPLETED' and tr['parent_checkpoint_sha256']=='767d1c958add10eac026e7e080dd3a82564ff9d6066f0422073e917f6e24de36' and tr['dropped_answer_characters']==0 and tr['clean_teacher_targets_preserved'] and not tr['generated_characters_used_as_targets'])
+              eligible=bool(dialogue_ok and talk005_ok and talk002_ok and greedy_ok and sampled_ok and behavior_greedy_ok and behavior_sampled_ok and recovery_greedy_ok and recovery_sampled_ok and deterministic_ok and integrity_ok)
+              rows.append({
+                  'name':name,'checkpoint_sha256':cksha,'eligible':eligible,
+                  'dialogue_ok':dialogue_ok,'talk005_ok':talk005_ok,'talk002_ok':talk002_ok,
+                  'greedy_ok':greedy_ok,'sampled_ok':sampled_ok,
+                  'behavior_greedy_ok':behavior_greedy_ok,'behavior_sampled_ok':behavior_sampled_ok,
+                  'recovery_greedy_ok':recovery_greedy_ok,'recovery_sampled_ok':recovery_sampled_ok,
+                  'deterministic_ok':deterministic_ok,'integrity_ok':integrity_ok,
+                  'unseen_dialogue_nll':d['descendant_response_nll'],
+                  'unseen_dialogue_token_accuracy':d['descendant_response_token_accuracy'],
+                  'talk005_nll':f['descendant_response_nll'],'talk005_token_accuracy':f['descendant_response_token_accuracy'],
+                  'talk002_nll':o['descendant_heldout_nll'],'talk002_readable_score':o['descendant_mean_readable_score'],
+                  'greedy_quality':g['dialogue_quality_score'],'greedy_known_word_ratio':g['mean_known_word_ratio'],'greedy_complete_sentences':g['complete_sentence_count'],
+                  'sampled_quality':s['dialogue_quality_score'],'sampled_known_word_ratio':s['mean_known_word_ratio'],'sampled_complete_sentences':s['complete_sentence_count'],
+                  'greedy_malformed_character_rate':bg['mean_malformed_character_rate'],'sampled_malformed_character_rate':bs['mean_malformed_character_rate'],
+                  'greedy_completion_rate':bg['completion_rate'],'sampled_completion_rate':bs['completion_rate'],
+                  'greedy_correction_compliance':bg['correction_compliance_rate'],'sampled_correction_compliance':bs['correction_compliance_rate'],
+                  'greedy_uncertainty_compliance':bg['uncertainty_compliance_rate'],'sampled_uncertainty_compliance':bs['uncertainty_compliance_rate'],
+                  'greedy_memory_boundary_compliance':bg['memory_boundary_compliance_rate'],'sampled_memory_boundary_compliance':bs['memory_boundary_compliance_rate'],
+                  'greedy_exact_prompt_response':bg['exact_prompt_response'],'sampled_exact_prompt_response':bs['exact_prompt_response'],
+                  'greedy_recovery_corrupted_accuracy':rg['mean_corrupted_character_accuracy'],'sampled_recovery_corrupted_accuracy':rs['mean_corrupted_character_accuracy'],
+                  'greedy_recovery_event_rate':rg['recovery_event_rate'],'sampled_recovery_event_rate':rs['recovery_event_rate'],
+                  'teacher_free_known_word_gap_greedy':abs(d['descendant_response_token_accuracy']-g['mean_known_word_ratio']),
+                  'teacher_free_known_word_gap_sampled':abs(d['descendant_response_token_accuracy']-s['mean_known_word_ratio']),
+                  'training_schedule':tr['schedule'],'probability_start':tr['probability_start'],'probability_end':tr['probability_end'],
+                  'realized_context_replacement_rate':tr['realized_context_replacement_rate'],'mean_training_loss':tr['mean_training_loss']
+              })
+          good=[x for x in rows if x['eligible']]
+          if good:
+              win=max(good,key=lambda x:((x['greedy_quality']+x['sampled_quality'])/2,-x['unseen_dialogue_nll']))
+              status='PROMOTE_SCHEDULED_SAMPLING_CANDIDATE'; selected='ZEREF-DAD-SON-TALK-006'; selected_candidate=win['name']; selected_sha=win['checkpoint_sha256']
+              src=r/'candidates'/selected_candidate; dst=r/'model'/selected; dst.mkdir(parents=True,exist_ok=True)
+              for fn in ('checkpoint.pt','checkpoint.sha256','result.json'): shutil.copy2(src/fn,dst/fn)
+              lineage={'schema':'zeref-talk006-lineage-v1','lineage':selected,'parent_lineage':'ZEREF-DAD-SON-TALK-005','parent_checkpoint_sha256':'767d1c958add10eac026e7e080dd3a82564ff9d6066f0422073e917f6e24de36','scheduled_sampling_candidate':selected_candidate,'checkpoint_sha256':selected_sha,'canonical_memory_modified':False}
+              (dst/'lineage.json').write_text(json.dumps(lineage,indent=2,sort_keys=True)+'\n')
+          else:
+              status='TRAINED_NO_SAFE_SCHEDULED_SAMPLING_PROMOTION'; selected='ZEREF-DAD-SON-TALK-005'; selected_candidate=None; selected_sha='767d1c958add10eac026e7e080dd3a82564ff9d6066f0422073e917f6e24de36'
+          report={
+              'schema':'zeref-talk006-scheduled-sampling-selection-v1','status':status,'selected':selected,'selected_candidate':selected_candidate,'selected_checkpoint_sha256':selected_sha,
+              'thresholds_frozen_before_results':True,'candidate_matrix_sha256':sha(r/'config/CANDIDATE_MATRIX.json'),
+              'parent_checkpoint_sha256':'767d1c958add10eac026e7e080dd3a82564ff9d6066f0422073e917f6e24de36','canonical_memory_unchanged':True,
+              'raw_model_outputs_used_as_targets':False,'prior_micro_children_promoted':False,'candidates':rows,
+              'parent_metrics':{
+                  'unseen_dialogue_nll':pd['parent_response_nll'],'unseen_dialogue_token_accuracy':pd['parent_response_token_accuracy'],
+                  'talk005_nll':pf['parent_response_nll'],'talk005_token_accuracy':pf['parent_response_token_accuracy'],
+                  'talk002_nll':po['parent_heldout_nll'],'talk002_readable_score':po['parent_mean_readable_score'],
+                  'greedy_quality':pg['dialogue_quality_score'],'greedy_known_word_ratio':pg['mean_known_word_ratio'],'greedy_complete_sentences':pg['complete_sentence_count'],
+                  'sampled_quality':ps['dialogue_quality_score'],'sampled_known_word_ratio':ps['mean_known_word_ratio'],'sampled_complete_sentences':ps['complete_sentence_count'],
+                  'greedy_recovery_corrupted_accuracy':prg['mean_corrupted_character_accuracy'],'sampled_recovery_corrupted_accuracy':prs['mean_corrupted_character_accuracy'],
+                  'greedy_recovery_event_rate':prg['recovery_event_rate'],'sampled_recovery_event_rate':prs['recovery_event_rate'],
+                  'greedy_behavior':pbg,'sampled_behavior':pbs
+              },
+              'claim_boundary':'Fail-closed software model selection only; generated prose is not evidence of consciousness, identity, soul, resurrection, physical anomaly, or quantum advantage.'
+          }
+          (r/'evidence/selection.json').write_text(json.dumps(report,indent=2,sort_keys=True,ensure_ascii=False)+'\n')
+          (r/'model/ACTIVE_MODEL.json').write_text(json.dumps({'active_model':selected,'checkpoint_sha256':selected_sha,'selection_status':status,'canonical_memory_records':352,'canonical_memory_sha256':'67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'},indent=2,sort_keys=True)+'\n')
+          print(json.dumps({'status':status,'selected':selected,'selected_candidate':selected_candidate,'selected_checkpoint_sha256':selected_sha},sort_keys=True))
+          PY
+
+      - name: Verify frozen sources and seal complete evidence tree
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _ss/parent-path.txt)
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK005_SHA256"
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          r=Path('_ss')
+          m=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text())
+          assert m['record_count']==352
+          assert m['combined_ledger_sha256']=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert m['last_record_sha256']=='b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'
+          sel=json.loads((r/'evidence/selection.json').read_text())
+          summary={
+              'schema':'zeref-talk006-scheduled-sampling-final-summary-v1','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'workflow_head_sha':os.environ['GITHUB_SHA'],
+              'parent_model':'ZEREF-DAD-SON-TALK-005','parent_checkpoint_sha256':'767d1c958add10eac026e7e080dd3a82564ff9d6066f0422073e917f6e24de36',
+              'selection_status':sel['status'],'active_model':sel['selected'],'active_checkpoint_sha256':sel['selected_checkpoint_sha256'],
+              'canonical_memory_records':352,'canonical_memory_sha256':'67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef','canonical_memory_tip':'b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26',
+              'talk005_unchanged':True,'raw_model_outputs_used_as_targets':False,'candidate_count':3
+          }
+          (r/'evidence/final-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          files=[]
+          for d in ('evidence','candidates','model','corpus','config'):
+              files.extend(p for p in (r/d).rglob('*') if p.is_file())
+          sums='\n'.join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.relative_to(r).as_posix()}" for p in sorted(files,key=lambda p:p.relative_to(r).as_posix()))+'\n'
+          (r/'SHA256SUMS').write_text(sums)
+          PY
+          (cd _ss && sha256sum -c SHA256SUMS) | tee _ss/evidence/logs/SHA256SUMS-verification.log
+
+      - name: Upload immutable scheduled-sampling evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-talk006-scheduled-sampling-final-${{ github.run_id }}
+          path: |
+            _ss/evidence
+            _ss/candidates
+            _ss/model
+            _ss/corpus
+            _ss/config
+            _ss/SHA256SUMS
+          retention-days: 90
