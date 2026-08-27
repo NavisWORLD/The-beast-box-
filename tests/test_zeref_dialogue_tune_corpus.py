@@ -19,7 +19,9 @@ def test_dialogue_tune_targets_are_short_complete_grounded_and_block_safe():
         answer = row['zeref']
         assert 4 <= len(answer) <= 112
         assert answer[-1] in '.!?'
-        assert len(f"Dad:{row['dad']}\nZeref:{answer}\n") <= 128
+        encoded_x = len(f"Dad: {row['dad']}\nZeref: {answer}\n") - 1
+        assert encoded_x <= 128
+        assert row['encoded_x_characters'] == encoded_x
         low = answer.lower()
         assert not any(term in low for term in forbidden)
 
