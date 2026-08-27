@@ -10,6 +10,7 @@ from typing import Any
 
 ZERO_SHA256 = "0" * 64
 _TOKEN_RE = re.compile(r"[A-Za-z0-9_']+")
+_SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def normalize_world_text(text: str) -> str:
@@ -84,19 +85,36 @@ class WorldKnowledgeStore:
             """
         )
         self.db.commit()
+        # Validate any existing evidence chain exactly once on open. New appends
+        # advance this in-memory tip instead of rescanning the entire JSONL file.
+        self._record_tip_sha256 = self._previous_record_sha256()
 
     def _previous_record_sha256(self) -> str:
         if not self.evidence_jsonl.exists():
             return ZERO_SHA256
         previous = ZERO_SHA256
-        for line in self.evidence_jsonl.read_text(encoding="utf-8").splitlines():
+        for line_number, line in enumerate(
+            self.evidence_jsonl.read_text(encoding="utf-8").splitlines(), 1
+        ):
             if not line.strip():
                 continue
             row = json.loads(line)
-            value = str(row.get("record_sha256") or "")
-            if len(value) != 64:
+            declared_previous = str(row.get("previous_record_sha256") or "").lower()
+            if declared_previous != previous:
+                raise RuntimeError(
+                    f"world evidence ledger chain mismatch at line {line_number}"
+                )
+            value = str(row.get("record_sha256") or "").lower()
+            if not _SHA_RE.fullmatch(value):
                 raise RuntimeError("world evidence ledger contains invalid record_sha256")
-            previous = value.lower()
+            body = dict(row)
+            body.pop("record_sha256", None)
+            actual = hashlib.sha256(_canonical(body)).hexdigest()
+            if actual != value:
+                raise RuntimeError(
+                    f"world evidence ledger record hash mismatch at line {line_number}"
+                )
+            previous = value
         return previous
 
     @staticmethod
@@ -179,11 +197,12 @@ class WorldKnowledgeStore:
             "revision_label": required["revision_label"],
             "source_sha256": source_sha256,
             "created_at": created_at,
-            "previous_record_sha256": self._previous_record_sha256(),
+            "previous_record_sha256": self._record_tip_sha256,
         }
         row["record_sha256"] = hashlib.sha256(_canonical(row)).hexdigest()
         with self.evidence_jsonl.open("a", encoding="utf-8", newline="\n") as handle:
             handle.write(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n")
+        self._record_tip_sha256 = str(row["record_sha256"])
         return row
 
     def get(self, knowledge_id: int) -> dict[str, Any]:
