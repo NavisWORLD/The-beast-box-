@@ -85,6 +85,25 @@ def _uncertainty_row(evidence: dict[str, Any], question: dict[str, Any], index: 
     }
 
 
+def _build_negative_pairs(pool: list[dict[str, Any]], count: int, *, offset: int = 0) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    if count <= 0:
+        return result
+    if len(pool) < 2:
+        raise ValueError("uncertainty pairs require at least two source records")
+    for index in range(count):
+        left = pool[(offset + index) % len(pool)]
+        right = pool[(offset + index + 1) % len(pool)]
+        if left["source_id"] == right["source_id"]:
+            right = pool[(offset + index + 2) % len(pool)]
+        row = _uncertainty_row(left, right, index + 1)
+        if row is not None:
+            result.append(row)
+    if len(result) != count:
+        raise ValueError(f"could not build requested uncertainty rows: {len(result)} != {count}")
+    return result
+
+
 def build_world_curriculum(
     *,
     world_evidence: Path,
@@ -92,6 +111,7 @@ def build_world_curriculum(
     train_facts: int,
     holdout_facts: int,
     uncertainty_rows: int,
+    uncertainty_holdout_rows: int = 0,
     seed: int,
 ) -> dict[str, Any]:
     evidence = [json.loads(line) for line in world_evidence.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -101,8 +121,8 @@ def build_world_curriculum(
     required = int(train_facts) + int(holdout_facts)
     if required <= 0 or len(usable) < required:
         raise ValueError(f"not enough usable world facts: need {required}, found {len(usable)}")
-    if int(uncertainty_rows) < 0:
-        raise ValueError("uncertainty_rows must be non-negative")
+    if int(uncertainty_rows) < 0 or int(uncertainty_holdout_rows) < 0:
+        raise ValueError("uncertainty row counts must be non-negative")
 
     rng = random.Random(int(seed))
     rng.shuffle(usable)
@@ -111,26 +131,19 @@ def build_world_curriculum(
     train = [dict(row) for _, row in train_pairs]
     holdout = [dict(row) for _, row in holdout_pairs]
 
-    uncertainty: list[dict[str, Any]] = []
-    pool = [source for source, _ in usable]
-    if len(pool) >= 2:
-        for index in range(int(uncertainty_rows)):
-            left = pool[index % len(pool)]
-            right = pool[(index + 1) % len(pool)]
-            if left["source_id"] == right["source_id"]:
-                right = pool[(index + 2) % len(pool)]
-            row = _uncertainty_row(left, right, index + 1)
-            if row is not None:
-                uncertainty.append(row)
-    if len(uncertainty) != int(uncertainty_rows):
-        raise ValueError(f"could not build requested uncertainty rows: {len(uncertainty)} != {uncertainty_rows}")
+    train_pool = [source for source, _ in train_pairs]
+    holdout_pool = [source for source, _ in holdout_pairs]
+    uncertainty = _build_negative_pairs(train_pool, int(uncertainty_rows))
+    uncertainty_holdout = _build_negative_pairs(holdout_pool, int(uncertainty_holdout_rows), offset=3)
     train.extend(uncertainty)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     train_path = out_dir / "train.jsonl"
     holdout_path = out_dir / "holdout.jsonl"
+    uncertainty_holdout_path = out_dir / "uncertainty-holdout.jsonl"
     _write_jsonl(train_path, train)
     _write_jsonl(holdout_path, holdout)
+    _write_jsonl(uncertainty_holdout_path, uncertainty_holdout)
     manifest = {
         "schema": "zeref-world-r12-corpus-manifest-v1",
         "seed": int(seed),
@@ -140,10 +153,12 @@ def build_world_curriculum(
         "world_train_facts": int(train_facts),
         "world_holdout_facts": int(holdout_facts),
         "uncertainty_train_rows": int(uncertainty_rows),
+        "uncertainty_holdout_rows": int(uncertainty_holdout_rows),
         "train_rows": len(train),
         "holdout_rows": len(holdout),
         "train_sha256": _sha(train_path),
         "holdout_sha256": _sha(holdout_path),
+        "uncertainty_holdout_sha256": _sha(uncertainty_holdout_path),
         "raw_model_outputs_are_targets": False,
         "world_targets_source_derived": True,
     }
@@ -158,6 +173,7 @@ def main() -> int:
     parser.add_argument("--train-facts", type=int, default=384)
     parser.add_argument("--holdout-facts", type=int, default=96)
     parser.add_argument("--uncertainty-rows", type=int, default=64)
+    parser.add_argument("--uncertainty-holdout-rows", type=int, default=0)
     parser.add_argument("--seed", type=int, default=20260827)
     args = parser.parse_args()
     result = build_world_curriculum(
@@ -166,6 +182,7 @@ def main() -> int:
         train_facts=args.train_facts,
         holdout_facts=args.holdout_facts,
         uncertainty_rows=args.uncertainty_rows,
+        uncertainty_holdout_rows=args.uncertainty_holdout_rows,
         seed=args.seed,
     )
     print(json.dumps(result, sort_keys=True))
