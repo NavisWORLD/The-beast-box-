@@ -1,0 +1,25 @@
+name: ZEREF R12 Final Talk Session
+
+on:
+  push:
+    branches: [zeref-r12-final-talk-runtime-001]
+    paths:
+      - ".github/workflows/zeref-r12-final-talk-session.yml"
+      - "scripts/run_zeref_r12_talk_session.py"
+      - "tests/test_zeref_r12_talk_runtime.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e '.[dev]'
+      - run: python -m pytest -q tests/test_zeref_r12_talk_runtime.py
