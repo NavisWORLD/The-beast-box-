@@ -1,0 +1,65 @@
+{
+  "schema": "zeref-world-r12-frozen-config-v1",
+  "frozen_before_hardware_or_candidate_metrics": true,
+  "parent_checkpoint_sha256": "454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425",
+  "architecture_sha256": "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc",
+  "canonical_ledger_records": 352,
+  "canonical_ledger_sha256": "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef",
+  "canonical_ledger_tip_sha256": "b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26",
+  "quality_profile_weights": {
+    "spatial": 0.30,
+    "lexical": 0.22,
+    "hebbian": 0.10,
+    "recency": 0.05,
+    "integrity": 0.13,
+    "quality": 0.20
+  },
+  "fusion": {
+    "confidence_floor": 0.56,
+    "namespace_margin": 0.03,
+    "lexical_prefilter": 128,
+    "rank_limit": 8
+  },
+  "world_source": {
+    "dataset": "wikimedia/wikipedia",
+    "config": "20231101.en",
+    "split": "train",
+    "streaming": true,
+    "license_label": "CC BY-SA 3.0 / GFDL",
+    "accepted_records_first_run": 4096,
+    "seed": 20260827
+  },
+  "corpus": {
+    "world_train_facts": 384,
+    "world_holdout_facts": 96,
+    "uncertainty_train_rows": 64,
+    "include_micro_dialogue_replay": true,
+    "include_talk005_replay": true,
+    "include_talk002_replay": true
+  },
+  "training": {
+    "batch_size": 4,
+    "lr": 0.000001,
+    "cst_lr": 0.000004,
+    "weight_decay": 0.002,
+    "gradient_clip_norm": 1.0,
+    "schedule": "constant",
+    "probability_start": 0.0,
+    "probability_end": 0.0,
+    "candidates": [
+      {"name": "WORLD-R12-LOW", "steps": 600, "seed": 8272701, "candidate_seed": 8272701, "model_sampling_seed": 9127101},
+      {"name": "WORLD-R12-MID", "steps": 1000, "seed": 8272702, "candidate_seed": 8272702, "model_sampling_seed": 9127102},
+      {"name": "WORLD-R12-HIGH", "steps": 1600, "seed": 8272703, "candidate_seed": 8272703, "model_sampling_seed": 9127103}
+    ]
+  },
+  "gates": {
+    "world_holdout_nll_must_improve": true,
+    "world_holdout_token_accuracy_may_regress_pp": 0.0,
+    "dad_replay_nll_max_ratio": 1.03,
+    "free_run_readability_max_regress_pp": 2.0,
+    "routing_benchmark_min_accuracy": 0.90,
+    "evidence_wire_coverage": 1.0,
+    "unknown_requires_uncertainty": true,
+    "no_raw_model_outputs_as_targets": true
+  }
+}
