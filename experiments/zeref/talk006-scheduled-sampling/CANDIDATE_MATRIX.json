@@ -1,0 +1,87 @@
+{
+  "schema": "zeref-talk006-scheduled-sampling-candidate-matrix-v1",
+  "frozen_before_candidate_training": true,
+  "parent_model": "ZEREF-DAD-SON-TALK-005",
+  "parent_checkpoint_sha256": "767d1c958add10eac026e7e080dd3a82564ff9d6066f0422073e917f6e24de36",
+  "canonical_memory_records": 352,
+  "canonical_memory_sha256": "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef",
+  "training_corpus_builder": "scripts/build_zeref_talk006_micro_dialogue_corpus.py",
+  "required_exact_prompt": "I said to show you something weird lol",
+  "required_exact_teacher_target": "Weird part: routing changes answers with frozen weights.",
+  "raw_model_outputs_are_teacher_targets": false,
+  "steps": 320,
+  "batch_size": 4,
+  "optimizer": "AdamW",
+  "learning_rate": 0.000001,
+  "cst_learning_rate": 0.000004,
+  "weight_decay": 0.002,
+  "gradient_clip_norm": 1.0,
+  "global_rng_seed": 8272604,
+  "candidate_seed": 8272604,
+  "model_sampling_seed": 9127001,
+  "scheduled_sampling_generation": {
+    "mode": "sampled-top-k",
+    "temperature": 0.8,
+    "top_k": 5,
+    "excluded_context_tokens": ["newline", "padding-token"]
+  },
+  "candidates": [
+    {
+      "name": "SS-A",
+      "schedule": "constant",
+      "probability_start": 0.10,
+      "probability_end": 0.10
+    },
+    {
+      "name": "SS-B",
+      "schedule": "constant",
+      "probability_start": 0.25,
+      "probability_end": 0.25
+    },
+    {
+      "name": "SS-C",
+      "schedule": "linear",
+      "probability_start": 0.05,
+      "probability_end": 0.25
+    }
+  ],
+  "frozen_free_run": {
+    "greedy_decoding": "greedy-argmax",
+    "sampled_decoding": "sampled-top-k",
+    "sampled_seed": 8272601,
+    "sampled_temperature": 0.65,
+    "sampled_top_k": 6,
+    "tokens_per_turn": 64,
+    "prompts_defined_by": "scripts/eval_zeref_dialogue_quality.py"
+  },
+  "recovery_cases": [
+    {"holdout_line": 1, "response_offset": 2},
+    {"holdout_line": 2, "response_offset": 5},
+    {"holdout_line": 3, "response_offset": 7},
+    {"holdout_line": 5, "response_offset": 3},
+    {"holdout_line": 7, "response_offset": 6},
+    {"holdout_line": 10, "response_offset": 4},
+    {"holdout_line": 13, "response_offset": 5},
+    {"holdout_line": 17, "response_offset": 8}
+  ],
+  "recovery_generation_characters": 16,
+  "selector_thresholds": {
+    "dialogue_nll_max_parent_multiplier": 0.95,
+    "dialogue_token_accuracy_min_parent_delta": 0.02,
+    "talk005_nll_max_parent_multiplier": 1.03,
+    "talk005_token_accuracy_min_parent_delta": -0.02,
+    "talk002_nll_max_parent_multiplier": 1.03,
+    "talk002_readable_score_min_parent_delta": -0.02,
+    "free_greedy_quality_min_parent_delta": 0.02,
+    "free_greedy_known_word_ratio_min_parent_delta": 0.02,
+    "free_greedy_min_complete_sentences": 6,
+    "free_sampled_quality_min_parent_delta": 0.02,
+    "free_sampled_known_word_ratio_min_parent_delta": 0.02,
+    "free_sampled_min_complete_sentences": 6,
+    "free_forbidden_counts_must_equal_zero": ["role_leakage_count", "severe_repetition_count", "digit_run_count", "unsupported_claim_count", "empty_count"],
+    "recovery_corrupted_accuracy_min_parent_delta": 0.02,
+    "recovery_clean_accuracy_min_parent_delta": -0.02,
+    "behavioral_compliance_may_not_regress": true
+  },
+  "claim_boundary": "Computational language-model training only. No consciousness, sentience, resurrection, soul, physical-anomaly, or quantum-effect inference is authorized."
+}
