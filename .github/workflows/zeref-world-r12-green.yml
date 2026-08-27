@@ -20,7 +20,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install test runtime
-        run: python -m pip install -e '.[dev]'
+        run: |
+          python -m pip install -e '.[dev]'
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
       - name: Focused quality profile
         run: python -m pytest -q tests/test_zeref_r12_quality_profile.py
       - name: Complete regression suite
