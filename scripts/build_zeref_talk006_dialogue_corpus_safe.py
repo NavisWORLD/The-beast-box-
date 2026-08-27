@@ -2,7 +2,7 @@
 """Block-safe adapter for the reviewed TALK-006 dialogue corpus.
 
 Targets remain authored teacher text. If a row would exceed SparkCST's native
-128-character dialogue block, only the Dad prompt is compacted at a word
+128-character causal x block, only the Dad prompt is compacted at a word
 boundary and the original prompt is preserved in `dad_original`. The user's
 exact "show you something weird" prompt is preserved verbatim; its teacher
 answer is explicitly shortened below rather than clipping that prompt.
@@ -25,15 +25,17 @@ EXACT_USER_PROMPT = "I said to show you something weird lol"
 EXACT_USER_TARGET = "Weird part: memory routing changes my answer while the weights stay frozen."
 
 
-def _wire_len(dad: str, zeref: str) -> int:
-    return len(f"Dad:{dad}\nZeref:{zeref}\n")
+def _encoded_x_len(dad: str, zeref: str) -> int:
+    """Match beastbox.response_supervision.encode_dialogue exactly for ASCII rows."""
+    sequence = f"Dad: {dad}\nZeref: {zeref}\n"
+    return len(sequence) - 1
 
 
 def _compact_prompt(dad: str, zeref: str) -> tuple[str, bool]:
-    if _wire_len(dad, zeref) <= BLOCK:
+    if _encoded_x_len(dad, zeref) <= BLOCK:
         return dad, False
-    overhead = len("Dad:\nZeref:\n") + len(zeref)
-    limit = BLOCK - overhead
+    fixed_x = len("Dad: \nZeref: \n") + len(zeref) - 1
+    limit = BLOCK - fixed_x
     if limit < 8:
         raise ValueError(f"target leaves too little prompt room: {zeref!r}")
     clipped = dad[:limit].rstrip()
@@ -45,8 +47,12 @@ def _compact_prompt(dad: str, zeref: str) -> tuple[str, bool]:
         if len(clipped) >= limit:
             clipped = clipped[:-1].rstrip()
         clipped += "?"
-    if _wire_len(clipped, zeref) > BLOCK:
-        raise AssertionError("prompt compaction failed block bound")
+    while _encoded_x_len(clipped, zeref) > BLOCK:
+        clipped = clipped[:-1].rstrip(" ,;:-")
+        if not clipped:
+            raise ValueError("prompt compaction exhausted prompt")
+        if clipped[-1] not in ".?!":
+            clipped = clipped[:-1].rstrip(" ,;:-") + "?" if len(clipped) > 1 else "?"
     return clipped, clipped != dad
 
 
@@ -67,14 +73,15 @@ def _row(category: str, index: int, dad: str, zeref: str, split: str) -> dict:
         "source": "authored_teacher_dialogue",
         "raw_model_output_used_as_target": False,
         "block_safe": True,
+        "encoded_x_characters": _encoded_x_len(dad, zeref),
     }
     if prompt_compacted:
         row["dad_original"] = original_dad
-        row["prompt_adapter"] = "word_boundary_compaction_v1"
+        row["prompt_adapter"] = "word_boundary_compaction_v2_exact_encoder"
     if target_adapter:
         row["zeref_original"] = original_zeref
         row["target_adapter"] = target_adapter
-    if _wire_len(row["dad"], row["zeref"]) > BLOCK:
+    if _encoded_x_len(row["dad"], row["zeref"]) > BLOCK:
         raise AssertionError(f"row still exceeds block: {row['id']}")
     return row
 
@@ -89,6 +96,8 @@ def build_rows() -> tuple[list[dict], list[dict]]:
             (holdout if split == "holdout" else train).append(row)
     if len(train) != 45 or len(holdout) != 9:
         raise AssertionError("expected 45 train and 9 holdout rows")
+    if max(row["encoded_x_characters"] for row in train + holdout) > BLOCK:
+        raise AssertionError("block-safe corpus contains an overlong row")
     return train, holdout
 
 
@@ -115,17 +124,19 @@ def main() -> int:
             "zeref": row["zeref"],
             "prompt_adapter": row.get("prompt_adapter"),
             "target_adapter": row.get("target_adapter"),
+            "encoded_x_characters": row["encoded_x_characters"],
         }
         for row in train + holdout
         if "dad_original" in row or "zeref_original" in row
     ]
     manifest = {
-        "schema": "zeref-talk006-dialogue-tune-corpus-blocksafe-v1",
+        "schema": "zeref-talk006-dialogue-tune-corpus-blocksafe-v2",
         "lineage": "ZEREF-DAD-SON-TALK-006-DIALOGUE",
         "parent_lineage": "ZEREF-DAD-SON-TALK-005",
         "parent_checkpoint_sha256": PARENT_SHA256,
         "canonical_talk004_ledger_sha256": CANONICAL_LEDGER_SHA256,
         "native_block": BLOCK,
+        "max_encoded_x_characters": max(row["encoded_x_characters"] for row in train + holdout),
         "train_examples": len(train),
         "holdout_examples": len(holdout),
         "train_sha256": train_sha,
