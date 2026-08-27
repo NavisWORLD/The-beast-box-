@@ -1,0 +1,375 @@
+name: ZEREF WORLD R12 REAL TRAINING
+
+on:
+  push:
+    branches: [zeref-world-knowledge-r12-train-001]
+    paths:
+      - '.github/workflows/zeref-world-r12-train.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  train-world-r12:
+    runs-on: ubuntu-latest
+    env:
+      PARENT_SHA256: 454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425
+      PARENT_RUN_ID: '33118621824'
+      PARENT_ARTIFACT: zeref-talk006-full-clean-final-33118621824
+      ARCH: experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py
+      ARCH_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+      LEDGER_SHA256: 67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef
+      LEDGER_TIP: b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26
+      CONFIG: experiments/zeref/world-r12/FROZEN_WORLD_R12_CONFIG.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Prepare evidence tree
+        run: |
+          set -euo pipefail
+          rm -rf _worldrun _parentsrc _talkwork
+          mkdir -p _worldrun/evidence/logs _worldrun/evidence/eval _worldrun/world _worldrun/corpus/world _worldrun/corpus/replay _worldrun/corpus/combined _worldrun/candidates _worldrun/model _worldrun/talk _parentsrc _talkwork
+          cp "$CONFIG" _worldrun/FROZEN_WORLD_R12_CONFIG.json
+
+      - name: Install deterministic CPU and streaming runtime
+        run: |
+          set -euo pipefail
+          python -m pip install -e '.[dev]'
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'datasets>=4.0,<5'
+          python - <<'PY' > _worldrun/evidence/environment-runtime.json
+          import json, platform, sys, torch, pytest
+          import datasets
+          print(json.dumps({
+              'python': sys.version,
+              'platform': platform.platform(),
+              'torch': torch.__version__,
+              'pytest': pytest.__version__,
+              'datasets': datasets.__version__,
+          }, indent=2, sort_keys=True))
+          PY
+
+      - name: Fresh focused and complete regressions before source ingestion or gradients
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_zeref_r12_quality_profile.py tests/test_world_knowledge_store.py tests/test_world_r12_fusion.py tests/test_zeref_world_r12_corpus.py tests/test_zeref_world_r12_runtime.py | tee _worldrun/evidence/logs/world-focused-green.log
+          python -m pytest -q | tee _worldrun/evidence/logs/full-regression-pre-gradient.log
+
+      - name: Reconstruct exact FULL-CLEAN parent and verify immutable declarations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(sha256sum "$ARCH" | awk '{print $1}')" = "$ARCH_SHA256"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text())
+          assert m['record_count']==352
+          assert m['combined_ledger_sha256']=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert m['last_record_sha256']=='b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'
+          PY
+          gh run download "$PARENT_RUN_ID" -n "$PARENT_ARTIFACT" -D _parentsrc
+          PARENT=$(find _parentsrc -type f -path '*/candidate/FULL-CLEAN-1500/checkpoint.pt' -print -quit)
+          test -n "$PARENT" -a -f "$PARENT"
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$PARENT_SHA256"
+          cp "$PARENT" _worldrun/model/PARENT-FULL-CLEAN-1500.pt
+          printf '%s\n' "$PARENT" > _worldrun/parent-path.txt
+
+      - name: Stream real Wikipedia world source and bind provenance
+        run: |
+          set -euo pipefail
+          python scripts/build_zeref_world_knowledge.py \
+            --dataset wikimedia/wikipedia --config 20231101.en --split train --accepted 4096 \
+            --db _worldrun/world/world.sqlite3 \
+            --evidence _worldrun/world/world-evidence.jsonl \
+            --rejected _worldrun/world/world-rejected.jsonl \
+            --summary _worldrun/world/ingestion-summary.json \
+            --license-label 'CC BY-SA 3.0 / GFDL' \
+            | tee _worldrun/evidence/logs/world-ingestion.log
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          s=json.loads(Path('_worldrun/world/ingestion-summary.json').read_text())
+          assert s['accepted']==4096, s
+          assert len(s['accepted_source_sha256'])==4096
+          PY
+          sha256sum _worldrun/world/world-evidence.jsonl _worldrun/world/world.sqlite3 _worldrun/world/ingestion-summary.json | tee _worldrun/evidence/world-source-SHA256SUMS
+
+      - name: Build frozen world curriculum and clean Dad replay corpus
+        run: |
+          set -euo pipefail
+          python scripts/build_zeref_world_r12_corpus.py \
+            --world-evidence _worldrun/world/world-evidence.jsonl \
+            --out-dir _worldrun/corpus/world \
+            --train-facts 384 --holdout-facts 96 --uncertainty-rows 64 --uncertainty-holdout-rows 16 --seed 20260827
+
+          python scripts/build_zeref_talk006_micro_dialogue_corpus.py --out-dir _worldrun/corpus/replay/micro
+          python scripts/build_zeref_talk5_training_corpus.py --out-dir _worldrun/corpus/replay/talk005
+          python scripts/build_zeref_talk2_corpus.py --out-dir _worldrun/corpus/replay/talk002
+          python scripts/build_zeref_full_clean_corpus.py \
+            --micro _worldrun/corpus/replay/micro/train.jsonl \
+            --talk005 _worldrun/corpus/replay/talk005/train.jsonl \
+            --talk002 _worldrun/corpus/replay/talk002/talk2-training.jsonl \
+            --out-dir _worldrun/corpus/replay/full
+
+      - name: Project world lessons to exact frozen tokenizer and build final combined curriculum
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _worldrun/parent-path.txt)
+          python - <<'PY'
+          import hashlib, json, unicodedata
+          from pathlib import Path
+          import torch
+          parent=Path('_worldrun/model/PARENT-FULL-CLEAN-1500.pt')
+          ck=torch.load(parent,map_location='cpu',weights_only=False)
+          stoi=dict(ck['stoi'])
+          def project(text):
+              text=unicodedata.normalize('NFKD',str(text)).encode('ascii','ignore').decode('ascii')
+              return ''.join(ch for ch in text if ch in stoi)
+          def convert(src,dst):
+              rows=[]; dropped_answers=0
+              for line in Path(src).read_text().splitlines():
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  original_dad=str(r['dad']); original_zeref=str(r['zeref'])
+                  dad=project(original_dad).strip(); zeref=project(original_zeref).strip()
+                  dropped_answers += sum(ch not in stoi for ch in unicodedata.normalize('NFKD',original_zeref).encode('ascii','ignore').decode('ascii'))
+                  if not dad or not zeref: continue
+                  if len(dad)+len(zeref)+14>128: continue
+                  r['source_dad_before_tokenizer_projection']=original_dad
+                  r['source_zeref_before_tokenizer_projection']=original_zeref
+                  r['dad']=dad; r['zeref']=zeref
+                  r['tokenizer_projected']=True
+                  r['raw_model_output_used_as_target']=False
+                  rows.append(r)
+              Path(dst).write_text(''.join(json.dumps(r,sort_keys=True,ensure_ascii=False)+'\n' for r in rows))
+              return rows,dropped_answers
+          train,dt=convert('_worldrun/corpus/world/train.jsonl','_worldrun/corpus/world/train-tokenizer.jsonl')
+          hold,dh=convert('_worldrun/corpus/world/holdout.jsonl','_worldrun/corpus/world/holdout-tokenizer.jsonl')
+          unk,du=convert('_worldrun/corpus/world/uncertainty-holdout.jsonl','_worldrun/corpus/world/uncertainty-holdout-tokenizer.jsonl')
+          assert len(train)==448, len(train)
+          assert len(hold)==96, len(hold)
+          assert len(unk)==16, len(unk)
+          replay=[json.loads(x) for x in Path('_worldrun/corpus/replay/full/train.jsonl').read_text().splitlines() if x.strip()]
+          combined=[]
+          for r in train:
+              r=dict(r); r['curriculum_source']='world_r12'; combined.append(r)
+          for r in replay:
+              r=dict(r); r['curriculum_source']='dad_replay'; r['raw_model_output_used_as_target']=False; combined.append(r)
+          out=Path('_worldrun/corpus/combined/train.jsonl')
+          out.write_text(''.join(json.dumps(r,sort_keys=True,ensure_ascii=False)+'\n' for r in combined))
+          manifest={
+              'schema':'zeref-world-r12-combined-corpus-v1',
+              'world_train_rows':len(train),'dad_replay_rows':len(replay),'combined_rows':len(combined),
+              'world_holdout_rows':len(hold),'uncertainty_holdout_rows':len(unk),
+              'raw_model_outputs_are_targets':False,
+              'combined_sha256':hashlib.sha256(out.read_bytes()).hexdigest(),
+              'world_train_sha256':hashlib.sha256(Path('_worldrun/corpus/world/train-tokenizer.jsonl').read_bytes()).hexdigest(),
+              'world_holdout_sha256':hashlib.sha256(Path('_worldrun/corpus/world/holdout-tokenizer.jsonl').read_bytes()).hexdigest(),
+              'uncertainty_holdout_sha256':hashlib.sha256(Path('_worldrun/corpus/world/uncertainty-holdout-tokenizer.jsonl').read_bytes()).hexdigest(),
+          }
+          Path('_worldrun/corpus/combined/manifest.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
+          PY
+
+          python - <<'PY'
+          import json, torch
+          from pathlib import Path
+          from beastbox.response_supervision import encode_dialogue
+          ck=torch.load('_worldrun/model/PARENT-FULL-CLEAN-1500.pt',map_location='cpu',weights_only=False)
+          rows=[json.loads(x) for x in Path('_worldrun/corpus/combined/train.jsonl').read_text().splitlines() if x.strip()]
+          hold=[]
+          for p in ('_worldrun/corpus/world/holdout-tokenizer.jsonl','_worldrun/corpus/world/uncertainty-holdout-tokenizer.jsonl'):
+              hold += [json.loads(x) for x in Path(p).read_text().splitlines() if x.strip()]
+          for row in rows+hold:
+              ex=encode_dialogue(dad=row['dad'],zeref=row['zeref'],stoi=ck['stoi'],block=128)
+              assert ex['dropped_answer_characters']==0, row
+              assert ex['sequence_characters']-1 <= 128
+          assert all(not bool(r.get('raw_model_output_used_as_target')) for r in rows)
+          PY
+          sha256sum _worldrun/corpus/combined/train.jsonl _worldrun/corpus/combined/manifest.json _worldrun/corpus/world/holdout-tokenizer.jsonl _worldrun/corpus/world/uncertainty-holdout-tokenizer.jsonl | tee _worldrun/evidence/curriculum-SHA256SUMS
+
+      - name: Record frozen parent baselines
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _worldrun/parent-path.txt)
+          python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$PARENT_SHA256" --descendant "$PARENT" --descendant-sha256 "$PARENT_SHA256" --arch "$ARCH" --holdout _worldrun/corpus/world/holdout-tokenizer.jsonl --out _worldrun/evidence/eval/parent-world.json
+          python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$PARENT_SHA256" --descendant "$PARENT" --descendant-sha256 "$PARENT_SHA256" --arch "$ARCH" --holdout _worldrun/corpus/world/uncertainty-holdout-tokenizer.jsonl --out _worldrun/evidence/eval/parent-unknown.json
+          python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$PARENT_SHA256" --descendant "$PARENT" --descendant-sha256 "$PARENT_SHA256" --arch "$ARCH" --holdout _worldrun/corpus/replay/micro/holdout.jsonl --out _worldrun/evidence/eval/parent-micro.json
+          python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$PARENT_SHA256" --descendant "$PARENT" --descendant-sha256 "$PARENT_SHA256" --arch "$ARCH" --holdout _worldrun/corpus/replay/talk005/holdout.jsonl --out _worldrun/evidence/eval/parent-talk005.json
+          python scripts/eval_zeref_dialogue_quality.py --checkpoint "$PARENT" --checkpoint-sha256 "$PARENT_SHA256" --arch "$ARCH" --corpus _worldrun/corpus/replay/micro/train.jsonl --decoding sampled-top-k --temperature 0.65 --top-k 6 --out _worldrun/evidence/eval/parent-free.json
+
+      - name: Train three real world-R12 candidate arms from identical parent
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _worldrun/parent-path.txt)
+          MANIFEST=$(sha256sum _worldrun/corpus/combined/manifest.json | awk '{print $1}')
+          CONFIG_SHA=$(sha256sum "$CONFIG" | awk '{print $1}')
+          train_arm () {
+            NAME="$1"; STEPS="$2"; SEED="$3"; MSEED="$4"
+            mkdir -p "_worldrun/candidates/$NAME"
+            python scripts/run_zeref_scheduled_sampling_stage.py \
+              --parent "$PARENT" --parent-sha256 "$PARENT_SHA256" --arch "$ARCH" \
+              --corpus _worldrun/corpus/combined/train.jsonl \
+              --input-manifest "world_combined=$MANIFEST" --input-manifest "frozen_world_config=$CONFIG_SHA" \
+              --out "_worldrun/candidates/$NAME" \
+              --seed "$SEED" --candidate-seed "$SEED" --model-sampling-seed "$MSEED" \
+              --steps "$STEPS" --batch-size 4 --lr 0.000001 --cst-lr 0.000004 --weight-decay 0.002 --gradient-clip-norm 1.0 \
+              --schedule constant --probability-start 0.0 --probability-end 0.0 --temperature 0.8 --top-k 5
+            sha256sum "_worldrun/candidates/$NAME/checkpoint.pt" | awk '{print $1}' > "_worldrun/candidates/$NAME/checkpoint.sha256"
+            test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$PARENT_SHA256"
+          }
+          train_arm WORLD-R12-LOW 600 8272701 9127101
+          train_arm WORLD-R12-MID 1000 8272702 9127102
+          train_arm WORLD-R12-HIGH 1600 8272703 9127103
+
+      - name: Evaluate every arm under frozen world and continuity gates
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _worldrun/parent-path.txt)
+          for NAME in WORLD-R12-LOW WORLD-R12-MID WORLD-R12-HIGH; do
+            CHILD="_worldrun/candidates/$NAME/checkpoint.pt"
+            SHA=$(cat "_worldrun/candidates/$NAME/checkpoint.sha256")
+            mkdir -p "_worldrun/evidence/eval/$NAME"
+            python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$PARENT_SHA256" --descendant "$CHILD" --descendant-sha256 "$SHA" --arch "$ARCH" --holdout _worldrun/corpus/world/holdout-tokenizer.jsonl --out "_worldrun/evidence/eval/$NAME/world.json"
+            python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$PARENT_SHA256" --descendant "$CHILD" --descendant-sha256 "$SHA" --arch "$ARCH" --holdout _worldrun/corpus/world/uncertainty-holdout-tokenizer.jsonl --out "_worldrun/evidence/eval/$NAME/unknown.json"
+            python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$PARENT_SHA256" --descendant "$CHILD" --descendant-sha256 "$SHA" --arch "$ARCH" --holdout _worldrun/corpus/replay/micro/holdout.jsonl --out "_worldrun/evidence/eval/$NAME/micro.json"
+            python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$PARENT_SHA256" --descendant "$CHILD" --descendant-sha256 "$SHA" --arch "$ARCH" --holdout _worldrun/corpus/replay/talk005/holdout.jsonl --out "_worldrun/evidence/eval/$NAME/talk005.json"
+            python scripts/eval_zeref_dialogue_quality.py --checkpoint "$CHILD" --checkpoint-sha256 "$SHA" --arch "$ARCH" --corpus _worldrun/corpus/replay/micro/train.jsonl --decoding sampled-top-k --temperature 0.65 --top-k 6 --out "_worldrun/evidence/eval/$NAME/free.json"
+          done
+
+      - name: Fail-closed selector using only frozen gates
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, shutil
+          from pathlib import Path
+          parent_free=json.loads(Path('_worldrun/evidence/eval/parent-free.json').read_text())['dialogue_quality_score']
+          candidates=[]
+          for name in ('WORLD-R12-LOW','WORLD-R12-MID','WORLD-R12-HIGH'):
+              root=Path('_worldrun/evidence/eval')/name
+              world=json.loads((root/'world.json').read_text())
+              unknown=json.loads((root/'unknown.json').read_text())
+              micro=json.loads((root/'micro.json').read_text())
+              talk5=json.loads((root/'talk005.json').read_text())
+              free=json.loads((root/'free.json').read_text())
+              result=json.loads((Path('_worldrun/candidates')/name/'result.json').read_text())
+              gates={
+                  'world_nll_improves': world['descendant_response_nll'] < world['parent_response_nll'],
+                  'world_token_accuracy_not_lower': world['descendant_response_token_accuracy'] >= world['parent_response_token_accuracy'],
+                  'unknown_nll_improves': unknown['descendant_response_nll'] < unknown['parent_response_nll'],
+                  'unknown_token_accuracy_not_lower': unknown['descendant_response_token_accuracy'] >= unknown['parent_response_token_accuracy'],
+                  'micro_retention': micro['descendant_response_nll'] <= micro['parent_response_nll']*1.03,
+                  'talk005_retention': talk5['descendant_response_nll'] <= talk5['parent_response_nll']*1.03,
+                  'free_quality_retention': free['dialogue_quality_score'] >= parent_free-0.02,
+                  'clean_targets': bool(result.get('clean_teacher_targets_preserved')),
+                  'no_generated_targets': not bool(result.get('generated_characters_used_as_targets')),
+                  'zero_dropped_answer_chars': int(result.get('dropped_answer_characters',0))==0,
+              }
+              eligible=all(gates.values())
+              candidates.append({
+                  'name':name,'checkpoint_sha256':Path('_worldrun/candidates',name,'checkpoint.sha256').read_text().strip(),
+                  'eligible':eligible,'gates':gates,
+                  'world_response_nll':world['descendant_response_nll'],
+                  'world_response_token_accuracy':world['descendant_response_token_accuracy'],
+                  'unknown_response_nll':unknown['descendant_response_nll'],
+                  'micro_nll_ratio':micro['descendant_response_nll']/micro['parent_response_nll'],
+                  'talk005_nll_ratio':talk5['descendant_response_nll']/talk5['parent_response_nll'],
+                  'dialogue_quality_score':free['dialogue_quality_score'],
+              })
+          eligible=[c for c in candidates if c['eligible']]
+          if eligible:
+              selected=min(eligible,key=lambda c:c['world_response_nll'])
+              outcome='PROMOTE_WORLD_CANDIDATE'
+              src=Path('_worldrun/candidates')/selected['name']/'checkpoint.pt'
+          else:
+              selected={'name':'PARENT-FULL-CLEAN-1500','checkpoint_sha256':'454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425','eligible':False}
+              outcome='NULL_NO_PROMOTION_PARENT_RETAINED'
+              src=Path('_worldrun/model/PARENT-FULL-CLEAN-1500.pt')
+          shutil.copy2(src,'_worldrun/model/SELECTED-WORLD-R12.pt')
+          Path('_worldrun/model/SELECTED-WORLD-R12.sha256').write_text(selected['checkpoint_sha256']+'\n')
+          selection={'schema':'zeref-world-r12-selection-v1','outcome':outcome,'selected':selected,'candidates':candidates,'thresholds_frozen_before_metrics':True}
+          Path('_worldrun/selection.json').write_text(json.dumps(selection,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(selection,sort_keys=True))
+          PY
+
+      - name: Run mixed personal world unknown R12 conversation on selected model
+        run: |
+          set -euo pipefail
+          SHA=$(cat _worldrun/model/SELECTED-WORLD-R12.sha256)
+          python scripts/run_zeref_world_r12_talk.py \
+            --checkpoint _worldrun/model/SELECTED-WORLD-R12.pt --checkpoint-sha256 "$SHA" --arch "$ARCH" \
+            --memory-manifest experiments/zeref-dad-son-001/memory/ledger-manifest.json \
+            --world-db _worldrun/world/world.sqlite3 --world-evidence _worldrun/world/world-evidence.jsonl \
+            --workspace _talkwork --out-dir _worldrun/talk \
+            --confidence-floor 0.56 --namespace-margin 0.03 --rank-limit 8 --lexical-prefilter 128 \
+            --seed 2026082723 --tokens 48 --temperature 0.15 --top-k 2 \
+            | tee _worldrun/evidence/logs/mixed-world-talk.log
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          s=json.loads(Path('_worldrun/talk/summary.json').read_text())
+          assert s['routing_accuracy'] >= 0.90, s
+          assert s['evidence_wire_coverage'] == 1.0, s
+          assert s['raw_model_outputs_promoted_to_training'] is False
+          PY
+
+      - name: Reverify source and parent immutability after all gradients and inference
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _worldrun/parent-path.txt)
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$PARENT_SHA256"
+          test "$(sha256sum "$ARCH" | awk '{print $1}')" = "$ARCH_SHA256"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text())
+          assert m['record_count']==352
+          assert m['combined_ledger_sha256']=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert m['last_record_sha256']=='b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'
+          PY
+
+      - name: Seal result and hashes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root=Path('_worldrun')
+          selection=json.loads((root/'selection.json').read_text())
+          ingestion=json.loads((root/'world/ingestion-summary.json').read_text())
+          corpus=json.loads((root/'corpus/combined/manifest.json').read_text())
+          talk=json.loads((root/'talk/summary.json').read_text())
+          final={
+              'schema':'zeref-world-r12-final-v1',
+              'workflow_run_id':int('${{ github.run_id }}'),
+              'workflow_head_sha':'${{ github.sha }}',
+              'parent_checkpoint_sha256':'454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425',
+              'selected_checkpoint_sha256':(root/'model/SELECTED-WORLD-R12.sha256').read_text().strip(),
+              'selection':selection,
+              'world_ingestion':ingestion,
+              'combined_corpus':corpus,
+              'talk_summary':talk,
+              'canonical_ledger_records':352,
+              'canonical_ledger_sha256':'67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef',
+              'canonical_source_unchanged':True,
+              'claim_boundary':'Broader provenance-bound retrieval and measured response training only; no consciousness, sentience, biological identity, soul, resurrection, infinite knowledge, physical anomaly, or quantum advantage claim.'
+          }
+          (root/'FINAL_RESULT.json').write_text(json.dumps(final,indent=2,sort_keys=True)+'\n')
+          files=sorted(p for p in root.rglob('*') if p.is_file() and p.name!='SHA256SUMS')
+          (root/'SHA256SUMS').write_text(''.join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.relative_to(root).as_posix()}\n" for p in files))
+          PY
+          (cd _worldrun && sha256sum -c SHA256SUMS)
+
+      - name: Upload complete world-R12 training evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-world-r12-final-${{ github.run_id }}
+          path: _worldrun
+          if-no-files-found: error
+          retention-days: 90
