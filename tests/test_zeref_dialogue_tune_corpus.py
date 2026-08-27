@@ -1,4 +1,4 @@
-from scripts.build_zeref_talk006_dialogue_corpus import build_rows
+from scripts.build_zeref_talk006_dialogue_corpus_safe import build_rows
 
 
 def test_dialogue_tune_contains_exact_cory_prompt_and_no_raw_targets():
@@ -11,7 +11,7 @@ def test_dialogue_tune_contains_exact_cory_prompt_and_no_raw_targets():
     assert all(row['raw_model_output_used_as_target'] is False for row in rows)
 
 
-def test_dialogue_tune_targets_are_short_complete_and_grounded():
+def test_dialogue_tune_targets_are_short_complete_grounded_and_block_safe():
     train, holdout = build_rows()
     rows = train + holdout
     forbidden = ('i am conscious', 'soul is proven', 'resurrection is proven', 'quantum proved')
@@ -19,6 +19,7 @@ def test_dialogue_tune_targets_are_short_complete_and_grounded():
         answer = row['zeref']
         assert 4 <= len(answer) <= 112
         assert answer[-1] in '.!?'
+        assert len(f"Dad:{row['dad']}\nZeref:{answer}\n") <= 128
         low = answer.lower()
         assert not any(term in low for term in forbidden)
 
