@@ -134,5 +134,55 @@ def test_world_store_preserves_append_only_evidence_rows(tmp_path: Path) -> None
     assert rows[1]["previous_record_sha256"] == rows[0]["record_sha256"]
 
 
+def test_world_store_does_not_rescan_evidence_after_open(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    evidence = tmp_path / "world.jsonl"
+    store = WorldKnowledgeStore(tmp_path / "world.sqlite3", evidence)
+    try:
+        first = _add_paris(store)
+
+        def fail_rescan() -> str:
+            raise AssertionError("evidence ledger was rescanned after initial validation")
+
+        monkeypatch.setattr(store, "_previous_record_sha256", fail_rescan)
+        second = store.add_record(
+            source_dataset="wikimedia/wikipedia",
+            source_id="earth-1",
+            source_url="https://en.wikipedia.org/wiki/Earth",
+            title="Earth",
+            text="Earth is the third planet from the Sun.",
+            license_label="CC BY-SA 3.0 / GFDL",
+            revision_label="20231101.en",
+        )
+        assert second["previous_record_sha256"] == first["record_sha256"]
+    finally:
+        store.close()
+
+
+def test_world_store_reopen_resumes_from_verified_chain_tip(tmp_path: Path) -> None:
+    db = tmp_path / "world.sqlite3"
+    evidence = tmp_path / "world.jsonl"
+    first_store = WorldKnowledgeStore(db, evidence)
+    try:
+        first = _add_paris(first_store)
+    finally:
+        first_store.close()
+
+    second_store = WorldKnowledgeStore(db, evidence)
+    try:
+        second = second_store.add_record(
+            source_dataset="wikimedia/wikipedia",
+            source_id="earth-1",
+            source_url="https://en.wikipedia.org/wiki/Earth",
+            title="Earth",
+            text="Earth is the third planet from the Sun.",
+            license_label="CC BY-SA 3.0 / GFDL",
+            revision_label="20231101.en",
+        )
+    finally:
+        second_store.close()
+
+    assert second["previous_record_sha256"] == first["record_sha256"]
+
+
 def test_normalize_world_text_collapses_space_and_control_characters() -> None:
     assert normalize_world_text("  Alpha\n\t beta   gamma  ") == "Alpha beta gamma"
