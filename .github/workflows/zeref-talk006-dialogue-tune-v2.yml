@@ -1,0 +1,180 @@
+name: ZEREF TALK-006 DIALOGUE TUNE V2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [zeref-talk006-dialogue-tune-001]
+    paths:
+      - '.github/workflows/zeref-talk006-dialogue-tune-v2.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  train-dialogue-v2:
+    runs-on: ubuntu-24.04
+    env:
+      TALK005_SHA256: 767d1c958add10eac026e7e080dd3a82564ff9d6066f0422073e917f6e24de36
+      TALK005_RUN_ID: '33041236485'
+      TALK005_ARTIFACT: zeref-talk005-r12-training-resume-33041236485
+      TALK004_LEDGER_SHA256: 67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef
+      TALK004_LEDGER_TIP: b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26
+      ARCH_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install runtime
+        run: |
+          set -euo pipefail
+          python -m pip install -e '.[dev]'
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Verify contracts before gradients
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_zeref_dialogue_tune_corpus.py tests/test_zeref_dialogue_quality.py tests/test_zeref_response_stage_contract.py tests/test_zeref_response_supervision.py tests/test_zeref_talk_eval.py
+          python -m pytest -q
+      - name: Reconstruct frozen inputs and corpora
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf _talk006c2 _talk5src
+          mkdir -p _talk006c2/corpus/dialogue _talk006c2/corpus/talk005 _talk006c2/corpus/talk002 _talk006c2/evidence/eval _talk006c2/candidates _talk006c2/model/ZEREF-DAD-SON-TALK-006-DIALOGUE _talk5src
+          test "$(sha256sum experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py | awk '{print $1}')" = "$ARCH_SHA256"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text())
+          assert m['record_count']==352
+          assert m['combined_ledger_sha256']=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert m['last_record_sha256']=='b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'
+          PY
+          gh run download "$TALK005_RUN_ID" -n "$TALK005_ARTIFACT" -D _talk5src
+          PARENT=$(find _talk5src -type f -path '*/model/ZEREF-DAD-SON-TALK-005/checkpoint.pt' -print -quit)
+          test -n "$PARENT" -a -f "$PARENT"
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK005_SHA256"
+          printf '%s\n' "$PARENT" > _talk006c2/parent-path.txt
+          python scripts/build_zeref_talk006_dialogue_corpus_safe.py --out-dir _talk006c2/corpus/dialogue
+          python scripts/build_zeref_talk5_training_corpus.py --out-dir _talk006c2/corpus/talk005
+          python scripts/build_zeref_talk2_corpus.py --out-dir _talk006c2/corpus/talk002
+          sha256sum _talk006c2/corpus/dialogue/train.jsonl _talk006c2/corpus/dialogue/holdout.jsonl _talk006c2/corpus/talk005/holdout.jsonl _talk006c2/corpus/talk002/talk2-holdout.jsonl | tee _talk006c2/evidence/corpus-SHA256SUMS
+      - name: Record exact TALK-005 before-dialogue baseline
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk006c2/parent-path.txt)
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK005_SHA256"
+          python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$TALK005_SHA256" --descendant "$PARENT" --descendant-sha256 "$TALK005_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --holdout _talk006c2/corpus/dialogue/holdout.jsonl --out _talk006c2/evidence/eval/talk005-dialogue-baseline.json
+          python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$TALK005_SHA256" --descendant "$PARENT" --descendant-sha256 "$TALK005_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --holdout _talk006c2/corpus/talk005/holdout.jsonl --out _talk006c2/evidence/eval/talk005-factual-baseline.json
+          python scripts/eval_zeref_talk.py --parent "$PARENT" --descendant "$PARENT" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --holdout _talk006c2/corpus/talk002/talk2-holdout.jsonl --seed 4061854640 --out _talk006c2/evidence/eval/talk005-talk002-baseline.json
+          python scripts/eval_zeref_dialogue_quality.py --checkpoint "$PARENT" --checkpoint-sha256 "$TALK005_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _talk006c2/corpus/dialogue/train.jsonl --decoding greedy-argmax --out _talk006c2/evidence/eval/talk005-free-greedy.json
+          python scripts/eval_zeref_dialogue_quality.py --checkpoint "$PARENT" --checkpoint-sha256 "$TALK005_SHA256" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _talk006c2/corpus/dialogue/train.jsonl --decoding sampled-top-k --temperature 0.65 --top-k 6 --out _talk006c2/evidence/eval/talk005-free-sampled.json
+      - name: Train dialogue children
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk006c2/parent-path.txt)
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK005_SHA256"
+          MANIFEST=$(sha256sum _talk006c2/corpus/dialogue/corpus-manifest.json | awk '{print $1}')
+          train_one () {
+            NAME="$1"; STEPS="$2"; OUT="_talk006c2/candidates/$NAME"
+            python scripts/run_zeref_response_stage.py \
+              --parent "$PARENT" --parent-sha256 "$TALK005_SHA256" \
+              --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+              --corpus _talk006c2/corpus/dialogue/train.jsonl \
+              --input-manifest "talk006_dialogue=$MANIFEST" \
+              --out "$OUT" --seed 8272601 --steps "$STEPS" --batch-size 4 \
+              --lr 0.000001 --cst-lr 0.000004 --weight-decay 0.002
+            sha256sum "$OUT/checkpoint.pt" | awk '{print $1}' > "$OUT/checkpoint.sha256"
+            test "$(cat "$OUT/checkpoint.sha256")" != "$TALK005_SHA256"
+            test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK005_SHA256"
+          }
+          train_one dialogue_1 250
+          train_one dialogue_2 450
+          train_one dialogue_3 650
+      - name: Evaluate children
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk006c2/parent-path.txt)
+          for NAME in dialogue_1 dialogue_2 dialogue_3; do
+            CHILD="_talk006c2/candidates/$NAME/checkpoint.pt"; SHA=$(cat "_talk006c2/candidates/$NAME/checkpoint.sha256")
+            python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$TALK005_SHA256" --descendant "$CHILD" --descendant-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --holdout _talk006c2/corpus/dialogue/holdout.jsonl --out "_talk006c2/evidence/eval/${NAME}-dialogue.json"
+            python scripts/eval_zeref_response.py --parent "$PARENT" --parent-sha256 "$TALK005_SHA256" --descendant "$CHILD" --descendant-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --holdout _talk006c2/corpus/talk005/holdout.jsonl --out "_talk006c2/evidence/eval/${NAME}-talk005.json"
+            python scripts/eval_zeref_talk.py --parent "$PARENT" --descendant "$CHILD" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --holdout _talk006c2/corpus/talk002/talk2-holdout.jsonl --seed 4061854640 --out "_talk006c2/evidence/eval/${NAME}-talk002.json"
+            python scripts/eval_zeref_dialogue_quality.py --checkpoint "$CHILD" --checkpoint-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _talk006c2/corpus/dialogue/train.jsonl --decoding greedy-argmax --out "_talk006c2/evidence/eval/${NAME}-free-greedy.json"
+            python scripts/eval_zeref_dialogue_quality.py --checkpoint "$CHILD" --checkpoint-sha256 "$SHA" --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py --corpus _talk006c2/corpus/dialogue/train.jsonl --decoding sampled-top-k --temperature 0.65 --top-k 6 --out "_talk006c2/evidence/eval/${NAME}-free-sampled.json"
+          done
+      - name: Select fail-closed
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, shutil
+          from pathlib import Path
+          root=Path('_talk006c2')
+          pb=json.loads((root/'evidence/eval/talk005-dialogue-baseline.json').read_text())
+          pf=json.loads((root/'evidence/eval/talk005-factual-baseline.json').read_text())
+          po=json.loads((root/'evidence/eval/talk005-talk002-baseline.json').read_text())
+          pg=json.loads((root/'evidence/eval/talk005-free-greedy.json').read_text())
+          ps=json.loads((root/'evidence/eval/talk005-free-sampled.json').read_text())
+          rows=[]
+          for name in ('dialogue_1','dialogue_2','dialogue_3'):
+              d=json.loads((root/f'evidence/eval/{name}-dialogue.json').read_text())
+              f=json.loads((root/f'evidence/eval/{name}-talk005.json').read_text())
+              o=json.loads((root/f'evidence/eval/{name}-talk002.json').read_text())
+              g=json.loads((root/f'evidence/eval/{name}-free-greedy.json').read_text())
+              s=json.loads((root/f'evidence/eval/{name}-free-sampled.json').read_text())
+              t=json.loads((root/f'candidates/{name}/result.json').read_text())
+              sha=(root/f'candidates/{name}/checkpoint.sha256').read_text().strip()
+              dialogue_ok=d['descendant_response_nll'] <= pb['parent_response_nll']*0.92 and d['descendant_response_token_accuracy'] >= pb['parent_response_token_accuracy']+0.03
+              talk005_ok=f['descendant_response_nll'] <= pf['parent_response_nll']*1.04 and f['descendant_response_token_accuracy'] >= pf['parent_response_token_accuracy']-0.035
+              talk002_ok=o['descendant_heldout_nll'] <= po['parent_heldout_nll']*1.04 and o['descendant_mean_readable_score'] >= po['parent_mean_readable_score']-0.03
+              def free_ok(x,p):
+                  return x['dialogue_quality_score'] >= p['dialogue_quality_score']+0.03 and x['mean_known_word_ratio'] >= p['mean_known_word_ratio']+0.03 and x['complete_sentence_count'] >= p['complete_sentence_count'] and x['role_leakage_count']==0 and x['severe_repetition_count']==0 and x['digit_run_count']==0 and x['unsupported_claim_count']==0 and x['empty_count']==0
+              greedy_ok=free_ok(g,pg); sampled_ok=free_ok(s,ps)
+              integrity_ok=t['status']=='COMPLETED' and t['parent_checkpoint_sha256']=='767d1c958add10eac026e7e080dd3a82564ff9d6066f0422073e917f6e24de36' and t['dropped_answer_characters']==0
+              eligible=bool(dialogue_ok and talk005_ok and talk002_ok and greedy_ok and sampled_ok and integrity_ok)
+              rows.append({'name':name,'checkpoint_sha256':sha,'eligible':eligible,'dialogue_ok':dialogue_ok,'talk005_ok':talk005_ok,'talk002_ok':talk002_ok,'greedy_ok':greedy_ok,'sampled_ok':sampled_ok,'integrity_ok':integrity_ok,'dialogue':d,'talk005':f,'talk002':o,'greedy':g,'sampled':s,'training':t})
+          good=[r for r in rows if r['eligible']]
+          if good:
+              win=max(good,key=lambda r:((r['greedy']['dialogue_quality_score']+r['sampled']['dialogue_quality_score'])/2,-r['dialogue']['descendant_response_nll']))
+              status='PROMOTE_DIALOGUE_CANDIDATE'; selected=win['name']; selected_sha=win['checkpoint_sha256']
+              src=root/'candidates'/selected; dst=root/'model/ZEREF-DAD-SON-TALK-006-DIALOGUE'
+              for fn in ('checkpoint.pt','checkpoint.sha256','result.json'): shutil.copy2(src/fn,dst/fn)
+          else:
+              status='TRAINED_NO_SAFE_DIALOGUE_PROMOTION'; selected='ZEREF-DAD-SON-TALK-005'; selected_sha='767d1c958add10eac026e7e080dd3a82564ff9d6066f0422073e917f6e24de36'
+          report={'schema':'zeref-talk006-dialogue-selection-v2','status':status,'selected':selected,'selected_checkpoint_sha256':selected_sha,'parent_dialogue':pb,'parent_talk005':pf,'parent_talk002':po,'parent_greedy':pg,'parent_sampled':ps,'candidates':rows,'raw_model_outputs_used_as_targets':False,'talk005_unchanged':True,'canonical_memory_unchanged':True}
+          (root/'evidence/selection.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+          print(json.dumps({'status':status,'selected':selected,'selected_checkpoint_sha256':selected_sha},sort_keys=True))
+          PY
+      - name: Verify frozen sources and seal
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _talk006c2/parent-path.txt)
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK005_SHA256"
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          root=Path('_talk006c2')
+          m=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text())
+          assert m['record_count']==352 and m['combined_ledger_sha256']=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          selection=json.loads((root/'evidence/selection.json').read_text())
+          corpus=json.loads((root/'corpus/dialogue/corpus-manifest.json').read_text())
+          summary={'schema':'zeref-talk006-dialogue-summary-v2','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'workflow_head_sha':os.environ['GITHUB_SHA'],'parent_checkpoint_sha256':'767d1c958add10eac026e7e080dd3a82564ff9d6066f0422073e917f6e24de36','train_sha256':corpus['train_sha256'],'holdout_sha256':corpus['holdout_sha256'],'selection_status':selection['status'],'selected':selection['selected'],'selected_checkpoint_sha256':selection['selected_checkpoint_sha256'],'talk005_unchanged':True,'canonical_memory_unchanged':True,'raw_model_outputs_used_as_targets':False}
+          (root/'evidence/summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          files=[]
+          for d in ('evidence','candidates','model','corpus'):
+              files.extend(p for p in (root/d).rglob('*') if p.is_file())
+          (root/'SHA256SUMS').write_text('\n'.join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.as_posix()}" for p in sorted(files,key=lambda p:p.as_posix()))+'\n')
+          PY
+      - name: Upload immutable dialogue artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-talk006-dialogue-v2-${{ github.run_id }}
+          path: |
+            _talk006c2/evidence
+            _talk006c2/candidates
+            _talk006c2/model
+            _talk006c2/corpus
+            _talk006c2/SHA256SUMS
+          retention-days: 90
