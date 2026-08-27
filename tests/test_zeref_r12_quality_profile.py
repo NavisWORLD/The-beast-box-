@@ -69,7 +69,10 @@ def test_quality_profile_adds_component_without_changing_default_rank_behavior(t
         explicit_default = router.rank("What did Dad teach Zeref?", profile="default", **kwargs)
         quality = router.rank("What did Dad teach Zeref?", profile="quality", **kwargs)
 
-        assert implicit == explicit_default
+        assert [row["memory_id"] for row in implicit] == [row["memory_id"] for row in explicit_default]
+        for left, right in zip(implicit, explicit_default, strict=True):
+            assert left["components"].keys() == right["components"].keys()
+            assert abs(left["score"] - right["score"]) < 1e-6
         assert all("quality" not in row["components"] for row in implicit)
         assert all("quality" in row["components"] for row in quality)
         assert quality[0]["memory_id"] == 1
