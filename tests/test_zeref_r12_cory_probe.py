@@ -79,7 +79,7 @@ def test_mirror_ledger_row_replays_exact_record_into_paired_arm(tmp_path: Path):
         descendant_sha256=TALK4,
         metadata={"paired": True},
     )
-    mirrored = module._mirror_ledger_row(a, b, row)
+    mirrored = module._mirror_ledger_row(b, row)
     assert mirrored["record_sha256"] == row["record_sha256"]
     assert a_jsonl.read_bytes() == b_jsonl.read_bytes()
     a_hit = a.recall("paired input", limit=1)[0]
