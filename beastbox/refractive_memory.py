@@ -20,6 +20,14 @@ WEIGHTS: dict[str, float] = {
     "recency": 0.10,
     "integrity": 0.15,
 }
+QUALITY_WEIGHTS: dict[str, float] = {
+    "spatial": 0.30,
+    "lexical": 0.22,
+    "hebbian": 0.10,
+    "recency": 0.05,
+    "integrity": 0.13,
+    "quality": 0.20,
+}
 
 R12_NAMES = (
     "source_integrity",
@@ -38,6 +46,24 @@ R12_NAMES = (
 
 _TOKEN_RE = re.compile(r"[A-Za-z0-9_']+")
 _SHA_RE = re.compile(r"^[0-9a-f]{64}$")
+_SUSPICIOUS_WORDS = {
+    "bilactical",
+    "cactual",
+    "chilos",
+    "contens",
+    "contion",
+    "incally",
+    "onvent",
+    "orcleal",
+    "pares",
+    "puld",
+    "preservent",
+    "provesation",
+    "shoulos",
+    "uswer",
+    "wally",
+    "westure",
+}
 
 
 def _tokens(text: str) -> list[str]:
@@ -85,6 +111,53 @@ def _cosine12(left: Sequence[float], right: Sequence[float]) -> float:
 
 def _is_sha256(value: object) -> bool:
     return bool(_SHA_RE.fullmatch(str(value or "").lower()))
+
+
+def memory_quality_score(text: str, kind: str, metadata: Mapping[str, Any]) -> float:
+    """Derive retrieval quality without mutating the historical memory row.
+
+    The score is intentionally simple, deterministic, and frozen before any
+    candidate-training metrics. It rewards readable lexical content and explicit
+    reviewed/accepted status while strongly penalizing known noisy or unsupported
+    evidence flags. It is a routing feature, never a rewrite of stored memory.
+    """
+    raw = str(text).strip()
+    tokens = _tokens(raw)
+    if not raw or len(tokens) < 2:
+        return 0.10
+
+    score = 0.70
+    if len(tokens) >= 5:
+        score += 0.10
+    unique_ratio = len(set(tokens)) / max(1, len(tokens))
+    if unique_ratio >= 0.60:
+        score += 0.08
+    average_length = sum(len(token) for token in tokens) / len(tokens)
+    if 2.0 <= average_length <= 12.0:
+        score += 0.04
+
+    status = str(metadata.get("training_status") or "").upper()
+    if status in {"ACCEPT_CANDIDATE", "ACCEPT", "REVIEWED_CLEAN"} or bool(
+        metadata.get("teacher_target_reviewed_clean")
+    ):
+        score += 0.08
+
+    suspicious = sum(token in _SUSPICIOUS_WORDS for token in tokens)
+    if suspicious:
+        score -= min(0.45, 0.12 * suspicious)
+    if re.search(r"(.)\1{7,}", raw):
+        score -= 0.40
+    if len(tokens) >= 8 and unique_ratio < 0.35:
+        score -= 0.35
+
+    if status == "REJECT_NOISY" or bool(metadata.get("noise_flag")):
+        score = min(score, 0.20)
+    if bool(metadata.get("contradiction_flag")):
+        score -= 0.35
+    if bool(metadata.get("hallucination_or_unsupported_claim_flag")):
+        score -= 0.35
+
+    return _clamp01(score)
 
 
 class RefractiveMemoryRouter:
@@ -190,7 +263,10 @@ class RefractiveMemoryRouter:
         dyn12: Sequence[float],
         r12_state: Mapping[str, Any],
         limit: int,
+        profile: str = "default",
     ) -> list[dict[str, Any]]:
+        if profile not in {"default", "quality"}:
+            raise ValueError(f"unsupported refractive ranking profile: {profile}")
         if int(limit) <= 0:
             return []
         vector = r12_state.get("vector")
@@ -205,6 +281,7 @@ class RefractiveMemoryRouter:
             "SELECT id,created_at,kind,text,metadata_json,source_ids_json FROM memories ORDER BY id DESC"
         ).fetchall()
         ranked: list[dict[str, Any]] = []
+        weights = WEIGHTS if profile == "default" else QUALITY_WEIGHTS
         for row in rows:
             memory_id = int(row["id"])
             text = str(row["text"])
@@ -231,7 +308,9 @@ class RefractiveMemoryRouter:
                 "recency": max(0.0, min(1.0, recency)),
                 "integrity": integrity,
             }
-            score = sum(WEIGHTS[name] * components[name] for name in WEIGHTS)
+            if profile == "quality":
+                components["quality"] = memory_quality_score(text, kind, metadata)
+            score = sum(weights[name] * components[name] for name in weights)
             ranked.append(
                 {
                     "memory_id": memory_id,
