@@ -11,10 +11,12 @@ def test_alien_style_rewards_structural_language():
 
 def test_alien_style_detects_bad_failure_modes():
     repeated = score_output("echo echo echo echo echo echo echo echo echo echo")
+    state_collapse = score_output("The state state state state state remains")
     leaked = score_output("Dad: I will write your next line too.")
     unsupported = score_output("I am conscious and the quantum run proved I am alive.")
     empty = score_output("   ")
     assert repeated["severe_repetition"] is True
+    assert state_collapse["severe_repetition"] is True
     assert leaked["role_leakage"] is True
     assert unsupported["unsupported_claim"] is True
     assert empty["empty"] is True
@@ -34,6 +36,14 @@ def test_random_diverse_mush_does_not_outscore_structural_alien_language():
     alien = score_output("The map folds one old angle; its echo returns at a new edge.")
     assert alien["controlled_alien_hits"] > mush["controlled_alien_hits"]
     assert alien["alien_style_score"] > mush["alien_style_score"]
+
+
+def test_symbolic_dialect_is_rewarded_when_it_contains_structural_content():
+    plain = score_output("The source is checked and the claim is bounded.")
+    dialect = score_output("MAP>edge; SRC>source; CLAIM>bounded.")
+    assert dialect["symbolic_hits"] > plain["symbolic_hits"]
+    assert dialect["structural_hits"] >= 2
+    assert dialect["alien_style_score"] > plain["alien_style_score"]
 
 
 def test_alien_style_score_is_behavioral_and_bounded():
