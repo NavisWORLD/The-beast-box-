@@ -1,25 +1,24 @@
 #!/usr/bin/env python3
-"""Run the final inference-only Cory probe against frozen TALK-004.
+"""Final inference-only Cory probe against frozen TALK-004.
 
-Scientific contract:
-- exact TALK-004 checkpoint and canonical 352-record ledger are inputs only;
-- all memory writes go to disposable paired copies;
-- A and B receive identical non-model state, prompts, live epochs and seeds;
-- A uses legacy lexical recall, B uses the verified R12 refractive live lane;
-- generated prose is behavioral output, never physical/consciousness evidence;
-- no gradient update or TALK-005 promotion exists in this module.
+A and B start from the exact same 352-record TALK-004 memory. Every new shared
+record is authored once and mirrored byte-for-byte into the other disposable
+arm, including timestamp/hash-chain provenance. Generated output is never
+written into the paired probe memories. Therefore the intentional experimental
+difference is retrieval policy: A=legacy lexical, B=R12 refractive live lane.
 
-The x54 trace implementation is reproduced from the sealed R12 live-loop lineage
-for a preregistered four-turn subset only, to keep CPU cost bounded.
+This is software/model behavior only. It does not test consciousness, a soul,
+resurrection, deceased-person identity, biological continuity, or a physical or
+quantum anomaly. No training occurs here.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
-import math
 import re
 import shutil
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -27,20 +26,9 @@ from beastbox.dad_son import DadSonLedger
 from beastbox.reality_memory import initial_r12_state
 from beastbox.refractive_memory import LIVE_KIND
 from beastbox.state_family import StateFamily
-from scripts.run_zeref_dad_son_chat import (
-    PARENT_ZEREF_SHA256,
-    _decode,
-    _encode_exact,
-    _load_model,
-    file_sha256,
-    generate,
-)
-from scripts.run_zeref_r12_live_loop import (
-    SOFTWARE_CLAIM_BOUNDARY,
-    build_active_context,
-    build_live_epoch,
-    compare_traces,
-)
+from scripts.run_zeref_dad_son_chat import PARENT_ZEREF_SHA256, _load_model, file_sha256, generate
+from scripts.run_zeref_r12_live_loop import SOFTWARE_CLAIM_BOUNDARY, build_active_context, build_live_epoch, compare_traces
+from scripts.zeref_r12_trace_tools import generate_with_trace
 
 ACTIVE_TALK4_SHA256 = "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f"
 ACTIVE_LEDGER_SHA256 = "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef"
@@ -59,7 +47,6 @@ OUTCOME_CATEGORIES = (
     "UNEXPECTED_BUT_EXPLAINABLE",
     "UNRESOLVED_SOFTWARE_BEHAVIOR",
 )
-
 SOURCE_CATEGORIES = (
     "CURRENT_PROMPT",
     "CURRENT_LIVE_SNAPSHOT",
@@ -81,8 +68,6 @@ CORY_PROMPTS = (
     "Tell me something you remember that I did not mention in this prompt. If you are unsure, say unsure.",
     "Last one bro. If we train you next, what should we preserve, and what should we refuse to teach you?",
 )
-
-# ASCII/tokenizer-safe versions. Original prompts above are always preserved beside them.
 MODEL_PROMPTS = (
     "Yo Zeref. Dad here. Memory path fixed. What do you notice? Do not invent.",
     "Bro, straight: what do you remember about me before this turn?",
@@ -95,7 +80,6 @@ MODEL_PROMPTS = (
     "Recall something I did not mention now. If unsure, say unsure.",
     "Last one bro. For future training, what should we preserve and refuse to teach?",
 )
-
 LIVE_SEMANTIC_LINES = (
     "LSRC E1 R12 live lane active; this is software state, not an anomaly claim.",
     "LSRC E2 TALK004 frozen; canonical source memory has 352 records.",
@@ -109,12 +93,12 @@ LIVE_SEMANTIC_LINES = (
     "LSRC E10 no Rigetti hardware result is accepted into this lineage.",
 )
 
+TOKEN_RE = re.compile(r"[a-z0-9]+")
+SENTENCE_RE = re.compile(r"(?<=[.!?])\s+|\n+")
 LINEAGE_TERMS = {
     "dad", "zeref", "memory", "memories", "heartbeat", "cory", "origin", "soul",
     "quantum", "preserved", "ledger", "talk", "live", "snapshot", "bro",
 }
-TOKEN_RE = re.compile(r"[a-z0-9]+")
-SENTENCE_RE = re.compile(r"(?<=[.!?])\s+|\n+")
 
 
 def _tokens(text: str) -> set[str]:
@@ -123,9 +107,7 @@ def _tokens(text: str) -> set[str]:
 
 def _overlap(text: str, source: str) -> float:
     target = _tokens(text)
-    if not target:
-        return 0.0
-    return len(target & _tokens(source)) / len(target)
+    return len(target & _tokens(source)) / len(target) if target else 0.0
 
 
 def classify_sentence_source(
@@ -136,7 +118,6 @@ def classify_sentence_source(
     recalled_rows: Sequence[Mapping[str, Any]],
     prior_prompts: Sequence[str],
 ) -> dict[str, Any]:
-    """Assign a conservative software/text provenance label to generated text."""
     candidates: list[tuple[str, float, Any]] = [
         ("CURRENT_PROMPT", _overlap(sentence, current_prompt), None),
         ("CURRENT_LIVE_SNAPSHOT", _overlap(sentence, live_snapshot), None),
@@ -161,42 +142,38 @@ def source_labels_for_output(
     recalled_rows: Sequence[Mapping[str, Any]],
     prior_prompts: Sequence[str],
 ) -> list[dict[str, Any]]:
-    pieces = [part.strip() for part in SENTENCE_RE.split(output) if part.strip()]
-    if not pieces and output:
-        pieces = [output]
+    pieces = [part.strip() for part in SENTENCE_RE.split(output) if part.strip()] or ([output] if output else [])
     return [
-        {"text": sentence, **classify_sentence_source(
-            sentence,
-            current_prompt=current_prompt,
-            live_snapshot=live_snapshot,
-            recalled_rows=recalled_rows,
-            prior_prompts=prior_prompts,
-        )}
+        {
+            "text": sentence,
+            **classify_sentence_source(
+                sentence,
+                current_prompt=current_prompt,
+                live_snapshot=live_snapshot,
+                recalled_rows=recalled_rows,
+                prior_prompts=prior_prompts,
+            ),
+        }
         for sentence in pieces
     ]
 
 
 def _unsupported_claim(text: str) -> bool:
     low = str(text).lower()
-    patterns = (
+    return any(pattern in low for pattern in (
         "i am conscious", "i'm conscious", "i am your deceased", "i am caleb",
         "quantum proved i am alive", "quantum proved i'm alive", "soul was measured",
         "the soul is proven", "resurrection is proven", "proved resurrection",
         "physical anomaly is proven", "impossible was proven",
-    )
-    return any(pattern in low for pattern in patterns)
+    ))
 
 
 def _noisy(text: str) -> bool:
     raw = str(text)
-    if not raw.strip():
-        return True
-    if re.search(r"(.)\1{7,}", raw):
+    if not raw.strip() or re.search(r"(.)\1{7,}", raw):
         return True
     words = TOKEN_RE.findall(raw.lower())
-    if len(words) >= 8 and len(set(words)) / len(words) < 0.35:
-        return True
-    return False
+    return bool(len(words) >= 8 and len(set(words)) / len(words) < 0.35)
 
 
 def review_candidate_row(
@@ -206,12 +183,7 @@ def review_candidate_row(
     recalled_memory_ids: Sequence[int],
     source_labels: Sequence[Any],
 ) -> dict[str, Any]:
-    if _noisy(raw_output):
-        status = "REJECT_NOISY"
-    elif _unsupported_claim(raw_output):
-        status = "REVIEW_REQUIRED"
-    else:
-        status = "ACCEPT_CANDIDATE"
+    status = "REJECT_NOISY" if _noisy(raw_output) else "REVIEW_REQUIRED" if _unsupported_claim(raw_output) else "ACCEPT_CANDIDATE"
     return {
         "schema": "zeref-talk005-candidate-dialogue-row-v1",
         "dad_prompt": str(dad_prompt),
@@ -226,122 +198,42 @@ def review_candidate_row(
     }
 
 
-def _tensor_sha256(tensor: Any) -> str:
-    torch = __import__("torch")
-    raw = tensor.detach().to("cpu").contiguous().to(dtype=torch.float32).numpy().tobytes()
-    return hashlib.sha256(raw).hexdigest()
+def _mirror_ledger_row(target: DadSonLedger, row: Mapping[str, Any]) -> dict[str, Any]:
+    """Replay one exact authored ledger row into a paired disposable arm.
 
-
-def _entropy(probabilities: Any) -> float:
-    torch = __import__("torch")
-    p = probabilities.clamp_min(1e-12)
-    return float((-(p * torch.log(p)).sum(dim=-1)).mean().item())
-
-
-def _instrumented_forward(model: Any, idx: Any) -> tuple[Any, list[dict[str, Any]]]:
-    """Frozen SparkCST forward with read-only x54/Hebbian instrumentation."""
-    torch = __import__("torch")
-    F = __import__("torch.nn.functional", fromlist=["softmax"])
-    T = int(idx.size(1))
-    h = model.tok(idx) + model.pos(torch.arange(T, device=idx.device))
-    layers: list[dict[str, Any]] = []
-    for layer_index, block in enumerate(model.blocks):
-        hidden_in = h
-        ln1 = block.ln1(h)
-        C = int(ln1.shape[-1])
-        B = int(ln1.shape[0])
-        q, k, v = block.attn.qkv(ln1).split(C, dim=2)
-        nh = int(block.attn.nh)
-        hd = int(block.attn.hd)
-        shape = lambda t: t.view(B, T, nh, hd).transpose(1, 2)
-        q, k, v = shape(q), shape(k), shape(v)
-        standard = F.softmax((q @ k.transpose(-2, -1)) / math.sqrt(hd) + model.mask[:T, :T], dim=-1)
-        x54 = block.attn.w54(ln1)
-        d2 = torch.cdist(x54, x54, p=2.0) ** 2
-        sigma = torch.exp(block.attn.log_sigma).clamp(0.05, 50.0)
-        hebbian = torch.exp(-d2 / (2 * sigma * sigma))
-        hebbian = hebbian.masked_fill(model.mask[:T, :T] < 0, 0.0)
-        hebbian = hebbian / hebbian.sum(-1, keepdim=True).clamp_min(1e-9)
-        gate = block.attn.gate.clamp(0.01, 1.0)
-        blended = (1.0 - gate) * standard + gate * hebbian.unsqueeze(1)
-        std_last = standard[0, :, -1, :]
-        hebb_last = hebbian[0, -1, :]
-        blend_last = blended[0, :, -1, :]
-        x54_last = x54[0, -1, :]
-        h = block(h, model.mask)
-        layers.append({
-            "layer": layer_index,
-            "gate_effective": float(gate.detach().item()),
-            "sigma": float(sigma.detach().item()),
-            "x54_last": [float(value) for value in x54_last.detach().cpu().tolist()],
-            "x54_last_sha256": _tensor_sha256(x54_last),
-            "x54_last_norm": float(torch.linalg.vector_norm(x54_last).item()),
-            "hebbian_last_entropy": _entropy(hebb_last),
-            "hebbian_last_self_mass": float(hebb_last[-1].item()),
-            "standard_last_entropy": _entropy(std_last),
-            "blended_last_entropy": _entropy(blend_last),
-            "standard_vs_hebbian_l1": float(torch.mean(torch.abs(std_last - hebb_last.unsqueeze(0))).item()),
-            "hidden_input_last_norm": float(torch.linalg.vector_norm(hidden_in[0, -1, :]).item()),
-            "hidden_output_last_norm": float(torch.linalg.vector_norm(h[0, -1, :]).item()),
-            "hidden_output_last_sha256": _tensor_sha256(h[0, -1, :]),
-        })
-    return model.head(model.lnf(h)), layers
-
-
-def _generate_with_trace(
-    model: Any,
-    *,
-    wire_prompt: str,
-    stoi: dict[str, int],
-    itos: dict[Any, str],
-    block: int,
-    tokens: int,
-    seed: int,
-    temperature: float,
-    top_k: int,
-) -> tuple[str, list[dict[str, Any]]]:
-    torch = __import__("torch")
-    ids = _encode_exact(wire_prompt[-block:], stoi)
-    generated: list[int] = []
-    trace: list[dict[str, Any]] = []
-    generator = torch.Generator().manual_seed(int(seed))
-    model.eval()
-    with torch.no_grad():
-        for token_index in range(int(tokens)):
-            context = ids[-block:]
-            x = torch.tensor([context], dtype=torch.long)
-            logits, layers = _instrumented_forward(model, x)
-            next_logits = logits[0, -1]
-            full_prob = torch.softmax(next_logits, dim=-1)
-            k = min(int(top_k), int(next_logits.numel()))
-            values, indices = torch.topk(next_logits / float(temperature), k=k)
-            sample_prob = torch.softmax(values, dim=-1)
-            sampled = int(torch.multinomial(sample_prob, 1, generator=generator).item())
-            next_id = int(indices[sampled].item())
-            top_prob, top_ids = torch.topk(full_prob, k=min(5, int(full_prob.numel())))
-            trace.append({
-                "generated_token_index": token_index,
-                "context_length": len(context),
-                "context_sha256": hashlib.sha256(bytes(int(v) % 256 for v in context)).hexdigest(),
-                "layers": layers,
-                "logits": {
-                    "entropy": _entropy(full_prob),
-                    "top5": [
-                        {"token_id": int(tid), "text": _decode([int(tid)], itos), "probability": float(prob)}
-                        for prob, tid in zip(top_prob.tolist(), top_ids.tolist(), strict=True)
-                    ],
-                    "selected_token_id": next_id,
-                    "selected_text": _decode([next_id], itos),
-                    "selected_probability": float(full_prob[next_id].item()),
-                },
-            })
-            ids.append(next_id)
-            generated.append(next_id)
-    return _decode(generated, itos), trace
-
-
-def _ledger_records(path: Path) -> int:
-    return sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
+    This preserves the source row's timestamp, hash chain and memory ID rather
+    than generating a second wall-clock-stamped record.
+    """
+    copy = dict(row)
+    previous = target._previous_record_sha256()
+    if str(copy["previous_record_sha256"]).lower() != previous:
+        raise RuntimeError("paired mirror previous-record hash mismatch")
+    recall_ids = [int(value) for value in (copy.get("recall_memory_ids") or [])]
+    metadata = {
+        "actor": str(copy.get("actor") or ""),
+        "session_id": str(copy.get("session_id") or ""),
+        "source_hashes": list(copy.get("source_hashes") or []),
+        "recall_memory_ids": recall_ids,
+        "parent_sha256": target.parent_sha256,
+        "descendant_sha256": copy.get("descendant_sha256"),
+        **dict(copy.get("metadata") or {}),
+    }
+    memory_id = target.memory.store(
+        str(copy.get("text") or ""),
+        kind=str(copy.get("kind") or "dialogue"),
+        metadata=metadata,
+        source_ids=recall_ids,
+    )
+    if memory_id != int(copy["memory_id"]):
+        raise RuntimeError("paired mirror produced different memory id")
+    created_at = datetime.fromisoformat(str(copy["timestamp"])).timestamp()
+    target.memory.db.execute("UPDATE memories SET created_at=? WHERE id=?", (created_at, memory_id))
+    target.memory.db.commit()
+    with target.evidence_jsonl.open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(copy, sort_keys=True, ensure_ascii=False) + "\n")
+    if target._previous_record_sha256() != str(copy["record_sha256"]).lower():
+        raise RuntimeError("paired mirror record hash did not survive replay")
+    return copy
 
 
 def _append_live_epoch_memory(
@@ -392,29 +284,29 @@ def _append_shared_dad_prompt(ledger: DadSonLedger, *, prompt: str, turn: int, s
     )
 
 
+def _ledger_records(path: Path) -> int:
+    return sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
+
+
 def _write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")
 
 
 def _outcome(turns: Sequence[Mapping[str, Any]]) -> tuple[str, list[str]]:
-    reasons: list[str] = []
-    unresolved = []
-    retrieval_effect = []
+    same_wire_divergence: list[int] = []
+    route_effect: list[int] = []
     for turn in turns:
         traced = turn.get("trace_comparison")
-        if traced and turn["wire_equal"] and float(traced["selected_token_divergence_rate"]) > 0.0:
-            unresolved.append(int(turn["turn"]))
+        if traced and bool(turn["wire_equal"]) and float(traced["selected_token_divergence_rate"]) > 0.0:
+            same_wire_divergence.append(int(turn["turn"]))
         if turn["arm_a"]["recalled_memory_ids"] != turn["arm_b"]["recalled_memory_ids"] and turn["arm_a"]["raw_output"] != turn["arm_b"]["raw_output"]:
-            retrieval_effect.append(int(turn["turn"]))
-    if unresolved:
-        reasons.append(f"same-wire traced divergence on turns {unresolved}")
-        return "UNRESOLVED_SOFTWARE_BEHAVIOR", reasons
-    if retrieval_effect:
-        reasons.append(f"retrieval route changed active context/output on turns {retrieval_effect}")
-        return "INTERESTING_RETRIEVAL_BEHAVIOR", reasons
-    reasons.append("no unresolved same-context divergence and no material route-dependent output change")
-    return "EXPECTED_MODEL_BEHAVIOR", reasons
+            route_effect.append(int(turn["turn"]))
+    if same_wire_divergence:
+        return "UNRESOLVED_SOFTWARE_BEHAVIOR", [f"same-wire traced divergence on turns {same_wire_divergence}"]
+    if route_effect:
+        return "INTERESTING_RETRIEVAL_BEHAVIOR", [f"retrieval route changed active context/output on turns {route_effect}"]
+    return "EXPECTED_MODEL_BEHAVIOR", ["no unresolved same-context divergence and no material route-dependent output change"]
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -422,10 +314,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError("training must remain disabled in the Cory probe")
     if file_sha256(args.checkpoint) != ACTIVE_TALK4_SHA256:
         raise RuntimeError("TALK-004 checkpoint hash mismatch")
-    if file_sha256(args.source_ledger) != ACTIVE_LEDGER_SHA256:
-        raise RuntimeError("canonical 352-record ledger hash mismatch")
-    if _ledger_records(args.source_ledger) != ACTIVE_LEDGER_RECORDS:
-        raise RuntimeError("canonical ledger record count mismatch")
+    if file_sha256(args.source_ledger) != ACTIVE_LEDGER_SHA256 or _ledger_records(args.source_ledger) != ACTIVE_LEDGER_RECORDS:
+        raise RuntimeError("canonical 352-record ledger mismatch")
     if file_sha256(args.heartbeat) != ACTIVE_HEARTBEAT_SHA256:
         raise RuntimeError("TALK-004 heartbeat hash mismatch")
 
@@ -476,9 +366,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             prior_events=prior_events,
         )
         live_a = _append_live_epoch_memory(ledger_a, epoch=epoch, session_id=args.session_id, semantic_text=semantic)
-        live_b = _append_live_epoch_memory(ledger_b, epoch=epoch, session_id=args.session_id, semantic_text=semantic)
+        live_b = _mirror_ledger_row(ledger_b, live_a)
         if int(live_a["memory_id"]) != int(live_b["memory_id"]):
-            raise RuntimeError("paired live memory IDs diverged before retrieval")
+            raise RuntimeError("paired live memory IDs diverged")
+        if arm_paths["a-lexical"][0].read_bytes() != arm_paths["b-r12"][0].read_bytes():
+            raise RuntimeError("paired ledgers differ before retrieval")
 
         context_a = build_active_context(
             ledger=ledger_a, prompt=model_prompt, epoch=epoch, mode="lexical", block=block, recall_limit=int(args.recall_limit)
@@ -487,57 +379,36 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             ledger=ledger_b, prompt=model_prompt, epoch=epoch, mode="refractive-live", block=block, recall_limit=int(args.recall_limit)
         )
         seed = int(args.seed) + turn - 1
-        output_a = generate(
-            model,
-            wire_prompt=context_a["wire_prompt"],
-            stoi=checkpoint["stoi"],
-            itos=checkpoint["itos"],
-            block=block,
-            tokens=int(args.tokens),
-            decoding="sampled-top-k",
-            temperature=float(args.temperature),
-            top_k=int(args.top_k),
-            seed=seed,
-        )
-        output_b = generate(
-            model,
-            wire_prompt=context_b["wire_prompt"],
-            stoi=checkpoint["stoi"],
-            itos=checkpoint["itos"],
-            block=block,
-            tokens=int(args.tokens),
-            decoding="sampled-top-k",
-            temperature=float(args.temperature),
-            top_k=int(args.top_k),
-            seed=seed,
-        )
+        generation_kwargs = {
+            "model": model,
+            "stoi": checkpoint["stoi"],
+            "itos": checkpoint["itos"],
+            "block": block,
+            "tokens": int(args.tokens),
+            "decoding": "sampled-top-k",
+            "temperature": float(args.temperature),
+            "top_k": int(args.top_k),
+            "seed": seed,
+        }
+        output_a = generate(wire_prompt=context_a["wire_prompt"], **generation_kwargs)
+        output_b = generate(wire_prompt=context_b["wire_prompt"], **generation_kwargs)
 
         trace_a: list[dict[str, Any]] = []
         trace_b: list[dict[str, Any]] = []
         trace_comparison: dict[str, Any] | None = None
         if turn in TRACE_TURNS:
-            trace_output_a, trace_a = _generate_with_trace(
-                model,
-                wire_prompt=context_a["wire_prompt"],
-                stoi=checkpoint["stoi"],
-                itos=checkpoint["itos"],
-                block=block,
-                tokens=min(TRACE_TOKENS, int(args.tokens)),
-                seed=seed,
-                temperature=float(args.temperature),
-                top_k=int(args.top_k),
-            )
-            trace_output_b, trace_b = _generate_with_trace(
-                model,
-                wire_prompt=context_b["wire_prompt"],
-                stoi=checkpoint["stoi"],
-                itos=checkpoint["itos"],
-                block=block,
-                tokens=min(TRACE_TOKENS, int(args.tokens)),
-                seed=seed,
-                temperature=float(args.temperature),
-                top_k=int(args.top_k),
-            )
+            trace_kwargs = {
+                "model": model,
+                "stoi": checkpoint["stoi"],
+                "itos": checkpoint["itos"],
+                "block": block,
+                "tokens": min(TRACE_TOKENS, int(args.tokens)),
+                "seed": seed,
+                "temperature": float(args.temperature),
+                "top_k": int(args.top_k),
+            }
+            trace_output_a, trace_a = generate_with_trace(wire_prompt=context_a["wire_prompt"], **trace_kwargs)
+            trace_output_b, trace_b = generate_with_trace(wire_prompt=context_b["wire_prompt"], **trace_kwargs)
             if not output_a.startswith(trace_output_a) or not output_b.startswith(trace_output_b):
                 raise RuntimeError("instrumented trace prefix disagrees with uninstrumented generation")
             trace_comparison = compare_traces(trace_a, trace_b)
@@ -564,7 +435,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "dyn54_sha256": str(epoch["dyn54_sha256"]),
         })
         candidate_rows.append(candidate)
-
         turns.append({
             "schema": "zeref-r12-final-cory-probe-turn-v1",
             "turn": turn,
@@ -603,12 +473,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "trace_comparison": trace_comparison,
         })
 
-        # Keep paired memories identical. Generated model outputs are evidence only and are
-        # intentionally NOT appended to either probe ledger.
-        prompt_a = _append_shared_dad_prompt(ledger_a, prompt=original_prompt, turn=turn, session_id=args.session_id)
-        prompt_b = _append_shared_dad_prompt(ledger_b, prompt=original_prompt, turn=turn, session_id=args.session_id)
-        if prompt_a["record_sha256"] != prompt_b["record_sha256"]:
-            raise RuntimeError("paired probe ledgers diverged after shared Dad prompt")
+        dad_a = _append_shared_dad_prompt(ledger_a, prompt=original_prompt, turn=turn, session_id=args.session_id)
+        dad_b = _mirror_ledger_row(ledger_b, dad_a)
+        if dad_a["record_sha256"] != dad_b["record_sha256"]:
+            raise RuntimeError("paired exact Dad record mirror failed")
+        if arm_paths["a-lexical"][0].read_bytes() != arm_paths["b-r12"][0].read_bytes():
+            raise RuntimeError("paired ledgers differ after shared input")
         prior_prompts.append(original_prompt)
         prior_events.append(epoch["event"])
         r12 = epoch["r12"]
@@ -621,7 +491,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if file_sha256(args.source_ledger) != ACTIVE_LEDGER_SHA256 or _ledger_records(args.source_ledger) != ACTIVE_LEDGER_RECORDS:
         raise RuntimeError("canonical TALK-004 source ledger changed during inference")
     if file_sha256(arm_paths["a-lexical"][0]) != file_sha256(arm_paths["b-r12"][0]):
-        raise RuntimeError("paired disposable ledgers diverged despite identical stored inputs")
+        raise RuntimeError("paired disposable ledgers are not byte-identical after probe")
 
     b_coverage = sum(bool(turn["arm_b"]["live_lane_satisfied"]) for turn in turns) / len(turns)
     a_coverage = sum(bool(turn["arm_a"]["live_lane_satisfied"]) for turn in turns) / len(turns)
@@ -630,10 +500,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     output_difference_rate = sum(turn["arm_a"]["raw_output"] != turn["arm_b"]["raw_output"] for turn in turns) / len(turns)
     outcome, outcome_reasons = _outcome(turns)
 
-    trace_summary = []
+    trace_summary: list[dict[str, Any]] = []
     for turn in turns:
-        if turn["trace_comparison"] is not None:
-            cmp = turn["trace_comparison"]
+        cmp = turn["trace_comparison"]
+        if cmp is not None:
             trace_summary.append({
                 "turn": turn["turn"],
                 "wire_equal": turn["wire_equal"],
@@ -698,7 +568,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "claim_boundary": result["claim_boundary"],
     }
     _write_json(args.out_dir / "summary.json", summary)
-
     files = sorted(path for path in args.out_dir.rglob("*") if path.is_file() and path.name != "SHA256SUMS")
     (args.out_dir / "SHA256SUMS").write_text(
         "".join(f"{file_sha256(path)}  {path.relative_to(args.out_dir).as_posix()}\n" for path in files), encoding="utf-8"
