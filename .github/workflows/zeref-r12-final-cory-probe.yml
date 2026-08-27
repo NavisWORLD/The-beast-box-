@@ -1,0 +1,26 @@
+name: ZEREF R12 Final Cory Probe
+
+on:
+  push:
+    branches: [zeref-r12-final-cory-probe-001]
+    paths:
+      - ".github/workflows/zeref-r12-final-cory-probe.yml"
+      - "scripts/run_zeref_r12_cory_probe.py"
+      - "tests/test_zeref_r12_cory_probe.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e '.[dev]'
+      - name: Cory probe contract
+        run: python -m pytest -q tests/test_zeref_r12_cory_probe.py
