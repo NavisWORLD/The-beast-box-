@@ -1,0 +1,22 @@
+name: COSMOS FINAL REFERENCE - RED CONTRACT
+
+on:
+  push:
+    branches: [cory-davis-cosmos-reality-bridge-final-organism-001]
+    paths:
+      - 'tests/test_final_reference_baseline.py'
+      - '.github/workflows/cosmos-final-reference-red.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  red-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pytest
+      - run: python -m pytest -q tests/test_final_reference_baseline.py
