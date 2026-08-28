@@ -1,0 +1,88 @@
+name: ZEREF WORLD R12 RECOVER PINNED TRACE
+
+on:
+  push:
+    branches: [zeref-world-knowledge-r12-train-001]
+    paths:
+      - '.github/workflows/zeref-world-r12-recover-trace.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  recover-pinned-failure:
+    runs-on: ubuntu-latest
+    env:
+      PINNED_RUN_ID: '33125920283'
+      PINNED_JOB_ID: '98703927258'
+      PINNED_HEAD_SHA: '504ead98b1378074e3a5154d4051a88c9b6b0f00'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Recover original run and job evidence
+        shell: bash
+        run: |
+          set -u
+          rm -rf _trace_recovery
+          mkdir -p _trace_recovery
+          printf '%s\n' "$PINNED_RUN_ID" > _trace_recovery/pinned-run-id.txt
+          printf '%s\n' "$PINNED_JOB_ID" > _trace_recovery/pinned-job-id.txt
+          printf '%s\n' "$PINNED_HEAD_SHA" > _trace_recovery/pinned-head-sha.txt
+
+          gh run view "$PINNED_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --json databaseId,headSha,headBranch,status,conclusion,event,createdAt,updatedAt,jobs \
+            > _trace_recovery/run.json 2> _trace_recovery/run-json.stderr || true
+
+          gh run view "$PINNED_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --job "$PINNED_JOB_ID" --log \
+            > _trace_recovery/job.log 2> _trace_recovery/job-log.stderr || true
+
+          gh run view "$PINNED_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --log-failed \
+            > _trace_recovery/run-failed.log 2> _trace_recovery/run-failed.stderr || true
+
+          gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$PINNED_JOB_ID" \
+            > _trace_recovery/job.json 2> _trace_recovery/job-json.stderr || true
+
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PINNED_RUN_ID/artifacts" \
+            > _trace_recovery/artifacts.json 2> _trace_recovery/artifacts.stderr || true
+
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+          root=Path('_trace_recovery')
+          text='\n'.join(p.read_text(errors='replace') for p in (root/'job.log', root/'run-failed.log') if p.exists())
+          patterns=(r'Traceback \(most recent call last\):[\s\S]*?(?=\n\d{4}-\d{2}-\d{2}|\Z)',
+                    r'(?m)^.*(?:Error|Exception|RuntimeError|ValueError|TypeError|KeyError|AssertionError):.*$')
+          hits=[]
+          for pat in patterns:
+              hits.extend(re.findall(pat,text))
+          (root/'traceback-extract.txt').write_text('\n\n===== MATCH =====\n'.join(hits) if hits else 'NO_TRACEBACK_PATTERN_EXTRACTED\n')
+          summary={
+              'schema':'zeref-world-r12-pinned-trace-recovery-v1',
+              'pinned_run_id':33125920283,
+              'pinned_job_id':98703927258,
+              'pinned_head_sha':'504ead98b1378074e3a5154d4051a88c9b6b0f00',
+              'job_log_bytes':(root/'job.log').stat().st_size if (root/'job.log').exists() else 0,
+              'failed_log_bytes':(root/'run-failed.log').stat().st_size if (root/'run-failed.log').exists() else 0,
+              'traceback_pattern_found':bool(hits),
+              'behavior_modified':False,
+              'weights_touched':False,
+              'memory_touched':False,
+          }
+          (root/'recovery-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(summary,sort_keys=True))
+          PY
+
+          (cd _trace_recovery && sha256sum * > SHA256SUMS)
+
+      - name: Upload recovered historical failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-world-r12-pinned-trace-${{ github.run_id }}
+          path: _trace_recovery
+          if-no-files-found: error
+          retention-days: 90
