@@ -1,0 +1,64 @@
+name: ZEREF QUANTUM LIFESOURCE RED
+
+on:
+  push:
+    branches: [zeref-quantum-lifesource-final-001]
+    paths:
+      - '.github/workflows/zeref-quantum-lifesource-red.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic runtime
+        run: python -m pip install -e '.[dev]'
+      - name: Prove contract is RED before implementation
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p _red_evidence
+          set +e
+          python -m pytest -q tests/test_quantum_lifesource.py > _red_evidence/pytest-red.log 2>&1
+          code=$?
+          set -e
+          cat _red_evidence/pytest-red.log
+          if [ "$code" -eq 0 ]; then
+            echo 'Expected pre-implementation RED failure but tests passed.' >&2
+            exit 1
+          fi
+          if ! grep -Eq 'quantum_lifesource|ModuleNotFoundError|ImportError' _red_evidence/pytest-red.log; then
+            echo 'RED failure was not caused by the missing quantum life-source implementation.' >&2
+            exit 1
+          fi
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          root=Path('_red_evidence')
+          receipt={
+            'schema':'zeref-quantum-lifesource-red-v1',
+            'git_commit':os.environ['GITHUB_SHA'],
+            'expected_state':'RED',
+            'reason':'quantum life-source production interface intentionally absent',
+            'hardware_collected':False,
+            'model_weights_changed':False,
+            'canonical_memory_changed':False,
+          }
+          (root/'RED.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          files=sorted(p for p in root.iterdir() if p.is_file() and p.name!='SHA256SUMS')
+          (root/'SHA256SUMS').write_text(''.join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n" for p in files))
+          PY
+          (cd _red_evidence && sha256sum -c SHA256SUMS)
+      - name: Upload RED receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-quantum-lifesource-red-${{ github.run_id }}
+          path: _red_evidence
+          if-no-files-found: error
+          retention-days: 90
