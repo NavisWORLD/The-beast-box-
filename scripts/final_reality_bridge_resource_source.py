@@ -97,6 +97,88 @@ def evaluate_resource_source_gate(
     }
 
 
+def classify_downstream_closure(
+    *,
+    resource_result: dict[str, Any],
+    source_blind_adapter_recovered: bool,
+    sealed_ibm_preregistration_available: bool,
+) -> dict[str, Any]:
+    """Classify remaining gates without manufacturing an executable pathway.
+
+    A negative/absent causal edge is a scientifically conclusive outcome for
+    this preregistered lineage. It closes the causal and IBM gates *without*
+    running interventions or submitting new IBM jobs. A later experiment may
+    reopen those questions only under a new sealed preregistration.
+    """
+    edge_verified = bool(resource_result.get("causal_consumer_edge_verified"))
+
+    if not edge_verified:
+        return {
+            "causal_interventions": {
+                "gate": "CAUSAL_INTERVENTIONS",
+                "status": "SCIENTIFICALLY_CLOSED_NOT_IDENTIFIABLE",
+                "executed": False,
+                "reason": (
+                    "No independently verified resource-to-Zeref causal consumer "
+                    "edge exists, so an intervention effect is not identifiable "
+                    "for this sealed lineage."
+                ),
+            },
+            "ibm_path": {
+                "gate": "IBM_PATH",
+                "status": "NOT_RUN_NO_SEALED_PREREGISTERED_CAUSAL_PATH",
+                "executed": False,
+                "new_job_ids": [],
+                "reason": (
+                    "Historical IBM provenance does not authorize a fresh IBM run. "
+                    "Without a verified consumer edge there is no preregistered "
+                    "causal path to execute."
+                ),
+            },
+            "source_blind_adapter_recovered": bool(source_blind_adapter_recovered),
+            "sealed_ibm_preregistration_available": bool(sealed_ibm_preregistration_available),
+            "scientific_classification": (
+                "ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED"
+            ),
+            "final_release_allowed": True,
+            "positive_quantum_or_physical_claim_allowed": False,
+        }
+
+    # Even with an edge, this evaluator does not invent or silently execute
+    # downstream protocols. Those require their own sealed implementation and
+    # preregistration evidence.
+    causal_status = (
+        "PENDING_SEALED_INTERVENTION_PROTOCOL"
+        if source_blind_adapter_recovered
+        else "BLOCKED_SOURCE_BLIND_ADAPTER_NOT_RECOVERED"
+    )
+    ibm_status = (
+        "PENDING_EXPLICIT_EXECUTION"
+        if sealed_ibm_preregistration_available and source_blind_adapter_recovered
+        else "BLOCKED_NO_SEALED_PREREGISTERED_CAUSAL_PATH"
+    )
+    return {
+        "causal_interventions": {
+            "gate": "CAUSAL_INTERVENTIONS",
+            "status": causal_status,
+            "executed": False,
+            "reason": "A verified edge alone is insufficient to invent an intervention protocol.",
+        },
+        "ibm_path": {
+            "gate": "IBM_PATH",
+            "status": ibm_status,
+            "executed": False,
+            "new_job_ids": [],
+            "reason": "Fresh IBM execution requires a separately sealed executable preregistration.",
+        },
+        "source_blind_adapter_recovered": bool(source_blind_adapter_recovered),
+        "sealed_ibm_preregistration_available": bool(sealed_ibm_preregistration_available),
+        "scientific_classification": "CAUSAL_EDGE_VERIFIED_DOWNSTREAM_PROTOCOL_PENDING",
+        "final_release_allowed": False,
+        "positive_quantum_or_physical_claim_allowed": False,
+    }
+
+
 def sha256_file(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as handle:
