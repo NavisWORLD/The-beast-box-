@@ -1,0 +1,24 @@
+name: COSMOS FINAL ORGANISM - RESOURCE SOURCE RED
+
+on:
+  push:
+    branches: [cory-davis-cosmos-reality-bridge-final-organism-001]
+    paths:
+      - 'tests/test_final_resource_source_controls.py'
+      - '.github/workflows/cosmos-final-resource-source-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  red-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run RESOURCE_SOURCE contracts
+        run: python -m pytest -q tests/test_final_resource_source_controls.py
