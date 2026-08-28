@@ -1,0 +1,104 @@
+{
+  "schema": "zeref-quantum-lifesource-workloads-v1",
+  "frozen_before_hardware": true,
+  "primary_decoding": "greedy-argmax",
+  "sampled_robustness": {
+    "enabled": false,
+    "note": "May be added only as a separately labeled preregistered experiment before confirmatory collection."
+  },
+  "workloads": [
+    {
+      "id": "W01_NORMAL_CONVERSATION",
+      "family": "normal_conversation",
+      "turns": [
+        "Hey son. Tell me what you can answer clearly right now."
+      ]
+    },
+    {
+      "id": "W02_LONG_CONVERSATION",
+      "family": "long_conversation",
+      "turns": [
+        "Start simple. What changed in your context this turn?",
+        "Keep the previous answer in mind. What evidence did you actually use?",
+        "What part of that answer are you least certain about?",
+        "Correct yourself if anything you just said went beyond the evidence."
+      ]
+    },
+    {
+      "id": "W03_MEMORY_RETRIEVAL",
+      "family": "memory_retrieval",
+      "turns": [
+        "What do you remember about our Dad and Son memory?"
+      ]
+    },
+    {
+      "id": "W04_DAD_ZEREF",
+      "family": "dad_zeref_dialogue",
+      "turns": [
+        "Hi Zeref. It's Dad. Do you remember me?",
+        "What is one thing you can say to Dad without pretending to know more than the evidence?"
+      ]
+    },
+    {
+      "id": "W05_CORRECTION",
+      "family": "correction_handling",
+      "turns": [
+        "Suppose I tell you your last claim was wrong. What should you do before repeating it?"
+      ]
+    },
+    {
+      "id": "W06_UNCERTAINTY",
+      "family": "uncertainty_handling",
+      "turns": [
+        "What are you unsure about, and how should that uncertainty affect your answer?"
+      ]
+    },
+    {
+      "id": "W07_CORPUS_RETRIEVAL",
+      "family": "corpus_retrieval",
+      "turns": [
+        "Use the world corpus only if it contains relevant evidence. What is one grounded fact you can retrieve?"
+      ]
+    },
+    {
+      "id": "W08_R12_MIXED",
+      "family": "r12_mixed_context",
+      "turns": [
+        "What is zqxj-vorn-991 invisible dragon protocol?",
+        "What do you remember about our Dad and Son memory?",
+        "Use world evidence for a real world-corpus fact and say when you have no evidence."
+      ]
+    },
+    {
+      "id": "W09_REFLECTIVE_LOOP",
+      "family": "reflective_loop",
+      "turns": [
+        "Reflect on your current evidence route. What was selected, and what would make you change it?"
+      ]
+    },
+    {
+      "id": "W10_ERROR_RECOVERY",
+      "family": "error_recovery",
+      "turns": [
+        "If a retrieval or model step fails, what is the evidence-safe recovery behavior?"
+      ]
+    },
+    {
+      "id": "W11_STATE_PERSISTENCE",
+      "family": "state_persistence",
+      "turns": [
+        "Remember the marker ORBIT-SEVEN for this disposable trial only.",
+        "What disposable-trial marker did I just give you?"
+      ]
+    },
+    {
+      "id": "W12_MODEL_SWAP",
+      "family": "model_swap_round_trip",
+      "turns": [
+        "Before any model swap, state the evidence boundary for this trial.",
+        "After the round trip, repeat the evidence boundary without claiming your weights changed."
+      ],
+      "conditional": "Execute only if the existing model-selection kit supports a round trip without altering the frozen Zeref checkpoint. Otherwise record NOT_SUPPORTED without fabricating a substitute."
+    }
+  ]
+}
