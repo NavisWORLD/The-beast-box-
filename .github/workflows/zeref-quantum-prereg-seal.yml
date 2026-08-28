@@ -18,12 +18,12 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install frozen verification runtime
-        run: python -m pip install -e '.[dev,ml]'
-      - name: Verify source and analysis contracts
+        run: python -m pip install -e '.[dev,ml,quantum]'
+      - name: Verify source analysis and IBM contracts
         run: |
           set -euo pipefail
           mkdir -p _prereg/tests
-          python -m pytest -q tests/test_quantum_lifesource.py tests/test_quantum_lifesource_analysis.py | tee _prereg/tests/focused.log
+          python -m pytest -q tests/test_quantum_lifesource.py tests/test_quantum_lifesource_analysis.py tests/test_quantum_lifesource_ibm.py | tee _prereg/tests/focused.log
           FILES=$(find tests -maxdepth 1 -type f \( -name '*r12*.py' -o -name '*provenance*.py' -o -name '*world_knowledge*.py' \) -print | sort)
           python -m pytest -q $FILES | tee _prereg/tests/r12-provenance.log
           python -m pytest -q | tee _prereg/tests/full.log
@@ -31,25 +31,36 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import hashlib,json,os
+          import hashlib,importlib.metadata,json,os
           from pathlib import Path
           root=Path('_prereg')
           src=Path('beastbox/quantum_lifesource.py')
           analysis=Path('beastbox/quantum_lifesource_analysis.py')
+          collector=Path('scripts/collect_zeref_quantum_lifesource_ibm.py')
           workloads=Path('experiments/zeref-quantum-lifesource-001/preregistration/workloads.json')
           spec=Path('docs/superpowers/specs/2026-08-27-zeref-quantum-life-source-falsification.md')
           plan=Path('docs/superpowers/plans/2026-08-27-zeref-quantum-life-source-falsification.md')
           sha=lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
           receipt={
-            'schema':'zeref-quantum-lifesource-prereg-v1',
+            'schema':'zeref-quantum-lifesource-prereg-v2',
             'git_commit':os.environ['GITHUB_SHA'],
             'verified_parent_commit':'595d146f7d47ca048606f3e889e8c459e2fc3bd2',
             'parent_verification_run':33135414165,
             'source_red_run':33136027794,
             'source_green_run':33136102893,
             'analysis_red_run':33136230952,
+            'ibm_collector_red_run':33136372635,
+            'runtime_versions':{
+              'qiskit':importlib.metadata.version('qiskit'),
+              'qiskit-ibm-runtime':importlib.metadata.version('qiskit-ibm-runtime'),
+            },
             'frozen_files':{
-              src.as_posix():sha(src), analysis.as_posix():sha(analysis), workloads.as_posix():sha(workloads), spec.as_posix():sha(spec), plan.as_posix():sha(plan)
+              src.as_posix():sha(src),
+              analysis.as_posix():sha(analysis),
+              collector.as_posix():sha(collector),
+              workloads.as_posix():sha(workloads),
+              spec.as_posix():sha(spec),
+              plan.as_posix():sha(plan)
             },
             'anchors':{
               'talk004':'9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f',
@@ -64,7 +75,13 @@ jobs:
             },
             'hypothesis':'entanglement-specific computational dependence under matched controls',
             'controls':['A_live_verified_entangled_ibm','B_non_entangled_ibm','C_classical_joint_matched','D_ideal_simulator','E_exact_replay','F_fixed_shuffle','G_zero'],
+            'bell_source_circuit':'H(q0);CX(q0,q1);measure',
+            'non_entangled_control_circuit':'H(q0);X(q1);X(q1);measure; no two-qubit gate; logical depth matched',
+            'witness_settings':{'A0':'Z','A1':'X','B0':'(Z+X)/sqrt(2)','B1':'(Z-X)/sqrt(2)'},
             'witness_criterion':'abs(S)-1.959963984540054*SE>2.0',
+            'source_packet_count':96,
+            'source_shots_per_packet':512,
+            'witness_shots_per_setting':4096,
             'discovery_trials_per_condition':32,
             'replication_trials_per_condition':32,
             'permutations':10000,
@@ -74,7 +91,9 @@ jobs:
             'bootstrap_seed':2026082703,
             'shuffle_seed':2026082701,
             'classical_seed':2026082704,
+            'transpiler_seed':2026082705,
             'primary_decoding':'greedy-argmax',
+            'backend_selection':'operational non-simulator >=2 qubits sorted by (pending_jobs,name); replication excludes discovery backend',
             'bio_signal_policy':'NOT_PRESENT unless a concrete consent/provenance-bearing source is frozen before collection',
             'hardware_collected_before_this_seal':False,
             'threshold_changes_after_hardware_allowed':False,
