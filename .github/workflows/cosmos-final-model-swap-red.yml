@@ -1,0 +1,22 @@
+name: COSMOS FINAL MODEL SWAP - RED CONTRACT
+
+on:
+  push:
+    branches: [cory-davis-cosmos-reality-bridge-final-organism-001]
+    paths:
+      - 'tests/test_final_model_swap_round_trip.py'
+      - '.github/workflows/cosmos-final-model-swap-red.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  red-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pytest
+      - run: python -m pytest -q tests/test_final_model_swap_round_trip.py
