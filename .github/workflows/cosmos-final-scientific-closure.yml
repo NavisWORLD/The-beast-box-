@@ -37,6 +37,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install closure test dependency
+        run: python -m pip install 'pytest==8.3.5'
+
       - name: Run fail-closed RESOURCE_SOURCE contracts
         run: python -m pytest -q tests/test_final_resource_source_controls.py
 
@@ -158,9 +161,6 @@ jobs:
           assert rows, 'No complete pinned historical IBM hardware witnesses recovered'
           assert all(row['backend'].startswith('ibm_') for row in rows), rows
 
-          # The sealed receipt did not identify a source-blind adapter by path+hash.
-          # Candidate filenames are retained only as search evidence; they cannot
-          # be promoted into an adapter without a sealed identity binding.
           adapter_path=receipt.get('resource_source_adapter_path')
           adapter_sha=receipt.get('resource_source_adapter_sha256')
           adapter_recovered=False
@@ -168,8 +168,6 @@ jobs:
               p=Path(adapter_path)
               adapter_recovered=p.is_file() and digest(p)==adapter_sha
 
-          # Likewise, a causal consumer edge must be an explicit sealed fact.
-          # Historical IBM co-location, filenames, or prose are not such an edge.
           causal_edge_verified=(receipt.get('resource_source_causal_consumer_edge_verified') is True)
           assert causal_edge_verified is False, 'Unexpected sealed causal edge: requires separate intervention protocol'
 
@@ -293,7 +291,6 @@ jobs:
           resource_sum=seal_dir(resource_dir)
           causal_sum=seal_dir(causal_dir)
           ibm_sum=seal_dir(ibm_dir)
-          # release manifest references the other sealed directories and the protected state.
           manifest={
               'schema_version':1,
               'release_status':'FINAL_WHOLE_ORGANISM_SEALED',
@@ -340,7 +337,6 @@ jobs:
               'exact_resume_instruction':'No further execution on this sealed run. Any future resource-source causal experiment requires a new preregistration with an explicitly hashed consumer adapter and intervention path; do not retroactively alter this release.',
               'known_demonstrated_blockers':[],
           })
-          # Final protection assertion: receipt updates may change state metadata only.
           assert {k:receipt.get(k) for k in protected_keys}==protected_before
           assert receipt['IBM_job_IDs_completed_so_far']==[]
           receipt_path.write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
