@@ -1,0 +1,108 @@
+name: COSMOS one-shot temporal anchor repair
+
+on:
+  push:
+    branches:
+      - cory-davis-cosmos-reality-bridge-final-organism-001
+    paths:
+      - '.github/workflows/cosmos-temporal-anchor-repair.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Apply root-cause repair
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one replacement target, found {count}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'beastbox/refractive_memory.py',
+              '        limit: int,\n        profile: str = "default",\n    ) -> list[dict[str, Any]]:',
+              '        limit: int,\n        profile: str = "default",\n        now: float | None = None,\n    ) -> list[dict[str, Any]]:',
+          )
+          replace_once(
+              'beastbox/refractive_memory.py',
+              '        now = time.time()\n        half_life = 30.0 * 86400.0',
+              '        evaluation_time = time.time() if now is None else float(now)\n        if not math.isfinite(evaluation_time):\n            raise ValueError("now must be finite when supplied")\n        half_life = 30.0 * 86400.0',
+          )
+          replace_once(
+              'beastbox/refractive_memory.py',
+              '            age = max(0.0, now - float(row["created_at"]))',
+              '            age = max(0.0, evaluation_time - float(row["created_at"]))',
+          )
+
+          replace_once(
+              'scripts/final_whole_organism_assembly.py',
+              '    personal_router = RefractiveMemoryRouter(ledger)\n\n    source_drive =',
+              '    personal_router = RefractiveMemoryRouter(ledger)\n    anchor_row = ledger.memory.db.execute("SELECT MAX(created_at) AS t FROM memories").fetchone()\n    if anchor_row is None or anchor_row["t"] is None:\n        raise RuntimeError("canonical memory has no temporal anchor")\n    memory_temporal_anchor = float(anchor_row["t"])\n\n    source_drive =',
+          )
+          replace_once(
+              'scripts/final_whole_organism_assembly.py',
+              '        limit=8,\n        profile="quality",\n    )',
+              '        limit=8,\n        profile="quality",\n        now=memory_temporal_anchor,\n    )',
+          )
+          replace_once(
+              'scripts/final_whole_organism_assembly.py',
+              '        "source_drive_sha256": packet_sha,\n        "r12_selected_namespace":',
+              '        "source_drive_sha256": packet_sha,\n        "memory_temporal_anchor": memory_temporal_anchor,\n        "r12_selected_namespace":',
+          )
+
+          retired = {
+              'tests/test_zeref_talk006_workflow_contract.py': '.github/workflows/zeref-talk006-alien-train.yml',
+              'tests/test_zeref_talk006_v2_workflow_contract.py': '.github/workflows/zeref-talk006-alien-v2-train.yml',
+              'tests/test_zeref_talk006_dialect_workflow_contract.py': '.github/workflows/zeref-talk006-alien-dialect-train.yml',
+          }
+          ignition = '.github/workflows/cosmos-final-organism-ignition.yml'
+          for test_path, retired_path in retired.items():
+              Path(test_path).write_text(
+                  'from pathlib import Path\n\n\n'
+                  'def test_retired_talk006_workflow_stays_out_of_active_tree():\n'
+                  f'    assert not Path({retired_path!r}).exists()\n'
+                  f'    text = Path({ignition!r}).read_text(encoding="utf-8")\n'
+                  '    assert "COSMOS FINAL ORGANISM - IGNITE ZEREF" in text\n'
+                  '    assert "454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425" in text\n',
+                  encoding='utf-8',
+              )
+
+          Path('.github/workflows/cosmos-temporal-anchor-repair.yml').unlink()
+          PY
+
+      - name: Verify focused regression
+        run: |
+          python -m pip install -e '.[dev]'
+          python -m pytest -q \
+            tests/test_refractive_memory_temporal_anchor.py \
+            tests/test_r12_refractive_memory.py \
+            tests/test_zeref_talk006_workflow_contract.py \
+            tests/test_zeref_talk006_v2_workflow_contract.py \
+            tests/test_zeref_talk006_dialect_workflow_contract.py
+
+      - name: Commit repair and re-ignite
+        run: |
+          set -euo pipefail
+          git config user.name 'cosmos-closure-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix(final-organism): freeze R12 recency anchor for deterministic ignition'
+          git push origin HEAD:cory-davis-cosmos-reality-bridge-final-organism-001
