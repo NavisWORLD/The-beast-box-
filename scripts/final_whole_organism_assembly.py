@@ -79,6 +79,10 @@ def run_once(root: Path, checkpoint_path: Path, iteration: int) -> dict[str, Any
     workspace = root / ".final-organism-work" / f"assembly-{iteration}"
     ledger = _restore_personal(root / "experiments/zeref-dad-son-001/memory/ledger-manifest.json", workspace)
     personal_router = RefractiveMemoryRouter(ledger)
+    anchor_row = ledger.memory.db.execute("SELECT MAX(created_at) AS t FROM memories").fetchone()
+    if anchor_row is None or anchor_row["t"] is None:
+        raise RuntimeError("canonical memory has no temporal anchor")
+    memory_temporal_anchor = float(anchor_row["t"])
 
     source_drive = [float(f"{(i - 5.5) / 23.0:.15g}") for i in range(12)]
     packet_sha = sha256_json({"schema": "assembly-source-v1", "drive": source_drive})
@@ -117,6 +121,7 @@ def run_once(root: Path, checkpoint_path: Path, iteration: int) -> dict[str, Any
         r12_state=r12,
         limit=8,
         profile="quality",
+        now=memory_temporal_anchor,
     )
     selected = select_primary_evidence(personal=ranked, world=[], confidence_floor=0.56, namespace_margin=0.04)
     selected_for_wire = dict(selected)
@@ -145,6 +150,7 @@ def run_once(root: Path, checkpoint_path: Path, iteration: int) -> dict[str, Any
         "model_parameter_count": params,
         "model_parameter_dtypes": dtypes,
         "source_drive_sha256": packet_sha,
+        "memory_temporal_anchor": memory_temporal_anchor,
         "r12_selected_namespace": selected["namespace"],
         "r12_personal_score": selected["personal_score"],
         "r12_personal_evidence_confidence": selected["personal_evidence_confidence"],

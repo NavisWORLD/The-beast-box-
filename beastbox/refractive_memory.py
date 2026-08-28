@@ -264,6 +264,7 @@ class RefractiveMemoryRouter:
         r12_state: Mapping[str, Any],
         limit: int,
         profile: str = "default",
+        now: float | None = None,
     ) -> list[dict[str, Any]]:
         if profile not in {"default", "quality"}:
             raise ValueError(f"unsupported refractive ranking profile: {profile}")
@@ -275,7 +276,9 @@ class RefractiveMemoryRouter:
         query12 = self.query_position(query, sequence=int(sequence), dyn12=dyn12)
         refracted, rho = self.refract(query12, vector)
         qcounts = Counter(_tokens(query))
-        now = time.time()
+        evaluation_time = time.time() if now is None else float(now)
+        if not math.isfinite(evaluation_time):
+            raise ValueError("now must be finite when supplied")
         half_life = 30.0 * 86400.0
         rows = self.ledger.memory.db.execute(
             "SELECT id,created_at,kind,text,metadata_json,source_ids_json FROM memories ORDER BY id DESC"
@@ -298,7 +301,7 @@ class RefractiveMemoryRouter:
             spatial = (1.0 + _cosine12(refracted, memory12)) / 2.0
             lexical = max(0.0, min(1.0, _cosine_counts(qcounts, Counter(_tokens(text)))))
             hebbian = self._hebbian_score(query, text)
-            age = max(0.0, now - float(row["created_at"]))
+            age = max(0.0, evaluation_time - float(row["created_at"]))
             recency = math.exp(-math.log(2.0) * age / half_life)
             integrity = self._integrity_score(kind, metadata)
             components = {
