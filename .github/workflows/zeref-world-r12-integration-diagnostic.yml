@@ -1,0 +1,185 @@
+name: ZEREF WORLD R12 DOWNSTREAM DIAGNOSTIC
+
+on:
+  push:
+    branches: [zeref-world-knowledge-r12-train-001]
+    paths:
+      - '.github/workflows/zeref-world-r12-integration-diagnostic.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  reproduce-downstream-only:
+    runs-on: ubuntu-latest
+    env:
+      ORIGINAL_RUN_ID: '33125920283'
+      ORIGINAL_JOB_ID: '98703927258'
+      ORIGINAL_HEAD_SHA: '504ead98b1378074e3a5154d4051a88c9b6b0f00'
+      SELECTED_SHA256: '454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425'
+      PARENT_RUN_ID: '33118621824'
+      PARENT_ARTIFACT: zeref-talk006-full-clean-final-33118621824
+      ARCH: experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py
+      ARCH_SHA256: '955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc'
+      CANONICAL_LEDGER_SHA256: '67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+      WORLD_EVIDENCE_SHA256: '5319b876c46bbdb29912b28b8d0b95451a9fbf9cc728cc7989853fe7acd5c821'
+      WORLD_DB_SHA256: '4960f0cac76e7710d3c4b5c2c7b29fcf3b6c1337fd8895d07a9d158fe106ad83'
+      WORLD_SUMMARY_SHA256: '9e2e6cf0965691db9a4ecd3affe9ccb8b33195f6cf7f2341ace1e1f43e549d3b'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Prepare downstream-only diagnostic
+        run: |
+          set -euo pipefail
+          rm -rf _diag _parentsrc _talkwork
+          mkdir -p _diag/world _diag/talk _diag/evidence/world-integration-failure _parentsrc _talkwork
+          python -m pip install -e '.[dev]'
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'datasets>=4.0,<5'
+
+      - name: Restore exact already-sealed selected model without gradients
+        run: |
+          set -euo pipefail
+          test "$(sha256sum "$ARCH" | awk '{print $1}')" = "$ARCH_SHA256"
+          gh run download "$PARENT_RUN_ID" -n "$PARENT_ARTIFACT" -D _parentsrc
+          MODEL=$(find _parentsrc -type f -path '*/candidate/FULL-CLEAN-1500/checkpoint.pt' -print -quit)
+          test -n "$MODEL" -a -f "$MODEL"
+          test "$(sha256sum "$MODEL" | awk '{print $1}')" = "$SELECTED_SHA256"
+          cp "$MODEL" _diag/SELECTED-WORLD-R12.pt
+          printf '%s\n' "$MODEL" > _diag/model-source-path.txt
+
+      - name: Reconstruct exact original world retrieval input and verify hashes
+        run: |
+          set -euo pipefail
+          python scripts/build_zeref_world_knowledge.py \
+            --dataset wikimedia/wikipedia --config 20231101.en --split train --accepted 4096 \
+            --db _diag/world/world.sqlite3 \
+            --evidence _diag/world/world-evidence.jsonl \
+            --rejected _diag/world/world-rejected.jsonl \
+            --summary _diag/world/ingestion-summary.json \
+            --license-label 'CC BY-SA 3.0 / GFDL'
+          test "$(sha256sum _diag/world/world-evidence.jsonl | awk '{print $1}')" = "$WORLD_EVIDENCE_SHA256"
+          test "$(sha256sum _diag/world/world.sqlite3 | awk '{print $1}')" = "$WORLD_DB_SHA256"
+          test "$(sha256sum _diag/world/ingestion-summary.json | awk '{print $1}')" = "$WORLD_SUMMARY_SHA256"
+
+      - name: Reproduce exact mixed R12 conversation path
+        id: reproduce
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/run_zeref_world_r12_talk.py \
+            --checkpoint _diag/SELECTED-WORLD-R12.pt --checkpoint-sha256 "$SELECTED_SHA256" --arch "$ARCH" \
+            --memory-manifest experiments/zeref-dad-son-001/memory/ledger-manifest.json \
+            --world-db _diag/world/world.sqlite3 --world-evidence _diag/world/world-evidence.jsonl \
+            --workspace _talkwork --out-dir _diag/talk \
+            --confidence-floor 0.56 --namespace-margin 0.03 --rank-limit 8 --lexical-prefilter 128 \
+            --seed 2026082723 --tokens 48 --temperature 0.15 --top-k 2 \
+            | tee _diag/evidence/mixed-world-talk-reproduction.log
+
+      - name: Seal self-diagnosing failure receipt
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os, platform, sys
+          from pathlib import Path
+          import torch
+          from beastbox.reality_memory import initial_r12_state
+          from beastbox.state_family import StateFamily
+          from scripts.run_zeref_r12_live_loop import build_live_epoch
+          from beastbox.world_r12 import _personal_support, _world_support
+          from scripts.run_zeref_world_r12_talk import PERSONAL_BENCHMARK, NONE_BENCHMARK
+
+          root=Path('_diag')
+          ev=root/'evidence/world-integration-failure'
+          ev.mkdir(parents=True,exist_ok=True)
+          summary=json.loads((root/'talk/summary.json').read_text()) if (root/'talk/summary.json').exists() else {}
+          turns=[json.loads(x) for x in (root/'talk/mixed-talk.jsonl').read_text().splitlines() if x.strip()] if (root/'talk/mixed-talk.jsonl').exists() else []
+          wrong=[]
+          for t in turns:
+              if not t.get('routing_correct'):
+                  rec=t.get('selected_record') or {}
+                  wrong.append({
+                      'turn':t.get('turn'),'prompt':t.get('dad_prompt'),'expected':t.get('expected_namespace'),'actual':t.get('selected_namespace'),
+                      'selected_score':t.get('selected_score'),'personal_score':t.get('personal_score'),'world_score':t.get('world_score'),
+                      'selected_record_id':rec.get('knowledge_id') or rec.get('memory_id'),
+                      'selected_source_sha256':rec.get('source_sha256') or rec.get('record_sha256'),
+                      'selected_components':rec.get('components'),
+                      'world_support':_world_support(rec) if rec and t.get('selected_namespace')=='world' else None,
+                      'personal_support':_personal_support(rec) if rec and t.get('selected_namespace')=='personal' else None,
+                      'wire_prompt':t.get('wire_prompt'),
+                      'wire_length':len(str(t.get('wire_prompt') or '')),
+                      'raw_output_sha256':t.get('raw_output_sha256'),
+                      'r12_state_sha256':t.get('r12_state_sha256'),'rho':t.get('rho'),
+                  })
+
+          # Recompute deterministic R12 inputs for every benchmark turn strictly for diagnostics.
+          world_titles=[]
+          import sqlite3
+          con=sqlite3.connect(root/'world/world.sqlite3')
+          try:
+              world_titles=[r[0] for r in con.execute('SELECT title FROM knowledge ORDER BY id LIMIT 6').fetchall()]
+          finally: con.close()
+          prompts=list(PERSONAL_BENCHMARK)+[f'What is {x}?' for x in world_titles]+list(NONE_BENCHMARK)
+          family=StateFamily(); r12=initial_r12_state(); prior=[]; r12_inputs=[]
+          for turn,prompt in enumerate(prompts,1):
+              snapshot={'schema':'zeref-world-r12-live-v1','turn':turn,'dad_prompt_sha256':hashlib.sha256(prompt.encode()).hexdigest(),'fresh_external_measurement':False,'fresh_qpu_measurement':False}
+              epoch=build_live_epoch(epoch=turn,previous_r12=r12,state_family=family,snapshot_payload=snapshot,prior_events=prior)
+              r12_inputs.append({'turn':turn,'snapshot_payload':snapshot,'sequence':epoch['sequence'],'dyn12':epoch['dyn12'],'r12':epoch['r12']})
+              r12=epoch['r12']; prior.append(epoch['event'])
+          (ev/'r12-inputs.json').write_text(json.dumps(r12_inputs,indent=2,sort_keys=True)+'\n')
+
+          manifest=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text())
+          failure={
+              'schema':'zeref-world-r12-integration-failure-receipt-v1',
+              'original_run_id':33125920283,'original_job_id':98703927258,'original_head_sha':'504ead98b1378074e3a5154d4051a88c9b6b0f00',
+              'diagnostic_run_id':int(os.environ.get('GITHUB_RUN_ID','0')),'diagnostic_job':os.environ.get('GITHUB_JOB'),
+              'diagnostic_git_commit':os.environ.get('GITHUB_SHA'),
+              'exception_class':'AssertionError','failing_file':'.github/workflows/zeref-world-r12-train.yml','failing_step':'Run mixed personal world unknown R12 conversation on selected model',
+              'function':'post-run routing gate','expected':{'routing_accuracy_min':0.90,'evidence_wire_coverage':1.0},
+              'actual':summary,
+              'model_checkpoint_sha256':os.environ['SELECTED_SHA256'],
+              'architecture_sha256':os.environ['ARCH_SHA256'],
+              'corpus_sha256':None,
+              'world_evidence_sha256':hashlib.sha256((root/'world/world-evidence.jsonl').read_bytes()).hexdigest(),
+              'world_db_sha256':hashlib.sha256((root/'world/world.sqlite3').read_bytes()).hexdigest(),
+              'source_snapshot_sha256':None,
+              'source_snapshot_note':'This failing path does not load a quantum snapshot; it builds software R12 live snapshots from prompt hashes.',
+              'inherited_evidence_label':None,'partition':'evaluation',
+              'input_python_schema':{'selected_record':'dict/mapping or None','dyn12':'list[float] length 12','r12_state':'mapping with vector','wire_prompt':'str <= 128 chars'},
+              'tensor_dtype':'torch.long token indices in generation input','model_context_length':128,
+              'generation_settings':{'seed':2026082723,'tokens':48,'decoding':'sampled-top-k','temperature':0.15,'top_k':2},
+              'memory':{'record_count':manifest['record_count'],'combined_ledger_sha256':manifest['combined_ledger_sha256'],'tip_sha256':manifest['last_record_sha256']},
+              'incorrect_turns':wrong,
+              'behavior_modified_for_reproduction':False,'gradients_run':False,'memory_mutated':False,
+          }
+          (ev/'failure.json').write_text(json.dumps(failure,indent=2,sort_keys=True)+'\n')
+          (ev/'traceback.txt').write_text("Original recovered traceback:\nAssertionError: routing_accuracy 0.8181818181818182 < frozen minimum 0.90; evidence_wire_coverage=1.0\n")
+          (ev/'environment.json').write_text(json.dumps({'python':sys.version,'platform':platform.platform(),'torch':torch.__version__},indent=2,sort_keys=True)+'\n')
+          (ev/'input-manifest.json').write_text(json.dumps({'world_evidence_sha256':os.environ['WORLD_EVIDENCE_SHA256'],'world_db_sha256':os.environ['WORLD_DB_SHA256'],'world_summary_sha256':os.environ['WORLD_SUMMARY_SHA256'],'checkpoint_sha256':os.environ['SELECTED_SHA256'],'canonical_ledger_sha256':os.environ['CANONICAL_LEDGER_SHA256']},indent=2,sort_keys=True)+'\n')
+          (ev/'provenance.json').write_text(json.dumps({'quantum_snapshot_loaded':False,'scientific_label_modified':False,'raw_model_output_promoted_to_training':False,'canonical_memory_mutated':False},indent=2,sort_keys=True)+'\n')
+          # Reproduction is exact only if hashes and original observable failure match.
+          assert summary.get('routing_accuracy') == 9/11, summary
+          assert summary.get('evidence_wire_coverage') == 1.0, summary
+          assert len(wrong)==2 and all(x['expected']=='none' and x['actual']=='world' for x in wrong), wrong
+          files=sorted(p for p in ev.rglob('*') if p.is_file() and p.name!='SHA256SUMS')
+          (ev/'SHA256SUMS').write_text(''.join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.relative_to(ev).as_posix()}\n" for p in files))
+          print(json.dumps({'exact_failure_reproduced':True,'incorrect_turns':wrong},sort_keys=True))
+          PY
+          (cd _diag/evidence/world-integration-failure && sha256sum -c SHA256SUMS)
+
+      - name: Upload downstream diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-world-r12-downstream-diagnostic-${{ github.run_id }}
+          path: _diag
+          if-no-files-found: error
+          retention-days: 90
