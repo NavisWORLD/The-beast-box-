@@ -1,0 +1,94 @@
+name: ZEREF QUANTUM LIFESOURCE PREREG SEAL
+
+on:
+  push:
+    branches: [zeref-quantum-lifesource-final-001]
+    paths:
+      - '.github/workflows/zeref-quantum-prereg-seal.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  seal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install frozen verification runtime
+        run: python -m pip install -e '.[dev,ml]'
+      - name: Verify source and analysis contracts
+        run: |
+          set -euo pipefail
+          mkdir -p _prereg/tests
+          python -m pytest -q tests/test_quantum_lifesource.py tests/test_quantum_lifesource_analysis.py | tee _prereg/tests/focused.log
+          FILES=$(find tests -maxdepth 1 -type f \( -name '*r12*.py' -o -name '*provenance*.py' -o -name '*world_knowledge*.py' \) -print | sort)
+          python -m pytest -q $FILES | tee _prereg/tests/r12-provenance.log
+          python -m pytest -q | tee _prereg/tests/full.log
+      - name: Seal preregistration before hardware
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          root=Path('_prereg')
+          src=Path('beastbox/quantum_lifesource.py')
+          analysis=Path('beastbox/quantum_lifesource_analysis.py')
+          workloads=Path('experiments/zeref-quantum-lifesource-001/preregistration/workloads.json')
+          spec=Path('docs/superpowers/specs/2026-08-27-zeref-quantum-life-source-falsification.md')
+          plan=Path('docs/superpowers/plans/2026-08-27-zeref-quantum-life-source-falsification.md')
+          sha=lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+          receipt={
+            'schema':'zeref-quantum-lifesource-prereg-v1',
+            'git_commit':os.environ['GITHUB_SHA'],
+            'verified_parent_commit':'595d146f7d47ca048606f3e889e8c459e2fc3bd2',
+            'parent_verification_run':33135414165,
+            'source_red_run':33136027794,
+            'source_green_run':33136102893,
+            'analysis_red_run':33136230952,
+            'frozen_files':{
+              src.as_posix():sha(src), analysis.as_posix():sha(analysis), workloads.as_posix():sha(workloads), spec.as_posix():sha(spec), plan.as_posix():sha(plan)
+            },
+            'anchors':{
+              'talk004':'9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f',
+              'talk005':'767d1c958add10eac026e7e080dd3a82564ff9d6066f0422073e917f6e24de36',
+              'architecture':'955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc',
+              'canonical_ledger':'67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef',
+              'canonical_ledger_records':352,
+              'canonical_ledger_tip':'b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26',
+              'world_checkpoint':'454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425',
+              'world_checkpoint_recovery_artifact':9670847045,
+              'world_checkpoint_recovery_artifact_sha256':'8f27aabe3e1bac5edf1c51b958be1f50ff1d076105c3f41e3901d780e7aa3083'
+            },
+            'hypothesis':'entanglement-specific computational dependence under matched controls',
+            'controls':['A_live_verified_entangled_ibm','B_non_entangled_ibm','C_classical_joint_matched','D_ideal_simulator','E_exact_replay','F_fixed_shuffle','G_zero'],
+            'witness_criterion':'abs(S)-1.959963984540054*SE>2.0',
+            'discovery_trials_per_condition':32,
+            'replication_trials_per_condition':32,
+            'permutations':10000,
+            'bootstrap_resamples':10000,
+            'familywise_alpha':0.05,
+            'permutation_seed':2026082702,
+            'bootstrap_seed':2026082703,
+            'shuffle_seed':2026082701,
+            'classical_seed':2026082704,
+            'primary_decoding':'greedy-argmax',
+            'bio_signal_policy':'NOT_PRESENT unless a concrete consent/provenance-bearing source is frozen before collection',
+            'hardware_collected_before_this_seal':False,
+            'threshold_changes_after_hardware_allowed':False,
+            'historical_relabeling_allowed':False,
+          }
+          (root/'preregistration.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          files=sorted(p for p in root.rglob('*') if p.is_file() and p.name!='SHA256SUMS')
+          (root/'SHA256SUMS').write_text(''.join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.relative_to(root).as_posix()}\n" for p in files))
+          PY
+          (cd _prereg && sha256sum -c SHA256SUMS)
+      - name: Upload immutable preregistration seal
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-quantum-lifesource-prereg-${{ github.run_id }}
+          path: _prereg
+          if-no-files-found: error
+          retention-days: 90
