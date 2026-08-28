@@ -1,0 +1,86 @@
+name: Final Organism Component Provenance
+
+on:
+  push:
+    branches:
+      - cory-davis-cosmos-reality-bridge-final-organism-001
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  component-provenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Hash established component sources and verify deterministic DYN12 execution
+        run: |
+          python - <<'PY'
+          import hashlib, json, platform, sys
+          from pathlib import Path
+          from beastbox.state_family import StateFamily
+
+          paths = [
+              'scripts/run_zeref_world_r12_talk.py',
+              'beastbox/world_r12.py',
+              'beastbox/dyn12.py',
+              'beastbox/state_family.py',
+              'experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py',
+              'scripts/run_zeref_r12_live_loop.py',
+              'scripts/zeref_r12_trace_tools.py',
+          ]
+          hashes = {p: hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in paths}
+          drive = [0.125 * (i - 5) for i in range(12)]
+          runs = []
+          for _ in range(2):
+              sf = StateFamily()
+              trace = [sf.update(drive) for _step in range(4)]
+              payload = json.dumps(trace, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
+              runs.append({'sha256': hashlib.sha256(payload).hexdigest(), 'trace': trace})
+          result = {
+              'schema': 'final-organism-component-provenance-v1',
+              'git_head': __import__('subprocess').check_output(['git','rev-parse','HEAD'], text=True).strip(),
+              'python': sys.version,
+              'platform': platform.platform(),
+              'source_sha256': hashes,
+              'dyn12_deterministic': runs[0]['sha256'] == runs[1]['sha256'],
+              'dyn12_dry_run_sha256': runs[0]['sha256'],
+              'dyn12_claim_boundary': 'repository public reference computational-state mechanism; not proof of a literal physical twelfth dimension or byte-for-byte private COSMOS equivalence',
+          }
+          Path('component-provenance.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(result, sort_keys=True))
+          if not result['dyn12_deterministic']:
+              raise SystemExit('DYN12 deterministic repeat check failed')
+          PY
+      - name: Search complete Git history for genuine reflector lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > reflector-history.txt
+          printf 'HEAD %s\n' "$(git rev-parse HEAD)" >> reflector-history.txt
+          printf '\nCURRENT_TREE_MATCHES\n' >> reflector-history.txt
+          grep -RniE --exclude-dir=.git --exclude='reflector-history.txt' \
+            'reflector|reflective loop|mutual[_ -]?information|lagged[_ -]?correlation|directionality|primary state|secondary state|dual[_ -]?state|mirror[_ -]?state' . \
+            >> reflector-history.txt || true
+          printf '\nHISTORY_DIFF_MATCHES\n' >> reflector-history.txt
+          git log --all -G'reflector|reflective loop|mutual[_ -]?information|lagged[_ -]?correlation|directionality|primary state|secondary state|dual[_ -]?state|mirror[_ -]?state' \
+            --pretty='commit %H %cI %s' --name-only >> reflector-history.txt || true
+          cat reflector-history.txt
+      - name: Seal provenance audit artifact
+        run: sha256sum component-provenance.json reflector-history.txt > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: final-organism-component-provenance-${{ github.run_id }}
+          path: |
+            component-provenance.json
+            reflector-history.txt
+            SHA256SUMS
+          if-no-files-found: error
