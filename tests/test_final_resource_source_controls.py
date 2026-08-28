@@ -80,3 +80,41 @@ def test_missing_hardware_witness_is_preserved_as_negative_control_outcome():
     assert result["status"] == "SCIENTIFICALLY_CLOSED_NO_VERIFIED_HARDWARE_WITNESS"
     assert result["historical_hardware_evidence_verified"] is False
     assert result["causal_claim_allowed"] is False
+
+
+def test_downstream_gates_close_without_fabricating_causality_or_ibm_execution():
+    m = _load_runner()
+    resource = m.evaluate_resource_source_gate(
+        hardware_rows=[_valid_hardware_row()],
+        causal_consumer_edge=False,
+        completed_ibm_job_ids=[],
+    )
+    closure = m.classify_downstream_closure(
+        resource_result=resource,
+        source_blind_adapter_recovered=False,
+        sealed_ibm_preregistration_available=False,
+    )
+    assert closure["causal_interventions"]["status"] == "SCIENTIFICALLY_CLOSED_NOT_IDENTIFIABLE"
+    assert closure["causal_interventions"]["executed"] is False
+    assert closure["ibm_path"]["status"] == "NOT_RUN_NO_SEALED_PREREGISTERED_CAUSAL_PATH"
+    assert closure["ibm_path"]["executed"] is False
+    assert closure["ibm_path"]["new_job_ids"] == []
+    assert closure["scientific_classification"] == "ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED"
+    assert closure["final_release_allowed"] is True
+
+
+def test_downstream_closure_never_allows_positive_causal_classification_without_edge():
+    m = _load_runner()
+    resource = m.evaluate_resource_source_gate(
+        hardware_rows=[_valid_hardware_row()],
+        causal_consumer_edge=False,
+        completed_ibm_job_ids=["historical-job-001"],
+    )
+    closure = m.classify_downstream_closure(
+        resource_result=resource,
+        source_blind_adapter_recovered=True,
+        sealed_ibm_preregistration_available=True,
+    )
+    assert closure["scientific_classification"] == "ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED"
+    assert closure["causal_interventions"]["executed"] is False
+    assert closure["ibm_path"]["executed"] is False
