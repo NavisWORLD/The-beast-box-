@@ -19,6 +19,9 @@ jobs:
     timeout-minutes: 30
     env:
       TALK4_SHA256: 9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f
+      TALK5_SHA256: 767d1c958add10eac026e7e080dd3a82564ff9d6066f0422073e917f6e24de36
+      TALK5_RUN_ID: '33041236485'
+      TALK5_ARTIFACT: zeref-talk005-r12-training-resume-33041236485
       SELECTED_WORLD_SHA256: 454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425
       SELECTED_WORLD_RUN_ID: '33118621824'
       SELECTED_WORLD_ARTIFACT: zeref-talk006-full-clean-final-33118621824
@@ -42,16 +45,25 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf _closure_models
-          mkdir -p _closure_models/talk4 _closure_models/world
+          mkdir -p _closure_models/talk4 _closure_models/talk5 _closure_models/world
+
           gh run download 32075092605 -n zeref-talk4-tuned-response-32075092605 -D _closure_models/talk4
           TALK4=$(find _closure_models/talk4 -type f -path '*/ZEREF-DAD-SON-TALK-004/checkpoint.pt' -print -quit)
           test -n "$TALK4" -a -f "$TALK4"
           test "$(sha256sum "$TALK4" | awk '{print $1}')" = "$TALK4_SHA256"
+
+          gh run download "$TALK5_RUN_ID" -n "$TALK5_ARTIFACT" -D _closure_models/talk5
+          TALK5=$(find _closure_models/talk5 -type f -path '*/ZEREF-DAD-SON-TALK-005/checkpoint.pt' -print -quit)
+          test -n "$TALK5" -a -f "$TALK5"
+          test "$(sha256sum "$TALK5" | awk '{print $1}')" = "$TALK5_SHA256"
+
           gh run download "$SELECTED_WORLD_RUN_ID" -n "$SELECTED_WORLD_ARTIFACT" -D _closure_models/world
           WORLD=$(find _closure_models/world -type f -path '*/candidate/FULL-CLEAN-1500/checkpoint.pt' -print -quit)
           test -n "$WORLD" -a -f "$WORLD"
           test "$(sha256sum "$WORLD" | awk '{print $1}')" = "$SELECTED_WORLD_SHA256"
+
           printf '%s\n' "$TALK4" > _closure_models/talk4.path
+          printf '%s\n' "$TALK5" > _closure_models/talk5.path
           printf '%s\n' "$WORLD" > _closure_models/world.path
 
       - name: Build and verify baseline evidence
@@ -60,8 +72,10 @@ jobs:
           python scripts/final_reality_bridge_baseline.py \
             --out evidence/final-reality-bridge/baseline \
             --talk4 "$(cat _closure_models/talk4.path)" \
+            --talk5 "$(cat _closure_models/talk5.path)" \
             --world "$(cat _closure_models/world.path)"
           (cd evidence/final-reality-bridge/baseline && sha256sum -c SHA256SUMS)
+          (cd evidence/final-reality-bridge && sha256sum -c RESUME_SHA256SUMS)
 
       - name: Commit verified baseline evidence
         run: |
