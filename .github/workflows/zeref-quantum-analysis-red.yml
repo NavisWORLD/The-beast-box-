@@ -1,0 +1,47 @@
+name: ZEREF QUANTUM ANALYSIS RED
+
+on:
+  push:
+    branches: [zeref-quantum-lifesource-final-001]
+    paths:
+      - '.github/workflows/zeref-quantum-analysis-red.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e '.[dev]'
+      - name: Prove analysis contract is RED
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p _red_analysis
+          set +e
+          python -m pytest -q tests/test_quantum_lifesource_analysis.py > _red_analysis/pytest-red.log 2>&1
+          code=$?
+          set -e
+          cat _red_analysis/pytest-red.log
+          test "$code" -ne 0
+          grep -Eq 'quantum_lifesource_analysis|ModuleNotFoundError|ImportError' _red_analysis/pytest-red.log
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          r=Path('_red_analysis')
+          (r/'RED.json').write_text(json.dumps({'schema':'zeref-quantum-analysis-red-v1','git_commit':os.environ['GITHUB_SHA'],'expected_state':'RED','hardware_collected':False},indent=2,sort_keys=True)+'\n')
+          files=sorted(p for p in r.iterdir() if p.is_file() and p.name!='SHA256SUMS')
+          (r/'SHA256SUMS').write_text(''.join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n" for p in files))
+          PY
+          (cd _red_analysis && sha256sum -c SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zeref-quantum-analysis-red-${{ github.run_id }}
+          path: _red_analysis
+          if-no-files-found: error
+          retention-days: 90
