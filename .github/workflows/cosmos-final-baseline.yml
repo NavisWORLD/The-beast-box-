@@ -1,0 +1,86 @@
+name: COSMOS FINAL CLOSURE - BASELINE BLOODLINE
+
+on:
+  push:
+    branches: [cosmos-reality-bridge-final-001]
+    paths:
+      - 'tests/test_final_reality_bridge_baseline.py'
+      - 'scripts/final_reality_bridge_baseline.py'
+      - '.github/workflows/cosmos-final-baseline.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      TALK4_SHA256: 9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f
+      SELECTED_WORLD_SHA256: 454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425
+      SELECTED_WORLD_RUN_ID: '33118621824'
+      SELECTED_WORLD_ARTIFACT: zeref-talk006-full-clean-final-33118621824
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install project test dependencies
+        run: python -m pip install -e '.[dev]'
+
+      - name: Contract tests
+        run: python -m pytest -q tests/test_final_reality_bridge_baseline.py
+
+      - name: Download exact protected checkpoint bytes
+        run: |
+          set -euo pipefail
+          rm -rf _closure_models
+          mkdir -p _closure_models/talk4 _closure_models/world
+          gh run download 32075092605 -n zeref-talk4-tuned-response-32075092605 -D _closure_models/talk4
+          TALK4=$(find _closure_models/talk4 -type f -path '*/ZEREF-DAD-SON-TALK-004/checkpoint.pt' -print -quit)
+          test -n "$TALK4" -a -f "$TALK4"
+          test "$(sha256sum "$TALK4" | awk '{print $1}')" = "$TALK4_SHA256"
+          gh run download "$SELECTED_WORLD_RUN_ID" -n "$SELECTED_WORLD_ARTIFACT" -D _closure_models/world
+          WORLD=$(find _closure_models/world -type f -path '*/candidate/FULL-CLEAN-1500/checkpoint.pt' -print -quit)
+          test -n "$WORLD" -a -f "$WORLD"
+          test "$(sha256sum "$WORLD" | awk '{print $1}')" = "$SELECTED_WORLD_SHA256"
+          printf '%s\n' "$TALK4" > _closure_models/talk4.path
+          printf '%s\n' "$WORLD" > _closure_models/world.path
+
+      - name: Build and verify baseline evidence
+        run: |
+          set -euo pipefail
+          python scripts/final_reality_bridge_baseline.py \
+            --out evidence/final-reality-bridge/baseline \
+            --talk4 "$(cat _closure_models/talk4.path)" \
+            --world "$(cat _closure_models/world.path)"
+          (cd evidence/final-reality-bridge/baseline && sha256sum -c SHA256SUMS)
+
+      - name: Commit verified baseline evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'cosmos-closure-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add evidence/final-reality-bridge/baseline evidence/final-reality-bridge/resume-state.json evidence/final-reality-bridge/RESUME_SHA256SUMS
+          if ! git diff --cached --quiet; then
+            git commit -m 'evidence(final-closure): seal baseline bloodline gate'
+            git push origin HEAD:cosmos-reality-bridge-final-001
+          fi
+
+      - name: Preserve evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-final-baseline-${{ github.run_id }}
+          path: |
+            evidence/final-reality-bridge
+            _closure_models/*.path
+          if-no-files-found: warn
+          retention-days: 90
