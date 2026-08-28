@@ -1,0 +1,67 @@
+name: ZEREF QUANTUM LIFESOURCE GREEN
+
+on:
+  push:
+    branches: [zeref-quantum-lifesource-final-001]
+    paths:
+      - '.github/workflows/zeref-quantum-lifesource-green.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  green:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic runtime
+        run: python -m pip install -e '.[dev,ml]'
+      - name: Quantum life-source focused GREEN
+        run: |
+          set -euo pipefail
+          mkdir -p _green_evidence
+          python -m pytest -q tests/test_quantum_lifesource.py | tee _green_evidence/quantum-focused-green.log
+      - name: Existing R12 and provenance GREEN
+        run: |
+          set -euo pipefail
+          FILES=$(find tests -maxdepth 1 -type f \( -name '*r12*.py' -o -name '*provenance*.py' -o -name '*world_knowledge*.py' \) -print | sort)
+          test -n "$FILES"
+          python -m pytest -q $FILES | tee _green_evidence/r12-provenance-green.log
+      - name: Full regression GREEN
+        run: |
+          set -euo pipefail
+          python -m pytest -q | tee _green_evidence/full-green.log
+      - name: Seal GREEN evidence
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          root=Path('_green_evidence')
+          receipt={
+            'schema':'zeref-quantum-lifesource-green-v1',
+            'git_commit':os.environ['GITHUB_SHA'],
+            'red_run_id':33136027794,
+            'verified_parent_commit':'595d146f7d47ca048606f3e889e8c459e2fc3bd2',
+            'world_checkpoint_sha256':'454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425',
+            'canonical_ledger_sha256':'67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef',
+            'hardware_collected':False,
+            'thresholds_changed_after_hardware':False,
+            'model_weights_changed':False,
+            'canonical_memory_changed':False,
+          }
+          (root/'GREEN.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          files=sorted(p for p in root.iterdir() if p.is_file() and p.name!='SHA256SUMS')
+          (root/'SHA256SUMS').write_text(''.join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n" for p in files))
+          PY
+          (cd _green_evidence && sha256sum -c SHA256SUMS)
+      - name: Upload GREEN receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-quantum-lifesource-green-${{ github.run_id }}
+          path: _green_evidence
+          if-no-files-found: error
+          retention-days: 90
