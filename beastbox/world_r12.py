@@ -142,6 +142,32 @@ def _world_support(record: Mapping[str, Any]) -> float:
     )
 
 
+def _direct_evidence_confidence(record: Mapping[str, Any] | None, *, namespace: str) -> float:
+    """Evidence-existence confidence, deliberately excluding R12 geometry.
+
+    The composite router ``score`` is useful for ranking candidates because it
+    includes spatial/R12, recency, integrity and lexical terms.  It must not be
+    used as the abstention signal: geometry and priors can make a weak lexical
+    candidate rank highly even when the query has no grounded evidence.
+
+    Direct lexical support is itself evidence, while namespace support adds
+    provenance/integrity (and Hebbian lineage for personal memory).  Taking the
+    maximum preserves exact lexical hits without allowing spatial/recency terms
+    to manufacture evidence existence.
+    """
+    if record is None:
+        return 0.0
+    components = dict(record.get("components") or {})
+    lexical = _clamp01(float(components.get("lexical", 0.0)))
+    if namespace == "personal":
+        support = _personal_support(record)
+    elif namespace == "world":
+        support = _world_support(record)
+    else:
+        raise ValueError(f"unsupported namespace for evidence confidence: {namespace}")
+    return max(lexical, support)
+
+
 def select_primary_evidence(
     *,
     personal: Sequence[Mapping[str, Any]],
@@ -155,31 +181,38 @@ def select_primary_evidence(
     w = dict(world[0]) if world else None
     ps = float(p.get("score", 0.0)) if p else 0.0
     ws = float(w.get("score", 0.0)) if w else 0.0
-    best = max(ps, ws)
-    if best < floor:
-        return {"namespace": "none", "record": None, "score": best, "personal_score": ps, "world_score": ws}
+    p_support = _personal_support(p) if p is not None else 0.0
+    w_support = _world_support(w) if w is not None else 0.0
+    p_confidence = _direct_evidence_confidence(p, namespace="personal")
+    w_confidence = _direct_evidence_confidence(w, namespace="world")
+    p_qualified = p is not None and p_confidence >= floor
+    w_qualified = w is not None and w_confidence >= floor
 
-    if p is None:
-        return {"namespace": "world", "record": w, "score": ws, "personal_score": ps, "world_score": ws}
-    if w is None:
-        return {"namespace": "personal", "record": p, "score": ps, "personal_score": ps, "world_score": ws}
+    common = {
+        "personal_score": ps,
+        "world_score": ws,
+        "personal_support": p_support,
+        "world_support": w_support,
+        "personal_evidence_confidence": p_confidence,
+        "world_evidence_confidence": w_confidence,
+    }
+
+    if not p_qualified and not w_qualified:
+        return {"namespace": "none", "record": None, "score": max(ps, ws), **common}
+    if p_qualified and not w_qualified:
+        return {"namespace": "personal", "record": p, "score": ps, **common}
+    if w_qualified and not p_qualified:
+        return {"namespace": "world", "record": w, "score": ws, **common}
+
+    # Both namespaces contain evidence above the frozen floor.  The composite
+    # R12 score may now rank them because evidence existence has already been
+    # established independently of geometry/recency priors.
     if ps - ws >= margin:
         namespace, record, score = "personal", p, ps
     elif ws - ps >= margin:
         namespace, record, score = "world", w, ws
+    elif w_support > p_support:
+        namespace, record, score = "world", w, ws
     else:
-        p_support = _personal_support(p)
-        w_support = _world_support(w)
-        if w_support > p_support:
-            namespace, record, score = "world", w, ws
-        else:
-            namespace, record, score = "personal", p, ps
-    return {
-        "namespace": namespace,
-        "record": record,
-        "score": score,
-        "personal_score": ps,
-        "world_score": ws,
-        "personal_support": _personal_support(p),
-        "world_support": _world_support(w),
-    }
+        namespace, record, score = "personal", p, ps
+    return {"namespace": namespace, "record": record, "score": score, **common}
