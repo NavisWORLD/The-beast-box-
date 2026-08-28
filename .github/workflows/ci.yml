@@ -33,7 +33,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install --upgrade pip
-      - run: pip install -e '.[dev]'
+      - run: pip install -e '.[dev,ml]'
       - run: pytest
 
   package-smoke:
