@@ -1,0 +1,23 @@
+{
+  "benchmark_prompt_leaks": [],
+  "conversation_suite_is_clean_holdout": false,
+  "cross_partition_exact_duplicates": [],
+  "cross_partition_normalized_duplicates": [],
+  "historical_diagnostic_training_overlaps": [
+    {
+      "clean_evaluation_allowed": false,
+      "prompt": "What do you remember?",
+      "training_overlap": true,
+      "turn": 4
+    }
+  ],
+  "partition_counts": {
+    "HOLDOUT": 428,
+    "MEMORY_ONLY": 352,
+    "TRAIN": 3481,
+    "VALIDATION": 377
+  },
+  "record_count": 4638,
+  "schema": "cosmos-final-leakage-v2",
+  "status": "PASS"
+}
