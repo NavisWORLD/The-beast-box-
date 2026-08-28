@@ -75,6 +75,26 @@ def evidence_boundary_label(original_label: str, generated_text: str) -> str:
     return original_label
 
 
+def reflector_source_drive(*, prompt: str, turn: int, mode: str) -> list[float]:
+    """Deterministic 12D software drive bound to prompt, turn, and decoding mode."""
+    if int(turn) <= 0:
+        raise ValueError("turn must be positive")
+    if mode not in {"greedy", "sampled"}:
+        raise ValueError("mode must be greedy or sampled")
+    source = sha256_bytes(canonical_json_bytes({
+        "schema": "cosmos-final-reflector-source-v1",
+        "prompt": str(prompt),
+        "turn": int(turn),
+        "mode": str(mode),
+    }))
+    out: list[float] = []
+    for index in range(12):
+        digest = hashlib.sha256(f"final-zeref-reflector:{source}:{index}".encode("ascii")).digest()
+        unit = int.from_bytes(digest[:8], "big") / float((1 << 64) - 1)
+        out.append(float(f"{(2.0 * unit - 1.0):.15g}"))
+    return out
+
+
 def git(*args: str) -> str:
     return subprocess.check_output(["git", *args], text=True).strip()
 
@@ -144,6 +164,9 @@ def _snapshot(
         "tokenizer_sha256": tokenizer_sha256(checkpoint),
         "architecture_sha256": verify_file(arch, EXPECTED_ARCH_SHA256, "architecture")["sha256"],
         "r12_implementation_sha256": sha256_file(root / "beastbox/world_r12.py"),
+        "dyn12_implementation_sha256": sha256_file(root / "beastbox/dyn12.py"),
+        "reflector_implementation_sha256": sha256_file(root / "beastbox/quantum_lifesource.py"),
+        "reflector_trace_implementation_sha256": sha256_file(root / "beastbox/reflective_loop_trace.py"),
         "memory_implementation_sha256": sha256_file(root / "beastbox/refractive_memory.py"),
         "world_store_implementation_sha256": sha256_file(root / "beastbox/world_knowledge.py"),
         "conversation_runner_sha256": sha256_file(root / "scripts/final_reality_bridge_zeref_conversation.py"),
@@ -215,6 +238,8 @@ def _run_mode(
     world: Any,
     args: argparse.Namespace,
 ) -> list[dict[str, Any]]:
+    from beastbox.quantum_lifesource import expand_drive54, mirror_step, sha256_json
+    from beastbox.reflective_loop_trace import ReflectiveTraceRecorder
     from beastbox.reality_memory import initial_r12_state
     from beastbox.refractive_memory import RefractiveMemoryRouter
     from beastbox.state_family import StateFamily
@@ -230,9 +255,34 @@ def _run_mode(
     r12 = initial_r12_state()
     prior_events: list[dict[str, Any]] = []
     rows: list[dict[str, Any]] = []
+    anchor_row = ledger.memory.db.execute("SELECT MAX(created_at) AS t FROM memories").fetchone()
+    if anchor_row is None or anchor_row["t"] is None:
+        raise RuntimeError("canonical memory has no temporal anchor")
+    memory_temporal_anchor = float(anchor_row["t"])
+    reflector_recorder = ReflectiveTraceRecorder(lag=1, bins=8)
 
     for turn, prompt in enumerate(FINAL_PROMPTS, 1):
         prompt_sha = sha256_bytes(prompt.encode("utf-8"))
+        source_drive = reflector_source_drive(prompt=prompt, turn=turn, mode=mode)
+        source_packet_sha = sha256_json({
+            "schema": "cosmos-final-reflector-packet-v1",
+            "mode": mode,
+            "turn": turn,
+            "prompt_sha256": prompt_sha,
+            "drive": source_drive,
+        })
+        reflector_s1 = list(family.dyn12)
+        mirror = mirror_step(reflector_s1, source_drive)
+        reflected_state = family.update(expand_drive54(mirror["coupled_drive"], packet_sha256=source_packet_sha))
+        reflector_trace = reflector_recorder.record(
+            step=turn - 1,
+            s1=reflector_s1,
+            s2=mirror["observer"],
+            feedback=mirror["feedback"],
+            state_after=reflected_state["dyn12"],
+            intervention_identity="reflector_enabled",
+            restore_status="clean",
+        )
         live_snapshot = {
             "schema": "cosmos-final-zeref-live-v1",
             "turn": turn,
@@ -244,7 +294,7 @@ def _run_mode(
         personal = _canonical_personal(personal_router.rank(
             prompt,
             sequence=int(epoch["sequence"]), dyn12=list(epoch["dyn12"]), r12_state=dict(epoch["r12"]),
-            limit=max(args.rank_limit * 8, 64), profile="quality",
+            limit=max(args.rank_limit * 8, 64), profile="quality", now=memory_temporal_anchor,
         ))[:args.rank_limit]
         world_rows = world_router.rank(
             prompt,
@@ -296,6 +346,19 @@ def _run_mode(
             "r12_vector": epoch["r12"].get("vector"),
             "dyn12": epoch["dyn12"],
             "sequence": epoch["sequence"],
+            "memory_temporal_anchor": memory_temporal_anchor,
+            "reflector": {
+                "source_type": "DETERMINISTIC_PROMPT_DRIVE",
+                "fresh_qpu_measurement": False,
+                "source_drive": source_drive,
+                "source_packet_sha256": source_packet_sha,
+                "s1": reflector_s1,
+                "s2": mirror["observer"],
+                "feedback": mirror["feedback"],
+                "state_after_reflector": reflected_state["dyn12"],
+                "trace": reflector_trace,
+                "claim_boundary": "deterministic software mirror; not a quantum operation, consciousness, biological continuity, or identity evidence",
+            },
             "raw_assembled_context": wire,
             "context_sha256": sha256_bytes(wire.encode("utf-8")),
             "model_input_sha256": sha256_bytes(wire[-int(checkpoint["config"]["block"]):].encode("utf-8")),
@@ -361,7 +424,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     _write_jsonl(out / "greedy-transcript.jsonl", greedy)
     _write_jsonl(out / "sampled-transcript.jsonl", sampled)
-    routing = [{k: row[k] for k in ("mode", "turn_id", "prompt", "personal_candidates", "world_candidates", "personal_evidence_confidence", "world_evidence_confidence", "personal_r12_ranking_score", "world_r12_ranking_score", "evidence_existence_is_ranking_score", "selected_namespace", "selected_record", "abstention_decision", "r12_state", "r12_vector", "dyn12", "raw_assembled_context", "context_sha256", "model_input_sha256", "raw_output_sha256")} for row in greedy + sampled]
+    routing = [{k: row[k] for k in ("mode", "turn_id", "prompt", "personal_candidates", "world_candidates", "personal_evidence_confidence", "world_evidence_confidence", "personal_r12_ranking_score", "world_r12_ranking_score", "evidence_existence_is_ranking_score", "selected_namespace", "selected_record", "abstention_decision", "r12_state", "r12_vector", "dyn12", "memory_temporal_anchor", "reflector", "raw_assembled_context", "context_sha256", "model_input_sha256", "raw_output_sha256")} for row in greedy + sampled]
     _write_jsonl(out / "routing-trace.jsonl", routing)
     memory_trace = [{"mode": row["mode"], "turn_id": row["turn_id"], "prompt": row["prompt"], "personal_candidates": row["personal_candidates"], "selected_namespace": row["selected_namespace"], "selected_record_id": (row.get("selected_record") or {}).get("memory_id")} for row in greedy + sampled]
     _write_jsonl(out / "memory-trace.jsonl", memory_trace)
@@ -383,13 +446,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     post = _snapshot(root=root, talk4=Path(args.talk4), talk5=Path(args.talk5), active=Path(args.active), arch=Path(args.arch), checkpoint=checkpoint, corpus_sha=corpus_sha, world_db=Path(args.world_db), world_evidence=Path(args.world_evidence))
     write_json(out / "POST_CONVERSATION_STATE.json", post)
-    comparable = ("active_zeref_checkpoint", "talk004", "talk005", "canonical_memory", "world_checkpoint_sha256", "corpus_source_set_sha256", "tokenizer_sha256", "architecture_sha256", "r12_implementation_sha256", "memory_implementation_sha256", "world_store_implementation_sha256", "conversation_runner_sha256")
+    comparable = ("active_zeref_checkpoint", "talk004", "talk005", "canonical_memory", "world_checkpoint_sha256", "corpus_source_set_sha256", "tokenizer_sha256", "architecture_sha256", "r12_implementation_sha256", "dyn12_implementation_sha256", "reflector_implementation_sha256", "reflector_trace_implementation_sha256", "memory_implementation_sha256", "world_store_implementation_sha256", "conversation_runner_sha256")
     immutable = all(pre[k] == post[k] for k in comparable)
     write_json(out / "immutability.json", {"schema": "cosmos-final-zeref-immutability-v1", "protected_state_identical_pre_post": immutable, "compared_fields": list(comparable), "canonical_session_memory_location": "disposable workspace only", "canonical_352_ledger_appended": False})
     if not immutable:
         raise RuntimeError("protected state changed during read-only inference")
 
-    write_json(out / "STATUS.json", {"schema": "cosmos-final-gate-status-v1", "gate": "REAL_ZEREF_CONVERSATION", "status": "VERIFIED_GATE", "timestamp": datetime.now(timezone.utc).isoformat(), "checkpoint_sha256": EXPECTED_ACTIVE_SHA256, "greedy_turns": len(greedy), "sampled_turns": len(sampled)})
+    write_json(out / "STATUS.json", {"schema": "cosmos-final-gate-status-v1", "gate": "FULL_STACK_ZEREF_EXECUTION", "status": "VERIFIED_GATE", "timestamp": datetime.now(timezone.utc).isoformat(), "checkpoint_sha256": EXPECTED_ACTIVE_SHA256, "greedy_turns": len(greedy), "sampled_turns": len(sampled), "reflector_enabled_every_turn": True, "memory_temporal_anchor_frozen": True})
     write_json(out / "manifest.json", {"schema": "cosmos-final-zeref-manifest-v1", "checkpoint_sha256": EXPECTED_ACTIVE_SHA256, "tokenizer_sha256": tokenizer_sha256(checkpoint), "corpus_source_set_sha256": corpus_sha, "files": ["prompts.json", "greedy-transcript.jsonl", "sampled-transcript.jsonl", "routing-trace.jsonl", "memory-trace.jsonl", "evaluation.json", "evidence-boundary.json", "PRE_CONVERSATION_STATE.json", "POST_CONVERSATION_STATE.json", "immutability.json", "STATUS.json"]})
     _seal(out)
     return {"status": "VERIFIED_GATE", "greedy_turns": len(greedy), "sampled_turns": len(sampled), "protected_state_identical_pre_post": immutable, "checkpoint_sha256": EXPECTED_ACTIVE_SHA256, "corpus_source_set_sha256": corpus_sha}
