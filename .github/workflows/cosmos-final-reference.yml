@@ -1,0 +1,166 @@
+name: COSMOS FINAL ORGANISM - FROZEN REFERENCE
+
+on:
+  push:
+    branches: [cory-davis-cosmos-reality-bridge-final-organism-001]
+    paths:
+      - 'scripts/final_reality_bridge_reference.py'
+      - 'tests/test_final_reference_baseline.py'
+      - '.github/workflows/cosmos-final-reference.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  ACTIVE_SHA256: 454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425
+  HOLDOUT_SHA256: 9c8bcfb21a9adda064c8e14beb7b4ccff32dece1cf189bda4c7cc5fc882f37e0
+  REFERENCE_REPO: HuggingFaceTB/SmolLM2-135M
+  REFERENCE_REVISION: 4e53f736cbb20a9a0f56b4c4bf378d9f306ff915
+  GH_TOKEN: ${{ github.token }}
+  HF_HUB_DISABLE_TELEMETRY: '1'
+
+jobs:
+  frozen-reference:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify sealed clean-holdout state
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          resume=json.loads(Path('evidence/final-reality-bridge/resume-state.json').read_text())
+          assert resume['active_gate']=='FROZEN_REFERENCE_MODEL', resume
+          assert resume['next_gate']=='WAKE_FROZEN_REFERENCE_AND_RUN_SAME_HOLDOUT', resume
+          assert 'CLEAN_HOLDOUT' in resume['completed_gates'], resume
+          assert resume['selected_zeref_holdout_bits_per_character']==4.199424945270906, resume
+          holdout=Path('evidence/final-whole-organism-001/corpus/HOLDOUT.jsonl')
+          assert hashlib.sha256(holdout.read_bytes()).hexdigest()=='9c8bcfb21a9adda064c8e14beb7b4ccff32dece1cf189bda4c7cc5fc882f37e0'
+          status=json.loads(Path('evidence/final-whole-organism-001/holdout/STATUS.json').read_text())
+          assert status['status']=='VERIFIED_GATE' and status['records_scored']==428 and status['training_performed'] is False, status
+          print(json.dumps({'clean_holdout_sealed':True,'reference_repo':'HuggingFaceTB/SmolLM2-135M','reference_revision':'4e53f736cbb20a9a0f56b4c4bf378d9f306ff915'},sort_keys=True))
+          PY
+
+      - name: Install frozen comparator runtime
+        run: |
+          set -euo pipefail
+          python -m pip install -e '.[dev,ml]'
+          python -m pip install \
+            'transformers==4.46.3' \
+            'huggingface-hub==0.26.2' \
+            'tokenizers==0.20.3' \
+            'safetensors==0.4.5'
+
+      - name: Frozen reference contract tests
+        run: python -m pytest -q tests/test_final_reference_baseline.py
+
+      - name: Restore exact selected Zeref checkpoint
+        run: |
+          set -euo pipefail
+          rm -rf _reference_runtime
+          mkdir -p _reference_runtime/world
+          gh run download 33132925890 -n zeref-world-r12-downstream-diagnostic-v2-33132925890 -D _reference_runtime/world
+          ACTIVE=$(find _reference_runtime/world -type f -name 'SELECTED-WORLD-R12.pt' -print -quit)
+          test -n "$ACTIVE" -a -f "$ACTIVE"
+          test "$(sha256sum "$ACTIVE" | awk '{print $1}')" = "$ACTIVE_SHA256"
+          printf '%s\n' "$ACTIVE" > _reference_runtime/active.path
+
+      - name: Wake frozen external reference and score same balanced holdout view
+        run: |
+          set -euo pipefail
+          python scripts/final_reality_bridge_reference.py \
+            --zeref-checkpoint "$(cat _reference_runtime/active.path)" \
+            --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+            --holdout evidence/final-whole-organism-001/corpus/HOLDOUT.jsonl \
+            --zeref-full-per-record evidence/final-whole-organism-001/holdout/per-record.jsonl \
+            --out evidence/final-whole-organism-001/reference \
+            --batch-size 16 \
+            | tee _reference_runtime/result.json
+
+      - name: Verify sealed reference evidence and advance receipt
+        run: |
+          set -euo pipefail
+          EV=evidence/final-whole-organism-001/reference
+          (cd "$EV" && sha256sum -c SHA256SUMS)
+          python - <<'PY'
+          import hashlib,json,os
+          from datetime import datetime,timezone
+          from pathlib import Path
+          ev=Path('evidence/final-whole-organism-001/reference')
+          status=json.loads((ev/'STATUS.json').read_text())
+          comparison=json.loads((ev/'comparison.json').read_text())
+          identity=json.loads((ev/'reference-identity.json').read_text())
+          imm=json.loads((ev/'immutability.json').read_text())
+          assert status['status']=='VERIFIED_GATE' and status['gate']=='FROZEN_REFERENCE_MODEL', status
+          assert status['reference_repo']=='HuggingFaceTB/SmolLM2-135M', status
+          assert status['reference_revision']=='4e53f736cbb20a9a0f56b4c4bf378d9f306ff915', status
+          assert status['balanced_view_records']==428 and status['training_performed'] is False, status
+          assert comparison['balanced_view_records']==428 and comparison['common_records']>0, comparison
+          assert comparison['inferential_superiority_test_performed'] is False, comparison
+          assert imm['protected_state_identical_pre_post'] is True and imm['training_performed'] is False, imm
+          root=Path('evidence/final-reality-bridge')
+          receipt=json.loads((root/'resume-state.json').read_text())
+          completed=list(receipt.get('completed_gates') or [])
+          if 'FROZEN_REFERENCE_MODEL' not in completed: completed.append('FROZEN_REFERENCE_MODEL')
+          weights=identity['snapshot']['weight_files']
+          receipt.update({
+            'timestamp':datetime.now(timezone.utc).isoformat(),
+            'branch':os.environ['GITHUB_REF_NAME'],
+            'HEAD':os.environ['GITHUB_SHA'],
+            'completed_gates':completed,
+            'active_gate':'MODEL_SWAP_ROUND_TRIP',
+            'next_gate':'RUN_ZEREF_REFERENCE_ZEREF_ROUND_TRIP',
+            'reference_model_repo':'HuggingFaceTB/SmolLM2-135M',
+            'reference_model_revision':'4e53f736cbb20a9a0f56b4c4bf378d9f306ff915',
+            'reference_snapshot_manifest_SHA':identity['snapshot']['snapshot_manifest_sha256'],
+            'reference_weight_files':weights,
+            'balanced_comparator_common_records':comparison['common_records'],
+            'balanced_zeref_bits_per_character':comparison['zeref']['bits_per_predicted_original_character'],
+            'balanced_reference_bits_per_character':comparison['reference']['bits_per_predicted_original_character'],
+            'balanced_reference_minus_zeref_bpc':comparison['reference_minus_zeref_bits_per_original_character'],
+            'latest_tests':'Frozen external SmolLM2-135M exact revision + selected Zeref scored on same 428-record balanced holdout view; no training/adaptation; protected identities unchanged',
+            'latest_artifact':'evidence/final-whole-organism-001/reference',
+            'latest_artifact_SHA':hashlib.sha256((ev/'SHA256SUMS').read_bytes()).hexdigest(),
+            'scientific_classification_so_far':'DESCRIPTIVE_EXTERNAL_BASELINE_PENDING_MODEL_SWAP_AND_CONTROLS',
+            'exact_resume_instruction':'Run the frozen model-swap order ZEREF -> REFERENCE -> ZEREF on the same balanced comparator view. Verify Zeref score/output hashes and protected checkpoint/memory/corpus identities are identical before versus after the reference load.',
+            'known_demonstrated_blockers':[],
+          })
+          (root/'resume-state.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          digest=hashlib.sha256((root/'resume-state.json').read_bytes()).hexdigest()
+          (root/'RESUME_SHA256SUMS').write_text(f'{digest}  resume-state.json\n')
+          print(json.dumps({'reference_verified':True,'common_records':comparison['common_records'],'zeref_bpc':comparison['zeref']['bits_per_predicted_original_character'],'reference_bpc':comparison['reference']['bits_per_predicted_original_character'],'delta':comparison['reference_minus_zeref_bits_per_original_character']},sort_keys=True))
+          PY
+          (cd evidence/final-reality-bridge && sha256sum -c RESUME_SHA256SUMS)
+
+      - name: Commit frozen reference evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'cosmos-closure-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add evidence/final-whole-organism-001/reference evidence/final-reality-bridge/resume-state.json evidence/final-reality-bridge/RESUME_SHA256SUMS
+          if ! git diff --cached --quiet; then
+            git commit -m 'evidence(final-organism): seal frozen external reference comparison'
+            git push origin HEAD:cory-davis-cosmos-reality-bridge-final-organism-001
+          fi
+
+      - name: Preserve frozen reference evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-final-frozen-reference-${{ github.run_id }}
+          path: |
+            evidence/final-whole-organism-001/reference
+            _reference_runtime/result.json
+          if-no-files-found: warn
+          retention-days: 90
