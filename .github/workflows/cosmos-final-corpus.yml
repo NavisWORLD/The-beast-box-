@@ -1,0 +1,204 @@
+name: COSMOS FINAL CLOSURE - UNIVERSAL CORPUS
+
+on:
+  push:
+    branches: [cosmos-reality-bridge-final-001]
+    paths:
+      - 'tests/test_final_reality_bridge_corpus.py'
+      - 'scripts/final_reality_bridge_corpus.py'
+      - '.github/workflows/cosmos-final-corpus.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  WORLD_SOURCE_SET_SHA256: 07216bb2a4ca979ca1ea4304efb92b09ee8aad74685df43196d694f3bd7ef8ba
+  FULL_TRAIN_SHA256: 0175f437635a9e160b2de887b3b634310deb0b9dbf4d34adb2be5256c131df07
+  MICRO_HOLDOUT_SHA256: 3c3e2f80bc728c5d8d9420b240970f225f711651e190d17388136356ab0302db
+  TALK002_HOLDOUT_SHA256: a86af74313ccfdf6020147d9415a3c2cd13360074729fd22d34506807860a0ed
+  TALK005_HOLDOUT_SHA256: db9ddc110375dc14c51f39395f9128bfe41c1b3f6a2eda2d6b64ceaf912571ba
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  corpus-freeze:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify sealed resume receipt first
+        run: |
+          set -euo pipefail
+          (cd evidence/final-reality-bridge && sha256sum -c RESUME_SHA256SUMS)
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evidence/final-reality-bridge/resume-state.json').read_text())
+          assert 'BASELINE_BLOODLINE_FREEZE' in r['completed_gates'], r
+          assert 'REAL_ZEREF_CONVERSATION' in r['completed_gates'], r
+          assert r['canonical_memory_record_count']==352, r
+          print(json.dumps({'resume_verified':True,'completed_gates':r['completed_gates']},sort_keys=True))
+          PY
+
+      - name: Install corpus dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install -e '.[dev]'
+          python -m pip install 'datasets>=4.0,<5'
+
+      - name: Corpus contract tests
+        run: python -m pytest -q tests/test_final_reality_bridge_corpus.py
+
+      - name: Restore exact historical full-clean corpus artifact
+        run: |
+          set -euo pipefail
+          rm -rf _closure_corpus
+          mkdir -p _closure_corpus/historical _closure_corpus/world
+          gh run download 33118621824 -n zeref-talk006-full-clean-final-33118621824 -D _closure_corpus/historical
+          test "$(sha256sum _closure_corpus/historical/corpus/full/train.jsonl | awk '{print $1}')" = "$FULL_TRAIN_SHA256"
+          test "$(sha256sum _closure_corpus/historical/corpus/micro/holdout.jsonl | awk '{print $1}')" = "$MICRO_HOLDOUT_SHA256"
+          test "$(sha256sum _closure_corpus/historical/corpus/talk002/talk2-holdout.jsonl | awk '{print $1}')" = "$TALK002_HOLDOUT_SHA256"
+          test "$(sha256sum _closure_corpus/historical/corpus/talk005/reviewed-source/holdout.jsonl | awk '{print $1}')" = "$TALK005_HOLDOUT_SHA256"
+
+      - name: Reconstruct immutable world source set
+        run: |
+          set -euo pipefail
+          python scripts/build_zeref_world_knowledge.py \
+            --dataset wikimedia/wikipedia --config 20231101.en --split train --accepted 4096 \
+            --db _closure_corpus/world/world.sqlite3 \
+            --evidence _closure_corpus/world/world-evidence.jsonl \
+            --rejected _closure_corpus/world/world-rejected.jsonl \
+            --summary _closure_corpus/world/ingestion-summary.json \
+            --license-label 'CC BY-SA 3.0 / GFDL'
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          s=json.loads(Path('_closure_corpus/world/ingestion-summary.json').read_text())
+          ids=list(s['accepted_source_ids']); shas=list(s['accepted_source_sha256'])
+          semantic=''.join(f'{i}\t{h}\n' for i,h in zip(ids,shas,strict=True)).encode()
+          digest=hashlib.sha256(semantic).hexdigest()
+          assert len(ids)==4096, len(ids)
+          assert digest==os.environ['WORLD_SOURCE_SET_SHA256'], digest
+          print(json.dumps({'accepted_records':len(ids),'source_set_sha256':digest},sort_keys=True))
+          PY
+
+      - name: Freeze universal corpus and run leakage gauntlet
+        id: freeze
+        shell: bash
+        run: |
+          set +e
+          rm -rf evidence/final-reality-bridge/corpus
+          python scripts/final_reality_bridge_corpus.py \
+            --historical-root _closure_corpus/historical \
+            --world-evidence _closure_corpus/world/world-evidence.jsonl \
+            --out evidence/final-reality-bridge/corpus \
+            > _closure_corpus/corpus.stdout.log 2> _closure_corpus/corpus.stderr.log
+          rc=$?
+          printf '%s\n' "$rc" > _closure_corpus/corpus.exit-code
+          cat _closure_corpus/corpus.stdout.log || true
+          cat _closure_corpus/corpus.stderr.log >&2 || true
+          exit "$rc"
+
+      - name: Verify frozen partitions and update resume receipt
+        if: success()
+        run: |
+          set -euo pipefail
+          EV=evidence/final-reality-bridge/corpus
+          (cd "$EV" && sha256sum -c SHA256SUMS)
+          python - <<'PY'
+          import hashlib,json,os
+          from datetime import datetime,timezone
+          from pathlib import Path
+          root=Path('evidence/final-reality-bridge'); ev=root/'corpus'
+          status=json.loads((ev/'STATUS.json').read_text())
+          leak=json.loads((ev/'leakage-report.json').read_text())
+          manifest=json.loads((ev/'manifest.json').read_text())
+          benchmark=json.loads((ev/'benchmark-prompts.json').read_text())
+          assert status['status']=='VERIFIED_GATE', status
+          assert leak['status']=='PASS', leak
+          assert leak['benchmark_prompt_leaks']==[], leak
+          assert len(benchmark['prompts'])==20, len(benchmark['prompts'])
+          assert benchmark['frozen_before_reference_output'] is True
+          counts=manifest['partition_counts']
+          assert counts['TRAIN']>0 and counts['VALIDATION']>0 and counts['HOLDOUT']>0, counts
+          assert counts['MEMORY_ONLY']==352, counts
+          receipt=json.loads((root/'resume-state.json').read_text())
+          completed=list(receipt.get('completed_gates') or [])
+          if 'UNIVERSAL_CORPUS_FREEZE' not in completed: completed.append('UNIVERSAL_CORPUS_FREEZE')
+          receipt.update({
+              'timestamp':datetime.now(timezone.utc).isoformat(),
+              'branch':os.environ['GITHUB_REF_NAME'],
+              'HEAD':os.environ['GITHUB_SHA'],
+              'completed_gates':completed,
+              'active_gate':'MODEL_ADAPTER_CONTRACT',
+              'next_gate':'PIN_AND_RUN_CURRENT_REFERENCE_MODEL_ON_FROZEN_BENCHMARK',
+              'corpus_root_SHA':status['CORPUS_ROOT_SHA256'],
+              'TRAIN_SHA':status['TRAIN_SHA256'],
+              'VALIDATION_SHA':status['VALIDATION_SHA256'],
+              'HOLDOUT_SHA':status['HOLDOUT_SHA256'],
+              'latest_tests':'Universal corpus contract tests + provenance schema + leakage gauntlet + immutable partition hashes',
+              'latest_artifact':'evidence/final-reality-bridge/corpus',
+              'latest_artifact_SHA':hashlib.sha256((ev/'SHA256SUMS').read_bytes()).hexdigest(),
+              'system_status':'EXECUTION_INTERRUPTED_RESUMABLE',
+              'known_demonstrated_blockers':[],
+              'exact_resume_instruction':'Read and verify this receipt first. Do not alter frozen TRAIN/VALIDATION/HOLDOUT. Implement the model-adapter contract, pin one current reference model before seeing comparative outputs, and run the frozen benchmark.',
+          })
+          (root/'resume-state.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          rsha=hashlib.sha256((root/'resume-state.json').read_bytes()).hexdigest()
+          (root/'RESUME_SHA256SUMS').write_text(f'{rsha}  resume-state.json\n')
+          print(json.dumps({'corpus_verified':True,'corpus_root':status['CORPUS_ROOT_SHA256'],'train':status['TRAIN_SHA256'],'validation':status['VALIDATION_SHA256'],'holdout':status['HOLDOUT_SHA256'],'resume_sha256':rsha},sort_keys=True))
+          PY
+          (cd evidence/final-reality-bridge && sha256sum -c RESUME_SHA256SUMS)
+
+      - name: Preserve corpus failure diagnostics
+        if: always()
+        run: |
+          set -euo pipefail
+          EV=evidence/final-reality-bridge/corpus
+          mkdir -p "$EV"
+          RC=$(cat _closure_corpus/corpus.exit-code 2>/dev/null || echo 'not-run')
+          if [ "$RC" != "0" ]; then
+            python - <<'PY'
+          import json,os,platform,sys
+          from datetime import datetime,timezone
+          from pathlib import Path
+          ev=Path('evidence/final-reality-bridge/corpus'); ev.mkdir(parents=True,exist_ok=True)
+          rc=Path('_closure_corpus/corpus.exit-code').read_text().strip() if Path('_closure_corpus/corpus.exit-code').exists() else 'not-run'
+          (ev/'failure.json').write_text(json.dumps({'schema':'cosmos-final-failure-v1','gate':'UNIVERSAL_CORPUS_FREEZE','status':'RECOVERABLE_ENGINEERING_FAILURE','exit_code':rc,'timestamp':datetime.now(timezone.utc).isoformat(),'head':os.environ.get('GITHUB_SHA'),'first_bad_boundary':'corpus normalization/partition/leakage contract; inspect traceback.txt'},indent=2,sort_keys=True)+'\n')
+          stderr=Path('_closure_corpus/corpus.stderr.log')
+          (ev/'traceback.txt').write_text(stderr.read_text(errors='replace') if stderr.exists() else 'Corpus freeze did not start.\n')
+          (ev/'environment.json').write_text(json.dumps({'python':sys.version,'platform':platform.platform()},indent=2,sort_keys=True)+'\n')
+          PY
+          fi
+
+      - name: Commit verified corpus evidence
+        if: success()
+        run: |
+          set -euo pipefail
+          git config user.name 'cosmos-closure-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add evidence/final-reality-bridge/corpus evidence/final-reality-bridge/resume-state.json evidence/final-reality-bridge/RESUME_SHA256SUMS
+          if ! git diff --cached --quiet; then
+            git commit -m 'evidence(final-closure): seal universal corpus gate'
+            git push origin HEAD:cosmos-reality-bridge-final-001
+          fi
+
+      - name: Upload corpus evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-final-corpus-${{ github.run_id }}
+          path: |
+            evidence/final-reality-bridge/corpus
+            _closure_corpus/corpus.*.log
+            _closure_corpus/corpus.exit-code
+          if-no-files-found: warn
+          retention-days: 90
