@@ -77,16 +77,32 @@ jobs:
         with:
           path: release-assets
 
-      - name: Generate SHA-256 release checksums
+      - name: Stage uniquely named release assets and checksums
         shell: bash
         run: |
-          find release-assets -type f -print0 \
-            | sort -z \
-            | xargs -0 sha256sum \
-            > release-assets/SHA256SUMS.txt
-          cat release-assets/SHA256SUMS.txt
+          set -euo pipefail
+          rm -rf release-publish
+          mkdir -p release-publish
 
-      - uses: softprops/action-gh-release@v2
+          cp release-assets/cosmic-synapse-python/* release-publish/
+          cp release-assets/cosmic-cypher-rust-linux/cosmic-cypher-rs \
+            release-publish/cosmic-cypher-rs-linux
+          cp release-assets/cosmic-cypher-rust-macos/cosmic-cypher-rs \
+            release-publish/cosmic-cypher-rs-macos
+          cp release-assets/cosmic-cypher-rust-windows/cosmic-cypher-rs.exe \
+            release-publish/cosmic-cypher-rs-windows.exe
+
+          (
+            cd release-publish
+            find . -maxdepth 1 -type f ! -name 'SHA256SUMS.txt' -print0 \
+              | sort -z \
+              | xargs -0 sha256sum \
+              | sed 's#  \./#  #' \
+              > SHA256SUMS.txt
+            cat SHA256SUMS.txt
+          )
+
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
-          files: release-assets/**/*
+          files: release-publish/*
           generate_release_notes: true
