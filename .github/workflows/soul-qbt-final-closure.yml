@@ -35,6 +35,12 @@ jobs:
       - name: Seal historical no-admissible-source closure
         shell: bash
         run: |
+          set -euo pipefail
+          if [ -d "$EXP_ROOT/runs/$RUN_ID" ]; then
+            echo "sealed historical run already exists; verifying immutable contents"
+            python kits/SOUL_QBT_FINAL_KIT/kit.py verify "$EXP_ROOT/runs/$RUN_ID"
+            exit 0
+          fi
           python - <<'PY'
           import json, shutil
           from pathlib import Path
@@ -67,8 +73,12 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -f "$EXP_ROOT/runs/$RUN_ID"
-          git commit -m 'evidence(soul-qbt): seal historical inconclusive closure'
-          git push origin HEAD:cory-davis-soul-qbt-final-closed-loop-001
+          if git diff --cached --quiet; then
+            echo "sealed historical closure already committed; no mutation required"
+          else
+            git commit -m 'evidence(soul-qbt): seal historical inconclusive closure'
+            git push origin HEAD:cory-davis-soul-qbt-final-closed-loop-001
+          fi
 
   python-tests:
     runs-on: ubuntu-latest
