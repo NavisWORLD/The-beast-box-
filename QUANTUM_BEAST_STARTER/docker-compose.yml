@@ -9,9 +9,5 @@ services:
       - http://host.docker.internal:11434
     extra_hosts:
       - host.docker.internal:host-gateway
-    environment:
-      BEASTBOX_MODEL_NAME: ${BEASTBOX_MODEL_NAME:-my-model}
-      BEASTBOX_MODEL_URL: ${BEASTBOX_MODEL_URL:-http://host.docker.internal:11434}
-      BEASTBOX_QUANTUM_HEART_MODE: ${BEASTBOX_QUANTUM_HEART_MODE:-off}
     volumes:
       - ./runtime:/app/.beastbox

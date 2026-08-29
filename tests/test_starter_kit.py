@@ -57,9 +57,10 @@ def test_env_example_documents_starter_and_optional_ibm_settings():
     assert "IBM_QUANTUM_TOKEN=\n" in text
 
 
-def test_compose_does_not_embed_ibm_credentials():
+def test_compose_is_diagnostic_only_and_does_not_embed_credentials():
     text = (STARTER / "docker-compose.yml").read_text(encoding="utf-8")
-    assert "IBM_QUANTUM_TOKEN=" not in text
-    assert "IBM_QUANTUM_INSTANCE=" not in text
+    assert "IBM_QUANTUM_TOKEN" not in text
+    assert "IBM_QUANTUM_INSTANCE" not in text
+    assert "BEASTBOX_MODEL_URL" not in text
     assert "host.docker.internal" in text
-    assert "BEASTBOX_MODEL_URL" in text
+    assert "doctor" in text
