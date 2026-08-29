@@ -20,6 +20,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r requirements-dev.txt
+      - run: pip install -e .
+      - name: Lint productization surface
+        run: |
+          ruff check beastbox/config.py beastbox/providers.py beastbox/cypher/models.py beastbox/logging_config.py scripts/productization_receipt.py tests/test_starter_kit.py tests/test_logging_config.py tests/test_productization_receipt.py
+      - name: Type-check productization surface
+        run: mypy
+      - name: Starter and receipt tests with measured coverage
+        run: |
+          coverage run -m pytest tests/test_starter_kit.py tests/test_logging_config.py tests/test_productization_receipt.py
+          coverage report
+      - name: Verify sealed scientific evidence is unchanged
+        run: git diff --exit-code c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f -- evidence/final-whole-organism-001/
+      - name: Verify productization receipt guard
+        run: python scripts/productization_receipt.py --check-only
+
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -53,6 +80,7 @@ jobs:
       - name: Verify installed command entry points
         run: |
           beastbox --help
+          beastbox starter
           cosmic.cypher-cli --help
           cosmic-cypher --help
           cypher --help

@@ -36,7 +36,12 @@ full = [
   "torch>=2.2",
   "llama-cpp-python>=0.3.9",
 ]
-dev = ["pytest>=8.0", "numpy>=2.0"]
+dev = [
+  "pytest>=8.0",
+  "coverage>=7.0",
+  "ruff>=0.12",
+  "mypy>=1.17",
+]
 
 [project.urls]
 Homepage = "https://github.com/NavisWORLD/The-beast-box-"
@@ -59,3 +64,27 @@ include = ["beastbox*", "scripts*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.mypy]
+python_version = "3.10"
+check_untyped_defs = true
+warn_unused_ignores = true
+ignore_missing_imports = true
+files = [
+  "beastbox/config.py",
+  "beastbox/providers.py",
+  "beastbox/cypher/models.py",
+  "beastbox/logging_config.py",
+  "scripts/productization_receipt.py",
+]
+
+[tool.coverage.run]
+source = ["beastbox"]
+
+[tool.coverage.report]
+fail_under = 0
+show_missing = true
