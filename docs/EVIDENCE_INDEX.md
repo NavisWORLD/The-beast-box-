@@ -11,13 +11,22 @@ Sealed scientific anchor commit: `c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f`
 | Path | `evidence/final-whole-organism-001/` |
 | Purpose | Whole-organism engineering isolation + identity + provenance seal |
 | Classification | `ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED` |
-| Result class | verified negative on causal resource→consumer edge |
+| Result class | causal resource/source → consumer effect not established |
 | Fresh IBM jobs in seal | false |
 | Historical IBM hardware evidence verified | true |
 | Causal interventions executed | false |
 | Zeref IBM consumption verified | false |
 | Positive quantum/physical claim allowed | false |
+| Inflated universal-negative claim allowed | false |
 | Key report | `evidence/final-whole-organism-001/release/FINAL_STATUS.json` |
+
+## SOUL-QBT final closed loop
+
+| Field | Value |
+| --- | --- |
+| Path | `experimental/pre-releases/SOUL-QBT-FINAL-CLOSED-LOOP-001.md` |
+| Classification | `ENGINEERING_CONTROL_INCONCLUSIVE` |
+| Result class | historical replay / control inconclusive; not a measured soul |
 
 ## final-reality-bridge
 
@@ -31,5 +40,5 @@ Sealed scientific anchor commit: `c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f`
 
 1. Open the run `STATUS.json` / `FINAL_STATUS.json`.
 2. Confirm `SHA256SUMS`.
-3. Read the classification string. Do not upgrade a null.
+3. Read the classification string. Do not upgrade a null. Do not convert "not established" into "proven absent."
 4. Model prose in `*.jsonl` is behavioral data, not a measurement of physics.

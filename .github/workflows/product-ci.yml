@@ -61,7 +61,7 @@ jobs:
         run: mypy
       - name: Product tests with coverage floor
         run: |
-          coverage run -m pytest tests/test_product_spine.py tests/test_starter_kit.py tests/test_full_runtime.py tests/test_beastbox.py tests/test_logging_config.py tests/test_workspace_security.py tests/test_productization_receipt.py
+          coverage run -m pytest tests/test_product_spine.py tests/test_starter_kit.py tests/test_full_runtime.py tests/test_beastbox.py tests/test_logging_config.py tests/test_workspace_security.py tests/test_productization_receipt.py tests/test_experimental_boundary.py
           coverage report
       - name: Sealed evidence guard when present
         run: |
