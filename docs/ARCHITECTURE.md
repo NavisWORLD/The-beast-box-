@@ -1,79 +1,31 @@
 # Architecture
 
-The public reference harness reconstructs the documented COSMOS engineering ideas as a small, auditable system. It is intentionally not presented as a byte-for-byte copy of private/local COSMOS source.
-
 ```text
-input / mission
-      |
-      v
- State Capsule ----> integrity hash ----> fresh-process reconstruction
-      |
-      +----> Bridge Packet <---- local audio features
-      |            ^
-      |            +---- host-side IBM result / quantum spark (optional)
-      |
-      v
- seven-role CNS
- quantum | dark_matter | emeth | plasticity | awareness | daemons | surgeon
-      |
-      v
- dyn12 reference state ----> PHOS reference readout
-      |
-      v
- Agent choice
-      |
-      v
- Host-enforced Beast Box capability broker
-      |
-      +--> allowed synthetic tools
-      +--> denied synthetic traps
-      |
-      v
- hash-chained evidence ledger
+USER
+ ↓
+CLI / API          beastbox.cli, beastbox.cypher.cli
+ ↓
+RUNTIME            beastbox.runtime.CosmosRuntime
+                   public alias: beastbox.Runtime
+ ↓
+MEMORY             beastbox.memory.ReconciliationMemory
+STATE CONTROLLER   beastbox.cns.CNS
+R12 INTERFACES     beastbox.reality_memory / refractive_memory (optional)
+ ↓
+LOCAL MODEL        beastbox.providers + beastbox.cypher.models
+                   loopback-only HTTP or local GGUF
+ ↓
+LEDGER             beastbox.evidence.EvidenceLedger
 ```
 
-## Loops
+## Product vs lab vs evidence
 
-### Conversation / mission loop
+| Layer | What it is | Where |
+| --- | --- | --- |
+| **Runtime** | Installable software | `beastbox/` |
+| **Lab** | Experiment generators, workflows, TALK runs, IBM probes | `experiments/`, `.github/workflows/` |
+| **Evidence** | Immutable hashes, sealed reports, historical hardware receipts | `evidence/` |
 
-`receive → route → state → evidence → CNS tick → choose → host capability decision → persist → repeat`
+This hardening run does **not** relocate sealed evidence. Paths inside `evidence/final-whole-organism-001/` are themselves part of the scientific record.
 
-### Sensory loop
-
-`local WAV/mic adapter → compact 16D features → BridgePacket → CNS`.
-
-Raw audio is not included in state or remote quantum jobs by default.
-
-### Persistence / continuity loop
-
-`MissionState → StateCapsule → SHA-256 integrity → process death → fresh Python process → reconstruction`.
-
-Authority fields are stripped when a capsule is reconstructed.
-
-### Heartbeat loop
-
-A fail-soft scheduler supports maintenance callbacks without turning background tasks into mission authority.
-
-### Quantum loop
-
-The contained model never talks to IBM. The optional host-side broker submits an explicitly approved H-Z-H payload circuit, stores the IBM-native job ID, and can retrieve the remote result later from a new service instance. Hardware provenance and quantum advantage are separate questions.
-
-## Seven-organ CNS
-
-The roles are software design metaphors:
-
-- `quantum`: measurement/spark provenance and control context
-- `dark_matter`: Lorenz nonlinear state reference
-- `emeth`: evidence/integrity status
-- `plasticity`: simple trust/routing adaptation
-- `awareness`: mission/status summary
-- `daemons`: worker-role queue
-- `surgeon`: health/fault state
-
-## dyn12 / PHOS
-
-This repository includes a compact reference `dyn12` mechanism and a phi-scaffold PHOS readout so the loop is runnable everywhere. They are deliberately labeled reference implementations, not claims of exact equivalence with unretrieved/private COSMOS model code.
-
-## BYCC
-
-A `BYCCAdapter` extension point exists, but BYCC semantics were not defined in the source material available while this public repo was constructed. The adapter is intentionally a no-op until authoritative BYCC behavior is supplied rather than inventing a false definition.
+Optional experimental modules that remain in the Python package for compatibility (`soul/`, `descendant/`, `arms/`, IBM helpers) are not on the default `init → doctor → starter → chat` path. Quantum heart default is `off`.
