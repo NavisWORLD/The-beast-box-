@@ -17,40 +17,65 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       TARGET_SHA: 6499b6b392ce7ff786c3cee570cac2c67a44b06f
-      SOURCE_RUN: '33270982119'
+      SOURCE_RUN: '33271225028'
       RELEASE_TAG: v0.3.2
+      FAILED_DRAFT_ID: '379081880'
     steps:
-      - name: Verify release target and source run
+      - name: Verify immutable release target and tagged build
         shell: bash
         run: |
           set -euo pipefail
           test "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TARGET_SHA}" --jq .sha)" = "${TARGET_SHA}"
           test "$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN}" --jq .head_sha)" = "${TARGET_SHA}"
-          test "$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN}" --jq .conclusion)" = "success"
-          if gh release view "${RELEASE_TAG}" -R "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            echo "Release ${RELEASE_TAG} already exists; refusing to overwrite it."
-            exit 1
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN}" --jq .head_branch)" = "${RELEASE_TAG}"
+          tag_object="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq .object.sha)"
+          tag_type="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq .object.type)"
+          if [ "${tag_type}" = "tag" ]; then
+            resolved="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${tag_object}" --jq .object.sha)"
+          else
+            resolved="${tag_object}"
           fi
+          test "${resolved}" = "${TARGET_SHA}"
 
-      - name: Download verified release artifacts
+      - name: Remove failed draft release only
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p release-assets
-          gh run download "${SOURCE_RUN}" -R "${GITHUB_REPOSITORY}" -D release-assets
-          find release-assets -type f -print | sort
+          draft="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${FAILED_DRAFT_ID}" --jq .draft)"
+          tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${FAILED_DRAFT_ID}" --jq .tag_name)"
+          test "${draft}" = "true"
+          test "${tag}" = "${RELEASE_TAG}"
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/${FAILED_DRAFT_ID}"
 
-      - name: Generate SHA-256 checksums
+      - name: Download tagged release artifacts
         shell: bash
         run: |
           set -euo pipefail
-          checksum_tmp="$(mktemp)"
-          find release-assets -type f ! -name SHA256SUMS.txt -print0 \
-            | sort -z \
-            | xargs -0 sha256sum \
-            > "${checksum_tmp}"
-          mv "${checksum_tmp}" release-assets/SHA256SUMS.txt
-          cat release-assets/SHA256SUMS.txt
+          mkdir -p downloaded release-assets
+          gh run download "${SOURCE_RUN}" -R "${GITHUB_REPOSITORY}" -D downloaded
+          cp downloaded/cosmic-cypher-rust-linux/cosmic-cypher-rs release-assets/cosmic-cypher-rs-linux
+          cp downloaded/cosmic-cypher-rust-macos/cosmic-cypher-rs release-assets/cosmic-cypher-rs-macos
+          cp downloaded/cosmic-cypher-rust-windows/cosmic-cypher-rs.exe release-assets/cosmic-cypher-rs-windows.exe
+          cp downloaded/cosmic-synapse-python/cosmos_beast_box-0.3.2-py3-none-any.whl release-assets/
+          cp downloaded/cosmic-synapse-python/cosmos_beast_box-0.3.2.tar.gz release-assets/
+          find release-assets -maxdepth 1 -type f -print | sort
+
+      - name: Generate correct SHA-256 release manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          (
+            cd release-assets
+            sha256sum \
+              cosmic-cypher-rs-linux \
+              cosmic-cypher-rs-macos \
+              cosmic-cypher-rs-windows.exe \
+              cosmos_beast_box-0.3.2-py3-none-any.whl \
+              cosmos_beast_box-0.3.2.tar.gz \
+              > SHA256SUMS.txt
+            cat SHA256SUMS.txt
+            sha256sum -c SHA256SUMS.txt
+          )
 
       - name: Write bounded release notes
         shell: bash
@@ -58,7 +83,7 @@ jobs:
           cat > RELEASE_NOTES.md <<'EOF'
           # Beast Box v0.3.2 — Public-Surface Hardening
 
-          This release packages the hardened Beast Box public/product surface at commit `6499b6b392ce7ff786c3cee570cac2c67a44b06f`.
+          This release packages the verified Beast Box public/product surface at commit `6499b6b392ce7ff786c3cee570cac2c67a44b06f`.
 
           Highlights:
           - installable Python wheel and source distribution;
@@ -74,21 +99,23 @@ jobs:
 
           This release does not establish consciousness, sentience, a literal soul, biological continuity, resurrection, quantum advantage, a new physical dimension, broken quantum mechanics, or IBM/QBT causation of model behavior.
 
-          Release assets include SHA-256 checksums in `SHA256SUMS.txt`.
+          All downloadable files are covered by `SHA256SUMS.txt`.
           EOF
 
-      - name: Publish tag and GitHub Release
+      - name: Publish GitHub Release on existing verified tag
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -d '' assets < <(find release-assets -type f -print0 | sort -z)
-          gh release create "${RELEASE_TAG}" "${assets[@]}" \
+          if gh release view "${RELEASE_TAG}" -R "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "A published release already exists for ${RELEASE_TAG}; refusing to replace it."
+            exit 1
+          fi
+          gh release create "${RELEASE_TAG}" release-assets/* \
             -R "${GITHUB_REPOSITORY}" \
-            --target "${TARGET_SHA}" \
             --title "Beast Box v0.3.2" \
             --notes-file RELEASE_NOTES.md
 
-      - name: Verify published release
+      - name: Verify published release and assets
         shell: bash
         run: |
           set -euo pipefail
@@ -96,5 +123,16 @@ jobs:
           test "$(jq -r .tag_name <<<"${release_json}")" = "${RELEASE_TAG}"
           test "$(jq -r .draft <<<"${release_json}")" = "false"
           test "$(jq -r .prerelease <<<"${release_json}")" = "false"
-          gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq .object.sha
+          mapfile -t names < <(jq -r '.assets[].name' <<<"${release_json}" | sort)
+          printf '%s\n' "${names[@]}"
+          expected=(
+            SHA256SUMS.txt
+            cosmic-cypher-rs-linux
+            cosmic-cypher-rs-macos
+            cosmic-cypher-rs-windows.exe
+            cosmos_beast_box-0.3.2-py3-none-any.whl
+            cosmos_beast_box-0.3.2.tar.gz
+          )
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "$(printf '%s\n' "${names[@]}")" = "$(printf '%s\n' "${expected_sorted[@]}")"
           gh release view "${RELEASE_TAG}" -R "${GITHUB_REPOSITORY}" --json url,tagName,name,isDraft,isPrerelease,publishedAt
