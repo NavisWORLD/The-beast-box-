@@ -223,7 +223,7 @@ The canonical CI lane includes:
 - productization receipt checks;
 - sealed scientific-evidence immutability checks.
 
-Coverage starts with a measured non-enforcing baseline (`fail_under = 0`) rather than an invented number. It can be ratcheted upward after a reproducible baseline is observed.
+The focused productization suite measured **4% whole-package coverage** against the current broad `beastbox` source set. CI now enforces that measured value as the initial non-regression floor (`fail_under = 4`); future releases can ratchet it upward with additional meaningful tests.
 
 ---
 
