@@ -8,12 +8,13 @@ Beast Box is a local-first runtime: memory, a software state controller, loopbac
 
 - Public technical aliases: `Runtime`, `MemoryStore`, `StateController`, `ProvenanceLedger`, `EntropyCoupler`.
 - Packaging now ships `beastbox*` only. Lab scripts, experiments, evidence, and starter docs stay in the source tree and out of the wheel.
-- Coverage floor raised from 4% to 20% on the product spine.
+- Coverage floor raised from 4% to 20% on the product spine (measured 32% on that suite).
 - Product-spine tests plus experimental-boundary tests (import does not talk to IBM, does not require Qiskit/Ollama, quantum-heart defaults off, IBM submit refuses without confirm).
 - Documentation split: architecture, claim boundaries, capabilities, evidence index, layer map, storage policy, CI hierarchy, license clarification.
 - Machine-readable `PROJECT_STATUS.json`.
-- README now separates the stable product path from `experimental/pre-releases/` and `experimental/logs/`.
-- Scientific wording tightened: official classification unchanged; interpretation is "not established," not a universal-negative proof.
+- README separates the stable product path from `experimental/pre-releases/` and `experimental/logs/`.
+- Scientific wording frozen: official classification unchanged; interpretation is "not established," not a universal-negative proof.
+- CI closure: numpy restored on `[dev]`/`[ml]`, product-spine suite used for the 20% floor, R12 public-kit phrases restored as software-routing language only.
 
 ### How to install
 
@@ -37,9 +38,14 @@ reference synthesizer (default), Ollama, GGUF, llama.cpp-server, LM Studio / Ope
 
 `soul/`, R12 internals, IBM/QBT helpers, Zeref identifiers, `experimental/` snapshots and logs. Identifiers are retained. They are not the default path.
 
+Public research surfaces:
+
+- `experimental/pre-releases/`
+- `experimental/logs/`
+
 ### What was tested
 
-Product-spine tests, experimental-boundary tests, starter/receipt/workspace tests, wheel contents, CLI smoke, loopback URL rejection, workspace escape rejection.
+Product-spine tests (18), experimental-boundary tests (10), starter/receipt/workspace tests, wheel contents, CLI smoke, loopback URL rejection, workspace escape rejection, Product CI 3.10/3.12, canonical CI 3.10/3.12, security audit, sealed-evidence immutability guard.
 
 ### Scientific result
 
@@ -59,7 +65,7 @@ What it does not say: that a universal negative causal effect was proved; that c
 
 - OWNER LEGAL DECISION REQUIRED on historical MIT vs current proprietary terms.
 - FUTURE OPTIONAL REPOSITORY TOPOLOGY for a physical product/lab split.
-- Bulk quieting of ~200 historical Actions workflows.
+- Optional hygiene: rewrite historical workflow YAML (not required; observed auto-trigger set on a normal main product push is five workflows).
 
 ## 0.3.1 — productization-era (canonical tree)
 
