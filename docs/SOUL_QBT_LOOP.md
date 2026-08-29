@@ -192,6 +192,35 @@ while not source.exhausted:
 
 Replay creates deterministic parent/child genealogy using `parent_token_id` and `generation`.
 
+## QBT loopback source
+
+When the existing QBT sidecar is running on loopback, Beast can consume its normalized state directly without duplicating provider code or credentials:
+
+```python
+from beastbox.soul import QBTLoopbackSoulSource, SoulLoop
+
+source = QBTLoopbackSoulSource("http://127.0.0.1:8766")
+
+# Safe default: simulator/control source.
+token = source.sample(provider="simulator", shots=2048, seed=9)
+result = SoulLoop(runtime).respond("same preregistered input", token)
+```
+
+The Beast adapter rejects non-loopback QBT URLs.
+
+Live IBM/Azure requires two independent opt-ins:
+
+1. QBT itself must have been started with live providers enabled by the operator.
+2. The Beast call must pass `allow_live=True`.
+
+```python
+# QBT/operator configuration remains responsible for provider credentials.
+token = source.sample(provider="ibm", shots=1024, allow_live=True)
+result = SoulLoop(runtime).respond("same preregistered input", token)
+```
+
+No provider credential is passed through `SoulToken`.
+
 ## Controls
 
 The same token/adapter/runtime path should be used for source-blind experiments such as:
@@ -210,7 +239,7 @@ The source type should change; the downstream consumer machinery should not.
 
 Live IBM/Azure provider execution remains QBT/operator responsibility. This Beast layer deliberately does not duplicate IBM IAM, Sampler submission, Azure jobs, polling, credentials, or provider SDK behavior.
 
-A live QBT result can be turned into a SOUL token immediately after QBT normalizes it. Historical QBT results can be replayed through the exact same code path offline.
+`QBTLoopbackSoulSource` talks only to a loopback QBT sidecar and converts the returned normalized state into the same SOUL token used by replay/control paths. Historical QBT results can be replayed through the same downstream code path offline.
 
 ## Historical lineage anchors
 
