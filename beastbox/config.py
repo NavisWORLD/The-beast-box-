@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+import os
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
+from typing import Mapping
 
 
 @dataclass
@@ -28,6 +30,15 @@ class RuntimeConfig:
             cfg.save(p)
             return cfg
         return cls(**json.loads(p.read_text(encoding="utf-8")))
+
+    def with_env(self, environ: Mapping[str, str] | None = None) -> "RuntimeConfig":
+        env = os.environ if environ is None else environ
+        return replace(
+            self,
+            local_model_name=env.get("BEASTBOX_MODEL_NAME", self.local_model_name),
+            local_model_url=env.get("BEASTBOX_MODEL_URL", self.local_model_url),
+            quantum_heart_mode=env.get("BEASTBOX_QUANTUM_HEART_MODE", self.quantum_heart_mode),
+        )
 
     def save(self, path: str | Path) -> None:
         p = Path(path)

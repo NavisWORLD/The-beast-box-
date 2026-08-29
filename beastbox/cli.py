@@ -21,6 +21,9 @@ from .shard_transport import prepare_required_shard, recover_required_shard
 from .spark_ablation import run_spark_ablation
 from .web import serve as serve_web
 
+SCIENTIFIC_ANCHOR = "c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f"
+SCIENTIFIC_CLASSIFICATION = "ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED"
+
 
 def _print(value) -> None:
     print(json.dumps(value, indent=2, sort_keys=True, default=str))
@@ -35,6 +38,8 @@ def main() -> int:
 
     doctor = sub.add_parser("doctor", help="check local runtime and optional libraries")
     doctor.add_argument("--ollama-url", default="http://127.0.0.1:11434")
+
+    sub.add_parser("starter", help="show the shortest safe path to a first local Beast conversation")
 
     run = sub.add_parser("run", help="run the contained E1-E20 reference gauntlet")
     run.add_argument("--condition", default="all", help="E1..E20 or all")
@@ -116,6 +121,21 @@ def main() -> int:
         return 0
     if args.cmd == "doctor":
         _print(run_doctor(args.ollama_url)); return 0
+    if args.cmd == "starter":
+        _print({
+            "steps": [
+                "python -m venv .venv",
+                "pip install -e .",
+                "beastbox init",
+                "beastbox doctor",
+                "cosmic.cypher-cli models scan-ollama",
+                "cosmic.cypher-cli beast <alias>",
+            ],
+            "ibm_required": False,
+            "scientific_anchor": SCIENTIFIC_ANCHOR,
+            "classification": SCIENTIFIC_CLASSIFICATION,
+        })
+        return 0
     if args.cmd == "serve":
         serve_web(args.host, args.port); return 0
     if args.cmd == "run":
@@ -150,7 +170,7 @@ def main() -> int:
         finally: memory.close()
         return 0
     if args.cmd == "chat":
-        cfg = RuntimeConfig.load(args.config)
+        cfg = RuntimeConfig.load(args.config).with_env()
         provider = LocalOllamaProvider(model=cfg.local_model_name, base_url=cfg.local_model_url) if args.ollama else ReferenceTextProvider()
         runtime = CosmosRuntime(cfg, provider=provider)
         try:
