@@ -7,7 +7,14 @@ import pytest
 from beastbox.config import RuntimeConfig
 from beastbox.providers import ReferenceTextProvider
 from beastbox.runtime import CosmosRuntime
-from beastbox.soul import ReplaySoulSource, SoulLoop, SoulToken, SoulTokenBus, bridge_from_soul
+from beastbox.soul import (
+    QBTLoopbackSoulSource,
+    ReplaySoulSource,
+    SoulLoop,
+    SoulToken,
+    SoulTokenBus,
+    bridge_from_soul,
+)
 
 
 def qbt_state(**overrides):
@@ -59,6 +66,14 @@ def test_authority_defaults_fail_closed():
     }
 
 
+def test_credential_like_qbt_fields_are_redacted_before_transport():
+    token = SoulToken.from_qbt(
+        qbt_state(provenance={"provider": "archive", "api_key": "do-not-carry"})
+    )
+    assert token.qbt_state["provenance"]["api_key"] == "<redacted>"
+    assert "do-not-carry" not in str(token.to_dict())
+
+
 def test_bridge_adapter_preserves_provenance_and_bounds_spark():
     token = SoulToken.from_qbt(qbt_state(), source_type="HARVESTED_IBM_REPLAY")
     packet = bridge_from_soul(token)
@@ -98,6 +113,48 @@ def test_replay_source_is_deterministic_and_offline():
     assert a.next().token_id == b.next().token_id
     assert a.exhausted is True
     assert b.exhausted is True
+
+
+def test_qbt_loopback_source_rejects_remote_and_gates_live_providers():
+    with pytest.raises(ValueError):
+        QBTLoopbackSoulSource("https://example.com:8766")
+
+    source = QBTLoopbackSoulSource(transport=lambda *_args: {})
+    with pytest.raises(PermissionError):
+        source.sample(provider="ibm")
+    with pytest.raises(PermissionError):
+        source.sample(provider="azure")
+
+
+def test_qbt_loopback_source_turns_sidecar_packet_into_soul_token():
+    calls = []
+
+    def transport(url, payload, timeout):
+        calls.append((url, payload, timeout))
+        return {
+            "connection": {"simulator": {"available": True}},
+            "packet": {
+                "qbt_version": "1.0",
+                "active_sources": 1,
+                "quantum_mix": 0.75,
+                "states": [
+                    qbt_state(
+                        provider="simulator",
+                        backend="local-control",
+                        execution_mode="simulator",
+                        job_id=None,
+                    )
+                ],
+                "provider_errors": {},
+            },
+        }
+
+    source = QBTLoopbackSoulSource(transport=transport)
+    token = source.sample(provider="simulator", shots=2048, seed=9)
+    assert token.source_type == "QBT_SIMULATOR"
+    assert token.qbt_state["provider"] == "simulator"
+    assert calls[0][0] == "http://127.0.0.1:8766/v1/sample"
+    assert calls[0][1] == {"provider": "simulator", "shots": 2048, "seed": 9}
 
 
 def test_full_loop_uses_existing_runtime_and_records_receipt(tmp_path: Path):
