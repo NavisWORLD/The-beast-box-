@@ -275,7 +275,21 @@ Workspace escape is rejected. Existing files are backed up before writes, and se
 
 ---
 
-## 11. Safety, provenance, and contribution
+## 11. Experimental / pre-release research
+
+The stable beginner path stays intentionally small. Finished and in-progress research is published separately under [`experimental/`](experimental/README.md) so engineers and scientific reviewers can inspect the actual development trajectory without mistaking an experiment for a stable release.
+
+Current public experimental material includes:
+
+- [`experimental/pre-releases/`](experimental/pre-releases/README.md) — experimental system snapshots and completed research branches;
+- [`SOUL-QBT-FINAL-CLOSED-LOOP-001`](experimental/pre-releases/SOUL-QBT-FINAL-CLOSED-LOOP-001.md) — the completed closed-loop source-sensitivity experiment, including the historical source gap, synthetic harness proof, exact hashes/run IDs, and conservative classification;
+- [`experimental/logs/`](experimental/logs/README.md) — chronological engineering/research logs preserving failures, nulls, fixes, controls, and final verification state.
+
+Experimental publication does not change the sealed whole-organism classification and does not convert historical IBM provenance into demonstrated quantum causality.
+
+---
+
+## 12. Safety, provenance, and contribution
 
 This repository keeps host authority explicit. Do not add credential theft, host breakout, unauthorized persistence, lateral movement, arbitrary internet authority, or unsupported consciousness/life claims.
 
@@ -285,6 +299,6 @@ Before contributing, read [`CONTRIBUTING.md`](CONTRIBUTING.md), `SECURITY.md` if
 
 ---
 
-## 12. Project principle
+## 13. Project principle
 
 Build the loop. Instrument the loop. Move the state. Preserve the nulls. Keep authority explicit.
