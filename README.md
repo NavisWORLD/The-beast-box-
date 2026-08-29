@@ -145,6 +145,10 @@ The language model is only one layer. The Beast Box runtime can place it inside 
 - evidence ledgers and controlled ablations;
 - local conversation and coding interfaces.
 
+### R12 Reality Memory Expansion
+
+The **R12 Reality Memory Expansion** is the repository's public memory/routing expansion and reproducibility boundary for the Zeref/R12 lineage. Its presence documents how reality-memory context is represented and evaluated; it is not, by itself, evidence of a quantum causal effect or a new physical phenomenon. See [`docs/ZEREF_R12_REALITY_MEMORY_MANUAL.md`](docs/ZEREF_R12_REALITY_MEMORY_MANUAL.md) for the detailed boundary and reproduction notes.
+
 For the source-grounded system map, read [`docs/COSMIC_SYNAPSE_THEORY.md`](docs/COSMIC_SYNAPSE_THEORY.md). For local-model coding and conversation, read [`docs/COSMIC_CYPHER.md`](docs/COSMIC_CYPHER.md).
 
 ---
