@@ -12,11 +12,18 @@ python -m venv .venv
 pip install -e .
 beastbox init
 beastbox doctor
+beastbox starter
+```
+
+### Ollama: fastest default path
+
+```bash
 cosmic.cypher-cli models scan-ollama
+cosmic.cypher-cli models list
 cosmic.cypher-cli beast <alias>
 ```
 
-For an explicit Ollama registration:
+Or explicitly register one:
 
 ```bash
 cosmic.cypher-cli models add my-beast \
@@ -36,18 +43,65 @@ The existing model layer supports:
 - LM Studio on loopback;
 - another loopback OpenAI-compatible endpoint.
 
-Example profiles live under `models/`. They are examples only: replace model names and local file paths with your own.
+Machine-readable examples are under `models/`:
+
+```text
+models/ollama.example.json
+models/gguf.example.json
+models/llama-server.example.json
+models/lm-studio.example.json
+```
+
+They are examples only. Replace model names and local file paths with your own.
 
 ## Runtime config
 
-Copy `config/beastbox.example.json` to a working path if you want an explicit config rather than defaults. The default runtime keeps local state under `.beastbox/`.
+`config/beastbox.example.json` mirrors `RuntimeConfig` and keeps quantum-heart mode off by default. The default runtime keeps local state under `.beastbox/`.
+
+The supported starter environment overrides are:
+
+```dotenv
+BEASTBOX_MODEL_NAME=my-model
+BEASTBOX_MODEL_URL=http://127.0.0.1:11434
+BEASTBOX_QUANTUM_HEART_MODE=off
+```
+
+## Optional Compose path
+
+Validate the starter profile:
+
+```bash
+docker compose -f QUANTUM_BEAST_STARTER/docker-compose.yml config
+```
+
+Run the containerized doctor while keeping an existing host Ollama service outside the container:
+
+```bash
+docker compose -f QUANTUM_BEAST_STARTER/docker-compose.yml run --rm beastbox
+```
+
+The Compose file does not embed IBM credentials.
 
 ## IBM Quantum is optional
 
 A normal local Beast does **not** require IBM Quantum, Qiskit, an IBM account, or IBM credentials. IBM tooling is an optional host-authorized research/provenance path.
 
-Never commit real credentials. The starter does not submit fresh IBM jobs.
+Never commit real credentials. The starter/productization effort submits no fresh IBM jobs.
 
 ## Scientific boundary
 
-Read `SCIENTIFIC_ANCHOR.md` before using research language from the project. Productization is downstream of a sealed scientific anchor and does not change that result.
+Read `SCIENTIFIC_ANCHOR.md` before using research language from the project.
+
+Scientific anchor:
+
+```text
+c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f
+```
+
+Final classification:
+
+```text
+ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED
+```
+
+Productization is downstream of that sealed result. It does not change the scientific classification or convert historical provenance into a demonstrated causal quantum effect.
