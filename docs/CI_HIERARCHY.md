@@ -19,9 +19,23 @@ These are the current product / security / package lanes:
 
 `product-ci.yml` is path-filtered to product files. Canonical `ci.yml` still runs on `main` and selected productization branches and includes the sealed-evidence immutability guard.
 
+## What actually auto-fires on a normal main product commit
+
+Observed on `f9babdacbf7a1d3d722b2b10f31c8aee79b9e8eb` (v0.3.2 merge to main):
+
+| Workflow | Event | Required for product release |
+| --- | --- | --- |
+| Product CI | push | yes |
+| CI | push | yes |
+| Repository security audit | push | yes |
+| Cosmic Cypher smoke | push | yes |
+| Quantum API smoke | push | no (optional / experimental) |
+
+The other ~204 workflow files did **not** start on that product commit. They are already branch-filtered, `workflow_dispatch`, or otherwise gated. The noisy surface is inventory size, not 209 jobs per commit.
+
 ## Scientific / evidence protocols
 
-Class: `EXPERIMENTAL` / `MANUAL`
+Class: `EXPERIMENTAL` / `MANUAL` / `NOT REQUIRED FOR CURRENT PRODUCT RELEASE`
 
 - `cosmos-final-*.yml`
 - `full-gauntlet.yml`
@@ -43,9 +57,9 @@ Retained in place:
 - `qc67-*`, `hf-*` publish/probe
 - `macos-zeref.yml`, `rust.yml`
 
-## Why they were not bulk-disabled
+## Why they were not bulk-rewritten
 
-Many historical workflows encode the exact branch, inputs, and confirmation flags of a sealed experiment. Converting ~200 files from `on: push` to `workflow_dispatch` would change how those protocols can be re-fired and is a separate migration.
+Many historical workflows encode the exact branch, inputs, and confirmation flags of a sealed experiment. Converting ~200 files from their recorded triggers to `workflow_dispatch` would change how those protocols can be re-fired and is a separate migration.
 
 Safe current control:
 
@@ -53,5 +67,6 @@ Safe current control:
 - `product-ci.yml` is path-scoped
 - historical experiment workflows are not advertised as product CI
 - product commits should be reviewed against product-ci + canonical ci + security-audit
+- observed auto-trigger set on a normal main product push is five workflows, not two hundred
 
-Bulk quieting of auto-triggers remains **known debt**, not a reason to withhold the product surface.
+Bulk rewriting of historical workflow YAML remains optional hygiene, not a reason to withhold the product surface.

@@ -24,11 +24,11 @@ HISTORICAL_ALIASES = {
 }
 
 __all__ = [
-    "Runtime",
-    "MemoryStore",
-    "StateController",
-    "ProvenanceLedger",
     "EntropyCoupler",
-    "Heartbeat",
     "HISTORICAL_ALIASES",
+    "Heartbeat",
+    "MemoryStore",
+    "ProvenanceLedger",
+    "Runtime",
+    "StateController",
 ]

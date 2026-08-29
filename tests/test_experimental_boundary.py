@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from beastbox import quantum
 from beastbox.config import RuntimeConfig
 from beastbox.quantum import submit_real, submit_real_chunks
 from beastbox.quantum_heart import HeartMode, QuantumHeart
@@ -11,7 +12,7 @@ from beastbox.quantum_heart import HeartMode, QuantumHeart
 
 def test_importing_public_package_does_not_require_qiskit_or_ollama():
     import beastbox
-    from beastbox import Runtime, MemoryStore, StateController, ProvenanceLedger
+    from beastbox import MemoryStore, ProvenanceLedger, Runtime, StateController
 
     assert beastbox.__version__ == "0.3.2"
     assert Runtime is not None
@@ -22,8 +23,6 @@ def test_importing_public_package_does_not_require_qiskit_or_ollama():
 
 def test_importing_quantum_helper_does_not_import_qiskit():
     import sys
-
-    import beastbox.quantum as quantum
 
     assert "qiskit" not in sys.modules
     assert "qiskit_ibm_runtime" not in sys.modules
@@ -101,5 +100,7 @@ def test_product_docs_do_not_inflate_a_universal_negative():
         text = (root / rel).read_text(encoding="utf-8").lower()
         if forbidden in text:
             hits.append(rel)
-        assert "engineering_isolation_verified_causal_resource_source_not_established" in text or rel.endswith((".json", "SYSTEM_CAPABILITIES.md"))
+        assert "engineering_isolation_verified_causal_resource_source_not_established" in text or rel.endswith(
+            (".json", "SYSTEM_CAPABILITIES.md")
+        )
     assert hits == [], hits
