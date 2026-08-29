@@ -37,15 +37,17 @@ jobs:
           fi
           test "${resolved}" = "${TARGET_SHA}"
 
-      - name: Remove failed draft release only
+      - name: Remove failed draft release if it still exists
         shell: bash
         run: |
           set -euo pipefail
-          draft="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${FAILED_DRAFT_ID}" --jq .draft)"
-          tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${FAILED_DRAFT_ID}" --jq .tag_name)"
-          test "${draft}" = "true"
-          test "${tag}" = "${RELEASE_TAG}"
-          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/${FAILED_DRAFT_ID}"
+          if release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${FAILED_DRAFT_ID}" 2>/dev/null)"; then
+            test "$(jq -r .draft <<<"${release_json}")" = "true"
+            test "$(jq -r .tag_name <<<"${release_json}")" = "${RELEASE_TAG}"
+            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/${FAILED_DRAFT_ID}"
+          else
+            echo "Failed draft ${FAILED_DRAFT_ID} already absent; continuing."
+          fi
 
       - name: Download tagged release artifacts
         shell: bash
