@@ -31,3 +31,27 @@ def test_scientific_anchor_is_explicit_and_conservative():
     assert "c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f" in text
     assert "ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED" in text
     assert "fresh_ibm_jobs_submitted: false" in text
+
+
+def test_runtime_config_environment_overrides():
+    cfg = RuntimeConfig(local_model_name="original").with_env({
+        "BEASTBOX_MODEL_NAME": "my-model",
+        "BEASTBOX_MODEL_URL": "http://127.0.0.1:1234",
+        "BEASTBOX_QUANTUM_HEART_MODE": "off",
+    })
+    assert cfg.local_model_name == "my-model"
+    assert cfg.local_model_url == "http://127.0.0.1:1234"
+    assert cfg.quantum_heart_mode == "off"
+
+
+def test_env_example_documents_starter_and_optional_ibm_settings():
+    text = (ROOT / ".env.example").read_text(encoding="utf-8")
+    for name in [
+        "BEASTBOX_MODEL_NAME",
+        "BEASTBOX_MODEL_URL",
+        "BEASTBOX_QUANTUM_HEART_MODE",
+        "IBM_QUANTUM_TOKEN",
+        "IBM_QUANTUM_INSTANCE",
+    ]:
+        assert f"{name}=" in text
+    assert "IBM_QUANTUM_TOKEN=\n" in text
