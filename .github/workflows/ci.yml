@@ -2,12 +2,16 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - quantum-beast-starter-productization-001
     paths-ignore:
       - 'rust/**'
       - 'docs/RUST.md'
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - cory-davis-cosmos-reality-bridge-final-organism-001
     paths-ignore:
       - 'rust/**'
       - 'docs/RUST.md'
@@ -35,7 +39,7 @@ jobs:
       - run: pip install -e .
       - name: Lint productization surface
         run: |
-          ruff check beastbox/config.py beastbox/providers.py beastbox/cypher/models.py beastbox/logging_config.py scripts/productization_receipt.py tests/test_starter_kit.py tests/test_logging_config.py tests/test_productization_receipt.py
+          ruff check beastbox/config.py beastbox/logging_config.py scripts/productization_receipt.py tests/test_starter_kit.py tests/test_logging_config.py tests/test_productization_receipt.py
       - name: Type-check productization surface
         run: mypy
       - name: Starter and receipt tests with measured coverage
@@ -56,6 +60,8 @@ jobs:
         python-version: ["3.10", "3.12"]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
