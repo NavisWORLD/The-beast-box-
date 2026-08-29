@@ -1,0 +1,63 @@
+name: Cut v0.3.2 release tag
+
+on:
+  push:
+    branches:
+      - 'release/v0.3.2-tag-cutter'
+    paths:
+      - '.github/workflows/cut-v0.3.2-release-tag.yml'
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  cut-tag-and-dispatch-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release target
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG='v0.3.2'
+          TARGET='6499b6b392ce7ff786c3cee570cac2c67a44b06f'
+          git fetch origin main --tags --force
+          remote_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$remote_main" = "$TARGET" || {
+            echo "main moved: expected $TARGET, got $remote_main" >&2
+            exit 1
+          }
+          git cat-file -e "${TARGET}^{commit}"
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            existing="$(git rev-list -n 1 "$TAG")"
+            test "$existing" = "$TARGET" || {
+              echo "$TAG already exists at $existing, expected $TARGET" >&2
+              exit 1
+            }
+          fi
+
+      - name: Create annotated tag if absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG='v0.3.2'
+          TARGET='6499b6b392ce7ff786c3cee570cac2c67a44b06f'
+          if ! git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git tag -a "$TAG" "$TARGET" -m 'Beast Box v0.3.2 public-surface hardening'
+            git push origin "refs/tags/${TAG}"
+          fi
+          test "$(git rev-list -n 1 "$TAG")" = "$TARGET"
+
+      - name: Dispatch official release workflow on tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref v0.3.2
