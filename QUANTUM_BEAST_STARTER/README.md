@@ -66,9 +66,11 @@ BEASTBOX_MODEL_URL=http://127.0.0.1:11434
 BEASTBOX_QUANTUM_HEART_MODE=off
 ```
 
-## Optional Compose path
+## Optional Compose diagnostic path
 
-Validate the starter profile:
+The Compose profile is deliberately diagnostic. It validates the packaged Beast Box and can probe a host Ollama service with `beastbox doctor`; it does not bypass the runtime's loopback-only model authority rules.
+
+Validate the profile:
 
 ```bash
 docker compose -f QUANTUM_BEAST_STARTER/docker-compose.yml config
@@ -80,7 +82,7 @@ Run the containerized doctor while keeping an existing host Ollama service outsi
 docker compose -f QUANTUM_BEAST_STARTER/docker-compose.yml run --rm beastbox
 ```
 
-The Compose file does not embed IBM credentials.
+The Compose file does not embed IBM credentials or configure a non-loopback model endpoint for Beast conversation.
 
 ## IBM Quantum is optional
 
