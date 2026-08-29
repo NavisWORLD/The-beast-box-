@@ -1,0 +1,56 @@
+{
+  "control_separation": true,
+  "downstream_difference": true,
+  "fully_separated_source_count": 1,
+  "rows": [
+    {
+      "alias": "B",
+      "condition": "ORIGINAL",
+      "dyn12_l2": 0.44848956781563176,
+      "response_changed_from_original": false,
+      "response_sha256": "7697b40a6e0e27aeee98c006c53698a2ff766cabe7a4c62d67244d6b86ab1286",
+      "source_record_id": "b1131e6954ed473eac807d14e98602775bc61d5bcc32aec75ce31c0139045ff1",
+      "state_changed_from_original": false,
+      "state_hash": "dc81f91a4b95d62cc3084c81f0b0f152fd7d5191d1a636c5383c3a75b4bf6e67",
+      "vector_l1_from_original": 0.0,
+      "vector_l2_from_original": 0.0
+    },
+    {
+      "alias": "A",
+      "condition": "SHUFFLED",
+      "dyn12_l2": 0.4542765471863149,
+      "response_changed_from_original": true,
+      "response_sha256": "daf33d6b6788a685f4b6626d534e08236f8ca3feb358b17c9712a2809a18ddb4",
+      "source_record_id": "b1131e6954ed473eac807d14e98602775bc61d5bcc32aec75ce31c0139045ff1",
+      "state_changed_from_original": true,
+      "state_hash": "9f2ba27e4bac93713e557c575e20fe95602566eeb4dcd9cdfdfcd60dbcd9e582",
+      "vector_l1_from_original": 0.52,
+      "vector_l2_from_original": 0.31874754901018454
+    },
+    {
+      "alias": "D",
+      "condition": "CLASSICAL_MATCHED",
+      "dyn12_l2": 0.34083874694198635,
+      "response_changed_from_original": true,
+      "response_sha256": "f2ebb58b5158889cf2a9eb42c788fa1397e67ac4477856e58632978e707809cc",
+      "source_record_id": "b1131e6954ed473eac807d14e98602775bc61d5bcc32aec75ce31c0139045ff1",
+      "state_changed_from_original": true,
+      "state_hash": "104bf2e1e5b6082f1fe7a6f81d3fdb310b5cb726f7f6976be48ea41b23e9a7ea",
+      "vector_l1_from_original": 0.5799167551312236,
+      "vector_l2_from_original": 0.34846228508905974
+    },
+    {
+      "alias": "C",
+      "condition": "NEUTRAL",
+      "dyn12_l2": 0.06683153966406283,
+      "response_changed_from_original": true,
+      "response_sha256": "f015e5c9579eefdf86f7c2b45731ba9b2281bc39bd703ba5548cbad3ba718bf4",
+      "source_record_id": "b1131e6954ed473eac807d14e98602775bc61d5bcc32aec75ce31c0139045ff1",
+      "state_changed_from_original": true,
+      "state_hash": "84be865da9dbf3764c53af447f3988822a2129bb02e199f0a7bb510cef831170",
+      "vector_l1_from_original": 1.0,
+      "vector_l2_from_original": 0.5347896782848376
+    }
+  ],
+  "source_count": 1
+}

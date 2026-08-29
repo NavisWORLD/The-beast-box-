@@ -1,0 +1,40 @@
+{
+  "causal_source_claim_allowed": false,
+  "conditions": {
+    "CLASSICAL_MATCHED": "deterministic classical coarse mean/variance matched control",
+    "NEUTRAL": [
+      0.5,
+      0.5,
+      0.5,
+      0.5
+    ],
+    "ORIGINAL": "unchanged",
+    "SHUFFLED": "deterministic seed+record permutation"
+  },
+  "historical_repo_revision": "dddb1325b90c9abbe8da77974874e5770623035e",
+  "metrics": [
+    "response_sha256",
+    "state_hash",
+    "bridge_sha256",
+    "SoulToken_id",
+    "SOUL_receipt_hash",
+    "ledger_head",
+    "dyn12_vector",
+    "dyn12_l2",
+    "response_changed_from_original",
+    "state_changed_from_original",
+    "source_vector_l1_displacement",
+    "source_vector_l2_displacement"
+  ],
+  "model_identity": "ReferenceTextProvider",
+  "official_beast_classification": "ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED",
+  "prompt": "same preregistered input",
+  "prompt_sha256": "c753841ca20063816e7c0b74bc3f2924f6d3c61dfd21e342861af9c3c43084fa",
+  "provider_mode": "reference",
+  "recovered_source_record_ids": [],
+  "repository_start_sha": "682f0b70a8e8c24b0e8540c5978717385e5949bb",
+  "schema": "soul-qbt-final-preregistration-v1",
+  "sealed_anchor": "c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f",
+  "seed": 67,
+  "source_corpus_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
