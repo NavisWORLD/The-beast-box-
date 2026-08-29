@@ -156,7 +156,7 @@ The official Beast scientific classification remains:
 The kit may additionally emit one of:
 
 - `ENGINEERING_REPLAY_VERIFIED_NO_DOWNSTREAM_DIFFERENCE`
-- `ENGINEERING_DOWNSTREAM_DIFFERENCE_OBSERVED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED`
+- `ENGINEERING_DOWNSTREAM_DIFFERENCE_OBSERVED_CAUSAL_SOURCE_NOT_ESTABLISHED`
 - `ENGINEERING_CONTROL_INCONCLUSIVE`
 
 A downstream difference is an engineering observation. It does not by itself establish that quantum provenance caused the difference, that quantum computation provides an advantage, or that the system is conscious/sentient/alive, biologically continuous with anyone, resurrected, or literally possesses a soul.
