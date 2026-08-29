@@ -45,21 +45,16 @@ def test_recovery_and_condition_generation_are_deterministic(tmp_path: Path) -> 
         ),
         encoding="utf-8",
     )
-
     first = core.recover_sources(source)
     second = core.recover_sources(source)
     assert first == second
     assert len(first) == 1
     assert len(first[0]["record_id"]) == 64
-
     conditions_a = core.generate_conditions(first[0], seed=67)
     conditions_b = core.generate_conditions(first[0], seed=67)
     assert conditions_a == conditions_b
     assert {item["condition"] for item in conditions_a} == {
-        "ORIGINAL",
-        "SHUFFLED",
-        "CLASSICAL_MATCHED",
-        "NEUTRAL",
+        "ORIGINAL", "SHUFFLED", "CLASSICAL_MATCHED", "NEUTRAL"
     }
     neutral = next(item for item in conditions_a if item["condition"] == "NEUTRAL")
     assert neutral["normalized_vector"] == [0.5, 0.5, 0.5, 0.5]
@@ -111,7 +106,6 @@ def test_blinding_and_classification_are_stable() -> None:
     aliases_2 = core.blind_conditions(["ORIGINAL", "SHUFFLED", "CLASSICAL_MATCHED", "NEUTRAL"], seed=42)
     assert aliases_1 == aliases_2
     assert set(aliases_1.values()) == {"A", "B", "C", "D"}
-
     assert core.classify_metrics({"downstream_difference": False, "control_separation": False})["kit_classification"] == (
         "ENGINEERING_REPLAY_VERIFIED_NO_DOWNSTREAM_DIFFERENCE"
     )
@@ -132,3 +126,42 @@ def test_checksum_manifest_detects_tampering(tmp_path: Path) -> None:
     assert core.verify_checksums(run_dir)["ok"] is True
     (run_dir / "report.md").write_text("tampered\n", encoding="utf-8")
     assert core.verify_checksums(run_dir)["ok"] is False
+
+
+def test_end_to_end_reference_run_emits_complete_verified_kit(tmp_path: Path) -> None:
+    core = _load_core()
+    source = tmp_path / "source.json"
+    source.write_text(
+        json.dumps({
+            "provider": "synthetic_fixture",
+            "backend": "offline_reference",
+            "shots": 1024,
+            "normalized_vector": [0.11, 0.23, 0.29, 0.37],
+            "result_digest": "synthetic-fixture-not-hardware-evidence",
+        }),
+        encoding="utf-8",
+    )
+    records = core.recover_sources(source)
+    run_dir = core.execute_run(
+        records,
+        prompt="same preregistered input",
+        output_root=tmp_path / "runs",
+        seed=67,
+        provider_mode="reference",
+    )
+    expected = {
+        "run_manifest.json", "sources.jsonl", "conditions.jsonl", "blind_key.json",
+        "receipts.jsonl", "blind_metrics.json", "metrics.json", "classification.json",
+        "report.md", "SHA256SUMS",
+    }
+    assert expected.issubset({path.name for path in run_dir.iterdir()})
+    assert core.verify_checksums(run_dir)["ok"] is True
+    conditions = [json.loads(line) for line in (run_dir / "conditions.jsonl").read_text(encoding="utf-8").splitlines()]
+    receipts = [json.loads(line) for line in (run_dir / "receipts.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert {row["alias"] for row in conditions} == {"A", "B", "C", "D"}
+    assert len(receipts) == 4
+    assert all(row["prepared_manifest_sha256"] for row in receipts)
+    assert all(row["token_id"].startswith("sdt-") for row in receipts)
+    classification = json.loads((run_dir / "classification.json").read_text(encoding="utf-8"))
+    assert classification["official_beast_classification"] == core.OFFICIAL_BEAST_CLASSIFICATION
+    assert classification["causal_source_established"] is False
