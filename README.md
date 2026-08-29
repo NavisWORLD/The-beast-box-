@@ -72,6 +72,8 @@ The laboratory is preserved and public. It is **not** the beginner path.
 
 **R12** is a software refractive-retrieval / reality-memory routing expansion. Changing routing state can change which context is presented to a model. That is a software-routing claim.
 
+The **R12 Reality Memory Expansion** is the repository's public memory/routing expansion and reproducibility boundary for the Zeref/R12 lineage. The public kit also uses the phrase **forever memory** for its durable-memory design goal: a user-controlled ledger can persist context across software sessions when that data is retained. Neither phrase establishes biological continuity, immortality, consciousness, a physical force, or a causal IBM-resource-to-model-consumer effect. See [`docs/ZEREF_R12_REALITY_MEMORY_MANUAL.md`](docs/ZEREF_R12_REALITY_MEMORY_MANUAL.md).
+
 **Zeref** is a model/checkpoint and conversation-experiment lineage ID, not a supernatural entity.
 
 **IBM experiments** recorded historical hardware job execution and provenance. Job execution is not the same thing as a demonstrated causal consumer effect.

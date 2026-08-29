@@ -24,9 +24,9 @@ dependencies = []
 [project.optional-dependencies]
 quantum = ["qiskit>=2.5.0", "qiskit-ibm-runtime>=0.47.0"]
 huggingface = ["huggingface-hub>=0.27"]
-ml = ["torch>=2.2"]
+ml = ["torch>=2.2", "numpy>=2.0"]
 local-llm = ["llama-cpp-python>=0.3.9"]
-dev = ["pytest>=8.0", "coverage>=7.0", "ruff>=0.12", "mypy>=1.17"]
+dev = ["pytest>=8.0", "coverage>=7.0", "ruff>=0.12", "mypy>=1.17", "numpy>=2.0"]
 
 [project.urls]
 Homepage = "https://github.com/NavisWORLD/The-beast-box-"
