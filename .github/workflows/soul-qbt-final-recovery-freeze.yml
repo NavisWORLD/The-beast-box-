@@ -1,0 +1,197 @@
+name: SOUL QBT Final - Recovery Freeze
+
+on:
+  push:
+    branches:
+      - cory-davis-soul-qbt-final-closed-loop-001
+    paths:
+      - .github/workflows/soul-qbt-final-recovery-freeze.yml
+
+permissions:
+  contents: write
+
+env:
+  SEALED_ANCHOR: c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f
+  OFFICIAL_CLASSIFICATION: ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED
+  HISTORICAL_REPO: https://github.com/NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2.git
+  HISTORICAL_REV: dddb1325b90c9abbe8da77974874e5770623035e
+  PROMPT_TEXT: same preregistered input
+  SEED: '67'
+
+jobs:
+  recover-freeze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Beast Box
+        run: pip install -e '.[dev]'
+
+      - name: Verify sealed evidence subtree unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          anchor_evidence=$(git ls-tree "$SEALED_ANCHOR" evidence | awk '{print $3}')
+          head_evidence=$(git ls-tree HEAD evidence | awk '{print $3}')
+          test -n "$anchor_evidence"
+          test "$anchor_evidence" = "$head_evidence"
+          anchor_final=$(git ls-tree "$SEALED_ANCHOR:evidence" final-whole-organism-001 | awk '{print $3}')
+          head_final=$(git ls-tree "HEAD:evidence" final-whole-organism-001 | awk '{print $3}')
+          test "$anchor_final" = "$head_final"
+          mkdir -p experiments/soul-qbt-final-closed-loop-001
+          printf '%s\n' "$anchor_evidence" > experiments/soul-qbt-final-closed-loop-001/sealed-evidence-tree.sha
+          printf '%s\n' "$anchor_final" > experiments/soul-qbt-final-closed-loop-001/sealed-final-organism-tree.sha
+
+      - name: Clone pinned historical source repository
+        run: |
+          git clone --no-checkout "$HISTORICAL_REPO" /tmp/historical
+          git -C /tmp/historical checkout --detach "$HISTORICAL_REV"
+          test "$(git -C /tmp/historical rev-parse HEAD)" = "$HISTORICAL_REV"
+
+      - name: Recover only kit-admissible genuine source rows
+        shell: bash
+        run: |
+          cat > /tmp/recover_qbt.py <<'PY'
+          from __future__ import annotations
+          import hashlib, json, math, os
+          from pathlib import Path
+          from collections.abc import Mapping
+          from kits.SOUL_QBT_FINAL_KIT.soul_qbt_final_kit.core import canonical_json, sha256_obj
+
+          out = Path('experiments/soul-qbt-final-closed-loop-001')
+          out.mkdir(parents=True, exist_ok=True)
+          roots = [
+              ('beast-evidence', Path('evidence')),
+              ('historical-pinned-repo', Path('/tmp/historical')),
+          ]
+          excluded_parts = {'.git', '__pycache__', 'node_modules'}
+          secret_markers = ('token','credential','password','secret','authorization','api_key','apikey')
+
+          def redact(v):
+              if isinstance(v, Mapping):
+                  return {str(k): ('<redacted>' if any(m in str(k).lower() for m in secret_markers) else redact(x)) for k,x in v.items()}
+              if isinstance(v, list): return [redact(x) for x in v]
+              return v
+
+          def vec4(v):
+              if not isinstance(v, (list, tuple)) or len(v) != 4: raise ValueError('not exactly four values')
+              x=[float(z) for z in v]
+              if any(not math.isfinite(z) or z < 0 or z > 1 for z in x): raise ValueError('out of [0,1]')
+              return x
+
+          def accepted(row):
+              if not isinstance(row, Mapping): raise ValueError('row is not an object')
+              semantics='qbt_normalized_state'; entropy=None
+              if 'normalized_vector' in row:
+                  vector=vec4(row['normalized_vector'])
+              elif 'counts' in row:
+                  c=row['counts']
+                  if not isinstance(c, Mapping) or set(map(str,c.keys())) != {'00','01','10','11'}: raise ValueError('counts are not exact four-state basis')
+                  c={str(k):float(v) for k,v in c.items()}
+                  if any(not math.isfinite(v) or v < 0 for v in c.values()) or sum(c.values()) <= 0: raise ValueError('invalid four-state counts')
+                  total=sum(c.values()); vector=[c[k]/total for k in ('00','01','10','11')]
+                  semantics='four_state_probability_distribution'
+                  entropy=-sum(p*math.log2(p) for p in vector if p>0)
+              else:
+                  packet=row.get('packet'); states=packet.get('states') if isinstance(packet, Mapping) else None
+                  if not (isinstance(states,list) and len(states)==1 and isinstance(states[0],Mapping)):
+                      raise ValueError('no supported normalized_vector/counts/QBT packet')
+                  vector=vec4(states[0].get('normalized_vector'))
+              return vector, semantics, entropy
+
+          def rows_from(path):
+              if path.suffix.lower()=='.json':
+                  x=json.loads(path.read_text(errors='strict'))
+                  if isinstance(x,Mapping): return [x]
+                  if isinstance(x,list) and all(isinstance(r,Mapping) for r in x): return x
+                  return []
+              if path.suffix.lower() in {'.jsonl','.ndjson'}:
+                  ans=[]
+                  for line in path.read_text(errors='strict').splitlines():
+                      if line.strip():
+                          x=json.loads(line)
+                          if isinstance(x,Mapping): ans.append(x)
+                  return ans
+              return []
+
+          recovered=[]; gaps=[]; scanned=0
+          for root_name, root in roots:
+              if not root.exists(): continue
+              for path in sorted(root.rglob('*')):
+                  if not path.is_file() or path.suffix.lower() not in {'.json','.jsonl','.ndjson'}: continue
+                  if any(p in excluded_parts for p in path.parts): continue
+                  scanned += 1
+                  try: rows=rows_from(path)
+                  except Exception as exc:
+                      gaps.append({'root':root_name,'path':str(path),'reason':f'parse_error:{type(exc).__name__}'})
+                      continue
+                  file_sha=hashlib.sha256(path.read_bytes()).hexdigest()
+                  for idx,row in enumerate(rows):
+                      try:
+                          vector, semantics, entropy=accepted(row)
+                      except Exception:
+                          # Record IBM/QBT-looking incompatibilities only; avoid noisy gaps for unrelated JSON.
+                          text=canonical_json(redact(row)).lower()
+                          if any(k in text for k in ('ibm','qbt','quantum','job_id','bitarray')):
+                              gaps.append({'root':root_name,'path':str(path),'record_index':idx,'source_file_sha256':file_sha,'reason':'not_kit_admissible_four_state_or_four_value'})
+                          continue
+                      clean=redact(row)
+                      provider=str(clean.get('provider') or 'unknown'); backend=str(clean.get('backend') or 'unknown')
+                      shots_raw=clean.get('shots'); shots=int(shots_raw) if shots_raw not in (None,'') else None
+                      material={'source_file_sha256':file_sha,'record_index':idx,'provider':provider,'backend':backend,'shots':shots,'normalized_vector':vector,'result_digest':clean.get('result_digest')}
+                      rec={'record_id':sha256_obj(material),'source_file_sha256':file_sha,'source_path':str(path),'record_index':idx,'provider':provider,'backend':backend,'shots':shots,'seed':clean.get('seed'),'job_id':clean.get('job_id'),'result_digest':clean.get('result_digest'),'normalized_vector':vector,'state_semantics':semantics,'provenance':redact(clean.get('provenance') if isinstance(clean.get('provenance'),Mapping) else {})}
+                      if entropy is not None: rec['shannon_entropy_bits']=entropy
+                      recovered.append(rec)
+
+          # Deduplicate exact source identities only. Never deduplicate distinct source files merely because vectors match.
+          unique={r['record_id']:r for r in recovered}
+          recovered=[unique[k] for k in sorted(unique)]
+          (out/'recovered-sources.jsonl').write_text(''.join(canonical_json(r)+'\n' for r in recovered))
+          (out/'recovery-gaps.json').write_text(json.dumps({'scanned_json_like_files':scanned,'recovered_count':len(recovered),'gaps':gaps},indent=2,sort_keys=True)+'\n')
+          corpus_sha=hashlib.sha256((out/'recovered-sources.jsonl').read_bytes()).hexdigest()
+          prompt=os.environ['PROMPT_TEXT']; prompt_sha=hashlib.sha256(prompt.encode()).hexdigest()
+          prereg={
+            'schema':'soul-qbt-final-preregistration-v1',
+            'repository_start_sha':os.popen('git rev-parse HEAD').read().strip(),
+            'sealed_anchor':os.environ['SEALED_ANCHOR'],
+            'official_beast_classification':os.environ['OFFICIAL_CLASSIFICATION'],
+            'historical_repo_revision':os.environ['HISTORICAL_REV'],
+            'recovered_source_record_ids':[r['record_id'] for r in recovered],
+            'source_corpus_sha256':corpus_sha,
+            'prompt':prompt,
+            'prompt_sha256':prompt_sha,
+            'seed':int(os.environ['SEED']),
+            'provider_mode':'reference',
+            'model_identity':'ReferenceTextProvider',
+            'conditions':{'ORIGINAL':'unchanged','SHUFFLED':'deterministic seed+record permutation','CLASSICAL_MATCHED':'deterministic classical coarse mean/variance matched control','NEUTRAL':[0.5,0.5,0.5,0.5]},
+            'metrics':['response_sha256','state_hash','bridge_sha256','SoulToken_id','SOUL_receipt_hash','ledger_head','dyn12_vector','dyn12_l2','response_changed_from_original','state_changed_from_original','source_vector_l1_displacement','source_vector_l2_displacement'],
+            'causal_source_claim_allowed':False,
+          }
+          prereg_bytes=(json.dumps(prereg,indent=2,sort_keys=True)+'\n').encode()
+          (out/'preregistration.json').write_bytes(prereg_bytes)
+          (out/'preregistration.sha256').write_text(hashlib.sha256(prereg_bytes).hexdigest()+'\n')
+          print(json.dumps({'recovered_count':len(recovered),'corpus_sha256':corpus_sha,'preregistration_sha256':hashlib.sha256(prereg_bytes).hexdigest()}))
+          PY
+          python /tmp/recover_qbt.py
+
+      - name: Run synthetic reference proof and verify seal
+        run: |
+          mkdir -p experiments/soul-qbt-final-closed-loop-001/synthetic
+          python kits/SOUL_QBT_FINAL_KIT/kit.py all --input kits/SOUL_QBT_FINAL_KIT/examples/synthetic_qbt.json --prompt "$PROMPT_TEXT" --seed "$SEED" --output-root experiments/soul-qbt-final-closed-loop-001/synthetic
+          run_dir=$(find experiments/soul-qbt-final-closed-loop-001/synthetic -mindepth 1 -maxdepth 1 -type d | head -1)
+          python kits/SOUL_QBT_FINAL_KIT/kit.py verify "$run_dir"
+          printf '%s\n' "$(basename "$run_dir")" > experiments/soul-qbt-final-closed-loop-001/synthetic-run-id.txt
+
+      - name: Freeze recovery and synthetic proof in branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add experiments/soul-qbt-final-closed-loop-001
+          git commit -m 'evidence(soul-qbt): freeze sources preregistration and synthetic proof'
+          git push origin HEAD:cory-davis-soul-qbt-final-closed-loop-001
