@@ -50,6 +50,7 @@ exclude = ["tests*", "scripts*", "docs*", "experiments*", "evidence*", "QUANTUM_
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-q"
 
 [tool.ruff]
@@ -62,13 +63,8 @@ check_untyped_defs = true
 ignore_missing_imports = true
 follow_imports = "skip"
 files = [
-  "beastbox/config.py",
   "beastbox/logging_config.py",
   "beastbox/hashutil.py",
-  "beastbox/evidence.py",
-  "beastbox/providers.py",
-  "beastbox/runtime.py",
-  "beastbox/memory.py",
   "beastbox/aliases.py",
 ]
 

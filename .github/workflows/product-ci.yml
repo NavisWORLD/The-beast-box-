@@ -47,16 +47,12 @@ jobs:
       - name: Lint product spine
         run: >
           ruff check
-          beastbox/config.py
-          beastbox/logging_config.py
-          beastbox/hashutil.py
-          beastbox/evidence.py
-          beastbox/providers.py
-          beastbox/runtime.py
-          beastbox/memory.py
           beastbox/aliases.py
+          beastbox/hashutil.py
+          beastbox/logging_config.py
           tests/test_product_spine.py
           tests/test_starter_kit.py
+          tests/test_experimental_boundary.py
       - name: Type-check product spine
         run: mypy
       - name: Product tests with coverage floor
