@@ -1,0 +1,96 @@
+name: Recover v0.3.2 GitHub release
+
+on:
+  push:
+    branches:
+      - 'release/v0.3.2-tag-cutter'
+    paths:
+      - '.github/workflows/recover-v0.3.2-release.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish-recovered-release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_TAG: v0.3.2
+      RELEASE_COMMIT: 6499b6b392ce7ff786c3cee570cac2c67a44b06f
+      SOURCE_RUN: '33271225028'
+      FAILED_DRAFT_RELEASE_ID: '379081880'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag target and source build
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin --tags --force
+          test "$(git rev-list -n 1 "$RELEASE_TAG")" = "$RELEASE_COMMIT"
+          conclusion="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN" --jq '.conclusion')"
+          test "$conclusion" = failure
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN/jobs?per_page=100" \
+            --jq '.jobs[] | [.name,.conclusion] | @tsv'
+
+      - name: Download verified build artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf release-assets publish
+          mkdir -p release-assets publish
+          gh run download "$SOURCE_RUN" --repo "$GITHUB_REPOSITORY" --dir release-assets
+          cp release-assets/cosmic-synapse-python/cosmos_beast_box-0.3.2-py3-none-any.whl publish/
+          cp release-assets/cosmic-synapse-python/cosmos_beast_box-0.3.2.tar.gz publish/
+          cp release-assets/cosmic-cypher-rust-linux/cosmic-cypher-rs publish/cosmic-cypher-rs-linux
+          cp release-assets/cosmic-cypher-rust-macos/cosmic-cypher-rs publish/cosmic-cypher-rs-macos
+          cp release-assets/cosmic-cypher-rust-windows/cosmic-cypher-rs.exe publish/cosmic-cypher-rs-windows.exe
+          (
+            cd publish
+            sha256sum \
+              cosmic-cypher-rs-linux \
+              cosmic-cypher-rs-macos \
+              cosmic-cypher-rs-windows.exe \
+              cosmos_beast_box-0.3.2-py3-none-any.whl \
+              cosmos_beast_box-0.3.2.tar.gz \
+              > SHA256SUMS.txt
+            cat SHA256SUMS.txt
+          )
+
+      - name: Remove only the failed v0.3.2 draft
+        shell: bash
+        run: |
+          set -euo pipefail
+          draft="$(gh api "repos/$GITHUB_REPOSITORY/releases/$FAILED_DRAFT_RELEASE_ID" --jq '.draft')"
+          tag="$(gh api "repos/$GITHUB_REPOSITORY/releases/$FAILED_DRAFT_RELEASE_ID" --jq '.tag_name')"
+          test "$draft" = true
+          test "$tag" = "$RELEASE_TAG"
+          gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/$FAILED_DRAFT_RELEASE_ID"
+
+      - name: Publish v0.3.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title 'Beast Box v0.3.2' \
+            --generate-notes \
+            publish/SHA256SUMS.txt \
+            publish/cosmic-cypher-rs-linux \
+            publish/cosmic-cypher-rs-macos \
+            publish/cosmic-cypher-rs-windows.exe \
+            publish/cosmos_beast_box-0.3.2-py3-none-any.whl \
+            publish/cosmos_beast_box-0.3.2.tar.gz
+
+      - name: Verify published release
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json tagName,isDraft,isPrerelease,url,assets \
+            --jq '{tagName,isDraft,isPrerelease,url,assets:[.assets[].name]}'
+          test "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft')" = false
