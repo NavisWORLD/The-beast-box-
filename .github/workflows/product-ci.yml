@@ -1,0 +1,91 @@
+name: Product CI
+
+on:
+  push:
+    paths:
+      - "beastbox/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "QUANTUM_BEAST_STARTER/**"
+      - "docs/**"
+      - "PROJECT_STATUS.json"
+      - ".github/workflows/product-ci.yml"
+  pull_request:
+    paths:
+      - "beastbox/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "QUANTUM_BEAST_STARTER/**"
+      - "docs/**"
+      - "PROJECT_STATUS.json"
+      - ".github/workflows/product-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: product-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  product-surface:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[dev]"
+      - name: Lint product spine
+        run: >
+          ruff check
+          beastbox/aliases.py
+          beastbox/hashutil.py
+          beastbox/logging_config.py
+          tests/test_product_spine.py
+          tests/test_starter_kit.py
+          tests/test_experimental_boundary.py
+      - name: Type-check product spine
+        run: mypy
+      - name: Product tests with coverage floor
+        run: |
+          coverage run -m pytest tests/test_product_spine.py tests/test_starter_kit.py tests/test_full_runtime.py tests/test_beastbox.py tests/test_logging_config.py tests/test_workspace_security.py tests/test_productization_receipt.py tests/test_experimental_boundary.py
+          coverage report
+      - name: Sealed evidence guard when present
+        run: |
+          if [ -d evidence/final-whole-organism-001 ]; then
+            git diff --exit-code c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f -- evidence/final-whole-organism-001/
+          else
+            echo "sealed evidence not in this checkout; skip immutability diff"
+          fi
+      - name: Productization receipt when script present
+        run: |
+          if [ -f scripts/productization_receipt.py ]; then
+            python scripts/productization_receipt.py --head-sha "${GITHUB_SHA}"
+          fi
+
+  package-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip build
+      - run: python -m build
+      - name: Install wheel and smoke CLI
+        shell: bash
+        run: |
+          pip install dist/*.whl
+          beastbox --help
+          beastbox starter
+          python -c "import beastbox; from beastbox import Runtime, MemoryStore; print(beastbox.__version__)"

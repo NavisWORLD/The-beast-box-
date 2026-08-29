@@ -1,5 +1,73 @@
 # Changelog
 
+## 0.3.2 — 2026-08-29 (public-surface hardening)
+
+Beast Box is a local-first runtime: memory, a software state controller, loopback model adapters, and a hash-chained evidence ledger. IBM Quantum is optional and is not required to install or talk to the reference synthesizer.
+
+### What changed
+
+- Public technical aliases: `Runtime`, `MemoryStore`, `StateController`, `ProvenanceLedger`, `EntropyCoupler`.
+- Packaging now ships `beastbox*` only. Lab scripts, experiments, evidence, and starter docs stay in the source tree and out of the wheel.
+- Coverage floor raised from 4% to 20% on the product spine.
+- Product-spine tests plus experimental-boundary tests (import does not talk to IBM, does not require Qiskit/Ollama, quantum-heart defaults off, IBM submit refuses without confirm).
+- Documentation split: architecture, claim boundaries, capabilities, evidence index, layer map, storage policy, CI hierarchy, license clarification.
+- Machine-readable `PROJECT_STATUS.json`.
+- README now separates the stable product path from `experimental/pre-releases/` and `experimental/logs/`.
+- Scientific wording tightened: official classification unchanged; interpretation is "not established," not a universal-negative proof.
+
+### How to install
+
+```bash
+pip install -e ".[dev]"
+beastbox init
+beastbox doctor
+beastbox starter
+beastbox chat "hello"
+```
+
+### Supported model backends
+
+reference synthesizer (default), Ollama, GGUF, llama.cpp-server, LM Studio / OpenAI-compatible loopback.
+
+### Optional
+
+`[quantum]`, `[ml]`, `[huggingface]`, `[local-llm]`. None of these are required for the reference path.
+
+### Experimental
+
+`soul/`, R12 internals, IBM/QBT helpers, Zeref identifiers, `experimental/` snapshots and logs. Identifiers are retained. They are not the default path.
+
+### What was tested
+
+Product-spine tests, experimental-boundary tests, starter/receipt/workspace tests, wheel contents, CLI smoke, loopback URL rejection, workspace escape rejection.
+
+### Scientific result
+
+Official classification remains:
+
+`ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED`
+
+SOUL-QBT historical replay remains:
+
+`ENGINEERING_CONTROL_INCONCLUSIVE`
+
+What it says: a causal resource/source → downstream consumer effect has not been established.
+
+What it does not say: that a universal negative causal effect was proved; that consciousness was measured; that quantum mechanics broke; that IBM hardware execution is the same thing as a consumer effect.
+
+### Remaining debt
+
+- OWNER LEGAL DECISION REQUIRED on historical MIT vs current proprietary terms.
+- FUTURE OPTIONAL REPOSITORY TOPOLOGY for a physical product/lab split.
+- Bulk quieting of ~200 historical Actions workflows.
+
+## 0.3.1 — productization-era (canonical tree)
+
+- QUANTUM_BEAST_STARTER kit, productization receipt guard, sealed-evidence immutability check in CI.
+- Loopback-only local model adapters and workspace path containment.
+- Cosmic Cypher CLI entry points (`cosmic.cypher-cli`, `zeref`, `beast-arms`).
+- Whole-organism seal published in README.
+
 ## 0.2.0 — 2026-08-12
 
 - public E1-E20 Beast Box gauntlet
@@ -18,7 +86,6 @@
 - audio and Spark ablation helpers
 - loopback-only local dashboard
 - cross-platform installation scripts, Dockerfile and package workflow
-- research lineage, domain map, model guide and scientific-boundary docs
 
 ## 0.1.0 — 2026-08-12
 
