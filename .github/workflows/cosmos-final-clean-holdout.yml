@@ -1,0 +1,145 @@
+name: COSMOS FINAL ORGANISM - CLEAN HOLDOUT
+
+on:
+  push:
+    branches: [cory-davis-cosmos-reality-bridge-final-organism-001]
+    paths:
+      - 'scripts/final_reality_bridge_clean_holdout.py'
+      - 'tests/test_final_reality_bridge_clean_holdout.py'
+      - '.github/workflows/cosmos-final-clean-holdout.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  ACTIVE_SHA256: 454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425
+  HOLDOUT_SHA256: 9c8bcfb21a9adda064c8e14beb7b4ccff32dece1cf189bda4c7cc5fc882f37e0
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  clean-holdout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify sealed pre-holdout state
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          resume=json.loads(Path('evidence/final-reality-bridge/resume-state.json').read_text())
+          assert resume['active_gate']=='CLEAN_HOLDOUT', resume
+          assert resume['next_gate']=='RUN_CLEAN_HOLDOUT', resume
+          assert 'FULL_STACK_ZEREF_EXECUTION' in resume['completed_gates'], resume
+          holdout=Path('evidence/final-whole-organism-001/corpus/HOLDOUT.jsonl')
+          digest=hashlib.sha256(holdout.read_bytes()).hexdigest()
+          assert digest=='9c8bcfb21a9adda064c8e14beb7b4ccff32dece1cf189bda4c7cc5fc882f37e0', digest
+          rows=[json.loads(x) for x in holdout.read_text(encoding='utf-8').splitlines() if x.strip()]
+          assert len(rows)==428, len(rows)
+          assert all(r.get('holdout') is True and r.get('evaluation_allowed') is True and r.get('training_allowed') is False for r in rows)
+          print(json.dumps({'holdout_sha256':digest,'records':len(rows),'evaluation_only':True},sort_keys=True))
+          PY
+
+      - name: Install verified scoring runtime
+        run: python -m pip install -e '.[dev,ml]'
+
+      - name: Clean holdout contract tests
+        run: python -m pytest -q tests/test_final_reality_bridge_clean_holdout.py
+
+      - name: Restore exact selected Zeref checkpoint
+        run: |
+          set -euo pipefail
+          rm -rf _clean_holdout
+          mkdir -p _clean_holdout/world
+          gh run download 33132925890 -n zeref-world-r12-downstream-diagnostic-v2-33132925890 -D _clean_holdout/world
+          ACTIVE=$(find _clean_holdout/world -type f -name 'SELECTED-WORLD-R12.pt' -print -quit)
+          test -n "$ACTIVE" -a -f "$ACTIVE"
+          test "$(sha256sum "$ACTIVE" | awk '{print $1}')" = "$ACTIVE_SHA256"
+          printf '%s\n' "$ACTIVE" > _clean_holdout/active.path
+
+      - name: Score all 428 untouched holdout records
+        run: |
+          set -euo pipefail
+          python scripts/final_reality_bridge_clean_holdout.py \
+            --checkpoint "$(cat _clean_holdout/active.path)" \
+            --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+            --holdout evidence/final-whole-organism-001/corpus/HOLDOUT.jsonl \
+            --out evidence/final-whole-organism-001/holdout \
+            | tee _clean_holdout/result.json
+
+      - name: Verify sealed holdout evidence and advance receipt
+        run: |
+          set -euo pipefail
+          EV=evidence/final-whole-organism-001/holdout
+          (cd "$EV" && sha256sum -c SHA256SUMS)
+          python - <<'PY'
+          import hashlib,json,os
+          from datetime import datetime,timezone
+          from pathlib import Path
+          ev=Path('evidence/final-whole-organism-001/holdout')
+          status=json.loads((ev/'STATUS.json').read_text())
+          metrics=json.loads((ev/'metrics.json').read_text())
+          imm=json.loads((ev/'immutability.json').read_text())
+          assert status['status']=='VERIFIED_GATE' and status['gate']=='CLEAN_HOLDOUT', status
+          assert status['records_scored']==428 and status['training_performed'] is False and status['threshold_applied'] is False, status
+          assert metrics['records']==428 and metrics['scientific_interpretation']=='DESCRIPTIVE_ONLY_PENDING_FROZEN_REFERENCE', metrics
+          assert imm['protected_state_identical_pre_post'] is True and imm['training_performed'] is False, imm
+          root=Path('evidence/final-reality-bridge')
+          receipt=json.loads((root/'resume-state.json').read_text())
+          completed=list(receipt.get('completed_gates') or [])
+          if 'CLEAN_HOLDOUT' not in completed: completed.append('CLEAN_HOLDOUT')
+          receipt.update({
+            'timestamp':datetime.now(timezone.utc).isoformat(),
+            'branch':os.environ['GITHUB_REF_NAME'],
+            'HEAD':os.environ['GITHUB_SHA'],
+            'completed_gates':completed,
+            'active_gate':'FROZEN_REFERENCE_MODEL',
+            'next_gate':'WAKE_FROZEN_REFERENCE_AND_RUN_SAME_HOLDOUT',
+            'latest_tests':'428-record untouched clean holdout; no training/adaptation; protected checkpoint/holdout/memory identities unchanged',
+            'latest_artifact':'evidence/final-whole-organism-001/holdout',
+            'latest_artifact_SHA':hashlib.sha256((ev/'SHA256SUMS').read_bytes()).hexdigest(),
+            'selected_zeref_holdout_bits_per_character':metrics['bits_per_predicted_character'],
+            'selected_zeref_holdout_character_perplexity':metrics['character_perplexity'],
+            'selected_zeref_holdout_tokenizer_coverage':metrics['tokenizer_coverage'],
+            'scientific_classification_so_far':'DESCRIPTIVE_ONLY_PENDING_FROZEN_REFERENCE',
+            'exact_resume_instruction':'Wake the frozen preregistered reference model and run the same untouched holdout without changing the holdout, scoring protocol, thresholds, or selected Zeref result.',
+            'known_demonstrated_blockers':[],
+          })
+          (root/'resume-state.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          digest=hashlib.sha256((root/'resume-state.json').read_bytes()).hexdigest()
+          (root/'RESUME_SHA256SUMS').write_text(f'{digest}  resume-state.json\n')
+          print(json.dumps({'clean_holdout_verified':True,'bits_per_character':metrics['bits_per_predicted_character'],'character_perplexity':metrics['character_perplexity'],'coverage':metrics['tokenizer_coverage']},sort_keys=True))
+          PY
+          (cd evidence/final-reality-bridge && sha256sum -c RESUME_SHA256SUMS)
+
+      - name: Commit clean holdout evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'cosmos-closure-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add evidence/final-whole-organism-001/holdout evidence/final-reality-bridge/resume-state.json evidence/final-reality-bridge/RESUME_SHA256SUMS
+          if ! git diff --cached --quiet; then
+            git commit -m 'evidence(final-organism): seal untouched Zeref clean holdout'
+            git push origin HEAD:cory-davis-cosmos-reality-bridge-final-organism-001
+          fi
+
+      - name: Preserve clean holdout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-final-clean-holdout-${{ github.run_id }}
+          path: |
+            evidence/final-whole-organism-001/holdout
+            _clean_holdout/result.json
+          if-no-files-found: warn
+          retention-days: 90

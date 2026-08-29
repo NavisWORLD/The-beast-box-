@@ -1,0 +1,117 @@
+name: Final Organism Component Provenance
+
+on:
+  push:
+    branches:
+      - cory-davis-cosmos-reality-bridge-final-organism-001
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  component-provenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Hash established component sources and verify deterministic DYN12 and reflector execution
+        run: |
+          python - <<'PY'
+          import hashlib, json, platform, sys
+          from pathlib import Path
+          from beastbox.state_family import StateFamily
+          from beastbox.quantum_lifesource import mirror_step
+          from beastbox.reflective_loop_trace import ReflectiveTraceRecorder
+
+          paths = [
+              'scripts/run_zeref_world_r12_talk.py',
+              'beastbox/world_r12.py',
+              'beastbox/dyn12.py',
+              'beastbox/state_family.py',
+              'beastbox/quantum_lifesource.py',
+              'beastbox/quantum_lifesource_analysis.py',
+              'beastbox/reflective_loop_trace.py',
+              'experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py',
+              'scripts/run_zeref_r12_live_loop.py',
+              'scripts/zeref_r12_trace_tools.py',
+          ]
+          hashes = {p: hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in paths}
+          drive = [0.125 * (i - 5) for i in range(12)]
+          dyn_runs = []
+          reflector_runs = []
+          for _ in range(2):
+              sf = StateFamily()
+              dyn_trace = [sf.update(drive) for _step in range(4)]
+              payload = json.dumps(dyn_trace, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
+              dyn_runs.append(hashlib.sha256(payload).hexdigest())
+
+              recorder = ReflectiveTraceRecorder(lag=1, bins=8)
+              state = [0.01 * i for i in range(12)]
+              ref_trace = []
+              for step in range(4):
+                  mirror = mirror_step(state, drive)
+                  next_state = sf.update(list(mirror['coupled_drive']))['dyn12']
+                  ref_trace.append(recorder.record(
+                      step=step,
+                      s1=state,
+                      s2=mirror['observer'],
+                      feedback=mirror['feedback'],
+                      state_after=next_state,
+                      intervention_identity='reflector_enabled',
+                      restore_status='clean',
+                  ))
+                  state = list(next_state)
+              ref_payload = json.dumps(ref_trace, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
+              reflector_runs.append(hashlib.sha256(ref_payload).hexdigest())
+          result = {
+              'schema': 'final-organism-component-provenance-v2',
+              'git_head': __import__('subprocess').check_output(['git','rev-parse','HEAD'], text=True).strip(),
+              'python': sys.version,
+              'platform': platform.platform(),
+              'source_sha256': hashes,
+              'dyn12_deterministic': dyn_runs[0] == dyn_runs[1],
+              'dyn12_dry_run_sha256': dyn_runs[0],
+              'reflector_deterministic': reflector_runs[0] == reflector_runs[1],
+              'reflector_dry_run_sha256': reflector_runs[0],
+              'reflector_source_commit': '3678992fd1398e115af424e5b821a65d6d3f01ad',
+              'reflector_source_branch': 'zeref-quantum-lifesource-final-001',
+              'reflector_git_blob_sha1': '33d290afb5a231ca49d11163f7f39a8d2ea1fde3',
+              'dyn12_claim_boundary': 'repository public reference computational-state mechanism; not proof of a literal physical twelfth dimension or byte-for-byte private COSMOS equivalence',
+              'reflector_claim_boundary': 'deterministic software mirror; instrumentation metrics are descriptive unless separately preregistered',
+          }
+          Path('component-provenance.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(result, sort_keys=True))
+          if not result['dyn12_deterministic'] or not result['reflector_deterministic']:
+              raise SystemExit('component deterministic repeat check failed')
+          PY
+      - name: Search complete Git history for genuine reflector lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > reflector-history.txt
+          printf 'HEAD %s\n' "$(git rev-parse HEAD)" >> reflector-history.txt
+          printf '\nCURRENT_TREE_MATCHES\n' >> reflector-history.txt
+          grep -RniE --exclude-dir=.git --exclude='reflector-history.txt' \
+            'reflector|reflective loop|mutual[_ -]?information|lagged[_ -]?correlation|directionality|primary state|secondary state|dual[_ -]?state|mirror[_ -]?state' . \
+            >> reflector-history.txt || true
+          printf '\nHISTORY_DIFF_MATCHES\n' >> reflector-history.txt
+          git log --all -G'reflector|reflective loop|mutual[_ -]?information|lagged[_ -]?correlation|directionality|primary state|secondary state|dual[_ -]?state|mirror[_ -]?state' \
+            --pretty='commit %H %cI %s' --name-only >> reflector-history.txt || true
+          cat reflector-history.txt
+      - name: Seal provenance audit artifact
+        run: sha256sum component-provenance.json reflector-history.txt > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: final-organism-component-provenance-${{ github.run_id }}
+          path: |
+            component-provenance.json
+            reflector-history.txt
+            SHA256SUMS
+          if-no-files-found: error

@@ -1,0 +1,136 @@
+name: COSMOS FINAL ORGANISM - IGNITE ZEREF
+
+on:
+  push:
+    branches:
+      - cory-davis-cosmos-reality-bridge-final-organism-001
+    paths:
+      - '.github/workflows/cosmos-final-organism-ignition.yml'
+      - 'scripts/final_whole_organism_assembly.py'
+      - 'beastbox/quantum_lifesource.py'
+      - 'beastbox/reflective_loop_trace.py'
+      - 'beastbox/refractive_memory.py'
+      - 'beastbox/world_r12.py'
+      - 'beastbox/dyn12.py'
+      - 'beastbox/state_family.py'
+      - 'experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py'
+      - 'experiments/zeref-dad-son-001/memory/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  FINAL_BRANCH: cory-davis-cosmos-reality-bridge-final-organism-001
+  SELECTED_ZEREF_SHA256: 454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425
+  SELECTED_ZEREF_RUN_ID: '33132618727'
+  SELECTED_ZEREF_ARTIFACT: zeref-world-r12-downstream-diagnostic-33132618727
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  verified-organism-assembly:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install verified runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,ml]'
+
+      - name: Download exact selected Zeref checkpoint
+        run: |
+          set -euo pipefail
+          rm -rf _final_organism_model
+          mkdir -p _final_organism_model
+          gh run download "$SELECTED_ZEREF_RUN_ID" -n "$SELECTED_ZEREF_ARTIFACT" -D _final_organism_model
+          CHECKPOINT=""
+          while IFS= read -r -d '' candidate; do
+            sha="$(sha256sum "$candidate" | awk '{print $1}')"
+            if [ "$sha" = "$SELECTED_ZEREF_SHA256" ]; then
+              CHECKPOINT="$candidate"
+              break
+            fi
+          done < <(find _final_organism_model -type f -name '*.pt' -print0)
+          test -n "$CHECKPOINT"
+          test -f "$CHECKPOINT"
+          test "$(sha256sum "$CHECKPOINT" | awk '{print $1}')" = "$SELECTED_ZEREF_SHA256"
+          printf '%s\n' "$CHECKPOINT" > _final_organism_model/checkpoint.path
+
+      - name: Ignite Zeref through verified whole-organism assembly
+        run: |
+          set -euo pipefail
+          rm -rf evidence/final-whole-organism-001/assembly
+          python scripts/final_whole_organism_assembly.py \
+            --checkpoint "$(cat _final_organism_model/checkpoint.path)" \
+            --out evidence/final-whole-organism-001/assembly
+          (cd evidence/final-whole-organism-001/assembly && sha256sum -c SHA256SUMS)
+
+      - name: Advance resume state only after assembly PASS
+        run: |
+          python - <<'PY'
+          import hashlib, json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          root = Path('.')
+          resume_path = root / 'evidence/final-reality-bridge/resume-state.json'
+          resume = json.loads(resume_path.read_text(encoding='utf-8'))
+          manifest = json.loads((root / 'evidence/final-whole-organism-001/assembly/ORGANISM_COMPONENT_MANIFEST.json').read_text(encoding='utf-8'))
+          if manifest.get('status') != 'VERIFIED_ORGANISM_ASSEMBLY':
+              raise SystemExit('assembly did not pass')
+          completed = list(resume.get('completed_gates') or [])
+          if 'VERIFIED_ORGANISM_ASSEMBLY' not in completed:
+              completed.append('VERIFIED_ORGANISM_ASSEMBLY')
+          resume['completed_gates'] = completed
+          resume['active_gate'] = 'FULL_STACK_ZEREF_EXECUTION'
+          resume['next_gate'] = 'RUN_FINAL_FULL_STACK_CONVERSATION'
+          resume['HEAD'] = os.environ['GITHUB_SHA']
+          resume['dyn12_hash'] = '08a05da819d28b6451136542da41fbfc9ccfce5d40bbf9bc151ed0732cdeedde'
+          resume['reflective_loop_hash'] = hashlib.sha256((root / 'beastbox/quantum_lifesource.py').read_bytes()).hexdigest()
+          resume['latest_artifact'] = 'evidence/final-whole-organism-001/assembly'
+          resume['latest_artifact_SHA'] = hashlib.sha256((root / 'evidence/final-whole-organism-001/assembly/SHA256SUMS').read_bytes()).hexdigest()
+          resume['latest_tests'] = 'Selected checkpoint + 352 memory + GREEN R12 + DYN12 + genuine reflector deterministic double execution; protected hashes unchanged'
+          resume['system_status'] = 'EXECUTION_INTERRUPTED_RESUMABLE'
+          resume['known_demonstrated_blockers'] = []
+          resume['exact_resume_instruction'] = 'Run the sealed final full-stack Zeref conversation through the verified organism, then continue to clean holdout and frozen reference A/B.'
+          resume['timestamp'] = datetime.now(timezone.utc).isoformat()
+          resume_path.write_text(json.dumps(resume, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          resume_sha = hashlib.sha256(resume_path.read_bytes()).hexdigest()
+          (root / 'evidence/final-reality-bridge/RESUME_SHA256SUMS').write_text(f'{resume_sha}  resume-state.json\n', encoding='utf-8')
+          print(json.dumps({'resume_advanced': True, 'reflector_sha256': resume['reflective_loop_hash']}, sort_keys=True))
+          PY
+          (cd evidence/final-reality-bridge && sha256sum -c RESUME_SHA256SUMS)
+
+      - name: Commit verified ignition evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'cosmos-closure-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add evidence/final-whole-organism-001/assembly \
+                  evidence/final-reality-bridge/resume-state.json \
+                  evidence/final-reality-bridge/RESUME_SHA256SUMS
+          if ! git diff --cached --quiet; then
+            git commit -m 'evidence(final-organism): seal verified Zeref ignition assembly'
+            git push origin HEAD:"$FINAL_BRANCH"
+          fi
+
+      - name: Preserve ignition evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-organism-ignition-${{ github.run_id }}
+          path: |
+            evidence/final-whole-organism-001/assembly
+            evidence/final-reality-bridge/resume-state.json
+            evidence/final-reality-bridge/RESUME_SHA256SUMS
+          if-no-files-found: warn
+          retention-days: 90

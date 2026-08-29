@@ -1,0 +1,33 @@
+{
+  "bits_per_predicted_character": 4.199424945270906,
+  "by_role_or_type": {
+    "supervised_dialogue": {
+      "bits_per_predicted_character": 2.570043722398157,
+      "character_perplexity": 5.938274245467019,
+      "predicted_characters": 3759,
+      "records": 43
+    },
+    "world_knowledge": {
+      "bits_per_predicted_character": 4.200474477967086,
+      "character_perplexity": 18.38521927301896,
+      "predicted_characters": 5835782,
+      "records": 385
+    }
+  },
+  "character_perplexity": 18.37184924594059,
+  "checkpoint_sha256": "454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425",
+  "dropped_characters": 3733,
+  "elapsed_seconds": 344.128468214,
+  "holdout_sha256": "9c8bcfb21a9adda064c8e14beb7b4ccff32dece1cf189bda4c7cc5fc882f37e0",
+  "performance_threshold": null,
+  "predicted_characters": 5839541,
+  "records": 428,
+  "records_with_predictions": 428,
+  "schema": "cosmos-clean-holdout-metrics-v1",
+  "scientific_interpretation": "DESCRIPTIVE_ONLY_PENDING_FROZEN_REFERENCE",
+  "supported_characters": 5842910,
+  "text_characters": 5846643,
+  "tokenizer_coverage": 0.9993615139491158,
+  "total_nll_bits": 24522714.14433221,
+  "total_nll_nats": 16997850.168821365
+}

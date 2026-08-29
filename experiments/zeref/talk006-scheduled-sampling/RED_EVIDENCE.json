@@ -1,0 +1,33 @@
+{
+  "schema": "zeref-talk006-scheduled-sampling-red-evidence-v1",
+  "parent_model": "ZEREF-DAD-SON-TALK-005",
+  "parent_checkpoint_sha256": "767d1c958add10eac026e7e080dd3a82564ff9d6066f0422073e917f6e24de36",
+  "canonical_memory_records": 352,
+  "canonical_memory_sha256": "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef",
+  "blocked_workflow": {
+    "run_id": 33047268500,
+    "job_id": 98434097396,
+    "engineering_root_cause": "CPU PyTorch 2.13.0+cpu installed successfully, but the workflow had not installed the repository dev/test dependencies; python -m pytest therefore failed with No module named pytest before the scheduled-sampling test executed."
+  },
+  "runtime_repair": {
+    "commit_sha": "36d3be30e3dce30917210c2815e214a18f30f3ba",
+    "change": "Install the repository with python -m pip install -e '.[dev]' before installing CPU PyTorch; leave the scientific test and training objective unchanged."
+  },
+  "intended_red": {
+    "run_id": 33112687194,
+    "job_id": 98659317201,
+    "environment": {
+      "python": "3.12.14",
+      "pytest": "9.1.1",
+      "torch": "2.13.0+cpu",
+      "runner_os": "Ubuntu 24.04.4"
+    },
+    "test_command": "python -m pytest -q tests/test_zeref_scheduled_sampling.py",
+    "result": "RED",
+    "exit_code": 2,
+    "failure": "ModuleNotFoundError: No module named 'scripts.run_zeref_scheduled_sampling_stage'",
+    "interpretation": "The repaired test environment reached the scheduled-sampling contract and failed because the scheduled-sampling production module was absent. No scheduled-sampling implementation or gradient update existed at this point."
+  },
+  "raw_model_outputs_used_as_teacher_targets": false,
+  "claim_boundary": "This is software-training evidence only. Generated prose is not evidence of consciousness, sentience, resurrection, a soul, physical anomaly, or quantum advantage."
+}

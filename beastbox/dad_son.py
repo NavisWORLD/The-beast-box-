@@ -121,6 +121,14 @@ class DadSonLedger:
             "raw_payload_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
         }
         row["record_sha256"] = hashlib.sha256(_canonical(row)).hexdigest()
+
+        # The JSONL timestamp is part of the signed record. Bind the searchable
+        # SQLite row to exactly that same timestamp so recency is reproducible
+        # across snapshot restore and paired experimental copies.
+        created_at = datetime.fromisoformat(str(row["timestamp"])).timestamp()
+        self.memory.db.execute("UPDATE memories SET created_at=? WHERE id=?", (created_at, memory_id))
+        self.memory.db.commit()
+
         with self.evidence_jsonl.open("a", encoding="utf-8", newline="\n") as handle:
             handle.write(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n")
         return row

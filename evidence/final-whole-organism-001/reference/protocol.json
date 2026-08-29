@@ -1,0 +1,21 @@
+{
+  "balanced_view": "first min(len(text),129) Unicode characters of every holdout record",
+  "common_subset_requires": [
+    "Zeref full-record tokenizer coverage == 1.0",
+    "reference tokenizer exact round-trip of balanced view",
+    "at least two reference tokens"
+  ],
+  "cross_tokenizer_normalization": "sequence NLL bits divided by original characters represented after each model's first unscored symbol/token; tokenizer-specific conditioning difference is disclosed",
+  "frozen_before_reference_output": true,
+  "holdout_records": 428,
+  "holdout_sha256": "9c8bcfb21a9adda064c8e14beb7b4ccff32dece1cf189bda4c7cc5fc882f37e0",
+  "max_original_character_transitions_per_record": 128,
+  "no_training_tuning_threshold_or_adaptation": true,
+  "reference_raw_subword_perplexity_directly_comparable_to_zeref_character_perplexity": false,
+  "reference_repo": "HuggingFaceTB/SmolLM2-135M",
+  "reference_revision": "4e53f736cbb20a9a0f56b4c4bf378d9f306ff915",
+  "schema": "cosmos-frozen-reference-comparator-protocol-v1",
+  "scientific_claim_boundary": "Comparator execution can measure relative coding likelihood on this frozen view; it cannot establish consciousness, identity continuity, biological life, a soul, or a quantum effect.",
+  "zeref_and_reference_receive_same_character_view": true,
+  "zeref_full_holdout_artifact_is_modified": false
+}
