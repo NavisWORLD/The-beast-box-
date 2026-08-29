@@ -24,8 +24,8 @@ HISTORICAL_ALIASES = {
 }
 
 __all__ = [
-    "EntropyCoupler",
     "HISTORICAL_ALIASES",
+    "EntropyCoupler",
     "Heartbeat",
     "MemoryStore",
     "ProvenanceLedger",
