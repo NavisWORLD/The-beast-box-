@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 
 import pytest
 
 from beastbox import HISTORICAL_ALIASES, MemoryStore, ProvenanceLedger, Runtime, __version__
-from beastbox.cli import SCIENTIFIC_ANCHOR, SCIENTIFIC_CLASSIFICATION, main as beastbox_main
+from beastbox.cli import SCIENTIFIC_ANCHOR, SCIENTIFIC_CLASSIFICATION
+from beastbox.cli import main as beastbox_main
 from beastbox.config import RuntimeConfig
 from beastbox.cypher.models import assert_loopback
 from beastbox.evidence import EvidenceLedger
@@ -52,7 +54,7 @@ def test_empty_memory_search(tmp_path: Path):
 def test_corrupted_memory_file(tmp_path: Path):
     path = tmp_path / "corrupt.sqlite3"
     path.write_bytes(b"this is not sqlite")
-    with pytest.raises(Exception):
+    with pytest.raises(sqlite3.DatabaseError):
         ReconciliationMemory(path)
 
 

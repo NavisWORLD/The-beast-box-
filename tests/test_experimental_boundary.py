@@ -62,7 +62,9 @@ def test_runtime_config_defaults_are_local_and_off(tmp_path: Path):
 def test_import_does_not_write_memory_or_evidence(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     import importlib
+
     import beastbox
+
     importlib.reload(beastbox)
     stray = list(tmp_path.rglob("*"))
     assert stray == [], stray
@@ -99,5 +101,5 @@ def test_product_docs_do_not_inflate_a_universal_negative():
         text = (root / rel).read_text(encoding="utf-8").lower()
         if forbidden in text:
             hits.append(rel)
-        assert "engineering_isolation_verified_causal_resource_source_not_established" in text or rel.endswith(".json") or rel.endswith("SYSTEM_CAPABILITIES.md")
+        assert "engineering_isolation_verified_causal_resource_source_not_established" in text or rel.endswith((".json", "SYSTEM_CAPABILITIES.md"))
     assert hits == [], hits
