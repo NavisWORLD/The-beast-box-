@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://navisworld.invalid/soul-qbt-final-kit/source.schema.json",
+  "title": "SOUL QBT recovered source",
+  "type": "object",
+  "required": [
+    "record_id",
+    "source_file_sha256",
+    "record_index",
+    "provider",
+    "backend",
+    "normalized_vector",
+    "state_semantics",
+    "provenance"
+  ],
+  "properties": {
+    "record_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "source_file_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "record_index": {"type": "integer", "minimum": 0},
+    "provider": {"type": "string"},
+    "backend": {"type": "string"},
+    "shots": {"type": ["integer", "null"], "minimum": 1},
+    "normalized_vector": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {"type": "number", "minimum": 0.0, "maximum": 1.0}
+    },
+    "state_semantics": {
+      "enum": ["qbt_normalized_state", "four_state_probability_distribution"]
+    },
+    "shannon_entropy_bits": {"type": "number", "minimum": 0.0, "maximum": 2.0},
+    "provenance": {"type": "object"}
+  }
+}
