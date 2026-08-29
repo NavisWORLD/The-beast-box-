@@ -15,6 +15,9 @@ Beast Box is a local-first runtime: memory, a software state controller, loopbac
 - README separates the stable product path from `experimental/pre-releases/` and `experimental/logs/`.
 - Scientific wording frozen: official classification unchanged; interpretation is "not established," not a universal-negative proof.
 - CI closure: numpy restored on `[dev]`/`[ml]`, product-spine suite used for the 20% floor, R12 public-kit phrases restored as software-routing language only.
+- Product-surface main SHA after PR #44: `65a5b4f436d0d2b3f7be740c09c942bdb8e8f810` (Product CI, canonical CI, security audit, Cypher smoke, Quantum smoke all green).
+- Experimental catalog now records the v0.3.2 hardening work under `experimental/pre-releases/` and `experimental/logs/` without treating it as a scientific result.
+- Isolated wheel `cosmos_beast_box-0.3.2-py3-none-any.whl` and isolated source install proofs passed. GitHub Release tag `v0.3.2` remains owner-gated (`release.yml` fires on `v*` tags).
 
 ### How to install
 
@@ -66,6 +69,7 @@ What it does not say: that a universal negative causal effect was proved; that c
 - OWNER LEGAL DECISION REQUIRED on historical MIT vs current proprietary terms.
 - FUTURE OPTIONAL REPOSITORY TOPOLOGY for a physical product/lab split.
 - Optional hygiene: rewrite historical workflow YAML (not required; observed auto-trigger set on a normal main product push is five workflows).
+- OWNER-GATED: push git tag `v0.3.2` to fire `.github/workflows/release.yml`.
 
 ## 0.3.1 — productization-era (canonical tree)
 
