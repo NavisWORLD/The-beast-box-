@@ -50,6 +50,8 @@ jobs:
         run: git diff --exit-code c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f -- evidence/final-whole-organism-001/
       - name: Verify productization receipt guard
         run: python scripts/productization_receipt.py --check-only
+      - name: Emit deterministic productization receipt preview
+        run: python scripts/productization_receipt.py --head-sha "$GITHUB_SHA"
 
   test:
     runs-on: ubuntu-latest
