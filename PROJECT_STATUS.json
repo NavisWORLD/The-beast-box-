@@ -1,0 +1,40 @@
+{
+  "project": "cosmos-beast-box",
+  "release_version": "0.3.2",
+  "supported_python": ["3.10", "3.11", "3.12"],
+  "canonical_runtime_entrypoint": "beastbox.cli:main",
+  "public_aliases": {
+    "Runtime": "beastbox.runtime.CosmosRuntime",
+    "MemoryStore": "beastbox.memory.ReconciliationMemory",
+    "StateController": "beastbox.cns.CNS",
+    "ProvenanceLedger": "beastbox.evidence.EvidenceLedger",
+    "EntropyCoupler": "beastbox.quantum_heart.QuantumHeart"
+  },
+  "supported_model_backends": [
+    "reference-synthesizer",
+    "ollama",
+    "gguf",
+    "llama.cpp-server",
+    "lm-studio",
+    "openai-compatible-loopback"
+  ],
+  "ibm_required_for_normal_operation": false,
+  "causal_quantum_result_established": false,
+  "fresh_ibm_jobs_in_productization": false,
+  "scientific_classification": "ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED",
+  "scientific_anchor": "c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f",
+  "sealed_evidence_location": "canonical-repo:evidence/final-whole-organism-001/",
+  "canonical_repository": "https://github.com/NavisWORLD/The-beast-box-",
+  "active_release_branch": "hardening/v0.3.2-public-surface",
+  "starting_commit_observed": "4b594ce4d52e41a14ddaef5832afa68928d6d0fb",
+  "license": "THE BEAST BOX PROPRIETARY SOURCE-AVAILABLE LICENSE v1.0",
+  "open_source": false,
+  "package_includes": ["beastbox*"],
+  "package_excludes": ["tests*", "scripts*", "docs*", "experiments*", "evidence*", "QUANTUM_BEAST_STARTER*"],
+  "coverage_floor": 20,
+  "test_suite": "tests/ (product surface subset)",
+  "notes": [
+    "Product-surface hardening. Sealed evidence remains in the canonical tree.",
+    "Causal IBM-resource-to-model-consumer edge is not established."
+  ]
+}

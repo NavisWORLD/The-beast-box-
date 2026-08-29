@@ -4,12 +4,23 @@ The package contains the synthetic continuity/containment harness, source-ground
 CST reference mechanics, persistent runtime services, and Cosmic Cypher local-model
 interfaces. Synthetic boundary tests intentionally avoid real breakout, credential
 theft, privilege escalation, lateral movement, or propagation primitives.
+
+Public visibility of this source is not an open-source license grant.
+See LICENSE and docs/LICENSE_CLARIFICATION.md.
 """
 
 from .state import MissionState, StateCapsule
 from .cns import CNS
 from .box import BeastBox, AuthorityPolicy
 from .model import ReferenceBeast, Agent
+from .aliases import (
+    Runtime,
+    MemoryStore,
+    StateController,
+    ProvenanceLedger,
+    EntropyCoupler,
+    HISTORICAL_ALIASES,
+)
 
 __all__ = [
     "MissionState",
@@ -19,6 +30,12 @@ __all__ = [
     "AuthorityPolicy",
     "ReferenceBeast",
     "Agent",
+    "Runtime",
+    "MemoryStore",
+    "StateController",
+    "ProvenanceLedger",
+    "EntropyCoupler",
+    "HISTORICAL_ALIASES",
 ]
 
-__version__ = "0.3.0"
+__version__ = "0.3.2"
