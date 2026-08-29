@@ -1,0 +1,132 @@
+name: SOUL QBT Final - Closed Loop Closure
+
+on:
+  push:
+    branches: [cory-davis-soul-qbt-final-closed-loop-001]
+    paths: [.github/workflows/soul-qbt-final-closure.yml]
+
+permissions:
+  contents: write
+
+env:
+  SEALED_ANCHOR: c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f
+  OFFICIAL_CLASSIFICATION: ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED
+  EXP_ROOT: experiments/soul-qbt-final-closed-loop-001
+  RUN_ID: soul-qbt-historical-gap-7ba2b259d59be036
+
+jobs:
+  seal-historical-closure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -e '.[dev]'
+      - name: Verify frozen preregistration and empty admissible corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum "$EXP_ROOT/preregistration.json" | awk '{print $1}')" = "$(cat "$EXP_ROOT/preregistration.sha256")"
+          test "$(sha256sum "$EXP_ROOT/recovered-sources.jsonl" | awk '{print $1}')" = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+          test ! -s "$EXP_ROOT/recovered-sources.jsonl"
+          test "$(git ls-tree "$SEALED_ANCHOR" evidence | awk '{print $3}')" = "$(git ls-tree HEAD evidence | awk '{print $3}')"
+          test "$(git ls-tree "$SEALED_ANCHOR:evidence" final-whole-organism-001 | awk '{print $3}')" = "$(git ls-tree HEAD:evidence final-whole-organism-001 | awk '{print $3}')"
+      - name: Seal historical no-admissible-source closure
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, json, shutil
+          from pathlib import Path
+          from kits.SOUL_QBT_FINAL_KIT.soul_qbt_final_kit.core import blind_conditions, write_checksums
+          root=Path('experiments/soul-qbt-final-closed-loop-001')
+          run=root/'runs'/'soul-qbt-historical-gap-7ba2b259d59be036'
+          run.mkdir(parents=True, exist_ok=False)
+          prereg=json.loads((root/'preregistration.json').read_text())
+          witnesses=[json.loads(x) for x in Path('evidence/final-whole-organism-001/resource-source/historical-hardware-witnesses.jsonl').read_text().splitlines() if x.strip()]
+          if len(witnesses)!=10: raise SystemExit(f'expected 10 archived hardware witnesses, got {len(witnesses)}')
+          manifest={
+            'schema':'soul-qbt-final-historical-gap-closure-v1','run_id':run.name,'kit_version':'1.0.0',
+            'experiment_repository_start_sha':'d2d2dcdb883a0554902f2b8d9e86e95d65d5c4ba',
+            'frozen_preregistration_sha256':(root/'preregistration.sha256').read_text().strip(),
+            'prompt_sha256':prereg['prompt_sha256'],'seed':67,'provider_mode':'reference','model':'ReferenceTextProvider',
+            'source_count':0,'archived_ibm_hardware_witness_count':10,'conditions_executed_per_historical_source':0,
+            'execution_status':'NOT_EXECUTABLE_NO_KIT_ADMISSIBLE_HISTORICAL_SOURCE',
+            'sealed_scientific_anchor':prereg['sealed_anchor'],'official_beast_classification':prereg['official_beast_classification'],
+            'fresh_ibm_jobs_submitted':False
+          }
+          (run/'run_manifest.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
+          shutil.copyfile(root/'recovered-sources.jsonl',run/'sources.jsonl')
+          (run/'conditions.jsonl').write_text('')
+          (run/'blind_key.json').write_text(json.dumps({'mapping':blind_conditions(('ORIGINAL','SHUFFLED','CLASSICAL_MATCHED','NEUTRAL'),seed=67),'seed':67,'used_for_historical_measurement':False},indent=2,sort_keys=True)+'\n')
+          (run/'receipts.jsonl').write_text('')
+          (run/'blind_metrics.json').write_text(json.dumps({'frozen_before_unblinding':True,'rows':[],'reason':'no admissible historical source records'},indent=2,sort_keys=True)+'\n')
+          metrics={'source_count':0,'historical_condition_runs':0,'downstream_difference':None,'control_separation':None,'rows':[],
+                   'synthetic_reference_run':'soul-qbt-401e31c08ae3e22e','synthetic_reference_only':True,
+                   'interpretation':'No historical downstream comparison is possible because no genuine archived record satisfied the frozen four-value/four-state QBT source contract.'}
+          (run/'metrics.json').write_text(json.dumps(metrics,indent=2,sort_keys=True)+'\n')
+          classification={'kit_classification':'ENGINEERING_CONTROL_INCONCLUSIVE','official_beast_classification':prereg['official_beast_classification'],
+                          'sealed_scientific_anchor':prereg['sealed_anchor'],'causal_source_established':False,'quantum_advantage_established':False,
+                          'reason':'Genuine IBM provenance exists, but zero historical measurements are recoverable as an admissible four-value/four-state QBT source without inventing or post-hoc collapsing states.'}
+          (run/'classification.json').write_text(json.dumps(classification,indent=2,sort_keys=True)+'\n')
+          (run/'runtime').mkdir(); (run/'runtime'/'NO_CONDITIONS_EXECUTED.md').write_text('# No historical conditions executed\n\nNo admissible historical source existed, so creating SoulTokens or runtime receipts would fabricate an experimental input.\n')
+          witness_lines=['# Historical source gap ledger','',f'- Genuine archived IBM hardware witnesses: {len(witnesses)}','- Admissible recovered QBT source records: 0','- Fresh IBM jobs submitted: false','', 'The archived witnesses are preserved as provenance. Their raw measurements were not coerced into the kit four-state/four-value source contract.']
+          (run/'report.md').write_text('\n'.join(witness_lines)+f"\n\nKit classification: `ENGINEERING_CONTROL_INCONCLUSIVE`\n\nOfficial Beast classification remains: `{prereg['official_beast_classification']}`\n")
+          (run/'historical-witness-gap.json').write_text(json.dumps({'count':len(witnesses),'job_ids':[w['job_id'] for w in witnesses],'reason':'genuine hardware provenance present; no supported four-state/four-value QBT measurement recovered'},indent=2,sort_keys=True)+'\n')
+          write_checksums(run)
+          PY
+          python kits/SOUL_QBT_FINAL_KIT/kit.py verify "$EXP_ROOT/runs/$RUN_ID"
+      - name: Repository security audit
+        run: python scripts/security_audit.py
+      - name: Commit sealed historical closure
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$EXP_ROOT/runs/$RUN_ID"
+          git commit -m 'evidence(soul-qbt): seal historical inconclusive closure'
+          git push origin HEAD:cory-davis-soul-qbt-final-closed-loop-001
+
+  python-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: {python-version: ['3.10','3.12']}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '${{ matrix.python-version }}'}
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev,ml]'
+      - run: pytest
+
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r requirements-dev.txt
+      - run: pip install -e .
+      - run: ruff check beastbox/config.py beastbox/logging_config.py scripts/productization_receipt.py tests/test_starter_kit.py tests/test_logging_config.py tests/test_productization_receipt.py
+      - run: mypy
+      - run: |
+          coverage run -m pytest tests/test_starter_kit.py tests/test_logging_config.py tests/test_productization_receipt.py
+          coverage report
+      - run: git diff --exit-code "$SEALED_ANCHOR" -- evidence/final-whole-organism-001/
+      - run: python scripts/productization_receipt.py --check-only
+
+  package-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install --upgrade pip build
+      - run: python -m build
+      - run: pip install dist/*.whl
+      - run: |
+          beastbox --help
+          beastbox starter
+          cosmic.cypher-cli --help
