@@ -36,7 +36,7 @@ jobs:
         shell: bash
         run: |
           python - <<'PY'
-          import hashlib, json, shutil
+          import json, shutil
           from pathlib import Path
           from kits.SOUL_QBT_FINAL_KIT.soul_qbt_final_kit.core import blind_conditions, write_checksums
           root=Path('experiments/soul-qbt-final-closed-loop-001')
@@ -45,33 +45,17 @@ jobs:
           prereg=json.loads((root/'preregistration.json').read_text())
           witnesses=[json.loads(x) for x in Path('evidence/final-whole-organism-001/resource-source/historical-hardware-witnesses.jsonl').read_text().splitlines() if x.strip()]
           if len(witnesses)!=10: raise SystemExit(f'expected 10 archived hardware witnesses, got {len(witnesses)}')
-          manifest={
-            'schema':'soul-qbt-final-historical-gap-closure-v1','run_id':run.name,'kit_version':'1.0.0',
-            'experiment_repository_start_sha':'d2d2dcdb883a0554902f2b8d9e86e95d65d5c4ba',
-            'frozen_preregistration_sha256':(root/'preregistration.sha256').read_text().strip(),
-            'prompt_sha256':prereg['prompt_sha256'],'seed':67,'provider_mode':'reference','model':'ReferenceTextProvider',
-            'source_count':0,'archived_ibm_hardware_witness_count':10,'conditions_executed_per_historical_source':0,
-            'execution_status':'NOT_EXECUTABLE_NO_KIT_ADMISSIBLE_HISTORICAL_SOURCE',
-            'sealed_scientific_anchor':prereg['sealed_anchor'],'official_beast_classification':prereg['official_beast_classification'],
-            'fresh_ibm_jobs_submitted':False
-          }
+          manifest={'schema':'soul-qbt-final-historical-gap-closure-v1','run_id':run.name,'kit_version':'1.0.0','experiment_repository_start_sha':'d2d2dcdb883a0554902f2b8d9e86e95d65d5c4ba','frozen_preregistration_sha256':(root/'preregistration.sha256').read_text().strip(),'prompt_sha256':prereg['prompt_sha256'],'seed':67,'provider_mode':'reference','model':'ReferenceTextProvider','source_count':0,'archived_ibm_hardware_witness_count':10,'conditions_executed_per_historical_source':0,'execution_status':'NOT_EXECUTABLE_NO_KIT_ADMISSIBLE_HISTORICAL_SOURCE','sealed_scientific_anchor':prereg['sealed_anchor'],'official_beast_classification':prereg['official_beast_classification'],'fresh_ibm_jobs_submitted':False}
           (run/'run_manifest.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
           shutil.copyfile(root/'recovered-sources.jsonl',run/'sources.jsonl')
           (run/'conditions.jsonl').write_text('')
           (run/'blind_key.json').write_text(json.dumps({'mapping':blind_conditions(('ORIGINAL','SHUFFLED','CLASSICAL_MATCHED','NEUTRAL'),seed=67),'seed':67,'used_for_historical_measurement':False},indent=2,sort_keys=True)+'\n')
           (run/'receipts.jsonl').write_text('')
           (run/'blind_metrics.json').write_text(json.dumps({'frozen_before_unblinding':True,'rows':[],'reason':'no admissible historical source records'},indent=2,sort_keys=True)+'\n')
-          metrics={'source_count':0,'historical_condition_runs':0,'downstream_difference':None,'control_separation':None,'rows':[],
-                   'synthetic_reference_run':'soul-qbt-401e31c08ae3e22e','synthetic_reference_only':True,
-                   'interpretation':'No historical downstream comparison is possible because no genuine archived record satisfied the frozen four-value/four-state QBT source contract.'}
-          (run/'metrics.json').write_text(json.dumps(metrics,indent=2,sort_keys=True)+'\n')
-          classification={'kit_classification':'ENGINEERING_CONTROL_INCONCLUSIVE','official_beast_classification':prereg['official_beast_classification'],
-                          'sealed_scientific_anchor':prereg['sealed_anchor'],'causal_source_established':False,'quantum_advantage_established':False,
-                          'reason':'Genuine IBM provenance exists, but zero historical measurements are recoverable as an admissible four-value/four-state QBT source without inventing or post-hoc collapsing states.'}
-          (run/'classification.json').write_text(json.dumps(classification,indent=2,sort_keys=True)+'\n')
+          (run/'metrics.json').write_text(json.dumps({'source_count':0,'historical_condition_runs':0,'downstream_difference':None,'control_separation':None,'rows':[],'synthetic_reference_run':'soul-qbt-401e31c08ae3e22e','synthetic_reference_only':True,'interpretation':'No historical downstream comparison is possible because no genuine archived record satisfied the frozen four-value/four-state QBT source contract.'},indent=2,sort_keys=True)+'\n')
+          (run/'classification.json').write_text(json.dumps({'kit_classification':'ENGINEERING_CONTROL_INCONCLUSIVE','official_beast_classification':prereg['official_beast_classification'],'sealed_scientific_anchor':prereg['sealed_anchor'],'causal_source_established':False,'quantum_advantage_established':False,'reason':'Genuine IBM provenance exists, but zero historical measurements are recoverable as an admissible four-value/four-state QBT source without inventing or post-hoc collapsing states.'},indent=2,sort_keys=True)+'\n')
           (run/'runtime').mkdir(); (run/'runtime'/'NO_CONDITIONS_EXECUTED.md').write_text('# No historical conditions executed\n\nNo admissible historical source existed, so creating SoulTokens or runtime receipts would fabricate an experimental input.\n')
-          witness_lines=['# Historical source gap ledger','',f'- Genuine archived IBM hardware witnesses: {len(witnesses)}','- Admissible recovered QBT source records: 0','- Fresh IBM jobs submitted: false','', 'The archived witnesses are preserved as provenance. Their raw measurements were not coerced into the kit four-state/four-value source contract.']
-          (run/'report.md').write_text('\n'.join(witness_lines)+f"\n\nKit classification: `ENGINEERING_CONTROL_INCONCLUSIVE`\n\nOfficial Beast classification remains: `{prereg['official_beast_classification']}`\n")
+          (run/'report.md').write_text(f"# Historical source gap ledger\n\n- Genuine archived IBM hardware witnesses: {len(witnesses)}\n- Admissible recovered QBT source records: 0\n- Fresh IBM jobs submitted: false\n\nThe archived witnesses are preserved as provenance. Their raw measurements were not coerced into the kit four-state/four-value source contract.\n\nKit classification: `ENGINEERING_CONTROL_INCONCLUSIVE`\n\nOfficial Beast classification remains: `{prereg['official_beast_classification']}`\n")
           (run/'historical-witness-gap.json').write_text(json.dumps({'count':len(witnesses),'job_ids':[w['job_id'] for w in witnesses],'reason':'genuine hardware provenance present; no supported four-state/four-value QBT measurement recovered'},indent=2,sort_keys=True)+'\n')
           write_checksums(run)
           PY
@@ -82,7 +66,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "$EXP_ROOT/runs/$RUN_ID"
+          git add -f "$EXP_ROOT/runs/$RUN_ID"
           git commit -m 'evidence(soul-qbt): seal historical inconclusive closure'
           git push origin HEAD:cory-davis-soul-qbt-final-closed-loop-001
 
