@@ -1,0 +1,100 @@
+name: Publish Beast Box v0.3.2
+
+on:
+  push:
+    branches:
+      - release-publisher-v0.3.2
+    paths:
+      - .github/workflows/publish-v0.3.2.yml
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_SHA: 6499b6b392ce7ff786c3cee570cac2c67a44b06f
+      SOURCE_RUN: '33270982119'
+      RELEASE_TAG: v0.3.2
+    steps:
+      - name: Verify release target and source run
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TARGET_SHA}" --jq .sha)" = "${TARGET_SHA}"
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN}" --jq .head_sha)" = "${TARGET_SHA}"
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN}" --jq .conclusion)" = "success"
+          if gh release view "${RELEASE_TAG}" -R "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release ${RELEASE_TAG} already exists; refusing to overwrite it."
+            exit 1
+          fi
+
+      - name: Download verified release artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          gh run download "${SOURCE_RUN}" -R "${GITHUB_REPOSITORY}" -D release-assets
+          find release-assets -type f -print | sort
+
+      - name: Generate SHA-256 checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          checksum_tmp="$(mktemp)"
+          find release-assets -type f ! -name SHA256SUMS.txt -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            > "${checksum_tmp}"
+          mv "${checksum_tmp}" release-assets/SHA256SUMS.txt
+          cat release-assets/SHA256SUMS.txt
+
+      - name: Write bounded release notes
+        shell: bash
+        run: |
+          cat > RELEASE_NOTES.md <<'EOF'
+          # Beast Box v0.3.2 — Public-Surface Hardening
+
+          This release packages the hardened Beast Box public/product surface at commit `6499b6b392ce7ff786c3cee570cac2c67a44b06f`.
+
+          Highlights:
+          - installable Python wheel and source distribution;
+          - COSMIC.CYPHER native binaries for Linux, macOS, and Windows;
+          - product-surface hardening, onboarding, project status, changelog, and professional documentation;
+          - local/reference operation remains independent of IBM Quantum;
+          - experimental/pre-release research and logs remain separately indexed;
+          - sealed scientific evidence remains unchanged.
+
+          Scientific classification remains:
+
+          `ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED`
+
+          This release does not establish consciousness, sentience, a literal soul, biological continuity, resurrection, quantum advantage, a new physical dimension, broken quantum mechanics, or IBM/QBT causation of model behavior.
+
+          Release assets include SHA-256 checksums in `SHA256SUMS.txt`.
+          EOF
+
+      - name: Publish tag and GitHub Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' assets < <(find release-assets -type f -print0 | sort -z)
+          gh release create "${RELEASE_TAG}" "${assets[@]}" \
+            -R "${GITHUB_REPOSITORY}" \
+            --target "${TARGET_SHA}" \
+            --title "Beast Box v0.3.2" \
+            --notes-file RELEASE_NOTES.md
+
+      - name: Verify published release
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")"
+          test "$(jq -r .tag_name <<<"${release_json}")" = "${RELEASE_TAG}"
+          test "$(jq -r .draft <<<"${release_json}")" = "false"
+          test "$(jq -r .prerelease <<<"${release_json}")" = "false"
+          gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq .object.sha
+          gh release view "${RELEASE_TAG}" -R "${GITHUB_REPOSITORY}" --json url,tagName,name,isDraft,isPrerelease,publishedAt
