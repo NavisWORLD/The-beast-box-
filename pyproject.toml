@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cosmos-beast-box"
-version = "0.3.1"
-description = "Installable COSMOS/CST runtime, Beast Box continuity harness, Cosmic Cypher local-model coder, and optional IBM Quantum research tools."
+version = "0.3.2"
+description = "Local-first COSMOS/CST runtime: memory, state control, model adapters, provenance. IBM Quantum is optional and not required."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
 authors = [{name = "NavisWORLD"}]
-keywords = ["ai", "agents", "coding-agent", "gguf", "llama", "ollama", "zeref", "persistent-memory", "continuity", "containment", "quantum", "cst", "cosmos", "dyn12"]
+keywords = ["ai", "local-llm", "memory", "provenance", "cst", "cosmos", "runtime"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
@@ -22,34 +22,16 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-quantum = [
-  "qiskit>=2.5.0",
-  "qiskit-ibm-runtime>=0.47.0",
-]
+quantum = ["qiskit>=2.5.0", "qiskit-ibm-runtime>=0.47.0"]
 huggingface = ["huggingface-hub>=0.27"]
 ml = ["torch>=2.2"]
 local-llm = ["llama-cpp-python>=0.3.9"]
-full = [
-  "qiskit>=2.5.0",
-  "qiskit-ibm-runtime>=0.47.0",
-  "huggingface-hub>=0.27",
-  "torch>=2.2",
-  "llama-cpp-python>=0.3.9",
-]
-dev = [
-  "pytest>=8.0",
-  "coverage>=7.0",
-  "ruff>=0.12",
-  "mypy>=1.17",
-  "numpy>=2.0",
-]
+dev = ["pytest>=8.0", "coverage>=7.0", "ruff>=0.12", "mypy>=1.17"]
 
 [project.urls]
 Homepage = "https://github.com/NavisWORLD/The-beast-box-"
-Research = "https://huggingface.co/phera-ra/QC67_cosmo"
-Findings = "https://huggingface.co/phera-ra/QC67_cosmo/blob/main/FINDINGS.md"
 DOI = "https://doi.org/10.5281/zenodo.17574447"
-COSMOS = "https://github.com/NavisWORLD/Cosmos"
+Canonical = "https://github.com/NavisWORLD/The-beast-box-"
 
 [project.scripts]
 beastbox = "beastbox.cli:main"
@@ -59,8 +41,12 @@ cypher = "beastbox.cypher.cli:main"
 zeref = "beastbox.cypher.easy_ollama:main"
 beast-arms = "beastbox.arms.cli:main"
 
+[tool.setuptools]
+include-package-data = false
+
 [tool.setuptools.packages.find]
-include = ["beastbox*", "scripts*"]
+include = ["beastbox*"]
+exclude = ["tests*", "scripts*", "docs*", "experiments*", "evidence*", "QUANTUM_BEAST_STARTER*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -73,18 +59,23 @@ line-length = 120
 [tool.mypy]
 python_version = "3.10"
 check_untyped_defs = true
-warn_unused_ignores = true
 ignore_missing_imports = true
 follow_imports = "skip"
 files = [
   "beastbox/config.py",
   "beastbox/logging_config.py",
-  "scripts/productization_receipt.py",
+  "beastbox/hashutil.py",
+  "beastbox/evidence.py",
+  "beastbox/providers.py",
+  "beastbox/runtime.py",
+  "beastbox/memory.py",
+  "beastbox/aliases.py",
 ]
 
 [tool.coverage.run]
 source = ["beastbox"]
+omit = ["beastbox/descendant/*", "beastbox/arms/*", "beastbox/autonomy/*", "beastbox/soul/*"]
 
 [tool.coverage.report]
-fail_under = 4
+fail_under = 20
 show_missing = true
