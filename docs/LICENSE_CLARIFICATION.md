@@ -1,5 +1,13 @@
 # License clarification
 
+Status of the historical-MIT vs current-proprietary question:
+
+```text
+OWNER LEGAL DECISION REQUIRED
+```
+
+This is not an engineering failure. This file does not decide it.
+
 Effective license of current Cory-owned material: **THE BEAST BOX PROPRIETARY SOURCE-AVAILABLE LICENSE v1.0** (root `LICENSE`, 2026-08-17).
 
 Public GitHub visibility is permission to **read** the tree. It is not:

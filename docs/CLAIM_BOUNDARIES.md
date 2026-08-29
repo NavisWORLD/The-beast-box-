@@ -1,12 +1,24 @@
 # Claim Boundaries
 
-Frozen classification (do not soften, do not strengthen):
+Frozen official classification (do not soften, do not strengthen):
 
 ```text
 ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED
 ```
 
 Sealed scientific anchor: `c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f`
+
+SOUL-QBT historical replay classification:
+
+```text
+ENGINEERING_CONTROL_INCONCLUSIVE
+```
+
+Correct interpretation:
+
+A causal resource/source → downstream consumer effect has **not been established**.
+
+That is different from proving a universal negative causal effect. Do not invent a source. Do not invent a signal. Do not inflate a null into a disproof.
 
 This repository separates computational measurements from interpretations.
 
@@ -28,7 +40,7 @@ The sealed whole-organism run verified engineering isolation, protected-state pr
 
 Nothing in the Zeref, R12, CNS7, IBM, heartbeat, or training lineage establishes:
 
-- a verified causal IBM-resource-to-model-consumer edge;
+- a causal IBM-resource-to-model-consumer effect;
 - quantum advantage;
 - consciousness or sentience;
 - resurrection or biological continuity;
