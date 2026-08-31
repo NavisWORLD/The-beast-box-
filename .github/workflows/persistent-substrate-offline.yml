@@ -1,0 +1,94 @@
+name: Persistent substrate offline closure
+
+on:
+  push:
+    branches:
+      - experiment/persistent-substrate-model-swap-001
+    paths:
+      - 'beastbox/persistent_substrate/**'
+      - 'scripts/run_persistent_substrate_offline_swap.py'
+      - 'tests/test_persistent_substrate_offline.py'
+      - 'experiments/persistent-substrate-model-swap-001/offline-preregistration.json'
+      - 'experiments/persistent-substrate-model-swap-001/fixtures/**'
+      - 'docs/superpowers/specs/2026-08-31-persistent-substrate-offline-amendment.md'
+      - '.github/workflows/persistent-substrate-offline.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: persistent-substrate-offline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e . pytest
+      - name: Offline contract tests
+        run: python -m pytest -q tests/test_persistent_substrate_offline.py
+      - name: Existing persistent-substrate primitives
+        run: python -m pytest -q tests/test_persistent_substrate_protocol.py tests/test_persistent_substrate_ledger.py tests/test_persistent_substrate_substrate.py
+      - name: Sealed scientific evidence guard
+        run: git diff --exit-code c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f -- evidence/final-whole-organism-001/
+
+  execute-and-seal:
+    needs: contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e .
+      - name: Execute no-network A-B-A closure
+        run: |
+          rm -rf _persistent_substrate_offline_runtime evidence/persistent-substrate-model-swap-001
+          python scripts/run_persistent_substrate_offline_swap.py run \
+            --repo-root . \
+            --workspace _persistent_substrate_offline_runtime \
+            --out evidence/persistent-substrate-model-swap-001
+      - name: Independently verify evidence package
+        run: |
+          python scripts/run_persistent_substrate_offline_swap.py verify \
+            --repo-root . \
+            --out evidence/persistent-substrate-model-swap-001
+          (cd evidence/persistent-substrate-model-swap-001 && sha256sum -c SHA256SUMS)
+      - name: Verify sealed scientific evidence remains unchanged
+        run: git diff --exit-code c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f -- evidence/final-whole-organism-001/
+      - name: Commit sealed experiment and publication
+        run: |
+          git config user.name 'beastbox-offline-closure-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -f evidence/persistent-substrate-model-swap-001
+          git add experimental/pre-releases/PERSISTENT-SUBSTRATE-OFFLINE-001.md
+          git add experimental/logs/2026-08-31-persistent-substrate-offline.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'evidence: seal offline persistent-substrate closure'
+            git push origin HEAD:experiment/persistent-substrate-model-swap-001
+          fi
+      - name: Upload sealed evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: persistent-substrate-offline-${{ github.run_id }}
+          path: |
+            evidence/persistent-substrate-model-swap-001
+            experimental/pre-releases/PERSISTENT-SUBSTRATE-OFFLINE-001.md
+            experimental/logs/2026-08-31-persistent-substrate-offline.md
+          if-no-files-found: warn
+          retention-days: 90
