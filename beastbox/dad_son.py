@@ -4,7 +4,7 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 from .memory import ReconciliationMemory
 
@@ -34,6 +34,17 @@ def file_sha256(path: str | Path) -> str:
     return digest.hexdigest()
 
 
+def _wall_clock_timestamp() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _parse_timezone_timestamp(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError("timestamp must be timezone-aware ISO-8601")
+    return parsed
+
+
 class DadSonLedger:
     """Append-only Dad/Son evidence layered over ReconciliationMemory."""
 
@@ -43,12 +54,14 @@ class DadSonLedger:
         evidence_jsonl: str | Path,
         *,
         parent_sha256: str,
+        timestamp_factory: Callable[[], str] | None = None,
     ) -> None:
         if not _is_sha256(parent_sha256):
             raise ValueError("parent_sha256 must be a 64-character SHA-256")
         self.parent_sha256 = parent_sha256.lower()
         self.sqlite_path = Path(sqlite_path)
         self.evidence_jsonl = Path(evidence_jsonl)
+        self._timestamp_factory = timestamp_factory or _wall_clock_timestamp
         self.sqlite_path.parent.mkdir(parents=True, exist_ok=True)
         self.evidence_jsonl.parent.mkdir(parents=True, exist_ok=True)
         self.memory = ReconciliationMemory(self.sqlite_path)
@@ -92,6 +105,8 @@ class DadSonLedger:
         if any(not _is_sha256(value) for value in normalized_source_hashes):
             raise ValueError("source_hashes must contain only SHA-256 values")
         normalized_recall_ids = [int(value) for value in recall_memory_ids]
+        timestamp = str(self._timestamp_factory())
+        parsed_timestamp = _parse_timezone_timestamp(timestamp)
 
         memory_metadata = {
             "actor": actor,
@@ -106,7 +121,7 @@ class DadSonLedger:
 
         row: dict[str, Any] = {
             "schema": "zeref-dad-son-ledger-v1",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": timestamp,
             "actor": actor,
             "text": text,
             "kind": kind,
@@ -125,7 +140,7 @@ class DadSonLedger:
         # The JSONL timestamp is part of the signed record. Bind the searchable
         # SQLite row to exactly that same timestamp so recency is reproducible
         # across snapshot restore and paired experimental copies.
-        created_at = datetime.fromisoformat(str(row["timestamp"])).timestamp()
+        created_at = parsed_timestamp.timestamp()
         self.memory.db.execute("UPDATE memories SET created_at=? WHERE id=?", (created_at, memory_id))
         self.memory.db.commit()
 
@@ -204,7 +219,7 @@ class DadSonLedger:
                     raise RuntimeError(f"snapshot row {line_number} canonical record hash mismatch")
                 if int(row.get("memory_id") or 0) != expected_memory_id:
                     raise RuntimeError(f"snapshot row {line_number} memory id is not sequential")
-                datetime.fromisoformat(str(row["timestamp"]))
+                _parse_timezone_timestamp(str(row["timestamp"]))
                 rows.append(row)
                 previous = record_sha
                 expected_memory_id += 1
@@ -225,7 +240,7 @@ class DadSonLedger:
             memory_id = self.memory.store(str(row.get("text") or ""), kind=str(row.get("kind") or "dialogue"), metadata=metadata, source_ids=recall_ids)
             if memory_id != int(row["memory_id"]):
                 raise RuntimeError("Dad/Son snapshot restore produced a different memory id")
-            created_at = datetime.fromisoformat(str(row["timestamp"])).timestamp()
+            created_at = _parse_timezone_timestamp(str(row["timestamp"])).timestamp()
             self.memory.db.execute("UPDATE memories SET created_at=? WHERE id=?", (created_at, memory_id))
         self.memory.db.commit()
 

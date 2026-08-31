@@ -72,6 +72,50 @@ def test_dad_son_primary_jsonl_rows_are_hash_chained(tmp_path):
     ledger.close()
 
 
+def test_injected_timestamp_is_signed_verbatim(tmp_path):
+    from beastbox.dad_son import DadSonLedger
+
+    calls = 0
+
+    def timestamp_factory() -> str:
+        nonlocal calls
+        calls += 1
+        return "2026-08-30T00:00:00.000000Z"
+
+    ledger = DadSonLedger(
+        tmp_path / "m.sqlite3",
+        tmp_path / "m.jsonl",
+        parent_sha256="a" * 64,
+        timestamp_factory=timestamp_factory,
+    )
+    row = ledger.append_experience(
+        actor="controller",
+        text="amber cedar river",
+        kind="experiment",
+        session_id="swap-001",
+    )
+    assert calls == 1
+    assert row["timestamp"] == "2026-08-30T00:00:00.000000Z"
+    assert json.loads((tmp_path / "m.jsonl").read_text(encoding="utf-8"))["timestamp"] == row["timestamp"]
+    ledger.close()
+
+
+def test_injected_timestamp_must_be_timezone_aware(tmp_path):
+    from beastbox.dad_son import DadSonLedger
+
+    ledger = DadSonLedger(
+        tmp_path / "m.sqlite3",
+        tmp_path / "m.jsonl",
+        parent_sha256="a" * 64,
+        timestamp_factory=lambda: "2026-08-30T00:00:00",
+    )
+    with pytest.raises(ValueError, match="timezone-aware"):
+        ledger.append_experience(actor="controller", text="x", kind="experiment", session_id="swap-001")
+    assert not (tmp_path / "m.jsonl").exists()
+    assert ledger.memory.db.execute("SELECT COUNT(*) FROM memories").fetchone()[0] == 0
+    ledger.close()
+
+
 def test_dad_son_ledger_rejects_invalid_parent_hash(tmp_path):
     from beastbox.dad_son import DadSonLedger
 
