@@ -4,6 +4,27 @@ This catalog exposes research builds and completed experiment branches without p
 
 ## Current pre-releases
 
+### PERSISTENT-SUBSTRATE-OFFLINE-001
+
+Status: **completed offline engineering experiment**
+
+- Experiment branch: `experiment/persistent-substrate-model-swap-001`
+- Sealed evidence commit: `d455f3608d2908ddeadfb430b73dddb24ab41d7e`
+- GitHub Actions closure run: `33448674647`
+- Offline fixture order: `OFFLINE_MODEL_A -> OFFLINE_MODEL_B -> OFFLINE_MODEL_A`
+- Experiment classification: `VERIFIED_OFFLINE_PERSISTENT_SUBSTRATE_FUNCTIONAL_CONTINUITY`
+- Python-level outbound network attempts: `0`
+- Fresh IBM jobs: `0`
+- Fresh Rigetti jobs: `0`
+- Archived IBM provenance points: `10`
+- Official Beast classification remains: `ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED`
+
+This result verifies the bounded software-engineering claim that one provenance-tracked local substrate remained functionally usable across the frozen local A -> B -> A component swap and its preregistered controls without requiring a live cloud/hardware connection. It does not establish universal model compatibility, quantum causation, consciousness, biological continuity, resurrection, or a literal soul.
+
+Read the public pre-release summary:
+
+[`PERSISTENT-SUBSTRATE-OFFLINE-001.md`](PERSISTENT-SUBSTRATE-OFFLINE-001.md)
+
 ### V0.3.2-PUBLIC-SURFACE-HARDENING
 
 Status: **completed product-surface / public-release engineering closure**
