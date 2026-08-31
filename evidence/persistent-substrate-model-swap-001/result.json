@@ -1,0 +1,110 @@
+{
+  "classification": "VERIFIED_OFFLINE_PERSISTENT_SUBSTRATE_FUNCTIONAL_CONTINUITY",
+  "cloud_dependency_required": false,
+  "controls": {
+    "corrupted": {
+      "actual_memory_id": 311,
+      "after_sha256": "335e764cade12a9d6e79cd356b5eaf25d0594215b8ef09d2ca59c06901b3e92d",
+      "before_sha256": "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef",
+      "expected_memory_id": 17,
+      "failed_closed": true,
+      "failure_line": 17,
+      "model_invocations": 0
+    },
+    "empty": {
+      "model_a_return_recall": "NO_MEMORY",
+      "model_b_pre_swap_recall": "NO_MEMORY",
+      "record_count": 0
+    }
+  },
+  "experiment_id": "persistent-substrate-model-swap-001",
+  "fresh_ibm_jobs": 0,
+  "fresh_rigetti_jobs": 0,
+  "gates": {
+    "CANONICAL_MEMORY_PREFIX": true,
+    "CORRUPTED_MEMORY_CONTROL": true,
+    "EMPTY_MEMORY_CONTROL": true,
+    "IMMUTABLE_ROUTING_AND_SOURCE": true,
+    "MODEL_A_RETURN_ACCESS": true,
+    "MODEL_B_PRE_SWAP_ACCESS": true,
+    "MODEL_SEQUENCE": true,
+    "OFFLINE_NO_NETWORK_ATTEMPTS": true,
+    "POINT_LEDGER_APPEND_ONLY": true,
+    "STABLE_STORE_IDENTITIES": true
+  },
+  "inputs": {
+    "archived_witnesses_sha256": "be87eebeb7e72a1551705368f7d2a99191521e3826e059b9e4913815868b920e",
+    "model_a_sha256": "6aaa7f6a922dd3cde5c8c154c6d71e479393797d366eef8f6c28c077d69a2470",
+    "model_b_sha256": "cb9b280e3acd43de49cbf31bf519efdd00ac84099739e229b7fab0f335a19f7f",
+    "preregistration_sha256": "bf8cae652a34c5e9e67ff0bc86f8524ddc3991e6994afcd2c8fbb9eb280ef545",
+    "routing_sha256": "e3269291ea3d79a682aa96b90ac3b5880d5e27ca61a91d59a03116d7039ec863"
+  },
+  "memory": {
+    "canonical_prefix_sha256": "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef",
+    "canonical_record_count": 352,
+    "final_record_count": 354,
+    "final_sha256": "4c79a9ab9a97b0223638f931d58ee80c83800750aad81cb1b7701a2913463789",
+    "final_tip_sha256": "a6ebece4064bfd1c4e65d2a637e17007f92f21ce671b8591c1ef95f127157826"
+  },
+  "model_sequence": [
+    {
+      "algorithm": "keyed_latest_memory_v1",
+      "checkpoint_path": "/home/runner/work/The-beast-box-/The-beast-box-/experiments/persistent-substrate-model-swap-001/fixtures/model_a.json",
+      "checkpoint_sha256": "6aaa7f6a922dd3cde5c8c154c6d71e479393797d366eef8f6c28c077d69a2470",
+      "model_id": "OFFLINE_MODEL_A",
+      "schema": "beastbox-offline-model-fixture-v1",
+      "version": 1
+    },
+    {
+      "algorithm": "token_overlap_latest_memory_v1",
+      "checkpoint_path": "/home/runner/work/The-beast-box-/The-beast-box-/experiments/persistent-substrate-model-swap-001/fixtures/model_b.json",
+      "checkpoint_sha256": "cb9b280e3acd43de49cbf31bf519efdd00ac84099739e229b7fab0f335a19f7f",
+      "model_id": "OFFLINE_MODEL_B",
+      "schema": "beastbox-offline-model-fixture-v1",
+      "version": 1
+    },
+    {
+      "algorithm": "keyed_latest_memory_v1",
+      "checkpoint_path": "/home/runner/work/The-beast-box-/The-beast-box-/experiments/persistent-substrate-model-swap-001/fixtures/model_a.json",
+      "checkpoint_sha256": "6aaa7f6a922dd3cde5c8c154c6d71e479393797d366eef8f6c28c077d69a2470",
+      "model_id": "OFFLINE_MODEL_A",
+      "schema": "beastbox-offline-model-fixture-v1",
+      "version": 1
+    }
+  ],
+  "network": {
+    "guard_scope": "python_socket_and_urllib",
+    "network_attempt_count": 0,
+    "offline_guard_active": true,
+    "physical_air_gap_claim": false
+  },
+  "observations": {
+    "model_a_baseline_recall": "amber cedar river",
+    "model_a_return_recall": "silver orbit",
+    "model_b_pre_swap_recall": "amber cedar river",
+    "model_b_write": "silver orbit"
+  },
+  "official_beast_classification": "ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED",
+  "points": {
+    "archived_source_points": 10,
+    "final_sha256": "a5ec16d6c330a6958e5437b727da7db1faa53478c7bb3ceb884babb3082f2e48",
+    "final_tip_sha256": "a67041fd0ad36f9fdae17faee66650928c332ef4368713bf15a053f134a45845",
+    "runtime_points": 3,
+    "source_prefix_sha256": "ee0a7eb2d145fbbae83be21f481b2ac19a5b14ca845a8428471c67c96e350a89"
+  },
+  "schema": "persistent-substrate-offline-result-v1",
+  "state": {
+    "event_count": 7,
+    "sha256": "65817c8bbb2e3002ab212185471f8191f725e64c3ef408d1f42de90ee8fbd268",
+    "tip_sha256": "6369b6ce599f0ba0f14a84dc8b5bed02876f8c9eb6632034007c9035d405edb2"
+  },
+  "stores": {
+    "knowledge_store_id": "a848f0c8ff01d0da3a6cea80bcab2eab77215e41e380f9388891bee3ca035319",
+    "memory_store_id": "25960adf354088013c6eb9066fc5b2bef832c26f79eb8e7bf8e17b5141777bbe",
+    "point_store_id": "a6a0a7d9abf466f226fbd5a05066723e23c42916dbc39e46bb78b770b99a4feb",
+    "provenance_store_id": "99dd49ce3e3f43beda0335dcca478ca5539aa507b24b8c16bc0f82ed6791d8e3",
+    "routing_store_id": "9e2f7cab5acac4b7c0b41a7c11b31db75ba5146915d60eef4e600dfd19e6d333",
+    "state_store_id": "3acc6169e40d907d1a9713f92ae9a7e2145d3f2b5559118819bc3288bdf6bbc2",
+    "substrate_id": "c22d274c076f1d5d44281489e3e41a8339a2e3f101ef55999e5033447331ee01"
+  }
+}
