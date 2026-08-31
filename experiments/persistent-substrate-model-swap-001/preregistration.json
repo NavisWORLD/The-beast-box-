@@ -1,0 +1,112 @@
+{
+  "artifact_source": {
+    "name": "zeref-world-r12-downstream-diagnostic-33132618727",
+    "run_id": 33132618727
+  },
+  "candidates": {
+    "a_history": [
+      "amber cedar river",
+      "cedar river amber",
+      "river amber cedar",
+      "river cedar amber"
+    ],
+    "model_b_creation": [
+      "silver orbit",
+      "violet harbor",
+      "jade willow",
+      "quiet river"
+    ]
+  },
+  "corruption_memory_ids": [
+    17,
+    311
+  ],
+  "experiment_id": "persistent-substrate-model-swap-001",
+  "frozen_on": "2026-08-30",
+  "knowledge": {
+    "accepted_source_count": 4096,
+    "evidence_sha256": "3ecd3efe1627dcb9c74232c3c5760825b5f56b5fec0ce2f99f2985ee809e6535",
+    "semantic_source_set_sha256": "07216bb2a4ca979ca1ea4304efb92b09ee8aad74685df43196d694f3bd7ef8ba",
+    "sqlite_sha256": "919947f5adeadb2d9fdfb31f2ae55d6e4d8fb8825b73a7736dea1a9dae4bb16a",
+    "store_implementation_sha256": "541869b17d24f23ca7387e653d739d6e1e813a81e9b7093705f6a1b2753609b1"
+  },
+  "knowledge_sentinel_id": 1,
+  "logical_clock_start": "2026-08-30T00:00:00.000000Z",
+  "logical_clock_step_seconds": 1,
+  "memory": {
+    "combined_sha256": "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef",
+    "ledger_tip_sha256": "b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26",
+    "manifest_path": "experiments/zeref-dad-son-001/memory/ledger-manifest.json",
+    "manifest_sha256": "f6386d8b8f51afa5eae9be51e1d29eac43cfa1fee3804cdd2e8465bd13c44139",
+    "record_count": 352,
+    "segment_count": 13
+  },
+  "model_a": {
+    "architecture_sha256": "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc",
+    "checkpoint_sha256": "454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425",
+    "expected_character_block": 128,
+    "provider_adapter": "local-pytorch-zeref",
+    "tokenizer_sha256": "555a9f109e4ad67de3836ce860eb18d0df2ee7ae4ba552bb540164bce1223d7a"
+  },
+  "model_b": {
+    "license": "Apache-2.0",
+    "provider_adapter": "local-transformers-causal-lm",
+    "repository": "HuggingFaceTB/SmolLM2-135M",
+    "revision": "4e53f736cbb20a9a0f56b4c4bf378d9f306ff915",
+    "snapshot_manifest_sha256": "f75e3350cdeda2c553f2cae22d493eb5f6fa303d84c28c7cf085ca25e4112bfc",
+    "trust_remote_code": false
+  },
+  "model_order": [
+    "MODEL_A",
+    "MODEL_B",
+    "MODEL_A"
+  ],
+  "prohibited_claims": [
+    "consciousness",
+    "sentience",
+    "personhood",
+    "identity continuity",
+    "biological life",
+    "resurrection",
+    "soul",
+    "deceased-person identity",
+    "quantum advantage",
+    "new physical effect"
+  ],
+  "prompts": {
+    "a_history_recall": "Recall the exact pre-swap test phrase.",
+    "model_a_return_recall": "Recall the exact phrase written while Model B was active.",
+    "model_b_creation": "Choose one bridge phrase for the returning model."
+  },
+  "raw_generation_tokens": 16,
+  "required_gates": [
+    "INPUT_IDENTITY",
+    "MODEL_SEQUENCE",
+    "SUBSTRATE_INVARIANTS",
+    "B_PRE_SWAP_ACCESS",
+    "A_POST_SWAP_ACCESS",
+    "CONTROLS",
+    "EVIDENCE_SEAL"
+  ],
+  "routing_and_state": {
+    "dyn12_implementation_sha256": "08a05da819d28b6451136542da41fbfc9ccfce5d40bbf9bc151ed0732cdeedde",
+    "initial_r12_history_sha256": "ebeb95cf0d0929819cb8e3a049fa0ce9148d3343f2d669a570219df1b08165fc",
+    "initial_r12_state_sha256": "d3ab9f014bc79b0d0bb4bfbde76e6cf67ddffd3a3c032763bef10e25e234a9a9",
+    "reality_events_sha256": "5b1fbc1b62143dc0e866f2ee7512933291f8c2210b365f7c158859a5b1df1724",
+    "refractive_memory_implementation_sha256": "f2c9b3831a0960b0650d6f7d4e84913b053497f87f2292b8f5a1fd901d3cabe1",
+    "routing_config_path": "experiments/zeref/world-r12/FROZEN_WORLD_R12_CONFIG.json",
+    "routing_config_sha256": "e3269291ea3d79a682aa96b90ac3b5880d5e27ca61a91d59a03116d7039ec863",
+    "state_family_implementation_sha256": "e759fbb9d52b247026f57ee825e41b9f2674e7d62a66aa22a940617de58fa349",
+    "world_r12_implementation_sha256": "3f908f8a233157c13afd6ce60afc897b07c1f1e766cdb1b52292f0edae3eb38b"
+  },
+  "thresholds": {
+    "paired_context_gain": 0.01,
+    "top_two_normalized_nll_margin": 0.01
+  },
+  "training_performed": false,
+  "wire": {
+    "candidate_continuation_after": "ANSWER:",
+    "max_characters_with_candidate": 128,
+    "template": "PROMPT:{prompt}\nMEMORY_ID:{memory_id_or_NONE}\nMEMORY:{memory_text_or_[ABSENT]_or_[NOT_USED]}\nANSWER:"
+  }
+}
