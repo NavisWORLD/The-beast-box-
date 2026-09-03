@@ -1,9 +1,8 @@
 """Frozen, inference-only model adapters for persistent-substrate experiment 001.
 
 The adapters expose provider-neutral conditional-NLL scoring plus deterministic
-raw greedy generation for evidentiary receipts. They never update model weights,
-construct an optimizer, run backward passes, or inject hidden substrate state
-into provider inputs.
+raw greedy generation for evidentiary receipts. They never alter model weights,
+run gradient updates, or inject hidden substrate state into provider inputs.
 """
 
 from __future__ import annotations
