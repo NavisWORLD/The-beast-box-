@@ -11,7 +11,6 @@ from beastbox.persistent_substrate.models import (
     ZerefNLLAdapter,
     parameter_sha256,
 )
-from beastbox.persistent_substrate.protocol import PromptCase
 
 
 class TinyCharLM(torch.nn.Module):
@@ -47,31 +46,23 @@ class TinyTransformersLM(torch.nn.Module):
         return SimpleNamespace(logits=logits)
 
 
-def _prompt() -> PromptCase:
-    return PromptCase(
-        prompt_id="adapter-contract-001",
-        prompt="ab",
-        kind="calibration",
-        paired_group="adapter-contract",
-    )
-
-
 def _assert_frozen_score(adapter, model) -> None:
     before = parameter_sha256(model)
     assert model.training is False
     assert all(parameter.grad is None for parameter in model.parameters())
 
-    score = adapter.score(_prompt(), candidate_id="candidate-ca", continuation="ca")
+    score = adapter.score(prompt="ab", continuation="ca")
 
     after = parameter_sha256(model)
     assert before == after
-    assert score.model_id == adapter.model_id
-    assert score.prompt_id == "adapter-contract-001"
-    assert score.candidate_id == "candidate-ca"
-    assert score.continuation_token_count == 2
-    assert score.conditional_nll >= 0.0
-    assert torch.isfinite(torch.tensor(score.conditional_nll))
-    assert score.checkpoint_identity == adapter.checkpoint_identity
+    assert score.candidate == "ca"
+    assert score.predicted_units == 2
+    assert score.nll_nats >= 0.0
+    assert score.normalized_nll >= 0.0
+    assert torch.isfinite(torch.tensor(score.nll_nats))
+    assert torch.isfinite(torch.tensor(score.normalized_nll))
+    assert len(score.input_ids_sha256) == 64
+    assert adapter.checkpoint_identity
     assert all(parameter.grad is None for parameter in model.parameters())
 
 
@@ -88,6 +79,7 @@ def test_zeref_adapter_scores_candidates_without_parameter_drift():
         model_id="zeref-fixture",
     )
     _assert_frozen_score(adapter, model)
+    assert adapter.score(prompt="ab", continuation="ca").unit_kind == "character"
 
 
 def test_smol_adapter_scores_candidates_without_parameter_drift():
@@ -103,6 +95,7 @@ def test_smol_adapter_scores_candidates_without_parameter_drift():
         model_id="smol-fixture",
     )
     _assert_frozen_score(adapter, model)
+    assert adapter.score(prompt="ab", continuation="ca").unit_kind == "token"
 
 
 def test_parameter_hash_detects_parameter_change():
@@ -123,7 +116,24 @@ def test_zeref_adapter_rejects_unknown_tokenizer_character():
         model_id="zeref-fixture",
     )
     with pytest.raises(ValueError, match="frozen tokenizer"):
-        adapter.score(_prompt(), candidate_id="candidate-x", continuation="x")
+        adapter.score(prompt="ab", continuation="x")
+
+
+def test_transformers_adapter_rejects_unstable_suffix_boundary():
+    class BoundaryMergingTokenizer(TinyTokenizer):
+        def encode(self, text: str, *, add_special_tokens: bool = False):
+            if text == "abca":
+                return [0, 2, 0]
+            return super().encode(text, add_special_tokens=add_special_tokens)
+
+    adapter = TransformersNLLAdapter(
+        model=TinyTransformersLM(),
+        tokenizer=BoundaryMergingTokenizer(),
+        checkpoint_identity={"revision": "5" * 40},
+        model_id="smol-fixture",
+    )
+    with pytest.raises(ValueError, match="suffix boundary"):
+        adapter.score(prompt="ab", continuation="ca")
 
 
 def test_adapters_reject_empty_continuation():
@@ -141,4 +151,4 @@ def test_adapters_reject_empty_continuation():
     )
     for adapter in (zeref, smol):
         with pytest.raises(ValueError, match="continuation"):
-            adapter.score(_prompt(), candidate_id="empty", continuation="")
+            adapter.score(prompt="ab", continuation="")
