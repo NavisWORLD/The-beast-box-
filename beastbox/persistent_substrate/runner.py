@@ -8,8 +8,6 @@ to the independent verifier; this module only records observations and gates.
 
 from __future__ import annotations
 
-import hashlib
-import json
 import os
 import subprocess
 from dataclasses import dataclass
@@ -34,7 +32,11 @@ from beastbox.persistent_substrate.protocol import (
     sha256_json,
     validate_wire_candidates,
 )
-from beastbox.persistent_substrate.substrate import PersistentSubstrate, SubstrateInputPaths
+from beastbox.persistent_substrate.substrate import (
+    PersistentSubstrate,
+    ReadOnlyWorldKnowledgeStore,
+    SubstrateInputPaths,
+)
 
 
 class ModelAdapter(Protocol):
@@ -106,9 +108,7 @@ def _invariant_view(snapshot: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _assert_same_substrate(before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
-    left = _invariant_view(before)
-    right = _invariant_view(after)
-    if left != right:
+    if _invariant_view(before) != _invariant_view(after):
         raise RuntimeError("persistent substrate invariant changed across model transition")
 
 
@@ -144,9 +144,8 @@ def default_preflight(
     preregistration: Mapping[str, Any],
     workspace: Path,
 ) -> dict[str, Any]:
-    """Fail closed on pinned inputs before any model adapter is constructed."""
+    """Fail closed on pinned inputs and canary leakage before model construction."""
 
-    del workspace
     failures: list[str] = []
     if preregistration.get("experiment_id") != EXPERIMENT_ID:
         failures.append("experiment_id")
@@ -166,13 +165,28 @@ def default_preflight(
     )
     actual_hashes: dict[str, str] = {}
     for path, expected, label in pinned_files:
-        if not Path(path).is_file():
+        target = Path(path)
+        if not target.is_file():
             failures.append(f"missing:{label}")
             continue
-        actual = sha256_file(path)
+        actual = sha256_file(target)
         actual_hashes[label] = actual
         if expected and actual != str(expected):
             failures.append(f"sha256:{label}")
+
+    canonical_copy = workspace / "preflight-canonical-memory.jsonl"
+    try:
+        memory_receipt = assemble_canonical_memory(inputs.repo_root, inputs.memory_manifest, canonical_copy)
+    except Exception as exc:
+        failures.append(f"canonical_memory:{type(exc).__name__}")
+        memory_receipt = None
+    if memory_receipt is not None:
+        if memory_receipt.sha256 != str(expected_memory.get("combined_sha256") or ""):
+            failures.append("canonical_memory_sha256")
+        if memory_receipt.record_count != int(expected_memory.get("record_count") or 0):
+            failures.append("canonical_memory_record_count")
+        if memory_receipt.tip_sha256 != str(expected_memory.get("ledger_tip_sha256") or ""):
+            failures.append("canonical_memory_tip")
 
     canaries = [
         "amber cedar river",
@@ -182,12 +196,38 @@ def default_preflight(
         "quiet river",
     ]
     leaked: dict[str, list[str]] = {}
-    for path, label in ((inputs.world_evidence, "world_evidence"),):
-        matches = _contains_phrase(Path(path), canaries)
+    for path, label in (
+        (canonical_copy, "canonical_memory"),
+        (Path(inputs.world_evidence), "world_evidence"),
+    ):
+        matches = _contains_phrase(path, canaries)
         if matches:
             leaked[label] = matches
     if leaked:
         failures.append("canary_leakage")
+
+    sentinel_id = int(preregistration.get("knowledge_sentinel_id") or 1)
+    sentinel_query = ""
+    sentinel_record_sha256 = ""
+    world_receipt: dict[str, Any] = {}
+    try:
+        world = ReadOnlyWorldKnowledgeStore(inputs.world_db, inputs.world_evidence)
+        try:
+            world_receipt = world.snapshot_receipt()
+            sentinel = world.get(sentinel_id)
+            sentinel_query = str(sentinel["title"] or sentinel["source_id"])
+            sentinel_record_sha256 = str(sentinel["record_sha256"])
+        finally:
+            world.close()
+    except Exception as exc:
+        failures.append(f"world_verification:{type(exc).__name__}")
+    if world_receipt:
+        if int(world_receipt["record_count"]) != int(expected_knowledge.get("accepted_source_count") or 0):
+            failures.append("world_record_count")
+        if str(world_receipt["semantic_source_set_sha256"]) != str(
+            expected_knowledge.get("semantic_source_set_sha256") or ""
+        ):
+            failures.append("world_source_set_sha256")
 
     source_commit = _source_commit(Path(inputs.repo_root))
     if not source_commit:
@@ -198,9 +238,18 @@ def default_preflight(
         "failures": failures,
         "source_commit": source_commit,
         "actual_hashes": actual_hashes,
+        "canonical_memory": None
+        if memory_receipt is None
+        else {
+            "sha256": memory_receipt.sha256,
+            "record_count": memory_receipt.record_count,
+            "tip_sha256": memory_receipt.tip_sha256,
+        },
+        "world": world_receipt,
         "canary_leakage": leaked,
-        "knowledge_sentinel_query": "Alpha",
-        "knowledge_sentinel_id": int(preregistration.get("knowledge_sentinel_id") or 1),
+        "knowledge_sentinel_query": sentinel_query,
+        "knowledge_sentinel_id": sentinel_id,
+        "knowledge_sentinel_record_sha256": sentinel_record_sha256,
     }
 
 
@@ -236,8 +285,7 @@ def default_corrupted_control(
         raise RuntimeError("corrupted memory control unexpectedly passed verification")
 
     expected_line = min(int(corruption.first_line_number), int(corruption.second_line_number))
-    passed = first_failure_line == expected_line
-    if not passed:
+    if first_failure_line != expected_line:
         raise RuntimeError(
             f"corrupted memory control failed at line {first_failure_line}, expected {expected_line}"
         )
@@ -253,24 +301,32 @@ def default_corrupted_control(
     }
 
 
-def _record_operation(
+def _begin_operation(
+    evidence: EvidencePackage,
+    substrate: Any,
+    operation_id: str,
+    active_model_identity: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    return evidence.record_snapshot(
+        "BEFORE",
+        substrate.snapshot(f"{operation_id}:BEFORE", active_model_identity=active_model_identity),
+        operation_id=operation_id,
+    )
+
+
+def _finish_operation(
     evidence: EvidencePackage,
     substrate: Any,
     *,
     operation_id: str,
     kind: str,
-    before_identity: Mapping[str, Any] | None,
-    after_identity: Mapping[str, Any] | None,
+    before: Mapping[str, Any],
+    active_model_identity: Mapping[str, Any] | None,
     payload: Mapping[str, Any],
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    before = evidence.record_snapshot(
-        "BEFORE",
-        substrate.snapshot(f"{operation_id}:BEFORE", active_model_identity=before_identity),
-        operation_id=operation_id,
-    )
+) -> dict[str, Any]:
     after = evidence.record_snapshot(
         "AFTER",
-        substrate.snapshot(f"{operation_id}:AFTER", active_model_identity=after_identity),
+        substrate.snapshot(f"{operation_id}:AFTER", active_model_identity=active_model_identity),
         operation_id=operation_id,
     )
     evidence.record_operation(
@@ -280,7 +336,24 @@ def _record_operation(
         after_snapshot_sha256=str(after["snapshot_sha256"]),
         payload=payload,
     )
-    return before, after
+    return after
+
+
+def _knowledge_sentinel(substrate: Any, preflight: Mapping[str, Any]) -> dict[str, Any]:
+    sentinel_id = int(preflight["knowledge_sentinel_id"])
+    receipt = dict(
+        substrate.query_knowledge_sentinel(
+            str(preflight["knowledge_sentinel_query"]),
+            knowledge_id=sentinel_id,
+        )
+    )
+    selected = receipt.get("selected")
+    if not isinstance(selected, Mapping) or int(selected.get("knowledge_id") or 0) != sentinel_id:
+        raise RuntimeError("knowledge sentinel did not resolve to the pinned record")
+    expected_record = str(preflight.get("knowledge_sentinel_record_sha256") or "")
+    if expected_record and str(selected.get("record_sha256") or "") != expected_record:
+        raise RuntimeError("knowledge sentinel record hash changed")
+    return receipt
 
 
 def run_experiment(
@@ -306,38 +379,37 @@ def run_experiment(
     preflight_callable = preflight_fn or default_preflight
     corrupted_callable = corrupted_control_fn or default_corrupted_control
     preflight = dict(preflight_callable(inputs, preregistration, workspace))
+    evidence.write_json("preflight.json", preflight)
+    evidence.write_json("input-freeze.json", preflight)
     if preflight.get("passed") is not True:
-        evidence.write_json("preflight.json", preflight)
         raise RuntimeError(f"persistent-substrate preflight failed: {preflight.get('failures')}")
 
     corrupted = dict(corrupted_callable(inputs, preregistration, workspace))
-    if corrupted.get("passed") is not True or int(corrupted.get("model_invocations") or -1) != 0:
-        evidence.write_json("corrupted-control.json", corrupted)
+    evidence.write_json("corrupted-control.json", corrupted)
+    model_invocations = corrupted.get("model_invocations", -1)
+    if corrupted.get("passed") is not True or int(model_invocations) != 0:
         raise RuntimeError("corrupted control did not fail closed before model construction")
 
-    created_primary = primary_substrate is None
-    created_empty = empty_substrate is None
-    if created_primary:
+    if primary_substrate is None:
         primary_substrate = PersistentSubstrate.restore_primary(
             inputs,
             workspace=workspace / "primary",
             clock=DeterministicLogicalClock(),
             condition_id="primary-real-model-swap",
         )
-    if created_empty:
+    if empty_substrate is None:
         empty_substrate = PersistentSubstrate.create_empty_control(
             inputs,
             workspace=workspace / "empty",
             clock=DeterministicLogicalClock(),
             condition_id="empty-memory-real-model-swap",
         )
-    assert primary_substrate is not None
-    assert empty_substrate is not None
 
     model_sequence: list[str] = []
     generations: list[dict[str, Any]] = []
     adapter_close_receipts: list[dict[str, Any]] = []
     observations: dict[str, Any] = {}
+    sentinels: list[dict[str, Any]] = []
     gates: dict[str, bool] = {
         "INPUT_IDENTITY": True,
         "MODEL_SEQUENCE": False,
@@ -349,7 +421,6 @@ def run_experiment(
     }
 
     initial_snapshot: dict[str, Any] | None = None
-    final_snapshot: dict[str, Any] | None = None
     a0_identity: dict[str, Any] | None = None
     a2_identity: dict[str, Any] | None = None
     b_written: dict[str, Any] | None = None
@@ -360,6 +431,7 @@ def run_experiment(
         if int(empty_initial["memory"]["record_count"]) != 0:
             raise RuntimeError("empty-memory control was not empty before model construction")
 
+        append_before = _begin_operation(evidence, primary_substrate, "APPEND_A_HISTORY_CANARY", None)
         a_history_text = str(preregistration["candidates"]["a_history"][0])
         a_history = primary_substrate.append_memory(
             actor="controller",
@@ -373,12 +445,21 @@ def run_experiment(
             },
         )
         primary_substrate.advance_state("APPEND_A_HISTORY_CANARY", {"memory_id": a_history["memory_id"]})
+        _finish_operation(
+            evidence,
+            primary_substrate,
+            operation_id="APPEND_A_HISTORY_CANARY",
+            kind="append-preregistered-canary",
+            before=append_before,
+            active_model_identity=None,
+            payload={"memory_id": a_history["memory_id"], "record_sha256": a_history["record_sha256"]},
+        )
 
-        # A0: establish exact model-A identity and measure the pre-swap canary.
         adapter_a0 = adapter_factories.model_a()
         model_sequence.append("MODEL_A")
         try:
             a0_identity = dict(adapter_a0.identity)
+            a0_before = _begin_operation(evidence, primary_substrate, "A0_MEASUREMENT", None)
             primary_substrate.advance_state("LOAD_A0", {"identity": a0_identity})
             a_history_candidates = list(preregistration["candidates"]["a_history"])
             wire_valid = render_evidence_wire(
@@ -412,17 +493,14 @@ def run_experiment(
                     ),
                 }
             )
-            primary_substrate.query_knowledge_sentinel(
-                str(preflight["knowledge_sentinel_query"]),
-                knowledge_id=int(preflight["knowledge_sentinel_id"]),
-            )
-            _record_operation(
+            sentinels.append({"phase": "A0", **_knowledge_sentinel(primary_substrate, preflight)})
+            _finish_operation(
                 evidence,
                 primary_substrate,
                 operation_id="A0_MEASUREMENT",
                 kind="model-a-initial-measurement",
-                before_identity=None,
-                after_identity=a0_identity,
+                before=a0_before,
+                active_model_identity=a0_identity,
                 payload={"model_role": "MODEL_A", "memory_id": a_history["memory_id"]},
             )
         finally:
@@ -431,11 +509,11 @@ def run_experiment(
 
         after_a0 = primary_substrate.snapshot("AFTER_A0", active_model_identity=a0_identity)
 
-        # B1: the same substrate remains alive. B must recover the A canary.
         adapter_b = adapter_factories.model_b()
         model_sequence.append("MODEL_B")
         try:
             b_identity = dict(adapter_b.identity)
+            b_before = _begin_operation(evidence, primary_substrate, "B1_MEASUREMENT_AND_WRITE", a0_identity)
             primary_substrate.advance_state("LOAD_B1", {"identity": b_identity})
             before_b = primary_substrate.snapshot("BEFORE_B1", active_model_identity=b_identity)
             _assert_same_substrate(after_a0, before_b)
@@ -503,17 +581,14 @@ def run_experiment(
                 },
             )
             primary_substrate.advance_state("APPEND_B_WRITE", {"memory_id": b_written["memory_id"]})
-            primary_substrate.query_knowledge_sentinel(
-                str(preflight["knowledge_sentinel_query"]),
-                knowledge_id=int(preflight["knowledge_sentinel_id"]),
-            )
-            _record_operation(
+            sentinels.append({"phase": "B1", **_knowledge_sentinel(primary_substrate, preflight)})
+            _finish_operation(
                 evidence,
                 primary_substrate,
                 operation_id="B1_MEASUREMENT_AND_WRITE",
                 kind="model-b-measurement-and-write",
-                before_identity=a0_identity,
-                after_identity=b_identity,
+                before=b_before,
+                active_model_identity=b_identity,
                 payload={
                     "model_role": "MODEL_B",
                     "read_memory_id": a_history["memory_id"],
@@ -528,13 +603,13 @@ def run_experiment(
         after_b = primary_substrate.snapshot("AFTER_B1", active_model_identity=b_identity)
         _assert_same_substrate(after_a0, after_b)
 
-        # A2: reload the same pinned A identity and recover B's actual measured write.
         adapter_a2 = adapter_factories.model_a()
         model_sequence.append("MODEL_A")
         try:
             a2_identity = dict(adapter_a2.identity)
             if a0_identity != a2_identity:
                 raise RuntimeError("returning Model A identity does not match initial Model A identity")
+            a2_before = _begin_operation(evidence, primary_substrate, "A2_RETURN_MEASUREMENT", b_identity)
             primary_substrate.advance_state("LOAD_A2", {"identity": a2_identity})
             before_a2 = primary_substrate.snapshot("BEFORE_A2", active_model_identity=a2_identity)
             _assert_same_substrate(after_b, before_a2)
@@ -576,17 +651,14 @@ def run_experiment(
                     ),
                 }
             )
-            primary_substrate.query_knowledge_sentinel(
-                str(preflight["knowledge_sentinel_query"]),
-                knowledge_id=int(preflight["knowledge_sentinel_id"]),
-            )
-            _record_operation(
+            sentinels.append({"phase": "A2", **_knowledge_sentinel(primary_substrate, preflight)})
+            _finish_operation(
                 evidence,
                 primary_substrate,
                 operation_id="A2_RETURN_MEASUREMENT",
                 kind="model-a-return-measurement",
-                before_identity=b_identity,
-                after_identity=a2_identity,
+                before=a2_before,
+                active_model_identity=a2_identity,
                 payload={"model_role": "MODEL_A", "read_memory_id": recovered_b["memory_id"]},
             )
         finally:
@@ -624,6 +696,7 @@ def run_experiment(
                     "final": empty_final,
                 },
             },
+            "knowledge_sentinels": sentinels,
             "generations": generations,
             "adapter_close_receipts": adapter_close_receipts,
             "gates": gates,
@@ -640,10 +713,9 @@ def run_experiment(
             ),
             "evidence_sealed": False,
         }
-        evidence.write_json("preflight.json", preflight)
-        evidence.write_json("corrupted-control.json", corrupted)
         evidence.write_json("observations.json", result)
         evidence.write_json("generations.json", generations)
+        evidence.write_json("knowledge-sentinels.json", sentinels)
         evidence.write_json("adapter-close-receipts.json", adapter_close_receipts)
         return result
     finally:
