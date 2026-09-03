@@ -1,8 +1,9 @@
 """Frozen, inference-only model adapters for persistent-substrate experiment 001.
 
-The adapters expose one measurement primitive: conditional negative log
-likelihood for an explicitly supplied continuation. They do not generate text,
-update model weights, or inject hidden substrate state into provider inputs.
+The adapters expose provider-neutral conditional-NLL scoring plus deterministic
+raw greedy generation for evidentiary receipts. They never update model weights,
+construct an optimizer, run backward passes, or inject hidden substrate state
+into provider inputs.
 """
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 import torch
 import torch.nn.functional as F
@@ -34,12 +35,7 @@ def _hash_text(digest: Any, value: str) -> None:
 
 
 def parameter_sha256(model: torch.nn.Module) -> str:
-    """Hash the complete tensor state of a model without mutating it.
-
-    Names, dtypes, shapes, and raw tensor bytes are included. Persistent buffers
-    are deliberately included through ``state_dict`` so restoration checks cover
-    more than trainable parameters alone.
-    """
+    """Hash the complete tensor state of a model without mutating it."""
 
     digest = hashlib.sha256()
     state = model.state_dict()
@@ -76,6 +72,16 @@ def _validate_text(prompt: str, continuation: str) -> tuple[str, str]:
     if not continuation_text:
         raise ValueError("continuation must be non-empty")
     return prompt_text, continuation_text
+
+
+def _validate_generation(prompt: str, max_new_tokens: int) -> tuple[str, int]:
+    prompt_text = str(prompt)
+    budget = int(max_new_tokens)
+    if not prompt_text:
+        raise ValueError("prompt must be non-empty for causal generation")
+    if budget <= 0:
+        raise ValueError("max_new_tokens must be positive")
+    return prompt_text, budget
 
 
 def _conditional_score(
@@ -127,7 +133,55 @@ def _conditional_score(
     )
 
 
-class ZerefNLLAdapter:
+class _FrozenAdapterLifecycle:
+    model: torch.nn.Module
+    model_id: str
+    checkpoint_identity: Mapping[str, Any]
+    _initial_parameter_sha256: str
+    _identity: Mapping[str, Any]
+
+    def _freeze_identity(self) -> None:
+        self._initial_parameter_sha256 = parameter_sha256(self.model)
+        identity = dict(self.checkpoint_identity)
+        identity["model_id"] = self.model_id
+        frozen_parameter_sha = str(identity.get("parameter_sha256") or self._initial_parameter_sha256)
+        if frozen_parameter_sha != self._initial_parameter_sha256:
+            raise RuntimeError(
+                "model parameter SHA does not match checkpoint identity: "
+                f"{self._initial_parameter_sha256} != {frozen_parameter_sha}"
+            )
+        identity["parameter_sha256"] = self._initial_parameter_sha256
+        self._identity = MappingProxyType(identity)
+
+    @property
+    def identity(self) -> Mapping[str, Any]:
+        return self._identity
+
+    def score_candidates(self, wire: str, candidates: Sequence[str]) -> tuple[CandidateScore, ...]:
+        candidate_list = tuple(str(value) for value in candidates)
+        if not candidate_list:
+            raise ValueError("candidates must be non-empty")
+        if len(set(candidate_list)) != len(candidate_list):
+            raise ValueError("candidates must be unique")
+        return tuple(self.score(prompt=str(wire), continuation=candidate) for candidate in candidate_list)
+
+    def close(self) -> dict[str, Any]:
+        after = parameter_sha256(self.model)
+        drift = after != self._initial_parameter_sha256
+        if drift:
+            raise RuntimeError(
+                "model parameter drift detected: "
+                f"{after} != {self._initial_parameter_sha256}"
+            )
+        return {
+            "model_id": self.model_id,
+            "parameter_sha256_before": self._initial_parameter_sha256,
+            "parameter_sha256_after": after,
+            "parameter_drift": False,
+        }
+
+
+class ZerefNLLAdapter(_FrozenAdapterLifecycle):
     """Conditional-NLL adapter for the frozen character-level Zeref checkpoint."""
 
     def __init__(
@@ -148,6 +202,10 @@ class ZerefNLLAdapter:
             raise ValueError("frozen tokenizer cannot be empty")
         if self.block_size is not None and self.block_size <= 0:
             raise ValueError("block_size must be positive")
+        self.itos = MappingProxyType({value: key for key, value in self.stoi.items()})
+        if len(self.itos) != len(self.stoi):
+            raise ValueError("frozen tokenizer ids must be unique")
+        self._freeze_identity()
 
     @classmethod
     def from_checkpoint(
@@ -219,8 +277,43 @@ class ZerefNLLAdapter:
             transformers_style=False,
         )
 
+    def generate(self, wire: str, *, max_new_tokens: int) -> dict[str, Any]:
+        prompt_text, budget = _validate_generation(wire, max_new_tokens)
+        input_ids = self._encode(prompt_text)
+        if self.block_size is not None and len(input_ids) + budget > self.block_size:
+            raise ValueError(
+                f"prompt plus generation budget uses {len(input_ids) + budget} characters; "
+                f"frozen block is {self.block_size}"
+            )
+        generated: list[int] = []
+        device = _device_for(self.model)
+        with torch.inference_mode():
+            for _ in range(budget):
+                tensor = torch.tensor([input_ids + generated], dtype=torch.long, device=device)
+                output = self.model(tensor)
+                logits = output[0] if isinstance(output, (tuple, list)) else output
+                if logits.ndim != 3 or logits.shape[0] != 1:
+                    raise RuntimeError("model returned incompatible causal logits")
+                generated.append(int(torch.argmax(logits[0, -1, :]).item()))
+        try:
+            text = "".join(self.itos[value] for value in generated)
+        except KeyError as exc:
+            raise RuntimeError(f"generated tokenizer id is absent from frozen tokenizer: {exc.args[0]}") from exc
+        return {
+            "schema": "persistent-substrate-generation-v1",
+            "model_id": self.model_id,
+            "max_new_tokens": budget,
+            "generated_units": len(generated),
+            "unit_kind": "character",
+            "text": text,
+            "generated_ids": generated,
+            "generated_ids_sha256": sha256_json(generated),
+            "prompt_ids_sha256": sha256_json(input_ids),
+            "parameter_sha256": self._initial_parameter_sha256,
+        }
 
-class TransformersNLLAdapter:
+
+class TransformersNLLAdapter(_FrozenAdapterLifecycle):
     """Conditional-NLL adapter for the pinned external causal language model."""
 
     def __init__(
@@ -235,6 +328,7 @@ class TransformersNLLAdapter:
         self.tokenizer = tokenizer
         self.checkpoint_identity = MappingProxyType(dict(checkpoint_identity))
         self.model_id = str(model_id)
+        self._freeze_identity()
 
     @classmethod
     def from_pretrained(
@@ -299,3 +393,35 @@ class TransformersNLLAdapter:
             unit_kind="token",
             transformers_style=True,
         )
+
+    def generate(self, wire: str, *, max_new_tokens: int) -> dict[str, Any]:
+        prompt_text, budget = _validate_generation(wire, max_new_tokens)
+        input_ids = self._encode(prompt_text)
+        if not input_ids:
+            raise ValueError("prompt produced no tokenizer units")
+        generated: list[int] = []
+        device = _device_for(self.model)
+        with torch.inference_mode():
+            for _ in range(budget):
+                tensor = torch.tensor([input_ids + generated], dtype=torch.long, device=device)
+                output = self.model(input_ids=tensor)
+                logits = output.logits
+                if logits.ndim != 3 or logits.shape[0] != 1:
+                    raise RuntimeError("model returned incompatible causal logits")
+                generated.append(int(torch.argmax(logits[0, -1, :]).item()))
+        try:
+            text = self.tokenizer.decode(generated, skip_special_tokens=False)
+        except TypeError:
+            text = self.tokenizer.decode(generated)
+        return {
+            "schema": "persistent-substrate-generation-v1",
+            "model_id": self.model_id,
+            "max_new_tokens": budget,
+            "generated_units": len(generated),
+            "unit_kind": "token",
+            "text": str(text),
+            "generated_ids": generated,
+            "generated_ids_sha256": sha256_json(generated),
+            "prompt_ids_sha256": sha256_json(input_ids),
+            "parameter_sha256": self._initial_parameter_sha256,
+        }
