@@ -1,0 +1,49 @@
+name: Persistent Substrate Model Adapters
+
+on:
+  push:
+    branches:
+      - experiment/persistent-substrate-model-swap-001
+    paths:
+      - 'beastbox/persistent_substrate/models.py'
+      - 'tests/test_persistent_substrate_models.py'
+      - 'tests/test_final_model_swap_round_trip.py'
+      - '.github/workflows/persistent-substrate-model-adapters.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: persistent-substrate-model-adapters-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  adapter-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev,ml]'
+      - name: Frozen adapter and historical round-trip contracts
+        run: |
+          python -m pytest \
+            tests/test_persistent_substrate_models.py \
+            tests/test_final_model_swap_round_trip.py \
+            -q
+      - name: Reject training paths in the adapter layer
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -nE 'optimizer|backward\(|loss\.backward|trainer|fit\(' -- \
+              beastbox/persistent_substrate/models.py \
+              tests/test_persistent_substrate_models.py; then
+            echo 'Training path detected in frozen measurement layer.' >&2
+            exit 1
+          fi
