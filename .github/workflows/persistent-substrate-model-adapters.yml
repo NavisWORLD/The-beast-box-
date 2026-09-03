@@ -36,12 +36,18 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e '.[dev,ml]'
       - name: Frozen measurement and evidence contracts
+        shell: bash
         run: |
-          python -m pytest \
-            tests/test_persistent_substrate_models.py \
-            tests/test_persistent_substrate_evidence.py \
-            tests/test_final_model_swap_round_trip.py \
-            -q
+          set -euo pipefail
+          tests=(
+            tests/test_persistent_substrate_models.py
+            tests/test_persistent_substrate_evidence.py
+            tests/test_final_model_swap_round_trip.py
+          )
+          if [[ -f tests/test_persistent_substrate_runner.py ]]; then
+            tests+=(tests/test_persistent_substrate_runner.py)
+          fi
+          python -m pytest "${tests[@]}" -q
       - name: Reject training paths in the experiment layer
         shell: bash
         run: |
