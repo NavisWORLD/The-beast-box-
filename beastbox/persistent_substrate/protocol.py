@@ -14,7 +14,7 @@ from typing import Any, Mapping, Sequence
 EXPERIMENT_ID = "persistent-substrate-model-swap-001"
 LOGICAL_CLOCK_START = "2026-08-30T00:00:00.000000Z"
 MODEL_A_CHECKPOINT_SHA256 = "454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425"
-MODEL_B_REVISION = "4e53f736cbb20a9a0f56b4c4bf378d9f306ff915"
+MODEL_B_REVISION = "816ebadd0c024779e6657fdcfc1ab02bb9a7c473"
 
 
 def canonical_json_bytes(value: Any) -> bytes:
@@ -100,6 +100,12 @@ class CandidateScore:
     unit_kind: str
     input_ids_sha256: str
 
+    @property
+    def conditional_nll(self) -> float:
+        """Mean continuation-token NLL; prompt tokens are excluded by adapters."""
+
+        return float(self.normalized_nll)
+
 
 def _validate_scores(name: str, scores: Mapping[str, float]) -> dict[str, float]:
     if len(scores) < 2:
@@ -162,4 +168,3 @@ def load_preregistration(path: str | Path) -> dict[str, Any]:
     if value.get("experiment_id") != EXPERIMENT_ID:
         raise ValueError("unexpected experiment id")
     return value
-
