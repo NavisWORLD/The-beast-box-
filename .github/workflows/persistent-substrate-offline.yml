@@ -7,7 +7,7 @@ on:
     paths:
       - 'beastbox/persistent_substrate/**'
       - 'scripts/run_persistent_substrate_offline_swap.py'
-      - 'tests/test_persistent_substrate_offline.py'
+      - 'tests/test_persistent_substrate_*.py'
       - 'experiments/persistent-substrate-model-swap-001/offline-preregistration.json'
       - 'experiments/persistent-substrate-model-swap-001/fixtures/**'
       - 'docs/superpowers/specs/2026-08-31-persistent-substrate-offline-amendment.md'
@@ -27,18 +27,17 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
       - run: python -m pip install --upgrade pip
       - run: pip install -e . pytest
-      - name: Offline contract tests
-        run: python -m pytest -q tests/test_persistent_substrate_offline.py
-      - name: Existing persistent-substrate primitives
-        run: python -m pytest -q tests/test_persistent_substrate_protocol.py tests/test_persistent_substrate_ledger.py tests/test_persistent_substrate_substrate.py
+      - name: Persistent-substrate contract tests
+        run: python -m pytest -q tests/test_persistent_substrate_*.py
       - name: Sealed scientific evidence guard
         run: git diff --exit-code c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f -- evidence/final-whole-organism-001/
 
@@ -47,10 +46,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
       - run: python -m pip install --upgrade pip
@@ -83,7 +83,7 @@ jobs:
           fi
       - name: Upload sealed evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: persistent-substrate-offline-${{ github.run_id }}
           path: |
