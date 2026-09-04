@@ -2,10 +2,11 @@
 """Frozen execution shim for persistent-substrate-model-swap-002-historical-b4e53.
 
 The underlying runner was committed with stale R12 seed-file SHA constants.
-The preregistered 002 seed bytes are already committed and hash to the values
-below. This shim changes only those two file-identity constants before invoking
-the underlying runner. No model, prompt, metric, control, or success criterion
-is changed.
+After failed run 33913541101, the genesis R12 object's own embedded integrity
+hash was repaired before any model inference occurred. The corrected committed
+seed files hash to the values below. This shim changes only those two file-
+identity constants before invoking the underlying runner. No model, prompt,
+metric, control, or success criterion is changed.
 """
 
 from __future__ import annotations
@@ -14,8 +15,8 @@ import importlib.util
 from pathlib import Path
 
 
-R12_STATE_SHA256 = "cc42753463e7467e58626f8a81c75716183406c29d15acc2a1aee352a0570162"
-R12_HISTORY_SHA256 = "cc42753463e7467e58626f8a81c75716183406c29d15acc2a1aee352a0570162"
+R12_STATE_SHA256 = "f8b02245daf0d48ec8b404eef1105b92558e619ea3865f792bf52b34d6b06559"
+R12_HISTORY_SHA256 = "f8b02245daf0d48ec8b404eef1105b92558e619ea3865f792bf52b34d6b06559"
 
 
 def _load_runner():
