@@ -14,7 +14,7 @@ from typing import Any, Mapping, Sequence
 EXPERIMENT_ID = "persistent-substrate-model-swap-001"
 LOGICAL_CLOCK_START = "2026-08-30T00:00:00.000000Z"
 MODEL_A_CHECKPOINT_SHA256 = "454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425"
-MODEL_B_REVISION = "816ebadd0c024779e6657fdcfc1ab02bb9a7c473"
+MODEL_B_REVISION = "4e53f736cbb20a9a0f56b4c4bf378d9f306ff915"
 
 
 def canonical_json_bytes(value: Any) -> bytes:
