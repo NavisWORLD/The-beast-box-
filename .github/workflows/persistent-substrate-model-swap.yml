@@ -38,11 +38,11 @@ jobs:
           set -euo pipefail
           git rev-parse HEAD
           printf 'protocol=%s\nmodel_a_sha256=%s\nmodel_b=%s@%s\n' "$PROTOCOL_VERSION" "$MODEL_A_SHA256" "$MODEL_B_REPO" "$MODEL_B_REVISION"
-      - name: Install frozen-model loader dependencies
+      - name: Install immutable-revision resolver
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          python -m pip install 'huggingface_hub==0.36.0' 'transformers==4.57.1' 'safetensors==0.6.2' 'torch==2.8.0'
+          python -m pip install 'huggingface_hub==0.36.0'
       - name: Resolve exact Model B immutable revision
         run: |
           set -euo pipefail
@@ -65,9 +65,8 @@ jobs:
           from pathlib import Path
           expected = os.environ['MODEL_A_SHA256']
           matches = []
-          skip = {'.git'}
           for path in Path('.').rglob('*'):
-              if not path.is_file() or any(part in skip for part in path.parts):
+              if not path.is_file() or '.git' in path.parts:
                   continue
               h = hashlib.sha256()
               try:
@@ -82,10 +81,14 @@ jobs:
               raise SystemExit(f'exact Model A checkpoint unavailable in checkout: sha256={expected}')
           print('MODEL_A_MATCHES=' + ','.join(matches))
           PY
+      - name: Install frozen-model execution dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install 'transformers==4.57.1' 'safetensors==0.6.2' 'torch==2.8.0'
+          python -m pip install -e '.[dev,ml]'
       - name: Frozen adapter contract
         run: |
           set -euo pipefail
-          python -m pip install -e '.[dev,ml]'
           python -m pytest -q tests/test_persistent_substrate_models.py tests/test_persistent_substrate_metrics.py tests/test_persistent_substrate_prompts.py
       - name: Reject hidden training paths
         run: |
