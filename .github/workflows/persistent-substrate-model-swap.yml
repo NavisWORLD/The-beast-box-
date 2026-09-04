@@ -7,6 +7,10 @@ on:
       - experiment/persistent-substrate-model-swap-001
     paths:
       - '.github/workflows/persistent-substrate-model-swap.yml'
+      - 'beastbox/persistent_substrate/protocol.py'
+      - 'tests/test_persistent_substrate_metrics.py'
+      - 'experiments/persistent-substrate-model-swap-001/preregistration.json'
+      - 'experiments/persistent-substrate-model-swap-001/preflight-pin-correction-*.json'
 
 permissions:
   contents: read
@@ -18,7 +22,7 @@ concurrency:
 env:
   MODEL_A_SHA256: 454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425
   MODEL_B_REPO: HuggingFaceTB/SmolLM2-135M
-  MODEL_B_REVISION: 816ebadd0c024779e6657fdcfc1ab02bb9a7c473
+  MODEL_B_REVISION: 4e53f736cbb20a9a0f56b4c4bf378d9f306ff915
   PROTOCOL_VERSION: persistent-substrate-model-swap-v1
 
 jobs:
@@ -38,6 +42,27 @@ jobs:
           set -euo pipefail
           git rev-parse HEAD
           printf 'protocol=%s\nmodel_a_sha256=%s\nmodel_b=%s@%s\n' "$PROTOCOL_VERSION" "$MODEL_A_SHA256" "$MODEL_B_REPO" "$MODEL_B_REVISION"
+      - name: Verify workflow pin matches frozen preregistration
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          prereg = json.loads(Path('experiments/persistent-substrate-model-swap-001/preregistration.json').read_text(encoding='utf-8'))
+          expected_repo = prereg['model_b']['repository']
+          expected_revision = prereg['model_b']['revision']
+          actual_repo = os.environ['MODEL_B_REPO']
+          actual_revision = os.environ['MODEL_B_REVISION']
+          if actual_repo != expected_repo or actual_revision != expected_revision:
+              raise SystemExit(
+                  'workflow/preregistration Model B mismatch: '
+                  f'workflow={actual_repo}@{actual_revision} '
+                  f'preregistered={expected_repo}@{expected_revision}'
+              )
+          print(f'PREREG_MODEL_B_MATCH={actual_repo}@{actual_revision}')
+          PY
       - name: Install immutable-revision resolver
         run: |
           set -euo pipefail
