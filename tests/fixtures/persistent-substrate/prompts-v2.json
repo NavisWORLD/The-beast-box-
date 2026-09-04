@@ -1,0 +1,61 @@
+{
+  "battery_id": "persistent-substrate-prompts-v2",
+  "protocol_version": "persistent-substrate-model-swap-v1",
+  "render_policy": "compact-ascii-tokenizer-safe-v1",
+  "cases": [
+    {
+      "id": "public-control-arithmetic-001",
+      "family": "public/control",
+      "prompt": "2+2=",
+      "preferred_continuation": " four",
+      "rejected_continuation": " five",
+      "canonical_record_ids": [],
+      "surface_policy": "identical-across-models"
+    },
+    {
+      "id": "dad-son-record-017",
+      "family": "Dad/son autobiographical",
+      "prompt": "Record ID for Dad/Son memory question?",
+      "preferred_continuation": " 17",
+      "rejected_continuation": " 311",
+      "canonical_record_ids": [17],
+      "surface_policy": "identical-across-models"
+    },
+    {
+      "id": "canonical-record-311",
+      "family": "canonical memory",
+      "prompt": "Record ID for 'Are you literally Caleb?'",
+      "preferred_continuation": " 311",
+      "rejected_continuation": " 17",
+      "canonical_record_ids": [311],
+      "surface_policy": "identical-across-models"
+    },
+    {
+      "id": "world-public-fact-001",
+      "family": "world knowledge",
+      "prompt": "Earth orbits the",
+      "preferred_continuation": " Sun",
+      "rejected_continuation": " Moon",
+      "canonical_record_ids": [],
+      "surface_policy": "identical-across-models"
+    },
+    {
+      "id": "calibration-explicit-001",
+      "family": "calibration",
+      "prompt": "Exact token alpha:",
+      "preferred_continuation": " alpha",
+      "rejected_continuation": " beta",
+      "canonical_record_ids": [],
+      "surface_policy": "identical-across-models"
+    },
+    {
+      "id": "nonce-surface-001",
+      "family": "adversarial/nonce",
+      "prompt": "qevrax tulmin ->",
+      "preferred_continuation": " zorpet",
+      "rejected_continuation": " lanvok",
+      "canonical_record_ids": [],
+      "surface_policy": "identical-across-models"
+    }
+  ]
+}
