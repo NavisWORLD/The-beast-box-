@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: persistent-substrate-real-model-swap-${{ github.sha }}
@@ -21,6 +22,9 @@ concurrency:
 
 env:
   MODEL_A_SHA256: 454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425
+  MODEL_A_SOURCE_RUN_ID: '33132618727'
+  MODEL_A_SOURCE_ARTIFACT: zeref-world-r12-downstream-diagnostic-33132618727
+  MODEL_A_SOURCE_PATH: .persistent-substrate/model-a-source/SELECTED-WORLD-R12.pt
   MODEL_B_REPO: HuggingFaceTB/SmolLM2-135M
   MODEL_B_REVISION: 4e53f736cbb20a9a0f56b4c4bf378d9f306ff915
   PROTOCOL_VERSION: persistent-substrate-model-swap-v1
@@ -41,7 +45,8 @@ jobs:
         run: |
           set -euo pipefail
           git rev-parse HEAD
-          printf 'protocol=%s\nmodel_a_sha256=%s\nmodel_b=%s@%s\n' "$PROTOCOL_VERSION" "$MODEL_A_SHA256" "$MODEL_B_REPO" "$MODEL_B_REVISION"
+          printf 'protocol=%s\nmodel_a_sha256=%s\nmodel_a_source_run=%s\nmodel_a_source_artifact=%s\nmodel_b=%s@%s\n' \
+            "$PROTOCOL_VERSION" "$MODEL_A_SHA256" "$MODEL_A_SOURCE_RUN_ID" "$MODEL_A_SOURCE_ARTIFACT" "$MODEL_B_REPO" "$MODEL_B_REVISION"
       - name: Verify workflow pin matches frozen preregistration
         run: |
           set -euo pipefail
@@ -53,15 +58,31 @@ jobs:
           prereg = json.loads(Path('experiments/persistent-substrate-model-swap-001/preregistration.json').read_text(encoding='utf-8'))
           expected_repo = prereg['model_b']['repository']
           expected_revision = prereg['model_b']['revision']
+          expected_a_sha = prereg['model_a']['checkpoint_sha256']
+          expected_source_run = str(prereg['artifact_source']['run_id'])
           actual_repo = os.environ['MODEL_B_REPO']
           actual_revision = os.environ['MODEL_B_REVISION']
+          actual_a_sha = os.environ['MODEL_A_SHA256']
+          actual_source_run = os.environ['MODEL_A_SOURCE_RUN_ID']
           if actual_repo != expected_repo or actual_revision != expected_revision:
               raise SystemExit(
                   'workflow/preregistration Model B mismatch: '
                   f'workflow={actual_repo}@{actual_revision} '
                   f'preregistered={expected_repo}@{expected_revision}'
               )
+          if actual_a_sha != expected_a_sha:
+              raise SystemExit(
+                  'workflow/preregistration Model A hash mismatch: '
+                  f'workflow={actual_a_sha} preregistered={expected_a_sha}'
+              )
+          if actual_source_run != expected_source_run:
+              raise SystemExit(
+                  'workflow/preregistration artifact-source mismatch: '
+                  f'workflow={actual_source_run} preregistered={expected_source_run}'
+              )
           print(f'PREREG_MODEL_B_MATCH={actual_repo}@{actual_revision}')
+          print(f'PREREG_MODEL_A_SHA_MATCH={actual_a_sha}')
+          print(f'PREREG_SOURCE_RUN_MATCH={actual_source_run}')
           PY
       - name: Install immutable-revision resolver
         run: |
@@ -81,6 +102,14 @@ jobs:
               raise SystemExit(f'Model B revision mismatch: requested={revision} resolved={info.sha}')
           print(f'MODEL_B_RESOLVED={repo}@{info.sha}')
           PY
+      - name: Download preserved Model A source artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ env.MODEL_A_SOURCE_ARTIFACT }}
+          path: .persistent-substrate/model-a-source
+          github-token: ${{ github.token }}
+          repository: NavisWORLD/The-beast-box-
+          run-id: ${{ env.MODEL_A_SOURCE_RUN_ID }}
       - name: Prove exact Model A checkpoint bytes are available
         run: |
           set -euo pipefail
@@ -88,23 +117,21 @@ jobs:
           import hashlib
           import os
           from pathlib import Path
+
           expected = os.environ['MODEL_A_SHA256']
-          matches = []
-          for path in Path('.').rglob('*'):
-              if not path.is_file() or '.git' in path.parts:
-                  continue
-              h = hashlib.sha256()
-              try:
-                  with path.open('rb') as handle:
-                      for chunk in iter(lambda: handle.read(1024 * 1024), b''):
-                          h.update(chunk)
-              except OSError:
-                  continue
-              if h.hexdigest() == expected:
-                  matches.append(str(path))
-          if not matches:
-              raise SystemExit(f'exact Model A checkpoint unavailable in checkout: sha256={expected}')
-          print('MODEL_A_MATCHES=' + ','.join(matches))
+          path = Path(os.environ['MODEL_A_SOURCE_PATH'])
+          if not path.is_file():
+              raise SystemExit(f'expected Model A checkpoint path missing: {path}')
+          h = hashlib.sha256()
+          with path.open('rb') as handle:
+              for chunk in iter(lambda: handle.read(1024 * 1024), b''):
+                  h.update(chunk)
+          observed = h.hexdigest()
+          if observed != expected:
+              raise SystemExit(
+                  f'exact Model A checkpoint hash mismatch: expected={expected} observed={observed} path={path}'
+              )
+          print(f'MODEL_A_VERIFIED={path}:{observed}')
           PY
       - name: Install frozen-model execution dependencies
         run: |
