@@ -10,7 +10,7 @@ from beastbox.persistent_substrate.metrics import (
 from beastbox.persistent_substrate.protocol import CandidateScore, MODEL_B_REVISION
 
 
-REQUIRED_MODEL_B_REVISION = "816ebadd0c024779e6657fdcfc1ab02bb9a7c473"
+REQUIRED_MODEL_B_REVISION = "4e53f736cbb20a9a0f56b4c4bf378d9f306ff915"
 
 
 def _score(candidate: str, conditional_nll: float) -> CandidateScore:
