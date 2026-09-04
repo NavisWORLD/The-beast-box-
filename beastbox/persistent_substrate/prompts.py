@@ -17,6 +17,10 @@ REQUIRED_FAMILIES = (
     "calibration",
     "adversarial/nonce",
 )
+SUPPORTED_BATTERY_IDS = (
+    "persistent-substrate-prompts-v1",
+    "persistent-substrate-prompts-v2",
+)
 
 
 @dataclass(frozen=True)
@@ -35,6 +39,7 @@ class FrozenPromptBattery:
     battery_id: str
     protocol_version: str
     sha256: str
+    render_policy: str
     cases: tuple[PromptCase, ...]
 
 
@@ -54,10 +59,14 @@ def load_frozen_prompt_battery(path: str | Path) -> FrozenPromptBattery:
         raise ValueError("prompt battery must be valid UTF-8 JSON") from exc
     if not isinstance(value, dict):
         raise ValueError("prompt battery must be an object")
-    if value.get("battery_id") != "persistent-substrate-prompts-v1":
+    battery_id = str(value.get("battery_id") or "")
+    if battery_id not in SUPPORTED_BATTERY_IDS:
         raise ValueError("unexpected prompt battery id")
     if value.get("protocol_version") != "persistent-substrate-model-swap-v1":
         raise ValueError("unexpected prompt protocol version")
+    render_policy = str(value.get("render_policy") or "legacy-wire-v1")
+    if battery_id == "persistent-substrate-prompts-v2" and render_policy != "compact-ascii-tokenizer-safe-v1":
+        raise ValueError("compact prompt battery must freeze compact-ascii-tokenizer-safe-v1")
     rows = value.get("cases")
     if not isinstance(rows, list) or not rows:
         raise ValueError("prompt battery cases must be a non-empty list")
@@ -105,8 +114,9 @@ def load_frozen_prompt_battery(path: str | Path) -> FrozenPromptBattery:
         extra = sorted(observed - allowed)
         raise ValueError(f"prompt families mismatch; missing={missing}, extra={extra}")
     return FrozenPromptBattery(
-        battery_id=str(value["battery_id"]),
+        battery_id=battery_id,
         protocol_version=str(value["protocol_version"]),
         sha256=hashlib.sha256(raw).hexdigest(),
+        render_policy=render_policy,
         cases=tuple(cases),
     )
