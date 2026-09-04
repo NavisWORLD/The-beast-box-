@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: persistent-substrate-real-model-swap-${{ github.ref }}
+  group: persistent-substrate-real-model-swap-${{ github.sha }}
   cancel-in-progress: false
 
 env:
