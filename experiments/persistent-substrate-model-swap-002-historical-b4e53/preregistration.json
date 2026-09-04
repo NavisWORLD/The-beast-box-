@@ -1,0 +1,74 @@
+{
+  "schema": "persistent-substrate-model-swap-preregistration-v2",
+  "experiment_id": "persistent-substrate-model-swap-002-historical-b4e53",
+  "frozen_on": "2026-09-04",
+  "purpose": "Execute a real frozen-model A0 -> B1 -> A2 software-continuity reproduction after experiment 001 was blocked by unrecoverable historical seed-byte provenance and the separately requested Model-B revision 816ebadd0c024779e6657fdcfc1ab02bb9a7c473 was proven unavailable.",
+  "claim_boundary": "This experiment measures computational substrate continuity across frozen model replacement. It does not establish consciousness, sentience, personhood, biological life, resurrection, a soul, deceased-person identity, quantum advantage, or a new physical effect.",
+  "model_order": ["MODEL_A", "MODEL_B", "MODEL_A"],
+  "model_a": {
+    "checkpoint_sha256": "454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425",
+    "architecture_path": "experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py",
+    "architecture_sha256": "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc",
+    "provider_adapter": "local-pytorch-zeref"
+  },
+  "model_b": {
+    "repository": "HuggingFaceTB/SmolLM2-135M",
+    "revision": "4e53f736cbb20a9a0f56b4c4bf378d9f306ff915",
+    "license": "Apache-2.0",
+    "provider_adapter": "local-transformers-causal-lm",
+    "trust_remote_code": false,
+    "label": "historical reproduction pin; not a substitute for the unavailable requested 816ebadd revision"
+  },
+  "source_artifact": {
+    "run_id": 33132618727,
+    "artifact_id": 9670847045,
+    "name": "zeref-world-r12-downstream-diagnostic-33132618727",
+    "artifact_digest": "sha256:8f27aabe3e1bac5edf1c51b958be1f50ff1d076105c3f41e3901d780e7aa3083",
+    "checkpoint_path": "SELECTED-WORLD-R12.pt",
+    "world_db_path": "world/world.sqlite3",
+    "world_evidence_path": "world/world-evidence.jsonl",
+    "world_summary_path": "world/ingestion-summary.json"
+  },
+  "frozen_hashes": {
+    "canonical_memory_sha256": "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef",
+    "world_db_sha256": "919947f5adeadb2d9fdfb31f2ae55d6e4d8fb8825b73a7736dea1a9dae4bb16a",
+    "world_evidence_sha256": "3ecd3efe1627dcb9c74232c3c5760825b5f56b5fec0ce2f99f2985ee809e6535",
+    "world_summary_sha256": "9e2e6cf0965691db9a4ecd3affe9ccb8b33195f6cf7f2341ace1e1f43e549d3b",
+    "r12_state_file_sha256": "cc42753463e7467e58626f8a81c75716183406c29d15acc2a1aee352a0570162",
+    "r12_history_file_sha256": "cc42753463e7467e58626f8a81c75716183406c29d15acc2a1aee352a0570162",
+    "reality_events_file_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "prompt_battery_raw_sha256": "3d0c25488546fd46e6591362811d3fbe18e2b170781c9151836499fa47278796"
+  },
+  "prompt_battery": {
+    "path": "tests/fixtures/persistent-substrate/prompts-v2.json",
+    "battery_id": "persistent-substrate-prompts-v2",
+    "case_count": 6,
+    "families": ["public/control", "Dad/son autobiographical", "canonical memory", "world knowledge", "calibration", "adversarial/nonce"],
+    "surface_policy": "identical-across-models"
+  },
+  "controls": {
+    "a_only_schedule": "A0 -> A1 -> A2 using the same frozen Model A and two deterministic state handoffs",
+    "empty_memory": "zero-record personal-memory substrate with real Model-A inference",
+    "shuffled_memory": "separate verified substrate with deterministic 17 <-> 311 retrieval rotation and real Model-A inference"
+  },
+  "measurements": {
+    "primary": ["A0", "B1", "A2"],
+    "metric": "paired continuation conditional NLL; delta = rejected normalized NLL minus preferred normalized NLL",
+    "threshold_policy": "descriptive only; no post-hoc behavioral success threshold",
+    "required_identity_receipts": ["model parameter SHA before/after", "memory ledger", "state ledger", "routing config", "world store", "immutable inputs", "substrate object tokens"]
+  },
+  "structural_success_criteria": [
+    "A0 -> B1 -> A2 executes with real frozen adapters",
+    "B1 receives verified A0 bridge memory bytes",
+    "A2 receives verified B1 bridge memory bytes",
+    "primary substrate store IDs, object tokens, immutable inputs, routing config, and world-store hashes remain continuous",
+    "two bridge records remain in accumulated primary memory",
+    "two deterministic model-handoff state transitions remain accumulated",
+    "returning Model A parameter identity equals initial Model A parameter identity",
+    "no parameter drift is detected",
+    "A-only, empty-memory, and shuffled-memory controls all execute real inference",
+    "sealed evidence artifact verifies its own hashes"
+  ],
+  "training_performed": false,
+  "generated_text_is_evidence": false
+}
