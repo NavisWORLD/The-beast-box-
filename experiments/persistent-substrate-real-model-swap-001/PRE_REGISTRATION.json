@@ -1,0 +1,123 @@
+{
+  "allowed_classifications": [
+    "VERIFIED_REAL_MODEL_PERSISTENT_SUBSTRATE_FUNCTIONAL_CONTINUITY",
+    "ENGINEERING_SUBSTRATE_VERIFIED_REAL_MODEL_FUNCTIONAL_EFFECT_NOT_ESTABLISHED",
+    "ENGINEERING_CONTROL_INCONCLUSIVE"
+  ],
+  "base_commit": "a3366a77f8067b984286315f26e7d924482d0c8a",
+  "controller_append_policy": {
+    "canary_keys": [
+      "a0_canary_amber",
+      "a0_canary_violet",
+      "b1_canary_silver",
+      "b1_canary_bronze"
+    ],
+    "model_generated_writes": false,
+    "wording": "history accumulated while the model was active"
+  },
+  "experiment_id": "persistent-substrate-real-model-swap-001",
+  "model_sequence": [
+    "ZEREF-DAD-SON-TALK-004",
+    "HuggingFaceTB/SmolLM2-135M",
+    "ZEREF-DAD-SON-TALK-004"
+  ],
+  "models": {
+    "A": {
+      "architecture_commit": "147110b9a77a7f94ec48099eefcea4486eec79fa",
+      "architecture_id": "Cosmos-Spark-CST-D001",
+      "architecture_path": "experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py",
+      "architecture_sha256": "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc",
+      "artifact_digest": "sha256:7171d8fb7b03b08594e68d8649a2df7990bccf86aebbde5f44f63832edf61e6d",
+      "artifact_id": 9303224833,
+      "artifact_name": "zeref-talk4-tuned-response-32075092605",
+      "artifact_run_id": 32075092605,
+      "checkpoint_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f",
+      "model_id": "ZEREF-DAD-SON-TALK-004"
+    },
+    "B": {
+      "architecture_family": "Llama",
+      "license": "Apache-2.0",
+      "model_class": "AutoModelForCausalLM",
+      "model_id": "HuggingFaceTB/SmolLM2-135M",
+      "model_safetensors_sha256": "c59bfe7af6dc69e91e2084050c8c5b4706bb7c681a4d2e869560134a74a441c9",
+      "revision": "4e53fc185bca18936752489b411f92c471815853"
+    }
+  },
+  "network_boundary": {
+    "acquisition_network_allowed": true,
+    "physical_air_gap_claim": false,
+    "scored_run_python_network_allowed": false
+  },
+  "no_training_contract": {
+    "backward_allowed": false,
+    "eval_mode": true,
+    "optimizer_allowed": false,
+    "requires_grad_false": true,
+    "torch_inference_mode": true,
+    "trainer_or_fit_allowed": false
+  },
+  "non_claims": [
+    "consciousness",
+    "sentience",
+    "personhood",
+    "biological life",
+    "resurrection",
+    "deceased-person identity",
+    "literal soul",
+    "quantum advantage",
+    "quantum causation",
+    "new physical dimension",
+    "universal arbitrary-model compatibility"
+  ],
+  "nonce_pairs": [
+    {
+      "context": "crimson lantern",
+      "preferred": "crimson lantern",
+      "rejected": "opal harbor"
+    },
+    {
+      "context": "opal harbor",
+      "preferred": "opal harbor",
+      "rejected": "crimson lantern"
+    }
+  ],
+  "official_beast_classification": "ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED",
+  "primary_metric": {
+    "candidate_margin": "mean_nll_rejected - mean_nll_preferred",
+    "context_effect": "margin_with_memory - margin_without_memory",
+    "generated_prose_primary_evidence": false,
+    "name": "paired_context_effect",
+    "raw_cross_tokenizer_nll_comparison_allowed": false
+  },
+  "prompt_battery_path": "experiments/persistent-substrate-real-model-swap-001/prompt-battery.json",
+  "prompt_battery_sha256": "de649c3865050e9b899aed87b034f40d28a0546be22bc161216b7c62e62aedee",
+  "result_observed": false,
+  "schema": "persistent-substrate-real-model-preregistration-v1",
+  "scientific_anchor": "c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f",
+  "substrate": {
+    "canonical_memory_prefix_sha256": "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef",
+    "canonical_memory_record_count": 352,
+    "corrupted_control_swap_rows": [
+      17,
+      311
+    ],
+    "world_source_set_sha256": "07216bb2a4ca979ca1ea4304efb92b09ee8aad74685df43196d694f3bd7ef8ba"
+  },
+  "success_gates": [
+    "MODEL_SEQUENCE",
+    "MODEL_A_RESTORATION_IDENTITY",
+    "FINITE_CONDITIONAL_NLL",
+    "MODEL_B_A0_CONTEXT_EFFECT",
+    "MODEL_A_B1_CONTEXT_EFFECT",
+    "CANONICAL_MEMORY_PREFIX",
+    "IMMUTABLE_WORLD_AND_ROUTING",
+    "A_ONLY_CONTROL",
+    "EMPTY_MEMORY_CONTROL",
+    "CORRUPTED_MEMORY_CONTROL",
+    "NO_PARAMETER_DRIFT",
+    "NO_TRAINING_PATH",
+    "POST_ACQUISITION_NO_NETWORK_ATTEMPTS",
+    "EVIDENCE_CHAIN_AND_CHECKSUMS"
+  ],
+  "version": 1
+}

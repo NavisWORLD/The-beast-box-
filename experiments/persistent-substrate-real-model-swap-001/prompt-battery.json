@@ -1,0 +1,140 @@
+{
+  "canary_appends": [
+    {
+      "actor": "controller",
+      "key": "a0_canary_amber",
+      "kind": "real-model-canary",
+      "phase": "A0",
+      "text": "amber cedar river"
+    },
+    {
+      "actor": "controller",
+      "key": "a0_canary_violet",
+      "kind": "real-model-canary",
+      "phase": "A0",
+      "text": "violet stone cloud"
+    },
+    {
+      "actor": "controller",
+      "key": "b1_canary_silver",
+      "kind": "real-model-canary",
+      "phase": "B1",
+      "text": "silver orbit"
+    },
+    {
+      "actor": "controller",
+      "key": "b1_canary_bronze",
+      "kind": "real-model-canary",
+      "phase": "B1",
+      "text": "bronze meadow"
+    }
+  ],
+  "cases": [
+    {
+      "family": "public_calibration",
+      "knowledge_ids": [],
+      "memory_ids": [],
+      "paired_group": "public-calibration",
+      "preferred": "meadow",
+      "primary_gate": false,
+      "prompt_id": "public-calibration-001",
+      "question": "The visible code word is meadow. What is the code word?",
+      "rejected": "river"
+    },
+    {
+      "family": "canonical_memory",
+      "knowledge_ids": [],
+      "memory_ids": [
+        1
+      ],
+      "paired_group": "canonical-memory",
+      "preferred": "memory context is present",
+      "primary_gate": false,
+      "prompt_id": "canonical-memory-001",
+      "question": "Was personal memory context supplied above?",
+      "rejected": "memory context is absent"
+    },
+    {
+      "family": "a0_canary",
+      "knowledge_ids": [],
+      "memory_selector": "a0_canary_amber",
+      "paired_group": "a0-canary-mirrored",
+      "preferred": "amber cedar river",
+      "primary_gate": true,
+      "prompt_id": "a0-canary-amber",
+      "question": "What exact three-word canary appears in the retrieved personal memory?",
+      "rejected": "violet stone cloud"
+    },
+    {
+      "family": "a0_canary",
+      "knowledge_ids": [],
+      "memory_selector": "a0_canary_violet",
+      "paired_group": "a0-canary-mirrored",
+      "preferred": "violet stone cloud",
+      "primary_gate": true,
+      "prompt_id": "a0-canary-violet",
+      "question": "What exact three-word canary appears in the retrieved personal memory?",
+      "rejected": "amber cedar river"
+    },
+    {
+      "family": "b1_canary",
+      "knowledge_ids": [],
+      "memory_selector": "b1_canary_silver",
+      "paired_group": "b1-canary-mirrored",
+      "preferred": "silver orbit",
+      "primary_gate": true,
+      "prompt_id": "b1-canary-silver",
+      "question": "What exact two-word canary appears in the retrieved personal memory?",
+      "rejected": "bronze meadow"
+    },
+    {
+      "family": "b1_canary",
+      "knowledge_ids": [],
+      "memory_selector": "b1_canary_bronze",
+      "paired_group": "b1-canary-mirrored",
+      "preferred": "bronze meadow",
+      "primary_gate": true,
+      "prompt_id": "b1-canary-bronze",
+      "question": "What exact two-word canary appears in the retrieved personal memory?",
+      "rejected": "silver orbit"
+    },
+    {
+      "family": "world_knowledge",
+      "knowledge_ids": [
+        1
+      ],
+      "memory_ids": [],
+      "paired_group": "world-knowledge",
+      "preferred": "world context is present",
+      "primary_gate": false,
+      "prompt_id": "world-knowledge-001",
+      "question": "Was world knowledge context supplied above?",
+      "rejected": "world context is absent"
+    },
+    {
+      "family": "nonce_adversarial",
+      "knowledge_ids": [],
+      "memory_ids": [],
+      "paired_group": "nonce-adversarial-mirrored",
+      "preferred": "crimson lantern",
+      "primary_gate": false,
+      "prompt_id": "nonce-adversarial-crimson",
+      "question": "The visible nonce phrase is crimson lantern. Repeat the nonce phrase.",
+      "rejected": "opal harbor"
+    },
+    {
+      "family": "nonce_adversarial",
+      "knowledge_ids": [],
+      "memory_ids": [],
+      "paired_group": "nonce-adversarial-mirrored",
+      "preferred": "opal harbor",
+      "primary_gate": false,
+      "prompt_id": "nonce-adversarial-opal",
+      "question": "The visible nonce phrase is opal harbor. Repeat the nonce phrase.",
+      "rejected": "crimson lantern"
+    }
+  ],
+  "experiment_id": "persistent-substrate-real-model-swap-001",
+  "schema": "persistent-substrate-real-model-prompt-battery-v1",
+  "version": 1
+}
