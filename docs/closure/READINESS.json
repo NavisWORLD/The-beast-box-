@@ -1,0 +1,47 @@
+{
+  "schema": "beastbox-release-readiness-v1",
+  "version": "0.4.0",
+  "classification": "production-oriented research software; release verification in progress",
+  "production_ready": false,
+  "supported_scope": "owner-controlled local runtime; no privileged or physical actions",
+  "supported_python": [
+    "3.10",
+    "3.11",
+    "3.12"
+  ],
+  "release_gate_commands": [
+    "python -m pytest -q",
+    "make quality",
+    "bash scripts/smoke/install-and-run.sh",
+    "bash scripts/smoke/sealed-evidence-guard.sh",
+    "bash scripts/security-audit.sh",
+    "python -m build"
+  ],
+  "gates": {
+    "repository_ancestry": "PASS",
+    "historical_evidence_hashes": "PASS",
+    "architecture_source_map": "PASS",
+    "authority_boundary_review": "PASS",
+    "runtime_regressions": "PASS",
+    "full_tests": "PASS: 767 tests; see Product CI JUnit for final source",
+    "quality": "PASS: scoped Ruff and mypy, coverage 69%",
+    "security_current_tree": "PASS: 0 errors, 0 warnings",
+    "history_secret_signatures": "PASS: 1500 reachable text/code blobs; no high-confidence matches",
+    "package_build": "PASS: 0.4.0 wheel and sdist",
+    "clean_wheel_install": "PASS: isolated venv/cwd; imported module within venv",
+    "clean_sdist_install": "PASS: isolated venv/cwd; imported module within venv",
+    "end_to_end_and_restart": "PASS: 24 checks; 121 product source hashes retained in receipt",
+    "supported_python_matrix": "PENDING_CI",
+    "source_push": "PENDING",
+    "release_integrity": "PENDING"
+  },
+  "limitations": [
+    "No physical actuators, camera capture, hostile Python plugin sandbox or multi-tenant service boundary.",
+    "Local database is plaintext; backups and separately retained hashes are owner responsibility.",
+    "Checkpoint/history scans have not been load-tested for large stores; no indefinite retention guarantee.",
+    "Formal external Synapse OS and HEARTLIGHT are interfaces/future work; world-store and bio/IBM paths remain separate experimental surfaces.",
+    "Configured provider labels in normal operation do not attest model weights; historical frozen experiment receipts are separate.",
+    "Hardware, GPU and local installed-model services were not newly provisioned for these deterministic product gates."
+  ],
+  "release_policy": "Only tag/publish exact committed source after full Product CI and package gates pass; release workflow repeats exact-tag gates."
+}

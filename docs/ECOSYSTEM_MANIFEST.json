@@ -1,0 +1,299 @@
+{
+  "schema": "beastbox-ecosystem-manifest-v1",
+  "generated_from_commit": "b43f2883425e56446d3db8c009ea301b0adc21bc",
+  "status_vocabulary": [
+    "PRODUCT",
+    "EXPERIMENTAL",
+    "VERIFIED RESULT",
+    "HISTORICAL EVIDENCE",
+    "OPTIONAL INTEGRATION",
+    "NOT IMPLEMENTED"
+  ],
+  "status_rule": "Status describes what is present in this repository. VERIFIED RESULT requires a named evidence path; names and hypotheses do not inherit that status.",
+  "components": [
+    {
+      "id": "cosmos-runtime",
+      "names": [
+        "COSMOS",
+        "CosmosRuntime"
+      ],
+      "status": "PRODUCT",
+      "origin": "Public Beast Box implementation",
+      "paths": [
+        "beastbox/runtime.py",
+        "beastbox/cli.py"
+      ],
+      "boundary": "Owner-controlled local orchestration software; the ecosystem name is not a single model or scientific result."
+    },
+    {
+      "id": "cst",
+      "names": [
+        "CST",
+        "Davis Cosmic Synapse Theory"
+      ],
+      "status": "EXPERIMENTAL",
+      "origin": "Research framework documented and partially reconstructed in public code",
+      "paths": [
+        "docs/COSMIC_SYNAPSE_THEORY.md",
+        "beastbox/attention.py",
+        "beastbox/state_family.py"
+      ],
+      "boundary": "Combines hypotheses, historical simulation language, software mechanisms, and bounded results; CST as a whole is not a verified physical theory."
+    },
+    {
+      "id": "dyn12",
+      "names": [
+        "dyn12",
+        "12D state"
+      ],
+      "status": "PRODUCT",
+      "origin": "Public reference mechanism inspired by the documented dyn12 concept",
+      "paths": [
+        "beastbox/dyn12.py",
+        "beastbox/state_family.py",
+        "beastbox/synaptic.py"
+      ],
+      "boundary": "Twelve software scalars; not a literal physical dimension and not byte-for-byte equivalence with private historical code."
+    },
+    {
+      "id": "cns",
+      "names": [
+        "CNS",
+        "CNS7"
+      ],
+      "status": "PRODUCT",
+      "origin": "Public Beast Box implementation",
+      "paths": [
+        "beastbox/cns.py",
+        "beastbox/state.py"
+      ],
+      "boundary": "Seven-role software controller; not a biological nervous system."
+    },
+    {
+      "id": "hebbian-association-memory",
+      "names": [
+        "Hebbian memory",
+        "associations"
+      ],
+      "status": "PRODUCT",
+      "origin": "Public Beast Box implementation",
+      "paths": [
+        "beastbox/memory.py"
+      ],
+      "boundary": "Co-occurrence and salience tables used in retrieval; distinct from neural learning claims and mixture-of-states attention."
+    },
+    {
+      "id": "synaptic-field",
+      "names": [
+        "Synaptic Field",
+        "synaptic state"
+      ],
+      "status": "PRODUCT",
+      "origin": "Public Beast Box implementation",
+      "paths": [
+        "beastbox/synaptic.py",
+        "beastbox/attention.py"
+      ],
+      "boundary": "Numerical software state and attention machinery."
+    },
+    {
+      "id": "r12",
+      "names": [
+        "R12",
+        "Reality Memory",
+        "refractive memory"
+      ],
+      "status": "EXPERIMENTAL",
+      "origin": "Public routing and append-only research implementations",
+      "paths": [
+        "beastbox/reality_memory.py",
+        "beastbox/refractive_memory.py",
+        "beastbox/world_r12.py",
+        "docs/R12_REFRACTIVE_MEMORY.md"
+      ],
+      "evidence_paths": [
+        "experiments/zeref-dad-son-001/reality-memory/manifest.json"
+      ],
+      "boundary": "Software retrieval/routing geometry and evidence ledger; not a physical force, dimension, or truth oracle."
+    },
+    {
+      "id": "reconciliation-memory",
+      "names": [
+        "Reconciliation Memory",
+        "MemoryStore"
+      ],
+      "status": "PRODUCT",
+      "origin": "Public Beast Box implementation",
+      "paths": [
+        "beastbox/memory.py"
+      ],
+      "boundary": "SQLite persistence, retrieval, and consolidation; stored text is data rather than proof that its content is true."
+    },
+    {
+      "id": "world-knowledge",
+      "names": [
+        "world knowledge",
+        "knowledge store"
+      ],
+      "status": "EXPERIMENTAL",
+      "origin": "Public Beast Box research implementation",
+      "paths": [
+        "beastbox/world_knowledge.py",
+        "beastbox/world_r12.py"
+      ],
+      "boundary": "Source-labelled searchable records; ranking and hashes do not certify factual truth."
+    },
+    {
+      "id": "zeref",
+      "names": [
+        "Zeref",
+        "ZEREF-DAD-SON-TALK-004"
+      ],
+      "status": "EXPERIMENTAL",
+      "origin": "Checkpoint, training, and conversation-experiment lineage",
+      "paths": [
+        "beastbox/ecosystem.py",
+        "beastbox/cypher/easy_ollama.py",
+        "docs/ZEREF_LINEAGE.md"
+      ],
+      "evidence_paths": [
+        "experiments/zeref/LINEAGE_MANIFEST.json",
+        "experiments/zeref-dad-son-001/memory/ledger-manifest.json"
+      ],
+      "boundary": "Computational lineage identifier; not a supernatural entity, deceased person, biological descendant, or evidence of consciousness."
+    },
+    {
+      "id": "heartbeat",
+      "names": [
+        "heartbeat",
+        "slow state"
+      ],
+      "status": "PRODUCT",
+      "origin": "Public scheduling and state instrumentation",
+      "paths": [
+        "beastbox/heartbeat.py",
+        "beastbox/organism.py"
+      ],
+      "boundary": "Software task cadence and numerical state; not a biological heartbeat or evidence of life."
+    },
+    {
+      "id": "heartlight",
+      "names": [
+        "HEARTLIGHT"
+      ],
+      "status": "NOT IMPLEMENTED",
+      "origin": "Named concept with no exact formal implementation found in the current tree",
+      "paths": [],
+      "boundary_detail": "FUTURE WORK",
+      "boundary": "Nearby heartbeat, origin-heart, and quantum-heart modules must not be represented as the exact formal HEARTLIGHT system."
+    },
+    {
+      "id": "synapse-os",
+      "names": [
+        "Synapse OS",
+        "formal Synapse OS"
+      ],
+      "status": "NOT IMPLEMENTED",
+      "origin": "Named concept with no exact formal operating-system implementation found in the current tree",
+      "paths": [],
+      "boundary_detail": "FUTURE WORK",
+      "boundary": "The synaptic and COSMIC.CYPHER modules are repository components, not an implemented formal Synapse OS."
+    },
+    {
+      "id": "sensors",
+      "names": [
+        "sensors",
+        "sensory summaries",
+        "audio"
+      ],
+      "status": "EXPERIMENTAL",
+      "origin": "Public numeric-input adapters and ablation code",
+      "paths": [
+        "beastbox/sensory.py",
+        "beastbox/audio.py",
+        "beastbox/audio_ablation.py"
+      ],
+      "boundary": "Fresh, bounded numerical summaries; raw physical input does not transfer authority or establish downstream benefit without controls."
+    },
+    {
+      "id": "bio-input",
+      "names": [
+        "bio",
+        "biometric input"
+      ],
+      "status": "EXPERIMENTAL",
+      "origin": "Optional numeric-input handling in public research code",
+      "paths": [
+        "beastbox/audio.py",
+        "beastbox/bridge.py"
+      ],
+      "boundary": "Computational features only; no diagnosis, biological continuity, identity, or resurrection claim."
+    },
+    {
+      "id": "camera-input",
+      "names": [
+        "camera",
+        "vision sensor"
+      ],
+      "status": "NOT IMPLEMENTED",
+      "origin": "No camera capture adapter found in the current product runtime",
+      "paths": [],
+      "boundary_detail": "INTERFACE",
+      "boundary": "A caller may construct bounded summaries through documented interfaces, but camera acquisition and consent/retention policy are future work."
+    },
+    {
+      "id": "cosmic-cypher-tools",
+      "names": [
+        "COSMIC.CYPHER",
+        "tools",
+        "coder"
+      ],
+      "status": "PRODUCT",
+      "origin": "Public local coding workflow",
+      "paths": [
+        "beastbox/cypher/agent.py",
+        "beastbox/cypher/workspace.py",
+        "beastbox/cypher/cli.py"
+      ],
+      "boundary": "Actions are confined to a user-selected workspace by application checks; model output remains untrusted and host execution requires explicit enablement."
+    },
+    {
+      "id": "ibm-quantum",
+      "names": [
+        "IBM",
+        "IBM Quantum",
+        "Qiskit"
+      ],
+      "status": "OPTIONAL INTEGRATION",
+      "origin": "Host-authorized optional research integration",
+      "paths": [
+        "beastbox/quantum.py",
+        "beastbox/ibm_shard.py",
+        "docs/IBM_REQUIRED_STATE.md"
+      ],
+      "evidence_paths": [
+        "evidence/final-whole-organism-001/resource-source/STATUS.json"
+      ],
+      "boundary": "Normal operation does not require IBM. Historical job provenance is verified, while a causal IBM-resource-to-Zeref consumer edge and quantum advantage are not established."
+    },
+    {
+      "id": "durable-runtime-adapter",
+      "names": [
+        "DurableRuntime",
+        "continuity events",
+        "runtime CLI"
+      ],
+      "status": "PRODUCT",
+      "origin": "Beast Box integration adapter; uses existing modules without external vendoring",
+      "paths": [
+        "beastbox/durable.py",
+        "beastbox/continuity.py",
+        "beastbox/events.py",
+        "beastbox/runtime_cli.py"
+      ],
+      "boundary_detail": "INTERFACE",
+      "boundary": "Adapter around existing COSMOS runtime with atomic SQLite memory/state/provenance checkpoints; synthetic and text events; explicitly authorized simulated tool only. Synapse/HEARTLIGHT are responsibility mappings, not imported formal products."
+    }
+  ],
+  "integration_source_commit": "57d34fe"
+}

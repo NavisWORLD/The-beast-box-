@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools==78.1.0", "wheel==0.45.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "cosmos-beast-box"
-version = "0.3.2"
+version = "0.4.0"
 description = "Local-first COSMOS/CST runtime: memory, state control, model adapters, provenance. IBM Quantum is optional and not required."
 readme = "README.md"
 requires-python = ">=3.10"

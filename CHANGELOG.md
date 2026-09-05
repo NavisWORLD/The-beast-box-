@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 — 2026-09-05 (durable runtime integration)
+
+- Added atomic COSMOS memory/state/provenance checkpoints and restart recovery.
+- Connected the existing R12 router through an adapter; no frozen experiment rewrite.
+- Added bounded structured events, explicit simulated-tool authority, and provider swaps.
+- Added hash-verified backup/restore, sealed historical receipt verification, and EnD kit.
+- Hardened local provider URLs, response limits, redirect and environment-proxy handling.
+- Added end-to-end subprocess, corruption, rollback, authority and packaging gates.
+- Product reference tests remain distinct from the preserved real-model 002 measurement.
+- Release-hardened experimental software; no consciousness/physics or universal production claim.
+
 ## 0.3.2 — 2026-08-29 (public-surface hardening)
 
 Beast Box is a local-first runtime: memory, a software state controller, loopback model adapters, and a hash-chained evidence ledger. IBM Quantum is optional and is not required to install or talk to the reference synthesizer.

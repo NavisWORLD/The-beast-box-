@@ -4,6 +4,19 @@ Pointers into the canonical sealed trees. Do not treat model prose in JSONL as a
 
 Sealed scientific anchor commit: `c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f`
 
+## Persistent substrate 002 and current runtime
+
+The [002 final report](PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md) binds the
+real frozen A→B→A experiment to source commit `bd4108ac2f245262a25fd80463e84d9279eeead2`
+and Actions run `33914200592`. The unmodified downloaded receipt ZIP is retained at
+`evidence/system-closure-001/historical-swap-002.zip`. Run
+`beastbox runtime verify-swap-receipt` on that file to verify it locally.
+
+Current Product CI emits `architecture-acceptance.json` and JUnit artifacts per
+supported Python version. These are deterministic interface/restart tests, separate
+from historical pretrained-model measurements. Source hashes and dirty-tree status
+are explicit in each acceptance receipt.
+
 ## final-whole-organism-001
 
 | Field | Value |

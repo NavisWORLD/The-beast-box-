@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import sqlite3
 from pathlib import Path
 
 from .audio import extract_wav_features
@@ -17,6 +18,7 @@ from .memory import ReconciliationMemory
 from .providers import LocalOllamaProvider, ReferenceTextProvider
 from .quantum import majority_decode, retrieve_counts, submit_real
 from .runtime import CosmosRuntime
+from .runtime_cli import add_runtime_subparser, handle_runtime
 from .shard_transport import prepare_required_shard, recover_required_shard
 from .spark_ablation import run_spark_ablation
 from .web import serve as serve_web
@@ -106,7 +108,15 @@ def main() -> int:
     qr.add_argument("--out", type=Path, default=Path("recovered_state.json"))
 
     add_ecosystem_subparsers(sub)
+    add_runtime_subparser(sub)
     args = p.parse_args()
+
+    if args.cmd == "runtime":
+        try:
+            _print(handle_runtime(args))
+            return 0
+        except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
+            p.exit(2, f"runtime error: {exc}\n")
 
     ecosystem_result = handle_ecosystem(args, p)
     if ecosystem_result is not None:
