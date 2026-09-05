@@ -3,12 +3,19 @@ name: Build verified downloadable releases
 on:
   workflow_dispatch:
   push:
+    # Owner-authorized closure: the final job creates the tag only after gates.
+    branches: [integration/beast-box-system-closure-001]
+    paths: [.github/workflows/release.yml]
     tags:
       - 'v*'
 
 # Default every job to read-only. Only the final release job receives write access.
 permissions:
   contents: read
+
+concurrency:
+  group: verified-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   verified-product:
@@ -73,7 +80,7 @@ jobs:
           path: ${{ matrix.binary }}
 
   github-release:
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/integration/beast-box-system-closure-001'
     needs: [python-package, rust-binaries]
     runs-on: ubuntu-latest
     permissions:
@@ -92,12 +99,18 @@ jobs:
           mkdir -p release-publish
 
           cp release-assets/cosmic-synapse-python/* release-publish/
+          (cd release-publish && sha256sum -c SHA256SUMS.txt)
           cp release-assets/cosmic-cypher-rust-linux/cosmic-cypher-rs \
             release-publish/cosmic-cypher-rs-linux
           cp release-assets/cosmic-cypher-rust-macos/cosmic-cypher-rs \
             release-publish/cosmic-cypher-rs-macos
           cp release-assets/cosmic-cypher-rust-windows/cosmic-cypher-rs.exe \
             release-publish/cosmic-cypher-rs-windows.exe
+
+          python scripts/seal_release_verification.py \
+            --assets release-assets --output release-publish \
+            --source-sha "$GITHUB_SHA" \
+            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
 
           (
             cd release-publish
@@ -109,9 +122,25 @@ jobs:
             sha256sum -c SHA256SUMS.txt
           )
 
-      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
-        with:
-          files: release-publish/*
-          body_path: docs/closure/RELEASE_NOTES.md
-          prerelease: true
-          fail_on_unmatched_files: true
+      - name: Publish a new verified prerelease without replacing existing assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=$(python -c 'from beastbox import __version__; print(__version__)')
+          tag="v$version"
+          if [[ "$GITHUB_REF" == refs/tags/* && "$GITHUB_REF" != "refs/tags/$tag" ]]; then
+            echo "Tag/package version mismatch" >&2
+            exit 1
+          fi
+          # On the authorized branch, require a new tag. Tag-triggered builds
+          # must match this exact commit; gh release create refuses replacement.
+          existing=$(git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}")
+          if [[ "$GITHUB_REF" == refs/heads/* && -n "$existing" ]]; then
+            echo "Refusing to replace an existing release tag" >&2
+            exit 1
+          fi
+          gh release create "$tag" release-publish/* \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Beast Box $version — Durable runtime integration" \
+            --notes-file docs/closure/RELEASE_NOTES.md

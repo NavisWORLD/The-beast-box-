@@ -15,8 +15,8 @@ Execution gates (update with measured results in READINESS.json):
 - [x] Failing regression tests for restart, corruption, authority, A-B-A and rollback.
 - [x] Runtime adapters plus CLI and actual end-to-end receipt.
 - [x] Full tests, scoped lint/types, security, build, clean wheel/sdist installs.
-- [ ] Documentation, EnD kit, release integrity, tested source commit, pushed CI.
-- [ ] Publish only after all required release gates pass.
+- [x] Documentation, EnD kit, source-bound packaging and pushed Python 3.10–3.12 CI.
+- [ ] Publication is recorded externally by the GitHub release and its final verification receipt.
 
 Task ownership: controller owns implementation/CI/release; documentation agent
 owns architecture manifest and claim/security documents. Their interfaces are
@@ -26,3 +26,9 @@ is independent. This is a fresh isolated clone on an integration branch.
 Handoff reconciliation: preserved remote source-snapshot commit 138cf52 via merge beecfae.
 Local gates: 767 tests, 62 focused swap tests, 69% coverage, 24 acceptance checks.
 Publication remains gated on final source CI; see READINESS.json and Actions artifacts.
+
+Verified pushed baseline c1f23d81db6299874a630a243c6c839f730de74c passed Product CI
+33985209600. Final publication repeats all exact-source gates, preserves raw JUnit
+and architecture receipts, verifies package provenance, and refuses existing-tag
+or release replacement. See the attached RELEASE_VERIFICATION.json for measured
+final counts and source identity. No general production-readiness claim is made.

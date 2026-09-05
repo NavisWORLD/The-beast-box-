@@ -24,3 +24,7 @@ GGUF/cypher, bio and IBM research keep their separate boundaries.
 Verify downloaded assets with `sha256sum -c SHA256SUMS.txt`. The combined ZIP also
 contains `SHA256SUMS` and `RELEASE_PROVENANCE.json`, binding package bytes to the
 source commit/tree. Start with `EnD` inside the ZIP.
+
+`CI_EVIDENCE.zip` retains the Python matrix JUnit, architecture/restart traces and
+clean-install logs. `RELEASE_VERIFICATION.json` identifies the exact source and
+workflow run, validates the receipts and records final passing test counts.
