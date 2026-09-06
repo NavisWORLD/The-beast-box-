@@ -82,7 +82,7 @@ def export_snapshot(root: Path, destination: Path) -> dict:
         # Retain the manifest hash separately; the manifest alone is not a signature.
         verify_snapshot(stage, digest)
         for file in (database, path):
-            with file.open("rb") as handle:
+            with file.open("r+b") as handle:
                 os.fsync(handle.fileno())
         if destination.exists():
             raise ValueError("portable destination appeared during export")
@@ -163,7 +163,7 @@ def import_snapshot(bundle: Path, destination: Path, expected: str) -> dict:
         # Verify the copied bytes, closing the source verification/copy race.
         receipt = verify_snapshot(stage, expected)
         (stage / "manifest.json").unlink()
-        with (stage / "runtime.sqlite3").open("rb") as handle:
+        with (stage / "runtime.sqlite3").open("r+b") as handle:
             os.fsync(handle.fileno())
         if destination.exists():
             raise ValueError("restore destination appeared during import")
