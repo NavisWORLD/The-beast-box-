@@ -1,7 +1,7 @@
 {
   "schema": "beastbox-release-readiness-v1",
-  "version": "0.5.0",
-  "classification": "experimental portable release candidate",
+  "version": "0.6.0",
+  "classification": "release-hardened experimental software (publication gated)",
   "production_ready": false,
   "supported_scope": "owner-controlled local runtime; no privileged or physical actions",
   "supported_python": [
@@ -45,7 +45,7 @@
     "Mobile builds use reference fixtures; no bundled mobile LLM engine or real-model device acceptance.",
     "Apple distribution signing, physical device acceptance and live IBM/Azure account verification remain external gates."
   ],
-  "release_policy": "A release requires every exact-source Product CI, clean-install, security, native-build and artifact-integrity job to pass. RELEASE_VERIFICATION.json and CI_EVIDENCE.zip retain the final receipts with the release; this source document is not a publication receipt.",
+  "release_policy": "release.yml requires exact-source Product CI, security, native/platform builds, real story delivery and Linux-to-Windows portable-state acceptance; final results live in released receipts.",
   "verified_baseline": {
     "source_commit": "c1f23d81db6299874a630a243c6c839f730de74c",
     "product_ci_run": 33985209600,

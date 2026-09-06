@@ -1,3 +1,10 @@
+# 0.6.0 — portable continuity and launch polish
+
+Adds manifest-verified portable state, non-transferable restore authority, installed
+package diagnostics and explicit compatible endpoints. Improves the quickstart,
+provider guide and launch materials. Real story measurement and Linux→Windows
+handoff are separate required release receipts. Historical evidence is unchanged.
+
 # 0.5.0 portable candidate
 
 Adds checked EnD installers, desktop and native mobile runtime adapters, bounded

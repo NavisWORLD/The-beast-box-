@@ -40,6 +40,9 @@ def main() -> int:
 
     doctor = sub.add_parser("doctor", help="check local runtime and optional libraries")
     doctor.add_argument("--ollama-url", default="http://127.0.0.1:11434")
+    doctor.add_argument("--data-dir", type=Path, default=Path.home() / ".beastbox/data")
+    doctor.add_argument("--provider", choices=["reference", "ollama"], default="reference")
+    doctor.add_argument("--model")
 
     sub.add_parser("starter", help="show the shortest safe path to a first local Beast conversation")
 
@@ -130,7 +133,8 @@ def main() -> int:
         _print({"config": str(args.config), "created": True, "python": shutil.which("python")})
         return 0
     if args.cmd == "doctor":
-        _print(run_doctor(args.ollama_url)); return 0
+        result = run_doctor(args.ollama_url, data_dir=args.data_dir, provider=args.provider, model=args.model)
+        _print(result); return 0 if result["ok"] else 1
     if args.cmd == "starter":
         _print({
             "steps": [

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     # Owner-authorized closure: the final job creates the tag only after gates.
-    branches: [integration/beast-box-system-closure-001, integration/beast-box-portable-kit-002]
+    branches: [main]
     paths: [.github/workflows/release.yml]
     tags:
       - 'v*'
@@ -29,6 +29,12 @@ jobs:
 
   portable-ios:
     uses: ./.github/workflows/ios-app.yml
+
+  portable-state:
+    uses: ./.github/workflows/portable-state.yml
+
+  story-demo:
+    uses: ./.github/workflows/story-demo.yml
 
   security-audit:
     runs-on: ubuntu-latest
@@ -89,8 +95,8 @@ jobs:
           path: ${{ matrix.binary }}
 
   github-release:
-    if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/integration/beast-box-system-closure-001' || github.ref == 'refs/heads/integration/beast-box-portable-kit-002'
-    needs: [python-package, rust-binaries, portable-desktop, portable-android, portable-ios]
+    if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/integration/beast-box-system-closure-001' || github.ref == 'refs/heads/main'
+    needs: [python-package, rust-binaries, portable-desktop, portable-android, portable-ios, portable-state, story-demo]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -123,6 +129,10 @@ jobs:
 
           python scripts/stage_portable_release.py --assets release-assets --output release-publish --source-sha "$GITHUB_SHA"
 
+          cp release-assets/portable-handoff-result/handoff-result.json release-publish/PORTABLE_HANDOFF.json
+          cp release-assets/real-model-story/story-receipt.json release-publish/STORY_RECEIPT.json
+          python -c 'import json; assert json.load(open("release-publish/PORTABLE_HANDOFF.json"))["passed"]; assert json.load(open("release-publish/STORY_RECEIPT.json"))["passed"]'
+
           (
             cd release-publish
             find . -maxdepth 1 -type f ! -name 'SHA256SUMS.txt' -print0 \
@@ -154,4 +164,4 @@ jobs:
           gh release create "$tag" release-publish/* \
             --target "$GITHUB_SHA" --prerelease \
             --title "Beast Box $version — Portable runtime preview" \
-            --notes-file docs/closure/RELEASE_NOTES_0.5.0.md
+            --notes-file docs/closure/RELEASE_NOTES_0.6.0.md

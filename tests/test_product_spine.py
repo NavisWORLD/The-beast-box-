@@ -20,7 +20,7 @@ from beastbox.state import MissionState
 
 
 def test_version_and_aliases():
-    assert __version__ == "0.5.0"
+    assert __version__ == "0.6.0"
     assert "Zeref" in HISTORICAL_ALIASES
     assert Runtime is CosmosRuntime
     assert MemoryStore is ReconciliationMemory
