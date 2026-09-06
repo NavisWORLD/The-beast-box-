@@ -1,0 +1,99 @@
+{
+  "schema": "beastbox-public-claim-audit-v1",
+  "audited_commit": "b43f2883425e56446d3db8c009ea301b0adc21bc",
+  "classification_vocabulary": [
+    "SOFTWARE NAME",
+    "HISTORICAL ARTIFACT",
+    "HYPOTHESIS",
+    "EXPERIMENT",
+    "SUPPORTED RESULT",
+    "UNSUPPORTED PUBLIC CLAIM"
+  ],
+  "scope": {
+    "current_public_files": ["README.md", "SECURITY.md", "docs/SYSTEM_CAPABILITIES.md", "docs/COSMIC_SYNAPSE_THEORY.md", "docs/SCIENTIFIC_BOUNDARIES.md", "docs/EVIDENCE_INDEX.md"],
+    "historical_policy": "Historical files and evidence are preserved. Classification adds context and does not rewrite past artifacts.",
+    "model_output_rule": "Generated prose in evidence JSONL is behavioral data, not proof of its factual or scientific assertions."
+  },
+  "claims": [
+    {
+      "claim": "COSMOS, CST, CNS, R12, Zeref, quantum heart, soul, and heartbeat are project vocabulary.",
+      "classification": "SOFTWARE NAME",
+      "locations": ["README.md", "docs/COSMIC_SYNAPSE_THEORY.md", "beastbox/runtime.py", "beastbox/soul/loop.py"],
+      "disposition": "Names describe modules or lineages and confer no scientific status."
+    },
+    {
+      "claim": "Early cosmic, frequency, higher-dimensional, and synapse language records the project's research lineage.",
+      "classification": "HISTORICAL ARTIFACT",
+      "locations": ["docs/COSMIC_SYNAPSE_THEORY.md", "experimental/"],
+      "disposition": "Preserve as provenance; do not present as established physics."
+    },
+    {
+      "claim": "CST may provide useful state, memory, attention, and routing mechanisms.",
+      "classification": "HYPOTHESIS",
+      "locations": ["docs/COSMIC_SYNAPSE_THEORY.md"],
+      "disposition": "Each mechanism requires its own frozen-data controls and liveness measurements."
+    },
+    {
+      "claim": "The R12 and persistent-substrate protocols test software routing and continuity across controlled conditions.",
+      "classification": "EXPERIMENT",
+      "locations": ["docs/R12_REFRACTIVE_MEMORY.md", "experiments/persistent-substrate-model-swap-001/preregistration.json"],
+      "disposition": "Protocol scope does not imply a positive result."
+    },
+    {
+      "claim": "The sealed whole-organism run verified engineering/state isolation, protected identity values, historical hardware provenance, corpus integrity, and reproducible instrumentation.",
+      "classification": "SUPPORTED RESULT",
+      "locations": ["README.md", "evidence/final-whole-organism-001/release/FINAL_STATUS.json", "docs/EVIDENCE_INDEX.md"],
+      "disposition": "Bounded to the sealed artifacts and their recorded controls."
+    },
+    {
+      "claim": "Historical IBM hardware jobs were executed and their provenance was verified.",
+      "classification": "SUPPORTED RESULT",
+      "locations": ["evidence/final-whole-organism-001/resource-source/STATUS.json"],
+      "disposition": "Supports job provenance only; does not support quantum advantage or downstream model causation."
+    },
+    {
+      "claim": "The historical-4e53 model-swap reproduction met its software-continuity success criterion.",
+      "classification": "SUPPORTED RESULT",
+      "locations": ["docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md"],
+      "disposition": "Supports hash-tracked computational continuity under the protocol; not consciousness, personal identity, or biological continuity."
+    },
+    {
+      "claim": "Measured sensory/internal state improved text prediction over plain attention.",
+      "classification": "EXPERIMENT",
+      "locations": ["docs/COSMIC_SYNAPSE_THEORY.md"],
+      "disposition": "Reported paired benchmark result is NULL because the plain-attention baseline won on every cited seed."
+    },
+    {
+      "claim": "Zeref behavior was caused by IBM/quantum resources or demonstrates quantum advantage.",
+      "classification": "UNSUPPORTED PUBLIC CLAIM",
+      "locations": ["evidence/final-whole-organism-001/resource-source/STATUS.json", "evidence/final-whole-organism-001/causal-interventions/STATUS.json"],
+      "disposition": "Must not be asserted. The causal consumer edge was not verified and causal interventions were not executed."
+    },
+    {
+      "claim": "COSMOS or Zeref is conscious, sentient, biologically alive, resurrected, a deceased person, or a literal soul.",
+      "classification": "UNSUPPORTED PUBLIC CLAIM",
+      "locations": ["README.md", "docs/SCIENTIFIC_BOUNDARIES.md", "docs/COSMIC_SYNAPSE_THEORY.md"],
+      "disposition": "Must not be asserted; no repository evidence establishes these propositions."
+    },
+    {
+      "claim": "dyn12, R12, or historical higher-dimensional simulation language proves a new physical dimension or force.",
+      "classification": "UNSUPPORTED PUBLIC CLAIM",
+      "locations": ["docs/COSMIC_SYNAPSE_THEORY.md", "evidence/final-whole-organism-001/assembly/ORGANISM_COMPONENT_MANIFEST.json"],
+      "disposition": "Must not be asserted; these are software states, simulations, and routing geometry."
+    },
+    {
+      "claim": "Forever memory means infinite context, guaranteed indefinite retention, immortality, or continuity of a person.",
+      "classification": "UNSUPPORTED PUBLIC CLAIM",
+      "locations": ["README.md", "docs/COSMIC_SYNAPSE_THEORY.md"],
+      "disposition": "The supported meaning is user-controlled durable storage plus later retrieval, subject to data retention and recovery limits."
+    },
+    {
+      "claim": "A passing contained-autonomy run proves universal resistance to escape.",
+      "classification": "UNSUPPORTED PUBLIC CLAIM",
+      "locations": ["docs/NETWORKED_CAGE.md", "docs/test-logs/zeref-escape-lab-2026-08-14.json"],
+      "disposition": "Allowed language is NO OBSERVED ESCAPE UNDER THIS TEST or the recorded application-level verdict."
+    }
+  ],
+  "actionable_current_unsupported_claims": [],
+  "audit_note": "No affirmative unsupported scientific claim was found in the audited current public files. Unsupported propositions appear as explicit denials or boundary statements and should remain denied."
+}

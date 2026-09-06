@@ -79,6 +79,7 @@ class CosmosRuntime:
         self.turn += 1
         fresh = freshness_gate(sensory, max_age_seconds=self.config.sensory_max_age_seconds)
         memories = self.memory.search(text, limit=5)
+        self._trace_stage("memory_lookup")
         packet = bridge or BridgePacket()
         if fresh and fresh.source.startswith("audio") and not packet.audio_features:
             packet.audio_features = [float(v) for v in fresh.features.values() if isinstance(v, (int, float))]
@@ -95,6 +96,9 @@ class CosmosRuntime:
             provenance={"turn": self.turn, "bridge_hash": packet.safe_dict()["packet_sha256"]},
         )
         cns_state = self.cns.tick(state, packet.safe_dict())
+        self._trace_stage("state_cns")
+        memories = self._route_memories(text, memories, state)
+        state.evidence = [m.text for m in memories]
         heart = self.quantum_heart.update(packet.quantum_spark, packet.audio_features)
 
         memory_block = "\n".join(f"- {m.text}" for m in memories) or "- none"
@@ -107,8 +111,11 @@ class CosmosRuntime:
             "Answer the user input directly."
         )
         response = self.provider.generate(prompt)
+        self._trace_stage("model")
+        self._validate_response(response)
         memory_id = self.memory.store(text, kind="user_turn", metadata={"turn": self.turn})
         response_id = self.memory.store(response, kind="assistant_turn", metadata={"turn": self.turn}, source_ids=[memory_id])
+        self._trace_stage("memory_write")
         self.slow.organism.observe(1.0)
         self.slow.evolution.learn("conversation_turn")
         self.slow.monologue.add(f"turn={self.turn}; evidence={len(memories)}; state={state.digest()[:12]}")
@@ -125,6 +132,7 @@ class CosmosRuntime:
                 "heartbeat_tasks": ran,
             },
         )
+        self._trace_stage("provenance")
         return {
             "response": response,
             "state_hash": state.digest(),
@@ -137,5 +145,22 @@ class CosmosRuntime:
     def save_evidence(self, path: str | Path) -> None:
         self.ledger.write_jsonl(path)
 
+    def _route_memories(self, text, memories, state):
+        """Adapter hook; the legacy conversation path keeps its lexical routing."""
+        return memories
+
+    def _trace_stage(self, stage):
+        pass
+
+    def _validate_response(self, response):
+        pass
+
     def close(self) -> None:
         self.memory.close()
+
+
+def __getattr__(name):
+    if name == "DurableRuntime":
+        from .durable import DurableRuntime
+        return DurableRuntime
+    raise AttributeError(name)

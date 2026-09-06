@@ -5,6 +5,7 @@ import math
 import re
 import sqlite3
 import time
+from contextlib import contextmanager
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
@@ -49,6 +50,7 @@ class ReconciliationMemory:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.db = sqlite3.connect(self.path)
         self.db.row_factory = sqlite3.Row
+        self._atomic = False
         self._init_schema()
 
     def _init_schema(self) -> None:
@@ -86,8 +88,25 @@ class ReconciliationMemory:
         )
         memory_id = int(cur.lastrowid)
         self._hebbian_update(text)
-        self.db.commit()
+        if not self._atomic:
+            self.db.commit()
         return memory_id
+
+    @contextmanager
+    def transaction(self):
+        """Group a complete runtime turn and checkpoint into one SQLite commit."""
+        if self._atomic:
+            raise RuntimeError("nested memory transaction")
+        self.db.execute("BEGIN IMMEDIATE")
+        self._atomic = True
+        try:
+            yield
+            self.db.commit()
+        except BaseException:
+            self.db.rollback()
+            raise
+        finally:
+            self._atomic = False
 
     def _hebbian_update(self, text: str) -> None:
         concepts = list(dict.fromkeys(_tokens(text)))[:32]

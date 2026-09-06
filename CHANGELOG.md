@@ -1,4 +1,22 @@
+# 0.5.0 portable candidate
+
+Adds checked EnD installers, desktop and native mobile runtime adapters, bounded
+WAV/light events, explicit IBM/Azure input and JSON process clients. Preserves
+current main real-checkpoint v2 and frozen experiment evidence. Platform outputs
+remain gated on actual builds/acceptance; no general production claim.
+
 # Changelog
+
+## 0.4.0 — 2026-09-05 (durable runtime integration)
+
+- Added atomic COSMOS memory/state/provenance checkpoints and restart recovery.
+- Connected the existing R12 router through an adapter; no frozen experiment rewrite.
+- Added bounded structured events, explicit simulated-tool authority, and provider swaps.
+- Added hash-verified backup/restore, sealed historical receipt verification, and EnD kit.
+- Hardened local provider URLs, response limits, redirect and environment-proxy handling.
+- Added end-to-end subprocess, corruption, rollback, authority and packaging gates.
+- Product reference tests remain distinct from the preserved real-model 002 measurement.
+- Release-hardened experimental software; no consciousness/physics or universal production claim.
 
 ## 0.3.2 — 2026-08-29 (public-surface hardening)
 

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import ipaddress
 import json
-import urllib.parse
 import urllib.request
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, Sequence
+
+from ..providers import _assert_loopback, _local_opener
 
 Message = dict[str, str]
 
@@ -36,23 +36,20 @@ class ModelSpec:
 
 
 def assert_loopback(url: str) -> None:
-    parsed = urllib.parse.urlparse(url)
-    host = parsed.hostname or ""
-    if host.lower() == "localhost":
-        return
-    try:
-        if ipaddress.ip_address(host).is_loopback:
-            return
-    except ValueError:
-        pass
-    raise ValueError(f"local model URL must be localhost/loopback, got {url!r}")
+    _assert_loopback(url)
 
 
 def _post_json(url: str, payload: dict[str, Any], timeout: float = 180.0) -> dict[str, Any]:
+    assert_loopback(url)
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
-    with urllib.request.urlopen(req, timeout=timeout) as response:
-        body = response.read().decode("utf-8")
-    return json.loads(body)
+    with _local_opener().open(req, timeout=timeout) as response:
+        raw = response.read(1048577)
+    if len(raw) > 1048576:
+        raise ValueError("local model response exceeds one MiB")
+    body = json.loads(raw.decode("utf-8"))
+    if not isinstance(body, dict):
+        raise ValueError("local model response must be an object")
+    return body
 
 
 @dataclass
@@ -138,8 +135,11 @@ def create_model(spec: ModelSpec) -> LocalChatModel:
 
 def list_ollama_models(base_url: str = "http://127.0.0.1:11434", timeout: float = 4.0) -> list[str]:
     assert_loopback(base_url)
-    with urllib.request.urlopen(base_url.rstrip("/") + "/api/tags", timeout=timeout) as response:
-        data = json.loads(response.read().decode("utf-8"))
+    with _local_opener().open(base_url.rstrip("/") + "/api/tags", timeout=timeout) as response:
+        raw = response.read(1048577)
+    if len(raw) > 1048576:
+        raise ValueError("local model list exceeds one MiB")
+    data = json.loads(raw.decode("utf-8"))
     out: list[str] = []
     for item in data.get("models") or []:
         name = item.get("name") or item.get("model")

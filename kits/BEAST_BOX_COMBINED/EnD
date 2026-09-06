@@ -1,0 +1,109 @@
+EnD — Beast Box combined runtime/developer kit, 0.4.0
+
+START — RELEASE ZIP
+Python 3.10–3.12 with venv/pip is required. Graphical use also requires Tk.
+Unzip the complete release into one folder. On Windows run INSTALL.bat; on
+Linux/macOS run sh UnixINSTALL.sh. No administrator privileges are required.
+The common install.py checks the included wheel against SHA256SUMS, copies the
+verified bytes to a private temporary directory, then installs offline without
+dependencies into ~/.beastbox/venv. A failed checksum never changes this venv.
+Checksums detect corruption; obtain the release from a trusted source because
+SHA256SUMS is not a publisher signature. No model weights are bundled.
+
+Run LAUNCH.bat or sh UnixLAUNCH.sh for the desktop. Choose reference fixture or
+an explicitly named installed Ollama model, send messages, inspect, and back up.
+All SQLite work runs on one serialized worker; closing waits for an active turn.
+Persistent data and desktop settings live in ~/.beastbox/data, independently of
+where you extracted the release. Reinstalling/updating the venv preserves data.
+For a headless check (commits one labelled reference-fixture turn):
+  sh UnixLAUNCH.sh --smoke
+  LAUNCH.bat --smoke
+
+Set BEASTBOX_PYTHON to a supported Python executable if python/python3 selects
+another version. For a custom environment use --install-dir PATH with BOTH
+install and launch. Pass --data-dir PATH to launch to use another memory store.
+You can verify the wheel without installation: python install.py --verify-only.
+Tk is not downloaded by this offline installer; missing Tk/display produces an
+explicit error. Headless smoke tests do not prove graphical Windows/macOS support.
+
+For CLI examples below, use the installed environment's Python executable
+(~/.beastbox/venv/bin/python on Unix; %USERPROFILE%\.beastbox\venv\Scripts\python.exe
+on Windows) in place of python, and use --data-dir ~/.beastbox/data to inspect
+the desktop store. Expand that path to your Windows user directory on Windows.
+Source checkout: python -m pip install -e . at repo root, then
+python -m beastbox.desktop. The source kit has no wheel: build a release first.
+
+API
+  from beastbox import DurableRuntime
+  from beastbox.providers import LocalOllamaProvider
+  runtime = DurableRuntime("./my-beast")
+  try:
+      runtime.respond("remember an owner-provided fact")
+      runtime.swap_provider(LocalOllamaProvider(model="YOUR_INSTALLED_MODEL"))
+      runtime.respond("recall that fact")
+      receipt = runtime.inspect()
+  finally:
+      runtime.close()
+
+MODEL / CONFIGURATION
+Normal reference mode is deterministic software, not a trained model.
+For local inference, install/start Ollama and select an existing model:
+  python -m beastbox runtime chat "Recall sunflower code" --data-dir ./my-beast --provider ollama --model MODEL_NAME
+Use the same directory with MODEL_A, then MODEL_B, then MODEL_A.
+--url accepts HTTP(S) loopback only. Redirects and proxy environment variables
+are disabled. No IBM credentials. No inference fallback if a chosen model fails.
+Durable CLI config is explicit flags: --data-dir, --provider, --model, --url,
+--allow-simulated-tool. Environment variables do not grant durable tool authority.
+Legacy beastbox.json/BEASTBOX_* settings belong to the older chat/cypher paths.
+
+EVENTS / TOOLS
+  python -m beastbox runtime sensor-demo --data-dir ./my-beast
+  python -m beastbox runtime tool-demo --data-dir ./my-beast
+  python -m beastbox runtime tool-demo --allow-simulated-tool --data-dir ./my-beast
+Tool demo uses an explicit deterministic protocol fixture. Only a simulated
+numeric position is changed, and only with host enablement. No actuator hardware.
+The event API accepts schema sensor-event-v1, source text/synthetic-demo/software-event,
+text up to 8192 characters and at most 16 numeric features in [-1, 1].
+
+CONTINUITY / RECOVERY
+Every completed turn atomically commits memory, associations, CNS/dyn12 state,
+R12 routing state, provenance and a hash-chained checkpoint in runtime.sqlite3.
+Use one runtime instance per thread; SQLite serializes independent processes.
+Each turn reloads validated latest state. Failed turns roll back. Data directories
+are owner-private and local, not shared hostile filesystem sandboxes.
+  python -m beastbox runtime backup ./snapshot.sqlite3 --data-dir ./my-beast
+Keep the printed SHA-256 separately, then recover into a NEW directory:
+  python -m beastbox runtime restore ./snapshot.sqlite3 --sha256 HASH --data-dir ./recovered
+  python -m beastbox runtime inspect --data-dir ./recovered
+Do not copy a live SQLite main file without WAL. Do not edit checkpoints to repair
+corruption. Preserve corrupt copies and restore a known-good CLI backup.
+Backups retain only committed turns; no indefinite storage or lossless hardware
+failure guarantee. Hashes are not signatures; no protection against a privileged
+host rewriting the entire database and all retained receipts. No encryption.
+
+COMBINED SOURCE BOUNDARY
+This kit assembles installed interfaces and instructions around the existing
+COSMOS runtime, CNS, state families, ReconciliationMemory, Hebbian associations,
+RefractiveMemoryRouter, bounded output and continuity adapter. It does not vendor
+external projects or invent a separate Synapse OS/HEARTLIGHT implementation.
+World knowledge/R12 experiments, GGUF/cypher tooling, bio and IBM research retain
+separate documented entry points. Physical actuators and cameras are not included.
+Detailed paths/status/origins: ECOSYSTEM_MANIFEST.json in release kit or docs/ in repo.
+
+EVIDENCE
+  python -m beastbox runtime verify-swap-receipt historical-swap-002.zip
+In a source checkout use evidence/system-closure-001/historical-swap-002.zip.
+This verifies the exact published historical receipt, not new weight execution.
+The final report specifies original frozen checkpoints, source artifact IDs,
+preregistration, failures and descriptive interpretation. Reference A/B labels in
+new product smoke tests are interface tests, never substitutes for that experiment.
+
+SECURITY / LIMITS
+Model output and memory never grant shell, secret, network, deployment or physical
+permissions. Python plugins are trusted host code, not a sandbox. Keep private
+information out of prompts unless you intend it to persist locally in plaintext.
+The store and checkpoints currently scan retained history; large-store throughput,
+retention/compaction and hostile multi-tenant deployment are not validated.
+Read LICENSE, TRUST_BOUNDARIES.md and READINESS.json before distribution/deployment.
+MODEL ≠ SUBSTRATE. MODEL REPLACEMENT ≠ AUTHORITY TRANSFER.
+PERSISTENCE ≠ CONSCIOUSNESS. Preserve every null, failure and historical receipt.

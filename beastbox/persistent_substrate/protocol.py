@@ -100,6 +100,12 @@ class CandidateScore:
     unit_kind: str
     input_ids_sha256: str
 
+    @property
+    def conditional_nll(self) -> float:
+        """Mean continuation-token NLL; prompt tokens are excluded by adapters."""
+
+        return float(self.normalized_nll)
+
 
 def _validate_scores(name: str, scores: Mapping[str, float]) -> dict[str, float]:
     if len(scores) < 2:
@@ -162,4 +168,3 @@ def load_preregistration(path: str | Path) -> dict[str, Any]:
     if value.get("experiment_id") != EXPERIMENT_ID:
         raise ValueError("unexpected experiment id")
     return value
-

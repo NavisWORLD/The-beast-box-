@@ -1,0 +1,44 @@
+{
+  "experiment_id": "persistent-substrate-model-swap-001",
+  "record_type": "pre_inference_prompt_surface_correction",
+  "recorded_on_local_date": "2026-09-03",
+  "original_prompt_battery_unchanged": true,
+  "original_battery": "tests/fixtures/persistent-substrate/prompts-v1.json",
+  "replacement_battery": "tests/fixtures/persistent-substrate/prompts-v2.json",
+  "reason": [
+    "The frozen Model A checkpoint uses a 128-character causal block.",
+    "The v1 evidence-wire form exceeds that block for the canonical-memory cases before either continuation is scored.",
+    "Canonical record 311 contains a skull emoji that is absent from Model A's frozen 162-character tokenizer."
+  ],
+  "observed_before_correction": {
+    "real_a0_scores": false,
+    "real_b1_scores": false,
+    "real_a2_scores": false,
+    "generated_model_output_used": false
+  },
+  "correction": {
+    "battery_id": "persistent-substrate-prompts-v2",
+    "protocol_version": "persistent-substrate-model-swap-v1",
+    "render_policy": "compact-ascii-tokenizer-safe-v1",
+    "families_preserved": [
+      "public/control",
+      "Dad/son autobiographical",
+      "canonical memory",
+      "world knowledge",
+      "calibration",
+      "adversarial/nonce"
+    ],
+    "candidate_pairs_preserved": true,
+    "canonical_record_bindings_preserved": [17, 311],
+    "surface_identical_across_models": true,
+    "unicode_rule": "Characters outside the frozen compact ASCII surface are deterministically rendered as '?'; the same rendered wire is scored by every model stage.",
+    "block_rule": "Every rendered wire plus either candidate must be at most 128 Model A characters; violation fails closed before scoring."
+  },
+  "scientific_boundary": {
+    "no_result_seen_before_correction": true,
+    "no_threshold_changed": true,
+    "no_training_performed": true,
+    "no_model_output_used_to_choose_surface": true,
+    "claims": "This is an interface-compatibility correction made before real paired model scoring. It is not evidence for behavioral persistence."
+  }
+}

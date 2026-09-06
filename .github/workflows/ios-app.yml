@@ -1,0 +1,55 @@
+name: iOS durable runtime app
+on:
+  workflow_dispatch:
+  workflow_call:
+  push:
+    branches: [integration/beast-box-portable-kit-002]
+    paths: ['apps/ios/**', 'beastbox/**', '.github/workflows/ios-app.yml']
+permissions:
+  contents: read
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare pinned CPython and Xcode project
+        run: |
+          brew install xcodegen
+          bash apps/ios/scripts/fetch-python.sh
+          cd apps/ios
+          xcodegen generate
+      - name: Build simulator app
+        run: |
+          mkdir -p apps/ios/build/evidence
+          set -o pipefail
+          xcodebuild -project apps/ios/BeastBox.xcodeproj -scheme BeastBox -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath apps/ios/build/simulator CODE_SIGNING_ALLOWED=NO build 2>&1 | tee apps/ios/build/evidence/simulator-build.log
+      - name: Exercise actual simulator process restart and A-B-A swap
+        run: |
+          xcrun simctl list devices available -j > apps/ios/build/evidence/simulators.json
+          IOS_UDID=$(python3 -c 'import json; d=json.load(open("apps/ios/build/evidence/simulators.json")); print(next(x["udid"] for k,v in d["devices"].items() if "iOS" in k for x in v if "iPhone" in x["name"]))')
+          xcrun simctl boot "$IOS_UDID"
+          xcrun simctl bootstatus "$IOS_UDID" -b
+          xcrun simctl install "$IOS_UDID" apps/ios/build/simulator/Build/Products/Release-iphonesimulator/BeastBox.app
+          python3 apps/ios/scripts/acceptance.py "$IOS_UDID" apps/ios/build/evidence
+          ditto -c -k --keepParent apps/ios/build/simulator/Build/Products/Release-iphonesimulator/BeastBox.app apps/ios/build/BeastBox-simulator-0.5.0.zip
+      - name: Archive unsigned device build
+        run: |
+          set -o pipefail
+          xcodebuild -project apps/ios/BeastBox.xcodeproj -scheme BeastBox -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -archivePath apps/ios/build/BeastBox-unsigned.xcarchive CODE_SIGNING_ALLOWED=NO archive 2>&1 | tee apps/ios/build/evidence/device-build.log
+          ditto -c -k --keepParent apps/ios/build/BeastBox-unsigned.xcarchive apps/ios/build/BeastBox-unsigned-device-0.5.0.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: beast-ios-simulator-0.5.0
+          path: apps/ios/build/BeastBox-simulator-0.5.0.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: beast-ios-unsigned-device-0.5.0
+          path: apps/ios/build/BeastBox-unsigned-device-0.5.0.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: beast-ios-evidence-0.5.0
+          path: apps/ios/build/evidence

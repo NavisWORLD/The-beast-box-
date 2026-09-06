@@ -1,40 +1,41 @@
 name: Product CI
 
 on:
+  workflow_call:
   push:
-    paths:
+    branches: ["**"]
+    paths: &product-paths
       - "beastbox/**"
       - "tests/**"
+      - "scripts/**"
+      - "Makefile"
+      - "requirements*.txt"
       - "pyproject.toml"
+      - "README.md"
+      - "kits/**"
+      - "evidence/system-closure-001/**"
       - "QUANTUM_BEAST_STARTER/**"
       - "docs/**"
       - "PROJECT_STATUS.json"
       - ".github/workflows/product-ci.yml"
   pull_request:
-    paths:
-      - "beastbox/**"
-      - "tests/**"
-      - "pyproject.toml"
-      - "QUANTUM_BEAST_STARTER/**"
-      - "docs/**"
-      - "PROJECT_STATUS.json"
-      - ".github/workflows/product-ci.yml"
+    paths: *product-paths
 
 permissions:
   contents: read
 
 concurrency:
-  group: product-ci-${{ github.ref }}
+  group: product-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  product-surface:
+  quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,34 +44,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install --upgrade pip
-      - run: pip install -e ".[dev]"
-      - name: Lint product spine
-        run: >
-          ruff check
-          beastbox/aliases.py
-          beastbox/hashutil.py
-          beastbox/logging_config.py
-          tests/test_product_spine.py
-          tests/test_starter_kit.py
-          tests/test_experimental_boundary.py
-      - name: Type-check product spine
-        run: mypy
-      - name: Product tests with coverage floor
-        run: |
-          coverage run -m pytest tests/test_product_spine.py tests/test_starter_kit.py tests/test_full_runtime.py tests/test_beastbox.py tests/test_logging_config.py tests/test_workspace_security.py tests/test_productization_receipt.py tests/test_experimental_boundary.py
-          coverage report
-      - name: Sealed evidence guard when present
-        run: |
-          if [ -d evidence/final-whole-organism-001 ]; then
-            git diff --exit-code c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f -- evidence/final-whole-organism-001/
-          else
-            echo "sealed evidence not in this checkout; skip immutability diff"
-          fi
-      - name: Productization receipt when script present
-        run: |
-          if [ -f scripts/productization_receipt.py ]; then
-            python scripts/productization_receipt.py --head-sha "${GITHUB_SHA}"
-          fi
+      - run: python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+      - run: python -m pip install -r requirements-dev.txt -e .
+      - name: Full quality gate
+        run: make quality ACCEPTANCE_OUTPUT=build/architecture-acceptance.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-${{ matrix.python-version }}
+          path: |
+            build/junit.xml
+            build/architecture-acceptance.json
+          if-no-files-found: warn
 
   package-smoke:
     runs-on: ubuntu-latest
@@ -80,12 +65,27 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python -m pip install --upgrade pip build
-      - run: python -m build
-      - name: Install wheel and smoke CLI
-        shell: bash
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Build, install, and run away from source
         run: |
-          pip install dist/*.whl
-          beastbox --help
-          beastbox starter
-          python -c "import beastbox; from beastbox import Runtime, MemoryStore; print(beastbox.__version__)"
+          mkdir -p build
+          if make package-smoke > build/package-smoke.log 2>&1; then
+            printf '%s\n' '{"gate":"package-smoke","passed":true,"workflow":"product-ci"}' > build/package-smoke.json
+            printf '%s\n' '<testsuite name="package-smoke" tests="1" failures="0"><testcase name="clean-wheel-install"/></testsuite>' > build/package-junit.xml
+          else
+            status=$?
+            printf '%s\n' '{"gate":"package-smoke","passed":false,"workflow":"product-ci"}' > build/package-smoke.json
+            printf '%s\n' '<testsuite name="package-smoke" tests="1" failures="1"><testcase name="clean-wheel-install"><failure>package smoke failed; see log</failure></testcase></testsuite>' > build/package-junit.xml
+            cat build/package-smoke.log
+            exit "$status"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: package-smoke
+          path: |
+            build/package-smoke.json
+            build/package-smoke.log
+            build/package-junit.xml
+          if-no-files-found: error

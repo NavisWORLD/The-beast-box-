@@ -1,0 +1,60 @@
+name: Persistent substrate Model A architecture preflight
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experiment/persistent-substrate-model-swap-001
+    paths:
+      - '.github/workflows/persistent-substrate-model-a-architecture-preflight.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: persistent-substrate-model-a-architecture-${{ github.sha }}
+  cancel-in-progress: false
+
+env:
+  MODEL_A_ARCHITECTURE_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+
+jobs:
+  resolve-exact-architecture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Resolve exact architecture bytes from worktree or Git history
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="$MODEL_A_ARCHITECTURE_SHA256"
+          matches=()
+          while IFS= read -r -d '' path; do
+            observed=$(sha256sum "$path" | awk '{print $1}')
+            if [[ "$observed" == "$target" ]]; then
+              matches+=("WORKTREE:$path")
+            fi
+          done < <(find . -type f -not -path './.git/*' -print0)
+
+          if [[ ${#matches[@]} -eq 0 ]]; then
+            while read -r blob path; do
+              [[ -n "$blob" ]] || continue
+              type=$(git cat-file -t "$blob" 2>/dev/null || true)
+              [[ "$type" == "blob" ]] || continue
+              observed=$(git cat-file blob "$blob" | sha256sum | awk '{print $1}')
+              if [[ "$observed" == "$target" ]]; then
+                matches+=("GIT_BLOB:$blob:$path")
+              fi
+            done < <(git rev-list --objects --all)
+          fi
+
+          if [[ ${#matches[@]} -eq 0 ]]; then
+            echo "Exact Model A architecture SHA not found in worktree or Git history: $target" >&2
+            exit 42
+          fi
+          printf 'MODEL_A_ARCHITECTURE_MATCH=%s\n' "${matches[0]}"
+          printf 'MODEL_A_ARCHITECTURE_MATCH_COUNT=%s\n' "${#matches[@]}"

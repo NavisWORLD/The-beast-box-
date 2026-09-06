@@ -13,6 +13,7 @@ from .state import MissionState, StateCapsule
 from .cns import CNS
 from .box import BeastBox, AuthorityPolicy
 from .model import ReferenceBeast, Agent
+from .durable import DurableRuntime
 from .aliases import (
     Runtime,
     MemoryStore,
@@ -30,6 +31,7 @@ __all__ = [
     "AuthorityPolicy",
     "ReferenceBeast",
     "Agent",
+    "DurableRuntime",
     "Runtime",
     "MemoryStore",
     "StateController",
@@ -38,4 +40,4 @@ __all__ = [
     "HISTORICAL_ALIASES",
 ]
 
-__version__ = "0.3.2"
+__version__ = "0.5.0"
