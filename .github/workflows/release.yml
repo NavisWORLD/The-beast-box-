@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     # Owner-authorized closure: the final job creates the tag only after gates.
-    branches: [integration/beast-box-system-closure-001]
+    branches: [integration/beast-box-system-closure-001, integration/beast-box-portable-kit-002]
     paths: [.github/workflows/release.yml]
     tags:
       - 'v*'
@@ -20,6 +20,15 @@ concurrency:
 jobs:
   verified-product:
     uses: ./.github/workflows/product-ci.yml
+
+  portable-desktop:
+    uses: ./.github/workflows/portable-products.yml
+
+  portable-android:
+    uses: ./.github/workflows/android-app.yml
+
+  portable-ios:
+    uses: ./.github/workflows/ios-app.yml
 
   security-audit:
     runs-on: ubuntu-latest
@@ -80,8 +89,8 @@ jobs:
           path: ${{ matrix.binary }}
 
   github-release:
-    if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/integration/beast-box-system-closure-001'
-    needs: [python-package, rust-binaries]
+    if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/integration/beast-box-system-closure-001' || github.ref == 'refs/heads/integration/beast-box-portable-kit-002'
+    needs: [python-package, rust-binaries, portable-desktop, portable-android, portable-ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -111,6 +120,8 @@ jobs:
             --assets release-assets --output release-publish \
             --source-sha "$GITHUB_SHA" \
             --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+
+          python scripts/stage_portable_release.py --assets release-assets --output release-publish --source-sha "$GITHUB_SHA"
 
           (
             cd release-publish
@@ -142,5 +153,5 @@ jobs:
           fi
           gh release create "$tag" release-publish/* \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Beast Box $version — Durable runtime integration" \
-            --notes-file docs/closure/RELEASE_NOTES.md
+            --title "Beast Box $version — Portable runtime preview" \
+            --notes-file docs/closure/RELEASE_NOTES_0.5.0.md
