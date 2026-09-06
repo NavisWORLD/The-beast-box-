@@ -1,0 +1,68 @@
+{
+  "analysis": {
+    "effect_floor": 0.02,
+    "primary_residual": "1-P(000000000000)",
+    "randomizations": 100000,
+    "stage_p_threshold": 0.005,
+    "stage_statistic": "median(D_CANONICAL - median(D_controls))",
+    "two_sided": true
+  },
+  "arms": {
+    "CANONICAL": [1.0, 1.0, 1.0, 0.03709721565246582, 0.5821940104166666, 0.9737669098248636, 0.33837890625, 0.6, 0.86767578125, 0.0, 0.9791562241472875, 0.7824778407808468],
+    "COMPLEMENT": [0.0, 0.0, 0.0, 0.9629027843475342, 0.41780598958333337, 0.02623309017513642, 0.66162109375, 0.4, 0.13232421875, 1.0, 0.020843775852712465, 0.2175221592191532],
+    "NEUTRAL": [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+    "PERM_CYCLIC": [1.0, 1.0, 0.03709721565246582, 0.5821940104166666, 0.9737669098248636, 0.33837890625, 0.6, 0.86767578125, 0.0, 0.9791562241472875, 0.7824778407808468, 1.0],
+    "PERM_HASHED": [0.0, 0.6, 1.0, 1.0, 1.0, 0.5821940104166666, 0.9737669098248636, 0.03709721565246582, 0.86767578125, 0.9791562241472875, 0.33837890625, 0.7824778407808468],
+    "PERM_REVERSE": [0.7824778407808468, 0.9791562241472875, 0.0, 0.86767578125, 0.6, 0.33837890625, 0.9737669098248636, 0.5821940104166666, 0.03709721565246582, 1.0, 1.0, 1.0]
+  },
+  "backend_policy": {
+    "blocks_per_path_orientation": 3,
+    "connected_paths_per_stage": 4,
+    "distinct_replication_backend_preferred": true,
+    "minimum_qubits": 12
+  },
+  "circuit": {
+    "echo": "U(R12); barrier; U(R12)^dagger; measure",
+    "formula_version": "r12-quantum-echo-v1",
+    "optimization_level": 0,
+    "phi": 1.618033988749895,
+    "qubits": 12
+  },
+  "claim_boundary": "Probe 001 tests a preregistered matched-control quantum echo residual. No outcome by itself proves a literal twelfth dimension, a new law of physics, quantum advantage, consciousness, resurrection, deceased identity, or communication with the dead.",
+  "probe_id": "r12-physics-probe-001",
+  "protected": {
+    "r12_ledger_tip_sha256": "78d8698e406c8a60dcf6a9545541fdd74d8b3b250ff0e28a9418bfd3d1f96415",
+    "r12_state_sha256": "48994584e13d8e2b6fcb21cb682b0b9501af12e2ce8742e99384b604235c9f20",
+    "r12_vector": {
+      "adaptation_stability": 0.9791562241472875,
+      "contradiction_pressure": 0.0,
+      "cross_condition_agreement": 0.5821940104166666,
+      "distribution_energy": 0.03709721565246582,
+      "distribution_entropy": 0.9737669098248636,
+      "measurement_confidence": 1.0,
+      "memory_relevance": 0.6,
+      "reality_coupling": 0.7824778407808468,
+      "retention_pressure": 0.86767578125,
+      "source_integrity": 1.0,
+      "surprise": 0.33837890625,
+      "temporal_novelty": 1.0
+    },
+    "talk4_checkpoint_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f"
+  },
+  "schema": "r12-physics-probe-preregistration-v1",
+  "seeds": {
+    "analysis_seed": 5561161262031842257,
+    "arm_order_seed": 6830586995163564637,
+    "perm_hashed_seed": 15752332001025036587,
+    "preseal_seed_sha256": "7ca9842ccb90e0520258cbb1d8b2404977e40aa44af6a2d0dac1f72c6b998009",
+    "synthetic_seed": 17689968389133054645
+  },
+  "source_commit": "c4feee5f37c2f0568940bc1c1de5d35e221ec41f",
+  "workload": {
+    "arms_per_block": 6,
+    "discovery_blocks": 24,
+    "planned_hardware_shots": 1179648,
+    "replication_blocks": 24,
+    "shots_per_pub": 4096
+  }
+}
