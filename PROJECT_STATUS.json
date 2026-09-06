@@ -12,8 +12,8 @@
   "license": "THE BEAST BOX PROPRIETARY SOURCE-AVAILABLE LICENSE v1.0",
   "open_source": false,
   "canonical_repository": "https://github.com/NavisWORLD/The-beast-box-",
-  "release_version": "0.5.0",
-  "classification": "experimental portable release candidate",
+  "release_version": "0.6.0",
+  "classification": "release-hardened experimental software (publication gated)",
   "production_ready": false,
   "canonical_runtime_entrypoint": "beastbox runtime",
   "public_api": [
@@ -23,7 +23,8 @@
   "ibm_required_for_normal_operation": false,
   "supported_durable_providers": [
     "deterministic reference",
-    "loopback Ollama"
+    "loopback Ollama",
+    "compatible Chat Completions (remote HTTPS requires explicit opt-in)"
   ],
   "legacy_optional_providers": [
     "GGUF",
@@ -41,7 +42,7 @@
     "unchanged": true
   },
   "release_tag": null,
-  "publication_status": "GATED_BY_RELEASE_WORKFLOW",
-  "candidate_tag": "v0.5.0",
+  "publication_status": "EXACT_SOURCE_RELEASE_GATED",
+  "candidate_tag": "v0.6.0",
   "publication_receipt": "GitHub release and attached RELEASE_VERIFICATION.json"
 }

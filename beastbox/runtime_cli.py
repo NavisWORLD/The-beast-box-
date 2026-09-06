@@ -11,7 +11,7 @@ from pathlib import Path
 
 from .continuity import ContinuityStore
 from .durable import DurableRuntime
-from .providers import LocalOllamaProvider, ReferenceTextProvider, TextProvider
+from .providers import CompatibleChatProvider, LocalOllamaProvider, ReferenceTextProvider, TextProvider
 
 
 def file_sha256(path: Path) -> str:
@@ -84,18 +84,20 @@ def add_runtime_subparser(sub):
     parser = sub.add_parser("runtime", help="durable local loop, inspection, model swap and recovery")
     commands = parser.add_subparsers(dest="runtime_action", required=True)
     for action in ("init", "chat", "inspect", "sensor-demo", "tool-demo", "backup", "restore", "verify-swap-receipt",
-                   "exchange", "resource-status", "quantum-input", "wav-input", "light-input"):
+                   "export", "verify-portable", "import", "exchange", "resource-status", "quantum-input", "wav-input", "light-input"):
         cmd = commands.add_parser(action)
         cmd.add_argument("--data-dir", type=Path, default=Path(".beastbox/durable"))
         if action in {"chat", "sensor-demo", "exchange", "quantum-input", "wav-input", "light-input"}:
-            cmd.add_argument("--provider", choices=["reference", "ollama"], default="reference")
+            cmd.add_argument("--provider", choices=["reference", "ollama", "compatible"], default="reference")
             cmd.add_argument("--model", default="COSMOS reference")
-            cmd.add_argument("--url", default="http://127.0.0.1:11434")
+            cmd.add_argument("--url", default=None)
+            cmd.add_argument("--allow-remote", action="store_true", help="explicitly allow selected HTTPS endpoint to receive context")
+            cmd.add_argument("--api-key-env", help="name of host environment variable; never persisted")
         if action == "chat":
             cmd.add_argument("text")
-        if action in {"backup", "restore", "verify-swap-receipt"}:
+        if action in {"backup", "restore", "verify-swap-receipt", "export", "verify-portable", "import"}:
             cmd.add_argument("path", type=Path)
-        if action == "restore":
+        if action in {"restore", "verify-portable", "import"}:
             cmd.add_argument("--sha256", required=True)
         if action == "tool-demo":
             cmd.add_argument("--allow-simulated-tool", action="store_true")
@@ -129,6 +131,13 @@ def read_exchange(stream):
 
 def handle_runtime(args):
     action = args.runtime_action
+    if action in {"export", "verify-portable", "import"}:
+        from .portable_state import export_snapshot, import_snapshot, verify_snapshot
+        if action == "export":
+            return export_snapshot(args.data_dir, args.path)
+        if action == "verify-portable":
+            return verify_snapshot(args.path, args.sha256)
+        return import_snapshot(args.path, args.data_dir, args.sha256)
     if action == "resource-status":
         from .optional_resources import resource_status
         return resource_status()
@@ -158,7 +167,12 @@ def handle_runtime(args):
     if getattr(args, "provider", None) == "ollama":
         if args.model == "COSMOS reference":
             raise ValueError("Ollama requires an explicit --model name")
-        provider = LocalOllamaProvider(model=args.model, base_url=args.url)
+        provider = LocalOllamaProvider(model=args.model, base_url=args.url or "http://127.0.0.1:11434")
+    if getattr(args, "provider", None) == "compatible":
+        if args.model == "COSMOS reference":
+            raise ValueError("compatible backend requires an explicit --model")
+        provider = CompatibleChatProvider(args.model, args.url or "http://127.0.0.1:1234/v1",
+                                          allow_remote=args.allow_remote, api_key_env=args.api_key_env)
     if action == "tool-demo":
         provider = SimulatorDemoProvider()
     runtime = DurableRuntime(args.data_dir, provider, allow_simulated_tool=getattr(args, "allow_simulated_tool", False))

@@ -1,4 +1,4 @@
-# Beast Box iOS 0.5.0
+# Beast Box iOS 0.6.0
 
 SwiftUI calls embedded CPython 3.12 and the repository's `beastbox.durable.DurableRuntime`.
 SQLite, checkpoints, provenance and retained memory live in the application's private
@@ -26,8 +26,8 @@ app and unsigned device archive. Receipts are retained even when later gates fai
 The acceptance flag writes only the fixture receipt to the app's Documents folder;
 it does not clear the runtime store. CI uses a newly installed app container.
 
-`beast-ios-simulator-0.5.0` is an installable simulator app ZIP.
-`beast-ios-unsigned-device-0.5.0` is an Xcode archive ZIP, **not an installable IPA**.
+`beast-ios-simulator-0.6.0` is an installable simulator app ZIP.
+`beast-ios-unsigned-device-0.6.0` is an Xcode archive ZIP, **not an installable IPA**.
 An Apple developer identity, provisioning profile, appropriate bundle identifier,
 physical device acceptance and App Store Connect/TestFlight upload remain external
 release requirements. Neither a source check nor simulator success certifies these.

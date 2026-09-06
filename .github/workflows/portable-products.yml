@@ -2,7 +2,7 @@ name: Portable desktop and native client gates
 on:
   workflow_call:
   push:
-    branches: [integration/beast-box-portable-kit-002]
+    branches: [polish/beast-box-launch-003]
     paths: ['apps/**', 'sdk/**', 'beastbox/**', 'kits/**', 'scripts/**', '.github/workflows/portable-products.yml']
 permissions:
   contents: read
@@ -58,13 +58,13 @@ jobs:
         run: |
           set -euo pipefail
           python scripts/build_release_kit.py --dist build/checked-kit
-          python -c 'import zipfile; zipfile.ZipFile("build/checked-kit/beast-box-combined-0.5.0.zip").extractall("build/unpacked-kit")'
+          python -c 'import zipfile; zipfile.ZipFile("build/checked-kit/beast-box-combined-0.6.0.zip").extractall("build/unpacked-kit")'
           python build/unpacked-kit/install.py --install-dir "$RUNNER_TEMP/beast-installed"
           app_python="$RUNNER_TEMP/beast-installed/bin/python"
           if [[ "$RUNNER_OS" == Windows ]]; then app_python="$RUNNER_TEMP/beast-installed/Scripts/python.exe"; fi
           "$app_python" -I -m beastbox.desktop --smoke --data-dir "$RUNNER_TEMP/beast-installed-data" > build/portable-artifacts/installer.json
       - uses: actions/upload-artifact@v4
         with:
-          name: beast-desktop-${{ matrix.os }}-0.5.0
+          name: beast-desktop-${{ matrix.os }}-0.6.0
           path: build/portable-artifacts/
           if-no-files-found: error

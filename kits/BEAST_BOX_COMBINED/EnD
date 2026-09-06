@@ -1,4 +1,5 @@
-EnD — Beast Box combined runtime/developer kit, 0.4.0
+EnD — Beast Box combined runtime/developer kit
+Version and exact source: RELEASE_PROVENANCE.json
 
 START — RELEASE ZIP
 Python 3.10–3.12 with venv/pip is required. Graphical use also requires Tk.
@@ -107,3 +108,11 @@ retention/compaction and hostile multi-tenant deployment are not validated.
 Read LICENSE, TRUST_BOUNDARIES.md and READINESS.json before distribution/deployment.
 MODEL ≠ SUBSTRATE. MODEL REPLACEMENT ≠ AUTHORITY TRANSFER.
 PERSISTENCE ≠ CONSCIOUSNESS. Preserve every null, failure and historical receipt.
+
+PORTABLE STORY / PROVIDERS
+Read QUICKSTART.md, PROVIDER_SETUP.md, PORTABLE_STATE.md and LAUNCH.md in this kit.
+beastbox doctor --data-dir PATH checks writable storage and recovery integrity.
+beastbox runtime export DIRECTORY --data-dir PATH writes a verified portable snapshot.
+Retain manifest_sha256 separately; use verify-portable and import with --sha256.
+Remote compatible endpoints require explicit --allow-remote over HTTPS.
+Host credentials and tool permissions are not transferred in portable snapshots.

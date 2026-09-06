@@ -2,6 +2,27 @@
 
 > **Build the loop. Instrument the loop. Move the state. Preserve the nulls. Keep authority explicit.**
 
+**Swap the brain. Keep the story.** Your AI history can live outside the model.
+Beast Box is a local-first runtime for persistent memory, software state, routing
+and provenance behind replaceable inference adapters. Models supply inference;
+the runtime retains the story and enforces its own authority boundary.
+
+**MODEL ≠ MEMORY · MODEL ≠ STATE · MODEL ≠ PROVENANCE · MODEL ≠ AUTHORITY**
+
+[Download / Releases](https://github.com/NavisWORLD/The-beast-box-/releases) ·
+[5-minute Quickstart](docs/QUICKSTART.md) · [Combined Kit / EnD](kits/BEAST_BOX_COMBINED/EnD) ·
+[Architecture](docs/ECOSYSTEM_MANIFEST.json) · [Persistent Memory](docs/PORTABLE_STATE.md) ·
+[Model Swap Evidence](docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md) ·
+[Provider Setup](docs/PROVIDER_SETUP.md) · [Synapse Flash / Portable State](docs/PORTABLE_STATE.md) ·
+[Security](SECURITY.md) · [Scientific Boundaries](docs/CLAIM_BOUNDARIES.md) ·
+[Evidence Index](docs/EVIDENCE_INDEX.md) · [Developer Guide](docs/DEVELOPER_GUIDE.md)
+
+Download the combined ZIP for checked Python installers, or choose the labelled
+platform executable/preview. Start in reference mode, then connect an installed
+Ollama model. The [frozen A→B→A report](docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md)
+and source-bound release receipts show what was measured. [Launch demos and FAQ](docs/LAUNCH.md)
+explain what those results do and do not mean.
+
 [![CI](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/ci.yml/badge.svg)](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/ci.yml)
 [![Product CI](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/product-ci.yml/badge.svg)](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/product-ci.yml)
 [![Cosmic Cypher smoke](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/cypher-smoke.yml/badge.svg)](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/cypher-smoke.yml)
@@ -23,7 +44,6 @@ The early cosmic/frequency language is preserved as historical theory/simulation
 
 > A local-first, inspectable adaptive-agent runtime and experimental integration platform with persistent memory, software state, routing, provenance, and authority boundaries outside replaceable inference models.
 
-[Releases](https://github.com/NavisWORLD/The-beast-box-/releases) · [Combined kit / EnD](kits/BEAST_BOX_COMBINED/EnD) · [Source map](docs/ECOSYSTEM_MANIFEST.json) · [Security](SECURITY.md) · [Evidence](docs/EVIDENCE_INDEX.md)
 
 **Python 3.10–3.12. No IBM account, cloud credential, GPU, or language model is required for the deterministic reference path.** Source visibility does not grant a license: see [LICENSE](LICENSE).
 
@@ -45,9 +65,8 @@ flowchart TD
 ## Run locally
 
 ```bash
-git clone --branch integration/beast-box-portable-kit-002 https://github.com/NavisWORLD/The-beast-box-.git
+git clone https://github.com/NavisWORLD/The-beast-box-.git
 cd The-beast-box-
-git switch integration/beast-box-system-closure-001
 python -m venv .venv
 # Linux/macOS: source .venv/bin/activate
 # Windows: .venv\Scripts\activate
@@ -67,7 +86,7 @@ beastbox runtime chat "Recall the sunflower code" --data-dir ./my-beast \
   --provider ollama --model YOUR_INSTALLED_MODEL --url http://127.0.0.1:11434
 ```
 
-Run again with another installed model, then the original model. Keep the same `--data-dir`. Configured provider labels are recorded; this interactive path does not attest model-weight hashes. Exact frozen-model identities belong to the separate historical experiment below. HTTP adapters reject non-loopback endpoints, URL credentials, redirects and environment proxies.
+Run again with another installed model, then the original model. Keep the same `--data-dir`. Configured provider labels are recorded; this interactive path does not attest model-weight hashes. Exact frozen-model identities belong to the separate historical experiment below. Ollama stays loopback-only. The compatible adapter permits explicitly authorized HTTPS remote endpoints; URL credentials, redirects and environment proxies remain forbidden.
 
 The existing [COSMIC.CYPHER](docs/COSMIC_CYPHER.md) tooling also supports GGUF, LM Studio and llama.cpp. Its conversation/coding persistence is a separate legacy surface; use `beastbox runtime` for the transactional continuity contract described here.
 
@@ -114,7 +133,7 @@ The verifier checks exact archive, manifest and result hashes plus recorded sour
 | Synapse / HEARTLIGHT | Orchestration and continuity responsibilities mapped onto this runtime; separate formal products remain interfaces/future work |
 | Knowledge/world store | Existing experimental R12 world store, separate from the normal conversation database |
 | Zeref | Checkpoint and conversation-experiment lineage |
-| Bio, entropy, IBM/quantum | Optional research adapters, excluded from the normal durable input path |
+| Bio, entropy, IBM/quantum | Optional experimental adapters; explicitly enabled input paths |
 | Camera / physical actuators | Not implemented in the supported baseline |
 
 The [machine-readable map](docs/ECOSYSTEM_MANIFEST.json) gives actual source paths and labels. Existing higher-dimensional state variants remain experimental instrumentation. This software does not establish consciousness, sentience, biological life, personal identity, resurrection, a soul, quantum advantage, extra physical dimensions or new physics. Generated prose is not scientific evidence.
@@ -142,7 +161,7 @@ The combined kit includes the public API/configuration and recovery instructions
 
 ### Portable kit and apps
 
-The 0.5.0 candidate adds `INSTALL.bat` / `UnixINSTALL.sh`, a checked offline wheel
+The portable line includes `INSTALL.bat` / `UnixINSTALL.sh`, a checked offline wheel
 installer, `LAUNCH.bat` / `UnixLAUNCH.sh`, and a local desktop UI. A release must
 pass the platform workflows before its downloads are promoted. The installers
 require Python 3.10–3.12; separately packaged desktop executables bundle Python.

@@ -6,6 +6,7 @@ ACCEPTANCE_OUTPUT ?= build/architecture-acceptance.json
 quality: lint typecheck test acceptance security sealed-evidence
 
 lint:
+	$(PYTHON) -m ruff check beastbox/doctor.py beastbox/portable_state.py tests/test_launch_surface.py tests/test_compatible_provider.py
 	$(PYTHON) -m ruff check beastbox/aliases.py beastbox/hashutil.py beastbox/logging_config.py \
 		beastbox/continuity.py beastbox/durable.py beastbox/events.py beastbox/providers.py \
 		beastbox/runtime_cli.py beastbox/swap_receipt.py scripts/run_architecture_acceptance.py \

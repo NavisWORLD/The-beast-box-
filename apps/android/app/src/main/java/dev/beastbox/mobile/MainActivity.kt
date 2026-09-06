@@ -28,7 +28,7 @@ class MainActivity : Activity() {
         val scroll = ScrollView(this).apply { addView(layout) }
         setContentView(scroll)
         fun label(text: String) = TextView(this).apply { this.text = text; layout.addView(this) }
-        label("BEAST BOX · 0.5.0 candidate").textSize = 24f
+        label("BEAST BOX · 0.6.0 candidate").textSize = 24f
         label("On-device Python runtime · debug signed sideload build").textSize = 14f
         label("Reference A/B are deterministic text fixtures, not language models. Ollama requires an engine and weights running on this Android device. No engine or weights are bundled.")
         provider = Spinner(this).apply {
