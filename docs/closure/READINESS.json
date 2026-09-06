@@ -1,7 +1,7 @@
 {
   "schema": "beastbox-release-readiness-v1",
   "version": "0.5.0",
-  "classification": "experimental portable release candidate",
+  "classification": "release-hardened experimental software",
   "production_ready": false,
   "supported_scope": "owner-controlled local runtime; no privileged or physical actions",
   "supported_python": [
@@ -23,23 +23,23 @@
     "architecture_source_map": "PASS",
     "authority_boundary_review": "PASS",
     "runtime_regressions": "PASS",
-    "full_tests": "PASS on verified_baseline; final release counts in RELEASE_VERIFICATION.json",
+    "full_tests": "PASS: 851 tests per Python 3.10/3.11/3.12 in release run 34035894541",
     "quality": "PASS: scoped Ruff and mypy, coverage 69%",
     "security_current_tree": "PASS: 0 errors, 0 warnings",
     "history_secret_signatures": "PASS: 1500 reachable text/code blobs; no high-confidence matches",
-    "package_build": "PASS: 0.4.0 wheel and sdist",
+    "package_build": "PASS: 0.5.0 wheel and sdist",
     "clean_wheel_install": "PASS: isolated venv/cwd; imported module within venv",
     "clean_sdist_install": "PASS: isolated venv/cwd; imported module within venv",
     "end_to_end_and_restart": "PASS: 24 checks; 121 product source hashes retained in receipt",
-    "supported_python_matrix": "PASS: Python 3.10, 3.11, 3.12 on verified_baseline; repeated before publication",
+    "supported_python_matrix": "PASS: Python 3.10, 3.11, 3.12 on published source",
     "source_push": "PASS: verified_baseline published; release provenance binds final source",
-    "release_integrity": "GATED: final SHA256SUMS.txt and RELEASE_VERIFICATION.json are verified before publication"
+    "release_integrity": "PASS: all 18 downloaded assets match GitHub digests; 17 payloads match SHA256SUMS.txt"
   },
   "limitations": [
     "No physical actuators, camera capture, hostile Python plugin sandbox or multi-tenant service boundary.",
     "Local database is plaintext; backups and separately retained hashes are owner responsibility.",
     "Checkpoint/history scans have not been load-tested for large stores; no indefinite retention guarantee.",
-    "Formal external Synapse OS and HEARTLIGHT are interfaces/future work; world-store and bio/IBM paths remain separate experimental surfaces.",
+    "Synapse OS has a separately verified user-space Beast installer; formal HEARTLIGHT integration remains future work; world-store and bio/IBM paths remain separate experimental surfaces.",
     "Configured provider labels in normal operation do not attest model weights; historical frozen experiment receipts are separate.",
     "Hardware, GPU and local installed-model services were not newly provisioned for these deterministic product gates.",
     "Mobile builds use reference fixtures; no bundled mobile LLM engine or real-model device acceptance.",
@@ -56,5 +56,11 @@
     "source_commit": "7ecda41f221cfa967e6bd99f6d910dd55a75fcbc",
     "product_ci_run": 34034978916,
     "conclusion": "success"
+  },
+  "published_release": {
+    "tag": "v0.5.0",
+    "source_commit": "fb15478089d0852d5adc4e68953b7b920b65f97d",
+    "run_id": 34035894541,
+    "receipt": "PORTABLE_RELEASE_RECEIPT.json"
   }
 }
