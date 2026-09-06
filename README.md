@@ -1,8 +1,28 @@
-# THE BEAST BOX
+# BEAST BOX // COSMIC.CYPHER
+
+> **Build the loop. Instrument the loop. Move the state. Preserve the nulls. Keep authority explicit.**
+
+[![CI](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/ci.yml/badge.svg)](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/ci.yml)
+[![Product CI](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/product-ci.yml/badge.svg)](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/product-ci.yml)
+[![Cosmic Cypher smoke](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/cypher-smoke.yml/badge.svg)](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/cypher-smoke.yml)
+[![Rust CST](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/rust.yml/badge.svg)](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/rust.yml)
+[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-QC67__cosmo-yellow)](https://huggingface.co/phera-ra/QC67_cosmo)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17574447.svg)](https://doi.org/10.5281/zenodo.17574447)
+
+The Beast Box is the installable public **COSMOS / Davis Cosmic Synapse Theory** software distribution. It packages a source-grounded CST state/attention reference, persistent Reconciliation Memory, Hebbian associations, the seven-role CNS, sensory/bio summaries, heartbeat/slow state, continuity experiments, causal controls, optional IBM Quantum transport/provenance tools, a Rust CST workspace, **COSMIC.CYPHER**, and the current durable-runtime / portable-kit surfaces.
+
+The project keeps one systems invariant visible:
+
+```text
+STATE MAY TRAVEL.
+INFORMATION MAY TRAVEL.
+AUTHORITY DOES NOT TRAVEL AUTOMATICALLY.
+```
+
+The early cosmic/frequency language is preserved as historical theory/simulation material. The modern software claims are narrower and testable: persistent memory, software state, routing, provenance, recovery, bounded authority, and model replacement are engineering properties measured separately from speculative physical claims.
 
 > A local-first, inspectable adaptive-agent runtime and experimental integration platform with persistent memory, software state, routing, provenance, and authority boundaries outside replaceable inference models.
 
-[![Product CI](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/product-ci.yml/badge.svg)](https://github.com/NavisWORLD/The-beast-box-/actions/workflows/product-ci.yml)
 [Releases](https://github.com/NavisWORLD/The-beast-box-/releases) · [Combined kit / EnD](kits/BEAST_BOX_COMBINED/EnD) · [Source map](docs/ECOSYSTEM_MANIFEST.json) · [Security](SECURITY.md) · [Evidence](docs/EVIDENCE_INDEX.md)
 
 **Python 3.10–3.12. No IBM account, cloud credential, GPU, or language model is required for the deterministic reference path.** Source visibility does not grant a license: see [LICENSE](LICENSE).
