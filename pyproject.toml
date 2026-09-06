@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cosmos-beast-box"
-version = "0.4.0"
+version = "0.5.0"
 description = "Local-first COSMOS/CST runtime: memory, state control, model adapters, provenance. IBM Quantum is optional and not required."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -22,6 +22,7 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
+azure = ["qdk[azure]", "azure-identity>=1.17"]
 quantum = ["qiskit>=2.5.0", "qiskit-ibm-runtime>=0.47.0"]
 huggingface = ["huggingface-hub>=0.27"]
 ml = ["torch>=2.2", "numpy>=2.0"]

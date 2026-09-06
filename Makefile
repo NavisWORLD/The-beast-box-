@@ -11,7 +11,8 @@ lint:
 		beastbox/runtime_cli.py beastbox/swap_receipt.py scripts/run_architecture_acceptance.py \
 		scripts/productization_receipt.py tests/test_durable_runtime.py tests/test_product_spine.py \
 		tests/test_runtime_cli.py tests/test_swap_receipt.py tests/test_experimental_boundary.py \
-		scripts/seal_release_verification.py tests/test_release_verification.py
+		scripts/seal_release_verification.py tests/test_release_verification.py \
+		beastbox/desktop.py beastbox/optional_resources.py beastbox/sensor_inputs.py tests/test_runtime_exchange.py
 
 typecheck:
 	$(PYTHON) -m mypy beastbox/logging_config.py beastbox/hashutil.py beastbox/aliases.py \

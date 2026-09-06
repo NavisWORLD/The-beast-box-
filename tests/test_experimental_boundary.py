@@ -14,7 +14,7 @@ def test_importing_public_package_does_not_require_qiskit_or_ollama():
     import beastbox
     from beastbox import MemoryStore, ProvenanceLedger, Runtime, StateController
 
-    assert beastbox.__version__ == "0.4.0"
+    assert beastbox.__version__ == "0.5.0"
     assert Runtime is not None
     assert MemoryStore is not None
     assert StateController is not None

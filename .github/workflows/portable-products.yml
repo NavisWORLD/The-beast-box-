@@ -1,0 +1,67 @@
+name: Portable desktop and native client gates
+on:
+  workflow_call:
+  push:
+    branches: [integration/beast-box-portable-kit-002]
+    paths: ['apps/**', 'sdk/**', 'beastbox/**', 'kits/**', 'scripts/**', '.github/workflows/portable-products.yml']
+permissions:
+  contents: read
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - run: python -m pip install build==1.3.0 pyinstaller==6.14.2 -e .
+      - name: Build standalone desktop
+        run: python -m PyInstaller --clean --noconfirm --onefile --name BeastBox apps/desktop_entry.py
+      - name: Exercise installed desktop runtime and restart
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p portable-artifacts
+          app=dist/BeastBox
+          if [[ "$RUNNER_OS" == Windows ]]; then app=dist/BeastBox.exe; fi
+          "$app" --smoke --data-dir "$RUNNER_TEMP/beast-app-data" > portable-artifacts/first.json
+          "$app" --smoke --data-dir "$RUNNER_TEMP/beast-app-data" > portable-artifacts/restart.json
+          python -c 'import json; a=json.load(open("portable-artifacts/first.json")); b=json.load(open("portable-artifacts/restart.json")); assert a["valid"] and b["valid"] and b["turn_before"] == a["turn_after"] and a["system_id"] == b["system_id"]'
+          cp "$app" portable-artifacts/
+          cp LICENSE portable-artifacts/BEAST-LICENSE
+      - name: Compile native clients
+        shell: bash
+        run: |
+          g++ -std=c++17 -Wall -Wextra -pedantic sdk/runtime-client/client.cpp -o portable-artifacts/beast-client-cpp
+          rustc sdk/runtime-client/client.rs -o portable-artifacts/beast-client-rust
+      - name: Native clients reach the same durable runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          for language in cpp rust; do
+            client="portable-artifacts/beast-client-$language"
+            if [[ "$RUNNER_OS" == Windows ]]; then client="$client.exe"; fi
+            printf '%s' '{"schema":"beastbox-request-v1","operation":"chat","text":"native sunflower"}' | "$client" "$(which python)" "$RUNNER_TEMP/beast-native-state" > "portable-artifacts/$language.json"
+          done
+          python -c 'import json; assert all(json.load(open("portable-artifacts/"+n+".json"))["ok"] for n in ["cpp","rust"])'
+      - name: Build and exercise the checked EnD installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_release_kit.py --dist build/checked-kit
+          python -c 'import zipfile; zipfile.ZipFile("build/checked-kit/beast-box-combined-0.5.0.zip").extractall("build/unpacked-kit")'
+          python build/unpacked-kit/install.py --install-dir "$RUNNER_TEMP/beast-installed"
+          app_python="$RUNNER_TEMP/beast-installed/bin/python"
+          if [[ "$RUNNER_OS" == Windows ]]; then app_python="$RUNNER_TEMP/beast-installed/Scripts/python.exe"; fi
+          "$app_python" -I -m beastbox.desktop --smoke --data-dir "$RUNNER_TEMP/beast-installed-data" > portable-artifacts/installer.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: beast-desktop-${{ matrix.os }}-0.5.0
+          path: portable-artifacts/
+          if-no-files-found: error

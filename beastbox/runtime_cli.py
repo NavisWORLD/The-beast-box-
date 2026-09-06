@@ -6,6 +6,7 @@ import hashlib
 import json
 import shutil
 import sqlite3
+import sys
 from pathlib import Path
 
 from .continuity import ContinuityStore
@@ -82,10 +83,11 @@ class SimulatorDemoProvider:
 def add_runtime_subparser(sub):
     parser = sub.add_parser("runtime", help="durable local loop, inspection, model swap and recovery")
     commands = parser.add_subparsers(dest="runtime_action", required=True)
-    for action in ("init", "chat", "inspect", "sensor-demo", "tool-demo", "backup", "restore", "verify-swap-receipt"):
+    for action in ("init", "chat", "inspect", "sensor-demo", "tool-demo", "backup", "restore", "verify-swap-receipt",
+                   "exchange", "resource-status", "quantum-input", "wav-input", "light-input"):
         cmd = commands.add_parser(action)
         cmd.add_argument("--data-dir", type=Path, default=Path(".beastbox/durable"))
-        if action in {"chat", "sensor-demo"}:
+        if action in {"chat", "sensor-demo", "exchange", "quantum-input", "wav-input", "light-input"}:
             cmd.add_argument("--provider", choices=["reference", "ollama"], default="reference")
             cmd.add_argument("--model", default="COSMOS reference")
             cmd.add_argument("--url", default="http://127.0.0.1:11434")
@@ -97,10 +99,52 @@ def add_runtime_subparser(sub):
             cmd.add_argument("--sha256", required=True)
         if action == "tool-demo":
             cmd.add_argument("--allow-simulated-tool", action="store_true")
+        if action == "quantum-input":
+            cmd.add_argument("--resource", choices=["ibm", "azure"], required=True)
+            cmd.add_argument("--shots", type=int, default=128)
+            cmd.add_argument("--allow-remote-job", action="store_true")
+        if action == "wav-input":
+            cmd.add_argument("path", type=Path)
+        if action == "light-input":
+            cmd.add_argument("--values", required=True, help="JSON list of measured values in [0,1]")
+            cmd.add_argument("--source-label", required=True)
+
+
+def read_exchange(stream):
+    raw = stream.read(16385)
+    if len(raw) > 16384:
+        raise ValueError("request exceeds 16384 bytes")
+    body = json.loads(raw)
+    if not isinstance(body, dict) or body.get("schema") != "beastbox-request-v1":
+        raise ValueError("unsupported request schema")
+    operation = body.get("operation")
+    fields = {"schema", "operation", "text"} if operation == "chat" else {"schema", "operation"}
+    if operation not in {"chat", "inspect", "init"} or set(body) != fields:
+        raise ValueError("unsupported request operation or fields")
+    if operation == "chat":
+        from .events import normalize_event
+        normalize_event({"schema": "sensor-event-v1", "source": "text", "text": body["text"]})
+    return body
 
 
 def handle_runtime(args):
     action = args.runtime_action
+    if action == "resource-status":
+        from .optional_resources import resource_status
+        return resource_status()
+    exchange = read_exchange(sys.stdin.buffer) if action == "exchange" else None
+    if exchange is not None:
+        action = exchange["operation"]
+    event = None
+    if action == "quantum-input":
+        from .optional_resources import quantum_event
+        event = quantum_event(args.resource, shots=args.shots, allow_live=args.allow_remote_job)
+    elif action == "wav-input":
+        from .sensor_inputs import wav_event
+        event = wav_event(args.path)
+    elif action == "light-input":
+        from .sensor_inputs import light_event
+        event = light_event(json.loads(args.values), args.source_label)
     if action == "backup":
         return backup_database(args.data_dir, args.path)
     if action == "restore":
@@ -120,10 +164,12 @@ def handle_runtime(args):
     runtime = DurableRuntime(args.data_dir, provider, allow_simulated_tool=getattr(args, "allow_simulated_tool", False))
     try:
         if action in {"init", "inspect"}:
-            return runtime.inspect()
-        if action == "chat":
-            return runtime.respond(args.text)
-        return runtime.respond_event({"schema": "sensor-event-v1", "source": "synthetic-demo",
-                                      "text": "synthetic sunflower sensor event", "features": [0.25, -0.5, 0.75]})
+            result = runtime.inspect()
+        elif action == "chat":
+            result = runtime.respond(exchange["text"] if exchange else args.text)
+        else:
+            result = runtime.respond_event(event or {"schema": "sensor-event-v1", "source": "synthetic-demo",
+                                           "text": "synthetic sunflower sensor event", "features": [0.25, -0.5, 0.75]})
+        return {"schema": "beastbox-response-v1", "ok": True, "result": result} if exchange else result
     finally:
         runtime.close()

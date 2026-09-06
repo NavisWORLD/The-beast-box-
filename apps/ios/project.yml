@@ -1,0 +1,48 @@
+name: BeastBox
+options:
+  bundleIdPrefix: dev.beastbox
+  deploymentTarget:
+    iOS: '17.0'
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    MARKETING_VERSION: '0.5.0'
+    CURRENT_PROJECT_VERSION: '5'
+    ARCHS: arm64
+targets:
+  BeastBox:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.beastbox.mobile
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/PythonBridge.h
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        TARGETED_DEVICE_FAMILY: '1,2'
+    dependencies:
+      - framework: vendor/Python.xcframework
+        embed: true
+    postBuildScripts:
+      - name: Embed Python runtime and public source
+        script: |
+          set -e
+          source "$PROJECT_DIR/vendor/Python.xcframework/build/utils.sh"
+          export EXPANDED_CODE_SIGN_IDENTITY="${EXPANDED_CODE_SIGN_IDENTITY:--}"
+          install_python vendor/Python.xcframework
+          mkdir -p "$CODESIGNING_FOLDER_PATH/app/beastbox"
+          rsync -a --delete --exclude '__pycache__' --exclude '*.pyc' "$PROJECT_DIR/../../beastbox/" "$CODESIGNING_FOLDER_PATH/app/beastbox/"
+          cp "$PROJECT_DIR/python/beast_ios.py" "$CODESIGNING_FOLDER_PATH/app/"
+          cp "$PROJECT_DIR/../../LICENSE" "$CODESIGNING_FOLDER_PATH/app/BEAST-LICENSE"
+          git -C "$PROJECT_DIR" rev-parse HEAD > "$CODESIGNING_FOLDER_PATH/app/source-commit.txt"
+          (cd "$CODESIGNING_FOLDER_PATH/app" && find beastbox -type f -name '*.py' -exec shasum -a 256 {} \;) > "$CODESIGNING_FOLDER_PATH/app/source-sha256.txt"
+        basedOnDependencyAnalysis: false
+schemes:
+  BeastBox:
+    build:
+      targets:
+        BeastBox: all

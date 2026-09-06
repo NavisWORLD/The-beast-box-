@@ -1,15 +1,37 @@
 EnD — Beast Box combined runtime/developer kit, 0.4.0
 
-START
-Python 3.10–3.12. Create an environment, then install the included wheel:
-  python -m venv .venv
-  # Activate .venv for your platform.
-  python -m pip install cosmos_beast_box-0.4.0-py3-none-any.whl
-  python -m beastbox runtime init --data-dir ./my-beast
-  python -m beastbox runtime chat "Remember the sunflower code is marigold" --data-dir ./my-beast
-  python -m beastbox runtime chat "Recall the sunflower code" --data-dir ./my-beast
-  python -m beastbox runtime inspect --data-dir ./my-beast
-The source checkout alternative is python -m pip install -e . at repo root.
+START — RELEASE ZIP
+Python 3.10–3.12 with venv/pip is required. Graphical use also requires Tk.
+Unzip the complete release into one folder. On Windows run INSTALL.bat; on
+Linux/macOS run sh UnixINSTALL.sh. No administrator privileges are required.
+The common install.py checks the included wheel against SHA256SUMS, copies the
+verified bytes to a private temporary directory, then installs offline without
+dependencies into ~/.beastbox/venv. A failed checksum never changes this venv.
+Checksums detect corruption; obtain the release from a trusted source because
+SHA256SUMS is not a publisher signature. No model weights are bundled.
+
+Run LAUNCH.bat or sh UnixLAUNCH.sh for the desktop. Choose reference fixture or
+an explicitly named installed Ollama model, send messages, inspect, and back up.
+All SQLite work runs on one serialized worker; closing waits for an active turn.
+Persistent data and desktop settings live in ~/.beastbox/data, independently of
+where you extracted the release. Reinstalling/updating the venv preserves data.
+For a headless check (commits one labelled reference-fixture turn):
+  sh UnixLAUNCH.sh --smoke
+  LAUNCH.bat --smoke
+
+Set BEASTBOX_PYTHON to a supported Python executable if python/python3 selects
+another version. For a custom environment use --install-dir PATH with BOTH
+install and launch. Pass --data-dir PATH to launch to use another memory store.
+You can verify the wheel without installation: python install.py --verify-only.
+Tk is not downloaded by this offline installer; missing Tk/display produces an
+explicit error. Headless smoke tests do not prove graphical Windows/macOS support.
+
+For CLI examples below, use the installed environment's Python executable
+(~/.beastbox/venv/bin/python on Unix; %USERPROFILE%\.beastbox\venv\Scripts\python.exe
+on Windows) in place of python, and use --data-dir ~/.beastbox/data to inspect
+the desktop store. Expand that path to your Windows user directory on Windows.
+Source checkout: python -m pip install -e . at repo root, then
+python -m beastbox.desktop. The source kit has no wheel: build a release first.
 
 API
   from beastbox import DurableRuntime

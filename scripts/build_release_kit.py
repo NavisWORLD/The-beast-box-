@@ -45,6 +45,10 @@ def build_kit(dist: Path) -> Path:
         "PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md": ROOT / "docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md",
         "historical-swap-002.zip": ROOT / "evidence/system-closure-001/historical-swap-002.zip",
     }
+    for path in (ROOT / "kits/BEAST_BOX_COMBINED").iterdir():
+        if path.is_file():
+            files[path.name] = path
+    files["OPTIONAL_INPUTS.md"] = ROOT / "docs/OPTIONAL_INPUTS.md"
     for name in (f"cosmos_beast_box-{version}-py3-none-any.whl", f"cosmos_beast_box-{version}.tar.gz"):
         files[name] = dist / name
     payloads = {name: path.read_bytes() for name, path in files.items()}
