@@ -1,3 +1,10 @@
+# 0.5.0 portable candidate
+
+Adds checked EnD installers, desktop and native mobile runtime adapters, bounded
+WAV/light events, explicit IBM/Azure input and JSON process clients. Preserves
+current main real-checkpoint v2 and frozen experiment evidence. Platform outputs
+remain gated on actual builds/acceptance; no general production claim.
+
 # Changelog
 
 ## 0.4.0 — 2026-09-05 (durable runtime integration)

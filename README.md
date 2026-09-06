@@ -25,7 +25,7 @@ flowchart TD
 ## Run locally
 
 ```bash
-git clone https://github.com/NavisWORLD/The-beast-box-.git
+git clone --branch integration/beast-box-portable-kit-002 https://github.com/NavisWORLD/The-beast-box-.git
 cd The-beast-box-
 git switch integration/beast-box-system-closure-001
 python -m venv .venv
@@ -118,3 +118,33 @@ python scripts/run_architecture_acceptance.py --output ./architecture-receipt.js
 ```
 
 The combined kit includes the public API/configuration and recovery instructions in [EnD](kits/BEAST_BOX_COMBINED/EnD). [Readiness](docs/closure/READINESS.json) records measured gates and limitations. The classification is **release-hardened experimental software** only after the release gates pass; the repository does not claim universal production readiness. [Trust boundaries](docs/TRUST_BOUNDARIES.md) explain host plugins, authority and privacy.
+
+
+### Portable kit and apps
+
+The 0.5.0 candidate adds `INSTALL.bat` / `UnixINSTALL.sh`, a checked offline wheel
+installer, `LAUNCH.bat` / `UnixLAUNCH.sh`, and a local desktop UI. A release must
+pass the platform workflows before its downloads are promoted. The installers
+require Python 3.10–3.12; separately packaged desktop executables bundle Python.
+
+[Optional inputs](docs/OPTIONAL_INPUTS.md) documents user-owned IBM/Azure setup,
+explicit cloud-job permission, local PCM WAV input and measured light summaries.
+Use `beastbox runtime resource-status` to inspect configuration without revealing
+keys. Audio extraction is local; light input accepts numerical measurements and
+does not acquire camera footage or identify people. Azure's bounded path targets
+`ionq.simulator`; it does not claim Azure hardware execution.
+
+[Android](apps/android/README.md) and [iOS](apps/ios/README.md) embed the actual
+Python durable runtime. Mobile acceptance uses explicitly labelled reference
+fixtures, not bundled LLM weights. iOS device distribution needs Apple signing;
+Android debug signing supports sideload testing, not a Play Store release.
+[Native C++/Rust clients](sdk/runtime-client/README.md) expose the runtime through
+versioned JSON. They are clients, not ports of the entire runtime to those languages.
+
+[Synapse OS](https://github.com/NavisWORLD/Synapse-os-) is a separate Linux
+product with C/C++/Rust SDKs and its own hardware acceptance requirements. The
+[QBT apps](https://github.com/NavisWORLD/Quantum-azure-ibm-bridge-attachment-/releases/tag/v0.4.0)
+are separate quantum-bridge clients, not evidence that every Beast feature runs on
+all phones. Persistent memory survives supported restarts and provider changes;
+uninstalling, clearing data, disk failure or exhausted storage can destroy it.
+Keep independently verified backups. There is no unconditional forever guarantee.

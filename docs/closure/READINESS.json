@@ -1,7 +1,7 @@
 {
   "schema": "beastbox-release-readiness-v1",
-  "version": "0.4.0",
-  "classification": "release-hardened experimental software",
+  "version": "0.5.0",
+  "classification": "experimental portable release candidate",
   "production_ready": false,
   "supported_scope": "owner-controlled local runtime; no privileged or physical actions",
   "supported_python": [
@@ -41,7 +41,9 @@
     "Checkpoint/history scans have not been load-tested for large stores; no indefinite retention guarantee.",
     "Formal external Synapse OS and HEARTLIGHT are interfaces/future work; world-store and bio/IBM paths remain separate experimental surfaces.",
     "Configured provider labels in normal operation do not attest model weights; historical frozen experiment receipts are separate.",
-    "Hardware, GPU and local installed-model services were not newly provisioned for these deterministic product gates."
+    "Hardware, GPU and local installed-model services were not newly provisioned for these deterministic product gates.",
+    "Mobile builds use reference fixtures; no bundled mobile LLM engine or real-model device acceptance.",
+    "Apple distribution signing, physical device acceptance and live IBM/Azure account verification remain external gates."
   ],
   "release_policy": "A release requires every exact-source Product CI, clean-install, security, native-build and artifact-integrity job to pass. RELEASE_VERIFICATION.json and CI_EVIDENCE.zip retain the final receipts with the release; this source document is not a publication receipt.",
   "verified_baseline": {
@@ -49,5 +51,10 @@
     "product_ci_run": 33985209600,
     "conclusion": "success",
     "tests_per_python": 767
+  },
+  "portable_gate_baseline": {
+    "source_commit": "7ecda41f221cfa967e6bd99f6d910dd55a75fcbc",
+    "product_ci_run": 34034978916,
+    "conclusion": "success"
   }
 }

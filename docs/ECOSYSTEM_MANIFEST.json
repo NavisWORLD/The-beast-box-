@@ -295,5 +295,25 @@
       "boundary": "Adapter around existing COSMOS runtime with atomic SQLite memory/state/provenance checkpoints; synthetic and text events; explicitly authorized simulated tool only. Synapse/HEARTLIGHT are responsibility mappings, not imported formal products."
     }
   ],
-  "integration_source_commit": "57d34fe"
+  "integration_source_commit": "57d34fe",
+  "external_sources": [
+    {
+      "repository": "NavisWORLD/Synapse-os-",
+      "revision": "e48a1e658cf483a39d8763985c86906964a377d8",
+      "status": "OPTIONAL INTEGRATION",
+      "scope": "separate Debian Linux OS and native SDK, physical certification incomplete"
+    },
+    {
+      "repository": "NavisWORLD/Quantum-azure-ibm-bridge-attachment-",
+      "revision": "c09e1b948008aba88cf16de831ceecb7fbf52213",
+      "status": "OPTIONAL INTEGRATION",
+      "scope": "separate IBM/Azure provider adapters and mobile/desktop clients; Apple unsigned"
+    },
+    {
+      "repository": "NavisWORLD/Cosmic-nova-os-GGUF-model-and-system-",
+      "revision": "3d740872cfcd33e0600c1c757f3e9a9db9905f0f",
+      "status": "NOT IMPLEMENTED",
+      "scope": "documentation-only inspected tree"
+    }
+  ]
 }
