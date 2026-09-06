@@ -1,0 +1,1523 @@
+{
+  "backend": "ibm_fez",
+  "blocks": [
+    {
+      "backend": "ibm_fez",
+      "block_id": 8,
+      "job_id": "da69ubu0ukec7381pifg",
+      "p1": {
+        "CANONICAL": 0.503662109375,
+        "CYCLIC_3": 0.484375,
+        "HASHED_PERM": 0.5006103515625,
+        "PAIR_SWAP": 0.47998046875,
+        "REVERSED": 0.4951171875,
+        "UNIFORM_SUM": 0.49658203125
+      },
+      "physical_qubit": 50,
+      "primary_effect": 0.013641357421875
+    },
+    {
+      "backend": "ibm_fez",
+      "block_id": 9,
+      "job_id": "da69ubu0ukec7381pifg",
+      "p1": {
+        "CANONICAL": 0.4835205078125,
+        "CYCLIC_3": 0.5042724609375,
+        "HASHED_PERM": 0.4862060546875,
+        "PAIR_SWAP": 0.4947509765625,
+        "REVERSED": 0.496337890625,
+        "UNIFORM_SUM": 0.478271484375
+      },
+      "physical_qubit": 25,
+      "primary_effect": -0.011871337890625
+    },
+    {
+      "backend": "ibm_fez",
+      "block_id": 10,
+      "job_id": "da69ubu0ukec7381pifg",
+      "p1": {
+        "CANONICAL": 0.5223388671875,
+        "CYCLIC_3": 0.5322265625,
+        "HASHED_PERM": 0.5169677734375,
+        "PAIR_SWAP": 0.5306396484375,
+        "REVERSED": 0.52783203125,
+        "UNIFORM_SUM": 0.521728515625
+      },
+      "physical_qubit": 132,
+      "primary_effect": -0.00457763671875
+    },
+    {
+      "backend": "ibm_fez",
+      "block_id": 11,
+      "job_id": "da69ubu0ukec7381pifg",
+      "p1": {
+        "CANONICAL": 0.4661865234375,
+        "CYCLIC_3": 0.4803466796875,
+        "HASHED_PERM": 0.45947265625,
+        "PAIR_SWAP": 0.4765625,
+        "REVERSED": 0.4686279296875,
+        "UNIFORM_SUM": 0.479248046875
+      },
+      "physical_qubit": 75,
+      "primary_effect": -0.00506591796875
+    },
+    {
+      "backend": "ibm_fez",
+      "block_id": 12,
+      "job_id": "da69ubu0ukec7381pifg",
+      "p1": {
+        "CANONICAL": 0.4921875,
+        "CYCLIC_3": 0.4998779296875,
+        "HASHED_PERM": 0.490478515625,
+        "PAIR_SWAP": 0.49658203125,
+        "REVERSED": 0.4981689453125,
+        "UNIFORM_SUM": 0.4901123046875
+      },
+      "physical_qubit": 50,
+      "primary_effect": -0.00408935546875
+    },
+    {
+      "backend": "ibm_fez",
+      "block_id": 13,
+      "job_id": "da69ubu0ukec7381pifg",
+      "p1": {
+        "CANONICAL": 0.4873046875,
+        "CYCLIC_3": 0.489990234375,
+        "HASHED_PERM": 0.48876953125,
+        "PAIR_SWAP": 0.484619140625,
+        "REVERSED": 0.4906005859375,
+        "UNIFORM_SUM": 0.486328125
+      },
+      "physical_qubit": 25,
+      "primary_effect": -0.001190185546875
+    },
+    {
+      "backend": "ibm_fez",
+      "block_id": 14,
+      "job_id": "da69ubu0ukec7381pifg",
+      "p1": {
+        "CANONICAL": 0.5218505859375,
+        "CYCLIC_3": 0.5174560546875,
+        "HASHED_PERM": 0.5213623046875,
+        "PAIR_SWAP": 0.51904296875,
+        "REVERSED": 0.5235595703125,
+        "UNIFORM_SUM": 0.521728515625
+      },
+      "physical_qubit": 132,
+      "primary_effect": 0.001495361328125
+    },
+    {
+      "backend": "ibm_fez",
+      "block_id": 15,
+      "job_id": "da69ubu0ukec7381pifg",
+      "p1": {
+        "CANONICAL": 0.4703369140625,
+        "CYCLIC_3": 0.4736328125,
+        "HASHED_PERM": 0.46337890625,
+        "PAIR_SWAP": 0.476806640625,
+        "REVERSED": 0.4683837890625,
+        "UNIFORM_SUM": 0.47607421875
+      },
+      "physical_qubit": 75,
+      "primary_effect": -0.000213623046875
+    }
+  ],
+  "claim_boundary": "Probe 002 can classify a preregistered order-sensitive IBM-hardware residual as an ANOMALY_CANDIDATE. It cannot by itself prove a new physical dimension, a violation of quantum mechanics, consciousness, resurrection, or quantum advantage.",
+  "job_id": "da69ubu0ukec7381pifg",
+  "pubs": [
+    {
+      "arm": "UNIFORM_SUM",
+      "block_id": 8,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4124,
+        "1": 4068
+      },
+      "counts_sha256": "3f2a233ba177e62b35667e6eeca2188ab98c56c9311591d3e922a6eb8dfd3f33",
+      "p1": 0.49658203125,
+      "physical_qubit": 50,
+      "pub_index": 0,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CYCLIC_3",
+      "block_id": 8,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4224,
+        "1": 3968
+      },
+      "counts_sha256": "8393f7c5623568e9ec554e3c56160c4260accc00be3161ad90863e88c7c40abe",
+      "p1": 0.484375,
+      "physical_qubit": 50,
+      "pub_index": 1,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "HASHED_PERM",
+      "block_id": 8,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4091,
+        "1": 4101
+      },
+      "counts_sha256": "e9208b3a1fa75c0b0c627f0c33c792889c6f1223cec92dd97cffd8cd36347773",
+      "p1": 0.5006103515625,
+      "physical_qubit": 50,
+      "pub_index": 2,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CANONICAL",
+      "block_id": 8,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4066,
+        "1": 4126
+      },
+      "counts_sha256": "227c4f3676cdbfab6df56c86698ca322ec88d78ba655c5c96f83c81df577065d",
+      "p1": 0.503662109375,
+      "physical_qubit": 50,
+      "pub_index": 3,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "block_id": 8,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4260,
+        "1": 3932
+      },
+      "counts_sha256": "c4b98647073fe6e1dee9cf7c24599bf3dce6c28f841adf1149ae4135cfe7330e",
+      "p1": 0.47998046875,
+      "physical_qubit": 50,
+      "pub_index": 4,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "REVERSED",
+      "block_id": 8,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4136,
+        "1": 4056
+      },
+      "counts_sha256": "cebb621fde7edb3a287a8a63a5aba2d0f185e2565ec66143862376123a56b7c7",
+      "p1": 0.4951171875,
+      "physical_qubit": 50,
+      "pub_index": 5,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CANONICAL",
+      "block_id": 9,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4231,
+        "1": 3961
+      },
+      "counts_sha256": "e9aaa7c77d46e4a5f8dfdb06e39eda5525ccf42a1eb606fc6c4e8c41c5697f7e",
+      "p1": 0.4835205078125,
+      "physical_qubit": 25,
+      "pub_index": 6,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CYCLIC_3",
+      "block_id": 9,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4061,
+        "1": 4131
+      },
+      "counts_sha256": "14f7582e5e9988c86de7d70d888cc162cb3cfa778a0cf3444b8e5791272099c2",
+      "p1": 0.5042724609375,
+      "physical_qubit": 25,
+      "pub_index": 7,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "REVERSED",
+      "block_id": 9,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4126,
+        "1": 4066
+      },
+      "counts_sha256": "4092ede26f23963c72bb39a59b2542f5719d7563b045f7c46f4a1dd05a15ffe1",
+      "p1": 0.496337890625,
+      "physical_qubit": 25,
+      "pub_index": 8,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "HASHED_PERM",
+      "block_id": 9,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4209,
+        "1": 3983
+      },
+      "counts_sha256": "1a2e35259aed5b80b4c020e73cc5accdfe0844d691503431c1981240b030b29c",
+      "p1": 0.4862060546875,
+      "physical_qubit": 25,
+      "pub_index": 9,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "block_id": 9,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4139,
+        "1": 4053
+      },
+      "counts_sha256": "d8f644193744d97aff7b3f2982422ada4c10351a4aa5394dc5a0ddd05b0aab99",
+      "p1": 0.4947509765625,
+      "physical_qubit": 25,
+      "pub_index": 10,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "UNIFORM_SUM",
+      "block_id": 9,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4274,
+        "1": 3918
+      },
+      "counts_sha256": "10b403d065e86771bfcc6e2c5a8fbcfa0d18f5bfc934bf376634bb950e7d1159",
+      "p1": 0.478271484375,
+      "physical_qubit": 25,
+      "pub_index": 11,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "HASHED_PERM",
+      "block_id": 10,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 3957,
+        "1": 4235
+      },
+      "counts_sha256": "72aff23d77da1901b6d2d441f0f9aef96ca281c106ab9dd90c8ddd27a82705ce",
+      "p1": 0.5169677734375,
+      "physical_qubit": 132,
+      "pub_index": 12,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "REVERSED",
+      "block_id": 10,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 3868,
+        "1": 4324
+      },
+      "counts_sha256": "0fbbe210d00a9ccdb906b7a7fc16717ba1a0fa50087900b29cdde4b9b05b0dc1",
+      "p1": 0.52783203125,
+      "physical_qubit": 132,
+      "pub_index": 13,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CYCLIC_3",
+      "block_id": 10,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 3832,
+        "1": 4360
+      },
+      "counts_sha256": "3b948bac5ebcc791ab929e5022d73b9e6d0cbab3750132104394ef94a20db825",
+      "p1": 0.5322265625,
+      "physical_qubit": 132,
+      "pub_index": 14,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CANONICAL",
+      "block_id": 10,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 3913,
+        "1": 4279
+      },
+      "counts_sha256": "c72f8d7a27a7e667a4fc1bfc76c4fbec6bd8e928a021babf24ad729f6c9cc271",
+      "p1": 0.5223388671875,
+      "physical_qubit": 132,
+      "pub_index": 15,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "block_id": 10,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 3845,
+        "1": 4347
+      },
+      "counts_sha256": "960d027eae4a1ebefd90ff7c8ae734c143addcef1820208b3b6f7c5ea7030806",
+      "p1": 0.5306396484375,
+      "physical_qubit": 132,
+      "pub_index": 16,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "UNIFORM_SUM",
+      "block_id": 10,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 3918,
+        "1": 4274
+      },
+      "counts_sha256": "5b55fa911ef5e3027baec71430c16dcd6ff089aaa5fa2ae30d440176d2674082",
+      "p1": 0.521728515625,
+      "physical_qubit": 132,
+      "pub_index": 17,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "UNIFORM_SUM",
+      "block_id": 11,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4266,
+        "1": 3926
+      },
+      "counts_sha256": "fcb33be7009f886e3e59831475b18aa86fc95f7cc3914da2f3043381dac845b3",
+      "p1": 0.479248046875,
+      "physical_qubit": 75,
+      "pub_index": 18,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "block_id": 11,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4288,
+        "1": 3904
+      },
+      "counts_sha256": "51ceaf2d45418c2153de6d6ec4cff432332cba22c7c5b71c146d0065595b002d",
+      "p1": 0.4765625,
+      "physical_qubit": 75,
+      "pub_index": 19,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CYCLIC_3",
+      "block_id": 11,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4257,
+        "1": 3935
+      },
+      "counts_sha256": "20fdfc48b8770b158d3cee066a4f3d0c981b73a7c01f5dd239047b46d0436bf5",
+      "p1": 0.4803466796875,
+      "physical_qubit": 75,
+      "pub_index": 20,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CANONICAL",
+      "block_id": 11,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4373,
+        "1": 3819
+      },
+      "counts_sha256": "edd9af036d59150102c0499779672b824b5a7a7248dc430b6d1e1c039ba10f3e",
+      "p1": 0.4661865234375,
+      "physical_qubit": 75,
+      "pub_index": 21,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "REVERSED",
+      "block_id": 11,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4353,
+        "1": 3839
+      },
+      "counts_sha256": "7a7a86b1bb1074a89acd5dcbb2608b90575ca7fa4981a89cc01b202889dc7fae",
+      "p1": 0.4686279296875,
+      "physical_qubit": 75,
+      "pub_index": 22,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "HASHED_PERM",
+      "block_id": 11,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4428,
+        "1": 3764
+      },
+      "counts_sha256": "fd2cdf654a3d009e26eeac366d4a0ab6bafd4abf9fdfaa1b968773fae5724dec",
+      "p1": 0.45947265625,
+      "physical_qubit": 75,
+      "pub_index": 23,
+      "repeat": 2,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "HASHED_PERM",
+      "block_id": 12,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4174,
+        "1": 4018
+      },
+      "counts_sha256": "d6efe016cf1039d3252e1d7b3c931b623ec2fc570a38470e3481266a7429bbfb",
+      "p1": 0.490478515625,
+      "physical_qubit": 50,
+      "pub_index": 24,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "REVERSED",
+      "block_id": 12,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4111,
+        "1": 4081
+      },
+      "counts_sha256": "2241a85fd1df60c481032f207b56e6483a05780e7c7581295dc656b8dd2ab14e",
+      "p1": 0.4981689453125,
+      "physical_qubit": 50,
+      "pub_index": 25,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "UNIFORM_SUM",
+      "block_id": 12,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4177,
+        "1": 4015
+      },
+      "counts_sha256": "64d728dc98d9b0e55ade1dfc06675b9da9881c4c1860657786890da2df8bf563",
+      "p1": 0.4901123046875,
+      "physical_qubit": 50,
+      "pub_index": 26,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CANONICAL",
+      "block_id": 12,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4160,
+        "1": 4032
+      },
+      "counts_sha256": "8549d8b28d61110f8cbc4a34dfb4182bb14c44fe75e7060388723bcb23bf8aac",
+      "p1": 0.4921875,
+      "physical_qubit": 50,
+      "pub_index": 27,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CYCLIC_3",
+      "block_id": 12,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4097,
+        "1": 4095
+      },
+      "counts_sha256": "5fd9283c5e133f9c2e049d0e50677a2c596aa057f779f2590504a44761182214",
+      "p1": 0.4998779296875,
+      "physical_qubit": 50,
+      "pub_index": 28,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "block_id": 12,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4124,
+        "1": 4068
+      },
+      "counts_sha256": "3f2a233ba177e62b35667e6eeca2188ab98c56c9311591d3e922a6eb8dfd3f33",
+      "p1": 0.49658203125,
+      "physical_qubit": 50,
+      "pub_index": 29,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CYCLIC_3",
+      "block_id": 13,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4178,
+        "1": 4014
+      },
+      "counts_sha256": "334559d798d0ae11510b8efaf93ce016ce53e9f16fde029a1c8000e1efba433d",
+      "p1": 0.489990234375,
+      "physical_qubit": 25,
+      "pub_index": 30,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CANONICAL",
+      "block_id": 13,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4200,
+        "1": 3992
+      },
+      "counts_sha256": "a694f17508dfbc03ccaa311a7bb0cf6216b913ebe02cb53ca85e069d36089888",
+      "p1": 0.4873046875,
+      "physical_qubit": 25,
+      "pub_index": 31,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "REVERSED",
+      "block_id": 13,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4173,
+        "1": 4019
+      },
+      "counts_sha256": "0a38b292b651a7989886ccf3581389a1d610db913dfab28893d0d76d8b18cbc0",
+      "p1": 0.4906005859375,
+      "physical_qubit": 25,
+      "pub_index": 32,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "block_id": 13,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4222,
+        "1": 3970
+      },
+      "counts_sha256": "d001f0538a6e58f113b39dcb90ffcefb7f4c4b894853202544b114c3d650dd0c",
+      "p1": 0.484619140625,
+      "physical_qubit": 25,
+      "pub_index": 33,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "HASHED_PERM",
+      "block_id": 13,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4188,
+        "1": 4004
+      },
+      "counts_sha256": "94ec89ebc90b2028ac14ed26f98aafca6aa10f43d9bb922c1b2c5e56f960f3b9",
+      "p1": 0.48876953125,
+      "physical_qubit": 25,
+      "pub_index": 34,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "UNIFORM_SUM",
+      "block_id": 13,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4208,
+        "1": 3984
+      },
+      "counts_sha256": "4728e45c079f8f3b516c6a0851e2e620e2dd0c6897bcb10775f34f6a9ed23906",
+      "p1": 0.486328125,
+      "physical_qubit": 25,
+      "pub_index": 35,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CANONICAL",
+      "block_id": 14,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 3917,
+        "1": 4275
+      },
+      "counts_sha256": "8a3ce8cba01a40a80db8e8998e36e6a9e3beaef58fb0f0d9115194fdf2a1ce1a",
+      "p1": 0.5218505859375,
+      "physical_qubit": 132,
+      "pub_index": 36,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "HASHED_PERM",
+      "block_id": 14,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 3921,
+        "1": 4271
+      },
+      "counts_sha256": "8b88a9bc7f5359e6a41b7b6f849ad5ac66c7d05f4e700f6c26ac484d8c96f535",
+      "p1": 0.5213623046875,
+      "physical_qubit": 132,
+      "pub_index": 37,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "block_id": 14,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 3940,
+        "1": 4252
+      },
+      "counts_sha256": "1390cfdf797bc2bfc92b141c20a1907a0c87e36fda5b893bfa82b70479dc112d",
+      "p1": 0.51904296875,
+      "physical_qubit": 132,
+      "pub_index": 38,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "REVERSED",
+      "block_id": 14,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 3903,
+        "1": 4289
+      },
+      "counts_sha256": "87bd2a8292c14f1de0f54ce427183db3689be227cae7275890f6b4e6a2eecb9a",
+      "p1": 0.5235595703125,
+      "physical_qubit": 132,
+      "pub_index": 39,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CYCLIC_3",
+      "block_id": 14,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 3953,
+        "1": 4239
+      },
+      "counts_sha256": "806eb5832a04a7540c1b8e649bc2877f973bcf8d321bba2cd4841490b95047be",
+      "p1": 0.5174560546875,
+      "physical_qubit": 132,
+      "pub_index": 40,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "UNIFORM_SUM",
+      "block_id": 14,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 3918,
+        "1": 4274
+      },
+      "counts_sha256": "5b55fa911ef5e3027baec71430c16dcd6ff089aaa5fa2ae30d440176d2674082",
+      "p1": 0.521728515625,
+      "physical_qubit": 132,
+      "pub_index": 41,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "HASHED_PERM",
+      "block_id": 15,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4396,
+        "1": 3796
+      },
+      "counts_sha256": "4be8c8f078485fc6af7bff3f367a5fbc3e7fc621a94cfe2a6af6ce3ea8c58a72",
+      "p1": 0.46337890625,
+      "physical_qubit": 75,
+      "pub_index": 42,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "UNIFORM_SUM",
+      "block_id": 15,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4292,
+        "1": 3900
+      },
+      "counts_sha256": "13949e83829c33005c067d7f6a68ff70e2d52cb74c33e8104670cd196f99ae21",
+      "p1": 0.47607421875,
+      "physical_qubit": 75,
+      "pub_index": 43,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CANONICAL",
+      "block_id": 15,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4339,
+        "1": 3853
+      },
+      "counts_sha256": "fa55f7847ee05e4a5ee36ab66015e6dd04049527464661c03a48047587e2d014",
+      "p1": 0.4703369140625,
+      "physical_qubit": 75,
+      "pub_index": 44,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "PAIR_SWAP",
+      "block_id": 15,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4286,
+        "1": 3906
+      },
+      "counts_sha256": "5a66cb18d3206881916d9ee9d7d6c3f44f3c36f2c0f740b08194394a40bba761",
+      "p1": 0.476806640625,
+      "physical_qubit": 75,
+      "pub_index": 45,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "REVERSED",
+      "block_id": 15,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4355,
+        "1": 3837
+      },
+      "counts_sha256": "84f16b2ad602058605061a20a608518a6d8f2743cf1513235cee815a13ce3f08",
+      "p1": 0.4683837890625,
+      "physical_qubit": 75,
+      "pub_index": 46,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    },
+    {
+      "arm": "CYCLIC_3",
+      "block_id": 15,
+      "compiled_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rz": 39,
+        "sx": 26
+      },
+      "compiled_depth": 66,
+      "compiled_size": 66,
+      "counts": {
+        "0": 4312,
+        "1": 3880
+      },
+      "counts_sha256": "501f4741b596f749a6053fa04e2efe227188d0fd5cf02df0f06d82d4d880a2c0",
+      "p1": 0.4736328125,
+      "physical_qubit": 75,
+      "pub_index": 47,
+      "repeat": 3,
+      "source_count_ops": {
+        "barrier": 13,
+        "measure": 1,
+        "rx": 13
+      },
+      "source_depth": 14,
+      "source_size": 14,
+      "stage": "replication"
+    }
+  ],
+  "schema": "cst12-physics-probe-002-ibm-results-v1",
+  "stage": "replication"
+}
