@@ -79,3 +79,13 @@ provider partnerships, performance superiority or a defensible monopoly.
 | Can a model inherit permissions? | Not through this runtime's context or imported state. Host authority must be granted explicitly. |
 | Can I use local models? | Yes, through Ollama or a configured compatible local server; weights are not bundled. |
 | Can I export my state? | Yes, through the versioned portable-state directory with a separately retained manifest hash. |
+
+## Observed story-demo boundary
+
+[Run 34054293277](https://github.com/NavisWORLD/The-beast-box-/actions/runs/34054293277)
+used real Ollama Qwen2.5:0.5b and SmolLM2:135m in five distinct processes.
+Memory delivery passed; the final returning model emitted `SUNFLOWER AMBER`.
+Some earlier answers contained contradictory or unhelpful explanations despite
+emitting the fact. This demonstrates substrate delivery and narrow fact emission,
+not reliable natural conversation, preserved personality or general recall quality.
+Read each release's own STORY_RECEIPT.json for its exact outputs and identities.

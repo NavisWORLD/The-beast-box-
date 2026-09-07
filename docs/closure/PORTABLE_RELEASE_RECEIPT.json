@@ -1,0 +1,56 @@
+{
+  "schema": "beastbox-post-publication-v1",
+  "release_tag": "v0.5.0",
+  "source_commit": "fb15478089d0852d5adc4e68953b7b920b65f97d",
+  "source_tree": "f838777e189b577be00bc6e78b414c8f1e83cb3c",
+  "release_run": 34035894541,
+  "product_ci": 34035894417,
+  "tests_per_python": 851,
+  "architecture_checks_per_python": 24,
+  "downloaded_assets": {
+    "ANDROID_EVIDENCE.zip": "sha256:fff8314ae7eb627bd76d5f6b6d537af7ba9eb279d071b600214fa20d8c147a14",
+    "beast-android-0.5.0-sideload.apk": "sha256:95ebb67867328c6788a6e1e301255bf3d0f9f154553790125fa494eaaf6aaf1c",
+    "beast-box-combined-0.5.0.zip": "sha256:97ed114c4223fa3d800924c8e7986a9e376bab44c7be1b582f22ad4a9d6f7522",
+    "beast-desktop-ubuntu-24.04-0.5.0.zip": "sha256:a38c1b8bcfe0ae16acf3d769159e98db1ea84ec2fe1725fcac381d48883ec319",
+    "beast-desktop-windows-latest-0.5.0.zip": "sha256:0256bd4022323712ea72f6bde4a714c64dbce2cda9a720e7c4b38cabaaae9b45",
+    "BeastBox-simulator-0.5.0.zip": "sha256:c56c020ecee67625794fd142c71b0a347dfb5fddb54519f97d5d0046b40e6f82",
+    "BeastBox-unsigned-device-0.5.0.zip": "sha256:8310ec608aa51339701b67b45be0523b64603a2e190d2deb9228d8ae6a7c9f54",
+    "CI_EVIDENCE.zip": "sha256:9005c83ac83a91a327caed2f87b8610e5fe9d1c023a676c47336d950b311f888",
+    "cosmic-cypher-rs-linux": "sha256:ab6a3cf062df487ea8121d6c8f32ed46a0cf2338c84faf41bb18821f88826ffa",
+    "cosmic-cypher-rs-macos": "sha256:e293d4d12219e682936615e493bad593c8ede22b936c08e06d961b711afdd475",
+    "cosmic-cypher-rs-windows.exe": "sha256:560d76bda6acd287d1b443eb0e0b70c66cae661b5b6e6af05cf065ae8c9f2213",
+    "cosmos_beast_box-0.5.0-py3-none-any.whl": "sha256:9dd334e0a73a090b7643981913f553c39bdda2628907841a04d9afe07f03d79f",
+    "cosmos_beast_box-0.5.0.tar.gz": "sha256:ab773da51f8c31c89c078566ec43e42de1b9ed1817eaf3c18c58b74bda554bb4",
+    "IOS_EVIDENCE.zip": "sha256:1d395ae5559a9b2a3273258062b3ace30727cb50ebcf6c25946ca0b64ae6b7ba",
+    "PORTABLE_VERIFICATION.json": "sha256:b8376232df5fc0ee0193ef8a1afb413e41fd061480cee28ab179fbd53eaa29c1",
+    "RELEASE_PROVENANCE.json": "sha256:2cee50f72c5a2aaf1bd3a17ef4c230f00f7d25ceaeade35ce5f13f52c36e5e9a",
+    "RELEASE_VERIFICATION.json": "sha256:55068b0c1166f4c273a58aad9254f0c052c6e5e188bd2bdd7b9eb4e9187615bb",
+    "SHA256SUMS.txt": "sha256:23900a9f41e84634b6e247c40b7781e72945db582a7a84399a604490dbbb01b9"
+  },
+  "download_hashes_verified": true,
+  "combined_kit_payload_hashes_verified": true,
+  "ci_evidence_payload_hashes_verified": true,
+  "downloaded_wheel_installer_and_restart": "PASS",
+  "downloaded_sdist_install_and_smoke": "PASS",
+  "historical_swap_receipt": "PASS; unchanged artifact 9952563037",
+  "synapse_os": {
+    "source_commit": "eca2113bb67a49c8da38b975e013227f1b2b8c3a",
+    "branch": "integration/beast-runtime-kit-001",
+    "ci_run": 34035767737,
+    "scope": "user-space installer plus full make check; no new ISO or physical-device certification"
+  },
+  "classification": "release-hardened experimental software",
+  "production_ready": false,
+  "errata": [
+    "Released EnD heading says 0.4.0; wheel/version/provenance correctly bind 0.5.0. Source heading corrected; published assets unchanged.",
+    "Released source readiness describes pre-publication gates; attached RELEASE_VERIFICATION.json contains final results."
+  ],
+  "limitations": [
+    "Mobile fixture providers are deterministic test components, not trained models",
+    "iOS signing and physical device validation remain external gates",
+    "Android uses debug signing; no Play production distribution",
+    "IBM and Azure live jobs require owner credentials and have not been run here",
+    "Audio/light paths accept bounded supplied inputs; no physical sensor certification",
+    "Retained memory depends on storage, retention and backups"
+  ]
+}

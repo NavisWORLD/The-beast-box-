@@ -130,7 +130,7 @@ jobs:
           python scripts/stage_portable_release.py --assets release-assets --output release-publish --source-sha "$GITHUB_SHA"
 
           cp release-assets/portable-handoff-result/handoff-result.json release-publish/PORTABLE_HANDOFF.json
-          cp release-assets/real-model-story/story-receipt.json release-publish/STORY_RECEIPT.json
+          cp release-assets/real-model-story/story/story-receipt.json release-publish/STORY_RECEIPT.json
           python -c 'import json; assert json.load(open("release-publish/PORTABLE_HANDOFF.json"))["passed"]; assert json.load(open("release-publish/STORY_RECEIPT.json"))["passed"]'
 
           (

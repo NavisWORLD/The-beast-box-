@@ -161,9 +161,10 @@ The combined kit includes the public API/configuration and recovery instructions
 
 ### Portable kit and apps
 
-The portable line includes `INSTALL.bat` / `UnixINSTALL.sh`, a checked offline wheel
-installer, `LAUNCH.bat` / `UnixLAUNCH.sh`, and a local desktop UI. A release must
-pass the platform workflows before its downloads are promoted. The installers
+The [0.5.0 prerelease](https://github.com/NavisWORLD/The-beast-box-/releases/tag/v0.5.0) adds `INSTALL.bat` / `UnixINSTALL.sh`, a checked offline wheel
+installer, `LAUNCH.bat` / `UnixLAUNCH.sh`, and a local desktop UI. Its required platform workflows passed before publication.
+[Post-publication verification](docs/closure/PORTABLE_RELEASE_RECEIPT.json) records
+download hashes, acceptance and remaining distribution limits. The installers
 require Python 3.10–3.12; separately packaged desktop executables bundle Python.
 
 [Optional inputs](docs/OPTIONAL_INPUTS.md) documents user-owned IBM/Azure setup,

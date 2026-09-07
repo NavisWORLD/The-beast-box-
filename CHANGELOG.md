@@ -5,12 +5,14 @@ package diagnostics and explicit compatible endpoints. Improves the quickstart,
 provider guide and launch materials. Real story measurement and Linux→Windows
 handoff are separate required release receipts. Historical evidence is unchanged.
 
-# 0.5.0 portable candidate
+# 0.5.0 — 2026-09-06 (portable prerelease)
 
 Adds checked EnD installers, desktop and native mobile runtime adapters, bounded
 WAV/light events, explicit IBM/Azure input and JSON process clients. Preserves
 current main real-checkpoint v2 and frozen experiment evidence. Platform outputs
-remain gated on actual builds/acceptance; no general production claim.
+passed release gates in run 34035894541; no general production claim.
+The released EnD heading retains an old 0.4.0 label; its wheel, provenance and
+checksums correctly identify 0.5.0. The source heading now delegates to provenance.
 
 # Changelog
 
