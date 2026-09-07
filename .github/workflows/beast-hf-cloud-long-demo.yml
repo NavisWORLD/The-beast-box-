@@ -1,4 +1,4 @@
-# rerun 002: corrected public Space /generate signature
+# rerun 003: add EWMH window manager for literal headless GUI recording
 name: BEAST BOX HF CLOUD LONG DEMO
 
 on:
@@ -28,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -y
-          sudo apt-get install -y xvfb xdotool xclip ffmpeg sqlite3 curl
+          sudo apt-get install -y xvfb openbox xdotool xclip ffmpeg sqlite3 curl
           python -m pip install --quiet --upgrade gradio_client
           mkdir -p _demo/kit _demo/data _demo/evidence/screens
       - name: Fetch exact released Beast kit
@@ -58,6 +58,8 @@ jobs:
         run: |
           set -euo pipefail
           Xvfb :99 -screen 0 1280x720x24 -ac > _demo/evidence/xvfb.log 2>&1 & echo $! > _demo/xvfb.pid
+          sleep 1
+          openbox > _demo/evidence/openbox.log 2>&1 & echo $! > _demo/openbox.pid
           sleep 1
           ffmpeg -y -nostdin -f x11grab -video_size 1280x720 -framerate 15 -i :99.0 -an -c:v libx264 -preset veryfast -crf 25 -pix_fmt yuv420p _demo/evidence/BEAST_BOX_LLAMA2_CLOUD_LONG_LIVE.mp4 > _demo/evidence/ffmpeg.log 2>&1 & echo $! > _demo/ffmpeg.pid
           sleep 1
