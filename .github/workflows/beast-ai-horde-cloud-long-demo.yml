@@ -1,0 +1,210 @@
+name: BEAST BOX AI HORDE CLOUD LONG DEMO
+
+on:
+  push:
+    branches: [experiment/beast-cloud-live-demo-001]
+    paths:
+      - .github/workflows/beast-ai-horde-cloud-long-demo.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  live-demo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      DISPLAY: ":99"
+      KIT_RUN: "34035894541"
+      KIT_NAME: "beast-desktop-ubuntu-24.04-0.5.0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare cloud recording VM
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y xvfb openbox xdotool xclip ffmpeg sqlite3 curl jq
+          mkdir -p _demo/kit _demo/data _demo/evidence/screens
+
+      - name: Fetch exact released Beast kit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$KIT_RUN" -n "$KIT_NAME" -D _demo/kit
+          BEAST="$(find _demo/kit -type f -name BeastBox -print -quit)"
+          test -f "$BEAST"
+          chmod +x "$BEAST"
+          printf '%s\n' "$BEAST" > _demo/beast-path.txt
+          sha256sum "$BEAST" | tee _demo/evidence/BEASTBOX_BINARY_SHA256.txt
+
+      - name: Start anonymous AI Horde bridge and prove external inference
+        run: |
+          set -euo pipefail
+          python scripts/cloud_demo_horde_bridge.py --evidence-dir _demo/evidence > _demo/evidence/cloud_bridge.log 2>&1 &
+          echo $! > _demo/bridge.pid
+          for i in $(seq 1 400); do
+            if curl -fsS http://127.0.0.1:11434/health > _demo/evidence/cloud-health.json; then break; fi
+            kill -0 "$(cat _demo/bridge.pid)" 2>/dev/null || { cat _demo/evidence/cloud_bridge.log; exit 1; }
+            sleep .25
+          done
+          cat _demo/evidence/cloud-health.json
+          test "$(jq -r '.ok' _demo/evidence/cloud-health.json)" = "true"
+          curl -fsS --max-time 330 \
+            -H 'Content-Type: application/json' \
+            -d '{"model":"beast-cloud-auto","prompt":"You are the external model in a real Beast Box connectivity preflight. Reply in one short sentence confirming you received this prompt.","stream":false}' \
+            http://127.0.0.1:11434/api/generate | tee _demo/evidence/cloud-preflight.json
+          jq -e '.response | strings | length > 0' _demo/evidence/cloud-preflight.json >/dev/null
+          echo "AI_HORDE_PREFLIGHT_OK"
+          cat _demo/evidence/ai-horde-model-selection.json
+
+      - name: Start literal desktop recording and actual Beast GUI
+        run: |
+          set -euo pipefail
+          Xvfb :99 -screen 0 1280x720x24 -ac > _demo/evidence/xvfb.log 2>&1 & echo $! > _demo/xvfb.pid
+          sleep 1
+          openbox > _demo/evidence/openbox.log 2>&1 & echo $! > _demo/openbox.pid
+          sleep 1
+          ffmpeg -y -nostdin -f x11grab -video_size 1280x720 -framerate 15 -i :99.0 \
+            -an -c:v libx264 -preset veryfast -crf 24 -pix_fmt yuv420p \
+            _demo/evidence/BEAST_BOX_AI_HORDE_LONG_LIVE.mp4 > _demo/evidence/ffmpeg.log 2>&1 &
+          echo $! > _demo/ffmpeg.pid
+          sleep 1
+          BEAST="$(cat _demo/beast-path.txt)"
+          MODEL="$(jq -r '.selected_model' _demo/evidence/ai-horde-model-selection.json)"
+          "$BEAST" --data-dir "$GITHUB_WORKSPACE/_demo/data" --provider ollama --model "$MODEL" --url http://127.0.0.1:11434 \
+            > _demo/evidence/beast-process-1.log 2>&1 &
+          echo $! > _demo/beast.pid
+          for i in $(seq 1 150); do
+            WID="$(xdotool search --name 'Beast Box' 2>/dev/null | head -n1 || true)"
+            [ -n "$WID" ] && break
+            sleep .2
+          done
+          test -n "$WID"
+          xdotool windowmove "$WID" 10 10
+          xdotool windowactivate --sync "$WID"
+          sleep 5
+          ffmpeg -y -f x11grab -video_size 1280x720 -i :99.0 -frames:v 1 _demo/evidence/screens/00-launch.png >/dev/null 2>&1
+
+      - name: Real conversation before restart
+        run: |
+          set -euo pipefail
+          cat > _demo/prompts1.json <<'JSON'
+          [
+            "We are doing a live Beast Box cloud-model experiment. Give yourself a short nickname for this session, then explain what you infer this runtime is doing around you. Keep it under four sentences and distinguish your model from the surrounding system.",
+            "Remember these three facts exactly: code word SUNFLOWER, launch color AMBER, and joke subject 'a model clocking in for a shift'. Confirm all three in one line.",
+            "Have a real conversation with me for a moment: what is the most interesting engineering consequence if an AI model can be replaced while memory and system state remain outside it? Give me the strongest argument and the strongest objection.",
+            "Without me repeating them, tell me the code word and launch color from earlier. Then state whether those facts came from your trained weights or context Beast supplied to you.",
+            "Critique Beast Box like a skeptical senior AI systems engineer. What does this architecture genuinely gain from model-independent memory and state, and what would still need rigorous proof before anyone should call it an intelligence upgrade? Keep it concise."
+          ]
+          JSON
+          python scripts/cloud_demo_gui_driver.py \
+            --prompts _demo/prompts1.json --start 1 \
+            --log _demo/evidence/cloud_requests.jsonl --screens _demo/evidence/screens
+
+      - name: Kill Beast completely and restart on the same durable substrate
+        run: |
+          set -euo pipefail
+          OLD="$(cat _demo/beast.pid)"
+          printf 'old_pid=%s\n' "$OLD" | tee _demo/evidence/process-restart.txt
+          kill -TERM "$OLD" || true
+          for i in $(seq 1 80); do
+            kill -0 "$OLD" 2>/dev/null || break
+            sleep .2
+          done
+          if kill -0 "$OLD" 2>/dev/null; then
+            kill -KILL "$OLD"
+          fi
+          printf 'old_process_dead=true\n' | tee -a _demo/evidence/process-restart.txt
+          sleep 4
+          BEAST="$(cat _demo/beast-path.txt)"
+          MODEL="$(jq -r '.selected_model' _demo/evidence/ai-horde-model-selection.json)"
+          "$BEAST" --data-dir "$GITHUB_WORKSPACE/_demo/data" --provider ollama --model "$MODEL" --url http://127.0.0.1:11434 \
+            > _demo/evidence/beast-process-2.log 2>&1 &
+          echo $! > _demo/beast.pid
+          printf 'new_pid=%s\n' "$(cat _demo/beast.pid)" | tee -a _demo/evidence/process-restart.txt
+          for i in $(seq 1 150); do
+            WID="$(xdotool search --name 'Beast Box' 2>/dev/null | head -n1 || true)"
+            [ -n "$WID" ] && break
+            sleep .2
+          done
+          test -n "$WID"
+          xdotool windowmove "$WID" 10 10
+          xdotool windowactivate --sync "$WID"
+          sleep 6
+          ffmpeg -y -f x11grab -video_size 1280x720 -i :99.0 -frames:v 1 _demo/evidence/screens/06-after-restart.png >/dev/null 2>&1
+
+      - name: Real conversation after restart
+        run: |
+          set -euo pipefail
+          cat > _demo/prompts2.json <<'JSON'
+          [
+            "I just killed and restarted Beast Box. Without me restating the test facts, what code word, launch color, and joke subject were we using before the restart? Tell me only what your supplied context actually supports.",
+            "Look at the retrieved memory Beast supplied on this turn. Identify one specific idea from our pre-restart conversation that is not contained in this question itself, and explain why that is evidence of context delivery rather than a change to your model weights.",
+            "Now reason hard: if a 30B or 100B-class cloud model can clock into a persistent user-owned substrate and later be replaced by another model, what changes economically and technically about model lock-in? Give me a compact but serious answer.",
+            "Write the funniest possible one-line launch post for this exact experiment. Do not claim consciousness, magic, godhood, or superintelligence.",
+            "Final question. In one paragraph, separate what this live run would demonstrate if all receipts verify from what it absolutely would NOT demonstrate. Be precise enough that a skeptical engineer could quote you."
+          ]
+          JSON
+          python scripts/cloud_demo_gui_driver.py \
+            --prompts _demo/prompts2.json --start 7 \
+            --log _demo/evidence/cloud_requests.jsonl --screens _demo/evidence/screens
+
+      - name: Inspect persistent runtime in the GUI
+        run: |
+          set -euo pipefail
+          WID="$(xdotool search --name 'Beast Box' | head -n1)"
+          xdotool windowactivate --sync "$WID"
+          xdotool mousemove --window "$WID" 180 620 click 1
+          sleep 8
+          ffmpeg -y -f x11grab -video_size 1280x720 -i :99.0 -frames:v 1 _demo/evidence/screens/99-final-inspect.png >/dev/null 2>&1
+          kill -TERM "$(cat _demo/beast.pid)" || true
+          sleep 3
+
+      - name: Stop literal recording cleanly
+        if: always()
+        run: |
+          set +e
+          if [ -f _demo/ffmpeg.pid ]; then
+            kill -INT "$(cat _demo/ffmpeg.pid)" 2>/dev/null
+            for i in $(seq 1 80); do
+              kill -0 "$(cat _demo/ffmpeg.pid)" 2>/dev/null || break
+              sleep .2
+            done
+          fi
+          if [ -s _demo/evidence/BEAST_BOX_AI_HORDE_LONG_LIVE.mp4 ]; then
+            ffprobe -v error -show_entries format=duration,size -of json \
+              _demo/evidence/BEAST_BOX_AI_HORDE_LONG_LIVE.mp4 > _demo/evidence/video-metadata.json
+          fi
+
+      - name: Seal cloud, memory, restart, and video receipts
+        if: always()
+        run: |
+          set -euo pipefail
+          python scripts/cloud_demo_horde_seal.py --root _demo --source-sha "${{ github.sha }}"
+          (cd _demo/evidence && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
+          cat _demo/evidence/RUN_RECEIPT.json
+
+      - name: Require completed ten-turn Beast conversation
+        run: |
+          set -euo pipefail
+          jq -e '.all_cloud_requests_success == true' _demo/evidence/RUN_RECEIPT.json >/dev/null
+          jq -e '.successful_cloud_requests >= 11' _demo/evidence/RUN_RECEIPT.json >/dev/null
+          jq -e '.literal_gui_recording == true' _demo/evidence/RUN_RECEIPT.json >/dev/null
+          jq -e '.system_id_stable == true' _demo/evidence/RUN_RECEIPT.json >/dev/null
+          jq -e '.final_turn >= 10' _demo/evidence/RUN_RECEIPT.json >/dev/null
+          test -s _demo/evidence/process-restart.txt
+          grep -q 'old_process_dead=true' _demo/evidence/process-restart.txt
+          echo "BEAST_AI_HORDE_LONG_DEMO_COMPLETE"
+
+      - name: Upload long live demo evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beast-ai-horde-cloud-long-live-${{ github.run_id }}
+          path: _demo/evidence/
+          if-no-files-found: error
+          retention-days: 90
