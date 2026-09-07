@@ -1,0 +1,269 @@
+name: BEAST BOX TWO MODEL CLOUD SWAP FINAL
+
+on:
+  push:
+    branches: [experiment/beast-cloud-live-demo-001]
+    paths:
+      - .github/workflows/beast-two-model-cloud-swap-demo-final.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  live-two-brain-handoff:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      DISPLAY: ":99"
+      KIT_RUN: "34035894541"
+      KIT_NAME: "beast-desktop-ubuntu-24.04-0.5.0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare VM and exact packaged Beast kit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y xvfb openbox xdotool xclip ffmpeg sqlite3 curl jq
+          mkdir -p _final/kit _final/data _final/evidence/screens
+          gh run download "$KIT_RUN" -n "$KIT_NAME" -D _final/kit
+          BEAST="$(find _final/kit -type f -name BeastBox -print -quit)"
+          test -f "$BEAST"
+          chmod +x "$BEAST"
+          printf '%s\n' "$BEAST" > _final/beast-path.txt
+          sha256sum "$BEAST" | tee _final/evidence/BEASTBOX_BINARY_SHA256.txt
+
+      - name: Discover and pin two distinct live cloud models
+        run: |
+          set -euo pipefail
+          python scripts/cloud_demo_horde_bridge.py --evidence-dir _final/evidence > _final/evidence/bridge-a.log 2>&1 &
+          echo $! > _final/bridge.pid
+          for i in $(seq 1 400); do
+            if curl -fsS http://127.0.0.1:11434/health > _final/evidence/model-a-health.json; then break; fi
+            kill -0 "$(cat _final/bridge.pid)" 2>/dev/null || { cat _final/evidence/bridge-a.log; exit 1; }
+            sleep .25
+          done
+          cp _final/evidence/ai-horde-model-selection.json _final/evidence/model-a-selection.json
+          MODEL_A="$(jq -r '.selected_model' _final/evidence/model-a-selection.json)"
+          MODEL_B="$(jq -r --arg a "$MODEL_A" '
+            .active_model_ids as $ids |
+            ([$ids[] | select(. != $a and test("Skyfall-31B"; "i"))][0]
+             // [$ids[] | select(. != $a and test("Cydonia-24B"; "i"))][0]
+             // [$ids[] | select(. != $a and test("Anubis-70B"; "i"))][0]
+             // [$ids[] | select(. != $a)][0])
+          ' _final/evidence/model-a-selection.json)"
+          test -n "$MODEL_A" && test -n "$MODEL_B" && test "$MODEL_A" != "$MODEL_B"
+          printf 'model_a=%s\nmodel_b=%s\n' "$MODEL_A" "$MODEL_B" | tee _final/evidence/model-pair.txt
+          curl -fsS --max-time 330 -H 'Content-Type: application/json' \
+            -d '{"model":"brain-a","prompt":"Reply with exactly MODEL A ONLINE","stream":false}' \
+            http://127.0.0.1:11434/api/generate | tee _final/evidence/model-a-preflight.json
+          jq -e '.response | strings | length > 0' _final/evidence/model-a-preflight.json >/dev/null
+
+      - name: Start one continuous literal GUI recording with Model A
+        run: |
+          set -euo pipefail
+          Xvfb :99 -screen 0 1280x720x24 -ac > _final/evidence/xvfb.log 2>&1 & echo $! > _final/xvfb.pid
+          sleep 1
+          openbox > _final/evidence/openbox.log 2>&1 & echo $! > _final/openbox.pid
+          sleep 1
+          ffmpeg -y -nostdin -f x11grab -video_size 1280x720 -framerate 15 -i :99.0 \
+            -an -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p \
+            _final/evidence/BEAST_BOX_TWO_REAL_MODELS_ASCII_HANDOFF.mp4 > _final/evidence/ffmpeg.log 2>&1 &
+          echo $! > _final/ffmpeg.pid
+          BEAST="$(cat _final/beast-path.txt)"
+          MODEL_A="$(sed -n 's/^model_a=//p' _final/evidence/model-pair.txt)"
+          "$BEAST" --data-dir "$GITHUB_WORKSPACE/_final/data" --provider ollama --model "$MODEL_A" --url http://127.0.0.1:11434 \
+            > _final/evidence/beast-a.log 2>&1 &
+          echo $! > _final/beast.pid
+          printf 'model_a_pid=%s\n' "$(cat _final/beast.pid)" > _final/evidence/process-swap.txt
+          for i in $(seq 1 160); do
+            WID="$(xdotool search --name 'Beast Box' 2>/dev/null | head -n1 || true)"
+            [ -n "$WID" ] && break
+            sleep .2
+          done
+          test -n "$WID"
+          xdotool windowmove "$WID" 10 10
+          xdotool windowactivate --sync "$WID"
+          sleep 5
+          ffmpeg -y -f x11grab -video_size 1280x720 -i :99.0 -frames:v 1 _final/evidence/screens/00-a-launch.png >/dev/null 2>&1
+
+      - name: Real conversation with Model A plus strict ASCII sunflower
+        run: |
+          set -euo pipefail
+          cat > _final/a.json <<'JSON'
+          [
+            "We're actually talking through Beast Box. Give yourself a short nickname and tell me what you think the runtime around you is doing. Talk normally, and distinguish your cloud model from Beast's persistent memory/state.",
+            "For the handoff, remember exactly: code word SUNFLOWER, launch color AMBER, joke subject 'a model clocking in for a shift'. Confirm them, then tell me one reason user-owned memory outside a model matters.",
+            "Debate me honestly: what's the strongest technical case for replaceable models sharing one persistent substrate, and what's the strongest objection? Keep it conversational.",
+            "Draw a tiny sunflower as text art. STRICT RULE: use only 7-bit ASCII characters; no Unicode and no emoji. Use only spaces plus these drawing characters: + - | / \\ [ ] _ # * . ( ) =. Make exactly 7 drawing lines, then one short ASCII-only caption about a model clocking in for a shift.",
+            "You're about to be replaced by a different cloud model. Leave a concise handoff note. Include your nickname, the exact words SUNFLOWER and AMBER, the clocking-in joke, your main architecture point, and say that you drew a sunflower. End by speaking directly to the next model."
+          ]
+          JSON
+          python scripts/cloud_demo_gui_driver.py --prompts _final/a.json --start 1 \
+            --log _final/evidence/cloud_requests.jsonl --screens _final/evidence/screens
+
+      - name: Kill Model A and clock in distinct Model B on same Beast substrate
+        run: |
+          set -euo pipefail
+          OLD_BEAST="$(cat _final/beast.pid)"; OLD_BRIDGE="$(cat _final/bridge.pid)"
+          MODEL_B="$(sed -n 's/^model_b=//p' _final/evidence/model-pair.txt)"
+          kill -TERM "$OLD_BEAST" || true
+          for i in $(seq 1 80); do kill -0 "$OLD_BEAST" 2>/dev/null || break; sleep .2; done
+          if kill -0 "$OLD_BEAST" 2>/dev/null; then kill -KILL "$OLD_BEAST"; fi
+          printf 'model_a_process_dead=true\n' >> _final/evidence/process-swap.txt
+          kill -TERM "$OLD_BRIDGE" || true
+          for i in $(seq 1 80); do kill -0 "$OLD_BRIDGE" 2>/dev/null || break; sleep .2; done
+          if kill -0 "$OLD_BRIDGE" 2>/dev/null; then kill -KILL "$OLD_BRIDGE"; fi
+          sleep 3
+          rm -f _final/evidence/ai-horde-model-selection.json
+          python scripts/cloud_demo_horde_bridge.py --model "$MODEL_B" --evidence-dir _final/evidence > _final/evidence/bridge-b.log 2>&1 &
+          echo $! > _final/bridge.pid
+          for i in $(seq 1 400); do
+            if curl -fsS http://127.0.0.1:11434/health > _final/evidence/model-b-health.json; then break; fi
+            kill -0 "$(cat _final/bridge.pid)" 2>/dev/null || { cat _final/evidence/bridge-b.log; exit 1; }
+            sleep .25
+          done
+          test "$(jq -r '.model_id' _final/evidence/model-b-health.json)" = "$MODEL_B"
+          cp _final/evidence/ai-horde-model-selection.json _final/evidence/model-b-selection.json
+          curl -fsS --max-time 330 -H 'Content-Type: application/json' \
+            -d '{"model":"brain-b","prompt":"Reply with exactly MODEL B ONLINE","stream":false}' \
+            http://127.0.0.1:11434/api/generate | tee _final/evidence/model-b-preflight.json
+          jq -e '.response | strings | length > 0' _final/evidence/model-b-preflight.json >/dev/null
+          BEAST="$(cat _final/beast-path.txt)"
+          "$BEAST" --data-dir "$GITHUB_WORKSPACE/_final/data" --provider ollama --model "$MODEL_B" --url http://127.0.0.1:11434 \
+            > _final/evidence/beast-b.log 2>&1 &
+          echo $! > _final/beast.pid
+          printf 'model_b_pid=%s\n' "$(cat _final/beast.pid)" >> _final/evidence/process-swap.txt
+          for i in $(seq 1 160); do
+            WID="$(xdotool search --name 'Beast Box' 2>/dev/null | head -n1 || true)"
+            [ -n "$WID" ] && break
+            sleep .2
+          done
+          test -n "$WID"
+          xdotool windowmove "$WID" 10 10
+          xdotool windowactivate --sync "$WID"
+          sleep 6
+          ffmpeg -y -f x11grab -video_size 1280x720 -i :99.0 -frames:v 1 _final/evidence/screens/06-b-launch.png >/dev/null 2>&1
+
+      - name: Continue real conversation with Model B plus strict ASCII Beast Box
+        run: |
+          set -euo pipefail
+          cat > _final/b.json <<'JSON'
+          [
+            "You just clocked in as the second model. I am not restating the values. Using only Beast's retrieved memory, tell me what you can support about the previous model: nickname, code word, launch color, clocking-in joke, what it drew, and its main architecture argument. Explicitly mark anything unsupported.",
+            "React to that handoff like we're actually talking. Tell me one thing you agree with and one thing you'd challenge about the previous model's argument for a persistent model-independent substrate.",
+            "Draw your own tiny Beast Box as text art. STRICT RULE: use only 7-bit ASCII characters; no Unicode and no emoji. Use only spaces plus these drawing characters: + - | / \\ [ ] _ # * . ( ) =. Make exactly 7 drawing lines, then one short ASCII-only caption about being the second brain clocking into the same story.",
+            "Tell me precisely whether you are the same model as before the swap. What persisted across the handoff, what did not, and which parts of your answer come from Beast-supplied context rather than your weights?",
+            "Finish with a funny one-line launch post about two different cloud brains clocking into the same Beast Box story. Then give one compact skeptical-engineer paragraph: what this run demonstrates, and what it absolutely does not."
+          ]
+          JSON
+          python scripts/cloud_demo_gui_driver.py --prompts _final/b.json --start 7 \
+            --log _final/evidence/cloud_requests.jsonl --screens _final/evidence/screens
+
+      - name: Inspect persistent runtime in GUI and stop recording
+        run: |
+          set -euo pipefail
+          WID="$(xdotool search --name 'Beast Box' | head -n1)"
+          xdotool windowactivate --sync "$WID"
+          xdotool mousemove --window "$WID" 180 620 click 1
+          sleep 8
+          ffmpeg -y -f x11grab -video_size 1280x720 -i :99.0 -frames:v 1 _final/evidence/screens/99-final-inspect.png >/dev/null 2>&1
+          kill -TERM "$(cat _final/beast.pid)" || true
+          sleep 2
+          kill -INT "$(cat _final/ffmpeg.pid)" || true
+          for i in $(seq 1 100); do kill -0 "$(cat _final/ffmpeg.pid)" 2>/dev/null || break; sleep .2; done
+          ffprobe -v error -show_entries format=duration,size -of json \
+            _final/evidence/BEAST_BOX_TWO_REAL_MODELS_ASCII_HANDOFF.mp4 > _final/evidence/video-metadata.json
+
+      - name: Seal delivery, interpretation, ASCII and continuity evidence
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,sqlite3
+          from pathlib import Path
+          root=Path('_final'); e=root/'evidence'; db=root/'data/runtime.sqlite3'
+          def fsha(p):
+              h=hashlib.sha256()
+              with p.open('rb') as f:
+                  for c in iter(lambda:f.read(1048576),b''): h.update(c)
+              return h.hexdigest()
+          rows=[json.loads(x) for x in (e/'cloud_requests.jsonl').read_text().splitlines() if x.strip()]
+          pair=dict(line.split('=',1) for line in (e/'model-pair.txt').read_text().splitlines() if '=' in line)
+          a,b=pair['model_a'],pair['model_b']
+          ok=[r for r in rows if r.get('success')]
+          arows=[r for r in ok if r.get('cloud_model')==a]
+          brows=[r for r in ok if r.get('cloud_model')==b]
+          aart=next(r['response'] for r in arows if 'Draw a tiny sunflower as text art' in r.get('prompt',''))
+          bart=next(r['response'] for r in brows if 'Draw your own tiny Beast Box as text art' in r.get('prompt',''))
+          first_b=next(r for r in brows if 'You just clocked in as the second model' in r.get('prompt',''))
+          retrieved=first_b['prompt'].split('RETRIEVED MEMORY:',1)[1] if 'RETRIEVED MEMORY:' in first_b['prompt'] else ''
+          all_b_text='\n'.join(r.get('response','') for r in brows)
+          con=sqlite3.connect(f'file:{db}?mode=ro&immutable=1',uri=True)
+          memories=[{'id':x[0],'kind':x[1],'text':x[2]} for x in con.execute('SELECT id,kind,text FROM memories ORDER BY id')]
+          cont=[]
+          for seq,payload,ch in con.execute('SELECT sequence,payload,sha256 FROM continuity ORDER BY sequence'):
+              obj=json.loads(payload); cont.append({'sequence':seq,'system_id':obj.get('system_id'),'turn':obj.get('state',{}).get('turn'),'checkpoint_sha256':ch})
+          con.close()
+          (e/'runtime-memory.json').write_text(json.dumps(memories,indent=2,ensure_ascii=False)+'\n')
+          (e/'continuity.json').write_text(json.dumps(cont,indent=2)+'\n')
+          (e/'ascii-model-a.txt').write_text(aart+'\n')
+          (e/'ascii-model-b.txt').write_text(bart+'\n')
+          rec={
+            'schema':'beast-box-two-real-cloud-models-ascii-handoff-v2',
+            'source_head_sha':'${{ github.sha }}','packaged_artifact_run':34035894541,
+            'packaged_binary_sha256':(e/'BEASTBOX_BINARY_SHA256.txt').read_text().split()[0],
+            'provider':'AI Horde anonymous community cloud','api_key_used':False,
+            'model_a':a,'model_b':b,'models_distinct':a!=b,
+            'distinct_cloud_models_observed':sorted({r.get('cloud_model') for r in ok if r.get('cloud_model')}),
+            'successful_cloud_requests':len(ok),'all_cloud_requests_success':bool(rows) and all(r.get('success') for r in rows),
+            'model_b_received_sunflower_in_retrieved_context':'SUNFLOWER' in retrieved,
+            'model_b_received_amber_in_retrieved_context':'AMBER' in retrieved,
+            'model_b_received_clocking_context':'clock' in retrieved.lower(),
+            'model_b_first_answer_said_sunflower':'sunflower' in first_b.get('response','').lower(),
+            'model_b_first_answer_said_amber':'amber' in first_b.get('response','').lower(),
+            'model_b_any_answer_said_sunflower':'sunflower' in all_b_text.lower(),
+            'model_b_any_answer_said_amber':'amber' in all_b_text.lower(),
+            'model_a_art_ascii_only':all(ord(c)<128 for c in aart),
+            'model_b_art_ascii_only':all(ord(c)<128 for c in bart),
+            'model_a_art_multiline':aart.count('\n')>=6,'model_b_art_multiline':bart.count('\n')>=6,
+            'model_a_process_dead':'model_a_process_dead=true' in (e/'process-swap.txt').read_text(),
+            'system_id_stable':len({x['system_id'] for x in cont})==1 if cont else False,
+            'system_id':cont[-1]['system_id'] if cont else None,'final_turn':cont[-1]['turn'] if cont else None,
+            'continuity_checkpoint_count':len(cont),'memory_record_count':len(memories),
+            'runtime_sqlite_sha256':fsha(db),'literal_gui_recording':(e/'BEAST_BOX_TWO_REAL_MODELS_ASCII_HANDOFF.mp4').is_file(),
+            'claim_boundary':'Two distinct external inference models were used sequentially through the same Beast Box durable substrate. Delivery of retrieved context is measured separately from model interpretation. This does not establish consciousness, identity transfer, weight transfer, superintelligence, quantum advantage, or new physics.'
+          }
+          video=e/'BEAST_BOX_TWO_REAL_MODELS_ASCII_HANDOFF.mp4'; rec['video_sha256']=fsha(video)
+          (e/'RUN_RECEIPT.json').write_text(json.dumps(rec,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(rec,indent=2,sort_keys=True))
+          PY
+          (cd _final/evidence && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
+
+      - name: Require two real brains, context delivery, ASCII art and stable substrate
+        run: |
+          set -euo pipefail
+          R=_final/evidence/RUN_RECEIPT.json
+          jq -e '.models_distinct == true' "$R" >/dev/null
+          jq -e '.distinct_cloud_models_observed | length == 2' "$R" >/dev/null
+          jq -e '.all_cloud_requests_success == true and .successful_cloud_requests >= 12' "$R" >/dev/null
+          jq -e '.model_b_received_sunflower_in_retrieved_context == true' "$R" >/dev/null
+          jq -e '.model_b_received_amber_in_retrieved_context == true' "$R" >/dev/null
+          jq -e '.model_b_received_clocking_context == true' "$R" >/dev/null
+          jq -e '.model_a_art_ascii_only == true and .model_a_art_multiline == true' "$R" >/dev/null
+          jq -e '.model_b_art_ascii_only == true and .model_b_art_multiline == true' "$R" >/dev/null
+          jq -e '.model_a_process_dead == true and .system_id_stable == true' "$R" >/dev/null
+          jq -e '.final_turn >= 10 and .literal_gui_recording == true' "$R" >/dev/null
+          echo BEAST_TWO_REAL_MODELS_ASCII_HANDOFF_COMPLETE
+
+      - name: Upload final two-model evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beast-two-real-models-ascii-handoff-${{ github.run_id }}
+          path: _final/evidence/
+          if-no-files-found: error
+          retention-days: 90
