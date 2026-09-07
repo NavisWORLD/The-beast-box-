@@ -1,0 +1,469 @@
+name: BEAST BOX CLOUD MODEL LIVE DEMO
+
+on:
+  push:
+    branches:
+      - experiment/beast-cloud-live-demo-001
+    paths:
+      - .github/workflows/beast-cloud-live-demo.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  cloud-demo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      DISPLAY: ":99"
+      CLOUD_MODEL: "mistral"
+      BEAST_ARTIFACT_RUN: "34035894541"
+      BEAST_ARTIFACT_NAME: "beast-desktop-ubuntu-24.04-0.5.0"
+    steps:
+      - name: Checkout experiment branch
+        uses: actions/checkout@v4
+
+      - name: Install recording and GUI dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y xvfb xdotool xclip ffmpeg unzip sqlite3 curl jq
+          mkdir -p _demo/kit _demo/data _demo/evidence/screens
+
+      - name: Download exact packaged Beast Box 0.5.0 kit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$BEAST_ARTIFACT_RUN" -n "$BEAST_ARTIFACT_NAME" -D _demo/kit
+          BEAST="$(find _demo/kit -type f -name BeastBox -print -quit)"
+          test -n "$BEAST" -a -f "$BEAST"
+          chmod +x "$BEAST"
+          printf '%s\n' "$BEAST" > _demo/beast-path.txt
+          sha256sum "$BEAST" | tee _demo/evidence/BEASTBOX_BINARY_SHA256.txt
+          find _demo/kit -maxdepth 3 -type f -printf '%P\n' | sort > _demo/evidence/kit-file-list.txt
+
+      - name: Create free cloud-model loopback bridge
+        run: |
+          set -euo pipefail
+          cat > _demo/cloud_bridge.py <<'PY'
+          from __future__ import annotations
+          import hashlib
+          import json
+          import os
+          import threading
+          import time
+          import urllib.parse
+          import urllib.request
+          from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+          from pathlib import Path
+
+          ROOT = Path("_demo/evidence")
+          ROOT.mkdir(parents=True, exist_ok=True)
+          LOG = ROOT / "cloud_requests.jsonl"
+          UPSTREAM_MODEL = os.environ.get("CLOUD_MODEL", "mistral")
+          counter_lock = threading.Lock()
+          counter = 0
+
+          def sha(text: str) -> str:
+              return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+          def append_log(row: dict) -> None:
+              with LOG.open("a", encoding="utf-8") as handle:
+                  handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+
+          def parse_openai(text: str) -> str:
+              body = json.loads(text)
+              if isinstance(body, str):
+                  return body
+              if isinstance(body, dict):
+                  choices = body.get("choices")
+                  if isinstance(choices, list) and choices:
+                      message = choices[0].get("message") if isinstance(choices[0], dict) else None
+                      if isinstance(message, dict) and isinstance(message.get("content"), str):
+                          return message["content"]
+                      if isinstance(choices[0], dict) and isinstance(choices[0].get("text"), str):
+                          return choices[0]["text"]
+                  if isinstance(body.get("response"), str):
+                      return body["response"]
+              raise ValueError("unrecognized cloud response shape")
+
+          def cloud_generate(prompt: str, index: int) -> tuple[str, dict]:
+              started = time.time()
+              payload = {
+                  "model": UPSTREAM_MODEL,
+                  "messages": [{"role": "user", "content": prompt}],
+                  "stream": False,
+                  "temperature": 0.65,
+                  "max_tokens": 320,
+              }
+              post_req = urllib.request.Request(
+                  "https://text.pollinations.ai/openai",
+                  data=json.dumps(payload).encode("utf-8"),
+                  headers={"Content-Type": "application/json", "User-Agent": "BeastBox-Cloud-Demo/0.5.0"},
+                  method="POST",
+              )
+              errors = []
+              try:
+                  with urllib.request.urlopen(post_req, timeout=150) as response:
+                      raw = response.read(2_000_000).decode("utf-8", errors="replace")
+                      status = int(getattr(response, "status", 200))
+                  output = parse_openai(raw)
+                  return output, {
+                      "upstream": "https://text.pollinations.ai/openai",
+                      "method": "POST",
+                      "status": status,
+                      "elapsed_seconds": round(time.time() - started, 3),
+                      "fallback_used": False,
+                  }
+              except Exception as exc:
+                  errors.append(f"POST:{type(exc).__name__}:{exc}")
+
+              encoded = urllib.parse.quote(prompt, safe="")
+              if len(encoded) > 12000:
+                  raise RuntimeError("cloud POST failed and GET fallback would exceed conservative URL bound: " + " | ".join(errors))
+              query = urllib.parse.urlencode({"model": UPSTREAM_MODEL, "private": "true", "seed": str(9000 + index)})
+              url = f"https://text.pollinations.ai/{encoded}?{query}"
+              get_req = urllib.request.Request(url, headers={"User-Agent": "BeastBox-Cloud-Demo/0.5.0"})
+              try:
+                  with urllib.request.urlopen(get_req, timeout=150) as response:
+                      raw = response.read(2_000_000).decode("utf-8", errors="replace")
+                      status = int(getattr(response, "status", 200))
+                  if not raw.strip():
+                      raise RuntimeError("empty cloud response")
+                  return raw, {
+                      "upstream": "https://text.pollinations.ai/{prompt}",
+                      "method": "GET",
+                      "status": status,
+                      "elapsed_seconds": round(time.time() - started, 3),
+                      "fallback_used": True,
+                      "post_error": " | ".join(errors),
+                  }
+              except Exception as exc:
+                  errors.append(f"GET:{type(exc).__name__}:{exc}")
+                  raise RuntimeError("free cloud endpoint failed: " + " | ".join(errors)) from exc
+
+          class Handler(BaseHTTPRequestHandler):
+              server_version = "BeastCloudBridge/1.0"
+
+              def log_message(self, fmt, *args):
+                  return
+
+              def _json(self, code: int, body: dict):
+                  data = json.dumps(body, ensure_ascii=False).encode("utf-8")
+                  self.send_response(code)
+                  self.send_header("Content-Type", "application/json; charset=utf-8")
+                  self.send_header("Content-Length", str(len(data)))
+                  self.end_headers()
+                  self.wfile.write(data)
+
+              def do_GET(self):
+                  if self.path == "/health":
+                      self._json(200, {"ok": True, "cloud_model": UPSTREAM_MODEL, "keyless": True})
+                      return
+                  if self.path == "/api/tags":
+                      self._json(200, {"models": [{"name": f"pollinations/{UPSTREAM_MODEL}"}]})
+                      return
+                  self._json(404, {"error": "not found"})
+
+              def do_POST(self):
+                  global counter
+                  if self.path != "/api/generate":
+                      self._json(404, {"error": "not found"})
+                      return
+                  length = int(self.headers.get("Content-Length", "0"))
+                  if length <= 0 or length > 1_500_000:
+                      self._json(400, {"error": "invalid payload size"})
+                      return
+                  req = json.loads(self.rfile.read(length).decode("utf-8"))
+                  prompt = req.get("prompt")
+                  if not isinstance(prompt, str) or not prompt:
+                      self._json(400, {"error": "prompt required"})
+                      return
+                  with counter_lock:
+                      counter += 1
+                      index = counter
+                  row = {
+                      "request_index": index,
+                      "received_at_unix": time.time(),
+                      "beast_requested_model": req.get("model"),
+                      "cloud_provider": "Pollinations legacy keyless API",
+                      "cloud_model": UPSTREAM_MODEL,
+                      "api_key_used": False,
+                      "prompt": prompt,
+                      "prompt_sha256": sha(prompt),
+                  }
+                  try:
+                      output, upstream = cloud_generate(prompt, index)
+                      row.update(upstream)
+                      row["response"] = output
+                      row["response_sha256"] = sha(output)
+                      row["response_chars"] = len(output)
+                      row["success"] = True
+                      append_log(row)
+                      self._json(200, {"response": output, "model": f"pollinations/{UPSTREAM_MODEL}", "done": True})
+                  except Exception as exc:
+                      row["success"] = False
+                      row["error"] = f"{type(exc).__name__}: {exc}"
+                      append_log(row)
+                      self._json(502, {"error": row["error"]})
+
+          if __name__ == "__main__":
+              server = ThreadingHTTPServer(("127.0.0.1", 11434), Handler)
+              print(json.dumps({"status": "ready", "listen": "127.0.0.1:11434", "cloud_provider": "Pollinations legacy keyless API", "cloud_model": UPSTREAM_MODEL, "api_key_used": False}), flush=True)
+              server.serve_forever()
+          PY
+          sha256sum _demo/cloud_bridge.py > _demo/evidence/CLOUD_BRIDGE_SHA256.txt
+
+      - name: Start cloud bridge and prove real upstream inference
+        run: |
+          set -euo pipefail
+          python _demo/cloud_bridge.py > _demo/evidence/cloud_bridge.log 2>&1 &
+          echo $! > _demo/cloud-bridge.pid
+          for i in $(seq 1 50); do
+            if curl -fsS http://127.0.0.1:11434/health > _demo/evidence/cloud-health.json; then break; fi
+            sleep 0.2
+          done
+          curl -fsS http://127.0.0.1:11434/health | tee _demo/evidence/cloud-health-preflight.json
+          curl -fsS --max-time 180 -H 'Content-Type: application/json' -d '{"model":"pollinations-mistral-free","prompt":"This is a preflight. Reply with exactly CLOUD MODEL ONLINE.","stream":false}' http://127.0.0.1:11434/api/generate | tee _demo/evidence/cloud-preflight-response.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          body=json.loads(Path("_demo/evidence/cloud-preflight-response.json").read_text())
+          text=body.get("response","")
+          if not text.strip():
+              raise SystemExit("no real cloud-model text returned")
+          print("CLOUD_INFERENCE_PREFLIGHT_OK", repr(text[:200]))
+          PY
+
+      - name: Start X11 display and literal screen recording
+        run: |
+          set -euo pipefail
+          Xvfb :99 -screen 0 1280x720x24 -ac +extension RANDR > _demo/evidence/xvfb.log 2>&1 &
+          echo $! > _demo/xvfb.pid
+          sleep 1
+          ffmpeg -y -nostdin -f x11grab -video_size 1280x720 -framerate 15 -i :99.0 -an -c:v libx264 -preset veryfast -crf 25 -pix_fmt yuv420p _demo/evidence/BEAST_BOX_FREE_CLOUD_MODEL_LIVE.mp4 > _demo/evidence/ffmpeg.log 2>&1 &
+          echo $! > _demo/ffmpeg.pid
+          sleep 1
+
+      - name: Launch the actual packaged Beast Box GUI
+        run: |
+          set -euo pipefail
+          BEAST="$(cat _demo/beast-path.txt)"
+          "$BEAST" --data-dir "$GITHUB_WORKSPACE/_demo/data" --provider ollama --model "pollinations-mistral-free" --url "http://127.0.0.1:11434" > _demo/evidence/beast-process-1.log 2>&1 &
+          echo $! > _demo/beast.pid
+          for i in $(seq 1 100); do
+            WID="$(xdotool search --name 'Beast Box' 2>/dev/null | head -n1 || true)"
+            if [ -n "$WID" ]; then echo "$WID" > _demo/window.id; break; fi
+            sleep 0.2
+          done
+          test -s _demo/window.id
+          WID="$(cat _demo/window.id)"
+          xdotool windowmove "$WID" 10 10
+          xdotool windowactivate --sync "$WID"
+          sleep 3
+          ffmpeg -y -f x11grab -video_size 1280x720 -i :99.0 -frames:v 1 _demo/evidence/screens/00-launch.png >/dev/null 2>&1
+
+      - name: Have a real conversation through Beast Box
+        run: |
+          set -euo pipefail
+          cat > _demo/drive_gui.py <<'PY'
+          from __future__ import annotations
+          import json
+          import subprocess
+          import time
+          from pathlib import Path
+
+          LOG=Path("_demo/evidence/cloud_requests.jsonl")
+          SCREEN_DIR=Path("_demo/evidence/screens")
+          SCREEN_DIR.mkdir(parents=True, exist_ok=True)
+
+          prompts = [
+              "We are doing a live Beast Box cloud-model test. Give yourself a short nickname for this session and explain what you think this runtime is doing. Keep it under three sentences.",
+              "Remember these three facts exactly: code word SUNFLOWER, launch color AMBER, and joke subject 'a model clocking in for a shift'. Confirm all three in one line.",
+              "Make me a stupid one-line meme caption about a model clocking in for a shift while Beast Box keeps the story.",
+              "Without me repeating them, tell me the code word and launch color from earlier. Then say whether you got them from your model weights or from context supplied to you.",
+              "Critique this architecture like a skeptical senior AI engineer. What is genuinely useful about keeping memory and state outside the inference model, and what is still unproven? Keep it under six sentences.",
+              "Now be creative. Write a tiny sci-fi scene where three different AI models share one backpack of memories. Five sentences maximum.",
+          ]
+
+          def wid():
+              out=subprocess.check_output(["xdotool","search","--name","Beast Box"], text=True).strip().splitlines()
+              if not out:
+                  raise RuntimeError("Beast Box window missing")
+              return out[0]
+
+          def request_count():
+              if not LOG.exists():
+                  return 0
+              return sum(1 for line in LOG.read_text(encoding="utf-8").splitlines() if line.strip())
+
+          def screenshot(label):
+              subprocess.run(["ffmpeg","-y","-f","x11grab","-video_size","1280x720","-i",":99.0","-frames:v","1",str(SCREEN_DIR/f"{label}.png")], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+
+          def send(prompt, number):
+              window=wid()
+              subprocess.run(["xdotool","windowactivate","--sync",window],check=True)
+              subprocess.run(["xdotool","mousemove","--window",window,"450","560","click","1"],check=True)
+              p=subprocess.Popen(["xclip","-selection","clipboard"],stdin=subprocess.PIPE,text=True)
+              p.communicate(prompt)
+              if p.returncode:
+                  raise RuntimeError("xclip failed")
+              subprocess.run(["xdotool","key","--clearmodifiers","ctrl+a"],check=True)
+              subprocess.run(["xdotool","key","--clearmodifiers","ctrl+v"],check=True)
+              before=request_count()
+              subprocess.run(["xdotool","mousemove","--window",window,"52","620","click","1"],check=True)
+              deadline=time.time()+190
+              while time.time()<deadline:
+                  if request_count() > before:
+                      rows=[json.loads(x) for x in LOG.read_text(encoding="utf-8").splitlines() if x.strip()]
+                      row=rows[-1]
+                      if row.get("request_index",0) > before:
+                          if not row.get("success"):
+                              raise RuntimeError("cloud inference failed: "+str(row.get("error")))
+                          time.sleep(2.5)
+                          screenshot(f"{number:02d}-turn")
+                          time.sleep(4.0)
+                          return
+                  time.sleep(0.5)
+              raise TimeoutError("timed out waiting for cloud response")
+
+          for i,prompt in enumerate(prompts,1):
+              send(prompt,i)
+          PY
+          python _demo/drive_gui.py
+
+      - name: Restart the actual Beast process and continue same story
+        run: |
+          set -euo pipefail
+          OLD_PID="$(cat _demo/beast.pid)"
+          kill -TERM "$OLD_PID" || true
+          for i in $(seq 1 50); do
+            if ! kill -0 "$OLD_PID" 2>/dev/null; then break; fi
+            sleep 0.2
+          done
+          sleep 3
+          BEAST="$(cat _demo/beast-path.txt)"
+          "$BEAST" --data-dir "$GITHUB_WORKSPACE/_demo/data" --provider ollama --model "pollinations-mistral-free" --url "http://127.0.0.1:11434" > _demo/evidence/beast-process-2.log 2>&1 &
+          echo $! > _demo/beast.pid
+          rm -f _demo/window.id
+          for i in $(seq 1 100); do
+            WID="$(xdotool search --name 'Beast Box' 2>/dev/null | head -n1 || true)"
+            if [ -n "$WID" ]; then echo "$WID" > _demo/window.id; break; fi
+            sleep 0.2
+          done
+          test -s _demo/window.id
+          WID="$(cat _demo/window.id)"
+          xdotool windowmove "$WID" 10 10
+          xdotool windowactivate --sync "$WID"
+          sleep 5
+          ffmpeg -y -f x11grab -video_size 1280x720 -i :99.0 -frames:v 1 _demo/evidence/screens/07-after-restart.png >/dev/null 2>&1
+          cat > _demo/drive_gui_after_restart.py <<'PY'
+          exec(open("_demo/drive_gui.py", encoding="utf-8").read().split("for i,prompt in enumerate(prompts,1):")[0])
+          prompts = [
+              "I restarted Beast Box. Without me restating the test facts, what code word, launch color, and meme subject were we using?",
+              "Look at the retrieved memory supplied to you. Tell me one specific thing from before the restart. If you cannot verify it from context, say so.",
+              "Write the funniest possible one-line launch post for this exact demo. Do not claim consciousness, magic, or superintelligence.",
+              "Technical question: does persistent context make you literally more intelligent, or does it give you more useful information and continuity? Answer precisely in four sentences or fewer.",
+              "If Beast Box is the break room and models are employees doing shifts, what is written on the break room sign? One line only.",
+              "Summarize what you can recover about this conversation in five short bullets. Separate facts you were given from conclusions you are inferring.",
+          ]
+          for i,prompt in enumerate(prompts,8):
+              send(prompt,i)
+          PY
+          python _demo/drive_gui_after_restart.py
+
+      - name: Final live runtime inspection
+        run: |
+          set -euo pipefail
+          WID="$(xdotool search --name 'Beast Box' | head -n1)"
+          xdotool windowactivate --sync "$WID"
+          xdotool mousemove --window "$WID" 180 620 click 1
+          sleep 5
+          ffmpeg -y -f x11grab -video_size 1280x720 -i :99.0 -frames:v 1 _demo/evidence/screens/99-final-inspect.png >/dev/null 2>&1
+          sleep 6
+
+      - name: Stop literal recording cleanly
+        if: always()
+        run: |
+          set +e
+          if [ -f _demo/ffmpeg.pid ]; then
+            kill -INT "$(cat _demo/ffmpeg.pid)" 2>/dev/null
+            for i in $(seq 1 50); do
+              kill -0 "$(cat _demo/ffmpeg.pid)" 2>/dev/null || break
+              sleep 0.2
+            done
+          fi
+          test -s _demo/evidence/BEAST_BOX_FREE_CLOUD_MODEL_LIVE.mp4
+          ffprobe -v error -show_entries format=duration,size -of json _demo/evidence/BEAST_BOX_FREE_CLOUD_MODEL_LIVE.mp4 > _demo/evidence/video-metadata.json || true
+
+      - name: Seal runtime, cloud and memory receipts
+        if: always()
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+          import hashlib, json, sqlite3
+          from pathlib import Path
+          root=Path("_demo"); ev=root/"evidence"; db=root/"data/runtime.sqlite3"; cloud=ev/"cloud_requests.jsonl"; video=ev/"BEAST_BOX_FREE_CLOUD_MODEL_LIVE.mp4"
+          def file_sha(p):
+              h=hashlib.sha256()
+              with Path(p).open("rb") as f:
+                  for chunk in iter(lambda:f.read(1024*1024),b""): h.update(chunk)
+              return h.hexdigest()
+          rows=[json.loads(x) for x in cloud.read_text(encoding="utf-8").splitlines() if x.strip()] if cloud.exists() else []
+          con=sqlite3.connect(f"file:{db}?mode=ro&immutable=1",uri=True)
+          memories=[{"id":r[0],"kind":r[1],"text":r[2]} for r in con.execute("SELECT id,kind,text FROM memories ORDER BY id")]
+          continuity=[]
+          for seq,payload,checkpoint_sha in con.execute("SELECT sequence,payload,sha256 FROM continuity ORDER BY sequence"):
+              obj=json.loads(payload); continuity.append({"sequence":seq,"system_id":obj.get("system_id"),"turn":obj.get("state",{}).get("turn"),"checkpoint_sha256":checkpoint_sha,"previous":obj.get("previous"),"receipt":obj.get("receipt")})
+          con.close()
+          beast_rows=[r for r in rows if r.get("request_index",0)>=2]
+          post_restart=beast_rows[6:] if len(beast_rows)>=7 else []
+          joined_post="\n".join(str(r.get("prompt","")) for r in post_restart).lower()
+          receipt={
+              "schema":"beast-box-free-cloud-live-demo-v1",
+              "source_repo":"NavisWORLD/The-beast-box-",
+              "source_branch":"experiment/beast-cloud-live-demo-001",
+              "source_head_sha":"${{ github.sha }}",
+              "source_packaged_artifact_run":34035894541,
+              "source_packaged_artifact_name":"beast-desktop-ubuntu-24.04-0.5.0",
+              "source_packaged_binary_sha256":Path("_demo/evidence/BEASTBOX_BINARY_SHA256.txt").read_text().split()[0],
+              "cloud_provider":"Pollinations legacy keyless API",
+              "cloud_model_requested":"mistral",
+              "api_key_used":False,
+              "beast_provider_path":"LocalOllamaProvider -> loopback /api/generate -> cloud bridge -> free cloud endpoint",
+              "recording_kind":"literal X11 capture of the actual packaged BeastBox GUI while live cloud responses were returned",
+              "beast_turn_cloud_request_count":len(beast_rows),
+              "all_cloud_requests_success":bool(beast_rows) and all(bool(r.get("success")) for r in beast_rows),
+              "cloud_methods_used":sorted({str(r.get("method")) for r in rows if r.get("success")}),
+              "process_restart_performed":True,
+              "continuity_checkpoint_count":len(continuity),
+              "system_id_stable":len({r["system_id"] for r in continuity})==1 if continuity else False,
+              "system_id":continuity[-1]["system_id"] if continuity else None,
+              "final_turn":continuity[-1]["turn"] if continuity else None,
+              "memory_record_count":len(memories),
+              "post_restart_beast_prompt_contains_sunflower":"sunflower" in joined_post,
+              "post_restart_beast_prompt_contains_amber":"amber" in joined_post,
+              "runtime_sqlite_sha256":file_sha(db),
+              "cloud_log_sha256":file_sha(cloud),
+              "video_sha256":file_sha(video),
+              "claim_boundary":"This run measures software continuity, retrieved-context delivery and real cloud-model behavior through Beast Box. It does not establish consciousness, superintelligence, biological identity, quantum advantage, or that persistence changes model weights."
+          }
+          (ev/"runtime-memory.json").write_text(json.dumps(memories,indent=2,ensure_ascii=False)+"\n")
+          (ev/"continuity.json").write_text(json.dumps(continuity,indent=2,ensure_ascii=False)+"\n")
+          (ev/"RUN_RECEIPT.json").write_text(json.dumps(receipt,indent=2,sort_keys=True)+"\n")
+          print(json.dumps(receipt,indent=2,sort_keys=True))
+          PY
+          ( cd _demo/evidence; find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt )
+
+      - name: Upload long live-demo evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beast-free-cloud-model-live-demo-${{ github.run_id }}
+          path: _demo/evidence/
+          if-no-files-found: error
+          retention-days: 90
