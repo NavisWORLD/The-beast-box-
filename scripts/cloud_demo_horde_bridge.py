@@ -7,6 +7,7 @@ import json
 import os
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -14,6 +15,8 @@ from pathlib import Path
 
 OAI_BASE = "https://oai.aihorde.net"
 ANON_KEY = "0000000000"
+TRANSIENT_HTTP = {406, 408, 409, 425, 429, 500, 502, 503, 504}
+RETRY_DELAYS = (0.0, 2.0, 5.0, 10.0)
 PREFERRED = (
     "Behemoth-X-123B",
     "Skyfall-31B",
@@ -25,11 +28,26 @@ PREFERRED = (
 )
 
 
+class UpstreamHTTPError(RuntimeError):
+    def __init__(self, status: int, body: str, url: str):
+        self.status = int(status)
+        self.body = body
+        self.url = url
+        compact = " ".join(body.split())[:1200]
+        super().__init__(f"HTTP {self.status} from {url}: {compact or '<empty body>'}")
+
+
 def sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def request_json(url: str, *, method: str = "GET", body: dict | None = None, timeout: float = 300.0) -> tuple[int, object]:
+def request_json(
+    url: str,
+    *,
+    method: str = "GET",
+    body: dict | None = None,
+    timeout: float = 300.0,
+) -> tuple[int, object]:
     headers = {"User-Agent": "BeastBox-AIHorde-LiveDemo/0.5.0"}
     data = None
     if body is not None:
@@ -38,9 +56,16 @@ def request_json(url: str, *, method: str = "GET", body: dict | None = None, tim
     if "/v1/chat/completions" in url or "/v1/responses" in url:
         headers["Authorization"] = f"Bearer {ANON_KEY}"
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    with urllib.request.urlopen(req, timeout=timeout) as response:
-        raw = response.read(8_000_000).decode("utf-8", errors="replace")
-        status = int(getattr(response, "status", 200))
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            raw = response.read(8_000_000).decode("utf-8", errors="replace")
+            status = int(getattr(response, "status", 200))
+    except urllib.error.HTTPError as exc:
+        try:
+            raw = exc.read(2_000_000).decode("utf-8", errors="replace")
+        except Exception:
+            raw = ""
+        raise UpstreamHTTPError(int(exc.code), raw, url) from exc
     return status, json.loads(raw)
 
 
@@ -62,7 +87,10 @@ def model_ids(payload: object) -> list[str]:
         if isinstance(row, str):
             value = row
         elif isinstance(row, dict):
-            value = next((row.get(k) for k in ("id", "name", "model") if isinstance(row.get(k), str)), None)
+            value = next(
+                (row.get(k) for k in ("id", "name", "model") if isinstance(row.get(k), str)),
+                None,
+            )
         else:
             value = None
         if value and value not in found:
@@ -89,7 +117,11 @@ def extract_chat(payload: object) -> str:
             first = choices[0]
             if isinstance(first, dict):
                 message = first.get("message")
-                if isinstance(message, dict) and isinstance(message.get("content"), str) and message["content"].strip():
+                if (
+                    isinstance(message, dict)
+                    and isinstance(message.get("content"), str)
+                    and message["content"].strip()
+                ):
                     return message["content"]
                 if isinstance(first.get("text"), str) and first["text"].strip():
                     return first["text"]
@@ -100,7 +132,11 @@ def extract_chat(payload: object) -> str:
                     content = item.get("content")
                     if isinstance(content, list):
                         for part in content:
-                            if isinstance(part, dict) and isinstance(part.get("text"), str) and part["text"].strip():
+                            if (
+                                isinstance(part, dict)
+                                and isinstance(part.get("text"), str)
+                                and part["text"].strip()
+                            ):
                                 return part["text"]
     raise ValueError("AI Horde response contained no extractable assistant text")
 
@@ -146,6 +182,11 @@ def main() -> int:
         "active_model_ids": ids,
         "selected_model": selected,
         "preferred_order": list(PREFERRED),
+        "same_model_retry_policy": {
+            "transient_statuses": sorted(TRANSIENT_HTTP),
+            "retry_delays_seconds": list(RETRY_DELAYS),
+            "model_failover_enabled": False,
+        },
     }
     (args.evidence_dir / "ai-horde-model-selection.json").write_text(
         json.dumps(catalog_receipt, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
@@ -169,17 +210,67 @@ def main() -> int:
             "timeout": 260,
             "stream": False,
         }
-        status, response = request_json(
-            OAI_BASE + "/v1/chat/completions", method="POST", body=request, timeout=300
+        endpoint = OAI_BASE + "/v1/chat/completions"
+        upstream_attempts: list[dict] = []
+        last_exc: Exception | None = None
+
+        for attempt_number, delay in enumerate(RETRY_DELAYS, start=1):
+            if delay:
+                time.sleep(delay)
+            attempt_started = time.time()
+            try:
+                status, response = request_json(
+                    endpoint, method="POST", body=request, timeout=300
+                )
+                output = extract_chat(response)
+                upstream_attempts.append({
+                    "attempt": attempt_number,
+                    "status": status,
+                    "elapsed_seconds": round(time.time() - attempt_started, 3),
+                    "success": True,
+                    "model": selected,
+                })
+                return output, {
+                    "upstream_status": status,
+                    "upstream_endpoint": endpoint,
+                    "elapsed_seconds": round(time.time() - started, 3),
+                    "upstream_attempts": upstream_attempts,
+                    "retry_count": attempt_number - 1,
+                    "model_changed_during_request": False,
+                }
+            except UpstreamHTTPError as exc:
+                last_exc = exc
+                upstream_attempts.append({
+                    "attempt": attempt_number,
+                    "status": exc.status,
+                    "elapsed_seconds": round(time.time() - attempt_started, 3),
+                    "success": False,
+                    "model": selected,
+                    "response_body": exc.body[:4000],
+                    "transient": exc.status in TRANSIENT_HTTP,
+                })
+                if exc.status not in TRANSIENT_HTTP:
+                    break
+            except Exception as exc:
+                last_exc = exc
+                upstream_attempts.append({
+                    "attempt": attempt_number,
+                    "elapsed_seconds": round(time.time() - attempt_started, 3),
+                    "success": False,
+                    "model": selected,
+                    "error": f"{type(exc).__name__}: {exc}",
+                    "transient": True,
+                })
+
+        detail = json.dumps(upstream_attempts, ensure_ascii=False)
+        raise RuntimeError(
+            "AI Horde same-model retries exhausted; no model failover was allowed. "
+            f"last_error={type(last_exc).__name__ if last_exc else 'unknown'}: {last_exc}; "
+            f"attempts={detail}"
         )
-        return extract_chat(response), {
-            "upstream_status": status,
-            "upstream_endpoint": OAI_BASE + "/v1/chat/completions",
-            "elapsed_seconds": round(time.time() - started, 3),
-        }
 
     class Handler(BaseHTTPRequestHandler):
-        server_version = "BeastAIHordeBridge/1.0"
+        server_version = "BeastAIHordeBridge/1.1"
 
         def log_message(self, *_):
             return
@@ -200,6 +291,8 @@ def main() -> int:
                     "model_id": selected,
                     "api_key_used": False,
                     "anonymous_key": True,
+                    "same_model_retry_enabled": True,
+                    "model_failover_enabled": False,
                 })
                 return
             if self.path == "/api/tags":
@@ -256,6 +349,8 @@ def main() -> int:
         "provider": "AI Horde anonymous community cloud",
         "model": selected,
         "api_key_used": False,
+        "same_model_retry_enabled": True,
+        "model_failover_enabled": False,
     }), flush=True)
     ThreadingHTTPServer(("127.0.0.1", args.port), Handler).serve_forever()
     return 0
