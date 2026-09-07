@@ -56,9 +56,9 @@ jobs:
           MODEL_A="$(jq -r '.selected_model' _swap/evidence/model-a-selection.json)"
           MODEL_B="$(jq -r --arg a "$MODEL_A" '
             .active_model_ids as $ids |
-            ([$ids[] | select(. != $a and test("Anubis-70B"; "i"))][0]
-             // [$ids[] | select(. != $a and test("Skyfall-31B"; "i"))][0]
+            ([$ids[] | select(. != $a and test("Skyfall-31B"; "i"))][0]
              // [$ids[] | select(. != $a and test("Cydonia-24B"; "i"))][0]
+             // [$ids[] | select(. != $a and test("Anubis-70B"; "i"))][0]
              // [$ids[] | select(. != $a)][0])
           ' _swap/evidence/model-a-selection.json)"
           test -n "$MODEL_A"
@@ -224,7 +224,7 @@ jobs:
 
           root=Path('_swap'); e=root/'evidence'; db=root/'data/runtime.sqlite3'
           def fsha(p):
-              h=hashlib.sha256();
+              h=hashlib.sha256()
               with p.open('rb') as f:
                   for c in iter(lambda:f.read(1048576), b''): h.update(c)
               return h.hexdigest()
@@ -265,11 +265,11 @@ jobs:
               'distinct_cloud_models_observed':models,
               'model_a_ascii_multiline':ascii_a.count('\n') >= 6,
               'model_b_ascii_multiline':ascii_b.count('\n') >= 6,
-              'model_b_recalled_sunflower': 'sunflower' in b_recall.lower(),
-              'model_b_recalled_amber': 'amber' in b_recall.lower(),
-              'model_b_recalled_clocking_joke': 'clock' in b_recall.lower(),
+              'model_b_recalled_sunflower':'sunflower' in b_recall.lower(),
+              'model_b_recalled_amber':'amber' in b_recall.lower(),
+              'model_b_recalled_clocking_joke':'clock' in b_recall.lower(),
               'process_swap_recorded':(e/'model-swap-process.txt').exists(),
-              'model_a_process_dead': 'model_a_process_dead=true' in (e/'model-swap-process.txt').read_text(),
+              'model_a_process_dead':'model_a_process_dead=true' in (e/'model-swap-process.txt').read_text(),
               'system_id_stable':len({x['system_id'] for x in continuity})==1 if continuity else False,
               'system_id':continuity[-1]['system_id'] if continuity else None,
               'final_turn':continuity[-1]['turn'] if continuity else None,
