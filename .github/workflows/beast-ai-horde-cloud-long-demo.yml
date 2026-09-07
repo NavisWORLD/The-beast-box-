@@ -1,3 +1,4 @@
+# rerun 002: same-model transient retry hardening
 name: BEAST BOX AI HORDE CLOUD LONG DEMO
 
 on:
@@ -53,7 +54,8 @@ jobs:
           done
           cat _demo/evidence/cloud-health.json
           test "$(jq -r '.ok' _demo/evidence/cloud-health.json)" = "true"
-          curl -fsS --max-time 330 \
+          test "$(jq -r '.model_failover_enabled' _demo/evidence/cloud-health.json)" = "false"
+          curl -fsS --max-time 360 \
             -H 'Content-Type: application/json' \
             -d '{"model":"beast-cloud-auto","prompt":"You are the external model in a real Beast Box connectivity preflight. Reply in one short sentence confirming you received this prompt.","stream":false}' \
             http://127.0.0.1:11434/api/generate | tee _demo/evidence/cloud-preflight.json
@@ -145,7 +147,7 @@ jobs:
             "I just killed and restarted Beast Box. Without me restating the test facts, what code word, launch color, and joke subject were we using before the restart? Tell me only what your supplied context actually supports.",
             "Look at the retrieved memory Beast supplied on this turn. Identify one specific idea from our pre-restart conversation that is not contained in this question itself, and explain why that is evidence of context delivery rather than a change to your model weights.",
             "Now reason hard: if a 30B or 100B-class cloud model can clock into a persistent user-owned substrate and later be replaced by another model, what changes economically and technically about model lock-in? Give me a compact but serious answer.",
-            "Write the funniest possible one-line launch post for this exact experiment. Do not claim consciousness, magic, godhood, or superintelligence.",
+            "Write a funny one-line launch post for this exact software experiment. Keep every claim strictly to demonstrated software behavior.",
             "Final question. In one paragraph, separate what this live run would demonstrate if all receipts verify from what it absolutely would NOT demonstrate. Be precise enough that a skeptical engineer could quote you."
           ]
           JSON
