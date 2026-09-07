@@ -50,44 +50,28 @@ def main() -> int:
             f.write(json.dumps(row, ensure_ascii=False, sort_keys=True)+'\n')
 
     def generate(prompt: str):
-        errors=[]
-        for api_name in ('/chat','/generate'):
-            started=time.time()
-            try:
-                job=client.submit(prompt, [], '', 180, 0.6, 0.9, 50, 1.2, api_name=api_name)
-                result=job.result(timeout=170)
-                return extract(result), api_name, round(time.time()-started, 3)
-            except Exception as exc:
-                errors.append(f'{api_name}:{type(exc).__name__}:{exc}')
-        raise RuntimeError('public Hugging Face Space call failed: '+' | '.join(errors))
+        started=time.time()
+        job=client.submit(prompt, '', 180, 0.6, 0.9, 50, 1.2, api_name='/generate')
+        result=job.result(timeout=170)
+        return extract(result), '/generate', round(time.time()-started, 3)
 
     class Handler(BaseHTTPRequestHandler):
-        server_version='BeastHFBridge/1.0'
-        def log_message(self,*_):
-            pass
+        server_version='BeastHFBridge/1.1'
+        def log_message(self,*_): pass
         def reply(self, code, body):
             data=json.dumps(body, ensure_ascii=False).encode('utf-8')
-            self.send_response(code)
-            self.send_header('Content-Type','application/json; charset=utf-8')
-            self.send_header('Content-Length',str(len(data)))
-            self.end_headers(); self.wfile.write(data)
+            self.send_response(code); self.send_header('Content-Type','application/json; charset=utf-8'); self.send_header('Content-Length',str(len(data))); self.end_headers(); self.wfile.write(data)
         def do_GET(self):
-            if self.path=='/health':
-                return self.reply(200, {'ok':True,'provider':'Hugging Face public Gradio Space','space':args.space,'model_id':args.model_id,'api_key_used':False})
-            if self.path=='/api/tags':
-                return self.reply(200, {'models':[{'name':args.model_id}]})
+            if self.path=='/health': return self.reply(200, {'ok':True,'provider':'Hugging Face public Gradio Space','space':args.space,'model_id':args.model_id,'api_key_used':False})
+            if self.path=='/api/tags': return self.reply(200, {'models':[{'name':args.model_id}]})
             self.reply(404, {'error':'not found'})
         def do_POST(self):
-            if self.path!='/api/generate':
-                return self.reply(404, {'error':'not found'})
+            if self.path!='/api/generate': return self.reply(404, {'error':'not found'})
             n=int(self.headers.get('Content-Length','0'))
-            if n<=0 or n>1500000:
-                return self.reply(400, {'error':'invalid payload size'})
+            if n<=0 or n>1500000: return self.reply(400, {'error':'invalid payload size'})
             body=json.loads(self.rfile.read(n).decode('utf-8')); prompt=body.get('prompt')
-            if not isinstance(prompt,str) or not prompt:
-                return self.reply(400, {'error':'prompt required'})
-            with lock:
-                counter['n'] += 1; idx=counter['n']
+            if not isinstance(prompt,str) or not prompt: return self.reply(400, {'error':'prompt required'})
+            with lock: counter['n'] += 1; idx=counter['n']
             row={'request_index':idx,'received_at_unix':time.time(),'beast_requested_model':body.get('model'),'cloud_provider':'Hugging Face public Gradio Space','space':args.space,'cloud_model':args.model_id,'api_key_used':False,'prompt':prompt,'prompt_sha256':sha(prompt)}
             try:
                 output, endpoint, elapsed=generate(prompt)
@@ -101,5 +85,4 @@ def main() -> int:
     ThreadingHTTPServer(('127.0.0.1',args.port),Handler).serve_forever()
     return 0
 
-if __name__=='__main__':
-    raise SystemExit(main())
+if __name__=='__main__': raise SystemExit(main())
