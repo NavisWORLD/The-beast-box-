@@ -1,0 +1,127 @@
+name: BEAST BOX HF CLOUD LONG DEMO
+
+on:
+  push:
+    branches: [experiment/beast-cloud-live-demo-001]
+    paths:
+      - .github/workflows/beast-hf-cloud-long-demo.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  live-demo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      DISPLAY: ":99"
+      SPACE: "huggingface-projects/llama-2-7b-chat"
+      MODEL: "meta-llama/Llama-2-7b-chat-hf"
+      KIT_RUN: "34035894541"
+      KIT_NAME: "beast-desktop-ubuntu-24.04-0.5.0"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare VM
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y xvfb xdotool xclip ffmpeg sqlite3 curl
+          python -m pip install --quiet --upgrade gradio_client
+          mkdir -p _demo/kit _demo/data _demo/evidence/screens
+      - name: Fetch exact released Beast kit
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          set -euo pipefail
+          gh run download "$KIT_RUN" -n "$KIT_NAME" -D _demo/kit
+          BEAST="$(find _demo/kit -type f -name BeastBox -print -quit)"
+          test -f "$BEAST"; chmod +x "$BEAST"; echo "$BEAST" > _demo/beast-path.txt
+          sha256sum "$BEAST" | tee _demo/evidence/BEASTBOX_BINARY_SHA256.txt
+      - name: Start public Hugging Face model bridge
+        run: |
+          set -euo pipefail
+          python scripts/cloud_demo_hf_bridge.py --space "$SPACE" --model-id "$MODEL" --evidence-dir _demo/evidence > _demo/evidence/cloud_bridge.log 2>&1 &
+          echo $! > _demo/bridge.pid
+          for i in $(seq 1 100); do curl -fsS http://127.0.0.1:11434/health > _demo/evidence/cloud-health.json && break; sleep .2; done
+          cat _demo/evidence/cloud-health.json
+          curl -fsS --max-time 190 -H 'Content-Type: application/json' -d '{"model":"meta-llama/Llama-2-7b-chat-hf","prompt":"Reply with exactly CLOUD MODEL ONLINE.","stream":false}' http://127.0.0.1:11434/api/generate | tee _demo/evidence/cloud-preflight.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('_demo/evidence/cloud-preflight.json').read_text())
+          assert isinstance(x.get('response'),str) and x['response'].strip()
+          print('CLOUD_PREFLIGHT_OK',repr(x['response'][:250]))
+          PY
+      - name: Start literal screen recording and Beast GUI
+        run: |
+          set -euo pipefail
+          Xvfb :99 -screen 0 1280x720x24 -ac > _demo/evidence/xvfb.log 2>&1 & echo $! > _demo/xvfb.pid
+          sleep 1
+          ffmpeg -y -nostdin -f x11grab -video_size 1280x720 -framerate 15 -i :99.0 -an -c:v libx264 -preset veryfast -crf 25 -pix_fmt yuv420p _demo/evidence/BEAST_BOX_LLAMA2_CLOUD_LONG_LIVE.mp4 > _demo/evidence/ffmpeg.log 2>&1 & echo $! > _demo/ffmpeg.pid
+          sleep 1
+          BEAST="$(cat _demo/beast-path.txt)"
+          "$BEAST" --data-dir "$GITHUB_WORKSPACE/_demo/data" --provider ollama --model "$MODEL" --url http://127.0.0.1:11434 > _demo/evidence/beast-process-1.log 2>&1 & echo $! > _demo/beast.pid
+          for i in $(seq 1 100); do WID="$(xdotool search --name 'Beast Box' 2>/dev/null | head -n1 || true)"; [ -n "$WID" ] && break; sleep .2; done
+          test -n "$WID"; xdotool windowmove "$WID" 10 10; xdotool windowactivate --sync "$WID"; sleep 5
+      - name: Conversation before restart
+        run: |
+          cat > _demo/prompts1.json <<'JSON'
+          [
+            "We are doing a live Beast Box cloud-model test. Give yourself a short nickname for this session and explain what you think this runtime is doing. Keep it under three sentences.",
+            "Remember these three facts exactly: code word SUNFLOWER, launch color AMBER, and joke subject 'a model clocking in for a shift'. Confirm all three in one line.",
+            "Make me a stupid one-line meme caption about a model clocking in for a shift while Beast Box keeps the story.",
+            "Without me repeating them, tell me the code word and launch color from earlier. Then say whether you got them from your model weights or from context supplied to you.",
+            "Critique this architecture like a skeptical senior AI engineer. What is genuinely useful about keeping memory and state outside the inference model, and what is still unproven? Keep it under six sentences."
+          ]
+          JSON
+          python scripts/cloud_demo_gui_driver.py --prompts _demo/prompts1.json --start 1 --log _demo/evidence/cloud_requests.jsonl --screens _demo/evidence/screens
+      - name: Full Beast process restart on same durable directory
+        run: |
+          set -euo pipefail
+          OLD="$(cat _demo/beast.pid)"; kill -TERM "$OLD" || true
+          for i in $(seq 1 50); do kill -0 "$OLD" 2>/dev/null || break; sleep .2; done
+          sleep 4
+          BEAST="$(cat _demo/beast-path.txt)"
+          "$BEAST" --data-dir "$GITHUB_WORKSPACE/_demo/data" --provider ollama --model "$MODEL" --url http://127.0.0.1:11434 > _demo/evidence/beast-process-2.log 2>&1 & echo $! > _demo/beast.pid
+          for i in $(seq 1 100); do WID="$(xdotool search --name 'Beast Box' 2>/dev/null | head -n1 || true)"; [ -n "$WID" ] && break; sleep .2; done
+          test -n "$WID"; xdotool windowmove "$WID" 10 10; xdotool windowactivate --sync "$WID"; sleep 5
+      - name: Conversation after restart
+        run: |
+          cat > _demo/prompts2.json <<'JSON'
+          [
+            "I restarted Beast Box. Without me restating the test facts, what code word, launch color, and meme subject were we using?",
+            "Look only at the retrieved memory supplied to you and tell me one specific thing from before the restart. If the context does not establish it, say so.",
+            "Technical question: does persistent context make you literally more intelligent, or does it give you more useful information and continuity? Answer precisely in four sentences or fewer.",
+            "Write the funniest possible one-line launch post for this exact demo. Do not claim consciousness, magic, or superintelligence.",
+            "If Beast Box is the break room and models are employees doing shifts, what is written on the break room sign? One line only."
+          ]
+          JSON
+          python scripts/cloud_demo_gui_driver.py --prompts _demo/prompts2.json --start 7 --log _demo/evidence/cloud_requests.jsonl --screens _demo/evidence/screens
+      - name: Inspect persistent runtime and stop GUI
+        run: |
+          set -euo pipefail
+          WID="$(xdotool search --name 'Beast Box' | head -n1)"; xdotool windowactivate --sync "$WID"; xdotool mousemove --window "$WID" 180 620 click 1; sleep 7
+          ffmpeg -y -f x11grab -video_size 1280x720 -i :99.0 -frames:v 1 _demo/evidence/screens/99-final-inspect.png >/dev/null 2>&1
+          kill -TERM "$(cat _demo/beast.pid)" || true; sleep 3
+      - name: Stop recording
+        if: always()
+        run: |
+          set +e
+          [ -f _demo/ffmpeg.pid ] && kill -INT "$(cat _demo/ffmpeg.pid)" 2>/dev/null
+          sleep 5
+          [ -s _demo/evidence/BEAST_BOX_LLAMA2_CLOUD_LONG_LIVE.mp4 ] && ffprobe -v error -show_entries format=duration,size -of json _demo/evidence/BEAST_BOX_LLAMA2_CLOUD_LONG_LIVE.mp4 > _demo/evidence/video-metadata.json
+      - name: Seal evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          python scripts/cloud_demo_seal.py --root _demo --source-sha "${{ github.sha }}"
+          (cd _demo/evidence && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
+      - name: Upload long live demo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beast-llama2-cloud-long-live-${{ github.run_id }}
+          path: _demo/evidence/
+          if-no-files-found: error
+          retention-days: 90
