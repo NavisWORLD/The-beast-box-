@@ -10,7 +10,7 @@ the runtime retains the story and enforces its own authority boundary.
 **MODEL ≠ MEMORY · MODEL ≠ STATE · MODEL ≠ PROVENANCE · MODEL ≠ AUTHORITY**
 
 [Download / Releases](https://github.com/NavisWORLD/The-beast-box-/releases) ·
-[5-minute Quickstart](docs/QUICKSTART.md) · [Combined Kit / EnD](kits/BEAST_BOX_COMBINED/EnD) ·
+[COSMIC browser guide](docs/COSMIC_UI_GUIDE.md) · [5-minute Quickstart](docs/QUICKSTART.md) · [Combined Kit / EnD](kits/BEAST_BOX_COMBINED/EnD) ·
 [Architecture](docs/ECOSYSTEM_MANIFEST.json) · [Persistent Memory](docs/PORTABLE_STATE.md) ·
 [Model Swap Evidence](docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md) ·
 [Provider Setup](docs/PROVIDER_SETUP.md) · [Synapse Flash / Portable State](docs/PORTABLE_STATE.md) ·
@@ -46,6 +46,21 @@ The early cosmic/frequency language is preserved as historical theory/simulation
 
 
 **Python 3.10–3.12. No IBM account, cloud credential, GPU, or language model is required for the deterministic reference path.** Source visibility does not grant a license: see [LICENSE](LICENSE).
+
+## Open your cosmic workstation
+
+```bash
+beastbox-cosmic --data-dir ./my-beast --port 8081
+```
+
+After installing the current source or its built wheel, open
+`http://127.0.0.1:8081` on the same computer. ORBIT, BRAIN BAY, MEMORY VAULT,
+SYNAPSE TRACE, FILES, WORKSPACE and STORAGE share the real durable substrate.
+Choose explicit file lifetimes; repository writes need separate grants.
+Changing brains revokes authority while preserving the story.
+[Start here: browser, providers, privacy and portable continuity](docs/COSMIC_UI_GUIDE.md).
+Older release downloads may predate this browser completion; package version
+alone does not identify these source changes.
 
 ## What the model does
 

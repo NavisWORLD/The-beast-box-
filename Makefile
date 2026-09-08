@@ -15,7 +15,7 @@ lint:
 		scripts/seal_release_verification.py tests/test_release_verification.py \
 		beastbox/desktop.py beastbox/optional_resources.py beastbox/sensor_inputs.py tests/test_runtime_exchange.py \
 		beastbox/product_services.py tests/test_product_services.py tests/test_product_observability.py beastbox/memory.py \
-		beastbox/cosmic_web.py beastbox/cosmic_ui.py beastbox/cosmic_entry.py tests/test_cosmic_web.py
+		beastbox/cosmic_web.py beastbox/cosmic_ui.py beastbox/cosmic_entry.py tests/test_cosmic_web.py tests/test_cosmic_completion.py tests/test_cosmic_closure.py
 
 typecheck:
 	$(PYTHON) -m mypy beastbox/logging_config.py beastbox/hashutil.py beastbox/aliases.py \

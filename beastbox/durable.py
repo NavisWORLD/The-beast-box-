@@ -166,12 +166,16 @@ class DurableRuntime(CosmosRuntime):
         """Replace inference only; neither provider nor context can set policy."""
         self.provider = MeasuredProvider(provider)
 
-    def respond(self, text: str, **kwargs) -> dict[str, Any]:
+    def respond(self, text: str, *, transient_context: str = "", **kwargs) -> dict[str, Any]:
         if kwargs:
             raise ValueError("durable input uses respond_event; raw resource adapters are experimental")
-        return self.respond_event({"schema": "sensor-event-v1", "source": "text", "text": text})
+        return self.respond_event(
+            {"schema": "sensor-event-v1", "source": "text", "text": text}, transient_context=transient_context
+        )
 
-    def respond_event(self, event: dict[str, Any]) -> dict[str, Any]:
+    def respond_event(self, event: dict[str, Any], *, transient_context: str = "") -> dict[str, Any]:
+        if not isinstance(transient_context, str) or len(transient_context) > 512 * 1024:
+            raise ValueError("transient context exceeds the bounded input limit")
         normalized = normalize_event(event)
         self._trace = ["normalize"]
         before = None
@@ -181,7 +185,11 @@ class DurableRuntime(CosmosRuntime):
                 self._restore(copy.deepcopy(before))
                 # Numeric software events share the existing bounded bridge input.
                 packet = BridgePacket(audio_features=list(normalized["features"]))
-                result = super().respond(normalized["text"], bridge=packet)
+                result = super().respond(normalized["text"], bridge=packet, transient_context=transient_context)
+                if transient_context:
+                    measured = cast(MeasuredProvider, self.provider).receipt
+                    measured.pop("prompt", None)
+                    measured["context_persistence"] = "HASH_ONLY; RESPONSE_NOT_PERSISTED"
                 durable_trace = [*self._trace, "checkpoint"]
                 receipt = {
                     "event": normalized,

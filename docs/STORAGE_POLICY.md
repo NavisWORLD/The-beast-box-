@@ -1,5 +1,8 @@
 # Storage policy
 
+For the current browser workstation, see the [COSMIC UI guide](COSMIC_UI_GUIDE.md)
+(provider clock-in, authority, context scopes, workspace, storage and physical limits).
+
 Do not rewrite Git history to shrink the canonical lab.
 
 Forward-looking rule:

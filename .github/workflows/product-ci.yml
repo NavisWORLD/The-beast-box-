@@ -89,3 +89,22 @@ jobs:
             build/package-smoke.log
             build/package-junit.xml
           if-no-files-found: error
+
+  cosmic-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e . playwright==1.55.0
+      - run: python -m playwright install --with-deps chromium
+      - name: Real browser owner flows and responsive layouts
+        run: python scripts/smoke/cosmic_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cosmic-browser
+          path: build/cosmic-browser/
+          if-no-files-found: warn

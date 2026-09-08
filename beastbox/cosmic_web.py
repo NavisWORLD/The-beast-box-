@@ -15,6 +15,8 @@ from pathlib import Path
 import re
 import secrets
 import tempfile
+import threading
+from collections import deque
 from typing import Any, Iterable
 import urllib.parse
 
@@ -76,7 +78,7 @@ class ProviderProfile:
         base_url = value.get("base_url", "")
         allow_remote = value.get("allow_remote", False)
         api_key_env = value.get("api_key_env")
-        if kind not in {"reference", "ollama", "compatible"}:
+        if not isinstance(kind, str) or kind not in {"reference", "ollama", "compatible"}:
             raise ValueError("provider kind must be reference, ollama, or compatible")
         if not isinstance(model, str) or not model.strip() or len(model) > 256:
             raise ValueError("provider model must contain 1..256 characters")
@@ -170,6 +172,9 @@ class CosmicApp:
         self.workspace: Workspace | None = None
         self.contexts: list[dict[str, Any]] = []
         self._context_sequence = 0
+        self._context_content: dict[int, str] = {}
+        self._lock = threading.RLock()
+        self.session_events: deque[dict[str, Any]] = deque(maxlen=100)
         candidates: list[str | Path] = list(workspace_roots)
         configured = os.environ.get("BEASTBOX_WORKSPACE_ROOTS", "")
         if configured:
@@ -195,12 +200,17 @@ class CosmicApp:
         self.profile = profile
         changed = previous != profile.identity
         revoked = self.authority.revoke_all() if changed else []
+        if changed:
+            self.session_events.append({"kind": "brain_handoff", "model": profile.model, "authority_revoked": revoked})
         return profile, changed, revoked
 
     def _authority(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         action = body.get("action")
+        if not isinstance(action, str):
+            return 400, {"error": "invalid authority action"}
         if action == "master_stop" and set(body) == {"action"}:
             stopped = self.authority.master_privacy_stop()
+            self.session_events.append({"kind": "master_stop", "revoked": stopped})
             return 200, {"stopped": stopped, "authority": self.authority.snapshot()}
         if action not in {"grant", "revoke"} or set(body) != {"action", "name"}:
             return 400, {"error": "invalid authority request"}
@@ -214,12 +224,22 @@ class CosmicApp:
                 self.authority.revoke(name)
         except ValueError as exc:
             return 400, {"error": str(exc)}
+        self.session_events.append({"kind": "authority", "action": action, "name": name})
         return 200, {"authority": self.authority.snapshot()}
 
     def _chat(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         text = body.get("text")
         if not isinstance(text, str) or not 1 <= len(text.strip()) <= 8192:
             return 400, {"error": "chat text must contain 1..8192 characters"}
+        ids = body.get("context_ids", [])
+        if (set(body) - {"text", "provider", "context_ids"} or not isinstance(ids, list)
+                or len(ids) > 100 or any(type(i) is not int for i in ids) or len(set(ids)) != len(ids)):
+            return 400, {"error": "invalid context selection"}
+        if any(i not in self._context_content for i in ids):
+            return 400, {"error": "context expired or unavailable; select it again"}
+        context = "\n\n".join(self._context_content[i] for i in ids)
+        if len(context) > _MAX_CONTEXT_CHARS:
+            return 400, {"error": "combined context exceeds limit"}
         profile = self.profile
         changed = False
         revoked: list[str] = []
@@ -231,11 +251,17 @@ class CosmicApp:
         runtime = self._runtime(profile)
         try:
             before = runtime.inspect()
-            result = runtime.respond(text)
+            result = runtime.respond(text, transient_context=context)
             after = runtime.inspect()
         finally:
             runtime.close()
+        for record in list(self.contexts):
+            if record["id"] in ids and record["scope"] == "temporary_attachment":
+                self.contexts.remove(record)
+                self._context_content.pop(record["id"], None)
         return 200, {
+            "context_used": ids,
+            "response_persistent": not bool(context),
             "result": result,
             "runtime": after,
             "brain_changed": changed,
@@ -346,8 +372,16 @@ class CosmicApp:
 
     def _workspace_status(self) -> tuple[int, dict[str, Any]]:
         workspace = self._selected_workspace()
-        result = workspace.run(["git", "status", "--short", "--branch"])
+        if not self._workspace_has_repository():
+            return 200, {"is_git_repo": False, "status": {"stdout": "Selected root has no .git directory"}}
+        result = workspace.run(["git", "status", "--short", "--branch"], timeout=15)
         return 200, {"is_git_repo": result["returncode"] == 0, "status": result}
+
+    def _workspace_has_repository(self) -> bool:
+        metadata = self._selected_workspace().resolve(".git")
+        if metadata.is_file():
+            raise ValueError("external gitdir/worktree indirection is not supported in the browser")
+        return metadata.is_dir()
 
     def _workspace_run(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         if not self.authority.allowed("tools"):
@@ -360,8 +394,18 @@ class CosmicApp:
             or set(body) != {"argv"}
         ):
             return 400, {"error": "invalid bounded workspace command"}
+        # Browser command input is deliberately narrower than owner CLI test execution.
+        # Arbitrary Git flags can invoke helpers, write files or read outside the root.
+        permitted = {
+            ("git", "status", "--short"), ("git", "status", "--short", "--branch"),
+            ("git", "diff", "--stat"), ("git", "log", "-5", "--oneline"),
+        }
+        if tuple(argv) not in permitted:
+            return 400, {"error": "browser runner permits only the listed read-only Git commands; push stays an owner terminal action"}
+        if not self._workspace_has_repository():
+            return 400, {"error": "selected root has no confined repository"}
         try:
-            result = self._selected_workspace().run(argv)
+            result = self._selected_workspace().run(argv, timeout=15)
         except PermissionError as exc:
             return 400, {"error": str(exc)}
         return 200, {"result": result}
@@ -383,10 +427,18 @@ class CosmicApp:
             "bytes": len(text.encode("utf-8")),
             "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
             "persistent": persistent,
+            "lifetime": "DURABLE_SUBSTRATE" if persistent else (
+                "TURN_ATTACHMENT" if scope == "temporary_attachment" else "SESSION_ONLY"
+            ),
         }
+        if not persistent:
+            if sum(len(value) for value in self._context_content.values()) + len(text) > 2 * 1024 * 1024:
+                raise ValueError("session context full; remove an item first")
+            self._context_content[self._context_sequence] = text
         self.contexts.append(record)
         if len(self.contexts) > 100:
-            self.contexts = self.contexts[-100:]
+            expired = self.contexts.pop(0)
+            self._context_content.pop(expired["id"], None)
         return record
 
     def _context(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
@@ -477,6 +529,13 @@ class CosmicApp:
         return 200, receipt
 
     def dispatch(self, method: str, path: str, body: dict[str, Any] | None = None) -> tuple[int, dict[str, Any]]:
+        with self._lock:
+            status, result = self._dispatch(method, path, body)
+            if status >= 400:
+                self.session_events.append({"kind": "request_denied", "path": path, "status": status})
+            return status, result
+
+    def _dispatch(self, method: str, path: str, body: dict[str, Any] | None) -> tuple[int, dict[str, Any]]:
         data = body or {}
         try:
             if method == "GET" and path == "/api/orbit":
@@ -484,7 +543,7 @@ class CosmicApp:
             if method == "GET" and path == "/api/memory":
                 return 200, {"records": self.service.memory_records()}
             if method == "GET" and path == "/api/trace":
-                return 200, {"events": self.service.trace_events()}
+                return 200, {"events": self.service.trace_events(), "session_events": list(self.session_events)}
             if method == "GET" and path == "/api/provider":
                 return 200, {"profile": asdict(self.profile), "secret_storage": "ENVIRONMENT_REFERENCE_ONLY"}
             if method == "GET" and path == "/api/resources":
@@ -523,6 +582,13 @@ class CosmicApp:
                 return self._workspace_write(data)
             if method == "POST" and path == "/api/workspace/run":
                 return self._workspace_run(data)
+            if method == "POST" and path == "/api/context/remove":
+                context_id = data.get("id")
+                if set(data) != {"id"} or type(context_id) is not int:
+                    return 400, {"error": "invalid context id"}
+                self.contexts = [record for record in self.contexts if record["id"] != context_id]
+                self._context_content.pop(context_id, None)
+                return 200, {"removed": context_id, "durable_memory_deleted": False}
             if method == "POST" and path == "/api/context":
                 return self._context(data)
             if method == "POST" and path == "/api/storage/export":

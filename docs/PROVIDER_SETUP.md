@@ -1,5 +1,8 @@
 # Provider setup
 
+For the current browser workstation, see the [COSMIC UI guide](COSMIC_UI_GUIDE.md)
+(provider clock-in, authority, context scopes, workspace, storage and physical limits).
+
 The host owns provider configuration. Model inputs include selected persistent
 history. Configuring a remote endpoint explicitly authorizes sending that context
 to that endpoint; it does not grant tools, shell access or credentials to the model.

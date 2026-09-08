@@ -1,5 +1,8 @@
 # Developer guide and terminology
 
+For the current browser workstation, see the [COSMIC UI guide](COSMIC_UI_GUIDE.md)
+(provider clock-in, authority, context scopes, workspace, storage and physical limits).
+
 Start with [Quickstart](QUICKSTART.md), [provider setup](PROVIDER_SETUP.md),
 [EnD API/recovery guide](../kits/BEAST_BOX_COMBINED/EnD),
 [architecture manifest](ECOSYSTEM_MANIFEST.json), [trust boundaries](TRUST_BOUNDARIES.md)
