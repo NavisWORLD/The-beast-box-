@@ -4,7 +4,8 @@ import json
 
 import pytest
 
-from beastbox.cosmic_web import CosmicApp, ProviderProfile, main as cosmic_main, render_cosmic_ui, validate_bind_host
+from beastbox.cosmic_entry import main as cosmic_main
+from beastbox.cosmic_web import CosmicApp, ProviderProfile, render_cosmic_ui, validate_bind_host
 
 
 def test_cosmic_app_swaps_reference_brain_without_swapping_substrate(tmp_path):
