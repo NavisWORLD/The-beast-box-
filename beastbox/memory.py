@@ -96,6 +96,8 @@ class ReconciliationMemory:
             "INSERT INTO memories(created_at,kind,text,metadata_json,source_ids_json) VALUES(?,?,?,?,?)",
             (time.time(), kind, text, json.dumps(metadata or {}, sort_keys=True), json.dumps(list(source_ids))),
         )
+        if cur.lastrowid is None:
+            raise RuntimeError("memory insert did not return an id")
         memory_id = int(cur.lastrowid)
         self._hebbian_update(text)
         if not self._atomic:
@@ -203,7 +205,8 @@ class ReconciliationMemory:
             toks = _tokens(str(row["text"]))
             if not toks:
                 continue
-            key = max(Counter(toks), key=Counter(toks).get)
+            counts = Counter(toks)
+            key = max(counts, key=lambda token: counts[token])
             buckets.setdefault(key, []).append(row)
         made: list[int] = []
         for key, group in buckets.items():
