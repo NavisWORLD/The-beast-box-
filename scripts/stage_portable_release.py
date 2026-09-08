@@ -35,7 +35,7 @@ def archive(directory: Path, output: Path, executable: bool = False) -> None:
 def stage(assets: Path, output: Path, source: str) -> None:
     results = {}
     for platform in ('ubuntu-24.04', 'windows-latest'):
-        directory = assets / f'beast-desktop-{platform}-0.5.0'
+        directory = assets / f'beast-desktop-{platform}-0.6.0'
         first, restart, installed = [read(directory / f'{name}.json') for name in ('first', 'restart', 'installer')]
         require(all(r.get('valid') is True for r in (first, restart, installed)), 'desktop integrity failure')
         require(first['system_id'] == restart['system_id'] and first['turn_after'] == restart['turn_before'], 'desktop restart failure')
@@ -43,9 +43,9 @@ def stage(assets: Path, output: Path, source: str) -> None:
         suffix = '.exe' if platform == 'windows-latest' else ''
         for name in ('BeastBox', 'beast-client-cpp', 'beast-client-rust'):
             require((directory / (name + suffix)).stat().st_size > 0, 'missing executable')
-        archive(directory, output / f'beast-desktop-{platform}-0.5.0.zip', executable=True)
+        archive(directory, output / f'beast-desktop-{platform}-0.6.0.zip', executable=True)
         results[platform] = 'PASS: executable, restart, native clients, checked installer'
-    android = assets / 'beast-android-0.5.0'
+    android = assets / 'beast-android-0.6.0'
     receipt = read(android / 'dist/android-build-receipt.json')
     require(receipt.get('source_commit') == source and receipt.get('acceptance') == 'passed', 'Android source or acceptance mismatch')
     apk = android / 'dist' / receipt['apk']['filename']
@@ -53,11 +53,11 @@ def stage(assets: Path, output: Path, source: str) -> None:
     shutil.copy2(apk, output / apk.name)
     archive(android, output / 'ANDROID_EVIDENCE.zip')
     results['android'] = 'PASS: API 35 x86_64 emulator, embedded runtime A/B/A and restart; debug signing'
-    ios = assets / 'beast-ios-evidence-0.5.0'
+    ios = assets / 'beast-ios-evidence-0.6.0'
     receipt = read(ios / 'acceptance.json')
     require(receipt.get('passed') is True and receipt.get('process_launches') == 3 and receipt.get('models') == ['A', 'B', 'A'], 'iOS acceptance mismatch')
     for flavor in ('simulator', 'unsigned-device'):
-        matches = list((assets / f'beast-ios-{flavor}-0.5.0').glob('*.zip'))
+        matches = list((assets / f'beast-ios-{flavor}-0.6.0').glob('*.zip'))
         require(len(matches) == 1, 'missing or ambiguous iOS build')
         shutil.copy2(matches[0], output / matches[0].name)
     archive(ios, output / 'IOS_EVIDENCE.zip')

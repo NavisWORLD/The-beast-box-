@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import zipfile
@@ -48,10 +49,25 @@ def build_kit(dist: Path) -> Path:
     for path in (ROOT / "kits/BEAST_BOX_COMBINED").iterdir():
         if path.is_file():
             files[path.name] = path
+    for name in ("QUICKSTART.md", "PROVIDER_SETUP.md", "PORTABLE_STATE.md", "DEVELOPER_GUIDE.md", "LAUNCH.md"):
+        files[name] = ROOT / "docs" / name
     files["OPTIONAL_INPUTS.md"] = ROOT / "docs/OPTIONAL_INPUTS.md"
     for name in (f"cosmos_beast_box-{version}-py3-none-any.whl", f"cosmos_beast_box-{version}.tar.gz"):
         files[name] = dist / name
     payloads = {name: path.read_bytes() for name, path in files.items()}
+    for name in ("QUICKSTART.md", "PROVIDER_SETUP.md", "PORTABLE_STATE.md", "DEVELOPER_GUIDE.md", "LAUNCH.md"):
+        def link(match):
+            target = match.group(1)
+            if "://" in target or target.startswith("#"):
+                return match.group(0)
+            path = (files[name].parent / target).resolve()
+            bundled = next((n for n, p in files.items() if p.resolve() == path), None)
+            if bundled:
+                return "](" + bundled + ")"
+            if path.exists() and path.is_relative_to(ROOT):
+                return "](https://github.com/NavisWORLD/The-beast-box-/blob/" + git("rev-parse", "HEAD") + "/" + path.relative_to(ROOT).as_posix() + ")"
+            return match.group(0)
+        payloads[name] = re.sub(r"\]\(([^)]+)\)", link, payloads[name].decode()).encode()
     provenance = {
         "schema": "beastbox-release-provenance-v1", "version": version,
         "source_commit": git("rev-parse", "HEAD"), "source_tree": git("rev-parse", "HEAD^{tree}"),

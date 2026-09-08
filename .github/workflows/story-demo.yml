@@ -1,0 +1,51 @@
+name: Real-model story continuity
+on:
+  workflow_call:
+  workflow_dispatch:
+  push:
+    branches: [polish/beast-box-launch-003]
+    paths: ['scripts/run_story_demo.py', 'beastbox/**', '.github/workflows/story-demo.yml']
+permissions:
+  contents: read
+jobs:
+  story:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install built wheel away from checkout
+        run: |
+          python -m pip install build==1.3.0
+          python -m build --wheel --outdir "$RUNNER_TEMP/story-wheel"
+          python -m pip install "$RUNNER_TEMP"/story-wheel/*.whl
+      - name: Verify official Ollama distribution
+        run: |
+          mkdir -p "$RUNNER_TEMP/ollama"
+          cd "$RUNNER_TEMP/ollama"
+          curl --fail --location --retry 3 --max-time 180 https://github.com/ollama/ollama/releases/download/v0.6.8/ollama-darwin.tgz -o ollama.tgz
+          echo '824ccccf0cd1f334a37b2f84b8e12c41ae5f47ec7a5975ab43de63263f7c62a0  ollama.tgz' | shasum -a 256 -c
+          tar -xzf ollama.tgz
+          echo "$RUNNER_TEMP/ollama" >> "$GITHUB_PATH"
+      - name: Fetch real models and measure five separate processes
+        env:
+          OLLAMA_HOST: 127.0.0.1:11434
+          OLLAMA_MODELS: ${{ runner.temp }}/story-models
+        run: |
+          ollama serve > "$RUNNER_TEMP/ollama.log" 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:11434/api/version && break || sleep 1; done
+          ollama pull qwen2.5:0.5b
+          ollama pull smollm2:135m
+          cd "$RUNNER_TEMP"
+          python -I "$GITHUB_WORKSPACE/scripts/run_story_demo.py" --model-a qwen2.5:0.5b --model-b smollm2:135m --output "$RUNNER_TEMP/story"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real-model-story
+          path: |
+            ${{ runner.temp }}/story/*.json
+            ${{ runner.temp }}/story/SHA256SUMS
+            ${{ runner.temp }}/ollama.log
+          if-no-files-found: warn

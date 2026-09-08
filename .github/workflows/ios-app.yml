@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   workflow_call:
   push:
-    branches: [integration/beast-box-portable-kit-002]
+    branches: [polish/beast-box-launch-003]
     paths: ['apps/ios/**', 'beastbox/**', '.github/workflows/ios-app.yml']
 permissions:
   contents: read
@@ -32,24 +32,24 @@ jobs:
           xcrun simctl bootstatus "$IOS_UDID" -b
           xcrun simctl install "$IOS_UDID" apps/ios/build/simulator/Build/Products/Release-iphonesimulator/BeastBox.app
           python3 apps/ios/scripts/acceptance.py "$IOS_UDID" apps/ios/build/evidence
-          ditto -c -k --keepParent apps/ios/build/simulator/Build/Products/Release-iphonesimulator/BeastBox.app apps/ios/build/BeastBox-simulator-0.5.0.zip
+          ditto -c -k --keepParent apps/ios/build/simulator/Build/Products/Release-iphonesimulator/BeastBox.app apps/ios/build/BeastBox-simulator-0.6.0.zip
       - name: Archive unsigned device build
         run: |
           set -o pipefail
           xcodebuild -project apps/ios/BeastBox.xcodeproj -scheme BeastBox -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -archivePath apps/ios/build/BeastBox-unsigned.xcarchive CODE_SIGNING_ALLOWED=NO archive 2>&1 | tee apps/ios/build/evidence/device-build.log
-          ditto -c -k --keepParent apps/ios/build/BeastBox-unsigned.xcarchive apps/ios/build/BeastBox-unsigned-device-0.5.0.zip
+          ditto -c -k --keepParent apps/ios/build/BeastBox-unsigned.xcarchive apps/ios/build/BeastBox-unsigned-device-0.6.0.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: beast-ios-simulator-0.5.0
-          path: apps/ios/build/BeastBox-simulator-0.5.0.zip
+          name: beast-ios-simulator-0.6.0
+          path: apps/ios/build/BeastBox-simulator-0.6.0.zip
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
-          name: beast-ios-unsigned-device-0.5.0
-          path: apps/ios/build/BeastBox-unsigned-device-0.5.0.zip
+          name: beast-ios-unsigned-device-0.6.0
+          path: apps/ios/build/BeastBox-unsigned-device-0.6.0.zip
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: beast-ios-evidence-0.5.0
+          name: beast-ios-evidence-0.6.0
           path: apps/ios/build/evidence

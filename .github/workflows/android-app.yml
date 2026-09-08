@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   workflow_call:
   push:
-    branches: [integration/beast-box-portable-kit-002]
+    branches: [polish/beast-box-launch-003]
     paths:
       - 'apps/android/**'
       - 'beastbox/**'
@@ -62,7 +62,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: beast-android-0.5.0
+          name: beast-android-0.6.0
           path: |
             apps/android/dist/
             apps/android/acceptance/
@@ -71,7 +71,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: beast-android-0.5.0-failure
+          name: beast-android-0.6.0-failure
           path: |
             apps/android/dist/android-build-receipt.json
             apps/android/acceptance/
