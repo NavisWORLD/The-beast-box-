@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import json
+import hashlib
+from datetime import datetime, timezone
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -65,6 +68,13 @@ def main() -> None:
                 nav('MEMORY VAULT')
                 expect(page.locator('#memoryOut')).to_contain_text('ordinary durable test message')
                 expect(page.locator('#memoryOut')).not_to_contain_text('ephemeral-cosmic-test-content')
+                page.locator('#memoryMode').select_option('raw')
+                expect(page.locator('#memoryRaw')).to_contain_text('sha256')
+                expect(page.locator('#memoryOut')).to_be_hidden()
+                page.locator('#memoryMode').select_option('visual')
+                page.locator('#memoryQuery').fill('ordinary durable')
+                expect(page.locator('.memory-record')).to_have_count(1)
+                page.locator('#memoryQuery').fill('')
                 nav('SYNAPSE TRACE')
                 expect(page.locator('#traceOut')).to_contain_text('checkpoint')
 
@@ -74,6 +84,13 @@ def main() -> None:
                 expect(page.locator('#writeWorkspace')).to_be_disabled()
                 page.locator('#workspaceTree').get_by_role('button', name='note.txt', exact=True).click()
                 expect(page.locator('#workspaceContent')).to_have_value('original workspace content')
+                page.locator('#workspaceQuery').fill('original workspace')
+                page.get_by_role('button', name='SEARCH', exact=True).click()
+                expect(page.locator('#searchOut')).to_contain_text('note.txt:1')
+                page.locator('#workspaceContent').fill('preview only')
+                page.get_by_role('button', name='PREVIEW DIFF', exact=True).click()
+                expect(page.locator('#diffOut')).to_contain_text('+preview only')
+                assert (workspace / 'note.txt').read_text() == 'original workspace content'
                 grant('filesystem')
                 grant('repo_write')
                 grant('tools')
@@ -130,6 +147,46 @@ def main() -> None:
                 expect(page.locator('#devicePill')).to_have_text('DEVICES OFF')
                 assert page.evaluate("window.testTracks.every(track => track.readyState === 'ended')")
 
+                # Guided reference demonstration: no model/server fixture responses.
+                nav('ORBIT')
+                page.locator('#demoStart').click()
+                page.locator('#sendChat').click()
+                expect(page.locator('#demoTitle')).to_have_text('See what was stored.')
+                page.locator('#demoNext').click()
+                expect(page.locator('#demoTitle')).to_have_text('Clock in another reference brain.')
+                page.locator('#demoNext').click()
+                page.locator('#saveProvider').click()
+                expect(page.locator('#demoTitle')).to_have_text('Ask the new brain about your story.')
+                page.locator('#demoNext').click()
+                page.locator('#sendChat').click()
+                expect(page.locator('#demoTitle')).to_have_text('Inspect the actual delivery.')
+                page.locator('#demoNext').click()
+                expect(page.locator('#demoTitle')).to_have_text('Export your continuity.')
+                page.locator('#demoNext').click()
+                page.locator('#exportDestination').fill(str(root / 'guided-capsule'))
+                page.locator('#exportSnapshot').click()
+                expect(page.locator('#demoProgress')).to_have_text('REFERENCE DEMO / COMPLETED')
+                assert not any(app.authority.snapshot().values())
+                assert (root / 'guided-capsule/manifest.json').is_file()
+                page.locator('#demoClose').click()
+
+                # Genuine captures from the executed UI and retained reference data.
+                page.reload()
+                expect(page.locator('#runtimePill')).to_have_text('SUBSTRATE VERIFIED')
+                for name, image_name, ready in [
+                    ('ORBIT', 'orbit-desktop.png', '#mapCore'),
+                    ('BRAIN BAY', 'brain-bay-desktop.png', '#bayCurrent'),
+                    ('MEMORY VAULT', 'memory-vault-desktop.png', '.memory-record'),
+                    ('SYNAPSE TRACE', 'synapse-trace-desktop.png', '.trace-node'),
+                    ('WORKSPACE', 'workspace-desktop.png', '#workspaceBranch'),
+                    ('AUTHORITY', 'authority-desktop.png', '.authority-row'),
+                    ('SETTINGS / STORAGE', 'storage-desktop.png', '#storageFacts dd'),
+                    ('FILES', 'files-desktop.png', '#scopeHelp'),
+                ]:
+                    nav(name)
+                    expect(page.locator(ready).first).to_be_visible()
+                    page.screenshot(path=str(output / image_name), full_page=True)
+
                 for name in ['ORBIT', 'BRAIN', 'BRAIN BAY', 'VISION', 'LISTEN', 'VOICE', 'REALITY', 'MEMORY VAULT', 'SYNAPSE TRACE', 'FILES', 'WORKSPACE', 'Q-BAY', 'CONNECTIONS', 'AUTHORITY', 'SETTINGS / STORAGE']:
                     nav(name)
                 page.set_viewport_size({'width': 390, 'height': 844})
@@ -139,9 +196,22 @@ def main() -> None:
                 nav('WORKSPACE')
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
                 page.screenshot(path=str(output / 'workspace-mobile.png'), full_page=True)
+                for name in ['BRAIN BAY', 'MEMORY VAULT', 'SYNAPSE TRACE', 'FILES', 'AUTHORITY', 'SETTINGS / STORAGE']:
+                    nav(name)
+                    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), name
                 assert not errors, errors
                 browser.close()
             (output / 'result.json').write_text(json.dumps({'passed': True, 'flows': ['chat', 'temporary context', 'memory', 'trace', 'workspace confinement and writes', 'same/different brain authority', 'portable export/verify/import', 'synthetic camera revocation', 'all navigation', '390px layout'], 'physical_devices_validated': False}, indent=2)+'\n')
+            source_sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+            provenance = {
+                'source_commit': source_sha, 'workflow_run': os.environ.get('GITHUB_RUN_ID'),
+                'captured_at': datetime.now(timezone.utc).isoformat(),
+                'ui_sha256': hashlib.sha256(Path('beastbox/cosmic_ui.py').read_bytes()).hexdigest(),
+                'capture': 'Real Chromium, real CosmicApp, deterministic reference provider, temporary workspace',
+                'physical_devices_validated': False,
+                'images': {file.name: hashlib.sha256(file.read_bytes()).hexdigest() for file in sorted(output.glob('*.png'))},
+            }
+            (output / 'provenance.json').write_text(json.dumps(provenance, indent=2)+'\n')
         finally:
             server.shutdown()
             server.server_close()

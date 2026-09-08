@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import sys
 import tempfile
 import threading
 from collections import deque
@@ -370,6 +371,19 @@ class CosmicApp:
             return 400, {"error": "invalid bounded workspace write request"}
         return 200, self._selected_workspace().write(path, content)
 
+    def _workspace_search(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        query = body.get("query")
+        if not isinstance(query, str) or not 1 <= len(query) <= 256 or set(body) != {"query"}:
+            return 400, {"error": "search needs 1..256 characters"}
+        return 200, {"hits": self._selected_workspace().search(query), "persistent_memory": False}
+
+    def _workspace_diff(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        path, content = body.get("path"), body.get("content")
+        if not isinstance(path, str) or not isinstance(content, str) or set(body) != {"path", "content"}:
+            return 400, {"error": "invalid workspace preview request"}
+        diff = self._selected_workspace().diff(path, content)
+        return 200, {"path": path, "diff": diff, "written": False, "persistent_memory": False}
+
     def _workspace_status(self) -> tuple[int, dict[str, Any]]:
         workspace = self._selected_workspace()
         if not self._workspace_has_repository():
@@ -481,6 +495,7 @@ class CosmicApp:
             runtime.close()
         return {
             "substrate_location": str(self.root),
+            "system_id": inspection["system_id"],
             "memory_records": inspection["memory"]["memories"],
             "checkpoint_sequence": inspection["sequence"],
             "checkpoint_sha256": inspection["checkpoint_sha256"],
@@ -539,13 +554,19 @@ class CosmicApp:
         data = body or {}
         try:
             if method == "GET" and path == "/api/orbit":
-                return 200, self.service.orbit_snapshot()
+                return 200, {
+                    **self.service.orbit_snapshot(),
+                    "workspace": {"root": str(self.workspace.root) if self.workspace else None},
+                }
             if method == "GET" and path == "/api/memory":
                 return 200, {"records": self.service.memory_records()}
             if method == "GET" and path == "/api/trace":
                 return 200, {"events": self.service.trace_events(), "session_events": list(self.session_events)}
             if method == "GET" and path == "/api/provider":
-                return 200, {"profile": asdict(self.profile), "secret_storage": "ENVIRONMENT_REFERENCE_ONLY"}
+                return 200, {
+                    "profile": asdict(self.profile), "secret_storage": "ENVIRONMENT_REFERENCE_ONLY",
+                    "network_boundary": "REMOTE" if self.profile.remote else "LOCAL",
+                }
             if method == "GET" and path == "/api/resources":
                 return 200, {"resources": self.service.resource_status()}
             if method == "GET" and path == "/api/workspace":
@@ -578,6 +599,10 @@ class CosmicApp:
                 return self._workspace_select(data)
             if method == "POST" and path == "/api/workspace/read":
                 return self._workspace_read(data)
+            if method == "POST" and path == "/api/workspace/search":
+                return self._workspace_search(data)
+            if method == "POST" and path == "/api/workspace/diff":
+                return self._workspace_diff(data)
             if method == "POST" and path == "/api/workspace/write":
                 return self._workspace_write(data)
             if method == "POST" and path == "/api/workspace/run":
@@ -695,6 +720,18 @@ def serve(root: str | Path, host: str = "127.0.0.1", port: int = 8081) -> None:
     server.cosmic_app = CosmicApp(root)
     server.session_token = secrets.token_urlsafe(32)
     try:
+        runtime = server.cosmic_app.service.orbit_snapshot()["runtime"]
+        profile = server.cosmic_app.profile
+        print(
+            f"BEAST BOX ONLINE / COSMIC.CYPHER\n"
+            f"SUBSTRATE: {server.cosmic_app.root}\n"
+            f"SYSTEM ID: {runtime['system_id']}\n"
+            f"PROVIDER: {profile.kind} / {profile.model}\n"
+            f"UI: http://{bind}:{port}\n"
+            "AUTHORITY: ALL OFF\n"
+            "Swap the brain. Keep the story.",
+            file=sys.stderr,
+        )
         server.serve_forever()
     finally:
         server.server_close()

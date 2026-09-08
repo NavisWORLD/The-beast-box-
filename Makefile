@@ -1,12 +1,25 @@
 PYTHON ?= python
 ACCEPTANCE_OUTPUT ?= build/architecture-acceptance.json
 
-.PHONY: quality lint typecheck test acceptance security sealed-evidence package-smoke
+.PHONY: install cosmic smoke demo quality lint typecheck test acceptance security sealed-evidence package-smoke
+
+install:
+	$(PYTHON) -m pip install -e .
+
+cosmic:
+	$(PYTHON) -m beastbox.cosmic_entry
+
+smoke:
+	$(PYTHON) -m beastbox.cosmic_entry --smoke
+
+demo:
+	$(PYTHON) -m beastbox.cosmic_entry --demo --data-dir ./beast-demo
 
 quality: lint typecheck test acceptance security sealed-evidence
 
 lint:
 	$(PYTHON) -m ruff check beastbox/doctor.py beastbox/portable_state.py tests/test_launch_surface.py tests/test_compatible_provider.py
+	$(PYTHON) -m ruff check beastbox/cosmic_demo.py tests/test_cosmic_product_polish.py scripts/smoke/cosmic_browser.py
 	$(PYTHON) -m ruff check beastbox/aliases.py beastbox/hashutil.py beastbox/logging_config.py \
 		beastbox/continuity.py beastbox/durable.py beastbox/events.py beastbox/providers.py \
 		beastbox/runtime_cli.py beastbox/swap_receipt.py scripts/run_architecture_acceptance.py \
@@ -22,7 +35,7 @@ typecheck:
 		beastbox/continuity.py beastbox/durable.py beastbox/events.py beastbox/providers.py \
 		beastbox/cli.py beastbox/cypher/models.py beastbox/runtime_cli.py beastbox/swap_receipt.py \
 		beastbox/product_services.py beastbox/memory.py beastbox/cosmic_web.py beastbox/cosmic_ui.py beastbox/cosmic_entry.py \
-		scripts/run_architecture_acceptance.py
+		scripts/run_architecture_acceptance.py beastbox/cosmic_demo.py
 
 test:
 	mkdir -p build

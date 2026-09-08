@@ -84,26 +84,33 @@ class Workspace:
             return []
         hits: list[dict[str, object]] = []
         low = needle.lower()
+        remaining_bytes = 8 * 1024 * 1024
         for rel in self.tree(max_entries=2500):
             if rel.startswith("..."):
                 continue
-            p = self.resolve(rel)
-            if p.suffix.lower() in _BINARY_SUFFIXES or p.stat().st_size > 500_000:
-                continue
             try:
-                lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
-            except OSError:
+                p = self.resolve(rel)
+                if not p.is_file() or p.suffix.lower() in _BINARY_SUFFIXES:
+                    continue
+                content = self.read(rel, max_bytes=min(500_000, remaining_bytes))
+                remaining_bytes -= len(content.encode("utf-8"))
+                lines = content.splitlines()
+            except (OSError, ValueError):
                 continue
             for number, line in enumerate(lines, 1):
                 if low in line.lower():
                     hits.append({"path": rel, "line": number, "text": line[:500]})
                     if len(hits) >= limit:
                         return hits
+            if remaining_bytes <= 0:
+                break
         return hits
 
     def diff(self, relative: str | Path, content: str) -> str:
+        if len(content.encode("utf-8")) > 1024 * 1024:
+            raise ValueError("workspace diff exceeds one MiB")
         p = self.resolve(relative)
-        old = p.read_text(encoding="utf-8", errors="replace") if p.exists() else ""
+        old = self.read(relative, max_bytes=1024 * 1024) if p.exists() else ""
         rel = str(Path(relative)).replace(os.sep, "/")
         return "".join(difflib.unified_diff(old.splitlines(keepends=True), content.splitlines(keepends=True), fromfile=f"a/{rel}", tofile=f"b/{rel}"))
 
