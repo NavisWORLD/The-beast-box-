@@ -154,8 +154,10 @@ class DurableRuntime(CosmosRuntime):
                 # Numeric software events share the existing bounded bridge input.
                 packet = BridgePacket(audio_features=list(normalized["features"]))
                 result = super().respond(normalized["text"], bridge=packet)
+                durable_trace = [*self._trace, "checkpoint"]
                 receipt = {"event": normalized, "routing": self._routing,
-                           "model": cast(MeasuredProvider, self.provider).receipt, "tool_result": self._tool_result}
+                           "model": cast(MeasuredProvider, self.provider).receipt, "tool_result": self._tool_result,
+                           "trace": durable_trace}
                 self.ledger.append("runtime_receipt", receipt)
                 checkpoint = self.continuity.append(self._state(), system_id=self.system_id, receipt=receipt)
                 self._trace_stage("checkpoint")
