@@ -73,7 +73,10 @@ def main() -> None:
                 expect(page.locator('#memoryOut')).to_be_hidden()
                 page.locator('#memoryMode').select_option('visual')
                 page.locator('#memoryQuery').fill('ordinary durable')
-                expect(page.locator('.memory-record')).to_have_count(1)
+                # Ordinary input and the reference provider's echo are both durable.
+                expect(page.locator('.memory-record')).to_have_count(2)
+                expect(page.locator('.memory-record')).to_contain_text(['ordinary durable', 'ordinary durable'])
+                expect(page.locator('#memoryOut')).not_to_contain_text('Read my attachment')
                 page.locator('#memoryQuery').fill('')
                 nav('SYNAPSE TRACE')
                 expect(page.locator('#traceOut')).to_contain_text('checkpoint')
