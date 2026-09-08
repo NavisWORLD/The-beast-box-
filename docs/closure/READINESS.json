@@ -29,6 +29,7 @@
     "history_secret_signatures": "PASS within the repository security audit boundary; no universal secret-scanner claim",
     "package_build": "PASS: source-bound 0.6.0 wheel, sdist and combined kit were generated and checksummed",
     "clean_wheel_install": "PASS: Product CI built, installed and ran away from the source checkout; the published wheel digest matches the independently inspected source-bound artifact",
+    "public_download_smoke": "PASS: run 34183578287 anonymously downloaded the published v0.6.0 wheel from GitHub Releases with HTTP 200, matched SHA-256 4a053c2dd255c3fa78e4dc973dd54247c7ad66cfdacf2e6eb8bb65e6c5b8a9e2, installed it in a blank Python 3.12 venv without a source checkout, preserved system identity across separate CLI processes and portable export/import, rejected tampered state, and kept default tool authority denied before and after import",
     "end_to_end_and_restart": "PASS: all 24 architecture acceptance checks passed on the exact release source",
     "supported_python_matrix": "PASS: Python 3.10, 3.11 and 3.12",
     "portable_state_handoff": "PASS: Linux export to Windows Server 2025 import preserved system/checkpoint identity and memory retrieval while authority_transferred=false",
@@ -56,7 +57,16 @@
     "combined_kit_sha256": "c2a5bf5e3cb972ec3e5f1aa45f06d7e77e9b6de115e049f06e830a1f4c312ad2",
     "wheel_sha256": "4a053c2dd255c3fa78e4dc973dd54247c7ad66cfdacf2e6eb8bb65e6c5b8a9e2",
     "story_receipt_sha256": "20bf2164e4e513bff4221b141628a11ed5bab37492d153178a69c74d9e9b3a3e",
-    "portable_handoff_sha256": "ca6c672e0766318f967208eeec0fd9e4d55e99ff03b7eb80bb094db633f2edf0"
+    "portable_handoff_sha256": "ca6c672e0766318f967208eeec0fd9e4d55e99ff03b7eb80bb094db633f2edf0",
+    "public_download_smoke": {
+      "receipt": "docs/closure/PUBLIC_RELEASE_WHEEL_SMOKE.json",
+      "run_id": 34183578287,
+      "job_id": 101927375924,
+      "artifact_id": 10039744536,
+      "artifact_sha256": "ad3be277770c3e552c27e8b8a1f5299da958f6306b85a79e06cefd1a01e247aa",
+      "http_status": 200,
+      "source_checkout_used": false
+    }
   },
   "limitations": [
     "No physical actuators, camera capture, hostile Python plugin sandbox or multi-tenant service boundary.",
@@ -70,7 +80,7 @@
     "iOS includes simulator acceptance and an unsigned device archive; Apple signing, provisioning, physical-device acceptance, TestFlight and App Store distribution remain external.",
     "Live IBM/Azure account execution remains external to the normal release gates."
   ],
-  "release_policy": "release.yml requires exact-source Product CI, security, native/platform builds, real story delivery and Linux-to-Windows portable-state acceptance; v0.6.0 published only after those dependencies passed.",
+  "release_policy": "release.yml requires exact-source Product CI, security, native/platform builds, real story delivery and Linux-to-Windows portable-state acceptance; v0.6.0 published only after those dependencies passed. public-release-wheel-smoke.yml separately verifies the already-published wheel through its public user-facing URL.",
   "previous_published_release": {
     "tag": "v0.5.0",
     "source_commit": "fb15478089d0852d5adc4e68953b7b920b65f97d",
