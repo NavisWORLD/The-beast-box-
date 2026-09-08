@@ -36,6 +36,11 @@ class Workspace:
         if ".." in posix.parts or ".." in windows.parts:
             raise ValueError("path escapes the selected workspace")
         raw = Path(text.replace("\\", "/"))
+        current = self.root
+        for part in raw.parts:
+            current = current / part
+            if current.is_symlink():
+                raise ValueError("workspace paths cannot traverse symlinks")
         path = (self.root / raw).resolve()
         try:
             path.relative_to(self.root)
@@ -68,7 +73,11 @@ class Workspace:
         size = p.stat().st_size
         if size > max_bytes:
             raise ValueError(f"file is {size} bytes; exceeds read limit {max_bytes}")
-        return p.read_text(encoding="utf-8", errors="replace")
+        with p.open("rb") as handle:
+            raw = handle.read(max_bytes + 1)
+        if len(raw) > max_bytes:
+            raise ValueError("file exceeds bounded read limit")
+        return raw.decode("utf-8", errors="replace")
 
     def search(self, needle: str, *, limit: int = 50) -> list[dict[str, object]]:
         if not needle:
@@ -99,7 +108,12 @@ class Workspace:
         return "".join(difflib.unified_diff(old.splitlines(keepends=True), content.splitlines(keepends=True), fromfile=f"a/{rel}", tofile=f"b/{rel}"))
 
     def write(self, relative: str | Path, content: str) -> dict[str, str | None]:
+        if len(content.encode("utf-8")) > 1024 * 1024:
+            raise ValueError("workspace write exceeds one MiB")
         p = self.resolve(relative)
+        self.resolve(".cosmic-cypher/backups")
+        if p.exists() and p.stat().st_size > 1024 * 1024:
+            raise ValueError("existing file exceeds bounded backup limit")
         diff = self.diff(relative, content)
         backup: str | None = None
         if p.exists():
@@ -128,7 +142,28 @@ class Workspace:
             raise ValueError("empty command")
         self._validate_test_command(args)
         started = time.time()
-        proc = subprocess.run(args, cwd=self.root, capture_output=True, text=True, timeout=timeout, shell=False)
+        command = args
+        environment = os.environ.copy()
+        if args[0] == "git":
+            # Even read-only Git commands can launch repository-configured helpers.
+            environment["GIT_CONFIG_NOSYSTEM"] = "1"
+            environment["GIT_CONFIG_GLOBAL"] = os.devnull
+            if (self.root / ".git").is_dir():
+                environment["GIT_DIR"] = str(self.root / ".git")
+                environment["GIT_WORK_TREE"] = str(self.root)
+            filters = subprocess.run(
+                ["git", "config", "--get-regexp", r"^filter\."], cwd=self.root,
+                env=environment, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                timeout=timeout, shell=False,
+            )
+            if filters.returncode != 1:
+                raise PermissionError("read-only Git requires configuration without executable filters")
+            command = ["git", "-c", "core.fsmonitor=false", "-c", "core.pager=cat", *args[1:]]
+            if args[1] in {"diff", "log", "show"}:
+                command.extend(["--no-ext-diff", "--no-textconv"])
+            environment["GIT_OPTIONAL_LOCKS"] = "0"
+            environment["GIT_PAGER"] = "cat"
+        proc = subprocess.run(command, cwd=self.root, env=environment, capture_output=True, text=True, timeout=timeout, shell=False)
         return {"argv": args, "returncode": proc.returncode, "stdout": proc.stdout[-20_000:], "stderr": proc.stderr[-20_000:], "seconds": round(time.time() - started, 3)}
 
     @staticmethod

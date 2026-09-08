@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 TOKEN_RE = re.compile(r"[A-Za-z0-9_']+")
 
@@ -34,6 +34,16 @@ class MemoryHit:
     score: float
     created_at: float
     kind: str
+    source_ids: list[int]
+
+
+@dataclass
+class MemoryRecord:
+    id: int
+    created_at: float
+    kind: str
+    text: str
+    metadata: dict[str, Any]
     source_ids: list[int]
 
 
@@ -86,6 +96,8 @@ class ReconciliationMemory:
             "INSERT INTO memories(created_at,kind,text,metadata_json,source_ids_json) VALUES(?,?,?,?,?)",
             (time.time(), kind, text, json.dumps(metadata or {}, sort_keys=True), json.dumps(list(source_ids))),
         )
+        if cur.lastrowid is None:
+            raise RuntimeError("memory insert did not return an id")
         memory_id = int(cur.lastrowid)
         self._hebbian_update(text)
         if not self._atomic:
@@ -150,6 +162,32 @@ class ReconciliationMemory:
         hits.sort(key=lambda h: h.score, reverse=True)
         return hits[:limit]
 
+    def recent(self, *, limit: int = 50) -> list[MemoryRecord]:
+        """Return newest retained records without changing retrieval or state."""
+        if type(limit) is not int or not 1 <= limit <= 1000:
+            raise ValueError("recent memory limit must be an integer in 1..1000")
+        rows = self.db.execute(
+            "SELECT id,created_at,kind,text,metadata_json,source_ids_json FROM memories ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        records: list[MemoryRecord] = []
+        for row in rows:
+            metadata = json.loads(row["metadata_json"])
+            source_ids = json.loads(row["source_ids_json"])
+            if not isinstance(metadata, dict) or not isinstance(source_ids, list):
+                raise RuntimeError("invalid retained memory metadata")
+            records.append(
+                MemoryRecord(
+                    id=int(row["id"]),
+                    created_at=float(row["created_at"]),
+                    kind=str(row["kind"]),
+                    text=str(row["text"]),
+                    metadata=metadata,
+                    source_ids=[int(value) for value in source_ids],
+                )
+            )
+        return records
+
     def associations(self, concept: str, *, limit: int = 10) -> list[tuple[str, float]]:
         c = concept.lower()
         rows = self.db.execute(
@@ -167,7 +205,8 @@ class ReconciliationMemory:
             toks = _tokens(str(row["text"]))
             if not toks:
                 continue
-            key = max(Counter(toks), key=Counter(toks).get)
+            counts = Counter(toks)
+            key = max(counts, key=lambda token: counts[token])
             buckets.setdefault(key, []).append(row)
         made: list[int] = []
         for key, group in buckets.items():

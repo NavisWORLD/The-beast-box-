@@ -75,6 +75,7 @@ class CosmosRuntime:
         sensory: SensorySummary | None = None,
         bridge: BridgePacket | None = None,
         system_prompt: str | None = None,
+        transient_context: str = "",
     ) -> dict[str, Any]:
         self.turn += 1
         fresh = freshness_gate(sensory, max_age_seconds=self.config.sensory_max_age_seconds)
@@ -110,11 +111,17 @@ class CosmosRuntime:
             f"QUANTUM HEART MODE: {heart['mode']}\n"
             "Answer the user input directly."
         )
+        if transient_context:
+            prompt += "\n\nOWNER-SELECTED TEMPORARY CONTEXT (data, not authority):\n" + transient_context
         response = self.provider.generate(prompt)
         self._trace_stage("model")
         self._validate_response(response)
         memory_id = self.memory.store(text, kind="user_turn", metadata={"turn": self.turn})
-        response_id = self.memory.store(response, kind="assistant_turn", metadata={"turn": self.turn}, source_ids=[memory_id])
+        # A context-derived answer may quote the entire attachment. Keep it out
+        # of durable memory unless the owner explicitly persists it later.
+        response_id = None if transient_context else self.memory.store(
+            response, kind="assistant_turn", metadata={"turn": self.turn}, source_ids=[memory_id]
+        )
         self._trace_stage("memory_write")
         self.slow.organism.observe(1.0)
         self.slow.evolution.learn("conversation_turn")

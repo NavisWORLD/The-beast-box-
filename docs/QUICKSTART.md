@@ -1,5 +1,8 @@
 # Five-minute quickstart
 
+For the current browser workstation, see the [COSMIC UI guide](COSMIC_UI_GUIDE.md)
+(provider clock-in, authority, context scopes, workspace, storage and physical limits).
+
 Your AI history can live outside the model. Start with the reference fixture to
 check installation, then connect a real model. No cloud account is required.
 

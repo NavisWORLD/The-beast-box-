@@ -1,5 +1,8 @@
 # COSMIC.CYPHER-CLI
 
+For the current browser workstation, see the [COSMIC UI guide](COSMIC_UI_GUIDE.md)
+(provider clock-in, authority, context scopes, workspace, storage and physical limits).
+
 `cosmic.cypher-cli` is the local-model coding and conversation interface shipped with The Beast Box.
 
 ## Install

@@ -41,3 +41,12 @@ A useful report includes:
 ## Credential incident response
 
 If a secret is exposed, treat deletion from the latest commit as insufficient. Revoke or rotate the credential first, remove it from active history where appropriate, inspect Actions/logs/artifacts for copies, and document the incident without reproducing the secret.
+
+## COSMIC browser owner boundary
+
+The browser is loopback-only and uses explicit session authority. Brain identity
+changes revoke every grant. Workspace reads and backups reject symlink escapes;
+browser tool commands are fixed read-only Git operations. Temporary selected
+context and its answer are excluded from durable content. Portable snapshots
+exclude authority and credentials; application-layer encryption is not established.
+See [privacy and data flow](docs/COSMIC_UI_GUIDE.md#privacy-and-data-flow).

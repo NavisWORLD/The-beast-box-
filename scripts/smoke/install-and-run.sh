@@ -22,6 +22,7 @@ smoke_artifact() {
   "$venv_dir/bin/python" -m beastbox runtime init --data-dir "$run_dir/state" >/dev/null
   "$venv_dir/bin/python" -m beastbox runtime chat --data-dir "$run_dir/state" --model A "package smoke" >/dev/null
   "$venv_dir/bin/python" -m beastbox runtime inspect --data-dir "$run_dir/state" >/dev/null
+  "$venv_dir/bin/beastbox-cosmic" --smoke --data-dir "$run_dir/cosmic-state" | grep -q '"valid": true'
   echo "$kind install smoke passed outside repository: $run_dir"
 }
 

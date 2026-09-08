@@ -13,12 +13,15 @@ lint:
 		scripts/productization_receipt.py tests/test_durable_runtime.py tests/test_product_spine.py \
 		tests/test_runtime_cli.py tests/test_swap_receipt.py tests/test_experimental_boundary.py \
 		scripts/seal_release_verification.py tests/test_release_verification.py \
-		beastbox/desktop.py beastbox/optional_resources.py beastbox/sensor_inputs.py tests/test_runtime_exchange.py
+		beastbox/desktop.py beastbox/optional_resources.py beastbox/sensor_inputs.py tests/test_runtime_exchange.py \
+		beastbox/product_services.py tests/test_product_services.py tests/test_product_observability.py beastbox/memory.py \
+		beastbox/cosmic_web.py beastbox/cosmic_ui.py beastbox/cosmic_entry.py tests/test_cosmic_web.py tests/test_cosmic_completion.py tests/test_cosmic_closure.py
 
 typecheck:
 	$(PYTHON) -m mypy beastbox/logging_config.py beastbox/hashutil.py beastbox/aliases.py \
 		beastbox/continuity.py beastbox/durable.py beastbox/events.py beastbox/providers.py \
 		beastbox/cli.py beastbox/cypher/models.py beastbox/runtime_cli.py beastbox/swap_receipt.py \
+		beastbox/product_services.py beastbox/memory.py beastbox/cosmic_web.py beastbox/cosmic_ui.py beastbox/cosmic_entry.py \
 		scripts/run_architecture_acceptance.py
 
 test:
