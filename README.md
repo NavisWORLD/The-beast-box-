@@ -161,11 +161,13 @@ The combined kit includes the public API/configuration and recovery instructions
 
 ### Portable kit and apps
 
-The [0.5.0 prerelease](https://github.com/NavisWORLD/The-beast-box-/releases/tag/v0.5.0) adds `INSTALL.bat` / `UnixINSTALL.sh`, a checked offline wheel
-installer, `LAUNCH.bat` / `UnixLAUNCH.sh`, and a local desktop UI. Its required platform workflows passed before publication.
-[Post-publication verification](docs/closure/PORTABLE_RELEASE_RECEIPT.json) records
-download hashes, acceptance and remaining distribution limits. The installers
-require Python 3.10–3.12; separately packaged desktop executables bundle Python.
+The **0.6.0 prerelease** packages `INSTALL.bat` / `UnixINSTALL.sh`, a checked offline wheel
+installer, `LAUNCH.bat` / `UnixLAUNCH.sh`, and a local desktop UI. Its release workflow also
+requires the Linux→Windows portable handoff and real-model story measurement before publication.
+The published release attaches `PORTABLE_HANDOFF.json`, `STORY_RECEIPT.json`, and
+`SHA256SUMS.txt`; read the receipts independently because substrate memory delivery and model
+answer quality are separate measurements. The installers require Python 3.10–3.12; separately
+packaged desktop executables bundle Python. See [0.6.0 release notes](docs/closure/RELEASE_NOTES_0.6.0.md).
 
 [Optional inputs](docs/OPTIONAL_INPUTS.md) documents user-owned IBM/Azure setup,
 explicit cloud-job permission, local PCM WAV input and measured light summaries.
