@@ -13,7 +13,7 @@
   "open_source": false,
   "canonical_repository": "https://github.com/NavisWORLD/The-beast-box-",
   "release_version": "0.6.0",
-  "classification": "release-hardened experimental software (publication gated)",
+  "classification": "release-hardened experimental software (v0.6.0 prerelease published)",
   "production_ready": false,
   "canonical_runtime_entrypoint": "beastbox runtime",
   "public_api": [
@@ -41,10 +41,32 @@
     "tag": "v0.3.2",
     "unchanged": true
   },
-  "release_tag": null,
-  "publication_status": "EXACT_SOURCE_RELEASE_GATED",
-  "candidate_tag": "v0.6.0",
-  "publication_receipt": "GitHub release and attached RELEASE_VERIFICATION.json",
+  "release_tag": "v0.6.0",
+  "publication_status": "PUBLISHED_PRERELEASE",
+  "release": {
+    "release_id": 384424330,
+    "source_commit": "331f03c5d6a4aab0b2e32314293e36c7a94be393",
+    "run_id": 34182709266,
+    "published_at": "2026-09-08T03:17:25Z",
+    "public_url": "https://github.com/NavisWORLD/The-beast-box-/releases/tag/v0.6.0",
+    "checksums": "SHA256SUMS.txt",
+    "verification": "RELEASE_VERIFICATION.json",
+    "story_receipt": "STORY_RECEIPT.json",
+    "portable_handoff": "PORTABLE_HANDOFF.json"
+  },
+  "real_model_demo_classification": {
+    "substrate_memory_delivery": "PASS",
+    "model_interpretation_quality": "MIXED",
+    "final_exact_dual_fact_emission": "PASS",
+    "claim_boundary": "Memory/context delivery is not perfect recall, personality preservation or human-like remembering."
+  },
+  "external_release_limits": [
+    "Apple signing, provisioning, physical-device acceptance, TestFlight and App Store distribution",
+    "Android production-store signing and physical-device real-model acceptance",
+    "Physical USB/filesystem handoff certification",
+    "Live IBM/Azure account execution"
+  ],
+  "publication_receipt": "GitHub release v0.6.0 plus attached RELEASE_VERIFICATION.json and SHA256SUMS.txt",
   "previous_release": {
     "tag": "v0.5.0",
     "receipt": "docs/closure/PORTABLE_RELEASE_RECEIPT.json",
