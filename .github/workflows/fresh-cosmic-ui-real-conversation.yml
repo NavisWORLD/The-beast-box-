@@ -1,0 +1,108 @@
+name: Fresh COSMIC UI Real Conversation Demo
+
+on:
+  push:
+    branches:
+      - demo/fresh-cosmic-ui-conversation-001
+    paths:
+      - scripts/demo/fresh_cosmic_conversation.py
+      - .github/workflows/fresh-cosmic-ui-real-conversation.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fresh-cosmic-ui-real-conversation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  conversation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AI_HORDE_API_KEY: "0000000000"
+      DEMO_MAIN_SHA: "9b978b6178184bc651d03881c6a3d208164c6c23"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install current COSMIC.CYPHER source and Chromium
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . playwright==1.55.0
+          python -m playwright install --with-deps chromium
+          python -m py_compile scripts/demo/fresh_cosmic_conversation.py
+
+      - name: Start the real packaged COSMIC.CYPHER entrypoint
+        run: |
+          mkdir -p build/fresh-cosmic-conversation
+          nohup beastbox-cosmic \
+            --data-dir "$PWD/build/fresh-cosmic-conversation/state" \
+            --host 127.0.0.1 \
+            --port 8081 \
+            > build/fresh-cosmic-conversation/server.log 2>&1 &
+          echo $! > build/fresh-cosmic-conversation/server.pid
+          python - <<'PY'
+          import time
+          import urllib.request
+          for _ in range(80):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8081', timeout=2) as response:
+                      if response.status == 200:
+                          print('COSMIC.CYPHER ready')
+                          break
+              except Exception:
+                  time.sleep(0.25)
+          else:
+              raise SystemExit('COSMIC.CYPHER did not become ready')
+          PY
+
+      - name: Talk to Beast through the fresh UI and record the literal browser session
+        run: python scripts/demo/fresh_cosmic_conversation.py
+
+      - name: Stop local server
+        if: always()
+        run: |
+          if [ -f build/fresh-cosmic-conversation/server.pid ]; then
+            kill "$(cat build/fresh-cosmic-conversation/server.pid)" 2>/dev/null || true
+          fi
+
+      - name: Convert video and seal checksums
+        if: always()
+        run: |
+          set -u
+          out=build/fresh-cosmic-conversation
+          if [ -f "$out/BEAST_BOX_COSMIC_FRESH_UI_REAL_CONVERSATION.webm" ]; then
+            if ! command -v ffmpeg >/dev/null 2>&1; then
+              sudo apt-get update
+              sudo apt-get install -y ffmpeg
+            fi
+            ffmpeg -y -i "$out/BEAST_BOX_COSMIC_FRESH_UI_REAL_CONVERSATION.webm" \
+              -c:v libx264 -pix_fmt yuv420p -movflags +faststart \
+              "$out/BEAST_BOX_COSMIC_FRESH_UI_REAL_CONVERSATION.mp4" \
+              > "$out/ffmpeg.log" 2>&1
+            ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height,r_frame_rate \
+              -of json "$out/BEAST_BOX_COSMIC_FRESH_UI_REAL_CONVERSATION.mp4" > "$out/VIDEO_METADATA.json"
+          fi
+          cd "$out"
+          sha256sum \
+            BEAST_BOX_COSMIC_FRESH_UI_REAL_CONVERSATION.webm \
+            BEAST_BOX_COSMIC_FRESH_UI_REAL_CONVERSATION.mp4 \
+            FULL_TRANSCRIPT.txt RUN_RECEIPT.json MODEL_SELECTION.json \
+            2>/dev/null > SHA256SUMS.txt || true
+          cat SHA256SUMS.txt || true
+
+      - name: Upload fresh UI conversation evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: beast-cosmic-fresh-ui-real-conversation-${{ github.run_id }}
+          path: build/fresh-cosmic-conversation/
+          if-no-files-found: error
+          retention-days: 90
