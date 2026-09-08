@@ -54,5 +54,5 @@ def test_orbit_snapshot_combines_runtime_authority_resources_and_capabilities(tm
     assert orbit["runtime"]["memory"]["memories"] == 2
     assert orbit["authority"]["camera"] is True
     assert orbit["authority"]["repo_write"] is False
-    assert orbit["capabilities"]["persistent_substrate"]["status"] == "EXISTS_AND_WORKS"
+    assert orbit["capabilities"]["persistent_substrate"]["status"] == "IMPLEMENTED_AND_TESTED"
     assert set(orbit["resources"]) == {"ibm", "azure"}
