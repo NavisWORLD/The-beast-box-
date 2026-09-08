@@ -44,7 +44,9 @@ class MeasuredProvider:
             "provider": type(self.delegate).__name__,
             "model": str(getattr(self.delegate, "model", getattr(self.delegate, "prefix", "unspecified"))),
             "identity_kind": "configured-provider-label; no weight attestation",
-            "prompt": prompt, "prompt_sha256": sha256_text(prompt), "output_sha256": sha256_text(output),
+            "prompt": prompt,
+            "prompt_sha256": sha256_text(prompt),
+            "output_sha256": sha256_text(output),
         }
         return output
 
@@ -57,7 +59,13 @@ class DurableRuntime(CosmosRuntime):
     state. Failed turns roll back memory, associations, state and provenance.
     """
 
-    def __init__(self, root: str | Path, provider: TextProvider | None = None, *, allow_simulated_tool: bool = False):
+    def __init__(
+        self,
+        root: str | Path,
+        provider: TextProvider | None = None,
+        *,
+        allow_simulated_tool: bool = False,
+    ):
         base = Path(root)
         if base.is_symlink():
             raise ValueError("runtime root must not be a symlink")
@@ -87,13 +95,18 @@ class DurableRuntime(CosmosRuntime):
 
     def _state(self) -> dict[str, Any]:
         return {
-            "turn": self.turn, "cns": asdict(self.cns), "state_family": asdict(self.synaptic.state_family),
-            "synaptic_packet": self.synaptic.last_packet, "slow": asdict(self.slow),
-            "heartbeat": {"ticks": self.heartbeat.tick_count, "tasks": [
-                {"last_tick": t.last_tick, "failures": t.failures} for t in self.heartbeat.tasks
-            ]},
+            "turn": self.turn,
+            "cns": asdict(self.cns),
+            "state_family": asdict(self.synaptic.state_family),
+            "synaptic_packet": self.synaptic.last_packet,
+            "slow": asdict(self.slow),
+            "heartbeat": {
+                "ticks": self.heartbeat.tick_count,
+                "tasks": [{"last_tick": t.last_tick, "failures": t.failures} for t in self.heartbeat.tasks],
+            },
             "ledger": [asdict(e) for e in self.ledger.events],
-            "r12_state": self.r12_state, "simulator_position": self.simulator_position,
+            "r12_state": self.r12_state,
+            "simulator_position": self.simulator_position,
         }
 
     def _restore(self, checkpoint: dict[str, Any]) -> None:
@@ -104,7 +117,11 @@ class DurableRuntime(CosmosRuntime):
         self.synaptic.state_family = StateFamily(**state["state_family"])
         self.synaptic.last_packet = state["synaptic_packet"]
         slow = state["slow"]
-        self.slow = SlowState(OrganismState(**slow["organism"]), EvolutionEngine(**slow["evolution"]), InternalMonologue(**slow["monologue"]))
+        self.slow = SlowState(
+            OrganismState(**slow["organism"]),
+            EvolutionEngine(**slow["evolution"]),
+            InternalMonologue(**slow["monologue"]),
+        )
         self.heartbeat.tick_count = state["heartbeat"]["ticks"]
         for task, saved in zip(self.heartbeat.tasks, state["heartbeat"]["tasks"], strict=True):
             task.last_tick, task.failures = saved["last_tick"], saved["failures"]
@@ -121,12 +138,23 @@ class DurableRuntime(CosmosRuntime):
         # Reuse the historical router without constructing/importing a historical ledger.
         adapter = cast(DadSonLedger, SimpleNamespace(memory=self.memory))
         records = RefractiveMemoryRouter(adapter).rank(
-            text, sequence=self.turn, dyn12=state.dyn12, r12_state=self.r12_state, limit=5,
+            text,
+            sequence=self.turn,
+            dyn12=state.dyn12,
+            r12_state=self.r12_state,
+            limit=5,
         )
-        self._routing = {"router": "RefractiveMemoryRouter", "context_sha256": sha256_obj(records),
-                         "memory_ids": [r["memory_id"] for r in records], "state_sha256": sha256_obj(self.r12_state)}
+        self._routing = {
+            "router": "RefractiveMemoryRouter",
+            "context_sha256": sha256_obj(records),
+            "memory_ids": [r["memory_id"] for r in records],
+            "state_sha256": sha256_obj(self.r12_state),
+        }
         self._trace_stage("r12_routing")
-        return [MemoryHit(r["memory_id"], r["text"], r["score"], r["created_at"], r["kind"], r["source_ids"]) for r in records]
+        return [
+            MemoryHit(r["memory_id"], r["text"], r["score"], r["created_at"], r["kind"], r["source_ids"])
+            for r in records
+        ]
 
     def _validate_response(self, response):
         self._trace_stage("policy")
@@ -155,15 +183,65 @@ class DurableRuntime(CosmosRuntime):
                 packet = BridgePacket(audio_features=list(normalized["features"]))
                 result = super().respond(normalized["text"], bridge=packet)
                 durable_trace = [*self._trace, "checkpoint"]
-                receipt = {"event": normalized, "routing": self._routing,
-                           "model": cast(MeasuredProvider, self.provider).receipt, "tool_result": self._tool_result,
-                           "trace": durable_trace}
+                receipt = {
+                    "event": normalized,
+                    "routing": self._routing,
+                    "model": cast(MeasuredProvider, self.provider).receipt,
+                    "tool_result": self._tool_result,
+                    "trace": durable_trace,
+                }
                 self.ledger.append("runtime_receipt", receipt)
                 checkpoint = self.continuity.append(self._state(), system_id=self.system_id, receipt=receipt)
                 self._trace_stage("checkpoint")
-                result.update(event=normalized, tool_result=self._tool_result, checkpoint=checkpoint,
-                              trace=list(self._trace), routing=self._routing, model=receipt["model"], ledger_head=self.ledger.head)
+                result.update(
+                    event=normalized,
+                    tool_result=self._tool_result,
+                    checkpoint=checkpoint,
+                    trace=list(self._trace),
+                    routing=self._routing,
+                    model=receipt["model"],
+                    ledger_head=self.ledger.head,
+                )
             return result
+        except BaseException:
+            if before is not None:
+                self._restore(before)
+            raise
+
+    def store_external_memory(
+        self,
+        text: str,
+        *,
+        kind: str = "file_context",
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Persist an explicitly confirmed external context in one durable transaction."""
+        if not isinstance(text, str) or not 1 <= len(text) <= 512 * 1024:
+            raise ValueError("persistent context text must contain 1..524288 characters")
+        if not isinstance(kind, str) or not kind or len(kind) > 64:
+            raise ValueError("persistent context kind is invalid")
+        meta = dict(metadata or {})
+        before = None
+        try:
+            with self.memory.transaction():
+                before = self.continuity.verify()
+                self._restore(copy.deepcopy(before))
+                memory_id = self.memory.store(text, kind=kind, metadata=meta)
+                receipt = {
+                    "kind": "explicit_external_memory",
+                    "memory_id": memory_id,
+                    "memory_kind": kind,
+                    "text_sha256": sha256_text(text),
+                    "metadata": meta,
+                    "trace": ["explicit_persist", "memory_write", "checkpoint"],
+                }
+                self.ledger.append("runtime_receipt", receipt)
+                checkpoint = self.continuity.append(self._state(), system_id=self.system_id, receipt=receipt)
+            return {
+                "memory_id": memory_id,
+                "checkpoint": checkpoint,
+                "text_sha256": receipt["text_sha256"],
+            }
         except BaseException:
             if before is not None:
                 self._restore(before)
@@ -173,8 +251,16 @@ class DurableRuntime(CosmosRuntime):
         with self.memory.transaction():
             c = self.continuity.verify()
             self._restore(c)
-            return {"schema": "runtime-inspection-v1", "valid": True, "system_id": c["system_id"],
-                    "checkpoint_sha256": c["sha256"], "sequence": c["sequence"],
-                    "turn": self.turn, "memory": self.memory.stats(), "memory_digest": c["memory_digest"],
-                    "state_sha256": sha256_obj(c["state"]), "ledger_head": self.ledger.head,
-                    "simulator_position": self.simulator_position}
+            return {
+                "schema": "runtime-inspection-v1",
+                "valid": True,
+                "system_id": c["system_id"],
+                "checkpoint_sha256": c["sha256"],
+                "sequence": c["sequence"],
+                "turn": self.turn,
+                "memory": self.memory.stats(),
+                "memory_digest": c["memory_digest"],
+                "state_sha256": sha256_obj(c["state"]),
+                "ledger_head": self.ledger.head,
+                "simulator_position": self.simulator_position,
+            }
