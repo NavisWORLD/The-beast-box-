@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from beastbox.cosmic_web import CosmicApp, ProviderProfile, render_cosmic_ui, validate_bind_host
+from beastbox.cosmic_web import CosmicApp, ProviderProfile, main as cosmic_main, render_cosmic_ui, validate_bind_host
 
 
 def test_cosmic_app_swaps_reference_brain_without_swapping_substrate(tmp_path):
@@ -115,3 +115,13 @@ def test_cosmic_ui_has_real_browser_privacy_controls_and_progressive_surfaces():
     assert "BRAIN CHANGED" in html
     assert "SUBSTRATE PRESERVED" in html
     assert "camera-derived features are not vision understanding" in html.lower()
+
+
+def test_cosmic_headless_smoke_initializes_real_durable_state(tmp_path, capsys):
+    assert cosmic_main(["--smoke", "--data-dir", str(tmp_path)]) == 0
+    receipt = json.loads(capsys.readouterr().out)
+    assert receipt["schema"] == "cosmic-ui-smoke-v1"
+    assert receipt["valid"] is True
+    assert receipt["turn"] == 0
+    assert receipt["authority_grants"] == 0
+    assert len(receipt["checkpoint_sha256"]) == 64
