@@ -119,7 +119,8 @@ def test_resource_status_contains_configuration_state_not_values(tmp_path, monke
 
 def test_portable_export_keeps_credentials_and_authority_outside_substrate(tmp_path, monkeypatch):
     root = tmp_path / "state"
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-example-secret-that-must-not-travel")
+    sentinel = "OPENAI_KEY_TEST_SENTINEL_DO_NOT_PERSIST_12345"
+    monkeypatch.setenv("OPENAI_API_KEY", sentinel)
     runtime = DurableRuntime(root)
     try:
         runtime.respond("remember marigold")
@@ -136,4 +137,4 @@ def test_portable_export_keeps_credentials_and_authority_outside_substrate(tmp_p
     assert receipt["authority"] == "NOT_TRANSFERRED"
     assert manifest["authority"] == "NOT_TRANSFERRED"
     assert manifest["credentials"] == "HOST_CONFIGURATION_EXCLUDED"
-    assert "sk-example-secret-that-must-not-travel" not in (bundle / "runtime.sqlite3").read_bytes().decode("utf-8", errors="ignore")
+    assert sentinel not in (bundle / "runtime.sqlite3").read_bytes().decode("utf-8", errors="ignore")
