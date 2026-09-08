@@ -44,7 +44,7 @@ jobs:
         run: mypy
       - name: Product-spine tests with measured coverage floor
         run: |
-          coverage run -m pytest tests/test_product_spine.py tests/test_starter_kit.py tests/test_full_runtime.py tests/test_beastbox.py tests/test_logging_config.py tests/test_workspace_security.py tests/test_productization_receipt.py tests/test_experimental_boundary.py
+          coverage run -m pytest tests/test_product_spine.py tests/test_starter_kit.py tests/test_full_runtime.py tests/test_beastbox.py tests/test_logging_config.py tests/test_workspace_security.py tests/test_productization_receipt.py tests/test_experimental_boundary.py tests/test_cosmic_web.py tests/test_cosmic_completion.py tests/test_cosmic_closure.py
           coverage report
       - name: Verify sealed scientific evidence is unchanged
         run: git diff --exit-code c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f -- evidence/final-whole-organism-001/
