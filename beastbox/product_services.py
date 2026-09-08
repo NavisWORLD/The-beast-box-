@@ -5,11 +5,12 @@ Authority is session-local and is never persisted into continuity state.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 import hashlib
 from pathlib import Path
 from typing import Any
 
+from .durable import DurableRuntime
 from .optional_resources import resource_status as optional_resource_status
 from .portable_state import export_snapshot
 
@@ -71,6 +72,13 @@ _TEXT_FILE_SUFFIXES = frozenset(
         ".css",
         ".xml",
     }
+)
+_MODEL_TRACE_FIELDS = (
+    "provider",
+    "model",
+    "identity_kind",
+    "prompt_sha256",
+    "output_sha256",
 )
 
 
@@ -271,6 +279,58 @@ class ProductService:
 
     def resource_status(self) -> dict[str, dict[str, str]]:
         return optional_resource_status()
+
+    def memory_records(self, *, limit: int = 50) -> list[dict[str, Any]]:
+        runtime = DurableRuntime(self.root)
+        try:
+            return [asdict(record) for record in runtime.memory.recent(limit=limit)]
+        finally:
+            runtime.close()
+
+    def trace_events(self, *, limit: int = 50) -> list[dict[str, Any]]:
+        runtime = DurableRuntime(self.root)
+        try:
+            checkpoints = runtime.continuity.history(limit=limit)
+        finally:
+            runtime.close()
+        events: list[dict[str, Any]] = []
+        for checkpoint in checkpoints:
+            receipt = checkpoint.get("receipt", {})
+            if not isinstance(receipt, dict):
+                receipt = {}
+            model = receipt.get("model", {})
+            safe_model = {
+                field: model[field]
+                for field in _MODEL_TRACE_FIELDS
+                if isinstance(model, dict) and field in model
+            }
+            stages = receipt.get("trace", [])
+            events.append(
+                {
+                    "sequence": checkpoint["sequence"],
+                    "checkpoint_sha256": checkpoint["sha256"],
+                    "previous": checkpoint["previous"],
+                    "stages": list(stages) if isinstance(stages, list) else [],
+                    "event": receipt.get("event"),
+                    "routing": receipt.get("routing", {}),
+                    "model": safe_model,
+                    "tool_result": receipt.get("tool_result", {}),
+                }
+            )
+        return events
+
+    def orbit_snapshot(self) -> dict[str, Any]:
+        runtime = DurableRuntime(self.root)
+        try:
+            inspection = runtime.inspect()
+        finally:
+            runtime.close()
+        return {
+            "runtime": inspection,
+            "authority": self.authority.snapshot(),
+            "resources": self.resource_status(),
+            "capabilities": capability_inventory(),
+        }
 
     def export_portable(self, destination: str | Path) -> dict[str, Any]:
         return export_snapshot(self.root, Path(destination))
