@@ -57,6 +57,22 @@ class ContinuityStore:
             raise RuntimeError("memory/association digest integrity mismatch")
         return {**payload, "sha256": previous}
 
+    def history(self, *, limit: int = 50) -> list[dict[str, Any]]:
+        """Return the latest verified checkpoint payloads in chronological order."""
+        if type(limit) is not int or not 1 <= limit <= 1000:
+            raise ValueError("checkpoint history limit must be an integer in 1..1000")
+        self.verify()
+        rows = self.db.execute(
+            "SELECT sequence,payload,sha256 FROM continuity ORDER BY sequence DESC LIMIT ?", (limit,)
+        ).fetchall()
+        result: list[dict[str, Any]] = []
+        for row in reversed(rows):
+            payload = json.loads(row["payload"])
+            if not isinstance(payload, dict):
+                raise RuntimeError("invalid checkpoint payload")
+            result.append({**payload, "sha256": str(row["sha256"])})
+        return result
+
     def append(self, state: dict[str, Any], *, system_id: str, receipt: dict[str, Any]) -> dict[str, Any]:
         last = self.db.execute("SELECT sequence,sha256 FROM continuity ORDER BY sequence DESC LIMIT 1").fetchone()
         body = {
