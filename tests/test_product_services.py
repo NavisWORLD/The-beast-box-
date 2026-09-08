@@ -14,25 +14,34 @@ from beastbox.product_services import (
 )
 
 
-def test_capability_inventory_uses_frozen_status_vocabulary():
+def test_capability_inventory_uses_release_status_vocabulary():
     inventory = capability_inventory()
     assert set(CAPABILITY_STATUSES) == {
-        "EXISTS_AND_WORKS",
-        "EXISTS_BUT_NOT_EXPOSED",
-        "HISTORICAL_REUSABLE",
-        "PROTOTYPE_ONLY",
-        "MISSING",
+        "IMPLEMENTED_AND_TESTED",
+        "IMPLEMENTED_NOT_PHYSICALLY_VALIDATED",
+        "PROTOTYPE",
+        "BLOCKED_EXTERNAL",
         "NOT_ESTABLISHED",
     }
-    assert inventory["persistent_substrate"]["status"] == "EXISTS_AND_WORKS"
-    assert inventory["camera_capture"]["status"] in CAPABILITY_STATUSES
-    assert inventory["custom_voice"]["status"] in CAPABILITY_STATUSES
+    assert inventory["persistent_substrate"]["status"] == "IMPLEMENTED_AND_TESTED"
+    assert inventory["camera_capture"]["status"] == "IMPLEMENTED_NOT_PHYSICALLY_VALIDATED"
+    assert inventory["custom_voice"]["status"] == "NOT_ESTABLISHED"
     assert all(entry["status"] in CAPABILITY_STATUSES for entry in inventory.values())
 
 
 def test_authority_session_is_default_deny_and_master_stop_revokes_live_paths():
     authority = AuthoritySession()
-    sensitive = {"camera", "microphone", "sensors", "cloud", "repo_write", "quantum_live"}
+    sensitive = {
+        "camera",
+        "microphone",
+        "sensors",
+        "cloud",
+        "repo_write",
+        "filesystem",
+        "tools",
+        "quantum_live",
+        "external_integrations",
+    }
     assert not any(authority.allowed(name) for name in sensitive)
     for name in sensitive:
         authority.grant(name)
