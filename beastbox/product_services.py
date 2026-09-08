@@ -15,20 +15,27 @@ from .optional_resources import resource_status as optional_resource_status
 from .portable_state import export_snapshot
 
 CAPABILITY_STATUSES = (
-    "EXISTS_AND_WORKS",
-    "EXISTS_BUT_NOT_EXPOSED",
-    "HISTORICAL_REUSABLE",
-    "PROTOTYPE_ONLY",
-    "MISSING",
+    "IMPLEMENTED_AND_TESTED",
+    "IMPLEMENTED_NOT_PHYSICALLY_VALIDATED",
+    "PROTOTYPE",
+    "BLOCKED_EXTERNAL",
     "NOT_ESTABLISHED",
 )
 
 _ALLOWED_AUTHORITIES = frozenset(
-    {"camera", "microphone", "sensors", "cloud", "repo_write", "quantum_live"}
+    {
+        "camera",
+        "microphone",
+        "sensors",
+        "cloud",
+        "repo_write",
+        "filesystem",
+        "tools",
+        "quantum_live",
+        "external_integrations",
+    }
 )
-_MASTER_PRIVACY_AUTHORITIES = frozenset(
-    {"camera", "microphone", "sensors", "cloud", "repo_write", "quantum_live"}
-)
+_MASTER_PRIVACY_AUTHORITIES = _ALLOWED_AUTHORITIES
 _SAFE_FILE_SUFFIXES = frozenset(
     {
         ".txt",
@@ -83,63 +90,83 @@ _MODEL_TRACE_FIELDS = (
 
 
 def capability_inventory() -> dict[str, dict[str, str]]:
-    """Return product-facing truth labels backed by current repository surfaces."""
+    """Return the product-facing truth matrix using the release vocabulary."""
     return {
         "persistent_substrate": {
-            "status": "EXISTS_AND_WORKS",
+            "status": "IMPLEMENTED_AND_TESTED",
             "source": "beastbox.durable + beastbox.continuity",
         },
         "model_swap": {
-            "status": "EXISTS_AND_WORKS",
-            "source": "DurableRuntime provider boundary + sealed swap evidence",
+            "status": "IMPLEMENTED_AND_TESTED",
+            "source": "DurableRuntime provider boundary + architecture acceptance",
         },
         "desktop_chat": {
-            "status": "EXISTS_AND_WORKS",
+            "status": "IMPLEMENTED_AND_TESTED",
             "source": "beastbox.desktop",
         },
+        "cosmic_browser_ui": {
+            "status": "IMPLEMENTED_AND_TESTED",
+            "source": "beastbox.cosmic_web + beastbox.cosmic_ui",
+        },
         "openai_compatible_provider": {
-            "status": "EXISTS_AND_WORKS",
+            "status": "IMPLEMENTED_AND_TESTED",
             "source": "beastbox.providers.CompatibleChatProvider",
         },
         "ollama_provider": {
-            "status": "EXISTS_AND_WORKS",
+            "status": "IMPLEMENTED_AND_TESTED",
             "source": "beastbox.providers.LocalOllamaProvider",
         },
         "pcm_wav_features": {
-            "status": "EXISTS_AND_WORKS",
+            "status": "IMPLEMENTED_AND_TESTED",
             "source": "beastbox.sensor_inputs.wav_event",
         },
         "light_observation": {
-            "status": "EXISTS_AND_WORKS",
+            "status": "IMPLEMENTED_AND_TESTED",
             "source": "beastbox.sensor_inputs.light_event",
         },
+        "portable_state": {
+            "status": "IMPLEMENTED_AND_TESTED",
+            "source": "beastbox.portable_state",
+        },
+        "workspace_repository": {
+            "status": "IMPLEMENTED_AND_TESTED",
+            "source": "beastbox.cypher.workspace + cosmic owner controller",
+        },
+        "camera_capture": {
+            "status": "IMPLEMENTED_NOT_PHYSICALLY_VALIDATED",
+            "source": "browser getUserMedia implementation; physical/mobile capture not CI-validated",
+        },
+        "live_microphone_capture": {
+            "status": "IMPLEMENTED_NOT_PHYSICALLY_VALIDATED",
+            "source": "browser getUserMedia + bounded local feature path; physical capture not CI-validated",
+        },
+        "browser_tts": {
+            "status": "IMPLEMENTED_NOT_PHYSICALLY_VALIDATED",
+            "source": "browser speechSynthesis UI path; audible output is not headless-CI validated",
+        },
         "ibm_quantum_adapter": {
-            "status": "EXISTS_BUT_NOT_EXPOSED",
+            "status": "PROTOTYPE",
             "source": "beastbox.optional_resources.quantum_event",
         },
         "azure_quantum_adapter": {
-            "status": "EXISTS_BUT_NOT_EXPOSED",
+            "status": "PROTOTYPE",
             "source": "beastbox.optional_resources.quantum_event",
         },
-        "portable_state": {
-            "status": "EXISTS_AND_WORKS",
-            "source": "beastbox.portable_state",
+        "quantum_hardware_execution": {
+            "status": "BLOCKED_EXTERNAL",
+            "source": "requires owner credentials, provider access, and live external hardware validation",
         },
         "reality_probe_hardware": {
-            "status": "HISTORICAL_REUSABLE",
-            "source": "NavisWORLD/Reality-bridge-universal-probe-engine-sim-",
-        },
-        "camera_capture": {
-            "status": "NOT_ESTABLISHED",
-            "source": "no current validated Beast camera capture path",
-        },
-        "live_microphone_capture": {
-            "status": "NOT_ESTABLISHED",
-            "source": "current runtime accepts bounded WAV input but opens no microphone",
+            "status": "PROTOTYPE",
+            "source": "historical Reality Bridge work; current product has no physical validation receipt",
         },
         "custom_voice": {
             "status": "NOT_ESTABLISHED",
             "source": "no verified production custom-voice implementation recovered",
+        },
+        "privileged_external_integrations": {
+            "status": "BLOCKED_EXTERNAL",
+            "source": "requires separately authorized external service connections",
         },
     }
 
@@ -175,6 +202,12 @@ class AuthoritySession:
         self._grants.difference_update(_MASTER_PRIVACY_AUTHORITIES)
         return stopped
 
+    def revoke_all(self) -> list[str]:
+        """Drop every model-facing host grant when a different brain clocks in."""
+        stopped = sorted(self._grants)
+        self._grants.clear()
+        return stopped
+
 
 @dataclass(frozen=True)
 class FileInspection:
@@ -186,7 +219,7 @@ class FileInspection:
 
 
 class WorkspaceGrant:
-    """Read-only allowlisted local workspace; write authority is intentionally absent."""
+    """Legacy read-only allowlisted local workspace retained for compatibility."""
 
     def __init__(self, root: str | Path, *, max_read_bytes: int = 1024 * 1024) -> None:
         supplied = Path(root).expanduser()
