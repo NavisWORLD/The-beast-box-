@@ -1,0 +1,169 @@
+name: Public release wheel smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/public-release-wheel-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  public-wheel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TAG: v0.6.0
+      VERSION: 0.6.0
+      WHEEL: cosmos_beast_box-0.6.0-py3-none-any.whl
+      EXPECTED_SHA256: 4a053c2dd255c3fa78e4dc973dd54247c7ad66cfdacf2e6eb8bb65e6c5b8a9e2
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download exact public release wheel anonymously
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/public-release-smoke"
+          mkdir -p "$root"
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${WHEEL}"
+          status=$(curl --fail --location --retry 3 --retry-all-errors \
+            --output "$root/$WHEEL" \
+            --write-out '%{http_code}' \
+            "$url")
+          test "$status" = "200"
+          actual=$(sha256sum "$root/$WHEEL" | awk '{print $1}')
+          test "$actual" = "$EXPECTED_SHA256"
+          printf '%s\n' "$url" > "$root/public-url.txt"
+          printf '%s\n' "$status" > "$root/http-status.txt"
+          printf '%s\n' "$actual" > "$root/wheel-sha256.txt"
+
+      - name: Install public wheel in a blank environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/public-release-smoke"
+          venv="$RUNNER_TEMP/public-wheel-venv"
+          python -m venv "$venv"
+          "$venv/bin/python" -m pip install --disable-pip-version-check "$root/$WHEEL"
+          mkdir -p "$root/run"
+          cd "$root/run"
+          "$venv/bin/python" - <<'PY'
+          import pathlib
+          import beastbox
+
+          module = pathlib.Path(beastbox.__file__).resolve()
+          assert beastbox.__version__ == "0.6.0", beastbox.__version__
+          assert "public-wheel-venv" in str(module), module
+          print(beastbox.__version__, module)
+          PY
+          "$venv/bin/python" -m beastbox --help >/dev/null
+
+      - name: Exercise restart, portable continuity, tamper rejection and authority denial
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/public-release-smoke"
+          run="$root/run"
+          py="$RUNNER_TEMP/public-wheel-venv/bin/python"
+          cd "$run"
+
+          "$py" -m beastbox runtime init --data-dir state > init.json
+          "$py" -m beastbox runtime chat --data-dir state --model A \
+            "Remember the public release wheel code SUNFLOWER." > chat.json
+          "$py" -m beastbox runtime inspect --data-dir state > inspect-after-restart.json
+          "$py" -m beastbox runtime tool-demo --data-dir state > tool-denied.json
+
+          "$py" -m beastbox runtime export --data-dir state portable > export.json
+          manifest_sha=$("$py" -c 'import json; print(json.load(open("export.json"))["manifest_sha256"])')
+          "$py" -m beastbox runtime verify-portable portable --sha256 "$manifest_sha" > verify-portable.json
+          "$py" -m beastbox runtime import --data-dir restored portable --sha256 "$manifest_sha" > import.json
+          "$py" -m beastbox runtime inspect --data-dir restored > restored-inspect.json
+          "$py" -m beastbox runtime tool-demo --data-dir restored > restored-tool-denied.json
+
+          cp -a portable portable-tampered
+          printf 'CORRUPTION' >> portable-tampered/runtime.sqlite3
+          if "$py" -m beastbox runtime verify-portable portable-tampered --sha256 "$manifest_sha" \
+            > tamper-stdout.txt 2> tamper-stderr.txt; then
+            echo "tampered portable state was incorrectly accepted" >&2
+            exit 1
+          fi
+
+          "$py" - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["RUNNER_TEMP"]) / "public-release-smoke"
+          run = root / "run"
+          load = lambda name: json.loads((run / name).read_text())
+
+          init = load("init.json")
+          chat = load("chat.json")
+          restarted = load("inspect-after-restart.json")
+          denied = load("tool-denied.json")
+          exported = load("export.json")
+          verified = load("verify-portable.json")
+          imported = load("import.json")
+          restored = load("restored-inspect.json")
+          restored_denied = load("restored-tool-denied.json")
+
+          system_id = init["system_id"]
+          assert chat["model"]["model"] == "A"
+          assert restarted["system_id"] == system_id
+          assert restarted["turn"] >= 1
+          assert denied["tool_result"]["status"] == "AUTHORITY_DENIED"
+          assert denied["tool_result"]["authorized"] is False
+          assert exported["authority"] == "NOT_TRANSFERRED"
+          assert verified["verified"] is True
+          assert verified["authority"] == "NOT_TRANSFERRED"
+          assert imported["restored"] is True
+          assert imported["authority"] == "NOT_TRANSFERRED"
+          assert restored["system_id"] == system_id
+          assert restored_denied["tool_result"]["status"] == "AUTHORITY_DENIED"
+          assert restored_denied["tool_result"]["authorized"] is False
+
+          wheel = root / os.environ["WHEEL"]
+          actual = hashlib.sha256(wheel.read_bytes()).hexdigest()
+          assert actual == os.environ["EXPECTED_SHA256"]
+
+          receipt = {
+              "schema": "beastbox-public-release-wheel-smoke-v1",
+              "passed": True,
+              "tag": os.environ["TAG"],
+              "version": os.environ["VERSION"],
+              "asset": os.environ["WHEEL"],
+              "public_url": (root / "public-url.txt").read_text().strip(),
+              "http_status": int((root / "http-status.txt").read_text().strip()),
+              "sha256": actual,
+              "clean_venv_install": True,
+              "source_checkout_used": False,
+              "separate_process_restart_verified": True,
+              "system_id_preserved": True,
+              "portable_export_verified": True,
+              "portable_import_verified": True,
+              "tampered_state_rejected": True,
+              "authority_transferred": False,
+              "default_tool_authority_denied_before_import": True,
+              "default_tool_authority_denied_after_import": True,
+              "classification": "public release transport/install/continuity smoke; not model-quality or model-weight attestation",
+          }
+          (root / "PUBLIC_RELEASE_WHEEL_SMOKE.json").write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + "\n"
+          )
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-release-wheel-smoke-v0.6.0
+          path: |
+            ${{ runner.temp }}/public-release-smoke/PUBLIC_RELEASE_WHEEL_SMOKE.json
+            ${{ runner.temp }}/public-release-smoke/wheel-sha256.txt
+            ${{ runner.temp }}/public-release-smoke/http-status.txt
+            ${{ runner.temp }}/public-release-smoke/run/tamper-stderr.txt
