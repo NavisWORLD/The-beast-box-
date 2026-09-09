@@ -14,7 +14,7 @@ on:
       - ".github/workflows/dependency-lock.yml"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: dependency-lock-${{ github.ref }}
@@ -32,40 +32,20 @@ jobs:
       - name: Install pinned uv
         run: python -m pip install "uv==0.12.11"
       - name: Verify committed lock is current
-        id: verify
-        shell: bash
         run: |
-          mkdir -p build
-          set +e
           uv lock --check
-          status=$?
-          set -e
-          if [ "$status" -eq 0 ]; then
-            printf '%s\n' '{"schema":"dependency-lock-v1","passed":true,"uv":"0.12.11"}' > build/dependency-lock.json
-            echo "generated=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          uv lock
-          cp uv.lock build/generated-uv.lock
-          printf '%s\n' '{"schema":"dependency-lock-v1","passed":false,"uv":"0.12.11","reason":"committed lock missing or stale; generated lock attached for review"}' > build/dependency-lock.json
-          echo "generated=true" >> "$GITHUB_OUTPUT"
-      - name: Commit resolver-generated lock on hardening branch
-        if: steps.verify.outputs.generated == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/hardening/buyer-grade-2026-09-08'
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add uv.lock
-          git commit -m "build(deps): add resolver-generated uv lock"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
-      - name: Reject missing or stale committed lock
-        if: steps.verify.outputs.generated == 'true'
-        run: exit 1
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          Path("build").mkdir(exist_ok=True)
+          Path("build/dependency-lock.json").write_text(
+              json.dumps({"schema": "dependency-lock-v1", "passed": True, "uv": "0.12.11"}, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: dependency-lock
-          path: |
-            build/dependency-lock.json
-            build/generated-uv.lock
+          path: build/dependency-lock.json
           if-no-files-found: warn
