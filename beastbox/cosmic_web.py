@@ -549,6 +549,34 @@ class CosmicApp:
         )
         return 200, receipt
 
+    def _healthz(self) -> tuple[int, dict[str, Any]]:
+        return 200, {"schema": "beastbox-health-v1", "status": "alive"}
+
+    def _readyz(self) -> tuple[int, dict[str, Any]]:
+        try:
+            runtime = DurableRuntime(self.root)
+            try:
+                inspection = runtime.inspect()
+            finally:
+                runtime.close()
+        except (OSError, ValueError, RuntimeError):
+            return 503, {
+                "schema": "beastbox-readiness-v1",
+                "ready": False,
+                "runtime_valid": False,
+                "provider_kind": self.profile.kind,
+            }
+        valid = bool(inspection.get("valid"))
+        payload = {
+            "schema": "beastbox-readiness-v1",
+            "ready": valid,
+            "runtime_valid": valid,
+            "provider_kind": self.profile.kind,
+            "system_id": str(inspection["system_id"]),
+            "checkpoint_sha256": str(inspection["checkpoint_sha256"]),
+        }
+        return (200 if valid else 503), payload
+
     def dispatch(self, method: str, path: str, body: dict[str, Any] | None = None) -> tuple[int, dict[str, Any]]:
         with self._lock:
             status, result = self._dispatch(method, path, body)
@@ -559,6 +587,10 @@ class CosmicApp:
     def _dispatch(self, method: str, path: str, body: dict[str, Any] | None) -> tuple[int, dict[str, Any]]:
         data = body or {}
         try:
+            if method == "GET" and path == "/healthz":
+                return self._healthz()
+            if method == "GET" and path == "/readyz":
+                return self._readyz()
             if method == "GET" and path == "/api/orbit":
                 return 200, {
                     **self.service.orbit_snapshot(),
