@@ -70,6 +70,9 @@ class DurableRuntime(CosmosRuntime):
         if base.is_symlink():
             raise ValueError("runtime root must not be a symlink")
         base.mkdir(parents=True, exist_ok=True)
+        from .sealed_storage import maybe_unseal_root
+
+        maybe_unseal_root(base)
         db_path = base / "runtime.sqlite3"
         if any((base / name).is_symlink() for name in ("runtime.sqlite3", "runtime.sqlite3-wal", "runtime.sqlite3-shm")):
             raise ValueError("runtime database files must not be symlinks")
@@ -272,3 +275,11 @@ class DurableRuntime(CosmosRuntime):
                 "ledger_head": self.ledger.head,
                 "simulator_position": self.simulator_position,
             }
+
+    def close(self) -> None:
+        root = Path(self.config.data_dir)
+        super().close()
+        from .sealed_storage import maybe_seal_root
+
+        maybe_seal_root(root)
+

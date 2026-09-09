@@ -128,6 +128,14 @@ def capability_inventory() -> dict[str, dict[str, str]]:
             "status": "IMPLEMENTED_AND_TESTED",
             "source": "beastbox.portable_state",
         },
+        "sealed_storage": {
+            "status": "IMPLEMENTED_AND_TESTED",
+            "source": "beastbox.sealed_storage AES-256-GCM; requires cosmos-beast-box[secure]",
+        },
+        "multi_profile_isolation": {
+            "status": "IMPLEMENTED_AND_TESTED",
+            "source": "beastbox.profiles.MultiUserGateway; loopback sessions, isolated data directories",
+        },
         "workspace_repository": {
             "status": "IMPLEMENTED_AND_TESTED",
             "source": "beastbox.cypher.workspace + cosmic owner controller",
@@ -322,6 +330,13 @@ class ProductService:
             ]
         finally:
             runtime.close()
+
+    def conversation_history(self, *, limit: int = 200) -> list[dict[str, Any]]:
+        """Chronological durable user/assistant turns for product surfaces."""
+        records = self.memory_records(limit=limit)
+        turns = [record for record in records if record["kind"] in {"user_turn", "assistant_turn"}]
+        turns.reverse()
+        return turns
 
     def trace_events(self, *, limit: int = 50) -> list[dict[str, Any]]:
         runtime = DurableRuntime(self.root)

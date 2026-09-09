@@ -54,6 +54,7 @@ def run_doctor(
 ) -> dict:
     from .optional_resources import resource_status
     from .runtime_cli import verify_database
+    from .sealed_storage import encryption_status
 
     root = data_dir or Path.home() / ".beastbox/data"
     checks: dict = {
@@ -66,7 +67,8 @@ def run_doctor(
         "security": {
             "tool_authority": "host-granted per invocation; never restored",
             "credential_export": "host configuration excluded",
-            "database_encrypted": False,
+            "database_encrypted": (root / "runtime.sqlite3.sealed").exists(),
+            "sealed_storage": encryption_status(sealed=(root / "runtime.sqlite3.sealed").exists()),
         },
     }
     for name in ("qiskit", "qiskit_ibm_runtime", "torch", "huggingface_hub"):

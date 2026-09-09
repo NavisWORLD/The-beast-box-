@@ -469,7 +469,7 @@ wheels = [
 
 [[package]]
 name = "cosmos-beast-box"
-version = "0.6.0"
+version = "0.7.0"
 source = { editable = "." }
 
 [package.optional-dependencies]
@@ -479,6 +479,7 @@ azure = [
 ]
 dev = [
     { name = "coverage" },
+    { name = "cryptography" },
     { name = "mypy" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
@@ -502,11 +503,16 @@ quantum = [
     { name = "qiskit" },
     { name = "qiskit-ibm-runtime" },
 ]
+secure = [
+    { name = "cryptography" },
+]
 
 [package.metadata]
 requires-dist = [
     { name = "azure-identity", marker = "extra == 'azure'", specifier = ">=1.17" },
     { name = "coverage", marker = "extra == 'dev'", specifier = ">=7.0" },
+    { name = "cryptography", marker = "extra == 'dev'", specifier = ">=44.0.0" },
+    { name = "cryptography", marker = "extra == 'secure'", specifier = ">=44.0.0" },
     { name = "huggingface-hub", marker = "extra == 'huggingface'", specifier = ">=0.27" },
     { name = "llama-cpp-python", marker = "extra == 'local-llm'", specifier = ">=0.3.9" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.17" },
@@ -519,7 +525,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12" },
     { name = "torch", marker = "extra == 'ml'", specifier = ">=2.2" },
 ]
-provides-extras = ["azure", "quantum", "huggingface", "ml", "local-llm", "dev"]
+provides-extras = ["azure", "quantum", "huggingface", "ml", "local-llm", "secure", "dev"]
 
 [[package]]
 name = "coverage"

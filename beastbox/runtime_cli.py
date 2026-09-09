@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import sqlite3
 import sys
@@ -99,6 +100,11 @@ def add_runtime_subparser(sub):
             cmd.add_argument("path", type=Path)
         if action in {"restore", "verify-portable", "import"}:
             cmd.add_argument("--sha256", required=True)
+        if action in {"export", "verify-portable", "import"}:
+            cmd.add_argument(
+                "--passphrase-env",
+                help="environment variable holding the seal passphrase; never pass the passphrase on argv",
+            )
         if action == "tool-demo":
             cmd.add_argument("--allow-simulated-tool", action="store_true")
         if action == "quantum-input":
@@ -129,15 +135,35 @@ def read_exchange(stream):
     return body
 
 
+def _seal_passphrase(args) -> str | None:
+    name = getattr(args, "passphrase_env", None)
+    if name is None:
+        return None
+    if name != "BEASTBOX_SEAL_PASSPHRASE":
+        raise ValueError("passphrase-env must be BEASTBOX_SEAL_PASSPHRASE")
+    value = os.environ.get("BEASTBOX_SEAL_PASSPHRASE", "")
+    if not isinstance(value, str) or len(value) < 8:
+        raise ValueError("BEASTBOX_SEAL_PASSPHRASE must contain at least 8 characters")
+    return value
+
+
 def handle_runtime(args):
     action = args.runtime_action
     if action in {"export", "verify-portable", "import"}:
-        from .portable_state import export_snapshot, import_snapshot, verify_snapshot
+        passphrase = _seal_passphrase(args)
+        if passphrase is None:
+            from .portable_state import export_snapshot, import_snapshot, verify_snapshot
+            if action == "export":
+                return export_snapshot(args.data_dir, args.path)
+            if action == "verify-portable":
+                return verify_snapshot(args.path, args.sha256)
+            return import_snapshot(args.path, args.data_dir, args.sha256)
+        from .sealed_storage import export_sealed_snapshot, import_sealed_snapshot, verify_sealed_snapshot
         if action == "export":
-            return export_snapshot(args.data_dir, args.path)
+            return export_sealed_snapshot(args.data_dir, args.path, passphrase)
         if action == "verify-portable":
-            return verify_snapshot(args.path, args.sha256)
-        return import_snapshot(args.path, args.data_dir, args.sha256)
+            return verify_sealed_snapshot(args.path, args.sha256, passphrase)
+        return import_sealed_snapshot(args.path, args.data_dir, args.sha256, passphrase)
     if action == "resource-status":
         from .optional_resources import resource_status
         return resource_status()

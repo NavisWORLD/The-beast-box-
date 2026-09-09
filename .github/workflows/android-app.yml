@@ -62,7 +62,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: beast-android-0.6.0
+          name: beast-android-0.7.0
           path: |
             apps/android/dist/
             apps/android/acceptance/
@@ -71,7 +71,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: beast-android-0.6.0-failure
+          name: beast-android-0.7.0-failure
           path: |
             apps/android/dist/android-build-receipt.json
             apps/android/acceptance/

@@ -37,14 +37,28 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--data-dir", type=Path, help="substrate directory; --demo requires a new destination")
     parser.add_argument("--host", default="127.0.0.1", help="loopback host only")
     parser.add_argument("--port", type=int, default=8081)
+    parser.add_argument("--profiles-home", type=Path, help="isolated profile home; default ~/.beastbox")
+    parser.add_argument("--profile", help="named isolated profile; still loopback-only, not a public service")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--smoke", action="store_true", help="headless installed-package/runtime integrity check")
     mode.add_argument("--demo", action="store_true", help="run the real deterministic reference demo in a new directory")
     args = parser.parse_args(argv)
-    root = (args.data_dir or default_data_dir()).expanduser().absolute()
     try:
         validate_bind_host(args.host)
+        if args.profile:
+            from .profiles import ProfileRegistry
+
+            if args.data_dir is not None:
+                raise ValueError("use either --profile or --data-dir, not both")
+            home = (args.profiles_home or Path.home() / ".beastbox").expanduser().absolute()
+            root = ProfileRegistry(home).by_name(args.profile).root
+        else:
+            if args.profiles_home is not None:
+                raise ValueError("--profiles-home requires --profile")
+            root = (args.data_dir or default_data_dir()).expanduser().absolute()
         if args.demo:
+            if args.profile:
+                raise ValueError("--demo uses --data-dir, not --profile")
             if args.data_dir is None:
                 raise ValueError("--demo needs --data-dir pointing to a new directory")
             from .cosmic_demo import run_reference_demo

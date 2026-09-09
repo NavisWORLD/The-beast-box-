@@ -37,17 +37,17 @@ source_hashes = {str(p.relative_to(root)): sha(p) for p in sources}
 apk = root / 'apps/android/app/build/outputs/apk/debug/app-debug.apk'
 artifact = None
 if passed:
-    target = out / 'beast-android-0.6.0-sideload.apk'
+    target = out / 'beast-android-0.7.0-sideload.apk'
     shutil.copyfile(apk, target)
     artifact = {'filename': target.name, 'sha256': sha(target), 'bytes': target.stat().st_size}
 receipt = {
-    'schema': 'beast-android-build-v1', 'version': '0.6.0-candidate',
+    'schema': 'beast-android-build-v1', 'version': '0.7.0',
     'application_id': 'dev.beastbox.mobile', 'source_commit': os.environ.get('GITHUB_SHA', 'local-unverified'),
     'run_url': f"https://github.com/{os.environ.get('GITHUB_REPOSITORY', '')}/actions/runs/{os.environ.get('GITHUB_RUN_ID', '')}",
     'acceptance': 'passed' if passed else 'failed-or-not-run',
     'runtime': 'Repository beastbox.durable.DurableRuntime embedded through Chaquopy 17.0.0 / Python 3.12',
     'toolchain': {'agp': '8.9.2', 'gradle': '8.11.1', 'kotlin': '2.2.10', 'jdk': '17', 'compile_sdk': 35},
-    'signing': 'Android debug signing only; sideload candidate, not Play distribution signing',
+    'signing': 'Release signing uses BEASTBOX_ANDROID_KEYSTORE env when supplied; otherwise debug signing only. Not Play distribution unless the owner supplies the store keystore.',
     'scope': 'Android API 35 x86_64 emulator; separate instrumentation processes with retained app data; A/B/A deterministic fixtures',
     'limitations': ['No physical-device acceptance', 'No bundled model weights or Ollama engine',
                     'No real-model inference acceptance', 'Uninstall or clear-data removes retained state'],
