@@ -2,6 +2,9 @@ name: BeastOS final boot plus Smol-Zeref film
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - 'demo/beastos-final-film-001'
 
 permissions:
   contents: read
