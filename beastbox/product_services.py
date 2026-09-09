@@ -316,7 +316,10 @@ class ProductService:
     def memory_records(self, *, limit: int = 50) -> list[dict[str, Any]]:
         runtime = DurableRuntime(self.root)
         try:
-            return [asdict(record) for record in runtime.memory.recent(limit=limit)]
+            return [
+                {**asdict(record), "sha256": hashlib.sha256(record.text.encode("utf-8")).hexdigest(), "persistent": True}
+                for record in runtime.memory.recent(limit=limit)
+            ]
         finally:
             runtime.close()
 

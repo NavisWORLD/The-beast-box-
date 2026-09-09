@@ -23,6 +23,8 @@ smoke_artifact() {
   "$venv_dir/bin/python" -m beastbox runtime chat --data-dir "$run_dir/state" --model A "package smoke" >/dev/null
   "$venv_dir/bin/python" -m beastbox runtime inspect --data-dir "$run_dir/state" >/dev/null
   "$venv_dir/bin/beastbox-cosmic" --smoke --data-dir "$run_dir/cosmic-state" | grep -q '"valid": true'
+  "$venv_dir/bin/beastbox-cosmic" --demo --data-dir "$run_dir/reference-demo" > "$run_dir/demo-receipt.json"
+  "$venv_dir/bin/python" -c "import json; r=json.load(open('$run_dir/demo-receipt.json')); assert r['passed'] and all(r['checks'].values()); print('installed reference demo passed')"
   echo "$kind install smoke passed outside repository: $run_dir"
 }
 
