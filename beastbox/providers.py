@@ -8,6 +8,11 @@ import urllib.error
 from dataclasses import dataclass
 from typing import Protocol
 
+# Compatible-provider profiles carry the *name* of a host secret variable rather
+# than the credential value. The environment inventory reports this separately
+# from fixed Beast configuration; it is not an exemption for ordinary env reads.
+__beastbox_dynamic_env_contract__ = "secret-reference-v1"
+
 
 class TextProvider(Protocol):
     def generate(self, prompt: str) -> str: ...
