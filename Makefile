@@ -1,11 +1,15 @@
 PYTHON ?= python
 ACCEPTANCE_OUTPUT ?= build/architecture-acceptance.json
 
-.PHONY: quality lint typecheck test acceptance security sealed-evidence package-smoke
+.PHONY: quality env-check lint typecheck test acceptance security sealed-evidence package-smoke
 
-quality: lint typecheck test acceptance security sealed-evidence
+quality: env-check lint typecheck test acceptance security sealed-evidence
+
+env-check:
+	$(PYTHON) -m beastbox.env_inventory --check .env.example beastbox
 
 lint:
+	$(PYTHON) -m ruff check beastbox/env_inventory.py tests/test_env_inventory.py
 	$(PYTHON) -m ruff check beastbox/doctor.py beastbox/portable_state.py tests/test_launch_surface.py tests/test_compatible_provider.py
 	$(PYTHON) -m ruff check beastbox/aliases.py beastbox/hashutil.py beastbox/logging_config.py \
 		beastbox/continuity.py beastbox/durable.py beastbox/events.py beastbox/providers.py \
@@ -18,7 +22,7 @@ lint:
 		beastbox/cosmic_web.py beastbox/cosmic_ui.py beastbox/cosmic_entry.py tests/test_cosmic_web.py tests/test_cosmic_completion.py tests/test_cosmic_closure.py
 
 typecheck:
-	$(PYTHON) -m mypy beastbox/logging_config.py beastbox/hashutil.py beastbox/aliases.py \
+	$(PYTHON) -m mypy beastbox/env_inventory.py beastbox/logging_config.py beastbox/hashutil.py beastbox/aliases.py \
 		beastbox/continuity.py beastbox/durable.py beastbox/events.py beastbox/providers.py \
 		beastbox/cli.py beastbox/cypher/models.py beastbox/runtime_cli.py beastbox/swap_receipt.py \
 		beastbox/product_services.py beastbox/memory.py beastbox/cosmic_web.py beastbox/cosmic_ui.py beastbox/cosmic_entry.py \
