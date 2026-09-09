@@ -5,7 +5,7 @@ import ast
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Iterable, Sequence, TypedDict
 
 DYNAMIC_SECRET_REFERENCE_CONTRACT = "secret-reference-v1"
 DYNAMIC_CONTRACT_NAME = "__beastbox_dynamic_env_contract__"
@@ -19,6 +19,17 @@ class EnvironmentInventoryError(ValueError):
 class SourceEnvironmentInventory:
     variables: set[str]
     dynamic_reads: list[str]
+
+
+class EnvironmentInventoryReport(TypedDict):
+    example: str
+    roots: list[str]
+    used: list[str]
+    declared: list[str]
+    dynamic_secret_references: list[str]
+    missing: list[str]
+    unused: list[str]
+    ok: bool
 
 
 def _dynamic_contract(tree: ast.Module, *, filename: str) -> str | None:
@@ -176,7 +187,7 @@ def inventory_paths(paths: Iterable[Path]) -> set[str]:
     return _scan_paths(paths).variables
 
 
-def check_env_example(*, example: Path, roots: Sequence[Path]) -> dict[str, object]:
+def check_env_example(*, example: Path, roots: Sequence[Path]) -> EnvironmentInventoryReport:
     declared = parse_env_example(example.read_text(encoding="utf-8"))
     inventory = _scan_paths(roots)
     used = inventory.variables
