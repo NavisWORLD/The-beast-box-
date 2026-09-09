@@ -126,3 +126,32 @@ def test_cosmic_headless_smoke_initializes_real_durable_state(tmp_path, capsys):
     assert receipt["turn"] == 0
     assert receipt["authority_grants"] == 0
     assert len(receipt["checkpoint_sha256"]) == 64
+
+
+def test_healthz_is_minimal_and_never_exposes_runtime_state(tmp_path):
+    app = CosmicApp(tmp_path)
+    status, body = app.dispatch("GET", "/healthz")
+
+    assert status == 200
+    assert body == {"schema": "beastbox-health-v1", "status": "alive"}
+    encoded = json.dumps(body, sort_keys=True).lower()
+    assert "memory" not in encoded
+    assert "authority" not in encoded
+    assert "token" not in encoded
+
+
+def test_readyz_proves_durable_runtime_without_exposing_memory_contents(tmp_path):
+    app = CosmicApp(tmp_path)
+    status, body = app.dispatch("GET", "/readyz")
+
+    assert status == 200
+    assert body["schema"] == "beastbox-readiness-v1"
+    assert body["ready"] is True
+    assert body["runtime_valid"] is True
+    assert body["provider_kind"] == "reference"
+    assert len(body["system_id"]) >= 8
+    assert len(body["checkpoint_sha256"]) == 64
+    encoded = json.dumps(body, sort_keys=True).lower()
+    assert "prompt" not in encoded
+    assert "memory_records" not in encoded
+    assert "credential" not in encoded

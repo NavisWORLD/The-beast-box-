@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import socket
+import urllib.request
 from pathlib import Path
 
 import pytest
@@ -141,3 +142,143 @@ def test_offline_classification_is_mechanical() -> None:
     invalid = dict(gates)
     invalid["CORRUPTED_MEMORY_CONTROL"] = False
     assert classify_offline_gates(invalid) == "INVALID_OFFLINE_SUBSTRATE_OR_CONTROL_FAILURE"
+
+
+def test_offline_fixture_loader_rejects_non_object_json(tmp_path: Path) -> None:
+    fixture = tmp_path / "fixture.json"
+    fixture.write_text("[]\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="expected JSON object"):
+        OfflineModelCheckpoint.load(fixture)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("schema", "beastbox-offline-model-fixture-v0", "schema mismatch"),
+        ("version", 2, "version mismatch"),
+        ("model_id", "OFFLINE_MODEL_C", "unsupported offline model identity"),
+        ("algorithm", "unregistered_algorithm", "unsupported offline model algorithm"),
+        ("fallback", "UNKNOWN", "fallback must be NO_MEMORY"),
+    ],
+)
+def test_offline_fixture_loader_fails_closed_on_contract_drift(
+    tmp_path: Path,
+    field: str,
+    value: object,
+    message: str,
+) -> None:
+    payload = json.loads(MODEL_A.read_text(encoding="utf-8"))
+    payload[field] = value
+    fixture = tmp_path / f"invalid-{field}.json"
+    fixture.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match=message):
+        OfflineModelCheckpoint.load(fixture)
+
+
+def test_offline_model_recall_rejects_empty_key_and_ignores_malformed_rows() -> None:
+    model_a = OfflineModelCheckpoint.load(MODEL_A)
+    memory = [
+        {"text": "not-a-key-value-record"},
+        {"text": "=missing-key"},
+        {"text": "MISSING_VALUE="},
+        {"text": "MODEL_B_WRITE=silver orbit"},
+    ]
+
+    with pytest.raises(ValueError, match="recall key must be non-empty"):
+        model_a.recall(memory, key="   ")
+    assert model_a.recall(memory, key="MODEL_B_WRITE") == "silver orbit"
+
+
+def test_python_network_guard_rejects_reentry_and_restores_callables() -> None:
+    originals = {
+        "connect": socket.socket.connect,
+        "connect_ex": socket.socket.connect_ex,
+        "create_connection": socket.create_connection,
+        "urlopen": urllib.request.urlopen,
+    }
+    guard = PythonNetworkGuard()
+
+    with pytest.raises(ValueError, match="probe"):
+        with guard:
+            with pytest.raises(RuntimeError, match="network guard is already active"):
+                guard.__enter__()
+            with pytest.raises(RuntimeError, match="offline experiment forbids network access"):
+                urllib.request.urlopen("https://example.com", timeout=0.01)
+            raise ValueError("probe")
+
+    assert guard.active is False
+    assert guard.attempt_count == 1
+    assert socket.socket.connect is originals["connect"]
+    assert socket.socket.connect_ex is originals["connect_ex"]
+    assert socket.create_connection is originals["create_connection"]
+    assert urllib.request.urlopen is originals["urlopen"]
+
+
+def test_offline_classification_rejects_missing_required_gate() -> None:
+    gates = {
+        name: True
+        for name in (
+            "MODEL_SEQUENCE",
+            "STABLE_STORE_IDENTITIES",
+            "CANONICAL_MEMORY_PREFIX",
+            "MODEL_B_PRE_SWAP_ACCESS",
+            "MODEL_A_RETURN_ACCESS",
+            "EMPTY_MEMORY_CONTROL",
+            "CORRUPTED_MEMORY_CONTROL",
+            "IMMUTABLE_ROUTING_AND_SOURCE",
+            "POINT_LEDGER_APPEND_ONLY",
+            "OFFLINE_NO_NETWORK_ATTEMPTS",
+        )
+    }
+    del gates["MODEL_SEQUENCE"]
+    assert classify_offline_gates(gates) == "INVALID_OFFLINE_SUBSTRATE_OR_CONTROL_FAILURE"
+
+
+def _write_witness_rows(path: Path, rows: list[dict[str, object]]) -> None:
+    path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+
+
+def _witness_rows() -> list[dict[str, object]]:
+    return [json.loads(line) for line in WITNESSES.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("short", "expected 10 archived IBM hardware witnesses"),
+        ("incomplete", "archived hardware witness 1 is incomplete"),
+        ("duplicate_job", "job IDs must be unique"),
+        ("provider", "provider mismatch"),
+        ("backend", "backend mismatch"),
+        ("execution", "execution metadata mismatch"),
+    ],
+)
+def test_archived_ibm_witness_validation_fails_closed(
+    tmp_path: Path,
+    mutation: str,
+    message: str,
+) -> None:
+    rows = _witness_rows()
+    if mutation == "short":
+        rows.pop()
+    elif mutation == "incomplete":
+        rows[0].pop("result_sha256")
+    elif mutation == "duplicate_job":
+        rows[1]["job_id"] = rows[0]["job_id"]
+    elif mutation == "provider":
+        rows[0]["provider"] = "not-ibm"
+    elif mutation == "backend":
+        rows[0]["backend"] = "not-fez"
+    elif mutation == "execution":
+        rows[0]["shots"] = 1
+    else:  # pragma: no cover - parametrization is the closed mutation set.
+        raise AssertionError(f"unknown mutation: {mutation}")
+
+    witness_path = tmp_path / "witnesses.jsonl"
+    _write_witness_rows(witness_path, rows)
+    with pytest.raises(RuntimeError, match=message):
+        build_archived_workload_points(witness_path)

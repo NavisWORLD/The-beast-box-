@@ -26,6 +26,25 @@ SECRET_NAMES = (
 )
 
 
+def _configured_secret_values() -> dict[str, str]:
+    """Snapshot credentials whose values must never appear in portable state.
+
+    Literal reads keep this safety denylist visible to the environment inventory.
+    These values are inspected only for export rejection and are never persisted.
+    """
+
+    return {
+        "IBM_QUANTUM_TOKEN": os.environ.get("IBM_QUANTUM_TOKEN", ""),
+        "QISKIT_IBM_TOKEN": os.environ.get("QISKIT_IBM_TOKEN", ""),
+        "AZURE_CLIENT_SECRET": os.environ.get("AZURE_CLIENT_SECRET", ""),
+        "AZURE_API_KEY": os.environ.get("AZURE_API_KEY", ""),
+        "AZURE_OPENAI_API_KEY": os.environ.get("AZURE_OPENAI_API_KEY", ""),
+        "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", ""),
+        "GITHUB_TOKEN": os.environ.get("GITHUB_TOKEN", ""),
+        "GH_TOKEN": os.environ.get("GH_TOKEN", ""),
+    }
+
+
 def safe_path(path: Path) -> None:
     if ".." in path.parts or any(p.is_symlink() for p in (path, *path.parents)):
         raise ValueError("portable state paths must not traverse parents or symlinks")
@@ -40,7 +59,8 @@ def private_history_check(path: Path) -> None:
         data,
     ):
         raise ValueError("portable history contains a recognizable credential; export refused")
-    if any(value.encode() in data for name in SECRET_NAMES if len(value := os.environ.get(name, "")) >= 12):
+    configured = _configured_secret_values()
+    if any(value.encode() in data for value in configured.values() if len(value) >= 12):
         raise ValueError("portable history contains a configured credential; export refused")
 
 
@@ -71,7 +91,11 @@ def export_snapshot(root: Path, destination: Path) -> dict:
             "system_id": checkpoint["system_id"],
             "checkpoint_sha256": checkpoint["sha256"],
             "sequence": checkpoint["sequence"],
-            "database": {"name": "runtime.sqlite3", "bytes": database.stat().st_size, "sha256": file_sha256(database)},
+            "database": {
+                "name": "runtime.sqlite3",
+                "bytes": database.stat().st_size,
+                "sha256": file_sha256(database),
+            },
             "authority": "NOT_TRANSFERRED",
             "credentials": "HOST_CONFIGURATION_EXCLUDED",
         }
