@@ -27,6 +27,18 @@ value = os.getenv(name)
         scan_python_source(source, filename="dynamic.py")
 
 
+def test_scan_python_source_records_explicit_dynamic_secret_reference_contract() -> None:
+    source = '''
+import os
+__beastbox_dynamic_env_contract__ = "secret-reference-v1"
+name = "USER_SELECTED_SECRET_NAME"
+value = os.environ.get(name)
+'''
+    result = scan_python_source(source, filename="provider.py")
+    assert result.variables == set()
+    assert result.dynamic_reads == ["provider.py:5:secret-reference-v1"]
+
+
 def test_parse_env_example_requires_unique_assignment_keys() -> None:
     content = '''
 # Runtime
