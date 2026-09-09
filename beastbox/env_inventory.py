@@ -7,6 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
+DYNAMIC_SECRET_REFERENCE_CONTRACT = "secret-reference-v1"
+DYNAMIC_CONTRACT_NAME = "__beastbox_dynamic_env_contract__"
+
 
 class EnvironmentInventoryError(ValueError):
     """Raised when environment-variable usage cannot be audited safely."""
@@ -18,9 +21,44 @@ class SourceEnvironmentInventory:
     dynamic_reads: list[str]
 
 
-def _literal_name(node: ast.AST | None, *, filename: str, lineno: int) -> str:
+def _dynamic_contract(tree: ast.Module, *, filename: str) -> str | None:
+    contract: str | None = None
+    for node in tree.body:
+        value: ast.AST | None = None
+        target_names: list[str] = []
+        if isinstance(node, ast.Assign):
+            value = node.value
+            target_names = [target.id for target in node.targets if isinstance(target, ast.Name)]
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            value = node.value
+            target_names = [node.target.id]
+        if DYNAMIC_CONTRACT_NAME not in target_names:
+            continue
+        if contract is not None:
+            raise EnvironmentInventoryError(f"{filename}: duplicate dynamic environment contract declaration")
+        if not isinstance(value, ast.Constant) or value.value != DYNAMIC_SECRET_REFERENCE_CONTRACT:
+            raise EnvironmentInventoryError(
+                f"{filename}: unsupported dynamic environment contract; expected {DYNAMIC_SECRET_REFERENCE_CONTRACT!r}"
+            )
+        contract = DYNAMIC_SECRET_REFERENCE_CONTRACT
+    return contract
+
+
+def _read_name(
+    node: ast.AST | None,
+    *,
+    filename: str,
+    lineno: int,
+    contract: str | None,
+    variables: set[str],
+    dynamic_reads: list[str],
+) -> None:
     if isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value:
-        return node.value
+        variables.add(node.value)
+        return
+    if contract == DYNAMIC_SECRET_REFERENCE_CONTRACT:
+        dynamic_reads.append(f"{filename}:{lineno}:{contract}")
+        return
     raise EnvironmentInventoryError(
         f"{filename}:{lineno}: dynamic environment variable read; use a literal name so configuration remains auditable"
     )
@@ -36,12 +74,14 @@ def _is_os_environ(node: ast.AST) -> bool:
 
 
 def scan_python_source(source: str, *, filename: str = "<source>") -> SourceEnvironmentInventory:
-    """Return literal environment-variable reads from Python source.
+    """Return auditable environment-variable reads from Python source.
 
-    Supported forms are os.getenv("NAME"), getenv("NAME"),
-    os.environ.get("NAME"), environ.get("NAME"), and subscription reads such as
-    os.environ["NAME"]. Dynamic names fail closed because they cannot be compared
-    reliably against the committed environment contract.
+    Literal reads are normal configuration and must be represented in the
+    committed env example. Dynamic reads fail closed unless the module declares
+    the narrow ``secret-reference-v1`` contract. That contract exists for
+    provider profiles that intentionally carry an environment-variable *name*
+    rather than a credential value; such reads are reported separately and are
+    never silently treated as ordinary configuration.
     """
 
     try:
@@ -49,6 +89,7 @@ def scan_python_source(source: str, *, filename: str = "<source>") -> SourceEnvi
     except SyntaxError as exc:
         raise EnvironmentInventoryError(f"{filename}: cannot parse Python source: {exc}") from exc
 
+    contract = _dynamic_contract(tree, filename=filename)
     variables: set[str] = set()
     dynamic_reads: list[str] = []
 
@@ -71,21 +112,23 @@ def scan_python_source(source: str, *, filename: str = "<source>") -> SourceEnvi
                     raise EnvironmentInventoryError(
                         f"{filename}:{getattr(node, 'lineno', 0)}: environment read is missing a variable name"
                     )
-                variables.add(
-                    _literal_name(
-                        node.args[0],
-                        filename=filename,
-                        lineno=getattr(node, "lineno", 0),
-                    )
+                _read_name(
+                    node.args[0],
+                    filename=filename,
+                    lineno=getattr(node, "lineno", 0),
+                    contract=contract,
+                    variables=variables,
+                    dynamic_reads=dynamic_reads,
                 )
 
         if isinstance(node, ast.Subscript) and _is_os_environ(node.value):
-            variables.add(
-                _literal_name(
-                    node.slice,
-                    filename=filename,
-                    lineno=getattr(node, "lineno", 0),
-                )
+            _read_name(
+                node.slice,
+                filename=filename,
+                lineno=getattr(node, "lineno", 0),
+                contract=contract,
+                variables=variables,
+                dynamic_reads=dynamic_reads,
             )
 
     return SourceEnvironmentInventory(variables=variables, dynamic_reads=dynamic_reads)
@@ -113,8 +156,9 @@ def parse_env_example(content: str) -> set[str]:
     return keys
 
 
-def inventory_paths(paths: Iterable[Path]) -> set[str]:
+def _scan_paths(paths: Iterable[Path]) -> SourceEnvironmentInventory:
     variables: set[str] = set()
+    dynamic_reads: list[str] = []
     for root in paths:
         candidates = [root] if root.is_file() else sorted(root.rglob("*.py"))
         for path in candidates:
@@ -122,12 +166,20 @@ def inventory_paths(paths: Iterable[Path]) -> set[str]:
                 continue
             result = scan_python_source(path.read_text(encoding="utf-8"), filename=str(path))
             variables.update(result.variables)
-    return variables
+            dynamic_reads.extend(result.dynamic_reads)
+    return SourceEnvironmentInventory(variables=variables, dynamic_reads=sorted(dynamic_reads))
+
+
+def inventory_paths(paths: Iterable[Path]) -> set[str]:
+    """Compatibility helper returning only fixed-name configuration variables."""
+
+    return _scan_paths(paths).variables
 
 
 def check_env_example(*, example: Path, roots: Sequence[Path]) -> dict[str, object]:
     declared = parse_env_example(example.read_text(encoding="utf-8"))
-    used = inventory_paths(roots)
+    inventory = _scan_paths(roots)
+    used = inventory.variables
     missing = sorted(used - declared)
     unused = sorted(declared - used)
     return {
@@ -135,6 +187,7 @@ def check_env_example(*, example: Path, roots: Sequence[Path]) -> dict[str, obje
         "roots": [str(path) for path in roots],
         "used": sorted(used),
         "declared": sorted(declared),
+        "dynamic_secret_references": inventory.dynamic_reads,
         "missing": missing,
         "unused": unused,
         "ok": not missing,
@@ -162,6 +215,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         print(f"Environment variables used: {len(result['used'])}")
         print(f"Environment variables documented: {len(result['declared'])}")
+        dynamic = result["dynamic_secret_references"]
+        if dynamic:
+            print("Audited dynamic secret references:")
+            for reference in dynamic:
+                print(f"  - {reference}")
         if result["missing"]:
             print("Undocumented environment variables:")
             for name in result["missing"]:
