@@ -528,6 +528,40 @@ class CosmicApp:
         )
         return 200, receipt
 
+    def _readiness(self) -> tuple[int, dict[str, Any]]:
+        try:
+            runtime = DurableRuntime(self.root)
+            try:
+                inspection = runtime.inspect()
+            finally:
+                runtime.close()
+        except (OSError, ValueError, RuntimeError):
+            return 503, {
+                "schema": "beastbox-readiness-v1",
+                "ready": False,
+                "runtime_valid": False,
+                "provider_kind": self.profile.kind,
+                "reason": "durable_runtime_unavailable",
+            }
+        system_id = inspection.get("system_id")
+        checkpoint_sha256 = inspection.get("checkpoint_sha256")
+        runtime_valid = inspection.get("valid") is True
+        ready = (
+            runtime_valid
+            and isinstance(system_id, str)
+            and bool(system_id)
+            and isinstance(checkpoint_sha256, str)
+            and len(checkpoint_sha256) == 64
+        )
+        return (200 if ready else 503), {
+            "schema": "beastbox-readiness-v1",
+            "ready": ready,
+            "runtime_valid": runtime_valid,
+            "system_id": system_id if isinstance(system_id, str) else "",
+            "checkpoint_sha256": checkpoint_sha256 if isinstance(checkpoint_sha256, str) else "",
+            "provider_kind": self.profile.kind,
+        }
+
     def dispatch(self, method: str, path: str, body: dict[str, Any] | None = None) -> tuple[int, dict[str, Any]]:
         with self._lock:
             status, result = self._dispatch(method, path, body)
@@ -538,6 +572,10 @@ class CosmicApp:
     def _dispatch(self, method: str, path: str, body: dict[str, Any] | None) -> tuple[int, dict[str, Any]]:
         data = body or {}
         try:
+            if method == "GET" and path == "/healthz":
+                return 200, {"schema": "beastbox-health-v1", "status": "alive"}
+            if method == "GET" and path == "/readyz":
+                return self._readiness()
             if method == "GET" and path == "/api/orbit":
                 return 200, self.service.orbit_snapshot()
             if method == "GET" and path == "/api/memory":
