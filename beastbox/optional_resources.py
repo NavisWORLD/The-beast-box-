@@ -20,47 +20,98 @@ class ResourceUnavailable(RuntimeError):
     """Safe diagnostic: provider errors and credential values are never copied."""
 
 
+def _resource_environment() -> dict[str, str]:
+    """Snapshot the finite cloud-adapter environment contract.
+
+    The keys are deliberately literal so the supported configuration surface can
+    be statically inventoried. Runtime provider selection happens only after this
+    bounded snapshot is built; arbitrary environment-variable dereferencing is
+    not permitted here.
+    """
+
+    return {
+        "IBM_QUANTUM_TOKEN": os.environ.get("IBM_QUANTUM_TOKEN", ""),
+        "IBM_QUANTUM_INSTANCE": os.environ.get("IBM_QUANTUM_INSTANCE", ""),
+        "IBM_QUANTUM_BACKEND": os.environ.get("IBM_QUANTUM_BACKEND", ""),
+        "AZURE_QUANTUM_RESOURCE_ID": os.environ.get("AZURE_QUANTUM_RESOURCE_ID", ""),
+        "AZURE_QUANTUM_LOCATION": os.environ.get("AZURE_QUANTUM_LOCATION", ""),
+        "AZURE_QUANTUM_TARGET": os.environ.get("AZURE_QUANTUM_TARGET", ""),
+    }
+
+
 def resource_status() -> dict:
-    return {provider: {key: "configured" if os.environ.get(key, "").strip() else "missing"
-                       for key in keys} for provider, keys in RESOURCE_GROUPS.items()}
+    environment = _resource_environment()
+    return {
+        provider: {key: "configured" if environment[key].strip() else "missing" for key in keys}
+        for provider, keys in RESOURCE_GROUPS.items()
+    }
 
 
 def _label(value):
     if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,256}", value):
         raise ResourceUnavailable("Invalid provider receipt")
-    secrets = [os.environ.get(key) for key in ("IBM_QUANTUM_TOKEN", "IBM_QUANTUM_INSTANCE",
-                                               "AZURE_QUANTUM_RESOURCE_ID")]
+    secrets = [
+        os.environ.get("IBM_QUANTUM_TOKEN"),
+        os.environ.get("IBM_QUANTUM_INSTANCE"),
+        os.environ.get("AZURE_QUANTUM_RESOURCE_ID"),
+    ]
     if any(secret and secret in value for secret in secrets):
         raise ResourceUnavailable("Invalid provider receipt")
     return value
 
 
 def _event(metadata, probabilities):
-    features = [2.0 * probabilities.get(format(i, "02b"), 0.) - 1. for i in range(4)]
-    event = dict(schema="sensor-event-v1", source="software-event",
-                 text=json.dumps(metadata, sort_keys=True, allow_nan=False), features=features)
+    features = [2.0 * probabilities.get(format(i, "02b"), 0.0) - 1.0 for i in range(4)]
+    event = dict(
+        schema="sensor-event-v1",
+        source="software-event",
+        text=json.dumps(metadata, sort_keys=True, allow_nan=False),
+        features=features,
+    )
     normalize_event(event)
     return event
 
 
 def _ibm(shots):
     from . import quantum
-    receipt = quantum.submit_real("01", shots=shots,
-                                  backend_name=os.environ["IBM_QUANTUM_BACKEND"], confirm=True)
+
+    receipt = quantum.submit_real(
+        "01",
+        shots=shots,
+        backend_name=os.environ["IBM_QUANTUM_BACKEND"],
+        confirm=True,
+    )
     job_id, backend = _label(receipt.job_id), _label(receipt.backend)
     if backend != os.environ["IBM_QUANTUM_BACKEND"] or receipt.shots != shots:
         raise ResourceUnavailable("Unexpected provider receipt")
     if not isinstance(receipt.circuit_sha256, str) or not re.fullmatch(r"[a-f0-9]{64}", receipt.circuit_sha256):
         raise ResourceUnavailable("Invalid circuit receipt")
     counts = quantum.retrieve_counts(job_id)
-    if (not isinstance(counts, dict) or not counts or len(counts) > 4
-            or any(k not in ("00", "01", "10", "11") or type(v) is not int or v < 0
-                   for k, v in counts.items()) or sum(counts.values()) != shots):
+    if (
+        not isinstance(counts, dict)
+        or not counts
+        or len(counts) > 4
+        or any(
+            key not in ("00", "01", "10", "11") or type(value) is not int or value < 0
+            for key, value in counts.items()
+        )
+        or sum(counts.values()) != shots
+    ):
         raise ResourceUnavailable("Invalid observed counts")
-    return _event(dict(source="ibm-quantum", mode="REAL_IBM", result_kind="observed-counts",
-                       native_job_id=job_id, backend=backend, shots=shots, counts=counts,
-                       circuit_sha256=receipt.circuit_sha256, probe="two-qubit-HZH-phase-roundtrip"),
-                  {k: v / shots for k, v in counts.items()})
+    return _event(
+        dict(
+            source="ibm-quantum",
+            mode="REAL_IBM",
+            result_kind="observed-counts",
+            native_job_id=job_id,
+            backend=backend,
+            shots=shots,
+            counts=counts,
+            circuit_sha256=receipt.circuit_sha256,
+            probe="two-qubit-HZH-phase-roundtrip",
+        ),
+        {key: value / shots for key, value in counts.items()},
+    )
 
 
 def _azure(shots):
@@ -71,13 +122,20 @@ def _azure(shots):
     target_name = os.environ["AZURE_QUANTUM_TARGET"]
     if target_name != "ionq.simulator":
         raise ResourceUnavailable("Azure target must be ionq.simulator")
-    workspace = Workspace(resource_id=os.environ["AZURE_QUANTUM_RESOURCE_ID"],
-                          location=os.environ["AZURE_QUANTUM_LOCATION"])
+    workspace = Workspace(
+        resource_id=os.environ["AZURE_QUANTUM_RESOURCE_ID"],
+        location=os.environ["AZURE_QUANTUM_LOCATION"],
+    )
     target = workspace.get_targets(name=target_name)
     if target.name != target_name:
         raise ResourceUnavailable("Azure target mismatch")
-    circuit = {"qubits": 2, "circuit": [{"gate": "h", "target": 0},
-                                        {"gate": "cnot", "control": 0, "target": 1}]}
+    circuit = {
+        "qubits": 2,
+        "circuit": [
+            {"gate": "h", "target": 0},
+            {"gate": "cnot", "control": 0, "target": 1},
+        ],
+    }
     job = target.submit(circuit, name="beastbox-bounded-probe", shots=shots)
     if job.details.target != target_name:
         raise ResourceUnavailable("Azure job target mismatch")
@@ -88,16 +146,31 @@ def _azure(shots):
         raise ResourceUnavailable("Invalid probability distribution")
     probabilities = {}
     for key, value in histogram.items():
-        if (key not in ("0", "1", "2", "3") or isinstance(value, bool)
-                or not isinstance(value, (float, int)) or not math.isfinite(value) or not 0 <= value <= 1):
+        if (
+            key not in ("0", "1", "2", "3")
+            or isinstance(value, bool)
+            or not isinstance(value, (float, int))
+            or not math.isfinite(value)
+            or not 0 <= value <= 1
+        ):
             raise ResourceUnavailable("Invalid probability distribution")
         probabilities[format(int(key), "02b")] = float(value)
-    if not math.isclose(sum(probabilities.values()), 1., rel_tol=0., abs_tol=1e-6):
+    if not math.isclose(sum(probabilities.values()), 1.0, rel_tol=0.0, abs_tol=1e-6):
         raise ResourceUnavailable("Invalid probability distribution")
-    return _event(dict(source="azure-quantum", mode="AZURE_IONQ_SIMULATOR", result_kind="probabilities",
-                       native_job_id=job_id, backend=target_name, shots_requested=shots,
-                       probabilities=probabilities, circuit_sha256=sha256_obj(circuit),
-                       probe="two-qubit-Bell-distribution"), probabilities)
+    return _event(
+        dict(
+            source="azure-quantum",
+            mode="AZURE_IONQ_SIMULATOR",
+            result_kind="probabilities",
+            native_job_id=job_id,
+            backend=target_name,
+            shots_requested=shots,
+            probabilities=probabilities,
+            circuit_sha256=sha256_obj(circuit),
+            probe="two-qubit-Bell-distribution",
+        ),
+        probabilities,
+    )
 
 
 def quantum_event(provider, shots=128, allow_live=False):
@@ -109,7 +182,8 @@ def quantum_event(provider, shots=128, allow_live=False):
     if provider not in ("ibm", "azure"):
         raise ValueError("provider must be ibm or azure")
     required = ("IBM_QUANTUM_TOKEN", "IBM_QUANTUM_BACKEND") if provider == "ibm" else RESOURCE_GROUPS["azure"]
-    if any(not os.environ.get(key, "").strip() for key in required):
+    environment = _resource_environment()
+    if any(not environment[key].strip() for key in required):
         raise ResourceUnavailable("Missing provider configuration")
     # Suppress SDK exception chaining as tracebacks can contain tokens or URLs.
     try:
