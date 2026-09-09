@@ -22,7 +22,7 @@ from typing import Any, Iterable
 import urllib.parse
 
 from .cosmic_ui import render_cosmic_ui
-from .cypher.workspace import Workspace
+from .cypher.workspace import FULL_REPLACEMENT_DIFF_HEADER, Workspace
 from .durable import DurableRuntime
 from .optional_resources import ResourceUnavailable, quantum_event
 from .portable_state import import_snapshot, verify_snapshot
@@ -382,7 +382,13 @@ class CosmicApp:
         if not isinstance(path, str) or not isinstance(content, str) or set(body) != {"path", "content"}:
             return 400, {"error": "invalid workspace preview request"}
         diff = self._selected_workspace().diff(path, content)
-        return 200, {"path": path, "diff": diff, "written": False, "persistent_memory": False}
+        lines = diff.splitlines(keepends=True)
+        preview = "".join(lines[:2000])[:250_000]
+        return 200, {
+            "path": path, "diff": preview, "written": False, "persistent_memory": False,
+            "mode": "full_replacement" if diff.startswith(FULL_REPLACEMENT_DIFF_HEADER) else "unified",
+            "truncated": len(preview) < len(diff), "line_count": len(lines),
+        }
 
     def _workspace_status(self) -> tuple[int, dict[str, Any]]:
         workspace = self._selected_workspace()

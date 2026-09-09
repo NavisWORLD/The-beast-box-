@@ -62,6 +62,41 @@ def test_workspace_search_skips_symlinks_and_bounds_preview(tmp_path):
     assert app.dispatch('POST', '/api/workspace/diff', {'path': 'large.txt', 'content': 'x'})[0] == 400
 
 
+def test_large_diff_uses_bounded_preview_without_breaking_authorized_writes(tmp_path):
+    app, workspace = workspace_app(tmp_path)
+    old = ''.join(f'line {n:05d}\n' for n in range(3000))
+    new = ''.join(f'line {n ^ 1:05d}\n' for n in range(3000))
+    (workspace / 'large.md').write_text(old)
+    status, preview = app.dispatch('POST', '/api/workspace/diff', {'path': 'large.md', 'content': new})
+    assert status == 200
+    assert preview.get('mode') == 'full_replacement'
+    assert preview['truncated'] is True
+    assert len(preview['diff'].splitlines()) <= 2000
+    assert len(preview['diff']) <= 250_000
+    assert (workspace / 'large.md').read_text() == old
+    for name in ['filesystem', 'repo_write']:
+        app.dispatch('POST', '/api/authority', {'action': 'grant', 'name': name})
+    status, receipt = app.dispatch('POST', '/api/workspace/write', {'path': 'large.md', 'content': new})
+    assert status == 200
+    assert (workspace / 'large.md').read_text() == new
+    assert (workspace / receipt['backup']).read_text() == old
+    assert app.dispatch('POST', '/api/authority', {'action': 'master_stop'})[0] == 200
+    assert not any(app.authority.snapshot().values())
+
+
+
+def test_diff_preview_bounds_long_unicode_lines_without_writing(tmp_path):
+    app, workspace = workspace_app(tmp_path)
+    status, preview = app.dispatch('POST', '/api/workspace/diff', {
+        'path': 'unicode.md', 'content': '🌱' * 200_000 + '\n' + 'x' * 200_000,
+    })
+    assert status == 200
+    assert preview['mode'] == 'unified'
+    assert preview['truncated'] is True
+    assert len(preview['diff']) == 250_000
+    assert '+🌱' in preview['diff']
+    assert not (workspace / 'unicode.md').exists()
+
 def test_memory_view_exposes_verified_content_hash_and_source_metadata(tmp_path):
     app = CosmicApp(tmp_path)
     app.dispatch('POST', '/api/context', {

@@ -13,6 +13,7 @@ from typing import Iterable
 
 _DEFAULT_IGNORES = {".git", ".venv", "venv", "node_modules", ".cosmic-cypher", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", "target"}
 _BINARY_SUFFIXES = {".gguf", ".bin", ".pt", ".pth", ".safetensors", ".onnx", ".sqlite", ".sqlite3", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".zip", ".tar", ".gz", ".7z"}
+FULL_REPLACEMENT_DIFF_HEADER = "# Full replacement diff: bounded large-file comparison\n"
 
 
 class Workspace:
@@ -112,7 +113,26 @@ class Workspace:
         p = self.resolve(relative)
         old = self.read(relative, max_bytes=1024 * 1024) if p.exists() else ""
         rel = str(Path(relative)).replace(os.sep, "/")
-        return "".join(difflib.unified_diff(old.splitlines(keepends=True), content.splitlines(keepends=True), fromfile=f"a/{rel}", tofile=f"b/{rel}"))
+        if old == content:
+            return ""
+        old_lines, new_lines = old.splitlines(keepends=True), content.splitlines(keepends=True)
+        # SequenceMatcher can be quadratic for adversarial line orderings. Keep
+        # detailed matching small; large writes still receive a linear receipt.
+        if max(len(old_lines), len(new_lines)) > 2000:
+            parts = [FULL_REPLACEMENT_DIFF_HEADER, f"--- a/{rel}\n+++ b/{rel}\n",
+                     f"@@ -{1 if old_lines else 0},{len(old_lines)} +{1 if new_lines else 0},{len(new_lines)} @@\n"]
+            for prefix, lines in (("-", old_lines), ("+", new_lines)):
+                for line in lines:
+                    parts.append(prefix + line)
+                    if not line.endswith("\n"):
+                        parts.append("\n\\ No newline at end of file\n")
+            return "".join(parts)
+        parts = []
+        for line in difflib.unified_diff(old_lines, new_lines, fromfile=f"a/{rel}", tofile=f"b/{rel}"):
+            parts.append(line)
+            if not line.endswith("\n"):
+                parts.append("\n\\ No newline at end of file\n")
+        return "".join(parts)
 
     def write(self, relative: str | Path, content: str) -> dict[str, str | None]:
         if len(content.encode("utf-8")) > 1024 * 1024:

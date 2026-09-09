@@ -94,6 +94,11 @@ def main() -> None:
                 page.get_by_role('button', name='PREVIEW DIFF', exact=True).click()
                 expect(page.locator('#diffOut')).to_contain_text('+preview only')
                 assert (workspace / 'note.txt').read_text() == 'original workspace content'
+                # Python and browser preview limits both count Unicode code points.
+                page.locator('#workspaceContent').fill('🌱' * 150_000)
+                page.locator('#previewDiff').click()
+                expect(page.locator('#diffOut .added').last).to_have_text('+' + '🌱' * 150_000)
+                expect(page.locator('#diffOut')).not_to_contain_text('PREVIEW TRUNCATED')
                 grant('filesystem')
                 grant('repo_write')
                 grant('tools')
@@ -188,6 +193,14 @@ def main() -> None:
                 ]:
                     nav(name)
                     expect(page.locator(ready).first).to_be_visible()
+                    if name == 'WORKSPACE':
+                        page.get_by_role('button', name='note.txt', exact=True).click()
+                        expect(page.locator('#workspaceContent')).to_have_value('owner-authorized change')
+                        page.locator('#workspaceContent').fill('owner-authorized change\nProposed next step: review the lunar atlas.\n')
+                        page.locator('#previewDiff').click()
+                        expect(page.locator('#diffOut')).to_contain_text('+Proposed next step: review the lunar atlas.')
+                        assert (workspace / 'note.txt').read_text() == 'owner-authorized change'
+                        page.locator('#dismissNotice').click()
                     page.screenshot(path=str(output / image_name), full_page=True)
 
                 for name in ['ORBIT', 'BRAIN', 'BRAIN BAY', 'VISION', 'LISTEN', 'VOICE', 'REALITY', 'MEMORY VAULT', 'SYNAPSE TRACE', 'FILES', 'WORKSPACE', 'Q-BAY', 'CONNECTIONS', 'AUTHORITY', 'SETTINGS / STORAGE']:
@@ -204,7 +217,7 @@ def main() -> None:
                     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), name
                 assert not errors, errors
                 browser.close()
-            (output / 'result.json').write_text(json.dumps({'passed': True, 'flows': ['chat', 'temporary context', 'memory', 'trace', 'workspace confinement and writes', 'same/different brain authority', 'portable export/verify/import', 'synthetic camera revocation', 'all navigation', '390px layout'], 'physical_devices_validated': False}, indent=2)+'\n')
+            (output / 'result.json').write_text(json.dumps({'passed': True, 'flows': ['chat', 'temporary context', 'memory', 'trace', 'workspace confinement and writes', 'workspace search and diff preview', 'same/different brain authority', 'portable export/verify/import', 'synthetic camera revocation', 'guided reference handoff demo', 'all navigation', '390px layout'], 'physical_devices_validated': False}, indent=2)+'\n')
             source_sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
             provenance = {
                 'source_commit': source_sha, 'workflow_run': os.environ.get('GITHUB_RUN_ID'),
