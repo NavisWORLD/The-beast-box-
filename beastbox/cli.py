@@ -112,6 +112,15 @@ def main() -> int:
 
     add_ecosystem_subparsers(sub)
     add_runtime_subparser(sub)
+
+    profiles = sub.add_parser(
+        "profiles",
+        help="isolated local profiles; not a public multi-tenant internet service",
+    )
+    profiles.add_argument("action", choices=["create", "list"])
+    profiles.add_argument("name", nargs="?")
+    profiles.add_argument("--home", type=Path, help="profile home; default ~/.beastbox")
+
     args = p.parse_args()
 
     if args.cmd == "runtime":
@@ -120,6 +129,22 @@ def main() -> int:
             return 0
         except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
             p.exit(2, f"runtime error: {exc}\n")
+
+    if args.cmd == "profiles":
+        from .profiles import ProfileRegistry
+
+        try:
+            registry = ProfileRegistry(args.home)
+            if args.action == "list":
+                _print({"profiles": [profile.to_public() for profile in registry.list()]})
+                return 0
+            if not args.name:
+                p.exit(2, "profiles create requires a name\n")
+            profile = registry.create(args.name)
+            _print({"created": True, "profile": profile.to_public(), "authority": "SESSION_LOCAL"})
+            return 0
+        except (OSError, ValueError) as exc:
+            p.exit(2, f"profiles error: {exc}\n")
 
     ecosystem_result = handle_ecosystem(args, p)
     if ecosystem_result is not None:

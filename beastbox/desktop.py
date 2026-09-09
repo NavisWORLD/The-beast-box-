@@ -70,7 +70,7 @@ class RuntimeWorker:
         return self.executor.submit(self._run, action, settings, value)
 
     def _run(self, action, settings, value):
-        if action not in {'inspect', 'chat', 'backup'}:
+        if action not in {'inspect', 'chat', 'backup', 'history'}:
             raise ValueError('Unsupported desktop action')
         provider = settings.make_provider()
         runtime = DurableRuntime(self.root, provider)
@@ -79,6 +79,11 @@ class RuntimeWorker:
                 result = runtime.respond(value)
             elif action == 'backup':
                 result = backup_database(self.root, Path(value))
+            elif action == 'history':
+                records = runtime.memory.recent(limit=100)
+                result = [{'kind': record.kind, 'text': record.text}
+                          for record in reversed(records)
+                          if record.kind in {'user_turn', 'assistant_turn'}]
             else:
                 result = runtime.inspect()
             save_settings(self.root, settings)
@@ -193,7 +198,7 @@ def run_desktop(root: Path, settings: ProviderSettings) -> None:
         button.pack(side='left', padx=(0, 8))
         action_buttons.append(button)
     ttk.Label(frame, textvariable=status).pack(anchor='w')
-    ttk.Label(frame, text='History persists locally in plaintext. Model output grants no shell or hardware permissions.').pack(anchor='w')
+    ttk.Label(frame, text='Working SQLite is local 0600 plaintext while open. Optional AES-256-GCM sealing uses BEASTBOX_SEAL_PASSPHRASE with cosmos-beast-box[secure]. Authority never travels with backups. Model output grants no shell or hardware permissions.').pack(anchor='w')
 
     def poll():
         nonlocal pending
@@ -204,8 +209,21 @@ def run_desktop(root: Path, settings: ProviderSettings) -> None:
                 result = future.result()
                 if action == 'chat':
                     append('Beast: ' + str(result.get('response', result)))
+                elif action == 'history':
+                    if result:
+                        append('Restored conversation from this data directory:')
+                        for turn in result:
+                            prefix = 'You: ' if turn.get('kind') == 'user_turn' else 'Beast: '
+                            append(prefix + str(turn.get('text', '')))
+                    else:
+                        append('First run. Choose a provider, then send a message. History stays in this data directory.')
                 else:
                     append(json.dumps(result, indent=2, ensure_ascii=False))
+                if action == 'inspect':
+                    pending = ('history', worker.submit('history', ProviderSettings(provider.get(), model.get(), url.get()), None))
+                    status.set('Restoring conversation…')
+                    window.after(100, poll)
+                    return
                 status.set('Saved. Reference responses are fixture output.' if provider.get() == 'reference' else 'Saved.')
             except Exception as exc:
                 append(f'Action failed ({type(exc).__name__}): {exc}')

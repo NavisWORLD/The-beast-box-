@@ -161,7 +161,7 @@ def test_feature_matrix_and_ui_use_only_honest_product_classifications(tmp_path)
     storage = CosmicApp(tmp_path).dispatch("GET", "/api/storage")
     assert storage[0] == 200
     assert Path(storage[1]["substrate_location"]) == tmp_path.absolute()
-    assert storage[1]["encryption"]["status"] == "NOT_ESTABLISHED"
+    assert storage[1]["encryption"]["status"] in {"AVAILABLE", "MISSING_SECURE_EXTRA", "ACTIVE"}
 
     from beastbox.cosmic_ui import render_cosmic_ui
     html = render_cosmic_ui()

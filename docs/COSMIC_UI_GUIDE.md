@@ -153,9 +153,16 @@ on tampering. Import restores into a **new** directory; it does not switch or
 overwrite the running system. Restart with `--data-dir` pointing at the restore.
 
 Portable metadata remains `authority = NOT_TRANSFERRED` and
-`credentials = HOST_CONFIGURATION_EXCLUDED`. Application-layer encryption is
-`NOT_ESTABLISHED`; host/storage encryption is recommended. Protect snapshots
-as private data. See [portable state](PORTABLE_STATE.md).
+`credentials = HOST_CONFIGURATION_EXCLUDED`. Optional application-layer sealing
+is AES-256-GCM (`cosmos-beast-box[secure]`). STORAGE reports
+`AVAILABLE`, `ACTIVE`, or `MISSING_SECURE_EXTRA`. A passphrase on export
+produces a v2 sealed capsule; leave it blank for the plaintext v1 capsule.
+Passphrases are not stored. Working SQLite remains 0600 plaintext while the
+process is open. Protect snapshots as private data. See [portable state](PORTABLE_STATE.md).
+
+Isolated local profiles (`beastbox profiles create NAME` then
+`beastbox-cosmic --profile NAME`) keep separate data directories. This is still
+a loopback owner console, not a public multi-tenant internet service.
 
 ## Q-Bay and physical boundaries
 

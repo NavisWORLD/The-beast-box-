@@ -28,6 +28,7 @@ from .optional_resources import ResourceUnavailable, quantum_event
 from .portable_state import import_snapshot, verify_snapshot
 from .product_services import AuthoritySession, ProductService
 from .providers import CompatibleChatProvider, LocalOllamaProvider, ReferenceTextProvider, TextProvider
+from .sealed_storage import encryption_status
 
 _MAX_REQUEST_BYTES = 1024 * 1024
 _MAX_CONTEXT_CHARS = 512 * 1024
@@ -508,26 +509,43 @@ class CosmicApp:
             "memory_digest": inspection["memory_digest"],
             "credentials": "HOST_CONFIGURATION_EXCLUDED",
             "authority": "NOT_TRANSFERRED",
-            "encryption": {
-                "status": "NOT_ESTABLISHED",
-                "detail": "No application-layer encrypted portable bundle format is established; use host storage encryption.",
-            },
+            "encryption": encryption_status(sealed=(self.root / "runtime.sqlite3.sealed").exists()),
         }
 
     def _storage_export(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         destination = body.get("destination")
-        if not isinstance(destination, str) or set(body) != {"destination"}:
+        passphrase = body.get("passphrase")
+        allowed = {"destination"} if passphrase is None else {"destination", "passphrase"}
+        if not isinstance(destination, str) or set(body) != allowed:
             return 400, {"error": "invalid export destination"}
-        receipt = self.service.export_portable(Path(destination).expanduser().absolute())
+        target = Path(destination).expanduser().absolute()
+        if passphrase is None:
+            receipt = self.service.export_portable(target)
+        else:
+            if not isinstance(passphrase, str):
+                return 400, {"error": "invalid export passphrase"}
+            from .sealed_storage import export_sealed_snapshot
+
+            receipt = export_sealed_snapshot(self.root, target, passphrase)
         return 200, receipt
 
     @staticmethod
     def _storage_verify(body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         bundle = body.get("bundle")
         expected = body.get("manifest_sha256")
-        if not isinstance(bundle, str) or not isinstance(expected, str) or set(body) != {"bundle", "manifest_sha256"}:
+        passphrase = body.get("passphrase")
+        allowed = {"bundle", "manifest_sha256"} if passphrase is None else {"bundle", "manifest_sha256", "passphrase"}
+        if not isinstance(bundle, str) or not isinstance(expected, str) or set(body) != allowed:
             return 400, {"error": "invalid snapshot verification request"}
-        receipt = verify_snapshot(Path(bundle).expanduser().absolute(), expected)
+        path = Path(bundle).expanduser().absolute()
+        if passphrase is None:
+            receipt = verify_snapshot(path, expected)
+        else:
+            if not isinstance(passphrase, str):
+                return 400, {"error": "invalid snapshot passphrase"}
+            from .sealed_storage import verify_sealed_snapshot
+
+            receipt = verify_sealed_snapshot(path, expected, passphrase)
         return 200, receipt
 
     @staticmethod
@@ -535,18 +553,29 @@ class CosmicApp:
         bundle = body.get("bundle")
         destination = body.get("destination")
         expected = body.get("manifest_sha256")
+        passphrase = body.get("passphrase")
+        allowed = (
+            {"bundle", "destination", "manifest_sha256"}
+            if passphrase is None
+            else {"bundle", "destination", "manifest_sha256", "passphrase"}
+        )
         if (
             not isinstance(bundle, str)
             or not isinstance(destination, str)
             or not isinstance(expected, str)
-            or set(body) != {"bundle", "destination", "manifest_sha256"}
+            or set(body) != allowed
         ):
             return 400, {"error": "invalid snapshot import request"}
-        receipt = import_snapshot(
-            Path(bundle).expanduser().absolute(),
-            Path(destination).expanduser().absolute(),
-            expected,
-        )
+        source = Path(bundle).expanduser().absolute()
+        target = Path(destination).expanduser().absolute()
+        if passphrase is None:
+            receipt = import_snapshot(source, target, expected)
+        else:
+            if not isinstance(passphrase, str):
+                return 400, {"error": "invalid snapshot passphrase"}
+            from .sealed_storage import import_sealed_snapshot
+
+            receipt = import_sealed_snapshot(source, target, expected, passphrase)
         return 200, receipt
 
     def _healthz(self) -> tuple[int, dict[str, Any]]:
@@ -615,6 +644,13 @@ class CosmicApp:
                 return 200, {"contexts": list(self.contexts), "default_persistence": "NOT_PERSISTED"}
             if method == "GET" and path == "/api/storage":
                 return 200, self._storage_status()
+            if method == "GET" and path == "/api/conversation":
+                turns = self.service.conversation_history()
+                return 200, {
+                    "turns": turns,
+                    "source": "durable_memory",
+                    "first_run": not turns,
+                }
             if method == "POST" and path == "/api/authority":
                 return self._authority(data)
             if method == "POST" and path == "/api/provider":

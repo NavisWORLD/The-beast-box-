@@ -35,12 +35,34 @@ until the restored state is verified; rollback means selecting that previous sto
 Paths through symlinks or `..` are refused. Version 1 supports snapshots up to
 256 MiB and the current `continuity-checkpoint-v1` schema.
 
+## Optional sealed v2 snapshots
+
+Install `cosmos-beast-box[secure]`. Set `BEASTBOX_SEAL_PASSPHRASE` (8+ characters)
+in the host environment; never pass the passphrase on the command line.
+
+```bash
+beastbox runtime export ./sealed-story --data-dir ./my-beast --passphrase-env BEASTBOX_SEAL_PASSPHRASE
+beastbox runtime verify-portable ./sealed-story --sha256 MANIFEST_HASH --passphrase-env BEASTBOX_SEAL_PASSPHRASE
+beastbox runtime import ./sealed-story --sha256 MANIFEST_HASH --data-dir ./restored-beast --passphrase-env BEASTBOX_SEAL_PASSPHRASE
+```
+
+A v2 bundle contains exactly `runtime.sqlite3.sealed` and `manifest.json`.
+AES-256-GCM + scrypt protects confidentiality at rest. Authority and host
+credentials still do not travel. The working SQLite file is local 0600 plaintext
+while a process holds it; a crash can leave that working copy. Sealing is not a
+signature, not a hostile-host boundary, and not a substitute for revoking grants.
+
+Plaintext v1 export remains the default when `--passphrase-env` is omitted.
+
+
 ## Privacy and practical limits
 
-The database is plaintext. Conversation text may contain sensitive information.
-Export refuses recognizable private keys/GitHub tokens and exact matches to known
-configured credential variables. This is **not a universal secret detector**; do
-not paste credentials into chat. Export cannot redact history without changing its
+The default database is plaintext while a runtime holds it. Conversation text may
+contain sensitive information. Optional v2 sealing encrypts idle files and
+portable bundles when a passphrase is supplied. Export refuses recognizable
+private keys/GitHub tokens and exact matches to known configured credential
+variables, including the seal passphrase if it appears in history. This is
+**not a universal secret detector**; do not paste credentials into chat. Export cannot redact history without changing its
 hashes, so suspected credential content fails closed rather than being rewritten.
 
 Hashes detect corruption against the separately retained expected hash; they are

@@ -53,9 +53,10 @@ Keep `--data-dir` unchanged when changing the model. Consult
 Close every Beast process. Delete the extracted executable folder or uninstall the
 package/virtual environment. This does not intentionally delete `~/.beastbox/data`.
 To erase memory, first verify a backup if you want recovery, then explicitly delete
-that data directory. Mobile uninstall/clear-data can erase the app's private store;
-mobile export UI and encrypted backup are not implemented. Do not assume an OS
-backup or app-store reinstall preserves mobile history.
+that data directory. Mobile uninstall/clear-data can erase the app's private store.
+Optional sealed backups use `BEASTBOX_SEAL_PASSPHRASE` with `cosmos-beast-box[secure]`;
+see [portable state](PORTABLE_STATE.md). Mobile store signing remains an external
+owner action. Do not assume an OS backup or app-store reinstall preserves mobile history.
 
 If a model server is missing, start/configure it; there is no inference fallback.
 If integrity fails, preserve the corrupt copy and restore a verified snapshot into

@@ -51,6 +51,8 @@ class LocalOllamaProvider:
     timeout: float = 120.0
 
     def __post_init__(self) -> None:
+        if not isinstance(self.model, str) or not self.model.strip() or len(self.model) > 256:
+            raise ValueError("Ollama requires an explicit installed model name (1–256 characters)")
         _assert_loopback(self.base_url)
 
     def generate(self, prompt: str) -> str:

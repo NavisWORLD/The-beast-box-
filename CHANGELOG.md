@@ -1,4 +1,16 @@
+# 0.7.0 — sealed storage, local profiles, signing-ready mobile (candidate)
+
+In-tree candidate. Does not replace published GitHub Release v0.6.0.
+
+- Optional AES-256-GCM idle-store and v2 portable snapshots via `cosmos-beast-box[secure]` and `BEASTBOX_SEAL_PASSPHRASE`.
+- Isolated local profiles with fail-closed cross-profile path denial. Still loopback-only.
+- COSMIC and desktop restore durable conversation after restart. First-run guidance is explicit.
+- Android 0.7.0 identity, env-supplied release signing, backup still disabled.
+- iOS 0.7.0 marketing version, entitlements, local-network usage string, and unsigned export-options template.
+- Authority, credentials and consciousness/quantum-advantage claims stay unchanged: authority does not travel; those physics/mind claims remain NOT_ESTABLISHED.
+
 # 0.6.0 — portable continuity and launch polish
+
 
 Adds manifest-verified portable state, non-transferable restore authority, installed
 package diagnostics and explicit compatible endpoints. Improves the quickstart,

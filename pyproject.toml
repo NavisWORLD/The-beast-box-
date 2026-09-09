@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cosmos-beast-box"
-version = "0.6.0"
+version = "0.7.0"
 description = "Local-first COSMOS/CST runtime: memory, state control, model adapters, provenance. IBM Quantum is optional and not required."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -27,7 +27,8 @@ quantum = ["qiskit>=2.5.0", "qiskit-ibm-runtime>=0.47.0"]
 huggingface = ["huggingface-hub>=0.27"]
 ml = ["torch>=2.2", "numpy>=2.0"]
 local-llm = ["llama-cpp-python>=0.3.9"]
-dev = ["pytest>=8.0", "coverage>=7.0", "ruff>=0.12", "mypy>=1.17", "numpy>=2.0"]
+secure = ["cryptography>=44.0.0"]
+dev = ["pytest>=8.0", "coverage>=7.0", "ruff>=0.12", "mypy>=1.17", "numpy>=2.0", "cryptography>=44.0.0"]
 
 [project.urls]
 Homepage = "https://github.com/NavisWORLD/The-beast-box-"
@@ -36,6 +37,7 @@ Canonical = "https://github.com/NavisWORLD/The-beast-box-"
 
 [project.scripts]
 beastbox = "beastbox.cli:main"
+beastbox-desktop = "beastbox.desktop:main"
 beastbox-cosmic = "beastbox.cosmic_entry:main"
 "cosmic.cypher-cli" = "beastbox.cypher.cli:main"
 cosmic-cypher = "beastbox.cypher.cli:main"
@@ -68,6 +70,8 @@ files = [
   "beastbox/logging_config.py",
   "beastbox/hashutil.py",
   "beastbox/aliases.py",
+  "beastbox/sealed_storage.py",
+  "beastbox/profiles.py",
 ]
 
 [tool.coverage.run]

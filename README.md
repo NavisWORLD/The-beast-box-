@@ -176,6 +176,13 @@ The combined kit includes the public API/configuration and recovery instructions
 
 ### Portable kit and apps
 
+The **0.6.0 prerelease** is the current published GitHub Release. In-tree package
+version **0.7.0** adds optional AES-256-GCM sealed storage, isolated local
+profiles, restored conversation on desktop/COSMIC restart, and signing-ready
+Android/iOS metadata. It is a candidate on `main`, not a replacement GitHub
+Release until release.yml and owner publication run. See
+[0.7.0 candidate notes](docs/closure/RELEASE_CANDIDATE_0.7.0.md).
+
 The **0.6.0 prerelease** packages `INSTALL.bat` / `UnixINSTALL.sh`, a checked offline wheel
 installer, `LAUNCH.bat` / `UnixLAUNCH.sh`, and a local desktop UI. Its release workflow also
 requires the Linux→Windows portable handoff and real-model story measurement before publication.
@@ -193,8 +200,10 @@ does not acquire camera footage or identify people. Azure's bounded path targets
 
 [Android](apps/android/README.md) and [iOS](apps/ios/README.md) embed the actual
 Python durable runtime. Mobile acceptance uses explicitly labelled reference
-fixtures, not bundled LLM weights. iOS device distribution needs Apple signing;
-Android debug signing supports sideload testing, not a Play Store release.
+fixtures, not bundled LLM weights. iOS device distribution needs Apple signing
+and the placeholders in `apps/ios/ExportOptions.plist`. Android release signing
+uses `BEASTBOX_ANDROID_KEYSTORE` when supplied; otherwise CI produces a debug
+sideload APK, not a Play Store release.
 [Native C++/Rust clients](sdk/runtime-client/README.md) expose the runtime through
 versioned JSON. They are clients, not ports of the entire runtime to those languages.
 

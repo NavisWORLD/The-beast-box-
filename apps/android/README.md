@@ -1,4 +1,4 @@
-# Beast Box Android 0.6.0 candidate
+# Beast Box Android 0.7.0
 
 Native Kotlin UI embedding this repository's Python `beastbox.durable.DurableRuntime`
 through Chaquopy. Application ID: `dev.beastbox.mobile`. Android 7.0/API 24 minimum;
@@ -13,6 +13,24 @@ phone's localhost. No remote proxy, credentials, weights, owner history or autho
 is bundled or transferred. The default runtime has no enabled tool authority.
 Failed inference never falls back to a fixture. The provider configuration is stored
 in private Android preferences only after validation; memories cannot configure it.
+
+## Signing
+
+CI produces a debug-signed sideload APK when no keystore is configured. That is
+not Play distribution.
+
+For a release-signed APK, the owner supplies these environment variables and does
+not commit the keystore or passwords:
+
+```text
+BEASTBOX_ANDROID_KEYSTORE=/absolute/path/to/upload-keystore.jks
+BEASTBOX_ANDROID_KEYSTORE_PASSWORD=
+BEASTBOX_ANDROID_KEY_ALIAS=
+BEASTBOX_ANDROID_KEY_PASSWORD=
+```
+
+Play Console upload, store listing, and physical-device acceptance remain
+external owner actions.
 
 ## Build and acceptance
 
@@ -37,13 +55,12 @@ Ollama inference require separate testing.
 
 The `Android on-device runtime candidate` GitHub workflow supports dispatch,
 `workflow_call`, and the integration branch. Its success artifact
-`beast-android-0.6.0` contains `beast-android-0.6.0-sideload.apk`, the build receipt
+`beast-android-0.7.0` contains `beast-android-0.7.0-sideload.apk`, the build receipt
 with APK/source hashes, and emulator receipts/logs. Failure evidence is retained
 separately. Only a successful actual Android build and emulator gate produces the
-candidate artifact. The APK uses Android debug signing for sideloading; it is not
-Play production signing. Debug keys may change across clean CI builds, so an
-existing installation may not accept an update (do not uninstall retained data
-without arranging a backup).
+candidate artifact. Debug signing is used unless `BEASTBOX_ANDROID_KEYSTORE` is
+set. Debug keys may change across clean CI builds, so an existing installation
+may not accept an update (do not uninstall retained data without arranging a backup).
 
 Host bridge verification from repository root:
 
