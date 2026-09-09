@@ -155,3 +155,22 @@ def test_readyz_proves_durable_runtime_without_exposing_memory_contents(tmp_path
     assert "prompt" not in encoded
     assert "memory_records" not in encoded
     assert "credential" not in encoded
+
+
+def test_readyz_fail_closed_without_exposing_memory_contents(tmp_path, monkeypatch):
+    app = CosmicApp(tmp_path)
+
+    def boom(self):
+        raise RuntimeError("substrate unreadable")
+
+    monkeypatch.setattr("beastbox.cosmic_web.DurableRuntime.inspect", boom)
+    status, body = app.dispatch("GET", "/readyz")
+
+    assert status == 503
+    assert body["schema"] == "beastbox-readiness-v1"
+    assert body["ready"] is False
+    assert body["runtime_valid"] is False
+    encoded = json.dumps(body, sort_keys=True).lower()
+    assert "prompt" not in encoded
+    assert "memory_records" not in encoded
+    assert "credential" not in encoded
