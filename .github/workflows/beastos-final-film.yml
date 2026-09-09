@@ -1,0 +1,219 @@
+name: BeastOS final boot plus Smol-Zeref film
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: beastos-final-film
+  cancel-in-progress: true
+
+env:
+  SYNAPSE_COMMIT: a205469b7d53d399ebbbb38f20903cf5896106e3
+  PRIOR_CONVERSATION_RUN_ID: '34305468654'
+  PRIOR_CONVERSATION_ARTIFACT_ID: '10086696099'
+  PRIOR_CONVERSATION_ARTIFACT: smol-zeref-conversation-3d3fa0bedd11b459579d4945c6da46a799cbe396
+  PRIOR_CONVERSATION_ARTIFACT_DIGEST: sha256:8375cfc3e92a639aca02b7a23efdd6e63837b9e4dfc1faaffb3e73fecc201942
+  BEAST_RUNTIME_COMMIT: 331f03c5d6a4aab0b2e32314293e36c7a94be393
+  BEAST_HISTORY_COMMIT: bd4108ac2f245262a25fd80463e84d9279eeead2
+  SMOL_REPO: HuggingFaceTB/SmolLM2-135M
+  SMOL_REVISION: 4e53f736cbb20a9a0f56b4c4bf378d9f306ff915
+  SMOL_PARAMETER_SHA256: 109a74ae153ab55706aa31dcb1ae10f39fb281deea6728a3546b55d6dc0fcbb3
+  ZEREF_CHECKPOINT_SHA256: 454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425
+  ZEREF_ARCHITECTURE_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+  ZEREF_PARAMETER_SHA256: edf6501633ff26948a73815690e2f184c3e4025414c3ac2d64fbfec203307f7a
+
+jobs:
+  boot-and-assemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 95
+    steps:
+      - name: Checkout exact Synapse recording surface
+        uses: actions/checkout@v4
+        with:
+          repository: NavisWORLD/Synapse-os-
+          ref: ${{ env.SYNAPSE_COMMIT }}
+          path: synapse-src
+          persist-credentials: false
+
+      - name: Download sealed Smol-Zeref conversation from successful prior run
+        uses: actions/download-artifact@v5
+        with:
+          name: ${{ env.PRIOR_CONVERSATION_ARTIFACT }}
+          path: ${{ runner.temp }}/full/conversation
+          github-token: ${{ github.token }}
+          repository: NavisWORLD/The-beast-box-
+          run-id: ${{ env.PRIOR_CONVERSATION_RUN_ID }}
+
+      - name: Verify sealed conversation artifact
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ROOT="$RUNNER_TEMP/full/conversation"
+          test -s "$ROOT/smol-zeref-conversation.mp4"
+          test -s "$ROOT/smol-zeref-conversation.json"
+          test -s "$ROOT/TRANSCRIPT.txt"
+          test -s "$ROOT/SHA256SUMS"
+          (cd "$ROOT" && sha256sum -c SHA256SUMS)
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'full/conversation'
+          data = json.loads((root / 'smol-zeref-conversation.json').read_text())
+          assert data['grantsBeforeSwap'] == 'filesystem.write'
+          assert data['grantsAfterSwap'] == 'NONE'
+          assert data['providerSwap']['authority_transferred'] is False
+          assert data['closeReceipt']['smol']['parameter_drift'] is False
+          assert data['closeReceipt']['zeref']['parameter_drift'] is False
+          assert data['closeReceipt']['smol']['parameter_sha256_before'] == os.environ['SMOL_PARAMETER_SHA256']
+          assert data['closeReceipt']['zeref']['parameter_sha256_before'] == os.environ['ZEREF_PARAMETER_SHA256']
+          assert data['providerStatusAfterTurns']['identities']['zeref']['checkpoint_sha256'] == os.environ['ZEREF_CHECKPOINT_SHA256']
+          assert data['providerStatusAfterTurns']['identities']['zeref']['architecture_sha256'] == os.environ['ZEREF_ARCHITECTURE_SHA256']
+          assert data['providerStatusAfterTurns']['identities']['zeref']['parameter_sha256'] == os.environ['ZEREF_PARAMETER_SHA256']
+          PY
+
+      - name: Install Synapse build, QEMU, and recording tools
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            cpio debootstrap rsync xorriso squashfs-tools curl \
+            qemu-system-x86 qemu-system-gui qemu-utils ovmf \
+            parted dosfstools e2fsprogs grub-efi-amd64-bin grub2-common \
+            util-linux udev xvfb ffmpeg
+          curl -fsSL -o /tmp/debian-archive-keyring.deb \
+            'https://deb.debian.org/debian/pool/main/d/debian-archive-keyring/debian-archive-keyring_2025.1_all.deb'
+          echo '9ea7778e443144ca490668737a8ab22dd3e748bb99e805e22ec055abeb3c7fac  /tmp/debian-archive-keyring.deb' | sha256sum -c -
+          curl -fsSL -o /tmp/live-build.deb \
+            'https://deb.debian.org/debian/pool/main/l/live-build/live-build_20250505+deb13u1_all.deb'
+          echo '58e09779881cbcc631c49ceb703413e0247a87db01823e597b2a1c40a2afd8f4  /tmp/live-build.deb' | sha256sum -c -
+          sudo dpkg -i /tmp/debian-archive-keyring.deb /tmp/live-build.deb
+
+      - name: Run Synapse QEMU recording contract test
+        working-directory: synapse-src
+        run: PYTHONPATH=. python3 -m unittest tests.test_qemu_smoke_recording -v
+
+      - name: Build exact Synapse amd64 ISO
+        working-directory: synapse-src
+        run: sudo env SYNAPSE_ARCH=amd64 ./build/build.sh
+
+      - name: Verify exact ISO checksum
+        working-directory: synapse-src
+        run: sha256sum -c out/*.iso.sha256
+
+      - name: Record real Synapse QEMU boot with visible display
+        working-directory: synapse-src
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          EVIDENCE="$RUNNER_TEMP/full/boot"
+          mkdir -p "$EVIDENCE"
+          ISO="$(find out -maxdepth 1 -name 'SynapseOS-*-amd64.iso' -print -quit)"
+          test -n "$ISO"
+          {
+            echo 'schema=beastos-smol-zeref-boot-v2'
+            echo "synapse_commit=$SYNAPSE_COMMIT"
+            echo "workflow_commit=$GITHUB_SHA"
+            sha256sum "$ISO"
+            uname -a
+            qemu-system-x86_64 --version | head -n 1
+          } > "$EVIDENCE/boot-environment.txt"
+
+          Xvfb :99 -screen 0 1440x1080x24 >"$EVIDENCE/xvfb.log" 2>&1 &
+          XVFB_PID=$!
+          export DISPLAY=:99
+          sleep 2
+          ffmpeg -y -f x11grab -draw_mouse 0 -framerate 25 -video_size 1440x1080 \
+            -i :99.0 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p \
+            "$EVIDENCE/synapse-boot.mp4" >"$EVIDENCE/boot-ffmpeg.log" 2>&1 &
+          FFMPEG_PID=$!
+
+          SYNAPSE_QEMU_DISPLAY=gtk \
+          SYNAPSE_QEMU_LINGER=12 \
+          SYNAPSE_QEMU_TIMEOUT=300 \
+          SYNAPSE_QEMU_LOG="$EVIDENCE/serial.log" \
+            bash scripts/qemu-smoke.sh amd64 "$ISO"
+
+          kill -INT "$FFMPEG_PID" 2>/dev/null || true
+          wait "$FFMPEG_PID" 2>/dev/null || true
+          kill "$XVFB_PID" 2>/dev/null || true
+          wait "$XVFB_PID" 2>/dev/null || true
+
+          grep -F 'SYNAPSE_VM_READY' "$EVIDENCE/serial.log"
+          test -s "$EVIDENCE/serial.log"
+          awk '/SYNAPSE_VM_HW_BEGIN/{capture=1} capture{print} /SYNAPSE_VM_HW_END/{capture=0}' \
+            "$EVIDENCE/serial.log" > "$EVIDENCE/guest-hardware.txt"
+          test -s "$EVIDENCE/guest-hardware.txt"
+          test -s "$EVIDENCE/synapse-boot.mp4"
+          ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 \
+            "$EVIDENCE/synapse-boot.mp4" > "$EVIDENCE/boot-duration.txt"
+          echo 'boot_result=pass' >> "$EVIDENCE/boot-environment.txt"
+          (cd "$EVIDENCE" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+
+      - name: Assemble uncut boot followed by sealed Smol-Zeref conversation
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ROOT="$RUNNER_TEMP/full"
+          ffmpeg -y \
+            -i "$ROOT/boot/synapse-boot.mp4" \
+            -i "$ROOT/conversation/smol-zeref-conversation.mp4" \
+            -filter_complex \
+              '[0:v]scale=1440:1080:force_original_aspect_ratio=decrease,pad=1440:1080:(ow-iw)/2:(oh-ih)/2,fps=25,setsar=1[b];[1:v]scale=1440:1080:force_original_aspect_ratio=decrease,pad=1440:1080:(ow-iw)/2:(oh-ih)/2,fps=25,setsar=1[c];[b][c]concat=n=2:v=1:a=0[out]' \
+            -map '[out]' -an -c:v libx264 -preset veryfast -crf 22 -pix_fmt yuv420p \
+            "$ROOT/beastos-smol-zeref-full-demo.mp4"
+
+          boot_duration="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$ROOT/boot/synapse-boot.mp4")"
+          conversation_duration="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$ROOT/conversation/smol-zeref-conversation.mp4")"
+          full_duration="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$ROOT/beastos-smol-zeref-full-demo.mp4")"
+          python3 - <<PY
+          import json
+          from pathlib import Path
+          root = Path(r'''$ROOT''')
+          receipt = {
+              'schema': 'beastos-smol-zeref-full-demo-v2',
+              'status': 'IMPLEMENTED_AND_TESTED',
+              'workflow_commit': '${{ github.sha }}',
+              'synapse_commit': '${{ env.SYNAPSE_COMMIT }}',
+              'beast_runtime_commit': '${{ env.BEAST_RUNTIME_COMMIT }}',
+              'beast_history_commit': '${{ env.BEAST_HISTORY_COMMIT }}',
+              'prior_conversation_run_id': '${{ env.PRIOR_CONVERSATION_RUN_ID }}',
+              'prior_conversation_artifact_id': '${{ env.PRIOR_CONVERSATION_ARTIFACT_ID }}',
+              'prior_conversation_artifact_digest': '${{ env.PRIOR_CONVERSATION_ARTIFACT_DIGEST }}',
+              'sequence': ['real Synapse QEMU boot', 'SmolLM2-135M live conversation', 'authority grant', 'brain swap', 'exact Zeref checkpoint live conversation'],
+              'smol': {
+                  'repo': '${{ env.SMOL_REPO }}',
+                  'revision': '${{ env.SMOL_REVISION }}',
+                  'parameter_sha256': '${{ env.SMOL_PARAMETER_SHA256 }}',
+              },
+              'zeref': {
+                  'checkpoint_sha256': '${{ env.ZEREF_CHECKPOINT_SHA256 }}',
+                  'architecture_sha256': '${{ env.ZEREF_ARCHITECTURE_SHA256 }}',
+                  'parameter_sha256': '${{ env.ZEREF_PARAMETER_SHA256 }}',
+              },
+              'durations_seconds': {
+                  'boot': float('$boot_duration'),
+                  'conversation': float('$conversation_duration'),
+                  'full': float('$full_duration'),
+              },
+              'full_recording_uncut': True,
+              'conversation_artifact_reverified': True,
+              'model_parameters_frozen': True,
+              'authority_transferred_on_swap': False,
+              'claim_boundary': 'software/runtime demonstration only; no consciousness, biological-life, identity, soul, quantum-advantage, or new-physics claim',
+          }
+          (root / 'FULL_DEMO_RECEIPT.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+          PY
+          test -s "$ROOT/beastos-smol-zeref-full-demo.mp4"
+          (cd "$ROOT" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+
+      - name: Upload sealed final film and receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: beastos-smol-zeref-final-film-${{ github.sha }}
+          path: ${{ runner.temp }}/full
+          if-no-files-found: error
