@@ -1,46 +1,28 @@
 {
   "project": "cosmos-beast-box",
-  "supported_python": [
-    "3.10",
-    "3.11",
-    "3.12"
-  ],
+  "supported_python": ["3.10", "3.11", "3.12"],
   "scientific_anchor": "c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f",
   "scientific_classification": "ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED",
   "soul_qbt_classification": "ENGINEERING_CONTROL_INCONCLUSIVE",
   "scientific_interpretation": "A causal resource/source to downstream consumer effect has not been established. This is not a proof of a universal negative causal effect.",
   "license": "THE BEAST BOX PROPRIETARY SOURCE-AVAILABLE LICENSE v1.0",
   "open_source": false,
-  "canonical_repository": "https://github.com/NavisWORLD/The-beast-box-",
-  "release_version": "0.6.0",
-  "classification": "release-hardened experimental software (v0.6.0 prerelease published)",
+  "canonical_repository": "https://github.com/NavisWORLD/The-beast-box-/",
+  "release_version": "0.7.0",
+  "classification": "release candidate / hardened experimental software",
   "production_ready": false,
   "canonical_runtime_entrypoint": "beastbox runtime",
-  "public_api": [
-    "beastbox.DurableRuntime",
-    "beastbox.providers.TextProvider"
-  ],
+  "public_api": ["beastbox.DurableRuntime", "beastbox.providers.TextProvider"],
   "ibm_required_for_normal_operation": false,
-  "supported_durable_providers": [
-    "deterministic reference",
-    "loopback Ollama",
-    "compatible Chat Completions (remote HTTPS requires explicit opt-in)"
-  ],
-  "legacy_optional_providers": [
-    "GGUF",
-    "LM Studio",
-    "llama.cpp",
-    "OpenAI-compatible loopback"
-  ],
+  "supported_durable_providers": ["deterministic reference", "loopback Ollama", "compatible Chat Completions (remote HTTPS requires explicit opt-in)"],
+  "legacy_optional_providers": ["GGUF", "LM Studio", "llama.cpp", "OpenAI-compatible loopback"],
   "architecture_manifest": "docs/ECOSYSTEM_MANIFEST.json",
+  "architecture_document": "docs/ARCHITECTURE.md",
   "readiness": "docs/closure/READINESS.json",
   "combined_kit": "kits/BEAST_BOX_COMBINED/EnD",
   "historical_swap_report": "docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md",
   "historical_swap_classification": "COMPLETED_DESCRIPTIVE_MEASUREMENT",
-  "historical_public_release": {
-    "tag": "v0.3.2",
-    "unchanged": true
-  },
+  "historical_public_release": {"tag": "v0.3.2", "unchanged": true},
   "release_tag": "v0.6.0",
   "publication_status": "PUBLISHED_PRERELEASE",
   "release": {
@@ -54,6 +36,14 @@
     "story_receipt": "STORY_RECEIPT.json",
     "portable_handoff": "PORTABLE_HANDOFF.json"
   },
+  "current_source": {
+    "commit": "23b4c1210c4a82f86412bb9e80243a1c171a8038",
+    "branch": "beastbox-v1-finalization",
+    "baseline_ci_run": 34563507581,
+    "baseline_web_run": 34563507619,
+    "baseline_python_tests": "973 passed on Python 3.10; Python 3.12 job also passed",
+    "baseline_web_tests": "14 passed; static build and artifact checks passed"
+  },
   "real_model_demo_classification": {
     "substrate_memory_delivery": "PASS",
     "model_interpretation_quality": "MIXED",
@@ -64,12 +54,7 @@
     "Apple signing, provisioning, physical-device acceptance, TestFlight and App Store distribution",
     "Android production-store signing and physical-device real-model acceptance",
     "Physical USB/filesystem handoff certification",
-    "Live IBM/Azure account execution"
-  ],
-  "publication_receipt": "GitHub release v0.6.0 plus attached RELEASE_VERIFICATION.json and SHA256SUMS.txt",
-  "previous_release": {
-    "tag": "v0.5.0",
-    "receipt": "docs/closure/PORTABLE_RELEASE_RECEIPT.json",
-    "unchanged": true
-  }
+    "Live IBM/Azure account execution",
+    "Universal production readiness across arbitrary host environments"
+  ]
 }
