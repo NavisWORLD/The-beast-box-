@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#071016">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BEAST BOX">
+  <meta name="description" content="Beast Box standalone browser runtime">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+  <title>BEAST BOX // COSMIC</title>
+</head>
+<body>
+  <noscript><main class="noscript"><h1>BEAST BOX requires JavaScript</h1><p>The web runtime uses browser capability detection and local storage APIs.</p></main></noscript>
+  <div id="app" hidden>
+    <aside class="rail">
+      <div class="brand"><span class="mark">◆</span><span>BEAST BOX<small>COSMIC WEB RUNTIME</small></span></div>
+      <nav id="nav" aria-label="Workstation">
+        <button data-view="orbit" class="active">ORBIT</button>
+        <button data-view="brain">BRAIN BAY</button>
+        <button data-view="memory">MEMORY VAULT</button>
+        <button data-view="trace">SYNAPSE TRACE</button>
+        <button data-view="files">FILES</button>
+        <button data-view="workspace">WORKSPACE</button>
+        <button data-view="storage">STORAGE</button>
+        <button data-view="settings">SETTINGS</button>
+      </nav>
+      <div class="rail-foot">MODEL ≠ MEMORY<br>STATE ≠ AUTHORITY<br><span id="onlineState">CHECKING</span></div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div><span class="eyebrow">BEAST BOX // STANDALONE WEB RUNTIME</span><h1 id="viewTitle">ORBIT</h1></div>
+        <div class="pills"><span id="runtimePill" class="pill">RUNTIME: CHECKING</span><span id="brainPill" class="pill">BRAIN: REFERENCE</span><span id="capPill" class="pill">CAPS: CHECKING</span></div>
+      </header>
+      <section class="privacy"><div><b>STATE MAY TRAVEL · INFORMATION MAY TRAVEL · AUTHORITY DOES NOT TRAVEL AUTOMATICALLY</b><small id="authorityText">Authority is disabled until explicitly granted by the owner.</small></div><button id="stopAuthority" class="danger">MASTER STOP</button></section>
+      <div id="notice" class="notice" hidden></div>
+
+      <section id="view-orbit" class="view active">
+        <div class="hero"><div><span class="eyebrow">PORTABLE PERSONAL RUNTIME</span><h2>Swap the brain.<br><em>Keep the story.</em></h2><p>Use the canonical Beast Box runtime when connected, or keep browser-local state available when remote services are unavailable.</p><div class="actions"><button class="primary" data-view-jump="brain">Choose Brain</button><button data-view-jump="memory">Open Memory</button></div></div><div class="map"><div class="node brain">BRAIN<br><strong id="mapBrain">REFERENCE</strong></div><div class="node state">DURABLE SUBSTRATE<br><strong id="mapState">CHECKING</strong></div><div class="node local">BROWSER<br><strong id="mapCaps">CHECKING</strong></div></div></div>
+        <div class="cards metrics"><article><label>SYSTEM ID</label><strong id="systemId">—</strong></article><article><label>CHECKPOINT</label><strong id="checkpoint">—</strong></article><article><label>MEMORY</label><strong id="memoryCount">—</strong></article><article><label>CONVERSATION</label><strong id="turnCount">—</strong></article></div>
+        <div class="cards"><article class="wide"><label>RUNTIME HEALTH</label><pre id="health">Checking…</pre></article><article><label>ACTIVE CAPABILITIES</label><div id="capabilities" class="cap-list"></div></article></div>
+      </section>
+
+      <section id="view-brain" class="view">
+        <div class="section-head"><div><span class="eyebrow">MODEL ROUTING</span><h2>BRAIN BAY</h2></div></div>
+        <div class="brain-grid">
+          <button class="brain-card selected" data-provider="reference"><span>◇</span><b>REFERENCE RUNTIME</b><small>Deterministic fixture. No model weights required.</small></button>
+          <button class="brain-card" data-provider="ollama"><span>◉</span><b>OLLAMA</b><small>Local endpoint. Browser/network policy may block access.</small></button>
+          <button class="brain-card" data-provider="compatible"><span>↗</span><b>AZURE / REMOTE</b><small>Compatible chat endpoint. Secrets remain server-side.</small></button>
+          <button class="brain-card" data-provider="local"><span>▣</span><b>LOCAL MODEL</b><small>Browser-local model metadata and capability negotiation.</small></button>
+        </div>
+        <article class="panel"><div class="panel-head"><h3>Provider configuration</h3><span id="providerBoundary" class="badge">LOCAL</span></div><div class="form-grid">
+          <label>MODEL / DEPLOYMENT<input id="providerModel" maxlength="256" placeholder="COSMOS reference"></label>
+          <label>ENDPOINT URL<input id="providerUrl" maxlength="2048" placeholder="http://127.0.0.1:11434"></label>
+          <label>API VERSION<input id="apiVersion" maxlength="128" placeholder="api-version (if required)"></label>
+          <label>AUTH ENVIRONMENT NAME<input id="apiKeyEnv" maxlength="128" placeholder="BEASTBOX_REMOTE_API_KEY"></label>
+        </div><div class="actions"><button id="saveProvider" class="primary">Save Brain</button><button id="testProvider">Test Connection</button></div><p class="muted">Remote credentials are environment references for the Beast Box host. A static browser bundle never contains a master authority credential.</p></article>
+        <article class="panel"><div class="panel-head"><h3>Add Local Model</h3><span id="localModelStatus" class="badge">NOT LOADED</span></div><input id="modelFile" type="file" accept=".gguf,.safetensors,.bin" hidden><button id="chooseModel">Select Model File</button><div id="modelInfo" class="model-info">No model file selected. Selection is local; the file is not uploaded by this client.</div></article>
+      </section>
+
+      <section id="view-memory" class="view"><div class="section-head"><div><span class="eyebrow">PERSISTENT SUBSTRATE</span><h2>MEMORY VAULT</h2></div><button id="refreshMemory">Refresh</button></div><article class="panel"><div class="chatlog" id="memoryList"><div class="empty">Loading canonical memory…</div></div></article></section>
+
+      <section id="view-trace" class="view"><div class="section-head"><div><span class="eyebrow">PROVENANCE / CONTINUITY</span><h2>SYNAPSE TRACE</h2></div><button id="refreshTrace">Refresh</button></div><article class="panel"><div id="traceList" class="trace-list"><div class="empty">Loading trace…</div></div></article></section>
+
+      <section id="view-files" class="view"><div class="section-head"><div><span class="eyebrow">EXPLICIT CONTEXT</span><h2>FILES</h2></div></div><article class="panel"><p>Browser file access is explicit and user-selected. Selected text can be attached to a session or explicitly persisted through the canonical runtime.</p><input id="contextFile" type="file" hidden><button id="chooseContext">Choose File</button><div id="contextInfo" class="model-info">No file selected.</div><div class="actions"><button id="attachContext">Attach to Session</button><button id="persistContext">Persist to Beast Box Memory</button></div><div id="contextList"></div></article></section>
+
+      <section id="view-workspace" class="view"><div class="section-head"><div><span class="eyebrow">OWNER-ALLOWED WORKSPACE</span><h2>WORKSPACE</h2></div><button id="refreshWorkspace">Refresh</button></div><article class="panel"><div id="workspaceStatus" class="model-info">No browser workspace is selected. The existing host workspace API remains authority-gated.</div><div class="actions"><button id="workspaceReadStatus">Read Git Status</button><button id="workspaceNotice">Why can't the browser pick arbitrary folders?</button></div></article></section>
+
+      <section id="view-storage" class="view"><div class="section-head"><div><span class="eyebrow">PORTABLE CONTINUITY</span><h2>STORAGE</h2></div><button id="refreshStorage">Refresh</button></div><div class="cards"><article class="wide panel"><label>CANONICAL RUNTIME STORAGE</label><pre id="storageInfo">Loading…</pre></article><article class="panel"><h3>Browser Vault</h3><p class="muted">Browser-only preferences and model metadata use IndexedDB. Large data is not placed in localStorage.</p><button id="exportBrowser">Export Browser State</button><input id="importBrowser" type="file" accept="application/json" hidden><button id="chooseBrowserImport">Import Browser State</button></article></div></section>
+
+      <section id="view-settings" class="view"><div class="section-head"><div><span class="eyebrow">RUNTIME CONFIGURATION</span><h2>SETTINGS</h2></div></div><div class="cards"><article class="panel wide"><h3>API Bridge</h3><label>Beast Box Runtime URL<input id="apiBase" placeholder="same origin"></label><p class="muted">Use same-origin when the canonical COSMIC server serves this client. Cross-origin deployments require server CORS configuration; the client will never bypass browser policy.</p><button id="saveSettings" class="primary">Save Settings</button></article><article class="panel"><h3>Offline / Reference</h3><p id="offlineDescription">Reference mode is available without a network connection.</p><button id="clearBrowser">Clear Browser-Local UI State</button></article></div></section>
+
+      <section class="chat panel" aria-label="Conversation"><div class="panel-head"><div><span class="eyebrow">CONVERSATION</span><h3>ORBIT CHANNEL</h3></div><button id="refreshChat">Reload</button></div><div id="chatlog" class="chatlog"><div class="empty"><strong>BEAST BOX READY</strong>Send a message through the canonical runtime.</div></div><form id="chatForm" class="composer"><textarea id="chatInput" rows="2" maxlength="12000" placeholder="Speak to Beast Box…" required></textarea><button class="primary" type="submit">SEND</button></form></section>
+    </main>
+  </div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
