@@ -17,14 +17,16 @@ jobs:
         with:
           node-version: 22
       - name: Syntax check
-        run: node --check html/app.js
+        run: npm --prefix html run check
       - name: Contract and security tests
-        run: node --test html/tests/*.test.js
+        run: npm --prefix html test
+      - name: Production static build
+        run: npm --prefix html run build
       - name: Static artifact checks
         run: |
-          test -f html/index.html
-          test -f html/manifest.webmanifest
-          test -f html/sw.js
-          test -f html/icon.svg
+          test -f html/dist/index.html
+          test -f html/dist/standalone.html
+          test -f html/dist/manifest.webmanifest
+          test -f html/dist/sw.js
           grep -q 'Content-Security-Policy' html/serve.py
-          ! grep -R -E 'sk-[A-Za-z0-9]{20,}|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY' html
+          ! grep -R -E 'sk-[A-Za-z0-9]{20,}|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY' html --exclude-dir=dist
