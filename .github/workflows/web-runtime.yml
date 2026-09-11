@@ -1,0 +1,30 @@
+name: Beast Box Web Runtime
+on:
+  push:
+    paths:
+      - 'html/**'
+      - '.github/workflows/web-runtime.yml'
+  pull_request:
+    paths:
+      - 'html/**'
+      - '.github/workflows/web-runtime.yml'
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: node --check html/app.js
+      - name: Contract and security tests
+        run: node --test html/tests/*.test.js
+      - name: Static artifact checks
+        run: |
+          test -f html/index.html
+          test -f html/manifest.webmanifest
+          test -f html/sw.js
+          test -f html/icon.svg
+          grep -q 'Content-Security-Policy' html/serve.py
+          ! grep -R -E 'sk-[A-Za-z0-9]{20,}|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY' html
