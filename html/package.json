@@ -1,0 +1,6 @@
+{
+  "name":"beast-box-web-runtime",
+  "private":true,
+  "type":"module",
+  "scripts":{"test":"node --test tests/*.test.js","check":"node --check app.js && node --check serve.py >/dev/null 2>&1 || true"}
+}
