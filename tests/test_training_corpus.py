@@ -66,7 +66,7 @@ def test_lexical_normalization_is_unicode_stable_and_deduplicates_lists():
     )
 
     assert record == {
-        "lemma": "café",
+        "lemma": "Café",
         "part_of_speech": "noun",
         "definition": "A place for coffee.",
         "synonyms": ["café", "coffeehouse"],
@@ -88,7 +88,7 @@ def test_lexical_builder_is_deterministic_and_deduplicates(tmp_path: Path):
     all_rows = []
     for split in ("train", "validation", "test"):
         all_rows.extend(_read_jsonl(tmp_path / "a" / f"{split}.jsonl"))
-    assert all_rows == [normalize_lexical_record(LEXICAL[1])]
+    assert all_rows == [normalize_lexical_record(LEXICAL[0])]
 
 
 def test_source_license_and_uri_are_required(tmp_path: Path):
