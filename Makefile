@@ -21,6 +21,8 @@ env-check:
 	$(PYTHON) -m beastbox.env_inventory --check .env.example beastbox
 
 lint:
+	$(PYTHON) -m ruff check scripts/benchmark_runtime.py scripts/smoke/html_browser.py html/serve.py \
+		tests/test_runtime_benchmark.py tests/test_runtime_performance.py tests/test_html_server.py
 	$(PYTHON) -m ruff check beastbox/env_inventory.py tests/test_env_inventory.py
 	$(PYTHON) -m ruff check beastbox/doctor.py beastbox/portable_state.py tests/test_launch_surface.py tests/test_compatible_provider.py
 	$(PYTHON) -m ruff check beastbox/cosmic_demo.py tests/test_cosmic_product_polish.py scripts/smoke/cosmic_browser.py

@@ -7,6 +7,7 @@ host capability; only an explicitly enabled, purely simulated output is supporte
 from __future__ import annotations
 
 import copy
+import time
 import uuid
 from dataclasses import asdict
 from pathlib import Path
@@ -22,7 +23,7 @@ from .dad_son import DadSonLedger
 from .events import bounded_output, normalize_event
 from .evidence import EvidenceEvent
 from .hashutil import sha256_obj, sha256_text
-from .memory import MemoryHit
+from .memory import MemoryHit, ReconciliationMemory
 from .organism import EvolutionEngine, InternalMonologue, OrganismState, SlowState
 from .providers import ReferenceTextProvider, TextProvider
 from .reality_memory import initial_r12_state
@@ -35,11 +36,24 @@ class MeasuredProvider:
     def __init__(self, provider: TextProvider):
         self.delegate = provider
         self.receipt: dict[str, Any] = {}
+        self.measurements: dict[str, Any] = {}
 
     def generate(self, prompt: str) -> str:
-        output = self.delegate.generate(prompt)
+        self.receipt = {}
+        self.measurements = {
+            "provider_calls": 1,
+            "input_characters": len(prompt),
+            "input_bytes": len(prompt.encode("utf-8")),
+            "output_characters": None,
+        }
+        started = time.perf_counter()
+        try:
+            output = self.delegate.generate(prompt)
+        finally:
+            self.measurements["provider_ms"] = (time.perf_counter() - started) * 1000
         if not isinstance(output, str) or len(output) > 65536:
             raise ValueError("provider response must be bounded text")
+        self.measurements["output_characters"] = len(output)
         self.receipt = {
             "provider": type(self.delegate).__name__,
             "model": str(getattr(self.delegate, "model", getattr(self.delegate, "prefix", "unspecified"))),
@@ -49,6 +63,25 @@ class MeasuredProvider:
             "output_sha256": sha256_text(output),
         }
         return output
+
+
+class _RoutingMemoryView:
+    """Reuse association reads within one rank call under the runtime write lock.
+
+    No cache survives the call. The historical router still computes every
+    score, including current state, recency and quality, from the same rows.
+    """
+
+    def __init__(self, memory: ReconciliationMemory):
+        self.db = memory.db
+        self._memory = memory
+        self._associations: dict[tuple[str, int], list[tuple[str, float]]] = {}
+
+    def associations(self, concept: str, *, limit: int = 10) -> list[tuple[str, float]]:
+        key = (concept, limit)
+        if key not in self._associations:
+            self._associations[key] = self._memory.associations(concept, limit=limit)
+        return self._associations[key]
 
 
 class DurableRuntime(CosmosRuntime):
@@ -66,6 +99,10 @@ class DurableRuntime(CosmosRuntime):
         *,
         allow_simulated_tool: bool = False,
     ):
+        started = time.perf_counter()
+        self._stage_started: float | None = None
+        self._stages_ms: dict[str, float] = {}
+        self.last_metrics: dict[str, Any] = {}
         base = Path(root)
         if base.is_symlink():
             raise ValueError("runtime root must not be a symlink")
@@ -95,6 +132,7 @@ class DurableRuntime(CosmosRuntime):
         except BaseException:
             self.memory.close()
             raise
+        self.startup_ms = (time.perf_counter() - started) * 1000
 
     def _state(self) -> dict[str, Any]:
         return {
@@ -136,10 +174,37 @@ class DurableRuntime(CosmosRuntime):
 
     def _trace_stage(self, stage):
         self._trace.append(stage)
+        self._measure_boundary(stage)
+
+    def _measure_boundary(self, stage):
+        if self._stage_started is not None:
+            now = time.perf_counter()
+            self._stages_ms[stage] = self._stages_ms.get(stage, 0.0) + (now - self._stage_started) * 1000
+            self._stage_started = now
+
+    def _finish_measurements(self, started: float, status: str) -> None:
+        self.last_metrics = {
+            "schema": "runtime-measurements-v1",
+            "status": status,
+            "total_ms": (time.perf_counter() - started) * 1000,
+            "stages_ms": dict(self._stages_ms),
+            "provider_calls": 0,
+            "provider_ms": None,
+            "input_characters": None,
+            "input_bytes": None,
+            "output_characters": None,
+            # TextProvider is a blocking text interface, with no tokenizer or
+            # token usage contract. Character counts are not token counts.
+            "provider_input_tokens": None,
+            "provider_output_tokens": None,
+            "time_to_first_token_ms": None,
+            **cast(MeasuredProvider, self.provider).measurements,
+        }
+        self._stage_started = None
 
     def _route_memories(self, text, memories, state):
         # Reuse the historical router without constructing/importing a historical ledger.
-        adapter = cast(DadSonLedger, SimpleNamespace(memory=self.memory))
+        adapter = cast(DadSonLedger, SimpleNamespace(memory=_RoutingMemoryView(self.memory)))
         records = RefractiveMemoryRouter(adapter).rank(
             text,
             sequence=self.turn,
@@ -166,8 +231,9 @@ class DurableRuntime(CosmosRuntime):
         self._trace_stage("bounded_output")
 
     def swap_provider(self, provider: TextProvider) -> None:
-        """Replace inference only; neither provider nor context can set policy."""
+        """Replace inference and revoke grants; neither model nor memory grants authority."""
         self.provider = MeasuredProvider(provider)
+        self.policy.allowed.clear()
 
     def respond(self, text: str, *, transient_context: str = "", **kwargs) -> dict[str, Any]:
         if kwargs:
@@ -177,15 +243,23 @@ class DurableRuntime(CosmosRuntime):
         )
 
     def respond_event(self, event: dict[str, Any], *, transient_context: str = "") -> dict[str, Any]:
-        if not isinstance(transient_context, str) or len(transient_context) > 512 * 1024:
-            raise ValueError("transient context exceeds the bounded input limit")
-        normalized = normalize_event(event)
-        self._trace = ["normalize"]
+        started = time.perf_counter()
+        self._stage_started = started
+        self._stages_ms = {}
+        self.last_metrics = {}
+        cast(MeasuredProvider, self.provider).measurements = {}
         before = None
         try:
+            if not isinstance(transient_context, str) or len(transient_context) > 512 * 1024:
+                raise ValueError("transient context exceeds the bounded input limit")
+            normalized = normalize_event(event)
+            self._trace = ["normalize"]
+            self._measure_boundary("normalize")
             with self.memory.transaction():
                 before = self.continuity.verify()
+                self._measure_boundary("checkpoint_verify")
                 self._restore(copy.deepcopy(before))
+                self._measure_boundary("checkpoint_restore")
                 # Numeric software events share the existing bounded bridge input.
                 packet = BridgePacket(audio_features=list(normalized["features"]))
                 result = super().respond(normalized["text"], bridge=packet, transient_context=transient_context)
@@ -213,10 +287,17 @@ class DurableRuntime(CosmosRuntime):
                     model=receipt["model"],
                     ledger_head=self.ledger.head,
                 )
+            self._measure_boundary("commit")
+            self._finish_measurements(started, "committed")
+            result["metrics"] = self.last_metrics
             return result
         except BaseException:
-            if before is not None:
-                self._restore(before)
+            try:
+                if before is not None:
+                    self._restore(before)
+            finally:
+                self._measure_boundary("failure")
+                self._finish_measurements(started, "failed")
             raise
 
     def store_external_memory(
@@ -282,4 +363,3 @@ class DurableRuntime(CosmosRuntime):
         from .sealed_storage import maybe_seal_root
 
         maybe_seal_root(root)
-
