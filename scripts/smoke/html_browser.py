@@ -127,6 +127,7 @@ def smoke(playwright, directory: Path, output: Path, server, thread) -> tuple[di
         expect(page.locator("#memoryList")).to_contain_text("observatory code is marigold")
         nav("trace")
         expect(page.locator("#traceList")).to_contain_text("checkpoint_sha256")
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), "trace desktop overflow"
         nav("storage")
         expect(page.locator("#storageInfo")).to_contain_text(identity)
         nav("brain")
@@ -203,6 +204,11 @@ def smoke(playwright, directory: Path, output: Path, server, thread) -> tuple[di
         page.evaluate("scrollTo(0, 0)")
         page.screenshot(path=str(output / "orbit-desktop.png"), full_page=True)
         page.set_viewport_size({"width": 390, "height": 844})
+        nav("trace")
+        expect(page.locator("#traceList")).to_contain_text("checkpoint_sha256")
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), "trace mobile overflow"
+        page.screenshot(path=str(output / "trace-mobile.png"), full_page=True)
+        nav("orbit")
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         page.evaluate("scrollTo(0, 0)")
         page.screenshot(path=str(output / "orbit-mobile.png"), full_page=True)
@@ -212,7 +218,7 @@ def smoke(playwright, directory: Path, output: Path, server, thread) -> tuple[di
         expect(page.locator("#runtimePill")).to_have_text("RUNTIME: OFFLINE")
         expect(page.locator("#notice")).to_contain_text("CANONICAL RUNTIME UNAVAILABLE")
         assert not errors, errors
-        return {"passed": True, "browser_version": browser.version, "flows": ["service worker freshness", "durable chat", "memory", "trace", "storage", "provider change", "cloud permission denial", "server restart and session renewal", "delayed refresh race", "denied write recovery", "offline honesty", "390px layout"], "physical_devices_validated": False}, server, thread
+        return {"passed": True, "browser_version": browser.version, "flows": ["service worker freshness", "durable chat", "memory", "trace desktop/mobile layout", "storage", "provider change", "cloud permission denial", "server restart and session renewal", "delayed refresh race", "denied write recovery", "offline honesty", "390px layout"], "physical_devices_validated": False}, server, thread
     except Exception:
         page.screenshot(path=str(output / "failure.png"), full_page=True)
         raise
