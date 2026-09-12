@@ -9,7 +9,7 @@ the runtime retains the story and enforces its own authority boundary.
 
 **MODEL ≠ MEMORY · MODEL ≠ STATE · MODEL ≠ PROVENANCE · MODEL ≠ AUTHORITY**
 
-[Download / Releases](https://github.com/NavisWORLD/The-beast-box-/releases) ·
+[Download Beast Box v0.7.0](https://github.com/NavisWORLD/The-beast-box-/releases/tag/v0.7.0) ·
 [COSMIC browser guide](docs/COSMIC_UI_GUIDE.md) · [5-minute Quickstart](docs/QUICKSTART.md) · [Combined Kit / EnD](kits/BEAST_BOX_COMBINED/EnD) ·
 [Architecture](docs/ECOSYSTEM_MANIFEST.json) · [Persistent Memory](docs/PORTABLE_STATE.md) ·
 [Model Swap Evidence](docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md) ·
@@ -177,20 +177,24 @@ The combined kit includes the public API/configuration and recovery instructions
 
 ### Portable kit and apps
 
-The **0.6.0 prerelease** is the current published GitHub Release. In-tree package
-version **0.7.0** adds optional AES-256-GCM sealed storage, isolated local
-profiles, restored conversation on desktop/COSMIC restart, and signing-ready
-Android/iOS metadata. It is a candidate on `main`, not a replacement GitHub
-Release until release.yml and owner publication run. See
-[0.7.0 candidate notes](docs/closure/RELEASE_CANDIDATE_0.7.0.md).
+The **v0.7.0 prerelease** is the current published GitHub Release. It was built
+from exact source commit `97f153225ea2f8910f1c91194a65b97f94246c2b`, passed the
+source-bound release gates, and then passed the clean public stranger-download
+smoke after publication. [Download v0.7.0](https://github.com/NavisWORLD/The-beast-box-/releases/tag/v0.7.0).
 
-The **0.6.0 prerelease** packages `INSTALL.bat` / `UnixINSTALL.sh`, a checked offline wheel
-installer, `LAUNCH.bat` / `UnixLAUNCH.sh`, and a local desktop UI. Its release workflow also
-requires the Linux→Windows portable handoff and real-model story measurement before publication.
-The published release attaches `PORTABLE_HANDOFF.json`, `STORY_RECEIPT.json`, and
-`SHA256SUMS.txt`; read the receipts independently because substrate memory delivery and model
-answer quality are separate measurements. The installers require Python 3.10–3.12; separately
-packaged desktop executables bundle Python. See [0.6.0 release notes](docs/closure/RELEASE_NOTES_0.6.0.md).
+Version **0.7.0** adds optional AES-256-GCM sealed storage, isolated local
+profiles, restored conversation on desktop/COSMIC restart, signing-ready
+Android/iOS metadata, the standalone `/html/` browser client in the public kit,
+and source-bound checksums/packages for the published artifacts. The public
+stranger smoke anonymously re-downloads the release, verifies checksums, installs
+the wheel outside the repository, and exercises restart continuity, portable
+export/import, tamper rejection, authority denial, and both browser surfaces.
+
+The installers support Python 3.10–3.12; separately packaged desktop executables
+bundle Python. Android is published as a sideload candidate unless a real release
+keystore is supplied. iOS device distribution still requires Apple signing and
+physical-device/TestFlight work. The historical v0.6.0 release remains available
+for reproducibility; see [0.6.0 release notes](docs/closure/RELEASE_NOTES_0.6.0.md).
 
 [Optional inputs](docs/OPTIONAL_INPUTS.md) documents user-owned IBM/Azure setup,
 explicit cloud-job permission, local PCM WAV input and measured light summaries.
