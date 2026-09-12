@@ -21,6 +21,15 @@ jobs:
   verified-product:
     uses: ./.github/workflows/product-ci.yml
 
+  canonical-ci:
+    uses: ./.github/workflows/ci.yml
+
+  configuration-contract:
+    uses: ./.github/workflows/config-contract.yml
+
+  web-runtime:
+    uses: ./.github/workflows/web-runtime.yml
+
   portable-desktop:
     uses: ./.github/workflows/portable-products.yml
 
@@ -96,15 +105,52 @@ jobs:
 
   github-release:
     if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/integration/beast-box-system-closure-001' || github.ref == 'refs/heads/main'
-    needs: [python-package, rust-binaries, portable-desktop, portable-android, portable-ios, portable-state, story-demo]
+    needs:
+      - python-package
+      - rust-binaries
+      - portable-desktop
+      - portable-android
+      - portable-ios
+      - portable-state
+      - story-demo
+      - canonical-ci
+      - configuration-contract
+      - web-runtime
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      release_tag: ${{ steps.release-meta.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v8
         with:
           path: release-assets
+
+      - name: Resolve exact release identity
+        id: release-meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(python -c 'from beastbox import __version__; print(__version__)')
+          test "$version" = "0.7.0"
+          test -f docs/closure/RELEASE_NOTES_0.7.0.md
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Refuse stale main source before publication
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          current_main=$(git rev-parse refs/remotes/origin/main)
+          if [[ "$current_main" != "$GITHUB_SHA" ]]; then
+            echo "Refusing stale release source: workflow=$GITHUB_SHA current-main=$current_main" >&2
+            exit 1
+          fi
 
       - name: Stage uniquely named release assets and checksums
         shell: bash
@@ -112,6 +158,7 @@ jobs:
           set -euo pipefail
           rm -rf release-publish
           mkdir -p release-publish
+          version='${{ steps.release-meta.outputs.version }}'
 
           cp release-assets/cosmic-synapse-python/* release-publish/
           (cd release-publish && sha256sum -c SHA256SUMS.txt)
@@ -127,7 +174,9 @@ jobs:
             --source-sha "$GITHUB_SHA" \
             --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
 
-          python scripts/stage_portable_release.py --assets release-assets --output release-publish --source-sha "$GITHUB_SHA"
+          python scripts/stage_portable_release.py \
+            --assets release-assets --output release-publish \
+            --source-sha "$GITHUB_SHA" --version "$version"
 
           cp release-assets/portable-handoff-result/handoff-result.json release-publish/PORTABLE_HANDOFF.json
           cp release-assets/real-model-story/story/story-receipt.json release-publish/STORY_RECEIPT.json
@@ -148,8 +197,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          version=$(python -c 'from beastbox import __version__; print(__version__)')
-          tag="v$version"
+          version='${{ steps.release-meta.outputs.version }}'
+          tag='${{ steps.release-meta.outputs.tag }}'
           if [[ "$GITHUB_REF" == refs/tags/* && "$GITHUB_REF" != "refs/tags/$tag" ]]; then
             echo "Tag/package version mismatch" >&2
             exit 1
@@ -164,4 +213,10 @@ jobs:
           gh release create "$tag" release-publish/* \
             --target "$GITHUB_SHA" --prerelease \
             --title "Beast Box $version — Portable runtime preview" \
-            --notes-file docs/closure/RELEASE_NOTES_0.6.0.md
+            --notes-file docs/closure/RELEASE_NOTES_0.7.0.md
+
+  public-stranger-smoke:
+    needs: [github-release]
+    uses: ./.github/workflows/public-release-wheel-smoke.yml
+    with:
+      tag: ${{ needs.github-release.outputs.release_tag }}
