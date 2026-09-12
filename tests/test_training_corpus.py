@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -8,6 +10,7 @@ import pytest
 from beastbox.training.corpus import build_corpus, normalize_lexical_record, normalize_world_record
 from beastbox.training.lineage import sha256_file
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 LEXICAL = [
     {
@@ -43,6 +46,10 @@ def _read_jsonl(path: Path) -> list[dict]:
     if not path.read_text(encoding="utf-8"):
         return []
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def _write_jsonl(path: Path, records: list[dict]) -> None:
+    path.write_text("".join(json.dumps(record, sort_keys=True) + "\n" for record in records), encoding="utf-8")
 
 
 def test_lexical_normalization_is_unicode_stable_and_deduplicates_lists():
@@ -160,3 +167,72 @@ def test_builder_refuses_to_overwrite_existing_artifacts(tmp_path: Path):
 def test_builder_rejects_unknown_kind(tmp_path: Path):
     with pytest.raises(ValueError, match="kind"):
         build_corpus(kind="mystery", records=LEXICAL, sources=SOURCES, output_dir=tmp_path)  # type: ignore[arg-type]
+
+
+def test_lexical_corpus_cli_builds_manifest(tmp_path: Path):
+    records = tmp_path / "lexical.jsonl"
+    sources = tmp_path / "sources.json"
+    output = tmp_path / "lexical-out"
+    _write_jsonl(records, LEXICAL)
+    sources.write_text(json.dumps(SOURCES), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/build_lexical_corpus.py",
+            "--records",
+            str(records),
+            "--sources",
+            str(sources),
+            "--out",
+            str(output),
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    summary = json.loads(result.stdout)
+    assert summary["kind"] == "lexical"
+    assert summary["record_count"] == 1
+    assert sha256_file(output / "manifest.json") == summary["manifest_sha256"]
+
+
+def test_world_corpus_cli_builds_manifest(tmp_path: Path):
+    records = tmp_path / "world.jsonl"
+    sources = tmp_path / "sources.json"
+    output = tmp_path / "world-out"
+    world_sources = [{"source_id": "world-a", "uri": "https://example.invalid/world", "license": "CC0-1.0"}]
+    world_records = [
+        {"title": "Earth", "text": "Earth is a planet in the Solar System.", "source_id": "world-a"},
+        {"title": "Sun", "text": "The Sun is a star.", "source_id": "world-a"},
+    ]
+    _write_jsonl(records, world_records)
+    sources.write_text(json.dumps(world_sources), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/build_world_corpus.py",
+            "--records",
+            str(records),
+            "--sources",
+            str(sources),
+            "--out",
+            str(output),
+            "--split-salt",
+            "world-test-v1",
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    summary = json.loads(result.stdout)
+    assert summary["kind"] == "world"
+    assert summary["record_count"] == 2
+    assert sha256_file(output / "manifest.json") == summary["manifest_sha256"]
