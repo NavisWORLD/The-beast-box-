@@ -200,7 +200,14 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:18081/healthz \
             --output "$root/cosmic-health.json"
           grep -q 'BEAST' "$root/cosmic-index.html"
-          "$py" -c 'import json; assert json.load(open("'$root'/cosmic-health.json"))["status"] == "alive"'
+          PUBLIC_SMOKE_ROOT="$root" "$py" - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = json.loads((Path(os.environ["PUBLIC_SMOKE_ROOT"]) / "cosmic-health.json").read_text())
+          assert payload["status"] == "alive"
+          PY
           kill "$cosmic_pid"
           wait "$cosmic_pid" 2>/dev/null || true
           cosmic_pid=""
