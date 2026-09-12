@@ -36,13 +36,15 @@ lint:
 		beastbox/product_services.py tests/test_product_services.py tests/test_product_observability.py beastbox/memory.py \
 		beastbox/cosmic_web.py beastbox/cosmic_ui.py beastbox/cosmic_entry.py tests/test_cosmic_web.py tests/test_cosmic_completion.py tests/test_cosmic_closure.py \
 		beastbox/sealed_storage.py beastbox/profiles.py tests/test_sealed_storage.py tests/test_profile_isolation.py tests/test_product_acceptance.py tests/test_mobile_release_contract.py
+	$(PYTHON) -m ruff check beastbox/training scripts/freeze_zeref_genesis.py scripts/build_lexical_corpus.py \
+		scripts/build_world_corpus.py tests/test_training_lineage.py tests/test_training_corpus.py
 
 typecheck:
 	$(PYTHON) -m mypy beastbox/env_inventory.py beastbox/logging_config.py beastbox/hashutil.py beastbox/aliases.py \
 		beastbox/continuity.py beastbox/durable.py beastbox/events.py beastbox/providers.py \
 		beastbox/cli.py beastbox/cypher/models.py beastbox/runtime_cli.py beastbox/swap_receipt.py \
 		beastbox/product_services.py beastbox/memory.py beastbox/cosmic_web.py beastbox/cosmic_ui.py beastbox/cosmic_entry.py \
-		beastbox/sealed_storage.py beastbox/profiles.py \
+		beastbox/sealed_storage.py beastbox/profiles.py beastbox/training/lineage.py beastbox/training/corpus.py \
 		scripts/run_architecture_acceptance.py beastbox/cosmic_demo.py
 
 test:
