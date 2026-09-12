@@ -1,15 +1,18 @@
 """Regression check for the COSMIC rail on short desktop viewports."""
 from __future__ import annotations
 
+import sys
 import tempfile
 from pathlib import Path
 
 from playwright.sync_api import expect, sync_playwright
 
-from scripts.smoke.html_browser import start_server, stop_server
-
 
 ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.smoke.html_browser import start_server, stop_server
 
 
 def main() -> None:
