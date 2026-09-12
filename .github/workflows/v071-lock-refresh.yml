@@ -1,0 +1,53 @@
+name: Temporary v0.7.1 lock refresh
+
+on:
+  push:
+    branches:
+      - release/v0.7.1-final-closure
+    paths:
+      - .github/workflows/v071-lock-refresh.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/v0.7.1-final-closure
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the same uv used by the frozen-lock gate
+        run: python -m pip install "uv==0.12.11"
+      - name: Refresh only the root package version in uv.lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv lock
+          changed=$(git diff --name-only)
+          test "$changed" = "uv.lock"
+          read -r added deleted path < <(git diff --numstat -- uv.lock)
+          test "$added" = "1"
+          test "$deleted" = "1"
+          test "$path" = "uv.lock"
+          python - <<'PY'
+          from pathlib import Path
+
+          text = Path("uv.lock").read_text(encoding="utf-8")
+          expected = '[[package]]\nname = "cosmos-beast-box"\nversion = "0.7.1"\nsource = { editable = "." }'
+          assert expected in text
+          PY
+          git diff --check
+          git diff -- uv.lock
+      - name: Commit the source-consistent lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add uv.lock
+          git commit -m "release: refresh uv lock for 0.7.1"
+          git push origin HEAD:release/v0.7.1-final-closure
