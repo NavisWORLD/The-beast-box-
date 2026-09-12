@@ -1,0 +1,192 @@
+.venv/bin/python -m beastbox.env_inventory --check .env.example beastbox
+Environment variables used: 20
+Environment variables documented: 23
+Audited dynamic secret references:
+  - beastbox/providers.py:105:secret-reference-v1
+Documented but currently unused in audited roots:
+  - BEASTBOX_MODEL_NAME
+  - BEASTBOX_MODEL_URL
+  - BEASTBOX_QUANTUM_HEART_MODE
+.venv/bin/python -m ruff check scripts/benchmark_runtime.py scripts/smoke/html_browser.py html/serve.py \
+	tests/test_runtime_benchmark.py tests/test_runtime_performance.py tests/test_html_server.py
+All checks passed!
+.venv/bin/python -m ruff check beastbox/env_inventory.py tests/test_env_inventory.py
+All checks passed!
+.venv/bin/python -m ruff check beastbox/doctor.py beastbox/portable_state.py tests/test_launch_surface.py tests/test_compatible_provider.py
+All checks passed!
+.venv/bin/python -m ruff check beastbox/cosmic_demo.py tests/test_cosmic_product_polish.py scripts/smoke/cosmic_browser.py
+All checks passed!
+.venv/bin/python -m ruff check beastbox/aliases.py beastbox/hashutil.py beastbox/logging_config.py \
+	beastbox/continuity.py beastbox/durable.py beastbox/events.py beastbox/providers.py \
+	beastbox/runtime_cli.py beastbox/swap_receipt.py scripts/run_architecture_acceptance.py \
+	scripts/productization_receipt.py tests/test_durable_runtime.py tests/test_product_spine.py \
+	tests/test_runtime_cli.py tests/test_swap_receipt.py tests/test_experimental_boundary.py \
+	scripts/seal_release_verification.py tests/test_release_verification.py \
+	beastbox/desktop.py beastbox/optional_resources.py beastbox/sensor_inputs.py tests/test_runtime_exchange.py \
+	beastbox/product_services.py tests/test_product_services.py tests/test_product_observability.py beastbox/memory.py \
+	beastbox/cosmic_web.py beastbox/cosmic_ui.py beastbox/cosmic_entry.py tests/test_cosmic_web.py tests/test_cosmic_completion.py tests/test_cosmic_closure.py \
+	beastbox/sealed_storage.py beastbox/profiles.py tests/test_sealed_storage.py tests/test_profile_isolation.py tests/test_product_acceptance.py tests/test_mobile_release_contract.py
+All checks passed!
+.venv/bin/python -m mypy beastbox/env_inventory.py beastbox/logging_config.py beastbox/hashutil.py beastbox/aliases.py \
+	beastbox/continuity.py beastbox/durable.py beastbox/events.py beastbox/providers.py \
+	beastbox/cli.py beastbox/cypher/models.py beastbox/runtime_cli.py beastbox/swap_receipt.py \
+	beastbox/product_services.py beastbox/memory.py beastbox/cosmic_web.py beastbox/cosmic_ui.py beastbox/cosmic_entry.py \
+	beastbox/sealed_storage.py beastbox/profiles.py \
+	scripts/run_architecture_acceptance.py beastbox/cosmic_demo.py
+Success: no issues found in 21 source files
+mkdir -p build
+.venv/bin/python -m coverage run -m pytest --junitxml=build/junit.xml
+........................................................................ [  7%]
+........................................................................ [ 14%]
+........................................................................ [ 21%]
+........................................................................ [ 28%]
+........................................................................ [ 35%]
+........................................................................ [ 42%]
+........................................................................ [ 49%]
+........................................................................ [ 56%]
+........................................................................ [ 63%]
+........................................................................ [ 70%]
+........................................................................ [ 77%]
+........................................................................ [ 84%]
+........................................................................ [ 91%]
+........................................................................ [ 98%]
+..................                                                       [100%]
+- generated xml file: /workspace/scratch/483af7202312/beast-box/build/junit.xml -
+1026 passed in 11.26s
+.venv/bin/python -m coverage report
+Name                                             Stmts   Miss Branch BrPart  Cover   Missing
+--------------------------------------------------------------------------------------------
+beastbox/__init__.py                                 8      0      0      0   100%
+beastbox/__main__.py                                 2      2      0      0     0%   1-3
+beastbox/aliases.py                                  9      0      0      0   100%
+beastbox/arms/__init__.py                            3      0      0      0   100%
+beastbox/arms/action_proxy.py                      147     38     54     12    72%   82-84, 89, 92, 94, 108->112, 110->112, 114, 122, 165, 168, 187, 206, 211, 214-216, 259-260, 289-295, 300-320
+beastbox/arms/cli.py                               178    116     34      2    30%   43, 58, 97-105, 111-115, 120, 124-126, 137-328, 332-349, 353
+beastbox/arms/continuity.py                         48      5     16      4    86%   14, 22-24, 60->exit, 77
+beastbox/arms/docker_tools.py                       77     47     38      3    29%   45, 78, 92-173
+beastbox/arms/gauntlet.py                           68     10     26      7    78%   58, 63, 65, 70-75, 84, 87
+beastbox/arms/network.py                           106     42     36      7    57%   64, 66, 75, 81, 88->85, 91, 97, 101, 109, 113-115, 129-176
+beastbox/arms/recorder.py                           87     15     20      5    78%   27, 31, 34-40, 109, 116, 120, 122, 128-129
+beastbox/arms/replay.py                             67     10     30     11    78%   32->31, 34->31, 55, 58->63, 61, 64->81, 67, 69-70, 74-75, 84->92, 88-90
+beastbox/arms/schema.py                             48      1      0      0    98%   61
+beastbox/arms/subject.py                           160     21     46     10    83%   105->107, 132, 136, 139, 151->154, 162-168, 178->180, 213-225, 244, 264, 292
+beastbox/arms/supervisor.py                        202     23     46     15    84%   85, 131-132, 148, 169, 174-176, 182, 188, 191, 196, 202, 214, 217->216, 220-221, 222->216, 236->238, 266, 278-279, 281-282, 289-290, 300->298, 371->370
+beastbox/arms/tools.py                             250    162    112     19    31%   52-59, 61, 96, 100, 103-108, 114, 125-128, 135-140, 143-146, 148-153, 155-163, 165-184, 188, 201-216, 218-226, 228-237, 239-248, 250-251, 253-258, 260-297, 300-312, 316-325, 328-330
+beastbox/attention.py                               34      4     12      4    83%   16, 36, 40, 47
+beastbox/audio.py                                   49      7     10      3    80%   30, 33-37, 41
+beastbox/audio_ablation.py                          30      1      4      1    94%   17
+beastbox/autonomy/__init__.py                        2      0      0      0   100%
+beastbox/autonomy/ignition.py                       15      2      4      2    79%   18, 20
+beastbox/autonomy/native_stack.py                   57     14     24      5    72%   30-34, 47, 49, 61-62, 64-65, 70-72
+beastbox/autonomy/observer.py                      112     23     38     13    73%   24, 30, 54, 62-68, 75, 78-82, 87, 115->117, 123, 130, 133, 144, 146, 148, 156, 161-162
+beastbox/autonomy/range_protocol.py                101     13     36     10    83%   19, 27, 42, 44, 46, 48, 68, 70->74, 94, 104, 109, 112, 129-130
+beastbox/autonomy/supervisor.py                     87     11     20      6    82%   47, 49, 65-67, 71, 91, 103-104, 106-107
+beastbox/autonomy/verifier.py                      217     62    108     36    69%   76-78, 80-81, 89-91, 106-107, 115-116, 119-121, 125, 128-130, 133-134, 138-139, 147, 149, 157, 161, 163, 165, 169, 188-190, 193, 195, 197, 200, 202, 204, 206, 211-212, 215, 217, 219, 221, 223, 225, 234, 236-239, 240->246, 244, 247, 249, 251->263, 268, 270, 274, 281-283
+beastbox/box.py                                     62      1     16      1    97%   91
+beastbox/bridge.py                                  40      3     18      3    90%   26, 38, 41
+beastbox/bycc.py                                     6      6      0      0     0%   1-19
+beastbox/cli.py                                    206     79     58     11    55%   127-131, 134-147, 151, 179, 181-191, 193, 195-197, 199-201, 203-210, 219-251, 255
+beastbox/cns.py                                     40      0      2      0   100%
+beastbox/config.py                                  35      0      2      0   100%
+beastbox/continuity.py                              60      5     24      5    88%   23, 33, 54, 63, 72
+beastbox/cosmic_demo.py                             62      2      6      2    94%   23, 97
+beastbox/cosmic_entry.py                            56      9     16      6    79%   13, 52, 57, 61, 63, 70-71, 73, 80
+beastbox/cosmic_ui.py                                5      0      0      0   100%
+beastbox/cosmic_web.py                             600    145    232     50    74%   45, 74, 77, 88, 90, 96, 98, 132, 149-152, 158, 168, 183, 212, 218, 221, 227-228, 235, 239, 244, 251, 279, 282, 296-311, 315, 318, 326, 329, 335, 351, 357, 359, 372, 384, 417, 427, 430-431, 437, 439, 457, 461-462, 468, 472, 492, 520, 525-529, 539, 544-548, 568, 574-578, 633, 638, 687, 699, 711, 715, 718-730, 733-738, 741-743, 746-756, 759-778, 781, 790-811
+beastbox/cypher/__init__.py                          5      0      0      0   100%
+beastbox/cypher/agent.py                           113     35     40      9    63%   46, 52-57, 60-64, 66, 89-93, 97-98, 117-118, 122, 126, 128, 133, 137-144, 147
+beastbox/cypher/cli.py                             100    100     38      0     0%   1-120
+beastbox/cypher/easy_ollama.py                     221    132     48      7    38%   27, 56-63, 67-68, 77-94, 104-134, 160->163, 200, 244, 256-257, 260-268, 274, 284-299, 303-356, 394-431, 435
+beastbox/cypher/gguf.py                             68     21     28      8    61%   14, 29, 35, 40, 48-57, 64, 69, 79-83
+beastbox/cypher/models.py                          112     57     26      1    42%   43-52, 64-66, 69, 82-83, 86-90, 93, 99-112, 115-119, 122, 131-133, 137-148
+beastbox/cypher/registry.py                         99     41     28      4    54%   12-13, 25, 35-36, 41, 64, 68, 82-94, 106-137
+beastbox/cypher/session.py                          23     10      2      0    52%   20, 25-28, 31-34, 37
+beastbox/cypher/workspace.py                       201     42     98     28    73%   23, 29, 48-49, 56, 64-65, 71, 73, 80, 85, 91, 95, 102->101, 105, 107, 112, 117, 128, 139, 143, 146->152, 157-159, 169, 174->193, 178->181, 190, 200, 202-204, 206-208, 212-220, 224
+beastbox/dad_son.py                                161     47     62     17    65%   29-34, 75, 79, 100, 102, 106, 156-181, 192, 195, 204, 207, 209, 211, 219, 221, 227, 242, 248, 260
+beastbox/descendant/__init__.py                      3      0      0      0   100%
+beastbox/descendant/corpus.py                       74     23     18      1    67%   52-55, 66, 103-127
+beastbox/descendant/evaluation.py                   71     11     18      3    84%   16, 40, 42, 44, 47-49, 78-80, 117
+beastbox/descendant/evidence.py                    135     17     56     18    82%   42, 44, 47, 49, 51, 62, 67, 97, 100, 102, 104, 106, 136->135, 139, 165, 169, 173, 176
+beastbox/descendant/gguf.py                         11      1      2      1    85%   28
+beastbox/descendant/hashing.py                      15      0      2      0   100%
+beastbox/descendant/lineage.py                      76     12     28     10    77%   20, 39, 41, 45, 50, 74, 77, 79, 96, 103-105
+beastbox/descendant/promotion.py                    97     14     32      9    82%   41, 44, 62, 64, 67-71, 76, 78, 84, 92, 137
+beastbox/descendant/quantum.py                     122     10     44     11    87%   49->51, 68, 74, 76, 108, 110, 112, 126, 134, 138, 165
+beastbox/descendant/quantum_comparison.py           21      1      6      1    93%   13
+beastbox/descendant/quantum_conditioning.py         78     11     32     11    80%   49, 52, 59, 76, 98, 107, 109, 123, 125, 141, 147
+beastbox/descendant/release.py                      26      2      4      2    87%   29, 32
+beastbox/descendant/stage.py                        53      7     14      3    85%   31, 51-53, 57, 73, 101
+beastbox/descendant/twin.py                        132     17     44     13    83%   29-30, 58, 64, 66, 69, 71, 73, 106, 121, 135, 159-160, 186, 188, 190, 192
+beastbox/desktop.py                                230    131     56      4    42%   41, 113, 120-253, 269-274, 276-278, 282
+beastbox/doctor.py                                  85     31     24      4    59%   28-45, 81, 87-89, 101, 108-122
+beastbox/durable.py                                205     11     30      7    91%   55, 115, 171, 240, 254, 312, 314, 337-340
+beastbox/dyn12.py                                   30      4     14      4    82%   14, 26, 28, 35
+beastbox/ecosystem.py                              207    123     68      5    32%   73-110, 122-141, 153-159, 163-177, 181, 230-231, 235-271, 277, 279-284, 286-300, 301->exit, 303-310
+beastbox/env_inventory.py                          144     58     60      9    57%   44-45, 49, 51, 100-101, 121->135, 123, 157, 159, 163, 171-181, 187, 191-196, 209-213, 217-243, 247
+beastbox/events.py                                  46      7     20      7    79%   16, 18, 22, 27, 30, 40, 49
+beastbox/evidence.py                                38      0      6      0   100%
+beastbox/fresh.py                                   32     13      6      2    55%   14-15, 31, 36-44, 48
+beastbox/gauntlet.py                                85      1     30      5    95%   82, 103->131, 104->112, 116->124, 120->124
+beastbox/hashutil.py                                10      0      0      0   100%
+beastbox/heartbeat.py                               31      7      6      2    76%   25, 34-40
+beastbox/heartbeat_seed.py                          61      9     30      9    80%   23, 26, 28, 31, 33, 35, 82, 87, 89
+beastbox/hf.py                                      14      8      0      0    43%   18, 23-38
+beastbox/ibm_shard.py                               30     21      4      0    26%   25-39, 43-56, 67
+beastbox/logging_config.py                          35      0     10      1    98%   33->35
+beastbox/memory.py                                 134     22     32      6    78%   23, 100, 111, 151->146, 168, 178, 200-218
+beastbox/model.py                                   18      0      4      0   100%
+beastbox/models/__init__.py                          0      0      0      0   100%
+beastbox/models/phos_reference.py                   85     85     10      0     0%   1-107
+beastbox/optional_resources.py                      85      5     32      5    91%   52, 86, 88, 124, 141
+beastbox/organism.py                                42      5      2      1    86%   21, 42, 52, 56-57
+beastbox/origin_heart.py                            82      7     56     21    75%   19-22, 24->exit, 27-28, 30->exit, 31->exit, 33->exit, 35->exit, 44, 45->exit, 47->exit, 50->exit, 54->exit, 57->exit, 59->exit, 63->exit, 65->exit, 67->exit, 69->exit, 71->exit, 79->exit
+beastbox/paired.py                                  36     36      8      0     0%   1-49
+beastbox/persistent_substrate/__init__.py            0      0      0      0   100%
+beastbox/persistent_substrate/evidence.py          189     36     72     21    75%   40, 43, 54, 60, 63-64, 66, 68, 73-74, 76, 92-103, 108, 135, 138, 183, 185, 189, 200, 210, 214, 218, 225, 238, 260
+beastbox/persistent_substrate/ledger.py            292     62     98     37    75%   46-47, 49, 116-118, 123, 126-127, 129, 142, 146-147, 154, 156, 158, 161-162, 176, 184, 205, 213-214, 222, 225, 250, 253, 256, 262, 266, 271, 274-275, 278, 280, 282, 286, 293, 295, 307-308, 310-311, 347, 360, 365-366, 370, 374, 377, 409, 411, 438-439, 444, 447-448, 450, 453, 455, 458-459
+beastbox/persistent_substrate/metrics.py            40      3      8      2    90%   31, 34, 63
+beastbox/persistent_substrate/models.py            226     53     70     22    72%   44, 50-51, 61-63, 70, 80, 96, 99, 111, 117, 148, 162, 164, 201, 203, 206, 219-247, 267, 283, 295, 299-300, 340-366, 382, 386, 400, 409, 413-414
+beastbox/persistent_substrate/offline.py           406    240    122      7    41%   59, 62-63, 65, 71-79, 83-86, 99, 143, 148, 160->158, 167, 169->164, 311, 338-345, 372-409, 413-417, 464-500, 514-844, 848-916
+beastbox/persistent_substrate/paired_runner.py     108     10     32     10    86%   58, 68, 72, 109, 111, 113, 156, 173, 186, 190
+beastbox/persistent_substrate/prompts.py            81     17     30     13    73%   49, 58-59, 61, 64, 69, 72, 79, 82, 86, 90, 93, 95, 98, 113-115
+beastbox/persistent_substrate/protocol.py          105     12     42     11    84%   50, 68, 81, 83, 85, 88, 107, 116, 139, 141, 167, 169
+beastbox/persistent_substrate/real_models.py       202     60     48     16    65%   58, 62-66, 98, 107, 109, 111, 130, 132, 154-178, 189, 198, 218, 220, 263-265, 280-324, 341-348, 355, 362, 366-367, 386, 388
+beastbox/persistent_substrate/runner.py            298    110     70     11    55%   62-75, 98, 112, 136-139, 149-236, 263-292, 352, 355, 385, 391, 394, 401, 432, 611, 617
+beastbox/persistent_substrate/substrate.py         355     60     92     32    78%   52->49, 64, 71-72, 74, 81-82, 84, 87-99, 101, 104, 114, 116, 147-148, 155, 158-159, 161, 163, 166, 172, 177, 192, 208, 210, 222, 229, 232, 424, 445, 451, 452->457, 456, 475-477, 481, 520, 523, 528, 562, 590, 633-637, 665, 714
+beastbox/portable_state.py                         109     14     44     14    82%   52, 57, 63, 73, 75, 114, 128, 134, 151, 153, 155, 158, 168, 195
+beastbox/product_services.py                       153     13     34      8    89%   235, 252-253, 263, 269, 273, 276-277, 293, 299, 308->313, 311-312, 351
+beastbox/profiles.py                               166     21     52     16    82%   43, 52, 78, 81, 85, 89, 97, 102, 107, 113, 137->140, 148, 151->154, 171-173, 175, 181-182, 186, 189->exit, 191, 194-195
+beastbox/proposals.py                               36     36      2      0     0%   1-57
+beastbox/providers.py                               92     14     24      3    82%   59-69, 107, 117, 120
+beastbox/quantum.py                                116     72     42      3    34%   18, 30-31, 34, 38-50, 54-62, 66-74, 78-88, 103-118, 123-128, 132-135, 141, 153
+beastbox/quantum_heart.py                           19      1      4      1    91%   26
+beastbox/quantum_lifesource.py                     203     54     84     18    69%   48, 56, 64, 67, 70, 76-80, 103, 107, 124, 131, 142, 148, 152, 171->169, 181, 205-215, 222, 230, 232, 250-258, 284-292, 296-299
+beastbox/quantum_lifesource_analysis.py            107    107     50      0     0%   1-174
+beastbox/reality_memory.py                         262     27     94     20    87%   78, 85, 88, 90, 93, 98, 115, 118-119, 121, 144, 147, 154, 186, 188, 191, 247, 255-256, 258, 262, 293, 295, 298-299, 414-415
+beastbox/reflective_loop_trace.py                   80      8     20      8    84%   27, 30, 36, 46, 59, 86, 88, 111
+beastbox/refractive_memory.py                      206     25     76     17    84%   75, 96, 99, 102, 127, 133->135, 136->139, 149, 151, 177, 180, 228, 246-256, 272, 275, 281, 294-295, 298-299, 352, 361-362
+beastbox/response_supervision.py                    56      8     28      8    81%   17, 20, 24, 29, 60, 66, 68, 83
+beastbox/runtime.py                                 92      6      6      1    93%   45-46, 56-57, 60, 85
+beastbox/runtime_cli.py                            181     97     92      4    40%   28, 61, 63, 67-75, 81, 122-135, 139-147, 151-215
+beastbox/sealed_storage.py                         300     51     92     37    77%   58-59, 65, 96, 98, 114, 116, 137, 147, 150, 152, 155, 158, 161-162, 165, 175, 179-180, 182, 185, 196, 205, 224, 226, 243-248, 256, 275, 278-282, 320, 333, 335, 381, 403, 406, 409, 424, 426, 429, 432, 452, 470, 483
+beastbox/sensor_inputs.py                           50      2     12      0    97%   32-33
+beastbox/sensory.py                                 23      4      2      1    80%   20, 23, 29, 33
+beastbox/shard_transport.py                         74      9     20      8    82%   37, 53, 64, 84, 89, 94, 101, 108, 114
+beastbox/son_heartbeat_metrics.py                   52     22     26      2    49%   6->exit, 34-40, 42-56
+beastbox/soul/__init__.py                            7      0      0      0   100%
+beastbox/soul/adapter.py                            13      1      2      1    87%   15
+beastbox/soul/bus.py                                24      1      6      1    93%   23
+beastbox/soul/loop.py                               21      1      2      1    91%   20
+beastbox/soul/qbt_source.py                         56     15     20      7    68%   18, 20, 28-39, 61, 82, 88, 91-92, 101
+beastbox/soul/replay.py                             24      2      2      1    88%   35, 39
+beastbox/soul/token.py                              62      5     24      5    88%   63, 73, 76, 78, 80
+beastbox/spark_ablation.py                          21      0      2      0   100%
+beastbox/state.py                                   55      3     12      2    93%   71-72, 77
+beastbox/state_family.py                            51      0      6      0   100%
+beastbox/swap_receipt.py                            43      8     20      8    75%   19, 28, 30, 35, 37, 39, 50, 56
+beastbox/synaptic.py                                13      0      0      0   100%
+beastbox/web.py                                     52     39     10      0    21%   21-26, 29-55, 58, 62-66
+beastbox/world_knowledge.py                        111      9     26      9    87%   39, 100, 104, 109, 114, 150, 211, 232, 235
+beastbox/world_r12.py                              120     12     40     12    85%   14, 17, 62, 65, 67, 70, 96, 99, 167, 211, 213, 217
+--------------------------------------------------------------------------------------------
+TOTAL                                            12470   3424   3926    900    68%

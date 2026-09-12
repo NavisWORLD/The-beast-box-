@@ -15,7 +15,8 @@ the runtime retains the story and enforces its own authority boundary.
 [Model Swap Evidence](docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md) ·
 [Provider Setup](docs/PROVIDER_SETUP.md) · [Synapse Flash / Portable State](docs/PORTABLE_STATE.md) ·
 [Security](SECURITY.md) · [Scientific Boundaries](docs/CLAIM_BOUNDARIES.md) ·
-[Evidence Index](docs/EVIDENCE_INDEX.md) · [Developer Guide](docs/DEVELOPER_GUIDE.md)
+[Evidence Index](docs/EVIDENCE_INDEX.md) · [Developer Guide](docs/DEVELOPER_GUIDE.md) ·
+[Runtime performance measurements](docs/performance/ASTRA_PASS_2026-09-12.md)
 
 Download the combined ZIP for checked Python installers, or choose the labelled
 platform executable/preview. Start in reference mode, then connect an installed
