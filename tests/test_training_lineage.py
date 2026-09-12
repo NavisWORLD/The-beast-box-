@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
-from beastbox.training.lineage import build_parent_manifest, verify_parent_manifest, write_canonical_json
+from beastbox.training.lineage import build_parent_manifest, sha256_file, verify_parent_manifest, write_canonical_json
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _fixture_files(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
@@ -139,3 +144,65 @@ def test_write_canonical_json_returns_file_hash_and_stable_bytes(tmp_path: Path)
     assert first.read_bytes() == second.read_bytes()
     assert first_sha == second_sha
     assert first.read_text(encoding="utf-8").endswith("\n")
+
+
+def test_freeze_zeref_genesis_cli_writes_and_verifies_manifest(tmp_path: Path):
+    checkpoint, architecture, tokenizer, ledger = _fixture_files(tmp_path)
+    output = tmp_path / "genesis.json"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/freeze_zeref_genesis.py",
+            "--root",
+            str(tmp_path),
+            "--checkpoint",
+            checkpoint.name,
+            "--architecture",
+            architecture.name,
+            "--tokenizer",
+            tokenizer.name,
+            "--memory-ledger",
+            ledger.name,
+            "--out",
+            str(output),
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    summary = json.loads(result.stdout)
+    manifest = json.loads(output.read_text(encoding="utf-8"))
+    assert summary["verified"] is True
+    assert summary["model_id"] == "zeref-genesis-baseline"
+    assert summary["manifest_sha256"] == sha256_file(output)
+    assert verify_parent_manifest(manifest, root=tmp_path)["verified"] is True
+
+
+def test_freeze_zeref_genesis_cli_fails_on_expected_hash_mismatch(tmp_path: Path):
+    checkpoint, architecture, _, _ = _fixture_files(tmp_path)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/freeze_zeref_genesis.py",
+            "--root",
+            str(tmp_path),
+            "--checkpoint",
+            checkpoint.name,
+            "--architecture",
+            architecture.name,
+            "--expected-checkpoint-sha256",
+            "0" * 64,
+            "--out",
+            str(tmp_path / "genesis.json"),
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "checkpoint SHA-256 mismatch" in result.stderr
