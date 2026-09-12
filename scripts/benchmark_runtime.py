@@ -40,6 +40,7 @@ LIMITATIONS = [
     "ReferenceTextProvider performs no learned inference; semantic answer quality is NOT_MEASURED.",
     "No streaming interface is exercised: TTFT, tokens/second and network latency are NOT_MEASURED.",
     "Cold start means a fresh SQLite store after module import; OS filesystem caches are not purged.",
+    "Each run redirects Python bytecode reads to an empty temporary cache and disables bytecode writes.",
     "Warm start means reopening an existing store in the same process; imports are already loaded.",
     "SQL counts use a separate identical replay. Latencies contain no SQLite tracing or sampling profiler.",
     "Per-stage wrappers use monotonic and process CPU clocks; their small overhead is present in both versions.",
@@ -372,6 +373,8 @@ def acceptance_checks(api: dict[str, Any], root: Path) -> dict[str, Any]:
 
 
 def worker(source_root: Path, workloads: list[str], fingerprint: str) -> dict[str, Any]:
+    if not sys.dont_write_bytecode or sys.pycache_prefix is None:
+        raise RuntimeError("worker requires disabled bytecode writes and an isolated bytecode cache")
     if any(name == "beastbox" or name.startswith("beastbox.") for name in sys.modules):
         raise RuntimeError("worker must start without a previously imported beastbox package")
     sys.path.insert(0, str(source_root))
@@ -471,19 +474,26 @@ def run_benchmark(source_root: Path, repetitions: int, workloads: list[str]) -> 
     fingerprint = sha256({"fixtures": fixture, "driver_sha256": driver_hash})
     runs = []
     worker_env = {key: value for key, value in os.environ.items() if key not in WORKER_EXCLUDED_ENV}
-    for repetition in range(repetitions):
-        command = [sys.executable, "-I", "-B", str(Path(__file__).resolve()), "--worker", "--source-root",
-                   str(source_root), "--workloads", *workloads, "--fixture-sha256", fingerprint]
-        start = time.perf_counter()
-        completed = subprocess.run(command, cwd=source_root, env=worker_env, text=True, capture_output=True, check=False)
-        elapsed = time.perf_counter() - start
-        if completed.returncode:
-            raise RuntimeError(f"benchmark worker {repetition + 1} failed:\n{completed.stderr}")
-        result = json.loads(completed.stdout)
-        result["worker_wall_seconds"] = elapsed
-        result["index"] = repetition + 1
-        runs.append(result)
-        print(f"completed repetition {repetition + 1}/{repetitions}", file=sys.stderr, flush=True)
+    # -B prevents writes but still permits reads from existing __pycache__ files.
+    # Redirect reads as well, so one checkout cannot benefit from warm or stale
+    # bytecode while another checkout compiles its source during import.
+    with tempfile.TemporaryDirectory(prefix="beastbox-benchmark-imports-") as bytecode_root:
+        for repetition in range(repetitions):
+            command = [sys.executable, "-I", "-B", "-X", f"pycache_prefix={bytecode_root}",
+                       str(Path(__file__).resolve()), "--worker", "--source-root",
+                       str(source_root), "--workloads", *workloads, "--fixture-sha256", fingerprint]
+            start = time.perf_counter()
+            completed = subprocess.run(command, cwd=source_root, env=worker_env, text=True, capture_output=True, check=False)
+            elapsed = time.perf_counter() - start
+            if completed.returncode:
+                raise RuntimeError(f"benchmark worker {repetition + 1} failed:\n{completed.stderr}")
+            if any(Path(bytecode_root).rglob("*.pyc")):
+                raise RuntimeError("worker wrote bytecode into the isolated import cache")
+            result = json.loads(completed.stdout)
+            result["worker_wall_seconds"] = elapsed
+            result["index"] = repetition + 1
+            runs.append(result)
+            print(f"completed repetition {repetition + 1}/{repetitions}", file=sys.stderr, flush=True)
     after_source = source_provenance(source_root)
     provenance["stable_during_run"] = (provenance["head"] == after_source["head"]
                                         and provenance["files_sha256"] == after_source["files_sha256"]
@@ -508,6 +518,7 @@ def run_benchmark(source_root: Path, repetitions: int, workloads: list[str]) -> 
         "measurement": {"repetitions": repetitions, "workloads": workloads, "sql_counts": "separate companion replay",
                         "timing": "unprofiled monotonic wall and process CPU", "provider": "ReferenceTextProvider",
                         "storage_mode": "unsealed SQLite", "worker_excluded_env": list(WORKER_EXCLUDED_ENV),
+                        "bytecode": "reads redirected to an empty temporary cache; writes disabled",
                         "streaming": False, "garbage_collection": "default enabled", "run_order": "timed then SQL companion"},
         "correctness": {"passed": all(checks.values()), "checks": checks}, "behavior_sha256": sha256(behavior),
         "repetitions": runs, "summary": summarize(runs, workloads), "limitations": LIMITATIONS,

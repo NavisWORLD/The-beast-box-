@@ -82,7 +82,10 @@ passphrase. These runs measure unsealed SQLite storage. The temporary directory
 and filesystem device are recorded, along with the Python, SQLite, CPU, and
 clock environment. Cold startup means a new store after module import; warm
 startup means reopening a store in the same process. Operating-system caches
-are not cleared. Peak RSS is a process high-water measurement, not per-turn
+are not cleared. Python bytecode reads are redirected to an empty temporary
+cache and bytecode writes are disabled. This avoids comparing a checkout with
+compiled modules against one without them, and prevents stale compiled code
+from replacing the measured source. Peak RSS is a process high-water measurement, not per-turn
 allocation. Source hashing binds a run to its actual files even when the source
 tree contains uncommitted changes.
 

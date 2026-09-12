@@ -3,6 +3,7 @@
 import copy
 import importlib.util
 import json
+import py_compile
 import shutil
 import subprocess
 import sys
@@ -112,6 +113,17 @@ def test_driver_uses_selected_checkout_and_reports_real_sqlite_runtime(tmp_path,
                     ["git", "-c", "user.name=Benchmark Test", "-c", "user.email=benchmark@example.invalid",
                      "commit", "-qm", "isolated source fixture"]):
         subprocess.run(command, cwd=selected, check=True, capture_output=True)
+    if not ambient_credentials:
+        # An unchecked stale cache is authoritative to normal Python imports.
+        # Measurements must use the selected source, regardless of local caches.
+        provider_source = selected / "beastbox" / "providers.py"
+        original = provider_source.read_bytes()
+        try:
+            provider_source.write_text("raise RuntimeError('stale benchmark bytecode')\n")
+            py_compile.compile(str(provider_source), doraise=True,
+                               invalidation_mode=py_compile.PycInvalidationMode.UNCHECKED_HASH)
+        finally:
+            provider_source.write_bytes(original)
     output = tmp_path / "result.json"
     run = subprocess.run(
         [sys.executable, str(DRIVER), "--source-root", str(selected), "--output", str(output),
