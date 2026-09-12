@@ -104,6 +104,19 @@ def test_manifest_rejects_path_traversal(tmp_path: Path):
         verify_parent_manifest(manifest, root=tmp_path)
 
 
+def test_parent_manifest_rejects_absolute_artifact_paths(tmp_path: Path):
+    checkpoint, architecture, _, _ = _fixture_files(tmp_path)
+    with pytest.raises(ValueError, match="relative"):
+        build_parent_manifest(
+            model_id="zeref-genesis-baseline",
+            checkpoint_path=checkpoint,
+            architecture_path=architecture.name,
+            tokenizer_path=None,
+            memory_ledger_path=None,
+            root=tmp_path,
+        )
+
+
 def test_parent_manifest_rejects_empty_model_id(tmp_path: Path):
     checkpoint, architecture, _, _ = _fixture_files(tmp_path)
     with pytest.raises(ValueError, match="model_id"):
@@ -206,3 +219,33 @@ def test_freeze_zeref_genesis_cli_fails_on_expected_hash_mismatch(tmp_path: Path
 
     assert result.returncode != 0
     assert "checkpoint SHA-256 mismatch" in result.stderr
+
+
+def test_freeze_zeref_genesis_cli_refuses_to_overwrite_existing_manifest(tmp_path: Path):
+    checkpoint, architecture, _, _ = _fixture_files(tmp_path)
+    output = tmp_path / "genesis.json"
+    output.write_text('{"already":"sealed"}\n', encoding="utf-8")
+    before = output.read_bytes()
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/freeze_zeref_genesis.py",
+            "--root",
+            str(tmp_path),
+            "--checkpoint",
+            checkpoint.name,
+            "--architecture",
+            architecture.name,
+            "--out",
+            str(output),
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "already exists" in result.stderr
+    assert output.read_bytes() == before
