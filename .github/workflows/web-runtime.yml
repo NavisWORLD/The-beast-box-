@@ -4,12 +4,14 @@ on:
     paths:
       - 'html/**'
       - 'scripts/smoke/html_browser.py'
+      - 'scripts/smoke/html_short_desktop.py'
       - 'tests/test_html_server.py'
       - '.github/workflows/web-runtime.yml'
   pull_request:
     paths:
       - 'html/**'
       - 'scripts/smoke/html_browser.py'
+      - 'scripts/smoke/html_short_desktop.py'
       - 'tests/test_html_server.py'
       - '.github/workflows/web-runtime.yml'
 permissions:
@@ -40,6 +42,8 @@ jobs:
         run: python -m pytest tests/test_html_server.py
       - name: Real browser continuity, freshness and recovery
         run: python scripts/smoke/html_browser.py
+      - name: Short desktop rail regression
+        run: python scripts/smoke/html_short_desktop.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
