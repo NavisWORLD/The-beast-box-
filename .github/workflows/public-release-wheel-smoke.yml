@@ -1,11 +1,21 @@
-name: Public release wheel smoke
+name: Public release stranger smoke
 
 on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Published Beast Box release tag to verify
+        required: true
+        type: string
+  release:
+    types: [published]
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/public-release-wheel-smoke.yml
+    inputs:
+      tag:
+        description: Published Beast Box release tag to verify
+        required: true
+        default: v0.7.0
+        type: string
 
 permissions:
   contents: read
@@ -13,34 +23,53 @@ permissions:
 jobs:
   public-wheel:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
-      TAG: v0.6.0
-      VERSION: 0.6.0
-      WHEEL: cosmos_beast_box-0.6.0-py3-none-any.whl
-      EXPECTED_SHA256: 4a053c2dd255c3fa78e4dc973dd54247c7ad66cfdacf2e6eb8bb65e6c5b8a9e2
+      TAG: ${{ inputs.tag || github.event.release.tag_name || 'v0.7.0' }}
     steps:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Download exact public release wheel anonymously
+      - name: Download public checksums, wheel and combined kit anonymously
         shell: bash
         run: |
           set -euo pipefail
           root="$RUNNER_TEMP/public-release-smoke"
           mkdir -p "$root"
-          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${WHEEL}"
-          status=$(curl --fail --location --retry 3 --retry-all-errors \
-            --output "$root/$WHEEL" \
-            --write-out '%{http_code}' \
-            "$url")
-          test "$status" = "200"
-          actual=$(sha256sum "$root/$WHEEL" | awk '{print $1}')
-          test "$actual" = "$EXPECTED_SHA256"
-          printf '%s\n' "$url" > "$root/public-url.txt"
-          printf '%s\n' "$status" > "$root/http-status.txt"
-          printf '%s\n' "$actual" > "$root/wheel-sha256.txt"
+          version="${TAG#v}"
+          wheel="cosmos_beast_box-${version}-py3-none-any.whl"
+          kit="beast-box-combined-${version}.zip"
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
+
+          for asset in SHA256SUMS.txt "$wheel" "$kit"; do
+            status=$(curl --fail --location --retry 3 --retry-all-errors \
+              --output "$root/$asset" \
+              --write-out '%{http_code}' \
+              "$base/$asset")
+            test "$status" = "200"
+            printf '%s  %s\n' "$status" "$asset" >> "$root/http-status.txt"
+          done
+
+          grep -E "  ${wheel}$" "$root/SHA256SUMS.txt" > "$root/public-checks.txt"
+          grep -E "  ${kit}$" "$root/SHA256SUMS.txt" >> "$root/public-checks.txt"
+          test "$(wc -l < "$root/public-checks.txt")" -eq 2
+          (cd "$root" && sha256sum -c public-checks.txt)
+
+          wheel_sha=$(sha256sum "$root/$wheel" | awk '{print $1}')
+          kit_sha=$(sha256sum "$root/$kit" | awk '{print $1}')
+          printf '%s\n' "$base/$wheel" > "$root/public-wheel-url.txt"
+          printf '%s\n' "$base/$kit" > "$root/public-kit-url.txt"
+          printf '%s\n' "$wheel_sha" > "$root/wheel-sha256.txt"
+          printf '%s\n' "$kit_sha" > "$root/kit-sha256.txt"
+
+          {
+            echo "VERSION=$version"
+            echo "WHEEL=$wheel"
+            echo "KIT=$kit"
+            echo "WHEEL_SHA256=$wheel_sha"
+            echo "KIT_SHA256=$kit_sha"
+          } >> "$GITHUB_ENV"
 
       - name: Install public wheel in a blank environment
         shell: bash
@@ -53,15 +82,17 @@ jobs:
           mkdir -p "$root/run"
           cd "$root/run"
           "$venv/bin/python" - <<'PY'
+          import os
           import pathlib
           import beastbox
 
           module = pathlib.Path(beastbox.__file__).resolve()
-          assert beastbox.__version__ == "0.6.0", beastbox.__version__
+          assert beastbox.__version__ == os.environ["VERSION"], beastbox.__version__
           assert "public-wheel-venv" in str(module), module
           print(beastbox.__version__, module)
           PY
           "$venv/bin/python" -m beastbox --help >/dev/null
+          "$venv/bin/beastbox-cosmic" --help >/dev/null
 
       - name: Exercise restart, portable continuity, tamper rejection and authority denial
         shell: bash
@@ -94,15 +125,11 @@ jobs:
           fi
 
           "$py" - <<'PY'
-          import hashlib
           import json
-          import os
           from pathlib import Path
 
-          root = Path(os.environ["RUNNER_TEMP"]) / "public-release-smoke"
-          run = root / "run"
+          run = Path.cwd()
           load = lambda name: json.loads((run / name).read_text())
-
           init = load("init.json")
           chat = load("chat.json")
           restarted = load("inspect-after-restart.json")
@@ -127,43 +154,161 @@ jobs:
           assert restored["system_id"] == system_id
           assert restored_denied["tool_result"]["status"] == "AUTHORITY_DENIED"
           assert restored_denied["tool_result"]["authorized"] is False
+          PY
 
-          wheel = root / os.environ["WHEEL"]
-          actual = hashlib.sha256(wheel.read_bytes()).hexdigest()
-          assert actual == os.environ["EXPECTED_SHA256"]
+      - name: Exercise both browser surfaces from public artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/public-release-smoke"
+          py="$RUNNER_TEMP/public-wheel-venv/bin/python"
+          kit_root="$root/public-kit"
+          mkdir -p "$kit_root"
+          "$py" -m zipfile -e "$root/$KIT" "$kit_root"
+          (cd "$kit_root" && sha256sum -c SHA256SUMS)
+          test -f "$kit_root/html/standalone.html"
+          test -f "$kit_root/html/serve.py"
 
+          "$py" - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          provenance = json.loads((Path(os.environ["RUNNER_TEMP"]) / "public-release-smoke/public-kit/RELEASE_PROVENANCE.json").read_text())
+          assert provenance["version"] == os.environ["VERSION"]
+          assert provenance["source_dirty"] is False
+          assert provenance["historical_evidence_changed"] is False
+          PY
+
+          cosmic_pid=""
+          html_pid=""
+          cleanup() {
+            if [[ -n "$cosmic_pid" ]]; then kill "$cosmic_pid" 2>/dev/null || true; fi
+            if [[ -n "$html_pid" ]]; then kill "$html_pid" 2>/dev/null || true; fi
+          }
+          trap cleanup EXIT
+
+          "$RUNNER_TEMP/public-wheel-venv/bin/beastbox-cosmic" \
+            --data-dir "$root/cosmic-state" --host 127.0.0.1 --port 18081 \
+            > "$root/cosmic.stdout" 2> "$root/cosmic.stderr" &
+          cosmic_pid=$!
+          for _ in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:18081/ \
+              --output "$root/cosmic-index.html"; then break; fi
+            sleep 1
+          done
+          curl --fail --silent --show-error http://127.0.0.1:18081/healthz \
+            --output "$root/cosmic-health.json"
+          grep -q 'BEAST' "$root/cosmic-index.html"
+          PUBLIC_SMOKE_ROOT="$root" "$py" - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = json.loads((Path(os.environ["PUBLIC_SMOKE_ROOT"]) / "cosmic-health.json").read_text())
+          assert payload["status"] == "alive"
+          PY
+          kill "$cosmic_pid"
+          wait "$cosmic_pid" 2>/dev/null || true
+          cosmic_pid=""
+
+          "$py" "$kit_root/html/serve.py" \
+            --data-dir "$root/html-state" --host 127.0.0.1 --port 18082 \
+            > "$root/html.stdout" 2> "$root/html.stderr" &
+          html_pid=$!
+          for _ in $(seq 1 30); do
+            if curl --fail --silent --show-error -c "$root/html-cookies.txt" \
+              http://127.0.0.1:18082/html/ --output "$root/html-index.html"; then break; fi
+            sleep 1
+          done
+          grep -q 'BEAST' "$root/html-index.html"
+          curl --fail --silent --show-error \
+            -b "$root/html-cookies.txt" \
+            -H 'Content-Type: application/json' \
+            -H 'Origin: http://127.0.0.1:18082' \
+            --data '{"text":"public standalone html smoke"}' \
+            http://127.0.0.1:18082/api/chat \
+            --output "$root/html-chat.json"
+          curl --fail --silent --show-error http://127.0.0.1:18082/api/conversation \
+            --output "$root/html-conversation.json"
+          "$py" - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["RUNNER_TEMP"]) / "public-release-smoke"
+          chat = json.loads((root / "html-chat.json").read_text())
+          conversation = json.loads((root / "html-conversation.json").read_text())
+          assert isinstance(chat, dict) and "error" not in chat
+          assert len(conversation.get("turns", [])) >= 1
+          PY
+          kill "$html_pid"
+          wait "$html_pid" 2>/dev/null || true
+          html_pid=""
+
+      - name: Seal public stranger receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/public-release-smoke"
+          run="$root/run"
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["RUNNER_TEMP"]) / "public-release-smoke"
+          run = root / "run"
+          load = lambda name: json.loads((run / name).read_text())
+          provenance = json.loads((root / "public-kit/RELEASE_PROVENANCE.json").read_text())
           receipt = {
-              "schema": "beastbox-public-release-wheel-smoke-v1",
+              "schema": "beastbox-public-release-stranger-smoke-v2",
               "passed": True,
               "tag": os.environ["TAG"],
               "version": os.environ["VERSION"],
-              "asset": os.environ["WHEEL"],
-              "public_url": (root / "public-url.txt").read_text().strip(),
-              "http_status": int((root / "http-status.txt").read_text().strip()),
-              "sha256": actual,
+              "source_commit": provenance["source_commit"],
+              "wheel_asset": os.environ["WHEEL"],
+              "combined_kit_asset": os.environ["KIT"],
+              "public_wheel_url": (root / "public-wheel-url.txt").read_text().strip(),
+              "public_kit_url": (root / "public-kit-url.txt").read_text().strip(),
+              "public_http_statuses": (root / "http-status.txt").read_text().splitlines(),
+              "published_checksums_verified": True,
+              "wheel_sha256": os.environ["WHEEL_SHA256"],
+              "combined_kit_sha256": os.environ["KIT_SHA256"],
               "clean_venv_install": True,
               "source_checkout_used": False,
               "separate_process_restart_verified": True,
-              "system_id_preserved": True,
+              "system_id_preserved": load("init.json")["system_id"] == load("restored-inspect.json")["system_id"],
               "portable_export_verified": True,
               "portable_import_verified": True,
               "tampered_state_rejected": True,
               "authority_transferred": False,
               "default_tool_authority_denied_before_import": True,
               "default_tool_authority_denied_after_import": True,
+              "cosmic_browser_surface_verified": True,
+              "standalone_html_surface_verified": True,
               "classification": "public release transport/install/continuity smoke; not model-quality or model-weight attestation",
           }
-          (root / "PUBLIC_RELEASE_WHEEL_SMOKE.json").write_text(
-              json.dumps(receipt, indent=2, sort_keys=True) + "\n"
-          )
-          print(json.dumps(receipt, sort_keys=True))
+          target = root / "PUBLIC_RELEASE_WHEEL_SMOKE.json"
+          target.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+          digest = hashlib.sha256(target.read_bytes()).hexdigest()
+          (root / "PUBLIC_RELEASE_WHEEL_SMOKE.sha256").write_text(f"{digest}  {target.name}\n")
+          print(json.dumps({**receipt, "receipt_sha256": digest}, sort_keys=True))
           PY
 
       - uses: actions/upload-artifact@v4
         with:
-          name: public-release-wheel-smoke-v0.6.0
+          name: public-release-stranger-smoke-${{ env.TAG }}
           path: |
             ${{ runner.temp }}/public-release-smoke/PUBLIC_RELEASE_WHEEL_SMOKE.json
+            ${{ runner.temp }}/public-release-smoke/PUBLIC_RELEASE_WHEEL_SMOKE.sha256
+            ${{ runner.temp }}/public-release-smoke/SHA256SUMS.txt
+            ${{ runner.temp }}/public-release-smoke/public-checks.txt
             ${{ runner.temp }}/public-release-smoke/wheel-sha256.txt
+            ${{ runner.temp }}/public-release-smoke/kit-sha256.txt
             ${{ runner.temp }}/public-release-smoke/http-status.txt
             ${{ runner.temp }}/public-release-smoke/run/tamper-stderr.txt
+            ${{ runner.temp }}/public-release-smoke/cosmic-health.json
+            ${{ runner.temp }}/public-release-smoke/html-chat.json
+            ${{ runner.temp }}/public-release-smoke/html-conversation.json

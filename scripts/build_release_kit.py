@@ -28,6 +28,7 @@ def build_kit(dist: Path) -> Path:
     if git("status", "--porcelain"):
         raise RuntimeError("release kit requires a clean committed source tree")
     from beastbox import __version__
+
     version = __version__
     if os.environ.get("GITHUB_REF", "").startswith("refs/tags/"):
         if os.environ["GITHUB_REF"] != f"refs/tags/v{version}":
@@ -43,7 +44,8 @@ def build_kit(dist: Path) -> Path:
         "ECOSYSTEM_MANIFEST.json": ROOT / "docs/ECOSYSTEM_MANIFEST.json",
         "TRUST_BOUNDARIES.md": ROOT / "docs/TRUST_BOUNDARIES.md",
         "READINESS.json": ROOT / "docs/closure/READINESS.json",
-        "PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md": ROOT / "docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md",
+        "PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md": ROOT
+        / "docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md",
         "historical-swap-002.zip": ROOT / "evidence/system-closure-001/historical-swap-002.zip",
     }
     for path in (ROOT / "kits/BEAST_BOX_COMBINED").iterdir():
@@ -52,10 +54,30 @@ def build_kit(dist: Path) -> Path:
     for name in ("QUICKSTART.md", "PROVIDER_SETUP.md", "PORTABLE_STATE.md", "DEVELOPER_GUIDE.md", "LAUNCH.md"):
         files[name] = ROOT / "docs" / name
     files["OPTIONAL_INPUTS.md"] = ROOT / "docs/OPTIONAL_INPUTS.md"
+
+    # Ship the tested standalone browser surface beside the Python runtime. These
+    # are static/client transport files only; the canonical durable substrate
+    # remains in beastbox and is installed from the source-bound wheel below.
+    for relative in (
+        "html/index.html",
+        "html/standalone.html",
+        "html/styles.css",
+        "html/app.js",
+        "html/policy.js",
+        "html/profiles.js",
+        "html/manifest.webmanifest",
+        "html/sw.js",
+        "html/icon.svg",
+        "html/README.md",
+        "html/serve.py",
+    ):
+        files[relative] = ROOT / relative
+
     for name in (f"cosmos_beast_box-{version}-py3-none-any.whl", f"cosmos_beast_box-{version}.tar.gz"):
         files[name] = dist / name
     payloads = {name: path.read_bytes() for name, path in files.items()}
     for name in ("QUICKSTART.md", "PROVIDER_SETUP.md", "PORTABLE_STATE.md", "DEVELOPER_GUIDE.md", "LAUNCH.md"):
+
         def link(match):
             target = match.group(1)
             if "://" in target or target.startswith("#"):
@@ -67,11 +89,15 @@ def build_kit(dist: Path) -> Path:
             if path.exists() and path.is_relative_to(ROOT):
                 return "](https://github.com/NavisWORLD/The-beast-box-/blob/" + git("rev-parse", "HEAD") + "/" + path.relative_to(ROOT).as_posix() + ")"
             return match.group(0)
+
         payloads[name] = re.sub(r"\]\(([^)]+)\)", link, payloads[name].decode()).encode()
     provenance = {
-        "schema": "beastbox-release-provenance-v1", "version": version,
-        "source_commit": git("rev-parse", "HEAD"), "source_tree": git("rev-parse", "HEAD^{tree}"),
-        "source_dirty": False, "files_sha256": {name: sha(data) for name, data in payloads.items()},
+        "schema": "beastbox-release-provenance-v1",
+        "version": version,
+        "source_commit": git("rev-parse", "HEAD"),
+        "source_tree": git("rev-parse", "HEAD^{tree}"),
+        "source_dirty": False,
+        "files_sha256": {name: sha(data) for name, data in payloads.items()},
         "historical_evidence_changed": False,
         "verification_policy": "release.yml requires full Product CI and native tests on this exact source",
     }

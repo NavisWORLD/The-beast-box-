@@ -1,6 +1,7 @@
 name: Configuration contract
 
 on:
+  workflow_call:
   push:
     branches:
       - main
