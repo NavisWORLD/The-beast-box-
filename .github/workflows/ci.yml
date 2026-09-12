@@ -21,7 +21,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: python-ci-${{ github.ref }}
+  group: python-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
