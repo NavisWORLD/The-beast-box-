@@ -1,4 +1,4 @@
-# Beast Box Android 0.7.0
+# Beast Box Android 0.7.1
 
 Native Kotlin UI embedding this repository's Python `beastbox.durable.DurableRuntime`
 through Chaquopy. Application ID: `dev.beastbox.mobile`. Android 7.0/API 24 minimum;
@@ -55,7 +55,7 @@ Ollama inference require separate testing.
 
 The `Android on-device runtime candidate` GitHub workflow supports dispatch,
 `workflow_call`, and the integration branch. Its success artifact
-`beast-android-0.7.0` contains `beast-android-0.7.0-sideload.apk`, the build receipt
+`beast-android-0.7.1` contains `beast-android-0.7.1-sideload.apk`, the build receipt
 with APK/source hashes, and emulator receipts/logs. Failure evidence is retained
 separately. Only a successful actual Android build and emulator gate produces the
 candidate artifact. Debug signing is used unless `BEASTBOX_ANDROID_KEYSTORE` is
