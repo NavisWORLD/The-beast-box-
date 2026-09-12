@@ -1,5 +1,6 @@
 name: Beast Box Web Runtime
 on:
+  workflow_call:
   push:
     paths:
       - 'html/**'
