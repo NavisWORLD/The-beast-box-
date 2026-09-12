@@ -1,4 +1,4 @@
-"""End-to-end product acceptance for the 0.7.0 candidate. No production claim."""
+"""End-to-end product acceptance for the 0.7.1 candidate. No production claim."""
 
 from __future__ import annotations
 
@@ -159,9 +159,9 @@ def test_14_15_mobile_release_files_are_present() -> None:
     root = Path(__file__).resolve().parents[1]
     android = (root / "apps/android/app/build.gradle.kts").read_text(encoding="utf-8")
     ios = (root / "apps/ios/project.yml").read_text(encoding="utf-8")
-    assert 'versionName = "0.7.0"' in android
+    assert 'versionName = "0.7.1"' in android
     assert "BEASTBOX_ANDROID_KEYSTORE" in android
-    assert "MARKETING_VERSION: '0.7.0'" in ios
+    assert "MARKETING_VERSION: '0.7.1'" in ios
     assert (root / "apps/ios/BeastBox.entitlements").is_file()
     assert (root / "apps/ios/ExportOptions.plist").is_file()
 
@@ -232,7 +232,7 @@ def test_21_secret_handling_regression(tmp_path: Path, monkeypatch: pytest.Monke
 
 def test_22_ci_and_package_contract_files_exist() -> None:
     root = Path(__file__).resolve().parents[1]
-    assert __version__ == "0.7.0"
+    assert __version__ == "0.7.1"
     for relative in (
         ".github/workflows/ci.yml",
         ".github/workflows/product-ci.yml",
