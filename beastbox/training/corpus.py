@@ -38,7 +38,7 @@ def normalize_lexical_record(record: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(record, Mapping):
         raise ValueError("lexical record must be an object")
     return {
-        "lemma": _text(record.get("lemma"), "lemma", casefold=True),
+        "lemma": _text(record.get("lemma"), "lemma"),
         "part_of_speech": _text(record.get("part_of_speech"), "part_of_speech", casefold=True),
         "definition": _text(record.get("definition"), "definition"),
         "synonyms": _string_list(record.get("synonyms", []), "synonyms", casefold=True),
@@ -75,6 +75,14 @@ def _normalize_sources(sources: Sequence[Mapping[str, str]]) -> list[dict[str, s
     if not normalized_by_id:
         raise ValueError("at least one source is required")
     return [normalized_by_id[key] for key in sorted(normalized_by_id)]
+
+
+def _record_identity(*, kind: CorpusKind, record: Mapping[str, Any]) -> str:
+    if kind == "lexical":
+        identity = dict(record)
+        identity["lemma"] = str(record["lemma"]).casefold()
+        return sha256_obj(identity)
+    return sha256_obj(record)
 
 
 def _split_for(*, kind: CorpusKind, record: Mapping[str, Any], split_salt: str) -> str:
@@ -144,7 +152,10 @@ def build_corpus(
         record = normalizer(raw)
         if record["source_id"] not in known_sources:
             raise ValueError(f"unknown source_id: {record['source_id']}")
-        unique[sha256_obj(record)] = record
+        identity = _record_identity(kind=kind, record=record)
+        existing = unique.get(identity)
+        if existing is None or canonical_json(record) < canonical_json(existing):
+            unique[identity] = record
     normalized_records = [unique[key] for key in sorted(unique)]
 
     target = Path(output_dir)
