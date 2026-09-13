@@ -1,13 +1,13 @@
-from __future__ import annotations
-
 """Audited SparkCST -> PHOS architecture migration for Zeref descendants.
 
-The historical SparkCST checkpoint and architecture remain immutable.  This
+The historical SparkCST checkpoint and architecture remain immutable. This
 module constructs a new PHOSReferenceLM and accounts for every parent parameter
-as either an exact copy or an explicitly versioned transform.  The resulting
+as either an exact copy or an explicitly versioned transform. The resulting
 model is a weight-derived descendant, not an assertion of parameter or identity
 equivalence with the historical parent.
 """
+
+from __future__ import annotations
 
 import hashlib
 import math
@@ -75,8 +75,6 @@ def _validate_tokenizer(tokenizer: Mapping[str, int], *, vocab_size: int) -> dic
     normalized = {str(character): int(index) for character, index in tokenizer.items()}
     if len(normalized) != vocab_size:
         raise ValueError("tokenizer size does not match parent vocab")
-    if len(set(normalized)) != len(normalized):  # defensive; dict keys are already unique
-        raise ValueError("tokenizer characters must be unique")
     ids = list(normalized.values())
     if len(set(ids)) != len(ids) or set(ids) != set(range(vocab_size)):
         raise ValueError("tokenizer ids must be unique and contiguous from zero")
