@@ -8,7 +8,7 @@ torch = pytest.importorskip("torch")
 from beastbox.models.phos_reference import PHOSReferenceLM
 
 
-def _model(*, external: bool = False) -> PHOSReferenceLM:
+def _model(*, external: bool = False, tie_embeddings: bool = True) -> PHOSReferenceLM:
     torch.manual_seed(20260913)
     model = PHOSReferenceLM(
         vocab_size=17,
@@ -17,6 +17,7 @@ def _model(*, external: bool = False) -> PHOSReferenceLM:
         n_layers=2,
         max_seq_len=8,
         enable_external_state=external,
+        tie_embeddings=tie_embeddings,
     )
     return model
 
@@ -38,6 +39,15 @@ def test_default_model_has_no_external_state_parameters_and_none_is_bit_identica
     assert explicit_none["initial_state"] is None
     for left, right in zip(direct["telemetry"], explicit_none["telemetry"]):
         assert torch.equal(left["state"], right["state"])
+
+
+def test_embedding_tie_is_default_but_can_be_disabled_for_migration():
+    tied = _model(tie_embeddings=True)
+    untied = _model(tie_embeddings=False)
+
+    assert tied.head.weight is tied.token.weight
+    assert untied.head.weight is not untied.token.weight
+    assert untied.head.weight.data_ptr() != untied.token.weight.data_ptr()
 
 
 def test_enabled_zero_control_matches_historical_zero_initial_state_exactly():
@@ -77,6 +87,15 @@ def test_nonzero_control_is_broadcast_and_changes_state_and_logits():
     assert not torch.equal(zero["logits"], one_dimensional["logits"])
 
 
+def test_initial_state_telemetry_is_detached_from_training_graph():
+    model = _model(external=True).train()
+    output = model(_ids(), control_vector=torch.linspace(-1.0, 1.0, 12))
+
+    assert output["initial_state"] is not None
+    assert output["initial_state"].requires_grad is False
+    assert output["initial_state"].grad_fn is None
+
+
 def test_control_requires_enabled_interface():
     model = _model(external=False).eval()
     with pytest.raises(ValueError, match="external state"):
@@ -89,7 +108,7 @@ def test_control_requires_enabled_interface():
         (torch.zeros(11), "12"),
         (torch.zeros(2, 11), "12"),
         (torch.zeros(3, 12), "batch"),
-        (torch.full((12,), 1.01), "\[-1, 1\]"),
+        (torch.full((12,), 1.01), r"\[-1, 1\]"),
         (torch.tensor([0.0] * 11 + [float("nan")]), "finite"),
         (torch.zeros(1, 1, 12), "shape"),
     ],
