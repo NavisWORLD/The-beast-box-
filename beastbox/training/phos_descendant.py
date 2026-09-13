@@ -60,15 +60,11 @@ def _require_sha256(value: str, *, name: str) -> str:
 
 def _config_int(config: Mapping[str, Any], name: str) -> int:
     value = config.get(name)
-    if isinstance(value, bool):
+    if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError(f"parent config {name} must be an integer")
-    try:
-        number = int(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"parent config {name} must be an integer") from exc
-    if number <= 0:
+    if value <= 0:
         raise ValueError(f"parent config {name} must be positive")
-    return number
+    return value
 
 
 def _validate_tokenizer(tokenizer: Mapping[str, int], *, vocab_size: int) -> dict[str, int]:
