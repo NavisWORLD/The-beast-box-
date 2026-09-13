@@ -11,6 +11,9 @@ from .lineage import sha256_file, write_canonical_json
 
 CorpusKind = Literal["lexical", "world"]
 _SPLITS = ("train", "validation", "test")
+_REQUIRED_ARTIFACTS = tuple(
+    sorted(f"{split}.{suffix}" for split in _SPLITS for suffix in ("jsonl", "txt"))
+)
 
 
 def _text(value: Any, field: str, *, casefold: bool = False) -> str:
@@ -129,6 +132,85 @@ def _write_split(output_dir: Path, split: str, rows: list[dict[str, Any]], *, ki
     return {
         jsonl.name: sha256_file(jsonl),
         text.name: sha256_file(text),
+    }
+
+
+def _valid_sha256(value: Any) -> bool:
+    text = str(value).lower()
+    return len(text) == 64 and all(character in "0123456789abcdef" for character in text)
+
+
+def _artifact_under_root(root: Path, name: str) -> Path:
+    candidate_name = Path(name)
+    if candidate_name.is_absolute():
+        raise ValueError(f"corpus artifact path must be relative: {name}")
+    base = root.resolve()
+    candidate = (base / candidate_name).resolve()
+    try:
+        candidate.relative_to(base)
+    except ValueError as exc:
+        raise ValueError(f"corpus artifact path escapes root: {name}") from exc
+    return candidate
+
+
+def verify_corpus_manifest(
+    manifest: Mapping[str, Any],
+    *,
+    root: str | Path,
+) -> dict[str, Any]:
+    """Re-hash a built corpus manifest and fail closed on artifact drift."""
+
+    if manifest.get("schema") != "zeref-phos-corpus-manifest-v1":
+        raise ValueError("unexpected corpus manifest schema")
+    kind = manifest.get("kind")
+    if kind not in ("lexical", "world"):
+        raise ValueError("corpus manifest kind must be lexical or world")
+    record_count = manifest.get("record_count")
+    if isinstance(record_count, bool) or not isinstance(record_count, int) or record_count < 0:
+        raise ValueError("corpus manifest record_count must be a non-negative integer")
+    dataset_sha = manifest.get("dataset_sha256")
+    if not _valid_sha256(dataset_sha):
+        raise ValueError("corpus manifest dataset_sha256 is invalid")
+
+    split_counts = manifest.get("split_counts")
+    if not isinstance(split_counts, Mapping) or set(split_counts) != set(_SPLITS):
+        raise ValueError("corpus manifest split_counts are invalid")
+    counts: dict[str, int] = {}
+    for split in _SPLITS:
+        count = split_counts.get(split)
+        if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+            raise ValueError(f"corpus manifest {split} count is invalid")
+        counts[split] = count
+    if sum(counts.values()) != record_count:
+        raise ValueError("corpus manifest split counts do not match record_count")
+
+    sources = manifest.get("sources")
+    if not isinstance(sources, list):
+        raise ValueError("corpus manifest sources must be a list")
+    normalized_sources = _normalize_sources(sources)
+    if normalized_sources != sources:
+        raise ValueError("corpus manifest sources are not canonical")
+
+    artifacts = manifest.get("artifacts")
+    if not isinstance(artifacts, Mapping) or set(artifacts) != set(_REQUIRED_ARTIFACTS):
+        raise ValueError("corpus manifest artifacts are incomplete")
+    base = Path(root)
+    for name in _REQUIRED_ARTIFACTS:
+        expected_sha = artifacts.get(name)
+        if not _valid_sha256(expected_sha):
+            raise ValueError(f"{name} SHA-256 is invalid")
+        path = _artifact_under_root(base, name)
+        if not path.is_file():
+            raise FileNotFoundError(f"corpus artifact does not exist: {name}")
+        actual_sha = sha256_file(path)
+        if actual_sha != str(expected_sha).lower():
+            raise RuntimeError(f"{name} SHA-256 mismatch: {actual_sha} != {str(expected_sha).lower()}")
+
+    return {
+        "verified": True,
+        "kind": str(kind),
+        "record_count": record_count,
+        "dataset_sha256": str(dataset_sha).lower(),
     }
 
 
