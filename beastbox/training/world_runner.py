@@ -14,7 +14,7 @@ try:
 except ImportError as exc:  # pragma: no cover - optional ML installation
     raise RuntimeError("Install ML extra: pip install 'cosmos-beast-box[ml]'") from exc
 
-from beastbox.hashutil import canonical_json, sha256_obj
+from beastbox.hashutil import canonical_json
 from beastbox.models.phos_reference import PHOSReferenceLM
 
 from .corpus import verify_corpus_manifest
