@@ -5,15 +5,14 @@ import json
 from pathlib import Path
 
 import pytest
-
-
-torch = pytest.importorskip("torch")
-nn = torch.nn
+import torch
 
 from beastbox.training.corpus import build_corpus, verify_corpus_manifest
 from beastbox.training.phos_descendant import parameter_sha256
 from beastbox.training.quantum_control import build_quantum_control_receipt
 from beastbox.training.world_runner import train_descendant_generation, verify_descendant_run
+
+nn = torch.nn
 
 
 class TinySparkAttention(nn.Module):
