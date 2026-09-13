@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any, Mapping
 
 _SECRET_KEYS = {"token", "password", "secret", "credential", "api_key"}
@@ -59,8 +59,13 @@ def _reject_secret_like_keys(value: Any) -> None:
 
 
 def _resolve_under_root(root: Path, stored_path: str | Path) -> Path:
+    display_path = str(stored_path)
+    raw_path = Path(display_path)
+    if raw_path.is_absolute() or PureWindowsPath(display_path).is_absolute():
+        raise ValueError(f"artifact path must be relative to root: {display_path}")
+
     base = root.resolve()
-    candidate = (base / Path(stored_path)).resolve()
+    candidate = (base / raw_path).resolve()
     try:
         candidate.relative_to(base)
     except ValueError as exc:
