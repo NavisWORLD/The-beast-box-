@@ -5,9 +5,7 @@ import json
 from pathlib import Path
 
 import pytest
-
-
-torch = pytest.importorskip("torch")
+import torch
 
 from beastbox.training.corpus import build_corpus
 from beastbox.training.lineage import build_parent_manifest
