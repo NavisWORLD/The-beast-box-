@@ -104,16 +104,19 @@ class PHOSReferenceLM(nn.Module):
         n_layers: int = 4,
         max_seq_len: int = 256,
         enable_external_state: bool = False,
+        tie_embeddings: bool = True,
     ):
         super().__init__()
         self.max_seq_len = max_seq_len
         self.enable_external_state = bool(enable_external_state)
+        self.tie_embeddings = bool(tie_embeddings)
         self.token = nn.Embedding(vocab_size, d_model)
         self.pos = nn.Embedding(max_seq_len, d_model)
         self.blocks = nn.ModuleList([Block(d_model, n_heads) for _ in range(n_layers)])
         self.norm = nn.LayerNorm(d_model)
         self.head = nn.Linear(d_model, vocab_size, bias=False)
-        self.head.weight = self.token.weight
+        if self.tie_embeddings:
+            self.head.weight = self.token.weight
         if self.enable_external_state:
             self.q_to_state = nn.Linear(12, 12)
             with torch.no_grad():
@@ -171,5 +174,5 @@ class PHOSReferenceLM(nn.Module):
             "logits": logits,
             "loss": loss,
             "telemetry": telemetry,
-            "initial_state": initial_state,
+            "initial_state": None if initial_state is None else initial_state.detach(),
         }
