@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import unicodedata
 from pathlib import Path
 from typing import Any, Iterable, Literal, Mapping, Sequence
@@ -120,7 +121,13 @@ def _render_world(record: Mapping[str, Any]) -> str:
     return f"TITLE: {record['title']}\nTEXT: {record['text']}\nSOURCE: {record['source_id']}\n\n"
 
 
-def _write_split(output_dir: Path, split: str, rows: list[dict[str, Any]], *, kind: CorpusKind) -> dict[str, str]:
+def _write_split(
+    output_dir: Path,
+    split: str,
+    rows: list[dict[str, Any]],
+    *,
+    kind: CorpusKind,
+) -> dict[str, str]:
     jsonl = output_dir / f"{split}.jsonl"
     text = output_dir / f"{split}.txt"
     jsonl.write_text(
@@ -153,12 +160,56 @@ def _artifact_under_root(root: Path, name: str) -> Path:
     return candidate
 
 
+def _read_verified_split(
+    *,
+    root: Path,
+    split: str,
+    kind: CorpusKind,
+    split_salt: str,
+    known_sources: set[str],
+) -> tuple[list[dict[str, Any]], str]:
+    jsonl_path = _artifact_under_root(root, f"{split}.jsonl")
+    raw_jsonl = jsonl_path.read_text(encoding="utf-8")
+    normalizer = normalize_lexical_record if kind == "lexical" else normalize_world_record
+    renderer = _render_lexical if kind == "lexical" else _render_world
+    rows: list[dict[str, Any]] = []
+
+    for line_number, raw in enumerate(raw_jsonl.splitlines(), start=1):
+        if not raw:
+            raise ValueError(f"{split}.jsonl contains a blank row at line {line_number}")
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"{split}.jsonl contains invalid JSON at line {line_number}") from exc
+        if not isinstance(parsed, Mapping):
+            raise ValueError(f"{split}.jsonl row {line_number} must be an object")
+        normalized = normalizer(parsed)
+        if dict(parsed) != normalized:
+            raise ValueError(f"{split}.jsonl row {line_number} is not canonical")
+        if normalized["source_id"] not in known_sources:
+            raise ValueError(
+                f"{split}.jsonl row {line_number} references unknown source_id"
+            )
+        expected_split = _split_for(kind=kind, record=normalized, split_salt=split_salt)
+        if expected_split != split:
+            raise RuntimeError(
+                f"corpus split assignment mismatch at {split}.jsonl line {line_number}"
+            )
+        rows.append(normalized)
+
+    expected_jsonl = "".join(canonical_json(row) + "\n" for row in rows)
+    if raw_jsonl != expected_jsonl:
+        raise RuntimeError(f"{split}.jsonl does not use canonical serialization")
+    expected_text = "".join(renderer(row) for row in rows)
+    return rows, expected_text
+
+
 def verify_corpus_manifest(
     manifest: Mapping[str, Any],
     *,
     root: str | Path,
 ) -> dict[str, Any]:
-    """Re-hash a built corpus manifest and fail closed on artifact drift."""
+    """Re-hash and semantically reconstruct a built corpus manifest."""
 
     if manifest.get("schema") != "zeref-phos-corpus-manifest-v1":
         raise ValueError("unexpected corpus manifest schema")
@@ -171,6 +222,9 @@ def verify_corpus_manifest(
     dataset_sha = manifest.get("dataset_sha256")
     if not _valid_sha256(dataset_sha):
         raise ValueError("corpus manifest dataset_sha256 is invalid")
+    split_salt = _text(manifest.get("split_salt"), "split_salt")
+    if manifest.get("split_salt") != split_salt:
+        raise ValueError("corpus manifest split_salt is not canonical")
 
     split_counts = manifest.get("split_counts")
     if not isinstance(split_counts, Mapping) or set(split_counts) != set(_SPLITS):
@@ -190,6 +244,7 @@ def verify_corpus_manifest(
     normalized_sources = _normalize_sources(sources)
     if normalized_sources != sources:
         raise ValueError("corpus manifest sources are not canonical")
+    known_sources = {source["source_id"] for source in normalized_sources}
 
     artifacts = manifest.get("artifacts")
     if not isinstance(artifacts, Mapping) or set(artifacts) != set(_REQUIRED_ARTIFACTS):
@@ -204,13 +259,54 @@ def verify_corpus_manifest(
             raise FileNotFoundError(f"corpus artifact does not exist: {name}")
         actual_sha = sha256_file(path)
         if actual_sha != str(expected_sha).lower():
-            raise RuntimeError(f"{name} SHA-256 mismatch: {actual_sha} != {str(expected_sha).lower()}")
+            raise RuntimeError(
+                f"{name} SHA-256 mismatch: {actual_sha} != {str(expected_sha).lower()}"
+            )
+
+    unique: dict[str, dict[str, Any]] = {}
+    observed_counts: dict[str, int] = {}
+    for split in _SPLITS:
+        rows, expected_text = _read_verified_split(
+            root=base,
+            split=split,
+            kind=kind,
+            split_salt=split_salt,
+            known_sources=known_sources,
+        )
+        observed_counts[split] = len(rows)
+        if observed_counts[split] != counts[split]:
+            raise RuntimeError(f"corpus {split} record count mismatch")
+        actual_text = _artifact_under_root(base, f"{split}.txt").read_text(encoding="utf-8")
+        if actual_text != expected_text:
+            raise RuntimeError(f"{split}.txt does not match canonical JSONL records")
+        for row in rows:
+            identity = _record_identity(kind=kind, record=row)
+            if identity in unique:
+                raise RuntimeError("corpus contains a duplicate semantic record")
+            unique[identity] = row
+
+    if sum(observed_counts.values()) != record_count or len(unique) != record_count:
+        raise RuntimeError("corpus semantic record count mismatch")
+    normalized_records = [unique[key] for key in sorted(unique)]
+    actual_dataset_sha = sha256_obj(
+        {
+            "kind": kind,
+            "records": normalized_records,
+            "sources": normalized_sources,
+            "split_salt": split_salt,
+        }
+    )
+    expected_dataset_sha = str(dataset_sha).lower()
+    if actual_dataset_sha != expected_dataset_sha:
+        raise RuntimeError(
+            f"dataset SHA-256 mismatch: {actual_dataset_sha} != {expected_dataset_sha}"
+        )
 
     return {
         "verified": True,
         "kind": str(kind),
         "record_count": record_count,
-        "dataset_sha256": str(dataset_sha).lower(),
+        "dataset_sha256": actual_dataset_sha,
     }
 
 
