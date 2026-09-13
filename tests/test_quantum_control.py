@@ -118,6 +118,10 @@ def test_malformed_observations_are_rejected(event: dict, message: str):
     metadata = json.loads(event["text"])
     if metadata["source"] == "ibm-quantum":
         metadata["shots"] += 1
+    elif any(not math.isfinite(float(value)) for value in metadata["probabilities"].values()):
+        # Keep the outer sensor-event valid so this case reaches the quantum
+        # probability validator instead of failing earlier in normalize_event.
+        event["features"] = [-1.0, -1.0, -1.0, -1.0]
     event["text"] = json.dumps(metadata, sort_keys=True, separators=(",", ":"))
     with pytest.raises(ValueError, match=message):
         canonicalize_quantum_event(event)
