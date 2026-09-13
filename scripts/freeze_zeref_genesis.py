@@ -20,6 +20,9 @@ def main() -> int:
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
 
+    if args.out.exists():
+        raise FileExistsError(f"genesis manifest already exists: {args.out}")
+
     manifest = build_parent_manifest(
         model_id=args.model_id,
         checkpoint_path=args.checkpoint,
