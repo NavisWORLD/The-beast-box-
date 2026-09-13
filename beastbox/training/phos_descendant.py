@@ -68,7 +68,15 @@ def _config_int(config: Mapping[str, Any], name: str) -> int:
 
 
 def _validate_tokenizer(tokenizer: Mapping[str, int], *, vocab_size: int) -> dict[str, int]:
-    normalized = {str(character): int(index) for character, index in tokenizer.items()}
+    if not isinstance(tokenizer, Mapping):
+        raise ValueError("tokenizer must be an object")
+    normalized: dict[str, int] = {}
+    for character, index in tokenizer.items():
+        if not isinstance(character, str) or len(character) != 1:
+            raise ValueError("tokenizer keys must be single-character strings")
+        if isinstance(index, bool) or not isinstance(index, int):
+            raise ValueError("tokenizer ids must be integers without coercion")
+        normalized[character] = index
     if len(normalized) != vocab_size:
         raise ValueError("tokenizer size does not match parent vocab")
     ids = list(normalized.values())
@@ -123,6 +131,11 @@ def _copy_exact(
         raise RuntimeError(
             f"shape mismatch for {source_name} -> {destination_name}: "
             f"{tuple(source_tensor.shape)} != {tuple(destination_tensor.shape)}"
+        )
+    if source_tensor.dtype != destination_tensor.dtype:
+        raise RuntimeError(
+            f"dtype mismatch for {source_name} -> {destination_name}: "
+            f"{source_tensor.dtype} != {destination_tensor.dtype}"
         )
     with torch.no_grad():
         destination_tensor.copy_(source_tensor)
@@ -272,6 +285,11 @@ def migrate_sparkcst_to_phos(
                 f"shape mismatch after 54D fold for {state_name}: "
                 f"{tuple(folded.shape)} != {tuple(destination_state.shape)}"
             )
+        if folded.dtype != destination_state.dtype:
+            raise RuntimeError(
+                f"dtype mismatch after 54D fold for {state_name}: "
+                f"{folded.dtype} != {destination_state.dtype}"
+            )
         with torch.no_grad():
             destination_state.copy_(folded)
             destination_parameters[f"{source_prefix}attn.state_proj.bias"].zero_()
@@ -292,15 +310,21 @@ def migrate_sparkcst_to_phos(
         gate_name = f"{source_prefix}attn.gate"
         destination_gate_name = f"{source_prefix}attn.gate_logit"
         gate_tensor = parent_parameters[gate_name]
+        destination_gate = destination_parameters[destination_gate_name]
         if gate_tensor.numel() != 1:
             raise RuntimeError(f"SparkCST gate must contain one value: {gate_name}")
+        if gate_tensor.dtype != destination_gate.dtype:
+            raise RuntimeError(
+                f"dtype mismatch for {gate_name} -> {destination_gate_name}: "
+                f"{gate_tensor.dtype} != {destination_gate.dtype}"
+            )
         raw_gate = float(gate_tensor.detach().reshape(-1)[0].item())
         if not math.isfinite(raw_gate):
             raise RuntimeError(f"SparkCST gate must be finite: {gate_name}")
         bounded_gate = min(max(raw_gate, 0.01), 0.99)
         gate_logit = math.log(bounded_gate / (1.0 - bounded_gate))
         with torch.no_grad():
-            destination_parameters[destination_gate_name].fill_(gate_logit)
+            destination_gate.fill_(gate_logit)
         transformed.append(
             {
                 "source": gate_name,
@@ -323,7 +347,9 @@ def migrate_sparkcst_to_phos(
     accounted_sources = [row["source"] for row in copied] + [
         str(row["source"]) for row in transformed if row.get("source") is not None
     ]
-    if len(accounted_sources) != len(set(accounted_sources)) or set(accounted_sources) != set(parent_parameters):
+    if len(accounted_sources) != len(set(accounted_sources)) or set(accounted_sources) != set(
+        parent_parameters
+    ):
         raise RuntimeError("parent parameter accounting is incomplete or duplicated")
 
     accounted_destinations = {row["destination"] for row in copied}
