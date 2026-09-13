@@ -135,8 +135,8 @@ jobs:
         run: |
           set -euo pipefail
           version=$(python -c 'from beastbox import __version__; print(__version__)')
-          test "$version" = "0.7.0"
-          test -f docs/closure/RELEASE_NOTES_0.7.0.md
+          test "$version" = "0.7.1"
+          test -f docs/closure/RELEASE_NOTES_0.7.1.md
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
@@ -213,7 +213,7 @@ jobs:
           gh release create "$tag" release-publish/* \
             --target "$GITHUB_SHA" --prerelease \
             --title "Beast Box $version — Portable runtime preview" \
-            --notes-file docs/closure/RELEASE_NOTES_0.7.0.md
+            --notes-file docs/closure/RELEASE_NOTES_0.7.1.md
 
   public-stranger-smoke:
     needs: [github-release]
