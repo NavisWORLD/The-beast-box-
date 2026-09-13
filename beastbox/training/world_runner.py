@@ -461,6 +461,24 @@ def _verify_checkpoint_tokenizer(
         raise RuntimeError("checkpoint tokenizer SHA-256 does not match migration record")
 
 
+def _verify_migration_receipt_integrity(
+    migration_receipt: Mapping[str, Any],
+    *,
+    expected_initial_parameter_sha: str,
+) -> str:
+    payload = dict(migration_receipt)
+    receipt_sha = str(payload.pop("receipt_sha256", ""))
+    if sha256_obj(payload) != receipt_sha:
+        raise RuntimeError("migration receipt SHA-256 mismatch")
+    if payload.get("schema") != "zeref-phos-migration-receipt-v1":
+        raise RuntimeError("unsupported PHOS migration receipt schema")
+    if payload.get("transform") != "sparkcst-to-phos-v1":
+        raise RuntimeError("unsupported PHOS migration transform")
+    if payload.get("destination_parameter_sha256") != expected_initial_parameter_sha:
+        raise RuntimeError("migration receipt does not bind the initial descendant parameters")
+    return receipt_sha
+
+
 def verify_descendant_run(output_dir: str | Path) -> dict[str, Any]:
     """Verify sealed files and all recorded cross-file lineage bindings."""
 
@@ -541,9 +559,8 @@ def verify_descendant_run(output_dir: str | Path) -> dict[str, Any]:
     parameter_hashes = _read_json_object(root / "parameter_hashes.json", "parameter hashes")
     if parameter_hashes.get("schema") != "zeref-phos-parameter-hashes-v1":
         raise RuntimeError("unexpected parameter hashes schema")
-    if parameter_hashes.get("initial_parameter_sha256") != run_manifest.get(
-        "initial_parameter_sha256"
-    ):
+    initial_parameter_sha = str(run_manifest.get("initial_parameter_sha256") or "")
+    if parameter_hashes.get("initial_parameter_sha256") != initial_parameter_sha:
         raise RuntimeError("initial parameter SHA-256 does not match run manifest")
     if parameter_hashes.get("final_parameter_sha256") != expected_parameter_sha:
         raise RuntimeError("parameter_hashes.json does not match sealed model")
@@ -551,8 +568,10 @@ def verify_descendant_run(output_dir: str | Path) -> dict[str, Any]:
         raise RuntimeError("parameter_hashes.json does not record parameter drift")
 
     migration_receipt = _read_json_object(root / "migration_receipt.json", "migration receipt")
-    verify_phos_migration_receipt(migration_receipt, model=model)
-    migration_sha = str(migration_receipt.get("receipt_sha256") or "")
+    migration_sha = _verify_migration_receipt_integrity(
+        migration_receipt,
+        expected_initial_parameter_sha=initial_parameter_sha,
+    )
     if run_manifest.get("migration_receipt_sha256") != migration_sha:
         raise RuntimeError("migration receipt SHA-256 does not match run manifest")
     if checkpoint.get("migration_receipt_sha256") != migration_sha:
