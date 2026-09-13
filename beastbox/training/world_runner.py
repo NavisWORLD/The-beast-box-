@@ -14,7 +14,7 @@ try:
 except ImportError as exc:  # pragma: no cover - optional ML installation
     raise RuntimeError("Install ML extra: pip install 'cosmos-beast-box[ml]'") from exc
 
-from beastbox.hashutil import canonical_json
+from beastbox.hashutil import canonical_json, sha256_obj
 from beastbox.models.phos_reference import PHOSReferenceLM
 
 from .corpus import verify_corpus_manifest
@@ -107,7 +107,9 @@ def _encode_text(text: str, tokenizer: Mapping[str, int], *, label: str) -> torc
     missing = sorted({character for character in text if character not in tokenizer})
     if missing:
         preview = missing[:12]
-        raise ValueError(f"{label} corpus contains characters absent from parent tokenizer: {preview!r}")
+        raise ValueError(
+            f"{label} corpus contains characters absent from parent tokenizer: {preview!r}"
+        )
     return torch.tensor([int(tokenizer[character]) for character in text], dtype=torch.long)
 
 
@@ -127,7 +129,13 @@ def _batch(
     return x, y
 
 
-def _telemetry_row(output: Mapping[str, Any], *, step: int, corpus: str, loss: torch.Tensor) -> dict[str, Any]:
+def _telemetry_row(
+    output: Mapping[str, Any],
+    *,
+    step: int,
+    corpus: str,
+    loss: torch.Tensor,
+) -> dict[str, Any]:
     loss_value = float(loss.detach().cpu().item())
     if not math.isfinite(loss_value):
         raise RuntimeError("non-finite training loss")
@@ -177,7 +185,7 @@ def _model_config(parent_config: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _reload_checkpoint(path: Path) -> tuple[PHOSReferenceLM, Mapping[str, Any]]:
-    payload = torch.load(path, map_location="cpu", weights_only=False)
+    payload = torch.load(path, map_location="cpu", weights_only=True)
     if not isinstance(payload, Mapping) or payload.get("schema") != CHECKPOINT_SCHEMA:
         raise RuntimeError("unexpected Zeref-PHOS checkpoint schema")
     model_config = payload.get("model_config")
@@ -323,7 +331,9 @@ def train_descendant_generation(
     reloaded, reloaded_payload = _reload_checkpoint(checkpoint_path)
     reloaded_sha = parameter_sha256(reloaded)
     if reloaded_sha != final_parameter_sha:
-        raise RuntimeError(f"reloaded parameter SHA-256 mismatch: {reloaded_sha} != {final_parameter_sha}")
+        raise RuntimeError(
+            f"reloaded parameter SHA-256 mismatch: {reloaded_sha} != {final_parameter_sha}"
+        )
     if reloaded_payload.get("generation_id") != generation:
         raise RuntimeError("reloaded checkpoint generation_id mismatch")
 
@@ -378,7 +388,11 @@ def _read_checksums(root: Path) -> dict[str, str]:
         if len(parts) != 2:
             raise ValueError("invalid CHECKSUMS.sha256 row")
         digest, name = parts
-        if name in rows or len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest):
+        if (
+            name in rows
+            or len(digest) != 64
+            or any(ch not in "0123456789abcdef" for ch in digest)
+        ):
             raise ValueError("invalid CHECKSUMS.sha256 row")
         rows[name] = digest
     if set(rows) != _REQUIRED_RUN_FILES:
@@ -386,8 +400,69 @@ def _read_checksums(root: Path) -> dict[str, str]:
     return rows
 
 
+def _read_json_object(path: Path, label: str) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"{label} must be a JSON object")
+    return payload
+
+
+def _require_recorded_file_hash(
+    run_manifest: Mapping[str, Any],
+    checksums: Mapping[str, str],
+    *,
+    field: str,
+    filename: str,
+    label: str,
+) -> None:
+    recorded = str(run_manifest.get(field) or "")
+    actual = checksums[filename]
+    if recorded != actual:
+        raise RuntimeError(f"{label} SHA-256 mismatch: {recorded} != {actual}")
+
+
+def _verify_training_log(path: Path, *, expected_steps: int) -> None:
+    raw_rows = path.read_text(encoding="utf-8").splitlines()
+    if len(raw_rows) != expected_steps:
+        raise RuntimeError("recorded steps do not match training log length")
+    for expected_step, raw in enumerate(raw_rows, start=1):
+        try:
+            row = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("training log contains invalid JSON") from exc
+        if not isinstance(row, Mapping) or row.get("step") != expected_step:
+            raise RuntimeError("recorded steps do not match training log sequence")
+        if row.get("corpus") not in {"lexical", "world"}:
+            raise RuntimeError("training log contains an invalid corpus selector")
+
+
+def _verify_checkpoint_tokenizer(
+    checkpoint: Mapping[str, Any],
+    migration_receipt: Mapping[str, Any],
+) -> None:
+    tokenizer = checkpoint.get("tokenizer")
+    if not isinstance(tokenizer, Mapping):
+        raise RuntimeError("checkpoint tokenizer is missing")
+    for character, index in tokenizer.items():
+        if not isinstance(character, str) or len(character) != 1:
+            raise RuntimeError("checkpoint tokenizer contains a non-character key")
+        if isinstance(index, bool) or not isinstance(index, int):
+            raise RuntimeError("checkpoint tokenizer contains a non-integer id")
+    migration_tokenizer = migration_receipt.get("tokenizer")
+    if not isinstance(migration_tokenizer, Mapping):
+        raise RuntimeError("migration tokenizer record is missing")
+    expected_vocab = migration_tokenizer.get("vocab_size")
+    if isinstance(expected_vocab, bool) or not isinstance(expected_vocab, int):
+        raise RuntimeError("migration tokenizer vocab_size is invalid")
+    ids = list(tokenizer.values())
+    if len(tokenizer) != expected_vocab or set(ids) != set(range(expected_vocab)):
+        raise RuntimeError("checkpoint tokenizer ids do not match migration record")
+    if sha256_obj(dict(tokenizer)) != migration_tokenizer.get("sha256"):
+        raise RuntimeError("checkpoint tokenizer SHA-256 does not match migration record")
+
+
 def verify_descendant_run(output_dir: str | Path) -> dict[str, Any]:
-    """Verify sealed file checksums, reload the checkpoint, and re-hash parameters."""
+    """Verify sealed files and all recorded cross-file lineage bindings."""
 
     root = Path(output_dir)
     checksums = _read_checksums(root)
@@ -399,13 +474,59 @@ def verify_descendant_run(output_dir: str | Path) -> dict[str, Any]:
         if actual != checksums[name]:
             raise RuntimeError(f"checksum mismatch for {name}: {actual} != {checksums[name]}")
 
-    run_manifest = json.loads((root / "run_manifest.json").read_text(encoding="utf-8"))
-    if not isinstance(run_manifest, dict) or run_manifest.get("schema") != RUN_SCHEMA:
+    run_manifest = _read_json_object(root / "run_manifest.json", "run manifest")
+    if run_manifest.get("schema") != RUN_SCHEMA:
         raise RuntimeError("unexpected Zeref-PHOS run manifest schema")
-    quantum_receipt = json.loads((root / "quantum_control_receipt.json").read_text(encoding="utf-8"))
-    verify_quantum_control_receipt(quantum_receipt)
+    generation = _generation_id(str(run_manifest.get("generation_id") or ""))
+
+    _require_recorded_file_hash(
+        run_manifest,
+        checksums,
+        field="config_sha256",
+        filename="config.json",
+        label="config",
+    )
+    _require_recorded_file_hash(
+        run_manifest,
+        checksums,
+        field="training_log_sha256",
+        filename="training_log.jsonl",
+        label="training log",
+    )
+    _require_recorded_file_hash(
+        run_manifest,
+        checksums,
+        field="parameter_hashes_sha256",
+        filename="parameter_hashes.json",
+        label="parameter hashes",
+    )
+    _require_recorded_file_hash(
+        run_manifest,
+        checksums,
+        field="checkpoint_sha256",
+        filename="checkpoint.pt",
+        label="checkpoint",
+    )
 
     model, checkpoint = _reload_checkpoint(root / "checkpoint.pt")
+    model_config = checkpoint.get("model_config")
+    if not isinstance(model_config, Mapping):
+        raise RuntimeError("checkpoint model_config is missing")
+    block = model_config.get("max_seq_len")
+    if isinstance(block, bool) or not isinstance(block, int) or block <= 0:
+        raise RuntimeError("checkpoint max_seq_len is invalid")
+
+    config = _read_json_object(root / "config.json", "config")
+    normalized_config = _train_config(config, block=block)
+    if normalized_config != config:
+        raise RuntimeError("config is not canonical")
+    steps_completed = run_manifest.get("steps_completed")
+    if isinstance(steps_completed, bool) or not isinstance(steps_completed, int):
+        raise RuntimeError("recorded steps must be an integer")
+    if steps_completed != normalized_config["steps"]:
+        raise RuntimeError("recorded steps do not match config")
+    _verify_training_log(root / "training_log.jsonl", expected_steps=steps_completed)
+
     actual_parameter_sha = parameter_sha256(model)
     expected_parameter_sha = str(run_manifest.get("final_parameter_sha256") or "")
     if actual_parameter_sha != expected_parameter_sha:
@@ -414,13 +535,78 @@ def verify_descendant_run(output_dir: str | Path) -> dict[str, Any]:
         )
     if checkpoint.get("final_parameter_sha256") != expected_parameter_sha:
         raise RuntimeError("checkpoint final parameter SHA-256 does not match run manifest")
-    generation = str(run_manifest.get("generation_id") or "")
     if checkpoint.get("generation_id") != generation:
         raise RuntimeError("checkpoint generation_id does not match run manifest")
 
-    parameter_hashes = json.loads((root / "parameter_hashes.json").read_text(encoding="utf-8"))
+    parameter_hashes = _read_json_object(root / "parameter_hashes.json", "parameter hashes")
+    if parameter_hashes.get("schema") != "zeref-phos-parameter-hashes-v1":
+        raise RuntimeError("unexpected parameter hashes schema")
+    if parameter_hashes.get("initial_parameter_sha256") != run_manifest.get(
+        "initial_parameter_sha256"
+    ):
+        raise RuntimeError("initial parameter SHA-256 does not match run manifest")
     if parameter_hashes.get("final_parameter_sha256") != expected_parameter_sha:
         raise RuntimeError("parameter_hashes.json does not match sealed model")
+    if parameter_hashes.get("parameter_drift") is not True:
+        raise RuntimeError("parameter_hashes.json does not record parameter drift")
+
+    migration_receipt = _read_json_object(root / "migration_receipt.json", "migration receipt")
+    verify_phos_migration_receipt(migration_receipt, model=model)
+    migration_sha = str(migration_receipt.get("receipt_sha256") or "")
+    if run_manifest.get("migration_receipt_sha256") != migration_sha:
+        raise RuntimeError("migration receipt SHA-256 does not match run manifest")
+    if checkpoint.get("migration_receipt_sha256") != migration_sha:
+        raise RuntimeError("migration receipt SHA-256 does not match checkpoint")
+    _verify_checkpoint_tokenizer(checkpoint, migration_receipt)
+
+    run_parent = run_manifest.get("parent")
+    migration_parent = migration_receipt.get("parent")
+    if not isinstance(run_parent, Mapping) or not isinstance(migration_parent, Mapping):
+        raise RuntimeError("parent lineage record is missing")
+    for field in ("checkpoint_sha256", "architecture_sha256", "parameter_sha256"):
+        if run_parent.get(field) != migration_parent.get(field):
+            raise RuntimeError(f"parent lineage {field} mismatch")
+
+    quantum_receipt = _read_json_object(
+        root / "quantum_control_receipt.json",
+        "quantum control receipt",
+    )
+    quantum_verified = verify_quantum_control_receipt(quantum_receipt)
+    quantum_sha = str(quantum_receipt.get("receipt_sha256") or "")
+    run_quantum = run_manifest.get("quantum")
+    if not isinstance(run_quantum, Mapping):
+        raise RuntimeError("quantum record is missing from run manifest")
+    if run_quantum.get("receipt_sha256") != quantum_sha:
+        raise RuntimeError("quantum receipt SHA-256 does not match run manifest")
+    if checkpoint.get("quantum_control_receipt_sha256") != quantum_sha:
+        raise RuntimeError("quantum receipt SHA-256 does not match checkpoint")
+    if run_quantum.get("mode") != quantum_verified["mode"]:
+        raise RuntimeError("quantum mode does not match verified receipt")
+    if run_quantum.get("source_event_sha256") != quantum_verified["source_event_sha256"]:
+        raise RuntimeError("quantum source event SHA-256 does not match verified receipt")
+
+    combined_corpus = _read_json_object(root / "corpus_manifest.json", "corpus manifest")
+    if combined_corpus.get("schema") != COMBINED_CORPUS_SCHEMA:
+        raise RuntimeError("unexpected combined corpus manifest schema")
+    run_corpora = run_manifest.get("corpora")
+    if not isinstance(run_corpora, Mapping):
+        raise RuntimeError("corpus record is missing from run manifest")
+    for label in ("lexical", "world"):
+        corpus_manifest = combined_corpus.get(label)
+        if not isinstance(corpus_manifest, Mapping):
+            raise RuntimeError(f"combined corpus manifest is missing {label}")
+        if corpus_manifest.get("schema") != "zeref-phos-corpus-manifest-v1":
+            raise RuntimeError(f"unexpected {label} corpus manifest schema")
+        if corpus_manifest.get("kind") != label:
+            raise RuntimeError(f"combined corpus kind mismatch for {label}")
+        recorded_dataset_sha = run_corpora.get(f"{label}_dataset_sha256")
+        sealed_dataset_sha = corpus_manifest.get("dataset_sha256")
+        if recorded_dataset_sha != sealed_dataset_sha:
+            raise RuntimeError(
+                f"corpus dataset SHA-256 mismatch for {label}: "
+                f"{recorded_dataset_sha} != {sealed_dataset_sha}"
+            )
+
     return {
         "verified": True,
         "generation_id": generation,
