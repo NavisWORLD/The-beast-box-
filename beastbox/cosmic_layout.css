@@ -82,7 +82,7 @@
 .authority-row.granted strong { color: var(--authority); }
 .authority-row button { min-width: 95px; flex-shrink: 0; }
 .authority-meta { font: .75rem/1.8 var(--mono); color: #c2b4c9; overflow-wrap: anywhere; }
-.authority-manifest { border-left: 2px solid var(--authority); padding-left: 20px; margin: 24px 0; font-size: clamp(1.0625rem, 2vw, 1.5rem); line-height: 1.6; letter-spacing: -.02em; }
+.authority-manifest { overflow-wrap: anywhere; border-left: 2px solid var(--authority); padding-left: 20px; margin: 24px 0; font-size: clamp(1.0625rem, 2vw, 1.5rem); line-height: 1.6; letter-spacing: -.02em; }
 .authority-manifest strong { color: var(--authority); font-weight: 550; }
 .authority-summary { display: flex; gap: 8px; flex-wrap: wrap; }
 .file-tree { max-height: 430px; overflow: auto; margin-top: 16px; }
