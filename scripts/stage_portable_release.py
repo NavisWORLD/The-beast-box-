@@ -32,7 +32,7 @@ def archive(directory: Path, output: Path, executable: bool = False) -> None:
             bundle.writestr(info, path.read_bytes())
 
 
-def stage(assets: Path, output: Path, source: str, version: str = "0.7.0") -> None:
+def stage(assets: Path, output: Path, source: str, version: str = "0.7.1") -> None:
     results = {}
     for platform in ('ubuntu-24.04', 'windows-latest'):
         directory = assets / f'beast-desktop-{platform}-{version}'
@@ -80,6 +80,6 @@ if __name__ == '__main__':
     parser.add_argument('--assets', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--source-sha', required=True)
-    parser.add_argument('--version', default='0.7.0')
+    parser.add_argument('--version', default='0.7.1')
     args = parser.parse_args()
     stage(args.assets, args.output, args.source_sha, args.version)

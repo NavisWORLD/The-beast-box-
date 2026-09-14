@@ -11,8 +11,8 @@ android {
         applicationId = "dev.beastbox.mobile"
         minSdk = 24
         targetSdk = 35
-        versionCode = 700
-        versionName = "0.7.0"
+        versionCode = 701
+        versionName = "0.7.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
