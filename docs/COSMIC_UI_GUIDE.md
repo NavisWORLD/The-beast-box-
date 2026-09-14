@@ -192,3 +192,10 @@ screenshots (`cosmic-browser` artifact). Synthetic device handles test
 revocation without claiming physical capture. Frozen scientific experiment
 files and reports remain guarded against modification. Memory delivery is not
 proof of interpretation or recall quality.
+
+
+## Visual system
+
+The console and standalone client share the [Beast Box / Cosmos visual system](COSMIC_VISUAL_SYSTEM.md).
+Memory is violet, models blue, system state cyan, receipts magenta and authority amber.
+A failed status poll labels retained values as last observed and not reverified.

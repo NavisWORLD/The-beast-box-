@@ -1,0 +1,60 @@
+name: Cosmic UI polish
+on:
+  push:
+    branches: [design/cosmos-control-deck]
+  pull_request:
+    paths:
+      - 'beastbox/cosmic_ui.py'
+      - 'beastbox/*.css'
+      - 'html/**'
+      - 'scripts/smoke/cosmic_visual.py'
+      - 'scripts/smoke/cosmic_package.py'
+      - '.github/workflows/cosmic-ui-polish.yml'
+permissions:
+  contents: read
+concurrency:
+  group: cosmic-ui-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  visual-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install verification dependencies
+        run: python -m pip install -e . pytest==8.4.2 playwright==1.55.0 build==1.3.0 ruff==0.12.12
+      - name: Install real Chromium
+        run: python -m playwright install --with-deps chromium
+      - name: Python browser and contract tests
+        run: |
+          mkdir -p build
+          python -m pytest tests/test_cosmic_web.py tests/test_cosmic_completion.py tests/test_cosmic_closure.py tests/test_cosmic_product_polish.py tests/test_html_server.py --junitxml=build/cosmic-ui-junit.xml
+          python -m ruff check scripts/smoke/cosmic_visual.py scripts/smoke/cosmic_package.py beastbox/cosmic_ui.py
+      - name: Build and verify standalone distribution
+        run: |
+          node html/build.mjs
+          cmp html/dist/standalone.html html/standalone.html
+          git diff --exit-code -- html/styles.css html/standalone.html
+          node --test html/tests/*.test.js
+      - name: Browser layout, status and accessible navigation checks
+        run: python scripts/smoke/cosmic_visual.py --inline-previews
+      - name: Build wheel and source distribution
+        run: python -m build
+      - name: Verify installed Python package away from source
+        run: python scripts/smoke/cosmic_package.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cosmic-ui-verification
+          path: |
+            build/cosmic-visual/
+            build/cosmic-ui-junit.xml
+            build/cosmic-package.json
+            dist/
+          if-no-files-found: warn

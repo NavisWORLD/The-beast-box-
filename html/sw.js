@@ -1,4 +1,4 @@
-const CACHE = 'beastbox-web-v4';
+const CACHE = 'beastbox-web-v5';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './policy.js', './profiles.js', './manifest.webmanifest', './icon.svg'];
 const assetURLs = new Set(ASSETS.map(path => new URL(path, self.location.href).href));
 const shellURLs = new Set(['./', './index.html'].map(path => new URL(path, self.location.href).href));
