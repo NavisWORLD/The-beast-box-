@@ -1,0 +1,42 @@
+/* Standalone layouts. build.mjs prepends the canonical Beast Box theme. */
+.brand { padding-bottom: 8px; }
+#nav { margin-top: 24px; }
+.cards { margin-bottom: 16px; }
+.panel + .panel, .chat { margin-top: 16px; }
+.hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); align-items: center; gap: 32px; padding: 32px; margin-bottom: 16px; border: 1px solid #554b80; border-radius: var(--radius-lg); background: radial-gradient(ellipse at 85% 40%, #6345a936, transparent 60%), linear-gradient(125deg, #14172c, #110f25); }
+.hero > div { min-width: 0; }
+.hero h2 { font-size: clamp(2.2rem, 3.6vw, 3.5rem); letter-spacing: -.055em; line-height: 1.1; margin: 16px 0; }
+.hero em { color: var(--cyan); font-style: normal; }
+.hero p { max-width: 430px; color: #bac2e0; }
+.map { display: grid; justify-items: center; gap: 20px; position: relative; min-height: 290px; align-content: center; overflow: clip; }
+.map::before, .map::after { content: ""; position: absolute; pointer-events: none; inset: 20px 35px; border: 1px solid #9471d455; border-radius: 50%; transform: rotate(-25deg); }
+.map::after { inset: 45px 15px; transform: rotate(30deg); border-color: #60bdd344; border-style: dashed; }
+.node { position: relative; z-index: 1; min-width: 0; max-width: 100%; overflow-wrap: anywhere; padding: 12px 20px; text-align: center; border: 1px solid #756b9f; border-radius: var(--radius-sm); background: #10152bee; color: var(--violet); font: .75rem/1.7 var(--mono); }
+.node strong { display: block; margin-top: 4px; color: #e5e7ff; }
+.node.brain { border-color: #6f8cbc; color: var(--model); }
+.node.state { border-color: #65abbc; color: var(--cyan); background: linear-gradient(125deg, #153545, #282247); box-shadow: 0 0 25px #65e2f519; }
+.node.local { color: var(--tools); }
+.metrics > article { grid-column: span 3; padding: 20px; }
+.metrics strong { display: block; font: 1rem/1.5 var(--mono); color: var(--domain, var(--text)); margin-top: 12px; overflow-wrap: anywhere; }
+.cards > article > label { margin: 0; font: .75rem/1.6 var(--mono); letter-spacing: .06em; color: var(--domain, var(--muted)); }
+.brain-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 12px; margin-bottom: 20px; }
+.brain-card { min-height: 180px; text-align: left; padding: 20px; background: #10142a; }
+.brain-card span { display: block; font-size: 1.5rem; color: var(--model); }
+.brain-card b { display: block; font-size: .875rem; margin: 16px 0 8px; }
+.brain-card small { display: block; color: var(--muted); font-size: .875rem; line-height: 1.6; }
+.brain-card.selected { border-color: #95aaff; background: linear-gradient(135deg, #263053, #221c42); }
+.model-info { margin-top: 16px; padding: 16px; border: 1px dashed #697099; border-radius: var(--radius-sm); color: #c5cfe8; font: .8125rem/1.8 var(--mono); overflow-wrap: anywhere; white-space: pre-wrap; }
+.cap-list { display: grid; gap: 8px; margin-top: 16px; }
+.cap-list span { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; font: .75rem/1.7 var(--mono); overflow-wrap: anywhere; }
+.cap-list .yes { color: var(--cyan); }
+.trace-node .muted { overflow-wrap: anywhere; word-break: break-word; }
+.noscript { padding: 40px; color: var(--text); }
+@media (max-width: 1200px) { .metrics > article { grid-column: span 6; } }
+@media (max-width: 920px) { #nav { margin-top: 0; } }
+@media (max-width: 700px) {
+  .hero { grid-template-columns: minmax(0, 1fr); padding: 20px; }
+  .map { width: 100%; max-width: 450px; margin: auto; }
+}
+@media (max-width: 520px) { .brain-grid { grid-template-columns: minmax(0, 1fr); } }
+@container (max-width: 50rem) { .metrics > article { grid-column: span 6; } }
+@container (max-width: 18rem) { .metrics > article { grid-column: 1 / -1; } }
