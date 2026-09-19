@@ -1,0 +1,35 @@
+{
+  "schema": "endsupdate-cst-dual-channel-005-v1",
+  "source_main_before_experiment": "feb60def24134e861a37376e8936763a2f4446d6",
+  "original_candidate_model_git_blob": "010c0c13a32c36ffa523bbd0a5cb706333fb4d2d",
+  "original_operational_dyn12_git_blob": "6413b9e7da6ebf989693a6122fcb9306a30d0012",
+  "independent_seed_schedule": {"start_inclusive": 20000, "count": 256, "regimes": ["stellar_synthetic_holdout", "micro_synthetic_control"]},
+  "no_fitted_parameters": true,
+  "method": {
+    "name": "separate dimensionless thermal information channel",
+    "formula": "h_i=sum_{j!=i} [I_i/(1+I_i)][I_j/(1+I_j)] exp(-r_ij/r0) r0/sqrt(r_ij^2+epsilon^2); Q_i=-eta*k_B*T*h_i; s_i=-log1p(eta*h_i)",
+    "eta": 1,
+    "ablation": "eta=0, all other inputs fixed",
+    "representational_boundary": "s_i is a numerical research feature, NOT a physical prediction or validated dyn12 coordinate"
+  },
+  "frozen_controls": [
+    "original aggregate corrected/eta-zero score",
+    "identical inputs with information assignments rotated",
+    "eta=0 signal exactly zero",
+    "all information_bits=0 gives zero potential and signal",
+    "reconstruct original Q in joules from h with relative error <= 1e-13",
+    "permutation equivariance",
+    "original and copied operational dyn12 Git blob identities unchanged"
+  ],
+  "primary_readouts": [
+    "original aggregate corrected-vs-eta-zero exact binary64 score changes out of 768",
+    "original aggregate corrected-vs-shuffled exact binary64 score changes out of 768",
+    "independent log signal corrected-vs-eta-zero binary64 changes out of 768",
+    "independent log signal corrected-vs-shuffled binary64 changes out of 768",
+    "original Q reconstruction relative agreement",
+    "no operational model inference or task benefit tested"
+  ],
+  "interpretation": "Demonstrates information observability in a separate mathematically dimensionless channel, if present, but does not establish physical validity, newness in mathematical literature, improved task accuracy, or causal model effects.",
+  "anti_leakage": "Independent seeds 20000..20255, not tuned on 004 seeds 10000..10255.",
+  "publication_rule": "Commit failures or null outcomes unchanged, raw data as artifact, no model-performance promotion."
+}

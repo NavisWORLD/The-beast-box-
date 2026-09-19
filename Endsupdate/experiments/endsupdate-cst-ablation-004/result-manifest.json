@@ -1,0 +1,55 @@
+{
+  "schema": "endsupdate-cst-shadow-004-result-manifest-v1",
+  "preregistered_protocol": "Endsupdate/experiments/endsupdate-cst-ablation-004/protocol.json",
+  "tested_commit": "79f1863db94d322d0284d484765ef141d9b69dd5",
+  "run_id": 35430792345,
+  "run_url": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/35430792345",
+  "classification": "SYNTHETIC_SHADOW_MODE_NUMERICAL_ONLY",
+  "python_versions": [
+    "3.10",
+    "3.12"
+  ],
+  "test_results": {
+    "new_control_tests_each_version": 4,
+    "all_tests_passed": true,
+    "source_integrity_gate": true
+  },
+  "cohort": {
+    "cases_per_regime": 256,
+    "entity_scores_per_regime": 768
+  },
+  "results": {
+    "stellar": {
+      "nonzero_information_cases": 256,
+      "corrected_vs_eta_zero_score_changes": 48,
+      "corrected_vs_shuffled_score_changes": 0,
+      "max_abs_score_delta": 4.440892098500626e-16,
+      "median_max_abs_information_j": 4.879368190652106e-22
+    },
+    "micro": {
+      "nonzero_information_cases": 256,
+      "corrected_vs_eta_zero_score_changes": 768,
+      "corrected_vs_shuffled_score_changes": 768,
+      "max_abs_score_delta": 0.30258042064474977,
+      "median_max_abs_information_j": 3.0158662010977212e-21
+    }
+  },
+  "result_json_sha256": "e2cc2dc104ddc3596a434c6efd0dfb51ff98ecabc64c6a026f695e01ddb1f732",
+  "artifacts": [
+    {
+      "python": "3.10",
+      "id": 10580377771,
+      "digest": "sha256:a54b8849420a414dcf1d63814c3c2019eeddb1971d1dd608b8bbe4bdc2bbda82"
+    },
+    {
+      "python": "3.12",
+      "id": 10580078594,
+      "digest": "sha256:a54b8849420a414dcf1d63814c3c2019eeddb1971d1dd608b8bbe4bdc2bbda82"
+    }
+  ],
+  "actual_model_inference_in_this_run": false,
+  "improvement_claim": "NOT_DEMONSTRATED",
+  "model_level_evaluation": "NOT_EVALUABLE_NO_VALIDATED_CST_TO_DYN12_INTERFACE",
+  "operational_default": "unchanged",
+  "promotion": "HOLD"
+}

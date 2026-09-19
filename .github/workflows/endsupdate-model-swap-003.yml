@@ -1,0 +1,107 @@
+name: Endsupdate real A-B-A 003
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Endsupdate/**'
+      - '.github/workflows/endsupdate-model-swap-003.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: endsupdate-real-aba-003-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  real-frozen-model-swap:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact candidate source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check isolated original-versus-copied source blobs
+        run: python Endsupdate/verify_source_snapshot.py
+      - name: Configure Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Download exact preserved Model A / world artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: zeref-world-r12-downstream-diagnostic-33132618727
+          path: Endsupdate/.endsupdate-model-input-003/source
+          github-token: ${{ github.token }}
+          repository: NavisWORLD/The-beast-box-
+          run-id: 33132618727
+      - name: Fetch pinned historical result and verify hashes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p Endsupdate/.endsupdate-model-input-003/baseline
+          gh api repos/NavisWORLD/The-beast-box-/actions/artifacts/9952563037/zip > Endsupdate/.endsupdate-model-input-003/baseline.zip
+          echo "1ebdf098a542e44eaf54ad9e8fefe3c74fafaeb8c280c41a1369dd58f810fd2d  Endsupdate/.endsupdate-model-input-003/baseline.zip" | sha256sum -c -
+          unzip -p Endsupdate/.endsupdate-model-input-003/baseline.zip result.json > Endsupdate/.endsupdate-model-input-003/baseline/result.json
+          echo "0bc2daf23b82d82992412b60c0b03c0cbf520a7e20f1bbb8ded5957c59d26fab  Endsupdate/.endsupdate-model-input-003/baseline/result.json" | sha256sum -c -
+      - name: Install historically frozen CPU model dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch==2.8.0'
+          python -m pip install 'numpy==2.3.3' 'transformers==4.57.1' 'safetensors==0.6.2' 'huggingface_hub==0.36.0' 'pytest==8.4.2'
+          python -m pip install -e ./Endsupdate --no-deps
+      - name: Check comparison harness negative controls
+        working-directory: Endsupdate
+        run: python -m unittest discover -s tests -p test_real_model_swap.py -v
+      - name: Verify frozen inputs before inference
+        working-directory: Endsupdate
+        run: |
+          python run_real_model_swap.py \
+            --source-dir .endsupdate-model-input-003/source \
+            --historical-result .endsupdate-model-input-003/baseline/result.json \
+            --preflight-only
+      - name: Run real frozen A0 to B1 to A2 and all controls
+        working-directory: Endsupdate
+        run: |
+          set -euo pipefail
+          python run_real_model_swap.py \
+            --source-dir .endsupdate-model-input-003/source \
+            --historical-result .endsupdate-model-input-003/baseline/result.json \
+            2>&1 | tee .endsupdate-model-input-003/model-swap-run.log
+      - name: Record run metadata and evidence hashes
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          mkdir -p Endsupdate/.endsupdate-aba-003/evidence
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          target = Path("Endsupdate/.endsupdate-aba-003/evidence")
+          files = {}
+          for path in sorted(target.glob("*.json")):
+              files[path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
+          receipt = {
+              "schema": "endsupdate-real-aba-run-metadata-v1",
+              "head_sha": os.environ["GITHUB_SHA"],
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "job_status_before_upload": os.environ["JOB_STATUS"],
+              "recorded_evidence_sha256": files,
+              "claim_boundary": "new real A-B-A only when result.json and comparison.json both exist and pass validation"
+          }
+          (target/"run-metadata.json").write_text(json.dumps(receipt,indent=2,sort_keys=True)+"\n")
+          print(json.dumps(receipt,sort_keys=True))
+          PY
+      - name: Upload execution receipts and failures, never model weights
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: endsupdate-real-aba-003-evidence-${{ github.run_id }}
+          path: |
+            Endsupdate/.endsupdate-aba-003/evidence/
+            Endsupdate/.endsupdate-model-input-003/model-swap-run.log
+          if-no-files-found: error
+          retention-days: 90

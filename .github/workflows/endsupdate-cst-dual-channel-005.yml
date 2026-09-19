@@ -1,0 +1,46 @@
+name: Endsupdate CST dual-channel numerical experiment 005
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Endsupdate/cst_candidate/dual_channel.py'
+      - 'Endsupdate/run_cst_dual_channel_005.py'
+      - 'Endsupdate/tests/test_cst_dual_channel_005.py'
+      - 'Endsupdate/experiments/endsupdate-cst-dual-channel-005/**'
+      - '.github/workflows/endsupdate-cst-dual-channel-005.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: endsupdate-cst-dual-channel-005-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  independently-seeded-numerical-experiment:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.12']
+    defaults:
+      run:
+        working-directory: Endsupdate
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Verify original snapshot and candidate source integrity
+        run: python verify_source_snapshot.py
+      - name: Independent dual-channel unit and negative-control tests
+        run: python -m unittest discover -s tests -p test_cst_dual_channel_005.py -v
+      - name: Run all preregistered independent seed cases
+        run: python run_cst_dual_channel_005.py
+      - name: Upload raw evidence not weights
+        uses: actions/upload-artifact@v4
+        with:
+          name: endsupdate-dual-channel-005-python-${{ matrix.python-version }}
+          path: Endsupdate/evidence/endsupdate-cst-dual-channel-005.json
+          if-no-files-found: error
