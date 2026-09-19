@@ -38,6 +38,16 @@ Source audit: `MATH_LINEAGE.md`. Additional numerical control: `run_diagnostics.
 
 The baseline `README.md` is intentionally preserved exactly as the original Beast Box source to satisfy its product/documentation contracts. This separate document contains successor-specific information.
 
-## Verified Python acceptance
+## Verification appendix
 
-At [run 35429552663](https://github.com/NavisWORLD/The-beast-box-/actions/runs/35429552663), `python -m pytest -o addopts='' tests -q` reported 1,131 passed on both Python 3.10 and 3.12. The independent reference-only, fresh-process continuity probe passed 9/9 checks on both. To reproduce on a NEW candidate data directory, run `python verify_reference_continuity.py` (refuses existing state). Read `REFERENCE_CONTINUITY_REPORT.md` for receipts and scope; do not confuse this with real-model A→B→A. External assets and remaining gates are in `ASSET_MANIFEST.json`.
+For a complete checkout, verify the original and copied Git source identities:
+
+```sh
+cd Endsupdate
+python verify_source_snapshot.py
+python -m unittest discover -s tests -p test_source_snapshot.py -v
+```
+
+The gate pins `main` baseline SHA `8f90e440f0f4ceba502b1a3f8637507491fb23b0`; the original root remains exact, and the candidate may change only two explicitly declared original source paths (`.gitignore` and the copy-specific historical-evidence receipt guard). Source additions are permitted under `Endsupdate/`. It requires the Git history to be available (`fetch-depth: 0` in CI). It reports source identity, **not** scientific validity.
+
+A separate CI matrix builds a candidate wheel and installs it into a fresh virtual environment, verifying that its import resolves from `site-packages` outside the checkout. Native platform and full product checks remain independent gates.
