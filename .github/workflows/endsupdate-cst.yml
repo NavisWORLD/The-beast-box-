@@ -66,12 +66,15 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e '.[dev,ml]'
       - name: Run complete copied Python test suite in isolated working directory
-        run: python -m pytest tests -q
+        run: python -m pytest -o addopts='' tests -q
       - name: Fresh-process dedicated-state reference continuity
-        run: |
-          python isolated_runtime.py init
-          python isolated_runtime.py chat "endsupdate reference-only continuity check"
-          python isolated_runtime.py inspect
+        run: python verify_reference_continuity.py
+      - name: Preserve local reference-continuity evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: endsupdate-reference-continuity-python-${{ matrix.python-version }}
+          path: Endsupdate/evidence/endsupdate_reference_continuity_003.json
+          if-no-files-found: error
       - name: Check copied historical evidence receipt
         run: python scripts/productization_receipt.py --check-only
       - name: Verify copied package CLI entry points

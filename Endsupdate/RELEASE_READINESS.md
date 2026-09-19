@@ -7,3 +7,7 @@ PASS (locally): 10 numerical unit tests, synthetic experiment JSON generation. V
 ## Follow-up checkpoint
 
 The second math commit adds a source-level 11D comparison, masked-signal observability, and a copied-suite CI matrix. A reference-only local launcher was subsequently introduced to exercise a dedicated, separate state directory without forwarding service credentials. Mathematical unit tests and independent numerical CI pass; these do not establish A/B predictive benefit. Do not promote the candidate solely because packaging and copied-source regression checks pass. The model-level A→B→A, client UI, optional hardware, authorization and real-service gates remain blocked/unrun.
+
+## Copied Python suite evidence
+
+The fixed independent-copy run [35429376824](https://github.com/NavisWORLD/The-beast-box-/actions/runs/35429376824) passed four jobs: math on Python 3.10/3.12 and copied-runtime on Python 3.10/3.12. It included the entire copied Python test directory, editable package installation, three separate reference-mode invocation commands, evidence receipt verification, and CLI entry points. This supports Python-source compatibility under those CI conditions only. It does not change the prior HOLD because there is no matched model-level improvement or real candidate A→B→A. The added stronger reference continuity probe has a separate forthcoming identifier and must not be claimed as passed until executed.
