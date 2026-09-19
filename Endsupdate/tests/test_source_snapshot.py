@@ -34,7 +34,7 @@ class SourceIntegrityTest(unittest.TestCase):
         self.assertFalse(report["checks"]["baseline_paths_present"])
 
     def test_declared_overlay_must_preserve_mode(self):
-        baseline = {f"docs/d{i}.md": ("100644", f"{i:040x}") for i in range(BASELINE_BLOBS)}
+        baseline = {f"docs/d{i}.md": ("100644", f"{i:040x}") for i in range(BASELINE_BLOBS - 1)}
         baseline["scripts/productization_receipt.py"] = ("100644", "a" * 40)
         current = dict(baseline)
         current.update({"Endsupdate/" + key: val for key, val in baseline.items()})
