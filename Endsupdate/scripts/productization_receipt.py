@@ -33,13 +33,52 @@ def hash_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def sealed_evidence_unchanged(repo_root: Path) -> bool:
+def _git_snapshot(root: Path, revision: str, prefix: str) -> dict[str, tuple[str, str]] | None:
+    """Return path-relative (mode, blob) pairs. No file content is modified."""
     result = subprocess.run(
-        ["git", "diff", "--quiet", ANCHOR_SHA, "--", SEALED_EVIDENCE_PATH],
-        cwd=repo_root,
+        ["git", "ls-tree", "-r", "-z", revision, "--", prefix],
+        cwd=root,
         check=False,
+        capture_output=True,
     )
-    return result.returncode == 0
+    if result.returncode != 0:
+        return None
+    found: dict[str, tuple[str, str]] = {}
+    for item in result.stdout.split(b"\x00"):
+        if not item:
+            continue
+        metadata, path = item.split(b"\t", 1)
+        mode, kind, sha = metadata.decode("ascii").split()
+        if kind != "blob":
+            return None
+        relative = path.decode("utf-8").removeprefix(prefix)
+        found[relative] = (mode, sha)
+    return found
+
+
+def sealed_evidence_unchanged(repo_root: Path) -> bool:
+    """Guard original evidence AND compare the copied blob identities.
+
+    When executed within Endsupdate, using the original relative path against
+    its own cwd would classify the new copy as a change to historical evidence.
+    That was a false negative, not a reason to weaken the evidence guard.
+    """
+    if repo_root.name != "Endsupdate":
+        result = subprocess.run(
+            ["git", "diff", "--quiet", ANCHOR_SHA, "--", SEALED_EVIDENCE_PATH],
+            cwd=repo_root,
+            check=False,
+        )
+        return result.returncode == 0
+    host_root = repo_root.parent
+    original_unchanged = subprocess.run(
+        ["git", "diff", "--quiet", ANCHOR_SHA, "HEAD", "--", SEALED_EVIDENCE_PATH],
+        cwd=host_root,
+        check=False,
+    ).returncode == 0
+    original = _git_snapshot(host_root, "8f90e440f0f4ceba502b1a3f8637507491fb23b0", SEALED_EVIDENCE_PATH)
+    copied = _git_snapshot(host_root, "HEAD", "Endsupdate/" + SEALED_EVIDENCE_PATH)
+    return original_unchanged and bool(original) and original == copied
 
 
 def current_head(repo_root: Path) -> str:

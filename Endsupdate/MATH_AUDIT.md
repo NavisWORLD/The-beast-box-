@@ -12,3 +12,7 @@ Historical source: `NavisWORLD/The-theory-of-CST/CST_Formula_Explanation.markdow
 The historical numerical output retains mixed units intentionally; its scalar cannot be meaningfully compared to a corrected dimensionless score as a common physical observable. The current operational dyn12 is a **12-scalar software reference**, not a physical-12D assertion; it is not mathematically invalidated by this audit.
 
 See `CORRECTED_CST_SPEC.md` for the explicit research candidate, with no forced physical-law claim.
+
+## Further source-lineage correction
+
+The first numerical audit concerns the prose 12D expression and must not be mistaken for a universal verdict about every historical CST implementation. The 11-coordinate `cst_engine.py:compute_psi` is now separately transcribed as `legacy_11d_psi()`; its five terms can be read dimensionally as energies if the unlabeled `1e12` is interpreted as a length scale and `Ω` as acceleration. Its normalization, upstream Lyapunov heuristic and clipping remain unvalidated simulation choices. The different 12D `cst_functions.py:compute_psi_i` is also not identical to the prose formula. See `MATH_LINEAGE.md`.

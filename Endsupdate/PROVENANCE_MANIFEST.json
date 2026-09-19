@@ -4,7 +4,6 @@
   "source_repository": "NavisWORLD/The-beast-box-",
   "baseline_commit": "8f90e440f0f4ceba502b1a3f8637507491fb23b0",
   "baseline_tree_sha": "ab5eeea9ade8b3ebae6378691f0c299daa96c97f",
-  "baseline_tracked_blobs_copied": 1325,
   "source_references": {
     "PHERACLEASE/test": "10e86764c6d743b5ceaaaf1baab7279a0d6f0ba5",
     "NavisWORLD/CosmicSynapse": "d541a7f1f89be3d12e43f649b4bb0ee6321fcd8d",
@@ -23,5 +22,28 @@
   "hardware_external_gates": "NOT_RUN",
   "historical_archive_cst_math_sandbox_001": "NOT_AVAILABLE_IN_THIS_RUNTIME",
   "release_readiness": "HOLD",
-  "note": "No historical evidence or protected memory was modified. Source copy and local numerical tests do not establish independent product readiness."
+  "note": "No historical evidence or protected memory was modified. Source copy and local numerical tests do not establish independent product readiness. Baseline README restored after initially failing nested documentation contracts.",
+  "follow_up": {
+    "source_repo": "NavisWORLD/The-theory-of-CST",
+    "source_revision": "306362e45af5ed3ac69a2b69cee4e3cddd066b77",
+    "legacy_11d_source_blob_sha": "aaa138bf94e24cbd39657952877108df3e720c5e",
+    "legacy_12d_helper_source_blob_sha": "7c222c56af9bba932827cc303d3f4db4835f4345",
+    "observability_artifact_sha256": "911468a9bf21467566b2050ba6d7da4fb4e912fe5a457a95c7488340d4221310",
+    "stated_math_test_count": 17,
+    "observed_math_ci": "35429203923",
+    "raw_experiment_score_matches_stellar": "9/9",
+    "raw_experiment_score_differences_micro": "2/2",
+    "copied_runtime_initial_ci": "35429203923",
+    "copied_runtime_initial_failures": [
+      "original README product contract overwritten",
+      "copied evidence mistakenly classified as modified historical evidence"
+    ],
+    "remediation": "Restore baseline README exactly, move successor notes to ENDSUPDATE_README.md and match copied evidence Git blobs against original baseline; rerun tests.",
+    "deployment_status": "HOLD"
+  },
+  "baseline_tracked_blobs_copied_at_initial_snapshot": 1325,
+  "source_copy_mutations_after_snapshot": [
+    "Endsupdate/.gitignore",
+    "Endsupdate/scripts/productization_receipt.py"
+  ]
 }
