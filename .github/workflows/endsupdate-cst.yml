@@ -1,0 +1,124 @@
+name: Endsupdate CST math (isolated)
+on:
+  push:
+    branches: [experiment/endsupdate-cst-math-001]
+  pull_request:
+    paths:
+      - 'Endsupdate/**'
+      - '.github/workflows/endsupdate-cst.yml'
+permissions:
+  contents: read
+jobs:
+  isolated-math:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.12']
+    defaults:
+      run:
+        working-directory: Endsupdate
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run source-lineage and candidate unit tests
+        run: python -m unittest discover -s tests -p 'test_cst*.py' -v
+      - name: Verify constrained local launcher contracts
+        run: python -m unittest discover -s tests -p test_isolated_runtime.py -v
+      - name: Execute frozen synthetic numerical comparison
+        run: python run_experiment.py
+      - name: Execute follow-up numerical observability
+        run: python run_diagnostics.py
+      - name: Print deterministic raw evidence hashes
+        run: sha256sum evidence/cst_math_experiment_001.json evidence/cst_math_observability_002.json
+      - name: Preserve generated raw results
+        uses: actions/upload-artifact@v4
+        with:
+          name: endsupdate-cst-math-python-${{ matrix.python-version }}
+          path: |
+            Endsupdate/evidence/cst_math_experiment_001.json
+            Endsupdate/evidence/cst_math_observability_002.json
+          if-no-files-found: error
+
+  copied-runtime:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.12']
+    defaults:
+      run:
+        working-directory: Endsupdate
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install copied Beast Box package with test and ML dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev,ml]'
+      - name: Verify copied source identity and protected root
+        run: python verify_source_snapshot.py
+      - name: Preserve source integrity evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: endsupdate-source-integrity-python-${{ matrix.python-version }}
+          path: Endsupdate/evidence/endsupdate_blob_attestation_004.json
+          if-no-files-found: error
+      - name: Run complete copied Python test suite in isolated working directory
+        run: python -m pytest -o addopts='' tests -q
+      - name: Fresh-process dedicated-state reference continuity
+        run: python verify_reference_continuity.py
+      - name: Preserve local reference-continuity evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: endsupdate-reference-continuity-python-${{ matrix.python-version }}
+          path: Endsupdate/evidence/endsupdate_reference_continuity_003.json
+          if-no-files-found: error
+      - name: Check copied historical evidence receipt
+        run: python scripts/productization_receipt.py --check-only
+      - name: Verify copied package CLI entry points
+        run: |
+          beastbox --help
+          beastbox starter
+          cosmic.cypher-cli --help
+
+  candidate-wheel:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.12']
+    defaults:
+      run:
+        working-directory: Endsupdate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Build the candidate wheel
+        run: |
+          python -m pip install --upgrade pip build setuptools==78.1.0 wheel==0.45.1
+          python -m build --wheel --no-isolation
+      - name: Install wheel in a new environment and import outside checkout
+        run: |
+          python -m venv "$RUNNER_TEMP/endsupdate-wheel-venv"
+          "$RUNNER_TEMP/endsupdate-wheel-venv/bin/python" -m pip install --no-deps dist/*.whl
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/endsupdate-wheel-venv/bin/python" -c 'import beastbox; import pathlib; p=pathlib.Path(beastbox.__file__).resolve(); assert "site-packages" in p.parts, p; print("installed_package:",p)'
+          "$RUNNER_TEMP/endsupdate-wheel-venv/bin/beastbox" --help
+      - name: Preserve built wheel for candidate inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: endsupdate-wheel-python-${{ matrix.python-version }}
+          path: Endsupdate/dist/*.whl
+          if-no-files-found: error
