@@ -11,3 +11,7 @@ The second math commit adds a source-level 11D comparison, masked-signal observa
 ## Copied Python suite evidence
 
 The fixed independent-copy run [35429376824](https://github.com/NavisWORLD/The-beast-box-/actions/runs/35429376824) passed four jobs: math on Python 3.10/3.12 and copied-runtime on Python 3.10/3.12. It included the entire copied Python test directory, editable package installation, three separate reference-mode invocation commands, evidence receipt verification, and CLI entry points. This supports Python-source compatibility under those CI conditions only. It does not change the prior HOLD because there is no matched model-level improvement or real candidate A→B→A. The added stronger reference continuity probe has a separate forthcoming identifier and must not be claimed as passed until executed.
+
+## Latest verification gate — final completed run
+
+The new process-continuity follow-up [35429552663](https://github.com/NavisWORLD/The-beast-box-/actions/runs/35429552663) **completed SUCCESS**, with 1,131 copied Python tests passed on each version and nine structural reference continuity checks passed on each. Raw receipt SHA-256 values and limitations are preserved in `REFERENCE_CONTINUITY_REPORT.md`. This closes the earlier *reference-only* process-smoke gate, NOT the real-model A→B→A, matched model-level improvement, real-service authority/security or native/device gates. **Integration decision remains HOLD, PR remains DRAFT.**

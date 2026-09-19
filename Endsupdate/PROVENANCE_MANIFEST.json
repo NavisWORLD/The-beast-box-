@@ -39,7 +39,35 @@
       "copied evidence mistakenly classified as modified historical evidence"
     ],
     "remediation": "Restore baseline README exactly, move successor notes to ENDSUPDATE_README.md and match copied evidence Git blobs against original baseline; rerun tests.",
-    "deployment_status": "HOLD"
+    "deployment_status": "HOLD",
+    "final_verified_head": "bb5345e854b9897aaa2612bd1e5904de9bb995b8",
+    "final_workflow_run_id": 35429552663,
+    "final_ci_status": "success",
+    "full_copied_suite_python_310": {
+      "passed": 1131,
+      "failed": 0
+    },
+    "full_copied_suite_python_312": {
+      "passed": 1131,
+      "failed": 0
+    },
+    "reference_continuity": {
+      "classification": "FRESH_PROCESS_REFERENCE_ONLY_SOFTWARE_SMOKE",
+      "python_310": {
+        "passed": 9,
+        "failed": 0,
+        "sha256": "0c9f87aa1393f120bddebdcf0f73ed1f735a9143811e7429afc36925bc01c6e1"
+      },
+      "python_312": {
+        "passed": 9,
+        "failed": 0,
+        "sha256": "051d1484fa7e8f2167b07c1c4a6ede7f0d45270c769cb077a9e3cd266e1fe1ea"
+      }
+    },
+    "local_source_package_cli": "passed in copied runtime CI",
+    "evidence_guard": "passed in copied runtime CI",
+    "real_model_swap": "not run in candidate",
+    "production_decision": "HOLD"
   },
   "baseline_tracked_blobs_copied_at_initial_snapshot": 1325,
   "source_copy_mutations_after_snapshot": [

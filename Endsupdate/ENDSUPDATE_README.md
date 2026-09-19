@@ -37,3 +37,7 @@ For a new-process check, invoke `chat` and `inspect` as separate commands. These
 Source audit: `MATH_LINEAGE.md`. Additional numerical control: `run_diagnostics.py` (after `run_experiment.py`); its Decimal arithmetic re-sums rounded float64 telemetry rather than evaluating physical source inputs with arbitrary precision.
 
 The baseline `README.md` is intentionally preserved exactly as the original Beast Box source to satisfy its product/documentation contracts. This separate document contains successor-specific information.
+
+## Verified Python acceptance
+
+At [run 35429552663](https://github.com/NavisWORLD/The-beast-box-/actions/runs/35429552663), `python -m pytest -o addopts='' tests -q` reported 1,131 passed on both Python 3.10 and 3.12. The independent reference-only, fresh-process continuity probe passed 9/9 checks on both. To reproduce on a NEW candidate data directory, run `python verify_reference_continuity.py` (refuses existing state). Read `REFERENCE_CONTINUITY_REPORT.md` for receipts and scope; do not confuse this with real-model A→B→A. External assets and remaining gates are in `ASSET_MANIFEST.json`.
