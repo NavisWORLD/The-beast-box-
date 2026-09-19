@@ -1,0 +1,21 @@
+{
+  "schema": "endsupdate-cst-operational-ablation-004-v1",
+  "source_main": "4fbabde90c83ee4a9b0d68d98f392b3158b0b75c",
+  "candidate_math_sha256_git_blob": "010c0c13a32c36ffa523bbd0a5cb706333fb4d2d",
+  "original_dyn12_git_blob": "6413b9e7da6ebf989693a6122fcb9306a30d0012",
+  "copied_dyn12_git_blob": "6413b9e7da6ebf989693a6122fcb9306a30d0012",
+  "paired_scoring_git_blob": "4e8f4836cefe71d8770f283f646df9e9972b32c3",
+  "seed_schedule": {"start": 10000, "count": 256, "separate_profiles": ["stellar_synthetic_holdout", "micro_synthetic_positive_control"]},
+  "parameter_policy": "No fitted scaling. Use candidate default stellar Parameters unchanged; micro Parameters(r0_m=1,softening_m=0.1,reference_energy_j=1e-20,temperature_k=300) as previously disclosed 002 positive control.",
+  "modes": ["corrected", "ablated", "shuffled", "classical"],
+  "primary_readout": "number of exactly different IEEE-754 binary64 corrected vs eta-zero scores across 256 held-out stellar cases x 3 entities",
+  "positive_control": "information term must change at least one micro-scale synthetic score with otherwise identical inputs",
+  "negative_controls": ["eta-zero must have zero information_j", "all-zero information_bits must make corrected == ablated", "shuffled information preserves entity count and mass/geometry"],
+  "interpretation": {
+    "numeric_nonzero_without_score_change": "signal below this aggregate's binary64 resolution; no operational benefit established",
+    "numeric_score_difference": "math is observable on this synthetic input distribution only; not evidence of improved AI",
+    "matched_model_performance": "NOT_EVALUABLE because no validated, operational corrected-CST-to-dyn12 mapping or outcome labels are present",
+    "success_criterion": "honestly report all numerical nulls and positives; never claim improvement from continuity-only tests"
+  },
+  "claim_boundary": "No validated physical 12D, entanglement, quantum advantage, AGI, consciousness or model task-quality advantage"
+}

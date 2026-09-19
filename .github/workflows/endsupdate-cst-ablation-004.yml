@@ -1,0 +1,45 @@
+name: Endsupdate CST held-out shadow ablation 004
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Endsupdate/run_cst_ablation_004.py'
+      - 'Endsupdate/tests/test_cst_ablation_004.py'
+      - 'Endsupdate/experiments/endsupdate-cst-ablation-004/**'
+      - '.github/workflows/endsupdate-cst-ablation-004.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: endsupdate-cst-shadow-004-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  synthetic-held-out-ablation:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.12']
+    defaults:
+      run:
+        working-directory: Endsupdate
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Verify original source snapshot and independent copy
+        run: python verify_source_snapshot.py
+      - name: Preregistered shadow-mode negative and positive controls
+        run: python -m unittest discover -s tests -p test_cst_ablation_004.py -v
+      - name: Execute 256 held-out cases per frozen regime
+        run: python run_cst_ablation_004.py
+      - name: Preserve raw experimental evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: endsupdate-cst-ablation-004-python-${{ matrix.python-version }}
+          path: Endsupdate/evidence/endsupdate-cst-ablation-004.json
+          if-no-files-found: error
