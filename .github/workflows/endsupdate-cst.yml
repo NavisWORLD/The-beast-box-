@@ -107,7 +107,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Build the candidate wheel
         run: |
-          python -m pip install --upgrade pip build
+          python -m pip install --upgrade pip build setuptools==78.1.0 wheel==0.45.1
           python -m build --wheel --no-isolation
       - name: Install wheel in a new environment and import outside checkout
         run: |
