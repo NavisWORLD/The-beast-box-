@@ -1,0 +1,48 @@
+{
+  "schema": "endsupdate-dual-channel-005-result-manifest-v1",
+  "execution_commit": "17a379c5f846c95c70a2e7fc9ec088c0758f9c73",
+  "experiment_run_id": 35431190433,
+  "url": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/35431190433",
+  "classification": "INDEPENDENT_SHADOW_NUMERICAL_REPRESENTATION",
+  "raw_evidence_sha256": "840df7a321fa13ce9b928153d475d660bb5a47f1d63925be401446ae9fd5ecd9",
+  "artifact_ids": [
+    10580902599,
+    10579959143
+  ],
+  "both_archive_digest": "sha256:3caaf06375f289f87de8ae49925da66ea4d299154c1f98c2904b0beef624d5ce",
+  "python_versions": [
+    "3.10",
+    "3.12"
+  ],
+  "gates_passed": 6,
+  "gates_total": 6,
+  "controls_passed_each_version": 4,
+  "seed_schedule": {
+    "start": 20000,
+    "count": 256
+  },
+  "stellar": {
+    "entity_scores": 768,
+    "old_aggregate_eta_change": 42,
+    "old_aggregate_shuffle_change": 0,
+    "dual_eta_change": 768,
+    "dual_shuffle_change": 768,
+    "max_shuffle_response": 0.005682407183491112,
+    "max_Q_reconstruction_discrepancy_j": 1.88079096131566e-37
+  },
+  "micro": {
+    "entity_scores": 768,
+    "old_aggregate_eta_change": 768,
+    "old_aggregate_shuffle_change": 768,
+    "dual_eta_change": 768,
+    "dual_shuffle_change": 768,
+    "max_shuffle_response": 0.13341076970517965,
+    "max_Q_reconstruction_discrepancy_j": 1.128474576789396e-36
+  },
+  "claim": "REPRESENTATIONAL_OBSERVABILITY_ONLY",
+  "validated_runtime_interface": false,
+  "new_model_inference": false,
+  "model_performance_improvement": "NOT_EVALUATED",
+  "production_promotion": "HOLD",
+  "raw_data_location": "GitHub Actions artifacts; research documentation is not raw evidence"
+}
