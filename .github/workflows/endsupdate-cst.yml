@@ -1,0 +1,33 @@
+name: Endsupdate CST math (isolated)
+on:
+  push:
+    branches: [experiment/endsupdate-cst-math-001]
+  pull_request:
+    paths:
+      - 'Endsupdate/**'
+      - '.github/workflows/endsupdate-cst.yml'
+permissions:
+  contents: read
+jobs:
+  isolated-math:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Endsupdate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run isolated unit tests
+        run: python -m unittest discover -s tests -p test_cst_candidate.py -v
+      - name: Execute synthetic numerical comparison
+        run: python run_experiment.py
+      - name: Print deterministic evidence hash
+        run: sha256sum evidence/cst_math_experiment_001.json
+      - name: Preserve raw generated results
+        uses: actions/upload-artifact@v4
+        with:
+          name: endsupdate-cst-math-001
+          path: Endsupdate/evidence/cst_math_experiment_001.json
+          if-no-files-found: error

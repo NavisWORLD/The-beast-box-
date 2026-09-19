@@ -1,0 +1,9 @@
+# Architecture / source inventory
+
+Source snapshot: Git tree `ab5eeea9ade8b3ebae6378691f0c299daa96c97f`, parent commit `8f90e440f0f4ceba502b1a3f8637507491fb23b0`. All 1,325 tracked blobs are referenced within `Endsupdate/` using the exact baseline blob IDs. This includes evidence, tests, docs, source, mobile and desktop resources and packaging; protected historical evidence has **not been edited**. The copied tree increases on-disk checkout size substantially.
+
+Original software paths (copies): `beastbox/runtime.py` (conversation loop); `beastbox/cns.py` (7-role controller); `beastbox/dyn12.py`, `state_family.py` and `synaptic.py` (reference state family); `beastbox/memory.py`, `durable.py`, `persistent_substrate/` (separate durable continuity); `providers.py` and `model.py` (replaceable models); `world_r12.py`, `refractive_memory.py` (routing); `arms/` and `autonomy/` (policy/tool paths); `quantum.py`, `ibm_shard.py`, `sensory.py` (optional signal interfaces); `apps/`, `macos/`, `html/`, `beastbox/web.py`, `desktop.py`, `cli.py` (product surfaces); `rust/`, `cpp/`, `scripts/`, `tests/`, `docs/` (native components, tooling and verification).
+
+New isolated surface: `cst_candidate/model.py` implements raw historical reference and a unit-consistent *research proxy*; `run_experiment.py`, `tests/test_cst_candidate.py` and `evidence/` hold numerical controls. No imports from production modules to research module are added; no protected store, weights, credentials or existing artifact is rewritten. Optional external service and hardware paths remain unverified.
+
+**Authority invariant:** MODEL ≠ MEMORY. MODEL ≠ STATE. MODEL ≠ AUTHORITY. The independent copy must use its own configuration and writable data; the fact that source files are duplicated does not prevent a poorly configured instance from pointing at external writable resources. Do not reuse production state paths.
