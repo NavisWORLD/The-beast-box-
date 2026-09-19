@@ -16,7 +16,8 @@ the runtime retains the story and enforces its own authority boundary.
 [Provider Setup](docs/PROVIDER_SETUP.md) · [Synapse Flash / Portable State](docs/PORTABLE_STATE.md) ·
 [Security](SECURITY.md) · [Scientific Boundaries](docs/CLAIM_BOUNDARIES.md) ·
 [Evidence Index](docs/EVIDENCE_INDEX.md) · [Developer Guide](docs/DEVELOPER_GUIDE.md) ·
-[Runtime performance measurements](docs/performance/ASTRA_PASS_2026-09-12.md)
+[Runtime performance measurements](docs/performance/ASTRA_PASS_2026-09-12.md) ·
+[Cosmic Fruit Fly 🪰 — experimental workspace](cosmic%20fruit%20fly/README.md)
 
 Download the combined ZIP for checked Python installers, or choose the labelled
 platform executable/preview. Start in reference mode, then connect an installed
@@ -139,6 +140,13 @@ beastbox runtime verify-swap-receipt evidence/system-closure-001/historical-swap
 ```
 
 The verifier checks exact archive, manifest and result hashes plus recorded source/run identity and structural gates. The source model/world binaries are external artifacts named in the report; the receipt ZIP does not contain their weights or re-execute their behavior. Successful memory delivery is not a claim of improved semantic recall. Experiment 001's missing seed provenance and the unavailable Model-B revision `816ebadd0c024779e6657fdcfc1ab02bb9a7c473` remain historical failures.
+
+## Cosmic Fruit Fly 🪰 (experimental)
+
+[Open the `cosmic fruit fly/` research workspace](cosmic%20fruit%20fly/README.md).
+The landing page tracks the intended biological-connectome/CST experiment. Its full
+biological-data execution, controls, and scientific evidence are **not yet
+verified on `main`**; do not interpret the workspace as a completed study.
 
 ## Product and research boundaries
 
