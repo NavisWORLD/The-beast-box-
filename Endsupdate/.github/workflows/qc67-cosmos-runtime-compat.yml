@@ -1,0 +1,177 @@
+name: QC67 Cosmos Runtime Compatibility
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/qc67-cosmos-runtime-compat.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+  HF_FILE: weights/cosmos-cst.gguf
+
+jobs:
+  compat:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch exact QC67 native architecture sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'huggingface-hub>=0.27'
+          rm -rf _qc67_arch _llama
+          mkdir -p _qc67_arch
+          hf download "$HF_REPO" architecture/cosmos-arch.patch architecture/llama_cpp_cosmos.cpp "$HF_FILE" \
+            --revision "$HF_REVISION" --local-dir _qc67_arch
+          sha256sum \
+            _qc67_arch/architecture/cosmos-arch.patch \
+            _qc67_arch/architecture/llama_cpp_cosmos.cpp \
+            "_qc67_arch/$HF_FILE"
+
+      - name: Locate exact upstream patch base state
+        id: base
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git _llama
+          python - <<'PY' > _patch_base.env
+          import subprocess
+
+          repo = '_llama'
+          expected = {
+              'src/llama-arch.cpp': '72968607d',
+              'src/llama-arch.h': 'b74d53af4',
+              'src/llama-model.cpp': '4c10e4126',
+              'src/llama-model.h': '45b054ced',
+              'src/models/models.h': 'a86ae05aa',
+          }
+
+          def run(*args):
+              return subprocess.check_output(args, text=True).strip()
+
+          commits = run('git', '-C', repo, 'rev-list', '--all', '--since=2026-06-15', '--until=2026-08-10').splitlines()
+          print(f'SCANNED_COMMITS={len(commits)}')
+          first_hits = {p: None for p in expected}
+          exact = None
+          paths = list(expected)
+
+          for idx, commit in enumerate(commits, 1):
+              raw = run('git', '-C', repo, 'ls-tree', commit, '--', *paths)
+              blobs = {}
+              for line in raw.splitlines():
+                  if not line.strip():
+                      continue
+                  left, path = line.split('\t', 1)
+                  blob = left.split()[2]
+                  blobs[path] = blob
+              for path, prefix in expected.items():
+                  blob = blobs.get(path, '')
+                  if first_hits[path] is None and blob.startswith(prefix):
+                      first_hits[path] = commit
+              if all(blobs.get(path, '').startswith(prefix) for path, prefix in expected.items()):
+                  exact = commit
+                  break
+
+          for path, commit in first_hits.items():
+              if commit:
+                  date = run('git', '-C', repo, 'show', '-s', '--format=%cI', commit)
+                  print(f'PREIMAGE_HIT {path} {expected[path]} commit={commit} date={date}')
+              else:
+                  print(f'PREIMAGE_MISS {path} {expected[path]}')
+
+          if exact:
+              print(f'BASE={exact}')
+          else:
+              print('BASE=')
+          PY
+          cat _patch_base.env
+          BASE="$(sed -n 's/^BASE=//p' _patch_base.env | tail -n 1)"
+          if [[ -z "$BASE" ]]; then
+            echo "No single upstream commit contains all five patch preimage blobs." >&2
+            exit 2
+          fi
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          git -C _llama show -s --format='PATCH_BASE_COMMIT=%H%nPATCH_BASE_DATE=%cI%nPATCH_BASE_SUBJECT=%s' "$BASE"
+
+      - name: Reconstruct native llama.cpp runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='${{ steps.base.outputs.base }}'
+          git -C _llama checkout "$BASE"
+          cp _qc67_arch/architecture/llama_cpp_cosmos.cpp _llama/src/models/cosmos.cpp
+          git -C _llama apply --check ../_qc67_arch/architecture/cosmos-arch.patch
+          git -C _llama apply ../_qc67_arch/architecture/cosmos-arch.patch
+          git -C _llama diff --check
+          grep -R "LLM_ARCH_COSMOS" -n _llama/src _llama/include | head -40
+
+      - name: Build patched llama server
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S _llama -B _llama/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_SERVER=ON
+          cmake --build _llama/build --target llama-server -j 2
+          _llama/build/bin/llama-server --version
+
+      - name: Boot exact QC67 cosmos GGUF
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _compat_logs
+          _llama/build/bin/llama-server \
+            -m "$(realpath "_qc67_arch/$HF_FILE")" \
+            --host 127.0.0.1 \
+            --port 18081 \
+            -c 128 \
+            -np 1 \
+            > _compat_logs/stdout.log 2> _compat_logs/stderr.log &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:18081/health >/dev/null 2>&1; then
+              READY=1
+              echo 'QC67_COSMOS_SERVER_READY=1'
+              break
+            fi
+            if ! kill -0 "$PID" 2>/dev/null; then
+              cat _compat_logs/stderr.log >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          [[ "$READY" = 1 ]]
+          curl -fsS http://127.0.0.1:18081/health
+          curl -fsS http://127.0.0.1:18081/v1/models | python -m json.tool
+          python - <<'PY'
+          import json, urllib.request
+          payload = json.dumps({
+              'model': 'cosmos',
+              'prompt': 'the ',
+              'max_tokens': 8,
+              'temperature': 0.2,
+          }).encode()
+          req = urllib.request.Request(
+              'http://127.0.0.1:18081/v1/completions',
+              data=payload,
+              headers={'Content-Type': 'application/json'},
+          )
+          with urllib.request.urlopen(req, timeout=60) as r:
+              body = json.loads(r.read().decode())
+          text = str((body.get('choices') or [{}])[0].get('text', ''))
+          print('QC67_COSMOS_COMPLETION_BYTES=' + str(len(text.encode())))
+          print('QC67_COSMOS_NATIVE_SMOKE=PASS')
+          PY

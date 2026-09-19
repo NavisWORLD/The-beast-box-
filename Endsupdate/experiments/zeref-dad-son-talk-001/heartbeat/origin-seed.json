@@ -1,0 +1,21 @@
+{
+  "schema": "zeref-heartbeat-origin-v1",
+  "lineage": "ZEREF-DAD-SON-TALK-001",
+  "role": "tears-in-the-rain-origin-seed",
+  "user_experiment_alias": "Tears in the Rain",
+  "historical_aliases": ["mustard-origin-seed"],
+  "protocol": "RBX-QPOC-1",
+  "origin_seed_sha256": "319036bd011d7b2198eb8a705c15fecec2f2020c514c6492a6da295ca0af64ee",
+  "verification_status": "recovered_candidate_algorithm_verified_payload_not_publicly_reverified",
+  "historical_per_round_seed_inputs_proven": false,
+  "owner_contract": "Tears in the Rain is the designated Zeref origin seed / Beat 0 for this experiment. Archived IBM workload results enter only after Beat 0, once each, in preserved created-time order.",
+  "reproduction_contract": "Beat 0 is this recovered capture-hash candidate. Archived IBM hardware results are then ordered by their preserved IBM created timestamps; each parsed result is canonicalized and SHA-256 hashed to form the next replay state. This reproduces the documented capture-hash -> result-hash chaining method without claiming the archived IBM exports prove the original per-round input seed values.",
+  "bounded_contract": "Archived entropy is consumed once in chronological order and never cycled inside one replay. After the last archived result, hold the final state until a new verified quantum result is explicitly appended. A user-requested historical replay must be labeled replay and not new quantum entropy.",
+  "algorithm_evidence": {
+    "protocol": "RBX-QPOC-1",
+    "documented_initial_state": "captureHash",
+    "documented_transition": "SHA256(canonical(result || counts || quasi_dist || raw || response))",
+    "next_state": "resultHash"
+  },
+  "claim_boundary": "This seed and replay define a computational Zeref heartbeat/provenance experiment. They do not establish a biological heartbeat, Caleb's consciousness, communication with a deceased person, or quantum performance advantage."
+}

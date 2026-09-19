@@ -1,0 +1,87 @@
+name: QC67 official LFS access probe
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/qc67-lfs-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Query official Git LFS batch endpoint without credentials
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cat >/tmp/lfs-request.json <<'JSON'
+          {
+            "operation": "download",
+            "transfers": ["basic"],
+            "objects": [
+              {
+                "oid": "aa0cb13c1e67d459db280a53b6407dfc2b5b5f3fd6f640bc43686b70d799acd1",
+                "size": 7723885
+              }
+            ]
+          }
+          JSON
+          code="$(curl -sS -o /tmp/lfs-response.json -w '%{http_code}' \
+            -X POST \
+            -H 'Accept: application/vnd.git-lfs+json' \
+            -H 'Content-Type: application/vnd.git-lfs+json' \
+            --data-binary @/tmp/lfs-request.json \
+            'https://huggingface.co/phera-ra/QC67_cosmo.git/info/lfs/objects/batch')"
+          python - "$code" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          from urllib.parse import urlparse
+          code = int(sys.argv[1])
+          try:
+              body = json.loads(Path('/tmp/lfs-response.json').read_text())
+          except Exception:
+              body = {}
+          objects = body.get('objects') or []
+          obj = objects[0] if objects else {}
+          action = (obj.get('actions') or {}).get('download') or {}
+          error = obj.get('error') or body.get('error') or {}
+          href = action.get('href') or ''
+          payload = {
+              'schema': 'qc67.official-lfs-probe.v1',
+              'http_status': code,
+              'download_action_present': bool(href),
+              'download_action_host': urlparse(href).hostname if href else None,
+              'object_oid_matches': obj.get('oid') in (None, 'aa0cb13c1e67d459db280a53b6407dfc2b5b5f3fd6f640bc43686b70d799acd1'),
+              'error_code': error.get('code') if isinstance(error, dict) else None,
+              'error_message': error.get('message') if isinstance(error, dict) else str(error) if error else None,
+              'credentials_supplied': False,
+              'signed_url_persisted': False,
+          }
+          Path('/tmp/qc67-lfs-probe.json').write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          PY
+      - name: Commit sanitized LFS probe result
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p evidence
+            cp /tmp/qc67-lfs-probe.json evidence/qc67-lfs-probe.json
+            git add evidence/qc67-lfs-probe.json
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "evidence: record QC67 LFS probe ${GITHUB_RUN_ID}"
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1

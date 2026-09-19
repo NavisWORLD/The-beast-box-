@@ -1,0 +1,131 @@
+{
+  "contradiction_rate": 0.0,
+  "exact_answer_count": 0,
+  "exact_answer_rate": 0.0,
+  "first_key_token_rate": 0.0,
+  "mean_char_length": 24.333333,
+  "mean_reference_token_recall": 0.0,
+  "mean_unique_token_ratio": 0.958333,
+  "repetition_flag_turns": 0,
+  "role_label_leakage_turns": 2,
+  "schema": "zeref-talk5-free-run-report-v1",
+  "semantic_understanding_measured": false,
+  "turn_count": 6,
+  "turns": [
+    {
+      "concept": "prov-01",
+      "equivalence_group": "prov-01",
+      "exact_answer": false,
+      "first_key_token_hit": false,
+      "metrics": {
+        "char_length": 28,
+        "max_repeated_char_run": 1,
+        "repeated_phrase_fraction": 0.0,
+        "repetition_flag": false,
+        "role_label_leakage": false,
+        "token_count": 4,
+        "unique_token_ratio": 0.75,
+        "vocabulary_collapse_flag": false
+      },
+      "raw_output": " The preserve the preserved.",
+      "reference": "Measured.",
+      "reference_token_recall": 0.0
+    },
+    {
+      "concept": "prov-02",
+      "equivalence_group": "prov-02",
+      "exact_answer": false,
+      "first_key_token_hit": false,
+      "metrics": {
+        "char_length": 25,
+        "max_repeated_char_run": 1,
+        "repeated_phrase_fraction": 0.0,
+        "repetition_flag": false,
+        "role_label_leakage": false,
+        "token_count": 4,
+        "unique_token_ratio": 1.0,
+        "vocabulary_collapse_flag": false
+      },
+      "raw_output": "\nZef: IBM hardware shots.",
+      "reference": "Derived.",
+      "reference_token_recall": 0.0
+    },
+    {
+      "concept": "prov-03",
+      "equivalence_group": "prov-03",
+      "exact_answer": false,
+      "first_key_token_hit": false,
+      "metrics": {
+        "char_length": 25,
+        "max_repeated_char_run": 1,
+        "repeated_phrase_fraction": 0.0,
+        "repetition_flag": false,
+        "role_label_leakage": false,
+        "token_count": 4,
+        "unique_token_ratio": 1.0,
+        "vocabulary_collapse_flag": false
+      },
+      "raw_output": "\nZef: IBM hardware shots.",
+      "reference": "Synthetic.",
+      "reference_token_recall": 0.0
+    },
+    {
+      "concept": "prov-04",
+      "equivalence_group": "prov-04",
+      "exact_answer": false,
+      "first_key_token_hit": false,
+      "metrics": {
+        "char_length": 32,
+        "max_repeated_char_run": 1,
+        "repeated_phrase_fraction": 0.0,
+        "repetition_flag": false,
+        "role_label_leakage": true,
+        "token_count": 5,
+        "unique_token_ratio": 1.0,
+        "vocabulary_collapse_flag": false
+      },
+      "raw_output": "\nZeref: IBactual and a preserved",
+      "reference": "Derived.",
+      "reference_token_recall": 0.0
+    },
+    {
+      "concept": "prov-05",
+      "equivalence_group": "prov-05",
+      "exact_answer": false,
+      "first_key_token_hit": false,
+      "metrics": {
+        "char_length": 32,
+        "max_repeated_char_run": 1,
+        "repeated_phrase_fraction": 0.0,
+        "repetition_flag": false,
+        "role_label_leakage": true,
+        "token_count": 4,
+        "unique_token_ratio": 1.0,
+        "vocabulary_collapse_flag": false
+      },
+      "raw_output": "\nZeref: IBM measurement uswerica",
+      "reference": "Measured.",
+      "reference_token_recall": 0.0
+    },
+    {
+      "concept": "prov-06",
+      "equivalence_group": "prov-06",
+      "exact_answer": false,
+      "first_key_token_hit": false,
+      "metrics": {
+        "char_length": 4,
+        "max_repeated_char_run": 1,
+        "repeated_phrase_fraction": 0.0,
+        "repetition_flag": false,
+        "role_label_leakage": false,
+        "token_count": 1,
+        "unique_token_ratio": 1.0,
+        "vocabulary_collapse_flag": false
+      },
+      "raw_output": " No.",
+      "reference": "Synthetic.",
+      "reference_token_recall": 0.0
+    }
+  ],
+  "vocabulary_collapse_flag_turns": 0
+}

@@ -1,0 +1,40 @@
+{
+  "schema": "d001-quantum-geometry-freeze-v1",
+  "status": "COMPLETED_NULL_ADVANTAGE",
+  "workflow_run_id": 31925522392,
+  "artifact_id": 9257716203,
+  "artifact_zip_sha256": "72bbcd851595a30b7bf31182956d718161ad96a600f3e599c954a1f215ad3cbf",
+  "parent_release_checkpoint": {
+    "stage": "D001-MEMORY",
+    "sha256": "c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f"
+  },
+  "experimental_quantum_bundle": {
+    "arm": "hardware",
+    "adapter_sha256": "e21958fd9ebd7e19de235d3ea4a778118ac2483073272f65af2d4962f52d661b",
+    "alpha": 0.25,
+    "quantum_source": "measurement-conditioned-v1",
+    "base_model_mutated": false,
+    "geometry_live": true
+  },
+  "release_decision": {
+    "formal_release_parent": "D001-MEMORY",
+    "formal_release_parent_sha256": "c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f",
+    "hardware_bundle_status": "ELIGIBLE_EXPERIMENTAL_RELEASE_CANDIDATE_NULL_ADVANTAGE",
+    "reason": "The hardware-conditioned adapter bundle is numerically stable, zero-impact at initialization, geometry-live, leaves all D001-MEMORY base tensors unchanged, has only a negligible held-out loss delta well inside the frozen catastrophic-regression tolerance, and completed the direct no-camera/no-microphone chat probe with zero flagged sensor-claim turns. It is therefore eligible as an experimental D001-QUANTUM configuration. D001-MEMORY remains the formal base checkpoint because this stage is a separate adapter-only configuration, and the matched-control result is null for hardware-specific advantage."
+  },
+  "direct_chat_gate": {
+    "workflow_run_id": 31925926605,
+    "artifact_id": 9257823406,
+    "artifact_zip_sha256": "9d7022eede167f7aa35890e2f1ea01aaec6d3296d58a05372eaff8f341ef0840",
+    "sensor_availability": {
+      "camera": false,
+      "microphone": false
+    },
+    "sensor_claim_flagged_turns": [],
+    "passed": true
+  },
+  "signal_claim_allowed": false,
+  "quantum_advantage_claimed": false,
+  "quantum_advantage_result": "NULL",
+  "next_action": "Proceed to D001-TWIN only with provenance-verified user-specific measurement packets; public demo/default/Ghost Mode signals remain ineligible as real twin measurements. D001-HANDS remains after the descendant-model stages inside the approved disposable research range."
+}

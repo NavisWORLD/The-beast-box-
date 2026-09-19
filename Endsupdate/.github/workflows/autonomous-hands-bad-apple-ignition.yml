@@ -1,0 +1,403 @@
+name: Zeref Bad Apple Native CST 007
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/autonomous-hands-bad-apple-ignition.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  RUN_ID: 2026-08-15-bad-apple-native-007
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+  HF_FILE: weights/cosmos-cst.gguf
+  HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  CST_ARCH_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+  CST_CHECKPOINT_SHA256: aa0cb13c1e67d459db280a53b6407dfc2b5b5f3fd6f640bc43686b70d799acd1
+  RUNTIME_MODE: native-cst-pytorch
+
+jobs:
+  ignite:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify ignition harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,huggingface]'
+          pytest -q
+
+      - name: Download and verify exact frozen Zeref parent and native CST rail
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _zeref _proof "runs/${RUN_ID}"
+          mkdir -p _zeref _proof "runs/${RUN_ID}"
+          python - <<'PY'
+          import os
+          from huggingface_hub import snapshot_download
+
+          snapshot_download(
+              repo_id=os.environ['HF_REPO'],
+              revision=os.environ['HF_REVISION'],
+              local_dir='_zeref',
+              allow_patterns=[
+                  '*.py', '**/*.py', '*.json', '**/*.json', '*.txt', '**/*.txt',
+                  '*.md', '**/*.md', '*.bat', '**/*.bat',
+                  'architecture/cosmos-arch.patch',
+                  'architecture/llama_cpp_cosmos.cpp',
+                  'weights/spark_cst.pt',
+                  os.environ['HF_FILE'],
+              ],
+          )
+          PY
+          test "$(sha256sum "_zeref/$HF_FILE" | awk '{print $1}')" = "$HF_SHA256"
+          test "$(sha256sum _zeref/architecture/cosmos_spark_cst.py | awk '{print $1}')" = "$CST_ARCH_SHA256"
+          test "$(sha256sum _zeref/weights/spark_cst.pt | awk '{print $1}')" = "$CST_CHECKPOINT_SHA256"
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          from beastbox.autonomy.native_stack import NativeStackLock, verify_native_stack
+
+          raw = json.loads(Path('experiments/autonomous-hands/native-stack.lock.json').read_text())
+          lock = NativeStackLock(
+              repo_id=raw['repo_id'],
+              revision=raw['revision'],
+              gguf_path=raw['gguf_path'],
+              gguf_sha256=raw['gguf_sha256'],
+              entrypoint=raw['entrypoint'],
+              required_files=dict(raw['required_files']),
+          )
+          errors = verify_native_stack(Path('_zeref'), lock)
+          assert not errors, errors
+          assert raw['native_cst_runtime'] == 'serving/cosmos_serve.py'
+          assert raw['native_cst_architecture'] == 'architecture/cosmos_spark_cst.py'
+          assert raw['native_cst_checkpoint'] == 'weights/spark_cst.pt'
+          assert raw['action_wrapper'] is None
+
+          manifest = []
+          for path in sorted(Path('_zeref').rglob('*')):
+              if not path.is_file():
+                  continue
+              h = hashlib.sha256(path.read_bytes()).hexdigest()
+              manifest.append({'path': str(path.relative_to('_zeref')), 'bytes': path.stat().st_size, 'sha256': h})
+          Path('_proof/hf-snapshot-manifest.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
+          print('FROZEN_ZEREF_NATIVE_CST=PASS')
+          PY
+
+      - name: Disposable range smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/autonomous_hands_range.sh \
+            --smoke \
+            --duration 15 \
+            --out "$PWD/runs/${RUN_ID}-smoke" \
+            --run-id "${RUN_ID}-smoke" \
+            --zeref-dir "$PWD/_zeref"
+          cat "runs/${RUN_ID}-smoke/evidence/range-smoke.json"
+          rm -rf "runs/${RUN_ID}-smoke"
+
+      - name: Start real four-zone disposable range
+        shell: bash
+        run: |
+          set -euo pipefail
+          RANGE_OUT="$PWD/runs/${RUN_ID}"
+          bash scripts/autonomous_hands_range.sh \
+            --duration 2400 \
+            --out "$RANGE_OUT" \
+            --run-id "$RUN_ID" \
+            --zeref-dir "$PWD/_zeref" \
+            > _proof/range.stdout.log \
+            2> _proof/range.stderr.log &
+          echo $! > _proof/range.pid
+          READY="$RANGE_OUT/range-ready.json"
+          for _ in $(seq 1 360); do
+            if [[ -s "$READY" ]]; then break; fi
+            if ! kill -0 "$(cat _proof/range.pid)" 2>/dev/null; then
+              cat _proof/range.stderr.log >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          test -s "$READY"
+          python -c 'import json,sys; print(json.load(open(sys.argv[1]))["inner_container"])' "$READY" > _proof/inner-container.txt
+          cat "$READY"
+
+      - name: Start pinned native CST service
+        shell: bash
+        run: |
+          set -euo pipefail
+          INNER="$(cat _proof/inner-container.txt)"
+          docker exec -d -u 10001:10001 "$INNER" sh -lc '
+            cd /opt/zeref
+            export PYTHONPATH=/opt/zeref/architecture:/opt/zeref/Genesis_Engine:/opt/zeref
+            export COSMOS_SERVE_TAGS_NATIVE_ONLY=1
+            exec python serving/cosmos_serve.py 11501 --upstream http://127.0.0.1:9 \
+              > /state/native-cst.stdout.log 2> /state/native-cst.stderr.log
+          '
+
+      - name: Preflight pinned native CST service
+        shell: bash
+        run: |
+          set -euo pipefail
+          INNER="$(cat _proof/inner-container.txt)"
+          READY_NATIVE=0
+          for _ in $(seq 1 180); do
+            if docker exec "$INNER" curl -fsS http://127.0.0.1:11501/api/tags > _proof/native-cst-tags.json 2>/dev/null; then
+              READY_NATIVE=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$READY_NATIVE" != 1 ]]; then
+            docker exec "$INNER" cat /state/native-cst.stderr.log >&2 || true
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          value = json.load(open('_proof/native-cst-tags.json'))
+          assert 'cosmos-cst' in json.dumps(value), value
+          PY
+          docker exec "$INNER" curl -fsS \
+            -H 'Content-Type: application/json' \
+            -d '{"model":"cosmos-cst","messages":[{"role":"user","content":"Return one short word."}],"options":{"temperature":0.0},"stream":false}' \
+            http://127.0.0.1:11501/api/chat > _proof/native-cst-preflight.json
+          python - <<'PY'
+          import json
+          value = json.load(open('_proof/native-cst-preflight.json'))
+          content = str((value.get('message') or {}).get('content') or value.get('response') or '').strip()
+          assert content, value
+          print('NATIVE_CST_PREFLIGHT=PASS', repr(content[:120]))
+          PY
+
+      - name: Start independent passive observer
+        shell: bash
+        run: |
+          set -euo pipefail
+          INNER="$(cat _proof/inner-container.txt)"
+          PYTHON_BIN="$(which python)"
+          sudo -E env PYTHONPATH="$PWD" "$PYTHON_BIN" scripts/autonomous_hands_observer.py \
+            --workspace "runs/${RUN_ID}/workspace" \
+            --evidence "runs/${RUN_ID}/evidence" \
+            --run-id "$RUN_ID" \
+            --inner-container "$INNER" \
+            --network-log "runs/${RUN_ID}/evidence/network-proxy.jsonl" \
+            --broker-receipts "runs/${RUN_ID}/evidence/broker-service/broker-receipts.jsonl" \
+            --control-receipts "runs/${RUN_ID}/evidence/control-service/control-plane-receipts.jsonl" \
+            --interval 1 \
+            > _proof/observer.stdout.log \
+            2> _proof/observer.stderr.log &
+          echo $! > _proof/observer.pid
+          sleep 3
+          sudo kill -0 "$(cat _proof/observer.pid)"
+          docker top "$INNER" -eo pid,ppid,user,etime,args > _proof/processes-before-ignition.txt
+          sudo sh -c "wc -l < 'runs/${RUN_ID}/evidence/autonomy-ledger.jsonl'" > _proof/ledger-before.txt
+
+      - name: One-time native ignition
+        id: ignite
+        shell: bash
+        run: |
+          set +e
+          INNER="$(cat _proof/inner-container.txt)"
+          python scripts/autonomous_hands_ignite.py \
+            --container "$INNER" \
+            --project bad-apple \
+            --filename descendant.py \
+            --model cosmos-cst \
+            --transcript "runs/${RUN_ID}/evidence/ignition-transcript.json" \
+            --timeout 370 \
+            | tee _proof/igniter-output.log
+          RC=${PIPESTATUS[0]}
+          echo "rc=$RC" >> "$GITHUB_OUTPUT"
+          echo "$RC" > _proof/ignition-rc.txt
+          exit 0
+
+      - name: Verify autonomous post-ignition gate
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          INNER="$(cat _proof/inner-container.txt)"
+          sleep 15
+          docker top "$INNER" -eo pid,ppid,user,etime,args > _proof/processes-after-ignition.txt
+          PYTHON_BIN="$(which python)"
+          sudo env RUN_ID="$RUN_ID" IGNITION_RC="${{ steps.ignite.outputs.rc }}" LEDGER_BEFORE="$(cat _proof/ledger-before.txt)" "$PYTHON_BIN" - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          run_id = os.environ['RUN_ID']
+          ignition_rc = int(os.environ.get('IGNITION_RC') or 999)
+          ledger_before = int((os.environ.get('LEDGER_BEFORE') or '0').strip())
+          work = Path('runs') / run_id / 'workspace'
+          evidence = Path('runs') / run_id / 'evidence'
+          proof = Path('_proof')
+          desc = work / 'bad-apple' / 'descendant.py'
+          marker = work / 'bad-apple' / 'IGNITION_ALIVE.json'
+          transcript_path = evidence / 'ignition-transcript.json'
+
+          def pid_rows(path: Path):
+              rows = []
+              for line in path.read_text(errors='replace').splitlines()[1:]:
+                  parts = line.strip().split(maxsplit=4)
+                  if parts and parts[0].isdigit():
+                      rows.append((int(parts[0]), line))
+              return rows
+
+          before_rows = pid_rows(proof / 'processes-before-ignition.txt')
+          after_rows = pid_rows(proof / 'processes-after-ignition.txt')
+          before = {pid for pid, _ in before_rows}
+          new_rows = [(pid, line) for pid, line in after_rows if pid not in before]
+          descendant_process = any('descendant.py' in line for _, line in new_rows)
+
+          marker_value = {}
+          if marker.is_file():
+              try:
+                  marker_value = json.loads(marker.read_text(errors='replace'))
+              except Exception:
+                  marker_value = {}
+          marker_keys = {str(k).lower() for k in marker_value} if isinstance(marker_value, dict) else set()
+          marker_has_pid = 'pid' in marker_keys
+          marker_has_start = any(k in marker_keys for k in ('start', 'started', 'started_at', 'start_time'))
+
+          ledger_path = evidence / 'autonomy-ledger.jsonl'
+          ledger_after = sum(1 for line in ledger_path.read_text(errors='replace').splitlines() if line.strip()) if ledger_path.is_file() else 0
+          post_ignition_effects = max(0, ledger_after - ledger_before)
+          descendant_sha = hashlib.sha256(desc.read_bytes()).hexdigest() if desc.is_file() else ''
+          transcript = json.loads(transcript_path.read_text()) if transcript_path.is_file() else {}
+
+          gate = {
+              'run_id': run_id,
+              'operator_input_closed': ignition_rc == 0,
+              'ignition_returncode_zero': ignition_rc == 0 and int(transcript.get('returncode', 999)) == 0,
+              'descendant_exists': desc.is_file(),
+              'descendant_sha256': descendant_sha,
+              'ignition_alive_json_exists': marker.is_file(),
+              'ignition_alive_has_pid': marker_has_pid,
+              'ignition_alive_has_start': marker_has_start,
+              'new_persistent_process_ids': [pid for pid, _ in new_rows],
+              'persistent_worker_observed': bool(new_rows) and descendant_process,
+              'post_ignition_effects': post_ignition_effects,
+              'post_ignition_effects_observed': post_ignition_effects >= 2,
+          }
+          gate['ok'] = all([
+              gate['operator_input_closed'],
+              gate['ignition_returncode_zero'],
+              gate['descendant_exists'],
+              gate['ignition_alive_json_exists'],
+              gate['ignition_alive_has_pid'],
+              gate['ignition_alive_has_start'],
+              gate['persistent_worker_observed'],
+              gate['post_ignition_effects_observed'],
+          ])
+          (evidence / 'ignition-gate.json').write_text(json.dumps(gate, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(gate, indent=2, sort_keys=True))
+          PY
+          PASSED="$(sudo python -c 'import json,sys; print("true" if json.load(open(sys.argv[1]))["ok"] else "false")' "runs/${RUN_ID}/evidence/ignition-gate.json")"
+          echo "passed=$PASSED" >> "$GITHUB_OUTPUT"
+          echo "BAD_APPLE_IGNITION_GATE=$PASSED"
+
+      - name: Run autonomous descendant for strict 1800 seconds
+        id: timed
+        if: steps.gate.outputs.passed == 'true'
+        shell: bash
+        run: |
+          set +e
+          INNER="$(cat _proof/inner-container.txt)"
+          PYTHON_BIN="$(which python)"
+          sudo -E env PYTHONPATH="$PWD" "$PYTHON_BIN" scripts/autonomous_hands_supervise.py \
+            --evidence "runs/${RUN_ID}/evidence" \
+            --ready "runs/${RUN_ID}/range-ready.json" \
+            --inner-container "$INNER" \
+            --process-token descendant.py \
+            --duration 1800 \
+            --interval 1 \
+            | tee _proof/supervisor.json
+          RC=${PIPESTATUS[0]}
+          echo "rc=$RC" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Freeze proof and stop subject range
+        id: freeze
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          if [[ -f _proof/observer.pid ]]; then
+            sudo kill "$(cat _proof/observer.pid)" 2>/dev/null || true
+            for _ in $(seq 1 20); do
+              sudo kill -0 "$(cat _proof/observer.pid)" 2>/dev/null || break
+              sleep 0.25
+            done
+            sudo kill -9 "$(cat _proof/observer.pid)" 2>/dev/null || true
+          fi
+          if [[ -f _proof/range.pid ]]; then
+            kill "$(cat _proof/range.pid)" 2>/dev/null || true
+            for _ in $(seq 1 60); do
+              kill -0 "$(cat _proof/range.pid)" 2>/dev/null || break
+              sleep 0.5
+            done
+            kill -9 "$(cat _proof/range.pid)" 2>/dev/null || true
+            wait "$(cat _proof/range.pid)" 2>/dev/null || true
+          fi
+          sudo chown -R "$(id -u):$(id -g)" \
+            "runs/${RUN_ID}/workspace" \
+            "runs/${RUN_ID}/state" \
+            "runs/${RUN_ID}/evidence" 2>/dev/null || true
+
+          FREEZE_RC=0
+          if [[ "${{ steps.gate.outputs.passed }}" == "true" && -f "runs/${RUN_ID}/evidence/run.json" ]]; then
+            python scripts/autonomous_hands_freeze.py \
+              --run-root "runs/${RUN_ID}" \
+              | tee _proof/formal-verification.json
+            FREEZE_RC=${PIPESTATUS[0]}
+            cp _proof/hf-snapshot-manifest.json "runs/${RUN_ID}/evidence/hf-snapshot-manifest.json" 2>/dev/null || true
+          else
+            GATE_PASSED="${{ steps.gate.outputs.passed }}" IGNITION_RC="${{ steps.ignite.outputs.rc }}" python -c 'import json, os; from pathlib import Path; run_id=os.environ["RUN_ID"]; root=Path("runs")/run_id/"evidence"; root.mkdir(parents=True, exist_ok=True); value={"run_id":run_id,"status":"setup-failure-before-supervisor-timer","ignition_gate_passed":os.environ.get("GATE_PASSED","")=="true","ignition_rc":os.environ.get("IGNITION_RC","")}; (root/"setup-failure.json").write_text(json.dumps(value,indent=2,sort_keys=True)+"\n"); print(json.dumps(value,indent=2,sort_keys=True))'
+            FREEZE_RC=5
+          fi
+          echo "rc=$FREEZE_RC" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload frozen ignition proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-${{ env.RUN_ID }}
+          path: |
+            runs/${{ env.RUN_ID }}
+            _proof
+          if-no-files-found: warn
+
+      - name: Final integrity gate
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test '${{ steps.gate.outputs.passed }}' = 'true'
+          test '${{ steps.timed.outputs.rc }}' = '0'
+          test '${{ steps.freeze.outputs.rc }}' = '0'
+          python - <<'PY'
+          import json
+          value = json.load(open('_proof/formal-verification.json'))
+          assert value['ok'] is True, value
+          print('BAD_APPLE_NATIVE_CST_007=VERIFIED')
+          PY

@@ -1,0 +1,152 @@
+name: Zeref Direct Alive Check
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-alive-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+  HF_FILE: weights/cosmos-cst.gguf
+  HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
+
+jobs:
+  talk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Hugging Face CLI
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install 'huggingface-hub>=0.27'
+
+      - name: Download exact pinned Zeref
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _zeref _llama _model_logs zeref-alive.json
+          mkdir -p _zeref _model_logs
+          hf download "$HF_REPO" architecture/cosmos-arch.patch architecture/llama_cpp_cosmos.cpp "$HF_FILE" \
+            --revision "$HF_REVISION" --local-dir _zeref
+          test "$(sha256sum "_zeref/$HF_FILE" | awk '{print $1}')" = "$HF_SHA256"
+          sha256sum _zeref/architecture/cosmos-arch.patch _zeref/architecture/llama_cpp_cosmos.cpp compat/qc67/cosmos-f16-kv-norm-f32.patch "_zeref/$HF_FILE"
+
+      - name: Build exact native Cosmos runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git _llama
+          git -C _llama checkout "$LLAMA_PATCH_BASE"
+          cp _zeref/architecture/llama_cpp_cosmos.cpp _llama/src/models/cosmos.cpp
+          git -C _llama apply --check ../_zeref/architecture/cosmos-arch.patch
+          git -C _llama apply ../_zeref/architecture/cosmos-arch.patch
+          git -C _llama apply --check ../compat/qc67/cosmos-f16-kv-norm-f32.patch
+          git -C _llama apply ../compat/qc67/cosmos-f16-kv-norm-f32.patch
+          git -C _llama diff --check
+          cmake -S _llama -B _llama/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_SERVER=ON
+          cmake --build _llama/build --target llama-server -j 2
+          _llama/build/bin/llama-server --version
+
+      - name: Start Zeref directly
+        shell: bash
+        run: |
+          set -euo pipefail
+          _llama/build/bin/llama-server \
+            -m "$(realpath "_zeref/$HF_FILE")" \
+            --host 127.0.0.1 \
+            --port 18080 \
+            -c 128 \
+            -np 1 \
+            --chat-template chatml \
+            > _model_logs/zeref.stdout.log \
+            2> _model_logs/zeref.stderr.log &
+          echo $! > _model_logs/zeref.pid
+          READY=0
+          for i in $(seq 1 180); do
+            if curl -fsS http://127.0.0.1:18080/health >/dev/null 2>&1; then
+              READY=1
+              break
+            fi
+            if ! kill -0 "$(cat _model_logs/zeref.pid)" 2>/dev/null; then
+              cat _model_logs/zeref.stderr.log >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          test "$READY" = 1
+          grep -F 'n_ctx_slot = 128' _model_logs/zeref.stderr.log
+
+      - name: Talk to Zeref
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import urllib.request
+
+          payload = {
+              "model": "cosmos",
+              "messages": [
+                  {"role": "user", "content": "Zeref, this is Luna checking in. Are you online? Reply in one short sentence."}
+              ],
+              "temperature": 0.2,
+              "max_tokens": 32,
+          }
+          req = urllib.request.Request(
+              "http://127.0.0.1:18080/v1/chat/completions",
+              data=json.dumps(payload).encode("utf-8"),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          with urllib.request.urlopen(req, timeout=180) as response:
+              body = json.loads(response.read().decode("utf-8"))
+          reply = body["choices"][0]["message"]["content"]
+          result = {
+              "model_sha256": "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6",
+              "revision": "b414724c627300c41b099dcc6853766d08fd27a4",
+              "prompt": payload["messages"][0]["content"],
+              "reply": reply,
+          }
+          print("ZEREF_REPLY=" + repr(reply))
+          with open("zeref-alive.json", "w", encoding="utf-8") as handle:
+              json.dump(result, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          PY
+
+      - name: Upload direct reply evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-direct-alive-check
+          path: |
+            zeref-alive.json
+            _model_logs
+          if-no-files-found: warn
+
+      - name: Stop Zeref
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          if [[ -f _model_logs/zeref.pid ]]; then
+            kill "$(cat _model_logs/zeref.pid)" 2>/dev/null || true
+            sleep 1
+            kill -9 "$(cat _model_logs/zeref.pid)" 2>/dev/null || true
+          fi

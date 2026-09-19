@@ -1,0 +1,81 @@
+{
+  "backend": "ibm_fez",
+  "claim_boundary": "Matched IBM circuit comparison of computational signal controls only; no biological heartbeat, consciousness, deceased identity, resurrection, communication with the dead, or quantum advantage claim.",
+  "conditions": [
+    "ORIGINAL",
+    "REMOVED",
+    "SHUFFLED",
+    "ALTERNATE"
+  ],
+  "credential_material_recorded": false,
+  "job_id": "da55afc3jnrc73agsvv0",
+  "job_tags": [
+    "zerefs-heartbeat-mustard-seed",
+    "son-heartbeat-demo-001",
+    "matched-four-pub",
+    "original-d6e44478",
+    "removed-73676abd",
+    "shuffled-ffd39df3",
+    "alternate-9b1ded93"
+  ],
+  "packet_sha256": {
+    "ALTERNATE": "9b1ded93196cca5faef5cb048b26121e3dd13e10720a94f48a77d2890d290577",
+    "ORIGINAL": "d6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0",
+    "REMOVED": "73676abd56bb7b6c660f26530d53c1bc00d918ffb633284a3f9b52b9ef94d4e5",
+    "SHUFFLED": "ffd39df3f2e1aa6865afed6ddd73d4f249c9904977981520ba2a18464d9f1c2f"
+  },
+  "pub_count": 4,
+  "repository_commit_sha": "d26fb6054c17bd73b851c103adfb67aef409fc94",
+  "schema": "son-heartbeat-demo-ibm-submission-v1",
+  "shots_per_pub": 4096,
+  "transpile": {
+    "ALTERNATE": {
+      "count_ops": {
+        "barrier": 1,
+        "cz": 59,
+        "measure": 5,
+        "rz": 121,
+        "sx": 133
+      },
+      "depth": 156,
+      "physical_qubits": 156,
+      "size": 318
+    },
+    "ORIGINAL": {
+      "count_ops": {
+        "barrier": 1,
+        "cz": 59,
+        "measure": 5,
+        "rz": 122,
+        "sx": 135
+      },
+      "depth": 156,
+      "physical_qubits": 156,
+      "size": 321
+    },
+    "REMOVED": {
+      "count_ops": {
+        "barrier": 1,
+        "cz": 59,
+        "measure": 5,
+        "rz": 80,
+        "sx": 114
+      },
+      "depth": 134,
+      "physical_qubits": 156,
+      "size": 258
+    },
+    "SHUFFLED": {
+      "count_ops": {
+        "barrier": 1,
+        "cz": 59,
+        "measure": 5,
+        "rz": 120,
+        "sx": 133
+      },
+      "depth": 153,
+      "physical_qubits": 156,
+      "size": 317
+    }
+  }
+}

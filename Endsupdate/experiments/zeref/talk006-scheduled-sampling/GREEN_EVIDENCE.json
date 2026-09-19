@@ -1,0 +1,28 @@
+{
+  "schema": "zeref-talk006-scheduled-sampling-green-evidence-v1",
+  "run_id": 33113067278,
+  "job_id": 98660635485,
+  "workflow_head_sha": "4894f8e87871bcb52ff78e9f7a3ad23a1588ccdf",
+  "environment": {
+    "python": "3.12.14",
+    "pytest": "9.1.1",
+    "torch": "2.13.0+cpu",
+    "runner_os": "Ubuntu 24.04.4"
+  },
+  "exact_contract": {
+    "command": "python -m pytest -q tests/test_zeref_scheduled_sampling.py",
+    "result": "GREEN",
+    "output": "... [100%]",
+    "tests_passed": 3
+  },
+  "complete_regression_suite": {
+    "command": "python -m pytest -q",
+    "result": "PASS",
+    "output_reached_100_percent": true,
+    "workflow_step_conclusion": "success"
+  },
+  "implementation_commit_preceding_green_workflow": "6d772d35cd04be1e34c1ad3965eaac2c473e1abd",
+  "clean_teacher_targets_preserved": true,
+  "generated_characters_used_as_teacher_targets": false,
+  "claim_boundary": "Software training verification only; no consciousness, identity, soul, physical anomaly, or quantum-effect claim."
+}

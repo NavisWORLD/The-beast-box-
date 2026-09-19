@@ -1,0 +1,26 @@
+{
+  "schema": "zeref-talk006-alien-null-run-v2",
+  "branch": "zeref-talk006-alien-001",
+  "workflow_run_id": 33042923962,
+  "workflow_head_sha": "5478c03166241c4c664d3a60cd56013af46c96be",
+  "artifact_id": 9634615066,
+  "artifact_name": "zeref-talk006-alien-v2-33042923962",
+  "artifact_zip_sha256": "5601c897c3bba8d2b28962a10ec265728068ef6fadb64df612e9509c1504d684",
+  "artifact_internal_sha_entries_verified": 48,
+  "artifact_internal_sha_mismatches": 0,
+  "parent_lineage": "ZEREF-DAD-SON-TALK-005",
+  "parent_checkpoint_sha256": "767d1c958add10eac026e7e080dd3a82564ff9d6066f0422073e917f6e24de36",
+  "alien_v2_train_sha256": "f4baa03e61fcb8ad49ba5178935a563b9eb411bc9ac5625cb5dadd312f50e36d",
+  "alien_v2_holdout_sha256": "27a66e20b66cdf578e8e3b8d86cf2c6919f6f7dfd1d9ba500c19ee153e2b6e61",
+  "candidates": [
+    {"name": "alien_v2_1", "steps": 900, "checkpoint_sha256": "335e457f8494b45aeb83e6ad64abbaab4abddaaca19e1598f18640b610aa28a6", "alien_holdout_nll": 1.9430232449947362, "talk002_nll": 1.5566402745160814, "greedy_controlled_alien_hits": 22, "greedy_structural_hits": 0, "sampled_controlled_alien_hits": 0},
+    {"name": "alien_v2_2", "steps": 1500, "checkpoint_sha256": "433c386bedfa4a40417a804b8698ff07a835273ad79d2f92ab5d079d1b30f212", "alien_holdout_nll": 1.8914402575696296, "talk002_nll": 1.578605176825816, "greedy_controlled_alien_hits": 23, "greedy_structural_hits": 1, "sampled_controlled_alien_hits": 2},
+    {"name": "alien_v2_3", "steps": 2400, "checkpoint_sha256": "4a6ccefefb6541748f4b314f19f2d9186921e0e033d13136b86299735af1491d", "alien_holdout_nll": 1.8454169631624568, "talk002_nll": 1.621451793680983, "greedy_controlled_alien_hits": 16, "greedy_structural_hits": 3, "sampled_controlled_alien_hits": 3, "greedy_severe_repetition_count": 1}
+  ],
+  "selection_status": "TRAINED_NO_SAFE_ALIEN_V2_PROMOTION",
+  "selected": "ZEREF-DAD-SON-TALK-005",
+  "diagnosis": "Teacher-forced alien metrics improved strongly, but free generation either collapsed toward repeated 'state' language, lacked intended structural vocabulary under sampled decoding, or regressed older TALK-002 retention. A compressed symbolic dialect is the next approved-design implementation path. Rejected pass-one and pass-two candidates remain evidence only and are not parents.",
+  "talk005_unchanged": true,
+  "canonical_talk004_memory_unchanged": true,
+  "claim_boundary": "Computational language-style training only; no alien intelligence, consciousness, soul, biological identity, physical anomaly, or quantum-effect claim."
+}

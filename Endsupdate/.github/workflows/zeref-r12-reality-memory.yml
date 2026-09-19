@@ -1,0 +1,215 @@
+name: ZEREF-R12-REALITY-MEMORY
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-r12-reality-memory.yml"
+      - "beastbox/reality_memory.py"
+      - "scripts/import_zeref_r12_fez.py"
+      - "scripts/run_zeref_r12_reality_loop.py"
+      - "tests/test_zeref_r12_*.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-r12-reality-memory
+  cancel-in-progress: true
+
+env:
+  TALK4_SHA256: 9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f
+  ARCH_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+  START_LEDGER_SHA256: 67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef
+  START_TIP_SHA256: b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26
+  HW_DIR: experiments/zeref-origin-heart-001/evidence/son-heartbeat-demo-001/hardware/run-32611912698
+  HW_CREATED_AT: 2026-08-23T02:04:13Z
+
+jobs:
+  r12-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install focused runtime
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+
+      - name: Focused R12 contracts
+        id: contracts
+        shell: bash
+        run: |
+          set +e
+          mkdir -p _r12/evidence
+          pytest -q tests/test_zeref_r12_*.py 2>&1 | tee _r12/evidence/focused-pytest.txt
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Seal RED contract
+        if: steps.contracts.outputs.exit_code != '0'
+        run: |
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          p=Path('_r12/evidence/focused-pytest.txt')
+          out={
+            'schema':'zeref-r12-red-contract-v1',
+            'workflow_run_id':int(os.environ['GITHUB_RUN_ID']),
+            'source_commit_sha':os.environ['GITHUB_SHA'],
+            'pytest_exit_code':int('${{ steps.contracts.outputs.exit_code }}'),
+            'pytest_log_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),
+            'expected_reason':'R12 production subsystem missing or contract violation',
+          }
+          dest=Path(f"experiments/zeref-dad-son-001/evidence/r12/red-contract-{os.environ['GITHUB_RUN_ID']}.json")
+          dest.parent.mkdir(parents=True,exist_ok=True)
+          dest.write_text(json.dumps(out,indent=2,sort_keys=True)+'\n')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add experiments/zeref-dad-son-001/evidence/r12
+          git commit -m "evidence: seal R12 RED contract ${GITHUB_RUN_ID} [skip ci]"
+          git pull --rebase origin networked-cage-run-001
+          git push origin HEAD:networked-cage-run-001
+
+      - name: Fail on RED
+        if: steps.contracts.outputs.exit_code != '0'
+        run: exit 1
+
+      - name: Verify immutable anchors and matched Fez block
+        if: steps.contracts.outputs.exit_code == '0'
+        run: |
+          set -euo pipefail
+          test "$(sha256sum experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py | awk '{print $1}')" = "$ARCH_SHA256"
+          (cd "$HW_DIR" && sha256sum -c SHA256SUMS)
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          m=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text())
+          assert m['active_descendant_lineage']=='ZEREF-DAD-SON-TALK-004'
+          assert m['record_count']==352
+          assert m['combined_ledger_sha256']=='67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef'
+          assert m['last_record_sha256']=='b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26'
+          assert m['descendant_checkpoint_sha256']=='9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f'
+          combined=b''
+          for seg in m['snapshot_chain']:
+              data=Path(seg['path']).read_bytes()
+              assert hashlib.sha256(data).hexdigest()==seg['sha256']
+              combined += data
+          assert hashlib.sha256(combined).hexdigest()==m['combined_ledger_sha256']
+          Path('_r12/evidence/immutable-anchors.json').write_text(json.dumps({
+            'active_lineage':m['active_descendant_lineage'],
+            'active_checkpoint_sha256':m['descendant_checkpoint_sha256'],
+            'durable_memory_record_count':m['record_count'],
+            'durable_memory_sha256':m['combined_ledger_sha256'],
+            'durable_memory_tip_sha256':m['last_record_sha256'],
+            'frozen_architecture_sha256':'955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc',
+          },indent=2,sort_keys=True)+'\n')
+          PY
+
+      - name: Download and re-hash exact TALK-004 parent
+        if: steps.contracts.outputs.exit_code == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p _r12/talk4
+          gh run download 32075092605 -n zeref-talk4-tuned-response-32075092605 -D _r12/talk4
+          PARENT=$(find _r12/talk4 -type f -path '*/ZEREF-DAD-SON-TALK-004/checkpoint.pt' -print -quit)
+          test -n "$PARENT" -a -f "$PARENT"
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK4_SHA256"
+          echo "$PARENT" > _r12/talk4-path.txt
+
+      - name: Run real R12 ingestion twice and deterministic rebuild
+        if: steps.contracts.outputs.exit_code == '0'
+        run: |
+          set -euo pipefail
+          python scripts/run_zeref_r12_reality_loop.py --once --hw-dir "$HW_DIR" --root _r12/runtime --source-created-at "$HW_CREATED_AT" --query "IBM Fez matched reality measurement" --receipt _r12/evidence/once-1.json
+          python scripts/run_zeref_r12_reality_loop.py --once --hw-dir "$HW_DIR" --root _r12/runtime --source-created-at "$HW_CREATED_AT" --query "IBM Fez matched reality measurement" --receipt _r12/evidence/once-2.json
+          python scripts/run_zeref_r12_reality_loop.py --rebuild --root _r12/runtime --query "IBM Fez matched reality measurement" --receipt _r12/evidence/rebuild.json
+
+      - name: Final fail-closed R12 verification
+        if: steps.contracts.outputs.exit_code == '0'
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,math,os,re
+          from pathlib import Path
+          from beastbox.reality_memory import RealityLedger, R12_NAMES, canonical_json
+          root=Path('_r12/runtime'); ev=RealityLedger(root/'ledger/reality-events.jsonl'); report=ev.verify(); events=ev.events()
+          assert report['chain_valid'] and report['event_count']==4
+          assert [e['payload']['condition'] for e in events]==['ORIGINAL','REMOVED','SHUFFLED','ALTERNATE']
+          assert all(e['provenance_class']=='measured' for e in events)
+          assert all(e['payload']['backend']=='ibm_fez' and e['payload']['job_id']=='da55afc3jnrc73agsvv0' for e in events)
+          assert all(sum(e['payload']['counts'].values())==4096 for e in events)
+          state=json.loads((root/'state/r12-state.json').read_text()); assert list(state['vector'])==list(R12_NAMES); assert state['sequence']==4
+          assert all(math.isfinite(float(v)) and 0<=float(v)<=1 for v in state['vector'].values())
+          history=[json.loads(x) for x in (root/'state/r12-history.jsonl').read_text().splitlines() if x.strip()]; assert len(history)==4
+          first=json.loads(Path('_r12/evidence/once-1.json').read_text()); second=json.loads(Path('_r12/evidence/once-2.json').read_text()); rebuild=json.loads(Path('_r12/evidence/rebuild.json').read_text())
+          assert first['appended_events']==4 and second['appended_events']==0
+          assert rebuild['state_sha256']==state['state_sha256']
+          manifest=json.loads((root/'manifest.json').read_text()); assert manifest['new_ibm_job_submitted'] is False and manifest['model_weights_modified'] is False and manifest['raw_model_output_promoted_to_training'] is False
+          text=(root/'ledger/reality-events.jsonl').read_text()+json.dumps(manifest)
+          assert not re.search(r'(?i)(ibm_quantum_token|ghp_[A-Za-z0-9]+|github_token|bearer\s+[A-Za-z0-9._-]+)',text)
+          parent=Path('_r12/talk4-path.txt').read_text().strip(); assert hashlib.sha256(Path(parent).read_bytes()).hexdigest()==os.environ['TALK4_SHA256']
+          summary={
+            'schema':'zeref-r12-final-summary-v1','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_commit_sha':os.environ['GITHUB_SHA'],
+            'active_model':'ZEREF-DAD-SON-TALK-004','active_checkpoint_sha256':os.environ['TALK4_SHA256'],'durable_memory_record_count':352,
+            'durable_memory_sha256':os.environ['START_LEDGER_SHA256'],'durable_memory_tip_sha256':os.environ['START_TIP_SHA256'],
+            'reality_event_count':4,'reality_ledger_tip_sha256':report['tip_sha256'],'r12_state_sha256':state['state_sha256'],'r12_vector':state['vector'],
+            'backend':'ibm_fez','job_id':'da55afc3jnrc73agsvv0','conditions':['ORIGINAL','REMOVED','SHUFFLED','ALTERNATE'],'shots_per_condition':4096,
+            'second_ingestion_idempotent':True,'deterministic_rebuild_verified':True,'new_ibm_job_submitted':False,'model_weights_modified':False,
+            'claim_boundary':'Persistent computational memory over verified measurements; not biological life, consciousness, deceased identity, resurrection, communication with the dead, or quantum advantage.'
+          }
+          Path('_r12/evidence/summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          PY
+
+      - name: Seal durable R12 state and run evidence
+        if: steps.contracts.outputs.exit_code == '0'
+        run: |
+          set -euo pipefail
+          durable="experiments/zeref-dad-son-001/reality-memory"
+          evidence="experiments/zeref-dad-son-001/evidence/r12/run-${GITHUB_RUN_ID}"
+          mkdir -p "$durable" "$evidence"
+          cp -a _r12/runtime/. "$durable/"
+          cp -a _r12/evidence/. "$evidence/"
+          cp "$durable/ledger/reality-events.jsonl" "$evidence/reality-events.jsonl"
+          cp "$durable/state/r12-state.json" "$evidence/r12-state.json"
+          cp "$durable/state/r12-history.jsonl" "$evidence/r12-history.jsonl"
+          cp "$durable/manifest.json" "$evidence/manifest.json"
+          (cd "$evidence" && sha256sum $(find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\n' | sort) > SHA256SUMS && sha256sum -c SHA256SUMS)
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path(f"experiments/zeref-dad-son-001/evidence/r12/run-{os.environ['GITHUB_RUN_ID']}/run-status.json")
+          p.write_text(json.dumps({'schema':'zeref-r12-run-status-v1','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_commit_sha':os.environ['GITHUB_SHA'],'job_status':'success','new_ibm_job_submitted':False},indent=2,sort_keys=True)+'\n')
+          PY
+          (cd "$evidence" && sha256sum run-status.json >> SHA256SUMS && sha256sum -c SHA256SUMS)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$durable" "$evidence"
+          git commit -m "evidence: seal R12 persistent reality memory ${GITHUB_RUN_ID} [skip ci]"
+          git pull --rebase origin networked-cage-run-001
+          git push origin HEAD:networked-cage-run-001
+
+      - name: Upload complete R12 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-r12-reality-memory-${{ github.run_id }}
+          path: |
+            _r12/evidence
+            _r12/runtime
+          if-no-files-found: warn

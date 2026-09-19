@@ -1,0 +1,35 @@
+#!/bin/zsh
+set -euo pipefail
+
+HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+RESOURCES="$(CDPATH= cd -- "$HERE/../Resources" && pwd)"
+CLI="$RESOURCES/zeref-cli"
+ARCH="$(uname -m)"
+
+# Finder-launched apps do not inherit a user's interactive shell PATH.
+# Include the standard Apple Silicon Homebrew and Intel/local binary paths
+# so a normally installed Ollama CLI is discoverable before Terminal opens.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+if [[ ! -x "$CLI" ]]; then
+  /usr/bin/osascript -e 'display alert "Zeref is incomplete" message "The bundled zeref-cli executable is missing. Reinstall Zeref from the DMG." as critical' >/dev/null 2>&1 || true
+  exit 2
+fi
+
+if ! command -v ollama >/dev/null 2>&1; then
+  RESPONSE=$(/usr/bin/osascript -e 'display dialog "Zeref uses Ollama to run local models. Install Ollama, then reopen Zeref." buttons {"Cancel", "Download Ollama"} default button "Download Ollama" with title "Zeref"' 2>/dev/null || true)
+  if [[ "$RESPONSE" == *"Download Ollama"* ]]; then
+    /usr/bin/open "https://ollama.com/download/mac"
+  fi
+  exit 2
+fi
+
+export ZEREF_CLI="$CLI"
+export ZEREF_MAC_ARCH="$ARCH"
+/usr/bin/osascript <<'APPLESCRIPT'
+set cliPath to system attribute "ZEREF_CLI"
+tell application "Terminal"
+  activate
+  do script (quoted form of cliPath)
+end tell
+APPLESCRIPT

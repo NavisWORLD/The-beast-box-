@@ -1,0 +1,199 @@
+name: D001 Prime Parent Map Diagnostic
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-prime-parent-map-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trace-lineage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      HF_REPO: phera-ra/QC67_cosmo
+      HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+      PRIME_GGUF: weights/cosmos-cst.gguf
+      PRIME_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install read-only inspection dependencies
+        run: pip install 'huggingface-hub>=0.27' 'gguf>=0.17'
+      - name: Fetch exact frozen lineage sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p mapping/source mapping/out
+          python - <<'PY'
+          from pathlib import Path
+          from huggingface_hub import hf_hub_download
+
+          repo = "phera-ra/QC67_cosmo"
+          rev = "b414724c627300c41b099dcc6853766d08fd27a4"
+          wanted = [
+              "README.md",
+              "TRAINING.md",
+              "MANIFEST.json",
+              "RELEASE_MANIFEST.json",
+              "RELEASE_MANIFEST.json.bak_20260805_203059",
+              "RELEASE_MANIFEST.json.bak_20260806_213855",
+              "REPOSITORY_MAP.md",
+              "model-index.json",
+              "tokenizer.json",
+              "tokenizer_config.json",
+              "architecture/cst_to_gguf.py",
+              "architecture/cosmos_phi_cst.py",
+              "architecture/cosmos_spark_cst.py",
+              "architecture/cosmos_state_ladder.py",
+              "genesis_engine/engine/_Modelfile.cosmos_namebind",
+              "genesis_engine/engine/cosmos_54d_train_loop.py",
+              "genesis_engine/engine/cosmos_living_trainer.py",
+              "genesis_engine/engine/cosmos_merge_namebind.py",
+              "genesis_engine/engine/cosmos_namebind_probe.py",
+              "genesis_engine/engine/cosmos_prime_train.py",
+              "genesis_engine/engine/train_12d_brain.py",
+              "genesis_engine/engine/train_cosmos_broadened.py",
+              "genesis_engine/engine/train_cosmos_from_play.py",
+              "genesis_engine/soul/loop.py",
+              "launchers/Modelfile.cosmos-rebirth",
+              "scripts/gap_closing_training.py",
+              "scripts/train_your_own.py",
+              "train_your_own.py",
+              "verify_release.py",
+          ]
+          for name in wanted:
+              try:
+                  src = Path(hf_hub_download(repo_id=repo, filename=name, revision=rev))
+              except Exception as exc:
+                  print(f"MISSING\t{name}\t{exc}")
+                  continue
+              dst = Path("mapping/source") / name
+              dst.parent.mkdir(parents=True, exist_ok=True)
+              dst.write_bytes(src.read_bytes())
+              print(f"FETCHED\t{name}\t{dst.stat().st_size}")
+          PY
+      - name: Build exact source derivation evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, re
+          from pathlib import Path
+
+          root = Path("mapping/source")
+          patterns = {
+              "from_pretrained": re.compile(r"from_pretrained\s*\(([^\n]{0,500})", re.I),
+              "base_models": re.compile(r"(?:Qwen/[A-Za-z0-9._/-]+|Qwen2(?:\.5)?-[A-Za-z0-9._/-]+)", re.I),
+              "lora": re.compile(r"(?:LoraConfig|get_peft_model|PeftModel|merge_and_unload|adapter|lora)", re.I),
+              "saves": re.compile(r"(?:save_pretrained|torch\.save|save_checkpoint|checkpoint|output_dir)", re.I),
+              "gguf": re.compile(r"(?:gguf|cst_to_gguf|cosmos-cst\.gguf)", re.I),
+              "seed": re.compile(r"(?:manual_seed|set_seed|seed\s*=|random\.seed|numpy\.random\.seed)", re.I),
+          }
+          files = []
+          hits = []
+          for p in sorted(root.rglob("*")):
+              if not p.is_file():
+                  continue
+              data = p.read_bytes()
+              sha = hashlib.sha256(data).hexdigest()
+              rel = p.relative_to(root).as_posix()
+              files.append({"path": rel, "sha256": sha, "bytes": len(data)})
+              try:
+                  text = data.decode("utf-8")
+              except UnicodeDecodeError:
+                  continue
+              lines = text.splitlines()
+              for i, line in enumerate(lines, 1):
+                  cats = [name for name, rx in patterns.items() if rx.search(line)]
+                  if cats:
+                      hits.append({"path": rel, "line": i, "categories": cats, "text": line[:1200]})
+          out = {"schema": "d001-source-lineage-diagnostic-v1", "files": files, "hits": hits}
+          Path("mapping/out/source-evidence.json").write_text(json.dumps(out, indent=2, sort_keys=True)+"\n")
+          print("SOURCE_FILES", len(files), "HITS", len(hits))
+          for h in hits:
+              if set(h["categories"]) & {"base_models","lora","saves","gguf"}:
+                  print(f'{h["path"]}:{h["line"]} [{",".join(h["categories"])}] {h["text"]}')
+          PY
+      - name: Inspect exact Prime GGUF metadata and tensors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from huggingface_hub import hf_hub_download
+          repo="phera-ra/QC67_cosmo"
+          rev="b414724c627300c41b099dcc6853766d08fd27a4"
+          p=Path(hf_hub_download(repo_id=repo, filename="weights/cosmos-cst.gguf", revision=rev))
+          Path("mapping/out/gguf-path.txt").write_text(str(p)+"\n")
+          PY
+          ACTUAL="$(sha256sum "$(cat mapping/out/gguf-path.txt)" | awk '{print $1}')"
+          test "$ACTUAL" = "$PRIME_SHA256"
+          echo "$ACTUAL  weights/cosmos-cst.gguf" > mapping/out/prime-sha256.txt
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from gguf import GGUFReader
+
+          p=Path(Path("mapping/out/gguf-path.txt").read_text().strip())
+          r=GGUFReader(str(p), mode="r")
+          def scalar(field):
+              if field is None:
+                  return None
+              vals=[]
+              for part in field.parts:
+                  try:
+                      x=part.tolist()
+                  except Exception:
+                      x=str(part)
+                  vals.append(x)
+              return vals
+          keys = [
+              "general.architecture",
+              "general.name",
+              "general.file_type",
+              "general.quantization_version",
+              "qwen2.context_length",
+              "qwen2.embedding_length",
+              "qwen2.block_count",
+              "qwen2.feed_forward_length",
+              "qwen2.attention.head_count",
+              "qwen2.attention.head_count_kv",
+              "qwen2.rope.freq_base",
+              "tokenizer.ggml.model",
+              "tokenizer.ggml.pre",
+              "tokenizer.ggml.bos_token_id",
+              "tokenizer.ggml.eos_token_id",
+          ]
+          fields={k: scalar(r.fields.get(k)) for k in keys if k in r.fields}
+          tensors=[]
+          for t in r.tensors:
+              tensors.append({
+                  "name": t.name,
+                  "shape": [int(x) for x in t.shape.tolist()],
+                  "type": str(t.tensor_type),
+              })
+          out={"schema":"d001-prime-gguf-schema-v1","fields":fields,"tensor_count":len(tensors),"tensors":tensors}
+          Path("mapping/out/prime-gguf-schema.json").write_text(json.dumps(out,indent=2,sort_keys=True)+"\n")
+          print(json.dumps({"fields":fields,"tensor_count":len(tensors),"first_tensors":tensors[:20]},indent=2,sort_keys=True))
+          PY
+      - name: Freeze diagnostic hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd mapping && find source out -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum) > mapping/SHA256SUMS
+          cat mapping/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d001-prime-parent-map-diagnostic
+          path: mapping
+          if-no-files-found: error
+          retention-days: 30

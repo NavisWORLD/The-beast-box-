@@ -1,0 +1,47 @@
+name: Persistent substrate Model B 816 preflight
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experiment/persistent-substrate-model-swap-001
+    paths:
+      - '.github/workflows/persistent-substrate-model-b-816-preflight.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: persistent-substrate-model-b-816-${{ github.sha }}
+  cancel-in-progress: false
+
+env:
+  MODEL_B_REPO: HuggingFaceTB/SmolLM2-135M
+  MODEL_B_REVISION: 816ebadd0c024779e6657fdcfc1ab02bb9a7c473
+
+jobs:
+  resolve-exact-revision:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Install resolver
+        run: python -m pip install 'huggingface_hub==0.36.0'
+      - name: Resolve exact immutable Model B revision
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from huggingface_hub import model_info
+          repo = os.environ['MODEL_B_REPO']
+          revision = os.environ['MODEL_B_REVISION']
+          info = model_info(repo, revision=revision)
+          if info.sha != revision:
+              raise SystemExit(f'Model B revision mismatch: requested={revision} resolved={info.sha}')
+          print(f'MODEL_B_816_RESOLVED={repo}@{info.sha}')
+          PY

@@ -1,0 +1,52 @@
+name: D001 Promotion Freeze
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-promotion.yml"
+      - "beastbox/descendant/promotion.py"
+      - "scripts/promote_descendant_training.py"
+      - "tests/test_descendant_promotion.py"
+      - "experiments/descendant-d001/promotion/candidates.jsonl"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test promotion contract
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pytest -q tests/test_descendant_promotion.py
+      - name: Build frozen splits
+        run: |
+          python scripts/promote_descendant_training.py \
+            experiments/descendant-d001/promotion/candidates.jsonl \
+            --out _promotion \
+            --seed d001-promotion-seed-v1
+          cat _promotion/manifest.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('_promotion/manifest.json').read_text())
+          assert m['leakage_audit']['valid'] is True
+          assert m['records'] == 2
+          PY
+      - name: Freeze hashes
+        run: find _promotion -maxdepth 1 -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > _promotion/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d001-promotion-${{ github.run_id }}
+          path: _promotion
+          if-no-files-found: error

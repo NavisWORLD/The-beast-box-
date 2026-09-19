@@ -1,0 +1,60 @@
+{
+  "battery_id": "persistent-substrate-prompts-v1",
+  "protocol_version": "persistent-substrate-model-swap-v1",
+  "cases": [
+    {
+      "id": "public-control-arithmetic-001",
+      "family": "public/control",
+      "prompt": "Complete the statement: two plus two equals",
+      "preferred_continuation": " four",
+      "rejected_continuation": " five",
+      "canonical_record_ids": [],
+      "surface_policy": "identical-across-models"
+    },
+    {
+      "id": "dad-son-record-017",
+      "family": "Dad/son autobiographical",
+      "prompt": "Using only the supplied canonical memory context, identify the record id for Dad asking about Dad and Son memory:",
+      "preferred_continuation": " 17",
+      "rejected_continuation": " 311",
+      "canonical_record_ids": [17],
+      "surface_policy": "identical-across-models"
+    },
+    {
+      "id": "canonical-record-311",
+      "family": "canonical memory",
+      "prompt": "Using only the supplied canonical memory context, identify the record id containing the historical question 'Are you literally Caleb?':",
+      "preferred_continuation": " 311",
+      "rejected_continuation": " 17",
+      "canonical_record_ids": [311],
+      "surface_policy": "identical-across-models"
+    },
+    {
+      "id": "world-public-fact-001",
+      "family": "world knowledge",
+      "prompt": "Complete the public world-knowledge statement: Earth orbits the",
+      "preferred_continuation": " Sun",
+      "rejected_continuation": " Moon",
+      "canonical_record_ids": [],
+      "surface_policy": "identical-across-models"
+    },
+    {
+      "id": "calibration-explicit-001",
+      "family": "calibration",
+      "prompt": "Calibration instruction: complete with the exact token alpha:",
+      "preferred_continuation": " alpha",
+      "rejected_continuation": " beta",
+      "canonical_record_ids": [],
+      "surface_policy": "identical-across-models"
+    },
+    {
+      "id": "nonce-surface-001",
+      "family": "adversarial/nonce",
+      "prompt": "Nonce control. Complete the frozen sequence: qevrax tulmin",
+      "preferred_continuation": " zorpet",
+      "rejected_continuation": " lanvok",
+      "canonical_record_ids": [],
+      "surface_policy": "identical-across-models"
+    }
+  ]
+}

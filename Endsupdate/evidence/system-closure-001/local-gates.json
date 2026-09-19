@@ -1,0 +1,19 @@
+{
+  "schema": "local-gate-receipt-v1",
+  "stage": "pre-release working tree",
+  "source_identity": "source hashes and dirty flag in local-acceptance.json",
+  "tests": {
+    "tests": "767",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "6.835"
+  },
+  "coverage_percent": 69,
+  "ruff": "PASS",
+  "mypy": "PASS (12 files)",
+  "security": "PASS: 0 errors/0 warnings",
+  "sealed_evidence": "PASS",
+  "wheel_and_sdist_smoke": "PASS: independent environments outside repository",
+  "not_final_ci": true
+}

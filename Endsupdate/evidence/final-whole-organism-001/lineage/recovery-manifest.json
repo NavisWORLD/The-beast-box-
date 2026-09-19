@@ -1,0 +1,66 @@
+{
+  "failed_universal_corpus_freeze": {
+    "artifact_id": 9674149688,
+    "artifact_name": "cosmos-final-corpus-33141588443",
+    "artifact_zip_sha256": "0a4eb215b50f974433d6c71c09c89080b9882ea751cb51541e92c231dfaf26ca",
+    "artifact_zip_size_bytes": 1030,
+    "created_at": "2026-08-28T04:22:49Z",
+    "expires_at": "2026-11-26T04:21:42Z",
+    "failure_boundary": "Python 3.12 datasets streaming interpreter shutdown after the 4096-row ingestion summary was emitted; shell exit 134",
+    "head": "95fcff86076980db769e8fd8598fd69a8d7dce3d",
+    "job_id": 98753398950,
+    "run_id": 33141588443,
+    "world_directory_in_failure_artifact": false
+  },
+  "historical_identity": {
+    "canonicalization": "For each record, remove only created_at, previous_record_sha256, and record_sha256; serialize the remaining object as sorted compact UTF-8 JSON with ensure_ascii=false and append LF.",
+    "canonical_world_jsonl_sha256": "a14e5f5bbc37bfda6da6b062e2e101a621386b6af257f71da64e3b4d4d250a85",
+    "original_container_bytes_recovered": false,
+    "original_container_sha256": "5319b876c46bbdb29912b28b8d0b95451a9fbf9cc728cc7989853fe7acd5c821",
+    "original_producer_run_id": 33125920283,
+    "ordered_canonical_record_hashes_sha256": "4c464aa1b72d658460185cb55d932be61a20cfb4172159fc0333406e8acf698c",
+    "record_count": 4096,
+    "record_schema": "zeref-world-knowledge-record-v1",
+    "source_dataset": "wikimedia/wikipedia",
+    "source_revision": "20231101.en",
+    "source_set_sha256": "07216bb2a4ca979ca1ea4304efb92b09ee8aad74685df43196d694f3bd7ef8ba"
+  },
+  "placeholder_audit": {
+    "forbidden_phrase": "World source evidence record.",
+    "recovered_artifact_9670847045_matches": 0,
+    "recovered_artifact_9670957287_matches": 0
+  },
+  "recovered_historical_artifacts": [
+    {
+      "artifact_id": 9670957287,
+      "artifact_name": "zeref-world-r12-downstream-diagnostic-v2-33132925890",
+      "artifact_zip_sha256": "3b89a6dcf8bae03eec2e600117836800fd0eaf48d6ee456c5d9b187533503fa5",
+      "artifact_zip_size_bytes": 80608758,
+      "created_at": "2026-08-28T01:29:19Z",
+      "evidence_sha256": "cdbc84db988668894a476d51ee42faa591cace77631da7c7daa82831bb1201de",
+      "expires_at": "2026-11-26T01:27:44Z",
+      "head_branch": "zeref-world-knowledge-r12-train-001",
+      "head_sha": "200da0de81679edf63b2674b17ec903e3e9ea506",
+      "ingestion_summary_sha256": "9e2e6cf0965691db9a4ecd3affe9ccb8b33195f6cf7f2341ace1e1f43e549d3b",
+      "run_id": 33132925890,
+      "selected_checkpoint_sha256": "454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425"
+    },
+    {
+      "artifact_id": 9670847045,
+      "artifact_name": "zeref-world-r12-downstream-diagnostic-33132618727",
+      "artifact_zip_sha256": "8f27aabe3e1bac5edf1c51b958be1f50ff1d076105c3f41e3901d780e7aa3083",
+      "artifact_zip_size_bytes": 80611388,
+      "created_at": "2026-08-28T01:23:10Z",
+      "evidence_sha256": "3ecd3efe1627dcb9c74232c3c5760825b5f56b5fec0ce2f99f2985ee809e6535",
+      "expires_at": "2026-11-26T01:21:41Z",
+      "head_branch": "zeref-world-knowledge-r12-train-001",
+      "head_sha": "4fc77aa5d4e875804510404b39bb52a3b3e6ffa5",
+      "ingestion_summary_sha256": "9e2e6cf0965691db9a4ecd3affe9ccb8b33195f6cf7f2341ace1e1f43e549d3b",
+      "run_id": 33132618727,
+      "selected_checkpoint_sha256": "454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425"
+    }
+  ],
+  "recovery_conclusion": "Two independent historical artifacts reproduce identical stable world-source bytes and ordered source identities. The original timestamped receipt container is not relabeled as recovered.",
+  "schema": "cory-final-world-source-recovery-v1",
+  "verified_at": "2026-08-28T14:02:49Z"
+}

@@ -1,0 +1,90 @@
+{
+  "schema": "buyer-grade-baseline-v1",
+  "captured_date": "2026-09-08",
+  "repository": "NavisWORLD/The-beast-box-",
+  "starting_head": "e16ab50839497fab6f831267dd8c3b513936ea3e",
+  "starting_commit_title": "Demo/fresh cosmic UI conversation 001 (#61)",
+  "default_branch": "main",
+  "main_branch_protected": false,
+  "release": {
+    "tag": "v0.6.0",
+    "prerelease": true,
+    "target_commitish": "331f03c5d6a4aab0b2e32314293e36c7a94be393",
+    "published_date": "2026-09-08"
+  },
+  "product_ci": {
+    "run_id": 34245621956,
+    "head_sha": "e16ab50839497fab6f831267dd8c3b513936ea3e",
+    "conclusion": "success",
+    "python_3_12_quality_job_id": 102126717845,
+    "test_result": {
+      "passed": 903,
+      "failed": 0,
+      "duration_seconds": 17.07
+    },
+    "coverage": {
+      "statements": 8409,
+      "missed": 2513,
+      "percent": 70,
+      "honesty_note": "This baseline percentage uses the then-current pyproject coverage omissions for beastbox/descendant, beastbox/arms, beastbox/autonomy, and beastbox/soul. Buyer-grade hardening must remove or independently justify those omissions before treating the percentage as whole first-party coverage."
+    },
+    "mypy": {
+      "files_checked": 17,
+      "issues": 0
+    },
+    "ruff": "passed on the then-current explicitly enumerated quality surface",
+    "architecture_acceptance": "passed",
+    "security_audit": {
+      "errors": 0,
+      "warnings": 0
+    },
+    "sealed_evidence_guard": "passed",
+    "quality_artifact": {
+      "name": "quality-3.12",
+      "artifact_id": 10063883221,
+      "contains": [
+        "build/junit.xml",
+        "build/architecture-acceptance.json"
+      ]
+    },
+    "package_smoke": "passed",
+    "cosmic_browser": "passed"
+  },
+  "existing_engineering_controls": [
+    "durable restart continuity acceptance",
+    "deterministic reference A-to-B-to-A continuity control",
+    "default-deny tool authority after restart",
+    "explicit tool grant acceptance",
+    "verified backup and restore",
+    "corrupt backup rejection",
+    "corrupt durable-store rejection",
+    "security audit",
+    "sealed evidence guard",
+    "non-root Dockerfile",
+    "beastbox doctor diagnostics",
+    "structured log formatter with secret-key redaction"
+  ],
+  "confirmed_hardening_gaps": [
+    "no committed uv.lock",
+    "no root compose.yaml/docker-compose.yml",
+    "coverage omits four first-party package trees",
+    "coverage fail_under is 20 in pyproject",
+    "mypy pyproject target is only three files and Makefile target is an explicit subset",
+    "Ruff Makefile target is an explicit file list rather than the complete supported first-party surface",
+    "no COSMIC /healthz or /readyz routes found",
+    "docs/REPRODUCE.md absent",
+    "docs/BUYER_TECHNICAL_DILIGENCE.md absent",
+    "docs/THREAT_MODEL.md absent",
+    ".env.example is not yet proven complete against all supported source environment reads"
+  ],
+  "sealed_evidence_anchor": {
+    "anchor_sha": "c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f",
+    "path": "evidence/final-whole-organism-001/",
+    "classification": "ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED"
+  },
+  "non_claims": [
+    "No valuation or acquisition price is established by this baseline.",
+    "No consciousness, sentience, biological-life, soul, quantum-consciousness, quantum-advantage, or new-physics claim is established by this engineering baseline.",
+    "The deterministic reference A-to-B-to-A acceptance is an interface/continuity regression and is not a model-weight identity or equivalence claim."
+  ]
+}

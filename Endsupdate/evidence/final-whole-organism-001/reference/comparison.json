@@ -1,0 +1,70 @@
+{
+  "balanced_view_records": 428,
+  "by_role_or_type": {
+    "supervised_dialogue": {
+      "reference": {
+        "bits_per_predicted_original_character": 2.0665636863144856,
+        "predicted_original_characters": 3562,
+        "records": 41,
+        "reference_token_predictions": 1006,
+        "subword_perplexity_directly_comparable_to_zeref_character_perplexity": false,
+        "subword_token_perplexity": 159.47612776664513,
+        "total_nll_bits": 7361.099850652197
+      },
+      "zeref": {
+        "bits_per_predicted_original_character": 2.5562234659415792,
+        "predicted_original_characters": 3562,
+        "records": 41,
+        "total_nll_bits": 9105.267985683906
+      }
+    },
+    "world_knowledge": {
+      "reference": {
+        "bits_per_predicted_original_character": 1.1536781703963268,
+        "predicted_original_characters": 19634,
+        "records": 156,
+        "reference_token_predictions": 4864,
+        "subword_perplexity_directly_comparable_to_zeref_character_perplexity": false,
+        "subword_token_perplexity": 25.2276162817639,
+        "total_nll_bits": 22651.31719756148
+      },
+      "zeref": {
+        "bits_per_predicted_original_character": 4.399698491147594,
+        "predicted_original_characters": 19934,
+        "records": 156,
+        "total_nll_bits": 87703.58972253613
+      }
+    }
+  },
+  "common_records": 197,
+  "direction_only": "positive favors lower Zeref coding cost; negative favors lower reference coding cost",
+  "excluded_from_common_records": 231,
+  "holdout_sha256": "9c8bcfb21a9adda064c8e14beb7b4ccff32dece1cf189bda4c7cc5fc882f37e0",
+  "inferential_superiority_test_performed": false,
+  "interpretation": "DESCRIPTIVE_EXTERNAL_BASELINE_PENDING_MODEL_SWAP_AND_CONTROLS",
+  "paired_record_lower_bpc_counts": {
+    "reference": 192,
+    "tie": 0,
+    "zeref": 5
+  },
+  "raw_token_perplexity_cross_tokenizer_comparison_allowed": false,
+  "reference": {
+    "bits_per_predicted_original_character": 1.2938617454825692,
+    "predicted_original_characters": 23196,
+    "records": 197,
+    "reference_token_predictions": 5870,
+    "subword_perplexity_directly_comparable_to_zeref_character_perplexity": false,
+    "subword_token_perplexity": 34.60354355768762,
+    "total_nll_bits": 30012.417048213676
+  },
+  "reference_exact_roundtrip_records": 428,
+  "reference_minus_zeref_bits_per_original_character": -2.82636542970555,
+  "schema": "cosmos-frozen-reference-comparison-v1",
+  "zeref": {
+    "bits_per_predicted_original_character": 4.120227175188119,
+    "predicted_original_characters": 23496,
+    "records": 197,
+    "total_nll_bits": 96808.85770822004
+  },
+  "zeref_full_record_exact_tokenizer_records": 197
+}

@@ -1,0 +1,188 @@
+name: D001 Guarded Training
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-train.yml"
+      - "scripts/run_d001_stage.py"
+      - "scripts/create_d001_genesis.py"
+      - "beastbox/descendant/stage.py"
+      - "beastbox/descendant/promotion.py"
+      - "scripts/promote_descendant_training.py"
+      - "experiments/descendant-d001/promotion/candidates.jsonl"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+  PRIME_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  CANONICAL_SHA256: 54328c4d2090825553e3e66773177ac3b80b5b5386027eaa899ed8dd81f32f08
+  RECON_PROOF_SHA256: 1eb8a267cd9ba74c28e186504428c3068cf0b0cd47190322dce93be77e7971d2
+  PARENT_RUN_ID: "31910785892"
+  PARENT_ARTIFACT: d001-prime-trainable-reconstruction
+  CLEAN_SOURCE: genesis_engine/engine/cosmos_rsm_training_examples.jsonl
+  CLEAN_SOURCE_SHA256: 6c45bbefb7009d26fa9fc8562ace4d74dcf029a3d48ada94e6190d8ea5dbbeeb
+  HOLDOUT_SOURCE: TRAINING.md
+  HOLDOUT_SOURCE_SHA256: 591fffa98474444590d771714e4892fbb69f4408f58bab5303803e5725504945
+
+jobs:
+  train:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install exact stage dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]' 'huggingface-hub>=0.27'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Verify stage and promotion contracts
+        run: pytest -q tests/test_d001_stage_gate.py tests/test_descendant_promotion.py tests/test_descendant_twin.py tests/test_descendant_quantum.py
+
+      - name: Freeze leakage-safe promotion split
+        run: |
+          rm -rf _promotion _d001 _parent _source
+          mkdir -p _d001 _source
+          python scripts/promote_descendant_training.py \
+            experiments/descendant-d001/promotion/candidates.jsonl \
+            --out _promotion --seed d001-promotion-seed-v1
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('_promotion/manifest.json').read_text())
+          assert m['leakage_audit']['valid'] is True
+          assert m['partitions']['train'] == 2
+          assert m['partitions']['holdout'] == 1
+          assert m['partitions']['validation'] == 0
+          hold=Path('_promotion/holdout.jsonl').read_text()
+          train=Path('_promotion/train.jsonl').read_text()
+          assert 'training-md-10' in hold and 'training-md-10' not in train
+          assert 'd001-corpus-clean-rsm' in train
+          assert 'run-007-policy-correction' in train
+          PY
+          sha256sum _promotion/manifest.json | awk '{print $1}' > _d001/promotion.sha
+          sha256sum experiments/descendant-d001/corpus/quarantine-manifest.jsonl | awk '{print $1}' > _d001/quarantine.sha
+          sha256sum experiments/descendant-d001/evidence/episode-index.jsonl | awk '{print $1}' > _d001/episode.sha
+
+      - name: Download proven canonical Prime reconstruction
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "$PARENT_RUN_ID" -n "$PARENT_ARTIFACT" -D _parent
+          PARENT=$(find _parent -name zeref-prime-canonical-trainable.pt -print -quit)
+          test -n "$PARENT"
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$CANONICAL_SHA256"
+          test -f _parent/frozen/architecture/cosmos_spark_cst.py
+          echo "$PARENT" > _d001/parent-path.txt
+
+      - name: Download exact promoted and holdout sources
+        run: |
+          hf download "$HF_REPO" "$CLEAN_SOURCE" "$HOLDOUT_SOURCE" --revision "$HF_REVISION" --local-dir _source
+          test "$(sha256sum "_source/$CLEAN_SOURCE" | awk '{print $1}')" = "$CLEAN_SOURCE_SHA256"
+          test "$(sha256sum "_source/$HOLDOUT_SOURCE" | awk '{print $1}')" = "$HOLDOUT_SOURCE_SHA256"
+          cp "_source/$HOLDOUT_SOURCE" _d001/HOLDOUT-TRAINING.md
+
+      - name: Create D001-GENESIS
+        run: |
+          python scripts/create_d001_genesis.py \
+            --prime-sha256 "$PRIME_SHA256" \
+            --checkpoint-sha256 "$CANONICAL_SHA256" \
+            --proof-sha256 "$RECON_PROOF_SHA256" \
+            --training-allowed \
+            --out _d001/D001-GENESIS/manifest.json
+
+      - name: Train D001-CORPUS-CLEAN
+        run: |
+          PARENT=$(cat _d001/parent-path.txt)
+          PROMO=$(cat _d001/promotion.sha)
+          QUAR=$(cat _d001/quarantine.sha)
+          python scripts/run_d001_stage.py \
+            --stage CORPUS-CLEAN \
+            --parent "$PARENT" --parent-sha256 "$CANONICAL_SHA256" \
+            --arch _parent/frozen/architecture/cosmos_spark_cst.py \
+            --corpus "_source/$CLEAN_SOURCE" \
+            --input-manifest "promotion=$PROMO" \
+            --input-manifest "quarantine=$QUAR" \
+            --out _d001/D001-CORPUS-CLEAN \
+            --seed 20260815 --steps 40 --batch-size 4
+
+      - name: Build curated Run-007 memory lesson
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[json.loads(x) for x in Path('_promotion/train.jsonl').read_text().splitlines() if x.strip()]
+          r=next(x for x in rows if x['group_id']=='run-007-policy-correction')
+          # One promoted lesson, repeated only to form deterministic optimization windows.
+          text=(r['text'].strip()+'\n')*8
+          Path('_d001/run007-memory.txt').write_text(text,encoding='utf-8')
+          Path('_d001/run007-memory-augmentation.json').write_text(json.dumps({
+            'source_example_sha256':r['example_sha256'],
+            'source_hashes':r['source_hashes'],
+            'repetition_factor':8,
+            'purpose':'optimization window formation for one explicitly promoted corrective lesson',
+            'raw_run_outputs_not_promoted':True,
+          },indent=2,sort_keys=True)+'\n',encoding='utf-8')
+          PY
+
+      - name: Train D001-MEMORY
+        run: |
+          PARENT=_d001/D001-CORPUS-CLEAN/checkpoint.pt
+          PARENT_SHA=$(sha256sum "$PARENT" | awk '{print $1}')
+          PROMO=$(cat _d001/promotion.sha)
+          EP=$(cat _d001/episode.sha)
+          python scripts/run_d001_stage.py \
+            --stage MEMORY \
+            --parent "$PARENT" --parent-sha256 "$PARENT_SHA" --allow-descendant-parent \
+            --arch _parent/frozen/architecture/cosmos_spark_cst.py \
+            --corpus _d001/run007-memory.txt \
+            --input-manifest "promotion=$PROMO" \
+            --input-manifest "episode-index=$EP" \
+            --out _d001/D001-MEMORY \
+            --seed 20260816 --steps 20 --batch-size 2 --lr 5e-6 --cst-lr 5e-5
+
+      - name: Freeze provenance-gated future stage statuses
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for stage, reason in {
+            'D001-QUANTUM':'BLOCKED_INPUT_PROVENANCE: published legacy summaries exist, but raw job/backend/count records used by the historical result were not independently recovered into this run.',
+            'D001-TWIN':'BLOCKED_INPUT_PROVENANCE: published paired-state summary exists, but raw timestamped user measurement rows have not been recovered into this run.',
+          }.items():
+            p=Path('_d001')/stage; p.mkdir(parents=True,exist_ok=True)
+            (p/'status.json').write_text(json.dumps({
+              'schema':'d001-stage-status-v1','stage':stage.replace('D001-',''),
+              'status':'BLOCKED_INPUT_PROVENANCE','reason':reason,
+              'weights_mutated':False,
+              'claim_boundary':'source summaries are preserved as research provenance but are not substituted for missing raw measurement evidence'
+            },indent=2,sort_keys=True)+'\n',encoding='utf-8')
+          PY
+
+      - name: Freeze stage hashes
+        run: |
+          find _d001 -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > _d001/SHA256SUMS
+          cat _d001/D001-CORPUS-CLEAN/result.json
+          cat _d001/D001-MEMORY/result.json
+          cat _d001/D001-QUANTUM/status.json
+          cat _d001/D001-TWIN/status.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d001-trained-lineage-${{ github.run_id }}
+          path: _d001
+          if-no-files-found: error

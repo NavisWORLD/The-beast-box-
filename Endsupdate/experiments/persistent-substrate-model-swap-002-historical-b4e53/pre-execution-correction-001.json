@@ -1,0 +1,28 @@
+{
+  "schema": "persistent-substrate-pre-execution-correction-v1",
+  "experiment_id": "persistent-substrate-model-swap-002-historical-b4e53",
+  "failed_run_id": 33913541101,
+  "failed_run_head_sha": "632cddc0c9bb78e25f13364b32f9f3efd3849078",
+  "failure_stage": "substrate restore before A0 model load/inference",
+  "failure": "R12 state internal hash mismatch",
+  "behavioral_measurements_observed": false,
+  "model_inference_executed": false,
+  "reason_for_correction": "The committed genesis R12 object contained a stale embedded state_sha256. PersistentSubstrate recomputes the canonical unsigned-state hash and rejected the object before any frozen model was loaded.",
+  "old_embedded_state_sha256": "11b608daafdb2952f8450400e2ec9685e76dc6a14616f538d7067f1e21b54b8",
+  "corrected_embedded_state_sha256": "11b608653aef6fdc17d9c9b401ea68ec9341d3bb8d0cc8c5ea0c964073bbbdca",
+  "corrected_r12_state_file_sha256": "f8b02245daf0d48ec8b404eef1105b92558e619ea3865f792bf52b34d6b06559",
+  "corrected_r12_history_file_sha256": "f8b02245daf0d48ec8b404eef1105b92558e619ea3865f792bf52b34d6b06559",
+  "unchanged_protocol_elements": [
+    "Model A checkpoint and architecture",
+    "Model B repository and immutable historical revision",
+    "prompt battery",
+    "paired NLL metric",
+    "A0 -> B1 -> A2 order",
+    "A-only control",
+    "empty-memory control",
+    "shuffled-memory control",
+    "structural success criteria",
+    "claim boundary"
+  ],
+  "classification": "PRE_EXECUTION_INTEGRITY_REPAIR"
+}

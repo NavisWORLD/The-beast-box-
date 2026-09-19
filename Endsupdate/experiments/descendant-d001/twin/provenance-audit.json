@@ -1,0 +1,74 @@
+{
+  "schema": "d001-twin-provenance-audit-v1",
+  "status": "ARCHITECTURE_VERIFIED_MEASUREMENT_ARCHIVE_NOT_PUBLICLY_PROVEN",
+  "training_allowed": false,
+  "weights_mutated": false,
+  "sources": [
+    {
+      "repo": "NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2",
+      "revision": "dddb1325b90c9abbe8da77974874e5770623035e",
+      "path": "emotional_api/full_system.py",
+      "classification": "capture_runtime",
+      "finding": "Runtime contains real webcam/audio capture paths plus a distinct virtual/Ghost fallback. Runtime capability is not itself a captured user measurement archive."
+    },
+    {
+      "repo": "NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2",
+      "revision": "dddb1325b90c9abbe8da77974874e5770623035e",
+      "path": "state.json",
+      "classification": "virtual_or_default_state",
+      "finding": "Committed state is explicitly virtual/default state and is not eligible as a real user biosignal record."
+    },
+    {
+      "repo": "NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2",
+      "revision": "dddb1325b90c9abbe8da77974874e5770623035e",
+      "path": "cosmos/health/providers/apple_health.py",
+      "classification": "provider_adapter",
+      "finding": "Apple Health ingestion support exists, but no source Apple Health export.xml measurement archive was found in the reviewed repository evidence. Provider code alone is not measurement evidence."
+    },
+    {
+      "repo": "NavisWORLD/Bio-integration-pipeline-",
+      "revision": "3060dcd99137e13ca5da73bda069f129047dd4ca",
+      "path": "README.md",
+      "classification": "bio_cns_architecture",
+      "finding": "Local-first Bio/CNS pipeline implements consent, quality/timestamp handling, personal baselines, persistent event ledger, heartbeat records, schemas, and sensor adapters. Its documented quick demo uses a DeterministicCardiacAdapter, so demo output is synthetic/test data rather than proof of a captured user archive."
+    },
+    {
+      "repo": "NavisWORLD/COSMOS-HEARTLIGHT",
+      "revision": "609769c7506cb649be888a5a255c80eec84ee24e",
+      "path": "README.md",
+      "classification": "approved_sensor_architecture",
+      "finding": "HEARTLIGHT may carry explicitly entered or approved-sensor observations such as pulse, is local-first, and explicitly instructs contributors not to submit real private health/recording records to the public repository."
+    }
+  ],
+  "searched_public_repo_evidence": {
+    "user_specific_heart_rate_json_found": false,
+    "user_specific_heart_rate_jsonl_found": false,
+    "user_specific_heart_rate_csv_found": false,
+    "apple_health_export_xml_found": false,
+    "verified_timestamped_user_biosignal_archive_found": false
+  },
+  "accepted_measurement_classes_for_future_private_ingest": [
+    "heart_or_pulse_measurement_with_source_hash_timestamp_session_and_device_or_provider",
+    "hrv_measurement_with_source_hash_timestamp_session_and_device_or_provider",
+    "approved_audio_summary_with_source_hash_timestamp_session_and_real_capture_flag",
+    "approved_vision_summary_with_source_hash_timestamp_session_and_real_capture_flag",
+    "other_explicitly_consented_bio_observation_with_source_hash_timestamp_quality_and_channel_schema"
+  ],
+  "rejected_as_real_measurement": [
+    "virtual_body",
+    "ghost_mode",
+    "deterministic_demo_sensor",
+    "mock_provider",
+    "provider_adapter_without_source_export",
+    "default_state",
+    "model_generated_sensor_claim"
+  ],
+  "privacy_policy": {
+    "raw_private_media_required_for_training": false,
+    "prefer_numeric_summaries": true,
+    "private_measurement_archive_must_not_be_committed_publicly": true,
+    "derived_twin_packets_must_reference_source_hashes": true
+  },
+  "gate_resolution": "D001-TWIN remains blocked for weight training until a private or otherwise provenance-verifiable measurement bundle is explicitly supplied/mounted and produces source-hashed TWIN_STATE_PACKET records. The runtime architecture needed to ingest such measurements is verified and ready.",
+  "bounded_interpretation": "The repositories verify a substantial bio/sensor capture and integration architecture, but this audit did not find a publicly committed user-specific biosignal archive that can be defensibly identified as the user's measured physiology. This is consistent with the repositories' local-first/privacy boundaries and must not be rewritten as evidence that no private measurements exist elsewhere."
+}

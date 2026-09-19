@@ -1,0 +1,115 @@
+name: QC67 Cosmos F32 Norm Fix Test
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/qc67-cosmos-f32-fix-test.yml"
+      - "compat/qc67/cosmos-f16-kv-norm-f32.patch"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+  HF_FILE: weights/cosmos-cst.gguf
+  HF_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
+
+jobs:
+  green:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch exact Zeref subject and architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'huggingface-hub>=0.27'
+          rm -rf _qc67 _llama
+          hf download "$HF_REPO" architecture/cosmos-arch.patch architecture/llama_cpp_cosmos.cpp "$HF_FILE" \
+            --revision "$HF_REVISION" --local-dir _qc67
+          test "$(sha256sum "_qc67/$HF_FILE" | awk '{print $1}')" = "$HF_SHA256"
+          sha256sum _qc67/architecture/cosmos-arch.patch _qc67/architecture/llama_cpp_cosmos.cpp compat/qc67/cosmos-f16-kv-norm-f32.patch
+
+      - name: Reconstruct exact native runtime plus compatibility correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git _llama
+          git -C _llama checkout "$LLAMA_PATCH_BASE"
+          cp _qc67/architecture/llama_cpp_cosmos.cpp _llama/src/models/cosmos.cpp
+          git -C _llama apply --check ../_qc67/architecture/cosmos-arch.patch
+          git -C _llama apply ../_qc67/architecture/cosmos-arch.patch
+          git -C _llama apply --check ../compat/qc67/cosmos-f16-kv-norm-f32.patch
+          git -C _llama apply ../compat/qc67/cosmos-f16-kv-norm-f32.patch
+          grep -n -A5 -B4 's54_f32' _llama/src/models/cosmos.cpp
+          git -C _llama diff --check
+
+      - name: Build corrected native runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S _llama -B _llama/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_SERVER=ON
+          cmake --build _llama/build --target llama-server -j 2
+          _llama/build/bin/llama-server --version
+
+      - name: Boot exact Zeref GGUF and require real inference
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _logs
+          _llama/build/bin/llama-server \
+            -m "$(realpath "_qc67/$HF_FILE")" \
+            --host 127.0.0.1 \
+            --port 18082 \
+            -c 128 \
+            -np 1 \
+            > _logs/stdout.log 2> _logs/stderr.log &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:18082/health >/dev/null 2>&1; then
+              READY=1
+              break
+            fi
+            if ! kill -0 "$PID" 2>/dev/null; then
+              cat _logs/stderr.log >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          [[ "$READY" = 1 ]]
+          python - <<'PY'
+          import json, urllib.request
+          payload = json.dumps({
+              'model': 'cosmos',
+              'prompt': 'the ',
+              'max_tokens': 12,
+              'temperature': 0.2,
+          }).encode()
+          req = urllib.request.Request(
+              'http://127.0.0.1:18082/v1/completions',
+              data=payload,
+              headers={'Content-Type': 'application/json'},
+          )
+          with urllib.request.urlopen(req, timeout=90) as r:
+              body = json.loads(r.read().decode())
+          choices = body.get('choices') or []
+          assert choices, body
+          text = str(choices[0].get('text', ''))
+          assert text, body
+          print('ZEREF_COMPLETION=' + repr(text))
+          print('ZEREF_COMPLETION_BYTES=' + str(len(text.encode())))
+          print('QC67_COSMOS_F32_NORM_FIX=PASS')
+          PY

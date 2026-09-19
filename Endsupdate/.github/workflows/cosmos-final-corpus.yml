@@ -1,0 +1,315 @@
+name: COSMOS FINAL CLOSURE - UNIVERSAL CORPUS
+
+on:
+  push:
+    branches: [cory-davis-cosmos-reality-bridge-final-organism-001]
+    paths:
+      - 'tests/test_final_reality_bridge_corpus.py'
+      - 'tests/test_final_world_source.py'
+      - 'tests/test_cosmos_final_corpus_workflow.py'
+      - 'tests/fixtures/final_world_source/**'
+      - 'scripts/final_reality_bridge_corpus.py'
+      - 'scripts/final_reality_bridge_world_source.py'
+      - '.github/workflows/cosmos-final-corpus.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  FINAL_BRANCH: cory-davis-cosmos-reality-bridge-final-organism-001
+  GREEN_PARENT: 595d146f7d47ca048606f3e889e8c459e2fc3bd2
+  ADOPTED_BOUNDARY: 95fcff86076980db769e8fd8598fd69a8d7dce3d
+  WORLD_ARTIFACT_RUN: '33132925890'
+  WORLD_ARTIFACT_NAME: zeref-world-r12-downstream-diagnostic-v2-33132925890
+  WORLD_EVIDENCE_SHA256: cdbc84db988668894a476d51ee42faa591cace77631da7c7daa82831bb1201de
+  WORLD_SUMMARY_SHA256: 9e2e6cf0965691db9a4ecd3affe9ccb8b33195f6cf7f2341ace1e1f43e549d3b
+  WORLD_CANONICAL_SHA256: a14e5f5bbc37bfda6da6b062e2e101a621386b6af257f71da64e3b4d4d250a85
+  WORLD_RECORD_HASHES_SHA256: 4c464aa1b72d658460185cb55d932be61a20cfb4172159fc0333406e8acf698c
+  WORLD_SOURCE_SET_SHA256: 07216bb2a4ca979ca1ea4304efb92b09ee8aad74685df43196d694f3bd7ef8ba
+  SELECTED_ZEREF_SHA256: 454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425
+  FULL_TRAIN_SHA256: 0175f437635a9e160b2de887b3b634310deb0b9dbf4d34adb2be5256c131df07
+  MICRO_HOLDOUT_SHA256: 3c3e2f80bc728c5d8d9420b240970f225f711651e190d17388136356ab0302db
+  TALK002_HOLDOUT_SHA256: a86af74313ccfdf6020147d9415a3c2cd13360074729fd22d34506807860a0ed
+  TALK005_HOLDOUT_SHA256: db9ddc110375dc14c51f39395f9128bfe41c1b3f6a2eda2d6b64ceaf912571ba
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  corpus-freeze:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify isolated protected lineage
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "$FINAL_BRANCH"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor "$GREEN_PARENT" "$ADOPTED_BOUNDARY"
+          git merge-base --is-ancestor "$ADOPTED_BOUNDARY" "$GITHUB_SHA"
+          test "$(git rev-list --left-right --count "$GREEN_PARENT...$ADOPTED_BOUNDARY")" = $'0\t12'
+
+      - name: Verify sealed resume and lineage receipts
+        run: |
+          set -euo pipefail
+          (cd evidence/final-reality-bridge && sha256sum -c RESUME_SHA256SUMS)
+          (cd evidence/final-whole-organism-001/lineage && sha256sum -c SHA256SUMS)
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          receipt=json.loads(Path('evidence/final-reality-bridge/resume-state.json').read_text())
+          assert 'BASELINE_BLOODLINE_FREEZE' in receipt['completed_gates'], receipt
+          assert 'REAL_ZEREF_CONVERSATION' in receipt['completed_gates'], receipt
+          assert receipt['canonical_memory_record_count']==352, receipt
+          lineage=json.loads(Path('evidence/final-whole-organism-001/lineage/lineage-manifest.json').read_text())
+          assert lineage['initial_checkout']['head']=='95fcff86076980db769e8fd8598fd69a8d7dce3d', lineage
+          assert lineage['ancestry_verification']['green_is_ancestor'] is True, lineage
+          print(json.dumps({'resume_verified':True,'lineage_verified':True},sort_keys=True))
+          PY
+
+      - name: Install corpus dependencies
+        run: python -m pip install -e '.[dev]'
+
+      - name: Corpus authenticity and determinism tests
+        run: |
+          python -m pytest -q \
+            tests/test_final_world_source.py \
+            tests/test_final_reality_bridge_corpus.py \
+            tests/test_cosmos_final_corpus_workflow.py
+
+      - name: Restore pinned historical artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p _closure_corpus/historical _closure_corpus/world
+          gh run download 33118621824 \
+            -n zeref-talk006-full-clean-final-33118621824 \
+            -D _closure_corpus/historical
+          gh run download "$WORLD_ARTIFACT_RUN" \
+            -n "$WORLD_ARTIFACT_NAME" \
+            -D _closure_corpus/world
+          test "$(sha256sum _closure_corpus/historical/corpus/full/train.jsonl | awk '{print $1}')" = "$FULL_TRAIN_SHA256"
+          test "$(sha256sum _closure_corpus/historical/corpus/micro/holdout.jsonl | awk '{print $1}')" = "$MICRO_HOLDOUT_SHA256"
+          test "$(sha256sum _closure_corpus/historical/corpus/talk002/talk2-holdout.jsonl | awk '{print $1}')" = "$TALK002_HOLDOUT_SHA256"
+          test "$(sha256sum _closure_corpus/historical/corpus/talk005/reviewed-source/holdout.jsonl | awk '{print $1}')" = "$TALK005_HOLDOUT_SHA256"
+          test "$(sha256sum _closure_corpus/world/world/world-evidence.jsonl | awk '{print $1}')" = "$WORLD_EVIDENCE_SHA256"
+          test "$(sha256sum _closure_corpus/world/world/ingestion-summary.json | awk '{print $1}')" = "$WORLD_SUMMARY_SHA256"
+          test "$(sha256sum _closure_corpus/world/SELECTED-WORLD-R12.pt | awk '{print $1}')" = "$SELECTED_ZEREF_SHA256"
+
+      - name: Freeze twice and compare every output byte
+        id: freeze
+        shell: bash
+        run: |
+          set +e
+          python scripts/final_reality_bridge_corpus.py \
+            --historical-root _closure_corpus/historical \
+            --world-evidence _closure_corpus/world/world/world-evidence.jsonl \
+            --world-summary _closure_corpus/world/world/ingestion-summary.json \
+            --source-output-dir _closure_corpus/source-one \
+            --out _closure_corpus/freeze-one \
+            > _closure_corpus/freeze-one.stdout.log \
+            2> _closure_corpus/freeze-one.stderr.log
+          first_rc=$?
+          if [ "$first_rc" = "0" ]; then
+            python scripts/final_reality_bridge_corpus.py \
+              --historical-root _closure_corpus/historical \
+              --world-evidence _closure_corpus/world/world/world-evidence.jsonl \
+              --world-summary _closure_corpus/world/world/ingestion-summary.json \
+              --source-output-dir _closure_corpus/source-two \
+              --out _closure_corpus/freeze-two \
+              > _closure_corpus/freeze-two.stdout.log \
+              2> _closure_corpus/freeze-two.stderr.log
+            second_rc=$?
+          else
+            second_rc=not-run
+          fi
+          printf '%s\n' "$first_rc" > _closure_corpus/freeze-one.exit-code
+          printf '%s\n' "$second_rc" > _closure_corpus/freeze-two.exit-code
+          if [ "$first_rc" != "0" ] || [ "$second_rc" != "0" ]; then
+            cat _closure_corpus/freeze-one.stderr.log >&2 || true
+            cat _closure_corpus/freeze-two.stderr.log >&2 || true
+            exit 1
+          fi
+          set -euo pipefail
+          diff -qr _closure_corpus/freeze-one _closure_corpus/freeze-two
+          diff -qr _closure_corpus/source-one _closure_corpus/source-two
+          (cd _closure_corpus/freeze-one && sha256sum -c SHA256SUMS)
+          (cd _closure_corpus/source-one && sha256sum -c SHA256SUMS)
+          test "$(sha256sum _closure_corpus/source-one/canonical-world.jsonl | awk '{print $1}')" = "$WORLD_CANONICAL_SHA256"
+          test "$(sha256sum _closure_corpus/source-one/canonical-record-hashes.txt | awk '{print $1}')" = "$WORLD_RECORD_HASHES_SHA256"
+          cat _closure_corpus/freeze-one.stdout.log
+
+      - name: Seal verified corpus and update resume receipt
+        if: success()
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,os,shutil
+          from datetime import datetime,timezone
+          from pathlib import Path
+
+          root=Path('evidence/final-whole-organism-001')
+          corpus_source=Path('_closure_corpus/freeze-one')
+          source_source=Path('_closure_corpus/source-one')
+          corpus_target=root/'corpus'
+          source_target=root/'corpus-source'
+          root.mkdir(parents=True,exist_ok=True)
+          if corpus_target.exists():
+              for path in corpus_source.iterdir():
+                  target=corpus_target/path.name
+                  assert target.is_file() and target.read_bytes()==path.read_bytes(), path.name
+          else:
+              shutil.copytree(corpus_source,corpus_target)
+          source_target.mkdir(parents=True,exist_ok=True)
+          for name in ('source-receipt.json','canonical-record-hashes.txt'):
+              payload=(source_source/name).read_bytes()
+              target=source_target/name
+              if target.exists():
+                  assert target.read_bytes()==payload, name
+              else:
+                  target.write_bytes(payload)
+          source_manifest={
+              'schema':'cosmos-corpus-source-acquisition-v1',
+              'artifact_run_id':33132925890,
+              'artifact_id':9670957287,
+              'artifact_name':'zeref-world-r12-downstream-diagnostic-v2-33132925890',
+              'raw_evidence_sha256':os.environ['WORLD_EVIDENCE_SHA256'],
+              'ingestion_summary_sha256':os.environ['WORLD_SUMMARY_SHA256'],
+              'canonical_world_sha256':os.environ['WORLD_CANONICAL_SHA256'],
+              'canonical_record_hashes_sha256':os.environ['WORLD_RECORD_HASHES_SHA256'],
+              'source_set_sha256':os.environ['WORLD_SOURCE_SET_SHA256'],
+              'canonical_world_storage':'Actions artifact cosmos-final-corpus-${{ github.run_id }}/_closure_corpus/source-one/canonical-world.jsonl; release kit acquisition is required before artifact expiry',
+              'original_5319_container_bytes_recovered':False,
+          }
+          (source_target/'acquisition-manifest.json').write_text(json.dumps(source_manifest,indent=2,sort_keys=True)+'\n')
+          checks=sorted(path for path in source_target.iterdir() if path.is_file() and path.name!='SHA256SUMS')
+          (source_target/'SHA256SUMS').write_text(''.join(f'{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}\n' for path in checks))
+
+          status=json.loads((corpus_target/'STATUS.json').read_text())
+          leak=json.loads((corpus_target/'leakage-report.json').read_text())
+          manifest=json.loads((corpus_target/'manifest.json').read_text())
+          benchmark=json.loads((corpus_target/'benchmark-prompts.json').read_text())
+          assert status['status']=='VERIFIED_GATE', status
+          assert leak['status']=='PASS', leak
+          assert leak['benchmark_prompt_leaks']==[], leak
+          assert leak['cross_partition_exact_duplicates']==[], leak
+          assert leak['cross_partition_normalized_duplicates']==[], leak
+          assert manifest['world_source']['record_count']==4096, manifest['world_source']
+          assert manifest['world_source']['placeholder_records']==0, manifest['world_source']
+          assert manifest['world_source']['canonical_sha256']==os.environ['WORLD_CANONICAL_SHA256'], manifest['world_source']
+          assert len(benchmark['prompts'])==20, len(benchmark['prompts'])
+          assert benchmark['frozen_before_reference_output'] is True
+          counts=manifest['partition_counts']
+          assert counts['TRAIN']>0 and counts['VALIDATION']>0 and counts['HOLDOUT']>0, counts
+          assert counts['MEMORY_ONLY']==352, counts
+
+          resume_root=Path('evidence/final-reality-bridge')
+          receipt=json.loads((resume_root/'resume-state.json').read_text())
+          completed=list(receipt.get('completed_gates') or [])
+          if 'UNIVERSAL_CORPUS_FREEZE' not in completed:
+              completed.append('UNIVERSAL_CORPUS_FREEZE')
+          receipt.update({
+              'timestamp':datetime.now(timezone.utc).isoformat(),
+              'branch':os.environ['GITHUB_REF_NAME'],
+              'HEAD':os.environ['GITHUB_SHA'],
+              'completed_gates':completed,
+              'active_gate':'VERIFIED_ORGANISM_ASSEMBLY',
+              'next_gate':'VERIFY_MODEL_MEMORY_R12_DYN12_REFLECTOR_COMPONENTS',
+              'corpus_status':'VERIFIED_GENUINE_HISTORICAL_4096_CANONICAL_SOURCE',
+              'original_world_receipt_container_recovered':False,
+              'canonical_world_source_sha256':os.environ['WORLD_CANONICAL_SHA256'],
+              'world_source_set_sha256':os.environ['WORLD_SOURCE_SET_SHA256'],
+              'corpus_root_SHA':status['CORPUS_ROOT_SHA256'],
+              'TRAIN_SHA':status['TRAIN_SHA256'],
+              'VALIDATION_SHA':status['VALIDATION_SHA256'],
+              'HOLDOUT_SHA':status['HOLDOUT_SHA256'],
+              'latest_tests':'Historical source authenticity + receipt chain + placeholder rejection + exact/normalized leakage + two-pass byte determinism',
+              'latest_artifact':'evidence/final-whole-organism-001/corpus',
+              'latest_artifact_SHA':hashlib.sha256((corpus_target/'SHA256SUMS').read_bytes()).hexdigest(),
+              'system_status':'EXECUTION_INTERRUPTED_RESUMABLE',
+              'known_demonstrated_blockers':[],
+              'exact_resume_instruction':'Verify the run-scoped corpus and source receipts, then assemble only the frozen selected checkpoint, canonical 352-record memory, GREEN R12, DYN12, and reflector components.',
+          })
+          (resume_root/'resume-state.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          resume_sha=hashlib.sha256((resume_root/'resume-state.json').read_bytes()).hexdigest()
+          (resume_root/'RESUME_SHA256SUMS').write_text(f'{resume_sha}  resume-state.json\n')
+          print(json.dumps({'corpus_verified':True,'corpus_root':status['CORPUS_ROOT_SHA256'],'canonical_world':os.environ['WORLD_CANONICAL_SHA256'],'resume_sha256':resume_sha},sort_keys=True))
+          PY
+          (cd evidence/final-whole-organism-001/corpus && sha256sum -c SHA256SUMS)
+          (cd evidence/final-whole-organism-001/corpus-source && sha256sum -c SHA256SUMS)
+          (cd evidence/final-reality-bridge && sha256sum -c RESUME_SHA256SUMS)
+
+      - name: Preserve corpus failure diagnostics
+        if: failure()
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os,platform,sys
+          from datetime import datetime,timezone
+          from pathlib import Path
+          failure=Path('evidence/final-whole-organism-001/corpus-failure')
+          failure.mkdir(parents=True,exist_ok=True)
+          first=Path('_closure_corpus/freeze-one.exit-code')
+          second=Path('_closure_corpus/freeze-two.exit-code')
+          payload={
+              'schema':'cosmos-final-corpus-failure-v2',
+              'gate':'UNIVERSAL_CORPUS_FREEZE',
+              'status':'RECOVERABLE_ENGINEERING_FAILURE',
+              'first_exit_code':first.read_text().strip() if first.exists() else 'not-run',
+              'second_exit_code':second.read_text().strip() if second.exists() else 'not-run',
+              'timestamp':datetime.now(timezone.utc).isoformat(),
+              'head':os.environ.get('GITHUB_SHA'),
+              'boundary':'historical source authentication, canonicalization, partition, or leakage validation; no fallback was emitted',
+          }
+          (failure/'failure.json').write_text(json.dumps(payload,indent=2,sort_keys=True)+'\n')
+          (failure/'environment.json').write_text(json.dumps({'python':sys.version,'platform':platform.platform()},indent=2,sort_keys=True)+'\n')
+          for name in ('freeze-one.stderr.log','freeze-two.stderr.log'):
+              source=Path('_closure_corpus')/name
+              if source.exists():
+                  (failure/name).write_text(source.read_text(errors='replace'))
+          PY
+
+      - name: Commit verified corpus evidence
+        if: success()
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "$FINAL_BRANCH"
+          git config user.name 'cosmos-closure-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add \
+            evidence/final-whole-organism-001/corpus \
+            evidence/final-whole-organism-001/corpus-source \
+            evidence/final-reality-bridge/resume-state.json \
+            evidence/final-reality-bridge/RESUME_SHA256SUMS
+          if ! git diff --cached --quiet; then
+            git commit -m 'evidence(final-closure): seal genuine universal corpus gate'
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+      - name: Upload corpus and authenticated historical source
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-final-corpus-${{ github.run_id }}
+          path: |
+            evidence/final-whole-organism-001
+            evidence/final-reality-bridge/resume-state.json
+            evidence/final-reality-bridge/RESUME_SHA256SUMS
+            _closure_corpus/source-one/canonical-world.jsonl
+            _closure_corpus/source-one/canonical-record-hashes.txt
+            _closure_corpus/source-one/source-receipt.json
+            _closure_corpus/source-one/SHA256SUMS
+            _closure_corpus/world/world/world-evidence.jsonl
+            _closure_corpus/world/world/ingestion-summary.json
+            _closure_corpus/freeze-*.stdout.log
+            _closure_corpus/freeze-*.stderr.log
+            _closure_corpus/freeze-*.exit-code
+          if-no-files-found: warn
+          retention-days: 90

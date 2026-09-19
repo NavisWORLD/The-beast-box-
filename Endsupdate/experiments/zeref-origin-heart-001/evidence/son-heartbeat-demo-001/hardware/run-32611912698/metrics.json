@@ -1,0 +1,62 @@
+{
+  "claim_boundary": "Descriptive empirical distribution distances only; no statistical-significance claim without repeated matched blocks.",
+  "pairwise": {
+    "jsd_bits": {
+      "ALTERNATE": {
+        "ALTERNATE": 0.0,
+        "ORIGINAL": 0.0855610206692427,
+        "REMOVED": 0.49768318940960754,
+        "SHUFFLED": 0.06280686919569833
+      },
+      "ORIGINAL": {
+        "ALTERNATE": 0.0855610206692427,
+        "ORIGINAL": 0.0,
+        "REMOVED": 0.4701049899987442,
+        "SHUFFLED": 0.09025389026266109
+      },
+      "REMOVED": {
+        "ALTERNATE": 0.49768318940960754,
+        "ORIGINAL": 0.4701049899987442,
+        "REMOVED": 0.0,
+        "SHUFFLED": 0.46612522238068843
+      },
+      "SHUFFLED": {
+        "ALTERNATE": 0.06280686919569833,
+        "ORIGINAL": 0.09025389026266109,
+        "REMOVED": 0.46612522238068843,
+        "SHUFFLED": 0.0
+      }
+    },
+    "tvd": {
+      "ALTERNATE": {
+        "ALTERNATE": 0.0,
+        "ORIGINAL": 0.278076171875,
+        "REMOVED": 0.7294921875,
+        "SHUFFLED": 0.245849609375
+      },
+      "ORIGINAL": {
+        "ALTERNATE": 0.278076171875,
+        "ORIGINAL": 0.0,
+        "REMOVED": 0.71044921875,
+        "SHUFFLED": 0.284423828125
+      },
+      "REMOVED": {
+        "ALTERNATE": 0.7294921875,
+        "ORIGINAL": 0.71044921875,
+        "REMOVED": 0.0,
+        "SHUFFLED": 0.71337890625
+      },
+      "SHUFFLED": {
+        "ALTERNATE": 0.245849609375,
+        "ORIGINAL": 0.284423828125,
+        "REMOVED": 0.71337890625,
+        "SHUFFLED": 0.0
+      }
+    }
+  },
+  "schema": "son-heartbeat-demo-ibm-metrics-v1",
+  "units": {
+    "jsd_bits": "bits",
+    "tvd": "probability distance"
+  }
+}

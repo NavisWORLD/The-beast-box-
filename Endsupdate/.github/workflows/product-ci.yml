@@ -1,0 +1,111 @@
+name: Product CI
+
+on:
+  workflow_call:
+  push:
+    branches: ["**"]
+    paths: &product-paths
+      - "beastbox/**"
+      - "tests/**"
+      - "scripts/**"
+      - "Makefile"
+      - "requirements*.txt"
+      - "pyproject.toml"
+      - "README.md"
+      - "assets/**"
+      - "kits/**"
+      - "evidence/system-closure-001/**"
+      - "QUANTUM_BEAST_STARTER/**"
+      - "docs/**"
+      - "PROJECT_STATUS.json"
+      - ".github/workflows/product-ci.yml"
+  pull_request:
+    paths: *product-paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: product-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+      - run: python -m pip install -r requirements-dev.txt -e .
+      - name: Full quality gate
+        run: make quality ACCEPTANCE_OUTPUT=build/architecture-acceptance.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-${{ matrix.python-version }}
+          path: |
+            build/junit.xml
+            build/architecture-acceptance.json
+          if-no-files-found: warn
+
+  package-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Build, install, and run away from source
+        run: |
+          mkdir -p build
+          if make package-smoke > build/package-smoke.log 2>&1; then
+            printf '%s\n' '{"gate":"package-smoke","passed":true,"workflow":"product-ci"}' > build/package-smoke.json
+            printf '%s\n' '<testsuite name="package-smoke" tests="1" failures="0"><testcase name="clean-wheel-install"/></testsuite>' > build/package-junit.xml
+          else
+            status=$?
+            printf '%s\n' '{"gate":"package-smoke","passed":false,"workflow":"product-ci"}' > build/package-smoke.json
+            printf '%s\n' '<testsuite name="package-smoke" tests="1" failures="1"><testcase name="clean-wheel-install"><failure>package smoke failed; see log</failure></testcase></testsuite>' > build/package-junit.xml
+            cat build/package-smoke.log
+            exit "$status"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: package-smoke
+          path: |
+            build/package-smoke.json
+            build/package-smoke.log
+            build/package-junit.xml
+          if-no-files-found: error
+
+  cosmic-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e . playwright==1.55.0
+      - run: python -m playwright install --with-deps chromium
+      - name: Real browser owner flows and responsive layouts
+        run: python scripts/smoke/cosmic_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cosmic-browser
+          path: build/cosmic-browser/
+          if-no-files-found: warn

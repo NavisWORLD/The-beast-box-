@@ -1,0 +1,71 @@
+name: QC67 Native Runtime Probe
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/hf-runtime-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Inspect public QC67 runtime sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'huggingface-hub>=0.27'
+          rm -rf _qc67_probe
+          python - <<'PY'
+          from pathlib import Path
+          from huggingface_hub import snapshot_download, HfApi
+
+          repo = 'phera-ra/QC67_cosmo'
+          info = HfApi().model_info(repo)
+          root = Path(snapshot_download(
+              repo_id=repo,
+              revision=info.sha,
+              local_dir='_qc67_probe',
+              allow_patterns=['*.py', '*.json', '*.md', '*.toml', '*.txt', '*.yaml', '*.yml'],
+          ))
+          print('HF_REVISION=' + str(info.sha))
+          print('SOURCE_FILES_BEGIN')
+          for p in sorted(root.rglob('*')):
+              if p.is_file():
+                  print(p.relative_to(root).as_posix())
+          print('SOURCE_FILES_END')
+
+          needles = (
+              'general.architecture', 'cosmos', 'torch.load', 'load_state_dict',
+              'generate(', 'inference', 'tokenizer', 'char-level', 'gguf',
+              'model =', 'class Cosmos', 'class COSMOS', 'forward(',
+          )
+          print('MATCHES_BEGIN')
+          for p in sorted(root.rglob('*')):
+              if not p.is_file() or p.suffix.lower() not in {'.py','.md','.json','.toml','.txt','.yaml','.yml'}:
+                  continue
+              try:
+                  lines = p.read_text(encoding='utf-8', errors='replace').splitlines()
+              except OSError:
+                  continue
+              hits = []
+              for i, line in enumerate(lines, 1):
+                  low = line.lower()
+                  if any(n.lower() in low for n in needles):
+                      hits.append((i, line[:500]))
+              if hits:
+                  print(f'--- {p.relative_to(root).as_posix()} ---')
+                  for i, line in hits[:120]:
+                      print(f'{i}: {line}')
+          print('MATCHES_END')
+          PY

@@ -1,0 +1,406 @@
+name: COSMOS FINAL ORGANISM - SCIENTIFIC CLOSURE
+
+on:
+  push:
+    branches: [cory-davis-cosmos-reality-bridge-final-organism-001]
+    paths:
+      - 'scripts/final_reality_bridge_resource_source.py'
+      - 'tests/test_final_resource_source_controls.py'
+      - '.github/workflows/cosmos-final-scientific-closure.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  BASELINE_SHA: bc707d8fee7561870220955e357c0da46189a7d5
+  SOURCE_REPO: NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2
+  SOURCE_REV: dddb1325b90c9abbe8da77974874e5770623035e
+  ACTIVE_SHA256: 454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425
+  HOLDOUT_SHA256: 9c8bcfb21a9adda064c8e14beb7b4ccff32dece1cf189bda4c7cc5fc882f37e0
+  TRAIN_SHA256: 7121725fdd85d6d585be48089ddc2a3d1f63f58498a7a74541bd2afefde2eb76
+  VALIDATION_SHA256: d511921c58de76e9847bae32fbb1fa7a4fe7a215c537bcd24a816abbb9ee3c5f
+  CORPUS_ROOT_SHA256: b2647633fb2c521cb3f4c5a2e15441593f8bdd4fccf4f345d4817125633a540e
+  WORLD_SOURCE_SET_SHA256: 07216bb2a4ca979ca1ea4304efb92b09ee8aad74685df43196d694f3bd7ef8ba
+
+jobs:
+  scientific-closure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install closure test dependency
+        run: python -m pip install 'pytest==8.3.5'
+
+      - name: Run fail-closed RESOURCE_SOURCE contracts
+        run: python -m pytest -q tests/test_final_resource_source_controls.py
+
+      - name: Verify sealed pre-closure receipt
+        run: |
+          set -euo pipefail
+          (cd evidence/final-reality-bridge && sha256sum -c RESUME_SHA256SUMS)
+          (cd evidence/final-whole-organism-001/model-swap && sha256sum -c SHA256SUMS)
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          r=json.loads(Path('evidence/final-reality-bridge/resume-state.json').read_text())
+          assert r['active_gate']=='RESOURCE_SOURCE_CONTROLS', r
+          assert r['next_gate']=='RUN_RESOURCE_SOURCE_CONTROL_MATRIX', r
+          assert r.get('IBM_job_IDs_completed_so_far')==[], r
+          assert r['active_checkpoint_SHA']==os.environ['ACTIVE_SHA256'], r
+          assert r['HOLDOUT_SHA']==os.environ['HOLDOUT_SHA256'], r
+          assert r['TRAIN_SHA']==os.environ['TRAIN_SHA256'], r
+          assert r['VALIDATION_SHA']==os.environ['VALIDATION_SHA256'], r
+          assert r['corpus_root_SHA']==os.environ['CORPUS_ROOT_SHA256'], r
+          assert r['world_source_set_sha256']==os.environ['WORLD_SOURCE_SET_SHA256'], r
+          assert r.get('model_swap_zeref_before_after_identical') is True, r
+          assert r.get('model_swap_reference_reproduced') is True, r
+          print(json.dumps({'pre_closure_verified':True,'ibm_jobs_current_run':[]},sort_keys=True))
+          PY
+
+      - name: Recover pinned historical source
+        run: |
+          set -euo pipefail
+          rm -rf _final_scientific_runtime
+          mkdir -p _final_scientific_runtime
+          git clone --quiet --no-checkout "https://github.com/${SOURCE_REPO}.git" _final_scientific_runtime/source
+          git -C _final_scientific_runtime/source fetch --quiet --depth=1 origin "$SOURCE_REV"
+          git -C _final_scientific_runtime/source checkout --quiet --detach "$SOURCE_REV"
+          test "$(git -C _final_scientific_runtime/source rev-parse HEAD)" = "$SOURCE_REV"
+          git ls-tree -r --name-only "$BASELINE_SHA" | grep -Ei '(quantum[_-]?lifesource|source[_-]?blind|source-blind)' > _final_scientific_runtime/baseline-adapter-path-candidates.txt || true
+          find _final_scientific_runtime/source -type f | sed 's#^_final_scientific_runtime/source/##' | grep -Ei '(quantum[_-]?lifesource|source[_-]?blind|source-blind)' > _final_scientific_runtime/source-adapter-path-candidates.txt || true
+
+      - name: Execute RESOURCE_SOURCE matrix and seal scientific classification
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, importlib.util, json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          ROOT=Path('evidence/final-whole-organism-001')
+          RECEIPT_ROOT=Path('evidence/final-reality-bridge')
+          RUNTIME=Path('_final_scientific_runtime')
+          SOURCE=RUNTIME/'source'
+          WORKLOADS=SOURCE/'workloads (4)'
+          assert WORKLOADS.is_dir(), WORKLOADS
+
+          spec=importlib.util.spec_from_file_location('resource_source', Path('scripts/final_reality_bridge_resource_source.py'))
+          mod=importlib.util.module_from_spec(spec)
+          assert spec.loader is not None
+          spec.loader.exec_module(mod)
+
+          receipt_path=RECEIPT_ROOT/'resume-state.json'
+          receipt=json.loads(receipt_path.read_text())
+          protected_keys=[
+              'active_checkpoint_SHA','R12_hash','dyn12_hash','reflective_loop_hash',
+              'corpus_root_SHA','HOLDOUT_SHA','TRAIN_SHA','VALIDATION_SHA',
+              'world_source_set_sha256','model_swap_zeref_ledger_SHA',
+          ]
+          protected_before={k:receipt.get(k) for k in protected_keys}
+
+          def digest(path):
+              h=hashlib.sha256()
+              with Path(path).open('rb') as f:
+                  for chunk in iter(lambda:f.read(1024*1024),b''):
+                      h.update(chunk)
+              return h.hexdigest()
+
+          def shots_from_result(payload):
+              try:
+                  spans=payload['__value__']['metadata']['execution']['execution_spans']['__value__']['spans']
+              except Exception:
+                  return 0
+              found=[]
+              for span in spans:
+                  data_slices=span.get('__value__',{}).get('data_slices',{})
+                  if isinstance(data_slices,dict):
+                      for value in data_slices.values():
+                          if isinstance(value,list) and value:
+                              for item in value:
+                                  if isinstance(item,int) and not isinstance(item,bool) and item>0:
+                                      found.append(item)
+                                  elif isinstance(item,list):
+                                      found.extend(x for x in item if isinstance(x,int) and not isinstance(x,bool) and x>0)
+              return max(found, default=0)
+
+          rows=[]
+          for info_path in sorted(WORKLOADS.glob('*-info.json')):
+              result_path=Path(str(info_path).replace('-info.json','-result.json'))
+              if not result_path.is_file():
+                  continue
+              info=json.loads(info_path.read_text())
+              result=json.loads(result_path.read_text())
+              job_id=str(info.get('id','')).strip()
+              backend=str(info.get('backend','')).strip()
+              status=str(info.get('status') or (info.get('state') or {}).get('status') or '').strip()
+              row={
+                  'provider':'IBM Quantum Platform',
+                  'backend':backend,
+                  'job_id':job_id,
+                  'status':status,
+                  'shots':shots_from_result(result),
+                  'info_sha256':digest(info_path),
+                  'result_sha256':digest(result_path),
+                  'source_repo':os.environ['SOURCE_REPO'],
+                  'source_revision':os.environ['SOURCE_REV'],
+                  'info_path':str(info_path.relative_to(SOURCE)),
+                  'result_path':str(result_path.relative_to(SOURCE)),
+              }
+              if mod.is_verified_hardware_witness(row):
+                  rows.append(row)
+
+          assert rows, 'No complete pinned historical IBM hardware witnesses recovered'
+          assert all(row['backend'].startswith('ibm_') for row in rows), rows
+
+          adapter_path=receipt.get('resource_source_adapter_path')
+          adapter_sha=receipt.get('resource_source_adapter_sha256')
+          adapter_recovered=False
+          if adapter_path and adapter_sha:
+              p=Path(adapter_path)
+              adapter_recovered=p.is_file() and digest(p)==adapter_sha
+
+          causal_edge_verified=(receipt.get('resource_source_causal_consumer_edge_verified') is True)
+          assert causal_edge_verified is False, 'Unexpected sealed causal edge: requires separate intervention protocol'
+
+          current_ibm=list(receipt.get('IBM_job_IDs_completed_so_far') or [])
+          assert current_ibm==[], current_ibm
+          resource=mod.evaluate_resource_source_gate(
+              hardware_rows=rows,
+              causal_consumer_edge=causal_edge_verified,
+              completed_ibm_job_ids=current_ibm,
+          )
+          assert resource['status']=='SCIENTIFICALLY_CLOSED_NO_CAUSAL_CONSUMER_EDGE', resource
+          assert resource['historical_hardware_evidence_verified'] is True, resource
+          assert resource['zeref_ibm_consumption_verified'] is False, resource
+          assert resource['fresh_ibm_execution_claimed'] is False, resource
+
+          downstream=mod.classify_downstream_closure(
+              resource_result=resource,
+              source_blind_adapter_recovered=adapter_recovered,
+              sealed_ibm_preregistration_available=False,
+          )
+          assert downstream['final_release_allowed'] is True, downstream
+          assert downstream['causal_interventions']['executed'] is False, downstream
+          assert downstream['ibm_path']['executed'] is False, downstream
+          assert downstream['ibm_path']['new_job_ids']==[], downstream
+          assert downstream['positive_quantum_or_physical_claim_allowed'] is False, downstream
+
+          resource_dir=ROOT/'resource-source'
+          causal_dir=ROOT/'causal-interventions'
+          ibm_dir=ROOT/'ibm-path'
+          release_dir=ROOT/'release'
+          for d in (resource_dir,causal_dir,ibm_dir,release_dir):
+              d.mkdir(parents=True,exist_ok=True)
+
+          with (resource_dir/'historical-hardware-witnesses.jsonl').open('w') as f:
+              for row in rows:
+                  f.write(json.dumps(row,sort_keys=True)+'\n')
+
+          baseline_candidates=(RUNTIME/'baseline-adapter-path-candidates.txt').read_text().splitlines()
+          source_candidates=(RUNTIME/'source-adapter-path-candidates.txt').read_text().splitlines()
+          recovery={
+              'status':'NOT_RECOVERED_AS_SEALED_ADAPTER_IDENTITY' if not adapter_recovered else 'RECOVERED_AND_HASH_VERIFIED',
+              'recovered':adapter_recovered,
+              'sealed_adapter_path':adapter_path,
+              'sealed_adapter_sha256':adapter_sha,
+              'baseline_commit_searched':os.environ['BASELINE_SHA'],
+              'pinned_source_repo':os.environ['SOURCE_REPO'],
+              'pinned_source_revision':os.environ['SOURCE_REV'],
+              'baseline_path_candidates':baseline_candidates,
+              'pinned_source_path_candidates':source_candidates,
+              'rule':'Candidate paths or prose do not establish adapter identity; a sealed path and SHA-256 binding is required.',
+          }
+          (resource_dir/'adapter-recovery.json').write_text(json.dumps(recovery,indent=2,sort_keys=True)+'\n')
+
+          matrix={
+              'gate':'RESOURCE_SOURCE_CONTROLS',
+              'status':resource['status'],
+              'controls':[
+                  {'control':'PINNED_HISTORICAL_IBM_HARDWARE','status':'PROVENANCE_VERIFIED','witness_count':len(rows)},
+                  {'control':'RESOURCE_TO_ZEREF_CONSUMER_EDGE','status':'NOT_ESTABLISHED'},
+                  {'control':'SOURCE_BLIND_REPLAY_IDENTITY','status':'NOT_RUN_ADAPTER_IDENTITY_NOT_SEALED'},
+                  {'control':'CAUSAL_INTERVENTION','status':'SCIENTIFICALLY_CLOSED_NOT_IDENTIFIABLE'},
+                  {'control':'FRESH_IBM_EXECUTION','status':'NOT_RUN_NO_SEALED_PREREGISTERED_CAUSAL_PATH'},
+              ],
+              'model_or_behavioral_results_generated':False,
+              'fresh_ibm_results_generated':False,
+              'interpretation':'Historical hardware provenance is verified. No resource-to-Zeref causal consumer edge is established, so this sealed run cannot attribute Zeref behavior to the resource source.',
+          }
+          (resource_dir/'control-matrix.json').write_text(json.dumps(matrix,indent=2,sort_keys=True)+'\n')
+          resource_status=dict(resource)
+          resource_status.update({
+              'source_repo':os.environ['SOURCE_REPO'],
+              'source_revision':os.environ['SOURCE_REV'],
+              'source_blind_adapter_recovered':adapter_recovered,
+              'causal_consumer_edge_evidence':'ABSENT_FROM_SEALED_RECEIPT',
+          })
+          (resource_dir/'STATUS.json').write_text(json.dumps(resource_status,indent=2,sort_keys=True)+'\n')
+          (causal_dir/'STATUS.json').write_text(json.dumps(downstream['causal_interventions'],indent=2,sort_keys=True)+'\n')
+          (ibm_dir/'STATUS.json').write_text(json.dumps(downstream['ibm_path'],indent=2,sort_keys=True)+'\n')
+
+          final_status={
+              'status':'FINAL_WHOLE_ORGANISM_SEALED',
+              'release_type':'VERIFIED_NEGATIVE_CAUSAL_CLASSIFICATION',
+              'scientific_classification':downstream['scientific_classification'],
+              'engineering_isolation_verified':True,
+              'historical_ibm_hardware_evidence_verified':True,
+              'zeref_ibm_consumption_verified':False,
+              'causal_interventions_executed':False,
+              'fresh_ibm_execution_performed':False,
+              'new_ibm_job_ids':[],
+              'positive_quantum_or_physical_claim_allowed':False,
+              'protected_state_preserved':True,
+              'sealed_from_input_commit':os.environ['GITHUB_SHA'],
+              'timestamp':datetime.now(timezone.utc).isoformat(),
+          }
+          (release_dir/'FINAL_STATUS.json').write_text(json.dumps(final_status,indent=2,sort_keys=True)+'\n')
+
+          protected_after={k:receipt.get(k) for k in protected_keys}
+          assert protected_after==protected_before, (protected_before,protected_after)
+          immutability={
+              'protected_state_identical_pre_release':True,
+              'protected_fields':protected_before,
+              'current_run_ibm_job_ids_before':current_ibm,
+              'current_run_ibm_job_ids_after':current_ibm,
+              'training_performed':False,
+              'model_weights_modified':False,
+              'corpus_modified':False,
+          }
+          (release_dir/'immutability.json').write_text(json.dumps(immutability,indent=2,sort_keys=True)+'\n')
+
+          report=f'''# CORY-DAVIS-COSMOS-REALITY-BRIDGE — Final Verified Release\n\nStatus: **FINAL_WHOLE_ORGANISM_SEALED**\n\nScientific classification: **{downstream['scientific_classification']}**\n\n## Verified\n\n- The previously sealed Zeref → reference → Zeref isolation result remains preserved.\n- The pinned historical source contains complete IBM hardware witnesses; {len(rows)} paired witness record(s) passed the fail-closed provenance contract.\n- Protected checkpoint, memory/corpus identity hashes, split hashes, R12, dyn12, reflective-loop, and model-swap identities were not changed by this closure.\n\n## Not established\n\n- No sealed resource-to-Zeref causal consumer edge was present in the canonical receipt.\n- The historical source-blind adapter identity was not recoverable as a sealed path + SHA-256 binding.\n- Therefore no causal intervention score is scientifically identifiable for this sealed run.\n- No fresh IBM job was submitted and no IBM/model result was invented.\n\n## Final interpretation\n\nThis run supports the engineering isolation result and the provenance of historical IBM hardware exports. It does **not** establish that the IBM/quantum resource caused Zeref behavior, a quantum anomaly, a new physical effect, consciousness, biological continuity, or any other claim beyond the recorded software/provenance evidence.\n\nA future causal resource-source experiment must begin under a new sealed preregistration with an explicitly hashed consumer adapter and intervention path. This sealed run is not to be retroactively re-labeled.\n'''
+          (release_dir/'FINAL_REPORT.md').write_text(report)
+
+          def seal_dir(directory):
+              entries=[]
+              for p in sorted(directory.iterdir()):
+                  if p.is_file() and p.name!='SHA256SUMS':
+                      entries.append(f'{digest(p)}  {p.name}')
+              (directory/'SHA256SUMS').write_text('\n'.join(entries)+'\n')
+              return digest(directory/'SHA256SUMS')
+
+          resource_sum=seal_dir(resource_dir)
+          causal_sum=seal_dir(causal_dir)
+          ibm_sum=seal_dir(ibm_dir)
+          manifest={
+              'schema_version':1,
+              'release_status':'FINAL_WHOLE_ORGANISM_SEALED',
+              'scientific_classification':downstream['scientific_classification'],
+              'source_repo':os.environ['SOURCE_REPO'],
+              'source_revision':os.environ['SOURCE_REV'],
+              'historical_hardware_witness_count':len(rows),
+              'historical_job_ids':resource['verified_historical_job_ids'],
+              'current_run_ibm_job_ids':[],
+              'resource_source_sha256sums_sha256':resource_sum,
+              'causal_interventions_sha256sums_sha256':causal_sum,
+              'ibm_path_sha256sums_sha256':ibm_sum,
+              'protected_fields':protected_before,
+          }
+          (release_dir/'manifest.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
+          release_sum=seal_dir(release_dir)
+
+          completed=list(receipt.get('completed_gates') or [])
+          for gate in ['RESOURCE_SOURCE_CONTROLS','CAUSAL_INTERVENTIONS_ASSESSMENT','IBM_PATH_ASSESSMENT','FINAL_SCIENTIFIC_CLASSIFICATION','FINAL_RELEASE']:
+              if gate not in completed:
+                  completed.append(gate)
+          receipt.update({
+              'timestamp':datetime.now(timezone.utc).isoformat(),
+              'branch':os.environ['GITHUB_REF_NAME'],
+              'HEAD':os.environ['GITHUB_SHA'],
+              'completed_gates':completed,
+              'active_gate':'FINAL_RELEASE_SEALED',
+              'next_gate':None,
+              'system_status':'FINAL_WHOLE_ORGANISM_SEALED',
+              'scientific_classification_so_far':downstream['scientific_classification'],
+              'resource_source_status':resource['status'],
+              'historical_ibm_hardware_evidence_verified':True,
+              'historical_ibm_job_ids_verified':resource['verified_historical_job_ids'],
+              'source_blind_adapter_recovered':adapter_recovered,
+              'zeref_ibm_consumption_verified':False,
+              'causal_interventions_executed':False,
+              'ibm_path_executed':False,
+              'fresh_ibm_job_ids':[],
+              'IBM_job_IDs_completed_so_far':current_ibm,
+              'final_release_status':'SEALED_NEGATIVE_CAUSAL_CLASSIFICATION',
+              'latest_tests':'RESOURCE_SOURCE fail-closed contracts; pinned historical IBM provenance; no sealed consumer edge; no causal/IBM execution; protected identities unchanged',
+              'latest_artifact':'evidence/final-whole-organism-001/release',
+              'latest_artifact_SHA':release_sum,
+              'exact_resume_instruction':'No further execution on this sealed run. Any future resource-source causal experiment requires a new preregistration with an explicitly hashed consumer adapter and intervention path; do not retroactively alter this release.',
+              'known_demonstrated_blockers':[],
+          })
+          assert {k:receipt.get(k) for k in protected_keys}==protected_before
+          assert receipt['IBM_job_IDs_completed_so_far']==[]
+          receipt_path.write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          receipt_digest=digest(receipt_path)
+          (RECEIPT_ROOT/'RESUME_SHA256SUMS').write_text(f'{receipt_digest}  resume-state.json\n')
+          print(json.dumps({
+              'sealed':True,
+              'classification':downstream['scientific_classification'],
+              'historical_witnesses':len(rows),
+              'new_ibm_jobs':[],
+              'release_sha256sums_sha256':release_sum,
+          },sort_keys=True))
+          PY
+
+      - name: Verify final evidence and receipt
+        run: |
+          set -euo pipefail
+          for d in resource-source causal-interventions ibm-path release; do
+            (cd "evidence/final-whole-organism-001/$d" && sha256sum -c SHA256SUMS)
+          done
+          (cd evidence/final-reality-bridge && sha256sum -c RESUME_SHA256SUMS)
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evidence/final-reality-bridge/resume-state.json').read_text())
+          s=json.loads(Path('evidence/final-whole-organism-001/release/FINAL_STATUS.json').read_text())
+          assert r['system_status']=='FINAL_WHOLE_ORGANISM_SEALED', r
+          assert r['active_gate']=='FINAL_RELEASE_SEALED' and r['next_gate'] is None, r
+          assert r['IBM_job_IDs_completed_so_far']==[] and r['fresh_ibm_job_ids']==[], r
+          assert r['zeref_ibm_consumption_verified'] is False, r
+          assert r['causal_interventions_executed'] is False and r['ibm_path_executed'] is False, r
+          assert s['status']=='FINAL_WHOLE_ORGANISM_SEALED', s
+          assert s['positive_quantum_or_physical_claim_allowed'] is False, s
+          print(json.dumps({'final_receipt_verified':True,'classification':s['scientific_classification']},sort_keys=True))
+          PY
+
+      - name: Commit final sealed release
+        run: |
+          set -euo pipefail
+          git config user.name 'cosmos-closure-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add \
+            evidence/final-whole-organism-001/resource-source \
+            evidence/final-whole-organism-001/causal-interventions \
+            evidence/final-whole-organism-001/ibm-path \
+            evidence/final-whole-organism-001/release \
+            evidence/final-reality-bridge/resume-state.json \
+            evidence/final-reality-bridge/RESUME_SHA256SUMS
+          if ! git diff --cached --quiet; then
+            git commit -m 'evidence(final-organism): seal final scientific release'
+            git push origin HEAD:cory-davis-cosmos-reality-bridge-final-organism-001
+          fi
+
+      - name: Preserve final closure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-final-scientific-closure-${{ github.run_id }}
+          path: |
+            evidence/final-whole-organism-001/resource-source
+            evidence/final-whole-organism-001/causal-interventions
+            evidence/final-whole-organism-001/ibm-path
+            evidence/final-whole-organism-001/release
+            _final_scientific_runtime/baseline-adapter-path-candidates.txt
+            _final_scientific_runtime/source-adapter-path-candidates.txt
+          if-no-files-found: warn
+          retention-days: 90

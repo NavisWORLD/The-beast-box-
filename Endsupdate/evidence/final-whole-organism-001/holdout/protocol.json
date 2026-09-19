@@ -1,0 +1,17 @@
+{
+  "checkpoint_sha256": "454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425",
+  "conversation_outputs_used": false,
+  "frozen_before_scores": true,
+  "holdout_records": 428,
+  "holdout_sha256": "9c8bcfb21a9adda064c8e14beb7b4ccff32dece1cf189bda4c7cc5fc882f37e0",
+  "interpretation": "descriptive selected-Zeref holdout score only; no superiority claim until frozen reference comparison",
+  "metric": "teacher-forced next-character negative log likelihood",
+  "primary_normalization": "bits per predicted tokenizer-supported character",
+  "promotion_rule": null,
+  "schema": "cosmos-clean-holdout-protocol-v1",
+  "secondary_metric": "character perplexity",
+  "threshold": null,
+  "training_or_adaptation": false,
+  "unknown_character_policy": "split at unsupported characters; never bridge them; report coverage and drops",
+  "window_policy": "non-overlapping native-block transition windows; each supported transition counted once"
+}

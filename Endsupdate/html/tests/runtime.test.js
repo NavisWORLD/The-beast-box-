@@ -1,0 +1,10 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {detectCapabilities,chooseExecutionPath} from '../src/capabilities/index.js';
+import {inspectGGUFHeader,LocalModelProvider,ProviderRegistry} from '../src/providers/index.js';
+import {RuntimeAdapter} from '../src/runtime/index.js';
+
+test('capabilities detect supported browser primitives',()=>{const c=detectCapabilities({WebAssembly:{},Worker:function(){},File:function(){},FileReader:function(){},indexedDB:{},navigator:{gpu:{},storage:{getDirectory:()=>{}},serviceWorker:{},onLine:true}});assert.equal(c.webAssembly,true);assert.equal(c.webGPU,true);assert.equal(c.indexedDB,true);assert.equal(c.opfs,true);assert.equal(c.workers,true);assert.equal(c.network,true)});
+test('execution falls back honestly',()=>{assert.equal(chooseExecutionPath({webGPU:false,webAssembly:true,network:false}),'local-wasm');assert.equal(chooseExecutionPath({webGPU:false,webAssembly:false,network:false}),'reference');assert.equal(chooseExecutionPath({webGPU:false,webAssembly:false,network:true}),'remote')});
+test('GGUF header validation rejects malformed input',()=>{assert.throws(()=>inspectGGUFHeader(new Uint8Array([1,2,3,4,1,0,0,0]).buffer),/Invalid GGUF/);assert.throws(()=>inspectGGUFHeader(new Uint8Array([71,71,85,70,9,0,0,0]).buffer),/Unsupported GGUF/);const b=new Uint8Array([71,71,85,70,3,0,0,0]);assert.deepEqual(inspectGGUFHeader(b.buffer),{format:'gguf',version:3,valid:true})});
+test('local provider never pretends to infer without an engine',()=>{const p=new LocalModelProvider({capabilities:{webGPU:true}});assert.equal(p.canRun(),false);assert.throws(()=>p.respond('hello'),/no compatible browser local inference engine/i)});
+test('registry and runtime select explicit provider',async()=>{const r=new ProviderRegistry();r.register({id:'reference',label:'Reference',kind:'reference',respond:async()=>({text:'ok'})});const runtime=new RuntimeAdapter({capabilities:{webGPU:false,webAssembly:false,network:false},providers:r});assert.equal(runtime.plan(),'reference');assert.deepEqual(await runtime.respond('x'),{text:'ok'})});

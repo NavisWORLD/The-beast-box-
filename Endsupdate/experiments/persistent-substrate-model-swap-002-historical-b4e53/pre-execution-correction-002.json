@@ -1,0 +1,28 @@
+{
+  "schema": "persistent-substrate-pre-execution-correction-v1",
+  "experiment_id": "persistent-substrate-model-swap-002-historical-b4e53",
+  "failed_run_id": 33913905926,
+  "failed_run_head_sha": "3eea50f35bd3ea9968bbb22c7ff6fb4ab9f3ac77",
+  "failure_stage": "first Model A loader import before A0 scoring",
+  "failure": "ModuleNotFoundError: No module named 'scripts'",
+  "behavioral_measurements_observed": false,
+  "model_inference_executed": false,
+  "a0_scoring_executed": false,
+  "root_cause": "Executing the frozen runner by file path made scripts/ the initial Python path entry, while ZerefNLLAdapter.from_checkpoint imports scripts.run_zeref_dad_son_chat. The repository root was therefore not importable as the scripts namespace.",
+  "correction": "Insert the repository root at the front of sys.path in scripts/run_persistent_substrate_model_swap_002_frozen.py before loading the underlying runner.",
+  "correction_commit": "1a27d7d488e217523d115dd8b3e8f315b5d5d6d7",
+  "unchanged_protocol_elements": [
+    "Model A checkpoint and architecture",
+    "Model B repository and immutable historical revision",
+    "prompt battery",
+    "paired conditional-NLL metric",
+    "A0 -> B1 -> A2 model order",
+    "persistent substrate continuity checks",
+    "A-only control",
+    "empty-memory control",
+    "shuffled-memory control",
+    "structural success criteria",
+    "claim boundary"
+  ],
+  "classification": "PRE_BEHAVIOR_EXECUTION_ENVIRONMENT_REPAIR"
+}

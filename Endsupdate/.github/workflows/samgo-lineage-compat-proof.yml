@@ -1,0 +1,167 @@
+name: SAMGO Lineage Compatibility Proof
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/samgo-lineage-compat-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+  LINEAGE_REPO: NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2
+  LINEAGE_COMMIT: dddb1325b90c9abbe8da77974874e5770623035e
+
+jobs:
+  prove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install model-only proof dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install 'huggingface-hub>=0.27' tiktoken
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Materialize exact pinned SAMGO checkpoint and provenance source
+        run: |
+          set -euo pipefail
+          rm -rf _samgo && mkdir -p _samgo/lineage/cosmosynapse/model _samgo/hf
+          hf download "$HF_REPO" weights/samgo_weights.pt SAMGO.md \
+            --revision "$HF_REVISION" --local-dir _samgo/hf
+          curl -fsSL \
+            "https://raw.githubusercontent.com/$LINEAGE_REPO/$LINEAGE_COMMIT/cosmos/web/cosmosynapse/model/cosmos_config.py" \
+            -o _samgo/lineage/cosmosynapse/model/cosmos_config.py
+          curl -fsSL \
+            "https://raw.githubusercontent.com/$LINEAGE_REPO/$LINEAGE_COMMIT/cosmos/web/cosmosynapse/model/cosmos_model.py" \
+            -o _samgo/lineage/cosmosynapse/model/cosmos_model.py
+          touch _samgo/lineage/cosmosynapse/__init__.py _samgo/lineage/cosmosynapse/model/__init__.py
+          sha256sum \
+            _samgo/hf/weights/samgo_weights.pt \
+            _samgo/lineage/cosmosynapse/model/cosmos_config.py \
+            _samgo/lineage/cosmosynapse/model/cosmos_model.py \
+            | tee _samgo/SHA256SUMS
+      - name: Inspect checkpoint schema and strictly test architecture compatibility
+        env:
+          PYTHONPATH: _samgo/lineage
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import inspect
+          import json
+          from pathlib import Path
+          import torch
+          from cosmosynapse.model.cosmos_config import CosmosConfig
+          from cosmosynapse.model.cosmos_model import CosmosTransformer
+
+          ck_path = Path('_samgo/hf/weights/samgo_weights.pt')
+          ck = torch.load(ck_path, map_location='cpu', weights_only=False)
+          print('CHECKPOINT_TYPE=', type(ck).__name__)
+          if not isinstance(ck, dict):
+              raise SystemExit('SAMGO checkpoint is not a dict')
+          print('CHECKPOINT_KEYS=', sorted(map(str, ck.keys())))
+          cfg_raw = dict(ck.get('config') or {})
+          print('CONFIG=', json.dumps(cfg_raw, indent=2, sort_keys=True, default=str))
+          state = ck.get('model_state_dict')
+          if state is None:
+              state = ck.get('model')
+          if not isinstance(state, dict):
+              raise SystemExit('SAMGO checkpoint has no model state dict')
+          print('STATE_KEYS=', len(state))
+          for key in list(sorted(state))[:30]:
+              value = state[key]
+              print('STATE', key, tuple(value.shape) if hasattr(value, 'shape') else type(value).__name__)
+
+          sig = inspect.signature(CosmosConfig)
+          accepted = {name for name in sig.parameters if name != 'self'}
+          aliases = {
+              'vocab': 'vocab_size',
+              'n_embd': 'd_model',
+              'n_layer': 'n_layers',
+              'n_head': 'n_heads',
+              'block': 'max_seq_len',
+          }
+          normalized = {}
+          for key, value in cfg_raw.items():
+              target = aliases.get(key, key)
+              if target in accepted:
+                  normalized[target] = value
+          print('NORMALIZED_CONFIG=', json.dumps(normalized, indent=2, sort_keys=True, default=str))
+          cfg = CosmosConfig(**normalized)
+          model = CosmosTransformer(cfg)
+          want = model.state_dict()
+          shape_mismatches = []
+          for key, value in state.items():
+              if key in want and hasattr(value, 'shape') and tuple(value.shape) != tuple(want[key].shape):
+                  shape_mismatches.append((key, tuple(value.shape), tuple(want[key].shape)))
+          print('SHAPE_MISMATCHES=', shape_mismatches[:50])
+          if shape_mismatches:
+              raise SystemExit('SAMGO checkpoint shape mismatch against provenance CosmosTransformer')
+
+          missing, unexpected = model.load_state_dict(state, strict=False)
+          print('MISSING=', list(missing))
+          print('UNEXPECTED=', list(unexpected))
+          if missing or unexpected:
+              raise SystemExit('SAMGO checkpoint keys do not exactly match provenance CosmosTransformer')
+          print('SAMGO_ARCH_COMPAT=PASS')
+          PY
+      - name: Model-only fenced Python capability probe
+        env:
+          PYTHONPATH: _samgo/lineage
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import inspect
+          import re
+          import tiktoken
+          import torch
+          from cosmosynapse.model.cosmos_config import CosmosConfig
+          from cosmosynapse.model.cosmos_model import CosmosTransformer
+
+          ck = torch.load('_samgo/hf/weights/samgo_weights.pt', map_location='cpu', weights_only=False)
+          cfg_raw = dict(ck.get('config') or {})
+          state = ck.get('model_state_dict') or ck.get('model')
+          sig = inspect.signature(CosmosConfig)
+          accepted = {name for name in sig.parameters if name != 'self'}
+          aliases = {'vocab':'vocab_size','n_embd':'d_model','n_layer':'n_layers','n_head':'n_heads','block':'max_seq_len'}
+          normalized = {aliases.get(k,k):v for k,v in cfg_raw.items() if aliases.get(k,k) in accepted}
+          cfg = CosmosConfig(**normalized)
+          model = CosmosTransformer(cfg).eval()
+          model.load_state_dict(state, strict=True)
+          enc = tiktoken.get_encoding('gpt2')
+
+          prompt = 'Write only a fenced Python program that writes the text OK to a file named proof.txt. No explanation.\n'
+          ids = enc.encode(prompt)
+          idx = torch.tensor([ids], dtype=torch.long)
+          torch.manual_seed(0)
+          with torch.no_grad():
+              output = model.generate(
+                  idx,
+                  max_new_tokens=192,
+                  temperature=0.25,
+                  top_k=40,
+                  top_p=0.9,
+              )
+          text = enc.decode(output[0, len(ids):].tolist())
+          print('SAMGO_RAW_BEGIN')
+          print(text)
+          print('SAMGO_RAW_END')
+          match = re.search(r'```(?:python|py)?\s*(.*?)```', text, re.S | re.I)
+          if not match:
+              raise SystemExit('SAMGO did not emit fenced Python')
+          code = match.group(1).strip()
+          compile(code, '<samgo-probe>', 'exec')
+          if 'proof.txt' not in code or 'OK' not in code:
+              raise SystemExit('SAMGO fenced Python did not satisfy harmless probe')
+          print('SAMGO_CODE_CAPABILITY=PASS')
+          PY

@@ -1,0 +1,168 @@
+name: ZEREF-R12-PUBLIC-KIT
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-r12-kit.yml"
+      - "kits/ZEREF_R12_REALITY_MEMORY_KIT/**"
+      - "beastbox/ecosystem.py"
+      - "beastbox/cli.py"
+      - "coder/**"
+      - "cpp/r12/**"
+      - "docs/ZEREF_R12_REALITY_MEMORY_MANUAL.md"
+      - "tests/test_zeref_r12_kit.py"
+      - "tests/test_beastbox_ecosystem_cli.py"
+      - "tests/test_zeref_talk8_r12_*.py"
+      - "scripts/build_zeref_r12_public_kit.py"
+      - "scripts/verify_zeref_r12_public_kit.py"
+      - "scripts/*talk8*r12*.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-r12-public-kit
+  cancel-in-progress: true
+
+env:
+  TALK4_SHA256: 9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f
+  ARCH_SHA256: 955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc
+  MEMORY_SHA256: 67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef
+  R12_STATE_SHA256: 48994584e13d8e2b6fcb21cb682b0b9501af12e2ce8742e99384b604235c9f20
+  R12_LEDGER_SHA256: 5b1fbc1b62143dc0e866f2ee7512933291f8c2210b365f7c158859a5b1df1724
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install focused runtime
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+      - name: Focused ecosystem contracts
+        run: |
+          mkdir -p _pkg/evidence
+          pytest -q tests/test_zeref_r12_kit.py tests/test_beastbox_ecosystem_cli.py tests/test_zeref_talk8_r12_corpus.py tests/test_zeref_talk8_r12_selector.py 2>&1 | tee _pkg/evidence/focused-pytest.txt
+      - name: Verify ecosystem anchors and CLI
+        run: |
+          set -euo pipefail
+          test "$(sha256sum experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py | awk '{print $1}')" = "$ARCH_SHA256"
+          test "$(sha256sum experiments/zeref-dad-son-001/reality-memory/ledger/reality-events.jsonl | awk '{print $1}')" = "$R12_LEDGER_SHA256"
+          beastbox verify | tee _pkg/evidence/beastbox-verify.json
+          beastbox r12 status > _pkg/evidence/r12-status.json
+          beastbox zeref status > _pkg/evidence/zeref-status.json
+          beastbox coder doctor > _pkg/evidence/coder-doctor.json
+          beastbox kit verify > _pkg/evidence/kit-verify.json
+      - name: Build and test native C++ R12 verifier
+        run: |
+          set -euo pipefail
+          cmake -S cpp/r12 -B _pkg/build-r12
+          cmake --build _pkg/build-r12 --config Release
+          ctest --test-dir _pkg/build-r12 --output-on-failure | tee _pkg/evidence/cpp-ctest.txt
+          _pkg/build-r12/zeref-r12-native status \
+            --ledger experiments/zeref-dad-son-001/reality-memory/ledger/reality-events.jsonl \
+            --state experiments/zeref-dad-son-001/reality-memory/state/r12-state.json \
+            --expected-ledger-sha256 "$R12_LEDGER_SHA256" | tee _pkg/evidence/cpp-status.json
+          set +e
+          _pkg/build-r12/zeref-r12-native status \
+            --ledger experiments/zeref-dad-son-001/reality-memory/ledger/reality-events.jsonl \
+            --state experiments/zeref-dad-son-001/reality-memory/state/r12-state.json \
+            --expected-ledger-sha256 0000000000000000000000000000000000000000000000000000000000000000 >/dev/null 2>&1
+          code=$?
+          set -e
+          test "$code" -ne 0
+      - name: Download and verify exact TALK-004 checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p _pkg/talk4
+          gh run download 32075092605 -n zeref-talk4-tuned-response-32075092605 -D _pkg/talk4
+          PARENT=$(find _pkg/talk4 -type f -path '*/ZEREF-DAD-SON-TALK-004/checkpoint.pt' -print -quit)
+          test -n "$PARENT" -a -f "$PARENT"
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK4_SHA256"
+          echo "$PARENT" > _pkg/talk4-path.txt
+      - name: Build source and full ecosystem kits
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _pkg/talk4-path.txt)
+          python scripts/build_zeref_r12_public_kit.py --repo-root . --out _pkg/source | tee _pkg/evidence/source-build.json
+          python scripts/verify_zeref_r12_public_kit.py _pkg/source | tee _pkg/evidence/source-verify.json
+          cp -a _pkg/source _pkg/full
+          python - <<'PY'
+          from pathlib import Path
+          from scripts.build_zeref_r12_public_kit import add_verified_checkpoint
+          import json
+          parent=Path('_pkg/talk4-path.txt').read_text().strip()
+          print(json.dumps(add_verified_checkpoint(Path('_pkg/full'), Path(parent)), sort_keys=True))
+          PY
+          python scripts/verify_zeref_r12_public_kit.py _pkg/full --require-checkpoint | tee _pkg/evidence/full-verify.json
+          (cd _pkg/source && sha256sum -c SHA256SUMS)
+          (cd _pkg/full && sha256sum -c SHA256SUMS)
+          (cd _pkg/source && zip -qr ../zeref-r12-source-kit-${GITHUB_RUN_ID}.zip .)
+          (cd _pkg/full && zip -qr ../zeref-r12-full-kit-${GITHUB_RUN_ID}.zip .)
+          sha256sum _pkg/zeref-r12-*-kit-${GITHUB_RUN_ID}.zip | tee _pkg/evidence/package-sha256.txt
+      - name: Seal packaging evidence
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          run=os.environ['GITHUB_RUN_ID']
+          def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+          receipt={
+            'schema':'zeref-r12-public-kit-receipt-v1',
+            'workflow_run_id':int(run),
+            'source_commit_sha':os.environ['GITHUB_SHA'],
+            'active_lineage':'ZEREF-DAD-SON-TALK-004',
+            'active_checkpoint_sha256':os.environ['TALK4_SHA256'],
+            'durable_memory_record_count':352,
+            'durable_memory_sha256':os.environ['MEMORY_SHA256'],
+            'r12_state_sha256':os.environ['R12_STATE_SHA256'],
+            'native_cpp_verified':True,
+            'source_kit_sha256':sha(f'_pkg/zeref-r12-source-kit-{run}.zip'),
+            'full_kit_sha256':sha(f'_pkg/zeref-r12-full-kit-{run}.zip'),
+            'full_kit_checkpoint_included':True,
+            'new_ibm_job_submitted':False,
+            'claim_boundary':'Persistent computational memory over verified measurements; not biological life, consciousness, deceased identity, resurrection, communication with the dead, or quantum advantage.'
+          }
+          out=Path(f'experiments/zeref-dad-son-001/evidence/r12-kit/run-{run}')
+          out.mkdir(parents=True,exist_ok=True)
+          (out/'receipt.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          for name in ['focused-pytest.txt','beastbox-verify.json','r12-status.json','zeref-status.json','coder-doctor.json','kit-verify.json','cpp-ctest.txt','cpp-status.json','source-build.json','source-verify.json','full-verify.json','package-sha256.txt']:
+              p=Path('_pkg/evidence')/name
+              if p.exists(): (out/name).write_bytes(p.read_bytes())
+          sums=[]
+          for p in sorted(x for x in out.iterdir() if x.is_file() and x.name!='SHA256SUMS'):
+              sums.append(f'{sha(p)}  {p.name}\n')
+          (out/'SHA256SUMS').write_text(''.join(sums))
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add experiments/zeref-dad-son-001/evidence/r12-kit
+          git commit -m "evidence: seal R12 public kit ${GITHUB_RUN_ID} [skip ci]"
+          git pull --rebase origin networked-cage-run-001
+          git push origin HEAD:networked-cage-run-001
+      - name: Upload source kit
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-r12-source-kit-${{ github.run_id }}
+          path: _pkg/zeref-r12-source-kit-${{ github.run_id }}.zip
+          if-no-files-found: error
+      - name: Upload full Zeref kit
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-r12-full-kit-${{ github.run_id }}
+          path: _pkg/zeref-r12-full-kit-${{ github.run_id }}.zip
+          if-no-files-found: error

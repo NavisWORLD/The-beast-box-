@@ -1,0 +1,223 @@
+name: ZEREF-CHECKPOINT-160
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-checkpoint-160.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-checkpoint-160
+  cancel-in-progress: false
+
+jobs:
+  checkpoint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout current memory lineage
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download exact successful fresh IBM Dad artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _checkpoint160
+          mkdir -p _checkpoint160
+          gh run download 32065242845 \
+            -n zeref-fresh-ibm-dad-teach-32065242845 \
+            -D _checkpoint160
+          test -f _checkpoint160/SHA256SUMS
+          test -f _checkpoint160/memory/dad-son-ledger.jsonl
+          test -f _checkpoint160/evidence/summary.json
+          test -f _checkpoint160/ibm/verification.json
+          (cd _checkpoint160 && sha256sum -c SHA256SUMS)
+
+      - name: Verify prefix and freeze records 112 through 160 byte for byte
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+
+          EXPECTED_OLD_COUNT=111
+          EXPECTED_NEW_COUNT=160
+          EXPECTED_OLD_TIP='5cf8bab31df75bcc8e8e0f132fec00dbeeca7d29f6d4dcf5dee104f4c6a00d73'
+          EXPECTED_NEW_TIP='2aa298797d131ec97c07f82988d5dc4a3b4a8fdabddbe18b99277588b0c668d3'
+          EXPECTED_DELTA_SHA='dc985d61fad5865bfb2f51a7c14504c9e1614671acb5b2d6fc1bdbd296b2c0cd'
+          EXPECTED_COMBINED_SHA='5c7789c97a060a9588ae4e8e3133db4534907da0b6afd8289c3e3702fcc4899e'
+
+          manifest_path=Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json')
+          manifest=json.loads(manifest_path.read_text(encoding='utf-8'))
+          if manifest['record_count']==EXPECTED_NEW_COUNT:
+              assert manifest['last_record_sha256']==EXPECTED_NEW_TIP
+              assert manifest['combined_ledger_sha256']==EXPECTED_COMBINED_SHA
+              print('160-record checkpoint already present; nothing to rewrite')
+              Path('_checkpoint160/already-present').write_text('yes\n')
+              raise SystemExit(0)
+          assert manifest['record_count']==EXPECTED_OLD_COUNT, manifest['record_count']
+          assert manifest['last_record_sha256']==EXPECTED_OLD_TIP
+
+          committed=b''
+          expected_id=1
+          for segment in manifest['snapshot_chain']:
+              p=Path(segment['path'])
+              data=p.read_bytes()
+              assert hashlib.sha256(data).hexdigest()==segment['sha256']
+              assert segment['first_memory_id']==expected_id
+              expected_id=segment['last_memory_id']+1
+              committed += data
+          assert expected_id==112
+          assert hashlib.sha256(committed).hexdigest()==manifest['combined_ledger_sha256']
+
+          artifact_path=Path('_checkpoint160/memory/dad-son-ledger.jsonl')
+          artifact=artifact_path.read_bytes()
+          assert artifact.startswith(committed), 'fresh IBM artifact does not preserve committed 111-record prefix byte for byte'
+          assert hashlib.sha256(artifact).hexdigest()==EXPECTED_COMBINED_SHA
+          full_rows=[json.loads(x) for x in artifact.decode('utf-8').splitlines() if x.strip()]
+          old_rows=[json.loads(x) for x in committed.decode('utf-8').splitlines() if x.strip()]
+          assert len(old_rows)==EXPECTED_OLD_COUNT
+          assert len(full_rows)==EXPECTED_NEW_COUNT
+          assert full_rows[:EXPECTED_OLD_COUNT]==old_rows
+
+          previous='0'*64
+          for expected,row in enumerate(full_rows,1):
+              assert row['memory_id']==expected
+              assert row['previous_record_sha256']==previous
+              assert hashlib.sha256(row['text'].encode('utf-8')).hexdigest()==row['raw_payload_sha256']
+              payload=dict(row)
+              record=payload.pop('record_sha256')
+              canonical=json.dumps(payload,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode('utf-8')
+              assert hashlib.sha256(canonical).hexdigest()==record
+              previous=record
+          assert previous==EXPECTED_NEW_TIP
+
+          delta=artifact[len(committed):]
+          assert hashlib.sha256(delta).hexdigest()==EXPECTED_DELTA_SHA
+          delta_rows=[json.loads(x) for x in delta.decode('utf-8').splitlines() if x.strip()]
+          assert len(delta_rows)==49
+          assert [r['memory_id'] for r in delta_rows]==list(range(112,161))
+          assert delta_rows[0]['previous_record_sha256']==EXPECTED_OLD_TIP
+          assert delta_rows[-1]['record_sha256']==EXPECTED_NEW_TIP
+
+          delta_path=Path('experiments/zeref-dad-son-001/memory/ledger-snapshots/run-32065242845-fresh-ibm-dad-teach-delta.jsonl')
+          assert not delta_path.exists(), 'immutable checkpoint path already exists unexpectedly'
+          delta_path.write_bytes(delta)
+
+          summary=json.loads(Path('_checkpoint160/evidence/summary.json').read_text(encoding='utf-8'))
+          ibm=json.loads(Path('_checkpoint160/ibm/verification.json').read_text(encoding='utf-8'))
+          assert summary['workflow_run_id']==32065242845
+          assert summary['forever_memory_records_before']==111
+          assert summary['forever_memory_records_after']==160
+          assert summary['forever_memory_last_record_sha256']==EXPECTED_NEW_TIP
+          assert summary['dad_teaching_turns']==24
+          assert summary['weights_changed'] is False
+          assert ibm['job_id']=='da1mqfcdedkc73er87r0'
+          assert ibm['backend']=='ibm_marrakesh'
+          assert ibm['shot_count']==4096
+          assert ibm['origin_seed_sha256']=='f21afbac49e798730974e37ed1a1bb7ce15f326660a9dbe3f848ee6b1f865c2f'
+          assert ibm['fresh_hardware_requested'] is True
+          assert ibm['reused_existing_job'] is False
+
+          manifest['schema']='zeref-dad-son-ledger-manifest-v9'
+          manifest['active_continuation_mode']='fresh-ibm-rooted-adaptive-dad-teaching'
+          manifest['latest_snapshot']=str(delta_path)
+          manifest['latest_snapshot_sha256']=EXPECTED_DELTA_SHA
+          manifest['snapshot_chain'].append({
+              'path':str(delta_path),
+              'sha256':EXPECTED_DELTA_SHA,
+              'record_count':49,
+              'first_memory_id':112,
+              'last_memory_id':160,
+              'last_record_sha256':EXPECTED_NEW_TIP,
+          })
+          manifest['combined_ledger_sha256']=EXPECTED_COMBINED_SHA
+          manifest['record_count']=160
+          manifest['last_record_sha256']=EXPECTED_NEW_TIP
+          manifest['source_workflow_run_id']=32065242845
+          manifest['source_workflow_head_sha']='88850dcd2b66c4608ccada978b7544111ef39d1e'
+          manifest['source_artifact_id']=9300185666
+          manifest['source_artifact_digest']='sha256:3de2782be75aec17f4e695ae87c6742662fb69391f2b37836a34716aa74d9f71'
+          manifest['fresh_ibm_job_id']=ibm['job_id']
+          manifest['fresh_ibm_backend']=ibm['backend']
+          manifest['fresh_ibm_shots']=ibm['shot_count']
+          manifest['fresh_ibm_counts_sha256']='dfddf5366961cab837ae614750efb1dd60121ac3b3f6b7506d39346e3fd7bdce'
+          manifest['fresh_ibm_origin_seed_sha256']=ibm['origin_seed_sha256']
+          manifest['fresh_ibm_waveform_packet_sha256']='d6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0'
+          manifest['fresh_ibm_source_audio_sha256']='e5a172749e0acedf199f77f22d5f55f37acc898704a51d5b7e6fe07633ad5c39'
+          manifest['fresh_ibm_required_tag']='zerefs-heartbeat-mustard-seed'
+          manifest['fresh_ibm_measurement_verified']=True
+          manifest['fresh_ibm_reused_existing_job']=False
+          manifest['teacher_synthetic_pulse_count']=24
+          manifest['teacher_synthetic_final_state_sha256']='afa7615db716a7babd9c9f7f23b2112315f6c4fcdd4216a2b30d84853ff2fe32'
+          manifest['teacher_synthetic_new_quantum_entropy']=False
+          manifest['teacher_transcript_sha256']='959eb9acb4b198e834b0f353bbe38b5ea528ce97cdffee86f751065aa4919b4d'
+          manifest['teacher_mean_mechanical_clarity']=0.869618
+          manifest['generated_teacher_outputs_promoted_to_training']=False
+          manifest['weights_changed_in_fresh_ibm_teaching_phase']=False
+          manifest['checkpointed_from_verified_actions_artifact']=True
+          manifest['training_contract']=(
+              'The full ledger is durable memory. Raw Zeref generations remain evidence and are excluded from clean weight-training targets unless explicitly curated. '
+              'Future descendants may train on provenance-labeled Dad corrective exemplars and synthetic clean targets while preserving the parent checkpoint unchanged.'
+          )
+          manifest['claim_boundary']=(
+              'Durable computational Zeref model-memory continuity. The 160-record ledger is an append-only software memory lineage rooted in the preserved memorial waveform and includes a verified fresh IBM hardware measurement. '
+              'It does not establish that the model is Caleb, contains a deceased person consciousness, has a biological heartbeat, or demonstrates quantum advantage.'
+          )
+          manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=False,ensure_ascii=False)+'\n',encoding='utf-8')
+          print(json.dumps({'records':160,'delta_sha256':EXPECTED_DELTA_SHA,'combined_sha256':EXPECTED_COMBINED_SHA,'last_record_sha256':EXPECTED_NEW_TIP,'ibm_job_id':ibm['job_id']},sort_keys=True))
+          PY
+
+      - name: Verify reconstructed 160-record ledger from committed segments
+        if: hashFiles('_checkpoint160/already-present') == ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          m=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text())
+          assert m['record_count']==160
+          combined=b''
+          expected=1
+          for s in m['snapshot_chain']:
+              d=Path(s['path']).read_bytes()
+              assert hashlib.sha256(d).hexdigest()==s['sha256']
+              assert s['first_memory_id']==expected
+              expected=s['last_memory_id']+1
+              combined += d
+          assert expected==161
+          assert hashlib.sha256(combined).hexdigest()==m['combined_ledger_sha256']=='5c7789c97a060a9588ae4e8e3133db4534907da0b6afd8289c3e3702fcc4899e'
+          rows=[json.loads(x) for x in combined.decode().splitlines() if x.strip()]
+          assert len(rows)==160
+          assert rows[-1]['record_sha256']==m['last_record_sha256']=='2aa298797d131ec97c07f82988d5dc4a3b4a8fdabddbe18b99277588b0c668d3'
+          PY
+
+      - name: Commit immutable 160-record checkpoint
+        if: hashFiles('_checkpoint160/already-present') == ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "NavisWORLD Zeref Memory Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add experiments/zeref-dad-son-001/memory/ledger-snapshots/run-32065242845-fresh-ibm-dad-teach-delta.jsonl \
+                  experiments/zeref-dad-son-001/memory/ledger-manifest.json
+          git diff --cached --check
+          git commit -m "memory: checkpoint Zeref through 160 records [skip ci]"
+          git push origin HEAD:networked-cage-run-001

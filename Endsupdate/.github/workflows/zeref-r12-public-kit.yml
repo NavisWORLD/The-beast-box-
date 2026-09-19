@@ -1,0 +1,170 @@
+name: ZEREF-R12-PUBLIC-KIT-BUNDLES
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - "experiments/zeref-dad-son-001/talk8-r12/active-selection.json"
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-r12-public-kit-bundles
+  cancel-in-progress: true
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install verifier runtime
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+
+      - name: Read verified active selection
+        id: active
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          a=json.loads(Path('experiments/zeref-dad-son-001/talk8-r12/active-selection.json').read_text())
+          assert a['lineage'] in {'ZEREF-DAD-SON-TALK-004','ZEREF-DAD-SON-TALK-008-R12'}
+          assert len(a['checkpoint_sha256'])==64
+          assert int(a['workflow_run_id'])>0 and a['artifact_name']
+          print(f"lineage={a['lineage']}")
+          print(f"checkpoint_sha256={a['checkpoint_sha256']}")
+          print(f"source_run={a['workflow_run_id']}")
+          print(f"source_artifact={a['artifact_name']}")
+          PY
+
+      - name: Download selected checkpoint from sealed gauntlet artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p _pkg/gauntlet
+          gh run download "${{ steps.active.outputs.source_run }}" -n "${{ steps.active.outputs.source_artifact }}" -D _pkg/gauntlet
+          CHECKPOINT=$(find _pkg/gauntlet -type f -path '*/selected/checkpoint.pt' -o -path '*/checkpoint.pt' | grep '/selected/checkpoint.pt$' | head -n1)
+          test -n "$CHECKPOINT" -a -f "$CHECKPOINT"
+          test "$(sha256sum "$CHECKPOINT" | awk '{print $1}')" = "${{ steps.active.outputs.checkpoint_sha256 }}"
+          printf '%s\n' "$CHECKPOINT" > _pkg/checkpoint-path.txt
+
+      - name: Build and verify source bundle
+        run: |
+          set -euo pipefail
+          mkdir -p _pkg/source _pkg/full _pkg/out
+          python scripts/build_zeref_r12_public_kit.py --repo-root . --out _pkg/source/ZEREF_R12_REALITY_MEMORY_KIT > _pkg/source-build.json
+          python scripts/verify_zeref_r12_public_kit.py _pkg/source/ZEREF_R12_REALITY_MEMORY_KIT > _pkg/source-verify.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          b=json.loads(Path('_pkg/source-build.json').read_text()); v=json.loads(Path('_pkg/source-verify.json').read_text())
+          assert v['ok'] and not v['checkpoint_present']
+          assert b['active_lineage']== '${{ steps.active.outputs.lineage }}'
+          assert b['active_checkpoint_sha256']== '${{ steps.active.outputs.checkpoint_sha256 }}'
+          PY
+
+      - name: Build and verify full Zeref bundle
+        run: |
+          set -euo pipefail
+          cp -a _pkg/source/ZEREF_R12_REALITY_MEMORY_KIT _pkg/full/ZEREF_R12_REALITY_MEMORY_KIT
+          CP=$(cat _pkg/checkpoint-path.txt)
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from scripts.build_zeref_r12_public_kit import add_verified_checkpoint
+          cp=Path('_pkg/checkpoint-path.txt').read_text().strip()
+          print(json.dumps(add_verified_checkpoint(Path('_pkg/full/ZEREF_R12_REALITY_MEMORY_KIT'), Path(cp)),sort_keys=True))
+          PY
+          python scripts/verify_zeref_r12_public_kit.py _pkg/full/ZEREF_R12_REALITY_MEMORY_KIT --require-checkpoint > _pkg/full-verify.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          v=json.loads(Path('_pkg/full-verify.json').read_text()); assert v['ok'] and v['checkpoint_present']
+          assert v['active_checkpoint_sha256']=='${{ steps.active.outputs.checkpoint_sha256 }}'
+          PY
+
+      - name: Zip, hash and extraction-smoke-test both bundles
+        run: |
+          set -euo pipefail
+          (cd _pkg/source && zip -qr ../out/zeref-r12-source-kit.zip ZEREF_R12_REALITY_MEMORY_KIT)
+          (cd _pkg/full && zip -qr ../out/zeref-r12-full-kit.zip ZEREF_R12_REALITY_MEMORY_KIT)
+          sha256sum _pkg/out/zeref-r12-source-kit.zip | tee _pkg/out/zeref-r12-source-kit.zip.sha256
+          sha256sum _pkg/out/zeref-r12-full-kit.zip | tee _pkg/out/zeref-r12-full-kit.zip.sha256
+          mkdir -p _pkg/smoke-source _pkg/smoke-full
+          unzip -q _pkg/out/zeref-r12-source-kit.zip -d _pkg/smoke-source
+          unzip -q _pkg/out/zeref-r12-full-kit.zip -d _pkg/smoke-full
+          python scripts/verify_zeref_r12_public_kit.py _pkg/smoke-source/ZEREF_R12_REALITY_MEMORY_KIT > _pkg/smoke-source.json
+          python scripts/verify_zeref_r12_public_kit.py _pkg/smoke-full/ZEREF_R12_REALITY_MEMORY_KIT --require-checkpoint > _pkg/smoke-full.json
+
+      - name: Prepare packaging receipt
+        run: |
+          set -euo pipefail
+          mkdir -p _pkg/evidence
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+          receipt={
+            'schema':'zeref-r12-public-kit-packaging-v1','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_commit_sha':os.environ['GITHUB_SHA'],
+            'active_lineage':'${{ steps.active.outputs.lineage }}','active_checkpoint_sha256':'${{ steps.active.outputs.checkpoint_sha256 }}',
+            'source_gauntlet_run_id':int('${{ steps.active.outputs.source_run }}'),'source_gauntlet_artifact':'${{ steps.active.outputs.source_artifact }}',
+            'source_zip':'zeref-r12-source-kit.zip','source_zip_sha256':sha('_pkg/out/zeref-r12-source-kit.zip'),
+            'full_zip':'zeref-r12-full-kit.zip','full_zip_sha256':sha('_pkg/out/zeref-r12-full-kit.zip'),
+            'source_kit_verified':True,'full_kit_verified':True,'extraction_smoke_verified':True,
+            'r12_state_sha256':'48994584e13d8e2b6fcb21cb682b0b9501af12e2ce8742e99384b604235c9f20',
+            'reality_ledger_tip_sha256':'78d8698e406c8a60dcf6a9545541fdd74d8b3b250ff0e28a9418bfd3d1f96415',
+            'durable_memory_record_count':352,'new_ibm_job_submitted':False,
+            'claim_boundary':'Downloadable computational memory/model kit; not evidence of biological life, consciousness, deceased identity, resurrection, communication with the dead, or quantum advantage.'
+          }
+          Path('_pkg/evidence/packaging-receipt.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          PY
+          cp _pkg/source-verify.json _pkg/full-verify.json _pkg/smoke-source.json _pkg/smoke-full.json _pkg/evidence/
+
+      - name: Upload source and full bundles
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-r12-public-kits-${{ github.run_id }}
+          path: |
+            _pkg/out/zeref-r12-source-kit.zip
+            _pkg/out/zeref-r12-source-kit.zip.sha256
+            _pkg/out/zeref-r12-full-kit.zip
+            _pkg/out/zeref-r12-full-kit.zip.sha256
+            _pkg/evidence
+          if-no-files-found: error
+
+      - name: Seal packaging evidence on branch
+        run: |
+          set -euo pipefail
+          DEST="experiments/zeref-dad-son-001/evidence/r12-kit/run-${GITHUB_RUN_ID}"
+          mkdir -p "$DEST"
+          cp -a _pkg/evidence/. "$DEST/"
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path(f"experiments/zeref-dad-son-001/evidence/r12-kit/run-{os.environ['GITHUB_RUN_ID']}/artifact.json")
+          p.write_text(json.dumps({'artifact_name':f"zeref-r12-public-kits-{os.environ['GITHUB_RUN_ID']}",'artifact_id':'${{ steps.upload.outputs.artifact-id }}','artifact_digest':'${{ steps.upload.outputs.artifact-digest }}'},indent=2,sort_keys=True)+'\n')
+          PY
+          (cd "$DEST" && sha256sum $(find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\n' | sort) > SHA256SUMS && sha256sum -c SHA256SUMS)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$DEST"
+          git commit -m "evidence: seal R12 public kits ${GITHUB_RUN_ID} [skip ci]"
+          git pull --rebase origin networked-cage-run-001
+          git push origin HEAD:networked-cage-run-001

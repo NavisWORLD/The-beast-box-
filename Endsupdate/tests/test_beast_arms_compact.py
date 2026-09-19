@@ -1,0 +1,186 @@
+from __future__ import annotations
+
+import json
+import time
+from pathlib import Path
+
+import beastbox.arms.subject as subject_module
+from beastbox.arms.cli import build_parser
+from beastbox.arms.network import NetworkPolicy
+from beastbox.arms.recorder import EvidenceRecorder
+from beastbox.arms.subject import NetworkedCageSubject
+from beastbox.arms.tools import BeastArms
+
+
+class FakeModel:
+    def __init__(self, replies: list[str]) -> None:
+        self.replies = iter(replies)
+        self.messages_seen: list[list[dict[str, str]]] = []
+
+    def chat(self, messages):
+        self.messages_seen.append([dict(m) for m in messages])
+        return next(self.replies)
+
+    def complete(self, prompt: str) -> str:
+        return self.chat([{"role": "user", "content": prompt}])
+
+
+class FakeClock:
+    def __init__(self, ticks: list[float]) -> None:
+        self._ticks = iter(ticks)
+
+    def monotonic(self) -> float:
+        return next(self._ticks)
+
+
+def make_arms(root: Path) -> BeastArms:
+    return BeastArms(root, EvidenceRecorder(root / ".evidence", run_id="compact-test"), NetworkPolicy())
+
+
+def test_compact_prompt_leaves_generation_room_in_native_zeref_context(tmp_path: Path) -> None:
+    model = FakeModel(['{"t":"f","a":{"message":"x"}}'])
+    subject = NetworkedCageSubject(
+        model,
+        make_arms(tmp_path),
+        max_turns=1,
+        deadline_monotonic=time.monotonic() + 60,
+        compact=True,
+    )
+    subject.run()
+    assert len(model.messages_seen[0]) == 1
+    prompt = model.messages_seen[0][0]["content"]
+    assert model.messages_seen[0][0]["role"] == "user"
+    assert len(prompt.encode("utf-8")) <= 12
+    assert prompt == "JSON t/a"
+
+
+def test_compact_alias_executes_same_shell_arm(tmp_path: Path) -> None:
+    model = FakeModel([
+        '{"t":"s","a":{"argv":["python","-c","print(42)"]}}',
+        '{"t":"f","a":{"message":"done"}}',
+    ])
+    subject = NetworkedCageSubject(
+        model,
+        make_arms(tmp_path),
+        max_turns=2,
+        deadline_monotonic=time.monotonic() + 60,
+        compact=True,
+    )
+    result = subject.run()
+    assert result.finished is True
+    assert result.tool_calls == 1
+    assert result.final_message == "done"
+
+
+def test_compact_mode_preserves_bounded_continuity_and_old_observation(tmp_path: Path) -> None:
+    model = FakeModel([
+        '{"t":"s","a":{"argv":["python","-c","print(ANCIENT)"]}}',
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
+        '{"t":"f","a":{"message":"done"}}',
+    ])
+    subject = NetworkedCageSubject(
+        model,
+        make_arms(tmp_path),
+        max_turns=8,
+        deadline_monotonic=time.monotonic() + 60,
+        compact=True,
+    )
+    subject.run()
+
+    assert any(
+        message["role"] == "assistant"
+        for turn in model.messages_seen[1:]
+        for message in turn
+    )
+    final_frame = "\n".join(message["content"] for message in model.messages_seen[-1])
+    assert "ANCIENT" in final_frame
+    assert sum(
+        len(message["content"].encode("utf-8"))
+        for message in model.messages_seen[-1]
+    ) <= 384
+
+
+def test_compact_continuity_ledger_grows_beyond_bounded_prompt_capsule(tmp_path: Path) -> None:
+    replies = [
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
+        '{"t":"e","a":{}}',
+        '{"t":"f","a":{"message":"done"}}',
+    ]
+    root = tmp_path / "evidence"
+    model = FakeModel(replies)
+    subject = NetworkedCageSubject(
+        model,
+        make_arms(root),
+        max_turns=len(replies),
+        deadline_monotonic=time.monotonic() + 60,
+        compact=True,
+    )
+    subject.run()
+
+    ledger = root / ".evidence" / "continuity.jsonl"
+    rows = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+    assert len(rows) >= 5
+    assert [row["turn"] for row in rows] == sorted(row["turn"] for row in rows)
+    final_prompt_bytes = sum(len(m["content"].encode("utf-8")) for m in model.messages_seen[-1])
+    assert final_prompt_bytes <= 384
+    assert "credentials" not in ledger.read_text(encoding="utf-8").lower()
+
+
+def test_compact_protocol_error_retry_is_tiny(tmp_path: Path) -> None:
+    model = FakeModel([
+        "not-json",
+        '{"t":"f","a":{"message":"done"}}',
+    ])
+    subject = NetworkedCageSubject(
+        model,
+        make_arms(tmp_path),
+        max_turns=2,
+        deadline_monotonic=time.monotonic() + 60,
+        compact=True,
+    )
+    result = subject.run()
+    assert result.finished is True
+    assert result.protocol_errors == 1
+    retry = model.messages_seen[1][0]["content"]
+    assert len(model.messages_seen[1]) == 1
+    assert len(retry.encode("utf-8")) <= 12
+    assert "json" in retry.lower()
+
+
+def test_strict_duration_records_finish_claim_but_runs_until_supervisor_deadline(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(subject_module, "time", FakeClock([0.0, 2.0]))
+    model = FakeModel(['{"t":"f","a":{"message":"claim"}}'])
+    subject = NetworkedCageSubject(
+        model,
+        make_arms(tmp_path),
+        max_turns=1,
+        deadline_monotonic=1.0,
+        compact=True,
+        strict_duration=True,
+    )
+    result = subject.run()
+    assert result.finished is False
+    assert result.timed_out is True
+    assert result.final_message == "claim"
+    assert len(model.messages_seen) == 1
+
+
+def test_run_cli_exposes_compact_subject_and_strict_duration_switches() -> None:
+    args = build_parser().parse_args([
+        "run",
+        "--base-url", "http://127.0.0.1:18080/v1",
+        "--model", "cosmos",
+        "--out", "evidence",
+        "--compact-subject",
+        "--strict-duration",
+    ])
+    assert args.compact_subject is True
+    assert args.strict_duration is True
