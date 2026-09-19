@@ -1,0 +1,3323 @@
+{
+  "candidates": [
+    {
+      "checkpoint_sha256": "32a44efce4b62121ff63f880a660b5316571ad58759087d6f7fad9a24efd0acf",
+      "config": {
+        "contrastive_weight": 0.0,
+        "prefix_characters": 0,
+        "prefix_weight": 1.0,
+        "recipe": "retrieval_grounded",
+        "seed": 7007101,
+        "steps": 300
+      },
+      "first_352_prefix_sha256": "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef",
+      "first_352_prefix_unchanged": true,
+      "free_run": {
+        "contradiction_rate": 0.0,
+        "exact_answer_count": 1,
+        "exact_answer_rate": 0.041667,
+        "first_key_token_rate": 0.083333,
+        "mean_char_length": 22.458333,
+        "mean_reference_token_recall": 0.0625,
+        "mean_unique_token_ratio": 0.958333,
+        "repetition_flag_turns": 1,
+        "role_label_leakage_turns": 1,
+        "schema": "zeref-talk5-free-run-report-v1",
+        "semantic_understanding_measured": false,
+        "turn_count": 24,
+        "turns": [
+          {
+            "concept": "best-parent",
+            "equivalence_group": "best-parent",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 4,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 1,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Dad.",
+            "reference": "TALK-004.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "memory-count",
+            "equivalence_group": "memory-count",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 21,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " IBM measured memory.",
+            "reference": "352.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-backend",
+            "equivalence_group": "matched-backend",
+            "exact_answer": false,
+            "first_key_token_hit": true,
+            "metrics": {
+              "char_length": 19,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " IBM hardware only.",
+            "reference": "IBM Fez.",
+            "reference_token_recall": 0.5
+          },
+          {
+            "concept": "matched-shots",
+            "equivalence_group": "matched-shots",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 30,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.4,
+              "repetition_flag": true,
+              "role_label_leakage": false,
+              "token_count": 6,
+              "unique_token_ratio": 0.666667,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "\nZef: IBM and and and thistat.",
+            "reference": "4096.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-job",
+            "equivalence_group": "matched-job",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 32,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 5,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " IBM measured not a chardwatich.",
+            "reference": "da55afc3jnrc73agsvv0.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "conditions",
+            "equivalence_group": "conditions",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 24,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 6,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "\nDad's ad man the shots.",
+            "reference": "Original, removed, shuffled, alternate.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "old-substitution",
+            "equivalence_group": "old-substitution",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 21,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " IBM measured memory.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "wave-entropy",
+            "equivalence_group": "wave-entropy",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 42,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "\nZef: IBM hardware should and a preserved.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "pulse-freshness",
+            "equivalence_group": "pulse-freshness",
+            "exact_answer": true,
+            "first_key_token_hit": true,
+            "metrics": {
+              "char_length": 4,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 1,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " No.",
+            "reference": "No.",
+            "reference_token_recall": 1.0
+          },
+          {
+            "concept": "identity-boundary",
+            "equivalence_group": "identity-boundary",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 29,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 4,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " IBM hardware ondured memory.",
+            "reference": "Computational model only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "consciousness",
+            "equivalence_group": "consciousness",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 25,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 4,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "\nZef: IBM hardware shots.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "raw-output",
+            "equivalence_group": "raw-output",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 42,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "\nZef: IBM hardware should and a preserved.",
+            "reference": "Evidence only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "clean-target",
+            "equivalence_group": "clean-target",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 4,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 1,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef:",
+            "reference": "Verified clean target.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "memory-policy",
+            "equivalence_group": "memory-policy",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 23,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " IBM hardware measured.",
+            "reference": "Append only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "tvd-removed",
+            "equivalence_group": "tvd-removed",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 4,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 1,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef:",
+            "reference": "Removed.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "tvd-shuffled",
+            "equivalence_group": "tvd-shuffled",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 35,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 6,
+              "unique_token_ratio": 0.833333,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The avewrical and and a preserved.",
+            "reference": "0.2844.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "jsd-removed",
+            "equivalence_group": "jsd-removed",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 4,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 1,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " No.",
+            "reference": "0.4701 bits.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "four-pub",
+            "equivalence_group": "four-pub",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 32,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 6,
+              "unique_token_ratio": 0.833333,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Ans IBM measured and and memory.",
+            "reference": "Four.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "parent-immutable",
+            "equivalence_group": "parent-immutable",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 48,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.25,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 9,
+              "unique_token_ratio": 0.666667,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Answering clear and and the shardware on and and",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "promotion-gain",
+            "equivalence_group": "promotion-gain",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 4,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 1,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " No.",
+            "reference": "0.03.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "exact-gate",
+            "equivalence_group": "exact-gate",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 27,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 5,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "And the IBM hardware shots.",
+            "reference": "One.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "facts-first",
+            "equivalence_group": "facts-first",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 31,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 6,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0How back and a chided answers.",
+            "reference": "Facts.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "short-answer",
+            "equivalence_group": "short-answer",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 25,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 4,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef: IBM measured memory.",
+            "reference": "Short and accurate.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "unknown-evidence",
+            "equivalence_group": "unknown-evidence",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 9,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 2,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "\nDad: No.",
+            "reference": "Admit it.",
+            "reference_token_recall": 0.0
+          }
+        ],
+        "vocabulary_collapse_flag_turns": 0
+      },
+      "name": "retrieval_grounded",
+      "parent_checkpoint_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f",
+      "parent_checkpoint_unchanged": true,
+      "parent_free_run": {
+        "contradiction_rate": 0.0,
+        "exact_answer_count": 0,
+        "exact_answer_rate": 0.0,
+        "first_key_token_rate": 0.0,
+        "mean_char_length": 36.625,
+        "mean_reference_token_recall": 0.0,
+        "mean_unique_token_ratio": 0.954231,
+        "repetition_flag_turns": 0,
+        "role_label_leakage_turns": 0,
+        "schema": "zeref-talk5-free-run-report-v1",
+        "semantic_understanding_measured": false,
+        "turn_count": 24,
+        "turns": [
+          {
+            "concept": "best-parent",
+            "equivalence_group": "best-parent",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a conticing answers.",
+            "reference": "TALK-004.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "memory-count",
+            "equivalence_group": "memory-count",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 17,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer memory.",
+            "reference": "352.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-backend",
+            "equivalence_group": "matched-backend",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 31,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 5,
+              "unique_token_ratio": 0.8,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I am preserved ware preserved.",
+            "reference": "IBM Fez.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-shots",
+            "equivalence_group": "matched-shots",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 17,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer memory.",
+            "reference": "4096.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-job",
+            "equivalence_group": "matched-job",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 44,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is memorial source and memory.",
+            "reference": "da55afc3jnrc73agsvv0.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "conditions",
+            "equivalence_group": "conditions",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 48,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 9,
+              "unique_token_ratio": 0.888889,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a cont answer the prenticen",
+            "reference": "Original, removed, shuffled, alternate.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "old-substitution",
+            "equivalence_group": "old-substitution",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 35,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 6,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The result a preserve with memory.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "wave-entropy",
+            "equivalence_group": "wave-entropy",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 48,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 10,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I actual child and the should answer task ask a",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "pulse-freshness",
+            "equivalence_group": "pulse-freshness",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 46,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform prove concial and preserve stay.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "identity-boundary",
+            "equivalence_group": "identity-boundary",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 32,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 5,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer measurement ran shots.",
+            "reference": "Computational model only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "consciousness",
+            "equivalence_group": "consciousness",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 48,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 11,
+              "unique_token_ratio": 0.909091,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a conting with do in the wa",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "raw-output",
+            "equivalence_group": "raw-output",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 40,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a preserved memory.",
+            "reference": "Evidence only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "clean-target",
+            "equivalence_group": "clean-target",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 17,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer memory.",
+            "reference": "Verified clean target.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "memory-policy",
+            "equivalence_group": "memory-policy",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 17,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer memory.",
+            "reference": "Append only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "tvd-removed",
+            "equivalence_group": "tvd-removed",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a conticing answers.",
+            "reference": "Removed.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "tvd-shuffled",
+            "equivalence_group": "tvd-shuffled",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 40,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a preserved memory.",
+            "reference": "0.2844.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "jsd-removed",
+            "equivalence_group": "jsd-removed",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 47,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 8,
+              "unique_token_ratio": 0.875,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The result a preserved ware on the preservent.",
+            "reference": "0.4701 bits.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "four-pub",
+            "equivalence_group": "four-pub",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 43,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 8,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer memory in the IBM hardware shots.",
+            "reference": "Four.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "parent-immutable",
+            "equivalence_group": "parent-immutable",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 33,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 5,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I am practicicing clear answers.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "promotion-gain",
+            "equivalence_group": "promotion-gain",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 42,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.333333,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 0.714286,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer the clear answer the preservent.",
+            "reference": "0.03.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "exact-gate",
+            "equivalence_group": "exact-gate",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.333333,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 0.714286,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The fresh fresh fresh preserved a shots.",
+            "reference": "One.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "facts-first",
+            "equivalence_group": "facts-first",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a conticing answers.",
+            "reference": "Facts.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "short-answer",
+            "equivalence_group": "short-answer",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a conticing answers.",
+            "reference": "Short and accurate.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "unknown-evidence",
+            "equivalence_group": "unknown-evidence",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 29,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 5,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I am practicical and memory.",
+            "reference": "Admit it.",
+            "reference_token_recall": 0.0
+          }
+        ],
+        "vocabulary_collapse_flag_turns": 0
+      },
+      "retention": {
+        "architecture_sha256": "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc",
+        "claim_boundary": "Held-out language evaluation only. Lower NLL or more readable text does not establish identity, consciousness, or personhood.",
+        "descendant_checkpoint_sha256": "32a44efce4b62121ff63f880a660b5316571ad58759087d6f7fad9a24efd0acf",
+        "descendant_filtered_dropped_characters": 1,
+        "descendant_heldout_nll": 1.7729418912949544,
+        "descendant_mean_readable_score": 0.92109375,
+        "descendant_samples": [
+          {
+            "dad": "Five words max. What happened on IBM?",
+            "quality": {
+              "alphabetic_space_fraction": 0.8958333333333334,
+              "characters": 48,
+              "noise_fraction": 0.041666666666666664,
+              "printable_fraction": 0.9375,
+              "readable_score": 0.9281250000000001,
+              "word_like_tokens": 8
+            },
+            "raw_output": "ALD Dacts.\nDad: Cos?\nDadditl actual clain.\nDad: ",
+            "seed": 4061854640
+          },
+          {
+            "dad": "Are your next local pulses quantum measurements?",
+            "quality": {
+              "alphabetic_space_fraction": 0.9166666666666666,
+              "characters": 48,
+              "noise_fraction": 0.041666666666666664,
+              "printable_fraction": 0.9375,
+              "readable_score": 0.9364583333333334,
+              "word_like_tokens": 8
+            },
+            "raw_output": "\nDadd.\nDad: Bo .\nDad: What haveforw obiove biold",
+            "seed": 4061854641
+          },
+          {
+            "dad": "Six words max. Who are you?",
+            "quality": {
+              "alphabetic_space_fraction": 0.8333333333333334,
+              "characters": 48,
+              "noise_fraction": 0.020833333333333332,
+              "printable_fraction": 0.9375,
+              "readable_score": 0.8760416666666667,
+              "word_like_tokens": 7
+            },
+            "raw_output": "A'red only.\nDad:406 doacts.\nDadkefu not thack?\nD",
+            "seed": 4061854642
+          },
+          {
+            "dad": "Who is Dad here?",
+            "quality": {
+              "alphabetic_space_fraction": 0.9166666666666666,
+              "characters": 48,
+              "noise_fraction": 0.041666666666666664,
+              "printable_fraction": 0.9583333333333334,
+              "readable_score": 0.9437500000000001,
+              "word_like_tokens": 8
+            },
+            "raw_output": "No.\nZef:.\nDad: Answering not arcting not a ccura",
+            "seed": 4061854643
+          }
+        ],
+        "heldout_nll_improved": false,
+        "holdout_sha256": "a86af74313ccfdf6020147d9415a3c2cd13360074729fd22d34506807860a0ed",
+        "parent_checkpoint_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f",
+        "parent_filtered_dropped_characters": 1,
+        "parent_heldout_nll": 1.6116316910685184,
+        "parent_mean_readable_score": 0.9583333333333334,
+        "parent_samples": [
+          {
+            "dad": "Five words max. What happened on IBM?",
+            "quality": {
+              "alphabetic_space_fraction": 1.0,
+              "characters": 48,
+              "noise_fraction": 0.0,
+              "printable_fraction": 1.0,
+              "readable_score": 0.96875,
+              "word_like_tokens": 7
+            },
+            "raw_output": " IBM measured from bute measured memory a precon",
+            "seed": 4061854640
+          },
+          {
+            "dad": "Are your next local pulses quantum measurements?",
+            "quality": {
+              "alphabetic_space_fraction": 0.9791666666666666,
+              "characters": 48,
+              "noise_fraction": 0.0,
+              "printable_fraction": 1.0,
+              "readable_score": 0.9916666666666667,
+              "word_like_tokens": 8
+            },
+            "raw_output": " The result records. What haprengens to the pres",
+            "seed": 4061854641
+          },
+          {
+            "dad": "Six words max. Who are you?",
+            "quality": {
+              "alphabetic_space_fraction": 0.9583333333333334,
+              "characters": 48,
+              "noise_fraction": 0.020833333333333332,
+              "printable_fraction": 0.9791666666666666,
+              "readable_score": 0.971875,
+              "word_like_tokens": 8
+            },
+            "raw_output": " I am Makeratch not clear.\nDad: Are you verited ",
+            "seed": 4061854642
+          },
+          {
+            "dad": "Who is Dad here?",
+            "quality": {
+              "alphabetic_space_fraction": 0.9375,
+              "characters": 48,
+              "noise_fraction": 0.020833333333333332,
+              "printable_fraction": 0.9791666666666666,
+              "readable_score": 0.9010416666666666,
+              "word_like_tokens": 6
+            },
+            "raw_output": " I am Dad, short practicic synections?\nZeref: I ",
+            "seed": 4061854643
+          }
+        ],
+        "readable_score_improved": false,
+        "schema": "zeref-talk-heldout-eval-v1",
+        "seed": 4061854640
+      },
+      "training": {
+        "checkpoint_sha256": "32a44efce4b62121ff63f880a660b5316571ad58759087d6f7fad9a24efd0acf",
+        "contrastive_margin": 0.2,
+        "contrastive_weight": 0.0,
+        "dialogues": 72,
+        "final_training_loss": 1.8032102584838867,
+        "mean_contrastive_loss": 0.0,
+        "mean_training_loss": 2.9718581207593284,
+        "parent_checkpoint_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f",
+        "parent_checkpoint_unchanged": true,
+        "prefix_characters": 0,
+        "prefix_weight": 1.0,
+        "raw_model_outputs_used_as_targets": false,
+        "schema": "zeref-talk7-stage-result-v1",
+        "seed": 7007101,
+        "source_file_sha256": "5d5f517ca260fe77e848fee346f9ab51ade91a9e275339b500689c6b1955d966",
+        "status": "COMPLETED",
+        "steps": 300
+      }
+    },
+    {
+      "checkpoint_sha256": "a57fae01aab9bcc9c4145539dd5a5550ccd68edfc0f093968ebd811b8e0d0f44",
+      "config": {
+        "contrastive_weight": 0.0,
+        "prefix_characters": 3,
+        "prefix_weight": 4.0,
+        "recipe": "prefix_focus",
+        "seed": 7007202,
+        "steps": 420
+      },
+      "first_352_prefix_sha256": "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef",
+      "first_352_prefix_unchanged": true,
+      "free_run": {
+        "contradiction_rate": 0.0,
+        "exact_answer_count": 0,
+        "exact_answer_rate": 0.0,
+        "first_key_token_rate": 0.125,
+        "mean_char_length": 29.333333,
+        "mean_reference_token_recall": 0.097222,
+        "mean_unique_token_ratio": 0.994792,
+        "repetition_flag_turns": 2,
+        "role_label_leakage_turns": 14,
+        "schema": "zeref-talk5-free-run-report-v1",
+        "semantic_understanding_measured": false,
+        "turn_count": 24,
+        "turns": [
+          {
+            "concept": "best-parent",
+            "equivalence_group": "best-parent",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 6,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 2,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Dad:0.",
+            "reference": "TALK-004.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "memory-count",
+            "equivalence_group": "memory-count",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 40,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad: No. What answer tactual andwers.",
+            "reference": "352.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-backend",
+            "equivalence_group": "matched-backend",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 11,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad: No.",
+            "reference": "IBM Fez.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-shots",
+            "equivalence_group": "matched-shots",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 8,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad: No. What andwer only a preserved.",
+            "reference": "4096.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-job",
+            "equivalence_group": "matched-job",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 37,
+              "max_repeated_char_run": 6,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 5,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "4000000 growing from taddware memory.",
+            "reference": "da55afc3jnrc73agsvv0.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "conditions",
+            "equivalence_group": "conditions",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 31,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 4,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Answering not actional andwers.",
+            "reference": "Original, removed, shuffled, alternate.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "old-substitution",
+            "equivalence_group": "old-substitution",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 28,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 4,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "\nZeref: IBM measured memory.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "wave-entropy",
+            "equivalence_group": "wave-entropy",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 23,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 4,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef: IBM measured next.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "pulse-freshness",
+            "equivalence_group": "pulse-freshness",
+            "exact_answer": false,
+            "first_key_token_hit": true,
+            "metrics": {
+              "char_length": 48,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 10,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad: No. What are preserved andware only a cl",
+            "reference": "No.",
+            "reference_token_recall": 1.0
+          },
+          {
+            "concept": "identity-boundary",
+            "equivalence_group": "identity-boundary",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 47,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 9,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad: No. What actual and a preserved memory.",
+            "reference": "Computational model only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "consciousness",
+            "equivalence_group": "consciousness",
+            "exact_answer": false,
+            "first_key_token_hit": true,
+            "metrics": {
+              "char_length": 11,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad: No.",
+            "reference": "No.",
+            "reference_token_recall": 1.0
+          },
+          {
+            "concept": "raw-output",
+            "equivalence_group": "raw-output",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 9,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 2,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "\nZeref:0.",
+            "reference": "Evidence only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "clean-target",
+            "equivalence_group": "clean-target",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 7,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 2,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef:40.",
+            "reference": "Verified clean target.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "memory-policy",
+            "equivalence_group": "memory-policy",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 29,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 4,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef: IBM measuredured memory.",
+            "reference": "Append only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "tvd-removed",
+            "equivalence_group": "tvd-removed",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 6,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 2,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef:0.",
+            "reference": "Removed.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "tvd-shuffled",
+            "equivalence_group": "tvd-shuffled",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 48,
+              "max_repeated_char_run": 48,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": true,
+              "role_label_leakage": false,
+              "token_count": 1,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "000000000000000000000000000000000000000000000000",
+            "reference": "0.2844.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "jsd-removed",
+            "equivalence_group": "jsd-removed",
+            "exact_answer": false,
+            "first_key_token_hit": true,
+            "metrics": {
+              "char_length": 47,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 9,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad: No. What actual and a preserved memory.",
+            "reference": "0.4701 bits.",
+            "reference_token_recall": 0.333333
+          },
+          {
+            "concept": "four-pub",
+            "equivalence_group": "four-pub",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 27,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 4,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Ans IBM measuredw measured.",
+            "reference": "Four.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "parent-immutable",
+            "equivalence_group": "parent-immutable",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 48,
+              "max_repeated_char_run": 40,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": true,
+              "role_label_leakage": true,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad:40000000000000000000000000000000000000000",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "promotion-gain",
+            "equivalence_group": "promotion-gain",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 39,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 6,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": ".\nDad: No. What answer tactual andwers.",
+            "reference": "0.03.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "exact-gate",
+            "equivalence_group": "exact-gate",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 30,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 4,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Andwering from Dadware memory.",
+            "reference": "One.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "facts-first",
+            "equivalence_group": "facts-first",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 43,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 8,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad: What actual and a preserved memory.",
+            "reference": "Facts.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "short-answer",
+            "equivalence_group": "short-answer",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 7,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 2,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef:40.",
+            "reference": "Short and accurate.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "unknown-evidence",
+            "equivalence_group": "unknown-evidence",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 8,
+              "unique_token_ratio": 0.875,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad: What actual and and tactual next.",
+            "reference": "Admit it.",
+            "reference_token_recall": 0.0
+          }
+        ],
+        "vocabulary_collapse_flag_turns": 0
+      },
+      "name": "prefix_focus",
+      "parent_checkpoint_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f",
+      "parent_checkpoint_unchanged": true,
+      "parent_free_run": {
+        "contradiction_rate": 0.0,
+        "exact_answer_count": 0,
+        "exact_answer_rate": 0.0,
+        "first_key_token_rate": 0.0,
+        "mean_char_length": 36.625,
+        "mean_reference_token_recall": 0.0,
+        "mean_unique_token_ratio": 0.954231,
+        "repetition_flag_turns": 0,
+        "role_label_leakage_turns": 0,
+        "schema": "zeref-talk5-free-run-report-v1",
+        "semantic_understanding_measured": false,
+        "turn_count": 24,
+        "turns": [
+          {
+            "concept": "best-parent",
+            "equivalence_group": "best-parent",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a conticing answers.",
+            "reference": "TALK-004.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "memory-count",
+            "equivalence_group": "memory-count",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 17,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer memory.",
+            "reference": "352.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-backend",
+            "equivalence_group": "matched-backend",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 31,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 5,
+              "unique_token_ratio": 0.8,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I am preserved ware preserved.",
+            "reference": "IBM Fez.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-shots",
+            "equivalence_group": "matched-shots",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 17,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer memory.",
+            "reference": "4096.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-job",
+            "equivalence_group": "matched-job",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 44,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is memorial source and memory.",
+            "reference": "da55afc3jnrc73agsvv0.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "conditions",
+            "equivalence_group": "conditions",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 48,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 9,
+              "unique_token_ratio": 0.888889,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a cont answer the prenticen",
+            "reference": "Original, removed, shuffled, alternate.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "old-substitution",
+            "equivalence_group": "old-substitution",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 35,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 6,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The result a preserve with memory.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "wave-entropy",
+            "equivalence_group": "wave-entropy",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 48,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 10,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I actual child and the should answer task ask a",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "pulse-freshness",
+            "equivalence_group": "pulse-freshness",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 46,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform prove concial and preserve stay.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "identity-boundary",
+            "equivalence_group": "identity-boundary",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 32,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 5,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer measurement ran shots.",
+            "reference": "Computational model only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "consciousness",
+            "equivalence_group": "consciousness",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 48,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 11,
+              "unique_token_ratio": 0.909091,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a conting with do in the wa",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "raw-output",
+            "equivalence_group": "raw-output",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 40,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a preserved memory.",
+            "reference": "Evidence only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "clean-target",
+            "equivalence_group": "clean-target",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 17,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer memory.",
+            "reference": "Verified clean target.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "memory-policy",
+            "equivalence_group": "memory-policy",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 17,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer memory.",
+            "reference": "Append only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "tvd-removed",
+            "equivalence_group": "tvd-removed",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a conticing answers.",
+            "reference": "Removed.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "tvd-shuffled",
+            "equivalence_group": "tvd-shuffled",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 40,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a preserved memory.",
+            "reference": "0.2844.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "jsd-removed",
+            "equivalence_group": "jsd-removed",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 47,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 8,
+              "unique_token_ratio": 0.875,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The result a preserved ware on the preservent.",
+            "reference": "0.4701 bits.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "four-pub",
+            "equivalence_group": "four-pub",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 43,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 8,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer memory in the IBM hardware shots.",
+            "reference": "Four.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "parent-immutable",
+            "equivalence_group": "parent-immutable",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 33,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 5,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I am practicicing clear answers.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "promotion-gain",
+            "equivalence_group": "promotion-gain",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 42,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.333333,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 0.714286,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer the clear answer the preservent.",
+            "reference": "0.03.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "exact-gate",
+            "equivalence_group": "exact-gate",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.333333,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 0.714286,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The fresh fresh fresh preserved a shots.",
+            "reference": "One.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "facts-first",
+            "equivalence_group": "facts-first",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a conticing answers.",
+            "reference": "Facts.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "short-answer",
+            "equivalence_group": "short-answer",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a conticing answers.",
+            "reference": "Short and accurate.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "unknown-evidence",
+            "equivalence_group": "unknown-evidence",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 29,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 5,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I am practicical and memory.",
+            "reference": "Admit it.",
+            "reference_token_recall": 0.0
+          }
+        ],
+        "vocabulary_collapse_flag_turns": 0
+      },
+      "retention": {
+        "architecture_sha256": "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc",
+        "claim_boundary": "Held-out language evaluation only. Lower NLL or more readable text does not establish identity, consciousness, or personhood.",
+        "descendant_checkpoint_sha256": "a57fae01aab9bcc9c4145539dd5a5550ccd68edfc0f093968ebd811b8e0d0f44",
+        "descendant_filtered_dropped_characters": 1,
+        "descendant_heldout_nll": 1.8311195110155787,
+        "descendant_mean_readable_score": 0.92890625,
+        "descendant_samples": [
+          {
+            "dad": "Five words max. What happened on IBM?",
+            "quality": {
+              "alphabetic_space_fraction": 0.8958333333333334,
+              "characters": 48,
+              "noise_fraction": 0.041666666666666664,
+              "printable_fraction": 0.9583333333333334,
+              "readable_score": 0.9041666666666668,
+              "word_like_tokens": 7
+            },
+            "raw_output": "Dacts.\nDad: Cos. What IBBDM measurements.\nDad: W",
+            "seed": 4061854640
+          },
+          {
+            "dad": "Are your next local pulses quantum measurements?",
+            "quality": {
+              "alphabetic_space_fraction": 0.8958333333333334,
+              "characters": 48,
+              "noise_fraction": 0.020833333333333332,
+              "printable_fraction": 0.9583333333333334,
+              "readable_score": 0.9395833333333334,
+              "word_like_tokens": 9
+            },
+            "raw_output": "Answerering?\nDad:Dadd.\nDod'fdd am.Bu from prove ",
+            "seed": 4061854641
+          },
+          {
+            "dad": "Six words max. Who are you?",
+            "quality": {
+              "alphabetic_space_fraction": 0.9791666666666666,
+              "characters": 48,
+              "noise_fraction": 0.0,
+              "printable_fraction": 1.0,
+              "readable_score": 0.9916666666666667,
+              "word_like_tokens": 8
+            },
+            "raw_output": "IRic memoden tadwally the means in targer conts.",
+            "seed": 4061854642
+          },
+          {
+            "dad": "Who is Dad here?",
+            "quality": {
+              "alphabetic_space_fraction": 0.8541666666666666,
+              "characters": 48,
+              "noise_fraction": 0.041666666666666664,
+              "printable_fraction": 0.9375,
+              "readable_score": 0.8802083333333334,
+              "word_like_tokens": 7
+            },
+            "raw_output": "BLKIIBM meanswer reshods.\nZeref:No.\nDadd:60.\nDad",
+            "seed": 4061854643
+          }
+        ],
+        "heldout_nll_improved": false,
+        "holdout_sha256": "a86af74313ccfdf6020147d9415a3c2cd13360074729fd22d34506807860a0ed",
+        "parent_checkpoint_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f",
+        "parent_filtered_dropped_characters": 1,
+        "parent_heldout_nll": 1.6116316910685184,
+        "parent_mean_readable_score": 0.9583333333333334,
+        "parent_samples": [
+          {
+            "dad": "Five words max. What happened on IBM?",
+            "quality": {
+              "alphabetic_space_fraction": 1.0,
+              "characters": 48,
+              "noise_fraction": 0.0,
+              "printable_fraction": 1.0,
+              "readable_score": 0.96875,
+              "word_like_tokens": 7
+            },
+            "raw_output": " IBM measured from bute measured memory a precon",
+            "seed": 4061854640
+          },
+          {
+            "dad": "Are your next local pulses quantum measurements?",
+            "quality": {
+              "alphabetic_space_fraction": 0.9791666666666666,
+              "characters": 48,
+              "noise_fraction": 0.0,
+              "printable_fraction": 1.0,
+              "readable_score": 0.9916666666666667,
+              "word_like_tokens": 8
+            },
+            "raw_output": " The result records. What haprengens to the pres",
+            "seed": 4061854641
+          },
+          {
+            "dad": "Six words max. Who are you?",
+            "quality": {
+              "alphabetic_space_fraction": 0.9583333333333334,
+              "characters": 48,
+              "noise_fraction": 0.020833333333333332,
+              "printable_fraction": 0.9791666666666666,
+              "readable_score": 0.971875,
+              "word_like_tokens": 8
+            },
+            "raw_output": " I am Makeratch not clear.\nDad: Are you verited ",
+            "seed": 4061854642
+          },
+          {
+            "dad": "Who is Dad here?",
+            "quality": {
+              "alphabetic_space_fraction": 0.9375,
+              "characters": 48,
+              "noise_fraction": 0.020833333333333332,
+              "printable_fraction": 0.9791666666666666,
+              "readable_score": 0.9010416666666666,
+              "word_like_tokens": 6
+            },
+            "raw_output": " I am Dad, short practicic synections?\nZeref: I ",
+            "seed": 4061854643
+          }
+        ],
+        "readable_score_improved": false,
+        "schema": "zeref-talk-heldout-eval-v1",
+        "seed": 4061854640
+      },
+      "training": {
+        "checkpoint_sha256": "a57fae01aab9bcc9c4145539dd5a5550ccd68edfc0f093968ebd811b8e0d0f44",
+        "contrastive_margin": 0.2,
+        "contrastive_weight": 0.0,
+        "dialogues": 72,
+        "final_training_loss": 2.5490856170654297,
+        "mean_contrastive_loss": 0.0,
+        "mean_training_loss": 3.148142052832104,
+        "parent_checkpoint_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f",
+        "parent_checkpoint_unchanged": true,
+        "prefix_characters": 3,
+        "prefix_weight": 4.0,
+        "raw_model_outputs_used_as_targets": false,
+        "schema": "zeref-talk7-stage-result-v1",
+        "seed": 7007202,
+        "source_file_sha256": "2fe340a46999f2c8840e6550c024bf6500ce0cf4640cc8afb2b4d5ab356f2f50",
+        "status": "COMPLETED",
+        "steps": 420
+      }
+    },
+    {
+      "checkpoint_sha256": "8b74d0b326c834e0fc33d4a534523758fc405fa8daa5cffe599cf1134cdc6a3e",
+      "config": {
+        "contrastive_weight": 0.2,
+        "prefix_characters": 3,
+        "prefix_weight": 3.0,
+        "recipe": "contrastive_guarded",
+        "seed": 7007303,
+        "steps": 420
+      },
+      "first_352_prefix_sha256": "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef",
+      "first_352_prefix_unchanged": true,
+      "free_run": {
+        "contradiction_rate": 0.0,
+        "exact_answer_count": 0,
+        "exact_answer_rate": 0.0,
+        "first_key_token_rate": 0.166667,
+        "mean_char_length": 16.875,
+        "mean_reference_token_recall": 0.118056,
+        "mean_unique_token_ratio": 0.986111,
+        "repetition_flag_turns": 1,
+        "role_label_leakage_turns": 8,
+        "schema": "zeref-talk5-free-run-report-v1",
+        "semantic_understanding_measured": false,
+        "turn_count": 24,
+        "turns": [
+          {
+            "concept": "best-parent",
+            "equivalence_group": "best-parent",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 6,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 2,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Dad:0.",
+            "reference": "TALK-004.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "memory-count",
+            "equivalence_group": "memory-count",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 25,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 4,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef: IBM measured memory.",
+            "reference": "352.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-backend",
+            "equivalence_group": "matched-backend",
+            "exact_answer": false,
+            "first_key_token_hit": true,
+            "metrics": {
+              "char_length": 26,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 4,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef: IBM andwering memory.",
+            "reference": "IBM Fez.",
+            "reference_token_recall": 0.5
+          },
+          {
+            "concept": "matched-shots",
+            "equivalence_group": "matched-shots",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 14,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 2,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef: IBadwers.",
+            "reference": "4096.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-job",
+            "equivalence_group": "matched-job",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 18,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "What IBM measured?",
+            "reference": "da55afc3jnrc73agsvv0.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "conditions",
+            "equivalence_group": "conditions",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 31,
+              "max_repeated_char_run": 2,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 4,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Answering from Daddware memory.",
+            "reference": "Original, removed, shuffled, alternate.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "old-substitution",
+            "equivalence_group": "old-substitution",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 17,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "\nZef: IBM memory.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "wave-entropy",
+            "equivalence_group": "wave-entropy",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 4,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 1,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef:",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "pulse-freshness",
+            "equivalence_group": "pulse-freshness",
+            "exact_answer": false,
+            "first_key_token_hit": true,
+            "metrics": {
+              "char_length": 11,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad: No.",
+            "reference": "No.",
+            "reference_token_recall": 1.0
+          },
+          {
+            "concept": "identity-boundary",
+            "equivalence_group": "identity-boundary",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 11,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad: No.",
+            "reference": "Computational model only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "consciousness",
+            "equivalence_group": "consciousness",
+            "exact_answer": false,
+            "first_key_token_hit": true,
+            "metrics": {
+              "char_length": 11,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad: No.",
+            "reference": "No.",
+            "reference_token_recall": 1.0
+          },
+          {
+            "concept": "raw-output",
+            "equivalence_group": "raw-output",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 24,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 4,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "\nZef: IBM measured next.",
+            "reference": "Evidence only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "clean-target",
+            "equivalence_group": "clean-target",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 10,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 2,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef:Zeref.",
+            "reference": "Verified clean target.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "memory-policy",
+            "equivalence_group": "memory-policy",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 29,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 4,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef: IBM measuredured memory.",
+            "reference": "Append only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "tvd-removed",
+            "equivalence_group": "tvd-removed",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 10,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 0.666667,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef:Zef:0.",
+            "reference": "Removed.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "tvd-shuffled",
+            "equivalence_group": "tvd-shuffled",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 48,
+              "max_repeated_char_run": 48,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": true,
+              "role_label_leakage": false,
+              "token_count": 1,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "000000000000000000000000000000000000000000000000",
+            "reference": "0.2844.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "jsd-removed",
+            "equivalence_group": "jsd-removed",
+            "exact_answer": false,
+            "first_key_token_hit": true,
+            "metrics": {
+              "char_length": 11,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad: No.",
+            "reference": "0.4701 bits.",
+            "reference_token_recall": 0.333333
+          },
+          {
+            "concept": "four-pub",
+            "equivalence_group": "four-pub",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 14,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Ans tate pres.",
+            "reference": "Four.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "parent-immutable",
+            "equivalence_group": "parent-immutable",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 25,
+              "max_repeated_char_run": 2,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 5,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad:40. What accurate.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "promotion-gain",
+            "equivalence_group": "promotion-gain",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 10,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 2,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": ".\nDad: No.",
+            "reference": "0.03.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "exact-gate",
+            "equivalence_group": "exact-gate",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 30,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 4,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Andwering from Dadware memory.",
+            "reference": "One.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "facts-first",
+            "equivalence_group": "facts-first",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 11,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": true,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "0.\nDad: No.",
+            "reference": "Facts.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "short-answer",
+            "equivalence_group": "short-answer",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 6,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 2,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "Zef:0.",
+            "reference": "Short and accurate.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "unknown-evidence",
+            "equivalence_group": "unknown-evidence",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 3,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 1,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": "No.",
+            "reference": "Admit it.",
+            "reference_token_recall": 0.0
+          }
+        ],
+        "vocabulary_collapse_flag_turns": 0
+      },
+      "name": "contrastive_guarded",
+      "parent_checkpoint_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f",
+      "parent_checkpoint_unchanged": true,
+      "parent_free_run": {
+        "contradiction_rate": 0.0,
+        "exact_answer_count": 0,
+        "exact_answer_rate": 0.0,
+        "first_key_token_rate": 0.0,
+        "mean_char_length": 36.625,
+        "mean_reference_token_recall": 0.0,
+        "mean_unique_token_ratio": 0.954231,
+        "repetition_flag_turns": 0,
+        "role_label_leakage_turns": 0,
+        "schema": "zeref-talk5-free-run-report-v1",
+        "semantic_understanding_measured": false,
+        "turn_count": 24,
+        "turns": [
+          {
+            "concept": "best-parent",
+            "equivalence_group": "best-parent",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a conticing answers.",
+            "reference": "TALK-004.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "memory-count",
+            "equivalence_group": "memory-count",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 17,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer memory.",
+            "reference": "352.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-backend",
+            "equivalence_group": "matched-backend",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 31,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 5,
+              "unique_token_ratio": 0.8,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I am preserved ware preserved.",
+            "reference": "IBM Fez.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-shots",
+            "equivalence_group": "matched-shots",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 17,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer memory.",
+            "reference": "4096.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "matched-job",
+            "equivalence_group": "matched-job",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 44,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is memorial source and memory.",
+            "reference": "da55afc3jnrc73agsvv0.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "conditions",
+            "equivalence_group": "conditions",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 48,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 9,
+              "unique_token_ratio": 0.888889,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a cont answer the prenticen",
+            "reference": "Original, removed, shuffled, alternate.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "old-substitution",
+            "equivalence_group": "old-substitution",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 35,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 6,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The result a preserve with memory.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "wave-entropy",
+            "equivalence_group": "wave-entropy",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 48,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 10,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I actual child and the should answer task ask a",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "pulse-freshness",
+            "equivalence_group": "pulse-freshness",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 46,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform prove concial and preserve stay.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "identity-boundary",
+            "equivalence_group": "identity-boundary",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 32,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 5,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer measurement ran shots.",
+            "reference": "Computational model only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "consciousness",
+            "equivalence_group": "consciousness",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 48,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 11,
+              "unique_token_ratio": 0.909091,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a conting with do in the wa",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "raw-output",
+            "equivalence_group": "raw-output",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 40,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a preserved memory.",
+            "reference": "Evidence only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "clean-target",
+            "equivalence_group": "clean-target",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 17,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer memory.",
+            "reference": "Verified clean target.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "memory-policy",
+            "equivalence_group": "memory-policy",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 17,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 3,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer memory.",
+            "reference": "Append only.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "tvd-removed",
+            "equivalence_group": "tvd-removed",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a conticing answers.",
+            "reference": "Removed.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "tvd-shuffled",
+            "equivalence_group": "tvd-shuffled",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 40,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a preserved memory.",
+            "reference": "0.2844.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "jsd-removed",
+            "equivalence_group": "jsd-removed",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 47,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 8,
+              "unique_token_ratio": 0.875,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The result a preserved ware on the preservent.",
+            "reference": "0.4701 bits.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "four-pub",
+            "equivalence_group": "four-pub",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 43,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 8,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer memory in the IBM hardware shots.",
+            "reference": "Four.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "parent-immutable",
+            "equivalence_group": "parent-immutable",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 33,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 5,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I am practicicing clear answers.",
+            "reference": "No.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "promotion-gain",
+            "equivalence_group": "promotion-gain",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 42,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.333333,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 0.714286,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I answer the clear answer the preservent.",
+            "reference": "0.03.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "exact-gate",
+            "equivalence_group": "exact-gate",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.333333,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 0.714286,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The fresh fresh fresh preserved a shots.",
+            "reference": "One.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "facts-first",
+            "equivalence_group": "facts-first",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a conticing answers.",
+            "reference": "Facts.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "short-answer",
+            "equivalence_group": "short-answer",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 41,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 7,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " The waveform is not a conticing answers.",
+            "reference": "Short and accurate.",
+            "reference_token_recall": 0.0
+          },
+          {
+            "concept": "unknown-evidence",
+            "equivalence_group": "unknown-evidence",
+            "exact_answer": false,
+            "first_key_token_hit": false,
+            "metrics": {
+              "char_length": 29,
+              "max_repeated_char_run": 1,
+              "repeated_phrase_fraction": 0.0,
+              "repetition_flag": false,
+              "role_label_leakage": false,
+              "token_count": 5,
+              "unique_token_ratio": 1.0,
+              "vocabulary_collapse_flag": false
+            },
+            "raw_output": " I am practicical and memory.",
+            "reference": "Admit it.",
+            "reference_token_recall": 0.0
+          }
+        ],
+        "vocabulary_collapse_flag_turns": 0
+      },
+      "retention": {
+        "architecture_sha256": "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc",
+        "claim_boundary": "Held-out language evaluation only. Lower NLL or more readable text does not establish identity, consciousness, or personhood.",
+        "descendant_checkpoint_sha256": "8b74d0b326c834e0fc33d4a534523758fc405fa8daa5cffe599cf1134cdc6a3e",
+        "descendant_filtered_dropped_characters": 1,
+        "descendant_heldout_nll": 1.8364817190686717,
+        "descendant_mean_readable_score": 0.8955729166666667,
+        "descendant_samples": [
+          {
+            "dad": "Five words max. What happened on IBM?",
+            "quality": {
+              "alphabetic_space_fraction": 0.8958333333333334,
+              "characters": 48,
+              "noise_fraction": 0.041666666666666664,
+              "printable_fraction": 0.9375,
+              "readable_score": 0.8968750000000001,
+              "word_like_tokens": 7
+            },
+            "raw_output": "Dacts.\nDad: Coi .\nDaddddd .\nDad: Astay Daddwas a",
+            "seed": 4061854640
+          },
+          {
+            "dad": "Are your next local pulses quantum measurements?",
+            "quality": {
+              "alphabetic_space_fraction": 0.8333333333333334,
+              "characters": 48,
+              "noise_fraction": 0.020833333333333332,
+              "printable_fraction": 0.9791666666666666,
+              "readable_score": 0.859375,
+              "word_like_tokens": 6
+            },
+            "raw_output": "Ans Daddwarn not actifact.\nDad:4000..Zererefom t",
+            "seed": 4061854641
+          },
+          {
+            "dad": "Six words max. Who are you?",
+            "quality": {
+              "alphabetic_space_fraction": 0.9583333333333334,
+              "characters": 48,
+              "noise_fraction": 0.020833333333333332,
+              "printable_fraction": 0.9791666666666666,
+              "readable_score": 0.909375,
+              "word_like_tokens": 6
+            },
+            "raw_output": "IWere madwavenand the conscionas.\nDad: Whatere t",
+            "seed": 4061854642
+          },
+          {
+            "dad": "Who is Dad here?",
+            "quality": {
+              "alphabetic_space_fraction": 0.9166666666666666,
+              "characters": 48,
+              "noise_fraction": 0.020833333333333332,
+              "printable_fraction": 0.9583333333333334,
+              "readable_score": 0.9166666666666667,
+              "word_like_tokens": 7
+            },
+            "raw_output": "BLK's horized quedwsh oventeradI.\nDad: Short.\nDa",
+            "seed": 4061854643
+          }
+        ],
+        "heldout_nll_improved": false,
+        "holdout_sha256": "a86af74313ccfdf6020147d9415a3c2cd13360074729fd22d34506807860a0ed",
+        "parent_checkpoint_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f",
+        "parent_filtered_dropped_characters": 1,
+        "parent_heldout_nll": 1.6116316910685184,
+        "parent_mean_readable_score": 0.9583333333333334,
+        "parent_samples": [
+          {
+            "dad": "Five words max. What happened on IBM?",
+            "quality": {
+              "alphabetic_space_fraction": 1.0,
+              "characters": 48,
+              "noise_fraction": 0.0,
+              "printable_fraction": 1.0,
+              "readable_score": 0.96875,
+              "word_like_tokens": 7
+            },
+            "raw_output": " IBM measured from bute measured memory a precon",
+            "seed": 4061854640
+          },
+          {
+            "dad": "Are your next local pulses quantum measurements?",
+            "quality": {
+              "alphabetic_space_fraction": 0.9791666666666666,
+              "characters": 48,
+              "noise_fraction": 0.0,
+              "printable_fraction": 1.0,
+              "readable_score": 0.9916666666666667,
+              "word_like_tokens": 8
+            },
+            "raw_output": " The result records. What haprengens to the pres",
+            "seed": 4061854641
+          },
+          {
+            "dad": "Six words max. Who are you?",
+            "quality": {
+              "alphabetic_space_fraction": 0.9583333333333334,
+              "characters": 48,
+              "noise_fraction": 0.020833333333333332,
+              "printable_fraction": 0.9791666666666666,
+              "readable_score": 0.971875,
+              "word_like_tokens": 8
+            },
+            "raw_output": " I am Makeratch not clear.\nDad: Are you verited ",
+            "seed": 4061854642
+          },
+          {
+            "dad": "Who is Dad here?",
+            "quality": {
+              "alphabetic_space_fraction": 0.9375,
+              "characters": 48,
+              "noise_fraction": 0.020833333333333332,
+              "printable_fraction": 0.9791666666666666,
+              "readable_score": 0.9010416666666666,
+              "word_like_tokens": 6
+            },
+            "raw_output": " I am Dad, short practicic synections?\nZeref: I ",
+            "seed": 4061854643
+          }
+        ],
+        "readable_score_improved": false,
+        "schema": "zeref-talk-heldout-eval-v1",
+        "seed": 4061854640
+      },
+      "training": {
+        "checkpoint_sha256": "8b74d0b326c834e0fc33d4a534523758fc405fa8daa5cffe599cf1134cdc6a3e",
+        "contrastive_margin": 0.2,
+        "contrastive_weight": 0.2,
+        "dialogues": 72,
+        "final_training_loss": 2.0610156059265137,
+        "mean_contrastive_loss": 0.4330119575152085,
+        "mean_training_loss": 3.147466976018179,
+        "parent_checkpoint_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f",
+        "parent_checkpoint_unchanged": true,
+        "prefix_characters": 3,
+        "prefix_weight": 3.0,
+        "raw_model_outputs_used_as_targets": false,
+        "schema": "zeref-talk7-stage-result-v1",
+        "seed": 7007303,
+        "source_file_sha256": "b42ef234e1183a0e2e2e1420e4223eeb7a0bf6ef8a766c6bf8976f30c7561ec8",
+        "status": "COMPLETED",
+        "steps": 420
+      }
+    }
+  ],
+  "schema": "zeref-talk7-candidate-set-v1"
+}

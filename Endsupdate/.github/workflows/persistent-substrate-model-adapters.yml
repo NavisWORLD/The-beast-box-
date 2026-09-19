@@ -1,0 +1,68 @@
+name: Persistent Substrate Development Contracts
+
+on:
+  push:
+    branches:
+      - experiment/persistent-substrate-model-swap-001
+    paths:
+      - 'beastbox/persistent_substrate/models.py'
+      - 'beastbox/persistent_substrate/evidence.py'
+      - 'beastbox/persistent_substrate/runner.py'
+      - 'tests/test_persistent_substrate_models.py'
+      - 'tests/test_persistent_substrate_evidence.py'
+      - 'tests/test_persistent_substrate_runner.py'
+      - 'tests/test_final_model_swap_round_trip.py'
+      - '.github/workflows/persistent-substrate-model-adapters.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: persistent-substrate-development-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  development-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev,ml]'
+      - name: Frozen measurement and evidence contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          tests=(
+            tests/test_persistent_substrate_models.py
+            tests/test_persistent_substrate_evidence.py
+            tests/test_final_model_swap_round_trip.py
+          )
+          if [[ -f tests/test_persistent_substrate_runner.py ]]; then
+            tests+=(tests/test_persistent_substrate_runner.py)
+          fi
+          python -m pytest "${tests[@]}" -q
+      - name: Reject training paths in the experiment layer
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            beastbox/persistent_substrate/models.py
+            tests/test_persistent_substrate_models.py
+          )
+          if [[ -f beastbox/persistent_substrate/runner.py ]]; then
+            files+=(beastbox/persistent_substrate/runner.py)
+          fi
+          if [[ -f tests/test_persistent_substrate_runner.py ]]; then
+            files+=(tests/test_persistent_substrate_runner.py)
+          fi
+          if git grep -nE 'optimizer|backward\(|loss\.backward|trainer|fit\(' -- "${files[@]}"; then
+            echo 'Training path detected in frozen experiment layer.' >&2
+            exit 1
+          fi

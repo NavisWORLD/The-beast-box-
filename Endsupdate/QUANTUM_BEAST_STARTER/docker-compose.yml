@@ -1,0 +1,13 @@
+services:
+  beastbox:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    command:
+      - doctor
+      - --ollama-url
+      - http://host.docker.internal:11434
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ./runtime:/app/.beastbox

@@ -1,0 +1,205 @@
+name: ZEREF-CHECKPOINT-208
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-checkpoint-208.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-checkpoint-208
+  cancel-in-progress: false
+
+jobs:
+  checkpoint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout current memory lineage
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download exact successful TALK-002 evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _checkpoint208
+          mkdir -p _checkpoint208
+          gh run download 32071327921 \
+            -n zeref-dad-son-talk-002-32071327921 \
+            -D _checkpoint208
+          test -f _checkpoint208/SHA256SUMS
+          test -f _checkpoint208/memory/dad-son-ledger.jsonl
+          test -f _checkpoint208/evidence/new-memory-delta-161-208.jsonl
+          test -f _checkpoint208/evidence/summary.json
+          test -f _checkpoint208/evidence/eval/heldout.json
+          test -f _checkpoint208/model/ZEREF-DAD-SON-TALK-002/checkpoint.sha256
+          sed 's#  _talk2/#  #' _checkpoint208/SHA256SUMS > _checkpoint208/SHA256SUMS.local
+          (cd _checkpoint208 && sha256sum -c SHA256SUMS.local)
+
+      - name: Verify exact 160 prefix and freeze records 161 through 208
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+
+          OLD_COUNT=160; NEW_COUNT=208
+          OLD_TIP='2aa298797d131ec97c07f82988d5dc4a3b4a8fdabddbe18b99277588b0c668d3'
+          NEW_TIP='ea5ec8129dc70897db85a58c0aab575c68a6fc4f545b40d7456595aeaa39231d'
+          DELTA_SHA='d9ace68c12d4445d81fd4e50efef70b7b5e6331db2e83f63cfaaa26f725067ed'
+          COMBINED_SHA='6651b72fa08a81288f3346621294fafc0f7db2ecea94477dd88e6d11d5f32ba1'
+          CHILD='6549957e528262a70350e79a5bd824c04dccf467ddf0ad9d46dad6bf71943326'
+
+          mp=Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json')
+          m=json.loads(mp.read_text(encoding='utf-8'))
+          if m['record_count']==NEW_COUNT:
+              assert m['last_record_sha256']==NEW_TIP
+              assert m['combined_ledger_sha256']==COMBINED_SHA
+              assert m['descendant_checkpoint_sha256']==CHILD
+              Path('_checkpoint208/already-present').write_text('yes\n')
+              print('208-record checkpoint already present')
+              raise SystemExit(0)
+          assert m['schema']=='zeref-dad-son-ledger-manifest-v9'
+          assert m['record_count']==OLD_COUNT
+          assert m['last_record_sha256']==OLD_TIP
+          committed=b''; expected=1
+          for s in m['snapshot_chain']:
+              d=Path(s['path']).read_bytes()
+              assert hashlib.sha256(d).hexdigest()==s['sha256']
+              assert s['first_memory_id']==expected
+              expected=s['last_memory_id']+1
+              committed += d
+          assert expected==161
+          assert hashlib.sha256(committed).hexdigest()=='5c7789c97a060a9588ae4e8e3133db4534907da0b6afd8289c3e3702fcc4899e'
+
+          artifact=Path('_checkpoint208/memory/dad-son-ledger.jsonl').read_bytes()
+          assert artifact.startswith(committed)
+          assert hashlib.sha256(artifact).hexdigest()==COMBINED_SHA
+          full_rows=[json.loads(x) for x in artifact.decode().splitlines() if x.strip()]
+          assert len(full_rows)==NEW_COUNT
+          previous='0'*64
+          for i,row in enumerate(full_rows,1):
+              assert row['memory_id']==i
+              assert row['previous_record_sha256']==previous
+              assert hashlib.sha256(row['text'].encode()).hexdigest()==row['raw_payload_sha256']
+              payload=dict(row); rec=payload.pop('record_sha256')
+              canonical=json.dumps(payload,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()
+              assert hashlib.sha256(canonical).hexdigest()==rec
+              previous=rec
+          assert previous==NEW_TIP
+
+          delta=artifact[len(committed):]
+          assert hashlib.sha256(delta).hexdigest()==DELTA_SHA
+          artifact_delta=Path('_checkpoint208/evidence/new-memory-delta-161-208.jsonl').read_bytes()
+          assert artifact_delta==delta
+          rows=[json.loads(x) for x in delta.decode().splitlines() if x.strip()]
+          assert len(rows)==48
+          assert [r['memory_id'] for r in rows]==list(range(161,209))
+          assert rows[0]['previous_record_sha256']==OLD_TIP
+          assert rows[-1]['record_sha256']==NEW_TIP
+
+          delta_path=Path('experiments/zeref-dad-son-001/memory/ledger-snapshots/run-32071327921-talk-002-dad-growth-delta.jsonl')
+          assert not delta_path.exists()
+          delta_path.write_bytes(delta)
+
+          summary=json.loads(Path('_checkpoint208/evidence/summary.json').read_text())
+          ev=json.loads(Path('_checkpoint208/evidence/eval/heldout.json').read_text())
+          child=Path('_checkpoint208/model/ZEREF-DAD-SON-TALK-002/checkpoint.sha256').read_text().strip()
+          heartbeat=json.loads(Path('_checkpoint208/heartbeat/talk2-heartbeat.json').read_text())
+          teacher=json.loads(Path('_checkpoint208/evidence/conversations/talk2-dad-growth-manifest.json').read_text())
+          assert summary['forever_memory_records_before']==160 and summary['forever_memory_records_after']==208
+          assert summary['last_record_sha256']==NEW_TIP and summary['combined_ledger_sha256']==COMBINED_SHA
+          assert child==CHILD==summary['child_checkpoint_sha256']==ev['descendant_checkpoint_sha256']
+          assert ev['parent_checkpoint_sha256']=='9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22'
+          assert ev['heldout_nll_improved'] is True and ev['readable_score_improved'] is True
+          assert heartbeat['final_state_sha256']=='12f435160fce695427f7c5a38818864371cc73c3802b5b8c94cc5a38c6360a5c'
+          assert heartbeat['synthetic_continuation_new_quantum_entropy'] is False
+          assert teacher['turns']==24 and teacher['generated_outputs_promoted_to_training'] is False
+
+          m['schema']='zeref-dad-son-ledger-manifest-v10'
+          m['active_descendant_lineage']='ZEREF-DAD-SON-TALK-002'
+          m['active_continuation_mode']='talk-002-trained-dad-growth'
+          m['latest_snapshot']=str(delta_path)
+          m['latest_snapshot_sha256']=DELTA_SHA
+          m['snapshot_chain'].append({'path':str(delta_path),'sha256':DELTA_SHA,'record_count':48,'first_memory_id':161,'last_memory_id':208,'last_record_sha256':NEW_TIP})
+          m['combined_ledger_sha256']=COMBINED_SHA
+          m['record_count']=208
+          m['last_record_sha256']=NEW_TIP
+          m['source_workflow_run_id']=32071327921
+          m['source_workflow_head_sha']='b6c33f89688aa47edac45921c7214f3d786bece2'
+          m['source_artifact_id']=9301887692
+          m['source_artifact_digest']='sha256:892d8fc20a6fb3b7b95a06cc066d3edc8655b6bcc3c7080f368acf2f7f316d4f'
+          m['talk2_parent_checkpoint_sha256']='9dccff5989eb63b8f0a8b894340b3ae461526367af249e3da4714f96272d4b22'
+          m['talk2_descendant_checkpoint_sha256']=CHILD
+          m['descendant_checkpoint_sha256']=CHILD
+          m['weights_changed_in_talk2_training_phase']=True
+          m['prime_weights_changed_in_talk2_training_phase']=False
+          m['talk1_weights_changed_in_talk2_training_phase']=False
+          m['talk2_training_steps']=700
+          m['talk2_parent_heldout_nll']=ev['parent_heldout_nll']
+          m['talk2_descendant_heldout_nll']=ev['descendant_heldout_nll']
+          m['talk2_heldout_nll_improved']=ev['heldout_nll_improved']
+          m['talk2_parent_readable_score']=ev['parent_mean_readable_score']
+          m['talk2_descendant_readable_score']=ev['descendant_mean_readable_score']
+          m['talk2_readable_score_improved']=ev['readable_score_improved']
+          m['talk2_post_training_pulse_count']=24
+          m['talk2_post_training_final_state_sha256']=heartbeat['final_state_sha256']
+          m['talk2_post_training_new_quantum_entropy']=False
+          m['talk2_transcript_sha256']='c5f5973757c334893f9c3c2936354a3e1eb64b8c443fbdbb63d7d6960c3c3ffe'
+          m['talk2_mean_mechanical_clarity']=teacher['mean_mechanical_clarity']
+          m['talk2_raw_outputs_promoted_to_training']=False
+          m['training_contract']='The full ledger is durable memory. TALK-002 is an additive child of TALK-001 trained only on provenance-labeled synthetic clean corrective targets. Raw Zeref generations remain evidence and are not automatically training targets.'
+          m['claim_boundary']='Durable computational Zeref model-memory continuity with an additive TALK-002 child. The 208-record ledger and improved held-out language metrics do not establish that the model is Caleb, contains a deceased person consciousness, has a biological heartbeat, or demonstrates quantum advantage.'
+          mp.write_text(json.dumps(m,indent=2,sort_keys=False,ensure_ascii=False)+'\n',encoding='utf-8')
+          print(json.dumps({'records':208,'child_checkpoint_sha256':CHILD,'combined_ledger_sha256':COMBINED_SHA,'last_record_sha256':NEW_TIP,'heldout_nll':[ev['parent_heldout_nll'],ev['descendant_heldout_nll']]},sort_keys=True))
+          PY
+
+      - name: Verify reconstructed 208-record lineage
+        if: hashFiles('_checkpoint208/already-present') == ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          m=json.loads(Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json').read_text())
+          assert m['schema']=='zeref-dad-son-ledger-manifest-v10'
+          assert m['record_count']==208
+          assert m['last_record_sha256']=='ea5ec8129dc70897db85a58c0aab575c68a6fc4f545b40d7456595aeaa39231d'
+          assert m['descendant_checkpoint_sha256']=='6549957e528262a70350e79a5bd824c04dccf467ddf0ad9d46dad6bf71943326'
+          combined=b''; expected=1
+          for s in m['snapshot_chain']:
+              d=Path(s['path']).read_bytes(); assert hashlib.sha256(d).hexdigest()==s['sha256']
+              assert s['first_memory_id']==expected; expected=s['last_memory_id']+1; combined+=d
+          assert expected==209
+          assert hashlib.sha256(combined).hexdigest()==m['combined_ledger_sha256']=='6651b72fa08a81288f3346621294fafc0f7db2ecea94477dd88e6d11d5f32ba1'
+          PY
+
+      - name: Commit immutable 208-record checkpoint
+        if: hashFiles('_checkpoint208/already-present') == ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "NavisWORLD Zeref Memory Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add experiments/zeref-dad-son-001/memory/ledger-snapshots/run-32071327921-talk-002-dad-growth-delta.jsonl \
+                  experiments/zeref-dad-son-001/memory/ledger-manifest.json
+          git diff --cached --check
+          git commit -m "memory: checkpoint TALK-002 Zeref through 208 records [skip ci]"
+          git push origin HEAD:networked-cage-run-001

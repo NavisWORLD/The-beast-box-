@@ -1,0 +1,51 @@
+{
+  "adopted_integration_boundary": {
+    "commit": "95fcff86076980db769e8fd8598fd69a8d7dce3d",
+    "commit_timestamp": "2026-08-27T23:21:39-05:00",
+    "tree": "d9fd37e09f3e002ff0d04760d4fd210ad09018c4"
+  },
+  "ancestry_verification": {
+    "ahead_of_green": 12,
+    "behind_green": 0,
+    "commands": [
+      "git merge-base --is-ancestor 595d146f7d47ca048606f3e889e8c459e2fc3bd2 95fcff86076980db769e8fd8598fd69a8d7dce3d",
+      "git rev-list --left-right --count 595d146f7d47ca048606f3e889e8c459e2fc3bd2...95fcff86076980db769e8fd8598fd69a8d7dce3d",
+      "git rev-list --left-right --count origin/cory-davis-cosmos-reality-bridge-final-organism-001...cory-davis-cosmos-reality-bridge-final-organism-001"
+    ],
+    "green_is_ancestor": true,
+    "isolated_branch_ahead_of_remote_at_initial_checkout": 0,
+    "isolated_branch_behind_remote_at_initial_checkout": 0
+  },
+  "canonical_memory": {
+    "combined_ledger_sha256": "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef",
+    "ledger_manifest_file_sha256": "f6386d8b8f51afa5eae9be51e1d29eac43cfa1fee3804cdd2e8465bd13c44139",
+    "ledger_tip_sha256": "b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26",
+    "record_count": 352
+  },
+  "frozen_selected_zeref_sha256": "454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425",
+  "green_parent": {
+    "commit": "595d146f7d47ca048606f3e889e8c459e2fc3bd2",
+    "commit_timestamp": "2026-08-27T21:16:20-05:00",
+    "tree": "67e5d417b889cba1caee66232eac36e5ba2063b3"
+  },
+  "initial_checkout": {
+    "branch": "cory-davis-cosmos-reality-bridge-final-organism-001",
+    "head": "95fcff86076980db769e8fd8598fd69a8d7dce3d",
+    "lfs_status": "no pending LFS objects",
+    "lfs_version": "git-lfs/3.4.1",
+    "submodules": [],
+    "working_tree": "clean"
+  },
+  "repository": {
+    "fetch_mode": "complete commit history with on-demand blob:none object hydration",
+    "is_shallow": false,
+    "name_with_owner": "NavisWORLD/The-beast-box-",
+    "remote": "https://github.com/NavisWORLD/The-beast-box-.git",
+    "repository_id": 1332488100,
+    "tag_names": [
+      "zeref-r12-reality-memory-v1.0.0"
+    ]
+  },
+  "schema": "cory-final-whole-organism-lineage-v1",
+  "verified_at": "2026-08-28T14:02:49Z"
+}

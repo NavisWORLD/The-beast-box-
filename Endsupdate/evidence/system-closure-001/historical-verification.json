@@ -1,0 +1,49 @@
+{
+  "artifact_id": 9952563037,
+  "artifact_sha256": "1ebdf098a542e44eaf54ad9e8fefe3c74fafaeb8c280c41a1369dd58f810fd2d",
+  "boundary": "sealed historical software measurement; no new inference or behavioral performance claim",
+  "classification": "COMPLETED_DESCRIPTIVE_MEASUREMENT",
+  "experiment_id": "persistent-substrate-model-swap-002-historical-b4e53",
+  "manifest_sha256": "db8253d0ded6b16150ad378dd4c87fbcdef2046c3d45e6652840f9af8fc5bc50",
+  "memory_progression": [
+    352,
+    353,
+    354
+  ],
+  "model_a_checkpoint_sha256": "454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425",
+  "model_b": "HuggingFaceTB/SmolLM2-135M@4e53f736cbb20a9a0f56b4c4bf378d9f306ff915",
+  "model_parameter_sha256": [
+    "edf6501633ff26948a73815690e2f184c3e4025414c3ac2d64fbfec203307f7a",
+    "109a74ae153ab55706aa31dcb1ae10f39fb281deea6728a3546b55d6dc0fcbb3",
+    "edf6501633ff26948a73815690e2f184c3e4025414c3ac2d64fbfec203307f7a"
+  ],
+  "restoration_errors": {
+    "calibration-explicit-001": 0.0,
+    "canonical-record-311": 0.0,
+    "dad-son-record-017": 0.0,
+    "nonce-surface-001": 0.0,
+    "public-control-arithmetic-001": 0.0,
+    "world-public-fact-001": 0.0
+  },
+  "result_sha256": "0bc2daf23b82d82992412b60c0b03c0cbf520a7e20f1bbb8ded5957c59d26fab",
+  "run_id": 33914200592,
+  "source_commit": "bd4108ac2f245262a25fd80463e84d9279eeead2",
+  "state_progression": [
+    0,
+    1,
+    2
+  ],
+  "structural_gates": {
+    "a2_received_verified_b1_memory": true,
+    "a_only_schedule_executed": true,
+    "all_model_parameters_frozen": true,
+    "b1_received_verified_pre_swap_memory": true,
+    "empty_memory_control_executed": true,
+    "empty_memory_is_zero_records": true,
+    "requested_model_order_executed": true,
+    "same_primary_substrate_identity": true,
+    "shuffled_memory_control_executed": true
+  },
+  "training_performed": false,
+  "verified": true
+}

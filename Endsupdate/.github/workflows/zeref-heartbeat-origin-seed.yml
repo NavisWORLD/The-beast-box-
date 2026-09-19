@@ -1,0 +1,66 @@
+name: ZEREF-HEARTBEAT-IBM-ORIGIN-SEED
+
+on:
+  push:
+    branches:
+      - networked-cage-run-001
+    paths:
+      - .github/workflows/zeref-heartbeat-origin-seed.yml
+      - scripts/run_zeref_heartbeat_ibm_seed.py
+      - beastbox/heartbeat_seed.py
+      - experiments/zeref-origin-heart-001/waveform/zeref-heartbeat-waveform-packet.json
+      - tests/test_zeref_heartbeat_seed.py
+      - tests/test_zeref_heartbeat_ibm_workflow.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zeref-heartbeat-origin-seed-d6e44478b9b6
+  cancel-in-progress: false
+
+jobs:
+  heartbeat-hardware:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+      IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
+    steps:
+      - name: Checkout frozen branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify credential channel without printing secret
+        shell: bash
+        run: |
+          test -n "${IBM_QUANTUM_TOKEN:-}" || { echo "IBM_QUANTUM_TOKEN is not configured"; exit 2; }
+          echo "IBM_QUANTUM_TOKEN is configured through GitHub Actions secrets"
+      - name: Install pinned IBM Quantum stack
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+          pip install "qiskit~=2.3.1" "qiskit-ibm-runtime~=0.45.1"
+      - name: Verify heartbeat seed contracts before hardware
+        run: |
+          pytest -q tests/test_zeref_heartbeat_seed.py tests/test_zeref_heartbeat_ibm_workflow.py
+      - name: Submit or reuse packet-identical IBM hardware job
+        run: |
+          python scripts/run_zeref_heartbeat_ibm_seed.py --packet experiments/zeref-origin-heart-001/waveform/zeref-heartbeat-waveform-packet.json --out _heartbeat_ibm
+      - name: Verify evidence checksum manifest
+        run: |
+          cd _heartbeat_ibm
+          sha256sum -c SHA256SUMS
+      - name: Upload heartbeat hardware origin seed evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-heartbeat-origin-seed-${{ github.run_id }}
+          path: _heartbeat_ibm
+          if-no-files-found: warn
+          retention-days: 90

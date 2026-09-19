@@ -1,0 +1,70 @@
+{
+  "approved_at": "2026-08-31",
+  "archived_hardware_witnesses": {
+    "expected_record_count": 10,
+    "git_blob_sha": "1bfc51db42c663f98ca8eb04b483e6d84359c64b",
+    "path": "evidence/final-whole-organism-001/resource-source/historical-hardware-witnesses.jsonl",
+    "role": "provenance_only"
+  },
+  "canonical_memory": {
+    "ledger_sha256": "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef",
+    "ledger_tip_sha256": "b35b50f64b837d403d24951be15910bdb5fc2e17eead7fef79c0a8f44d427d26",
+    "manifest_path": "experiments/zeref-dad-son-001/memory/ledger-manifest.json",
+    "record_count": 352
+  },
+  "cloud_dependency_required": false,
+  "controls": {
+    "corrupted_memory_ids": [17, 311],
+    "corrupted_model_invocation_limit": 0,
+    "empty_memory_expected_records": 0
+  },
+  "experiment_id": "persistent-substrate-model-swap-001",
+  "fresh_ibm_jobs": 0,
+  "fresh_rigetti_jobs": 0,
+  "functional_probes": {
+    "model_b_write_key": "MODEL_B_WRITE",
+    "model_b_write_value": "silver orbit",
+    "pre_swap_key": "PRE_SWAP_CANARY",
+    "pre_swap_value": "amber cedar river"
+  },
+  "gates": [
+    "MODEL_SEQUENCE",
+    "STABLE_STORE_IDENTITIES",
+    "CANONICAL_MEMORY_PREFIX",
+    "MODEL_B_PRE_SWAP_ACCESS",
+    "MODEL_A_RETURN_ACCESS",
+    "EMPTY_MEMORY_CONTROL",
+    "CORRUPTED_MEMORY_CONTROL",
+    "IMMUTABLE_ROUTING_AND_SOURCE",
+    "POINT_LEDGER_APPEND_ONLY",
+    "OFFLINE_NO_NETWORK_ATTEMPTS"
+  ],
+  "model_a": {
+    "checkpoint_path": "experiments/persistent-substrate-model-swap-001/fixtures/model_a.json",
+    "checkpoint_sha256": "6aaa7f6a922dd3cde5c8c154c6d71e479393797d366eef8f6c28c077d69a2470",
+    "model_id": "OFFLINE_MODEL_A"
+  },
+  "model_b": {
+    "checkpoint_path": "experiments/persistent-substrate-model-swap-001/fixtures/model_b.json",
+    "checkpoint_sha256": "cb9b280e3acd43de49cbf31bf519efdd00ac84099739e229b7fab0f335a19f7f",
+    "model_id": "OFFLINE_MODEL_B"
+  },
+  "model_order": ["OFFLINE_MODEL_A", "OFFLINE_MODEL_B", "OFFLINE_MODEL_A"],
+  "network_policy": {
+    "allow_outbound": false,
+    "guard_scope": "python_socket_and_urllib",
+    "physical_air_gap_claim": false
+  },
+  "official_beast_scientific_boundary": "ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED",
+  "point_policy": {
+    "archived_source_kind": "archived_ibm_hardware_witness",
+    "hashes_are_entropy": false,
+    "runtime_source_kind": "synthetic_runtime_state",
+    "source_grants_authority": false
+  },
+  "routing": {
+    "config_path": "experiments/zeref/world-r12/FROZEN_WORLD_R12_CONFIG.json",
+    "config_sha256": "e3269291ea3d79a682aa96b90ac3b5880d5e27ca61a91d59a03116d7039ec863"
+  },
+  "training_performed": false
+}

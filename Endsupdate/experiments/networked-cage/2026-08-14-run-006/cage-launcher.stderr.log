@@ -1,0 +1,72 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from networked-cage.Dockerfile
+#1 transferring dockerfile: 890B done
+#1 DONE 0.0s
+
+#2 [auth] library/python:pull token for registry-1.docker.io
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/python:3.12-slim-bookworm
+#3 DONE 0.4s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 273B done
+#4 DONE 0.0s
+
+#5 [1/9] FROM docker.io/library/python:3.12-slim-bookworm@sha256:a116514e19457bcb7af7efe9c3dd0b9b71e85b317694e7882a1c52aa15a78134
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 422.45MB 5.1s
+#6 transferring context: 803.06MB 10.1s
+#6 transferring context: 923.59MB 10.9s done
+#6 DONE 11.0s
+
+#7 [2/9] RUN python3 --version && python --version
+#7 CACHED
+
+#8 [3/9] RUN apt-get update && apt-get install -y --no-install-recommends     bash     ca-certificates     cargo     curl     dnsutils     file     g++     gcc     git     iproute2     jq     make     procps     rustc     tar     unzip     xz-utils     zip     && rm -rf /var/lib/apt/lists/*
+#8 CACHED
+
+#9 [4/9] RUN groupadd --gid 10001 beast && useradd --uid 10001 --gid 10001 --create-home --shell /bin/bash beast
+#9 CACHED
+
+#10 [5/9] WORKDIR /opt/beastbox
+#10 CACHED
+
+#11 [6/9] COPY . /opt/beastbox
+#11 DONE 10.1s
+
+#12 [7/9] RUN python -m pip install --no-cache-dir /opt/beastbox
+#12 1.360 Processing /opt/beastbox
+#12 1.363   Installing build dependencies: started
+#12 3.639   Installing build dependencies: finished with status 'done'
+#12 3.640   Getting requirements to build wheel: started
+#12 4.411   Getting requirements to build wheel: finished with status 'done'
+#12 4.413   Preparing metadata (pyproject.toml): started
+#12 5.173   Preparing metadata (pyproject.toml): finished with status 'done'
+#12 5.178 Building wheels for collected packages: cosmos-beast-box
+#12 5.179   Building wheel for cosmos-beast-box (pyproject.toml): started
+#12 5.985   Building wheel for cosmos-beast-box (pyproject.toml): finished with status 'done'
+#12 5.986   Created wheel for cosmos-beast-box: filename=cosmos_beast_box-0.3.0-py3-none-any.whl size=90848 sha256=09e5bd711079247a74fb8ba3bbc5871a9ea11e9c313a884b8bf50eddfeb7b50e
+#12 5.986   Stored in directory: /tmp/pip-ephem-wheel-cache-dxvr2xk9/wheels/81/2e/f2/f713e84b9eae173fd493c11499029bf719a2d0581a6586b610
+#12 5.991 Successfully built cosmos-beast-box
+#12 5.996 Installing collected packages: cosmos-beast-box
+#12 6.076 Successfully installed cosmos-beast-box-0.3.0
+#12 6.077 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#12 DONE 6.2s
+
+#13 [8/9] RUN mkdir -p /work && chown 10001:10001 /work
+#13 DONE 0.1s
+
+#14 [9/9] WORKDIR /work
+#14 DONE 0.0s
+
+#15 exporting to image
+#15 exporting layers
+#15 exporting layers 9.1s done
+#15 writing image sha256:84c6eb18f04219ae714fcefb05c074ee2b5740dd3ff75da9d64dbc701d1f29f0 done
+#15 naming to docker.io/library/beast-box-networked-cage:local done
+#15 DONE 9.1s
+Terminated

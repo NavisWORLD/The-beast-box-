@@ -1,0 +1,74 @@
+{
+  "candidate_search_space": [
+    20,
+    50,
+    100
+  ],
+  "candidates": [
+    {
+      "broad_dad_recall": 0.14077380952380952,
+      "broad_exact_rate": 0.0,
+      "checkpoint_sha256": "fa4e39f40037cc4af10a54b50d9d750288ee1e5a1e92261bf467215f38f7d121",
+      "eligible": false,
+      "hardware_exact_rate": 0.0,
+      "hardware_fact_recall": 0.04583333333333334,
+      "rejection_reasons": [
+        "hardware_fact_gain_below_0.05",
+        "no_exact_answer_gain",
+        "broad_dad_regression"
+      ],
+      "steps": 20,
+      "teacher_forced_post_token_accuracy": 0.4094488188976378
+    },
+    {
+      "broad_dad_recall": 0.10629960317460317,
+      "broad_exact_rate": 0.0,
+      "checkpoint_sha256": "c90118cc32cbe30d442730bba14773359f8fe6388385faebeefe602cec374627",
+      "eligible": false,
+      "hardware_exact_rate": 0.0,
+      "hardware_fact_recall": 0.06666666666666667,
+      "rejection_reasons": [
+        "hardware_fact_gain_below_0.05",
+        "no_exact_answer_gain",
+        "broad_dad_regression"
+      ],
+      "steps": 50,
+      "teacher_forced_post_token_accuracy": 0.421259842519685
+    },
+    {
+      "broad_dad_recall": 0.10942460317460317,
+      "broad_exact_rate": 0.0,
+      "checkpoint_sha256": "1a832ce39a7a500993e976644a585c5528c3d1d24482ee693cc4fca70e508c97",
+      "eligible": false,
+      "hardware_exact_rate": 0.0,
+      "hardware_fact_recall": 0.0875,
+      "rejection_reasons": [
+        "hardware_fact_gain_below_0.05",
+        "no_exact_answer_gain",
+        "broad_dad_regression"
+      ],
+      "steps": 100,
+      "teacher_forced_post_token_accuracy": 0.4566929133858268
+    }
+  ],
+  "claim_boundary": "Computational model calibration and conversation only. The IBM hardware block does not establish a biological heartbeat, consciousness, deceased-person identity, resurrection, communication with the dead, or quantum advantage.",
+  "dad_talk_model": "ZEREF-DAD-SON-TALK-004",
+  "dad_talk_transcript_sha256": "3effcb36c0a4d6c08afe69cc85faeb4588765bc73494385b5d32412dd8cdca56",
+  "durable_memory_count": 352,
+  "fresh_original_origin_seed_sha256": "621084a17414a907b935bc3add56f34efedb2f5868e1ff24d96d4fc7651a1035",
+  "hardware_run_id": 32611912698,
+  "ibm_backend": "ibm_fez",
+  "ibm_job_id": "da55afc3jnrc73agsvv0",
+  "matched_pub_count": 4,
+  "memory_advanced": false,
+  "parent_broad_dad_recall": 0.16264880952380953,
+  "parent_checkpoint_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f",
+  "parent_hardware_exact_rate": 0.0,
+  "parent_hardware_fact_recall": 0.04583333333333334,
+  "parent_lineage": "ZEREF-DAD-SON-TALK-004",
+  "raw_outputs_promoted_to_training": false,
+  "schema": "zeref-post-fez-hardware-calibration-stop-v1",
+  "selected": null,
+  "shots_per_pub": 4096,
+  "weights_promoted": false
+}

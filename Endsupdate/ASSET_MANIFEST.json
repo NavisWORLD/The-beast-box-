@@ -1,0 +1,68 @@
+{
+  "schema": "endsupdate-external-assets-v1",
+  "candidate_source_revision": "8f90e440f0f4ceba502b1a3f8637507491fb23b0",
+  "reference_launcher": {
+    "external_weights_required": false,
+    "external_services_required": false,
+    "provider": "ReferenceTextProvider",
+    "data_directory": ".endsupdate-data",
+    "tool_authority": "none"
+  },
+  "external_asset_policy": {
+    "default": "not_attested",
+    "use": "explicit opt-in only; read-only where feasible",
+    "credentials": "host environment only, never copied or serialized",
+    "writable_production_memory": "prohibited",
+    "host_authority": "never inherited from models or history"
+  },
+  "gates": [
+    {
+      "id": "local_model_weights",
+      "implemented_source": "beastbox/providers.py",
+      "status": "not_attested",
+      "notes": "No weight bytes or third-party license included by this manifest; use explicit separate model source and hash."
+    },
+    {
+      "id": "ollama",
+      "implemented_source": "beastbox/providers.py",
+      "status": "not_attested",
+      "notes": "Requires installed local inference and exact local model identity; no implicit remote fallback."
+    },
+    {
+      "id": "ibm_quantum",
+      "implemented_source": "beastbox/quantum.py",
+      "status": "not_attested",
+      "notes": "Requires approved host-side credentials and authorized job; offline numerical replay is not hardware verification."
+    },
+    {
+      "id": "microphone_camera",
+      "implemented_source": "beastbox/sensory.py",
+      "status": "not_attested",
+      "notes": "Requires permission, physical devices, privacy test and signal-boundary verification."
+    },
+    {
+      "id": "kafka_minio_milvus_neo4j",
+      "implemented_source": null,
+      "status": "not_attested",
+      "notes": "Presence and actual deployment must be verified separately; do not claim these services are operational from a copied source tree."
+    },
+    {
+      "id": "gpu_cuda",
+      "implemented_source": "beastbox/models/phos_reference.py",
+      "status": "not_attested",
+      "notes": "Optional ML dependencies install in CI; real device execution not verified."
+    },
+    {
+      "id": "unity_sdr_rf",
+      "implemented_source": null,
+      "status": "not_attested",
+      "notes": "Requires separate native/hardware setup and measured runtime gates."
+    },
+    {
+      "id": "mobile_desktop",
+      "implemented_source": "apps/",
+      "status": "not_attested",
+      "notes": "Source copied; separate simulator/device installation and end-to-end checks remain."
+    }
+  ]
+}

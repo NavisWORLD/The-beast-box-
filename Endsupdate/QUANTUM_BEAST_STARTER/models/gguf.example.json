@@ -1,0 +1,12 @@
+{
+  "alias": "my-gguf-beast",
+  "backend": "gguf",
+  "model": "./models/model.gguf",
+  "base_url": null,
+  "context": 8192,
+  "temperature": 0.2,
+  "max_tokens": 2048,
+  "options": {
+    "n_gpu_layers": 0
+  }
+}

@@ -1,0 +1,119 @@
+name: Verify and polish Beast Box v0.3.2
+
+on:
+  push:
+    branches:
+      - release-publisher-v0.3.2
+    paths:
+      - .github/workflows/publish-v0.3.2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  verify-release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_SHA: 6499b6b392ce7ff786c3cee570cac2c67a44b06f
+      RELEASE_TAG: v0.3.2
+    steps:
+      - name: Verify tag resolves to the intended release commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag_object="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq .object.sha)"
+          tag_type="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq .object.type)"
+          if [ "${tag_type}" = "tag" ]; then
+            resolved="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${tag_object}" --jq .object.sha)"
+          else
+            resolved="${tag_object}"
+          fi
+          test "${resolved}" = "${TARGET_SHA}"
+          echo "${RELEASE_TAG} -> ${resolved}"
+
+      - name: Write professional bounded release notes
+        shell: bash
+        run: |
+          cat > RELEASE_NOTES.md <<'EOF'
+          # Beast Box v0.3.2 — Public-Surface Hardening
+
+          Beast Box v0.3.2 is the verified public/product hardening release at commit `6499b6b392ce7ff786c3cee570cac2c67a44b06f`.
+
+          ## What ships
+
+          - installable Python wheel and source distribution;
+          - COSMIC.CYPHER native binaries for Linux, macOS, and Windows;
+          - hardened CLI/product surface with local-first operation;
+          - professional onboarding, architecture, project-status, changelog, security, and evidence-index documentation;
+          - experimental/pre-release research and chronological logs kept separate from the stable user path;
+          - SHA-256 manifest covering every downloadable binary/package asset.
+
+          ## Runtime boundary
+
+          Normal local/reference operation does not require IBM Quantum, Qiskit, an IBM account, or IBM credentials. Optional external-model and research paths remain explicitly bounded by their documented authority controls.
+
+          ## Scientific boundary
+
+          The sealed scientific classification remains exactly:
+
+          `ENGINEERING_ISOLATION_VERIFIED_CAUSAL_RESOURCE_SOURCE_NOT_ESTABLISHED`
+
+          The release does not rewrite sealed evidence or convert historical provenance, synthetic controls, or model-generated prose into a causal quantum claim.
+
+          This release does **not** establish consciousness, sentience, a literal soul, biological continuity, resurrection, communication with deceased persons, quantum advantage, a new physical dimension, broken quantum mechanics, or IBM/QBT causation of model behavior.
+
+          ## Verification
+
+          The release tag resolves to the exact v0.3.2 product commit. Python packaging, native Rust builds, and repository security checks were produced from the tagged source. Downloaded release assets can be verified with:
+
+          ```bash
+          sha256sum -c SHA256SUMS.txt
+          ```
+
+          Experimental work and pre-release logs remain available in the repository under `experimental/` for engineers and researchers who want the full development trail.
+          EOF
+
+      - name: Polish existing published release
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release edit "${RELEASE_TAG}" \
+            -R "${GITHUB_REPOSITORY}" \
+            --title "Beast Box v0.3.2" \
+            --notes-file RELEASE_NOTES.md
+
+      - name: Verify published release metadata and exact asset set
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")"
+          test "$(jq -r .tag_name <<<"${release_json}")" = "${RELEASE_TAG}"
+          test "$(jq -r .name <<<"${release_json}")" = "Beast Box v0.3.2"
+          test "$(jq -r .draft <<<"${release_json}")" = "false"
+          test "$(jq -r .prerelease <<<"${release_json}")" = "false"
+          expected="SHA256SUMS.txt
+          cosmic-cypher-rs-linux
+          cosmic-cypher-rs-macos
+          cosmic-cypher-rs-windows.exe
+          cosmos_beast_box-0.3.2-py3-none-any.whl
+          cosmos_beast_box-0.3.2.tar.gz"
+          actual="$(jq -r '.assets[].name' <<<"${release_json}" | sort)"
+          test "${actual}" = "${expected}"
+          printf '%s\n' "${actual}"
+
+      - name: Download published assets and verify SHA-256 manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir verified-assets
+          gh release download "${RELEASE_TAG}" -R "${GITHUB_REPOSITORY}" -D verified-assets
+          cd verified-assets
+          sha256sum -c SHA256SUMS.txt
+
+      - name: Emit final release receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view "${RELEASE_TAG}" -R "${GITHUB_REPOSITORY}" \
+            --json url,tagName,name,isDraft,isPrerelease,publishedAt

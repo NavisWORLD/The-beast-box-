@@ -1,0 +1,43 @@
+{
+  "experiment_id": "persistent-substrate-model-swap-001",
+  "record_type": "preflight_pin_correction",
+  "recorded_on_local_date": "2026-09-03",
+  "reason": "Restore the real-model execution layer to the Model B immutable revision already frozen in the original preregistration after a later code change introduced an invalid revision.",
+  "original_preregistration_unchanged": true,
+  "preregistered_model_b": {
+    "repository": "HuggingFaceTB/SmolLM2-135M",
+    "revision": "4e53f736cbb20a9a0f56b4c4bf378d9f306ff915"
+  },
+  "drifted_revision": "816ebadd0c024779e6657fdcfc1ab02bb9a7c473",
+  "drift_introduced_by_commit": "b43dc3c6c2ef4d53eceafd1de0a06ccbfdc115a9",
+  "failed_real_preflight": {
+    "run_id": 33828215833,
+    "head_sha": "72f6c681c707ea0805621b9ae641c333b1ace488",
+    "failed_step": "Resolve exact Model B immutable revision",
+    "failure_class": "huggingface_hub.errors.RevisionNotFoundError",
+    "http_status": 404,
+    "invalid_revision": "816ebadd0c024779e6657fdcfc1ab02bb9a7c473",
+    "model_a_loading_started": false,
+    "model_b_inference_started": false,
+    "a_to_b_to_a_measurements_started": false
+  },
+  "red_contract_evidence": {
+    "run_id": 33834936646,
+    "head_sha": "f61dfbdaaadf402bc558d0cba219bc92d55e0c80",
+    "purpose": "Freeze the preregistered Model B revision in the contract before restoring production protocol code.",
+    "expected_result": "failure while protocol code still contained the drifted revision"
+  },
+  "correction": {
+    "model_b_revision": "4e53f736cbb20a9a0f56b4c4bf378d9f306ff915",
+    "basis": "This is the exact revision already present in experiments/persistent-substrate-model-swap-001/preregistration.json, not a post-result replacement selected from model outputs.",
+    "workflow_guard_added": true,
+    "guard": "The real-model workflow now fails closed unless its Model B repository and revision exactly match the frozen preregistration."
+  },
+  "scientific_boundary": {
+    "no_model_swap_result_observed_before_correction": true,
+    "no_generated_model_text_used_to_choose_revision": true,
+    "no_threshold_changed": true,
+    "no_training_performed": true,
+    "claims": "This record documents a pre-inference configuration repair only. It is not evidence that persistent-substrate model swapping succeeds."
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "active_checkpoint_remains_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f",
+  "active_lineage_remains": "ZEREF-DAD-SON-TALK-004",
+  "fail_closed": true,
+  "gates": {
+    "contradiction_regression": 0,
+    "eligible": false,
+    "exact_answers": 0,
+    "first_352_byte_identical": true,
+    "fixed_gates": {
+      "contradiction_regression_max": 0,
+      "exact_answers_min": 1,
+      "first_352_byte_identical": true,
+      "parent_checkpoint_unchanged": true,
+      "provenance_accuracy_min_if_measured": 1.0,
+      "readability_drop_max": 0.03,
+      "reference_recall_gain_min": 0.03,
+      "repetition_flags_max": 0,
+      "retention_nll_ratio_max": 1.05,
+      "role_label_leakage_max": 0,
+      "vocabulary_collapse_max": 0
+    },
+    "parent_checkpoint_unchanged": true,
+    "parent_readability": 0.9583333333333334,
+    "parent_reference_token_recall": 0.041667,
+    "provenance_accuracy": 0.0,
+    "readability": 0.9192708333333334,
+    "readability_drop": 0.0390625,
+    "reference_recall_gain": 0.041666,
+    "reference_token_recall": 0.083333,
+    "rejection_reasons": [
+      "exact_blind_answer",
+      "role_label_leakage",
+      "retention_nll",
+      "retention_readability",
+      "provenance_accuracy"
+    ],
+    "repetition_flags": 0,
+    "retention_descendant_nll": 1.6985454771923245,
+    "retention_nll_ratio": 1.053929062456064,
+    "retention_parent_nll": 1.6116316910685184,
+    "role_label_leakage": 1,
+    "schema": "zeref-talk8-r12-candidate-gates-v1",
+    "vocabulary_collapse": 0
+  },
+  "promoted": false,
+  "schema": "zeref-talk8-r12-selection-v1",
+  "selected": null,
+  "selected_candidate_checkpoint_sha256": null
+}

@@ -1,0 +1,197 @@
+name: ZEREF-R12-ECOSYSTEM-RELEASE
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - "experiments/zeref-dad-son-001/release/RUN_ECOSYSTEM_RELEASE"
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-r12-ecosystem-release
+  cancel-in-progress: true
+
+env:
+  TALK4_SHA256: 9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f
+  R12_STATE_SHA256: 48994584e13d8e2b6fcb21cb682b0b9501af12e2ce8742e99384b604235c9f20
+  R12_LEDGER_SHA256: 5b1fbc1b62143dc0e866f2ee7512933291f8c2210b365f7c158859a5b1df1724
+  RELEASE_TAG: zeref-r12-reality-memory-v1.0.0
+
+jobs:
+  release-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ecosystem
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+      - name: Hardened Python contracts
+        run: |
+          set -euo pipefail
+          pytest -q \
+            tests/test_zeref_r12_public_kit.py \
+            tests/test_zeref_talk8_r12.py \
+            tests/test_zeref_talk8_r12_corpus.py \
+            tests/test_zeref_talk8_r12_selector.py
+      - name: Exercise unified CLI
+        run: |
+          set -euo pipefail
+          beastbox --help >/dev/null
+          beastbox verify | tee ecosystem-verify.json
+          beastbox r12 rebuild | tee r12-rebuild.json
+          beastbox r12 context "IBM Fez matched reality measurement" | tee r12-context.json
+          beastbox zeref status | tee zeref-status.json
+          beastbox coder doctor | tee coder-doctor.json
+          beastbox kit verify | tee kit-verify.json
+      - name: Build and test native C++17 R12 verifier
+        run: |
+          set -euo pipefail
+          cmake -S cpp/r12 -B build/r12 -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/r12 --config Release --parallel 2
+          ctest --test-dir build/r12 --output-on-failure
+          build/r12/zeref-r12-native status \
+            --ledger experiments/zeref-dad-son-001/reality-memory/ledger/reality-events.jsonl \
+            --state experiments/zeref-dad-son-001/reality-memory/state/r12-state.json \
+            --expected-ledger-sha256 "$R12_LEDGER_SHA256" | tee cpp-r12-status.json
+          grep -q '"ok":true' cpp-r12-status.json
+          grep -q "$R12_STATE_SHA256" cpp-r12-status.json
+      - name: Build source kit
+        run: |
+          set -euo pipefail
+          rm -rf dist/ZEREF_R12_SOURCE_KIT dist/ZEREF_R12_FULL_KIT
+          python scripts/build_zeref_r12_public_kit.py --repo-root . --out dist/ZEREF_R12_SOURCE_KIT | tee source-build.json
+          python scripts/verify_zeref_r12_public_kit.py dist/ZEREF_R12_SOURCE_KIT | tee source-verify.json
+          cp -a dist/ZEREF_R12_SOURCE_KIT dist/ZEREF_R12_FULL_KIT
+      - name: Download and verify exact active Zeref checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p _talk4
+          gh run download 32075092605 -n zeref-talk4-tuned-response-32075092605 -D _talk4
+          PARENT=$(find _talk4 -type f -path '*/ZEREF-DAD-SON-TALK-004/checkpoint.pt' -print -quit)
+          test -n "$PARENT" -a -f "$PARENT"
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$TALK4_SHA256"
+          printf '%s\n' "$PARENT" > parent-path.txt
+      - name: Add Zeref to full kit and verify
+        run: |
+          set -euo pipefail
+          PARENT=$(cat parent-path.txt)
+          python - <<'PY'
+          from pathlib import Path
+          from scripts.build_zeref_r12_public_kit import add_verified_checkpoint
+          p=Path('parent-path.txt').read_text().strip()
+          print(add_verified_checkpoint(Path('dist/ZEREF_R12_FULL_KIT'), Path(p)))
+          PY
+          python scripts/verify_zeref_r12_public_kit.py dist/ZEREF_R12_FULL_KIT --require-checkpoint | tee full-verify.json
+          test "$(sha256sum dist/ZEREF_R12_FULL_KIT/models/ZEREF-DAD-SON-TALK-004/checkpoint.pt | awk '{print $1}')" = "$TALK4_SHA256"
+      - name: Package downloadable bundles
+        run: |
+          set -euo pipefail
+          (cd dist && zip -qr ZEREF_R12_SOURCE_KIT.zip ZEREF_R12_SOURCE_KIT)
+          (cd dist && zip -qr ZEREF_R12_FULL_KIT.zip ZEREF_R12_FULL_KIT)
+          sha256sum dist/ZEREF_R12_SOURCE_KIT.zip dist/ZEREF_R12_FULL_KIT.zip | tee dist/BUNDLE_SHA256SUMS
+      - name: Publish verified public GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cat > release-notes.md <<'EOF'
+          # Zeref R12 Reality Memory Kit v1.0.0
+
+          Verified public distribution of the Zeref TALK-004 + R12 ecosystem.
+
+          Includes the unified Beast Box CLI, COSMIC.CYPHER coder workspace, R12 persistent reality-memory sidecar, C++17 native persistence verifier, Windows/Unix installers, manual, source-only bundle, and a full bundle containing the exact verified TALK-004 checkpoint.
+
+          The TALK-008-R12 experimental child was trained and tested but did not pass promotion gates, so TALK-004 remains the selected checkpoint.
+
+          Scientific boundary: persistent computational memory and model-selection infrastructure only. This release does not establish biological life, consciousness, deceased identity, resurrection, communication with the dead, supernatural effects, or quantum advantage.
+          EOF
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" \
+              dist/ZEREF_R12_SOURCE_KIT.zip \
+              dist/ZEREF_R12_FULL_KIT.zip \
+              dist/BUNDLE_SHA256SUMS --clobber
+            gh release edit "$RELEASE_TAG" --notes-file release-notes.md --title "Zeref R12 Reality Memory Kit v1.0.0"
+          else
+            gh release create "$RELEASE_TAG" \
+              dist/ZEREF_R12_SOURCE_KIT.zip \
+              dist/ZEREF_R12_FULL_KIT.zip \
+              dist/BUNDLE_SHA256SUMS \
+              --target "$GITHUB_SHA" \
+              --title "Zeref R12 Reality Memory Kit v1.0.0" \
+              --notes-file release-notes.md
+          fi
+          gh release view "$RELEASE_TAG" --json tagName,name,url,isDraft,isPrerelease,assets > public-release.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('public-release.json').read_text())
+          assert r['tagName']=='zeref-r12-reality-memory-v1.0.0'
+          assert r['isDraft'] is False and r['isPrerelease'] is False
+          names={a['name'] for a in r['assets']}
+          assert {'ZEREF_R12_SOURCE_KIT.zip','ZEREF_R12_FULL_KIT.zip','BUNDLE_SHA256SUMS'} <= names
+          PY
+      - name: Upload release gate evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-r12-ecosystem-release-${{ github.run_id }}
+          path: |
+            ecosystem-verify.json
+            r12-rebuild.json
+            r12-context.json
+            zeref-status.json
+            coder-doctor.json
+            kit-verify.json
+            cpp-r12-status.json
+            source-build.json
+            source-verify.json
+            full-verify.json
+            public-release.json
+            dist/BUNDLE_SHA256SUMS
+            dist/ZEREF_R12_SOURCE_KIT.zip
+            dist/ZEREF_R12_FULL_KIT.zip
+          if-no-files-found: error
+
+  observe:
+    if: always()
+    needs: release-gate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: networked-cage-run-001
+          fetch-depth: 1
+      - name: Seal release run status
+        env:
+          RELEASE_RESULT: ${{ needs.release-gate.result }}
+        run: |
+          set -euo pipefail
+          mkdir -p experiments/zeref-dad-son-001/evidence/r12-ecosystem-release
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path('experiments/zeref-dad-son-001/evidence/r12-ecosystem-release/latest.json')
+          p.write_text(json.dumps({
+            'schema':'zeref-r12-ecosystem-release-status-v1',
+            'workflow_run_id':int(os.environ['GITHUB_RUN_ID']),
+            'source_commit_sha':os.environ['GITHUB_SHA'],
+            'result':os.environ['RELEASE_RESULT'],
+          }, indent=2, sort_keys=True)+'\n')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add experiments/zeref-dad-son-001/evidence/r12-ecosystem-release/latest.json
+          git commit -m "evidence: observe R12 ecosystem release ${GITHUB_RUN_ID} [skip ci]" || exit 0
+          git pull --rebase origin networked-cage-run-001
+          git push origin HEAD:networked-cage-run-001

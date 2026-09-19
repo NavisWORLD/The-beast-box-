@@ -1,0 +1,71 @@
+name: Inspect pinned Cosmos best checkpoint
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/native-coder-contract-inspect.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download exact pinned source and best checkpoint
+        run: |
+          set -euo pipefail
+          python -m pip install -q 'huggingface-hub>=0.27'
+          python -m pip install -q torch --index-url https://download.pytorch.org/whl/cpu
+          rm -rf _inspect && mkdir -p _inspect
+          python - <<'PY'
+          from huggingface_hub import snapshot_download
+          snapshot_download(
+              repo_id='phera-ra/QC67_cosmo',
+              revision='b414724c627300c41b099dcc6853766d08fd27a4',
+              local_dir='_inspect',
+              allow_patterns=['*.py','**/*.py','tokenizer.json','tokenizer_config.json','weights/cosmos_best.pt','docs/SYSTEM_AND_TOKENIZER.md','README.md'],
+          )
+          PY
+          sha256sum _inspect/weights/cosmos_best.pt
+      - name: Trace exact best-checkpoint loaders and tokenizer assumptions
+        run: |
+          set -euo pipefail
+          grep -R -n -E 'cosmos_best\.pt|cosmos_play\.pt|cosmos_sandbox\.pt' _inspect --include='*.py' --include='*.md' || true
+          grep -R -n -E 'class .*Cosmos|vocab_size|char_to|stoi|itos|tiktoken|tokenizer\.json|GPT2|generate\(' _inspect --include='*.py' | head -600 || true
+      - name: Inspect checkpoint metadata without executing model code
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import torch
+          ck=torch.load('_inspect/weights/cosmos_best.pt', map_location='cpu', weights_only=False)
+          print('TYPE=', type(ck).__name__)
+          if isinstance(ck, dict):
+              print('KEYS=', sorted(map(str,ck.keys())))
+              for key in ('config','model_config','step','epoch','vocab','vocab_size','stoi','itos','chars'):
+                  if key in ck:
+                      value=ck[key]
+                      if isinstance(value, dict):
+                          sample=list(value.items())[:20]
+                          print(key, 'dict-len', len(value), 'sample', sample)
+                      elif isinstance(value,(list,tuple)):
+                          print(key, 'len', len(value), 'sample', list(value)[:40])
+                      else:
+                          print(key, repr(value))
+              state=ck.get('model_state_dict') or ck.get('model') or ck.get('state_dict')
+              if isinstance(state,dict):
+                  print('STATE_KEYS=',len(state))
+                  for k in sorted(state)[:50]:
+                      v=state[k]
+                      print('STATE', k, tuple(v.shape) if hasattr(v,'shape') else type(v).__name__)
+          PY

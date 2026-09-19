@@ -1,0 +1,109 @@
+name: Autonomous Hands Native Ignition Audit
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/autonomous-hands-native-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download exact pinned native sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip huggingface-hub
+          rm -rf _native_audit
+          mkdir -p _native_audit
+          hf download "$HF_REPO" \
+            serving/cosmos_coder.py \
+            serving/cosmos_serve.py \
+            genesis_engine/soul/loop.py \
+            soul/cosmos_bridge.py \
+            --revision "$HF_REVISION" \
+            --local-dir _native_audit
+
+      - name: Verify locked hashes and extract ignition contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import re
+          from pathlib import Path
+
+          root = Path('_native_audit')
+          lock = json.loads(Path('experiments/autonomous-hands/native-stack.lock.json').read_text(encoding='utf-8'))
+          wanted = [
+              'serving/cosmos_coder.py',
+              'serving/cosmos_serve.py',
+              'genesis_engine/soul/loop.py',
+              'soul/cosmos_bridge.py',
+          ]
+          for rel in wanted:
+              path = root / rel
+              actual = hashlib.sha256(path.read_bytes()).hexdigest()
+              expected = lock['required_files'][rel]
+              assert actual == expected, (rel, expected, actual)
+              print(f'HASH_OK {rel} {actual}')
+
+          coder = (root / 'serving/cosmos_coder.py').read_text(encoding='utf-8', errors='replace')
+          server = (root / 'serving/cosmos_serve.py').read_text(encoding='utf-8', errors='replace')
+          loop = (root / 'genesis_engine/soul/loop.py').read_text(encoding='utf-8', errors='replace')
+
+          def selected(text: str):
+              needles = (
+                  '/save', '/run', '/build', '/quit', 'input(', 'argparse',
+                  'localhost', '127.0.0.1', '11434', '11501', 'requests.',
+                  'urllib.', 'subprocess', 'Popen', 'run(', 'COSMOS_', 'OLLAMA',
+              )
+              for number, line in enumerate(text.splitlines(), 1):
+                  if any(n in line for n in needles):
+                      yield number, line[:500]
+
+          audit = {
+              'coder_lines': list(selected(coder)),
+              'server_lines': list(selected(server)),
+              'autonomy_lines': list(selected(loop)),
+              'coder_has_save': '/save' in coder,
+              'coder_has_run': '/run' in coder,
+              'coder_has_subprocess': 'subprocess' in coder,
+              'loop_has_subprocess': 'subprocess' in loop,
+          }
+          out = Path('_native_audit/IGNITION_CONTRACT.json')
+          out.write_text(json.dumps(audit, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          print(out.read_text(encoding='utf-8'))
+          PY
+
+      - name: Upload native ignition audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: autonomous-hands-native-ignition-audit
+          path: |
+            _native_audit/IGNITION_CONTRACT.json
+            _native_audit/serving/cosmos_coder.py
+            _native_audit/serving/cosmos_serve.py
+            _native_audit/genesis_engine/soul/loop.py
+            _native_audit/soul/cosmos_bridge.py
+          if-no-files-found: error

@@ -1,0 +1,221 @@
+name: D001 Prime Parent History Sweep
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-prime-parent-history-sweep.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      HF_REPO: phera-ra/QC67_cosmo
+      PINNED_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+      PRIME_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install CPU inspection dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'huggingface-hub>=0.27' numpy
+          python -m pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Sweep frozen candidates and historical Spark checkpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf sweep
+          mkdir -p sweep/out sweep/cache
+          python - <<'PY'
+          import hashlib, json, math, os, struct, time, traceback
+          from pathlib import Path
+          import numpy as np
+          import torch
+          from huggingface_hub import HfApi, hf_hub_download
+
+          REPO = os.environ['HF_REPO']
+          PINNED = os.environ['PINNED_REVISION']
+          PRIME_SHA = os.environ['PRIME_SHA256']
+          OUT = Path('sweep/out')
+          CACHE = Path('sweep/cache')
+          CANDIDATES = [
+              'weights/cosmos_best.pt','weights/cosmos_born.pt','weights/cosmos_play.pt',
+              'weights/cosmos_sandbox.pt','weights/phos.pt','weights/phos_weights.pt',
+              'weights/samgo_weights.pt','weights/spark_cst.pt',
+          ]
+
+          def sha(path):
+              h=hashlib.sha256()
+              with open(path,'rb') as f:
+                  for chunk in iter(lambda:f.read(1024*1024), b''): h.update(chunk)
+              return h.hexdigest()
+          def ex(f,n):
+              b=f.read(n)
+              if len(b)!=n: raise EOFError
+              return b
+          def u32(f): return struct.unpack('<I',ex(f,4))[0]
+          def u64(f): return struct.unpack('<Q',ex(f,8))[0]
+          def st(f): return ex(f,u64(f)).decode('utf-8')
+          FM={0:'<B',1:'<b',2:'<H',3:'<h',4:'<I',5:'<i',6:'<f',7:'<?',10:'<Q',11:'<q',12:'<d'}
+          def val(f,t):
+              if t==8:return st(f)
+              if t==9:
+                  et=u32(f); return [val(f,et) for _ in range(u64(f))]
+              fmt=FM[t]; return struct.unpack(fmt,ex(f,struct.calcsize(fmt)))[0]
+          def parse_gguf(path):
+              with open(path,'rb') as f:
+                  assert ex(f,4)==b'GGUF'; version=u32(f); nt=u64(f); nk=u64(f); meta={}
+                  for _ in range(nk): k=st(f); meta[k]=val(f,u32(f))
+                  infos=[]
+                  for _ in range(nt):
+                      n=st(f); nd=u32(f); dims=[u64(f) for _ in range(nd)]; typ=u32(f); off=u64(f)
+                      infos.append({'name':n,'dims':dims,'type':typ,'offset':off})
+                  align=int(meta.get('general.alignment',32)); start=((f.tell()+align-1)//align)*align; raw={}
+                  for x in infos:
+                      if x['type']!=0: raise AssertionError((x['name'],x['type']))
+                      f.seek(start+x['offset']); raw[x['name']]=ex(f,math.prod(x['dims'])*4)
+                  return version,meta,infos,raw
+
+          prime = Path(hf_hub_download(REPO,'weights/cosmos-cst.gguf',revision=PINNED,cache_dir=str(CACHE)))
+          assert sha(prime)==PRIME_SHA
+          version, meta, infos, prime_raw = parse_gguf(prime)
+          assert version==3 and len(infos)==61
+
+          REQUIRED_CFG={'block':128,'n_layer':4,'n_head':4,'n_embd':192,'vocab':162,'d54':54}
+          REQUIRED_KEYS=['tok.weight','pos.weight','lnf.weight','lnf.bias','head.weight'] + [
+              f'blocks.{i}.{suffix}' for i in range(4) for suffix in (
+                  'ln1.weight','ln1.bias','attn.qkv.weight','attn.qkv.bias','attn.proj.weight','attn.proj.bias',
+                  'attn.w54.weight','attn.gate','attn.log_sigma','ln2.weight','ln2.bias','mlp.0.weight','mlp.0.bias','mlp.2.weight','mlp.2.bias')]
+
+          def normalize_checkpoint(path):
+              ck=torch.load(path,map_location='cpu',weights_only=False)
+              if not isinstance(ck,dict): return ck,None,None
+              sd=ck.get('model')
+              cfg=ck.get('config')
+              if sd is None and all(isinstance(k,str) for k in ck) and any(k.endswith('.weight') for k in ck): sd=ck
+              return ck,sd,cfg
+
+          def map_spark(ck,sd,cfg):
+              if not isinstance(sd,dict) or not all(k in sd for k in REQUIRED_KEYS): return None
+              try: cfg_norm={k:int(cfg[k]) for k in REQUIRED_CFG}
+              except Exception: return None
+              if cfg_norm!=REQUIRED_CFG: return None
+              exp={}
+              def add(n,t): exp[n]=np.ascontiguousarray(t.detach().float().cpu().numpy()).astype('<f4',copy=False)
+              add('token_embd.weight',sd['tok.weight']); add('position_embd.weight',sd['pos.weight']); add('output_norm.weight',sd['lnf.weight']); add('output_norm.bias',sd['lnf.bias']); add('output.weight',sd['head.weight'])
+              raw_gates=[float(sd[f'blocks.{i}.attn.gate'].reshape(-1)[0]) for i in range(4)]
+              gp=ck.get('gate_param') if isinstance(ck,dict) else None
+              if gp is None: gp='logit' if max(abs(x) for x in raw_gates)>1 else 'clamp01'
+              gf=lambda r: 1/(1+math.exp(-r)) if gp=='logit' else max(0.,min(1.,r))
+              for i in range(4):
+                  p=f'blocks.{i}.'
+                  add(f'blk.{i}.attn_norm.weight',sd[p+'ln1.weight']); add(f'blk.{i}.attn_norm.bias',sd[p+'ln1.bias'])
+                  add(f'blk.{i}.attn_qkv.weight',sd[p+'attn.qkv.weight']); add(f'blk.{i}.attn_qkv.bias',sd[p+'attn.qkv.bias'])
+                  add(f'blk.{i}.attn_output.weight',sd[p+'attn.proj.weight']); add(f'blk.{i}.attn_output.bias',sd[p+'attn.proj.bias'])
+                  sigma=float(torch.exp(sd[p+'attn.log_sigma']).clamp(.05,50.)); gate=gf(float(sd[p+'attn.gate'].reshape(-1)[0]))
+                  add(f'blk.{i}.attn_54.weight',sd[p+'attn.w54.weight']/sigma); add(f'blk.{i}.attn_gate.weight',torch.tensor([gate],dtype=torch.float32))
+                  add(f'blk.{i}.ffn_norm.weight',sd[p+'ln2.weight']); add(f'blk.{i}.ffn_norm.bias',sd[p+'ln2.bias'])
+                  add(f'blk.{i}.ffn_up.weight',sd[p+'mlp.0.weight']); add(f'blk.{i}.ffn_up.bias',sd[p+'mlp.0.bias'])
+                  add(f'blk.{i}.ffn_down.weight',sd[p+'mlp.2.weight']); add(f'blk.{i}.ffn_down.bias',sd[p+'mlp.2.bias'])
+              exact=0; total_sq=0.; total_n=0; max_abs=0.; rows=[]
+              for n,a in exp.items():
+                  got=np.frombuffer(prime_raw[n],dtype='<f4').reshape(a.shape)
+                  eq=np.array_equal(a,got); exact+=int(eq)
+                  d=a.astype(np.float64)-got.astype(np.float64); total_sq += float(np.square(d).sum()); total_n += d.size; max_abs=max(max_abs,float(np.abs(d).max()))
+                  rows.append({'name':n,'exact':bool(eq),'candidate_sha256':hashlib.sha256(a.tobytes()).hexdigest(),'prime_sha256':hashlib.sha256(prime_raw[n]).hexdigest()})
+              toks=None
+              if isinstance(ck,dict) and ('itos' in ck or 'stoi' in ck):
+                  itos=ck.get('itos') or {v:k for k,v in ck['stoi'].items()}; toks=[itos[i] for i in range(162)]
+              return {'compatible':True,'config':cfg_norm,'gate_param':gp,'arch':ck.get('arch') if isinstance(ck,dict) else None,'quantum_source':ck.get('quantum_source') if isinstance(ck,dict) else None,'exact_tensor_matches':exact,'tensor_count':len(exp),'rmse':math.sqrt(total_sq/max(total_n,1)),'max_abs_diff':max_abs,'tokenizer_equal':toks==meta.get('tokenizer.ggml.tokens') if toks is not None else None,'all_tensor_values_bitwise_equal':exact==len(exp),'tensor_rows':rows}
+
+          frozen=[]
+          for rel in CANDIDATES:
+              row={'path':rel}
+              try:
+                  p=Path(hf_hub_download(REPO,rel,revision=PINNED,cache_dir=str(CACHE)))
+                  row['sha256']=sha(p); row['bytes']=p.stat().st_size
+                  ck,sd,cfg=normalize_checkpoint(p)
+                  row['top_level_keys']=sorted(str(k) for k in ck.keys())[:100] if isinstance(ck,dict) else []
+                  row['state_key_count']=len(sd) if isinstance(sd,dict) else None
+                  row['config']=cfg if isinstance(cfg,dict) else None
+                  mapped=map_spark(ck,sd,cfg)
+                  row['spark_mapping']=mapped if mapped is not None else {'compatible':False}
+              except Exception as exc:
+                  row['error']=f'{type(exc).__name__}: {exc}'
+              frozen.append(row)
+              print('FROZEN',rel,json.dumps({k:row.get(k) for k in ('sha256','bytes','state_key_count','config','spark_mapping','error')},default=str)[:4000])
+          OUT.joinpath('frozen-candidate-sweep.json').write_text(json.dumps({'schema':'d001-frozen-candidate-sweep-v1','repo_id':REPO,'revision':PINNED,'prime_sha256':PRIME_SHA,'candidates':frozen},indent=2,sort_keys=True,default=str)+'\n')
+
+          # History scan: first inventory every commit's LFS identity for weights/spark_cst.pt,
+          # then download only one revision per unique blob hash and compare it to Prime.
+          api=HfApi(); commits=api.list_repo_commits(REPO,repo_type='model')
+          history=[]; unique={}
+          for idx,c in enumerate(commits):
+              cid=c.commit_id
+              row={'index':idx,'commit_id':cid,'title':getattr(c,'title',None),'created_at':str(getattr(c,'created_at',None))}
+              try:
+                  info=api.model_info(REPO,revision=cid,files_metadata=True)
+                  sib=next((s for s in info.siblings if s.rfilename=='weights/spark_cst.pt'),None)
+                  if sib is None:
+                      row['spark_present']=False
+                  else:
+                      row['spark_present']=True
+                      lfs=getattr(sib,'lfs',None) or {}
+                      oid=lfs.get('sha256') if isinstance(lfs,dict) else getattr(lfs,'sha256',None)
+                      row['lfs_sha256']=oid; row['size']=getattr(sib,'size',None)
+                      key=oid or f'commit:{cid}'
+                      unique.setdefault(key,{'commit_id':cid,'lfs_sha256':oid,'size':row['size'],'first_index':idx})
+              except Exception as exc:
+                  row['metadata_error']=f'{type(exc).__name__}: {exc}'
+              history.append(row)
+              print('HISTORY_META',idx,cid[:12],row.get('lfs_sha256'),row.get('spark_present'),row.get('metadata_error'))
+              time.sleep(0.05)
+          OUT.joinpath('spark-history-index.json').write_text(json.dumps({'schema':'d001-spark-history-index-v1','repo_id':REPO,'commit_count':len(commits),'unique_candidate_count':len(unique),'history':history},indent=2,sort_keys=True,default=str)+'\n')
+
+          comparisons=[]
+          for key,u in unique.items():
+              cid=u['commit_id']; row=dict(u)
+              try:
+                  p=Path(hf_hub_download(REPO,'weights/spark_cst.pt',revision=cid,cache_dir=str(CACHE)))
+                  row['download_sha256']=sha(p); row['bytes']=p.stat().st_size
+                  ck,sd,cfg=normalize_checkpoint(p); mapped=map_spark(ck,sd,cfg)
+                  row['mapping']=mapped if mapped is not None else {'compatible':False}
+              except Exception as exc:
+                  row['error']=f'{type(exc).__name__}: {exc}'
+                  row['traceback']=traceback.format_exc(limit=2)
+              comparisons.append(row)
+              m=row.get('mapping',{})
+              print('HISTORY_CANDIDATE',cid[:12],row.get('download_sha256'),m.get('compatible'),m.get('exact_tensor_matches'),m.get('rmse'),m.get('all_tensor_values_bitwise_equal'),row.get('error'))
+          comparisons.sort(key=lambda r:(not bool(r.get('mapping',{}).get('all_tensor_values_bitwise_equal')), r.get('mapping',{}).get('rmse',float('inf'))))
+          exact_matches=[r for r in comparisons if r.get('mapping',{}).get('all_tensor_values_bitwise_equal') and r.get('mapping',{}).get('tokenizer_equal')]
+          report={'schema':'d001-prime-parent-history-sweep-v1','repo_id':REPO,'pinned_revision':PINNED,'prime_sha256':PRIME_SHA,'commit_count':len(commits),'unique_spark_blobs':len(unique),'exact_historical_matches':exact_matches,'historical_comparisons':comparisons}
+          OUT.joinpath('historical-spark-sweep.json').write_text(json.dumps(report,indent=2,sort_keys=True,default=str)+'\n')
+          OUT.joinpath('summary.json').write_text(json.dumps({'frozen_exact_matches':[r['path'] for r in frozen if r.get('spark_mapping',{}).get('all_tensor_values_bitwise_equal') and r.get('spark_mapping',{}).get('tokenizer_equal')],'historical_exact_match_count':len(exact_matches),'historical_exact_matches':[{'commit_id':r['commit_id'],'checkpoint_sha256':r['download_sha256']} for r in exact_matches],'best_historical':[{'commit_id':r['commit_id'],'checkpoint_sha256':r.get('download_sha256'),'rmse':r.get('mapping',{}).get('rmse'),'exact_tensor_matches':r.get('mapping',{}).get('exact_tensor_matches'),'tokenizer_equal':r.get('mapping',{}).get('tokenizer_equal')} for r in comparisons[:10]]},indent=2,sort_keys=True)+'\n')
+          print('SUMMARY')
+          print(OUT.joinpath('summary.json').read_text())
+          PY
+      - name: Freeze sweep hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd sweep && find out -type f -print0 | sort -z | xargs -0 sha256sum) > sweep/SHA256SUMS
+          cat sweep/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d001-prime-parent-history-sweep
+          path: |
+            sweep/out
+            sweep/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 90

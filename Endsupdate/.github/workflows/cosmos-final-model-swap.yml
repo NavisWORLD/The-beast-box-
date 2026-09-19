@@ -1,0 +1,160 @@
+name: COSMOS FINAL ORGANISM - MODEL SWAP ROUND TRIP
+
+on:
+  push:
+    branches: [cory-davis-cosmos-reality-bridge-final-organism-001]
+    paths:
+      - 'scripts/final_reality_bridge_model_swap.py'
+      - 'tests/test_final_model_swap_round_trip.py'
+      - '.github/workflows/cosmos-final-model-swap.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  ACTIVE_SHA256: 454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425
+  HOLDOUT_SHA256: 9c8bcfb21a9adda064c8e14beb7b4ccff32dece1cf189bda4c7cc5fc882f37e0
+  REFERENCE_SNAPSHOT_SHA256: f75e3350cdeda2c553f2cae22d493eb5f6fa303d84c28c7cf085ca25e4112bfc
+  GH_TOKEN: ${{ github.token }}
+  HF_HUB_DISABLE_TELEMETRY: '1'
+
+jobs:
+  model-swap:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify sealed pre-swap state
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          resume=json.loads(Path('evidence/final-reality-bridge/resume-state.json').read_text())
+          assert resume['active_gate']=='MODEL_SWAP_ROUND_TRIP', resume
+          assert resume['next_gate']=='RUN_ZEREF_REFERENCE_ZEREF_ROUND_TRIP', resume
+          assert 'FROZEN_REFERENCE_MODEL' in resume['completed_gates'], resume
+          assert resume['active_checkpoint_SHA']=='454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425', resume
+          assert resume['reference_snapshot_manifest_SHA']=='f75e3350cdeda2c553f2cae22d493eb5f6fa303d84c28c7cf085ca25e4112bfc', resume
+          status=json.loads(Path('evidence/final-whole-organism-001/reference/STATUS.json').read_text())
+          assert status['status']=='VERIFIED_GATE' and status['model_swap_round_trip_completed'] is False, status
+          print(json.dumps({'pre_swap_verified':True,'reference_snapshot':resume['reference_snapshot_manifest_SHA']},sort_keys=True))
+          PY
+
+      - name: Install frozen swap runtime
+        run: |
+          set -euo pipefail
+          python -m pip install -e '.[dev,ml]'
+          python -m pip install \
+            'transformers==4.46.3' \
+            'huggingface-hub==0.26.2' \
+            'tokenizers==0.20.3' \
+            'safetensors==0.4.5'
+
+      - name: Model-swap contract tests
+        run: python -m pytest -q tests/test_final_model_swap_round_trip.py
+
+      - name: Restore exact selected Zeref checkpoint
+        run: |
+          set -euo pipefail
+          rm -rf _model_swap_runtime
+          mkdir -p _model_swap_runtime/world
+          gh run download 33132925890 -n zeref-world-r12-downstream-diagnostic-v2-33132925890 -D _model_swap_runtime/world
+          ACTIVE=$(find _model_swap_runtime/world -type f -name 'SELECTED-WORLD-R12.pt' -print -quit)
+          test -n "$ACTIVE" -a -f "$ACTIVE"
+          test "$(sha256sum "$ACTIVE" | awk '{print $1}')" = "$ACTIVE_SHA256"
+          printf '%s\n' "$ACTIVE" > _model_swap_runtime/active.path
+
+      - name: Execute Zeref reference Zeref round trip
+        run: |
+          set -euo pipefail
+          python scripts/final_reality_bridge_model_swap.py \
+            --zeref-checkpoint "$(cat _model_swap_runtime/active.path)" \
+            --arch experiments/zeref-dad-son-001/frozen/cosmos_spark_cst.py \
+            --holdout evidence/final-whole-organism-001/corpus/HOLDOUT.jsonl \
+            --zeref-full-per-record evidence/final-whole-organism-001/holdout/per-record.jsonl \
+            --reference-identity evidence/final-whole-organism-001/reference/reference-identity.json \
+            --reference-comparison evidence/final-whole-organism-001/reference/comparison.json \
+            --out evidence/final-whole-organism-001/model-swap \
+            --reference-batch-size 16 \
+            | tee _model_swap_runtime/result.json
+
+      - name: Verify sealed round trip and advance receipt
+        run: |
+          set -euo pipefail
+          EV=evidence/final-whole-organism-001/model-swap
+          (cd "$EV" && sha256sum -c SHA256SUMS)
+          python - <<'PY'
+          import hashlib,json,os
+          from datetime import datetime,timezone
+          from pathlib import Path
+          ev=Path('evidence/final-whole-organism-001/model-swap')
+          status=json.loads((ev/'STATUS.json').read_text())
+          rt=json.loads((ev/'zeref-round-trip.json').read_text())
+          rr=json.loads((ev/'reference-reproduction.json').read_text())
+          imm=json.loads((ev/'immutability.json').read_text())
+          assert status['status']=='VERIFIED_GATE' and status['gate']=='MODEL_SWAP_ROUND_TRIP', status
+          assert status['order']==['ZEREF','REFERENCE','ZEREF'], status
+          assert status['zeref_before_after_byte_identical'] is True, status
+          assert status['reference_bpc_reproduced'] is True, status
+          assert rt['byte_identical'] is True and rt['before_sha256']==rt['after_sha256'], rt
+          assert rr['reproduced'] is True and rr['absolute_difference'] <= rr['frozen_absolute_tolerance'], rr
+          assert imm['protected_state_identical_pre_post'] is True and imm['training_performed'] is False, imm
+          root=Path('evidence/final-reality-bridge')
+          receipt=json.loads((root/'resume-state.json').read_text())
+          completed=list(receipt.get('completed_gates') or [])
+          if 'MODEL_SWAP_ROUND_TRIP' not in completed: completed.append('MODEL_SWAP_ROUND_TRIP')
+          receipt.update({
+            'timestamp':datetime.now(timezone.utc).isoformat(),
+            'branch':os.environ['GITHUB_REF_NAME'],
+            'HEAD':os.environ['GITHUB_SHA'],
+            'completed_gates':completed,
+            'active_gate':'RESOURCE_SOURCE_CONTROLS',
+            'next_gate':'RUN_RESOURCE_SOURCE_CONTROL_MATRIX',
+            'model_swap_zeref_ledger_SHA':rt['before_sha256'],
+            'model_swap_zeref_before_after_identical':True,
+            'model_swap_reference_reproduced':True,
+            'latest_tests':'Frozen ZEREF -> REFERENCE -> ZEREF round trip; byte-identical Zeref scoring ledger before/after; exact protected identities unchanged; reference snapshot and coding score reproduced',
+            'latest_artifact':'evidence/final-whole-organism-001/model-swap',
+            'latest_artifact_SHA':hashlib.sha256((ev/'SHA256SUMS').read_bytes()).hexdigest(),
+            'scientific_classification_so_far':'SOFTWARE_STATE_ISOLATION_VERIFIED_PENDING_RESOURCE_SOURCE_CONTROLS',
+            'exact_resume_instruction':'Run the preregistered RESOURCE_SOURCE control matrix using the existing quantum_lifesource source-blind adapters and historical evidence. Preserve all historical labels and fail closed if source provenance, replay identity, or witness requirements are not met.',
+            'known_demonstrated_blockers':[],
+          })
+          (root/'resume-state.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          digest=hashlib.sha256((root/'resume-state.json').read_bytes()).hexdigest()
+          (root/'RESUME_SHA256SUMS').write_text(f'{digest}  resume-state.json\n')
+          print(json.dumps({'model_swap_verified':True,'zeref_ledger_sha256':rt['before_sha256'],'reference_bpc_delta':rr['absolute_difference']},sort_keys=True))
+          PY
+          (cd evidence/final-reality-bridge && sha256sum -c RESUME_SHA256SUMS)
+
+      - name: Commit model-swap evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'cosmos-closure-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add evidence/final-whole-organism-001/model-swap evidence/final-reality-bridge/resume-state.json evidence/final-reality-bridge/RESUME_SHA256SUMS
+          if ! git diff --cached --quiet; then
+            git commit -m 'evidence(final-organism): seal Zeref reference Zeref round trip'
+            git push origin HEAD:cory-davis-cosmos-reality-bridge-final-organism-001
+          fi
+
+      - name: Preserve model-swap evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-final-model-swap-${{ github.run_id }}
+          path: |
+            evidence/final-whole-organism-001/model-swap
+            _model_swap_runtime/result.json
+          if-no-files-found: warn
+          retention-days: 90

@@ -1,0 +1,14 @@
+--- a/src/models/cosmos.cpp
++++ b/src/models/cosmos.cpp
+@@ -178,7 +178,10 @@ llama_model_cosmos::graph::graph(const llama_model & model, const llm_graph_para
+             ggml_tensor * hdot = ggml_mul_mat(ctx0, s54, q54);
+             ggml_mul_mat_set_prec(hdot, GGML_PREC_F32);
+ 
+-            ggml_tensor * nrm = ggml_sum_rows(ctx0, ggml_sqr(ctx0, s54));
++            // The widened KV key cache may store s54 as F16, while this ggml base only
++            // implements sum_rows for F32. Preserve the same norm math in F32.
++            ggml_tensor * s54_f32 = ggml_cast(ctx0, s54, GGML_TYPE_F32);
++            ggml_tensor * nrm = ggml_sum_rows(ctx0, ggml_sqr(ctx0, s54_f32));
+             nrm = ggml_cont(ctx0, ggml_transpose(ctx0, nrm));
+ 
+             ggml_tensor * hscore = ggml_add(ctx0, hdot, ggml_scale(ctx0, nrm, -0.5f));

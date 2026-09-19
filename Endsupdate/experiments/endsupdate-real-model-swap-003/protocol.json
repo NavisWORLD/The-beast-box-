@@ -1,0 +1,51 @@
+{
+  "schema": "endsupdate-real-aba-protocol-v1",
+  "experiment_id": "endsupdate-real-model-swap-003",
+  "classification": "PREREGISTERED_SOFTWARE_CONTINUITY_REPLICATION",
+  "candidate_root": "Endsupdate/",
+  "historical_baseline": {
+    "source_commit": "bd4108ac2f245262a25fd80463e84d9279eeead2",
+    "run_id": 33914200592,
+    "artifact_id": 9952563037,
+    "archive_sha256": "1ebdf098a542e44eaf54ad9e8fefe3c74fafaeb8c280c41a1369dd58f810fd2d",
+    "result_sha256": "0bc2daf23b82d82992412b60c0b03c0cbf520a7e20f1bbb8ded5957c59d26fab"
+  },
+  "model_a": {
+    "source_run_id": 33132618727,
+    "artifact_id": 9670847045,
+    "artifact_sha256": "8f27aabe3e1bac5edf1c51b958be1f50ff1d076105c3f41e3901d780e7aa3083",
+    "checkpoint_sha256": "454f3017618a81fb9a13393b215d448f365534baf5b607e19d1438955921e425",
+    "architecture_sha256": "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc"
+  },
+  "model_b": {
+    "repo": "HuggingFaceTB/SmolLM2-135M",
+    "revision": "4e53f736cbb20a9a0f56b4c4bf378d9f306ff915"
+  },
+  "fixed_inputs": {
+    "frozen_prompts_sha256": "3d0c25488546fd46e6591362811d3fbe18e2b170781c9151836499fa47278796",
+    "world_db_sha256": "919947f5adeadb2d9fdfb31f2ae55d6e4d8fb8825b73a7736dea1a9dae4bb16a",
+    "world_evidence_sha256": "3ecd3efe1627dcb9c74232c3c5760825b5f56b5fec0ce2f99f2985ee809e6535",
+    "world_summary_sha256": "9e2e6cf0965691db9a4ecd3affe9ccb8b33195f6cf7f2341ace1e1f43e549d3b"
+  },
+  "controls": ["A-only-three-stage", "empty-memory", "shuffled-memory"],
+  "required_structural_gates": [
+    "requested_model_order_executed",
+    "same_primary_substrate_identity",
+    "b1_received_verified_pre_swap_memory",
+    "a2_received_verified_b1_memory",
+    "a_only_schedule_executed",
+    "empty_memory_control_executed",
+    "empty_memory_is_zero_records",
+    "shuffled_memory_control_executed",
+    "all_model_parameters_frozen"
+  ],
+  "readouts": ["paired_preference_NLL_by_stage_and_case", "a0_a2_restoration_error", "parameter_hash_drift", "memory_state_progression", "source_provenance"],
+  "predeclared_interpretation": {
+    "structural_success": "all frozen structural gates true and six frozen restoration deltas equal zero",
+    "model_performance_advantage": "NOT_EVALUABLE_UNTIL_MATCHED_CORRECTED_CST_RUNTIME_ARM_EXISTS",
+    "candidate_vs_original": "informational report only, frozen original operational source is byte-identical",
+    "physical_cst_claim": "NOT_ESTABLISHED"
+  },
+  "safety": "no model training; no new IBM jobs; fresh isolated workspace; no tool/credential authority inherited from any model",
+  "no_promotion_without_actual_paired_gain": true
+}

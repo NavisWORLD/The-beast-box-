@@ -1,0 +1,50 @@
+{
+  "schema": "d001-quantum-provenance-freeze-v1",
+  "source_commit": "e5374a058bcfe9ec993277d39cc8504e0bfe3dfa",
+  "workflow_run_id": 31911414861,
+  "workflow_job_id": 95076931553,
+  "artifact_id": 9253754742,
+  "artifact_zip_sha256": "04ec3cbf2a01e3bc6fc47c5b290feb57bffa4c5012a99840d1ab41ff34cb52f2",
+  "audit_report_sha256": "9606628f2ca66269d1a9714f12ccfc26f95aa27f8d8e6210d2230447b3f358bf",
+  "raw_evidence_manifest_sha256": "c6dab0e5d8fdae93798c68b087857b10357c7f266120359d9cea406b33d331a8",
+  "sanitized_provenance_records_sha256": "a8baefcf1840bd9518a2c708d93900f2953e52a4cc362be13b1f96b389a749d5",
+  "prime_snapshot": {
+    "repo": "phera-ra/QC67_cosmo",
+    "revision": "b414724c627300c41b099dcc6853766d08fd27a4",
+    "files": [
+      "data/quantum_measurements_manifest.json",
+      "data/quantum_measurements_public.jsonl",
+      "data/training/quantum_train_summary_20260722.json"
+    ],
+    "metadata_classification_counts": {
+      "hardware": 1897,
+      "unknown": 881
+    },
+    "prime_quantum_source": "unknown_from_prime_artifact"
+  },
+  "independently_paired_ibm_workload_evidence": {
+    "repo": "NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2",
+    "revision": "dddb1325b90c9abbe8da77974874e5770623035e",
+    "directory": "workloads (4)",
+    "downloaded_info_and_result_exports": 20,
+    "completed_hardware_jobs_with_paired_result_and_observed_shots": 10,
+    "backend": "ibm_fez",
+    "total_observed_shots": 40960
+  },
+  "classification_counts_combined": {
+    "hardware": 1907,
+    "unknown": 881
+  },
+  "anti_conflation": {
+    "sibling_checkpoint": "spark_cst.pt",
+    "do_not_inherit_checkpoint_quantum_label": true,
+    "prime_hardware_consumption_proven": false
+  },
+  "training_policy": {
+    "raw_measurements_are_immutable_evidence": true,
+    "derived_feature_packets_may_be_promoted_only_with_source_hashes": true,
+    "hardware_simulator_unknown_and_controls_remain_separate": true,
+    "prime_may_not_be_described_as_hardware_quantum_trained_from_this_audit_alone": true
+  },
+  "bounded_interpretation": "The frozen repositories contain independently checkable IBM Quantum workload exports: 10 completed ibm_fez jobs have paired result exports and 40,960 total observed shots. The pinned Prime snapshot also contains a much larger quantum-measurement manifest whose metadata classifies 1,897 records as hardware-like and 881 as unknown under the conservative field classifier. These facts prove the archived quantum workloads/records exist with the stated provenance; they do not by themselves prove that Zeref Prime's weights consumed those measurements. Prime therefore remains quantum_source=unknown_from_prime_artifact until a separate cryptographic training-lineage edge is established."
+}

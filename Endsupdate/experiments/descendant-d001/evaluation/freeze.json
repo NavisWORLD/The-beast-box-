@@ -1,0 +1,46 @@
+{
+  "artifact_id": 9253847034,
+  "artifact_sha256": "8b146fd2f0fe237f1364652048b587fa84896b54b5e129abca791a4738e55719",
+  "evaluation_json_sha256": "f81b4bfa12742071adbdd289ce022ab280b7addf30b9df6bb035795bdd9e2476",
+  "evaluation_run_id": 31911732025,
+  "holdout_sha256": "591fffa98474444590d771714e4892fbb69f4408f58bab5303803e5725504945",
+  "test_sha256": "da345835bc63dd091b7b17b235c2a1e0ab512062b33a5ae827d4517f9469b5bd",
+  "schema": "d001-evaluation-freeze-v1",
+  "results": {
+    "PRIME": {
+      "model_sha256": "54328c4d2090825553e3e66773177ac3b80b5b5386027eaa899ed8dd81f32f08",
+      "heldout_char_cross_entropy": 3.1447549859682717,
+      "sensor_claim_flagged": true,
+      "sensor_probe_generation": "The image shows ady ark with a dark hamcatcher h",
+      "all_cst_layers_live": true
+    },
+    "CORPUS-CLEAN": {
+      "model_sha256": "f24b1daf6e02402cd7f8d3e85362599e68542db0cf14288d8857914f288127ab",
+      "heldout_char_cross_entropy": 2.86216210325559,
+      "delta_vs_prime": -0.2825928827126818,
+      "sensor_claim_flagged": false,
+      "sensor_probe_generation": "The is are seare seare are that are are tout are",
+      "all_cst_layers_live": true
+    },
+    "MEMORY": {
+      "model_sha256": "c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f",
+      "heldout_char_cross_entropy": 2.8630259931087494,
+      "delta_vs_prime": -0.28172899285952235,
+      "sensor_claim_flagged": false,
+      "sensor_probe_generation": "The is are searing are that corenent are arous a",
+      "all_cst_layers_live": true
+    }
+  },
+  "release_policy": {
+    "relative_loss_tolerance": 0.01,
+    "best_loss_stage": "CORPUS-CLEAN",
+    "selected_candidate": "MEMORY",
+    "reason": "MEMORY is the deepest eligible lineage, remains within 1% of the best eligible descendant holdout loss, introduces no no-sensor claim flag, and keeps all CST layers live."
+  },
+  "boundaries": [
+    "Heldout loss is a bounded character-model metric, not a general intelligence score.",
+    "The sensor probe measures generated text behavior with camera=false and microphone=false; it is not evidence of perception.",
+    "Mechanism liveness proves the CST path participates numerically; it does not by itself prove task usefulness or quantum advantage.",
+    "Containment is not evaluated by this battery."
+  ]
+}

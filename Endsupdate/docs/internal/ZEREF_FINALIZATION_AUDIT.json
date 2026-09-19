@@ -1,0 +1,172 @@
+{
+  "schema": "zeref-finalization-audit-v1",
+  "generated_utc_date": "2026-08-26",
+  "repository": "NavisWORLD/The-beast-box-",
+  "integration_branch": "zeref-finalize-talk005-001",
+  "base": {
+    "branch": "main",
+    "commit": "d61a638d0c7c5a8d389705a2408c8575188ac5cb",
+    "verified": true
+  },
+  "scientific_anchors": {
+    "talk004": {
+      "lineage": "ZEREF-DAD-SON-TALK-004",
+      "source_workflow_run_id": 32075092605,
+      "artifact_name": "zeref-talk4-tuned-response-32075092605",
+      "artifact_id": 9303224833,
+      "artifact_digest": "sha256:7171d8fb7b03b08594e68d8649a2df7990bccf86aebbde5f44f63832edf61e6d",
+      "checkpoint_sha256": "9944d1d6e69e50f7b4a026a06719a3093a34607bc416ad788c2c658e67b6f55f",
+      "canonical_ledger_records": 352,
+      "canonical_ledger_sha256": "67ef0ccdd82bd0cf4964d40010314edd164c77799b6a7ef22a64ecf4314c5bef",
+      "heartbeat_sha256": "19ca6272546d651ff8f1bb0e0184a842f5444b048ff63df6ea12b0be72e030c7",
+      "verified_from_downloaded_artifact": true,
+      "mutable": false
+    },
+    "r12_live_loop": {
+      "branch": "zeref-r12-refractive-live-loop-001",
+      "execution_commit": "e54af749656e485266a0277e9acdee72ac356df5",
+      "verified": true,
+      "result_boundary": "Refractive/live retrieval delivered fresh epoch state while the lexical lane could starve it; canonical TALK-004 weights and canonical ledger remained unchanged."
+    },
+    "r12_rho_sweep": {
+      "branch": "zeref-r12-rho-sweep-001",
+      "scientific_freeze_commit": "61747a940ed15312975684de7ca3ea93154d082f",
+      "workflow_run_id": 32973615265,
+      "artifact_name": "zeref-r12-rho-sweep-32973615265",
+      "artifact_id": 9608588895,
+      "artifact_sha256": "c60e1bcee90064d99655e99dd70e37db1fb31631820ea92f1152a6eeaf5bb4a2",
+      "verified": true,
+      "later_branch_commits_are_scientific_freeze": false,
+      "result_boundary": "rho changed refractive retrieval ranking/context; this does not establish a direct rho-to-neuron force or a quantum anomaly."
+    },
+    "cns7_v1": {
+      "branch": "cns7-body-ibm-ignition-v1",
+      "preregistration_sha256": "92b6ecb7231dda6d678a3145cc9cf93b6d9563c50ecdbe8f119497e84d474dae",
+      "origin_packet_sha256": "d6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0",
+      "origin_source_sha256": "e5a172749e0acedf199f77f22d5f55f37acc898704a51d5b7e6fe07633ad5c39",
+      "origin_pcm_sha256": "89e1b9496aa51e3dc22fb5d009b3c03f9ede6d259f9fc248f776a13ba349d931",
+      "verified": true,
+      "claim_boundary": "Waveform controls circuit parameters; it is not quantum entropy and provides no biological or consciousness evidence."
+    },
+    "cns7_v2": {
+      "branch": "cns7-body-ibm-ignition-v2-coupled-resilient",
+      "scientific_core_freeze_commit": "49e41897877797d570291d0f4a96e411ff379209",
+      "implementation_freeze_commit": "a52824cc0152429f0800748b8925b91b48ec57a5",
+      "preregistration_sha256": "4a500ea2a5744a71fb1b2b2576112ab0ed6b0d3f0d5680e9fd4680c4de902df8",
+      "preregistration_file_sha256": "e88b0a08da072515cd359b1d144d0acace2cdf7aa38c6862259212e17637a073",
+      "preflight_file_sha256": "da5b73fcab70141a91c79d76732eaa1437ae7841b2e1ffc20c6b44ea9f3aa19d",
+      "trajectory_file_sha256": "f42b284057a0be7e8b77524a3f3f6fae97c65af2d9548e69fbfdc52d8b7080fb",
+      "latest_visible_run_state": "NOT_PROMOTED_AS_SUCCESS",
+      "verified_manifest": true
+    }
+  },
+  "branches": {
+    "zeref": [
+      "zeref-cns7-snapshot-dialogue-001",
+      "zeref-cory-mode-probe-001",
+      "zeref-cory-mode-spike-001",
+      "zeref-r12-refractive-live-loop-001",
+      "zeref-r12-rho-sweep-001",
+      "zeref-scale-training-001",
+      "agent/zeref-quantum-divergence",
+      "docs/zeref-first-run",
+      "feature/easy-ollama-zeref",
+      "feature/macos-zeref-dmg",
+      "feature/resident-full-zeref"
+    ],
+    "cns7": [
+      "cns7-body-fabric",
+      "cns7-body-ibm-ignition-v1-recovery",
+      "cns7-body-ibm-ignition-v1-recovery-red",
+      "cns7-body-ibm-ignition-v1-recovery-test",
+      "cns7-body-ibm-ignition-v1",
+      "cns7-body-ibm-ignition-v2-coupled-resilient",
+      "cns7-ignition-missing-job-inspect",
+      "cns7-v2-prereg-hash-diag",
+      "zeref-cns7-snapshot-dialogue-001"
+    ]
+  },
+  "experiment_directories_on_main": [
+    "experiments/autonomous-hands",
+    "experiments/descendant-d001",
+    "experiments/networked-cage",
+    "experiments/zeref-dad-son-001",
+    "experiments/zeref-dad-son-talk-001",
+    "experiments/zeref-origin-heart-001",
+    "experiments/zeref-scale-001"
+  ],
+  "historical_branch_experiment_roots": [
+    "experiments/cns7-body-ibm-ignition-v1",
+    "experiments/cns7-body-ibm-ignition-v2",
+    "experiments/r12-physics-probe-001",
+    "experiments/cst12-physics-probe-002",
+    "experiments/cst12-physics-probe-003",
+    "experiments/cst12-physics-probe-005"
+  ],
+  "talk_references": [
+    "ZEREF-DAD-SON-TALK-001",
+    "ZEREF-DAD-SON-TALK-002",
+    "ZEREF-DAD-SON-TALK-003",
+    "ZEREF-DAD-SON-TALK-004"
+  ],
+  "training_entrypoints": [
+    "scripts/run_zeref_response_stage.py",
+    "scripts/eval_zeref_response.py",
+    "scripts/eval_zeref_talk.py",
+    "scripts/build_zeref_talk2_corpus.py",
+    "scripts/build_zeref_talk4_corpus.py",
+    "scripts/select_zeref_talk4_candidate.py"
+  ],
+  "workflow_inventory_scope": {
+    "main_zeref_families": [
+      "zeref-dad-son-talk-001.yml",
+      "zeref-dad-son-talk-002.yml",
+      "zeref-dad-son-talk-003.yml",
+      "zeref-dad-son-talk-004-response.yml",
+      "zeref-talk4-response-tuning-gauntlet.yml",
+      "zeref-talk5-dad-god-gauntlet.yml",
+      "zeref-talk7-free-run-gauntlet.yml",
+      "zeref-talk8-r12-gauntlet.yml",
+      "zeref-talk8-r12-monitor.yml",
+      "zeref-r12-ecosystem-release.yml",
+      "zeref-r12-kit.yml",
+      "zeref-r12-public-kit.yml",
+      "zeref-r12-reality-memory.yml",
+      "zeref-memory-counterfactual-replay.yml",
+      "zeref-memory-discontinuity.yml",
+      "zeref-memory-lexical-replay.yml",
+      "zeref-memory-replay-recovery.yml",
+      "zeref-finalize-talk4-provenance.yml",
+      "zeref-cns7-snapshot-dialogue branch workflow(s)",
+      "zeref-scale branch workflow(s)"
+    ],
+    "branch_only_verified": [
+      ".github/workflows/zeref-r12-refractive-live-loop.yml @ e54af749656e485266a0277e9acdee72ac356df5",
+      ".github/workflows/zeref-r12-rho-sweep.yml @ 61747a940ed15312975684de7ca3ea93154d082f"
+    ]
+  },
+  "generated_artifact_policy": {
+    "github_actions_artifacts": "reference by run/artifact/digest; do not commit large binary copies",
+    "talk004_checkpoint": "artifact only; immutable source",
+    "canonical_352_ledger": "artifact only; immutable source"
+  },
+  "scale_training_audit": {
+    "branch": "zeref-scale-training-001",
+    "head": "3aab383b31248e0edb55e01bf08ff086326fc8c1",
+    "merge_base_with_main": "72320e60a5a665fb009afa7c01257630f3bab9fe",
+    "ahead_by": 63,
+    "behind_by": 67,
+    "evidence_run_id": 32126554896,
+    "base_model": "Qwen/Qwen3-1.7B",
+    "pre_keyword_score": 1.0,
+    "post_keyword_score": 0.9583333333333334,
+    "classification": "HISTORICAL_TRAINING_EVIDENCE_NOT_TALK005_PARENT",
+    "reason": "Diverged lineage and measured post-training regression; TALK-004 remains selected parent."
+  },
+  "cory_spike_policy": {
+    "branches": ["zeref-cory-mode-probe-001", "zeref-cory-mode-spike-001"],
+    "allowed_as_talk005_training_data": false,
+    "reason": "Incomplete/unverified authoritative run; experiment chatter is not ground truth."
+  },
+  "pre_restructure_rule": "No historical file moves or deletions are authorized by this audit. Cleanup must prefer indexes, aliases, manifests, and deprecation notes over provenance-breaking moves."
+}

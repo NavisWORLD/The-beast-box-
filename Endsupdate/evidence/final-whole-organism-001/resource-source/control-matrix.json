@@ -1,0 +1,30 @@
+{
+  "controls": [
+    {
+      "control": "PINNED_HISTORICAL_IBM_HARDWARE",
+      "status": "PROVENANCE_VERIFIED",
+      "witness_count": 10
+    },
+    {
+      "control": "RESOURCE_TO_ZEREF_CONSUMER_EDGE",
+      "status": "NOT_ESTABLISHED"
+    },
+    {
+      "control": "SOURCE_BLIND_REPLAY_IDENTITY",
+      "status": "NOT_RUN_ADAPTER_IDENTITY_NOT_SEALED"
+    },
+    {
+      "control": "CAUSAL_INTERVENTION",
+      "status": "SCIENTIFICALLY_CLOSED_NOT_IDENTIFIABLE"
+    },
+    {
+      "control": "FRESH_IBM_EXECUTION",
+      "status": "NOT_RUN_NO_SEALED_PREREGISTERED_CAUSAL_PATH"
+    }
+  ],
+  "fresh_ibm_results_generated": false,
+  "gate": "RESOURCE_SOURCE_CONTROLS",
+  "interpretation": "Historical hardware provenance is verified. No resource-to-Zeref causal consumer edge is established, so this sealed run cannot attribute Zeref behavior to the resource source.",
+  "model_or_behavioral_results_generated": false,
+  "status": "SCIENTIFICALLY_CLOSED_NO_CAUSAL_CONSUMER_EDGE"
+}

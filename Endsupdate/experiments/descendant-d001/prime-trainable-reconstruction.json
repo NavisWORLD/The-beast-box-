@@ -1,0 +1,31 @@
+{
+  "schema": "d001-prime-canonical-reconstruction-freeze-v1",
+  "source_commit": "6d5b7e6363381a4d3da4b0596d9f76210cebb7ea",
+  "workflow_run_id": 31910785892,
+  "workflow_job_id": 95075387342,
+  "artifact_id": 9253593951,
+  "artifact_zip_sha256": "8afefb7e4b706ef275cabb7a32f28b40c4432fc358a2a3026d3c813c1dbe826f",
+  "proof_report_sha256": "1eb8a267cd9ba74c28e186504428c3068cf0b0cd47190322dce93be77e7971d2",
+  "hf_repo": "phera-ra/QC67_cosmo",
+  "hf_revision": "b414724c627300c41b099dcc6853766d08fd27a4",
+  "prime_gguf_path": "weights/cosmos-cst.gguf",
+  "prime_gguf_sha256": "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6",
+  "canonical_trainable_artifact": "zeref-prime-canonical-trainable.pt",
+  "canonical_trainable_sha256": "54328c4d2090825553e3e66773177ac3b80b5b5386027eaa899ed8dd81f32f08",
+  "roundtrip_gguf_sha256": "b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6",
+  "observable_tensor_count": 61,
+  "pytorch_state_entry_count": 66,
+  "all_61_tensors_bitwise_equal": true,
+  "tokenizer_equal": true,
+  "metadata_equal": true,
+  "canonical_reconstruction": true,
+  "historical_raw_parameters_recovered": false,
+  "canonical_hidden_parameter_choices": {
+    "attn_log_sigma": "0.0 for every layer, giving sigma=1.0 so the trainable raw w54 equals Prime's baked effective 54D matrix",
+    "head_bias": "all zeros because the Prime GGUF does not represent an output bias",
+    "gate": "Prime's stored effective gate copied into clamp01 raw gate parameters"
+  },
+  "quantum_source": "unknown_from_prime_artifact",
+  "training_allowed": true,
+  "bounded_interpretation": "This proves a canonical trainable PyTorch representation whose exact frozen converter output is byte-for-byte identical to Zeref Prime. It does not recover or claim the lost historical raw sigma/output-bias values, optimizer state, training order, or quantum provenance."
+}

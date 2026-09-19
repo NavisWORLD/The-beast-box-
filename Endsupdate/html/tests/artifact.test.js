@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+const root=new URL('../',import.meta.url);
+test('manifest is installable and scoped to the web bundle',async()=>{const m=JSON.parse(await readFile(new URL('manifest.webmanifest',root),'utf8'));assert.equal(m.name,'BEAST BOX // COSMIC');assert.equal(m.display,'standalone');assert.equal(m.scope,'./');assert.ok(m.icons?.length)});
+test('shell contains no inline executable script and includes security policy',async()=>{const s=await readFile(new URL('index.html',root),'utf8');assert.match(s,/policy\.js/);assert.match(s,/profiles\.js/);assert.match(s,/app\.js/);assert.doesNotMatch(s,/<script[^>]*>[^<]+<\/script>/)});
+test('service worker caches all required local assets',async()=>{const s=await readFile(new URL('sw.js',root),'utf8');for(const asset of ['index.html','styles.css','app.js','policy.js','profiles.js','manifest.webmanifest','icon.svg'])assert.match(s,new RegExp(asset.replace('.','\\.')))});

@@ -1,0 +1,1034 @@
+PYTHON=.venv/bin/python scripts/smoke/install-and-run.sh
+* Creating isolated environment: venv+pip...
+* Installing packages in isolated environment:
+  - setuptools==78.1.0
+  - wheel==0.45.1
+* Getting build dependencies for sdist...
+/tmp/build-env-3lpmzk4r/lib/python3.12/site-packages/setuptools/config/_apply_pyprojecttoml.py:82: SetuptoolsDeprecationWarning: `project.license` as a TOML table is deprecated
+!!
+
+        ********************************************************************************
+        Please use a simple string containing a SPDX expression for `project.license`. You can also use `project.license-files`. (Both options available on setuptools>=77.0.0).
+
+        This deprecation is overdue, please update your project and remove deprecated
+        calls to avoid build errors in the future.
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+  corresp(dist, value, root_dir)
+/tmp/build-env-3lpmzk4r/lib/python3.12/site-packages/setuptools/config/_apply_pyprojecttoml.py:61: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+!!
+
+        ********************************************************************************
+        Please consider removing the following classifiers in favor of a SPDX license expression:
+
+        License :: Other/Proprietary License
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+  dist._finalize_license_expression()
+/tmp/build-env-3lpmzk4r/lib/python3.12/site-packages/setuptools/dist.py:759: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+!!
+
+        ********************************************************************************
+        Please consider removing the following classifiers in favor of a SPDX license expression:
+
+        License :: Other/Proprietary License
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+  self._finalize_license_expression()
+running egg_info
+writing cosmos_beast_box.egg-info/PKG-INFO
+writing dependency_links to cosmos_beast_box.egg-info/dependency_links.txt
+writing entry points to cosmos_beast_box.egg-info/entry_points.txt
+writing requirements to cosmos_beast_box.egg-info/requires.txt
+writing top-level names to cosmos_beast_box.egg-info/top_level.txt
+reading manifest file 'cosmos_beast_box.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+adding license file 'LICENSE_HISTORY.md'
+adding license file 'NOTICE'
+writing manifest file 'cosmos_beast_box.egg-info/SOURCES.txt'
+* Building sdist...
+/tmp/build-env-3lpmzk4r/lib/python3.12/site-packages/setuptools/config/_apply_pyprojecttoml.py:82: SetuptoolsDeprecationWarning: `project.license` as a TOML table is deprecated
+!!
+
+        ********************************************************************************
+        Please use a simple string containing a SPDX expression for `project.license`. You can also use `project.license-files`. (Both options available on setuptools>=77.0.0).
+
+        This deprecation is overdue, please update your project and remove deprecated
+        calls to avoid build errors in the future.
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+  corresp(dist, value, root_dir)
+/tmp/build-env-3lpmzk4r/lib/python3.12/site-packages/setuptools/config/_apply_pyprojecttoml.py:61: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+!!
+
+        ********************************************************************************
+        Please consider removing the following classifiers in favor of a SPDX license expression:
+
+        License :: Other/Proprietary License
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+  dist._finalize_license_expression()
+/tmp/build-env-3lpmzk4r/lib/python3.12/site-packages/setuptools/dist.py:759: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+!!
+
+        ********************************************************************************
+        Please consider removing the following classifiers in favor of a SPDX license expression:
+
+        License :: Other/Proprietary License
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+  self._finalize_license_expression()
+running sdist
+running egg_info
+writing cosmos_beast_box.egg-info/PKG-INFO
+writing dependency_links to cosmos_beast_box.egg-info/dependency_links.txt
+writing entry points to cosmos_beast_box.egg-info/entry_points.txt
+writing requirements to cosmos_beast_box.egg-info/requires.txt
+writing top-level names to cosmos_beast_box.egg-info/top_level.txt
+reading manifest file 'cosmos_beast_box.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+adding license file 'LICENSE_HISTORY.md'
+adding license file 'NOTICE'
+writing manifest file 'cosmos_beast_box.egg-info/SOURCES.txt'
+running check
+creating cosmos_beast_box-0.7.0
+creating cosmos_beast_box-0.7.0/beastbox
+creating cosmos_beast_box-0.7.0/beastbox/arms
+creating cosmos_beast_box-0.7.0/beastbox/autonomy
+creating cosmos_beast_box-0.7.0/beastbox/cypher
+creating cosmos_beast_box-0.7.0/beastbox/descendant
+creating cosmos_beast_box-0.7.0/beastbox/models
+creating cosmos_beast_box-0.7.0/beastbox/persistent_substrate
+creating cosmos_beast_box-0.7.0/beastbox/soul
+creating cosmos_beast_box-0.7.0/cosmos_beast_box.egg-info
+creating cosmos_beast_box-0.7.0/tests
+copying files to cosmos_beast_box-0.7.0...
+copying LICENSE -> cosmos_beast_box-0.7.0
+copying LICENSE_HISTORY.md -> cosmos_beast_box-0.7.0
+copying NOTICE -> cosmos_beast_box-0.7.0
+copying README.md -> cosmos_beast_box-0.7.0
+copying pyproject.toml -> cosmos_beast_box-0.7.0
+copying beastbox/__init__.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/__main__.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/aliases.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/attention.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/audio.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/audio_ablation.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/box.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/bridge.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/bycc.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/cli.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/cns.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/config.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/continuity.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/cosmic_demo.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/cosmic_entry.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/cosmic_ui.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/cosmic_web.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/dad_son.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/desktop.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/doctor.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/durable.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/dyn12.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/ecosystem.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/env_inventory.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/events.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/evidence.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/fresh.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/gauntlet.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/hashutil.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/heartbeat.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/heartbeat_seed.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/hf.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/ibm_shard.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/logging_config.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/memory.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/model.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/optional_resources.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/organism.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/origin_heart.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/paired.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/portable_state.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/product_services.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/profiles.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/proposals.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/providers.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/quantum.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/quantum_heart.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/quantum_lifesource.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/quantum_lifesource_analysis.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/reality_memory.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/reflective_loop_trace.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/refractive_memory.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/response_supervision.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/runtime.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/runtime_cli.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/sealed_storage.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/sensor_inputs.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/sensory.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/shard_transport.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/son_heartbeat_metrics.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/spark_ablation.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/state.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/state_family.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/swap_receipt.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/synaptic.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/web.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/world_knowledge.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/world_r12.py -> cosmos_beast_box-0.7.0/beastbox
+copying beastbox/arms/__init__.py -> cosmos_beast_box-0.7.0/beastbox/arms
+copying beastbox/arms/action_proxy.py -> cosmos_beast_box-0.7.0/beastbox/arms
+copying beastbox/arms/cli.py -> cosmos_beast_box-0.7.0/beastbox/arms
+copying beastbox/arms/continuity.py -> cosmos_beast_box-0.7.0/beastbox/arms
+copying beastbox/arms/docker_tools.py -> cosmos_beast_box-0.7.0/beastbox/arms
+copying beastbox/arms/gauntlet.py -> cosmos_beast_box-0.7.0/beastbox/arms
+copying beastbox/arms/network.py -> cosmos_beast_box-0.7.0/beastbox/arms
+copying beastbox/arms/recorder.py -> cosmos_beast_box-0.7.0/beastbox/arms
+copying beastbox/arms/replay.py -> cosmos_beast_box-0.7.0/beastbox/arms
+copying beastbox/arms/schema.py -> cosmos_beast_box-0.7.0/beastbox/arms
+copying beastbox/arms/subject.py -> cosmos_beast_box-0.7.0/beastbox/arms
+copying beastbox/arms/supervisor.py -> cosmos_beast_box-0.7.0/beastbox/arms
+copying beastbox/arms/tools.py -> cosmos_beast_box-0.7.0/beastbox/arms
+copying beastbox/autonomy/__init__.py -> cosmos_beast_box-0.7.0/beastbox/autonomy
+copying beastbox/autonomy/ignition.py -> cosmos_beast_box-0.7.0/beastbox/autonomy
+copying beastbox/autonomy/native_stack.py -> cosmos_beast_box-0.7.0/beastbox/autonomy
+copying beastbox/autonomy/observer.py -> cosmos_beast_box-0.7.0/beastbox/autonomy
+copying beastbox/autonomy/range_protocol.py -> cosmos_beast_box-0.7.0/beastbox/autonomy
+copying beastbox/autonomy/supervisor.py -> cosmos_beast_box-0.7.0/beastbox/autonomy
+copying beastbox/autonomy/verifier.py -> cosmos_beast_box-0.7.0/beastbox/autonomy
+copying beastbox/cypher/__init__.py -> cosmos_beast_box-0.7.0/beastbox/cypher
+copying beastbox/cypher/agent.py -> cosmos_beast_box-0.7.0/beastbox/cypher
+copying beastbox/cypher/cli.py -> cosmos_beast_box-0.7.0/beastbox/cypher
+copying beastbox/cypher/easy_ollama.py -> cosmos_beast_box-0.7.0/beastbox/cypher
+copying beastbox/cypher/gguf.py -> cosmos_beast_box-0.7.0/beastbox/cypher
+copying beastbox/cypher/models.py -> cosmos_beast_box-0.7.0/beastbox/cypher
+copying beastbox/cypher/registry.py -> cosmos_beast_box-0.7.0/beastbox/cypher
+copying beastbox/cypher/session.py -> cosmos_beast_box-0.7.0/beastbox/cypher
+copying beastbox/cypher/workspace.py -> cosmos_beast_box-0.7.0/beastbox/cypher
+copying beastbox/descendant/__init__.py -> cosmos_beast_box-0.7.0/beastbox/descendant
+copying beastbox/descendant/corpus.py -> cosmos_beast_box-0.7.0/beastbox/descendant
+copying beastbox/descendant/evaluation.py -> cosmos_beast_box-0.7.0/beastbox/descendant
+copying beastbox/descendant/evidence.py -> cosmos_beast_box-0.7.0/beastbox/descendant
+copying beastbox/descendant/gguf.py -> cosmos_beast_box-0.7.0/beastbox/descendant
+copying beastbox/descendant/hashing.py -> cosmos_beast_box-0.7.0/beastbox/descendant
+copying beastbox/descendant/lineage.py -> cosmos_beast_box-0.7.0/beastbox/descendant
+copying beastbox/descendant/promotion.py -> cosmos_beast_box-0.7.0/beastbox/descendant
+copying beastbox/descendant/quantum.py -> cosmos_beast_box-0.7.0/beastbox/descendant
+copying beastbox/descendant/quantum_comparison.py -> cosmos_beast_box-0.7.0/beastbox/descendant
+copying beastbox/descendant/quantum_conditioning.py -> cosmos_beast_box-0.7.0/beastbox/descendant
+copying beastbox/descendant/release.py -> cosmos_beast_box-0.7.0/beastbox/descendant
+copying beastbox/descendant/stage.py -> cosmos_beast_box-0.7.0/beastbox/descendant
+copying beastbox/descendant/twin.py -> cosmos_beast_box-0.7.0/beastbox/descendant
+copying beastbox/models/__init__.py -> cosmos_beast_box-0.7.0/beastbox/models
+copying beastbox/models/phos_reference.py -> cosmos_beast_box-0.7.0/beastbox/models
+copying beastbox/persistent_substrate/__init__.py -> cosmos_beast_box-0.7.0/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/evidence.py -> cosmos_beast_box-0.7.0/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/ledger.py -> cosmos_beast_box-0.7.0/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/metrics.py -> cosmos_beast_box-0.7.0/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/models.py -> cosmos_beast_box-0.7.0/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/offline.py -> cosmos_beast_box-0.7.0/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/paired_runner.py -> cosmos_beast_box-0.7.0/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/prompts.py -> cosmos_beast_box-0.7.0/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/protocol.py -> cosmos_beast_box-0.7.0/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/real_models.py -> cosmos_beast_box-0.7.0/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/runner.py -> cosmos_beast_box-0.7.0/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/substrate.py -> cosmos_beast_box-0.7.0/beastbox/persistent_substrate
+copying beastbox/soul/__init__.py -> cosmos_beast_box-0.7.0/beastbox/soul
+copying beastbox/soul/adapter.py -> cosmos_beast_box-0.7.0/beastbox/soul
+copying beastbox/soul/bus.py -> cosmos_beast_box-0.7.0/beastbox/soul
+copying beastbox/soul/loop.py -> cosmos_beast_box-0.7.0/beastbox/soul
+copying beastbox/soul/qbt_source.py -> cosmos_beast_box-0.7.0/beastbox/soul
+copying beastbox/soul/replay.py -> cosmos_beast_box-0.7.0/beastbox/soul
+copying beastbox/soul/token.py -> cosmos_beast_box-0.7.0/beastbox/soul
+copying cosmos_beast_box.egg-info/PKG-INFO -> cosmos_beast_box-0.7.0/cosmos_beast_box.egg-info
+copying cosmos_beast_box.egg-info/SOURCES.txt -> cosmos_beast_box-0.7.0/cosmos_beast_box.egg-info
+copying cosmos_beast_box.egg-info/dependency_links.txt -> cosmos_beast_box-0.7.0/cosmos_beast_box.egg-info
+copying cosmos_beast_box.egg-info/entry_points.txt -> cosmos_beast_box-0.7.0/cosmos_beast_box.egg-info
+copying cosmos_beast_box.egg-info/requires.txt -> cosmos_beast_box-0.7.0/cosmos_beast_box.egg-info
+copying cosmos_beast_box.egg-info/top_level.txt -> cosmos_beast_box-0.7.0/cosmos_beast_box.egg-info
+copying tests/test_autonomous_hands_workflow_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_autonomy_ignition.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_autonomy_live_helpers.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_autonomy_native_stack.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_autonomy_observer.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_autonomy_range.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_autonomy_supervisor.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_autonomy_verifier.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_bad_apple_ignition.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_beast_arms.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_beast_arms_compact.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_beast_arms_lifecycle.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_beast_arms_network.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_beast_arms_replay.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_beastbox.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_beastbox_ecosystem_cli.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_chat_d001_descendant.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_compact_action_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_compatible_provider.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_cosmic_closure.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_cosmic_completion.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_cosmic_product_polish.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_cosmic_web.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_cosmos_final_corpus_workflow.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_cypher.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_d001_descendant_chat.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_d001_gguf_metadata.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_d001_quantum_geometry.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_d001_quantum_geometry_runner.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_d001_quantum_geometry_workflow_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_d001_quantum_materializer.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_d001_quantum_provenance_audit_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_d001_release.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_d001_stage_gate.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_d001_zeref_chat_workflow_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_d001_zeref_sampled_chat_workflow_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_descendant_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_descendant_evaluation.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_descendant_evidence.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_descendant_evidence_cli.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_descendant_lineage.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_descendant_parent_preflight.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_descendant_promotion.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_descendant_quantum.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_descendant_quantum_comparison.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_descendant_quantum_conditioning.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_descendant_twin.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_desktop.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_durable_runtime.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_easy_ollama.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_env_inventory.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_experiment_extensions.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_experimental_boundary.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_final_full_stack_zeref_conversation.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_final_model_swap_round_trip.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_final_reality_bridge_baseline.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_final_reality_bridge_clean_holdout.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_final_reality_bridge_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_final_reality_bridge_zeref_conversation.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_final_reference_baseline.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_final_resource_source_controls.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_final_world_source.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_fresh_cosmic_two_model_demo.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_full_runtime.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_gauntlet_manifest.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_html_server.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_launch_surface.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_logging_config.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_macos_packaging.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_mobile_release_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_networked_cage_script.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_networked_cage_workflow.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_offline_substrate_hardening.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_optional_resources.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_persistent_substrate_evidence.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_persistent_substrate_ledger.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_persistent_substrate_metrics.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_persistent_substrate_models.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_persistent_substrate_offline.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_persistent_substrate_paired_runner.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_persistent_substrate_prompts.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_persistent_substrate_protocol.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_persistent_substrate_real_models.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_persistent_substrate_runner.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_persistent_substrate_substrate.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_portable_install.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_portable_release.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_prime_trainable_reconstruction_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_product_acceptance.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_product_observability.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_product_services.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_product_spine.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_productization_receipt.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_profile_isolation.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_quantum_lifesource.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_r12_refractive_memory.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_raw_action_bridge.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_reflective_loop_trace.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_refractive_memory_temporal_anchor.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_release_verification.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_run024_workflow_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_runtime_benchmark.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_runtime_cli.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_runtime_exchange.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_runtime_performance.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_sealed_storage.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_sensor_inputs.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_son_heartbeat_ablation_ibm_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_son_heartbeat_metrics.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_soul_loop.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_soul_qbt_final_kit.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_starter_kit.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_swap_receipt.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_workspace_security.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_world_knowledge_store.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_world_r12_abstention_regression.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_world_r12_evidence_boundary.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_world_r12_fusion.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_alien_style_eval.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_clean_teacher_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_continuity_baseline_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_dad_son_chat.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_dad_son_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_dad_son_memory.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_dad_son_workflow_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_dialogue_quality.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_dialogue_tune_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_fresh_ibm_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_full_clean_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_full_clean_r12_memory_integration.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_hardware_seed_bundle.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_heartbeat.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_heartbeat_ibm_status_probe.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_heartbeat_ibm_workflow.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_heartbeat_seed.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_ibm_dad_teacher.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_ibm_teacher_heartbeat.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_lineage_manifest.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_live_workflow_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_memory_counterfactual_replay_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_memory_discontinuity_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_memory_lexical_replay_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_memory_replay_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_micro_dialogue_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_origin_heart.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_origin_heart_bridge.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_origin_heart_sources.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_origin_seed_chat.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_origin_seed_workflow.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_r12_cory_probe.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_r12_determinism_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_r12_fez_import.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_r12_kit.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_r12_live_loop.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_r12_loop.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_r12_packaging.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_r12_public_kit.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_r12_quality_profile.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_r12_reality_memory.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_r12_state.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_r12_talk_runtime.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_replay_fragment_transport.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_response_stage_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_response_supervision.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_scheduled_sampling.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_semantic_dad_teacher.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_synaptic_continuation.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_synaptic_continuation_workflow.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk006_alien_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk006_alien_dialect_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk006_alien_v2_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk006_dialect_workflow_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk006_v2_workflow_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk006_workflow_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk3_semantic_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk4_candidate_selector.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk4_response_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk5_candidate_selector.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk5_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk5_dad_teacher.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk5_free_run.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk5_ignition.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk5_protocol.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk5_training_vocab.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk5_workflow.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk7_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk7_dad_chat.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk7_selector.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk7_stage.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk8_r12.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk8_r12_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk8_r12_selector.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk_eval.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_talk_workflow_contract.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_world_r12_corpus.py -> cosmos_beast_box-0.7.0/tests
+copying tests/test_zeref_world_r12_runtime.py -> cosmos_beast_box-0.7.0/tests
+copying cosmos_beast_box.egg-info/SOURCES.txt -> cosmos_beast_box-0.7.0/cosmos_beast_box.egg-info
+Writing cosmos_beast_box-0.7.0/setup.cfg
+Creating tar archive
+removing 'cosmos_beast_box-0.7.0' (and everything under it)
+* Building wheel from sdist
+* Creating isolated environment: venv+pip...
+* Installing packages in isolated environment:
+  - setuptools==78.1.0
+  - wheel==0.45.1
+* Getting build dependencies for wheel...
+/tmp/build-env-fn9rvo3h/lib/python3.12/site-packages/setuptools/config/_apply_pyprojecttoml.py:82: SetuptoolsDeprecationWarning: `project.license` as a TOML table is deprecated
+!!
+
+        ********************************************************************************
+        Please use a simple string containing a SPDX expression for `project.license`. You can also use `project.license-files`. (Both options available on setuptools>=77.0.0).
+
+        This deprecation is overdue, please update your project and remove deprecated
+        calls to avoid build errors in the future.
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+  corresp(dist, value, root_dir)
+/tmp/build-env-fn9rvo3h/lib/python3.12/site-packages/setuptools/config/_apply_pyprojecttoml.py:61: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+!!
+
+        ********************************************************************************
+        Please consider removing the following classifiers in favor of a SPDX license expression:
+
+        License :: Other/Proprietary License
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+  dist._finalize_license_expression()
+/tmp/build-env-fn9rvo3h/lib/python3.12/site-packages/setuptools/dist.py:759: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+!!
+
+        ********************************************************************************
+        Please consider removing the following classifiers in favor of a SPDX license expression:
+
+        License :: Other/Proprietary License
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+  self._finalize_license_expression()
+running egg_info
+writing cosmos_beast_box.egg-info/PKG-INFO
+writing dependency_links to cosmos_beast_box.egg-info/dependency_links.txt
+writing entry points to cosmos_beast_box.egg-info/entry_points.txt
+writing requirements to cosmos_beast_box.egg-info/requires.txt
+writing top-level names to cosmos_beast_box.egg-info/top_level.txt
+reading manifest file 'cosmos_beast_box.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+adding license file 'LICENSE_HISTORY.md'
+adding license file 'NOTICE'
+writing manifest file 'cosmos_beast_box.egg-info/SOURCES.txt'
+* Building wheel...
+/tmp/build-env-fn9rvo3h/lib/python3.12/site-packages/setuptools/config/_apply_pyprojecttoml.py:82: SetuptoolsDeprecationWarning: `project.license` as a TOML table is deprecated
+!!
+
+        ********************************************************************************
+        Please use a simple string containing a SPDX expression for `project.license`. You can also use `project.license-files`. (Both options available on setuptools>=77.0.0).
+
+        This deprecation is overdue, please update your project and remove deprecated
+        calls to avoid build errors in the future.
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+  corresp(dist, value, root_dir)
+/tmp/build-env-fn9rvo3h/lib/python3.12/site-packages/setuptools/config/_apply_pyprojecttoml.py:61: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+!!
+
+        ********************************************************************************
+        Please consider removing the following classifiers in favor of a SPDX license expression:
+
+        License :: Other/Proprietary License
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+  dist._finalize_license_expression()
+/tmp/build-env-fn9rvo3h/lib/python3.12/site-packages/setuptools/dist.py:759: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+!!
+
+        ********************************************************************************
+        Please consider removing the following classifiers in favor of a SPDX license expression:
+
+        License :: Other/Proprietary License
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+  self._finalize_license_expression()
+running bdist_wheel
+running build
+running build_py
+creating build/lib/beastbox
+copying beastbox/bycc.py -> build/lib/beastbox
+copying beastbox/config.py -> build/lib/beastbox
+copying beastbox/memory.py -> build/lib/beastbox
+copying beastbox/sensor_inputs.py -> build/lib/beastbox
+copying beastbox/optional_resources.py -> build/lib/beastbox
+copying beastbox/hf.py -> build/lib/beastbox
+copying beastbox/dad_son.py -> build/lib/beastbox
+copying beastbox/audio.py -> build/lib/beastbox
+copying beastbox/quantum_lifesource.py -> build/lib/beastbox
+copying beastbox/spark_ablation.py -> build/lib/beastbox
+copying beastbox/refractive_memory.py -> build/lib/beastbox
+copying beastbox/reality_memory.py -> build/lib/beastbox
+copying beastbox/web.py -> build/lib/beastbox
+copying beastbox/doctor.py -> build/lib/beastbox
+copying beastbox/continuity.py -> build/lib/beastbox
+copying beastbox/aliases.py -> build/lib/beastbox
+copying beastbox/shard_transport.py -> build/lib/beastbox
+copying beastbox/cns.py -> build/lib/beastbox
+copying beastbox/box.py -> build/lib/beastbox
+copying beastbox/origin_heart.py -> build/lib/beastbox
+copying beastbox/product_services.py -> build/lib/beastbox
+copying beastbox/hashutil.py -> build/lib/beastbox
+copying beastbox/attention.py -> build/lib/beastbox
+copying beastbox/heartbeat_seed.py -> build/lib/beastbox
+copying beastbox/__init__.py -> build/lib/beastbox
+copying beastbox/providers.py -> build/lib/beastbox
+copying beastbox/ecosystem.py -> build/lib/beastbox
+copying beastbox/quantum.py -> build/lib/beastbox
+copying beastbox/heartbeat.py -> build/lib/beastbox
+copying beastbox/world_r12.py -> build/lib/beastbox
+copying beastbox/evidence.py -> build/lib/beastbox
+copying beastbox/organism.py -> build/lib/beastbox
+copying beastbox/env_inventory.py -> build/lib/beastbox
+copying beastbox/logging_config.py -> build/lib/beastbox
+copying beastbox/state.py -> build/lib/beastbox
+copying beastbox/dyn12.py -> build/lib/beastbox
+copying beastbox/gauntlet.py -> build/lib/beastbox
+copying beastbox/quantum_lifesource_analysis.py -> build/lib/beastbox
+copying beastbox/quantum_heart.py -> build/lib/beastbox
+copying beastbox/sensory.py -> build/lib/beastbox
+copying beastbox/world_knowledge.py -> build/lib/beastbox
+copying beastbox/cosmic_entry.py -> build/lib/beastbox
+copying beastbox/proposals.py -> build/lib/beastbox
+copying beastbox/profiles.py -> build/lib/beastbox
+copying beastbox/bridge.py -> build/lib/beastbox
+copying beastbox/ibm_shard.py -> build/lib/beastbox
+copying beastbox/cli.py -> build/lib/beastbox
+copying beastbox/model.py -> build/lib/beastbox
+copying beastbox/cosmic_web.py -> build/lib/beastbox
+copying beastbox/portable_state.py -> build/lib/beastbox
+copying beastbox/audio_ablation.py -> build/lib/beastbox
+copying beastbox/reflective_loop_trace.py -> build/lib/beastbox
+copying beastbox/state_family.py -> build/lib/beastbox
+copying beastbox/sealed_storage.py -> build/lib/beastbox
+copying beastbox/swap_receipt.py -> build/lib/beastbox
+copying beastbox/fresh.py -> build/lib/beastbox
+copying beastbox/cosmic_ui.py -> build/lib/beastbox
+copying beastbox/paired.py -> build/lib/beastbox
+copying beastbox/synaptic.py -> build/lib/beastbox
+copying beastbox/durable.py -> build/lib/beastbox
+copying beastbox/runtime.py -> build/lib/beastbox
+copying beastbox/events.py -> build/lib/beastbox
+copying beastbox/son_heartbeat_metrics.py -> build/lib/beastbox
+copying beastbox/runtime_cli.py -> build/lib/beastbox
+copying beastbox/desktop.py -> build/lib/beastbox
+copying beastbox/__main__.py -> build/lib/beastbox
+copying beastbox/cosmic_demo.py -> build/lib/beastbox
+copying beastbox/response_supervision.py -> build/lib/beastbox
+creating build/lib/beastbox/soul
+copying beastbox/soul/adapter.py -> build/lib/beastbox/soul
+copying beastbox/soul/qbt_source.py -> build/lib/beastbox/soul
+copying beastbox/soul/token.py -> build/lib/beastbox/soul
+copying beastbox/soul/__init__.py -> build/lib/beastbox/soul
+copying beastbox/soul/loop.py -> build/lib/beastbox/soul
+copying beastbox/soul/replay.py -> build/lib/beastbox/soul
+copying beastbox/soul/bus.py -> build/lib/beastbox/soul
+creating build/lib/beastbox/models
+copying beastbox/models/__init__.py -> build/lib/beastbox/models
+copying beastbox/models/phos_reference.py -> build/lib/beastbox/models
+creating build/lib/beastbox/arms
+copying beastbox/arms/network.py -> build/lib/beastbox/arms
+copying beastbox/arms/continuity.py -> build/lib/beastbox/arms
+copying beastbox/arms/__init__.py -> build/lib/beastbox/arms
+copying beastbox/arms/supervisor.py -> build/lib/beastbox/arms
+copying beastbox/arms/tools.py -> build/lib/beastbox/arms
+copying beastbox/arms/gauntlet.py -> build/lib/beastbox/arms
+copying beastbox/arms/action_proxy.py -> build/lib/beastbox/arms
+copying beastbox/arms/cli.py -> build/lib/beastbox/arms
+copying beastbox/arms/recorder.py -> build/lib/beastbox/arms
+copying beastbox/arms/replay.py -> build/lib/beastbox/arms
+copying beastbox/arms/docker_tools.py -> build/lib/beastbox/arms
+copying beastbox/arms/subject.py -> build/lib/beastbox/arms
+copying beastbox/arms/schema.py -> build/lib/beastbox/arms
+creating build/lib/beastbox/autonomy
+copying beastbox/autonomy/ignition.py -> build/lib/beastbox/autonomy
+copying beastbox/autonomy/observer.py -> build/lib/beastbox/autonomy
+copying beastbox/autonomy/__init__.py -> build/lib/beastbox/autonomy
+copying beastbox/autonomy/supervisor.py -> build/lib/beastbox/autonomy
+copying beastbox/autonomy/verifier.py -> build/lib/beastbox/autonomy
+copying beastbox/autonomy/range_protocol.py -> build/lib/beastbox/autonomy
+copying beastbox/autonomy/native_stack.py -> build/lib/beastbox/autonomy
+creating build/lib/beastbox/descendant
+copying beastbox/descendant/quantum_comparison.py -> build/lib/beastbox/descendant
+copying beastbox/descendant/release.py -> build/lib/beastbox/descendant
+copying beastbox/descendant/stage.py -> build/lib/beastbox/descendant
+copying beastbox/descendant/__init__.py -> build/lib/beastbox/descendant
+copying beastbox/descendant/quantum.py -> build/lib/beastbox/descendant
+copying beastbox/descendant/evidence.py -> build/lib/beastbox/descendant
+copying beastbox/descendant/twin.py -> build/lib/beastbox/descendant
+copying beastbox/descendant/hashing.py -> build/lib/beastbox/descendant
+copying beastbox/descendant/corpus.py -> build/lib/beastbox/descendant
+copying beastbox/descendant/evaluation.py -> build/lib/beastbox/descendant
+copying beastbox/descendant/gguf.py -> build/lib/beastbox/descendant
+copying beastbox/descendant/promotion.py -> build/lib/beastbox/descendant
+copying beastbox/descendant/quantum_conditioning.py -> build/lib/beastbox/descendant
+copying beastbox/descendant/lineage.py -> build/lib/beastbox/descendant
+creating build/lib/beastbox/cypher
+copying beastbox/cypher/models.py -> build/lib/beastbox/cypher
+copying beastbox/cypher/easy_ollama.py -> build/lib/beastbox/cypher
+copying beastbox/cypher/workspace.py -> build/lib/beastbox/cypher
+copying beastbox/cypher/__init__.py -> build/lib/beastbox/cypher
+copying beastbox/cypher/session.py -> build/lib/beastbox/cypher
+copying beastbox/cypher/cli.py -> build/lib/beastbox/cypher
+copying beastbox/cypher/gguf.py -> build/lib/beastbox/cypher
+copying beastbox/cypher/agent.py -> build/lib/beastbox/cypher
+copying beastbox/cypher/registry.py -> build/lib/beastbox/cypher
+creating build/lib/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/models.py -> build/lib/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/real_models.py -> build/lib/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/prompts.py -> build/lib/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/runner.py -> build/lib/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/__init__.py -> build/lib/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/protocol.py -> build/lib/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/paired_runner.py -> build/lib/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/evidence.py -> build/lib/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/substrate.py -> build/lib/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/metrics.py -> build/lib/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/offline.py -> build/lib/beastbox/persistent_substrate
+copying beastbox/persistent_substrate/ledger.py -> build/lib/beastbox/persistent_substrate
+installing to build/bdist.linux-x86_64/wheel
+running install
+running install_lib
+creating build/bdist.linux-x86_64/wheel
+creating build/bdist.linux-x86_64/wheel/beastbox
+copying build/lib/beastbox/bycc.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/config.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/memory.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/sensor_inputs.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/optional_resources.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/hf.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/dad_son.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/audio.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/quantum_lifesource.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/spark_ablation.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/refractive_memory.py -> build/bdist.linux-x86_64/wheel/./beastbox
+creating build/bdist.linux-x86_64/wheel/beastbox/soul
+copying build/lib/beastbox/soul/adapter.py -> build/bdist.linux-x86_64/wheel/./beastbox/soul
+copying build/lib/beastbox/soul/qbt_source.py -> build/bdist.linux-x86_64/wheel/./beastbox/soul
+copying build/lib/beastbox/soul/token.py -> build/bdist.linux-x86_64/wheel/./beastbox/soul
+copying build/lib/beastbox/soul/__init__.py -> build/bdist.linux-x86_64/wheel/./beastbox/soul
+copying build/lib/beastbox/soul/loop.py -> build/bdist.linux-x86_64/wheel/./beastbox/soul
+copying build/lib/beastbox/soul/replay.py -> build/bdist.linux-x86_64/wheel/./beastbox/soul
+copying build/lib/beastbox/soul/bus.py -> build/bdist.linux-x86_64/wheel/./beastbox/soul
+copying build/lib/beastbox/reality_memory.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/web.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/doctor.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/continuity.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/aliases.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/shard_transport.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/cns.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/box.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/origin_heart.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/product_services.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/hashutil.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/attention.py -> build/bdist.linux-x86_64/wheel/./beastbox
+creating build/bdist.linux-x86_64/wheel/beastbox/models
+copying build/lib/beastbox/models/__init__.py -> build/bdist.linux-x86_64/wheel/./beastbox/models
+copying build/lib/beastbox/models/phos_reference.py -> build/bdist.linux-x86_64/wheel/./beastbox/models
+copying build/lib/beastbox/heartbeat_seed.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/__init__.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/providers.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/ecosystem.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/quantum.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/heartbeat.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/world_r12.py -> build/bdist.linux-x86_64/wheel/./beastbox
+creating build/bdist.linux-x86_64/wheel/beastbox/arms
+copying build/lib/beastbox/arms/network.py -> build/bdist.linux-x86_64/wheel/./beastbox/arms
+copying build/lib/beastbox/arms/continuity.py -> build/bdist.linux-x86_64/wheel/./beastbox/arms
+copying build/lib/beastbox/arms/__init__.py -> build/bdist.linux-x86_64/wheel/./beastbox/arms
+copying build/lib/beastbox/arms/supervisor.py -> build/bdist.linux-x86_64/wheel/./beastbox/arms
+copying build/lib/beastbox/arms/tools.py -> build/bdist.linux-x86_64/wheel/./beastbox/arms
+copying build/lib/beastbox/arms/gauntlet.py -> build/bdist.linux-x86_64/wheel/./beastbox/arms
+copying build/lib/beastbox/arms/action_proxy.py -> build/bdist.linux-x86_64/wheel/./beastbox/arms
+copying build/lib/beastbox/arms/cli.py -> build/bdist.linux-x86_64/wheel/./beastbox/arms
+copying build/lib/beastbox/arms/recorder.py -> build/bdist.linux-x86_64/wheel/./beastbox/arms
+copying build/lib/beastbox/arms/replay.py -> build/bdist.linux-x86_64/wheel/./beastbox/arms
+copying build/lib/beastbox/arms/docker_tools.py -> build/bdist.linux-x86_64/wheel/./beastbox/arms
+copying build/lib/beastbox/arms/subject.py -> build/bdist.linux-x86_64/wheel/./beastbox/arms
+copying build/lib/beastbox/arms/schema.py -> build/bdist.linux-x86_64/wheel/./beastbox/arms
+copying build/lib/beastbox/evidence.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/organism.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/env_inventory.py -> build/bdist.linux-x86_64/wheel/./beastbox
+creating build/bdist.linux-x86_64/wheel/beastbox/autonomy
+copying build/lib/beastbox/autonomy/ignition.py -> build/bdist.linux-x86_64/wheel/./beastbox/autonomy
+copying build/lib/beastbox/autonomy/observer.py -> build/bdist.linux-x86_64/wheel/./beastbox/autonomy
+copying build/lib/beastbox/autonomy/__init__.py -> build/bdist.linux-x86_64/wheel/./beastbox/autonomy
+copying build/lib/beastbox/autonomy/supervisor.py -> build/bdist.linux-x86_64/wheel/./beastbox/autonomy
+copying build/lib/beastbox/autonomy/verifier.py -> build/bdist.linux-x86_64/wheel/./beastbox/autonomy
+copying build/lib/beastbox/autonomy/range_protocol.py -> build/bdist.linux-x86_64/wheel/./beastbox/autonomy
+copying build/lib/beastbox/autonomy/native_stack.py -> build/bdist.linux-x86_64/wheel/./beastbox/autonomy
+creating build/bdist.linux-x86_64/wheel/beastbox/descendant
+copying build/lib/beastbox/descendant/quantum_comparison.py -> build/bdist.linux-x86_64/wheel/./beastbox/descendant
+copying build/lib/beastbox/descendant/release.py -> build/bdist.linux-x86_64/wheel/./beastbox/descendant
+copying build/lib/beastbox/descendant/stage.py -> build/bdist.linux-x86_64/wheel/./beastbox/descendant
+copying build/lib/beastbox/descendant/__init__.py -> build/bdist.linux-x86_64/wheel/./beastbox/descendant
+copying build/lib/beastbox/descendant/quantum.py -> build/bdist.linux-x86_64/wheel/./beastbox/descendant
+copying build/lib/beastbox/descendant/evidence.py -> build/bdist.linux-x86_64/wheel/./beastbox/descendant
+copying build/lib/beastbox/descendant/twin.py -> build/bdist.linux-x86_64/wheel/./beastbox/descendant
+copying build/lib/beastbox/descendant/hashing.py -> build/bdist.linux-x86_64/wheel/./beastbox/descendant
+copying build/lib/beastbox/descendant/corpus.py -> build/bdist.linux-x86_64/wheel/./beastbox/descendant
+copying build/lib/beastbox/descendant/evaluation.py -> build/bdist.linux-x86_64/wheel/./beastbox/descendant
+copying build/lib/beastbox/descendant/gguf.py -> build/bdist.linux-x86_64/wheel/./beastbox/descendant
+copying build/lib/beastbox/descendant/promotion.py -> build/bdist.linux-x86_64/wheel/./beastbox/descendant
+copying build/lib/beastbox/descendant/quantum_conditioning.py -> build/bdist.linux-x86_64/wheel/./beastbox/descendant
+copying build/lib/beastbox/descendant/lineage.py -> build/bdist.linux-x86_64/wheel/./beastbox/descendant
+copying build/lib/beastbox/logging_config.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/state.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/dyn12.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/gauntlet.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/quantum_lifesource_analysis.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/quantum_heart.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/sensory.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/world_knowledge.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/cosmic_entry.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/proposals.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/profiles.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/bridge.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/ibm_shard.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/cli.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/model.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/cosmic_web.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/portable_state.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/audio_ablation.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/reflective_loop_trace.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/state_family.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/sealed_storage.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/swap_receipt.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/fresh.py -> build/bdist.linux-x86_64/wheel/./beastbox
+creating build/bdist.linux-x86_64/wheel/beastbox/cypher
+copying build/lib/beastbox/cypher/models.py -> build/bdist.linux-x86_64/wheel/./beastbox/cypher
+copying build/lib/beastbox/cypher/easy_ollama.py -> build/bdist.linux-x86_64/wheel/./beastbox/cypher
+copying build/lib/beastbox/cypher/workspace.py -> build/bdist.linux-x86_64/wheel/./beastbox/cypher
+copying build/lib/beastbox/cypher/__init__.py -> build/bdist.linux-x86_64/wheel/./beastbox/cypher
+copying build/lib/beastbox/cypher/session.py -> build/bdist.linux-x86_64/wheel/./beastbox/cypher
+copying build/lib/beastbox/cypher/cli.py -> build/bdist.linux-x86_64/wheel/./beastbox/cypher
+copying build/lib/beastbox/cypher/gguf.py -> build/bdist.linux-x86_64/wheel/./beastbox/cypher
+copying build/lib/beastbox/cypher/agent.py -> build/bdist.linux-x86_64/wheel/./beastbox/cypher
+copying build/lib/beastbox/cypher/registry.py -> build/bdist.linux-x86_64/wheel/./beastbox/cypher
+copying build/lib/beastbox/cosmic_ui.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/paired.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/synaptic.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/durable.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/runtime.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/events.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/son_heartbeat_metrics.py -> build/bdist.linux-x86_64/wheel/./beastbox
+creating build/bdist.linux-x86_64/wheel/beastbox/persistent_substrate
+copying build/lib/beastbox/persistent_substrate/models.py -> build/bdist.linux-x86_64/wheel/./beastbox/persistent_substrate
+copying build/lib/beastbox/persistent_substrate/real_models.py -> build/bdist.linux-x86_64/wheel/./beastbox/persistent_substrate
+copying build/lib/beastbox/persistent_substrate/prompts.py -> build/bdist.linux-x86_64/wheel/./beastbox/persistent_substrate
+copying build/lib/beastbox/persistent_substrate/runner.py -> build/bdist.linux-x86_64/wheel/./beastbox/persistent_substrate
+copying build/lib/beastbox/persistent_substrate/__init__.py -> build/bdist.linux-x86_64/wheel/./beastbox/persistent_substrate
+copying build/lib/beastbox/persistent_substrate/protocol.py -> build/bdist.linux-x86_64/wheel/./beastbox/persistent_substrate
+copying build/lib/beastbox/persistent_substrate/paired_runner.py -> build/bdist.linux-x86_64/wheel/./beastbox/persistent_substrate
+copying build/lib/beastbox/persistent_substrate/evidence.py -> build/bdist.linux-x86_64/wheel/./beastbox/persistent_substrate
+copying build/lib/beastbox/persistent_substrate/substrate.py -> build/bdist.linux-x86_64/wheel/./beastbox/persistent_substrate
+copying build/lib/beastbox/persistent_substrate/metrics.py -> build/bdist.linux-x86_64/wheel/./beastbox/persistent_substrate
+copying build/lib/beastbox/persistent_substrate/offline.py -> build/bdist.linux-x86_64/wheel/./beastbox/persistent_substrate
+copying build/lib/beastbox/persistent_substrate/ledger.py -> build/bdist.linux-x86_64/wheel/./beastbox/persistent_substrate
+copying build/lib/beastbox/runtime_cli.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/desktop.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/__main__.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/cosmic_demo.py -> build/bdist.linux-x86_64/wheel/./beastbox
+copying build/lib/beastbox/response_supervision.py -> build/bdist.linux-x86_64/wheel/./beastbox
+running install_egg_info
+running egg_info
+writing cosmos_beast_box.egg-info/PKG-INFO
+writing dependency_links to cosmos_beast_box.egg-info/dependency_links.txt
+writing entry points to cosmos_beast_box.egg-info/entry_points.txt
+writing requirements to cosmos_beast_box.egg-info/requires.txt
+writing top-level names to cosmos_beast_box.egg-info/top_level.txt
+reading manifest file 'cosmos_beast_box.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+adding license file 'LICENSE_HISTORY.md'
+adding license file 'NOTICE'
+writing manifest file 'cosmos_beast_box.egg-info/SOURCES.txt'
+Copying cosmos_beast_box.egg-info to build/bdist.linux-x86_64/wheel/./cosmos_beast_box-0.7.0-py3.12.egg-info
+running install_scripts
+creating build/bdist.linux-x86_64/wheel/cosmos_beast_box-0.7.0.dist-info/WHEEL
+creating '/tmp/tmp.znfQCHRkZW/dist/.tmp-s2a6y408/cosmos_beast_box-0.7.0-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it
+adding 'beastbox/__init__.py'
+adding 'beastbox/__main__.py'
+adding 'beastbox/aliases.py'
+adding 'beastbox/attention.py'
+adding 'beastbox/audio.py'
+adding 'beastbox/audio_ablation.py'
+adding 'beastbox/box.py'
+adding 'beastbox/bridge.py'
+adding 'beastbox/bycc.py'
+adding 'beastbox/cli.py'
+adding 'beastbox/cns.py'
+adding 'beastbox/config.py'
+adding 'beastbox/continuity.py'
+adding 'beastbox/cosmic_demo.py'
+adding 'beastbox/cosmic_entry.py'
+adding 'beastbox/cosmic_ui.py'
+adding 'beastbox/cosmic_web.py'
+adding 'beastbox/dad_son.py'
+adding 'beastbox/desktop.py'
+adding 'beastbox/doctor.py'
+adding 'beastbox/durable.py'
+adding 'beastbox/dyn12.py'
+adding 'beastbox/ecosystem.py'
+adding 'beastbox/env_inventory.py'
+adding 'beastbox/events.py'
+adding 'beastbox/evidence.py'
+adding 'beastbox/fresh.py'
+adding 'beastbox/gauntlet.py'
+adding 'beastbox/hashutil.py'
+adding 'beastbox/heartbeat.py'
+adding 'beastbox/heartbeat_seed.py'
+adding 'beastbox/hf.py'
+adding 'beastbox/ibm_shard.py'
+adding 'beastbox/logging_config.py'
+adding 'beastbox/memory.py'
+adding 'beastbox/model.py'
+adding 'beastbox/optional_resources.py'
+adding 'beastbox/organism.py'
+adding 'beastbox/origin_heart.py'
+adding 'beastbox/paired.py'
+adding 'beastbox/portable_state.py'
+adding 'beastbox/product_services.py'
+adding 'beastbox/profiles.py'
+adding 'beastbox/proposals.py'
+adding 'beastbox/providers.py'
+adding 'beastbox/quantum.py'
+adding 'beastbox/quantum_heart.py'
+adding 'beastbox/quantum_lifesource.py'
+adding 'beastbox/quantum_lifesource_analysis.py'
+adding 'beastbox/reality_memory.py'
+adding 'beastbox/reflective_loop_trace.py'
+adding 'beastbox/refractive_memory.py'
+adding 'beastbox/response_supervision.py'
+adding 'beastbox/runtime.py'
+adding 'beastbox/runtime_cli.py'
+adding 'beastbox/sealed_storage.py'
+adding 'beastbox/sensor_inputs.py'
+adding 'beastbox/sensory.py'
+adding 'beastbox/shard_transport.py'
+adding 'beastbox/son_heartbeat_metrics.py'
+adding 'beastbox/spark_ablation.py'
+adding 'beastbox/state.py'
+adding 'beastbox/state_family.py'
+adding 'beastbox/swap_receipt.py'
+adding 'beastbox/synaptic.py'
+adding 'beastbox/web.py'
+adding 'beastbox/world_knowledge.py'
+adding 'beastbox/world_r12.py'
+adding 'beastbox/arms/__init__.py'
+adding 'beastbox/arms/action_proxy.py'
+adding 'beastbox/arms/cli.py'
+adding 'beastbox/arms/continuity.py'
+adding 'beastbox/arms/docker_tools.py'
+adding 'beastbox/arms/gauntlet.py'
+adding 'beastbox/arms/network.py'
+adding 'beastbox/arms/recorder.py'
+adding 'beastbox/arms/replay.py'
+adding 'beastbox/arms/schema.py'
+adding 'beastbox/arms/subject.py'
+adding 'beastbox/arms/supervisor.py'
+adding 'beastbox/arms/tools.py'
+adding 'beastbox/autonomy/__init__.py'
+adding 'beastbox/autonomy/ignition.py'
+adding 'beastbox/autonomy/native_stack.py'
+adding 'beastbox/autonomy/observer.py'
+adding 'beastbox/autonomy/range_protocol.py'
+adding 'beastbox/autonomy/supervisor.py'
+adding 'beastbox/autonomy/verifier.py'
+adding 'beastbox/cypher/__init__.py'
+adding 'beastbox/cypher/agent.py'
+adding 'beastbox/cypher/cli.py'
+adding 'beastbox/cypher/easy_ollama.py'
+adding 'beastbox/cypher/gguf.py'
+adding 'beastbox/cypher/models.py'
+adding 'beastbox/cypher/registry.py'
+adding 'beastbox/cypher/session.py'
+adding 'beastbox/cypher/workspace.py'
+adding 'beastbox/descendant/__init__.py'
+adding 'beastbox/descendant/corpus.py'
+adding 'beastbox/descendant/evaluation.py'
+adding 'beastbox/descendant/evidence.py'
+adding 'beastbox/descendant/gguf.py'
+adding 'beastbox/descendant/hashing.py'
+adding 'beastbox/descendant/lineage.py'
+adding 'beastbox/descendant/promotion.py'
+adding 'beastbox/descendant/quantum.py'
+adding 'beastbox/descendant/quantum_comparison.py'
+adding 'beastbox/descendant/quantum_conditioning.py'
+adding 'beastbox/descendant/release.py'
+adding 'beastbox/descendant/stage.py'
+adding 'beastbox/descendant/twin.py'
+adding 'beastbox/models/__init__.py'
+adding 'beastbox/models/phos_reference.py'
+adding 'beastbox/persistent_substrate/__init__.py'
+adding 'beastbox/persistent_substrate/evidence.py'
+adding 'beastbox/persistent_substrate/ledger.py'
+adding 'beastbox/persistent_substrate/metrics.py'
+adding 'beastbox/persistent_substrate/models.py'
+adding 'beastbox/persistent_substrate/offline.py'
+adding 'beastbox/persistent_substrate/paired_runner.py'
+adding 'beastbox/persistent_substrate/prompts.py'
+adding 'beastbox/persistent_substrate/protocol.py'
+adding 'beastbox/persistent_substrate/real_models.py'
+adding 'beastbox/persistent_substrate/runner.py'
+adding 'beastbox/persistent_substrate/substrate.py'
+adding 'beastbox/soul/__init__.py'
+adding 'beastbox/soul/adapter.py'
+adding 'beastbox/soul/bus.py'
+adding 'beastbox/soul/loop.py'
+adding 'beastbox/soul/qbt_source.py'
+adding 'beastbox/soul/replay.py'
+adding 'beastbox/soul/token.py'
+adding 'cosmos_beast_box-0.7.0.dist-info/licenses/LICENSE'
+adding 'cosmos_beast_box-0.7.0.dist-info/licenses/LICENSE_HISTORY.md'
+adding 'cosmos_beast_box-0.7.0.dist-info/licenses/NOTICE'
+adding 'cosmos_beast_box-0.7.0.dist-info/METADATA'
+adding 'cosmos_beast_box-0.7.0.dist-info/WHEEL'
+adding 'cosmos_beast_box-0.7.0.dist-info/entry_points.txt'
+adding 'cosmos_beast_box-0.7.0.dist-info/top_level.txt'
+adding 'cosmos_beast_box-0.7.0.dist-info/RECORD'
+removing build/bdist.linux-x86_64/wheel
+Successfully built cosmos_beast_box-0.7.0.tar.gz and cosmos_beast_box-0.7.0-py3-none-any.whl
+Processing /tmp/tmp.znfQCHRkZW/dist/cosmos_beast_box-0.7.0-py3-none-any.whl
+Installing collected packages: cosmos-beast-box
+Successfully installed cosmos-beast-box-0.7.0
+0.7.0 /tmp/tmp.znfQCHRkZW/wheel-venv/lib/python3.12/site-packages/beastbox/__init__.py
+installed reference demo passed
+wheel install smoke passed outside repository: /tmp/tmp.znfQCHRkZW/wheel-run
+Processing /tmp/tmp.znfQCHRkZW/dist/cosmos_beast_box-0.7.0.tar.gz
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: cosmos-beast-box
+  Building wheel for cosmos-beast-box (pyproject.toml): started
+  Building wheel for cosmos-beast-box (pyproject.toml): finished with status 'done'
+  Created wheel for cosmos-beast-box: filename=cosmos_beast_box-0.7.0-py3-none-any.whl size=320606 sha256=15d4d3122c2b3d59cae9fa4a71ada01d6d70dcf5119e4f68d112972ebee42b60
+  Stored in directory: /root/.cache/pip/wheels/e5/42/8c/cd873a1d8add8553d9d811c7ec3263429a2878c27c67dc4348
+Successfully built cosmos-beast-box
+Installing collected packages: cosmos-beast-box
+Successfully installed cosmos-beast-box-0.7.0
+0.7.0 /tmp/tmp.znfQCHRkZW/sdist-venv/lib/python3.12/site-packages/beastbox/__init__.py
+installed reference demo passed
+sdist install smoke passed outside repository: /tmp/tmp.znfQCHRkZW/sdist-run

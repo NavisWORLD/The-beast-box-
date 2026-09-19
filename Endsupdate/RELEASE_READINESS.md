@@ -1,0 +1,19 @@
+# Release decision — HOLD
+
+Snapshot and isolated math module exist; source copy is not an independently validated next-generation product. Do **not** merge into `main` or set `corrected` as a runtime default. The corrected candidate changes unit handling and regularizes a singularity, but its information contribution is numerically absent from the binary64 score on this synthetic experiment. No reason has been established to alter dyn12, memory, model weights or policy.
+
+PASS (locally): 10 numerical unit tests, synthetic experiment JSON generation. VERIFY ON GITHUB: reproducible run output and file hashes, full copied test suite. NOT RUN: product model A/B task suite, full A→B→A with new candidate, installation across platforms, optional services/devices/hardware, performance, security gate and actual feature-flag adapter (physically unjustified). No CI or PR result is presumed unless separately observed.
+
+## Follow-up checkpoint
+
+The second math commit adds a source-level 11D comparison, masked-signal observability, and a copied-suite CI matrix. A reference-only local launcher was subsequently introduced to exercise a dedicated, separate state directory without forwarding service credentials. Mathematical unit tests and independent numerical CI pass; these do not establish A/B predictive benefit. Do not promote the candidate solely because packaging and copied-source regression checks pass. The model-level A→B→A, client UI, optional hardware, authorization and real-service gates remain blocked/unrun.
+
+## Copied Python suite evidence
+
+The fixed independent-copy run [35429376824](https://github.com/NavisWORLD/The-beast-box-/actions/runs/35429376824) passed four jobs: math on Python 3.10/3.12 and copied-runtime on Python 3.10/3.12. It included the entire copied Python test directory, editable package installation, three separate reference-mode invocation commands, evidence receipt verification, and CLI entry points. This supports Python-source compatibility under those CI conditions only. It does not change the prior HOLD because there is no matched model-level improvement or real candidate A→B→A. The added stronger reference continuity probe has a separate forthcoming identifier and must not be claimed as passed until executed.
+
+## Latest executed CI (source snapshot)
+
+[Run 35429552663](https://github.com/NavisWORLD/The-beast-box-/actions/runs/35429552663) passed four Endsupdate jobs. The copied Python suite reported **1131 passed on each Python 3.10 and Python 3.12**. Fresh-process reference continuity advanced state, checkpoint and memory under the deterministic reference provider on both versions. The source-integrity and clean-wheel installation gates have been added separately; check their actual Actions results before assigning PASS.
+
+Remaining scientific and product blocks: matched real-model evaluation, candidate A→B→A with exact model weights, physics-domain validation (where claimed), external hardware/services, native and mobile-device deployment, and hostile-host/security certification. HOLD remains.

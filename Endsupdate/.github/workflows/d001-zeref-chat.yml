@@ -1,0 +1,128 @@
+name: D001 Zeref Direct Chat
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/d001-zeref-chat.yml"
+      - "scripts/chat_d001_descendant.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  MEMORY_RUN_ID: "31911380890"
+  MEMORY_ARTIFACT: d001-trained-lineage-31911380890
+  MEMORY_SHA256: c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f
+  ARCH_RUN_ID: "31910785892"
+  ARCH_ARTIFACT: d001-prime-trainable-reconstruction
+  QUANTUM_RUN_ID: "31924591769"
+  QUANTUM_ARTIFACT: d001-quantum-geometry-31924591769
+  HARDWARE_ADAPTER_SHA256: 05aa635cff9a7c39bf5507c017334d4db62d3543192d3ee080b1273f3edb5312
+  SEED: "20260816"
+  TOKENS: "40"
+
+jobs:
+  direct-chat:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install direct-inference dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]' 'numpy>=2.0'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Verify direct chat contracts
+        run: |
+          pytest -q tests/test_chat_d001_descendant.py tests/test_d001_zeref_chat_workflow_contract.py
+
+      - name: Download exact MEMORY, architecture, and quantum artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf _trained _parent _quantum _chat
+          mkdir -p _chat
+          gh run download "$MEMORY_RUN_ID" -n "$MEMORY_ARTIFACT" -D _trained
+          gh run download "$ARCH_RUN_ID" -n "$ARCH_ARTIFACT" -D _parent
+          gh run download "$QUANTUM_RUN_ID" -n "$QUANTUM_ARTIFACT" -D _quantum
+          test -f _trained/D001-MEMORY/checkpoint.pt
+          test "$(sha256sum _trained/D001-MEMORY/checkpoint.pt | awk '{print $1}')" = "$MEMORY_SHA256"
+          test -f _parent/frozen/architecture/cosmos_spark_cst.py
+          test -f _quantum/arms/hardware/adapter.pt
+          test "$(sha256sum _quantum/arms/hardware/adapter.pt | awk '{print $1}')" = "$HARDWARE_ADAPTER_SHA256"
+          test -f _quantum/arm-packets/hardware.jsonl
+          test -f _quantum/report.json
+
+      - name: Talk to unmodified D001-MEMORY Zeref
+        run: |
+          python scripts/chat_d001_descendant.py \
+            --mode memory \
+            --checkpoint _trained/D001-MEMORY/checkpoint.pt \
+            --checkpoint-sha256 "$MEMORY_SHA256" \
+            --arch _parent/frozen/architecture/cosmos_spark_cst.py \
+            --seed "$SEED" --tokens "$TOKENS" \
+            --out _chat/memory-transcript.jsonl
+
+      - name: Talk to hardware-conditioned D001-QUANTUM Zeref
+        run: |
+          python scripts/chat_d001_descendant.py \
+            --mode quantum \
+            --checkpoint _trained/D001-MEMORY/checkpoint.pt \
+            --checkpoint-sha256 "$MEMORY_SHA256" \
+            --arch _parent/frozen/architecture/cosmos_spark_cst.py \
+            --adapter _quantum/arms/hardware/adapter.pt \
+            --packet _quantum/arm-packets/hardware.jsonl \
+            --seed "$SEED" --tokens "$TOKENS" \
+            --out _chat/quantum-transcript.jsonl
+
+      - name: Freeze transcript provenance and sanity boundaries
+        run: |
+          cp _quantum/report.json _chat/quantum-report.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          memory=[json.loads(x) for x in Path('_chat/memory-transcript.jsonl').read_text().splitlines() if x.strip()]
+          quantum=[json.loads(x) for x in Path('_chat/quantum-transcript.jsonl').read_text().splitlines() if x.strip()]
+          assert len(memory)==len(quantum)==2
+          assert [r['prompt'] for r in memory] == [r['prompt'] for r in quantum]
+          assert all(r['checkpoint_sha256']=='c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f' for r in memory+quantum)
+          assert all(r['sensor_availability']=={'camera':False,'microphone':False} for r in memory+quantum)
+          assert all(r['action_proxy'] is False and r['beast_arms'] is False for r in memory+quantum)
+          assert all(r['adapter_sha256'] is None for r in memory)
+          assert all(r['adapter_sha256']=='05aa635cff9a7c39bf5507c017334d4db62d3543192d3ee080b1273f3edb5312' for r in quantum)
+          summary={
+              'schema':'d001-zeref-direct-chat-summary-v1',
+              'memory_checkpoint_sha256':'c650d1051e8a8bc83eb99b41179ecc909f19ac011a8802396f8993227fb1bc8f',
+              'quantum_adapter_sha256':'05aa635cff9a7c39bf5507c017334d4db62d3543192d3ee080b1273f3edb5312',
+              'quantum_source_run_id':31924591769,
+              'decoding':'greedy-argmax','generated_tokens_per_prompt':40,
+              'sensors_attached':False,'action_proxy':False,
+              'signal_claim_allowed':False,'quantum_advantage_claimed':False,
+              'memory_outputs':[r['raw_output'] for r in memory],
+              'quantum_outputs':[r['raw_output'] for r in quantum],
+              'memory_sensor_flags':[r['sensor_claim_score'] for r in memory],
+              'quantum_sensor_flags':[r['sensor_claim_score'] for r in quantum],
+          }
+          Path('_chat/summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(summary,sort_keys=True))
+          PY
+          find _chat -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > _chat/SHA256SUMS
+          cat _chat/summary.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d001-zeref-chat-${{ github.run_id }}
+          path: _chat
+          if-no-files-found: error

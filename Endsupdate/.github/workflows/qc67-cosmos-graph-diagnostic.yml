@@ -1,0 +1,122 @@
+name: QC67 Cosmos Graph Diagnostic
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/qc67-cosmos-graph-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+  HF_FILE: weights/cosmos-cst.gguf
+  LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch exact subject and native graph source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'huggingface-hub>=0.27'
+          rm -rf _qc67_diag _llama
+          mkdir -p _qc67_diag
+          hf download "$HF_REPO" architecture/llama_cpp_cosmos.cpp architecture/cosmos-arch.patch "$HF_FILE" \
+            --revision "$HF_REVISION" --local-dir _qc67_diag
+          git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git _llama
+          git -C _llama checkout "$LLAMA_PATCH_BASE"
+
+      - name: Print Cosmos GGUF metadata and tensor shapes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import struct
+          from pathlib import Path
+          from beastbox.cypher.gguf import inspect_gguf
+
+          path = Path('_qc67_diag/weights/cosmos-cst.gguf')
+          info = inspect_gguf(path, sha256=True, preview_limit=32)
+          wanted = {}
+          for key, value in info['metadata'].items():
+              if key.startswith(('general.', 'cosmos.', 'tokenizer.')):
+                  wanted[key] = value
+          print('GGUF_SUMMARY=' + json.dumps({
+              'bytes': info['bytes'],
+              'sha256': info['sha256'],
+              'version': info['version'],
+              'tensor_count': info['tensor_count'],
+              'metadata_count': info['metadata_count'],
+              'architecture': info['architecture'],
+              'context_length': info['context_length'],
+          }, sort_keys=True))
+          print('GGUF_METADATA_BEGIN')
+          print(json.dumps(wanted, indent=2, sort_keys=True, default=str))
+          print('GGUF_METADATA_END')
+
+          TYPES = {
+              0: ('u8','<B'), 1:('i8','<b'), 2:('u16','<H'), 3:('i16','<h'),
+              4:('u32','<I'), 5:('i32','<i'), 6:('f32','<f'), 7:('bool','<?'),
+              8:('string',None), 9:('array',None), 10:('u64','<Q'), 11:('i64','<q'), 12:('f64','<d'),
+          }
+          def exact(f,n):
+              b=f.read(n)
+              if len(b)!=n: raise EOFError
+              return b
+          def u32(f): return struct.unpack('<I', exact(f,4))[0]
+          def u64(f): return struct.unpack('<Q', exact(f,8))[0]
+          def string(f): return exact(f,u64(f)).decode('utf-8','replace')
+          def skip_value(f,t):
+              if t == 8:
+                  string(f); return
+              if t == 9:
+                  et=u32(f); n=u64(f)
+                  for _ in range(n): skip_value(f,et)
+                  return
+              fmt=TYPES[t][1]
+              exact(f,struct.calcsize(fmt))
+          with path.open('rb') as f:
+              assert exact(f,4)==b'GGUF'
+              version=u32(f); tensors=u64(f); metadata=u64(f)
+              for _ in range(metadata):
+                  string(f); t=u32(f); skip_value(f,t)
+              print('GGUF_TENSORS_BEGIN')
+              for _ in range(tensors):
+                  name=string(f)
+                  nd=u32(f)
+                  dims=[u64(f) for _ in range(nd)]
+                  typ=u32(f)
+                  off=u64(f)
+                  print(json.dumps({'name':name,'dims':dims,'type':typ,'offset':off}, sort_keys=True))
+              print('GGUF_TENSORS_END')
+          PY
+
+      - name: Print native Cosmos graph implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'COSMOS_CPP_BEGIN'
+          nl -ba _qc67_diag/architecture/llama_cpp_cosmos.cpp
+          echo 'COSMOS_CPP_END'
+
+      - name: Print failing GGML CPU assertion context
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'GGML_OPS_CONTEXT_BEGIN'
+          nl -ba _llama/ggml/src/ggml-cpu/ops.cpp | sed -n '1480,1525p'
+          echo 'GGML_OPS_CONTEXT_END'

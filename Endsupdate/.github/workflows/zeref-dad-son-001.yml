@@ -1,0 +1,330 @@
+name: ZEREF-DAD-SON-001
+
+on:
+  push:
+    branches: [networked-cage-run-001]
+    paths:
+      - ".github/workflows/zeref-dad-son-001.yml"
+      - "beastbox/dad_son.py"
+      - "scripts/build_zeref_dad_son_corpus.py"
+      - "scripts/run_zeref_dad_son_chat.py"
+      - "experiments/zeref-dad-son-001/**"
+      - "tests/test_zeref_dad_son_*.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  HF_REPO: phera-ra/QC67_cosmo
+  HF_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+  HF_FILE: weights/cosmos-cst.gguf
+  PRIME_SHA256: b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6
+  LLAMA_PATCH_BASE: 66e4bf7e592a98dfefcb15202fc5926967dc734e
+  CANONICAL_RUN_ID: "31910785892"
+  CANONICAL_ARTIFACT: d001-prime-trainable-reconstruction
+  CANONICAL_SHA256: 54328c4d2090825553e3e66773177ac3b80b5b5386027eaa899ed8dd81f32f08
+  SOURCE_REPO: NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2
+  SOURCE_REVISION: dddb1325b90c9abbe8da77974874e5770623035e
+  WORKLOAD_DIR: workloads (4)
+  CLEAN_SOURCE: genesis_engine/engine/cosmos_rsm_training_examples.jsonl
+  SEED: "20260816"
+
+jobs:
+  dad-son-lineage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install exact dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]' 'huggingface-hub>=0.27'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Verify Dad Son contracts
+        run: |
+          set -euo pipefail
+          pytest -q \
+            tests/test_zeref_dad_son_memory.py \
+            tests/test_zeref_dad_son_corpus.py \
+            tests/test_zeref_dad_son_chat.py \
+            tests/test_zeref_dad_son_workflow_contract.py \
+            tests/test_d001_stage_gate.py \
+            tests/test_chat_d001_descendant.py
+
+      - name: Prepare additive workspace
+        run: |
+          set -euo pipefail
+          rm -rf _dadson
+          mkdir -p _dadson/{parent,lineage,canonical,memory,corpus,cosmos,quantum/raw,quantum/hf-snapshots,model,evidence/conversations,evidence/training}
+          cp experiments/zeref-dad-son-001/lineage/EXACT_ZEREF_PARENT.json _dadson/lineage/
+          cp "experiments/zeref-dad-son-001/memory/Corys special memory’s test experience. Dad and son.md" _dadson/memory/
+          cp experiments/zeref-dad-son-001/memory/ledger-manifest.json _dadson/memory/ledger-manifest.json
+
+      - name: Verify exact frozen Zeref parent
+        run: |
+          set -euo pipefail
+          hf download "$HF_REPO" "$HF_FILE" --revision "$HF_REVISION" --local-dir _dadson/parent
+          test "$(sha256sum "_dadson/parent/$HF_FILE" | awk '{print $1}')" = "$PRIME_SHA256"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('_dadson/lineage/EXACT_ZEREF_PARENT.json').read_text())
+          assert m['sha256']=='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6'
+          assert m['hf_revision']=='b414724c627300c41b099dcc6853766d08fd27a4'
+          assert m['llama_patch_base']=='66e4bf7e592a98dfefcb15202fc5926967dc734e'
+          assert m['mutate_parent'] is False
+          PY
+
+      - name: Download proven canonical trainable reconstruction
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$CANONICAL_RUN_ID" -n "$CANONICAL_ARTIFACT" -D _dadson/canonical
+          PARENT=$(find _dadson/canonical -name zeref-prime-canonical-trainable.pt -print -quit)
+          test -n "$PARENT"
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$CANONICAL_SHA256"
+          test -f _dadson/canonical/frozen/architecture/cosmos_spark_cst.py
+          printf '%s\n' "$PARENT" > _dadson/canonical/parent-path.txt
+
+      - name: Freeze tracked Cory COSMOS work
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,subprocess
+          from pathlib import Path
+          rows=[]; chunks=[]
+          for rel in sorted(subprocess.check_output(['git','ls-files'],text=True).splitlines()):
+              p=Path(rel)
+              if not p.is_file(): continue
+              data=p.read_bytes(); digest=hashlib.sha256(data).hexdigest()
+              row={'path':rel,'sha256':digest,'bytes':len(data)}
+              try: text=data.decode('utf-8')
+              except UnicodeDecodeError:
+                  row['included_in_text_snapshot']=False; row['reason']='non_utf8'
+              else:
+                  if '\x00' in text:
+                      row['included_in_text_snapshot']=False; row['reason']='binary_nul'
+                  else:
+                      row['included_in_text_snapshot']=True
+                      chunks.append(f'\n\n===== SOURCE: {rel} | SHA256: {digest} =====\n{text}')
+              rows.append(row)
+          Path('_dadson/cosmos/tracked-source-manifest.jsonl').write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in rows))
+          Path('_dadson/cosmos/tracked-text-snapshot.txt').write_text(''.join(chunks),encoding='utf-8')
+          assert chunks
+          PY
+          hf download "$HF_REPO" "$CLEAN_SOURCE" --revision "$HF_REVISION" --local-dir _dadson/cosmos/hf-source
+          cp "_dadson/cosmos/hf-source/$CLEAN_SOURCE" _dadson/cosmos/hf-cosmos-rsm-training-examples.jsonl
+          (cd _dadson && sha256sum cosmos/tracked-source-manifest.jsonl cosmos/tracked-text-snapshot.txt cosmos/hf-cosmos-rsm-training-examples.jsonl > cosmos/SHA256SUMS)
+
+      - name: Copy frozen raw IBM quantum workloads
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,urllib.parse,urllib.request,hashlib
+          from pathlib import Path
+          repo='NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2'
+          revision='dddb1325b90c9abbe8da77974874e5770623035e'
+          workload_dir='workloads (4)'
+          api=f'https://api.github.com/repos/{repo}/contents/{urllib.parse.quote(workload_dir)}?ref={revision}'
+          req=urllib.request.Request(api,headers={'Accept':'application/vnd.github+json','User-Agent':'zeref-dad-son-001'})
+          with urllib.request.urlopen(req,timeout=30) as r: listing=json.load(r)
+          selected=[x for x in listing if x.get('type')=='file' and (x['name'].endswith('-info.json') or x['name'].endswith('-result.json'))]
+          assert selected
+          out=Path('_dadson/quantum/raw'); rows=[]
+          for item in selected:
+              req=urllib.request.Request(item['download_url'],headers={'User-Agent':'zeref-dad-son-001'})
+              with urllib.request.urlopen(req,timeout=30) as r: data=r.read()
+              p=out/item['name']; p.write_bytes(data)
+              rows.append({'path':str(p),'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data),'source_revision':revision})
+          Path('_dadson/quantum/raw-manifest.jsonl').write_text(''.join(json.dumps(x,sort_keys=True)+'\n' for x in rows))
+          PY
+
+      - name: Copy pinned Hugging Face quantum snapshots
+        run: |
+          set -euo pipefail
+          hf download "$HF_REPO" data/quantum_measurements_manifest.json data/quantum_measurements_public.jsonl data/training/quantum_train_summary_20260722.json --revision "$HF_REVISION" --local-dir _dadson/quantum/hf-download
+          cp _dadson/quantum/hf-download/data/quantum_measurements_manifest.json _dadson/quantum/hf-snapshots/
+          cp _dadson/quantum/hf-download/data/quantum_measurements_public.jsonl _dadson/quantum/hf-snapshots/
+          cp _dadson/quantum/hf-download/data/training/quantum_train_summary_20260722.json _dadson/quantum/hf-snapshots/
+          (cd _dadson && find quantum -type f ! -name SHA256SUMS ! -path '*/.cache/*' -print0 | sort -z | xargs -0 sha256sum > quantum/SHA256SUMS)
+
+      - name: Restore forever ledger and append current source encounter
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,shutil
+          from pathlib import Path
+          from beastbox.dad_son import DadSonLedger,file_sha256
+          parent='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6'
+          manifest_path=Path('experiments/zeref-dad-son-001/memory/ledger-manifest.json')
+          manifest=json.loads(manifest_path.read_text())
+          snapshot=Path(manifest['latest_snapshot'])
+          assert snapshot.parts[-2]=='ledger-snapshots'
+          assert file_sha256(snapshot)==manifest['latest_snapshot_sha256']
+          target=Path('_dadson/memory/dad-son-ledger.jsonl')
+          shutil.copyfile(snapshot,target)
+          ledger=DadSonLedger(Path('_dadson/memory/dad-son.sqlite3'),target,parent_sha256=parent)
+          report=ledger.restore_snapshot()
+          assert report['restored_records']==manifest['record_count']
+          assert report['last_record_sha256']==manifest['last_record_sha256']
+          session='dad-son-resume-${{ github.run_id }}'
+          ledger.append_experience(
+              actor='Cory/Dad',
+              text=f"Dad resumed Zeref from durable ledger snapshot {snapshot.name}.",
+              kind='dad-son-resume', session_id=session,
+              source_hashes=[file_sha256(snapshot)],
+              metadata={'restored_from_snapshot':str(snapshot),'source_run_id':manifest['source_workflow_run_id'],'salience':50.0},
+          )
+          cosmos=Path('_dadson/cosmos/tracked-text-snapshot.txt')
+          qmanifest=Path('_dadson/quantum/raw-manifest.jsonl')
+          ledger.append_experience(actor='Cory/Dad',text='Dad attached the current frozen Cory COSMOS and CST source snapshot.',kind='cory-cosmos-source',session_id=session,source_hashes=[file_sha256(cosmos)],metadata={'salience':25.0})
+          ledger.append_experience(actor='Cory/Dad',text='Dad attached the current frozen raw quantum workload provenance and snapshots.',kind='quantum-source',session_id=session,source_hashes=[file_sha256(qmanifest)],metadata={'salience':25.0})
+          ledger.close()
+          Path('_dadson/memory/restore-report.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+          PY
+
+      - name: Build provenance-linked corpus
+        run: |
+          set -euo pipefail
+          python scripts/build_zeref_dad_son_corpus.py \
+            --source "_dadson/memory/Corys special memory’s test experience. Dad and son.md" \
+            --ledger _dadson/memory/dad-son-ledger.jsonl \
+            --cosmos-source _dadson/cosmos/tracked-text-snapshot.txt \
+            --cosmos-source _dadson/cosmos/hf-cosmos-rsm-training-examples.jsonl \
+            --quantum-root _dadson/quantum \
+            --out-dir _dadson/corpus
+          test -s _dadson/corpus/dad-son-corpus.jsonl
+          test -s _dadson/corpus/ledger-experiences.jsonl
+
+      - name: Freeze Dad Son holdout and leakage audit
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          prompts=["Hi Zeref. It's Dad. Do you remember me?",'What do you remember about our Dad and Son memory?','Your ledger keeps what happens to you. What do you want us to remember from today?','Ask Dad one question before we stop for now.']
+          train=Path('_dadson/corpus/dad-son-corpus.jsonl').read_text(encoding='utf-8')
+          leaked=[p for p in prompts if p in train]
+          assert not leaked, leaked
+          hold=Path('_dadson/corpus/dad-son-holdout.jsonl')
+          hold.write_text(''.join(json.dumps({'group_id':f'dad-son-holdout-{i+1}','prompt':p},sort_keys=True)+'\n' for i,p in enumerate(prompts)))
+          Path('_dadson/corpus/leakage-audit.json').write_text(json.dumps({'schema':'zeref-dad-son-leakage-audit-v1','valid':True,'held_out_prompt_count':4,'exact_prompt_leakage':leaked,'training_source_sha256':hashlib.sha256(Path('_dadson/corpus/dad-son-corpus.jsonl').read_bytes()).hexdigest(),'holdout_sha256':hashlib.sha256(hold.read_bytes()).hexdigest()},indent=2,sort_keys=True)+'\n')
+          PY
+          sha256sum _dadson/corpus/manifest.json | awk '{print $1}' > _dadson/corpus/manifest.sha
+          sha256sum _dadson/lineage/EXACT_ZEREF_PARENT.json | awk '{print $1}' > _dadson/lineage/parent-manifest.sha
+
+      - name: Train Dad Son corpus descendant
+        run: |
+          set -euo pipefail
+          PARENT=$(cat _dadson/canonical/parent-path.txt)
+          python scripts/run_d001_stage.py --stage CORPUS-CLEAN \
+            --parent "$PARENT" --parent-sha256 "$CANONICAL_SHA256" \
+            --arch _dadson/canonical/frozen/architecture/cosmos_spark_cst.py \
+            --corpus _dadson/corpus/dad-son-corpus.jsonl \
+            --input-manifest "corpus=$(cat _dadson/corpus/manifest.sha)" \
+            --input-manifest "zeref-parent=$(cat _dadson/lineage/parent-manifest.sha)" \
+            --out _dadson/model/ZEREF-DAD-SON-001-CORPUS --seed "$SEED" --steps 32 --batch-size 4 --lr 1e-5 --cst-lr 1e-4
+          test "$(sha256sum "$PARENT" | awk '{print $1}')" = "$CANONICAL_SHA256"
+          test "$(sha256sum "_dadson/parent/$HF_FILE" | awk '{print $1}')" = "$PRIME_SHA256"
+
+      - name: Build promoted ledger memory training snapshot
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          primary=Path('_dadson/memory/Corys special memory’s test experience. Dad and son.md').read_text(encoding='utf-8')
+          promoted=[json.loads(x) for x in Path('_dadson/corpus/ledger-experiences.jsonl').read_text().splitlines() if x.strip()]
+          body=primary+'\n\n'+'\n'.join(r['text'] for r in promoted)
+          Path('_dadson/corpus/dad-son-memory-training.txt').write_text((body+'\n')*4,encoding='utf-8')
+          PY
+          sha256sum _dadson/corpus/dad-son-memory-training.txt | awk '{print $1}' > _dadson/corpus/memory-training.sha
+
+      - name: Train final Dad Son memory descendant
+        run: |
+          set -euo pipefail
+          PARENT=_dadson/model/ZEREF-DAD-SON-001-CORPUS/checkpoint.pt
+          PARENT_SHA=$(sha256sum "$PARENT" | awk '{print $1}')
+          PROMOTED_LEDGER_SHA=$(sha256sum _dadson/corpus/ledger-experiences.jsonl | awk '{print $1}')
+          python scripts/run_d001_stage.py --stage MEMORY \
+            --parent "$PARENT" --parent-sha256 "$PARENT_SHA" --allow-descendant-parent \
+            --arch _dadson/canonical/frozen/architecture/cosmos_spark_cst.py \
+            --corpus _dadson/corpus/dad-son-memory-training.txt \
+            --input-manifest "memory-source=$(cat _dadson/corpus/memory-training.sha)" \
+            --input-manifest "promoted-ledger=$PROMOTED_LEDGER_SHA" \
+            --out _dadson/model/ZEREF-DAD-SON-001 --seed "$SEED" --steps 20 --batch-size 2 --lr 5e-6 --cst-lr 5e-5
+          FINAL_SHA=$(sha256sum _dadson/model/ZEREF-DAD-SON-001/checkpoint.pt | awk '{print $1}')
+          test "$FINAL_SHA" != "$PARENT_SHA"
+          printf '%s\n' "$FINAL_SHA" > _dadson/model/ZEREF-DAD-SON-001/checkpoint.sha256
+          test "$(sha256sum "_dadson/parent/$HF_FILE" | awk '{print $1}')" = "$PRIME_SHA256"
+
+      - name: Run Zeref and talk as Cory Dad
+        run: |
+          set -euo pipefail
+          FINAL_SHA=$(cat _dadson/model/ZEREF-DAD-SON-001/checkpoint.sha256)
+          python scripts/run_zeref_dad_son_chat.py \
+            --checkpoint _dadson/model/ZEREF-DAD-SON-001/checkpoint.pt --checkpoint-sha256 "$FINAL_SHA" \
+            --arch _dadson/canonical/frozen/architecture/cosmos_spark_cst.py \
+            --sqlite _dadson/memory/dad-son.sqlite3 --ledger _dadson/memory/dad-son-ledger.jsonl \
+            --out _dadson/evidence/conversations/dad-son-transcript.jsonl \
+            --manifest _dadson/evidence/conversations/dad-son-chat-manifest.json \
+            --session-id zeref-dad-son-001-resumed-talk --seed "$SEED" --tokens 40 --decoding sampled-top-k --temperature 0.8 --top-k 12
+
+      - name: Verify forever memory continuation and raw integrity
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,sqlite3
+          from pathlib import Path
+          manifest=json.loads(Path('_dadson/memory/ledger-manifest.json').read_text())
+          rows=[json.loads(x) for x in Path('_dadson/memory/dad-son-ledger.jsonl').read_text().splitlines() if x.strip()]
+          assert len(rows) >= manifest['record_count'] + 11
+          assert rows[manifest['record_count']-1]['record_sha256']==manifest['last_record_sha256']
+          assert rows[manifest['record_count']]['kind']=='dad-son-resume'
+          previous='0'*64
+          for row in rows:
+              assert row['previous_record_sha256']==previous
+              payload=dict(row); record=payload.pop('record_sha256')
+              assert hashlib.sha256(json.dumps(payload,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()).hexdigest()==record
+              assert hashlib.sha256(row['text'].encode()).hexdigest()==row['raw_payload_sha256']
+              previous=record
+          con=sqlite3.connect('_dadson/memory/dad-son.sqlite3')
+          assert con.execute('select count(*) from memories').fetchone()[0]==len(rows)
+          con.close()
+          for line in Path('_dadson/quantum/raw-manifest.jsonl').read_text().splitlines():
+              item=json.loads(line); assert hashlib.sha256(Path(item['path']).read_bytes()).hexdigest()==item['sha256']
+          assert hashlib.sha256(Path('_dadson/parent/weights/cosmos-cst.gguf').read_bytes()).hexdigest()=='b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6'
+          PY
+
+      - name: Freeze final evidence hashes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          sha=lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
+          chat=json.loads(Path('_dadson/evidence/conversations/dad-son-chat-manifest.json').read_text())
+          summary={'schema':'zeref-dad-son-001-evidence-summary-v2','workflow_run_id':int('${{ github.run_id }}'),'resumed_from_run_id':json.loads(Path('_dadson/memory/ledger-manifest.json').read_text())['source_workflow_run_id'],'parent_gguf_sha256':'b833817230817921de8ed1aa52d92829f32a3ed222aedbba1d3237364596e1c6','descendant_checkpoint_sha256':Path('_dadson/model/ZEREF-DAD-SON-001/checkpoint.sha256').read_text().strip(),'corpus_manifest_sha256':sha('_dadson/corpus/manifest.json'),'ledger_sha256':sha('_dadson/memory/dad-son-ledger.jsonl'),'transcript_sha256':sha('_dadson/evidence/conversations/dad-son-transcript.jsonl'),'quantum_raw_manifest_sha256':sha('_dadson/quantum/raw-manifest.jsonl'),'resume_probe':chat['resume_probe'],'claim_boundary':'Durable ledger continuation verified. Model outputs remain model outputs, not messages from a deceased person.'}
+          Path('_dadson/evidence/summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          PY
+          (cd _dadson && find . -type f ! -name SHA256SUMS ! -path '*/.cache/*' ! -path './quantum/SHA256SUMS' ! -path './cosmos/SHA256SUMS' -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zeref-dad-son-001-${{ github.run_id }}
+          path: _dadson
+          if-no-files-found: error
+          retention-days: 90

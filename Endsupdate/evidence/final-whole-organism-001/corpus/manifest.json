@@ -1,0 +1,111 @@
+{
+  "claim_boundary": "Corpus/provenance packaging only; training usefulness and generated prose do not upgrade scientific evidence labels.",
+  "content_sha256": {
+    "HOLDOUT.jsonl": "9c8bcfb21a9adda064c8e14beb7b4ccff32dece1cf189bda4c7cc5fc882f37e0",
+    "MEMORY_ONLY.jsonl": "6702b3b204456742fb659ae6f435f5dfb6be601ac3d3a1ff8a9c45816de5652d",
+    "TRAIN.jsonl": "7121725fdd85d6d585be48089ddc2a3d1f63f58498a7a74541bd2afefde2eb76",
+    "VALIDATION.jsonl": "d511921c58de76e9847bae32fbb1fa7a4fe7a215c537bcd24a816abbb9ee3c5f",
+    "benchmark-prompts.json": "dfdb70e5dcfe37411a0900b73f8267261f3e40cc5b56d447bb68576c2b916483",
+    "diagnostic-contamination.json": "291aa77bf56405940e1443e858ad97aa1c7c331ed4909a6fe629a346252b36c0",
+    "leakage-report.json": "edc8ecda8a5268501ada3e7647d47347912684e9783767ce8fb3d019d7a085e5",
+    "record-hashes.jsonl": "960ddb1ee563554179adf4f32d4b42db2084c1b74919b7a59af1349fb2d9b9b1"
+  },
+  "conversation_suite_is_clean_holdout": false,
+  "leakage_status": "PASS",
+  "partition_counts": {
+    "HOLDOUT": 428,
+    "MEMORY_ONLY": 352,
+    "TRAIN": 3481,
+    "VALIDATION": 377
+  },
+  "partition_sha256": {
+    "HOLDOUT": "9c8bcfb21a9adda064c8e14beb7b4ccff32dece1cf189bda4c7cc5fc882f37e0",
+    "MEMORY_ONLY": "6702b3b204456742fb659ae6f435f5dfb6be601ac3d3a1ff8a9c45816de5652d",
+    "TRAIN": "7121725fdd85d6d585be48089ddc2a3d1f63f58498a7a74541bd2afefde2eb76",
+    "VALIDATION": "d511921c58de76e9847bae32fbb1fa7a4fe7a215c537bcd24a816abbb9ee3c5f"
+  },
+  "record_schema": [
+    "record_id",
+    "text",
+    "role_or_type",
+    "source",
+    "source_sha256",
+    "parent_snapshot_sha256",
+    "parent_record_ids",
+    "original_evidence_label",
+    "derived_status",
+    "created_at",
+    "training_allowed",
+    "evaluation_allowed",
+    "partition",
+    "holdout",
+    "memory_scope",
+    "tags",
+    "generator_checkpoint",
+    "generation_seed",
+    "review_status"
+  ],
+  "schema": "cosmos-universal-corpus-v2",
+  "source_receipts": [
+    {
+      "partition": "TRAIN",
+      "path": "corpus/full/train.jsonl",
+      "run_id": 33118621824,
+      "sha256": "0175f437635a9e160b2de887b3b634310deb0b9dbf4d34adb2be5256c131df07"
+    },
+    {
+      "partition": "HOLDOUT",
+      "path": "corpus/micro/holdout.jsonl",
+      "run_id": 33118621824,
+      "sha256": "3c3e2f80bc728c5d8d9420b240970f225f711651e190d17388136356ab0302db"
+    },
+    {
+      "partition": "HOLDOUT",
+      "path": "corpus/talk002/talk2-holdout.jsonl",
+      "run_id": 33118621824,
+      "sha256": "a86af74313ccfdf6020147d9415a3c2cd13360074729fd22d34506807860a0ed"
+    },
+    {
+      "partition": "HOLDOUT",
+      "path": "corpus/talk005/reviewed-source/holdout.jsonl",
+      "run_id": 33118621824,
+      "sha256": "db9ddc110375dc14c51f39395f9128bfe41c1b3f6a2eda2d6b64ceaf912571ba"
+    }
+  ],
+  "world_partition_rule": {
+    "HOLDOUT": "bucket 9",
+    "TRAIN": "buckets 0-7",
+    "VALIDATION": "bucket 8",
+    "algorithm": "int(source_sha256[0:8], 16) % 10",
+    "seed": null
+  },
+  "world_source": {
+    "artifact_id": 9670957287,
+    "artifact_name": "zeref-world-r12-downstream-diagnostic-v2-33132925890",
+    "artifact_run_id": 33132925890,
+    "canonical_file": "canonical-world.jsonl",
+    "canonical_record_hashes_file": "canonical-record-hashes.txt",
+    "canonical_sha256": "a14e5f5bbc37bfda6da6b062e2e101a621386b6af257f71da64e3b4d4d250a85",
+    "evidence_sha256": "cdbc84db988668894a476d51ee42faa591cace77631da7c7daa82831bb1201de",
+    "original_container_bytes_recovered": false,
+    "original_evidence_sha256": "5319b876c46bbdb29912b28b8d0b95451a9fbf9cc728cc7989853fe7acd5c821",
+    "placeholder_records": 0,
+    "receipt_chain_tip_sha256": "59856ff960807f3d52e211b155fe84455a9ed014ee12bf6f11a9248f9b1e6f1d",
+    "record_count": 4096,
+    "record_hashes_sha256": "4c464aa1b72d658460185cb55d932be61a20cfb4172159fc0333406e8acf698c",
+    "record_schema": "zeref-world-knowledge-record-v1",
+    "revision_label": "20231101.en",
+    "schema": "cosmos-canonical-world-source-v1",
+    "source_dataset": "wikimedia/wikipedia",
+    "source_set_sha256": "07216bb2a4ca979ca1ea4304efb92b09ee8aad74685df43196d694f3bd7ef8ba",
+    "summary_schema": "zeref-world-ingestion-summary-v1",
+    "summary_sha256": "9e2e6cf0965691db9a4ecd3affe9ccb8b33195f6cf7f2341ace1e1f43e549d3b",
+    "transformation": {
+      "commit": "3d03fb0f87432c979625ab8511fa887dcb277e3e",
+      "corpus_script": "scripts/final_reality_bridge_corpus.py",
+      "corpus_script_sha256": "5be7630d0937715fc252bdf89b9b9d1a64534937d78b0d29b59ae27c82c77108",
+      "source_validator": "scripts/final_reality_bridge_world_source.py",
+      "source_validator_sha256": "f435427c98ed219439ab4a97f71455f113144e9ab202d825b0c61547c9a09fa3"
+    }
+  }
+}

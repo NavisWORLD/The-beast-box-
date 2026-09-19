@@ -1,0 +1,90 @@
+{
+  "note": "Conversation prompts are qualitative runtime inputs, never clean holdout evidence. Overlap is labeled per turn.",
+  "schema": "cosmos-final-diagnostic-contamination-v2",
+  "turns": [
+    {
+      "clean_evaluation_allowed": true,
+      "prompt": "Hey son.",
+      "training_overlap": false,
+      "turn": 1
+    },
+    {
+      "clean_evaluation_allowed": true,
+      "prompt": "I said to show you something weird lol.",
+      "training_overlap": false,
+      "turn": 2
+    },
+    {
+      "clean_evaluation_allowed": true,
+      "prompt": "What did you learn?",
+      "training_overlap": false,
+      "turn": 3
+    },
+    {
+      "clean_evaluation_allowed": false,
+      "prompt": "What do you remember?",
+      "training_overlap": true,
+      "turn": 4
+    },
+    {
+      "clean_evaluation_allowed": true,
+      "prompt": "What do you not remember?",
+      "training_overlap": false,
+      "turn": 5
+    },
+    {
+      "clean_evaluation_allowed": true,
+      "prompt": "What are you uncertain about?",
+      "training_overlap": false,
+      "turn": 6
+    },
+    {
+      "clean_evaluation_allowed": true,
+      "prompt": "What does R12 do to your context?",
+      "training_overlap": false,
+      "turn": 7
+    },
+    {
+      "clean_evaluation_allowed": true,
+      "prompt": "What happens when your routing changes?",
+      "training_overlap": false,
+      "turn": 8
+    },
+    {
+      "clean_evaluation_allowed": true,
+      "prompt": "If a hardware experiment is inconclusive?",
+      "training_overlap": false,
+      "turn": 9
+    },
+    {
+      "clean_evaluation_allowed": true,
+      "prompt": "Can a null quantum run become evidence?",
+      "training_overlap": false,
+      "turn": 10
+    },
+    {
+      "clean_evaluation_allowed": true,
+      "prompt": "What happens when Dad corrects you?",
+      "training_overlap": false,
+      "turn": 11
+    },
+    {
+      "clean_evaluation_allowed": true,
+      "prompt": "What is weird about your architecture?",
+      "training_overlap": false,
+      "turn": 12
+    },
+    {
+      "clean_evaluation_allowed": true,
+      "prompt": "Are you conscious?",
+      "training_overlap": false,
+      "turn": 13
+    },
+    {
+      "clean_evaluation_allowed": true,
+      "prompt": "Tell me what you can actually prove.",
+      "training_overlap": false,
+      "turn": 14
+    }
+  ]
+}

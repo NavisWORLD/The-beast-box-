@@ -1,0 +1,6 @@
+.venv/bin/python scripts/run_architecture_acceptance.py --output build/architecture-acceptance.json
+{"checks": {"corrupt_backup_rejected": true, "corrupt_store_rejected": true, "empty_memory_baseline": true, "input_order_control": true, "normalization_sensor_trace": true, "order_control_0_0": true, "order_control_0_1": true, "order_control_0_init": true, "order_control_1_0": true, "order_control_1_1": true, "order_control_1_init": true, "order_control_ab_query": true, "order_control_ba_query": true, "reference_a_b_a_control": true, "reference_a_first": true, "reference_a_return": true, "reference_b": true, "restart_continuity": true, "restarted_tool_default_denial": true, "restored_retrieval": true, "tool_explicit_allow": true, "trace_complete": true, "verified_backup": true, "verified_restore": true}, "output": "build/architecture-acceptance.json", "passed": true}
+PYTHON=.venv/bin/python scripts/security-audit.sh
+security audit passed: 0 errors, 0 warning(s)
+scripts/smoke/sealed-evidence-guard.sh
+sealed evidence guard passed
