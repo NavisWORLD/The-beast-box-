@@ -35,7 +35,7 @@ class ConnectionError(ValueError):
 
 
 def _key_from_env() -> bytes:
-    text = os.environ.get(KEY_ENV, "")
+    text = os.environ.get("BEASTBOX_CONNECTION_VAULT_KEY", "")
     try:
         key = base64.b64decode(text, validate=True)
     except (ValueError, base64.binascii.Error):
