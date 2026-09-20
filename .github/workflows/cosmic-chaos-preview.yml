@@ -60,3 +60,15 @@ jobs:
           path: apps/beastbox-cloud/browser-evidence/
           if-no-files-found: warn
           retention-days: 30
+
+  durable-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build actual durable Python owner bridge image
+        run: docker build --file apps/beastbox-cloud/bridge/deploy/Dockerfile --tag beastbox-owner-bridge:ci .
+      - name: Verify mounted-volume fail-close, authenticated ingress and restart persistence
+        run: bash apps/beastbox-cloud/bridge/deploy/ci_smoke.sh
