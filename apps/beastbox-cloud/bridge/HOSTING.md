@@ -5,7 +5,26 @@ The current Vercel owner UI is functional, but chat remains disabled until the
 original Python `CosmicApp` is running on persistent compute, serving the
 authenticated owner bridge, and an actual supported model answers a request.
 
-## Dependencies / owner approvals (do not provision automatically)
+## Current billing and deployment hold (2026-09-20)
+
+The owner approved **at most $5 total Railway hosting cost per month**.
+Railway's published minimum compute hard limit is **$10**, independently of
+its separately metered AI agent. A $5 Hobby subscription includes $5 of usage;
+it is not a $5 bill cap. Do not start the service, attach billable storage,
+invoke the paid Railway agent, or upgrade the account while this gate is open.
+Alerts, small replica limits, prepaid credits with postpaid overages, and
+projected spend do not satisfy this approval.
+
+See [the dated cloud handoff](CLOUD_HANDOFF_2026_09_20.md) for verified account
+access, pricing sources, alternatives, test scope, and the remaining actions.
+The app's `vercel.json` disables automatic Git deployments **only** for
+`feature/cosmic-chaos-vercel-app-001`. Keep that hold until the hosting budget
+is enforceable, Vercel team access is restored, and matching branch-Preview
+bridge variables are saved. Then remove that one branch entry in a reviewed
+commit and deploy only the feature-branch Preview. Never promote it to
+production as part of this continuation.
+
+## Dependencies / owner approvals
 
 - An owner-controlled Linux VM or persistent equivalent with a mounted durable
   filesystem, functioning backups and outbound HTTPS. Azure Blob Storage alone
@@ -18,9 +37,11 @@ authenticated owner bridge, and an actual supported model answers a request.
 - For HF inference only: a separate permitted `HF_TOKEN`, reviewed
   `BEASTBOX_HF_MODEL_ID`, and affirmative
   `BEASTBOX_HF_BILLING_APPROVED=yes` after inspecting model charges.
-  Default reference inference is **not** a trained chat model. Do not enter HF
-  keys in the browser, use this host as a public multi-user service, or buy
-  infrastructure without owner cost approval.
+  Default reference inference is **not** a trained chat model. For the
+  alternative encrypted BYOK path, use only the owner-authenticated SETTINGS
+  form described below, after the durable bridge is provisioned. Do not enter
+  keys in chat or browser storage. Do not use both the legacy host HF setup
+  and the BYOK vault together. This is not a public multi-user service.
 
 ## 1. Host, environment, data
 
@@ -225,6 +246,10 @@ Check owner-only `/api/status` from the logged-in Vercel Preview and verify
 hosted-model credential, approve expected provider usage costs, explicitly
 activate the model, and run a real BRAIN request before claiming inference.
 Restart the Railway service and check that the same system ID, conversation
-history and latest checkpoint are restored. Enable scheduled volume backups,
+history and latest checkpoint are restored. BYOK model profiles and encrypted
+credentials survive, but runtime authority deliberately does not: in SETTINGS,
+explicitly reactivate the saved provider after restart before sending another
+model request. This is an authority boundary, not loss of conversation state.
+Enable scheduled volume backups within the approved spending ceiling,
 bounded hosting limits, and monitoring. Do not open public multi-user access
 without new isolation, security, quota and restore gates.

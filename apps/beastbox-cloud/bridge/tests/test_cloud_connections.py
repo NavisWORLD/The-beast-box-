@@ -14,6 +14,7 @@ from unittest.mock import patch
 import unittest
 
 from beastbox.cloud_connections import ConnectionVault, ConnectionError, DATABASE, KEY_ENV
+from beastbox.providers import ReferenceTextProvider
 
 HERE=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location("owner_bridge_cloud_tests",HERE/"owner_bridge.py")
@@ -103,6 +104,71 @@ class BYOKTests(unittest.TestCase):
             self.assertEqual(res["status"],"IAM_AUTH_VERIFIED")
             test_call.assert_called_once()
         self.assertNotIn(IBM,json.dumps(res))
+
+    def test_hosted_provider_failure_never_falls_back_or_changes_identity(self):
+        # Exercise the real CompatibleChatProvider error path with an unavailable
+        # transport. This is deliberately NOT evidence of hosted inference.
+        for provider,model,endpoint in [
+            ("huggingface","openai/gpt-oss-120b:cheapest","https://router.huggingface.co/v1"),
+            ("ollama_cloud","gpt-oss:120b-cloud","https://ollama.com/v1"),
+        ]:
+            with self.subTest(provider=provider):
+                root=self.root/provider
+                root.mkdir()
+                bridge=bridge_module.OwnerBridge(root,TOKEN)
+                _,before=bridge.dispatch("GET","/api/orbit",AUTH)
+                bridge.vault.save(provider,{"model":model},HF)
+                code,active=bridge.dispatch("POST","/api/connections",AUTH,json.dumps(
+                    {"action":"activate","provider":provider,"spend_approved":True}).encode())
+                self.assertEqual(code,200,active)
+                self.assertEqual(bridge.app.profile.base_url,endpoint)
+                with patch("beastbox.providers._local_opener") as opener, patch.object(
+                    ReferenceTextProvider,"generate",side_effect=AssertionError("reference fallback forbidden")
+                ) as reference:
+                    opener.return_value.open.side_effect=OSError("private upstream detail "+HF)
+                    code,result=bridge.dispatch("POST","/api/chat",AUTH,b'{"text":"An unavailable model must fail"}')
+                    self.assertEqual(code,400,result)
+                    self.assertIn("no fallback",result["error"])
+                    self.assertNotIn(HF,json.dumps(result))
+                    request=opener.return_value.open.call_args.args[0]
+                    self.assertEqual(request.full_url,endpoint+"/chat/completions")
+                    self.assertEqual(request.get_header("Authorization"),"Bearer "+HF)
+                    reference.assert_not_called()
+                self.assertEqual(bridge.app.profile.kind,"compatible")
+                _,after=bridge.dispatch("GET","/api/orbit",AUTH)
+                self.assertEqual(before["runtime"]["system_id"],after["runtime"]["system_id"])
+                _,history=bridge.dispatch("GET","/api/conversation",AUTH)
+                self.assertEqual(history["turns"],[])
+
+    def test_byok_restart_preserves_state_but_requires_owner_reactivation(self):
+        bridge=bridge_module.OwnerBridge(self.root,TOKEN)
+        # A clearly labeled local reference turn seeds existing substrate state.
+        code,seed=bridge.dispatch("POST","/api/chat",AUTH,b'{"text":"Local reference persistence fixture"}')
+        self.assertEqual(code,200,seed)
+        _,history=bridge.dispatch("GET","/api/conversation",AUTH)
+        bridge.vault.save("ollama_cloud",{"model":"gpt-oss:120b-cloud"},HF)
+        bridge.app.authority.grant("filesystem")
+        activation=json.dumps({"action":"activate","provider":"ollama_cloud","spend_approved":True}).encode()
+        code,result=bridge.dispatch("POST","/api/connections",AUTH,activation)
+        self.assertEqual(code,200,result)
+        self.assertFalse(bridge.app.authority.allowed("filesystem"))
+        restarted=bridge_module.OwnerBridge(self.root,TOKEN)
+        self.assertEqual(restarted.app.profile,bridge.app.profile)
+        self.assertFalse(any(restarted.app.authority.snapshot().values()))
+        with patch("beastbox.providers._local_opener") as network:
+            code,result=restarted.dispatch("POST","/api/chat",AUTH,b'{"text":"Must explicitly reauthorize"}')
+            self.assertEqual(code,403,result)
+            network.assert_not_called()
+        _,after=restarted.dispatch("GET","/api/orbit",AUTH)
+        self.assertEqual(seed["runtime"]["system_id"],after["runtime"]["system_id"])
+        self.assertEqual(seed["runtime"]["checkpoint_sha256"],after["runtime"]["checkpoint_sha256"])
+        self.assertEqual(restarted.dispatch("GET","/api/conversation",AUTH)[1],history)
+        code,result=restarted.dispatch("POST","/api/connections",AUTH,activation)
+        self.assertEqual(code,200,result)
+        self.assertTrue(restarted.app.authority.allowed("cloud"))
+        self.assertFalse(restarted.app.authority.allowed("filesystem"))
+        for route in ("authority","workspace","workspace/run","quantum","storage/export"):
+            self.assertEqual(restarted.dispatch("POST","/api/"+route,AUTH,b'{}')[0],404)
 
 
 if __name__=="__main__":
