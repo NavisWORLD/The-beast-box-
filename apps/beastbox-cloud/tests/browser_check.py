@@ -37,7 +37,16 @@ with sync_playwright() as p:
     unauth.get_by_text("The memory vault.").wait_for(timeout=10000)
     assert unauth.get_by_text("No accessible records. Connect the real service to read your vault.").count()==1
     unauth.screenshot(path=str(OUT/"03-memory-desktop.png"),full_page=True)
-    results["desktop"]="PASS: marketing, auth, offline gate, memory honesty"
+    unauth.get_by_role("button",name="SETTINGS").click()
+    unauth.get_by_text("Connect your universe").wait_for(timeout=10000)
+    assert unauth.get_by_role("button",name="Hugging Face").count()==1
+    assert unauth.get_by_role("button",name="Azure Blob Storage").count()==1
+    assert unauth.get_by_role("button",name="IBM watsonx.ai").count()==1
+    assert unauth.get_by_role("button",name="Ollama Cloud").count()==1
+    assert unauth.get_by_role("button",name="Save encrypted credential").is_disabled()
+    assert_no_overflow(unauth,"desktop BYOK settings")
+    unauth.screenshot(path=str(OUT/"07-cloud-settings-desktop.png"),full_page=True)
+    results["desktop"]="PASS: marketing, auth, offline gate, memory honesty, BYOK settings fail-closed"
     mobile=browser.new_context(viewport={"width":390,"height":844},device_scale_factor=1,is_mobile=True,has_touch=True)
     page=mobile.new_page()
     page.on("pageerror",lambda error:errors.append(str(error)))
@@ -58,7 +67,13 @@ with sync_playwright() as p:
     assert page.get_by_role("button",name="Send message").is_disabled()
     assert_no_overflow(page,"mobile attachment")
     page.screenshot(path=str(OUT/"06-attachment-local-only.png"),full_page=True)
-    results["mobile"]="PASS: landing, auth, no overflow, photo stage only"
+    page.get_by_role("button",name="Open navigation").click()
+    page.get_by_role("button",name="SETTINGS").click()
+    page.get_by_text("Connect your universe").wait_for(timeout=10000)
+    assert page.get_by_role("button",name="Save encrypted credential").is_disabled()
+    assert_no_overflow(page,"mobile BYOK settings")
+    page.screenshot(path=str(OUT/"08-cloud-settings-mobile.png"),full_page=True)
+    results["mobile"]="PASS: landing, auth, no overflow, photo stage only, BYOK settings fail-closed"
     assert not errors, "Client errors: "+str(errors)
     results["console_errors"]=errors
     browser.close()
