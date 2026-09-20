@@ -71,7 +71,7 @@ class OwnerBridge:
                 if saved is None:
                     return 404, {"error":"connection not configured"}
                 return 200, verify_connection(provider,saved)
-            if action == "activate" and set(data) == {"action","provider"} and provider in MODELS:
+            if action == "activate" and set(data) == {"action","provider","spend_approved"} and provider in MODELS and data["spend_approved"] is True:
                 saved = self.vault.read_host_only(provider)
                 if saved is None:
                     return 404, {"error":"connection not configured"}
