@@ -172,7 +172,8 @@ def run(args):
     out = Path(args.output)
     out.mkdir(parents=True, exist_ok=False)
     ledger = Ledger(out)
-    memory = [{"id":1,"text":f"The independent user-provided marker is {MARKER}."}]
+    memory = [{"id":1,"text":f"The independent user-provided marker is {MARKER}."},
+              {"id":2,"text":"The user asked that tools remain behind explicit permission."}]
     checkpoint_path = out / "checkpoint_1.json"
     model_a = None
     model_b = None
@@ -185,8 +186,8 @@ def run(args):
         ledger.emit("SETUP", "provider_provenance", provider=A_ID, revision=revision_a)
         try:
             model_a = load_a(revision_a, ledger)
-            status["A0"] = "executed"
-            conversation(ledger, "A0", A_ID, model_a, PROMPTS[0], memory)
+            response_a0 = conversation(ledger, "A0", A_ID, model_a, PROMPTS[0], memory)
+            status["A0"] = "executed" if response_a0 is not None else "failed"
         except Exception as exc:
             status["A0"] = "blocked"
             ledger.emit("A0", "blocked", reason=type(exc).__name__, detail=str(exc)[:500])
@@ -200,14 +201,14 @@ def run(args):
         ledger.emit("CONTROLS", "memory_controls", ordered_sha256=sha(canonical(memory)),
                     empty_sha256=sha(canonical([])), reversed_sha256=sha(canonical(list(reversed(memory)))))
         # Independently supplied user event, never harvested from a provider response.
-        memory.append({"id":2,"text":"User-supplied update after A0: the goose wears sunglasses."})
+        memory.append({"id":3,"text":"User-supplied update after A0: the goose wears sunglasses."})
         ledger.emit("B0", "provider_swap", from_provider=A_ID, to_provider=B_ID,
                     memory_count=len(memory), authority_grants=[])
         try:
             model_b = load_b(Path(args.phos_checkpoint), Path(args.phos_source),
                              args.phos_revision, ledger)
-            status["B0"] = "executed"
-            conversation(ledger, "B0", B_ID, model_b, PROMPTS[1], memory)
+            response_b0 = conversation(ledger, "B0", B_ID, model_b, PROMPTS[1], memory)
+            status["B0"] = "executed" if response_b0 is not None else "failed"
         except Exception as exc:
             status["B0"] = "blocked"
             ledger.emit("B0", "blocked", reason=type(exc).__name__, detail=str(exc)[:500])
@@ -226,14 +227,15 @@ def run(args):
             ledger.emit("A1", "blocked", reason="first provider not loaded")
         ledger.emit("END", "summary", phases=status, initial_state_sha256=before,
                     final_memory_count=len(memory),
-                    cross_provider_continuity_measured= status.get("B0") == "executed"
-                       and status.get("A1") == "executed")
+                    cross_provider_context_delivery_measured= status.get("B0") == "executed"
+                       and status.get("A1") == "executed",
+                    memory_behavior_validated=False)
     finally:
         ledger.close()
     n,digest = verify(out / "events.jsonl")
     summary = {"phases":status,"events":n,"last_event_hash":digest,
                "initial_state_sha256":before,"final_memory_count":len(memory),
-               "limitations":"Context delivery is not weight-level learning. B1/B2 not executed."}
+               "limitations":"A0/B0/A1 generation alone does not validate memory use or weight-level learning; B1/B2 not executed."}
     (out / "summary.json").write_text(json.dumps(summary,indent=2)+"\n")
     print("SUMMARY "+json.dumps(summary),flush=True)
 
