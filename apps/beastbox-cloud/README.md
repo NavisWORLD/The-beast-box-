@@ -27,3 +27,9 @@ MODEL ≠ MEMORY · MODEL ≠ STATE · MODEL ≠ PROVENANCE · MODEL ≠ AUTHORI
 
 ## Release gate
 CI runs isolated preflight, TypeScript and Next build. Browser/iPhone acceptance, authenticated bridge, durable restart, attachment security and real inference still require independent validation. Do not merge unfinished work or fabricate a Vercel URL.
+
+## Redeploying the correct branch after changing Preview secrets
+
+Vercel's **production** branch remains `main`, and this isolated web folder does not yet exist there. Changing the project Root Directory to `apps/beastbox-cloud` therefore makes a redeployment of `main` fail with `The specified Root Directory does not exist`. This is unrelated to the owner password. Do **not** redeploy the latest `main` build or change the Root Directory back to the Python monorepo.
+
+After storing `BEASTBOX_OWNER_PASSWORD` and `BEASTBOX_CLOUD_AUTH_SECRET` under **Preview**, deploy a fresh commit from `feature/cosmic-chaos-vercel-app-001` and verify that the Vercel deployment **Source** is this feature branch—not `main`. Check its `/api/session` response for `configured: true` using an authorized browser session, without printing the secret. If that value is false, inspect the Preview variable scope and redeploy the correct feature branch again. Do not merge into main or promote the private preview to public production until backend and security gates pass.
