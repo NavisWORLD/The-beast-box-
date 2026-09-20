@@ -34,3 +34,28 @@ FlyWire-derived input data: `data/real_flywire_subset.json`, SHA-256 `5b59657436
 The local code/evidence package still needs a real GitHub source sync and CI; the previous GitHub source-blob upload was blocked, and network git is unavailable in the local runtime. Full COSMOS memory/CNS/R12/SYNAPSE/HEARTLIGHT/provider integration, a properly licensed commercial dataset, full-scope connectome simulation, production smoke tests and merge remain open gates.
 
 **Merge-ready: NO.** Preserve the historical reports and all negative/null results. `MODEL ≠ SYSTEM; MODEL ≠ MEMORY; MODEL ≠ AUTHORITY.`
+
+
+## Subsequent isolated build / grow / visible-42 continuation (2026-09-20)
+
+A new local evidence package was created by resuming the earlier sensor-quest archive. **Only this documentation is being committed here; no new executable source, data, artwork, trace, or video is present in this GitHub branch.** The user has the separately exported 27.8 MB local ZIP and 23.4 MB MP4.
+
+The local implementation adds a 42-neuron connectivity graph showing state-derived simulated activity; 96×64 virtual retinal input and station-specific simulated odor; a proximity/permission-gated virtual action set; modeled pickup, carrying, placement, nest building, seed planting, growth, feeding and software-offspring creation. The high-level 11-stage task order is authored by the experimenter; navigation is sensor-driven. Decorative pixel-art forest imagery is **not** the camera's physics/sensor world, and no biological reproduction or learned construction is claimed.
+
+Four matched seeds per condition; 20 completed runs in total:
+
+| Condition | Mean stages / 11 | Built nest | Grew patch | Software offspring spawned | Offspring reached food |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Real-derived 42-node subset | 11 | 4/4 | 4/4 | 4/4 | 4/4 |
+| Rewired topology | 11 | 4/4 | 4/4 | 4/4 | 4/4 |
+| No neural propagation | 11 | 4/4 | 4/4 | 4/4 | 4/4 |
+| Build action disabled | 4 | 0/4 | 0/4 | 0/4 | 0/4 |
+| Reproduction disabled | 9 | 4/4 | 4/4 | 0/4 | 0/4 |
+
+The original biological-data-derived subset had **no observed stage-completion advantage** over controls. Four seeds and a scripted goal policy do not support a biological cognition or independent-planning claim. The previous separately measured food-association learning experiment remains historical; this new task does not itself establish new learning.
+
+**Local verification:** 41 isolated tests passed, one skipped; an independent repeat reproduced the complete 20-run ledger and results JSON byte-for-byte. SHA-256 of the new ledger: `74f61c112f99baf155f9a823375b88ae41a0e7b29ebffd238cbe28d90fc4c609`.
+
+**Local video:** 337.6 seconds (5:37.6), 1280×720 H.264, 8,440 encoded frames at 25 fps from 1,688 distinct renderer frames at 5 fps (duplicated display frames only). SHA-256: `ac58be4895c9941335b26aba39b6a2262fffcd33c1c57b08b645e24223edeb12`. This is a rendered replay of actual saved virtual-agent simulation traces, not real animal, hardware camera, or screen capture. Per-step virtual camera interpretations were checked against archived observations.
+
+**Outstanding gates:** transfer actual runnable code/video/evidence into a feature branch, independent GitHub CI, full production interfaces, commercial licensing review for the CC BY-NC 4.0 FlyWire-derived input, and review before merge. **Not merge-ready.**
