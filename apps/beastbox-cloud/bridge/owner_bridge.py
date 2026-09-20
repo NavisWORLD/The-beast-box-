@@ -9,11 +9,13 @@ import argparse
 import hmac
 import json
 import os
+import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import urllib.parse
 
-from beastbox.cosmic_web import CosmicApp
+from dataclasses import asdict
+from beastbox.cosmic_web import CosmicApp, ProviderProfile
 
 MAX_BYTES = 256_000
 GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context"})
@@ -26,6 +28,36 @@ class OwnerBridge:
             raise ValueError("missing strong bridge token")
         self.token = token
         self.app = CosmicApp(root)
+        self._configure_explicit_hf_provider(root)
+
+    def _configure_explicit_hf_provider(self, root: Path) -> None:
+        """Owner-approved one-model HF setup on the durable host; never silently swap a profile."""
+        model = os.environ.get("BEASTBOX_HF_MODEL_ID", "").strip()
+        if not model:
+            return
+        if os.environ.get("BEASTBOX_HF_BILLING_APPROVED") != "yes":
+            raise ValueError("Hugging Face model requires explicit host-side billing approval")
+        token = os.environ.get("HF_TOKEN", "")
+        if len(token) < 20 or any(char in token for char in "\r\n"):
+            raise ValueError("HF_TOKEN missing or invalid on the persistent host")
+        if re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)?", model) is None:
+            raise ValueError("invalid Hugging Face model ID")
+        requested = ProviderProfile.from_dict({
+            "kind": "compatible",
+            "model": model,
+            "base_url": "https://router.huggingface.co/v1",
+            "allow_remote": True,
+            "api_key_env": "HF_TOKEN",
+        })
+        if (root / "cosmic-provider.json").exists():
+            if self.app.profile != requested:
+                raise ValueError("refusing to overwrite an existing Beast Box provider profile")
+        else:
+            self.app.authority.grant("cloud")
+            self.app._set_profile(asdict(requested))
+        # Explicit host approval is required again after every restart. A
+        # model handoff in CosmicApp revokes all previous authority.
+        self.app.authority.grant("cloud")
 
     def dispatch(self, method: str, path: str, auth: str, body: bytes = b""):
         if not hmac.compare_digest(
@@ -52,6 +84,14 @@ class OwnerBridge:
                     raise ValueError("expected JSON object")
             except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
                 return 400, {"error": "invalid JSON"}
+            # No arbitrary provider URL or environment-variable name may be
+            # supplied by an HTTP chat client. Host configuration only.
+            if name == "chat" and (set(data) - {"text", "context_ids"}):
+                return 400, {"error": "chat accepts only text and selected context IDs"}
+            if name == "context" and (
+                set(data) != {"scope", "name", "text"} or data.get("scope") != "temporary_attachment"
+            ):
+                return 400, {"error": "cloud context is temporary attachment data only"}
         return self.app.dispatch(method, parsed.path, data)
 
 
