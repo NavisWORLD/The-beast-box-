@@ -27,7 +27,7 @@ test('images and PDFs stay local until real storage',()=>{
 });
 test('proxy excludes arbitrary tools and filesystem',()=>{
  const proxy=read('app/api/bridge/[endpoint]/route.ts');
- assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','context'\]\)/);
+ assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','context','connections'\]\)/);
  assert.doesNotMatch(proxy,/['"]workspace\/write['"]/);
 });
 
@@ -44,4 +44,19 @@ test('authenticated status probes actual durable runtime rather than treating en
  const studio=read('components/studio.tsx');
  assert.match(studio,/status\.backendReachable===true/);
  assert.match(studio,/BRIDGE_SETTINGS_MISSING/);
+});
+
+test('BYOK provider credentials are owner-only, same-origin and never browser-persisted',()=>{
+ const bff=read('app/api/bridge/[endpoint]/route.ts');
+ const ui=read('components/cloud-connections.tsx');
+ assert.match(bff,/Same-origin owner action required/);
+ assert.match(bff,/Explicit model-spending approval required/);
+ assert.match(bff,/if \(!await isOwner\(\)\)/);
+ assert.doesNotMatch(ui,/localStorage|sessionStorage|document\.cookie/);
+ assert.match(ui,/type="password"/);
+ assert.match(ui,/HOST_KEY_REQUIRED/);
+ assert.match(ui,/single-owner|Single-owner/);
+ assert.match(ui,/ollama_cloud/);
+ assert.match(ui,/ibm_quantum/);
+ assert.match(ui,/azure_blob/);
 });
