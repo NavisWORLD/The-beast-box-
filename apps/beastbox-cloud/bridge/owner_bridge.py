@@ -17,6 +17,7 @@ import urllib.parse
 from dataclasses import asdict
 from beastbox.cosmic_web import CosmicApp, ProviderProfile
 from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV, MODELS
+from beastbox.cloud_connection_checks import verify_connection
 
 MAX_BYTES = 256_000
 GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections"})
@@ -65,6 +66,11 @@ class OwnerBridge:
                     self.app._set_profile({"kind":"reference"})
                 result = self.vault.remove(provider)
                 return 200, {**result,"active_model_deactivated":deactivated}
+            if action == "test" and set(data) == {"action","provider"}:
+                saved = self.vault.read_host_only(provider)
+                if saved is None:
+                    return 404, {"error":"connection not configured"}
+                return 200, verify_connection(provider,saved)
             if action == "activate" and set(data) == {"action","provider"} and provider in MODELS:
                 saved = self.vault.read_host_only(provider)
                 if saved is None:
