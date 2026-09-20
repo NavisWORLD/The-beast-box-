@@ -57,8 +57,10 @@ def _validate(provider: str, config: object, secret: object) -> tuple[dict[str, 
     if not isinstance(secret, str) or not 12 <= len(secret) <= 4096 or any(c in secret for c in "\r\n\x00"):
         raise ConnectionError("missing or invalid private credential")
     if provider in MODELS:
-        if MODEL_RE.fullmatch(cfg["model"]) is None or (provider == "huggingface" and "/" not in cfg["model"]):
+        if MODEL_RE.fullmatch(cfg["model"]) is None or "://" in cfg["model"]:
             raise ConnectionError("invalid hosted model identifier")
+        if provider == "huggingface" and (re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)?",cfg["model"]) is None or ".." in cfg["model"]):
+            raise ConnectionError("invalid Hugging Face repository/model identifier")
     if provider == "azure_blob":
         if re.fullmatch(r"[a-z0-9]{3,24}",cfg["account"]) is None or (
             len(cfg["container"]) > 63 or re.fullmatch(r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?",cfg["container"]) is None
