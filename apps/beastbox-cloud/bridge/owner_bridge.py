@@ -16,10 +16,11 @@ import urllib.parse
 
 from dataclasses import asdict
 from beastbox.cosmic_web import CosmicApp, ProviderProfile
+from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV, MODELS
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context"})
-POST_ALLOW = frozenset({"chat", "context"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections"})
+POST_ALLOW = frozenset({"chat", "context", "connections"})
 
 
 class OwnerBridge:
@@ -27,8 +28,63 @@ class OwnerBridge:
         if not isinstance(token, str) or len(token) < 32:
             raise ValueError("missing strong bridge token")
         self.token = token
-        self.app = CosmicApp(root)
+        self.vault = ConnectionVault(root) if os.environ.get(KEY_ENV) else None
+        if self.vault is not None and os.environ.get("BEASTBOX_HF_MODEL_ID"):
+            raise ConnectionError("choose either the explicit host HF provider or encrypted BYOK vault")
+        self.app = CosmicApp(root, provider_secret_resolver=self._resolve_provider_secret if self.vault else None)
         self._configure_explicit_hf_provider(root)
+
+    def _resolve_provider_secret(self, profile: ProviderProfile) -> str | None:
+        if self.vault is None:
+            return None
+        endpoints = {"huggingface": "https://router.huggingface.co/v1",
+                     "ollama_cloud": "https://ollama.com/v1"}
+        for name, endpoint in endpoints.items():
+            if profile.kind == "compatible" and profile.base_url == endpoint:
+                item = self.vault.read_host_only(name)
+                if item is None or item["config"]["model"] != profile.model:
+                    raise ConnectionError("active model credential is unavailable; select again")
+                return item["secret"]
+        return None
+
+    def _connection_action(self, data: dict) -> tuple[int, dict]:
+        if self.vault is None:
+            return 503, {"error":"Encrypted owner vault is not provisioned on the durable host"}
+        action = data.get("action")
+        provider = data.get("provider")
+        try:
+            if action == "save" and set(data) == {"action","provider","config","secret"}:
+                return 200, self.vault.save(provider,data["config"],data["secret"])
+            if action == "remove" and set(data) == {"action","provider"}:
+                # If the active model uses a revoked BYOK connection, change to
+                # reference and revoke all authority BEFORE discarding its key.
+                endpoint = {"huggingface":"https://router.huggingface.co/v1",
+                            "ollama_cloud":"https://ollama.com/v1"}.get(provider)
+                deactivated = bool(endpoint and self.app.profile.base_url == endpoint)
+                if deactivated:
+                    self.app._set_profile({"kind":"reference"})
+                result = self.vault.remove(provider)
+                return 200, {**result,"active_model_deactivated":deactivated}
+            if action == "activate" and set(data) == {"action","provider"} and provider in MODELS:
+                saved = self.vault.read_host_only(provider)
+                if saved is None:
+                    return 404, {"error":"connection not configured"}
+                endpoint = {"huggingface":"https://router.huggingface.co/v1",
+                            "ollama_cloud":"https://ollama.com/v1"}[provider]
+                # Explicit owner selection grants this one remote-model
+                # operation; the handoff itself revokes previous grants.
+                desired = {"kind":"compatible","model":saved["config"]["model"],
+                           "base_url":endpoint,"allow_remote":True,"api_key_env":None}
+                self.app.authority.grant("cloud")
+                profile,changed,revoked = self.app._set_profile(desired)
+                self.app.authority.grant("cloud")
+                return 200, {"selected":provider,"model":profile.model,
+                             "brain_changed":changed,"authority_revoked":revoked,
+                             "cloud_grant":"EXPLICIT_OWNER_SELECTION",
+                             "inference":"NOT_ATTESTED_UNTIL_REAL_CHAT"}
+        except (ValueError, TypeError, KeyError):
+            return 400, {"error":"connection request rejected; no secret was returned"}
+        return 400, {"error":"unsupported connection action"}
 
     def _configure_explicit_hf_provider(self, root: Path) -> None:
         """Owner-approved one-model HF setup on the durable host; never silently swap a profile."""
@@ -74,6 +130,10 @@ class OwnerBridge:
         allowed = GET_ALLOW if method == "GET" else POST_ALLOW if method == "POST" else frozenset()
         if name not in allowed:
             return 404, {"error": "unsupported route"}
+        if name == "connections" and method == "GET":
+            if self.vault is None:
+                return 200, {"vault":"HOST_KEY_REQUIRED","connections":[],"owner":"SINGLE_OWNER_PREVIEW"}
+            return 200, self.vault.list_public()
         if len(body) > MAX_BYTES:
             return 413, {"error": "request too large"}
         data = None
@@ -92,6 +152,8 @@ class OwnerBridge:
                 set(data) != {"scope", "name", "text"} or data.get("scope") != "temporary_attachment"
             ):
                 return 400, {"error": "cloud context is temporary attachment data only"}
+        if name == "connections":
+            return self._connection_action(data)
         return self.app.dispatch(method, parsed.path, data)
 
 
