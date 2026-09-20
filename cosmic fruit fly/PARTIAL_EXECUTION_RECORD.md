@@ -59,3 +59,19 @@ The original biological-data-derived subset had **no observed stage-completion a
 **Local video:** 337.6 seconds (5:37.6), 1280×720 H.264, 8,440 encoded frames at 25 fps from 1,688 distinct renderer frames at 5 fps (duplicated display frames only). SHA-256: `ac58be4895c9941335b26aba39b6a2262fffcd33c1c57b08b645e24223edeb12`. This is a rendered replay of actual saved virtual-agent simulation traces, not real animal, hardware camera, or screen capture. Per-step virtual camera interpretations were checked against archived observations.
 
 **Outstanding gates:** transfer actual runnable code/video/evidence into a feature branch, independent GitHub CI, full production interfaces, commercial licensing review for the CC BY-NC 4.0 FlyWire-derived input, and review before merge. **Not merge-ready.**
+
+## Subsequent IBM historical replay + sandbox typing experiment (2026-09-20)
+
+**Important repository boundary:** the runnable code, nine-record derived input, full traces, screenshot, and 7:01.67 MP4 are in the separate local experiment ZIP, **not committed to GitHub**. This commit records execution status only, and the branch remains **NOT MERGE READY**.
+
+Recovered real source data: `NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2/workload_decode_summary.json`, source Git blob SHA-1 `084282a26bf923f03188a2be4c36f3fb34b09987`. Nine source-reported historical `ibm_fez` measurement summaries (March 12, 2026; 4,224 shots per job; 38,016 source-reported shots) were encoded as a small, bounded simulated neural drive. **No live IBM call, no raw QPU result independent re-decoding, and no claim of all workloads.**
+
+The earlier FlyWire-derived 42-node/95-edge anatomical subset and virtual camera/odor/touch/heading remain integrated. The upstream COSMOS bio interface's `MockBioProvider` is explicitly simulated, so **no verified personal EEG/HRV/GSR/ECG signal was injected**; the new normalizer rejects fabricated/missing-provenance bio packets.
+
+A sandbox-only `type_token` permission now maps completed virtual-world events to a 36-word maximum finite vocabulary; 24 allowlisted words were emitted on successful runs (for example `BUILT NEST`, `HELLO LITTLE FLY`). This is NOT learned language or a host keyboard.
+
+**Execution:** six seeds × six matched arms = 36 completed simulations. All arms completed 11/11 authored stages (no stage-completion performance advantage). Mean steps: quantum replay 210.83; replay disabled 210.83; shuffled 211.00; rewired 211.83; no propagation 212.50; typing disabled 210.83. Typing-disabled emitted zero words. Replay versus disabled showed seed-0 mean absolute 42-node neural-state difference 0.03823973 (a numerical coupling result, not behavioral improvement).
+
+**Checks:** 46 isolated Python tests passed, three skipped. Independent 36-run reproduction: byte-identical `runs.jsonl`, SHA-256 `de90389a00482411c7a65e5dd6fc883ca2d53d60ebfb1db04b51b88f0c0dca52`. Rendered video: 421.666667 sec, H.264 MP4 1280×720, SHA-256 `08b887f50b0b543fd0ca3b2dbd718813170a0dda18f14184f5274a251c691564`, **not** live hardware or camera footage. No video is hosted on this branch.
+
+Remaining gates: actually sync source/evidence/video, CI on committed source, license review of CC BY-NC 4.0 FlyWire-derived material, verified physiological source if requested, and broader IBM archive processing. Do not merge or claim biological language acquisition.
