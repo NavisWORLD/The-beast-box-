@@ -30,3 +30,18 @@ test('proxy excludes arbitrary tools and filesystem',()=>{
  assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','context'\]\)/);
  assert.doesNotMatch(proxy,/['"]workspace\/write['"]/);
 });
+
+test('authenticated status probes actual durable runtime rather than treating env vars as reachability',()=>{
+ const source=read('app/api/status/route.ts');
+ assert.match(source,/const owner=await isOwner\(\)/);
+ assert.match(source,/if\(!bridgeConfigured\(\)\)return result\(true,'BRIDGE_SETTINGS_MISSING'\)/);
+ assert.match(source,/getHostJson\('orbit'\)/);
+ assert.match(source,/getHostJson\('provider'\)/);
+ assert.match(source,/AbortSignal\.timeout\(5_000\)/);
+ assert.match(source,/BRIDGE_AUTH_REJECTED/);
+ assert.match(source,/MODEL_PROFILE_CONFIGURED_NOT_ATTESTED/);
+ assert.doesNotMatch(source,/BEASTBOX_CLOUD_BRIDGE_TOKEN.*(console|JSON\.stringify)/);
+ const studio=read('components/studio.tsx');
+ assert.match(studio,/status\.backendReachable===true/);
+ assert.match(studio,/BRIDGE_SETTINGS_MISSING/);
+});
