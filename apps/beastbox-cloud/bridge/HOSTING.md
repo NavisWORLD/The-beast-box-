@@ -133,3 +133,45 @@ must be exercised on an isolated test volume.
 Azure private attachment storage, IBM live hardware workloads, GGUF conversion,
 hosted PHOS weights, multi-user auth and a public production release remain
 separate projects and are NOT automatically enabled by this runbook.
+
+## Bring your own cloud accounts (single-owner Preview)
+
+SETTINGS → **Connect your universe** is a real owner-only connection interface
+backed by the original durable bridge. The Vercel app does not store API
+credentials and does not accept them when the bridge is offline. On the durable
+host, install `cosmos-beast-box[secure]` for `cryptography` and create a
+**separate** 32-byte random AES-256 key, standard Base64 encoded, in
+`BEASTBOX_CONNECTION_VAULT_KEY`. Store it in an approved host secret manager
+alongside the bridge token, and back it up privately; losing it makes saved
+cloud credentials unrecoverable. Never reuse the owner password, session-signing
+key or bearer token as this vault key.
+
+The owner vault is `owner-connections.sqlite3` on the durable volume.
+Configuration and credentials are AES-256-GCM encrypted with provider-bound
+authenticated data; reads and writes are scoped to the **single owner**.
+Secrets never appear in the GET response, model profile, portable substrate
+archive, static assets, client storage, source, request logs or PR evidence.
+The browser uses an ephemeral password field and only transmits secrets in an
+authenticated same-origin request through the Vercel BFF to the HTTPS bridge.
+Keep the BFF proxy and TLS host protected. The vault database is NOT a general
+multi-tenant secret manager or a substitute for network and filesystem access
+controls; independently test isolation before public signups.
+
+Currently registered connections: Hugging Face hosted chat, Ollama Cloud
+hosted chat, Azure Blob private container (scoped SAS, **not** a storage
+account master key), IBM watsonx.ai (region/project/model), and IBM Quantum.
+Only HF and Ollama Cloud have explicitly owner-activated model routing,
+with separate spending acknowledgment and standard COSMOS authority revocation
+on model change. Read-only **Test access** checks provider credentials without
+a paid generation call; passing it is NOT proof of a successful model reply,
+storage write, project entitlement or authorized IBM Quantum job.
+
+Configured Azure / IBM keys are secure host records until the respective
+document, storage and IBM runtime workflows have real adapters, access policies
+and tests. Remote self-hosted/local Ollama requires a separate authorized
+tunnel; do not supply a localhost URL to Vercel or allow arbitrary remote URLs
+in a browser field. Do not claim "any API provider" is supported without a
+registered adapter, pinned endpoint and tested authorization contract.
+
+**Release status:** no durable host or Azure/IBM resources were provisioned by
+writing these settings. The existing owner Preview is not multi-user-ready.
