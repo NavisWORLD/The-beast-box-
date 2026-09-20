@@ -33,6 +33,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
+          python -m pip install --quiet 'cryptography>=44,<47'
           PYTHONPATH="$GITHUB_WORKSPACE" python -m unittest discover -s bridge/tests -p 'test_*.py' -v
       - name: Prepare browser acceptance
         run: |
