@@ -34,12 +34,12 @@ jobs:
           set -Eeuo pipefail
           python -m pip install --quiet 'torch>=2.4' --index-url https://download.pytorch.org/whl/cpu
           python -m pip install --quiet 'transformers>=4.45,<5' 'huggingface-hub>=0.27' safetensors
-          python -m py_compile 'i dare you/open_swap.py'
+          python -m py_compile 'i dare you/open_swap.py' 'i dare you/continuous_conversation.py'
       - name: Verify external state recorder before model calls
         shell: bash
         run: |
           set -Eeuo pipefail
-          python -m unittest discover -s 'i dare you/tests' -p 'test_open_swap.py' -v
+          python -m unittest discover -s 'i dare you/tests' -p 'test_*.py' -v
       - name: Fetch exact published PHOS weight and architecture
         id: phos
         shell: bash
@@ -62,13 +62,13 @@ jobs:
           print("PHOS_PUBLIC_CHECKPOINT_SHA256=" + digest)
           print("PHOS_PUBLIC_ARCH_FILES=" + ",".join(sorted(x.name for x in (root/"architecture").glob("*.py"))))
           PY
-      - name: Execute actual A0-B0-A1 with append-only ledger
+      - name: Execute full 10-turn A0-B0-A1 conversation with append-only ledger
         id: experiment
         continue-on-error: true
         shell: bash
         run: |
           set -Eeuo pipefail
-          python 'i dare you/open_swap.py' --output "$RUNNER_TEMP/open-model-swap-$GITHUB_RUN_ID" \
+          python 'i dare you/continuous_conversation.py' --output "$RUNNER_TEMP/open-model-swap-$GITHUB_RUN_ID" \
             --phos-checkpoint '_real_phos/weights/phos.pt' \
             --phos-source '_real_phos' \
             --phos-revision "$PHOS_REVISION"
@@ -85,6 +85,8 @@ jobs:
             cp "$RUNNER_TEMP/open-model-swap-$GITHUB_RUN_ID/events.jsonl" _open_model_evidence/ 2>/dev/null || true
             cp "$RUNNER_TEMP/open-model-swap-$GITHUB_RUN_ID/summary.json" _open_model_evidence/ 2>/dev/null || true
             cp "$RUNNER_TEMP/open-model-swap-$GITHUB_RUN_ID/checkpoint_1.json" _open_model_evidence/ 2>/dev/null || true
+            cp "$RUNNER_TEMP/open-model-swap-$GITHUB_RUN_ID/conversation_turns.jsonl" _open_model_evidence/ 2>/dev/null || true
+            cp "$RUNNER_TEMP/open-model-swap-$GITHUB_RUN_ID/conversation_transcript.md" _open_model_evidence/ 2>/dev/null || true
           fi
           python - <<'PY'
           import json,os,pathlib
@@ -117,5 +119,7 @@ jobs:
           print("PHASES="+json.dumps(result["phases"],sort_keys=True))
           if not all(result["phases"].get(phase)=="executed" for phase in ["A0","B0","A1"]):
               raise SystemExit("not all real inference phases executed; review artifact")
-          print("REAL_A_B_A=PASS")
+          if result["attempted_turns"] != 10 or result["successful_turns"] != 10:
+              raise SystemExit("full conversation incomplete; inspect all recorded turns")
+          print("REAL_CONTINUOUS_A_B_A=PASS")
           PY
