@@ -7,6 +7,7 @@ One owner only: do not claim multi-tenant security or production certification.
 from __future__ import annotations
 
 import base64
+from contextlib import contextmanager
 import json
 import os
 import re
@@ -94,11 +95,17 @@ class ConnectionVault:
             db.execute("CREATE TABLE IF NOT EXISTS connections (provider TEXT PRIMARY KEY, sealed BLOB NOT NULL)")
             db.commit()
 
+    @contextmanager
     def _open(self):
         # Database content is encrypted with AES-GCM; SQLite -journal holds ciphertext.
+        if self.path.is_symlink():
+            raise ConnectionError("credential database cannot be a symlink")
         db = sqlite3.connect(self.path,timeout=8)
-        os.chmod(self.path,0o600)
-        return db
+        try:
+            os.chmod(self.path,0o600)
+            yield db
+        finally:
+            db.close()
 
     def _seal(self, provider: str, payload: dict) -> bytes:
         nonce = secrets.token_bytes(12)
