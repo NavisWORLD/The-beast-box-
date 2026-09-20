@@ -103,7 +103,7 @@ jobs:
           print(f'MODEL_B_RESOLVED={repo}@{info.sha}')
           PY
       - name: Download preserved Model A source artifact
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: ${{ env.MODEL_A_SOURCE_ARTIFACT }}
           path: .persistent-substrate/model-a-source
