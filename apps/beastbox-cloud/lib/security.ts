@@ -2,7 +2,17 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
 const COOKIE = 'beastbox-session';
 const SESSION_AGE = 60 * 60 * 8;
-export function ownerConfigured() { return !!(process.env.BEASTBOX_OWNER_PASSWORD && process.env.BEASTBOX_CLOUD_AUTH_SECRET && process.env.BEASTBOX_CLOUD_AUTH_SECRET.length >= 32); }
+export function ownerSetupStatus() {
+  // Only missing variable names are reported; never serialize secret values,
+  // hashes, lengths or the owner password.
+  const password = !!process.env.BEASTBOX_OWNER_PASSWORD;
+  const signingSecret = !!process.env.BEASTBOX_CLOUD_AUTH_SECRET && process.env.BEASTBOX_CLOUD_AUTH_SECRET.length >= 32;
+  return {configured:password && signingSecret, missing:[
+    ...(!password?['BEASTBOX_OWNER_PASSWORD']:[]),
+    ...(!signingSecret?['BEASTBOX_CLOUD_AUTH_SECRET (minimum 32 characters)']:[])
+  ]};
+}
+export function ownerConfigured() { return ownerSetupStatus().configured; }
 export function bridgeConfigured() { return !!(process.env.BEASTBOX_CLOUD_BRIDGE_URL && process.env.BEASTBOX_CLOUD_BRIDGE_TOKEN && validBackendUrl(process.env.BEASTBOX_CLOUD_BRIDGE_URL)); }
 export function validBackendUrl(value: string | undefined): boolean {
   if (!value) return false;
