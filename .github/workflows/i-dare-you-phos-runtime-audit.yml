@@ -1,0 +1,56 @@
+name: I Dare You - PHOS Runtime Audit
+
+on:
+  push:
+    branches: [experiment/i-dare-you-smollm-phos-001]
+    paths: ['.github/workflows/i-dare-you-phos-runtime-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --quiet 'huggingface-hub>=0.27' 'torch>=2.4' --extra-index-url https://download.pytorch.org/whl/cpu
+      - name: Inspect original PHOS generation and runtime
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import hashlib,json,os,sys,torch
+          from pathlib import Path
+          from huggingface_hub import snapshot_download
+          root=Path(snapshot_download(repo_id='phera-ra/QC67_cosmo',
+              revision='b414724c627300c41b099dcc6853766d08fd27a4',
+              allow_patterns=['architecture/*.py','serving/*.py','tools/cosmos_serve.py','weights/phos.pt'],
+              local_dir='_phos_audit'))
+          cp=root/'weights/phos.pt'
+          assert hashlib.sha256(cp.read_bytes()).hexdigest()=='bdcd4a39aa54bfc6c274580e210f993e528214d7207cb19dc258a2f801f6b84d'
+          ckpt=torch.load(cp,map_location='cpu',weights_only=True)
+          print('PHOS_CHECKPOINT_METADATA_START')
+          for key,val in ckpt.items():
+              if key=='model': print('model tensors:',len(val));continue
+              if key in ('vocab_list','optimizer','opt'): 
+                  print(key,'length=',len(val));continue
+              if isinstance(val,(str,int,float,bool,type(None),dict,list,tuple)):
+                  print(key,repr(val)[:900])
+              else: print(key,type(val).__name__)
+          print('PHOS_CHECKPOINT_METADATA_END')
+          for p in sorted(root.rglob('*.py')):
+              if p.parent.name not in ('architecture','serving','tools'):continue
+              lines=p.read_text(encoding='utf-8',errors='replace').splitlines()
+              print('ORIGINAL_SOURCE_BEGIN',p.relative_to(root),len(lines))
+              for i,line in enumerate(lines,1):
+                  if any(n in line.lower() for n in ('block =','ctx =','max_new','n_predict','generate(','temperature','top_k','top_p','repetition','repetition_penalty','class ladder','def sample','def chat','def _generate','def forward','load_state_dict','phos.pt','cosmos-phos','prompt =','context =','/generate','def respond')):
+                      start=max(0,i-5);end=min(len(lines),i+13)
+                      print('---MATCH',i)
+                      for j in range(start,end): print(f'{j+1:04}: {lines[j][:260]}')
+              print('ORIGINAL_SOURCE_END',p.relative_to(root))
+          PY
