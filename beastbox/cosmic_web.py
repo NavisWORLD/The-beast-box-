@@ -191,9 +191,11 @@ class CosmicApp:
             raise PermissionError("cloud authority required")
         provider = selected.make_provider()
         if isinstance(provider, CompatibleChatProvider) and self._provider_secret_resolver is not None:
-            if selected.api_key_env is not None:
-                raise ValueError("vault secret cannot be combined with environment-secret profile")
-            provider.api_key = self._provider_secret_resolver(selected)
+            secret = self._provider_secret_resolver(selected)
+            if secret is not None:
+                if selected.api_key_env is not None:
+                    raise ValueError("vault secret cannot be combined with environment-secret profile")
+                provider.api_key = secret
         return provider
 
     def _runtime(self, profile: ProviderProfile | None = None) -> DurableRuntime:
