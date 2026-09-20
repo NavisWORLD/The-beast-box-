@@ -1,0 +1,87 @@
+name: I Dare You - authentic PHOS preflight
+
+on:
+  push:
+    branches: [experiment/i-dare-you-jev-phos-001]
+    paths:
+      - '.github/workflows/i-dare-you-authentic-phos-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authentic-phos:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install HF transfer only
+        run: python -m pip install --quiet 'huggingface-hub>=0.27'
+      - name: Download published PHOS weights and inspect entrypoints
+        shell: bash
+        env:
+          HF_HUB_DISABLE_TELEMETRY: '1'
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import hashlib, json, os, sys, traceback
+          from pathlib import Path
+          from datetime import datetime, timezone
+          from huggingface_hub import HfApi, snapshot_download
+
+          base = Path('_real_phos')
+          base.mkdir(exist_ok=True)
+          receipt = {'schema':'i-dare-you.authentic-phos-preflight.v1',
+                     'time_utc':datetime.now(timezone.utc).isoformat(),
+                     'model':'phera-ra/QC67_cosmo', 'execution':'source-and-weights-access-only',
+                     'model_inference_executed':False, 'jev_called':False,
+                     'run_id':os.environ.get('GITHUB_RUN_ID'),
+                     'github_sha':os.environ.get('GITHUB_SHA')}
+          try:
+              api=HfApi()
+              info=api.model_info(receipt['model'])
+              receipt['revision']=info.sha
+              allowed=['weights/phos.pt','serving/cosmos_coder.py','architecture/phos_grow.py','architecture/cosmos_phos.py']
+              root=Path(snapshot_download(repo_id=receipt['model'],revision=info.sha,
+                        local_dir=str(base),allow_patterns=allowed))
+              received=[]
+              for name in allowed:
+                  p=root/name
+                  if p.exists():
+                      item={'path':name,'bytes':p.stat().st_size,
+                            'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+                      received.append(item)
+                      if p.suffix=='.py':
+                          print(f'--- {name} START ---')
+                          for i,line in enumerate(p.read_text(encoding='utf-8').splitlines(),1):
+                              print(f'{i:04}: {line[:400]}')
+                          print(f'--- {name} END ---')
+              receipt['files']=received
+              receipt['weights_available']=any(x['path']=='weights/phos.pt' for x in received)
+              receipt['status']='download_verified' if receipt['weights_available'] else 'blocked_missing_weights'
+          except Exception as exc:
+              receipt['status']='blocked'
+              receipt['exception_type']=type(exc).__name__
+              receipt['error_summary']=str(exc)[:300]
+          (base/'preflight_receipt.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          print('PREFLIGHT_RECEIPT='+json.dumps(receipt,sort_keys=True))
+          if receipt['status']!='download_verified':
+              sys.exit(1)
+          PY
+      - name: Upload receipt and public serving source (never model weights)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i-dare-you-authentic-phos-preflight-${{ github.run_id }}
+          path: |
+            _real_phos/preflight_receipt.json
+            _real_phos/architecture/*.py
+            _real_phos/serving/*.py
+          if-no-files-found: warn
+          retention-days: 30
