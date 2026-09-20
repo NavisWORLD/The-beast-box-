@@ -41,7 +41,7 @@ status="$(curl -sS -o "$work/unauth.json" -w '%{http_code}' "$api/api/orbit")"
 [[ "$status" == 401 ]] || { echo "FAIL: unauthenticated status $status" >&2; exit 1; }
 status="$(curl -sS -o "$work/invalid.json" -w '%{http_code}' -H 'Authorization: Bearer invalid-token' "$api/api/orbit")"
 [[ "$status" == 401 ]] || { echo 'FAIL: incorrect bearer accepted' >&2; exit 1; }
-status="$(curl -sS -o "$work/unlisted" -w '%{http_code}' "$api/api/workspace")"
+status="$(curl -sS -o "$work/unlisted" -w '%{http_code}' -H "Authorization: Bearer $token" "$api/api/workspace")"
 [[ "$status" == 404 ]] || { echo 'FAIL: public workspace route exposed' >&2; exit 1; }
 curl -fsS -H "Authorization: Bearer $token" "$api/api/orbit" > "$work/before.json"
 curl -fsS -H "Authorization: Bearer $token" "$api/api/connections" > "$work/connections.json"
