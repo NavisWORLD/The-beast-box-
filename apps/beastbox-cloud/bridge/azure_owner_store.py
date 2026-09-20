@@ -50,7 +50,7 @@ def validate_file(name: str, mime: str, data: bytes) -> None:
 class AzureOwnerStore:
     """Storage operations are scoped to a verified private owner prefix."""
 
-    def __init__(self, *, account_url: str, container: str, owner_id: str, service=None):
+    def __init__(self, *, account_url: str, container: str, owner_id: str, service=None, content_settings_factory=None):
         parsed = urlsplit(account_url)
         if (parsed.scheme != "https" or parsed.username or parsed.password or parsed.path not in ("", "/")
                 or parsed.query or parsed.fragment
@@ -61,6 +61,7 @@ class AzureOwnerStore:
         if re.fullmatch(r"[a-f0-9]{32}", owner_id) is None:
             raise OwnerStorageError("owner_id must be 32 lowercase hex characters")
         self.owner_id = owner_id
+        self._content_settings_factory = content_settings_factory
         self.prefix = "owners/" + owner_id + "/"
         if service is None:
             try:
@@ -93,10 +94,12 @@ class AzureOwnerStore:
         metadata = {"owner": self.owner_id, "sha256": digest,
                     "name_b64": base64.urlsafe_b64encode(filename.encode("utf-8")).decode("ascii"),
                     "mime": mime}
-        from azure.storage.blob import ContentSettings
+        if self._content_settings_factory is None:
+            from azure.storage.blob import ContentSettings
+            self._content_settings_factory = ContentSettings
         blob = self._blob(artifact_id)
         blob.upload_blob(io.BytesIO(content), overwrite=False,
-                         content_settings=ContentSettings(content_type=mime),
+                         content_settings=self._content_settings_factory(content_type=mime),
                          metadata=metadata, max_concurrency=1)
         return {"id": artifact_id, "filename": filename, "mime": mime,
                 "size": len(content), "sha256": digest, "durability": "AZURE_BLOB_WRITE_ACKNOWLEDGED"}
