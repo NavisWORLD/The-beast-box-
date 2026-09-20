@@ -33,7 +33,7 @@ jobs:
           python -m pip install --quiet 'transformers>=4.45,<5' 'huggingface-hub>=0.27' safetensors
           python -m py_compile 'i dare you/open_swap.py' 'i dare you/continuous_conversation.py' 'i dare you/native_phos_adapter.py' 'i dare you/ten_minute_session.py'
       - name: Run all isolated recorder tests
-        run: python -m unittest discover -s 'i dare you/tests' -p 'test_*.py' -v
+        run: PYTHONPATH='i dare you' python -m unittest discover -s 'i dare you/tests' -p 'test_*.py' -v
       - name: Fetch pinned authentic PHOS and original server
         shell: bash
         run: |
