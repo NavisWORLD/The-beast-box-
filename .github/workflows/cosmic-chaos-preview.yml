@@ -1,0 +1,31 @@
+name: Cosmic Chaos Preview Checks
+on:
+  push:
+    branches: [feature/cosmic-chaos-vercel-app-001]
+    paths: ['apps/beastbox-cloud/**', '.github/workflows/cosmic-chaos-preview.yml']
+  pull_request:
+    paths: ['apps/beastbox-cloud/**', '.github/workflows/cosmic-chaos-preview.yml']
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Tests
+        run: npm run test
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
