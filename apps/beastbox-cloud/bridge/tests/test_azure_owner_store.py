@@ -32,7 +32,8 @@ class AzureTests(unittest.TestCase):
     def setUp(self):
         self.service=FakeService()
         self.store=module.AzureOwnerStore(account_url="https://beaststorage.blob.core.windows.net",
-            container="beastbox-private",owner_id="a"*32,service=self.service)
+            container="beastbox-private",owner_id="a"*32,service=self.service,
+            content_settings_factory=lambda **kw: SimpleNamespace(**kw))
     def test_genuine_contract_with_fake_backend(self):
         receipt=self.store.upload(filename="letter.txt",mime="text/plain",content=b"hello owner")
         self.assertEqual(receipt["durability"],"AZURE_BLOB_WRITE_ACKNOWLEDGED")
