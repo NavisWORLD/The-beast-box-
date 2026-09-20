@@ -1,0 +1,74 @@
+name: Cosmic Chaos Preview Checks
+on:
+  push:
+    branches: [feature/cosmic-chaos-vercel-app-001]
+    paths: ['apps/beastbox-cloud/**', '.github/workflows/cosmic-chaos-preview.yml']
+  pull_request:
+    paths: ['apps/beastbox-cloud/**', '.github/workflows/cosmic-chaos-preview.yml']
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Tests
+        run: npm run test
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+      - name: Owner bridge security and durable-restart smoke
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --quiet 'cryptography>=44,<47'
+          PYTHONPATH="$GITHUB_WORKSPACE" python -m unittest discover -s bridge/tests -p 'test_*.py' -v
+      - name: Prepare browser acceptance
+        run: |
+          python -m pip install --quiet playwright
+          google-chrome --version
+      - name: Desktop + iPhone-size browser verification
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export BEASTBOX_OWNER_PASSWORD='public-ci-fixture-not-secret'
+          export BEASTBOX_CLOUD_AUTH_SECRET='PUBLIC_CI_FIXTURE_NOT_FOR_ANY_REAL_DEPLOYMENT_ONLY'
+          npm run start -- --port 3100 > /tmp/cosmic-chaos-next.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl --silent --fail http://127.0.0.1:3100/ > /dev/null; then break; fi
+            sleep 1
+          done
+          python tests/browser_check.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cosmic-chaos-browser-evidence-${{ github.run_id }}
+          path: apps/beastbox-cloud/browser-evidence/
+          if-no-files-found: warn
+          retention-days: 30
+
+  durable-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build actual durable Python owner bridge image
+        run: docker build --file apps/beastbox-cloud/bridge/deploy/Dockerfile --tag beastbox-owner-bridge:ci .
+      - name: Verify mounted-volume fail-close, authenticated ingress and restart persistence
+        run: bash apps/beastbox-cloud/bridge/deploy/ci_smoke.sh

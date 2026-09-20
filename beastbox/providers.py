@@ -5,7 +5,7 @@ import json
 import urllib.parse
 import urllib.request
 import urllib.error
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Protocol
 
 # Compatible-provider profiles carry the *name* of a host secret variable rather
@@ -87,6 +87,8 @@ class CompatibleChatProvider:
     allow_remote: bool = False
     api_key_env: str | None = None
     timeout: float = 120.0
+    # Injected from an encrypted host-only vault, never serialized to a profile.
+    api_key: str | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         parsed = urllib.parse.urlparse(self.base_url)
@@ -101,7 +103,11 @@ class CompatibleChatProvider:
     def generate(self, prompt: str) -> str:
         import os
         headers = {'Content-Type': 'application/json'}
-        if self.api_key_env:
+        if self.api_key is not None:
+            if not self.api_key or any(c in self.api_key for c in '\r\n'):
+                raise ValueError('configured provider credential is invalid')
+            headers['Authorization'] = 'Bearer ' + self.api_key
+        elif self.api_key_env:
             key = os.environ.get(self.api_key_env)
             if not key or any(c in key for c in '\r\n'):
                 raise ValueError('configured API key environment variable is missing or invalid')

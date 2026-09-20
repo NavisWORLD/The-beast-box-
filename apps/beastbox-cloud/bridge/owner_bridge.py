@@ -1,0 +1,257 @@
+"""Owner-only transport for the real durable CosmicApp. Run behind an authenticated TLS reverse proxy on persistent compute.
+
+NOT a Vercel Function. Not a multi-user service. Never binds publicly. Do not
+mistake the deterministic reference provider for a pretrained model.
+"""
+from __future__ import annotations
+
+import argparse
+import hmac
+import json
+import os
+import re
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+import urllib.parse
+
+from dataclasses import asdict
+from beastbox.cosmic_web import CosmicApp, ProviderProfile
+from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV, MODELS
+from beastbox.cloud_connection_checks import verify_connection
+
+MAX_BYTES = 256_000
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections"})
+POST_ALLOW = frozenset({"chat", "context", "connections"})
+
+
+class OwnerBridge:
+    def __init__(self, root: Path, token: str):
+        if not isinstance(token, str) or len(token) < 32:
+            raise ValueError("missing strong bridge token")
+        self.token = token
+        self.vault = ConnectionVault(root) if os.environ.get(KEY_ENV) else None
+        if self.vault is not None and os.environ.get("BEASTBOX_HF_MODEL_ID"):
+            raise ConnectionError("choose either the explicit host HF provider or encrypted BYOK vault")
+        self.app = CosmicApp(root, provider_secret_resolver=self._resolve_provider_secret if self.vault else None)
+        self._configure_explicit_hf_provider(root)
+
+    def _resolve_provider_secret(self, profile: ProviderProfile) -> str | None:
+        if self.vault is None:
+            return None
+        endpoints = {"huggingface": "https://router.huggingface.co/v1",
+                     "ollama_cloud": "https://ollama.com/v1"}
+        for name, endpoint in endpoints.items():
+            if profile.kind == "compatible" and profile.base_url == endpoint:
+                item = self.vault.read_host_only(name)
+                if item is None or item["config"]["model"] != profile.model:
+                    raise ConnectionError("active model credential is unavailable; select again")
+                return item["secret"]
+        return None
+
+    def _connection_action(self, data: dict) -> tuple[int, dict]:
+        if self.vault is None:
+            return 503, {"error":"Encrypted owner vault is not provisioned on the durable host"}
+        action = data.get("action")
+        provider = data.get("provider")
+        try:
+            if action == "save" and set(data) == {"action","provider","config","secret"}:
+                return 200, self.vault.save(provider,data["config"],data["secret"])
+            if action == "remove" and set(data) == {"action","provider"}:
+                # If the active model uses a revoked BYOK connection, change to
+                # reference and revoke all authority BEFORE discarding its key.
+                endpoint = {"huggingface":"https://router.huggingface.co/v1",
+                            "ollama_cloud":"https://ollama.com/v1"}.get(provider)
+                deactivated = bool(endpoint and self.app.profile.base_url == endpoint)
+                if deactivated:
+                    self.app._set_profile({"kind":"reference"})
+                result = self.vault.remove(provider)
+                return 200, {**result,"active_model_deactivated":deactivated}
+            if action == "test" and set(data) == {"action","provider"}:
+                saved = self.vault.read_host_only(provider)
+                if saved is None:
+                    return 404, {"error":"connection not configured"}
+                return 200, verify_connection(provider,saved)
+            if action == "activate" and set(data) == {"action","provider","spend_approved"} and provider in MODELS and data["spend_approved"] is True:
+                saved = self.vault.read_host_only(provider)
+                if saved is None:
+                    return 404, {"error":"connection not configured"}
+                endpoint = {"huggingface":"https://router.huggingface.co/v1",
+                            "ollama_cloud":"https://ollama.com/v1"}[provider]
+                # Explicit owner selection grants this one remote-model
+                # operation; the handoff itself revokes previous grants.
+                desired = {"kind":"compatible","model":saved["config"]["model"],
+                           "base_url":endpoint,"allow_remote":True,"api_key_env":None}
+                self.app.authority.grant("cloud")
+                profile,changed,revoked = self.app._set_profile(desired)
+                self.app.authority.grant("cloud")
+                return 200, {"selected":provider,"model":profile.model,
+                             "brain_changed":changed,"authority_revoked":revoked,
+                             "cloud_grant":"EXPLICIT_OWNER_SELECTION",
+                             "inference":"NOT_ATTESTED_UNTIL_REAL_CHAT"}
+        except (ValueError, TypeError, KeyError):
+            return 400, {"error":"connection request rejected; no secret was returned"}
+        return 400, {"error":"unsupported connection action"}
+
+    def _configure_explicit_hf_provider(self, root: Path) -> None:
+        """Owner-approved one-model HF setup on the durable host; never silently swap a profile."""
+        model = os.environ.get("BEASTBOX_HF_MODEL_ID", "").strip()
+        if not model:
+            return
+        if os.environ.get("BEASTBOX_HF_BILLING_APPROVED") != "yes":
+            raise ValueError("Hugging Face model requires explicit host-side billing approval")
+        token = os.environ.get("HF_TOKEN", "")
+        if len(token) < 20 or any(char in token for char in "\r\n"):
+            raise ValueError("HF_TOKEN missing or invalid on the persistent host")
+        if re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)?", model) is None:
+            raise ValueError("invalid Hugging Face model ID")
+        requested = ProviderProfile.from_dict({
+            "kind": "compatible",
+            "model": model,
+            "base_url": "https://router.huggingface.co/v1",
+            "allow_remote": True,
+            "api_key_env": "HF_TOKEN",
+        })
+        if (root / "cosmic-provider.json").exists():
+            if self.app.profile != requested:
+                raise ValueError("refusing to overwrite an existing Beast Box provider profile")
+        else:
+            self.app.authority.grant("cloud")
+            self.app._set_profile(asdict(requested))
+        # Explicit host approval is required again after every restart. A
+        # model handoff in CosmicApp revokes all previous authority.
+        self.app.authority.grant("cloud")
+
+    def dispatch(self, method: str, path: str, auth: str, body: bytes = b""):
+        if not hmac.compare_digest(
+            auth.encode("utf-8", errors="replace"),
+            ("Bearer " + self.token).encode("utf-8")
+        ):
+            return 401, {"error": "unauthorized"}
+        parsed = urllib.parse.urlsplit(path)
+        if parsed.query or parsed.fragment:
+            return 404, {"error": "unsupported route"}
+        if not parsed.path.startswith("/api/"):
+            return 404, {"error": "unsupported route"}
+        name = parsed.path.removeprefix("/api/")
+        allowed = GET_ALLOW if method == "GET" else POST_ALLOW if method == "POST" else frozenset()
+        if name not in allowed:
+            return 404, {"error": "unsupported route"}
+        if name == "connections" and method == "GET":
+            if self.vault is None:
+                return 200, {"vault":"HOST_KEY_REQUIRED","connections":[],"owner":"SINGLE_OWNER_PREVIEW"}
+            return 200, self.vault.list_public()
+        if len(body) > MAX_BYTES:
+            return 413, {"error": "request too large"}
+        data = None
+        if method == "POST":
+            try:
+                data = json.loads(body.decode("utf-8"))
+                if not isinstance(data, dict):
+                    raise ValueError("expected JSON object")
+            except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
+                return 400, {"error": "invalid JSON"}
+            # No arbitrary provider URL or environment-variable name may be
+            # supplied by an HTTP chat client. Host configuration only.
+            if name == "chat" and (set(data) - {"text", "context_ids"}):
+                return 400, {"error": "chat accepts only text and selected context IDs"}
+            if name == "context" and (
+                set(data) != {"scope", "name", "text"} or data.get("scope") != "temporary_attachment"
+            ):
+                return 400, {"error": "cloud context is temporary attachment data only"}
+        if name == "connections":
+            return self._connection_action(data)
+        return self.app.dispatch(method, parsed.path, data)
+
+
+class Handler(BaseHTTPRequestHandler):
+    server_version = "BeastBoxOwnerBridge/1"
+    protocol_version = "HTTP/1.1"
+
+    @property
+    def bridge(self) -> OwnerBridge:
+        return self.server.bridge
+
+    def _emit(self, status: int, value: dict) -> None:
+        raw = json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(raw)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Content-Security-Policy", "default-src 'none'")
+        self.end_headers()
+        self.wfile.write(raw)
+
+    def _handle(self, method: str) -> None:
+        # The only unauthenticated path: bounded, non-sensitive runtime readiness
+        # for a managed HTTPS reverse proxy. No model or owner state is returned.
+        if method == "GET" and self.path == "/healthz":
+            self._emit(200, {"ready": True, "service": "beastbox-owner-bridge"})
+            return
+        auth = self.headers.get("Authorization", "")
+        if method == "POST":
+            try:
+                length = int(self.headers.get("Content-Length", ""))
+            except ValueError:
+                self._emit(400, {"error": "missing or invalid Content-Length"})
+                return
+            if not 0 <= length <= MAX_BYTES:
+                self._emit(413, {"error": "request too large"})
+                return
+            if self.headers.get("Content-Type", "").split(";")[0].strip().lower() != "application/json":
+                self._emit(415, {"error": "JSON content type required"})
+                return
+            raw = self.rfile.read(length)
+        else:
+            raw = b""
+        status, result = self.bridge.dispatch(method, self.path, auth, raw)
+        self._emit(status, result)
+
+    def do_GET(self) -> None:
+        self._handle("GET")
+
+    def do_POST(self) -> None:
+        self._handle("POST")
+
+    def do_OPTIONS(self) -> None:
+        self._emit(405, {"error": "CORS disabled"})
+
+    def log_message(self, format: str, *args: object) -> None:
+        # Never log user prompts, bearer values, record text, raw paths or credentials.
+        return
+
+
+class Server(ThreadingHTTPServer):
+    daemon_threads = True
+    bridge: OwnerBridge
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--data-dir", required=True, type=Path)
+    parser.add_argument("--port", type=int, default=11521)
+    args = parser.parse_args()
+    root = args.data_dir.expanduser().absolute()
+    if not root.is_dir() or root.is_symlink():
+        parser.error("data directory must be a pre-existing real durable directory")
+    if str(root).startswith(("/tmp/", "/var/task/", "/run/", "/dev/shm/")):
+        parser.error("ephemeral directory refused for production substrate")
+    token = os.getenv("BEASTBOX_CLOUD_BRIDGE_TOKEN", "")
+    try:
+        bridge = OwnerBridge(root, token)
+    except ValueError as exc:
+        parser.error(str(exc))
+    if not 1 <= args.port <= 65535:
+        parser.error("port must be in 1..65535")
+    server = Server(("127.0.0.1", args.port), Handler)
+    server.bridge = bridge
+    print(f"BEAST BOX OWNER BRIDGE: loopback: {args.port}; durable root configured; bearer required; no public bind.", flush=True)
+    try:
+        server.serve_forever()
+    finally:
+        server.server_close()
+
+
+if __name__ == "__main__":
+    main()
