@@ -86,9 +86,9 @@ class CompatibleChatProvider:
     base_url: str = 'http://127.0.0.1:1234/v1'
     allow_remote: bool = False
     api_key_env: str | None = None
+    timeout: float = 120.0
     # Injected from an encrypted host-only vault, never serialized to a profile.
     api_key: str | None = field(default=None, repr=False, compare=False)
-    timeout: float = 120.0
 
     def __post_init__(self) -> None:
         parsed = urllib.parse.urlparse(self.base_url)
