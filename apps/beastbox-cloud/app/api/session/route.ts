@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
-import { cookieName, cookieOptions, isOwner, newSession, ownerConfigured, safeJson, verifyPassword } from '@/lib/security';
+import { cookieName, cookieOptions, isOwner, newSession, ownerConfigured, ownerSetupStatus, safeJson, verifyPassword } from '@/lib/security';
 export const dynamic = 'force-dynamic';
-export async function GET() {return safeJson(200, { owner: await isOwner(), configured: ownerConfigured() });}
+export async function GET() {return safeJson(200, { owner: await isOwner(), ...ownerSetupStatus() });}
 export async function POST(request: Request) {
   if (!ownerConfigured()) return safeJson(503, {error:'Owner login is not provisioned. Configure secrets in Vercel Preview.'});
   if (Number(request.headers.get('content-length') || 0) > 2048) return safeJson(413,{error:'Request too large'});
