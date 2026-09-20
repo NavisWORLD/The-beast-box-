@@ -34,7 +34,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  const [menu,setMenu]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const [turns,setTurns]=useState<Turn[]>([]),[prompt,setPrompt]=useState(''),[model,setModel]=useState('NOT CONNECTED');
  const [records,setRecords]=useState<Record<string,unknown>[]>([]),[orbit,setOrbit]=useState<Record<string,unknown>|null>(null),[trace,setTrace]=useState<Record<string,unknown>[]>([]),[snapshot,setSnapshot]=useState<Record<string,unknown>|null>(null),[profile,setProfile]=useState<Record<string,unknown>|null>(null);
- const [attachments,setAttachments]=useState<Attachment[]>([]),[attachError,setAttachError]=useState('');const picker=useRef<HTMLInputElement>(null),bottom=useRef<HTMLDivElement>(null);
+ const [attachments,setAttachments]=useState<Attachment[]>([]),[attachError,setAttachError]=useState('');const picker=useRef<HTMLInputElement>(null),bottom=useRef<HTMLDivElement>(null),imageUrls=useRef<Set<string>>(new Set());
  const load=useCallback(async()=>{
    if(!owner)return;
    setError('');
@@ -56,7 +56,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  },[owner]);
  useEffect(()=>{void load();},[load]);
  useEffect(()=>{bottom.current?.scrollIntoView({behavior:'smooth',block:'end'});},[turns.length]);
- useEffect(()=>()=>{attachments.forEach(a=>{if(a.objectUrl)URL.revokeObjectURL(a.objectUrl)})},[attachments]);
+ useEffect(()=>()=>{for(const url of imageUrls.current)URL.revokeObjectURL(url);imageUrls.current.clear();},[]);
  async function pickFiles(files:FileList|null) {
    if(!files)return;
    setAttachError('');
@@ -68,12 +68,14 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
      }
      const isText=file.type.startsWith('text/')||/\.(md|txt|py|js|ts|tsx|json|csv)$/i.test(file.name);
      const text=isText?await file.text():undefined;
-     prepared.push({name:file.name,size:file.size,type:file.type,original:file,text,objectUrl:file.type.startsWith('image/')?URL.createObjectURL(file):undefined});
+     const url=file.type.startsWith('image/')?URL.createObjectURL(file):undefined;
+     if(url)imageUrls.current.add(url);
+     prepared.push({name:file.name,size:file.size,type:file.type,original:file,text,objectUrl:url});
    }
    setAttachments(old=>[...old,...prepared].slice(0,4));
    if(picker.current)picker.current.value='';
  }
- function removeFile(i:number){setAttachments(old=>old.filter((a,n)=>{if(n===i&&a.objectUrl)URL.revokeObjectURL(a.objectUrl);return n!==i;}));}
+ function removeFile(i:number){setAttachments(old=>old.filter((a,n)=>{if(n===i&&a.objectUrl){URL.revokeObjectURL(a.objectUrl);imageUrls.current.delete(a.objectUrl);}return n!==i;}));}
  async function send(){
    if(!bridge||busy||!prompt.trim())return;
    setBusy(true);setError('');
