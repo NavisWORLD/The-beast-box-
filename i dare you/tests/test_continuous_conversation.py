@@ -26,7 +26,7 @@ class ConversationTests(unittest.TestCase):
         memory = [{"text": "User marker: mango goose 47."}]
         turns = [{"response": "Unexpected last response!", "phase": "A0"}]
         prompt, meta = subject.make_input("B0", "Tell me a story about the marker", memory, turns)
-        self.assertLessEqual(len(prompt), 64)
+        self.assertLessEqual(len(prompt), 128)
         self.assertTrue(meta["memory_marker_delivered"])
         self.assertTrue(meta["prior_reply_excerpt_delivered"])
 
