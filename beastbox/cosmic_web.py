@@ -18,7 +18,7 @@ import sys
 import tempfile
 import threading
 from collections import deque
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 import urllib.parse
 
 from .cosmic_ui import render_cosmic_ui
@@ -162,7 +162,7 @@ def _regular_directory(value: str | Path) -> Path:
 class CosmicApp:
     """Testable owner controller; HTTP is only a transport adapter around this."""
 
-    def __init__(self, root: str | Path, *, workspace_roots: Iterable[str | Path] = ()) -> None:
+    def __init__(self, root: str | Path, *, workspace_roots: Iterable[str | Path] = (), provider_secret_resolver: Callable[[ProviderProfile], str | None] | None = None) -> None:
         supplied_root = Path(root).expanduser()
         if supplied_root.is_symlink():
             raise ValueError("cosmic runtime root cannot be a symlink")
@@ -170,6 +170,7 @@ class CosmicApp:
         self.authority = AuthoritySession()
         self.service = ProductService(self.root, authority=self.authority)
         self.profile = load_provider_profile(self.root)
+        self._provider_secret_resolver = provider_secret_resolver
         self.workspace_allowlist: set[Path] = set()
         self.workspace: Workspace | None = None
         self.contexts: list[dict[str, Any]] = []
@@ -188,7 +189,12 @@ class CosmicApp:
         selected = profile or self.profile
         if selected.remote and not self.authority.allowed("cloud"):
             raise PermissionError("cloud authority required")
-        return selected.make_provider()
+        provider = selected.make_provider()
+        if isinstance(provider, CompatibleChatProvider) and self._provider_secret_resolver is not None:
+            if selected.api_key_env is not None:
+                raise ValueError("vault secret cannot be combined with environment-secret profile")
+            provider.api_key = self._provider_secret_resolver(selected)
+        return provider
 
     def _runtime(self, profile: ProviderProfile | None = None) -> DurableRuntime:
         return DurableRuntime(self.root, self._provider(profile))
