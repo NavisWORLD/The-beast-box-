@@ -14,10 +14,11 @@ spec = importlib.util.spec_from_file_location("open_swap", BASE / "open_swap.py"
 core = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = core
 spec.loader.exec_module(core)
+from native_phos_adapter import load_native
 
 PHASES = (("A0", core.A_ID, 3), ("B0", core.B_ID, 4), ("A1", core.A_ID, 3))
 MARKER = "mango goose 47"
-PHOS_LIMIT = 64   # In the pinned, published checkpoint's existing runner.
+PHOS_LIMIT = 128   # Checkpoint config block=128; original server NativeModel.
 
 def follow_up(turns, phase, step):
     """A question responsive to the ACTUAL prior text, not a recorded fake answer."""
@@ -44,15 +45,15 @@ def follow_up(turns, phase, step):
 def make_input(phase, question, memory, turns):
     last = turns[-1]["response"] if turns and turns[-1]["response"] else ""
     if phase == "B0":
-        # Preserve the last response and marker in the *actual* 64-char suffix.
+        # Preserve marker and last response in the published checkpoint's 128-char suffix.
         # This is a short character model, not a conventional chat model.
-        compact = f"M:{MARKER};prev:{last[-13:]};Q:{question[:20]}\nA:"
+        compact = f"Memory:{MARKER};prev:{last[-30:]};Cory:{question[:43]}\nPHOS:"
         delivered = compact[-PHOS_LIMIT:]
         return delivered, {
-            "transport": "authentic_char_lm_64_char_window",
+            "transport": "published_native_phos_128_char_window",
             "delivered_tail": delivered, "truncation": len(compact) > PHOS_LIMIT,
             "full_conversation_recorded": True, "memory_marker_delivered": MARKER in delivered,
-            "prior_reply_excerpt_delivered": last[-13:] in delivered if last else False,
+            "prior_reply_excerpt_delivered": last[-30:] in delivered if last else False,
         }
     history = "\n".join(
         f"{turn['phase']}/{turn['provider'].split('/')[-1]}: {turn['response'][:120]}"
@@ -120,7 +121,7 @@ def markdown(turns):
     result = ["# Complete recorded cross-provider conversation", "",
               "This is actual model output, NOT a scripted model transcript.",
               "Facilitator questions are scripted or derived from the preceding actual answer.",
-              "PHOS is a small character-level model with a 64-character input window; "
+              "PHOS is a small character-level model with a checkpoint-defined 128-character input window; "
               "the *complete transcript* is stored externally, not passed intact to PHOS.", ""]
     for t in turns:
         result.extend((f"## Turn {t['turn']} · {t['phase']} · {t['provider']}",
@@ -175,8 +176,10 @@ def run(args):
         ledger.emit("B0", "provider_swap", from_provider=core.A_ID, to_provider=core.B_ID,
                     memory_count=len(memory), prior_turn_count=len(turns))
         try:
-            model_b = core.load_b(Path(args.phos_checkpoint), Path(args.phos_source),
-                                  args.phos_revision, ledger)
+            model_b, block = load_native(Path(args.phos_checkpoint), Path(args.phos_source),
+                                        args.phos_revision, ledger)
+            if block != PHOS_LIMIT:
+                raise ValueError(f"native PHOS context {block} disagrees with adapter {PHOS_LIMIT}")
             statuses["B0_provider"] = "loaded"
         except Exception as exc:
             statuses["B0_provider"] = "blocked"
@@ -210,7 +213,7 @@ def run(args):
         "attempted_turns": len(turns), "successful_turns": sum(t["response"] is not None for t in turns),
         "phases": statuses, "checkpoint_sha256": checkpoint_digest,
         "final_memory_count": len(memory),
-        "limitations": "Full dialogue is recorded externally. PHOS only receives its 64-char input. "
+        "limitations": "Full dialogue is recorded externally. PHOS only receives its 128-char window, sampled with its original server. "
                        "No PHOS fine-tuning or behavioral proof of remembering.",
     }
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
