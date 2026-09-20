@@ -1,38 +1,31 @@
-# i dare you 💀 — JEV × PHOS experimental recorder
+# i dare you 💀 — Open Model Swap Lab
 
-Owner: Cory Davis · Beast Box. **Status: PARTIAL.** The attached local run executed an independent continuity fixture, not a completed JEV ↔ PHOS model swap. This folder does not modify historical PHOS/Zeref or CST research artifacts.
+Cory Davis · Beast Box · **SmolLM2-135M-Instruct ↔ authentic PHOS**
 
-## Model and data boundaries
+This branch replaces the earlier proprietary-provider protocol with two independently accessible models. Earlier experiments remain in Git history; their evidence is not retroactively rewritten. Only files in this isolated experiment folder and the dedicated CI workflow are in scope.
 
-- **JEV:** TypeSafe's typed-decision `POST https://api.typesafe.ai/v1/systemone`. It is not a generative chat provider. An explicitly enabled call reads `TYPESAFE_API_KEY` from the environment. Private JEV outputs go in `private_jev/`; never share restricted results without appropriate permission.
-- **Authentic PHOS:** published `phera-ra/QC67_cosmo` lineage, `weights/phos.pt`, served with matching architecture and tokenizer. This is different from Beast Box's independent `PHOSReferenceLM` class. An arbitrary file named `phos.pt` is not proof of authenticity.
-- Never train PHOS on JEV outputs, claim a JEV API configuration is a JEV weight checkpoint, or promote external-memory retrieval into weight-level learning. `MODEL ≠ MEMORY ≠ STATE ≠ AUTHORITY`.
+## Actual model identities
 
-## Execute and inspect
+- **A — SmolLM2-135M-Instruct:** HuggingFaceTB/SmolLM2-135M-Instruct, Apache-2.0; download a pinned revision at runtime. Do not mix it up with the older, non-instruction model.
+- **B — published PHOS:** phera-ra/QC67_cosmo, revision `b414724c627300c41b099dcc6853766d08fd27a4`, `weights/phos.pt`. Pinned SHA-256: `bdcd4a39aa54bfc6c274580e210f993e528214d7207cb19dc258a2f801f6b84d`; from a successful repository CI download preflight. Load its actual `cosmos_state_ladder.Ladder` source, not a generic reference model.
+- Separate external state is supplied to providers as explicit context. It does not change either model's weights.
 
-From the Beast Box repository root, with Python 3.10+:
+## Run it
+
+Launch the dedicated GitHub Actions workflow `I Dare You - Open Model Swap` on this feature branch or run on a suitably provisioned local machine:
 
 ```bash
-python 'i dare you/recorder.py' run --out 'i dare you/evidence/YOUR_UNIQUE_RUN'
-python 'i dare you/recorder.py' verify 'i dare you/evidence/YOUR_UNIQUE_RUN'
-python 'i dare you/verify_public_ledger.py' 'i dare you/evidence/YOUR_UNIQUE_RUN'
-python 'i dare you/dashboard.py' 'i dare you/evidence/YOUR_UNIQUE_RUN' --port 8088
-python 'i dare you/replay.py' 'i dare you/evidence/YOUR_UNIQUE_RUN'
-python 'i dare you/render_ledger_replay.py' 'i dare you/evidence/YOUR_UNIQUE_RUN'
-python -m pytest -q 'i dare you/tests'
+python -m pip install 'torch>=2.4' 'transformers>=4.45,<5' 'huggingface-hub>=0.27' safetensors
+hf download phera-ra/QC67_cosmo weights/phos.pt --revision b414724c627300c41b099dcc6853766d08fd27a4 --local-dir _real_phos
+hf download phera-ra/QC67_cosmo --include 'architecture/*.py' --revision b414724c627300c41b099dcc6853766d08fd27a4 --local-dir _real_phos
+PHOS_EXPECTED_SHA256=bdcd4a39aa54bfc6c274580e210f993e528214d7207cb19dc258a2f801f6b84d python 'i dare you/open_swap.py' --output /tmp/open-model-swap-001 --phos-revision b414724c627300c41b099dcc6853766d08fd27a4
+python 'i dare you/open_swap.py' --verify /tmp/open-model-swap-001/events.jsonl
 ```
 
-FFmpeg, Pillow and the DejaVu font are needed for MP4 replay; the live local dashboard uses Python's standard library. The standalone replay bundles verified public events. A replay is **not** an actual screen capture.
+`events.jsonl` is append-only, UTC stamped and SHA-256 linked. `summary.json` records executed/blocked phases. PHOS model loading fails closed if its hash or architecture mismatches. The run does not pretend that external-memory retrieval proves weight-level learning; authentic fine-tuning (B1/B2) is explicitly **not executed** until an independent training protocol can be verified.
 
-To attempt an *authorized* live JEV call, set the key privately and pass `--enable-jev`. To attempt a locally served, authentic PHOS provider, pass `--phos-checkpoint /path/to/phos.pt --phos-url http://127.0.0.1:11500`. The supplied-file SHA-256 is recorded; independently validate checkpoint provenance. Current `--training-command` intentionally refuses to launch an unverified trainer. No authentic PHOS weight-training integration is claimed.
+## Sharing boundaries
 
-## Actual bundled local results
+Publish your original experiment code and permitted public evidence only. Verify licenses for PHOS model files before redistributing weights. The workflow uploads **receipts and generated public text only**, not either model's weight files. Never publish confidential prompts, API secrets, or unrelated user data.
 
-- 14 real, UTC-timestamped, sequence-numbered and SHA-256-linked ledger events.
-- Independent test-fixture memory increased 2 → 3 records; checkpoint save/restore and file round-trip verified.
-- Empty-memory and shuffled-memory controls executed as software-state checks.
-- JEV A0/A1, PHOS B0/B1/B2, no-training PHOS and trained-PHOS controls blocked; no full provider transition established.
-- Four focused local tests passed; training metrics file is **empty** because there were no verified training steps. Transcript explicitly states that no model-generated conversation occurred.
-- The MP4 is an event-paced, visibly labeled **REPLAY — NOT LIVE SCREEN CAPTURE**.
-
-The downloadable evidence package is attached to the originating ChatGPT conversation and identified by `LOCAL_EXECUTION_RECEIPT.json`. The package omits private JEV data and restricted model weights. Do not merge partial evidence into `main` as a successful model-swap demonstration.
+Status: implementation and CI must be separately validated. A successful workflow exit is not proof that every phase executed: inspect `summary.json` for A0, B0, B1, B2 and A1 individually. No merge until independently reviewed.
