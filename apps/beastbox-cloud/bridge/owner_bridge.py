@@ -184,6 +184,11 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def _handle(self, method: str) -> None:
+        # The only unauthenticated path: bounded, non-sensitive runtime readiness
+        # for a managed HTTPS reverse proxy. No model or owner state is returned.
+        if method == "GET" and self.path == "/healthz":
+            self._emit(200, {"ready": True, "service": "beastbox-owner-bridge"})
+            return
         auth = self.headers.get("Authorization", "")
         if method == "POST":
             try:
