@@ -15,10 +15,14 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
     if (body.length>256_000) return safeJson(413,{error:'Request too large'});
     let parsed:unknown;try{parsed=JSON.parse(body);}catch{return safeJson(400,{error:'Invalid JSON'});}
     if (!parsed || typeof parsed!=='object' || Array.isArray(parsed)) return safeJson(400,{error:'Invalid request'});
+    const input=parsed as Record<string,unknown>;
     if (endpoint==='chat') {
-      const text=(parsed as {text?:unknown}).text;
+      if (Object.keys(input).some(k=>!['text','context_ids'].includes(k))) return safeJson(400,{error:'Cloud chat only accepts text and selected context IDs'});
+      const text=input.text;
       if (typeof text!=='string'||text.trim().length<1||text.length>8192) return safeJson(400,{error:'Chat text must be 1..8192 characters'});
+      if (input.context_ids!==undefined && (!Array.isArray(input.context_ids)||input.context_ids.length>20||input.context_ids.some(x=>!Number.isSafeInteger(x)||x<0))) return safeJson(400,{error:'Invalid context IDs'});
     }
+    if (endpoint==='context' && (Object.keys(input).sort().join(',')!=='name,scope,text'||input.scope!=='temporary_attachment'||typeof input.name!=='string'||typeof input.text!=='string'||input.name.length>255||input.text.length>16000)) return safeJson(400,{error:'Only bounded temporary attachment context is accepted'});
   }
   const root=process.env.BEASTBOX_CLOUD_BRIDGE_URL!;
   const url=new URL('/api/'+endpoint, root.endsWith('/')?root:root+'/');
