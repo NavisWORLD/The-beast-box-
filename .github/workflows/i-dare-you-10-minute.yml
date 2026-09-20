@@ -1,0 +1,107 @@
+name: I Dare You - Ten Minute Real Conversation
+on:
+  push:
+    branches: [experiment/i-dare-you-smollm-phos-001]
+    paths:
+      - '.github/workflows/i-dare-you-10-minute.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      HF_HUB_DISABLE_TELEMETRY: '1'
+      TOKENIZERS_PARALLELISM: 'false'
+      PHOS_REVISION: b414724c627300c41b099dcc6853766d08fd27a4
+      PHOS_EXPECTED_SHA256: bdcd4a39aa54bfc6c274580e210f993e528214d7207cb19dc258a2f801f6b84d
+      OMP_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install public model runtimes
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --quiet 'torch>=2.4' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet 'transformers>=4.45,<5' 'huggingface-hub>=0.27' safetensors
+          python -m py_compile 'i dare you/open_swap.py' 'i dare you/continuous_conversation.py' 'i dare you/native_phos_adapter.py' 'i dare you/ten_minute_session.py'
+      - name: Run all isolated recorder tests
+        run: python -m unittest discover -s 'i dare you/tests' -p 'test_*.py' -v
+      - name: Fetch pinned authentic PHOS and original server
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from huggingface_hub import snapshot_download
+          from pathlib import Path
+          import hashlib,os
+          root=Path(snapshot_download(repo_id='phera-ra/QC67_cosmo',revision=os.environ['PHOS_REVISION'],
+              allow_patterns=['weights/phos.pt','architecture/*.py','serving/cosmos_serve.py'],local_dir='_real_phos'))
+          weight=root/'weights/phos.pt'
+          assert weight.is_file() and (root/'serving/cosmos_serve.py').is_file()
+          assert hashlib.sha256(weight.read_bytes()).hexdigest()==os.environ['PHOS_EXPECTED_SHA256']
+          print('AUTHENTIC_PHOS_HASH_AND_ORIGINAL_SERVER=VERIFIED')
+          PY
+      - name: Execute ten measured minutes of authentic A0-B0-A1 conversation
+        id: experiment
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -u 'i dare you/ten_minute_session.py' \
+            --output "$RUNNER_TEMP/open-10min-$GITHUB_RUN_ID" \
+            --phos-checkpoint '_real_phos/weights/phos.pt' \
+            --phos-source '_real_phos' --phos-revision "$PHOS_REVISION"
+      - name: Stage exact public evidence - no model weights
+        if: always()
+        shell: bash
+        env:
+          EXPERIMENT_OUTCOME: ${{ steps.experiment.outcome }}
+        run: |
+          set -u
+          mkdir -p _ten_minute_evidence
+          if [[ -d "$RUNNER_TEMP/open-10min-$GITHUB_RUN_ID" ]]; then
+            for file in events.jsonl summary.json checkpoint_A0.json conversation_turns.jsonl conversation_transcript.md; do
+              cp "$RUNNER_TEMP/open-10min-$GITHUB_RUN_ID/$file" _ten_minute_evidence/ 2>/dev/null || true
+            done
+          fi
+          python - <<'PY'
+          import json,os,pathlib
+          pathlib.Path('_ten_minute_evidence/ci_receipt.json').write_text(json.dumps({
+              'run_id':os.getenv('GITHUB_RUN_ID'),'head_sha':os.getenv('GITHUB_SHA'),
+              'experiment_outcome':os.getenv('EXPERIMENT_OUTCOME'),
+              'model_weights_uploaded':False,'video_generated_in_ci':False
+          },indent=2)+'\n')
+          PY
+      - name: Upload real conversation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i-dare-you-ten-minutes-${{ github.run_id }}
+          path: _ten_minute_evidence/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Reject incomplete ten-minute test
+        if: steps.experiment.outcome == 'success'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          root=Path('_ten_minute_evidence')
+          d=json.loads((root/'summary.json').read_text())
+          assert d['wall_seconds'] >= 600, d
+          assert d['attempted_turns'] == 36 and d['successful_turns'] == 36, d
+          assert all(d['phase_success'][p]==12 for p in ('A0','B0','A1')), d
+          assert d['phos_context_chars']==128 and d['phos_original_server'], d
+          assert not d['training_performed']
+          print('REAL_WALL_CLOCK_TEN_MINUTE_A_B_A=PASS')
+          PY
