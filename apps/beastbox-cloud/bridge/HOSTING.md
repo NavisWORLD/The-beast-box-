@@ -175,3 +175,56 @@ registered adapter, pinned endpoint and tested authorization contract.
 
 **Release status:** no durable host or Azure/IBM resources were provisioned by
 writing these settings. The existing owner Preview is not multi-user-ready.
+
+## Verified managed-host option: Railway (not yet launched)
+
+An isolated private Railway project named **Beast Box COSMOS Engine** has been
+created for this owner. No running service, attached volume, generated public
+domain, secrets, or paid resources were created by opening the project.
+Provider billing and a spending ceiling must be approved before deploying.
+
+The existing feature branch includes a deployment image:
+
+- `apps/beastbox-cloud/bridge/deploy/Dockerfile`: packages the existing
+  `beastbox` Python runtime and the exact owner bridge, not a substitute service.
+- `deploy/Caddyfile`: Railway edge HTTPS → Caddy → Python bound **only** to
+  `127.0.0.1:11521`. Public routes are limited to `/api/*` and a
+  non-sensitive `/healthz`; arbitrary COSMOS or file-system routes are denied.
+- `deploy/start.sh`: refuses startup unless `/srv/beastbox/data` is an
+  actual mounted volume with the expected `RAILWAY_VOLUME_MOUNT_PATH` and
+  `RAILWAY_RUN_UID=0`. The Python and Caddy processes drop to the dedicated
+  `beastbox` OS user before serving. SQLite files and the AES-GCM vault stay
+  on the same volume across container restarts.
+- `deploy/railway.json`: single replica, no sleep, fail-on-crash restart
+  policy, Dockerfile builder and `/healthz` readiness.
+- `deploy/ci_smoke.sh`: disposable Docker/Caddy integration test. It verifies
+  the unmounted startup guard, bearer rejection, restricted routes, an actual
+  deterministic **reference** turn, vault presence, and data recovery after a
+  container restart. These tests do **not** exercise real paid inference.
+
+After cost approval, create a GitHub-backed Railway service using repository
+`NavisWORLD/The-beast-box-` and branch
+`feature/cosmic-chaos-vercel-app-001`. Configure build context at repository
+root, select `apps/beastbox-cloud/bridge/deploy/Dockerfile`, and select
+`apps/beastbox-cloud/bridge/deploy/railway.json` as the service config file.
+Attach an actual persistent Railway volume mounted at `/srv/beastbox/data`.
+Set `RAILWAY_RUN_UID=0` as documented in Railway's volume permissions guide.
+
+Set the bridge token and *separate* AES-256-GCM vault key in **Railway service
+secrets**. Never put the owner password, cloud session secret, Hugging Face API
+key, or stored connection credentials in Git. Choose the service's generated
+`*.up.railway.app` HTTPS domain; a custom bridge subdomain is optional and
+the existing Vercel apex DNS must not change. Set
+`BEASTBOX_CLOUD_BRIDGE_URL` to that verified HTTPS domain and
+`BEASTBOX_CLOUD_BRIDGE_TOKEN` to the matching private bearer in the specific
+Vercel branch Preview environment, then redeploy that feature branch once.
+Railway and Vercel currently require separate authorized configuration steps.
+
+Check owner-only `/api/status` from the logged-in Vercel Preview and verify
+`backendReachable=true`. In SETTINGS, save and **test** a genuinely authorized
+hosted-model credential, approve expected provider usage costs, explicitly
+activate the model, and run a real BRAIN request before claiming inference.
+Restart the Railway service and check that the same system ID, conversation
+history and latest checkpoint are restored. Enable scheduled volume backups,
+bounded hosting limits, and monitoring. Do not open public multi-user access
+without new isolation, security, quota and restore gates.
