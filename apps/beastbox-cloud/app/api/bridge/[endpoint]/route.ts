@@ -29,11 +29,12 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
       if (input.context_ids!==undefined && (!Array.isArray(input.context_ids)||input.context_ids.length>20||input.context_ids.some(x=>!Number.isSafeInteger(x)||x<0))) return safeJson(400,{error:'Invalid context IDs'});
     }
     if (endpoint==='connections') {
-      const allowed=['action','provider','config','secret'];
+      const allowed=['action','provider','config','secret','spend_approved'];
       if (Object.keys(input).some(k=>!allowed.includes(k))||typeof input.action!=='string'||typeof input.provider!=='string') return safeJson(400,{error:'Invalid connection operation'});
       if (!['save','remove','activate','test'].includes(input.action)) return safeJson(400,{error:'Unsupported connection operation'});
       if (input.action==='save' && (Object.keys(input).sort().join(',')!=='action,config,provider,secret'||typeof input.secret!=='string'||input.secret.length>4096||!input.config||typeof input.config!=='object'||Array.isArray(input.config)))return safeJson(400,{error:'Invalid provider credentials'});
-      if (input.action!=='save' && Object.keys(input).sort().join(',')!=='action,provider') return safeJson(400,{error:'Invalid provider action'});
+      if (input.action==='activate' && (Object.keys(input).sort().join(',')!=='action,provider,spend_approved'||input.spend_approved!==true)) return safeJson(400,{error:'Explicit model-spending approval required'});
+      if (!['save','activate'].includes(input.action as string) && Object.keys(input).sort().join(',')!=='action,provider') return safeJson(400,{error:'Invalid provider action'});
     }
     if (endpoint==='context' && (Object.keys(input).sort().join(',')!=='name,scope,text'||input.scope!=='temporary_attachment'||typeof input.name!=='string'||typeof input.text!=='string'||input.name.length>255||input.text.length>16000)) return safeJson(400,{error:'Only bounded temporary attachment context is accepted'});
   }
