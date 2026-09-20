@@ -48,6 +48,9 @@ beast-arms = "beastbox.arms.cli:main"
 [tool.setuptools]
 include-package-data = false
 
+[tool.setuptools.package-data]
+beastbox = ["ui_theme.css", "cosmic_layout.css"]
+
 [tool.setuptools.packages.find]
 include = ["beastbox*"]
 exclude = ["tests*", "scripts*", "docs*", "experiments*", "evidence*", "QUANTUM_BEAST_STARTER*"]

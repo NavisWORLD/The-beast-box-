@@ -3,64 +3,645 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#071016">
+<meta name="theme-color" content="#050511">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="BEAST BOX">
-<meta name="description" content="BEAST BOX standalone browser runtime">
-<title>BEAST BOX // STANDALONE</title>
-<style>
-:root{color-scheme:dark;--bg:#05090d;--panel:#0d171f;--panel2:#12222b;--line:#29404b;--text:#edf5f5;--muted:#9aadb8;--cyan:#8be1e4;--green:#a8e4bc;--red:#ff929c;--gold:#e7ca7d;--mono:ui-monospace,SFMono-Regular,Consolas,monospace}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font:14px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{background:radial-gradient(ellipse at 80% 0,#12323955,transparent 45%),var(--bg)}button,input,textarea{font:inherit}button{min-height:42px;padding:10px 14px;border:1px solid var(--line);border-radius:6px;background:#13222d;color:var(--text);cursor:pointer;font-size:11px;font-weight:800;letter-spacing:.05em}button:hover{background:#1a3340}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}button.primary{background:#bce7d8;color:#102a26;border-color:#bce7d8}button.danger{background:#2a171e;border-color:#824650;color:#ffd9dd}input,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:6px;background:#080f16;color:var(--text)}textarea{resize:vertical}.shell{display:grid;grid-template-columns:215px minmax(0,1fr);min-height:100vh}.rail{position:sticky;top:0;height:100vh;padding:25px 15px;border-right:1px solid #22333f;background:#070d13}.brand{font-weight:900;letter-spacing:.12em}.brand i{color:var(--cyan);font-style:normal;font-size:25px}.brand small{display:block;color:var(--muted);font:9px var(--mono);letter-spacing:.14em;margin-top:3px}nav{margin-top:25px}nav button{display:block;width:100%;text-align:left;background:transparent;border-color:transparent;color:#afc0ca;margin:3px 0}nav button.active{background:#123038;border-color:#294a50;color:#c9f3ef}.railfoot{position:absolute;bottom:20px;font:9px/1.8 var(--mono);color:#8299a7}.railfoot b{color:var(--green)}main{width:100%;max-width:1500px;margin:auto;padding:25px 35px 70px}.top{display:flex;justify-content:space-between;gap:20px;margin-bottom:18px}.eyebrow,label{font:10px var(--mono);letter-spacing:.13em;color:var(--cyan)}h1,h2,h3{margin:7px 0;line-height:1.15}h1{font-size:31px}h2{font-size:32px;font-weight:500}h3{font-size:18px}.pills{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.pill,.badge{border:1px solid var(--line);border-radius:5px;padding:5px 8px;background:#0a141c;color:#b9cbd2;font:10px var(--mono)}.privacy{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:15px;padding:12px 15px;border:1px solid #47333b;border-radius:7px;background:#151116}.privacy strong{display:block;color:#e8b4bb;font-size:10px;letter-spacing:.08em}.privacy small{color:#b8aeb4}.notice{margin-bottom:15px;padding:12px 15px;border:1px solid #456b5b;border-radius:6px;background:#112a24;color:#cce9db;white-space:pre-wrap}.notice.error{border-color:#9e4b59;background:#321a22;color:#ffdce1}.view{display:none}.view.active{display:block}.hero{display:grid;grid-template-columns:1fr 1fr;gap:25px;padding:38px 30px;margin-bottom:15px;border:1px solid #304850;border-radius:8px;background:radial-gradient(circle at 80% 40%,#1a4b4522,transparent 55%),#0a141b}.hero h2{font-size:clamp(38px,4vw,58px);letter-spacing:-.05em}.hero em{color:#b9e5d6;font-style:normal}.hero p{max-width:500px;color:#b5c6ce}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.map{display:grid;place-items:center;position:relative;min-height:250px}.map:before,.map:after{content:"";position:absolute;border:1px solid #51766e55;border-radius:50%;inset:25px 40px;transform:rotate(-20deg)}.map:after{inset:55px 70px;border-style:dashed;transform:rotate(30deg)}.node{z-index:1;text-align:center;padding:12px 18px;border:1px solid #37535a;border-radius:6px;background:#09161dee;font:9px var(--mono)}.node strong{display:block;color:#d4eae6}.node.state{margin-top:80px;border-color:#5f8770}.node.local{margin-top:160px}.cards{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:15px;margin-bottom:15px}.card{grid-column:span 4;padding:19px;border:1px solid var(--line);border-radius:7px;background:linear-gradient(145deg,#101b25,#0a131b)}.wide{grid-column:span 8}.metric strong{display:block;margin-top:9px;font:15px var(--mono);overflow-wrap:anywhere}.panel{padding:20px;border:1px solid var(--line);border-radius:7px;background:linear-gradient(145deg,#101a24,#0b131b);min-width:0}.section{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.brain{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:15px}.brain button{text-align:left;min-height:140px}.brain button b,.brain button small{display:block}.brain button b{margin:12px 0 6px}.brain button small{color:var(--muted);font-size:11px}.brain button.selected{border-color:#91cfc2;background:#142925}.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form label input{margin-top:6px}.muted{color:var(--muted);font-size:12px}.info{margin-top:12px;padding:13px;border:1px dashed #38505a;border-radius:6px;color:#b7c8cf;font:11px/1.7 var(--mono);overflow-wrap:anywhere}.chatlog{min-height:180px;max-height:55vh;overflow:auto;padding:12px;border:1px solid #243744;border-radius:6px;background:#080f16}.msg{max-width:88%;margin:9px 0;padding:12px 14px;border:1px solid #2a3f49;border-radius:7px;background:#10222b;white-space:pre-wrap;overflow-wrap:anywhere}.msg.user{margin-left:auto;background:#172720;border-color:#3d5849}.meta{margin-top:7px;padding-top:7px;border-top:1px solid #33504f;color:#91aaa9;font:9px var(--mono)}.composer{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:9px}.composer textarea{min-height:70px}.empty{text-align:center;padding:35px;color:#aebfc7}.empty strong{display:block;font-size:18px;margin-bottom:7px}.cap{display:grid;gap:6px}.cap span{display:flex;justify-content:space-between;padding:7px 9px;border:1px solid #243743;border-radius:5px;font:10px var(--mono)}.yes{color:var(--green)}pre{max-width:100%;min-width:0;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font:11px/1.7 var(--mono);color:#bdd0d6}.trace{min-width:0;max-width:100%;overflow:hidden;padding:14px 14px 14px 20px;border-left:1px solid #476d78;border-bottom:1px solid #223541}.trace .muted{min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word}.memory{padding:14px;border-bottom:1px solid #263b3c}.memory small{display:block;color:#91aaa0;font:9px var(--mono);margin-top:5px}@media(max-width:900px){.shell{grid-template-columns:1fr}.rail{position:sticky;height:auto;padding:10px;z-index:5;border-right:0;border-bottom:1px solid var(--line)}.brand,.railfoot{display:none}nav{display:flex;overflow:auto;margin:0;gap:3px}nav button{min-width:max-content;width:auto;margin:0}.top{display:block}.pills{justify-content:flex-start;margin-top:10px}.hero{grid-template-columns:1fr}.brain{grid-template-columns:1fr 1fr}.card,.wide{grid-column:1/-1}.main{padding:18px 13px 70px}}@media(max-width:520px){.privacy{display:block}.privacy button{margin-top:10px}.brain,.form{grid-template-columns:1fr}.composer{grid-template-columns:1fr}}
+<meta name="description" content="Beast Box standalone browser runtime">
+
+<style>/* Generated by build.mjs; edit ui_theme.css or layout.css. */
+/* Beast Box / Cosmos: shared presentation tokens and accessible primitives. */
+:root {
+  color-scheme: dark;
+  --bg: #050511; --near-black: #080b19; --panel: #101429; --panel2: #171d36;
+  --slate: #343d5e; --line: #3b4264; --line-soft: #292d49;
+  --text: #edf0ff; --muted: #afb8d6;
+  --system: #65e2f5; --model: #86aeff; --memory: #c1a1ff;
+  --receipts: #ef9cdb; --authority: #f3cc89; --tools: #9dbacf;
+  --cyan: var(--system); --blue: var(--model); --violet: var(--memory);
+  --gold: var(--authority); --success: #83e2bb; --green: var(--success); --red: #ff9daa;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s6: 24px; --s8: 32px; --s12: 48px;
+  --radius-sm: 10px; --radius: 16px; --radius-lg: 24px; --rail-width: 242px;
+  --sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  --shadow: 0 14px 40px #01030b35, inset 0 1px 0 #bfcaff0a;
+}
+[data-domain=system] { --domain: var(--system); }
+[data-domain=model] { --domain: var(--model); }
+[data-domain=memory] { --domain: var(--memory); }
+[data-domain=receipts] { --domain: var(--receipts); }
+[data-domain=authority] { --domain: var(--authority); }
+[data-domain=tools] { --domain: var(--tools); }
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); scroll-padding-top: 16px; }
+body {
+  margin: 0; min-height: 100vh; color: var(--text); font: 1rem/1.65 var(--sans);
+  background: radial-gradient(ellipse at 75% 0, #46348722, transparent 46%),
+    radial-gradient(ellipse at 40% 75%, #12637a10, transparent 55%), var(--bg);
+}
+::selection { background: #57578c; color: #fff; }
+a { color: var(--cyan); text-underline-offset: .2em; overflow-wrap: anywhere; }
+p { margin: 12px 0; overflow-wrap: anywhere; }
+h1, h2, h3 { line-height: 1.2; overflow-wrap: anywhere; }
+h1 { font-size: clamp(1.7rem, 2.8vw, 2.15rem); font-weight: 550; letter-spacing: -.04em; margin: 6px 0; }
+h2 { font-size: clamp(1.65rem, 2.4vw, 2rem); font-weight: 500; letter-spacing: -.03em; margin: 12px 0; }
+h3 { font-size: 1.125rem; font-weight: 550; margin: 8px 0; }
+button, input, select, textarea { font: inherit; }
+button, a, input, textarea, select, summary { -webkit-tap-highlight-color: transparent; }
+button {
+  cursor: pointer; min-height: 44px; min-width: 0; max-width: 100%; padding: 11px 16px;
+  border: 1px solid #454d72; border-radius: var(--radius-sm); background: #1a203b;
+  color: var(--text); font-size: .875rem; font-weight: 650; line-height: 1.5;
+  letter-spacing: .025em; overflow-wrap: anywhere;
+  transition: background .16s, border-color .16s, box-shadow .16s, transform .16s;
+}
+button:hover { background: #292e50; border-color: #747fac; box-shadow: 0 4px 18px #02030b40; }
+button:active:not(:disabled) { transform: translateY(1px); }
+button:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+button.primary { background: linear-gradient(115deg, #78e4f3, #97b1fa); border-color: #9adaf7; color: #0a1a34; box-shadow: 0 0 24px #65e2f518; }
+button.primary:hover { background: linear-gradient(115deg, #acf0f9, #b8c9ff); border-color: #d1edff; }
+button.danger { color: #ffd2da; background: #2b182c; border-color: #865066; }
+button.danger:hover { background: #442238; border-color: var(--red); }
+button[aria-busy=true] { cursor: progress; }
+button[aria-busy=true]::after { content: "…"; margin-left: .4em; }
+:where(button, a, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--cyan); outline-offset: 4px;
+}
+input, select, textarea {
+  min-width: 0; max-width: 100%; width: 100%; min-height: 44px; padding: 11px 12px;
+  border: 1px solid #434b6a; border-radius: var(--radius-sm);
+  color: var(--text); background: #090d20; font-size: .9375rem;
+}
+input:hover, select:hover, textarea:hover { border-color: #677499; }
+textarea { resize: vertical; }
+input[type=checkbox], input[type=radio] { width: 20px; min-height: 20px; accent-color: var(--cyan); vertical-align: middle; }
+input::placeholder, textarea::placeholder { color: #a2abc5; }
+input::file-selector-button { border: 0; border-radius: 6px; padding: 8px 12px; margin-right: 12px; background: #293151; color: var(--text); cursor: pointer; }
+label { display: block; font-size: .875rem; color: #c6cee5; margin: 16px 0 8px; overflow-wrap: anywhere; }
+label input, label select, label textarea { margin-top: 7px; }
+.app, #app:not([hidden]) { display: grid; grid-template-columns: var(--rail-width) minmax(0, 1fr); min-height: 100vh; }
+.rail { position: sticky; top: 0; height: 100vh; overflow: auto; padding: 28px 16px 24px; border-right: 1px solid #34334f; background: linear-gradient(180deg, #0d0d22f5, #090c1df5); scrollbar-width: thin; scrollbar-color: #454369 transparent; }
+.brand { display: flex; gap: 12px; align-items: center; padding: 0 6px 20px; font-size: .9375rem; font-weight: 750; letter-spacing: .08em; }
+.brand small { display: block; margin-top: 4px; font: .6875rem/1.7 var(--mono); letter-spacing: .12em; color: #b0a5d3; }
+.brand svg { width: 38px; flex-shrink: 0; }
+.brand .mark { font-size: 1.8rem; color: var(--cyan); }
+.nav-group { display: block; margin: 22px 12px 8px; font: .6875rem/1.6 var(--mono); color: #9895b8; letter-spacing: .12em; }
+#nav button { display: flex; align-items: center; gap: 12px; width: 100%; margin: 3px 0; padding: 10px 12px; text-align: left; background: transparent; border-color: transparent; color: #bdc4df; font-size: .8125rem; letter-spacing: .025em; }
+#nav button:hover { color: #f1f3ff; background: #7772ca14; border-color: #45486a; box-shadow: none; }
+#nav button.active { color: #d8f8ff; background: linear-gradient(100deg, #28527358, #52368830); border-color: #4b618e; box-shadow: inset 2px 0 var(--cyan); }
+.nav-icon { width: 18px; height: 18px; flex: 0 0 18px; color: var(--domain, var(--cyan)); }
+.rail-note, .rail-foot { position: static; margin: 24px 12px 0; padding-top: 16px; border-top: 1px solid var(--line); font: .75rem/1.9 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.rail-note span, .rail-foot span { color: var(--cyan); }
+.main { position: relative; min-width: 0; width: 100%; max-width: 1540px; margin: 0 auto; padding: 28px 36px 36px; container-type: inline-size; }
+.top, .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.top > *, .topbar > * { min-width: 0; }
+.eyebrow { font: .75rem/1.7 var(--mono); letter-spacing: .1em; color: var(--domain, var(--cyan)); overflow-wrap: anywhere; }
+.statusbar, .pills { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; max-width: 520px; }
+.pill, .badge { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; padding: 6px 9px; border: 1px solid #454566; border-radius: 7px; background: #0d1125; color: #c1c9e6; font: .75rem/1.5 var(--mono); overflow-wrap: anywhere; }
+.pill[data-state=ready] { color: var(--cyan); border-color: #3c7e94; background: #142936; }
+.pill[data-state=verified], .ok { color: var(--success); }
+.pill[data-state=verified] { border-color: #467f71; background: #142e2b; }
+.pill[data-state=error] { color: var(--red); border-color: #95566c; background: #321c2f; }
+.pill[data-state=pending], .pill[data-state=stale] { color: var(--gold); border-color: #716044; }
+.live, .pill[data-state=active] { color: var(--gold) !important; border-color: #957342 !important; background: #342b21 !important; }
+.privacy { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 20px; padding: 14px 16px; border: 1px solid #534050; border-radius: var(--radius-sm); background: #20142699; }
+.privacy > * { min-width: 0; }
+.privacy b { font-size: .75rem; letter-spacing: .06em; color: #eec1cc; }
+.privacy small { font-size: .8125rem; line-height: 1.5; color: #c7b4c6; }
+.privacy button { flex-shrink: 0; font-size: .8125rem; }
+.notice, .warning, .demo-guide { padding: 16px; border-radius: var(--radius-sm); overflow-wrap: anywhere; font-size: .875rem; }
+.notice { position: sticky; top: 12px; z-index: 5; margin-bottom: 16px; border: 1px solid #48796d; background: #14302e; color: #d1eee5; white-space: pre-wrap; box-shadow: var(--shadow); }
+.notice.error { border-color: #ae6479; background: #361e32; color: #ffe0e9; }
+.warning { border: 1px solid #766146; border-left: 3px solid var(--gold); background: #30261f; color: #f0daba; }
+.view { display: none; }
+.view.active { display: block; }
+.grid, .cards { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+.card, .panel, .cards > article { min-width: 0; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(145deg, #151a32ed, #0c1125f5); box-shadow: var(--shadow); }
+.card, .cards > article { grid-column: span 4; }
+.wide, .cards > .wide { grid-column: span 8; }
+.half, .cards > .half { grid-column: span 6; }
+.full { grid-column: 1 / -1; }
+.card[data-domain], .view[data-domain] .card, .view[data-domain] .panel { border-top-color: color-mix(in srgb, var(--domain) 38%, var(--line)); }
+.label { text-transform: uppercase; font: .75rem/1.6 var(--mono); letter-spacing: .07em; color: var(--domain, #b9c4e3); overflow-wrap: anywhere; }
+.value { font-size: 1.65rem; line-height: 1.35; font-weight: 550; letter-spacing: -.025em; margin-top: 12px; overflow-wrap: anywhere; }
+.sub, .muted { font-size: .875rem; color: var(--muted); }
+.sub { margin-top: 8px; }
+.mono, .meta { font: .8125rem/1.7 var(--mono); overflow-wrap: anywhere; }
+.meta { margin: 8px 0; color: var(--muted); }
+.toolbar, .section-head, .panel-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.toolbar > *, .section-head > *, .panel-head > * { min-width: 0; max-width: 100%; }
+.toolbar h2 { margin-right: auto; }
+.section-head, .panel-head { margin-bottom: 16px; }
+.fields, .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: end; }
+.hero-actions, .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.actions { margin-top: 20px; }
+.hero-actions button, .actions button { flex-shrink: 1; }
+.chatlog { min-height: 260px; max-height: 55vh; overflow: auto; padding: 16px; border: 1px solid #394564; border-radius: var(--radius-sm); background: #090e21; scrollbar-width: thin; scrollbar-color: #535674 transparent; }
+.empty { padding: 40px 16px; text-align: center; color: #b8c3df; overflow-wrap: anywhere; font-size: .9375rem; }
+.empty strong { display: block; margin-bottom: 12px; font-size: 1.25rem; font-weight: 500; color: #dfdcff; }
+.msg { max-width: 88%; margin: 12px 0; padding: 16px 20px; border: 1px solid #414665; border-radius: 16px 16px 16px 4px; background: #171e36; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 1rem; line-height: 1.7; }
+.msg.user { margin-left: auto; background: linear-gradient(120deg, #2d2547, #202a49); border-color: #5d5689; border-radius: 16px 16px 4px 16px; }
+.msg .sub, .msg .meta { padding-top: 12px; margin-top: 12px; border-top: 1px solid #485170; font: .75rem/1.7 var(--mono); white-space: normal; }
+.composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; margin-top: 12px; }
+.composer textarea { min-height: 88px; }
+.records, .record { overflow-wrap: anywhere; }
+.record { padding: 20px 0; border-bottom: 1px solid var(--line); }
+.record:last-child { border: 0; }
+.record p { white-space: pre-wrap; }
+.memory-record { position: relative; padding: 20px 24px; margin-left: 8px; border-left: 1px solid #8664ba; border-bottom: 1px solid #373051; background: linear-gradient(90deg, #7447b326, transparent); overflow-wrap: anywhere; }
+.memory-record::before, .trace-node::before { content: ""; position: absolute; left: -4px; top: 28px; width: 7px; height: 7px; border-radius: 50%; background: var(--memory); box-shadow: 0 0 10px #c1a1ff25; }
+.memory-record strong { font-weight: 550; }
+.memory-record small { display: block; margin-top: 8px; color: var(--muted); font: .75rem/1.7 var(--mono); }
+.trace-node { position: relative; min-width: 0; max-width: 100%; margin-left: 8px; padding: 20px 0 20px 24px; border-left: 1px solid #a26696; border-bottom: 1px solid #42314a; background: linear-gradient(90deg, #72336120, transparent); overflow-wrap: anywhere; }
+.trace-node::before { background: var(--receipts); }
+pre, .diff-view { max-width: 100%; min-width: 0; max-height: 470px; overflow: auto; margin: 12px 0 0; padding: 16px; border: 1px solid #3b4260; border-radius: var(--radius-sm); background: #080c1b; color: #c6d1ee; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; font: .8125rem/1.8 var(--mono); scrollbar-width: thin; }
+summary { cursor: pointer; overflow-wrap: anywhere; color: #c7cdea; font-size: .875rem; min-height: 36px; }
+details { margin-top: 12px; min-width: 0; }
+details[open] > summary { color: var(--cyan); margin-bottom: 12px; }
+.skip { position: fixed; top: 8px; left: 16px; z-index: 30; max-width: calc(100% - 32px); transform: translateY(calc(-100% - 16px)); padding: 12px; background: var(--cyan); color: #082338; border-radius: 8px; }
+.skip:focus { transform: none; }
+.hidden, [hidden] { display: none !important; }
+.invariants { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-bottom: 24px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); font: .75rem/1.6 var(--mono); color: #c0bddc; }
+.invariants b { color: var(--violet); font-weight: 400; }
+@media (max-width: 1200px) {
+  :root { --rail-width: 222px; }
+  .main { padding: 24px; }
+  .rail { padding: 24px 12px; }
+  .statusbar, .pills { max-width: 360px; }
+}
+@media (max-width: 920px) {
+  .app, #app:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: relative; height: auto; padding: 10px 12px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .brand, .nav-group, .rail-note, .rail-foot { display: none; }
+  #nav { display: flex; gap: 4px; overflow: auto; margin: 0; scrollbar-width: thin; }
+  #nav button { width: auto; max-width: none; white-space: nowrap; flex-shrink: 0; margin: 0; padding: 10px 12px; }
+  .card, .wide, .half, .cards > article, .cards > .wide, .cards > .half { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+  .main { padding: 20px 16px 32px; }
+  .top, .topbar { flex-direction: column; gap: 12px; margin-bottom: 16px; }
+  .statusbar, .pills { justify-content: flex-start; max-width: 100%; }
+  .privacy { flex-direction: column; align-items: stretch; gap: 12px; }
+  .privacy button { width: 100%; }
+  .fields, .form-grid, .composer { grid-template-columns: minmax(0, 1fr); }
+  .card, .panel, .cards > article { padding: 16px; }
+  .msg { max-width: 96%; padding: 14px; }
+}
+@container (max-width: 30rem) {
+  .fields, .form-grid, .composer { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media (forced-colors: active) {
+  button, .card, .panel, .pill, .map-node { border: 1px solid ButtonText; }
+  #nav button.active { border: 2px solid Highlight; }
+  .nav-icon { color: ButtonText; }
+  .observatory h2 em { background: none !important; color: CanvasText !important; }
+}
+
+/* Standalone layouts. build.mjs prepends the canonical Beast Box theme. */
+.brand { padding-bottom: 8px; }
+#nav { margin-top: 24px; }
+.cards { margin-bottom: 16px; }
+.panel + .panel, .chat { margin-top: 16px; }
+.hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); align-items: center; gap: 32px; padding: 32px; margin-bottom: 16px; border: 1px solid #554b80; border-radius: var(--radius-lg); background: radial-gradient(ellipse at 85% 40%, #6345a936, transparent 60%), linear-gradient(125deg, #14172c, #110f25); }
+.hero > div { min-width: 0; }
+.hero h2 { font-size: clamp(2.2rem, 3.6vw, 3.5rem); letter-spacing: -.055em; line-height: 1.1; margin: 16px 0; }
+.hero em { color: var(--cyan); font-style: normal; }
+.hero p { max-width: 430px; color: #bac2e0; }
+.map { display: grid; justify-items: center; gap: 20px; position: relative; min-height: 290px; align-content: center; overflow: clip; }
+.map::before, .map::after { content: ""; position: absolute; pointer-events: none; inset: 20px 35px; border: 1px solid #9471d455; border-radius: 50%; transform: rotate(-25deg); }
+.map::after { inset: 45px 15px; transform: rotate(30deg); border-color: #60bdd344; border-style: dashed; }
+.node { position: relative; z-index: 1; min-width: 0; max-width: 100%; overflow-wrap: anywhere; padding: 12px 20px; text-align: center; border: 1px solid #756b9f; border-radius: var(--radius-sm); background: #10152bee; color: var(--violet); font: .75rem/1.7 var(--mono); }
+.node strong { display: block; margin-top: 4px; color: #e5e7ff; }
+.node.brain { border-color: #6f8cbc; color: var(--model); }
+.node.state { border-color: #65abbc; color: var(--cyan); background: linear-gradient(125deg, #153545, #282247); box-shadow: 0 0 25px #65e2f519; }
+.node.local { color: var(--tools); }
+.metrics > article { grid-column: span 3; padding: 20px; }
+.metrics strong { display: block; font: 1rem/1.5 var(--mono); color: var(--domain, var(--text)); margin-top: 12px; overflow-wrap: anywhere; }
+.cards > article > label { margin: 0; font: .75rem/1.6 var(--mono); letter-spacing: .06em; color: var(--domain, var(--muted)); }
+.brain-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 12px; margin-bottom: 20px; }
+.brain-card { min-height: 180px; text-align: left; padding: 20px; background: #10142a; }
+.brain-card span { display: block; font-size: 1.5rem; color: var(--model); }
+.brain-card b { display: block; font-size: .875rem; margin: 16px 0 8px; }
+.brain-card small { display: block; color: var(--muted); font-size: .875rem; line-height: 1.6; }
+.brain-card.selected { border-color: #95aaff; background: linear-gradient(135deg, #263053, #221c42); }
+.model-info { margin-top: 16px; padding: 16px; border: 1px dashed #697099; border-radius: var(--radius-sm); color: #c5cfe8; font: .8125rem/1.8 var(--mono); overflow-wrap: anywhere; white-space: pre-wrap; }
+.cap-list { display: grid; gap: 8px; margin-top: 16px; }
+.cap-list span { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; font: .75rem/1.7 var(--mono); overflow-wrap: anywhere; }
+.cap-list .yes { color: var(--cyan); }
+.trace-node .muted { overflow-wrap: anywhere; word-break: break-word; }
+.noscript { padding: 40px; color: var(--text); }
+@media (max-width: 1200px) { .metrics > article { grid-column: span 6; } }
+@media (max-width: 920px) { #nav { margin-top: 0; } }
+@media (max-width: 700px) {
+  .hero { grid-template-columns: minmax(0, 1fr); padding: 20px; }
+  .map { width: 100%; max-width: 450px; margin: auto; }
+}
+@media (max-width: 520px) { .brain-grid { grid-template-columns: minmax(0, 1fr); } }
+@container (max-width: 50rem) { .metrics > article { grid-column: span 6; } }
+@container (max-width: 18rem) { .metrics > article { grid-column: 1 / -1; } }
 </style>
+<title>BEAST BOX // COSMIC</title>
 </head>
 <body>
-<div class="shell">
-<aside class="rail"><div class="brand"><i>◆</i> BEAST BOX<small>COSMIC // STANDALONE</small></div><nav id="nav"><button class="active" data-view="orbit">ORBIT</button><button data-view="brain">BRAIN BAY</button><button data-view="memory">MEMORY VAULT</button><button data-view="trace">SYNAPSE TRACE</button><button data-view="files">FILES</button><button data-view="workspace">WORKSPACE</button><button data-view="storage">STORAGE</button><button data-view="settings">SETTINGS</button></nav><div class="railfoot">MODEL ≠ MEMORY<br>STATE ≠ AUTHORITY<br><b id="online">CHECKING</b></div></aside>
-<main>
-<header class="top"><div><span class="eyebrow">BEAST BOX // LITERAL SINGLE-FILE RUNTIME</span><h1 id="title">ORBIT</h1></div><div class="pills"><span class="pill" id="runtime">RUNTIME: CHECKING</span><span class="pill" id="brainPill">BRAIN: REFERENCE</span><span class="pill" id="caps">CAPS: CHECKING</span></div></header>
-<section class="privacy"><div><strong>STATE MAY TRAVEL · INFORMATION MAY TRAVEL · AUTHORITY DOES NOT TRAVEL AUTOMATICALLY</strong><small id="authority">Authority remains disabled until explicitly granted by the owner.</small></div><button id="stop" class="danger">MASTER STOP</button></section>
-<div id="notice" class="notice" hidden></div>
-<section id="orbit" class="view active"><div class="hero"><div><span class="eyebrow">PORTABLE PERSONAL RUNTIME</span><h2>Swap the brain.<br><em>Keep the story.</em></h2><p>This file is self-contained. It can render browser-local capabilities without the canonical host and can connect to the real Beast Box API when a runtime endpoint is available.</p><div class="actions"><button class="primary" data-jump="brain">Choose Brain</button><button data-jump="memory">Open Memory</button></div></div><div class="map"><div class="node brain">BRAIN<br><strong id="mapBrain">REFERENCE</strong></div><div class="node state">DURABLE SUBSTRATE<br><strong id="mapState">CHECKING</strong></div><div class="node local">BROWSER<br><strong id="mapLocal">CHECKING</strong></div></div></div><div class="cards"><article class="card metric"><label>SYSTEM ID</label><strong id="system">—</strong></article><article class="card metric"><label>CHECKPOINT</label><strong id="checkpoint">—</strong></article><article class="card metric"><label>MEMORY</label><strong id="memoryCount">—</strong></article><article class="card metric"><label>CONVERSATION</label><strong id="turns">—</strong></article></div><div class="cards"><article class="card wide"><label>RUNTIME HEALTH</label><pre id="health">Checking…</pre></article><article class="card"><label>ACTIVE CAPABILITIES</label><div id="capList" class="cap"></div></article></div></section>
-<section id="brain" class="view"><div class="section"><div><span class="eyebrow">MODEL ROUTING</span><h2>BRAIN BAY</h2></div></div><div class="brain"><button class="selected" data-provider="reference">◇<b>REFERENCE RUNTIME</b><small>Deterministic fixture. No model weights required.</small></button><button data-provider="ollama">◉<b>OLLAMA</b><small>Local endpoint. Browser/network policy may block access.</small></button><button data-provider="remote">↗<b>AZURE / REMOTE</b><small>HTTPS compatible endpoint. Secrets remain host-side.</small></button><button data-provider="local">▣<b>LOCAL MODEL</b><small>Metadata/capability negotiation only unless an inference adapter exists.</small></button></div><article class="panel"><div class="section"><h3>Provider configuration</h3><span class="badge" id="boundary">LOCAL</span></div><div class="form"><label>MODEL / DEPLOYMENT<input id="model" maxlength="256" placeholder="COSMOS reference"></label><label>ENDPOINT URL<input id="endpoint" maxlength="2048" placeholder="http://127.0.0.1:11434"></label><label>API VERSION<input id="version" maxlength="128" placeholder="api-version"></label><label>AUTH ENVIRONMENT NAME<input id="authEnv" maxlength="128" placeholder="BEASTBOX_REMOTE_API_KEY"></label></div><div class="actions"><button class="primary" id="saveProvider">Save Brain</button><button id="testProvider">Test Connection</button></div><p class="muted">A static browser file never receives a master authority credential.</p></article><article class="panel" style="margin-top:15px"><h3>Local model inspection</h3><input id="modelFile" type="file" accept=".gguf,.safetensors,.bin" hidden><button id="chooseModel">Select Model File</button><span class="badge" id="modelStatus">NOT LOADED</span><div class="info" id="modelInfo">No model selected. Selection stays in the browser; no upload occurs.</div></article></section>
-<section id="memory" class="view"><div class="section"><h2>MEMORY VAULT</h2><button id="refreshMemory">Refresh</button></div><article class="panel" id="memoryList"><div class="empty">No canonical memory loaded.</div></article></section>
-<section id="trace" class="view"><div class="section"><h2>SYNAPSE TRACE</h2><button id="refreshTrace">Refresh</button></div><article class="panel" id="traceList"><div class="empty">No provenance events loaded.</div></article></section>
-<section id="files" class="view"><div class="section"><h2>FILES</h2></div><article class="panel"><p>File access is explicit and user-selected. Text can be attached to the current session or explicitly persisted through the canonical runtime.</p><input id="contextFile" type="file" hidden><button id="chooseContext">Choose File</button><div class="info" id="contextInfo">No file selected.</div><div class="actions"><button id="attach">Attach to Session</button><button id="persist">Persist to Beast Box Memory</button></div></article></section>
-<section id="workspace" class="view"><div class="section"><h2>WORKSPACE</h2><button id="refreshWorkspace">Refresh</button></div><article class="panel"><div class="info" id="workspaceInfo">The browser cannot grant itself unrestricted host filesystem access. The existing workspace API remains allowlisted and authority-gated.</div><div class="actions"><button id="gitStatus">Read Git Status</button></div></article></section>
-<section id="storage" class="view"><div class="section"><h2>STORAGE</h2><button id="refreshStorage">Refresh</button></div><div class="cards"><article class="card wide"><label>CANONICAL STORAGE</label><pre id="storageInfo">Loading…</pre></article><article class="card"><h3>Browser Vault</h3><p class="muted">Small browser-local state uses IndexedDB. Canonical data is not deleted by browser reset.</p><div class="actions"><button id="export">Export Browser State</button><button id="importButton">Import Browser State</button><input id="importFile" type="file" accept="application/json" hidden></div></article></div></section>
-<section id="settings" class="view"><div class="section"><h2>SETTINGS</h2></div><article class="panel"><label>BEAST BOX RUNTIME URL<input id="apiBase" placeholder="same origin"></label><p class="muted">Same-origin is the safest default. Cross-origin deployments require server CORS. The file never bypasses browser security policy.</p><button class="primary" id="saveSettings">Save Settings</button><button id="clear">Clear Browser-Local State</button></article></section>
-<section class="panel" style="margin-top:15px"><div class="section"><div><span class="eyebrow">CONVERSATION</span><h3>ORBIT CHANNEL</h3></div><button id="reload">Reload</button></div><div id="chat" class="chatlog"><div class="empty"><strong>BEAST BOX READY</strong>Send a message through the canonical runtime.</div></div><form id="chatForm" class="composer"><textarea id="input" maxlength="12000" placeholder="Speak to Beast Box…" required></textarea><button class="primary">SEND</button></form></section>
-</main></div>
-<script>
-(()=>{
-'use strict';
-const $=id=>document.getElementById(id),$$=s=>[...document.querySelectorAll(s)];
-const DB='beastbox-standalone-v1',STORE='state';
-const state={apiBase:localStorage.getItem('beastbox.apiBase')||'',provider:null,conversation:[],memory:[],trace:[],file:null,cap:{}};
-const nativeFetch=window.fetch.bind(window);
-function safeURL(raw){const u=new URL(raw,location.href);if(u.origin===location.origin)return u;if(u.protocol==='https:')return u;if(u.protocol==='http:'&&['localhost','127.0.0.1','::1'].includes(u.hostname))return u;throw new TypeError('Browser policy rejected a non-HTTPS/non-loopback endpoint')}
-window.fetch=(input,init)=>{try{safeURL(typeof input==='string'?input:input.url)}catch(e){return Promise.reject(e)}return nativeFetch(input,init)};
-function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function notice(s,error=false){const n=$('notice');n.hidden=!s;n.textContent=s;n.className='notice'+(error?' error':'')}
-function detect(){state.cap={wasm:typeof WebAssembly==='object',webgpu:!!navigator.gpu,indexeddb:'indexedDB'in window,opfs:!!navigator.storage?.getDirectory,fileInput:typeof File==='function',workers:typeof Worker==='function',network:navigator.onLine};const names=[['WebAssembly','wasm'],['WebGPU','webgpu'],['IndexedDB','indexeddb'],['OPFS','opfs'],['File selection','fileInput'],['Workers','workers'],['Network','network']];$('capList').innerHTML=names.map(([n,k])=>`<span>${n}<b class="${state.cap[k]?'yes':''}">${state.cap[k]?'AVAILABLE':'UNAVAILABLE'}</b></span>`).join('');$('caps').textContent=`CAPS: ${Object.values(state.cap).filter(Boolean).length}/${Object.keys(state.cap).length}`;$('mapLocal').textContent=state.cap.webgpu?'WEBGPU':state.cap.wasm?'WASM':'REFERENCE';$('online').textContent=navigator.onLine?'ONLINE':'OFFLINE'}
-function openDB(){return new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
-async function put(k,v){const db=await openDB();return new Promise((ok,no)=>{const t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(v,k);t.oncomplete=()=>{db.close();ok()};t.onerror=()=>no(t.error)})}
-async function clearDB(){const db=await openDB();return new Promise((ok,no)=>{const t=db.transaction(STORE,'readwrite');t.objectStore(STORE).clear();t.oncomplete=()=>{db.close();ok()};t.onerror=()=>no(t.error)})}
-function apiURL(path){return state.apiBase.replace(/\/$/,'')+path}
-async function api(path,opt={}){const h={'Accept':'application/json',...(opt.body?{'Content-Type':'application/json'}:{})};const r=await fetch(apiURL(path),{...opt,headers:{...h,...(opt.headers||{})}});let j={};try{j=await r.json()}catch{}if(!r.ok)throw new Error(j.error||`HTTP ${r.status}`);return j}
-function short(v){return typeof v==='string'&&v.length>18?v.slice(0,12)+'…'+v.slice(-4):v||'—'}
-function renderProvider(){const p=state.provider||{kind:'reference',model:'COSMOS reference'};$('model').value=p.model||'';$('endpoint').value=p.base_url||'';$('authEnv').value=p.api_key_env||'';$$('.brain button').forEach(b=>b.classList.toggle('selected',b.dataset.provider===(p.kind==='compatible'?'remote':p.kind)));$('brainPill').textContent='BRAIN: '+(p.kind||'reference').toUpperCase();$('boundary').textContent=p.kind==='compatible'?'REMOTE':'LOCAL';$('mapBrain').textContent=p.model||p.kind||'REFERENCE'}
-function renderChat(){const box=$('chat');box.innerHTML=state.conversation.length?state.conversation.map(t=>`<div class="msg ${t.role==='user'?'user':''}"><div>${escapeHtml(t.content??t.text)}</div><div class="meta">${escapeHtml(t.role||'turn')} · ${escapeHtml(t.provider||'canonical runtime')}</div></div>`).join(''):'<div class="empty"><strong>BEAST BOX READY</strong>No durable turns yet.</div>';box.scrollTop=box.scrollHeight}
-function renderMemory(){const box=$('memoryList');box.innerHTML=state.memory.length?state.memory.map(r=>`<div class="memory"><strong>${escapeHtml(r.text??r.content??JSON.stringify(r))}</strong><small>${escapeHtml(r.kind||'memory')} · ${escapeHtml(r.created_at||r.timestamp||'canonical')}</small></div>`).join(''):'<div class="empty">No canonical memory records.</div>'}
-function renderTrace(){const box=$('traceList');box.innerHTML=state.trace.length?state.trace.map(e=>`<div class="trace"><b>${escapeHtml(e.kind||e.event||'EVENT')}</b><div class="muted">${escapeHtml(JSON.stringify(e))}</div></div>`).join(''):'<div class="empty">No provenance events returned by the runtime.</div>'}
-async function load(){try{const [o,p,c,m,t,s,h]=await Promise.all([api('/api/orbit'),api('/api/provider'),api('/api/conversation'),api('/api/memory'),api('/api/trace'),api('/api/storage'),api('/healthz')]);state.provider=p.profile;state.conversation=c.turns||[];state.memory=m.records||[];state.trace=t.events||[];renderProvider();renderChat();renderMemory();renderTrace();$('system').textContent=o.runtime?.system_id||'—';$('checkpoint').textContent=short(o.runtime?.checkpoint_sha256);$('memoryCount').textContent=o.runtime?.memory_records??state.memory.length;$('turns').textContent=state.conversation.length;$('mapState').textContent='CANONICAL';$('runtime').textContent='RUNTIME: ONLINE';$('health').textContent=JSON.stringify(h,null,2);$('storageInfo').textContent=JSON.stringify(s,null,2)}catch(e){$('runtime').textContent='RUNTIME: OFFLINE';$('health').textContent='Canonical runtime unavailable.\n'+e.message+'\n\nBrowser-local capabilities remain active.'}}
-async function saveProvider(){const kind=$('.brain button.selected')?.dataset.provider||'reference';if(kind==='local'){notice('Local model registration is browser-local. A model file may be inspected, but inference requires a registered compatible browser inference adapter.');return}const body={kind:kind==='remote'?'compatible':kind,model:$('model').value.trim(),base_url:$('endpoint').value.trim(),allow_remote:kind==='remote'};if($('authEnv').value.trim())body.api_key_env=$('authEnv').value.trim();try{await api('/api/provider',{method:'POST',body:JSON.stringify(body)});notice('Brain configuration saved. Provider selection does not transfer authority.');await load()}catch(e){notice(e.message,true)}}
-async function testProvider(){const kind=$('.brain button.selected')?.dataset.provider||'reference';try{if(kind==='reference'){notice('Reference provider is available without a network connection.');return}if(kind==='ollama'){const u=($('endpoint').value.trim()||'http://127.0.0.1:11434').replace(/\/$/,'');const r=await fetch(u+'/api/tags');if(!r.ok)throw new Error(`Ollama HTTP ${r.status}`);const j=await r.json();notice('OLLAMA CONNECTED\nModels: '+((j.models||[]).map(x=>x.name).join(', ')||'none'));return}if(kind==='remote'){safeURL($('endpoint').value.trim());await api('/readyz');notice('Canonical runtime is reachable. Remote credentials remain host-side.');return}notice('Local inference requires a registered compatible browser inference adapter. GGUF metadata can be checked; model execution is not claimed.')}catch(e){notice('CONNECTION FAILED\n'+e.message+'\nNo successful connection is assumed.',true)}}
-async function inspect(file){if(!file)return;const ext=file.name.toLowerCase().split('.').pop();if(!['gguf','safetensors','bin'].includes(ext)){notice('Unsupported model file type.',true);return}if(file.size>8*1024*1024){notice('Model metadata inspection is limited to 8 MiB.',true);return}let info=`FILE: ${file.name}\nSIZE: ${file.size.toLocaleString()} bytes\nTYPE: .${ext}\nLOCAL SELECTION: YES\nUPLOAD: NO`;if(ext==='gguf'){const b=await file.slice(0,1024).arrayBuffer(),v=new DataView(b),magic=String.fromCharCode(...new Uint8Array(b).slice(0,4));if(magic!=='GGUF'){notice('The selected .gguf file has no valid GGUF magic header.',true);$('modelStatus').textContent='REJECTED';return}const version=v.getUint32(4,true);info+=`\nGGUF HEADER: VALID\nGGUF VERSION: ${version}`;$('modelStatus').textContent=state.cap.webgpu?'CAPABILITY CHECKED':'WASM/REMOTE FALLBACK'}else{$('modelStatus').textContent='METADATA ONLY'}$('modelInfo').textContent=info;await put('localModelMetadata',{name:file.name,size:file.size,type:ext,modified:file.lastModified,checkedAt:new Date().toISOString()})}
-async function sendContext(persist){if(!state.file){notice('Choose a file first.',true);return}if(state.file.size>2*1024*1024){notice('Context file exceeds the browser client limit of 2 MiB.',true);return}try{const text=await state.file.text(),body={scope:persist?'persistent_memory':'conversation_context',name:state.file.name,text};if(persist)body.confirm_persist=true;await api('/api/context',{method:'POST',body:JSON.stringify(body)});notice(persist?'Context persisted to canonical Beast Box memory.':'Context attached to this runtime session.');state.file=null;$('contextInfo').textContent='No file selected.';await load()}catch(e){notice(e.message,true)}}
-function view(name){$$('.view').forEach(v=>v.classList.toggle('active',v.id===name));$$('nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));$('title').textContent=name.toUpperCase();if(name==='memory'||name==='trace')load()}
-function browserExport(){const data={schema:'beastbox-browser-state-v1',exported_at:new Date().toISOString(),state:{apiBase:state.apiBase,capabilities:state.cap,provider:state.provider}};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)+'\n'],{type:'application/json'}));a.download='beastbox-browser-state.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-async function browserImport(f){if(!f)return;try{const j=JSON.parse(await f.text());if(j.schema!=='beastbox-browser-state-v1')throw new Error('Unsupported browser state export');if(typeof j.state?.apiBase==='string'){state.apiBase=j.state.apiBase;$('apiBase').value=state.apiBase;localStorage.setItem('beastbox.apiBase',state.apiBase)}notice('Browser state imported. Canonical runtime state was not overwritten.')}catch(e){notice(e.message,true)}}
-$$('nav button').forEach(b=>b.onclick=()=>view(b.dataset.view));$$('[data-jump]').forEach(b=>b.onclick=()=>view(b.dataset.jump));$$('.brain button').forEach(b=>b.onclick=()=>{$$('.brain button').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');if(b.dataset.provider==='ollama'){$('model').value='';$('endpoint').value='http://127.0.0.1:11434'}else if(b.dataset.provider==='reference'){$('model').value='COSMOS reference';$('endpoint').value=''}});$('saveProvider').onclick=saveProvider;$('testProvider').onclick=testProvider;$('chooseModel').onclick=()=>$('modelFile').click();$('modelFile').onchange=e=>inspect(e.target.files[0]);$('chooseContext').onclick=()=>$('contextFile').click();$('contextFile').onchange=e=>{state.file=e.target.files[0];if(state.file)$('contextInfo').textContent=`${state.file.name} · ${state.file.size.toLocaleString()} bytes · LOCAL`};$('attach').onclick=()=>sendContext(false);$('persist').onclick=()=>sendContext(true);$('reload').onclick=load;$('refreshMemory').onclick=load;$('refreshTrace').onclick=load;$('refreshStorage').onclick=load;$('refreshWorkspace').onclick=async()=>{try{$('workspaceInfo').textContent=JSON.stringify(await api('/api/workspace'),null,2)}catch(e){$('workspaceInfo').textContent=e.message}};$('gitStatus').onclick=async()=>{try{$('workspaceInfo').textContent=JSON.stringify(await api('/api/workspace/status'),null,2)}catch(e){notice(e.message,true)}};$('stop').onclick=async()=>{try{const r=await api('/api/authority',{method:'POST',body:JSON.stringify({action:'master_stop'})});$('authority').textContent='Master stop active. Revoked: '+(r.stopped||[]).join(', ');notice('MASTER STOP applied. Browser state cannot restore authority.')}catch(e){notice(e.message,true)}};$('saveSettings').onclick=()=>{state.apiBase=$('apiBase').value.trim();localStorage.setItem('beastbox.apiBase',state.apiBase);notice('Browser-local API bridge saved.');load()};$('apiBase').value=state.apiBase;$('export').onclick=browserExport;$('importButton').onclick=()=>$('importFile').click();$('importFile').onchange=e=>browserImport(e.target.files[0]);$('clear').onclick=async()=>{await clearDB();localStorage.removeItem('beastbox.apiBase');state.apiBase='';$('apiBase').value='';notice('Browser-local state cleared. Canonical Beast Box data was not deleted.')};$('chatForm').onsubmit=async e=>{e.preventDefault();const i=$('input'),text=i.value.trim();if(!text)return;$('chat').insertAdjacentHTML('beforeend',`<div class="msg user"><div>${escapeHtml(text)}</div><div class="meta">user · pending</div></div>`);i.value='';try{await api('/api/chat',{method:'POST',body:JSON.stringify({text})});await load()}catch(err){notice(err.message,true)}};window.addEventListener('online',detect);window.addEventListener('offline',detect);detect();load();
+<noscript>
+<main class="noscript">
+<h1>BEAST BOX requires JavaScript</h1>
+<p>The web runtime uses browser capability detection and local storage APIs.</p>
+</main>
+</noscript>
+<a class="skip" href="#main">Skip to workstation</a>
+<div id="app" hidden>
+<aside class="rail">
+<div class="brand">
+<span class="mark">◆</span>
+<span>BEAST BOX<small>COSMIC WEB RUNTIME</small>
+</span>
+</div>
+<nav id="nav" aria-label="Workstation">
+<button data-view="orbit" class="active" data-domain="system" aria-current="page">
+<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-35 12 12)"/>
+<circle cx="12" cy="12" r="3"/>
+</svg>ORBIT</button>
+<button data-view="brain" data-domain="model">
+<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<path d="M8 4H5v16h3M16 4h3v16h-3M8 8h8v8H8zM12 2v3M12 19v3M2 12h3M19 12h3"/>
+</svg>BRAIN BAY</button>
+<button data-view="memory" data-domain="memory">
+<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<ellipse cx="12" cy="5" rx="8" ry="3"/>
+<path d="M4 5v14c0 4 16 4 16 0V5M4 12c0 4 16 4 16 0"/>
+</svg>MEMORY VAULT</button>
+<button data-view="trace" data-domain="receipts">
+<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<circle cx="5" cy="6" r="2"/>
+<circle cx="19" cy="12" r="2"/>
+<circle cx="5" cy="18" r="2"/>
+<path d="m7 7 10 4M7 17l10-4"/>
+</svg>SYNAPSE TRACE</button>
+<button data-view="files" data-domain="tools">
+<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<path d="M5 3h9l5 5v13H5zM14 3v6h5M8 13h8M8 17h6"/>
+</svg>FILES</button>
+<button data-view="workspace" data-domain="tools">
+<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<rect x="3" y="4" width="18" height="16" rx="2"/>
+<path d="m7 9 3 3-3 3M13 16h4"/>
+</svg>WORKSPACE</button>
+<button data-view="storage" data-domain="receipts">
+<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<path d="M4 5h16v5H4zM4 14h16v5H4zM7 7.5h.01M7 16.5h.01"/>
+</svg>STORAGE</button>
+<button data-view="settings" data-domain="receipts">
+<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<path d="M4 6h16M4 12h16M4 18h16"/>
+<circle cx="9" cy="6" r="2"/>
+<circle cx="16" cy="12" r="2"/>
+<circle cx="8" cy="18" r="2"/>
+</svg>SETTINGS</button>
+</nav>
+<div class="rail-foot">MODEL ≠ MEMORY<br>STATE ≠ AUTHORITY<br>
+<span id="onlineState">CHECKING</span>
+</div>
+</aside>
+<main class="main" id="main" tabindex="-1">
+<header class="topbar">
+<div>
+<span class="eyebrow">BEAST BOX // STANDALONE WEB RUNTIME</span>
+<h1 id="viewTitle">ORBIT</h1>
+</div>
+<div class="pills">
+<span id="runtimePill" class="pill" data-state="pending" role="status">RUNTIME: CHECKING</span>
+<span id="brainPill" class="pill">BRAIN: REFERENCE</span>
+<span id="capPill" class="pill">CAPS: CHECKING</span>
+</div>
+</header>
+<section class="privacy">
+<div>
+<b>STATE MAY TRAVEL · INFORMATION MAY TRAVEL · AUTHORITY DOES NOT TRAVEL AUTOMATICALLY</b>
+<small id="authorityText">Authority is disabled until explicitly granted by the owner.</small>
+</div>
+<button id="stopAuthority" class="danger">MASTER STOP</button>
+</section>
+<div id="notice" class="notice" role="status" aria-live="polite" hidden>
+</div>
+<section id="view-orbit" class="view active" data-domain="system">
+<div class="hero">
+<div>
+<span class="eyebrow">PORTABLE PERSONAL RUNTIME</span>
+<h2>Swap the brain.<br>
+<em>Keep the story.</em>
+</h2>
+<p>Use the canonical Beast Box runtime when connected, or keep browser-local state available when remote services are unavailable.</p>
+<div class="actions">
+<button class="primary" data-view-jump="brain">Choose Brain</button>
+<button data-view-jump="memory">Open Memory</button>
+</div>
+</div>
+<div class="map">
+<div class="node brain">BRAIN<br>
+<strong id="mapBrain">REFERENCE</strong>
+</div>
+<div class="node state">DURABLE SUBSTRATE<br>
+<strong id="mapState">CHECKING</strong>
+</div>
+<div class="node local">BROWSER<br>
+<strong id="mapCaps">CHECKING</strong>
+</div>
+</div>
+</div>
+<div class="invariants" aria-label="System boundaries">
+<span>MODEL <b>≠</b> SYSTEM</span>
+<span>MODEL <b>≠</b> MEMORY</span>
+<span>MODEL <b>≠</b> AUTHORITY</span>
+</div>
+<div class="cards metrics">
+<article data-domain="system">
+<label>SYSTEM ID</label>
+<strong id="systemId">—</strong>
+</article>
+<article data-domain="receipts">
+<label>CHECKPOINT</label>
+<strong id="checkpoint">—</strong>
+</article>
+<article data-domain="memory">
+<label>MEMORY</label>
+<strong id="memoryCount">—</strong>
+</article>
+<article data-domain="model">
+<label>CONVERSATION</label>
+<strong id="turnCount">—</strong>
+</article>
+</div>
+<div class="cards">
+<article class="wide">
+<label>RUNTIME HEALTH</label>
+<pre id="health">Checking…</pre>
+</article>
+<article>
+<label>ACTIVE CAPABILITIES</label>
+<div id="capabilities" class="cap-list">
+</div>
+</article>
+</div>
+</section>
+<section id="view-brain" class="view" data-domain="model">
+<div class="section-head">
+<div>
+<span class="eyebrow">MODEL ROUTING</span>
+<h2>BRAIN BAY</h2>
+</div>
+</div>
+<div class="brain-grid">
+<button class="brain-card selected" data-provider="reference" aria-pressed="true">
+<span>◇</span>
+<b>REFERENCE RUNTIME</b>
+<small>Deterministic fixture. No model weights required.</small>
+</button>
+<button class="brain-card" data-provider="ollama" aria-pressed="false">
+<span>◉</span>
+<b>OLLAMA</b>
+<small>Local endpoint. Browser/network policy may block access.</small>
+</button>
+<button class="brain-card" data-provider="compatible" aria-pressed="false">
+<span>↗</span>
+<b>AZURE / REMOTE</b>
+<small>Compatible chat endpoint. Secrets remain server-side.</small>
+</button>
+<button class="brain-card" data-provider="local" aria-pressed="false">
+<span>▣</span>
+<b>LOCAL MODEL</b>
+<small>Browser-local model metadata and capability negotiation.</small>
+</button>
+</div>
+<article class="panel">
+<div class="panel-head">
+<h3>Provider configuration</h3>
+<span id="providerBoundary" class="badge">LOCAL</span>
+</div>
+<div class="form-grid">
+<label>MODEL / DEPLOYMENT<input id="providerModel" maxlength="256" placeholder="COSMOS reference">
+</label>
+<label>ENDPOINT URL<input id="providerUrl" maxlength="2048" placeholder="http://127.0.0.1:11434">
+</label>
+<label>API VERSION<input id="apiVersion" maxlength="128" placeholder="api-version (if required)">
+</label>
+<label>AUTH ENVIRONMENT NAME<input id="apiKeyEnv" maxlength="128" placeholder="BEASTBOX_REMOTE_API_KEY">
+</label>
+</div>
+<div class="actions">
+<button id="saveProvider" class="primary">Save Brain</button>
+<button id="testProvider">Test Connection</button>
+</div>
+<p class="muted">Remote credentials are environment references for the Beast Box host. A static browser bundle never contains a master authority credential.</p>
+</article>
+<article class="panel">
+<div class="panel-head">
+<h3>Add Local Model</h3>
+<span id="localModelStatus" class="badge">NOT LOADED</span>
+</div>
+<input id="modelFile" type="file" accept=".gguf,.safetensors,.bin" hidden>
+<button id="chooseModel">Select Model File</button>
+<div id="modelInfo" class="model-info">No model file selected. Selection is local; the file is not uploaded by this client.</div>
+</article>
+</section>
+<section id="view-memory" class="view" data-domain="memory">
+<div class="section-head">
+<div>
+<span class="eyebrow">PERSISTENT SUBSTRATE</span>
+<h2>MEMORY VAULT</h2>
+</div>
+<button id="refreshMemory">Refresh</button>
+</div>
+<article class="panel">
+<div class="chatlog" id="memoryList">
+<div class="empty">Loading canonical memory…</div>
+</div>
+</article>
+</section>
+<section id="view-trace" class="view" data-domain="receipts">
+<div class="section-head">
+<div>
+<span class="eyebrow">PROVENANCE / CONTINUITY</span>
+<h2>SYNAPSE TRACE</h2>
+</div>
+<button id="refreshTrace">Refresh</button>
+</div>
+<article class="panel">
+<div id="traceList" class="trace-list">
+<div class="empty">Loading trace…</div>
+</div>
+</article>
+</section>
+<section id="view-files" class="view" data-domain="tools">
+<div class="section-head">
+<div>
+<span class="eyebrow">EXPLICIT CONTEXT</span>
+<h2>FILES</h2>
+</div>
+</div>
+<article class="panel">
+<p>Browser file access is explicit and user-selected. Selected text can be attached to a session or explicitly persisted through the canonical runtime.</p>
+<input id="contextFile" type="file" hidden>
+<button id="chooseContext">Choose File</button>
+<div id="contextInfo" class="model-info">No file selected.</div>
+<div class="actions">
+<button id="attachContext">Attach to Session</button>
+<button id="persistContext">Persist to Beast Box Memory</button>
+</div>
+</article>
+</section>
+<section id="view-workspace" class="view" data-domain="tools">
+<div class="section-head">
+<div>
+<span class="eyebrow">OWNER-ALLOWED WORKSPACE</span>
+<h2>WORKSPACE</h2>
+</div>
+<button id="refreshWorkspace">Refresh</button>
+</div>
+<article class="panel">
+<div id="workspaceStatus" class="model-info">No browser workspace is selected. The existing host workspace API remains authority-gated.</div>
+<div class="actions">
+<button id="workspaceReadStatus">Read Git Status</button>
+<button id="workspaceNotice">Why can't the browser pick arbitrary folders?</button>
+</div>
+</article>
+</section>
+<section id="view-storage" class="view" data-domain="receipts">
+<div class="section-head">
+<div>
+<span class="eyebrow">PORTABLE CONTINUITY</span>
+<h2>STORAGE</h2>
+</div>
+<button id="refreshStorage">Refresh</button>
+</div>
+<div class="cards">
+<article class="wide panel">
+<label>CANONICAL RUNTIME STORAGE</label>
+<pre id="storageInfo">Loading…</pre>
+</article>
+<article class="panel">
+<h3>Browser Vault</h3>
+<p class="muted">Browser-only preferences and model metadata use IndexedDB. Large data is not placed in localStorage.</p>
+<button id="exportBrowser">Export Browser State</button>
+<input id="importBrowser" type="file" accept="application/json" hidden>
+<button id="chooseBrowserImport">Import Browser State</button>
+</article>
+</div>
+</section>
+<section id="view-settings" class="view" data-domain="receipts">
+<div class="section-head">
+<div>
+<span class="eyebrow">RUNTIME CONFIGURATION</span>
+<h2>SETTINGS</h2>
+</div>
+</div>
+<div class="cards">
+<article class="panel wide">
+<h3>API Bridge</h3>
+<label>Beast Box Runtime URL<input id="apiBase" placeholder="same origin">
+</label>
+<p class="muted">Use same-origin when the canonical COSMIC server serves this client. Cross-origin deployments require server CORS configuration; the client will never bypass browser policy.</p>
+<button id="saveSettings" class="primary">Save Settings</button>
+</article>
+<article class="panel">
+<h3>Offline / Reference</h3>
+<p>Reference mode remains honest: it is a deterministic fixture, not a pretrained language model.</p>
+<button id="clearBrowser">Clear Browser-Local UI State</button>
+</article>
+</div>
+</section>
+<section class="chat panel" aria-label="Conversation">
+<div class="panel-head">
+<div>
+<span class="eyebrow">CONVERSATION</span>
+<h3>ORBIT CHANNEL</h3>
+</div>
+<button id="refreshChat">Reload</button>
+</div>
+<div id="chatlog" class="chatlog" role="log" aria-label="Conversation history">
+<div class="empty">
+<strong>BEAST BOX READY</strong>Send a message through the canonical runtime.</div>
+</div>
+<form id="chatForm" class="composer">
+<textarea id="chatInput" aria-label="Message" rows="2" maxlength="12000" placeholder="Speak to Beast Box…" required></textarea>
+<button class="primary" type="submit">SEND</button>
+</form>
+</section>
+</main>
+</div>
+<script>(() => {
+  const nativeFetch = window.fetch.bind(window);
+  const allowed = (input) => {
+    const raw = typeof input === 'string' ? input : input?.url;
+    const u = new URL(raw, location.href);
+    if (u.origin === location.origin) return true;
+    if (u.protocol === 'https:') return true;
+    return u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '::1');
+  };
+  window.fetch = (input, init) => {
+    if (!allowed(input)) return Promise.reject(new TypeError('Beast Box browser policy rejected a non-HTTPS/non-loopback endpoint'));
+    return nativeFetch(input, init);
+  };
 })();
+</script>
+<script>(() => {
+  const KEY='beastbox.browserProfile.v1';
+  const read=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch{return null}};
+  const save=p=>localStorage.setItem(KEY,JSON.stringify(p));
+  function mount(){const settings=document.querySelector('#view-settings .cards');if(!settings)return;const card=document.createElement('article');card.className='panel';card.innerHTML='<h3>Browser Profile</h3><p class="muted">A browser-local profile label isolates client preferences. It does not grant or transfer canonical runtime authority.</p><label>PROFILE NAME<input id="browserProfileName" maxlength="80" placeholder="Default"></label><div class="actions"><button id="saveBrowserProfile" class="primary">Save Profile</button><button id="newBrowserProfile">New Profile</button></div><pre id="browserProfileInfo"></pre>';settings.appendChild(card);const current=read()||{id:crypto.randomUUID(),name:'Default'};save(current);const name=document.querySelector('#browserProfileName'),info=document.querySelector('#browserProfileInfo');name.value=current.name;info.textContent=`PROFILE ID: ${current.id}\nSCOPE: BROWSER LOCAL`;document.querySelector('#saveBrowserProfile').onclick=()=>{const p={id:current.id,name:name.value.trim()||'Default'};save(p);info.textContent=`PROFILE ID: ${p.id}\nSCOPE: BROWSER LOCAL`;window.dispatchEvent(new CustomEvent('beastbox-profile-changed',{detail:p}))};document.querySelector('#newBrowserProfile').onclick=()=>{const p={id:crypto.randomUUID(),name:'New Profile'};save(p);name.value=p.name;info.textContent=`PROFILE ID: ${p.id}\nSCOPE: BROWSER LOCAL`;window.dispatchEvent(new CustomEvent('beastbox-profile-changed',{detail:p}))}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
+})();
+</script>
+<script type="module">const $=id=>document.getElementById(id);const qs=s=>document.querySelector(s);const qsa=s=>[...document.querySelectorAll(s)];
+const DB_NAME='beastbox-web-v1',DB_VERSION=1,STORE='state';
+const state={apiBase:localStorage.getItem('beastbox.apiBase')||'',provider:null,capabilities:{},conversation:[],memory:[],trace:[],contextFile:null,view:'orbit',pendingText:null};
+const resourcePaths={orbit:'/api/orbit',provider:'/api/provider',conversation:'/api/conversation',memory:'/api/memory',trace:'/api/trace',storage:'/api/storage',health:'/healthz'};
+const resourceVersions={};let runtimeGeneration=0,statusVersion=0,runtimeNotice=false;
+function showNotice(message,error=false){const n=$('notice');n.setAttribute('role',error?'alert':'status');n.setAttribute('aria-live',error?'assertive':'polite');n.hidden=!message;n.textContent=message;n.className=`notice${error?' error':''}`;if(message)window.scrollTo({top:0,behavior:'smooth'});}
+function short(v){return typeof v==='string'&&v.length>16?v.slice(0,12)+'…'+v.slice(-4):v??'—'}
+function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onupgradeneeded=()=>r.result.createObjectStore(STORE);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});}
+async function dbPut(key,value){try{const db=await openDB();return new Promise((res,rej)=>{const t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(value,key);t.oncomplete=()=>{db.close();res()};t.onerror=()=>{db.close();rej(t.error)}})}catch(e){throw new Error('IndexedDB unavailable: '+e.message)}}
+async function dbGet(key){const db=await openDB();return new Promise((res,rej)=>{const t=db.transaction(STORE);const r=t.objectStore(STORE).get(key);r.onsuccess=()=>{db.close();res(r.result)};r.onerror=()=>{db.close();rej(r.error)}})}
+async function dbClear(){const db=await openDB();return new Promise((res,rej)=>{const t=db.transaction(STORE,'readwrite');t.objectStore(STORE).clear();t.oncomplete=()=>{db.close();res()};t.onerror=()=>{db.close();rej(t.error)}})}
+function detectCapabilities(){const c={wasm:typeof WebAssembly==='object',webgpu:'gpu' in navigator,indexeddb:'indexedDB' in window,opfs:!!(navigator.storage&&navigator.storage.getDirectory),fileInput:'File' in window&&'FileReader' in window,workers:'Worker' in window,serviceWorker:'serviceWorker' in navigator,network:navigator.onLine};state.capabilities=c;return c}
+function renderCaps(){const c=state.capabilities;const names=[['WebAssembly','wasm'],['WebGPU','webgpu'],['IndexedDB','indexeddb'],['OPFS','opfs'],['File selection','fileInput'],['Workers','workers'],['Service Worker','serviceWorker'],['Network','network']];$('capabilities').innerHTML=names.map(([n,k])=>`<span>${n}<b class="${c[k]?'yes':''}">${c[k]?'AVAILABLE':'UNAVAILABLE'}</b></span>`).join('');$('capPill').textContent=`CAPS: ${Object.values(c).filter(Boolean).length}/${Object.keys(c).length}`;$('mapCaps').textContent=c.webgpu?'WEBGPU':c.wasm?'WASM':'REMOTE';$('onlineState').textContent=c.network?'ONLINE':'OFFLINE'}
+function apiUrl(path){if(!state.apiBase)return path;return state.apiBase.replace(/\/$/,'')+path}
+async function api(path,options={}){const headers={'Accept':'application/json',...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})};const r=await fetch(apiUrl(path),{cache:'no-store',...options,headers});let data;try{data=await r.json()}catch{throw new Error(r.ok?'Runtime returned invalid JSON':`HTTP ${r.status}`)}if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);if(!data||typeof data!=='object'||Array.isArray(data))throw new Error('Runtime returned invalid JSON');return data}
+function invalidateReads(){runtimeGeneration++;statusVersion++}
+function runtimeUnavailable(error){$('runtimePill').textContent='RUNTIME: OFFLINE';$('runtimePill').dataset.state='error';$('mapState').textContent='UNAVAILABLE';$('health').textContent=`Canonical runtime unavailable.\n${error.message}\n\nBrowser-local capabilities remain available.`;runtimeNotice=true;showNotice(`CANONICAL RUNTIME UNAVAILABLE\n${error.message}\nReference/offline browser surfaces remain active.`,true)}
+function runtimeOnline(){$('runtimePill').textContent='RUNTIME: ONLINE';$('runtimePill').dataset.state='ready';$('mapState').textContent='CANONICAL';if(runtimeNotice){runtimeNotice=false;if($('health').textContent.startsWith('Canonical runtime unavailable.'))$('health').textContent='Canonical runtime is reachable.';showNotice('')}}
+function renderRuntime(runtime){$('systemId').textContent=runtime?.system_id||'—';$('checkpoint').textContent=short(runtime?.checkpoint_sha256);$('memoryCount').textContent=runtime?.memory_records??runtime?.memory?.memories??'—'}
+function applyProvider(profile){state.provider=profile;renderProvider();$('mapBrain').textContent=profile?.model||profile?.kind||'REFERENCE';$('brainPill').textContent=`BRAIN: ${profile?.kind||'REFERENCE'}`}
+function applyResource(name,data){switch(name){case'orbit':renderRuntime(data.runtime);break;case'provider':applyProvider(data.profile);break;case'conversation':state.conversation=data.turns||[];renderConversation();break;case'memory':state.memory=data.records||[];renderMemory();break;case'trace':state.trace=data.events||[];renderTrace();break;case'storage':renderStorage(data);break;case'health':$('health').textContent=JSON.stringify(data,null,2);break}}
+async function refreshResources(names){const generation=runtimeGeneration,status=++statusVersion;const versions=names.map(name=>resourceVersions[name]=(resourceVersions[name]||0)+1);try{const values=await Promise.all(names.map(name=>api(resourcePaths[name])));if(generation!==runtimeGeneration)return false;names.forEach((name,i)=>{if(resourceVersions[name]===versions[i])applyResource(name,values[i])});if(status===statusVersion)runtimeOnline();return true}catch(error){if(generation===runtimeGeneration&&status===statusVersion)runtimeUnavailable(error);return false}}
+function resetRuntime(){invalidateReads();state.conversation=[];state.memory=[];state.trace=[];state.pendingText=null;renderRuntime(null);applyProvider(null);renderConversation();renderMemory();renderTrace();$('storageInfo').textContent='Loading…';$('runtimePill').textContent='RUNTIME: CHECKING';$('runtimePill').dataset.state='pending';$('mapState').textContent='CHECKING'}
+function activePanelResources(){return ['memory','trace','storage'].includes(state.view)?[state.view]:[]}
+function loadAll(){return refreshResources(['orbit','provider','conversation','health',...activePanelResources()])}
+function renderProvider(){const p=state.provider||{kind:'reference',model:'COSMOS reference',base_url:'',api_key_env:null};$('providerModel').value=p.model||'';$('providerUrl').value=p.base_url||'';$('apiKeyEnv').value=p.api_key_env||'';$('providerBoundary').textContent=p.kind==='compatible'?'REMOTE':'LOCAL';qsa('.brain-card').forEach(x=>{const selected=x.dataset.provider===p.kind;x.classList.toggle('selected',selected);x.setAttribute('aria-pressed',String(selected))})}
+function renderConversation(){const box=$('chatlog');$('turnCount').textContent=state.conversation.length;const turns=state.conversation.map(t=>({...t,role:t.role||({user_turn:'user',assistant_turn:'assistant'}[t.kind])||'turn'}));if(state.pendingText!==null)turns.push({role:'user',text:state.pendingText,provider:'pending'});box.innerHTML=turns.length?turns.map(t=>`<div class="msg ${t.role==='user'?'user':''}"><div>${escapeHtml(t.content??t.text??'')}</div><div class="meta">${escapeHtml(t.role)} · ${escapeHtml(t.provider||'canonical runtime')}</div></div>`).join(''):'<div class="empty"><strong>BEAST BOX READY</strong>No durable turns yet.</div>';box.scrollTop=box.scrollHeight}
+function renderMemory(){const box=$('memoryList');if(!state.memory.length){box.innerHTML='<div class="empty">No canonical memory records.</div>';return}box.innerHTML=state.memory.map(r=>`<div class="memory-record"><strong>${escapeHtml(r.text??r.content??JSON.stringify(r))}</strong><small>${escapeHtml(r.kind||'memory')} · ${escapeHtml(r.created_at||r.timestamp||'canonical')}</small></div>`).join('')}
+function renderTrace(){const box=$('traceList');if(!state.trace.length){box.innerHTML='<div class="empty">No provenance events returned by the runtime.</div>';return}box.innerHTML=state.trace.map(e=>`<div class="trace-node"><strong>${escapeHtml(e.kind||e.event||'EVENT')}</strong><div class="muted">${escapeHtml(JSON.stringify(e))}</div></div>`).join('')}
+function renderStorage(s){$('storageInfo').textContent=JSON.stringify(s,null,2)}
+function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function submitChat(text){const submit=qsa('#chatForm button')[0];submit.disabled=true;invalidateReads();const generation=runtimeGeneration;try{const r=await api('/api/chat',{method:'POST',body:JSON.stringify({text})});if(generation!==runtimeGeneration)return r;invalidateReads();state.pendingText=null;applyProvider(r.provider);renderRuntime(r.runtime);state.conversation.push({role:'user',text});if(typeof r.result?.response==='string')state.conversation.push({role:'assistant',text:r.result.response});renderConversation();runtimeOnline();/* History remains authoritative across other writers and bounded history windows. */await refreshResources(['conversation',...activePanelResources()]);return r}catch(e){if(generation===runtimeGeneration){state.pendingText=null;renderConversation();if(e instanceof TypeError)runtimeUnavailable(e);else showNotice(e.message,true)}throw e}finally{state.pendingText=null;renderConversation();submit.disabled=false}}
+function providerForm(kind){const defaults={reference:['COSMOS reference',''],ollama:['','http://127.0.0.1:11434'],compatible:['',''],local:['','']}[kind]||['',''];if(!$('providerModel').value||kind!=='reference')$('providerModel').value=defaults[0]||$('providerModel').value;if(!$('providerUrl').value||kind!=='reference')$('providerUrl').value=defaults[1]||$('providerUrl').value}
+async function saveProvider(){const kind=qs('.brain-card.selected')?.dataset.provider||'reference';if(kind==='local'){showNotice('Local model registration is browser-local. Select a compatible model file below; no upload is performed.');return}const body={kind,model:$('providerModel').value.trim(),base_url:$('providerUrl').value.trim(),allow_remote:kind==='compatible'};if($('apiKeyEnv').value.trim())body.api_key_env=$('apiKeyEnv').value.trim();try{invalidateReads();const generation=runtimeGeneration;const r=await api('/api/provider',{method:'POST',body:JSON.stringify(body)});if(generation!==runtimeGeneration)return;invalidateReads();applyProvider(r.profile);runtimeOnline();showNotice('Brain configuration saved. Provider changes do not transfer authority.');await refreshResources(['orbit','conversation','health',...activePanelResources()])}catch(e){showNotice(e.message,true)}}
+async function testProvider(){const kind=qs('.brain-card.selected')?.dataset.provider;if(kind==='reference'){showNotice('Reference provider is available locally; no network connection is required.');return}try{if(kind==='ollama'){const base=$('providerUrl').value.trim()||'http://127.0.0.1:11434';const r=await fetch(base.replace(/\/$/,'')+'/api/tags');if(!r.ok)throw new Error(`Ollama HTTP ${r.status}`);const j=await r.json();showNotice(`OLLAMA CONNECTED\nModels reported: ${(j.models||[]).map(x=>x.name).join(', ')||'none'}`)}else if(kind==='compatible'){const u=$('providerUrl').value.trim();if(!/^https:\/\//i.test(u)&&!/^https?:\/\/127\.0\.0\.1(?::\d+)?(?:\/|$)/i.test(u)&&!/^https?:\/\/localhost(?::\d+)?(?:\/|$)/i.test(u))throw new Error('Remote endpoints must use HTTPS; only loopback HTTP is permitted for local testing.');await api('/readyz');showNotice('Canonical runtime is reachable. Remote endpoint credentials remain host-side; the browser does not probe privileged credentials.')}else showNotice('Local inference requires a registered compatible browser inference adapter. Capability detection is active; unsupported files will not be executed.')}catch(e){showNotice(`CONNECTION FAILED\n${e.message}\nNo successful connection is assumed.`,true)}}
+async function inspectModel(file){if(!file)return;const max=8*1024*1024;if(file.size>max){showNotice('Model metadata inspection limit is 8 MiB. The selected file was not read.',true);return}const ext=file.name.toLowerCase().split('.').pop();if(!['gguf','safetensors','bin'].includes(ext)){showNotice('Unsupported local model file type. Expected GGUF or an adapter-supported model format.',true);return}let info=`FILE: ${file.name}\nSIZE: ${file.size.toLocaleString()} bytes\nTYPE: .${ext}\nLOCAL SELECTION: YES\nUPLOAD: NO`;if(ext==='gguf'){const buf=await file.slice(0,1024*1024).arrayBuffer();const bytes=new Uint8Array(buf);const magic=String.fromCharCode(...bytes.slice(0,4));if(magic!=='GGUF'){showNotice('The selected file has a .gguf extension but does not contain a valid GGUF header.',true);$('localModelStatus').textContent='REJECTED';return}const version=new DataView(buf).getUint32(4,true);info+=`\nGGUF HEADER: VALID\nGGUF VERSION: ${version}`;$('localModelStatus').textContent=state.capabilities.webgpu?'CAPABILITY CHECKED':'WASM/REMOTE FALLBACK';}else $('localModelStatus').textContent='METADATA ONLY';$('modelInfo').textContent=info;await dbPut('localModelMetadata',{name:file.name,size:file.size,type:ext,modified:file.lastModified,checkedAt:new Date().toISOString()})}
+async function contextSelected(file){if(!file)return;if(file.size>2*1024*1024){showNotice('Context file exceeds the browser client limit of 2 MiB.',true);return}state.contextFile=file;$('contextInfo').textContent=`${file.name} · ${file.size.toLocaleString()} bytes · ${file.type||'unknown'} · LOCAL`;}
+async function sendContext(persist){if(!state.contextFile){showNotice('Choose a file first.',true);return}const text=await state.contextFile.text();const scope=persist?'persistent_memory':'conversation_context';const body={scope,name:state.contextFile.name,text};if(persist)body.confirm_persist=true;try{invalidateReads();const generation=runtimeGeneration;await api('/api/context',{method:'POST',body:JSON.stringify(body)});if(generation!==runtimeGeneration)return;invalidateReads();showNotice(persist?'Context persisted to canonical Beast Box memory.':'Context attached to this runtime session.');state.contextFile=null;$('contextInfo').textContent='No file selected.';await loadAll()}catch(e){showNotice(e.message,true)}}
+function switchView(name){state.view=name;qsa('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));qsa('#nav button').forEach(b=>{const active=b.dataset.view===name;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});$('viewTitle').textContent=name.replace('-',' ').toUpperCase();const resources=activePanelResources();if(resources.length)refreshResources(resources)}
+function browserExport(){const payload={schema:'beastbox-browser-state-v1',exported_at:new Date().toISOString(),state:{apiBase:state.apiBase,capabilities:state.capabilities,provider:state.provider}};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)+'\n'],{type:'application/json'}));a.download='beastbox-browser-state.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+async function browserImport(file){if(!file)return;try{if(file.size>1024*1024)throw new Error('Browser state export exceeds 1 MiB');const j=JSON.parse(await file.text());if(j.schema!=='beastbox-browser-state-v1'||!j.state||typeof j.state!=='object')throw new Error('Unsupported browser state export');if(typeof j.state.apiBase==='string'){resetRuntime();$('apiBase').value=j.state.apiBase;state.apiBase=j.state.apiBase;localStorage.setItem('beastbox.apiBase',state.apiBase);loadAll()}showNotice('Browser state imported. Canonical runtime state was not overwritten.')}catch(e){showNotice(e.message,true)}}
+function installSW(){if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{})}
+async function boot(){detectCapabilities();renderCaps();$('app').hidden=false;qsa('#nav button').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));qsa('[data-view-jump]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.viewJump)));qsa('.brain-card').forEach(b=>b.addEventListener('click',()=>{qsa('.brain-card').forEach(x=>{x.classList.remove('selected');x.setAttribute('aria-pressed','false')});b.classList.add('selected');b.setAttribute('aria-pressed','true');providerForm(b.dataset.provider)}));$('saveProvider').onclick=saveProvider;$('testProvider').onclick=testProvider;$('chooseModel').onclick=()=>$('modelFile').click();$('modelFile').onchange=e=>inspectModel(e.target.files[0]);$('chooseContext').onclick=()=>$('contextFile').click();$('contextFile').onchange=e=>contextSelected(e.target.files[0]);$('attachContext').onclick=()=>sendContext(false);$('persistContext').onclick=()=>sendContext(true);$('chatForm').onsubmit=async e=>{e.preventDefault();const i=$('chatInput');const t=i.value.trim();if(!t)return;if(qs('#chatForm button').disabled)return;state.pendingText=t;renderConversation();i.value='';try{await submitChat(t)}catch{if(!i.value)i.value=t} };$('refreshChat').onclick=loadAll;$('refreshMemory').onclick=()=>refreshResources(['memory']);$('refreshTrace').onclick=()=>refreshResources(['trace']);$('refreshStorage').onclick=()=>refreshResources(['storage']);$('refreshWorkspace').onclick=async()=>{try{$('workspaceStatus').textContent=JSON.stringify(await api('/api/workspace'),null,2)}catch(e){$('workspaceStatus').textContent=e.message}};$('workspaceReadStatus').onclick=async()=>{try{$('workspaceStatus').textContent=JSON.stringify(await api('/api/workspace/status'),null,2)}catch(e){showNotice(e.message,true)}};$('workspaceNotice').onclick=()=>showNotice('Browsers intentionally do not grant unrestricted filesystem access. The canonical workspace API remains owner-allowlisted and authority-gated.');$('stopAuthority').onclick=async()=>{try{const r=await api('/api/authority',{method:'POST',body:JSON.stringify({action:'master_stop'})});$('authorityText').textContent='Master stop active. Revoked: '+(r.stopped||[]).join(', ');showNotice('MASTER STOP applied. Authority was not persisted into browser state.')}catch(e){showNotice(e.message,true)}};$('saveSettings').onclick=()=>{resetRuntime();state.apiBase=$('apiBase').value.trim();localStorage.setItem('beastbox.apiBase',state.apiBase);showNotice('API bridge settings saved locally. Reloading runtime data.');loadAll()};$('apiBase').value=state.apiBase;$('exportBrowser').onclick=browserExport;$('chooseBrowserImport').onclick=()=>$('importBrowser').click();$('importBrowser').onchange=e=>browserImport(e.target.files[0]);$('clearBrowser').onclick=async()=>{await dbClear();localStorage.removeItem('beastbox.apiBase');resetRuntime();state.apiBase='';$('apiBase').value='';loadAll();showNotice('Browser-local UI state cleared. Canonical Beast Box data was not deleted.');};window.addEventListener('online',()=>{state.capabilities.network=true;renderCaps();loadAll()});window.addEventListener('offline',()=>{state.capabilities.network=false;renderCaps();invalidateReads();runtimeUnavailable(new Error('Network is offline'))});installSW();const saved=await dbGet('localModelMetadata').catch(()=>null);if(saved)$('modelInfo').textContent=`LAST LOCAL MODEL METADATA\n${JSON.stringify(saved,null,2)}`;await loadAll()}
+boot().catch(e=>showNotice('Browser runtime failed to initialize: '+e.message,true));
 </script>
 </body>
 </html>
+

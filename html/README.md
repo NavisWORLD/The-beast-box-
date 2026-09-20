@@ -117,3 +117,11 @@ python -m pytest -q
 5. Cross-origin static hosting needs appropriate server CORS configuration; the client never bypasses browser policy.
 6. Canonical durable memory, provenance, authority, and workspace controls remain host-runtime responsibilities.
 7. iPhone/Android acceptance depends on the actual device/browser version and was not claimed here without a device run.
+
+
+## Shared cosmic theme
+
+Edit `../beastbox/ui_theme.css` for shared tokens and components, and `layout.css`
+for standalone layout. Run `node html/build.mjs` from the repository root, then
+`cp html/dist/standalone.html html/standalone.html`. Commit both generated files
+alongside their sources. See `../docs/COSMIC_VISUAL_SYSTEM.md` for the palette and verification commands.
