@@ -123,3 +123,63 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 .cloud-connect-success{display:flex;align-items:center;gap:7px;color:#b8f0d6!important;overflow-wrap:anywhere}
 .cloud-connect-foot{font-size:10px!important;color:#8290b3!important}
 @media(max-width:500px){.cloud-connect{padding:15px!important}.cloud-connect-tabs button{flex:1 1 42%}.cloud-connect form{grid-template-columns:1fr}.cloud-connect-actions button{flex:1 1 100%}}
+
+
+/* COSMOS WORLD: decorative WebGL never catches pointer or touch events. */
+.cosmos-world{position:relative;isolation:isolate;overflow:hidden;min-height:calc(100dvh - 170px);border:1px solid rgba(169,170,249,.20);border-radius:26px;background:#070d22;display:flex;flex-direction:column;padding:clamp(17px,3vw,38px);gap:20px}
+.cosmos-world-canvas,.cosmos-world-ambient{position:absolute;inset:0;width:100%;height:100%;pointer-events:none!important;z-index:-1}
+.cosmos-world-canvas{display:block}
+.cosmos-world-ambient{background:radial-gradient(ellipse 42% 48% at 61% 43%,#9d64d73d,transparent 75%),radial-gradient(ellipse 38% 46% at 45% 57%,#2cb6d53b,transparent 75%),linear-gradient(120deg,#0c1230,#080b1b)}
+.cosmos-world-ambient:not(.cosmos-world-fallback){opacity:.30}
+.cosmos-world-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.cosmos-world-head h1{font:700 clamp(24px,3.5vw,49px)/1.13 'Space Grotesk',sans-serif;letter-spacing:-.04em;margin:13px 0 10px}
+.cosmos-world-head p{font-size:12px;line-height:1.65;color:#c0c7de;max-width:590px;margin:0}
+.cosmos-world-eyebrow{display:flex;align-items:center;gap:7px;font:700 10px 'Space Grotesk',sans-serif;letter-spacing:.18em;color:#a3c1e9}
+.cosmos-world-badge{flex-shrink:0;border:1px solid #87dce352;padding:9px 12px;border-radius:999px;background:#131e36bd;color:#b1e8eb;font:700 9px 'Space Grotesk',sans-serif;letter-spacing:.12em}
+.cosmos-world-scene{flex:1;min-height:290px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(230px,.85fr);align-items:center;gap:clamp(10px,3vw,42px)}
+.cosmos-world-cloud{position:relative;height:min(35vw,350px);min-height:260px;display:grid;place-items:center;pointer-events:none}
+.cosmos-world-core{position:absolute;width:clamp(190px,21vw,290px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 37% 24%,#f5e7ffd9 0%,#a7b7f19c 15%,#d665d98c 28%,#418bd2a1 42%,#1d285ab5 70%,#050b1b 96%);box-shadow:0 0 35px #a980f09e,0 0 120px #5c89d359,inset -25px -32px 50px #060e26c9;filter:saturate(1.15)}
+.cosmos-world-halo{position:absolute;width:min(92%,440px);height:38%;border-radius:50%;border:1px solid #b7d9f28a;transform:rotate(-31deg);box-shadow:0 0 22px #5eced766,inset 0 0 22px #995cdf4d}
+.cosmos-world-fly{position:absolute;width:min(70%,320px);height:200px;overflow:visible;opacity:.83;filter:drop-shadow(0 0 6px #9dffefc2)}
+.cosmos-world-fly line{stroke:#b9ffff9e;stroke-width:.35;vector-effect:non-scaling-stroke}
+.cosmos-world-fly circle{fill:#d7fff8;stroke:#6b99fe;stroke-width:.3;vector-effect:non-scaling-stroke}
+.cosmos-world-info{position:relative;border:1px solid #b6c6ee3a;background:#080f27b3;border-radius:21px;box-shadow:0 24px 60px #0005;backdrop-filter:blur(10px);padding:clamp(16px,3vw,33px)}
+.cosmos-world-count{display:block;color:#ace4ec;letter-spacing:.2em;font:700 10px 'Space Grotesk',sans-serif}
+.cosmos-world-info h2{font:700 clamp(23px,2.9vw,40px)/1.15 'Space Grotesk',sans-serif;letter-spacing:-.035em;margin:17px 0 12px}
+.cosmos-world-info p{color:#bac3db;font-size:13px;line-height:1.75;margin:0 0 23px}
+.cosmos-world-enter{display:inline-flex;align-items:center;justify-content:center;gap:11px;border:1px solid #a7f0f290;background:#d7f5ff;color:#101a33;border-radius:12px;padding:12px 17px;font-size:12px;font-weight:800;min-height:44px}
+.cosmos-world-enter:hover{background:white}
+.cosmos-world-nav{position:relative;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.cosmos-world-option{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;min-height:67px;gap:8px;text-align:left;background:#0d1933d9;border:1px solid #a0aed040;border-radius:13px;padding:13px;color:#cad1e6;font:700 clamp(9px,1vw,12px) 'Space Grotesk',sans-serif;letter-spacing:.055em}
+.cosmos-world-option:hover,.cosmos-world-option.active{background:#3a3370c9;border-color:#d0c1ff9c;color:white}
+.cosmos-world-number{font:700 10px 'Space Grotesk',sans-serif;color:#91e7e6}
+.cosmos-world-readouts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;position:relative}
+.cosmos-world-readouts>div{display:grid;grid-template-columns:18px minmax(0,1fr);align-items:center;gap:5px 8px;padding:11px;background:#0c1730bd;border:1px solid #9cb3dc35;border-radius:11px;min-width:0}
+.cosmos-world-readouts svg{grid-row:1 / span 2;color:#96dfe8}
+.cosmos-world-readouts span{font-size:10px;color:#9faecf}
+.cosmos-world-readouts strong{font-size:11px;overflow-wrap:anywhere;min-width:0}
+.cosmos-world-disclaimer{position:relative;margin:0;font:600 9px/1.5 'Space Grotesk',sans-serif;color:#8a9bbf;letter-spacing:.09em}
+@media(max-width:1100px){
+.cosmos-world-scene{grid-template-columns:minmax(0,1fr) minmax(210px,1fr)}
+.cosmos-world-readouts{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:680px){
+.cosmos-world{border-radius:16px;min-height:calc(100dvh - 130px);padding:14px;gap:13px}
+.cosmos-world-head{flex-direction:column;gap:11px}
+.cosmos-world-head h1{font-size:clamp(25px,7vw,37px)}
+.cosmos-world-badge{align-self:flex-start}
+.cosmos-world-scene{grid-template-columns:minmax(0,1fr);gap:8px;min-height:0}
+.cosmos-world-cloud{height:220px;min-height:220px}
+.cosmos-world-core{width:190px}
+.cosmos-world-halo{max-width:315px}
+.cosmos-world-fly{height:165px;max-width:248px}
+.cosmos-world-info{padding:18px}
+.cosmos-world-info h2{font-size:25px;margin:12px 0}
+.cosmos-world-info p{font-size:12px;margin-bottom:16px}
+.cosmos-world-nav{display:flex;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x proximity;padding-bottom:4px}
+.cosmos-world-option{flex:0 0 110px;min-height:61px;scroll-snap-align:start}
+.cosmos-world-readouts{grid-template-columns:repeat(2,minmax(0,1fr))}
+.cosmos-world-disclaimer{font-size:8px}
+}
+@media(max-width:360px){.cosmos-world-readouts{grid-template-columns:minmax(0,1fr)}.cosmos-world-cloud{height:180px;min-height:180px}.cosmos-world-core{width:165px}}
+@media(prefers-reduced-motion:reduce){.cosmos-world-cloud,.cosmos-world-core,.cosmos-world-halo,.cosmos-world-fly{animation:none!important;transition:none!important}.cosmos-world{scroll-behavior:auto}}
