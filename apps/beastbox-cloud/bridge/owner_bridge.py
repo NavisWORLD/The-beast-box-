@@ -19,6 +19,7 @@ from beastbox.cosmic_web import CosmicApp, ProviderProfile
 from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV, MODELS
 from beastbox.cloud_connection_checks import verify_connection
 from beastbox.bio_inputs import bio_event
+from beastbox.tiny_local import configure_tiny_owner_brain
 
 MAX_BYTES = 256_000
 GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio"})
@@ -34,7 +35,12 @@ class OwnerBridge:
         if self.vault is not None and os.environ.get("BEASTBOX_HF_MODEL_ID"):
             raise ConnectionError("choose either the explicit host HF provider or encrypted BYOK vault")
         self.app = CosmicApp(root, provider_secret_resolver=self._resolve_provider_secret if self.vault else None)
+        if os.environ.get("BEASTBOX_TINY_LOCAL_ENABLED") == "yes" and os.environ.get("BEASTBOX_HF_MODEL_ID"):
+            raise ValueError("choose exactly one host-default model; tiny local and paid HF cannot both be enabled")
         self._configure_explicit_hf_provider(root)
+        # The launcher has verified the pinned GGUF and local inference readiness.
+        # No remote-model spend or new cloud authority is granted.
+        configure_tiny_owner_brain(self.app)
         # Opt-in host settings only. No browser-supplied grant or device access.
         self.bio_enabled = os.environ.get("BEASTBOX_BIO_INGEST_ENABLED") == "yes"
         self.bio_persist_enabled = self.bio_enabled and os.environ.get("BEASTBOX_BIO_PERSIST_ENABLED") == "yes"
