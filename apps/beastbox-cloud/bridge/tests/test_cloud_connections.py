@@ -200,6 +200,29 @@ class BYOKTests(unittest.TestCase):
                 _,history=bridge.dispatch("GET","/api/conversation",AUTH)
                 self.assertEqual(history["turns"],[])
 
+    def test_sanitized_provider_http_status_is_reported_without_leaking_key(self):
+        from urllib.error import HTTPError
+        bridge=bridge_module.OwnerBridge(self.root,TOKEN)
+        bridge.vault.save("ollama_cloud",{"model":"gpt-oss:120b-cloud"},HF)
+        code,_=bridge.dispatch("POST","/api/connections",AUTH,json.dumps(
+            {"action":"activate","provider":"ollama_cloud","spend_approved":True}).encode())
+        self.assertEqual(code,200)
+        with patch("beastbox.providers._local_opener") as network:
+            network.return_value.open.side_effect=HTTPError(
+                "https://ollama.com/v1/chat/completions",401,
+                "private fixture upstream reason",{"Private":"private fixture"},None
+            )
+            code,result=bridge.dispatch("POST","/api/chat",AUTH,
+                                        b'{"text":"Test fixture only"}')
+        self.assertEqual(code,502,result)
+        self.assertEqual(result["provider_failure"],"MODEL_AUTH_REJECTED")
+        self.assertNotIn(HF,json.dumps(result))
+        self.assertNotIn("private fixture",json.dumps(result))
+        self.assertNotIn("Test fixture only",json.dumps(result))
+        self.assertEqual(bridge.app.profile.model,"gpt-oss:120b-cloud")
+        self.assertTrue(bridge.app.authority.allowed("cloud"))
+        self.assertEqual(bridge.dispatch("GET","/api/conversation",AUTH)[1]["turns"],[])
+
     def test_byok_restart_preserves_state_but_requires_owner_reactivation(self):
         bridge=bridge_module.OwnerBridge(self.root,TOKEN)
         # A clearly labeled local reference turn seeds existing substrate state.
