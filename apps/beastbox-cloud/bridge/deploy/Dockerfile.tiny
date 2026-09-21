@@ -1,0 +1,51 @@
+# Optional CPU-only tiny-model image. Existing Dockerfile stays unchanged.
+# Build from repository root. No user data, API keys or volume bytes are baked in.
+FROM debian:bookworm-slim AS llama-build
+ARG LLAMA_COMMIT=7f3e9d339c99d96d6df9833c63ec27dbbc96f003
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates git cmake build-essential \
+ && rm -rf /var/lib/apt/lists/*
+RUN git clone --depth 1 --branch b6996 --single-branch \
+    https://github.com/ggml-org/llama.cpp.git /src/llama.cpp \
+ && test "$(git -C /src/llama.cpp rev-parse HEAD)" = "$LLAMA_COMMIT" \
+ && cmake -S /src/llama.cpp -B /src/llama.cpp/build \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_SHARED_LIBS=OFF -DGGML_NATIVE=OFF -DGGML_OPENMP=OFF \
+    -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF \
+    -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=ON \
+ && cmake --build /src/llama.cpp/build --target llama-server --parallel 2
+
+FROM debian:bookworm-slim AS gguf-fetch
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl coreutils \
+ && rm -rf /var/lib/apt/lists/*
+ARG MODEL_SHA256=2e8040ceae7815abe0dcb3540b9995eaa1fa0d2ca9e797d0a635ae4433c68c2d
+RUN mkdir -p /verified \
+ && curl --fail --location --silent --show-error --retry 3 --max-time 240 \
+    'https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/resolve/f0a2b81d63eb57be0e90e82e327e03a7fc66a7dc/SmolLM2-135M-Instruct-Q4_K_M.gguf' \
+    --output /verified/SmolLM2-135M-Instruct-Q4_K_M.gguf \
+ && echo "$MODEL_SHA256  /verified/SmolLM2-135M-Instruct-Q4_K_M.gguf" | sha256sum -c - \
+ && test "$(head -c 4 /verified/SmolLM2-135M-Instruct-Q4_K_M.gguf)" = 'GGUF'
+
+FROM caddy:2.10.2 AS caddy
+FROM python:3.12-slim-bookworm AS production
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates gosu util-linux \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd --system --gid 10001 beastbox \
+ && useradd --system --uid 10001 --gid beastbox --home-dir /nonexistent --shell /usr/sbin/nologin beastbox
+COPY --from=caddy /usr/bin/caddy /usr/local/bin/caddy
+COPY --from=llama-build /src/llama.cpp/build/bin/llama-server /opt/beastbox/bin/llama-server
+COPY --from=gguf-fetch /verified/SmolLM2-135M-Instruct-Q4_K_M.gguf /opt/beastbox/models/SmolLM2-135M-Instruct-Q4_K_M.gguf
+WORKDIR /app
+COPY pyproject.toml README.md LICENSE ./
+COPY beastbox/ beastbox/
+COPY apps/beastbox-cloud/bridge/ apps/beastbox-cloud/bridge/
+RUN pip install --no-cache-dir --no-compile '.[secure]' 'azure-storage-blob>=12.20,<13' \
+ && install -d -m 0700 -o beastbox -g beastbox /srv/beastbox/data \
+ && chmod 0555 /opt/beastbox/bin/llama-server \
+ && chmod 0444 /opt/beastbox/models/SmolLM2-135M-Instruct-Q4_K_M.gguf \
+ && chmod 0755 apps/beastbox-cloud/bridge/deploy/start.sh
+EXPOSE 8080
+ENTRYPOINT ["/app/apps/beastbox-cloud/bridge/deploy/start.sh"]
