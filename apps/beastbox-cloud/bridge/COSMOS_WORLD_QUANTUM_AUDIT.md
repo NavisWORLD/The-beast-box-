@@ -37,3 +37,16 @@ The principal policy remains: **MODEL ≠ MEMORY; MODEL ≠ STATE; MODEL ≠ AUT
 5. To enable an actual Azure-backed file workflow or the QBT loop in this hosted app, require a separately reviewed integration, matched controls, opt-in and permissions. Never advertise a missing integration as live.
 
 No quantum jobs, Azure writes, billable inference, new service, domain changes or automatic authority grants are part of this recovery branch.
+
+
+## Direct Ollama API model ID correction (2026-09-21)
+
+Ollama's current public direct API model lists at `https://ollama.com/v1/models` and `https://ollama.com/api/tags` advertise `gpt-oss:120b` and `gpt-oss:20b`. The `-cloud` aliases are documented for Ollama's local app/CLI cloud offloading. This repository's owner bridge sends requests directly to `https://ollama.com/v1/chat/completions` and therefore must save the unsuffixed **direct API** name. Earlier UI instructions requiring `-cloud` were incorrect and have been replaced.
+
+A read-only model inventory can be public even if a request includes an authorization header. It cannot confirm the user's saved key, subscription, remaining balance, rate limits, or successful inference. `MODEL_ID_MODE_MISMATCH` now identifies the CLI alias if its unsuffixed direct ID is present; `MODEL_LISTED_AUTH_UNVERIFIED` means only that the direct model ID appears publicly. The owner must explicitly switch away from an active remote profile before changing the encrypted saved model ID, then select remote again with usage consent. The key is preserved; no paid generation or automatic replay is allowed.
+
+Source: Ollama cloud docs https://github.com/ollama/ollama/blob/main/docs/cloud.mdx and public direct model inventory https://ollama.com/v1/models. This correction does not alter Azure Blob or optional quantum job boundaries.
+
+## Accessibility acceptance (2026-09-21)
+
+The authenticated app now declares a single `main` landmark, gives the file-staging input an accessible name, increases legibility on dark surfaces, and adds a browser guard for unlabeled form elements on mobile and desktop. These changes address the displayed audit categories but do not independently certify every contrast pair. A detailed assistive-technology/axe review on the actual authenticated production app remains a release gate.
