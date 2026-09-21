@@ -25,3 +25,33 @@ For actual persistence, use `"action":"persist","persist_confirmed":true` only w
 `PYTHONPATH=. python -m unittest discover -s apps/beastbox-cloud/bridge/tests -p 'test_bio_inputs.py' -v` and `cd apps/beastbox-cloud && npm run test && npm run typecheck`.
 
 Tests use invented numerical fixtures. Review every gate before opting in. This PR is not live until merged, redeployed, and verified. Existing Railway Trial credit, the 500 MB volume, and the owner's budget controls are unchanged by source publication.
+
+
+## Local camera and microphone interface (separate device preview)
+
+The optional **Device senses** card in Settings is browser-only. A user must press
+**Start camera** or **Start microphone** individually; each invokes
+\`navigator.mediaDevices.getUserMedia\` from the current HTTPS page and can be
+denied by the browser or operating system. The camera displays a local inline
+preview and samples **32×24 average luminance** on a second explicit click.
+The microphone samples **relative RMS amplitude**, with a zero-gain audio
+destination to ensure Safari processes the analyser; it does not record or
+transcribe speech. Device tracks stop on Stop, navigation and tab hiding. No
+\`MediaRecorder\`, \`toBlob\`, image upload, sound upload, localStorage or
+background permission is used.
+
+The numeric summaries remain in browser memory until the owner separately
+checks consent and presses **Add to chat draft**. This *only fills the ordinary
+chat composer*; it does not send anything. Sending the resulting text through
+the existing owner-authenticated chat route may persist that text as a COSMOS
+turn. No raw media or web-device permission passes to the backend. Existing
+\`BEASTBOX_BIO_INGEST_ENABLED=yes\` grants only manual normalized bio **previews**
+when \`BEASTBOX_BIO_PERSIST_ENABLED=no\`; this is not permission to persist
+camera or microphone streams, to read Apple Health, or to invoke tools.
+
+**Important limitation:** SmolLM2-135M is a *text* model. Light level is not
+image understanding and relative amplitude is not speech recognition. Genuine
+semantic visual/audio input requires a separately verified vision encoder and
+speech-to-text pipeline, a consent and privacy review, and trial-budget
+measurements. Do not describe these previews as the model "seeing", "hearing
+words", measuring emotion or making a medical assessment.
