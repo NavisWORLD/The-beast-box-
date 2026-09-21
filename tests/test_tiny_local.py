@@ -84,10 +84,15 @@ def test_host_opt_in_does_not_replace_existing_brain_or_cloud_authority(tmp_path
         second = bridge_mod.OwnerBridge(tmp_path, TOKEN)
         assert second.app.profile == first.app.profile
 
-    # Flag cannot be silently removed while this brain remains selected.
+    # Reversible host default: no provider-profile file is written to the
+    # durable volume. Flag-off resumes the previous reference brain, not memory.
+    assert not (tmp_path / "cosmic-provider.json").exists()
     with patch.dict(os.environ, {"BEASTBOX_TINY_LOCAL_ENABLED": "no"}):
-        with pytest.raises(ValueError, match="previous tiny model"):
-            bridge_mod.OwnerBridge(tmp_path, TOKEN)
+        restored = bridge_mod.OwnerBridge(tmp_path, TOKEN)
+        assert restored.app.profile.kind == "reference"
+        state = restored.app.dispatch("GET", "/api/orbit")[1]["runtime"]
+        assert state["system_id"] == before["system_id"]
+        assert state["checkpoint_sha256"] == before["checkpoint_sha256"]
 
 
 def test_missing_model_fails_before_profile_persistence(tmp_path):

@@ -125,7 +125,15 @@ class OwnerBridge:
         except (OSError, ValueError) as exc:
             raise ValueError("local tiny inference process is not ready") from exc
         if self.app.profile != requested:
-            self.app._set_profile(compatible_profile())
+            # Host-selected default is an ephemeral overlay: keep the prior
+            # reference profile on disk so flag-off rollback does not require
+            # deleting any volume file or inheriting authority from a model.
+            revoked = self.app.authority.revoke_all()
+            self.app.profile = requested
+            self.app.session_events.append({
+                "kind": "brain_handoff", "model": requested.model,
+                "authority_revoked": revoked, "profile_origin": "HOST_OPT_IN",
+            })
 
     def _configure_explicit_hf_provider(self, root: Path) -> None:
         """Owner-approved one-model HF setup on the durable host; never silently swap a profile."""
