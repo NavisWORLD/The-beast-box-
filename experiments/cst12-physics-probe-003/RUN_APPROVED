@@ -1,0 +1,52 @@
+CST12 PHYSICS PROBE 003 — FULL HARDWARE AUTHORIZATION
+
+Authorized: 2026-08-24
+Authorization basis: explicit user approval to run the full preregistered Probe 003 workload after prehardware validation and freeze.
+
+Preregistration SHA-256:
+dd1316996849cc711da1218055e08e5912664d6b9d9b7059ad71521282f5f021
+
+Implementation freeze commit:
+e31e9d53cd4d1d412091813ec2bd897ff86175f1
+
+Corrected CST source commit:
+0e2bca3895bd40243cc12a9d64ad119544759f95
+
+Frozen 66-value bridge packet SHA-256:
+b9eae5be139262ead43b795ed8145fde7c636a7974059af50cb891e45fd0ce0f
+
+Frozen synthetic-null gates:
+- datasets: 10,000 complete null experiments
+- false-positive count: 0
+- effect floor: 0.012981527281557442 radians
+- mirror tolerance: 0.01782037794212166 radians
+- real-stage randomizations: 100,000 per stage
+- p-value gate: <= 0.001, two-sided
+
+Authorized IBM workload:
+- discovery blocks: 32
+- replication blocks: 32
+- total matched blocks: 64
+- arms per block: 8
+- ancilla bases per arm: 2 (X and Y)
+- PUBs per block: 16
+- total planned PUBs: 1,024
+- shots per PUB: 4,096
+- total planned hardware shots: 4,194,304
+- target IBM jobs: 16 total, 8 per stage
+- blocks per job: 4
+- minimum connected 7-qubit layouts per backend: 4
+- discovery and replication must use different real IBM hardware backends
+- simulators are forbidden
+- all discovery and replication jobs must be submitted before any Probe 003 result is retrieved
+- no early stopping
+
+Authorization invariants:
+1. This receipt is the only permitted post-freeze change before hardware execution.
+2. No preregistered threshold, statistic, circuit mapping, arm, seed, source hash, or workload may be changed after this authorization.
+3. Probe 001 and Probe 002 evidence remain immutable.
+4. Intermediate Probe 003 primary statistics may not be computed or used to adapt execution.
+5. Null and inconclusive outcomes must be preserved exactly like anomaly-candidate outcomes.
+6. The strongest allowed first-party positive classification remains ANOMALY_CANDIDATE, not proof of a literal physical twelfth dimension or a global violation of quantum mechanics.
+
+RUN_APPROVED=true

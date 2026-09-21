@@ -1,0 +1,86 @@
+name: CST12 Probe 004 State Rebuild Diagnostic
+
+on:
+  push:
+    branches: [cst12-physics-probe-004]
+    paths:
+      - '.github/workflows/cst12-probe004-state-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose-state-rebuild:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install exact current Probe dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum,ml]'
+          python - <<'PY'
+          import json, platform, numpy, torch
+          print(json.dumps({
+            'python': platform.python_version(),
+            'numpy': numpy.__version__,
+            'torch': torch.__version__,
+            'torch_threads': torch.get_num_threads(),
+            'torch_interop_threads': torch.get_num_interop_threads(),
+          }, sort_keys=True))
+          PY
+      - name: Checkout pinned corrected CST source
+        uses: actions/checkout@v4
+        with:
+          repository: NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2
+          ref: 0e2bca3895bd40243cc12a9d64ad119544759f95
+          path: _cst_source
+      - name: Rebuild twice and compare to sealed state
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _diag
+          SEED_ROOT='e6574cfff4140e9008fbfb55d3c36b2af6d2d107afa9dee463ae599b29430533'
+          python scripts/build_cst12_physics_probe_003_state.py --source-root _cst_source --seed-root "$SEED_ROOT" --output _diag/rebuild-a.json
+          python scripts/build_cst12_physics_probe_003_state.py --source-root _cst_source --seed-root "$SEED_ROOT" --output _diag/rebuild-b.json
+          python - <<'PY'
+          import json, hashlib
+          from pathlib import Path
+          sealed=json.loads(Path('experiments/cst12-physics-probe-003/preregistered-v2/state-packet.json').read_text())
+          a=json.loads(Path('_diag/rebuild-a.json').read_text())
+          b=json.loads(Path('_diag/rebuild-b.json').read_text())
+          print('sealed_bridge_sha', sealed['bridge_packet_sha256'])
+          print('rebuild_a_bridge_sha', a['bridge_packet_sha256'])
+          print('rebuild_b_bridge_sha', b['bridge_packet_sha256'])
+          print('a_equals_b', a['bridge_packet'] == b['bridge_packet'])
+          print('metadata', {k:(sealed.get(k),a.get(k),b.get(k)) for k in ['model_seed','omega','token_ids_sha256','source_commit','seed_root']})
+          for family in ['phase12','dynamic12','hebbian24','chaos18']:
+              sv=sealed['bridge_packet'][family]
+              av=a['bridge_packet'][family]
+              bv=b['bridge_packet'][family]
+              diffs=[float(x)-float(y) for x,y in zip(av,sv)]
+              idx=max(range(len(diffs)), key=lambda i: abs(diffs[i]))
+              changed=[i for i,d in enumerate(diffs) if d != 0.0]
+              print(family, {
+                  'changed_count': len(changed),
+                  'max_abs_diff': abs(diffs[idx]),
+                  'max_index': idx,
+                  'sealed_at_max': sv[idx],
+                  'rebuild_a_at_max': av[idx],
+                  'rebuild_b_at_max': bv[idx],
+                  'first_changed': [(i,sv[i],av[i],bv[i]) for i in changed[:12]],
+              })
+          PY
+      - name: Upload diagnostic packets
+        uses: actions/upload-artifact@v4
+        with:
+          name: cst12-probe004-state-rebuild-diagnostic-${{ github.run_id }}
+          path: _diag/
+          if-no-files-found: error
