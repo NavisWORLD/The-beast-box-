@@ -1,0 +1,148 @@
+{
+  "classification": "REAL CONNECTIVITY SUBSET + ASSUMED NEURAL AND BODY DYNAMICS; NOT BIOLOGICAL LOCOMOTION",
+  "code_sha256": "b87ca84515457c51ef3899e2c25ec0865242244d85a2857198c4807ed8e617db",
+  "conditions": [
+    "published_subset",
+    "weight_matched_rewire",
+    "25pct_lesion",
+    "no_propagation"
+  ],
+  "data_sha256": "5b596574367d7e0e64489509a926a0305581f18568d12fef4339de5b49520cf4",
+  "dyn12_sha256": "a60d2479fb678b7e446c0ace18f2fac352fa20ec4ba9f7894228b658a78f852f",
+  "edges_aggregated": 95,
+  "neurons": 42,
+  "seeds": 8,
+  "source": {
+    "dataset": "FlyWire FAFB v783 female adult fly brain, bounded third-party extracted circuit",
+    "license": "CC BY-NC 4.0 \u2014 FlyWire public release; non-commercial only",
+    "origin_class": "source_declared_biological",
+    "selection": "From 668 source neurons: per role retain highest abs signed incident weight to named descending neurons; include 9 LC4, 9 LPLC2, 11 other, and the listed descending populations. Induced edges aggregated by directed pair. NONREPRESENTATIVE 42-neuron subgraph; derived third-party predictions and sign assumptions retained.",
+    "source_claim": "FlyWire Codex FAFB v783 connections.csv (syn>=5, signed by nt_type)",
+    "source_git_blob_sha1": "10a7d0726571881e77e93e33bd7a23d900025e49",
+    "source_url": "https://github.com/DenisSergeevitch/desktop-fly/blob/master/data/circuit.json"
+  },
+  "summary": {
+    "25pct_lesion": {
+      "distance_traveled": {
+        "mean": 6.46894,
+        "sd": 2.41556
+      },
+      "final_distance": {
+        "mean": 4.56762,
+        "sd": 3.12043
+      },
+      "initial_distance": {
+        "mean": 6.76339,
+        "sd": 0.02451
+      },
+      "mean_abs_turn": {
+        "mean": 0.58606,
+        "sd": 0.29451
+      },
+      "mean_neural_abs": {
+        "mean": 0.21634,
+        "sd": 0.07681
+      },
+      "mean_speed": {
+        "mean": 0.36299,
+        "sd": 0.01034
+      },
+      "minimum_distance": {
+        "mean": 3.62464,
+        "sd": 2.52815
+      }
+    },
+    "no_propagation": {
+      "distance_traveled": {
+        "mean": 6.34337,
+        "sd": 2.11472
+      },
+      "final_distance": {
+        "mean": 2.07496,
+        "sd": 1.17201
+      },
+      "initial_distance": {
+        "mean": 6.76314,
+        "sd": 0.02462
+      },
+      "mean_abs_turn": {
+        "mean": 0.0,
+        "sd": 0.0
+      },
+      "mean_neural_abs": {
+        "mean": 0.14507,
+        "sd": 0.0236
+      },
+      "mean_speed": {
+        "mean": 0.37,
+        "sd": 0.0
+      },
+      "minimum_distance": {
+        "mean": 1.97859,
+        "sd": 1.21939
+      }
+    },
+    "published_subset": {
+      "distance_traveled": {
+        "mean": 3.66594,
+        "sd": 2.09012
+      },
+      "final_distance": {
+        "mean": 3.76173,
+        "sd": 1.01848
+      },
+      "initial_distance": {
+        "mean": 6.76348,
+        "sd": 0.02465
+      },
+      "mean_abs_turn": {
+        "mean": 0.27297,
+        "sd": 0.17855
+      },
+      "mean_neural_abs": {
+        "mean": 0.43372,
+        "sd": 0.04742
+      },
+      "mean_speed": {
+        "mean": 0.36494,
+        "sd": 0.00062
+      },
+      "minimum_distance": {
+        "mean": 3.67802,
+        "sd": 1.23992
+      }
+    },
+    "weight_matched_rewire": {
+      "distance_traveled": {
+        "mean": 8.26174,
+        "sd": 2.20498
+      },
+      "final_distance": {
+        "mean": 5.12802,
+        "sd": 2.26279
+      },
+      "initial_distance": {
+        "mean": 6.76184,
+        "sd": 0.02385
+      },
+      "mean_abs_turn": {
+        "mean": 1.0111,
+        "sd": 0.42547
+      },
+      "mean_neural_abs": {
+        "mean": 0.4259,
+        "sd": 0.07487
+      },
+      "mean_speed": {
+        "mean": 0.3803,
+        "sd": 0.06892
+      },
+      "minimum_distance": {
+        "mean": 4.57269,
+        "sd": 1.6862
+      }
+    }
+  },
+  "ticks_per_run": 260,
+  "trace_sha256": "a37eba7f8803c4f43edddff25662e76ba89d963c2d9ef689361930f2e5491d0c"
+}
