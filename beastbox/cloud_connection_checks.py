@@ -50,8 +50,10 @@ def verify_connection(provider: str, record: dict, opener=None) -> dict:
         target="https://ollama.com/v1/models"
         req=urllib.request.Request(target,headers={"Authorization":"Bearer "+secret,
             "Accept":"application/json"},method="GET")
-        valid_status="MODELS_READ_VERIFIED"
-        note="Model-list endpoint accessible. Generation, model and costs NOT verified."
+        # Ollama's /v1/models list is public. A 200 cannot attest whether the
+        # submitted API key is valid, has credit, or may generate with a model.
+        valid_status="MODEL_LISTED_AUTH_UNVERIFIED"
+        note="The public direct-API model list contains the saved ID. API key, account entitlement, generation, usage and costs have NOT been verified."
     else:
         req=urllib.request.Request("https://iam.cloud.ibm.com/identity/token",
             data=urllib.parse.urlencode({"grant_type":"urn:ibm:params:oauth:grant-type:apikey",
@@ -73,13 +75,18 @@ def verify_connection(provider: str, record: dict, opener=None) -> dict:
         if provider=="ollama_cloud" and not isinstance(result.get("data"),list):
             return {"provider":provider,"status":"REMOTE_UNAVAILABLE_OR_REJECTED"}
         if provider=="ollama_cloud":
-            # This is a read-only account model inventory, not generation or
-            # evidence of a billable inference entitlement. Do not expose IDs.
+            # Public /v1/models returns canonical direct-API IDs; "-cloud" is
+            # an Ollama app/CLI convenience tag, NOT the direct API model ID.
+            # The check must not claim model entitlement or account auth.
             listed = {entry.get("id") for entry in result["data"]
                       if isinstance(entry, dict) and isinstance(entry.get("id"), str)}
-            if config["model"] not in listed:
+            model = config["model"]
+            if model.endswith("-cloud") and model[:-6] in listed:
+                return {"provider":provider,"status":"MODEL_ID_MODE_MISMATCH",
+                        "detail":"The saved -cloud suffix is for the Ollama app/CLI. Direct API uses the corresponding name without -cloud. Select local in Brain Bay, update the saved ID with the existing encrypted key, and then explicitly select remote again. No inference was performed."}
+            if model not in listed:
                 return {"provider":provider,"status":"MODEL_NOT_LISTED",
-                        "detail":"The saved model ID is not in this account's model inventory. Check its exact cloud-model suffix; no inference was performed."}
+                        "detail":"Saved model ID is not in Ollama's public direct-API inventory. No account entitlement or inference was verified."}
         if provider=="ibm_watsonx" and not isinstance(result.get("access_token"),str):
             return {"provider":provider,"status":"REMOTE_UNAVAILABLE_OR_REJECTED"}
         return {"provider":provider,"status":valid_status,"detail":note}
