@@ -27,7 +27,7 @@ test('images and PDFs stay local until real storage',()=>{
 });
 test('proxy excludes arbitrary tools and filesystem',()=>{
  const proxy=read('app/api/bridge/[endpoint]/route.ts');
- assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','chat-start','context','connections','bio','observations'\]\)/);
+ assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','chat-start','context','connections','bio','observations','models'\]\)/);
  assert.doesNotMatch(proxy,/['"]workspace\/write['"]/);
 });
 
@@ -178,4 +178,26 @@ test('senses is a Settings-only control and cannot cover the chat composer',()=>
  assert.ok(mount>0 && mount<studio.indexOf("{page==='BRAIN'?"));
  assert.match(studio,/aria-label="Stage file or photo locally"/);
  assert.match(studio,/Images and PDFs are locally staged only/);
+});
+
+
+test('model selection is owner-only, local verified, remote explicitly charged and durable',()=>{
+ const bff=read('app/api/bridge/[endpoint]/route.ts');
+ const bridge=read('bridge/owner_bridge.py');
+ const ui=read('components/model-switcher.tsx');
+ const studio=read('components/studio.tsx');
+ assert.match(bff,/endpoint==='models'/);
+ assert.match(bff,/Same-origin owner action required/);
+ assert.match(bff,/Remote model activation requires explicit usage approval/);
+ assert.match(bridge,/self\.chat_jobs\.run_when_idle/);
+ assert.match(bridge,/def _model_catalog/);
+ assert.match(bridge,/def _model_action/);
+ assert.match(bridge,/not self\.app\.profile\.remote/);
+ assert.match(ui,/Choose your brain/);
+ assert.match(ui,/I explicitly approve this provider/);
+ assert.match(ui,/choice==='local'/);
+ assert.doesNotMatch(ui,/localStorage|sessionStorage|document\.cookie/);
+ assert.match(studio,/<ModelSwitcher backendReachable=\{bridge\}/);
+ assert.match(studio,/deadline=Date\.now\(\)\+660_000/);
+ assert.match(studio,/typeof state\.error==='string'/);
 });
