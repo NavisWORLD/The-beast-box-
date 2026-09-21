@@ -194,12 +194,13 @@ export default function LiveSenses({canSend,onDraft,onContext}:Props){
   finally{setSaving(false);}
  }
  return <aside aria-label="Live owner senses" style={{position:'fixed',right:12,bottom:'max(84px, env(safe-area-inset-bottom))',
-  zIndex:50,width:'min(380px, calc(100vw - 24px))',maxHeight:'min(72vh, 670px)',overflowY:'auto',
+  zIndex:50,width:expanded?'min(380px, calc(100vw - 24px))':112,maxHeight:'min(72vh, 670px)',overflowY:'auto',
+  pointerEvents:expanded?'auto':'none',
   border:'1px solid #53516b',borderRadius:18,background:'#171a2b',color:'#f3f1ff',
   boxShadow:'0 10px 30px #0008',padding:12}}>
   <button type="button" onClick={collapse} aria-expanded={expanded}
    style={{width:'100%',display:'flex',gap:9,alignItems:'center',justifyContent:'space-between',background:'transparent',
-    color:'inherit',border:0,padding:5,textAlign:'left'}}>
+    color:'inherit',border:0,padding:5,textAlign:'left',pointerEvents:'auto'}}>
    <span><Activity size={16}/> Senses {cameraOn?'📷 ON':''} {speechOn?'🎙 ON':''}</span>
    <strong>{expanded?'Collapse':'Open'}</strong>
   </button>
