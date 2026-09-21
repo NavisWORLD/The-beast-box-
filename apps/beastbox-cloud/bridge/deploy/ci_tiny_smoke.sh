@@ -58,7 +58,7 @@ text = chat["result"]["response"]
 assert isinstance(text, str) and 0 < len(text) <= 65536
 assert "COSMOS reference:" not in text
 assert chat["runtime"]["system_id"] == before["runtime"]["system_id"]
-assert chat["runtime"]["checkpoint_sequence"] > before["runtime"]["checkpoint_sequence"]
+assert chat["runtime"]["checkpoint_sha256"] != before["runtime"]["checkpoint_sha256"]
 print("PASS: real local pretrained-model completion via owner-authenticated COSMOS loop")
 PY
 docker rm -f "$name" >/dev/null
