@@ -73,12 +73,12 @@ def test_cloud_gpt_oss_uses_bounded_low_reasoning_and_no_automatic_retry(monkeyp
             return Response()
 
     monkeypatch.setattr(providers, "_local_opener", Opener)
-    provider = providers.CompatibleChatProvider("gpt-oss:120b-cloud", "https://ollama.com/v1",
+    provider = providers.CompatibleChatProvider("gpt-oss:120b", "https://ollama.com/v1",
                                                  allow_remote=True, api_key="public-fixture-not-a-token")
     assert provider.generate("Synthetic test message") == "Confirmed fixture"
     assert len(requests) == 1
     payload = json.loads(requests[0].data)
-    assert payload["model"] == "gpt-oss:120b-cloud"
+    assert payload["model"] == "gpt-oss:120b"
     assert payload["max_tokens"] == 256
     assert payload["reasoning_effort"] == "low"
     assert payload["stream"] is False
@@ -102,7 +102,7 @@ def test_provider_http_failure_is_bounded_and_no_response_body_is_read(monkeypat
             )
 
     monkeypatch.setattr(providers, "_local_opener", Opener)
-    model = providers.CompatibleChatProvider("gpt-oss:120b-cloud", "https://ollama.com/v1",
+    model = providers.CompatibleChatProvider("gpt-oss:120b", "https://ollama.com/v1",
                                              allow_remote=True, api_key="secret-fixture-not-live")
     with pytest.raises(providers.ProviderDiagnosticError) as caught:
         model.generate("Synthetic input must remain private")
@@ -124,9 +124,26 @@ def test_gpt_oss_reasoning_only_output_fails_closed_without_invented_answer(monk
         def open(self, *_args, **_kwargs):
             return Response()
     monkeypatch.setattr(providers, "_local_opener", Opener)
-    model = providers.CompatibleChatProvider("gpt-oss:120b-cloud", "https://ollama.com/v1",
+    model = providers.CompatibleChatProvider("gpt-oss:120b", "https://ollama.com/v1",
                                              allow_remote=True, api_key="public-fixture-not-live")
     with pytest.raises(providers.ProviderDiagnosticError) as caught:
         model.generate("A fixture")
     assert caught.value.code == "MODEL_OUTPUT_EMPTY"
     assert "private reasoning" not in str(caught.value)
+
+def test_cli_tag_does_not_use_direct_api_reasoning_override(monkeypatch):
+    requests = []
+    class Response:
+        def __enter__(self): return self
+        def __exit__(self, *_): return False
+        def read(self, _): return b'{"choices":[{"message":{"content":"Fixture"}}]}'
+    class Opener:
+        def open(self, request, timeout):
+            requests.append(request)
+            return Response()
+    monkeypatch.setattr(providers, "_local_opener", Opener)
+    model = providers.CompatibleChatProvider("gpt-oss:120b-cloud", "https://ollama.com/v1",
+                                            allow_remote=True, api_key="synthetic-do-not-use")
+    model.generate("fixture")
+    assert "reasoning_effort" not in json.loads(requests[0].data)
+
