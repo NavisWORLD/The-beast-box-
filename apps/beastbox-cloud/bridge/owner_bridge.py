@@ -25,7 +25,7 @@ from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
 from beastbox.chat_jobs import ChatJobs
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations"})
 POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations"})
 
 
@@ -253,6 +253,9 @@ class OwnerBridge:
             if set(query) != {"id"} or len(query["id"]) != 1:
                 return 400, {"error": "invalid chat job query"}
             return self.chat_jobs.get(query["id"][0])
+        if name == "observations" and method == "GET":
+            return 200, {"enabled": self.device_memory_enabled, "raw_media_accepted": False,
+                         "owner": "SINGLE_OWNER_CONSENT", "source_verified": False}
         if name == "bio" and method == "GET":
             return 200, {"enabled": self.bio_enabled,
                          "persist_enabled": self.bio_persist_enabled,
