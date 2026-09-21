@@ -35,11 +35,13 @@ requires its HTTP health check, then selects the local profile if the previous
 brain is reference; it refuses to overwrite a non-reference brain or run alongside
 a paid host HF provider. No cloud authority is granted.
 
-**Rollback**: Before disabling the flag or returning to the original image, select
-a reference or other actually available model through a trusted host-side
-provider-management operation, preserving the persistent substrate. Do not delete
-the volume or blindly remove \`cosmic-provider.json\`; an already selected local
-model intentionally fails closed if its host process disappears. Verify a
+**Rollback**: For the new host-default selection, the tiny provider is an
+in-memory overlay. Switching `BEASTBOX_TINY_LOCAL_ENABLED` off on the
+*tiny-capable image* returns to the previous reference provider while leaving
+system ID, memory and checkpoint unchanged. An older version may have saved the
+tiny provider to `cosmic-provider.json`; that legacy configuration still
+fails closed without its model and needs a trusted owner-directed provider
+change. Do not delete the volume or blindly edit its profile file. Verify a
 checkpoint backup before any production provider swap.
 
 ## Build and verification
