@@ -27,7 +27,7 @@ from .durable import DurableRuntime
 from .optional_resources import ResourceUnavailable, quantum_event
 from .portable_state import import_snapshot, verify_snapshot
 from .product_services import AuthoritySession, ProductService
-from .providers import CompatibleChatProvider, LocalOllamaProvider, ReferenceTextProvider, TextProvider
+from .providers import CompatibleChatProvider, LocalOllamaProvider, ReferenceTextProvider, TextProvider, ProviderDiagnosticError
 from .sealed_storage import encryption_status
 
 _MAX_REQUEST_BYTES = 1024 * 1024
@@ -707,6 +707,11 @@ class CosmicApp:
             return 404, {"error": "not found"}
         except PermissionError as exc:
             return 403, {"error": str(exc)}
+        except ProviderDiagnosticError as exc:
+            # Only the bounded code escapes; never expose upstream body,
+            # headers, provider error strings, context or credentials.
+            return 502, {"error": "model provider request was not confirmed; no fallback",
+                         "provider_failure": exc.code}
         except (OSError, ValueError, RuntimeError, json.JSONDecodeError):
             return 400, {"error": "request rejected; no fallback was performed"}
 
