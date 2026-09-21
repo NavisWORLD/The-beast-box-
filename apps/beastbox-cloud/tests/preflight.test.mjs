@@ -27,7 +27,7 @@ test('images and PDFs stay local until real storage',()=>{
 });
 test('proxy excludes arbitrary tools and filesystem',()=>{
  const proxy=read('app/api/bridge/[endpoint]/route.ts');
- assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','context','connections','bio'\]\)/);
+ assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','chat-start','context','connections','bio'\]\)/);
  assert.doesNotMatch(proxy,/['"]workspace\/write['"]/);
 });
 
@@ -99,4 +99,26 @@ test('bio previews are separate from retention and model requests',()=>{
  assert.match(ui,/remote_enabled/);
  assert.match(ui,/No new memory or model request/);
  assert.match(ui,/Preview without saving/);
+});
+
+
+test('slow real CPU chat uses one idempotent job with short same-origin polls',()=>{
+ const proxy=read('app/api/bridge/[endpoint]/route.ts');
+ const ui=read('components/studio.tsx');
+ const bridge=read('bridge/owner_bridge.py');
+ const jobs=read('../../beastbox/chat_jobs.py');
+ assert.match(proxy,/chat-start/);
+ assert.match(proxy,/chat-job/);
+ assert.match(proxy,/endpoint==='chat-start'/);
+ assert.match(proxy,/Same-origin owner action required/);
+ assert.match(proxy,/incoming\.searchParams\.get\('id'\)/);
+ assert.match(ui,/crypto\.randomUUID\(\)/);
+ assert.match(ui,/bridge\/chat-start/);
+ assert.match(ui,/bridge\/chat-job\?id=/);
+ assert.doesNotMatch(ui,/api\('bridge\/chat',/);
+ assert.match(bridge,/self\.chat_jobs\.start\(data\)/);
+ assert.match(bridge,/self\.chat_jobs\.get\(query\["id"\]\[0\]\)/);
+ assert.match(jobs,/self\._active/);
+ assert.match(jobs,/self\._requests/);
+ assert.match(jobs,/Check conversation before retrying/);
 });
