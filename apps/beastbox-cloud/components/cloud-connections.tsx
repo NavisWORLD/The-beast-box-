@@ -7,7 +7,7 @@ type Connection={provider:Provider;configured:boolean;config:Record<string,strin
 type Field={key:string;label:string;placeholder:string};
 const PROVIDERS:{id:Provider;name:string;purpose:string;fields:Field[];secretLabel:string;help:string;activatable:boolean}[]=[
  {id:'huggingface',name:'Hugging Face',purpose:'Hosted conversational model',fields:[{key:'model',label:'Model repository',placeholder:'owner/model-name'}],secretLabel:'HF fine-grained token',help:'Choose a supported chat model and enable Inference Providers permission on your token.',activatable:true},
- {id:'ollama_cloud',name:'Ollama Cloud',purpose:'Hosted Ollama model (not your localhost)',fields:[{key:'model',label:'Cloud model',placeholder:'gpt-oss:120b-cloud'}],secretLabel:'Ollama cloud API key',help:'Connect the official ollama.com API. Your personal localhost:11434 is not reachable from Vercel.',activatable:true},
+ {id:'ollama_cloud',name:'Ollama Cloud',purpose:'Hosted Ollama model (not your localhost)',fields:[{key:'model',label:'Cloud model',placeholder:'gpt-oss:120b-cloud'}],secretLabel:'Ollama cloud API key',help:'Use the exact hosted model ID, e.g. gpt-oss:120b-cloud (not local gpt-oss:120b). Your personal localhost:11434 is not reachable from Vercel.',activatable:true},
  {id:'azure_blob',name:'Azure Blob Storage',purpose:'Private photos, documents and exports',fields:[{key:'account',label:'Storage account',placeholder:'myaccount'},{key:'container',label:'Private container',placeholder:'beastbox-private'}],secretLabel:'Scoped container SAS token',help:'Use a short-lived, least-privilege container SAS, not a storage-account master key. Saving a key alone does not enable uploads.',activatable:false},
  {id:'ibm_watsonx',name:'IBM watsonx.ai',purpose:'IBM-hosted Granite / Llama models',fields:[{key:'region',label:'Region',placeholder:'us-south'},{key:'project_id',label:'Project ID',placeholder:'project-id'},{key:'model',label:'Foundation model ID',placeholder:'ibm/granite-...'}],secretLabel:'IBM Cloud API key',help:'Key, region and project may be saved. A separate authorized watsonx inference adapter is required before chatting.',activatable:false},
  {id:'ibm_quantum',name:'IBM Quantum',purpose:'Authorized research workloads',fields:[{key:'instance',label:'Instance',placeholder:'service instance or CRN'}],secretLabel:'IBM Quantum credential',help:'For research only. Saving a key never launches hardware jobs, training or inference.',activatable:false},
@@ -28,10 +28,13 @@ export default function CloudConnections({backendReachable,onActivated}:{backend
  const [rows,setRows]=useState<Connection[]>([]),[vault,setVault]=useState('HOST_KEY_REQUIRED');
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [spendApproved,setSpendApproved]=useState(false);
+ const [modelUpdate,setModelUpdate]=useState('');
  const secretRef=useRef<HTMLInputElement>(null);
  const choice=PROVIDERS.find(item=>item.id===provider)!;
  const selected=rows.find(item=>item.provider===provider);
  const ready=backendReachable&&vault==='ENCRYPTED_HOST_ONLY';
+ const currentModel=selected?.config?.model||'';
+ useEffect(()=>setModelUpdate(currentModel),[provider,currentModel]);
  const refresh=useCallback(async()=>{
   if(!backendReachable){setRows([]);setVault('HOST_KEY_REQUIRED');return;}
   const result=await bridge('GET');
@@ -50,6 +53,18 @@ export default function CloudConnections({backendReachable,onActivated}:{backend
    if(action==='remove')setNotice('Removed local encrypted credential. Revoke the key at its provider as well.');
    if(action==='activate'){setNotice('Provider profile selected. Real inference remains unverified until an actual model response.');onActivated();}
    if(action!=='test')await refresh();
+  }catch(e){setError((e as Error).message);}
+  finally{setBusy(false);}
+ }
+ async function updateSavedModel(){
+  if(!ready||busy||!choice.activatable||!selected?.configured)return;
+  if(modelUpdate===currentModel){setNotice('Saved model ID is unchanged.');return;}
+  setBusy(true);setError('');setNotice('');
+  try{
+   const result=await bridge('POST',{action:'update_model',provider,model:modelUpdate.trim()});
+   if(result.credential_preserved!==true)throw new Error('Host did not confirm encrypted credential preservation');
+   setNotice('Saved the new model ID using the existing encrypted key. Select it separately in Brain Bay; no inference was performed.');
+   await refresh();
   }catch(e){setError((e as Error).message);}
   finally{setBusy(false);}
  }
@@ -82,6 +97,15 @@ export default function CloudConnections({backendReachable,onActivated}:{backend
    <label>{choice.secretLabel}<input ref={secretRef} name="credential" type="password" minLength={12} maxLength={4096} autoComplete="new-password" placeholder="Paste privately; never shown again" required disabled={!ready||busy}/></label>
    <button type="submit" disabled={!ready||busy}><LockKeyhole size={16}/>{busy?'Working…':'Save encrypted credential'}</button>
   </form>
+  {selected?.configured&&choice.activatable&&<div className="record">
+    <h3>Update saved model ID without replacing your API key</h3>
+    <p>Switch to the local model in Brain Bay first if this cloud model is active. This operation re-encrypts your existing host-only key but does not make an inference request.</p>
+    <label>Saved model ID<input type="text" value={modelUpdate} disabled={!ready||busy}
+      onChange={e=>setModelUpdate(e.target.value)} maxLength={180} autoComplete="off" /></label>
+    {provider==='ollama_cloud'&&modelUpdate==='gpt-oss:120b'&&<p role="status">Ollama Cloud lists the hosted 120B model as <code>gpt-oss:120b-cloud</code>, not the local tag.</p>}
+    <button type="button" disabled={!ready||busy||!modelUpdate.trim()||modelUpdate===currentModel}
+      onClick={()=>void updateSavedModel()}>Save model ID (keep encrypted key)</button>
+   </div>}
   {selected?.configured&&<div className="cloud-connect-actions">
    <button type="button" disabled={!ready||busy} onClick={()=>void perform('test')}><RefreshCcw size={15}/> Test access (no paid inference)</button>
    {choice.activatable&&<><label className="cloud-spend"><input type="checkbox" checked={spendApproved} onChange={e=>setSpendApproved(e.target.checked)} disabled={!ready||busy}/> I understand my provider may charge for model requests.</label>
