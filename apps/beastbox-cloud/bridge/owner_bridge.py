@@ -77,6 +77,7 @@ class OwnerBridge:
                 endpoint = {"huggingface": "https://router.huggingface.co/v1",
                             "ollama_cloud": "https://ollama.com/v1"}.get(provider)
                 if (endpoint and self.app.profile.base_url == endpoint
+                        and isinstance(data["config"], dict)
                         and self.app.profile.model != data["config"].get("model")):
                     return 409, {"error": "Switch to local model in Brain Bay before changing an active cloud model ID."}
                 return 200, self.vault.save(provider,data["config"],data["secret"])
