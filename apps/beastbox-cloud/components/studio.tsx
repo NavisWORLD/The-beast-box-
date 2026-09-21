@@ -6,13 +6,14 @@ import ModelSwitcher from './model-switcher';
 import BioPanel from './bio-panel';
 import DevicePanel from './device-panel';
 import LiveSenses from './live-senses';
+import CosmosWorld from './cosmos-world';
 import { Activity, Camera, Mic, ArrowDownToLine, ArrowLeftRight, ArrowRight, BrainCircuit, Check, ChevronDown, CircleHelp, CloudOff, Command, Database, File, FileText, Fingerprint, Github, Image as ImageIcon, LockKeyhole, LogOut, Menu, MessageCircle, Paperclip, Plus, Send, Settings2, Shield, ShieldCheck, Sparkles, Telescope, Trash2, X, Zap } from 'lucide-react';
 
-type Page='BRAIN'|'ORBIT'|'BRAIN BAY'|'MEMORY VAULT'|'SYNAPSE TRACE'|'FILES'|'AUTHORITY'|'SETTINGS';
+type Page='COSMOS WORLD'|'BRAIN'|'ORBIT'|'BRAIN BAY'|'MEMORY VAULT'|'SYNAPSE TRACE'|'FILES'|'AUTHORITY'|'SETTINGS';
 type Turn={id:string,role:'user'|'assistant',text:string,kind?:string};
 type Attachment={name:string,size:number,type:string,text?:string,objectUrl?:string,original:File};
 const NAV:{name:Page;icon:typeof BrainCircuit}[]=[
-{name:'BRAIN',icon:MessageCircle},{name:'ORBIT',icon:Telescope},{name:'BRAIN BAY',icon:BrainCircuit},
+{name:'COSMOS WORLD',icon:Sparkles},{name:'BRAIN',icon:MessageCircle},{name:'ORBIT',icon:Telescope},{name:'BRAIN BAY',icon:BrainCircuit},
 {name:'MEMORY VAULT',icon:Database},{name:'SYNAPSE TRACE',icon:Activity},{name:'FILES',icon:FileText},
 {name:'AUTHORITY',icon:Shield},{name:'SETTINGS',icon:Settings2}];
 function readable(value:unknown):string {
@@ -38,7 +39,7 @@ function Login({configured,onLogin}:{configured:boolean;onLogin:()=>void}){
  <div className="login-note"><ShieldCheck size={15}/> No model receives your password. Unconfigured previews stay closed.</div></section></main>;
 }
 export default function Studio({initialOwner,configured,initialBridge}:{initialOwner:boolean;configured:boolean;initialBridge:boolean}){
- const [owner,setOwner]=useState(initialOwner),[bridge,setBridge]=useState(initialBridge),[backendStatus,setBackendStatus]=useState('CHECKING'),[page,setPage]=useState<Page>('BRAIN');
+ const [owner,setOwner]=useState(initialOwner),[bridge,setBridge]=useState(initialBridge),[backendStatus,setBackendStatus]=useState('CHECKING'),[page,setPage]=useState<Page>('COSMOS WORLD');
  const [menu,setMenu]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const [turns,setTurns]=useState<Turn[]>([]),[prompt,setPrompt]=useState(''),[model,setModel]=useState('NOT CONNECTED');
  const [liveContext,setLiveContext]=useState({text:'',include:false});
@@ -140,7 +141,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  <div className="main-shell"><header className="app-header"><div className="header-left"><button className="icon-button mobile-only" onClick={()=>setMenu(true)} aria-label="Open navigation"><Menu size={22}/></button><span className="tiny-orbit">✺</span><span className="breadcrumbs">YOUR UNIVERSE <b>/</b> <strong>{page}</strong></span></div><div className="header-right">{(sensesActive.camera||sensesActive.speech)&&<button type="button" className="icon-button" aria-label="Open sensing settings" title="Sensing active · open Settings" onClick={()=>{setPage('SETTINGS');setMenu(false);}}>{sensesActive.camera?<Camera size={16}/>:null}{sensesActive.speech?<Mic size={16}/>:null}</button>}<span className={'status-chip '+(connected?'online':'offline')}><span className="pulse"/>{connected?'MODEL CONFIGURED':bridge?'REFERENCE ONLY':'BACKEND OFFLINE'}</span><button className="icon-button" aria-label="Refresh status" onClick={()=>void load()}><Activity size={17}/></button><span className="avatar">CD</span></div></header>
  <div className="content">
  <LiveSenses visible={page==='SETTINGS'} canSend={connected} onActivity={updateSensesActive} onContext={updateLiveContext} onDraft={summary=>{setPrompt(previous=>[previous.trim(),summary].filter(Boolean).join('\n\n').slice(0,8192));setPage('BRAIN');setMenu(false);}}/>
- {page==='BRAIN'?<div className="brain-layout"><section className="chat-panel"><header className="chat-top"><div className="chat-badge">✦</div><div><h2>Brain</h2><p>Your conversation, your story.</p></div><span className={'model-pill '+(connected?'':'dim')}>{model}</span></header>
+ {page==='COSMOS WORLD'?<CosmosWorld connected={connected} model={model} checkpoint={snapshot?.checkpoint_sequence} memoryCount={bridge ? records.length : null} traceCount={bridge ? trace.length : null} onOpen={destination=>{setPage(destination);setMenu(false);}}/>:page==='BRAIN'?<div className="brain-layout"><section className="chat-panel"><header className="chat-top"><div className="chat-badge">✦</div><div><h2>Brain</h2><p>Your conversation, your story.</p></div><span className={'model-pill '+(connected?'':'dim')}>{model}</span></header>
  <div className="chat-thread" aria-live="polite">{turns.length===0?<div className="empty-chat"><div className="empty-orb"><span>✺</span></div><div className="eyebrow">WELCOME TO YOUR UNIVERSE</div><h1>What&apos;s on your<br/><em>cosmic mind?</em></h1><p>{connected?'Send a message to the configured provider. Only a completed inference call verifies a live response.':bridge?'The connected provider is a deterministic reference fixture. Configure a genuine model on the durable host before enabling chat.':'Your authentic Beast Box backend is not connected yet. This is a private UI preview; no fake responses will appear.'}</p>{backendHint[backendStatus]&&<p role="status">{backendHint[backendStatus]}</p>}<div className="suggestions"><button disabled={!connected} onClick={()=>setPrompt('What do you remember about our last conversation?')}>✺ What do you remember?</button><button disabled={!connected} onClick={()=>setPrompt('Show me our last checkpoint.')}>◇ Show last checkpoint</button><button disabled={!connected} onClick={()=>setPrompt('Help me explore the universe!')}>✦ Explore an idea</button></div></div>:turns.map(t=><div className={'message '+t.role} key={t.id}><div className="message-avatar">{t.role==='assistant'?'✺':'CD'}</div><div className="message-content"><span className="message-name">{t.role==='assistant'?model:'YOU'}</span><p>{t.text}</p></div></div>)}<div ref={bottom}/></div>
  {error&&<div className="inline-error" role="alert"><CircleHelp size={16}/>{error}<button aria-label="Dismiss error" onClick={()=>setError('')}><X size={14}/></button></div>}{attachError&&<div className="inline-error" role="alert">{attachError}</div>}
  <div className="composer-area"><div className="attachment-preview">{attachments.map((a,i)=><div className="attachment-chip" key={i}>{a.type.startsWith('image/')?<ImageIcon size={15}/>:<File size={15}/>}<span>{a.name}</span><small>LOCAL ONLY</small><button aria-label={'Remove '+a.name} onClick={()=>removeFile(i)}><X size={14}/></button></div>)}</div>
