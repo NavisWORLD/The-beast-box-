@@ -1,7 +1,7 @@
 import { bridgeConfigured, isOwner, safeJson } from '@/lib/security';
 export const runtime='nodejs';
-const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections']);
-const POST_ALLOW=new Set(['chat','context','connections']);
+const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio']);
+const POST_ALLOW=new Set(['chat','context','connections','bio']);
 type RouteContext={params:Promise<{endpoint:string}>};
 async function forward(request:Request, method:'GET'|'POST', {params}:RouteContext) {
   if (!await isOwner()) return safeJson(401,{error:'Owner authentication required'});
@@ -10,8 +10,8 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
   if (!bridgeConfigured()) return safeJson(503,{error:'A durable HTTPS Beast Box bridge has not been provisioned. No model call was performed.'});
   let body: string|undefined;
   if (method==='POST') {
-    if (endpoint==='connections') {
-      // A cross-site form or redirect must never set or revoke an owner's API keys.
+    if (endpoint==='connections'||endpoint==='bio') {
+      // Cross-site forms must not edit credentials or submit sensitive bio readings.
       const origin=request.headers.get('origin');
       if (!origin || origin!==new URL(request.url).origin) return safeJson(403,{error:'Same-origin owner action required'});
       if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) return safeJson(415,{error:'JSON required'});
@@ -22,6 +22,27 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
     let parsed:unknown;try{parsed=JSON.parse(body);}catch{return safeJson(400,{error:'Invalid JSON'});}
     if (!parsed || typeof parsed!=='object' || Array.isArray(parsed)) return safeJson(400,{error:'Invalid request'});
     const input=parsed as Record<string,unknown>;
+    if (endpoint==='bio') {
+      const allowed=['heart_rate_bpm','hrv_rmssd_ms','respiration_rate_bpm','skin_temperature_c',
+        'spo2_pct','eda_microsiemens','accelerometer_rms_g','eeg_alpha_relative',
+        'eeg_beta_relative','eeg_theta_relative','eeg_delta_relative','eeg_gamma_relative'];
+      const base=['action','source','consent','readings'];
+      const action=input.action;
+      const keys=Object.keys(input).sort();
+      const validKeys=action==='preview'?base:action==='persist'
+        ?[...base,'persist_confirmed',...(input.remote_share_confirmed===true?['remote_share_confirmed']:[])]
+        :[];
+      if(!validKeys.length||keys.join(',')!==validKeys.sort().join(',')||input.consent!==true||
+         !['manual','wearable_export','browser_sensor'].includes(String(input.source))||
+         !input.readings||typeof input.readings!=='object'||Array.isArray(input.readings)||
+         (action==='persist'&&input.persist_confirmed!==true)||body.length>2_048)
+        return safeJson(400,{error:'Invalid or unconsented bio submission'});
+      const readings=input.readings as Record<string,unknown>;
+      const channels=Object.keys(readings);
+      if(channels.length<1||channels.length>12||
+         channels.some(k=>!allowed.includes(k)||typeof readings[k]!=='number'||!Number.isFinite(readings[k])))
+        return safeJson(400,{error:'Bio readings must be bounded numeric channels'});
+    }
     if (endpoint==='chat') {
       if (Object.keys(input).some(k=>!['text','context_ids'].includes(k))) return safeJson(400,{error:'Cloud chat only accepts text and selected context IDs'});
       const text=input.text;
