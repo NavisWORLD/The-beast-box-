@@ -91,19 +91,19 @@ class BYOKTests(unittest.TestCase):
         self.assertFalse(bridge.app.authority.allowed("cloud"))
         self.assertNotIn(HF,json.dumps(removed))
 
-    def test_owner_corrects_unhosted_ollama_model_without_disclosing_key_or_inference(self):
+    def test_owner_corrects_cli_only_ollama_model_without_disclosing_key_or_inference(self):
         bridge=bridge_module.OwnerBridge(self.root,TOKEN)
         saved={"action":"save","provider":"ollama_cloud",
-               "config":{"model":"gpt-oss:120b"},"secret":HF}
+               "config":{"model":"gpt-oss:120b-cloud"},"secret":HF}
         code,_=bridge.dispatch("POST","/api/connections",AUTH,json.dumps(saved).encode())
         self.assertEqual(code,200)
         original=bridge.vault.read_host_only("ollama_cloud")["secret"]
         code,result=bridge.dispatch("POST","/api/connections",AUTH,json.dumps(
             {"action":"activate","provider":"ollama_cloud","spend_approved":True}).encode())
         self.assertEqual(code,400,result)
-        self.assertIn("-cloud",result["error"])
+        self.assertIn("without -cloud",result["error"])
         self.assertEqual(bridge.app.profile.kind,"reference")
-        body={"action":"update_model","provider":"ollama_cloud","model":"gpt-oss:120b-cloud"}
+        body={"action":"update_model","provider":"ollama_cloud","model":"gpt-oss:120b"}
         self.assertEqual(bridge.dispatch("POST","/api/connections","",json.dumps(body).encode())[0],401)
         self.assertEqual(bridge.dispatch("POST","/api/connections",AUTH,json.dumps(
             {**body,"secret":HF}).encode())[0],400)
@@ -113,42 +113,42 @@ class BYOKTests(unittest.TestCase):
         self.assertFalse(updated["model_invoked"])
         self.assertNotIn(HF,json.dumps(updated))
         self.assertEqual(bridge.vault.read_host_only("ollama_cloud")["secret"],original)
-        self.assertEqual(bridge.vault.public("ollama_cloud")["config"]["model"],"gpt-oss:120b-cloud")
+        self.assertEqual(bridge.vault.public("ollama_cloud")["config"]["model"],"gpt-oss:120b")
         # No model call, no cloud authority, and no substrate reset after correcting metadata.
         self.assertFalse(bridge.app.authority.allowed("cloud"))
         self.assertEqual(bridge.app.profile.kind,"reference")
         code,activated=bridge.dispatch("POST","/api/connections",AUTH,json.dumps(
             {"action":"activate","provider":"ollama_cloud","spend_approved":True}).encode())
         self.assertEqual(code,200,activated)
-        self.assertEqual(bridge.app.profile.model,"gpt-oss:120b-cloud")
+        self.assertEqual(bridge.app.profile.model,"gpt-oss:120b")
         code,denied=bridge.dispatch("POST","/api/connections",AUTH,json.dumps(
             {**body,"model":"gpt-oss:20b-cloud"}).encode())
         self.assertEqual(code,409,denied)
         self.assertEqual(bridge.vault.read_host_only("ollama_cloud")["secret"],original)
-        self.assertEqual(bridge.app.profile.model,"gpt-oss:120b-cloud")
+        self.assertEqual(bridge.app.profile.model,"gpt-oss:120b")
 
     def test_readonly_model_inventory_detects_wrong_cloud_model_with_zero_inference(self):
         from beastbox.cloud_connection_checks import verify_connection
         from unittest.mock import MagicMock
-        record={"config":{"model":"gpt-oss:120b"},"secret":HF}
+        record={"config":{"model":"gpt-oss:120b-cloud"},"secret":HF}
         class Answer:
             status=200
             def __enter__(self): return self
             def __exit__(self,*_): return False
             def read(self,_): return json.dumps(
-                {"data":[{"id":"gpt-oss:120b-cloud"}]}).encode()
+                {"data":[{"id":"gpt-oss:120b"}]}).encode()
         opener=MagicMock()
         opener.open.return_value=Answer()
         bad=verify_connection("ollama_cloud",record,opener=opener)
-        self.assertEqual(bad["status"],"MODEL_NOT_LISTED")
+        self.assertEqual(bad["status"],"MODEL_ID_MODE_MISMATCH")
         self.assertNotIn(HF,json.dumps(bad))
         request=opener.open.call_args.args[0]
         self.assertEqual(request.full_url,"https://ollama.com/v1/models")
         self.assertEqual(request.get_method(),"GET")
-        record["config"]["model"]="gpt-oss:120b-cloud"
+        record["config"]["model"]="gpt-oss:120b"
         good=verify_connection("ollama_cloud",record,opener=opener)
-        self.assertEqual(good["status"],"MODELS_READ_VERIFIED")
-        self.assertIn("NOT verified",good["detail"])
+        self.assertEqual(good["status"],"MODEL_LISTED_AUTH_UNVERIFIED")
+        self.assertIn("NOT been verified",good["detail"])
         self.assertEqual(opener.open.call_count,2)
 
     def test_read_only_test_is_explicit_no_network_in_suite(self):
@@ -170,7 +170,7 @@ class BYOKTests(unittest.TestCase):
         # transport. This is deliberately NOT evidence of hosted inference.
         for provider,model,endpoint in [
             ("huggingface","openai/gpt-oss-120b:cheapest","https://router.huggingface.co/v1"),
-            ("ollama_cloud","gpt-oss:120b-cloud","https://ollama.com/v1"),
+            ("ollama_cloud","gpt-oss:120b","https://ollama.com/v1"),
         ]:
             with self.subTest(provider=provider):
                 root=self.root/provider
@@ -205,7 +205,7 @@ class BYOKTests(unittest.TestCase):
     def test_sanitized_provider_http_status_is_reported_without_leaking_key(self):
         from urllib.error import HTTPError
         bridge=bridge_module.OwnerBridge(self.root,TOKEN)
-        bridge.vault.save("ollama_cloud",{"model":"gpt-oss:120b-cloud"},HF)
+        bridge.vault.save("ollama_cloud",{"model":"gpt-oss:120b"},HF)
         code,_=bridge.dispatch("POST","/api/connections",AUTH,json.dumps(
             {"action":"activate","provider":"ollama_cloud","spend_approved":True}).encode())
         self.assertEqual(code,200)
@@ -221,7 +221,7 @@ class BYOKTests(unittest.TestCase):
         self.assertNotIn(HF,json.dumps(result))
         self.assertNotIn("private fixture",json.dumps(result))
         self.assertNotIn("Test fixture only",json.dumps(result))
-        self.assertEqual(bridge.app.profile.model,"gpt-oss:120b-cloud")
+        self.assertEqual(bridge.app.profile.model,"gpt-oss:120b")
         self.assertTrue(bridge.app.authority.allowed("cloud"))
         self.assertEqual(bridge.dispatch("GET","/api/conversation",AUTH)[1]["turns"],[])
 
@@ -231,7 +231,7 @@ class BYOKTests(unittest.TestCase):
         code,seed=bridge.dispatch("POST","/api/chat",AUTH,b'{"text":"Local reference persistence fixture"}')
         self.assertEqual(code,200,seed)
         _,history=bridge.dispatch("GET","/api/conversation",AUTH)
-        bridge.vault.save("ollama_cloud",{"model":"gpt-oss:120b-cloud"},HF)
+        bridge.vault.save("ollama_cloud",{"model":"gpt-oss:120b"},HF)
         bridge.app.authority.grant("filesystem")
         activation=json.dumps({"action":"activate","provider":"ollama_cloud","spend_approved":True}).encode()
         code,result=bridge.dispatch("POST","/api/connections",AUTH,activation)
