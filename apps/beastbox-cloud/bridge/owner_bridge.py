@@ -153,15 +153,19 @@ class OwnerBridge:
                          "raw_media_transmitted": False, "source_verified": False}
         if not self.bio_persist_enabled or data.get("persist_confirmed") is not True:
             return 403, {"error": "Explicit host retention approval and owner confirmation required"}
-        # A remote provider may receive normalized signals only with a second,
-        # independent host permission AND per-request owner confirmation.
-        if self.app.profile.remote and (
-            not self.bio_remote_allowed or data.get("remote_share_confirmed") is not True
-        ):
-            return 403, {"error": "Remote bio sharing requires separate explicit approval"}
-        if not self.app.authority.allowed("sensors"):
-            return 403, {"error": "Sensor authority revoked; no bio data persisted"}
-        status, result = self.app.dispatch("POST", "/api/event", {"modality": "sensor", "event": event})
+        # Keep remote-provider selection, permission checks and durable dispatch
+        # atomic with BYOK activation. Without this lock, another request could
+        # select a remote model between the sharing check and inference.
+        with self.app._lock:
+            if self.app.profile.remote and (
+                not self.bio_remote_allowed or data.get("remote_share_confirmed") is not True
+            ):
+                return 403, {"error": "Remote bio sharing requires separate explicit approval"}
+            if not self.app.authority.allowed("sensors"):
+                return 403, {"error": "Sensor authority revoked; no bio data persisted"}
+            status, result = self.app.dispatch(
+                "POST", "/api/event", {"modality": "sensor", "event": event}
+            )
         if status != 200:
             return status, {"error": result.get("error", "Bio event processing failed")}
         return 200, {"persisted": True, "model_invoked": True, "raw_media_transmitted": False,
@@ -213,7 +217,8 @@ class OwnerBridge:
             ):
                 return 400, {"error": "cloud context is temporary attachment data only"}
         if name == "connections":
-            return self._connection_action(data)
+            with self.app._lock:
+                return self._connection_action(data)
         if name == "bio":
             return self._bio_action(data)
         return self.app.dispatch(method, parsed.path, data)

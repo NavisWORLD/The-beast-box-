@@ -133,5 +133,69 @@ class BioInputsTests(unittest.TestCase):
                 self.assertEqual(b.dispatch("POST", "/api/bio", AUTH, body(consent=False))[0], 400)
 
 
+    def test_provider_connection_cannot_change_during_bio_dispatch(self):
+        """Remote-provider switching waits until consented event dispatch completes."""
+        import threading
+
+        with tempfile.TemporaryDirectory() as td:
+            env = {"BEASTBOX_BIO_INGEST_ENABLED": "yes",
+                   "BEASTBOX_BIO_PERSIST_ENABLED": "yes",
+                   "BEASTBOX_BIO_REMOTE_ALLOWED": "no"}
+            with patch.dict(os.environ, env):
+                bridge = bridge_module.OwnerBridge(Path(td), TOKEN)
+                entered = threading.Event()
+                release = threading.Event()
+                connection_called = threading.Event()
+                errors = []
+                outcome = {}
+                original = bridge.app.dispatch
+
+                def held_dispatch(*args, **kwargs):
+                    entered.set()
+                    if not release.wait(5):
+                        raise RuntimeError("test bio dispatch release timed out")
+                    return original(*args, **kwargs)
+
+                def fake_connection(_data):
+                    connection_called.set()
+                    return 200, {"ok": True}
+
+                def send_bio():
+                    try:
+                        outcome["bio"] = bridge.dispatch("POST", "/api/bio", AUTH,
+                            body(action="persist", persist_confirmed=True))
+                    except BaseException as exc:
+                        errors.append(exc)
+
+                def switch_provider():
+                    try:
+                        outcome["connection"] = bridge.dispatch("POST", "/api/connections", AUTH,
+                            json.dumps({"action": "test", "provider": "huggingface"}).encode())
+                    except BaseException as exc:
+                        errors.append(exc)
+
+                with patch.object(bridge.app, "dispatch", side_effect=held_dispatch), \
+                        patch.object(bridge, "_connection_action", side_effect=fake_connection):
+                    first = threading.Thread(target=send_bio)
+                    second = threading.Thread(target=switch_provider)
+                    first.start()
+                    try:
+                        self.assertTrue(entered.wait(5), "bio dispatch never began")
+                        second.start()
+                        self.assertFalse(connection_called.wait(0.15),
+                                         "provider change bypassed bio's consent lock")
+                    finally:
+                        release.set()
+                        first.join(5)
+                        if second.ident is not None:
+                            second.join(5)
+                self.assertFalse(first.is_alive())
+                self.assertFalse(second.is_alive())
+                self.assertFalse(errors, errors)
+                self.assertEqual(outcome["bio"][0], 200, outcome)
+                self.assertEqual(outcome["connection"][0], 200, outcome)
+                self.assertTrue(connection_called.is_set())
+
+
 if __name__ == "__main__":
     unittest.main()
