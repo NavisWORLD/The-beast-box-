@@ -65,6 +65,12 @@ with sync_playwright() as p:
     page.get_by_role("button",name="Unlock workstation").click()
     page.get_by_text("BACKEND OFFLINE").wait_for(timeout=20000)
     assert page.get_by_role("navigation",name="Choose a cosmic world").get_by_role("button").count()==5
+    world_buttons=page.get_by_role("navigation",name="Choose a cosmic world").get_by_role("button")
+    bounds=world_buttons.evaluate_all("""buttons => buttons.map(button => {
+      const rect=button.getBoundingClientRect();
+      return {left:rect.left,right:rect.right,width:rect.width};
+    })""")
+    assert all(item["width"]>=44 and item["left"]>=0 and item["right"]<=390 for item in bounds), bounds
     assert_no_overflow(page,"mobile cosmic world")
     page.screenshot(path=str(OUT/"10-cosmos-world-mobile.png"),full_page=True)
     page.get_by_role("button",name="Open navigation").click()
