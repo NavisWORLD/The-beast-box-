@@ -18,10 +18,12 @@ from dataclasses import asdict
 from beastbox.cosmic_web import CosmicApp, ProviderProfile
 from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV, MODELS
 from beastbox.cloud_connection_checks import verify_connection
+from beastbox.bio_inputs import bio_event, SIGNALS, SOURCES
+from beastbox.events import normalize_event
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections"})
-POST_ALLOW = frozenset({"chat", "context", "connections"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio"})
+POST_ALLOW = frozenset({"chat", "context", "connections", "bio"})
 
 
 class OwnerBridge:
@@ -92,6 +94,52 @@ class OwnerBridge:
             return 400, {"error":"connection request rejected; no secret was returned"}
         return 400, {"error":"unsupported connection action"}
 
+    def _bio_action(self, data: dict) -> tuple[int, dict]:
+        """Host- and owner-approved one-shot numeric bio event, never a device read."""
+        if os.environ.get("BEASTBOX_BIO_ENABLED") != "yes":
+            return 503, {"error": "Bio input is disabled on this host"}
+        fields = {"source", "captured_at", "signals", "consent", "persist", "share_remote"}
+        if set(data) != fields or data.get("consent") is not True:
+            return 400, {"error": "Explicit owner consent and exact bio fields required"}
+        if type(data.get("persist")) is not bool or type(data.get("share_remote")) is not bool:
+            return 400, {"error": "Bio persistence and remote sharing must be explicit booleans"}
+        try:
+            event = bio_event(data["source"], data["captured_at"], data["signals"])
+        except (TypeError, ValueError):
+            return 400, {"error": "Invalid or stale physiological summary"}
+        normalized = normalize_event(event)
+        if data["persist"] is False:
+            return 200, {
+                "schema": "beastbox-bio-receipt-v1", "accepted": True,
+                "mode": "VALIDATED_ONLY", "durable_write": False, "model_called": False,
+                "signal_names": sorted(data["signals"]), "event_sha256": normalized["sha256"],
+            }
+        # A selected remote model would receive this *sensitive* numeric summary.
+        if self.app.profile.remote and data["share_remote"] is not True:
+            return 403, {"error": "Separate explicit remote bio-sharing approval required"}
+        # The host feature flag plus a request-scoped owner approval are necessary.
+        # Serialize the temporary sensor grant so another request cannot inherit it.
+        with self.app._lock:
+            borrowed = not self.app.authority.allowed("sensors")
+            if borrowed:
+                self.app.authority.grant("sensors")
+            try:
+                status, result = self.app.dispatch(
+                    "POST", "/api/event", {"modality": "sensor", "event": event}
+                )
+            finally:
+                if borrowed:
+                    self.app.authority.revoke("sensors")
+        if status != 200:
+            return status, result
+        return 200, {
+            "schema": "beastbox-bio-receipt-v1", "accepted": True,
+            "mode": "EXPLICIT_DURABLE_EVENT", "durable_write": True,
+            "remote_shared": self.app.profile.remote,
+            "signal_names": sorted(data["signals"]), "event_sha256": normalized["sha256"],
+            "result": result,
+        }
+
     def _configure_explicit_hf_provider(self, root: Path) -> None:
         """Owner-approved one-model HF setup on the durable host; never silently swap a profile."""
         model = os.environ.get("BEASTBOX_HF_MODEL_ID", "").strip()
@@ -136,6 +184,12 @@ class OwnerBridge:
         allowed = GET_ALLOW if method == "GET" else POST_ALLOW if method == "POST" else frozenset()
         if name not in allowed:
             return 404, {"error": "unsupported route"}
+        if name == "bio" and method == "GET":
+            return 200, {"schema": "beastbox-bio-status-v1",
+                         "enabled": os.environ.get("BEASTBOX_BIO_ENABLED") == "yes",
+                         "sources": sorted(SOURCES), "signals": sorted(SIGNALS),
+                         "consent_required": True, "default_persistence": False,
+                         "device_capture": False, "medical_interpretation": False}
         if name == "connections" and method == "GET":
             if self.vault is None:
                 return 200, {"vault":"HOST_KEY_REQUIRED","connections":[],"owner":"SINGLE_OWNER_PREVIEW"}
@@ -158,6 +212,8 @@ class OwnerBridge:
                 set(data) != {"scope", "name", "text"} or data.get("scope") != "temporary_attachment"
             ):
                 return 400, {"error": "cloud context is temporary attachment data only"}
+        if name == "bio":
+            return self._bio_action(data)
         if name == "connections":
             return self._connection_action(data)
         return self.app.dispatch(method, parsed.path, data)
