@@ -25,8 +25,8 @@ from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
 from beastbox.chat_jobs import ChatJobs
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations"})
-POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models"})
+POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models"})
 
 
 class OwnerBridge:
@@ -41,6 +41,7 @@ class OwnerBridge:
             raise ConnectionError("choose either the explicit host HF provider or encrypted BYOK vault")
         self.app = CosmicApp(root, provider_secret_resolver=self._resolve_provider_secret if self.vault else None)
         self._configure_explicit_local_tiny_provider(root)
+        self.local_model_ready = os.environ.get("BEASTBOX_TINY_LOCAL_ENABLED") == "yes"
         self._configure_explicit_hf_provider(root)
         # Opt-in host settings only. No browser-supplied grant or device access.
         self.bio_enabled = os.environ.get("BEASTBOX_BIO_INGEST_ENABLED") == "yes"
@@ -118,7 +119,8 @@ class OwnerBridge:
             raise ValueError("choose either the local tiny model or a billed HF host provider")
         # Check actual weights even if an existing profile is already selected.
         verify_model()
-        if self.app.profile != requested and self.app.profile.kind != "reference":
+        if (self.app.profile != requested and self.app.profile.kind != "reference"
+                and not self.app.profile.remote):
             raise ValueError("refusing to overwrite a previously selected Beast Box brain")
         # This health request cannot leave this host. Launch happens before
         # OwnerBridge in the opt-in image's entrypoint, never from HTTP input.
@@ -130,8 +132,10 @@ class OwnerBridge:
                     raise ValueError("local tiny inference process is not ready")
         except (OSError, ValueError) as exc:
             raise ValueError("local tiny inference process is not ready") from exc
-        if self.app.profile != requested:
+        if self.app.profile.kind == "reference":
             self.app._set_profile(compatible_profile())
+        # An owner-selected remote profile survives restart, but its cloud
+        # authority does NOT. The local model remains available to select.
 
     def _configure_explicit_hf_provider(self, root: Path) -> None:
         """Owner-approved one-model HF setup on the durable host; never silently swap a profile."""
@@ -161,6 +165,69 @@ class OwnerBridge:
         # Explicit host approval is required again after every restart. A
         # model handoff in CosmicApp revokes all previous authority.
         self.app.authority.grant("cloud")
+
+    def _model_catalog(self) -> dict:
+        """Expose only installed local and encrypted configured model choices."""
+        choices = []
+        if self.local_model_ready:
+            choices.append({
+                "choice": "local",
+                "model": compatible_profile()["model"],
+                "kind": "local",
+                "configured": True,
+                "requires_spend_approval": False,
+                "readiness": "LOCAL_WEIGHTS_AND_LOOPBACK_VERIFIED",
+            })
+        if self.vault is not None:
+            for item in self.vault.list_public()["connections"]:
+                if item["provider"] in MODELS and item["configured"]:
+                    choices.append({
+                        "choice": item["provider"],
+                        "model": item["config"]["model"],
+                        "kind": "remote",
+                        "configured": True,
+                        "requires_spend_approval": True,
+                        "readiness": "CREDENTIAL_CONFIGURED_INFERENCE_NOT_ATTESTED",
+                    })
+        profile = self.app.profile
+        return {
+            "active": {"model": profile.model, "kind": profile.kind,
+                       "remote": profile.remote},
+            "remote_grant_active": profile.remote and self.app.authority.allowed("cloud"),
+            "reapproval_required": profile.remote and not self.app.authority.allowed("cloud"),
+            "choices": choices,
+            "inference_attested": False,
+            "no_automatic_fallback": True,
+        }
+
+    def _model_action(self, data: dict) -> tuple[int, dict]:
+        """Owner-initiated model swap without replacing memory or authority."""
+        choice = data.get("choice")
+        if choice == "local" and set(data) == {"choice"}:
+            if not self.local_model_ready:
+                return 503, {"error": "Verified local model is unavailable on this host"}
+            # Recheck loopback before committing the profile. No paid inference.
+            from beastbox.providers import _local_opener
+            try:
+                with _local_opener().open(LOCAL_URL + "/models", timeout=5) as reply:
+                    if reply.status != 200:
+                        raise ValueError("local provider not ready")
+            except (OSError, ValueError):
+                return 503, {"error": "Verified local model readiness failed; selection unchanged"}
+            profile, changed, revoked = self.app._set_profile(compatible_profile())
+            return 200, {
+                "selected": "local", "model": profile.model,
+                "brain_changed": changed, "authority_revoked": revoked,
+                "no_paid_inference": True, "inference": "NOT_ATTESTED_UNTIL_REAL_CHAT",
+                "substrate": "EXISTING_DURABLE_STATE",
+            }
+        if (choice in MODELS and set(data) == {"choice", "spend_approved"}
+                and data["spend_approved"] is True):
+            status, result = self._connection_action({
+                "action": "activate", "provider": choice, "spend_approved": True,
+            })
+            return status, result
+        return 400, {"error": "Choose a configured model and approve remote usage explicitly"}
 
     def _observation_action(self, data: dict) -> tuple[int, dict]:
         """Persist *only* explicitly selected, bounded, unverified device text."""
@@ -248,6 +315,9 @@ class OwnerBridge:
         allowed = GET_ALLOW if method == "GET" else POST_ALLOW if method == "POST" else frozenset()
         if name not in allowed:
             return 404, {"error": "unsupported route"}
+        if name == "models" and method == "GET":
+            with self.app._lock:
+                return 200, self._model_catalog()
         if name == "chat-job" and method == "GET":
             query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
             if set(query) != {"id"} or len(query["id"]) != 1:
@@ -286,8 +356,13 @@ class OwnerBridge:
                 return 400, {"error": "cloud context is temporary attachment data only"}
         if name == "chat-start":
             return self.chat_jobs.start(data)
+        if name == "models":
+            with self.app._lock:
+                return self.chat_jobs.run_when_idle(lambda: self._model_action(data))
         if name == "connections":
             with self.app._lock:
+                if data.get("action") in {"activate", "remove", "save"}:
+                    return self.chat_jobs.run_when_idle(lambda: self._connection_action(data))
                 return self._connection_action(data)
         if name == "bio":
             return self._bio_action(data)
