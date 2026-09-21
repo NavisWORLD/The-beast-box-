@@ -44,6 +44,8 @@ with sync_playwright() as p:
     assert unauth.get_by_role("button",name="IBM watsonx.ai").count()==1
     assert unauth.get_by_role("button",name="Ollama Cloud").count()==1
     assert unauth.get_by_role("button",name="Save encrypted credential").is_disabled()
+    assert unauth.get_by_label("Live owner senses").is_visible()
+    assert unauth.get_by_role("button",name="Start vision").is_visible()
     assert_no_overflow(unauth,"desktop BYOK settings")
     unauth.screenshot(path=str(OUT/"07-cloud-settings-desktop.png"),full_page=True)
     results["desktop"]="PASS: marketing, auth, offline gate, memory honesty, BYOK settings fail-closed"
@@ -65,14 +67,26 @@ with sync_playwright() as p:
     page.get_by_text("ci-photo.png").wait_for(timeout=8000)
     assert page.get_by_text("LOCAL ONLY").count()>0
     assert page.get_by_role("button",name="Send message").is_disabled()
+    assert page.get_by_label("Live owner senses").is_hidden()
     assert_no_overflow(page,"mobile attachment")
     page.screenshot(path=str(OUT/"06-attachment-local-only.png"),full_page=True)
     page.get_by_role("button",name="Open navigation").click()
     page.get_by_role("button",name="SETTINGS").click()
     page.get_by_text("Connect your universe").wait_for(timeout=10000)
     assert page.get_by_role("button",name="Save encrypted credential").is_disabled()
+    assert page.get_by_label("Live owner senses").is_visible()
+    assert page.get_by_role("button",name="Start vision").is_visible()
+    # Navigation must preserve the same mounted sensing component and keep chat usable.
+    page.evaluate("""window.__sensesNode = document.querySelector('[aria-label="Live owner senses"]')""")
     assert_no_overflow(page,"mobile BYOK settings")
     page.screenshot(path=str(OUT/"08-cloud-settings-mobile.png"),full_page=True)
+    page.get_by_role("button",name="Open navigation").click()
+    page.get_by_role("button",name="BRAIN",exact=True).click()
+    assert page.get_by_label("Live owner senses").is_hidden()
+    assert page.evaluate("""document.querySelector('[aria-label="Live owner senses"]') === window.__sensesNode""")
+    page.get_by_role("button",name="Stage file or photo locally").click()
+    assert page.get_by_role("button",name="Send message").is_disabled()
+    assert_no_overflow(page,"mobile chat after settings")
     results["mobile"]="PASS: landing, auth, no overflow, photo stage only, BYOK settings fail-closed"
     assert not errors, "Client errors: "+str(errors)
     results["console_errors"]=errors
