@@ -133,7 +133,7 @@ class CompatibleChatProvider:
             headers['Authorization'] = 'Bearer ' + key
         payload = {'model': self.model, 'messages': [{'role': 'user', 'content': prompt}],
                    'stream': False, 'temperature': 0, 'max_tokens': 256}
-        if self.base_url.rstrip('/') == 'https://ollama.com/v1' and self.model.startswith('gpt-oss:'):
+        if self.base_url.rstrip('/') == 'https://ollama.com/v1' and self.model in {'gpt-oss:120b', 'gpt-oss:20b'}:
             # GPT-OSS can exhaust a tiny output budget on reasoning before
             # producing user-facing content. Explicitly request low reasoning;
             # maintain the existing 256-token spending bound and no retries.
