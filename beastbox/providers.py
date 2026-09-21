@@ -18,6 +18,25 @@ class TextProvider(Protocol):
     def generate(self, prompt: str) -> str: ...
 
 
+# Fixed vocabulary only: provider response bodies, tokens, URLs, user prompts,
+# and exception strings must not cross the owner-bridge diagnostics boundary.
+PROVIDER_FAILURE_CODES = frozenset({
+    "MODEL_AUTH_REJECTED", "MODEL_ACCESS_DENIED", "MODEL_NOT_FOUND",
+    "MODEL_RATE_LIMITED", "MODEL_TIMEOUT", "MODEL_UNAVAILABLE",
+    "MODEL_OUTPUT_EMPTY", "MODEL_BAD_RESPONSE",
+})
+
+
+class ProviderDiagnosticError(ValueError):
+    """Provider failure with a bounded, non-sensitive failure code."""
+
+    def __init__(self, code: str):
+        if code not in PROVIDER_FAILURE_CODES:
+            raise ValueError("unsupported provider failure code")
+        self.code = code
+        super().__init__("compatible model backend unavailable or returned invalid text; no fallback")
+
+
 def _assert_loopback(url: str) -> None:
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme not in {"http", "https"} or parsed.username is not None or parsed.password is not None or parsed.fragment or parsed.query:
@@ -114,16 +133,37 @@ class CompatibleChatProvider:
             headers['Authorization'] = 'Bearer ' + key
         payload = {'model': self.model, 'messages': [{'role': 'user', 'content': prompt}],
                    'stream': False, 'temperature': 0, 'max_tokens': 256}
+        if self.base_url.rstrip('/') == 'https://ollama.com/v1' and self.model.startswith('gpt-oss:'):
+            # GPT-OSS can exhaust a tiny output budget on reasoning before
+            # producing user-facing content. Explicitly request low reasoning;
+            # maintain the existing 256-token spending bound and no retries.
+            payload['reasoning_effort'] = 'low'
         request = urllib.request.Request(self.base_url.rstrip('/') + '/chat/completions',
                                          data=json.dumps(payload).encode(), headers=headers, method='POST')
         try:
             with _local_opener().open(request, timeout=self.timeout) as response:
                 raw = response.read(1048577)
             if len(raw) > 1048576:
-                raise ValueError('oversized response')
-            content = json.loads(raw)['choices'][0]['message']['content']
-            if not isinstance(content, str):
-                raise ValueError('non-text response')
+                raise ProviderDiagnosticError('MODEL_BAD_RESPONSE')
+            data = json.loads(raw)
+            content = data['choices'][0]['message']['content']
+            if not isinstance(content, str) or not content.strip():
+                raise ProviderDiagnosticError('MODEL_OUTPUT_EMPTY')
             return content
+        except urllib.error.HTTPError as exc:
+            # Never read/expose upstream body or headers. A 200 from the
+            # chat-job status endpoint does not confirm upstream success.
+            code = {
+                401: 'MODEL_AUTH_REJECTED',
+                403: 'MODEL_ACCESS_DENIED',
+                404: 'MODEL_NOT_FOUND',
+                408: 'MODEL_TIMEOUT',
+                429: 'MODEL_RATE_LIMITED',
+            }.get(exc.code, 'MODEL_UNAVAILABLE')
+            raise ProviderDiagnosticError(code) from None
+        except TimeoutError:
+            raise ProviderDiagnosticError('MODEL_TIMEOUT') from None
+        except ProviderDiagnosticError:
+            raise
         except (OSError, ValueError, KeyError, IndexError, TypeError):
             raise ValueError('compatible model backend unavailable or returned invalid text; no fallback') from None
