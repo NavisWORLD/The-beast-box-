@@ -7,7 +7,7 @@ type Connection={provider:Provider;configured:boolean;config:Record<string,strin
 type Field={key:string;label:string;placeholder:string};
 const PROVIDERS:{id:Provider;name:string;purpose:string;fields:Field[];secretLabel:string;help:string;activatable:boolean}[]=[
  {id:'huggingface',name:'Hugging Face',purpose:'Hosted conversational model',fields:[{key:'model',label:'Model repository',placeholder:'owner/model-name'}],secretLabel:'HF fine-grained token',help:'Choose a supported chat model and enable Inference Providers permission on your token.',activatable:true},
- {id:'ollama_cloud',name:'Ollama Cloud',purpose:'Hosted Ollama model (not your localhost)',fields:[{key:'model',label:'Cloud model',placeholder:'gpt-oss:120b-cloud'}],secretLabel:'Ollama cloud API key',help:'Use the exact hosted model ID, e.g. gpt-oss:120b-cloud (not local gpt-oss:120b). Your personal localhost:11434 is not reachable from Vercel.',activatable:true},
+ {id:'ollama_cloud',name:'Ollama Cloud',purpose:'Direct Ollama API (not your localhost)',fields:[{key:'model',label:'Direct API model ID',placeholder:'gpt-oss:120b'}],secretLabel:'Ollama cloud API key',help:'For https://ollama.com/v1 use the direct API ID gpt-oss:120b. The gpt-oss:120b-cloud suffix belongs to the Ollama app/CLI. The public model list does not verify your API key or inference entitlement.',activatable:true},
  {id:'azure_blob',name:'Azure Blob Storage',purpose:'Private photos, documents and exports',fields:[{key:'account',label:'Storage account',placeholder:'myaccount'},{key:'container',label:'Private container',placeholder:'beastbox-private'}],secretLabel:'Scoped container SAS token',help:'Use a short-lived, least-privilege container SAS, not a storage-account master key. Saving a key alone does not enable uploads.',activatable:false},
  {id:'ibm_watsonx',name:'IBM watsonx.ai',purpose:'IBM-hosted Granite / Llama models',fields:[{key:'region',label:'Region',placeholder:'us-south'},{key:'project_id',label:'Project ID',placeholder:'project-id'},{key:'model',label:'Foundation model ID',placeholder:'ibm/granite-...'}],secretLabel:'IBM Cloud API key',help:'Key, region and project may be saved. A separate authorized watsonx inference adapter is required before chatting.',activatable:false},
  {id:'ibm_quantum',name:'IBM Quantum',purpose:'Authorized research workloads',fields:[{key:'instance',label:'Instance',placeholder:'service instance or CRN'}],secretLabel:'IBM Quantum credential',help:'For research only. Saving a key never launches hardware jobs, training or inference.',activatable:false},
@@ -49,7 +49,7 @@ export default function CloudConnections({backendReachable,onActivated}:{backend
   setBusy(true);setError('');setNotice('');
   try{
    const result=await bridge('POST',{action,provider,...(action==='activate'?{spend_approved:true}:{})});
-   if(action==='test')setNotice('Credential check: '+String(result.status||'UNKNOWN')+'. '+String(result.detail||'No inference was performed.'));
+   if(action==='test')setNotice('Read-only provider check: '+String(result.status||'UNKNOWN')+'. '+String(result.detail||'No inference was performed.'));
    if(action==='remove')setNotice('Removed local encrypted credential. Revoke the key at its provider as well.');
    if(action==='activate'){setNotice('Provider profile selected. Real inference remains unverified until an actual model response.');onActivated();}
    if(action!=='test')await refresh();
@@ -102,7 +102,7 @@ export default function CloudConnections({backendReachable,onActivated}:{backend
     <p>Switch to the local model in Brain Bay first if this cloud model is active. This operation re-encrypts your existing host-only key but does not make an inference request.</p>
     <label>Saved model ID<input type="text" value={modelUpdate} disabled={!ready||busy}
       onChange={e=>setModelUpdate(e.target.value)} maxLength={180} autoComplete="off" /></label>
-    {provider==='ollama_cloud'&&modelUpdate==='gpt-oss:120b'&&<p role="status">Ollama Cloud lists the hosted 120B model as <code>gpt-oss:120b-cloud</code>, not the local tag.</p>}
+    {provider==='ollama_cloud'&&modelUpdate.endsWith('-cloud')&&<p role="status">This is the Ollama app/CLI tag. The direct API model ID uses the name without <code>-cloud</code>. The read-only list is public and cannot verify your account or API key. Switch to local before updating an active remote model.</p>}
     <button type="button" disabled={!ready||busy||!modelUpdate.trim()||modelUpdate===currentModel}
       onClick={()=>void updateSavedModel()}>Save model ID (keep encrypted key)</button>
    </div>}
