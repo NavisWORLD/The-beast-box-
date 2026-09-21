@@ -27,7 +27,7 @@ test('images and PDFs stay local until real storage',()=>{
 });
 test('proxy excludes arbitrary tools and filesystem',()=>{
  const proxy=read('app/api/bridge/[endpoint]/route.ts');
- assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','context','connections'\]\)/);
+ assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','context','connections','bio'\]\)/);
  assert.doesNotMatch(proxy,/['"]workspace\/write['"]/);
 });
 
@@ -59,4 +59,14 @@ test('BYOK provider credentials are owner-only, same-origin and never browser-pe
  assert.match(ui,/ollama_cloud/);
  assert.match(ui,/ibm_quantum/);
  assert.match(ui,/azure_blob/);
+});
+
+test('bio proxy accepts only consented numeric summaries and requires same origin',()=>{
+ const proxy=read('app/api/bridge/[endpoint]/route.ts');
+ assert.match(proxy,/const GET_ALLOW=new Set\(\['orbit','memory','trace','provider','conversation','storage','context','connections','bio'\]\)/);
+ assert.match(proxy,/endpoint==='connections' \|\| endpoint==='bio'/);
+ assert.match(proxy,/Same-origin owner action required/);
+ assert.match(proxy,/Explicit bio consent and persistence\/remote-sharing choices required/);
+ assert.match(proxy,/Invalid physiological summary values/);
+ assert.doesNotMatch(proxy,/navigator\.bluetooth|navigator\.usb|navigator\.serial/);
 });
