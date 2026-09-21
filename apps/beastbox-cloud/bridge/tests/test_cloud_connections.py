@@ -92,7 +92,6 @@ class BYOKTests(unittest.TestCase):
         self.assertNotIn(HF,json.dumps(removed))
 
     def test_owner_corrects_unhosted_ollama_model_without_disclosing_key_or_inference(self):
-        from beastbox import cloud_connection_checks
         bridge=bridge_module.OwnerBridge(self.root,TOKEN)
         saved={"action":"save","provider":"ollama_cloud",
                "config":{"model":"gpt-oss:120b"},"secret":HF}
