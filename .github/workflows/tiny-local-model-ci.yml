@@ -51,6 +51,11 @@ jobs:
               time.sleep(1)
           else:
               raise SystemExit("real model + COSMOS ingress did not start within 180 s")
+          try:
+              with urllib.request.urlopen(base + "/api/orbit", timeout=5):
+                  raise AssertionError("unauthenticated COSMOS request was accepted")
+          except urllib.error.HTTPError as error:
+              assert error.code == 401, error.code
           headers = {"Authorization": "Bearer " + os.environ["BEASTBOX_FIXTURE_TOKEN"]}
           def api(route, data=None):
               raw = None if data is None else json.dumps(data).encode()
