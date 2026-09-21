@@ -175,7 +175,7 @@ test('senses is a Settings-only control and cannot cover the chat composer',()=>
  assert.match(studio,/aria-label="Open sensing settings"/);
  // Mounted unconditionally at the content root; navigation must not recreate video.
  const mount=studio.indexOf('<LiveSenses visible=');
- assert.ok(mount>0 && mount<studio.indexOf("{page==='BRAIN'?"));
+ assert.ok(mount>0 && mount<studio.indexOf("page==='BRAIN'?"));
  assert.match(studio,/aria-label="Stage file or photo locally"/);
  assert.match(studio,/Images and PDFs are locally staged only/);
 });
@@ -218,4 +218,35 @@ test('correct Ollama Cloud model ID via owner-only key-preserving metadata updat
  assert.match(cloud,/gpt-oss:120b-cloud/);
  assert.match(switcher,/gpt-oss:120b-cloud/);
  assert.doesNotMatch(cloud,/localStorage|sessionStorage/);
+});
+
+
+test('five-world surface does not replace the existing durable owner workstation',()=>{
+ const ui=read('components/studio.tsx');
+ const scene=read('components/cosmos-world.tsx');
+ const css=read('app/globals.css');
+ assert.match(ui,/COSMOS WORLD/);
+ assert.match(ui,/<CosmosWorld connected=\{connected\}/);
+ assert.match(scene,/const WORLDS:/);
+ assert.match(scene,/WORLDS\.map/);
+ assert.match(scene,/ILLUSTRATIVE GRAPHICS/);
+ assert.match(scene,/webglcontextlost/);
+ assert.match(scene,/ResizeObserver/);
+ assert.match(scene,/prefers-reduced-motion/);
+ assert.match(scene,/cancelAnimationFrame/);
+ assert.match(css,/pointer-events:none!important/);
+ assert.doesNotMatch(scene,/fetch\(|localStorage|sessionStorage|navigator\.mediaDevices/);
+});
+test('remote model grant is inspected before chat and recovery stays owner initiated',()=>{
+ const ui=read('components/studio.tsx');
+ const backend=read('bridge/owner_bridge.py');
+ assert.match(ui,/reapproval_required:catalog\.reapproval_required===true/);
+ assert.match(ui,/modelGate!==null&&!needsGrant/);
+ assert.match(ui,/if\(!connected\|\|busy\|\|!prompt\.trim\(\)\)return/);
+ assert.match(ui,/Use local model · no cloud charge/);
+ assert.match(ui,/Review cloud model/);
+ assert.match(ui,/if\(result\.no_paid_inference!==true\)/);
+ assert.match(backend,/self\.app\.authority\.grant\("cloud"\)/);
+ assert.match(backend,/reapproval_required/);
+ assert.doesNotMatch(ui,/spend_approved:true.*choice:'local'/);
 });
