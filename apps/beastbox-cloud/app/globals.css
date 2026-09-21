@@ -183,3 +183,10 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 }
 @media(max-width:360px){.cosmos-world-readouts{grid-template-columns:minmax(0,1fr)}.cosmos-world-cloud{height:180px;min-height:180px}.cosmos-world-core{width:165px}}
 @media(prefers-reduced-motion:reduce){.cosmos-world-cloud,.cosmos-world-core,.cosmos-world-halo,.cosmos-world-fly{animation:none!important;transition:none!important}.cosmos-world{scroll-behavior:auto}}
+
+/* Acceptance correction: show all five worlds simultaneously on narrow phones. */
+@media(max-width:680px){
+.cosmos-world-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;gap:4px;scroll-snap-type:none}
+.cosmos-world-option{flex:none;min-width:0;width:100%;min-height:60px;padding:9px 5px;font-size:clamp(8px,2.2vw,10px);letter-spacing:0;overflow-wrap:anywhere;scroll-snap-align:none}
+.cosmos-world-number{font-size:9px}
+}
