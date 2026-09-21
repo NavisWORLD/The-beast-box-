@@ -68,8 +68,8 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
     <p role="status">Active profile: <strong>{catalog.active.model}</strong> ({catalog.active.remote?'remote':'local'}).
      {catalog.reapproval_required?' Remote model needs fresh owner approval after restart.':null}
     </p>
-    {catalog.active.remote&&catalog.active.model==='gpt-oss:120b'&&
-     <p role="status">This is an Ollama local model ID, not the advertised cloud ID. In Settings → Ollama Cloud, correct the saved model name to <code>gpt-oss:120b-cloud</code> without re-entering your encrypted key. Switch to local before editing the active model.</p>}
+    {catalog.active.remote&&catalog.active.model.endsWith('-cloud')&&
+     <p role="status">This is an Ollama app/CLI model tag, not the direct <code>ollama.com/v1</code> ID. In Settings → Ollama Cloud, update the saved ID to its direct API name without <code>-cloud</code> (for example <code>gpt-oss:120b</code>), keeping the encrypted key. Switch to local before editing an active model. The public inventory alone cannot verify the key or entitlement.</p>}
     {catalog.choices.map(option=>{
      const active=catalog.active.model===option.model&&
       (option.choice==='local'?!catalog.active.remote:catalog.active.remote);
