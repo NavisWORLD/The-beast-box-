@@ -52,8 +52,9 @@ export default function DevicePanel({canSend,onDraft}:Props){
    camera.current=stream;
    if(!video.current)throw new Error('Camera preview is unavailable.');
    video.current.srcObject=stream;
+   // iOS Safari may reject play() while the element is display:none.
+   setCameraOn(true);
    await video.current.play();
-   if(alive.current)setCameraOn(true);
   }catch{
    stream?.getTracks().forEach(track=>track.stop());stopCamera();
    if(alive.current)setError('Camera unavailable or permission denied. No image was sent.');
