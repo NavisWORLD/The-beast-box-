@@ -215,8 +215,12 @@ test('correct Ollama Cloud model ID via owner-only key-preserving metadata updat
  assert.match(bridge,/Switch to local model in Brain Bay before editing/);
  assert.match(bridge,/gpt-oss:120b/);
  assert.match(cloud,/Save model ID \(keep encrypted key\)/);
- assert.match(cloud,/gpt-oss:120b-cloud/);
- assert.match(switcher,/gpt-oss:120b-cloud/);
+ assert.match(cloud,/gpt-oss:120b/);
+ assert.match(cloud,/direct API/i);
+ assert.match(switcher,/direct API/i);
+ assert.match(bridge,/saved\["config"\]\["model"\]\.endswith\("-cloud"\)/);
+ assert.match(read('../../beastbox/cloud_connection_checks.py'),/MODEL_ID_MODE_MISMATCH/);
+ assert.match(read('../../beastbox/cloud_connection_checks.py'),/MODEL_LISTED_AUTH_UNVERIFIED/);
  assert.doesNotMatch(cloud,/localStorage|sessionStorage/);
 });
 
@@ -249,4 +253,14 @@ test('remote model grant is inspected before chat and recovery stays owner initi
  assert.match(backend,/self\.app\.authority\.grant\("cloud"\)/);
  assert.match(backend,/reapproval_required/);
  assert.doesNotMatch(ui,/spend_approved:true.*choice:'local'/);
+});
+
+test('workstation has one main landmark and attachment input has an explicit name',()=>{
+ const studio=read('components/studio.tsx');
+ const login=studio.match(/<main className="login-screen"/g)||[];
+ const shell=studio.match(/<main className="main-shell"/g)||[];
+ assert.equal(login.length,1);
+ assert.equal(shell.length,1);
+ assert.match(studio,/aria-label="Choose files or photos to stage locally"/);
+ assert.match(read('app/globals.css'),/Accessible contrast and touch affordances/);
 });
