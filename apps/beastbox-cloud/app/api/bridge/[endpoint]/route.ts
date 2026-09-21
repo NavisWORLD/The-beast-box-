@@ -1,16 +1,23 @@
 import { bridgeConfigured, isOwner, safeJson } from '@/lib/security';
 export const runtime='nodejs';
-const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio']);
-const POST_ALLOW=new Set(['chat','context','connections','bio']);
+const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job']);
+const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio']);
 type RouteContext={params:Promise<{endpoint:string}>};
 async function forward(request:Request, method:'GET'|'POST', {params}:RouteContext) {
   if (!await isOwner()) return safeJson(401,{error:'Owner authentication required'});
   const {endpoint}=await params;
   if (!(method==='GET'?GET_ALLOW:POST_ALLOW).has(endpoint)) return safeJson(404,{error:'Route not exposed by the cloud bridge'});
+  const incoming=new URL(request.url);
+  if(endpoint==='chat-job'&&method==='GET'){
+    if([...incoming.searchParams.keys()].length!==1||!incoming.searchParams.has('id')||
+       !/^[A-Za-z0-9_-]{32}$/.test(incoming.searchParams.get('id')||''))
+      return safeJson(400,{error:'Invalid chat job ID'});
+  }else if(incoming.search) return safeJson(400,{error:'Unexpected query parameters'});
+
   if (!bridgeConfigured()) return safeJson(503,{error:'A durable HTTPS Beast Box bridge has not been provisioned. No model call was performed.'});
   let body: string|undefined;
   if (method==='POST') {
-    if (endpoint==='connections'||endpoint==='bio') {
+    if (endpoint==='connections'||endpoint==='bio'||endpoint==='chat-start') {
       // Cross-site forms must not edit credentials or submit sensitive bio readings.
       const origin=request.headers.get('origin');
       if (!origin || origin!==new URL(request.url).origin) return safeJson(403,{error:'Same-origin owner action required'});
@@ -43,8 +50,13 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
          channels.some(k=>!allowed.includes(k)||typeof readings[k]!=='number'||!Number.isFinite(readings[k])))
         return safeJson(400,{error:'Bio readings must be bounded numeric channels'});
     }
-    if (endpoint==='chat') {
-      if (Object.keys(input).some(k=>!['text','context_ids'].includes(k))) return safeJson(400,{error:'Cloud chat only accepts text and selected context IDs'});
+    if (endpoint==='chat'||endpoint==='chat-start') {
+      if(endpoint==='chat-start'&&(
+         typeof input.request_id!=='string'||
+         !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(input.request_id)||
+         !Array.isArray(input.context_ids)))return safeJson(400,{error:'Invalid async chat ID or context selection'});
+
+      if (Object.keys(input).some(k=>!['text','context_ids',...(endpoint==='chat-start'?['request_id']:[])].includes(k))) return safeJson(400,{error:'Cloud chat only accepts text, context IDs and a request ID'});
       const text=input.text;
       if (typeof text!=='string'||text.trim().length<1||text.length>8192) return safeJson(400,{error:'Chat text must be 1..8192 characters'});
       if (input.context_ids!==undefined && (!Array.isArray(input.context_ids)||input.context_ids.length>20||input.context_ids.some(x=>!Number.isSafeInteger(x)||x<0))) return safeJson(400,{error:'Invalid context IDs'});
@@ -61,6 +73,7 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
   }
   const root=process.env.BEASTBOX_CLOUD_BRIDGE_URL!;
   const url=new URL('/api/'+endpoint, root.endsWith('/')?root:root+'/');
+  if(endpoint==='chat-job') url.searchParams.set('id',incoming.searchParams.get('id')!);
   try {
     const upstream=await fetch(url, {method, body, cache:'no-store',redirect:'error',
       headers:{Authorization:'Bearer '+process.env.BEASTBOX_CLOUD_BRIDGE_TOKEN!,

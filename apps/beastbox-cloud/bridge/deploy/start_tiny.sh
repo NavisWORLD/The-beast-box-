@@ -3,6 +3,9 @@
 set -Eeuo pipefail
 umask 077
 BASE=/app/apps/beastbox-cloud/bridge/deploy
+# Caddy has no writable home for nonroot runtime; use ephemeral private config.
+export XDG_CONFIG_HOME=/tmp/beastbox-caddy-config
+export XDG_DATA_HOME=/tmp/beastbox-caddy-data
 if [[ "${BEASTBOX_TINY_LOCAL_ENABLED:-}" != "yes" ]]; then
   exec "$BASE/start.sh"
 fi
