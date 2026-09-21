@@ -70,3 +70,4 @@ export default function BioPanel({backendReachable}:{backendReachable:boolean}){
   {error?<p className="inline-error" role="alert">{error}</p>:null}
   <p className="cloud-connect-foot">For research and personal experimentation only. Source labels are user-supplied, not hardware-attested. No automatic diagnosis, emotion inference, cloud billing, or device control.</p>
  </section>;
+}
