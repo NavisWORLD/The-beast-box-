@@ -90,7 +90,9 @@ class BioInputsTests(unittest.TestCase):
                 first = bridge_module.OwnerBridge(root, TOKEN)
                 self.assertEqual(first.dispatch("POST", "/api/bio", AUTH,
                     body(action="persist"))[0], 400)
-                self.assertEqual(first.dispatch("POST", "/api/bio", AUTH,\n                    body(action="persist", persist_confirmed=False))[0], 403)\n                _, old = first.dispatch("GET", "/api/storage", AUTH)
+                self.assertEqual(first.dispatch("POST", "/api/bio", AUTH,
+                    body(action="persist", persist_confirmed=False))[0], 403)
+                _, old = first.dispatch("GET", "/api/storage", AUTH)
                 status, result = first.dispatch("POST", "/api/bio", AUTH,
                     body(action="persist", persist_confirmed=True))
                 self.assertEqual(status, 200, result)
