@@ -19,12 +19,14 @@ from beastbox.cosmic_web import CosmicApp, ProviderProfile
 from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV, MODELS
 from beastbox.cloud_connection_checks import verify_connection
 from beastbox.bio_inputs import bio_event
+from beastbox.device_observations import normalize_device_observations
+from beastbox.durable import DurableRuntime
 from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
 from beastbox.chat_jobs import ChatJobs
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job"})
-POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations"})
+POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations"})
 
 
 class OwnerBridge:
@@ -32,6 +34,8 @@ class OwnerBridge:
         if not isinstance(token, str) or len(token) < 32:
             raise ValueError("missing strong bridge token")
         self.token = token
+        self.root = root
+        self.device_memory_enabled = os.environ.get('BEASTBOX_DEVICE_MEMORY_ENABLED') == 'yes'
         self.vault = ConnectionVault(root) if os.environ.get(KEY_ENV) else None
         if self.vault is not None and os.environ.get("BEASTBOX_HF_MODEL_ID"):
             raise ConnectionError("choose either the explicit host HF provider or encrypted BYOK vault")
@@ -158,6 +162,32 @@ class OwnerBridge:
         # model handoff in CosmicApp revokes all previous authority.
         self.app.authority.grant("cloud")
 
+    def _observation_action(self, data: dict) -> tuple[int, dict]:
+        """Persist *only* explicitly selected, bounded, unverified device text."""
+        if not self.device_memory_enabled:
+            return 503, {"error": "Owner device memory is disabled on the durable host"}
+        try:
+            text, metadata = normalize_device_observations(data)
+        except (ValueError, TypeError, KeyError):
+            return 400, {"error": "invalid, stale or unconsented device observations"}
+        # A stored record is retrievable by future models: no guarantee of
+        # exclusion when the owner later selects a remote model.
+        with self.app._lock:
+            runtime = DurableRuntime(self.root)
+            try:
+                receipt = runtime.store_external_memory(
+                    text, kind="device_observation", metadata=metadata
+                )
+            finally:
+                runtime.close()
+        return 200, {
+            "persisted": True, "model_invoked": False,
+            "raw_media_transmitted": False, "source_verified": False,
+            "memory_id": receipt["memory_id"],
+            "checkpoint_sha256": receipt["checkpoint"]["sha256"],
+            "text_sha256": receipt["text_sha256"],
+        }
+
     def _bio_action(self, data: dict) -> tuple[int, dict]:
         """Process only owner-consented numerical summaries; never access devices."""
         if not self.bio_enabled:
@@ -223,6 +253,9 @@ class OwnerBridge:
             if set(query) != {"id"} or len(query["id"]) != 1:
                 return 400, {"error": "invalid chat job query"}
             return self.chat_jobs.get(query["id"][0])
+        if name == "observations" and method == "GET":
+            return 200, {"enabled": self.device_memory_enabled, "raw_media_accepted": False,
+                         "owner": "SINGLE_OWNER_CONSENT", "source_verified": False}
         if name == "bio" and method == "GET":
             return 200, {"enabled": self.bio_enabled,
                          "persist_enabled": self.bio_persist_enabled,
@@ -258,6 +291,8 @@ class OwnerBridge:
                 return self._connection_action(data)
         if name == "bio":
             return self._bio_action(data)
+        if name == "observations":
+            return self._observation_action(data)
         return self.app.dispatch(method, parsed.path, data)
 
 

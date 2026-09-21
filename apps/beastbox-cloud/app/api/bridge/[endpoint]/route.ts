@@ -1,7 +1,7 @@
 import { bridgeConfigured, isOwner, safeJson } from '@/lib/security';
 export const runtime='nodejs';
-const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job']);
-const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio']);
+const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job','observations']);
+const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio','observations']);
 type RouteContext={params:Promise<{endpoint:string}>};
 async function forward(request:Request, method:'GET'|'POST', {params}:RouteContext) {
   if (!await isOwner()) return safeJson(401,{error:'Owner authentication required'});
@@ -17,7 +17,7 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
   if (!bridgeConfigured()) return safeJson(503,{error:'A durable HTTPS Beast Box bridge has not been provisioned. No model call was performed.'});
   let body: string|undefined;
   if (method==='POST') {
-    if (endpoint==='connections'||endpoint==='bio'||endpoint==='chat-start') {
+    if (endpoint==='connections'||endpoint==='bio'||endpoint==='chat-start'||endpoint==='observations') {
       // Cross-site forms must not edit credentials or submit sensitive bio readings.
       const origin=request.headers.get('origin');
       if (!origin || origin!==new URL(request.url).origin) return safeJson(403,{error:'Same-origin owner action required'});
@@ -29,6 +29,26 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
     let parsed:unknown;try{parsed=JSON.parse(body);}catch{return safeJson(400,{error:'Invalid JSON'});}
     if (!parsed || typeof parsed!=='object' || Array.isArray(parsed)) return safeJson(400,{error:'Invalid request'});
     const input=parsed as Record<string,unknown>;
+    if (endpoint==='observations') {
+      if(body.length>4000||Object.keys(input).sort().join(',')!=='consent,observations,persist_confirmed'||
+         input.consent!==true||input.persist_confirmed!==true||!Array.isArray(input.observations)||
+         input.observations.length<1||input.observations.length>8)
+        return safeJson(400,{error:'Owner consent and bounded observation batch required'});
+      for(const item of input.observations){
+        if(!item||typeof item!=='object'||Array.isArray(item))return safeJson(400,{error:'Invalid observation'});
+        const entry=item as Record<string,unknown>;
+        const keys=Object.keys(entry).sort().join(',');
+        const camera=entry.source==='camera_classifier';
+        if(!['camera_classifier','browser_speech'].includes(String(entry.source))||
+           keys!==(camera?'confidence,source,text,timestamp':'source,text,timestamp')||
+           typeof entry.text!=='string'||entry.text.length<1||
+           entry.text.length>(camera?96:240)||
+           typeof entry.timestamp!=='string'||entry.timestamp.length>35||
+           (camera&&(typeof entry.confidence!=='number'||!Number.isFinite(entry.confidence)||
+                    entry.confidence<0.32||entry.confidence>1)))
+          return safeJson(400,{error:'Only bounded text labels and transcripts are accepted'});
+      }
+    }
     if (endpoint==='bio') {
       const allowed=['heart_rate_bpm','hrv_rmssd_ms','respiration_rate_bpm','skin_temperature_c',
         'spo2_pct','eda_microsiemens','accelerometer_rms_g','eeg_alpha_relative',

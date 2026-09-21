@@ -27,7 +27,7 @@ test('images and PDFs stay local until real storage',()=>{
 });
 test('proxy excludes arbitrary tools and filesystem',()=>{
  const proxy=read('app/api/bridge/[endpoint]/route.ts');
- assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','chat-start','context','connections','bio'\]\)/);
+ assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','chat-start','context','connections','bio','observations'\]\)/);
  assert.doesNotMatch(proxy,/['"]workspace\/write['"]/);
 });
 
@@ -121,4 +121,43 @@ test('slow real CPU chat uses one idempotent job with short same-origin polls',(
  assert.match(jobs,/self\._active/);
  assert.match(jobs,/self\._requests/);
  assert.match(jobs,/Check conversation before retrying/);
+});
+
+
+test('owner-live senses use real local classifier and explicit browser speech consent',()=>{
+ const live=read('components/live-senses.tsx');
+ const vision=read('lib/vision-classifier.ts');
+ const studio=read('components/studio.tsx');
+ assert.match(vision,/import\('@mediapipe\/tasks-vision'\)/);
+ assert.match(vision,/efficientnet_lite0\.tflite/);
+ assert.match(vision,/runningMode:'IMAGE'/);
+ assert.match(live,/navigator\.mediaDevices\.getUserMedia\(\{video:/);
+ assert.match(live,/webkitSpeechRecognition/);
+ assert.match(live,/allowBrowserSpeech/);
+ assert.match(live,/browser speech recognition, including possible off-device audio processing/);
+ assert.match(live,/visibilitychange/);
+ assert.match(live,/pagehide/);
+ assert.match(live,/setInterval\(tick,12000\)/);
+ assert.match(live,/Stop vision/);
+ assert.match(live,/Stop speech/);
+ assert.match(live,/setIncludeInChat/);
+ assert.match(studio,/onContext=\{updateLiveContext\}/);
+ assert.match(studio,/Owner-approved unverified device observations/);
+ assert.doesNotMatch(live,/MediaRecorder|toDataURL\(|toBlob\(|localStorage|sessionStorage/);
+});
+
+test('durable device text requires same-origin owner permission and explicit retention',()=>{
+ const live=read('components/live-senses.tsx');
+ const bff=read('app/api/bridge/[endpoint]/route.ts');
+ const bridge=read('bridge/owner_bridge.py');
+ const validator=read('../../beastbox/device_observations.py');
+ assert.match(bff,/endpoint==='observations'/);
+ assert.match(bff,/Same-origin owner action required/);
+ assert.match(bff,/Owner consent and bounded observation batch required/);
+ assert.match(live,/persist_confirmed:true/);
+ assert.match(live,/onDraft/);
+ assert.match(bridge,/self\.device_memory_enabled/);
+ assert.match(bridge,/store_external_memory/);
+ assert.match(validator,/raw_media_transmitted/);
+ assert.match(validator,/MAX_BATCH = 8/);
 });
