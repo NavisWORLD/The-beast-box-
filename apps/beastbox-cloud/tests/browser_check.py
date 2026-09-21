@@ -81,7 +81,7 @@ with sync_playwright() as p:
     assert_no_overflow(page,"mobile BYOK settings")
     page.screenshot(path=str(OUT/"08-cloud-settings-mobile.png"),full_page=True)
     page.get_by_role("button",name="Open navigation").click()
-    page.get_by_role("button",name="BRAIN").click()
+    page.get_by_role("button",name="BRAIN",exact=True).click()
     assert page.get_by_label("Live owner senses").is_hidden()
     assert page.evaluate("""document.querySelector('[aria-label="Live owner senses"]') === window.__sensesNode""")
     page.get_by_role("button",name="Stage file or photo locally").click()
