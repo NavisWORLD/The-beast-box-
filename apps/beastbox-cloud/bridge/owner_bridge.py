@@ -184,7 +184,7 @@ class OwnerBridge:
             "persisted": True, "model_invoked": False,
             "raw_media_transmitted": False, "source_verified": False,
             "memory_id": receipt["memory_id"],
-            "checkpoint_sha256": receipt["checkpoint"]["checkpoint_sha256"],
+            "checkpoint_sha256": receipt["checkpoint"]["sha256"],
             "text_sha256": receipt["text_sha256"],
         }
 
