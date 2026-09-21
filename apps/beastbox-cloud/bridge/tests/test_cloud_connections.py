@@ -187,9 +187,11 @@ class BYOKTests(unittest.TestCase):
                 ) as reference:
                     opener.return_value.open.side_effect=OSError("private upstream detail "+HF)
                     code,result=bridge.dispatch("POST","/api/chat",AUTH,b'{"text":"An unavailable model must fail"}')
-                    self.assertEqual(code,400,result)
+                    self.assertEqual(code,502,result)
+                    self.assertEqual(result["provider_failure"],"MODEL_UNAVAILABLE")
                     self.assertIn("no fallback",result["error"])
                     self.assertNotIn(HF,json.dumps(result))
+                    self.assertNotIn("private upstream detail",json.dumps(result))
                     request=opener.return_value.open.call_args.args[0]
                     self.assertEqual(request.full_url,endpoint+"/chat/completions")
                     self.assertEqual(request.get_header("Authorization"),"Bearer "+HF)
