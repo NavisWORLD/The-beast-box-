@@ -22,6 +22,7 @@ MODEL_PATH = Path("/opt/beastbox/models") / MODEL_FILENAME
 MODEL_URL = f"https://huggingface.co/{MODEL_REPO}/resolve/{MODEL_REV}/{MODEL_FILENAME}"
 MODEL_NAME = "SmolLM2-135M-Instruct-Q4_K_M"
 LOCAL_URL = "http://127.0.0.1:11522/v1"
+MIN_MODEL_BYTES = 80_000_000
 MAX_MODEL_BYTES = 120_000_000
 
 
@@ -30,7 +31,7 @@ def verify_model(path: Path = MODEL_PATH) -> str:
     if path.is_symlink() or not path.is_file():
         raise ValueError("pinned local GGUF file is absent or is a symlink")
     identity = path.stat()
-    if not stat.S_ISREG(identity.st_mode) or not 80_000_000 <= identity.st_size <= MAX_MODEL_BYTES:
+    if not stat.S_ISREG(identity.st_mode) or not MIN_MODEL_BYTES <= identity.st_size <= MAX_MODEL_BYTES:
         raise ValueError("local GGUF model size is invalid")
     digest = hashlib.sha256()
     with path.open("rb") as reader:
@@ -69,7 +70,7 @@ def fetch_pinned_model(path: Path = MODEL_PATH) -> str:
                 output.write(chunk)
             output.flush()
             os.fsync(output.fileno())
-        if total < 80_000_000 or digest.hexdigest() != MODEL_SHA256:
+        if total < MIN_MODEL_BYTES or digest.hexdigest() != MODEL_SHA256:
             raise ValueError("downloaded model does not match published SHA-256")
         os.chmod(name, 0o444)
         os.replace(name, path)
