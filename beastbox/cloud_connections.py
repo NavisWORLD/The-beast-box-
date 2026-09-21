@@ -136,6 +136,23 @@ class ConnectionVault:
             db.commit()
         return self.public(provider)
 
+    def update_model(self, provider: str, model: str) -> dict:
+        """Owner-requested model ID change; preserve the encrypted credential.
+
+        This never tests or invokes the selected model, and never exposes its key.
+        The bridge must first ensure the prior model is not actively selected.
+        """
+        if provider not in MODELS or not isinstance(model, str):
+            raise ConnectionError("unsupported model update")
+        with self._lock:
+            current = self.read_host_only(provider)
+            if current is None:
+                raise ConnectionError("model connection is not configured")
+            new_config, existing_secret = _validate(
+                provider, {"model": model}, current["secret"]
+            )
+            return self.save(provider, new_config, existing_secret)
+
     def read_host_only(self, provider: str) -> dict | None:
         if provider not in PROVIDERS:
             raise ConnectionError("unsupported cloud provider")

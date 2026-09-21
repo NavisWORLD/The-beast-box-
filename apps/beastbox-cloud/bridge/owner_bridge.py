@@ -71,7 +71,24 @@ class OwnerBridge:
         provider = data.get("provider")
         try:
             if action == "save" and set(data) == {"action","provider","config","secret"}:
+                # Changing a selected model ID behind its active profile would
+                # invalidate its vault secret binding. Require a safe local
+                # handoff first; same-model credential rotation is allowed.
+                endpoint = {"huggingface": "https://router.huggingface.co/v1",
+                            "ollama_cloud": "https://ollama.com/v1"}.get(provider)
+                if (endpoint and self.app.profile.base_url == endpoint
+                        and isinstance(data["config"], dict)
+                        and self.app.profile.model != data["config"].get("model")):
+                    return 409, {"error": "Switch to local model in Brain Bay before changing an active cloud model ID."}
                 return 200, self.vault.save(provider,data["config"],data["secret"])
+            if action == "update_model" and set(data) == {"action","provider","model"} and provider in MODELS:
+                endpoint = {"huggingface": "https://router.huggingface.co/v1",
+                            "ollama_cloud": "https://ollama.com/v1"}[provider]
+                if self.app.profile.kind == "compatible" and self.app.profile.base_url == endpoint:
+                    return 409, {"error": "Switch to local model in Brain Bay before editing this active cloud model ID."}
+                updated = self.vault.update_model(provider, data["model"])
+                return 200, {**updated, "credential_preserved": True,
+                             "model_invoked": False, "inference": "NOT_ATTESTED"}
             if action == "remove" and set(data) == {"action","provider"}:
                 # If the active model uses a revoked BYOK connection, change to
                 # reference and revoke all authority BEFORE discarding its key.
@@ -93,6 +110,8 @@ class OwnerBridge:
                     return 404, {"error":"connection not configured"}
                 endpoint = {"huggingface":"https://router.huggingface.co/v1",
                             "ollama_cloud":"https://ollama.com/v1"}[provider]
+                if provider == "ollama_cloud" and saved["config"]["model"] in {"gpt-oss:120b", "gpt-oss:20b"}:
+                    return 400, {"error": "Ollama Cloud uses a different model ID. Switch to local, then update this saved model name to its -cloud variant."}
                 # Explicit owner selection grants this one remote-model
                 # operation; the handoff itself revokes previous grants.
                 desired = {"kind":"compatible","model":saved["config"]["model"],
@@ -361,7 +380,7 @@ class OwnerBridge:
                 return self.chat_jobs.run_when_idle(lambda: self._model_action(data))
         if name == "connections":
             with self.app._lock:
-                if data.get("action") in {"activate", "remove", "save"}:
+                if data.get("action") in {"activate", "remove", "save", "update_model"}:
                     return self.chat_jobs.run_when_idle(lambda: self._connection_action(data))
                 return self._connection_action(data)
         if name == "bio":
