@@ -8,7 +8,9 @@ if [[ "${BEASTBOX_TINY_LOCAL_ENABLED:-}" != "yes" ]]; then
 fi
 # Always verify the pinned bytes before the model sees any private owner context.
 python -c 'from beastbox.tiny_local import verify_model; verify_model()'
-gosu beastbox python -m llama_cpp.server \
+# The llama.cpp server reads PORT from its environment before CLI options.
+# Override it *only for the private model child*; Caddy must retain PORT=8080.
+PORT=11522 HOST=127.0.0.1 gosu beastbox python -m llama_cpp.server \
   --model /opt/beastbox/models/SmolLM2-135M-Instruct-Q4_K_M.gguf \
   --model_alias SmolLM2-135M-Instruct-Q4_K_M \
   --chat_format chatml \
