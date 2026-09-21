@@ -20,10 +20,11 @@ from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV
 from beastbox.cloud_connection_checks import verify_connection
 from beastbox.bio_inputs import bio_event
 from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
+from chat_jobs import ChatJobs
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio"})
-POST_ALLOW = frozenset({"chat", "context", "connections", "bio"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job"})
+POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio"})
 
 
 class OwnerBridge:
@@ -43,6 +44,7 @@ class OwnerBridge:
         self.bio_remote_allowed = self.bio_persist_enabled and os.environ.get("BEASTBOX_BIO_REMOTE_ALLOWED") == "yes"
         if self.bio_persist_enabled:
             self.app.authority.grant("sensors")
+        self.chat_jobs = ChatJobs(lambda payload: self.app.dispatch("POST", "/api/chat", payload))
 
     def _resolve_provider_secret(self, profile: ProviderProfile) -> str | None:
         if self.vault is None:
@@ -208,7 +210,7 @@ class OwnerBridge:
         ):
             return 401, {"error": "unauthorized"}
         parsed = urllib.parse.urlsplit(path)
-        if parsed.query or parsed.fragment:
+        if parsed.fragment or (parsed.query and not (method == "GET" and parsed.path == "/api/chat-job")):
             return 404, {"error": "unsupported route"}
         if not parsed.path.startswith("/api/"):
             return 404, {"error": "unsupported route"}
@@ -216,6 +218,11 @@ class OwnerBridge:
         allowed = GET_ALLOW if method == "GET" else POST_ALLOW if method == "POST" else frozenset()
         if name not in allowed:
             return 404, {"error": "unsupported route"}
+        if name == "chat-job" and method == "GET":
+            query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
+            if set(query) != {"id"} or len(query["id"]) != 1:
+                return 400, {"error": "invalid chat job query"}
+            return self.chat_jobs.get(query["id"][0])
         if name == "bio" and method == "GET":
             return 200, {"enabled": self.bio_enabled,
                          "persist_enabled": self.bio_persist_enabled,
@@ -244,6 +251,8 @@ class OwnerBridge:
                 set(data) != {"scope", "name", "text"} or data.get("scope") != "temporary_attachment"
             ):
                 return 400, {"error": "cloud context is temporary attachment data only"}
+        if name == "chat-start":
+            return self.chat_jobs.start(data)
         if name == "connections":
             with self.app._lock:
                 return self._connection_action(data)
@@ -270,7 +279,11 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Content-Security-Policy", "default-src 'none'")
         self.end_headers()
-        self.wfile.write(raw)
+        try:
+            self.wfile.write(raw)
+        except (BrokenPipeError, ConnectionResetError):
+            # A disconnected HTTP client must not crash the owner bridge or log sensitive output.
+            return
 
     def _handle(self, method: str) -> None:
         # The only unauthenticated path: bounded, non-sensitive runtime readiness
