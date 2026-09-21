@@ -25,9 +25,12 @@ model camera, microphone or tool authority.
   Browser recognition may stop independently; its restart budget is two
   foreground attempts. There is no guarantee of uninterrupted background
   access, especially on iPhone.
-- The dock remains mounted across COSMOS page changes with an always-visible
-  status indicator. Sensors stop on explicit Stop, navigation, tab visibility
-  loss and owner logout. A collapsed dock still shows active indicators.
+- Controls live in **Settings**, in normal page flow—never floating over Brain
+  or its Send/attachment controls. The one persistent sensing component stays
+  mounted across internal COSMOS page changes; an active camera/mic indicator
+  appears in the header and links back to Settings. Media tracks stop on
+  explicit Stop, full-page navigation, tab visibility loss and owner logout.
+  Browsers (especially iOS) may independently suspend offscreen capture.
 - Owner can **Add observations to draft** without sending. A *separate opt-in*
   to "Include the selected observations in each message" adds short, labelled
   and unverified context to the next normal text chat. Sending the chat writes
@@ -68,7 +71,10 @@ CPU-model completion and same-volume restart all pass.
 Owner validation on a real device:
 
 1. Open a fresh, authenticated Vercel Preview using these commits and ensure
-   \`/api/status\` reports a reachable provider. Keep Production separate.
+   \`/api/status\` reports a reachable provider. Open Settings to access the
+   in-flow Senses control; return to Brain to confirm Send and attachments
+   are never covered. Text files can be sent as bounded temporary context;
+   PNG/JPEG/WebP and PDFs are **local staging only**, not model uploads. Keep Production separate.
 2. Press Start vision: grant camera, confirm a live local preview and, when a
    recognizable ImageNet object is in frame, a timestamped classifier label.
    Denying permission must show an error without uploading a frame.
