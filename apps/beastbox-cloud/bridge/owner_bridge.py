@@ -110,8 +110,8 @@ class OwnerBridge:
                     return 404, {"error":"connection not configured"}
                 endpoint = {"huggingface":"https://router.huggingface.co/v1",
                             "ollama_cloud":"https://ollama.com/v1"}[provider]
-                if provider == "ollama_cloud" and saved["config"]["model"] in {"gpt-oss:120b", "gpt-oss:20b"}:
-                    return 400, {"error": "Ollama Cloud uses a different model ID. Switch to local, then update this saved model name to its -cloud variant."}
+                if provider == "ollama_cloud" and saved["config"]["model"].endswith("-cloud"):
+                    return 400, {"error": "Direct Ollama API model IDs must match https://ollama.com/api/tags (for example gpt-oss:120b, without -cloud). Switch to local in Brain Bay, then update the saved model ID without replacing its encrypted key."}
                 # Explicit owner selection grants this one remote-model
                 # operation; the handoff itself revokes previous grants.
                 desired = {"kind":"compatible","model":saved["config"]["model"],
