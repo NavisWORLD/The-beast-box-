@@ -119,7 +119,7 @@ class OwnerBridge:
         import urllib.request
         from beastbox.providers import _local_opener
         try:
-            with _local_opener().open(LOCAL_URL.removesuffix("/v1") + "/health", timeout=5) as reply:
+            with _local_opener().open(LOCAL_URL + "/models", timeout=5) as reply:
                 if reply.status != 200:
                     raise ValueError("local tiny inference process is not ready")
         except (OSError, ValueError) as exc:
