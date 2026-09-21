@@ -75,7 +75,10 @@ export default function DevicePanel({canSend,onDraft}:Props){
    const source=ctx.createMediaStreamSource(stream);
    const node=ctx.createAnalyser();
    node.fftSize=1024;
-   source.connect(node); // Deliberately NOT connected to speakers or any recorder.
+   source.connect(node);
+   // Keep the analyser processing on mobile Safari without audible output.
+   const silent=ctx.createGain();silent.gain.value=0;
+   node.connect(silent);silent.connect(ctx.destination);
    analyser.current=node;
    await ctx.resume();
    meter.current=setInterval(()=>{
