@@ -201,3 +201,21 @@ test('model selection is owner-only, local verified, remote explicitly charged a
  assert.match(studio,/deadline=Date\.now\(\)\+660_000/);
  assert.match(studio,/typeof state\.error==='string'/);
 });
+
+
+test('correct Ollama Cloud model ID via owner-only key-preserving metadata update',()=>{
+ const bff=read('app/api/bridge/[endpoint]/route.ts');
+ const bridge=read('bridge/owner_bridge.py');
+ const cloud=read('components/cloud-connections.tsx');
+ const switcher=read('components/model-switcher.tsx');
+ assert.match(bff,/action==='update_model'/);
+ assert.match(bff,/action,model,provider/);
+ assert.match(bff,/Same-origin owner action required/);
+ assert.match(bridge,/self\.vault\.update_model/);
+ assert.match(bridge,/Switch to local model in Brain Bay before editing/);
+ assert.match(bridge,/gpt-oss:120b/);
+ assert.match(cloud,/Save model ID \(keep encrypted key\)/);
+ assert.match(cloud,/gpt-oss:120b-cloud/);
+ assert.match(switcher,/gpt-oss:120b-cloud/);
+ assert.doesNotMatch(cloud,/localStorage|sessionStorage/);
+});
