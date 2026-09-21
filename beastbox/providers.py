@@ -165,5 +165,7 @@ class CompatibleChatProvider:
             raise ProviderDiagnosticError('MODEL_TIMEOUT') from None
         except ProviderDiagnosticError:
             raise
-        except (OSError, ValueError, KeyError, IndexError, TypeError):
-            raise ValueError('compatible model backend unavailable or returned invalid text; no fallback') from None
+        except OSError:
+            raise ProviderDiagnosticError('MODEL_UNAVAILABLE') from None
+        except (ValueError, KeyError, IndexError, TypeError):
+            raise ProviderDiagnosticError('MODEL_BAD_RESPONSE') from None
