@@ -1,0 +1,36 @@
+# Opt-in CPU inference image. Leave the existing Dockerfile and deployed service untouched
+# until the 1 GiB trial resource and real-inference CI gates pass.
+# docker build -f apps/beastbox-cloud/bridge/deploy/Dockerfile.tiny .
+FROM python:3.12-slim-bookworm AS native_wheels
+ENV CMAKE_ARGS="-DGGML_NATIVE=OFF -DGGML_OPENMP=OFF" FORCE_CMAKE=1
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential cmake ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+RUN pip wheel --no-cache-dir --no-binary=llama-cpp-python \
+    --wheel-dir /wheels "llama-cpp-python[server]==0.3.16"
+
+FROM caddy:2.10.2 AS caddy
+FROM python:3.12-slim-bookworm AS production
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app \
+    OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates gosu util-linux libgomp1 \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd --system --gid 10001 beastbox \
+ && useradd --system --uid 10001 --gid beastbox --home-dir /nonexistent --shell /usr/sbin/nologin beastbox
+COPY --from=caddy /usr/bin/caddy /usr/local/bin/caddy
+COPY --from=native_wheels /wheels/ /wheels/
+WORKDIR /app
+COPY pyproject.toml README.md LICENSE ./
+COPY beastbox/ beastbox/
+COPY apps/beastbox-cloud/bridge/ apps/beastbox-cloud/bridge/
+RUN pip install --no-cache-dir --no-compile '.[secure]' 'azure-storage-blob>=12.20,<13' \
+ && pip install --no-cache-dir --no-compile --no-index --find-links=/wheels \
+      "llama-cpp-python[server]==0.3.16" \
+ && rm -rf /wheels \
+ && install -d -m 0700 -o beastbox -g beastbox /srv/beastbox/data \
+ && install -d -m 0755 -o beastbox -g beastbox /opt/beastbox/models \
+ && python -m beastbox.tiny_local \
+ && chown beastbox:beastbox /opt/beastbox/models/*.gguf \
+ && chmod 0755 apps/beastbox-cloud/bridge/deploy/start.sh \
+ && chmod 0755 apps/beastbox-cloud/bridge/deploy/start_tiny.sh
+EXPOSE 8080
+ENTRYPOINT ["/app/apps/beastbox-cloud/bridge/deploy/start_tiny.sh"]
