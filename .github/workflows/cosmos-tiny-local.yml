@@ -1,0 +1,49 @@
+name: COSMOS Tiny Local GGUF (isolated)
+on:
+  pull_request:
+    paths:
+      - 'beastbox/tiny_local.py'
+      - 'apps/beastbox-cloud/bridge/**'
+      - '.github/workflows/cosmos-tiny-local.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cosmos-tiny-local-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  code-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install host-only existing dependencies
+        run: python -m pip install 'cryptography>=44,<47'
+      - name: Check Python and shell syntax
+        run: |
+          python -m compileall -q beastbox/tiny_local.py apps/beastbox-cloud/bridge/
+          bash -n apps/beastbox-cloud/bridge/deploy/start.sh
+          bash -n apps/beastbox-cloud/bridge/deploy/ci_tiny_smoke.sh
+      - name: Run opt-in provider tests against real durable loop
+        run: PYTHONPATH=. python -m unittest discover -s apps/beastbox-cloud/bridge/tests -p 'test_tiny_local.py' -v
+      - name: Existing owner bridge regression
+        run: PYTHONPATH=. python -m unittest discover -s apps/beastbox-cloud/bridge/tests -p 'test_owner_bridge.py' -v
+  pinned-model-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    needs: [code-contract]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build opt-in pinned llama.cpp CPU image; verify upstream GGUF SHA256
+        run: |
+          docker build --file apps/beastbox-cloud/bridge/deploy/Dockerfile.tiny \
+            --tag beastbox-tiny:ci .
+      - name: Verify real local inference, bearer boundary, restart and rollback
+        run: bash apps/beastbox-cloud/bridge/deploy/ci_tiny_smoke.sh
