@@ -30,6 +30,10 @@ with sync_playwright() as p:
     unauth.get_by_label("OWNER PASSWORD").fill("public-ci-fixture-not-secret")
     unauth.get_by_role("button",name="Unlock workstation").click()
     unauth.get_by_text("BACKEND OFFLINE").wait_for(timeout=20000)
+    assert unauth.get_by_role("navigation",name="Choose a cosmic world").get_by_role("button").count()==5
+    assert_no_overflow(unauth,"desktop cosmic world")
+    unauth.screenshot(path=str(OUT/"09-cosmos-world-desktop.png"),full_page=True)
+    unauth.get_by_role("button",name="BRAIN",exact=True).click()
     assert unauth.get_by_text("Your conversation, your story.").count()==1
     assert unauth.get_by_role("button",name="Send message").is_disabled()
     unauth.screenshot(path=str(OUT/"02-workstation-desktop.png"),full_page=True)
@@ -60,6 +64,10 @@ with sync_playwright() as p:
     page.get_by_label("OWNER PASSWORD").fill("public-ci-fixture-not-secret")
     page.get_by_role("button",name="Unlock workstation").click()
     page.get_by_text("BACKEND OFFLINE").wait_for(timeout=20000)
+    assert page.get_by_role("navigation",name="Choose a cosmic world").get_by_role("button").count()==5
+    assert_no_overflow(page,"mobile cosmic world")
+    page.screenshot(path=str(OUT/"10-cosmos-world-mobile.png"),full_page=True)
+    page.get_by_role("button",name="BRAIN",exact=True).click()
     assert_no_overflow(page,"mobile workstation")
     page.screenshot(path=str(OUT/"05-workstation-mobile.png"),full_page=True)
     page.get_by_role("button",name="Stage file or photo locally").click()
@@ -87,7 +95,17 @@ with sync_playwright() as p:
     page.get_by_role("button",name="Stage file or photo locally").click()
     assert page.get_by_role("button",name="Send message").is_disabled()
     assert_no_overflow(page,"mobile chat after settings")
-    results["mobile"]="PASS: landing, auth, no overflow, photo stage only, BYOK settings fail-closed"
+    results["mobile"]="PASS: five worlds, landing, auth, no overflow, photo stage only, BYOK settings fail-closed"
+    tablet=browser.new_context(viewport={"width":820,"height":1180},device_scale_factor=1,has_touch=True)
+    tab=tablet.new_page()
+    tab.on("pageerror",lambda error:errors.append(str(error)))
+    tab.goto(BASE+"/workspace",wait_until="domcontentloaded")
+    tab.get_by_label("OWNER PASSWORD").fill("public-ci-fixture-not-secret")
+    tab.get_by_role("button",name="Unlock workstation").click()
+    tab.get_by_role("navigation",name="Choose a cosmic world").wait_for(timeout=20000)
+    assert_no_overflow(tab,"tablet cosmic world")
+    tab.screenshot(path=str(OUT/"11-cosmos-world-tablet.png"),full_page=True)
+    results["tablet"]="PASS: cosmic world navigation and no measured overflow"
     assert not errors, "Client errors: "+str(errors)
     results["console_errors"]=errors
     browser.close()
