@@ -24,7 +24,7 @@ jobs:
       - name: Run actual CPU model under 1 GiB memory / 2 CPUs
         env:
           BEASTBOX_FIXTURE_TOKEN: "public-fixture-bridge-token-only-ci-0123456789"
-          BEASTBOX_FIXTURE_VAULT: "public-ci-fixture-key-not-an-actual-encryption-secret"
+          BEASTBOX_FIXTURE_VAULT: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
         run: |
           docker run -d --name beastbox-tiny-ci --memory=1g --memory-swap=1g --cpus=2 \
             -p 127.0.0.1:18581:8080 \
@@ -85,7 +85,7 @@ jobs:
       - name: Restart real model using same durable volume
         env:
           BEASTBOX_FIXTURE_TOKEN: "public-fixture-bridge-token-only-ci-0123456789"
-          BEASTBOX_FIXTURE_VAULT: "public-ci-fixture-key-not-an-actual-encryption-secret"
+          BEASTBOX_FIXTURE_VAULT: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
         run: |
           docker stop -t 20 beastbox-tiny-ci
           docker rm beastbox-tiny-ci
