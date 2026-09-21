@@ -19,6 +19,7 @@ from beastbox.cosmic_web import CosmicApp, ProviderProfile
 from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV, MODELS
 from beastbox.cloud_connection_checks import verify_connection
 from beastbox.bio_inputs import bio_event
+from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
 
 MAX_BYTES = 256_000
 GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio"})
@@ -34,6 +35,7 @@ class OwnerBridge:
         if self.vault is not None and os.environ.get("BEASTBOX_HF_MODEL_ID"):
             raise ConnectionError("choose either the explicit host HF provider or encrypted BYOK vault")
         self.app = CosmicApp(root, provider_secret_resolver=self._resolve_provider_secret if self.vault else None)
+        self._configure_explicit_local_tiny_provider(root)
         self._configure_explicit_hf_provider(root)
         # Opt-in host settings only. No browser-supplied grant or device access.
         self.bio_enabled = os.environ.get("BEASTBOX_BIO_INGEST_ENABLED") == "yes"
@@ -98,6 +100,32 @@ class OwnerBridge:
         except (ValueError, TypeError, KeyError):
             return 400, {"error":"connection request rejected; no secret was returned"}
         return 400, {"error":"unsupported connection action"}
+
+    def _configure_explicit_local_tiny_provider(self, root: Path) -> None:
+        """Explicit host-owned CPU model, never a browser-requested model swap."""
+        requested = ProviderProfile.from_dict(compatible_profile())
+        if os.environ.get("BEASTBOX_TINY_LOCAL_ENABLED") != "yes":
+            if self.app.profile == requested:
+                raise ValueError("previous tiny model profile requires a running local model host")
+            return
+        if os.environ.get("BEASTBOX_HF_MODEL_ID"):
+            raise ValueError("choose either the local tiny model or a billed HF host provider")
+        # Check actual weights even if an existing profile is already selected.
+        verify_model()
+        if self.app.profile != requested and self.app.profile.kind != "reference":
+            raise ValueError("refusing to overwrite a previously selected Beast Box brain")
+        # This health request cannot leave this host. Launch happens before
+        # OwnerBridge in the opt-in image's entrypoint, never from HTTP input.
+        import urllib.request
+        from beastbox.providers import _local_opener
+        try:
+            with _local_opener().open(LOCAL_URL + "/models", timeout=5) as reply:
+                if reply.status != 200:
+                    raise ValueError("local tiny inference process is not ready")
+        except (OSError, ValueError) as exc:
+            raise ValueError("local tiny inference process is not ready") from exc
+        if self.app.profile != requested:
+            self.app._set_profile(compatible_profile())
 
     def _configure_explicit_hf_provider(self, root: Path) -> None:
         """Owner-approved one-model HF setup on the durable host; never silently swap a profile."""
