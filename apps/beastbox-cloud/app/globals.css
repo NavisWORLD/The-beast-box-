@@ -190,3 +190,14 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 .cosmos-world-option{flex:none;min-width:0;width:100%;min-height:60px;padding:9px 5px;font-size:clamp(8px,2.2vw,10px);letter-spacing:0;overflow-wrap:anywhere;scroll-snap-align:none}
 .cosmos-world-number{font-size:9px}
 }
+
+/* Accessible contrast and touch affordances: retain the cosmic palette but
+   increase foreground legibility on dark surfaces; do not style disabled
+   controls as if they are active. */
+:root{--muted:#b5bfd9}
+.sidebar-label,.breadcrumbs,.breadcrumbs b,.composer-note,.composer-foot,.app-footer,.public-footer,.cloud-connect-foot,.login-note{color:#b4bfd7!important}
+.composer textarea::placeholder{color:#aab8d4}
+.chat-top p,.empty-chat p,.data-card p,.record p,.subpage>p,.cloud-connect-state span{color:#c0c9e0}
+.cloud-connect form label{color:#e2d8f8}
+.cloud-connect-tabs button:not([disabled]),.cloud-connect-actions button:not([disabled]){min-height:44px}
+.cloud-connect form input:focus-visible,.cloud-connect .record input:focus-visible{outline:2px solid #91f0f6;outline-offset:3px}
