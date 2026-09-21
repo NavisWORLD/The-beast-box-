@@ -161,3 +161,21 @@ test('durable device text requires same-origin owner permission and explicit ret
  assert.match(validator,/raw_media_transmitted/);
  assert.match(validator,/MAX_BATCH = 8/);
 });
+
+
+test('senses is a Settings-only control and cannot cover the chat composer',()=>{
+ const live=read('components/live-senses.tsx');
+ const studio=read('components/studio.tsx');
+ assert.match(live,/visible:boolean/);
+ assert.match(live,/onActivity:\(camera:boolean,speech:boolean\)=>void/);
+ assert.match(live,/position:visible\?'relative':'absolute'/);
+ assert.match(live,/visibility:visible\?'visible':'hidden'/);
+ assert.doesNotMatch(live,/position:'fixed'|right:12,bottom:/);
+ assert.match(studio,/<LiveSenses visible=\{page==='SETTINGS'\}/);
+ assert.match(studio,/aria-label="Open sensing settings"/);
+ // Mounted unconditionally at the content root; navigation must not recreate video.
+ const mount=studio.indexOf('<LiveSenses visible=');
+ assert.ok(mount>0 && mount<studio.indexOf("{page==='BRAIN'?"));
+ assert.match(studio,/aria-label="Stage file or photo locally"/);
+ assert.match(studio,/Images and PDFs are locally staged only/);
+});
