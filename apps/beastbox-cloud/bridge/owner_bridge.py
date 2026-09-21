@@ -114,12 +114,12 @@ class OwnerBridge:
                 "mode": "VALIDATED_ONLY", "durable_write": False, "model_called": False,
                 "signal_names": sorted(data["signals"]), "event_sha256": normalized["sha256"],
             }
-        # A selected remote model would receive this *sensitive* numeric summary.
-        if self.app.profile.remote and data["share_remote"] is not True:
-            return 403, {"error": "Separate explicit remote bio-sharing approval required"}
         # The host feature flag plus a request-scoped owner approval are necessary.
-        # Serialize the temporary sensor grant so another request cannot inherit it.
+        # Serialize provider selection, the remote-sharing check and the temporary
+        # sensor grant so a concurrent BYOK activation cannot bypass consent.
         with self.app._lock:
+            if self.app.profile.remote and data["share_remote"] is not True:
+                return 403, {"error": "Separate explicit remote bio-sharing approval required"}
             borrowed = not self.app.authority.allowed("sensors")
             if borrowed:
                 self.app.authority.grant("sensors")
@@ -215,7 +215,8 @@ class OwnerBridge:
         if name == "bio":
             return self._bio_action(data)
         if name == "connections":
-            return self._connection_action(data)
+            with self.app._lock:
+                return self._connection_action(data)
         return self.app.dispatch(method, parsed.path, data)
 
 
