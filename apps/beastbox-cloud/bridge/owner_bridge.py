@@ -20,7 +20,7 @@ from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV
 from beastbox.cloud_connection_checks import verify_connection
 from beastbox.bio_inputs import bio_event
 from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
-from chat_jobs import ChatJobs
+from beastbox.chat_jobs import ChatJobs
 
 MAX_BYTES = 256_000
 GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job"})
