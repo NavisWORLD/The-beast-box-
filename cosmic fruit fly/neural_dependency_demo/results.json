@@ -1,0 +1,509 @@
+{
+  "arms": [
+    "original_no_aux",
+    "original_audio_qpu",
+    "original_shuffled_audio_qpu",
+    "rewired_audio_qpu",
+    "no_propagation_audio_qpu",
+    "original_audio_only",
+    "original_qpu_only",
+    "original_no_learning",
+    "original_typing_denied",
+    "original_offspring_blank"
+  ],
+  "episodes_per_run": 168,
+  "interpretation": "Tests causal dependence on a designed neural relay, not that historical topology is uniquely effective; no biological language, real physiological data or quantum advantage.",
+  "ledger_sha256": "d3fba725df8c437e76d9bdd697baeee1f38f718c7548252bc79f775561d1a397",
+  "mechanism": "Fixed camera fixation -> RGB median -> assumed sensory tuning -> four neural steps -> nonsensory-only nearest-centroid learned noun -> separately learned gesture/intent -> local resource gate",
+  "runs": 80,
+  "schema": "cosmic-fruit-fly-neural-dependency-v1",
+  "seeds": 8,
+  "source_file_sha256": {
+    "audio_packet": "6e0b4a4f879821a6aa7cdb6765bcfcaf72250ad6332d17775bb1fa5d98b45bd4",
+    "flywire_subset": "5b596574367d7e0e64489509a926a0305581f18568d12fef4339de5b49520cf4",
+    "qpu_counts": "10e8c18defa7cf5abe5ed37d33d84f909e7dea8f927228dbc05f481e3cb3b168"
+  },
+  "summary": {
+    "no_propagation_audio_qpu": {
+      "active_neural_trials": 0,
+      "novel_noise": {
+        "correct": 0,
+        "predicted": 0,
+        "total": 192
+      },
+      "offspring_transfer_noise": {
+        "correct": 0,
+        "predicted": 0,
+        "total": 192
+      },
+      "per_seed_novel": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "per_seed_reversal": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reversal_novel_noise": {
+        "correct": 0,
+        "predicted": 0,
+        "total": 192
+      },
+      "reversal_train": {
+        "correct": 0,
+        "predicted": 0,
+        "total": 384
+      },
+      "train": {
+        "correct": 0,
+        "predicted": 0,
+        "total": 384
+      }
+    },
+    "original_audio_only": {
+      "active_neural_trials": 1344,
+      "novel_noise": {
+        "correct": 107,
+        "predicted": 107,
+        "total": 192
+      },
+      "offspring_transfer_noise": {
+        "correct": 104,
+        "predicted": 104,
+        "total": 192
+      },
+      "per_seed_novel": [
+        12,
+        15,
+        13,
+        15,
+        11,
+        13,
+        15,
+        13
+      ],
+      "per_seed_reversal": [
+        16,
+        11,
+        13,
+        15,
+        15,
+        10,
+        15,
+        13
+      ],
+      "reversal_novel_noise": {
+        "correct": 108,
+        "predicted": 108,
+        "total": 192
+      },
+      "reversal_train": {
+        "correct": 245,
+        "predicted": 245,
+        "total": 384
+      },
+      "train": {
+        "correct": 243,
+        "predicted": 243,
+        "total": 384
+      }
+    },
+    "original_audio_qpu": {
+      "active_neural_trials": 1344,
+      "novel_noise": {
+        "correct": 103,
+        "predicted": 103,
+        "total": 192
+      },
+      "offspring_transfer_noise": {
+        "correct": 102,
+        "predicted": 102,
+        "total": 192
+      },
+      "per_seed_novel": [
+        13,
+        16,
+        11,
+        14,
+        10,
+        12,
+        17,
+        10
+      ],
+      "per_seed_reversal": [
+        16,
+        11,
+        12,
+        15,
+        14,
+        9,
+        16,
+        11
+      ],
+      "reversal_novel_noise": {
+        "correct": 104,
+        "predicted": 104,
+        "total": 192
+      },
+      "reversal_train": {
+        "correct": 244,
+        "predicted": 244,
+        "total": 384
+      },
+      "train": {
+        "correct": 236,
+        "predicted": 236,
+        "total": 384
+      }
+    },
+    "original_no_aux": {
+      "active_neural_trials": 1344,
+      "novel_noise": {
+        "correct": 130,
+        "predicted": 130,
+        "total": 192
+      },
+      "offspring_transfer_noise": {
+        "correct": 124,
+        "predicted": 124,
+        "total": 192
+      },
+      "per_seed_novel": [
+        17,
+        16,
+        16,
+        16,
+        16,
+        15,
+        17,
+        17
+      ],
+      "per_seed_reversal": [
+        16,
+        15,
+        16,
+        17,
+        15,
+        14,
+        17,
+        14
+      ],
+      "reversal_novel_noise": {
+        "correct": 124,
+        "predicted": 124,
+        "total": 192
+      },
+      "reversal_train": {
+        "correct": 309,
+        "predicted": 309,
+        "total": 384
+      },
+      "train": {
+        "correct": 309,
+        "predicted": 309,
+        "total": 384
+      }
+    },
+    "original_no_learning": {
+      "active_neural_trials": 1344,
+      "novel_noise": {
+        "correct": 0,
+        "predicted": 0,
+        "total": 192
+      },
+      "offspring_transfer_noise": {
+        "correct": 0,
+        "predicted": 0,
+        "total": 192
+      },
+      "per_seed_novel": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "per_seed_reversal": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reversal_novel_noise": {
+        "correct": 0,
+        "predicted": 0,
+        "total": 192
+      },
+      "reversal_train": {
+        "correct": 0,
+        "predicted": 0,
+        "total": 384
+      },
+      "train": {
+        "correct": 0,
+        "predicted": 0,
+        "total": 384
+      }
+    },
+    "original_offspring_blank": {
+      "active_neural_trials": 1344,
+      "novel_noise": {
+        "correct": 103,
+        "predicted": 103,
+        "total": 192
+      },
+      "offspring_transfer_noise": {
+        "correct": 0,
+        "predicted": 0,
+        "total": 192
+      },
+      "per_seed_novel": [
+        13,
+        16,
+        11,
+        14,
+        10,
+        12,
+        17,
+        10
+      ],
+      "per_seed_reversal": [
+        16,
+        11,
+        12,
+        15,
+        14,
+        9,
+        16,
+        11
+      ],
+      "reversal_novel_noise": {
+        "correct": 104,
+        "predicted": 104,
+        "total": 192
+      },
+      "reversal_train": {
+        "correct": 244,
+        "predicted": 244,
+        "total": 384
+      },
+      "train": {
+        "correct": 236,
+        "predicted": 236,
+        "total": 384
+      }
+    },
+    "original_qpu_only": {
+      "active_neural_trials": 1344,
+      "novel_noise": {
+        "correct": 117,
+        "predicted": 117,
+        "total": 192
+      },
+      "offspring_transfer_noise": {
+        "correct": 120,
+        "predicted": 120,
+        "total": 192
+      },
+      "per_seed_novel": [
+        13,
+        16,
+        12,
+        12,
+        15,
+        15,
+        17,
+        17
+      ],
+      "per_seed_reversal": [
+        16,
+        15,
+        15,
+        17,
+        14,
+        14,
+        17,
+        13
+      ],
+      "reversal_novel_noise": {
+        "correct": 121,
+        "predicted": 121,
+        "total": 192
+      },
+      "reversal_train": {
+        "correct": 291,
+        "predicted": 291,
+        "total": 384
+      },
+      "train": {
+        "correct": 276,
+        "predicted": 276,
+        "total": 384
+      }
+    },
+    "original_shuffled_audio_qpu": {
+      "active_neural_trials": 1344,
+      "novel_noise": {
+        "correct": 107,
+        "predicted": 107,
+        "total": 192
+      },
+      "offspring_transfer_noise": {
+        "correct": 110,
+        "predicted": 110,
+        "total": 192
+      },
+      "per_seed_novel": [
+        14,
+        15,
+        12,
+        13,
+        15,
+        11,
+        15,
+        12
+      ],
+      "per_seed_reversal": [
+        14,
+        14,
+        12,
+        15,
+        13,
+        13,
+        16,
+        12
+      ],
+      "reversal_novel_noise": {
+        "correct": 109,
+        "predicted": 109,
+        "total": 192
+      },
+      "reversal_train": {
+        "correct": 264,
+        "predicted": 264,
+        "total": 384
+      },
+      "train": {
+        "correct": 261,
+        "predicted": 261,
+        "total": 384
+      }
+    },
+    "original_typing_denied": {
+      "active_neural_trials": 1344,
+      "novel_noise": {
+        "correct": 0,
+        "predicted": 103,
+        "total": 192
+      },
+      "offspring_transfer_noise": {
+        "correct": 0,
+        "predicted": 102,
+        "total": 192
+      },
+      "per_seed_novel": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "per_seed_reversal": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reversal_novel_noise": {
+        "correct": 0,
+        "predicted": 104,
+        "total": 192
+      },
+      "reversal_train": {
+        "correct": 0,
+        "predicted": 244,
+        "total": 384
+      },
+      "train": {
+        "correct": 0,
+        "predicted": 236,
+        "total": 384
+      }
+    },
+    "rewired_audio_qpu": {
+      "active_neural_trials": 1344,
+      "novel_noise": {
+        "correct": 130,
+        "predicted": 130,
+        "total": 192
+      },
+      "offspring_transfer_noise": {
+        "correct": 121,
+        "predicted": 121,
+        "total": 192
+      },
+      "per_seed_novel": [
+        15,
+        17,
+        16,
+        16,
+        16,
+        16,
+        17,
+        17
+      ],
+      "per_seed_reversal": [
+        15,
+        15,
+        16,
+        17,
+        15,
+        14,
+        18,
+        14
+      ],
+      "reversal_novel_noise": {
+        "correct": 124,
+        "predicted": 124,
+        "total": 192
+      },
+      "reversal_train": {
+        "correct": 300,
+        "predicted": 300,
+        "total": 384
+      },
+      "train": {
+        "correct": 303,
+        "predicted": 303,
+        "total": 384
+      }
+    }
+  },
+  "trials": 13440
+}

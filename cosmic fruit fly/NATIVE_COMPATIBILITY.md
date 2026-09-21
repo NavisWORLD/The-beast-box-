@@ -1,0 +1,11 @@
+# Cross-platform research interface
+
+**Python 3.10+ is the complete current simulation, learning, results and video runner**. C++17 and Rust (edition 2021) implement only a deterministic 42-node neural update + canonical 12-scalar reference state step, *not* the complete fly, native sensor acquisition or model inference. A mismatched state is a release blocker. Rust is provided but cannot be tested in environments where `cargo` is absent.
+
+From repository root: `python -m pip install numpy pillow pytest` and `python -m pytest -q "cosmic fruit fly/tests"`. Install `ffmpeg` for MP4 rendering. Run the Python research benchmark: `python "cosmic fruit fly/neural_dependency.py" --seeds 8 --output "cosmic fruit fly/outputs/neural_dependency"` and `python "cosmic fruit fly/render_neural_dependency.py" --out "cosmic fruit fly/outputs/neural_dependency" --output "cosmic fruit fly/outputs/neural_dependency/neural_replay.mp4"`.
+
+**Windows**: use `windows\RUN_TESTS.bat`, `windows\RUN_NEURAL_EXPERIMENT.bat`, `windows\RENDER_NEURAL_VIDEO.bat`; `windows\BUILD_CPP.bat` requires `g++`; `windows\BUILD_RUST.bat` requires Cargo. All Windows scripts work from any current directory and write outputs under ignored `outputs/`. On Linux/macOS, compile the C++ adapter using `g++ -O2 -std=c++17 "cosmic fruit fly/native/cpp/neural_step.cpp" -o /tmp/fly_neural_step` and pass `native/fixtures/step4.txt`. For Rust run `cargo run --offline --release --manifest-path "cosmic fruit fly/native/rust/Cargo.toml" -- "cosmic fruit fly/native/fixtures/step4.txt"`. Compare both JSON outputs with Python `native/reference.py`. The test `tests/test_native_parity.py` checks numerical equivalence when toolchains are available.
+
+The C++/Rust adapters consume a **plain-text numerical fixture**, not third-party anatomy. No copyrighted data is compiled into binaries. The FlyWire-derived subset in `data/real_flywire_subset.json` retains **CC BY-NC 4.0** source terms; review before any commercial reuse. Recorded human bio data is not included; historic QPU results are optional bounded replay, not live hardware. Do not claim biological language or a topology-specific advantage.
+
+This is a research-stage compatibility surface, not full product parity, and does not change other Beast Box source.

@@ -1,0 +1,684 @@
+{
+  "arms": [
+    "baseline",
+    "quantum_only",
+    "mock_bio_only",
+    "mock_fusion",
+    "rewired_mock_fusion",
+    "no_propagation_mock_fusion",
+    "shuffle_quantum",
+    "shuffle_mock_bio",
+    "holistic_memory",
+    "frozen_reversal",
+    "typing_denied",
+    "offspring_blank"
+  ],
+  "authority": "sandbox in-memory terminal and resource gate, no host keyboard/actuator",
+  "bio_status": "NO VERIFIED REAL BIOSIGNAL: real-bio experiments NOT EXECUTED; simulated development controls only",
+  "brain_status": "real-derived 42-node topology, ASSUMED dynamics and readout; software decoder",
+  "code_sha256": {
+    "fly_movement.py": "b87ca84515457c51ef3899e2c25ec0865242244d85a2857198c4807ed8e617db",
+    "fusion_hard_mode.py": "f510192ab9fde06580f758796e3594fab94d42167a698c956f64b596cc92287a",
+    "hard_mode.py": "2cf2f2bc895f17dd593dcd4f0f00b5bd4fc6e048df114998e1c6fd872d195336",
+    "quantum_language.py": "10fa9f8db03ba3b3d1b366733df5fcd377931e1914a199126351ffe073f741a5",
+    "sandbox_sensors.py": "932b77d99e6aeb93f1c2303330449857610214fcdd7b59b2ab1d9224051b72ef"
+  },
+  "episodes": 16128,
+  "episodes_per_run": 168,
+  "experiment": "hard-mode perception / symbolic feedback with explicit neural confidence gate",
+  "interaction_novel_mock_bio_not_real": 0.00520833,
+  "ledger_sha256": "095aa6470ab0f6a430e204566c72ba09fc02a82da2fa011819f43b3a0772151f",
+  "license": "third-party FlyWire-derived subset CC BY-NC 4.0; never assume commercial rights",
+  "limitation": "task uses experimenter-defined grammar and near-field camera, not independent navigation or biological language",
+  "neural_delta_seed0": {
+    "mock_bio_only": 0.00808543,
+    "mock_fusion": 0.01760048,
+    "quantum_only": 0.01706912
+  },
+  "quantum_status": "nine historic IBM summary replay; no live QPU; source-reported results not raw redecoded",
+  "runs": 96,
+  "seeds": 8,
+  "source_sha256": {
+    "flywire_subset": "5b596574367d7e0e64489509a926a0305581f18568d12fef4339de5b49520cf4",
+    "ibm_replay": "8ebf9b7419dd134ca3a7d975c58116d3f9cfc0231925d549b9b3593d2ed4a5c0"
+  },
+  "summary": {
+    "baseline": {
+      "mean_abs_neural": 0.1035545,
+      "novel_noise": {
+        "abstained": 23,
+        "correct": 169,
+        "total": 192,
+        "unknown": 23
+      },
+      "offspring_transfer_noise": {
+        "abstained": 29,
+        "correct": 162,
+        "total": 192,
+        "unknown": 29
+      },
+      "per_seed_novel": [
+        21,
+        23,
+        21,
+        18,
+        21,
+        22,
+        22,
+        21
+      ],
+      "per_seed_reversal": [
+        18,
+        21,
+        20,
+        19,
+        20,
+        21,
+        21,
+        22
+      ],
+      "reversal_novel_noise": {
+        "abstained": 29,
+        "correct": 162,
+        "total": 192,
+        "unknown": 29
+      },
+      "reversal_train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 0
+      },
+      "train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 75
+      }
+    },
+    "frozen_reversal": {
+      "mean_abs_neural": 0.09906999,
+      "novel_noise": {
+        "abstained": 24,
+        "correct": 168,
+        "total": 192,
+        "unknown": 24
+      },
+      "offspring_transfer_noise": {
+        "abstained": 30,
+        "correct": 0,
+        "total": 192,
+        "unknown": 30
+      },
+      "per_seed_novel": [
+        21,
+        23,
+        21,
+        17,
+        21,
+        22,
+        22,
+        21
+      ],
+      "per_seed_reversal": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reversal_novel_noise": {
+        "abstained": 29,
+        "correct": 0,
+        "total": 192,
+        "unknown": 29
+      },
+      "reversal_train": {
+        "abstained": 0,
+        "correct": 0,
+        "total": 384,
+        "unknown": 0
+      },
+      "train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 75
+      }
+    },
+    "holistic_memory": {
+      "mean_abs_neural": 0.09906999,
+      "novel_noise": {
+        "abstained": 24,
+        "correct": 0,
+        "total": 192,
+        "unknown": 192
+      },
+      "offspring_transfer_noise": {
+        "abstained": 30,
+        "correct": 0,
+        "total": 192,
+        "unknown": 192
+      },
+      "per_seed_novel": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "per_seed_reversal": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reversal_novel_noise": {
+        "abstained": 29,
+        "correct": 0,
+        "total": 192,
+        "unknown": 191
+      },
+      "reversal_train": {
+        "abstained": 0,
+        "correct": 0,
+        "total": 384,
+        "unknown": 0
+      },
+      "train": {
+        "abstained": 0,
+        "correct": 0,
+        "total": 384,
+        "unknown": 384
+      }
+    },
+    "mock_bio_only": {
+      "mean_abs_neural": 0.10333754,
+      "novel_noise": {
+        "abstained": 24,
+        "correct": 168,
+        "total": 192,
+        "unknown": 24
+      },
+      "offspring_transfer_noise": {
+        "abstained": 29,
+        "correct": 162,
+        "total": 192,
+        "unknown": 29
+      },
+      "per_seed_novel": [
+        21,
+        23,
+        21,
+        17,
+        21,
+        22,
+        22,
+        21
+      ],
+      "per_seed_reversal": [
+        18,
+        21,
+        20,
+        19,
+        20,
+        21,
+        21,
+        22
+      ],
+      "reversal_novel_noise": {
+        "abstained": 29,
+        "correct": 162,
+        "total": 192,
+        "unknown": 29
+      },
+      "reversal_train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 0
+      },
+      "train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 75
+      }
+    },
+    "mock_fusion": {
+      "mean_abs_neural": 0.09906999,
+      "novel_noise": {
+        "abstained": 24,
+        "correct": 168,
+        "total": 192,
+        "unknown": 24
+      },
+      "offspring_transfer_noise": {
+        "abstained": 30,
+        "correct": 161,
+        "total": 192,
+        "unknown": 30
+      },
+      "per_seed_novel": [
+        21,
+        23,
+        21,
+        17,
+        21,
+        22,
+        22,
+        21
+      ],
+      "per_seed_reversal": [
+        18,
+        21,
+        20,
+        19,
+        20,
+        21,
+        21,
+        22
+      ],
+      "reversal_novel_noise": {
+        "abstained": 29,
+        "correct": 162,
+        "total": 192,
+        "unknown": 29
+      },
+      "reversal_train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 0
+      },
+      "train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 75
+      }
+    },
+    "no_propagation_mock_fusion": {
+      "mean_abs_neural": 0.04876043,
+      "novel_noise": {
+        "abstained": 24,
+        "correct": 168,
+        "total": 192,
+        "unknown": 24
+      },
+      "offspring_transfer_noise": {
+        "abstained": 29,
+        "correct": 162,
+        "total": 192,
+        "unknown": 29
+      },
+      "per_seed_novel": [
+        21,
+        23,
+        21,
+        17,
+        21,
+        22,
+        22,
+        21
+      ],
+      "per_seed_reversal": [
+        18,
+        21,
+        20,
+        19,
+        20,
+        21,
+        21,
+        22
+      ],
+      "reversal_novel_noise": {
+        "abstained": 29,
+        "correct": 162,
+        "total": 192,
+        "unknown": 29
+      },
+      "reversal_train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 0
+      },
+      "train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 75
+      }
+    },
+    "offspring_blank": {
+      "mean_abs_neural": 0.09906999,
+      "novel_noise": {
+        "abstained": 24,
+        "correct": 168,
+        "total": 192,
+        "unknown": 24
+      },
+      "offspring_transfer_noise": {
+        "abstained": 30,
+        "correct": 0,
+        "total": 192,
+        "unknown": 192
+      },
+      "per_seed_novel": [
+        21,
+        23,
+        21,
+        17,
+        21,
+        22,
+        22,
+        21
+      ],
+      "per_seed_reversal": [
+        18,
+        21,
+        20,
+        19,
+        20,
+        21,
+        21,
+        22
+      ],
+      "reversal_novel_noise": {
+        "abstained": 29,
+        "correct": 162,
+        "total": 192,
+        "unknown": 29
+      },
+      "reversal_train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 0
+      },
+      "train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 75
+      }
+    },
+    "quantum_only": {
+      "mean_abs_neural": 0.09781583,
+      "novel_noise": {
+        "abstained": 24,
+        "correct": 168,
+        "total": 192,
+        "unknown": 24
+      },
+      "offspring_transfer_noise": {
+        "abstained": 30,
+        "correct": 161,
+        "total": 192,
+        "unknown": 30
+      },
+      "per_seed_novel": [
+        21,
+        23,
+        21,
+        17,
+        21,
+        22,
+        22,
+        21
+      ],
+      "per_seed_reversal": [
+        18,
+        21,
+        20,
+        19,
+        20,
+        21,
+        21,
+        22
+      ],
+      "reversal_novel_noise": {
+        "abstained": 29,
+        "correct": 162,
+        "total": 192,
+        "unknown": 29
+      },
+      "reversal_train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 0
+      },
+      "train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 75
+      }
+    },
+    "rewired_mock_fusion": {
+      "mean_abs_neural": 0.13842832,
+      "novel_noise": {
+        "abstained": 22,
+        "correct": 170,
+        "total": 192,
+        "unknown": 22
+      },
+      "offspring_transfer_noise": {
+        "abstained": 29,
+        "correct": 162,
+        "total": 192,
+        "unknown": 29
+      },
+      "per_seed_novel": [
+        21,
+        23,
+        21,
+        18,
+        20,
+        22,
+        23,
+        22
+      ],
+      "per_seed_reversal": [
+        18,
+        20,
+        19,
+        19,
+        20,
+        21,
+        21,
+        22
+      ],
+      "reversal_novel_noise": {
+        "abstained": 31,
+        "correct": 160,
+        "total": 192,
+        "unknown": 31
+      },
+      "reversal_train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 0
+      },
+      "train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 75
+      }
+    },
+    "shuffle_mock_bio": {
+      "mean_abs_neural": 0.09832017,
+      "novel_noise": {
+        "abstained": 24,
+        "correct": 168,
+        "total": 192,
+        "unknown": 24
+      },
+      "offspring_transfer_noise": {
+        "abstained": 30,
+        "correct": 161,
+        "total": 192,
+        "unknown": 30
+      },
+      "per_seed_novel": [
+        21,
+        23,
+        21,
+        17,
+        21,
+        22,
+        22,
+        21
+      ],
+      "per_seed_reversal": [
+        18,
+        21,
+        20,
+        19,
+        20,
+        21,
+        21,
+        22
+      ],
+      "reversal_novel_noise": {
+        "abstained": 29,
+        "correct": 162,
+        "total": 192,
+        "unknown": 29
+      },
+      "reversal_train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 0
+      },
+      "train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 75
+      }
+    },
+    "shuffle_quantum": {
+      "mean_abs_neural": 0.09858826,
+      "novel_noise": {
+        "abstained": 24,
+        "correct": 168,
+        "total": 192,
+        "unknown": 24
+      },
+      "offspring_transfer_noise": {
+        "abstained": 29,
+        "correct": 162,
+        "total": 192,
+        "unknown": 29
+      },
+      "per_seed_novel": [
+        21,
+        23,
+        21,
+        17,
+        21,
+        22,
+        22,
+        21
+      ],
+      "per_seed_reversal": [
+        18,
+        21,
+        20,
+        19,
+        20,
+        21,
+        21,
+        22
+      ],
+      "reversal_novel_noise": {
+        "abstained": 29,
+        "correct": 162,
+        "total": 192,
+        "unknown": 29
+      },
+      "reversal_train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 0
+      },
+      "train": {
+        "abstained": 0,
+        "correct": 309,
+        "total": 384,
+        "unknown": 75
+      }
+    },
+    "typing_denied": {
+      "mean_abs_neural": 0.09906999,
+      "novel_noise": {
+        "abstained": 24,
+        "correct": 0,
+        "total": 192,
+        "unknown": 24
+      },
+      "offspring_transfer_noise": {
+        "abstained": 30,
+        "correct": 0,
+        "total": 192,
+        "unknown": 30
+      },
+      "per_seed_novel": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "per_seed_reversal": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reversal_novel_noise": {
+        "abstained": 29,
+        "correct": 0,
+        "total": 192,
+        "unknown": 29
+      },
+      "reversal_train": {
+        "abstained": 0,
+        "correct": 0,
+        "total": 384,
+        "unknown": 0
+      },
+      "train": {
+        "abstained": 0,
+        "correct": 0,
+        "total": 384,
+        "unknown": 75
+      }
+    }
+  },
+  "visual_status": "virtual calibrated pixel input distinct from decorative world art"
+}
