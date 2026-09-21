@@ -15,6 +15,40 @@ if [[ ${#BEASTBOX_CLOUD_BRIDGE_TOKEN} -lt 32 ]] || [[ -z "${BEASTBOX_CONNECTION_
   echo 'Beast Box refused startup: durable bridge token or separate encryption key is missing.' >&2
   exit 64
 fi
+# The tiny brain is entirely opt-in. A plain image with this switch refuses to
+# start rather than silently falling back to a fabricated or reference answer.
+tiny_pid=''
+if [[ "${BEASTBOX_TINY_LOCAL_ENABLED:-}" == yes ]]; then
+  if [[ ! -x /opt/beastbox/bin/llama-server ]]; then
+    echo 'Pinned local inference binary missing; refusing enabled tiny provider.' >&2; exit 64
+  fi
+  python -c 'from beastbox.tiny_local import verify_model; verify_model()' || exit 64
+  gosu beastbox /opt/beastbox/bin/llama-server \
+    --model /opt/beastbox/models/SmolLM2-135M-Instruct-Q4_K_M.gguf \
+    --host 127.0.0.1 --port 1234 --ctx-size 1024 \
+    --threads 2 --parallel 1 --n-gpu-layers 0 >/dev/null 2>&1 &
+  tiny_pid=$!
+  if ! python - <<'PY'
+import time
+import urllib.request
+opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+for _ in range(120):
+    try:
+        with opener.open('http://127.0.0.1:1234/health', timeout=1) as response:
+            if response.status == 200:
+                break
+    except (OSError, ValueError):
+        pass
+    time.sleep(1)
+else:
+    raise SystemExit('local inference readiness timed out; refusing bridge startup')
+PY
+  then
+    kill "$tiny_pid" 2>/dev/null || true
+    wait "$tiny_pid" 2>/dev/null || true
+    exit 64
+  fi
+fi
 # The actual app + Caddy run with no root privileges. Secrets are environment-only.
 chown beastbox:beastbox "$DATA"
 chmod 0700 "$DATA"
@@ -24,9 +58,15 @@ gosu beastbox caddy run --config /app/apps/beastbox-cloud/bridge/deploy/Caddyfil
 proxy_pid=$!
 cleanup() {
   kill "$proxy_pid" "$bridge_pid" 2>/dev/null || true
+  if [[ -n "$tiny_pid" ]]; then kill "$tiny_pid" 2>/dev/null || true; fi
   wait "$proxy_pid" "$bridge_pid" 2>/dev/null || true
+  if [[ -n "$tiny_pid" ]]; then wait "$tiny_pid" 2>/dev/null || true; fi
 }
 trap cleanup EXIT
-wait -n "$bridge_pid" "$proxy_pid"
+if [[ -n "$tiny_pid" ]]; then
+  wait -n "$bridge_pid" "$proxy_pid" "$tiny_pid"
+else
+  wait -n "$bridge_pid" "$proxy_pid"
+fi
 echo 'Beast Box ingress or durable bridge exited; stopping the service.' >&2
 exit 1
