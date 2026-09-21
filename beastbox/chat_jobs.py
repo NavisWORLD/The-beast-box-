@@ -38,8 +38,23 @@ class ChatJobs:
         if record["state"] == "complete":
             data["result"] = record["result"]
         elif record["state"] == "failed":
-            data["error"] = "Chat did not return a confirmed result. Check conversation before retrying."
+            code = record.get("failure_code")
+            data["failure_code"] = code or "UNCONFIRMED"
+            data["error"] = (
+                "Remote provider authorization was not available. Select or reactivate a model in Brain Bay."
+                if code == "AUTHORITY_REVOKED" else
+                "The selected model rejected or failed the request. Check conversation before retrying, or switch models in Brain Bay."
+                if code == "PROVIDER_REJECTED" else
+                "Chat did not return a confirmed result. Check conversation before retrying."
+            )
         return data
+
+    def run_when_idle(self, action: Callable[[], tuple[int, dict[str, Any]]]) -> tuple[int, dict[str, Any]]:
+        """Serialize an owner model/credential change with job admission."""
+        with self._lock:
+            if self._active is not None:
+                return 409, {"error": "Chat is still running; wait before changing models."}
+            return action()
 
     def start(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         if set(body) != {"request_id", "text", "context_ids"}:
@@ -78,8 +93,13 @@ class ChatJobs:
     def _run(self, job_id: str, payload: dict[str, Any]) -> None:
         result: dict[str, Any] | None = None
         success = False
+        failure_code = "UNCONFIRMED"
         try:
             status, response = self._handler(payload)
+            if status == 403:
+                failure_code = "AUTHORITY_REVOKED"
+            elif status in (400, 401, 404, 429, 500, 502, 503, 504):
+                failure_code = "PROVIDER_REJECTED"
             if status == 200 and isinstance(response, dict) and isinstance(
                 response.get("result"), dict
             ) and isinstance(response["result"].get("response"), str):
@@ -94,6 +114,7 @@ class ChatJobs:
                 if record is not None:
                     record["state"] = "complete" if success else "failed"
                     record["result"] = result
+                    record["failure_code"] = failure_code if not success else None
                     record["finished_at"] = time.monotonic()
                 if self._active == job_id:
                     self._active = None
