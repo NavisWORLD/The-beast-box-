@@ -27,7 +27,7 @@ test('images and PDFs stay local until real storage',()=>{
 });
 test('proxy excludes arbitrary tools and filesystem',()=>{
  const proxy=read('app/api/bridge/[endpoint]/route.ts');
- assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','context','connections'\]\)/);
+ assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','context','connections','bio'\]\)/);
  assert.doesNotMatch(proxy,/['"]workspace\/write['"]/);
 });
 
@@ -59,4 +59,16 @@ test('BYOK provider credentials are owner-only, same-origin and never browser-pe
  assert.match(ui,/ollama_cloud/);
  assert.match(ui,/ibm_quantum/);
  assert.match(ui,/azure_blob/);
+});
+
+test('bio requires owner, same-origin consent, and no implicit device or durable grant',()=>{
+ const proxy=read('app/api/bridge/[endpoint]/route.ts');
+ const ui=read('components/bio-panel.tsx');
+ assert.match(proxy,/endpoint==='connections'\|\|endpoint==='bio'/);
+ assert.match(proxy,/Invalid or unconsented bio submission/);
+ assert.match(proxy,/persist_confirmed/);
+ assert.match(ui,/BEASTBOX_BIO_INGEST_ENABLED=yes/);
+ assert.match(ui,/BEASTBOX_BIO_PERSIST_ENABLED=yes/);
+ assert.match(ui,/Preview without saving/);
+ assert.doesNotMatch(ui,/getUserMedia\(|navigator\.bluetooth|localStorage|sessionStorage/);
 });

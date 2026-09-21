@@ -18,10 +18,11 @@ from dataclasses import asdict
 from beastbox.cosmic_web import CosmicApp, ProviderProfile
 from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV, MODELS
 from beastbox.cloud_connection_checks import verify_connection
+from beastbox.bio_inputs import bio_event
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections"})
-POST_ALLOW = frozenset({"chat", "context", "connections"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio"})
+POST_ALLOW = frozenset({"chat", "context", "connections", "bio"})
 
 
 class OwnerBridge:
@@ -34,6 +35,12 @@ class OwnerBridge:
             raise ConnectionError("choose either the explicit host HF provider or encrypted BYOK vault")
         self.app = CosmicApp(root, provider_secret_resolver=self._resolve_provider_secret if self.vault else None)
         self._configure_explicit_hf_provider(root)
+        # Opt-in host settings only. No browser-supplied grant or device access.
+        self.bio_enabled = os.environ.get("BEASTBOX_BIO_INGEST_ENABLED") == "yes"
+        self.bio_persist_enabled = self.bio_enabled and os.environ.get("BEASTBOX_BIO_PERSIST_ENABLED") == "yes"
+        self.bio_remote_allowed = self.bio_persist_enabled and os.environ.get("BEASTBOX_BIO_REMOTE_ALLOWED") == "yes"
+        if self.bio_persist_enabled:
+            self.app.authority.grant("sensors")
 
     def _resolve_provider_secret(self, profile: ProviderProfile) -> str | None:
         if self.vault is None:
@@ -121,6 +128,47 @@ class OwnerBridge:
         # model handoff in CosmicApp revokes all previous authority.
         self.app.authority.grant("cloud")
 
+    def _bio_action(self, data: dict) -> tuple[int, dict]:
+        """Process only owner-consented numerical summaries; never access devices."""
+        if not self.bio_enabled:
+            return 503, {"error": "Bio input is disabled on the persistent host"}
+        action = data.get("action")
+        base_fields = {"action", "source", "consent", "readings"}
+        if action == "preview":
+            if set(data) != base_fields:
+                return 400, {"error": "unsupported bio request"}
+        elif action == "persist":
+            if set(data) not in (base_fields | {"persist_confirmed"},
+                                 base_fields | {"persist_confirmed", "remote_share_confirmed"}):
+                return 400, {"error": "unsupported bio request"}
+        else:
+            return 400, {"error": "unsupported bio action"}
+        try:
+            event = bio_event(readings=data["readings"], source=data["source"],
+                              consent=data["consent"])
+        except (ValueError, TypeError, KeyError):
+            return 400, {"error": "invalid, out-of-range, or unconsented bio measurements"}
+        if action == "preview":
+            return 200, {"event": event, "persisted": False, "model_invoked": False,
+                         "raw_media_transmitted": False, "source_verified": False}
+        if not self.bio_persist_enabled or data.get("persist_confirmed") is not True:
+            return 403, {"error": "Explicit host retention approval and owner confirmation required"}
+        # A remote provider may receive normalized signals only with a second,
+        # independent host permission AND per-request owner confirmation.
+        if self.app.profile.remote and (
+            not self.bio_remote_allowed or data.get("remote_share_confirmed") is not True
+        ):
+            return 403, {"error": "Remote bio sharing requires separate explicit approval"}
+        if not self.app.authority.allowed("sensors"):
+            return 403, {"error": "Sensor authority revoked; no bio data persisted"}
+        status, result = self.app.dispatch("POST", "/api/event", {"modality": "sensor", "event": event})
+        if status != 200:
+            return status, {"error": result.get("error", "Bio event processing failed")}
+        return 200, {"persisted": True, "model_invoked": True, "raw_media_transmitted": False,
+                     "source_verified": False, "event_sha256": result["result"]["event"]["sha256"],
+                     "system_id": result["runtime"]["system_id"],
+                     "checkpoint_sha256": result["runtime"]["checkpoint_sha256"]}
+
     def dispatch(self, method: str, path: str, auth: str, body: bytes = b""):
         if not hmac.compare_digest(
             auth.encode("utf-8", errors="replace"),
@@ -136,6 +184,12 @@ class OwnerBridge:
         allowed = GET_ALLOW if method == "GET" else POST_ALLOW if method == "POST" else frozenset()
         if name not in allowed:
             return 404, {"error": "unsupported route"}
+        if name == "bio" and method == "GET":
+            return 200, {"enabled": self.bio_enabled,
+                         "persist_enabled": self.bio_persist_enabled,
+                         "remote_enabled": self.bio_remote_allowed,
+                         "owner": "SINGLE_OWNER_PREVIEW",
+                         "source_verified": False}
         if name == "connections" and method == "GET":
             if self.vault is None:
                 return 200, {"vault":"HOST_KEY_REQUIRED","connections":[],"owner":"SINGLE_OWNER_PREVIEW"}
@@ -160,6 +214,8 @@ class OwnerBridge:
                 return 400, {"error": "cloud context is temporary attachment data only"}
         if name == "connections":
             return self._connection_action(data)
+        if name == "bio":
+            return self._bio_action(data)
         return self.app.dispatch(method, parsed.path, data)
 
 
