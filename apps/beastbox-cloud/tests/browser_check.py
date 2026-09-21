@@ -77,16 +77,16 @@ with sync_playwright() as p:
     assert page.get_by_label("Live owner senses").is_visible()
     assert page.get_by_role("button",name="Start vision").is_visible()
     # Navigation must preserve the same mounted sensing component and keep chat usable.
-    page.evaluate("window.__sensesNode = document.querySelector('[aria-label=\\"Live owner senses\\"]')")
+    page.evaluate("""window.__sensesNode = document.querySelector('[aria-label="Live owner senses"]')""")
     assert_no_overflow(page,"mobile BYOK settings")
+    page.screenshot(path=str(OUT/"08-cloud-settings-mobile.png"),full_page=True)
     page.get_by_role("button",name="Open navigation").click()
     page.get_by_role("button",name="BRAIN").click()
     assert page.get_by_label("Live owner senses").is_hidden()
-    assert page.evaluate("document.querySelector('[aria-label=\\"Live owner senses\\"]') === window.__sensesNode")
+    assert page.evaluate("""document.querySelector('[aria-label="Live owner senses"]') === window.__sensesNode""")
     page.get_by_role("button",name="Stage file or photo locally").click()
     assert page.get_by_role("button",name="Send message").is_disabled()
     assert_no_overflow(page,"mobile chat after settings")
-    page.screenshot(path=str(OUT/"08-cloud-settings-mobile.png"),full_page=True)
     results["mobile"]="PASS: landing, auth, no overflow, photo stage only, BYOK settings fail-closed"
     assert not errors, "Client errors: "+str(errors)
     results["console_errors"]=errors
