@@ -32,7 +32,7 @@ from beastbox.providers import _local_opener
 opener = _local_opener()
 for _ in range(120):
     try:
-        with opener.open("http://127.0.0.1:11522/health", timeout=2) as response:
+        with opener.open("http://127.0.0.1:11522/v1/models", timeout=2) as response:
             if response.status == 200:
                 print("Pinned local tiny model ready on loopback", flush=True)
                 raise SystemExit(0)
