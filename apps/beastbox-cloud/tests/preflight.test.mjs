@@ -72,3 +72,31 @@ test('bio requires owner, same-origin consent, and no implicit device or durable
  assert.match(ui,/Preview without saving/);
  assert.doesNotMatch(ui,/getUserMedia\(|navigator\.bluetooth|localStorage|sessionStorage/);
 });
+
+
+test('device sensing is gesture-only, local and cannot silently persist media',()=>{
+ const ui=read('components/device-panel.tsx');
+ const studio=read('components/studio.tsx');
+ assert.match(ui,/getUserMedia\(\{video:/);
+ assert.match(ui,/getUserMedia\(\{audio:/);
+ assert.match(ui,/aria-label="Local camera preview"/);
+ assert.match(ui,/visibilitychange/);
+ assert.match(ui,/getFloatTimeDomainData/);
+ assert.match(ui,/getImageData/);
+ assert.match(ui,/I choose to draft these numeric summaries/);
+ assert.match(ui,/Add to chat draft \(do not send yet\)/);
+ assert.match(ui,/stopCamera\(\);stopMic\(\)/);
+ assert.doesNotMatch(ui,/fetch\(|sendBeacon\(|MediaRecorder|toDataURL\(|toBlob\(|localStorage|sessionStorage/);
+ assert.match(studio,/<DevicePanel canSend=\{connected\}/);
+ assert.match(studio,/setPrompt\(previous=>\[previous.trim\(\),summary\]/);
+ assert.match(studio,/setPage\('BRAIN'\)/);
+});
+
+test('bio previews are separate from retention and model requests',()=>{
+ const ui=read('components/bio-panel.tsx');
+ assert.match(ui,/action:'preview'\|'persist'/);
+ assert.match(ui,/persist_enabled/);
+ assert.match(ui,/remote_enabled/);
+ assert.match(ui,/No new memory or model request/);
+ assert.match(ui,/Preview without saving/);
+});
