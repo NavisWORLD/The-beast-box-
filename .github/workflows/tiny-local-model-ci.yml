@@ -1,0 +1,123 @@
+name: Tiny local model (real CPU)
+on:
+  pull_request:
+    paths:
+      - "beastbox/tiny_local.py"
+      - "apps/beastbox-cloud/bridge/**"
+      - "tests/test_tiny_local.py"
+      - ".github/workflows/tiny-local-model-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-gguf-and-continuity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build real CPU model image with pinned immutable artifact
+        run: docker build -f apps/beastbox-cloud/bridge/deploy/Dockerfile.tiny -t beastbox-tiny:ci .
+      - name: Prepare isolated fictional test volume
+        run: mkdir -p "$RUNNER_TEMP/beastbox-tiny-test"
+      - name: Run actual CPU model under 1 GiB memory / 2 CPUs
+        env:
+          BEASTBOX_FIXTURE_TOKEN: "public-fixture-bridge-token-only-ci-0123456789"
+          BEASTBOX_FIXTURE_VAULT: "public-ci-fixture-key-not-an-actual-encryption-secret"
+        run: |
+          docker run -d --name beastbox-tiny-ci --memory=1g --memory-swap=1g --cpus=2 \
+            -p 127.0.0.1:18581:8080 \
+            --mount type=bind,src="$RUNNER_TEMP/beastbox-tiny-test",dst=/srv/beastbox/data \
+            -e PORT=8080 -e RAILWAY_RUN_UID=0 -e RAILWAY_VOLUME_MOUNT_PATH=/srv/beastbox/data \
+            -e BEASTBOX_CLOUD_BRIDGE_TOKEN="$BEASTBOX_FIXTURE_TOKEN" \
+            -e BEASTBOX_CONNECTION_VAULT_KEY="$BEASTBOX_FIXTURE_VAULT" \
+            -e BEASTBOX_TINY_LOCAL_ENABLED=yes \
+            beastbox-tiny:ci
+      - name: Verify non-reference genuine inference, identity and checkpoint
+        env:
+          BEASTBOX_FIXTURE_TOKEN: "public-fixture-bridge-token-only-ci-0123456789"
+        run: |
+          mkdir -p build
+          python3 - <<'PY'
+          import json, os, pathlib, time, urllib.error, urllib.request
+          base = "http://127.0.0.1:18581"
+          for _ in range(180):
+              try:
+                  with urllib.request.urlopen(base + "/healthz", timeout=2) as r:
+                      if r.status == 200: break
+              except Exception:
+                  pass
+              time.sleep(1)
+          else:
+              raise SystemExit("real model + COSMOS ingress did not start within 180 s")
+          headers = {"Authorization": "Bearer " + os.environ["BEASTBOX_FIXTURE_TOKEN"]}
+          def api(route, data=None):
+              raw = None if data is None else json.dumps(data).encode()
+              req = urllib.request.Request(base + "/api/" + route, data=raw,
+                  headers={**headers, **({"Content-Type": "application/json"} if data else {})},
+                  method="POST" if data else "GET")
+              with urllib.request.urlopen(req, timeout=160) as r:
+                  return json.load(r)
+          profile = api("provider")["profile"]
+          assert profile["kind"] == "compatible", profile
+          assert profile["model"] == "SmolLM2-135M-Instruct-Q4_K_M"
+          assert profile["base_url"] == "http://127.0.0.1:11522/v1"
+          assert profile["allow_remote"] is False
+          before = api("storage")
+          answer = api("chat", {"text": "Say hello in one short sentence."})
+          output = answer["result"]["response"]
+          assert isinstance(output, str) and output.strip()
+          assert "COSMOS reference" not in output
+          after = api("storage")
+          assert after["system_id"] == before["system_id"]
+          assert after["checkpoint_sha256"] != before["checkpoint_sha256"]
+          print("REAL CPU COMPLETION: success; checkpoint advanced; response text redacted")
+          pathlib.Path("build/tiny_receipt.json").write_text(json.dumps({
+              "system_id": after["system_id"],
+              "checkpoint_sha256": after["checkpoint_sha256"],
+              "memory_digest": after["memory_digest"],
+              "profile_kind": profile["kind"],
+              "model": profile["model"],
+              "response_nonempty": True,
+          }))
+          PY
+      - name: Restart real model using same durable volume
+        env:
+          BEASTBOX_FIXTURE_TOKEN: "public-fixture-bridge-token-only-ci-0123456789"
+          BEASTBOX_FIXTURE_VAULT: "public-ci-fixture-key-not-an-actual-encryption-secret"
+        run: |
+          docker stop -t 20 beastbox-tiny-ci
+          docker rm beastbox-tiny-ci
+          docker run -d --name beastbox-tiny-ci-2 --memory=1g --memory-swap=1g --cpus=2 \
+            -p 127.0.0.1:18581:8080 \
+            --mount type=bind,src="$RUNNER_TEMP/beastbox-tiny-test",dst=/srv/beastbox/data \
+            -e PORT=8080 -e RAILWAY_RUN_UID=0 -e RAILWAY_VOLUME_MOUNT_PATH=/srv/beastbox/data \
+            -e BEASTBOX_CLOUD_BRIDGE_TOKEN="$BEASTBOX_FIXTURE_TOKEN" \
+            -e BEASTBOX_CONNECTION_VAULT_KEY="$BEASTBOX_FIXTURE_VAULT" \
+            -e BEASTBOX_TINY_LOCAL_ENABLED=yes beastbox-tiny:ci
+          python3 - <<'PY'
+          import json, os, pathlib, time, urllib.request
+          base = "http://127.0.0.1:18581"
+          for _ in range(180):
+              try:
+                  with urllib.request.urlopen(base + "/healthz", timeout=2) as r:
+                      if r.status == 200: break
+              except Exception: pass
+              time.sleep(1)
+          else: raise SystemExit("restart did not become healthy")
+          req = urllib.request.Request(base + "/api/storage",
+              headers={"Authorization": "Bearer " + os.environ["BEASTBOX_FIXTURE_TOKEN"]})
+          with urllib.request.urlopen(req, timeout=10) as r: current = json.load(r)
+          baseline = json.loads(pathlib.Path("build/tiny_receipt.json").read_text())
+          assert current["system_id"] == baseline["system_id"]
+          assert current["checkpoint_sha256"] == baseline["checkpoint_sha256"]
+          assert current["memory_digest"] == baseline["memory_digest"]
+          print("REAL CPU RESTART: preserved system ID/checkpoint/memory digest")
+          PY
+      - name: Collect sanitized failure diagnostics
+        if: failure()
+        run: |
+          docker ps -a --format '{{.Names}} {{.Status}}'
+          docker logs --tail 80 beastbox-tiny-ci 2>&1 | sed -E 's/(Bearer |BEASTBOX_CLOUD_BRIDGE_TOKEN=)[^[:space:]]+/\1[REDACTED]/g' || true
+          docker logs --tail 80 beastbox-tiny-ci-2 2>&1 | sed -E 's/(Bearer |BEASTBOX_CLOUD_BRIDGE_TOKEN=)[^[:space:]]+/\1[REDACTED]/g' || true
