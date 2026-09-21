@@ -95,8 +95,22 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
        if(typeof data.id!=='number')throw new Error('Backend did not return a context ID');
        ids.push(data.id);
      }
-     const result=await api('bridge/chat',{method:'POST',body:JSON.stringify({text:prompt.trim(),context_ids:ids})});
-     if(!result.result||typeof result.result!=='object'||typeof (result.result as Record<string,unknown>).response!=='string')throw new Error('Backend returned no verified model text');
+     // CPU inference may outlive Vercel's 45-second per-request timeout. Start
+     // exactly one bounded host job; polls never rerun the model or save a turn.
+     const started=await api('bridge/chat-start',{method:'POST',body:JSON.stringify({
+       text:prompt.trim(),context_ids:ids,request_id:crypto.randomUUID()})});
+     const jobId=started.job_id;
+     if(typeof jobId!=='string'||! /^[A-Za-z0-9_-]{32}$/.test(jobId))throw new Error('Backend returned no valid chat job ID');
+     let state=started;
+     const deadline=Date.now()+180_000;
+     while(state.state==='running'&&Date.now()<deadline){
+       await new Promise(resolve=>setTimeout(resolve,2000));
+       state=await api('bridge/chat-job?id='+encodeURIComponent(jobId));
+     }
+     if(state.state==='running')throw new Error('COSMOS is still processing. Refresh conversation before retrying; the original job may still complete.');
+     if(state.state!=='complete')throw new Error('COSMOS did not confirm a completed answer. Check conversation before retrying.');
+     const result=state.result as Record<string,unknown>|undefined;
+     if(!result?.result||typeof result.result!=='object'||typeof (result.result as Record<string,unknown>).response!=='string')throw new Error('Backend returned no verified model text');
      setPrompt('');setAttachments([]);await load();
    }catch(e){setError((e as Error).message);}finally{setBusy(false);}
  }
