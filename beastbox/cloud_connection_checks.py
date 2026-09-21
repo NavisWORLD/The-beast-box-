@@ -72,6 +72,14 @@ def verify_connection(provider: str, record: dict, opener=None) -> dict:
             return {"provider":provider,"status":"REMOTE_UNAVAILABLE_OR_REJECTED"}
         if provider=="ollama_cloud" and not isinstance(result.get("data"),list):
             return {"provider":provider,"status":"REMOTE_UNAVAILABLE_OR_REJECTED"}
+        if provider=="ollama_cloud":
+            # This is a read-only account model inventory, not generation or
+            # evidence of a billable inference entitlement. Do not expose IDs.
+            listed = {entry.get("id") for entry in result["data"]
+                      if isinstance(entry, dict) and isinstance(entry.get("id"), str)}
+            if config["model"] not in listed:
+                return {"provider":provider,"status":"MODEL_NOT_LISTED",
+                        "detail":"The saved model ID is not in this account's model inventory. Check its exact cloud-model suffix; no inference was performed."}
         if provider=="ibm_watsonx" and not isinstance(result.get("access_token"),str):
             return {"provider":provider,"status":"REMOTE_UNAVAILABLE_OR_REJECTED"}
         return {"provider":provider,"status":valid_status,"detail":note}
