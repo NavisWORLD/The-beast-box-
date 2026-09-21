@@ -67,9 +67,13 @@ def configure_tiny_owner_brain(app: CosmicApp) -> bool:
         return True
     if current.kind != "reference":
         raise ValueError("refusing to overwrite existing user-selected provider")
-    app._set_profile({
-        "kind": desired.kind, "model": desired.model,
-        "base_url": desired.base_url, "allow_remote": False,
-        "api_key_env": None,
+    # A host-selected default is an *ephemeral provider overlay*: do not
+    # overwrite cosmic-provider.json on the volume. Turning off the host flag
+    # restores the previous reference selection without rewriting memory.
+    revoked = app.authority.revoke_all()
+    app.profile = desired
+    app.session_events.append({
+        "kind": "brain_handoff", "model": desired.model,
+        "authority_revoked": revoked, "profile_origin": "HOST_OPT_IN",
     })
     return app.profile == desired
