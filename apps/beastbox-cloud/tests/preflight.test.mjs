@@ -267,6 +267,26 @@ test('workstation has one main landmark and attachment input has an explicit nam
  assert.match(read('app/globals.css'),/Accessible contrast and touch affordances/);
 });
 
+test('owner-selected camera and speech summaries enter only turn context, never durable prompt text',()=>{
+ const ui=read('components/studio.tsx');
+ const senses=read('components/live-senses.tsx');
+ const backend=read('bridge/owner_bridge.py');
+ const runtime=read('../../beastbox/cosmic_web.py');
+ assert.match(ui,/owner-selected-sensor-observations\.txt/);
+ assert.match(ui,/scope:'temporary_attachment'/);
+ assert.match(ui,/sensorContextId=staged\.id;ids\.push\(sensorContextId\)/);
+ assert.match(ui,/const chatText=userText/);
+ assert.doesNotMatch(ui,/chatText=approvedContext\?/);
+ assert.match(ui,/result\.context_used\.includes\(sensorContextId\)/);
+ assert.match(ui,/temporaryReply&&/);
+ assert.match(ui,/TEMPORARY REPLY/);
+ assert.match(senses,/not raw media; they are not retained unless/);
+ assert.match(senses,/No observations collected yet/);
+ assert.match(backend,/self\.chat_jobs\.run_when_idle/);
+ assert.match(runtime,/response_persistent/);
+ assert.doesNotMatch(ui,/toDataURL\(|MediaRecorder\(/);
+});
+
 test('Azure account-key mode and one-document retrieval do not grant ambient chat access',()=>{
  const connections=read('components/cloud-connections.tsx');
  const ui=read('components/studio.tsx');
