@@ -60,7 +60,7 @@ The model shows short-story continuation but did not perform the arithmetic, cod
 
 ## Real checkpoint integration smoke
 
-The [extended verification run 35797048273](https://github.com/NavisWORLD/The-beast-box-/actions/runs/35797048273) adds a smoke step for the exact checkpoint through the *actual* local CLI, authenticated `/ready` and `/model/info`, text completion and chat completion, and `NativeProvider` inside the existing local `DurableRuntime`. This verifies local wiring and a durable checkpoint without invoking remote models, production Brain Bay, sensors, deployment or privileged tools. Check that run's final conclusion before treating the whole extended workflow as green.
+The [extended verification run 35797048273](https://github.com/NavisWORLD/The-beast-box-/actions/runs/35797048273) adds a smoke step for the exact checkpoint through the *actual* local CLI, authenticated `/ready` and `/model/info`, text completion and chat completion, and `NativeProvider` inside the existing local `DurableRuntime`. The extended workflow **completed successfully**: authenticated real-weight local CLI/HTTP and DurableRuntime checks passed, along with the release integrity, native test and held-out benchmark gates. This verifies local wiring and a durable checkpoint without invoking remote models, production Brain Bay, sensors, deployment or privileged tools.
 
 ## Installation and existing integration
 
