@@ -127,6 +127,70 @@ class BYOKTests(unittest.TestCase):
         self.assertEqual(bridge.vault.read_host_only("ollama_cloud")["secret"],original)
         self.assertEqual(bridge.app.profile.model,"gpt-oss:120b")
 
+    def test_ollama_a_b_a_retains_key_memory_checkpoint_and_is_owner_only(self):
+        bridge=bridge_module.OwnerBridge(self.root,TOKEN)
+        code,seed=bridge.dispatch("POST","/api/chat",AUTH,
+                                  b'{"text":"Stable substrate sentinel from reference model"}')
+        self.assertEqual(code,200,seed)
+        _,before=bridge.dispatch("GET","/api/conversation",AUTH)
+        _,before_orbit=bridge.dispatch("GET","/api/orbit",AUTH)
+        bridge.vault.save("ollama_cloud",{"model":"gpt-oss:120b"},HF)
+        self.assertEqual(bridge.dispatch("GET","/api/model-inventory","")[0],401)
+        with patch.object(bridge_module,"fetch_public_models",return_value=[
+            "gpt-oss:120b","gpt-oss:20b","nemotron-3-ultra"]) as inventory:
+            code,listed=bridge.dispatch("GET","/api/model-inventory",AUTH)
+            self.assertEqual(code,200)
+            self.assertEqual(listed["models"],["gpt-oss:120b","gpt-oss:20b","nemotron-3-ultra"])
+            self.assertFalse(listed["account_access_verified"])
+            self.assertFalse(listed["inference_attested"])
+            self.assertFalse(listed["model_invoked"])
+            self.assertNotIn(HF,json.dumps(listed))
+            denied={"choice":"ollama_cloud","model":"nemotron-3-ultra"}
+            self.assertEqual(bridge.dispatch("POST","/api/models",AUTH,json.dumps(denied).encode())[0],400)
+            self.assertEqual(bridge.app.profile.kind,"reference")
+            with patch("beastbox.providers._local_opener",
+                       side_effect=AssertionError("no paid inference or local model calls")):
+                for name in ("gpt-oss:120b","nemotron-3-ultra","gpt-oss:120b"):
+                    data={"choice":"ollama_cloud","model":name,"spend_approved":True}
+                    status,result=bridge.dispatch("POST","/api/models",AUTH,json.dumps(data).encode())
+                    self.assertEqual(status,200,result)
+                    self.assertEqual(result["model"],name)
+                    self.assertTrue(result["credential_preserved"])
+                    self.assertEqual(result["substrate"],"EXISTING_DURABLE_STATE")
+                    self.assertEqual(result["inference"],"NOT_ATTESTED_UNTIL_REAL_CHAT")
+                    self.assertEqual(bridge.vault.read_host_only("ollama_cloud")["secret"],HF)
+                    self.assertEqual(bridge.app.profile.model,name)
+                    self.assertTrue(bridge.app.authority.allowed("cloud"))
+                    self.assertEqual(bridge.dispatch("GET","/api/conversation",AUTH)[1],before)
+                    self.assertEqual(bridge.dispatch("GET","/api/orbit",AUTH)[1]["runtime"]["checkpoint_sha256"],
+                                     before_orbit["runtime"]["checkpoint_sha256"])
+                invalid={"choice":"ollama_cloud","model":"not-in-public-catalog","spend_approved":True}
+                code,failed=bridge.dispatch("POST","/api/models",AUTH,json.dumps(invalid).encode())
+                self.assertEqual(code,409,failed)
+                self.assertEqual(bridge.app.profile.model,"gpt-oss:120b")
+                self.assertEqual(bridge.vault.read_host_only("ollama_cloud")["secret"],HF)
+            self.assertGreaterEqual(inventory.call_count,4)
+        restarted=bridge_module.OwnerBridge(self.root,TOKEN)
+        self.assertEqual(restarted.app.profile.model,"gpt-oss:120b")
+        self.assertFalse(restarted.app.authority.allowed("cloud"))
+        self.assertEqual(restarted.dispatch("GET","/api/conversation",AUTH)[1],before)
+        self.assertEqual(restarted.dispatch("GET","/api/orbit",AUTH)[1]["runtime"]["checkpoint_sha256"],
+                         before_orbit["runtime"]["checkpoint_sha256"])
+
+    def test_ollama_catalog_failure_is_fail_closed_without_credential_change(self):
+        from beastbox.ollama_models import ModelInventoryUnavailable
+        bridge=bridge_module.OwnerBridge(self.root,TOKEN)
+        bridge.vault.save("ollama_cloud",{"model":"gpt-oss:120b"},HF)
+        with patch.object(bridge_module,"fetch_public_models",
+                          side_effect=ModelInventoryUnavailable("public inventory unavailable")):
+            code,result=bridge.dispatch("POST","/api/models",AUTH,json.dumps(
+                {"choice":"ollama_cloud","model":"nemotron-3-ultra","spend_approved":True}).encode())
+        self.assertEqual(code,503,result)
+        self.assertEqual(bridge.vault.read_host_only("ollama_cloud")["config"]["model"],"gpt-oss:120b")
+        self.assertEqual(bridge.app.profile.kind,"reference")
+        self.assertFalse(bridge.app.authority.allowed("cloud"))
+        self.assertNotIn(HF,json.dumps(result))
+
     def test_readonly_model_inventory_detects_wrong_cloud_model_with_zero_inference(self):
         from beastbox.cloud_connection_checks import verify_connection
         from unittest.mock import MagicMock
