@@ -114,14 +114,58 @@ def _ibm(shots):
     )
 
 
+def _azure_rigetti(shots, target):
+    """Explicit Rigetti QVM software simulation; no QPU submission pathway.
+
+    Requires the separate Azure Quantum workspace credentials/configuration;
+    the Azure Blob account key cannot authorize Quantum jobs.
+    """
+    try:
+        from qdk.azure.target.rigetti import Result
+    except ImportError:
+        raise ResourceUnavailable("Rigetti Azure SDK unavailable; install qdk[azure]") from None
+    if target.name != "rigetti.sim.qvm":
+        raise ResourceUnavailable("Unexpected Rigetti target")
+    quil = (
+        "DECLARE ro BIT[2]\n"
+        "H 0\n"
+        "CNOT 0 1\n"
+        "MEASURE 0 ro[0]\n"
+        "MEASURE 1 ro[1]\n"
+    )
+    job = target.submit(input_data=quil, name="beastbox-rigetti-qvm-probe", shots=shots)
+    if job.details.target != "rigetti.sim.qvm":
+        raise ResourceUnavailable("Rigetti target receipt mismatch")
+    job_id = _label(job.id)
+    readout = Result(job)["ro"]
+    if not isinstance(readout, (list, tuple)) or len(readout) != shots:
+        raise ResourceUnavailable("Invalid Rigetti simulated readout")
+    counts = {k: 0 for k in ("00", "01", "10", "11")}
+    for shot in readout:
+        if (not isinstance(shot, (list, tuple)) or len(shot) != 2
+                or any(type(value) is not int or value not in (0, 1) for value in shot)):
+            raise ResourceUnavailable("Invalid Rigetti simulated readout")
+        counts["".join(str(bit) for bit in shot)] += 1
+    return _event(
+        dict(
+            source="azure-quantum", mode="AZURE_RIGETTI_QVM_SIMULATED",
+            result_kind="simulated-counts", native_job_id=job_id,
+            backend="rigetti.sim.qvm", shots=shots, counts=counts,
+            circuit_sha256=sha256_obj(quil),
+            probe="two-qubit-Bell-distribution-Quil",
+        ),
+        {key: value / shots for key, value in counts.items()},
+    )
+
+
 def _azure(shots):
     try:
         from qdk.azure import Workspace
     except ImportError:
         raise ResourceUnavailable("Azure SDK unavailable; install qdk[azure]") from None
     target_name = os.environ["AZURE_QUANTUM_TARGET"]
-    if target_name != "ionq.simulator":
-        raise ResourceUnavailable("Azure target must be ionq.simulator")
+    if target_name not in ("ionq.simulator", "rigetti.sim.qvm"):
+        raise ResourceUnavailable("Azure target must be ionq.simulator or rigetti.sim.qvm; QPU jobs are not enabled")
     workspace = Workspace(
         resource_id=os.environ["AZURE_QUANTUM_RESOURCE_ID"],
         location=os.environ["AZURE_QUANTUM_LOCATION"],
@@ -129,6 +173,8 @@ def _azure(shots):
     target = workspace.get_targets(name=target_name)
     if target.name != target_name:
         raise ResourceUnavailable("Azure target mismatch")
+    if target_name == "rigetti.sim.qvm":
+        return _azure_rigetti(shots, target)
     circuit = {
         "qubits": 2,
         "circuit": [
