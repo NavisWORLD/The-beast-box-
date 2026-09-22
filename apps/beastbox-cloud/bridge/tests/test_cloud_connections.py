@@ -333,5 +333,41 @@ class BYOKTests(unittest.TestCase):
                     self.assertNotIn("fixture",json.dumps(result))
 
 
+    def test_azure_account_key_mode_is_explicit_encrypted_and_legacy_sas_is_preserved(self):
+        # A synthetic 64-byte key has the shape of an Azure access key; it is
+        # NOT a real credential, and this test never contacts Azure.
+        key=base64.b64encode(b"K"*64).decode("ascii")
+        vault=ConnectionVault(self.root)
+        sas="sv=2024-11-04&sr=c&sp=r&se=2099-01-01T00%3A00%3A00Z&sig=fixture"
+        old=vault.save("azure_blob",{"account":"teststore","container":"private"},sas)
+        self.assertEqual(old["config"]["auth_mode"],"container_sas")
+        self.assertNotIn(sas,json.dumps(old))
+        self.assertEqual(ConnectionVault(self.root).read_host_only("azure_blob")["secret"],sas)
+        for wrong in ("nonsense","AccountKey="+key,"https://teststore.blob.core.windows.net/"):
+            with self.subTest(kind="invalid account key"):
+                with self.assertRaises(ConnectionError):
+                    vault.save("azure_blob",{"account":"teststore","container":"private",
+                                               "auth_mode":"account_key"},wrong)
+        saved=vault.save("azure_blob",{"account":"teststore","container":"private",
+                                       "auth_mode":"account_key"},key)
+        self.assertEqual(saved["config"]["auth_mode"],"account_key")
+        self.assertNotIn(key,json.dumps(saved))
+        self.assertNotIn(key.encode(),(self.root/DATABASE).read_bytes())
+        self.assertEqual(ConnectionVault(self.root).read_host_only("azure_blob")["secret"],key)
+        self.assertNotIn("secret",json.dumps(vault.list_public()))
+        bridge=bridge_module.OwnerBridge(self.root,TOKEN)
+        with patch.object(bridge_module,"verify_connection",return_value={
+            "provider":"azure_blob","status":"CONTAINER_READ_VERIFIED",
+            "detail":"Synthetic metadata read only."}) as verify:
+            status,response=bridge.dispatch("POST","/api/connections",AUTH,
+                json.dumps({"action":"test","provider":"azure_blob"}).encode())
+        self.assertEqual(status,200)
+        self.assertEqual(response["status"],"CONTAINER_READ_VERIFIED")
+        verify.assert_called_once()
+        self.assertEqual(verify.call_args.args[1]["config"]["auth_mode"],"account_key")
+        self.assertEqual(verify.call_args.args[1]["secret"],key)
+        self.assertNotIn(key,json.dumps(response))
+
+
 if __name__=="__main__":
     unittest.main()
