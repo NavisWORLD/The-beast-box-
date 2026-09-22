@@ -92,10 +92,10 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
    if(picker.current)picker.current.value='';
  }
  function removeFile(i:number){setAttachments(old=>old.filter((a,n)=>{if(n===i&&a.objectUrl){URL.revokeObjectURL(a.objectUrl);imageUrls.current.delete(a.objectUrl);}return n!==i;}));}
- function stageAzureText(entry:{name:string;sha256:string;text:string}){
-   if(attachments.length>=4){setAttachError('Remove an attachment before staging the selected Azure document.');return;}
+ function stageAzureText(entry:{name:string;sha256:string;text:string}):boolean{
+   if(attachments.length>=4){setAttachError('Remove an attachment before staging the selected Azure document.');return false;}
    if(!/^[a-f0-9]{64}$/.test(entry.sha256)||!entry.text.trim()||entry.text.length>12000){
-     setAttachError('Azure retrieval did not return a bounded verified digest and text.');return;
+     setAttachError('Azure retrieval did not return a bounded verified digest and text.');return false;
    }
    const name='azure-'+entry.sha256.slice(0,12)+'.txt';
    // This is untrusted external data and never a privileged instruction.
@@ -106,6 +106,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
    setAttachments(old=>old.length>=4?old:[...old,{name,size:original.size,type:'text/plain',
       text:context,original,source:'azure_blob'}]);
    setAttachError('');setPage('BRAIN');setMenu(false);
+   return true;
  }
  async function send(){
    if(!connected||busy||!prompt.trim())return;
