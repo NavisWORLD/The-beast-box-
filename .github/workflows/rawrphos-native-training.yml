@@ -22,9 +22,9 @@ jobs:
     timeout-minutes: 180
     env:
       PYTHONPATH: ${{ github.workspace }}/models
-      RAW_INPUT: ${{ runner.temp }}/rawrphos/public
-      RAWR_CORPUS: ${{ runner.temp }}/rawrphos/corpus
-      RAWR_OUTPUT: ${{ runner.temp }}/rawrphos/checkpoints
+      RAW_INPUT: ${{ github.workspace }}/.rawrphos-run/public
+      RAWR_CORPUS: ${{ github.workspace }}/.rawrphos-run/corpus
+      RAWR_OUTPUT: ${{ github.workspace }}/.rawrphos-run/checkpoints
     steps:
       - name: Checkout this exact feature-branch commit
         uses: actions/checkout@v4
