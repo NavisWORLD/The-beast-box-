@@ -3,7 +3,7 @@
 **Owner:** Cory Davis | **Model ID:** `rawrphos-native`  
 **Date:** September 22, 2026 | **Status:** CPU research checkpoint; **not** a general assistant or production release.
 
-## Immutable input evidence
+## Pinned historical input evidence
 
 - Completed training commit: [d13d5a9](https://github.com/NavisWORLD/The-beast-box-/commit/d13d5a917b76891f36cd2b4e13dee88e3b45922c).
 - [Training run 35782780734](https://github.com/NavisWORLD/The-beast-box-/actions/runs/35782780734): success, 6,000 actual optimizer steps, 6,144,000 tokens; train loss 3.352535, held-out loss 3.201882.
