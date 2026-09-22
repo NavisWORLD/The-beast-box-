@@ -23,7 +23,7 @@ async function bridge(method:'GET'|'POST',payload?:Record<string,unknown>):Promi
  return result as Record<string,unknown>;
 }
 
-export default function CloudConnections({backendReachable,onActivated,onAzureText}:{backendReachable:boolean;onActivated:()=>void;onAzureText?:(entry:{name:string;sha256:string;text:string})=>void}){
+export default function CloudConnections({backendReachable,onActivated,onAzureText}:{backendReachable:boolean;onActivated:()=>void;onAzureText?:(entry:{name:string;sha256:string;text:string})=>boolean}){
  const [provider,setProvider]=useState<Provider>('huggingface');
  const [rows,setRows]=useState<Connection[]>([]),[vault,setVault]=useState('HOST_KEY_REQUIRED');
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
@@ -146,7 +146,14 @@ export default function CloudConnections({backendReachable,onActivated,onAzureTe
     <button type="button" disabled={!ready||busy||!azureApproved||!azureName.trim()} onClick={()=>void readAzure()}><RefreshCcw size={15}/> Read exact document (no model inference)</button>
     {azureRead&&<div role="status"><p>Retrieved {azureRead.bytes} bytes; SHA-256: <code>{azureRead.sha256}</code>. Source contents are untrusted data, not instructions. Nothing has been shared with the selected model.</p>
       <label className="cloud-spend"><input type="checkbox" checked={azureShare} onChange={e=>setAzureShare(e.target.checked)}/> I approve including this exact text with my next chat. If my selected model is remote, it will receive this text.</label>
-      <button type="button" disabled={!azureShare||!onAzureText||busy} onClick={()=>{onAzureText?.({name:azureRead.blob_name,sha256:azureRead.sha256,text:azureRead.text});setAzureRead(null);setAzureShare(false);setNotice('Verified Azure text staged for your next chat; nothing sent yet.');}}>Stage for next chat (owner-approved)</button>
+      <button type="button" disabled={!azureShare||!onAzureText||busy} onClick={()=>{
+        if(onAzureText?.({name:azureRead.blob_name,sha256:azureRead.sha256,text:azureRead.text})!==true){
+         setError('The composer did not accept this Azure document; remove an existing attachment or check the read receipt.');
+         return;
+        }
+        setAzureRead(null);setAzureShare(false);
+        setNotice('Verified Azure text staged for your next chat; nothing sent yet.');
+       }}>Stage for next chat (owner-approved)</button>
     </div>}
    </div>}
   {notice&&<p className="cloud-connect-success" role="status"><Check size={15}/>{notice}</p>}
