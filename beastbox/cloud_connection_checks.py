@@ -81,9 +81,13 @@ def verify_connection(provider: str, record: dict, opener=None) -> dict:
     if provider=="ibm_quantum":
         return {"provider":provider,"status":"NOT_TESTED","detail":"IBM Quantum instance and job permissions require a separate authorized integration."}
     if provider=="azure_blob":
-        preflight = _azure_sas_preflight(secret)
-        if preflight:
-            return _azure_check_result(preflight)
+        mode = config.get("auth_mode", "container_sas")
+        if mode == "container_sas":
+            preflight = _azure_sas_preflight(secret)
+            if preflight:
+                return _azure_check_result(preflight)
+        elif mode != "account_key":
+            return _azure_check_result("SAS_FORMAT_INVALID")
         try:
             from azure.core.exceptions import HttpResponseError
             from azure.storage.blob import BlobServiceClient
@@ -95,7 +99,8 @@ def verify_connection(provider: str, record: dict, opener=None) -> dict:
             client.get_container_client(config["container"]).get_container_properties(
                 timeout=5,connection_timeout=5,read_timeout=5,retry_total=0)
             return {"provider":provider,"status":"CONTAINER_READ_VERIFIED",
-                    "detail":"Container metadata read verified; object retrieval, writes, retention and chat integration NOT verified."}
+                    "detail":"Container metadata read verified; object retrieval, writes, retention and chat integration NOT verified.",
+                    "auth_mode": mode}
         except HttpResponseError as exc:
             # Do not reflect SDK message, response headers, request URI or SAS.
             status = exc.status_code
