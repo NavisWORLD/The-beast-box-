@@ -58,6 +58,10 @@ The differences are small, frozen_state is numerically slightly lower in this ev
 
 The model shows short-story continuation but did not perform the arithmetic, coding, or tool-format instructions in these probes. It repeats phrases ("play with her toys") even though the simple *adjacent-word* repetition metric reported zero. Its 2,048-token architectural context limit is **not** validated quality at that length; training sequences had length 128.
 
+## Real checkpoint integration smoke
+
+The [extended verification run 35797048273](https://github.com/NavisWORLD/The-beast-box-/actions/runs/35797048273) adds a smoke step for the exact checkpoint through the *actual* local CLI, authenticated `/ready` and `/model/info`, text completion and chat completion, and `NativeProvider` inside the existing local `DurableRuntime`. This verifies local wiring and a durable checkpoint without invoking remote models, production Brain Bay, sensors, deployment or privileged tools. Check that run's final conclusion before treating the whole extended workflow as green.
+
 ## Installation and existing integration
 
 See [the RAWRPHØS README](../models/rawrphos/README.md) for pinned SHA verification, executable local CLI, `/model/info`, loopback `/v1/completions` and `/v1/chat/completions`. The existing `NativeProvider` uses `DurableRuntime`: memory, CNS, R12, policy, and continuity remain host responsibilities, not neural weights. An optional 12-element control vector exists in the PyTorch forward method but **is not transported** by the CLI, HTTP or existing provider. No production Brain Bay wiring, Ollama native compatibility, media modality, or tool authority is asserted.
