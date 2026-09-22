@@ -18,6 +18,7 @@ from dataclasses import asdict
 from beastbox.cosmic_web import CosmicApp, ProviderProfile
 from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV, MODELS
 from beastbox.cloud_connection_checks import verify_connection
+from beastbox.azure_read import AzureReadError, read_owner_text
 from beastbox.bio_inputs import bio_event
 from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
@@ -26,7 +27,7 @@ from beastbox.chat_jobs import ChatJobs
 
 MAX_BYTES = 256_000
 GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models"})
-POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models"})
+POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read"})
 
 
 class OwnerBridge:
@@ -184,6 +185,21 @@ class OwnerBridge:
         # Explicit host approval is required again after every restart. A
         # model handoff in CosmicApp revokes all previous authority.
         self.app.authority.grant("cloud")
+
+    def _azure_read_action(self, data: dict) -> tuple[int, dict]:
+        """One explicit owner-approved text read. No ambient chat retrieval."""
+        if self.vault is None:
+            return 503, {"error": "Encrypted Azure credential vault unavailable"}
+        if (set(data) != {"blob_name", "read_confirmed"}
+                or data.get("read_confirmed") is not True):
+            return 400, {"error": "Explicit Azure document read confirmation required"}
+        saved = self.vault.read_host_only("azure_blob")
+        if saved is None:
+            return 404, {"error": "Azure Blob connection not configured"}
+        try:
+            return 200, read_owner_text(saved, data["blob_name"])
+        except AzureReadError as exc:
+            return 400, {"error": str(exc)}
 
     def _model_catalog(self) -> dict:
         """Expose only installed local and encrypted configured model choices."""
@@ -383,6 +399,9 @@ class OwnerBridge:
                 if data.get("action") in {"activate", "remove", "save", "update_model"}:
                     return self.chat_jobs.run_when_idle(lambda: self._connection_action(data))
                 return self._connection_action(data)
+        if name == "azure-read":
+            with self.app._lock:
+                return self.chat_jobs.run_when_idle(lambda: self._azure_read_action(data))
         if name == "bio":
             return self._bio_action(data)
         if name == "observations":
