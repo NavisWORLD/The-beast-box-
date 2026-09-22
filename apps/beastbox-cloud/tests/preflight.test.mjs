@@ -27,7 +27,9 @@ test('images and PDFs stay local until real storage',()=>{
 });
 test('proxy excludes arbitrary tools and filesystem',()=>{
  const proxy=read('app/api/bridge/[endpoint]/route.ts');
- assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','chat-start','context','connections','bio','observations','models'\]\)/);
+ assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','chat-start','context','connections','bio','observations','models','azure-read'\]\)/);
+ assert.match(proxy,/endpoint==='azure-read'/);
+ assert.match(proxy,/read_confirmed!==true/);
  assert.doesNotMatch(proxy,/['"]workspace\/write['"]/);
 });
 
@@ -263,4 +265,21 @@ test('workstation has one main landmark and attachment input has an explicit nam
  assert.equal(shell.length,1);
  assert.match(studio,/aria-label="Choose files or photos to stage locally"/);
  assert.match(read('app/globals.css'),/Accessible contrast and touch affordances/);
+});
+
+test('Azure account-key mode and one-document retrieval do not grant ambient chat access',()=>{
+ const connections=read('components/cloud-connections.tsx');
+ const ui=read('components/studio.tsx');
+ const backend=read('bridge/owner_bridge.py');
+ const vault=read('../../beastbox/cloud_connections.py');
+ const azure=read('../../beastbox/azure_read.py');
+ assert.match(connections,/Storage account access key/);
+ assert.match(connections,/read_confirmed:true/);
+ assert.match(connections,/Stage for next chat/);
+ assert.match(ui,/onAzureText=\{stageAzureText\}/);
+ assert.match(backend,/read_owner_text/);
+ assert.match(backend,/run_when_idle\(lambda: self\._azure_read_action\(data\)\)/);
+ assert.match(vault,/auth_mode/);
+ assert.match(azure,/MAX_CONTEXT_BYTES = 12_000/);
+ assert.doesNotMatch(azure,/upload_blob|delete_blob|submit\(/);
 });
