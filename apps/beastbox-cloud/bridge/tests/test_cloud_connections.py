@@ -369,5 +369,33 @@ class BYOKTests(unittest.TestCase):
         self.assertNotIn(key,json.dumps(response))
 
 
+    def test_azure_owner_read_requires_auth_explicit_blob_and_separate_model_sharing(self):
+        bridge=bridge_module.OwnerBridge(self.root,TOKEN)
+        key=base64.b64encode(b"K"*64).decode("ascii")
+        bridge.vault.save("azure_blob",{"account":"teststore","container":"cosmo",
+                                        "auth_mode":"account_key"},key)
+        request={"blob_name":"docs/guide.txt","read_confirmed":True}
+        raw=json.dumps(request).encode()
+        self.assertEqual(bridge.dispatch("POST","/api/azure-read","",raw)[0],401)
+        self.assertEqual(bridge.dispatch("POST","/api/azure-read",AUTH,
+            json.dumps({"blob_name":"docs/guide.txt"}).encode())[0],400)
+        sample={"source":"AZURE_BLOB_EXPLICIT_READ","blob_name":"docs/guide.txt",
+                "sha256":"a"*64,"bytes":7,"text":"private",
+                "retrieval_verified":True,"persisted":False,"model_invoked":False,
+                "source_claims_verified":False}
+        with patch.object(bridge_module,"read_owner_text",return_value=sample) as read:
+            status,returned=bridge.dispatch("POST","/api/azure-read",AUTH,raw)
+            self.assertEqual(status,200)
+            self.assertEqual(returned,sample)
+            read.assert_called_once()
+            self.assertEqual(read.call_args.args[0]["secret"],key)
+            self.assertEqual(read.call_args.args[1],"docs/guide.txt")
+        self.assertNotIn(key,json.dumps(returned))
+        self.assertEqual(bridge.dispatch("GET","/api/conversation",AUTH)[1]["turns"],[])
+        self.assertFalse(bridge.app.authority.allowed("cloud"))
+        self.assertEqual(bridge.dispatch("POST","/api/azure-read",AUTH,
+            json.dumps({"blob_name":"../secret.txt","read_confirmed":True}).encode())[0],400)
+
+
 if __name__=="__main__":
     unittest.main()
