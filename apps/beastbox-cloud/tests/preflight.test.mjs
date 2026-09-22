@@ -287,6 +287,16 @@ test('owner-selected camera and speech summaries enter only turn context, never 
  assert.doesNotMatch(ui,/toDataURL\(|MediaRecorder\(/);
 });
 
+test('historical model provenance is taken from each saved assistant turn, not current selection',()=>{
+ const ui=read('components/studio.tsx');
+ const runtime=read('../../beastbox/runtime.py');
+ assert.match(ui,/recordedModel=typeof meta\.model/);
+ assert.match(ui,/t\.model\|\|'MODEL · HISTORICAL ID UNRECORDED'/);
+ assert.doesNotMatch(ui,/<span className="message-name">\{t\.role==='assistant'\?model:'YOU'\}/);
+ assert.match(runtime,/response_metadata\["model"\] = label/);
+ assert.match(runtime,/configured-provider-label; no weight attestation/);
+});
+
 test('Azure account-key mode and one-document retrieval do not grant ambient chat access',()=>{
  const connections=read('components/cloud-connections.tsx');
  const ui=read('components/studio.tsx');
