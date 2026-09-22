@@ -34,6 +34,10 @@ A sensor indicator previously looked like proof of model visibility. When Settin
 
 Offline acceptance includes reference-provider sensor-context delivery, non-replay, unchanged system ID, checkpoint progression, no private sensor text in conversation records, restart preservation and web source-contract assertions. These checks do **not** verify live paid Ollama inference, iPhone sensor capture, quantum state, or remote vision.
 
+## Model-swap provenance correction
+
+Prior Brain history rendered every past assistant answer under the currently selected model, making a 20B answer appear to come from 120B after a swap. Newly completed assistant turns now store a sanitized `metadata.model` label captured at generation time, qualified as **configured label, not weight attestation**. The UI displays that historical model value, or `HISTORICAL ID UNRECORDED` for old turns that cannot be attributed. An offline A→B→A fixture asserts the labels and checkpoint continuity survive bridge restart. Neither old model provenance nor a live model-to-model performance difference can be reconstructed by renaming saved turns.
+
 ## To honestly say "all loops working"
 
 Run a separately approved integration suite against each provider and source with paired checkpoints, explicit provenance, privacy gates and provider-specific capabilities. Before promising direct camera or image uploads, implement a vision-capable provider adapter and separately authorized storage/media path, with no default camera capture and clear redaction. Before claiming HF PHOS/Genesis runtime equivalence, import the selected modules under their exact licenses/hashes, explicitly map their contracts to existing Beast Box state, run matched ablations, and preserve all nulls. Do not silently merge distinct memories, authority, quantum data or model weights.
