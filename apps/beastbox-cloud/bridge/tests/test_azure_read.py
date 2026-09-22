@@ -78,5 +78,27 @@ class ReadTests(unittest.TestCase):
                 self.assertLessEqual(blob.download_calls, 1)
 
 
+    def test_azure_sdk_constructor_failure_is_sanitized(self):
+        import sys
+        from types import ModuleType
+        from unittest.mock import patch
+        azure=ModuleType("azure")
+        storage=ModuleType("azure.storage")
+        blob=ModuleType("azure.storage.blob")
+        class BrokenClient:
+            def __init__(self, **kwargs):
+                raise RuntimeError("FAKE_SECRET_IN_SDK_ERROR")
+        blob.BlobServiceClient=BrokenClient
+        azure.storage=storage
+        storage.blob=blob
+        modules={m.__name__:m for m in [azure,storage,blob]}
+        with patch.dict(sys.modules,modules):
+            with self.assertRaises(AzureReadError) as caught:
+                read_owner_text(self.record, "one.txt")
+        self.assertEqual(str(caught.exception),"Azure document read unavailable or denied")
+        self.assertNotIn("FAKE_SECRET_IN_SDK_ERROR",str(caught.exception))
+
+
+
 if __name__ == "__main__":
     unittest.main()
