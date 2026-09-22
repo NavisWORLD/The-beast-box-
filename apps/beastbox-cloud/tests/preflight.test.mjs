@@ -144,7 +144,7 @@ test('owner-live senses use real local classifier and explicit browser speech co
  assert.match(live,/Stop speech/);
  assert.match(live,/setIncludeInChat/);
  assert.match(studio,/onContext=\{updateLiveContext\}/);
- assert.match(studio,/Owner-approved unverified device observations/);
+ assert.match(studio,/Owner-approved unverified sensor observations/);
  assert.doesNotMatch(live,/MediaRecorder|toDataURL\(|toBlob\(|localStorage|sessionStorage/);
 });
 
