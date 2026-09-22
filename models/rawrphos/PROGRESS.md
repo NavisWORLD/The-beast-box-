@@ -9,8 +9,12 @@
   This branch does not merge or overwrite that independent interface work.
 - Published PHOS source recovered again from QC67; native model construction
   remains isolated in this directory. Historical weights remain untouched.
-- Current milestone: reconstruct tested source and persist remotely.
-- Next executable action: architecture tests, tokenizer/corpus integrity tests,
+- Recovery boundary persisted remotely at `dab63d70902de9e3604f817f6f5e301594f4d9fb`.
+- Architecture milestone: 8 tests passed on actual PyTorch CPU: all five controls
+  are causal; full versus chunked KV/state cache agrees; gradients are finite and
+  nonzero; probability normalization, padding and invalid contexts are checked.
+- Native model weights are still untrained at this milestone.
+- Next executable action: tokenizer/corpus integrity and exact-resume tests,
   then actual bounded CPU training. No production release or deployment.
 
 Budget remains the owner's existing $5/month hosting/trial ceiling. This run
