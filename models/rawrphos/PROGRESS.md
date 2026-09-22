@@ -14,8 +14,17 @@
   are causal; full versus chunked KV/state cache agrees; gradients are finite and
   nonzero; probability normalization, padding and invalid contexts are checked.
 - Native model weights are still untrained at this milestone.
-- Next executable action: tokenizer/corpus integrity and exact-resume tests,
-  then actual bounded CPU training. No production release or deployment.
+- Training milestone: 3 tests passed covering UTF-8 BPE, corpus exclusion and
+  deterministic splits, actual optimizer updates, exact split-run CPU resume,
+  and corrupted checkpoint rejection. Combined model suite: 11 passed.
+- CPU resource probes measured 1,861,620 / 3,909,956 / 13,509,112 parameter
+  configurations. These probes use random tokens and are not quality results.
+- Selected candidate: 3,909,956 parameters, 6 layers, width 256, 4 heads, 4096
+  byte-BPE vocabulary target; 6000 steps x 1024 tokens = 6,144,000 planned tokens.
+  The measured 13.5M configuration was substantially slower; it is not promoted
+  as trained. Actual training progress will be recorded separately.
+- Next executable action: finish corpus build, train from random initialization,
+  and preserve each verified checkpoint. No production release or deployment.
 
 Budget remains the owner's existing $5/month hosting/trial ceiling. This run
 uses available workspace CPU only. No GPU/QPU/paid model calls are authorized.
