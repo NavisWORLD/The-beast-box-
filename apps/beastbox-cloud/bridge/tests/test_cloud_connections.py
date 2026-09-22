@@ -333,6 +333,53 @@ class BYOKTests(unittest.TestCase):
                     self.assertNotIn("fixture",json.dumps(result))
 
 
+    def test_account_key_metadata_check_uses_the_selected_mode_without_sas_preflight(self):
+        import sys
+        from types import ModuleType
+        from beastbox.cloud_connection_checks import verify_connection
+
+        azure=ModuleType("azure")
+        core=ModuleType("azure.core")
+        exceptions=ModuleType("azure.core.exceptions")
+        storage=ModuleType("azure.storage")
+        blob=ModuleType("azure.storage.blob")
+        class FakeHttpResponseError(Exception):
+            def __init__(self, status):
+                self.status_code=status
+                super().__init__("SECRET_UPSTREAM_ERROR")
+        calls=[]
+        class FakeClient:
+            def __init__(self, *, account_url, credential):
+                calls.append(("constructor", account_url, credential))
+            def get_container_client(self, container):
+                calls.append(("container", container))
+                return self
+            def get_container_properties(self, **kwargs):
+                calls.append(("properties", kwargs))
+                return {"metadata": "fixture"}
+        exceptions.HttpResponseError=FakeHttpResponseError
+        blob.BlobServiceClient=FakeClient
+        azure.core,azure.storage=core,storage
+        core.exceptions=exceptions
+        storage.blob=blob
+        modules={m.__name__:m for m in [azure,core,exceptions,storage,blob]}
+        key=base64.b64encode(b"K"*64).decode("ascii")
+        record={"config":{"account":"fixture","container":"cosmo","auth_mode":"account_key"},
+                "secret":key}
+        with patch.dict(sys.modules,modules):
+            with patch("beastbox.cloud_connection_checks._azure_sas_preflight",
+                       side_effect=AssertionError("SAS preflight must not run for an account key")):
+                response=verify_connection("azure_blob",record)
+        self.assertEqual(response["status"],"CONTAINER_READ_VERIFIED")
+        self.assertEqual(response["auth_mode"],"account_key")
+        self.assertEqual(calls[0],("constructor","https://fixture.blob.core.windows.net",key))
+        self.assertEqual(calls[1],("container","cosmo"))
+        self.assertEqual(calls[2][0],"properties")
+        self.assertEqual(calls[2][1]["retry_total"],0)
+        self.assertEqual(len(calls),3)
+        self.assertNotIn(key,json.dumps(response))
+        self.assertNotIn("SECRET_UPSTREAM_ERROR",json.dumps(response))
+
     def test_azure_account_key_mode_is_explicit_encrypted_and_legacy_sas_is_preserved(self):
         # A synthetic 64-byte key has the shape of an Azure access key; it is
         # NOT a real credential, and this test never contacts Azure.
