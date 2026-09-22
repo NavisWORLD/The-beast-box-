@@ -223,7 +223,8 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
      {' '}{o.text}{typeof o.confidence==='number'?' ('+Math.round(o.confidence*100)+'% confidence)':''}</p>)}</div>
    <label className="cloud-spend"><input type="checkbox" checked={includeInChat}
     onChange={e=>setIncludeInChat(e.target.checked)} disabled={!canSend}/>
-    Include the selected observations in each message I send. Sent text enters COSMOS conversation memory.</label>
+    Include these selected text observations as temporary context in messages I explicitly send. The model receives approximate labels/transcripts, not raw media; they are not retained unless I separately press Remember.</label>
+   {includeInChat&&!text?<p role="status">No observations collected yet. Start vision or speech and wait for a result; nothing will be sent to the model without a result.</p>:null}
    <div className="cloud-connect-actions">
     <button type="button" onClick={draft} disabled={!canSend||!observations.length}>Add observations to draft</button>
     <button type="button" onClick={()=>{setObservations([]);setIncludeInChat(false);setRememberConsent(false);}}>Discard selection</button>
