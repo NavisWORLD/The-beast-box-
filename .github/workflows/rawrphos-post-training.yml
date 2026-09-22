@@ -79,6 +79,48 @@ jobs:
           assert result['metadata']['training_steps'] == 6000
           print('ACTUAL_MODEL_TOKENIZER_OPTIMIZER_RNG_VERIFIED', flush=True)
           PY
+      - name: Smoke real checkpoint through CLI, HTTP and existing durable Beast Box runtime
+        run: |
+          set -euo pipefail
+          python -m rawrphos.inference.cli --checkpoint .rawrphos-verify/release/step-00006000 info > .rawrphos-verify/model-info.json
+          python - <<'PY'
+          import json, os, tempfile
+          from fastapi.testclient import TestClient
+          from rawrphos.inference.server import create_app
+          from rawrphos.adapters.beastbox_provider import NativeProvider
+          from beastbox.durable import DurableRuntime
+
+          checkpoint = '.rawrphos-verify/release/step-00006000'
+          expected = os.environ['RAWR_EXPECTED_SHA']
+          info = json.load(open('.rawrphos-verify/model-info.json'))
+          assert info['checkpoint_sha256'] == expected and info['training_steps'] == 6000
+          key = 'ci-local-test-key-' + 'x' * 32
+          client = TestClient(create_app(checkpoint, key, max_new_tokens=16, expected_sha256=expected))
+          auth = {'Authorization': 'Bearer ' + key}
+          assert client.get('/ready', headers=auth).json()['checkpoint_sha256'] == expected
+          assert client.get('/model/info', headers=auth).json()['training_steps'] == 6000
+          assert client.get('/model/info').status_code == 401
+          body = {'model': 'rawrphos-native', 'max_tokens': 8, 'temperature': 0}
+          completion = client.post('/v1/completions', headers=auth,
+                                   json=dict(body, prompt='Once upon a time,'))
+          assert completion.status_code == 200, completion.text
+          assert completion.json()['usage']['completion_tokens'] > 0
+          chat = client.post('/v1/chat/completions', headers=auth,
+                             json=dict(body, messages=[{'role': 'user', 'content': 'Tell me a short story.'}]))
+          assert chat.status_code == 200, chat.text
+          assert isinstance(chat.json()['choices'][0]['message']['content'], str)
+          with tempfile.TemporaryDirectory() as location:
+              provider = NativeProvider(checkpoint, max_new_tokens=8)
+              runtime = DurableRuntime(location, provider)
+              try:
+                  result = runtime.respond('The little fly is named Moss.')
+                  assert result['model']['model'] == 'rawrphos-native'
+                  assert result['checkpoint']
+                  assert runtime.inspect()['valid'] is True
+              finally:
+                  runtime.close()
+          print('NATIVE_FINAL_CLI_HTTP_DURABLE_RUNTIME_SMOKE_PASS', flush=True)
+          PY
       - name: Reacquire verified public corpus for real held-out ablations
         run: |
           set -euo pipefail
