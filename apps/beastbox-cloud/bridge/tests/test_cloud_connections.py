@@ -256,5 +256,82 @@ class BYOKTests(unittest.TestCase):
             self.assertEqual(restarted.dispatch("POST","/api/"+route,AUTH,b'{}')[0],404)
 
 
+    def test_azure_sas_preflight_is_private_and_does_not_call_network(self):
+        from beastbox.cloud_connection_checks import _azure_sas_preflight, verify_connection
+        from datetime import datetime, timezone
+        base="sv=2024-11-04&sr=c&sp=r&se=2099-01-01T00%3A00%3A00Z&sig=FAKE%2Bsignature"
+        now=datetime(2026,9,21,tzinfo=timezone.utc)
+        self.assertIsNone(_azure_sas_preflight("?"+base,now))
+        for token, expected in [
+            (base.replace("sp=r","sp=w"),"SAS_READ_PERMISSION_MISSING"),
+            (base.replace("sr=c","sr=b"),"SAS_SCOPE_INVALID"),
+            (base.replace("se=2099-01-01T00%3A00%3A00Z","se=2020-01-01T00%3A00%3A00Z"),"SAS_EXPIRED"),
+            (base.replace("se=2099-01-01T00%3A00%3A00Z","se=malformed"),"SAS_TIME_INVALID"),
+            ("https://account.blob.core.windows.net/c?"+base,"SAS_FORMAT_INVALID"),
+            ("SharedAccessSignature="+base,"SAS_FORMAT_INVALID"),
+        ]:
+            with self.subTest(status=expected):
+                self.assertEqual(_azure_sas_preflight(token,now), expected)
+                if expected not in ("SAS_EXPIRED", "SAS_NOT_YET_VALID"):
+                    with patch("beastbox.cloud_connection_checks._azure_sas_preflight",return_value=expected):
+                        value=verify_connection("azure_blob",{"config":{"account":"fixture","container":"private"},"secret":token})
+                    self.assertEqual(value["status"],expected)
+                    self.assertNotIn(token,json.dumps(value))
+                    self.assertNotIn("FAKE+signature",json.dumps(value))
+        self.assertEqual(_azure_sas_preflight(
+            base+"&st=2099-01-01T00%3A00%3A00Z",now),"SAS_NOT_YET_VALID")
+
+    def test_azure_sdk_failures_are_bounded_and_one_read_only_request(self):
+        import sys
+        from types import ModuleType
+        from beastbox.cloud_connection_checks import verify_connection
+        from datetime import datetime, timezone
+
+        azure,core,exceptions,storage,blob=(ModuleType(name) for name in [
+            "azure","azure.core","azure.core.exceptions","azure.storage","azure.storage.blob"])
+        class FakeHttpResponseError(Exception):
+            def __init__(self,code):
+                self.status_code=code
+                super().__init__("SECRET_PRIVATE_UPSTREAM_DETAIL")
+        class FakeClient:
+            last=None
+            def __init__(self,*,account_url,credential):
+                self.account_url,self.credential=account_url,credential
+                self.calls=0
+                FakeClient.last=self
+            def get_container_client(self,name):
+                self.container=name
+                return self
+            def get_container_properties(self,**options):
+                self.calls+=1
+                self.options=options
+                if code:
+                    raise FakeHttpResponseError(code)
+                return {"ok":True}
+        exceptions.HttpResponseError=FakeHttpResponseError
+        blob.BlobServiceClient=FakeClient
+        azure.core,azure.storage=core,storage
+        core.exceptions=exceptions
+        storage.blob=blob
+        modules={module.__name__:module for module in [azure,core,exceptions,storage,blob]}
+        secret="sv=2024-11-04&sr=c&sp=r&se=2099-01-01T00%3A00%3A00Z&sig=FAKE%2Bsignature"
+        record={"config":{"account":"fixture","container":"private"},"secret":secret}
+        with patch.dict(sys.modules,modules):
+            for code,expected in [(0,"CONTAINER_READ_VERIFIED"),(403,"AZURE_PERMISSION_DENIED"),
+                                  (404,"AZURE_CONTAINER_NOT_FOUND"),(401,"AZURE_AUTH_REJECTED"),
+                                  (429,"AZURE_RATE_LIMITED"),(500,"AZURE_REMOTE_UNAVAILABLE")]:
+                with self.subTest(http_code=code):
+                    with patch("beastbox.cloud_connection_checks._azure_sas_preflight",return_value=None):
+                        result=verify_connection("azure_blob",record)
+                    self.assertEqual(result["status"],expected)
+                    self.assertEqual(FakeClient.last.calls,1)
+                    self.assertEqual(FakeClient.last.container,"private")
+                    self.assertEqual(FakeClient.last.account_url,"https://fixture.blob.core.windows.net")
+                    self.assertEqual(FakeClient.last.options.get("retry_total"),0)
+                    self.assertNotIn(secret,json.dumps(result))
+                    self.assertNotIn("SECRET_PRIVATE_UPSTREAM_DETAIL",json.dumps(result))
+                    self.assertNotIn("fixture",json.dumps(result))
+
+
 if __name__=="__main__":
     unittest.main()
