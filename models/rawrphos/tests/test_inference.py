@@ -45,3 +45,27 @@ def test_real_provider_uses_existing_durable_runtime(trained,tmp_path):
     assert restarted.inspect()['checkpoint_sha256']==checkpoint
     assert restarted.memory.search('Moss')
     restarted.close()
+
+
+def test_pinned_offline_cli_info_and_generation(trained, capsys):
+    from rawrphos.inference.cli import main
+    from rawrphos.training.checkpoint import load_checkpoint
+    sha = load_checkpoint(trained, load_training_state=False)["metadata"]["checkpoint_sha256"]
+    main(["--checkpoint", str(trained), "--expected-sha256", sha, "info"])
+    info = __import__("json").loads(capsys.readouterr().out)
+    assert info["model_id"] == "rawrphos-native"
+    assert info["checkpoint_sha256"] == sha
+    main(["--checkpoint", str(trained), "--expected-sha256", sha,
+          "prompt", "The cat", "--max-tokens", "4", "--temperature", "0"])
+    printed = capsys.readouterr()
+    metrics = __import__("json").loads(printed.err)
+    assert 1 <= metrics["generated_tokens"] <= 4
+    assert metrics["prefill_and_first_token_seconds"] >= 0
+
+
+def test_benchmark_repetition_and_invalid_budget():
+    from rawrphos.evaluation.benchmark import repetition_fraction, evaluate
+    assert repetition_fraction("a a a") == 1.0
+    assert repetition_fraction("a b c") == 0.0
+    with pytest.raises(ValueError, match="budget"):
+        evaluate("/does-not-exist", max_tokens=65)
