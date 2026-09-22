@@ -95,6 +95,39 @@ class BridgeTests(unittest.TestCase):
             self.assertEqual(restarted.dispatch("GET","/api/orbit",AUTH)[1]["runtime"]["checkpoint_sha256"],
                              answer["runtime"]["checkpoint_sha256"])
 
+    def test_a_b_a_assistant_model_labels_are_historical_and_durable(self):
+        from beastbox.durable import DurableRuntime
+
+        class FixtureVoice:
+            def __init__(self, model):
+                self.model=model
+            def generate(self, prompt):
+                return "fixed fixture from " + self.model
+
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            system_ids=[]
+            checkpoints=[]
+            for model in ("fixture-A","fixture-B","fixture-A"):
+                runtime=DurableRuntime(root,FixtureVoice(model))
+                try:
+                    observed=runtime.respond("Synthetic handoff " + model)
+                    system_ids.append(observed["checkpoint"]["system_id"])
+                    checkpoints.append(observed["checkpoint"]["sha256"])
+                finally:
+                    runtime.close()
+            self.assertEqual(len(set(system_ids)),1)
+            self.assertEqual(len(set(checkpoints)),3)
+            restarted=bridge_module.OwnerBridge(root,TOKEN)
+            history=restarted.dispatch("GET","/api/conversation",AUTH)[1]["turns"]
+            labels=[turn.get("metadata",{}).get("model") for turn in history
+                    if turn["kind"]=="assistant_turn"]
+            self.assertEqual(labels,["fixture-A","fixture-B","fixture-A"])
+            self.assertTrue(all(turn["metadata"]["model_identity_kind"].startswith(
+                "configured-provider-label") for turn in history if turn["kind"]=="assistant_turn"))
+            self.assertEqual(restarted.dispatch("GET","/api/orbit",AUTH)[1]["runtime"]["system_id"],
+                             system_ids[0])
+
     def test_hf_explicit_configuration_requires_host_approval_and_preserves_profile(self):
         env={"BEASTBOX_HF_MODEL_ID":"openai/gpt-oss-120b:cheapest",
              "HF_TOKEN":"public-test-placeholder-not-real-inference",
