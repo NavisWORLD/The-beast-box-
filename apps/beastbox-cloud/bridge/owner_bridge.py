@@ -19,6 +19,7 @@ from beastbox.cosmic_web import CosmicApp, ProviderProfile
 from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV, MODELS
 from beastbox.cloud_connection_checks import verify_connection
 from beastbox.azure_read import AzureReadError, read_owner_text
+from beastbox.ollama_models import ModelInventoryUnavailable, fetch_public_models, MODEL_ID
 from beastbox.bio_inputs import bio_event
 from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
@@ -26,7 +27,7 @@ from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
 from beastbox.chat_jobs import ChatJobs
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory"})
 POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read"})
 
 
@@ -256,6 +257,50 @@ class OwnerBridge:
                 "no_paid_inference": True, "inference": "NOT_ATTESTED_UNTIL_REAL_CHAT",
                 "substrate": "EXISTING_DURABLE_STATE",
             }
+        if (choice == "ollama_cloud" and set(data) == {"choice", "model", "spend_approved"}
+                and data["spend_approved"] is True):
+            # Model selection is a single owner-initiated, read-only inventory
+            # check followed by a host-only vault model update and a handoff.
+            # No chat/inference happens on this route. Caller holds the app lock
+            # and run_when_idle, so a pending chat cannot switch brains midway.
+            requested = data["model"]
+            if not isinstance(requested, str) or MODEL_ID.fullmatch(requested) is None or requested.endswith("-cloud"):
+                return 400, {"error": "Choose a canonical Ollama direct API model ID"}
+            if self.vault is None:
+                return 503, {"error": "Encrypted owner vault is unavailable"}
+            saved = self.vault.read_host_only("ollama_cloud")
+            if saved is None:
+                return 404, {"error": "Ollama Cloud credential is not configured"}
+            try:
+                available = fetch_public_models()
+            except ModelInventoryUnavailable:
+                return 503, {"error": "Public Ollama inventory unavailable; no profile or credential changed"}
+            if requested not in available:
+                return 409, {"error": "Model is absent from Ollama's public direct API inventory; selection unchanged"}
+            previous = saved["config"]["model"]
+            prior_grant = self.app.authority.allowed("cloud")
+            if previous != requested:
+                try:
+                    self.vault.update_model("ollama_cloud", requested)
+                except (ConnectionError, ValueError):
+                    return 400, {"error": "Encrypted model metadata update failed; selection unchanged"}
+            try:
+                status, result = self._connection_action({
+                    "action": "activate", "provider": "ollama_cloud", "spend_approved": True
+                })
+                if status != 200:
+                    raise ValueError("model activation failed")
+            except (ValueError, OSError, ConnectionError):
+                # Restore the old secret-model binding if handoff does not succeed.
+                # Never report success or automatically retry billable inference.
+                if previous != requested:
+                    self.vault.update_model("ollama_cloud", previous)
+                if not prior_grant:
+                    self.app.authority.revoke("cloud")
+                return 503, {"error": "Model handoff not completed; previous profile retained"}
+            return 200, {**result, "credential_preserved": True,
+                         "inventory": "PUBLIC_ID_LISTED_ACCOUNT_ACCESS_UNVERIFIED",
+                         "substrate": "EXISTING_DURABLE_STATE"}
         if (choice in MODELS and set(data) == {"choice", "spend_approved"}
                 and data["spend_approved"] is True):
             status, result = self._connection_action({
@@ -353,6 +398,17 @@ class OwnerBridge:
         if name == "models" and method == "GET":
             with self.app._lock:
                 return 200, self._model_catalog()
+        if name == "model-inventory" and method == "GET":
+            if self.vault is None or self.vault.read_host_only("ollama_cloud") is None:
+                return 404, {"error": "Ollama Cloud credential is not configured"}
+            try:
+                names = fetch_public_models()
+            except ModelInventoryUnavailable:
+                return 503, {"error": "Public Ollama inventory unavailable; no inference was performed"}
+            return 200, {"provider": "ollama_cloud", "models": names,
+                         "status": "PUBLIC_MODEL_LIST_ONLY",
+                         "credential_reused": True, "account_access_verified": False,
+                         "inference_attested": False, "model_invoked": False}
         if name == "chat-job" and method == "GET":
             query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
             if set(query) != {"id"} or len(query["id"]) != 1:
