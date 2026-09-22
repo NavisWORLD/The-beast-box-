@@ -48,7 +48,7 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
            input.spend_approved!==true||
            (selectedModel&&(!/^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,179}$/.test(input.model as string)||
                             (input.model as string).endsWith('-cloud'))))
-          return safeJson(400,{error:'Remote model activation requires a valid ID and explicit usage approval'});
+          return safeJson(400,{error:'Remote model activation requires explicit usage approval and a valid model ID'});
       }else return safeJson(400,{error:'Unknown model selection'});
     }
     if (endpoint==='observations') {
