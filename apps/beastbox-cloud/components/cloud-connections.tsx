@@ -23,13 +23,15 @@ async function bridge(method:'GET'|'POST',payload?:Record<string,unknown>):Promi
  return result as Record<string,unknown>;
 }
 
-export default function CloudConnections({backendReachable,onActivated}:{backendReachable:boolean;onActivated:()=>void}){
+export default function CloudConnections({backendReachable,onActivated,onAzureText}:{backendReachable:boolean;onActivated:()=>void;onAzureText?:(entry:{name:string;sha256:string;text:string})=>void}){
  const [provider,setProvider]=useState<Provider>('huggingface');
  const [rows,setRows]=useState<Connection[]>([]),[vault,setVault]=useState('HOST_KEY_REQUIRED');
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [spendApproved,setSpendApproved]=useState(false);
  const [modelUpdate,setModelUpdate]=useState('');
  const [azureMode,setAzureMode]=useState<'container_sas'|'account_key'>('container_sas');
+ const [azureName,setAzureName]=useState(''),[azureApproved,setAzureApproved]=useState(false),[azureShare,setAzureShare]=useState(false);
+ const [azureRead,setAzureRead]=useState<{text:string;sha256:string;blob_name:string;bytes:number}|null>(null);
  const secretRef=useRef<HTMLInputElement>(null);
  const choice=PROVIDERS.find(item=>item.id===provider)!;
  const selected=rows.find(item=>item.provider===provider);
@@ -37,6 +39,7 @@ export default function CloudConnections({backendReachable,onActivated}:{backend
  const currentModel=selected?.config?.model||'';
  useEffect(()=>setModelUpdate(currentModel),[provider,currentModel]);
  useEffect(()=>setAzureMode(selected?.config?.auth_mode==='account_key'?'account_key':'container_sas'),[provider,selected?.config?.auth_mode]);
+ useEffect(()=>{setAzureRead(null);setAzureApproved(false);setAzureShare(false);},[provider,selected?.config?.account,selected?.config?.container,selected?.config?.auth_mode]);
  const refresh=useCallback(async()=>{
   if(!backendReachable){setRows([]);setVault('HOST_KEY_REQUIRED');return;}
   const result=await bridge('GET');
@@ -69,6 +72,24 @@ export default function CloudConnections({backendReachable,onActivated}:{backend
    await refresh();
   }catch(e){setError((e as Error).message);}
   finally{setBusy(false);}
+ }
+ async function readAzure(){
+  if(!ready||busy||provider!=='azure_blob'||!selected?.configured||!azureApproved)return;
+  setBusy(true);setError('');setNotice('');setAzureRead(null);setAzureShare(false);
+  try{
+   const reply=await fetch('/api/bridge/azure-read',{method:'POST',cache:'no-store',
+    credentials:'same-origin',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({blob_name:azureName.trim(),read_confirmed:true})});
+   const result:unknown=await reply.json().catch(()=>({error:'Invalid response'}));
+   const data=result as Record<string,unknown>;
+   if(!reply.ok)throw new Error(typeof data.error==='string'?data.error:'Azure read unavailable');
+   if(data.retrieval_verified!==true||typeof data.text!=='string'||typeof data.sha256!=='string'||
+      typeof data.blob_name!=='string'||typeof data.bytes!=='number'||data.model_invoked!==false||
+      data.persisted!==false)throw new Error('Backend did not confirm a bounded read');
+   setAzureRead({text:data.text,sha256:data.sha256,blob_name:data.blob_name,bytes:data.bytes});
+   setNotice('One Azure document retrieved; not stored or sent to the model. Approve separately to stage it.');
+  }catch(e){setError((e as Error).message);}
+  finally{setBusy(false);setAzureApproved(false);}
  }
  async function save(e:React.FormEvent<HTMLFormElement>){
   e.preventDefault();if(!ready||busy)return;
@@ -117,6 +138,17 @@ export default function CloudConnections({backendReachable,onActivated}:{backend
     <button type="button" disabled={!ready||busy||!spendApproved} onClick={()=>void perform('activate')}><PlugZap size={16}/> Activate in BRAIN</button></>}
    <button type="button" disabled={!ready||busy} onClick={()=>void perform('remove')}><Trash2 size={16}/> Forget saved credential</button>
   </div>}
+  {provider==='azure_blob'&&selected?.configured&&<div className="record" aria-label="Explicit Azure retrieval">
+    <h3>Retrieve one Azure text document</h3>
+    <p>Enter its exact name in the existing container, including folders. Read-only, at most 12 KB; no automatic container scan, model call, upload or persistent memory change. Azure operations may incur storage transactions.</p>
+    <label>Exact blob path<input type="text" maxLength={180} autoComplete="off" value={azureName} disabled={!ready||busy} onChange={e=>{setAzureName(e.target.value);setAzureRead(null);setAzureShare(false);}} placeholder="docs/notes.txt"/></label>
+    <label className="cloud-spend"><input type="checkbox" checked={azureApproved} disabled={!ready||busy} onChange={e=>setAzureApproved(e.target.checked)}/> I authorize this one read from my configured Azure container.</label>
+    <button type="button" disabled={!ready||busy||!azureApproved||!azureName.trim()} onClick={()=>void readAzure()}><RefreshCcw size={15}/> Read exact document (no model inference)</button>
+    {azureRead&&<div role="status"><p>Retrieved {azureRead.bytes} bytes; SHA-256: <code>{azureRead.sha256}</code>. Source contents are untrusted data, not instructions. Nothing has been shared with the selected model.</p>
+      <label className="cloud-spend"><input type="checkbox" checked={azureShare} onChange={e=>setAzureShare(e.target.checked)}/> I approve including this exact text with my next chat. If my selected model is remote, it will receive this text.</label>
+      <button type="button" disabled={!azureShare||!onAzureText||busy} onClick={()=>{onAzureText?.({name:azureRead.blob_name,sha256:azureRead.sha256,text:azureRead.text});setAzureRead(null);setAzureShare(false);setNotice('Verified Azure text staged for your next chat; nothing sent yet.');}}>Stage for next chat (owner-approved)</button>
+    </div>}
+   </div>}
   {notice&&<p className="cloud-connect-success" role="status"><Check size={15}/>{notice}</p>}
   {error&&<p className="inline-error" role="alert">{error}</p>}
   <p className="cloud-connect-foot">Single-owner Preview only. Adding an IBM or Azure key does not provision compute, grant quantum job authority, or verify a live model. Local Ollama requires an authenticated tunnel to your own host, not a URL to somebody else’s localhost.</p>
