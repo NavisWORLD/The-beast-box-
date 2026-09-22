@@ -166,3 +166,67 @@ def test_azure_sdk_failure_traceback_is_sanitized(monkeypatch):
     with pytest.raises(resources.ResourceUnavailable) as raised:
         resources.quantum_event("azure", allow_live=True)
     assert "private-workspace-sentinel" not in "".join(traceback.format_exception(raised.value))
+
+
+
+def rigetti_mock(monkeypatch, *, readout=None, target_name="rigetti.sim.qvm"):
+    """Completely synthetic QDK graph; no real provider imports or requests."""
+    from types import ModuleType
+    monkeypatch.setenv("AZURE_QUANTUM_RESOURCE_ID", "private-workspace-sentinel")
+    monkeypatch.setenv("AZURE_QUANTUM_LOCATION", "eastus")
+    monkeypatch.setenv("AZURE_QUANTUM_TARGET", target_name)
+    job = SimpleNamespace(id="fixture-rigetti-job",
+                          details=SimpleNamespace(target=target_name))
+    calls = []
+    def submit(**kwargs):
+        calls.append(kwargs)
+        return job
+    target = SimpleNamespace(name=target_name, submit=submit)
+    workspace = SimpleNamespace(get_targets=lambda **kw: target)
+    qdk,azure,qtarget,rigetti=(ModuleType(name) for name in
+                              ["qdk","qdk.azure","qdk.azure.target","qdk.azure.target.rigetti"])
+    qdk.__path__=[];azure.__path__=[];qtarget.__path__=[]
+    azure.Workspace = lambda **kw: workspace
+    rigetti.Result = lambda submitted: {"ro": (
+        [[0, 0], [1, 1], [0, 0], [1, 1]] if readout is None else readout
+    )}
+    for module in (qdk, azure, qtarget, rigetti):
+        monkeypatch.setitem(sys.modules, module.__name__, module)
+    return calls
+
+
+def test_rigetti_qvm_requires_explicit_consent_and_preserves_simulation_label(monkeypatch):
+    calls = rigetti_mock(monkeypatch)
+    with pytest.raises(resources.ResourceUnavailable, match="allow_live=True"):
+        resources.quantum_event("azure", shots=4)
+    assert calls == []
+    result = resources.quantum_event("azure", shots=4, allow_live=True)
+    meta = json.loads(result["text"])
+    assert len(calls) == 1
+    assert calls[0]["shots"] == 4
+    assert "DECLARE ro BIT[2]" in calls[0]["input_data"]
+    assert meta["mode"] == "AZURE_RIGETTI_QVM_SIMULATED"
+    assert meta["result_kind"] == "simulated-counts"
+    assert meta["counts"] == {"00": 2, "01": 0, "10": 0, "11": 2}
+    assert meta["native_job_id"] == "fixture-rigetti-job"
+    assert meta["backend"] == "rigetti.sim.qvm"
+    assert result["features"] == [0., -1., -1., 0.]
+    assert "private-workspace-sentinel" not in repr(result)
+
+
+@pytest.mark.parametrize("bad", [[], [[0, 0]], [[0, 0]]*5,
+    [[0, 0], [1, 1], [0, 2], [1, 1]],
+    [[0, 0], [1, 1], [False, 1], [1, 1]],
+    [[0, 0], [1, 1], ["0", "1"], [1, 1]]])
+def test_rigetti_malformed_simulated_readout_fails_closed(monkeypatch, bad):
+    calls = rigetti_mock(monkeypatch, readout=bad)
+    with pytest.raises(resources.ResourceUnavailable):
+        resources.quantum_event("azure", shots=4, allow_live=True)
+    assert len(calls) == 1
+
+
+def test_rigetti_hardware_target_is_never_selected_by_optional_adapter(monkeypatch):
+    calls = rigetti_mock(monkeypatch, target_name="rigetti.qpu.cepheus-1-108q")
+    with pytest.raises(resources.ResourceUnavailable, match="QPU jobs are not enabled"):
+        resources.quantum_event("azure", shots=4, allow_live=True)
+    assert calls == []
