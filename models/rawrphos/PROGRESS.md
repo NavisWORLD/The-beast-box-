@@ -44,3 +44,17 @@
 
 Budget remains the owner's existing $5/month hosting/trial ceiling. This run
 uses available workspace CPU only. No GPU/QPU/paid model calls are authorized.
+
+
+## First durable native CPU training receipt — September 22, 2026
+
+- Source commit trained: `d13d5a917b76891f36cd2b4e13dee88e3b45922c`.
+- GitHub Actions run: https://github.com/NavisWORLD/The-beast-box-/actions/runs/35782780734
+- Pinned source acquisition, reconstructed corpus manifest and all split hashes: passed.
+- Full native model test suite, including actual weight-update/resume tests: passed.
+- **Real model optimizer steps:** 100. **Training tokens:** 102,400.
+- Last observed training loss: `5.645643`; held-out validation loss: `5.907733`.
+- SHA-256 of `model.safetensors`: `46e2f7d611eb5b959fef1bc754b8d55be2f7b21cff221a6c48f4d2f77d47bda8`.
+- Recovery bundle SHA-256: `b515204207903d77225c14031171ccbf2d872624553e3b538f68283ba727eced`.
+- Immutable run-specific [step-100 recovery release](https://github.com/NavisWORLD/The-beast-box-/releases/tag/rawrphos-native-step-00000100-run-35782780734) includes weights, tokenizer, optimizer state, RNG state, manifest, checksums, and a verified generated-output receipt.
+- The training run continues toward the committed 6,000-step target; this milestone is **not** full training completion or a production release.
