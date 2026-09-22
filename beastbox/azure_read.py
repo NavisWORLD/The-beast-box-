@@ -34,16 +34,16 @@ def read_owner_text(record: dict, blob_name: str, *, service=None) -> dict:
     config = record["config"]
     if config.get("auth_mode", "container_sas") not in ("container_sas", "account_key"):
         raise AzureReadError("Azure credential mode unavailable")
-    if service is None:
-        try:
-            from azure.storage.blob import BlobServiceClient
-        except ImportError:
-            raise AzureReadError("Azure SDK unavailable on the durable host") from None
-        service = BlobServiceClient(
-            account_url="https://" + config["account"] + ".blob.core.windows.net",
-            credential=record["secret"],
-        )
     try:
+        if service is None:
+            try:
+                from azure.storage.blob import BlobServiceClient
+            except ImportError:
+                raise AzureReadError("Azure SDK unavailable on the durable host") from None
+            service = BlobServiceClient(
+                account_url="https://" + config["account"] + ".blob.core.windows.net",
+                credential=record["secret"],
+            )
         blob = service.get_blob_client(container=config["container"], blob=blob_name)
         props = blob.get_blob_properties(timeout=5, retry_total=0)
         size = props.size
