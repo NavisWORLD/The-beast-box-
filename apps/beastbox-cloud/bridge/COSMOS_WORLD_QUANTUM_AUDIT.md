@@ -50,3 +50,12 @@ Source: Ollama cloud docs https://github.com/ollama/ollama/blob/main/docs/cloud.
 ## Accessibility acceptance (2026-09-21)
 
 The authenticated app now declares a single `main` landmark, gives the file-staging input an accessible name, increases legibility on dark surfaces, and adds a browser guard for unlabeled form elements on mobile and desktop. These changes address the displayed audit categories but do not independently certify every contrast pair. A detailed assistive-technology/axe review on the actual authenticated production app remains a release gate.
+
+
+## September 21 integration patch: explicit Blob read + Rigetti QVM (source only)
+
+The existing Azure Blob encrypted vault now supports an explicit `account_key` mode alongside legacy `container_sas`. The 64-byte-base64 key is accepted only when separately selected; existing SAS records are *not* silently reinterpreted. The host uses it only to check container metadata and to retrieve exactly one owner-selected, bounded text object on a separately confirmed `POST /api/azure-read`. The browser then needs another explicit approval to stage that document as untrusted temporary context; no implicit Azure reads, container-wide imports, model authority grants, uploads, durable memory writes or quantum jobs occur. The resulting SHA-256 attests to the bytes read, not the accuracy of their contents. See `AZURE.md` and `beastbox/azure_read.py`.
+
+The optional research adapter now accepts `AZURE_QUANTUM_TARGET=rigetti.sim.qvm` using an explicitly opted-in Quil two-qubit QVM simulation; separate Azure Quantum workspace resource credentials and `qdk[azure]` are required. Rigetti QPU targets remain rejected; the production tiny Docker image does not include QDK or a quantum job endpoint. All current Rigetti tests are synthetic; no live simulator or hardware result is claimed. Azure Blob account keys **do not** authorize quantum jobs.
+
+The owner-reported earlier Azure test result was `REMOTE_UNAVAILABLE_OR_REJECTED`. There is no confirmed live Azure read or upload. The Railway production service remains on the previously verified commit until a separately reviewed deployment; source code and passing CI alone do not prove external access.
