@@ -3,6 +3,7 @@ import argparse
 from collections import Counter,defaultdict
 import hashlib
 import json
+import itertools
 from pathlib import Path
 import re
 
@@ -38,10 +39,19 @@ def build_corpus(records,output,seed=67,validation_fraction=.1,benchmark_texts=(
         if row['sha256'] in seen: rejected['duplicate']+=1; continue
         seen.add(row['sha256']); parts=shingles(row['text'])
         if any(len(parts&b)/max(1,len(parts|b))>=.8 for b in benchmarks): rejected['benchmark_overlap']+=1; continue
-        sig=signatures(parts); candidates=set().union(*(index[(i,s)] for i,s in enumerate(sig)))
-        if any(len(parts&sets[j])/max(1,len(parts|sets[j]))>=.95 for j in candidates): rejected['near_duplicate']+=1; continue
+        sig=signatures(parts)
+        bands=[(i,j,sig[i],sig[j]) for i,j in itertools.combinations(range(4),2)]
+        candidates=set().union(*(index[key] for key in bands))
+        duplicate=False
+        for j in candidates:
+            other=sets[j]
+            # A necessary Jaccard bound avoids intersecting very different lengths.
+            if min(len(parts),len(other))/max(1,len(parts),len(other))<.95: continue
+            common=len(parts&other)
+            if common/max(1,len(parts)+len(other)-common)>=.95: duplicate=True; break
+        if duplicate: rejected['near_duplicate']+=1; continue
         j=len(accepted); accepted.append(row); sets.append(parts)
-        for i,s in enumerate(sig): index[(i,s)].add(j)
+        for key in bands: index[key].add(j)
     if len(accepted)<2: raise ValueError('not enough accepted documents')
     accepted.sort(key=lambda r:sha(f'{seed}:{r["sha256"]}'.encode()))
     n=max(1,min(len(accepted)-1,round(len(accepted)*validation_fraction)))
@@ -52,7 +62,7 @@ def build_corpus(records,output,seed=67,validation_fraction=.1,benchmark_texts=(
         (output/(name+'.jsonl')).write_bytes(data)
     manifest={'schema':'rawrphos-corpus-v1','seed':seed,'validation_fraction':validation_fraction,
         'document_counts':{k:len(v) for k,v in splits.items()},'files':files,'rejected':dict(rejected),
-        'deduplication':'exact hash; four minhash candidate signatures + exact 5-word Jaccard>=.95; probabilistic recall',
+        'deduplication':'exact hash; any two of four minhash signatures + length bound + exact 5-word Jaccard>=.95; probabilistic recall',
         'secret_screen':'heuristic patterns; public explicit sources only','benchmark_documents':len(benchmarks),
         'benchmark_sha256':sha(canonical(sorted(sha(t.encode()) for t in benchmark_texts))),
         'sources':sorted({(r['source'],r.get('revision','unspecified'),r['license']) for r in accepted})}

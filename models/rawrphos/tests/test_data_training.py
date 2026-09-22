@@ -22,6 +22,13 @@ def test_corpus_order_independent_exclusions_and_splits(tmp_path):
     data=load_corpus(tmp_path/'a')
     assert not {x['sha256'] for x in data['train']} & {x['sha256'] for x in data['validation']}
 
+def test_near_duplicate_screen_retains_its_effect(tmp_path):
+    from rawrphos.data.corpus import build_corpus
+    text=' '.join('word'+str(i) for i in range(400))
+    rows=[{'text':x,'source':'public-test','license':'CC0-1.0'} for x in [text,text+' extra','An independent document about a quiet pond.']]
+    manifest=build_corpus(rows,tmp_path/'dedup')
+    assert manifest['rejected']['near_duplicate']==1
+
 def test_actual_updates_and_exact_resume(tmp_path):
     from rawrphos.data.corpus import build_corpus
     from rawrphos.architecture.model import RawrphosConfig

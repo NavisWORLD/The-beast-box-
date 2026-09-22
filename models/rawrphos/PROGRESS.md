@@ -26,5 +26,21 @@
 - Next executable action: finish corpus build, train from random initialization,
   and preserve each verified checkpoint. No production release or deployment.
 
+## Training-ready milestone
+
+- Existing regression suite: 1,138 passed (historical anchor commit fetched).
+- New suite: 14 passed, including actual one-step fixture weight updates,
+  authenticated API generation, no-fallback rejection and DurableRuntime restart.
+  These fixture results are not the main model training result.
+- Public corpus: 45,472 training documents and 5,052 held-out documents;
+  105 exact duplicates and one empty document excluded. Sources, licenses and
+  hashes are recorded in `data/acquisition.json` and `data/dataset_manifest.json`.
+- Full near-duplicate build initially stalled on excessive candidate intersections.
+  Profiling located the cost. Two-of-four minhash signatures and a necessary
+  length bound reduce work while retaining an explicitly probabilistic screen.
+  Complete rebuild: 25.824 seconds; near-duplicate behavioral test passes.
+- Next executable action: run `python -m rawrphos.training.train` with committed
+  configurations for the 3,909,956-parameter native candidate.
+
 Budget remains the owner's existing $5/month hosting/trial ceiling. This run
 uses available workspace CPU only. No GPU/QPU/paid model calls are authorized.

@@ -50,7 +50,7 @@ def save_checkpoint(path,model,tokenizer,metadata,state):
     finally:
         if temp.exists(): shutil.rmtree(temp)
 
-def load_checkpoint(path,require_trained=True,expected_checkpoint_sha256=None):
+def load_checkpoint(path,require_trained=True,expected_checkpoint_sha256=None,load_training_state=True):
     p=Path(path)
     if p.is_symlink(): raise ValueError('checkpoint must not be a symlink')
     manifest=json.loads((p/'manifest.json').read_text())
@@ -69,7 +69,7 @@ def load_checkpoint(path,require_trained=True,expected_checkpoint_sha256=None):
     if tokenizer.sha256!=metadata['tokenizer_sha256'] or tokenizer.vocab_size!=c.vocab_size: raise ValueError('tokenizer/model mismatch')
     model=RawrphosLM(c); model.load_state_dict(load_file(str(p/'model.safetensors')),strict=True)
     if model.parameter_count()!=metadata['parameter_count'] or parameter_hash(model)!=metadata['parameter_sha256']: raise ValueError('parameter identity mismatch')
-    state=torch.load(p/'training_state.pt',map_location='cpu',weights_only=True)
+    state=torch.load(p/'training_state.pt',map_location='cpu',weights_only=True) if load_training_state else None
     return {'model':model,'tokenizer':tokenizer,'metadata':metadata,'state':state,'config':c,'manifest':manifest}
 
 def rng_state(): return {'torch':torch.get_rng_state(),'python':random.getstate()}
