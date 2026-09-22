@@ -1,6 +1,6 @@
 import { bridgeConfigured, isOwner, safeJson } from '@/lib/security';
 export const runtime='nodejs';
-const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job','observations','models']);
+const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job','observations','models','model-inventory']);
 const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio','observations','models','azure-read']);
 type RouteContext={params:Promise<{endpoint:string}>};
 async function forward(request:Request, method:'GET'|'POST', {params}:RouteContext) {
@@ -43,8 +43,12 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
       if(choice==='local'){
         if(keys!=='choice')return safeJson(400,{error:'Local model selection accepts only choice'});
       }else if(choice==='huggingface'||choice==='ollama_cloud'){
-        if(keys!=='choice,spend_approved'||input.spend_approved!==true)
-          return safeJson(400,{error:'Remote model activation requires explicit usage approval'});
+        const selectedModel=choice==='ollama_cloud'&&typeof input.model==='string';
+        if(keys!==(selectedModel?'choice,model,spend_approved':'choice,spend_approved')||
+           input.spend_approved!==true||
+           (selectedModel&&(!/^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,179}$/.test(input.model as string)||
+                            (input.model as string).endsWith('-cloud'))))
+          return safeJson(400,{error:'Remote model activation requires a valid ID and explicit usage approval'});
       }else return safeJson(400,{error:'Unknown model selection'});
     }
     if (endpoint==='observations') {
