@@ -8,7 +8,7 @@ type Field={key:string;label:string;placeholder:string};
 const PROVIDERS:{id:Provider;name:string;purpose:string;fields:Field[];secretLabel:string;help:string;activatable:boolean}[]=[
  {id:'huggingface',name:'Hugging Face',purpose:'Hosted conversational model',fields:[{key:'model',label:'Model repository',placeholder:'owner/model-name'}],secretLabel:'HF fine-grained token',help:'Choose a supported chat model and enable Inference Providers permission on your token.',activatable:true},
  {id:'ollama_cloud',name:'Ollama Cloud',purpose:'Direct Ollama API (not your localhost)',fields:[{key:'model',label:'Direct API model ID',placeholder:'gpt-oss:120b'}],secretLabel:'Ollama cloud API key',help:'For https://ollama.com/v1 use the direct API ID gpt-oss:120b. The gpt-oss:120b-cloud suffix belongs to the Ollama app/CLI. The public model list does not verify your API key or inference entitlement.',activatable:true},
- {id:'azure_blob',name:'Azure Blob Storage',purpose:'Private photos, documents and exports',fields:[{key:'account',label:'Storage account',placeholder:'myaccount'},{key:'container',label:'Private container',placeholder:'beastbox-private'}],secretLabel:'Scoped container SAS token',help:'Use a short-lived, least-privilege container SAS, not a storage-account master key. Saving a key alone does not enable uploads.',activatable:false},
+ {id:'azure_blob',name:'Azure Blob Storage',purpose:'Private photos, documents and exports',fields:[{key:'account',label:'Storage account',placeholder:'myaccount'},{key:'container',label:'Private container',placeholder:'beastbox-private'}],secretLabel:'Azure storage credential',help:'Choose a scoped container SAS (recommended) or explicitly choose an account key. Account keys have broad Azure permissions, but Beast Box only verifies container metadata until separate upload/retrieval operations are authorized.',activatable:false},
  {id:'ibm_watsonx',name:'IBM watsonx.ai',purpose:'IBM-hosted Granite / Llama models',fields:[{key:'region',label:'Region',placeholder:'us-south'},{key:'project_id',label:'Project ID',placeholder:'project-id'},{key:'model',label:'Foundation model ID',placeholder:'ibm/granite-...'}],secretLabel:'IBM Cloud API key',help:'Key, region and project may be saved. A separate authorized watsonx inference adapter is required before chatting.',activatable:false},
  {id:'ibm_quantum',name:'IBM Quantum',purpose:'Authorized research workloads',fields:[{key:'instance',label:'Instance',placeholder:'service instance or CRN'}],secretLabel:'IBM Quantum credential',help:'For research only. Saving a key never launches hardware jobs, training or inference.',activatable:false},
 ];
@@ -29,12 +29,14 @@ export default function CloudConnections({backendReachable,onActivated}:{backend
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [spendApproved,setSpendApproved]=useState(false);
  const [modelUpdate,setModelUpdate]=useState('');
+ const [azureMode,setAzureMode]=useState<'container_sas'|'account_key'>('container_sas');
  const secretRef=useRef<HTMLInputElement>(null);
  const choice=PROVIDERS.find(item=>item.id===provider)!;
  const selected=rows.find(item=>item.provider===provider);
  const ready=backendReachable&&vault==='ENCRYPTED_HOST_ONLY';
  const currentModel=selected?.config?.model||'';
  useEffect(()=>setModelUpdate(currentModel),[provider,currentModel]);
+ useEffect(()=>setAzureMode(selected?.config?.auth_mode==='account_key'?'account_key':'container_sas'),[provider,selected?.config?.auth_mode]);
  const refresh=useCallback(async()=>{
   if(!backendReachable){setRows([]);setVault('HOST_KEY_REQUIRED');return;}
   const result=await bridge('GET');
@@ -73,6 +75,7 @@ export default function CloudConnections({backendReachable,onActivated}:{backend
   const form=e.currentTarget;
   const values=new FormData(form);const config:Record<string,string>={};
   for(const field of choice.fields)config[field.key]=String(values.get(field.key)||'').trim();
+  if(provider==='azure_blob')config.auth_mode=azureMode;
   const secret=String(values.get('credential')||'');
   setBusy(true);setError('');setNotice('');
   try{
@@ -93,8 +96,10 @@ export default function CloudConnections({backendReachable,onActivated}:{backend
   <h3>{choice.name}</h3><p>{choice.purpose} · {choice.help}</p>
   <div className="cloud-connect-state"><span>Status</span><strong>{selected?.configured?'Encrypted on host':'Not configured'}</strong><span>Access</span><strong>{choice.activatable?'Owner-activated inference':'Configuration only'}</strong></div>
   <form onSubmit={e=>void save(e)} autoComplete="off">
+   {provider==='azure_blob'&&<label>Azure authentication mode<select value={azureMode} disabled={!ready||busy} onChange={e=>setAzureMode(e.target.value==='account_key'?'account_key':'container_sas')}><option value="container_sas">Scoped container SAS (recommended)</option><option value="account_key">Storage account access key (broad permissions)</option></select></label>}
+   {provider==='azure_blob'&&azureMode==='account_key'&&<p role="status">A storage-account key can authorize broader Azure operations. It stays encrypted on the persistent host. This form does not automatically enable uploads, database access, quantum jobs, or chat retrieval.</p>}
    {choice.fields.map(field=><label key={field.key}>{field.label}<input name={field.key} type="text" required disabled={!ready||busy} defaultValue={selected?.config?.[field.key]||''} key={provider+field.key+(selected?.config?.[field.key]||'')} placeholder={field.placeholder} maxLength={180} autoComplete="off" /></label>)}
-   <label>{choice.secretLabel}<input ref={secretRef} name="credential" type="password" minLength={12} maxLength={4096} autoComplete="new-password" placeholder="Paste privately; never shown again" required disabled={!ready||busy}/></label>
+   <label>{provider==='azure_blob'?(azureMode==='account_key'?'Storage account access key':'Scoped container SAS token'):choice.secretLabel}<input ref={secretRef} name="credential" type="password" minLength={12} maxLength={4096} autoComplete="new-password" placeholder="Paste privately; never shown again" required disabled={!ready||busy}/></label>
    <button type="submit" disabled={!ready||busy}><LockKeyhole size={16}/>{busy?'Working…':'Save encrypted credential'}</button>
   </form>
   {selected?.configured&&choice.activatable&&<div className="record">
