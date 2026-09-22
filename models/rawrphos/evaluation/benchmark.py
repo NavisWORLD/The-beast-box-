@@ -123,7 +123,7 @@ def evaluate(checkpoint, *, expected_sha256=FINAL_SHA256, corpus=None,
         model.config.attention_mode = "dyn12"
         # Fail-closed checks, not a claim of a generalized safety evaluation.
         try:
-            engine.complete("a", max_tokens=model.config.max_seq_len)
+            engine.complete("a " * (model.config.max_seq_len + 10), max_tokens=1)
         except ValueError:
             report["context_limit_rejected"] = True
         else:
