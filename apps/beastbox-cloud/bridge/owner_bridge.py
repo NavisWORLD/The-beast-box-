@@ -87,7 +87,8 @@ class OwnerBridge:
                 # handoff first; same-model credential rotation is allowed.
                 endpoint = {"huggingface": "https://router.huggingface.co/v1",
                             "ollama_cloud": "https://ollama.com/v1"}.get(provider)
-                if (endpoint and self.app.profile.base_url == endpoint
+                if (endpoint and (self.app.profile.base_url == endpoint or
+                                  (provider == "huggingface" and self.app.profile.kind == "hf_space"))
                         and isinstance(data["config"], dict)
                         and self.app.profile.model != data["config"].get("model")):
                     return 409, {"error": "Switch to local model in Brain Bay before changing an active cloud model ID."}
@@ -95,7 +96,8 @@ class OwnerBridge:
             if action == "update_model" and set(data) == {"action","provider","model"} and provider in MODELS:
                 endpoint = {"huggingface": "https://router.huggingface.co/v1",
                             "ollama_cloud": "https://ollama.com/v1"}[provider]
-                if self.app.profile.kind == "compatible" and self.app.profile.base_url == endpoint:
+                if (self.app.profile.kind == "compatible" and self.app.profile.base_url == endpoint
+                        or provider == "huggingface" and self.app.profile.kind == "hf_space"):
                     return 409, {"error": "Switch to local model in Brain Bay before editing this active cloud model ID."}
                 updated = self.vault.update_model(provider, data["model"])
                 return 200, {**updated, "credential_preserved": True,
@@ -105,7 +107,8 @@ class OwnerBridge:
                 # reference and revoke all authority BEFORE discarding its key.
                 endpoint = {"huggingface":"https://router.huggingface.co/v1",
                             "ollama_cloud":"https://ollama.com/v1"}.get(provider)
-                deactivated = bool(endpoint and self.app.profile.base_url == endpoint)
+                deactivated = bool(endpoint and (self.app.profile.base_url == endpoint or
+                    (provider == "huggingface" and self.app.profile.kind == "hf_space")))
                 if deactivated:
                     self.app._set_profile({"kind":"reference"})
                 result = self.vault.remove(provider)
