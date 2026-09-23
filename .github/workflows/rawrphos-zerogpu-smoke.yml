@@ -47,7 +47,13 @@ jobs:
               if stage=="RUNNING":
                   ready=True; break
               if "ERROR" in stage or "PAUSED" in stage or "RUNTIME" in stage:
-                  raise RuntimeError("Space failed or stopped; inspect build logs")
+                  from collections import deque
+                  import re
+                  for line in deque(api.fetch_space_logs(repo,follow=False),maxlen=45):
+                      line=line.replace(token,"[REDACTED]")
+                      line=re.sub(r"hf_[A-Za-z0-9_]{12,}","[REDACTED]",line)
+                      print(line[:1000],flush=True)
+                  raise RuntimeError("Private ZeroGPU Space startup failed; no paid fallback")
               time.sleep(5)
           if not ready:
               raise TimeoutError("Private ZeroGPU Space did not reach RUNNING state")
