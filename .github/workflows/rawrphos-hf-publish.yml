@@ -1,0 +1,43 @@
+name: Publish pinned RAWRPHOS 12K to Hugging Face
+on:
+  push:
+    branches: [feature/rawrphos-native-model-001]
+    paths:
+      - ".github/workflows/rawrphos-hf-publish.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rawrphos-hf-publish
+  cancel-in-progress: false
+jobs:
+  publish-private-snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require a private Hugging Face write token
+        env:
+          HF_TOKEN: ${{ secrets.HFtoken }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::error::HFtoken GitHub Actions secret is not configured; no Hugging Face changes occurred."
+            exit 1
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned CPU-only native model dependencies
+        run: |
+          python -m pip install --disable-pip-version-check 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check -e 'models/rawrphos'
+          python -m pip install --disable-pip-version-check 'huggingface_hub>=0.30,<2'
+      - name: Verify immutable release and publish inference-only snapshot privately
+        env:
+          HF_TOKEN: ${{ secrets.HFtoken }}
+        run: |
+          python models/rawrphos/scripts/publish_huggingface_12k.py --confirm
+      - name: Publication is not a deployed inference endpoint
+        run: |
+          echo "Upload attempted with full checkpoint verification and private repository default."
+          echo "This does NOT deploy or bill a hosted inference API or activate Vercel Brain Bay."

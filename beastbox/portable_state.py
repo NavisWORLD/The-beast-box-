@@ -23,6 +23,7 @@ SECRET_NAMES = (
     "OPENAI_API_KEY",
     "GITHUB_TOKEN",
     "GH_TOKEN",
+    "RAWRPHOS_API_KEY",
     "BEASTBOX_SEAL_PASSPHRASE",
 )
 
@@ -43,6 +44,7 @@ def _configured_secret_values() -> dict[str, str]:
         "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", ""),
         "GITHUB_TOKEN": os.environ.get("GITHUB_TOKEN", ""),
         "GH_TOKEN": os.environ.get("GH_TOKEN", ""),
+        "RAWRPHOS_API_KEY": os.environ.get("RAWRPHOS_API_KEY", ""),
         "BEASTBOX_SEAL_PASSPHRASE": os.environ.get("BEASTBOX_SEAL_PASSPHRASE", ""),
     }
 

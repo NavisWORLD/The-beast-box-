@@ -1,0 +1,297 @@
+name: RAWRPHOS bounded native continuation
+
+on:
+  push:
+    branches:
+      - feature/rawrphos-native-model-001
+    paths:
+      - models/rawrphos/training/**
+      - models/rawrphos/tests/**
+      - models/rawrphos/scripts/freeze_training_checkpoint.py
+      - .github/workflows/rawrphos-continuation.yml
+      - models/rawrphos/continuation-request.json
+  workflow_dispatch:
+    inputs:
+      target_steps:
+        description: "Cumulative target; release must contain previous checkpoint"
+        type: choice
+        required: true
+        options:
+          - "12000"
+          - "24000"
+          - "36000"
+          - "48000"
+          - "60000"
+      previous_run_id:
+        description: "For 24K+, exact prior release run ID; empty for pinned 6K baseline"
+        type: string
+        required: false
+      expected_parent_sha256:
+        description: "For 24K+, prior verified model.safetensors SHA-256; empty for 12K"
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rawrphos-continuation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    if: github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/feature/rawrphos-native-model-001'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      PYTHONPATH: ${{ github.workspace }}/models
+      BASELINE_SHA: 35476cc6a6a40eb3f22c0a990f9a6e93aa82af79eaa64ecd9bd3df2719648606
+      BASELINE_ARCHIVE: bbfa9203d49bacfa49b404d874ce00155f9697cfe8dae8fa30213d10b55962ed
+      BASELINE_RELEASE: https://github.com/NavisWORLD/The-beast-box-/releases/download/rawrphos-native-step-00006000-run-35782780734
+    steps:
+      - name: Checkout exact development commit, no credential persistence
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install CPU-only test dependencies without remote inference
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check --quiet 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'pyarrow>=15,<24' 'pytest>=8,<10' 'numpy>=1.26,<3' 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'uvicorn>=0.30,<1'
+      - name: Run actual architecture, resume, failure and inference tests
+        run: python -m pytest -q models/rawrphos/tests
+      - name: Independently verify pinned real 6K release and complete resume state
+        run: |
+          set -euo pipefail
+          mkdir -p .rawrphos-continuation/baseline
+          cd .rawrphos-continuation/baseline
+          curl -fLsS --retry 2 "$BASELINE_RELEASE/rawrphos-native-step-00006000.tar.gz" -o rawrphos-native-step-00006000.tar.gz
+          curl -fLsS --retry 2 "$BASELINE_RELEASE/receipt.json" -o receipt.json
+          curl -fLsS --retry 2 "$BASELINE_RELEASE/SHA256SUMS" -o SHA256SUMS
+          printf '%s  %s\n' "$BASELINE_ARCHIVE" rawrphos-native-step-00006000.tar.gz | sha256sum --check
+          sha256sum --check SHA256SUMS
+          cd ../..
+          python - <<'PY'
+          import hashlib, json, os, pathlib, tarfile, torch
+          from rawrphos.training.checkpoint import load_checkpoint, parameter_hash
+          root=pathlib.Path('.rawrphos-continuation/baseline')
+          receipt=json.loads((root/'receipt.json').read_text())
+          assert receipt['source_commit']=='d13d5a917b76891f36cd2b4e13dee88e3b45922c'
+          assert receipt['training_steps']==6000
+          assert receipt['checkpoint_sha256']==os.environ['BASELINE_SHA']
+          assert receipt['archive_sha256']==os.environ['BASELINE_ARCHIVE']
+          with tarfile.open(root/'rawrphos-native-step-00006000.tar.gz') as archive:
+              for entry in archive.getmembers():
+                  name=pathlib.PurePosixPath(entry.name)
+                  assert name.parts and name.parts[0]=='step-00006000'
+                  assert '..' not in name.parts and (entry.isfile() or entry.isdir())
+              archive.extractall(root,filter='data')
+          loaded=load_checkpoint(root/'step-00006000',expected_checkpoint_sha256=os.environ['BASELINE_SHA'])
+          meta=loaded['metadata']
+          assert meta['training_steps']==6000 and meta['training_tokens']==6144000
+          assert meta['parameter_count']==3909956
+          assert parameter_hash(loaded['model'])==meta['parameter_sha256']
+          assert {'optimizer','rng','data_rng'} <= loaded['state'].keys()
+          opt=torch.optim.AdamW(loaded['model'].parameters(),lr=.0008,betas=(.9,.95),weight_decay=.01)
+          opt.load_state_dict(loaded['state']['optimizer'])
+          assert len(opt.state)>0
+          print('REAL_6000_CHECKPOINT_AND_OPTIMIZER_RESUME_PROBE_PASS',meta['checkpoint_sha256'],flush=True)
+          PY
+
+  product-quality:
+    if: github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/feature/rawrphos-native-model-001'
+    uses: ./.github/workflows/product-ci.yml
+    permissions:
+      contents: read
+
+  train-milestone:
+    needs: [preflight, product-quality]
+    if: >-
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'train(rawrphos): authorize '))) &&
+      github.repository == 'NavisWORLD/The-beast-box-' &&
+      github.ref == 'refs/heads/feature/rawrphos-native-model-001'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 200
+    permissions:
+      contents: write
+    env:
+      PYTHONPATH: ${{ github.workspace }}/models
+      TARGET_STEPS: ${{ inputs.target_steps }}
+      PREVIOUS_RUN_ID: ${{ inputs.previous_run_id }}
+      EXPECTED_PARENT_SHA: ${{ inputs.expected_parent_sha256 }}
+      BASELINE_SHA: 35476cc6a6a40eb3f22c0a990f9a6e93aa82af79eaa64ecd9bd3df2719648606
+      BASELINE_ARCHIVE: bbfa9203d49bacfa49b404d874ce00155f9697cfe8dae8fa30213d10b55962ed
+      RAW_INPUT: ${{ github.workspace }}/.rawrphos-continuation/public
+      RAW_CORPUS: ${{ github.workspace }}/.rawrphos-continuation/corpus
+      RAW_OUTPUT: ${{ github.workspace }}/.rawrphos-continuation/checkpoints
+      RAW_PARENT: ${{ github.workspace }}/.rawrphos-continuation/parent
+      RAW_RELEASE: ${{ github.workspace }}/.rawrphos-continuation/release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Verify explicit one-file training authorization on feature-branch push
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          CHANGED="$(git diff --name-only HEAD^ HEAD)"
+          [[ "$CHANGED" == 'models/rawrphos/continuation-request.json' ]] || { echo 'Training authorization must be the only changed file' >&2; exit 1; }
+          python - <<'PY'
+          import json,os,re,pathlib
+          p=pathlib.Path('models/rawrphos/continuation-request.json')
+          request=json.loads(p.read_text())
+          assert set(request)=={'schema','target_steps','previous_run_id','expected_parent_sha256'}
+          assert request['schema']=='rawrphos-continuation-request-v1'
+          target=request['target_steps']; prior=request['previous_run_id']; digest=request['expected_parent_sha256']
+          assert type(target) is int and target in (12000,24000,36000,48000,60000)
+          assert isinstance(prior,str) and isinstance(digest,str)
+          assert not prior or re.fullmatch(r'[0-9]+',prior)
+          assert not digest or re.fullmatch(r'[a-fA-F0-9]{64}',digest)
+          with open(os.environ['GITHUB_ENV'],'a') as output:
+              output.write(f'TARGET_STEPS={target}\nPREVIOUS_RUN_ID={prior}\nEXPECTED_PARENT_SHA={digest}\n')
+          print('EXPLICIT_ONE_COMMIT_TRAINING_AUTHORIZATION_VERIFIED',target,flush=True)
+          PY
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned CPU-only dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check --quiet 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'pyarrow>=15,<24' 'pytest>=8,<10' 'numpy>=1.26,<3' 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'uvicorn>=0.30,<1'
+      - name: Run focused safety gates again in actual training job
+        run: python -m pytest -q models/rawrphos/tests
+      - name: Validate strict adjacent milestone and read-only parent release inputs
+        run: |
+          set -euo pipefail
+          case "$TARGET_STEPS" in
+            12000) PREVIOUS=6000; TAG="rawrphos-native-step-00006000-run-35782780734"; EXPECTED_PARENT_SHA="$BASELINE_SHA" ;;
+            24000) PREVIOUS=12000 ;;
+            36000) PREVIOUS=24000 ;;
+            48000) PREVIOUS=36000 ;;
+            60000) PREVIOUS=48000 ;;
+            *) echo 'Unsupported cumulative target' >&2; exit 1 ;;
+          esac
+          if [[ "$TARGET_STEPS" != 12000 ]]; then
+            [[ "$PREVIOUS_RUN_ID" =~ ^[0-9]+$ ]] || { echo 'Prior run ID must be numeric' >&2; exit 1; }
+            [[ "$EXPECTED_PARENT_SHA" =~ ^[[:xdigit:]]{64}$ ]] || { echo 'Pin previous verified weight SHA' >&2; exit 1; }
+            printf -v TAG 'rawrphos-native-step-%08d-run-%s' "$PREVIOUS" "$PREVIOUS_RUN_ID"
+          fi
+          printf 'PREVIOUS=%s\nTAG=%s\nEXPECTED_PARENT_SHA=%s\n' "$PREVIOUS" "$TAG" "$EXPECTED_PARENT_SHA" >> "$GITHUB_ENV"
+      - name: Download, hash, extract and verify exact previous native checkpoint
+        run: |
+          set -euo pipefail
+          mkdir -p "$RAW_PARENT"
+          NAME="$(printf 'rawrphos-native-step-%08d.tar.gz' "$PREVIOUS")"
+          BASE="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG"
+          curl -fLsS --retry 2 "$BASE/$NAME" -o "$RAW_PARENT/$NAME"
+          curl -fLsS --retry 2 "$BASE/receipt.json" -o "$RAW_PARENT/receipt.json"
+          curl -fLsS --retry 2 "$BASE/SHA256SUMS" -o "$RAW_PARENT/SHA256SUMS"
+          (cd "$RAW_PARENT" && sha256sum --check SHA256SUMS)
+          if [[ "$PREVIOUS" == 6000 ]]; then
+            printf '%s  %s\n' "$BASELINE_ARCHIVE" "$RAW_PARENT/$NAME" | sha256sum --check
+          fi
+          python - <<'PY'
+          import hashlib,json,os,pathlib,tarfile
+          from rawrphos.training.checkpoint import load_checkpoint,parameter_hash,hash_file
+          root=pathlib.Path(os.environ['RAW_PARENT'])
+          prev=int(os.environ['PREVIOUS'])
+          bundle=root/f'rawrphos-native-step-{prev:08d}.tar.gz'
+          receipt=json.loads((root/'receipt.json').read_text())
+          assert receipt['schema']=='rawrphos-native-release-receipt-v1'
+          assert receipt['model_id']=='rawrphos-native' and receipt['lineage']=='native-from-scratch'
+          assert receipt['training_steps']==prev
+          assert receipt['checkpoint_sha256']==os.environ['EXPECTED_PARENT_SHA']
+          assert receipt['archive_sha256']==hash_file(bundle)
+          if prev==6000: assert receipt['source_commit']=='d13d5a917b76891f36cd2b4e13dee88e3b45922c'
+          with tarfile.open(bundle) as archive:
+              for entry in archive.getmembers():
+                  name=pathlib.PurePosixPath(entry.name)
+                  assert name.parts and name.parts[0]==f'step-{prev:08d}'
+                  assert '..' not in name.parts and (entry.isfile() or entry.isdir())
+              archive.extractall(root,filter='data')
+          loaded=load_checkpoint(root/f'step-{prev:08d}',expected_checkpoint_sha256=os.environ['EXPECTED_PARENT_SHA'])
+          meta=loaded['metadata']
+          config=json.loads(pathlib.Path('models/rawrphos/config/training.json').read_text())
+          dataset=json.loads(pathlib.Path('models/rawrphos/data/dataset_manifest.json').read_text())
+          assert meta['training_config']==config
+          assert meta['dataset_manifest_sha256']==dataset['dataset_sha256']
+          assert {'optimizer','rng','data_rng'} <= loaded['state'].keys()
+          assert parameter_hash(loaded['model'])==meta['parameter_sha256']
+          assert meta['training_steps']==prev and meta['parameter_count']==3909956
+          print('EXACT_PARENT_WEIGHTS_OPTIMIZER_RNG_AND_LINEAGE_PASS',prev,meta['checkpoint_sha256'],flush=True)
+          PY
+      - name: Reacquire only committed licensed public data and validate all split hashes
+        run: |
+          set -euo pipefail
+          python models/rawrphos/scripts/fetch_public_data.py --output "$RAW_INPUT"
+          python -m rawrphos.data.corpus --input "$RAW_INPUT/public-input.jsonl" --output "$RAW_CORPUS" --seed 67
+          python - <<'PY'
+          import json,os,pathlib
+          from rawrphos.data.corpus import load_corpus,sha
+          root=pathlib.Path(os.environ['RAW_INPUT'])
+          expected=json.loads(pathlib.Path('models/rawrphos/data/acquisition.json').read_text())
+          assert json.loads((root/'acquisition.json').read_text())==expected
+          assert sha((root/'public-input.jsonl').read_bytes())==expected['input_sha256']
+          expected_dataset=json.loads(pathlib.Path('models/rawrphos/data/dataset_manifest.json').read_text())
+          assert load_corpus(os.environ['RAW_CORPUS'])['manifest']==expected_dataset
+          print('PINNED_CORPUS_AND_SPLITS_VERIFIED',expected_dataset['dataset_sha256'],flush=True)
+          PY
+      - name: Resume exact native optimizer from previous step to requested milestone
+        run: |
+          set -euo pipefail
+          DELTA=$((TARGET_STEPS-PREVIOUS))
+          python -m rawrphos.training.train \
+            --corpus "$RAW_CORPUS" --output "$RAW_OUTPUT" \
+            --model-config models/rawrphos/config/model.json \
+            --training-config models/rawrphos/config/training.json \
+            --resume "$RAW_PARENT/$(printf 'step-%08d' "$PREVIOUS")" \
+            --steps "$DELTA" --target-steps "$TARGET_STEPS"
+      - name: Verify, infer and seal this milestone before any publication
+        run: |
+          set -euo pipefail
+          CHECKPOINT="$RAW_OUTPUT/$(printf 'step-%08d' "$TARGET_STEPS")"
+          python models/rawrphos/scripts/freeze_training_checkpoint.py \
+            --checkpoint "$CHECKPOINT" --output "$RAW_RELEASE" \
+            --expected-step "$TARGET_STEPS"
+          (cd "$RAW_RELEASE" && sha256sum --check SHA256SUMS)
+          python - <<'PY'
+          import json,os,pathlib
+          root=pathlib.Path(os.environ['RAW_RELEASE'])
+          receipt=json.loads((root/'receipt.json').read_text())
+          assert receipt['training_steps']==int(os.environ['TARGET_STEPS'])
+          assert receipt['source_commit']==os.environ['GITHUB_SHA']
+          assert receipt['checkpoint_sha256']!=os.environ['EXPECTED_PARENT_SHA']
+          print('MILESTONE_VERIFIED_BEFORE_RELEASE',receipt['training_steps'],receipt['checkpoint_sha256'],flush=True)
+          PY
+      - name: Publish only successfully verified milestone, never overwrite release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          printf -v TAG 'rawrphos-native-step-%08d-run-%s' "$TARGET_STEPS" "$GITHUB_RUN_ID"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Refusing to overwrite release $TAG" >&2; exit 1
+          fi
+          cd "$RAW_RELEASE"
+          gh release create "$TAG" \
+            "$(printf 'rawrphos-native-step-%08d.tar.gz' "$TARGET_STEPS")" receipt.json SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "RAWRPHOS native trained candidate — step $TARGET_STEPS" \
+            --notes-file RELEASE_NOTES.md --prerelease
+      - name: Preserve lightweight failure and training diagnostics, including on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawrphos-continuation-receipts-${{ github.run_id }}
+          path: |
+            ${{ github.workspace }}/.rawrphos-continuation/checkpoints/training.jsonl
+            ${{ github.workspace }}/.rawrphos-continuation/checkpoints/failures.jsonl
+            ${{ github.workspace }}/.rawrphos-continuation/release/receipt.json
+          if-no-files-found: ignore
+          retention-days: 30

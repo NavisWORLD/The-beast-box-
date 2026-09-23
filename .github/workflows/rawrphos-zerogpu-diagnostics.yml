@@ -1,0 +1,38 @@
+name: RAWRPHOS private ZeroGPU startup diagnostics
+on:
+  push:
+    branches: [feature/rawrphos-native-model-001]
+    paths:
+      - ".github/workflows/rawrphos-zerogpu-diagnostics.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect-private-run-logs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      HF_TOKEN: ${{ secrets.HFtoken }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check 'huggingface_hub>=1.3,<2'
+      - name: Print bounded sanitized runtime errors
+        run: |
+          python - <<'PY'
+          import os,re
+          from collections import deque
+          from huggingface_hub import HfApi
+          token=os.environ.get("HF_TOKEN","")
+          if len(token)<20: raise RuntimeError("Missing HF token")
+          api=HfApi(token=token)
+          repo="phera-ra/rawrphos-12k-zerogpu"
+          runtime=api.get_space_runtime(repo)
+          print("STAGE",runtime.stage,"HARDWARE",runtime.hardware,"REQUESTED",runtime.requested_hardware,flush=True)
+          lines=deque(api.fetch_space_logs(repo,follow=False),maxlen=70)
+          for line in lines:
+              line=line.replace(token,"[REDACTED]")
+              line=re.sub(r"hf_[A-Za-z0-9_]{12,}","[REDACTED_TOKEN]",line)
+              print(line[:1200],end="" if line.endswith("\\n") else "\\n")
+          PY
