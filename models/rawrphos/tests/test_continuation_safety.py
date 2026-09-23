@@ -17,7 +17,8 @@ def _fixture(tmp_path):
     corpus = tmp_path / 'corpus'
     build_corpus(records, corpus)
     c = TrainingConfig(total_steps=2, batch_size=2, seq_len=16, vocab_size=300,
-                       eval_every=1, eval_batches=1, checkpoint_every=1, threads=1)
+                       eval_every=1, eval_batches=1, checkpoint_every=1, threads=1,
+                       warmup_steps=1)
     m = RawrphosConfig(vocab_size=300, d_model=32, n_heads=4,
                       n_layers=2, max_seq_len=128)
     output = tmp_path / 'checkpoints'
