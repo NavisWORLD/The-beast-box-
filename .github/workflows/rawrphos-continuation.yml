@@ -103,7 +103,11 @@ jobs:
 
   train-milestone:
     needs: preflight
-    if: (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'train(rawrphos): authorize '))) && github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/feature/rawrphos-native-model-001'
+    if: >-
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'train(rawrphos): authorize '))) &&
+      github.repository == 'NavisWORLD/The-beast-box-' &&
+      github.ref == 'refs/heads/feature/rawrphos-native-model-001'
     runs-on: ubuntu-24.04
     timeout-minutes: 200
     permissions:
