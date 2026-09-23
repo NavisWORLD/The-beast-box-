@@ -81,13 +81,13 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
      const native=option.choice==='rawrphos_native';
      const ready=option.readiness==='INSTALLED_AND_READY';
      return <div className="record" key={option.choice}>
-      <strong>{option.model}</strong> · {option.choice==='local'?'Installed CPU model':option.choice==='huggingface'?'Hugging Face':'Ollama Cloud'}
-      <p>{remote?'Encrypted credential configured. Model inference, available balance and latency have not been verified.':'Local weights and loopback were verified on the host. Actual response still needs a completed chat.'}</p>
-      <button type="button" className="outline-action" disabled={busy||(remote&&!spendApproved)||(!remote&&active)}
+      <strong>{option.label||option.model}</strong> · {native?'Native PyTorch CPU':option.choice==='local'?'Installed CPU model':option.choice==='huggingface'?'Hugging Face':'Ollama Cloud'}
+      <p>{native?'Status: '+option.readiness.replaceAll('_',' ')+(option.loaded_step?' · Loaded step '+option.loaded_step:'')+'. '+(ready?'Pinned 12K identity and native loopback verified; actual chat not yet attested.':'Not selectable until local host is ready; no automatic fallback.'):remote?'Encrypted credential configured. Model inference, available balance and latency have not been verified.':'Local weights and loopback were verified on the host. Actual response still needs a completed chat.'}</p>
+      <button type="button" className="outline-action" disabled={busy||(remote&&!spendApproved)||(!remote&&active)||(native&&!ready)}
        onClick={()=>void choose(option.choice)}>
        {active?<Check size={15}/>:<ShieldCheck size={15}/>}
        {active&&!(remote&&catalog.reapproval_required)?'Currently selected':
-        remote?(active?'Reapprove remote model':'Select remote model'):'Switch to local model'}
+        remote?(active?'Reapprove remote model':'Select remote model'):native?'Select RAWRPHØS':'Switch to local model'}
       </button>
      </div>;
     })}
