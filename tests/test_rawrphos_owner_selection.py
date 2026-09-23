@@ -96,3 +96,22 @@ def test_server_hash_mismatch_is_rejected(tmp_path):
         app = BRIDGE.OwnerBridge(tmp_path / "memory", TOKEN)
         assert native_choice(app)["readiness"] == "FAILED_CHECKPOINT_VERIFICATION"
         assert choice(app)[0] == 503
+
+
+
+def test_native_catalog_keeps_existing_ollama_cloud_choice(tmp_path):
+    """Installing optional native must not remove configured cloud models."""
+    path = checkpoint(tmp_path)
+    with env(path):
+        app = BRIDGE.OwnerBridge(tmp_path / "memory", TOKEN)
+        app.vault = SimpleNamespace(list_public=lambda: {"connections": [{
+            "provider": "ollama_cloud", "configured": True,
+            "config": {"model": "gpt-oss:120b"}}]})
+        code, catalog = app.dispatch("GET", "/api/models", "Bearer " + TOKEN)
+        assert code == 200
+        options = {row["choice"]: row for row in catalog["choices"]}
+        assert options["rawrphos_native"]["kind"] == "local"
+        assert options["rawrphos_native"]["requires_spend_approval"] is False
+        assert options["ollama_cloud"]["model"] == "gpt-oss:120b"
+        assert options["ollama_cloud"]["requires_spend_approval"] is True
+        assert app.app.profile.model != native.MODEL
