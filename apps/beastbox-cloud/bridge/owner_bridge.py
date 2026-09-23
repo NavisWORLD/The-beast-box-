@@ -24,6 +24,7 @@ from beastbox.bio_inputs import bio_event
 from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
 from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
+from beastbox.rawrphos_local import MODEL as NATIVE_ID, profile as native_profile, status as native_status
 from beastbox.chat_jobs import ChatJobs
 
 MAX_BYTES = 256_000
