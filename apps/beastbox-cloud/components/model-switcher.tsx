@@ -2,7 +2,7 @@
 import {useCallback,useEffect,useState} from 'react';
 import {Check,RefreshCcw,ShieldCheck} from 'lucide-react';
 
-type Choice='local'|'huggingface'|'ollama_cloud';
+type Choice='local'|'rawrphos_native'|'huggingface'|'ollama_cloud';
 type Option={
  choice:Choice;
  model:string;
@@ -10,9 +10,11 @@ type Option={
  configured:boolean;
  requires_spend_approval:boolean;
  readiness:string;
+ label?:string;
+ loaded_step?:number|null;
 };
 type Catalog={
- active:{model:string;kind:string;remote:boolean};
+ active:{model:string;kind:string;remote:boolean;loaded_step?:number|null};
  remote_grant_active:boolean;
  reapproval_required:boolean;
  choices:Option[];
@@ -44,7 +46,7 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
 
  async function choose(choice:Choice){
   if(busy||!backendReachable)return;
-  const remote=choice!=='local';
+  const remote=choice==='huggingface'||choice==='ollama_cloud';
   if(remote&&!spendApproved){setError('Approve possible usage charges for the selected remote provider first.');return;}
   setBusy(true);setError('');setNotice('');
   try{
