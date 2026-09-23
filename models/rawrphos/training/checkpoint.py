@@ -24,6 +24,12 @@ def parameter_hash(model):
     return h.hexdigest()
 
 def save_checkpoint(path,model,tokenizer,metadata,state):
+    # Fail before creating a bundle: finite grads do not guarantee finite weights.
+    if not all(bool(torch.isfinite(v).all()) for v in model.state_dict().values()):
+        raise FloatingPointError('refusing to checkpoint nonfinite model parameters')
+    if not all(bool(torch.isfinite(v).all()) for entry in state['optimizer']['state'].values()
+               for v in entry.values() if isinstance(v,torch.Tensor)):
+        raise FloatingPointError('refusing to checkpoint nonfinite optimizer state')
     path=Path(path)
     if path.exists(): raise FileExistsError('checkpoint already exists')
     temp=path.parent/(path.name+'.tmp-'+uuid.uuid4().hex); temp.mkdir(parents=True)
@@ -68,8 +74,16 @@ def load_checkpoint(path,require_trained=True,expected_checkpoint_sha256=None,lo
     tokenizer=RawrphosTokenizer.load(p/'tokenizer')
     if tokenizer.sha256!=metadata['tokenizer_sha256'] or tokenizer.vocab_size!=c.vocab_size: raise ValueError('tokenizer/model mismatch')
     model=RawrphosLM(c); model.load_state_dict(load_file(str(p/'model.safetensors')),strict=True)
+    if not all(bool(torch.isfinite(v).all()) for v in model.state_dict().values()):
+        raise ValueError('checkpoint contains nonfinite model parameters')
     if model.parameter_count()!=metadata['parameter_count'] or parameter_hash(model)!=metadata['parameter_sha256']: raise ValueError('parameter identity mismatch')
     state=torch.load(p/'training_state.pt',map_location='cpu',weights_only=True) if load_training_state else None
+    if state is not None:
+        if not isinstance(state,dict) or not {'optimizer','rng','data_rng'} <= state.keys():
+            raise ValueError('incomplete optimizer/RNG resume state')
+        if not all(bool(torch.isfinite(v).all()) for entry in state['optimizer']['state'].values()
+                   for v in entry.values() if isinstance(v,torch.Tensor)):
+            raise ValueError('checkpoint contains nonfinite optimizer state')
     return {'model':model,'tokenizer':tokenizer,'metadata':metadata,'state':state,'config':c,'manifest':manifest}
 
 def rng_state(): return {'torch':torch.get_rng_state(),'python':random.getstate()}
