@@ -24,10 +24,6 @@ from beastbox.durable import DurableRuntime
 from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
 from beastbox.chat_jobs import ChatJobs
 
-NATIVE_ID = "rawrphos-native"
-NATIVE_STEP = 12000
-NATIVE_SHA = "339fb8e1d6f3950e2aa15a6e33bf8c0f28dd655cefc93b7926fb7545e7e97601"
-NATIVE_URL = "http://127.0.0.1:8767/v1"
 MAX_BYTES = 256_000
 GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models"})
 POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models"})
