@@ -57,7 +57,7 @@ jobs:
               time.sleep(5)
           if not ready:
               raise TimeoutError("Private ZeroGPU Space did not reach RUNNING state")
-          client=Client(repo,token=token,verbose=False)
+          client=Client(repo,hf_token=token,verbose=False)
           info=client.predict(api_name="/model_info")
           assert info["model_id"]=="rawrphos-native",info
           assert info["training_steps"]==12000,info
