@@ -53,7 +53,7 @@ def status():
     except (OSError, ValueError):
         pass
     key = os.environ.get("RAWRPHOS_API_KEY", "")
-    if len(key) < 32:
+    if len(key) < 32 or any(ch in key for ch in "\r\n"):
         result["readiness"] = "OFFLINE_OR_DISCONNECTED"
         return result
     request = urllib.request.Request(URL.removesuffix("/v1") + "/model/info",
