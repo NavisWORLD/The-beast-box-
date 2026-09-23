@@ -212,9 +212,11 @@ class OwnerBridge:
                         "readiness": "CREDENTIAL_CONFIGURED_INFERENCE_NOT_ATTESTED",
                     })
         profile = self.app.profile
+        native = next(item for item in choices if item["choice"] == "rawrphos_native")
         return {
             "active": {"model": profile.model, "kind": profile.kind,
-                       "remote": profile.remote},
+                       "remote": profile.remote,
+                       "loaded_step": native["loaded_step"] if profile.model == NATIVE_ID else None},
             "remote_grant_active": profile.remote and self.app.authority.allowed("cloud"),
             "reapproval_required": profile.remote and not self.app.authority.allowed("cloud"),
             "choices": choices,
