@@ -8,8 +8,9 @@ from pathlib import Path
 from rawrphos.architecture.generation import generate
 
 class Engine:
-    def __init__(self,checkpoint,max_new_tokens=256,threads=4,expected_sha256=None):
+    def __init__(self,checkpoint,max_new_tokens=256,threads=4,expected_sha256=None,device='cpu'):
         if type(max_new_tokens) is not int or not 1<=max_new_tokens<=1024: raise ValueError('invalid host token budget')
+        if device not in {'cpu', 'cuda'}: raise ValueError('unsupported inference device')
         torch.set_num_threads(threads); started=time.perf_counter()
         if (Path(checkpoint) / "inference-manifest.json").is_file():
             if expected_sha256 is None:
@@ -17,7 +18,8 @@ class Engine:
             loaded = load_inference_snapshot(checkpoint, expected_checkpoint_sha256=expected_sha256)
         else:
             loaded = load_checkpoint(checkpoint,expected_checkpoint_sha256=expected_sha256,load_training_state=False)
-        self.model=loaded['model'].eval(); self.tokenizer=loaded['tokenizer']; self.metadata=loaded['metadata']
+        self.model=loaded['model'].eval().to(device); self.device=device
+        self.tokenizer=loaded['tokenizer']; self.metadata=loaded['metadata']
         self.load_seconds=time.perf_counter()-started; self.max_new_tokens=max_new_tokens
         self.lock=threading.Lock(); self.last_success=None; self.last_metrics={}
     def info(self):
@@ -38,8 +40,8 @@ class Engine:
         if len(ids)+max_tokens>self.model.config.max_seq_len: raise ValueError('prompt plus output exceeds context limit')
         if not self.lock.acquire(blocking=False): raise RuntimeError('native provider is busy')
         try:
-            gen=torch.Generator().manual_seed(seed); started=time.perf_counter(); first=None; generated=[]; emitted=''
-            for token,full in generate(self.model,torch.tensor([ids]),max_new_tokens=max_tokens,
+            gen=torch.Generator(device=self.device).manual_seed(seed); started=time.perf_counter(); first=None; generated=[]; emitted=''
+            for token,full in generate(self.model,torch.tensor([ids],device=self.device),max_new_tokens=max_tokens,
                     temperature=temperature,top_k=min(40,self.tokenizer.vocab_size),eos_token_id=self.tokenizer.eos_id,
                     generator=gen,use_cache=use_cache,deadline=time.monotonic()+timeout,cancelled=cancelled):
                 if first is None: first=time.perf_counter()-started
