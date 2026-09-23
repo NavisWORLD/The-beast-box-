@@ -12,15 +12,22 @@ Do not alter or delete this release.
 runs *preflight only* on a change to the training code, tests, or workflow.
 It checks the existing test suite, pinned public baseline archive digest,
 training checkpoint manifest, model parameter hash, tokenizer, optimizer, and
-RNG. New native training **never** runs on push: it requires an explicit manual
-`workflow_dispatch` and successful preflight, and uses a standard hosted
-Ubuntu CPU runner. No Railway/Azure/Vercel changes or paid GPU/QPU/inference
+RNG. New native training **never** runs on ordinary code pushes: it requires an
+explicit, separately committed one-file `continuation-request.json` with the
+`train(rawrphos): authorize ` commit-message prefix, followed by a successful
+preflight on that exact commit. The workflow also supports `workflow_dispatch`
+when available on GitHub's default branch. It uses a standard hosted Ubuntu
+CPU runner. No Railway/Azure/Vercel changes or paid GPU/QPU/inference
 calls are included. The $5/month Railway ceiling is unchanged.
 
-Before starting a milestone, confirm that preflight passed on the target
-branch HEAD and the original 6K archive remains available. Manually dispatch
-the workflow from GitHub Actions on `feature/rawrphos-native-model-001`.
-Select consecutive cumulative steps:
+Before starting a milestone, confirm that preflight passed on the existing
+code revision and the original 6K archive remains available. To launch from
+this feature branch without modifying `main`, create or update only
+`models/rawrphos/continuation-request.json` using the strict schema below,
+with commit message `train(rawrphos): authorize 12000` (or the requested
+milestone). The workflow validates that this file alone changed, runs preflight,
+and then trains if and only if preflight passes. A new docs/code commit does
+not retrigger training. Select consecutive cumulative steps:
 
 | Target | Expected previous release | Number of added optimizer steps |
 | --- | --- | ---: |
@@ -30,9 +37,15 @@ Select consecutive cumulative steps:
 | 48,000 | Verified 36K release | 12,000 |
 | 60,000 | Verified 48K release | 12,000 |
 
-For 24K and later, supply the **exact previous successful workflow run ID**
-and independently verified 64-hex `model.safetensors` SHA-256 from its release
-receipt. These fields must remain blank for 12K. The workflow rejects a
+Request file (12K example):
+
+```json
+{"schema":"rawrphos-continuation-request-v1","target_steps":12000,"previous_run_id":"","expected_parent_sha256":""}
+```
+
+For 24K and later, update the target and supply the **exact previous successful
+workflow run ID** and independently verified 64-hex `model.safetensors` SHA-256
+from its release receipt. These fields must remain blank for 12K. The workflow rejects a
 missing/mismatched parent rather than choosing a different model or restarting.
 Only the successful, verified target gets a new prerelease named
 `rawrphos-native-step-XXXXXXXX-run-RUN_ID`; existing releases are never
