@@ -123,3 +123,30 @@ def test_bridge_requires_bearer_before_poll_or_start_and_does_not_log_payload():
         assert code == 200 and done["state"] == "complete"
         assert bridge.dispatch("GET", "/api/chat-job?id=" + job_id,
                                "Bearer " + TOKEN)[1]["state"] == "complete"
+
+
+def test_sanitized_provider_failure_survives_job_status_without_upstream_content():
+    from beastbox.chat_jobs import PROVIDER_ERRORS
+    for code in sorted(PROVIDER_ERRORS):
+        manager = ChatJobs(lambda _payload, code=code: (
+            502, {"error": "secret upstream message", "provider_failure": code}
+        ))
+        _, started = manager.start(request())
+        _, state = await_job(manager, started["job_id"])
+        assert state["state"] == "failed"
+        assert state["failure_code"] == code
+        assert "secret upstream message" not in str(state)
+        assert "private" not in state["error"].lower()
+        assert manager.start(request()) == (200, state)
+        assert manager.get(started["job_id"])[1] == state
+
+
+def test_fake_provider_failure_code_is_not_trusted():
+    manager = ChatJobs(lambda _payload: (
+        502, {"error": "secret upstream error", "provider_failure": "private secret"}
+    ))
+    _, started = manager.start(request())
+    _, state = await_job(manager, started["job_id"])
+    assert state["state"] == "failed"
+    assert state["failure_code"] == "PROVIDER_REJECTED"
+    assert "private secret" not in str(state)

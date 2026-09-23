@@ -23,7 +23,7 @@ MODELS = frozenset(("huggingface", "ollama_cloud"))
 ALLOWED_CONFIG = {
     "huggingface": frozenset(("model",)),
     "ollama_cloud": frozenset(("model",)),
-    "azure_blob": frozenset(("account", "container")),
+    "azure_blob": frozenset(("account", "container", "auth_mode")),
     "ibm_watsonx": frozenset(("region", "project_id", "model")),
     "ibm_quantum": frozenset(("instance",)),
 }
@@ -49,7 +49,7 @@ def _key_from_env() -> bytes:
 def _validate(provider: str, config: object, secret: object) -> tuple[dict[str, str], str]:
     if provider not in PROVIDERS:
         raise ConnectionError("unsupported cloud provider")
-    if not isinstance(config, dict) or set(config) != ALLOWED_CONFIG[provider]:
+    if not isinstance(config, dict) or (set(config) != ALLOWED_CONFIG[provider] and not (provider == "azure_blob" and set(config) == {"account", "container"})):
         raise ConnectionError("invalid provider configuration fields")
     if any(not isinstance(v, str) or not v.strip() or len(v) > 180 or "\x00" in v for v in config.values()):
         raise ConnectionError("invalid provider configuration")
@@ -62,13 +62,27 @@ def _validate(provider: str, config: object, secret: object) -> tuple[dict[str, 
         if provider == "huggingface" and (re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)?",cfg["model"]) is None or ".." in cfg["model"]):
             raise ConnectionError("invalid Hugging Face repository/model identifier")
     if provider == "azure_blob":
+        # Legacy saved records without auth_mode remain SAS; never reinterpret
+        # an existing credential as a broadly privileged account key.
+        cfg.setdefault("auth_mode", "container_sas")
+        if cfg["auth_mode"] not in ("container_sas", "account_key"):
+            raise ConnectionError("unsupported Azure credential type")
         if re.fullmatch(r"[a-z0-9]{3,24}",cfg["account"]) is None or (
             len(cfg["container"]) > 63 or re.fullmatch(r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?",cfg["container"]) is None
         ):
             raise ConnectionError("invalid Azure account or container name")
-        # Delegate limited container access, not a storage-account master key.
-        if "sig=" not in secret or "sp=" not in secret:
-            raise ConnectionError("provide a scoped Azure container SAS token, not an account master key")
+        if cfg["auth_mode"] == "container_sas":
+            if "sig=" not in secret or "sp=" not in secret:
+                raise ConnectionError("provide a scoped Azure container SAS token")
+        else:
+            # An account key grants broad rights at Azure. Encrypt it only on
+            # the host; all currently exposed operations remain read-only.
+            try:
+                raw_key = base64.b64decode(secret, validate=True)
+            except (ValueError, base64.binascii.Error):
+                raw_key = b""
+            if len(raw_key) != 64:
+                raise ConnectionError("invalid Azure Storage account key format")
     if provider == "ibm_watsonx":
         if cfg["region"] not in REGIONS or re.fullmatch(r"[A-Za-z0-9_-]{4,128}",cfg["project_id"]) is None:
             raise ConnectionError("invalid IBM watsonx region or project")

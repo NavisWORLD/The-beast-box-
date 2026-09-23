@@ -27,7 +27,9 @@ test('images and PDFs stay local until real storage',()=>{
 });
 test('proxy excludes arbitrary tools and filesystem',()=>{
  const proxy=read('app/api/bridge/[endpoint]/route.ts');
- assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','chat-start','context','connections','bio','observations','models'\]\)/);
+ assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','chat-start','context','connections','bio','observations','models','azure-read'\]\)/);
+ assert.match(proxy,/endpoint==='azure-read'/);
+ assert.match(proxy,/read_confirmed!==true/);
  assert.doesNotMatch(proxy,/['"]workspace\/write['"]/);
 });
 
@@ -142,7 +144,7 @@ test('owner-live senses use real local classifier and explicit browser speech co
  assert.match(live,/Stop speech/);
  assert.match(live,/setIncludeInChat/);
  assert.match(studio,/onContext=\{updateLiveContext\}/);
- assert.match(studio,/Owner-approved unverified device observations/);
+ assert.match(studio,/Owner-approved unverified sensor observations/);
  assert.doesNotMatch(live,/MediaRecorder|toDataURL\(|toBlob\(|localStorage|sessionStorage/);
 });
 
@@ -175,7 +177,7 @@ test('senses is a Settings-only control and cannot cover the chat composer',()=>
  assert.match(studio,/aria-label="Open sensing settings"/);
  // Mounted unconditionally at the content root; navigation must not recreate video.
  const mount=studio.indexOf('<LiveSenses visible=');
- assert.ok(mount>0 && mount<studio.indexOf("{page==='BRAIN'?"));
+ assert.ok(mount>0 && mount<studio.indexOf("page==='BRAIN'?"));
  assert.match(studio,/aria-label="Stage file or photo locally"/);
  assert.match(studio,/Images and PDFs are locally staged only/);
 });
@@ -215,7 +217,99 @@ test('correct Ollama Cloud model ID via owner-only key-preserving metadata updat
  assert.match(bridge,/Switch to local model in Brain Bay before editing/);
  assert.match(bridge,/gpt-oss:120b/);
  assert.match(cloud,/Save model ID \(keep encrypted key\)/);
- assert.match(cloud,/gpt-oss:120b-cloud/);
- assert.match(switcher,/gpt-oss:120b-cloud/);
+ assert.match(cloud,/gpt-oss:120b/);
+ assert.match(cloud,/direct API/i);
+ assert.match(switcher,/direct API/i);
+ assert.match(bridge,/saved\["config"\]\["model"\]\.endswith\("-cloud"\)/);
+ assert.match(read('../../beastbox/cloud_connection_checks.py'),/MODEL_ID_MODE_MISMATCH/);
+ assert.match(read('../../beastbox/cloud_connection_checks.py'),/MODEL_LISTED_AUTH_UNVERIFIED/);
  assert.doesNotMatch(cloud,/localStorage|sessionStorage/);
+});
+
+
+test('five-world surface does not replace the existing durable owner workstation',()=>{
+ const ui=read('components/studio.tsx');
+ const scene=read('components/cosmos-world.tsx');
+ const css=read('app/globals.css');
+ assert.match(ui,/COSMOS WORLD/);
+ assert.match(ui,/<CosmosWorld connected=\{connected\}/);
+ assert.match(scene,/const WORLDS:/);
+ assert.match(scene,/WORLDS\.map/);
+ assert.match(scene,/ILLUSTRATIVE GRAPHICS/);
+ assert.match(scene,/webglcontextlost/);
+ assert.match(scene,/ResizeObserver/);
+ assert.match(scene,/prefers-reduced-motion/);
+ assert.match(scene,/cancelAnimationFrame/);
+ assert.match(css,/pointer-events:none!important/);
+ assert.doesNotMatch(scene,/fetch\(|localStorage|sessionStorage|navigator\.mediaDevices/);
+});
+test('remote model grant is inspected before chat and recovery stays owner initiated',()=>{
+ const ui=read('components/studio.tsx');
+ const backend=read('bridge/owner_bridge.py');
+ assert.match(ui,/reapproval_required:catalog\.reapproval_required===true/);
+ assert.match(ui,/modelGate!==null&&!needsGrant/);
+ assert.match(ui,/if\(!connected\|\|busy\|\|!prompt\.trim\(\)\)return/);
+ assert.match(ui,/Use local model · no cloud charge/);
+ assert.match(ui,/Review cloud model/);
+ assert.match(ui,/if\(result\.no_paid_inference!==true\)/);
+ assert.match(backend,/self\.app\.authority\.grant\("cloud"\)/);
+ assert.match(backend,/reapproval_required/);
+ assert.doesNotMatch(ui,/spend_approved:true.*choice:'local'/);
+});
+
+test('workstation has one main landmark and attachment input has an explicit name',()=>{
+ const studio=read('components/studio.tsx');
+ const login=studio.match(/<main className="login-screen"/g)||[];
+ const shell=studio.match(/<main className="main-shell"/g)||[];
+ assert.equal(login.length,1);
+ assert.equal(shell.length,1);
+ assert.match(studio,/aria-label="Choose files or photos to stage locally"/);
+ assert.match(read('app/globals.css'),/Accessible contrast and touch affordances/);
+});
+
+test('owner-selected camera and speech summaries enter only turn context, never durable prompt text',()=>{
+ const ui=read('components/studio.tsx');
+ const senses=read('components/live-senses.tsx');
+ const backend=read('bridge/owner_bridge.py');
+ const runtime=read('../../beastbox/cosmic_web.py');
+ assert.match(ui,/owner-selected-sensor-observations\.txt/);
+ assert.match(ui,/scope:'temporary_attachment'/);
+ assert.match(ui,/sensorContextId=staged\.id;ids\.push\(sensorContextId\)/);
+ assert.match(ui,/const chatText=userText/);
+ assert.doesNotMatch(ui,/chatText=approvedContext\?/);
+ assert.match(ui,/result\.context_used\.includes\(sensorContextId\)/);
+ assert.match(ui,/temporaryReply&&/);
+ assert.match(ui,/TEMPORARY REPLY/);
+ assert.match(senses,/not raw media; they are not retained unless/);
+ assert.match(senses,/No observations collected yet/);
+ assert.match(backend,/self\.chat_jobs\.run_when_idle/);
+ assert.match(runtime,/response_persistent/);
+ assert.doesNotMatch(ui,/toDataURL\(|MediaRecorder\(/);
+});
+
+test('historical model provenance is taken from each saved assistant turn, not current selection',()=>{
+ const ui=read('components/studio.tsx');
+ const runtime=read('../../beastbox/runtime.py');
+ assert.match(ui,/recordedModel=typeof meta\.model/);
+ assert.match(ui,/t\.model\|\|'MODEL · HISTORICAL ID UNRECORDED'/);
+ assert.doesNotMatch(ui,/<span className="message-name">\{t\.role==='assistant'\?model:'YOU'\}/);
+ assert.match(runtime,/response_metadata\["model"\] = label/);
+ assert.match(runtime,/configured-provider-label; no weight attestation/);
+});
+
+test('Azure account-key mode and one-document retrieval do not grant ambient chat access',()=>{
+ const connections=read('components/cloud-connections.tsx');
+ const ui=read('components/studio.tsx');
+ const backend=read('bridge/owner_bridge.py');
+ const vault=read('../../beastbox/cloud_connections.py');
+ const azure=read('../../beastbox/azure_read.py');
+ assert.match(connections,/Storage account access key/);
+ assert.match(connections,/read_confirmed:true/);
+ assert.match(connections,/Stage for next chat/);
+ assert.match(ui,/onAzureText=\{stageAzureText\}/);
+ assert.match(backend,/read_owner_text/);
+ assert.match(backend,/run_when_idle\(lambda: self\._azure_read_action\(data\)\)/);
+ assert.match(vault,/auth_mode/);
+ assert.match(azure,/MAX_CONTEXT_BYTES = 12_000/);
+ assert.doesNotMatch(azure,/upload_blob|delete_blob|submit\(/);
 });

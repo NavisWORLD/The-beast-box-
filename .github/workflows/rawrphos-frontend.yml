@@ -1,7 +1,7 @@
 name: RAWRPHOS owner selector frontend checks
 on:
   push:
-    branches: [feature/rawrphos-native-model-001]
+    branches: [feature/rawrphos-native-model-001, feature/rawrphos-live-reconciled-001]
     paths:
       - ".github/workflows/rawrphos-frontend.yml"
       - "apps/beastbox-cloud/components/model-switcher.tsx"

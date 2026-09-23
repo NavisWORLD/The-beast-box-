@@ -1,7 +1,7 @@
 name: RAWRPHOS native 12K local integration smoke
 on:
   push:
-    branches: [feature/rawrphos-native-model-001]
+    branches: [feature/rawrphos-native-model-001, feature/rawrphos-live-reconciled-001]
     paths:
       - ".github/workflows/rawrphos-12k-integration.yml"
       - "beastbox/rawrphos_local.py"
