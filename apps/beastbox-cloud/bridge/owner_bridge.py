@@ -25,6 +25,9 @@ from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
 from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
 from beastbox.rawrphos_local import MODEL as NATIVE_ID, profile as native_profile, status as native_status
+from beastbox.rawrphos_hf import (MODEL as HF_NATIVE_MODEL, SPACE_URL as HF_NATIVE_URL,
+                                  WEIGHT_SHA as HF_NATIVE_SHA, STEP as HF_NATIVE_STEP,
+                                  profile as hosted_native_profile, PrivateSpaceProvider)
 from beastbox.chat_jobs import ChatJobs
 
 MAX_BYTES = 256_000
@@ -57,6 +60,11 @@ class OwnerBridge:
     def _resolve_provider_secret(self, profile: ProviderProfile) -> str | None:
         if self.vault is None:
             return None
+        if profile.kind == "hf_space" and profile.base_url == HF_NATIVE_URL:
+            saved = self.vault.read_host_only("huggingface")
+            if saved is None:
+                raise ConnectionError("Hugging Face owner credential is unavailable")
+            return saved["secret"]
         endpoints = {"huggingface": "https://router.huggingface.co/v1",
                      "ollama_cloud": "https://ollama.com/v1"}
         for name, endpoint in endpoints.items():
@@ -216,6 +224,13 @@ class OwnerBridge:
                 "readiness": "LOCAL_WEIGHTS_AND_LOOPBACK_VERIFIED",
             })
         choices.append(native_status())
+        hf_configured = self.vault is not None and self.vault.public("huggingface")["configured"]
+        choices.append({"choice": "rawrphos_hf", "model": HF_NATIVE_MODEL,
+                        "label": "RAWRPHØS Native 12K — Private HF ZeroGPU", "kind": "remote",
+                        "configured": bool(hf_configured), "requires_spend_approval": True,
+                        "readiness": "PRIVATE_SPACE_REQUIRES_OWNER_ATTESTATION" if hf_configured
+                                     else "HF_OWNER_CREDENTIAL_NOT_CONFIGURED",
+                        "loaded_step": HF_NATIVE_STEP if hf_configured else None})
         if self.vault is not None:
             for item in self.vault.list_public()["connections"]:
                 if item["provider"] in MODELS and item["configured"]:
@@ -261,6 +276,30 @@ class OwnerBridge:
                 "no_paid_inference": True, "inference": "NOT_ATTESTED_UNTIL_REAL_CHAT",
                 "substrate": "EXISTING_DURABLE_STATE",
             }
+        if (choice == "rawrphos_hf" and set(data) == {"choice", "spend_approved"}
+                and data["spend_approved"] is True):
+            if self.vault is None:
+                return 503, {"error": "Encrypted owner vault is required for the private Hugging Face Space"}
+            saved = self.vault.read_host_only("huggingface")
+            if saved is None:
+                return 404, {"error": "Save an owner Hugging Face token in Connections first"}
+            remote = PrivateSpaceProvider(api_key=saved["secret"])
+            try:
+                remote.attest()
+            except Exception:
+                return 503, {"error": "Private RAWRPHØS Space identity unavailable; selection unchanged"}
+            self.app.authority.grant("cloud")
+            try:
+                profile, changed, revoked = self.app._set_profile(hosted_native_profile())
+            except (ValueError, ConnectionError):
+                return 503, {"error": "Private RAWRPHØS provider unavailable; selection unchanged"}
+            self.app.authority.grant("cloud")
+            return 200, {"selected": "rawrphos_hf", "model": profile.model,
+                         "loaded_step": HF_NATIVE_STEP, "checkpoint_sha256": HF_NATIVE_SHA,
+                         "brain_changed": changed, "authority_revoked": revoked,
+                         "cloud_grant": "EXPLICIT_OWNER_SELECTION",
+                         "inference": "HOSTED_IDENTITY_ATTESTED_CHAT_NOT_YET_COMPLETED",
+                         "substrate": "EXISTING_DURABLE_STATE"}
         if choice == "rawrphos_native" and set(data) == {"choice"}:
             ready = native_status()
             if ready["readiness"] != "INSTALLED_AND_READY":
