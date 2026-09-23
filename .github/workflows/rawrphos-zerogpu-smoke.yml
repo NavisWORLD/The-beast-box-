@@ -1,0 +1,64 @@
+name: RAWRPHOS private free ZeroGPU live acceptance
+on:
+  push:
+    branches: [feature/rawrphos-native-model-001]
+    paths:
+      - ".github/workflows/rawrphos-zerogpu-smoke.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  private-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HF_TOKEN: ${{ secrets.HFtoken }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install authenticated Space client
+        run: |
+          python -m pip install --disable-pip-version-check 'huggingface_hub>=1.3,<2' 'gradio_client>=1.8,<2'
+      - name: Verify zero-cost hardware and actual private model API
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          import time
+          from huggingface_hub import HfApi
+          from gradio_client import Client
+          token=os.environ.get("HF_TOKEN","")
+          if len(token)<20: raise RuntimeError("HF token not configured")
+          repo="phera-ra/rawrphos-12k-zerogpu"
+          sha="339fb8e1d6f3950e2aa15a6e33bf8c0f28dd655cefc93b7926fb7545e7e97601"
+          api=HfApi(token=token)
+          assert api.whoami()["name"]=="phera-ra"
+          assert api.space_info(repo).private
+          ready=False
+          for i in range(100):
+              runtime=api.get_space_runtime(repo)
+              current=str(runtime.hardware or "").lower()
+              requested=str(runtime.requested_hardware or "").lower()
+              assert current=="zero-a10g" or requested=="zero-a10g", (current,requested)
+              stage=str(runtime.stage or "").upper()
+              print("SPACE_STATE", stage, "HARDWARE",requested or current,flush=True)
+              if stage=="RUNNING":
+                  ready=True; break
+              if "ERROR" in stage or "PAUSED" in stage or "RUNTIME" in stage:
+                  raise RuntimeError("Space failed or stopped; inspect build logs")
+              time.sleep(5)
+          if not ready:
+              raise TimeoutError("Private ZeroGPU Space did not reach RUNNING state")
+          client=Client(repo,token=token,verbose=False)
+          info=client.predict(api_name="/model_info")
+          assert info["model_id"]=="rawrphos-native",info
+          assert info["training_steps"]==12000,info
+          assert info["checkpoint_sha256"]==sha,info
+          print("PRIVATE_ZERO_GPU_12K_IDENTITY_PASS",flush=True)
+          response=client.predict("Once upon a time,",8,api_name="/predict")
+          assert isinstance(response,str) and bool(response.strip()),type(response)
+          print("PRIVATE_ZERO_GPU_REAL_INFERENCE_PASS", "chars",len(response),flush=True)
+          print("NO_PAID_HARDWARE_NO_PRODUCTION_BRAIN_BAY_CHANGE",flush=True)
+          PY
