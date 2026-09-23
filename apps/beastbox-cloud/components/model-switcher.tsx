@@ -94,21 +94,24 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
   {!backendReachable?<p role="status">Connect the durable backend before selecting a model.</p>:!catalog?<p role="status">Reading available models…</p>:
    <>
     <p role="status">Active profile: <strong>{catalog.active.model}</strong> ({catalog.active.remote?'remote':'local'}).
+     {catalog.active.model==='rawrphos-native'&&catalog.active.loaded_step?' Loaded native step: '+catalog.active.loaded_step+'.':null}
      {catalog.reapproval_required?' Remote model needs owner approval after restart.':null}
     </p>
     {catalog.choices.map(option=>{
      const active=catalog.active.model===option.model&&
-      (option.choice==='local'?!catalog.active.remote:catalog.active.remote);
+      (option.kind==='local'?!catalog.active.remote:catalog.active.remote);
      const remote=option.requires_spend_approval;
+     const native=option.choice==='rawrphos_native';
+     const ready=option.readiness==='INSTALLED_AND_READY';
      return <div className="record" key={option.choice}>
-      <strong>{option.model}</strong> · {option.choice==='local'?'Installed CPU model':option.choice==='huggingface'?'Hugging Face':'Ollama Cloud'}
-      <p>{remote?'Encrypted credential configured. Model inference, account entitlement, available balance and latency are not attested.':'Local weights and loopback were verified on the host. Actual response still requires a completed chat.'}</p>
+      <strong>{option.label||option.model}</strong> · {native?'Native PyTorch CPU':option.choice==='local'?'Installed CPU model':option.choice==='huggingface'?'Hugging Face':'Ollama Cloud'}
+      <p>{native?'Status: '+option.readiness.replaceAll('_',' ')+(option.loaded_step?' · Loaded step '+option.loaded_step:'')+'. '+(ready?'Pinned 12K identity and loopback verified; real chat still needs completion.':'Not selectable until Railway installs and verifies the model. No automatic fallback.'):remote?'Encrypted credential configured. Model inference, account entitlement, available balance and latency are not attested.':'Local weights and loopback were verified on the host. Actual response still requires a completed chat.'}</p>
       <button type="button" className="outline-action"
-       disabled={busy||(remote&&!spendApproved)||(!remote&&active)}
+       disabled={busy||(remote&&!spendApproved)||(!remote&&active)||(native&&!ready)}
        onClick={()=>void choose(option.choice)}>
        {active?<Check size={15}/>:<ShieldCheck size={15}/>}
        {active&&!(remote&&catalog.reapproval_required)?'Currently selected':
-        remote?(active?'Reapprove saved remote model':'Select saved remote model'):'Switch to local model'}
+        remote?(active?'Reapprove saved remote model':'Select saved remote model'):native?'Select RAWRPHØS':'Switch to local model'}
       </button>
       {option.choice==='ollama_cloud'&&<div className="record" aria-label="Ollama cloud model choices">
        <h3>Ollama cloud models</h3>
