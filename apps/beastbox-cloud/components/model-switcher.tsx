@@ -57,6 +57,7 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
    setNotice(
     result.brain_changed===false?'This brain was already selected; no new inference was performed.':
     choice==='local'?'Selected the verified local tiny model. Existing substrate retained; no paid inference was made.':
+    choice==='rawrphos_native'?'Selected the verified native 12K CPU checkpoint. COSMOS substrate retained; no paid inference was made.':
     'Selected a configured cloud profile. A live answer is still unverified; any future requests may incur provider charges.'
    );
   }catch(e){setError((e as Error).message);}
@@ -68,14 +69,17 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
   {!backendReachable?<p role="status">Connect the durable backend before selecting a model.</p>:!catalog?<p role="status">Reading available models…</p>:
    <>
     <p role="status">Active profile: <strong>{catalog.active.model}</strong> ({catalog.active.remote?'remote':'local'}).
+     {catalog.active.model==='rawrphos-native'&&catalog.active.loaded_step?' Loaded native step: '+catalog.active.loaded_step+'.':null}
      {catalog.reapproval_required?' Remote model needs fresh owner approval after restart.':null}
     </p>
     {catalog.active.remote&&catalog.active.model==='gpt-oss:120b'&&
      <p role="status">This is an Ollama local model ID, not the advertised cloud ID. In Settings → Ollama Cloud, correct the saved model name to <code>gpt-oss:120b-cloud</code> without re-entering your encrypted key. Switch to local before editing the active model.</p>}
     {catalog.choices.map(option=>{
      const active=catalog.active.model===option.model&&
-      (option.choice==='local'?!catalog.active.remote:catalog.active.remote);
+      (option.kind==='local'?!catalog.active.remote:catalog.active.remote);
      const remote=option.requires_spend_approval;
+     const native=option.choice==='rawrphos_native';
+     const ready=option.readiness==='INSTALLED_AND_READY';
      return <div className="record" key={option.choice}>
       <strong>{option.model}</strong> · {option.choice==='local'?'Installed CPU model':option.choice==='huggingface'?'Hugging Face':'Ollama Cloud'}
       <p>{remote?'Encrypted credential configured. Model inference, available balance and latency have not been verified.':'Local weights and loopback were verified on the host. Actual response still needs a completed chat.'}</p>
