@@ -26,7 +26,7 @@ COPY apps/beastbox-cloud/bridge/ apps/beastbox-cloud/bridge/
 COPY models/rawrphos/ models/rawrphos/
 # Formatting changes whitespace only; Railway still terminates HTTPS upstream.
 RUN caddy fmt --overwrite apps/beastbox-cloud/bridge/deploy/Caddyfile
-RUN pip install --no-cache-dir --no-compile '.[secure]' 'azure-storage-blob>=12.20,<13' \
+RUN pip install --no-cache-dir --no-compile '.[secure]' 'azure-storage-blob>=12.20,<13' 'gradio-client>=1.14,<2' \
  && pip install --no-cache-dir --no-compile --no-index --find-links=/wheels \
       "llama-cpp-python[server]==0.3.16" \
  && rm -rf /wheels \
