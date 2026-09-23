@@ -1,0 +1,107 @@
+name: RAWRPHOS native 12K local integration smoke
+on:
+  push:
+    branches: [feature/rawrphos-native-model-001]
+    paths:
+      - ".github/workflows/rawrphos-12k-integration.yml"
+      - "beastbox/rawrphos_local.py"
+      - "apps/beastbox-cloud/bridge/owner_bridge.py"
+      - "models/rawrphos/inference/**"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-12k:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      WEIGHT_SHA: 339fb8e1d6f3950e2aa15a6e33bf8c0f28dd655cefc93b7926fb7545e7e97601
+      ARCHIVE_SHA: c956ba605f1194587c73f471103d97d86c496b89f943380fb480862f4df60613
+      BASE_URL: https://github.com/NavisWORLD/The-beast-box-/releases/download/rawrphos-native-step-00012000-run-35819774878
+      RAWRPHOS_API_KEY: synthetic-ci-only-native-key-not-a-secret-123456789
+      BEASTBOX_TINY_LOCAL_ENABLED: "no"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install native CPU inference and existing Beast Box
+        run: |
+          python -m pip install --disable-pip-version-check 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check -e 'models/rawrphos[serve]' -e .
+      - name: Download and verify immutable 12K checkpoint
+        run: |
+          set -euo pipefail
+          mkdir -p .rawrphos-12k
+          cd .rawrphos-12k
+          curl -fLsS --retry 2 "$BASE_URL/rawrphos-native-step-00012000.tar.gz" -o rawrphos-native-step-00012000.tar.gz
+          curl -fLsS --retry 2 "$BASE_URL/receipt.json" -o receipt.json
+          curl -fLsS --retry 2 "$BASE_URL/SHA256SUMS" -o SHA256SUMS
+          printf '%s  %s\n' "$ARCHIVE_SHA" rawrphos-native-step-00012000.tar.gz | sha256sum --check
+          sha256sum --check SHA256SUMS
+          python - <<'PY'
+          from pathlib import Path, PurePosixPath
+          import tarfile
+          root = Path('.')
+          with tarfile.open(root / 'rawrphos-native-step-00012000.tar.gz') as archive:
+              for item in archive.getmembers():
+                  name = PurePosixPath(item.name)
+                  assert name.parts and name.parts[0] == 'step-00012000'
+                  assert not name.is_absolute() and '..' not in name.parts
+                  assert item.isfile() or item.isdir()
+              archive.extractall(root, filter='data')
+          PY
+          cd ..
+          python -m rawrphos.inference.cli --checkpoint .rawrphos-12k/step-00012000 \
+            --expected-sha256 "$WEIGHT_SHA" info
+      - name: Real native CLI, authenticated server and durable owner selector
+        run: |
+          set -euo pipefail
+          export RAWRPHOS_CHECKPOINT_PATH="$PWD/.rawrphos-12k/step-00012000"
+          timeout 90 python -m rawrphos.inference.cli --checkpoint "$RAWRPHOS_CHECKPOINT_PATH" \
+            --expected-sha256 "$WEIGHT_SHA" prompt 'Once upon a time,' --max-tokens 8 --temperature 0
+          python -m rawrphos.inference.server --checkpoint "$RAWRPHOS_CHECKPOINT_PATH" \
+            --expected-sha256 "$WEIGHT_SHA" --port 8767 &
+          model_pid=$!
+          trap 'kill "$model_pid" 2>/dev/null || true' EXIT
+          timeout 180 python - <<'PY'
+          import importlib.util
+          import json
+          import tempfile
+          import time
+          from pathlib import Path
+          from beastbox.rawrphos_local import status
+          from beastbox.providers import _local_opener
+          for attempt in range(120):
+              if status()['readiness'] == 'INSTALLED_AND_READY':
+                  break
+              time.sleep(1)
+          else:
+              raise AssertionError('actual native 12K model never became ready')
+          spec = importlib.util.spec_from_file_location('owner_bridge_real_12k', Path('apps/beastbox-cloud/bridge/owner_bridge.py'))
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          token = 'synthetic-ci-owner-token-' + 'x' * 40
+          with tempfile.TemporaryDirectory() as temp:
+              app = module.OwnerBridge(Path(temp), token)
+              before = app.app.dispatch('GET', '/api/orbit')[1]['runtime']
+              assert app.dispatch('GET', '/api/models', '')[0] == 401
+              code, catalog = app.dispatch('GET', '/api/models', 'Bearer ' + token)
+              assert code == 200
+              native = next(row for row in catalog['choices'] if row['choice'] == 'rawrphos_native')
+              assert native['loaded_step'] == 12000
+              assert native['readiness'] == 'INSTALLED_AND_READY'
+              code, receipt = app.dispatch('POST', '/api/models', 'Bearer ' + token, b'{"choice":"rawrphos_native"}')
+              assert code == 200, receipt
+              assert receipt['checkpoint_sha256'] == native['checkpoint_sha256']
+              code, answer = app.dispatch('POST', '/api/chat', 'Bearer ' + token,
+                                          json.dumps({'text':'Once upon a time,'}).encode())
+              assert code == 200, answer.get('error', 'chat failed')
+              assert isinstance(answer['result']['response'], str)
+              assert answer['result']['response']
+              after = answer['runtime']
+              assert before['system_id'] == after['system_id']
+              restarted = module.OwnerBridge(Path(temp), token)
+              assert restarted.app.profile.model == 'rawrphos-native'
+          print('REAL_12K_CLI_HTTP_OWNER_CHAT_AND_RESTART_PASS', native['checkpoint_sha256'], flush=True)
+          PY

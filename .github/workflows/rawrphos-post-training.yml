@@ -1,0 +1,153 @@
+name: RAWRPHOS pinned CPU post-training verification
+
+on:
+  push:
+    branches:
+      - feature/rawrphos-post-training-001
+    paths:
+      - models/rawrphos/**
+      - .github/workflows/rawrphos-post-training.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rawrphos-post-training-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-native:
+    if: github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/feature/rawrphos-post-training-001'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PYTHONPATH: ${{ github.workspace }}/models
+      RAWR_EXPECTED_SHA: 35476cc6a6a40eb3f22c0a990f9a6e93aa82af79eaa64ecd9bd3df2719648606
+      RAWR_EXPECTED_ARCHIVE: bbfa9203d49bacfa49b404d874ce00155f9697cfe8dae8fa30213d10b55962ed
+      RAWR_RELEASE: https://github.com/NavisWORLD/The-beast-box-/releases/download/rawrphos-native-step-00006000-run-35782780734
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing CPU-only research dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'pyarrow>=15,<24' 'pytest>=8,<10' 'numpy>=1.26,<3' 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'uvicorn>=0.30,<1' 'psutil>=6,<9'
+      - name: Test original model, inference, and new CLI code
+        run: python -m pytest -q models/rawrphos/tests
+      - name: Fetch and independently hash the exact public step-6000 release
+        run: |
+          set -euo pipefail
+          mkdir -p .rawrphos-verify/release
+          cd .rawrphos-verify/release
+          curl --fail --location --retry 2 --silent --show-error "$RAWR_RELEASE/rawrphos-native-step-00006000.tar.gz" -o rawrphos-native-step-00006000.tar.gz
+          curl --fail --location --retry 2 --silent --show-error "$RAWR_RELEASE/receipt.json" -o receipt.json
+          curl --fail --location --retry 2 --silent --show-error "$RAWR_RELEASE/SHA256SUMS" -o SHA256SUMS
+          printf '%s  %s\n' "$RAWR_EXPECTED_ARCHIVE" rawrphos-native-step-00006000.tar.gz | sha256sum --check
+          sha256sum --check SHA256SUMS
+          python - <<'PY'
+          import json, os, pathlib, tarfile
+          root = pathlib.Path('.')
+          receipt = json.loads((root/'receipt.json').read_text())
+          assert receipt['schema'] == 'rawrphos-native-release-receipt-v1'
+          assert receipt['source_commit'] == 'd13d5a917b76891f36cd2b4e13dee88e3b45922c'
+          assert receipt['training_steps'] == 6000 and receipt['training_tokens'] == 6144000
+          assert receipt['checkpoint_sha256'] == os.environ['RAWR_EXPECTED_SHA']
+          assert receipt['archive_sha256'] == os.environ['RAWR_EXPECTED_ARCHIVE']
+          with tarfile.open('rawrphos-native-step-00006000.tar.gz') as archive:
+              for entry in archive.getmembers():
+                  name = pathlib.PurePosixPath(entry.name)
+                  assert name.parts and name.parts[0] == 'step-00006000'
+                  assert '..' not in name.parts and (entry.isfile() or entry.isdir())
+              archive.extractall(root, filter='data')
+          print('PINNED_RELEASE_ARCHIVE_AND_RECEIPT_VERIFIED', flush=True)
+          PY
+      - name: Load actual model weights, manifest, tokenizer and complete resume state
+        run: |
+          python - <<'PY'
+          import os
+          from rawrphos.training.checkpoint import load_checkpoint
+          path='.rawrphos-verify/release/step-00006000'
+          result=load_checkpoint(path, expected_checkpoint_sha256=os.environ['RAWR_EXPECTED_SHA'], load_training_state=True)
+          assert {'optimizer','rng','data_rng'} <= result['state'].keys()
+          assert result['model'].parameter_count() == 3909956
+          assert result['metadata']['training_steps'] == 6000
+          print('ACTUAL_MODEL_TOKENIZER_OPTIMIZER_RNG_VERIFIED', flush=True)
+          PY
+      - name: Smoke real checkpoint through CLI, HTTP and existing durable Beast Box runtime
+        run: |
+          set -euo pipefail
+          python -m rawrphos.inference.cli --checkpoint .rawrphos-verify/release/step-00006000 info > .rawrphos-verify/model-info.json
+          python - <<'PY'
+          import json, os, tempfile
+          from fastapi.testclient import TestClient
+          from rawrphos.inference.server import create_app
+          from rawrphos.adapters.beastbox_provider import NativeProvider
+          from beastbox.durable import DurableRuntime
+
+          checkpoint = '.rawrphos-verify/release/step-00006000'
+          expected = os.environ['RAWR_EXPECTED_SHA']
+          info = json.load(open('.rawrphos-verify/model-info.json'))
+          assert info['checkpoint_sha256'] == expected and info['training_steps'] == 6000
+          key = 'ci-local-test-key-' + 'x' * 32
+          client = TestClient(create_app(checkpoint, key, max_new_tokens=16, expected_sha256=expected))
+          auth = {'Authorization': 'Bearer ' + key}
+          assert client.get('/ready', headers=auth).json()['checkpoint_sha256'] == expected
+          assert client.get('/model/info', headers=auth).json()['training_steps'] == 6000
+          assert client.get('/model/info').status_code == 401
+          body = {'model': 'rawrphos-native', 'max_tokens': 8, 'temperature': 0}
+          completion = client.post('/v1/completions', headers=auth,
+                                   json=dict(body, prompt='Once upon a time,'))
+          assert completion.status_code == 200, completion.text
+          assert completion.json()['usage']['completion_tokens'] > 0
+          chat = client.post('/v1/chat/completions', headers=auth,
+                             json=dict(body, messages=[{'role': 'user', 'content': 'Tell me a short story.'}]))
+          assert chat.status_code == 200, chat.text
+          assert isinstance(chat.json()['choices'][0]['message']['content'], str)
+          with tempfile.TemporaryDirectory() as location:
+              provider = NativeProvider(checkpoint, max_new_tokens=8)
+              runtime = DurableRuntime(location, provider)
+              try:
+                  result = runtime.respond('The little fly is named Moss.')
+                  assert result['model']['model'] == 'rawrphos-native'
+                  assert result['checkpoint']
+                  assert runtime.inspect()['valid'] is True
+              finally:
+                  runtime.close()
+          print('NATIVE_FINAL_CLI_HTTP_DURABLE_RUNTIME_SMOKE_PASS', flush=True)
+          PY
+      - name: Reacquire verified public corpus for real held-out ablations
+        run: |
+          set -euo pipefail
+          python models/rawrphos/scripts/fetch_public_data.py --output .rawrphos-verify/public
+          python -m rawrphos.data.corpus --input .rawrphos-verify/public/public-input.jsonl --output .rawrphos-verify/corpus --seed 67
+      - name: Benchmark native inference and five controlled modes; no training
+        run: |
+          python -m rawrphos.evaluation.benchmark \
+            --checkpoint .rawrphos-verify/release/step-00006000 \
+            --corpus .rawrphos-verify/corpus \
+            --max-tokens 24 --threads 4 \
+            --output .rawrphos-verify/post-training-benchmark.json
+          python - <<'PY'
+          import json
+          p='.rawrphos-verify/post-training-benchmark.json'
+          r=json.load(open(p))
+          assert r['status']=='measured'
+          assert len(r['ablations'])==5 and len(r['samples'])==8
+          assert r['context_limit_rejected'] and r['cancellation_rejected']
+          print('POST_TRAINING_MEASURED_MODES',json.dumps(r['ablations']),flush=True)
+          print('BENCHMARK_REPORT',p,flush=True)
+          PY
+      - name: Preserve lightweight measured report, never weights or private data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawrphos-post-training-${{ github.run_id }}
+          path: .rawrphos-verify/post-training-benchmark.json
+          if-no-files-found: ignore
+          retention-days: 30
