@@ -215,6 +215,7 @@ class OwnerBridge:
                 "requires_spend_approval": False,
                 "readiness": "LOCAL_WEIGHTS_AND_LOOPBACK_VERIFIED",
             })
+        choices.append(native_status())
         if self.vault is not None:
             for item in self.vault.list_public()["connections"]:
                 if item["provider"] in MODELS and item["configured"]:
