@@ -42,7 +42,7 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
       const choice=input.choice;
       if(choice==='local'||choice==='rawrphos_native'){
         if(keys!=='choice')return safeJson(400,{error:'Local model selection accepts only choice'});
-      }else if(choice==='huggingface'||choice==='ollama_cloud'){
+      }else if(choice==='huggingface'||choice==='ollama_cloud'||choice==='rawrphos_hf'){
         const selectedModel=choice==='ollama_cloud'&&typeof input.model==='string';
         if(keys!==(selectedModel?'choice,model,spend_approved':'choice,spend_approved')||
            input.spend_approved!==true||
