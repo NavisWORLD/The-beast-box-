@@ -30,6 +30,7 @@ SOURCE_FILES = (
     "models/rawrphos/architecture/generation.py",
     "models/rawrphos/tokenizer/tokenizer.py",
     "models/rawrphos/inference/engine.py",
+    "models/rawrphos/inference/snapshot.py",
     "models/rawrphos/inference/server.py",
     "models/rawrphos/training/checkpoint.py",
     "models/rawrphos/pyproject.toml",
