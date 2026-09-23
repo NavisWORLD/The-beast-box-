@@ -3,13 +3,20 @@ import threading
 import time
 import torch
 from rawrphos.training.checkpoint import load_checkpoint
+from rawrphos.inference.snapshot import load_inference_snapshot
+from pathlib import Path
 from rawrphos.architecture.generation import generate
 
 class Engine:
     def __init__(self,checkpoint,max_new_tokens=256,threads=4,expected_sha256=None):
         if type(max_new_tokens) is not int or not 1<=max_new_tokens<=1024: raise ValueError('invalid host token budget')
         torch.set_num_threads(threads); started=time.perf_counter()
-        loaded=load_checkpoint(checkpoint,expected_checkpoint_sha256=expected_sha256,load_training_state=False)
+        if (Path(checkpoint) / "inference-manifest.json").is_file():
+            if expected_sha256 is None:
+                raise ValueError("published inference snapshots require a pinned weight SHA")
+            loaded = load_inference_snapshot(checkpoint, expected_checkpoint_sha256=expected_sha256)
+        else:
+            loaded = load_checkpoint(checkpoint,expected_checkpoint_sha256=expected_sha256,load_training_state=False)
         self.model=loaded['model'].eval(); self.tokenizer=loaded['tokenizer']; self.metadata=loaded['metadata']
         self.load_seconds=time.perf_counter()-started; self.max_new_tokens=max_new_tokens
         self.lock=threading.Lock(); self.last_success=None; self.last_metrics={}
