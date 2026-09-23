@@ -242,6 +242,18 @@ class OwnerBridge:
                 "no_paid_inference": True, "inference": "NOT_ATTESTED_UNTIL_REAL_CHAT",
                 "substrate": "EXISTING_DURABLE_STATE",
             }
+        if choice == "rawrphos_native" and set(data) == {"choice"}:
+            ready = native_status()
+            if ready["readiness"] != "INSTALLED_AND_READY":
+                return 503, {"error": "RAWRPHØS unavailable: " + ready["readiness"] +
+                             ". Select another model explicitly; no automatic fallback."}
+            profile, changed, revoked = self.app._set_profile(native_profile())
+            return 200, {"selected": "rawrphos_native", "model": profile.model,
+                         "loaded_step": ready["loaded_step"],
+                         "checkpoint_sha256": ready["checkpoint_sha256"],
+                         "brain_changed": changed, "authority_revoked": revoked,
+                         "no_paid_inference": True, "inference": "NOT_ATTESTED_UNTIL_REAL_CHAT",
+                         "substrate": "EXISTING_DURABLE_STATE"}
         if (choice in MODELS and set(data) == {"choice", "spend_approved"}
                 and data["spend_approved"] is True):
             status, result = self._connection_action({
