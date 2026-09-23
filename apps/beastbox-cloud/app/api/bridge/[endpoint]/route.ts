@@ -40,7 +40,7 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
     if(endpoint==='models'){
       const keys=Object.keys(input).sort().join(',');
       const choice=input.choice;
-      if(choice==='local'){
+      if(choice==='local'||choice==='rawrphos_native'){
         if(keys!=='choice')return safeJson(400,{error:'Local model selection accepts only choice'});
       }else if(choice==='huggingface'||choice==='ollama_cloud'){
         const selectedModel=choice==='ollama_cloud'&&typeof input.model==='string';
