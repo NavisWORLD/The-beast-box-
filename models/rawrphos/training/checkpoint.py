@@ -27,7 +27,9 @@ def save_checkpoint(path,model,tokenizer,metadata,state):
     # Fail before creating a bundle: finite grads do not guarantee finite weights.
     if not all(bool(torch.isfinite(v).all()) for v in model.state_dict().values()):
         raise FloatingPointError('refusing to checkpoint nonfinite model parameters')
-    if not all(bool(torch.isfinite(v).all()) for entry in state['optimizer']['state'].values()
+    # Inference-only synthetic fixtures historically save RNG but no optimizer.
+    # Check moments when present; real training/resume still requires all states.
+    if 'optimizer' in state and not all(bool(torch.isfinite(v).all()) for entry in state['optimizer']['state'].values()
                for v in entry.values() if isinstance(v,torch.Tensor)):
         raise FloatingPointError('refusing to checkpoint nonfinite optimizer state')
     path=Path(path)
