@@ -4,13 +4,13 @@ from dataclasses import asdict,dataclass
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import platform
 import random
 import resource
 import subprocess
 import time
-import traceback
 import torch
 from rawrphos.architecture.model import RawrphosConfig,RawrphosLM
 from rawrphos.tokenizer.tokenizer import RawrphosTokenizer
@@ -78,8 +78,14 @@ def source_identity():
     files={str(p.relative_to(Path(__file__).resolve().parents[1])):sha(p.read_bytes()) for p in sorted(paths)}
     return {'commit':commit,'dirty':dirty,'source_files':files,'source_sha256':sha(canonical(files))}
 
-def train(corpus,output,model_config,training_config,steps=None,resume=None):
+def train(corpus,output,model_config,training_config,steps=None,resume=None,target_steps=None):
     c=training_config; output=Path(output); output.mkdir(parents=True,exist_ok=True)
+    # Keep the original 6K training configuration and LR schedule intact. Extension
+    # is an explicit cumulative cap, not a new initialization or scheduler reset.
+    if target_steps is not None:
+        if type(target_steps) is not int or target_steps<=c.total_steps or target_steps>60000 or not resume:
+            raise ValueError('continuation requires a verified resume and a bounded larger target')
+    effective_target=c.total_steps if target_steps is None else target_steps
     requested_model_config=model_config.to_dict()
     torch.set_num_threads(c.threads); torch.manual_seed(c.seed); random.seed(c.seed)
     torch.use_deterministic_algorithms(True)
@@ -93,6 +99,10 @@ def train(corpus,output,model_config,training_config,steps=None,resume=None):
         if meta['requested_model_config']!=requested_model_config: raise ValueError('resume architecture mismatch')
         model=loaded['model']; tokenizer=loaded['tokenizer']; start_step=meta['training_steps']
         initial_hash=meta['initial_parameter_sha256']; history=list(meta['validation_history'])
+        if target_steps is not None and start_step<c.total_steps:
+            raise ValueError('complete the original training target before extending')
+        if target_steps is None and start_step>=c.total_steps:
+            raise ValueError('completed checkpoint requires explicit continuation target')
         gen.set_state(state['data_rng']); parent=meta['checkpoint_sha256']; prior_seconds=meta['training_seconds']
     else:
         tokenizer=RawrphosTokenizer.train((r['text'] for r in data['train']),c.vocab_size)
@@ -104,9 +114,13 @@ def train(corpus,output,model_config,training_config,steps=None,resume=None):
         optimizer.load_state_dict(state['optimizer']); restore_rng(state['rng'])
     train_tokens=pack(data['train'],tokenizer); val_tokens=pack(data['validation'],tokenizer)
     if not history: history.append(dict(step=0,**validate(model,val_tokens,c)))
-    end=min(c.total_steps,start_step+(c.total_steps-start_step if steps is None else steps))
+    if steps is not None and (type(steps) is not int or steps<1):
+        raise ValueError('steps must be a positive integer')
+    end=min(effective_target,start_step+(effective_target-start_step if steps is None else steps))
     if end<=start_step: raise ValueError('no optimizer steps requested')
-    latest=None; last_loss=None; run_tokens=0; optimization_started=time.perf_counter()
+    latest=Path(resume) if resume else None
+    last_complete_step=start_step
+    last_loss=None; run_tokens=0; optimization_started=time.perf_counter()
     log=output/'training.jsonl'
     try:
         for step in range(start_step,end):
@@ -117,8 +131,17 @@ def train(corpus,output,model_config,training_config,steps=None,resume=None):
                 if not bool(torch.isfinite(loss)): raise FloatingPointError('nonfinite training loss')
                 (loss/c.gradient_accumulation).backward(); loss_value+=loss.item()/c.gradient_accumulation
             grad=torch.nn.utils.clip_grad_norm_(model.parameters(),c.gradient_clip,error_if_nonfinite=True)
-            optimizer.step(); run_tokens+=c.batch_size*c.seq_len*c.gradient_accumulation; last_loss=loss_value
+            optimizer.step()
+            # Finite loss/gradient alone does not guarantee a finite optimizer update.
+            # Never serialize or publish poisoned parameters or optimizer moments.
+            if not all(bool(torch.isfinite(p).all()) for p in model.parameters()):
+                raise FloatingPointError('nonfinite model parameters after optimizer step')
+            if not all(bool(torch.isfinite(v).all()) for state in optimizer.state.values()
+                       for v in state.values() if isinstance(v,torch.Tensor)):
+                raise FloatingPointError('nonfinite optimizer state after optimizer step')
+            run_tokens+=c.batch_size*c.seq_len*c.gradient_accumulation; last_loss=loss_value
             current=step+1
+            last_complete_step=current
             if current%c.eval_every==0 or current==end:
                 measurement=dict(step=current,train_loss=loss_value,gradient_norm=float(grad),
                     learning_rate=optimizer.param_groups[0]['lr'],**validate(model,val_tokens,c))
@@ -126,11 +149,12 @@ def train(corpus,output,model_config,training_config,steps=None,resume=None):
                 with log.open('a') as f: f.write(json.dumps(measurement)+'\n')
                 print(json.dumps(measurement),flush=True)
             if current%c.checkpoint_every==0 or current==end:
-                elapsed=time.perf_counter()-began; latest=output/f'step-{current:08d}'
+                elapsed=time.perf_counter()-began; candidate=output/f'step-{current:08d}'
                 metadata={'schema':'rawrphos-training-v1','training_steps':current,
                     'training_tokens':current*c.batch_size*c.seq_len*c.gradient_accumulation,
                     'corpus_token_counts':{'train':len(train_tokens),'validation':len(val_tokens)},
                     'training_config':asdict(c),'training_config_sha256':sha(canonical(asdict(c))),
+                    'continuation_target_steps':effective_target,
                     'requested_model_config':requested_model_config,
                     'dataset_manifest_sha256':dataset_hash,'initial_parameter_sha256':initial_hash,
                     'parent_checkpoint_sha256':parent,'source':source,'validation_history':history,
@@ -141,19 +165,32 @@ def train(corpus,output,model_config,training_config,steps=None,resume=None):
                     'precision':'float32','training_seq_len':c.seq_len,'context_limit':model.config.max_seq_len,
                     'context_extrapolation_validated':False,'failure_status':None,'financial_cost':None,
                     'release_status':'trained-candidate','adaptation_during_inference':False}
-                save_checkpoint(latest,model,tokenizer,metadata,{'optimizer':optimizer.state_dict(),'rng':rng_state(),'data_rng':gen.get_state()})
-                (output/'latest.json').write_text(json.dumps({'checkpoint':str(latest.resolve()),'step':current}))
+                save_checkpoint(candidate,model,tokenizer,metadata,{'optimizer':optimizer.state_dict(),'rng':rng_state(),'data_rng':gen.get_state()})
+                latest=candidate
+                marker=output/'latest.json'
+                temp_marker=output/'latest.json.tmp'
+                temp_marker.write_text(json.dumps({'checkpoint':str(latest.resolve()),'step':current}))
+                temp_marker.replace(marker)
         return {'checkpoint':str(latest.resolve()),'steps':end,'validation':history[-1]}
     except BaseException as exc:
+        # This append-only receipt remains available to the workflow's always()
+        # diagnostics upload; the immutable previously released checkpoint is safe.
+        failure={'schema':'rawrphos-training-failure-v1',
+                 'attempted_step':locals().get('step',start_step)+1,
+                 'last_completed_step':last_complete_step,
+                 'error_type':type(exc).__name__, 'error':str(exc)[:512],
+                 'last_complete_checkpoint':None if latest is None else str(latest),
+                 'last_complete_checkpoint_sha256':parent if latest==Path(resume) and resume else None,
+                 'time':time.time()}
         with (output/'failures.jsonl').open('a') as f:
-            f.write(json.dumps({'step':locals().get('step',start_step),'error_type':type(exc).__name__,
-                'last_complete_checkpoint':None if latest is None else str(latest),'time':time.time()})+'\n')
+            f.write(json.dumps(failure,sort_keys=True)+'\n'); f.flush(); os.fsync(f.fileno())
         raise
 
 def main():
     p=argparse.ArgumentParser(); p.add_argument('--corpus',required=True); p.add_argument('--output',required=True)
     p.add_argument('--model-config',required=True); p.add_argument('--training-config',required=True)
     p.add_argument('--steps',type=int); p.add_argument('--resume')
+    p.add_argument('--target-steps',type=int,help='explicit cumulative continuation target; keep original 6K optimizer schedule')
     a=p.parse_args(); mc=RawrphosConfig.from_dict(json.loads(Path(a.model_config).read_text())); tc=TrainingConfig(**json.loads(Path(a.training_config).read_text()))
-    print(json.dumps(train(a.corpus,a.output,mc,tc,a.steps,a.resume),indent=2))
+    print(json.dumps(train(a.corpus,a.output,mc,tc,a.steps,a.resume,a.target_steps),indent=2))
 if __name__=='__main__': main()
