@@ -224,7 +224,8 @@ class OwnerBridge:
                 "readiness": "LOCAL_WEIGHTS_AND_LOOPBACK_VERIFIED",
             })
         choices.append(native_status())
-        hf_configured = self.vault is not None and self.vault.public("huggingface")["configured"]
+        listed = self.vault.list_public()["connections"] if self.vault is not None else []
+        hf_configured = any(row["provider"] == "huggingface" and row["configured"] for row in listed)
         choices.append({"choice": "rawrphos_hf", "model": HF_NATIVE_MODEL,
                         "label": "RAWRPHØS Native 12K — Private HF ZeroGPU", "kind": "remote",
                         "configured": bool(hf_configured), "requires_spend_approval": True,
@@ -232,7 +233,7 @@ class OwnerBridge:
                                      else "HF_OWNER_CREDENTIAL_NOT_CONFIGURED",
                         "loaded_step": HF_NATIVE_STEP if hf_configured else None})
         if self.vault is not None:
-            for item in self.vault.list_public()["connections"]:
+            for item in listed:
                 if item["provider"] in MODELS and item["configured"]:
                     choices.append({
                         "choice": item["provider"],
@@ -247,7 +248,8 @@ class OwnerBridge:
         return {
             "active": {"model": profile.model, "kind": profile.kind,
                        "remote": profile.remote,
-                       "loaded_step": native["loaded_step"] if profile.model == NATIVE_ID else None},
+                       "loaded_step": (HF_NATIVE_STEP if profile.kind == "hf_space" else native["loaded_step"])
+                                       if profile.model == NATIVE_ID else None},
             "remote_grant_active": profile.remote and self.app.authority.allowed("cloud"),
             "reapproval_required": profile.remote and not self.app.authority.allowed("cloud"),
             "choices": choices,
