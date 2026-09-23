@@ -4,6 +4,7 @@ on:
     branches: [feature/rawrphos-native-model-001]
     paths:
       - ".github/workflows/rawrphos-free-zerogpu.yml"
+      - "models/rawrphos/scripts/publish_free_zerogpu.py"
   workflow_dispatch:
 permissions:
   contents: read
