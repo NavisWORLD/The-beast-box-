@@ -1,0 +1,48 @@
+name: RAWRPHOS opt-in CPU image preflight
+on:
+  push:
+    branches: [feature/rawrphos-native-model-001]
+    paths:
+      - ".github/workflows/rawrphos-image-preflight.yml"
+      - "apps/beastbox-cloud/bridge/deploy/Dockerfile.rawrphos"
+      - "apps/beastbox-cloud/bridge/deploy/start_rawrphos.sh"
+      - "models/rawrphos/scripts/install_pinned_12k.py"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-and-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production-shaped image without credentials or Railway mutation
+        run: |
+          set -euo pipefail
+          docker build --progress=plain \
+            -f apps/beastbox-cloud/bridge/deploy/Dockerfile.rawrphos \
+            -t rawrphos-12k-preflight .
+          docker image inspect rawrphos-12k-preflight \
+            --format 'Image bytes: {{.Size}}'
+      - name: Verify both pinned local models and native CPU inference under 2 GB
+        run: |
+          set -euo pipefail
+          docker run --rm --memory=2g --cpus=2 \
+            --entrypoint /bin/bash rawrphos-12k-preflight -ec '
+            export OMP_NUM_THREADS=2
+            python -c "from beastbox.tiny_local import verify_model; verify_model(); print(\"TINY_PINNED_WEIGHTS_PASS\", flush=True)"
+            python -m rawrphos.inference.cli \
+              --checkpoint "$RAWRPHOS_CHECKPOINT_PATH" \
+              --expected-sha256 339fb8e1d6f3950e2aa15a6e33bf8c0f28dd655cefc93b7926fb7545e7e97601 \
+              info
+            python -m rawrphos.inference.cli \
+              --checkpoint "$RAWRPHOS_CHECKPOINT_PATH" \
+              --expected-sha256 339fb8e1d6f3950e2aa15a6e33bf8c0f28dd655cefc93b7926fb7545e7e97601 \
+              prompt "Once upon a time," --max-tokens 8 --temperature 0
+            echo NATIVE_12K_IMAGE_CPU_PREFLIGHT_PASS
+            '
+      - name: Record limitation
+        run: |
+          echo "This proves image build and sequential local inference under a 2 GB container cap."
+          echo "Concurrent SmolLM/native + Caddy/owner bridge and live Railway remain unverified."
+          echo "No production deployment, secret changes, hosting cap changes or training occurred."
