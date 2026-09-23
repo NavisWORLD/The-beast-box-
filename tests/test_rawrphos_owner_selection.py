@@ -60,7 +60,7 @@ def native_choice(app):
 def test_native_selector_preserves_durable_state_and_restart(tmp_path):
     path = checkpoint(tmp_path)
     opener = SimpleNamespace(open=lambda *_a, **_k: Reply(info()))
-    with env(path), patch("beastbox.providers._local_opener", return_value=opener):
+    with env(path), patch("beastbox.rawrphos_local._local_opener", return_value=opener):
         app = BRIDGE.OwnerBridge(tmp_path / "memory", TOKEN)
         before = app.app.dispatch("GET", "/api/orbit")[1]["runtime"]
         assert native_choice(app)["readiness"] == "INSTALLED_AND_READY"
@@ -92,7 +92,7 @@ def test_invalid_checkpoint_and_offline_do_not_switch(tmp_path):
 def test_server_hash_mismatch_is_rejected(tmp_path):
     path = checkpoint(tmp_path)
     opener = SimpleNamespace(open=lambda *_a, **_k: Reply(info("0" * 64)))
-    with env(path), patch("beastbox.providers._local_opener", return_value=opener):
+    with env(path), patch("beastbox.rawrphos_local._local_opener", return_value=opener):
         app = BRIDGE.OwnerBridge(tmp_path / "memory", TOKEN)
         assert native_choice(app)["readiness"] == "FAILED_CHECKPOINT_VERIFICATION"
         assert choice(app)[0] == 503
