@@ -165,8 +165,9 @@ def train(corpus,output,model_config,training_config,steps=None,resume=None,targ
                     'precision':'float32','training_seq_len':c.seq_len,'context_limit':model.config.max_seq_len,
                     'context_extrapolation_validated':False,'failure_status':None,'financial_cost':None,
                     'release_status':'trained-candidate','adaptation_during_inference':False}
-                save_checkpoint(candidate,model,tokenizer,metadata,{'optimizer':optimizer.state_dict(),'rng':rng_state(),'data_rng':gen.get_state()})
+                sealed=save_checkpoint(candidate,model,tokenizer,metadata,{'optimizer':optimizer.state_dict(),'rng':rng_state(),'data_rng':gen.get_state()})
                 latest=candidate
+                parent=sealed['checkpoint_sha256']
                 marker=output/'latest.json'
                 temp_marker=output/'latest.json.tmp'
                 temp_marker.write_text(json.dumps({'checkpoint':str(latest.resolve()),'step':current}))
