@@ -18,10 +18,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Require a private Hugging Face write token
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_TOKEN: ${{ secrets.HFtoken }}
         run: |
           if [ -z "$HF_TOKEN" ]; then
-            echo "::error::HF_TOKEN GitHub Actions secret is not configured; no Hugging Face changes occurred."
+            echo "::error::HFtoken GitHub Actions secret is not configured; no Hugging Face changes occurred."
             exit 1
           fi
       - uses: actions/setup-python@v5
@@ -34,7 +34,7 @@ jobs:
           python -m pip install --disable-pip-version-check 'huggingface_hub>=0.30,<2'
       - name: Verify immutable release and publish inference-only snapshot privately
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_TOKEN: ${{ secrets.HFtoken }}
         run: |
           python models/rawrphos/scripts/publish_huggingface_12k.py --confirm
       - name: Publication is not a deployed inference endpoint
