@@ -50,8 +50,10 @@ def load_inference_snapshot(checkpoint: str | Path, expected_checkpoint_sha256: 
                 or not isinstance(digest, str) or len(digest) != 64):
             raise ValueError("unsafe inference member")
         target = directory / rel
-        if any(parent.is_symlink() for parent in (target, *target.parents)
-               if parent != directory.parent and parent != directory.parent.parent):
+        if target.is_symlink() or any(
+                (directory / parent).is_symlink()
+                for parent in Path(rel).parents if str(parent) != "."
+        ):
             raise ValueError("symlink inference member")
         if not target.is_file() or file_sha256(target) != digest:
             raise ValueError("inference member hash mismatch: " + rel)
