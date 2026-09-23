@@ -9,6 +9,7 @@ on:
       - models/rawrphos/tests/**
       - models/rawrphos/scripts/freeze_training_checkpoint.py
       - .github/workflows/rawrphos-continuation.yml
+      - models/rawrphos/continuation-request.json
   workflow_dispatch:
     inputs:
       target_steps:
@@ -102,7 +103,7 @@ jobs:
 
   train-milestone:
     needs: preflight
-    if: github.event_name == 'workflow_dispatch' && github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/feature/rawrphos-native-model-001'
+    if: (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'train(rawrphos): authorize '))) && github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/feature/rawrphos-native-model-001'
     runs-on: ubuntu-24.04
     timeout-minutes: 200
     permissions:
@@ -123,6 +124,28 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 2
+      - name: Verify explicit one-file training authorization on feature-branch push
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          CHANGED="$(git diff --name-only HEAD^ HEAD)"
+          [[ "$CHANGED" == 'models/rawrphos/continuation-request.json' ]] || { echo 'Training authorization must be the only changed file' >&2; exit 1; }
+          python - <<'PY'
+          import json,os,re,pathlib
+          p=pathlib.Path('models/rawrphos/continuation-request.json')
+          request=json.loads(p.read_text())
+          assert set(request)=={'schema','target_steps','previous_run_id','expected_parent_sha256'}
+          assert request['schema']=='rawrphos-continuation-request-v1'
+          target=request['target_steps']; prior=request['previous_run_id']; digest=request['expected_parent_sha256']
+          assert type(target) is int and target in (12000,24000,36000,48000,60000)
+          assert isinstance(prior,str) and isinstance(digest,str)
+          assert not prior or re.fullmatch(r'[0-9]+',prior)
+          assert not digest or re.fullmatch(r'[a-fA-F0-9]{64}',digest)
+          with open(os.environ['GITHUB_ENV'],'a') as output:
+              output.write(f'TARGET_STEPS={target}\\nPREVIOUS_RUN_ID={prior}\\nEXPECTED_PARENT_SHA={digest}\\n')
+          print('EXPLICIT_ONE_COMMIT_TRAINING_AUTHORIZATION_VERIFIED',target,flush=True)
+          PY
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
