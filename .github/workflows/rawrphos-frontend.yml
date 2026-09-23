@@ -1,0 +1,32 @@
+name: RAWRPHOS owner selector frontend checks
+on:
+  push:
+    branches: [feature/rawrphos-native-model-001]
+    paths:
+      - ".github/workflows/rawrphos-frontend.yml"
+      - "apps/beastbox-cloud/components/model-switcher.tsx"
+      - "apps/beastbox-cloud/app/api/bridge/**"
+      - "apps/beastbox-cloud/tests/preflight.test.mjs"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install application dependencies without changing committed lockfiles
+        run: npm install --no-package-lock --no-audit --no-fund
+      - name: Owner BFF contract tests
+        run: npm test
+      - name: Check TypeScript
+        run: npm run typecheck
+      - name: Build Next.js application
+        run: npm run build
