@@ -98,6 +98,14 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
     </label>:null}
     <button type="button" className="outline-action" disabled={busy} onClick={()=>void refresh().catch(()=>setError('Could not refresh model list.'))}><RefreshCcw size={15}/> Refresh model list</button>
    </>}
+  {!catalog?.choices?.some(option=>option.choice==='rawrphos_native')?
+   <div className="record" role="status" data-testid="rawrphos-native-unavailable">
+    <strong>RAWRPHØS Native — Local CPU (12K)</strong> · Native PyTorch CPU
+    <p>{!backendReachable?'The durable backend is offline. RAWRPHØS is not installed or verified in this session.':
+      !catalog?'Waiting for the real model catalog; RAWRPHØS is not selectable until the host verifies its pinned 12K checkpoint.':
+      'The connected backend does not advertise RAWRPHØS. Update the Railway owner bridge and install the pinned 12K model before selecting it.'}</p>
+    <button type="button" className="outline-action" disabled aria-disabled="true">RAWRPHØS unavailable</button>
+   </div>:null}
   {notice?<p role="status" className="cloud-connect-success">{notice}</p>:null}
   {error?<p role="alert" className="inline-error">{error}</p>:null}
   <p>Changing brains revokes prior model authority. No automatic cloud fallback, secret disclosure, inference charge, or memory reset is authorized by this control. Local and cloud model capabilities can differ.</p>
