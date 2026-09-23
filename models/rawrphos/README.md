@@ -4,7 +4,11 @@ Pronounced RAWR-fohs. Canonical model ID: `rawrphos-native`. Cory Davis /
 COSMOS / Davis Cosmic Synapse Theory. This package preserves the original
 PHOS-derived dyn12 architecture and existing Beast Box runtime boundaries.
 
-**Status:** 6,000 optimizer steps completed on September 22, 2026. This is a
+**Status:** 12,000 cumulative optimizer steps completed on September 23, 2026.
+The original 6K instructions below remain a historical install example; for the
+12K selectable local CPU model, see [the pinned integration guide](../../docs/RAWRPHOS_LOCAL_12K.md).
+
+Historical milestone: 6,000 optimizer steps completed on September 22, 2026. This is a
 3,909,956-parameter *experimental story-continuation candidate*, not a
 production assistant, native Ollama model, or video/audio/vision generator.
 Weights, persistent memory, software state, and tool authority are separate.
