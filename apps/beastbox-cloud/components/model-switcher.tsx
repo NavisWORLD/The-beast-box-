@@ -147,6 +147,14 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
      <RefreshCcw size={15}/> Refresh model list
     </button>
    </>}
+  {!catalog?.choices?.some(option=>option.choice==='rawrphos_native')?
+   <div className="record" role="status" data-testid="rawrphos-native-unavailable">
+    <strong>RAWRPHØS Native — Local CPU (12K)</strong> · Native PyTorch CPU
+    <p>{!backendReachable?'The durable backend is offline. RAWRPHØS cannot be verified.':
+      !catalog?'Reading the real model catalog; native checkpoint not yet attested.':
+      'The connected backend does not advertise RAWRPHØS. Deploy the reconciled Railway owner bridge and pinned 12K checkpoint first.'}</p>
+    <button type="button" className="outline-action" disabled aria-disabled="true">RAWRPHØS unavailable</button>
+   </div>:null}
   {notice?<p role="status" className="cloud-connect-success">{notice}</p>:null}
   {error?<p role="alert" className="inline-error">{error}</p>:null}
   <p>Changing brains revokes previous model authority. No automatic cloud fallback, credential disclosure, inference charge, or memory reset is authorized by this control. Models can give incorrect descriptions of COSMOS memory; use checkpoint and source evidence to verify software continuity.</p>
