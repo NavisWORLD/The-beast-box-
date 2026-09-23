@@ -142,7 +142,7 @@ class OwnerBridge:
         # Check actual weights even if an existing profile is already selected.
         verify_model()
         if (self.app.profile != requested and self.app.profile.kind != "reference"
-                and not self.app.profile.remote):
+                and not self.app.profile.remote and self.app.profile.model != NATIVE_ID):
             raise ValueError("refusing to overwrite a previously selected Beast Box brain")
         # This health request cannot leave this host. Launch happens before
         # OwnerBridge in the opt-in image's entrypoint, never from HTTP input.
