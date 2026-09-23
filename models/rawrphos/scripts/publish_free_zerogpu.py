@@ -78,7 +78,7 @@ def model_info():
 
 
 with gr.Blocks(title="RAWRPHØS Native 12K — Cory Davis / COSMOS") as demo:
-    gr.Markdown("# RAWRPHØS 12K 🪰\nPrivate experimental native-model API, not COSMOS memory or authority.")
+    gr.Markdown("# RAWRPHØS 12K 🪰\\nPrivate experimental native-model API, not COSMOS memory or authority.")
     prompt = gr.Textbox(label="Story prompt", lines=2, max_lines=5)
     max_tokens = gr.Slider(minimum=1, maximum=32, step=1, value=16,
                            label="Output token budget")
@@ -128,7 +128,9 @@ def stage(stage_dir: Path, token: str) -> None:
         dest = stage_dir / "rawrphos" / member
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(src, dest)
-    (stage_dir / "app.py").write_text(gradio_app())
+    app_source = gradio_app()
+    compile(app_source, "<rawrphos-zerogpu-app>", "exec")
+    (stage_dir / "app.py").write_text(app_source)
     (stage_dir / "requirements.txt").write_text(
         "torch==2.8.0\ntokenizers==0.23.2\nsafetensors==0.8.0\ngradio==5.50.0\n"
     )
