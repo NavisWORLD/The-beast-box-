@@ -101,8 +101,14 @@ jobs:
           print('REAL_6000_CHECKPOINT_AND_OPTIMIZER_RESUME_PROBE_PASS',meta['checkpoint_sha256'],flush=True)
           PY
 
+  product-quality:
+    if: github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/feature/rawrphos-native-model-001'
+    uses: ./.github/workflows/product-ci.yml
+    permissions:
+      contents: read
+
   train-milestone:
-    needs: preflight
+    needs: [preflight, product-quality]
     if: >-
       (github.event_name == 'workflow_dispatch' ||
        (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'train(rawrphos): authorize '))) &&
