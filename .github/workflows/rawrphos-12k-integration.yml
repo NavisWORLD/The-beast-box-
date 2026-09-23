@@ -35,6 +35,7 @@ jobs:
           mkdir -p .rawrphos-12k
           cd .rawrphos-12k
           curl -fLsS --retry 2 "$BASE_URL/rawrphos-native-step-00012000.tar.gz" -o rawrphos-native-step-00012000.tar.gz
+          curl -fLsS --retry 2 "$BASE_URL/receipt.json" -o receipt.json
           curl -fLsS --retry 2 "$BASE_URL/SHA256SUMS" -o SHA256SUMS
           printf '%s  %s\n' "$ARCHIVE_SHA" rawrphos-native-step-00012000.tar.gz | sha256sum --check
           sha256sum --check SHA256SUMS
