@@ -60,6 +60,23 @@ To return, explicitly choose the existing SmolLM local option. A remote model
 requires new spending approval. The native internal dyn12 remains untouched;
 external CST control-vector injection is not part of this adapter.
 
+## Optional Railway-compatible host image (not active)
+
+`apps/beastbox-cloud/bridge/deploy/Dockerfile.rawrphos` is an opt-in
+variant of the existing tiny image. It installs CPU PyTorch and reuses the
+existing RAWRPHØS inference package; during build it uses the pinned
+`install_pinned_12k.py` to download and verify the published release.
+It retains the original tiny SmolLM instance, Caddy TLS boundary, and
+COSMOS owner bridge. Its entrypoint `start_rawrphos.sh` starts the
+private native inference server only if `RAWRPHOS_LOCAL_ENABLED=yes`.
+It requires a separately supplied host-only `RAWRPHOS_API_KEY` of at
+least 32 characters; the pinned checkpoint path is baked into the image.
+The native server is not exposed on Caddy/public port 8080.
+
+The existing `Dockerfile.tiny` and production service configuration are
+unchanged. The opt-in image has **not** been built, resource-profiled,
+deployed or authorized for production by a successful source-only test.
+
 ## Production boundary
 
 Source integration and synthetic selection tests do not certify a **live**
