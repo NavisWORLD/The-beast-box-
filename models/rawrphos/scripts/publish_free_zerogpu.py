@@ -60,10 +60,10 @@ def predict(prompt: str, max_tokens: int) -> str:
     """Generate a bounded story continuation from Cory Davis's native 12K model."""
     if not isinstance(prompt, str) or not 1 <= len(prompt) <= 1000:
         raise gr.Error("Text prompt must be 1–1000 characters")
-    if type(max_tokens) is not int or not 1 <= max_tokens <= 32:
+    if isinstance(max_tokens, bool) or int(max_tokens) != max_tokens or not 1 <= max_tokens <= 32:
         raise gr.Error("Output must be 1–32 tokens")
     try:
-        return engine.complete(prompt, max_tokens=max_tokens,
+        return engine.complete(prompt, max_tokens=int(max_tokens),
                                temperature=0, seed=67, timeout=35)
     except (ValueError, RuntimeError, TimeoutError, FloatingPointError):
         raise gr.Error("Native inference unavailable; no fallback") from None
@@ -130,7 +130,7 @@ def stage(stage_dir: Path, token: str) -> None:
         shutil.copyfile(src, dest)
     (stage_dir / "app.py").write_text(gradio_app())
     (stage_dir / "requirements.txt").write_text(
-        "torch==2.8.0\ntokenizers==0.23.2\nsafetensors==0.8.0\ngradi o==5.50.0\n".replace("gradi o", "gradio")
+        "torch==2.8.0\ntokenizers==0.23.2\nsafetensors==0.8.0\ngradio==5.50.0\n"
     )
     (stage_dir / "README.md").write_text(
         "---\ntitle: RAWRPHØS Native 12K\nemoji: 🪰\nsdk: gradio\nsdk_version: 5.50.0\n"
