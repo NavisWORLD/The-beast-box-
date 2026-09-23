@@ -2,7 +2,7 @@
 import {useCallback,useEffect,useState} from 'react';
 import {Check,RefreshCcw,ShieldCheck} from 'lucide-react';
 
-type Choice='local'|'huggingface'|'ollama_cloud';
+type Choice='local'|'rawrphos_native'|'huggingface'|'ollama_cloud';
 type Option={
  choice:Choice;
  model:string;
