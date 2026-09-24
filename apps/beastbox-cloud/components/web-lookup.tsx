@@ -40,7 +40,7 @@ export default function WebLookup({canSend,onStage}:Props){
   onStage('wikipedia-search-'+Date.now()+'.txt',text);
   setStaged(true);setSelected([]);
  }
- return <section className="data-card wide" aria-label="Owner-approved public web lookup">
+ return <details className="composer-web-lookup">\n  <summary>🌐 Search public Wikipedia (owner opt-in)</summary>\n  <section aria-label="Owner-approved public web lookup">
   <span><Globe size={15}/> PUBLIC WEB LOOKUP · WIKIPEDIA ONLY</span>
   <p>This is a bounded public-source search, not unrestricted internet access or model-directed browsing. Search terms go to Wikipedia only after your click. No automatic model call, memory write or remote provider approval.</p>
   <label htmlFor="owner-web-query">Search public Wikipedia</label>
@@ -62,5 +62,5 @@ export default function WebLookup({canSend,onStage}:Props){
    {staged?<p role="status">Web excerpts staged as temporary context. Review them in Brain and press Send separately; nothing was stored in COSMOS memory.</p>:null}
   </div>:null}
   {error?<p role="alert" className="inline-error">{error}</p>:null}
- </section>;
+ </section></details>;
 }
