@@ -20,9 +20,9 @@ test('auth uses HMAC cookie and server verification',()=>{
  assert.match(auth,/sameSite: 'strict'/);
  assert.match(read('app/api/bridge/[endpoint]/route.ts'),/if \(!await isOwner\(\)\)/);
 });
-test('owner-selected photo category is bounded text; raw pixels and PDFs stay local',()=>{
+test('owner-selected photos and PDFs submit only bounded extracted text; raw media stays local',()=>{
  const ui=read('components/studio.tsx');
- assert.match(ui,/For a photo, tap Analyze locally/);
+ assert.match(ui,/For a photo tap Analyze locally; for a PDF tap Extract text locally/);
  assert.match(ui,/No response is simulated/);
  const vision=read('lib/attachment-vision.ts');
  assert.match(vision,/classifier.classify\(image\)/);
@@ -187,7 +187,7 @@ test('senses is a Settings-only control and cannot cover the chat composer',()=>
  const mount=studio.indexOf('<LiveSenses visible=');
  assert.ok(mount>0 && mount<studio.indexOf("page==='BRAIN'?"));
  assert.match(studio,/aria-label="Stage file or photo locally"/);
- assert.match(studio,/For a photo, tap Analyze locally/);
+ assert.match(studio,/For a photo tap Analyze locally; for a PDF tap Extract text locally/);
 });
 
 
@@ -256,7 +256,7 @@ test('remote model grant is inspected before chat and recovery stays owner initi
  const backend=read('bridge/owner_bridge.py');
  assert.match(ui,/reapproval_required:catalog\.reapproval_required===true/);
  assert.match(ui,/modelGate!==null&&!needsGrant/);
- assert.match(ui,/if\(!connected\|\|busy\|\|analyzingPhoto\|\|!prompt\.trim\(\)\)return/);
+ assert.match(ui,/if\(!connected\|\|busy\|\|analyzingPhoto\|\|extractingPdf\|\|!prompt\.trim\(\)\)return/);
  assert.match(ui,/Use local model · no cloud charge/);
  assert.match(ui,/Review cloud model/);
  assert.match(ui,/if\(result\.no_paid_inference!==true\)/);
