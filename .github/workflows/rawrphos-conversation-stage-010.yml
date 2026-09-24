@@ -18,7 +18,7 @@ jobs:
     if: >-
       github.repository == 'NavisWORLD/The-beast-box-' &&
       github.ref == 'refs/heads/feature/rawrphos-conversation-repair-001' &&
-      startsWith(github.event.head_commit.message, 'train(rawrphos): authorize conversation stage 009 ')
+      startsWith(github.event.head_commit.message, 'train(rawrphos): authorize conversation stage 010 ')
     runs-on: ubuntu-24.04
     timeout-minutes: 200
     env:
