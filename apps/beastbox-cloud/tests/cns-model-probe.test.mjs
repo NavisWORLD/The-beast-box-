@@ -12,7 +12,7 @@ test('CNS-to-native real model is strictly owner-only and separately consented',
  assert.match(bff,/endpoint==='cns-model-probe'/);
  assert.match(bff,/Same-origin owner action required/);
  assert.match(bff,/model_probe_confirmed!==true/);
- assert.match(bff,/readings\[k\]/);
+ assert.match(bff,/Object.entries\(readings\)/);
  assert.match(bridge,/if name == "cns-model-probe":/);
  assert.match(bridge,/self\.chat_jobs\.run_when_idle\(lambda: cns_model_probe\(data\)\)/);
  assert.match(bridge,/BEASTBOX_CNS_MODEL_PROBE_ENABLED/);
