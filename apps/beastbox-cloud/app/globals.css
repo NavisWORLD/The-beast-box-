@@ -201,3 +201,41 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 .cloud-connect form label{color:#e2d8f8}
 .cloud-connect-tabs button:not([disabled]),.cloud-connect-actions button:not([disabled]){min-height:44px}
 .cloud-connect form input:focus-visible,.cloud-connect .record input:focus-visible{outline:2px solid #91f0f6;outline-offset:3px}
+
+
+/* Guest lab: separate public surface; owner shell/layout remains unchanged. */
+.guest-page{min-height:100vh;background:radial-gradient(ellipse 80% 38% at 52% 4%,rgba(105,68,184,.24),transparent),#090d1b;color:var(--text);padding:0 max(18px,calc((100vw - 980px)/2));}
+.guest-top{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:27px 0;border-bottom:1px solid var(--line);font-size:12px;font-weight:700;letter-spacing:.05em}
+.guest-top a{display:inline-flex;align-items:center;gap:7px;color:var(--cyan)}
+.guest-top span{text-align:center;letter-spacing:.13em}
+.guest-hero{text-align:center;margin:45px auto 26px;max-width:700px}
+.guest-hero h1{font-size:clamp(40px,8vw,76px);letter-spacing:-.07em;line-height:1.1;margin:15px 0}
+.guest-hero h1 em{font-style:normal;color:var(--violet)}
+.guest-hero>p:last-child{color:var(--muted);line-height:1.65}
+.guest-panel{background:linear-gradient(135deg,rgba(28,35,65,.92),rgba(14,21,42,.97));border:1px solid rgba(172,140,255,.24);border-radius:23px;padding:clamp(18px,4vw,35px);box-shadow:0 20px 90px rgba(0,0,0,.22);display:flex;flex-direction:column;gap:14px}
+.guest-panel h2{margin:0 0 6px;font-size:22px}
+.guest-panel>label,.guest-credentials>label:not(.guest-consent){font-weight:700;font-size:14px}
+.guest-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.guest-options label{display:flex;flex-direction:column;gap:9px;min-width:0;border:1px solid var(--line);border-radius:15px;padding:16px;cursor:pointer;background:rgba(7,11,26,.5)}
+.guest-options label.selected{border-color:var(--cyan);background:rgba(24,65,87,.36)}
+.guest-options svg{color:var(--cyan)}
+.guest-options small{color:var(--muted);line-height:1.55}
+.guest-options input{align-self:flex-end;accent-color:var(--cyan)}
+.guest-credentials{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:14px;border:1px solid var(--line)}
+.guest-credentials>label:not(.guest-consent){display:flex;align-items:center;gap:8px}
+.guest-credentials p,.guest-note,.guest-submit small,.guest-reply small{color:var(--muted);font-size:12px;line-height:1.6}
+.guest-consent{display:flex;gap:11px;line-height:1.5;align-items:flex-start;font-size:13px}
+.guest-consent input{flex:none;margin-top:3px;accent-color:var(--cyan)}
+.guest-credentials input:not([type="checkbox"]),.guest-panel textarea{width:100%;min-width:0;border:1px solid rgba(185,193,255,.23);border-radius:11px;padding:13px 14px;background:#080e22;color:var(--text)}
+.guest-panel textarea{resize:vertical;min-height:105px}
+.guest-note{display:flex;align-items:flex-start;gap:10px}
+.guest-note svg{flex:none;color:var(--green)}
+.guest-submit{display:flex;align-items:center;justify-content:space-between;gap:13px}
+.guest-submit button{display:inline-flex;align-items:center;gap:9px;border:0;background:linear-gradient(95deg,#7576ff,#39d3de);color:#050c1b;font-weight:800;border-radius:12px;padding:13px 19px;min-height:44px}
+.guest-error{background:rgba(204,52,92,.13);border:1px solid rgba(255,120,150,.35);padding:13px;border-radius:12px}
+.guest-reply{background:#0b1429;border:1px solid rgba(103,229,238,.28);border-radius:14px;padding:18px;overflow-wrap:anywhere}
+.guest-reply strong{color:var(--cyan)}
+.guest-reply p{white-space:pre-wrap;line-height:1.6}
+.guest-bottom{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:35px 0;color:var(--muted);font-size:11px}
+.guest-bottom a{color:var(--cyan)}
+@media(max-width:560px){.guest-top{flex-wrap:wrap;justify-content:space-between}.guest-top span{order:-1;width:100%}.guest-options{grid-template-columns:1fr}.guest-submit{align-items:stretch;flex-direction:column}.guest-submit button{justify-content:center}.guest-hero{margin:25px auto}}
