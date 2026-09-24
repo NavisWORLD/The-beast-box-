@@ -60,7 +60,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install --quiet 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1'
+          python -m pip install --quiet 'numpy>=1.26,<3' 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1'
       - name: Verify every 100-step bundle and prepare immutable complete archive
         run: |
           set -euo pipefail
