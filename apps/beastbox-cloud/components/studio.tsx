@@ -12,7 +12,7 @@ import { Activity, Camera, Mic, ArrowDownToLine, ArrowLeftRight, ArrowRight, Bra
 
 type Page='COSMOS WORLD'|'BRAIN'|'ORBIT'|'BRAIN BAY'|'MEMORY VAULT'|'SYNAPSE TRACE'|'FILES'|'AUTHORITY'|'SETTINGS';
 type Turn={id:string,role:'user'|'assistant',text:string,kind?:string,model?:string};
-type Attachment={name:string,size:number,type:string,text?:string,objectUrl?:string,original:File,source?:'azure_blob',imageLabel?:string,imageConfidence?:number};
+type Attachment={name:string,size:number,type:string,text?:string,objectUrl?:string,original:File,source?:'azure_blob',imageLabel?:string,imageConfidence?:number,imageTimestamp?:string};
 const NAV:{name:Page;icon:typeof BrainCircuit}[]=[
 {name:'COSMOS WORLD',icon:Sparkles},{name:'BRAIN',icon:MessageCircle},{name:'ORBIT',icon:Telescope},{name:'BRAIN BAY',icon:BrainCircuit},
 {name:'MEMORY VAULT',icon:Database},{name:'SYNAPSE TRACE',icon:Activity},{name:'FILES',icon:FileText},
@@ -51,7 +51,14 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  const updateSensesActive=useCallback((camera:boolean,speech:boolean)=>setSensesActive(old=>old.camera===camera&&old.speech===speech?old:{camera,speech}),[]);
  const updateLiveContext=useCallback((text:string,include:boolean)=>setLiveContext(old=>old.text===text&&old.include===include?old:{text,include}),[]);
  const [records,setRecords]=useState<Record<string,unknown>[]>([]),[orbit,setOrbit]=useState<Record<string,unknown>|null>(null),[trace,setTrace]=useState<Record<string,unknown>[]>([]),[snapshot,setSnapshot]=useState<Record<string,unknown>|null>(null),[profile,setProfile]=useState<Record<string,unknown>|null>(null);
- const [attachments,setAttachments]=useState<Attachment[]>([]),[attachError,setAttachError]=useState(''),[analyzingPhoto,setAnalyzingPhoto]=useState<File|null>(null);const picker=useRef<HTMLInputElement>(null),bottom=useRef<HTMLDivElement>(null),imageUrls=useRef<Set<string>>(new Set());
+ const [attachments,setAttachments]=useState<Attachment[]>([]),[attachError,setAttachError]=useState(''),[analyzingPhoto,setAnalyzingPhoto]=useState<File|null>(null);
+ const [photoMemoryEnabled,setPhotoMemoryEnabled]=useState(false),[photoConsent,setPhotoConsent]=useState(false),[photoSaving,setPhotoSaving]=useState(false),[photoReceipt,setPhotoReceipt]=useState('');
+ useEffect(()=>{
+  if(!owner||!bridge){setPhotoMemoryEnabled(false);return;}
+  let cancelled=false;
+  void api('bridge/observations').then(data=>{if(!cancelled)setPhotoMemoryEnabled(data.enabled===true);}).catch(()=>{if(!cancelled)setPhotoMemoryEnabled(false);});
+  return()=>{cancelled=true;};
+ },[owner,bridge]);const picker=useRef<HTMLInputElement>(null),bottom=useRef<HTMLDivElement>(null),imageUrls=useRef<Set<string>>(new Set());
  const load=useCallback(async()=>{
    if(!owner)return;
    setError('');
@@ -109,9 +116,29 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
       'File: '+name+'\nSource: EfficientNet-Lite0/ImageNet browser classifier\n'+
       'Approximate category: '+prediction.text+'\nConfidence: '+prediction.confidence.toFixed(3)+'\n'+
       'NOT a caption, OCR, identity recognition or full scene understanding. The selected text model received ONLY this prediction, never image pixels.\n';
-     setAttachments(old=>old.map(a=>a.original===item.original?{...a,text:context,imageLabel:prediction.text,imageConfidence:prediction.confidence}:a));
+     setAttachments(old=>old.map(a=>a.original===item.original?{...a,text:context,imageLabel:prediction.text,imageConfidence:prediction.confidence,imageTimestamp:prediction.timestamp}:a));
    }catch(e){setAttachError(e instanceof Error?e.message:'Local image classification unavailable. Nothing was uploaded.');}
    finally{setAnalyzingPhoto(null);}
+ }
+ async function rememberPhoto(item:Attachment){
+   if(!photoConsent||!photoMemoryEnabled||photoSaving||!item.imageLabel||typeof item.imageConfidence!=='number'||!item.imageTimestamp)return;
+   const at=Date.parse(item.imageTimestamp);
+   if(!Number.isFinite(at)||Date.now()-at>4*60*1000||at>Date.now()){
+     setAttachError('Photo prediction expired for durable memory. Remove and analyze the photo again.');return;
+   }
+   setPhotoSaving(true);setAttachError('');setPhotoReceipt('');
+   try{
+     // Separate, one-shot owner retention authorization; never send the original image.
+     const receipt=await api('bridge/observations',{method:'POST',body:JSON.stringify({
+       observations:[{source:'file_classifier',text:item.imageLabel,confidence:item.imageConfidence,timestamp:item.imageTimestamp}],
+       consent:true,persist_confirmed:true
+     })});
+     if(receipt.persisted!==true||typeof receipt.checkpoint_sha256!=='string')
+      throw new Error('The host returned no durable confirmation.');
+     setPhotoReceipt('COSMOS stored the local photo CATEGORY only · checkpoint '+receipt.checkpoint_sha256.slice(0,16)+'…');
+     setPhotoConsent(false);
+   }catch{setAttachError('Photo memory result unconfirmed. Check Memory Vault before retrying; do not automatically resubmit.');}
+   finally{setPhotoSaving(false);}
  }
  function stageAzureText(entry:{name:string;sha256:string;text:string}):boolean{
    if(attachments.length>=4){setAttachError('Remove an attachment before staging the selected Azure document.');return false;}
@@ -197,7 +224,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
     await load();
    }catch(e){setError((e as Error).message);}finally{setBusy(false);}
  }
- async function logOut(){try{await api('session',{method:'DELETE'});}finally{setOwner(false);setTurns([]);setAttachments([]);setTemporaryReply(null);setSensorReceipt('');}}
+ async function logOut(){try{await api('session',{method:'DELETE'});}finally{setOwner(false);setTurns([]);setAttachments([]);setTemporaryReply(null);setSensorReceipt('');setPhotoConsent(false);setPhotoReceipt('');}}
  if(!owner)return <Login configured={configured} onLogin={()=>setOwner(true)}/>;
  const needsGrant=bridge&&!!profile&&profile.kind!=='reference'&&modelGate?.reapproval_required===true;
  const connected=bridge&&!!profile&&profile.kind!=='reference'&&model!=='UNAVAILABLE'&&model!=='NOT CONNECTED'&&modelGate!==null&&!needsGrant;
@@ -215,7 +242,10 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  {needsGrant&&<div className="inline-error cosmos-model-reapproval" role="status"><ShieldCheck size={17}/><span>Saved cloud model needs fresh owner approval after a host restart. Your Azure storage does not authorize model inference; your draft and COSMOS memory remain unchanged.</span><button type="button" className="outline-action" onClick={()=>setPage('BRAIN BAY')}>Review cloud model</button>{modelGate?.local_available&&<button type="button" className="outline-action" disabled={busy} onClick={()=>void selectLocal()}>Use local model · no cloud charge</button>}</div>}
  <div className="chat-thread" aria-live="polite">{turns.length===0?<div className="empty-chat"><div className="empty-orb"><span>✺</span></div><div className="eyebrow">WELCOME TO YOUR UNIVERSE</div><h1>What&apos;s on your<br/><em>cosmic mind?</em></h1><p>{connected?'Send a message to the configured provider. Only a completed inference call verifies a live response.':bridge?'The connected provider is a deterministic reference fixture. Configure a genuine model on the durable host before enabling chat.':'Your authentic Beast Box backend is not connected yet. This is a private UI preview; no fake responses will appear.'}</p>{backendHint[backendStatus]&&<p role="status">{backendHint[backendStatus]}</p>}{needsGrant&&<p role="status">Reapprove the saved cloud model in Brain Bay or select the installed local model without remote charges.</p>}<div className="suggestions"><button disabled={!connected} onClick={()=>setPrompt('What do you remember about our last conversation?')}>✺ What do you remember?</button><button disabled={!connected} onClick={()=>setPrompt('Show me our last checkpoint.')}>◇ Show last checkpoint</button><button disabled={!connected} onClick={()=>setPrompt('Help me explore the universe!')}>✦ Explore an idea</button></div></div>:turns.map(t=><div className={'message '+t.role} key={t.id}><div className="message-avatar">{t.role==='assistant'?'✺':'CD'}</div><div className="message-content"><span className="message-name">{t.role==='assistant'?(t.model||'MODEL · HISTORICAL ID UNRECORDED'):'YOU'}</span><p>{t.text}</p></div></div>)}{temporaryReply&&<div className="message assistant" key={temporaryReply.id}><div className="message-avatar">✺</div><div className="message-content"><span className="message-name">{model} · TEMPORARY REPLY</span><p>{temporaryReply.text}</p><small>Generated with owner-selected temporary context. Not stored in durable conversation memory. This browser-only reply is replaced after your next completed turn and disappears on refresh.</small></div></div>}<div ref={bottom}/></div>
  {error&&<div className="inline-error" role="alert"><CircleHelp size={16}/>{error}<button aria-label="Dismiss error" onClick={()=>setError('')}><X size={14}/></button></div>}{attachError&&<div className="inline-error" role="alert">{attachError}</div>}
- <div className="composer-area"><div className="attachment-preview">{attachments.map((a,i)=><div className="attachment-chip" key={i}>{a.type.startsWith('image/')?<ImageIcon size={15}/>:<File size={15}/>}<span>{a.name}</span><small>{a.imageLabel?'LOCAL CATEGORY · '+a.imageLabel+' ('+Math.round((a.imageConfidence||0)*100)+'%)':a.source==='azure_blob'?'AZURE · OWNER SELECTED':'LOCAL ONLY'}</small>{a.type.startsWith('image/')&&!a.text?<button type="button" disabled={busy||!!analyzingPhoto} onClick={()=>void analyzePhoto(a)} aria-label={'Analyze '+a.name+' locally'}>{analyzingPhoto===a.original?'Analyzing…':'Analyze locally'}</button>:null}<button aria-label={'Remove '+a.name} disabled={analyzingPhoto===a.original} onClick={()=>removeFile(i)}><X size={14}/></button></div>)}</div>
+ <div className="composer-area"><div className="attachment-preview">{attachments.map((a,i)=><div className="attachment-chip" key={i}>{a.type.startsWith('image/')?<ImageIcon size={15}/>:<File size={15}/>}<span>{a.name}</span><small>{a.imageLabel?'LOCAL CATEGORY · '+a.imageLabel+' ('+Math.round((a.imageConfidence||0)*100)+'%)':a.source==='azure_blob'?'AZURE · OWNER SELECTED':'LOCAL ONLY'}</small>{a.type.startsWith('image/')&&!a.text?<button type="button" disabled={busy||!!analyzingPhoto} onClick={()=>void analyzePhoto(a)} aria-label={'Analyze '+a.name+' locally'}>{analyzingPhoto===a.original?'Analyzing…':'Analyze locally'}</button>:null}{a.imageLabel&&photoMemoryEnabled?<button type="button" disabled={!photoConsent||busy||photoSaving} onClick={()=>void rememberPhoto(a)} aria-label={'Remember '+a.name+' category in COSMOS'}>{photoSaving?'Saving…':'Remember category'}</button>:null}<button aria-label={'Remove '+a.name} disabled={analyzingPhoto===a.original||photoSaving} onClick={()=>removeFile(i)}><X size={14}/></button></div>)}</div>
+ {attachments.some(a=>!!a.imageLabel)?<label className="cloud-spend"><input type="checkbox" checked={photoConsent} disabled={!photoMemoryEnabled||busy||photoSaving} onChange={e=>setPhotoConsent(e.target.checked)}/> I separately approve storing only the selected photo CATEGORY in COSMOS memory. Future selected remote models might retrieve it. No image pixels are stored.</label>:null}
+ {attachments.some(a=>!!a.imageLabel)&&!photoMemoryEnabled?<p role="status" className="composer-note">Photo memory is disabled on the host. You may still send the local category as temporary text context.</p>:null}
+ {photoReceipt?<p role="status" className="cloud-connect-success">{photoReceipt}</p>:null}
  {sensorReceipt?<p role="status" className="cloud-connect-success">{sensorReceipt}</p>:null}
  {liveContext.include?<p role="status" className="composer-note">Selected sensor labels/transcripts will be provided as temporary context with your next message. This is not full camera vision. Open Settings to review or discard them.</p>:null}
  <div className="composer"><textarea aria-label="Message Beast Box" placeholder={connected?'Message Beast Box…':'Connect a durable backend to start chatting…'} value={prompt} onChange={e=>setPrompt(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();void send();}}} disabled={!connected||busy} rows={2}/><div className="composer-controls"><div><input ref={picker} aria-label="Choose files or photos to stage locally" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,text/plain,text/markdown,.md,.txt,.py,.js,.ts,.tsx,.json,.csv" multiple className="sr-only" onChange={e=>void pickFiles(e.target.files)} /><button className="composer-tool" aria-label="Stage file or photo locally" title="Photo can be classified locally after explicit approval; PDFs remain local" onClick={()=>picker.current?.click()}><Paperclip size={18}/></button><span className="composer-note">✦ {attachments.length?'FILES STAGED LOCALLY':'YOUR STORY STAYS YOURS'}</span></div><button className="send-button" aria-label="Send message" disabled={!connected||busy||!!analyzingPhoto||!prompt.trim()} onClick={()=>void send()}>{busy?<span className="loading-dot">✺</span>:<Send size={19}/>}</button></div></div><div className="composer-foot">PRIVATE PREVIEW · No response is simulated · <kbd>↵</kbd> send · <kbd>⇧↵</kbd> newline</div></div></section>
