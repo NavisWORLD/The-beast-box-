@@ -41,10 +41,10 @@ RUN python -m pip install --no-cache-dir --no-compile 'torch==2.6.0+cpu' \
       --index-url https://download.pytorch.org/whl/cpu \
  && python -m pip install --no-cache-dir --no-compile -e 'models/rawrphos[serve]' \
  && install -d -m 0755 -o beastbox -g beastbox /opt/beastbox/rawrphos \
- && python models/rawrphos/scripts/install_pinned_12k.py \
-      --destination /opt/beastbox/rawrphos/step-00012000 \
+ && python models/rawrphos/scripts/install_pinned_14k.py \
+      --destination /opt/beastbox/rawrphos/step-00014000 \
  && chown -R beastbox:beastbox /opt/beastbox/rawrphos \
  && chmod 0755 apps/beastbox-cloud/bridge/deploy/start_rawrphos.sh
-ENV RAWRPHOS_CHECKPOINT_PATH=/opt/beastbox/rawrphos/step-00012000
+ENV RAWRPHOS_CHECKPOINT_PATH=/opt/beastbox/rawrphos/step-00014000
 EXPOSE 8080
 ENTRYPOINT ["/app/apps/beastbox-cloud/bridge/deploy/start_rawrphos.sh"]
