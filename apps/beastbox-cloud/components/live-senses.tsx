@@ -264,7 +264,7 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
    </div>
    <label className="cloud-spend"><input type="checkbox" checked={allowBrowserSpeech} disabled={speechOn}
     onChange={e=>setAllowBrowserSpeech(e.target.checked)}/>
-    I consent to browser speech recognition. Unless I require on-device mode below, the browser may process audio off-device.</label>
+    I consent to browser speech recognition, including possible off-device audio processing when on-device-only mode is OFF.</label>
    <label className="cloud-spend"><input type="checkbox" checked={onDeviceOnly} disabled={speechOn}
     onChange={event=>{setOnDeviceOnly(event.target.checked);setOfflineStatus('unchecked');}}/>
     Require browser-supported on-device recognition only (no automatic cloud fallback). Unsupported browsers, including some iOS Safari versions, may not offer this feature.</label>
