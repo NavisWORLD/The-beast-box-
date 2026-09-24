@@ -136,7 +136,8 @@ export default function MotionPanel({canSend,onDraft}:Props){
    const status=await fetch('/api/bridge/bio',{credentials:'same-origin',cache:'no-store'});
    const config=await status.json() as {enabled?:boolean};
    if(!status.ok||config.enabled!==true)throw new Error('Host bio normalization preview is disabled. No measurement was transmitted.');
-   if(!alive.current||!enabled.current||document.hidden)throw new Error('Sensor stopped before submission.');
+   if(!alive.current||!enabled.current||document.hidden||Date.now()-sample.at>=SAMPLE_AGE_MS)
+    throw new Error('Sensor stopped or numeric sample expired before submission.');
    const response=await fetch('/api/bridge/bio',{method:'POST',credentials:'same-origin',cache:'no-store',
     headers:{'Content-Type':'application/json'},body:JSON.stringify({
      action:'preview',source:'browser_sensor',consent:true,
