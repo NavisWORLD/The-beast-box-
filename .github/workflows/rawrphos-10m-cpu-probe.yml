@@ -1,0 +1,45 @@
+name: RAWRPHOS isolated 10M CPU architecture probe
+on:
+  push:
+    branches: [experiment/rawrphos-broad-curriculum-001]
+    paths:
+      - 'models/rawrphos/scripts/probe_bigger_model.py'
+      - '.github/workflows/rawrphos-10m-cpu-probe.yml'
+permissions:
+  contents: read
+jobs:
+  isolated-synthetic-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: models
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned CPU PyTorch
+        run: python -m pip install --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+      - name: Instantiate 10.14M architecture and run one synthetic CPU optimizer step
+        run: |
+          set -euo pipefail
+          python -m rawrphos.scripts.probe_bigger_model --threads 2 --seq-len 64 --batch-size 2 --output "$RUNNER_TEMP/rawrphos-10m-cpu-probe.json"
+          python - <<'PY'
+          import json,os,pathlib
+          p=pathlib.Path(os.environ["RUNNER_TEMP"])/"rawrphos-10m-cpu-probe.json"
+          r=json.loads(p.read_text())
+          assert r["model_id"]=="rawrphos-native-10m-research"
+          assert r["parameters"]==10138540 and r["synthetic_optimizer_steps"]==1
+          assert r["trained_language_checkpoint"] is False
+          print("UNTRAINED_10M_ARCHITECTURE_VERIFIED",r["parameters"],flush=True)
+          PY
+      - name: Preserve synthetic-only resource evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawrphos-10m-untrained-cpu-probe
+          path: ${{ runner.temp }}/rawrphos-10m-cpu-probe.json
+          if-no-files-found: warn
+          retention-days: 30
