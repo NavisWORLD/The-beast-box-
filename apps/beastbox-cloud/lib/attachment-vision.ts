@@ -16,6 +16,8 @@ export async function classifyLocalPhoto(file:File,objectUrl:string){
  // Decode the owner's locally staged file rather than ever fetching a remote URL.
  try{await image.decode();}
  catch{throw new Error('Your browser could not decode this image; no image was sent.');}
+ if(image.naturalWidth<1||image.naturalHeight<1||image.naturalWidth*image.naturalHeight>4096*4096)
+  throw new Error('Photo dimensions exceed the safe local classifier budget. Nothing was uploaded.');
  const classifier=await loadVision();
  const reading=visionReading(classifier.classify(image));
  return reading;
