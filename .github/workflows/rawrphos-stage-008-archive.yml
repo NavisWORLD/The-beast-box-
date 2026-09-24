@@ -90,7 +90,7 @@ jobs:
           assert chain[-1]['sha256']==req['candidate_sha256']
           out=pathlib.Path('.rawrphos-archive/published'); out.mkdir(); archive=out/'rawrphos-17k-to-18k-unpromoted-recovery.tar.gz'
           with tarfile.open(archive,'w:gz') as tar:
-              for name in ('checkpoints','stage-history.json','stage-receipt.json','baseline-heldout.json','baseline-eval.json','parent-16k-eval.json','candidate-eval.json'):
+              for name in ('checkpoints','stage-history.json','stage-receipt.json','baseline-heldout.json','baseline-eval.json','parent-17k-eval.json','candidate-eval.json'):
                   p=root/name; assert p.exists(); tar.add(p,arcname=name)
           def sha(p):
               h=hashlib.sha256()
