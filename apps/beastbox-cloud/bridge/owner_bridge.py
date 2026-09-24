@@ -32,10 +32,11 @@ from beastbox.rawrphos_hf import (MODEL as HF_NATIVE_MODEL, SPACE_URL as HF_NATI
                                   WEIGHT_SHA as HF_NATIVE_SHA, STEP as HF_NATIVE_STEP,
                                   profile as hosted_native_profile, PrivateSpaceProvider)
 from beastbox.chat_jobs import ChatJobs
+from beastbox.guest_local import guest_local_infer
 
 MAX_BYTES = 256_000
 GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "engine-growth"})
-POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read"})
+POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local"})
 
 
 class OwnerBridge:
@@ -540,6 +541,13 @@ class OwnerBridge:
                 set(data) != {"scope", "name", "text"} or data.get("scope") != "temporary_attachment"
             ):
                 return 400, {"error": "cloud context is temporary attachment data only"}
+        if name == "guest-local":
+            if not self.chat_jobs.acquire_guest():
+                return 429, {"error": "Owner inference or local guest slot is busy"}
+            try:
+                return guest_local_infer(self.root, data)
+            finally:
+                self.chat_jobs.release_guest()
         if name == "chat-start":
             return self.chat_jobs.start(data)
         if name == "models":
