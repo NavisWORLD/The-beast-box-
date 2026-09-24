@@ -25,6 +25,7 @@ from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
 from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
 from beastbox.rawrphos_local import MODEL as NATIVE_ID, profile as native_profile, status as native_status
+from beastbox.rawrphos_experimental_local import profile as experimental_profile, status as experimental_status
 from beastbox.rawrphos_hf import (MODEL as HF_NATIVE_MODEL, SPACE_URL as HF_NATIVE_URL,
                                   WEIGHT_SHA as HF_NATIVE_SHA, STEP as HF_NATIVE_STEP,
                                   profile as hosted_native_profile, PrivateSpaceProvider)
@@ -227,6 +228,7 @@ class OwnerBridge:
                 "readiness": "LOCAL_WEIGHTS_AND_LOOPBACK_VERIFIED",
             })
         choices.append(native_status())
+        choices.append(experimental_status())
         listed = self.vault.list_public()["connections"] if self.vault is not None else []
         hf_configured = any(row["provider"] == "huggingface" and row["configured"] for row in listed)
         choices.append({"choice": "rawrphos_hf", "model": HF_NATIVE_MODEL,
@@ -248,11 +250,14 @@ class OwnerBridge:
                     })
         profile = self.app.profile
         native = next(item for item in choices if item["choice"] == "rawrphos_native")
+        experimental = next(item for item in choices if item["choice"] == "rawrphos_native_18k_experimental")
         return {
             "active": {"model": profile.model, "kind": profile.kind,
                        "remote": profile.remote,
-                       "loaded_step": (HF_NATIVE_STEP if profile.kind == "hf_space" else native["loaded_step"])
-                                       if profile.model == NATIVE_ID else None},
+                       "loaded_step": (HF_NATIVE_STEP if profile.kind == "hf_space"
+                                       else experimental["loaded_step"] if profile.base_url == experimental_profile()["base_url"]
+                                       else native["loaded_step"]) if profile.model == NATIVE_ID else None,
+                       "experimental": profile.base_url == experimental_profile()["base_url"]},
             "remote_grant_active": profile.remote and self.app.authority.allowed("cloud"),
             "reapproval_required": profile.remote and not self.app.authority.allowed("cloud"),
             "choices": choices,
@@ -304,6 +309,19 @@ class OwnerBridge:
                          "brain_changed": changed, "authority_revoked": revoked,
                          "cloud_grant": "EXPLICIT_OWNER_SELECTION",
                          "inference": "HOSTED_IDENTITY_ATTESTED_CHAT_NOT_YET_COMPLETED",
+                         "substrate": "EXISTING_DURABLE_STATE"}
+        if choice == "rawrphos_native_18k_experimental" and set(data) == {"choice"}:
+            ready = experimental_status()
+            if ready["readiness"] != "INSTALLED_AND_READY":
+                return 503, {"error": "Experimental RAWRPHØS unavailable: " + ready["readiness"] +
+                             ". Selection unchanged; no automatic fallback."}
+            profile, changed, revoked = self.app._set_profile(experimental_profile())
+            return 200, {"selected": "rawrphos_native_18k_experimental", "model": profile.model,
+                         "loaded_step": ready["loaded_step"],
+                         "checkpoint_sha256": ready["checkpoint_sha256"],
+                         "experimental": True, "promotion_checks_pass": False,
+                         "brain_changed": changed, "authority_revoked": revoked,
+                         "no_paid_inference": True, "inference": "NOT_ATTESTED_UNTIL_REAL_CHAT",
                          "substrate": "EXISTING_DURABLE_STATE"}
         if choice == "rawrphos_native" and set(data) == {"choice"}:
             ready = native_status()
