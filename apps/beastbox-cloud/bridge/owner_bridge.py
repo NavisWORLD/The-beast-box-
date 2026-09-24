@@ -22,6 +22,7 @@ from beastbox.azure_read import AzureReadError, read_owner_text
 from beastbox.ollama_models import ModelInventoryUnavailable, fetch_public_models, MODEL_ID
 from beastbox.bio_inputs import bio_event
 from beastbox.cst_sensor_preview import compare_sensor_state
+from beastbox.engine_growth_report import engine_growth_report
 from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
 from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
@@ -33,7 +34,7 @@ from beastbox.rawrphos_hf import (MODEL as HF_NATIVE_MODEL, SPACE_URL as HF_NATI
 from beastbox.chat_jobs import ChatJobs
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "engine-growth"})
 POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read"})
 
 
@@ -485,6 +486,9 @@ class OwnerBridge:
         allowed = GET_ALLOW if method == "GET" else POST_ALLOW if method == "POST" else frozenset()
         if name not in allowed:
             return 404, {"error": "unsupported route"}
+        if name == "engine-growth" and method == "GET":
+            with self.app._lock:
+                return 200, engine_growth_report(self.root)
         if name == "models" and method == "GET":
             with self.app._lock:
                 return 200, self._model_catalog()

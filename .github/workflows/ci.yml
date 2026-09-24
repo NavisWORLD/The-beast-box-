@@ -46,7 +46,7 @@ jobs:
         run: mypy
       - name: Product-spine tests with measured coverage floor
         run: |
-          coverage run -m pytest tests/test_product_spine.py tests/test_starter_kit.py tests/test_full_runtime.py tests/test_beastbox.py tests/test_logging_config.py tests/test_workspace_security.py tests/test_productization_receipt.py tests/test_experimental_boundary.py tests/test_cosmic_web.py tests/test_cosmic_completion.py tests/test_cosmic_closure.py tests/test_device_observations.py apps/beastbox-cloud/bridge/tests/test_cst_sensor_preview.py
+          coverage run -m pytest tests/test_product_spine.py tests/test_starter_kit.py tests/test_full_runtime.py tests/test_beastbox.py tests/test_logging_config.py tests/test_workspace_security.py tests/test_productization_receipt.py tests/test_experimental_boundary.py tests/test_cosmic_web.py tests/test_cosmic_completion.py tests/test_cosmic_closure.py tests/test_device_observations.py apps/beastbox-cloud/bridge/tests/test_cst_sensor_preview.py tests/test_engine_growth_report.py
           # This gate measures the runtime/product spine above. Optional offline
           # training/model modules have their own full-suite gates and must not
           # dilute this deliberately narrow product coverage denominator.
