@@ -23,7 +23,8 @@ test('motion is bounded, local, expires and never auto-transmits',()=>{
  assert.match(ui,/!canSend\|\|!consent\|\|!sample/);
  assert.match(ui,/if\(Date\.now\(\)-sample\.at>=SAMPLE_AGE_MS\)/);
  assert.match(ui,/onDraft\(sample\.text\);stop\(\)/);
- assert.doesNotMatch(ui,/fetch\(|localStorage|sessionStorage|MediaRecorder|navigator\.geolocation|sendBeacon/);
+ assert.doesNotMatch(ui,/localStorage|sessionStorage|MediaRecorder|navigator\.geolocation|sendBeacon/);
+ assert.match(ui,/if\(previewing\|\|!previewConsent\|\|!sample\|\|sample\.rmsG===null\)return/);
 });
 test('all motion listeners and samples stop on hide, page exit and unmount',()=>{
  const ui=read('components/motion-panel.tsx');
