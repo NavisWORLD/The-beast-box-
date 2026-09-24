@@ -29,8 +29,7 @@ _TOTAL_DEFAULT = 300
 _GUEST_ID = re.compile(r"[a-f0-9]{64}\Z")
 
 
-def _limit(name: str, default: int, upper: int) -> int:
-    raw = os.environ.get(name, str(default))
+def _limit(raw: str, upper: int) -> int:
     if not raw.isdecimal() or not 1 <= int(raw) <= upper:
         raise ValueError("invalid guest capacity configuration")
     return int(raw)
@@ -50,9 +49,9 @@ class GuestQuota:
         if os.environ.get("BEASTBOX_GUEST_LOCAL_ENABLED", "no") != "yes":
             return 503, "", "Public local guest inference is disabled"
         try:
-            day_max = _limit("BEASTBOX_GUEST_DAILY_MAX", _DAILY_DEFAULT, 500)
-            per_max = _limit("BEASTBOX_GUEST_PER_CLIENT_DAILY_MAX", _PER_GUEST_DEFAULT, 100)
-            total_max = _limit("BEASTBOX_GUEST_TOTAL_MAX", _TOTAL_DEFAULT, 5000)
+            day_max = _limit(os.environ.get("BEASTBOX_GUEST_DAILY_MAX", str(_DAILY_DEFAULT)), 500)
+            per_max = _limit(os.environ.get("BEASTBOX_GUEST_PER_CLIENT_DAILY_MAX", str(_PER_GUEST_DEFAULT)), 100)
+            total_max = _limit(os.environ.get("BEASTBOX_GUEST_TOTAL_MAX", str(_TOTAL_DEFAULT)), 5000)
         except ValueError:
             return 503, "", "Public guest capacity is misconfigured"
         clock = int(time.time()) if now is None else now
