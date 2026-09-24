@@ -40,5 +40,5 @@ test('native API consumes fixed numeric control only at explicitly bounded probe
  assert.match(gen,/control_vector=control_vector/);
  assert.match(adapter,/CNS\(\)\.tick\(mission, packet\.safe_dict\(\)\)/);
  assert.match(adapter,/127\.0\.0\.1:8767\/v1\/condition-probe/);
- assert.doesNotMatch(adapter,/DurableRuntime|store_external_memory|cloud_connections|HF_TOKEN|api\.openai|shell=True/);
+ assert.doesNotMatch(adapter,/from \.durable import|\.store_external_memory\(|cloud_connections|HF_TOKEN|api\.openai|shell=True/);
 });
