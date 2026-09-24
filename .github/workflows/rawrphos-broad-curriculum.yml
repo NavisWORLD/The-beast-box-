@@ -1,0 +1,52 @@
+name: RAWRPHOS broad curriculum data audit
+on:
+  push:
+    branches: [experiment/rawrphos-broad-curriculum-001]
+    paths:
+      - 'models/rawrphos/scripts/prepare_broad_curriculum.py'
+      - 'models/rawrphos/tests/test_broad_curriculum.py'
+      - '.github/workflows/rawrphos-broad-curriculum.yml'
+permissions:
+  contents: read
+jobs:
+  verify-supplemental-data:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: models
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test runner only; no hosted model calls
+        run: python -m pip install --quiet 'pytest>=8,<10'
+      - name: Test deterministic category coverage, split separation and arithmetic
+        run: python -m pytest -q models/rawrphos/tests/test_broad_curriculum.py
+      - name: Generate, hash and report supplemental curriculum without training
+        run: |
+          set -euo pipefail
+          python models/rawrphos/scripts/prepare_broad_curriculum.py --output "$RUNNER_TEMP/rawrphos-broad-curriculum" > "$RUNNER_TEMP/curriculum-report.json"
+          python - <<'PY'
+          import hashlib,json,os,pathlib
+          p=pathlib.Path(os.environ["RUNNER_TEMP"])
+          report=json.loads((p/"curriculum-report.json").read_text())
+          assert report["schema"]=="rawrphos-broad-curriculum-v1"
+          assert len(report["train_categories"])==len(report["validation_categories"])==30
+          root=p/"rawrphos-broad-curriculum"
+          for name,digest in report["files"].items():
+              assert hashlib.sha256((root/name).read_bytes()).hexdigest()==digest
+          print("SUPPLEMENTAL_30_CATEGORIES",report["dataset_sha256"],report["train_examples"],report["validation_examples"],flush=True)
+          print("NOT_TRAINING_OR_MODEL_EXPANSION",flush=True)
+          PY
+      - name: Preserve synthetic provenance and dataset for separate approval
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawrphos-supplemental-30-category-curriculum
+          path: |
+            ${{ runner.temp }}/rawrphos-broad-curriculum/
+            ${{ runner.temp }}/curriculum-report.json
+          if-no-files-found: error
+          retention-days: 30
