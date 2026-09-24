@@ -21,6 +21,7 @@ from beastbox.cloud_connection_checks import verify_connection
 from beastbox.azure_read import AzureReadError, read_owner_text
 from beastbox.ollama_models import ModelInventoryUnavailable, fetch_public_models, MODEL_ID
 from beastbox.bio_inputs import bio_event
+from beastbox.cst_sensor_preview import compare_sensor_state
 from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
 from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
@@ -52,6 +53,7 @@ class OwnerBridge:
         self._configure_explicit_hf_provider(root)
         # Opt-in host settings only. No browser-supplied grant or device access.
         self.bio_enabled = os.environ.get("BEASTBOX_BIO_INGEST_ENABLED") == "yes"
+        self.cst_preview_enabled = self.bio_enabled and os.environ.get("BEASTBOX_CST_PREVIEW_ENABLED") == "yes"
         self.bio_persist_enabled = self.bio_enabled and os.environ.get("BEASTBOX_BIO_PERSIST_ENABLED") == "yes"
         self.bio_remote_allowed = self.bio_persist_enabled and os.environ.get("BEASTBOX_BIO_REMOTE_ALLOWED") == "yes"
         if self.bio_persist_enabled:
@@ -422,6 +424,11 @@ class OwnerBridge:
         if action == "preview":
             if set(data) != base_fields:
                 return 400, {"error": "unsupported bio request"}
+        elif action == "cst_preview":
+            if set(data) != base_fields | {"compare_confirmed"} or data.get("compare_confirmed") is not True:
+                return 400, {"error": "Separate owner approval required for isolated CST preview"}
+            if not self.cst_preview_enabled:
+                return 503, {"error": "Isolated CST comparison is disabled on this host"}
         elif action == "persist":
             if set(data) not in (base_fields | {"persist_confirmed"},
                                  base_fields | {"persist_confirmed", "remote_share_confirmed"}):
@@ -433,6 +440,11 @@ class OwnerBridge:
                               consent=data["consent"])
         except (ValueError, TypeError, KeyError):
             return 400, {"error": "invalid, out-of-range, or unconsented bio measurements"}
+        if action == "cst_preview":
+            try:
+                return 200, compare_sensor_state(event)
+            except (ValueError, TypeError, KeyError, json.JSONDecodeError):
+                return 400, {"error": "Sensor-state comparison rejected invalid event"}
         if action == "preview":
             return 200, {"event": event, "persisted": False, "model_invoked": False,
                          "raw_media_transmitted": False, "source_verified": False}
@@ -497,6 +509,7 @@ class OwnerBridge:
                          "owner": "SINGLE_OWNER_CONSENT", "source_verified": False}
         if name == "bio" and method == "GET":
             return 200, {"enabled": self.bio_enabled,
+                         "cst_preview_enabled": self.cst_preview_enabled,
                          "persist_enabled": self.bio_persist_enabled,
                          "remote_enabled": self.bio_remote_allowed,
                          "owner": "SINGLE_OWNER_PREVIEW",
