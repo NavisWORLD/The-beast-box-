@@ -264,7 +264,7 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
   <video ref={video} aria-label="Local camera preview" muted playsInline autoPlay
    style={{display:cameraOn?'block':'none',width:'100%',maxHeight:260,objectFit:'contain',background:'#10121d',borderRadius:8}}/>
   <div>
-   <p>Foreground sensing only. Raw camera frames stay on-device; MediaPipe may send usage metrics. Browser speech recognition may send audio to its provider.</p>
+   <p>Foreground sensing only. Raw camera frames stay on-device; MediaPipe may send usage metrics. Ordinary browser speech recognition may send audio to its provider. Local-only speech requires explicit support, a local pack and a separate Start click.</p>
    <div className="cloud-connect-actions">
     <button type="button" disabled={starting} onClick={()=>cameraOn?stopCamera():void startCamera()}>
      {cameraOn?<Square size={15}/>:<Camera size={15}/>} {cameraOn?'Stop vision':'Start vision'}</button>
@@ -272,9 +272,18 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
    <label className="cloud-spend"><input type="checkbox" checked={allowBrowserSpeech} disabled={speechOn}
     onChange={e=>setAllowBrowserSpeech(e.target.checked)}/>
     I consent to browser speech recognition, including possible off-device audio processing.</label>
+   <div className="cloud-connect-actions">
+    <button type="button" disabled={speechOn||localChecking} onClick={()=>void checkLocalSpeech()}>
+     {localChecking?'Checking…':'Check local-only speech support'}</button>
+    <button type="button" disabled={speechOn||localChecking||!localDownloadable} onClick={()=>void installLocalSpeech()}>
+     Install English offline pack (device download)</button>
+   </div>
+   <label className="cloud-spend"><input type="checkbox" checked={localOnly}
+    onChange={e=>setLocalOnly(e.target.checked)} disabled={speechOn||!localReady}/>
+    Use local-only recognition where supported. When enabled, processLocally must be enforced; errors stop speech rather than falling back to a vendor service. No recording starts until I press Start speech.</label>
    <div className="cloud-connect-actions"><button type="button" onClick={()=>speechOn?stopSpeech():startSpeech()}
-    disabled={!speechOn&&!allowBrowserSpeech}>{speechOn?<Square size={15}/>:<Mic size={15}/>}
-    {speechOn?'Stop speech':'Start speech'}</button></div>
+    disabled={!speechOn&&!allowBrowserSpeech&&!localOnly}>{speechOn?<Square size={15}/>:<Mic size={15}/>}
+    {speechOn?'Stop speech':localOnly?'Start local speech':'Start speech'}</button></div>
    <p role="status">Collected {freshObservations.length}/8 fresh observations (approximate classes and final transcripts).</p>
    <div style={{maxHeight:140,overflowY:'auto'}}>{freshObservations.map((o,i)=>
     <p key={o.timestamp+String(i)} style={{fontSize:12}}>{o.source==='camera_classifier'?'Vision':'Speech'}:
