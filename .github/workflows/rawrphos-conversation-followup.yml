@@ -40,7 +40,7 @@ jobs:
           [[ "$(git diff --name-only HEAD^ HEAD)" == 'models/rawrphos/conversation-followup-request.json' ]] || exit 1
           python - <<'PY'
           import json,os,pathlib
-          r=json.loads(pathlib.Path('models/rawrphos/conversation-train-request.json').read_text())
+          r=json.loads(pathlib.Path('models/rawrphos/conversation-followup-request.json').read_text())
           assert set(r)=={'schema','parent_sha256','parent_run_id','parent_step','dataset_sha256','additional_steps','max_wall_minutes','authorization'}
           assert r['schema']=='rawrphos-conversation-followup-request-v1'
           assert r['authorization']=='CPU-only experimental continuation; no production or paid infrastructure'
@@ -117,7 +117,7 @@ jobs:
           from rawrphos.training.conversation import ConversationConfig,continue_training,heldout
           from rawrphos.data.conversation import load_dataset,encode_example
           root=pathlib.Path(os.environ['WORK_DIR'])
-          req=json.loads(pathlib.Path('models/rawrphos/conversation-train-request.json').read_text())
+          req=json.loads(pathlib.Path('models/rawrphos/conversation-followup-request.json').read_text())
           d=load_dataset(root/'data');parent=root/'prior/checkpoints/step-00012500'
           c=ConversationConfig(batch_size=8,max_seq_len=384,threads=4,checkpoint_every=100,eval_examples=128)
           loaded=load_checkpoint(parent,expected_checkpoint_sha256=os.environ['PARENT_SHA'])
