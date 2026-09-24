@@ -516,6 +516,7 @@ class OwnerBridge:
         if name == "bio" and method == "GET":
             return 200, {"enabled": self.bio_enabled,
                          "cst_preview_enabled": self.cst_preview_enabled,
+                         "cns_model_probe_enabled": os.environ.get("BEASTBOX_CNS_MODEL_PROBE_ENABLED", "no") == "yes",
                          "persist_enabled": self.bio_persist_enabled,
                          "remote_enabled": self.bio_remote_allowed,
                          "owner": "SINGLE_OWNER_PREVIEW",
