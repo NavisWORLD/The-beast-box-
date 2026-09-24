@@ -79,8 +79,10 @@ class ChatJobs:
     def run_when_idle(self, action: Callable[[], tuple[int, dict[str, Any]]]) -> tuple[int, dict[str, Any]]:
         """Serialize an owner model/credential change with job admission."""
         with self._lock:
-            if self._active is not None or self._guest_active:
-                return 409, {"error": "Inference is busy; wait before changing models."}
+            if self._active is not None:
+                return 409, {"error": "Chat is still running; wait before changing models."}
+            if self._guest_active:
+                return 409, {"error": "Local guest inference is busy; wait before changing models."}
             return action()
 
     def start(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
@@ -100,8 +102,10 @@ class ChatJobs:
             if previous:
                 record = self._jobs[previous]
                 return 200 if record["state"] != "running" else 202, self._response(record)
-            if self._active is not None or self._guest_active:
-                return 409, {"error": "Inference is busy. Wait before starting another chat."}
+            if self._active is not None:
+                return 409, {"error": "A chat is already processing. Wait for its result before starting another."}
+            if self._guest_active:
+                return 409, {"error": "Local guest inference is busy. Wait before starting another chat."}
             if len(self._jobs) >= 32:
                 return 429, {"error": "Recent chat job limit reached; wait before sending more."}
             job_id = secrets.token_urlsafe(24)
