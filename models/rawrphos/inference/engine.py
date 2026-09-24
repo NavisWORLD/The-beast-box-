@@ -38,6 +38,7 @@ class Engine:
     def tokens(self,prompt,max_tokens=64,temperature=.8,seed=67,use_cache=True,timeout=60,cancelled=None,control_vector=None):
         if not isinstance(prompt,str) or len(prompt.encode('utf-8'))>65536: raise ValueError('invalid or oversized prompt')
         if type(max_tokens) is not int or not 1<=max_tokens<=self.max_new_tokens: raise ValueError('token budget exceeds host limit')
+        cv=None if control_vector is None else torch.tensor([self.validate_control(control_vector)],dtype=torch.float32,device=self.device)
         t0=time.perf_counter(); ids=self.tokenizer.encode(prompt,add_bos=True); tokenize=time.perf_counter()-t0
         if len(ids)+max_tokens>self.model.config.max_seq_len: raise ValueError('prompt plus output exceeds context limit')
         if not self.lock.acquire(blocking=False): raise RuntimeError('native provider is busy')
@@ -46,7 +47,7 @@ class Engine:
             for token,full in generate(self.model,torch.tensor([ids],device=self.device),max_new_tokens=max_tokens,
                     temperature=temperature,top_k=min(40,self.tokenizer.vocab_size),eos_token_id=self.tokenizer.eos_id,
                     generator=gen,use_cache=use_cache,deadline=time.monotonic()+timeout,cancelled=cancelled,
-                    control_vector=control_vector):
+                    control_vector=cv):
                 if first is None: first=time.perf_counter()-started
                 generated.append(token); decoded=self.tokenizer.decode(generated); stable=decoded.rstrip('\ufffd')
                 delta=stable[len(emitted):]; emitted=stable
