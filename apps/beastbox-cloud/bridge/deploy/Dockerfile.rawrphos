@@ -1,6 +1,6 @@
-# Experimental 18K is unpromoted: do not treat a successful Docker build as a quality gate pass.
-# Preserve bridge, durable volume, current selected provider and other model options.
-# Production rollout requires owner-only inference checks and a verified rollback.
+# Explicit opt-in image. Do not select this Dockerfile for an existing service until all gates pass.
+# Opt-in CPU inference image. Leave the existing Dockerfile and deployed service untouched
+# until the 1 GiB trial resource and real-inference CI gates pass.
 # docker build -f apps/beastbox-cloud/bridge/deploy/Dockerfile.tiny .
 FROM python:3.12-slim-bookworm AS native_wheels
 ENV CMAKE_ARGS="-DGGML_NATIVE=OFF -DGGML_OPENMP=OFF" FORCE_CMAKE=1
@@ -41,10 +41,10 @@ RUN python -m pip install --no-cache-dir --no-compile 'torch==2.6.0+cpu' \
       --index-url https://download.pytorch.org/whl/cpu \
  && python -m pip install --no-cache-dir --no-compile -e 'models/rawrphos[serve]' \
  && install -d -m 0755 -o beastbox -g beastbox /opt/beastbox/rawrphos \
- && python models/rawrphos/scripts/install_pinned_18k.py \
-      --destination /opt/beastbox/rawrphos/step-00018000 \
+ && python models/rawrphos/scripts/install_pinned_14k.py \
+      --destination /opt/beastbox/rawrphos/step-00014000 \
  && chown -R beastbox:beastbox /opt/beastbox/rawrphos \
  && chmod 0755 apps/beastbox-cloud/bridge/deploy/start_rawrphos.sh
-ENV RAWRPHOS_CHECKPOINT_PATH=/opt/beastbox/rawrphos/step-00018000
+ENV RAWRPHOS_CHECKPOINT_PATH=/opt/beastbox/rawrphos/step-00014000
 EXPOSE 8080
 ENTRYPOINT ["/app/apps/beastbox-cloud/bridge/deploy/start_rawrphos.sh"]
