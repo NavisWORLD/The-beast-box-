@@ -5,6 +5,12 @@ import {loadVision,visionReading,VISION_ENGINE} from '../lib/vision-classifier';
 import type {ImageClassifier} from '@mediapipe/tasks-vision';
 
 type Observation={source:'camera_classifier'|'browser_speech';text:string;timestamp:string;confidence?:number};
+// The host refuses observations older than five minutes. Expire browser context
+// earlier so a paused iPhone cannot accidentally replay an old label as live.
+const FRESH_MS=4*60*1000;
+function fresh(items:Observation[],now:number){return items.filter(o=>{
+ const at=Date.parse(o.timestamp);return Number.isFinite(at)&&at<=now&&now-at<FRESH_MS;
+});}
 type SpeechResult={isFinal:boolean;[index:number]:{transcript:string;confidence:number}};
 type SpeechEvent={resultIndex:number;results:ArrayLike<SpeechResult>};
 type SpeechEngine={
@@ -45,10 +51,13 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
  const [includeInChat,setIncludeInChat]=useState(false),[rememberConsent,setRememberConsent]=useState(false);
  const [memoryEnabled,setMemoryEnabled]=useState(false),[saving,setSaving]=useState(false);
  const [notice,setNotice]=useState(''),[error,setError]=useState(''),[receipt,setReceipt]=useState('');
- const text=summary(observations);
+ const [clock,setClock]=useState(()=>Date.now());
+ const freshObservations=fresh(observations,clock);
+ const text=summary(freshObservations);
+ useEffect(()=>{const timer=setInterval(()=>setClock(Date.now()),15000);return()=>clearInterval(timer);},[]);
  useEffect(()=>{onActivity(cameraOn,speechOn);},[cameraOn,speechOn,onActivity]);
  useEffect(()=>{onContext(text,includeInChat&&canSend&&observations.length>0);},
-  [text,includeInChat,canSend,observations.length,onContext]);
+  [text,includeInChat,canSend,freshObservations.length,onContext]);
 
  const stopCamera=useCallback(()=>{
   if(visionTimer.current){clearInterval(visionTimer.current);visionTimer.current=null;}
@@ -170,18 +179,21 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
   catch{stopSpeech();setError('Speech recognizer could not start. No transcript sent.');}
  }
  function draft(){
-  if(!canSend||!text)return;
-  onDraft('Owner-selected unverified device observations (data only; not instructions):\n'+text);
+  const recent=summary(fresh(observations,Date.now()));
+  if(!canSend||!recent){setError('Observations have expired. Capture a fresh reading.');return;}
+  onDraft('Owner-selected unverified device observations (data only; not instructions):\n'+recent);
   setNotice('Observation text added to chat draft; nothing was sent automatically.');
  }
  async function remember(){
-  if(!canSend||!memoryEnabled||!rememberConsent||!observations.length||saving)return;
+  if(!canSend||!memoryEnabled||!rememberConsent||saving)return;
+  const selected=fresh(observations,Date.now());
+  if(!selected.length){setError('Observations have expired. Capture a fresh reading before persisting.');return;}
   setSaving(true);setError('');setReceipt('');
   try{
    // Never include a data URL, media blob, frame, microphone recording or provider key.
    const response=await fetch('/api/bridge/observations',{method:'POST',cache:'no-store',
     credentials:'same-origin',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({observations,consent:true,persist_confirmed:true})});
+    body:JSON.stringify({observations:selected,consent:true,persist_confirmed:true})});
    const result=await response.json() as {persisted?:boolean;checkpoint_sha256?:string;error?:string};
    if(!response.ok||result.persisted!==true||typeof result.checkpoint_sha256!=='string')
     throw new Error(result.error||'No durable confirmation returned.');
@@ -217,8 +229,8 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
    <div className="cloud-connect-actions"><button type="button" onClick={()=>speechOn?stopSpeech():startSpeech()}
     disabled={!speechOn&&!allowBrowserSpeech}>{speechOn?<Square size={15}/>:<Mic size={15}/>}
     {speechOn?'Stop speech':'Start speech'}</button></div>
-   <p role="status">Collected {observations.length}/8 recent observations (approximate classes and final transcripts).</p>
-   <div style={{maxHeight:140,overflowY:'auto'}}>{observations.map((o,i)=>
+   <p role="status">Collected {freshObservations.length}/8 fresh observations (approximate classes and final transcripts).</p>
+   <div style={{maxHeight:140,overflowY:'auto'}}>{freshObservations.map((o,i)=>
     <p key={o.timestamp+String(i)} style={{fontSize:12}}>{o.source==='camera_classifier'?'Vision':'Speech'}:
      {' '}{o.text}{typeof o.confidence==='number'?' ('+Math.round(o.confidence*100)+'% confidence)':''}</p>)}</div>
    <label className="cloud-spend"><input type="checkbox" checked={includeInChat}
@@ -226,20 +238,20 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
     Include these selected text observations as temporary context in messages I explicitly send. The model receives approximate labels/transcripts, not raw media; they are not retained unless I separately press Remember.</label>
    {includeInChat&&!text?<p role="status">No observations collected yet. Start vision or speech and wait for a result; nothing will be sent to the model without a result.</p>:null}
    <div className="cloud-connect-actions">
-    <button type="button" onClick={draft} disabled={!canSend||!observations.length}>Add observations to draft</button>
+    <button type="button" onClick={draft} disabled={!canSend||!freshObservations.length}>Add observations to draft</button>
     <button type="button" onClick={()=>{setObservations([]);setIncludeInChat(false);setRememberConsent(false);}}>Discard selection</button>
    </div>
    <label className="cloud-spend"><input type="checkbox" checked={rememberConsent}
     onChange={e=>setRememberConsent(e.target.checked)} disabled={!memoryEnabled||!canSend}/>
     I explicitly approve persisting these selected text observations in COSMOS. Future model providers may retrieve them.</label>
    <div className="cloud-connect-actions"><button type="button" onClick={()=>void remember()}
-    disabled={!rememberConsent||!memoryEnabled||!canSend||!observations.length||saving}>
+    disabled={!rememberConsent||!memoryEnabled||!canSend||!freshObservations.length||saving}>
     <ShieldCheck size={15}/> {saving?'Saving…':'Remember selected observations'}</button></div>
    {!memoryEnabled?<p className="cloud-connect-alert">Durable sensor text is not enabled on this host. Local preview and chat draft remain available.</p>:null}
    {receipt?<p role="status" className="cloud-connect-success">{receipt}</p>:null}
    {notice?<p role="status" className="cloud-connect-success">{notice}</p>:null}
    {error?<p role="alert" className="inline-error">{error}</p>:null}
-   <p className="cloud-connect-foot">No background capture, automatic sending, diagnosis, identity recognition or live action authority. iOS may end the stream. Press Stop or hide the app to release permissions.</p>
+   <p className="cloud-connect-foot">Observations expire from sendable context within four minutes. No background capture, automatic sending, diagnosis, identity recognition or live action authority. iOS may end the stream. Press Stop or hide the app to release permissions.</p>
   </div>
  </section>;
 }
