@@ -1,0 +1,119 @@
+name: RAWRPHOS immutable 18K research recovery archive
+on:
+  push:
+    branches: [feature/rawrphos-conversation-repair-001]
+    paths: ['models/rawrphos/conversation-stage-008-archive-request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: rawrphos-stage-008-archive
+  cancel-in-progress: false
+jobs:
+  archive-complete-18k:
+    if: >-
+      github.repository == 'NavisWORLD/The-beast-box-' &&
+      github.ref == 'refs/heads/feature/rawrphos-conversation-repair-001' &&
+      startsWith(github.event.head_commit.message, 'release(rawrphos): authorize 18k research archive ')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      PYTHONPATH: models
+      RUN_ID: '36008364848'
+      SOURCE_SHA: eff7741b61a80004bf820af02d429c945e76b567
+      PARENT_SHA: 0ee53de9268b9f19c259394b93ca8dba4163d3938088977ee39f77c78ab75cd0
+      BASELINE_SHA: 339fb8e1d6f3950e2aa15a6e33bf8c0f28dd655cefc93b7926fb7545e7e97601
+      DATA_SHA: 7e9e8f91e751b3304663cb28293b2c90cc0e1623df355eb77dfdc6004cadcec5
+      TAG: rawrphos-native-research-step-00018000-run-36008364848
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Verify exact owner archival authorization
+        run: |
+          set -euo pipefail
+          [[ "$(git diff --name-only HEAD^ HEAD)" == 'models/rawrphos/conversation-stage-008-archive-request.json' ]] || exit 1
+          python - <<'PY'
+          import json,os,pathlib,re
+          r=json.loads(pathlib.Path('models/rawrphos/conversation-stage-008-archive-request.json').read_text())
+          assert set(r)=={'schema','run_id','source_commit','parent_sha256','target_step','candidate_sha256','dataset_sha256','authorization'}
+          assert r['schema']=='rawrphos-stage-008-durable-archive-v1'
+          assert r['run_id']==os.environ['RUN_ID'] and r['source_commit']==os.environ['SOURCE_SHA']
+          assert r['parent_sha256']==os.environ['PARENT_SHA'] and r['dataset_sha256']==os.environ['DATA_SHA']
+          assert r['target_step']==18000 and re.fullmatch('[a-f0-9]{64}',r['candidate_sha256'])
+          assert r['authorization']=='Publish sealed 17.1K through 18K unpromoted recovery checkpoints for public research, no deployment or paid infrastructure'
+          print('EXACT_18K_RESEARCH_ARCHIVE_AUTHORIZED',r['candidate_sha256'],flush=True)
+          PY
+      - name: Require successful source training and download exact artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" --json conclusion --jq '.conclusion')" = success
+          mkdir -p .rawrphos-archive
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name rawrphos-conversation-stage-008-recovery --dir .rawrphos-archive/source
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install CPU checkpoint verification dependencies
+        run: |
+          python -m pip install --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet 'numpy>=1.26,<3' 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1'
+      - name: Verify every 100-step bundle and prepare immutable complete archive
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,os,pathlib,tarfile
+          from rawrphos.training.checkpoint import load_checkpoint
+          root=pathlib.Path('.rawrphos-archive/source')
+          req=json.loads(pathlib.Path('models/rawrphos/conversation-stage-008-archive-request.json').read_text())
+          receipt=json.loads((root/'stage-receipt.json').read_text()); history=json.loads((root/'stage-history.json').read_text())
+          assert receipt['source_commit']==os.environ['SOURCE_SHA']
+          assert receipt['continuation_parent_sha256']==os.environ['PARENT_SHA']
+          assert receipt['continuation_parent_run_id']=='36000992179' and receipt['continuation_parent_step']==17000
+          assert receipt['cumulative_steps']==18000 and receipt['candidate_sha256']==req['candidate_sha256']
+          assert receipt['automated_checks_pass'] is False and receipt['automated_promotion_checks']['owner_repetition'] is False
+          assert sum(not passed for passed in receipt['automated_promotion_checks'].values())==1
+          assert receipt['research_only'] is True
+          assert len(history)==10 and [r['steps'] for r in history]==list(range(17100,18001,100))
+          chain=[]
+          for item in history:
+              step=item['steps']; ckpt=root/f'checkpoints/step-{step:08d}'
+              m=load_checkpoint(ckpt,expected_checkpoint_sha256=item['sha256']); meta,state=m['metadata'],m['state']
+              assert meta['training_steps']==step and meta['conversation_steps']==step-12000
+              assert meta['baseline_checkpoint_sha256']==os.environ['BASELINE_SHA'] and meta['dataset_manifest_sha256']==os.environ['DATA_SHA']
+              assert meta['tokenizer_sha256']=='f704e9b75e816cc4ef203bc6c4afeeb966cbc11f369fb3b5f4d81c1505c8619c'
+              assert {'optimizer','rng','data_rng','scheduler'}<=state.keys() and len(state['optimizer']['state'])>0
+              assert state['scheduler']['completed_phase_steps']==step-12000 and meta['parameter_count']==3909956
+              chain.append({'step':step,'sha256':item['sha256'],'full_optimizer_rng':True})
+          assert chain[-1]['sha256']==req['candidate_sha256']
+          out=pathlib.Path('.rawrphos-archive/published'); out.mkdir(); archive=out/'rawrphos-17k-to-18k-unpromoted-recovery.tar.gz'
+          with tarfile.open(archive,'w:gz') as tar:
+              for name in ('checkpoints','stage-history.json','stage-receipt.json','baseline-heldout.json','baseline-eval.json','parent-16k-eval.json','candidate-eval.json'):
+                  p=root/name; assert p.exists(); tar.add(p,arcname=name)
+          def sha(p):
+              h=hashlib.sha256()
+              with p.open('rb') as f:
+                  for b in iter(lambda:f.read(1024*1024),b''): h.update(b)
+              return h.hexdigest()
+          proof={'schema':'rawrphos-stage-008-unpromoted-recovery-v1','training_run':os.environ['RUN_ID'],'source_commit':os.environ['SOURCE_SHA'],'parent_sha256':os.environ['PARENT_SHA'],'final_sha256':req['candidate_sha256'],'archive_sha256':sha(archive),'checkpoint_chain':chain,'dataset_sha256':os.environ['DATA_SHA'],'automated_checks_pass':False,'failed_promotion_checks':['owner_repetition'],'manual_coherence_review':'NOT PERFORMED','research_only':True,'deployment_changed':False}
+          (out/'archive-receipt.json').write_text(json.dumps(proof,indent=2)+'\n')
+          (out/'SHA256SUMS').write_text(''.join(f'{sha(out/name)}  {name}\n' for name in ('rawrphos-17k-to-18k-unpromoted-recovery.tar.gz','archive-receipt.json')))
+          print('VERIFIED_ALL_TEN_18K_100_STEP_CHECKPOINTS',req['candidate_sha256'],flush=True)
+          PY
+      - name: Publish immutable checkpoint chain release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1
+          gh release create "$TAG" .rawrphos-archive/published/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title 'RAWRPHØS research 17.1K–18K unpromoted recovery archive' --notes 'Ten sealed checkpoints (17,100 through 18,000) with full optimizer/RNG, tokenizer and source-bound receipts. The 18K owner repetition promotion gate FAILED (10/11 automated checks) and instruction/multiturn behavior remains unreliable. Research-only; not approved for production or default inference.'
+      - name: Preserve archive receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawrphos-stage-008-archive-receipt
+          path: .rawrphos-archive/published/archive-receipt.json
+          if-no-files-found: ignore
+          retention-days: 30
