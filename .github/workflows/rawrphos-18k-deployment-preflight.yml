@@ -150,4 +150,4 @@ jobs:
         run: |
           set -euo pipefail
           docker build --progress=plain -f apps/beastbox-cloud/bridge/deploy/Dockerfile.rawrphos -t rawrphos-dual-14k-18k-preflight .
-          docker image inspect rawrphos-18k-deploy-preflight --format 'IMAGE_SIZE_BYTES={{.Size}}'
+          docker image inspect rawrphos-dual-14k-18k-preflight --format 'IMAGE_SIZE_BYTES={{.Size}}'
