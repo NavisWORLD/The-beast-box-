@@ -9,12 +9,13 @@ import MotionPanel from './motion-panel';
 import LiveSenses from './live-senses';
 import SpokenResponse from './spoken-response';
 import {classifyLocalPhoto} from '../lib/attachment-vision';
+import {extractLocalPdf} from '../lib/local-pdf';
 import CosmosWorld from './cosmos-world';
 import { Activity, Camera, Mic, ArrowDownToLine, ArrowLeftRight, ArrowRight, BrainCircuit, Check, ChevronDown, CircleHelp, CloudOff, Command, Database, File, FileText, Fingerprint, Github, Image as ImageIcon, LockKeyhole, LogOut, Menu, MessageCircle, Paperclip, Plus, Send, Settings2, Shield, ShieldCheck, Sparkles, Telescope, Trash2, X, Zap } from 'lucide-react';
 
 type Page='COSMOS WORLD'|'BRAIN'|'ORBIT'|'BRAIN BAY'|'MEMORY VAULT'|'SYNAPSE TRACE'|'FILES'|'AUTHORITY'|'SETTINGS';
 type Turn={id:string,role:'user'|'assistant',text:string,kind?:string,model?:string};
-type Attachment={name:string,size:number,type:string,text?:string,objectUrl?:string,original:File,source?:'azure_blob',imageLabel?:string,imageConfidence?:number,imageTimestamp?:string};
+type Attachment={name:string,size:number,type:string,text?:string,objectUrl?:string,original:File,source?:'azure_blob',imageLabel?:string,imageConfidence?:number,imageTimestamp?:string,pdfPages?:number,pdfDigest?:string};
 const NAV:{name:Page;icon:typeof BrainCircuit}[]=[
 {name:'COSMOS WORLD',icon:Sparkles},{name:'BRAIN',icon:MessageCircle},{name:'ORBIT',icon:Telescope},{name:'BRAIN BAY',icon:BrainCircuit},
 {name:'MEMORY VAULT',icon:Database},{name:'SYNAPSE TRACE',icon:Activity},{name:'FILES',icon:FileText},
@@ -54,6 +55,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  const updateLiveContext=useCallback((text:string,include:boolean)=>setLiveContext(old=>old.text===text&&old.include===include?old:{text,include}),[]);
  const [records,setRecords]=useState<Record<string,unknown>[]>([]),[orbit,setOrbit]=useState<Record<string,unknown>|null>(null),[trace,setTrace]=useState<Record<string,unknown>[]>([]),[snapshot,setSnapshot]=useState<Record<string,unknown>|null>(null),[profile,setProfile]=useState<Record<string,unknown>|null>(null);
  const [attachments,setAttachments]=useState<Attachment[]>([]),[attachError,setAttachError]=useState(''),[analyzingPhoto,setAnalyzingPhoto]=useState<File|null>(null);
+ const [extractingPdf,setExtractingPdf]=useState<File|null>(null);
  const [photoMemoryEnabled,setPhotoMemoryEnabled]=useState(false),[photoConsent,setPhotoConsent]=useState(false),[photoSaving,setPhotoSaving]=useState(false),[photoReceipt,setPhotoReceipt]=useState('');
  useEffect(()=>{
   if(!owner||!bridge){setPhotoMemoryEnabled(false);return;}
@@ -123,6 +125,15 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
    }catch(e){setAttachError(e instanceof Error?e.message:'Local image classification unavailable. Nothing was uploaded.');}
    finally{setAnalyzingPhoto(null);}
  }
+ async function extractPdf(item:Attachment){
+   if(busy||extractingPdf||!item.type.includes('pdf')||item.text!==undefined)return;
+   setExtractingPdf(item.original);setAttachError('');
+   try{
+     const result=await extractLocalPdf(item.original);
+     setAttachments(old=>old.map(a=>a.original===item.original?{...a,text:result.text,pdfPages:result.pages,pdfDigest:result.sha256}:a));
+   }catch(e){setAttachError(e instanceof Error?e.message:'PDF text extraction failed; no bytes uploaded.');}
+   finally{setExtractingPdf(null);}
+ }
  async function rememberPhoto(item:Attachment){
    if(!photoConsent||!photoMemoryEnabled||photoSaving||!item.imageLabel||typeof item.imageConfidence!=='number'||!item.imageTimestamp)return;
    const at=Date.parse(item.imageTimestamp);
@@ -160,10 +171,10 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
    return true;
  }
  async function send(){
-   if(!connected||busy||analyzingPhoto||!prompt.trim())return;
+   if(!connected||busy||analyzingPhoto||extractingPdf||!prompt.trim())return;
    setBusy(true);setError('');setSensorReceipt('');
    try {
-     if(attachments.some(a=>a.text===undefined)) throw new Error('For a photo, tap Analyze locally to send only its approximate ImageNet category. PDFs remain local-only; remove them before sending.');
+     if(attachments.some(a=>a.text===undefined)) throw new Error('For a photo tap Analyze locally; for a PDF tap Extract text locally. Raw files are not sent.');
      const ids:number[]=[];
      for(const a of attachments){
        if((a.text||'').length>250000)throw new Error('Selected text file exceeds the supported 250,000 character limit.');
@@ -245,7 +256,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  {needsGrant&&<div className="inline-error cosmos-model-reapproval" role="status"><ShieldCheck size={17}/><span>Saved cloud model needs fresh owner approval after a host restart. Your Azure storage does not authorize model inference; your draft and COSMOS memory remain unchanged.</span><button type="button" className="outline-action" onClick={()=>setPage('BRAIN BAY')}>Review cloud model</button>{modelGate?.local_available&&<button type="button" className="outline-action" disabled={busy} onClick={()=>void selectLocal()}>Use local model · no cloud charge</button>}</div>}
  <div className="chat-thread" aria-live="polite">{turns.length===0?<div className="empty-chat"><div className="empty-orb"><span>✺</span></div><div className="eyebrow">WELCOME TO YOUR UNIVERSE</div><h1>What&apos;s on your<br/><em>cosmic mind?</em></h1><p>{connected?'Send a message to the configured provider. Only a completed inference call verifies a live response.':bridge?'The connected provider is a deterministic reference fixture. Configure a genuine model on the durable host before enabling chat.':'Your authentic Beast Box backend is not connected yet. This is a private UI preview; no fake responses will appear.'}</p>{backendHint[backendStatus]&&<p role="status">{backendHint[backendStatus]}</p>}{needsGrant&&<p role="status">Reapprove the saved cloud model in Brain Bay or select the installed local model without remote charges.</p>}<div className="suggestions"><button disabled={!connected} onClick={()=>setPrompt('What do you remember about our last conversation?')}>✺ What do you remember?</button><button disabled={!connected} onClick={()=>setPrompt('Show me our last checkpoint.')}>◇ Show last checkpoint</button><button disabled={!connected} onClick={()=>setPrompt('Help me explore the universe!')}>✦ Explore an idea</button></div></div>:turns.map(t=><div className={'message '+t.role} key={t.id}><div className="message-avatar">{t.role==='assistant'?'✺':'CD'}</div><div className="message-content"><span className="message-name">{t.role==='assistant'?(t.model||'MODEL · HISTORICAL ID UNRECORDED'):'YOU'}</span><p>{t.text}</p>{t.role==='assistant'?<SpokenResponse text={t.text}/>:null}</div></div>)}{temporaryReply&&<div className="message assistant" key={temporaryReply.id}><div className="message-avatar">✺</div><div className="message-content"><span className="message-name">{model} · TEMPORARY REPLY</span><p>{temporaryReply.text}</p><SpokenResponse text={temporaryReply.text}/><small>Generated with owner-selected temporary context. Not stored in durable conversation memory. This browser-only reply is replaced after your next completed turn and disappears on refresh.</small></div></div>}<div ref={bottom}/></div>
  {error&&<div className="inline-error" role="alert"><CircleHelp size={16}/>{error}<button aria-label="Dismiss error" onClick={()=>setError('')}><X size={14}/></button></div>}{attachError&&<div className="inline-error" role="alert">{attachError}</div>}
- <div className="composer-area"><div className="attachment-preview">{attachments.map((a,i)=><div className="attachment-chip" key={i}>{a.type.startsWith('image/')?<ImageIcon size={15}/>:<File size={15}/>}<span>{a.name}</span><small>{a.imageLabel?'LOCAL CATEGORY · '+a.imageLabel+' ('+Math.round((a.imageConfidence||0)*100)+'%)':a.source==='azure_blob'?'AZURE · OWNER SELECTED':'LOCAL ONLY'}</small>{a.type.startsWith('image/')&&!a.text?<button type="button" disabled={busy||!!analyzingPhoto} onClick={()=>void analyzePhoto(a)} aria-label={'Analyze '+a.name+' locally'}>{analyzingPhoto===a.original?'Analyzing…':'Analyze locally'}</button>:null}{a.imageLabel&&photoMemoryEnabled?<button type="button" disabled={!photoConsent||busy||photoSaving} onClick={()=>void rememberPhoto(a)} aria-label={'Remember '+a.name+' category in COSMOS'}>{photoSaving?'Saving…':'Remember category'}</button>:null}<button aria-label={'Remove '+a.name} disabled={busy||analyzingPhoto===a.original||photoSaving} onClick={()=>removeFile(i)}><X size={14}/></button></div>)}</div>
+ <div className="composer-area"><div className="attachment-preview">{attachments.map((a,i)=><div className="attachment-chip" key={i}>{a.type.startsWith('image/')?<ImageIcon size={15}/>:<File size={15}/>}<span>{a.name}</span><small>{a.pdfDigest?'PDF TEXT · '+a.pdfPages+' pages · '+a.pdfDigest.slice(0,10):a.imageLabel?'LOCAL CATEGORY · '+a.imageLabel+' ('+Math.round((a.imageConfidence||0)*100)+'%)':a.source==='azure_blob'?'AZURE · OWNER SELECTED':'LOCAL ONLY'}</small>{a.type.startsWith('image/')&&!a.text?<button type="button" disabled={busy||!!analyzingPhoto} onClick={()=>void analyzePhoto(a)} aria-label={'Analyze '+a.name+' locally'}>{analyzingPhoto===a.original?'Analyzing…':'Analyze locally'}</button>:null}{a.type==='application/pdf'&&!a.text?<button type="button" disabled={busy||!!extractingPdf||!!analyzingPhoto} onClick={()=>void extractPdf(a)} aria-label={'Extract '+a.name+' text locally'}>{extractingPdf===a.original?'Extracting…':'Extract text locally'}</button>:null}{a.imageLabel&&photoMemoryEnabled?<button type="button" disabled={!photoConsent||busy||photoSaving} onClick={()=>void rememberPhoto(a)} aria-label={'Remember '+a.name+' category in COSMOS'}>{photoSaving?'Saving…':'Remember category'}</button>:null}<button aria-label={'Remove '+a.name} disabled={busy||analyzingPhoto===a.original||extractingPdf===a.original||photoSaving} onClick={()=>removeFile(i)}><X size={14}/></button></div>)}</div>
  {attachments.some(a=>!!a.imageLabel)?<label className="cloud-spend"><input type="checkbox" checked={photoConsent} disabled={!photoMemoryEnabled||busy||photoSaving} onChange={e=>setPhotoConsent(e.target.checked)}/> I separately approve storing only the selected photo CATEGORY in COSMOS memory. Future selected remote models might retrieve it. No image pixels are stored.</label>:null}
  {attachments.some(a=>!!a.imageLabel)&&!photoMemoryEnabled?<p role="status" className="composer-note">Photo memory is disabled on the host. You may still send the local category as temporary text context.</p>:null}
  {photoReceipt?<p role="status" className="cloud-connect-success">{photoReceipt}</p>:null}
