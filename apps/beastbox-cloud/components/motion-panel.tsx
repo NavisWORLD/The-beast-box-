@@ -127,6 +127,34 @@ export default function MotionPanel({canSend,onDraft}:Props){
   setNotice('Numeric snapshot ready locally. No sensor stream was sent or stored.');
  }
  const fresh=sample!==null&&clock-sample.at<SAMPLE_AGE_MS;
+ async function previewBio(){
+  if(previewing||!previewConsent||!sample||sample.rmsG===null)return;
+  if(Date.now()-sample.at>=SAMPLE_AGE_MS){setSample(null);setPreviewConsent(false);setError('Motion sample expired; collect a new one.');return;}
+  setPreviewing(true);setError('');setPreviewVector(null);
+  try{
+   // Only feature flag metadata is fetched first; a disabled host receives NO measurement.
+   const status=await fetch('/api/bridge/bio',{credentials:'same-origin',cache:'no-store'});
+   const config=await status.json() as {enabled?:boolean};
+   if(!status.ok||config.enabled!==true)throw new Error('Host bio normalization preview is disabled. No measurement was transmitted.');
+   if(!alive.current||!enabled.current||document.hidden)throw new Error('Sensor stopped before submission.');
+   const response=await fetch('/api/bridge/bio',{method:'POST',credentials:'same-origin',cache:'no-store',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({
+     action:'preview',source:'browser_sensor',consent:true,
+     readings:{accelerometer_rms_g:sample.rmsG}})});
+   const result=await response.json() as {persisted?:boolean;model_invoked?:boolean;event?:{features?:number[]};error?:string};
+   if(!response.ok)throw new Error(result.error||'Host rejected numeric preview.');
+   const vector=result.event?.features;
+   if(result.persisted!==false||result.model_invoked!==false||!Array.isArray(vector)||
+      vector.length!==12||vector.some(v=>typeof v!=='number'||!Number.isFinite(v)||Math.abs(v)>1))
+    throw new Error('Host preview returned an invalid or unconfirmed normalized event.');
+   if(alive.current&&enabled.current&&!document.hidden){
+    setPreviewVector(vector);
+    setNotice('Host normalized one unverified motion number; no model or durable state was changed.');
+   }
+   setPreviewConsent(false);
+  }catch(e){if(alive.current)setError(e instanceof Error?e.message:'Host preview unavailable.');}
+  finally{if(alive.current)setPreviewing(false);}
+ }
  function draft(){
   if(!canSend||!consent||!sample)return;
   if(Date.now()-sample.at>=SAMPLE_AGE_MS){setSample(null);setConsent(false);setPreviewConsent(false);setPreviewVector(null);setError('Sample expired. Collect another reading.');return;}
@@ -150,9 +178,16 @@ export default function MotionPanel({canSend,onDraft}:Props){
   <div className="cloud-connect-actions"><button type="button" onClick={draft}
    disabled={!canSend||!consent||!fresh}><ShieldCheck size={15}/> Add sample to draft (do not send)</button>
    <button type="button" onClick={()=>{setSample(null);setConsent(false);setPreviewConsent(false);setPreviewVector(null);}} disabled={!sample}>Discard sample</button></div>
+  <label className="cloud-spend"><input type="checkbox" checked={previewConsent}
+   onChange={event=>setPreviewConsent(event.target.checked)} disabled={!fresh||sample?.rmsG===null||previewing}/>
+   I approve transmitting ONLY this one approximate gravity-free acceleration RMS number to the authenticated COSMOS host for a non-persistent, CST-compatible 12-channel normalization preview. No model, hardware authority or durable memory operation.</label>
+  <div className="cloud-connect-actions"><button type="button" disabled={!fresh||!previewConsent||sample?.rmsG===null||previewing}
+   onClick={()=>void previewBio()}><Activity size={15}/> {previewing?'Normalizing…':'Preview 12-channel numeric event (do not save)'}</button></div>
+  {fresh&&sample?.rmsG===null?<p role="status">Gravity-free motion data was unavailable; no RMS estimate can be sent to the host.</p>:null}
+  {previewVector?<p className="cloud-connect-success" role="status">Normalized 12-channel vector: {previewVector.join(', ')}. Only index 6 corresponds to acceleration; other channels are missing, not measured. No CST runtime state or checkpoint changed.</p>:null}
   {!canSend?<p className="cloud-connect-alert">Connect a genuine model to draft a sample. Local sensing remains optional.</p>:null}
   {notice?<p className="cloud-connect-success" role="status">{notice}</p>:null}
   {error?<p className="inline-error" role="alert">{error}</p>:null}
-  <p className="cloud-connect-foot">Stop, tab hide, page exit and navigation release listeners and discard readings. No background capture, medical diagnosis, person tracking, automatic transmission or persistent physiological measurements.</p>
+  <p className="cloud-connect-foot">Stop, tab hide, page exit and navigation release listeners and discard readings. No background capture, medical diagnosis, person tracking, automatic transmission or persistent physiological measurements. A one-off host preview is not continuous CST runtime integration.</p>
  </section>;
 }
