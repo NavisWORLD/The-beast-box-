@@ -27,7 +27,8 @@ test('public snippets are untrusted turn-only text with source URLs and owner se
  assert.match(ui,/No automatic model call, memory write/);
  assert.match(ui,/Stage selected excerpts for next chat \(do not send yet\)/);
  assert.match(ui,/https:\/\/en\.wikipedia\.org\/wiki\//);
- assert.match(ui,/not system instructions/);\n assert.match(ui,/<details className="composer-web-lookup">/);
+ assert.match(ui,/not system instructions/);
+ assert.match(ui,/<details className="composer-web-lookup">/);
  assert.match(studio,/<WebLookup canSend=\{connected&&!busy&&attachments\.length<4\}/);
  assert.match(studio,/scope:'temporary_attachment'/);
  assert.match(studio,/chat-start/);
