@@ -60,13 +60,13 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
         if(!item||typeof item!=='object'||Array.isArray(item))return safeJson(400,{error:'Invalid observation'});
         const entry=item as Record<string,unknown>;
         const keys=Object.keys(entry).sort().join(',');
-        const camera=entry.source==='camera_classifier';
-        if(!['camera_classifier','browser_speech'].includes(String(entry.source))||
-           keys!==(camera?'confidence,source,text,timestamp':'source,text,timestamp')||
+        const classification=entry.source==='camera_classifier'||entry.source==='file_classifier';
+        if(!['camera_classifier','file_classifier','browser_speech'].includes(String(entry.source))||
+           keys!==(classification?'confidence,source,text,timestamp':'source,text,timestamp')||
            typeof entry.text!=='string'||entry.text.length<1||
-           entry.text.length>(camera?96:240)||
+           entry.text.length>(classification?96:240)||
            typeof entry.timestamp!=='string'||entry.timestamp.length>35||
-           (camera&&(typeof entry.confidence!=='number'||!Number.isFinite(entry.confidence)||
+           (classification&&(typeof entry.confidence!=='number'||!Number.isFinite(entry.confidence)||
                     entry.confidence<0.32||entry.confidence>1)))
           return safeJson(400,{error:'Only bounded text labels and transcripts are accepted'});
       }
