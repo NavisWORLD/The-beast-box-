@@ -1,4 +1,4 @@
-"""Owner-only RAWRPHØS selection tests (synthetic metadata, not live 14K inference)."""
+"""Owner-only RAWRPHØS selection tests (synthetic metadata, not live 18K inference)."""
 import importlib.util
 import json
 import os
@@ -16,7 +16,7 @@ TOKEN = "synthetic-owner-token-" + "x" * 40
 
 
 def checkpoint(root):
-    path = root / "step-00014000"
+    path = root / "step-00018000"
     path.mkdir()
     (path / "metadata.json").write_text(json.dumps({
         "model_id": native.MODEL, "lineage": "native-from-scratch",
@@ -64,7 +64,7 @@ def test_native_selector_preserves_durable_state_and_restart(tmp_path):
         app = BRIDGE.OwnerBridge(tmp_path / "memory", TOKEN)
         before = app.app.dispatch("GET", "/api/orbit")[1]["runtime"]
         assert native_choice(app)["readiness"] == "INSTALLED_AND_READY"
-        assert native_choice(app)["loaded_step"] == 14000
+        assert native_choice(app)["loaded_step"] == 18000
         code, result = choice(app)
         assert code == 200 and result["checkpoint_sha256"] == native.SHA
         assert app.app.profile.model == native.MODEL
