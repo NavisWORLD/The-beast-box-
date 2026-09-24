@@ -2,14 +2,14 @@
 import {useCallback,useEffect,useState} from 'react';
 import {Check,RefreshCcw,ShieldCheck} from 'lucide-react';
 
-type Choice='local'|'rawrphos_native'|'rawrphos_hf'|'huggingface'|'ollama_cloud';
+type Choice='local'|'rawrphos_native'|'rawrphos_native_18k_experimental'|'rawrphos_hf'|'huggingface'|'ollama_cloud';
 type Option={
  choice:Choice;model:string;kind:'local'|'remote';configured:boolean;
  requires_spend_approval:boolean;readiness:string;
- label?:string;loaded_step?:number|null;
+ label?:string;loaded_step?:number|null;experimental?:boolean;promotion_checks_pass?:boolean;
 };
 type Catalog={
- active:{model:string;kind:string;remote:boolean;loaded_step?:number|null};
+ active:{model:string;kind:string;remote:boolean;loaded_step?:number|null;experimental?:boolean};
  remote_grant_active:boolean;reapproval_required:boolean;choices:Option[];
  inference_attested:boolean;no_automatic_fallback:boolean;
 };
@@ -82,7 +82,8 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
    setNotice(
     result.brain_changed===false?'This brain was already selected; no new inference was performed.':
     choice==='local'?'Selected the verified local CPU model. Existing substrate retained; no paid inference was made.':
-    choice==='rawrphos_native'?'Selected the verified native 12K CPU checkpoint. COSMOS history retained; no paid inference was made.':
+    choice==='rawrphos_native'?'Selected the stable native 14K CPU checkpoint. COSMOS history retained; no paid inference was made.':
+    choice==='rawrphos_native_18k_experimental'?'Selected the experimental 18K CPU checkpoint. Its quality gate FAILED; instruction and multi-turn replies may be wrong. Stable 14K is still available, and COSMOS memory was preserved.':
      choice==='rawrphos_hf'?'Selected your private Hugging Face ZeroGPU RAWRPHØS 12K. Checkpoint identity was verified; try a real chat. Free quota and queue limits apply.':
     'Selected '+String(result.model||'the cloud model')+'. The encrypted key was retained. Actual inference and account entitlement still require a completed chat.'
    );
@@ -100,20 +101,23 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
     </p>
     {catalog.choices.map(option=>{
      const active=catalog.active.model===option.model&&
-      (option.kind==='local'?!catalog.active.remote:catalog.active.remote);
+      (option.kind==='local'?!catalog.active.remote:catalog.active.remote)&&
+      (option.choice==='rawrphos_native'?catalog.active.experimental!==true:
+       option.choice==='rawrphos_native_18k_experimental'?catalog.active.experimental===true:true);
      const remote=option.requires_spend_approval;
-     const native=option.choice==='rawrphos_native';
+     const experimental=option.choice==='rawrphos_native_18k_experimental';
+     const native=option.choice==='rawrphos_native'||experimental;
      const hosted=option.choice==='rawrphos_hf';
      const ready=option.readiness==='INSTALLED_AND_READY';
      return <div className="record" key={option.choice}>
       <strong>{option.label||option.model}</strong> · {native?'Native PyTorch CPU':hosted?'Private Hugging Face ZeroGPU':option.choice==='local'?'Installed CPU model':option.choice==='huggingface'?'Hugging Face':'Ollama Cloud'}
-      <p>{native?'Status: '+option.readiness.replaceAll('_',' ')+(option.loaded_step?' · Loaded step '+option.loaded_step:'')+'. '+(ready?'Pinned 12K identity and loopback verified; real chat still needs completion.':'Not selectable until Railway installs and verifies the model. No automatic fallback.'):hosted?'Private HF Space. '+(option.configured?'Ready for owner-authenticated checkpoint check when selected. Free daily GPU quota and queuing apply.':'Save a private Hugging Face token under Connections first. No browser token exposure.'):remote?'Encrypted credential configured. Model inference, account entitlement, available balance and latency are not attested.':'Local weights and loopback were verified on the host. Actual response still requires a completed chat.'}</p>
+      <p>{native?'Status: '+option.readiness.replaceAll('_',' ')+(option.loaded_step?' · Loaded step '+option.loaded_step:'')+'. '+(ready?(experimental?'Pinned unpromoted 18K identity verified. The original quality gate FAILED; responses may be inaccurate. Owner-only test use; real chat still needs completion.':'Pinned 14K identity and loopback verified; real chat still needs completion.'):'Not selectable until Railway installs and verifies the model. No automatic fallback.'):hosted?'Private HF Space. '+(option.configured?'Ready for owner-authenticated checkpoint check when selected. Free daily GPU quota and queuing apply.':'Save a private Hugging Face token under Connections first. No browser token exposure.'):remote?'Encrypted credential configured. Model inference, account entitlement, available balance and latency are not attested.':'Local weights and loopback were verified on the host. Actual response still requires a completed chat.'}</p>
       <button type="button" className="outline-action"
        disabled={busy||(remote&&!spendApproved)||(!remote&&active)||(native&&!ready)||(hosted&&!option.configured)}
        onClick={()=>void choose(option.choice)}>
        {active?<Check size={15}/>:<ShieldCheck size={15}/>}
        {active&&!(remote&&catalog.reapproval_required)?'Currently selected':
-        remote?(active?'Reapprove saved remote model':hosted?'Select RAWRPHØS via Hugging Face':'Select saved remote model'):native?'Select RAWRPHØS':'Switch to local model'}
+        remote?(active?'Reapprove saved remote model':hosted?'Select RAWRPHØS via Hugging Face':'Select saved remote model'):native?(experimental?'Select experimental 18K':'Select stable 14K'):'Switch to local model'}
       </button>
       {option.choice==='ollama_cloud'&&<div className="record" aria-label="Ollama cloud model choices">
        <h3>Ollama cloud models</h3>
@@ -151,10 +155,10 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
    </>}
   {!catalog?.choices?.some(option=>option.choice==='rawrphos_native')?
    <div className="record" role="status" data-testid="rawrphos-native-unavailable">
-    <strong>RAWRPHØS Native — Local CPU (12K)</strong> · Native PyTorch CPU
+    <strong>RAWRPHØS Native — Local CPU (14K)</strong> · Native PyTorch CPU
     <p>{!backendReachable?'The durable backend is offline. RAWRPHØS cannot be verified.':
       !catalog?'Reading the real model catalog; native checkpoint not yet attested.':
-      'The connected backend does not advertise RAWRPHØS. Deploy the reconciled Railway owner bridge and pinned 12K checkpoint first.'}</p>
+      'The connected backend does not advertise RAWRPHØS. Deploy the reconciled Railway owner bridge and pinned 14K checkpoint first.'}</p>
     <button type="button" className="outline-action" disabled aria-disabled="true">RAWRPHØS unavailable</button>
    </div>:null}
   {notice?<p role="status" className="cloud-connect-success">{notice}</p>:null}
