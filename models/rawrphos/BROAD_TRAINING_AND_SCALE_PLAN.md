@@ -1,7 +1,7 @@
 # RAWRPHØS // BROAD CURRICULUM + MODEL SCALE (experimental)
 
 Owner: Cory Davis / NavisWORLD. This workspace is **separate** from the trained
-\`rawrphos-native\` 3,909,956-parameter model and the production Beast Box
+`rawrphos-native` 3,909,956-parameter model and the production Beast Box
 deployment. It is NOT authorization to change the live default, overwrite a
 checkpoint, spend on compute, or make claims of general intelligence.
 
@@ -9,7 +9,7 @@ checkpoint, spend on compute, or make claims of general intelligence.
 
 - Latest previously verified weights before the new continuation: **14,000
   cumulative optimizer steps**, checkpoint SHA-256
-  \`4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5\`.
+  `4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5`.
 - [Immutable 14K GitHub release](https://github.com/NavisWORLD/The-beast-box-/releases/tag/rawrphos-native-conversation-step-00014000-run-35951509482)
   preserves full optimizer/RNG/scheduler resume data. Never train from an
   inference-only export.
@@ -25,7 +25,7 @@ checkpoint, spend on compute, or make claims of general intelligence.
 
 ## 30-category supplemental curriculum, NOT yet used for training
 
-\`scripts/prepare_broad_curriculum.py\` generates reproducible *original
+`scripts/prepare_broad_curriculum.py` generates reproducible *original
 synthetic* examples. It includes comedy, wordplay, arithmetic, algebra,
 geometry, coding, debugging, science, physics, biology, history, geography,
 writing, poetry, storytelling, summarization, classification, reasoning,
@@ -41,17 +41,17 @@ owner private chat, credential, medical file, or human sensor data.
 
 Recreate a byte-identical dataset with:
 
-\`\`\`sh
+```sh
 PYTHONPATH=models python -m rawrphos.scripts.prepare_broad_curriculum \
   --output .rawrphos-experiments/new-supplement
-\`\`\`
+```
 
 CI audit:
 https://github.com/NavisWORLD/The-beast-box-/actions/runs/35959352753
 
 The first audit produced **834 training / 107 validation synthetic examples**,
 across 30 categories; dataset SHA-256:
-\`4275abb30706826ab42d6e9e3c54d0c0a9de66fb43590d5b8660f0a2e8eb243d\`.
+`4275abb30706826ab42d6e9e3c54d0c0a9de66fb43590d5b8660f0a2e8eb243d`.
 Independent end-to-end validation needs far more varied held-out items.
 
 ### Before training on broader data
@@ -81,17 +81,17 @@ Independent end-to-end validation needs far more varied held-out items.
 A separate architecture candidate uses the *same dyn12 / Gaussian state-affinity
 implementation* with **8 layers, width 384, 6 attention heads, 12 state
 dimensions and vocabulary size 4,096**, giving **10,138,540 parameters**.
-Its isolated model ID is \`rawrphos-native-10m-research\`.
+Its isolated model ID is `rawrphos-native-10m-research`.
 
 A CPU-only synthetic forward/backward probe lives in
-\`scripts/probe_bigger_model.py\`. It can measure instantiation and resource
+`scripts/probe_bigger_model.py`. It can measure instantiation and resource
 use without real-data training or a promoted release:
 
-\`\`\`sh
+```sh
 PYTHONPATH=models python -m rawrphos.scripts.probe_bigger_model \
   --threads 2 --seq-len 64 --batch-size 2 \
   --output .rawrphos-experiments/10m-resource-probe.json
-\`\`\`
+```
 
 **The 10M candidate has different tensor shapes and attention head dimensions.**
 Do not attempt to directly load or exact-resume 3.91M optimizer weights into it.
