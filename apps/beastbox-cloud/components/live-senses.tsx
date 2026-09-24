@@ -14,14 +14,18 @@ function fresh(items:Observation[],now:number){return items.filter(o=>{
 type SpeechResult={isFinal:boolean;[index:number]:{transcript:string;confidence:number}};
 type SpeechEvent={resultIndex:number;results:ArrayLike<SpeechResult>};
 type SpeechEngine={
- continuous:boolean;interimResults:boolean;lang:string;
+ continuous:boolean;interimResults:boolean;lang:string;processLocally?:boolean;
  onresult:((event:SpeechEvent)=>void)|null;
  onerror:((event:{error:string})=>void)|null;
  onend:(()=>void)|null;
  start:()=>void;stop:()=>void;abort:()=>void;
 };
+type LocalSpeechCtor=(new()=>SpeechEngine)&{
+ available?:(opts:{langs:string[];processLocally:boolean})=>Promise<'available'|'downloadable'|'downloading'|'unavailable'>;
+ install?:(opts:{langs:string[]})=>Promise<boolean>;
+};
 type SpeechWindow=Window & {
- SpeechRecognition?:new()=>SpeechEngine;
+ SpeechRecognition?:LocalSpeechCtor;
  webkitSpeechRecognition?:new()=>SpeechEngine;
 };
 type Props={
@@ -48,6 +52,8 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
  const [cameraOn,setCameraOn]=useState(false),[speechOn,setSpeechOn]=useState(false);
  const [starting,setStarting]=useState(false),[observations,setObservations]=useState<Observation[]>([]);
  const [allowBrowserSpeech,setAllowBrowserSpeech]=useState(false);
+ const [localReady,setLocalReady]=useState(false),[localOnly,setLocalOnly]=useState(false);
+ const [localDownloadable,setLocalDownloadable]=useState(false),[localChecking,setLocalChecking]=useState(false);
  const [includeInChat,setIncludeInChat]=useState(false),[rememberConsent,setRememberConsent]=useState(false);
  const [memoryEnabled,setMemoryEnabled]=useState(false),[saving,setSaving]=useState(false);
  const [notice,setNotice]=useState(''),[error,setError]=useState(''),[receipt,setReceipt]=useState('');
@@ -138,15 +144,55 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
    if(alive.current)setError('Camera permission, local model download, or classification unavailable. No frame was sent to COSMOS.');
   }finally{if(alive.current)setStarting(false);}
  }
+ async function checkLocalSpeech(){
+  if(speechWanted.current||localChecking)return;
+  setLocalChecking(true);setError('');
+  const ctor=(window as SpeechWindow).SpeechRecognition;
+  if(!window.isSecureContext||!ctor?.available){
+   setError('On-device speech recognition is not available in this browser. No audio was captured.');
+   setLocalReady(false);setLocalOnly(false);setLocalChecking(false);return;
+  }
+  try{
+   const status=await ctor.available({langs:['en-US'],processLocally:true});
+   if(!alive.current)return;
+   setLocalReady(status==='available');
+   setLocalDownloadable(status==='downloadable'||status==='downloading');
+   if(status==='available')setNotice('English local speech pack is available. Enable Local-only mode to use it.');
+   else if(status==='unavailable')setError('This browser has no supported English local recognition pack. Nothing was downloaded.');
+   else setNotice('An on-device English language pack is available to install. Installation may use device data and storage; approve it separately.');
+  }catch{if(alive.current){setLocalReady(false);setLocalOnly(false);
+    setError('Cannot check on-device speech. Browser support or Permissions-Policy may block it.');}}
+  finally{if(alive.current)setLocalChecking(false);}
+ }
+ async function installLocalSpeech(){
+  if(localChecking||!localDownloadable||speechWanted.current)return;
+  const ctor=(window as SpeechWindow).SpeechRecognition;
+  if(!ctor?.available||!ctor.install)return;
+  setLocalChecking(true);setError('');
+  try{
+   // Separate deliberate owner click; never download a model on ordinary page load.
+   const installed=await ctor.install({langs:['en-US']});
+   const state=installed?await ctor.available({langs:['en-US'],processLocally:true}):'unavailable';
+   if(!alive.current)return;
+   setLocalReady(state==='available');setLocalDownloadable(state==='downloadable'||state==='downloading');
+   if(state==='available')setNotice('Local English speech pack ready. Check Local-only to opt in.');
+   else setError('Local speech pack did not install or was blocked by your browser.');
+  }catch{if(alive.current)setError('Local speech pack installation was unavailable. No vendor fallback was enabled.');}
+  finally{if(alive.current)setLocalChecking(false);}
+ }
  function startSpeech(){
-  if(starting||speechWanted.current||!allowBrowserSpeech)return;
+  if(starting||speechWanted.current||(!allowBrowserSpeech&&!localOnly))return;
   setError('');setNotice('');
   if(!window.isSecureContext){setError('Speech recognition requires HTTPS.');return;}
   const w=window as SpeechWindow;
-  const Ctor=w.SpeechRecognition||w.webkitSpeechRecognition;
+  const Ctor=localOnly?w.SpeechRecognition:(w.SpeechRecognition||w.webkitSpeechRecognition);
   if(!Ctor){setError('Browser speech recognition is unsupported here. Use text chat instead.');return;}
   const engine=new Ctor();
   engine.continuous=true;engine.interimResults=false;engine.lang='en-US';
+  if(localOnly){
+   if(!localReady||!('processLocally' in engine)){setError('Local-only speech cannot be enforced here; no vendor fallback.');return;}
+   engine.processLocally=true;
+  }
   speechWanted.current=true;speechRetries.current=0;recognition.current=engine;
   engine.onresult=(event)=>{
    for(let i=event.resultIndex;i<event.results.length;i++){
@@ -157,7 +203,7 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
    }
   };
   engine.onerror=(event)=>{
-   if(['not-allowed','service-not-allowed','audio-capture','network'].includes(event.error)){
+   if(['not-allowed','service-not-allowed','audio-capture','network','language-not-supported'].includes(event.error)){
     setError('Speech recognition unavailable: '+event.error+'. It has stopped.');
     stopSpeech();
    }else if(event.error!=='no-speech')setNotice('Speech recognizer: '+event.error);
@@ -175,7 +221,7 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
     }
    },1000);
   };
-  try{engine.start();setSpeechOn(true);setNotice('Speech recognizer active. Your browser may process audio off-device.');}
+  try{engine.start();setSpeechOn(true);setNotice(localOnly?'Local-only browser speech active. No automatic vendor fallback.':'Speech recognizer active. Your browser may process audio off-device.');}
   catch{stopSpeech();setError('Speech recognizer could not start. No transcript sent.');}
  }
  function draft(){
