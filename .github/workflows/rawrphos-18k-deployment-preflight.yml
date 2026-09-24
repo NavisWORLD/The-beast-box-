@@ -1,0 +1,132 @@
+name: RAWRPHOS experimental 18K deployment preflight
+on:
+  push:
+    branches: [feature/rawrphos-18k-experimental-deployment-001]
+    paths:
+      - '.github/workflows/rawrphos-18k-deployment-preflight.yml'
+      - 'apps/beastbox-cloud/bridge/deploy/**'
+      - 'beastbox/rawrphos_local.py'
+      - 'beastbox/providers.py'
+      - 'tests/test_compatible_provider.py'
+      - 'tests/test_rawrphos_owner_selection.py'
+      - 'models/rawrphos/scripts/install_pinned_18k.py'
+permissions:
+  contents: read
+concurrency:
+  group: rawrphos-18k-deployment-preflight
+  cancel-in-progress: true
+jobs:
+  native-and-owner-smoke:
+    if: github.repository == 'NavisWORLD/The-beast-box-'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PYTHONPATH: models
+      EXPECTED_SHA: 20932937afb3e0e1b62a4e5f38f92170046ae2928b437dc31b8a37d6538e701e
+      RAWRPHOS_API_KEY: synthetic-ci-owner-native-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      RAWRPHOS_LOCAL_ENABLED: 'yes'
+      BEASTBOX_TINY_LOCAL_ENABLED: 'no'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install CPU and existing bridge dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'pyarrow>=15,<24' 'pytest>=8,<10' 'numpy>=1.26,<3' 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'uvicorn>=0.30,<1'
+          python -m pip install --quiet '.[secure]' 'azure-storage-blob>=12.20,<13' 'gradio-client>=1.14,<2'
+      - name: Regression tests for model and owner selection
+        run: python -m pytest -q models/rawrphos/tests tests/test_rawrphos_owner_selection.py tests/test_compatible_provider.py
+      - name: Recover exact public 18K checkpoint and verify full state
+        run: |
+          set -euo pipefail
+          python models/rawrphos/scripts/install_pinned_18k.py --destination "$RUNNER_TEMP/step-00018000"
+          python - <<'PY'
+          import os,pathlib
+          from rawrphos.training.checkpoint import load_checkpoint
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])/'step-00018000'
+          m=load_checkpoint(p,expected_checkpoint_sha256=os.environ['EXPECTED_SHA'])
+          assert m['metadata']['training_steps']==18000
+          assert m['metadata']['conversation_steps']==6000
+          assert m['model'].parameter_count()==3909956
+          assert {'optimizer','rng','data_rng','scheduler'}<=m['state'].keys()
+          print('EXACT_18K_BUNDLE_AND_RESUME_STATE_VERIFIED',flush=True)
+          PY
+      - name: Verify 18K is unpromoted experimental research, never silently default
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from beastbox.rawrphos_local import status
+          from pathlib import Path
+          from rawrphos.training.checkpoint import load_checkpoint
+          import os
+          ckpt=Path(os.environ['RUNNER_TEMP'])/'step-00018000'
+          loaded=load_checkpoint(ckpt,expected_checkpoint_sha256=os.environ['EXPECTED_SHA'],load_training_state=False)
+          assert loaded['metadata']['training_steps']==18000
+          assert 'experimental' in status()['label'].casefold() and 'quality gate failed' in status()['label'].casefold()
+          print('18K_UNPROMOTED_EXPERIMENTAL_LABEL_VERIFIED; NOT_A_QUALITY_PROMOTION',flush=True)
+          PY
+      - name: Authenticated HTTP inference and actual owner model selection
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os,pathlib,tempfile,threading,time,urllib.request
+          from fastapi.testclient import TestClient
+          from rawrphos.inference.server import create_app
+          from beastbox.rawrphos_local import status
+          from beastbox.providers import _local_opener
+          from importlib import util
+          from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+          from uvicorn import Config,Server
+          checkpoint=pathlib.Path(os.environ['RUNNER_TEMP'])/'step-00018000'
+          key=os.environ['RAWRPHOS_API_KEY']
+          test=TestClient(create_app(checkpoint,key,max_new_tokens=64,threads=2,expected_sha256=os.environ['EXPECTED_SHA']))
+          headers={'Authorization':'Bearer '+key}
+          assert test.get('/model/info').status_code==401
+          info=test.get('/model/info',headers=headers).json()
+          assert info['training_steps']==18000 and info['checkpoint_sha256']==os.environ['EXPECTED_SHA']
+          reply=test.post('/v1/chat/completions',headers=headers,json={
+              'model':'rawrphos-native','messages':[{'role':'user','content':"I'm so confused phos."}],
+              'temperature':0,'max_tokens':64,'seed':67})
+          assert reply.status_code==200,reply.text
+          assert reply.json()['checkpoint_sha256']==os.environ['EXPECTED_SHA']
+          print('ACTUAL_18K_AUTHENTICATED_RESPONSE',reply.json()['choices'][0]['message']['content'],flush=True)
+          app=create_app(checkpoint,key,max_new_tokens=64,threads=2,expected_sha256=os.environ['EXPECTED_SHA'])
+          server=Server(Config(app,host='127.0.0.1',port=8767,log_level='error',access_log=False))
+          runner=threading.Thread(target=server.run,daemon=True);runner.start()
+          for _ in range(80):
+              if server.started:break
+              time.sleep(.2)
+          assert server.started,'private native inference server failed startup'
+          os.environ['RAWRPHOS_CHECKPOINT_PATH']=str(checkpoint)
+          ready=status()
+          assert ready['readiness']=='INSTALLED_AND_READY',ready
+          assert ready['loaded_step']==18000 and ready['checkpoint_sha256']==os.environ['EXPECTED_SHA']
+          spec=util.spec_from_file_location('live_owner_bridge','apps/beastbox-cloud/bridge/owner_bridge.py')
+          bridge=util.module_from_spec(spec);spec.loader.exec_module(bridge)
+          token='synthetic-ci-bridge-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+          with tempfile.TemporaryDirectory() as location:
+              app=bridge.OwnerBridge(pathlib.Path(location),token)
+              before=app.app.dispatch('GET','/api/orbit')[1]['runtime']
+              code,catalog=app.dispatch('GET','/api/models','Bearer '+token)
+              assert code==200
+              native=next(x for x in catalog['choices'] if x['choice']=='rawrphos_native')
+              assert native['readiness']=='INSTALLED_AND_READY' and native['loaded_step']==18000
+              code,selected=app.dispatch('POST','/api/models','Bearer '+token,json.dumps({'choice':'rawrphos_native'}).encode())
+              assert code==200 and selected['checkpoint_sha256']==os.environ['EXPECTED_SHA']
+              code,answer=app.dispatch('POST','/api/chat','Bearer '+token,json.dumps({'text':'Hello'}).encode())
+              assert code==200,(code,answer)
+              after=app.app.dispatch('GET','/api/orbit')[1]['runtime']
+              assert before['system_id']==after['system_id']
+              print('REAL_OWNER_BRIDGE_LOCAL_18K_CHAT_PASS',flush=True)
+          server.should_exit=True;runner.join(timeout=15)
+          PY
+      - name: Read-only Docker image build (no Railway or Vercel mutation)
+        run: |
+          set -euo pipefail
+          docker build --progress=plain -f apps/beastbox-cloud/bridge/deploy/Dockerfile.rawrphos -t rawrphos-18k-deploy-preflight .
+          docker image inspect rawrphos-18k-deploy-preflight --format 'IMAGE_SIZE_BYTES={{.Size}}'
