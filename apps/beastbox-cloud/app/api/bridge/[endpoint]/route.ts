@@ -60,13 +60,13 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
         if(!item||typeof item!=='object'||Array.isArray(item))return safeJson(400,{error:'Invalid observation'});
         const entry=item as Record<string,unknown>;
         const keys=Object.keys(entry).sort().join(',');
-        const camera=entry.source==='camera_classifier';
-        if(!['camera_classifier','browser_speech'].includes(String(entry.source))||
-           keys!==(camera?'confidence,source,text,timestamp':'source,text,timestamp')||
+        const classification=entry.source==='camera_classifier'||entry.source==='file_classifier';
+        if(!['camera_classifier','file_classifier','browser_speech'].includes(String(entry.source))||
+           keys!==(classification?'confidence,source,text,timestamp':'source,text,timestamp')||
            typeof entry.text!=='string'||entry.text.length<1||
-           entry.text.length>(camera?96:240)||
+           entry.text.length>(classification?96:240)||
            typeof entry.timestamp!=='string'||entry.timestamp.length>35||
-           (camera&&(typeof entry.confidence!=='number'||!Number.isFinite(entry.confidence)||
+           (classification&&(typeof entry.confidence!=='number'||!Number.isFinite(entry.confidence)||
                     entry.confidence<0.32||entry.confidence>1)))
           return safeJson(400,{error:'Only bounded text labels and transcripts are accepted'});
       }
@@ -78,13 +78,15 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
       const base=['action','source','consent','readings'];
       const action=input.action;
       const keys=Object.keys(input).sort();
-      const validKeys=action==='preview'?base:action==='persist'
+      const validKeys=action==='preview'?base:action==='cst_preview'
+        ?[...base,'compare_confirmed']:action==='persist'
         ?[...base,'persist_confirmed',...(input.remote_share_confirmed===true?['remote_share_confirmed']:[])]
         :[];
       if(!validKeys.length||keys.join(',')!==validKeys.sort().join(',')||input.consent!==true||
          !['manual','wearable_export','browser_sensor'].includes(String(input.source))||
          !input.readings||typeof input.readings!=='object'||Array.isArray(input.readings)||
-         (action==='persist'&&input.persist_confirmed!==true)||body.length>2_048)
+         (action==='persist'&&input.persist_confirmed!==true)||
+         (action==='cst_preview'&&input.compare_confirmed!==true)||body.length>2_048)
         return safeJson(400,{error:'Invalid or unconsented bio submission'});
       const readings=input.readings as Record<string,unknown>;
       const channels=Object.keys(readings);

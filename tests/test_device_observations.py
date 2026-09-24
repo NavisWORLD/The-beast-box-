@@ -96,6 +96,42 @@ def test_bridge_flag_bearer_and_one_atomic_durable_checkpoint(tmp_path):
         assert len([r for r in records if r.kind == "device_observation"]) >= 1
 
 
+
+def test_owner_selected_local_photo_label_is_unverified_and_never_media(tmp_path):
+    now = datetime.now(timezone.utc).isoformat()
+    payload = {"consent": True, "persist_confirmed": True, "observations": [
+        {"source": "file_classifier", "text": "coffee mug",
+         "confidence": 0.73, "timestamp": now},
+    ]}
+    message, metadata = normalize_device_observations(payload)
+    assert "Owner-selected local photo ImageNet class, p=0.730" in message
+    assert "coffee mug" in message
+    assert metadata["modalities"] == ["file_classifier"]
+    assert metadata["source_verified"] is False
+    assert metadata["raw_media_transmitted"] is False
+
+    with patch.dict(os.environ, {"BEASTBOX_DEVICE_MEMORY_ENABLED": "yes",
+                                 "BEASTBOX_TINY_LOCAL_ENABLED": "no",
+                                 "BEASTBOX_HF_MODEL_ID": "",
+                                 "BEASTBOX_CONNECTION_VAULT_KEY": ""}):
+        bridge = BRIDGE.OwnerBridge(tmp_path, TOKEN)
+        code, receipt = bridge.dispatch("POST", "/api/observations", "Bearer " + TOKEN,
+                                        json.dumps(payload).encode())
+        assert code == 200 and receipt["persisted"] is True
+        assert receipt["model_invoked"] is False
+        stored = DurableRuntime(tmp_path)
+        results = stored.memory.search("coffee mug", limit=10)
+        stored.close()
+        assert any(record.kind == "device_observation" for record in results)
+    payload["observations"][0]["image"] = "data:image/png;base64,RAW"
+    with pytest.raises(ValueError):
+        normalize_device_observations(payload)
+    del payload["observations"][0]["image"]
+    payload["observations"][0]["confidence"] = -1
+    with pytest.raises(ValueError):
+        normalize_device_observations(payload)
+
+
 def test_host_flag_fails_closed(tmp_path):
     with patch.dict(os.environ, {"BEASTBOX_DEVICE_MEMORY_ENABLED": "no", "BEASTBOX_TINY_LOCAL_ENABLED": "no",
                                  "BEASTBOX_HF_MODEL_ID": "", "BEASTBOX_CONNECTION_VAULT_KEY": ""}):

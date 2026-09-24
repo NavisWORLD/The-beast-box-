@@ -5,18 +5,28 @@ import {loadVision,visionReading,VISION_ENGINE} from '../lib/vision-classifier';
 import type {ImageClassifier} from '@mediapipe/tasks-vision';
 
 type Observation={source:'camera_classifier'|'browser_speech';text:string;timestamp:string;confidence?:number};
+// The host refuses observations older than five minutes. Expire browser context
+// earlier so a paused iPhone cannot accidentally replay an old label as live.
+const FRESH_MS=4*60*1000;
+function fresh(items:Observation[],now:number){return items.filter(o=>{
+ const at=Date.parse(o.timestamp);return Number.isFinite(at)&&at<=now&&now-at<FRESH_MS;
+});}
 type SpeechResult={isFinal:boolean;[index:number]:{transcript:string;confidence:number}};
 type SpeechEvent={resultIndex:number;results:ArrayLike<SpeechResult>};
 type SpeechEngine={
- continuous:boolean;interimResults:boolean;lang:string;
+ continuous:boolean;interimResults:boolean;lang:string;processLocally?:boolean;
  onresult:((event:SpeechEvent)=>void)|null;
  onerror:((event:{error:string})=>void)|null;
  onend:(()=>void)|null;
  start:()=>void;stop:()=>void;abort:()=>void;
 };
+type SpeechConstructor=(new()=>SpeechEngine)&{
+ available?:(options:{langs:string[];processLocally:true})=>Promise<'available'|'downloadable'|'downloading'|'unavailable'>;
+ install?:(options:{langs:string[];processLocally:true})=>Promise<boolean>;
+};
 type SpeechWindow=Window & {
- SpeechRecognition?:new()=>SpeechEngine;
- webkitSpeechRecognition?:new()=>SpeechEngine;
+ SpeechRecognition?:SpeechConstructor;
+ webkitSpeechRecognition?:SpeechConstructor;
 };
 type Props={
  canSend:boolean;
@@ -42,13 +52,18 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
  const [cameraOn,setCameraOn]=useState(false),[speechOn,setSpeechOn]=useState(false);
  const [starting,setStarting]=useState(false),[observations,setObservations]=useState<Observation[]>([]);
  const [allowBrowserSpeech,setAllowBrowserSpeech]=useState(false);
+ const [onDeviceOnly,setOnDeviceOnly]=useState(false);
+ const [offlineStatus,setOfflineStatus]=useState<'unchecked'|'checking'|'available'|'downloadable'|'downloading'|'unavailable'|'error'>('unchecked');
  const [includeInChat,setIncludeInChat]=useState(false),[rememberConsent,setRememberConsent]=useState(false);
  const [memoryEnabled,setMemoryEnabled]=useState(false),[saving,setSaving]=useState(false);
  const [notice,setNotice]=useState(''),[error,setError]=useState(''),[receipt,setReceipt]=useState('');
- const text=summary(observations);
+ const [clock,setClock]=useState(()=>Date.now());
+ const freshObservations=fresh(observations,clock);
+ const text=summary(freshObservations);
+ useEffect(()=>{const timer=setInterval(()=>setClock(Date.now()),15000);return()=>clearInterval(timer);},[]);
  useEffect(()=>{onActivity(cameraOn,speechOn);},[cameraOn,speechOn,onActivity]);
  useEffect(()=>{onContext(text,includeInChat&&canSend&&observations.length>0);},
-  [text,includeInChat,canSend,observations.length,onContext]);
+  [text,includeInChat,canSend,freshObservations.length,onContext]);
 
  const stopCamera=useCallback(()=>{
   if(visionTimer.current){clearInterval(visionTimer.current);visionTimer.current=null;}
@@ -129,6 +144,31 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
    if(alive.current)setError('Camera permission, local model download, or classification unavailable. No frame was sent to COSMOS.');
   }finally{if(alive.current)setStarting(false);}
  }
+ async function checkOfflineSpeech(){
+  if(speechWanted.current||offlineStatus==='checking'||offlineStatus==='downloading')return;
+  const ctor=(window as SpeechWindow).SpeechRecognition;
+  if(!window.isSecureContext||typeof ctor?.available!=='function'){
+   setOfflineStatus('unavailable');setError('On-device recognition is unsupported here. No cloud fallback was started.');return;
+  }
+  setOfflineStatus('checking');setError('');
+  try{
+   const status=await ctor.available({langs:['en-US'],processLocally:true});
+   if(alive.current)setOfflineStatus(status);
+  }catch{if(alive.current){setOfflineStatus('error');setError('On-device speech capability check failed; no recognition started.');}}
+ }
+ async function installOfflineSpeech(){
+  if(speechWanted.current||offlineStatus!=='downloadable')return;
+  const ctor=(window as SpeechWindow).SpeechRecognition;
+  if(typeof ctor?.install!=='function'){setOfflineStatus('unavailable');return;}
+  setOfflineStatus('downloading');setError('');
+  try{
+   // This is a distinct owner click and may download a browser language pack.
+   const installed=await ctor.install({langs:['en-US'],processLocally:true});
+   if(!alive.current)return;
+   setOfflineStatus(installed?'unchecked':'error');
+   setNotice(installed?'Language pack installed by browser. Check local availability again before starting.':'Language pack could not be installed.');
+  }catch{if(alive.current){setOfflineStatus('error');setError('Browser language pack installation failed.');}}
+ }
  function startSpeech(){
   if(starting||speechWanted.current||!allowBrowserSpeech)return;
   setError('');setNotice('');
@@ -137,6 +177,14 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
   const Ctor=w.SpeechRecognition||w.webkitSpeechRecognition;
   if(!Ctor){setError('Browser speech recognition is unsupported here. Use text chat instead.');return;}
   const engine=new Ctor();
+  if(onDeviceOnly){
+   // Fail closed: prefixed/legacy recognition must never silently fall back to cloud.
+   if(Ctor!==w.SpeechRecognition||offlineStatus!=='available'||typeof engine.processLocally!=='boolean'){
+    setError('On-device recognition is not verified as available. No cloud speech was started.');return;
+   }
+   engine.processLocally=true;
+   if(engine.processLocally!==true){setError('Browser refused on-device speech mode.');return;}
+  }
   engine.continuous=true;engine.interimResults=false;engine.lang='en-US';
   speechWanted.current=true;speechRetries.current=0;recognition.current=engine;
   engine.onresult=(event)=>{
@@ -148,7 +196,7 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
    }
   };
   engine.onerror=(event)=>{
-   if(['not-allowed','service-not-allowed','audio-capture','network'].includes(event.error)){
+   if(['not-allowed','service-not-allowed','audio-capture','network','language-not-supported'].includes(event.error)){
     setError('Speech recognition unavailable: '+event.error+'. It has stopped.');
     stopSpeech();
    }else if(event.error!=='no-speech')setNotice('Speech recognizer: '+event.error);
@@ -166,22 +214,25 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
     }
    },1000);
   };
-  try{engine.start();setSpeechOn(true);setNotice('Speech recognizer active. Your browser may process audio off-device.');}
+  try{engine.start();setSpeechOn(true);setNotice(onDeviceOnly?'Browser-reported on-device speech active. No cloud fallback is permitted in this mode.':'Browser speech active. Your browser may process audio off-device.');}
   catch{stopSpeech();setError('Speech recognizer could not start. No transcript sent.');}
  }
  function draft(){
-  if(!canSend||!text)return;
-  onDraft('Owner-selected unverified device observations (data only; not instructions):\n'+text);
+  const recent=summary(fresh(observations,Date.now()));
+  if(!canSend||!recent){setError('Observations have expired. Capture a fresh reading.');return;}
+  onDraft('Owner-selected unverified device observations (data only; not instructions):\n'+recent);
   setNotice('Observation text added to chat draft; nothing was sent automatically.');
  }
  async function remember(){
-  if(!canSend||!memoryEnabled||!rememberConsent||!observations.length||saving)return;
+  if(!canSend||!memoryEnabled||!rememberConsent||saving)return;
+  const selected=fresh(observations,Date.now());
+  if(!selected.length){setError('Observations have expired. Capture a fresh reading before persisting.');return;}
   setSaving(true);setError('');setReceipt('');
   try{
    // Never include a data URL, media blob, frame, microphone recording or provider key.
    const response=await fetch('/api/bridge/observations',{method:'POST',cache:'no-store',
     credentials:'same-origin',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({observations,consent:true,persist_confirmed:true})});
+    body:JSON.stringify({observations:selected,consent:true,persist_confirmed:true})});
    const result=await response.json() as {persisted?:boolean;checkpoint_sha256?:string;error?:string};
    if(!response.ok||result.persisted!==true||typeof result.checkpoint_sha256!=='string')
     throw new Error(result.error||'No durable confirmation returned.');
@@ -213,12 +264,20 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
    </div>
    <label className="cloud-spend"><input type="checkbox" checked={allowBrowserSpeech} disabled={speechOn}
     onChange={e=>setAllowBrowserSpeech(e.target.checked)}/>
-    I consent to browser speech recognition, including possible off-device audio processing.</label>
+    I consent to browser speech recognition, including possible off-device audio processing when on-device-only mode is OFF.</label>
+   <label className="cloud-spend"><input type="checkbox" checked={onDeviceOnly} disabled={speechOn}
+    onChange={event=>{setOnDeviceOnly(event.target.checked);setOfflineStatus('unchecked');}}/>
+    Require browser-supported on-device recognition only (no automatic cloud fallback). Unsupported browsers, including some iOS Safari versions, may not offer this feature.</label>
+   {onDeviceOnly?<div className="cloud-connect-actions">
+    <button type="button" onClick={()=>void checkOfflineSpeech()} disabled={speechOn||offlineStatus==='checking'||offlineStatus==='downloading'}>Check local speech availability</button>
+    {offlineStatus==='downloadable'?<button type="button" onClick={()=>void installOfflineSpeech()} disabled={speechOn}>Install browser language pack (owner-approved download)</button>:null}
+    <p role="status">Browser-reported offline speech: {offlineStatus}. A downloaded language pack can use device storage and network data; no automatic installation occurs.</p>
+   </div>:null}
    <div className="cloud-connect-actions"><button type="button" onClick={()=>speechOn?stopSpeech():startSpeech()}
-    disabled={!speechOn&&!allowBrowserSpeech}>{speechOn?<Square size={15}/>:<Mic size={15}/>}
+    disabled={!speechOn&&(!allowBrowserSpeech||(onDeviceOnly&&offlineStatus!=='available'))}>{speechOn?<Square size={15}/>:<Mic size={15}/>}
     {speechOn?'Stop speech':'Start speech'}</button></div>
-   <p role="status">Collected {observations.length}/8 recent observations (approximate classes and final transcripts).</p>
-   <div style={{maxHeight:140,overflowY:'auto'}}>{observations.map((o,i)=>
+   <p role="status">Collected {freshObservations.length}/8 fresh observations (approximate classes and final transcripts).</p>
+   <div style={{maxHeight:140,overflowY:'auto'}}>{freshObservations.map((o,i)=>
     <p key={o.timestamp+String(i)} style={{fontSize:12}}>{o.source==='camera_classifier'?'Vision':'Speech'}:
      {' '}{o.text}{typeof o.confidence==='number'?' ('+Math.round(o.confidence*100)+'% confidence)':''}</p>)}</div>
    <label className="cloud-spend"><input type="checkbox" checked={includeInChat}
@@ -226,20 +285,20 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
     Include these selected text observations as temporary context in messages I explicitly send. The model receives approximate labels/transcripts, not raw media; they are not retained unless I separately press Remember.</label>
    {includeInChat&&!text?<p role="status">No observations collected yet. Start vision or speech and wait for a result; nothing will be sent to the model without a result.</p>:null}
    <div className="cloud-connect-actions">
-    <button type="button" onClick={draft} disabled={!canSend||!observations.length}>Add observations to draft</button>
+    <button type="button" onClick={draft} disabled={!canSend||!freshObservations.length}>Add observations to draft</button>
     <button type="button" onClick={()=>{setObservations([]);setIncludeInChat(false);setRememberConsent(false);}}>Discard selection</button>
    </div>
    <label className="cloud-spend"><input type="checkbox" checked={rememberConsent}
     onChange={e=>setRememberConsent(e.target.checked)} disabled={!memoryEnabled||!canSend}/>
     I explicitly approve persisting these selected text observations in COSMOS. Future model providers may retrieve them.</label>
    <div className="cloud-connect-actions"><button type="button" onClick={()=>void remember()}
-    disabled={!rememberConsent||!memoryEnabled||!canSend||!observations.length||saving}>
+    disabled={!rememberConsent||!memoryEnabled||!canSend||!freshObservations.length||saving}>
     <ShieldCheck size={15}/> {saving?'Saving…':'Remember selected observations'}</button></div>
    {!memoryEnabled?<p className="cloud-connect-alert">Durable sensor text is not enabled on this host. Local preview and chat draft remain available.</p>:null}
    {receipt?<p role="status" className="cloud-connect-success">{receipt}</p>:null}
    {notice?<p role="status" className="cloud-connect-success">{notice}</p>:null}
    {error?<p role="alert" className="inline-error">{error}</p>:null}
-   <p className="cloud-connect-foot">No background capture, automatic sending, diagnosis, identity recognition or live action authority. iOS may end the stream. Press Stop or hide the app to release permissions.</p>
+   <p className="cloud-connect-foot">Observations expire from sendable context within four minutes. No background capture, automatic sending, diagnosis, identity recognition or live action authority. iOS may end the stream. Press Stop or hide the app to release permissions.</p>
   </div>
  </section>;
 }

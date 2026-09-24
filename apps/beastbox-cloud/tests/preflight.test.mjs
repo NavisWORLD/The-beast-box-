@@ -20,10 +20,16 @@ test('auth uses HMAC cookie and server verification',()=>{
  assert.match(auth,/sameSite: 'strict'/);
  assert.match(read('app/api/bridge/[endpoint]/route.ts'),/if \(!await isOwner\(\)\)/);
 });
-test('images and PDFs stay local until real storage',()=>{
+test('owner-selected photos and PDFs submit only bounded extracted text; raw media stays local',()=>{
  const ui=read('components/studio.tsx');
- assert.match(ui,/Images and PDFs are locally staged only/);
+ assert.match(ui,/For a photo tap Analyze locally; for a PDF tap Extract text locally/);
  assert.match(ui,/No response is simulated/);
+ const vision=read('lib/attachment-vision.ts');
+ assert.match(vision,/classifier.classify\(image\)/);
+ assert.match(vision,/objectUrl.startsWith\('blob:'\)/);
+ assert.match(ui,/imageLabel:prediction.text/);
+ assert.match(ui,/NOT a caption, OCR/);
+ assert.doesNotMatch(vision,/fetch\(|toDataURL\(|toBlob\(|MediaRecorder/);
 });
 test('proxy excludes arbitrary tools and filesystem',()=>{
  const proxy=read('app/api/bridge/[endpoint]/route.ts');
@@ -157,6 +163,8 @@ test('durable device text requires same-origin owner permission and explicit ret
  assert.match(bff,/Same-origin owner action required/);
  assert.match(bff,/Owner consent and bounded observation batch required/);
  assert.match(live,/persist_confirmed:true/);
+ assert.match(live,/FRESH_MS=4\*60\*1000/);
+ assert.match(live,/const selected=fresh\(observations,Date.now\(\)\)/);
  assert.match(live,/onDraft/);
  assert.match(bridge,/self\.device_memory_enabled/);
  assert.match(bridge,/store_external_memory/);
@@ -179,7 +187,7 @@ test('senses is a Settings-only control and cannot cover the chat composer',()=>
  const mount=studio.indexOf('<LiveSenses visible=');
  assert.ok(mount>0 && mount<studio.indexOf("page==='BRAIN'?"));
  assert.match(studio,/aria-label="Stage file or photo locally"/);
- assert.match(studio,/Images and PDFs are locally staged only/);
+ assert.match(studio,/For a photo tap Analyze locally; for a PDF tap Extract text locally/);
 });
 
 
@@ -248,7 +256,7 @@ test('remote model grant is inspected before chat and recovery stays owner initi
  const backend=read('bridge/owner_bridge.py');
  assert.match(ui,/reapproval_required:catalog\.reapproval_required===true/);
  assert.match(ui,/modelGate!==null&&!needsGrant/);
- assert.match(ui,/if\(!connected\|\|busy\|\|!prompt\.trim\(\)\)return/);
+ assert.match(ui,/if\(!connected\|\|busy\|\|analyzingPhoto\|\|extractingPdf\|\|!prompt\.trim\(\)\)return/);
  assert.match(ui,/Use local model · no cloud charge/);
  assert.match(ui,/Review cloud model/);
  assert.match(ui,/if\(result\.no_paid_inference!==true\)/);
