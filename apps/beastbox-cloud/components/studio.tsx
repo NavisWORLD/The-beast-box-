@@ -5,6 +5,7 @@ import CloudConnections from './cloud-connections';
 import ModelSwitcher from './model-switcher';
 import BioPanel from './bio-panel';
 import DevicePanel from './device-panel';
+import MotionPanel from './motion-panel';
 import LiveSenses from './live-senses';
 import SpokenResponse from './spoken-response';
 import {classifyLocalPhoto} from '../lib/attachment-vision';
@@ -263,6 +264,6 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  <div className="insight-line"><span>Native vision-language / local ASR</span><b>NOT INSTALLED</b></div>
  <p>Camera predictions, photo labels, and speech transcripts are unverified textual context, never raw media or proof of native model vision. See the Brain attachment picker for local photo analysis. The model does not receive your device permissions.</p>
  <button className="outline-action" type="button" onClick={()=>{setPage('BRAIN');setMenu(false);}}>Open Brain · inspect photo context <ArrowRight size={15}/></button>
- </article><CloudConnections backendReachable={bridge} onActivated={()=>void load()} onAzureText={stageAzureText}/><BioPanel backendReachable={bridge}/><DevicePanel canSend={connected} onDraft={summary=>{setPrompt(previous=>[previous.trim(),summary].filter(Boolean).join('\n\n').slice(0,8192));setPage('BRAIN');setMenu(false);}}/></>}</div></section>}
+ </article><CloudConnections backendReachable={bridge} onActivated={()=>void load()} onAzureText={stageAzureText}/><BioPanel backendReachable={bridge}/><DevicePanel canSend={connected} onDraft={summary=>{setPrompt(previous=>[previous.trim(),summary].filter(Boolean).join('\n\n').slice(0,8192));setPage('BRAIN');setMenu(false);}}/><MotionPanel canSend={connected} onDraft={summary=>{setPrompt(previous=>[previous.trim(),summary].filter(Boolean).join('\n\n').slice(0,8192));setPage('BRAIN');setMenu(false);}}/></>}</div></section>}
  </div><footer className="app-footer"><span>✺ BEAST BOX // COSMIC CHAOS</span><span>BUILT BY CORY DAVIS · PRIVATE PREVIEW</span><a href="https://github.com/NavisWORLD/The-beast-box-" target="_blank" rel="noreferrer">SOURCE ↗</a></footer></main></div>;
 }
