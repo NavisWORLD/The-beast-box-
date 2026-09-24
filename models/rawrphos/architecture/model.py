@@ -177,11 +177,11 @@ class RawrphosLM(nn.Module):
             attention_mask=attention_mask.bool()
         if past_key_values is not None and any(not torch.equal(x['key_mask'],attention_mask[:,:start]) for x in past_key_values):
             raise ValueError('cached mask cannot change')
-        x=self.token(input_ids); state=torch.tanh(self.state_init(x))
+        x=self.token(input_ids); state_logits=self.state_init(x); state=torch.tanh(state_logits)
         if control_vector is not None:
             if control_vector.shape!=(b,12) or not bool(torch.isfinite(control_vector).all()) or bool((control_vector.abs()>1).any()):
                 raise ValueError('external state must be finite [batch,12] in [-1,1]')
-            state=torch.tanh(state+control_vector.to(state)[:,None,:])
+            state=torch.tanh(state_logits+control_vector.to(state)[:,None,:])
         if c.attention_mode=='frozen_state': state=state.detach()
         caches=[]; telemetry=[]
         for i,block in enumerate(self.blocks):
