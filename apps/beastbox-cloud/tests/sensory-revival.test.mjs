@@ -22,6 +22,10 @@ test('local photo analysis is owner-clicked, bounded, and never sends pixels',()
 test('file observation is separately consented and remains unverified',()=>{
  const ui=read('components/studio.tsx');
  const engine=read('../../beastbox/device_observations.py');
+ const bff=read('app/api/bridge/[endpoint]/route.ts');
+ assert.match(bff,/entry.source==='file_classifier'/);
+ assert.match(bff,/classification\?'confidence,source,text,timestamp'/);
+ assert.match(bff,/Same-origin owner action required/);
  assert.match(ui,/I separately approve storing only the selected photo CATEGORY/);
  assert.match(ui,/photoMemoryEnabled/);
  assert.match(ui,/source:'file_classifier'/);
