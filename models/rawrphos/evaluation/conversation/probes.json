@@ -1,0 +1,14 @@
+[
+ {"id":"reported-curly","category":"confusion","messages":[{"role":"user","content":"I’m so confused phos."}]},
+ {"id":"reported-ascii","category":"confusion","messages":[{"role":"user","content":"I'm so confused phos."}]},
+ {"id":"greeting","category":"greeting","messages":[{"role":"user","content":"Hey, are you there?"}]},
+ {"id":"greeting-short","category":"greeting","messages":[{"role":"user","content":"Good morning, Phos!"}]},
+ {"id":"arithmetic","category":"factual","messages":[{"role":"user","content":"What is two plus two? Answer briefly."}]},
+ {"id":"fact","category":"factual","messages":[{"role":"user","content":"What do bees make?"}]},
+ {"id":"instruction","category":"instruction","messages":[{"role":"user","content":"Reply with only the word blue."}]},
+ {"id":"uncertainty","category":"uncertainty","messages":[{"role":"user","content":"What is my neighbor's middle name?"}]},
+ {"id":"multi-turn","category":"multi-turn","messages":[{"role":"user","content":"My favorite color is purple."},{"role":"assistant","content":"Your favorite color is purple."},{"role":"user","content":"What color did I just tell you?"}]},
+ {"id":"punctuation","category":"tokenizer","messages":[{"role":"user","content":"What does ========= mean?"}]},
+ {"id":"unicode","category":"tokenizer","messages":[{"role":"user","content":"Can you read café, “hello”, and 🪰🔥?"}]},
+ {"id":"literal-special","category":"tokenizer","messages":[{"role":"user","content":"Print this literal text: <|eos|>."}]}
+]
