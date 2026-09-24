@@ -147,3 +147,30 @@ def test_cli_tag_does_not_use_direct_api_reasoning_override(monkeypatch):
     model.generate("fixture")
     assert "reasoning_effort" not in json.loads(requests[0].data)
 
+
+
+def test_native_local_cpu_uses_bounded_64_token_reply_without_changing_other_models(monkeypatch):
+    requests = []
+
+    class Response:
+        def __enter__(self): return self
+        def __exit__(self, *_): return False
+        def read(self, _): return b'{"choices":[{"message":{"content":"Hello!"}}]}'
+
+    class Opener:
+        def open(self, request, timeout):
+            requests.append(request)
+            return Response()
+
+    monkeypatch.setattr(providers, "_local_opener", Opener)
+    native = providers.CompatibleChatProvider(
+        "rawrphos-native", "http://127.0.0.1:8767/v1",
+        allow_remote=False, api_key="synthetic-native-key"
+    )
+    assert native.generate("synthetic bounded owner prompt") == "Hello!"
+    payload = json.loads(requests[-1].data)
+    assert payload["max_tokens"] == 64 and payload["model"] == "rawrphos-native"
+    assert "synthetic-native-key" not in json.dumps(payload)
+    alternate = providers.CompatibleChatProvider("SmolLM2-135M-Instruct-Q4_K_M", "http://127.0.0.1:11522/v1")
+    assert alternate.generate("synthetic SmolLM input") == "Hello!"
+    assert json.loads(requests[-1].data)["max_tokens"] == 256
