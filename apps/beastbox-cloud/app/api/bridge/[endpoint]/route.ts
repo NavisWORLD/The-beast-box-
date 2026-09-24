@@ -1,7 +1,7 @@
 import { bridgeConfigured, isOwner, safeJson } from '@/lib/security';
 export const runtime='nodejs';
 const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job','observations','models','model-inventory','engine-growth']);
-const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio','observations','models','azure-read']);
+const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio','observations','models','azure-read','cns-model-probe']);
 type RouteContext={params:Promise<{endpoint:string}>};
 async function forward(request:Request, method:'GET'|'POST', {params}:RouteContext) {
   if (!await isOwner()) return safeJson(401,{error:'Owner authentication required'});
@@ -17,7 +17,7 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
   if (!bridgeConfigured()) return safeJson(503,{error:'A durable HTTPS Beast Box bridge has not been provisioned. No model call was performed.'});
   let body: string|undefined;
   if (method==='POST') {
-    if (endpoint==='connections'||endpoint==='bio'||endpoint==='chat-start'||endpoint==='observations'||endpoint==='models'||endpoint==='azure-read') {
+    if (endpoint==='connections'||endpoint==='bio'||endpoint==='chat-start'||endpoint==='observations'||endpoint==='models'||endpoint==='azure-read'||endpoint==='cns-model-probe') {
       // Cross-site forms must not edit credentials or submit sensitive bio readings.
       const origin=request.headers.get('origin');
       if (!origin || origin!==new URL(request.url).origin) return safeJson(403,{error:'Same-origin owner action required'});
@@ -70,6 +70,22 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
                     entry.confidence<0.32||entry.confidence>1)))
           return safeJson(400,{error:'Only bounded text labels and transcripts are accepted'});
       }
+    }
+    if (endpoint==='cns-model-probe') {
+      const channels=['heart_rate_bpm','hrv_rmssd_ms','respiration_rate_bpm','skin_temperature_c',
+        'spo2_pct','eda_microsiemens','accelerometer_rms_g','eeg_alpha_relative',
+        'eeg_beta_relative','eeg_theta_relative','eeg_delta_relative','eeg_gamma_relative'];
+      if(body.length>2200||
+         Object.keys(input).sort().join(',')!=='consent,model_probe_confirmed,readings,source,text'||
+         input.consent!==true||input.model_probe_confirmed!==true||
+         !['manual','wearable_export','browser_sensor'].includes(String(input.source))||
+         typeof input.text!=='string'||input.text.trim().length<1||input.text.length>220||
+         !input.readings||typeof input.readings!=='object'||Array.isArray(input.readings))
+        return safeJson(400,{error:'A bounded, separately approved numeric model probe is required'});
+      const readings=input.readings as Record<string,unknown>;
+      if(Object.keys(readings).length<1||Object.keys(readings).length>12||
+         Object.entries(readings).some(([k,v])=>!channels.includes(k)||typeof v!=='number'||!Number.isFinite(v)))
+        return safeJson(400,{error:'Invalid numeric sensor channels'});
     }
     if (endpoint==='bio') {
       const allowed=['heart_rate_bpm','hrv_rmssd_ms','respiration_rate_bpm','skin_temperature_c',
