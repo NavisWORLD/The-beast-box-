@@ -4,7 +4,7 @@ import {Activity,ShieldCheck,Square} from 'lucide-react';
 
 type MotionPoint={magnitude:number;rotation:number|null;at:number};
 type OrientationPoint={beta:number;gamma:number;at:number};
-type DraftSample={text:string;at:number};
+type DraftSample={text:string;at:number;rmsG:number|null};
 type PermissionConstructor={requestPermission?:()=>Promise<'granted'|'denied'>};
 type Props={canSend:boolean;onDraft:(text:string)=>void};
 const SAMPLE_AGE_MS=60_000;
@@ -19,9 +19,12 @@ const rounded=(n:number)=>Math.round(n*100)/100;
 export default function MotionPanel({canSend,onDraft}:Props){
  const alive=useRef(false),enabled=useRef(false);
  const motion=useRef<MotionPoint|null>(null),orientation=useRef<OrientationPoint|null>(null);
+ const aggregate=useRef({sumSq:0,count:0,start:0,at:0});
  const [active,setActive]=useState(false),[waiting,setWaiting]=useState(false);
  const [seen,setSeen]=useState(false),[sample,setSample]=useState<DraftSample|null>(null);
- const [consent,setConsent]=useState(false),[clock,setClock]=useState(()=>Date.now());
+ const [consent,setConsent]=useState(false),[previewConsent,setPreviewConsent]=useState(false);
+ const [previewing,setPreviewing]=useState(false),[previewVector,setPreviewVector]=useState<number[]|null>(null);
+ const [clock,setClock]=useState(()=>Date.now());
  const [error,setError]=useState(''),[notice,setNotice]=useState('');
  const onMotion=useCallback((event:DeviceMotionEvent)=>{
   if(!enabled.current||document.hidden)return;
@@ -32,7 +35,18 @@ export default function MotionPanel({canSend,onDraft}:Props){
   const magnitude=Math.min(200,Math.hypot(a.x,a.y,a.z));
   const rotation=number(r?.alpha)&&number(r?.beta)&&number(r?.gamma)
     ?Math.min(2000,Math.hypot(r.alpha,r.beta,r.gamma)):null;
-  motion.current={magnitude,rotation,at:Date.now()};
+  const now=Date.now();
+  motion.current={magnitude,rotation,at:now};
+  // No gravity-free samples are retained: only a bounded 2s RMS accumulator.
+  const raw=event.acceleration;
+  if(number(raw?.x)&&number(raw?.y)&&number(raw?.z)){
+   const value=Math.hypot(raw.x,raw.y,raw.z);
+   if(value<=100){
+    const bucket=aggregate.current;
+    if(!bucket.start||now-bucket.start>2000){bucket.sumSq=0;bucket.count=0;bucket.start=now;}
+    if(bucket.count<100){bucket.sumSq+=value*value;bucket.count++;bucket.at=now;}
+   }
+  }
   setSeen(true);
  },[]);
  const onOrientation=useCallback((event:DeviceOrientationEvent)=>{
@@ -46,7 +60,8 @@ export default function MotionPanel({canSend,onDraft}:Props){
   window.removeEventListener('devicemotion',onMotion);
   window.removeEventListener('deviceorientation',onOrientation);
   motion.current=null;orientation.current=null;
-  if(alive.current){setActive(false);setWaiting(false);setSeen(false);setSample(null);setConsent(false);}
+  aggregate.current={sumSq:0,count:0,start:0,at:0};
+  if(alive.current){setActive(false);setWaiting(false);setSeen(false);setSample(null);setConsent(false);setPreviewConsent(false);setPreviewVector(null);}
  },[onMotion,onOrientation]);
  useEffect(()=>{
   alive.current=true;
@@ -59,12 +74,15 @@ export default function MotionPanel({canSend,onDraft}:Props){
  },[stop]);
  useEffect(()=>{
   if(!sample)return;
-  const timer=setInterval(()=>setClock(Date.now()),5000);
+  const timer=setInterval(()=>{
+   const now=Date.now();setClock(now);
+   if(now-sample.at>=SAMPLE_AGE_MS){setSample(null);setConsent(false);setPreviewConsent(false);setPreviewVector(null);}
+  },5000);
   return ()=>clearInterval(timer);
  },[sample]);
  async function start(){
   if(enabled.current||waiting)return;
-  setError('');setNotice('');setWaiting(true);setSample(null);setConsent(false);
+  setError('');setNotice('');setWaiting(true);setSample(null);setConsent(false);setPreviewConsent(false);setPreviewVector(null);
   try{
    if(!window.isSecureContext)throw new Error('Motion sensing requires an HTTPS page.');
    const m=typeof DeviceMotionEvent==='undefined'?null:
@@ -99,13 +117,19 @@ export default function MotionPanel({canSend,onDraft}:Props){
   if(m){lines.push('Acceleration INCLUDING gravity magnitude: '+rounded(m.magnitude)+' m/s² (approximate).');
    if(m.rotation!==null)lines.push('Rotation rate magnitude: '+rounded(m.rotation)+' degrees/s (approximate).');}
   if(o)lines.push('Orientation tilt: beta '+rounded(o.beta)+'°, gamma '+rounded(o.gamma)+'° (device axes; approximate).');
-  setSample({text:lines.join('\n'),at:now});setClock(now);setConsent(false);setError('');
+  const bucket=aggregate.current;
+  const rmsG=bucket.count>=3&&now-bucket.at<LIVE_AGE_MS
+   ?Math.sqrt(bucket.sumSq/bucket.count)/9.80665:null;
+  aggregate.current={sumSq:0,count:0,start:0,at:0};
+  if(rmsG!==null&&rmsG<=20)lines.push('Gravity-free acceleration RMS: '+rounded(rmsG)+' g (approximate; '+bucket.count+' browser events).');
+  setSample({text:lines.join('\n'),at:now,rmsG:rmsG!==null&&rmsG<=20?rounded(rmsG):null});
+  setClock(now);setConsent(false);setPreviewConsent(false);setPreviewVector(null);setError('');
   setNotice('Numeric snapshot ready locally. No sensor stream was sent or stored.');
  }
  const fresh=sample!==null&&clock-sample.at<SAMPLE_AGE_MS;
  function draft(){
   if(!canSend||!consent||!sample)return;
-  if(Date.now()-sample.at>=SAMPLE_AGE_MS){setSample(null);setConsent(false);setError('Sample expired. Collect another reading.');return;}
+  if(Date.now()-sample.at>=SAMPLE_AGE_MS){setSample(null);setConsent(false);setPreviewConsent(false);setPreviewVector(null);setError('Sample expired. Collect another reading.');return;}
   onDraft(sample.text);stop();
  }
  return <section className="data-card wide cloud-connect" aria-label="Browser motion sensor">
@@ -125,7 +149,7 @@ export default function MotionPanel({canSend,onDraft}:Props){
    I approve adding this numeric sample to my chat draft. Only if I subsequently send that chat may its text enter COSMOS conversation memory.</label>
   <div className="cloud-connect-actions"><button type="button" onClick={draft}
    disabled={!canSend||!consent||!fresh}><ShieldCheck size={15}/> Add sample to draft (do not send)</button>
-   <button type="button" onClick={()=>{setSample(null);setConsent(false);}} disabled={!sample}>Discard sample</button></div>
+   <button type="button" onClick={()=>{setSample(null);setConsent(false);setPreviewConsent(false);setPreviewVector(null);}} disabled={!sample}>Discard sample</button></div>
   {!canSend?<p className="cloud-connect-alert">Connect a genuine model to draft a sample. Local sensing remains optional.</p>:null}
   {notice?<p className="cloud-connect-success" role="status">{notice}</p>:null}
   {error?<p className="inline-error" role="alert">{error}</p>:null}
