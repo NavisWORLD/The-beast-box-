@@ -16,7 +16,10 @@ test('local photo analysis is owner-clicked, bounded, and never sends pixels',()
  assert.match(studio,/Approximate category:/);
  assert.match(studio,/scope:'temporary_attachment'/);
  assert.match(studio,/if\(attachments.some\(a=>a.text===undefined\)\)/);
- assert.match(studio,/PDFs remain local-only/);
+ assert.match(studio,/Raw files are not sent/);
+ const pdf=read('lib/local-pdf.ts');
+ assert.match(pdf,/data:bytes,stopAtErrors:true/);
+ assert.doesNotMatch(pdf,/fetch\\(/);
  assert.match(studio,/The selected text model received ONLY this prediction, never image pixels/);
 });
 test('file observation is separately consented and remains unverified',()=>{
