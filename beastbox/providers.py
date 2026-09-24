@@ -131,8 +131,14 @@ class CompatibleChatProvider:
             if not key or any(c in key for c in '\r\n'):
                 raise ValueError('configured API key environment variable is missing or invalid')
             headers['Authorization'] = 'Bearer ' + key
+        # RAWRPHOS was conversation-trained on 384-token windows. Its small
+        # local CPU context must reserve enough room for the COSMOS prompt.
+        # Preserve every other local/remote provider's existing token policy.
+        native = (self.model == 'rawrphos-native' and
+                  self.base_url.rstrip('/') == 'http://127.0.0.1:8767/v1' and
+                  self.allow_remote is False)
         payload = {'model': self.model, 'messages': [{'role': 'user', 'content': prompt}],
-                   'stream': False, 'temperature': 0, 'max_tokens': 256}
+                   'stream': False, 'temperature': 0, 'max_tokens': 64 if native else 256}
         if self.base_url.rstrip('/') == 'https://ollama.com/v1' and self.model in {'gpt-oss:120b', 'gpt-oss:20b'}:
             # GPT-OSS can exhaust a tiny output budget on reasoning before
             # producing user-facing content. Explicitly request low reasoning;
