@@ -7,8 +7,8 @@ import urllib.request
 from beastbox.providers import _local_opener
 
 MODEL = "rawrphos-native"
-STEP = 14000
-SHA = "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5"
+STEP = 18000
+SHA = "20932937afb3e0e1b62a4e5f38f92170046ae2928b437dc31b8a37d6538e701e"
 URL = "http://127.0.0.1:8767/v1"
 
 
@@ -19,7 +19,7 @@ def profile():
 
 def status():
     result = {"choice": "rawrphos_native", "model": MODEL,
-              "label": "RAWRPHØS Native — Local CPU (14K)", "kind": "local",
+              "label": "RAWRPHØS Native — Experimental 18K (quality gate failed)", "kind": "local",
               "configured": False, "requires_spend_approval": False,
               "readiness": "AVAILABLE_NOT_INSTALLED", "loaded_step": None}
     path = os.environ.get("RAWRPHOS_CHECKPOINT_PATH", "")
