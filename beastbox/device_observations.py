@@ -60,7 +60,7 @@ def normalize_device_observations(payload: Any) -> tuple[str, dict[str, Any]]:
         normalized.append({
             "source": source, "text": text, "at": at.astimezone(timezone.utc).isoformat(),
             **({"confidence": round(float(item["confidence"]), 3)}
-               if source == "camera_classifier" else {}),
+               if source in {"camera_classifier", "file_classifier"} else {}),
         })
     # Persist a single bounded record/continuity checkpoint, not one per frame.
     lines = [
