@@ -171,6 +171,13 @@ def test_native_local_cpu_uses_bounded_64_token_reply_without_changing_other_mod
     payload = json.loads(requests[-1].data)
     assert payload["max_tokens"] == 64 and payload["model"] == "rawrphos-native"
     assert "synthetic-native-key" not in json.dumps(payload)
+    research = providers.CompatibleChatProvider(
+        "rawrphos-native", "http://127.0.0.1:8768/v1",
+        allow_remote=False, api_key="synthetic-experimental-key"
+    )
+    assert research.generate("synthetic owner-only 18K prompt") == "Hello!"
+    assert json.loads(requests[-1].data)["max_tokens"] == 64
+    assert requests[-1].full_url == "http://127.0.0.1:8768/v1/chat/completions"
     alternate = providers.CompatibleChatProvider("SmolLM2-135M-Instruct-Q4_K_M", "http://127.0.0.1:11522/v1")
     assert alternate.generate("synthetic SmolLM input") == "Hello!"
     assert json.loads(requests[-1].data)["max_tokens"] == 256
