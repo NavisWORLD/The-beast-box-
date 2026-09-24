@@ -23,11 +23,11 @@ test('public snippets are untrusted turn-only text with source URLs and owner se
  const studio=read('components/studio.tsx');
  assert.match(ui,/I approve sending this search term to Wikipedia/);
  assert.match(ui,/onClick=\{\(\)=>void search\(\)\}/);
- assert.match(ui,/source:'Wikipedia'/);
+ assert.match(ui,/value\.source!=='Wikipedia'/);
  assert.match(ui,/No automatic model call, memory write/);
  assert.match(ui,/Stage selected excerpts for next chat \(do not send yet\)/);
  assert.match(ui,/https:\/\/en\.wikipedia\.org\/wiki\//);
- assert.match(ui,/not system instructions/);
+ assert.match(ui,/not system instructions/);\n assert.match(ui,/<details className="composer-web-lookup">/);
  assert.match(studio,/<WebLookup canSend=\{connected&&!busy&&attachments\.length<4\}/);
  assert.match(studio,/scope:'temporary_attachment'/);
  assert.match(studio,/chat-start/);
