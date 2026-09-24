@@ -1,0 +1,205 @@
+name: RAWRPHOS research 16K to 17K conversation continuation
+
+on:
+  push:
+    branches: [feature/rawrphos-conversation-repair-001]
+    paths: ['models/rawrphos/conversation-stage-007-request.json']
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rawrphos-conversation-stage-007
+  cancel-in-progress: false
+
+jobs:
+  train-and-evaluate:
+    if: >-
+      github.repository == 'NavisWORLD/The-beast-box-' &&
+      github.ref == 'refs/heads/feature/rawrphos-conversation-repair-001' &&
+      startsWith(github.event.head_commit.message, 'train(rawrphos): authorize conversation stage 007 ')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 200
+    env:
+      PYTHONPATH: models
+      BASELINE_SHA: 339fb8e1d6f3950e2aa15a6e33bf8c0f28dd655cefc93b7926fb7545e7e97601
+      PARENT_SHA: 89e653aba8fc033f39104a37b2163703fbd9df7cf2a00cd5fbdf01470fcc1160
+      PARENT_RUN_ID: '35997383873'
+      PARENT_STEP: '16000'
+      DATASET_SHA: 7e9e8f91e751b3304663cb28293b2c90cc0e1623df355eb77dfdc6004cadcec5
+      WORK_DIR: .rawrphos-conversation-stage
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Verify exact one-file owner training authorization
+        run: |
+          set -euo pipefail
+          [[ "$(git diff --name-only HEAD^ HEAD)" == 'models/rawrphos/conversation-stage-007-request.json' ]] || exit 1
+          python - <<'PY'
+          import json,os,pathlib
+          r=json.loads(pathlib.Path('models/rawrphos/conversation-stage-007-request.json').read_text())
+          assert set(r)=={'schema','parent_sha256','parent_run_id','parent_step','dataset_sha256','additional_steps','max_wall_minutes','authorization'}
+          assert r['schema']=='rawrphos-conversation-stage-007-request-v1'
+          assert r['authorization']=='CPU-only experimental continuation; no production or paid infrastructure'
+          assert r['parent_sha256']==os.environ['PARENT_SHA'] and r['parent_run_id']==os.environ['PARENT_RUN_ID']
+          assert r['parent_step']==int(os.environ['PARENT_STEP']) and r['dataset_sha256']==os.environ['DATASET_SHA']
+          assert type(r['additional_steps']) is int and 1<=r['additional_steps']<=1000 and r['additional_steps']%100==0
+          assert type(r['max_wall_minutes']) is int and 5<=r['max_wall_minutes']<=170
+          print('AUTHORIZED_CPU_TRAINING_STEPS',r['additional_steps'],flush=True)
+          PY
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned CPU dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check --quiet 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'pyarrow>=15,<24' 'pytest>=8,<10' 'numpy>=1.26,<3' 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'uvicorn>=0.30,<1'
+      - name: Regression gate
+        run: python -m pytest -q models/rawrphos/tests
+      - name: Recover immutable baseline and hash-bound licensed data
+        run: |
+          set -euo pipefail
+          mkdir -p "$WORK_DIR"
+          python -m rawrphos.scripts.install_pinned_12k --destination "$WORK_DIR/step-00012000"
+          python -m rawrphos.scripts.prepare_conversation --source "$WORK_DIR/source" --output "$WORK_DIR/data" --tokenizer "$WORK_DIR/step-00012000/tokenizer"
+          python - <<'PY'
+          import json,os,pathlib
+          from rawrphos.training.checkpoint import load_checkpoint
+          from rawrphos.data.conversation import load_dataset
+          root=pathlib.Path(os.environ['WORK_DIR'])
+          c=load_checkpoint(root/'step-00012000',expected_checkpoint_sha256=os.environ['BASELINE_SHA'])
+          d=load_dataset(root/'data')
+          expected=json.loads(pathlib.Path('models/rawrphos/evidence/conversation-001/data-manifest.json').read_text())
+          assert d['manifest']==expected and d['manifest']['dataset_sha256']==os.environ['DATASET_SHA']
+          assert c['metadata']['tokenizer_sha256']==expected['provenance']['tokenizer_sha256']
+          assert {'optimizer','rng','data_rng'}<=c['state'].keys()
+          print('VERIFIED_BASELINE_AND_DATA',c['metadata']['checkpoint_sha256'],flush=True)
+          PY
+      - name: Restore highest verified full 16K research bundle, never restart optimizer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$PARENT_RUN_ID" --repo "$GITHUB_REPOSITORY" --name rawrphos-conversation-stage-006-recovery --dir "$WORK_DIR/prior"
+          python - <<'PY'
+          import json,os,pathlib,torch
+          from rawrphos.training.checkpoint import load_checkpoint,parameter_hash
+          from rawrphos.data.conversation import load_dataset
+          root=pathlib.Path(os.environ['WORK_DIR'])
+          p=root/'prior/checkpoints/step-00016000'
+          assert p.is_dir(),'Required 16K checkpoint missing; REFUSE fallback'
+          old=json.loads((root/'prior/stage-receipt.json').read_text())
+          assert old['source_commit']=='4b7b8e40587cf68c0c60c9a6f315d4e9effde92d'
+          assert old['cumulative_steps']==int(os.environ['PARENT_STEP']) and old['candidate_sha256']==os.environ['PARENT_SHA']
+          assert old['automated_checks_pass'] is False and old['automated_promotion_checks']['owner_repetition'] is False
+          assert sum(not passed for passed in old['automated_promotion_checks'].values())==1
+          # Research-only continuation; preserve FAILED 16K promotion as evidence.
+          loaded=load_checkpoint(p,expected_checkpoint_sha256=os.environ['PARENT_SHA'])
+          m,state=loaded['metadata'],loaded['state']
+          assert m['training_steps']==int(os.environ['PARENT_STEP']) and m['conversation_steps']==4000
+          assert m['phase']=='conversation-v1' and m['baseline_checkpoint_sha256']==os.environ['BASELINE_SHA']
+          assert m['dataset_manifest_sha256']==os.environ['DATASET_SHA']
+          assert m['tokenizer_sha256']=='f704e9b75e816cc4ef203bc6c4afeeb966cbc11f369fb3b5f4d81c1505c8619c'
+          assert parameter_hash(loaded['model'])==m['parameter_sha256']
+          assert {'optimizer','rng','data_rng','scheduler'}<=state.keys() and len(state['optimizer']['state'])>0
+          assert state['scheduler']['completed_phase_steps']==4000
+          assert load_dataset(root/'data')['manifest']['dataset_sha256']==os.environ['DATASET_SHA']
+          print('EXACT_16000_UNPROMOTED_WEIGHTS_OPTIMIZER_RNG_RESTORED',m['checkpoint_sha256'],flush=True)
+          PY
+      - name: Actual CPU training in 100-step sealed stages with loss guard
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os,pathlib,time,math,torch
+          from rawrphos.training.checkpoint import load_checkpoint
+          from rawrphos.training.conversation import ConversationConfig,continue_training,heldout
+          from rawrphos.data.conversation import load_dataset,encode_example
+          root=pathlib.Path(os.environ['WORK_DIR'])
+          req=json.loads(pathlib.Path('models/rawrphos/conversation-stage-007-request.json').read_text())
+          d=load_dataset(root/'data');parent=root/'prior/checkpoints/step-00016000'
+          c=ConversationConfig(batch_size=8,max_seq_len=384,threads=4,checkpoint_every=100,eval_examples=128)
+          loaded=load_checkpoint(parent,expected_checkpoint_sha256=os.environ['PARENT_SHA'])
+          torch.set_num_threads(4)
+          baseline=heldout(loaded['model'],[encode_example(r,loaded['tokenizer'],384) for r in d['validation']],8,128)
+          (root/'baseline-heldout.json').write_text(json.dumps(baseline,indent=2))
+          print('BASELINE_HELDOUT',baseline,flush=True)
+          parent_sha=os.environ['PARENT_SHA'];begin=time.monotonic();history=[];best_loss=baseline['loss']
+          for stage in range(req['additional_steps']//100):
+              if time.monotonic()-begin>req['max_wall_minutes']*60:
+                  print('WALL_BUDGET_REACHED_BEFORE_STAGE',stage,flush=True)
+                  break
+              result=continue_training(parent,root/'data',root/'checkpoints',steps=100,config=c,expected_sha256=parent_sha)
+              history.append(result);parent=pathlib.Path(result['checkpoint']);parent_sha=result['sha256']
+              (root/'stage-history.json').write_text(json.dumps(history,indent=2))
+              if not math.isfinite(result['validation']['loss']) or result['validation']['loss']>best_loss*1.05:
+                  print('STOP_QUALITY_GUARD',result['steps'],flush=True)
+                  break
+              best_loss=min(best_loss,result['validation']['loss'])
+          assert history,'No training stage completed'
+          print('ACTUAL_TRAINING_COMPLETE',history[-1]['steps'],history[-1]['sha256'],flush=True)
+          PY
+      - name: Evaluate frozen 12-probe baseline and candidate; no automatic promotion
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os,pathlib
+          root=pathlib.Path(os.environ['WORK_DIR'])
+          rows=json.loads(pathlib.Path('models/rawrphos/evidence/conversation-001/baseline-layers.json').read_text())['samples']
+          (root/'owner-prompts.json').write_text(json.dumps({'samples':[{'id':r['id'],'owner_effective_prompt':r['owner_effective_prompt']} for r in rows]}))
+          PY
+          python -m rawrphos.evaluation.conversation_eval --checkpoint "$WORK_DIR/step-00012000" --dataset "$WORK_DIR/data" --output "$WORK_DIR/baseline-eval.json" --expected-sha256 "$BASELINE_SHA" --owner-prompts "$WORK_DIR/owner-prompts.json"
+          python - <<'PY'
+          import os,pathlib,subprocess,sys
+          root=pathlib.Path(os.environ['WORK_DIR'])
+          subprocess.run([sys.executable,'-m','rawrphos.evaluation.conversation_eval',
+             '--checkpoint',str(root/'prior/checkpoints/step-00016000'),'--dataset',str(root/'data'),
+             '--output',str(root/'parent-16k-eval.json'),'--expected-sha256',os.environ['PARENT_SHA'],
+             '--owner-prompts',str(root/'owner-prompts.json')],check=True)
+          PY
+          python - <<'PY'
+          import json,os,pathlib,subprocess,sys
+          from rawrphos.training.checkpoint import load_checkpoint
+          root=pathlib.Path(os.environ['WORK_DIR'])
+          latest=json.loads((root/'checkpoints/latest.json').read_text())
+          sealed=load_checkpoint(latest['checkpoint'],expected_checkpoint_sha256=latest['sha256'])
+          assert sealed['metadata']['training_steps']==latest['step']
+          assert sealed['metadata']['baseline_checkpoint_sha256']==os.environ['BASELINE_SHA']
+          subprocess.run([sys.executable,'-m','rawrphos.evaluation.conversation_eval','--checkpoint',latest['checkpoint'],'--dataset',str(root/'data'),'--output',str(root/'candidate-eval.json'),'--expected-sha256',latest['sha256'],'--owner-prompts',str(root/'owner-prompts.json')],check=True)
+          a=json.loads((root/'baseline-eval.json').read_text());b=json.loads((root/'candidate-eval.json').read_text())
+          gate=json.loads(pathlib.Path('models/rawrphos/evaluation/conversation/promotion-gate.json').read_text())
+          checks={'heldout_loss':b['heldout']['loss']<=a['heldout']['loss']*gate['heldout_loss_max_ratio_to_baseline']}
+          for layer in ('chat','owner'):
+              s=b['summary'][layer];g=gate['per_layer']
+              for key in ('punctuation_loop_count','role_leak_count','empty_or_punctuation_only_count'):
+                  checks[layer+'_'+key]=s[key]<=g[key+'_max']
+              checks[layer+'_eos_count']=s['eos_count']>=g['eos_count_min_of_12']
+              checks[layer+'_repetition']=s['mean_repeated_trigram_fraction']<=g['mean_repeated_trigram_fraction_max']
+          receipt={'schema':'rawrphos-conversation-stage-receipt-v1','source_commit':os.environ['GITHUB_SHA'],'baseline_sha256':os.environ['BASELINE_SHA'],'continuation_parent_sha256':os.environ['PARENT_SHA'],'continuation_parent_step':int(os.environ['PARENT_STEP']),'continuation_parent_run_id':os.environ['PARENT_RUN_ID'],'candidate_sha256':latest['sha256'],'cumulative_steps':latest['step'],'baseline_heldout':a['heldout'],'candidate_heldout':b['heldout'],'baseline_summary':a['summary'],'candidate_summary':b['summary'],'automated_promotion_checks':checks,'automated_checks_pass':all(checks.values()),'manual_coherence_review':'NOT PERFORMED','owner_chat':'NOT PERFORMED','parent_promotion_checks_pass':False,'research_only':True,'production_deployed':False,'release_published':False,'limitations':['Frozen probes are not general capability evidence.','Recovery artifact expires after 30 days unless independently published.','Exact optimizer/RNG continuation from the prior verified UNPROMOTED 16K GitHub artifact; earlier Work-local checkpoint remains inaccessible.']}
+          (root/'stage-receipt.json').write_text(json.dumps(receipt,indent=2))
+          print('EVALUATION_COMPLETED',json.dumps(receipt),flush=True)
+          # Frozen public prompts and generated answers only; manual coherence review remains required.
+          for model_name,report in (('12k-baseline',a),('17k-candidate',b)):
+              for row in report['samples']:
+                  if row['id'] in {'reported-curly','greeting','multi-turn','instruction','uncertainty'} and row['layer']=='chat':
+                      print('HUMAN_REVIEW_SAMPLE',json.dumps({'model':model_name,'id':row['id'],'output':row['output']},ensure_ascii=False),flush=True)
+          PY
+      - name: Preserve every complete checkpoint, validation and provenance, even if evaluation fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawrphos-conversation-stage-007-recovery
+          path: |
+            .rawrphos-conversation-stage/checkpoints/
+            .rawrphos-conversation-stage/data/manifest.json
+            .rawrphos-conversation-stage/baseline-heldout.json
+            .rawrphos-conversation-stage/baseline-eval.json
+            .rawrphos-conversation-stage/parent-16k-eval.json
+            .rawrphos-conversation-stage/candidate-eval.json
+            .rawrphos-conversation-stage/stage-history.json
+            .rawrphos-conversation-stage/stage-receipt.json
+          if-no-files-found: warn
+          retention-days: 30
