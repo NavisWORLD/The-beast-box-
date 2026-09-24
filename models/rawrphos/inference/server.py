@@ -9,6 +9,7 @@ import uuid
 from fastapi import FastAPI,Request
 from fastapi.responses import JSONResponse,StreamingResponse
 from rawrphos.inference.engine import Engine
+from rawrphos.inference.chat import format_chat
 
 def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=None):
     if not isinstance(api_key,str) or len(api_key)<32 or any(c in api_key for c in '\r\n'): raise ValueError('strong host API key required')
@@ -43,9 +44,7 @@ def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=N
             if type(seed) is not int or not 0<=seed<2**63 or type(body.get('stream',False)) is not bool: raise ValueError('invalid seed or stream')
             if chat:
                 messages=body.get('messages')
-                if not isinstance(messages,list) or not 1<=len(messages)<=32: raise ValueError('invalid messages')
-                if any(not isinstance(m,dict) or set(m)!={'role','content'} or m['role'] not in {'system','user','assistant'} or not isinstance(m['content'],str) for m in messages): raise ValueError('text messages required')
-                prompt='\n'.join(f"{m['role']}: {m['content']}" for m in messages)+'\nassistant:'
+                prompt=format_chat(messages)
             else: prompt=body.get('prompt')
             if not isinstance(prompt,str) or len(prompt.encode())>65536: raise ValueError('invalid prompt')
             if len(engine.tokenizer.encode(prompt,add_bos=True))+count>engine.model.config.max_seq_len: raise ValueError('context limit exceeded')
@@ -67,7 +66,7 @@ def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=N
             from starlette.concurrency import run_in_threadpool
             text=await run_in_threadpool(engine.complete,prompt,max_tokens=count,temperature=temperature,seed=seed)
             choice={'index':0,'message':{'role':'assistant','content':text}} if chat else {'index':0,'text':text}
-            choice['finish_reason']='length' if engine.last_metrics['generated_tokens']==count else 'stop'
+            choice['finish_reason']=engine.last_metrics['finish_reason']
             usage={'prompt_tokens':engine.last_metrics['prompt_tokens'],'completion_tokens':engine.last_metrics['generated_tokens']}
             usage['total_tokens']=sum(usage.values())
             return {'id':identifier,'object':'chat.completion' if chat else 'text_completion','created':int(time.time()),

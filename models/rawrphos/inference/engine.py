@@ -53,6 +53,8 @@ class Engine:
             seconds=time.perf_counter()-started
             self.last_metrics={'tokenization_seconds':tokenize,'prefill_and_first_token_seconds':first,
                 'generation_seconds':seconds,'prompt_tokens':len(ids),'generated_tokens':len(generated),
+                'eos_emitted':bool(generated and generated[-1]==self.tokenizer.eos_id),
+                'finish_reason':'stop' if generated and generated[-1]==self.tokenizer.eos_id else 'length',
                 'decode_tokens_per_second':(len(generated)-1)/max(1e-9,seconds-(first or seconds)) if len(generated)>1 else None,
                 'total_tokens_per_second':len(generated)/max(seconds,1e-9),'cache_enabled':use_cache}
             self.last_success=time.time()

@@ -7,7 +7,12 @@ from tokenizers import Tokenizer, models, trainers, pre_tokenizers, decoders
 
 class RawrphosTokenizer:
     pad_id=0; bos_id=1; eos_id=2
-    def __init__(self,backend): self.backend=backend
+    def __init__(self,backend):
+        self.backend=backend
+        # Literal user/corpus text is never a control-token transport. This is
+        # a runtime encoding option, not a vocabulary/merge/serialized change.
+        # BOS/EOS are inserted explicitly below, identically in train and serve.
+        self.backend.encode_special_tokens=True
     @classmethod
     def train(cls,texts,vocab_size=4096):
         if type(vocab_size) is not int or vocab_size<260: raise ValueError('byte BPE needs at least 260 entries')
