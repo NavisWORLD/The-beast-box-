@@ -62,6 +62,14 @@ class Engine:
             self.last_success=time.time()
         finally: self.lock.release()
     @staticmethod
+    def validate_metric(value):
+        """Validated source-blind attention geometry; not a model authority."""
+        if (not isinstance(value,list) or len(value)!=12
+                or any(type(x) not in (int,float) or not math.isfinite(x) or abs(x)>1 for x in value)):
+            raise ValueError('qstate metric must be 12 finite values in [-1,1]')
+        return [float(x) for x in value]
+
+    @staticmethod
     def validate_control(value):
         """External numeric controls are data, never model tools or authority."""
         if (not isinstance(value,list) or len(value)!=12 or

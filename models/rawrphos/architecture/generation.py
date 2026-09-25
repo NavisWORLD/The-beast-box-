@@ -6,7 +6,7 @@ import torch
 
 @torch.inference_mode()
 def generate(model,ids,max_new_tokens=64,temperature=0.8,top_k=40,eos_token_id=None,
-             generator=None,use_cache=True,deadline=None,cancelled=None,control_vector=None):
+             generator=None,use_cache=True,deadline=None,cancelled=None,control_vector=None,qstate_metric12=None):
     if ids.ndim!=2 or ids.shape[0]!=1: raise ValueError('generation accepts one nonempty prompt')
     if type(max_new_tokens) is not int or not 1<=max_new_tokens<=1024: raise ValueError('invalid token budget')
     if not math.isfinite(temperature) or temperature<0: raise ValueError('invalid temperature')
@@ -18,7 +18,7 @@ def generate(model,ids,max_new_tokens=64,temperature=0.8,top_k=40,eos_token_id=N
             raise TimeoutError('generation cancelled or timed out')
         current=full[:,-1:] if use_cache and cache is not None else full
         out=model(current,past_key_values=cache if use_cache else None,use_cache=use_cache,
-                  control_vector=control_vector)
+                  control_vector=control_vector,qstate_metric12=qstate_metric12)
         cache=out['past_key_values']; logits=out['logits'][:,-1,:].float()
         if not bool(torch.isfinite(logits).all()): raise FloatingPointError('nonfinite generation logits')
         if temperature==0: token=logits.argmax(-1,keepdim=True)
