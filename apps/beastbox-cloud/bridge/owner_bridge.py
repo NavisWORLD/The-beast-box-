@@ -8,11 +8,14 @@ from __future__ import annotations
 import argparse
 import hmac
 import json
+import math
 import os
 import re
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import urllib.parse
+import urllib.request
 
 from dataclasses import asdict
 from beastbox.cosmic_web import CosmicApp, ProviderProfile
@@ -26,7 +29,8 @@ from beastbox.engine_growth_report import engine_growth_report
 from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
 from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
-from beastbox.rawrphos_local import MODEL as NATIVE_ID, profile as native_profile, status as native_status
+from beastbox.rawrphos_local import (MODEL as NATIVE_ID, SHA as NATIVE_SHA, URL as NATIVE_URL,
+                                    profile as native_profile, status as native_status)
 from beastbox.rawrphos_experimental_local import profile as experimental_profile, status as experimental_status
 from beastbox.rawrphos_hf import (MODEL as HF_NATIVE_MODEL, SPACE_URL as HF_NATIVE_URL,
                                   WEIGHT_SHA as HF_NATIVE_SHA, STEP as HF_NATIVE_STEP,
@@ -34,10 +38,17 @@ from beastbox.rawrphos_hf import (MODEL as HF_NATIVE_MODEL, SPACE_URL as HF_NATI
 from beastbox.chat_jobs import ChatJobs
 from beastbox.guest_local import guest_local_infer
 from beastbox.cns_model_probe import cns_model_probe
+from beastbox.quantum_buddy.cosmos_repository import (
+    BuddyStateNotFound, BuddyStorageUnavailable, CosmosBuddyRepository, StaleBuddyState,
+)
+from beastbox.quantum_buddy.operators import QuantumStateOperator
+from beastbox.quantum_buddy.state import (
+    SOURCE_CLASSES, BuddyCurrentState, BuddyStateError, validate_vector12,
+)
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "engine-growth"})
-POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "engine-growth", "quantum-buddy"})
+POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe", "quantum-buddy/state", "quantum-buddy/shadow"})
 
 
 class OwnerBridge:
@@ -62,6 +73,15 @@ class OwnerBridge:
         if self.bio_persist_enabled:
             self.app.authority.grant("sensors")
         self.chat_jobs = ChatJobs(lambda payload: self.app.dispatch("POST", "/api/chat", payload))
+        # Host-controlled research switches. None is enabled by a browser payload.
+        self.quantum_buddy_enabled = os.environ.get("BEASTBOX_QUANTUM_BUDDY_ENABLED") == "yes"
+        self.quantum_buddy_shadow_enabled = (self.quantum_buddy_enabled
+            and os.environ.get("BEASTBOX_QUANTUM_BUDDY_SHADOW_ENABLED") == "yes")
+        self.quantum_buddy_cosmos_writes_enabled = (self.quantum_buddy_enabled
+            and os.environ.get("BEASTBOX_QUANTUM_BUDDY_COSMOS_WRITES_ENABLED") == "yes")
+        self.quantum_buddy_repo_factory = CosmosBuddyRepository.from_environment
+        self.quantum_buddy_operator_factory = QuantumStateOperator
+        self.quantum_buddy_shadow_infer = self._native_buddy_shadow_infer
 
     def _resolve_provider_secret(self, profile: ProviderProfile) -> str | None:
         if self.vault is None:
@@ -473,6 +493,225 @@ class OwnerBridge:
                      "system_id": result["runtime"]["system_id"],
                      "checkpoint_sha256": result["runtime"]["checkpoint_sha256"]}
 
+    def _quantum_buddy_status(self) -> dict:
+        """Report host flags, not actual Azure connectivity or account secrets."""
+        return {
+            "enabled": self.quantum_buddy_enabled,
+            "shadow_enabled": self.quantum_buddy_shadow_enabled,
+            "cosmos_writes_enabled": self.quantum_buddy_cosmos_writes_enabled,
+            "storage_configuration_present": bool(
+                os.environ.get("COSMOS_BUDDY_ENDPOINT") and
+                os.environ.get("COSMOS_BUDDY_DATABASE")
+            ),
+            "hardware_enabled": False,
+            "model_weights_changed": False,
+            "fresh_hardware_used": False,
+            "mode": "RESEARCH_SHADOW_ONLY",
+        }
+
+    def _quantum_buddy_state_action(self, data: dict) -> tuple[int, dict]:
+        """Owner-only state CRUD; never submits QPU work or accesses sensors."""
+        if not self.quantum_buddy_enabled:
+            return 503, {"error": "Quantum Buddy is disabled"}
+        action = data.get("action")
+        user_id = data.get("userId")
+        if not isinstance(user_id, str) or not re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", user_id):
+            return 400, {"error": "invalid opaque user ID"}
+        if action == "read":
+            if set(data) != {"action", "userId"}:
+                return 400, {"error": "unsupported Buddy state request"}
+            try:
+                state, etag = self.quantum_buddy_repo_factory().read_current(user_id)
+                if state.user_id != user_id:
+                    raise BuddyStorageUnavailable("partition identity mismatch")
+            except BuddyStateNotFound:
+                return 404, {"error": "Buddy state not provisioned"}
+            except Exception:  # noqa: BLE001 - redact external storage errors
+                return 503, {"error": "Buddy state unavailable"}
+            return 200, {
+                "userId": user_id, "stateVersion": state.state_version,
+                "dyn12Sha256": state.dyn12_sha256,
+                "qstateValid": bool(state.qstate_valid),
+                "etag": etag,
+                "consent": {
+                    "stateConditioning": state.state_conditioning_consent,
+                    "quantumRefresh": state.quantum_refresh_consent,
+                },
+                "raw_media_retained": False,
+            }
+        if action not in {"create", "update"}:
+            return 400, {"error": "unsupported Buddy state action"}
+        expected = {
+            "action", "userId", "dyn12",
+            "stateConditioningConsent", "quantumRefreshConsent",
+        }
+        if action == "update":
+            expected |= {"etag"}
+        if set(data) != expected:
+            return 400, {"error": "unsupported Buddy state fields"}
+        if not self.quantum_buddy_cosmos_writes_enabled:
+            return 403, {"error": "Cosmos Buddy writes require separate host approval"}
+        if (data["stateConditioningConsent"] is not True
+                or type(data["quantumRefreshConsent"]) is not bool):
+            return 403, {"error": "explicit Buddy state consent required"}
+        try:
+            vector = list(validate_vector12(data["dyn12"], "dyn12"))
+        except BuddyStateError:
+            return 400, {"error": "invalid bounded dyn12"}
+        try:
+            repo = self.quantum_buddy_repo_factory()
+            if action == "create":
+                state = BuddyCurrentState.new(
+                    user_id=user_id, dyn12=vector, state_version=1,
+                    state_conditioning_consent=True,
+                    quantum_refresh_consent=data["quantumRefreshConsent"],
+                )
+                updated = repo.create_current(state)
+            else:
+                etag = data["etag"]
+                if not isinstance(etag, str) or not 1 <= len(etag) <= 128:
+                    return 400, {"error": "invalid conditional ETag"}
+                updated = repo.update_person_state(
+                    user_id, dyn12=vector, etag=etag,
+                    state_conditioning_consent=True,
+                    quantum_refresh_consent=data["quantumRefreshConsent"],
+                )
+        except StaleBuddyState:
+            return 409, {"error": "Buddy state already exists or was updated"}
+        except Exception:  # noqa: BLE001 - external SDK text is never user-facing
+            return 503, {"error": "Buddy state write unavailable"}
+        return 200, {
+            "persisted": True, "model_invoked": False, "fresh_hardware_used": False,
+            "raw_media_retained": False,
+            "userId": updated.user_id, "stateVersion": updated.state_version,
+            "dyn12Sha256": updated.dyn12_sha256,
+            "qstateValid": False,
+        }
+
+    def _native_buddy_shadow_infer(self, prompt, person, metric, max_tokens, seed):
+        """Fixed loopback native server; never allow arbitrary provider URLs."""
+        from beastbox.providers import _local_opener
+
+        readiness = native_status()
+        if readiness.get("readiness") != "INSTALLED_AND_READY":
+            raise RuntimeError("pinned native model unavailable")
+        key = os.environ.get("RAWRPHOS_API_KEY", "")
+        if len(key) < 32 or any(ch in key for ch in "\r\n"):
+            raise RuntimeError("native host authorization not configured")
+        body = json.dumps({
+            "model": NATIVE_ID,
+            "prompt": prompt,
+            "control_vector": person,
+            "qstate_metric12": metric,
+            "max_tokens": max_tokens,
+            "seed": seed,
+        }, allow_nan=False).encode("utf-8")
+        request = urllib.request.Request(
+            NATIVE_URL + "/quantum-buddy-shadow",
+            data=body, method="POST",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + key,
+            },
+        )
+        with _local_opener().open(request, timeout=45) as response:
+            raw = response.read(65_537)
+            if response.status != 200 or len(raw) > 65_536:
+                raise RuntimeError("native shadow response unavailable")
+        reply = json.loads(raw)
+        if (not isinstance(reply, dict) or reply.get("checkpoint_sha256") != NATIVE_SHA
+                or reply.get("model_weights_changed") is not False
+                or reply.get("fresh_hardware_used") is not False
+                or reply.get("quantum_advantage_proven") is not False):
+            raise RuntimeError("native shadow identity mismatch")
+        return reply
+
+    def _quantum_buddy_shadow_action(self, data: dict) -> tuple[int, dict]:
+        """Explicit owner-only comparison; ordinary /api/chat is unaffected."""
+        if not self.quantum_buddy_enabled or not self.quantum_buddy_shadow_enabled:
+            return 503, {"error": "Quantum Buddy shadow is disabled"}
+        required = {"userId", "prompt", "mode", "max_tokens", "seed"}
+        if set(data) != required:
+            return 400, {"error": "unsupported Buddy shadow fields"}
+        user_id, prompt, mode = data["userId"], data["prompt"], data["mode"]
+        count, seed = data["max_tokens"], data["seed"]
+        allowed_modes = {"off", "matched_classical", "sim_unentangled",
+                         "sim_entangled", "replay"}
+        if (not isinstance(user_id, str)
+                or not re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", user_id)
+                or not isinstance(prompt, str)
+                or not 1 <= len(prompt.strip()) <= 220
+                or type(count) is not int or not 1 <= count <= 32
+                or type(seed) is not int or not 0 <= seed < 2**63
+                or not isinstance(mode, str) or mode not in allowed_modes):
+            return 400, {"error": "invalid bounded Buddy shadow request"}
+        try:
+            repo = self.quantum_buddy_repo_factory()
+            state, _etag = repo.read_current(user_id)
+            if state.user_id != user_id:
+                raise BuddyStorageUnavailable("partition mismatch")
+        except BuddyStateNotFound:
+            return 404, {"error": "Buddy state not provisioned"}
+        except Exception:  # noqa: BLE001 - storage errors may contain credentials
+            return 503, {"error": "Buddy state unavailable"}
+        if (state.state_conditioning_consent is not True
+                or (mode != "off" and state.quantum_refresh_consent is not True)):
+            return 403, {"error": "explicit Buddy conditioning and refresh consent required"}
+        started = __import__("time").perf_counter()
+        try:
+            operator = self.quantum_buddy_operator_factory()
+            packet = operator.evaluate(
+                state.dyn12, mode=mode, circuit_version="qb-v1",
+                shot_budget=0, provenance={},
+            )
+            if (packet.mode != mode or packet.source_class != SOURCE_CLASSES[mode]
+                    or packet.source_state_sha256 != state.dyn12_sha256):
+                raise BuddyStateError("invalid operator provenance")
+            report = self.quantum_buddy_shadow_infer(
+                prompt, list(state.dyn12), list(packet.qstate12), count, seed,
+            )
+            if (not isinstance(report, dict)
+                    or report.get("model_weights_changed") is not False
+                    or report.get("quantum_advantage_proven") is not False
+                    or type(report.get("logit_l2")) not in (float, int)
+                    or not math.isfinite(report["logit_l2"])
+                    or not re.fullmatch(r"[0-9a-f]{64}",
+                                        str(report.get("checkpoint_sha256", "")))):
+                raise ValueError("unvalidated native shadow comparison")
+            receipt = {
+                "userId": user_id,
+                "sourceStateSha256": state.dyn12_sha256,
+                "stateVersion": state.state_version,
+                "status": "SHADOW_EVALUATED",
+                "mode": mode,
+                "sourceClass": packet.source_class,
+                "backend": packet.backend,
+                "resultSha256": packet.result_sha256,
+                "modelSha256": report["checkpoint_sha256"],
+                "logitL2": float(report["logit_l2"]),
+                "latencyMs": (__import__("time").perf_counter()-started)*1000,
+                "createdAt": datetime.now(timezone.utc).isoformat(),
+            }
+            receipt_id = repo.append_history(receipt)
+        except Exception:  # noqa: BLE001 - never echo SDK/model exception text
+            return 503, {"error": "Buddy shadow unavailable; ordinary chat unaffected"}
+        return 200, {
+            "mode": mode,
+            "source_class": packet.source_class,
+            "backend": packet.backend,
+            "sourceStateSha256": packet.source_state_sha256,
+            "resultSha256": packet.result_sha256,
+            "model_checkpoint_sha256": report["checkpoint_sha256"],
+            "logit_l2": float(report["logit_l2"]),
+            "response_ordinary": str(report.get("response_ordinary", ""))[:4096],
+            "response_buddy": str(report.get("response_buddy", ""))[:4096],
+            "history_receipt_id": receipt_id,
+            "fresh_hardware_used": False,
+            "model_weights_changed": False,
+            "quantum_advantage_proven": False,
+            "public_answers_changed": False,
+        }
+
     def dispatch(self, method: str, path: str, auth: str, body: bytes = b""):
         if not hmac.compare_digest(
             auth.encode("utf-8", errors="replace"),
@@ -488,6 +727,8 @@ class OwnerBridge:
         allowed = GET_ALLOW if method == "GET" else POST_ALLOW if method == "POST" else frozenset()
         if name not in allowed:
             return 404, {"error": "unsupported route"}
+        if name == "quantum-buddy" and method == "GET":
+            return 200, self._quantum_buddy_status()
         if name == "engine-growth" and method == "GET":
             with self.app._lock:
                 return 200, engine_growth_report(self.root)
@@ -543,6 +784,10 @@ class OwnerBridge:
                 set(data) != {"scope", "name", "text"} or data.get("scope") != "temporary_attachment"
             ):
                 return 400, {"error": "cloud context is temporary attachment data only"}
+        if name == "quantum-buddy/state":
+            return self._quantum_buddy_state_action(data)
+        if name == "quantum-buddy/shadow":
+            return self._quantum_buddy_shadow_action(data)
         if name == "cns-model-probe":
             with self.app._lock:
                 return self.chat_jobs.run_when_idle(lambda: cns_model_probe(data))
