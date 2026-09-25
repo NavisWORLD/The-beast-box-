@@ -80,10 +80,16 @@ class SignalSource:
             raise ValueError("signal family must be sensory or quantum")
         if not isinstance(self.source_id, str) or not self.source_id or len(self.source_id) > 160:
             raise ValueError("invalid source_id")
-        for name in ("kind", "execution_mode", "channel_contract"):
+        for name in ("kind", "execution_mode"):
             value = getattr(self, name)
             if not isinstance(value, str) or not value or len(value) > 160:
                 raise ValueError(f"invalid {name}")
+        if (
+            not isinstance(self.channel_contract, str)
+            or not self.channel_contract
+            or len(self.channel_contract) > 1024
+        ):
+            raise ValueError("invalid channel_contract")
         object.__setattr__(self, "vector", _vector12(self.vector))
         object.__setattr__(self, "mask", _mask12(self.mask))
         object.__setattr__(self, "weight", _bounded(self.weight, name="weight"))
