@@ -145,7 +145,7 @@ class Engine:
         finally:self.lock.release()
 
     @torch.inference_mode()
-    def shadow_condition(self,prompt,control_vector,qstate_metric12,max_tokens=24,seed=67):
+    def shadow_condition(self,prompt,control_vector,qstate_metric12,max_tokens=24,seed=67, sampling_temperature=0.0, sampling_top_k=40):
         """Owner-only matched numerical condition: no QPU, memory or weight update."""
         if not isinstance(prompt,str) or not 1<=len(prompt.strip())<=220:
             raise ValueError('shadow prompt must contain 1..220 characters')
@@ -153,6 +153,10 @@ class Engine:
             raise ValueError('invalid shadow token budget')
         if type(seed) is not int or not 0<=seed<2**63:
             raise ValueError('invalid shadow seed')
+        if type(sampling_temperature) not in (int,float) or not math.isfinite(sampling_temperature) or not 0<=sampling_temperature<=2.0:
+            raise ValueError('invalid shadow sampling temperature')
+        if type(sampling_top_k) is not int or not 0<=sampling_top_k<=self.model.config.vocab_size:
+            raise ValueError('invalid shadow sampling top-k')
         control=self.validate_control(control_vector)
         metric=self.validate_metric(qstate_metric12)
         ids=self.tokenizer.encode(prompt,add_bos=True)
@@ -177,7 +181,8 @@ class Engine:
                 generated=[]
                 for token,_ in generate(
                     self.model,input_ids,max_new_tokens=max_tokens,
-                    temperature=0,eos_token_id=self.tokenizer.eos_id,
+                    temperature=sampling_temperature,top_k=sampling_top_k,
+                    eos_token_id=self.tokenizer.eos_id,
                     generator=random,use_cache=True,
                     deadline=time.monotonic()+18,
                     control_vector=cv,qstate_metric12=qstate,
@@ -207,6 +212,8 @@ class Engine:
                 'response_ordinary':response_ordinary,
                 'response_buddy':response_buddy,
                 'equal_fixed_seed':response_ordinary==response_buddy,
+                'sampling_temperature':float(sampling_temperature),
+                'sampling_top_k':sampling_top_k,
                 'model_weights_changed':False,
                 'performance_gain_proven':False,
                 'quantum_advantage_proven':False,
