@@ -213,6 +213,12 @@ class CosmosBuddyRepository:
                 )
             except Exception:  # noqa: BLE001 - redact external SDK/transport error details
                 raise BuddyStorageUnavailable("Cosmos history duplicate check failed") from None
-            if existing != body:
+            # Cosmos adds system properties to point-read responses. Those do
+            # not change the logical receipt, but any unexpected *user* field
+            # or differing value must still fail the idempotency check.
+            sdk_system_fields = {"_rid", "_self", "_etag", "_attachments", "_ts"}
+            if (not isinstance(existing, dict)
+                    or any(existing.get(key) != value for key, value in body.items())
+                    or (set(existing) - set(body)) - sdk_system_fields):
                 raise BuddyStorageUnavailable("Cosmos receipt hash collision or conflict")
         return receipt_id
