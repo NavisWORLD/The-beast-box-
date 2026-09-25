@@ -219,3 +219,65 @@ class BuddyBridgeTests(unittest.TestCase):
             "POST", "/api/chat", AUTH, json.dumps({"text": "hello"}).encode(),
         )[0], 200)
 
+
+    def test_revoke_state_consent_erases_active_vector_and_blocks_shadow(self):
+        bridge = self.make_bridge(enabled="yes", shadow="yes", cosmos_write="yes")
+        repo = FakeRepo()
+        bridge.quantum_buddy_repo_factory = lambda: repo
+        command = {
+            "action": "revoke", "userId": "owner-opaque-a",
+            "etag": repo.etag, "scope": "state",
+        }
+        code, result = bridge.dispatch(
+            "POST", "/api/quantum-buddy/state", AUTH,
+            json.dumps(command).encode(),
+        )
+        self.assertEqual(code, 200, result)
+        self.assertFalse(repo.current.state_conditioning_consent)
+        self.assertFalse(repo.current.quantum_refresh_consent)
+        self.assertFalse(repo.current.qstate_valid)
+        self.assertEqual(repo.current.dyn12, tuple([0.0] * 12))
+        self.assertEqual(repo.current.state_version, 4)
+        shadow, _ = bridge.dispatch(
+            "POST", "/api/quantum-buddy/shadow", AUTH,
+            json.dumps({
+                "userId": "owner-opaque-a", "prompt": "hello",
+                "mode": "sim_entangled", "max_tokens": 2, "seed": 67,
+            }).encode(),
+        )
+        self.assertEqual(shadow, 403)
+        self.assertEqual(repo.receipts, [])
+
+    def test_revoke_only_quantum_refresh_preserves_opted_in_person_state(self):
+        bridge = self.make_bridge(enabled="yes", shadow="yes", cosmos_write="yes")
+        repo = FakeRepo()
+        bridge.quantum_buddy_repo_factory = lambda: repo
+        old_state = repo.current.dyn12
+        code, result = bridge.dispatch(
+            "POST", "/api/quantum-buddy/state", AUTH,
+            json.dumps({
+                "action": "revoke", "userId": "owner-opaque-a",
+                "etag": repo.etag, "scope": "quantum",
+            }).encode(),
+        )
+        self.assertEqual(code, 200, result)
+        self.assertTrue(repo.current.state_conditioning_consent)
+        self.assertFalse(repo.current.quantum_refresh_consent)
+        self.assertEqual(repo.current.dyn12, old_state)
+        self.assertFalse(repo.current.qstate_valid)
+        code, _ = bridge.dispatch(
+            "POST", "/api/quantum-buddy/state", AUTH,
+            json.dumps({
+                "action": "revoke", "userId": "owner-opaque-a",
+                "etag": "stale-etag", "scope": "both",
+            }).encode(),
+        )
+        self.assertNotEqual(code, 200)
+        bad, _ = bridge.dispatch(
+            "POST", "/api/quantum-buddy/state", AUTH,
+            json.dumps({
+                "action": "revoke", "userId": "owner-opaque-a",
+                "etag": repo.etag, "scope": "unknown",
+            }).encode(),
+        )
+        self.assertEqual(bad, 400)
