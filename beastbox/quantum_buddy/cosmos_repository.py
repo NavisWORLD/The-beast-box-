@@ -53,7 +53,7 @@ def _matched_replace(container, etag: str, body: dict):
             item="current", body=body, etag=etag,
             match_condition=MatchConditions.IfNotModified,
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - redact all external SDK/transport error details
         if _status_code(exc) in (409, 412):
             raise StaleBuddyState("current state changed") from None
         raise BuddyStorageUnavailable("Cosmos conditional write failed") from None
@@ -87,7 +87,7 @@ class CosmosBuddyRepository:
                 db.get_container_client("buddy-state"),
                 db.get_container_client("buddy-history"),
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 - redact external SDK/transport error details
             raise BuddyStorageUnavailable("Cosmos host initialization failed") from None
 
     def read_current(self, user_id: str) -> tuple[BuddyCurrentState, str]:
@@ -95,7 +95,7 @@ class CosmosBuddyRepository:
             raise BuddyStorageUnavailable("invalid opaque user ID")
         try:
             raw = self.current.read_item(item="current", partition_key=user_id)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - redact all external SDK/transport error details
             if _status_code(exc) == 404:
                 raise BuddyStateNotFound("buddy state does not exist") from None
             raise BuddyStorageUnavailable("Cosmos current-state point read failed") from None
@@ -114,7 +114,7 @@ class CosmosBuddyRepository:
             raise BuddyStorageUnavailable("invalid buddy current state")
         try:
             raw = self.current.create_item(body=state.to_document())
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - redact all external SDK/transport error details
             if _status_code(exc) == 409:
                 raise StaleBuddyState("buddy current state already exists") from None
             raise BuddyStorageUnavailable("Cosmos state creation failed") from None
@@ -204,14 +204,14 @@ class CosmosBuddyRepository:
         body = {**receipt, "id": receipt_id}
         try:
             self.history.create_item(body=body)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - redact all external SDK/transport error details
             if _status_code(exc) != 409:
                 raise BuddyStorageUnavailable("Cosmos history append failed") from None
             try:
                 existing = self.history.read_item(
                     item=receipt_id, partition_key=user_id,
                 )
-            except Exception:
+            except Exception:  # noqa: BLE001 - redact external SDK/transport error details
                 raise BuddyStorageUnavailable("Cosmos history duplicate check failed") from None
             if existing != body:
                 raise BuddyStorageUnavailable("Cosmos receipt hash collision or conflict")
