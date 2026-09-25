@@ -1,0 +1,36 @@
+name: Quantum Buddy one-time lock refresh
+
+on:
+  push:
+    branches: [feature/quantum-buddy-shadow-core-001]
+    paths: ['.github/workflows/quantum-buddy-lock-refresh.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    if: github.repository == 'NavisWORLD/The-beast-box-'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Update lock without installing or invoking provider SDKs
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'uv==0.12.11'
+          uv lock
+          uv lock --check
+          git diff --stat -- uv.lock
+          git diff --exit-code -- uv.lock && exit 0
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add uv.lock
+          git commit -m "build: update frozen lock for optional Cosmos SDK"
+          git push origin HEAD:refs/heads/feature/quantum-buddy-shadow-core-001
