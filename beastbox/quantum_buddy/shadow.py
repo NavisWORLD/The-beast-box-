@@ -56,7 +56,7 @@ def _numeric(value, name, *, min_value=0.0):
 def _checked_operator_packet(packet, *, dyn12, mode):
     """Treat every arm as untrusted; reject bad state before scoring a fingerprint."""
     if not isinstance(packet, BuddyQuantumState):
-        raise ValueError("invalid qstate operator packet type")
+        raise TypeError("invalid qstate operator packet type")
     try:
         checked = BuddyQuantumState.from_document(packet.to_document())
         source = canonical_vector_sha256(dyn12)
@@ -173,7 +173,7 @@ def _model_receipt(result, *, expected_checkpoint):
 def run_phase8(cohort, prompts, seeds, operator, model_runner,
                config: FrozenPhase8Config, *, arms=None) -> dict:
     if not isinstance(config, FrozenPhase8Config):
-        raise ValueError("missing frozen phase8 configuration")
+        raise TypeError("missing frozen phase8 configuration")
     allowed_arms = list(config.prereg["arms"])
     selected = allowed_arms if arms is None else list(arms)
     if any(mode.startswith("hardware_") for mode in selected):
@@ -201,7 +201,6 @@ def run_phase8(cohort, prompts, seeds, operator, model_runner,
         repeats_base = []
         repeats_buddy = []
         durations = []
-        task_scores_base = []
         task_scores_buddy = []
         for person in people:
             user = person["userId"]
