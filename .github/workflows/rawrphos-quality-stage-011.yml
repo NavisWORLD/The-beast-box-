@@ -1,0 +1,313 @@
+name: RAWRPHOS 20K to 21K quality-gated research continuation
+
+on:
+  push:
+    branches: [experiment/rawrphos-20k-quality-continuation-001]
+    paths: ['models/rawrphos/research-stage-011-request.json']
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rawrphos-quality-stage-011
+  cancel-in-progress: false
+
+jobs:
+  train-and-evaluate:
+    if: >-
+      github.repository == 'NavisWORLD/The-beast-box-' &&
+      github.ref == 'refs/heads/experiment/rawrphos-20k-quality-continuation-001' &&
+      startsWith(github.event.head_commit.message, 'train(rawrphos): authorize quality-gated stage 011 ')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 175
+    env:
+      PYTHONPATH: models
+      PARENT_RUN: '36056700705'
+      PARENT_SHA: '62a860f6882ef59d2becb41ad119f92836add184b325413cbd4a6e3631c44662'
+      PARENT_SOURCE: 'ee874262650a8693fcbf61e5c9880b6bc22c8bdb'
+      DATASET_SHA: '7e9e8f91e751b3304663cb28293b2c90cc0e1623df355eb77dfdc6004cadcec5'
+      BASELINE_SHA: '339fb8e1d6f3950e2aa15a6e33bf8c0f28dd655cefc93b7926fb7545e7e97601'
+      WORK_DIR: .rawrphos-21k-quality
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false, fetch-depth: 2}
+
+      - name: Verify one-file bounded user authorization and unchanged training phase
+        run: |
+          set -euo pipefail
+          test "$(git diff --name-only HEAD^ HEAD)" = 'models/rawrphos/research-stage-011-request.json'
+          python - <<'PY'
+          import json,os,pathlib
+          r=json.loads(pathlib.Path('models/rawrphos/research-stage-011-request.json').read_text())
+          assert set(r)=={'schema','parent_run_id','parent_sha256','parent_step','dataset_sha256','additional_steps','max_wall_minutes','minimum_relative_improvement','plateau_patience_stages','authorization'}
+          assert r['schema']=='rawrphos-quality-stage-011-request-v1'
+          assert r['parent_run_id']==os.environ['PARENT_RUN']
+          assert r['parent_sha256']==os.environ['PARENT_SHA']
+          assert r['parent_step']==20000 and r['dataset_sha256']==os.environ['DATASET_SHA']
+          assert r['additional_steps']==1000 and r['max_wall_minutes']==115
+          assert r['minimum_relative_improvement']==.0025 and r['plateau_patience_stages']==3
+          assert r['authorization']=='Continue existing 20K RAWRPHOS with bounded CPU-only 100-step checks; preserve all checkpoints; do not deploy, submit QPU jobs or purchase compute'
+          p=pathlib.Path('models/rawrphos/evaluation/conversation/quality-21k-public-probes.json')
+          probes=json.loads(p.read_text())
+          assert probes['schema']=='rawrphos-21k-qualitative-public-probes-v1'
+          assert probes['frozen_before_training'] is True and probes['training_data'] is False
+          assert len(probes['items'])==10
+          print('OWNER_AUTHORIZED_EXACT_20K_PARENT_1K_STEP_CPU_RESEARCH',flush=True)
+          PY
+
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+
+      - name: Install bounded CPU training dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check --quiet 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'pyarrow>=15,<24' 'pytest>=8,<10' 'numpy>=1.26,<3' 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'uvicorn>=0.30,<1'
+
+      - name: Run existing native tests and new parent-relative safety gates
+        run: python -m pytest -q models/rawrphos/tests
+
+      - name: Recover original 12K tokenizer, license-bound unchanged conversation dataset
+        run: |
+          set -euo pipefail
+          mkdir -p "$WORK_DIR"
+          python -m rawrphos.scripts.install_pinned_12k --destination "$WORK_DIR/step-00012000"
+          python -m rawrphos.scripts.prepare_conversation \
+            --source "$WORK_DIR/source" \
+            --output "$WORK_DIR/data" \
+            --tokenizer "$WORK_DIR/step-00012000/tokenizer"
+          python - <<'PY'
+          import json,os,pathlib
+          from rawrphos.data.conversation import load_dataset
+          root=pathlib.Path(os.environ['WORK_DIR'])
+          dataset=load_dataset(root/'data')
+          baseline=json.loads(pathlib.Path('models/rawrphos/evidence/conversation-001/data-manifest.json').read_text())
+          assert dataset['manifest']==baseline
+          assert dataset['manifest']['dataset_sha256']==os.environ['DATASET_SHA']
+          assert dataset['manifest']['provenance']['tokenizer_sha256']=='f704e9b75e816cc4ef203bc6c4afeeb966cbc11f369fb3b5f4d81c1505c8619c'
+          print('UNCHANGED_LICENSED_TRAIN_VALIDATION_AND_TOKENIZER_RESTORED',flush=True)
+          PY
+
+      - name: Recover EXACT sealed 20K optimizer RNG and scheduler from successful prior run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$PARENT_RUN" --repo "$GITHUB_REPOSITORY" \
+            --name rawrphos-conversation-stage-010-recovery --dir "$WORK_DIR/parent-artifact"
+          python - <<'PY'
+          import json,os,pathlib
+          from dataclasses import asdict
+          from rawrphos.training.conversation import ConversationConfig
+          from rawrphos.training.checkpoint import load_checkpoint,parameter_hash
+          from rawrphos.data.conversation import load_dataset
+          root=pathlib.Path(os.environ['WORK_DIR'])
+          p=root/'parent-artifact/checkpoints/step-00020000'
+          assert p.is_dir(),'EXACT 20K CHECKPOINT UNAVAILABLE; REFUSING TO RESTART'
+          receipt=json.loads((root/'parent-artifact/stage-receipt.json').read_text())
+          assert receipt['source_commit']==os.environ['PARENT_SOURCE']
+          assert receipt['candidate_sha256']==os.environ['PARENT_SHA']
+          assert receipt['cumulative_steps']==20000
+          assert receipt['automated_checks_pass'] is True and all(receipt['automated_promotion_checks'].values())
+          loaded=load_checkpoint(p,expected_checkpoint_sha256=os.environ['PARENT_SHA'])
+          meta,state=loaded['metadata'],loaded['state']
+          assert meta['training_steps']==20000 and meta['conversation_steps']==8000
+          assert meta['phase']=='conversation-v1'
+          assert meta['dataset_manifest_sha256']==os.environ['DATASET_SHA']
+          assert meta['tokenizer_sha256']=='f704e9b75e816cc4ef203bc6c4afeeb966cbc11f369fb3b5f4d81c1505c8619c'
+          assert meta['conversation_config']==asdict(ConversationConfig(batch_size=8,max_seq_len=384,threads=4,checkpoint_every=100,eval_examples=128))
+          assert parameter_hash(loaded['model'])==meta['parameter_sha256']
+          assert {'optimizer','rng','data_rng','scheduler'} <= state.keys()
+          assert state['scheduler']['completed_phase_steps']==8000
+          assert len(state['optimizer']['state'])>0
+          assert load_dataset(root/'data')['manifest']['dataset_sha256']==os.environ['DATASET_SHA']
+          print('EXACT_20K_WEIGHTS_OPTIMIZER_RNG_SCHEDULER_VERIFIED',meta['checkpoint_sha256'],flush=True)
+          PY
+
+      - name: Resume 100-step sealed blocks with plateau and relative-loss stopping
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,math,os,pathlib,time,torch
+          from rawrphos.training.checkpoint import load_checkpoint
+          from rawrphos.training.conversation import ConversationConfig,continue_training,heldout
+          from rawrphos.data.conversation import load_dataset,encode_example
+          root=pathlib.Path(os.environ['WORK_DIR'])
+          req=json.loads(pathlib.Path('models/rawrphos/research-stage-011-request.json').read_text())
+          data=load_dataset(root/'data')
+          parent=root/'parent-artifact/checkpoints/step-00020000'
+          config=ConversationConfig(batch_size=8,max_seq_len=384,threads=4,checkpoint_every=100,eval_examples=128)
+          baseline_loaded=load_checkpoint(parent,expected_checkpoint_sha256=os.environ['PARENT_SHA'])
+          torch.set_num_threads(4)
+          subset=[encode_example(x,baseline_loaded['tokenizer'],384) for x in data['validation']]
+          baseline128=heldout(baseline_loaded['model'],subset,8,128)
+          start_loss=baseline128['loss']
+          assert math.isfinite(start_loss) and start_loss>0
+          (root/'baseline-128-heldout.json').write_text(json.dumps(baseline128,indent=2)+'\n')
+          print('EXACT_20K_BASELINE_128_HELDOUT',json.dumps(baseline128),flush=True)
+          previous_sha=os.environ['PARENT_SHA']
+          best={'step':20000,'sha256':previous_sha,'path':str(parent),'loss':start_loss}
+          history=[];start=time.monotonic();stop_reason='STEP_BUDGET_REACHED'
+          for block in range(req['additional_steps']//100):
+              if time.monotonic()-start > req['max_wall_minutes']*60:
+                  stop_reason='WALL_BUDGET_GUARD';break
+              out=continue_training(parent,root/'checkpoints',root/'checkpoints',
+                                    steps=100,config=config,expected_sha256=previous_sha) if False else None
+              # Parent and dataset are distinct, immutable inputs.
+              out=continue_training(parent,root/'data',root/'checkpoints',
+                                    steps=100,config=config,expected_sha256=previous_sha)
+              history.append(out)
+              (root/'stage-history.json').write_text(json.dumps(history,indent=2)+'\n')
+              parent=pathlib.Path(out['checkpoint']);previous_sha=out['sha256']
+              val=float(out['validation']['loss'])
+              assert math.isfinite(val),'Non-finite validation loss after sealed checkpoint'
+              if val < best['loss']:
+                  best={'step':out['steps'],'sha256':out['sha256'],
+                        'path':out['checkpoint'],'loss':val}
+              print('STAGE_011_QUALITY',json.dumps({
+                  'step':out['steps'],'checkpoint_sha256':out['sha256'],
+                  'baseline128_loss':start_loss,'validation128_loss':val,
+                  'best_step':best['step'],'best_loss':best['loss']}),flush=True)
+              if val>start_loss*1.02:
+                  stop_reason='STOP_PARENT_RELATIVE_REGRESSION';break
+              if block+1 >= req['plateau_patience_stages'] and (
+                      start_loss-best['loss'])/start_loss < req['minimum_relative_improvement']:
+                  stop_reason='STOP_NO_MEASURABLE_EARLY_GAIN';break
+          assert history,'No completed 100-step stage; see recovery artifact for source diagnostics'
+          receipt={
+              'schema':'rawrphos-quality-stage-011-training-v1',
+              'source_revision':os.environ['GITHUB_SHA'],
+              'parent_run_id':os.environ['PARENT_RUN'],
+              'parent_step':20000,'parent_sha256':os.environ['PARENT_SHA'],
+              'dataset_sha256':os.environ['DATASET_SHA'],
+              'start_128_heldout':baseline128,'best_128_checkpoint':best,
+              'last_completed_step':history[-1]['steps'],
+              'last_completed_sha256':history[-1]['sha256'],
+              'stage_history':[{
+                  'step':x['steps'],'sha256':x['sha256'],
+                  'validation128_loss':x['validation']['loss']
+              } for x in history],
+              'stop_reason':stop_reason,
+              'optimizer_rng_exactly_continued':True,
+              'historical_checkpoints_preserved':True,
+              'research_only':True,'production_deployed':False,
+              'new_paid_compute_authorized':False,
+          }
+          (root/'training-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          print('SEALED_20K_CONTINUATION',json.dumps({
+              'last_step':receipt['last_completed_step'],
+              'selected_best_step':best['step'],
+              'stop_reason':stop_reason,
+              'best_128_loss':best['loss']}),flush=True)
+          PY
+
+      - name: Compare exact parent 20K and best candidate on FULL validation and frozen public probes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,os,pathlib,subprocess,sys,torch
+          from rawrphos.training.checkpoint import load_checkpoint
+          from rawrphos.evaluation.conversation.quality21k_gate import assess
+          from rawrphos.inference.engine import Engine
+          from rawrphos.inference.chat import format_chat
+          root=pathlib.Path(os.environ['WORK_DIR'])
+          trained=json.loads((root/'training-receipt.json').read_text())
+          best=trained['best_128_checkpoint']
+          parent=root/'parent-artifact/checkpoints/step-00020000'
+          candidate=pathlib.Path(best['path'])
+          selected=load_checkpoint(candidate,expected_checkpoint_sha256=best['sha256'])
+          assert selected['metadata']['training_steps']==best['step']
+          assert selected['metadata']['dataset_manifest_sha256']==os.environ['DATASET_SHA']
+          rows=json.loads(pathlib.Path('models/rawrphos/evidence/conversation-001/baseline-layers.json').read_text())['samples']
+          prompts=root/'owner-prompts.json'
+          prompts.write_text(json.dumps({'samples':[{'id':r['id'],'owner_effective_prompt':r['owner_effective_prompt']} for r in rows]}))
+          def evaluate(path,dest,sha):
+              subprocess.run([sys.executable,'-m','rawrphos.evaluation.conversation_eval',
+                 '--checkpoint',str(path),'--dataset',str(root/'data'),
+                 '--output',str(dest),'--expected-sha256',sha,
+                 '--owner-prompts',str(prompts)],check=True)
+              return json.loads(dest.read_text())
+          baseline=evaluate(parent,root/'parent-20k-full-eval.json',os.environ['PARENT_SHA'])
+          cand=evaluate(candidate,root/'best-candidate-full-eval.json',best['sha256'])
+          checks=assess(baseline,cand)
+          probe_path=pathlib.Path('models/rawrphos/evaluation/conversation/quality-21k-public-probes.json')
+          public_probes=json.loads(probe_path.read_text())['items']
+          torch.set_num_threads(4)
+          baseline_engine=Engine(parent,expected_sha256=os.environ['PARENT_SHA'],
+                               max_new_tokens=64,threads=4,device='cpu')
+          candidate_engine=(baseline_engine if best['step']==20000
+                           else Engine(candidate,expected_sha256=best['sha256'],
+                                       max_new_tokens=64,threads=4,device='cpu'))
+          pairs=[]
+          for item in public_probes:
+              prompt=format_chat([{'role':'user','content':item['prompt']}])
+              def respond(engine):
+                  return engine.complete(prompt,max_tokens=64,temperature=0,seed=67)
+              pairs.append({'id':item['id'],'prompt':item['prompt'],
+                  'review_criterion':item['review_criterion'],
+                  'response_20k':respond(baseline_engine),
+                  'response_best':respond(candidate_engine)})
+          (root/'public-probe-pairs.json').write_text(json.dumps({
+              'schema':'rawrphos-public-unscored-quality-probes-v1',
+              'parent_step':20000,'best_step':best['step'],
+              'not_independent_capability_benchmark':True,
+              'human_scores':'NOT PERFORMED','samples':pairs,
+          },indent=2,ensure_ascii=False)+'\n')
+          receipt={
+              'schema':'rawrphos-quality-stage-011-evaluation-v1',
+              'source_revision':os.environ['GITHUB_SHA'],
+              'parent_run_id':os.environ['PARENT_RUN'],'parent_sha256':os.environ['PARENT_SHA'],
+              'parent_step':20000,'candidate_step':best['step'],
+              'candidate_sha256':best['sha256'],
+              'last_completed_step':trained['last_completed_step'],
+              'stop_reason':trained['stop_reason'],
+              'dataset_sha256':os.environ['DATASET_SHA'],
+              'public_probe_sha256':hashlib.sha256(probe_path.read_bytes()).hexdigest(),
+              'parent_full_heldout':baseline['heldout'],
+              'candidate_full_heldout':cand['heldout'],
+              'quality_gate':checks,
+              'mechanically_improved_and_stable':(
+                  best['step']>20000 and checks['automated_checks_pass']),
+              'manual_response_coherence_review':'NOT PERFORMED',
+              'production_promotion_approved':False,
+              'model_default_changed':False,'fresh_qpu_used':False,
+              'license_or_dataset_changed':False,
+              'research_only':True,
+          }
+          (root/'evaluation-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          print('PAIRED_20K_VS_NEW_CANDIDATE',json.dumps(receipt),flush=True)
+          for row in pairs:
+              print('PUBLIC_QUALITY_PROBE',json.dumps(row,ensure_ascii=False),flush=True)
+          PY
+
+      - name: Write integrity manifest for all non-media evaluation receipts
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,os,pathlib
+          root=pathlib.Path(os.environ['WORK_DIR'])
+          paths=sorted([x for x in root.glob('*.json') if x.is_file()])
+          if paths:
+              (root/'SHA256SUMS').write_text(''.join(
+                  f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n' for p in paths))
+              print('RESEARCH_RECEIPTS_HASHED',len(paths),flush=True)
+          PY
+
+      - name: Preserve all sealed 100-step recovery states and evidence even on failed evaluation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawrphos-research-quality-stage-011-recovery
+          path: |
+            .rawrphos-21k-quality/checkpoints/
+            .rawrphos-21k-quality/training-receipt.json
+            .rawrphos-21k-quality/evaluation-receipt.json
+            .rawrphos-21k-quality/public-probe-pairs.json
+            .rawrphos-21k-quality/parent-20k-full-eval.json
+            .rawrphos-21k-quality/best-candidate-full-eval.json
+            .rawrphos-21k-quality/baseline-128-heldout.json
+            .rawrphos-21k-quality/stage-history.json
+            .rawrphos-21k-quality/SHA256SUMS
+          if-no-files-found: warn
+          retention-days: 30
