@@ -511,12 +511,56 @@ class OwnerBridge:
 
     def _quantum_buddy_state_action(self, data: dict) -> tuple[int, dict]:
         """Owner-only state CRUD; never submits QPU work or accesses sensors."""
-        if not self.quantum_buddy_enabled:
-            return 503, {"error": "Quantum Buddy is disabled"}
+        # Revocation remains available even when Buddy inference is disabled.
+        # It still requires owner authentication and separate Cosmos write authority.
         action = data.get("action")
+        if not self.quantum_buddy_enabled and action != "revoke":
+            return 503, {"error": "Quantum Buddy is disabled"}
         user_id = data.get("userId")
         if not isinstance(user_id, str) or not re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", user_id):
             return 400, {"error": "invalid opaque user ID"}
+        if action == "revoke":
+            if (set(data) != {"action", "userId", "etag", "scope"}
+                    or data.get("scope") not in {"quantum", "state", "both"}
+                    or not isinstance(data.get("etag"), str)
+                    or not 1 <= len(data["etag"]) <= 128):
+                return 400, {"error": "invalid Buddy consent revocation request"}
+            if not self.quantum_buddy_cosmos_writes_enabled:
+                return 403, {"error": "Cosmos Buddy writes require separate host approval"}
+            try:
+                repo = self.quantum_buddy_repo_factory()
+                state, current_etag = repo.read_current(user_id)
+                if current_etag != data["etag"] or state.user_id != user_id:
+                    return 409, {"error": "Buddy consent changed; refresh before retrying"}
+                # Turning off state conditioning also stops refresh and wipes
+                # the current numerical reading. Revoking only refresh leaves
+                # an explicitly consented person state available for off-mode.
+                state_allowed = (
+                    data["scope"] == "quantum"
+                    and state.state_conditioning_consent is True
+                )
+                updated = repo.update_person_state(
+                    user_id,
+                    dyn12=list(state.dyn12) if state_allowed else [0.0] * 12,
+                    etag=current_etag,
+                    state_conditioning_consent=state_allowed,
+                    quantum_refresh_consent=False,
+                )
+            except BuddyStateNotFound:
+                return 404, {"error": "Buddy state not provisioned"}
+            except StaleBuddyState:
+                return 409, {"error": "Buddy consent changed; refresh before retrying"}
+            except Exception:  # noqa: BLE001 - never echo SDK/provider exception text
+                return 503, {"error": "Buddy consent revocation unavailable"}
+            return 200, {
+                "userId": updated.user_id,
+                "stateVersion": updated.state_version,
+                "stateConditioningConsent": updated.state_conditioning_consent,
+                "quantumRefreshConsent": updated.quantum_refresh_consent,
+                "qstateValid": False,
+                "fresh_hardware_used": False,
+                "historical_data_erased": False,
+            }
         if action == "read":
             if set(data) != {"action", "userId"}:
                 return 400, {"error": "unsupported Buddy state request"}
