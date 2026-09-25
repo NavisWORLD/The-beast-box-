@@ -152,8 +152,6 @@ jobs:
           for block in range(req['additional_steps']//100):
               if time.monotonic()-start > req['max_wall_minutes']*60:
                   stop_reason='WALL_BUDGET_GUARD';break
-              out=continue_training(parent,root/'checkpoints',root/'checkpoints',
-                                    steps=100,config=config,expected_sha256=previous_sha) if False else None
               # Parent and dataset are distinct, immutable inputs.
               out=continue_training(parent,root/'data',root/'checkpoints',
                                     steps=100,config=config,expected_sha256=previous_sha)
@@ -182,6 +180,9 @@ jobs:
               'parent_step':20000,'parent_sha256':os.environ['PARENT_SHA'],
               'dataset_sha256':os.environ['DATASET_SHA'],
               'start_128_heldout':baseline128,'best_128_checkpoint':best,
+              'best_checkpoint_artifact_relative_path':(
+                  f"checkpoints/step-{best['step']:08d}" if best['step']>20000
+                  else 'parent artifact run 36056700705/checkpoints/step-00020000'),
               'last_completed_step':history[-1]['steps'],
               'last_completed_sha256':history[-1]['sha256'],
               'stage_history':[{
