@@ -42,9 +42,9 @@ jobs:
         run: |
           set -euo pipefail
           python -m pytest -q tests/test_beastbox.py tests/test_full_runtime.py tests/test_optional_resources.py
-          for file in tests/test_quantum_buddy*.py; do
-            if [ -f "$file" ]; then python -m pytest -q "$file"; fi
-          done
+          # Run all Buddy tests in one pytest invocation so an intentional
+          # RED failure does not hide failures in later test files.
+          python -m pytest -q tests/test_quantum_buddy*.py
           if [ -f apps/beastbox-cloud/bridge/tests/test_quantum_buddy_shadow.py ]; then
             python -m pytest -q apps/beastbox-cloud/bridge/tests/test_quantum_buddy_shadow.py
           fi
