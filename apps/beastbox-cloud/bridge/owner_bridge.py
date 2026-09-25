@@ -90,8 +90,12 @@ class OwnerBridge:
         self.quantum_buddy_enabled = os.environ.get("BEASTBOX_QUANTUM_BUDDY_ENABLED") == "yes"
         self.quantum_buddy_shadow_enabled = (self.quantum_buddy_enabled
             and os.environ.get("BEASTBOX_QUANTUM_BUDDY_SHADOW_ENABLED") == "yes")
-        self.quantum_buddy_cosmos_writes_enabled = (self.quantum_buddy_enabled
-            and os.environ.get("BEASTBOX_QUANTUM_BUDDY_COSMOS_WRITES_ENABLED") == "yes")
+        # Separate write authority is retained for consent revocation even if
+        # research inference is turned off. Creation/update still require Buddy
+        # enabled; disabled-mode access is revoke-only and owner-authenticated.
+        self.quantum_buddy_cosmos_writes_enabled = (
+            os.environ.get("BEASTBOX_QUANTUM_BUDDY_COSMOS_WRITES_ENABLED") == "yes"
+        )
         self.quantum_buddy_repo_factory = CosmosBuddyRepository.from_environment
         self.quantum_buddy_operator_factory = QuantumStateOperator
         self.quantum_buddy_shadow_infer = self._native_buddy_shadow_infer
