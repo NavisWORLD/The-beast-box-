@@ -87,6 +87,7 @@
 - Produces: validate_vector12(value, field_name) -> tuple[float, ...]
 - Produces: canonical_vector_sha256(vector) -> str
 - Produces: BuddyQuantumState dataclass
+- Produces: BuddyQuantumState.to_document() -> dict
 - Produces: BuddyQuantumState.from_document(raw) -> BuddyQuantumState
 - Produces: BuddyCurrentState dataclass
 - Produces: BuddyCurrentState.to_document() -> dict
@@ -387,6 +388,8 @@ class BuddyCurrentState:
         qstate = BuddyQuantumState.from_document(qraw)
         return base.with_qstate(qstate)
 ~~~
+
+Add BuddyQuantumState.to_document beside create using the exact persisted keys qstate12, sourceStateSha256, mode, sourceClass, backend, shotCount, circuitVersion, circuitSha256, resultSha256, jobId, createdAt, and validUntil.
 
 Add BuddyQuantumState.from_document beside create. It must:
 - validate mode against MODES and sourceClass against SOURCE_CLASSES[mode];
