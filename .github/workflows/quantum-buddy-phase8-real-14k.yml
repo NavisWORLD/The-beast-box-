@@ -162,13 +162,13 @@ jobs:
             --release-archive .phase8-source/rawrphos-native-step-00014000.tar.gz \
             --expected-release-archive-sha256 "$ARCHIVE_SHA" \
             --arm ${{ matrix.arm }} \
-            --confirm-cpu-intensive --output .phase8-arm-report
-          (cd .phase8-arm-report && sha256sum --check SHA256SUMS)
+            --confirm-cpu-intensive --output build/phase8-arm-report
+          (cd build/phase8-arm-report && sha256sum --check SHA256SUMS)
       - name: Preserve complete real-model arm receipt
         uses: actions/upload-artifact@v4
         with:
           name: phase8-14k-${{ matrix.arm }}
-          path: .phase8-arm-report/
+          path: build/phase8-arm-report/
           if-no-files-found: error
           retention-days: 30
 
@@ -192,13 +192,13 @@ jobs:
           python scripts/aggregate_quantum_buddy_phase8.py \
             --shards-root .phase8-shards \
             --preregistration docs/quantum-buddy/phase8/preregistration.json \
-            --revision "$GITHUB_SHA" --output .phase8-final
-          (cd .phase8-final && sha256sum --check SHA256SUMS)
+            --revision "$GITHUB_SHA" --output build/phase8-final
+          (cd build/phase8-final && sha256sum --check SHA256SUMS)
       - name: Preserve verified full real 14K holdout report
         uses: actions/upload-artifact@v4
         with:
           name: quantum-buddy-phase8-14k-real-native-${{ github.sha }}
-          path: .phase8-final/
+          path: build/phase8-final/
           if-no-files-found: error
           retention-days: 90
       - run: echo 'CPU-ONLY IDEAL-SIMULATOR RESEARCH; NO QPU JOB, NO COSMOS WRITES, NO DEPLOY'
