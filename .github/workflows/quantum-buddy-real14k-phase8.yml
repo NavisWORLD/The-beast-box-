@@ -150,6 +150,8 @@ jobs:
             --arm "$ARM" \
             --checkpoint .phase8-14k/step-00014000 \
             --expected-sha256 "$CHECKPOINT_SHA" \
+            --release-archive .phase8-14k/rawrphos-native-step-00014000.tar.gz \
+            --expected-release-archive-sha256 "$RELEASE_SHA" \
             --release-archive-sha256 "$RELEASE_SHA" \
             --source-revision "$GITHUB_SHA" \
             --confirm-cpu-intensive \
