@@ -37,7 +37,7 @@ def build_acceptance_report(gates, *, source_commit, tested_commands, attested=F
     if (not isinstance(source_commit, str) or
             not re.fullmatch("[a-f0-9]{40}", source_commit)):
         raise ValueError("source commit must be 40 lowercase hex")
-    if any(not isinstance(x, str) or len(x) > 200 for x in tested_commands):
+    if any(not isinstance(x, str) or not x or len(x) > 8192 for x in tested_commands):
         raise ValueError("invalid tested command label")
     checked = {key: gates.get(key) is True for key in REQUIRED}
     complete = attested is True and all(checked.values())
