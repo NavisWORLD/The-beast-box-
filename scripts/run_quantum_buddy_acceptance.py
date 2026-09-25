@@ -82,6 +82,11 @@ def _run_check(label, command, *, env=None, timeout=1200):
             check=False, timeout=timeout,
         )
         summary = proc.stdout + "\n" + proc.stderr
+        # Ruff is a static, credential-free source checker. Surface only its
+        # diagnostics when red so CI failures are actionable; never print
+        # provider exceptions or hidden chat/fixture content.
+        if label == "ruff" and proc.returncode != 0:
+            print("RUFF_CHECK_FAILED\n" + summary[-6000:], file=sys.stderr)
         counts = [int(x) for x in re.findall(r"(\d+) passed", summary)]
         return {
             "label": label,
