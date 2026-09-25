@@ -1,0 +1,204 @@
+name: Quantum Buddy REAL native 14K Phase-8 holdout
+on:
+  push:
+    branches: [feature/quantum-buddy-shadow-core-001]
+    paths: [docs/quantum-buddy/phase8/native-holdout-request.json]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: quantum-buddy-real-14k-phase8
+  cancel-in-progress: false
+jobs:
+  preflight:
+    if: >-
+      github.repository == 'NavisWORLD/The-beast-box-' &&
+      github.ref == 'refs/heads/feature/quantum-buddy-shadow-core-001' &&
+      startsWith(github.event.head_commit.message, 'experiment(quantum-buddy): authorize real 14k phase8 ')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      PYTHONPATH: models
+      WEIGHT_SHA: 4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5
+      ARCHIVE_SHA: 3875bc47e8b9d2024b4dae7889bf326f269c5a73955d2d3fc27936ba6794239c
+      TAG: rawrphos-native-conversation-step-00014000-run-35951509482
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false, fetch-depth: 2}
+      - name: Verify exact single-file CPU-only owner authorization
+        run: |
+          set -euo pipefail
+          test "$(git diff --name-only HEAD^ HEAD)" = 'docs/quantum-buddy/phase8/native-holdout-request.json'
+          python - <<'PY'
+          import json,os,pathlib
+          req=json.loads(pathlib.Path('docs/quantum-buddy/phase8/native-holdout-request.json').read_text())
+          frozen=json.loads(pathlib.Path('docs/quantum-buddy/phase8/preregistration.json').read_text())
+          expected={'schema','checkpoint_sha256','release_archive_sha256','release_tag','training_steps','cohort_size','drifts_per_person','prompt_count','seed_count','arms','native_generation_temperature','native_generation_top_k','max_tokens','authorization'}
+          assert set(req)==expected
+          assert req['schema']=='quantum-buddy-native-14k-holdout-request-v1'
+          assert req['checkpoint_sha256']==os.environ['WEIGHT_SHA']
+          assert req['release_archive_sha256']==os.environ['ARCHIVE_SHA']
+          assert req['release_tag']==os.environ['TAG'] and req['training_steps']==14000
+          assert req['authorization']==('Run the frozen native 14K Phase-8 CPU-only research holdout on standard GitHub Actions; no new QPU jobs, Cosmos writes, paid cloud resources, or production deployment')
+          assert req['cohort_size']==frozen['cohort_size']==32
+          assert req['drifts_per_person']==frozen['drifts_per_person']==4
+          assert req['prompt_count']==len(frozen['prompt_bank'])==8
+          assert req['seed_count']==len(frozen['sampling_seeds'])==4
+          assert req['arms']==frozen['arms']==['off','matched_classical','sim_unentangled','sim_entangled','replay']
+          assert req['native_generation_temperature']==frozen['native_generation_temperature']==.8
+          assert req['native_generation_top_k']==frozen['native_generation_top_k']==40
+          assert req['max_tokens']==frozen['native_generation_max_tokens']==24
+          assert frozen['fresh_hardware_allowed'] is False
+          assert frozen['production_answer_changes_allowed'] is False
+          assert frozen['required_quality_labels_for_promotion'] is True
+          print('EXACT_14K_CPU_ONLY_HOLDOUT_AUTHORIZED',os.environ['GITHUB_SHA'],flush=True)
+          PY
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install frozen CPU-only inference dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check --quiet 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'numpy>=1.26,<3' 'pytest>=8,<10'
+      - name: Fetch exact immutable published 14K release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p .phase8-source
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern rawrphos-native-step-00014000.tar.gz --dir .phase8-source
+          test "$(stat -c %s .phase8-source/rawrphos-native-step-00014000.tar.gz)" -lt 60000000
+          echo "$ARCHIVE_SHA  .phase8-source/rawrphos-native-step-00014000.tar.gz" | sha256sum --check
+      - name: Safe extraction, SHA-bound checkpoint and real model calibration
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os,pathlib,tarfile
+          from rawrphos.training.checkpoint import load_checkpoint
+          from rawrphos.inference.engine import Engine
+          from beastbox.quantum_buddy.operators import QuantumStateOperator
+          with tarfile.open('.phase8-source/rawrphos-native-step-00014000.tar.gz','r:gz') as source:
+              m=source.getmembers()
+              assert m and all(not x.issym() and not x.islnk()
+                 and (x.isdir() or x.isfile())
+                 and not pathlib.PurePosixPath(x.name).is_absolute()
+                 and '..' not in pathlib.PurePosixPath(x.name).parts
+                 and pathlib.PurePosixPath(x.name).parts[0]=='step-00014000' for x in m)
+              source.extractall('.phase8-source',filter='data')
+          path=pathlib.Path('.phase8-source/step-00014000')
+          model=load_checkpoint(path,expected_checkpoint_sha256=os.environ['WEIGHT_SHA'],load_training_state=False)
+          m=model['metadata']
+          assert m['training_steps']==14000 and m['parameter_count']==3909956
+          assert m['tokenizer_sha256']=='f704e9b75e816cc4ef203bc6c4afeeb966cbc11f369fb3b5f4d81c1505c8619c'
+          engine=Engine(path,max_new_tokens=32,threads=4,expected_sha256=os.environ['WEIGHT_SHA'])
+          person=[0.2,-0.2]*6
+          packet=QuantumStateOperator().evaluate(person,mode='sim_entangled',circuit_version='qb-v1',shot_budget=0,provenance={})
+          result=engine.shadow_condition('Hello buddy.',person,list(packet.qstate12),
+                                        max_tokens=24,seed=67,sampling_temperature=.8,sampling_top_k=40)
+          assert result['checkpoint_sha256']==os.environ['WEIGHT_SHA']
+          assert result['model_weights_changed'] is False and result['fresh_hardware_used'] is False
+          assert result['sampling_temperature']==.8 and result['sampling_top_k']==40
+          estimated_minutes=1024*result['duration_ms']/60000
+          print('REAL_NATIVE_14K_PREFLIGHT_PASSED',json.dumps({'sha256':result['checkpoint_sha256'],
+              'one_trial_ms':result['duration_ms'],'rough_arm_minutes':round(estimated_minutes,2),
+              'not_an_experiment_result':True}),flush=True)
+          assert estimated_minutes<280,'one-arm CPU runtime too slow; use finer shards before launch'
+          PY
+      - name: Preserve verified release bytes for five identical workers
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawrphos-phase8-14k-source
+          path: .phase8-source/rawrphos-native-step-00014000.tar.gz
+          if-no-files-found: error
+          retention-days: 3
+
+  holdout:
+    needs: preflight
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        arm: [off, matched_classical, sim_unentangled, sim_entangled, replay]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 340
+    env:
+      PYTHONPATH: models
+      WEIGHT_SHA: 4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5
+      ARCHIVE_SHA: 3875bc47e8b9d2024b4dae7889bf326f269c5a73955d2d3fc27936ba6794239c
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install native CPU dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check --quiet 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'numpy>=1.26,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: rawrphos-phase8-14k-source
+          path: .phase8-source
+      - name: Reverify exact release and safely restore native 14K checkpoint
+        run: |
+          set -euo pipefail
+          echo "$ARCHIVE_SHA  .phase8-source/rawrphos-native-step-00014000.tar.gz" | sha256sum --check
+          python - <<'PY'
+          import pathlib,tarfile
+          with tarfile.open('.phase8-source/rawrphos-native-step-00014000.tar.gz','r:gz') as src:
+              m=src.getmembers()
+              assert m and all(not x.issym() and not x.islnk() and (x.isdir() or x.isfile())
+                  and not pathlib.PurePosixPath(x.name).is_absolute()
+                  and '..' not in pathlib.PurePosixPath(x.name).parts
+                  and pathlib.PurePosixPath(x.name).parts[0]=='step-00014000' for x in m)
+              src.extractall('.phase8-source',filter='data')
+          PY
+      - name: Run entire frozen 32 x 8 x 4 actual native arm
+        run: |
+          set -euo pipefail
+          python scripts/run_quantum_buddy_phase8_shadow.py \
+            --checkpoint .phase8-source/step-00014000 \
+            --expected-sha256 "$WEIGHT_SHA" \
+            --release-archive .phase8-source/rawrphos-native-step-00014000.tar.gz \
+            --expected-release-archive-sha256 "$ARCHIVE_SHA" \
+            --arm ${{ matrix.arm }} \
+            --confirm-cpu-intensive --output .phase8-arm-report
+          (cd .phase8-arm-report && sha256sum --check SHA256SUMS)
+      - name: Preserve complete real-model arm receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase8-14k-${{ matrix.arm }}
+          path: .phase8-arm-report/
+          if-no-files-found: error
+          retention-days: 30
+
+  aggregate:
+    needs: [preflight, holdout]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: phase8-14k-*
+          path: .phase8-shards
+          merge-multiple: false
+      - name: Verify full SHA-bound native five-arm evidence and generate report
+        run: |
+          set -euo pipefail
+          python scripts/aggregate_quantum_buddy_phase8.py \
+            --shards-root .phase8-shards \
+            --preregistration docs/quantum-buddy/phase8/preregistration.json \
+            --revision "$GITHUB_SHA" --output .phase8-final
+          (cd .phase8-final && sha256sum --check SHA256SUMS)
+      - name: Preserve verified full real 14K holdout report
+        uses: actions/upload-artifact@v4
+        with:
+          name: quantum-buddy-phase8-14k-real-native-${{ github.sha }}
+          path: .phase8-final/
+          if-no-files-found: error
+          retention-days: 90
+      - run: echo 'CPU-ONLY IDEAL-SIMULATOR RESEARCH; NO QPU JOB, NO COSMOS WRITES, NO DEPLOY'
