@@ -103,6 +103,11 @@ class FrozenPhase8Config:
             raise ValueError("frozen prompt/seed bank invalid")
         if raw.get("metric_beta") != 1.0 or raw.get("fingerprint_retrieval_minimum") != 0.95:
             raise ValueError("frozen operator and identity threshold mismatch")
+        if (raw.get("native_generation_temperature") != 0.8
+                or raw.get("native_generation_top_k") != 40
+                or raw.get("native_generation_max_tokens") != 24
+                or not isinstance(raw.get("native_generation_amendment"), str)):
+            raise ValueError("native sampling amendment not frozen")
         # Roundtrip serializes so caller mutation cannot alter frozen inputs.
         return cls(json.loads(json.dumps(raw, sort_keys=True, allow_nan=False)), model_checkpoint_sha256)
 
@@ -171,14 +176,17 @@ def _model_receipt(result, *, expected_checkpoint):
 
 
 def run_phase8(cohort, prompts, seeds, operator, model_runner,
-               config: FrozenPhase8Config, *, arms=None) -> dict:
+               config: FrozenPhase8Config, *, arms=None, partial_shard=False) -> dict:
     if not isinstance(config, FrozenPhase8Config):
         raise TypeError("missing frozen phase8 configuration")
     allowed_arms = list(config.prereg["arms"])
     selected = allowed_arms if arms is None else list(arms)
     if any(mode.startswith("hardware_") for mode in selected):
         raise ValueError("fresh hardware is prohibited in Phase 8")
-    if len(selected) != len(allowed_arms) or set(selected) != set(allowed_arms):
+    if partial_shard:
+        if len(selected) != 1 or selected[0] not in allowed_arms:
+            raise ValueError("a native arm shard must select exactly one frozen experiment arm")
+    elif len(selected) != len(allowed_arms) or set(selected) != set(allowed_arms):
         raise ValueError("all frozen experiment arms must be present")
     if (not isinstance(prompts, (list, tuple)) or not prompts
             or not isinstance(seeds, (list, tuple)) or not seeds
@@ -191,7 +199,7 @@ def run_phase8(cohort, prompts, seeds, operator, model_runner,
     people = _canonical_cohort(cohort, config.prereg["cohort_size"],
                                config.prereg["drifts_per_person"])
     results = {}
-    for mode in allowed_arms:
+    for mode in selected:
         # Both base and four nearby states are evaluated independently. Replays
         # remain replay controls even when wrapped in person-specific receipts.
         base_packets = {}
@@ -278,6 +286,8 @@ def run_phase8(cohort, prompts, seeds, operator, model_runner,
         "cohort_size": len(people),
         "drifts_per_person": config.prereg["drifts_per_person"],
         "arms": results,
+        "preregistered_arms": list(allowed_arms),
+        "partial_shard":bool(partial_shard),
         "task_quality_verified": False,
         "hardware_promotion_approved": False,
         "model_weights_changed": False,
