@@ -1,0 +1,41 @@
+name: CNS7 native model real-inference probe
+on:
+  pull_request:
+    paths:
+      - 'models/rawrphos/architecture/**'
+      - 'models/rawrphos/inference/**'
+      - 'models/rawrphos/tests/test_inference.py'
+      - 'beastbox/cns_model_probe.py'
+      - 'tests/test_cns_model_probe.py'
+      - '.github/workflows/cns7-native-probe-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-conditioned-pytorch:
+    if: github.repository == 'NavisWORLD/The-beast-box-'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    env:
+      PYTHONPATH: models
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned CPU and local test dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'pytest>=8,<10' 'numpy>=1.26,<3' 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'uvicorn>=0.30,<1'
+          python -m pip install --quiet -e .
+      - name: True conditioned PyTorch logits and cached generation, private API denials
+        run: |
+          set -euo pipefail
+          python -m pytest -q models/rawrphos/tests/test_architecture.py models/rawrphos/tests/test_inference.py tests/test_cns_model_probe.py
+      - name: Report exact scope
+        run: |
+          echo 'Fixture-trained native model; real CPU forward/generation and host validation.'
+          echo 'No QPU, frozen 14K release download, Railway deploy, actual iPhone sensors, or production model improvement is attested by this test.'
