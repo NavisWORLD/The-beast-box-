@@ -96,6 +96,30 @@ def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=N
         except (ValueError,TimeoutError,FloatingPointError):
             return JSONResponse({'error':'native conditioning probe unavailable; no fallback'},status_code=503)
 
+    @app.post('/v1/condition-probe-v2')
+    async def condition_probe_v2(request:Request):
+        try:
+            body=await request.json()
+            if (not isinstance(body,dict) or set(body)!={'model','prompt','arms','max_tokens','seed'}
+                or body.get('model')!='rawrphos-native'):
+                raise ValueError('invalid v2 probe shape')
+            prompt=body['prompt'];arms=body['arms'];count=body['max_tokens'];seed=body['seed']
+            if (not isinstance(prompt,str) or not 1<=len(prompt.strip())<=220
+                or type(count) is not int or not 1<=count<=32
+                or type(seed) is not int or not 0<=seed<2**63
+                or not isinstance(arms,dict) or not 2<=len(arms)<=10):
+                raise ValueError('invalid v2 probe values')
+        except (ValueError,TypeError,KeyError,UnicodeError):
+            return JSONResponse({'error':'invalid bounded native conditioning v2 probe'},status_code=400)
+        try:
+            from starlette.concurrency import run_in_threadpool
+            result=await run_in_threadpool(engine.condition_probe_v2,prompt,arms,count,seed)
+            return result
+        except RuntimeError:
+            return JSONResponse({'error':'native probe busy'},status_code=429)
+        except (ValueError,TimeoutError,FloatingPointError):
+            return JSONResponse({'error':'native conditioning v2 probe unavailable; no fallback'},status_code=503)
+
     @app.post('/v1/completions')
     async def text_completion(request:Request): return await completion(request)
     @app.post('/v1/chat/completions')
