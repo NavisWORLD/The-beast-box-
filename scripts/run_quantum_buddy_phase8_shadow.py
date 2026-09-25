@@ -106,6 +106,9 @@ def _write_evidence(folder: Path, report: dict, prereg: dict):
         "simulator_kind": "deterministic-ideal-six-qubit-statevector",
         "full_preregistration_evaluated": report["full_preregistration_evaluated"],
         "selected_arm": report.get("selected_arm"),
+        "checkpoint_sha256": report["checkpoint_sha256"],
+        "release_archive_sha256": report.get("release_archive_sha256"),
+        "source_revision": report.get("source_revision"),
         "source_revision": report.get("source_revision"),
         "checkpoint_sha256": report.get("checkpoint_sha256"),
         "release_archive_sha256": report.get("release_archive_sha256"),
@@ -137,6 +140,10 @@ def main(argv=None):
                         help="required for native arm shards: immutable GitHub release archive digest")
     parser.add_argument("--confirm-cpu-intensive", action="store_true",
                         help="explicitly authorize a long frozen CPU inference sweep")
+    parser.add_argument("--release-archive-sha256",
+                        help="verified immutable GitHub release archive SHA-256 for native inference")
+    parser.add_argument("--source-revision",
+                        help="exact source Git commit SHA-1 for independent shard reconciliation")
     parser.add_argument(
         "--output", type=Path,
         default=ROOT/"docs/quantum-buddy/phase8/results",
@@ -165,7 +172,8 @@ def main(argv=None):
         if proc.returncode != 0 or not re.fullmatch("[0-9a-f]{40}", source_revision):
             parser.error("native arm requires an exact Git source revision")
     if args.smoke:
-        if args.arm or args.checkpoint or args.expected_sha256 or args.confirm_cpu_intensive:
+        if (args.arm or args.checkpoint or args.expected_sha256 or args.confirm_cpu_intensive
+                or args.release_archive_sha256 or args.source_revision):
             parser.error("smoke fixture and native checkpoint settings cannot be mixed")
         model_runner = _fixture_runner
         checkpoint_sha = "0"*64
@@ -207,6 +215,8 @@ def main(argv=None):
         "FROZEN_NATIVE_CPU_INFERENCE_ARM_SHARD" if args.arm else measurement_class
     )
     report["selected_arm"] = args.arm
+    report["release_archive_sha256"] = args.release_archive_sha256 if full else None
+    report["source_revision"] = args.source_revision if full else None
     report["source_revision"] = source_revision
     report["release_archive_sha256"] = release_digest
     report["native_model_inference_attested"] = full
