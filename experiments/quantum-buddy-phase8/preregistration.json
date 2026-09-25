@@ -1,172 +1,34 @@
 {
   "schema": "quantum-buddy-phase8-prereg-v1",
-  "name": "Quantum Buddy persistent state/geometry shadow holdout",
-  "status": "FROZEN_BEFORE_EVALUATION",
-  "purpose": "Compare persistent person-state geometry against ordinary control under identical prompts, seeds, checkpoint, and evaluation code, with no claim of unique quantum advantage unless matched controls support it.",
-  "model": {
-    "id": "rawrphos-native",
-    "serving_branch": "feature/cosmos-world-interface-recovery-001",
-    "cumulative_steps": 14000,
-    "expected_checkpoint_sha256": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
-    "weights_frozen": true,
-    "metric_beta": 1,
-    "gate_policy": "frozen_learned_checkpoint_gates",
-    "sigma_policy": "frozen_learned_checkpoint_sigmas",
-    "tokenizer_hash_policy": "record_and_lock_from_pinned_checkpoint_before_first_result"
-  },
-  "input_contract": {
-    "person_state_dimensions": 12,
-    "person_state_bounds": [
-      -1,
-      1
-    ],
-    "missing_channels": "synthetic_holdout_populates_all_12",
-    "derived_not_real_user_data": true,
-    "raw_media_allowed": false,
-    "canonical_hash": "sha256_of_little_endian_12_float32"
-  },
-  "cohort": {
-    "count": 32,
-    "drifts_per_person": 4,
-    "construction": "SHA-256 of UTF-8 'qb-phase8-v1|person|<i>|channel|<k>' for i=0..31 and k=0..11; unsigned first 8 digest bytes divided by (2^64-1), mapped to [-0.65,0.65]. Four bounded nearby drifts per person modify all coordinates by +/-0.02 using SHA-256 of 'qb-phase8-v1|drift|<i>|<d>|<k>' mapped to [-0.02,0.02]; clip to [-1,1].",
-    "seed_label": "qb-phase8-v1",
-    "assignment": "predefined index order; no dropped hard states, no after-the-fact replacements",
-    "anonymized": true,
-    "physiological_interpretation": false
-  },
-  "prompts": [
+  "status": "FROZEN_BEFORE_NEW_PHASE8_RUN",
+  "circuit_version": "qb-v1",
+  "metric_beta": 1.0,
+  "checkpoint_policy": "caller_must_pin_sha256_for_real_model",
+  "cohort_seed": 8675309,
+  "cohort_size": 32,
+  "drifts_per_person": 4,
+  "prompt_bank": [
     "Once upon a time,",
-    "A traveler enters a forest and discovers",
-    "Explain why we should compare experimental controls.",
-    "What are two ways a person might solve a difficult puzzle?",
-    "Describe a small companion exploring a strange world.",
-    "What is the difference between storing a memory and generating a sentence?",
-    "A scientist records observations and later checks",
-    "Continue this story in a clear and consistent way: The sky began to glow."
+    "Explain a tiny planet.",
+    "Hello buddy.",
+    "Describe a machine that remembers.",
+    "What should a traveler pack?",
+    "Write one sentence about a forest.",
+    "How do you describe rain?",
+    "Name three imaginary stars."
   ],
-  "generation": {
-    "seeds": [
-      230011,
-      230017,
-      230021,
-      230027
-    ],
-    "max_new_tokens": 24,
-    "temperature": 0.8,
-    "top_k": 40,
-    "ordinary_and_conditioned_use_identical_random_seed_per_pair": true,
-    "tokenizer_and_prompt_reuse_identical": true
-  },
-  "circuit": {
-    "version": "qb-v1",
-    "qubits": 6,
-    "parameterized_rotations": 24,
-    "entangled_cnots": 12,
-    "unentangled_cnots": 0,
-    "measurement_bases": [
-      "Z",
-      "X"
-    ],
-    "observable_packet_order": [
-      "Z0",
-      "Z1",
-      "Z2",
-      "Z3",
-      "Z4",
-      "Z5",
-      "X0",
-      "X1",
-      "X2",
-      "X3",
-      "X4",
-      "X5"
-    ],
-    "simulator": "dependency_free_statevector",
-    "phase8_expectations": "ideal_noiseless",
-    "hardware_execution": false
-  },
-  "arms": [
-    {
-      "name": "off",
-      "source_class": "none",
-      "expected_identity_use": "negative_control"
-    },
-    {
-      "name": "matched_classical",
-      "source_class": "classical",
-      "expected_identity_use": "matched_control"
-    },
-    {
-      "name": "sim_unentangled",
-      "source_class": "simulator",
-      "expected_identity_use": "matched_control"
-    },
-    {
-      "name": "sim_entangled",
-      "source_class": "simulator",
-      "expected_identity_use": "experimental"
-    },
-    {
-      "name": "replay",
-      "source_class": "replay",
-      "expected_identity_use": "historical_calibration_not_person_identity"
-    }
-  ],
-  "ordering_control": {
-    "name": "permuted_entangled",
-    "purpose": "Dimension-order negative control using entangled output; same tensor magnitude and same attention code.",
-    "fixed_permutation": [
-      5,
-      0,
-      10,
-      1,
-      6,
-      11,
-      7,
-      2,
-      8,
-      3,
-      9,
-      4
-    ],
-    "mode": "in_harness_permutation_of_sim_entangled_qstate_no_separate_provider"
-  },
-  "outcome_definitions": {
-    "primary_identity": "Top-1 nearest fingerprint retrieval across 32 people using same-person drifts as queries and untouched base states as references. Report both qstate packet fingerprints and first-token model logit-delta fingerprints independently; do not substitute packet accuracy for model accuracy.",
-    "primary_quality": "Fixed-prompt paired comparison against the ordinary model of exact-token repetition fraction and independently labeled task accuracy when labels exist. A changed response is not necessarily higher quality.",
-    "secondary_responsiveness": "Within-person and between-person cosine distance of first-token logit-delta fingerprints, and full-sequence changed fraction at fixed seeds.",
-    "secondary_systems": "Latency p50/p95, invalid packets, schema failure, ETag stale-write rejections, per-arm overhead.",
-    "control_inference": "Report all arms and permutation; descriptive pairwise uncertainty or bootstrap intervals, no entanglement advantage claim from response diversity alone."
-  },
-  "gates": {
-    "identity_top1_at_least": 0.95,
-    "applicability": "Product identity threshold applies to the proposed serving arm at both packet and model logit-fingerprint levels; off and historical replay are deliberate negative controls.",
-    "maximum_absolute_task_accuracy_drop": 0.05,
-    "quality_suite_must_exist_before_promotion": true,
-    "zero_nonfinite_packets": true,
-    "zero_unexplained_stale_state_overwrites": true,
-    "frozen_model_weights": true,
-    "reproducible_ideal_simulator": true,
-    "no_hardware_submission": true,
-    "no_production_answer_changes": true
-  },
-  "provenance": {
-    "checkpoint_pin_must_match": true,
-    "hash_algorithm": "sha256",
-    "record": "cohort_sha256,prompt_sha256,preregistration_sha256,operator_sha256,circuit_sha256,checkpoint_sha256,tokenizer_sha256,seed,generation_settings,source_class",
-    "report_validated_controls_without_winner_selection": true
-  },
-  "privacy": {
-    "synthetic_only": true,
-    "real_user_state_requires_separate_opt_in": true,
-    "raw_video_audio_wearables_retained": false,
-    "medical_or_identity_inference": false
-  },
-  "authorization": {
-    "fresh_rigetti_jobs": false,
-    "fresh_ibm_jobs": false,
-    "cosmos_live_mutation": false,
-    "vercel_deployment": false,
-    "worker_may_run_only_local_simulator_or_archived_replay": true
-  }
+  "sampling_seeds": [67, 131, 257, 509],
+  "arms": ["off", "matched_classical", "sim_unentangled", "sim_entangled", "replay"],
+  "primary_identity": "base-query cosine retrieval of each drifted qstate within the frozen cohort",
+  "primary_responsiveness": "first-token logit L2 vs same-user off arm",
+  "quality": ["repetition_fraction", "labeled_task_score_if_available", "malformed_fraction", "latency_ms"],
+  "fingerprint_retrieval_minimum": 0.95,
+  "max_quality_absolute_drop": 0.05,
+  "required_quality_labels_for_promotion": true,
+  "replay_control_is_not_individual_identity": true,
+  "no_realtime_hardware": true,
+  "fresh_hardware_allowed": false,
+  "production_answer_changes_allowed": false,
+  "raw_media_retained": false,
+  "quantum_advantage_proven": false
 }
