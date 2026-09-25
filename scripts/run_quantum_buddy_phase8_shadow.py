@@ -9,6 +9,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -45,7 +47,7 @@ def _fixture_runner(prompt, seed, dyn12, qstate12, mode):
     }
 
 
-def _load_native_runner(path: str, expected_sha: str):
+def _load_native_runner(path: str, expected_sha: str, *, require_14k=False):
     if (not isinstance(expected_sha, str) or len(expected_sha) != 64
             or any(ch not in "0123456789abcdef" for ch in expected_sha)):
         raise ValueError("expected SHA-256 must pin a real checkpoint")
@@ -56,6 +58,13 @@ def _load_native_runner(path: str, expected_sha: str):
     actual = engine.metadata["checkpoint_sha256"]
     if actual != expected_sha:
         raise ValueError("loaded checkpoint SHA differs from pinned expected SHA")
+    if require_14k and (
+        actual != "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5"
+        or engine.metadata.get("training_steps") != 14000
+        or engine.metadata.get("parameter_count") != 3909956
+        or engine.metadata.get("tokenizer_sha256") != "f704e9b75e816cc4ef203bc6c4afeeb966cbc11f369fb3b5f4d81c1505c8619c"
+    ):
+        raise ValueError("frozen native holdout requires the exact published 14K checkpoint")
 
     def real_runner(prompt, seed, dyn12, qstate12, mode):
         result = engine.shadow_condition(
@@ -97,6 +106,9 @@ def _write_evidence(folder: Path, report: dict, prereg: dict):
         "simulator_kind": "deterministic-ideal-six-qubit-statevector",
         "full_preregistration_evaluated": report["full_preregistration_evaluated"],
         "selected_arm": report.get("selected_arm"),
+        "source_revision": report.get("source_revision"),
+        "checkpoint_sha256": report.get("checkpoint_sha256"),
+        "release_archive_sha256": report.get("release_archive_sha256"),
     }, sort_keys=True, indent=2) + "\n"
     manifest_file.write_text(manifest_text, encoding="utf-8")
     sums = [
@@ -119,6 +131,10 @@ def main(argv=None):
                         help="required actual local native checkpoint directory for full run")
     parser.add_argument("--expected-sha256", type=str,
                         help="required immutable checkpoint weight SHA-256")
+    parser.add_argument("--release-archive", type=Path,
+                        help="required for native arm shards: immutable release archive to hash")
+    parser.add_argument("--expected-release-archive-sha256", type=str,
+                        help="required for native arm shards: immutable GitHub release archive digest")
     parser.add_argument("--confirm-cpu-intensive", action="store_true",
                         help="explicitly authorize a long frozen CPU inference sweep")
     parser.add_argument(
@@ -126,6 +142,28 @@ def main(argv=None):
         default=ROOT/"docs/quantum-buddy/phase8/results",
     )
     args = parser.parse_args(argv)
+    release_digest = None
+    source_revision = None
+    if args.arm:
+        pinned = "3875bc47e8b9d2024b4dae7889bf326f269c5a73955d2d3fc27936ba6794239c"
+        if (args.release_archive is None
+                or args.expected_release_archive_sha256 != pinned
+                or args.expected_sha256 != "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5"):
+            parser.error("native arm requires the exact public 14K checkpoint and immutable release SHA")
+        if not args.release_archive.is_file() or args.release_archive.stat().st_size > 60_000_000:
+            parser.error("missing or oversized immutable 14K release")
+        with args.release_archive.open("rb") as stream:
+            digest = hashlib.sha256()
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+            release_digest = digest.hexdigest()
+        if release_digest != pinned:
+            parser.error("14K release archive SHA mismatch")
+        proc = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                              text=True, capture_output=True, check=False, timeout=8)
+        source_revision = proc.stdout.strip()
+        if proc.returncode != 0 or not re.fullmatch("[0-9a-f]{40}", source_revision):
+            parser.error("native arm requires an exact Git source revision")
     if args.smoke:
         if args.arm or args.checkpoint or args.expected_sha256 or args.confirm_cpu_intensive:
             parser.error("smoke fixture and native checkpoint settings cannot be mixed")
@@ -137,7 +175,9 @@ def main(argv=None):
             parser.error("real Phase-8 run requires --checkpoint and --expected-sha256")
         if not args.confirm_cpu_intensive:
             parser.error("full Phase-8 requires --confirm-cpu-intensive")
-        model_runner = _load_native_runner(args.checkpoint, args.expected_sha256)
+        model_runner = _load_native_runner(
+            args.checkpoint, args.expected_sha256, require_14k=bool(args.arm)
+        )
         checkpoint_sha = args.expected_sha256
         measurement_class = "FROZEN_NATIVE_CPU_INFERENCE"
 
@@ -167,6 +207,8 @@ def main(argv=None):
         "FROZEN_NATIVE_CPU_INFERENCE_ARM_SHARD" if args.arm else measurement_class
     )
     report["selected_arm"] = args.arm
+    report["source_revision"] = source_revision
+    report["release_archive_sha256"] = release_digest
     report["native_model_inference_attested"] = full
     report["full_preregistration_evaluated"] = full and args.arm is None
     report["hardware_promotion_approved"] = False
