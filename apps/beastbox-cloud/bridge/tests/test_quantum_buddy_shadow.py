@@ -307,3 +307,42 @@ class BuddyBridgeTests(unittest.TestCase):
             }).encode(),
         )
         self.assertEqual(status, 503)
+
+    def test_inflight_shadow_revocation_rejects_stale_result(self):
+        """A shadow result must not escape after consent changes during inference."""
+        bridge = self.make_bridge(enabled="yes", shadow="yes", cosmos_write="yes")
+        repo = FakeRepo()
+        bridge.quantum_buddy_repo_factory = lambda: repo
+
+        def revoke_during_inference(*_args):
+            repo.current = BuddyCurrentState.new(
+                user_id="owner-opaque-a", dyn12=[0.0] * 12,
+                state_version=repo.current.state_version + 1,
+                state_conditioning_consent=False,
+                quantum_refresh_consent=False,
+            )
+            repo.etag = '"revoked-etag"'
+            return {
+                "checkpoint_sha256": "a" * 64,
+                "model_weights_changed": False,
+                "fresh_hardware_used": False,
+                "quantum_advantage_proven": False,
+                "logit_l2": 0.15,
+                "response_ordinary": "must-not-leak",
+                "response_buddy": "must-not-leak",
+            }
+
+        bridge.quantum_buddy_shadow_infer = revoke_during_inference
+        status, payload = bridge.dispatch(
+            "POST", "/api/quantum-buddy/shadow", AUTH,
+            json.dumps({
+                "userId": "owner-opaque-a", "prompt": "hello",
+                "mode": "sim_entangled", "max_tokens": 2, "seed": 67,
+            }).encode(),
+        )
+        self.assertIn(status, (403, 409))
+        self.assertNotIn("must-not-leak", json.dumps(payload))
+        self.assertEqual(repo.receipts, [])
+        self.assertEqual(bridge.dispatch(
+            "POST", "/api/chat", AUTH, json.dumps({"text": "hello"}).encode(),
+        )[0], 200)
