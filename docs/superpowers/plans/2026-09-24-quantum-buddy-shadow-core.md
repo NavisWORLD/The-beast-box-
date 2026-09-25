@@ -88,6 +88,8 @@
 - Produces: canonical_vector_sha256(vector) -> str
 - Produces: BuddyQuantumState dataclass
 - Produces: BuddyCurrentState dataclass
+- Produces: BuddyCurrentState.to_document() -> dict
+- Produces: BuddyCurrentState.from_document(raw) -> BuddyCurrentState
 - Produces: BuddyStateError(ValueError)
 
 - [ ] **Step 1: Write failing vector-contract tests**
@@ -247,9 +249,49 @@ class BuddyQuantumState:
     def create(cls, *, qstate12, source_state_sha256, mode, source_class,
                backend, shot_count, circuit_version, circuit_sha256,
                job_id, valid_for_seconds):
-        # validate mode/source mapping, hashes, labels, shot_count, validity
-        # then hash canonical qstate bytes plus source/circuit/mode provenance
-        ...
+        q = validate_vector12(qstate12, "qstate12")
+        if mode not in MODES:
+            raise BuddyStateError("unsupported buddy mode")
+        if SOURCE_CLASSES[mode] != source_class:
+            raise BuddyStateError("mode/source_class mismatch")
+        if (not isinstance(source_state_sha256, str)
+                or len(source_state_sha256) != 64
+                or any(ch not in "0123456789abcdef" for ch in source_state_sha256)):
+            raise BuddyStateError("invalid source state hash")
+        if (not isinstance(circuit_sha256, str)
+                or len(circuit_sha256) != 64
+                or any(ch not in "0123456789abcdef" for ch in circuit_sha256)):
+            raise BuddyStateError("invalid circuit hash")
+        if not isinstance(backend, str) or not 1 <= len(backend) <= 128:
+            raise BuddyStateError("invalid backend label")
+        if isinstance(shot_count, bool) or not isinstance(shot_count, int) or shot_count < 0:
+            raise BuddyStateError("invalid shot count")
+        if (isinstance(valid_for_seconds, bool)
+                or not isinstance(valid_for_seconds, int)
+                or not 1 <= valid_for_seconds <= 86400):
+            raise BuddyStateError("invalid validity window")
+        if job_id is not None and (not isinstance(job_id, str) or not 1 <= len(job_id) <= 256):
+            raise BuddyStateError("invalid job id")
+        created = _utcnow()
+        provenance = "|".join([
+            canonical_vector_sha256(q), source_state_sha256, mode, source_class,
+            backend, str(shot_count), circuit_version, circuit_sha256, job_id or "",
+        ]).encode("utf-8")
+        result_sha256 = hashlib.sha256(provenance).hexdigest()
+        return cls(
+            qstate12=q,
+            source_state_sha256=source_state_sha256,
+            mode=mode,
+            source_class=source_class,
+            backend=backend,
+            shot_count=shot_count,
+            circuit_version=circuit_version,
+            circuit_sha256=circuit_sha256,
+            result_sha256=result_sha256,
+            job_id=job_id,
+            created_at=created,
+            valid_until=created + timedelta(seconds=valid_for_seconds),
+        )
 
 @dataclass(frozen=True)
 class BuddyCurrentState:
@@ -265,13 +307,98 @@ class BuddyCurrentState:
     @classmethod
     def new(cls, *, user_id, dyn12, state_version,
             state_conditioning_consent=False, quantum_refresh_consent=False):
-        ...
+        if (not isinstance(user_id, str) or not 1 <= len(user_id) <= 128
+                or any(ch not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._:-"
+                       for ch in user_id)):
+            raise BuddyStateError("invalid opaque user id")
+        if isinstance(state_version, bool) or not isinstance(state_version, int) or state_version < 0:
+            raise BuddyStateError("invalid state version")
+        vector = validate_vector12(dyn12, "dyn12")
+        return cls(
+            user_id=user_id,
+            state_version=state_version,
+            dyn12=vector,
+            dyn12_sha256=canonical_vector_sha256(vector),
+            qstate=None,
+            qstate_valid=False,
+            state_conditioning_consent=state_conditioning_consent is True,
+            quantum_refresh_consent=quantum_refresh_consent is True,
+        )
 
     def with_qstate(self, qstate: BuddyQuantumState, *, now=None):
-        ...
-~~~
+        if qstate.source_state_sha256 != self.dyn12_sha256:
+            raise BuddyStateError("qstate source does not match current dyn12")
+        moment = _utcnow() if now is None else now
+        if moment >= qstate.valid_until:
+            raise BuddyStateError("qstate expired")
+        return replace(self, qstate=qstate, qstate_valid=True)
 
-Replace the ellipses in the actual implementation with explicit validation; do not leave them in the file.
+    def to_document(self) -> dict:
+        q = None if self.qstate is None else {
+            "qstate12": list(self.qstate.qstate12),
+            "sourceStateSha256": self.qstate.source_state_sha256,
+            "mode": self.qstate.mode,
+            "sourceClass": self.qstate.source_class,
+            "backend": self.qstate.backend,
+            "shotCount": self.qstate.shot_count,
+            "circuitVersion": self.qstate.circuit_version,
+            "circuitSha256": self.qstate.circuit_sha256,
+            "resultSha256": self.qstate.result_sha256,
+            "jobId": self.qstate.job_id,
+            "createdAt": self.qstate.created_at.isoformat(),
+            "validUntil": self.qstate.valid_until.isoformat(),
+        }
+        return {
+            "id": "current",
+            "userId": self.user_id,
+            "schema": "quantum-buddy-state-v1",
+            "stateVersion": self.state_version,
+            "dyn12": list(self.dyn12),
+            "dyn12Sha256": self.dyn12_sha256,
+            "qstate": q,
+            "qstateValid": self.qstate_valid,
+            "consent": {
+                "stateConditioning": self.state_conditioning_consent,
+                "quantumRefresh": self.quantum_refresh_consent,
+            },
+        }
+
+    @classmethod
+    def from_document(cls, raw):
+        if not isinstance(raw, dict) or raw.get("schema") != "quantum-buddy-state-v1":
+            raise BuddyStateError("invalid buddy-state document")
+        base = cls.new(
+            user_id=raw.get("userId"),
+            dyn12=raw.get("dyn12"),
+            state_version=raw.get("stateVersion"),
+            state_conditioning_consent=raw.get("consent", {}).get("stateConditioning") is True,
+            quantum_refresh_consent=raw.get("consent", {}).get("quantumRefresh") is True,
+        )
+        if raw.get("dyn12Sha256") != base.dyn12_sha256:
+            raise BuddyStateError("dyn12 hash mismatch")
+        if not raw.get("qstateValid"):
+            return base
+        qraw = raw.get("qstate")
+        if not isinstance(qraw, dict):
+            raise BuddyStateError("missing qstate payload")
+        created = datetime.fromisoformat(qraw["createdAt"])
+        valid_until = datetime.fromisoformat(qraw["validUntil"])
+        qstate = BuddyQuantumState(
+            qstate12=validate_vector12(qraw["qstate12"], "qstate12"),
+            source_state_sha256=qraw["sourceStateSha256"],
+            mode=qraw["mode"],
+            source_class=qraw["sourceClass"],
+            backend=qraw["backend"],
+            shot_count=qraw["shotCount"],
+            circuit_version=qraw["circuitVersion"],
+            circuit_sha256=qraw["circuitSha256"],
+            result_sha256=qraw["resultSha256"],
+            job_id=qraw.get("jobId"),
+            created_at=created,
+            valid_until=valid_until,
+        )
+        return base.with_qstate(qstate)
+~~~
 
 - [ ] **Step 4: Run Task 1 tests GREEN**
 
@@ -440,8 +567,19 @@ class CosmosBuddyRepository:
         if current.dyn12_sha256 != expected_dyn12_sha256:
             raise StaleBuddyState("source state changed")
         attached = current.with_qstate(qstate)
-        # replace_item with MatchConditions.IfNotModified and the captured ETag
-        ...
+        try:
+            from azure.core import MatchConditions
+            raw = self.current.replace_item(
+                item="current",
+                body=attached.to_document(),
+                etag=etag,
+                match_condition=MatchConditions.IfNotModified,
+            )
+        except Exception as exc:
+            if getattr(exc, "status_code", None) == 412:
+                raise StaleBuddyState("state changed before qstate write") from None
+            raise BuddyStorageUnavailable("Cosmos qstate write failed") from None
+        return BuddyCurrentState.from_document(raw)
 ~~~
 
 Use azure.core.MatchConditions.IfNotModified when the SDK is installed. Convert SDK 404 to BuddyStateNotFound and SDK 412 to StaleBuddyState. Redact provider exception text from user-facing errors.
@@ -627,7 +765,7 @@ git commit -m "feat: add Quantum Buddy shadow operators"
 - Consumes: person_state12 from BridgePacket
 - Produces: BridgePacket.person_state12: list[float]
 - Produces: BridgePacket.buddy_metric12: list[float]
-- Produces: SynapticField.step(..., person_state12=None)
+- Produces: SynapticField.step(*, audio_features=None, quantum_spark=None, extra=None, person_state12=None, buddy_metric12=None) -> dict
 - Produces: CNS.tick uses person_state12 exclusively as semantic drive when present
 
 - [ ] **Step 1: Write the regression test that exposes the existing 24-to-12 masking**
@@ -1154,12 +1292,36 @@ def test_quantum_buddy_is_disabled_by_default_and_chat_is_unchanged(tmp_path):
     assert ordinary_before[0] == ordinary_after[0] == 200
 
 def test_shadow_failure_never_fails_normal_chat(tmp_path, monkeypatch):
-    # enable shadow feature, inject a service that raises
-    # assert /api/chat remains 200 and response path is ordinary
-    ...
-~~~
+    monkeypatch.setenv("BEASTBOX_QUANTUM_BUDDY_ENABLED", "yes")
+    monkeypatch.setenv("BEASTBOX_QUANTUM_BUDDY_SHADOW_ENABLED", "yes")
+    bridge = OwnerBridge(tmp_path, TOKEN)
 
-Replace the ellipsis with an explicit injected failing fake in the actual test.
+    class FailingBuddyService:
+        def snapshot(self, user_id):
+            raise RuntimeError("private-sentinel-must-not-leak")
+
+    bridge.quantum_buddy_service = FailingBuddyService()
+    before = bridge.dispatch(
+        "POST", "/api/chat", AUTH,
+        json.dumps({"text": "hello"}).encode(),
+    )
+    shadow_code, shadow = bridge.dispatch(
+        "POST", "/api/quantum-buddy/shadow", AUTH,
+        json.dumps({
+            "userId": "user-a",
+            "prompt": "hello",
+            "mode": "matched_classical",
+        }).encode(),
+    )
+    after = bridge.dispatch(
+        "POST", "/api/chat", AUTH,
+        json.dumps({"text": "hello"}).encode(),
+    )
+    assert before[0] == 200
+    assert after[0] == 200
+    assert shadow_code == 503
+    assert "private-sentinel-must-not-leak" not in repr(shadow)
+~~~
 
 - [ ] **Step 2: Run bridge tests RED**
 
