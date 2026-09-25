@@ -4,8 +4,8 @@ Architecture provenance: QC67 b414724, cosmos_state_ladder.py, PHOS/dyn12.
 Differences: tied embeddings, explicit configuration, stable masked softmax,
 prefix-correct KV/state caching, safe controls, no automatic weight adaptation.
 """
-from dataclasses import asdict, dataclass
 import math
+from dataclasses import asdict, dataclass
 
 import torch
 from torch import nn

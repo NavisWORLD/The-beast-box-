@@ -11,40 +11,53 @@ import json
 import math
 import os
 import re
+import urllib.parse
+import urllib.request
+from dataclasses import asdict
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-import urllib.parse
-import urllib.request
 
-from dataclasses import asdict
-from beastbox.cosmic_web import CosmicApp, ProviderProfile
-from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV, MODELS
-from beastbox.cloud_connection_checks import verify_connection
 from beastbox.azure_read import AzureReadError, read_owner_text
-from beastbox.ollama_models import ModelInventoryUnavailable, fetch_public_models, MODEL_ID
 from beastbox.bio_inputs import bio_event
+from beastbox.chat_jobs import ChatJobs
+from beastbox.cloud_connection_checks import verify_connection
+from beastbox.cloud_connections import KEY_ENV, MODELS, ConnectionError, ConnectionVault
+from beastbox.cns_model_probe import cns_model_probe
+from beastbox.cosmic_web import CosmicApp, ProviderProfile
 from beastbox.cst_sensor_preview import compare_sensor_state
-from beastbox.engine_growth_report import engine_growth_report
 from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
-from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
-from beastbox.rawrphos_local import (MODEL as NATIVE_ID, SHA as NATIVE_SHA, URL as NATIVE_URL,
-                                    profile as native_profile, status as native_status)
-from beastbox.rawrphos_experimental_local import profile as experimental_profile, status as experimental_status
-from beastbox.rawrphos_hf import (MODEL as HF_NATIVE_MODEL, SPACE_URL as HF_NATIVE_URL,
-                                  WEIGHT_SHA as HF_NATIVE_SHA, STEP as HF_NATIVE_STEP,
-                                  profile as hosted_native_profile, PrivateSpaceProvider)
-from beastbox.chat_jobs import ChatJobs
+from beastbox.engine_growth_report import engine_growth_report
 from beastbox.guest_local import guest_local_infer
-from beastbox.cns_model_probe import cns_model_probe
+from beastbox.ollama_models import MODEL_ID, ModelInventoryUnavailable, fetch_public_models
 from beastbox.quantum_buddy.cosmos_repository import (
-    BuddyStateNotFound, BuddyStorageUnavailable, CosmosBuddyRepository, StaleBuddyState,
+    BuddyStateNotFound,
+    BuddyStorageUnavailable,
+    CosmosBuddyRepository,
+    StaleBuddyState,
 )
 from beastbox.quantum_buddy.operators import QuantumStateOperator
 from beastbox.quantum_buddy.state import (
-    SOURCE_CLASSES, BuddyCurrentState, BuddyStateError, validate_vector12,
+    SOURCE_CLASSES,
+    BuddyCurrentState,
+    BuddyStateError,
+    validate_vector12,
 )
+from beastbox.rawrphos_experimental_local import profile as experimental_profile
+from beastbox.rawrphos_experimental_local import status as experimental_status
+from beastbox.rawrphos_hf import MODEL as HF_NATIVE_MODEL
+from beastbox.rawrphos_hf import SPACE_URL as HF_NATIVE_URL
+from beastbox.rawrphos_hf import STEP as HF_NATIVE_STEP
+from beastbox.rawrphos_hf import WEIGHT_SHA as HF_NATIVE_SHA
+from beastbox.rawrphos_hf import PrivateSpaceProvider
+from beastbox.rawrphos_hf import profile as hosted_native_profile
+from beastbox.rawrphos_local import MODEL as NATIVE_ID
+from beastbox.rawrphos_local import SHA as NATIVE_SHA
+from beastbox.rawrphos_local import URL as NATIVE_URL
+from beastbox.rawrphos_local import profile as native_profile
+from beastbox.rawrphos_local import status as native_status
+from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
 
 MAX_BYTES = 256_000
 GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "engine-growth", "quantum-buddy"})
@@ -183,7 +196,6 @@ class OwnerBridge:
             raise ValueError("refusing to overwrite a previously selected Beast Box brain")
         # This health request cannot leave this host. Launch happens before
         # OwnerBridge in the opt-in image's entrypoint, never from HTTP input.
-        import urllib.request
         from beastbox.providers import _local_opener
         try:
             with _local_opener().open(LOCAL_URL + "/models", timeout=5) as reply:
@@ -824,8 +836,8 @@ class OwnerBridge:
             try:
                 data = json.loads(body.decode("utf-8"))
                 if not isinstance(data, dict):
-                    raise ValueError("expected JSON object")
-            except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
+                    raise TypeError("expected JSON object")
+            except (UnicodeDecodeError, ValueError, TypeError, json.JSONDecodeError):
                 return 400, {"error": "invalid JSON"}
             # No arbitrary provider URL or environment-variable name may be
             # supplied by an HTTP chat client. Host configuration only.

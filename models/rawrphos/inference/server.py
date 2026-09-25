@@ -6,9 +6,11 @@ import math
 import os
 import time
 import uuid
-from fastapi import FastAPI,Request
-from fastapi.responses import JSONResponse,StreamingResponse
+
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse, StreamingResponse
 from rawrphos.inference.engine import Engine
+
 
 def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=None):
     if not isinstance(api_key,str) or len(api_key)<32 or any(c in api_key for c in '\r\n'): raise ValueError('strong host API key required')

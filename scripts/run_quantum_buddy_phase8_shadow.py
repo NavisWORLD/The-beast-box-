@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Offline preregistered Quantum Buddy Phase-8 runner; no cloud or hardware path.
 
 --smoke is a synthetic harness test, not RAWRPHOS inference evidence.

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Produce bounded Quantum Buddy local acceptance evidence.
 
 Live Cosmos writes, QPU submission, deployment, and quantum advantage are
@@ -33,7 +32,7 @@ REQUIRED = (
 def build_acceptance_report(gates, *, source_commit, tested_commands, attested=False):
     """Pure envelope; attested may only come from actual test process results."""
     if not isinstance(gates, dict) or not isinstance(tested_commands, list):
-        raise ValueError("acceptance gates and tested commands must be explicit")
+        raise TypeError("acceptance gates and tested commands must be explicit")
     if (not isinstance(source_commit, str) or
             not re.fullmatch("[a-f0-9]{40}", source_commit)):
         raise ValueError("source commit must be 40 lowercase hex")
@@ -78,7 +77,7 @@ def _run_check(label, command, *, env=None, timeout=1200):
     try:
         proc = subprocess.run(
             command, cwd=ROOT, env=env, text=True,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            capture_output=True,
             check=False, timeout=timeout,
         )
         summary = proc.stdout + "\n" + proc.stderr

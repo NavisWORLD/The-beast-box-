@@ -1,13 +1,15 @@
 """One loaded native checkpoint, bounded serial generation and measured timing."""
+import hashlib
+import math
 import threading
 import time
-import math
-import hashlib
-import torch
-from rawrphos.training.checkpoint import load_checkpoint
-from rawrphos.inference.snapshot import load_inference_snapshot
 from pathlib import Path
+
+import torch
 from rawrphos.architecture.generation import generate
+from rawrphos.inference.snapshot import load_inference_snapshot
+from rawrphos.training.checkpoint import load_checkpoint
+
 
 class Engine:
     def __init__(self,checkpoint,max_new_tokens=256,threads=4,expected_sha256=None,device='cpu'):
