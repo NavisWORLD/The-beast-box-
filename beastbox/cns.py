@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .dyn12 import update_dyn12
+from .quantum_buddy.state import validate_vector12
 
 PHI = (1.0 + math.sqrt(5.0)) / 2.0
 
@@ -42,9 +43,20 @@ class CNS:
 
         spark = [float(x) for x in packet.get("quantum_spark", [])]
         audio = [float(x) for x in packet.get("audio_features", [])]
-        drive = spark + audio
-        if not drive:
-            drive = [self.dark_matter["x"] / 30.0, self.dark_matter["y"] / 30.0, self.dark_matter["z"] / 30.0]
+        raw_person = packet.get("person_state12")
+        raw_metric = packet.get("buddy_metric12")
+        if raw_metric is not None:
+            validate_vector12(raw_metric, "buddy_metric12")
+        person_present = raw_person is not None
+        if person_present:
+            drive = list(validate_vector12(raw_person, "person_state12"))
+        else:
+            # Keep historical/replay behavior unchanged when no explicit state
+            # is supplied. Quantum Buddy always uses the explicit path.
+            drive = spark + audio
+            if not drive:
+                drive = [self.dark_matter["x"] / 30.0, self.dark_matter["y"] / 30.0,
+                         self.dark_matter["z"] / 30.0]
         mission_state.dyn12 = update_dyn12(mission_state.dyn12, drive, step=self.step)
 
         # PHOS reference scalar: a bounded phi-scaffold readout, not the private PHOS model.
@@ -53,6 +65,10 @@ class CNS:
         self.quantum = {
             "spark_present": bool(spark),
             "spark_dim": len(spark),
+            "person_state_present": person_present,
+            "person_state_dimension": 12 if person_present else 0,
+            "buddy_metric_present": raw_metric is not None,
+            "legacy_drive_used": not person_present,
             "provenance": packet.get("quantum_provenance", {}),
         }
         self.emeth = {

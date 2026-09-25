@@ -1,0 +1,54 @@
+{
+  "schema": "quantum-buddy-phase8-prereg-v1",
+  "status": "FROZEN_BEFORE_NEW_PHASE8_RUN",
+  "circuit_version": "qb-v1",
+  "metric_beta": 1,
+  "checkpoint_policy": "caller_must_pin_sha256_for_real_model",
+  "cohort_seed": 8675309,
+  "cohort_size": 32,
+  "drifts_per_person": 4,
+  "prompt_bank": [
+    "Once upon a time,",
+    "Explain a tiny planet.",
+    "Hello buddy.",
+    "Describe a machine that remembers.",
+    "What should a traveler pack?",
+    "Write one sentence about a forest.",
+    "How do you describe rain?",
+    "Name three imaginary stars."
+  ],
+  "sampling_seeds": [
+    67,
+    131,
+    257,
+    509
+  ],
+  "arms": [
+    "off",
+    "matched_classical",
+    "sim_unentangled",
+    "sim_entangled",
+    "replay"
+  ],
+  "primary_identity": "base-query cosine retrieval of each drifted qstate within the frozen cohort",
+  "primary_responsiveness": "first-token logit L2 vs same-user off arm",
+  "quality": [
+    "repetition_fraction",
+    "labeled_task_score_if_available",
+    "malformed_fraction",
+    "latency_ms"
+  ],
+  "fingerprint_retrieval_minimum": 0.95,
+  "max_quality_absolute_drop": 0.05,
+  "required_quality_labels_for_promotion": true,
+  "replay_control_is_not_individual_identity": true,
+  "no_realtime_hardware": true,
+  "fresh_hardware_allowed": false,
+  "production_answer_changes_allowed": false,
+  "raw_media_retained": false,
+  "quantum_advantage_proven": false,
+  "native_generation_temperature": 0.8,
+  "native_generation_top_k": 40,
+  "native_generation_max_tokens": 24,
+  "native_generation_amendment": "Frozen before the first 14K native holdout; previous fixture/greedy probes are not native holdout results. Four independent fixed stochastic sampling seeds."
+}

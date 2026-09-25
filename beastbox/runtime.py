@@ -17,7 +17,6 @@ from .sensory import SensorySummary, freshness_gate
 from .state import MissionState
 from .synaptic import SynapticField
 
-
 DEFAULT_SYSTEM_PROMPT = (
     "You are the local synthesis layer inside an owner-controlled research runtime. "
     "Treat state labels as software instrumentation, not claims of consciousness. "
@@ -84,7 +83,13 @@ class CosmosRuntime:
         if fresh and fresh.source.startswith("audio") and not packet.audio_features:
             packet.audio_features = [float(v) for v in fresh.features.values() if isinstance(v, (int, float))]
 
-        syn = self.synaptic.step(audio_features=packet.audio_features, quantum_spark=packet.quantum_spark)
+        safe_packet = packet.safe_dict()
+        syn = self.synaptic.step(
+            audio_features=packet.audio_features,
+            quantum_spark=packet.quantum_spark,
+            person_state12=safe_packet.get("person_state12"),
+            buddy_metric12=safe_packet.get("buddy_metric12"),
+        )
         state = MissionState(
             mission_id=f"conversation-{self.turn}",
             objective=text,
@@ -93,9 +98,9 @@ class CosmosRuntime:
             audio_features=list(packet.audio_features),
             quantum_spark=list(packet.quantum_spark),
             dyn12=list(syn["states"]["dyn12"]),
-            provenance={"turn": self.turn, "bridge_hash": packet.safe_dict()["packet_sha256"]},
+            provenance={"turn": self.turn, "bridge_hash": safe_packet["packet_sha256"]},
         )
-        cns_state = self.cns.tick(state, packet.safe_dict())
+        cns_state = self.cns.tick(state, safe_packet)
         self._trace_stage("state_cns")
         memories = self._route_memories(text, memories, state)
         state.evidence = [m.text for m in memories]

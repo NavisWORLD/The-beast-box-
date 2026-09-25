@@ -1,0 +1,22 @@
+{
+    "schema": "quantum-buddy-native-14k-holdout-request-v1",
+    "checkpoint_sha256": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
+    "release_archive_sha256": "3875bc47e8b9d2024b4dae7889bf326f269c5a73955d2d3fc27936ba6794239c",
+    "release_tag": "rawrphos-native-conversation-step-00014000-run-35951509482",
+    "training_steps": 14000,
+    "cohort_size": 32,
+    "drifts_per_person": 4,
+    "prompt_count": 8,
+    "seed_count": 4,
+    "arms": [
+        "off",
+        "matched_classical",
+        "sim_unentangled",
+        "sim_entangled",
+        "replay"
+    ],
+    "native_generation_temperature": 0.8,
+    "native_generation_top_k": 40,
+    "max_tokens": 24,
+    "authorization": "Run the frozen native 14K Phase-8 CPU-only research holdout on standard GitHub Actions; no new QPU jobs, Cosmos writes, paid cloud resources, or production deployment"
+}

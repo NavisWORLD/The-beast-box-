@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .hashutil import sha256_obj
+from .quantum_buddy.state import validate_vector12
 
 
 @dataclass
@@ -12,6 +13,9 @@ class BridgePacket:
     quantum_spark: list[float] = field(default_factory=list)
     quantum_provenance: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
+    # The person's source and the buddy attention metric are not interchangeable.
+    person_state12: list[float] = field(default_factory=list)
+    buddy_metric12: list[float] = field(default_factory=list)
 
     def safe_dict(self) -> dict[str, Any]:
         data = {
@@ -24,6 +28,12 @@ class BridgePacket:
             for key in list(data["metadata"]):
                 if forbidden in key.lower():
                     data["metadata"].pop(key, None)
+        # Omit absent optional fields to preserve hashes of historical packets.
+        # Explicit non-empty arrays must be exactly 12 finite bounded scalars.
+        if self.person_state12:
+            data["person_state12"] = list(validate_vector12(self.person_state12, "person_state12"))
+        if self.buddy_metric12:
+            data["buddy_metric12"] = list(validate_vector12(self.buddy_metric12, "buddy_metric12"))
         data["packet_sha256"] = sha256_obj(data)
         return data
 

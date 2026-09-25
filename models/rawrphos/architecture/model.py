@@ -4,8 +4,8 @@ Architecture provenance: QC67 b414724, cosmos_state_ladder.py, PHOS/dyn12.
 Differences: tied embeddings, explicit configuration, stable masked softmax,
 prefix-correct KV/state caching, safe controls, no automatic weight adaptation.
 """
-from dataclasses import asdict, dataclass
 import math
+from dataclasses import asdict, dataclass
 
 import torch
 from torch import nn
@@ -78,7 +78,7 @@ class StateAttention(nn.Module):
         self.gate_logit=nn.Parameter(torch.tensor(math.log(c.gate_init/(1-c.gate_init))))
         self.log_sigma=nn.Parameter(torch.tensor(math.log(c.sigma_init)))
 
-    def forward(self,x,state,mask,past=None,return_attention=False):
+    def forward(self,x,state,mask,past=None,return_attention=False,qstate_metric12=None):
         c=self.config; b,t,d=x.shape; start=0 if past is None else past['key'].shape[-2]
         q,k,v=self.qkv(x).chunk(3,-1)
         q,k,v=[y.view(b,t,c.n_heads,d//c.n_heads).transpose(1,2) for y in (q,k,v)]
@@ -96,6 +96,12 @@ class StateAttention(nn.Module):
         g=torch.sigmoid(self.gate_logit)
         sigma=self.log_sigma.exp().clamp(1e-4,1e3)
         mode=c.attention_mode
+        # Source-blind metric: hardware/simulator/classical use exactly the
+        # same numerical operation and never acquire model/tool authority.
+        weights=None
+        if qstate_metric12 is not None:
+            raw_weights=torch.exp(qstate_metric12.float())
+            weights=raw_weights/raw_weights.mean(-1,keepdim=True).clamp_min(1e-12)
         if mode in {'standard','zero_gate'}:
             mixed=standard; g=g*0
         else:
@@ -106,10 +112,17 @@ class StateAttention(nn.Module):
                 # Rotating dimensions alone would preserve all distances and be inert.
                 perm=(key_pos[None,:]+(pos[:,None]+1)//2)%(pos[:,None]+1)
                 shuffled=ks[:,perm,:]
-                distance=(qs[:,:,None,:]-shuffled).square().sum(-1)
-            else:
+                delta=(qs[:,:,None,:]-shuffled).square()
+                distance=delta.sum(-1) if weights is None else (delta*weights[:,None,None,:]).sum(-1)
+            elif weights is None:
+                # Preserve the existing fast, checkpoint-compatible off path.
                 distance=(qs.square().sum(-1,keepdim=True)+ks.square().sum(-1)[:,None,:]
                           -2*(qs@ks.transpose(-2,-1))).clamp_min(0)
+            else:
+                w=weights[:,None,:]
+                distance=((qs.square()*w).sum(-1,keepdim=True)
+                          +(ks.square()*w).sum(-1)[:,None,:]
+                          -2*((qs*w)@ks.transpose(-2,-1))).clamp_min(0)
             affinity=torch.softmax((-distance/(2*sigma.square())).masked_fill(~allowed[:,0],float('-inf')),-1)
             mixed=(1-g)*standard+g*affinity[:,None]
         mean=mixed.mean(1)
@@ -119,7 +132,10 @@ class StateAttention(nn.Module):
         y=F.dropout(mixed,p=c.dropout,training=self.training).to(v.dtype)@v
         y=self.proj(y.transpose(1,2).contiguous().view(b,t,d))
         telemetry={'gate':g.detach(),'sigma':sigma.detach(),'state_norm':state.detach().norm(dim=-1).mean(),
-                   'omega_mean':omega.detach().mean()}
+                   'omega_mean':omega.detach().mean(),
+                   'metric_active': bool(weights is not None and mode not in {'standard','zero_gate'}),
+                   'metric_weight_min': 1.0 if weights is None else float(weights.detach().min()),
+                   'metric_weight_max': 1.0 if weights is None else float(weights.detach().max())}
         if return_attention: telemetry['attention']=mixed.detach()
         return y,omega,{'key':k,'value':v,'state':keys,'key_mask':mask},telemetry
 
@@ -131,8 +147,9 @@ class Block(nn.Module):
         hidden=int(c.d_model*((1+5**.5)/2))
         self.ffn=nn.Sequential(nn.Linear(c.d_model,hidden),nn.GELU(),nn.Linear(hidden,c.d_model))
         self.transition=None if final else Dyn12(c.state_dt)
-    def forward(self,x,state,mask,past=None,return_attention=False):
-        y,omega,cache,tel=self.attn(self.n1(x),state,mask,past,return_attention)
+    def forward(self,x,state,mask,past=None,return_attention=False,qstate_metric12=None):
+        y,omega,cache,tel=self.attn(self.n1(x),state,mask,past,return_attention,
+                                    qstate_metric12=qstate_metric12)
         x=x+y
         if self.transition is not None and self.attn.config.attention_mode!='frozen_state':
             state=self.transition(state,omega)
@@ -155,7 +172,7 @@ class RawrphosLM(nn.Module):
             if getattr(m,'bias',None) is not None: nn.init.zeros_(m.bias)
     def parameter_count(self): return sum(p.numel() for p in self.parameters())
     def forward(self,input_ids,targets=None,attention_mask=None,past_key_values=None,use_cache=False,
-                control_vector=None,return_attention=False):
+                control_vector=None,return_attention=False,qstate_metric12=None):
         c=self.config
         if input_ids.ndim!=2 or input_ids.dtype!=torch.long or input_ids.shape[1]<1:
             raise ValueError('input_ids must be a nonempty rank-2 int64 tensor')
@@ -182,10 +199,17 @@ class RawrphosLM(nn.Module):
             if control_vector.shape!=(b,12) or not bool(torch.isfinite(control_vector).all()) or bool((control_vector.abs()>1).any()):
                 raise ValueError('external state must be finite [batch,12] in [-1,1]')
             state=torch.tanh(state_logits+control_vector.to(state)[:,None,:])
+        if qstate_metric12 is not None:
+            if (not torch.is_tensor(qstate_metric12) or qstate_metric12.shape!=(b,12)
+                    or not bool(torch.isfinite(qstate_metric12).all())
+                    or bool((qstate_metric12.abs()>1).any())):
+                raise ValueError('qstate metric must be finite [batch,12] in [-1,1]')
+            qstate_metric12=qstate_metric12.to(device=state.device,dtype=torch.float32)
         if c.attention_mode=='frozen_state': state=state.detach()
         caches=[]; telemetry=[]
         for i,block in enumerate(self.blocks):
-            x,state,cache,tel=block(x,state,attention_mask,None if past_key_values is None else past_key_values[i],return_attention)
+            x,state,cache,tel=block(x,state,attention_mask,None if past_key_values is None else past_key_values[i],
+                                    return_attention,qstate_metric12=qstate_metric12)
             if use_cache: caches.append(cache)
             telemetry.append(tel)
         logits=F.linear(self.norm(x),self.token.weight)
