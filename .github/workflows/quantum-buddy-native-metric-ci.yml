@@ -1,0 +1,36 @@
+name: Quantum Buddy native metric RED GREEN
+on:
+  push:
+    branches: [feature/quantum-buddy-shadow-core-001]
+    paths:
+      - '.github/workflows/quantum-buddy-native-metric-ci.yml'
+      - 'models/rawrphos/tests/test_quantum_buddy_metric.py'
+      - 'models/rawrphos/architecture/model.py'
+      - 'models/rawrphos/architecture/generation.py'
+      - 'models/rawrphos/inference/engine.py'
+      - 'models/rawrphos/inference/server.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  metric:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      PYTHONPATH: models
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: CPU dependencies only
+        run: |
+          python -m pip install --quiet 'torch>=2.2' 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'numpy>=1.26,<3' 'pytest>=8,<10'
+          python -m pip install --quiet -e .
+      - name: Native test baseline and qstate geometry
+        run: |
+          python -m pytest -q models/rawrphos/tests/test_architecture.py models/rawrphos/tests/test_quantum_buddy_metric.py
+      - name: No hardware, cloud writes, or deploys
+        run: echo 'NO_QPU NO_COSMOS_WRITE NO_DEPLOY'
