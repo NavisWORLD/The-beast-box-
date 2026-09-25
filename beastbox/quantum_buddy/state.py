@@ -237,12 +237,19 @@ class BuddyCurrentState:
     def with_qstate(self, qstate: BuddyQuantumState, *, now=None) -> BuddyCurrentState:
         if not isinstance(qstate, BuddyQuantumState):
             raise BuddyStateError("invalid qstate")
-        if qstate.source_state_sha256 != self.dyn12_sha256:
+        # An operator may return a directly constructed or dataclasses.replace'd
+        # object. Validate it BEFORE any repository writes it, not only when
+        # the Cosmos document is read back after persistence.
+        try:
+            checked = BuddyQuantumState.from_document(qstate.to_document())
+        except (BuddyStateError, TypeError, ValueError, AttributeError):
+            raise BuddyStateError("invalid in-memory qstate provenance") from None
+        if checked.source_state_sha256 != self.dyn12_sha256:
             raise BuddyStateError("qstate source mismatch")
         stamp = _utcnow() if now is None else now
-        if stamp.tzinfo is None or stamp.utcoffset() is None or stamp >= qstate.valid_until:
+        if stamp.tzinfo is None or stamp.utcoffset() is None or stamp >= checked.valid_until:
             raise BuddyStateError("qstate expired or invalid time")
-        return replace(self, qstate=qstate, qstate_valid=True)
+        return replace(self, qstate=checked, qstate_valid=True)
 
     def to_document(self) -> dict:
         quantum = (
