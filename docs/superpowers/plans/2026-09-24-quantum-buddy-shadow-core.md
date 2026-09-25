@@ -87,6 +87,7 @@
 - Produces: validate_vector12(value, field_name) -> tuple[float, ...]
 - Produces: canonical_vector_sha256(vector) -> str
 - Produces: BuddyQuantumState dataclass
+- Produces: BuddyQuantumState.from_document(raw) -> BuddyQuantumState
 - Produces: BuddyCurrentState dataclass
 - Produces: BuddyCurrentState.to_document() -> dict
 - Produces: BuddyCurrentState.from_document(raw) -> BuddyCurrentState
@@ -383,22 +384,18 @@ class BuddyCurrentState:
             raise BuddyStateError("missing qstate payload")
         created = datetime.fromisoformat(qraw["createdAt"])
         valid_until = datetime.fromisoformat(qraw["validUntil"])
-        qstate = BuddyQuantumState(
-            qstate12=validate_vector12(qraw["qstate12"], "qstate12"),
-            source_state_sha256=qraw["sourceStateSha256"],
-            mode=qraw["mode"],
-            source_class=qraw["sourceClass"],
-            backend=qraw["backend"],
-            shot_count=qraw["shotCount"],
-            circuit_version=qraw["circuitVersion"],
-            circuit_sha256=qraw["circuitSha256"],
-            result_sha256=qraw["resultSha256"],
-            job_id=qraw.get("jobId"),
-            created_at=created,
-            valid_until=valid_until,
-        )
+        qstate = BuddyQuantumState.from_document(qraw)
         return base.with_qstate(qstate)
 ~~~
+
+Add BuddyQuantumState.from_document beside create. It must:
+- validate mode against MODES and sourceClass against SOURCE_CLASSES[mode];
+- validate qstate12, source/circuit/result SHA-256 strings, backend, shotCount, circuitVersion and optional jobId;
+- parse createdAt/validUntil as timezone-aware datetimes and reject validUntil <= createdAt;
+- recompute the result SHA from qstate12 plus source/circuit/mode provenance using the same function as create and reject a mismatch;
+- return the reconstructed dataclass without changing the persisted timestamps.
+
+Add a test that tampers sourceClass from simulator to hardware and a test that tampers resultSha256; both must raise BuddyStateError before the object reaches with_qstate.
 
 - [ ] **Step 4: Run Task 1 tests GREEN**
 
@@ -625,6 +622,7 @@ git commit -m "feat: persist Quantum Buddy state in Cosmos DB"
 - Produces: build_qb_v1_manifest(dyn12, entangled: bool) -> CircuitManifest
 - Produces: QuantumStateOperator.evaluate(dyn12, *, mode, circuit_version, shot_budget, provenance) -> BuddyQuantumState
 - Produces: HardwareExecutionPolicy
+- Produces: HardwareExecutor protocol with evaluate(dyn12, *, mode, circuit_manifest, shot_budget, provenance) -> BuddyQuantumState
 - Produces: HardwareExecutionDisabled
 
 - [ ] **Step 1: Write failing circuit-shape and provenance tests**
@@ -728,7 +726,26 @@ class HardwareExecutionPolicy:
             raise HardwareExecutionDisabled("fresh hardware batch requires explicit approval")
 ~~~
 
-QuantumStateOperator hardware modes require an injected hardware executor plus HardwareExecutionPolicy. With the default policy, execution stops before any SDK import or network call.
+QuantumStateOperator hardware modes require an injected HardwareExecutor plus HardwareExecutionPolicy. The dispatch code is exact:
+
+~~~python
+if mode in {"hardware_rigetti", "hardware_ibm"}:
+    self.hardware_policy.require_authorized()
+    if self.hardware_executor is None:
+        raise HardwareExecutionDisabled("no authorized hardware executor configured")
+    result = self.hardware_executor.evaluate(
+        dyn12_vector,
+        mode=mode,
+        circuit_manifest=manifest,
+        shot_budget=shot_budget,
+        provenance=dict(provenance),
+    )
+    if result.mode != mode or result.source_class != "hardware":
+        raise BuddyStateError("hardware executor returned mislabeled state")
+    return BuddyQuantumState.from_document(result.to_document())
+~~~
+
+With the default policy and no executor, execution stops before any SDK import or network call. This plan does not implement a provider-specific submission client; that remains behind the post-shadow hardware promotion step in the approved spec.
 
 - [ ] **Step 6: Run operator tests GREEN**
 
