@@ -62,3 +62,21 @@ def test_acceptance_dry_run_creates_manifest_without_fabricating_tests(tmp_path)
     assert obj["production_deployed"] is False
     assert f"{hashlib.sha256(raw).hexdigest()}  acceptance.json" in (
         tmp_path/"SHA256SUMS").read_text()
+
+
+def test_real_scoped_test_command_lists_are_accepted_but_still_bounded():
+    # The actual scoped core command lists eleven test files and exceeds 200
+    # characters; rejecting it prevented the evidence runner from finishing.
+    command = "python -m pytest -q " + " ".join(
+        f"tests/test_quantum_buddy_component_{i:02d}.py" for i in range(11)
+    )
+    assert 200 < len(command) < 4096
+    report = build_acceptance_report(
+        {}, source_commit="c" * 40, tested_commands=[command]
+    )
+    assert report["provenance"]["test_commands"] == [command]
+    with pytest.raises(ValueError, match="tested command"):
+        build_acceptance_report(
+            {}, source_commit="c" * 40, tested_commands=["x" * 4097]
+        )
+
