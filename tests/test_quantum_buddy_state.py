@@ -144,3 +144,20 @@ def test_expired_qstate_document_fails_closed():
     ).isoformat()
     with pytest.raises(BuddyStateError):
         BuddyCurrentState.from_document(attached)
+
+
+def test_in_memory_operator_tampering_rejected_before_state_attachment():
+    """Reject tampered dataclass packets before Cosmos can persist them."""
+    current = BuddyCurrentState.new(
+        user_id="opaque-user-a", dyn12=[0.25] * 12, state_version=7,
+    )
+    valid = qstate(current.dyn12_sha256)
+    for changes in (
+        {"result_sha256": "0" * 64},
+        {"mode": "hardware_ibm", "source_class": "hardware"},
+        {"qstate12": tuple([0.99] * 12)},
+        {"circuit_version": "tampered-circuit"},
+    ):
+        with pytest.raises(BuddyStateError):
+            current.with_qstate(replace(valid, **changes))
+
