@@ -62,6 +62,11 @@ def _checked_receipt(directory: Path, arm: str) -> dict:
             and report.get("partial_shard") is True
             and set(report.get("arms", {})) == {arm},
             f"arm {arm} partial-shard attestation mismatch")
+    _assert(report.get("native_generation_temperature") == 0.8
+            and report.get("native_generation_top_k") == 40
+            and report.get("native_generation_max_tokens") == 24
+            and report.get("replay_control_provenance") == "SYNTHETIC_FIXED_CALIBRATION_NOT_ARCHIVED_QPU",
+            f"native sampling or replay provenance not verified for {arm}")
     _assert(report.get("checkpoint_sha256") == EXPECTED_WEIGHT_SHA
             and report.get("release_archive_sha256") == EXPECTED_RELEASE_SHA
             and manifest.get("checkpoint_sha256") == EXPECTED_WEIGHT_SHA
@@ -155,6 +160,8 @@ def assemble(root: Path, prereg: dict, *, revision: str | None = None) -> dict:
         "native_model_inference_attested": True,
         "synthetic_person_states": True,
         "real_person_identity_proven": False,
+        "replay_control_provenance": "SYNTHETIC_FIXED_CALIBRATION_NOT_ARCHIVED_QPU",
+        "actual_archived_hardware_replay_used": False,
         "task_quality_verified": False,
         "human_response_quality_reviewed": False,
         "fresh_hardware_used": False,
