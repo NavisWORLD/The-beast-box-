@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .dyn12 import update_dyn12
+from .hashutil import sha256_obj
 
 PHI = (1.0 + math.sqrt(5.0)) / 2.0
 
@@ -35,6 +36,25 @@ class CNS:
         dz = x * y - beta * z
         self.dark_matter.update(x=x + dt * dx, y=y + dt * dy, z=z + dt * dz)
 
+    @staticmethod
+    def _conditioning_drive(packet: dict[str, Any]) -> list[float] | None:
+        raw = packet.get("conditioning_vector")
+        if raw is None:
+            return None
+        if (
+            not isinstance(raw, list)
+            or len(raw) != 12
+            or any(
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                or abs(float(value)) > 1.0
+                for value in raw
+            )
+        ):
+            raise ValueError("conditioning_vector must contain 12 finite values in [-1,1]")
+        return [float(value) for value in raw]
+
     def tick(self, mission_state, bridge_packet: dict[str, Any] | None = None) -> dict[str, Any]:
         self.step += 1
         packet = bridge_packet or {}
@@ -42,7 +62,11 @@ class CNS:
 
         spark = [float(x) for x in packet.get("quantum_spark", [])]
         audio = [float(x) for x in packet.get("audio_features", [])]
-        drive = spark + audio
+        conditioning = self._conditioning_drive(packet)
+        # Typed fusion is already normalized/projected by source-specific
+        # adapters. Prefer it verbatim over the historical spark+audio
+        # concatenation so incompatible channel units are not silently mixed.
+        drive = conditioning if conditioning is not None else spark + audio
         if not drive:
             drive = [self.dark_matter["x"] / 30.0, self.dark_matter["y"] / 30.0, self.dark_matter["z"] / 30.0]
         mission_state.dyn12 = update_dyn12(mission_state.dyn12, drive, step=self.step)
@@ -65,6 +89,12 @@ class CNS:
             "current_step": mission_state.current_step,
             "pending": len(mission_state.pending_steps),
         }
+        if conditioning is not None:
+            self.awareness["conditioning"] = {
+                "schema": "generic-model-control-C1..C12",
+                "sha256": sha256_obj(conditioning),
+                "provenance": packet.get("conditioning_provenance", {}),
+            }
         self.surgeon = {"healthy": True, "faults": []}
         return {
             "quantum": self.quantum,
