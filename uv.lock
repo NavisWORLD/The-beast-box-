@@ -492,6 +492,7 @@ azure = [
     { name = "qdk", extra = ["azure"] },
 ]
 dev = [
+    { name = "azure-core" },
     { name = "coverage" },
     { name = "cryptography" },
     { name = "mypy" },
@@ -523,6 +524,7 @@ secure = [
 
 [package.metadata]
 requires-dist = [
+    { name = "azure-core", marker = "extra == 'dev'", specifier = ">=1.35" },
     { name = "azure-cosmos", marker = "extra == 'azure'", specifier = ">=4.9,<5" },
     { name = "azure-identity", marker = "extra == 'azure'", specifier = ">=1.17" },
     { name = "coverage", marker = "extra == 'dev'", specifier = ">=7.0" },
