@@ -84,7 +84,11 @@ class CosmosRuntime:
         if fresh and fresh.source.startswith("audio") and not packet.audio_features:
             packet.audio_features = [float(v) for v in fresh.features.values() if isinstance(v, (int, float))]
 
-        syn = self.synaptic.step(audio_features=packet.audio_features, quantum_spark=packet.quantum_spark)
+        syn = self.synaptic.step(
+            audio_features=packet.audio_features,
+            quantum_spark=packet.quantum_spark,
+            conditioning_vector=packet.conditioning_vector or None,
+        )
         state = MissionState(
             mission_id=f"conversation-{self.turn}",
             objective=text,
