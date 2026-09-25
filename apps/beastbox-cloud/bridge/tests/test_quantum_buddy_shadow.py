@@ -281,3 +281,29 @@ class BuddyBridgeTests(unittest.TestCase):
             }).encode(),
         )
         self.assertEqual(bad, 400)
+
+
+    def test_consent_revocation_remains_available_when_buddy_inference_is_off(self):
+        bridge = self.make_bridge(enabled="no", shadow="no", cosmos_write="yes")
+        repo = FakeRepo()
+        bridge.quantum_buddy_repo_factory = lambda: repo
+        code, result = bridge.dispatch(
+            "POST", "/api/quantum-buddy/state", AUTH,
+            json.dumps({
+                "action": "revoke", "userId": "owner-opaque-a",
+                "etag": repo.etag, "scope": "both",
+            }).encode(),
+        )
+        self.assertEqual(code, 200, result)
+        self.assertFalse(repo.current.state_conditioning_consent)
+        self.assertFalse(repo.current.quantum_refresh_consent)
+        self.assertEqual(repo.current.dyn12, tuple([0.0] * 12))
+        self.assertFalse(repo.current.qstate_valid)
+        status, _ = bridge.dispatch(
+            "POST", "/api/quantum-buddy/shadow", AUTH,
+            json.dumps({
+                "userId": "owner-opaque-a", "prompt": "hello",
+                "mode": "off", "max_tokens": 2, "seed": 67,
+            }).encode(),
+        )
+        self.assertEqual(status, 503)
