@@ -32,13 +32,6 @@ _HISTORY_FIELDS = frozenset({
 _USER = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 
 
-def _required_env(name: str) -> str:
-    value = os.environ.get(name, "")
-    if not value.strip():
-        raise BuddyStorageUnavailable(f"missing host configuration: {name}")
-    return value.strip()
-
-
 def _status_code(exc) -> int | None:
     return getattr(exc, "status_code", None)
 
@@ -68,9 +61,13 @@ class CosmosBuddyRepository:
 
     @classmethod
     def from_environment(cls) -> CosmosBuddyRepository:
-        endpoint = _required_env("COSMOS_BUDDY_ENDPOINT")
-        database_name = _required_env("COSMOS_BUDDY_DATABASE")
-        if not endpoint.startswith("https://") or not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", database_name):
+        # Literal host-only reads are required by Beast Box's auditable
+        # environment inventory. Never inspect arbitrary environment keys.
+        endpoint = os.environ.get("COSMOS_BUDDY_ENDPOINT", "").strip()
+        database_name = os.environ.get("COSMOS_BUDDY_DATABASE", "").strip()
+        if (not endpoint or not database_name
+                or not endpoint.startswith("https://")
+                or not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", database_name)):
             raise BuddyStorageUnavailable("invalid Cosmos host configuration")
         try:
             from azure.cosmos import CosmosClient
