@@ -86,6 +86,49 @@ PY
 then
   exit 70
 fi
+# Explicitly gated real in-container smoke before exposing the owner bridge.
+# Uses only synthetic numerical data, pinned 14K, and private loopback; neither
+# the source reading nor the native token nor any text response is logged.
+if [[ "${BEASTBOX_CNS_MODEL_PROBE_ENABLED:-no}" == "yes" ]]; then
+  if ! python - <<'PY'
+import json,os,urllib.request
+from beastbox.bio_inputs import bio_event
+from beastbox.events import normalize_event
+from beastbox.bridge import BridgePacket
+from beastbox.cns import CNS
+from beastbox.state import MissionState
+from beastbox.providers import _local_opener
+from beastbox.rawrphos_local import SHA,STEP
+event=normalize_event(bio_event(readings={"heart_rate_bpm":72.0},source="manual",consent=True))
+mission=MissionState(mission_id="startup-synthetic-acceptance",objective="one numeric software-state control")
+cns=CNS().tick(mission,BridgePacket(audio_features=event["features"]).safe_dict())
+payload=json.dumps({"model":"rawrphos-native","prompt":"Hello, Beast.",
+                    "control_vector":cns["dyn12"],"max_tokens":12,"seed":67}).encode()
+key=os.environ["RAWRPHOS_API_KEY"]
+req=urllib.request.Request("http://127.0.0.1:8767/v1/condition-probe",data=payload,
+    method="POST",headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"})
+with _local_opener().open(req,timeout=42) as response:
+    if response.status!=200:raise SystemExit("CNS native smoke rejected")
+    raw=response.read(24001)
+if len(raw)>24000:raise SystemExit("CNS native smoke exceeds bound")
+result=json.loads(raw)
+delta=result.get("logit_l2",{})
+if (result.get("training_steps")!=STEP or result.get("checkpoint_sha256")!=SHA
+    or result.get("model_weights_changed") is not False
+    or result.get("performance_gain_proven") is not False
+    or not isinstance(delta,dict) or
+    not 0<=delta.get("zero_vs_reference",float("inf"))<1e-6 or
+    not delta.get("conditioned_vs_reference",0)>0):
+    raise SystemExit("CNS native numeric conditioning not verified")
+print("REAL_PINNED_14K_CNS7_NATIVE_CONDITIONING_VERIFIED",
+      "zero_l2",delta["zero_vs_reference"],
+      "conditioned_l2",delta["conditioned_vs_reference"],flush=True)
+PY
+  then
+    echo "Owner CNS model probe preflight failed; keeping previous deployment" >&2
+    exit 70
+  fi
+fi
 "$BASE/start_tiny.sh" &
 bridge_pid=$!
 wait -n "$native_pid" "$experimental_pid" "$bridge_pid"
