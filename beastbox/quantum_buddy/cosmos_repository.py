@@ -36,15 +36,13 @@ def _status_code(exc) -> int | None:
     return getattr(exc, "status_code", None)
 
 
-def _matched_replace(container, etag: str, body: dict):
+def _matched_replace(container, etag: str, body: dict, match_condition):
     if not isinstance(etag, str) or not etag:
         raise BuddyStorageUnavailable("missing Cosmos ETag")
     try:
-        from azure.core import MatchConditions
-
         return container.replace_item(
             item="current", body=body, etag=etag,
-            match_condition=MatchConditions.IfNotModified,
+            match_condition=match_condition,
         )
     except Exception as exc:  # noqa: BLE001 - redact all external SDK/transport error details
         if _status_code(exc) in (409, 412):
@@ -55,9 +53,13 @@ def _matched_replace(container, etag: str, body: dict):
 class CosmosBuddyRepository:
     """A host-only wrapper around two pre-provisioned Cosmos containers."""
 
-    def __init__(self, current_container, history_container):
+    def __init__(self, current_container, history_container, *,
+                 match_condition="IfNotModified"):
+        # No Azure SDK import in offline test fakes. from_environment supplies
+        # the real MatchConditions enum whenever live clients are constructed.
         self.current = current_container
         self.history = history_container
+        self._match_condition = match_condition
 
     @classmethod
     def from_environment(cls) -> CosmosBuddyRepository:
@@ -70,6 +72,7 @@ class CosmosBuddyRepository:
                 or not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", database_name)):
             raise BuddyStorageUnavailable("invalid Cosmos host configuration")
         try:
+            from azure.core import MatchConditions
             from azure.cosmos import CosmosClient
             from azure.identity import DefaultAzureCredential
 
@@ -83,6 +86,7 @@ class CosmosBuddyRepository:
             return cls(
                 db.get_container_client("buddy-state"),
                 db.get_container_client("buddy-history"),
+                match_condition=MatchConditions.IfNotModified,
             )
         except Exception:  # noqa: BLE001 - redact external SDK/transport error details
             raise BuddyStorageUnavailable("Cosmos host initialization failed") from None
@@ -137,7 +141,7 @@ class CosmosBuddyRepository:
             updated = current.with_qstate(qstate)
         except BuddyStateError:
             raise BuddyStorageUnavailable("operator packet rejected") from None
-        raw = _matched_replace(self.current, etag, updated.to_document())
+        raw = _matched_replace(self.current, etag, updated.to_document(), self._match_condition)
         if raw.get("userId") != user_id:
             raise BuddyStorageUnavailable("Cosmos replace partition mismatch")
         try:
@@ -161,7 +165,7 @@ class CosmosBuddyRepository:
             )
         except BuddyStateError:
             raise BuddyStorageUnavailable("new person state rejected") from None
-        raw = _matched_replace(self.current, etag, next_state.to_document())
+        raw = _matched_replace(self.current, etag, next_state.to_document(), self._match_condition)
         if raw.get("userId") != user_id:
             raise BuddyStorageUnavailable("Cosmos replace partition mismatch")
         try:
