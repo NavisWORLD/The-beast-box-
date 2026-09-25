@@ -14,7 +14,13 @@ import re
 from dataclasses import dataclass
 from statistics import mean
 
-from .state import SOURCE_CLASSES, validate_vector12
+from .state import (
+    SOURCE_CLASSES,
+    BuddyQuantumState,
+    BuddyStateError,
+    canonical_vector_sha256,
+    validate_vector12,
+)
 
 _FROZEN_ARMS = ("off", "matched_classical", "sim_unentangled", "sim_entangled", "replay")
 _LABEL = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
@@ -45,6 +51,22 @@ def _numeric(value, name, *, min_value=0.0):
     if type(value) not in (int, float) or not math.isfinite(value) or value < min_value:
         raise ValueError(f"nonfinite or invalid {name}")
     return float(value)
+
+
+def _checked_operator_packet(packet, *, dyn12, mode):
+    """Treat every arm as untrusted; reject bad state before scoring a fingerprint."""
+    if not isinstance(packet, BuddyQuantumState):
+        raise ValueError("invalid qstate operator packet type")
+    try:
+        checked = BuddyQuantumState.from_document(packet.to_document())
+        source = canonical_vector_sha256(dyn12)
+    except (BuddyStateError, KeyError, TypeError, ValueError, AttributeError):
+        raise ValueError("invalid qstate operator packet provenance") from None
+    if (checked.mode != mode
+            or checked.source_class != SOURCE_CLASSES[mode]
+            or checked.source_state_sha256 != source):
+        raise ValueError("invalid qstate operator packet source or mode")
+    return checked
 
 
 @dataclass(frozen=True)
@@ -188,8 +210,7 @@ def run_phase8(cohort, prompts, seeds, operator, model_runner,
                 person["dyn12"], mode=mode, circuit_version="qb-v1",
                 shot_budget=0, provenance=provenance,
             )
-            if base.mode != mode or base.source_class != SOURCE_CLASSES[mode] or len(base.qstate12) != 12:
-                raise ValueError("invalid source-blind operator packet")
+            base = _checked_operator_packet(base, dyn12=person["dyn12"], mode=mode)
             base_packets[user] = base.qstate12
             drift_packets[user] = []
             for drift in person["drifts"]:
@@ -197,8 +218,7 @@ def run_phase8(cohort, prompts, seeds, operator, model_runner,
                     drift, mode=mode, circuit_version="qb-v1",
                     shot_budget=0, provenance=provenance,
                 )
-                if output.mode != mode or output.source_class != SOURCE_CLASSES[mode]:
-                    raise ValueError("invalid drift operator packet")
+                output = _checked_operator_packet(output, dyn12=drift, mode=mode)
                 drift_packets[user].append(output.qstate12)
             for prompt in sorted_prompts:
                 for seed in sorted_seeds:
