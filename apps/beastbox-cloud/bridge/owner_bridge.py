@@ -41,6 +41,7 @@ from beastbox.quantum_buddy.operators import QuantumStateOperator
 from beastbox.quantum_buddy.state import (
     SOURCE_CLASSES,
     BuddyCurrentState,
+    BuddyQuantumState,
     BuddyStateError,
     validate_vector12,
 )
@@ -724,6 +725,9 @@ class OwnerBridge:
                 state.dyn12, mode=mode, circuit_version="qb-v1",
                 shot_budget=0, provenance={},
             )
+            # The operator is an untrusted source. Authenticate its complete
+            # packet checksum and timestamp before sending state to the model.
+            packet = BuddyQuantumState.from_document(packet.to_document())
             if (packet.mode != mode or packet.source_class != SOURCE_CLASSES[mode]
                     or packet.source_state_sha256 != state.dyn12_sha256):
                 raise BuddyStateError("invalid operator provenance")
@@ -738,6 +742,18 @@ class OwnerBridge:
                     or not re.fullmatch(r"[0-9a-f]{64}",
                                         str(report.get("checkpoint_sha256", "")))):
                 raise ValueError("unvalidated native shadow comparison")
+            # Revocation and state changes may arrive while the native model
+            # is evaluating. Revalidate the owner consent and original ETag
+            # before returning any derived response or recording telemetry.
+            # This is a last-read guard, not a cross-system atomic transaction.
+            latest, latest_etag = repo.read_current(user_id)
+            if (latest.user_id != state.user_id
+                    or latest_etag != _etag
+                    or latest.state_version != state.state_version
+                    or latest.dyn12_sha256 != state.dyn12_sha256
+                    or latest.state_conditioning_consent is not True
+                    or (mode != "off" and latest.quantum_refresh_consent is not True)):
+                return 409, {"error": "Buddy state or consent changed; shadow result discarded"}
             receipt = {
                 "userId": user_id,
                 "sourceStateSha256": state.dyn12_sha256,
