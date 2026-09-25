@@ -1,0 +1,53 @@
+name: RAWRPHOS 20K broad curriculum data and quality preflight
+on:
+  push:
+    branches: [experiment/rawrphos-broad-20k-phase-001]
+    paths:
+      - '.github/workflows/rawrphos-broad-20k-preflight.yml'
+      - 'models/rawrphos/scripts/prepare_broad_curriculum.py'
+      - 'models/rawrphos/scripts/prepare_broad_blend.py'
+      - 'models/rawrphos/training/broad_adapt.py'
+      - 'models/rawrphos/evaluation/conversation/broad_quality_gate.py'
+      - 'models/rawrphos/tests/test_broad_*.py'
+
+permissions:
+  contents: read
+
+jobs:
+  test-frozen-data-and-safety:
+    if: github.repository == 'NavisWORLD/The-beast-box-'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      PYTHONPATH: models
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install pinned CPU-only test dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check --quiet 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'pytest>=8,<10' 'numpy>=1.26,<3' 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'uvicorn>=0.30,<1'
+      - name: Syntax, split isolation, audited curriculum and frozen relative quality gates
+        run: |
+          python -m compileall -q models/rawrphos/scripts/prepare_broad_blend.py models/rawrphos/training/broad_adapt.py models/rawrphos/evaluation/conversation/broad_quality_gate.py
+          python -m pytest -q \
+            models/rawrphos/tests/test_broad_curriculum.py \
+            models/rawrphos/tests/test_broad_blend.py \
+            models/rawrphos/tests/test_broad_quality_gate.py \
+            models/rawrphos/tests/test_research_21k_quality.py
+      - name: Verify frozen synthetic curriculum source identity, without training
+        run: |
+          set -euo pipefail
+          python -m rawrphos.scripts.prepare_broad_curriculum --output "$RUNNER_TEMP/broad-source"
+          python - <<'PY'
+          import json,os,pathlib
+          from rawrphos.scripts.prepare_broad_blend import read_supplement,SUPPLEMENT_SHA
+          p=pathlib.Path(os.environ["RUNNER_TEMP"])/"broad-source"
+          train,val,m=read_supplement(p)
+          assert m["dataset_sha256"]==SUPPLEMENT_SHA
+          assert len(train)>=700 and len(val)>=100
+          print("AUDITED_30_CATEGORY_SOURCE_REVERIFIED",len(train),len(val),SUPPLEMENT_SHA,flush=True)
+          PY
