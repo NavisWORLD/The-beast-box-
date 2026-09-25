@@ -64,6 +64,8 @@ def _load_native_runner(path: str, expected_sha: str):
             list(qstate12),
             max_tokens=24,
             seed=seed,
+            sampling_temperature=0.8,
+            sampling_top_k=40,
         )
         if result["checkpoint_sha256"] != actual:
             raise ValueError("checkpoint changed during Phase 8")
@@ -94,6 +96,7 @@ def _write_evidence(folder: Path, report: dict, prereg: dict):
         "production_deployed": False,
         "simulator_kind": "deterministic-ideal-six-qubit-statevector",
         "full_preregistration_evaluated": report["full_preregistration_evaluated"],
+        "selected_arm": report.get("selected_arm"),
     }, sort_keys=True, indent=2) + "\n"
     manifest_file.write_text(manifest_text, encoding="utf-8")
     sums = [
@@ -109,6 +112,9 @@ def main(argv=None):
     )
     parser.add_argument("--smoke", action="store_true",
                         help="synthetic fake-model harness only; no model evidence")
+    parser.add_argument("--arm", choices=("off", "matched_classical", "sim_unentangled",
+                                          "sim_entangled", "replay"),
+                        help="run one complete frozen arm for independently checked aggregation")
     parser.add_argument("--checkpoint", type=str,
                         help="required actual local native checkpoint directory for full run")
     parser.add_argument("--expected-sha256", type=str,
@@ -121,7 +127,7 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
     if args.smoke:
-        if args.checkpoint or args.expected_sha256 or args.confirm_cpu_intensive:
+        if args.arm or args.checkpoint or args.expected_sha256 or args.confirm_cpu_intensive:
             parser.error("smoke fixture and native checkpoint settings cannot be mixed")
         model_runner = _fixture_runner
         checkpoint_sha = "0"*64
@@ -154,16 +160,22 @@ def main(argv=None):
     seeds = prereg["sampling_seeds"] if full else prereg["sampling_seeds"][:2]
     report = run_phase8(
         cohort, prompts, seeds, operator, model_runner, config,
+        arms=[args.arm] if args.arm else None,
+        partial_shard=bool(args.arm),
     )
-    report["measurement_class"] = measurement_class
+    report["measurement_class"] = (
+        "FROZEN_NATIVE_CPU_INFERENCE_ARM_SHARD" if args.arm else measurement_class
+    )
+    report["selected_arm"] = args.arm
     report["native_model_inference_attested"] = full
-    report["full_preregistration_evaluated"] = full
+    report["full_preregistration_evaluated"] = full and args.arm is None
     report["hardware_promotion_approved"] = False
     report["task_quality_verified"] = False
     _write_evidence(args.output, report, prereg)
     print(json.dumps({
         "report": str(args.output/"report.json"),
-        "measurement_class": measurement_class,
+        "measurement_class": report["measurement_class"],
+        "selected_arm": args.arm,
         "native_model_inference_attested": full,
         "fresh_hardware_used": False,
         "hardware_promotion_approved": False,
