@@ -66,7 +66,9 @@ jobs:
           result=subprocess.run([sys.executable,'scripts/run_quantum_buddy_phase8_shadow.py','--help'],
                                 capture_output=True,text=True,check=False,timeout=10)
           assert result.returncode==0 and all(flag in result.stdout for flag in accepted)
-          holdout=workflow.split('  holdout:',1)[1].split('  aggregate:',1)[0]
+          # Split on complete YAML section delimiter, not the literal inside this check.
+          holdout=workflow.split(chr(10)+'  holdout:'+chr(10),1)[1].split(
+              chr(10)+'  aggregate:'+chr(10),1)[0]
           assert all(flag in holdout for flag in accepted)
           assert '--release-archive-sha256' not in holdout
           assert '--source-revision' not in holdout
