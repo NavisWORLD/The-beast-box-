@@ -253,3 +253,79 @@ model request. This is an authority boundary, not loss of conversation state.
 Enable scheduled volume backups within the approved spending ceiling,
 bounded hosting limits, and monitoring. Do not open public multi-user access
 without new isolation, security, quota and restore gates.
+
+
+## Experimental Quantum Buddy shadow-core integration (isolated branch only)
+
+**This section describes a disabled-by-default code path, not a deployed Azure/Vercel feature.**
+The isolated research branch is feature/quantum-buddy-shadow-core-001.
+The original owner chat, model profile, durable SQLite memory and access grants
+must remain unchanged if any Quantum Buddy dependency is missing.
+
+Use the **existing Azure Cosmos DB for NoSQL account**. An authorized Azure
+administrator must pre-create two dedicated containers inside the selected
+existing database: buddy-state and buddy-history, each with partition key
+\`/userId\`. The bridge never creates a Cosmos account, database or container.
+Use a high-cardinality opaque user ID, not an email or a biometric identifier.
+Ordinary chat remains local/durable even if the Cosmos account is unreachable.
+
+Host-only configuration names (do not place credentials in browser, Vercel
+client assets, Git, logs, or prompts):
+
+\`\`\`dotenv
+# All three flags default to disabled. Omit the flags for ordinary production.
+BEASTBOX_QUANTUM_BUDDY_ENABLED=no
+BEASTBOX_QUANTUM_BUDDY_SHADOW_ENABLED=no
+BEASTBOX_QUANTUM_BUDDY_COSMOS_WRITES_ENABLED=no
+# Existing account and existing database; do not configure new provisioning here.
+COSMOS_BUDDY_ENDPOINT=
+COSMOS_BUDDY_DATABASE=
+\`\`\`
+
+The host obtains Cosmos credentials with \`DefaultAzureCredential\`
+(noninteractive); prefer a host Managed Identity with minimally scoped Cosmos
+DB data-plane roles on just the approved buddy containers. Credential and
+identity assignment are separate host administrative actions. Install optional
+\`cosmos-beast-box[azure]\` only on an explicitly approved host.
+
+Authenticated owner research routes:
+
+- GET \`/api/quantum-buddy\`: non-sensitive feature/status flags only.
+- POST \`/api/quantum-buddy/state\`: \`read\`, \`create\`, \`update\`.
+  Reads return source hashes/version/consent/ETag, not raw dyn12 values.
+  Writes require BOTH the enabled flag and the independent
+  \`BEASTBOX_QUANTUM_BUDDY_COSMOS_WRITES_ENABLED=yes\` host flag plus explicit
+  positive user consent. Update uses the current item's ETag and rejects stale
+  updates. Do not turn this flag on during offline shadow CI.
+- POST \`/api/quantum-buddy/shadow\`: requires separate SHADOW flag,
+  current-state opt-in consent and the frozen bounded request:
+  \`{userId,prompt,mode,max_tokens,seed}\`. Only offline modes are allowed:
+  \`off\`, \`matched_classical\`, \`sim_unentangled\`, \`sim_entangled\`,
+  \`replay\`. An authenticated pinned local RAWRPHOS shadow probe performs
+  a matched comparison and stores only numerical metrics and hashes in
+  buddy-history. A current-state document must already exist; the shadow
+  endpoint never silently provisions one.
+
+This is **single-owner research**, not public multi-tenant authorization.
+Do not expose the owner bearer route as a generic public Buddy API. Public
+signup requires independent verified end-user identity, strict user-level
+object ownership, per-user consent, revocation/deletion, rate limits, and
+security review.
+
+The native shadow service at the pinned local loopback address runs one
+immutable checkpoint. It accepts control_vector as the user's bounded dyn12
+state and qstate_metric12 separately as geometry input, without injecting
+provider instructions into prompts. Normal \`/api/chat\` and ordinary native
+chat completions do not accept Buddy fields. Failures in Cosmos, simulator,
+replay or the native shadow path must return a sanitized error on the isolated
+research route without changing or delaying ordinary answers.
+
+This code path **does not submit Rigetti/IBM QPU jobs**. The hardware modes
+require a separately injected future executor, explicit owner authorization,
+and verified actual target pricing/credit status. The synthetic Phase-8 smoke
+is not evidence of a real model experiment or hardware advantage. Live Cosmos
+write validation, pinned 14K whole-cohort inference, and Vercel shadow
+deployment are independent promotion gates. Never label simulator/replay
+packets as live hardware. All current sensor-derived vectors may contain
+sensitive personal data despite being bounded summaries; persist nothing
+without explicit consent and documented retention controls.
