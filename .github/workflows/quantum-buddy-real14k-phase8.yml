@@ -59,17 +59,17 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import pathlib
-          runner=pathlib.Path('scripts/run_quantum_buddy_phase8_shadow.py').read_text()
+          import pathlib,subprocess,sys
           workflow=pathlib.Path('.github/workflows/quantum-buddy-real14k-phase8.yml').read_text()
-          args=['--arm','--checkpoint','--expected-sha256','--release-archive',
-                '--expected-release-archive-sha256','--confirm-cpu-intensive','--output']
-          for arg in args:
-              assert 'parser.add_argument("'+arg+'"' in runner, f'missing runner CLI {arg}'
-          command=workflow.split('python scripts/run_quantum_buddy_phase8_shadow.py \\',1)[-1]
-          command=command.split('sha256sum --check SHA256SUMS',1)[0]
-          assert '--release-archive-sha256' not in command
-          assert '--source-revision' not in command
+          accepted=['--arm','--checkpoint','--expected-sha256','--release-archive',
+                    '--expected-release-archive-sha256','--confirm-cpu-intensive','--output']
+          result=subprocess.run([sys.executable,'scripts/run_quantum_buddy_phase8_shadow.py','--help'],
+                                capture_output=True,text=True,check=False,timeout=10)
+          assert result.returncode==0 and all(flag in result.stdout for flag in accepted)
+          holdout=workflow.split('  holdout:',1)[1].split('  aggregate:',1)[0]
+          assert all(flag in holdout for flag in accepted)
+          assert '--release-archive-sha256' not in holdout
+          assert '--source-revision' not in holdout
           print('NATIVE_ARM_WORKFLOW_RUNNER_CLI_CONTRACT_VERIFIED')
           PY
       - uses: actions/setup-python@v5
