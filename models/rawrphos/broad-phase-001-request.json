@@ -1,0 +1,16 @@
+{
+  "schema": "rawrphos-broad-phase-001-request-v1",
+  "parent_run_id": "36056700705",
+  "parent_step": 20000,
+  "parent_sha256": "62a860f6882ef59d2becb41ad119f92836add184b325413cbd4a6e3631c44662",
+  "original_dataset_sha256": "7e9e8f91e751b3304663cb28293b2c90cc0e1623df355eb77dfdc6004cadcec5",
+  "audited_supplement_sha256": "4275abb30706826ab42d6e9e3c54d0c0a9de66fb43590d5b8660f0a2e8eb243d",
+  "maximum_additional_steps": 1000,
+  "max_wall_minutes": 115,
+  "training_mix": {
+    "original_dialogue": 0.8,
+    "audited_synthetic_broad": 0.2
+  },
+  "automated_stop_policy": "sealed checkpoints every 100 steps; stop on original-skill regression or broad-data validation plateau",
+  "authorization": "Resume exactly from verified 20K weights and optimizer for a NEW CPU-only broad curriculum phase, maximum 1000 additional optimizer steps on hosted public GitHub Actions; no paid upgrades, production deployment, personal data or QPU jobs"
+}
