@@ -96,6 +96,33 @@ def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=N
         except (ValueError,TimeoutError,FloatingPointError):
             return JSONResponse({'error':'native conditioning probe unavailable; no fallback'},status_code=503)
 
+    @app.post('/v1/quantum-buddy-shadow')
+    async def quantum_buddy_shadow(request:Request):
+        """Authenticated research-only pair; normal chat schema stays unchanged."""
+        try:
+            body=await request.json()
+            expected={'model','prompt','control_vector','qstate_metric12','max_tokens','seed'}
+            if not isinstance(body,dict) or set(body)!=expected or body.get('model')!='rawrphos-native':
+                raise ValueError('invalid shadow request shape')
+            prompt=body['prompt'];count=body['max_tokens'];seed=body['seed']
+            if (not isinstance(prompt,str) or not 1<=len(prompt.strip())<=220
+                    or type(count) is not int or not 1<=count<=min(32,engine.max_new_tokens)
+                    or type(seed) is not int or not 0<=seed<2**63):
+                raise ValueError('invalid shadow request values')
+            control=Engine.validate_control(body['control_vector'])
+            metric=Engine.validate_metric(body['qstate_metric12'])
+        except (ValueError,TypeError,KeyError,UnicodeError):
+            return JSONResponse({'error':'invalid bounded Buddy shadow request'},status_code=400)
+        try:
+            from starlette.concurrency import run_in_threadpool
+            return await run_in_threadpool(
+                engine.shadow_condition,prompt,control,metric,count,seed,
+            )
+        except RuntimeError:
+            return JSONResponse({'error':'native shadow model busy'},status_code=429)
+        except (ValueError,TimeoutError,FloatingPointError):
+            return JSONResponse({'error':'native Buddy shadow unavailable'},status_code=503)
+
     @app.post('/v1/completions')
     async def text_completion(request:Request): return await completion(request)
     @app.post('/v1/chat/completions')

@@ -142,4 +142,77 @@ class Engine:
                 'controls_are_retrained_models':False,'duration_ms':round((time.monotonic()-started)*1000,3)}
         finally:self.lock.release()
 
+    @torch.inference_mode()
+    def shadow_condition(self,prompt,control_vector,qstate_metric12,max_tokens=24,seed=67):
+        """Owner-only matched numerical condition: no QPU, memory or weight update."""
+        if not isinstance(prompt,str) or not 1<=len(prompt.strip())<=220:
+            raise ValueError('shadow prompt must contain 1..220 characters')
+        if type(max_tokens) is not int or not 1<=max_tokens<=min(32,self.max_new_tokens):
+            raise ValueError('invalid shadow token budget')
+        if type(seed) is not int or not 0<=seed<2**63:
+            raise ValueError('invalid shadow seed')
+        control=self.validate_control(control_vector)
+        metric=self.validate_metric(qstate_metric12)
+        ids=self.tokenizer.encode(prompt,add_bos=True)
+        if len(ids)+max_tokens>min(self.model.config.max_seq_len,384):
+            raise ValueError('shadow input exceeds tested context')
+        if not self.lock.acquire(blocking=False):
+            raise RuntimeError('native provider busy')
+        try:
+            started=time.monotonic()
+            input_ids=torch.tensor([ids],dtype=torch.long,device=self.device)
+            cv=torch.tensor([control],dtype=torch.float32,device=self.device)
+            qv=torch.tensor([metric],dtype=torch.float32,device=self.device)
+            original=self.model(input_ids,control_vector=cv)
+            conditioned=self.model(input_ids,control_vector=cv,qstate_metric12=qv)
+            delta=(conditioned['logits'][:,-1,:].float()
+                   -original['logits'][:,-1,:].float())
+            logit_l2=float(torch.linalg.vector_norm(delta))
+            if not math.isfinite(logit_l2):
+                raise FloatingPointError('nonfinite shadow logit delta')
+            def generate_one(qstate):
+                random=torch.Generator(device=self.device).manual_seed(seed)
+                generated=[]
+                for token,_ in generate(
+                    self.model,input_ids,max_new_tokens=max_tokens,
+                    temperature=0,eos_token_id=self.tokenizer.eos_id,
+                    generator=random,use_cache=True,
+                    deadline=time.monotonic()+18,
+                    control_vector=cv,qstate_metric12=qstate,
+                ):
+                    generated.append(token)
+                return self.tokenizer.decode(generated)
+            response_ordinary=generate_one(None)
+            response_buddy=generate_one(qv)
+            return {
+                'model_id':'rawrphos-native',
+                'training_steps':self.metadata['training_steps'],
+                'checkpoint_sha256':self.metadata['checkpoint_sha256'],
+                'prompt_sha256':hashlib.sha256(prompt.encode()).hexdigest(),
+                'control_sha256':hashlib.sha256(cv.cpu().numpy().tobytes()).hexdigest(),
+                'metric_sha256':hashlib.sha256(qv.cpu().numpy().tobytes()).hexdigest(),
+                'gate_by_layer':[round(float(t['gate']),8)
+                                 for t in conditioned['telemetry']],
+                'sigma_by_layer':[round(float(t['sigma']),8)
+                                  for t in conditioned['telemetry']],
+                'metric_weight_range':[
+                    round(min(float(t['metric_weight_min'])
+                              for t in conditioned['telemetry']),8),
+                    round(max(float(t['metric_weight_max'])
+                              for t in conditioned['telemetry']),8),
+                ],
+                'logit_l2':round(logit_l2,10),
+                'response_ordinary':response_ordinary,
+                'response_buddy':response_buddy,
+                'equal_fixed_seed':response_ordinary==response_buddy,
+                'model_weights_changed':False,
+                'performance_gain_proven':False,
+                'quantum_advantage_proven':False,
+                'fresh_hardware_used':False,
+                'metric_provenance':'UNATTESTED_NUMERIC_INPUT',
+                'duration_ms':round((time.monotonic()-started)*1000,3),
+            }
+        finally:
+            self.lock.release()
+
     def complete(self,prompt,**kwargs): return ''.join(self.tokens(prompt,**kwargs))
