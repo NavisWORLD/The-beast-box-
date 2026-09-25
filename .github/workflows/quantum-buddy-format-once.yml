@@ -1,0 +1,44 @@
+name: Quantum Buddy one-time runtime import formatter
+on:
+  push:
+    branches: [feature/quantum-buddy-shadow-core-001]
+    paths: ['.github/workflows/quantum-buddy-format-once.yml']
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.repository == 'NavisWORLD/The-beast-box-'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply Ruff's exact import sorting to existing runtime only
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'ruff==0.12.12'
+          git fetch origin feature/quantum-buddy-shadow-core-001
+          git checkout -B feature/quantum-buddy-shadow-core-001 origin/feature/quantum-buddy-shadow-core-001
+          ruff check --select I --fix beastbox/runtime.py
+          ruff check --select I beastbox/runtime.py
+          if git diff --exit-code -- beastbox/runtime.py; then
+            echo 'Runtime already formatted; no write required'
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add beastbox/runtime.py
+          git commit -m "style: normalize runtime import block for Buddy acceptance"
+          for i in 1 2 3 4 5; do
+            git fetch origin feature/quantum-buddy-shadow-core-001
+            git rebase origin/feature/quantum-buddy-shadow-core-001
+            if git push origin HEAD:refs/heads/feature/quantum-buddy-shadow-core-001; then
+              exit 0
+            fi
+          done
+          exit 1
