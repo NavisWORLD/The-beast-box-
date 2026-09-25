@@ -15,8 +15,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from beastbox.quantum_buddy.operators import QuantumStateOperator  # noqa: E402 - repo root bootstrap for standalone CLI
-from beastbox.quantum_buddy.shadow import (  # noqa: E402 - repo root bootstrap for standalone CLI
+from beastbox.quantum_buddy.operators import QuantumStateOperator
+from beastbox.quantum_buddy.shadow import (
     FrozenPhase8Config,
     generate_synthetic_cohort,
     run_phase8,
