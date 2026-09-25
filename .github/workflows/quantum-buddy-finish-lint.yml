@@ -1,0 +1,104 @@
+name: Quantum Buddy one-time scoped final lint
+on:
+  push:
+    branches: [feature/quantum-buddy-shadow-core-001]
+    paths: [.github/workflows/quantum-buddy-finish-lint.yml]
+permissions:
+  contents: write
+jobs:
+  scoped-lint:
+    if: github.repository == 'NavisWORLD/The-beast-box-'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --quiet ruff==0.12.12
+      - name: Fix strictly scoped non-autofix checks
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          bridge=Path("apps/beastbox-cloud/bridge/owner_bridge.py")
+          s=bridge.read_text()
+          # A redundant local import was added before global urllib imports.
+          before=s.count("        import urllib.request\n")
+          if before:
+              s=s.replace("        import urllib.request\n","")
+          old='raise ValueError("expected JSON object")'
+          assert old in s, "JSON type guard unexpectedly changed; stop for review"
+          s=s.replace(old,'raise TypeError("expected JSON object")')
+          old='except (UnicodeDecodeError, ValueError, json.JSONDecodeError):'
+          assert old in s, "JSON parser exception contract changed; stop for review"
+          s=s.replace(old,'except (UnicodeDecodeError, ValueError, TypeError, json.JSONDecodeError):')
+          bridge.write_text(s)
+
+          accept=Path("scripts/run_quantum_buddy_acceptance.py")
+          s=accept.read_text()
+          if s.startswith("#!/usr/bin/env python3\n"):
+              s=s[len("#!/usr/bin/env python3\n"):]
+          old='raise ValueError("acceptance gates and tested commands must be explicit")'
+          assert old in s, "acceptance type gate unexpectedly changed; stop for review"
+          s=s.replace(old,'raise TypeError("acceptance gates and tested commands must be explicit")')
+          old="stdout=subprocess.PIPE, stderr=subprocess.PIPE,"
+          assert old in s, "capture-output contract unexpectedly changed; stop for review"
+          s=s.replace(old,"capture_output=True,")
+          accept.write_text(s)
+
+          phase=Path("scripts/run_quantum_buddy_phase8_shadow.py")
+          s=phase.read_text()
+          if s.startswith("#!/usr/bin/env python3\n"):
+              phase.write_text(s[len("#!/usr/bin/env python3\n"):])
+          PY
+      - name: Apply and verify exact Ruff 0.12.12 rules
+        run: |
+          set -euo pipefail
+          ruff check --fix \
+            beastbox/quantum_buddy beastbox/cns.py beastbox/bridge.py \
+            beastbox/synaptic.py beastbox/runtime.py \
+            apps/beastbox-cloud/bridge/owner_bridge.py \
+            models/rawrphos/architecture/model.py \
+            models/rawrphos/architecture/generation.py \
+            models/rawrphos/inference/engine.py \
+            models/rawrphos/inference/server.py \
+            scripts/run_quantum_buddy_phase8_shadow.py \
+            scripts/run_quantum_buddy_acceptance.py
+          ruff check \
+            beastbox/quantum_buddy beastbox/cns.py beastbox/bridge.py \
+            beastbox/synaptic.py beastbox/runtime.py \
+            apps/beastbox-cloud/bridge/owner_bridge.py \
+            models/rawrphos/architecture/model.py \
+            models/rawrphos/architecture/generation.py \
+            models/rawrphos/inference/engine.py \
+            models/rawrphos/inference/server.py \
+            scripts/run_quantum_buddy_phase8_shadow.py \
+            scripts/run_quantum_buddy_acceptance.py
+          python -m compileall -q beastbox/quantum_buddy \
+            apps/beastbox-cloud/bridge/owner_bridge.py \
+            scripts/run_quantum_buddy_phase8_shadow.py \
+            scripts/run_quantum_buddy_acceptance.py
+      - name: Commit only scoped lint fixes to isolated branch
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add beastbox/quantum_buddy beastbox/cns.py beastbox/bridge.py \
+            beastbox/synaptic.py beastbox/runtime.py \
+            apps/beastbox-cloud/bridge/owner_bridge.py \
+            models/rawrphos/architecture/model.py \
+            models/rawrphos/architecture/generation.py \
+            models/rawrphos/inference/engine.py \
+            models/rawrphos/inference/server.py \
+            scripts/run_quantum_buddy_phase8_shadow.py \
+            scripts/run_quantum_buddy_acceptance.py
+          if ! git diff --cached --quiet; then
+            git commit -m 'style: satisfy full Quantum Buddy scoped lint gate'
+            git push origin HEAD:feature/quantum-buddy-shadow-core-001
+          else
+            echo 'No scoped lint changes required'
+          fi
