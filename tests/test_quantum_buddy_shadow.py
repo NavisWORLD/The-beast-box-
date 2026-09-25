@@ -112,3 +112,38 @@ def test_replay_is_labeled_nonindividual_and_quality_gate_never_autopromotes():
     assert all(len(result[k]) == 64 for k in (
         "checkpoint_sha256", "cohort_sha256", "prompt_bank_sha256",
         "sampling_seeds_sha256", "prereg_sha256"))
+
+def test_nonfinite_operator_packet_aborts_before_identity_scoring():
+    """Never let NaN packets turn into apparently perfect cosine matches."""
+    from dataclasses import replace
+    from beastbox.quantum_buddy.state import BuddyStateError
+
+    class CorruptEntangledPacket(QuantumStateOperator):
+        def evaluate(self, dyn12, *, mode, circuit_version, shot_budget, provenance):
+            result = super().evaluate(
+                dyn12, mode=mode, circuit_version=circuit_version,
+                shot_budget=shot_budget, provenance=provenance,
+            )
+            if mode == "sim_entangled":
+                return replace(result, qstate12=(math.nan, *result.qstate12[1:]))
+            return result
+
+    class NumericModel(FakeModel):
+        def __call__(self, prompt, seed, dyn12, qstate12, mode):
+            return {
+                "logit_l2": 0.1, "duration_ms": 2.0,
+                "response_ordinary": "ordinary", "response_buddy": "buddy",
+                "checkpoint_sha256": self.checkpoint_sha256,
+                "model_weights_changed": False,
+                "fresh_hardware_used": False,
+                "quantum_advantage_proven": False,
+            }
+
+    config = FrozenPhase8Config.from_dict(PREREG, model_checkpoint_sha256="a" * 64)
+    cohort = generate_synthetic_cohort(32, 4, seed=PREREG["cohort_seed"])
+    with pytest.raises((ValueError, BuddyStateError), match="qstate|operator packet"):
+        run_phase8(
+            cohort, PROMPTS, SEEDS,
+            CorruptEntangledPacket(replay_bank={"phase8-calibration": [0.1] * 12}),
+            NumericModel(), config,
+        )
