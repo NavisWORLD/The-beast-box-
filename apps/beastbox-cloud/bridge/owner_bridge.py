@@ -692,7 +692,13 @@ class OwnerBridge:
                 "latencyMs": (__import__("time").perf_counter()-started)*1000,
                 "createdAt": datetime.now(timezone.utc).isoformat(),
             }
-            receipt_id = repo.append_history(receipt)
+            # Shadow permission is not permission to mutate Cosmos.
+            # The separate host-level write flag gates *all* durable receipts.
+            receipt_id = (
+                repo.append_history(receipt)
+                if self.quantum_buddy_cosmos_writes_enabled
+                else None
+            )
         except Exception:  # noqa: BLE001 - never echo SDK/model exception text
             return 503, {"error": "Buddy shadow unavailable; ordinary chat unaffected"}
         return 200, {
@@ -706,6 +712,7 @@ class OwnerBridge:
             "response_ordinary": str(report.get("response_ordinary", ""))[:4096],
             "response_buddy": str(report.get("response_buddy", ""))[:4096],
             "history_receipt_id": receipt_id,
+            "persisted": receipt_id is not None,
             "fresh_hardware_used": False,
             "model_weights_changed": False,
             "quantum_advantage_proven": False,
