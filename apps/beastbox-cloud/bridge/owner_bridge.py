@@ -33,10 +33,11 @@ from beastbox.rawrphos_hf import (MODEL as HF_NATIVE_MODEL, SPACE_URL as HF_NATI
                                   profile as hosted_native_profile, PrivateSpaceProvider)
 from beastbox.chat_jobs import ChatJobs
 from beastbox.guest_local import guest_local_infer
+from beastbox.cns_model_probe import cns_model_probe
 
 MAX_BYTES = 256_000
 GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "engine-growth"})
-POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local"})
+POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe"})
 
 
 class OwnerBridge:
@@ -515,6 +516,7 @@ class OwnerBridge:
         if name == "bio" and method == "GET":
             return 200, {"enabled": self.bio_enabled,
                          "cst_preview_enabled": self.cst_preview_enabled,
+                         "cns_model_probe_enabled": os.environ.get("BEASTBOX_CNS_MODEL_PROBE_ENABLED", "no") == "yes",
                          "persist_enabled": self.bio_persist_enabled,
                          "remote_enabled": self.bio_remote_allowed,
                          "owner": "SINGLE_OWNER_PREVIEW",
@@ -541,6 +543,9 @@ class OwnerBridge:
                 set(data) != {"scope", "name", "text"} or data.get("scope") != "temporary_attachment"
             ):
                 return 400, {"error": "cloud context is temporary attachment data only"}
+        if name == "cns-model-probe":
+            with self.app._lock:
+                return self.chat_jobs.run_when_idle(lambda: cns_model_probe(data))
         if name == "guest-local":
             if not self.chat_jobs.acquire_guest():
                 return 429, {"error": "Owner inference or local guest slot is busy"}

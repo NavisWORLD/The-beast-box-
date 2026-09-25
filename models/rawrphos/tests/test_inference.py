@@ -69,3 +69,39 @@ def test_benchmark_repetition_and_invalid_budget():
     assert repetition_fraction("a b c") == 0.0
     with pytest.raises(ValueError, match="budget"):
         evaluate("/does-not-exist", max_tokens=65)
+
+
+def test_actual_cns_control_changes_frozen_model_logits_without_zero_control_regression(trained):
+    from rawrphos.inference.server import create_app
+    app=create_app(trained,'test-key-'+'x'*32,max_new_tokens=32)
+    client=TestClient(app)
+    headers={'Authorization':'Bearer '+'test-key-'+'x'*32}
+    info=client.get('/model/info',headers=headers).json()
+    request={'model':'rawrphos-native','prompt':'The cat','max_tokens':8,'seed':67,
+             'control_vector':[0.75 if i % 2 else -0.5 for i in range(12)]}
+    assert client.post('/v1/condition-probe',json=request).status_code==401
+    response=client.post('/v1/condition-probe',headers=headers,json=request)
+    assert response.status_code==200,response.text
+    result=response.json()
+    assert result['checkpoint_sha256']==info['checkpoint_sha256']
+    assert result['training_steps']==1
+    assert result['model_weights_changed'] is False
+    assert result['performance_gain_proven'] is False
+    assert result['logit_l2']['zero_vs_reference'] < 1e-6
+    assert result['logit_l2']['conditioned_vs_reference'] > 1e-9
+    assert result['logit_l2']['conditioned_vs_rotated'] > 1e-9
+    assert len(result['gate_by_layer'])==2
+    assert isinstance(result['response_reference'],str)
+    assert isinstance(result['response_conditioned'],str)
+    # Repeat the same fixed seed to guarantee reproducible responses.
+    second=client.post('/v1/condition-probe',headers=headers,json=request)
+    assert second.status_code==200
+    assert second.json()['response_conditioned']==result['response_conditioned']
+    assert second.json()['response_reference']==result['response_reference']
+    assert client.post('/v1/condition-probe',headers=headers,
+                       json=dict(request,control_vector=[False]*12)).status_code==400
+    assert client.post('/v1/condition-probe',headers=headers,
+                       json=dict(request,control_vector=[2.0]*12)).status_code==400
+    assert client.post('/v1/condition-probe',headers=headers,
+                       json=dict(request,unexpected='tools')).status_code==400
+    assert client.get('/model/info',headers=headers).json()['checkpoint_sha256']==info['checkpoint_sha256']

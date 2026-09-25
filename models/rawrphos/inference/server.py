@@ -74,6 +74,28 @@ def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=N
                 'model':'rawrphos-native','choices':[choice],'usage':usage,'checkpoint_sha256':engine.metadata['checkpoint_sha256']}
         except (ValueError,RuntimeError,TimeoutError,FloatingPointError):
             return JSONResponse({'error':'native inference unavailable; no fallback'},status_code=503)
+    @app.post('/v1/condition-probe')
+    async def condition_probe(request:Request):
+        try:
+            body=await request.json()
+            if (not isinstance(body,dict) or set(body)!={'model','prompt','control_vector','max_tokens','seed'}
+                or body.get('model')!='rawrphos-native'):
+                raise ValueError('invalid probe shape')
+            vector=Engine.validate_control(body.get('control_vector'))
+            prompt=body['prompt'];count=body['max_tokens'];seed=body['seed']
+            if not isinstance(prompt,str) or not 1<=len(prompt.strip())<=220 or type(count) is not int or not 1<=count<=32 or type(seed) is not int or not 0<=seed<2**63:
+                raise ValueError('invalid probe values')
+        except (ValueError,TypeError,KeyError,UnicodeError):
+            return JSONResponse({'error':'invalid bounded native conditioning probe'},status_code=400)
+        try:
+            from starlette.concurrency import run_in_threadpool
+            result=await run_in_threadpool(engine.condition_probe,prompt,vector,count,seed)
+            return result
+        except RuntimeError:
+            return JSONResponse({'error':'native probe busy'},status_code=429)
+        except (ValueError,TimeoutError,FloatingPointError):
+            return JSONResponse({'error':'native conditioning probe unavailable; no fallback'},status_code=503)
+
     @app.post('/v1/completions')
     async def text_completion(request:Request): return await completion(request)
     @app.post('/v1/chat/completions')
