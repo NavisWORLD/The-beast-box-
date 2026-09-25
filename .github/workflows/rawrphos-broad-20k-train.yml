@@ -1,0 +1,217 @@
+name: RAWRPHOS real 20K broad-curriculum research training
+
+on:
+  push:
+    branches: [experiment/rawrphos-broad-20k-phase-001]
+    paths: ['models/rawrphos/broad-phase-001-request.json']
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rawrphos-real-broad-20k-phase-001
+  cancel-in-progress: false
+
+jobs:
+  verify-train-evaluate:
+    if: >-
+      github.repository == 'NavisWORLD/The-beast-box-' &&
+      github.ref == 'refs/heads/experiment/rawrphos-broad-20k-phase-001' &&
+      startsWith(github.event.head_commit.message, 'train(rawrphos): authorize audited broad 20k phase 001 ')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 170
+    env:
+      PYTHONPATH: models
+      WORK: .rawrphos-broad-20k
+      BASE_PARENT_RUN: '36056700705'
+      BASE_PARENT_SOURCE: ee874262650a8693fcbf61e5c9880b6bc22c8bdb
+      BASE_PARENT_SHA: 62a860f6882ef59d2becb41ad119f92836add184b325413cbd4a6e3631c44662
+      FROZEN_DIALOGUE_SHA: 7e9e8f91e751b3304663cb28293b2c90cc0e1623df355eb77dfdc6004cadcec5
+      FROZEN_SUPPLEMENT_SHA: 4275abb30706826ab42d6e9e3c54d0c0a9de66fb43590d5b8660f0a2e8eb243d
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false, fetch-depth: 2}
+
+      - name: Require EXACT one-file owner CPU-only authorization and frozen experiment rules
+        run: |
+          set -euo pipefail
+          test "$(git diff --name-only HEAD^ HEAD)" = 'models/rawrphos/broad-phase-001-request.json'
+          python - <<'PY'
+          import json,os,pathlib
+          r=json.loads(pathlib.Path('models/rawrphos/broad-phase-001-request.json').read_text())
+          assert set(r)=={
+              'schema','parent_run_id','parent_step','parent_sha256','original_dataset_sha256',
+              'audited_supplement_sha256','maximum_additional_steps','max_wall_minutes',
+              'training_mix','automated_stop_policy','authorization'
+          }
+          assert r['schema']=='rawrphos-broad-phase-001-request-v1'
+          assert r['parent_run_id']==os.environ['BASE_PARENT_RUN'] and r['parent_step']==20000
+          assert r['parent_sha256']==os.environ['BASE_PARENT_SHA']
+          assert r['original_dataset_sha256']==os.environ['FROZEN_DIALOGUE_SHA']
+          assert r['audited_supplement_sha256']==os.environ['FROZEN_SUPPLEMENT_SHA']
+          assert r['maximum_additional_steps']==1000 and r['max_wall_minutes']==115
+          assert r['training_mix']=={'original_dialogue':0.8,'audited_synthetic_broad':0.2}
+          assert r['automated_stop_policy']=='sealed checkpoints every 100 steps; stop on original-skill regression or broad-data validation plateau'
+          assert r['authorization']=='Resume exactly from verified 20K weights and optimizer for a NEW CPU-only broad curriculum phase, maximum 1000 additional optimizer steps on hosted public GitHub Actions; no paid upgrades, production deployment, personal data or QPU jobs'
+          print('FROZEN_BROAD_20K_EXPLICIT_OWNER_CPU_RESEARCH_AUTHORIZATION',flush=True)
+          PY
+
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install pinned public CPU training dependencies only
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check --quiet \
+            'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'pyarrow>=15,<24' \
+            'pytest>=8,<10' 'numpy>=1.26,<3' 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'uvicorn>=0.30,<1'
+
+      - name: RED/GREEN coverage and regressions before burning any optimizer cycles
+        run: |
+          set -euo pipefail
+          python -m compileall -q \
+            models/rawrphos/scripts/prepare_broad_blend.py \
+            models/rawrphos/training/broad_adapt.py \
+            models/rawrphos/scripts/run_broad_pilot.py \
+            models/rawrphos/scripts/evaluate_broad_pilot.py
+          python -m pytest -q models/rawrphos/tests
+
+      - name: Reconstruct exact original licensed dialogue and audited 30-category supplemental curriculum
+        run: |
+          set -euo pipefail
+          mkdir -p "$WORK"
+          python -m rawrphos.scripts.install_pinned_12k --destination "$WORK/step-00012000"
+          python -m rawrphos.scripts.prepare_conversation \
+            --source "$WORK/source" --output "$WORK/original" \
+            --tokenizer "$WORK/step-00012000/tokenizer"
+          python -m rawrphos.scripts.prepare_broad_curriculum --output "$WORK/audited-supplement"
+          python - <<'PY'
+          import json,os,pathlib
+          from rawrphos.data.conversation import load_dataset
+          from rawrphos.scripts.prepare_broad_blend import read_supplement
+          root=pathlib.Path(os.environ['WORK'])
+          source=load_dataset(root/'original')
+          audit=json.loads(pathlib.Path('models/rawrphos/evidence/conversation-001/data-manifest.json').read_text())
+          assert source['manifest']==audit
+          assert source['manifest']['dataset_sha256']==os.environ['FROZEN_DIALOGUE_SHA']
+          train,val,manifest=read_supplement(root/'audited-supplement')
+          assert manifest['dataset_sha256']==os.environ['FROZEN_SUPPLEMENT_SHA']
+          assert len(train)>=700 and len(val)>=100
+          print('TWO_FROZEN_SEPARATE_DATA_SOURCES_VERIFIED',
+                len(source['train']),len(source['validation']),len(train),len(val),flush=True)
+          PY
+
+      - name: Create new manifest and reject any training-validation or public-probe leakage
+        run: |
+          set -euo pipefail
+          python -m rawrphos.scripts.prepare_broad_blend \
+            --original "$WORK/original" \
+            --supplement "$WORK/audited-supplement" \
+            --output "$WORK/new-blend"
+          python - <<'PY'
+          import json,os,pathlib
+          from rawrphos.data.conversation import load_dataset
+          from rawrphos.scripts.prepare_broad_blend import question
+          root=pathlib.Path(os.environ['WORK'])
+          blend=load_dataset(root/'new-blend')
+          p=blend['manifest']['provenance']
+          assert p['counts']['base_train']==11908 and p['counts']['base_validation']==537
+          assert p['counts']['supplement_train']>=600 and p['counts']['supplement_validation']>=50
+          assert len(p['supplement_train_categories'])>=27 and len(p['supplement_validation_categories'])>=25
+          assert not ({question(r) for r in blend['train']} & {question(r) for r in blend['validation']})
+          assert p['personal_user_history_used'] is False
+          assert p['private_sensor_or_quantum_data_used'] is False
+          assert p['mix_sampling']=={
+              'frozen_original_dialogue_mass':0.8,
+              'supplemental_category_uniform_mass':0.2
+          }
+          print('NEW_BROAD_DATA_PHASE_ISOLATED',blend['manifest']['dataset_sha256'],flush=True)
+          PY
+
+      - name: Restore exact sealed 20K weights optimizer RNG data sampler and scheduler; NEVER use 20.3K regression
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$BASE_PARENT_RUN" --repo "$GITHUB_REPOSITORY" \
+            --name rawrphos-conversation-stage-010-recovery --dir "$WORK/parent-artifact"
+          python - <<'PY'
+          import json,os,pathlib
+          from dataclasses import asdict
+          from rawrphos.training.checkpoint import load_checkpoint,parameter_hash
+          from rawrphos.training.conversation import ConversationConfig
+          root=pathlib.Path(os.environ['WORK'])
+          parent=root/'parent-artifact/checkpoints/step-00020000'
+          assert parent.is_dir(),'exact 20K optimizer-bearing checkpoint missing; no fallback'
+          receipt=json.loads((root/'parent-artifact/stage-receipt.json').read_text())
+          assert receipt['source_commit']==os.environ['BASE_PARENT_SOURCE']
+          assert receipt['candidate_sha256']==os.environ['BASE_PARENT_SHA']
+          assert receipt['cumulative_steps']==20000 and receipt['automated_checks_pass'] is True
+          loaded=load_checkpoint(parent,expected_checkpoint_sha256=os.environ['BASE_PARENT_SHA'])
+          m,s=loaded['metadata'],loaded['state']
+          assert m['training_steps']==20000 and m['conversation_steps']==8000
+          assert m['phase']=='conversation-v1'
+          assert m['dataset_manifest_sha256']==os.environ['FROZEN_DIALOGUE_SHA']
+          assert m['conversation_config']==asdict(ConversationConfig(
+              batch_size=8,max_seq_len=384,threads=4,checkpoint_every=100,eval_examples=128
+          ))
+          assert {'optimizer','rng','data_rng','scheduler'}<=s.keys()
+          assert s['scheduler']['completed_phase_steps']==8000
+          assert len(s['optimizer']['state'])>0
+          assert parameter_hash(loaded['model'])==m['parameter_sha256']
+          print('EXACT_PRESERVED_20K_WEIGHTS_OPTIMIZER_RNG_SCHEDULER_READY',
+                m['checkpoint_sha256'],flush=True)
+          PY
+
+      - name: Actually train 100-step stages on NEW 80/20 blend with early quality stops
+        run: |
+          set -euo pipefail
+          python -m rawrphos.scripts.run_broad_pilot \
+            --parent "$WORK/parent-artifact/checkpoints/step-00020000" \
+            --blended "$WORK/new-blend" \
+            --output "$WORK/pilot" \
+            --expected-parent-sha256 "$BASE_PARENT_SHA" \
+            --max-steps 1000 \
+            --max-wall-minutes 115
+
+      - name: Paired FULL original vs supplemental heldout; actual decoded public answers
+        run: |
+          set -euo pipefail
+          python -m rawrphos.scripts.evaluate_broad_pilot \
+            --parent "$WORK/parent-artifact/checkpoints/step-00020000" \
+            --original "$WORK/original" \
+            --blended "$WORK/new-blend" \
+            --pilot-output "$WORK/pilot" \
+            --expected-parent-sha256 "$BASE_PARENT_SHA"
+
+      - name: Seal evaluation manifests without inventing promotion, including checkpoint manifests
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,os,pathlib
+          root=pathlib.Path(os.environ['WORK'])
+          files=sorted(
+              [p for p in (root/'pilot').glob('*.json') if p.is_file()] +
+              [p for p in (root/'pilot').rglob('manifest.json') if p.is_file()]
+          ) if (root/'pilot').is_dir() else []
+          if files:
+              (root/'pilot/SHA256SUMS').write_text(''.join(
+                  f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.relative_to(root/"pilot")}\n'
+                  for p in files
+              ))
+              print('BROAD_20K_RESEARCH_EVIDENCE_SHA256_MANIFEST',len(files),flush=True)
+          PY
+
+      - name: Preserve every sealed checkpoint, manifest and complete evidence even if quality declines
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawrphos-broad-20k-phase-001-recovery
+          path: |
+            .rawrphos-broad-20k/pilot/
+            .rawrphos-broad-20k/new-blend/manifest.json
+            .rawrphos-broad-20k/new-blend/blend-receipt.json
+            .rawrphos-broad-20k/audited-supplement/manifest.json
+          if-no-files-found: warn
+          retention-days: 30
