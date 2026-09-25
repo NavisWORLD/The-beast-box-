@@ -172,7 +172,7 @@ Current CNS logic concatenates:
 
 `quantum_spark + audio_features`
 
-and `update_dyn12` consumes a 12-dimensional state by cycling over its drive. In the specific 12D-quantum + 12D-user case, the front half can dominate the first 12 positions and fail to represent the intended independent person-state/quantum-state roles.
+and then calls `update_dyn12` for a 12-dimensional state. Because that update iterates only the 12 state coordinates, a 24-value drive formed as 12 quantum values followed by 12 user values uses only drive indices 0..11 on that tick. In that exact 12D-quantum + 12D-user case, the user half is therefore not represented in the CNS update at all.
 
 Quantum Buddy must not rely on concatenation for semantic fusion.
 
