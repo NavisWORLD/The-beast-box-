@@ -1,0 +1,31 @@
+name: Quantum Buddy owner bridge RED GREEN
+on:
+  push:
+    branches: [feature/quantum-buddy-shadow-core-001]
+    paths:
+      - '.github/workflows/quantum-buddy-owner-ci.yml'
+      - 'apps/beastbox-cloud/bridge/tests/test_quantum_buddy_shadow.py'
+      - 'apps/beastbox-cloud/bridge/owner_bridge.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  owner-shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Only offline bridge dependencies; no Azure or QPU credentials
+        run: |
+          python -m pip install --quiet 'pytest>=8,<10' 'azure-cosmos>=4.9,<5' 'azure-identity>=1.17' 'cryptography>=44' 'azure-storage-blob>=12.20,<13' 'gradio-client>=1.14,<2'
+          python -m pip install --quiet -e .
+      - name: RED GREEN shadow bridge and ordinary owner regression
+        run: |
+          python -m pytest -q apps/beastbox-cloud/bridge/tests/test_quantum_buddy_shadow.py apps/beastbox-cloud/bridge/tests/test_owner_bridge.py
+      - name: No live Azure, hardware or production mutation
+        run: echo 'NO_LIVE_COSMOS_WRITE NO_QPU NO_DEPLOY'
