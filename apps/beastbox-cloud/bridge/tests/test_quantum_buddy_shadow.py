@@ -100,7 +100,7 @@ class BuddyBridgeTests(unittest.TestCase):
         self.assertEqual(code, 200, ordinary)
 
     def test_bounded_shadow_runs_source_blind_without_changing_ordinary_chat(self):
-        bridge = self.make_bridge(enabled="yes", shadow="yes")
+        bridge = self.make_bridge(enabled="yes", shadow="yes", cosmos_write="yes")
         repo = FakeRepo()
         bridge.quantum_buddy_repo_factory = lambda: repo
         model_calls = []
@@ -190,3 +190,32 @@ class BuddyBridgeTests(unittest.TestCase):
         self.assertEqual(bridge.dispatch(
             "POST", "/api/quantum-buddy/state", AUTH, json.dumps(creation).encode(),
         )[0], 403)
+
+    def test_shadow_without_separate_cosmos_write_flag_is_ephemeral(self):
+        """Opt-in comparison alone never enables a new Cosmos mutation."""
+        bridge = self.make_bridge(enabled="yes", shadow="yes", cosmos_write="no")
+        repo = FakeRepo()
+        bridge.quantum_buddy_repo_factory = lambda: repo
+        bridge.quantum_buddy_shadow_infer = lambda *args: {
+            "checkpoint_sha256": "a" * 64,
+            "model_weights_changed": False,
+            "quantum_advantage_proven": False,
+            "logit_l2": 0.25,
+            "response_ordinary": "ordinary",
+            "response_buddy": "conditioned",
+        }
+        request = {
+            "userId": "owner-opaque-a", "prompt": "hello",
+            "mode": "matched_classical", "max_tokens": 2, "seed": 67,
+        }
+        code, result = bridge.dispatch(
+            "POST", "/api/quantum-buddy/shadow", AUTH, json.dumps(request).encode(),
+        )
+        self.assertEqual(code, 200, result)
+        self.assertFalse(result["persisted"])
+        self.assertIsNone(result["history_receipt_id"])
+        self.assertEqual(repo.receipts, [])
+        self.assertEqual(bridge.dispatch(
+            "POST", "/api/chat", AUTH, json.dumps({"text": "hello"}).encode(),
+        )[0], 200)
+
