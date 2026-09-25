@@ -70,13 +70,13 @@ def test_real_scoped_test_command_lists_are_accepted_but_still_bounded():
     command = "python -m pytest -q " + " ".join(
         f"tests/test_quantum_buddy_component_{i:02d}.py" for i in range(11)
     )
-    assert 200 < len(command) < 4096
+    assert 200 < len(command) < 8192
     report = build_acceptance_report(
         {}, source_commit="c" * 40, tested_commands=[command]
     )
     assert report["provenance"]["test_commands"] == [command]
     with pytest.raises(ValueError, match="tested command"):
         build_acceptance_report(
-            {}, source_commit="c" * 40, tested_commands=["x" * 4097]
+            {}, source_commit="c" * 40, tested_commands=["x" * 8193]
         )
 
