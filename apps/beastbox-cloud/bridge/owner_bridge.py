@@ -337,7 +337,7 @@ class OwnerBridge:
             remote = PrivateSpaceProvider(api_key=saved["secret"])
             try:
                 remote.attest()
-            except Exception:
+            except Exception:  # noqa: BLE001 - redact all remote attestation failures
                 return 503, {"error": "Private RAWRPHØS Space identity unavailable; selection unchanged"}
             self.app.authority.grant("cloud")
             try:
