@@ -17,7 +17,6 @@ from .sensory import SensorySummary, freshness_gate
 from .state import MissionState
 from .synaptic import SynapticField
 
-
 DEFAULT_SYSTEM_PROMPT = (
     "You are the local synthesis layer inside an owner-controlled research runtime. "
     "Treat state labels as software instrumentation, not claims of consciousness. "
