@@ -1,13 +1,13 @@
 """Versioned bounded person/quantum state, separate from model weights or authority."""
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
-from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import math
 import re
 import struct
+from dataclasses import dataclass, replace
+from datetime import datetime, timedelta, timezone
 
 MODES = frozenset((
     "off", "matched_classical", "replay", "sim_unentangled",
@@ -165,7 +165,7 @@ class BuddyQuantumState:
         }
 
     @classmethod
-    def from_document(cls, raw) -> "BuddyQuantumState":
+    def from_document(cls, raw) -> BuddyQuantumState:
         if not isinstance(raw, dict):
             raise BuddyStateError("invalid qstate document")
         try:
@@ -234,7 +234,7 @@ class BuddyCurrentState:
             quantum_refresh_consent=quantum_refresh_consent,
         )
 
-    def with_qstate(self, qstate: BuddyQuantumState, *, now=None) -> "BuddyCurrentState":
+    def with_qstate(self, qstate: BuddyQuantumState, *, now=None) -> BuddyCurrentState:
         if not isinstance(qstate, BuddyQuantumState):
             raise BuddyStateError("invalid qstate")
         if qstate.source_state_sha256 != self.dyn12_sha256:
@@ -269,7 +269,7 @@ class BuddyCurrentState:
         }
 
     @classmethod
-    def from_document(cls, raw) -> "BuddyCurrentState":
+    def from_document(cls, raw) -> BuddyCurrentState:
         if not isinstance(raw, dict) or raw.get("schema") != SCHEMA or raw.get("id") != "current":
             raise BuddyStateError("wrong buddy schema or item id")
         consent = raw.get("consent")
