@@ -8,7 +8,10 @@ from collections.abc import Mapping
 from .circuit import CIRCUIT_VERSION, build_qb_v1_manifest, simulate_qb_v1
 from .hardware_gate import HardwareExecutionDisabled, HardwareExecutionPolicy
 from .state import (
-    BuddyQuantumState, BuddyStateError, MODES, canonical_vector_sha256,
+    MODES,
+    BuddyQuantumState,
+    BuddyStateError,
+    canonical_vector_sha256,
     validate_vector12,
 )
 
