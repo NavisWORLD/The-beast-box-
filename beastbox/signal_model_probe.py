@@ -1,6 +1,6 @@
 """Owner-approved typed sensory/quantum -> CNS7 -> RAWRPHØS probe.
 
-Isolated fixed-weight experiment: no DurableRuntime, memory write, provider job,
+Isolated fixed-weight experiment: no durable-state initialization or memory write, provider job,
 weight training, tool authority, actuator authority, or credential transport.
 """
 from __future__ import annotations
