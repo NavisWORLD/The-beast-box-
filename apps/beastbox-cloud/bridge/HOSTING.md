@@ -265,14 +265,14 @@ must remain unchanged if any Quantum Buddy dependency is missing.
 Use the **existing Azure Cosmos DB for NoSQL account**. An authorized Azure
 administrator must pre-create two dedicated containers inside the selected
 existing database: buddy-state and buddy-history, each with partition key
-\`/userId\`. The bridge never creates a Cosmos account, database or container.
+`/userId`. The bridge never creates a Cosmos account, database or container.
 Use a high-cardinality opaque user ID, not an email or a biometric identifier.
 Ordinary chat remains local/durable even if the Cosmos account is unreachable.
 
 Host-only configuration names (do not place credentials in browser, Vercel
 client assets, Git, logs, or prompts):
 
-\`\`\`dotenv
+```dotenv
 # All three flags default to disabled. Omit the flags for ordinary production.
 BEASTBOX_QUANTUM_BUDDY_ENABLED=no
 BEASTBOX_QUANTUM_BUDDY_SHADOW_ENABLED=no
@@ -280,30 +280,32 @@ BEASTBOX_QUANTUM_BUDDY_COSMOS_WRITES_ENABLED=no
 # Existing account and existing database; do not configure new provisioning here.
 COSMOS_BUDDY_ENDPOINT=
 COSMOS_BUDDY_DATABASE=
-\`\`\`
+```
 
-The host obtains Cosmos credentials with \`DefaultAzureCredential\`
+The host obtains Cosmos credentials with `DefaultAzureCredential`
 (noninteractive); prefer a host Managed Identity with minimally scoped Cosmos
 DB data-plane roles on just the approved buddy containers. Credential and
 identity assignment are separate host administrative actions. Install optional
-\`cosmos-beast-box[azure]\` only on an explicitly approved host.
+`cosmos-beast-box[azure]` only on an explicitly approved host.
 
 Authenticated owner research routes:
 
-- GET \`/api/quantum-buddy\`: non-sensitive feature/status flags only.
-- POST \`/api/quantum-buddy/state\`: \`read\`, \`create\`, \`update\`.
+- GET `/api/quantum-buddy`: non-sensitive feature/status flags only.
+- POST `/api/quantum-buddy/state`: `read`, `create`, `update`.
   Reads return source hashes/version/consent/ETag, not raw dyn12 values.
   Writes require BOTH the enabled flag and the independent
-  \`BEASTBOX_QUANTUM_BUDDY_COSMOS_WRITES_ENABLED=yes\` host flag plus explicit
+  `BEASTBOX_QUANTUM_BUDDY_COSMOS_WRITES_ENABLED=yes` host flag plus explicit
   positive user consent. Update uses the current item's ETag and rejects stale
   updates. Do not turn this flag on during offline shadow CI.
-- POST \`/api/quantum-buddy/shadow\`: requires separate SHADOW flag,
+- POST `/api/quantum-buddy/shadow`: requires separate SHADOW flag,
   current-state opt-in consent and the frozen bounded request:
-  \`{userId,prompt,mode,max_tokens,seed}\`. Only offline modes are allowed:
-  \`off\`, \`matched_classical\`, \`sim_unentangled\`, \`sim_entangled\`,
-  \`replay\`. An authenticated pinned local RAWRPHOS shadow probe performs
-  a matched comparison and stores only numerical metrics and hashes in
-  buddy-history. A current-state document must already exist; the shadow
+  `{userId,prompt,mode,max_tokens,seed}`. Only offline modes are allowed:
+  `off`, `matched_classical`, `sim_unentangled`, `sim_entangled`,
+  `replay`. An authenticated pinned local RAWRPHOS shadow probe performs
+  a matched comparison. With the separate COSMOS_WRITES host switch disabled,
+  the comparison is ephemeral and adds **no Cosmos history document**. Only
+  with that independent authorization does it store numerical metrics and
+  hashes in buddy-history. A current-state document must already exist; the shadow
   endpoint never silently provisions one.
 
 This is **single-owner research**, not public multi-tenant authorization.
@@ -315,7 +317,7 @@ security review.
 The native shadow service at the pinned local loopback address runs one
 immutable checkpoint. It accepts control_vector as the user's bounded dyn12
 state and qstate_metric12 separately as geometry input, without injecting
-provider instructions into prompts. Normal \`/api/chat\` and ordinary native
+provider instructions into prompts. Normal `/api/chat` and ordinary native
 chat completions do not accept Buddy fields. Failures in Cosmos, simulator,
 replay or the native shadow path must return a sanitized error on the isolated
 research route without changing or delaying ordinary answers.
