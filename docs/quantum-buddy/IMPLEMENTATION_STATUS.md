@@ -42,3 +42,5 @@
 ## Next authorized boundary
 
 Recheck current-HEAD Product CI, contract/native and offline acceptance. Obtain independent code review and provision the two containers in the existing account only after a separate live-resource authorization. Then run frozen Phase-8 with actual native weights and preregistered quality labels. Fresh QPU execution and any production deployment remain separate owner decisions.
+
+- **Legacy lint scope ruling:** new Buddy modules, CNS/bridge/runtime seams and new evaluation scripts use the complete Ruff ruleset. Existing compact owner-bridge/native-model files are checked with every Ruff rule except their pre-existing one-line-statement layout rules (E701/E702). Reformatting all legacy model inference code is a separate change requiring its own frozen-checkpoint regression, not a hidden part of the Buddy experiment.
