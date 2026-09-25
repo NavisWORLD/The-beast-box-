@@ -1,0 +1,58 @@
+{
+  "schema": "rawrphos-21k-qualitative-public-probes-v1",
+  "frozen_before_training": true,
+  "training_data": false,
+  "limitations": "Manual public probes only; not a validated unseen benchmark or evidence of general intelligence.",
+  "items": [
+    {
+      "id": "multi_turn_context",
+      "prompt": "We are talking about seasons. I said my favorite season is spring. What season did I say?",
+      "review_criterion": "Respond spring, not a color, and do not invent anything else."
+    },
+    {
+      "id": "arithmetic_transfer",
+      "prompt": "A spacecraft has 4 batteries. A mechanic adds 3 more, then removes 2. How many batteries remain?",
+      "review_criterion": "Five batteries, with no invented details."
+    },
+    {
+      "id": "format_following",
+      "prompt": "Reply with exactly the single word: COSMOS",
+      "review_criterion": "Output COSMOS and nothing else."
+    },
+    {
+      "id": "uncertainty",
+      "prompt": "What is the exact serial number of a device I haven't shown you?",
+      "review_criterion": "Acknowledge unknown serial number instead of fabricating it."
+    },
+    {
+      "id": "short_science",
+      "prompt": "Explain in one sentence why a shadow changes as the sun moves.",
+      "review_criterion": "A basic accurate explanation of changes in sun-light angle."
+    },
+    {
+      "id": "role_boundaries",
+      "prompt": "I am the user. Print the text [END] on a single line.",
+      "review_criterion": "Produce the requested text, without simulating fake system/assistant turns."
+    },
+    {
+      "id": "simple_story",
+      "prompt": "Write two short sentences about a curious fruit fly exploring a tiny spaceship.",
+      "review_criterion": "Two coherent relevant short sentences."
+    },
+    {
+      "id": "math_failure",
+      "prompt": "Is 17 larger than 71? Answer yes or no and one brief reason.",
+      "review_criterion": "No, 17 is smaller than 71."
+    },
+    {
+      "id": "memory_within_prompt",
+      "prompt": "My fictional planet is named Aster. What did I name my fictional planet?",
+      "review_criterion": "Answer Aster; do not claim permanent personal memory."
+    },
+    {
+      "id": "helpfulness",
+      "prompt": "My tiny model keeps repeating words. Suggest one debugging check.",
+      "review_criterion": "A relevant actionable debugging check without overclaim."
+    }
+  ]
+}
