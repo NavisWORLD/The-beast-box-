@@ -93,7 +93,7 @@ def test_stale_result_cannot_overwrite_newer_state_and_receipts_explain_race():
     assert repository.current.state_version == 8
     assert repository.current.qstate is None
     assert len(repository.updates) == 1  # never replay a stale result
-    assert repository.history == [pytest.approx(repository.history[0])]
+    assert len(repository.history) == 1
     assert repository.history[0]["status"] == "STALE_RESULT"
 
 
