@@ -141,3 +141,22 @@ def test_bridge_legacy_packet_hash_shape_stays_legacy_without_conditioning():
     assert "conditioning_vector" not in safe
     assert "conditioning_provenance" not in safe
     assert len(safe["packet_sha256"]) == 64
+
+
+def test_ibm_fez_published_summary_is_new_archive_replay_schema_not_fresh_hardware():
+    from beastbox.soul.archive_summary import archive_manifest, soul_token_from_ibm_fez_summary
+    token=soul_token_from_ibm_fez_summary(0)
+    assert token.source_type=="HARDWARE_ARCHIVE_REPLAY"
+    assert token.qbt_state["qbt_version"]=="ibm-fez-published-decode-summary-replay-v1"
+    assert token.qbt_state["normalized_vector"]==[0.8387,0.0,0.0,0.0,0.0,0.0]
+    provenance=token.qbt_state["provenance"]
+    assert provenance["raw_runtime_payload_present"] is False
+    assert provenance["full_counts_present"] is False
+    assert provenance["fresh_provider_execution"] is False
+    assert provenance["transform"]=="normalized_vector=[entropy]+left_to_right_top_state_bits"
+    manifest=archive_manifest()
+    assert len(manifest["records"])==9
+    assert manifest["live_hardware"] is False
+    source=source_from_soul_token(token)
+    assert source.family=="quantum"
+    assert source.execution_mode=="hardware_archive_summary_replay"
