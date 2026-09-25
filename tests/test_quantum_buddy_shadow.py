@@ -11,7 +11,7 @@ from beastbox.quantum_buddy.shadow import (
     FrozenPhase8Config, generate_synthetic_cohort, run_phase8,
 )
 
-PREREG = json.loads(Path("experiments/quantum-buddy-phase8/preregistration.json").read_text())
+PREREG = json.loads(Path("docs/quantum-buddy/phase8/preregistration.json").read_text())
 PROMPTS = PREREG["prompt_bank"][:2]
 SEEDS = PREREG["sampling_seeds"][:2]
 

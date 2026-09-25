@@ -118,7 +118,7 @@ def main(argv=None):
                         help="explicitly authorize a long frozen CPU inference sweep")
     parser.add_argument(
         "--output", type=Path,
-        default=ROOT/"experiments/quantum-buddy-phase8/results",
+        default=ROOT/"docs/quantum-buddy/phase8/results",
     )
     args = parser.parse_args(argv)
     if args.smoke:
@@ -136,7 +136,7 @@ def main(argv=None):
         checkpoint_sha = args.expected_sha256
         measurement_class = "FROZEN_NATIVE_CPU_INFERENCE"
 
-    prereg_path = ROOT/"experiments/quantum-buddy-phase8/preregistration.json"
+    prereg_path = ROOT/"docs/quantum-buddy/phase8/preregistration.json"
     prereg = json.loads(prereg_path.read_text(encoding="utf-8"))
     config = FrozenPhase8Config.from_dict(
         prereg, model_checkpoint_sha256=checkpoint_sha,
