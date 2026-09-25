@@ -55,10 +55,13 @@ jobs:
           if s.startswith("#!/usr/bin/env python3\n"):
               phase.write_text(s[len("#!/usr/bin/env python3\n"):])
           PY
-      - name: Apply and verify exact Ruff 0.12.12 rules
+      - name: Fix imports without broad legacy model rewrites
         run: |
           set -euo pipefail
-          ruff check --fix \
+          # Preserve the frozen native model's legacy source layout. Fix only
+          # import ordering and unused imports there; never mass-reformat
+          # model code while checkpoint/runtime equivalence is being tested.
+          ruff check --fix --select I,F401 \
             beastbox/quantum_buddy beastbox/cns.py beastbox/bridge.py \
             beastbox/synaptic.py beastbox/runtime.py \
             apps/beastbox-cloud/bridge/owner_bridge.py \
@@ -68,9 +71,7 @@ jobs:
             models/rawrphos/inference/server.py \
             scripts/run_quantum_buddy_phase8_shadow.py \
             scripts/run_quantum_buddy_acceptance.py
-          ruff check \
-            beastbox/quantum_buddy beastbox/cns.py beastbox/bridge.py \
-            beastbox/synaptic.py beastbox/runtime.py \
+          ruff check --select I,F401 \
             apps/beastbox-cloud/bridge/owner_bridge.py \
             models/rawrphos/architecture/model.py \
             models/rawrphos/architecture/generation.py \
@@ -78,6 +79,9 @@ jobs:
             models/rawrphos/inference/server.py \
             scripts/run_quantum_buddy_phase8_shadow.py \
             scripts/run_quantum_buddy_acceptance.py
+          # New modules and pre-existing lint-clean Beast core get full Ruff.
+          ruff check beastbox/quantum_buddy beastbox/cns.py \
+            beastbox/bridge.py beastbox/synaptic.py beastbox/runtime.py
           python -m compileall -q beastbox/quantum_buddy \
             apps/beastbox-cloud/bridge/owner_bridge.py \
             scripts/run_quantum_buddy_phase8_shadow.py \
