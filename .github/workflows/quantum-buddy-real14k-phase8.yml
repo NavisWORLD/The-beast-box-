@@ -55,6 +55,23 @@ jobs:
           assert prereg['native_generation_temperature']==0.8 and prereg['native_generation_top_k']==40 and prereg['native_generation_max_tokens']==24
           print('FROZEN_OWNER_CPU_ONLY_AUTHORIZATION_VERIFIED')
           PY
+      - name: Verify runner CLI and aggregation interfaces before allocating native CPU
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import pathlib
+          runner=pathlib.Path('scripts/run_quantum_buddy_phase8_shadow.py').read_text()
+          workflow=pathlib.Path('.github/workflows/quantum-buddy-real14k-phase8.yml').read_text()
+          args=['--arm','--checkpoint','--expected-sha256','--release-archive',
+                '--expected-release-archive-sha256','--confirm-cpu-intensive','--output']
+          for arg in args:
+              assert 'parser.add_argument("'+arg+'"' in runner, f'missing runner CLI {arg}'
+          command=workflow.split('python scripts/run_quantum_buddy_phase8_shadow.py \\',1)[-1]
+          command=command.split('sha256sum --check SHA256SUMS',1)[0]
+          assert '--release-archive-sha256' not in command
+          assert '--source-revision' not in command
+          print('NATIVE_ARM_WORKFLOW_RUNNER_CLI_CONTRACT_VERIFIED')
+          PY
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - name: Install bounded CPU inference dependencies
@@ -152,8 +169,6 @@ jobs:
             --expected-sha256 "$CHECKPOINT_SHA" \
             --release-archive .phase8-14k/rawrphos-native-step-00014000.tar.gz \
             --expected-release-archive-sha256 "$RELEASE_SHA" \
-            --release-archive-sha256 "$RELEASE_SHA" \
-            --source-revision "$GITHUB_SHA" \
             --confirm-cpu-intensive \
             --output "build/phase8-14k-$ARM"
           (cd "build/phase8-14k-$ARM" && sha256sum --check SHA256SUMS)
