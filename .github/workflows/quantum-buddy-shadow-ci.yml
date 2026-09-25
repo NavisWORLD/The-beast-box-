@@ -50,7 +50,7 @@ jobs:
           fi
       - name: Lint new core
         run: |
-          if [ -d beastbox/quantum_buddy ]; then ruff check beastbox/quantum_buddy; fi
+          ruff check beastbox/quantum_buddy beastbox/cns.py beastbox/bridge.py beastbox/synaptic.py beastbox/runtime.py
   native:
     if: github.repository == 'NavisWORLD/The-beast-box-'
     runs-on: ubuntu-latest
