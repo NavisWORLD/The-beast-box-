@@ -78,6 +78,11 @@ def _load_native_runner(path: str, expected_sha: str, *, require_14k=False):
         )
         if result["checkpoint_sha256"] != actual:
             raise ValueError("checkpoint changed during Phase 8")
+        if (result.get("sampling_temperature") != 0.8
+                or result.get("sampling_top_k") != 40
+                or result.get("model_weights_changed") is not False
+                or result.get("fresh_hardware_used") is not False):
+            raise ValueError("native sampling, weight freeze or source provenance mismatch")
         return result
 
     return real_runner
@@ -219,6 +224,10 @@ def main(argv=None):
     report["source_revision"] = args.source_revision if full else None
     report["source_revision"] = source_revision
     report["release_archive_sha256"] = release_digest
+    report["native_generation_temperature"] = 0.8 if full else None
+    report["native_generation_top_k"] = 40 if full else None
+    report["native_generation_max_tokens"] = 24 if full else None
+    report["replay_control_provenance"] = "SYNTHETIC_FIXED_CALIBRATION_NOT_ARCHIVED_QPU"
     report["native_model_inference_attested"] = full
     report["full_preregistration_evaluated"] = full and args.arm is None
     report["hardware_promotion_approved"] = False
