@@ -45,6 +45,9 @@ jobs:
           for file in tests/test_quantum_buddy*.py; do
             if [ -f "$file" ]; then python -m pytest -q "$file"; fi
           done
+          if [ -f apps/beastbox-cloud/bridge/tests/test_quantum_buddy_shadow.py ]; then
+            python -m pytest -q apps/beastbox-cloud/bridge/tests/test_quantum_buddy_shadow.py
+          fi
       - name: Lint new core
         run: |
           if [ -d beastbox/quantum_buddy ]; then ruff check beastbox/quantum_buddy; fi
