@@ -1054,9 +1054,23 @@ Add a test:
 
 ~~~python
 def test_cached_and_uncached_metric_generation_match():
-    # fixed model, prompt, temperature=0, same control and qstate
-    # collect token ids with use_cache=True and False
-    # assert identical token sequence
+    from rawrphos.architecture.generation import generate
+    model = tiny()
+    ids = torch.tensor([[1, 2, 3, 4]], dtype=torch.long)
+    control = torch.tensor([[0.2, -0.2] * 6], dtype=torch.float32)
+    metric = torch.tensor([[0.8, -0.8] * 6], dtype=torch.float32)
+
+    def collect(use_cache):
+        gen = torch.Generator().manual_seed(19)
+        return [
+            token for token, _ in generate(
+                model, ids, max_new_tokens=5, temperature=0,
+                top_k=0, generator=gen, use_cache=use_cache,
+                control_vector=control, qstate_metric12=metric,
+            )
+        ]
+
+    assert collect(True) == collect(False)
 ~~~
 
 - [ ] **Step 5: Extend Engine with a separate validator**
@@ -1064,18 +1078,68 @@ def test_cached_and_uncached_metric_generation_match():
 ~~~python
 @staticmethod
 def validate_metric(value):
-    # exactly 12 finite numeric non-bool values in [-1,1]
-    ...
+    if (not isinstance(value, list) or len(value) != 12
+            or any(isinstance(x, bool) or not isinstance(x, (int, float))
+                   or not math.isfinite(x) or abs(x) > 1 for x in value)):
+        raise ValueError("qstate_metric12 must be 12 finite values in [-1,1]")
+    return [float(x) for x in value]
 
 @torch.inference_mode()
 def shadow_condition(self, prompt, control_vector, qstate_metric12,
                      max_tokens=24, seed=67):
-    # one immutable model:
-    # ordinary = control_vector only
-    # buddy = same control_vector + qstate_metric12
-    # return logit L2, gate/sigma/metric telemetry, responses,
-    # checkpoint hash, model_weights_changed=False,
-    # performance_gain_proven=False
+    if not isinstance(prompt, str) or not 1 <= len(prompt.strip()) <= 220:
+        raise ValueError("shadow prompt must be 1..220 characters")
+    if type(max_tokens) is not int or not 1 <= max_tokens <= 32:
+        raise ValueError("shadow max_tokens must be 1..32")
+    if type(seed) is not int or not 0 <= seed < 2**63:
+        raise ValueError("invalid fixed shadow seed")
+    control = self.validate_control(control_vector)
+    metric = self.validate_metric(qstate_metric12)
+    ids = self.tokenizer.encode(prompt, add_bos=True)
+    if len(ids) + max_tokens > min(self.model.config.max_seq_len, 384):
+        raise ValueError("shadow input exceeds tested window")
+    if not self.lock.acquire(blocking=False):
+        raise RuntimeError("native provider is busy")
+    try:
+        input_ids = torch.tensor([ids], device=self.device)
+        cv = torch.tensor([control], dtype=torch.float32, device=self.device)
+        qv = torch.tensor([metric], dtype=torch.float32, device=self.device)
+        ordinary = self.model(input_ids, control_vector=cv)
+        buddy = self.model(input_ids, control_vector=cv, qstate_metric12=qv)
+        delta = ordinary["logits"][:, -1, :].float() - buddy["logits"][:, -1, :].float()
+        logit_l2 = float(torch.linalg.vector_norm(delta))
+
+        def run_one(metric_tensor):
+            generator = torch.Generator(device=self.device).manual_seed(seed)
+            output = []
+            for token, _ in generate(
+                self.model, input_ids,
+                max_new_tokens=max_tokens, temperature=0,
+                eos_token_id=self.tokenizer.eos_id,
+                generator=generator, use_cache=True,
+                deadline=time.monotonic() + 18,
+                control_vector=cv,
+                qstate_metric12=metric_tensor,
+            ):
+                output.append(token)
+            return self.tokenizer.decode(output)
+
+        response_ordinary = run_one(None)
+        response_buddy = run_one(qv)
+        return {
+            "model_id": "rawrphos-native",
+            "checkpoint_sha256": self.metadata["checkpoint_sha256"],
+            "training_steps": self.metadata["training_steps"],
+            "logit_l2": round(logit_l2, 10),
+            "response_ordinary": response_ordinary,
+            "response_buddy": response_buddy,
+            "equal_fixed_seed": response_ordinary == response_buddy,
+            "model_weights_changed": False,
+            "performance_gain_proven": False,
+            "quantum_advantage_proven": False,
+        }
+    finally:
+        self.lock.release()
 ~~~
 
 Do not change Engine.complete default behavior.
