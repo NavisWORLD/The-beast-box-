@@ -22,7 +22,7 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-azure = ["qdk[azure]", "azure-identity>=1.17"]
+azure = ["qdk[azure]", "azure-identity>=1.17", "azure-cosmos>=4.9,<5"]
 quantum = ["qiskit>=2.5.0", "qiskit-ibm-runtime>=0.47.0"]
 huggingface = ["huggingface-hub>=0.27"]
 ml = ["torch>=2.2", "numpy>=2.0"]
