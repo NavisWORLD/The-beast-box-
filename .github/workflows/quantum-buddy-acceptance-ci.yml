@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/quantum-buddy-acceptance-ci.yml'
       - 'scripts/run_quantum_buddy_acceptance.py'
+      - 'scripts/run_quantum_buddy_phase8_shadow.py'
       - 'tests/test_quantum_buddy_acceptance.py'
       - 'beastbox/quantum_buddy/**'
       - 'beastbox/cns.py'
