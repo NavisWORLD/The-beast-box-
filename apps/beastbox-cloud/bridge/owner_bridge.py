@@ -34,10 +34,12 @@ from beastbox.rawrphos_hf import (MODEL as HF_NATIVE_MODEL, SPACE_URL as HF_NATI
 from beastbox.chat_jobs import ChatJobs
 from beastbox.guest_local import guest_local_infer
 from beastbox.cns_model_probe import cns_model_probe
+from beastbox.signal_model_probe import signal_model_probe
+from beastbox.soul.archive_summary import archive_manifest
 
 MAX_BYTES = 256_000
 GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "engine-growth"})
-POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe"})
+POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe", "signal-model-probe"})
 
 
 class OwnerBridge:
@@ -514,9 +516,12 @@ class OwnerBridge:
             return 200, {"enabled": self.device_memory_enabled, "raw_media_accepted": False,
                          "owner": "SINGLE_OWNER_CONSENT", "source_verified": False}
         if name == "bio" and method == "GET":
+            signal_probe_enabled = os.environ.get("BEASTBOX_SIGNAL_MODEL_PROBE_ENABLED", "no") == "yes"
             return 200, {"enabled": self.bio_enabled,
                          "cst_preview_enabled": self.cst_preview_enabled,
                          "cns_model_probe_enabled": os.environ.get("BEASTBOX_CNS_MODEL_PROBE_ENABLED", "no") == "yes",
+                         "signal_model_probe_enabled": signal_probe_enabled,
+                         "quantum_archive": archive_manifest() if signal_probe_enabled else None,
                          "persist_enabled": self.bio_persist_enabled,
                          "remote_enabled": self.bio_remote_allowed,
                          "owner": "SINGLE_OWNER_PREVIEW",
@@ -546,6 +551,9 @@ class OwnerBridge:
         if name == "cns-model-probe":
             with self.app._lock:
                 return self.chat_jobs.run_when_idle(lambda: cns_model_probe(data))
+        if name == "signal-model-probe":
+            with self.app._lock:
+                return self.chat_jobs.run_when_idle(lambda: signal_model_probe(data))
         if name == "guest-local":
             if not self.chat_jobs.acquire_guest():
                 return 429, {"error": "Owner inference or local guest slot is busy"}

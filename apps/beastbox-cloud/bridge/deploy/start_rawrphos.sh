@@ -129,6 +129,81 @@ PY
     exit 70
   fi
 fi
+# Explicit one-deployment managed-host acceptance. The private subprocess
+# enables the probe only in its own environment; the serving owner bridge stays
+# feature-OFF until the separate public flag is deliberately enabled.
+# No physical sensor data, archive histogram reconstruction, or provider jobs.
+if [[ "${BEASTBOX_SIGNAL_ACCEPTANCE_ON_START:-no}" == "yes" ]]; then
+  if ! BEASTBOX_SIGNAL_MODEL_PROBE_ENABLED=yes python - <<'PY'
+import math
+from beastbox.signal_model_probe import signal_model_probe
+from beastbox.rawrphos_local import SHA, STEP
+sensory={"type":"bio","source":"manual","consent":True,
+         "readings":{"heart_rate_bpm":72.0,"hrv_rmssd_ms":31.0}}
+archive={"type":"ibm_fez_published_summary","index":0,
+         "archive_replay_confirmed":True}
+for mode in ("pure_sensory","pure_quantum","fused"):
+    packet={
+        "text":"I'm so confused phos.",
+        "mode":mode,
+        "conditioning_confirmed":True,
+        "sensory":sensory if mode!="pure_quantum" else None,
+        "quantum":archive if mode!="pure_sensory" else None,
+    }
+    status, receipt=signal_model_probe(packet)
+    if status!=200:
+        raise SystemExit("Managed-host typed fusion acceptance failed: "+mode)
+    native=receipt.get("native_probe",{})
+    metrics=native.get("logit_l2_vs_reference",{})
+    resources=native.get("resource_metrics",{})
+    generation=native.get("generation_metrics",{})
+    if (
+        receipt.get("checkpoint_sha256")!=SHA
+        or receipt.get("training_steps")!=STEP
+        or receipt.get("weights_updated") is not False
+        or receipt.get("persistent_memory_updated") is not False
+        or receipt.get("live_quantum_hardware_used") is not False
+        or receipt.get("paid_provider_job_started") is not False
+        or native.get("conditioned_cache_parity") is not True
+        or native.get("conditioned_cache_token_parity") is not True
+        or receipt.get("native_prompt_format")!="rawrphos-chat-prefill-v1"
+        or any(
+            generation.get(key,{}).get("generated_tokens",0)<3
+            or not generation.get(key,{}).get("text","").strip()
+            for key in ("reference","conditioned_cache","conditioned_no_cache")
+        )
+        or native.get("arms",{}).get("conditioned",{}).get("control_vector")!=receipt.get("cns_dyn12")
+        or not 0<=metrics.get("zero",float("inf"))<1e-6
+        or not math.isfinite(metrics.get("conditioned",float("nan")))
+        or metrics["conditioned"]<=0
+        or not all(math.isfinite(resources.get(k,float("nan"))) and resources[k]>=0
+                   for k in ("process_cpu_ms","wall_ms"))
+        or not all(generation.get(k,{}).get("first_token_ms") is not None
+                   and generation[k]["first_token_ms"]>=0
+                   for k in ("reference","conditioned_cache","conditioned_no_cache"))
+    ):
+        raise SystemExit("Managed-host typed fusion numeric or safety gate failed: "+mode)
+    print("REAL_MANAGED_14K_TYPED_FUSION_ACCEPTANCE_PASS",
+          "mode",mode,
+          "model_sha",SHA,
+          "fusion_sha",receipt["fusion"]["fusion_sha256"],
+          "cns_sha",receipt["cns_state_sha256"],
+          "control_sha",native["arms"]["conditioned"]["control_sha256"],
+          "zero_l2",metrics["zero"],
+          "conditioned_l2",metrics["conditioned"],
+          "cpu_ms",resources["process_cpu_ms"],
+          "wall_ms",resources["wall_ms"],
+          "cache_parity",native["conditioned_cache_parity"],
+          "cache_token_parity",native["conditioned_cache_token_parity"],
+          "generated_tokens",generation["conditioned_cache"]["generated_tokens"],
+          flush=True)
+print("REAL_MANAGED_14K_TYPED_FUSION_ALL_MODES_ACCEPTED",flush=True)
+PY
+  then
+    echo "Managed-host typed fusion acceptance failed; do not expose new owner endpoint" >&2
+    exit 70
+  fi
+fi
 "$BASE/start_tiny.sh" &
 bridge_pid=$!
 wait -n "$native_pid" "$experimental_pid" "$bridge_pid"

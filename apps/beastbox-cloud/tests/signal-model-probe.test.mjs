@@ -1,0 +1,56 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {test} from 'node:test';
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+
+test('typed sensory-quantum native probe is owner-only, same-origin and opt-in',()=>{
+ const bff=read('app/api/bridge/[endpoint]/route.ts');
+ const bridge=read('bridge/owner_bridge.py');
+ const ui=read('components/bio-panel.tsx');
+ assert.match(bff,/POST_ALLOW=new Set\(\[[^\n]*'signal-model-probe'/);
+ assert.match(bff,/endpoint==='signal-model-probe'/);
+ assert.match(bff,/Same-origin owner action required/);
+ assert.match(bff,/conditioning_confirmed!==true/);
+ assert.match(bff,/archive_replay_confirmed!==true/);
+ assert.match(bff,/q\.type!=='ibm_fez_published_summary'/);
+ assert.match(bridge,/if name == "signal-model-probe":/);
+ assert.match(bridge,/run_when_idle\(lambda: signal_model_probe\(data\)\)/);
+ assert.match(bridge,/BEASTBOX_SIGNAL_MODEL_PROBE_ENABLED/);
+ assert.match(bridge,/archive_manifest\(\)/);
+ assert.match(ui,/Sensory \+ quantum-derived → CNS7 → RAWRPHØS/);
+ assert.match(ui,/Run typed signal → native model experiment/);
+ assert.match(ui,/archive_replay_confirmed:true/);
+ assert.match(ui,/conditioning_confirmed:true/);
+ assert.match(ui,/conditioned_cache_token_parity!==true/);
+ assert.match(ui,/changed logit\/output demonstrates computational sensitivity only/);
+ assert.doesNotMatch(ui,/localStorage|sessionStorage|document\.cookie/);
+});
+
+test('typed fusion stays explicit and the private native endpoint exposes matched controls',()=>{
+ const fusion=read('../../beastbox/signal_fusion.py');
+ const probe=read('../../beastbox/signal_model_probe.py');
+ const archive=read('../../beastbox/soul/archive_summary.py');
+ const server=read('../../models/rawrphos/inference/server.py');
+ const engine=read('../../models/rawrphos/inference/engine.py');
+ assert.match(fusion,/FUSION_SCHEMA = "cosmos-signal-fusion-v1"/);
+ assert.match(fusion,/generic-model-control-C1\.\.C12; not physical units/);
+ assert.match(fusion,/source_from_bio_event/);
+ assert.match(fusion,/source_from_soul_token/);
+ assert.match(fusion,/source_from_legacy_physics12/);
+ assert.match(fusion,/matched_classical_control/);
+ assert.match(archive,/HARDWARE_ARCHIVE_REPLAY/);
+ assert.match(archive,/raw_runtime_payload_present": False/);
+ assert.match(archive,/fresh_provider_execution": False/);
+ assert.match(probe,/zero_gate/);
+ assert.match(probe,/frozen_state/);
+ assert.match(probe,/shuffled_state/);
+ assert.match(probe,/classical_matched/);
+ assert.match(probe,/time_shifted/);
+ assert.match(probe,/live_quantum_hardware_used": False/);
+ assert.match(server,/app\.post\('\/v1\/condition-probe-v2'\)/);
+ assert.match(engine,/def condition_probe_v2\(/);
+ assert.match(engine,/telemetry_by_layer/);
+ assert.match(engine,/conditioned_cache_parity/);
+ assert.match(engine,/process_cpu_ms/);
+ assert.doesNotMatch(probe,/allow_live=True|IBM_QUANTUM_TOKEN|AZURE_QUANTUM|DurableRuntime|store_external_memory|subprocess|shell=True/);
+});

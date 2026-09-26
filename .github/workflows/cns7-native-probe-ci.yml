@@ -7,6 +7,13 @@ on:
       - 'models/rawrphos/tests/test_inference.py'
       - 'beastbox/cns_model_probe.py'
       - 'tests/test_cns_model_probe.py'
+      - 'beastbox/signal_fusion.py'
+      - 'beastbox/signal_model_probe.py'
+      - 'apps/beastbox-cloud/bridge/deploy/start_rawrphos.sh'
+      - 'beastbox/soul/archive_summary.py'
+      - 'models/rawrphos/scripts/accept_signal_fusion_14k.py'
+      - 'tests/test_signal_fusion.py'
+      - 'tests/test_signal_model_probe.py'
       - '.github/workflows/cns7-native-probe-ci.yml'
   workflow_dispatch:
 permissions:
@@ -72,7 +79,26 @@ jobs:
           print('REAL_PINNED_14K_CNS7_CONDITIONED_INFERENCE_PASS',sha,
                 'logit_l2',body['logit_l2']['conditioned_vs_reference'],flush=True)
           PY
+      - name: Real pinned 14K sensory plus IBM published-summary replay, all three modes
+        env:
+          EXPECTED_SHA: 4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5
+        run: |
+          set -euo pipefail
+          python models/rawrphos/scripts/accept_signal_fusion_14k.py
+      - name: Check fail-closed managed-host acceptance entrypoint syntax
+        run: |
+          set -euo pipefail
+          bash -n apps/beastbox-cloud/bridge/deploy/start_rawrphos.sh
+      - name: Upload synthetic numerical acceptance receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signal-fusion-pinned-14k-receipt
+          path: build/cosmos-signal-native-14k-acceptance.json
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Report exact scope
         run: |
-          echo 'Fixture-trained native model; real CPU forward/generation and host validation.'
-          echo 'No QPU, frozen 14K release download, Railway deploy, actual iPhone sensors, or production model improvement is attested by this test.'
+          echo 'Real pinned 14K from public release; synthetic manual bio and published IBM archive-summary replay.'
+          echo 'Native PyTorch conditioning with matched controls and cache parity; no new IBM job.'
+          echo 'No Railway production execution, physical sensor attestation, or behavioral advantage claim.'

@@ -1,7 +1,7 @@
 import { bridgeConfigured, isOwner, safeJson } from '@/lib/security';
 export const runtime='nodejs';
 const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job','observations','models','model-inventory','engine-growth']);
-const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio','observations','models','azure-read','cns-model-probe']);
+const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio','observations','models','azure-read','cns-model-probe','signal-model-probe']);
 type RouteContext={params:Promise<{endpoint:string}>};
 async function forward(request:Request, method:'GET'|'POST', {params}:RouteContext) {
   if (!await isOwner()) return safeJson(401,{error:'Owner authentication required'});
@@ -17,7 +17,7 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
   if (!bridgeConfigured()) return safeJson(503,{error:'A durable HTTPS Beast Box bridge has not been provisioned. No model call was performed.'});
   let body: string|undefined;
   if (method==='POST') {
-    if (endpoint==='connections'||endpoint==='bio'||endpoint==='chat-start'||endpoint==='observations'||endpoint==='models'||endpoint==='azure-read'||endpoint==='cns-model-probe') {
+    if (endpoint==='connections'||endpoint==='bio'||endpoint==='chat-start'||endpoint==='observations'||endpoint==='models'||endpoint==='azure-read'||endpoint==='cns-model-probe'||endpoint==='signal-model-probe') {
       // Cross-site forms must not edit credentials or submit sensitive bio readings.
       const origin=request.headers.get('origin');
       if (!origin || origin!==new URL(request.url).origin) return safeJson(403,{error:'Same-origin owner action required'});
@@ -86,6 +86,45 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
       if(Object.keys(readings).length<1||Object.keys(readings).length>12||
          Object.entries(readings).some(([k,v])=>!channels.includes(k)||typeof v!=='number'||!Number.isFinite(v)))
         return safeJson(400,{error:'Invalid numeric sensor channels'});
+    }
+    if (endpoint==='signal-model-probe') {
+      const channels=['heart_rate_bpm','hrv_rmssd_ms','respiration_rate_bpm','skin_temperature_c',
+        'spo2_pct','eda_microsiemens','accelerometer_rms_g','eeg_alpha_relative',
+        'eeg_beta_relative','eeg_theta_relative','eeg_delta_relative','eeg_gamma_relative'];
+      if(body.length>4200||
+         Object.keys(input).sort().join(',')!=='conditioning_confirmed,mode,quantum,sensory,text'||
+         input.conditioning_confirmed!==true||
+         !['pure_sensory','pure_quantum','fused'].includes(String(input.mode))||
+         typeof input.text!=='string'||input.text.trim().length<1||input.text.length>220)
+        return safeJson(400,{error:'A bounded, separately approved typed signal probe is required'});
+      const mode=String(input.mode);
+      const sensory=input.sensory;
+      const quantum=input.quantum;
+      if(mode==='pure_sensory' && (quantum!==null||!sensory||typeof sensory!=='object'||Array.isArray(sensory)))
+        return safeJson(400,{error:'Pure sensory mode accepts one sensory packet only'});
+      if(mode==='pure_quantum' && (sensory!==null||!quantum||typeof quantum!=='object'||Array.isArray(quantum)))
+        return safeJson(400,{error:'Pure quantum mode accepts one archive replay only'});
+      if(mode==='fused' && (!sensory||typeof sensory!=='object'||Array.isArray(sensory)||
+                            !quantum||typeof quantum!=='object'||Array.isArray(quantum)))
+        return safeJson(400,{error:'Fused mode requires sensory and archive replay packets'});
+      if(sensory!==null){
+        const s=sensory as Record<string,unknown>;
+        if(Object.keys(s).sort().join(',')!=='consent,readings,source,type'||s.type!=='bio'||s.consent!==true||
+           !['manual','wearable_export','browser_sensor'].includes(String(s.source))||
+           !s.readings||typeof s.readings!=='object'||Array.isArray(s.readings))
+          return safeJson(400,{error:'Invalid typed sensory packet'});
+        const readings=s.readings as Record<string,unknown>;
+        if(Object.keys(readings).length<1||Object.keys(readings).length>12||
+           Object.entries(readings).some(([k,v])=>!channels.includes(k)||typeof v!=='number'||!Number.isFinite(v)))
+          return safeJson(400,{error:'Invalid numeric sensory channels'});
+      }
+      if(quantum!==null){
+        const q=quantum as Record<string,unknown>;
+        if(Object.keys(q).sort().join(',')!=='archive_replay_confirmed,index,type'||
+           q.type!=='ibm_fez_published_summary'||q.archive_replay_confirmed!==true||
+           !Number.isSafeInteger(q.index)||Number(q.index)<0||Number(q.index)>8)
+          return safeJson(400,{error:'Invalid or unconfirmed IBM archive-summary replay'});
+      }
     }
     if (endpoint==='bio') {
       const allowed=['heart_rate_bpm','hrv_rmssd_ms','respiration_rate_bpm','skin_temperature_c',
