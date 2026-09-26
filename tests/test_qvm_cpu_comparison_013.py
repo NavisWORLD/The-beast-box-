@@ -34,7 +34,8 @@ def test_fixed_blind_plan_is_repeatable_and_does_not_leak_heldout_job():
         meta = key[case["id"]]
         assert meta["heldout_job"] not in case["prompt"]
         assert "private_scoring_key" not in case["prompt"]
-        assert "p11=0.123; hardware=no" in case["prompt"]
+        assert "your OWN three-decimal numerical calculation" in case["prompt"]
+        assert "p11=0.123" not in case["prompt"]
         assert len(case["prompt"]) <= 2400
         assert case["prompt"].count("Target theta radians:") == 1
     assert sum(row["prompt"].count("auxiliary_software_state_12d") for row in public) == 9
