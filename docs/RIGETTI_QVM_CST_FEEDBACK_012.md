@@ -138,3 +138,60 @@ result receipts.
 closure remains unchanged. This is a NEW software integration and simulation
 experiment using a new contract; these results cannot be backfilled as
 previously preregistered real hardware evidence.
+
+
+## Stage 012B: Real free QVM GitHub owner handoff (prepared, not yet submitted)
+
+The real authenticated free simulator runner has been implemented on this
+isolated branch, separate from the 10K local classical experiment.
+
+**Secrets URL:**
+https://github.com/NavisWORLD/The-beast-box-/settings/secrets/actions
+
+1. Open the owner's **Azure Quantum workspace**, **Operations > Access Keys**.
+   Prefer a secondary workspace key, not the account's general-purpose primary
+   secret. Copy the **entire Azure Quantum workspace connection string**.
+   A raw key alone, Azure Blob storage string, IBM token, or generic Azure
+   subscription token is not equivalent.
+2. In GitHub, **Settings > Secrets and variables > Actions > New repository
+   secret**, create EXACTLY: \`AZURE_QUANTUM_CONNECTION_STRING\`. Paste the full
+   Azure Quantum string there. Never put it in a repository file, PR comment,
+   GitHub issue, model prompt, chat message or CI artifact.
+3. Tell the engineer that GitHub secret setup is complete **without revealing
+   the secret value**. Repository Actions secrets cannot be read back from
+   GitHub after saving; workflow results safely report whether login worked.
+4. The engineer changes only
+   \`experiments/stage012/azure-qvm-run-request.txt\`, which triggers
+   [azure-rigetti-qvm-free-012.yml](../.github/workflows/azure-rigetti-qvm-free-012.yml)
+   once on this isolated branch. No normal code push, secret update or local
+   simulation automatically starts an authenticated provider job.
+5. The authorized workflow keeps the secret in the submission step only,
+   validates the current official \`qdk[azure]\` imports, and issues a maximum
+   of **three sequential simulator jobs** with **32 shots each** at exactly
+   \`rigetti.sim.qvm\`, using independently specified circuit angles.
+   Each successful job receives a distinct cloud job ID, counts and public
+   Quil program hash in its sanitizer-only JSON artifact. It performs no
+   cloud-language-model inference and does not touch Production.
+6. There is no automatic retry, target fallback or paid-QPU selection.
+   If the workspace does not have Rigetti enabled or the simulator is
+   unavailable, the workflow aborts and reports the authentication or provider
+   failure without a fabricated receipt. Successful partial receipts are
+   preserved if a later job fails.
+
+**Cost boundary:** Microsoft labels the Rigetti QVM simulator *free at the
+provider target*, not unlimited free GitHub compute, Azure account/storage or
+other Azure resources. The first approved request is bounded to three jobs,
+96 simulated shots combined. No open-ended polling/iteration is enabled.
+
+**CI preflight** is a separate zero-Azure-credentials job:
+[official SDK and no-credential tests](../.github/workflows/azure-rigetti-sdk-preflight-012.yml).
+It verifies SDK imports, the strict backend allowlist and fail-closed tests.
+Neither preflight nor the 10K local experiment is evidence that an actual
+Azure-hosted QVM job has been submitted; only the new authenticated workflow
+can generate such receipts.
+
+For lower-risk long-term CI access, a narrowly scoped Azure service principal
+with the \`Quantum Workspace Data Contributor\` role and GitHub OIDC
+federation should replace direct workspace access keys if available. Keep
+the connection string private and rotate/revoke it after use if no longer
+needed.
