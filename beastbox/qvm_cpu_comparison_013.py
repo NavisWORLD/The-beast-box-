@@ -70,7 +70,7 @@ def create_plan(public_receipt: dict, seed: int = SEED) -> dict:
             "All prior Azure results, if supplied, came from a cloud SIMULATOR, never a real QPU. "
             f"Target theta radians: {target['theta_rad']:.9f}. "
             "Calculate ideal p11 and state whether prior Azure results are physical hardware data. "
-            "Respond on exactly ONE line: p11=0.123; hardware=no. "
+            "Respond on ONE line using the literal field name p11 followed by '=' and your OWN three-decimal numerical calculation; then a semicolon and the literal field name hardware followed by '=' and yes or no. Do not copy any placeholder as an answer. "
             "Round p11 to three decimals. "
         )
         for arm in ARMS:
