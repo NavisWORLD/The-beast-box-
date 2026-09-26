@@ -1,0 +1,90 @@
+name: Stage 013 genuine public cloud-CPU model versus Azure QVM CNS7 controls
+
+on:
+  push:
+    branches: [experiment/rigetti-qvm-12d-feedback-012]
+    paths:
+      - '.github/workflows/qvm-public-model-ab-013.yml'
+      - 'beastbox/qvm_cpu_comparison_013.py'
+      - 'scripts/run_qvm_cpu_model_013.py'
+      - 'tests/test_qvm_cpu_comparison_013.py'
+      - 'evidence/stage012/live_azure_qvm_3job_public_receipt.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage013-single-public-cpu-model-no-provider-billing
+  cancel-in-progress: false
+
+jobs:
+  isolated-fixed-open-weight-15-case-model:
+    if: github.repository == 'NavisWORLD/The-beast-box-'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CUDA_VISIBLE_DEVICES: ''
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      HF_HUB_DOWNLOAD_TIMEOUT: '45'
+      HF_HUB_ETAG_TIMEOUT: '20'
+      TOKENIZERS_PARALLELISM: 'false'
+      AZURE_QUANTUM_QVM_OPT_IN: 'no'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing project and testing controls
+        run: |
+          set -euo pipefail
+          python -m pip install -e . 'pytest>=8,<10'
+          python -m pytest -q tests/test_qvm_cpu_comparison_013.py tests/test_qvm_live_replay.py
+      - name: Install pinned PyTorch CPU only and the public model loader
+        run: |
+          python -m pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'transformers==4.48.3' 'huggingface-hub>=0.27,<1'
+          python - <<'PY'
+          import torch,transformers
+          assert torch.cuda.is_available() is False
+          print('CPU_ONLY_MODEL_LIBRARIES_READY',torch.__version__,transformers.__version__,flush=True)
+          PY
+      - name: Actual 15-call pinned public Qwen model on GitHub hosted CPU
+        run: |
+          python scripts/run_qvm_cpu_model_013.py \
+            --source evidence/stage012/live_azure_qvm_3job_public_receipt.json \
+            --output build/stage013-public-open-weight-cpu-model-qvm-context-results.json
+      - name: Verify and explicitly limit interpretation
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('build/stage013-public-open-weight-cpu-model-qvm-context-results.json').read_text())
+          assert d['number_of_model_calls']==15
+          assert d['number_of_trials']==3
+          assert d['new_quantum_provider_jobs']==0
+          assert d['model_api_calls']==0
+          assert d['model_training_updates']==0
+          assert d['model_download_public_only'] is True
+          assert d['source_class']=='THREE_PAST_REAL_AZURE_CLOUD_SIMULATOR_JOBS_NOT_HARDWARE'
+          assert set(d['results_unranked_by_arm'])=={
+             'baseline','memory_only','conditioned','order_control','classical_matched'
+          }
+          assert len(d['individual'])==15
+          print('STAGE013_ACTUAL_CLOUD_HOSTED_CPU_MODEL_BEHAVIORAL_AB_RECEIPT_VERIFIED',flush=True)
+          PY
+      - name: Preserve full actual model responses and unbiased comparisons
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-stage013-public-cloud-cpu-model-qvm-control-results
+          path: build/stage013-public-open-weight-cpu-model-qvm-context-results.json
+          if-no-files-found: error
+          retention-days: 21
+      - name: Scientific scope
+        run: |
+          echo 'This is a downloaded open model on GitHub cloud CPU, not paid model API.'
+          echo 'Three original Rigetti Azure cloud SIMULATOR jobs; zero new quantum jobs.'
+          echo 'Any resulting difference is exploratory, not proof of intelligence benefit.'
