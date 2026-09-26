@@ -10,6 +10,7 @@ authenticate an original result with IBM, or modify the sealed historic null.
 from __future__ import annotations
 
 import argparse
+import ast
 import base64
 from collections import Counter
 import hashlib
@@ -25,7 +26,7 @@ from beastbox.soul.archive_summary import (
     IBM_FEZ_REPORTED_SUMMARIES, SOURCE_COMMIT, SOURCE_REPO,
 )
 
-SCHEMA = "ibm-fez-pinned-serialized-bitarray-redecode-v1"
+SCHEMA = "ibm-fez-pinned-serialized-bitarray-npy-corrected-v2"
 RAW_DIR = "workloads (5)"
 # Exact original Git blob identities fetched from the historical source tree at
 # SOURCE_COMMIT; do not trust path/name alone.
@@ -46,8 +47,13 @@ def git_blob_sha1(raw: bytes) -> str:
     return hashlib.sha1(f"blob {len(raw)}".encode("ascii") + bytes([0]) + raw).hexdigest()
 
 
-def decode_serialized_bitarray(payload: dict) -> tuple[dict[str,int], int]:
-    """Decode source-export BitArray (byte-packed 5 bits per 4224 shots)."""
+def decode_serialized_bitarray(payload: dict) -> tuple[dict[str,int], int, int]:
+    """Parse verified zlib-compressed NPY, stripping its HEADER before shots.
+
+    Historical decode_workloads.py had decoded *the whole* NPY file as uint8,
+    mistakenly including 128 bytes of NPY metadata as 128 extra outcomes.
+    This is a separate re-decode; it does not revise sealed prior experiments.
+    """
     if not isinstance(payload,dict) or payload.get("__type__")!="PrimitiveResult":
         raise ValueError("not archived PrimitiveResult JSON")
     pub=payload["__value__"]["pub_results"]
@@ -70,19 +76,25 @@ def decode_serialized_bitarray(payload: dict) -> tuple[dict[str,int], int]:
     raw=decompressor.decompress(compressed,65536)
     if not decompressor.eof or decompressor.unconsumed_tail or decompressor.unused_data:
         raise ValueError("invalid or unbounded packed BitArray compression")
-    if len(raw)!=4224:
-        raise ValueError("unexpected shot count or byte-pack width")
-    if any(value>=32 for value in raw):
-        # The historical summarizer decoded the entire compressed byte stream
-        # as uint8. Detect any native container header before trusting the 4224
-        # claimed shots or treating metadata bytes as five-bit outcomes.
-        print("PACKED_PROVIDER_EXPORT_FORMAT_DIAGNOSTIC",
-              "decoded_bytes",len(raw),"prefix_hex",raw[:18].hex(),
-              "out_of_range_bytes",sum(v>=32 for v in raw),
-              "largest_byte",max(raw),flush=True)
-        raise ValueError("non-five-bit measurement present; inspect serialized ndarray envelope")
-    counts=Counter(format(value,"05b") for value in raw)
-    return ({format(x,"05b"):counts.get(format(x,"05b"),0) for x in range(32)},len(raw))
+    if not raw.startswith(bytes([0x93])+b"NUMPY") or raw[6:8]!=bytes([1,0]):
+        raise ValueError("unexpected compressed NumPy header version or signature")
+    head_len=int.from_bytes(raw[8:10],"little")
+    offset=10+head_len
+    if head_len<16 or head_len>1024 or offset>=len(raw) or offset%16:
+        raise ValueError("invalid compressed NumPy envelope size")
+    try:
+        header=ast.literal_eval(raw[10:offset].decode("latin1").strip())
+    except (ValueError,SyntaxError,UnicodeError) as exc:
+        raise ValueError("invalid NumPy header") from exc
+    if (not isinstance(header,dict) or header.get("descr") not in ("|u1","<u1","u1")
+        or header.get("fortran_order") is not False
+        or header.get("shape") not in ((4096,1),(4096,))):
+        raise ValueError("unexpected archived five-qubit sample dtype or array shape")
+    shots=raw[offset:]
+    if len(shots)!=4096 or any(value>=32 for value in shots):
+        raise ValueError("unexpected true shot count or byte-pack width")
+    counts=Counter(format(value,"05b") for value in shots)
+    return ({format(x,"05b"):counts.get(format(x,"05b"),0) for x in range(32)},len(shots),offset)
 
 
 def historical_entropy(counts: dict[str,int]) -> float:
@@ -122,23 +134,27 @@ def recover()->dict:
         if (info.get("id")!=ident or info.get("backend")!="ibm_fez"
             or info.get("status")!="Completed" or info.get("created")!=summary["timestamp"]):
             raise ValueError("archived provider-export metadata did not match summary")
-        counts,shots=decode_serialized_bitarray(result)
+        counts,shots,header_bytes=decode_serialized_bitarray(result)
         entropy=historical_entropy(counts)
-        # The original converter rounds normalized Shannon entropy to 4 decimals.
-        # Independent recovery MUST match, not overwrite, the published summary.
         summary_top=summary["top_state"]
         highest=max(counts.values())
-        if (shots!=summary["total_shots"]
-            or abs(round(entropy,4)-float(summary["entropy"]))>0.00011
-            or counts.get(summary_top,0)!=highest):
-            raise ValueError("raw exported measurement and historical published summary disagree")
+        if shots + header_bytes != summary["total_shots"]:
+            raise ValueError("archived raw-array length could not explain published shot-count discrepancy")
+        if header_bytes!=128:
+            raise ValueError("unexpected NPY header length in archived source")
+        original_top_still_modal=counts.get(summary_top,0)==highest
+        original_entropy_matches=abs(round(entropy,4)-float(summary["entropy"]))<=0.00011
         rows.append({
             "job_id":ident,"backend":"ibm_fez","timestamp":summary["timestamp"],
             "source_reported_status":"Completed","shots":shots,
+            "original_summary_claimed_entries":summary["total_shots"],
+            "npy_container_header_bytes_removed":header_bytes,
             "counts":counts,"entropy_redecoded":entropy,
             "original_summary_entropy":summary["entropy"],
             "original_summary_top_state":summary_top,
-            "original_top_is_modal_state":True,
+            "original_summary_top_still_modal_after_correction":original_top_still_modal,
+            "original_summary_entropy_matches_corrected":original_entropy_matches,
+            "corrected_modal_states":sorted(key for key,val in counts.items() if val==highest),
             "info_git_blob_sha1":info_sha,"result_git_blob_sha1":result_sha,
             "info_sha256":hashlib.sha256(info_raw).hexdigest(),
             "result_sha256":hashlib.sha256(result_raw).hexdigest(),
@@ -148,7 +164,10 @@ def recover()->dict:
         "schema":SCHEMA,
         "classification":"SOURCE_REPORTED_ARCHIVED_SERIALIZED_IBM_PRIMITIVE_EXPORT_INDEPENDENTLY_REDECODED",
         "repository":SOURCE_REPO,"commit":SOURCE_COMMIT,"source_folder":RAW_DIR,
-        "pinned_git_blobs_verified":True,"original_summary_crosscheck_passed":True,
+        "pinned_git_blobs_verified":True,
+        "archived_metadata_identity_crosscheck_passed":True,
+        "original_summary_parser_included_npy_header_bytes":True,
+        "original_summary_values_retained_as_historical_only":True,
         "independent_provider_api_confirmation":False,
         "new_ibm_hardware_jobs":0,
         "new_azure_qvm_jobs":0,
@@ -164,8 +183,10 @@ def main():
     out=recover()
     args.output.parent.mkdir(parents=True,exist_ok=True)
     args.output.write_text(json.dumps(out,indent=2,sort_keys=True,allow_nan=False)+"\n")
-    print("ARCHIVED_IBM_FEZ_PINNED_RAW_5BIT_REDECODE_PASS",len(out["records"]),
-          "shots_total",sum(r["shots"] for r in out["records"]),
+    print("ARCHIVED_IBM_FEZ_PINNED_NPY_CORRECTED_REDECODE_PASS",len(out["records"]),
+          "true_shots_total",sum(r["shots"] for r in out["records"]),
+          "total_npy_header_bytes_removed",sum(r["npy_container_header_bytes_removed"] for r in out["records"]),
+          "original_entropy_matching_rows",sum(r["original_summary_entropy_matches_corrected"] for r in out["records"]),
           "source_commit",SOURCE_COMMIT,flush=True)
 
 
