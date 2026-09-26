@@ -151,3 +151,37 @@ def test_multi_arm_condition_probe_v2_reports_full_native_telemetry_and_cache_pa
     assert app.state.engine.model.config.attention_mode=='dyn12'
     bad=dict(request,arms={**arms,'bad':{'control_vector':[2.0]*12,'attention_mode':'dyn12'}})
     assert client.post('/v1/condition-probe-v2',headers=headers,json=bad).status_code==503
+
+
+def test_native_control_reaches_every_cached_decode_step_not_only_prefill(trained):
+    """Force five real forward passes even if the small fixture predicts EOS."""
+    from rawrphos.training.checkpoint import load_checkpoint
+    from rawrphos.architecture.generation import generate
+    loaded=load_checkpoint(trained,load_training_state=False)
+    model=loaded['model'].eval()
+    ids=torch.tensor([loaded['tokenizer'].encode('The cat',add_bos=True)])
+    control=torch.tensor([[0.1*(i-6)/6 for i in range(12)]],dtype=torch.float32)
+    original=model.forward
+    observed=[]
+    def forward_spy(input_ids,**kwargs):
+        cv=kwargs.get('control_vector')
+        assert cv is not None and cv.shape==(1,12)
+        assert torch.equal(cv,control), "control changed or was dropped during cached decoding"
+        observed.append((input_ids.shape[1],kwargs.get('past_key_values') is not None))
+        return original(input_ids,**kwargs)
+    model.forward=forward_spy
+    try:
+        cached=[token for token,_ in generate(model,ids,max_new_tokens=5,
+            temperature=0,eos_token_id=None,use_cache=True,control_vector=control)]
+        cached_calls=list(observed)
+        observed.clear()
+        uncached=[token for token,_ in generate(model,ids,max_new_tokens=5,
+            temperature=0,eos_token_id=None,use_cache=False,control_vector=control)]
+        uncached_calls=list(observed)
+    finally:
+        model.forward=original
+    assert cached==uncached
+    assert len(cached)==len(cached_calls)==len(uncached_calls)==5
+    assert cached_calls[0][1] is False
+    assert all(past and width==1 for width,past in cached_calls[1:])
+    assert all(not past for _,past in uncached_calls)
