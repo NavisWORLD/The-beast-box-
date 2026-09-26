@@ -96,16 +96,21 @@ def test_raw_export_decoder_reconstructs_full_bounded_5bit_counts_without_networ
     import base64
     import zlib
     raw=_load("raw_archive")
-    sample=bytes(list(range(32))*132)  # clearly synthetic unit fixture: 4224
-    compressed=base64.b64encode(zlib.compress(sample)).decode("ascii")
+    sample=bytes(list(range(32))*128)  # clearly synthetic unit fixture: 4096 true shots
+    header_spec=b"{'descr': '|u1', 'fortran_order': False, 'shape': (4096, 1), }"
+    header=header_spec.ljust(117,b" ")+b"\\n"
+    assert len(header)==118
+    npy=bytes([0x93])+b"NUMPY"+bytes([1,0])+(118).to_bytes(2,"little")+header+sample
+    assert len(npy)==4224  # the 128-byte header is not 128 extra measurements
+    compressed=base64.b64encode(zlib.compress(npy)).decode("ascii")
     bitarray={"__type__":"BitArray","__value__":{
         "num_bits":5, "array":{"__type__":"ndarray","__value__":compressed}}}
     data={"__value__":{"fields":{"meas":bitarray}}}
     pub={"__type__":"SamplerPubResult","__value__":{"data":data}}
     payload={"__type__":"PrimitiveResult","__value__":{"pub_results":[pub]}}
-    counts,shots=raw.decode_serialized_bitarray(payload)
-    assert shots==4224 and len(counts)==32
-    assert set(counts.values())=={132}
+    counts,shots,header_bytes=raw.decode_serialized_bitarray(payload)
+    assert shots==4096 and header_bytes==128 and len(counts)==32
+    assert set(counts.values())=={128}
     assert raw.historical_entropy(counts)==pytest.approx(1.0)
     assert raw.git_blob_sha1(b"hi")==hashlib.sha1(b"blob 2"+bytes([0])+b"hi").hexdigest()
     payload["__value__"]["pub_results"][0]["__value__"]["data"]["__value__"]["fields"]["meas"]["__value__"]["num_bits"]=4
