@@ -150,7 +150,7 @@ def test_fused_bio_plus_ibm_archive_summary_reaches_native_multiarm_probe(monkey
     assert receipt["time_shift_control"]["shifted_index"] == 1
     assert receipt["native_probe"]["conditioned_cache_parity"] is True
     assert receipt["native_probe"]["conditioned_cache_token_parity"] is True
-    assert opener.calls[0][1]["prompt"] == "user: Describe the supplied state without claiming causality.\\nassistant:".replace("\\\\n","\\n")
+    assert opener.calls[0][1]["prompt"] == "user: Describe the supplied state without claiming causality.\nassistant:"
     assert receipt["native_probe"]["arms"]["conditioned"]["control_vector"] == receipt["cns_dyn12"]
     assert set(opener.calls[0][1]["arms"]) == {
         "reference", "zero", "conditioned", "source_shuffled", "classical_matched",
