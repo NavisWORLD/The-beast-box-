@@ -144,7 +144,7 @@ archive={"type":"ibm_fez_published_summary","index":0,
          "archive_replay_confirmed":True}
 for mode in ("pure_sensory","pure_quantum","fused"):
     packet={
-        "text":"Describe the supplied state without claiming its physical cause.",
+        "text":"I'm so confused phos.",
         "mode":mode,
         "conditioning_confirmed":True,
         "sensory":sensory if mode!="pure_quantum" else None,
@@ -165,6 +165,13 @@ for mode in ("pure_sensory","pure_quantum","fused"):
         or receipt.get("live_quantum_hardware_used") is not False
         or receipt.get("paid_provider_job_started") is not False
         or native.get("conditioned_cache_parity") is not True
+        or native.get("conditioned_cache_token_parity") is not True
+        or receipt.get("native_prompt_format")!="rawrphos-chat-prefill-v1"
+        or any(
+            generation.get(key,{}).get("generated_tokens",0)<3
+            or not generation.get(key,{}).get("text","").strip()
+            for key in ("reference","conditioned_cache","conditioned_no_cache")
+        )
         or native.get("arms",{}).get("conditioned",{}).get("control_vector")!=receipt.get("cns_dyn12")
         or not 0<=metrics.get("zero",float("inf"))<1e-6
         or not math.isfinite(metrics.get("conditioned",float("nan")))
@@ -187,6 +194,8 @@ for mode in ("pure_sensory","pure_quantum","fused"):
           "cpu_ms",resources["process_cpu_ms"],
           "wall_ms",resources["wall_ms"],
           "cache_parity",native["conditioned_cache_parity"],
+          "cache_token_parity",native["conditioned_cache_token_parity"],
+          "generated_tokens",generation["conditioned_cache"]["generated_tokens"],
           flush=True)
 print("REAL_MANAGED_14K_TYPED_FUSION_ALL_MODES_ACCEPTED",flush=True)
 PY
