@@ -1,0 +1,65 @@
+name: Stage 015 prospective QVM and leak-free 12D benchmark preflight
+
+on:
+  push:
+    branches: [experiment/cosmos-qvm-meaningful-015]
+    paths:
+      - '.github/workflows/qvm-meaningful-preflight-015.yml'
+      - 'beastbox/qvm_prospective_015.py'
+      - 'beastbox/qvm_meaningful_benchmark_015.py'
+      - 'tests/test_qvm_meaningful_015.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cosmos-stage015-local-preflight
+  cancel-in-progress: true
+
+jobs:
+  isolated-mocked-transport-no-paid-provider:
+    if: github.repository == 'NavisWORLD/The-beast-box-'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    env:
+      AZURE_QUANTUM_QVM_OPT_IN: 'no'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing project and no-network test requirements
+        run: |
+          python -m pip install -e . 'pytest>=8,<10'
+      - name: Run no-network real-CNS7 and mocked-only-free-QVM controls
+        run: |
+          python -m pytest -q tests/test_qvm_meaningful_015.py
+      - name: Publish dry-run exact provider and heldout batch budget
+        run: |
+          python -m beastbox.qvm_prospective_015 --plan \
+            --output build/stage015-prospective-zero-provider-plan.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          row=json.loads(Path("build/stage015-prospective-zero-provider-plan.json").read_text())
+          assert row["backend_exact_allowlist"]==["rigetti.sim.qvm"]
+          assert row["provider_job_cap"]==24
+          assert row["total_simulated_shot_cap"]==2048
+          assert row["physical_hardware_jobs_permitted"]==0
+          assert row["cloud_model_api_calls_permitted"]==0
+          assert row["owner_opt_in_required"] is True
+          print("STAGE015_PROSPECTIVE_BUDGET_AND_SECURITY_PLAN_PASS")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-stage015-zero-provider-prospective-dryrun
+          path: build/stage015-prospective-zero-provider-plan.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Strict evidence boundary
+        run: |
+          echo 'All preflight 24-job mocks are fake and NOT evidence of actual Azure execution.'
+          echo 'No Azure workspace credential, physical QPU, model API or owner memory available.'
