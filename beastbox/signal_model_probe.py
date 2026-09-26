@@ -246,6 +246,7 @@ def signal_model_probe(data: dict[str, Any]) -> tuple[int, dict[str, Any]]:
             or result.get("persistent_memory_updated") is not False
             or result.get("performance_gain_proven") is not False
             or result.get("conditioned_cache_parity") is not True
+            or result.get("conditioned_cache_token_parity") is not True
             or not isinstance(result.get("arms"), dict)
             or not isinstance(result.get("logit_l2_vs_reference"), dict)
             or any(
