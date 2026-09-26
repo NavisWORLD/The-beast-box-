@@ -1,0 +1,85 @@
+name: Stage 015 archive verified historical evidence (NO provider or model calls)
+on:
+  push:
+    branches: [experiment/cosmos-qvm-meaningful-015]
+    paths:
+      - '.github/workflows/qvm-permanent-publication-015.yml'
+      - 'docs/experimental-run-requests/stage015-publish-verified-evidence.txt'
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: stage015-once-public-evidence-archival
+  cancel-in-progress: false
+jobs:
+  archive-only-prior-approved-simulations:
+    # Historical jobs are FINISHED. This publishes their verified outputs only.
+    if: github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/experiment/cosmos-qvm-meaningful-015' && github.event_name == 'push' && github.event.head_commit.message == 'publish(stage015): permanently archive validated historical public evidence'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      AZURE_QUANTUM_QVM_OPT_IN: 'no'
+      COSMOS_APPROVED_QVM_TARGET: 'NO_CLOUD_TARGET'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing offline audit only (no Azure SDK or public model)
+        run: python -m pip install -e .
+      - name: Download EXACT historical successful cloud simulator artifact
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 36218234744
+          repository: NavisWORLD/The-beast-box-
+          github-token: ${{ github.token }}
+          name: cosmos-stage015-actual-azure-qvm-prospective-public-dataset
+          path: build/stage015/historical-source
+      - name: Download EXACT historical successful public CPU-model artifact
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 36218437894
+          repository: NavisWORLD/The-beast-box-
+          github-token: ${{ github.token }}
+          name: cosmos-stage015-prospective-192-open-model-forecast-results
+          path: build/stage015/historical-model
+      - name: Verify original digests and independently rescore all 192 outputs
+        run: |
+          mkdir -p evidence/stage015
+          python scripts/audit_qvm_stage015_receipts.py \
+            --source build/stage015/historical-source/stage015-live-azure-qvm-triplets.json \
+            --receipt build/stage015/historical-model/stage015-prospective-192-model-answer-receipt.json \
+            --output evidence/stage015/independent-audit.json
+          python - <<'PY'
+          import json, re
+          from pathlib import Path
+          source=Path("build/stage015/historical-source/stage015-live-azure-qvm-triplets.json")
+          model=Path("build/stage015/historical-model/stage015-prospective-192-model-answer-receipt.json")
+          s=json.loads(source.read_text())
+          m=json.loads(model.read_text())
+          audit=json.loads(Path("evidence/stage015/independent-audit.json").read_text())
+          assert s["public_rows_sha256"]=="7ef23c00005a2053d1fc830985330f4db322b3bf6144fd79fd1561d14c425599"
+          assert s["completed_provider_jobs"]==24 and m["actual_model_generations_completed"]==192
+          assert audit["audit_status"]=="PASS"
+          forbidden=(r"sk-[A-Za-z0-9]{20,}",r"SharedAccessKey=",r"BEGIN [A-Z ]*PRIVATE KEY",r"Endpoint=sb://")
+          for f in (source,model,Path("evidence/stage015/independent-audit.json")):
+            data=f.read_text()
+            assert all(re.search(pat,data,re.I) is None for pat in forbidden),f.name
+          Path("evidence/stage015/azure-qvm-24-job-public-receipt.json").write_bytes(source.read_bytes())
+          Path("evidence/stage015/qwen-192-forecast-public-receipt.json").write_bytes(model.read_bytes())
+          print("STAGE015_SAVED_EVIDENCE_REHASHED_AND_SCANNED_NO_NEW_JOBS")
+          PY
+      - name: Make historical receipts permanently reviewable in research git branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add evidence/stage015/azure-qvm-24-job-public-receipt.json evidence/stage015/qwen-192-forecast-public-receipt.json evidence/stage015/independent-audit.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'evidence(stage015): preserve original verified 24-job and 192-model receipts'
+          git push origin HEAD:refs/heads/experiment/cosmos-qvm-meaningful-015
+      - name: Scope statement
+        run: echo 'Archival ONLY; zero provider submissions, zero new LLM inferences, no production deploy.'
