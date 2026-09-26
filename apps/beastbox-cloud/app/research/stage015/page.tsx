@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 const repo = 'https://github.com/NavisWORLD/The-beast-box-';
-const source = repo + '/blob/experiment/cosmos-qvm-meaningful-015/evidence/stage015';
+const source = repo + '/blob/cd5d9321cb30f5327d14bbdd3f71751b630d81a3/evidence/stage015';
 const conditions = [
   { name: 'No history', azure: 0.29211446, local: 0.30328752 },
   { name: 'Raw history', azure: 0.07497938, local: 0.11606159 },
@@ -35,7 +35,7 @@ export default function Stage015Research() {
       <p className={styles.byline}>CORY DAVIS / NAVISWORLD · COSMOS / RAWRPHØS / COSMIC SYNAPSE THEORY</p>
       <div className={styles.actions}>
         <a className={styles.primary} href={repo + '/pull/125'} target="_blank" rel="noopener noreferrer">Open the research PR <ArrowUpRight size={17} aria-hidden="true"/></a>
-        <a className={styles.secondary} href={repo + '/blob/experiment/cosmos-qvm-meaningful-015/docs/COSMOS_STAGE015_VERIFIED_RESULTS_AND_LIMITATIONS.md'} target="_blank" rel="noopener noreferrer">Technical report <ArrowUpRight size={15} aria-hidden="true"/></a>
+        <a className={styles.secondary} href={repo + '/blob/cd5d9321cb30f5327d14bbdd3f71751b630d81a3/docs/COSMOS_STAGE015_VERIFIED_RESULTS_AND_LIMITATIONS.md'} target="_blank" rel="noopener noreferrer">Technical report <ArrowUpRight size={15} aria-hidden="true"/></a>
       </div>
     </section>
 
