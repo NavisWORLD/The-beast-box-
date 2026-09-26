@@ -26,3 +26,23 @@ Each task is run under five deterministic, shuffled-order cases, always the same
 **Limitations:** Only three historical simulator results and three very easy analytical prompts. If all arms produce the same answer, that is a meaningful negative/null observation for these prompts, not proof COSMOS has no potential. If output differences occur, they could be context-length effects, normal numerical imprecision or chance; these tasks cannot distinguish a quantum-specific causal contribution. Future research requires independent tasks where external state contains relevant predictive information, many independently sampled simulations, matched-length distractor controls and stronger repeated model/seed evaluations.
 
 **Next gated stage:** Only if exploratory results justify it, use separately approved live cloud-provider API inference with a bounded spend cap and protected owner connection. This stage does not assert the user's configured app provider is already plugged into the full fusion pipeline.
+
+## Actual Stage 013 results: initial error rejected; corrected 0.5B evaluation completed
+
+**First exploratory runner [36213886700](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36213886700):** The original prompt contained a fixed literal numerical answer example, causing the 0.5B model to copy `p11=0.123` on all 15 cases. This attempt is INVALID as a test of calculation and is archived rather than counted as a scientific success.
+
+**Corrected run [36214021583](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36214021583):** Removed the answer example; the same public model Qwen2.5-0.5B-Instruct actually generated 15 responses, revision `7ae557604adf67be50417f59c2c2f167def9a775`. Under the fixed original strict two-field single-line scoring contract, all 15 were invalid-format, so **no claim of a measured advantage** is supported. The small model often assigned Azure's SIMULATOR results the false label "physical" or "yes". The full real responses are available from the run's `cosmos-stage013-public-cloud-cpu-model-qvm-control-results` artifact.
+
+**Clearly post-hoc diagnostic [36214220283](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36214220283):** Separately parsed the actual numeric `p11` values from the EXISTING recorded outputs, without issuing any additional model call. This supplementary parsing rule was designed AFTER viewing the initial answers and must NOT be conflated with the preregistered primary metric. Three trials per arm; mean absolute error versus ideal analytic `p11` (no numerical values missing in this particular 0.5B run):
+
+| Control | Post-hoc numeric MAE (3 held-out trials) | Explicit correct simulator classifications |
+|---|---:|---:|
+| Baseline | 0.17103427 | 0 / 3 |
+| Memory-only | 0.25930156 | 0 / 3 |
+| Genuine QVM-history-conditioned 12D | 0.37303239 | 0 / 3 |
+| Reverse-order CNS7 state | 0.37303239 | 0 / 3 |
+| Strength-matched classical CNS7 state | 0.37303239 | 0 / 3 |
+
+Under this secondary diagnostic, conditioned context did NOT improve arithmetic on the three tasks. All five conditions incorrectly classified the simulator in their actual answers. This is a tiny, intentionally exploratory negative/null result for this model and task, not a general verdict on the architecture.
+
+**Stage 014 independent follow-up:** The stricter, format-independent numeric parsing rule and its regression tests were committed and successfully verified BEFORE beginning a separate public Qwen2.5-1.5B-Instruct run. The second model uses precisely the SAME blinded target prompts and existing three QVM outputs, but runs fresh inference on independent public weights. It will report its own model revision and all raw responses, with no provider API billing and no new QVM jobs.
