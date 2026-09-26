@@ -195,3 +195,84 @@ with the \`Quantum Workspace Data Contributor\` role and GitHub OIDC
 federation should replace direct workspace access keys if available. Keep
 the connection string private and rotate/revoke it after use if no longer
 needed.
+
+
+## Stage 012C: VERIFIED three real Azure-hosted Rigetti QVM cloud simulator jobs
+
+The owner configured the protected GitHub Actions workspace connection-string
+secret, and the original first submission failed **before any provider job**
+with an invalid connection-string parse. The owner replaced that secret.
+
+The authorized failed-job retry of **run 36212731110, attempt 2** then
+successfully executed **three distinct REAL AZURE-HOSTED RIGETTI QVM
+SIMULATOR jobs** at the exact target \`rigetti.sim.qvm\`, **32 shots each**,
+**96 synthetic quantum-circuit simulator readouts total**, and **zero QPU jobs**.
+
+- GitHub run: https://github.com/NavisWORLD/The-beast-box-/actions/runs/36212731110/attempts/2
+- Sanitized official Actions artifact ID: \`10896412037\`,
+  \`cosmos-stage012-actual-azure-free-qvm-receipt\`.
+- Public, digest-preserving fixture derived from that artifact:
+  \`evidence/stage012/live_azure_qvm_3job_public_receipt.json\`.
+- Exact public receipt SHA-256 over the canonical three receipt rows:
+  \`e7ab1fdd1702a919834cbb562d54bfb1106c3ce14a042f3cf8222e6a8367410a\`.
+
+| Sequence | RX angle (radians) | Simulated counts \`00\`/\`01\`/\`10\`/\`11\` | Azure QVM job ID |
+|---|---:|---:|---|
+| 1 | 0.25 | 32 / 0 / 0 / 0 | \`07fe2564-b955-11f1-a931-7ced8d4c0339\` |
+| 2 | 1.047197551197 | 27 / 0 / 0 / 5 | \`0df67b08-b955-11f1-a931-7ced8d4c0339\` |
+| 3 | 2.35619449 | 5 / 0 / 0 / 27 | \`1277dfa0-b955-11f1-a931-7ced8d4c0339\` |
+
+These results are consistent in broad direction with the simple ideal
+two-qubit RX+CNOT circuit; the sample sizes are tiny. The QVM is a CLOUD
+SIMULATOR, so the successful cloud authentication and three job IDs are
+real; none of these jobs collected new hardware quantum measurements,
+validated physical entanglement or established a hardware noise calibration.
+
+### Exact public simulator receipt -> existing COSMOS dyn12/CNS7
+
+A separate follow-on **offline** job, run
+https://github.com/NavisWORLD/The-beast-box-/actions/runs/36213088796,
+successfully verified the public receipt row hash, three unique job IDs,
+the exact program hashes and shot totals. It then projected the *three*
+real Azure cloud SIMULATOR output histograms through the **existing**
+\`SoulToken\` → typed \`source_from_soul_token\` → \`fuse_sources\` →
+\`BridgePacket\` → \`CNS7.tick\` → \`update_dyn12\` chain. Historical
+IBM Fez published summaries remained an independently identified, separate
+context source. There were no additional Azure submissions, QPU jobs,
+model calls, trainable weight updates or owner-memory writes.
+
+The new replay runner is \`beastbox/qvm_live_replay.py\`, with strict
+tampering/hardware-relabeling tests in \`tests/test_qvm_live_replay.py\`.
+All three unique cloud SIMULATOR observations were replayed exactly ONCE.
+They were **not** reused and relabeled as 10,000 independent QVM samples.
+
+The five-arm fixed-weight numerical comparison reported these RMS
+separations of the conditioned 12D SOFTWARE state:
+
+| Control | Three-original-observation state separation |
+|---|---:|
+| Zero | 0.175598054 |
+| First observation frozen | 0.128587880 |
+| Time-rotated original observations | 0.095106646 |
+| Norm-matched classical signed permutation | 0.249355839 |
+
+- Exact numerical replay hash chain:
+  \`a0598498f0ff8526075d95577d0815152103a234d2f920e2f0d383c979b71d6f\`
+- The native replay artifact, published from run 36213088796:
+  \`cosmos-stage012-original-cloud-qvm-three-job-cns7-replay\`.
+
+**Scientific conclusion:** For these three QVM SIMULATOR observations, the
+existing typed COSMOS software pipeline generated numerically distinct
+12D trajectories from the registered software controls. This is evidence
+of source-to-controller integration and numerical sensitivity, NOT any
+measured increase in language-model intelligence, simulation fidelity
+to real Rigetti hardware, physical quantum effects or quantum advantage.
+
+**Next gated experiment:** fixed-prompt/fixed-model blinded cloud-model
+baseline vs memory-only vs genuine-QVM-conditioned context vs shuffled and
+matched-classical controls, with an explicit token budget, independent
+quality scoring and owner approval before spending or sharing input context.
+
+**Safety:** keep the Azure connection string in GitHub Secrets. No
+secret value appears in published GitHub artifacts, fixture, replay report
+or these notes. The feature branch is isolated; no production deployment.
