@@ -90,3 +90,34 @@ def test_invalid_budgets_and_angles_fail_closed():
     for angle in (-1.0,float("nan"),math.pi+1):
         with pytest.raises(ValueError):
             loop.quil_for_angles(angle,0.1)
+
+
+def test_raw_export_decoder_reconstructs_full_bounded_5bit_counts_without_network():
+    import base64
+    import zlib
+    raw=_load("raw_archive")
+    sample=bytes(list(range(32))*132)  # clearly synthetic unit fixture: 4224
+    compressed=base64.b64encode(zlib.compress(sample)).decode("ascii")
+    payload={
+        "__type__":"PrimitiveResult",
+        "__value__":{"pub_results":[{"__type__":"SamplerPubResult","__value__":
+            {"data":{"__value__":{"fields":{"meas":{"__value__":{
+                "__type__":"BitArray","num_bits":5,
+                "array":{"__type__":"ndarray","__value__":compressed},
+            }}}}}}
+        ]},
+    }
+    counts,shots=raw.decode_serialized_bitarray(payload)
+    assert shots==4224 and len(counts)==32
+    assert set(counts.values())=={132}
+    assert raw.historical_entropy(counts)==pytest.approx(1.0)
+    assert raw.git_blob_sha1(b"hi")==hashlib.sha1(b"blob 2"+bytes([0])+b"hi").hexdigest()
+    payload["__value__"]["pub_results"][0]["__value__"]["data"]["__value__"]["fields"]["meas"]["__value__"]["num_bits"]=4
+    with pytest.raises(ValueError):
+        raw.decode_serialized_bitarray(payload)
+
+
+def test_untrusted_full_archived_manifest_is_rejected():
+    loop=_load("loop")
+    with pytest.raises(ValueError):
+        loop.run(iterations=1,raw_histograms={"schema":"anything","records":[]})
