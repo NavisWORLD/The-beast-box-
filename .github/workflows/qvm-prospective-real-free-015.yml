@@ -16,7 +16,10 @@ concurrency:
 
 jobs:
   prospective-three-independent-batches-per-angle:
-    if: github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/experiment/cosmos-qvm-meaningful-015'
+    # Stage015 one-time 24-job quota was completed by run 36218234744.
+    # Retired to prevent accidental new submissions from push or manual dispatch.
+    # A separately authorized prospective stage must use a NEW explicit workflow.
+    if: github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/experiment/cosmos-qvm-meaningful-015' && false
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
