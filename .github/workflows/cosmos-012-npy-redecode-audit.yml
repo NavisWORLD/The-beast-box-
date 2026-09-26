@@ -4,7 +4,7 @@ on:
     branches:
       - experiment/rigetti-qvm-cosmos-loop-012
     paths:
-      - 'experiments/rigetti-qvm-cosmos-012/**'
+      - 'research/rigetti-qvm-cosmos-012/**'
       - '.github/workflows/cosmos-012-npy-redecode-audit.yml'
   workflow_dispatch:
 
@@ -31,7 +31,7 @@ jobs:
       - name: Re-decode exact published IBM source exports and explicitly audit old header inclusion
         run: |
           set -euo pipefail
-          python experiments/rigetti-qvm-cosmos-012/raw_archive.py \
+          python research/rigetti-qvm-cosmos-012/raw_archive.py \
             --output build/rigetti-qvm-cosmos-012-redecoded-raw.json
           python - <<'PY'
           import json
@@ -47,7 +47,7 @@ jobs:
       - name: Rerun bounded 10000 CNS7 steps with true historical 5-bit count distributions
         run: |
           set -euo pipefail
-          python experiments/rigetti-qvm-cosmos-012/loop.py \
+          python research/rigetti-qvm-cosmos-012/loop.py \
             --iterations 10000 --seed 67 \
             --raw-histograms build/rigetti-qvm-cosmos-012-redecoded-raw.json \
             --output build/rigetti-qvm-cosmos-012-raw-archived-10k.json
