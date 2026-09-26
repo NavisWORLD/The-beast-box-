@@ -46,3 +46,29 @@ Each task is run under five deterministic, shuffled-order cases, always the same
 Under this secondary diagnostic, conditioned context did NOT improve arithmetic on the three tasks. All five conditions incorrectly classified the simulator in their actual answers. This is a tiny, intentionally exploratory negative/null result for this model and task, not a general verdict on the architecture.
 
 **Stage 014 independent follow-up:** The stricter, format-independent numeric parsing rule and its regression tests were committed and successfully verified BEFORE beginning a separate public Qwen2.5-1.5B-Instruct run. The second model uses precisely the SAME blinded target prompts and existing three QVM outputs, but runs fresh inference on independent public weights. It will report its own model revision and all raw responses, with no provider API billing and no new QVM jobs.
+
+## Independent larger-model Stage 014 ACTUAL results
+
+**All 15 independent Qwen2.5-1.5B-Instruct generations completed** on a real GitHub cloud-hosted CPU machine: [successful run 36214275255](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36214275255). The unmodified public model weights were pinned to exact Hugging Face revision `989aa7980e4cf806f80c7fef2b1adb7bc71aa306`. Model-generation time measured by the runner: 83.17 seconds (excludes installation/download time).
+
+The independent, **predeclared before this model ran**, format-independent numerical assessment was executed on the same three held-out target angles, identical public prompt digest `2750af17a5598e642b0d39284981010576afcf738837cee4d3293fc5fd7d70fe` across all five arms. Full unedited real answers and the original stricter Stage 013 output-format score are saved alongside the predeclared Stage 014 metrics in Actions artifact `cosmos-stage014-qwen1p5b-public-cpu-qvm-15-trial-receipt`.
+
+| Control | Predeclared numerical MAE vs ideal analytic p11 | Parsed numerical answers | Correct simulator identification |
+|---|---:|---:|---:|
+| Baseline | 0.40566987 | 3/3 | 0/3 |
+| Memory-only | 0.46766987 | 3/3 | 0/3 |
+| Existing authentic QVM-record-conditioned CNS7 state | 0.36266987 | 3/3 | 0/3 |
+| Reversed original observation order | 0.32100320 | 3/3 | 0/3 |
+| Norm-strength-matched classical software control | 0.32100320 | 3/3 | 0/3 |
+
+**Interpretation:** 12D contextual conditioning produced a different numerical error from baseline in this model, but the reversed and norm-matched classical software control conditions produced different errors as well. With three very simple tasks, no repeated seeds, uncontrolled relative context length, and no validated physical hardware calibration, there is **NO demonstrated QVM-specific model performance benefit** and no established increase in model intelligence. All Stage 014 responses incorrectly identified Azure simulator outputs as hardware (`hardware=yes`); the text-injected numerical state did not solve this provenance reliability issue. These limitations matter especially because the ideal analytic formula was provided explicitly to all arms.
+
+**The demonstrated engineering milestones are nevertheless real and separate**:
+- Three completed, separately identified, cloud-hosted Azure Rigetti *simulator* jobs and 96 simulator shots, all without paid QPU jobs.
+- Source-provenance-verified typed fusion and numerical CST/CNS7 replay from those exact published job receipts through the EXISTING Beast Box software, without rebuilding it.
+- 30 actual CPU model generations across two different public, frozen, pinned, open-weight model sizes using the same 15 blinded prompts, plus archival preservation of the rejected initial example-copying run. No paid inference API, no owner bio data transfer, no retraining or private production updates.
+- Honest null/negative and inconclusive behavioral evidence saved, with original pre-registered and explicitly labeled post-hoc metrics kept distinct.
+
+**Prior to any full owner-facing cloud provider rollout**, add an explicit provider-neutral structured-signal context contract, require per-request remote-sharing consent for any sensor or owner data, and run a larger prospectively specified benchmark where the state is genuinely informative while matching context lengths. A local QVM simulation alone does not inject neural-layer states into closed cloud models.
+
+**Promotion gate:** The research PR remains draft and isolated. These results do not authorize automatic Azure jobs, autonomous external memory writes, a paid hosted model, or deployment of an unproven feature onto the live Beast Box.
