@@ -3,6 +3,7 @@ import threading
 import time
 import math
 import hashlib
+import json
 import torch
 from rawrphos.training.checkpoint import load_checkpoint
 from rawrphos.inference.snapshot import load_inference_snapshot
@@ -232,6 +233,8 @@ class Engine:
                     'first_token_ms':None if first is None else round(first*1000,3),
                     'full_response_ms':round(total*1000,3),
                     'generated_tokens':len(out),
+                    'token_sequence_sha256':hashlib.sha256(
+                        json.dumps(out,separators=(',',':')).encode('ascii')).hexdigest(),
                     'cache_enabled':use_cache,
                 }
             reference_generation=run_one('reference',True)
@@ -254,6 +257,7 @@ class Engine:
                 'response_conditioned':conditioned_cache['text'],
                 'equal_reference_conditioned':reference_generation['text']==conditioned_cache['text'],
                 'conditioned_cache_parity':conditioned_cache['text']==conditioned_no_cache['text'],
+                'conditioned_cache_token_parity':conditioned_cache['token_sequence_sha256']==conditioned_no_cache['token_sequence_sha256'],
                 'generation_metrics':{
                     'reference':reference_generation,
                     'conditioned_cache':conditioned_cache,
