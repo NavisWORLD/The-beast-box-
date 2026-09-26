@@ -1,0 +1,252 @@
+name: COSMOS 012 Rigetti QVM gated 10K research
+on:
+  push:
+    branches:
+      - experiment/rigetti-qvm-cosmos-loop-012
+    paths:
+      - 'research/rigetti-qvm-cosmos-012/**'
+      - 'tests/test_rigetti_qvm_cosmos_loop_012.py'
+      - '.github/workflows/rigetti-qvm-cosmos-loop-012.yml'
+  workflow_dispatch:
+    inputs:
+      azure_qvm:
+        description: 'Request exactly ONE Rigetti free QVM simulator anchor if Quantum secrets are configured'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cosmos-012-free-qvm-single-anchor
+  cancel-in-progress: true
+
+jobs:
+  local-10k:
+    if: github.repository == 'NavisWORLD/The-beast-box-'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      PYTHONPATH: .
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install repository and no-cost test runner
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet -e . 'pytest>=8,<10'
+      - name: Strict controls, source-provenance, no-paid-target tests
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_rigetti_qvm_cosmos_loop_012.py
+      - name: TEN THOUSAND bounded genuine COSMOS fusion and CNS7 iterations
+        run: |
+          set -euo pipefail
+          python research/rigetti-qvm-cosmos-012/loop.py \
+            --iterations 10000 --seed 67 \
+            --output build/rigetti-qvm-cosmos-012-local.json
+          python - <<'PY'
+          import json
+          p=json.load(open("build/rigetti-qvm-cosmos-012-local.json"))
+          assert p["iterations"] == 10000
+          assert p["azure_qvm_jobs_submitted"] == 0
+          assert p["physical_qpu_jobs_submitted"] == p["paid_model_calls"] == 0
+          assert len(p["source"]["summary_row_sha256"]) == 9
+          assert len(p["checkpoints"]) == 10
+          assert p["controls"]["fused"]["trajectory_sha256"] != p["controls"]["archive_shuffled"]["trajectory_sha256"]
+          assert p["controls"]["zero"]["nonzero_input_steps"] == 0
+          print("REAL_COSMOS_012_LOCAL_10K_CONTROLS_PASS",p["controls"]["fused"]["trajectory_sha256"])
+          PY
+      - name: Export hashed and labeled local evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-012-local-10k-receipt
+          path: build/rigetti-qvm-cosmos-012-local.json
+          if-no-files-found: error
+          retention-days: 14
+
+  raw-verified-10k:
+    # Independent pinned export check can fail quickly without spending 10K
+    # local simulation runtime on an unrelated source-format issue.
+    if: github.repository == 'NavisWORLD/The-beast-box-'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      PYTHONPATH: .
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install project for independent historical raw decode
+        run: python -m pip install --quiet -e .
+      - name: Fetch only nine immutable GitHub provider exports with exact Git blob verification
+        run: |
+          set -euo pipefail
+          python research/rigetti-qvm-cosmos-012/raw_archive.py \
+            --output build/rigetti-qvm-cosmos-012-redecoded-raw.json
+          python - <<'PY'
+          import json
+          r=json.load(open('build/rigetti-qvm-cosmos-012-redecoded-raw.json'))
+          assert r['pinned_git_blobs_verified'] is True
+          assert r['archived_metadata_identity_crosscheck_passed'] is True
+          assert r['original_summary_parser_included_npy_header_bytes'] is True
+          assert len(r['records'])==9
+          assert sum(x['shots'] for x in r['records']) == 9*4096
+          assert sum(x['npy_container_header_bytes_removed'] for x in r['records']) == 9*128
+          assert all(len(x['counts'])==32 for x in r['records'])
+          assert r['new_ibm_hardware_jobs'] == r['new_azure_qvm_jobs'] == 0
+          print('PINNED_ARCHIVED_IBM_CORRECTED_NPY_FULL_BITARRAY_RECOVERY_PASS')
+          PY
+      - name: Run TEN THOUSAND identical shared circuits using independently decoded real exported IBM counts as contextual source
+        run: |
+          set -euo pipefail
+          python research/rigetti-qvm-cosmos-012/loop.py \
+            --iterations 10000 --seed 67 \
+            --raw-histograms build/rigetti-qvm-cosmos-012-redecoded-raw.json \
+            --output build/rigetti-qvm-cosmos-012-raw-archived-10k.json
+          python - <<'PY'
+          import json
+          p=json.load(open('build/rigetti-qvm-cosmos-012-raw-archived-10k.json'))
+          assert p['iterations']==10000
+          assert p['source']['full_archived_export_independently_redecoded'] is True
+          assert p['source']['raw_provider_histograms_present'] is True
+          assert p['azure_qvm_jobs_submitted']==p['physical_qpu_jobs_submitted']==0
+          assert p['controls']['zero']['nonzero_input_steps']==0
+          assert p['controls']['fused']['trajectory_sha256']!=p['controls']['simulator_only']['trajectory_sha256']
+          print('COSMOS_012_VERIFIED_RAW_ARCHIVED_IBM_10K_CONTROL_PASS',p['controls']['fused']['trajectory_sha256'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-012-verified-ibm-raw-10k-receipts
+          path: |
+            build/rigetti-qvm-cosmos-012-redecoded-raw.json
+            build/rigetti-qvm-cosmos-012-raw-archived-10k.json
+          if-no-files-found: error
+          retention-days: 14
+
+  azure-free-qvm-one:
+    needs: local-10k
+    if: >-
+      github.repository == 'NavisWORLD/The-beast-box-' &&
+      (contains(github.event.head_commit.message, '[FREE_QVM_ONCE]') ||
+       (github.event_name == 'workflow_dispatch' && inputs.azure_qvm == true))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    outputs:
+      credentials_ready: ${{ steps.credential_check.outputs.ready }}
+    env:
+      PYTHONPATH: .
+      PYTHONDONTWRITEBYTECODE: '1'
+      AZURE_QUANTUM_RESOURCE_ID: ${{ secrets.AZURE_QUANTUM_RESOURCE_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Setup strictly isolated simulator adapter
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet -e .
+      - name: Verify Azure QUANTUM identity exists, not Azure Storage credentials
+        id: credential_check
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${AZURE_QUANTUM_RESOURCE_ID:-}" &&
+                -n "${AZURE_TENANT_ID:-}" &&
+                -n "${AZURE_CLIENT_ID:-}" &&
+                -n "${AZURE_CLIENT_SECRET:-}" ]]; then
+            echo 'ready=true' >> "${GITHUB_OUTPUT}"
+            echo "AZURE_QUANTUM_IDENTITY_PRESENT=true"
+          else
+            echo 'ready=false' >> "${GITHUB_OUTPUT}"
+            echo "AZURE_QVM_STAGE=BLOCKED_MISSING_AZURE_QUANTUM_SERVICE_IDENTITY"
+          fi
+          python research/rigetti-qvm-cosmos-012/azure_qvm.py > build_qvm_preflight.json
+      - name: Install Azure SDK ONLY when credentials are present
+        if: steps.credential_check.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'azure-quantum>=3,<4' 'azure-identity>=1.17,<2'
+      - name: Submit EXACTLY ONE allowlisted free QVM simulator job, no retries
+        if: steps.credential_check.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          python research/rigetti-qvm-cosmos-012/azure_qvm.py \
+            --submit-one-free-qvm --approval FREE_QVM_ONLY \
+            --output build/rigetti-qvm-cosmos-012-azure-anchor.json
+      - name: Upload Azure simulator outcome or precise missing-access receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-012-free-azure-qvm-status
+          path: |
+            build_qvm_preflight.json
+            build/rigetti-qvm-cosmos-012-azure-anchor.json
+          if-no-files-found: error
+          retention-days: 14
+
+  qvm-anchored-10k:
+    needs: [local-10k, raw-verified-10k, azure-free-qvm-one]
+    if: >-
+      github.repository == 'NavisWORLD/The-beast-box-' &&
+      needs.azure-free-qvm-one.result == 'success' &&
+      needs.azure-free-qvm-one.outputs.credentials_ready == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      PYTHONPATH: .
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --quiet -e .
+      - uses: actions/download-artifact@v4
+        with:
+          name: cosmos-012-free-azure-qvm-status
+          path: stage012-qvm
+      - uses: actions/download-artifact@v4
+        with:
+          name: cosmos-012-verified-ibm-raw-10k-receipts
+          path: stage012-historical
+      - name: Consume actual QVM simulator result in ONE of 10000 paired COSMOS steps
+        run: |
+          set -euo pipefail
+          python research/rigetti-qvm-cosmos-012/loop.py \
+            --iterations 10000 --seed 67 \
+            --qvm-anchor stage012-qvm/build/rigetti-qvm-cosmos-012-azure-anchor.json \
+            --raw-histograms stage012-historical/build/rigetti-qvm-cosmos-012-redecoded-raw.json \
+            --output build/rigetti-qvm-cosmos-012-qvm-anchored.json
+          python - <<'PY'
+          import json
+          p=json.load(open("build/rigetti-qvm-cosmos-012-qvm-anchored.json"))
+          assert p["iterations"] == 10000
+          assert p["azure_qvm_jobs_submitted"] == 1
+          assert p["physical_qpu_jobs_submitted"] == p["paid_model_calls"] == 0
+          print("REAL_COSMOS_012_ONE_QVM_ANCHOR_WITH_9999_LOCAL_SIM_STEPS_PASS")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-012-qvm-anchored-10k-receipt
+          path: build/rigetti-qvm-cosmos-012-qvm-anchored.json
+          if-no-files-found: error
+          retention-days: 14

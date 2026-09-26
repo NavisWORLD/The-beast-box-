@@ -1,0 +1,72 @@
+name: COSMOS 012 independent historical NPY integrity audit
+on:
+  push:
+    branches:
+      - experiment/rigetti-qvm-cosmos-loop-012
+    paths:
+      - 'research/rigetti-qvm-cosmos-012/**'
+      - '.github/workflows/cosmos-012-npy-redecode-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    if: github.repository == 'NavisWORLD/The-beast-box-'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    env:
+      PYTHONPATH: .
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install only repository dependencies
+        run: python -m pip install --quiet -e .
+      - name: Re-decode exact published IBM source exports and explicitly audit old header inclusion
+        run: |
+          set -euo pipefail
+          python research/rigetti-qvm-cosmos-012/raw_archive.py \
+            --output build/rigetti-qvm-cosmos-012-redecoded-raw.json
+          python - <<'PY'
+          import json
+          r=json.load(open("build/rigetti-qvm-cosmos-012-redecoded-raw.json"))
+          assert len(r["records"])==9
+          assert sum(x["shots"] for x in r["records"])==9*4096
+          assert sum(x["npy_container_header_bytes_removed"] for x in r["records"])==9*128
+          assert r["archived_metadata_identity_crosscheck_passed"] is True
+          assert r["independent_provider_api_confirmation"] is False
+          assert r["new_ibm_hardware_jobs"]==r["new_azure_qvm_jobs"]==0
+          print("NINE_PINNED_IBM_FEZ_EXPORTS_INDEPENDENTLY_REDECODED_AND_HEADER_AUDITED")
+          PY
+      - name: Rerun bounded 10000 CNS7 steps with true historical 5-bit count distributions
+        run: |
+          set -euo pipefail
+          python research/rigetti-qvm-cosmos-012/loop.py \
+            --iterations 10000 --seed 67 \
+            --raw-histograms build/rigetti-qvm-cosmos-012-redecoded-raw.json \
+            --output build/rigetti-qvm-cosmos-012-raw-archived-10k.json
+          python - <<'PY'
+          import json
+          p=json.load(open("build/rigetti-qvm-cosmos-012-raw-archived-10k.json"))
+          assert p["iterations"]==10000 and len(p["checkpoints"])==10
+          assert p["source"]["raw_provider_histograms_present"] is True
+          assert p["source"]["full_archived_export_independently_redecoded"] is True
+          assert p["azure_qvm_jobs_submitted"]==p["physical_qpu_jobs_submitted"]==p["paid_model_calls"]==0
+          assert p["controls"]["zero"]["nonzero_input_steps"]==0
+          print("COSMOS_012_CORRECTED_PINNED_REAL_ARCHIVE_10K_SUCCESS",
+                p["controls"]["fused"]["trajectory_sha256"])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-012-independent-true-ibm-4096-shot-10k
+          path: |
+            build/rigetti-qvm-cosmos-012-redecoded-raw.json
+            build/rigetti-qvm-cosmos-012-raw-archived-10k.json
+          if-no-files-found: error
+          retention-days: 14
