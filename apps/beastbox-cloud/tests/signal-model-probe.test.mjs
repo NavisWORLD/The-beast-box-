@@ -21,6 +21,7 @@ test('typed sensory-quantum native probe is owner-only, same-origin and opt-in',
  assert.match(ui,/Run typed signal → native model experiment/);
  assert.match(ui,/archive_replay_confirmed:true/);
  assert.match(ui,/conditioning_confirmed:true/);
+ assert.match(ui,/conditioned_cache_token_parity!==true/);
  assert.match(ui,/changed logit\/output demonstrates computational sensitivity only/);
  assert.doesNotMatch(ui,/localStorage|sessionStorage|document\.cookie/);
 });
