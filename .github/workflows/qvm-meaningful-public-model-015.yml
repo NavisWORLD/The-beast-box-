@@ -1,0 +1,107 @@
+name: Stage 015 meaningful QVM history to CNS7 12D cloud CPU model comparison
+
+on:
+  push:
+    branches: [experiment/cosmos-qvm-meaningful-015]
+    paths:
+      - 'docs/experimental-run-requests/stage015-execute-model.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: cosmos-stage015-one-public-model-benchmark
+  cancel-in-progress: false
+
+jobs:
+  independent-32-scenario-192-response-cpu-benchmark:
+    if: github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/experiment/cosmos-qvm-meaningful-015'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      CUDA_VISIBLE_DEVICES: ''
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      TOKENIZERS_PARALLELISM: 'false'
+      HF_HUB_DOWNLOAD_TIMEOUT: '90'
+      HF_HUB_ETAG_TIMEOUT: '30'
+      AZURE_QUANTUM_QVM_OPT_IN: 'no'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install project/tester and verify predeclared heldout controls
+        run: |
+          python -m pip install -e . 'pytest>=8,<10'
+          python -m pytest -q tests/test_qvm_meaningful_015.py
+          python -m py_compile beastbox/qvm_meaningful_benchmark_015.py scripts/run_qvm_meaningful_model_015.py
+      - name: Retrieve ONLY actual successful 24-job real Azure CLOUD SIMULATOR receipt
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 36218234744
+          repository: NavisWORLD/The-beast-box-
+          github-token: ${{ github.token }}
+          name: cosmos-stage015-actual-azure-qvm-prospective-public-dataset
+          path: build/source
+      - name: Fail closed on partial, tampered or QPU-labeled cloud source BEFORE MODEL DOWNLOAD
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from beastbox.qvm_prospective_015 import validate
+          source=json.loads(Path("build/source/stage015-live-azure-qvm-triplets.json").read_text())
+          assert len(validate(source))==8
+          assert source["completed_provider_jobs"]==24
+          assert source["total_simulated_shot_cap"]==2048
+          assert source["physical_hardware_jobs_permitted"]==0
+          assert source["complete"] is True
+          print("STAGE015_VERIFIED_24_REAL_FREE_CLOUD_SIMULATOR_SOURCE_READY_NO_HARDWARE",flush=True)
+          PY
+      - name: Install pinned CPU-only open model libraries, no Azure SDK or paid API
+        run: |
+          python -m pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'transformers==4.48.3' 'huggingface-hub>=0.27,<1'
+          python - <<'PY'
+          import torch
+          assert torch.cuda.is_available() is False
+          print("PUBLIC_QWEN_PINNED_CLOUD_CPU_NO_MODEL_API",flush=True)
+          PY
+      - name: Generate 192 authentic outputs from 1.5B public open-weight model
+        run: |
+          python scripts/run_qvm_meaningful_model_015.py \
+            --source build/source/stage015-live-azure-qvm-triplets.json \
+            --output build/stage015-prospective-192-model-answer-receipt.json
+      - name: Verify locked cohort metrics and zero physical/new provider jobs
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path("build/stage015-prospective-192-model-answer-receipt.json").read_text())
+          assert d["actual_model_generations_completed"]==192
+          assert d["all_model_inference_calls"]==192
+          assert d["source_provider_original_jobs"]==24
+          assert d["new_quantum_provider_jobs"]==0 if "new_quantum_provider_jobs" in d else d["new_azure_quantum_jobs"]==0
+          assert d["new_physical_quantum_measurements"]==0
+          assert d["model_api_calls"]==0
+          assert d["owner_memory_updated"] is False
+          assert d["model_weights_updated"] is False
+          assert len(d["cohort_arm_results_unranked"])==12
+          print("STAGE015_192_ACTUAL_OPEN_MODEL_BLIND_FORECASTS_AND_STATISTICS_VERIFIED",flush=True)
+          PY
+      - name: Publish full real, prospectively graded model transcript
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-stage015-prospective-192-open-model-forecast-results
+          path: build/stage015-prospective-192-model-answer-receipt.json
+          if-no-files-found: error
+          retention-days: 21
+      - name: Interpretation and strict isolation
+        run: |
+          echo 'Contains both genuine cloud QVM simulator cohort and separately labeled local classical synthetic cohort.'
+          echo 'No real QPU, paid inference, memory/weight mutation or production activation.'
+          echo 'Any extra 12D benefit must exceed BOTH shuffled and norm-matched classical controls.'
