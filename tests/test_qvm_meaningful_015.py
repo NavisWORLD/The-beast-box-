@@ -152,6 +152,11 @@ def test_scoring_has_explicit_analytic_and_future_brier_controls(monkeypatch,tmp
     assert result["new_qvm_jobs_by_model_evaluation"] == 0
     assert result["new_physical_quantum_measurements"] == 0
     assert len(result["cohort_arm_results_unranked"]) == 12
+    paired = result["predeclared_paired_uncertainty"]
+    assert paired["registered_before_model_inference"] is True
+    assert len(paired["paired_by_cohort"]) == 16
+    assert all(abs(v["mean_conditioned_minus_control"]) <= 1e-10
+               for v in paired["paired_by_cohort"].values())
     assert all(v["valid_numeric_answers"] == v["cases"] for v in result["cohort_arm_results_unranked"].values())
     assert all(v["MAE_hidden_ideal_p11"] <= 0.0001 for v in result["cohort_arm_results_unranked"].values())
     assert all(v["correct_simulator_source"] == v["cases"] for v in result["cohort_arm_results_unranked"].values())
