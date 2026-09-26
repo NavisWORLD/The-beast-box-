@@ -1,0 +1,94 @@
+name: Stage 012 zero-cloud-cost 10K classical Bell plus CST controls
+
+on:
+  push:
+    branches:
+      - experiment/rigetti-qvm-12d-feedback-012
+    paths:
+      - '.github/workflows/qvm-12d-feedback-012.yml'
+      - 'beastbox/qvm_feedback_experiment.py'
+      - 'beastbox/rigetti_qvm_adapter.py'
+      - 'tests/test_qvm_feedback_experiment.py'
+      - 'docs/RIGETTI_QVM_CST_FEEDBACK_012.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage012-isolated-qvm
+  cancel-in-progress: true
+
+jobs:
+  local-10k-and-qvm-contract:
+    if: github.repository == 'NavisWORLD/The-beast-box-'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      # Deliberately never expose Azure, provider or cloud-model credentials
+      # to the unmerged isolated experiment's automatic 10K job.
+      AZURE_QUANTUM_QVM_OPT_IN: 'no'
+      PYTHONHASHSEED: '67'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install core only; no Azure credential or simulator SDK required
+        run: |
+          python -m pip install -e . 'pytest>=8,<10'
+      - name: Validate simulator target allowlist, deterministic seed and controls
+        run: |
+          python -m pytest -q tests/test_qvm_feedback_experiment.py
+      - name: Exactly 10,000 zero-network classical Bell observations through real COSMOS 12D/CNS7
+        run: |
+          set -euo pipefail
+          python -m beastbox.qvm_feedback_experiment \
+            --iterations 10000 --shots 64 --seed 67 --checkpoint-every 250 \
+            --output build/stage012-local-10k-receipt.json
+      - name: Free Rigetti Azure QVM connectivity contract DRY RUN (zero Azure jobs)
+        run: |
+          python -m beastbox.rigetti_qvm_adapter \
+            --shots 32 --output build/stage012-rigetti-qvm-dry-run.json
+      - name: Validate receipt scope and prevent fabricated Azure/quantum evidence
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('build')
+          r=json.loads((root/'stage012-local-10k-receipt.json').read_text())
+          d=json.loads((root/'stage012-rigetti-qvm-dry-run.json').read_text())
+          assert r['iterations']==10000
+          assert r['simulated_shots_total']==640000
+          assert r['backend']=='LOCAL_IDEAL_BELL_MONTE_CARLO_NOT_AZURE_QVM'
+          assert r['azure_qvm_executed'] is False
+          assert r['rigetti_sim_qvm_jobs_started']==r['paid_qpu_jobs_started']==0
+          assert r['model_inference_calls']==0
+          assert r['archive_input']['records']==9
+          assert r['archive_input']['rigetti_hardware_witnesses']==0
+          assert len(r['snapshots'])==40 and r['snapshots'][-1]['iteration']==10000
+          assert all(v>=0 for v in r['rms_state_separation'].values())
+          assert d['selected_target']=='rigetti.sim.qvm'
+          assert d['physical_hardware_jobs_permitted']==0
+          assert d['requires_explicit_opt_in'] is True
+          assert d['jobs_requested']==1
+          print('STAGE012_ACTUAL_10000_LOCAL_STEPS_PASS',r['final_hash_chain'],flush=True)
+          print('STAGE012_AZURE_QVM_DRY_RUN_ONLY_NO_PROVIDER_JOBS',flush=True)
+          PY
+      - name: Publish actual zero-cloud-cost numerical receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-stage012-local-10k-no-azure-jobs
+          path: |
+            build/stage012-local-10k-receipt.json
+            build/stage012-rigetti-qvm-dry-run.json
+          if-no-files-found: error
+          retention-days: 21
+      - name: Scope statement
+        run: |
+          echo '10K real executions of LOCAL ideal Bell Monte Carlo; NOT 10K Azure QVM jobs.'
+          echo 'IBM Fez published summaries are context; missing raw histogram not reconstructed.'
+          echo 'No actual Rigetti QVM, Rigetti QPU, fresh IBM hardware, live sensors,'
+          echo 'cloud language model, model fine-tuning or claimed behavioral benefit.'
