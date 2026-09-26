@@ -172,3 +172,79 @@ def test_cloud_context_fails_closed_if_receipt_provenance_or_vector_is_bad():
                                conditioned=[2.0] * 12))])
     with pytest.raises(ValueError):
         build_cloud_payloads(bad, owner_approved=True)
+
+
+def test_connection_string_opt_in_is_only_secret_needed_for_live_workspace(monkeypatch):
+    from beastbox.rigetti_qvm_adapter import CONNECTION_STRING_ENV
+    for name in ("AZURE_QUANTUM_SUBSCRIPTION_ID","AZURE_QUANTUM_RESOURCE_GROUP",
+                 "AZURE_QUANTUM_WORKSPACE_NAME","AZURE_QUANTUM_LOCATION"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv(CONNECTION_STRING_ENV, "fake-private-workspace-connection-never-printed")
+    receipt=plan(shots=32)
+    assert receipt["workspace_credential_present"] is True
+    assert "fake-private-workspace" not in repr(receipt)
+
+
+def test_live_runner_requires_exact_qvm_owner_flag_and_caps_jobs(monkeypatch,tmp_path):
+    from scripts import run_azure_rigetti_qvm_012 as runner
+    monkeypatch.setenv("AZURE_QUANTUM_CONNECTION_STRING","synthetic-private-test-only")
+    monkeypatch.setenv("AZURE_QUANTUM_QVM_OPT_IN","yes")
+    monkeypatch.delenv("COSMOS_APPROVED_QVM_TARGET",raising=False)
+    with pytest.raises(PermissionError):
+        runner.run(output=tmp_path/"receipt.json",count=3,shots=32)
+    monkeypatch.setenv("COSMOS_APPROVED_QVM_TARGET","rigetti.qpu.cepheus-1-108q")
+    with pytest.raises(PermissionError):
+        runner.run(output=tmp_path/"receipt.json",count=3,shots=32)
+    monkeypatch.setenv("COSMOS_APPROVED_QVM_TARGET","rigetti.sim.qvm")
+    calls=[]
+    def fake_submit_free_qvm(*,theta,shots):
+        calls.append((theta,shots))
+        return {
+          "schema":"rigetti-azure-free-qvm-only-v1",
+          "target":"rigetti.sim.qvm","was_real_azure_execution":True,
+          "qpu_jobs_started":0,"job_id":f"synthetic-{len(calls)}",
+          "counts":{"00":16,"01":0,"10":0,"11":16},
+          "quil_sha256":str(len(calls))*64
+        }
+    monkeypatch.setattr(runner,"submit_free_qvm",fake_submit_free_qvm)
+    with pytest.raises(ValueError):
+        runner.run(output=tmp_path/"receipt.json",count=4,shots=32)
+    assert calls==[]
+    with pytest.raises(ValueError):
+        runner.run(output=tmp_path/"receipt.json",count=3,shots=256)
+    assert calls==[]
+    r=runner.run(output=tmp_path/"receipt.json",count=3,shots=32)
+    assert len(calls)==3
+    assert r["completed_jobs"]==3
+    assert r["combined_shots"]==96
+    assert r["qpu_jobs_requested"]==0
+    assert r["cloud_model_called"] is False
+    assert "synthetic-private-test-only" not in (tmp_path/"receipt.json").read_text()
+
+
+def test_live_runner_preserves_first_verified_job_on_second_failure(monkeypatch,tmp_path):
+    from scripts import run_azure_rigetti_qvm_012 as runner
+    monkeypatch.setenv("AZURE_QUANTUM_CONNECTION_STRING","synthetic-private-test-only")
+    monkeypatch.setenv("AZURE_QUANTUM_QVM_OPT_IN","yes")
+    monkeypatch.setenv("COSMOS_APPROVED_QVM_TARGET","rigetti.sim.qvm")
+    count=0
+    def one_success_then_error(*,theta,shots):
+        nonlocal count
+        count+=1
+        if count==2:
+            raise RuntimeError("synthetic provider failure, must not retry")
+        return {
+          "schema":"rigetti-azure-free-qvm-only-v1",
+          "target":"rigetti.sim.qvm","was_real_azure_execution":True,
+          "qpu_jobs_started":0,"job_id":"synthetic-one",
+          "counts":{"00":32,"01":0,"10":0,"11":0},
+          "quil_sha256":"a"*64
+        }
+    monkeypatch.setattr(runner,"submit_free_qvm",one_success_then_error)
+    path=tmp_path/"partial.json"
+    with pytest.raises(RuntimeError):
+        runner.run(output=path,count=3,shots=32)
+    assert count==2
+    receipt=__import__("json").loads(path.read_text())
+    assert receipt["completed_jobs"]==1
+    assert receipt["job_receipts"][0]["job_id"]=="synthetic-one"
