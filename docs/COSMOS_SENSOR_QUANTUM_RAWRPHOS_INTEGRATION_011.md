@@ -211,18 +211,88 @@ As of this Stage-011 branch, **production has not been changed**. The recovery-b
 the conversation-repair branch remains a separate diverged research lineage and is
 not silently merged here.
 
-Before merge/deploy:
+Release gates:
 
 1. exact-head Python, native-PyTorch, web and security CI must pass;
-2. run a real pinned 14K owner probe on the managed CPU host;
-3. record exact model SHA, fusion SHA, CNS SHA, control vector received by PyTorch,
-   gate/sigma/state telemetry, logit deltas, literal text, latency and resource data;
-4. verify zero/reference parity and cache on/off conditioned parity;
-5. verify guest admission control blocks overlap;
-6. only then enable `BEASTBOX_SIGNAL_MODEL_PROBE_ENABLED=yes` on the owner host;
-7. verify Railway and Vercel independently before claiming Production is updated.
+2. review and merge only the verified, expected PR head into the current owner branch;
+3. stage a one-shot fail-closed Railway managed-host acceptance with
+   `BEASTBOX_SIGNAL_ACCEPTANCE_ON_START=yes` and the public owner feature OFF;
+4. require successful **real pinned 14K** managed-host reports for all three modes,
+   each with at least three generated tokens, nonempty text and exact token-level
+   cache on/off parity, as well as fused/CNS/control hashes, gate/state telemetry,
+   measured process CPU, wall time and unchanged stable/experimental model identities;
+5. verify guest admission remains isolated and existing persistent-volume continuity;
+6. only then enable `BEASTBOX_SIGNAL_MODEL_PROBE_ENABLED=yes` and disable the
+   one-shot cold-start acceptance guard on the owner host;
+7. verify Railway and Vercel independently; an inaccessible Vercel account
+   cannot be reported as updated Production.
 
 Still remaining after this stage: direct owner replay of recovered raw historical
 audio/image inputs, a typed LightToken semantic adapter, broader browser sensor
 capture into the same typed fusion contract, and task-relevance evaluations that test
 whether conditioning helps rather than merely changes logits.
+
+## 9. Real pinned-model CI evidence — 2026-09-26
+
+**Workflow:** [CNS7 real native PyTorch / Stage-011 acceptance run 36207199461](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36207199461)
+
+**Artifact:** `signal-fusion-pinned-14k-receipt` containing
+`cosmos-signal-native-14k-acceptance.json`. The receipt includes the exact
+12D CNS vector, fusion/CNS/control digests, next-token control comparisons,
+layer telemetry, literal output, CPU, first-token/full-response and RSS metrics.
+
+This is the real pinned 14,000-step native checkpoint with SHA-256:
+
+```text
+4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5
+```
+
+The experiment used synthetic owner-entered bio readings (heart rate 72 bpm;
+HRV RMSSD 31 ms), one source-reported historical IBM Fez **published summary
+replay**, the same canonical chat prefill
+`user: I'm so confused phos.\nassistant:`, seed 67, greedy temperature 0,
+and maximum 24 new tokens for each arm. No live physical sensor was read and
+no new QPU, cloud-provider, training or memory job was started.
+
+| Arm/source | Conditioned vs reference logit L2 | Classical matched vs reference L2 | Zero vs reference L2 | Literal reference and conditioned output | Cached/uncached |
+|---|---:|---:|---:|---|---|
+| Synthetic bio only | 0.2692094147 | 0.2452372015 | 0.0 | ` Hello! How can I help you?` (both) | same exact 10 tokens |
+| Published IBM summary replay only | 0.0298644807 | 0.0552218519 | 0.0 | ` Hello! How can I help you?` (both) | same exact 10 tokens |
+| Fused synthetic bio + IBM summary replay | 0.0839512199 | 0.0734850392 | 0.0 | ` Hello! How can I help you?` (both) | same exact 10 tokens |
+
+The previous exploratory run did produce nonzero next-token logit differences,
+but an unformatted text prompt emitted **one EOS token and empty text** in
+all three modes. We rejected that as insufficient full-response evidence.
+The strict run now applies the existing trained dialogue prefill format and
+requires *nonempty multi-token generation*. A separate real model unit test
+forces five forward passes with EOS disabled, spies on the exact control tensor
+and asserts the same 12 controls reach **prefill and every cached decoding
+step**, with matching uncached generated tokens.
+
+In the strict GitHub CPU runner, the **fused** multi-arm native probe reported:
+
+```text
+fusion_sha256   8a6e843f35394b935a70655698c4bc1c90844ae60401c1e177463cf8540132a5
+cns_sha256      ddc0e7ab761cfaf16b9204803384bc0393654d6180fb8e1e0535dbac45017c54
+control_sha256  6c95e524b42498b40cfd1f767bd125b454bd4b3a017a7f7221609738c0e35664
+prompt_sha256   db3c97a698e890f8ee36f7a5f1c5d13ec628551841e9bc4660289aede699e0b8
+wall_ms         292.822
+process_cpu_ms  584.849
+max_rss         297276 KiB, Linux process high-water RSS (not host total)
+```
+
+The six fused-layer native readouts in the attached receipt include:
+gate `[0.07882445, 0.08699057, 0.07216939, 0.07252216, 0.07487404,
+0.05334008]`, positive per-layer sigma, omega means, and state norms.
+The full control table also includes rotated, time-shifted, frozen-state,
+shuffled-state and zero-gate variants, and all synthetic receipt digests.
+
+**Scientific interpretation:** full numerical state-to-model propagation
+and fixed-weight cached decoding are demonstrated. Literal responses remained
+identical between reference and conditioned runs. The result establishes neither
+improved task performance nor any quantum-specific effect over matched classical
+sources. In particular, a summary derived from previously reported IBM jobs is
+not an admissible four-state source for the sealed August 29 historical experiment.
+These timings are **GitHub runner** measurements, not production Railway CPU
+benchmarks. Managed Railway acceptance and Vercel production verification must
+be reported separately after deployment.
