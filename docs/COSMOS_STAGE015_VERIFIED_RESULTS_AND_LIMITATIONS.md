@@ -59,4 +59,13 @@ The isolated `.github/workflows/qvm-independent-receipt-audit-015.yml` retrieves
 
 **Next hypothesis (requires a separate preregistration, no automatic cloud spend):** test whether a separately measured, time-ordered external variable predicts future distributional drift that is *not* contained in historical sufficient statistics. Compare unchanged raw observations + appropriate classical filtering/statistics against the actual COSMOS state, shuffled state, input/output-norm-matched controls, and blind extra-feature controls with identical token budgets. Do not relabel the present negative finding as a positive result by changing metrics after inference.
 
-**Release boundary:** keep [PR #125](https://github.com/NavisWORLD/The-beast-box-/pull/125) as draft until offline audit and relevant CI pass and the owner reviews the results; no production deploy, no new Azure jobs and no model API charges.
+## Permanent verified evidence and publication
+
+The original successful source and model workflow artifacts were revalidated by the offline audit, scanned for obvious credential patterns, and committed into Git to avoid relying on time-limited GitHub Actions downloads. Immutable public evidence links:
+
+- [24-job Azure-hosted Rigetti QVM SIMULATOR receipt](https://github.com/NavisWORLD/The-beast-box-/blob/cd5d9321cb30f5327d14bbdd3f71751b630d81a3/evidence/stage015/azure-qvm-24-job-public-receipt.json)
+- [192 genuine frozen-model response transcript and scoring](https://github.com/NavisWORLD/The-beast-box-/blob/cd5d9321cb30f5327d14bbdd3f71751b630d81a3/evidence/stage015/qwen-192-forecast-public-receipt.json)
+- [Independent offline audit witness](https://github.com/NavisWORLD/The-beast-box-/blob/cd5d9321cb30f5327d14bbdd3f71751b630d81a3/evidence/stage015/independent-audit.json)
+- [Read-only GitHub evidence audit PASS](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36244583047) and [permanent artifact publication PASS](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36250126284).
+
+**Release state:** verified Stage 015 [PR #125](https://github.com/NavisWORLD/The-beast-box-/pull/125) was merged into its **research parent branch**; the wider [PR #124](https://github.com/NavisWORLD/The-beast-box-/pull/124) remains a draft, so this merger does not deploy experimental backend code. A separate [publication-only website PR #127](https://github.com/NavisWORLD/The-beast-box-/pull/127) targets the existing live UI branch and changes only the public Next.js research page and homepage link. The completed one-time Stage 015 provider workflow is retired; never press "Re-run jobs" on the old live workflow. No new Azure, physical QPU, paid model inference or owner-memory operations are required to publish the findings.
