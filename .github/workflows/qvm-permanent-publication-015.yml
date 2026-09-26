@@ -15,7 +15,11 @@ concurrency:
 jobs:
   archive-only-prior-approved-simulations:
     # Historical jobs are FINISHED. This publishes their verified outputs only.
-    if: github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/experiment/cosmos-qvm-meaningful-015' && github.event_name == 'push' && github.event.head_commit.message == 'publish(stage015): permanently archive validated historical public evidence'
+    if: >-
+      github.repository == 'NavisWORLD/The-beast-box-' &&
+      github.ref == 'refs/heads/experiment/cosmos-qvm-meaningful-015' &&
+      github.event_name == 'push' &&
+      github.event.head_commit.message == 'publish(stage015): permanently archive validated historical public evidence'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
