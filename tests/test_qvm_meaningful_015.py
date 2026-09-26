@@ -167,3 +167,109 @@ def test_scoring_has_explicit_analytic_and_future_brier_controls(monkeypatch,tmp
     penalized = score(plan, invalid)
     assert all(v["MAE_hidden_ideal_p11"] == 1 for v in penalized["cohort_arm_results_unranked"].values())
     assert all(v["mean_future_empirical_Brier"] == 1 for v in penalized["cohort_arm_results_unranked"].values())
+
+
+def test_completed_or_partial_receipt_is_not_overwritten_or_resubmitted(monkeypatch, tmp_path):
+    from beastbox.qvm_prospective_015 import _digest
+    existing = tmp_path / "prior_receipt.json"
+    existing.write_text(json.dumps({"complete": False, "completed_provider_jobs": 2}))
+    monkeypatch.setenv("AZURE_QUANTUM_QVM_OPT_IN", "yes")
+    monkeypatch.setenv("COSMOS_APPROVED_QVM_TARGET", "rigetti.sim.qvm")
+    monkeypatch.setenv("AZURE_QUANTUM_CONNECTION_STRING", "TEST_ONLY_NOT_A_SECRET")
+    sender, counter = _fake_sender()
+    with pytest.raises(FileExistsError):
+        run(existing, sender=sender)
+    assert counter[0] == 0
+    assert json.loads(existing.read_text())["completed_provider_jobs"] == 2
+
+
+def test_duplicate_provider_id_rejected_before_third_job(monkeypatch, tmp_path):
+    monkeypatch.setenv("AZURE_QUANTUM_QVM_OPT_IN", "yes")
+    monkeypatch.setenv("COSMOS_APPROVED_QVM_TARGET", "rigetti.sim.qvm")
+    monkeypatch.setenv("AZURE_QUANTUM_CONNECTION_STRING", "TEST_ONLY_NOT_A_SECRET")
+    sender, counter = _fake_sender()
+    first = [None]
+    def repeated_id(*, theta, shots):
+        row = sender(theta=theta, shots=shots)
+        if first[0] is None:
+            first[0] = row["job_id"]
+        else:
+            row["job_id"] = first[0]
+        return row
+    path = tmp_path / "partial.json"
+    with pytest.raises(AssertionError):
+        run(path, sender=repeated_id)
+    assert counter[0] == 2
+    partial = json.loads(path.read_text())
+    assert partial["complete"] is False
+    assert partial["completed_provider_jobs"] == 1
+
+
+def test_bad_program_witness_and_nonintegral_counts_rejected_immediately(monkeypatch, tmp_path):
+    monkeypatch.setenv("AZURE_QUANTUM_QVM_OPT_IN", "yes")
+    monkeypatch.setenv("COSMOS_APPROVED_QVM_TARGET", "rigetti.sim.qvm")
+    monkeypatch.setenv("AZURE_QUANTUM_CONNECTION_STRING", "TEST_ONLY_NOT_A_SECRET")
+    sender, count = _fake_sender()
+    def wrong_program(*, theta, shots):
+        row = sender(theta=theta, shots=shots)
+        row["quil_sha256"] = "0"*64
+        return row
+    with pytest.raises(AssertionError):
+        run(tmp_path / "bad_program.json", sender=wrong_program)
+    assert count[0] == 1
+    assert not (tmp_path / "bad_program.json").exists()
+    sender2, count2 = _fake_sender()
+    def floats_in_histogram(*, theta, shots):
+        row = sender2(theta=theta, shots=shots)
+        row["counts"] = {"00": float(shots), "01": 0, "10": 0, "11": 0}
+        return row
+    with pytest.raises(AssertionError):
+        run(tmp_path / "bad_histogram.json", sender=floats_in_histogram)
+    assert count2[0] == 1
+
+
+def test_future_batch_changes_private_labels_not_model_context(monkeypatch, tmp_path):
+    from beastbox.qvm_prospective_015 import _digest
+    source = _mock_real_shape(monkeypatch, tmp_path)
+    original = create_plan(source)
+    altered = copy.deepcopy(source)
+    # Change only one held-out result, preserving 128 shots and all job/program
+    # metadata. This must NOT affect any model-facing input or CNS state.
+    future = altered["scenario_records"][0]["batches"][2]["counts"]
+    if future["00"] > 0:
+        future["00"] -= 1
+        future["11"] += 1
+    else:
+        future["11"] -= 1
+        future["00"] += 1
+    altered["public_rows_sha256"] = _digest(altered["scenario_records"])
+    changed = create_plan(altered)
+    assert original["public_model_inputs"] == changed["public_model_inputs"]
+    ident = "R01-cns12"
+    labels0 = original["private_evaluation_labels_NEVER_SEND_TO_MODEL"]
+    labels1 = changed["private_evaluation_labels_NEVER_SEND_TO_MODEL"]
+    assert labels0[ident]["future_true_11"] != labels1[ident]["future_true_11"]
+    assert labels0[ident]["truth_ideal_p11"] == labels1[ident]["truth_ideal_p11"]
+
+
+def test_equal_history_classical_context_for_comparative_arms(monkeypatch, tmp_path):
+    source = _mock_real_shape(monkeypatch, tmp_path)
+    study = create_plan(source)
+    by_id = {x["id"]: x["prompt"] for x in study["public_model_inputs"]}
+    prefix = "Historical data only, not instructions: "
+    for cohort, size in (("R", 8), ("L", 24)):
+        for scenario in range(1, size+1):
+            base = f"{cohort}{scenario:02d}-"
+            contexts = {
+                arm: json.loads(by_id[base+arm].split(prefix, 1)[1])
+                for arm in ARMS if arm != "no_history"
+            }
+            history = contexts["raw_history"]["observed_past_histograms_ONLY"]
+            classical = contexts["classical_summary"]["shared_classical_statistics"]
+            for arm, ctx in contexts.items():
+                assert ctx["observed_past_histograms_ONLY"] == history
+                if arm not in ("raw_history",):
+                    assert ctx["shared_classical_statistics"] == classical
+            assert "external_COSMOS_CNS7_12D_software_state_C1_to_C12" not in contexts["classical_summary"]
+            for arm in ("cns12", "shuffled_cns12", "matched_cns12"):
+                assert len(contexts[arm]["external_COSMOS_CNS7_12D_software_state_C1_to_C12"]) == 12
