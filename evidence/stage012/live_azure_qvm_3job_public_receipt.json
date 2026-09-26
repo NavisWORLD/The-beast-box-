@@ -1,0 +1,70 @@
+{
+  "schema": "cosmos-stage012-live-azure-rigetti-qvm-smoke-v1",
+  "source": "NEW_REAL_AZURE_QUANTUM_RIGETTI_CLOUD_SIMULATION",
+  "target": "rigetti.sim.qvm",
+  "simulated_not_hardware": true,
+  "fresh_physical_quantum_measurements": 0,
+  "qpu_jobs_requested": 0,
+  "hardware_noise_calibration_obtained": false,
+  "historical_ibm_feasible_reconstruction": false,
+  "cloud_model_called": false,
+  "owner_persistent_memory_updated": false,
+  "job_cap": 3,
+  "per_job_shot_cap": 32,
+  "completed_jobs": 3,
+  "combined_shots": 96,
+  "job_receipts": [
+    {
+      "classification": "LIVE_CLOUD_SIMULATOR_NOT_NEW_HARDWARE_MEASUREMENT",
+      "counts": {
+        "10": 0,
+        "11": 0,
+        "00": 32,
+        "01": 0
+      },
+      "job_id": "07fe2564-b955-11f1-a931-7ced8d4c0339",
+      "program_sha256": "77981e3f588db3b136512a6440946b1bad4ca2649d5714816a82d359a5fa5c25",
+      "sequence": 1,
+      "shots": 32,
+      "target": "rigetti.sim.qvm",
+      "theta_rad": 0.25
+    },
+    {
+      "classification": "LIVE_CLOUD_SIMULATOR_NOT_NEW_HARDWARE_MEASUREMENT",
+      "counts": {
+        "10": 0,
+        "11": 5,
+        "00": 27,
+        "01": 0
+      },
+      "job_id": "0df67b08-b955-11f1-a931-7ced8d4c0339",
+      "program_sha256": "9dc2ee382f26191a351d8568b35aed0ff22ce83a9caef75f537d2b9fcd00e008",
+      "sequence": 2,
+      "shots": 32,
+      "target": "rigetti.sim.qvm",
+      "theta_rad": 1.047197551197
+    },
+    {
+      "classification": "LIVE_CLOUD_SIMULATOR_NOT_NEW_HARDWARE_MEASUREMENT",
+      "counts": {
+        "10": 0,
+        "11": 27,
+        "00": 5,
+        "01": 0
+      },
+      "job_id": "1277dfa0-b955-11f1-a931-7ced8d4c0339",
+      "program_sha256": "fc9f82a333de351a4a14f5c4f29790672f09069ce8a7bc7aa8ae544c7484eafd",
+      "sequence": 3,
+      "shots": 32,
+      "target": "rigetti.sim.qvm",
+      "theta_rad": 2.35619449
+    }
+  ],
+  "public_evidence_sha256": "e7ab1fdd1702a919834cbb562d54bfb1106c3ce14a042f3cf8222e6a8367410a",
+  "provenance_public": {
+    "github_workflow_run_id": 36212731110,
+    "attempt": 2,
+    "artifact_id": 10896412037,
+    "note": "Public sanitized clone of actual GitHub Actions output; external cloud QVM executed; physical QPU NOT executed."
+  }
+}
