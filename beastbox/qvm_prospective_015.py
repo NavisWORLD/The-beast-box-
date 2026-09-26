@@ -103,6 +103,11 @@ def run(output: Path, *, sender: Callable[..., dict] = submit_free_qvm) -> dict:
         raise PermissionError("only the exact free Rigetti QVM simulator is approved")
     if not os.environ.get("AZURE_QUANTUM_CONNECTION_STRING"):
         raise PermissionError("existing owner workspace connection secret missing")
+    # Never overwrite a prior complete or partial public receipt: doing so
+    # could silently resubmit previously completed provider jobs.
+    if output.exists():
+        raise FileExistsError("Stage015 receipt already exists; no repeat cloud submissions")
+    seen_job_ids: set[str] = set()
     receipt = {
         **plan(), "complete": False, "completed_provider_jobs": 0,
         "original_real_physical_measurements": 0,
@@ -122,6 +127,8 @@ def run(output: Path, *, sender: Callable[..., dict] = submit_free_qvm) -> dict:
                 or result.get("shots") != shots
                 or type(result.get("job_id")) is not str
                 or result["job_id"] == "unavailable"
+                or result["job_id"] in seen_job_ids
+                or result.get("quil_sha256") != hashlib.sha256(build_quil(theta).encode()).hexdigest()
             ):
                 raise AssertionError("provider response failed free simulator provenance validation")
             row = {
@@ -129,8 +136,14 @@ def run(output: Path, *, sender: Callable[..., dict] = submit_free_qvm) -> dict:
                 "shots": shots, "counts": result["counts"], "job_id": result["job_id"],
                 "program_sha256": result["quil_sha256"],
             }
-            if set(row["counts"]) != {"00", "01", "10", "11"} or sum(row["counts"].values()) != shots:
+            if (
+                not isinstance(row["counts"], dict)
+                or set(row["counts"]) != {"00", "01", "10", "11"}
+                or any(type(v) is not int or v < 0 for v in row["counts"].values())
+                or sum(row["counts"].values()) != shots
+            ):
                 raise AssertionError("invalid provider histogram")
+            seen_job_ids.add(row["job_id"])
             record["batches"].append(row)
             # Persist a partial, explicitly INCOMPLETE receipt after every
             # successful cloud job. A later failure never silently resubmits.
