@@ -107,7 +107,7 @@ def submit_one(*, output: Path, approval: str) -> dict:
         raise RuntimeError("QVM job did not complete successfully; do NOT silently resubmit")
     bits = Result(job)["ro"]
     if len(bits)!=SHOTS or any(
-        len(row)!=2 or any(value not in (0,1) or type(value) not in (int,bool) for value in row)
+        len(row)!=2 or any(value not in (0,1) for value in row)
         for row in bits
     ):
         raise RuntimeError("Azure QVM returned malformed or incomplete two-bit readout")
