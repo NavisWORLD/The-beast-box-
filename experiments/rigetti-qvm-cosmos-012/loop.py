@@ -102,7 +102,7 @@ def source_from_verified_raw_histogram(row: dict, index: int) -> SignalSource:
     counts=row["counts"]
     if set(counts)!={format(n,"05b") for n in range(32)} or (
         any(type(n) is not int or n<0 for n in counts.values())
-        or sum(counts.values())!=row["shots"] or row["shots"]!=4224
+        or sum(counts.values())!=row["shots"] or row["shots"]!=4096
     ):
         raise ValueError("invalid independently decoded five-qubit archive counts")
     n=row["shots"]
@@ -130,7 +130,7 @@ def source_from_verified_raw_histogram(row: dict, index: int) -> SignalSource:
             "result_git_blob_sha1":row["result_git_blob_sha1"],
             "counts_sha256":row["counts_sha256"],
             "shots":n,"independent_provider_api_confirmation":False,
-            "new_qpu_jobs":0,"schema":"ibm-fez-pinned-serialized-bitarray-redecode-v1",
+            "new_qpu_jobs":0,"schema":"ibm-fez-pinned-serialized-bitarray-npy-corrected-v2",
         },
     )
 
@@ -148,7 +148,8 @@ def verified_raw_sources(payload: dict) -> list[SignalSource]:
     BLOBS, RAW_SCHEMA=sibling.BLOBS, sibling.SCHEMA
     if (not isinstance(payload,dict) or payload.get("schema")!=RAW_SCHEMA
         or payload.get("pinned_git_blobs_verified") is not True
-        or payload.get("original_summary_crosscheck_passed") is not True
+        or payload.get("archived_metadata_identity_crosscheck_passed") is not True
+        or payload.get("original_summary_parser_included_npy_header_bytes") is not True
         or payload.get("independent_provider_api_confirmation") is not False
         or payload.get("new_ibm_hardware_jobs")!=0):
         raise ValueError("unverified archived provider export manifest")
@@ -163,7 +164,8 @@ def verified_raw_sources(payload: dict) -> list[SignalSource]:
             or rec.get("backend")!="ibm_fez" or rec.get("source_reported_status")!="Completed"
             or rec.get("timestamp")!=expected["timestamp"]
             or (rec.get("result_git_blob_sha1"),rec.get("info_git_blob_sha1"))!=expected_pair
-            or rec.get("shots")!=expected["total_shots"]
+            or rec.get("shots")!=expected["total_shots"]-128
+            or rec.get("npy_container_header_bytes_removed")!=128
             or rec.get("counts_sha256")!=sha256_obj(rec.get("counts"))):
             raise ValueError("historical export archive identity mismatch")
         sources.append(source_from_verified_raw_histogram(rec,i))
