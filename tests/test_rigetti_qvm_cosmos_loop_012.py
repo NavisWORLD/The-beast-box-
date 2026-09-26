@@ -98,15 +98,11 @@ def test_raw_export_decoder_reconstructs_full_bounded_5bit_counts_without_networ
     raw=_load("raw_archive")
     sample=bytes(list(range(32))*132)  # clearly synthetic unit fixture: 4224
     compressed=base64.b64encode(zlib.compress(sample)).decode("ascii")
-    payload={
-        "__type__":"PrimitiveResult",
-        "__value__":{"pub_results":[{"__type__":"SamplerPubResult","__value__":
-            {"data":{"__value__":{"fields":{"meas":{"__value__":{
-                "__type__":"BitArray","num_bits":5,
-                "array":{"__type__":"ndarray","__value__":compressed},
-            }}}}}}
-        ]},
-    }
+    bitarray={"__type__":"BitArray","num_bits":5,
+              "array":{"__type__":"ndarray","__value__":compressed}}
+    data={"__value__":{"fields":{"meas":{"__value__":bitarray}}}}
+    pub={"__type__":"SamplerPubResult","__value__":{"data":data}}
+    payload={"__type__":"PrimitiveResult","__value__":{"pub_results":[pub]}}
     counts,shots=raw.decode_serialized_bitarray(payload)
     assert shots==4224 and len(counts)==32
     assert set(counts.values())=={132}
