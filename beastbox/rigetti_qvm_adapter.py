@@ -23,6 +23,7 @@ ENV_NAMES = (
     "AZURE_QUANTUM_WORKSPACE_NAME",
     "AZURE_QUANTUM_LOCATION",
 )
+CONNECTION_STRING_ENV = "AZURE_QUANTUM_CONNECTION_STRING"
 
 
 def build_quil(theta: float) -> str:
@@ -50,7 +51,7 @@ def plan(*, theta: float = math.pi / 3, shots: int = 32) -> dict[str, Any]:
         "estimated_provider_target_charge_usd": 0,
         "azure_base_storage_or_account_charges_not_verified": True,
         "requires_explicit_opt_in": True,
-        "workspace_credential_present": all(bool(os.environ.get(x)) for x in ENV_NAMES),
+        "workspace_credential_present": bool(os.environ.get(CONNECTION_STRING_ENV)) or all(bool(os.environ.get(x)) for x in ENV_NAMES),
         "source_provenance": "NEW_SIMULATION_NOT_ARCHIVED_HARDWARE_WITNESS",
         "shots": shots, "quil_sha256": hashlib.sha256(quil.encode()).hexdigest(),
         "quil": quil, "jobs_requested": 1,
@@ -79,17 +80,23 @@ def submit_free_qvm(*, theta: float = math.pi / 3, shots: int = 32,
     if os.environ.get("AZURE_QUANTUM_QVM_OPT_IN") != "yes":
         raise PermissionError("explicit free-QVM-only consent is required")
     if inject_target is None:
-        if not all(os.environ.get(name) for name in ENV_NAMES):
+        connection = os.environ.get(CONNECTION_STRING_ENV, "")
+        if not connection and not all(os.environ.get(name) for name in ENV_NAMES):
             raise PermissionError("Azure Quantum workspace connection not configured")
-        # Import only after consent + all workspace fields have been validated.
-        from azure.quantum import Workspace
-        from azure.quantum.target.rigetti import InputParams, Rigetti
-        workspace = Workspace(
-            subscription_id=os.environ["AZURE_QUANTUM_SUBSCRIPTION_ID"],
-            resource_group=os.environ["AZURE_QUANTUM_RESOURCE_GROUP"],
-            name=os.environ["AZURE_QUANTUM_WORKSPACE_NAME"],
-            location=os.environ["AZURE_QUANTUM_LOCATION"],
-        )
+        # Import only after explicit free-simulator opt-in and workspace check.
+        # The connection string remains in runner memory only and is never
+        # printed, persisted to an artifact or sent to the model.
+        from qdk.azure import Workspace
+        from qdk.azure.target.rigetti import InputParams, Rigetti
+        if connection:
+            workspace = Workspace.from_connection_string(connection)
+        else:
+            workspace = Workspace(
+                subscription_id=os.environ["AZURE_QUANTUM_SUBSCRIPTION_ID"],
+                resource_group=os.environ["AZURE_QUANTUM_RESOURCE_GROUP"],
+                name=os.environ["AZURE_QUANTUM_WORKSPACE_NAME"],
+                location=os.environ["AZURE_QUANTUM_LOCATION"],
+            )
         target = Rigetti(workspace=workspace, name=TARGET)
         input_params = InputParams(skip_quilc=False)
     else:
@@ -104,7 +111,8 @@ def submit_free_qvm(*, theta: float = math.pi / 3, shots: int = 32,
     )
     # Do not fall back to QPU or resubmit on failure.
     if inject_target is None:
-        from azure.quantum.target.rigetti import Result
+        from qdk.azure.target.rigetti import Result
+        job.wait_until_completed()
         raw = Result(job)["ro"]
     else:
         raw = job.readout
