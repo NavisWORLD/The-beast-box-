@@ -98,7 +98,7 @@ def test_raw_export_decoder_reconstructs_full_bounded_5bit_counts_without_networ
     raw=_load("raw_archive")
     sample=bytes(list(range(32))*128)  # clearly synthetic unit fixture: 4096 true shots
     header_spec=b"{'descr': '|u1', 'fortran_order': False, 'shape': (4096, 1), }"
-    header=header_spec.ljust(117,b" ")+b"\\n"
+    header=header_spec.ljust(117,b" ")+bytes([10])
     assert len(header)==118
     npy=bytes([0x93])+b"NUMPY"+bytes([1,0])+(118).to_bytes(2,"little")+header+sample
     assert len(npy)==4224  # the 128-byte header is not 128 extra measurements
