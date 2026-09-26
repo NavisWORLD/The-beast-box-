@@ -93,6 +93,74 @@ def simulator_source(counts: dict[str, int], *, iteration: int, theta: float, ph
     )
 
 
+def source_from_verified_raw_histogram(row: dict, index: int) -> SignalSource:
+    """Five independently decoded Z moments, adjacent ZZ and bounded statistics.
+
+    These 12 values are NEW experiment-defined software conditioning coordinates,
+    not the missing original IBM circuit's exact 12D physics values.
+    """
+    counts=row["counts"]
+    if set(counts)!={format(n,"05b") for n in range(32)} or (
+        any(type(n) is not int or n<0 for n in counts.values())
+        or sum(counts.values())!=row["shots"] or row["shots"]!=4224
+    ):
+        raise ValueError("invalid independently decoded five-qubit archive counts")
+    n=row["shots"]
+    moments=[
+        sum(v*(1 if bit[i]=="0" else -1) for bit,v in counts.items())/n
+        for i in range(5)
+    ]
+    pairs=[
+        sum(v*(1 if bit[i]==bit[i+1] else -1) for bit,v in counts.items())/n
+        for i in range(4)
+    ]
+    entropy=-sum((v/n)*math.log2(v/n) for v in counts.values() if v)/5
+    mode_prob=max(counts.values())/n
+    mean_weight=sum(v*bit.count("1") for bit,v in counts.items())/(5*n)
+    vector=tuple(moments+pairs+[2*entropy-1,2*mode_prob-1,2*mean_weight-1])
+    return SignalSource(
+        source_id=f"ibm-fez-pinned-full-export-{index}", family="quantum",
+        kind="ibm-fez-serialized-5bit-redecode-v1",
+        execution_mode="PINNED_HISTORICAL_SERIALIZED_PROVIDER_EXPORT_NO_FRESH_HARDWARE",
+        channel_contract="five independent Z moments, four adjacent ZZ, fixed-width Shannon entropy, modal fraction, mean normalized Hamming weight",
+        vector=vector,mask=(True,)*12,
+        provenance={
+            "source_reported_completed_ibm_job":row["job_id"],
+            "archived_export_sha256":row["result_sha256"],
+            "result_git_blob_sha1":row["result_git_blob_sha1"],
+            "counts_sha256":row["counts_sha256"],
+            "shots":n,"independent_provider_api_confirmation":False,
+            "new_qpu_jobs":0,"schema":"ibm-fez-pinned-serialized-bitarray-redecode-v1",
+        },
+    )
+
+
+def verified_raw_sources(payload: dict) -> list[SignalSource]:
+    from raw_archive import BLOBS, SCHEMA as RAW_SCHEMA
+    if (not isinstance(payload,dict) or payload.get("schema")!=RAW_SCHEMA
+        or payload.get("pinned_git_blobs_verified") is not True
+        or payload.get("original_summary_crosscheck_passed") is not True
+        or payload.get("independent_provider_api_confirmation") is not False
+        or payload.get("new_ibm_hardware_jobs")!=0):
+        raise ValueError("unverified archived provider export manifest")
+    records=payload.get("records")
+    if not isinstance(records,list) or len(records)!=len(IBM_FEZ_REPORTED_SUMMARIES):
+        raise ValueError("archived export count mismatch")
+    sources=[]
+    for i,rec in enumerate(records):
+        expected=IBM_FEZ_REPORTED_SUMMARIES[i]
+        expected_pair=BLOBS.get(expected["job_id"])
+        if (not isinstance(rec,dict) or rec.get("job_id")!=expected["job_id"]
+            or rec.get("backend")!="ibm_fez" or rec.get("source_reported_status")!="Completed"
+            or rec.get("timestamp")!=expected["timestamp"]
+            or (rec.get("result_git_blob_sha1"),rec.get("info_git_blob_sha1"))!=expected_pair
+            or rec.get("shots")!=expected["total_shots"]
+            or rec.get("counts_sha256")!=sha256_obj(rec.get("counts"))):
+            raise ValueError("historical export archive identity mismatch")
+        sources.append(source_from_verified_raw_histogram(rec,i))
+    return sources
+
+
 def _step(cns: CNS, mode: str, prev: list[float], drive: list[float], iteration: int, digest: str) -> list[float]:
     packet = BridgePacket(
         conditioning_vector=drive,
@@ -125,7 +193,7 @@ def verify_optional_qvm_anchor(anchor: dict) -> dict:
     return anchor
 
 
-def run(*, iterations: int = MAX_ITERATIONS, seed: int = 67, qvm_anchor: dict | None = None) -> dict:
+def run(*, iterations: int = MAX_ITERATIONS, seed: int = 67, qvm_anchor: dict | None = None, raw_histograms: dict | None = None) -> dict:
     if type(iterations) is not int or not 1 <= iterations <= MAX_ITERATIONS:
         raise ValueError("iterations must be 1..10000")
     if type(seed) is not int or not 0 <= seed <= (1 << 32)-1:
@@ -134,9 +202,10 @@ def run(*, iterations: int = MAX_ITERATIONS, seed: int = 67, qvm_anchor: dict | 
         verify_optional_qvm_anchor(qvm_anchor)
     assert len(IBM_FEZ_REPORTED_SUMMARIES) == 9
     # Source-report summary replay, no histogram reconstruction or hardware calibration.
-    archives = [source_from_soul_token(
-        soul_token_from_ibm_fez_summary(i), source_id=f"ibm-fez-summary-{i}"
-    ) for i in range(9)]
+    archives = (verified_raw_sources(raw_histograms) if raw_histograms is not None else [
+        source_from_soul_token(soul_token_from_ibm_fez_summary(i),
+                               source_id=f"ibm-fez-summary-{i}") for i in range(9)
+    ])
     index_stream = [i % len(archives) for i in range(iterations)]
     shuffled = list(index_stream)
     random.Random(seed+1024).shuffle(shuffled)
@@ -208,7 +277,9 @@ def run(*, iterations: int = MAX_ITERATIONS, seed: int = 67, qvm_anchor: dict | 
 
     return {
         "schema": SCHEMA,
-        "classification": "CLASSICAL_IDEAL_SIMULATION_WITH_HISTORICAL_IBM_SUMMARY_SIDE_INFORMATION",
+        "classification": ("CLASSICAL_IDEAL_SIMULATION_WITH_PINNED_REDECODED_HISTORICAL_IBM_5BIT_EXPORTS"
+                           if raw_histograms is not None else
+                           "CLASSICAL_IDEAL_SIMULATION_WITH_HISTORICAL_IBM_SUMMARY_SIDE_INFORMATION"),
         "simulation_backend": "local_stdlib_analytic_born_plus_seeded_sampling",
         "azure_qvm_target": QVM_TARGET,
         "azure_qvm_jobs_submitted": int(qvm_anchor is not None),
@@ -224,7 +295,10 @@ def run(*, iterations: int = MAX_ITERATIONS, seed: int = 67, qvm_anchor: dict | 
             "repo": SOURCE_REPO,"commit":SOURCE_COMMIT,"path":SOURCE_PATH,
             "blob_sha1":SOURCE_BLOB_SHA1,
             "summary_row_sha256":summary_anchor_digests,
-            "raw_provider_histograms_present": False,
+            "raw_provider_histograms_present":raw_histograms is not None,
+            "raw_archive_manifest_sha256":sha256_obj(raw_histograms) if raw_histograms is not None else None,
+            "full_archived_export_independently_redecoded":raw_histograms is not None,
+            "historical_full_archived_exports_not_live_hardware":True,
             "historical_zero_admissible_four_state_result_preserved": True,
             "archive_replay_repetitions_do_not_create_new_measurements": True,
         },
@@ -248,7 +322,9 @@ def run(*, iterations: int = MAX_ITERATIONS, seed: int = 67, qvm_anchor: dict | 
         "cloud_model_preview":{
             "schema":"cosmos-cloud-context-preview-v1",
             "send_enabled":False, "model_weights_modified":False,
-            "source_disclosure":"local ideal classical simulator + historical IBM published-summary replay, no fresh quantum measurements",
+            "source_disclosure": ("local ideal classical simulator + PINNED independently redecoded source-reported IBM five-bit exports, no fresh measurements"
+                                  if raw_histograms is not None else
+                                  "local ideal classical simulator + historical IBM published-summary replay, no fresh quantum measurements"),
             "state12":states["fused"],
             "baseline_state12":states["simulator_only"],
             "last_fusion_sha256":last_fusions["fused"],
@@ -263,13 +339,16 @@ def main()->None:
     parser.add_argument("--seed",type=int,default=67)
     parser.add_argument("--output",type=Path,default=Path("build/rigetti-qvm-cosmos-012-local.json"))
     parser.add_argument("--qvm-anchor",type=Path,default=None)
+    parser.add_argument("--raw-histograms",type=Path,default=None)
     args=parser.parse_args()
     anchor=json.loads(args.qvm_anchor.read_text()) if args.qvm_anchor else None
-    result=run(iterations=args.iterations,seed=args.seed,qvm_anchor=anchor)
+    raw=json.loads(args.raw_histograms.read_text()) if args.raw_histograms else None
+    result=run(iterations=args.iterations,seed=args.seed,qvm_anchor=anchor,raw_histograms=raw)
     args.output.parent.mkdir(parents=True,exist_ok=True)
     args.output.write_text(json.dumps(result,sort_keys=True,indent=2,allow_nan=False)+"\n")
     print("COSMOS_012_LOCAL_ITERATIONS_PASS",result["iterations"],
           "source_rows",len(result["source"]["summary_row_sha256"]),
+          "archived_full_redecode",result["source"]["full_archived_export_independently_redecoded"],
           "controls",",".join(MODES),
           "fused_state_sha256",result["controls"]["fused"]["trajectory_sha256"],flush=True)
     print("AZURE_QVM_JOBS",result["azure_qvm_jobs_submitted"],
