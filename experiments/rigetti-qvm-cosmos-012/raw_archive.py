@@ -53,8 +53,11 @@ def decode_serialized_bitarray(payload: dict) -> tuple[dict[str,int], int]:
     pub=payload["__value__"]["pub_results"]
     if not isinstance(pub,list) or len(pub)!=1 or pub[0].get("__type__")!="SamplerPubResult":
         raise ValueError("unexpected published sampler shape")
-    data=pub[0]["__value__"]["data"]["__value__"]["fields"]["meas"]["__value__"]
-    if data.get("__type__")!="BitArray" or data.get("num_bits")!=5:
+    field=pub[0]["__value__"]["data"]["__value__"]["fields"]["meas"]
+    if field.get("__type__")!="BitArray":
+        raise ValueError("archived sampler field is not BitArray")
+    data=field["__value__"]
+    if data.get("num_bits")!=5:
         raise ValueError("historical experiment width must be five bits")
     array=data["array"]
     if array.get("__type__")!="ndarray":
