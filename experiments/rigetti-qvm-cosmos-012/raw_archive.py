@@ -43,7 +43,7 @@ BLOBS = {
 
 
 def git_blob_sha1(raw: bytes) -> str:
-    return hashlib.sha1(f"blob {len(raw)}\\0".encode("ascii").replace(b"\\0",b"\0")+raw).hexdigest()
+    return hashlib.sha1(f"blob {len(raw)}".encode("ascii") + bytes([0]) + raw).hexdigest()
 
 
 def decode_serialized_bitarray(payload: dict) -> tuple[dict[str,int], int]:
