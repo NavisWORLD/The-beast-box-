@@ -1,0 +1,72 @@
+name: Stage 015 independent offline receipt and 192-output scoring audit
+
+on:
+  push:
+    branches: [experiment/cosmos-qvm-meaningful-015]
+    paths:
+      - '.github/workflows/qvm-independent-receipt-audit-015.yml'
+      - 'scripts/audit_qvm_stage015_receipts.py'
+      - 'tests/test_qvm_meaningful_015.py'
+      - 'beastbox/qvm_prospective_015.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: stage015-artifact-independent-offline-audit
+  cancel-in-progress: true
+
+jobs:
+  verify-saved-evidence-no-provider-submissions:
+    if: github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/experiment/cosmos-qvm-meaningful-015'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      AZURE_QUANTUM_QVM_OPT_IN: 'no'
+      COSMOS_APPROVED_QVM_TARGET: 'NO_CLOUD_TARGET'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install local project and pytest only; no Azure SDK or model weights
+        run: |
+          python -m pip install -e . 'pytest>=8,<10'
+      - name: Verify no-network safety and future-label nonleak regression tests
+        run: |
+          python -m pytest -q tests/test_qvm_meaningful_015.py
+      - name: Download EXACT successful prior Azure SIMULATOR run
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 36218234744
+          repository: NavisWORLD/The-beast-box-
+          github-token: ${{ github.token }}
+          name: cosmos-stage015-actual-azure-qvm-prospective-public-dataset
+          path: build/stage015/source
+      - name: Download EXACT completed 192-model-answer run
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 36218437894
+          repository: NavisWORLD/The-beast-box-
+          github-token: ${{ github.token }}
+          name: cosmos-stage015-prospective-192-open-model-forecast-results
+          path: build/stage015/model
+      - name: Independently rehash receipts, reproduce local trials and regrade 192 answers
+        run: |
+          python scripts/audit_qvm_stage015_receipts.py --source build/stage015/source/stage015-live-azure-qvm-triplets.json --receipt build/stage015/model/stage015-prospective-192-model-answer-receipt.json --output build/stage015/offline-independent-audit.json
+      - name: Upload OFFLINE audit witness (no cloud calls)
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-stage015-independent-audit-no-new-jobs
+          path: build/stage015/offline-independent-audit.json
+          if-no-files-found: error
+          retention-days: 21
+      - name: Clearly separate independent scoring from provider identity
+        run: |
+          echo 'Offline audit verifies documented job IDs, program hashes, public digest, forecast scoring and prompt digest.'
+          echo 'Provider identity and billing are NOT independently attested by an offline artifact audit.'
+          echo 'No model downloads, no Azure Quantum credentials, no QPU or provider submission.'

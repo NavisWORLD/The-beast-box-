@@ -1,0 +1,87 @@
+name: Stage 012 actual Azure Rigetti free QVM (manual owner request only)
+
+on:
+  # This run is NEVER triggered by setting a secret alone or by ordinary code
+  # changes. After the owner confirms the secret was added, change this
+  # dedicated request file once to authorize one bounded submission sequence.
+  push:
+    branches: [experiment/rigetti-qvm-12d-feedback-012]
+    paths:
+      - 'docs/experimental-run-requests/stage012-azure-qvm-approval.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage012-live-azure-qvm-free-only
+  cancel-in-progress: false
+
+jobs:
+  strict-free-qvm:
+    if: github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/experiment/rigetti-qvm-12d-feedback-012'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install official Azure Quantum SDK and local COSMOS core
+        run: |
+          set -euo pipefail
+          python -m pip install -e . 'qdk[azure]' 'azure-quantum==3.11.0'
+          python - <<'PY'
+          from qdk.azure import Workspace
+          from qdk.azure.target.rigetti import Rigetti, Result, InputParams
+          import importlib.metadata as metadata
+          assert callable(Workspace.from_connection_string)
+          print("AZURE_QUANTUM_RIGETTI_SDK_IMPORT_OK",
+                metadata.version("azure-quantum"), flush=True)
+          PY
+      - name: Real Azure Rigetti QVM ONLY — three jobs, 32 simulated shots each
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+          AZURE_QUANTUM_QVM_OPT_IN: 'yes'
+          COSMOS_APPROVED_QVM_TARGET: rigetti.sim.qvm
+        run: |
+          set -euo pipefail
+          set +x
+          if [ -z "$AZURE_QUANTUM_CONNECTION_STRING" ]; then
+            echo "AZURE_QUANTUM_CONNECTION_STRING secret missing. NO PROVIDER JOB STARTED."
+            exit 22
+          fi
+          python scripts/run_azure_rigetti_qvm_012.py --count 3 --shots 32 \
+            --output build/stage012-actual-azure-qvm-only.json
+      - name: Verify authenticated QVM receipt and zero physical hardware usage
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          receipt=json.loads(Path('build/stage012-actual-azure-qvm-only.json').read_text())
+          assert receipt['schema']=='cosmos-stage012-live-azure-rigetti-qvm-smoke-v1'
+          assert receipt['target']=='rigetti.sim.qvm'
+          assert receipt['completed_jobs']==receipt['job_cap']==3
+          assert receipt['combined_shots']==96
+          assert receipt['qpu_jobs_requested']==0
+          assert receipt['fresh_physical_quantum_measurements']==0
+          assert receipt['cloud_model_called'] is False
+          assert all(row['target']=='rigetti.sim.qvm' for row in receipt['job_receipts'])
+          assert len(set(row['job_id'] for row in receipt['job_receipts']))==3
+          print('THREE_LIVE_FREE_RIGETTI_AZURE_QVM_JOBS_ATTESTED',flush=True)
+          PY
+      - name: Preserve verified or partial sanitized QVM job receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-stage012-actual-azure-free-qvm-receipt
+          path: build/stage012-actual-azure-qvm-only.json
+          if-no-files-found: ignore
+          retention-days: 21
+      - name: No upgrade or scientific overclaim
+        run: |
+          echo 'QVM is a cloud simulator. No physical Rigetti QPU, IBM provider job,'
+          echo 'new hardware calibration, model training, cloud LLM invocation,'
+          echo 'automatic retry, target fallback or durable memory change.'
