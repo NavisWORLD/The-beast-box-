@@ -34,7 +34,7 @@ ARCHIVE = {
 }
 KEY = "synthetic-ci-native-acceptance-key-0123456789"
 OWNER_KEY = "synthetic-ci-bridge-acceptance-key-0123456789"
-PROMPT = "Describe the supplied state without claiming its physical cause."
+PROMPT = "I'm so confused phos."
 
 
 def _file_digests(root: Path) -> dict[str, str]:
@@ -132,6 +132,17 @@ def run(checkpoint: Path, report: Path) -> None:
                 assert native["model_weights_changed"] is False
                 assert native["persistent_memory_updated"] is False
                 assert native["conditioned_cache_parity"] is True
+                assert native["conditioned_cache_token_parity"] is True
+                assert response["native_prompt_format"] == "rawrphos-chat-prefill-v1"
+                assert native["generation_metrics"]["conditioned_cache"]["token_sequence_sha256"] == native["generation_metrics"]["conditioned_no_cache"]["token_sequence_sha256"]
+                for key in ("reference", "conditioned_cache", "conditioned_no_cache"):
+                    generation = native["generation_metrics"][key]
+                    assert generation["generated_tokens"] >= 3, (
+                        "one-token EOS is not a valid full-generation acceptance",
+                        mode, key, generation,
+                    )
+                    assert generation["text"].strip(), ("empty literal model response", mode, key)
+
                 assert native["arms"]["conditioned"]["control_vector"] == response["cns_dyn12"]
                 assert native["logit_l2_vs_reference"]["zero"] < 1e-6
                 assert native["logit_l2_vs_reference"]["conditioned"] > 0
@@ -145,6 +156,9 @@ def run(checkpoint: Path, report: Path) -> None:
                 receipts[mode] = {
                     "mode": mode,
                     "checkpoint_sha256": SHA,
+                    "native_prompt_format": response["native_prompt_format"],
+                    "native_prompt_sha256": native["prompt_sha256"],
+
                     "fusion_sha256": response["fusion"]["fusion_sha256"],
                     "bridge_packet_sha256": response["bridge_packet_sha256"],
                     "cns_state_sha256": response["cns_state_sha256"],
@@ -158,6 +172,7 @@ def run(checkpoint: Path, report: Path) -> None:
                     "reference_text": native["response_reference"],
                     "conditioned_text": native["response_conditioned"],
                     "cache_parity": native["conditioned_cache_parity"],
+                    "cache_token_parity": native["conditioned_cache_token_parity"],
                     "generation_metrics": native["generation_metrics"],
                     "resource_metrics": native["resource_metrics"],
                     "wall_end_to_end_ms": round((time.perf_counter() - started) * 1000, 3),
