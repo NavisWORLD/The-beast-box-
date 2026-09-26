@@ -31,7 +31,7 @@ export default function BioPanel({backendReachable}:{backendReachable:boolean}){
   sources:Array<{family:string;execution_mode:string;kind:string}>;
   time_shift_control?:{shifted_index:number;classification:string}|null;
   native_probe:{logit_l2_vs_reference:Record<string,number>;response_reference:string;response_conditioned:string;
-   conditioned_cache_parity:boolean;arms:Record<string,{telemetry_by_layer:Array<{gate:number;sigma:number;state_norm:number;omega_mean:number}>}>};
+   conditioned_cache_parity:boolean;conditioned_cache_token_parity:boolean;arms:Record<string,{telemetry_by_layer:Array<{gate:number;sigma:number;state_norm:number;omega_mean:number}>}>};
   live_quantum_hardware_used:boolean;paid_provider_job_started:boolean;weights_updated:boolean;persistent_memory_updated:boolean;
  }|null>(null);
  const refresh=useCallback(async()=>{
@@ -135,7 +135,7 @@ export default function BioPanel({backendReachable}:{backendReachable:boolean}){
     fusion?:{fusion_sha256?:string;vector?:number[];equation?:string};sources?:Array<{family?:string;execution_mode?:string;kind?:string}>;
     time_shift_control?:{shifted_index?:number;classification?:string}|null;
     native_probe?:{logit_l2_vs_reference?:Record<string,number>;response_reference?:string;response_conditioned?:string;
-     conditioned_cache_parity?:boolean;arms?:Record<string,{telemetry_by_layer?:Array<{gate?:number;sigma?:number;state_norm?:number;omega_mean?:number}>}>};
+     conditioned_cache_parity?:boolean;conditioned_cache_token_parity?:boolean;arms?:Record<string,{telemetry_by_layer?:Array<{gate?:number;sigma?:number;state_norm?:number;omega_mean?:number}>}>};
     live_quantum_hardware_used?:boolean;paid_provider_job_started?:boolean;weights_updated?:boolean;persistent_memory_updated?:boolean;error?:string};
    if(!response.ok)throw new Error(v.error||'Typed sensory/quantum native probe unavailable.');
    const logits=v.native_probe?.logit_l2_vs_reference;
@@ -145,7 +145,7 @@ export default function BioPanel({backendReachable}:{backendReachable:boolean}){
       !v.fusion||!/^[a-f0-9]{64}$/.test(v.fusion.fusion_sha256||'')||
       !Array.isArray(v.fusion.vector)||v.fusion.vector.length!==12||
       !Array.isArray(v.sources)||!v.sources.length||!logits||Object.values(logits).some(n=>typeof n!=='number'||!Number.isFinite(n)||n<0)||
-      v.native_probe?.conditioned_cache_parity!==true||
+      v.native_probe?.conditioned_cache_parity!==true||v.native_probe?.conditioned_cache_token_parity!==true||
       typeof v.native_probe?.response_reference!=='string'||typeof v.native_probe?.response_conditioned!=='string'||
       v.live_quantum_hardware_used!==false||v.paid_provider_job_started!==false||
       v.weights_updated!==false||v.persistent_memory_updated!==false)
@@ -250,7 +250,7 @@ export default function BioPanel({backendReachable}:{backendReachable:boolean}){
     {signalResult.time_shift_control?<p>Time-shift control used archive record #{signalResult.time_shift_control.shifted_index+1}: {signalResult.time_shift_control.classification}.</p>:null}
     <p><strong>Reference:</strong> {signalResult.native_probe.response_reference||'(empty)'}</p>
     <p><strong>Conditioned:</strong> {signalResult.native_probe.response_conditioned||'(empty)'}</p>
-    <p>Cache parity: {signalResult.native_probe.conditioned_cache_parity?'verified':'failed'}. A changed logit/output demonstrates computational sensitivity only; it does not establish quantum advantage, biological life, or improved intelligence.</p>
+    <p>Text and token-sequence cache parity: {signalResult.native_probe.conditioned_cache_parity&&signalResult.native_probe.conditioned_cache_token_parity?'verified':'failed'}. A changed logit/output demonstrates computational sensitivity only; it does not establish quantum advantage, biological life, or improved intelligence.</p>
    </div>:null}
   </div>:<p className="cloud-connect-foot">Typed sensory/quantum native probe is off until BEASTBOX_SIGNAL_MODEL_PROBE_ENABLED=yes. No live QPU job is needed for archive replay.</p>}
   {config?.persist_enabled?<div className="cloud-connect-actions">
