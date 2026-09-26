@@ -8,6 +8,7 @@ on:
       - '.github/workflows/qvm-12d-feedback-012.yml'
       - 'beastbox/qvm_feedback_experiment.py'
       - 'beastbox/rigetti_qvm_adapter.py'
+      - 'beastbox/qvm_cloud_context.py'
       - 'tests/test_qvm_feedback_experiment.py'
       - 'docs/RIGETTI_QVM_CST_FEEDBACK_012.md'
   workflow_dispatch:
@@ -52,6 +53,12 @@ jobs:
         run: |
           python -m beastbox.rigetti_qvm_adapter \
             --shots 32 --output build/stage012-rigetti-qvm-dry-run.json
+      - name: Prepare five blind provider-neutral prompt contexts, NO provider call
+        run: |
+          python -m beastbox.qvm_cloud_context \
+            --input build/stage012-local-10k-receipt.json \
+            --output build/stage012-cloud-context-bundle.json \
+            --owner-approves-offline-preparation
       - name: Validate receipt scope and prevent fabricated Azure/quantum evidence
         run: |
           python - <<'PY'
@@ -60,6 +67,7 @@ jobs:
           root=Path('build')
           r=json.loads((root/'stage012-local-10k-receipt.json').read_text())
           d=json.loads((root/'stage012-rigetti-qvm-dry-run.json').read_text())
+          cloud=json.loads((root/'stage012-cloud-context-bundle.json').read_text())
           assert r['iterations']==10000
           assert r['simulated_shots_total']==640000
           assert r['backend']=='LOCAL_IDEAL_BELL_MONTE_CARLO_NOT_AZURE_QVM'
@@ -74,6 +82,9 @@ jobs:
           assert d['physical_hardware_jobs_permitted']==0
           assert d['requires_explicit_opt_in'] is True
           assert d['jobs_requested']==1
+          assert cloud['cloud_provider_called'] is False
+          assert cloud['new_quantum_job_started'] is False
+          assert len(cloud['blinded_prompts'])==5
           print('STAGE012_ACTUAL_10000_LOCAL_STEPS_PASS',r['final_hash_chain'],flush=True)
           print('STAGE012_AZURE_QVM_DRY_RUN_ONLY_NO_PROVIDER_JOBS',flush=True)
           PY
@@ -84,6 +95,7 @@ jobs:
           path: |
             build/stage012-local-10k-receipt.json
             build/stage012-rigetti-qvm-dry-run.json
+            build/stage012-cloud-context-bundle.json
           if-no-files-found: error
           retention-days: 21
       - name: Scope statement
