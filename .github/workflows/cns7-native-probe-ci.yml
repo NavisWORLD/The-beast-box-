@@ -9,6 +9,7 @@ on:
       - 'tests/test_cns_model_probe.py'
       - 'beastbox/signal_fusion.py'
       - 'beastbox/signal_model_probe.py'
+      - 'apps/beastbox-cloud/bridge/deploy/start_rawrphos.sh'
       - 'beastbox/soul/archive_summary.py'
       - 'models/rawrphos/scripts/accept_signal_fusion_14k.py'
       - 'tests/test_signal_fusion.py'
@@ -84,6 +85,10 @@ jobs:
         run: |
           set -euo pipefail
           python models/rawrphos/scripts/accept_signal_fusion_14k.py
+      - name: Check fail-closed managed-host acceptance entrypoint syntax
+        run: |
+          set -euo pipefail
+          bash -n apps/beastbox-cloud/bridge/deploy/start_rawrphos.sh
       - name: Upload synthetic numerical acceptance receipt
         if: always()
         uses: actions/upload-artifact@v4
