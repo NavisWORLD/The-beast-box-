@@ -146,10 +146,12 @@ def verified_raw_sources(payload: dict) -> list[SignalSource]:
     sibling=importlib.util.module_from_spec(spec)
     spec.loader.exec_module(sibling)
     BLOBS, RAW_SCHEMA=sibling.BLOBS, sibling.SCHEMA
+    EXPECTED_COUNTS=sibling.EXPECTED_TRUE_4096_COUNTS_SHA256
     if (not isinstance(payload,dict) or payload.get("schema")!=RAW_SCHEMA
         or payload.get("pinned_git_blobs_verified") is not True
         or payload.get("archived_metadata_identity_crosscheck_passed") is not True
         or payload.get("original_summary_parser_included_npy_header_bytes") is not True
+        or payload.get("corrected_true_histogram_sha256_pins_checked") is not True
         or payload.get("independent_provider_api_confirmation") is not False
         or payload.get("new_ibm_hardware_jobs")!=0):
         raise ValueError("unverified archived provider export manifest")
@@ -166,7 +168,8 @@ def verified_raw_sources(payload: dict) -> list[SignalSource]:
             or (rec.get("result_git_blob_sha1"),rec.get("info_git_blob_sha1"))!=expected_pair
             or rec.get("shots")!=expected["total_shots"]-128
             or rec.get("npy_container_header_bytes_removed")!=128
-            or rec.get("counts_sha256")!=sha256_obj(rec.get("counts"))):
+            or rec.get("counts_sha256")!=sha256_obj(rec.get("counts"))
+            or rec.get("counts_sha256")!=EXPECTED_COUNTS[expected["job_id"]]):
             raise ValueError("historical export archive identity mismatch")
         sources.append(source_from_verified_raw_histogram(rec,i))
     return sources
