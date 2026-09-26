@@ -4,7 +4,7 @@ on:
     branches:
       - experiment/rigetti-qvm-cosmos-loop-012
     paths:
-      - 'experiments/rigetti-qvm-cosmos-012/**'
+      - 'research/rigetti-qvm-cosmos-012/**'
       - 'tests/test_rigetti_qvm_cosmos_loop_012.py'
       - '.github/workflows/rigetti-qvm-cosmos-loop-012.yml'
   workflow_dispatch:
@@ -48,7 +48,7 @@ jobs:
       - name: TEN THOUSAND bounded genuine COSMOS fusion and CNS7 iterations
         run: |
           set -euo pipefail
-          python experiments/rigetti-qvm-cosmos-012/loop.py \
+          python research/rigetti-qvm-cosmos-012/loop.py \
             --iterations 10000 --seed 67 \
             --output build/rigetti-qvm-cosmos-012-local.json
           python - <<'PY'
@@ -92,7 +92,7 @@ jobs:
       - name: Fetch only nine immutable GitHub provider exports with exact Git blob verification
         run: |
           set -euo pipefail
-          python experiments/rigetti-qvm-cosmos-012/raw_archive.py \
+          python research/rigetti-qvm-cosmos-012/raw_archive.py \
             --output build/rigetti-qvm-cosmos-012-redecoded-raw.json
           python - <<'PY'
           import json
@@ -110,7 +110,7 @@ jobs:
       - name: Run TEN THOUSAND identical shared circuits using independently decoded real exported IBM counts as contextual source
         run: |
           set -euo pipefail
-          python experiments/rigetti-qvm-cosmos-012/loop.py \
+          python research/rigetti-qvm-cosmos-012/loop.py \
             --iterations 10000 --seed 67 \
             --raw-histograms build/rigetti-qvm-cosmos-012-redecoded-raw.json \
             --output build/rigetti-qvm-cosmos-012-raw-archived-10k.json
@@ -177,7 +177,7 @@ jobs:
             echo 'ready=false' >> "${GITHUB_OUTPUT}"
             echo "AZURE_QVM_STAGE=BLOCKED_MISSING_AZURE_QUANTUM_SERVICE_IDENTITY"
           fi
-          python experiments/rigetti-qvm-cosmos-012/azure_qvm.py > build_qvm_preflight.json
+          python research/rigetti-qvm-cosmos-012/azure_qvm.py > build_qvm_preflight.json
       - name: Install Azure SDK ONLY when credentials are present
         if: steps.credential_check.outputs.ready == 'true'
         run: |
@@ -187,7 +187,7 @@ jobs:
         if: steps.credential_check.outputs.ready == 'true'
         run: |
           set -euo pipefail
-          python experiments/rigetti-qvm-cosmos-012/azure_qvm.py \
+          python research/rigetti-qvm-cosmos-012/azure_qvm.py \
             --submit-one-free-qvm --approval FREE_QVM_ONLY \
             --output build/rigetti-qvm-cosmos-012-azure-anchor.json
       - name: Upload Azure simulator outcome or precise missing-access receipt
@@ -231,7 +231,7 @@ jobs:
       - name: Consume actual QVM simulator result in ONE of 10000 paired COSMOS steps
         run: |
           set -euo pipefail
-          python experiments/rigetti-qvm-cosmos-012/loop.py \
+          python research/rigetti-qvm-cosmos-012/loop.py \
             --iterations 10000 --seed 67 \
             --qvm-anchor stage012-qvm/build/rigetti-qvm-cosmos-012-azure-anchor.json \
             --raw-histograms stage012-historical/build/rigetti-qvm-cosmos-012-redecoded-raw.json \
