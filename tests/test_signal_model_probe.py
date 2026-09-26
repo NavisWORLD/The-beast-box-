@@ -61,6 +61,7 @@ class PrivateResponse:
             "response_conditioned": "synthetic conditioned",
             "equal_reference_conditioned": False,
             "conditioned_cache_parity": True,
+            "conditioned_cache_token_parity": True,
             "generation_metrics": {
                 "reference": {"first_token_ms": 1.0, "full_response_ms": 2.0},
                 "conditioned_cache": {"first_token_ms": 1.1, "full_response_ms": 2.1},
@@ -148,6 +149,8 @@ def test_fused_bio_plus_ibm_archive_summary_reaches_native_multiarm_probe(monkey
     assert receipt["sources"][1]["execution_mode"] == "hardware_archive_summary_replay"
     assert receipt["time_shift_control"]["shifted_index"] == 1
     assert receipt["native_probe"]["conditioned_cache_parity"] is True
+    assert receipt["native_probe"]["conditioned_cache_token_parity"] is True
+    assert opener.calls[0][1]["prompt"] == "user: Describe the supplied state without claiming causality.\\nassistant:".replace("\\\\n","\\n")
     assert receipt["native_probe"]["arms"]["conditioned"]["control_vector"] == receipt["cns_dyn12"]
     assert set(opener.calls[0][1]["arms"]) == {
         "reference", "zero", "conditioned", "source_shuffled", "classical_matched",
