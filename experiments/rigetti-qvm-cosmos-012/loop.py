@@ -64,7 +64,7 @@ def sample_classical_ideal(theta: float, phi: float, *, iteration: int, seed: in
     return {key: draws.count(key) for key in BASIS}
 
 
-def simulator_source(counts: dict[str, int], *, iteration: int, theta: float, phi: float) -> SignalSource:
+def simulator_source(counts: dict[str, int], *, iteration: int, theta: float, phi: float, qvm_job_id: str | None = None) -> SignalSource:
     if set(counts) != set(BASIS) or any(type(v) is not int or v < 0 for v in counts.values()) or sum(counts.values()) != SHOTS:
         raise ValueError("invalid ideal simulation counts")
     p = [counts[key] / SHOTS for key in BASIS]
@@ -78,12 +78,14 @@ def simulator_source(counts: dict[str, int], *, iteration: int, theta: float, ph
     return SignalSource(
         source_id=f"local-ideal-2q-{iteration}",
         family="quantum", kind="classical-ideal-quil-2q-v1",
-        execution_mode="LOCAL_CLASSICAL_IDEAL_SAMPLER_NOT_AZURE_QVM",
+        execution_mode=("AZURE_RIGETTI_QVM_ONE_SIMULATED_CIRCUIT" if qvm_job_id else "LOCAL_CLASSICAL_IDEAL_SAMPLER_NOT_AZURE_QVM"),
         channel_contract="2q Born counts 00,01,10,11; normalized Shannon entropy; two Z moments; parity; trig of two Quil angles",
         vector=vector, mask=(True,)*12,
         confidence=1.0, freshness=1.0,
         provenance={
-            "simulation_only": True, "physical_qpu_runs": 0, "azure_qvm_runs": 0,
+            "simulation_only": True, "physical_qpu_runs": 0,
+            "azure_qvm_runs": int(qvm_job_id is not None),
+            "azure_qvm_job_id": qvm_job_id,
             "quil_sha256": hashlib.sha256(quil_for_angles(theta, phi).encode()).hexdigest(),
             "shots": SHOTS, "counts_sha256": sha256_obj(counts),
             "rng": "sha256-seeded-python-pseudorandom",
@@ -107,11 +109,29 @@ def _step(cns: CNS, mode: str, prev: list[float], drive: list[float], iteration:
     return list(out)
 
 
-def run(*, iterations: int = MAX_ITERATIONS, seed: int = 67) -> dict:
+def verify_optional_qvm_anchor(anchor: dict) -> dict:
+    """Never relabel one fresh QVM simulator observation as an IBM/hardware result."""
+    if not isinstance(anchor,dict) or anchor.get("schema")!="azure-rigetti-qvm-one-shot-v1" or (
+        anchor.get("target")!=QVM_TARGET or anchor.get("status")!="SUCCEEDED"
+        or anchor.get("shots")!=SHOTS or anchor.get("physical_qpu_jobs")!=0
+        or anchor.get("new_azure_qvm_jobs_submitted")!=1
+        or not isinstance(anchor.get("job_id"),str) or not anchor["job_id"]
+        or anchor.get("quil_sha256")!=hashlib.sha256(quil_for_angles(1.55,1.55).encode()).hexdigest()
+    ):
+        raise ValueError("unverified or non-QVM anchor")
+    counts=anchor.get("counts")
+    if not isinstance(counts,dict) or set(counts)!=set(BASIS) or any(type(v) is not int or v<0 for v in counts.values()) or sum(counts.values())!=SHOTS:
+        raise ValueError("QVM anchor result failed count contract")
+    return anchor
+
+
+def run(*, iterations: int = MAX_ITERATIONS, seed: int = 67, qvm_anchor: dict | None = None) -> dict:
     if type(iterations) is not int or not 1 <= iterations <= MAX_ITERATIONS:
         raise ValueError("iterations must be 1..10000")
     if type(seed) is not int or not 0 <= seed <= (1 << 32)-1:
         raise ValueError("seed out of range")
+    if qvm_anchor is not None:
+        verify_optional_qvm_anchor(qvm_anchor)
     assert len(IBM_FEZ_REPORTED_SUMMARIES) == 9
     # Source-report summary replay, no histogram reconstruction or hardware calibration.
     archives = [source_from_soul_token(
@@ -141,8 +161,15 @@ def run(*, iterations: int = MAX_ITERATIONS, seed: int = 67) -> dict:
         phi = 0.25 + 2.6 * (0.5+0.5*math.sin(iteration * 0.061 + 0.25*states["fused"][7]))
         if angles_first is None:
             angles_first = [theta, phi]
-        sim = simulator_source(sample_classical_ideal(theta, phi, iteration=iteration,seed=seed),
-                               iteration=iteration,theta=theta,phi=phi)
+        sample = sample_classical_ideal(theta,phi,iteration=iteration,seed=seed)
+        qvm_job_id=None
+        if iteration==0 and qvm_anchor is not None:
+            if hashlib.sha256(quil_for_angles(theta,phi).encode()).hexdigest()!=qvm_anchor["quil_sha256"]:
+                raise ValueError("QVM anchor circuit diverged from first adaptive schedule")
+            sample=qvm_anchor["counts"]
+            qvm_job_id=qvm_anchor["job_id"]
+        sim = simulator_source(sample,iteration=iteration,theta=theta,phi=phi,
+                               qvm_job_id=qvm_job_id)
         source_map = {
             "fused": [sim,archives[index_stream[iteration]]],
             "simulator_only": [sim],
@@ -184,7 +211,8 @@ def run(*, iterations: int = MAX_ITERATIONS, seed: int = 67) -> dict:
         "classification": "CLASSICAL_IDEAL_SIMULATION_WITH_HISTORICAL_IBM_SUMMARY_SIDE_INFORMATION",
         "simulation_backend": "local_stdlib_analytic_born_plus_seeded_sampling",
         "azure_qvm_target": QVM_TARGET,
-        "azure_qvm_jobs_submitted": 0,
+        "azure_qvm_jobs_submitted": int(qvm_anchor is not None),
+        "azure_qvm_note": "one newly submitted simulator anchor only; 9999+ other circuits locally simulated" if qvm_anchor else "no Azure QVM job was submitted",
         "physical_qpu_jobs_submitted": 0,
         "paid_model_calls": 0,
         "calls_to_external_cloud_models": 0,
@@ -234,15 +262,18 @@ def main()->None:
     parser.add_argument("--iterations",type=int,default=10_000)
     parser.add_argument("--seed",type=int,default=67)
     parser.add_argument("--output",type=Path,default=Path("build/rigetti-qvm-cosmos-012-local.json"))
+    parser.add_argument("--qvm-anchor",type=Path,default=None)
     args=parser.parse_args()
-    result=run(iterations=args.iterations,seed=args.seed)
+    anchor=json.loads(args.qvm_anchor.read_text()) if args.qvm_anchor else None
+    result=run(iterations=args.iterations,seed=args.seed,qvm_anchor=anchor)
     args.output.parent.mkdir(parents=True,exist_ok=True)
     args.output.write_text(json.dumps(result,sort_keys=True,indent=2,allow_nan=False)+"\n")
     print("COSMOS_012_LOCAL_ITERATIONS_PASS",result["iterations"],
           "source_rows",len(result["source"]["summary_row_sha256"]),
           "controls",",".join(MODES),
           "fused_state_sha256",result["controls"]["fused"]["trajectory_sha256"],flush=True)
-    print("AZURE_QVM_JOBS=0 PAID_QPU_JOBS=0 CLOUD_MODEL_CALLS=0",flush=True)
+    print("AZURE_QVM_JOBS",result["azure_qvm_jobs_submitted"],
+          "PAID_QPU_JOBS=0 CLOUD_MODEL_CALLS=0",flush=True)
 
 
 if __name__=="__main__":
