@@ -206,9 +206,14 @@ def signal_model_probe(data: dict[str, Any]) -> tuple[int, dict[str, Any]]:
     if len(key) < 32 or any(ch in key for ch in "\r\n"):
         return 503, {"error": "Private native-model authorization unavailable"}
 
+    # Match the existing native conversation training/inference prompt contract.
+    # Owner UI provides a single plain-text user utterance. All experiment arms
+    # receive this identical, explicitly versioned formatting; do not treat
+    # unformatted user text that immediately predicts EOS as a valid conversation.
+    native_prompt = "user: " + text + "\nassistant:"
     payload = {
         "model": MODEL,
-        "prompt": text,
+        "prompt": native_prompt,
         "arms": arms,
         "max_tokens": 24,
         "seed": 67,
@@ -276,6 +281,7 @@ def signal_model_probe(data: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         return 200, {
             "schema": SCHEMA,
             "mode": mode,
+            "native_prompt_format": "rawrphos-chat-prefill-v1",
             "model": MODEL,
             "training_steps": STEP,
             "checkpoint_sha256": SHA,
