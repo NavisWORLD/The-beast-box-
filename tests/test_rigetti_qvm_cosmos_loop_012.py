@@ -7,7 +7,7 @@ import math
 from pathlib import Path
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1] / "experiments" / "rigetti-qvm-cosmos-012"
+ROOT = Path(__file__).resolve().parents[1] / "research" / "rigetti-qvm-cosmos-012"
 
 
 def _load(name: str):
