@@ -42,6 +42,22 @@ BLOBS = {
     "d6p6mrc3pels73a3k1f0": ("5d72d873936e69425bc24a63a1befaec0683ff81","83918e23df97051ab261163bc2f827d22aeda003"),
 }
 
+# Accepted only after all nine original Git blobs were independently decoded,
+# their 128-byte NPY envelopes removed, and separate complete 10K COSMOS
+# experiment passed (GitHub Actions run 36211894824). Do not re-use the older
+# reported entropy values as real normalized entropy.
+EXPECTED_TRUE_4096_COUNTS_SHA256 = {
+    "d6p6l343pels73a3jvc0": "86fc000b86c8de2f8e18e1005a2f1d5c2974226fc6582292d783e67709b47535",
+    "d6p6l8gbfi7c73a6n73g": "420aef88fffcf9241f00043d961500edc0b4c9635a7542e48bf9b48cc7e42cd6",
+    "d6p6lpobfi7c73a6n7rg": "ddf7c908ec97aa8e1f37eaacecc1fa7f1bc07a65739a2bac7629d64db38f1f86",
+    "d6p6m269td6c73aq5jl0": "6f0c464563d88a444aea44e14204802d05a2423a9386b150cff203e58f1ffa4f",
+    "d6p6m6e9td6c73aq5jqg": "5f2519a9e46cb5e69f22035ead22b14d3f3d7f2614655015ed324f5a6d99fab4",
+    "d6p6mbgbfi7c73a6n8ig": "f2e934b4b8f65c4a255d340ab14cb9ccf67408648888b796c9f0040aaae87478",
+    "d6p6mfs3pels73a3k110": "a37001738e78c53b1405f551522fe8042679024c6e4acd146b1e6bfbba1717ad",
+    "d6p6mlc3pels73a3k190": "6fd462077c54f14631dbd9533565296f3c18d020cb35d389eadcc7ea94b0509e",
+    "d6p6mrc3pels73a3k1f0": "d7521c075deb4fed6cf27f4cfafecc0cf30afece4f1c7ffa90683ca3206e62e8"
+}
+
 
 def git_blob_sha1(raw: bytes) -> str:
     return hashlib.sha1(f"blob {len(raw)}".encode("ascii") + bytes([0]) + raw).hexdigest()
@@ -135,6 +151,8 @@ def recover()->dict:
             or info.get("status")!="Completed" or info.get("created")!=summary["timestamp"]):
             raise ValueError("archived provider-export metadata did not match summary")
         counts,shots,header_bytes=decode_serialized_bitarray(result)
+        if sha256_obj(counts)!=EXPECTED_TRUE_4096_COUNTS_SHA256[ident]:
+            raise ValueError("recovered true histogram differs from pinned corrected source digest")
         entropy=historical_entropy(counts)
         summary_top=summary["top_state"]
         highest=max(counts.values())
@@ -166,6 +184,7 @@ def recover()->dict:
         "repository":SOURCE_REPO,"commit":SOURCE_COMMIT,"source_folder":RAW_DIR,
         "pinned_git_blobs_verified":True,
         "archived_metadata_identity_crosscheck_passed":True,
+        "corrected_true_histogram_sha256_pins_checked":True,
         "original_summary_parser_included_npy_header_bytes":True,
         "original_summary_values_retained_as_historical_only":True,
         "independent_provider_api_confirmation":False,
