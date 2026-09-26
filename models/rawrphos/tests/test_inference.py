@@ -143,6 +143,8 @@ def test_multi_arm_condition_probe_v2_reports_full_native_telemetry_and_cache_pa
         assert all(isinstance(value,float) for value in layer.values())
         assert layer['sigma'] > 0
     assert result['conditioned_cache_parity'] is True
+    assert result['conditioned_cache_token_parity'] is True
+    assert result['generation_metrics']['conditioned_cache']['token_sequence_sha256']==result['generation_metrics']['conditioned_no_cache']['token_sequence_sha256']
     assert result['generation_metrics']['conditioned_cache']['cache_enabled'] is True
     assert result['generation_metrics']['conditioned_no_cache']['cache_enabled'] is False
     assert result['resource_metrics']['process_cpu_ms'] >= 0
