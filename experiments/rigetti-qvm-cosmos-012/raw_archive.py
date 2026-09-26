@@ -73,7 +73,14 @@ def decode_serialized_bitarray(payload: dict) -> tuple[dict[str,int], int]:
     if len(raw)!=4224:
         raise ValueError("unexpected shot count or byte-pack width")
     if any(value>=32 for value in raw):
-        raise ValueError("non-five-bit measurement present")
+        # The historical summarizer decoded the entire compressed byte stream
+        # as uint8. Detect any native container header before trusting the 4224
+        # claimed shots or treating metadata bytes as five-bit outcomes.
+        print("PACKED_PROVIDER_EXPORT_FORMAT_DIAGNOSTIC",
+              "decoded_bytes",len(raw),"prefix_hex",raw[:18].hex(),
+              "out_of_range_bytes",sum(v>=32 for v in raw),
+              "largest_byte",max(raw),flush=True)
+        raise ValueError("non-five-bit measurement present; inspect serialized ndarray envelope")
     counts=Counter(format(value,"05b") for value in raw)
     return ({format(x,"05b"):counts.get(format(x,"05b"),0) for x in range(32)},len(raw))
 
