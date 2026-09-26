@@ -260,6 +260,7 @@ def create_plan(real_qvm_receipt: dict) -> dict:
 
 
 def score(plan: dict, outputs: list[dict]) -> dict:
+    from .qvm_stats_015 import paired_12d_effects
     if plan.get("schema") != SCHEMA or len(outputs) != plan.get("comparisons"):
         raise ValueError("wrong plan or incomplete model generation")
     key = plan["private_evaluation_labels_NEVER_SEND_TO_MODEL"]
@@ -319,5 +320,6 @@ def score(plan: dict, outputs: list[dict]) -> dict:
         "cohort_arm_results_unranked": summaries,
         "explicit_classical_reference": reference,
         "individual_actual_responses": details,
+        "predeclared_paired_uncertainty": paired_12d_effects(details),
         "scope": "NUMERICAL_FORECAST_PROSPECTIVE_COMPARISON_NOT_QUANTUM_ADVANTAGE_OR_INTELLIGENCE_CLAIM",
     }
