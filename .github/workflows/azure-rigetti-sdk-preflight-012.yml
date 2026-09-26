@@ -1,0 +1,51 @@
+name: Stage 012 Azure QVM SDK contract (no credentials, no provider jobs)
+
+on:
+  push:
+    branches: [experiment/rigetti-qvm-12d-feedback-012]
+    paths:
+      - '.github/workflows/azure-rigetti-sdk-preflight-012.yml'
+      - '.github/workflows/azure-rigetti-qvm-free-012.yml'
+      - 'beastbox/rigetti_qvm_adapter.py'
+      - 'scripts/run_azure_rigetti_qvm_012.py'
+      - 'tests/test_qvm_feedback_experiment.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  official-sdk-and-no-credential-regressions:
+    if: github.repository == 'NavisWORLD/The-beast-box-'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    env:
+      AZURE_QUANTUM_QVM_OPT_IN: 'no'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the official current Azure Quantum Python SDK without credentials
+        run: |
+          set -euo pipefail
+          python -m pip install -e . 'pytest>=8,<10' 'qdk[azure]' 'azure-quantum==3.11.0'
+      - name: Validate public SDK target imports and connection-string entry point
+        run: |
+          python - <<'PY'
+          from qdk.azure import Workspace
+          from qdk.azure.target.rigetti import Rigetti, Result, InputParams
+          import importlib.metadata as metadata
+          assert callable(Workspace.from_connection_string)
+          assert "rigetti.sim.qvm" in tuple(Rigetti.target_names)
+          print("QVM_SDK_PUBLIC_CONTRACT_PASS",metadata.version("azure-quantum"),flush=True)
+          PY
+      - name: Check typed free target, strict secret isolation, no retries and staged controls
+        run: |
+          python -m pytest -q tests/test_qvm_feedback_experiment.py
+      - name: Verify no Azure service call or model invocation
+        run: |
+          echo 'This CI runs pure local tests; NO Azure workspace secret, provider QVM'
+          echo 'jobs, billed QPU jobs, model inference or production mutation.'
