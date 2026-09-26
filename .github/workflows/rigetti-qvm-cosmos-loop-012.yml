@@ -98,12 +98,14 @@ jobs:
           import json
           r=json.load(open('build/rigetti-qvm-cosmos-012-redecoded-raw.json'))
           assert r['pinned_git_blobs_verified'] is True
-          assert r['original_summary_crosscheck_passed'] is True
+          assert r['archived_metadata_identity_crosscheck_passed'] is True
+          assert r['original_summary_parser_included_npy_header_bytes'] is True
           assert len(r['records'])==9
-          assert sum(x['shots'] for x in r['records']) == 9*4224
+          assert sum(x['shots'] for x in r['records']) == 9*4096
+          assert sum(x['npy_container_header_bytes_removed'] for x in r['records']) == 9*128
           assert all(len(x['counts'])==32 for x in r['records'])
           assert r['new_ibm_hardware_jobs'] == r['new_azure_qvm_jobs'] == 0
-          print('PINNED_ARCHIVED_IBM_FULL_BITARRAY_RECOVERY_PASS')
+          print('PINNED_ARCHIVED_IBM_CORRECTED_NPY_FULL_BITARRAY_RECOVERY_PASS')
           PY
       - name: Run TEN THOUSAND identical shared circuits using independently decoded real exported IBM counts as contextual source
         run: |
