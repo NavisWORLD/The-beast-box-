@@ -136,7 +136,16 @@ def source_from_verified_raw_histogram(row: dict, index: int) -> SignalSource:
 
 
 def verified_raw_sources(payload: dict) -> list[SignalSource]:
-    from raw_archive import BLOBS, SCHEMA as RAW_SCHEMA
+    # Resolve sibling even when tests/library code loads this experiment by file
+    # location instead of a package import (directory intentionally hyphenated).
+    import importlib.util
+    spec=importlib.util.spec_from_file_location(
+        "cosmos012_pinned_raw_sibling",Path(__file__).with_name("raw_archive.py"))
+    if spec is None or spec.loader is None:
+        raise ValueError("pinned raw export validator unavailable")
+    sibling=importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sibling)
+    BLOBS, RAW_SCHEMA=sibling.BLOBS, sibling.SCHEMA
     if (not isinstance(payload,dict) or payload.get("schema")!=RAW_SCHEMA
         or payload.get("pinned_git_blobs_verified") is not True
         or payload.get("original_summary_crosscheck_passed") is not True
