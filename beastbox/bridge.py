@@ -12,6 +12,11 @@ class BridgePacket:
     quantum_spark: list[float] = field(default_factory=list)
     quantum_provenance: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
+    # Versioned fusion adapters may place a generic C1..C12 model-conditioning
+    # vector here. It is data only; it never grants tools, credentials, memory
+    # writes, network access or model authority.
+    conditioning_vector: list[float] = field(default_factory=list)
+    conditioning_provenance: dict[str, Any] = field(default_factory=dict)
 
     def safe_dict(self) -> dict[str, Any]:
         data = {
@@ -20,10 +25,18 @@ class BridgePacket:
             "quantum_provenance": dict(self.quantum_provenance),
             "metadata": dict(self.metadata),
         }
+        # Preserve legacy packet hashes when the typed conditioning path is not
+        # used. New packets commit both the exact vector and its provenance.
+        if self.conditioning_vector or self.conditioning_provenance:
+            data["conditioning_vector"] = [float(x) for x in self.conditioning_vector]
+            data["conditioning_provenance"] = dict(self.conditioning_provenance)
         for forbidden in ("token", "credential", "password", "secret", "authorization"):
-            for key in list(data["metadata"]):
-                if forbidden in key.lower():
-                    data["metadata"].pop(key, None)
+            for container in ("metadata", "conditioning_provenance"):
+                if container not in data:
+                    continue
+                for key in list(data[container]):
+                    if forbidden in key.lower():
+                        data[container].pop(key, None)
         data["packet_sha256"] = sha256_obj(data)
         return data
 

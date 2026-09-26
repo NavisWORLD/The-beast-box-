@@ -2,87 +2,145 @@
 import {useCallback,useEffect,useState} from 'react';
 import {Check,RefreshCcw,ShieldCheck} from 'lucide-react';
 
-type Choice='local'|'huggingface'|'ollama_cloud';
+type Choice='local'|'rawrphos_native'|'rawrphos_native_18k_experimental'|'rawrphos_hf'|'huggingface'|'ollama_cloud';
 type Option={
- choice:Choice;
- model:string;
- kind:'local'|'remote';
- configured:boolean;
- requires_spend_approval:boolean;
- readiness:string;
+ choice:Choice;model:string;kind:'local'|'remote';configured:boolean;
+ requires_spend_approval:boolean;readiness:string;
+ label?:string;loaded_step?:number|null;experimental?:boolean;promotion_checks_pass?:boolean;
 };
 type Catalog={
- active:{model:string;kind:string;remote:boolean};
- remote_grant_active:boolean;
- reapproval_required:boolean;
- choices:Option[];
- inference_attested:boolean;
- no_automatic_fallback:boolean;
+ active:{model:string;kind:string;remote:boolean;loaded_step?:number|null;experimental?:boolean};
+ remote_grant_active:boolean;reapproval_required:boolean;choices:Option[];
+ inference_attested:boolean;no_automatic_fallback:boolean;
+};
+type Inventory={
+ models:string[];status:'PUBLIC_MODEL_LIST_ONLY';account_access_verified:false;
+ inference_attested:false;model_invoked:false;
 };
 
-async function bridge(method:'GET'|'POST',payload?:Record<string,unknown>):Promise<Record<string,unknown>>{
- const r=await fetch('/api/bridge/models',{method,cache:'no-store',credentials:'same-origin',
+async function bridge(method:'GET'|'POST',endpoint:'models'|'model-inventory',payload?:Record<string,unknown>):Promise<Record<string,unknown>>{
+ const response=await fetch('/api/bridge/'+endpoint,{method,cache:'no-store',credentials:'same-origin',
   headers:method==='POST'?{'Content-Type':'application/json'}:undefined,
   body:method==='POST'?JSON.stringify(payload):undefined});
- const x:unknown=await r.json().catch(()=>({error:'Invalid backend response'}));
- if(!r.ok)throw new Error(x&&typeof x==='object'&&'error' in x?String(x.error):'Model selection failed');
- return x as Record<string,unknown>;
+ const data:unknown=await response.json().catch(()=>({error:'Invalid backend response'}));
+ if(!response.ok)throw new Error(data&&typeof data==='object'&&'error' in data?String(data.error):'Model selection failed');
+ return data as Record<string,unknown>;
 }
 
 export default function ModelSwitcher({backendReachable,onSwitched}:{
  backendReachable:boolean;onSwitched:()=>void;
 }){
  const [catalog,setCatalog]=useState<Catalog|null>(null);
+ const [ollamaModels,setOllamaModels]=useState<string[]>([]);
+ const [selectedModel,setSelectedModel]=useState('');
+ const [inventoryStatus,setInventoryStatus]=useState<'loading'|'ready'|'unavailable'|'not-configured'>('loading');
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [spendApproved,setSpendApproved]=useState(false);
  const refresh=useCallback(async()=>{
-  if(!backendReachable){setCatalog(null);return;}
-  const result=await bridge('GET');
-  setCatalog(result as unknown as Catalog);
+  if(!backendReachable){
+   setCatalog(null);setOllamaModels([]);setInventoryStatus('not-configured');return;
+  }
+  const result=await bridge('GET','models');
+  const next=result as unknown as Catalog;
+  setCatalog(next);
+  const ollama=next.choices.find(option=>option.choice==='ollama_cloud'&&option.configured);
+  if(!ollama){setOllamaModels([]);setInventoryStatus('not-configured');return;}
+  setInventoryStatus('loading');
+  try {
+   const response=await bridge('GET','model-inventory') as unknown as Inventory;
+   if(response.status!=='PUBLIC_MODEL_LIST_ONLY'||response.account_access_verified!==false||
+      response.model_invoked!==false||!Array.isArray(response.models)||
+      response.models.some(id=>typeof id!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,179}$/.test(id))) {
+    throw new Error('Unverified model inventory');
+   }
+   setOllamaModels(response.models);
+   setSelectedModel(previous=>response.models.includes(previous)?previous:
+    response.models.includes(next.active.model)?next.active.model:
+    response.models.includes(ollama.model)?ollama.model:response.models[0]||'');
+   setInventoryStatus('ready');
+  } catch {
+   setOllamaModels([]);setInventoryStatus('unavailable');
+  }
  },[backendReachable]);
- useEffect(()=>{void refresh().catch(()=>setError('Unable to inspect the real model catalog.'));},[refresh]);
+ useEffect(()=>{void refresh().catch(()=>setError('Unable to inspect the model catalog.'));},[refresh]);
 
- async function choose(choice:Choice){
+ async function choose(choice:Choice,model?:string){
   if(busy||!backendReachable)return;
-  const remote=choice!=='local';
-  if(remote&&!spendApproved){setError('Approve possible usage charges for the selected remote provider first.');return;}
+  const remote=choice==='huggingface'||choice==='ollama_cloud'||choice==='rawrphos_hf';
+  if(remote&&!spendApproved){setError('Approve possible usage charges before selecting a remote model.');return;}
+  if(model&&(!ollamaModels.includes(model)||inventoryStatus!=='ready')){
+   setError('Refresh the public Ollama inventory before switching models.');return;
+  }
   setBusy(true);setError('');setNotice('');
-  try{
-   const result=await bridge('POST',{choice,...(remote?{spend_approved:true}:{})});
+  try {
+   const result=await bridge('POST','models',{
+    choice,...(model?{model}:{}),...(remote?{spend_approved:true}:{})
+   });
    await refresh();
    onSwitched();
    setSpendApproved(false);
    setNotice(
     result.brain_changed===false?'This brain was already selected; no new inference was performed.':
-    choice==='local'?'Selected the verified local tiny model. Existing substrate retained; no paid inference was made.':
-    'Selected a configured cloud profile. A live answer is still unverified; any future requests may incur provider charges.'
+    choice==='local'?'Selected the verified local CPU model. Existing substrate retained; no paid inference was made.':
+    choice==='rawrphos_native'?'Selected the stable native 14K CPU checkpoint. COSMOS history retained; no paid inference was made.':
+    choice==='rawrphos_native_18k_experimental'?'Selected the experimental 18K CPU checkpoint. Its quality gate FAILED; instruction and multi-turn replies may be wrong. Stable 14K is still available, and COSMOS memory was preserved.':
+     choice==='rawrphos_hf'?'Selected your private Hugging Face ZeroGPU RAWRPHØS 12K. Checkpoint identity was verified; try a real chat. Free quota and queue limits apply.':
+    'Selected '+String(result.model||'the cloud model')+'. The encrypted key was retained. Actual inference and account entitlement still require a completed chat.'
    );
   }catch(e){setError((e as Error).message);}
   finally{setBusy(false);}
  }
  return <article className="data-card wide" aria-label="Switch model">
   <h2>Choose your brain</h2>
-  <p>Swap the model, not the durable COSMOS memory. Only your installed local model and encrypted, configured cloud connections appear here. A model name alone does not prove a successful inference call.</p>
+  <p>Swap the model, not the durable COSMOS substrate. Cloud models reuse the existing encrypted provider credential; the public catalog does not prove account entitlement, remaining usage, or a successful response.</p>
   {!backendReachable?<p role="status">Connect the durable backend before selecting a model.</p>:!catalog?<p role="status">Reading available models…</p>:
    <>
     <p role="status">Active profile: <strong>{catalog.active.model}</strong> ({catalog.active.remote?'remote':'local'}).
-     {catalog.reapproval_required?' Remote model needs fresh owner approval after restart.':null}
+     {catalog.active.model==='rawrphos-native'&&catalog.active.loaded_step?' Loaded native step: '+catalog.active.loaded_step+'.':null}
+     {catalog.reapproval_required?' Remote model needs owner approval after restart.':null}
     </p>
-    {catalog.active.remote&&catalog.active.model==='gpt-oss:120b'&&
-     <p role="status">This is an Ollama local model ID, not the advertised cloud ID. In Settings → Ollama Cloud, correct the saved model name to <code>gpt-oss:120b-cloud</code> without re-entering your encrypted key. Switch to local before editing the active model.</p>}
     {catalog.choices.map(option=>{
      const active=catalog.active.model===option.model&&
-      (option.choice==='local'?!catalog.active.remote:catalog.active.remote);
+      (option.kind==='local'?!catalog.active.remote:catalog.active.remote)&&
+      (option.choice==='rawrphos_native'?catalog.active.experimental!==true:
+       option.choice==='rawrphos_native_18k_experimental'?catalog.active.experimental===true:true);
      const remote=option.requires_spend_approval;
+     const experimental=option.choice==='rawrphos_native_18k_experimental';
+     const native=option.choice==='rawrphos_native'||experimental;
+     const hosted=option.choice==='rawrphos_hf';
+     const ready=option.readiness==='INSTALLED_AND_READY';
      return <div className="record" key={option.choice}>
-      <strong>{option.model}</strong> · {option.choice==='local'?'Installed CPU model':option.choice==='huggingface'?'Hugging Face':'Ollama Cloud'}
-      <p>{remote?'Encrypted credential configured. Model inference, available balance and latency have not been verified.':'Local weights and loopback were verified on the host. Actual response still needs a completed chat.'}</p>
-      <button type="button" className="outline-action" disabled={busy||(remote&&!spendApproved)||(!remote&&active)}
+      <strong>{option.label||option.model}</strong> · {native?'Native PyTorch CPU':hosted?'Private Hugging Face ZeroGPU':option.choice==='local'?'Installed CPU model':option.choice==='huggingface'?'Hugging Face':'Ollama Cloud'}
+      <p>{native?'Status: '+option.readiness.replaceAll('_',' ')+(option.loaded_step?' · Loaded step '+option.loaded_step:'')+'. '+(ready?(experimental?'Pinned unpromoted 18K identity verified. The original quality gate FAILED; responses may be inaccurate. Owner-only test use; real chat still needs completion.':'Pinned 14K identity and loopback verified; real chat still needs completion.'):'Not selectable until Railway installs and verifies the model. No automatic fallback.'):hosted?'Private HF Space. '+(option.configured?'Ready for owner-authenticated checkpoint check when selected. Free daily GPU quota and queuing apply.':'Save a private Hugging Face token under Connections first. No browser token exposure.'):remote?'Encrypted credential configured. Model inference, account entitlement, available balance and latency are not attested.':'Local weights and loopback were verified on the host. Actual response still requires a completed chat.'}</p>
+      <button type="button" className="outline-action"
+       disabled={busy||(remote&&!spendApproved)||(!remote&&active)||(native&&!ready)||(hosted&&!option.configured)}
        onClick={()=>void choose(option.choice)}>
        {active?<Check size={15}/>:<ShieldCheck size={15}/>}
        {active&&!(remote&&catalog.reapproval_required)?'Currently selected':
-        remote?(active?'Reapprove remote model':'Select remote model'):'Switch to local model'}
+        remote?(active?'Reapprove saved remote model':hosted?'Select RAWRPHØS via Hugging Face':'Select saved remote model'):native?(experimental?'Select experimental 18K':'Select stable 14K'):'Switch to local model'}
       </button>
+      {option.choice==='ollama_cloud'&&<div className="record" aria-label="Ollama cloud model choices">
+       <h3>Ollama cloud models</h3>
+       <p>Read-only direct API inventory, not an account-specific entitlement test. Select a model without re-entering your API key. Your same durable conversation remains outside its weights.</p>
+       {inventoryStatus==='loading'?<p role="status">Reading Ollama&apos;s public model inventory…</p>:
+        inventoryStatus==='unavailable'?<p role="status">Public inventory unavailable. Saved model selection remains available; no cloud call was made.</p>:
+        inventoryStatus==='ready'&&ollamaModels.length>0?
+        <>
+         <label htmlFor="ollama-model-choice">Available direct API model IDs</label>
+         <select id="ollama-model-choice" value={selectedModel} disabled={busy}
+          onChange={e=>setSelectedModel(e.target.value)}>
+          {ollamaModels.map(id=><option value={id} key={id}>{id}</option>)}
+         </select>
+         <button type="button" className="outline-action"
+          disabled={busy||!spendApproved||!selectedModel||
+            (catalog.active.remote&&catalog.active.model===selectedModel&&!catalog.reapproval_required)}
+          onClick={()=>void choose('ollama_cloud',selectedModel)}>
+          <ShieldCheck size={15}/>
+          {catalog.active.remote&&catalog.active.model===selectedModel?'Reapprove selected model':'Switch to '+selectedModel}
+         </button>
+         <p>Listing only. The provider may reject this model for your account. No inference or automatic fallback is performed by switching.</p>
+        </>:null}
+      </div>}
      </div>;
     })}
     {catalog.choices.some(x=>x.requires_spend_approval)?<label className="cloud-spend">
@@ -90,10 +148,21 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
        onChange={e=>setSpendApproved(e.target.checked)}/>
       I explicitly approve this provider&apos;s possible usage charges for remote model requests. Railway Trial credit does not pay these charges.
     </label>:null}
-    <button type="button" className="outline-action" disabled={busy} onClick={()=>void refresh().catch(()=>setError('Could not refresh model list.'))}><RefreshCcw size={15}/> Refresh model list</button>
+    <button type="button" className="outline-action" disabled={busy}
+     onClick={()=>void refresh().catch(()=>setError('Could not refresh model inventory.'))}>
+     <RefreshCcw size={15}/> Refresh model list
+    </button>
    </>}
+  {!catalog?.choices?.some(option=>option.choice==='rawrphos_native')?
+   <div className="record" role="status" data-testid="rawrphos-native-unavailable">
+    <strong>RAWRPHØS Native — Local CPU (14K)</strong> · Native PyTorch CPU
+    <p>{!backendReachable?'The durable backend is offline. RAWRPHØS cannot be verified.':
+      !catalog?'Reading the real model catalog; native checkpoint not yet attested.':
+      'The connected backend does not advertise RAWRPHØS. Deploy the reconciled Railway owner bridge and pinned 14K checkpoint first.'}</p>
+    <button type="button" className="outline-action" disabled aria-disabled="true">RAWRPHØS unavailable</button>
+   </div>:null}
   {notice?<p role="status" className="cloud-connect-success">{notice}</p>:null}
   {error?<p role="alert" className="inline-error">{error}</p>:null}
-  <p>Changing brains revokes prior model authority. No automatic cloud fallback, secret disclosure, inference charge, or memory reset is authorized by this control. Local and cloud model capabilities can differ.</p>
+  <p>Changing brains revokes previous model authority. No automatic cloud fallback, credential disclosure, inference charge, or memory reset is authorized by this control. Models can give incorrect descriptions of COSMOS memory; use checkpoint and source evidence to verify software continuity.</p>
  </article>;
 }

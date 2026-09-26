@@ -73,8 +73,7 @@ Owner validation on a real device:
 1. Open a fresh, authenticated Vercel Preview using these commits and ensure
    \`/api/status\` reports a reachable provider. Open Settings to access the
    in-flow Senses control; return to Brain to confirm Send and attachments
-   are never covered. Text files can be sent as bounded temporary context;
-   PNG/JPEG/WebP and PDFs are **local staging only**, not model uploads. Keep Production separate.
+   are never covered. Text files can be sent as bounded temporary context. Owner-selected PNG/JPEG/WebP may be classified locally, and only the approximate class/confidence supplied as temporary text. No image bytes are uploaded; PDFs remain local-only. Keep Production separate.
 2. Press Start vision: grant camera, confirm a live local preview and, when a
    recognizable ImageNet object is in frame, a timestamped classifier label.
    Denying permission must show an error without uploading a frame.
@@ -97,3 +96,11 @@ This is a **textual multimodal adapter**, not a native camera/ASR model or
 continuous medical sensor. Enabling real local ASR on unsupported browsers or
 full vision-language inference requires separate tested components and
 resource/consent review.
+
+## Revival 001: owner-selected local photo and optional voice playback
+
+- The Brain attachment picker classifies an already staged PNG/JPEG/WebP file only after the owner taps **Analyze locally**. The browser checks MIME, size (10 MiB maximum), decoded dimensions (4096 × 4096 pixel budget), local blob URL and predicted category. Only a bounded, explicitly owner-approved *text classification* passes into existing temporary chat context; no photo bytes go to Vercel or Railway.
+- The owner may separately approve **Remember category** only when the host enables `BEASTBOX_DEVICE_MEMORY_ENABLED=yes`. The same-origin owner BFF and Python bridge validate the `file_classifier` source and confidence/freshness and store only an unverified category in one durable checkpoint. Future selected remote models may retrieve it. Do not automatically retry an ambiguous persistence result.
+- Live camera labels and browser speech transcripts expire from sendable context after four minutes (host bound remains five minutes). Re-capture instead of describing stale readings as live.
+- **Read aloud** is opt-in browser `speechSynthesis` of actual assistant text, limited to 650 characters; it is not RAWRPHØS-native audio and the browser/device may rely on vendor voice processing.
+- iOS Safari permission, pagehide, local photo classification, browser speech and media-free network behavior require owner-device acceptance. CI does not replace this. See `docs/COSMOS_SENSORY_REVIVAL_001.md` and issue #108 for the native VLM/ASR, private media and CST sensor-bus follow-ons.

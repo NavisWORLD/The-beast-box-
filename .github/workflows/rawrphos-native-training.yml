@@ -1,0 +1,156 @@
+name: RAWRPHOS native CPU training and recovery
+
+on:
+  push:
+    branches:
+      - feature/rawrphos-native-model-001
+    paths:
+      - .github/workflows/rawrphos-native-training.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rawrphos-native-training-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native-train:
+    if: github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/feature/rawrphos-native-model-001'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      PYTHONPATH: ${{ github.workspace }}/models
+      RAW_INPUT: ${{ github.workspace }}/.rawrphos-run/public
+      RAWR_CORPUS: ${{ github.workspace }}/.rawrphos-run/corpus
+      RAWR_OUTPUT: ${{ github.workspace }}/.rawrphos-run/checkpoints
+    steps:
+      - name: Checkout this exact feature-branch commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install CPU-only dependencies (no paid providers)
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check --quiet 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'pyarrow>=15,<24' 'pytest>=8,<10' 'numpy>=1.26,<3' 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'uvicorn>=0.30,<1'
+
+      - name: Check committed native architecture, training, and resume tests
+        run: python -m pytest -q models/rawrphos/tests
+
+      - name: Reacquire only the two pinned public sources
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rawrphos"
+          python models/rawrphos/scripts/fetch_public_data.py --output "$RAW_INPUT"
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          from rawrphos.data.corpus import sha
+          expected=json.loads(Path("models/rawrphos/data/acquisition.json").read_text())
+          observed=json.loads((Path(os.environ["RAW_INPUT"])/"acquisition.json").read_text())
+          assert observed==expected, "pinned source acquisition receipt does not match"
+          assert sha((Path(os.environ["RAW_INPUT"])/"public-input.jsonl").read_bytes())==expected["input_sha256"]
+          print("PINNED_PUBLIC_ACQUISITION_VERIFIED",expected["input_sha256"],flush=True)
+          PY
+
+      - name: Rebuild corpus and verify every committed split hash
+        run: |
+          set -euo pipefail
+          python -m rawrphos.data.corpus --input "$RAW_INPUT/public-input.jsonl" --output "$RAWR_CORPUS" --seed 67
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          from rawrphos.data.corpus import load_corpus
+          expected=json.loads(Path("models/rawrphos/data/dataset_manifest.json").read_text())
+          actual=load_corpus(os.environ["RAWR_CORPUS"])["manifest"]
+          assert actual==expected,"reconstructed corpus/validation hash or count differs"
+          print("PINNED_CORPUS_VERIFIED",actual["dataset_sha256"],flush=True)
+          PY
+
+      - name: Train first real native checkpoint (100 optimizer steps)
+        run: |
+          set -euo pipefail
+          python -m rawrphos.training.train \
+            --corpus "$RAWR_CORPUS" --output "$RAWR_OUTPUT" \
+            --model-config models/rawrphos/config/model.json \
+            --training-config models/rawrphos/config/training.json \
+            --steps 100
+
+      - name: Verify actual updates, held-out loss, hash and generated output
+        run: |
+          python models/rawrphos/scripts/freeze_training_checkpoint.py \
+            --checkpoint "$RAWR_OUTPUT/step-00000100" \
+            --output "$RUNNER_TEMP/rawrphos/release-step-00000100" \
+            --expected-step 100
+
+      - name: Publish immutable 100-step recovery release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="rawrphos-native-step-00000100-run-${{ github.run_id }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Refusing to overwrite an existing recovery release: $TAG" >&2
+            exit 1
+          fi
+          cd "$RUNNER_TEMP/rawrphos/release-step-00000100"
+          gh release create "$TAG" \
+            rawrphos-native-step-00000100.tar.gz receipt.json SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "RAWRPHOS native trained candidate — step 100" \
+            --notes-file RELEASE_NOTES.md --prerelease
+
+      - name: Resume same model and optimizer through committed 6000-step target
+        run: |
+          set -euo pipefail
+          python -m rawrphos.training.train \
+            --corpus "$RAWR_CORPUS" --output "$RAWR_OUTPUT" \
+            --model-config models/rawrphos/config/model.json \
+            --training-config models/rawrphos/config/training.json \
+            --steps 5900 --resume "$RAWR_OUTPUT/step-00000100"
+
+      - name: Verify completed checkpoint and actual generated output
+        run: |
+          python models/rawrphos/scripts/freeze_training_checkpoint.py \
+            --checkpoint "$RAWR_OUTPUT/step-00006000" \
+            --output "$RUNNER_TEMP/rawrphos/release-step-00006000" \
+            --expected-step 6000
+
+      - name: Publish immutable 6000-step recovery release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="rawrphos-native-step-00006000-run-${{ github.run_id }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Refusing to overwrite an existing recovery release: $TAG" >&2
+            exit 1
+          fi
+          cd "$RUNNER_TEMP/rawrphos/release-step-00006000"
+          gh release create "$TAG" \
+            rawrphos-native-step-00006000.tar.gz receipt.json SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "RAWRPHOS native trained candidate — step 6000" \
+            --notes-file RELEASE_NOTES.md --prerelease
+
+      - name: Upload small diagnostics without duplicating weights in artifact storage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawrphos-native-training-receipts-${{ github.run_id }}
+          path: |
+            ${{ github.workspace }}/.rawrphos-run/checkpoints/training.jsonl
+            ${{ github.workspace }}/.rawrphos-run/checkpoints/failures.jsonl
+            ${{ runner.temp }}/rawrphos/release-step-00000100/receipt.json
+            ${{ runner.temp }}/rawrphos/release-step-00006000/receipt.json
+          if-no-files-found: ignore
+          retention-days: 30

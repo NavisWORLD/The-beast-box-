@@ -16,6 +16,19 @@ _REQUEST_ID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3
 _JOB_ID = re.compile(r"[A-Za-z0-9_-]{32}\Z")
 TTL_SECONDS = 900
 
+# A fixed diagnostic vocabulary: upstream bodies and credentials are never
+# returned to the browser. Retain exact failure identity without auto-retry.
+PROVIDER_ERRORS = {
+    "MODEL_AUTH_REJECTED": "Ollama or the selected provider rejected its saved API key. Use Settings → Test access (no paid inference).",
+    "MODEL_ACCESS_DENIED": "The model provider denied access. Check this account's model entitlement in Settings; no automatic retry.",
+    "MODEL_NOT_FOUND": "The provider did not recognize the selected model ID. Run the read-only model-list check in Settings.",
+    "MODEL_RATE_LIMITED": "The provider reported a rate limit. Check provider limits before manually retrying; the request was not replayed.",
+    "MODEL_TIMEOUT": "The model provider did not respond within the server timeout. Check conversation before retrying.",
+    "MODEL_UNAVAILABLE": "The selected provider returned an upstream error. Check provider status and conversation before retrying.",
+    "MODEL_OUTPUT_EMPTY": "The model returned no user-facing text. Its output may have been exhausted by reasoning; no automatic retry.",
+    "MODEL_BAD_RESPONSE": "The provider response was missing usable text or exceeded its size limit. No automatic retry.",
+}
+
 
 class ChatJobs:
     def __init__(self, handler: Callable[[dict[str, Any]], tuple[int, dict[str, Any]]]):
@@ -24,6 +37,7 @@ class ChatJobs:
         self._jobs: dict[str, dict[str, Any]] = {}
         self._requests: dict[str, str] = {}
         self._active: str | None = None
+        self._guest_active = False
 
     def _prune(self) -> None:
         now = time.monotonic()
@@ -41,6 +55,7 @@ class ChatJobs:
             code = record.get("failure_code")
             data["failure_code"] = code or "UNCONFIRMED"
             data["error"] = (
+                PROVIDER_ERRORS[code] if code in PROVIDER_ERRORS else
                 "Remote provider authorization was not available. Select or reactivate a model in Brain Bay."
                 if code == "AUTHORITY_REVOKED" else
                 "The selected model rejected or failed the request. Check conversation before retrying, or switch models in Brain Bay."
@@ -49,11 +64,25 @@ class ChatJobs:
             )
         return data
 
+    def acquire_guest(self) -> bool:
+        """No guest may overlap an owner job or a different guest request."""
+        with self._lock:
+            if self._active is not None or self._guest_active:
+                return False
+            self._guest_active = True
+            return True
+
+    def release_guest(self) -> None:
+        with self._lock:
+            self._guest_active = False
+
     def run_when_idle(self, action: Callable[[], tuple[int, dict[str, Any]]]) -> tuple[int, dict[str, Any]]:
         """Serialize an owner model/credential change with job admission."""
         with self._lock:
             if self._active is not None:
                 return 409, {"error": "Chat is still running; wait before changing models."}
+            if self._guest_active:
+                return 409, {"error": "Local guest inference is busy; wait before changing models."}
             return action()
 
     def start(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
@@ -75,6 +104,8 @@ class ChatJobs:
                 return 200 if record["state"] != "running" else 202, self._response(record)
             if self._active is not None:
                 return 409, {"error": "A chat is already processing. Wait for its result before starting another."}
+            if self._guest_active:
+                return 409, {"error": "Local guest inference is busy. Wait before starting another chat."}
             if len(self._jobs) >= 32:
                 return 429, {"error": "Recent chat job limit reached; wait before sending more."}
             job_id = secrets.token_urlsafe(24)
@@ -98,6 +129,9 @@ class ChatJobs:
             status, response = self._handler(payload)
             if status == 403:
                 failure_code = "AUTHORITY_REVOKED"
+            elif (isinstance(response, dict)
+                    and response.get("provider_failure") in PROVIDER_ERRORS):
+                failure_code = response["provider_failure"]
             elif status in (400, 401, 404, 429, 500, 502, 503, 504):
                 failure_code = "PROVIDER_REJECTED"
             if status == 200 and isinstance(response, dict) and isinstance(

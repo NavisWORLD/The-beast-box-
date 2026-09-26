@@ -1,0 +1,64 @@
+name: RAWRPHOS private HF Brain Bay end-to-end
+on:
+  push:
+    branches: [feature/rawrphos-native-model-001]
+    paths:
+      - ".github/workflows/rawrphos-hf-brain-bay.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rawrphos-hf-brain-bay
+  cancel-in-progress: false
+jobs:
+  private-owner-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      HF_TOKEN: ${{ secrets.HFtoken }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install secure COSMOS backend and Gradio Space client
+        run: |
+          python -m pip install --disable-pip-version-check -e '.[secure]' 'gradio-client>=1.14,<2'
+      - name: Authenticate private Space, owner-select exact 12K, perform real COSMOS chat
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64, importlib.util, json, os, tempfile
+          from pathlib import Path
+          from beastbox.rawrphos_hf import MODEL, WEIGHT_SHA
+          key=os.environ.get("HF_TOKEN", "")
+          if len(key)<20: raise RuntimeError("Missing private HF token")
+          spec=importlib.util.spec_from_file_location("owner_hf_real",
+              Path("apps/beastbox-cloud/bridge/owner_bridge.py"))
+          module=importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+          token="synthetic-ci-owner-"+("q"*40)
+          with tempfile.TemporaryDirectory() as temp:
+              with __import__("unittest.mock",fromlist=["patch"]).patch.dict(os.environ,{
+                  "BEASTBOX_CONNECTION_VAULT_KEY":base64.b64encode(b"t"*32).decode(),
+                  "BEASTBOX_HF_MODEL_ID":"", "BEASTBOX_TINY_LOCAL_ENABLED":"no"}):
+                  app=module.OwnerBridge(Path(temp),token)
+                  auth="Bearer "+token
+                  before=app.dispatch("GET","/api/orbit",auth)[1]["runtime"]
+                  app.vault.save("huggingface", {"model":"phera-ra/QC67_cosmo"}, key)
+                  status,chosen=app.dispatch("POST","/api/models",auth,
+                      json.dumps({"choice":"rawrphos_hf","spend_approved":True}).encode())
+                  assert status==200,chosen.get("error","selection failed")
+                  assert chosen["model"]==MODEL and chosen["checkpoint_sha256"]==WEIGHT_SHA
+                  assert app.app.profile.kind=="hf_space" and app.app.authority.allowed("cloud")
+                  print("OWNER_PRIVATE_HF_12K_SELECTION_PASS",flush=True)
+                  status,answer=app.dispatch("POST","/api/chat",auth,b'{"text":"Once upon a time,"}')
+                  assert status==200,answer.get("error","COSMOS chat failed")
+                  assert isinstance(answer["result"]["response"],str) and answer["result"]["response"].strip()
+                  print("REAL_COSMOS_PRIVATE_HF_12K_CHAT_PASS",len(answer["result"]["response"]),flush=True)
+                  assert answer["runtime"]["system_id"]==before["system_id"]
+                  after=module.OwnerBridge(Path(temp),token)
+                  assert after.app.profile.kind=="hf_space"
+                  assert not after.app.authority.allowed("cloud")
+                  print("DURABLE_SUBSTRATE_PERSISTS_RESTART_AND_CLOUD_AUTH_REVOKED_PASS",flush=True)
+          print("No Railway/Vercel production changes or paid hardware authorized.",flush=True)
+          PY

@@ -1,7 +1,7 @@
 import { bridgeConfigured, isOwner, safeJson } from '@/lib/security';
 export const runtime='nodejs';
-const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job','observations','models']);
-const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio','observations','models']);
+const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job','observations','models','model-inventory','engine-growth']);
+const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio','observations','models','azure-read','cns-model-probe','signal-model-probe']);
 type RouteContext={params:Promise<{endpoint:string}>};
 async function forward(request:Request, method:'GET'|'POST', {params}:RouteContext) {
   if (!await isOwner()) return safeJson(401,{error:'Owner authentication required'});
@@ -17,7 +17,7 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
   if (!bridgeConfigured()) return safeJson(503,{error:'A durable HTTPS Beast Box bridge has not been provisioned. No model call was performed.'});
   let body: string|undefined;
   if (method==='POST') {
-    if (endpoint==='connections'||endpoint==='bio'||endpoint==='chat-start'||endpoint==='observations'||endpoint==='models') {
+    if (endpoint==='connections'||endpoint==='bio'||endpoint==='chat-start'||endpoint==='observations'||endpoint==='models'||endpoint==='azure-read'||endpoint==='cns-model-probe'||endpoint==='signal-model-probe') {
       // Cross-site forms must not edit credentials or submit sensitive bio readings.
       const origin=request.headers.get('origin');
       if (!origin || origin!==new URL(request.url).origin) return safeJson(403,{error:'Same-origin owner action required'});
@@ -29,14 +29,26 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
     let parsed:unknown;try{parsed=JSON.parse(body);}catch{return safeJson(400,{error:'Invalid JSON'});}
     if (!parsed || typeof parsed!=='object' || Array.isArray(parsed)) return safeJson(400,{error:'Invalid request'});
     const input=parsed as Record<string,unknown>;
+    if(endpoint==='azure-read') {
+      if(Object.keys(input).sort().join(',')!=='blob_name,read_confirmed'||
+         input.read_confirmed!==true||typeof input.blob_name!=='string'||
+         !/^[A-Za-z0-9][A-Za-z0-9._/-]{0,179}$/.test(input.blob_name)||
+         input.blob_name.split('/').some(s=>!s||s==='.'||s==='..')||
+         !/\.(txt|md|json|csv)$/i.test(input.blob_name))
+         return safeJson(400,{error:'Confirm one exact Azure text blob name; no automatic retrieval'});
+    }
     if(endpoint==='models'){
       const keys=Object.keys(input).sort().join(',');
       const choice=input.choice;
-      if(choice==='local'){
+      if(choice==='local'||choice==='rawrphos_native'){
         if(keys!=='choice')return safeJson(400,{error:'Local model selection accepts only choice'});
-      }else if(choice==='huggingface'||choice==='ollama_cloud'){
-        if(keys!=='choice,spend_approved'||input.spend_approved!==true)
-          return safeJson(400,{error:'Remote model activation requires explicit usage approval'});
+      }else if(choice==='huggingface'||choice==='ollama_cloud'||choice==='rawrphos_hf'){
+        const selectedModel=choice==='ollama_cloud'&&typeof input.model==='string';
+        if(keys!==(selectedModel?'choice,model,spend_approved':'choice,spend_approved')||
+           input.spend_approved!==true||
+           (selectedModel&&(!/^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,179}$/.test(input.model as string)||
+                            (input.model as string).endsWith('-cloud'))))
+          return safeJson(400,{error:'Remote model activation requires explicit usage approval and a valid model ID'});
       }else return safeJson(400,{error:'Unknown model selection'});
     }
     if (endpoint==='observations') {
@@ -48,15 +60,70 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
         if(!item||typeof item!=='object'||Array.isArray(item))return safeJson(400,{error:'Invalid observation'});
         const entry=item as Record<string,unknown>;
         const keys=Object.keys(entry).sort().join(',');
-        const camera=entry.source==='camera_classifier';
-        if(!['camera_classifier','browser_speech'].includes(String(entry.source))||
-           keys!==(camera?'confidence,source,text,timestamp':'source,text,timestamp')||
+        const classification=entry.source==='camera_classifier'||entry.source==='file_classifier';
+        if(!['camera_classifier','file_classifier','browser_speech'].includes(String(entry.source))||
+           keys!==(classification?'confidence,source,text,timestamp':'source,text,timestamp')||
            typeof entry.text!=='string'||entry.text.length<1||
-           entry.text.length>(camera?96:240)||
+           entry.text.length>(classification?96:240)||
            typeof entry.timestamp!=='string'||entry.timestamp.length>35||
-           (camera&&(typeof entry.confidence!=='number'||!Number.isFinite(entry.confidence)||
+           (classification&&(typeof entry.confidence!=='number'||!Number.isFinite(entry.confidence)||
                     entry.confidence<0.32||entry.confidence>1)))
           return safeJson(400,{error:'Only bounded text labels and transcripts are accepted'});
+      }
+    }
+    if (endpoint==='cns-model-probe') {
+      const channels=['heart_rate_bpm','hrv_rmssd_ms','respiration_rate_bpm','skin_temperature_c',
+        'spo2_pct','eda_microsiemens','accelerometer_rms_g','eeg_alpha_relative',
+        'eeg_beta_relative','eeg_theta_relative','eeg_delta_relative','eeg_gamma_relative'];
+      if(body.length>2200||
+         Object.keys(input).sort().join(',')!=='consent,model_probe_confirmed,readings,source,text'||
+         input.consent!==true||input.model_probe_confirmed!==true||
+         !['manual','wearable_export','browser_sensor'].includes(String(input.source))||
+         typeof input.text!=='string'||input.text.trim().length<1||input.text.length>220||
+         !input.readings||typeof input.readings!=='object'||Array.isArray(input.readings))
+        return safeJson(400,{error:'A bounded, separately approved numeric model probe is required'});
+      const readings=input.readings as Record<string,unknown>;
+      if(Object.keys(readings).length<1||Object.keys(readings).length>12||
+         Object.entries(readings).some(([k,v])=>!channels.includes(k)||typeof v!=='number'||!Number.isFinite(v)))
+        return safeJson(400,{error:'Invalid numeric sensor channels'});
+    }
+    if (endpoint==='signal-model-probe') {
+      const channels=['heart_rate_bpm','hrv_rmssd_ms','respiration_rate_bpm','skin_temperature_c',
+        'spo2_pct','eda_microsiemens','accelerometer_rms_g','eeg_alpha_relative',
+        'eeg_beta_relative','eeg_theta_relative','eeg_delta_relative','eeg_gamma_relative'];
+      if(body.length>4200||
+         Object.keys(input).sort().join(',')!=='conditioning_confirmed,mode,quantum,sensory,text'||
+         input.conditioning_confirmed!==true||
+         !['pure_sensory','pure_quantum','fused'].includes(String(input.mode))||
+         typeof input.text!=='string'||input.text.trim().length<1||input.text.length>220)
+        return safeJson(400,{error:'A bounded, separately approved typed signal probe is required'});
+      const mode=String(input.mode);
+      const sensory=input.sensory;
+      const quantum=input.quantum;
+      if(mode==='pure_sensory' && (quantum!==null||!sensory||typeof sensory!=='object'||Array.isArray(sensory)))
+        return safeJson(400,{error:'Pure sensory mode accepts one sensory packet only'});
+      if(mode==='pure_quantum' && (sensory!==null||!quantum||typeof quantum!=='object'||Array.isArray(quantum)))
+        return safeJson(400,{error:'Pure quantum mode accepts one archive replay only'});
+      if(mode==='fused' && (!sensory||typeof sensory!=='object'||Array.isArray(sensory)||
+                            !quantum||typeof quantum!=='object'||Array.isArray(quantum)))
+        return safeJson(400,{error:'Fused mode requires sensory and archive replay packets'});
+      if(sensory!==null){
+        const s=sensory as Record<string,unknown>;
+        if(Object.keys(s).sort().join(',')!=='consent,readings,source,type'||s.type!=='bio'||s.consent!==true||
+           !['manual','wearable_export','browser_sensor'].includes(String(s.source))||
+           !s.readings||typeof s.readings!=='object'||Array.isArray(s.readings))
+          return safeJson(400,{error:'Invalid typed sensory packet'});
+        const readings=s.readings as Record<string,unknown>;
+        if(Object.keys(readings).length<1||Object.keys(readings).length>12||
+           Object.entries(readings).some(([k,v])=>!channels.includes(k)||typeof v!=='number'||!Number.isFinite(v)))
+          return safeJson(400,{error:'Invalid numeric sensory channels'});
+      }
+      if(quantum!==null){
+        const q=quantum as Record<string,unknown>;
+        if(Object.keys(q).sort().join(',')!=='archive_replay_confirmed,index,type'||
+           q.type!=='ibm_fez_published_summary'||q.archive_replay_confirmed!==true||
+           !Number.isSafeInteger(q.index)||Number(q.index)<0||Number(q.index)>8)
+          return safeJson(400,{error:'Invalid or unconfirmed IBM archive-summary replay'});
       }
     }
     if (endpoint==='bio') {
@@ -66,13 +133,15 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
       const base=['action','source','consent','readings'];
       const action=input.action;
       const keys=Object.keys(input).sort();
-      const validKeys=action==='preview'?base:action==='persist'
+      const validKeys=action==='preview'?base:action==='cst_preview'
+        ?[...base,'compare_confirmed']:action==='persist'
         ?[...base,'persist_confirmed',...(input.remote_share_confirmed===true?['remote_share_confirmed']:[])]
         :[];
       if(!validKeys.length||keys.join(',')!==validKeys.sort().join(',')||input.consent!==true||
          !['manual','wearable_export','browser_sensor'].includes(String(input.source))||
          !input.readings||typeof input.readings!=='object'||Array.isArray(input.readings)||
-         (action==='persist'&&input.persist_confirmed!==true)||body.length>2_048)
+         (action==='persist'&&input.persist_confirmed!==true)||
+         (action==='cst_preview'&&input.compare_confirmed!==true)||body.length>2_048)
         return safeJson(400,{error:'Invalid or unconsented bio submission'});
       const readings=input.readings as Record<string,unknown>;
       const channels=Object.keys(readings);

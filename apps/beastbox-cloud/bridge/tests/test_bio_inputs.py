@@ -80,6 +80,33 @@ class BioInputsTests(unittest.TestCase):
                 self.assertEqual(after["checkpoint_sha256"], initial["checkpoint_sha256"])
                 self.assertEqual(after["memory_digest"], initial["memory_digest"])
 
+    def test_unverified_browser_motion_uses_existing_nonpersistent_12d_adapter(self):
+        """Invented acceleration-only browser sample is a preview, not real hardware attestation."""
+        with tempfile.TemporaryDirectory() as td:
+            with patch.dict(os.environ, {"BEASTBOX_BIO_INGEST_ENABLED": "yes",
+                                         "BEASTBOX_BIO_PERSIST_ENABLED": "no"}):
+                bridge = bridge_module.OwnerBridge(Path(td), TOKEN)
+                _, before = bridge.dispatch("GET", "/api/storage", AUTH)
+                request = json.dumps({
+                    "action": "preview", "source": "browser_sensor", "consent": True,
+                    "readings": {"accelerometer_rms_g": 0.75},
+                }).encode()
+                code, preview = bridge.dispatch("POST", "/api/bio", AUTH, request)
+                self.assertEqual(code, 200, preview)
+                self.assertFalse(preview["persisted"])
+                self.assertFalse(preview["model_invoked"])
+                self.assertFalse(preview["source_verified"])
+                self.assertEqual(len(preview["event"]["features"]), 12)
+                self.assertAlmostEqual(preview["event"]["features"][6], -0.925)
+                self.assertEqual(normalize_event(preview["event"])["schema"], "normalized-event-v1")
+                metadata = json.loads(preview["event"]["text"])
+                self.assertEqual(metadata["source_label"], "browser_sensor")
+                self.assertEqual(metadata["channels_present"], ["accelerometer_rms_g"])
+                self.assertIn("heart_rate_bpm", metadata["missing_channels"])
+                _, after = bridge.dispatch("GET", "/api/storage", AUTH)
+                self.assertEqual(after["checkpoint_sha256"], before["checkpoint_sha256"])
+                self.assertEqual(after["system_id"], before["system_id"])
+
     def test_explicit_persist_changes_checkpoint_and_new_instance_recovers(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

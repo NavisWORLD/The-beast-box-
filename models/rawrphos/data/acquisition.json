@@ -1,0 +1,31 @@
+{
+  "schema": "rawrphos-public-acquisition-v1",
+  "sources": [
+    {
+      "url": "https://huggingface.co/datasets/roneneldan/TinyStories/resolve/f54c09fd23315a6f9c86f9dc80f725de7d8f9c64/TinyStories-train.txt",
+      "revision": "f54c09fd23315a6f9c86f9dc80f725de7d8f9c64",
+      "license": "CDLA-Sharing-1.0",
+      "records": 50000,
+      "sample_serialization_sha256": "73887e358f3aaa1d326b10d6694badeb0e7e8b153a65aa56518280f20980bfcc",
+      "full_source_file_hash": null,
+      "sampling": "first complete records",
+      "attribution": "Ronen Eldan and Yuanzhi Li, TinyStories, arXiv:2305.07759",
+      "license_url": "https://cdla.dev/sharing-1-0/",
+      "factual_ground_truth": false
+    },
+    {
+      "url": "https://huggingface.co/datasets/Salesforce/wikitext/resolve/b08601e04326c79dfdd32d625aee71d232d685c3/wikitext-2-raw-v1/train-00000-of-00001.parquet",
+      "revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+      "license": "CC-BY-SA-3.0 / GFDL (upstream)",
+      "articles": 630,
+      "source_sha256": "e83889baabc497075506f91975be5fac0d45c5290b6b20582c8cd1e853d0c9f7",
+      "bytes": 6357543,
+      "sampling": "upstream training split; entire articles",
+      "attribution": "Salesforce WikiText / Stephen Merity et al. / original Wikipedia contributors",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    }
+  ],
+  "personal_memory_used": false,
+  "input_sha256": "9caf589facf57674eb89ddbee6f272accc4878f92faf8f01089859e987b3aba6",
+  "input_bytes": 67821651
+}

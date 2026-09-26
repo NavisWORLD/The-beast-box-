@@ -1,0 +1,149 @@
+name: RAWRPHOS opt-in CPU image preflight
+on:
+  push:
+    branches: [feature/rawrphos-native-model-001]
+    paths:
+      - ".github/workflows/rawrphos-image-preflight.yml"
+      - "apps/beastbox-cloud/bridge/deploy/Dockerfile.rawrphos"
+      - "apps/beastbox-cloud/bridge/deploy/start_rawrphos.sh"
+      - "models/rawrphos/scripts/install_pinned_12k.py"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-and-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production-shaped image without credentials or Railway mutation
+        run: |
+          set -euo pipefail
+          docker build --progress=plain \
+            -f apps/beastbox-cloud/bridge/deploy/Dockerfile.rawrphos \
+            -t rawrphos-12k-preflight .
+          docker image inspect rawrphos-12k-preflight \
+            --format 'Image bytes: {{.Size}}'
+      - name: Verify both pinned local models and native CPU inference under 2 GB
+        run: |
+          set -euo pipefail
+          docker run --rm --memory=2g --cpus=2 \
+            --entrypoint /bin/bash rawrphos-12k-preflight -ec '
+            export OMP_NUM_THREADS=2
+            python -c "from beastbox.tiny_local import verify_model; verify_model(); print(\"TINY_PINNED_WEIGHTS_PASS\", flush=True)"
+            python -m rawrphos.inference.cli \
+              --checkpoint "$RAWRPHOS_CHECKPOINT_PATH" \
+              --expected-sha256 339fb8e1d6f3950e2aa15a6e33bf8c0f28dd655cefc93b7926fb7545e7e97601 \
+              info
+            python -m rawrphos.inference.cli \
+              --checkpoint "$RAWRPHOS_CHECKPOINT_PATH" \
+              --expected-sha256 339fb8e1d6f3950e2aa15a6e33bf8c0f28dd655cefc93b7926fb7545e7e97601 \
+              prompt "Once upon a time," --max-tokens 8 --temperature 0
+            echo NATIVE_12K_IMAGE_CPU_PREFLIGHT_PASS
+            '
+      - name: Record limitation
+        run: |
+          echo "This proves image build and sequential local inference under a 2 GB container cap."
+          echo "Concurrent SmolLM/native + Caddy/owner bridge and live Railway remain unverified."
+          echo "No production deployment, secret changes, hosting cap changes or training occurred."
+      - name: Run concurrent private models and owner bridge with disposable durable volume
+        run: |
+          set -euo pipefail
+          owner="synthetic-ci-owner-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+          native="synthetic-ci-native-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+          vault="$(python -c 'import base64; print(base64.b64encode(b"1"*32).decode())')"
+          container="rawrphos-preflight-$GITHUB_RUN_ID"
+          volume="rawrphos-preflight-$GITHUB_RUN_ID"
+          cleanup() {
+            docker rm -f "$container" >/dev/null 2>&1 || true
+            docker volume rm "$volume" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker run -d --name "$container" \
+            --memory=2g --cpus=2 --pids-limit=256 \
+            --mount "type=volume,source=$volume,target=/srv/beastbox/data" \
+            -p 127.0.0.1:18080:8080 \
+            -e RAWRPHOS_LOCAL_ENABLED=yes -e BEASTBOX_TINY_LOCAL_ENABLED=yes \
+            -e RAILWAY_VOLUME_MOUNT_PATH=/srv/beastbox/data \
+            -e RAILWAY_RUN_UID=0 -e PORT=8080 \
+            -e BEASTBOX_CLOUD_BRIDGE_TOKEN="$owner" \
+            -e BEASTBOX_CONNECTION_VAULT_KEY="$vault" \
+            -e RAWRPHOS_API_KEY="$native" \
+            rawrphos-12k-preflight
+          ready=no
+          for i in $(seq 1 80); do
+            if curl -fsS --max-time 2 http://127.0.0.1:18080/healthz -o /dev/null 2>/dev/null; then
+              ready=yes; break
+            fi
+            if [[ "$(docker inspect -f '{{.State.Running}}' "$container")" != "true" ]]; then
+              echo "Container exited during startup" >&2
+              docker logs "$container" --tail 50 >&2
+              exit 1
+            fi
+            sleep 3
+          done
+          if [[ "$ready" != yes ]]; then
+            echo "Real concurrent model startup failed" >&2
+            docker logs "$container" --tail 50 >&2
+            exit 1
+          fi
+          base=http://127.0.0.1:18080/api
+          curl -fsS -H "Authorization: Bearer $owner" "$base/models" -o "$RUNNER_TEMP/catalog.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          data=json.loads((Path(os.environ["RUNNER_TEMP"])/"catalog.json").read_text())
+          choices={x["choice"]: x for x in data["choices"]}
+          assert choices["local"]["readiness"]=="LOCAL_WEIGHTS_AND_LOOPBACK_VERIFIED"
+          native=choices["rawrphos_native"]
+          assert native["readiness"]=="INSTALLED_AND_READY", native
+          assert native["loaded_step"]==12000
+          assert native["checkpoint_sha256"]=="339fb8e1d6f3950e2aa15a6e33bf8c0f28dd655cefc93b7926fb7545e7e97601"
+          print("CONCURRENT_TINY_NATIVE_OWNER_CATALOG_PASS",flush=True)
+          PY
+          curl -fsS --max-time 30 -H "Authorization: Bearer $owner" \
+            -H "Content-Type: application/json" -d '{"choice":"rawrphos_native"}' \
+            "$base/models" -o "$RUNNER_TEMP/selection.json"
+          curl -fsS --max-time 140 -H "Authorization: Bearer $owner" \
+            -H "Content-Type: application/json" -d '{"text":"Once upon a time,"}' \
+            "$base/chat" -o "$RUNNER_TEMP/chat.json"
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path(os.environ["RUNNER_TEMP"])
+          selection=json.loads((root/"selection.json").read_text())
+          chat=json.loads((root/"chat.json").read_text())
+          assert selection["model"]=="rawrphos-native",selection
+          assert selection["loaded_step"]==12000
+          assert isinstance(chat["result"]["response"],str) and chat["result"]["response"]
+          print("CONCURRENT_NATIVE_OWNER_CHAT_PASS",flush=True)
+          PY
+          docker exec "$container" python -c 'from pathlib import Path; p=Path("/sys/fs/cgroup/memory.peak"); print("CONCURRENT_PEAK_GB",round(int(p.read_text())/10**9,3) if p.exists() else "UNAVAILABLE",flush=True)'
+          docker restart "$container" >/dev/null
+          ready=no
+          for i in $(seq 1 80); do
+            if curl -fsS --max-time 2 http://127.0.0.1:18080/healthz -o /dev/null 2>/dev/null; then
+              ready=yes; break
+            fi
+            sleep 3
+          done
+          test "$ready" = yes
+          curl -fsS -H "Authorization: Bearer $owner" "$base/models" -o "$RUNNER_TEMP/restarted.json"
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          data=json.loads((Path(os.environ["RUNNER_TEMP"])/"restarted.json").read_text())
+          assert data["active"]["model"]=="rawrphos-native",data["active"]
+          assert data["active"]["loaded_step"]==12000
+          print("DURABLE_NATIVE_RESTART_PASS",flush=True)
+          PY
+          curl -fsS --max-time 30 -H "Authorization: Bearer $owner" \
+            -H "Content-Type: application/json" -d '{"choice":"local"}' \
+            "$base/models" -o "$RUNNER_TEMP/tiny-selection.json"
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          data=json.loads((Path(os.environ["RUNNER_TEMP"])/"tiny-selection.json").read_text())
+          assert data["selected"]=="local",data
+          print("EXPLICIT_TINY_SWITCH_BACK_PASS",flush=True)
+          PY

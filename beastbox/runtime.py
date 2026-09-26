@@ -84,7 +84,11 @@ class CosmosRuntime:
         if fresh and fresh.source.startswith("audio") and not packet.audio_features:
             packet.audio_features = [float(v) for v in fresh.features.values() if isinstance(v, (int, float))]
 
-        syn = self.synaptic.step(audio_features=packet.audio_features, quantum_spark=packet.quantum_spark)
+        syn = self.synaptic.step(
+            audio_features=packet.audio_features,
+            quantum_spark=packet.quantum_spark,
+            conditioning_vector=packet.conditioning_vector or None,
+        )
         state = MissionState(
             mission_id=f"conversation-{self.turn}",
             objective=text,
@@ -119,8 +123,17 @@ class CosmosRuntime:
         memory_id = self.memory.store(text, kind="user_turn", metadata={"turn": self.turn})
         # A context-derived answer may quote the entire attachment. Keep it out
         # of durable memory unless the owner explicitly persists it later.
+        # Capture the configured provider label *at generation time*. A later
+        # model swap must never relabel historical responses as the current
+        # brain. This is software provenance, not model-weight attestation.
+        measured = getattr(self.provider, "receipt", None)
+        label = measured.get("model") if isinstance(measured, dict) else None
+        response_metadata: dict[str, Any] = {"turn": self.turn}
+        if isinstance(label, str) and 1 <= len(label) <= 180:
+            response_metadata["model"] = label
+            response_metadata["model_identity_kind"] = "configured-provider-label; no weight attestation"
         response_id = None if transient_context else self.memory.store(
-            response, kind="assistant_turn", metadata={"turn": self.turn}, source_ids=[memory_id]
+            response, kind="assistant_turn", metadata=response_metadata, source_ids=[memory_id]
         )
         self._trace_stage("memory_write")
         self.slow.organism.observe(1.0)

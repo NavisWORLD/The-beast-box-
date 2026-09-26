@@ -1,0 +1,104 @@
+name: CNS7 native model real-inference probe
+on:
+  pull_request:
+    paths:
+      - 'models/rawrphos/architecture/**'
+      - 'models/rawrphos/inference/**'
+      - 'models/rawrphos/tests/test_inference.py'
+      - 'beastbox/cns_model_probe.py'
+      - 'tests/test_cns_model_probe.py'
+      - 'beastbox/signal_fusion.py'
+      - 'beastbox/signal_model_probe.py'
+      - 'apps/beastbox-cloud/bridge/deploy/start_rawrphos.sh'
+      - 'beastbox/soul/archive_summary.py'
+      - 'models/rawrphos/scripts/accept_signal_fusion_14k.py'
+      - 'tests/test_signal_fusion.py'
+      - 'tests/test_signal_model_probe.py'
+      - '.github/workflows/cns7-native-probe-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-conditioned-pytorch:
+    if: github.repository == 'NavisWORLD/The-beast-box-'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    env:
+      PYTHONPATH: models
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned CPU and local test dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'pytest>=8,<10' 'numpy>=1.26,<3' 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'uvicorn>=0.30,<1'
+          python -m pip install --quiet -e .
+      - name: True conditioned PyTorch logits and cached generation, private API denials
+        run: |
+          set -euo pipefail
+          python -m pytest -q models/rawrphos/tests/test_architecture.py models/rawrphos/tests/test_inference.py tests/test_cns_model_probe.py
+      - name: Pinned real 14K checkpoint + one synthetic CNS7 numeric conditioning
+        env:
+          EXPECTED_SHA: 4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5
+        run: |
+          set -euo pipefail
+          python models/rawrphos/scripts/install_pinned_14k.py --destination "$RUNNER_TEMP/step-00014000"
+          python - <<'PY'
+          import os,pathlib
+          from fastapi.testclient import TestClient
+          from beastbox.bio_inputs import bio_event
+          from beastbox.events import normalize_event
+          from beastbox.bridge import BridgePacket
+          from beastbox.cns import CNS
+          from beastbox.state import MissionState
+          from rawrphos.inference.server import create_app
+          path=pathlib.Path(os.environ['RUNNER_TEMP'])/'step-00014000'
+          sha=os.environ['EXPECTED_SHA']
+          key='synthetic-ci-private-native-key-0123456789'
+          client=TestClient(create_app(path,key,max_new_tokens=32,threads=2,expected_sha256=sha))
+          event=normalize_event(bio_event(readings={'heart_rate_bpm':72.0},source='manual',consent=True))
+          mission=MissionState(mission_id='synthetic-ci',objective='one numeric control')
+          cns=CNS().tick(mission,BridgePacket(audio_features=event['features']).safe_dict())
+          vector=cns['dyn12']
+          request={'model':'rawrphos-native','prompt':'Hello, Beast.','control_vector':vector,
+                   'max_tokens':12,'seed':67}
+          headers={'Authorization':'Bearer '+key}
+          result=client.post('/v1/condition-probe',headers=headers,json=request)
+          assert result.status_code==200,result.text
+          body=result.json()
+          assert body['training_steps']==14000 and body['checkpoint_sha256']==sha
+          assert body['logit_l2']['zero_vs_reference']<1e-6
+          assert body['logit_l2']['conditioned_vs_reference']>0
+          assert body['model_weights_changed'] is False and body['performance_gain_proven'] is False
+          assert client.get('/model/info',headers=headers).json()['checkpoint_sha256']==sha
+          print('REAL_PINNED_14K_CNS7_CONDITIONED_INFERENCE_PASS',sha,
+                'logit_l2',body['logit_l2']['conditioned_vs_reference'],flush=True)
+          PY
+      - name: Real pinned 14K sensory plus IBM published-summary replay, all three modes
+        env:
+          EXPECTED_SHA: 4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5
+        run: |
+          set -euo pipefail
+          python models/rawrphos/scripts/accept_signal_fusion_14k.py
+      - name: Check fail-closed managed-host acceptance entrypoint syntax
+        run: |
+          set -euo pipefail
+          bash -n apps/beastbox-cloud/bridge/deploy/start_rawrphos.sh
+      - name: Upload synthetic numerical acceptance receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signal-fusion-pinned-14k-receipt
+          path: build/cosmos-signal-native-14k-acceptance.json
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Report exact scope
+        run: |
+          echo 'Real pinned 14K from public release; synthetic manual bio and published IBM archive-summary replay.'
+          echo 'Native PyTorch conditioning with matched controls and cache parity; no new IBM job.'
+          echo 'No Railway production execution, physical sensor attestation, or behavioral advantage claim.'

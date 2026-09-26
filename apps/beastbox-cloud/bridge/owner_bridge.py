@@ -18,15 +18,28 @@ from dataclasses import asdict
 from beastbox.cosmic_web import CosmicApp, ProviderProfile
 from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV, MODELS
 from beastbox.cloud_connection_checks import verify_connection
+from beastbox.azure_read import AzureReadError, read_owner_text
+from beastbox.ollama_models import ModelInventoryUnavailable, fetch_public_models, MODEL_ID
 from beastbox.bio_inputs import bio_event
+from beastbox.cst_sensor_preview import compare_sensor_state
+from beastbox.engine_growth_report import engine_growth_report
 from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
 from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
+from beastbox.rawrphos_local import MODEL as NATIVE_ID, profile as native_profile, status as native_status
+from beastbox.rawrphos_experimental_local import profile as experimental_profile, status as experimental_status
+from beastbox.rawrphos_hf import (MODEL as HF_NATIVE_MODEL, SPACE_URL as HF_NATIVE_URL,
+                                  WEIGHT_SHA as HF_NATIVE_SHA, STEP as HF_NATIVE_STEP,
+                                  profile as hosted_native_profile, PrivateSpaceProvider)
 from beastbox.chat_jobs import ChatJobs
+from beastbox.guest_local import guest_local_infer
+from beastbox.cns_model_probe import cns_model_probe
+from beastbox.signal_model_probe import signal_model_probe
+from beastbox.soul.archive_summary import archive_manifest
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models"})
-POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "engine-growth"})
+POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe", "signal-model-probe"})
 
 
 class OwnerBridge:
@@ -45,6 +58,7 @@ class OwnerBridge:
         self._configure_explicit_hf_provider(root)
         # Opt-in host settings only. No browser-supplied grant or device access.
         self.bio_enabled = os.environ.get("BEASTBOX_BIO_INGEST_ENABLED") == "yes"
+        self.cst_preview_enabled = self.bio_enabled and os.environ.get("BEASTBOX_CST_PREVIEW_ENABLED") == "yes"
         self.bio_persist_enabled = self.bio_enabled and os.environ.get("BEASTBOX_BIO_PERSIST_ENABLED") == "yes"
         self.bio_remote_allowed = self.bio_persist_enabled and os.environ.get("BEASTBOX_BIO_REMOTE_ALLOWED") == "yes"
         if self.bio_persist_enabled:
@@ -54,6 +68,11 @@ class OwnerBridge:
     def _resolve_provider_secret(self, profile: ProviderProfile) -> str | None:
         if self.vault is None:
             return None
+        if profile.kind == "hf_space" and profile.base_url == HF_NATIVE_URL:
+            saved = self.vault.read_host_only("huggingface")
+            if saved is None:
+                raise ConnectionError("Hugging Face owner credential is unavailable")
+            return saved["secret"]
         endpoints = {"huggingface": "https://router.huggingface.co/v1",
                      "ollama_cloud": "https://ollama.com/v1"}
         for name, endpoint in endpoints.items():
@@ -76,7 +95,8 @@ class OwnerBridge:
                 # handoff first; same-model credential rotation is allowed.
                 endpoint = {"huggingface": "https://router.huggingface.co/v1",
                             "ollama_cloud": "https://ollama.com/v1"}.get(provider)
-                if (endpoint and self.app.profile.base_url == endpoint
+                if (endpoint and (self.app.profile.base_url == endpoint or
+                                  (provider == "huggingface" and self.app.profile.kind == "hf_space"))
                         and isinstance(data["config"], dict)
                         and self.app.profile.model != data["config"].get("model")):
                     return 409, {"error": "Switch to local model in Brain Bay before changing an active cloud model ID."}
@@ -84,7 +104,8 @@ class OwnerBridge:
             if action == "update_model" and set(data) == {"action","provider","model"} and provider in MODELS:
                 endpoint = {"huggingface": "https://router.huggingface.co/v1",
                             "ollama_cloud": "https://ollama.com/v1"}[provider]
-                if self.app.profile.kind == "compatible" and self.app.profile.base_url == endpoint:
+                if (self.app.profile.kind == "compatible" and self.app.profile.base_url == endpoint
+                        or provider == "huggingface" and self.app.profile.kind == "hf_space"):
                     return 409, {"error": "Switch to local model in Brain Bay before editing this active cloud model ID."}
                 updated = self.vault.update_model(provider, data["model"])
                 return 200, {**updated, "credential_preserved": True,
@@ -94,7 +115,8 @@ class OwnerBridge:
                 # reference and revoke all authority BEFORE discarding its key.
                 endpoint = {"huggingface":"https://router.huggingface.co/v1",
                             "ollama_cloud":"https://ollama.com/v1"}.get(provider)
-                deactivated = bool(endpoint and self.app.profile.base_url == endpoint)
+                deactivated = bool(endpoint and (self.app.profile.base_url == endpoint or
+                    (provider == "huggingface" and self.app.profile.kind == "hf_space")))
                 if deactivated:
                     self.app._set_profile({"kind":"reference"})
                 result = self.vault.remove(provider)
@@ -110,8 +132,8 @@ class OwnerBridge:
                     return 404, {"error":"connection not configured"}
                 endpoint = {"huggingface":"https://router.huggingface.co/v1",
                             "ollama_cloud":"https://ollama.com/v1"}[provider]
-                if provider == "ollama_cloud" and saved["config"]["model"] in {"gpt-oss:120b", "gpt-oss:20b"}:
-                    return 400, {"error": "Ollama Cloud uses a different model ID. Switch to local, then update this saved model name to its -cloud variant."}
+                if provider == "ollama_cloud" and saved["config"]["model"].endswith("-cloud"):
+                    return 400, {"error": "Direct Ollama API model IDs must match https://ollama.com/api/tags (for example gpt-oss:120b, without -cloud). Switch to local in Brain Bay, then update the saved model ID without replacing its encrypted key."}
                 # Explicit owner selection grants this one remote-model
                 # operation; the handoff itself revokes previous grants.
                 desired = {"kind":"compatible","model":saved["config"]["model"],
@@ -139,7 +161,7 @@ class OwnerBridge:
         # Check actual weights even if an existing profile is already selected.
         verify_model()
         if (self.app.profile != requested and self.app.profile.kind != "reference"
-                and not self.app.profile.remote):
+                and not self.app.profile.remote and self.app.profile.model != NATIVE_ID):
             raise ValueError("refusing to overwrite a previously selected Beast Box brain")
         # This health request cannot leave this host. Launch happens before
         # OwnerBridge in the opt-in image's entrypoint, never from HTTP input.
@@ -185,6 +207,21 @@ class OwnerBridge:
         # model handoff in CosmicApp revokes all previous authority.
         self.app.authority.grant("cloud")
 
+    def _azure_read_action(self, data: dict) -> tuple[int, dict]:
+        """One explicit owner-approved text read. No ambient chat retrieval."""
+        if self.vault is None:
+            return 503, {"error": "Encrypted Azure credential vault unavailable"}
+        if (set(data) != {"blob_name", "read_confirmed"}
+                or data.get("read_confirmed") is not True):
+            return 400, {"error": "Explicit Azure document read confirmation required"}
+        saved = self.vault.read_host_only("azure_blob")
+        if saved is None:
+            return 404, {"error": "Azure Blob connection not configured"}
+        try:
+            return 200, read_owner_text(saved, data["blob_name"])
+        except AzureReadError as exc:
+            return 400, {"error": str(exc)}
+
     def _model_catalog(self) -> dict:
         """Expose only installed local and encrypted configured model choices."""
         choices = []
@@ -197,8 +234,18 @@ class OwnerBridge:
                 "requires_spend_approval": False,
                 "readiness": "LOCAL_WEIGHTS_AND_LOOPBACK_VERIFIED",
             })
+        choices.append(native_status())
+        choices.append(experimental_status())
+        listed = self.vault.list_public()["connections"] if self.vault is not None else []
+        hf_configured = any(row["provider"] == "huggingface" and row["configured"] for row in listed)
+        choices.append({"choice": "rawrphos_hf", "model": HF_NATIVE_MODEL,
+                        "label": "RAWRPHØS Native 12K — Private HF ZeroGPU", "kind": "remote",
+                        "configured": bool(hf_configured), "requires_spend_approval": True,
+                        "readiness": "PRIVATE_SPACE_REQUIRES_OWNER_ATTESTATION" if hf_configured
+                                     else "HF_OWNER_CREDENTIAL_NOT_CONFIGURED",
+                        "loaded_step": HF_NATIVE_STEP if hf_configured else None})
         if self.vault is not None:
-            for item in self.vault.list_public()["connections"]:
+            for item in listed:
                 if item["provider"] in MODELS and item["configured"]:
                     choices.append({
                         "choice": item["provider"],
@@ -209,9 +256,15 @@ class OwnerBridge:
                         "readiness": "CREDENTIAL_CONFIGURED_INFERENCE_NOT_ATTESTED",
                     })
         profile = self.app.profile
+        native = next(item for item in choices if item["choice"] == "rawrphos_native")
+        experimental = next(item for item in choices if item["choice"] == "rawrphos_native_18k_experimental")
         return {
             "active": {"model": profile.model, "kind": profile.kind,
-                       "remote": profile.remote},
+                       "remote": profile.remote,
+                       "loaded_step": (HF_NATIVE_STEP if profile.kind == "hf_space"
+                                       else experimental["loaded_step"] if profile.base_url == experimental_profile()["base_url"]
+                                       else native["loaded_step"]) if profile.model == NATIVE_ID else None,
+                       "experimental": profile.base_url == experimental_profile()["base_url"]},
             "remote_grant_active": profile.remote and self.app.authority.allowed("cloud"),
             "reapproval_required": profile.remote and not self.app.authority.allowed("cloud"),
             "choices": choices,
@@ -240,6 +293,99 @@ class OwnerBridge:
                 "no_paid_inference": True, "inference": "NOT_ATTESTED_UNTIL_REAL_CHAT",
                 "substrate": "EXISTING_DURABLE_STATE",
             }
+        if (choice == "rawrphos_hf" and set(data) == {"choice", "spend_approved"}
+                and data["spend_approved"] is True):
+            if self.vault is None:
+                return 503, {"error": "Encrypted owner vault is required for the private Hugging Face Space"}
+            saved = self.vault.read_host_only("huggingface")
+            if saved is None:
+                return 404, {"error": "Save an owner Hugging Face token in Connections first"}
+            remote = PrivateSpaceProvider(api_key=saved["secret"])
+            try:
+                remote.attest()
+            except Exception:
+                return 503, {"error": "Private RAWRPHØS Space identity unavailable; selection unchanged"}
+            self.app.authority.grant("cloud")
+            try:
+                profile, changed, revoked = self.app._set_profile(hosted_native_profile())
+            except (ValueError, ConnectionError):
+                return 503, {"error": "Private RAWRPHØS provider unavailable; selection unchanged"}
+            self.app.authority.grant("cloud")
+            return 200, {"selected": "rawrphos_hf", "model": profile.model,
+                         "loaded_step": HF_NATIVE_STEP, "checkpoint_sha256": HF_NATIVE_SHA,
+                         "brain_changed": changed, "authority_revoked": revoked,
+                         "cloud_grant": "EXPLICIT_OWNER_SELECTION",
+                         "inference": "HOSTED_IDENTITY_ATTESTED_CHAT_NOT_YET_COMPLETED",
+                         "substrate": "EXISTING_DURABLE_STATE"}
+        if choice == "rawrphos_native_18k_experimental" and set(data) == {"choice"}:
+            ready = experimental_status()
+            if ready["readiness"] != "INSTALLED_AND_READY":
+                return 503, {"error": "Experimental RAWRPHØS unavailable: " + ready["readiness"] +
+                             ". Selection unchanged; no automatic fallback."}
+            profile, changed, revoked = self.app._set_profile(experimental_profile())
+            return 200, {"selected": "rawrphos_native_18k_experimental", "model": profile.model,
+                         "loaded_step": ready["loaded_step"],
+                         "checkpoint_sha256": ready["checkpoint_sha256"],
+                         "experimental": True, "promotion_checks_pass": False,
+                         "brain_changed": changed, "authority_revoked": revoked,
+                         "no_paid_inference": True, "inference": "NOT_ATTESTED_UNTIL_REAL_CHAT",
+                         "substrate": "EXISTING_DURABLE_STATE"}
+        if choice == "rawrphos_native" and set(data) == {"choice"}:
+            ready = native_status()
+            if ready["readiness"] != "INSTALLED_AND_READY":
+                return 503, {"error": "RAWRPHØS unavailable: " + ready["readiness"] +
+                             ". Selection unchanged; no automatic fallback."}
+            profile, changed, revoked = self.app._set_profile(native_profile())
+            return 200, {"selected": "rawrphos_native", "model": profile.model,
+                         "loaded_step": ready["loaded_step"],
+                         "checkpoint_sha256": ready["checkpoint_sha256"],
+                         "brain_changed": changed, "authority_revoked": revoked,
+                         "no_paid_inference": True, "inference": "NOT_ATTESTED_UNTIL_REAL_CHAT",
+                         "substrate": "EXISTING_DURABLE_STATE"}
+        if (choice == "ollama_cloud" and set(data) == {"choice", "model", "spend_approved"}
+                and data["spend_approved"] is True):
+            # Model selection is a single owner-initiated, read-only inventory
+            # check followed by a host-only vault model update and a handoff.
+            # No chat/inference happens on this route. Caller holds the app lock
+            # and run_when_idle, so a pending chat cannot switch brains midway.
+            requested = data["model"]
+            if not isinstance(requested, str) or MODEL_ID.fullmatch(requested) is None or requested.endswith("-cloud"):
+                return 400, {"error": "Choose a canonical Ollama direct API model ID"}
+            if self.vault is None:
+                return 503, {"error": "Encrypted owner vault is unavailable"}
+            saved = self.vault.read_host_only("ollama_cloud")
+            if saved is None:
+                return 404, {"error": "Ollama Cloud credential is not configured"}
+            try:
+                available = fetch_public_models()
+            except ModelInventoryUnavailable:
+                return 503, {"error": "Public Ollama inventory unavailable; no profile or credential changed"}
+            if requested not in available:
+                return 409, {"error": "Model is absent from Ollama's public direct API inventory; selection unchanged"}
+            previous = saved["config"]["model"]
+            prior_grant = self.app.authority.allowed("cloud")
+            if previous != requested:
+                try:
+                    self.vault.update_model("ollama_cloud", requested)
+                except (ConnectionError, ValueError):
+                    return 400, {"error": "Encrypted model metadata update failed; selection unchanged"}
+            try:
+                status, result = self._connection_action({
+                    "action": "activate", "provider": "ollama_cloud", "spend_approved": True
+                })
+                if status != 200:
+                    raise ValueError("model activation failed")
+            except (ValueError, OSError, ConnectionError):
+                # Restore the old secret-model binding if handoff does not succeed.
+                # Never report success or automatically retry billable inference.
+                if previous != requested:
+                    self.vault.update_model("ollama_cloud", previous)
+                if not prior_grant:
+                    self.app.authority.revoke("cloud")
+                return 503, {"error": "Model handoff not completed; previous profile retained"}
+            return 200, {**result, "credential_preserved": True,
+                         "inventory": "PUBLIC_ID_LISTED_ACCOUNT_ACCESS_UNVERIFIED",
+                         "substrate": "EXISTING_DURABLE_STATE"}
         if (choice in MODELS and set(data) == {"choice", "spend_approved"}
                 and data["spend_approved"] is True):
             status, result = self._connection_action({
@@ -283,6 +429,11 @@ class OwnerBridge:
         if action == "preview":
             if set(data) != base_fields:
                 return 400, {"error": "unsupported bio request"}
+        elif action == "cst_preview":
+            if set(data) != base_fields | {"compare_confirmed"} or data.get("compare_confirmed") is not True:
+                return 400, {"error": "Separate owner approval required for isolated CST preview"}
+            if not self.cst_preview_enabled:
+                return 503, {"error": "Isolated CST comparison is disabled on this host"}
         elif action == "persist":
             if set(data) not in (base_fields | {"persist_confirmed"},
                                  base_fields | {"persist_confirmed", "remote_share_confirmed"}):
@@ -294,6 +445,11 @@ class OwnerBridge:
                               consent=data["consent"])
         except (ValueError, TypeError, KeyError):
             return 400, {"error": "invalid, out-of-range, or unconsented bio measurements"}
+        if action == "cst_preview":
+            try:
+                return 200, compare_sensor_state(event)
+            except (ValueError, TypeError, KeyError, json.JSONDecodeError):
+                return 400, {"error": "Sensor-state comparison rejected invalid event"}
         if action == "preview":
             return 200, {"event": event, "persisted": False, "model_invoked": False,
                          "raw_media_transmitted": False, "source_verified": False}
@@ -334,9 +490,23 @@ class OwnerBridge:
         allowed = GET_ALLOW if method == "GET" else POST_ALLOW if method == "POST" else frozenset()
         if name not in allowed:
             return 404, {"error": "unsupported route"}
+        if name == "engine-growth" and method == "GET":
+            with self.app._lock:
+                return 200, engine_growth_report(self.root)
         if name == "models" and method == "GET":
             with self.app._lock:
                 return 200, self._model_catalog()
+        if name == "model-inventory" and method == "GET":
+            if self.vault is None or self.vault.read_host_only("ollama_cloud") is None:
+                return 404, {"error": "Ollama Cloud credential is not configured"}
+            try:
+                names = fetch_public_models()
+            except ModelInventoryUnavailable:
+                return 503, {"error": "Public Ollama inventory unavailable; no inference was performed"}
+            return 200, {"provider": "ollama_cloud", "models": names,
+                         "status": "PUBLIC_MODEL_LIST_ONLY",
+                         "credential_reused": True, "account_access_verified": False,
+                         "inference_attested": False, "model_invoked": False}
         if name == "chat-job" and method == "GET":
             query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
             if set(query) != {"id"} or len(query["id"]) != 1:
@@ -346,7 +516,12 @@ class OwnerBridge:
             return 200, {"enabled": self.device_memory_enabled, "raw_media_accepted": False,
                          "owner": "SINGLE_OWNER_CONSENT", "source_verified": False}
         if name == "bio" and method == "GET":
+            signal_probe_enabled = os.environ.get("BEASTBOX_SIGNAL_MODEL_PROBE_ENABLED", "no") == "yes"
             return 200, {"enabled": self.bio_enabled,
+                         "cst_preview_enabled": self.cst_preview_enabled,
+                         "cns_model_probe_enabled": os.environ.get("BEASTBOX_CNS_MODEL_PROBE_ENABLED", "no") == "yes",
+                         "signal_model_probe_enabled": signal_probe_enabled,
+                         "quantum_archive": archive_manifest() if signal_probe_enabled else None,
                          "persist_enabled": self.bio_persist_enabled,
                          "remote_enabled": self.bio_remote_allowed,
                          "owner": "SINGLE_OWNER_PREVIEW",
@@ -373,6 +548,19 @@ class OwnerBridge:
                 set(data) != {"scope", "name", "text"} or data.get("scope") != "temporary_attachment"
             ):
                 return 400, {"error": "cloud context is temporary attachment data only"}
+        if name == "cns-model-probe":
+            with self.app._lock:
+                return self.chat_jobs.run_when_idle(lambda: cns_model_probe(data))
+        if name == "signal-model-probe":
+            with self.app._lock:
+                return self.chat_jobs.run_when_idle(lambda: signal_model_probe(data))
+        if name == "guest-local":
+            if not self.chat_jobs.acquire_guest():
+                return 429, {"error": "Owner inference or local guest slot is busy"}
+            try:
+                return guest_local_infer(self.root, data)
+            finally:
+                self.chat_jobs.release_guest()
         if name == "chat-start":
             return self.chat_jobs.start(data)
         if name == "models":
@@ -383,6 +571,9 @@ class OwnerBridge:
                 if data.get("action") in {"activate", "remove", "save", "update_model"}:
                     return self.chat_jobs.run_when_idle(lambda: self._connection_action(data))
                 return self._connection_action(data)
+        if name == "azure-read":
+            with self.app._lock:
+                return self.chat_jobs.run_when_idle(lambda: self._azure_read_action(data))
         if name == "bio":
             return self._bio_action(data)
         if name == "observations":
