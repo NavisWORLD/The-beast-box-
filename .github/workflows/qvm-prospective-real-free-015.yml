@@ -1,0 +1,79 @@
+name: Stage 015 actual Azure Rigetti free QVM prospective 24-job dataset
+
+on:
+  push:
+    branches: [experiment/cosmos-qvm-meaningful-015]
+    paths:
+      - 'docs/experimental-run-requests/stage015-free-qvm-triplets.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage015-owner-authorized-24-exact-free-rigetti-qvm-sim-only
+  cancel-in-progress: false
+
+jobs:
+  prospective-three-independent-batches-per-angle:
+    if: github.repository == 'NavisWORLD/The-beast-box-' && github.ref == 'refs/heads/experiment/cosmos-qvm-meaningful-015'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install actual official Azure Quantum simulator SDK
+        run: |
+          python -m pip install -e . 'qdk[azure]' 'azure-quantum==3.11.0'
+          python - <<'PY'
+          from qdk.azure import Workspace
+          from qdk.azure.target.rigetti import Rigetti, Result, InputParams
+          assert callable(Workspace.from_connection_string)
+          assert 'rigetti.sim.qvm' in Rigetti.target_names
+          print('OFFICIAL_AZURE_RIGETTI_FREE_SIMULATOR_SDK_VALIDATED',flush=True)
+          PY
+      - name: Actual owner-authorized exactly 24 FREE CLOUD SIMULATOR jobs with held-out future
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+          AZURE_QUANTUM_QVM_OPT_IN: 'yes'
+          COSMOS_APPROVED_QVM_TARGET: rigetti.sim.qvm
+        run: |
+          set -euo pipefail
+          set +x
+          if [ -z "$AZURE_QUANTUM_CONNECTION_STRING" ]; then
+            echo 'Azure Quantum workspace connection secret unavailable. NO JOBS SENT.'
+            exit 22
+          fi
+          python -m beastbox.qvm_prospective_015 --run-approved \
+            --output build/stage015-live-azure-qvm-triplets.json
+      - name: Verify full 8 x 3 independent cloud simulator receipts before promotion
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from beastbox.qvm_prospective_015 import validate
+          d=json.loads(Path('build/stage015-live-azure-qvm-triplets.json').read_text())
+          rows=validate(d)
+          assert len(rows)==8 and d['completed_provider_jobs']==24
+          assert d['total_simulated_shot_cap']==2048
+          assert d['physical_hardware_jobs_permitted']==0
+          assert d['complete'] is True
+          print('STAGE015_EXACTLY_24_AUTHENTIC_FREE_QVM_CLOUD_JOBS_PROSPECTIVE_PASS',d['public_rows_sha256'],flush=True)
+          PY
+      - name: Preserve FULL or PARTIAL sanitized public evidence without credentials
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-stage015-actual-azure-qvm-prospective-public-dataset
+          path: build/stage015-live-azure-qvm-triplets.json
+          if-no-files-found: ignore
+          retention-days: 21
+      - name: No hardware or provider fallback
+        run: |
+          echo 'Exactly eight predetermined ideal RX-CNOT circuit angles.'
+          echo 'Two independent 64-shot simulator history jobs and one 128-shot simulator holdout per angle.'
+          echo 'No paid QPU, no other quantum target, no auto-retry, no model API or owner-memory write.'
