@@ -72,7 +72,8 @@ jobs:
           retention-days: 14
 
   raw-verified-10k:
-    needs: local-10k
+    # Independent pinned export check can fail quickly without spending 10K
+    # local simulation runtime on an unrelated source-format issue.
     if: github.repository == 'NavisWORLD/The-beast-box-'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
