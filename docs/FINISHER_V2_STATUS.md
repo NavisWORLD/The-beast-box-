@@ -46,15 +46,16 @@ A static code match is not a successful runtime regression. For each row, link a
 - At that same earlier snapshot, package-smoke, configuration and security checks passed. Latest exact-head runs must be inspected individually; no blanket green claim.
 - **STOP / owner gate:** [Frozen-source compatibility options](FINISHER_V2_FROZEN_SOURCE_DECISION.md). Preserve prior sealed source; do not disable the guard automatically. No merge or release pending the owner's selected strategy and historical reproduction.
 - Current PR: [#129](https://github.com/NavisWORLD/The-beast-box-/pull/129), draft, intentionally isolated and unmerged.
+- After the above intermediate 1,146-pass evidence, subsequent security A5/quarantine, lexical relevance-gate and docs commits were made. Those subsequent commits **need a single exact-head run**, and earlier cancelled or failing workflow checks must never be called final green.
 
 ## Retrieval and later phases
 
-- **B:** NOT RUN — chat call graph, held-out relevance, 500 / 5k / 50k latency, embedding identity and explicit fallback.
+- **B:** PARTIAL / NOT VALIDATED — fixed the legacy SQLite lexical `search()` relevance floor to require nonzero lexical overlap **before** recency can boost a score, with a new unrelated-fresh-memory regression. This deliberately improves only literal-token relevance; paraphrases still require evaluated optional embeddings. Product `DurableRuntime` replaces first-pass results with later refractive ranking, so its complete retrieval behavior is NOT fixed by this patch. Full chat call graph, actual one-pass migration, held-out quality, embedding identity and 500 / 5k / 50k latency remain NOT RUN.
 - **C:** NOT RUN — decay, consolidation, archival, privacy deletion, 10k-turn soak.
 - **D:** NOT RUN — bounded tool execution, denial logs, restart/swap revocation.
 - **E:** NOT RUN — fixed/adaptive held-out comparison; no intelligence claim.
 - **F:** NOT RUN — multi-provider measured routed A→B→A acceptance.
-- **G:** NOT RUN — source-by-source compatibility of COSMOS, active CST, CNS7, R12, RAWRPHØS, sensor, fruit-fly and deployment integration.
+- **G:** PARTIAL INVENTORY ONLY — initial source-inspected [compatibility matrix](FINISHER_V2_ECOSYSTEM_MATRIX.md) maps current product, active CST/CNS7/R12, optional sensors/provider routes, RAWRPHØS branches and fruit-fly research. No live optional-provider/device/OS/deployment smoke tests or cross-repository writes were performed.
 
 ## Licensing and owner gates
 
