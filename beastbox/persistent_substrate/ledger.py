@@ -139,11 +139,17 @@ def verify_memory_chain(
     parent_sha256: str,
     immutable_prefix: bytes | str | Path | None = None,
     verified_rows: list[tuple[int, dict[str, Any]]] | None = None,
+    expected_record_count: int | None = None,
+    expected_tip_sha256: str | None = None,
 ) -> LedgerReceipt:
     target = Path(path)
     if not _is_sha256(parent_sha256):
         raise ValueError("parent_sha256 must be a 64-character SHA-256")
     normalized_parent = str(parent_sha256).lower()
+    if expected_record_count is not None and (type(expected_record_count) is not int or expected_record_count < 0):
+        raise ValueError("expected_record_count must be a nonnegative integer")
+    if expected_tip_sha256 is not None and not _is_sha256(expected_tip_sha256):
+        raise ValueError("expected_tip_sha256 must be a 64-character SHA-256")
     try:
         data = target.read_bytes()
     except OSError as exc:
@@ -232,6 +238,17 @@ def verify_memory_chain(
                 actual_sha256=hashlib.sha256(actual_prefix).hexdigest(),
             )
 
+    # Linked hashes alone cannot reveal a valid truncated suffix. Callers with
+    # independently protected receipts must pin BOTH expected length and tip.
+    if expected_record_count is not None and len(rows) != expected_record_count:
+        raise _memory_error(
+            "memory ledger expected record count mismatch", len(rows) + 1,
+        )
+    if expected_tip_sha256 is not None and previous_sha256 != expected_tip_sha256.lower():
+        raise _memory_error(
+            "memory ledger expected tip hash mismatch", len(rows) + 1,
+            expected_sha256=expected_tip_sha256.lower(), actual_sha256=previous_sha256,
+        )
     # Expose only rows decoded from the exact bytes that passed every check.
     # The caller must never reopen the mutable path to retrieve verified data.
     if verified_rows is not None:
@@ -333,10 +350,15 @@ def get_verified_memory_record(
     *,
     parent_sha256: str,
     expected_record_sha256: str | None = None,
+    expected_record_count: int | None = None,
+    expected_tip_sha256: str | None = None,
 ) -> dict[str, Any]:
     target_id = int(memory_id)
     rows: list[tuple[int, dict[str, Any]]] = []
-    verify_memory_chain(path, parent_sha256=parent_sha256, verified_rows=rows)
+    verify_memory_chain(
+        path, parent_sha256=parent_sha256, verified_rows=rows,
+        expected_record_count=expected_record_count, expected_tip_sha256=expected_tip_sha256,
+    )
     for line_number, row in rows:
         if int(row["memory_id"]) != target_id:
             continue
