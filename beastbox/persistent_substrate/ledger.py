@@ -5,8 +5,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import sqlite3
-from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -74,15 +72,6 @@ class CorruptionReceipt:
     second_line_number: int
 
 
-@dataclass(frozen=True)
-class StateQuarantineReceipt:
-    source_path: str
-    quarantine_path: str
-    sha256: str
-    byte_length: int
-    verification_error: str
-
-
 class MemoryChainVerificationError(RuntimeError):
     def __init__(
         self,
@@ -147,29 +136,16 @@ def verify_memory_chain(
     *,
     parent_sha256: str,
     immutable_prefix: bytes | str | Path | None = None,
-    verified_rows: list[tuple[int, dict[str, Any]]] | None = None,
-    expected_record_count: int | None = None,
-    expected_tip_sha256: str | None = None,
-    require_trailing_newline: bool = False,
 ) -> LedgerReceipt:
     target = Path(path)
     if not _is_sha256(parent_sha256):
         raise ValueError("parent_sha256 must be a 64-character SHA-256")
     normalized_parent = str(parent_sha256).lower()
-    if expected_record_count is not None and (type(expected_record_count) is not int or expected_record_count < 0):
-        raise ValueError("expected_record_count must be a nonnegative integer")
-    if expected_tip_sha256 is not None and not _is_sha256(expected_tip_sha256):
-        raise ValueError("expected_tip_sha256 must be a 64-character SHA-256")
     try:
         data = target.read_bytes()
     except OSError as exc:
         raise MemoryChainVerificationError(f"memory ledger cannot be read: {exc}", line_number=0) from exc
 
-    if require_trailing_newline and data and not data.endswith(b"\n"):
-        raise _memory_error(
-            "memory ledger has partial final line (missing newline)",
-            data.count(b"\n") + 1,
-        )
     rows = _decode_memory_rows(data)
     expected_memory_id = 1
     previous_sha256 = ZERO_SHA256
@@ -253,21 +229,6 @@ def verify_memory_chain(
                 actual_sha256=hashlib.sha256(actual_prefix).hexdigest(),
             )
 
-    # Linked hashes alone cannot reveal a valid truncated suffix. Callers with
-    # independently protected receipts must pin BOTH expected length and tip.
-    if expected_record_count is not None and len(rows) != expected_record_count:
-        raise _memory_error(
-            "memory ledger expected record count mismatch", len(rows) + 1,
-        )
-    if expected_tip_sha256 is not None and previous_sha256 != expected_tip_sha256.lower():
-        raise _memory_error(
-            "memory ledger expected tip hash mismatch", len(rows) + 1,
-            expected_sha256=expected_tip_sha256.lower(), actual_sha256=previous_sha256,
-        )
-    # Expose only rows decoded from the exact bytes that passed every check.
-    # The caller must never reopen the mutable path to retrieve verified data.
-    if verified_rows is not None:
-        verified_rows.extend(rows)
     return LedgerReceipt(
         path=str(target),
         sha256=hashlib.sha256(data).hexdigest(),
@@ -365,15 +326,10 @@ def get_verified_memory_record(
     *,
     parent_sha256: str,
     expected_record_sha256: str | None = None,
-    expected_record_count: int | None = None,
-    expected_tip_sha256: str | None = None,
 ) -> dict[str, Any]:
     target_id = int(memory_id)
-    rows: list[tuple[int, dict[str, Any]]] = []
-    verify_memory_chain(
-        path, parent_sha256=parent_sha256, verified_rows=rows,
-        expected_record_count=expected_record_count, expected_tip_sha256=expected_tip_sha256,
-    )
+    verify_memory_chain(path, parent_sha256=parent_sha256)
+    rows = _decode_memory_rows(Path(path).read_bytes())
     for line_number, row in rows:
         if int(row["memory_id"]) != target_id:
             continue
@@ -454,70 +410,23 @@ class StateEventLedger:
         if not isinstance(payload, Mapping):
             raise ValueError("state event payload must be a mapping")
         _parse_timezone_timestamp(logical_timestamp, label="logical timestamp")
-
-        # SQLite's single-writer reservation works across processes on both
-        # Windows and POSIX. Every cooperating writer holds it from verification
-        # through the durable append and post-append verification.
-        lock_path = self.path.with_name(self.path.name + ".writer-lock.sqlite3")
-        with closing(sqlite3.connect(str(lock_path), timeout=30.0)) as writer_lock:
-            with writer_lock:
-                writer_lock.execute("BEGIN IMMEDIATE")
-                current = self.verify()
-                unsigned = {
-                    "schema": STATE_SCHEMA,
-                    "event_index": current.record_count + 1,
-                    "logical_timestamp": str(logical_timestamp),
-                    "kind": normalized_kind,
-                    "payload": dict(payload),
-                    "previous_event_sha256": current.tip_sha256,
-                }
-                row = {**unsigned, "event_sha256": hashlib.sha256(canonical_json_bytes(unsigned)).hexdigest()}
-                encoded = canonical_json_bytes(row) + b"\n"
-                with self.path.open("ab") as handle:
-                    handle.write(encoded)
-                    handle.flush()
-                    os.fsync(handle.fileno())
-                self.verify()
+        current = self.verify()
+        unsigned = {
+            "schema": STATE_SCHEMA,
+            "event_index": current.record_count + 1,
+            "logical_timestamp": str(logical_timestamp),
+            "kind": normalized_kind,
+            "payload": dict(payload),
+            "previous_event_sha256": current.tip_sha256,
+        }
+        row = {**unsigned, "event_sha256": hashlib.sha256(canonical_json_bytes(unsigned)).hexdigest()}
+        encoded = canonical_json_bytes(row) + b"\n"
+        with self.path.open("ab") as handle:
+            handle.write(encoded)
+            handle.flush()
+            os.fsync(handle.fileno())
+        self.verify()
         return row
-
-    def quarantine_suspect(self, destination_dir: str | Path) -> StateQuarantineReceipt:
-        """Copy corrupt bytes for owner review; NEVER truncate or repair automatically.
-
-        The cooperative writer lock ensures that a participating appender
-        cannot change the ledger while these exact suspect bytes are copied.
-        The destination should be independent, trusted evidence storage.
-        """
-        destination = Path(destination_dir)
-        if destination.is_symlink():
-            raise RuntimeError("quarantine destination cannot be a symlink")
-        lock_path = self.path.with_name(self.path.name + ".writer-lock.sqlite3")
-        with closing(sqlite3.connect(str(lock_path), timeout=30.0)) as writer_lock:
-            with writer_lock:
-                writer_lock.execute("BEGIN IMMEDIATE")
-                try:
-                    self.verify()
-                except RuntimeError as error:
-                    reason = str(error)
-                else:
-                    raise RuntimeError("state ledger verifies; no suspect bytes to quarantine")
-                data = self.path.read_bytes()
-                digest = hashlib.sha256(data).hexdigest()
-                destination.mkdir(parents=True, exist_ok=True)
-                target = destination / (self.path.name + ".suspect-" + digest + ".bin")
-                flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
-                flags |= getattr(os, "O_NOFOLLOW", 0)
-                descriptor = os.open(target, flags, 0o600)
-                with os.fdopen(descriptor, "wb") as handle:
-                    handle.write(data)
-                    handle.flush()
-                    os.fsync(handle.fileno())
-                return StateQuarantineReceipt(
-                    source_path=str(self.path),
-                    quarantine_path=str(target),
-                    sha256=digest,
-                    byte_length=len(data),
-                    verification_error=reason,
-                )
 
     def verify(self) -> LedgerReceipt:
         if not self.path.exists():
