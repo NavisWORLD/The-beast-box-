@@ -1,27 +1,25 @@
 # License History
 
-## Historical source-available boundary
+This document describes successive **repository licensing periods** and does not amend the root [LICENSE](LICENSE), grant new rights or revoke rights validly granted with earlier copies. See [NOTICE](NOTICE) for scope and third-party distinctions.
 
-Effective **2026-08-17**, current and future Cory Shane Davis / NavisWORLD-owned material in this repository is governed by the **THE BEAST BOX PROPRIETARY SOURCE-AVAILABLE LICENSE v1.0** in [`LICENSE`](LICENSE), unless a specific file states otherwise.
+## Historical MIT period (before 2026-08-17)
 
-The current policy is **permission required**. Repository access does not itself grant reuse rights.
+The repository previously contained a root MIT License. Copies or revisions validly distributed under that license retain the permissions that accompanied those historical versions; later licensing decisions do not retroactively cancel them.
 
-## Historical MIT boundary
+## Historical proprietary source-available period (from 2026-08-17)
 
-Before 2026-08-17, this repository contained a root MIT License. Copies or revisions that were validly distributed under that license retain the rights that accompanied those historical copies.
+The repository adopted **THE BEAST BOX PROPRIETARY SOURCE-AVAILABLE LICENSE v1.0** for then-covered Cory Shane Davis / NavisWORLD contributions, subject to individual file exceptions. During that historical period, access to the source did not itself grant broad commercial reuse, redistribution or hosted-service permission. Any permission or agreement applicable to a specific historical copy should be evaluated under that copy's actual terms.
 
-The 2026-08-17 license change is prospective. It does not claim to retroactively cancel permissions already attached to a historical MIT-licensed copy.
+This paragraph is **historical**, not a statement that the present default branch is still proprietary.
 
-## Third-party material
+## Apache-2.0 open-source revision (adopted in the inspected default branch by 2026-09-27)
 
-Third-party code, libraries, models, datasets, media, or other dependencies remain governed by their own licenses and notices. The repository owner cannot replace rights granted by an independent third-party copyright owner.
+At inspected default-branch commit `4c4e4d38e645ee521534643d42843e181be4900a`, the root [LICENSE](LICENSE) contains Apache License 2.0 and the repository's [NOTICE](NOTICE) identifies its scope: covered original Cory Shane Davis / NavisWORLD software and documentation in revisions adopting that license, except individually marked material. That license applies to the current inspected revision **already**; its status is not contingent on Finisher PR #129 being merged.
 
-## Permission
+The owner retains copyright in original contributions while Apache-2.0 grants the permissions provided in that license. Earlier MIT and intervening proprietary source-available copies retain the rights they originally received, including any separately negotiated permission.
 
-For permission to reuse current covered material, contact **Cory Shane Davis / NavisWORLD** and obtain express written authorization. Commercial use, redistribution, derivative-product use, hosted-service use, or transfer of rights requires a separate written agreement signed by Cory Shane Davis or an authorized representative.
+## Third-party and reserved rights
 
-## Prospective Apache-2.0 open-source transition (2026-09-26)
+No root-license revision automatically relicenses independently owned libraries, training corpora, external model weights, cloud APIs, datasets, media, independent research publications, private information or trademarks. Preserve applicable third-party licenses, notices and provenance. Questions about rights outside the actual applicable grant require permission from the relevant rightsholder.
 
-For new revisions adopting the root Apache License 2.0, Cory Shane Davis / NavisWORLD-owned original copyrightable code and documentation in that revision are licensed under Apache-2.0 unless a file or component expressly identifies other terms. Users may copy, modify, redistribute, deploy and commercially use that covered release subject to Apache-2.0. Earlier MIT releases and intervening proprietary source-available releases retain the rights originally validly granted for each copy/version.
-
-No third-party library, training corpus, external model weights, cloud API, dataset, media asset, independent research publication, private or sensitive data, or trademark is automatically relicensed. The new open-source grant is prospective upon adoption/merge, not effective on the current default branch merely because a draft PR exists. Historic declarations remain available in Git history.
+Historical declarations remain available in Git history. This is a clarification of already-inspected licensing records, **not a licensing change**.
