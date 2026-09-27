@@ -2,7 +2,7 @@
 
 This document describes successive **repository licensing periods** and does not amend the root [LICENSE](LICENSE), grant new rights or revoke rights validly granted with earlier copies. See [NOTICE](NOTICE) for scope and third-party distinctions.
 
-## Historical MIT period (before 2026-08-17)
+## Historical MIT boundary (before 2026-08-17)
 
 The repository previously contained a root MIT License. Copies or revisions validly distributed under that license retain the permissions that accompanied those historical versions; later licensing decisions do not retroactively cancel them.
 
