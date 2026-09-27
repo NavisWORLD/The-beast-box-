@@ -51,7 +51,7 @@ A static code match is not a successful runtime regression. For each row, link a
 ## Retrieval and later phases
 
 - **B:** PARTIAL / NOT VALIDATED — fixed the legacy SQLite lexical `search()` relevance floor to require nonzero lexical overlap **before** recency can boost a score, with a new unrelated-fresh-memory regression. This deliberately improves only literal-token relevance; paraphrases still require evaluated optional embeddings. Product `DurableRuntime` replaces first-pass results with later refractive ranking, so its complete retrieval behavior is NOT fixed by this patch. Full chat call graph, actual one-pass migration, held-out quality, embedding identity and 500 / 5k / 50k latency remain NOT RUN.
-- **C:** NOT RUN — decay, consolidation, archival, privacy deletion, 10k-turn soak.
+- **C:** PARTIAL / NOT VALIDATED — a targeted deterministic English stopword-aware consolidation patch creates lineage-linked `derived-synthetic` **thematic indices**, avoids duplicate unchanged source groups and keeps original memories; new focused test added. These are explicitly **not** inference-provider abstractive summaries or proof of factual correctness. Decay, archival/restoration, privacy deletion, contradiction handling, growth target and 10k-turn soak remain NOT RUN. Note previous unversioned consolidation records remain; no destructive rewrite/migration performed.
 - **D:** NOT RUN — bounded tool execution, denial logs, restart/swap revocation.
 - **E:** NOT RUN — fixed/adaptive held-out comparison; no intelligence claim.
 - **F:** NOT RUN — multi-provider measured routed A→B→A acceptance.
