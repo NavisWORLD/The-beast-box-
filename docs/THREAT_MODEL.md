@@ -26,6 +26,31 @@ The owner must control a trustworthy copy of any *expected* manifest/checkpoint/
 
 The A3 sidecar is a lock coordinator, not an authenticated storage service. Shared network filesystems with uncertain SQLite locking, direct external writes to ledger files, cross-host locking and filesystem hardware faults need separate testing and deployment controls. Recover from suspect partial writes by quarantine first, with explicit owner approval for any destructive truncation; if the last durable record cannot be proven from an independent receipt, escalate rather than guessing.
 
+## Opt-in product authority and host-only maintenance
+
+The **separate product** `beastbox.trusted_anchor.ContinuityAnchor` protocol
+supports a monotonic independent sequence/tip/memory-digest witness.
+`SQLiteAnchorAuthority` is a testable local reference implementation;
+`DurableRuntime` defaults to unanchored and refuses to silently enroll
+an existing store after an externally retained receipt is missing. Checkpoint
+publication happens after the SQLite data commit. An outage at that boundary
+may leave unacknowledged committed bytes and **must** block future operations
+until an operator verifies the original bytes and independent authority;
+automatic rewind or auto-reanchor would erase evidence. A reference SQLite
+authority outside the runtime *directory* but under the **same** user can
+still be rewritten by a compromised process. Independently protected host
+custody/deployment has NOT been established in this PR. See
+[trusted anchor contract](TRUSTED_ANCHOR.md) and the tested
+[Product CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36332862492).
+
+Reversible archives and human-reviewed contradiction labels change searchable
+index/metadata only; retained raw text and originally sealed experiments stay
+intact. The new `ScopedMaintenance` controller grants only four safe host
+operations from an embedding application's trusted approval callback, never
+from a model message. Single-use grants expire and do not carry across
+provider swaps or restart; the embedding application still needs a real
+independent owner-authentication and persistent denial-audit service.
+
 ## Integrity is not authority, identity or scientific evidence
 
 - Model changes never transfer permission: the runtime must independently grant/revoke tools per invocation.

@@ -35,14 +35,63 @@ V1 imports. The separately designed `DurableRuntime` still uses
 `ContinuityStore`, not the offline Dad/Son ledger. The product does **not**
 yet claim a blanket migration of all persistent consumers to V2.
 
+## Expanded execution evidence — exact code checkpoint 2026-09-27
+
+**Commit:** `a27d12206e49cc4816aa18083c8e1e2cf49e80fb`. On this exact source:
+[combined Product CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36332862492)
+**success** on Python 3.10, 3.11 and 3.12: **1,191 passing tests on each**,
+68% whole-repository measured coverage in the full quality run, architecture
+acceptance `passed: true`, security audit 0 errors / 0 warnings, unchanged
+historical sealed guard, clean package smoke and browser integration.
+[Repository CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36332862444)
+**success** (full 3.10/3.12 matrix), and
+[historical/V2/Windows suite](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36332862474)
+**success** across all five jobs, including actual Windows 3.12, historical V1
+offline replay, Linux V2 and optional product-anchor regression tests.
+
+**New active product safeguards:** `beastbox/trusted_anchor.py` defines an
+optional monotonic, external-checkpoint-authority protocol and a SQLite
+reference backend. `DurableRuntime(anchor_authority=...)` refuses unanchored
+existing-store enrollment, compares exact system identity/tip/sequence/memory
+digest across restart and on each operation, and stops after an external
+publication failure until independent operator reconciliation. Regression
+tests exercise coherent local database rollback, process restart, stale CAS,
+outage, and path separation. **This does not deploy an authenticated outside
+authority:** the SQLite reference, when hosted by the same writable principal,
+does not protect against an attacker who rewrites both databases. Default
+installs remain explicitly `unanchored`. See [trusted anchor contract](TRUSTED_ANCHOR.md).
+
+**New Phase B scope:** active product pre-CNS lexical retrieval and unchanged
+historical R12 scoring now share a *single materialized SQLite record read*
+through a read-only SQL adapter. Controlled tests compare lexical and R12
+scores with unoptimized original semantics; the runtime benchmark was updated
+to measure the actual optimized lexical hook. This is **not** learned
+embeddings, held-out semantic quality validation or proof of lower end-to-end
+latency at 5k/50k retained records.
+
+**New Phase C scope:** explicit host-reviewed, reversible archive/restore
+updates original memory metadata without deleting source text; archive is
+excluded from active lexical and R12 product retrieval. Reviewed contradiction
+links retain both originals and checkpoint the provenance. Full lifecycle
+policies, evidence adjudication and a 10k-turn long-running soak remain open.
+
+**New Phase D scope:** `ScopedMaintenance` supports only inspect, archive,
+restore and explicitly reviewed contradiction actions. It defaults to denial;
+a host-supplied *independent* approval callback can mint exact-plan,
+single-use, short-lived, revocable grants. Grants are invalidated after provider
+swaps and are not serialized across restart. This is a bounded host API
+prototype, **not** a background autonomous agent or a substitute for actual
+owner authentication, persistent denial logs, preemption, sandboxed tools or
+cross-process authorization auditing.
+
 ## Finisher phases (only evidence-backed state)
 
 | Phase | Status | Evidence / still required |
 | --- | --- | --- |
-| A — Security and recovery | **in progress** | [V2 ledger](../beastbox/persistent_substrate/ledger_v2.py), [V2 Dad/Son outbox](../beastbox/dad_son_v2.py), [V2 substrate](../beastbox/persistent_substrate/substrate_v2.py), [recovery regressions](../tests/test_finisher_v2_security_acceptance.py), and [lineage tamper tests](../tests/test_finisher_v2_versioning.py) committed. Original V1 hash pins, offline historical replay, A1–A5 focused source-integrity/recovery regressions and Windows tests have green [run evidence](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659101). Independently authenticated persistent cross-restart anchor, extended operating-system/fault matrices and active-consumer deployment review remain outstanding. |
-| B — Semantic retrieval | **in progress** | [Lexical relevance guard and regression](../beastbox/memory.py), [test](../tests/test_full_runtime.py). One-pass product retrieval graph, optional embeddings/hybrid experiments, held-out quality and latency benchmarks incomplete. |
-| C — Memory lifecycle | **in progress** | Source-attributed, stopword-aware thematic index in [memory](../beastbox/memory.py) with regression; not equivalent to validated abstractive summaries. Contradictions, archival, restoration, intentional deletion, long growth/soak unfinished. |
-| D — Agency | **not started** | Existing product primitives are not an audited scoped autonomy/revocation/restart test matrix. |
+| A — Security and recovery | **in progress** | [V1/V2/Windows](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36332862474) and [full product](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36332862492) passed at `a27d1220`; exact original scientific guard unchanged. Optional product CAS authority [implemented](../beastbox/trusted_anchor.py) with rollback/restart tests. Independently administered authenticated persistence and full crash/platform matrix still required. |
+| B — Semantic retrieval | **in progress** | One-read [active product snapshot](../beastbox/retrieval_snapshot.py), unchanged historical R12 ranker, [parity regressions](../tests/test_finisher_retrieval_snapshot.py) and corrected [benchmark](../scripts/benchmark_runtime.py) green in full CI. Optional real embeddings, held-out semantic quality and large-scale latency benchmarks remain open. |
+| C — Memory lifecycle | **in progress** | Reversible reviewed [archive/restore, contradictions and thematic indices](../beastbox/memory.py), [durable checkpoints](../beastbox/durable.py) and [tests](../tests/test_finisher_memory_lifecycle.py) passed. Truth adjudication, tiered retention, 10k-turn soak and full archival operations remain open. |
+| D — Agency | **in progress** | [Finite host-scoped maintenance controller](../beastbox/scoped_maintenance.py) and [policy/restart/swap denial tests](../tests/test_finisher_scoped_maintenance.py) passed. No independently authenticated production host approval, background maintenance daemon, durable denial audit, or general sandbox tool orchestration. |
 | E — Adaptation | **not started** | No controlled held-out adaptive/frozen state measurements; no superiority claim. |
 | F — Multi-model routing | **not started** | Original [historical A→B→A result](PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md) retained. No fresh measured capability routing proving Finisher F. |
 | G — Ecosystem reconciliation | **in progress** | [Source-inspected matrix](FINISHER_V2_ECOSYSTEM_MATRIX.md) covers COSMOS/CST/dyn12/CNS7/R12, RAWRPHØS, sensors, quantum adapters and fruit-fly sources; live integration and compatibility contracts remain to be tested. |
@@ -57,6 +106,8 @@ yet claim a blanket migration of all persistent consumers to V2.
 - [x] Original V1 deterministic offline reproduction independently passed at tested commit `f3549d78` and its witness hashes, version-verification receipt and offline evidence were archived by the [dedicated workflow](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659101). **Scope:** frozen deterministic offline fixture, not re-execution of historically measured externally dependent real models/hardware.
 - [x] Focused V2 source integrity, bad-manifest rejection, no-V1-security-fallback, cross-process writers, crash/recovery outbox, independent *caller-supplied* receipt rejection after subprocess restart, and immutable-input regressions passed on Linux 3.10/3.11/3.12 and actual Windows 3.12 at `f3549d78` ([dedicated workflow](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659101)). **Not covered:** an installed independently authenticated persistent receipt service or a comprehensive cross-host/filesystem/hardware-fault matrix; these remain Phase A release blockers.
 - [x] Fresh **combined** [Product CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659080) green at tested code commit `f3549d78`: **1,166 passed each** on Python 3.10, 3.11 and 3.12, architecture acceptance `passed: true`, security audit 0 errors/0 warnings, original frozen guard pass, package and real browser jobs pass. [Repository CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659180) green at the same commit. Final doc-only HEAD still requires a fresh full run.
+
+**Updated tested implementation checkpoint:** [a27d1220 combined Product CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36332862492), [repository CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36332862444), [historical/V2/Windows](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36332862474) all green at the same exact code SHA, with **1,191 passing tests each supported Python** in Product CI. This documents the architectural frozen-source conflict resolution; it does not close the remaining independent authority or full Finisher gates. Subsequent documentation/test-matrix commits require their own exact-HEAD verification.
 
 ## Milestone 2 — overall Finisher acceptance
 
