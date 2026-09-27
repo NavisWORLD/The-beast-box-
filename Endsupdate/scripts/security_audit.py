@@ -58,10 +58,8 @@ for required in required_files:
     require_file(required)
 
 license_text = read_text(ROOT / "LICENSE")
-if "THE BEAST BOX PROPRIETARY SOURCE-AVAILABLE LICENSE v1.0" not in license_text:
-    error("root LICENSE is not the expected permission-required Beast Box license")
-if "Permission required. Ask first." not in license_text:
-    error("root LICENSE is missing the explicit permission-required boundary")
+if "Apache License" not in license_text or "Version 2.0" not in license_text:
+    error("root LICENSE must be standard Apache License 2.0 text")
 
 history_text = read_text(ROOT / "LICENSE_HISTORY.md")
 if "Historical MIT boundary" not in history_text:
@@ -76,12 +74,12 @@ for critical in ("/LICENSE @NavisWORLD", "/SECURITY.md @NavisWORLD", "/.github/ 
 
 # --- Package-license consistency ------------------------------------------
 pyproject = read_text(ROOT / "pyproject.toml")
-if 'License :: OSI Approved :: MIT License' in pyproject or 'license = {text = "MIT"}' in pyproject:
-    error("pyproject.toml still advertises MIT after the permission-required transition")
+if 'License :: Other/Proprietary License' in pyproject:
+    error("pyproject.toml must no longer advertise a proprietary license")
 if 'license = {file = "LICENSE"}' not in pyproject:
     error("pyproject.toml must point package license metadata at root LICENSE")
-if 'License :: Other/Proprietary License' not in pyproject:
-    error("pyproject.toml must use the proprietary license classifier")
+if 'License :: OSI Approved :: Apache Software License' not in pyproject:
+    error("pyproject.toml must identify Apache-2.0")
 
 for rel in ("rust/cst-core/Cargo.toml", "rust/cosmic-cypher/Cargo.toml"):
     text = read_text(ROOT / rel)
@@ -93,8 +91,8 @@ for rel in ("rust/cst-core/Cargo.toml", "rust/cosmic-cypher/Cargo.toml"):
 commercial = read_text(ROOT / "COMMERCIAL_RIGHTS.md")
 if "PolyForm Noncommercial" in commercial:
     error("COMMERCIAL_RIGHTS.md still grants the superseded PolyForm noncommercial permission")
-if "permission-required" not in commercial.lower():
-    error("COMMERCIAL_RIGHTS.md must identify the current permission-required boundary")
+if "Apache-2.0" not in commercial:
+    error("COMMERCIAL_RIGHTS.md must identify new Apache-2.0 rights")
 
 # --- Secret-bearing file names --------------------------------------------
 forbidden_exact = {

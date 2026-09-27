@@ -1,6 +1,6 @@
 # License History
 
-## Current boundary
+## Historical source-available boundary
 
 Effective **2026-08-17**, current and future Cory Shane Davis / NavisWORLD-owned material in this repository is governed by the **THE BEAST BOX PROPRIETARY SOURCE-AVAILABLE LICENSE v1.0** in [`LICENSE`](LICENSE), unless a specific file states otherwise.
 
@@ -19,3 +19,9 @@ Third-party code, libraries, models, datasets, media, or other dependencies rema
 ## Permission
 
 For permission to reuse current covered material, contact **Cory Shane Davis / NavisWORLD** and obtain express written authorization. Commercial use, redistribution, derivative-product use, hosted-service use, or transfer of rights requires a separate written agreement signed by Cory Shane Davis or an authorized representative.
+
+## Prospective Apache-2.0 open-source transition (2026-09-26)
+
+For new revisions adopting the root Apache License 2.0, Cory Shane Davis / NavisWORLD-owned original copyrightable code and documentation in that revision are licensed under Apache-2.0 unless a file or component expressly identifies other terms. Users may copy, modify, redistribute, deploy and commercially use that covered release subject to Apache-2.0. Earlier MIT releases and intervening proprietary source-available releases retain the rights originally validly granted for each copy/version.
+
+No third-party library, training corpus, external model weights, cloud API, dataset, media asset, independent research publication, private or sensitive data, or trademark is automatically relicensed. The new open-source grant is prospective upon adoption/merge, not effective on the current default branch merely because a draft PR exists. Historic declarations remain available in Git history.
