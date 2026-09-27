@@ -40,6 +40,13 @@
 
 A static code match is not a successful runtime regression. For each row, link a failing-before and passing-after test or document why a hypothesis was rejected.
 
+## CI and protected-source gate (newly verified)
+
+- [Product CI 36327780550](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36327780550), branch snapshot `944cb0b89fbc5197e69394adb288f518680283b3`: Python 3.12 completed **1,146 passed**, architecture acceptance reported `passed=true`, but quality exited failure on `scripts/smoke/sealed-evidence-guard.sh`. This guard explicitly rejects changes to frozen Dad/Son and persistent-substrate source. These tests do **not** certify subsequent commits, Windows, or the final protected-source policy.
+- At that same earlier snapshot, package-smoke, configuration and security checks passed. Latest exact-head runs must be inspected individually; no blanket green claim.
+- **STOP / owner gate:** [Frozen-source compatibility options](FINISHER_V2_FROZEN_SOURCE_DECISION.md). Preserve prior sealed source; do not disable the guard automatically. No merge or release pending the owner's selected strategy and historical reproduction.
+- Current PR: [#129](https://github.com/NavisWORLD/The-beast-box-/pull/129), draft, intentionally isolated and unmerged.
+
 ## Retrieval and later phases
 
 - **B:** NOT RUN — chat call graph, held-out relevance, 500 / 5k / 50k latency, embedding identity and explicit fallback.
@@ -64,4 +71,4 @@ The older brief's 'currently proprietary' assertion is **outdated on this pinned
 
 ## Next authorized step
 
-Finish Phase A's verified-bytes regression, run it on the PR, then implement and test a cross-platform state-ledger lock and crash-safe dual-write plan. Leave all deployment and release gates closed.
+Obtain owner's decision on historical protected-source split versus versioned v2 versus explicit scope exclusion, then rerun historical-source and targeted security acceptance at a single exact commit. Independently audit Phase B personal retrieval while the protected-source decision is open. Leave all deployment and release gates closed.
