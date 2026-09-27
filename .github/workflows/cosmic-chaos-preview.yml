@@ -1,7 +1,7 @@
 name: Cosmic Chaos Preview Checks
 on:
   push:
-    branches: [feature/cosmic-chaos-vercel-app-001]
+    branches: [feature/cosmic-chaos-vercel-app-001, deploy/beastbox-vercel-preview-001]
     paths: ['apps/beastbox-cloud/**', '.github/workflows/cosmic-chaos-preview.yml']
   pull_request:
     paths: ['apps/beastbox-cloud/**', '.github/workflows/cosmic-chaos-preview.yml']
