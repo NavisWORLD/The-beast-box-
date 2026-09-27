@@ -32,8 +32,9 @@ a 500/5k/50k end-to-end scaling result, a performance SLA, real adaptive
 learning or an independent production security audit.
 
 No third-party paid inference or hosted model endpoint, no new credentials,
-no mutation of live Railway/Vercel and no product deployment. This candidate
-is unmerged until its exact-head CI and dedicated isolated workflow pass.
+no mutation of live Railway/Vercel and no product deployment. This source-only harness may merge only after its exact-code CI and the
+dedicated isolated workflow pass; merging it does **not** authorize
+production deployment, public release or closure of issue #132.
 [Full A–G acceptance issue](https://github.com/NavisWORLD/The-beast-box-/issues/132)
 remains open.
 
