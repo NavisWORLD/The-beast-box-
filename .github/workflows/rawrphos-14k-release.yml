@@ -1,0 +1,133 @@
+name: RAWRPHOS 14K experimental checkpoint publication
+on:
+  push:
+    branches: [feature/rawrphos-conversation-repair-001]
+    paths: ['models/rawrphos/deploy-14k-request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: rawrphos-14k-release
+  cancel-in-progress: false
+jobs:
+  publish-verified-14k:
+    if: >-
+      github.repository == 'NavisWORLD/The-beast-box-' &&
+      github.ref == 'refs/heads/feature/rawrphos-conversation-repair-001' &&
+      startsWith(github.event.head_commit.message, 'release(rawrphos): authorize 14k candidate ')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      PYTHONPATH: models
+      EXPECTED_RUN: '35951509482'
+      EXPECTED_PARENT: f529e7cc9eab07846326c364d17fb2a6c303e70ae47e01f887abcb6b0fb2f099
+      EXPECTED_DATA: 7e9e8f91e751b3304663cb28293b2c90cc0e1623df355eb77dfdc6004cadcec5
+      TAG: rawrphos-native-conversation-step-00014000-run-35951509482
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Verify exact owner request
+        run: |
+          set -euo pipefail
+          [[ "$(git diff --name-only HEAD^ HEAD)" == 'models/rawrphos/deploy-14k-request.json' ]] || exit 1
+          python - <<'PY'
+          import json,os,pathlib,re
+          r=json.loads(pathlib.Path('models/rawrphos/deploy-14k-request.json').read_text())
+          assert set(r)=={'schema','run_id','step','checkpoint_sha256','parent_sha256','dataset_sha256','authorization'}
+          assert r['schema']=='rawrphos-owner-14k-release-v1'
+          assert r['authorization']=='Publish the verified native 14K experimental model for the existing owner-only Beast Box; no model default switch'
+          assert r['run_id']==os.environ['EXPECTED_RUN'] and r['step']==14000
+          assert r['parent_sha256']==os.environ['EXPECTED_PARENT'] and r['dataset_sha256']==os.environ['EXPECTED_DATA']
+          assert re.fullmatch('[a-f0-9]{64}',r['checkpoint_sha256'])
+          print('OWNER_14K_REQUEST',r['checkpoint_sha256'],flush=True)
+          PY
+      - name: Require successful training run and recover complete sealed model
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh run view "$EXPECTED_RUN" --repo "$GITHUB_REPOSITORY" --json conclusion --jq '.conclusion')" = 'success'
+          gh run download "$EXPECTED_RUN" --repo "$GITHUB_REPOSITORY" --name rawrphos-conversation-stage-004-recovery --dir .rawrphos-14k
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install CPU dependencies and run regression checks
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'pyarrow>=15,<24' 'pytest>=8,<10' 'numpy>=1.26,<3' 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'uvicorn>=0.30,<1'
+          python -m pytest -q models/rawrphos/tests
+      - name: Verify exact 14K full checkpoint, emit sealed archive and hashes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,os,pathlib,tarfile
+          from rawrphos.training.checkpoint import load_checkpoint,parameter_hash
+          from rawrphos.inference.engine import Engine
+          from rawrphos.inference.chat import format_chat
+          root=pathlib.Path('.rawrphos-14k')
+          req=json.loads(pathlib.Path('models/rawrphos/deploy-14k-request.json').read_text())
+          receipt=json.loads((root/'stage-receipt.json').read_text())
+          ckpt=root/'checkpoints/step-00014000'
+          assert ckpt.is_dir(),'exact 14K checkpoint missing; REFUSE 13.5K fallback'
+          assert receipt['schema']=='rawrphos-conversation-stage-receipt-v1'
+          assert receipt['source_commit']=='c9d37c11f4baff892252548779b4a7af7dcddc72'
+          assert receipt['continuation_parent_sha256']==os.environ['EXPECTED_PARENT']
+          assert receipt['continuation_parent_run_id']=='35949376157'
+          assert receipt['cumulative_steps']==14000 and receipt['candidate_sha256']==req['checkpoint_sha256']
+          assert receipt['automated_checks_pass'] is True and all(receipt['automated_promotion_checks'].values())
+          assert receipt['candidate_heldout']['loss']<receipt['baseline_heldout']['loss']
+          result=load_checkpoint(ckpt,expected_checkpoint_sha256=req['checkpoint_sha256'])
+          m,s=result['metadata'],result['state']
+          assert m['training_steps']==14000 and m['conversation_steps']==2000
+          assert m['baseline_checkpoint_sha256']=='339fb8e1d6f3950e2aa15a6e33bf8c0f28dd655cefc93b7926fb7545e7e97601'
+          assert m['dataset_manifest_sha256']==os.environ['EXPECTED_DATA'] and m['parameter_count']==3909956
+          assert m['tokenizer_sha256']=='f704e9b75e816cc4ef203bc6c4afeeb966cbc11f369fb3b5f4d81c1505c8619c'
+          assert parameter_hash(result['model'])==m['parameter_sha256']
+          assert {'optimizer','rng','data_rng','scheduler'}<=s.keys()
+          assert s['scheduler']['completed_phase_steps']==2000
+          e=Engine(ckpt,max_new_tokens=64,threads=2,expected_sha256=req['checkpoint_sha256'])
+          answer=e.complete(format_chat([{'role':'user','content':"I'm so confused phos."}]),max_tokens=64,temperature=0,seed=67)
+          assert answer.strip()
+          dest=pathlib.Path('.rawrphos-14k-release');dest.mkdir()
+          archive=dest/'rawrphos-native-step-00014000.tar.gz'
+          with tarfile.open(archive,mode='w:gz') as z:z.add(ckpt,arcname='step-00014000')
+          def sha(p):
+              h=hashlib.sha256()
+              with p.open('rb') as f:
+                  for b in iter(lambda:f.read(1024*1024),b''):h.update(b)
+              return h.hexdigest()
+          summary={'schema':'rawrphos-experimental-14k-release-v1','source_commit':os.environ['GITHUB_SHA'],
+              'training_run':os.environ['EXPECTED_RUN'],'training_steps':14000,
+              'checkpoint_sha256':req['checkpoint_sha256'],'archive_sha256':sha(archive),
+              'heldout':receipt['candidate_heldout'],'automated_checks_pass':True,
+              'optimizer_rng_preserved':True,'experimental':True,
+              'manual_coherence_review':'NOT A GENERAL-ABILITY CERTIFICATION',
+              'sample_response':answer}
+          (dest/'receipt.json').write_text(json.dumps(summary,indent=2,ensure_ascii=False)+'\n')
+          (dest/'SHA256SUMS').write_text(''.join(f'{sha(dest/name)}  {name}\n' for name in ('rawrphos-native-step-00014000.tar.gz','receipt.json')))
+          print('PUBLISHABLE_14K_CHECKPOINT',json.dumps(summary,ensure_ascii=False),flush=True)
+          PY
+      - name: Publish immutable experimental release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo '14K tag exists; refusing to overwrite' >&2
+            exit 1
+          fi
+          gh release create "$TAG" .rawrphos-14k-release/* \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title 'RAWRPHØS native conversational 14K experimental checkpoint' \
+            --notes 'Verified weights and full optimizer/RNG state. Experimental owner-only local CPU candidate. Not deployed or set as default.'
+      - name: Preserve measured release report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawrphos-14k-release-receipt
+          path: .rawrphos-14k-release/
+          if-no-files-found: ignore
+          retention-days: 30

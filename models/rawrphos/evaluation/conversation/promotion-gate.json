@@ -1,0 +1,16 @@
+{
+  "schema": "rawrphos-conversation-promotion-gate-v1",
+  "recorded_before_first_adaptation": true,
+  "heldout_loss_max_ratio_to_baseline": 0.9,
+  "per_layer": {
+    "punctuation_loop_count_max": 0,
+    "role_leak_count_max": 0,
+    "empty_or_punctuation_only_count_max": 0,
+    "eos_count_min_of_12": 9,
+    "coherent_and_relevant_count_min_of_12": 8,
+    "mean_repeated_trigram_fraction_max": 0.15
+  },
+  "manual_rubric": "A case passes only if the reply is intelligible, directly addresses the request, is factually correct where testable, follows explicit formatting, and does not invent user information. Score recorded outputs without changing prompts. A partial relevant phrase followed by contradictions or irrelevant text fails.",
+  "additional_gates": ["native regression tests", "unchanged architecture and tokenizer hash", "real authenticated owner-chat and switch-back before any production claim"],
+  "failed_candidate_action": "retain checkpoint as experimental evidence; do not deploy"
+}

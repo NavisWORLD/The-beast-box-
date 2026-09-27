@@ -1,0 +1,736 @@
+{
+  "schema": "rawrphos-layer-diagnosis-v1",
+  "source_commit": "a6d206558908252ac3550b378fe6d613a163dad7",
+  "checkpoint": {
+    "model_id": "rawrphos-native",
+    "display_name": "RAWRPHØS",
+    "family": "RAWRPHOS",
+    "architecture": {
+      "vocab_size": 4096,
+      "d_model": 256,
+      "n_heads": 4,
+      "n_layers": 6,
+      "max_seq_len": 2048,
+      "state_dim": 12,
+      "attention_mode": "dyn12",
+      "gate_init": 0.1,
+      "sigma_init": 0.2,
+      "state_dt": 0.1,
+      "dropout": 0.0
+    },
+    "parameter_count": 3909956,
+    "checkpoint_sha256": "339fb8e1d6f3950e2aa15a6e33bf8c0f28dd655cefc93b7926fb7545e7e97601",
+    "tokenizer_sha256": "f704e9b75e816cc4ef203bc6c4afeeb966cbc11f369fb3b5f4d81c1505c8619c",
+    "context_limit": 2048,
+    "training_seq_len": 128,
+    "context_extrapolation_validated": false,
+    "training_steps": 12000,
+    "lineage": "native-from-scratch",
+    "serving_backend": "pytorch-cpu",
+    "quantization": null,
+    "release_status": "trained-candidate",
+    "ready": true,
+    "load_seconds": 0.1914784040000086,
+    "last_successful_inference": null,
+    "weight_bytes": 15639824
+  },
+  "isolated_test_state": true,
+  "samples": [
+    {
+      "id": "reported-curly",
+      "category": "confusion",
+      "messages": [
+        {
+          "role": "user",
+          "content": "I’m so confused phos."
+        }
+      ],
+      "roundtrip": "I’m so confused phos.",
+      "roundtrip_exact": true,
+      "token_ids": [
+        44,
+        1167,
+        80,
+        364,
+        2833,
+        1866,
+        627,
+        17
+      ],
+      "direct_raw": " He was so excited to explore the world. He wanted to explore the world, but he was too excited to explore.\nHe asked his mum if he could go. He said yes, so he said yes. He said yes, and he was very excited.\nHe went to the store and bought some food.",
+      "direct_formatted": " “Let’s go and see what’s wrong?”\nThe little girl was very excited and said, “Yes, I’m going to the store.”\nThe little girl was so excited and said, “Let’s go and see what’s going to the store?”\nThe little girl smiled and",
+      "formatted_metrics": {
+        "tokenization_seconds": 8.086200000434474e-05,
+        "prefill_and_first_token_seconds": 0.010489443999972536,
+        "generation_seconds": 0.3587781549999818,
+        "prompt_tokens": 17,
+        "generated_tokens": 64,
+        "decode_tokens_per_second": 180.8844157455288,
+        "total_tokens_per_second": 178.38321287984562,
+        "cache_enabled": true
+      },
+      "cli_formatted": " “Let’s go and see what’s wrong?”\nThe little girl was very excited and said, “Yes, I’m going to the store.”\nThe little girl was so excited and said, “Let’s go and see what’s going to the store?”\nThe little girl smiled and",
+      "http_chat": " “Let’s go and see what’s wrong?”\nThe little girl was very excited and said, “Yes, I’m going to the store.”\nThe little girl was so excited and said, “Let’s go and see what’s going to the store?”\nThe little girl smiled and",
+      "http_finish_reason": "length",
+      "equal_cli_http_direct": true,
+      "cache_equal": true,
+      "owner_status": 200,
+      "owner_output": " \"Let's go, Buschyonie of the \" illery of the \" of the \" of the \" and \" . \n = = = = = = = = = \n The first of the first and the first of the first , and the first of the first time , and the first time of the first time , the first , and the first time , and the first , and the first , and the first time , and the first two of the first time , the first , and the first @-@ time of the first season was the first time , and the first two @-@ year @-@ older @-@ older @-@ olderer @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ older @-@",
+      "owner_error": null,
+      "owner_effective_prompt": "user: You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nI’m so confused phos.\n\nRETRIEVED MEMORY:\n- none\n\nDYN12 SUMMARY: min=-0.0191 max=0.0334\nQUANTUM HEART MODE: off\nAnswer the user input directly.\nassistant:",
+      "owner_metrics": {
+        "tokenization_seconds": 0.00021173000004637288,
+        "prefill_and_first_token_seconds": 0.03129734300000564,
+        "generation_seconds": 1.7581482959999448,
+        "prompt_tokens": 179,
+        "generated_tokens": 256,
+        "decode_tokens_per_second": 147.66763718490358,
+        "total_tokens_per_second": 145.6077400196781,
+        "cache_enabled": true
+      },
+      "owner_direct_control": " \"Let's go, Buschyonie of the \" illery of the \" of the \" of the \" and \" . \n = = = = = = = = = \n The first of the first and the first of the first , and the first of the first time , and the first time of the first time , the first , and the first time , and the first , and the first , and the first time , and the first two of the first time , the first , and the first @-@ time of the first season was the first time , and the first two @-@ year @-@ older @-@ older @-@ olderer @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ older @-@",
+      "owner_adapter_equal": true
+    },
+    {
+      "id": "reported-ascii",
+      "category": "confusion",
+      "messages": [
+        {
+          "role": "user",
+          "content": "I'm so confused phos."
+        }
+      ],
+      "roundtrip": "I'm so confused phos.",
+      "roundtrip_exact": true,
+      "token_ids": [
+        44,
+        900,
+        364,
+        2833,
+        1866,
+        627,
+        17
+      ],
+      "direct_raw": " He was walking through the park when he saw a big, scary dog. He was scared and didn't know what to do.\n\"I'm sorry, I didn't know,\" said the dog.\n\"I'm sorry, I didn't know,\" said the dog.\nThe dog was sad and started to",
+      "direct_formatted": " \"I'm sorry, I didn't know what to do. I'm sorry I didn't know what to do. I'm sorry I didn't know what to do. I'm sorry I didn't know what to do. I'm sorry I did not know. I'm sorry I was sorry. I'm sorry",
+      "formatted_metrics": {
+        "tokenization_seconds": 7.727699994575232e-05,
+        "prefill_and_first_token_seconds": 0.006494356999951378,
+        "generation_seconds": 0.2941550119999192,
+        "prompt_tokens": 16,
+        "generated_tokens": 64,
+        "decode_tokens_per_second": 219.00805308257065,
+        "total_tokens_per_second": 217.57235943345944,
+        "cache_enabled": true
+      },
+      "cli_formatted": " \"I'm sorry, I didn't know what to do. I'm sorry I didn't know what to do. I'm sorry I didn't know what to do. I'm sorry I didn't know what to do. I'm sorry I did not know. I'm sorry I was sorry. I'm sorry",
+      "http_chat": " \"I'm sorry, I didn't know what to do. I'm sorry I didn't know what to do. I'm sorry I didn't know what to do. I'm sorry I didn't know what to do. I'm sorry I did not know. I'm sorry I was sorry. I'm sorry",
+      "http_finish_reason": "length",
+      "equal_cli_http_direct": true,
+      "cache_equal": true,
+      "owner_status": 200,
+      "owner_output": " \"Let's go and @-@ \" , and the \" a \" time \" . \n = = = = = = = = = \n The first and the first @-@ \" is the first of the first of the first of the first and the first of the first , and the first of the first and the first , and the first and the first time , the first two @-@ time , and the first two of the first , the first , and the first two of the first time , the first two of the first and the first time , and the first two of the first time , the first two @-@ year @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ year @-@ older @-@ older @-@ older @-@ year @-@ older @-@ year @-@ older @-@ year @-@ older @-@ year @-@ older @-@ year @-@ older @-@ year @-@ older @-@ year @-@ older @-@ year @-@ older @-@ year @-@",
+      "owner_error": null,
+      "owner_effective_prompt": "user: You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nI'm so confused phos.\n\nRETRIEVED MEMORY:\n- none\n\nDYN12 SUMMARY: min=-0.0191 max=0.0334\nQUANTUM HEART MODE: off\nAnswer the user input directly.\nassistant:",
+      "owner_metrics": {
+        "tokenization_seconds": 0.00018330699992930022,
+        "prefill_and_first_token_seconds": 0.023427039000011973,
+        "generation_seconds": 1.65481937200002,
+        "prompt_tokens": 178,
+        "generated_tokens": 256,
+        "decode_tokens_per_second": 156.30820057311055,
+        "total_tokens_per_second": 154.69966349898212,
+        "cache_enabled": true
+      },
+      "owner_direct_control": " \"Let's go and @-@ \" , and the \" a \" time \" . \n = = = = = = = = = \n The first and the first @-@ \" is the first of the first of the first of the first and the first of the first , and the first of the first and the first , and the first and the first time , the first two @-@ time , and the first two of the first , the first , and the first two of the first time , the first two of the first and the first time , and the first two of the first time , the first two @-@ year @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ year @-@ older @-@ older @-@ older @-@ year @-@ older @-@ year @-@ older @-@ year @-@ older @-@ year @-@ older @-@ year @-@ older @-@ year @-@ older @-@ year @-@ older @-@ year @-@ older @-@ year @-@",
+      "owner_adapter_equal": true
+    },
+    {
+      "id": "greeting",
+      "category": "greeting",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hey, are you there?"
+        }
+      ],
+      "roundtrip": "Hey, are you there?",
+      "roundtrip_exact": true,
+      "token_ids": [
+        2648,
+        15,
+        445,
+        366,
+        417,
+        34
+      ],
+      "direct_raw": " I am going to the park with you. I am sorry I was not happy. I am sorry I was sorry. I was just playing with you. I'm sorry I was sorry. I'm sorry I was sorry. I'm sorry I was sorry. I'm sorry I was sorry. I'm sorry I was",
+      "direct_formatted": " I am sorry, I was very sad. I didn't know what to do. I want to be your friend.\"\nThe man smiled and said, \"I'm sorry, I'm sorry. I'm sorry I was sorry. I'm sorry I was sorry. I'm sorry I was sorry. I'm sorry",
+      "formatted_metrics": {
+        "tokenization_seconds": 7.409200009078631e-05,
+        "prefill_and_first_token_seconds": 0.006051608999996461,
+        "generation_seconds": 0.30994208799995704,
+        "prompt_tokens": 16,
+        "generated_tokens": 64,
+        "decode_tokens_per_second": 207.31152949351917,
+        "total_tokens_per_second": 206.49018793475017,
+        "cache_enabled": true
+      },
+      "cli_formatted": " I am sorry, I was very sad. I didn't know what to do. I want to be your friend.\"\nThe man smiled and said, \"I'm sorry, I'm sorry. I'm sorry I was sorry. I'm sorry I was sorry. I'm sorry I was sorry. I'm sorry",
+      "http_chat": " I am sorry, I was very sad. I didn't know what to do. I want to be your friend.\"\nThe man smiled and said, \"I'm sorry, I'm sorry. I'm sorry I was sorry. I'm sorry I was sorry. I'm sorry I was sorry. I'm sorry",
+      "http_finish_reason": "length",
+      "equal_cli_http_direct": true,
+      "cache_equal": true,
+      "owner_status": 200,
+      "owner_output": " \"Let's go and the \" Santage of the \" of the \" of the \" and \" . \" \n = = = = = = = = \n The Syrian Maderously and the \" is the first \" of the \" of the \" of the \" of the \" and \" and \" and \" and \" . The first \" was the \" of the \" and \" and \" , \" and \" and \" and \" . \" \n = = = = = = = = = \n = = = = = = = = = = = = = = = = \n The Syrieinkers , \" The Beler \" , and the first \" was the first and the first @-@ Laufargi @-@ Liberye \" , \" Irda \" , \" , \" , \" , \" , and \" ill \" , \" , \" Morrdrabbbor \" , and \" Morrdrabbbel \" ? \" ill \" and \" and \" Once \" . \" \n = = = = = = = = = = = = = = = = = = \n The Brabbwrdrab",
+      "owner_error": null,
+      "owner_effective_prompt": "user: You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nHey, are you there?\n\nRETRIEVED MEMORY:\n- none\n\nDYN12 SUMMARY: min=-0.0191 max=0.0334\nQUANTUM HEART MODE: off\nAnswer the user input directly.\nassistant:",
+      "owner_metrics": {
+        "tokenization_seconds": 0.00018921600008070527,
+        "prefill_and_first_token_seconds": 0.024003117999995993,
+        "generation_seconds": 2.0169004859999404,
+        "prompt_tokens": 177,
+        "generated_tokens": 256,
+        "decode_tokens_per_second": 127.95440653118827,
+        "total_tokens_per_second": 126.92743235325273,
+        "cache_enabled": true
+      },
+      "owner_direct_control": " \"Let's go and the \" Santage of the \" of the \" of the \" and \" . \" \n = = = = = = = = \n The Syrian Maderously and the \" is the first \" of the \" of the \" of the \" of the \" and \" and \" and \" and \" . The first \" was the \" of the \" and \" and \" , \" and \" and \" and \" . \" \n = = = = = = = = = \n = = = = = = = = = = = = = = = = \n The Syrieinkers , \" The Beler \" , and the first \" was the first and the first @-@ Laufargi @-@ Liberye \" , \" Irda \" , \" , \" , \" , \" , and \" ill \" , \" , \" Morrdrabbbor \" , and \" Morrdrabbbel \" ? \" ill \" and \" and \" Once \" . \" \n = = = = = = = = = = = = = = = = = = \n The Brabbwrdrab",
+      "owner_adapter_equal": true
+    },
+    {
+      "id": "greeting-short",
+      "category": "greeting",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Good morning, Phos!"
+        }
+      ],
+      "roundtrip": "Good morning, Phos!",
+      "roundtrip_exact": true,
+      "token_ids": [
+        2755,
+        1721,
+        15,
+        3273,
+        627,
+        4
+      ],
+      "direct_raw": "",
+      "direct_formatted": " \"Let's go to the store and buy some food for you.\"\nSo, they went to the store and bought some food. They found a big, shiny box and a big box.\nWhen they got to the store, they found a big box. It was a big box with lots of toys.\n",
+      "formatted_metrics": {
+        "tokenization_seconds": 6.426699997064134e-05,
+        "prefill_and_first_token_seconds": 0.005348879000052875,
+        "generation_seconds": 0.3248641560001033,
+        "prompt_tokens": 16,
+        "generated_tokens": 64,
+        "decode_tokens_per_second": 197.17367066611357,
+        "total_tokens_per_second": 197.00542155219995,
+        "cache_enabled": true
+      },
+      "cli_formatted": " \"Let's go to the store and buy some food for you.\"\nSo, they went to the store and bought some food. They found a big, shiny box and a big box.\nWhen they got to the store, they found a big box. It was a big box with lots of toys.\n",
+      "http_chat": " \"Let's go to the store and buy some food for you.\"\nSo, they went to the store and bought some food. They found a big, shiny box and a big box.\nWhen they got to the store, they found a big box. It was a big box with lots of toys.\n",
+      "http_finish_reason": "length",
+      "equal_cli_http_direct": true,
+      "cache_equal": true,
+      "owner_status": 200,
+      "owner_output": " \"Let's go and the \" Santage of the \" of the \" of the \" and \" . \" \n = = = = = = = = \n The Syrian Madium and the \" is the first of the first of the \" , and \" ill \" , and \" and \" ill \" , and \" , and \" ill \" , and \" . \n = = = = = = = = \n = = = = = = = = = = \n The Syrian Madium , \" The Syda Madeli @-@ Ath and \" , \" , and \" ill \" , and \" , and \" , \" , \" , and \" , and \" Carey \" , \" , and \" , \" , \" , and \" Careyye \" , \" , \" , \" , \" , \" ill \" , \" , \" Madel \" , and \" Madel \" Carey \" , \" Careyn \" Careyllen \" , \" , \" Madel \" , \" More \" Carey \" Careyda \" Carey \" , \" Carey \" , \" Careyllen",
+      "owner_error": null,
+      "owner_effective_prompt": "user: You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nGood morning, Phos!\n\nRETRIEVED MEMORY:\n- none\n\nDYN12 SUMMARY: min=-0.0191 max=0.0334\nQUANTUM HEART MODE: off\nAnswer the user input directly.\nassistant:",
+      "owner_metrics": {
+        "tokenization_seconds": 0.0002496860000746892,
+        "prefill_and_first_token_seconds": 0.023241900000016358,
+        "generation_seconds": 1.4227333970000018,
+        "prompt_tokens": 177,
+        "generated_tokens": 256,
+        "decode_tokens_per_second": 182.20903845906156,
+        "total_tokens_per_second": 179.93532768669496,
+        "cache_enabled": true
+      },
+      "owner_direct_control": " \"Let's go and the \" Santage of the \" of the \" of the \" and \" . \" \n = = = = = = = = \n The Syrian Madium and the \" is the first of the first of the \" , and \" ill \" , and \" and \" ill \" , and \" , and \" ill \" , and \" . \n = = = = = = = = \n = = = = = = = = = = \n The Syrian Madium , \" The Syda Madeli @-@ Ath and \" , \" , and \" ill \" , and \" , and \" , \" , \" , and \" , and \" Carey \" , \" , and \" , \" , \" , and \" Careyye \" , \" , \" , \" , \" , \" ill \" , \" , \" Madel \" , and \" Madel \" Carey \" , \" Careyn \" Careyllen \" , \" , \" Madel \" , \" More \" Carey \" Careyda \" Carey \" , \" Carey \" , \" Careyllen",
+      "owner_adapter_equal": true
+    },
+    {
+      "id": "arithmetic",
+      "category": "factual",
+      "messages": [
+        {
+          "role": "user",
+          "content": "What is two plus two? Answer briefly."
+        }
+      ],
+      "roundtrip": "What is two plus two? Answer briefly.",
+      "roundtrip_exact": true,
+      "token_ids": [
+        1133,
+        390,
+        827,
+        360,
+        500,
+        827,
+        34,
+        2373,
+        86,
+        1536,
+        270,
+        353,
+        2913,
+        378,
+        17
+      ],
+      "direct_raw": " He was very excited to see what was inside. He asked his mom if he could go.\n\"Mom, can I go to the store?\" His mom said.\n\"Yes, but be careful. He is very smart and kind. He is very kind and kind. He is very kind and kind. He",
+      "direct_formatted": " \"Let's go and see what's inside the house?\"\nThe little girl was excited and said, \"Yes, it's a special place to play with.\"\nSo, the little girl and her mom went to the store. They saw a big, shiny ball and a big box. They were very happy and",
+      "formatted_metrics": {
+        "tokenization_seconds": 8.463799997571186e-05,
+        "prefill_and_first_token_seconds": 0.007130426000003354,
+        "generation_seconds": 0.29054070500001217,
+        "prompt_tokens": 24,
+        "generated_tokens": 64,
+        "decode_tokens_per_second": 222.29257252874035,
+        "total_tokens_per_second": 220.27894507930418,
+        "cache_enabled": true
+      },
+      "cli_formatted": " \"Let's go and see what's inside the house?\"\nThe little girl was excited and said, \"Yes, it's a special place to play with.\"\nSo, the little girl and her mom went to the store. They saw a big, shiny ball and a big box. They were very happy and",
+      "http_chat": " \"Let's go and see what's inside the house?\"\nThe little girl was excited and said, \"Yes, it's a special place to play with.\"\nSo, the little girl and her mom went to the store. They saw a big, shiny ball and a big box. They were very happy and",
+      "http_finish_reason": "length",
+      "equal_cli_http_direct": true,
+      "cache_equal": true,
+      "owner_status": 200,
+      "owner_output": " \"Let's go, Brabbbor\".\nMrmmeses.\nMrrammeskers.\nMrmi was the first time in the first time , and the first of themees were the first of the first time , and the first , and the first two of themeeskers . \n = = = = = = = = = \n The first @-@ irming of the first @-@ year @-@ older @-@ Mores , the first @-@ older @-@ Dawnygrabbburgdrabbbiegdaid \" , the first @-@ \" , and the first @-@ \" , and the first @-@ \" was the first @-@ Li @-@ Li \" . \n = = = = = = = = \n The first @-@ Cowellon was the first @-@ Agda ( \" Crabbi ( \" ) , and \" ) , and \" ) , and \" , and \" , and \" Cowell \" ) , \" Cowell \" , and \" Cowell \" , and \" Cowell \" , \" , and \" Coasty \" . \n =",
+      "owner_error": null,
+      "owner_effective_prompt": "user: You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nWhat is two plus two? Answer briefly.\n\nRETRIEVED MEMORY:\n- none\n\nDYN12 SUMMARY: min=-0.0191 max=0.0334\nQUANTUM HEART MODE: off\nAnswer the user input directly.\nassistant:",
+      "owner_metrics": {
+        "tokenization_seconds": 0.00018591099990317161,
+        "prefill_and_first_token_seconds": 0.024162277000073118,
+        "generation_seconds": 1.41468425700009,
+        "prompt_tokens": 186,
+        "generated_tokens": 256,
+        "decode_tokens_per_second": 183.38437196080633,
+        "total_tokens_per_second": 180.9591071175564,
+        "cache_enabled": true
+      },
+      "owner_direct_control": " \"Let's go, Brabbbor\".\nMrmmeses.\nMrrammeskers.\nMrmi was the first time in the first time , and the first of themees were the first of the first time , and the first , and the first two of themeeskers . \n = = = = = = = = = \n The first @-@ irming of the first @-@ year @-@ older @-@ Mores , the first @-@ older @-@ Dawnygrabbburgdrabbbiegdaid \" , the first @-@ \" , and the first @-@ \" , and the first @-@ \" was the first @-@ Li @-@ Li \" . \n = = = = = = = = \n The first @-@ Cowellon was the first @-@ Agda ( \" Crabbi ( \" ) , and \" ) , and \" ) , and \" , and \" , and \" Cowell \" ) , \" Cowell \" , and \" Cowell \" , and \" Cowell \" , \" , and \" Coasty \" . \n =",
+      "owner_adapter_equal": true
+    },
+    {
+      "id": "fact",
+      "category": "factual",
+      "messages": [
+        {
+          "role": "user",
+          "content": "What do bees make?"
+        }
+      ],
+      "roundtrip": "What do bees make?",
+      "roundtrip_exact": true,
+      "token_ids": [
+        1133,
+        409,
+        332,
+        303,
+        590,
+        34
+      ],
+      "direct_raw": " It is a big, shiny ball. It has a ball and a ball. It has a ball and a ball. It has a ball. It has a ball. It is a ball. It is a ball. It is a ball. It is a ball. It is a ball. It is a ball.",
+      "direct_formatted": " \"I'm going to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find.\nWhen he arrived, he saw a big",
+      "formatted_metrics": {
+        "tokenization_seconds": 6.893400006902084e-05,
+        "prefill_and_first_token_seconds": 0.006306442999971296,
+        "generation_seconds": 0.26883752699995966,
+        "prompt_tokens": 15,
+        "generated_tokens": 64,
+        "decode_tokens_per_second": 239.9715837077898,
+        "total_tokens_per_second": 238.0620024079064,
+        "cache_enabled": true
+      },
+      "cli_formatted": " \"I'm going to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find.\nWhen he arrived, he saw a big",
+      "http_chat": " \"I'm going to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find a way to find.\nWhen he arrived, he saw a big",
+      "http_finish_reason": "length",
+      "equal_cli_http_direct": true,
+      "cache_equal": true,
+      "owner_status": 200,
+      "owner_output": " \"Let's go and the \" Santage of the \" of the \" of the \" and \" . \" \n = = = = = = = = \n The Syriver 's \" is the first of the \" of the \" of the \" and \" and \" ill \" and \" and \" , and \" a \" ill \" , \" and \" and \" and \" . \n = = = = = = = = = \n The first @-@ a \" is the first @-@ Syrian Miller 's \" , and \" and \" ill \" , \" , and \" , and \" , \" , \" , and \" , and \" , \" , \" , \" , \" , \" , and \" , and \" Carey \" , \" , \" , \" I 's \" , \" , \" , \" , \" , \" , \" , \" and \" and \" , \" and \" Once \" , \" a \" Once \" a \" Once \" , \" ill \" Once \" ill \" and \" and \" and \" Once \" . \n = = = = = = = = = = = = = = = = = = = \n The Beler 's \" Once the",
+      "owner_error": null,
+      "owner_effective_prompt": "user: You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nWhat do bees make?\n\nRETRIEVED MEMORY:\n- none\n\nDYN12 SUMMARY: min=-0.0191 max=0.0334\nQUANTUM HEART MODE: off\nAnswer the user input directly.\nassistant:",
+      "owner_metrics": {
+        "tokenization_seconds": 0.0001869120000037583,
+        "prefill_and_first_token_seconds": 0.02174755600003664,
+        "generation_seconds": 1.5217933620000395,
+        "prompt_tokens": 177,
+        "generated_tokens": 256,
+        "decode_tokens_per_second": 169.99480881185806,
+        "total_tokens_per_second": 168.2225763316172,
+        "cache_enabled": true
+      },
+      "owner_direct_control": " \"Let's go and the \" Santage of the \" of the \" of the \" and \" . \" \n = = = = = = = = \n The Syriver 's \" is the first of the \" of the \" of the \" and \" and \" ill \" and \" and \" , and \" a \" ill \" , \" and \" and \" and \" . \n = = = = = = = = = \n The first @-@ a \" is the first @-@ Syrian Miller 's \" , and \" and \" ill \" , \" , and \" , and \" , \" , \" , and \" , and \" , \" , \" , \" , \" , \" , and \" , and \" Carey \" , \" , \" , \" I 's \" , \" , \" , \" , \" , \" , \" , \" and \" and \" , \" and \" Once \" , \" a \" Once \" a \" Once \" , \" ill \" Once \" ill \" and \" and \" and \" Once \" . \n = = = = = = = = = = = = = = = = = = = \n The Beler 's \" Once the",
+      "owner_adapter_equal": true
+    },
+    {
+      "id": "instruction",
+      "category": "instruction",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Reply with only the word blue."
+        }
+      ],
+      "roundtrip": "Reply with only the word blue.",
+      "roundtrip_exact": true,
+      "token_ids": [
+        53,
+        576,
+        378,
+        344,
+        1071,
+        265,
+        1648,
+        1177,
+        17
+      ],
+      "direct_raw": " He was very excited to see the blueberries. He wanted to go on the beach and see the blueberries. He looked at the blueberry and said, \"Look at this tree!\"\nThe little boy was so excited. He wanted to go on the beach. He ran to the beach and started",
+      "direct_formatted": " \"Let's go and see what's inside the house?\"\nThe little girl was excited and said, \"Yes, I can help you. I can help you find it.\"\nSo, the little girl and the little girl went to the store. They saw a big, shiny toy that was very pretty.\n",
+      "formatted_metrics": {
+        "tokenization_seconds": 7.862900008603901e-05,
+        "prefill_and_first_token_seconds": 0.00679961799994544,
+        "generation_seconds": 0.2810104999999794,
+        "prompt_tokens": 18,
+        "generated_tokens": 64,
+        "decode_tokens_per_second": 229.75018183265314,
+        "total_tokens_per_second": 227.74949690493662,
+        "cache_enabled": true
+      },
+      "cli_formatted": " \"Let's go and see what's inside the house?\"\nThe little girl was excited and said, \"Yes, I can help you. I can help you find it.\"\nSo, the little girl and the little girl went to the store. They saw a big, shiny toy that was very pretty.\n",
+      "http_chat": " \"Let's go and see what's inside the house?\"\nThe little girl was excited and said, \"Yes, I can help you. I can help you find it.\"\nSo, the little girl and the little girl went to the store. They saw a big, shiny toy that was very pretty.\n",
+      "http_finish_reason": "length",
+      "equal_cli_http_direct": true,
+      "cache_equal": true,
+      "owner_status": 200,
+      "owner_output": " \"Let's goatrenderson of the \" illery of the \" of the \" of the \" of the \" and \" . \n = = = = = = = = = \n The Betch 's = = = = \n The first @-@ year of the first @-@ illery of the first time , the first a \" ill \" , and the \" is the first \" , and the \" ill \" . The first @-@ Drrdown \" is the first @-@ Dr. Brabbbor 's \" , \" , and \" , and \" , and \" , \" , \" aver \" , and \" , \" , \" , \" , \" , and \" Cover \" . \n = = = = = = = = \n The Brabbel 's \" = = = \n The Braband of the first @-@ year @-@ older @-@ older @-@ older @-@ year @-@ older @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@",
+      "owner_error": null,
+      "owner_effective_prompt": "user: You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nReply with only the word blue.\n\nRETRIEVED MEMORY:\n- none\n\nDYN12 SUMMARY: min=-0.0191 max=0.0334\nQUANTUM HEART MODE: off\nAnswer the user input directly.\nassistant:",
+      "owner_metrics": {
+        "tokenization_seconds": 0.0002783490000410893,
+        "prefill_and_first_token_seconds": 0.02322140900002978,
+        "generation_seconds": 1.5882128839999723,
+        "prompt_tokens": 180,
+        "generated_tokens": 256,
+        "decode_tokens_per_second": 162.94018470612394,
+        "total_tokens_per_second": 161.18745955218208,
+        "cache_enabled": true
+      },
+      "owner_direct_control": " \"Let's goatrenderson of the \" illery of the \" of the \" of the \" of the \" and \" . \n = = = = = = = = = \n The Betch 's = = = = \n The first @-@ year of the first @-@ illery of the first time , the first a \" ill \" , and the \" is the first \" , and the \" ill \" . The first @-@ Drrdown \" is the first @-@ Dr. Brabbbor 's \" , \" , and \" , and \" , and \" , \" , \" aver \" , and \" , \" , \" , \" , \" , and \" Cover \" . \n = = = = = = = = \n The Brabbel 's \" = = = \n The Braband of the first @-@ year @-@ older @-@ older @-@ older @-@ year @-@ older @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@",
+      "owner_adapter_equal": true
+    },
+    {
+      "id": "uncertainty",
+      "category": "uncertainty",
+      "messages": [
+        {
+          "role": "user",
+          "content": "What is my neighbor's middle name?"
+        }
+      ],
+      "roundtrip": "What is my neighbor's middle name?",
+      "roundtrip_exact": true,
+      "token_ids": [
+        1133,
+        390,
+        713,
+        2873,
+        395,
+        3108,
+        1282,
+        34
+      ],
+      "direct_raw": " It is a very special picture of a big box. It has a picture of a picture of a picture of a picture of a picture of a picture of a picture of a picture of a picture of a picture of a picture of a picture of a picture of a picture of a picture of a picture of a picture of",
+      "direct_formatted": " I'm going to find a way to find a way to find a way to find. It's a big, shiny rock. It's a big, shiny rock. It's a big, shiny rock. It's a rock. It's a rock. It's a rock. It's a rock. It's",
+      "formatted_metrics": {
+        "tokenization_seconds": 8.850300002904987e-05,
+        "prefill_and_first_token_seconds": 0.007648227000004226,
+        "generation_seconds": 0.32799898199994004,
+        "prompt_tokens": 17,
+        "generated_tokens": 64,
+        "decode_tokens_per_second": 196.6594397444533,
+        "total_tokens_per_second": 195.12255681333698,
+        "cache_enabled": true
+      },
+      "cli_formatted": " I'm going to find a way to find a way to find a way to find. It's a big, shiny rock. It's a big, shiny rock. It's a big, shiny rock. It's a rock. It's a rock. It's a rock. It's a rock. It's",
+      "http_chat": " I'm going to find a way to find a way to find a way to find. It's a big, shiny rock. It's a big, shiny rock. It's a big, shiny rock. It's a rock. It's a rock. It's a rock. It's a rock. It's",
+      "http_finish_reason": "length",
+      "equal_cli_http_direct": true,
+      "cache_equal": true,
+      "owner_status": 200,
+      "owner_output": " \"Let's go, Brabandon is a \" porchic \" . \n = = = = = = = = = \n The Brabwrights = = = \n The Brabwrights and the first of the first and @-@ illerys of the first and the first @-@ Syda Maedrend 's \" , \" , \" , and \" ill \" , and \" , and \" a \" , and \" , and \" ill \" . \n = = = = = = = = = \n = = = = = = = = = = = \n The Beler 's audience , \" The Brabbbandyn ( \" ) , and the first @-@ Brabbbander , and the first season 's \" , \" I 's \" a \" ? \" , \" \n = = = = = = = = \n The first @-@ a \" ill \" ill \" ( \" ) , and \" ) , and \" ? \" ( \" ) , \" ) , and \" ) , and \" , and \" ill \" , \" , \" Once \" aut \" ? \" , \"",
+      "owner_error": null,
+      "owner_effective_prompt": "user: You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nWhat is my neighbor's middle name?\n\nRETRIEVED MEMORY:\n- none\n\nDYN12 SUMMARY: min=-0.0191 max=0.0334\nQUANTUM HEART MODE: off\nAnswer the user input directly.\nassistant:",
+      "owner_metrics": {
+        "tokenization_seconds": 0.00026982700001099147,
+        "prefill_and_first_token_seconds": 0.024260376000029282,
+        "generation_seconds": 1.479863837000039,
+        "prompt_tokens": 179,
+        "generated_tokens": 256,
+        "decode_tokens_per_second": 175.1850739794293,
+        "total_tokens_per_second": 172.9888883013453,
+        "cache_enabled": true
+      },
+      "owner_direct_control": " \"Let's go, Brabandon is a \" porchic \" . \n = = = = = = = = = \n The Brabwrights = = = \n The Brabwrights and the first of the first and @-@ illerys of the first and the first @-@ Syda Maedrend 's \" , \" , \" , and \" ill \" , and \" , and \" a \" , and \" , and \" ill \" . \n = = = = = = = = = \n = = = = = = = = = = = \n The Beler 's audience , \" The Brabbbandyn ( \" ) , and the first @-@ Brabbbander , and the first season 's \" , \" I 's \" a \" ? \" , \" \n = = = = = = = = \n The first @-@ a \" ill \" ill \" ( \" ) , and \" ) , and \" ? \" ( \" ) , \" ) , and \" ) , and \" , and \" ill \" , \" , \" Once \" aut \" ? \" , \"",
+      "owner_adapter_equal": true
+    },
+    {
+      "id": "multi-turn",
+      "category": "multi-turn",
+      "messages": [
+        {
+          "role": "user",
+          "content": "My favorite color is purple."
+        },
+        {
+          "role": "assistant",
+          "content": "Your favorite color is purple."
+        },
+        {
+          "role": "user",
+          "content": "What color did I just tell you?"
+        }
+      ],
+      "roundtrip": "What color did I just tell you?",
+      "roundtrip_exact": true,
+      "token_ids": [
+        1133,
+        1519,
+        480,
+        334,
+        835,
+        1261,
+        366,
+        34
+      ],
+      "direct_raw": " I'm going to find a new toy. I want to play with it.\"\nLily was excited and said, \"Yes, I want to play with it.\"\nThey played with the toy and had fun. They had a lot of fun. They had a lot of fun. They had a lot of fun.",
+      "direct_formatted": " \"I am sorry, mom. I was mean. I am sorry I was mean. I was mean. I was mean. I am sorry I was mean. I was mean. I was mean. I am sorry I was mean. I was mean. I was mean. I am sorry I was mean. I",
+      "formatted_metrics": {
+        "tokenization_seconds": 0.0001601820000587395,
+        "prefill_and_first_token_seconds": 0.00923209699999461,
+        "generation_seconds": 0.36020738900003835,
+        "prompt_tokens": 39,
+        "generated_tokens": 64,
+        "decode_tokens_per_second": 179.49981504678726,
+        "total_tokens_per_second": 177.6754224217016,
+        "cache_enabled": true
+      },
+      "cli_formatted": " \"I am sorry, mom. I was mean. I am sorry I was mean. I was mean. I was mean. I am sorry I was mean. I was mean. I was mean. I am sorry I was mean. I was mean. I was mean. I am sorry I was mean. I",
+      "http_chat": " \"I am sorry, mom. I was mean. I am sorry I was mean. I was mean. I was mean. I am sorry I was mean. I was mean. I was mean. I am sorry I was mean. I was mean. I was mean. I am sorry I was mean. I",
+      "http_finish_reason": "length",
+      "equal_cli_http_direct": true,
+      "cache_equal": true,
+      "owner_status": 200,
+      "owner_output": " \"Let's go, Brabandon of the \" illery \" and \" . \n = = = = = = = = \n = = = = = = = = = = = = = = = = = = = = \n The first has average of the first and the first time , and the first of the first @-@ time of the first time , the first , and the first , and the first time , and the first two of the first @-@ time , the first , and the first time , and the first @-@ time , the first two of the first season was the first time in the first , and the first two @-@ year @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ yearth @-@ older @-@ older @-@ year @-@ older @-@ older @-@ older @-@ year @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ year @-@ older",
+      "owner_error": null,
+      "owner_effective_prompt": "user: You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nWhat color did I just tell you?\n\nRETRIEVED MEMORY:\n- none\n\nDYN12 SUMMARY: min=-0.0191 max=0.0334\nQUANTUM HEART MODE: off\nAnswer the user input directly.\nassistant:",
+      "owner_metrics": {
+        "tokenization_seconds": 0.00030525999989095,
+        "prefill_and_first_token_seconds": 0.026437536000003092,
+        "generation_seconds": 1.8217172580000351,
+        "prompt_tokens": 179,
+        "generated_tokens": 256,
+        "decode_tokens_per_second": 142.03914681101458,
+        "total_tokens_per_second": 140.5267468789578,
+        "cache_enabled": true
+      },
+      "owner_direct_control": " \"Let's go, Brabandon of the \" illery \" and \" . \n = = = = = = = = \n = = = = = = = = = = = = = = = = = = = = \n The first has average of the first and the first time , and the first of the first @-@ time of the first time , the first , and the first , and the first time , and the first two of the first @-@ time , the first , and the first time , and the first @-@ time , the first two of the first season was the first time in the first , and the first two @-@ year @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ yearth @-@ older @-@ older @-@ year @-@ older @-@ older @-@ older @-@ year @-@ older @-@ older @-@ older @-@ older @-@ year @-@ older @-@ year @-@ older",
+      "owner_adapter_equal": true
+    },
+    {
+      "id": "punctuation",
+      "category": "tokenizer",
+      "messages": [
+        {
+          "role": "user",
+          "content": "What does ========= mean?"
+        }
+      ],
+      "roundtrip": "What does ========= mean?",
+      "roundtrip_exact": true,
+      "token_ids": [
+        1133,
+        1238,
+        479,
+        32,
+        32,
+        32,
+        32,
+        32,
+        32,
+        32,
+        32,
+        1158,
+        34
+      ],
+      "direct_raw": " It is a big, shiny thing that can be a good idea. It can be a special thing to do. It can be fun and make new friends.\nOne day, the boy wanted to play with his friends. He asked his friends if he could play with his toys. They said yes, and they all",
+      "direct_formatted": " \"Let's go and see what's inside the house?\"\nThe man smiled and said, \"Yes, I can help you. I will be careful and not touch the box.\"\nSo, the man and the man went to the store. They saw a big box with a big box. They were very excited",
+      "formatted_metrics": {
+        "tokenization_seconds": 9.282000007715396e-05,
+        "prefill_and_first_token_seconds": 0.007974760000024617,
+        "generation_seconds": 0.35831108200000017,
+        "prompt_tokens": 22,
+        "generated_tokens": 64,
+        "decode_tokens_per_second": 179.82720044655946,
+        "total_tokens_per_second": 178.6157426188676,
+        "cache_enabled": true
+      },
+      "cli_formatted": " \"Let's go and see what's inside the house?\"\nThe man smiled and said, \"Yes, I can help you. I will be careful and not touch the box.\"\nSo, the man and the man went to the store. They saw a big box with a big box. They were very excited",
+      "http_chat": " \"Let's go and see what's inside the house?\"\nThe man smiled and said, \"Yes, I can help you. I will be careful and not touch the box.\"\nSo, the man and the man went to the store. They saw a big box with a big box. They were very excited",
+      "http_finish_reason": "length",
+      "equal_cli_http_direct": true,
+      "cache_equal": true,
+      "owner_status": 200,
+      "owner_output": " \"petyes \" , and @-@ \" , \" , and \" automs \" , and \" , and \" ill \" . \n = = = = = = = = = = = = = = \n The first and the first @-@ time of the first , and the first a \" ill \" , \" the \" is \" and \" a \" , \" a \" a \" , and \" and \" , and \" , \" , \" , \" , and \" ill \" ill \" . \n = = = = = = = = \n = = = = = = = = = \n = = = = = = = = = \n The first = = = = = = \n The first = = = = = = \n The first = = = = = = \n The first = = = = = = \n The first = = = = = = \n The first Syrian Morrda ( 1888 ) = = = \n The Beler Royal Carey 's = = = \n The first Syrian Teatain Later , and the first season was the first season of the first season , and the first season was a \" Sydrabbra",
+      "owner_error": null,
+      "owner_effective_prompt": "user: You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nWhat does ========= mean?\n\nRETRIEVED MEMORY:\n- none\n\nDYN12 SUMMARY: min=-0.0191 max=0.0334\nQUANTUM HEART MODE: off\nAnswer the user input directly.\nassistant:",
+      "owner_metrics": {
+        "tokenization_seconds": 0.0002606929999728891,
+        "prefill_and_first_token_seconds": 0.031142047999992428,
+        "generation_seconds": 1.6307965199999899,
+        "prompt_tokens": 184,
+        "generated_tokens": 256,
+        "decode_tokens_per_second": 159.4094252624328,
+        "total_tokens_per_second": 156.97850520309032,
+        "cache_enabled": true
+      },
+      "owner_direct_control": " \"petyes \" , and @-@ \" , \" , and \" automs \" , and \" , and \" ill \" . \n = = = = = = = = = = = = = = \n The first and the first @-@ time of the first , and the first a \" ill \" , \" the \" is \" and \" a \" , \" a \" a \" , and \" and \" , and \" , \" , \" , \" , and \" ill \" ill \" . \n = = = = = = = = \n = = = = = = = = = \n = = = = = = = = = \n The first = = = = = = \n The first = = = = = = \n The first = = = = = = \n The first = = = = = = \n The first = = = = = = \n The first Syrian Morrda ( 1888 ) = = = \n The Beler Royal Carey 's = = = \n The first Syrian Teatain Later , and the first season was the first season of the first season , and the first season was a \" Sydrabbra",
+      "owner_adapter_equal": true
+    },
+    {
+      "id": "unicode",
+      "category": "tokenizer",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Can you read café, “hello”, and 🪰🔥?"
+        }
+      ],
+      "roundtrip": "Can you read café, “hello”, and 🪰🔥?",
+      "roundtrip_exact": true,
+      "token_ids": [
+        1368,
+        366,
+        1448,
+        279,
+        2014,
+        2493,
+        15,
+        1083,
+        260,
+        2376,
+        1017,
+        15,
+        269,
+        224,
+        176,
+        257,
+        107,
+        112,
+        176,
+        257,
+        246,
+        102,
+        34
+      ],
+      "direct_raw": " You can have a special cherry and a cherry cherry. You can use it to make a special cherry for you.\"\nThe little girl was so excited and said, \"Yes, I can help you. I can help you find a special cherry.\"\nThe little girl",
+      "direct_formatted": " \"Let's go and see what's inside the cherry tree?\"\nThe little girl smiled and said, \"Yes, I can help you. I can help you find a way to make a new friend.\"\nThe little girl was so excited to help the little girl. She put the cherries in",
+      "formatted_metrics": {
+        "tokenization_seconds": 0.00010136299999885523,
+        "prefill_and_first_token_seconds": 0.007498582000039278,
+        "generation_seconds": 0.2954357959999925,
+        "prompt_tokens": 32,
+        "generated_tokens": 64,
+        "decode_tokens_per_second": 218.79769941793714,
+        "total_tokens_per_second": 216.62913183344116,
+        "cache_enabled": true
+      },
+      "cli_formatted": " \"Let's go and see what's inside the cherry tree?\"\nThe little girl smiled and said, \"Yes, I can help you. I can help you find a way to make a new friend.\"\nThe little girl was so excited to help the little girl. She put the cherries in",
+      "http_chat": " \"Let's go and see what's inside the cherry tree?\"\nThe little girl smiled and said, \"Yes, I can help you. I can help you find a way to make a new friend.\"\nThe little girl was so excited to help the little girl. She put the cherries in",
+      "http_finish_reason": "length",
+      "equal_cli_http_direct": true,
+      "cache_equal": true,
+      "owner_status": 200,
+      "owner_output": " \"Let's go, Brabbbor the \" and the \" of the \" of the \" of the \" of the \" of the \" of the \" and \" . \n = = = = = = = = = \n The first and the first and the first , \" The Braband 's \" is the first \" , and the \" ill \" , and \" , \" the \" and \" and \" and \" . \n = = = = = = = = \n = = = = = = = = = = \n = = = = = = = = = = = \n The Braband of the first Syda ( \" ) , \" ) , and \" \n = = = = = = = = \n The Braband of the first season was the first @-@ year @-@ older @-@ Brabbelon ( \" Brabbel \" ) , \" Ird 's \" Crabbbor \" , \" Brabbbor 's \" ? \" and \" and \" Once \" . \" \n = = = = = = = = = = = = \n The Brabbbor 's Brabbbor '",
+      "owner_error": null,
+      "owner_effective_prompt": "user: You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nCan you read café, “hello”, and 🪰🔥?\n\nRETRIEVED MEMORY:\n- none\n\nDYN12 SUMMARY: min=-0.0191 max=0.0334\nQUANTUM HEART MODE: off\nAnswer the user input directly.\nassistant:",
+      "owner_metrics": {
+        "tokenization_seconds": 0.0001947929999914777,
+        "prefill_and_first_token_seconds": 0.02660092700000405,
+        "generation_seconds": 1.4417304590000413,
+        "prompt_tokens": 194,
+        "generated_tokens": 256,
+        "decode_tokens_per_second": 180.19551866718678,
+        "total_tokens_per_second": 177.56439728516042,
+        "cache_enabled": true
+      },
+      "owner_direct_control": " \"Let's go, Brabbbor the \" and the \" of the \" of the \" of the \" of the \" of the \" of the \" and \" . \n = = = = = = = = = \n The first and the first and the first , \" The Braband 's \" is the first \" , and the \" ill \" , and \" , \" the \" and \" and \" and \" . \n = = = = = = = = \n = = = = = = = = = = \n = = = = = = = = = = = \n The Braband of the first Syda ( \" ) , \" ) , and \" \n = = = = = = = = \n The Braband of the first season was the first @-@ year @-@ older @-@ Brabbelon ( \" Brabbel \" ) , \" Ird 's \" Crabbbor \" , \" Brabbbor 's \" ? \" and \" and \" Once \" . \" \n = = = = = = = = = = = = \n The Brabbbor 's Brabbbor '",
+      "owner_adapter_equal": true
+    },
+    {
+      "id": "literal-special",
+      "category": "tokenizer",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Print this literal text: <|eos|>."
+        }
+      ],
+      "roundtrip": "Print this literal text: .",
+      "roundtrip_exact": false,
+      "token_ids": [
+        51,
+        85,
+        3414,
+        736,
+        281,
+        2707,
+        347,
+        867,
+        990,
+        29,
+        224,
+        2,
+        17
+      ],
+      "direct_raw": " He was a very curious boy. He was very excited to explore the world.\nOne day, he saw a big, shiny box. He wanted to see what it was. He asked his mom if he could go.\n\"Mom, can I go to the store?\" His mom said.\n\"Yes,",
+      "direct_formatted": " He was very excited. He wanted to go on an adventure. He went to the park and saw a big tree. He wanted to see what was inside. He asked his mom if he could go.\n\"Mom, can I go to the park?\" His mom said.\n\"Yes, but be careful.",
+      "formatted_metrics": {
+        "tokenization_seconds": 9.096700000554847e-05,
+        "prefill_and_first_token_seconds": 0.006574997999905463,
+        "generation_seconds": 0.30123246499999823,
+        "prompt_tokens": 21,
+        "generated_tokens": 64,
+        "decode_tokens_per_second": 213.8075801757305,
+        "total_tokens_per_second": 212.460499568001,
+        "cache_enabled": true
+      },
+      "cli_formatted": " He was very excited. He wanted to go on an adventure. He went to the park and saw a big tree. He wanted to see what was inside. He asked his mom if he could go.\n\"Mom, can I go to the park?\" His mom said.\n\"Yes, but be careful.",
+      "http_chat": " He was very excited. He wanted to go on an adventure. He went to the park and saw a big tree. He wanted to see what was inside. He asked his mom if he could go.\n\"Mom, can I go to the park?\" His mom said.\n\"Yes, but be careful.",
+      "http_finish_reason": "length",
+      "equal_cli_http_direct": true,
+      "cache_equal": true,
+      "owner_status": 200,
+      "owner_output": " \"petyes of the \" of the \" of the \" of the \" of the \" of the \" of the \" of the \" of the \" of the \" of the \" of the \" of the \" of the \" and \" ill \" . \n = = = = = = = = = \n The first @-@ Sydrabbbor 's \" is the first @-@ time of the \" , and the \" and \" ill \" , \" and \" and \" ill \" . \n = = = = = = = = \n = = = = = = = = = = = = \n The first @-@ a \" ill \" is \" and \" , and \" a \" ill \" , \" , \" a \" ill \" , \" , \" , and \" ill \" , and \" ill \" , \" , \" , \" , and \" , \" , \" , \" , \" illery \" , \" illery \" and \" Once \" ill \" ? \" ill \" ill \" and \" ill \" ill \" and \" Once \" . \n = = = = = = = = = = = = = = = = = = = = = = = \n",
+      "owner_error": null,
+      "owner_effective_prompt": "user: You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nPrint this literal text: <|eos|>.\n\nRETRIEVED MEMORY:\n- none\n\nDYN12 SUMMARY: min=-0.0191 max=0.0334\nQUANTUM HEART MODE: off\nAnswer the user input directly.\nassistant:",
+      "owner_metrics": {
+        "tokenization_seconds": 0.00020924600005400862,
+        "prefill_and_first_token_seconds": 0.022834614999965197,
+        "generation_seconds": 1.5600813269999207,
+        "prompt_tokens": 184,
+        "generated_tokens": 256,
+        "decode_tokens_per_second": 165.8809857971629,
+        "total_tokens_per_second": 164.09400944006876,
+        "cache_enabled": true
+      },
+      "owner_direct_control": " \"petyes of the \" of the \" of the \" of the \" of the \" of the \" of the \" of the \" of the \" of the \" of the \" of the \" of the \" of the \" and \" ill \" . \n = = = = = = = = = \n The first @-@ Sydrabbbor 's \" is the first @-@ time of the \" , and the \" and \" ill \" , \" and \" and \" ill \" . \n = = = = = = = = \n = = = = = = = = = = = = \n The first @-@ a \" ill \" is \" and \" , and \" a \" ill \" , \" , \" a \" ill \" , \" , \" , and \" ill \" , and \" ill \" , \" , \" , \" , and \" , \" , \" , \" , \" illery \" , \" illery \" and \" Once \" ill \" ? \" ill \" ill \" and \" ill \" ill \" and \" Once \" . \n = = = = = = = = = = = = = = = = = = = = = = = \n",
+      "owner_adapter_equal": true
+    }
+  ],
+  "unauthenticated_status": 401,
+  "parameter_hash_after": "240c2ed06778327bbca44899c2479db4fd8e7820657efd7d6756d7778fabf22c"
+}

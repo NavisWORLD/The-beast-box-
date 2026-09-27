@@ -1,0 +1,132 @@
+name: RAWRPHOS 18K experimental inference package
+on:
+  push:
+    branches: [feature/rawrphos-conversation-repair-001]
+    paths: ['models/rawrphos/experimental-18k-inference-request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: rawrphos-18k-experimental-inference
+  cancel-in-progress: false
+jobs:
+  verify-and-publish:
+    if: >-
+      github.repository == 'NavisWORLD/The-beast-box-' &&
+      github.ref == 'refs/heads/feature/rawrphos-conversation-repair-001' &&
+      startsWith(github.event.head_commit.message, 'release(rawrphos): authorize 18k experimental inference ')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      PYTHONPATH: models
+      PARENT_TAG: rawrphos-native-research-step-00018000-run-36008364848
+      TAG: rawrphos-native-experimental-inference-step-00018000-run-36008364848
+      EXPECTED_SHA: 20932937afb3e0e1b62a4e5f38f92170046ae2928b437dc31b8a37d6538e701e
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false, fetch-depth: 2}
+      - name: Verify exact request and source release exists
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          set -euo pipefail
+          [[ "$(git diff --name-only HEAD^ HEAD)" == 'models/rawrphos/experimental-18k-inference-request.json' ]]
+          gh release view "$PARENT_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null
+          ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1
+          python - <<'PY'
+          import json,os,pathlib,re
+          r=json.loads(pathlib.Path('models/rawrphos/experimental-18k-inference-request.json').read_text())
+          assert set(r)=={'schema','source_training_run','source_release_tag','source_archive_sha256','checkpoint_sha256','step','authorization'}
+          assert r['schema']=='rawrphos-18k-experimental-inference-v1'
+          assert r['source_training_run']=='36008364848' and r['source_release_tag']==os.environ['PARENT_TAG']
+          assert r['checkpoint_sha256']==os.environ['EXPECTED_SHA'] and r['step']==18000
+          assert re.fullmatch('[0-9a-f]{64}',r['source_archive_sha256'])
+          assert r['authorization']=='Owner-requested opt-in 18K experimental inference package; research gate FAILED, no automatic production deployment or default switch'
+          print('EXACT_EXPERIMENTAL_ONLY_AUTHORIZATION',r['checkpoint_sha256'],flush=True)
+          PY
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install CPU checkpoint verification dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet 'numpy>=1.26,<3' 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1'
+      - name: Download and verify immutable 18K research release
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          set -euo pipefail
+          mkdir -p .rawrphos-package/source .rawrphos-package/out
+          gh release download "$PARENT_TAG" --repo "$GITHUB_REPOSITORY" --dir .rawrphos-package/source
+          cd .rawrphos-package/source
+          sha256sum --check SHA256SUMS
+          python - <<'PY'
+          import hashlib,json,pathlib
+          request=json.loads(pathlib.Path('../../models/rawrphos/experimental-18k-inference-request.json').read_text())
+          archive=pathlib.Path('rawrphos-17k-to-18k-unpromoted-recovery.tar.gz')
+          assert hashlib.sha256(archive.read_bytes()).hexdigest()==request['source_archive_sha256']
+          receipt=json.loads(pathlib.Path('archive-receipt.json').read_text())
+          assert receipt['final_sha256']==request['checkpoint_sha256']
+          assert receipt['training_run']==request['source_training_run']
+          assert receipt['automated_checks_pass'] is False
+          assert receipt['failed_promotion_checks']==['owner_repetition']
+          assert len(receipt['checkpoint_chain'])==10 and receipt['checkpoint_chain'][-1]['step']==18000
+          print('SOURCE_18K_UNPROMOTED_ARCHIVE_VERIFIED',flush=True)
+          PY
+      - name: Extract only sealed final checkpoint and verify complete model
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,os,pathlib,tarfile
+          from rawrphos.training.checkpoint import load_checkpoint,parameter_hash
+          root=pathlib.Path('.rawrphos-package');target=root/'out/step-00018000';target.mkdir(parents=True)
+          src=root/'source/rawrphos-17k-to-18k-unpromoted-recovery.tar.gz'
+          prefix='checkpoints/step-00018000/'
+          with tarfile.open(src,'r:gz') as tar:
+              count=0
+              for item in tar:
+                  if not item.name.startswith(prefix):continue
+                  sub=pathlib.PurePosixPath(item.name[len(prefix):])
+                  if not sub.parts or sub.is_absolute() or '..' in sub.parts or not (item.isfile() or item.isdir()):
+                      raise ValueError('unsafe release member')
+                  dest=target.joinpath(*sub.parts)
+                  if item.isdir():dest.mkdir(parents=True,exist_ok=True);continue
+                  dest.parent.mkdir(parents=True,exist_ok=True)
+                  with tar.extractfile(item) as source,dest.open('xb') as output:
+                      for chunk in iter(lambda:source.read(1024*1024),b''):output.write(chunk)
+                  count+=1
+          assert count>=4, 'checkpoint incomplete'
+          m=load_checkpoint(target,expected_checkpoint_sha256=os.environ['EXPECTED_SHA'])
+          meta,state=m['metadata'],m['state']
+          assert meta['training_steps']==18000 and meta['conversation_steps']==6000
+          assert meta['model_id']=='rawrphos-native' and meta['parameter_count']==3909956
+          assert meta['dataset_manifest_sha256']=='7e9e8f91e751b3304663cb28293b2c90cc0e1623df355eb77dfdc6004cadcec5'
+          assert meta['tokenizer_sha256']=='f704e9b75e816cc4ef203bc6c4afeeb966cbc11f369fb3b5f4d81c1505c8619c'
+          assert parameter_hash(m['model'])==meta['parameter_sha256']
+          assert {'optimizer','rng','data_rng','scheduler'}<=state.keys() and len(state['optimizer']['state'])>0
+          assert state['scheduler']['completed_phase_steps']==6000
+          archive=root/'out/rawrphos-native-step-00018000.tar.gz'
+          with tarfile.open(archive,'w:gz') as tar:tar.add(target,arcname='step-00018000')
+          def sha(p):
+              h=hashlib.sha256()
+              with p.open('rb') as f:
+                  for b in iter(lambda:f.read(1024*1024),b''):h.update(b)
+              return h.hexdigest()
+          manifest={'schema':'rawrphos-18k-experimental-inference-release-v1','training_run':'36008364848','checkpoint_sha256':os.environ['EXPECTED_SHA'],'archive_sha256':sha(archive),'training_steps':18000,'automated_promotion_checks_pass':False,'failed_promotion_checks':['owner_repetition'],'manual_coherence_review':'NOT PERFORMED','deployment_approved':False,'training_state_included':True}
+          (root/'out/receipt.json').write_text(json.dumps(manifest,indent=2)+'\n')
+          (root/'out/SHA256SUMS').write_text(''.join(f'{sha(root/"out"/p)}  {p}\n' for p in ('rawrphos-native-step-00018000.tar.gz','receipt.json')))
+          print('VERIFIED_FULL_18K_EXP_MODEL',os.environ['EXPECTED_SHA'],flush=True)
+          print('ARCHIVE_SHA256',manifest['archive_sha256'],flush=True)
+          PY
+      - name: Publish immutable experimental-only 18K package
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          set -euo pipefail
+          ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1
+          gh release create "$TAG" .rawrphos-package/out/{rawrphos-native-step-00018000.tar.gz,receipt.json,SHA256SUMS} --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title 'RAWRPHØS 18K experimental unpromoted inference package' --notes 'Owner-requested inference packaging only. 18K research candidate failed owner-repetition gate (10/11 mechanical checks), is unreliable on instruction/multi-turn probes, and is NOT approved as the production default. Full optimizer/RNG are included for recovery. This release does not deploy or modify the live 14K model.'
+      - name: Preserve package receipt even if release fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawrphos-18k-experimental-inference-receipt
+          path: .rawrphos-package/out/receipt.json
+          if-no-files-found: ignore
+          retention-days: 30

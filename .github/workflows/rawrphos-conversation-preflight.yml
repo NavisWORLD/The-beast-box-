@@ -1,0 +1,71 @@
+name: RAWRPHOS conversation repair preflight
+
+on:
+  pull_request:
+    branches:
+      - feature/cosmos-world-interface-recovery-001
+    paths:
+      - 'models/rawrphos/**'
+      - '.github/workflows/rawrphos-conversation-preflight.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rawrphos-conversation-preflight-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  native-cpu:
+    if: >-
+      github.repository == 'NavisWORLD/The-beast-box-' &&
+      github.event.pull_request.head.ref == 'feature/rawrphos-conversation-repair-001'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      PYTHONPATH: ${{ github.workspace }}/models
+      BASELINE_WEIGHT_SHA: 339fb8e1d6f3950e2aa15a6e33bf8c0f28dd655cefc93b7926fb7545e7e97601
+      BASELINE_ARCHIVE_SHA: c956ba605f1194587c73f471103d97d86c496b89f943380fb480862f4df60613
+    steps:
+      - name: Checkout exact PR revision without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install CPU-only native dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet 'torch==2.6.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check --quiet 'tokenizers>=0.20,<0.24' 'safetensors>=0.4.5,<1' 'pyarrow>=15,<24' 'pytest>=8,<10' 'numpy>=1.26,<3' 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'uvicorn>=0.30,<1'
+      - name: Exercise real native inference, tokenizer, loss masking, and exact split resume
+        run: python -m pytest -q models/rawrphos/tests
+      - name: Recover the immutable 12K checkpoint with independent hash verification
+        run: |
+          set -euo pipefail
+          mkdir -p .rawrphos-conversation-preflight
+          python -m rawrphos.scripts.install_pinned_12k --destination .rawrphos-conversation-preflight/step-00012000
+          python - <<'PY'
+          import json, os, pathlib, torch
+          from rawrphos.training.checkpoint import load_checkpoint, parameter_hash
+          root = pathlib.Path('.rawrphos-conversation-preflight/step-00012000')
+          loaded = load_checkpoint(root, expected_checkpoint_sha256=os.environ['BASELINE_WEIGHT_SHA'])
+          m, state = loaded['metadata'], loaded['state']
+          assert m['training_steps'] == 12000
+          assert m['parameter_count'] == 3909956
+          assert m['training_tokens'] == 12288000
+          assert m['tokenizer_sha256'] == 'f704e9b75e816cc4ef203bc6c4afeeb966cbc11f369fb3b5f4d81c1505c8619c'
+          assert parameter_hash(loaded['model']) == m['parameter_sha256']
+          assert {'optimizer', 'rng', 'data_rng'} <= state.keys()
+          opt = torch.optim.AdamW(loaded['model'].parameters(), lr=.00008, betas=(.9,.95), weight_decay=.01)
+          opt.load_state_dict(state['optimizer'])
+          assert len(opt.state) > 0
+          evidence = json.loads(pathlib.Path('models/rawrphos/evidence/conversation-001/baseline-layers.json').read_text())
+          assert evidence['checkpoint']['checkpoint_sha256'] == m['checkpoint_sha256']
+          assert evidence['checkpoint']['tokenizer_sha256'] == m['tokenizer_sha256']
+          print('RECOVERED_12K_WITH_FULL_OPTIMIZER_AND_RNG', m['checkpoint_sha256'], flush=True)
+          PY
+      - name: Confirm training is NOT launched or promoted by this preflight
+        run: |
+          echo 'Tests and immutable 12K recovery only. No optimizer steps, deployment, release, or provider changes.'
