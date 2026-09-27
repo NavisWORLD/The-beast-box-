@@ -41,7 +41,16 @@ class ReadOnlySnapshotDB:
 
 
 def capture_snapshot(memory: ReconciliationMemory) -> list[sqlite3.Row]:
-    return memory.db.execute(SNAPSHOT_SQL).fetchall()
+    """One product read; archived originals stay retained but leave active recall."""
+    rows = memory.db.execute(SNAPSHOT_SQL).fetchall()
+    active: list[sqlite3.Row] = []
+    for row in rows:
+        metadata = json.loads(row["metadata_json"])
+        if not isinstance(metadata, dict):
+            raise RuntimeError("invalid memory lifecycle metadata")
+        if not bool(metadata.get("archived", False)):
+            active.append(row)
+    return active
 
 
 def lexical_from_snapshot(
