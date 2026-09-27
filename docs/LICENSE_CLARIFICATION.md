@@ -1,33 +1,11 @@
-# License clarification
+# Beast Box licensing clarification — prospective open-source generation
 
-Status of the historical-MIT vs current-proprietary question:
+**Prepared 2026-09-26, effective for a released revision once this transition is adopted.**
 
-```text
-OWNER LEGAL DECISION REQUIRED
-```
+Original code and documentation owned or controlled by Cory Shane Davis / NavisWORLD included in new versions carrying the root Apache License 2.0 are licensed **Apache-2.0**, except separately marked material. The public license permits modification, redistribution and commercial use; it also states its express patent grant. No separate owner permission is required for licensed uses and this clarification cannot limit them.
 
-This is not an engineering failure. This file does not decide it.
+Historical Beast Box versions validly published under MIT retain their MIT rights. Later versions published under the proprietary source-available license remain governed by the applicable terms as originally published. Their full notices are preserved in Git history and summarized in [LICENSE_HISTORY.md](../LICENSE_HISTORY.md).
 
-Effective license of current Cory-owned material: **THE BEAST BOX PROPRIETARY SOURCE-AVAILABLE LICENSE v1.0** (root `LICENSE`, 2026-08-17).
+Third-party components, original works owned by others, external trained models, datasets, media, research papers with separate licenses, sensitive/private data, SDKs, trademarks and cloud service terms are not relicensed by the root LICENSE. Copyright does not itself grant ownership over abstract methods, equations or discoveries. Review file-specific notices and provenance before redistributing a bundled release.
 
-Public GitHub visibility is permission to **read** the tree. It is not:
-
-- an OSI open-source license
-- permission to copy, modify, redistribute, host, or sell
-- permission to train, fine-tune, distill, or evaluate an AI system on this material
-- a patent license
-
-| Action | Allowed without extra written permission? |
-| --- | --- |
-| Read / clone for the purpose access was granted | yes (view) |
-| `pip install -e .` locally to inspect the runtime | intended for authorized accessors; redistribution of the package is not granted |
-| Modify and publish a fork | no |
-| Commercial product incorporation | no |
-| Train models on this repo | no |
-| Reuse third-party deps (pytest, qiskit, …) | follow **those** licenses |
-
-Historical MIT-licensed copies remain under MIT for those historical copies only (`LICENSE_HISTORY.md`). This file does not revoke those past grants and does not re-license current material as MIT.
-
-Unresolved legal judgment (not invented here): whether every file first published under MIT before 2026-08-17 can still be used under MIT if copied from an old revision. Ask the copyright owner before relying on that.
-
-Do not call this project “open source.”
+**Status:** This file in a review branch does not make `main` open-source before the branch is merged or a separate new release is issued.
