@@ -9,7 +9,7 @@ Regression coverage: tests/test_persistent_substrate_ledger.py; tests/test_finis
 Never import this file from an original historical experiment entrypoint.
 """
 
-"""Deterministic memory and state ledgers for the controlled swap."""
+# Deterministic memory and state ledgers for the controlled swap.
 
 from __future__ import annotations
 
