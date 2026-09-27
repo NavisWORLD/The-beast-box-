@@ -1,0 +1,69 @@
+{
+  "schema": "beastbox-staging-posthoc-diagnostic-machine-receipt-v1",
+  "source_head": "2f1f5880da26dd3771cf3a2331a54df703f6742f",
+  "run_id": 36353555240,
+  "job_id": 108716724681,
+  "receipt": {
+    "claims": "one fixed public test query; does not establish ranking superiority or SLA",
+    "classification": "real-pretrained-embeddings-isolated-public-fixture-end-to-end-smoke",
+    "cold_embedded_records": 100,
+    "configured_embedding_provider": "local-sentence-transformer:offline-minilm",
+    "dataset": {
+      "archive_sha256": "536e14446a0ba56ed1398ab1055f39fe852686ecad24a6306c80c490fa8e0165",
+      "name": "BEIR SciFact"
+    },
+    "default_semantic_disabled_after_restart": true,
+    "embedding_outside_write_transaction": true,
+    "end_to_end_cold_turn_ms": 2676.51,
+    "end_to_end_warm_turn_ms": 464.43,
+    "environment": {
+      "host": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+      "peak_process_rss_kb": 808580,
+      "python": "3.11.16"
+    },
+    "exact_checkpoint_verified_after_restart": true,
+    "exploratory_same_corpus_retrieval_layer_24_queries": {
+      "conditions": {
+        "frozen_r12": {
+          "mrr_at_10": 0.185764,
+          "recall_at_5": 0.256944
+        },
+        "lexical": {
+          "mrr_at_10": 0.732639,
+          "recall_at_5": 0.8125
+        },
+        "opt_in_hybrid": {
+          "mrr_at_10": 0.847222,
+          "recall_at_5": 0.902778
+        }
+      },
+      "corpus_rows": 100,
+      "heldout_test_queries": 24,
+      "judged_positive_count": 28,
+      "sampling": "all selected judged positives plus lowest sorted other source IDs",
+      "semantic_plus_fusion_cold_ms": 2256.24,
+      "semantic_plus_fusion_warm_p50_ms": 8.6
+    },
+    "hybrid_relevant_in_top_5": 0,
+    "judged_positives_available": 1,
+    "lexical_relevant_in_top_5": 0,
+    "model": {
+      "repo": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "154917cf5a5a0657fddbae9cd0ecd85cb86dc125",
+      "verified_files_sha256": {
+        "model.safetensors": "53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db",
+        "modules.json": "84e40c8e006c9b1d6c122e02cba9b02458120b5fb0c87b746c41e0207cf642cf"
+      }
+    },
+    "post_cold_direct_semantic_matched_records": 0,
+    "post_cold_direct_semantic_positive_rank": null,
+    "production_or_external_authority_deployed": false,
+    "public_source_digest": "fcbaa412c6323b86585cee3d557282e191ce577cb1abae418d1d00c48bcc99d0",
+    "query_id": "1",
+    "records": 100,
+    "sampling": "positive-enriched; NOT representative and NOT 50k",
+    "schema": "beastbox-isolated-real-semantic-staging-v1",
+    "seed_ms": 262.96,
+    "warm_source_cache_hits": 100
+  }
+}
