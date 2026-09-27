@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from beastbox.persistent_substrate.ledger import MemoryChainVerificationError
+from beastbox.persistent_substrate.ledger_v2 import MemoryChainVerificationError
 from beastbox.persistent_substrate.protocol import DeterministicLogicalClock, canonical_json_bytes
-from beastbox.persistent_substrate.substrate import (
+from beastbox.persistent_substrate.substrate_v2 import (
     PersistentSubstrate,
     ReadOnlyWorldKnowledgeStore,
     SubstrateInputPaths,
