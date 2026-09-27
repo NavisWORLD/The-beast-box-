@@ -1,32 +1,17 @@
-# THE BEAST BOX — IP & Permission Notice
+# THE BEAST BOX — IP, licensing and provenance notice
 
-**Owner:** Cory Shane Davis / NavisWORLD  
-**Status:** Private repository. Permission required.  
-**Current license:** [`LICENSE`](LICENSE)  
-**License history:** [`LICENSE_HISTORY.md`](LICENSE_HISTORY.md)
+**Owner of original project contributions:** Cory Shane Davis / NavisWORLD.  
+**Prospective source license:** [Apache License 2.0](LICENSE) for new Cory-owned original code and documentation in revisions adopting it, except where files and components identify other terms.  
+**License chronology:** [LICENSE_HISTORY.md](LICENSE_HISTORY.md).
 
-## What access means
+## Open-source generation
 
-Being able to view this repository does **not** mean you have permission to copy, reuse, modify, redistribute, commercialize, deploy, train an AI system on, or create a derivative product from Cory-owned protected material.
+Apache-2.0 grants licensed users, including commercial users, the copyright and express patent permissions stated in that license; no additional permission or royalty is required for licensed uses. Cory retains copyright in his own work, but all recipients may use and redistribute covered versions in compliance with the license. This notice does not limit Apache-2.0 permissions or claim exclusive commercialization rights in the newly open-source material.
 
-If you want to use current covered material, **ask Cory Shane Davis / NavisWORLD first and obtain express written permission**. Commercial, redistribution, hosted-service, derivative-product, or rights-transfer uses require a separate signed written agreement.
+## Other rights and boundaries
 
-## Rights reserved
+Trademarks and trade names are not granted by Apache-2.0. Third-party dependencies, models, datasets, external research publications, provider accounts, media, sensitive recordings or private data remain subject to their separate licenses, laws and contracts. Independent inventions or private confidential materials may involve separate patent, contract or privacy rights; no additional rights are represented here.
 
-All copyright and other rights that may lawfully be reserved are reserved. No patent license is granted. No trademark license is granted. No waiver of any patent, trade-secret, contractual, confidentiality, trademark, publicity, privacy, or other rights is intended.
+## History
 
-## Important legal boundary
-
-Copyright protects original expression such as source code, documentation, diagrams, and other authored material. Copyright does not by itself create ownership over abstract ideas, concepts, algorithms, procedures, systems, methods, principles, discoveries, or inventions.
-
-If a particular invention, process, architecture, or non-public technique needs protection beyond copyright, patent filings, trade-secret controls, NDAs, access controls, or other contracts may be necessary.
-
-## Historical versions
-
-Historical copies that were validly distributed under the repository's former MIT License keep the permissions that accompanied those copies. The current proprietary permission-required license applies prospectively as described in [`LICENSE_HISTORY.md`](LICENSE_HISTORY.md).
-
-## Third-party components
-
-Third-party material remains governed by the applicable third-party license. Nothing in this notice overrides rights granted by another copyright owner.
-
-**Bottom line: view access is not reuse permission. Ask first.**
+Earlier Beast Box copies validly distributed under MIT remain covered by the rights that accompanied those copies. Later source-available copies retain their original terms; the new open-source grant applies prospectively to revisions actually incorporating the revised LICENSE. Historic IP and permission notices remain auditable in Git history. [IP_PROVENANCE.md](IP_PROVENANCE.md) and other research provenance records remain separate from software licensing.
