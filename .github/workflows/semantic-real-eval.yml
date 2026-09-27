@@ -1,0 +1,47 @@
+name: Opt-in real semantic retrieval benchmark (standard free public CPU)
+
+on:
+  push:
+    branches:
+      - "feature/beastbox-semantic-retrieval-003"
+    paths:
+      - "scripts/semantic_real_eval.py"
+      - "tests/test_finisher_semantic_real_eval_harness.py"
+      - ".github/workflows/semantic-real-eval.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: beastbox-pr134-real-semantic-evaluation
+  cancel-in-progress: true
+
+jobs:
+  real-scifact-cpu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 27
+    env:
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      TOKENIZERS_PARALLELISM: "false"
+      OMP_NUM_THREADS: "4"
+      MKL_NUM_THREADS: "4"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install only standard CPU, Python and open-weight-model tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . "sentence-transformers==3.4.1" "huggingface-hub>=0.29,<1" "pytest>=8,<10"
+      - name: Preflight the frozen scientific scoring and sampling contract
+        run: python -m pytest -q tests/test_finisher_semantic_real_eval_harness.py
+      - name: Real model, pinned safetensors, checksum-verified third-party science benchmark
+        run: python scripts/semantic_real_eval.py --output build/semantic-real-eval.json
+      - name: Confirm evidence receipt is fully formed without an artifact upload
+        run: |
+          test -s build/semantic-real-eval.json
+          python -c "import json; x=json.load(open('build/semantic-real-eval.json')); assert x['schema']=='beastbox-real-semantic-preregistered-v1' and len(x['results'])==2"

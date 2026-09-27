@@ -7,6 +7,7 @@ host capability; only an explicitly enabled, purely simulated output is supporte
 from __future__ import annotations
 
 import copy
+import threading
 import time
 import uuid
 from dataclasses import asdict
@@ -30,6 +31,7 @@ from .providers import ReferenceTextProvider, TextProvider
 from .reality_memory import initial_r12_state
 from .refractive_memory import RefractiveMemoryRouter
 from .retrieval_snapshot import ReadOnlySnapshotDB, capture_snapshot, lexical_from_snapshot
+from .semantic_retrieval import EmbeddingProvider, SemanticRetrievalError, SnapshotSemanticIndex, fuse_r12_semantic
 from .runtime import CosmosRuntime
 from .state_family import StateFamily
 
@@ -101,11 +103,18 @@ class DurableRuntime(CosmosRuntime):
         *,
         allow_simulated_tool: bool = False,
         anchor_authority: ContinuityAnchor | None = None,
+        embedding_provider: EmbeddingProvider | None = None,
+        allow_remote_embeddings: bool = False,
     ):
         started = time.perf_counter()
         self._stage_started: float | None = None
         self._stages_ms: dict[str, float] = {}
         self.last_metrics: dict[str, Any] = {}
+        # Opt in explicitly from the host; never take provider selection from model text.
+        self.semantic_index = (
+            SnapshotSemanticIndex(embedding_provider, allow_remote=allow_remote_embeddings)
+            if embedding_provider is not None else None
+        )
         base = Path(root)
         if base.is_symlink():
             raise ValueError("runtime root must not be a symlink")
@@ -131,6 +140,11 @@ class DurableRuntime(CosmosRuntime):
         self._routing: dict[str, Any] = {}
         self._provider_generation = 0
         self._retrieval_snapshot: list[Any] | None = None
+        # Opt-in scores are computed outside SQLite BEGIN IMMEDIATE and are never checkpointed.
+        self._semantic_precomputed: dict[str, Any] | None = None
+        # Prevent two opt-in turns from racing over one runtime's ephemeral
+        # snapshot, vector cache, provider receipt and model-independent state.
+        self._semantic_turn_lock = threading.Lock()
         self.anchor_authority = anchor_authority
         self._anchor_blocked = False
         try:
@@ -250,9 +264,15 @@ class DurableRuntime(CosmosRuntime):
         }
         self._stage_started = None
 
+    @staticmethod
+    def _snapshot_fingerprint(rows: list[Any]) -> str:
+        """Bind prefetched vectors to exact source contents, lifecycle and provenance."""
+        return sha256_obj([dict(row) for row in rows])
+
     def _retrieve_memories(self, text: str) -> list[MemoryHit]:
-        """One materialized SQLite read for both the pre-CNS and R12 routes."""
-        self._retrieval_snapshot = capture_snapshot(self.memory)
+        """Share one in-transaction active snapshot across lexical/CNS/R12."""
+        if self._retrieval_snapshot is None:
+            self._retrieval_snapshot = capture_snapshot(self.memory)
         return lexical_from_snapshot(self._retrieval_snapshot, text, limit=5)
 
     def _route_memories(self, text, memories, state):
@@ -267,17 +287,41 @@ class DurableRuntime(CosmosRuntime):
                 sequence=self.turn,
                 dyn12=state.dyn12,
                 r12_state=self.r12_state,
-                limit=5,
+                limit=len(snapshot_rows) if self.semantic_index is not None else 5,
             )
+            semantic_info: dict[str, Any] | None = None
+            if self.semantic_index is not None:
+                # The embedding provider must never run inside BEGIN IMMEDIATE.
+                # The caller checked the exact checkpoint AND full source fingerprint
+                # after acquiring the write lock. No cold network/model work here.
+                prepared = self._semantic_precomputed
+                if prepared is None:
+                    raise SemanticRetrievalError("semantic precompute is required before a durable turn")
+                semantic = prepared["result"]
+                records = fuse_r12_semantic(records, semantic.scores, limit=5)
+                semantic_info = {
+                    "mode": "explicit_hybrid_rrf_v1",
+                    "model_id": self.semantic_index.model_id,
+                    "identity_kind": "configured-provider-label; no weight attestation",
+                    "local_only_declared": self.semantic_index.local_only_declared,
+                    "min_similarity": self.semantic_index.min_similarity,
+                    "matched_records": len(semantic.scores),
+                    "embedded_records": semantic.embedded_records,
+                    "cache_hits": semantic.cache_hits,
+                    "elapsed_ms": prepared["embedding_ms"],
+                    "outside_write_transaction": True,
+                }
         finally:
             # Never carry retrieved context into another turn or checkpoint.
             self._retrieval_snapshot = None
         self._routing = {
-            "router": "RefractiveMemoryRouter",
+            "router": "RefractiveMemoryRouter" if semantic_info is None else "R12+opt_in_semantic_rrf",
             "context_sha256": sha256_obj(records),
             "memory_ids": [r["memory_id"] for r in records],
             "state_sha256": sha256_obj(self.r12_state),
         }
+        if semantic_info is not None:
+            self._routing["semantic"] = semantic_info
         self._trace_stage("r12_routing")
         return [
             MemoryHit(r["memory_id"], r["text"], r["score"], r["created_at"], r["kind"], r["source_ids"])
@@ -304,12 +348,28 @@ class DurableRuntime(CosmosRuntime):
         )
 
     def respond_event(self, event: dict[str, Any], *, transient_context: str = "") -> dict[str, Any]:
+        # The unlocked embedding interval permits OTHER independent runtimes
+        # to write. It must not permit overlapping turns sharing THIS instance.
+        # Reject rather than block: reentrant host plugins must fail closed.
+        if self.semantic_index is None:
+            return self._respond_event_serial(event, transient_context=transient_context)
+        if not self._semantic_turn_lock.acquire(blocking=False):
+            raise SemanticRetrievalError("concurrent semantic turns on one runtime are not supported; retry")
+        try:
+            return self._respond_event_serial(event, transient_context=transient_context)
+        finally:
+            self._semantic_turn_lock.release()
+
+    def _respond_event_serial(
+        self, event: dict[str, Any], *, transient_context: str = ""
+    ) -> dict[str, Any]:
         started = time.perf_counter()
         self._stage_started = started
         self._stages_ms = {}
         self.last_metrics = {}
         cast(MeasuredProvider, self.provider).measurements = {}
         self._retrieval_snapshot = None
+        self._semantic_precomputed = None
         before = None
         committed = False
         try:
@@ -318,9 +378,44 @@ class DurableRuntime(CosmosRuntime):
             normalized = normalize_event(event)
             self._trace = ["normalize"]
             self._measure_boundary("normalize")
+            if self.semantic_index is not None:
+                # Verify source and authority under a BRIEF transaction, then
+                # release its SQLite write lock before calling an embedding plugin.
+                with self.memory.transaction():
+                    preflight = self.continuity.verify()
+                    self._check_anchor(preflight)
+                    source_rows = capture_snapshot(self.memory)
+                    source_digest = self._snapshot_fingerprint(source_rows)
+                embedding_started = time.perf_counter()
+                semantic = self.semantic_index.rank(source_rows, normalized["text"])
+                self._semantic_precomputed = {
+                    "checkpoint_sha256": preflight["sha256"],
+                    "source_digest": source_digest,
+                    "result": semantic,
+                    "embedding_ms": (time.perf_counter() - embedding_started) * 1000.0,
+                }
+                self._trace_stage("semantic_prewarm")
             with self.memory.transaction():
                 before = self.continuity.verify()
                 self._check_anchor(before)
+                if self._semantic_precomputed is not None:
+                    if before["sha256"] != self._semantic_precomputed["checkpoint_sha256"]:
+                        if self.semantic_index is not None:
+                            self.semantic_index.clear()
+                        raise SemanticRetrievalError(
+                            "durable checkpoint changed during semantic prewarm; retry the turn"
+                        )
+                    # Verify an exact, single in-turn snapshot before permitting
+                    # any prefetched semantic scores to enter the CNS/R12 route.
+                    self._retrieval_snapshot = capture_snapshot(self.memory)
+                    if self._snapshot_fingerprint(self._retrieval_snapshot) != (
+                        self._semantic_precomputed["source_digest"]
+                    ):
+                        if self.semantic_index is not None:
+                            self.semantic_index.clear()
+                        raise SemanticRetrievalError(
+                            "memory snapshot changed during semantic prewarm; retry the turn"
+                        )
                 self._measure_boundary("checkpoint_verify")
                 self._restore(copy.deepcopy(before))
                 self._measure_boundary("checkpoint_restore")
@@ -356,9 +451,11 @@ class DurableRuntime(CosmosRuntime):
             self._measure_boundary("commit")
             self._finish_measurements(started, "committed")
             result["metrics"] = self.last_metrics
+            self._semantic_precomputed = None
             return result
         except BaseException:
             self._retrieval_snapshot = None
+            self._semantic_precomputed = None
             try:
                 if before is not None and not committed:
                     self._restore(before)
@@ -427,6 +524,11 @@ class DurableRuntime(CosmosRuntime):
                 self._check_anchor(before)
                 self._restore(copy.deepcopy(before))
                 changed = mutate()
+                if changed and action == "archive" and self.semantic_index is not None:
+                    # Lifecycle privacy: the archived source must not linger in
+                    # this process's embedding cache, even before another turn.
+                    for memory_id in ids:
+                        self.semantic_index.forget_memory(memory_id)
                 if not changed:
                     return {"changed": False, "action": action, "memory_ids": list(ids)}
                 receipt = {
@@ -499,6 +601,9 @@ class DurableRuntime(CosmosRuntime):
 
     def close(self) -> None:
         root = Path(self.config.data_dir)
+        self._semantic_precomputed = None
+        if self.semantic_index is not None:
+            self.semantic_index.clear()
         super().close()
         from .sealed_storage import maybe_seal_root
 
