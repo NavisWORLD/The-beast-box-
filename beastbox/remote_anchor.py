@@ -82,13 +82,13 @@ class HTTPSAnchorClient:
                 data = response.read(MAX_RESPONSE_BYTES + 1)
         except AnchorMismatch:
             raise
-        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError) as exc:
+        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError):
             raise AnchorMismatch("remote authority unavailable or rejected request") from None
         if len(data) > MAX_RESPONSE_BYTES:
             raise AnchorMismatch("remote authority exceeded maximum signed response size")
         try:
             decoded = json.loads(data)
-        except (UnicodeDecodeError, ValueError) as exc:
+        except (UnicodeDecodeError, ValueError):
             raise AnchorMismatch("remote authority returned non-JSON data") from None
         if not isinstance(decoded, dict) or decoded.get("schema") != SCHEMA:
             raise AnchorMismatch("remote authority returned unexpected response schema")
@@ -112,7 +112,7 @@ class HTTPSAnchorClient:
             if not isinstance(row, dict) or set(row) != {"system_id", "sequence", "sha256", "memory_digest"}:
                 raise AnchorMismatch("invalid remote latest tip fields")
             tip = ContinuityTip.from_checkpoint(row)
-        except (KeyError, TypeError, AnchorMismatch) as exc:
+        except (KeyError, TypeError, AnchorMismatch):
             raise AnchorMismatch("invalid remote latest tip") from None
         if tip.system_id != system_id:
             raise AnchorMismatch("remote authority returned a different system")
@@ -138,7 +138,7 @@ class HTTPSAnchorClient:
             if not isinstance(ack, dict) or set(ack) != {"system_id", "sequence", "sha256", "memory_digest"}:
                 raise AnchorMismatch("invalid remote acknowledgement")
             witnessed = ContinuityTip.from_checkpoint(ack)
-        except (KeyError, TypeError, AnchorMismatch) as exc:
+        except (KeyError, TypeError, AnchorMismatch):
             raise AnchorMismatch("invalid remote acknowledgement") from None
         if witnessed != new:
             raise AnchorMismatch("remote authority acknowledged a different committed checkpoint")

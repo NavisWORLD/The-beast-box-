@@ -7,7 +7,6 @@ production off-host custody or independently administered authentication.
 from __future__ import annotations
 
 import ipaddress
-import os
 import socket
 import sqlite3
 import subprocess
