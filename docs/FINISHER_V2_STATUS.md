@@ -5,6 +5,22 @@
 **Work branch:** `feature/beastbox-finisher-v2-001`. No production merge, release, deployment, paid action or cross-repository edit is authorized by this work.
 **Source status:** Public GitHub repository, owner write permission confirmed through the connected GitHub installation. Current baseline root `LICENSE` is Apache License 2.0 and `pyproject.toml` advertises the OSI-approved Apache software license; `NOTICE` limits that grant to covered original contributions. Individually marked external models, datasets, media and research retain their own terms. Historic revisions retain their original grants.
 
+## Owner decision and phase completion (2026-09-27)
+
+**Approved:** frozen-pristine + versioned hashed patch overlay, not in-place protected-source edits and not wrappers around vulnerable code. The frozen source-protection check and the sealed historical experiment remain untouched. PR #129 has already moved the seven protected-source changes into ordered `patches/` entries and restored pristine protected source; full patch application and test proof remain separate acceptance gates.
+
+| Phase | Status | Evidence / remaining criteria |
+| --- | --- | --- |
+| A — Security and recovery | **in progress** | Seven source-preserving diff overlays and manifest present in PR #129. A1 persistent independent cross-restart trust anchor and full fault/Windows matrix are incomplete; historical rerun and patched-product CI pending. |
+| B — Semantic retrieval | **in progress** | `beastbox/memory.py` now gates lexical overlap before recency and has a regression. Optional embedding integration, controlled hybrid retrieval, held-out evaluation, one-pass routing and 500/5k/50k performance are incomplete. |
+| C — Memory lifecycle | **in progress** | The deterministic stopword-aware thematic-index patch has source lineage, derived-synthetic provenance and a regression. Decay, provider-validated abstractive consolidation, archive/restore, deletion semantics and 10k-turn soak remain incomplete. |
+| D — Agency | **not started** | Existing simulated tool and restart-boundary tests are baseline primitives, not the end-to-end maintenance daemon and schema/grant acceptance required by this phase. |
+| E — Adaptation | **not started** | No held-out adaptive-router experiment or evidence of improvement. |
+| F — Multi-model routing | **not started** | Historical frozen A→B→A evidence is preserved; no new measured capability-routed session proving this phase. |
+| G — Ecosystem reconciliation | **in progress** | Source-inspected [compatibility matrix](FINISHER_V2_ECOSYSTEM_MATRIX.md) records COSMOS/CST/R12/CNS7, RAWRPHØS, optional sensors and fruit-fly research; live cross-system smoke tests and deployment contract verification remain incomplete. |
+
+**Release-unblock gates:** patch script and README + pristine PR diff [in progress]; pristine historical reproduction with retained receipts [not run]; patched full Python 3.10/3.11/3.12 suite [not run]; restructured Product CI [not yet green]; this phase table [recorded]. No merge, deployment, release, relicensing or historical receipt changes are authorized.
+
 ## Baseline and limits
 
 - Default branch `main` and its source commit are pinned above. Active concurrent work exists, including UI PR #98, Rigetti simulator PRs #123/#124 and Quantum Buddy PR #122; none is merged or modified by this branch.
@@ -44,7 +60,7 @@ A static code match is not a successful runtime regression. For each row, link a
 
 - [Product CI 36327780550](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36327780550), branch snapshot `944cb0b89fbc5197e69394adb288f518680283b3`: Python 3.12 completed **1,146 passed**, architecture acceptance reported `passed=true`, but quality exited failure on `scripts/smoke/sealed-evidence-guard.sh`. This guard explicitly rejects changes to frozen Dad/Son and persistent-substrate source. These tests do **not** certify subsequent commits, Windows, or the final protected-source policy.
 - At that same earlier snapshot, package-smoke, configuration and security checks passed. Latest exact-head runs must be inspected individually; no blanket green claim.
-- **STOP / owner gate:** [Frozen-source compatibility options](FINISHER_V2_FROZEN_SOURCE_DECISION.md). Preserve prior sealed source; do not disable the guard automatically. No merge or release pending the owner's selected strategy and historical reproduction.
+- **OWNER DECISION RESOLVED:** the owner approved frozen-pristine source with a versioned, hashed security overlay. Preserve original guard. No merge/release pending deterministic patch application, historical reproduction and the required patched-suite/CI evidence.
 - Current PR: [#129](https://github.com/NavisWORLD/The-beast-box-/pull/129), draft, intentionally isolated and unmerged.
 - After the above intermediate 1,146-pass evidence, subsequent security A5/quarantine, lexical relevance-gate and docs commits were made. Those subsequent commits **need a single exact-head run**, and earlier cancelled or failing workflow checks must never be called final green.
 
@@ -72,4 +88,4 @@ The older brief's 'currently proprietary' assertion is **outdated on this pinned
 
 ## Next authorized step
 
-Obtain owner's decision on historical protected-source split versus versioned v2 versus explicit scope exclusion, then rerun historical-source and targeted security acceptance at a single exact commit. Independently audit Phase B personal retrieval while the protected-source decision is open. Leave all deployment and release gates closed.
+Complete the approved pristine-source patch overlay, then rerun historical-source and targeted security acceptance at a single exact commit. Independently audit Phase B personal retrieval while the protected-source decision is open. Leave all deployment and release gates closed.
