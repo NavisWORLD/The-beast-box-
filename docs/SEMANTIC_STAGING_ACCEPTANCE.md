@@ -58,3 +58,38 @@ semantic rank of the judged-positive source, plus an exploratory 24-query
 selection. These are follow-up **post-hoc diagnostics, not a new registered
 scientific replication or acceptance of a model-ranking SLA**. Never merge
 the two receipts as though their software and measurements were identical.
+
+## Follow-up diagnostic: second execution
+
+[Diagnostic workflow #36353555240](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36353555240)
+SUCCESS on source commit `2f1f5880da26dd3771cf3a2331a54df703f6742f` using the same public SciFact archive and
+identical pinned MiniLM safetensors. Its unmodified
+[machine receipt](SEMANTIC_STAGING_RECEIPT_002_DIAGNOSTIC.json) records:
+
+- 100-source cold *complete product* turn **2,676.51 ms**, warm complete turn
+  **464.43 ms**, all 100 source vectors reused; exact durable restart and
+  default-off behavior remained valid. Variation from first run is **not**
+  evidence of a software speedup (diagnostic instrumentation also changed).
+- For fixed test query `1`, both lexical and full product hybrid again returned
+  **zero** of its one judged-positive source in the first five. A separate
+  direct post-cold similarity probe found **zero sources over the existing
+  0.40 threshold**, so this is a measured **semantic no-match case** rather
+  than an unreported provider outage. No similarity threshold was retuned.
+- **Post-hoc, exploratory** retrieval-*layer* assessment over the 24 previously
+  fixed query IDs on a deliberately positive-enriched 100-document slice:
+
+  | Condition | MRR@10 | Recall@5 |
+  |---|---:|---:|
+  | Lexical | 0.732639 | 0.812500 |
+  | Frozen zero-state R12 / no Hebbian | 0.185764 | 0.256944 |
+  | Opt-in R12 + real MiniLM | 0.847222 | 0.902778 |
+
+  This retrieval-only diagnostic is not the full durable product route.
+  It is **not** the originally pre-registered 500/5k experiment, an
+  independent holdout, a personal-memory comparison, an unrestricted
+  sample, a 50k test or a claim of general ranking superiority.
+
+**Release decision:** isolated source-only staging harness is functional,
+but production retrieval-quality, cold-start SLA, full 500/5k/50k product
+scale, externally administered security authority and full A–G gates still
+require separate evidence. Do not switch Railway or Vercel to this branch.
