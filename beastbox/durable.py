@@ -277,7 +277,7 @@ class DurableRuntime(CosmosRuntime):
                 r12_state=self.r12_state,
                 limit=len(snapshot_rows) if self.semantic_index is not None else 5,
             )
-            semantic_info = None
+            semantic_info: dict[str, Any] | None = None
             if self.semantic_index is not None:
                 semantic_started = time.perf_counter()
                 # Only explicitly selected plugins see the same archived-filtered snapshot.
