@@ -199,3 +199,20 @@ def test_state_event_append_fails_closed_on_partial_existing_write(tmp_path: Pat
         ledger.append("SECOND", {}, "2026-09-27T00:00:01+00:00")
     assert ledger.path.read_bytes() == before
 
+
+
+def test_state_ledger_quarantine_copies_suspect_bytes_without_repair(tmp_path: Path) -> None:
+    path = tmp_path / "state.jsonl"
+    ledger = StateEventLedger(path)
+    ledger.append("FIRST", {}, "2026-09-27T00:00:00+00:00")
+    with path.open("ab") as handle:
+        handle.write(b'{"partial":')
+    original = path.read_bytes()
+    receipt = ledger.quarantine_suspect(tmp_path / "quarantine")
+    copy = Path(receipt.quarantine_path)
+    assert copy.read_bytes() == original
+    assert receipt.sha256 == hashlib.sha256(original).hexdigest()
+    assert receipt.byte_length == len(original)
+    assert path.read_bytes() == original
+    with pytest.raises(RuntimeError, match="invalid JSON"):
+        ledger.verify()
