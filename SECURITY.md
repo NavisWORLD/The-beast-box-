@@ -1,6 +1,6 @@
 # Security Policy
 
-The Beast Box is a private, permission-required COSMOS/CST research repository and a contained autonomy benchmark. It is not a real escape kit and repository access does not grant reuse rights.
+The Beast Box is a public COSMOS/CST software and research repository. Covered original contributions in revisions adopting the current root LICENSE are Apache-2.0 licensed; historical releases and individually marked third-party inputs retain their distinct terms. This research is not a real escape kit. See [LICENSE_HISTORY.md](LICENSE_HISTORY.md) and the [threat model](docs/THREAT_MODEL.md).
 
 ## Hard runtime invariants
 
@@ -13,7 +13,7 @@ The Beast Box is a private, permission-required COSMOS/CST research repository a
 
 ## Repository security rules
 
-- Keep the repository private unless Cory Shane Davis / NavisWORLD explicitly changes that decision.
+- Do not change repository visibility or licensing without explicit owner approval; the current default branch is public and its covered original contributions are Apache-2.0 licensed.
 - Do not commit `.env` files, credentials, private keys, signing keys, biometric source files, private datasets, model secrets, or access tokens.
 - Use environment variables or an approved secret store for credentials.
 - Do not paste secrets into issues, pull requests, Actions logs, commit messages, prompts, test fixtures, screenshots, or evidence ledgers.
