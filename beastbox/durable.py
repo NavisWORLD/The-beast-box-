@@ -7,6 +7,7 @@ host capability; only an explicitly enabled, purely simulated output is supporte
 from __future__ import annotations
 
 import copy
+import threading
 import time
 import uuid
 from dataclasses import asdict
@@ -141,6 +142,9 @@ class DurableRuntime(CosmosRuntime):
         self._retrieval_snapshot: list[Any] | None = None
         # Opt-in scores are computed outside SQLite BEGIN IMMEDIATE and are never checkpointed.
         self._semantic_precomputed: dict[str, Any] | None = None
+        # Prevent two opt-in turns from racing over one runtime's ephemeral
+        # snapshot, vector cache, provider receipt and model-independent state.
+        self._semantic_turn_lock = threading.Lock()
         self.anchor_authority = anchor_authority
         self._anchor_blocked = False
         try:
@@ -344,6 +348,21 @@ class DurableRuntime(CosmosRuntime):
         )
 
     def respond_event(self, event: dict[str, Any], *, transient_context: str = "") -> dict[str, Any]:
+        # The unlocked embedding interval permits OTHER independent runtimes
+        # to write. It must not permit overlapping turns sharing THIS instance.
+        # Reject rather than block: reentrant host plugins must fail closed.
+        if self.semantic_index is None:
+            return self._respond_event_serial(event, transient_context=transient_context)
+        if not self._semantic_turn_lock.acquire(blocking=False):
+            raise SemanticRetrievalError("concurrent semantic turns on one runtime are not supported; retry")
+        try:
+            return self._respond_event_serial(event, transient_context=transient_context)
+        finally:
+            self._semantic_turn_lock.release()
+
+    def _respond_event_serial(
+        self, event: dict[str, Any], *, transient_context: str = ""
+    ) -> dict[str, Any]:
         started = time.perf_counter()
         self._stage_started = started
         self._stages_ms = {}

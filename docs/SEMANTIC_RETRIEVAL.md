@@ -25,7 +25,10 @@ the turn fails closed with an explicit retry error, discards its cache, and
 does not silently switch to lexical-only mode. The in-transaction shared
 lexical/CNS/R12 snapshot remains a single materialized read. The frozen R12
 ranker still executes inside the transaction; its CPU cost remains a separate
-performance consideration. An external peer can archive records during the
+performance consideration. Concurrent or reentrant semantic turns sharing
+ONE runtime instance are rejected before touching the shared ephemeral turn
+state; independent runtimes continue using the external checkpoint/snapshot
+conflict checks. An external peer can archive records during the
 unlocked embedding interval: that concurrent change is rejected before
 fusion, but already-started embedding calls cannot be retroactively erased
 or prevented from seeing their earlier, then-active source snapshot.

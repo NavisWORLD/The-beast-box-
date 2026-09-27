@@ -170,6 +170,35 @@ def test_embedding_provider_never_runs_under_product_write_lock(tmp_path):
         runtime.close()
 
 
+def test_reentrant_semantic_turn_rejected_before_shared_state_mutation(tmp_path):
+    """An embedding plugin cannot overwrite its caller's in-flight scores."""
+    class Reentrant(FixtureEmbedding):
+        runtime = None
+        attempted = False
+
+        def embed_many(self, texts):
+            if not self.attempted:
+                self.attempted = True
+                with pytest.raises(SemanticRetrievalError, match="concurrent semantic turns"):
+                    self.runtime.respond("overlapping second turn")
+            return super().embed_many(texts)
+
+    provider = Reentrant()
+    runtime = DurableRuntime(tmp_path, ReferenceTextProvider(), embedding_provider=provider)
+    provider.runtime = runtime
+    try:
+        target = runtime.store_external_memory("An automobile sits in the garage.")["memory_id"]
+        before = runtime.inspect()["sequence"]
+        response = runtime.respond("vehicle")
+        assert provider.attempted
+        assert response["memory_hits"][0]["id"] == target
+        # Only the outer turn is allowed to advance checkpoint and model state.
+        assert runtime.inspect()["sequence"] == before + 1
+        assert runtime.inspect()["valid"]
+    finally:
+        runtime.close()
+
+
 def test_peer_checkpoint_change_during_embedding_fails_closed_then_retries(tmp_path):
     """Cross-runtime writes never silently attach stale semantic results."""
     class Interleave(FixtureEmbedding):
