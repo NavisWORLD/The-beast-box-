@@ -141,6 +141,7 @@ def verify_memory_chain(
     verified_rows: list[tuple[int, dict[str, Any]]] | None = None,
     expected_record_count: int | None = None,
     expected_tip_sha256: str | None = None,
+    require_trailing_newline: bool = False,
 ) -> LedgerReceipt:
     target = Path(path)
     if not _is_sha256(parent_sha256):
@@ -155,6 +156,11 @@ def verify_memory_chain(
     except OSError as exc:
         raise MemoryChainVerificationError(f"memory ledger cannot be read: {exc}", line_number=0) from exc
 
+    if require_trailing_newline and data and not data.endswith(b"\n"):
+        raise _memory_error(
+            "memory ledger has partial final line (missing newline)",
+            data.count(b"\n") + 1,
+        )
     rows = _decode_memory_rows(data)
     expected_memory_id = 1
     previous_sha256 = ZERO_SHA256
