@@ -30,6 +30,7 @@ from .providers import ReferenceTextProvider, TextProvider
 from .reality_memory import initial_r12_state
 from .refractive_memory import RefractiveMemoryRouter
 from .retrieval_snapshot import ReadOnlySnapshotDB, capture_snapshot, lexical_from_snapshot
+from .semantic_retrieval import EmbeddingProvider, SnapshotSemanticIndex, fuse_r12_semantic
 from .runtime import CosmosRuntime
 from .state_family import StateFamily
 
@@ -101,11 +102,18 @@ class DurableRuntime(CosmosRuntime):
         *,
         allow_simulated_tool: bool = False,
         anchor_authority: ContinuityAnchor | None = None,
+        embedding_provider: EmbeddingProvider | None = None,
+        allow_remote_embeddings: bool = False,
     ):
         started = time.perf_counter()
         self._stage_started: float | None = None
         self._stages_ms: dict[str, float] = {}
         self.last_metrics: dict[str, Any] = {}
+        # Opt in explicitly from the host; never take provider selection from model text.
+        self.semantic_index = (
+            SnapshotSemanticIndex(embedding_provider, allow_remote=allow_remote_embeddings)
+            if embedding_provider is not None else None
+        )
         base = Path(root)
         if base.is_symlink():
             raise ValueError("runtime root must not be a symlink")
@@ -267,17 +275,37 @@ class DurableRuntime(CosmosRuntime):
                 sequence=self.turn,
                 dyn12=state.dyn12,
                 r12_state=self.r12_state,
-                limit=5,
+                limit=len(snapshot_rows) if self.semantic_index is not None else 5,
             )
+            semantic_info = None
+            if self.semantic_index is not None:
+                semantic_started = time.perf_counter()
+                # Only explicitly selected plugins see the same archived-filtered snapshot.
+                # Failures propagate through the enclosing durable rollback, never fall back.
+                semantic = self.semantic_index.rank(snapshot_rows, text)
+                records = fuse_r12_semantic(records, semantic.scores, limit=5)
+                semantic_info = {
+                    "mode": "explicit_hybrid_rrf_v1",
+                    "model_id": self.semantic_index.model_id,
+                    "identity_kind": "configured-provider-label; no weight attestation",
+                    "local_only_declared": self.semantic_index.local_only_declared,
+                    "min_similarity": self.semantic_index.min_similarity,
+                    "matched_records": len(semantic.scores),
+                    "embedded_records": semantic.embedded_records,
+                    "cache_hits": semantic.cache_hits,
+                    "elapsed_ms": (time.perf_counter() - semantic_started) * 1000,
+                }
         finally:
             # Never carry retrieved context into another turn or checkpoint.
             self._retrieval_snapshot = None
         self._routing = {
-            "router": "RefractiveMemoryRouter",
+            "router": "RefractiveMemoryRouter" if semantic_info is None else "R12+opt_in_semantic_rrf",
             "context_sha256": sha256_obj(records),
             "memory_ids": [r["memory_id"] for r in records],
             "state_sha256": sha256_obj(self.r12_state),
         }
+        if semantic_info is not None:
+            self._routing["semantic"] = semantic_info
         self._trace_stage("r12_routing")
         return [
             MemoryHit(r["memory_id"], r["text"], r["score"], r["created_at"], r["kind"], r["source_ids"])
