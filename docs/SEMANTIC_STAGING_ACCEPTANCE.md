@@ -36,3 +36,25 @@ no mutation of live Railway/Vercel and no product deployment. This candidate
 is unmerged until its exact-head CI and dedicated isolated workflow pass.
 [Full A–G acceptance issue](https://github.com/NavisWORLD/The-beast-box-/issues/132)
 remains open.
+
+## Recorded first functional experiment and follow-up diagnostic
+
+The first public-CPU end-to-end run completed successfully on
+[`019cccb7`](https://github.com/NavisWORLD/The-beast-box-/commit/019cccb7a3d656d46b295eb65273c1462bed77e9),
+[Actions run 36353382886](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36353382886).
+Its [unaltered machine receipt](SEMANTIC_STAGING_RECEIPT_001.json) records
+100 real public source embeddings, a **5,241.42 ms cold full turn**, a
+**607.10 ms warm full turn**, 100 warm source-cache hits and exact continuity
+after shutdown/restart. This is a single CPU run, not a speed guarantee.
+
+**Quality warning:** on fixed test query `1`, **both lexical and the full
+hybrid product returned 0 of the 1 judged-positive sources in their top five**.
+A green functional smoke is NOT a retrieval-quality pass. This explicit
+failure-to-retrieve must be retained, not hidden by choosing a favorable query.
+
+A second run adds *post-cold diagnostic telemetry*: the direct learned
+semantic rank of the judged-positive source, plus an exploratory 24-query
+100-row retrieval-layer comparison using the identical source/model
+selection. These are follow-up **post-hoc diagnostics, not a new registered
+scientific replication or acceptance of a model-ranking SLA**. Never merge
+the two receipts as though their software and measurements were identical.

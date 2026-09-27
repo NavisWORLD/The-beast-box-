@@ -39,6 +39,8 @@ def test_100_source_stage_uses_actual_durable_turn_and_clean_restart(tmp_path):
     assert receipt["default_semantic_disabled_after_restart"] is True
     assert receipt["cold_embedded_records"] == 100
     assert receipt["warm_source_cache_hits"] >= 100
+    assert receipt["post_cold_direct_semantic_positive_rank"] == 1
+    assert receipt["post_cold_direct_semantic_matched_records"] >= 1
     assert receipt["production_or_external_authority_deployed"] is False
 
 

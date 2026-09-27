@@ -19,7 +19,7 @@ from beastbox.hashutil import sha256_obj
 from beastbox.providers import ReferenceTextProvider
 from beastbox.retrieval_snapshot import capture_snapshot, lexical_from_snapshot
 from beastbox.semantic_retrieval import OfflineSentenceTransformer
-from scripts.semantic_real_eval import prepare_sources, select_documents, select_queries
+from scripts.semantic_real_eval import evaluate_size, prepare_sources, select_documents, select_queries
 
 
 def run_staging(corpus, queries, qrels, selected, embedding_provider, *,
@@ -87,6 +87,21 @@ def run_staging(corpus, queries, qrels, selected, embedding_provider, *,
             memory_to_source[hit["id"]] for hit in cold["memory_hits"]
             if hit["id"] in memory_to_source
         ]
+        # Diagnostic only, AFTER the cold product measurement. This separate
+        # direct semantic probe distinguishes a missing learned similarity from
+        # an R12/fusion ranking miss; it is not extra production retrieval.
+        index = runtime.semantic_index
+        if index is None:
+            raise RuntimeError("opt-in semantic index disappeared")
+        diagnostic = index.rank(snapshot, query)
+        semantic_order = sorted(
+            diagnostic.scores, key=lambda item: (diagnostic.scores[item], item), reverse=True
+        )
+        judged_positions = [
+            position for position, memory_id in enumerate(semantic_order, start=1)
+            if memory_to_source.get(memory_id) in relevant
+        ]
+        semantic_positive_rank = min(judged_positions) if judged_positions else None
         warm_start = time.perf_counter()
         warm = runtime.respond(query)
         warm_ms = (time.perf_counter() - warm_start) * 1000
@@ -122,6 +137,8 @@ def run_staging(corpus, queries, qrels, selected, embedding_provider, *,
         "judged_positives_available": len(relevant),
         "lexical_relevant_in_top_5": len(set(baseline_sources) & relevant),
         "hybrid_relevant_in_top_5": len(set(cold_sources) & relevant),
+        "post_cold_direct_semantic_positive_rank": semantic_positive_rank,
+        "post_cold_direct_semantic_matched_records": len(diagnostic.scores),
         "configured_embedding_provider": embedding_provider.model_id,
         "embedding_outside_write_transaction": True,
         "warm_source_cache_hits": warm["routing"]["semantic"]["cache_hits"],
@@ -153,6 +170,12 @@ def main() -> None:
             corpus, queries, qrels, selected, provider,
             root=Path(work) / "clean-durable-runtime", records=args.records,
         )
+        # Post-hoc explanatory measurement only. The earlier registered 500
+        # and 5k results and their independent receipts are left untouched.
+        exploratory = evaluate_size(
+            args.records, corpus, queries, qrels, selected, provider,
+        )
+        result["exploratory_same_corpus_retrieval_layer_24_queries"] = exploratory
     result.update({
         "model": {"repo": "sentence-transformers/all-MiniLM-L6-v2",
                   "revision": "154917cf5a5a0657fddbae9cd0ecd85cb86dc125",

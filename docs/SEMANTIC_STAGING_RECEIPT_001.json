@@ -1,0 +1,45 @@
+{
+  "schema": "beastbox-staging-preserved-machine-receipt-v1",
+  "source_head": "019cccb7a3d656d46b295eb65273c1462bed77e9",
+  "run_id": 36353382886,
+  "job_id": 108716226700,
+  "receipt": {
+    "claims": "one fixed public test query; does not establish ranking superiority or SLA",
+    "classification": "real-pretrained-embeddings-isolated-public-fixture-end-to-end-smoke",
+    "cold_embedded_records": 100,
+    "configured_embedding_provider": "local-sentence-transformer:offline-minilm",
+    "dataset": {
+      "archive_sha256": "536e14446a0ba56ed1398ab1055f39fe852686ecad24a6306c80c490fa8e0165",
+      "name": "BEIR SciFact"
+    },
+    "default_semantic_disabled_after_restart": true,
+    "embedding_outside_write_transaction": true,
+    "end_to_end_cold_turn_ms": 5241.42,
+    "end_to_end_warm_turn_ms": 607.1,
+    "environment": {
+      "host": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+      "peak_process_rss_kb": 780412,
+      "python": "3.11.16"
+    },
+    "exact_checkpoint_verified_after_restart": true,
+    "hybrid_relevant_in_top_5": 0,
+    "judged_positives_available": 1,
+    "lexical_relevant_in_top_5": 0,
+    "model": {
+      "repo": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "154917cf5a5a0657fddbae9cd0ecd85cb86dc125",
+      "verified_files_sha256": {
+        "model.safetensors": "53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db",
+        "modules.json": "84e40c8e006c9b1d6c122e02cba9b02458120b5fb0c87b746c41e0207cf642cf"
+      }
+    },
+    "production_or_external_authority_deployed": false,
+    "public_source_digest": "fcbaa412c6323b86585cee3d557282e191ce577cb1abae418d1d00c48bcc99d0",
+    "query_id": "1",
+    "records": 100,
+    "sampling": "positive-enriched; NOT representative and NOT 50k",
+    "schema": "beastbox-isolated-real-semantic-staging-v1",
+    "seed_ms": 314.9,
+    "warm_source_cache_hits": 100
+  }
+}
