@@ -24,7 +24,7 @@ class MaintenanceDenied(PermissionError):
 class _Grant:
     plan_sha256: str
     expires_at: float
-    provider_epoch: int
+    provider_epoch: tuple[int, int]
 
 
 class ScopedMaintenance:
@@ -44,7 +44,7 @@ class ScopedMaintenance:
         self.runtime = runtime
         self._approve_by_host = approve_by_host
         self._clock = monotonic
-        self._provider_epoch = id(runtime.provider)
+        self._provider_epoch = (id(runtime.provider), runtime._provider_generation)
         self._grants: dict[str, _Grant] = {}
         self.audit: list[dict[str, Any]] = []
 
@@ -53,7 +53,7 @@ class ScopedMaintenance:
         if not isinstance(raw, Mapping):
             raise ValueError("maintenance plan must be a mapping")
         action = raw.get("action")
-        if action not in cls.ALLOWED or raw.get("schema") != "beastbox-maintenance-action-v1":
+        if not isinstance(action, str) or action not in cls.ALLOWED or raw.get("schema") != "beastbox-maintenance-action-v1":
             raise ValueError("unsupported maintenance action/schema")
         allowed = {"schema", "action", "reviewer"}
         if action in {"archive", "restore"}:
@@ -86,7 +86,7 @@ class ScopedMaintenance:
         checked = self.validate(plan)
         if not isinstance(ttl_seconds, (int, float)) or not 0 < ttl_seconds <= 300:
             raise ValueError("grant lifetime must be between 0 and 300 seconds")
-        if id(self.runtime.provider) != self._provider_epoch:
+        if (id(self.runtime.provider), self.runtime._provider_generation) != self._provider_epoch:
             self._grants.clear()
             raise MaintenanceDenied("provider changed; create a fresh host-controlled controller")
         if self._approve_by_host is None or self._approve_by_host(dict(checked)) is not True:
@@ -101,7 +101,7 @@ class ScopedMaintenance:
 
     def execute(self, token: str, plan: Mapping[str, Any]) -> dict[str, Any]:
         checked = self.validate(plan)
-        if id(self.runtime.provider) != self._provider_epoch:
+        if (id(self.runtime.provider), self.runtime._provider_generation) != self._provider_epoch:
             self._grants.clear()
             raise MaintenanceDenied("model/provider swap revoked every previous maintenance grant")
         grant = self._grants.pop(token, None)
