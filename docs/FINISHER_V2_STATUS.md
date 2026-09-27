@@ -1,6 +1,6 @@
 # Finisher V2 — evidence-led implementation and release hold
 
-**Repository / draft PR:** [NavisWORLD/The-beast-box- #129](https://github.com/NavisWORLD/The-beast-box-/pull/129).
+**Repository / merged V2 foundation:** [NavisWORLD/The-beast-box- #129](https://github.com/NavisWORLD/The-beast-box-/pull/129), merged as `2c75784ff72161fb592ffe81e2e68dc5cbe38077` on 2026-09-27. **Continuing full program:** [A–G gate issue #132](https://github.com/NavisWORLD/The-beast-box-/issues/132) and [opt-in authenticated HTTPS authority PR #133](https://github.com/NavisWORLD/The-beast-box-/pull/133).
 **Initial main baseline:** `4c4e4d38e645ee521534643d42843e181be4900a`.
 **Prior corrected-code checkpoint:** `2df88c4c6c6fbee8e2e59433efa3148c48fe662b`.
 **Recovered concurrent branch checkpoint:** `2b0576475779cfb4c53c241f808486b6042be670`.
@@ -205,3 +205,7 @@ bounded by [claim boundaries](CLAIM_BOUNDARIES.md) and
 ## Merge boundary and production safety
 
 See [MERGE_SCOPE.md](MERGE_SCOPE.md). Vercel Git auto-deployment for `main` is deliberately set to `false` in `apps/beastbox-cloud/vercel.json` before any merge into the default branch; the Railway production service was inspected on 2026-09-27 and tracks `feature/cosmos-world-interface-recovery-001`, not `main`. This configuration blocks the known automatic Vercel main-branch path; external integrations or independently configured deploy hooks must be checked separately. Re-enabling production deployment requires separate explicit owner permission.
+
+## Post-merge Phase A HTTPS protocol (draft follow-on)
+
+[PR #133](https://github.com/NavisWORLD/The-beast-box-/pull/133) implements the optional CA-verified remote monotonic witness client and a distinct TLS server process with bounded request/response parsing and separate local witness storage. [REMOTE_ANCHOR.md](REMOTE_ANCHOR.md) specifies separate OS principal/host/private keys and safe enrollment. CI fixtures run the server in an **ephemeral subprocess under the same CI principal**, so even fully green Linux/Windows results are protocol correctness, **not production independently administered authority**, off-host backup verification or completion of Phase A. Live operator provisioning requires separate owner authorization and real evidence. The V1 historical sealed guard and original measurements remain unchanged.

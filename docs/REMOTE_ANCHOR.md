@@ -1,9 +1,9 @@
 # Optional independently hosted HTTPS anchor (Finisher A)
 
 This follow-on module implements the protocol for a true **separate-process,
-CA-authenticated HTTPS** \`ContinuityAnchor\`. It provides a bounded
-\`HTTPSAnchorClient\` and an isolated TLS server
-(\`python -m beastbox.anchor_service\`) that stores monotonic SQLite CAS
+CA-authenticated HTTPS** `ContinuityAnchor`. It provides a bounded
+`HTTPSAnchorClient` and an isolated TLS server
+(`python -m beastbox.anchor_service`) that stores monotonic SQLite CAS
 receipts in the **server's** filesystem, not the client's runtime database.
 
 ## Operational boundary (mandatory, not faked by CI)
@@ -21,27 +21,27 @@ when the operator has a certificate authority.
 Command for an **already privately provisioned** host (not an instruction to
 generate fake credentials or spend money):
 
-\`\`\`bash
+```bash
 python -m beastbox.anchor_service \
   --db /private-operator/authority.sqlite3 \
   --cert /private-operator/tls-server-public.pem \
   --key /private-operator/tls-server-private.key \
   --token-file /private-operator/owner-bearer-token \
   --bind 127.0.0.1 --port 8443
-\`\`\`
+```
 
-Remote access requires explicit \`--allow-network\` plus independently
+Remote access requires explicit `--allow-network` plus independently
 configured firewall/TLS/identity/availability protections. The server uses
 strict bounded JSON and one CAS transaction per request; it cannot silently
 reset an existing authority. An operator must retain off-host backups and
 document stale-CAS/recovery procedures. Use the already verified runtime's
-\`DurableRuntime(anchor_authority=HTTPSAnchorClient(...))\` constructor.
+`DurableRuntime(anchor_authority=HTTPSAnchorClient(...))` constructor.
 Do **not** retroactively autoenroll an existing local runtime: its historical
 latest receipt could already have been maliciously rewritten.
 
 ## Evidence and limitations
 
-\`tests/test_finisher_remote_anchor.py\` creates ephemeral private CA/leaf
+`tests/test_finisher_remote_anchor.py` creates ephemeral private CA/leaf
 certificates and a test-only API token in a temporary directory, starts the
 actual server in a distinct subprocess, checks CA-validated requests,
 unauthorized denial, strict schema, stale CAS, service restart and full

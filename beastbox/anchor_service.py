@@ -135,6 +135,8 @@ def main() -> None:
         parser.error("port is outside 0..65535")
     if args.db.is_symlink() or args.db.parent.is_symlink() or not args.db.parent.is_dir():
         parser.error("operator must pre-provision safe authority database directory")
+    if os.name == "posix" and stat.S_IMODE(args.db.parent.stat().st_mode) & 0o077:
+        parser.error("operator authority database directory must be private mode 0700")
     key_bytes = _private_file(args.key)
     token_bytes = _private_file(args.token_file)
     try:

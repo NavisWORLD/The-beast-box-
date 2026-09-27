@@ -7,6 +7,7 @@ production off-host custody or independently administered authentication.
 from __future__ import annotations
 
 import ipaddress
+import os
 import socket
 import sqlite3
 import subprocess
@@ -59,6 +60,7 @@ def ephemeral_tls(tmp_path: Path):
             .sign(key, hashes.SHA256()))
     secure = tmp_path / "operator-only"
     secure.mkdir()
+    secure.chmod(0o700)
     cafile, certfile, keyfile, tokenfile = (
         secure / "ca.pem", secure / "server.pem", secure / "server.key", secure / "bearer.txt"
     )
@@ -220,3 +222,22 @@ def test_existing_unanchored_store_does_not_autoenroll_remote(ephemeral_tls, tmp
     with _serve(ephemeral_tls) as (client, _, _):
         with pytest.raises(AnchorMismatch, match="missing independently retained"):
             DurableRuntime(root, ReferenceTextProvider(), anchor_authority=client)
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX directory mode enforcement")
+def test_server_rejects_world_accessible_operator_directory(ephemeral_tls):
+    _, cert, key, token, db = ephemeral_tls
+    directory = db.parent
+    directory.chmod(0o755)
+    try:
+        attempt = subprocess.run(
+            [sys.executable, "-m", "beastbox.anchor_service",
+             "--db", str(db), "--cert", str(cert), "--key", str(key),
+             "--token-file", str(token), "--bind", "127.0.0.1", "--port", "0"],
+            capture_output=True, text=True, timeout=10,
+        )
+        assert attempt.returncode != 0
+        assert "private mode 0700" in attempt.stderr
+        assert TOKEN not in attempt.stderr
+    finally:
+        directory.chmod(0o700)
