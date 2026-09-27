@@ -29,6 +29,7 @@ from .organism import EvolutionEngine, InternalMonologue, OrganismState, SlowSta
 from .providers import ReferenceTextProvider, TextProvider
 from .reality_memory import initial_r12_state
 from .refractive_memory import RefractiveMemoryRouter
+from .retrieval_snapshot import ReadOnlySnapshotDB, capture_snapshot, lexical_from_snapshot
 from .runtime import CosmosRuntime
 from .state_family import StateFamily
 
@@ -73,8 +74,8 @@ class _RoutingMemoryView:
     score, including current state, recency and quality, from the same rows.
     """
 
-    def __init__(self, memory: ReconciliationMemory):
-        self.db = memory.db
+    def __init__(self, memory: ReconciliationMemory, snapshot_rows: list[Any] | None = None):
+        self.db = ReadOnlySnapshotDB(snapshot_rows) if snapshot_rows is not None else memory.db
         self._memory = memory
         self._associations: dict[tuple[str, int], list[tuple[str, float]]] = {}
 
@@ -128,6 +129,7 @@ class DurableRuntime(CosmosRuntime):
         self._trace: list[str] = []
         self._tool_result: dict[str, Any] = {}
         self._routing: dict[str, Any] = {}
+        self._retrieval_snapshot: list[Any] | None = None
         self.anchor_authority = anchor_authority
         self._anchor_blocked = False
         try:
@@ -247,16 +249,26 @@ class DurableRuntime(CosmosRuntime):
         }
         self._stage_started = None
 
+    def _retrieve_memories(self, text: str) -> list[MemoryHit]:
+        """One materialized SQLite read for both the pre-CNS and R12 routes."""
+        self._retrieval_snapshot = capture_snapshot(self.memory)
+        return lexical_from_snapshot(self._retrieval_snapshot, text, limit=5)
+
     def _route_memories(self, text, memories, state):
         # Reuse the historical router without constructing/importing a historical ledger.
-        adapter = cast(DadSonLedger, SimpleNamespace(memory=_RoutingMemoryView(self.memory)))
-        records = RefractiveMemoryRouter(adapter).rank(
-            text,
-            sequence=self.turn,
-            dyn12=state.dyn12,
-            r12_state=self.r12_state,
-            limit=5,
-        )
+        snapshot_rows = self._retrieval_snapshot
+        try:
+            adapter = cast(DadSonLedger, SimpleNamespace(memory=_RoutingMemoryView(self.memory, snapshot_rows)))
+            records = RefractiveMemoryRouter(adapter).rank(
+                text,
+                sequence=self.turn,
+                dyn12=state.dyn12,
+                r12_state=self.r12_state,
+                limit=5,
+            )
+        finally:
+            # Never carry retrieved context into another turn or checkpoint.
+            self._retrieval_snapshot = None
         self._routing = {
             "router": "RefractiveMemoryRouter",
             "context_sha256": sha256_obj(records),
@@ -293,6 +305,7 @@ class DurableRuntime(CosmosRuntime):
         self._stages_ms = {}
         self.last_metrics = {}
         cast(MeasuredProvider, self.provider).measurements = {}
+        self._retrieval_snapshot = None
         before = None
         committed = False
         try:
@@ -341,6 +354,7 @@ class DurableRuntime(CosmosRuntime):
             result["metrics"] = self.last_metrics
             return result
         except BaseException:
+            self._retrieval_snapshot = None
             try:
                 if before is not None and not committed:
                     self._restore(before)
