@@ -76,6 +76,27 @@ jobs:
             tests/test_persistent_substrate_substrate.py \
             tests/test_zeref_dad_son_memory.py
 
+  synthetic-retention-10000:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e . pytest
+      - name: Verify real product retention and one turn at 10000 rows
+        run: |
+          mkdir -p "$RUNNER_TEMP/finisher-memory-growth"
+          python scripts/finisher_memory_scale.py --records 10000 --output "$RUNNER_TEMP/finisher-memory-growth/retention-10000.json"
+          python -c "import json,os,pathlib; p=pathlib.Path(os.environ['RUNNER_TEMP'])/'finisher-memory-growth/retention-10000.json'; r=json.loads(p.read_text()); assert r['retained_seed_rows']==10000 and r['restart_validated'] and not r['full_10000_turn_soak_completed']"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: finisher-synthetic-retention-10000
+          path: ${{ runner.temp }}/finisher-memory-growth/
+          if-no-files-found: warn
+
   windows-v2-compatibility:
     runs-on: windows-latest
     timeout-minutes: 25
