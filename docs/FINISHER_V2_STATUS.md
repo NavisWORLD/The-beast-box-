@@ -5,6 +5,7 @@
 **Prior corrected-code checkpoint:** `2df88c4c6c6fbee8e2e59433efa3148c48fe662b`.
 **Recovered concurrent branch checkpoint:** `2b0576475779cfb4c53c241f808486b6042be670`.
 **Branch:** `feature/beastbox-finisher-v2-001`.
+**Verified implementation checkpoint (all three workflow families):** `f3549d78bc96db70edd5ac714cb7db9c37fb37f1` (Linux full Product CI 1,166 on each 3.10/3.11/3.12, V1 fixture replay, actual Windows V2). **Later edits to documents/CI metadata:** validate the actual new branch HEAD before any merge-readiness assertion; changing documentation does not alter this earlier run's identity.
 **Owner decision:** [final Option 1: separate V1/V2 source](FINISHER_V2_FROZEN_SOURCE_DECISION.md). Interim patch-overlay commits are retained in branch history, **not** an active build architecture. No merge, production deployment, release, paid cloud task or licensing change is authorized.
 
 ## Exact frozen-source integrity and derived modules
@@ -38,7 +39,7 @@ yet claim a blanket migration of all persistent consumers to V2.
 
 | Phase | Status | Evidence / still required |
 | --- | --- | --- |
-| A — Security and recovery | **in progress** | [V2 ledger](../beastbox/persistent_substrate/ledger_v2.py), [V2 Dad/Son outbox](../beastbox/dad_son_v2.py), [V2 substrate](../beastbox/persistent_substrate/substrate_v2.py), [recovery regressions](../tests/test_finisher_v2_security_acceptance.py), and [lineage tamper tests](../tests/test_finisher_v2_versioning.py) committed. Original V1 hashes verified; fresh independent historical/product/Windows run evidence and independently authenticated cross-restart anchor still outstanding. |
+| A — Security and recovery | **in progress** | [V2 ledger](../beastbox/persistent_substrate/ledger_v2.py), [V2 Dad/Son outbox](../beastbox/dad_son_v2.py), [V2 substrate](../beastbox/persistent_substrate/substrate_v2.py), [recovery regressions](../tests/test_finisher_v2_security_acceptance.py), and [lineage tamper tests](../tests/test_finisher_v2_versioning.py) committed. Original V1 hash pins, offline historical replay, A1–A5 focused source-integrity/recovery regressions and Windows tests have green [run evidence](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659101). Independently authenticated persistent cross-restart anchor, extended operating-system/fault matrices and active-consumer deployment review remain outstanding. |
 | B — Semantic retrieval | **in progress** | [Lexical relevance guard and regression](../beastbox/memory.py), [test](../tests/test_full_runtime.py). One-pass product retrieval graph, optional embeddings/hybrid experiments, held-out quality and latency benchmarks incomplete. |
 | C — Memory lifecycle | **in progress** | Source-attributed, stopword-aware thematic index in [memory](../beastbox/memory.py) with regression; not equivalent to validated abstractive summaries. Contradictions, archival, restoration, intentional deletion, long growth/soak unfinished. |
 | D — Agency | **not started** | Existing product primitives are not an audited scoped autonomy/revocation/restart test matrix. |
@@ -52,10 +53,10 @@ yet claim a blanket migration of all persistent consumers to V2.
 - [x] Three changed historical paths restored verbatim to historical Git blobs; existing guard script untouched.
 - [x] Prior V2 A1–A4 corrections relocated to separate modules with explicit V2 dependencies.
 - [x] Versioning docs, canonical manifest and tamper-verifier committed, with negative tests.
-- [ ] Unchanged historical guard passed at final exact commit (see [Actions](https://github.com/NavisWORLD/The-beast-box-/pull/129/checks)).
-- [ ] Historical offline reproduction independently passed at final exact commit and receipt archived. Deterministic offline simulation is **not** the original externally dependent real-model experiment.
-- [ ] Full relevant A1–A5 security, restart/fault and actual Windows contract tests passed at final exact commit. In-process expected count/tip does not prove independent authentication across restarts; externally retained protected receipt infrastructure remains an explicitly scoped limitation.
-- [ ] Fresh **combined** Product CI green at final commit on each of Python 3.10/3.11/3.12; original pre-restructure 1,150 test counts do not satisfy this gate.
+- [x] Unchanged historical guard passed at code-verified commit `f3549d78bc96db70edd5ac714cb7db9c37fb37f1`: [dedicated historical workflow](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659101), [Product CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659080). Any later documentation-only commit needs a fresh final-head rerun before merge consideration.
+- [x] Original V1 deterministic offline reproduction independently passed at tested commit `f3549d78` and its witness hashes, version-verification receipt and offline evidence were archived by the [dedicated workflow](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659101). **Scope:** frozen deterministic offline fixture, not re-execution of historically measured externally dependent real models/hardware.
+- [x] Focused V2 source integrity, bad-manifest rejection, no-V1-security-fallback, cross-process writers, crash/recovery outbox, independent *caller-supplied* receipt rejection after subprocess restart, and immutable-input regressions passed on Linux 3.10/3.11/3.12 and actual Windows 3.12 at `f3549d78` ([dedicated workflow](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659101)). **Not covered:** an installed independently authenticated persistent receipt service or a comprehensive cross-host/filesystem/hardware-fault matrix; these remain Phase A release blockers.
+- [x] Fresh **combined** [Product CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659080) green at tested code commit `f3549d78`: **1,166 passed each** on Python 3.10, 3.11 and 3.12, architecture acceptance `passed: true`, security audit 0 errors/0 warnings, original frozen guard pass, package and real browser jobs pass. [Repository CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659180) green at the same commit. Final doc-only HEAD still requires a fresh full run.
 
 ## Milestone 2 — overall Finisher acceptance
 
@@ -76,11 +77,10 @@ runs a separate historical-pristine offline replay, focused V2 tests on all
 three Pythons, and real `windows-latest` locking/crash tests. Existing
 [CI](../.github/workflows/ci.yml) and [Product CI](../.github/workflows/product-ci.yml)
 now exercise the unchanged checkout directly, without modifying or patching V1.
-Fresh final-commit links and exact counts must be added **after** each runner
-actually completes; don't present queued or cancelled earlier runs as green.
+Three completed workflow runs at exact code checkpoint `f3549d78bc96db70edd5ac714cb7db9c37fb37f1`: [historical/V2/Windows](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659101) **success**, [Product CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659080) **success** (1,166 passing tests per supported Python), and [repository CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659180) **success**. These are post-versioning test measurements. Subsequent documentary commits require their own exact-head run to call the **new** overall branch tip verified.
 
-The root license was already changed to Apache-2.0 on the inspected main
-baseline. No license edit is part of this PR. Individually marked
+The root license was already Apache-2.0 at the inspected main
+baseline. [License history](../LICENSE_HISTORY.md) was corrected to describe that existing adoption accurately, not to alter rights. No root license edit is part of this PR. Individually marked
 third-party resources retain separate rights. Scientific framing remains
 bounded by [claim boundaries](CLAIM_BOUNDARIES.md) and
 [scientific boundaries](SCIENTIFIC_BOUNDARIES.md).
