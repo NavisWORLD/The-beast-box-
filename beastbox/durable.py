@@ -129,6 +129,7 @@ class DurableRuntime(CosmosRuntime):
         self._trace: list[str] = []
         self._tool_result: dict[str, Any] = {}
         self._routing: dict[str, Any] = {}
+        self._provider_generation = 0
         self._retrieval_snapshot: list[Any] | None = None
         self.anchor_authority = anchor_authority
         self._anchor_blocked = False
@@ -292,6 +293,7 @@ class DurableRuntime(CosmosRuntime):
     def swap_provider(self, provider: TextProvider) -> None:
         """Replace inference and revoke grants; neither model nor memory grants authority."""
         self.provider = MeasuredProvider(provider)
+        self._provider_generation += 1
         self.policy.allowed.clear()
 
     def respond(self, text: str, *, transient_context: str = "", **kwargs) -> dict[str, Any]:
