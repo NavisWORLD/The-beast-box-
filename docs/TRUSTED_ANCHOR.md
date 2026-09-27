@@ -69,3 +69,8 @@ stolen trust credentials, compromised clients or external hardware failures.
 Strongly authenticated production authority and comprehensive operational
 failure injection remain open gates. The [threat model](THREAT_MODEL.md) and
 [Finisher status](FINISHER_V2_STATUS.md) name all remaining scope limitations.
+
+
+## Subsequent independent-process transport implementation
+
+The separately versioned follow-on [HTTPS service contract](REMOTE_ANCHOR.md) implements the opt-in real TLS server/client and ephemeral cross-process tests. A successful same-user CI fixture is **not** deployed, separately administered authenticated authority; continue to treat off-host provisioning as a release gate.
