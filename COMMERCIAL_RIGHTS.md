@@ -1,25 +1,9 @@
-# Commercial Rights & DOI Notice
+# Beast Box — commercial reuse under new open-source generation
 
-Copyright © 2026 Cory Shane Davis / NavisWORLD. All rights reserved except where a specific third-party or historical license controls.
+Copyright 2026 Cory Shane Davis / NavisWORLD for his original contributions.
 
-## Current repository boundary
+In revisions adopting root Apache License 2.0, original Cory-owned source code and documentation covered by Apache-2.0 may be used commercially, modified, redistributed, embedded in products and hosted, subject to the applicable license. No additional contract or royalty is required for those licensed uses. Cory may also sell services, support, separately licensed code and his own distributions, but cannot revoke the Apache-2.0 permissions already granted for released versions. Third parties have the same licensed commercial-use permissions.
 
-Current Cory-owned covered material in this repository is governed by the permission-required proprietary license in [`LICENSE`](LICENSE). Access to the repository does not grant a general right to copy, modify, redistribute, deploy, commercialize, host, train on, sublicense, or create derivative products from current covered material.
+Previous MIT and source-available versions retain their applicable historical grants. Other contributors' works, third-party dependencies, pretrained weights, training datasets, biomedical data, assets, cloud service terms, trademarks and private material are not automatically relicensed. See LICENSE_HISTORY.md, IP_NOTICE.md, IP_PROVENANCE.md and NOTICE.
 
-Commercial, enterprise, OEM, hosted-service, paid deployment, product-integration, redistribution, derivative-product, or rights-transfer use requires express written authorization and, where required by the license, a separate signed agreement with Cory Shane Davis / NavisWORLD.
-
-Hiring, contracting, evaluating, viewing, cloning for authorized inspection, or receiving collaborator access does not by itself transfer ownership or commercial rights.
-
-## Research provenance
-
-Related COSMOS/CST research: DOI `10.5281/zenodo.17574447`.
-
-Citation establishes provenance and attribution. Citation does not substitute for permission where permission is required.
-
-## Historical and third-party rights
-
-Earlier copies validly distributed under prior licenses keep the rights granted with those copies as described in [`LICENSE_HISTORY.md`](LICENSE_HISTORY.md). Third-party code, models, libraries, datasets, media, and other material remain governed by their applicable licenses and notices.
-
-## Permission
-
-Permission requests: Cory Shane Davis / NavisWORLD (`@NavisWORLD`).
+Foundational CST research archive/provenance: DOI 10.5281/zenodo.17574447.
