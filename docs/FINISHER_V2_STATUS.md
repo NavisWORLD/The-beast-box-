@@ -31,12 +31,12 @@
 
 | ID | Evidence at pinned source | Current milestone |
 | --- | --- | --- |
-| A1 | `verify_memory_chain` verifies internal linkage but has no independent expected final tip or length parameter; caller context/immutable prefix gives only partial protection. | OPEN: map trust-boundary callers and define protected tip/count |
-| A2 | `get_verified_memory_record` calls verifier then reopens the path. | PATCHED on branch: verifier can return rows decoded from exactly validated bytes; added path-substitution regression. CI result pending. |
-| A3 | `StateEventLedger.append` verifies, appends and verifies again without cross-process lock. | OPEN: Windows-relevant serialization, fault tests and non-destructive quarantine |
-| A4 | `DadSonLedger.append_experience` commits SQLite before opening JSONL, with no explicit fsync. | OPEN: transactional-outbox design and write-boundary fault injection |
-| A5 | `snapshot` rechecks live hashes against construction captures, then emits those construction captures in `immutable_inputs`. | OPEN: re-observation in receipts and regression |
-| A6 | `continuity.py` accurately admits privileged host rewrite limitations; top-level security docs retain old private/permission-required phrasing. | DOCUMENTATION: create `docs/THREAT_MODEL.md`, correct conflicting security docs after owner review |
+| A1 | Verifier supports expected tip/count; controller pins these in-process and rejects truncation of an appended suffix. | PARTIAL: no independent authenticated persistent anchor across restarts; frozen-source owner gate |
+| A2 | Verified-row output comes from the exact snapshot that passed validation; path-substitution regression added. | PATCHED IN DRAFT; frozen-source owner gate blocks merge |
+| A3 | Sidecar SQLite lock, fsync, contention and partial-write tests, plus non-destructive suspect-byte quarantine added. | PATCHED IN DRAFT; current-head and Windows evidence plus repair approval still needed |
+| A4 | SQLite transactional outbox with fsynced idempotent JSONL replay, divergence detection and crash-window fault tests added. | PATCHED IN DRAFT; complete crash matrix and frozen-source owner gate remain |
+| A5 | Existing snapshot already re-hashes live immutable inputs and rejects a changed input; a between-model mutation regression was added. | Source finding clarified, current-head test pending; no source rewrite |
+| A6 | Threat model created and README/SECURITY.md corrected to current Apache scope. | PARTIAL: stale LICENSE_HISTORY prospective wording and third-party rights need owner review |
 
 A static code match is not a successful runtime regression. For each row, link a failing-before and passing-after test or document why a hypothesis was rejected.
 
