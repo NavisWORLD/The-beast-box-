@@ -183,7 +183,7 @@ def test_restore_snapshot_rejects_tampered_chain(tmp_path):
 
 
 def test_outbox_recovers_sqlite_commit_before_jsonl_append(tmp_path, monkeypatch):
-    from beastbox.dad_son import DadSonLedger
+    from beastbox.dad_son_v2 import DadSonLedger
 
     db, journal = tmp_path / "memory.sqlite3", tmp_path / "memory.jsonl"
     ledger = DadSonLedger(db, journal, parent_sha256="a" * 64)
@@ -212,7 +212,7 @@ def test_outbox_recovers_sqlite_commit_before_jsonl_append(tmp_path, monkeypatch
 
 
 def test_outbox_replay_after_completed_jsonl_write_does_not_duplicate(tmp_path, monkeypatch):
-    from beastbox.dad_son import DadSonLedger
+    from beastbox.dad_son_v2 import DadSonLedger
 
     db, journal = tmp_path / "memory.sqlite3", tmp_path / "memory.jsonl"
     ledger = DadSonLedger(db, journal, parent_sha256="a" * 64)
@@ -237,7 +237,7 @@ def test_outbox_replay_after_completed_jsonl_write_does_not_duplicate(tmp_path, 
 
 
 def test_outbox_refuses_partial_jsonl_without_discarding_suspect_bytes(tmp_path, monkeypatch):
-    from beastbox.dad_son import DadSonLedger
+    from beastbox.dad_son_v2 import DadSonLedger
 
     db, journal = tmp_path / "memory.sqlite3", tmp_path / "memory.jsonl"
     ledger = DadSonLedger(db, journal, parent_sha256="a" * 64)
