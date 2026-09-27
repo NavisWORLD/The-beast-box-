@@ -14,7 +14,7 @@ from typing import Any
 
 SCHEMA = "beastbox-source-versioning-v1"
 HISTORICAL_ANCHOR = "b43f2883425e56446d3db8c009ea301b0adc21bc"
-PINNED_MANIFEST_SHA256 = "1b46caafabfd7ce120281f4fbc0ffa77340f8c8f8d420479a7e27e77d7510026"
+PINNED_MANIFEST_SHA256 = "bd75a778a646832f91f00577fc7d9b4e008e4d9f8ee1e0313f9084e3511a6971"
 FROZEN_SHA256 = {
     "beastbox/persistent_substrate/ledger.py": "a32996e3e1093ee58222c50364d9c1800811419a37a55a524c945047fac899c5",
     "beastbox/dad_son.py": "0500094e0eabadc13bc4e1b819ae42f320b4af32e16ceb405a9e2cf2e8bcc6a5",
