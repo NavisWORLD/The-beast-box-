@@ -1,6 +1,10 @@
-# Finisher V2 — frozen-source compatibility decision (owner gate)
+# Finisher V2 — frozen-source decision (resolved, provenance preserved)
 
-**Do not change the sealed-evidence guard just to get a green badge.** This is an engineering/research boundary decision for Cory Davis / NavisWORLD, not an automatic code fix.
+**OWNER-APPROVED FINAL APPROACH (2026-09-27): frozen-pristine + versioned, hashed patch overlay.** Protected original experimental source stays byte-identical, original historical guard is unchanged, and a deterministic manifest verifies every source/diff/patched hash. Product CI builds and tests a separate derived worktree. This *supersedes* the historical alternatives recorded below and does not approve merging, deployment or release.
+
+The approved implementation lives under `patches/` and `scripts/apply-security-patches.py`. The independent pristine offline history + three-version patched regression CI [run 36329951835](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36329951835) completed successfully on the overlay-only ancestor before unrelated concurrent work modified PR #129. The same source-check and security overlay are being validated separately so subsequent V2-module commits cannot stand in for overlay evidence.
+
+**Historical decision discussion (superseded) follows for auditability.**
 
 ## Confirmed blocker
 
@@ -16,4 +20,4 @@ The historical experimental implementation is deliberately frozen. The normal pr
 2. **Approved historical source split and guard migration.** Preserve a byte-for-byte, hash-verified frozen v1 source bundle and historical experiment entrypoints, then require the guard to check that bundle **and** original immutable evidence while allowing tested active source to evolve. Independently reproduce old sealed outputs from the archived version. This changes the repository's protected-code policy and requires explicit owner approval, migration review and compatibility testing; never replace the guard with a blanket skip.
 3. **Keep research frozen; document the scope exclusion.** Revert patches to protected paths, harden the separate current product runtime where needed and document legacy offline-ledger weaknesses as experimental limitations. The product can proceed without rewriting frozen science, but Phase A experimental-ledger acceptance remains **BLOCKED** and cannot be advertised as complete without an owner-approved exception.
 
-**No option includes altering historical receipts, silently archiving active CST research, destructive ledger repair, production deployment or release.** Choose an option before a Phase A merge, then run both the historical reproduction and new security regressions under the selected design. The current branch remains draft-only with a deliberately visible guard failure pending this decision.
+**Superseded decision discussion:** The owner selected an even stricter variant of historical preservation: pristine original source plus separately hashed patch overlays, with the original guard left intact. Do not choose the numbered historical alternatives above. No historical receipt rewrite, research deletion, destructive repair, merge, cloud deployment or release is authorized.
