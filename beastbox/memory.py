@@ -149,10 +149,12 @@ class ReconciliationMemory:
     def search(self, query: str, *, limit: int = 6, threshold: float = 0.05, recency_half_life_days: float = 30.0) -> list[MemoryHit]:
         q = Counter(_tokens(query))
         now = time.time()
-        rows = self.db.execute("SELECT id,created_at,kind,text,source_ids_json FROM memories ORDER BY id DESC").fetchall()
+        rows = self.db.execute("SELECT id,created_at,kind,text,source_ids_json,metadata_json FROM memories ORDER BY id DESC").fetchall()
         hits: list[MemoryHit] = []
         half_life = max(recency_half_life_days * 86400.0, 1.0)
         for row in rows:
+            if json.loads(row["metadata_json"]).get("archived", False):
+                continue
             lexical_similarity = _cosine_counts(q, Counter(_tokens(row["text"])))
             # Recency orders *relevant* memories; it cannot constitute evidence
             # that an otherwise unrelated record matches a question.
@@ -218,10 +220,12 @@ class ReconciliationMemory:
         retained and no provider is invoked or treated as an evidence oracle.
         """
         rows = self.db.execute(
-            "SELECT id,text FROM memories WHERE kind != 'consolidation' ORDER BY id DESC LIMIT ?", (max_records,)
+            "SELECT id,text,metadata_json FROM memories WHERE kind != 'consolidation' ORDER BY id DESC LIMIT ?", (max_records,)
         ).fetchall()
         buckets: dict[str, list[sqlite3.Row]] = {}
         for row in rows:
+            if json.loads(row["metadata_json"]).get("archived", False):
+                continue
             tokens = [
                 token for token in _tokens(str(row["text"]))
                 if token not in _CONSOLIDATION_STOPWORDS and len(token) > 1
@@ -264,6 +268,95 @@ class ReconciliationMemory:
             )
             existing.add(fingerprint)
         return made
+
+    def _set_archived(self, memory_id: int, *, archived: bool, reviewer: str, reason: str) -> bool:
+        """Owner-reviewed reversible index exclusion; never delete original rows."""
+        if type(memory_id) is not int or memory_id < 1:
+            raise ValueError("valid memory id required")
+        if not isinstance(reviewer, str) or not 1 <= len(reviewer.strip()) <= 128:
+            raise ValueError("explicit lifecycle reviewer required")
+        if not isinstance(reason, str) or not 1 <= len(reason.strip()) <= 512:
+            raise ValueError("explicit lifecycle reason required")
+        row = self.db.execute(
+            "SELECT metadata_json FROM memories WHERE id=?", (memory_id,)
+        ).fetchone()
+        if row is None:
+            raise LookupError("memory id is not present")
+        metadata = json.loads(row["metadata_json"])
+        if not isinstance(metadata, dict):
+            raise RuntimeError("invalid archived memory metadata")
+        if bool(metadata.get("archived", False)) == archived:
+            return False
+        events = metadata.get("lifecycle_history", [])
+        if not isinstance(events, list):
+            raise RuntimeError("invalid retained lifecycle history")
+        metadata["archived"] = archived
+        metadata["lifecycle_history"] = [*events, {
+            "action": "archive" if archived else "restore",
+            "reviewer": reviewer.strip(),
+            "reason": reason.strip(),
+            "sequence": len(events) + 1,
+        }]
+        self.db.execute(
+            "UPDATE memories SET metadata_json=? WHERE id=?",
+            (json.dumps(metadata, sort_keys=True, ensure_ascii=False, allow_nan=False), memory_id),
+        )
+        if not self._atomic:
+            self.db.commit()
+        return True
+
+    def archive(self, memory_id: int, *, reviewer: str, reason: str) -> bool:
+        """Reversibly remove a record from active retrieval but retain provenance."""
+        return self._set_archived(memory_id, archived=True, reviewer=reviewer, reason=reason)
+
+    def restore_archived(self, memory_id: int, *, reviewer: str, reason: str) -> bool:
+        """Re-enable an archived memory with a new explicit audit event."""
+        return self._set_archived(memory_id, archived=False, reviewer=reviewer, reason=reason)
+
+    def link_contradiction(
+        self, first_id: int, second_id: int, *, reviewer: str, reason: str,
+    ) -> bool:
+        """Record a HUMAN-reviewed contradiction; no automated factual inference."""
+        if type(first_id) is not int or type(second_id) is not int or first_id < 1 or second_id < 1 or first_id == second_id:
+            raise ValueError("two different valid memory ids are required")
+        if not isinstance(reviewer, str) or not 1 <= len(reviewer.strip()) <= 128:
+            raise ValueError("explicit reviewer required for contradiction links")
+        if not isinstance(reason, str) or not 1 <= len(reason.strip()) <= 512:
+            raise ValueError("explicit reviewed contradiction reason required")
+        if not self._atomic:
+            with self.transaction():
+                return self.link_contradiction(first_id, second_id, reviewer=reviewer, reason=reason)
+        records = self.db.execute(
+            "SELECT id,metadata_json FROM memories WHERE id IN (?,?) ORDER BY id",
+            (first_id, second_id),
+        ).fetchall()
+        if len(records) != 2:
+            raise LookupError("both contradiction source records must exist")
+        already = True
+        for row in records:
+            metadata = json.loads(row["metadata_json"])
+            if not isinstance(metadata, dict):
+                raise RuntimeError("invalid contradiction source metadata")
+            partner = second_id if int(row["id"]) == first_id else first_id
+            links = metadata.get("contradiction_ids", [])
+            if not isinstance(links, list):
+                raise RuntimeError("invalid contradiction link metadata")
+            if partner in links:
+                continue
+            already = False
+            events = metadata.get("contradiction_review", [])
+            if not isinstance(events, list):
+                raise RuntimeError("invalid contradiction review history")
+            metadata["contradiction_ids"] = sorted(set(int(item) for item in links) | {partner})
+            metadata["contradiction_flag"] = True
+            metadata["contradiction_review"] = [*events, {
+                "partner_id": partner, "reviewer": reviewer.strip(), "reason": reason.strip(),
+            }]
+            self.db.execute(
+                "UPDATE memories SET metadata_json=? WHERE id=?",
+                (json.dumps(metadata, sort_keys=True, ensure_ascii=False, allow_nan=False), int(row["id"])),
+            )
+        return not already
 
     def stats(self) -> dict[str, int]:
         memories = int(self.db.execute("SELECT COUNT(*) FROM memories").fetchone()[0])
