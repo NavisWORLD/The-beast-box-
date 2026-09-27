@@ -21,6 +21,7 @@ env-check:
 	$(PYTHON) -m beastbox.env_inventory --check .env.example beastbox
 
 lint:
+	$(PYTHON) -m ruff check tests/test_finisher_ecosystem_smoke.py
 	$(PYTHON) -m ruff check beastbox/model_router.py tests/test_finisher_model_router.py
 	$(PYTHON) -m ruff check beastbox/scoped_maintenance.py tests/test_finisher_scoped_maintenance.py
 	$(PYTHON) -m ruff check beastbox/trusted_anchor.py tests/test_finisher_trust_anchor.py
