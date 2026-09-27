@@ -19,6 +19,7 @@ from .bridge import BridgePacket
 from .cns import CNS
 from .config import RuntimeConfig
 from .continuity import ContinuityStore
+from .trusted_anchor import AnchorMismatch, ContinuityAnchor, ContinuityTip, SQLiteAnchorAuthority
 from .dad_son import DadSonLedger
 from .events import bounded_output, normalize_event
 from .evidence import EvidenceEvent
@@ -98,6 +99,7 @@ class DurableRuntime(CosmosRuntime):
         provider: TextProvider | None = None,
         *,
         allow_simulated_tool: bool = False,
+        anchor_authority: ContinuityAnchor | None = None,
     ):
         started = time.perf_counter()
         self._stage_started: float | None = None
@@ -114,6 +116,9 @@ class DurableRuntime(CosmosRuntime):
         if any((base / name).is_symlink() for name in ("runtime.sqlite3", "runtime.sqlite3-wal", "runtime.sqlite3-shm")):
             raise ValueError("runtime database files must not be symlinks")
         existed = db_path.exists()
+        if isinstance(anchor_authority, SQLiteAnchorAuthority):
+            if base.resolve() in anchor_authority.path.resolve().parents:
+                raise ValueError("anchor authority storage must be outside runtime root")
         config = RuntimeConfig(data_dir=str(base), memory_db=str(db_path), evidence_dir=str(base / "evidence"))
         super().__init__(config, MeasuredProvider(provider or ReferenceTextProvider()))
         self.policy = AuthorityPolicy({"SIMULATED_MOVE"} if allow_simulated_tool else set())
@@ -123,16 +128,51 @@ class DurableRuntime(CosmosRuntime):
         self._trace: list[str] = []
         self._tool_result: dict[str, Any] = {}
         self._routing: dict[str, Any] = {}
+        self.anchor_authority = anchor_authority
+        self._anchor_blocked = False
         try:
             self.continuity = ContinuityStore(self.memory.db, create=not existed)
             with self.memory.transaction():
                 if not existed:
                     self.continuity.append(self._state(), system_id=self.system_id, receipt={"kind": "genesis"})
-                self._restore(self.continuity.verify())
+                restored = self.continuity.verify()
+                self._restore(restored)
+            # Never enroll an existing runtime from the same untrusted DB:
+            # an unverified first enrollment could bless a forged history.
+            if self.anchor_authority is not None:
+                tip = ContinuityTip.from_checkpoint(restored)
+                retained = self.anchor_authority.latest(tip.system_id)
+                if retained is None:
+                    if existed or tip.sequence != 0:
+                        raise AnchorMismatch("missing independently retained anchor for existing runtime")
+                    self.anchor_authority.advance(None, tip)
+                elif retained != tip:
+                    raise AnchorMismatch("external authority disagrees with startup checkpoint")
         except BaseException:
             self.memory.close()
             raise
         self.startup_ms = (time.perf_counter() - started) * 1000
+
+    def _check_anchor(self, checkpoint: dict[str, Any]) -> None:
+        if self._anchor_blocked:
+            raise AnchorMismatch("external anchor publication failed; owner reconciliation is required")
+        if self.anchor_authority is not None:
+            tip = ContinuityTip.from_checkpoint(checkpoint)
+            if self.anchor_authority.latest(tip.system_id) != tip:
+                raise AnchorMismatch("externally retained tip/count disagrees with runtime checkpoint")
+
+    def _publish_anchor(self, before: dict[str, Any], after: dict[str, Any]) -> None:
+        if self.anchor_authority is not None:
+            try:
+                self.anchor_authority.advance(
+                    ContinuityTip.from_checkpoint(before), ContinuityTip.from_checkpoint(after)
+                )
+            except BaseException as exc:
+                self._anchor_blocked = True
+                raise AnchorMismatch(
+                    "SQLite checkpoint committed but external anchor publication failed; "
+                    "preserve the original and reconcile through owner authority"
+                ) from exc
 
     def _state(self) -> dict[str, Any]:
         return {
@@ -249,6 +289,7 @@ class DurableRuntime(CosmosRuntime):
         self.last_metrics = {}
         cast(MeasuredProvider, self.provider).measurements = {}
         before = None
+        committed = False
         try:
             if not isinstance(transient_context, str) or len(transient_context) > 512 * 1024:
                 raise ValueError("transient context exceeds the bounded input limit")
@@ -257,6 +298,7 @@ class DurableRuntime(CosmosRuntime):
             self._measure_boundary("normalize")
             with self.memory.transaction():
                 before = self.continuity.verify()
+                self._check_anchor(before)
                 self._measure_boundary("checkpoint_verify")
                 self._restore(copy.deepcopy(before))
                 self._measure_boundary("checkpoint_restore")
@@ -287,13 +329,15 @@ class DurableRuntime(CosmosRuntime):
                     model=receipt["model"],
                     ledger_head=self.ledger.head,
                 )
+            committed = True
+            self._publish_anchor(before, checkpoint)
             self._measure_boundary("commit")
             self._finish_measurements(started, "committed")
             result["metrics"] = self.last_metrics
             return result
         except BaseException:
             try:
-                if before is not None:
+                if before is not None and not committed:
                     self._restore(before)
             finally:
                 self._measure_boundary("failure")
@@ -314,9 +358,11 @@ class DurableRuntime(CosmosRuntime):
             raise ValueError("persistent context kind is invalid")
         meta = dict(metadata or {})
         before = None
+        committed = False
         try:
             with self.memory.transaction():
                 before = self.continuity.verify()
+                self._check_anchor(before)
                 self._restore(copy.deepcopy(before))
                 memory_id = self.memory.store(text, kind=kind, metadata=meta)
                 receipt = {
@@ -329,23 +375,27 @@ class DurableRuntime(CosmosRuntime):
                 }
                 self.ledger.append("runtime_receipt", receipt)
                 checkpoint = self.continuity.append(self._state(), system_id=self.system_id, receipt=receipt)
+            committed = True
+            self._publish_anchor(before, checkpoint)
             return {
                 "memory_id": memory_id,
                 "checkpoint": checkpoint,
                 "text_sha256": receipt["text_sha256"],
             }
         except BaseException:
-            if before is not None:
+            if before is not None and not committed:
                 self._restore(before)
             raise
 
     def inspect(self) -> dict[str, Any]:
         with self.memory.transaction():
             c = self.continuity.verify()
+            self._check_anchor(c)
             self._restore(c)
             return {
                 "schema": "runtime-inspection-v1",
                 "valid": True,
+                "anchor_mode": "external_cas" if self.anchor_authority is not None else "unanchored",
                 "system_id": c["system_id"],
                 "checkpoint_sha256": c["sha256"],
                 "sequence": c["sequence"],
