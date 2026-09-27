@@ -5,12 +5,12 @@ secrets, model training or merging. The trigger is limited to changes to this
 source-only experiment on the PR #134 feature branch. It runs on a standard
 free GitHub-hosted Ubuntu public-repository runner; it does NOT upload an
 artifact to avoid expanding potentially billable Actions storage. The
-GitHub job log includes the entire source-hashed JSON result receipt.
+GitHub job log includes the entire source-hashed JSON result receipt. The initial rejected revision predated the known safe-weights variant; the revised commit pins a tree with published safetensors SHA-256 53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db.
 
 ## Prespecified inputs and methods
 
 - Learned model: sentence-transformers/all-MiniLM-L6-v2, pinned revision
-  f5610b47471b118dafc55f4c387822dbfc8413ae; the upstream model card
+  154917cf5a5a0657fddbae9cd0ecd85cb86dc125; the upstream model card
   *declares* Apache-2.0. This is not a training-source license audit or an
   assertion about suitability for commercial redistribution.
 - Source: public BEIR/SciFact scientific retrieval test set. Published

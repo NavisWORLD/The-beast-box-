@@ -24,7 +24,8 @@ from beastbox.semantic_retrieval import OfflineSentenceTransformer, SnapshotSema
 DATASET_URL = "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/scifact.zip"
 DATASET_MD5 = "5f7d1de60b170fc8027bb7898e2efca1"  # Published BEIR archive checksum
 MODEL_REPO = "sentence-transformers/all-MiniLM-L6-v2"
-MODEL_REVISION = "f5610b47471b118dafc55f4c387822dbfc8413ae"
+MODEL_REVISION = "154917cf5a5a0657fddbae9cd0ecd85cb86dc125"
+MODEL_WEIGHTS_SHA256 = "53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db"
 QUERY_COUNT, SIZES, FIXED_NOW = 24, (500, 5000), 1_800_000_000.0
 
 
@@ -106,6 +107,8 @@ def prepare_sources(root):
         name: hashlib.sha256((path / name).read_bytes()).hexdigest()
         for name in ("model.safetensors", "modules.json")
     }
+    if fingerprints["model.safetensors"] != MODEL_WEIGHTS_SHA256:
+        raise RuntimeError("model weights do not match the independently pinned safetensors SHA-256")
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
     return load_scifact_zip(blob), hashlib.sha256(blob).hexdigest(), path, fingerprints
