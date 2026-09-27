@@ -29,6 +29,7 @@ lint:
 	$(PYTHON) -m ruff check beastbox/scoped_maintenance.py tests/test_finisher_scoped_maintenance.py
 	$(PYTHON) -m ruff check beastbox/trusted_anchor.py tests/test_finisher_trust_anchor.py
 	$(PYTHON) -m ruff check beastbox/retrieval_snapshot.py tests/test_finisher_retrieval_snapshot.py
+	$(PYTHON) -m ruff check beastbox/semantic_retrieval.py tests/test_finisher_semantic_retrieval.py
 	$(PYTHON) -m ruff check tests/test_finisher_memory_lifecycle.py
 	$(PYTHON) -m ruff check scripts/benchmark_runtime.py scripts/smoke/html_browser.py html/serve.py \
 		tests/test_runtime_benchmark.py tests/test_runtime_performance.py tests/test_html_server.py
