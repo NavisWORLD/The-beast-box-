@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from beastbox.persistent_substrate.ledger import MemoryChainVerificationError
 from beastbox.persistent_substrate.protocol import DeterministicLogicalClock, canonical_json_bytes
 from beastbox.persistent_substrate.substrate import (
     PersistentSubstrate,
@@ -153,6 +154,28 @@ def test_primary_append_preserves_canonical_prefix_and_direct_lookup(tmp_path: P
         assert before["memory"]["record_count"] == 352
         assert after["memory"]["record_count"] == 353
         assert after["memory"]["sha256"] != before["memory"]["sha256"]
+    finally:
+        primary.close()
+
+
+
+def test_primary_rejects_valid_looking_appended_suffix_truncation(tmp_path: Path) -> None:
+    primary = PersistentSubstrate.restore_primary(
+        make_inputs(tmp_path), workspace=tmp_path / "anchored-primary",
+        clock=DeterministicLogicalClock(),
+    )
+    try:
+        primary.append_memory(
+            actor="controller", text="suffix integrity canary", kind="test",
+            session_id="finisher-a1",
+        )
+        original = primary.memory_path.read_bytes()
+        primary.memory_path.write_bytes(b"".join(original.splitlines(keepends=True)[:-1]))
+        # The immutable 352-row prefix remains intact; internal chain-only
+        # verification therefore succeeds, but this live controller must
+        # refuse the now-missing appended row.
+        with pytest.raises(MemoryChainVerificationError, match="record count"):
+            primary.snapshot("TRUNCATED", active_model_identity=None)
     finally:
         primary.close()
 
