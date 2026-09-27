@@ -45,7 +45,7 @@ class OfflineSentenceTransformer:
         try:
             from sentence_transformers import SentenceTransformer
         except ImportError as exc:
-            raise SemanticRetrievalError("install the embeddings extra for local learned retrieval") from exc
+            raise SemanticRetrievalError("install sentence-transformers separately for local learned retrieval") from exc
         try:
             self._model = SentenceTransformer(
                 str(path), local_files_only=True, trust_remote_code=False
