@@ -54,6 +54,21 @@ def test_corruption_stops_at_line_17_before_later_chain_checks(tmp_path: Path) -
     assert (caught.value.line_number, caught.value.expected_memory_id, caught.value.actual_memory_id) == (17, 17, 311)
 
 
+
+def test_expected_receipt_rejects_an_internally_valid_truncated_suffix(tmp_path: Path) -> None:
+    valid = tmp_path / "anchored-ledger.jsonl"
+    pinned = assemble_canonical_memory(ROOT, MANIFEST, valid)
+    valid.write_bytes(b"".join(valid.read_bytes().splitlines(keepends=True)[:-1]))
+    # A hash chain without an independently retained receipt cannot know
+    # that its otherwise-valid final row was removed.
+    assert verify_memory_chain(valid, parent_sha256=HISTORICAL_PARENT).record_count == pinned.record_count - 1
+    with pytest.raises(MemoryChainVerificationError, match="record count"):
+        verify_memory_chain(
+            valid, parent_sha256=HISTORICAL_PARENT,
+            expected_record_count=pinned.record_count, expected_tip_sha256=pinned.tip_sha256,
+        )
+
+
 def test_direct_record_lookup_reverifies_chain_and_expected_hash(tmp_path: Path) -> None:
     valid = tmp_path / "valid.jsonl"
     assemble_canonical_memory(ROOT, MANIFEST, valid)
