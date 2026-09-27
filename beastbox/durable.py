@@ -164,8 +164,13 @@ class DurableRuntime(CosmosRuntime):
     def _publish_anchor(self, before: dict[str, Any], after: dict[str, Any]) -> None:
         if self.anchor_authority is not None:
             try:
+                # append() returns only sequence/sha/system_id; reverify the
+                # *committed* database to bind its memory digest to the anchor.
+                verified = self.continuity.verify()
+                if verified["sha256"] != after["sha256"] or verified["sequence"] != after["sequence"]:
+                    raise AnchorMismatch("committed checkpoint changed before anchor publication")
                 self.anchor_authority.advance(
-                    ContinuityTip.from_checkpoint(before), ContinuityTip.from_checkpoint(after)
+                    ContinuityTip.from_checkpoint(before), ContinuityTip.from_checkpoint(verified)
                 )
             except BaseException as exc:
                 self._anchor_blocked = True
