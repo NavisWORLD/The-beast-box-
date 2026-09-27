@@ -1,32 +1,7 @@
-# THE BEAST BOX — IP & Permission Notice
+# ENDSUPDATE / THE BEAST BOX — IP, licensing and provenance notice
 
-**Owner:** Cory Shane Davis / NavisWORLD  
-**Status:** Private repository. Permission required.  
-**Current license:** [`LICENSE`](LICENSE)  
-**License history:** [`LICENSE_HISTORY.md`](LICENSE_HISTORY.md)
+Original Cory Shane Davis / NavisWORLD-owned code and documentation in new releases adopting [Apache License 2.0](LICENSE) are licensed under Apache-2.0 unless individually marked otherwise. It grants reuse, modification, redistribution and commercial use on Apache-2.0 terms, including its express patent grant. No separate authorization is needed for these licensed uses; Cory retains his copyright and can independently offer commercial services or other separately licensed works.
 
-## What access means
+Historical versions validly distributed under MIT retain MIT grants. Later source-available revisions retain their original applicable terms; the new license is prospective. Full historical text remains in Git history and the timeline in [LICENSE_HISTORY.md](LICENSE_HISTORY.md).
 
-Being able to view this repository does **not** mean you have permission to copy, reuse, modify, redistribute, commercialize, deploy, train an AI system on, or create a derivative product from Cory-owned protected material.
-
-If you want to use current covered material, **ask Cory Shane Davis / NavisWORLD first and obtain express written permission**. Commercial, redistribution, hosted-service, derivative-product, or rights-transfer uses require a separate signed written agreement.
-
-## Rights reserved
-
-All copyright and other rights that may lawfully be reserved are reserved. No patent license is granted. No trademark license is granted. No waiver of any patent, trade-secret, contractual, confidentiality, trademark, publicity, privacy, or other rights is intended.
-
-## Important legal boundary
-
-Copyright protects original expression such as source code, documentation, diagrams, and other authored material. Copyright does not by itself create ownership over abstract ideas, concepts, algorithms, procedures, systems, methods, principles, discoveries, or inventions.
-
-If a particular invention, process, architecture, or non-public technique needs protection beyond copyright, patent filings, trade-secret controls, NDAs, access controls, or other contracts may be necessary.
-
-## Historical versions
-
-Historical copies that were validly distributed under the repository's former MIT License keep the permissions that accompanied those copies. The current proprietary permission-required license applies prospectively as described in [`LICENSE_HISTORY.md`](LICENSE_HISTORY.md).
-
-## Third-party components
-
-Third-party material remains governed by the applicable third-party license. Nothing in this notice overrides rights granted by another copyright owner.
-
-**Bottom line: view access is not reuse permission. Ask first.**
+Third-party components, proprietary SDKs, external models/weights, datasets, media assets, private data, trademarks and separately licensed research works remain under their respective terms. The open-source license does not itself imply independent rights over abstract concepts, methods or inventions. See [IP_PROVENANCE.md](IP_PROVENANCE.md).
