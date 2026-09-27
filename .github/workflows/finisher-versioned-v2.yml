@@ -71,7 +71,7 @@ jobs:
       - name: V2 security regression and historical compatibility contract
         run: |
           python -m pytest -q tests/test_finisher_v2_versioning.py \
-            tests/test_finisher_v2_security_acceptance.py \
+            tests/test_finisher_v2_security_acceptance.py tests/test_finisher_trust_anchor.py \
             tests/test_persistent_substrate_ledger.py \
             tests/test_persistent_substrate_substrate.py \
             tests/test_zeref_dad_son_memory.py
@@ -93,4 +93,4 @@ jobs:
         run: python scripts/verify_versioned_sources.py --git-anchor
       - name: Exercise real Windows lock, replay and manifest protections
         run: |
-          python -m pytest -q tests/test_finisher_v2_versioning.py tests/test_finisher_v2_security_acceptance.py tests/test_persistent_substrate_ledger.py tests/test_zeref_dad_son_memory.py
+          python -m pytest -q tests/test_finisher_v2_versioning.py tests/test_finisher_v2_security_acceptance.py tests/test_finisher_trust_anchor.py tests/test_persistent_substrate_ledger.py tests/test_zeref_dad_son_memory.py
