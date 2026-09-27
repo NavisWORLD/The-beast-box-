@@ -39,7 +39,8 @@ restore makes the original eligible again.
 Install only if wanted:
 
 ```bash
-python -m pip install -e '.[embeddings]'
+python -m pip install -e .
+python -m pip install 'sentence-transformers>=3.4'
 ```
 
 The operator **separately obtains, licenses, inspects and locally installs**
@@ -62,8 +63,9 @@ finally:
 
 The adapter requests `local_files_only=True` and
 `trust_remote_code=False`. Verify your installed library and the model folder
-for supply-chain and local data-custody requirements. The optional dependency
-is not installed or initialized by default.
+for supply-chain and local data-custody requirements. The optional embedding dependency is installed separately by the owner, rather
+than modifying the repository's pinned default dependency lock. It is never
+initialized by default.
 
 Other embedding plugins are trusted host Python code, **not isolated tools**.
 They must explicitly provide `model_id`, `local_only` and
