@@ -220,7 +220,9 @@ def run_workload(api: dict[str, Any], root: Path, fixture: dict[str, Any], finge
         runtime = None
         bytes_before = store_bytes(root)
         runtime, warm = meter.measure(lambda: api["DurableRuntime"](root, provider=provider))
-        meter.wrap(runtime.memory, "search", "lexical_retrieval")
+        # Measure the active pre-CNS snapshot route, not the old standalone
+        # memory.search() call bypassed by the optimized durable runtime.
+        meter.wrap(runtime, "_retrieve_memories", "lexical_retrieval")
         meter.wrap(runtime, "_route_memories", "r12_retrieval")
         seed_inspection = runtime.inspect()
         turns = []
