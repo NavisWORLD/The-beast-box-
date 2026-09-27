@@ -74,6 +74,15 @@ class CorruptionReceipt:
     second_line_number: int
 
 
+@dataclass(frozen=True)
+class StateQuarantineReceipt:
+    source_path: str
+    quarantine_path: str
+    sha256: str
+    byte_length: int
+    verification_error: str
+
+
 class MemoryChainVerificationError(RuntimeError):
     def __init__(
         self,
@@ -470,6 +479,45 @@ class StateEventLedger:
                     os.fsync(handle.fileno())
                 self.verify()
         return row
+
+    def quarantine_suspect(self, destination_dir: str | Path) -> StateQuarantineReceipt:
+        """Copy corrupt bytes for owner review; NEVER truncate or repair automatically.
+
+        The cooperative writer lock ensures that a participating appender
+        cannot change the ledger while these exact suspect bytes are copied.
+        The destination should be independent, trusted evidence storage.
+        """
+        destination = Path(destination_dir)
+        if destination.is_symlink():
+            raise RuntimeError("quarantine destination cannot be a symlink")
+        lock_path = self.path.with_name(self.path.name + ".writer-lock.sqlite3")
+        with closing(sqlite3.connect(str(lock_path), timeout=30.0)) as writer_lock:
+            with writer_lock:
+                writer_lock.execute("BEGIN IMMEDIATE")
+                try:
+                    self.verify()
+                except RuntimeError as error:
+                    reason = str(error)
+                else:
+                    raise RuntimeError("state ledger verifies; no suspect bytes to quarantine")
+                data = self.path.read_bytes()
+                digest = hashlib.sha256(data).hexdigest()
+                destination.mkdir(parents=True, exist_ok=True)
+                target = destination / (self.path.name + ".suspect-" + digest + ".bin")
+                flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+                flags |= getattr(os, "O_NOFOLLOW", 0)
+                descriptor = os.open(target, flags, 0o600)
+                with os.fdopen(descriptor, "wb") as handle:
+                    handle.write(data)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                return StateQuarantineReceipt(
+                    source_path=str(self.path),
+                    quarantine_path=str(target),
+                    sha256=digest,
+                    byte_length=len(data),
+                    verification_error=reason,
+                )
 
     def verify(self) -> LedgerReceipt:
         if not self.path.exists():
