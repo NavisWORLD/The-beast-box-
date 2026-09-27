@@ -6,7 +6,6 @@ authentication requires a separately protected OS account/host for this store.
 from __future__ import annotations
 
 import os
-import shutil
 import sqlite3
 import subprocess
 import sys
@@ -72,19 +71,21 @@ def test_coherent_checkpoint_database_rollback_is_detected_on_restart(tmp_path: 
     root = tmp_path / "runtime"
     authority = setup_anchor(tmp_path)
     runtime = DurableRuntime(root, ReferenceTextProvider(), anchor_authority=authority)
-    runtime.close()
-    # Snapshot the internally valid original genesis (ledger and checkpoint).
-    original = tmp_path / "old-but-self-consistent.sqlite3"
-    with sqlite3.connect(root / "runtime.sqlite3") as conn, sqlite3.connect(original) as witness:
-        conn.backup(witness)
-
-    runtime = DurableRuntime(root, ReferenceTextProvider(), anchor_authority=authority)
     runtime.respond("An added turn should persist in the independent authority.")
     runtime.close()
-    shutil.copyfile(original, root / "runtime.sqlite3")
+    # Model a fully hash-consistent internal rollback while external authority
+    # retains sequence 1. SQL avoids leftover platform-specific WAL overlays.
+    with sqlite3.connect(root / "runtime.sqlite3") as db:
+        db.execute("DELETE FROM continuity WHERE sequence > 0")
+        db.execute("DELETE FROM memories")
+        db.execute("DELETE FROM associations")
+        db.execute("DELETE FROM salience")
+    unanchored = DurableRuntime(root, ReferenceTextProvider())
     try:
-        # Local continuity still verifies: only the separately protected
-        # authority can detect this fully self-consistent old database.
+        assert unanchored.inspect()["sequence"] == 0
+    finally:
+        unanchored.close()
+    try:
         with pytest.raises(AnchorMismatch, match="external authority disagrees"):
             DurableRuntime(root, ReferenceTextProvider(), anchor_authority=authority)
     finally:
