@@ -9,7 +9,7 @@ Regression coverage: tests/test_persistent_substrate_substrate.py; tests/test_fi
 Never import this file from an original historical experiment entrypoint.
 """
 
-"""One persistent computational substrate shared across replaceable models."""
+# One persistent computational substrate shared across replaceable models.
 
 from __future__ import annotations
 
