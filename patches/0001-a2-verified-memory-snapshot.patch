@@ -1,0 +1,38 @@
+# Finisher security overlay: 0001-a2-verified-memory-snapshot.patch
+# Target: beastbox/persistent_substrate/ledger.py
+# Original-SHA256: a32996e3e1093ee58222c50364d9c1800811419a37a55a524c945047fac899c5
+# Expected-Patched-SHA256: 7721a26b3eee97197a13cdb23db20ed9748848208f601fd454da8f27f276c8ab
+# Rationale: Return decoded records from the same ledger bytes whose chain was verified; eliminates TOCTOU path substitution.
+# Regression: tests/test_persistent_substrate_ledger.py::test_verified_record_lookup_uses_exact_verified_bytes
+--- a/beastbox/persistent_substrate/ledger.py
++++ b/beastbox/persistent_substrate/ledger.py
+@@ -136,6 +136,7 @@ def verify_memory_chain(
+     *,
+     parent_sha256: str,
+     immutable_prefix: bytes | str | Path | None = None,
++    verified_rows: list[tuple[int, dict[str, Any]]] | None = None,
+ ) -> LedgerReceipt:
+     target = Path(path)
+     if not _is_sha256(parent_sha256):
+@@ -229,6 +230,10 @@ def verify_memory_chain(
+                 actual_sha256=hashlib.sha256(actual_prefix).hexdigest(),
+             )
+ 
++    # Expose only rows decoded from the exact bytes that passed every check.
++    # The caller must never reopen the mutable path to retrieve verified data.
++    if verified_rows is not None:
++        verified_rows.extend(rows)
+     return LedgerReceipt(
+         path=str(target),
+         sha256=hashlib.sha256(data).hexdigest(),
+@@ -328,8 +333,8 @@ def get_verified_memory_record(
+     expected_record_sha256: str | None = None,
+ ) -> dict[str, Any]:
+     target_id = int(memory_id)
+-    verify_memory_chain(path, parent_sha256=parent_sha256)
+-    rows = _decode_memory_rows(Path(path).read_bytes())
++    rows: list[tuple[int, dict[str, Any]]] = []
++    verify_memory_chain(path, parent_sha256=parent_sha256, verified_rows=rows)
+     for line_number, row in rows:
+         if int(row["memory_id"]) != target_id:
+             continue
