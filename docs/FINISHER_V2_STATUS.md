@@ -1,91 +1,86 @@
-# Finisher V2 — evidence-led execution status
+# Finisher V2 — evidence-led implementation and release hold
 
-**Repository:** `NavisWORLD/The-beast-box-`
-**Pinned source baseline:** `4c4e4d38e645ee521534643d42843e181be4900a` (`main`, observed 2026-09-27).
-**Work branch:** `feature/beastbox-finisher-v2-001`. No production merge, release, deployment, paid action or cross-repository edit is authorized by this work.
-**Source status:** Public GitHub repository, owner write permission confirmed through the connected GitHub installation. Current baseline root `LICENSE` is Apache License 2.0 and `pyproject.toml` advertises the OSI-approved Apache software license; `NOTICE` limits that grant to covered original contributions. Individually marked external models, datasets, media and research retain their own terms. Historic revisions retain their original grants.
+**Repository / draft PR:** [NavisWORLD/The-beast-box- #129](https://github.com/NavisWORLD/The-beast-box-/pull/129).
+**Initial main baseline:** `4c4e4d38e645ee521534643d42843e181be4900a`.
+**Prior corrected-code checkpoint:** `2df88c4c6c6fbee8e2e59433efa3148c48fe662b`.
+**Recovered concurrent branch checkpoint:** `2b0576475779cfb4c53c241f808486b6042be670`.
+**Branch:** `feature/beastbox-finisher-v2-001`.
+**Owner decision:** [final Option 1: separate V1/V2 source](FINISHER_V2_FROZEN_SOURCE_DECISION.md). Interim patch-overlay commits are retained in branch history, **not** an active build architecture. No merge, production deployment, release, paid cloud task or licensing change is authorized.
 
-## Owner decision and phase completion (2026-09-27)
+## Exact frozen-source integrity and derived modules
 
-**Approved:** frozen-pristine + versioned hashed patch overlay, not in-place protected-source edits and not wrappers around vulnerable code. The frozen source-protection check and the sealed historical experiment remain untouched. PR #129 has already moved the seven protected-source changes into ordered `patches/` entries and restored pristine protected source; full patch application and test proof remain separate acceptance gates.
+The historical guard is **unchanged**. The original source files were fetched independently from historical Git commit
+`b43f2883425e56446d3db8c009ea301b0adc21bc` and their exact UTF-8
+byte SHA-256 values checked against the current protected paths. The separate
+scientific-evidence anchor remains
+`c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f`.
 
-| Phase | Status | Evidence / remaining criteria |
+| Original immutable V1 source | Verified historical SHA-256 | Reviewed, separate secure V2 |
 | --- | --- | --- |
-| A — Security and recovery | **in progress** | Seven source-preserving diff overlays and manifest present in PR #129. A1 persistent independent cross-restart trust anchor and full fault/Windows matrix are incomplete; historical rerun and patched-product CI pending. |
-| B — Semantic retrieval | **in progress** | `beastbox/memory.py` now gates lexical overlap before recency and has a regression. Optional embedding integration, controlled hybrid retrieval, held-out evaluation, one-pass routing and 500/5k/50k performance are incomplete. |
-| C — Memory lifecycle | **in progress** | The deterministic stopword-aware thematic-index patch has source lineage, derived-synthetic provenance and a regression. Decay, provider-validated abstractive consolidation, archive/restore, deletion semantics and 10k-turn soak remain incomplete. |
-| D — Agency | **not started** | Existing simulated tool and restart-boundary tests are baseline primitives, not the end-to-end maintenance daemon and schema/grant acceptance required by this phase. |
-| E — Adaptation | **not started** | No held-out adaptive-router experiment or evidence of improvement. |
-| F — Multi-model routing | **not started** | Historical frozen A→B→A evidence is preserved; no new measured capability-routed session proving this phase. |
-| G — Ecosystem reconciliation | **in progress** | Source-inspected [compatibility matrix](FINISHER_V2_ECOSYSTEM_MATRIX.md) records COSMOS/CST/R12/CNS7, RAWRPHØS, optional sensors and fruit-fly research; live cross-system smoke tests and deployment contract verification remain incomplete. |
+| `beastbox/dad_son.py` | `0500094e0eabadc13bc4e1b819ae42f320b4af32e16ceb405a9e2cf2e8bcc6a5` | `beastbox/dad_son_v2.py` |
+| `beastbox/persistent_substrate/ledger.py` | `a32996e3e1093ee58222c50364d9c1800811419a37a55a524c945047fac899c5` | `beastbox/persistent_substrate/ledger_v2.py` |
+| `beastbox/persistent_substrate/substrate.py` | `e579038e3c9cdf0e2f7a4a7a39e1b30d8b39b8ca854c7bc021a070a926a9260a` | `beastbox/persistent_substrate/substrate_v2.py` |
 
-**Release-unblock gates:** patch script and README + pristine PR diff [in progress]; pristine historical reproduction with retained receipts [not run]; patched full Python 3.10/3.11/3.12 suite [not run]; restructured Product CI [not yet green]; this phase table [recorded]. No merge, deployment, release, relicensing or historical receipt changes are authorized.
+The manifest `docs/VERSION_MANIFEST.json` uses canonical JSON and has
+reviewed digest `bd75a778a646832f91f00577fc7d9b4e008e4d9f8ee1e0313f9084e3511a6971`.
+The verifier `scripts/verify_versioned_sources.py --git-anchor` checks all six
+files against declared bytes, the known original pins and historical Git
+objects; see [VERSIONING.md](VERSIONING.md). These same-repository hashes
+are **provenance metadata**, not a substitute for independently retained
+signatures or an external secure anchor.
 
-## Baseline and limits
+Secure tests explicitly use V2 while historical experimental runners retain
+V1 imports. The separately designed `DurableRuntime` still uses
+`ContinuityStore`, not the offline Dad/Son ledger. The product does **not**
+yet claim a blanket migration of all persistent consumers to V2.
 
-- Default branch `main` and its source commit are pinned above. Active concurrent work exists, including UI PR #98, Rigetti simulator PRs #123/#124 and Quantum Buddy PR #122; none is merged or modified by this branch.
-- Source inspection confirms the Python stdlib-only core `pyproject.toml` has `dependencies=[]`, supports Python >=3.10, and lists optional ML/quantum/cloud/secure extras. Working baseline must also be checked on the supported 3.10–3.12 versions.
-- Existing CI workflow `.github/workflows/ci.yml` runs core tests under Python 3.10 and 3.12 on pull requests; evidence workflows and optional platform tests are separate. Prior claims of 1,075 passing tests are **not** a current-run measurement.
-- Local container access has Python 3.13 but cannot resolve `github.com`. It cannot clone the repository, install the exact source, or run its full test suite locally; use the repository's existing GitHub Actions on the PR and attach run URLs, test counts and failures here. **Baseline install, full tests, all optional matrices, quickstart and deployment remain NOT RUN by Finisher V2 until independently verified.**
-- Protected original evidence: `docs/CLAIM_BOUNDARIES.md`, `docs/SCIENTIFIC_BOUNDARIES.md`, `docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md` and existing sealed evidence directories. Historical outcomes must not be rewritten.
+## Finisher phases (only evidence-backed state)
 
-## Initial code inventory (source-inspected, not full dependency audit)
-
-| Surface | Primary path | Initial wiring / review |
+| Phase | Status | Evidence / still required |
 | --- | --- | --- |
-| Runtime / CLI | `beastbox/durable.py`, `beastbox/cli.py` | Core; test fresh start and restart |
-| Personal memory | `beastbox/memory.py` | SQLite, lexical cosine, Hebbian associations; relevance floor needs measurement |
-| Checkpoint integrity | `beastbox/continuity.py` | SQLite hash chain with memory digest; not signed against privileged rewrites |
-| Experimental ledgers | `beastbox/persistent_substrate/ledger.py`, `beastbox/dad_son.py` | Inspect A1–A4 separately from production durable runtime |
-| Experimental live invariants | `beastbox/persistent_substrate/substrate.py`, `runner.py` | Immutable input recheck exists; comparison capture needs review |
-| Retrieval / knowledge | `beastbox/refractive_memory.py`, `world_knowledge.py`, `world_r12.py` | Compare ranking ablations before modifying CST state terms |
-| Authority and lifecycle | `beastbox/box.py`, `beastbox/organism.py`, `beastbox/heartbeat.py` | Audit call graph before wiring agents |
-| Providers / cloud / UI | `beastbox/providers.py`, `apps/beastbox-cloud/` | Preserve owner-authenticated boundaries and existing integrations |
-| Research | Existing CST/dyn12/R12/CNS7, fruit-fly, quantum and RAWRPHØS paths | Preserve and build compatibility matrix, not bulk archive |
+| A — Security and recovery | **in progress** | [V2 ledger](../beastbox/persistent_substrate/ledger_v2.py), [V2 Dad/Son outbox](../beastbox/dad_son_v2.py), [V2 substrate](../beastbox/persistent_substrate/substrate_v2.py), [recovery regressions](../tests/test_finisher_v2_security_acceptance.py), and [lineage tamper tests](../tests/test_finisher_v2_versioning.py) committed. Original V1 hashes verified; fresh independent historical/product/Windows run evidence and independently authenticated cross-restart anchor still outstanding. |
+| B — Semantic retrieval | **in progress** | [Lexical relevance guard and regression](../beastbox/memory.py), [test](../tests/test_full_runtime.py). One-pass product retrieval graph, optional embeddings/hybrid experiments, held-out quality and latency benchmarks incomplete. |
+| C — Memory lifecycle | **in progress** | Source-attributed, stopword-aware thematic index in [memory](../beastbox/memory.py) with regression; not equivalent to validated abstractive summaries. Contradictions, archival, restoration, intentional deletion, long growth/soak unfinished. |
+| D — Agency | **not started** | Existing product primitives are not an audited scoped autonomy/revocation/restart test matrix. |
+| E — Adaptation | **not started** | No controlled held-out adaptive/frozen state measurements; no superiority claim. |
+| F — Multi-model routing | **not started** | Original [historical A→B→A result](PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md) retained. No fresh measured capability routing proving Finisher F. |
+| G — Ecosystem reconciliation | **in progress** | [Source-inspected matrix](FINISHER_V2_ECOSYSTEM_MATRIX.md) covers COSMOS/CST/dyn12/CNS7/R12, RAWRPHØS, sensors, quantum adapters and fruit-fly sources; live integration and compatibility contracts remain to be tested. |
 
-## Integrity phase A — reproducibility ledger
+## Milestone 1 — frozen-source architectural blocker
 
-| ID | Evidence at pinned source | Current milestone |
-| --- | --- | --- |
-| A1 | Verifier supports expected tip/count; controller pins these in-process and rejects truncation of an appended suffix. | PARTIAL: no independent authenticated persistent anchor across restarts; frozen-source owner gate |
-| A2 | Verified-row output comes from the exact snapshot that passed validation; path-substitution regression added. | PATCHED IN DRAFT; frozen-source owner gate blocks merge |
-| A3 | Sidecar SQLite lock, fsync, contention and partial-write tests, plus non-destructive suspect-byte quarantine added. | PATCHED IN DRAFT; current-head and Windows evidence plus repair approval still needed |
-| A4 | SQLite transactional outbox with fsynced idempotent JSONL replay, divergence detection and crash-window fault tests added. | PATCHED IN DRAFT; complete crash matrix and frozen-source owner gate remain |
-| A5 | Existing snapshot already re-hashes live immutable inputs and rejects a changed input; a between-model mutation regression was added. | Source finding clarified, current-head test pending; no source rewrite |
-| A6 | Threat model created and README/SECURITY.md corrected to current Apache scope. | PARTIAL: stale LICENSE_HISTORY prospective wording and third-party rights need owner review |
+- [x] Final owner selection documented: versioned V1 / separate secure V2.
+- [x] Three changed historical paths restored verbatim to historical Git blobs; existing guard script untouched.
+- [x] Prior V2 A1–A4 corrections relocated to separate modules with explicit V2 dependencies.
+- [x] Versioning docs, canonical manifest and tamper-verifier committed, with negative tests.
+- [ ] Unchanged historical guard passed at final exact commit (see [Actions](https://github.com/NavisWORLD/The-beast-box-/pull/129/checks)).
+- [ ] Historical offline reproduction independently passed at final exact commit and receipt archived. Deterministic offline simulation is **not** the original externally dependent real-model experiment.
+- [ ] Full relevant A1–A5 security, restart/fault and actual Windows contract tests passed at final exact commit. In-process expected count/tip does not prove independent authentication across restarts; externally retained protected receipt infrastructure remains an explicitly scoped limitation.
+- [ ] Fresh **combined** Product CI green at final commit on each of Python 3.10/3.11/3.12; original pre-restructure 1,150 test counts do not satisfy this gate.
 
-A static code match is not a successful runtime regression. For each row, link a failing-before and passing-after test or document why a hypothesis was rejected.
+## Milestone 2 — overall Finisher acceptance
 
-## CI and protected-source gate (newly verified)
+- [ ] Each Phase A–G reaches evidence-backed acceptance or the owner approves a specifically reduced release scope.
+- [ ] All required performance, trust, authority, platform, packaging and ecosystem compatibility gates are evidenced.
+- [ ] Independent external trust anchor for persisted memory implemented and evaluated for the defined attacker/trust model.
+- [ ] All scientific claims remain limited to recorded measurements; historical source and receipts preserved.
+- [ ] Release blocker list closed, reproducible artifact hashes and final commit recorded.
+- [ ] Separate owner authorization for any merge, production deployment, release or cost-bearing cloud execution.
 
-- [Product CI 36327780550](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36327780550), branch snapshot `944cb0b89fbc5197e69394adb288f518680283b3`: Python 3.12 completed **1,146 passed**, architecture acceptance reported `passed=true`, but quality exited failure on `scripts/smoke/sealed-evidence-guard.sh`. This guard explicitly rejects changes to frozen Dad/Son and persistent-substrate source. These tests do **not** certify subsequent commits, Windows, or the final protected-source policy.
-- At that same earlier snapshot, package-smoke, configuration and security checks passed. Latest exact-head runs must be inspected individually; no blanket green claim.
-- **OWNER DECISION RESOLVED:** the owner approved frozen-pristine source with a versioned, hashed security overlay. Preserve original guard. No merge/release pending deterministic patch application, historical reproduction and the required patched-suite/CI evidence.
-- Current PR: [#129](https://github.com/NavisWORLD/The-beast-box-/pull/129), draft, intentionally isolated and unmerged.
-- After the above intermediate 1,146-pass evidence, subsequent security A5/quarantine, lexical relevance-gate and docs commits were made. Those subsequent commits **need a single exact-head run**, and earlier cancelled or failing workflow checks must never be called final green.
+## Test history and reporting discipline
 
-## Retrieval and later phases
+Prior source checkpoint `2df88c4c6c6fbee8e2e59433efa3148c48fe662b`
+passed 1,150 Python tests on 3.10, 3.11 and 3.12 but **Product CI
+failed** its frozen-source check. This is not post-versioning evidence.
+The new [dedicated workflow](../.github/workflows/finisher-versioned-v2.yml)
+runs a separate historical-pristine offline replay, focused V2 tests on all
+three Pythons, and real `windows-latest` locking/crash tests. Existing
+[CI](../.github/workflows/ci.yml) and [Product CI](../.github/workflows/product-ci.yml)
+now exercise the unchanged checkout directly, without modifying or patching V1.
+Fresh final-commit links and exact counts must be added **after** each runner
+actually completes; don't present queued or cancelled earlier runs as green.
 
-- **B:** PARTIAL / NOT VALIDATED — fixed the legacy SQLite lexical `search()` relevance floor to require nonzero lexical overlap **before** recency can boost a score, with a new unrelated-fresh-memory regression. This deliberately improves only literal-token relevance; paraphrases still require evaluated optional embeddings. Product `DurableRuntime` replaces first-pass results with later refractive ranking, so its complete retrieval behavior is NOT fixed by this patch. Full chat call graph, actual one-pass migration, held-out quality, embedding identity and 500 / 5k / 50k latency remain NOT RUN.
-- **C:** PARTIAL / NOT VALIDATED — a targeted deterministic English stopword-aware consolidation patch creates lineage-linked `derived-synthetic` **thematic indices**, avoids duplicate unchanged source groups and keeps original memories; new focused test added. These are explicitly **not** inference-provider abstractive summaries or proof of factual correctness. Decay, archival/restoration, privacy deletion, contradiction handling, growth target and 10k-turn soak remain NOT RUN. Note previous unversioned consolidation records remain; no destructive rewrite/migration performed.
-- **D:** NOT RUN — bounded tool execution, denial logs, restart/swap revocation.
-- **E:** NOT RUN — fixed/adaptive held-out comparison; no intelligence claim.
-- **F:** NOT RUN — multi-provider measured routed A→B→A acceptance.
-- **G:** PARTIAL INVENTORY ONLY — initial source-inspected [compatibility matrix](FINISHER_V2_ECOSYSTEM_MATRIX.md) maps current product, active CST/CNS7/R12, optional sensors/provider routes, RAWRPHØS branches and fruit-fly research. No live optional-provider/device/OS/deployment smoke tests or cross-repository writes were performed.
-
-## Licensing and owner gates
-
-The older brief's 'currently proprietary' assertion is **outdated on this pinned source**. Root `LICENSE`, `NOTICE` and package classifiers currently state Apache-2.0 for covered original source. However, `LICENSE_HISTORY.md` still contains stale 'draft-only' / 'permission required' text and `SECURITY.md` still calls the repository private; reconcile this documentation under owner review. Do not relicense third-party inputs. No new owner relicensing decision was performed by Finisher V2.
-
-**Release gate:** owner confirmation of final per-component rights/NOTICE audit; approval before any active-research move, resource spending, deployment, merge, tag or release. No permission is implied by this status document.
-
-## Commands / results
-
-- Static source: GitHub connector `get_repo`, `fetch`, `fetch_file` pinned to `main` head above.
-- Existing `ci.yml`: `pip install -e '.[dev,ml]'` then `pytest` under Python 3.10/3.12; pull-request execution and exact results not yet observed here.
-- Planned focused check: `python -m pytest -q tests/test_persistent_substrate_ledger.py`.
-- Preservation checks: `git diff --exit-code c8769d0f1c9dab7a0c9adc0082d7234e7ff22f6f -- evidence/final-whole-organism-001/` on CI; monitor full branch diff and enforce no original evidence edits.
-
-## Next authorized step
-
-Complete the approved pristine-source patch overlay, then rerun historical-source and targeted security acceptance at a single exact commit. Independently audit Phase B personal retrieval while the protected-source decision is open. Leave all deployment and release gates closed.
+The root license was already changed to Apache-2.0 on the inspected main
+baseline. No license edit is part of this PR. Individually marked
+third-party resources retain separate rights. Scientific framing remains
+bounded by [claim boundaries](CLAIM_BOUNDARIES.md) and
+[scientific boundaries](SCIENTIFIC_BOUNDARIES.md).
