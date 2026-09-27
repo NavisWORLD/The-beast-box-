@@ -84,17 +84,81 @@ prototype, **not** a background autonomous agent or a substitute for actual
 owner authentication, persistent denial logs, preemption, sandboxed tools or
 cross-process authorization auditing.
 
+## Latest complete Finisher A–G engineering test checkpoint (2026-09-27)
+
+**Exact tested code commit:** `cd9b05a3fb6a91b52a599644b82f79ad2fa47465`.
+[Combined Product CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36333761776)
+**SUCCESS:** **1,212 tests passed on each of Python 3.10, 3.11 and 3.12**,
+68% measured repository-wide test coverage, original historical guard pass,
+architecture acceptance pass, security audit 0 errors/0 warnings, package
+smoke and actual browser checks passed.
+[Repository CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36333761769)
+**SUCCESS:** 3.10/3.12 full-suite and quality/package-smoke jobs.
+[Dedicated historical/V2/Windows and scale workflow](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36333761933)
+**SUCCESS:** original untouched historical source guard and verified offline
+fixture replay, focused V2 Python 3.10/3.11/3.12 and actual Windows 3.12
+tests, and newly added isolated 10,000-record retention-scale job.
+
+The 10k scale artifact classifies its inputs as **derived-synthetic**:
+it created 10,000 retained memory rows, checkpointed 500-row SQLite batches,
+executed one real product turn, archived/restored one original and reopened
+the product under a different reference provider while verifying exact
+checkpoint and memory digest. It **did not** perform a 10k-turn interactive
+endurance soak. On the recorded Actions environment, seeding measured
+approximately 5.55 seconds, reversible lifecycle 0.95 seconds, and the
+single 10k-corpus turn 1.53 seconds. These are one observed environment,
+not platform-independent latency limits, a benchmark comparison to V1, or
+evidence of real-model performance.
+
+**Phase E controlled software feedback:** the
+[isolated reviewed-feedback adaptive controller](../beastbox/adaptive_control.py)
+can reweight existing frozen R12 score components using training-only
+reviewed examples; [negative-control tests](../tests/test_finisher_adaptive_control.py)
+reject train/evaluation query leakage and compare frozen/adaptive MRR on
+separate synthetic held-out inputs. Neither model weights nor original
+historical R12 source change. These tiny fixtures do not establish any
+real-world performance improvement or complete Phase E evaluation. See the
+[protocol](ADAPTIVE_ROUTING_PROTOCOL.md).
+
+**Phase F configured routing:** the [host-authorized model router](../beastbox/model_router.py)
+explicitly selects labeled provider/capability pairs, keeps the same product
+memory/state/authority outside replaceable inference, revokes grants on every
+swap and refuses failed-provider and missing-capability fallback.
+[Regression evidence](../tests/test_finisher_model_router.py) includes
+one **reference-provider software A→B→A control**, swapped-host approval
+revocation and deceptive model-output denial. No provider weight identity
+was attested and this was **not** a new multi-real-neural-model comparison.
+See [configured routing scope](MODEL_ROUTING_SCOPE.md).
+
+**Phase G narrow offline compatibility:** the
+[adapter smoke tests](../tests/test_finisher_ecosystem_smoke.py) exercise
+owner-supplied software light-feature summary → validated
+`sensor-event-v1` → actual durable CNS/state/continuity turn → approved
+reference-provider route swap, verify rejection of out-of-range inputs
+and safe missing-cloud credentials. This is **not** validation of live
+phone bio/camera/mic, paid hardware, current RAWRPHØS weights, Synapse OS
+boot or live fruit-fly data.
+
+**Progress compared to frozen-source milestone:** the originally sealed V1
+research files are still byte-identical to their historical anchor and the
+unaltered guard passes. All A–G **have some implementation or evidence**, but
+none meets the original unconstrained Finisher final acceptance: independent
+authenticated anchor custody, large-corpus held-out semantic/adaptive tests,
+full conversation soak, production owner-authenticated autonomous execution,
+measured real two-model capability routing and live external ecosystem
+integrations remain open. Do not automatically merge or release.
+
 ## Finisher phases (only evidence-backed state)
 
 | Phase | Status | Evidence / still required |
 | --- | --- | --- |
-| A — Security and recovery | **in progress** | [V1/V2/Windows](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36332862474) and [full product](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36332862492) passed at `a27d1220`; exact original scientific guard unchanged. Optional product CAS authority [implemented](../beastbox/trusted_anchor.py) with rollback/restart tests. Independently administered authenticated persistence and full crash/platform matrix still required. |
-| B — Semantic retrieval | **in progress** | One-read [active product snapshot](../beastbox/retrieval_snapshot.py), unchanged historical R12 ranker, [parity regressions](../tests/test_finisher_retrieval_snapshot.py) and corrected [benchmark](../scripts/benchmark_runtime.py) green in full CI. Optional real embeddings, held-out semantic quality and large-scale latency benchmarks remain open. |
-| C — Memory lifecycle | **in progress** | Reversible reviewed [archive/restore, contradictions and thematic indices](../beastbox/memory.py), [durable checkpoints](../beastbox/durable.py) and [tests](../tests/test_finisher_memory_lifecycle.py) passed. Truth adjudication, tiered retention, 10k-turn soak and full archival operations remain open. |
-| D — Agency | **in progress** | [Finite host-scoped maintenance controller](../beastbox/scoped_maintenance.py) and [policy/restart/swap denial tests](../tests/test_finisher_scoped_maintenance.py) passed. No independently authenticated production host approval, background maintenance daemon, durable denial audit, or general sandbox tool orchestration. |
-| E — Adaptation | **not started** | No controlled held-out adaptive/frozen state measurements; no superiority claim. |
-| F — Multi-model routing | **not started** | Original [historical A→B→A result](PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md) retained. No fresh measured capability routing proving Finisher F. |
-| G — Ecosystem reconciliation | **in progress** | [Source-inspected matrix](FINISHER_V2_ECOSYSTEM_MATRIX.md) covers COSMOS/CST/dyn12/CNS7/R12, RAWRPHØS, sensors, quantum adapters and fruit-fly sources; live integration and compatibility contracts remain to be tested. |
+| A — Security and recovery | **in progress** | [Original sealed/V2/Windows/10k run](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36333761933), [full Product CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36333761776). Separately versioned V2 corrections, strict optional [product CAS authority](TRUSTED_ANCHOR.md), rollback/outage/restart tests passed. Independently administered authenticated off-writer authority and extended fault matrix not deployed/proven. |
+| B — Semantic retrieval | **in progress** | [Shared immutable per-turn product snapshot](../beastbox/retrieval_snapshot.py) and frozen R12 parity tested, corrected [measurement harness](../scripts/benchmark_runtime.py), observed single turn with 10k synthetic rows. No learned embedding adapter, held-out real relevance evidence, replicated 5k/50k latency evaluation. |
+| C — Memory lifecycle | **in progress** | Reversible reviewed archive/restore and human-reviewed contradiction link checkpoints [tested](../tests/test_finisher_memory_lifecycle.py); 10,000 synthetic rows + real single turn + reopen + archived scale receipt [passed](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36333761933). NOT a 10k-turn soak; no owner-approved forgetting/retention or full source archival policy. |
+| D — Agency | **in progress** | Default-deny [finite scoped maintenance host API](../beastbox/scoped_maintenance.py), bounded one-use expiring grants, revoke/swap/restart denial [regressions](../tests/test_finisher_scoped_maintenance.py) pass. No deployed independent owner-authentication service, long-running agent, full real tool-authority review or durable grant audit. |
+| E — Adaptation | **in progress** | New opt-in [reviewed pairwise feature-weight control](../beastbox/adaptive_control.py) + [disjoint synthetic held-out comparator](../tests/test_finisher_adaptive_control.py) pass. Baseline/feedback/shuffled/zero-state on representative real corpora and externally preregistered measured advantage remain unproven; no neural training. |
+| F — Multi-model routing | **in progress** | [Host-selected capability router](../beastbox/model_router.py) and [reference-provider A→B→A/no-fallback tests](../tests/test_finisher_model_router.py) pass while preserving one persistent runtime and revoking tools. Does not attest real checkpoints or measure real two-model capability routing. |
+| G — Ecosystem reconciliation | **in progress** | [Matrix](FINISHER_V2_ECOSYSTEM_MATRIX.md) + [offline sensor→CNS→durable→provider compatibility smoke](../tests/test_finisher_ecosystem_smoke.py) pass. Real device, current RAWRPHØS weight integration, fruit-fly dataset, live quantum and Synapse OS compatibility still externally untested. |
 
 ## Milestone 1 — frozen-source architectural blocker
 
@@ -108,6 +172,8 @@ cross-process authorization auditing.
 - [x] Fresh **combined** [Product CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659080) green at tested code commit `f3549d78`: **1,166 passed each** on Python 3.10, 3.11 and 3.12, architecture acceptance `passed: true`, security audit 0 errors/0 warnings, original frozen guard pass, package and real browser jobs pass. [Repository CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36330659180) green at the same commit. Final doc-only HEAD still requires a fresh full run.
 
 **Updated tested implementation checkpoint:** [a27d1220 combined Product CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36332862492), [repository CI](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36332862444), [historical/V2/Windows](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36332862474) all green at the same exact code SHA, with **1,191 passing tests each supported Python** in Product CI. This documents the architectural frozen-source conflict resolution; it does not close the remaining independent authority or full Finisher gates. Subsequent documentation/test-matrix commits require their own exact-HEAD verification.
+
+**Latest exact tested code milestone:** [Product CI 36333761776](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36333761776), [CI 36333761769](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36333761769), and [historical/V2/Windows/10k 36333761933](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36333761933) all completed **successfully** on `cd9b05a3fb6a91b52a599644b82f79ad2fa47465`. The original frozen-source architectural conflict and reproducible offline model-swap fixture are verified. Documentation and expanded contract-test workflow changes committed *after* this code SHA require their own final-head checks, and do not imply all Phase A–G functionality is ready.
 
 ## Milestone 2 — overall Finisher acceptance
 

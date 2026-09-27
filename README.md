@@ -14,7 +14,7 @@ the runtime retains the story and enforces its own authority boundary.
 [Architecture](docs/ECOSYSTEM_MANIFEST.json) · [Persistent Memory](docs/PORTABLE_STATE.md) ·
 [Model Swap Evidence](docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md) ·
 [Provider Setup](docs/PROVIDER_SETUP.md) · [Synapse Flash / Portable State](docs/PORTABLE_STATE.md) ·
-[Security](SECURITY.md) · [Threat model](docs/THREAT_MODEL.md) · [Optional external anchor](docs/TRUSTED_ANCHOR.md) · [Versioned V1/V2 source](docs/VERSIONING.md) · [Scientific Boundaries](docs/CLAIM_BOUNDARIES.md) ·
+[Security](SECURITY.md) · [Threat model](docs/THREAT_MODEL.md) · [Optional external anchor](docs/TRUSTED_ANCHOR.md) · [Configured model routing](docs/MODEL_ROUTING_SCOPE.md) · [Versioned V1/V2 source](docs/VERSIONING.md) · [Scientific Boundaries](docs/CLAIM_BOUNDARIES.md) ·
 [Evidence Index](docs/EVIDENCE_INDEX.md) · [Developer Guide](docs/DEVELOPER_GUIDE.md) ·
 [Runtime performance measurements](docs/performance/ASTRA_PASS_2026-09-12.md) ·
 [Cosmic Fruit Fly 🪰 — experimental workspace](cosmic%20fruit%20fly/README.md)
