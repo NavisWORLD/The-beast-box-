@@ -58,10 +58,11 @@ class OfflineSentenceTransformer:
     def embed_many(self, texts: Sequence[str]) -> Sequence[Sequence[float]]:
         if not texts:
             return []
-        return self._model.encode(
+        vectors = self._model.encode(
             list(texts), batch_size=32, show_progress_bar=False,
             convert_to_numpy=False, normalize_embeddings=False,
-        ).tolist()
+        )
+        return [vector.tolist() if hasattr(vector, "tolist") else list(vector) for vector in vectors]
 
 
 def _normalized_batch(raw: object, count: int, dimension: int | None) -> list[tuple[float, ...]]:
