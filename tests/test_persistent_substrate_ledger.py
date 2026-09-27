@@ -71,6 +71,32 @@ def test_direct_record_lookup_reverifies_chain_and_expected_hash(tmp_path: Path)
         )
 
 
+
+def test_verified_record_lookup_uses_exact_verified_bytes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A path substitution between verification and lookup must not change returned evidence."""
+    valid = tmp_path / "valid.jsonl"
+    assemble_canonical_memory(ROOT, MANIFEST, valid)
+    original = valid.read_bytes()
+    forged = original.replace(b'"text": "', b'"text": "FORGED ', 1)
+    assert forged != original
+
+    reads = 0
+    real_read = Path.read_bytes
+
+    def swapped_read(path: Path) -> bytes:
+        nonlocal reads
+        if path == valid:
+            reads += 1
+            return original if reads == 1 else forged
+        return real_read(path)
+
+    monkeypatch.setattr(Path, "read_bytes", swapped_read)
+    row = get_verified_memory_record(valid, 1, parent_sha256=HISTORICAL_PARENT)
+    expected = json.loads(original.splitlines()[0])
+    assert row == expected
+    assert reads == 1, "lookup re-read the ledger after verifying different bytes"
+
+
 def test_memory_verifier_detects_payload_mutation_at_exact_line(tmp_path: Path) -> None:
     valid = tmp_path / "valid.jsonl"
     assemble_canonical_memory(ROOT, MANIFEST, valid)
