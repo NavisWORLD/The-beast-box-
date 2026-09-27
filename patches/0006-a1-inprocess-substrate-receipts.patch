@@ -1,0 +1,67 @@
+# Finisher security overlay: 0006-a1-inprocess-substrate-receipts.patch
+# Target: beastbox/persistent_substrate/substrate.py
+# Original-SHA256: e579038e3c9cdf0e2f7a4a7a39e1b30d8b39b8ca854c7bc021a070a926a9260a
+# Expected-Patched-SHA256: 9e709f1bdcaa03cc40b2e3534536f625593f1d88cb2068863683cf61eea905a5
+# Rationale: Pin verified in-process memory tip and count through appends; disclose the still-open cross-restart independent trust-root gap.
+# Regression: tests/test_persistent_substrate_substrate.py::test_primary_rejects_valid_looking_appended_suffix_truncation
+--- a/beastbox/persistent_substrate/substrate.py
++++ b/beastbox/persistent_substrate/substrate.py
+@@ -362,6 +362,17 @@ def __init__(
+         }
+         self._immutable_inputs = self._capture_immutable_inputs()
+         self._implementation_hashes = self._capture_implementation_hashes()
++        # The freshly assembled immutable prefix is verified against its source
++        # manifest at restore. Retain its verified tip/length in this live
++        # controller so a valid-looking suffix truncation cannot pass the next
++        # in-process read. Persistent cross-restart anchors remain a separate
++        # trust-root requirement; never portray this in-memory pin as signing.
++        initial_memory = verify_memory_chain(
++            self.memory_path, parent_sha256=self.memory_parent_sha256,
++            immutable_prefix=self._canonical_prefix_bytes,
++        )
++        self._expected_memory_count = initial_memory.record_count
++        self._expected_memory_tip = initial_memory.tip_sha256
+ 
+     @classmethod
+     def restore_primary(
+@@ -532,6 +543,8 @@ def _memory_receipt(self) -> LedgerReceipt:
+             self.memory_path,
+             parent_sha256=self.memory_parent_sha256,
+             immutable_prefix=self._canonical_prefix_bytes,
++            expected_record_count=self._expected_memory_count,
++            expected_tip_sha256=self._expected_memory_tip,
+         )
+ 
+     def append_memory(
+@@ -557,9 +570,19 @@ def append_memory(
+             descendant_sha256=descendant_sha256,
+             metadata=metadata,
+         )
+-        receipt = self._memory_receipt()
+-        if receipt.tip_sha256 != row["record_sha256"]:
+-            raise RuntimeError("memory append receipt tip mismatch")
++        # The append must extend exactly the previously pinned state by one.
++        # Do not advance the in-memory anchor until the full post-append
++        # chain matches both the count and the row's verified tip.
++        receipt = verify_memory_chain(
++            self.memory_path, parent_sha256=self.memory_parent_sha256,
++            immutable_prefix=self._canonical_prefix_bytes,
++            expected_record_count=self._expected_memory_count + 1,
++            expected_tip_sha256=str(row["record_sha256"]),
++        )
++        if str(row["previous_record_sha256"]) != self._expected_memory_tip:
++            raise RuntimeError("memory append previous pinned tip mismatch")
++        self._expected_memory_count = receipt.record_count
++        self._expected_memory_tip = receipt.tip_sha256
+         return row
+ 
+     def get_memory_record(
+@@ -573,6 +596,8 @@ def get_memory_record(
+             memory_id,
+             parent_sha256=self.memory_parent_sha256,
+             expected_record_sha256=expected_record_sha256,
++            expected_record_count=self._expected_memory_count,
++            expected_tip_sha256=self._expected_memory_tip,
+         )
+ 
+     @staticmethod
