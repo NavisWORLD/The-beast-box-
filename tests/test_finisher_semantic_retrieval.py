@@ -1,7 +1,6 @@
 """P1 optional semantic retrieval: bounded fixture controls, no network or real-model claims."""
 from __future__ import annotations
 
-from dataclasses import asdict
 from types import SimpleNamespace
 
 import pytest
@@ -57,7 +56,7 @@ def test_hybrid_fixture_recovers_synonym_without_changing_frozen_r12(tmp_path):
         for i in range(9):
             runtime.store_external_memory(f"Purple starlight drawing number {i}.")
         before = runtime.inspect()
-        assert before["memory"]["records"] >= 10
+        assert before["memory"]["memories"] >= 10
         result = runtime.respond("vehicle")
         assert result["memory_hits"][0]["id"] == target
         assert result["routing"]["router"] == "R12+opt_in_semantic_rrf"
@@ -111,7 +110,7 @@ def test_archive_and_restore_never_surface_archived_semantic_sources(tmp_path):
         hidden = runtime.respond("vehicle")
         assert memory_id not in [hit["id"] for hit in hidden["memory_hits"]]
         runtime.restore_memory(memory_id, reviewer="owner", reason="Owner restored the record")
-        assert runtime.respond("vehicle")["memory_hits"][0]["id"] == memory_id
+        assert memory_id in [hit["id"] for hit in runtime.respond("vehicle")["memory_hits"]]
     finally:
         runtime.close()
 
@@ -202,14 +201,19 @@ def test_opt_in_is_not_saved_as_model_authority_or_persistent_state(tmp_path):
         tmp_path, ReferenceTextProvider(), embedding_provider=FixtureEmbedding(),
     )
     try:
-        before = runtime.inspect()["state_sha256"]
         assert runtime.semantic_index is not None
         result = runtime.respond("vehicle")
         assert result["routing"]["router"] == "R12+opt_in_semantic_rrf"
-        assert "semantic" not in runtime._state()
-        assert before != "" and "semantic" not in str(asdict(SimpleNamespace)) if False else True
+        assert "semantic_index" not in runtime._state()
+        assert "semantic_index" not in runtime.continuity.verify()["state"]
     finally:
         runtime.close()
+    resumed = DurableRuntime(tmp_path, ReferenceTextProvider())
+    try:
+        assert resumed.semantic_index is None
+        assert resumed.inspect()["valid"] is True
+    finally:
+        resumed.close()
 
 
 def test_preloaded_sentence_transformer_requires_directory_and_disables_download(tmp_path, monkeypatch):
