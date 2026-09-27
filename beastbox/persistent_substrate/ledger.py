@@ -5,6 +5,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import sqlite3
+from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -415,22 +417,30 @@ class StateEventLedger:
         if not isinstance(payload, Mapping):
             raise ValueError("state event payload must be a mapping")
         _parse_timezone_timestamp(logical_timestamp, label="logical timestamp")
-        current = self.verify()
-        unsigned = {
-            "schema": STATE_SCHEMA,
-            "event_index": current.record_count + 1,
-            "logical_timestamp": str(logical_timestamp),
-            "kind": normalized_kind,
-            "payload": dict(payload),
-            "previous_event_sha256": current.tip_sha256,
-        }
-        row = {**unsigned, "event_sha256": hashlib.sha256(canonical_json_bytes(unsigned)).hexdigest()}
-        encoded = canonical_json_bytes(row) + b"\n"
-        with self.path.open("ab") as handle:
-            handle.write(encoded)
-            handle.flush()
-            os.fsync(handle.fileno())
-        self.verify()
+
+        # SQLite's single-writer reservation works across processes on both
+        # Windows and POSIX. Every cooperating writer holds it from verification
+        # through the durable append and post-append verification.
+        lock_path = self.path.with_name(self.path.name + ".writer-lock.sqlite3")
+        with closing(sqlite3.connect(str(lock_path), timeout=30.0)) as writer_lock:
+            with writer_lock:
+                writer_lock.execute("BEGIN IMMEDIATE")
+                current = self.verify()
+                unsigned = {
+                    "schema": STATE_SCHEMA,
+                    "event_index": current.record_count + 1,
+                    "logical_timestamp": str(logical_timestamp),
+                    "kind": normalized_kind,
+                    "payload": dict(payload),
+                    "previous_event_sha256": current.tip_sha256,
+                }
+                row = {**unsigned, "event_sha256": hashlib.sha256(canonical_json_bytes(unsigned)).hexdigest()}
+                encoded = canonical_json_bytes(row) + b"\n"
+                with self.path.open("ab") as handle:
+                    handle.write(encoded)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                self.verify()
         return row
 
     def verify(self) -> LedgerReceipt:
