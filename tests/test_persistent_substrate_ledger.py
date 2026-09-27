@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from beastbox.persistent_substrate.ledger import (
+from beastbox.persistent_substrate.ledger_v2 import (
     MemoryChainVerificationError,
     StateEventLedger,
     assemble_canonical_memory,
@@ -155,7 +155,7 @@ def test_state_event_append_serializes_across_processes(tmp_path: Path) -> None:
     worker = """
 import sys, time
 from pathlib import Path
-from beastbox.persistent_substrate.ledger import StateEventLedger
+from beastbox.persistent_substrate.ledger_v2 import StateEventLedger
 path, start, name = sys.argv[1:]
 while not Path(start).exists():
     time.sleep(0.005)
