@@ -115,6 +115,37 @@ def test_archive_and_restore_never_surface_archived_semantic_sources(tmp_path):
         runtime.close()
 
 
+def test_archive_purges_cached_embedding_immediately_without_next_turn(tmp_path):
+    runtime = DurableRuntime(
+        tmp_path, ReferenceTextProvider(), embedding_provider=FixtureEmbedding(),
+    )
+    index = runtime.semantic_index
+    assert index is not None
+    try:
+        memory_id = runtime.store_external_memory("An automobile is inside the garage.")["memory_id"]
+        runtime.respond("vehicle")
+        assert any(key[0] == memory_id for key in index._cache)
+        runtime.archive_memory(memory_id, reviewer="owner", reason="Private memory archive")
+        assert all(key[0] != memory_id for key in index._cache)
+        # Restore does not resurrect stale cached private vectors.
+        runtime.restore_memory(memory_id, reviewer="owner", reason="Explicit restore")
+        assert all(key[0] != memory_id for key in index._cache)
+    finally:
+        runtime.close()
+    assert not index._cache
+
+
+def test_snapshot_change_and_empty_snapshot_evict_obsolete_vectors():
+    index = SnapshotSemanticIndex(FixtureEmbedding())
+    rows = _rows()
+    assert index.rank(rows, "vehicle").embedded_records == 2
+    assert {key[0] for key in index._cache} == {1, 2}
+    index.rank(rows[1:], "vehicle")
+    assert {key[0] for key in index._cache} == {2}
+    index.rank([], "vehicle")
+    assert not index._cache
+
+
 def test_provider_failure_raises_and_rolls_back_entire_turn(tmp_path):
     provider = FixtureEmbedding()
     runtime = DurableRuntime(tmp_path, ReferenceTextProvider(), embedding_provider=provider)

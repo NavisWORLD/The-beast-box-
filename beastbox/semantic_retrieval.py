@@ -136,6 +136,16 @@ class SnapshotSemanticIndex:
         self.batch_size = batch_size
         self._cache: OrderedDict[tuple[int, str], tuple[float, ...]] = OrderedDict()
 
+    def forget_memory(self, memory_id: int) -> None:
+        """Drop private vectors promptly when a host archives a source."""
+        for key in list(self._cache):
+            if key[0] == memory_id:
+                del self._cache[key]
+
+    def clear(self) -> None:
+        """Discard all ephemeral vectors, including on runtime shutdown."""
+        self._cache.clear()
+
     def _embed(self, texts: Sequence[str], dimension: int | None) -> list[tuple[float, ...]]:
         try:
             raw = self.provider.embed_many(texts)
@@ -148,17 +158,18 @@ class SnapshotSemanticIndex:
             raise SemanticRetrievalError("semantic query must contain 1..8192 characters")
         if len(rows) > self.max_records:
             raise SemanticRetrievalError("semantic source corpus exceeds configured record cap")
-        # No active records means no sensitive content needs to reach a provider.
+        # Dropping all active rows must also drop previously cached private vectors.
         if not rows:
+            self.clear()
             return SemanticResult({}, 0, 0)
         try:
-            query_vector = self._embed([query], None)[0]
-            dimension = len(query_vector)
-            scores: dict[int, float] = {}
-            misses: list[tuple[int, str, tuple[int, str]]] = []
-            hits = 0
+            active: list[tuple[int, str, tuple[int, str]]] = []
+            live_keys: set[tuple[int, str]] = set()
             for row in rows:
-                metadata = json.loads(row["metadata_json"])
+                try:
+                    metadata = json.loads(row["metadata_json"])
+                except (TypeError, ValueError) as exc:
+                    raise SemanticRetrievalError("invalid source lifecycle metadata") from exc
                 if not isinstance(metadata, dict):
                     raise SemanticRetrievalError("invalid source lifecycle metadata")
                 if bool(metadata.get("archived", False)):
@@ -166,6 +177,23 @@ class SnapshotSemanticIndex:
                 memory_id = int(row["id"])
                 text = str(row["text"])
                 key = (memory_id, hashlib.sha256(text.encode("utf-8")).hexdigest())
+                active.append((memory_id, text, key))
+                live_keys.add(key)
+
+            # Another runtime may have archived or replaced rows since the last turn.
+            # Never retain vectors absent from the authoritative active snapshot.
+            for stale_key in list(self._cache):
+                if stale_key not in live_keys:
+                    del self._cache[stale_key]
+            if not active:
+                return SemanticResult({}, 0, 0)
+
+            query_vector = self._embed([query], None)[0]
+            dimension = len(query_vector)
+            scores: dict[int, float] = {}
+            misses: list[tuple[int, str, tuple[int, str]]] = []
+            hits = 0
+            for memory_id, text, key in active:
                 vector = self._cache.get(key)
                 if vector is not None and len(vector) == dimension:
                     self._cache.move_to_end(key)
@@ -190,8 +218,8 @@ class SnapshotSemanticIndex:
                             self._cache.popitem(last=False)
             return SemanticResult(scores, len(misses), hits)
         except Exception:
-            # A failed provider call must not leave a partially refreshed cache.
-            self._cache.clear()
+            # Failed provider calls never leave a partially refreshed cache.
+            self.clear()
             raise
 
 

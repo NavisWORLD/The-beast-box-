@@ -32,7 +32,10 @@ and elapsed time. **Labels and flags are declarations, not weight attestation
 or proof that an arbitrary host plugin cannot make network requests.**
 Original `memory_id`, text, source IDs and historical `r12_score` are
 preserved through fusion. Archived records are never candidates. Owner-reviewed
-restore makes the original eligible again.
+restore makes the original eligible again. Runtime archiving promptly evicts
+that source's cached vector; the next active snapshot also prunes vectors for
+rows archived or changed by other runtime instances, and shutdown clears the
+process cache. Python cache eviction is not a forensic RAM-erasure guarantee.
 
 ## Preloaded, offline learned embedding option
 

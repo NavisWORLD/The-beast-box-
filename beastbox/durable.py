@@ -455,6 +455,11 @@ class DurableRuntime(CosmosRuntime):
                 self._check_anchor(before)
                 self._restore(copy.deepcopy(before))
                 changed = mutate()
+                if changed and action == "archive" and self.semantic_index is not None:
+                    # Lifecycle privacy: the archived source must not linger in
+                    # this process's embedding cache, even before another turn.
+                    for memory_id in ids:
+                        self.semantic_index.forget_memory(memory_id)
                 if not changed:
                     return {"changed": False, "action": action, "memory_ids": list(ids)}
                 receipt = {
@@ -527,6 +532,8 @@ class DurableRuntime(CosmosRuntime):
 
     def close(self) -> None:
         root = Path(self.config.data_dir)
+        if self.semantic_index is not None:
+            self.semantic_index.clear()
         super().close()
         from .sealed_storage import maybe_seal_root
 
