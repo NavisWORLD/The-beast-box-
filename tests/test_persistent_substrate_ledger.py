@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -128,3 +131,56 @@ def test_state_event_ledger_is_deterministic_chained_and_tamper_evident(tmp_path
     path.write_bytes(original.replace(b'"MODEL_A"', b'"MODEL_B"', 1))
     with pytest.raises(RuntimeError, match="state event hash mismatch"):
         ledger.verify()
+
+
+def test_state_event_append_serializes_across_processes(tmp_path: Path) -> None:
+    """SQLite BEGIN IMMEDIATE provides the same writer discipline on Windows and POSIX."""
+    ledger_path = tmp_path / "concurrent-state.jsonl"
+    start_file = tmp_path / "start"
+    worker = """
+import sys, time
+from pathlib import Path
+from beastbox.persistent_substrate.ledger import StateEventLedger
+path, start, name = sys.argv[1:]
+while not Path(start).exists():
+    time.sleep(0.005)
+ledger = StateEventLedger(path)
+for index in range(12):
+    ledger.append("WORKER", {"worker": name, "step": index}, "2026-09-27T00:00:00+00:00")
+"""
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = str(ROOT) + os.pathsep + environment.get("PYTHONPATH", "")
+    workers = [
+        subprocess.Popen(
+            [sys.executable, "-c", worker, str(ledger_path), str(start_file), str(number)],
+            cwd=str(ROOT), env=environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        for number in range(4)
+    ]
+    start_file.write_text("go", encoding="utf-8")
+    for worker_process in workers:
+        try:
+            stdout, stderr = worker_process.communicate(timeout=45)
+        except subprocess.TimeoutExpired:
+            worker_process.kill()
+            worker_process.communicate()
+            pytest.fail("state-ledger worker did not finish")
+        assert worker_process.returncode == 0, (stdout, stderr)
+
+    receipt = StateEventLedger(ledger_path).verify()
+    assert receipt.record_count == 48
+    rows = [json.loads(line) for line in ledger_path.read_text(encoding="utf-8").splitlines()]
+    assert [row["event_index"] for row in rows] == list(range(1, 49))
+    assert len({(row["payload"]["worker"], row["payload"]["step"]) for row in rows}) == 48
+
+
+def test_state_event_append_fails_closed_on_partial_existing_write(tmp_path: Path) -> None:
+    ledger = StateEventLedger(tmp_path / "corrupt-state.jsonl")
+    ledger.append("FIRST", {}, "2026-09-27T00:00:00+00:00")
+    with ledger.path.open("ab") as handle:
+        handle.write(b'{"partial":')
+    before = ledger.path.read_bytes()
+    with pytest.raises(RuntimeError, match="invalid JSON"):
+        ledger.append("SECOND", {}, "2026-09-27T00:00:01+00:00")
+    assert ledger.path.read_bytes() == before
+
