@@ -6,7 +6,7 @@ This document defines the target GitHub security configuration for `NavisWORLD/T
 
 On 2026-08-17 the repository was private, `main` was the default branch, and GitHub reported that `main` was **not protected**. The then-current head commit was also reported as **unsigned**. A recovery/reference branch named `security-baseline-2026-08-17` was created before the hardening changes.
 
-Repository files now provide CODEOWNERS, permission-required licensing, security policy, provenance records, dependency-update configuration, and automated repository-policy checks. GitHub account/repository controls still need to enforce the corresponding server-side rules.
+The original hardening version provided CODEOWNERS, permission-required licensing, security policy, provenance records, dependency-update configuration, and automated repository-policy checks. The proposed open-source transition changes the current repository licensing to Apache-2.0 without weakening credential scanning or provenance checks. GitHub account/repository controls still need to enforce the corresponding server-side rules.
 
 ## Required `main` branch rule
 
@@ -81,7 +81,7 @@ For releases:
 ## Intellectual-property integrity
 
 - `LICENSE`, `LICENSE_HISTORY.md`, `IP_NOTICE.md`, `COMMERCIAL_RIGHTS.md`, and `IP_PROVENANCE.md` are owner-controlled files.
-- Package metadata must not advertise an old open-source license after the current permission-required boundary.
+- Package metadata must advertise Apache-2.0 for the new open-source generation and must not contradict root LICENSE; historic copies and third-party material retain their distinct applicable licensing.
 - Third-party material must retain its own provenance and license terms.
 - CODEOWNERS identifies the owner for all repository content, with explicit coverage of critical files.
 - No repository policy can retroactively revoke rights already granted with a valid historical copy.
