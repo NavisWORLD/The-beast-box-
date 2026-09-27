@@ -144,7 +144,12 @@ class ReconciliationMemory:
         hits: list[MemoryHit] = []
         half_life = max(recency_half_life_days * 86400.0, 1.0)
         for row in rows:
-            semantic = _cosine_counts(q, Counter(_tokens(row["text"])))
+            lexical_similarity = _cosine_counts(q, Counter(_tokens(row["text"])))
+            # Recency orders *relevant* memories; it cannot constitute evidence
+            # that an otherwise unrelated record matches a question.
+            if lexical_similarity <= 0.0:
+                continue
+            semantic = lexical_similarity
             age = max(0.0, now - float(row["created_at"]))
             recency = math.exp(-math.log(2.0) * age / half_life)
             score = 0.85 * semantic + 0.15 * recency
