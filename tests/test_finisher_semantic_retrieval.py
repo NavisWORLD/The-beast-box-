@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+import sqlite3
 
 import pytest
 
@@ -145,6 +146,90 @@ def test_snapshot_change_and_empty_snapshot_evict_obsolete_vectors():
     index.rank([], "vehicle")
     assert not index._cache
 
+
+
+
+def test_embedding_provider_never_runs_under_product_write_lock(tmp_path):
+    """A second SQLite writer is immediately available at every embed_many call."""
+    class Probe(FixtureEmbedding):
+        def embed_many(self, texts):
+            with sqlite3.connect(tmp_path / "runtime.sqlite3", timeout=0.25) as db:
+                db.execute("BEGIN IMMEDIATE")
+                db.rollback()
+            return super().embed_many(texts)
+
+    runtime = DurableRuntime(tmp_path, ReferenceTextProvider(), embedding_provider=Probe())
+    try:
+        runtime.store_external_memory("An automobile is in the garage.")
+        output = runtime.respond("vehicle")
+        assert output["routing"]["semantic"]["outside_write_transaction"] is True
+        assert output["routing"]["semantic"]["embedded_records"] >= 1
+        assert "semantic_prewarm" in output["trace"]
+        assert runtime.inspect()["valid"]
+    finally:
+        runtime.close()
+
+
+def test_peer_checkpoint_change_during_embedding_fails_closed_then_retries(tmp_path):
+    """Cross-runtime writes never silently attach stale semantic results."""
+    class Interleave(FixtureEmbedding):
+        peer = None
+        injected = False
+
+        def embed_many(self, texts):
+            if not self.injected:
+                self.injected = True
+                self.peer.store_external_memory("A different memory committed by a peer.")
+            return super().embed_many(texts)
+
+    provider = Interleave()
+    primary = DurableRuntime(tmp_path, ReferenceTextProvider(), embedding_provider=provider)
+    peer = DurableRuntime(tmp_path, ReferenceTextProvider())
+    provider.peer = peer
+    try:
+        primary.store_external_memory("An automobile sits inside a garage.")
+        before = primary.inspect()["sequence"]
+        with pytest.raises(SemanticRetrievalError, match="checkpoint changed"):
+            primary.respond("vehicle")
+        # Exactly the peer's explicitly approved memory write committed;
+        # the interrupted primary turn never wrote a user turn or response.
+        after = primary.inspect()
+        assert after["sequence"] == before + 1
+        assert not primary.semantic_index._cache
+        good = primary.respond("vehicle")
+        assert good["routing"]["router"] == "R12+opt_in_semantic_rrf"
+        assert primary.inspect()["sequence"] == after["sequence"] + 1
+    finally:
+        primary.close()
+        peer.close()
+
+
+def test_peer_archive_during_embedding_does_not_resurface_private_memory(tmp_path):
+    class InterleaveArchive(FixtureEmbedding):
+        peer = None
+        target = None
+        injected = False
+
+        def embed_many(self, texts):
+            if not self.injected:
+                self.injected = True
+                self.peer.archive_memory(self.target, reviewer="owner", reason="Archive before fusion")
+            return super().embed_many(texts)
+
+    provider = InterleaveArchive()
+    primary = DurableRuntime(tmp_path, ReferenceTextProvider(), embedding_provider=provider)
+    peer = DurableRuntime(tmp_path, ReferenceTextProvider())
+    provider.peer = peer
+    try:
+        provider.target = primary.store_external_memory("The automobile is in the garage.")["memory_id"]
+        with pytest.raises(SemanticRetrievalError, match="checkpoint changed"):
+            primary.respond("vehicle")
+        assert not primary.semantic_index._cache
+        response = primary.respond("vehicle")
+        assert provider.target not in [hit["id"] for hit in response["memory_hits"]]
+    finally:
+        primary.close()
+        peer.close()
 
 def test_provider_failure_raises_and_rolls_back_entire_turn(tmp_path):
     provider = FixtureEmbedding()

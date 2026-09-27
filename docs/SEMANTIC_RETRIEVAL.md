@@ -16,6 +16,20 @@ opt-in reciprocal-rank fusion ranks the same exact source rows with a separately
 labeled embedding similarity. It neither rewrites R12 weights nor grants the
 embedding provider tool, model-swap or owner authority.
 
+The opt-in durable turn now runs its expensive semantic embedding pass
+**outside** SQLite's write transaction, after a short validated active-snapshot
+read. When it reacquires the write lock, it compares the exact checkpoint tip
+and every source snapshot field (including archive metadata and provenance)
+before accepting the prefetched scores. If anything changed concurrently,
+the turn fails closed with an explicit retry error, discards its cache, and
+does not silently switch to lexical-only mode. The in-transaction shared
+lexical/CNS/R12 snapshot remains a single materialized read. The frozen R12
+ranker still executes inside the transaction; its CPU cost remains a separate
+performance consideration. An external peer can archive records during the
+unlocked embedding interval: that concurrent change is rejected before
+fusion, but already-started embedding calls cannot be retroactively erased
+or prevented from seeing their earlier, then-active source snapshot.
+
 No vectors are added to the memory database, historical V1, permanent
 checkpoint state, or provider model weights. A bounded per-process cache is
 keyed by memory ID and exact text SHA-256. Cache misses are encoded in batches,

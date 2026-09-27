@@ -30,7 +30,7 @@ from .providers import ReferenceTextProvider, TextProvider
 from .reality_memory import initial_r12_state
 from .refractive_memory import RefractiveMemoryRouter
 from .retrieval_snapshot import ReadOnlySnapshotDB, capture_snapshot, lexical_from_snapshot
-from .semantic_retrieval import EmbeddingProvider, SnapshotSemanticIndex, fuse_r12_semantic
+from .semantic_retrieval import EmbeddingProvider, SemanticRetrievalError, SnapshotSemanticIndex, fuse_r12_semantic
 from .runtime import CosmosRuntime
 from .state_family import StateFamily
 
@@ -139,6 +139,8 @@ class DurableRuntime(CosmosRuntime):
         self._routing: dict[str, Any] = {}
         self._provider_generation = 0
         self._retrieval_snapshot: list[Any] | None = None
+        # Opt-in scores are computed outside SQLite BEGIN IMMEDIATE and are never checkpointed.
+        self._semantic_precomputed: dict[str, Any] | None = None
         self.anchor_authority = anchor_authority
         self._anchor_blocked = False
         try:
@@ -258,9 +260,15 @@ class DurableRuntime(CosmosRuntime):
         }
         self._stage_started = None
 
+    @staticmethod
+    def _snapshot_fingerprint(rows: list[Any]) -> str:
+        """Bind prefetched vectors to exact source contents, lifecycle and provenance."""
+        return sha256_obj([dict(row) for row in rows])
+
     def _retrieve_memories(self, text: str) -> list[MemoryHit]:
-        """One materialized SQLite read for both the pre-CNS and R12 routes."""
-        self._retrieval_snapshot = capture_snapshot(self.memory)
+        """Share one in-transaction active snapshot across lexical/CNS/R12."""
+        if self._retrieval_snapshot is None:
+            self._retrieval_snapshot = capture_snapshot(self.memory)
         return lexical_from_snapshot(self._retrieval_snapshot, text, limit=5)
 
     def _route_memories(self, text, memories, state):
@@ -279,10 +287,13 @@ class DurableRuntime(CosmosRuntime):
             )
             semantic_info: dict[str, Any] | None = None
             if self.semantic_index is not None:
-                semantic_started = time.perf_counter()
-                # Only explicitly selected plugins see the same archived-filtered snapshot.
-                # Failures propagate through the enclosing durable rollback, never fall back.
-                semantic = self.semantic_index.rank(snapshot_rows, text)
+                # The embedding provider must never run inside BEGIN IMMEDIATE.
+                # The caller checked the exact checkpoint AND full source fingerprint
+                # after acquiring the write lock. No cold network/model work here.
+                prepared = self._semantic_precomputed
+                if prepared is None:
+                    raise SemanticRetrievalError("semantic precompute is required before a durable turn")
+                semantic = prepared["result"]
                 records = fuse_r12_semantic(records, semantic.scores, limit=5)
                 semantic_info = {
                     "mode": "explicit_hybrid_rrf_v1",
@@ -293,7 +304,8 @@ class DurableRuntime(CosmosRuntime):
                     "matched_records": len(semantic.scores),
                     "embedded_records": semantic.embedded_records,
                     "cache_hits": semantic.cache_hits,
-                    "elapsed_ms": (time.perf_counter() - semantic_started) * 1000,
+                    "elapsed_ms": prepared["embedding_ms"],
+                    "outside_write_transaction": True,
                 }
         finally:
             # Never carry retrieved context into another turn or checkpoint.
@@ -338,6 +350,7 @@ class DurableRuntime(CosmosRuntime):
         self.last_metrics = {}
         cast(MeasuredProvider, self.provider).measurements = {}
         self._retrieval_snapshot = None
+        self._semantic_precomputed = None
         before = None
         committed = False
         try:
@@ -346,9 +359,42 @@ class DurableRuntime(CosmosRuntime):
             normalized = normalize_event(event)
             self._trace = ["normalize"]
             self._measure_boundary("normalize")
+            if self.semantic_index is not None:
+                # Verify source and authority under a BRIEF transaction, then
+                # release its SQLite write lock before calling an embedding plugin.
+                with self.memory.transaction():
+                    preflight = self.continuity.verify()
+                    self._check_anchor(preflight)
+                    source_rows = capture_snapshot(self.memory)
+                    source_digest = self._snapshot_fingerprint(source_rows)
+                embedding_started = time.perf_counter()
+                semantic = self.semantic_index.rank(source_rows, normalized["text"])
+                self._semantic_precomputed = {
+                    "checkpoint_sha256": preflight["sha256"],
+                    "source_digest": source_digest,
+                    "result": semantic,
+                    "embedding_ms": (time.perf_counter() - embedding_started) * 1000.0,
+                }
+                self._trace_stage("semantic_prewarm")
             with self.memory.transaction():
                 before = self.continuity.verify()
                 self._check_anchor(before)
+                if self._semantic_precomputed is not None:
+                    if before["sha256"] != self._semantic_precomputed["checkpoint_sha256"]:
+                        self.semantic_index.clear()
+                        raise SemanticRetrievalError(
+                            "durable checkpoint changed during semantic prewarm; retry the turn"
+                        )
+                    # Verify an exact, single in-turn snapshot before permitting
+                    # any prefetched semantic scores to enter the CNS/R12 route.
+                    self._retrieval_snapshot = capture_snapshot(self.memory)
+                    if self._snapshot_fingerprint(self._retrieval_snapshot) != (
+                        self._semantic_precomputed["source_digest"]
+                    ):
+                        self.semantic_index.clear()
+                        raise SemanticRetrievalError(
+                            "memory snapshot changed during semantic prewarm; retry the turn"
+                        )
                 self._measure_boundary("checkpoint_verify")
                 self._restore(copy.deepcopy(before))
                 self._measure_boundary("checkpoint_restore")
@@ -384,9 +430,11 @@ class DurableRuntime(CosmosRuntime):
             self._measure_boundary("commit")
             self._finish_measurements(started, "committed")
             result["metrics"] = self.last_metrics
+            self._semantic_precomputed = None
             return result
         except BaseException:
             self._retrieval_snapshot = None
+            self._semantic_precomputed = None
             try:
                 if before is not None and not committed:
                     self._restore(before)
@@ -532,6 +580,7 @@ class DurableRuntime(CosmosRuntime):
 
     def close(self) -> None:
         root = Path(self.config.data_dir)
+        self._semantic_precomputed = None
         if self.semantic_index is not None:
             self.semantic_index.clear()
         super().close()
