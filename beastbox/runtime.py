@@ -78,7 +78,7 @@ class CosmosRuntime:
     ) -> dict[str, Any]:
         self.turn += 1
         fresh = freshness_gate(sensory, max_age_seconds=self.config.sensory_max_age_seconds)
-        memories = self.memory.search(text, limit=5)
+        memories = self._retrieve_memories(text)
         self._trace_stage("memory_lookup")
         packet = bridge or BridgePacket()
         if fresh and fresh.source.startswith("audio") and not packet.audio_features:
@@ -151,6 +151,10 @@ class CosmosRuntime:
 
     def save_evidence(self, path: str | Path) -> None:
         self.ledger.write_jsonl(path)
+
+    def _retrieve_memories(self, text: str):
+        """Historical/base runtime retains its original lexical search."""
+        return self.memory.search(text, limit=5)
 
     def _route_memories(self, text, memories, state):
         """Adapter hook; the legacy conversation path keeps its lexical routing."""
