@@ -46,7 +46,7 @@ The early cosmic/frequency language is preserved as historical theory/simulation
 > A local-first, inspectable adaptive-agent runtime and experimental integration platform with persistent memory, software state, routing, provenance, and authority boundaries outside replaceable inference models.
 
 
-**Python 3.10–3.12. No IBM account, cloud credential, GPU, or language model is required for the deterministic reference path.** Source visibility does not grant a license: see [LICENSE](LICENSE).
+**Python 3.10–3.12. No IBM account, cloud credential, GPU, or language model is required for the deterministic reference path.** In this proposed open-source generation, original Cory-owned software and documentation are licensed Apache-2.0 under [LICENSE](LICENSE), except individually marked material. See [LICENSE_HISTORY.md](LICENSE_HISTORY.md) for history and third-party exceptions.
 
 ## Open your cosmic workstation
 
