@@ -6,7 +6,7 @@
 **Recovered concurrent branch checkpoint:** `2b0576475779cfb4c53c241f808486b6042be670`.
 **Branch:** `feature/beastbox-finisher-v2-001`.
 **Verified implementation checkpoint (all three workflow families):** `f3549d78bc96db70edd5ac714cb7db9c37fb37f1` (Linux full Product CI 1,166 on each 3.10/3.11/3.12, V1 fixture replay, actual Windows V2). **Later edits to documents/CI metadata:** validate the actual new branch HEAD before any merge-readiness assertion; changing documentation does not alter this earlier run's identity.
-**Owner decision:** [final Option 1: separate V1/V2 source](FINISHER_V2_FROZEN_SOURCE_DECISION.md). Interim patch-overlay commits are retained in branch history, **not** an active build architecture. No merge, production deployment, release, paid cloud task or licensing change is authorized.
+**Owner decision:** [final Option 1: separate V1/V2 source](FINISHER_V2_FROZEN_SOURCE_DECISION.md). Interim patch-overlay commits are retained in branch history, **not** an active build architecture. **New owner authorization:** merge the tested Finisher V2 foundation once checks and no-production-deployment guard pass; this authorization does not make incomplete A–G phases or an unprovisioned external trust authority "done." Public release, production deployment, paid cloud work and licensing changes remain outside this merge.
 
 ## Exact frozen-source integrity and derived modules
 
@@ -201,3 +201,7 @@ baseline. [License history](../LICENSE_HISTORY.md) was corrected to describe tha
 third-party resources retain separate rights. Scientific framing remains
 bounded by [claim boundaries](CLAIM_BOUNDARIES.md) and
 [scientific boundaries](SCIENTIFIC_BOUNDARIES.md).
+
+## Merge boundary and production safety
+
+See [MERGE_SCOPE.md](MERGE_SCOPE.md). Vercel Git auto-deployment for `main` is deliberately set to `false` in `apps/beastbox-cloud/vercel.json` before any merge into the default branch; the Railway production service was inspected on 2026-09-27 and tracks `feature/cosmos-world-interface-recovery-001`, not `main`. This configuration blocks the known automatic Vercel main-branch path; external integrations or independently configured deploy hooks must be checked separately. Re-enabling production deployment requires separate explicit owner permission.
