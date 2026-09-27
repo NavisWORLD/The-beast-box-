@@ -1,0 +1,49 @@
+name: Isolated real-model semantic staging (no production resources)
+
+on:
+  push:
+    branches: ["feature/semantic-staging-acceptance-001"]
+    paths:
+      - ".github/workflows/semantic-staging-acceptance.yml"
+      - "scripts/semantic_staging_acceptance.py"
+      - "tests/test_finisher_semantic_staging.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isolated-semantic-staging-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-public-cpu:
+    if: github.repository == 'NavisWORLD/The-beast-box-'
+    runs-on: ubuntu-latest
+    timeout-minutes: 27
+    env:
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      TOKENIZERS_PARALLELISM: "false"
+      OMP_NUM_THREADS: "4"
+      MKL_NUM_THREADS: "4"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Pin standard public CPU and source-only dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . "sentence-transformers==3.4.1" "huggingface-hub>=0.29,<1" "pytest==8.4.2"
+      - name: Pass isolated no-network functional preflight
+        run: python -m pytest -q tests/test_finisher_semantic_staging.py tests/test_finisher_semantic_real_eval_harness.py
+      - name: Public fixed source and pinned safe-weight real-model staging
+        run: python -m scripts.semantic_staging_acceptance --records 100 --output build/semantic-staging-acceptance.json
+      - name: Validate receipt without uploading source/model bytes
+        run: |
+          test -s build/semantic-staging-acceptance.json
+          python -c "import json; r=json.load(open('build/semantic-staging-acceptance.json')); assert r['records']==100 and r['exact_checkpoint_verified_after_restart'] and r['embedding_outside_write_transaction'] and r['default_semantic_disabled_after_restart']"
+      # Log only the source-attested receipt; no artifact upload or secrets.
