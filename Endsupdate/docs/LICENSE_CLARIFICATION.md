@@ -1,33 +1,9 @@
-# License clarification
+# Endsupdate licensing clarification — proposed open-source generation
 
-Status of the historical-MIT vs current-proprietary question:
+**Prepared 2026-09-26; effective once a new version adopts this transition.**
 
-```text
-OWNER LEGAL DECISION REQUIRED
-```
+Original Cory-owned source and documentation in new versions carrying the root Apache License 2.0 are licensed Apache-2.0 except component-specific terms. The license permits commercial use, modifications, redistribution and its stated patent grant. No separate permission or royalty is required for rights granted by the license.
 
-This is not an engineering failure. This file does not decide it.
+Historical Beast Box MIT copies retain their grants; subsequent source-available copies remain governed by their original version-specific terms. LICENSE_HISTORY.md and Git history preserve these boundaries. Third-party dependencies, other authors' works, models/weights, datasets, media, private information, separately licensed research publications and trademarks remain subject to their own applicable terms.
 
-Effective license of current Cory-owned material: **THE BEAST BOX PROPRIETARY SOURCE-AVAILABLE LICENSE v1.0** (root `LICENSE`, 2026-08-17).
-
-Public GitHub visibility is permission to **read** the tree. It is not:
-
-- an OSI open-source license
-- permission to copy, modify, redistribute, host, or sell
-- permission to train, fine-tune, distill, or evaluate an AI system on this material
-- a patent license
-
-| Action | Allowed without extra written permission? |
-| --- | --- |
-| Read / clone for the purpose access was granted | yes (view) |
-| `pip install -e .` locally to inspect the runtime | intended for authorized accessors; redistribution of the package is not granted |
-| Modify and publish a fork | no |
-| Commercial product incorporation | no |
-| Train models on this repo | no |
-| Reuse third-party deps (pytest, qiskit, …) | follow **those** licenses |
-
-Historical MIT-licensed copies remain under MIT for those historical copies only (`LICENSE_HISTORY.md`). This file does not revoke those past grants and does not re-license current material as MIT.
-
-Unresolved legal judgment (not invented here): whether every file first published under MIT before 2026-08-17 can still be used under MIT if copied from an old revision. Ask the copyright owner before relying on that.
-
-Do not call this project “open source.”
+The transition does not change the license of `main` until a release or merge adopts it.
