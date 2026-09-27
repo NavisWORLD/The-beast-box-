@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import sqlite3
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from .memory import ReconciliationMemory
+from .persistent_substrate.ledger import verify_memory_chain
 
 ZERO_SHA256 = "0" * 64
 
@@ -65,6 +69,11 @@ class DadSonLedger:
         self.sqlite_path.parent.mkdir(parents=True, exist_ok=True)
         self.evidence_jsonl.parent.mkdir(parents=True, exist_ok=True)
         self.memory = ReconciliationMemory(self.sqlite_path)
+        self.memory.db.execute(
+            "CREATE TABLE IF NOT EXISTS dad_son_outbox("
+            "memory_id INTEGER PRIMARY KEY, record_json TEXT NOT NULL)"
+        )
+        self.memory.db.commit()
 
     def _previous_record_sha256(self) -> str:
         if not self.evidence_jsonl.exists():
@@ -79,6 +88,77 @@ class DadSonLedger:
                 raise RuntimeError("existing Dad/Son ledger contains an invalid record_sha256")
             previous = candidate.lower()
         return previous
+
+    def _read_verified_rows(self) -> list[tuple[int, dict[str, Any]]]:
+        """Decode exactly the ledger bytes that pass strict chain verification."""
+        rows: list[tuple[int, dict[str, Any]]] = []
+        if self.evidence_jsonl.exists():
+            verify_memory_chain(
+                self.evidence_jsonl, parent_sha256=self.parent_sha256,
+                verified_rows=rows, require_trailing_newline=True,
+            )
+        return rows
+
+    def _write_outbox_row(self, row: dict[str, Any]) -> None:
+        """Write JSONL before acknowledging the committed SQLite outbox."""
+        with self.evidence_jsonl.open("ab") as handle:
+            handle.write((json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n").encode("utf-8"))
+            handle.flush()
+            os.fsync(handle.fileno())
+
+    def _ack_outbox_id(self, memory_id: int) -> None:
+        self.memory.db.execute("DELETE FROM dad_son_outbox WHERE memory_id=?", (memory_id,))
+        self.memory.db.commit()
+
+    def _drain_pending_unlocked(self) -> int:
+        """Replay pending committed rows while the cooperative writer lock is held.
+
+        An already written row is acknowledged only when the verified JSONL
+        row matches the stored transaction record. Partial/conflicting bytes
+        fail closed and are NEVER truncated automatically.
+        """
+        rows = self._read_verified_rows()
+        pending = self.memory.db.execute(
+            "SELECT memory_id,record_json FROM dad_son_outbox ORDER BY memory_id"
+        ).fetchall()
+        for pending_row in pending:
+            memory_id = int(pending_row["memory_id"])
+            row = json.loads(str(pending_row["record_json"]))
+            if int(row.get("memory_id") or 0) != memory_id:
+                raise RuntimeError("outbox record memory id mismatch")
+            if memory_id <= len(rows):
+                if rows[memory_id - 1][1] != row:
+                    raise RuntimeError("outbox replay conflicts with verified ledger row")
+            elif memory_id == len(rows) + 1:
+                previous = rows[-1][1]["record_sha256"] if rows else ZERO_SHA256
+                if str(row.get("previous_record_sha256") or "") != previous:
+                    raise RuntimeError("outbox replay previous chain tip mismatch")
+                self._write_outbox_row(row)
+                verify_memory_chain(
+                    self.evidence_jsonl, parent_sha256=self.parent_sha256,
+                    require_trailing_newline=True,
+                    expected_record_count=memory_id,
+                    expected_tip_sha256=str(row["record_sha256"]),
+                )
+                rows.append((memory_id, row))
+            else:
+                raise RuntimeError("outbox replay has a gap in memory ids")
+            self._ack_outbox_id(memory_id)
+
+        sqlite_count = int(self.memory.db.execute("SELECT COUNT(*) FROM memories").fetchone()[0])
+        if sqlite_count != len(rows):
+            raise RuntimeError(
+                "Dad/Son SQLite/JSONL row-count divergence without recoverable outbox; operator review required"
+            )
+        return len(pending)
+
+    def recover_pending(self) -> int:
+        """Idempotently reconcile an interrupted append; never discard evidence."""
+        lock_path = self.evidence_jsonl.with_name(self.evidence_jsonl.name + ".writer-lock.sqlite3")
+        with closing(sqlite3.connect(str(lock_path), timeout=30.0)) as writer_lock:
+            with writer_lock:
+                writer_lock.execute("BEGIN IMMEDIATE")
+                return self._drain_pending_unlocked()
 
     def append_experience(
         self,
@@ -117,36 +197,50 @@ class DadSonLedger:
             "descendant_sha256": descendant_sha256.lower() if descendant_sha256 else None,
             **dict(metadata or {}),
         }
-        memory_id = self.memory.store(text, kind=kind, metadata=memory_metadata, source_ids=normalized_recall_ids)
-
-        row: dict[str, Any] = {
-            "schema": "zeref-dad-son-ledger-v1",
-            "timestamp": timestamp,
-            "actor": actor,
-            "text": text,
-            "kind": kind,
-            "session_id": session_id,
-            "memory_id": memory_id,
-            "parent_sha256": self.parent_sha256,
-            "descendant_sha256": descendant_sha256.lower() if descendant_sha256 else None,
-            "source_hashes": normalized_source_hashes,
-            "recall_memory_ids": normalized_recall_ids,
-            "metadata": dict(metadata or {}),
-            "previous_record_sha256": self._previous_record_sha256(),
-            "raw_payload_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
-        }
-        row["record_sha256"] = hashlib.sha256(_canonical(row)).hexdigest()
-
-        # The JSONL timestamp is part of the signed record. Bind the searchable
-        # SQLite row to exactly that same timestamp so recency is reproducible
-        # across snapshot restore and paired experimental copies.
-        created_at = parsed_timestamp.timestamp()
-        self.memory.db.execute("UPDATE memories SET created_at=? WHERE id=?", (created_at, memory_id))
-        self.memory.db.commit()
-
-        with self.evidence_jsonl.open("a", encoding="utf-8", newline="\n") as handle:
-            handle.write(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n")
-        return row
+        # A separate SQLite writer reservation spans the cross-store operation.
+        # SQLite+JSONL are not one transaction; committed SQLite rows carry a
+        # replayable outbox entry until their durable JSONL append is verified.
+        lock_path = self.evidence_jsonl.with_name(self.evidence_jsonl.name + ".writer-lock.sqlite3")
+        with closing(sqlite3.connect(str(lock_path), timeout=30.0)) as writer_lock:
+            with writer_lock:
+                writer_lock.execute("BEGIN IMMEDIATE")
+                self._drain_pending_unlocked()
+                existing_rows = self._read_verified_rows()
+                previous = existing_rows[-1][1]["record_sha256"] if existing_rows else ZERO_SHA256
+                with self.memory.transaction():
+                    memory_id = self.memory.store(
+                        text, kind=kind, metadata=memory_metadata, source_ids=normalized_recall_ids
+                    )
+                    row: dict[str, Any] = {
+                        "schema": "zeref-dad-son-ledger-v1",
+                        "timestamp": timestamp,
+                        "actor": actor,
+                        "text": text,
+                        "kind": kind,
+                        "session_id": session_id,
+                        "memory_id": memory_id,
+                        "parent_sha256": self.parent_sha256,
+                        "descendant_sha256": descendant_sha256.lower() if descendant_sha256 else None,
+                        "source_hashes": normalized_source_hashes,
+                        "recall_memory_ids": normalized_recall_ids,
+                        "metadata": dict(metadata or {}),
+                        "previous_record_sha256": previous,
+                        "raw_payload_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+                    }
+                    row["record_sha256"] = hashlib.sha256(_canonical(row)).hexdigest()
+                    # Bind searchable timestamps and durable replay instructions
+                    # in the SAME SQLite transaction; no orphan without a row
+                    # that can be deterministically replayed.
+                    self.memory.db.execute(
+                        "UPDATE memories SET created_at=? WHERE id=?",
+                        (parsed_timestamp.timestamp(), memory_id),
+                    )
+                    self.memory.db.execute(
+                        "INSERT INTO dad_son_outbox(memory_id,record_json) VALUES(?,?)",
+                        (memory_id, _canonical(row).decode("utf-8")),
+                    )
+                self._drain_pending_unlocked()
+                return row
 
     def _materialize_declared_snapshot_chain(self) -> int:
         """Assemble immutable base+delta segments into this run's working ledger."""
