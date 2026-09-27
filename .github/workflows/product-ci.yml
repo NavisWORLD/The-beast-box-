@@ -47,6 +47,10 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
       - run: python -m pip install -r requirements-dev.txt -e .
+      - name: Verify frozen historical and V2 source contracts
+        run: |
+          scripts/smoke/sealed-evidence-guard.sh
+          python scripts/verify_versioned_sources.py --git-anchor
       - name: Full quality gate
         run: make quality ACCEPTANCE_OUTPUT=build/architecture-acceptance.json
       - uses: actions/upload-artifact@v4

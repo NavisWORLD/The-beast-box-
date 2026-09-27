@@ -180,3 +180,73 @@ def test_restore_snapshot_rejects_tampered_chain(tmp_path):
     with pytest.raises(RuntimeError, match="snapshot"):
         ledger.restore_snapshot()
     ledger.close()
+
+
+def test_outbox_recovers_sqlite_commit_before_jsonl_append(tmp_path, monkeypatch):
+    from beastbox.dad_son_v2 import DadSonLedger
+
+    db, journal = tmp_path / "memory.sqlite3", tmp_path / "memory.jsonl"
+    ledger = DadSonLedger(db, journal, parent_sha256="a" * 64)
+
+    def fail_before_write(_row):
+        raise OSError("injected crash before JSONL append")
+
+    monkeypatch.setattr(ledger, "_write_outbox_row", fail_before_write)
+    with pytest.raises(OSError, match="injected crash"):
+        ledger.append_experience(actor="Dad", text="committed pending", kind="test", session_id="crash")
+    assert ledger.memory.db.execute("SELECT COUNT(*) FROM memories").fetchone()[0] == 1
+    assert not journal.exists()
+    ledger.close()
+
+    recovered = DadSonLedger(db, journal, parent_sha256="a" * 64)
+    try:
+        assert recovered.recover_pending() == 1
+        assert recovered.recover_pending() == 0
+        rows = [json.loads(line) for line in journal.read_text(encoding="utf-8").splitlines()]
+        assert len(rows) == 1 and rows[0]["text"] == "committed pending"
+        second = recovered.append_experience(actor="Dad", text="following row", kind="test", session_id="crash")
+        assert second["memory_id"] == 2
+        assert second["previous_record_sha256"] == rows[0]["record_sha256"]
+    finally:
+        recovered.close()
+
+
+def test_outbox_replay_after_completed_jsonl_write_does_not_duplicate(tmp_path, monkeypatch):
+    from beastbox.dad_son_v2 import DadSonLedger
+
+    db, journal = tmp_path / "memory.sqlite3", tmp_path / "memory.jsonl"
+    ledger = DadSonLedger(db, journal, parent_sha256="a" * 64)
+
+    def fail_before_ack(_id):
+        raise OSError("injected crash after JSONL fsync")
+
+    monkeypatch.setattr(ledger, "_ack_outbox_id", fail_before_ack)
+    with pytest.raises(OSError, match="injected crash"):
+        ledger.append_experience(actor="Dad", text="already written", kind="test", session_id="crash")
+    original = journal.read_bytes()
+    ledger.close()
+
+    recovered = DadSonLedger(db, journal, parent_sha256="a" * 64)
+    try:
+        assert recovered.recover_pending() == 1
+        assert recovered.recover_pending() == 0
+        assert journal.read_bytes() == original
+        assert len(journal.read_bytes().splitlines()) == 1
+    finally:
+        recovered.close()
+
+
+def test_outbox_refuses_partial_jsonl_without_discarding_suspect_bytes(tmp_path, monkeypatch):
+    from beastbox.dad_son_v2 import DadSonLedger
+
+    db, journal = tmp_path / "memory.sqlite3", tmp_path / "memory.jsonl"
+    ledger = DadSonLedger(db, journal, parent_sha256="a" * 64)
+    ledger.append_experience(actor="Dad", text="committed", kind="test", session_id="crash")
+    with journal.open("ab") as handle:
+        handle.write(b'{"partial":')
+    damaged = journal.read_bytes()
+    with pytest.raises(RuntimeError, match="partial|invalid"):
+        ledger.append_experience(actor="Dad", text="must not append", kind="test", session_id="crash")
+    assert journal.read_bytes() == damaged
+    assert ledger.memory.db.execute("SELECT COUNT(*) FROM memories").fetchone()[0] == 1
+    ledger.close()

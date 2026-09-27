@@ -38,6 +38,10 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: pip install -r requirements-dev.txt
       - run: pip install -e .
+      - name: Verify unchanged historical source and explicit V2 integrity
+        run: |
+          scripts/smoke/sealed-evidence-guard.sh
+          python scripts/verify_versioned_sources.py --git-anchor
       - name: Lint productization surface
         run: |
           ruff check beastbox/config.py beastbox/logging_config.py beastbox/aliases.py beastbox/hashutil.py scripts/productization_receipt.py tests/test_starter_kit.py tests/test_logging_config.py tests/test_productization_receipt.py tests/test_product_spine.py tests/test_experimental_boundary.py
@@ -45,7 +49,7 @@ jobs:
         run: mypy
       - name: Product-spine tests with measured coverage floor
         run: |
-          coverage run -m pytest tests/test_product_spine.py tests/test_starter_kit.py tests/test_full_runtime.py tests/test_beastbox.py tests/test_logging_config.py tests/test_workspace_security.py tests/test_productization_receipt.py tests/test_experimental_boundary.py tests/test_cosmic_web.py tests/test_cosmic_completion.py tests/test_cosmic_closure.py
+          coverage run -m pytest tests/test_product_spine.py tests/test_starter_kit.py tests/test_full_runtime.py tests/test_beastbox.py tests/test_logging_config.py tests/test_workspace_security.py tests/test_productization_receipt.py tests/test_experimental_boundary.py tests/test_cosmic_web.py tests/test_cosmic_completion.py tests/test_cosmic_closure.py tests/test_finisher_v2_versioning.py tests/test_finisher_v2_security_acceptance.py tests/test_persistent_substrate_ledger.py tests/test_persistent_substrate_substrate.py tests/test_zeref_dad_son_memory.py
           # This gate measures the runtime/product spine above. Optional offline
           # training/model modules have their own full-suite gates and must not
           # dilute this deliberately narrow product coverage denominator.
@@ -73,6 +77,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install --upgrade pip
       - run: pip install -e '.[dev,ml]'
+      - run: python scripts/verify_versioned_sources.py
       - run: pytest
 
   package-smoke:

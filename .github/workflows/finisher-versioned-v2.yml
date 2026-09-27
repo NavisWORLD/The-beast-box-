@@ -1,0 +1,117 @@
+name: Finisher V2 pristine history and versioned security
+
+on:
+  pull_request:
+    paths:
+      - 'beastbox/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'docs/VERSION*'
+      - '.github/workflows/finisher-versioned-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  historical-pristine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e . pytest
+      - name: Check unchanged original guard and exact V1/V2 lineage
+        run: |
+          scripts/smoke/sealed-evidence-guard.sh
+          python scripts/verify_versioned_sources.py --git-anchor
+      - name: Record pristine witness hashes
+        run: |
+          mkdir -p "$RUNNER_TEMP/finisher-v2-historical"
+          git rev-parse HEAD > "$RUNNER_TEMP/finisher-v2-historical/checkout-commit.txt"
+          python scripts/verify_versioned_sources.py --git-anchor > "$RUNNER_TEMP/finisher-v2-historical/version-verification.json"
+          sha256sum beastbox/dad_son.py beastbox/persistent_substrate/ledger.py beastbox/persistent_substrate/substrate.py > "$RUNNER_TEMP/finisher-v2-historical/frozen-SHA256SUMS.txt"
+      - name: Reproduce deterministic historical offline experiment with V1
+        run: |
+          python -m pytest -q tests/test_persistent_substrate_offline.py tests/test_persistent_substrate_runner.py
+          python scripts/run_persistent_substrate_offline_swap.py run \
+            --repo-root . --workspace "$RUNNER_TEMP/finisher-v2-offline-work" \
+            --out "$RUNNER_TEMP/finisher-v2-historical/offline-evidence"
+          python scripts/run_persistent_substrate_offline_swap.py verify \
+            --repo-root . --out "$RUNNER_TEMP/finisher-v2-historical/offline-evidence"
+          (cd "$RUNNER_TEMP/finisher-v2-historical/offline-evidence" && sha256sum -c SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: finisher-v2-historical-pristine
+          path: ${{ runner.temp }}/finisher-v2-historical/
+          if-no-files-found: warn
+
+  secure-v2-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install -e . pytest
+      - name: Verify source lineage without patching frozen code
+        run: python scripts/verify_versioned_sources.py --git-anchor
+      - name: V2 security regression and historical compatibility contract
+        run: |
+          python -m pytest -q tests/test_finisher_v2_versioning.py \
+            tests/test_finisher_v2_security_acceptance.py tests/test_finisher_trust_anchor.py tests/test_finisher_memory_lifecycle.py tests/test_finisher_scoped_maintenance.py tests/test_finisher_retrieval_snapshot.py tests/test_finisher_model_router.py tests/test_finisher_adaptive_control.py tests/test_finisher_ecosystem_smoke.py tests/test_finisher_memory_scale.py \
+            tests/test_persistent_substrate_ledger.py \
+            tests/test_persistent_substrate_substrate.py \
+            tests/test_zeref_dad_son_memory.py
+
+  synthetic-retention-10000:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e . pytest
+      - name: Verify real product retention and one turn at 10000 rows
+        run: |
+          mkdir -p "$RUNNER_TEMP/finisher-memory-growth"
+          python scripts/finisher_memory_scale.py --records 10000 --output "$RUNNER_TEMP/finisher-memory-growth/retention-10000.json"
+          python -c "import json,os,pathlib; p=pathlib.Path(os.environ['RUNNER_TEMP'])/'finisher-memory-growth/retention-10000.json'; r=json.loads(p.read_text()); assert r['retained_seed_rows']==10000 and r['restart_validated'] and not r['full_10000_turn_soak_completed']"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: finisher-synthetic-retention-10000
+          path: ${{ runner.temp }}/finisher-memory-growth/
+          if-no-files-found: warn
+
+  windows-v2-compatibility:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - name: Preserve pinned Git blob bytes rather than Git-for-Windows CRLF conversion
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e . pytest
+      - name: Verify exact historical and secure source on Windows
+        run: python scripts/verify_versioned_sources.py --git-anchor
+      - name: Exercise real Windows lock, replay and manifest protections
+        run: |
+          python -m pytest -q tests/test_finisher_v2_versioning.py tests/test_finisher_v2_security_acceptance.py tests/test_finisher_trust_anchor.py tests/test_finisher_memory_lifecycle.py tests/test_finisher_scoped_maintenance.py tests/test_finisher_retrieval_snapshot.py tests/test_finisher_model_router.py tests/test_finisher_adaptive_control.py tests/test_finisher_ecosystem_smoke.py tests/test_finisher_memory_scale.py tests/test_persistent_substrate_ledger.py tests/test_zeref_dad_son_memory.py

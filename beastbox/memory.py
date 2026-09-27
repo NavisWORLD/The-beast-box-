@@ -13,6 +13,15 @@ from typing import Any, Iterable
 
 TOKEN_RE = re.compile(r"[A-Za-z0-9_']+")
 
+# Lightweight English-only filter for deterministic index summaries. This is
+# NOT language-independent topic modeling or an abstractive factual summary.
+_CONSOLIDATION_STOPWORDS = frozenset({
+    "a", "an", "and", "are", "as", "at", "be", "been", "by", "for", "from",
+    "had", "has", "have", "i", "in", "is", "it", "of", "on", "or", "our",
+    "that", "the", "their", "this", "to", "was", "were", "with", "you",
+})
+_CONSOLIDATION_ALGORITHM = "stopword-bucket-v1"
+
 
 def _tokens(text: str) -> list[str]:
     return [t.lower() for t in TOKEN_RE.findall(text)]
@@ -140,11 +149,18 @@ class ReconciliationMemory:
     def search(self, query: str, *, limit: int = 6, threshold: float = 0.05, recency_half_life_days: float = 30.0) -> list[MemoryHit]:
         q = Counter(_tokens(query))
         now = time.time()
-        rows = self.db.execute("SELECT id,created_at,kind,text,source_ids_json FROM memories ORDER BY id DESC").fetchall()
+        rows = self.db.execute("SELECT id,created_at,kind,text,source_ids_json,metadata_json FROM memories ORDER BY id DESC").fetchall()
         hits: list[MemoryHit] = []
         half_life = max(recency_half_life_days * 86400.0, 1.0)
         for row in rows:
-            semantic = _cosine_counts(q, Counter(_tokens(row["text"])))
+            if json.loads(row["metadata_json"]).get("archived", False):
+                continue
+            lexical_similarity = _cosine_counts(q, Counter(_tokens(row["text"])))
+            # Recency orders *relevant* memories; it cannot constitute evidence
+            # that an otherwise unrelated record matches a question.
+            if lexical_similarity <= 0.0:
+                continue
+            semantic = lexical_similarity
             age = max(0.0, now - float(row["created_at"]))
             recency = math.exp(-math.log(2.0) * age / half_life)
             score = 0.85 * semantic + 0.15 * recency
@@ -196,26 +212,151 @@ class ReconciliationMemory:
         return [((row["b"] if row["a"] == c else row["a"]), float(row["weight"])) for row in rows]
 
     def consolidate(self, *, min_group: int = 3, max_records: int = 100) -> list[int]:
-        """Create derived consolidation records; never overwrite primary memories."""
+        """Create provenance-marked thematic *indices*, not synthesized facts.
+
+        Deterministic English stopword filtering prevents frequent function
+        words from becoming themes. Repeated identical source groups do not
+        produce duplicate summaries on every health tick. Source memories are
+        retained and no provider is invoked or treated as an evidence oracle.
+        """
         rows = self.db.execute(
-            "SELECT id,text FROM memories WHERE kind != 'consolidation' ORDER BY id DESC LIMIT ?", (max_records,)
+            "SELECT id,text,metadata_json FROM memories WHERE kind != 'consolidation' ORDER BY id DESC LIMIT ?", (max_records,)
         ).fetchall()
         buckets: dict[str, list[sqlite3.Row]] = {}
         for row in rows:
-            toks = _tokens(str(row["text"]))
-            if not toks:
+            if json.loads(row["metadata_json"]).get("archived", False):
                 continue
-            counts = Counter(toks)
-            key = max(counts, key=lambda token: counts[token])
-            buckets.setdefault(key, []).append(row)
+            tokens = [
+                token for token in _tokens(str(row["text"]))
+                if token not in _CONSOLIDATION_STOPWORDS and len(token) > 1
+            ]
+            if not tokens:
+                continue
+            counts = Counter(tokens)
+            theme = sorted(counts, key=lambda token: (-counts[token], token))[0]
+            buckets.setdefault(theme, []).append(row)
+
+        existing = set()
+        for prior in self.db.execute(
+            "SELECT metadata_json,source_ids_json FROM memories WHERE kind='consolidation'"
+        ):
+            metadata = json.loads(prior["metadata_json"])
+            if metadata.get("algorithm") == _CONSOLIDATION_ALGORITHM:
+                existing.add(tuple(sorted(int(value) for value in json.loads(prior["source_ids_json"]))))
+
         made: list[int] = []
-        for key, group in buckets.items():
+        for theme, group in buckets.items():
             if len(group) < min_group:
                 continue
-            source_ids = [int(r["id"]) for r in group]
-            text = f"Consolidated theme '{key}' from {len(group)} retained records. Sources: {source_ids}."
-            made.append(self.store(text, kind="consolidation", source_ids=source_ids))
+            source_ids = sorted(int(row["id"]) for row in group)
+            fingerprint = tuple(source_ids)
+            if fingerprint in existing:
+                continue
+            text = (
+                f"Derived thematic index: theme '{theme}' groups {len(source_ids)} retained records. "
+                f"This label is not a factual summary. Sources: {source_ids}."
+            )
+            made.append(
+                self.store(
+                    text, kind="consolidation", source_ids=source_ids,
+                    metadata={
+                        "provenance_class": "derived-synthetic",
+                        "algorithm": _CONSOLIDATION_ALGORITHM,
+                        "theme": theme,
+                    },
+                )
+            )
+            existing.add(fingerprint)
         return made
+
+    def _set_archived(self, memory_id: int, *, archived: bool, reviewer: str, reason: str) -> bool:
+        """Owner-reviewed reversible index exclusion; never delete original rows."""
+        if type(memory_id) is not int or memory_id < 1:
+            raise ValueError("valid memory id required")
+        if not isinstance(reviewer, str) or not 1 <= len(reviewer.strip()) <= 128:
+            raise ValueError("explicit lifecycle reviewer required")
+        if not isinstance(reason, str) or not 1 <= len(reason.strip()) <= 512:
+            raise ValueError("explicit lifecycle reason required")
+        row = self.db.execute(
+            "SELECT metadata_json FROM memories WHERE id=?", (memory_id,)
+        ).fetchone()
+        if row is None:
+            raise LookupError("memory id is not present")
+        metadata = json.loads(row["metadata_json"])
+        if not isinstance(metadata, dict):
+            raise RuntimeError("invalid archived memory metadata")
+        if bool(metadata.get("archived", False)) == archived:
+            return False
+        events = metadata.get("lifecycle_history", [])
+        if not isinstance(events, list):
+            raise RuntimeError("invalid retained lifecycle history")
+        metadata["archived"] = archived
+        metadata["lifecycle_history"] = [*events, {
+            "action": "archive" if archived else "restore",
+            "reviewer": reviewer.strip(),
+            "reason": reason.strip(),
+            "sequence": len(events) + 1,
+        }]
+        self.db.execute(
+            "UPDATE memories SET metadata_json=? WHERE id=?",
+            (json.dumps(metadata, sort_keys=True, ensure_ascii=False, allow_nan=False), memory_id),
+        )
+        if not self._atomic:
+            self.db.commit()
+        return True
+
+    def archive(self, memory_id: int, *, reviewer: str, reason: str) -> bool:
+        """Reversibly remove a record from active retrieval but retain provenance."""
+        return self._set_archived(memory_id, archived=True, reviewer=reviewer, reason=reason)
+
+    def restore_archived(self, memory_id: int, *, reviewer: str, reason: str) -> bool:
+        """Re-enable an archived memory with a new explicit audit event."""
+        return self._set_archived(memory_id, archived=False, reviewer=reviewer, reason=reason)
+
+    def link_contradiction(
+        self, first_id: int, second_id: int, *, reviewer: str, reason: str,
+    ) -> bool:
+        """Record a HUMAN-reviewed contradiction; no automated factual inference."""
+        if type(first_id) is not int or type(second_id) is not int or first_id < 1 or second_id < 1 or first_id == second_id:
+            raise ValueError("two different valid memory ids are required")
+        if not isinstance(reviewer, str) or not 1 <= len(reviewer.strip()) <= 128:
+            raise ValueError("explicit reviewer required for contradiction links")
+        if not isinstance(reason, str) or not 1 <= len(reason.strip()) <= 512:
+            raise ValueError("explicit reviewed contradiction reason required")
+        if not self._atomic:
+            with self.transaction():
+                return self.link_contradiction(first_id, second_id, reviewer=reviewer, reason=reason)
+        records = self.db.execute(
+            "SELECT id,metadata_json FROM memories WHERE id IN (?,?) ORDER BY id",
+            (first_id, second_id),
+        ).fetchall()
+        if len(records) != 2:
+            raise LookupError("both contradiction source records must exist")
+        already = True
+        for row in records:
+            metadata = json.loads(row["metadata_json"])
+            if not isinstance(metadata, dict):
+                raise RuntimeError("invalid contradiction source metadata")
+            partner = second_id if int(row["id"]) == first_id else first_id
+            links = metadata.get("contradiction_ids", [])
+            if not isinstance(links, list):
+                raise RuntimeError("invalid contradiction link metadata")
+            if partner in links:
+                continue
+            already = False
+            events = metadata.get("contradiction_review", [])
+            if not isinstance(events, list):
+                raise RuntimeError("invalid contradiction review history")
+            metadata["contradiction_ids"] = sorted(set(int(item) for item in links) | {partner})
+            metadata["contradiction_flag"] = True
+            metadata["contradiction_review"] = [*events, {
+                "partner_id": partner, "reviewer": reviewer.strip(), "reason": reason.strip(),
+            }]
+            self.db.execute(
+                "UPDATE memories SET metadata_json=? WHERE id=?",
+                (json.dumps(metadata, sort_keys=True, ensure_ascii=False, allow_nan=False), int(row["id"])),
+            )
+        return not already
 
     def stats(self) -> dict[str, int]:
         memories = int(self.db.execute("SELECT COUNT(*) FROM memories").fetchone()[0])

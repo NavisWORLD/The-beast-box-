@@ -7,8 +7,9 @@ from pathlib import Path
 
 import pytest
 
+from beastbox.persistent_substrate.ledger_v2 import MemoryChainVerificationError
 from beastbox.persistent_substrate.protocol import DeterministicLogicalClock, canonical_json_bytes
-from beastbox.persistent_substrate.substrate import (
+from beastbox.persistent_substrate.substrate_v2 import (
     PersistentSubstrate,
     ReadOnlyWorldKnowledgeStore,
     SubstrateInputPaths,
@@ -157,6 +158,28 @@ def test_primary_append_preserves_canonical_prefix_and_direct_lookup(tmp_path: P
         primary.close()
 
 
+
+def test_primary_rejects_valid_looking_appended_suffix_truncation(tmp_path: Path) -> None:
+    primary = PersistentSubstrate.restore_primary(
+        make_inputs(tmp_path), workspace=tmp_path / "anchored-primary",
+        clock=DeterministicLogicalClock(),
+    )
+    try:
+        primary.append_memory(
+            actor="controller", text="suffix integrity canary", kind="test",
+            session_id="finisher-a1",
+        )
+        original = primary.memory_path.read_bytes()
+        primary.memory_path.write_bytes(b"".join(original.splitlines(keepends=True)[:-1]))
+        # The immutable 352-row prefix remains intact; internal chain-only
+        # verification therefore succeeds, but this live controller must
+        # refuse the now-missing appended row.
+        with pytest.raises(MemoryChainVerificationError, match="record count"):
+            primary.snapshot("TRUNCATED", active_model_identity=None)
+    finally:
+        primary.close()
+
+
 def test_empty_control_stays_zero_with_same_read_only_inputs(tmp_path: Path) -> None:
     inputs = make_inputs(tmp_path)
     primary = PersistentSubstrate.restore_primary(
@@ -196,5 +219,22 @@ def test_knowledge_sentinel_uses_unchanged_world_router(tmp_path: Path) -> None:
         assert first == second
         assert first["selected"]["knowledge_id"] == 1
         assert first["selected"]["record_sha256"] == primary.world_store.get(1)["record_sha256"]
+    finally:
+        primary.close()
+
+
+def test_snapshot_rechecks_inputs_after_model_transition(tmp_path: Path) -> None:
+    """A5: the existing live-input guard must reject post-capture mutation."""
+    inputs = make_inputs(tmp_path)
+    primary = PersistentSubstrate.restore_primary(
+        inputs, workspace=tmp_path / "guarded-primary",
+        clock=DeterministicLogicalClock(),
+    )
+    try:
+        primary.snapshot("BEFORE_MODEL", active_model_identity={"role": "MODEL_A"})
+        primary.advance_state("LOAD_B", {"role": "MODEL_B"})
+        inputs.r12_history.write_bytes(inputs.r12_history.read_bytes() + b"mutated")
+        with pytest.raises(RuntimeError, match="immutable input changed"):
+            primary.snapshot("BEFORE_MODEL_B", active_model_identity={"role": "MODEL_B"})
     finally:
         primary.close()

@@ -14,7 +14,7 @@ the runtime retains the story and enforces its own authority boundary.
 [Architecture](docs/ECOSYSTEM_MANIFEST.json) · [Persistent Memory](docs/PORTABLE_STATE.md) ·
 [Model Swap Evidence](docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md) ·
 [Provider Setup](docs/PROVIDER_SETUP.md) · [Synapse Flash / Portable State](docs/PORTABLE_STATE.md) ·
-[Security](SECURITY.md) · [Scientific Boundaries](docs/CLAIM_BOUNDARIES.md) ·
+[Security](SECURITY.md) · [Threat model](docs/THREAT_MODEL.md) · [Optional external anchor](docs/TRUSTED_ANCHOR.md) · [Configured model routing](docs/MODEL_ROUTING_SCOPE.md) · [Versioned V1/V2 source](docs/VERSIONING.md) · [Scientific Boundaries](docs/CLAIM_BOUNDARIES.md) ·
 [Evidence Index](docs/EVIDENCE_INDEX.md) · [Developer Guide](docs/DEVELOPER_GUIDE.md) ·
 [Runtime performance measurements](docs/performance/ASTRA_PASS_2026-09-12.md) ·
 [Cosmic Fruit Fly 🪰 — experimental workspace](cosmic%20fruit%20fly/README.md)
@@ -47,7 +47,7 @@ The early cosmic/frequency language is preserved as historical theory/simulation
 > A local-first, inspectable adaptive-agent runtime and experimental integration platform with persistent memory, software state, routing, provenance, and authority boundaries outside replaceable inference models.
 
 
-**Python 3.10–3.12. No IBM account, cloud credential, GPU, or language model is required for the deterministic reference path.** In this proposed open-source generation, original Cory-owned software and documentation are licensed **Apache-2.0** under [LICENSE](LICENSE), except individually marked material. See [LICENSE_HISTORY.md](LICENSE_HISTORY.md) and [NOTICE](NOTICE) for scope and earlier releases.
+**Python 3.10–3.12. No IBM account, cloud credential, GPU, or language model is required for the deterministic reference path.** In this Apache-2.0 revision, original Cory-owned software and documentation are licensed **Apache-2.0** under [LICENSE](LICENSE), except individually marked material. See [LICENSE_HISTORY.md](LICENSE_HISTORY.md) and [NOTICE](NOTICE) for scope and earlier releases.
 
 ## Open your cosmic workstation
 

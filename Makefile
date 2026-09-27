@@ -21,6 +21,14 @@ env-check:
 	$(PYTHON) -m beastbox.env_inventory --check .env.example beastbox
 
 lint:
+	$(PYTHON) -m ruff check scripts/finisher_memory_scale.py tests/test_finisher_memory_scale.py
+	$(PYTHON) -m ruff check beastbox/adaptive_control.py tests/test_finisher_adaptive_control.py
+	$(PYTHON) -m ruff check tests/test_finisher_ecosystem_smoke.py
+	$(PYTHON) -m ruff check beastbox/model_router.py tests/test_finisher_model_router.py
+	$(PYTHON) -m ruff check beastbox/scoped_maintenance.py tests/test_finisher_scoped_maintenance.py
+	$(PYTHON) -m ruff check beastbox/trusted_anchor.py tests/test_finisher_trust_anchor.py
+	$(PYTHON) -m ruff check beastbox/retrieval_snapshot.py tests/test_finisher_retrieval_snapshot.py
+	$(PYTHON) -m ruff check tests/test_finisher_memory_lifecycle.py
 	$(PYTHON) -m ruff check scripts/benchmark_runtime.py scripts/smoke/html_browser.py html/serve.py \
 		tests/test_runtime_benchmark.py tests/test_runtime_performance.py tests/test_html_server.py
 	$(PYTHON) -m ruff check beastbox/env_inventory.py tests/test_env_inventory.py
