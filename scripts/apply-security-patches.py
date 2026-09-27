@@ -100,14 +100,20 @@ def apply_overlay(source: Path, destination: Path) -> dict[str, Any]:
     manifest = load_manifest(source)
     destination.parent.mkdir(parents=True, exist_ok=True)
     staged = Path(tempfile.mkdtemp(prefix=".finisher-patch-staging-", dir=destination.parent))
+    shutil.rmtree(staged)
+    registered = False
     try:
-        shutil.copytree(
-            source, staged, dirs_exist_ok=True,
-            ignore=shutil.ignore_patterns(
-                ".git", "__pycache__", ".pytest_cache", ".mypy_cache",
-                ".ruff_cache", ".venv", "venv", "build", "dist", "*.egg-info"
-            ),
+        # A detached worktree preserves Git ancestry for existing acceptance
+        # scripts without changing any file in the pristine checkout.
+        created = subprocess.run(
+            ["git", "-C", str(source), "worktree", "add", "--detach", str(staged), "HEAD"],
+            text=True, capture_output=True, check=False,
         )
+        if created.returncode:
+            raise SecurityOverlayError("cannot create isolated committed-source worktree: " + created.stderr[-1200:])
+        registered = True
+        if sha256_bytes((staged / "patches/PATCH_MANIFEST.json").read_bytes()) != MANIFEST_SHA256:
+            raise SecurityOverlayError("staged commit does not contain pinned manifest")
         receipts: list[dict[str, str]] = []
         for entry in manifest["patches"]:
             target = _contained(staged, entry["target"])
@@ -153,10 +159,21 @@ def apply_overlay(source: Path, destination: Path) -> dict[str, Any]:
         output = staged / "build"
         output.mkdir(exist_ok=True)
         (output / "security-overlay-receipt.json").write_bytes(canonical_json(receipt) + b"\n")
-        os.rename(staged, destination)
+        moved = subprocess.run(
+            ["git", "-C", str(source), "worktree", "move", str(staged), str(destination)],
+            text=True, capture_output=True, check=False,
+        )
+        if moved.returncode:
+            raise SecurityOverlayError("cannot promote fully verified worktree: " + moved.stderr[-1200:])
+        registered = False
         return receipt
     finally:
-        if staged.exists():
+        if registered:
+            subprocess.run(
+                ["git", "-C", str(source), "worktree", "remove", "--force", str(staged)],
+                text=True, capture_output=True, check=False,
+            )
+        elif staged.exists():
             shutil.rmtree(staged)
 
 
