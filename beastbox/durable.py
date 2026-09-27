@@ -381,7 +381,8 @@ class DurableRuntime(CosmosRuntime):
                 self._check_anchor(before)
                 if self._semantic_precomputed is not None:
                     if before["sha256"] != self._semantic_precomputed["checkpoint_sha256"]:
-                        self.semantic_index.clear()
+                        if self.semantic_index is not None:
+                            self.semantic_index.clear()
                         raise SemanticRetrievalError(
                             "durable checkpoint changed during semantic prewarm; retry the turn"
                         )
@@ -391,7 +392,8 @@ class DurableRuntime(CosmosRuntime):
                     if self._snapshot_fingerprint(self._retrieval_snapshot) != (
                         self._semantic_precomputed["source_digest"]
                     ):
-                        self.semantic_index.clear()
+                        if self.semantic_index is not None:
+                            self.semantic_index.clear()
                         raise SemanticRetrievalError(
                             "memory snapshot changed during semantic prewarm; retry the turn"
                         )
