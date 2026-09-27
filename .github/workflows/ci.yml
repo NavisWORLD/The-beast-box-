@@ -37,13 +37,22 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install --upgrade pip
       - run: pip install -r requirements-dev.txt
-      - run: pip install -e .
+      - name: Verify frozen experimental source before patching
+        run: |
+          scripts/smoke/sealed-evidence-guard.sh
+          python scripts/apply-security-patches.py --verify-only
+      - name: Create verified product worktree
+        run: python scripts/apply-security-patches.py --destination "$RUNNER_TEMP/beastbox-finisher-product"
+      - run: pip install -e "$RUNNER_TEMP/beastbox-finisher-product"
       - name: Lint productization surface
+        working-directory: ${{ runner.temp }}/beastbox-finisher-product
         run: |
           ruff check beastbox/config.py beastbox/logging_config.py beastbox/aliases.py beastbox/hashutil.py scripts/productization_receipt.py tests/test_starter_kit.py tests/test_logging_config.py tests/test_productization_receipt.py tests/test_product_spine.py tests/test_experimental_boundary.py
       - name: Type-check productization surface
+        working-directory: ${{ runner.temp }}/beastbox-finisher-product
         run: mypy
       - name: Product-spine tests with measured coverage floor
+        working-directory: ${{ runner.temp }}/beastbox-finisher-product
         run: |
           coverage run -m pytest tests/test_product_spine.py tests/test_starter_kit.py tests/test_full_runtime.py tests/test_beastbox.py tests/test_logging_config.py tests/test_workspace_security.py tests/test_productization_receipt.py tests/test_experimental_boundary.py tests/test_cosmic_web.py tests/test_cosmic_completion.py tests/test_cosmic_closure.py
           # This gate measures the runtime/product spine above. Optional offline
@@ -72,8 +81,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install --upgrade pip
-      - run: pip install -e '.[dev,ml]'
-      - run: pytest
+      - name: Verify pinned security source then stage patched product
+        run: |
+          scripts/smoke/sealed-evidence-guard.sh
+          python scripts/apply-security-patches.py --destination "$RUNNER_TEMP/beastbox-finisher-product"
+      - run: pip install -e "$RUNNER_TEMP/beastbox-finisher-product[dev,ml]"
+      - name: Test exact patched product source
+        working-directory: ${{ runner.temp }}/beastbox-finisher-product
+        run: pytest
 
   package-smoke:
     runs-on: ubuntu-latest
@@ -84,11 +99,16 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install --upgrade pip build
+      - name: Verify and stage patched product packaging
+        run: |
+          scripts/smoke/sealed-evidence-guard.sh
+          python scripts/apply-security-patches.py --destination "$RUNNER_TEMP/beastbox-finisher-product"
       - name: Build wheel and source distribution
+        working-directory: ${{ runner.temp }}/beastbox-finisher-product
         run: python -m build
       - name: Install built wheel
         shell: bash
-        run: pip install dist/*.whl
+        run: pip install "$RUNNER_TEMP"/beastbox-finisher-product/dist/*.whl
       - name: Verify installed command entry points
         run: |
           beastbox --help
