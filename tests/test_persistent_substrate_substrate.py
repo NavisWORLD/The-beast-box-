@@ -221,3 +221,20 @@ def test_knowledge_sentinel_uses_unchanged_world_router(tmp_path: Path) -> None:
         assert first["selected"]["record_sha256"] == primary.world_store.get(1)["record_sha256"]
     finally:
         primary.close()
+
+
+def test_snapshot_rechecks_inputs_after_model_transition(tmp_path: Path) -> None:
+    """A5: the existing live-input guard must reject post-capture mutation."""
+    inputs = make_inputs(tmp_path)
+    primary = PersistentSubstrate.restore_primary(
+        inputs, workspace=tmp_path / "guarded-primary",
+        clock=DeterministicLogicalClock(),
+    )
+    try:
+        primary.snapshot("BEFORE_MODEL", active_model_identity={"role": "MODEL_A"})
+        primary.advance_state("LOAD_B", {"role": "MODEL_B"})
+        inputs.r12_history.write_bytes(inputs.r12_history.read_bytes() + b"mutated")
+        with pytest.raises(RuntimeError, match="immutable input changed"):
+            primary.snapshot("BEFORE_MODEL_B", active_model_identity={"role": "MODEL_B"})
+    finally:
+        primary.close()
