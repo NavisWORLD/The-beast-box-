@@ -35,6 +35,27 @@ def test_lexical_recall_requires_evidence_before_recency_boost(tmp_path: Path):
         memory.close()
 
 
+
+def test_consolidation_avoids_stopwords_and_is_idempotent(tmp_path: Path):
+    memory = ReconciliationMemory(tmp_path / "consolidation.sqlite3")
+    try:
+        sources = [
+            memory.store("the harvest apples arrive as harvest season begins"),
+            memory.store("the harvest baskets carry goods for harvest markets"),
+            memory.store("the harvest plans focus on harvest growers"),
+        ]
+        made = memory.consolidate(min_group=3)
+        assert len(made) == 1
+        record = next(item for item in memory.recent() if item.id == made[0])
+        assert "theme 'the'" not in record.text.lower()
+        assert record.kind == "consolidation"
+        assert sorted(record.source_ids) == sorted(sources)
+        assert record.metadata["provenance_class"] == "derived-synthetic"
+        assert record.metadata["algorithm"] == "stopword-bucket-v1"
+        assert memory.consolidate(min_group=3) == []
+    finally:
+        memory.close()
+
 def test_state_family_dimensions_and_preflight():
     s = StateFamily()
     out = s.update([0.2, -0.5, 0.8])
