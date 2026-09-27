@@ -136,6 +136,7 @@ def verify_memory_chain(
     *,
     parent_sha256: str,
     immutable_prefix: bytes | str | Path | None = None,
+    verified_rows: list[tuple[int, dict[str, Any]]] | None = None,
 ) -> LedgerReceipt:
     target = Path(path)
     if not _is_sha256(parent_sha256):
@@ -229,6 +230,10 @@ def verify_memory_chain(
                 actual_sha256=hashlib.sha256(actual_prefix).hexdigest(),
             )
 
+    # Expose only rows decoded from the exact bytes that passed every check.
+    # The caller must never reopen the mutable path to retrieve verified data.
+    if verified_rows is not None:
+        verified_rows.extend(rows)
     return LedgerReceipt(
         path=str(target),
         sha256=hashlib.sha256(data).hexdigest(),
@@ -328,8 +333,8 @@ def get_verified_memory_record(
     expected_record_sha256: str | None = None,
 ) -> dict[str, Any]:
     target_id = int(memory_id)
-    verify_memory_chain(path, parent_sha256=parent_sha256)
-    rows = _decode_memory_rows(Path(path).read_bytes())
+    rows: list[tuple[int, dict[str, Any]]] = []
+    verify_memory_chain(path, parent_sha256=parent_sha256, verified_rows=rows)
     for line_number, row in rows:
         if int(row["memory_id"]) != target_id:
             continue
