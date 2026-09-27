@@ -5,6 +5,7 @@ on:
   push:
     branches: ["**"]
     paths: &product-paths
+      - "patches/**"
       - "beastbox/**"
       - "tests/**"
       - "scripts/**"
@@ -45,17 +46,25 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install --upgrade pip
+      - name: Verify original frozen source and manifest
+        run: |
+          scripts/smoke/sealed-evidence-guard.sh
+          python scripts/apply-security-patches.py --verify-only
       - run: python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
-      - run: python -m pip install -r requirements-dev.txt -e .
-      - name: Full quality gate
-        run: make quality ACCEPTANCE_OUTPUT=build/architecture-acceptance.json
+      - name: Build separately verified product tree
+        run: python scripts/apply-security-patches.py --destination "$RUNNER_TEMP/beastbox-finisher-product"
+      - run: python -m pip install -r requirements-dev.txt -e "$RUNNER_TEMP/beastbox-finisher-product"
+      - name: Full quality gate on the patched product (historical guard checked separately above)
+        working-directory: ${{ runner.temp }}/beastbox-finisher-product
+        run: make env-check lint typecheck test acceptance security ACCEPTANCE_OUTPUT=build/architecture-acceptance.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: quality-${{ matrix.python-version }}
           path: |
-            build/junit.xml
-            build/architecture-acceptance.json
+            ${{ runner.temp }}/beastbox-finisher-product/build/junit.xml
+            ${{ runner.temp }}/beastbox-finisher-product/build/architecture-acceptance.json
+            ${{ runner.temp }}/beastbox-finisher-product/build/security-overlay-receipt.json
           if-no-files-found: warn
 
   package-smoke:
@@ -68,7 +77,12 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -r requirements-dev.txt
-      - name: Build, install, and run away from source
+      - name: Verify pristine and create audited package source
+        run: |
+          scripts/smoke/sealed-evidence-guard.sh
+          python scripts/apply-security-patches.py --destination "$RUNNER_TEMP/beastbox-finisher-product"
+      - name: Build, install, and run away from patched source
+        working-directory: ${{ runner.temp }}/beastbox-finisher-product
         run: |
           mkdir -p build
           if make package-smoke > build/package-smoke.log 2>&1; then
@@ -86,9 +100,10 @@ jobs:
         with:
           name: package-smoke
           path: |
-            build/package-smoke.json
-            build/package-smoke.log
-            build/package-junit.xml
+            ${{ runner.temp }}/beastbox-finisher-product/build/package-smoke.json
+            ${{ runner.temp }}/beastbox-finisher-product/build/package-smoke.log
+            ${{ runner.temp }}/beastbox-finisher-product/build/package-junit.xml
+            ${{ runner.temp }}/beastbox-finisher-product/build/security-overlay-receipt.json
           if-no-files-found: error
 
   cosmic-browser:
@@ -99,13 +114,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python -m pip install -e . playwright==1.55.0
+      - name: Verify pristine and create patched browser source
+        run: |
+          scripts/smoke/sealed-evidence-guard.sh
+          python scripts/apply-security-patches.py --destination "$RUNNER_TEMP/beastbox-finisher-product"
+      - run: python -m pip install -e "$RUNNER_TEMP/beastbox-finisher-product" playwright==1.55.0
       - run: python -m playwright install --with-deps chromium
       - name: Real browser owner flows and responsive layouts
+        working-directory: ${{ runner.temp }}/beastbox-finisher-product
         run: python scripts/smoke/cosmic_browser.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: cosmic-browser
-          path: build/cosmic-browser/
+          path: ${{ runner.temp }}/beastbox-finisher-product/build/cosmic-browser/
           if-no-files-found: warn
