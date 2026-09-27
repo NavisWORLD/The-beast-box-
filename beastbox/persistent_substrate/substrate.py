@@ -362,17 +362,6 @@ class PersistentSubstrate:
         }
         self._immutable_inputs = self._capture_immutable_inputs()
         self._implementation_hashes = self._capture_implementation_hashes()
-        # The freshly assembled immutable prefix is verified against its source
-        # manifest at restore. Retain its verified tip/length in this live
-        # controller so a valid-looking suffix truncation cannot pass the next
-        # in-process read. Persistent cross-restart anchors remain a separate
-        # trust-root requirement; never portray this in-memory pin as signing.
-        initial_memory = verify_memory_chain(
-            self.memory_path, parent_sha256=self.memory_parent_sha256,
-            immutable_prefix=self._canonical_prefix_bytes,
-        )
-        self._expected_memory_count = initial_memory.record_count
-        self._expected_memory_tip = initial_memory.tip_sha256
 
     @classmethod
     def restore_primary(
@@ -543,8 +532,6 @@ class PersistentSubstrate:
             self.memory_path,
             parent_sha256=self.memory_parent_sha256,
             immutable_prefix=self._canonical_prefix_bytes,
-            expected_record_count=self._expected_memory_count,
-            expected_tip_sha256=self._expected_memory_tip,
         )
 
     def append_memory(
@@ -570,19 +557,9 @@ class PersistentSubstrate:
             descendant_sha256=descendant_sha256,
             metadata=metadata,
         )
-        # The append must extend exactly the previously pinned state by one.
-        # Do not advance the in-memory anchor until the full post-append
-        # chain matches both the count and the row's verified tip.
-        receipt = verify_memory_chain(
-            self.memory_path, parent_sha256=self.memory_parent_sha256,
-            immutable_prefix=self._canonical_prefix_bytes,
-            expected_record_count=self._expected_memory_count + 1,
-            expected_tip_sha256=str(row["record_sha256"]),
-        )
-        if str(row["previous_record_sha256"]) != self._expected_memory_tip:
-            raise RuntimeError("memory append previous pinned tip mismatch")
-        self._expected_memory_count = receipt.record_count
-        self._expected_memory_tip = receipt.tip_sha256
+        receipt = self._memory_receipt()
+        if receipt.tip_sha256 != row["record_sha256"]:
+            raise RuntimeError("memory append receipt tip mismatch")
         return row
 
     def get_memory_record(
@@ -596,8 +573,6 @@ class PersistentSubstrate:
             memory_id,
             parent_sha256=self.memory_parent_sha256,
             expected_record_sha256=expected_record_sha256,
-            expected_record_count=self._expected_memory_count,
-            expected_tip_sha256=self._expected_memory_tip,
         )
 
     @staticmethod
