@@ -80,6 +80,8 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
+      - name: Preserve pinned Git blob bytes rather than Git-for-Windows CRLF conversion
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
