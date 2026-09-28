@@ -1,6 +1,6 @@
 import { bridgeConfigured, isOwner, safeJson } from '@/lib/security';
 export const runtime='nodejs';
-const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job','observations','models']);
+const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job','observations','models','model-inventory','engine-growth']);
 const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio','observations','models']);
 type RouteContext={params:Promise<{endpoint:string}>};
 async function forward(request:Request, method:'GET'|'POST', {params}:RouteContext) {
@@ -32,11 +32,16 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
     if(endpoint==='models'){
       const keys=Object.keys(input).sort().join(',');
       const choice=input.choice;
-      if(choice==='local'){
+      if(['local','rawrphos_native','rawrphos_native_18k_experimental'].includes(String(choice))){
         if(keys!=='choice')return safeJson(400,{error:'Local model selection accepts only choice'});
-      }else if(choice==='huggingface'||choice==='ollama_cloud'){
+      }else if(['huggingface','rawrphos_hf'].includes(String(choice))){
         if(keys!=='choice,spend_approved'||input.spend_approved!==true)
           return safeJson(400,{error:'Remote model activation requires explicit usage approval'});
+      }else if(choice==='ollama_cloud'){
+        if(keys!=='choice,model,spend_approved'||input.spend_approved!==true||
+           typeof input.model!=='string'||input.model.length<1||input.model.length>180||
+           !/^[A-Za-z0-9_.:/-]+$/.test(input.model))
+          return safeJson(400,{error:'Invalid or unapproved Ollama Cloud model ID'});
       }else return safeJson(400,{error:'Unknown model selection'});
     }
     if (endpoint==='observations') {
