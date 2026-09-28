@@ -24,10 +24,12 @@ import urllib.parse
 from .cosmic_ui import render_cosmic_ui
 from .cypher.workspace import FULL_REPLACEMENT_DIFF_HEADER, Workspace
 from .durable import DurableRuntime
+from .semantic_retrieval import EmbeddingProvider
 from .optional_resources import ResourceUnavailable, quantum_event
 from .portable_state import import_snapshot, verify_snapshot
 from .product_services import AuthoritySession, ProductService
-from .providers import CompatibleChatProvider, LocalOllamaProvider, ReferenceTextProvider, TextProvider
+from .providers import CompatibleChatProvider, LocalOllamaProvider, ReferenceTextProvider, TextProvider, ProviderDiagnosticError
+from .rawrphos_hf import PrivateSpaceProvider, MODEL as HF_NATIVE_MODEL, SPACE_URL as HF_NATIVE_URL
 from .sealed_storage import encryption_status
 
 _MAX_REQUEST_BYTES = 1024 * 1024
@@ -80,8 +82,8 @@ class ProviderProfile:
         base_url = value.get("base_url", "")
         allow_remote = value.get("allow_remote", False)
         api_key_env = value.get("api_key_env")
-        if not isinstance(kind, str) or kind not in {"reference", "ollama", "compatible"}:
-            raise ValueError("provider kind must be reference, ollama, or compatible")
+        if not isinstance(kind, str) or kind not in {"reference", "ollama", "compatible", "hf_space"}:
+            raise ValueError("provider kind must be reference, ollama, compatible or hf_space")
         if not isinstance(model, str) or not model.strip() or len(model) > 256:
             raise ValueError("provider model must contain 1..256 characters")
         if not isinstance(base_url, str) or len(base_url) > 2048:
@@ -96,13 +98,16 @@ class ProviderProfile:
             base_url = "http://127.0.0.1:11434"
         if kind == "compatible" and not base_url:
             base_url = "http://127.0.0.1:1234/v1"
+        if kind == "hf_space" and (model != HF_NATIVE_MODEL or base_url != HF_NATIVE_URL
+                                   or allow_remote is not True or api_key_env is not None):
+            raise ValueError("unknown or unauthorized hosted RAWRPHOS profile")
         profile = cls(kind, model.strip(), base_url, allow_remote, api_key_env)
         profile.make_provider()
         return profile
 
     @property
     def remote(self) -> bool:
-        return self.kind == "compatible" and not _is_loopback_url(self.base_url)
+        return self.kind == "hf_space" or (self.kind == "compatible" and not _is_loopback_url(self.base_url))
 
     @property
     def identity(self) -> tuple[str, str, str]:
@@ -113,6 +118,9 @@ class ProviderProfile:
             return ReferenceTextProvider(prefix=self.model)
         if self.kind == "ollama":
             return LocalOllamaProvider(model=self.model, base_url=self.base_url)
+        if self.kind == "hf_space":
+            return PrivateSpaceProvider(model=self.model, base_url=self.base_url,
+                                        allow_remote=self.allow_remote)
         return CompatibleChatProvider(
             model=self.model,
             base_url=self.base_url,
@@ -162,7 +170,7 @@ def _regular_directory(value: str | Path) -> Path:
 class CosmicApp:
     """Testable owner controller; HTTP is only a transport adapter around this."""
 
-    def __init__(self, root: str | Path, *, workspace_roots: Iterable[str | Path] = (), provider_secret_resolver: Callable[[ProviderProfile], str | None] | None = None) -> None:
+    def __init__(self, root: str | Path, *, workspace_roots: Iterable[str | Path] = (), provider_secret_resolver: Callable[[ProviderProfile], str | None] | None = None, embedding_provider: EmbeddingProvider | None = None) -> None:
         supplied_root = Path(root).expanduser()
         if supplied_root.is_symlink():
             raise ValueError("cosmic runtime root cannot be a symlink")
@@ -171,6 +179,9 @@ class CosmicApp:
         self.service = ProductService(self.root, authority=self.authority)
         self.profile = load_provider_profile(self.root)
         self._provider_secret_resolver = provider_secret_resolver
+        # Explicit host-only, transient adapter. No provider or vector is persisted
+        # in the model profile, substrate checkpoint or owner-authority grants.
+        self._embedding_provider = embedding_provider
         self.workspace_allowlist: set[Path] = set()
         self.workspace: Workspace | None = None
         self.contexts: list[dict[str, Any]] = []
@@ -190,7 +201,7 @@ class CosmicApp:
         if selected.remote and not self.authority.allowed("cloud"):
             raise PermissionError("cloud authority required")
         provider = selected.make_provider()
-        if isinstance(provider, CompatibleChatProvider) and self._provider_secret_resolver is not None:
+        if isinstance(provider, (CompatibleChatProvider, PrivateSpaceProvider)) and self._provider_secret_resolver is not None:
             secret = self._provider_secret_resolver(selected)
             if secret is not None:
                 if selected.api_key_env is not None:
@@ -199,7 +210,7 @@ class CosmicApp:
         return provider
 
     def _runtime(self, profile: ProviderProfile | None = None) -> DurableRuntime:
-        return DurableRuntime(self.root, self._provider(profile))
+        return DurableRuntime(self.root, self._provider(profile), embedding_provider=self._embedding_provider)
 
     def _set_profile(self, raw: dict[str, Any]) -> tuple[ProviderProfile, bool, list[str]]:
         previous = self.profile.identity
@@ -707,6 +718,11 @@ class CosmicApp:
             return 404, {"error": "not found"}
         except PermissionError as exc:
             return 403, {"error": str(exc)}
+        except ProviderDiagnosticError as exc:
+            # Only the bounded code escapes; never expose upstream body,
+            # headers, provider error strings, context or credentials.
+            return 502, {"error": "model provider request was not confirmed; no fallback",
+                         "provider_failure": exc.code}
         except (OSError, ValueError, RuntimeError, json.JSONDecodeError):
             return 400, {"error": "request rejected; no fallback was performed"}
 

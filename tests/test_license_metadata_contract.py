@@ -14,6 +14,12 @@ class ApacheMetadataContractTests(unittest.TestCase):
         state["open_source"] = False
         self.assertEqual(len(status_errors(state)), 2)
 
+    def test_restored_native_package_is_covered(self):
+        manifest = ROOT / "models/rawrphos/pyproject.toml"
+        if manifest.is_file():
+            self.assertIn('license = "Apache-2.0"', manifest.read_text(encoding="utf-8"))
+        self.assertEqual(verify(ROOT), [])
+
     def test_historical_and_external_licenses_remain_separate(self):
         for path in (
             "LICENSE_HISTORY.md", "Endsupdate/PROJECT_STATUS.json",

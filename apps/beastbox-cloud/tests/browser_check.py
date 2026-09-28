@@ -13,6 +13,15 @@ def assert_no_overflow(page, tag):
     v=page.evaluate("({scroll:document.documentElement.scrollWidth, width:document.documentElement.clientWidth})")
     assert v["scroll"]<=v["width"]+1, f"{tag} overflow: {v}"
 
+def assert_form_landmarks(page, label):
+    assert page.get_by_role("main").count()==1, f"{label}: expected exactly one main landmark"
+    unlabeled=page.locator("input,select,textarea").evaluate_all("""elements =>
+      elements.filter(el => !el.disabled && !(el.labels && el.labels.length) &&
+        !el.getAttribute('aria-label') && !el.getAttribute('aria-labelledby') &&
+        !el.getAttribute('title')).map(el => ({tag:el.tagName,type:el.type}))
+    """)
+    assert not unlabeled, f"{label}: controls missing labels: {unlabeled}"
+
 with sync_playwright() as p:
     browser=p.chromium.launch(channel="chrome",headless=True,args=["--no-sandbox"])
     desktop=browser.new_context(viewport={"width":1440,"height":900},device_scale_factor=1)
@@ -22,6 +31,7 @@ with sync_playwright() as p:
     response=unauth.goto(BASE,wait_until="domcontentloaded")
     assert response and response.status==200
     assert unauth.get_by_text("Your AI.").count()>=1
+    assert_form_landmarks(unauth,"landing")
     assert_no_overflow(unauth,"desktop landing")
     unauth.screenshot(path=str(OUT/"01-landing-desktop.png"),full_page=True)
     r=unauth.request.post(BASE+"/api/bridge/chat",data={"text":"Unauthorized attempt"})
@@ -30,6 +40,11 @@ with sync_playwright() as p:
     unauth.get_by_label("OWNER PASSWORD").fill("public-ci-fixture-not-secret")
     unauth.get_by_role("button",name="Unlock workstation").click()
     unauth.get_by_text("BACKEND OFFLINE").wait_for(timeout=20000)
+    assert_form_landmarks(unauth,"desktop workstation")
+    assert unauth.get_by_role("navigation",name="Choose a cosmic world").get_by_role("button").count()==5
+    assert_no_overflow(unauth,"desktop cosmic world")
+    unauth.screenshot(path=str(OUT/"09-cosmos-world-desktop.png"),full_page=True)
+    unauth.get_by_role("button",name="BRAIN",exact=True).click()
     assert unauth.get_by_text("Your conversation, your story.").count()==1
     assert unauth.get_by_role("button",name="Send message").is_disabled()
     unauth.screenshot(path=str(OUT/"02-workstation-desktop.png"),full_page=True)
@@ -43,6 +58,7 @@ with sync_playwright() as p:
     assert unauth.get_by_role("button",name="Azure Blob Storage").count()==1
     assert unauth.get_by_role("button",name="IBM watsonx.ai").count()==1
     assert unauth.get_by_role("button",name="Ollama Cloud").count()==1
+    assert_form_landmarks(unauth,"desktop settings")
     assert unauth.get_by_role("button",name="Save encrypted credential").is_disabled()
     assert unauth.get_by_label("Live owner senses").is_visible()
     assert unauth.get_by_role("button",name="Start vision").is_visible()
@@ -60,6 +76,18 @@ with sync_playwright() as p:
     page.get_by_label("OWNER PASSWORD").fill("public-ci-fixture-not-secret")
     page.get_by_role("button",name="Unlock workstation").click()
     page.get_by_text("BACKEND OFFLINE").wait_for(timeout=20000)
+    assert_form_landmarks(page,"mobile workstation")
+    assert page.get_by_role("navigation",name="Choose a cosmic world").get_by_role("button").count()==5
+    world_buttons=page.get_by_role("navigation",name="Choose a cosmic world").get_by_role("button")
+    bounds=world_buttons.evaluate_all("""buttons => buttons.map(button => {
+      const rect=button.getBoundingClientRect();
+      return {left:rect.left,right:rect.right,width:rect.width};
+    })""")
+    assert all(item["width"]>=44 and item["left"]>=0 and item["right"]<=390 for item in bounds), bounds
+    assert_no_overflow(page,"mobile cosmic world")
+    page.screenshot(path=str(OUT/"10-cosmos-world-mobile.png"),full_page=True)
+    page.get_by_role("button",name="Open navigation").click()
+    page.get_by_role("button",name="BRAIN",exact=True).click()
     assert_no_overflow(page,"mobile workstation")
     page.screenshot(path=str(OUT/"05-workstation-mobile.png"),full_page=True)
     page.get_by_role("button",name="Stage file or photo locally").click()
@@ -73,6 +101,7 @@ with sync_playwright() as p:
     page.get_by_role("button",name="Open navigation").click()
     page.get_by_role("button",name="SETTINGS").click()
     page.get_by_text("Connect your universe").wait_for(timeout=10000)
+    assert_form_landmarks(page,"mobile settings")
     assert page.get_by_role("button",name="Save encrypted credential").is_disabled()
     assert page.get_by_label("Live owner senses").is_visible()
     assert page.get_by_role("button",name="Start vision").is_visible()
@@ -87,7 +116,17 @@ with sync_playwright() as p:
     page.get_by_role("button",name="Stage file or photo locally").click()
     assert page.get_by_role("button",name="Send message").is_disabled()
     assert_no_overflow(page,"mobile chat after settings")
-    results["mobile"]="PASS: landing, auth, no overflow, photo stage only, BYOK settings fail-closed"
+    results["mobile"]="PASS: five worlds, landing, auth, no overflow, photo stage only, BYOK settings fail-closed"
+    tablet=browser.new_context(viewport={"width":820,"height":1180},device_scale_factor=1,has_touch=True)
+    tab=tablet.new_page()
+    tab.on("pageerror",lambda error:errors.append(str(error)))
+    tab.goto(BASE+"/workspace",wait_until="domcontentloaded")
+    tab.get_by_label("OWNER PASSWORD").fill("public-ci-fixture-not-secret")
+    tab.get_by_role("button",name="Unlock workstation").click()
+    tab.get_by_role("navigation",name="Choose a cosmic world").wait_for(timeout=20000)
+    assert_no_overflow(tab,"tablet cosmic world")
+    tab.screenshot(path=str(OUT/"11-cosmos-world-tablet.png"),full_page=True)
+    results["tablet"]="PASS: cosmic world navigation and no measured overflow"
     assert not errors, "Client errors: "+str(errors)
     results["console_errors"]=errors
     browser.close()

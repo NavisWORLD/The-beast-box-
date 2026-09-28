@@ -1,0 +1,33 @@
+name: Unified legacy owner-memory recovery (disposable)
+on:
+  push:
+    branches: [feature/cosmos-rawrphos-unified-runtime-001]
+    paths:
+      - scripts/verify_legacy_to_unified_recovery.py
+      - .github/workflows/unified-legacy-memory-recovery.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  historical-source-to-unified-recovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install current minimal secure runtime (no paid model, no live network inference)
+        run: python -m pip install -e '.[secure]'
+      - name: Verify old production database through unified runtime and abrupt restart
+        run: python scripts/verify_legacy_to_unified_recovery.py --report build/unified-memory-recovery.json
+      - name: Preserve proof and failures (no user data)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unified-disposable-legacy-memory-recovery
+          path: build/unified-memory-recovery.json
+          if-no-files-found: warn

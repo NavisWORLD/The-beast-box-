@@ -128,6 +128,15 @@ def verify(root: Path = ROOT) -> list[str]:
                     errors.append(f"{rel}: package license metadata must be Apache-2.0")
             except (OSError, UnicodeError, ValueError):
                 errors.append(f"{rel}: package manifest cannot be decoded")
+    # The recovered native package is covered source, not independent training data.
+    native = root / "models/rawrphos/pyproject.toml"
+    if native.is_file():
+        try:
+            native_text = native.read_text(encoding="utf-8")
+            if 'license = "Apache-2.0"' not in native_text:
+                errors.append("native RAWRPHOS package metadata must declare Apache-2.0")
+        except (OSError, UnicodeError):
+            errors.append("native RAWRPHOS package metadata is unreadable")
     history = read("LICENSE_HISTORY.md")
     if "4c4e4d38e645ee521534643d42843e181be4900a" not in history or "Apache-2.0 open-source revision" not in history:
         errors.append("LICENSE_HISTORY.md must retain the existing adoption record")

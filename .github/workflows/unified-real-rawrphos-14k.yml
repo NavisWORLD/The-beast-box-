@@ -1,0 +1,117 @@
+name: Verify actual published RAWRPHOS 14K local CPU (no private owner data)
+
+on:
+  push:
+    branches: [feature/cosmos-rawrphos-unified-runtime-001]
+    paths:
+      - .github/workflows/unified-real-rawrphos-14k.yml
+      - models/rawrphos/**
+      - beastbox/rawrphos_local.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unified-real-rawrphos-14k-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  published-14k-actual-inference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 26
+    env:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      TOKENIZERS_PARALLELISM: "false"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install fixed CPU tools without inference cloud tokens
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos
+      - name: Independently checksum verify published 14K checkpoint archive
+        run: |
+          mkdir -p build
+          python models/rawrphos/scripts/install_pinned_14k.py --destination build/verified-published-14k > build/native14k-install-receipt.json
+          python - <<'PY'
+          import json
+          data=json.load(open("build/native14k-install-receipt.json"))
+          assert data["training_steps"] == 14000
+          assert data["checkpoint_sha256"] == "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5"
+          print("CHECKPOINT_ARCHIVE_AND_WEIGHT_ATTESTED",data["training_steps"])
+          PY
+      - name: Actual publicly pinned 14K inference inside durable memory runtime
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+          import hashlib
+          import json
+          import tempfile
+          import time
+          from pathlib import Path
+          from rawrphos.adapters.beastbox_provider import NativeProvider
+          from rawrphos.scripts.install_pinned_14k import verify, WEIGHT_SHA
+          from beastbox.durable import DurableRuntime
+
+          path=Path("build/verified-published-14k")
+          assert verify(path) == WEIGHT_SHA
+          provider=NativeProvider(path,max_new_tokens=12)
+          with tempfile.TemporaryDirectory(prefix="beastbox-published-14k-") as temporary:
+              root=Path(temporary)
+              first=DurableRuntime(root,provider)
+              try:
+                  start=time.perf_counter()
+                  turn=first.respond("Hello, Beast. This is a PUBLIC SYNTHETIC TEST.")
+                  elapsed=round((time.perf_counter()-start)*1000,2)
+                  response=turn.get("response","")
+                  assert isinstance(response,str) and response.strip(), "published 14K generated no visible response"
+                  assert turn.get("metrics",{}).get("status") == "committed"
+                  before=first.inspect()
+              finally:
+                  first.close()
+              reopened=DurableRuntime(root,provider)
+              try:
+                  after=reopened.inspect()
+                  assert after["system_id"] == before["system_id"]
+                  assert after["checkpoint_sha256"] == before["checkpoint_sha256"]
+                  assert after["memory_digest"] == before["memory_digest"]
+                  assert after["valid"] is True
+              finally:
+                  reopened.close()
+          receipt={
+              "schema":"beastbox-published-14k-real-local-cpu-v1",
+              "source_commit":"${{ github.sha }}",
+              "classification":"REAL_PUBLISHED_WEIGHT_CHECKED_CPU_FIXTURE_NOT_QUALITY_EVAL",
+              "checkpoint_sha256":WEIGHT_SHA,
+              "training_steps":14000,
+              "local_only":True,
+              "cloud_model_calls":0,
+              "real_complete_turn_ms":elapsed,
+              "response_nonempty":True,
+              "response_sha256_public_synthetic_only":hashlib.sha256(response.encode()).hexdigest(),
+              "same_checkpoint_and_system_after_disposable_restart":True,
+              "no_owner_memory":True,
+              "not_14k_conversational_quality_proof":True,
+              "18k_promotion":False,
+          }
+          out=Path("build/real-14k-cpu-receipt.json")
+          out.write_text(json.dumps(receipt,indent=2,sort_keys=True)+"\n")
+          print("ACTUAL_PUBLISHED_14K_CPU_RECEIPT="+json.dumps(receipt,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real-published-14k-integrity-and-inference-receipt
+          path: |
+            build/native14k-install-receipt.json
+            build/real-14k-cpu-receipt.json
+          if-no-files-found: warn
