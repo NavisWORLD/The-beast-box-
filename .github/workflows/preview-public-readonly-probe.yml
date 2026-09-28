@@ -1,0 +1,98 @@
+name: Hosted preview public read-only reachability (no credentials)
+
+on:
+  push:
+    branches:
+      - deploy/beastbox-vercel-preview-001
+    paths:
+      - .github/workflows/preview-public-readonly-probe.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-public-reachability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Observe public preview without owner login or protection bypass
+        env:
+          HOSTED_PREVIEW_ORIGIN: https://the-beast-box-git-deploy-beastbox-vercel-preview-001-zerefs-end.vercel.app
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          BASE = os.environ["HOSTED_PREVIEW_ORIGIN"].rstrip("/")
+          PROTECTED = {301, 302, 303, 307, 308, 401, 403}
+          class NeverRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, request, fp, code, msg, headers, newurl):
+                  return None
+          opener = urllib.request.build_opener(NeverRedirect())
+
+          def get(path):
+              req = urllib.request.Request(
+                  BASE + path,
+                  headers={"User-Agent": "BeastBoxPublicReadOnlyCI/1.0",
+                           "Accept": "application/json" if path else "text/html"},
+                  method="GET",
+              )
+              try:
+                  with opener.open(req, timeout=12) as reply:
+                      status = reply.status
+                      data = reply.read(65537)
+                      content_type = reply.headers.get("Content-Type", "")
+              except urllib.error.HTTPError as error:
+                  status, content_type = error.code, error.headers.get("Content-Type", "")
+                  data = b""
+              if len(data) > 65536:
+                  raise RuntimeError("public probe response exceeded bounded maximum")
+              return status, content_type, data
+
+          landing, landing_type, landing_body = get("")
+          session, session_type, session_body = get("/api/session")
+          status, status_type, status_body = get("/api/status")
+          if landing in PROTECTED or session in PROTECTED or status in PROTECTED:
+              verdict = "ACCESS_PROTECTED_OR_REDIRECTED_NOT_AUTHENTICATED"
+              verified = False
+          elif landing == session == status == 200:
+              if "html" not in landing_type.lower() or b"BEAST BOX" not in landing_body:
+                  verdict, verified = "HTTP_200_WRONG_OR_UNVERIFIED_LANDING", False
+              else:
+                  try:
+                      account = json.loads(session_body)
+                      backend = json.loads(status_body)
+                  except (UnicodeDecodeError, ValueError):
+                      verdict, verified = "HTTP_200_UNEXPECTED_API_PAYLOAD", False
+                  else:
+                      verified = (account.get("owner") is False and
+                                  backend.get("owner") is False and
+                                  backend.get("backendStatus") == "OWNER_LOGIN_REQUIRED")
+                      verdict = ("PUBLIC_LANDING_AND_ANONYMOUS_FAIL_CLOSED_ROUTES_VERIFIED"
+                                 if verified else "HTTP_200_OWNER_GATE_UNEXPECTED")
+          else:
+              verdict, verified = "UNEXPECTED_HTTP_STATUS", False
+          # Do not print any body, cookie, redirect location, query string or secret.
+          receipt = {
+              "schema": "beastbox-public-preview-readonly-hosted-probe-v1",
+              "landing_http_status": landing,
+              "session_http_status": session,
+              "status_http_status": status,
+              "observation": verdict,
+              "hosted_anonymous_routes_verified": verified,
+              "real_owner_login_tested": False,
+              "backend_inference_tested": False,
+              "public_multi_user_security_tested": False,
+              "authenticated_vercel_connector_access": False,
+              "source_commit_expected_before_probe": "a68fda6e3e0f05cf4b51406547879fd7fb152811",
+          }
+          print("BEASTBOX_PREVIEW_PUBLIC_PROBE=" + json.dumps(receipt, sort_keys=True))
+          if verdict == "UNEXPECTED_HTTP_STATUS":
+              raise SystemExit(1)
+          PY
