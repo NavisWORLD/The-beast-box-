@@ -160,3 +160,5 @@ jobs:
           if any(v["http_status"] >= 500 for v in results.values()):
               raise SystemExit("One or more public production routes returned HTTP 5xx")
           PY
+
+# POST_DEPLOY_18a4d6e2: re-run public, read-only production domain smoke after the owner-authorized one-time Vercel deploy.
