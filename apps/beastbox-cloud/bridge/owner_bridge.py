@@ -25,6 +25,7 @@ from beastbox.cst_sensor_preview import compare_sensor_state
 from beastbox.engine_growth_report import engine_growth_report
 from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
+from beastbox.semantic_retrieval import OfflineSentenceTransformer
 from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
 from beastbox.rawrphos_local import MODEL as NATIVE_ID, profile as native_profile, status as native_status
 from beastbox.rawrphos_experimental_local import profile as experimental_profile, status as experimental_status
@@ -52,7 +53,15 @@ class OwnerBridge:
         self.vault = ConnectionVault(root) if os.environ.get(KEY_ENV) else None
         if self.vault is not None and os.environ.get("BEASTBOX_HF_MODEL_ID"):
             raise ConnectionError("choose either the explicit host HF provider or encrypted BYOK vault")
-        self.app = CosmicApp(root, provider_secret_resolver=self._resolve_provider_secret if self.vault else None)
+        # Only a PRELOADED local model directory may enable learned retrieval.
+        # No browser input, network download, model switching or silent fallback.
+        enabled = os.environ.get("BEASTBOX_SEMANTIC_LOCAL_ENABLED", "no") == "yes"
+        model_path = os.environ.get("BEASTBOX_SEMANTIC_LOCAL_MODEL_PATH", "")
+        if bool(model_path) != enabled:
+            raise ValueError("explicit local semantic flag and installed model path must agree")
+        embeddings = OfflineSentenceTransformer(model_path) if enabled else None
+        self.app = CosmicApp(root, provider_secret_resolver=self._resolve_provider_secret if self.vault else None,
+                             embedding_provider=embeddings)
         self._configure_explicit_local_tiny_provider(root)
         self.local_model_ready = os.environ.get("BEASTBOX_TINY_LOCAL_ENABLED") == "yes"
         self._configure_explicit_hf_provider(root)
@@ -132,8 +141,8 @@ class OwnerBridge:
                     return 404, {"error":"connection not configured"}
                 endpoint = {"huggingface":"https://router.huggingface.co/v1",
                             "ollama_cloud":"https://ollama.com/v1"}[provider]
-                if provider == "ollama_cloud" and saved["config"]["model"].endswith("-cloud"):
-                    return 400, {"error": "Direct Ollama API model IDs must match https://ollama.com/api/tags (for example gpt-oss:120b, without -cloud). Switch to local in Brain Bay, then update the saved model ID without replacing its encrypted key."}
+                if provider == "ollama_cloud" and saved["config"]["model"] in {"gpt-oss:120b", "gpt-oss:20b"}:
+                    return 400, {"error": "Ollama Cloud uses a different model ID. Switch to local, then update this saved model name to its -cloud variant."}
                 # Explicit owner selection grants this one remote-model
                 # operation; the handoff itself revokes previous grants.
                 desired = {"kind":"compatible","model":saved["config"]["model"],
