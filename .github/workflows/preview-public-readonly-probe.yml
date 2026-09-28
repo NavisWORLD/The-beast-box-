@@ -96,3 +96,67 @@ jobs:
           if verdict == "UNEXPECTED_HTTP_STATUS":
               raise SystemExit(1)
           PY
+
+  verify-production-public-anonymous:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify real published domain without owner secrets or redirected login
+        run: |
+          python - <<'PY'
+          import json
+          import ssl
+          import urllib.error
+          import urllib.request
+
+          origin = "https://www.beastboxcosmos.xyz"
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+          client = urllib.request.build_opener(NoRedirect())
+          results = {}
+          for path in ("/", "/api/session", "/api/status"):
+              url = origin + path
+              request = urllib.request.Request(url, method="GET",
+                  headers={"Accept": "application/json" if path != "/" else "text/html",
+                           "User-Agent": "BeastBoxAnonymousProductionHealth/1.0"})
+              try:
+                  with client.open(request, timeout=12) as resp:
+                      code = resp.status
+                      ctype = resp.headers.get("content-type", "")
+                      body = resp.read(32769)
+              except urllib.error.HTTPError as e:
+                  code, ctype, body = e.code, e.headers.get("content-type", ""), b""
+              if len(body) > 32768:
+                  raise ValueError("response too large to verify without credential")
+              row = {"http_status": code, "content_type_is_json": "json" in ctype.lower()}
+              if code == 200 and "json" in ctype.lower() and path in ("/api/session", "/api/status"):
+                  try:
+                      response = json.loads(body)
+                      row["anon_owner_false"] = response.get("owner") is False
+                      if path == "/api/session":
+                          row["owner_secrets_configured"] = response.get("configured") is True
+                      else:
+                          row["backend_status_for_anonymous"] = response.get("backendStatus", "NOT_EXPOSED")
+                  except (ValueError, UnicodeDecodeError, AttributeError):
+                      row["invalid_public_json"] = True
+              results[path] = row
+          safe = results["/api/session"].get("anon_owner_false") is True and (
+              results["/api/status"].get("anon_owner_false") is True or
+              results["/api/status"]["http_status"] in (401,403)
+          )
+          receipt = {
+              "schema": "beastbox-production-domain-anonymous-readonly-v1",
+              "public_domain": origin,
+              "paths": results,
+              "anonymous_owner_gate_verified": safe,
+              "owner_login_tested": False,
+              "backend_inference_tested": False,
+              "latest_semantic_runtime_live_verified": False,
+              "preview_promoted": False,
+              "secrets_logged": False,
+          }
+          print("BEASTBOX_PRODUCTION_PUBLIC_PROBE=" + json.dumps(receipt, sort_keys=True))
+          if any(v["http_status"] >= 500 for v in results.values()):
+              raise SystemExit("One or more public production routes returned HTTP 5xx")
+          PY
