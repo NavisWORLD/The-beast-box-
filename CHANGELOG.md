@@ -105,7 +105,7 @@ What it does not say: that a universal negative causal effect was proved; that c
 
 ### Remaining debt
 
-- OWNER LEGAL DECISION REQUIRED on historical MIT vs current proprietary terms.
+- Historical note from this release period: an owner legal decision was still pending on earlier MIT and intervening licensing. The current root LICENSE subsequently adopted Apache-2.0; see LICENSE_HISTORY.md.
 - FUTURE OPTIONAL REPOSITORY TOPOLOGY for a physical product/lab split.
 - Optional hygiene: rewrite historical workflow YAML (not required; observed auto-trigger set on a normal main product push is five workflows).
 - OWNER-GATED: push git tag `v0.3.2` to fire `.github/workflows/release.yml`.

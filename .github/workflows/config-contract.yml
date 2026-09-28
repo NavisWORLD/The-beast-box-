@@ -28,3 +28,17 @@ jobs:
           python-version: '3.12'
       - name: Verify environment contract
         run: python -m beastbox.env_inventory --check .env.example beastbox --json
+      - name: Verify Apache-2.0 metadata and negative-regression controls
+        run: |
+          python scripts/license_metadata_contract.py
+          python -m unittest discover -s tests -p test_license_metadata_contract.py -v
+      - name: Preserve complete tracked-text license term audit with file and line
+        run: |
+          mkdir -p build
+          python scripts/license_metadata_contract.py --audit > build/license-audit.tsv
+      - name: Upload licensing audit inventory for human review
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-audit-${{ github.sha }}
+          path: build/license-audit.tsv
+          retention-days: 7
