@@ -721,7 +721,7 @@ class CosmicApp:
         except ProviderDiagnosticError as exc:
             # Only the bounded code escapes; never expose upstream body,
             # headers, provider error strings, context or credentials.
-            return 400, {"error": "model provider request was not confirmed; no fallback",
+            return 502, {"error": "model provider request was not confirmed; no fallback",
                          "provider_failure": exc.code}
         except (OSError, ValueError, RuntimeError, json.JSONDecodeError):
             return 400, {"error": "request rejected; no fallback was performed"}
