@@ -2,7 +2,7 @@ name: Unified public production smoke (read-only)
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, ops/public-readonly-release-smoke-20260928]
     paths:
       - .github/workflows/unified-public-production-smoke.yml
 permissions:
@@ -41,7 +41,7 @@ jobs:
               "owner_credentials_used": False,
               "model_inference_executed": False,
               "persistent_owner_data_read": False,
-              "expected_unified_source": "1761c8b2804350b5ba6d2df402a9b29a2808c6c0"
+              "expected_unified_source": "70b8a291c8ac305845c01260eb011448f19051b4"
           }
           code, effective, body = request(frontend)
           host = urllib.parse.urlsplit(effective).hostname
