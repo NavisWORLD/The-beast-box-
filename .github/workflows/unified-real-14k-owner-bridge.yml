@@ -1,0 +1,168 @@
+name: Real published 14K through existing owner bridge, not direct raw prompt
+on:
+  push:
+    branches: [feature/cosmos-rawrphos-unified-runtime-001]
+    paths:
+      - .github/workflows/unified-real-14k-owner-bridge.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-published-14k-native-loopback-owner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 19
+    env:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      TOKENIZERS_PARALLELISM: "false"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install public CPU/secure/loopback serving components
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e '.[secure]' -e './models/rawrphos[serve]'
+      - name: Attest original published 14K ZIP and unpacked checkpoint, no user data
+        run: |
+          mkdir -p build
+          python models/rawrphos/scripts/install_pinned_14k.py --destination build/verified-native-14k > build/14k-install-verified.json
+      - name: Start REAL locally authenticated official native-model server and run integrated owner transport
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+          import hashlib
+          import importlib.util
+          import json
+          import os
+          import subprocess
+          import sys
+          import tempfile
+          import time
+          import urllib.error
+          import urllib.request
+          from pathlib import Path
+          from beastbox.providers import CompatibleChatProvider
+          from rawrphos.scripts.install_pinned_14k import verify, WEIGHT_SHA
+
+          MODEL = Path("build/verified-native-14k").resolve()
+          assert verify(MODEL) == WEIGHT_SHA
+          # CI-local synthetic credentials, no live owner account or volume.
+          key = "public-ci-fixture-native-bearer-" + ("x" * 32)
+          owner_key = "public-ci-fixture-owner-bearer-" + ("y" * 32)
+          os.environ["RAWRPHOS_CHECKPOINT_PATH"] = str(MODEL)
+          os.environ["RAWRPHOS_API_KEY"] = key
+          os.environ["BEASTBOX_TINY_LOCAL_ENABLED"] = "no"
+          os.environ["BEASTBOX_SEMANTIC_LOCAL_ENABLED"] = "no"
+          os.environ.pop("BEASTBOX_SEMANTIC_LOCAL_MODEL_PATH",None)
+          os.environ.pop("BEASTBOX_HF_MODEL_ID",None)
+          command=[sys.executable,"-m","rawrphos.inference.server",
+                   "--checkpoint",str(MODEL),"--expected-sha256",WEIGHT_SHA,
+                   "--port","8767","--threads","2"]
+          # Server listens to loopback only and receives no external API keys.
+          server=subprocess.Popen(command,stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL,env=dict(os.environ))
+          def read(url, token=None):
+              headers={"Accept":"application/json"}
+              if token:headers["Authorization"]="Bearer "+token
+              request=urllib.request.Request(url,headers=headers)
+              try:
+                  with urllib.request.urlopen(request,timeout=3) as response:
+                      return response.status,json.loads(response.read(16385))
+              except urllib.error.HTTPError as error:
+                  return error.code, {}
+          try:
+              url="http://127.0.0.1:8767/model/info"
+              for attempt in range(50):
+                  if server.poll() is not None:
+                      raise AssertionError("native server exited before readiness")
+                  try:
+                      ready,meta=read(url,key)
+                      if ready==200 and meta.get("ready") is True:break
+                  except (ValueError,OSError,TimeoutError):pass
+                  time.sleep(.5)
+              else:raise AssertionError("real model failed 25s readiness")
+              assert read(url,None)[0]==401
+              assert meta["checkpoint_sha256"]==WEIGHT_SHA and meta["training_steps"]==14000
+              # This is the existing production local chat interface. Unlike a
+              # plain raw text prompt, the native server applies user/assistant
+              # prefilling; the previous DIRECT raw EOS-null remains preserved.
+              compatible=CompatibleChatProvider(model="rawrphos-native",
+                    base_url="http://127.0.0.1:8767/v1",api_key_env="RAWRPHOS_API_KEY")
+              start=time.perf_counter()
+              direct=compatible.generate("Hello, Beast.")
+              direct_ms=round((time.perf_counter()-start)*1000,2)
+              assert direct.strip(), "authenticated production chat framing still returned blank"
+              source=Path("apps/beastbox-cloud/bridge/owner_bridge.py").resolve()
+              spec=importlib.util.spec_from_file_location("isolated_production_owner_bridge",source)
+              module=importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(module)
+              with tempfile.TemporaryDirectory(prefix="public-native-owner-fixture-") as working:
+                  root=Path(working)
+                  bridge=module.OwnerBridge(root,owner_key)
+                  assert bridge.dispatch("GET","/api/orbit","")[0]==401
+                  code,catalog=bridge.dispatch("GET","/api/models","Bearer "+owner_key)
+                  assert code==200 and any(z.get("choice")=="rawrphos_native" and
+                          z.get("readiness")=="INSTALLED_AND_READY"
+                          for z in catalog.get("choices",[])), "public 14K not selectable"
+                  code,selection=bridge.dispatch("POST","/api/models","Bearer "+owner_key,
+                         json.dumps({"choice":"rawrphos_native"}).encode())
+                  assert code==200, "verified native model selection failed"
+                  began=time.perf_counter()
+                  code,turn=bridge.dispatch("POST","/api/chat","Bearer "+owner_key,
+                         json.dumps({"text":"Hello, Beast."}).encode())
+                  turn_ms=round((time.perf_counter()-began)*1000,2)
+                  assert code==200, "full owner runtime failed to produce an actual turn"
+                  response=turn.get("result",{}).get("response","")
+                  assert response.strip(), "full COSMOS owner turn yielded empty text"
+                  prev=turn.get("runtime",{}).get("checkpoint_sha256")
+                  code,history=bridge.dispatch("GET","/api/conversation","Bearer "+owner_key)
+                  assert code==200 and len(history.get("turns",[]))>=1
+                  restarted=module.OwnerBridge(root,owner_key)
+                  code,orbit=restarted.dispatch("GET","/api/orbit","Bearer "+owner_key)
+                  assert code==200 and orbit["runtime"]["checkpoint_sha256"]==prev
+                  assert bridge.app.profile.model=="rawrphos-native"
+              receipt={
+                  "schema":"public-pinned-14k-existing-bridge-e2e-v1",
+                  "source_commit":"${{ github.sha }}",
+                  "checkpoint_sha256":WEIGHT_SHA,
+                  "real_original_training_steps":14000,
+                  "local_host_only":True,
+                  "real_http_native_server":True,
+                  "wrong_bearer_rejected":True,
+                  "bridge_model_selection_attested":True,
+                  "native_chat_prefill_response_nonempty":bool(direct.strip()),
+                  "native_chat_prefill_response_sha256":hashlib.sha256(direct.encode()).hexdigest(),
+                  "native_chat_prefill_ms":direct_ms,
+                  "actual_owner_cosmos_response_nonempty":bool(response.strip()),
+                  "actual_owner_response_sha256":hashlib.sha256(response.encode()).hexdigest(),
+                  "actual_owner_turn_ms":turn_ms,
+                  "same_disposable_checkpoint_after_bridge_restart":True,
+                  "no_owner_secrets_or_data":True,
+                  "no_cloud_inference":True,
+                  "raw_prompt_eos_null_in_previous_run_preserved":True,
+                  "not_accuracy_or_general_conversation_quality":True,
+                  "not_live_railway_or_vercel_owner_login_test":True
+              }
+              output=Path("build/real-14k-owner-bridge-receipt.json")
+              output.write_text(json.dumps(receipt,indent=2,sort_keys=True)+"\n")
+              print("REAL_14K_ACTUAL_OWNER_BRIDGE_RECEIPT="+json.dumps(receipt,sort_keys=True))
+          finally:
+              server.terminate()
+              try: server.wait(timeout=5)
+              except subprocess.TimeoutExpired: server.kill()
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: published-14k-actual-owner-loopback-evidence
+          path: |
+            build/14k-install-verified.json
+            build/real-14k-owner-bridge-receipt.json
+          if-no-files-found: warn
