@@ -21,6 +21,8 @@ class MemoryHeadroomTests(unittest.TestCase):
             self.assertLess(available_bytes(root), MIN_HEADROOM_BYTES)
             (root / "memory.max").write_text("max")
             self.assertIsNone(available_bytes(root))
+            (root / "memory.max").unlink()
+            self.assertIsNone(available_bytes(root))
 
     def test_both_native_profiles_preserve_reserve_and_require_live_loopback(self):
         for model, setting in ((rawrphos_local, "RAWRPHOS_CHECKPOINT_PATH"),
