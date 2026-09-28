@@ -5,6 +5,7 @@ from pathlib import Path
 import urllib.request
 
 from beastbox.providers import _local_opener
+from beastbox.cgroup_memory import available_bytes, MIN_HEADROOM_BYTES
 
 MODEL = "rawrphos-native"
 STEP = 14000
@@ -45,13 +46,10 @@ def status():
         result["readiness"] = "FAILED_CHECKPOINT_VERIFICATION"
         return result
     result["configured"] = True
-    try:
-        limit = Path("/sys/fs/cgroup/memory.max").read_text().strip()
-        if limit.isdigit() and int(limit) - int(Path("/sys/fs/cgroup/memory.current").read_text()) < 512 * 1024 * 1024:
-            result["readiness"] = "INSUFFICIENT_RESOURCES"
-            return result
-    except (OSError, ValueError):
-        pass
+    free = available_bytes()
+    if free is not None and free < MIN_HEADROOM_BYTES:
+        result["readiness"] = "INSUFFICIENT_RESOURCES"
+        return result
     key = os.environ.get("RAWRPHOS_API_KEY", "")
     if len(key) < 32 or any(ch in key for ch in "\r\n"):
         result["readiness"] = "OFFLINE_OR_DISCONNECTED"
