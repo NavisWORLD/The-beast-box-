@@ -128,54 +128,15 @@ def verify(root: Path = ROOT) -> list[str]:
                     errors.append(f"{rel}: package license metadata must be Apache-2.0")
             except (OSError, UnicodeError, ValueError):
                 errors.append(f"{rel}: package manifest cannot be decoded")
-    # Restored native model source remains Apache-2.0; preserve separate
-    # training corpora and historical third-party licensing as recorded.
+    # The recovered native package is covered source, not independent training data.
     native = root / "models/rawrphos/pyproject.toml"
     if native.is_file():
         try:
             native_text = native.read_text(encoding="utf-8")
-            if not re.search(r'(?m)^license\s*=\s*"Apache-2.0"\s*
-    if "4c4e4d38e645ee521534643d42843e181be4900a" not in history or "Apache-2.0 open-source revision" not in history:
-        errors.append("LICENSE_HISTORY.md must retain the existing adoption record")
-    if "Apache-2.0" not in read("NOTICE"):
-        errors.append("NOTICE must retain Apache-2.0 scope")
-    for path in (
-        "README.md", "IP_NOTICE.md", "IP_PROVENANCE.md",
-        "COMMERCIAL_RIGHTS.md", "CONTRIBUTING.md",
-        "CORY_DAVIS_IP_AND_ACCESS_NOTICE.md", "docs/LICENSE_CLARIFICATION.md",
-    ):
-        if "Apache-2.0" not in read(path):
-            errors.append(f"{path}: current covered-source license is not stated")
-    for path, line, classification, content in audit_lines(root):
-        if classification == "CURRENT_OR_UNCLASSIFIED" and STALE_TERMS.search(content):
-            errors.append(f"{path}:{line}: stale restrictive-language term outside preserved history")
-    return errors
-
-def main() -> int:
-    cli = argparse.ArgumentParser(description=__doc__)
-    cli.add_argument("--audit", action="store_true",
-                     help="print every tracked-text keyword hit with file, 1-based line, classification, full line")
-    args = cli.parse_args()
-    if args.audit:
-        print("file\tline\tclassification\tcontent")
-        for path, line, classification, content in audit_lines(ROOT):
-            print(f"{path}\t{line}\t{classification}\t{content.replace(chr(9), ' ')}")
-        return 0
-    errors = verify(ROOT)
-    for message in errors:
-        print("LICENSE_METADATA_CONTRACT_ERROR: " + message)
-    if errors:
-        print(f"license metadata contract FAIL: {len(errors)} issue(s)")
-        return 1
-    print("license metadata contract PASS; preserved history and third-party texts separately audited")
-    return 0
-
-if __name__ == "__main__":
-    raise SystemExit(main())
-, native_text):
-                errors.append("models/rawrphos/pyproject.toml must declare Apache-2.0")
+            if 'license = "Apache-2.0"' not in native_text:
+                errors.append("native RAWRPHOS package metadata must declare Apache-2.0")
         except (OSError, UnicodeError):
-            errors.append("models/rawrphos/pyproject.toml is unreadable")
+            errors.append("native RAWRPHOS package metadata is unreadable")
     history = read("LICENSE_HISTORY.md")
     if "4c4e4d38e645ee521534643d42843e181be4900a" not in history or "Apache-2.0 open-source revision" not in history:
         errors.append("LICENSE_HISTORY.md must retain the existing adoption record")
