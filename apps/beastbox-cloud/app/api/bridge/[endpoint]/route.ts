@@ -46,9 +46,11 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
         if(keys!=='choice,spend_approved'||input.spend_approved!==true)
           return safeJson(400,{error:'Remote model activation requires explicit usage approval'});
       }else if(choice==='ollama_cloud'){
-        if(keys!=='choice,model,spend_approved'||input.spend_approved!==true||
-           typeof input.model!=='string'||input.model.length<1||input.model.length>180||
-           !/^[A-Za-z0-9_.:/-]+$/.test(input.model))
+        const named=Object.prototype.hasOwnProperty.call(input,'model');
+        const selected=typeof input.model==='string'?input.model:'';
+        if(keys!==(named?'choice,model,spend_approved':'choice,spend_approved')||
+           input.spend_approved!==true||
+           (named&&(!/^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,179}$/.test(selected)||selected.endsWith('-cloud'))))
           return safeJson(400,{error:'Invalid or unapproved Ollama Cloud model ID'});
       }else return safeJson(400,{error:'Unknown model selection'});
     }
