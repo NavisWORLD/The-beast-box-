@@ -1,7 +1,7 @@
 # THE BEAST BOX — IP, licensing and provenance notice
 
 **Owner of original project contributions:** Cory Shane Davis / NavisWORLD.  
-**Prospective source license:** [Apache License 2.0](LICENSE) for new Cory-owned original code and documentation in revisions adopting it, except where files and components identify other terms.  
+**Current covered-source license:** [Apache License 2.0](LICENSE) for Cory-owned original code and documentation in the current revision, except where files and components identify other terms.  
 **License chronology:** [LICENSE_HISTORY.md](LICENSE_HISTORY.md).
 
 ## Open-source generation
@@ -14,4 +14,4 @@ Trademarks and trade names are not granted by Apache-2.0. Third-party dependenci
 
 ## History
 
-Earlier Beast Box copies validly distributed under MIT remain covered by the rights that accompanied those copies. Later source-available copies retain their original terms; the new open-source grant applies prospectively to revisions actually incorporating the revised LICENSE. Historic IP and permission notices remain auditable in Git history. [IP_PROVENANCE.md](IP_PROVENANCE.md) and other research provenance records remain separate from software licensing.
+Earlier Beast Box copies validly distributed under MIT remain covered by the rights that accompanied those copies. Intervening historical copies retain the terms under which they were issued; the current Apache-2.0 grant applies to covered revisions actually incorporating that LICENSE. Historic IP and permission notices remain auditable in Git history. [IP_PROVENANCE.md](IP_PROVENANCE.md) and other research provenance records remain separate from software licensing.

@@ -6,7 +6,7 @@ This document defines the target GitHub security configuration for `NavisWORLD/T
 
 On 2026-08-17 the repository was private, `main` was the default branch, and GitHub reported that `main` was **not protected**. The then-current head commit was also reported as **unsigned**. A recovery/reference branch named `security-baseline-2026-08-17` was created before the hardening changes.
 
-The original hardening version provided CODEOWNERS, permission-required licensing, security policy, provenance records, dependency-update configuration, and automated repository-policy checks. The proposed open-source transition changes the current repository licensing to Apache-2.0 without weakening credential scanning or provenance checks. GitHub account/repository controls still need to enforce the corresponding server-side rules.
+The original hardening version provided CODEOWNERS, a historical restricted-access licensing notice, security policy, provenance records, dependency-update configuration, and automated repository-policy checks. The proposed open-source transition changes the current repository licensing to Apache-2.0 without weakening credential scanning or provenance checks. GitHub account/repository controls still need to enforce the corresponding server-side rules.
 
 ## Required `main` branch rule
 
