@@ -1,0 +1,61 @@
+name: Isolated authentic native 14K vs archived Azure QVM
+on:
+  push:
+    branches:
+      - experiment/unified-native-qvm-internal-20260928
+    paths:
+      - .github/workflows/unified-qvm-native14k-standalone.yml
+      - scripts/research/unified_qvm_native_benchmark.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-archived-qvm-isolated:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    env:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      TOKENIZERS_PARALLELISM: "false"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      AZURE_QUANTUM_QVM_OPT_IN: "no"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pinned offline CPU model and current unified code
+        run: |
+          python -m pip install --disable-pip-version-check --index-url https://download.pytorch.org/whl/cpu 'torch==2.6.0'
+          python -m pip install --disable-pip-version-check -e . -e ./models/rawrphos
+      - name: Obtain exact original public simulator receipt and pinned model
+        run: |
+          mkdir -p build/unified-qvm
+          python models/rawrphos/scripts/install_pinned_14k.py --destination build/verified-14k > build/unified-qvm/pinned-checkpoint.json
+          python - <<'PY'
+          import pathlib,urllib.request,json,hashlib
+          url = 'https://raw.githubusercontent.com/NavisWORLD/The-beast-box-/cd5d9321cb30f5327d14bbdd3f71751b630d81a3/evidence/stage015/azure-qvm-24-job-public-receipt.json'
+          with urllib.request.urlopen(url,timeout=20) as res: raw=res.read(60000)
+          p=json.loads(raw)
+          digest=hashlib.sha256(json.dumps(p['scenario_records'],sort_keys=True,separators=(',',':')).encode()).hexdigest()
+          assert digest==p['public_rows_sha256']=='7ef23c00005a2053d1fc830985330f4db322b3bf6144fd79fd1561d14c425599'
+          pathlib.Path('build/unified-qvm/original-public-azure-qvm.json').write_bytes(raw)
+          print('ORIGINAL_CLOUD_SIMULATOR_DATA_VERIFIED',digest)
+          PY
+      - name: Fixed-weight internal 12D vs controls on genuine native checkpoint
+        run: |
+          python scripts/research/unified_qvm_native_benchmark.py \
+            --checkpoint build/verified-14k \
+            --fixture build/unified-qvm/original-public-azure-qvm.json \
+            --output build/unified-qvm/ACTUAL_NATIVE_14K_QVM_RESULTS.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: isolated-real-native14k-archived-azure-qvm-20260928
+          path: |
+            build/unified-qvm/pinned-checkpoint.json
+            build/unified-qvm/ACTUAL_NATIVE_14K_QVM_RESULTS.json
+          if-no-files-found: warn
