@@ -1,0 +1,77 @@
+name: Unified public production smoke (read-only)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/unified-public-production-smoke.yml
+permissions:
+  contents: read
+jobs:
+  verify-public-production:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Probe public frontend and private owner-bridge perimeter (no tokens)
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python - <<'PY'
+          import json
+          import ssl
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          ssl.create_default_context()
+          def request(url):
+              req = urllib.request.Request(
+                  url, headers={"User-Agent": "BeastBox-read-only-public-smoke/1.0"},
+                  method="GET")
+              try:
+                  with urllib.request.urlopen(req, timeout=20) as r:
+                      return (r.status, r.geturl(), r.read(32769))
+              except urllib.error.HTTPError as err:
+                  return (err.code, err.geturl(), err.read(32769))
+
+          frontend = "https://beastboxcosmos.xyz/"
+          backend = "https://cosmos-owner-bridge-production.up.railway.app"
+          receipt = {
+              "schema": "unified-public-external-smoke-v1",
+              "owner_credentials_used": False,
+              "model_inference_executed": False,
+              "persistent_owner_data_read": False,
+              "expected_unified_source": "1761c8b2804350b5ba6d2df402a9b29a2808c6c0"
+          }
+          code, effective, body = request(frontend)
+          host = urllib.parse.urlsplit(effective).hostname
+          if host not in {"beastboxcosmos.xyz", "www.beastboxcosmos.xyz"}:
+              raise AssertionError("frontend redirected outside approved owner domains")
+          receipt["frontend_http_status"] = code
+          receipt["frontend_effective_host"] = host
+          if code != 200:
+              raise AssertionError("public frontend not returning HTTP 200; inspect protected/alias configuration")
+          if len(body) > 32768:
+              raise AssertionError("bounded frontend probe body exceeded 32 KiB")
+          if b"beast" not in body.lower() and b"cosmos" not in body.lower():
+              raise AssertionError("frontend response missing Beast Box / COSMOS identity marker")
+          health, health_url, _ = request(backend + "/healthz")
+          receipt["backend_health_http_status"] = health
+          if health != 200:
+              raise AssertionError("public Railway backend /healthz failed")
+          for route in ("/api/orbit", "/api/models"):
+              status, _, _ = request(backend + route)
+              receipt[route + "_without_token"] = status
+              if status != 401:
+                  raise AssertionError(route + " must reject missing owner token with HTTP 401")
+          with open("unified-public-production-smoke-receipt.json", "w", encoding="utf-8") as out:
+              json.dump(receipt, out, indent=2, sort_keys=True)
+          print("UNIFIED_PUBLIC_DEPLOYMENT_SMOKE_PASS", json.dumps(receipt, sort_keys=True))
+          PY
+      - name: Preserve anonymous smoke receipt; never upload private responses
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unified-public-production-smoke
+          path: unified-public-production-smoke-receipt.json
+          if-no-files-found: warn
