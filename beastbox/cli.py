@@ -151,8 +151,7 @@ def main() -> int:
         return ecosystem_result
 
     if args.cmd == "init":
-        cfg = RuntimeConfig()
-        cfg.save(args.config)
+        cfg = RuntimeConfig.load(args.config)
         for path in (Path(cfg.data_dir), Path(cfg.evidence_dir), Path(cfg.proposals_dir)):
             path.mkdir(parents=True, exist_ok=True)
         _print({"config": str(args.config), "created": True, "python": shutil.which("python")})
