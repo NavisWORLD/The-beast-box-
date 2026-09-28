@@ -2,7 +2,7 @@
 import {useCallback,useEffect,useState} from 'react';
 import {Check,RefreshCcw,ShieldCheck} from 'lucide-react';
 
-type Choice='local'|'huggingface'|'ollama_cloud';
+type Choice='local'|'rawrphos_native'|'rawrphos_native_18k_experimental'|'rawrphos_hf'|'huggingface'|'ollama_cloud';
 type Option={
  choice:Choice;
  model:string;
@@ -10,9 +10,11 @@ type Option={
  configured:boolean;
  requires_spend_approval:boolean;
  readiness:string;
+ label?:string;
+ experimental?:boolean;
 };
 type Catalog={
- active:{model:string;kind:string;remote:boolean};
+ active:{model:string;kind:string;remote:boolean;experimental?:boolean;loaded_step?:number|null};
  remote_grant_active:boolean;
  reapproval_required:boolean;
  choices:Option[];
@@ -44,17 +46,19 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
 
  async function choose(choice:Choice){
   if(busy||!backendReachable)return;
-  const remote=choice!=='local';
+  const option=catalog?.choices.find(x=>x.choice===choice);
+  if(!option||!option.configured||option.readiness==='INSUFFICIENT_RESOURCES')return;
+  const remote=option.requires_spend_approval;
   if(remote&&!spendApproved){setError('Approve possible usage charges for the selected remote provider first.');return;}
   setBusy(true);setError('');setNotice('');
   try{
-   const result=await bridge('POST',{choice,...(remote?{spend_approved:true}:{})});
+   const result=await bridge('POST',{choice,...(remote?{spend_approved:true}:{}),...(choice==='ollama_cloud'?{model:option.model}:{})});
    await refresh();
    onSwitched();
    setSpendApproved(false);
    setNotice(
     result.brain_changed===false?'This brain was already selected; no new inference was performed.':
-    choice==='local'?'Selected the verified local tiny model. Existing substrate retained; no paid inference was made.':
+    !remote?'Selected the available local model. Existing substrate retained; no paid inference was made.':
     'Selected a configured cloud profile. A live answer is still unverified; any future requests may incur provider charges.'
    );
   }catch(e){setError((e as Error).message);}
@@ -62,7 +66,7 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
  }
  return <article className="data-card wide" aria-label="Switch model">
   <h2>Choose your brain</h2>
-  <p>Swap the model, not the durable COSMOS memory. Only your installed local model and encrypted, configured cloud connections appear here. A model name alone does not prove a successful inference call.</p>
+  <p>Swap the model, not the durable COSMOS memory. Unavailable models are visible but not selectable. The 18K research checkpoint has not passed its quality gate. A model name alone does not prove a successful inference call.</p>
   {!backendReachable?<p role="status">Connect the durable backend before selecting a model.</p>:!catalog?<p role="status">Reading available models…</p>:
    <>
     <p role="status">Active profile: <strong>{catalog.active.model}</strong> ({catalog.active.remote?'remote':'local'}).
@@ -71,13 +75,17 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
     {catalog.active.remote&&catalog.active.model==='gpt-oss:120b'&&
      <p role="status">This is an Ollama local model ID, not the advertised cloud ID. In Settings → Ollama Cloud, correct the saved model name to <code>gpt-oss:120b-cloud</code> without re-entering your encrypted key. Switch to local before editing the active model.</p>}
     {catalog.choices.map(option=>{
-     const active=catalog.active.model===option.model&&
-      (option.choice==='local'?!catalog.active.remote:catalog.active.remote);
+     const active=catalog.active.model===option.model&&(
+      option.choice==='rawrphos_native_18k_experimental'?catalog.active.experimental===true:
+      option.choice==='rawrphos_native'?catalog.active.experimental!==true&&!catalog.active.remote:
+      option.choice==='rawrphos_hf'?catalog.active.kind==='hf_space':
+      option.choice==='local'?!catalog.active.remote:
+      catalog.active.remote&&catalog.active.kind!=='hf_space');
      const remote=option.requires_spend_approval;
      return <div className="record" key={option.choice}>
-      <strong>{option.model}</strong> · {option.choice==='local'?'Installed CPU model':option.choice==='huggingface'?'Hugging Face':'Ollama Cloud'}
-      <p>{remote?'Encrypted credential configured. Model inference, available balance and latency have not been verified.':'Local weights and loopback were verified on the host. Actual response still needs a completed chat.'}</p>
-      <button type="button" className="outline-action" disabled={busy||(remote&&!spendApproved)||(!remote&&active)}
+      <strong>{option.label||option.model}</strong> · {option.kind==='local'?'Local CPU':option.choice==='rawrphos_hf'?'Private Hugging Face Space':option.choice==='huggingface'?'Hugging Face':'Ollama Cloud'}
+      <p>{option.readiness==='INSTALLED_AND_READY'?'Pinned checkpoint and loopback ready; a live chat is still required.':option.readiness} {option.experimental?'Research only; previous quality gate failed.':null}</p>
+      <button type="button" className="outline-action" disabled={busy||!option.configured||option.readiness==='INSUFFICIENT_RESOURCES'||(remote&&!spendApproved)||(active&&!catalog.reapproval_required)}
        onClick={()=>void choose(option.choice)}>
        {active?<Check size={15}/>:<ShieldCheck size={15}/>}
        {active&&!(remote&&catalog.reapproval_required)?'Currently selected':
