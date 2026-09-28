@@ -128,7 +128,8 @@ def verify(root: Path = ROOT) -> list[str]:
                     errors.append(f"{rel}: package license metadata must be Apache-2.0")
             except (OSError, UnicodeError, ValueError):
                 errors.append(f"{rel}: package manifest cannot be decoded")
-    # Restored native packages must not revive superseded restrictive metadata.
+    # Restored native model source remains Apache-2.0; preserve separate
+    # training corpora and historical third-party licensing as recorded.
     native = root / "models/rawrphos/pyproject.toml"
     if native.is_file():
         try:
