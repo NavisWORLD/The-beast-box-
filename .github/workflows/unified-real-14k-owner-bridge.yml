@@ -4,6 +4,11 @@ on:
     branches: [feature/cosmos-rawrphos-unified-runtime-001]
     paths:
       - .github/workflows/unified-real-14k-owner-bridge.yml
+      - tests/test_unified_process_recovery.py
+      - tests/test_native_memory_readiness.py
+      - beastbox/cgroup_memory.py
+      - apps/beastbox-cloud/components/model-switcher.tsx
+      - apps/beastbox-cloud/app/api/bridge/**
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,6 +34,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
           python -m pip install -e '.[secure]' -e './models/rawrphos[serve]'
+          python -m pip install 'pytest>=8,<10'
+      - name: Verify source-only process crash recovery and native resource contract
+        run: python -m pytest -q tests/test_unified_process_recovery.py tests/test_native_memory_readiness.py tests/test_license_metadata_contract.py
       - name: Attest original published 14K ZIP and unpacked checkpoint, no user data
         run: |
           mkdir -p build
