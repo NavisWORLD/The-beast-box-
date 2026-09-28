@@ -6,6 +6,9 @@ on:
     paths:
       - .github/workflows/unified-qvm-native14k-standalone.yml
       - scripts/research/unified_qvm_native_benchmark.py
+      - beastbox/bridge.py
+      - beastbox/cns.py
+      - tests/test_unified_qvm_bridge_wiring.py
   workflow_dispatch:
 permissions:
   contents: read
@@ -30,7 +33,10 @@ jobs:
       - name: Install pinned offline CPU model and current unified code
         run: |
           python -m pip install --disable-pip-version-check --index-url https://download.pytorch.org/whl/cpu 'torch==2.6.0'
-          python -m pip install --disable-pip-version-check -e . -e ./models/rawrphos
+          python -m pip install --disable-pip-version-check -e . -e ./models/rawrphos 'pytest>=8,<10'
+      - name: Verify reconciled typed state-to-controller interface
+        run: |
+          python -m pytest -q tests/test_unified_qvm_bridge_wiring.py
       - name: Obtain exact original public simulator receipt and pinned model
         run: |
           mkdir -p build/unified-qvm
