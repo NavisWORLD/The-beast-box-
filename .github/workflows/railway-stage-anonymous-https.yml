@@ -1,0 +1,85 @@
+name: Railway isolated staging public anonymous HTTPS contract
+
+on:
+  push:
+    branches:
+      - verify/railway-stage-public-readonly-001
+    paths:
+      - .github/workflows/railway-stage-anonymous-https.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-readonly-https:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify REAL separate staging health and bearer denial (never send credentials)
+        run: |
+          python - <<'PY'
+          import json
+          import time
+          import urllib.error
+          import urllib.request
+          from urllib.parse import urlsplit
+
+          origin = "https://beastbox-anchor-one-shot-production.up.railway.app"
+          assert urlsplit(origin).hostname == "beastbox-anchor-one-shot-production.up.railway.app"
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+          opener = urllib.request.build_opener(NoRedirect())
+          def probe(path):
+              req = urllib.request.Request(origin + path, headers={
+                  "Accept": "application/json",
+                  "User-Agent": "BeastBoxIsolatedRailwayStagingReadOnly/1.0",
+              }, method="GET")
+              try:
+                  with opener.open(req, timeout=12) as response:
+                      code, content_type = response.status, response.headers.get_content_type()
+                      raw = response.read(8193)
+              except urllib.error.HTTPError as error:
+                  code, content_type, raw = error.code, error.headers.get_content_type(), b""
+              if len(raw) > 8192:
+                  raise ValueError("bounded public probe refused oversized response")
+              return code, content_type, raw
+
+          last = None
+          for attempt in range(1, 5):
+              try:
+                  code, content_type, data = probe("/healthz")
+                  last = {"http_status": code, "content_type": content_type}
+                  if code == 200 and content_type == "application/json":
+                      parsed = json.loads(data)
+                      if parsed.get("ready") is True and parsed.get("service") == "beastbox-owner-bridge":
+                          break
+              except (OSError, ValueError) as exc:
+                  last = {"error_type": type(exc).__name__}
+              if attempt < 4: time.sleep(6)
+          else:
+              print("BEASTBOX_RAILWAY_STAGING_PUBLIC_RECEIPT=" + json.dumps({
+                  "schema": "beastbox-railway-staging-public-anonymous-v1",
+                  "health": "FAILED", "last_observation": last,
+                  "authenticated_endpoint_tested": False,
+                  "prod_volume_touched": False}, sort_keys=True))
+              raise SystemExit(1)
+
+          code, _, _ = probe("/api/orbit")
+          receipt = {
+              "schema": "beastbox-railway-staging-public-anonymous-v1",
+              "source_commit": "42dd57d67a533bd6264497c54ab5f60535cb4598",
+              "tls_hostname_validated_by_standard_client": True,
+              "health": "PASS",
+              "health_http_status": 200,
+              "anon_orbit_http_status": code,
+              "bearer_denial": "PASS" if code == 401 else "FAILED",
+              "authenticated_endpoint_tested": False,
+              "real_inference_tested": False,
+              "production_volume_touched": False,
+              "scientific_scope": "isolated cloud reachability/anonymous auth contract ONLY",
+          }
+          print("BEASTBOX_RAILWAY_STAGING_PUBLIC_RECEIPT=" + json.dumps(receipt, sort_keys=True))
+          if code != 401: raise SystemExit(1)
+          PY
