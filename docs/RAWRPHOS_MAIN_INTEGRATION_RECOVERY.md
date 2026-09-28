@@ -36,3 +36,32 @@ Branch: `feature/cosmos-rawrphos-unified-runtime-001`
 
 Owner's existing live 500 MB volume remains outside this experiment;
 there is no independent trust root or 50k representative evaluation yet.
+
+## Verified source-recovery checkpoints and separated claims
+The public pinned 14K release tag
+`rawrphos-native-conversation-step-00014000-run-35951509482`
+has an uploaded 43,434,030-byte archive and a source-pinned SHA-256 in
+`models/rawrphos/scripts/install_pinned_14k.py`. Release availability
+does NOT prove a new download or live 14K generation for this branch.
+
+The public 18K research release tag
+`rawrphos-native-experimental-inference-step-00018000-run-36008364848`
+has a separate uploaded 43,400,107-byte archive. Its original release
+explicitly states the owner-repetition quality gate FAILED (10/11
+mechanical checks; unreliable multi-turn results). Do not promote the
+18K research candidate to production or confuse artifact integrity with
+conversational quality.
+
+The integration's dedicated real CPU workflow may train its own tiny
+synthetic model and verify the inference API, but those tests are not
+a real pinned 14K/18K production-model benchmark.
+
+## Transient SciFact HTTP 502 recovery
+The same baseline source uses at most three transient-download attempts,
+or the host can supply `BEASTBOX_SCIFACT_VERIFIED_CACHE` (a local ZIP
+path). **Both** the published archive MD5 and SHA-256 previously observed
+in `docs/SEMANTIC_REAL_EVAL_001_MACHINE_RECEIPT.json` must match.
+Otherwise stop. No synthetic dataset, changed positive query selection,
+fabricated repeat result or altered benchmark threshold may replace the
+missing public archive. This is transport hardening, NOT a new completed
+large-scale model result.

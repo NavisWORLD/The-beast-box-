@@ -12,6 +12,7 @@ import statistics
 import sys
 import time
 import urllib.request
+import urllib.error
 import zipfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -23,6 +24,8 @@ from beastbox.semantic_retrieval import OfflineSentenceTransformer, SnapshotSema
 
 DATASET_URL = "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/scifact.zip"
 DATASET_MD5 = "5f7d1de60b170fc8027bb7898e2efca1"  # Published BEIR archive checksum
+# Independently preserved *previous project run* bytes; not a new external claim.
+DATASET_SHA256 = "536e14446a0ba56ed1398ab1055f39fe852686ecad24a6306c80c490fa8e0165"
 MODEL_REPO = "sentence-transformers/all-MiniLM-L6-v2"
 MODEL_REVISION = "154917cf5a5a0657fddbae9cd0ecd85cb86dc125"
 MODEL_WEIGHTS_SHA256 = "53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db"
@@ -85,14 +88,45 @@ def metric_summary(rows):
             "recall_at_5": round(statistics.mean(recall), 6)}
 
 
-def prepare_sources(root):
-    request = urllib.request.Request(DATASET_URL, headers={"User-Agent": "BeastBox-Scientific-Eval/1"})
-    with urllib.request.urlopen(request, timeout=45) as response:
-        blob = response.read(12 * 1024 * 1024 + 1)
-    if len(blob) > 12 * 1024 * 1024:
+def load_verified_scifact_archive() -> bytes:
+    """Same attested bytes whether HTTPS succeeds or the owner supplies a local cache.
+
+    Transient HTTP 502/503/504 or network errors get at most three bounded
+    attempts. A configured cache is NEVER trusted without both hashes. Do not
+    modify query selection or substitute a different dataset on failure.
+    """
+    max_bytes = 12 * 1024 * 1024
+    cached = os.environ.get("BEASTBOX_SCIFACT_VERIFIED_CACHE", "")
+    if cached:
+        path = Path(cached).expanduser()
+        if path.is_symlink() or not path.is_file():
+            raise RuntimeError("explicit SciFact cache is absent or a symlink")
+        with path.open("rb") as stream:
+            blob = stream.read(max_bytes + 1)
+    else:
+        blob = b""
+        for attempt in range(3):
+            request = urllib.request.Request(DATASET_URL, headers={"User-Agent": "BeastBox-Scientific-Eval/1"})
+            try:
+                with urllib.request.urlopen(request, timeout=45) as response:
+                    blob = response.read(max_bytes + 1)
+                break
+            except (urllib.error.HTTPError, urllib.error.URLError) as exc:
+                if isinstance(exc, urllib.error.HTTPError) and exc.code not in (502, 503, 504):
+                    raise RuntimeError("SciFact HTTP source rejected the request") from exc
+                if attempt == 2:
+                    raise RuntimeError("verified SciFact source unavailable after three attempts") from exc
+                time.sleep(min(2 ** attempt, 2))
+    if len(blob) > max_bytes:
         raise RuntimeError("dataset byte limit exceeded")
-    if hashlib.md5(blob).hexdigest() != DATASET_MD5:  # nosec: matches external published digest
-        raise RuntimeError("SciFact source checksum mismatch")
+    if (hashlib.md5(blob).hexdigest() != DATASET_MD5  # nosec: published archive checksum
+            or hashlib.sha256(blob).hexdigest() != DATASET_SHA256):
+        raise RuntimeError("SciFact source checksum mismatch; no dataset substitution")
+    return blob
+
+
+def prepare_sources(root):
+    blob = load_verified_scifact_archive()
     from huggingface_hub import HfApi, snapshot_download
     info = HfApi().model_info(MODEL_REPO, revision=MODEL_REVISION)
     if info.sha != MODEL_REVISION or info.card_data is None or info.card_data.license != "apache-2.0":
@@ -181,6 +215,8 @@ def main():
         "model": {"id": MODEL_REPO, "revision": MODEL_REVISION,
                   "declared_license": "apache-2.0", "files_sha256": weights_sha},
         "dataset": {"url": DATASET_URL, "published_archive_md5": DATASET_MD5,
+                    "pinned_previous_observation_sha256": DATASET_SHA256,
+                    "verified_transport": "explicit_local_cache" if os.environ.get("BEASTBOX_SCIFACT_VERIFIED_CACHE") else "HTTPS_with_bounded_retry",
                     "observed_archive_sha256": dataset_sha, "mirror_license_label": "cc-by-sa-4.0",
                     "selected_test_query_ids": selected},
         "protocol": {"sizes": SIZES, "threshold": 0.40, "fusion_weight": 0.65,

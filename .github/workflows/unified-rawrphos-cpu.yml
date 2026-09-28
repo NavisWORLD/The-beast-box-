@@ -39,7 +39,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
-          python -m pip install -e . -e './models/rawrphos[serve]' pytest==8.4.2
+          python -m pip install -e '.[secure]' -e './models/rawrphos[serve]' pytest==8.4.2
       - name: Native model actually trains a tiny synthetic CPU fixture and serves authenticated inference
         run: |
           mkdir -p build
