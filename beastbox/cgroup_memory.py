@@ -13,7 +13,9 @@ def available_bytes(root: Path = Path("/sys/fs/cgroup")) -> int | None:
         current = int((root / "memory.current").read_text().strip())
         if limit < 0 or current < 0:
             return 0
-    except (OSError, ValueError):
+    except OSError:
+        return None  # Non-cgroup hosts retain the original no-limit behavior.
+    except ValueError:
         return 0
     inactive_file = 0
     try:
