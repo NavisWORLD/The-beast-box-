@@ -1,6 +1,7 @@
 {
   "name":"beast-box-web-runtime",
   "private":true,
+  "license": "Apache-2.0",
   "type":"module",
   "scripts":{"test":"node --test tests/*.test.js","build":"node build.mjs","check":"node --check app.js && node --check policy.js && node --check profiles.js"}
 }

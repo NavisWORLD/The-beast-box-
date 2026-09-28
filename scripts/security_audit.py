@@ -74,8 +74,8 @@ for critical in ("/LICENSE @NavisWORLD", "/SECURITY.md @NavisWORLD", "/.github/ 
 
 # --- Package-license consistency ------------------------------------------
 pyproject = read_text(ROOT / "pyproject.toml")
-if 'License :: Other/Proprietary License' in pyproject:
-    error("pyproject.toml must no longer advertise a proprietary license")
+if 'License :: Other/' in pyproject:
+    error("pyproject.toml must not advertise an incompatible alternative to Apache-2.0")
 if 'license = {file = "LICENSE"}' not in pyproject:
     error("pyproject.toml must point package license metadata at root LICENSE")
 if 'License :: OSI Approved :: Apache Software License' not in pyproject:
@@ -86,7 +86,7 @@ for rel in ("rust/cst-core/Cargo.toml", "rust/cosmic-cypher/Cargo.toml"):
     if re.search(r'^\s*license\s*=\s*["\']MIT["\']', text, flags=re.MULTILINE):
         error(f"{rel} still advertises MIT")
     if 'license-file = "../../LICENSE"' not in text:
-        error(f"{rel} must point at the root permission-required LICENSE")
+        error(f"{rel} must point at the current root Apache-2.0 LICENSE")
 
 commercial = read_text(ROOT / "COMMERCIAL_RIGHTS.md")
 if "PolyForm Noncommercial" in commercial:

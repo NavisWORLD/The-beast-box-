@@ -2,6 +2,8 @@
 
 **Effective date:** 2026-08-14
 
+**Current licensing clarification:** This older access notice concerns material not already covered by another applicable license. Current original Beast Box software and documentation covered by the root [Apache-2.0 LICENSE](LICENSE) may be used under Apache-2.0 without a separate agreement. Historical, separately marked, trademark, confidential, and third-party rights remain distinct; see [LICENSE_HISTORY.md](LICENSE_HISTORY.md) and [NOTICE](NOTICE).
+
 Copyright © 2026 Cory Davis / NavisWORLD. All rights reserved in original material owned by Cory Davis except where a file, directory, dependency, prior release, or other identified component is governed by a separate license.
 
 This notice applies only to original copyrightable material owned by Cory Davis / NavisWORLD that is not already subject to another license. It does not relicense third-party material or revoke rights validly granted under an earlier license for an earlier copy or version.

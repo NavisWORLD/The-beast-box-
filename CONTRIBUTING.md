@@ -1,6 +1,6 @@
 # Contributing
 
-The Beast Box is a **private, permission-required repository**. Contributions are accepted only with owner authorization and must preserve the experiment's two strongest properties: **reproducibility** and **real containment**.
+The current Beast Box repository's covered original software and documentation are licensed under the root **Apache-2.0** [LICENSE](LICENSE), subject to individually identified exceptions. Contributions are accepted for integration only with owner review and must preserve the experiment's two strongest properties: **reproducibility** and **real containment**.
 
 Repository access or contribution discussion does not grant reuse rights beyond `LICENSE`.
 

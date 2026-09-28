@@ -2,9 +2,9 @@
 
 **Repository:** `NavisWORLD/The-beast-box-`  
 **Primary owner/author:** Cory Shane Davis / NavisWORLD  
-**Current repository status:** Private, permission required  
+**Current covered-source license:** Apache-2.0 under the root LICENSE, subject to identified exceptions  
 **Current license boundary:** `LICENSE`  
-**License transition date:** 2026-08-17  
+**Historical restricted-license period began:** 2026-08-17; current Apache-2.0 boundary is documented in LICENSE_HISTORY.md  
 **Foundational CST research DOI:** `10.5281/zenodo.17574447`
 
 ## Purpose
@@ -21,7 +21,7 @@ Baseline commit:
 
 `c9e0d136cc16b5d2e4ace432771f8bab16341146`
 
-That snapshot records the repository immediately after the 2026-08-17 permission-required license notice was added and before the subsequent security-hardening changes.
+That snapshot records the repository immediately after the 2026-08-17 historical access-restriction notice was added and before subsequent security-hardening changes. This describes a historical revision, not the license of current covered source.
 
 ## Cory/NavisWORLD authored implementation families
 
@@ -67,6 +67,6 @@ Important evidence for provenance includes:
 - CI/test results and hash-chained evidence produced by the project;
 - cryptographic checksums for distributed release artifacts.
 
-## Permission
+## Current covered-source permissions
 
-Current covered material is permission-required. Contact Cory Shane Davis / NavisWORLD for written authorization before reuse where required by `LICENSE`.
+The root Apache-2.0 [LICENSE](LICENSE) governs covered original software and documentation in the current revision, subject to individually marked exceptions. No separate owner permission is required for uses authorized by Apache-2.0. Historical copies and third-party materials retain their applicable terms; see [LICENSE_HISTORY.md](LICENSE_HISTORY.md) and [NOTICE](NOTICE).
