@@ -45,6 +45,21 @@ The QVM-historical software state changed between history ticks by average L2 **
 
 **Held-out performance boundary:** We did not upgrade the exploratory performance claim. The native model's tokenizer encodes \`00\` as ONE token and \`11\` as TWO, invalidating the planned same-step two-token probability comparator. It therefore emitted **no model accuracy/MSE scores**. Separately, an ordinary Jeffreys estimator derived from the same archived history had held-out empirical-p11 MSE **0.0039904879**; this is **not comparable** to the absent native result and is not the earlier ideal-MAE metric. Honest response-quality scoring requires a distinct multi-token sequence likelihood contract and a larger prospective changing-circuit trial.
 
+### Preregistered secondary full-sequence outcome (separate new run)
+
+The initial authentic run exposed a tokenizer obstacle: `00` takes one token and `11` takes two. The separate [secondary protocol](NATIVE14K_SECONDARY_SEQUENCE_SCORE_PROTOCOL.md) was committed BEFORE the second model run, which correctly scores the complete exact-token continuation for both candidates. Its [successful actual pinned model run](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36487321126) executed **128 additional real frozen native forward passes**, eight cloud-simulator scenarios, and eight ablations; both original source and original pinned checkpoint SHA match. Combined across distinct experiments there were **288 actual model forward passes**; zero new Azure/QPU jobs.
+
+| Readout | Future empirical-p11 MSE | Hidden ideal-p11 MAE |
+|---|---:|---:|
+| Native unconditioned, exact-string two-choice normalization | 0.27211204 | 0.40001291 |
+| Native real QVM-derived 12D | 0.27214119 | 0.40003895 |
+| Native matched-classical input | 0.27212189 | 0.40002817 |
+| Native exact-final-L2 matched signed state | 0.27212269 | 0.40003004 |
+| Native shuffled internal token states | 0.27141875 | 0.39914055 |
+| **Separate classical Jeffreys statistic using identical 128 historical shots** | **0.00399049** | **0.02116310** |
+
+**Interpretation:** This uncalibrated native constrained-text likelihood is not an attested physical probability estimator or an equal-purpose trained statistical competitor. Its mean two-choice p11 was only **0.01423874** across the eight QVM scenarios, with an observed between-scenario spread just **0.00003651**. The matching classical statistic uses the 128 shot histories directly and scores the same held-out future batches. The native model's neural state responds computationally but its existing text head is not aligned to this numerical task. Replacing this measured null with an assertion of useful quantum improvement would be unsupported. A separate trained/calibrated **held-out** numeric head and changing-circuit data would be needed to test usefulness.
+
 ### Independent verification
 
 Downloaded exact CI artifact was verified offline again, requiring 160 complete results, all eight conditions, all ten controls, zero=reference, numerical finiteness, unchanged weights, matching original source/model digests, zero new QVM/QPU jobs, and heldout exclusion. Paired CSV and independent summary were generated separately; the CI artifact remains canonical.
