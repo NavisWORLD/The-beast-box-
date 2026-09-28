@@ -17,7 +17,7 @@ test('unified model options reach the owner-only validated gateway',()=>{
  assert.match(gateway,/Invalid or unapproved Ollama Cloud model ID/);
  assert.match(gateway,/Remote model activation requires explicit usage approval/);
  assert.match(picker,/option\.configured/);
- assert.match(picker,/option\.experimental/);
+ assert.match(picker,/const experimental/);
  assert.match(picker,/quality gate/);
  assert.match(picker,/spend_approved:true/);
  assert.doesNotMatch(gateway,/['\"]workspace\/write['\"]/);
