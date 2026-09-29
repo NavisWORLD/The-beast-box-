@@ -1,5 +1,6 @@
 """Real durable-dialogue assembly tests; no downloaded model or synthetic weight claim."""
 from beastbox.durable import DurableRuntime
+from beastbox.memory import ReconciliationMemory
 
 
 class CapturingProvider:
@@ -62,3 +63,17 @@ def test_native_prompt_is_short_and_uses_shared_ledger(tmp_path):
         assert len(prompt) < 800
     finally:
         runtime.close()
+
+
+def test_many_nonchat_observations_do_not_evict_recent_dialogue(tmp_path):
+    memory = ReconciliationMemory(tmp_path / "dialogue.sqlite3")
+    try:
+        memory.store("We are building the Moon Garden", kind="user_turn")
+        memory.store("Yes, the Moon Garden", kind="assistant_turn")
+        for i in range(50):
+            memory.store("unverified sensor reading " + str(i), kind="device_observation")
+        recent = memory.recent_dialogue(limit=8)
+        assert [row.kind for row in recent] == ["assistant_turn", "user_turn"]
+        assert "Moon Garden" in recent[0].text
+    finally:
+        memory.close()
