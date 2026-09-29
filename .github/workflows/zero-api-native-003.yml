@@ -1,0 +1,88 @@
+name: Zero paid-API original RAWRPHOS/native-to-public offline research
+
+on:
+  push:
+    branches: [experiment/zero-api-native-003]
+    paths:
+      - scripts/zero_api_native_003.py
+      - .github/workflows/zero-api-native-003.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - scripts/zero_api_native_003.py
+      - .github/workflows/zero-api-native-003.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-original-native-A-public-B-native-A:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      TOKENIZERS_PARALLELISM: "false"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      PIP_NO_INPUT: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install open-source software on standard CPU BEFORE isolated measurement
+        run: |
+          set -euo pipefail
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos transformers==4.51.3 huggingface_hub==0.30.2 psutil==7.0.0
+          command -v setpriv
+          if ! command -v ip; then sudo apt-get update && sudo apt-get install -y iproute2; fi
+      - name: Download two exact public ORIGINAL checkpoints and record every file SHA
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          python scripts/zero_api_native_003.py --mode stage \
+            --native-dir "$PWD/build/native-14k-original" \
+            --smol-dir "$PWD/build/smollm2-original" \
+            --stage-receipt "$PWD/build/zero-api-native-staging.json" \
+            2>&1 | tee build/zero-api-native-stage.log
+          test -s build/zero-api-native-staging.json
+      - name: REAL original/native local inference in verified OS network namespace
+        run: |
+          set -euo pipefail
+          NS="beast-original-native-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          cleanup() { sudo ip netns del "$NS" 2>/dev/null || true; }
+          trap cleanup EXIT
+          sudo ip netns add "$NS"
+          sudo ip -n "$NS" link set lo up
+          sudo ip -n "$NS" -br link | tee build/zero-api-native-netns-links.log
+          sudo ip -n "$NS" route show | tee build/zero-api-native-netns-routes.log
+          sudo ip netns exec "$NS" setpriv \
+            --reuid="$(id -u)" --regid="$(id -g)" --clear-groups \
+            env HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_HUB_DISABLE_TELEMETRY=1 \
+            OMP_NUM_THREADS=2 TOKENIZERS_PARALLELISM=false \
+            "$(command -v python)" scripts/zero_api_native_003.py --mode measure \
+              --native-dir "$PWD/build/native-14k-original" \
+              --smol-dir "$PWD/build/smollm2-original" \
+              --stage-receipt "$PWD/build/zero-api-native-staging.json" \
+              --work "$PWD/build/zero-api-native-offline-runtime" \
+              --output "$PWD/build/zero-api-native-results.json" \
+            2>&1 | tee build/zero-api-native-measure.log
+          test -s build/zero-api-native-results.json
+      - name: Retain both positive receipts and unsuccessful test outcomes (never weights)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zero-api-verified-rawrphos-native-003-receipts
+          path: |
+            build/zero-api-native-staging.json
+            build/zero-api-native-results.json
+            build/zero-api-native-stage.log
+            build/zero-api-native-measure.log
+            build/zero-api-native-netns-links.log
+            build/zero-api-native-netns-routes.log
+          if-no-files-found: warn
+          retention-days: 21
