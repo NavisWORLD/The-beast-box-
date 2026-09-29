@@ -298,7 +298,10 @@ def run(label: str, root: Path) -> dict:
             # Short output hashes are also withheld to avoid dictionary attacks.
             public = {
                 arm: {key:value for key,value in result.items()
-                      if key not in {"generation","generation_sha256"}}
+                      if key not in ({"generation","generation_sha256",
+                                      "consumed_prompt","consumed_prompt_sha256"} |
+                                     ({"full_prompt_sha256"} if arm == "direct_correction"
+                                      else set()))}
                 for arm,result in observed.items()
             }
             rows.append({"surface":surface,"id":case["id"],"family":case["family"],
