@@ -2,7 +2,7 @@
 import {useCallback,useEffect,useState} from 'react';
 import {Check,RefreshCcw,ShieldCheck} from 'lucide-react';
 
-type Choice='local'|'rawrphos_native'|'rawrphos_native_18k_experimental'|'rawrphos_hf'|'huggingface'|'ollama_cloud';
+type Choice='local'|'rawrphos_native'|'rawrphos_native_18k_experimental'|'rawrphos_hf'|'huggingface'|'hf_owner_model'|'ollama_cloud';
 type Option={
  choice:Choice;model:string;kind:'local'|'remote';configured:boolean;
  requires_spend_approval:boolean;readiness:string;
@@ -13,12 +13,17 @@ type Catalog={
  remote_grant_active:boolean;reapproval_required:boolean;choices:Option[];
  inference_attested:boolean;no_automatic_fallback:boolean;
 };
+type HfInventory={
+ owner:string;status:'HF_OWNER_REPOSITORY_LIST_ONLY';inference_attested:false;model_invoked:false;
+ models:{id:string;task:string;private:boolean;selectable:boolean;status:string;url:string}[];
+ research_artifacts:{name:string;repository:string;status:string}[];
+};
 type Inventory={
  models:string[];status:'PUBLIC_MODEL_LIST_ONLY';account_access_verified:false;
  inference_attested:false;model_invoked:false;
 };
 
-async function bridge(method:'GET'|'POST',endpoint:'models'|'model-inventory',payload?:Record<string,unknown>):Promise<Record<string,unknown>>{
+async function bridge(method:'GET'|'POST',endpoint:'models'|'model-inventory'|'hf-inventory',payload?:Record<string,unknown>):Promise<Record<string,unknown>>{
  const response=await fetch('/api/bridge/'+endpoint,{method,cache:'no-store',credentials:'same-origin',
   headers:method==='POST'?{'Content-Type':'application/json'}:undefined,
   body:method==='POST'?JSON.stringify(payload):undefined});
@@ -32,17 +37,27 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
 }){
  const [catalog,setCatalog]=useState<Catalog|null>(null);
  const [ollamaModels,setOllamaModels]=useState<string[]>([]);
+ const [hfInventory,setHfInventory]=useState<HfInventory|null>(null);
+ const [hfStatus,setHfStatus]=useState<'loading'|'ready'|'unavailable'>('loading');
  const [selectedModel,setSelectedModel]=useState('');
  const [inventoryStatus,setInventoryStatus]=useState<'loading'|'ready'|'unavailable'|'not-configured'>('loading');
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [spendApproved,setSpendApproved]=useState(false);
  const refresh=useCallback(async()=>{
   if(!backendReachable){
-   setCatalog(null);setOllamaModels([]);setInventoryStatus('not-configured');return;
+   setCatalog(null);setOllamaModels([]);setHfInventory(null);setHfStatus('unavailable');setInventoryStatus('not-configured');return;
   }
   const result=await bridge('GET','models');
   const next=result as unknown as Catalog;
   setCatalog(next);
+  setHfStatus('loading');
+  try {
+   const result=await bridge('GET','hf-inventory') as unknown as HfInventory;
+   if(result.status!=='HF_OWNER_REPOSITORY_LIST_ONLY'||result.inference_attested!==false||
+      result.model_invoked!==false||result.owner!=='phera-ra'||!Array.isArray(result.models)||
+      !Array.isArray(result.research_artifacts))throw new Error('Invalid HF catalog');
+   setHfInventory(result);setHfStatus('ready');
+  }catch{setHfInventory(null);setHfStatus('unavailable');}
   const ollama=next.choices.find(option=>option.choice==='ollama_cloud'&&option.configured);
   if(!ollama){setOllamaModels([]);setInventoryStatus('not-configured');return;}
   setInventoryStatus('loading');
@@ -66,10 +81,14 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
 
  async function choose(choice:Choice,model?:string){
   if(busy||!backendReachable)return;
-  const remote=choice==='huggingface'||choice==='ollama_cloud'||choice==='rawrphos_hf';
+  const remote=choice==='huggingface'||choice==='hf_owner_model'||choice==='ollama_cloud'||choice==='rawrphos_hf';
   if(remote&&!spendApproved){setError('Approve possible usage charges before selecting a remote model.');return;}
-  if(model&&(!ollamaModels.includes(model)||inventoryStatus!=='ready')){
+  if(model&&choice==='ollama_cloud'&&(!ollamaModels.includes(model)||inventoryStatus!=='ready')){
    setError('Refresh the public Ollama inventory before switching models.');return;
+  }
+  if(model&&choice==='hf_owner_model'&&
+     (hfStatus!=='ready'||!hfInventory?.models.some(entry=>entry.id===model&&entry.selectable))){
+   setError('Select a verified owner HF text-generation repository from the current catalog.');return;
   }
   setBusy(true);setError('');setNotice('');
   try {
@@ -143,6 +162,30 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
       </div>}
      </div>;
     })}
+    <div className="record" aria-label="My Hugging Face models">
+     <h3>My Hugging Face models · phera-ra</h3>
+     <p>Owner-only repository discovery. COSMOS research weights, model repositories and working hosted chat endpoints are different things. Nothing is downloaded or invoked by browsing.</p>
+     {hfStatus==='loading'?<p role="status">Checking your Hugging Face library…</p>:
+      hfStatus==='unavailable'?<p role="status">Hugging Face catalog unavailable. Existing saved models and weights are unchanged.</p>:
+      <>
+       {hfInventory?.models.map(entry=><div className="record" key={entry.id}>
+        <strong>{entry.id}</strong> · {entry.task}{entry.private?' · Private':''}
+        <p>Status: {entry.status.replaceAll('_',' ')}. {entry.selectable?'This repo is listed for text generation; account router access and actual chat are not yet attested.':'This repository is visible, but no generic hosted chat adapter has been verified.'}</p>
+        <button type="button" className="outline-action"
+         disabled={busy||!spendApproved||!entry.selectable||
+           !catalog.choices.some(x=>x.choice==='huggingface'&&x.configured)}
+         onClick={()=>void choose('hf_owner_model',entry.id)}>
+         <ShieldCheck size={15}/> Select {entry.id}
+        </button>
+       </div>)}
+       {hfInventory?.models.length===0?<p>No Hub model repositories are visible to the current backend credential.</p>:null}
+       <h3>Individual COSMOS research components</h3>
+       {hfInventory?.research_artifacts.map(entry=><div className="record" key={entry.name}>
+        <strong>{entry.name}</strong> · {entry.repository}
+        <p>{entry.status.replaceAll('_',' ')}. Preserved as its own lineage, not mislabeled as a hosted chat model.</p>
+       </div>)}
+      </>}
+    </div>
     {catalog.choices.some(x=>x.requires_spend_approval)?<label className="cloud-spend">
       <input type="checkbox" checked={spendApproved} disabled={busy}
        onChange={e=>setSpendApproved(e.target.checked)}/>
