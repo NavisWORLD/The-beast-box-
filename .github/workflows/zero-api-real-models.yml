@@ -5,14 +5,14 @@ on:
     paths:
       - scripts/zero_api_real_models.py
       - scripts/zero_api_real_host.sh
-      - experiments/zero_api_real/**
+      - lab/zero_api_real/**
       - .github/workflows/zero-api-real-models.yml
   pull_request:
     branches: [main]
     paths:
       - scripts/zero_api_real_models.py
       - scripts/zero_api_real_host.sh
-      - experiments/zero_api_real/**
+      - lab/zero_api_real/**
       - .github/workflows/zero-api-real-models.yml
   workflow_dispatch:
 permissions:

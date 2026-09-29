@@ -11,7 +11,7 @@ python3 -m pip install --disable-pip-version-check "huggingface-hub==0.29.3"
 python3 scripts/zero_api_real_models.py prepare --models "$ROOT/models" \
   | tee "$ROOT/results/model-prep.log"
 docker build --pull -t beastbox-zero-api-real:002 \
-  -f experiments/zero_api_real/Dockerfile "$ROOT/docker-empty-context" \
+  -f lab/zero_api_real/Dockerfile "$ROOT/docker-empty-context" \
   2>&1 | tee "$ROOT/results/docker-build.log"
 # Only checked-out public code + synthetic workspace + offline weights are mounted.
 # Host credentials, home dirs, Docker socket and owner memory are NOT mounted.
@@ -19,7 +19,7 @@ R="$PWD/$ROOT"
 CID="$R/results/docker-cid"
 rm -f "$CID"
 set +e
-docker run --cidfile "$CID" --network none --cap-drop ALL --security-opt no-new-privileges \
+docker run --cidfile "$CID" --network none --user "$(id -u):$(id -g)" --cap-drop ALL --security-opt no-new-privileges \
   --read-only --pids-limit 128 --cpus 2 --memory 6g \
   --tmpfs /tmp:rw,nosuid,nodev,size=768m \
   --mount "type=bind,src=$PWD/beastbox,dst=/code/beastbox,readonly" \

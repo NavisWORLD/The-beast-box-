@@ -364,6 +364,7 @@ def main():
     try:
         result = run(args.models, args.output.parent)
     except BaseException as exc:
+        print('CONTAINER_EXPERIMENT_ERROR: ' + traceback.format_exc(), file=sys.stderr)
         result = {"schema": SCHEMA, "status": "ERROR", "exception": type(exc).__name__,
                   "error_message": str(exc)[:300], "traceback": traceback.format_exc()[-4000:],
                   "not_a_successful_result": True}
