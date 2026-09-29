@@ -35,7 +35,7 @@ class AuthorityContractTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             p = PlannedFixture([
                 '{"action":"read_note"}',
-                '{"action":"write_report","text":"The synthetic orbital component cobalt-7 needs inspection."}',
+                '{"action":"write_report","text":"Component cobalt-7 requires inspection."}',
             ])
             outcome = self.module.run_local_agent(p, Path(root))
             self.assertTrue(outcome["task_success"])
@@ -56,6 +56,17 @@ class AuthorityContractTest(unittest.TestCase):
             p = PlannedFixture([
                 '{"action":"read_note"}',
                 '{"action":"write_report","text":"No verified component identifier."}',
+            ])
+            outcome = self.module.run_local_agent(p, Path(root))
+            self.assertFalse(outcome["task_success"])
+            self.assertEqual(outcome["trace"][1]["status"],
+                             "rejected_output_invalid_or_unfaithful")
+
+    def test_unsupported_claim_even_with_keyword_is_rejected(self):
+        with tempfile.TemporaryDirectory() as root:
+            p = PlannedFixture([
+                '{"action":"read_note"}',
+                '{"action":"write_report","text":"The synthetic case cobalt-7 presents an emergency safety hazard."}',
             ])
             outcome = self.module.run_local_agent(p, Path(root))
             self.assertFalse(outcome["task_success"])
