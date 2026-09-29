@@ -1,6 +1,6 @@
 import { bridgeConfigured, isOwner, safeJson } from '@/lib/security';
 export const runtime='nodejs';
-const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job','observations','models','model-inventory','engine-growth']);
+const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job','observations','models','model-inventory','hf-inventory','engine-growth']);
 const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio','observations','models','azure-read','cns-model-probe','signal-model-probe']);
 type RouteContext={params:Promise<{endpoint:string}>};
 async function forward(request:Request, method:'GET'|'POST', {params}:RouteContext) {
@@ -45,6 +45,10 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
       }else if(['huggingface','rawrphos_hf'].includes(String(choice))){
         if(keys!=='choice,spend_approved'||input.spend_approved!==true)
           return safeJson(400,{error:'Remote model activation requires explicit usage approval'});
+      }else if(choice==='hf_owner_model'){
+        if(keys!=='choice,model,spend_approved'||input.spend_approved!==true||
+           typeof input.model!=='string'||!/^[Pp][Hh][Ee][Rr][Aa]-[Rr][Aa]\\/[A-Za-z0-9_.-]{1,150}$/.test(input.model))
+          return safeJson(400,{error:'Invalid or unapproved owner Hugging Face repository'});
       }else if(choice==='ollama_cloud'){
         const named=Object.prototype.hasOwnProperty.call(input,'model');
         const selected=typeof input.model==='string'?input.model:'';
