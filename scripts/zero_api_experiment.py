@@ -166,7 +166,7 @@ def run() -> dict:
             "schema": SCHEMA, "status": "PASS" if all(checks.values()) else "FAIL",
             "implementation": "current checked-out beastbox.durable.DurableRuntime",
             "source_commit": os.getenv("GITHUB_SHA", "local_checkout_not_recorded"),
-            "machine": {"platform": platform.platform(), "python": sys.version.split()[0],
+            "machine": {"platform": platform.system() + '-' + platform.machine(), "python": sys.version.split()[0],
                         "cpu_count_reported": os.cpu_count()},
             "scope": {
                 "provider_type": "ReferenceTextProvider via two named CaptureReference adapters",
@@ -218,7 +218,14 @@ def main() -> int:
     p.add_argument("--output", type=Path, required=True)
     args = p.parse_args()
     # No model credentials are needed, read, or printed by this script.
-    result = run()
+    try:
+        result = run()
+    except Exception as exc:
+        # Preserve failure artifacts rather than allowing a green run or blank archive.
+        result = {"schema": SCHEMA, "status": "ERROR",
+                  "error_type": type(exc).__name__, "error_message": str(exc)[:180],
+                  "checks": {}, "metrics": {}, "scope": {"paid_API_result": "NOT VERIFIED"},
+                  "limitations": ["Experiment crashed; no pass/cost claims may be made."]}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     summary = {k: result[k] for k in ("schema", "status", "checks", "metrics", "scope", "limitations")}
