@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cosmos-native-correction-002-\${{ github.ref }}
+  group: cosmos-native-correction-002-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -49,7 +49,7 @@ jobs:
       - name: Verify public original released checkpoint against pinned archive and weight SHA
         run: |
           mkdir -p build
-          if [ "\${{ matrix.checkpoint }}" = "14k" ]; then
+          if [ "${{ matrix.checkpoint }}" = "14k" ]; then
             python models/rawrphos/scripts/install_pinned_14k.py --destination build/verified-14k > build/native-install-14k.json
           else
             python models/rawrphos/scripts/install_pinned_18k.py --destination build/verified-18k > build/native-install-18k.json
@@ -57,12 +57,12 @@ jobs:
       - name: Real actual native PyTorch inference and teacher-forced measurements
         run: |
           python scripts/cosmos_native_correction_002.py \
-            --checkpoint \${{ matrix.checkpoint }} \
-            --directory build/verified-\${{ matrix.checkpoint }} \
-            --output build/native-pilot-\${{ matrix.checkpoint }}.json
+            --checkpoint ${{ matrix.checkpoint }} \
+            --directory build/verified-${{ matrix.checkpoint }} \
+            --output build/native-pilot-${{ matrix.checkpoint }}.json
       - name: Validate all arms and log literal, source-bound synthetic receipt
         run: |
-          PILOT_CHECKPOINT=\${{ matrix.checkpoint }} python - <<'PY'
+          PILOT_CHECKPOINT=${{ matrix.checkpoint }} python - <<'PY'
           import hashlib, json, os, pathlib
           label=os.environ["PILOT_CHECKPOINT"]
           p=pathlib.Path("build/native-pilot-"+label+".json")
