@@ -526,6 +526,54 @@ class DurableRuntime(CosmosRuntime):
                 self._restore(before)
             raise
 
+    def consolidate_pending(self, *, min_group: int = 3, max_records: int = 100) -> dict[str, Any]:
+        """Checkpoint bounded derived memory indices without invoking any LLM.
+
+        Intended for the owner host's opt-in maintenance loop. It never
+        rewrites model weights, fabricates dialogue or upgrades tool authority.
+        Repeated runs with unchanged source groups are no-ops.
+        """
+        if type(min_group) is not int or not 3 <= min_group <= 20:
+            raise ValueError("maintenance min_group must be in 3..20")
+        if type(max_records) is not int or not 3 <= max_records <= 100:
+            raise ValueError("maintenance max_records must be in 3..100")
+        before = None
+        committed = False
+        try:
+            with self.memory.transaction():
+                before = self.continuity.verify()
+                self._check_anchor(before)
+                self._restore(copy.deepcopy(before))
+                made = self.memory.consolidate(
+                    min_group=min_group, max_records=max_records
+                )
+                if not made:
+                    return {"changed": False, "derived_count": 0,
+                            "checkpoint_sha256": before["sha256"],
+                            "model_invoked": False}
+                receipt = {
+                    "kind": "periodic_consolidation",
+                    "algorithm": "existing_reconciliation_memory",
+                    "derived_count": len(made),
+                    "derived_ids": made,
+                    "trace": ["source_grouping", "derived_index", "checkpoint"],
+                    "model_invoked": False,
+                    "weight_update": False,
+                }
+                self.ledger.append("runtime_receipt", receipt)
+                checkpoint = self.continuity.append(
+                    self._state(), system_id=self.system_id, receipt=receipt
+                )
+            committed = True
+            self._publish_anchor(before, checkpoint)
+            return {"changed": True, "derived_count": len(made),
+                    "checkpoint_sha256": checkpoint["sha256"],
+                    "model_invoked": False}
+        except BaseException:
+            if before is not None and not committed:
+                self._restore(before)
+            raise
+
     def _owner_lifecycle(
         self, action: str, ids: list[int], *, reviewer: str, reason: str,
         mutate: Callable[[], bool],
