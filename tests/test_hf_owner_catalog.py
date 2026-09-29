@@ -56,7 +56,7 @@ def test_catalog_includes_own_models_and_separates_historical_checkpoints():
     assert "private-test-token" not in json.dumps(result)
 
 
-@pytest.mark.parametrize("bad", ["key\\nEXTRA", "key\\rEXTRA", "key\\x00EXTRA", "x" * 4097])
+@pytest.mark.parametrize("bad", ["key\nEXTRA", "key\rEXTRA", "key\x00EXTRA", "x" * 4097])
 def test_no_untrusted_credential_headers(bad):
     with pytest.raises(CatalogUnavailable, match="CREDENTIAL_INVALID"):
         list_owner_models(bad, opener=Opener(b"[]"))
