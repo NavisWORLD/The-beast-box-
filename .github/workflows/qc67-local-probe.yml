@@ -1,0 +1,51 @@
+name: QC67 public original-model adapter provenance probe
+on:
+  push:
+    branches: [feature/qc67-local-model-serving-20260928]
+    paths:
+      - .github/workflows/qc67-local-probe.yml
+      - models/qc67/**
+  pull_request:
+    paths:
+      - .github/workflows/qc67-local-probe.yml
+      - models/qc67/**
+permissions:
+  contents: read
+jobs:
+  public-original-artifact-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install "huggingface_hub>=0.30,<2"
+      - name: Verify published PHOS and SAMGO weights and inspect original loader (no weight download)
+        env:
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          HF_TOKEN: ""
+        run: |
+          python - <<'PY'
+          from huggingface_hub import HfApi, hf_hub_download
+          from pathlib import Path
+          import json
+          api=HfApi(token=False)
+          info=api.model_info("phera-ra/QC67_cosmo",files_metadata=True)
+          names={s.rfilename:s for s in info.siblings}
+          print("EXACT_ORIGINAL_REPO_SHA",info.sha,flush=True)
+          wanted=["weights/phos.pt","weights/samgo_weights.pt","tools/load_model.py","serving/cosmos_coder.py","architecture/phos_grow.py"]
+          for name in wanted:
+              item=names.get(name)
+              print("UPSTREAM_FILE",json.dumps({"path":name,"exists":item is not None,"size":getattr(item,"size",None),"lfs_sha256":(getattr(item,"lfs",None) or {}).get("sha256") if item else None}),flush=True)
+          for name in ("tools/load_model.py","serving/cosmos_coder.py"):
+              if name in names:
+                  path=hf_hub_download(repo_id="phera-ra/QC67_cosmo",filename=name,revision=info.sha,token=False)
+                  source=Path(path).read_text()
+                  print("ORIGINAL_SOURCE_BEGIN",name,flush=True)
+                  print("\n".join(f"{i+1}: {line}" for i,line in enumerate(source.splitlines()[:180])),flush=True)
+                  print("ORIGINAL_SOURCE_END",name,flush=True)
+          assert all(n in names for n in wanted[:2]), "Published original PHOS/SAMGO weights missing"
+          PY
