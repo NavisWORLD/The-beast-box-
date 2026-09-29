@@ -48,7 +48,7 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
       }else if(choice==='hf_owner_model'){
         if(keys!=='choice,model,spend_approved'||input.spend_approved!==true||
            typeof input.model!=='string'||!input.model.toLowerCase().startsWith('phera-ra/')||
-           !/^[A-Za-z0-9_.-]{1,150}$/.test(input.model.slice('phera-ra/'.length))
+           !/^[A-Za-z0-9_.-]{1,150}$/.test(input.model.slice('phera-ra/'.length)))
           return safeJson(400,{error:'Invalid or unapproved owner Hugging Face repository'});
       }else if(choice==='ollama_cloud'){
         const named=Object.prototype.hasOwnProperty.call(input,'model');
