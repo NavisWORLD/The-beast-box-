@@ -20,6 +20,12 @@ import time
 import traceback
 from pathlib import Path
 
+# Direct `python scripts/...` invocation puts scripts/ (not the checkout root) on
+# sys.path; add ONLY this checked-out source root for existing sibling imports.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 SCHEMA = "beastbox-zero-api-native-public-swap-003-v1"
 NATIVE_SHA = "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5"
 SMOL_SHA = "5af571cbf074e6d21a03528d2330792e532ca608f24ac70a143f6b369968ab8c"
