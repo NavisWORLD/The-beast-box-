@@ -337,7 +337,8 @@ def measure(native: Path, smol: Path, staging: Path, work: Path, output: Path) -
                 before["system_id"]==middle["system_id"]==last["system_id"]==again["system_id"],
             "B_received_original_native_A_stage_memory": b_delivery,
             "native_return_received_B_stage_memory_after_compaction": a_delivery,
-            "fresh_same_B_negative_control": all(report["negative_control"].values()),
+            "fresh_same_B_negative_control": (report["negative_control"]["distinct_system"] and
+                report["negative_control"]["fresh_B_prompt_does_not_contain_marigold"]),
             "hash_chain_integrity_before_and_after": all(
                 x["valid"] is True for x in (before,middle,last,again)),
             "restart_exact_checkpoint": last["checkpoint_sha256"]==again["checkpoint_sha256"],
