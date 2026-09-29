@@ -5,6 +5,8 @@ from pathlib import Path
 import time
 import uuid
 
+from beastbox.durable import DurableRuntime
+
 SOURCE = Path(__file__).resolve().parents[1] / "owner_bridge.py"
 spec = importlib.util.spec_from_file_location("owner_bridge_remember_tests", SOURCE)
 module = importlib.util.module_from_spec(spec)
@@ -65,4 +67,8 @@ def test_temporary_reply_remains_private_until_explicit_owner_consent(tmp_path):
     reboot = module.OwnerBridge(tmp_path, TOKEN)
     _, again = dispatch(reboot, "GET", "/api/conversation")
     assert again["turns"] == history["turns"]
-    assert reboot.app.service.runtime.inspect()["valid"] if hasattr(reboot.app.service, "runtime") else True
+    runtime = DurableRuntime(tmp_path)
+    try:
+        assert runtime.inspect()["valid"] is True
+    finally:
+        runtime.close()
