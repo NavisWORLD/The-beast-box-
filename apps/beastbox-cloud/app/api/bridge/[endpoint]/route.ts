@@ -40,7 +40,7 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
     if(endpoint==='models'){
       const keys=Object.keys(input).sort().join(',');
       const choice=input.choice;
-      if(['local','rawrphos_native','rawrphos_native_18k_experimental'].includes(String(choice))){
+      if(['local','rawrphos_native','rawrphos_native_18k_experimental','qc67_phos','qc67_samgo'].includes(String(choice))){
         if(keys!=='choice')return safeJson(400,{error:'Local model selection accepts only choice'});
       }else if(['huggingface','rawrphos_hf'].includes(String(choice))){
         const named=choice==='huggingface'&&Object.prototype.hasOwnProperty.call(input,'model');
