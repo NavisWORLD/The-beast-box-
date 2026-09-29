@@ -53,6 +53,45 @@ def capture_snapshot(memory: ReconciliationMemory) -> list[sqlite3.Row]:
     return active
 
 
+def recent_dialogue_from_snapshot(rows: list[sqlite3.Row], *, limit: int = 4,
+                                  max_chars: int = 1200) -> tuple[str, list[int]]:
+    """Bounded chronological owner dialogue from the SAME verified active snapshot.
+
+    Not an embedding result, a model update, or an authority grant. Archived
+    records and non-dialogue/temporary assistant responses are never included.
+    """
+    if type(limit) is not int or not 0 <= limit <= 6:
+        raise ValueError("recent dialogue limit must be in 0..6")
+    if type(max_chars) is not int or not 0 <= max_chars <= 2400:
+        raise ValueError("recent dialogue character budget must be in 0..2400")
+    if limit == 0 or max_chars == 0:
+        return "", []
+    newest: list[tuple[int, str]] = []
+    remaining = max_chars
+    for row in rows:  # SNAPSHOT_SQL is newest first.
+        if row["kind"] not in {"user_turn", "assistant_turn"}:
+            continue
+        meta = json.loads(row["metadata_json"])
+        if not isinstance(meta, dict) or meta.get("archived", False):
+            continue
+        raw = str(row["text"]).replace("\r", " ").strip()
+        if not raw:
+            continue
+        label = "USER" if row["kind"] == "user_turn" else "ASSISTANT"
+        prefix = label + ": "
+        available = min(600, remaining - len(prefix) - 1)
+        if available <= 0:
+            break
+        clean = " ".join(raw.split())
+        line = prefix + clean[:available]
+        newest.append((int(row["id"]), line))
+        remaining -= len(line) + 1
+        if len(newest) >= limit or remaining <= len("ASSISTANT: "):
+            break
+    chronological = list(reversed(newest))
+    return "\n".join(line for _, line in chronological), [id_ for id_, _ in chronological]
+
+
 def lexical_from_snapshot(
     rows: list[sqlite3.Row], query: str, *, limit: int = 5,
     threshold: float = 0.05, recency_half_life_days: float = 30.0,
