@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import urllib.request
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -39,9 +40,18 @@ def assert_loopback(url: str) -> None:
     _assert_loopback(url)
 
 
-def _post_json(url: str, payload: dict[str, Any], timeout: float = 180.0) -> dict[str, Any]:
+def _post_json(url: str, payload: dict[str, Any], timeout: float = 180.0,
+               *, bearer: str | None = None) -> dict[str, Any]:
     assert_loopback(url)
-    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
+    headers = {"Content-Type": "application/json"}
+    if bearer is not None:
+        if len(bearer) < 32 or any(ch in bearer for ch in (chr(10), chr(13))):
+            raise ValueError("invalid host-only local model credential")
+        if url != "http://127.0.0.1:8771/v1/chat/completions":
+            raise ValueError("host-only bearer restricted to original QC67 loopback")
+        headers["Authorization"] = "Bearer " + bearer
+    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
+                                 headers=headers, method="POST")
     with _local_opener().open(req, timeout=timeout) as response:
         raw = response.read(1048577)
     if len(raw) > 1048576:
@@ -93,6 +103,36 @@ class OpenAICompatibleLocalModel:
         return self.chat([{"role": "user", "content": prompt}])
 
 
+@dataclass
+class QC67OriginalChatModel:
+    """Owner-only original native model for COSMIC.CYPHER; tool JSON not guaranteed."""
+    spec: ModelSpec
+
+    def __post_init__(self) -> None:
+        self.base_url = self.spec.base_url or "http://127.0.0.1:8771/v1"
+        if (self.base_url.rstrip("/") != "http://127.0.0.1:8771/v1"
+                or self.spec.model not in {"qc67-phos", "qc67-samgo"}):
+            raise ValueError("QC67 coder requires the exact original model and loopback")
+
+    def chat(self, messages: Sequence[Message]) -> str:
+        if not messages or any(m.get("role") not in {"system", "user", "assistant"}
+                               or not isinstance(m.get("content"), str) for m in messages):
+            raise ValueError("invalid coding session")
+        key = os.environ.get("RAWRPHOS_API_KEY", "")
+        prompt = "\n".join(m["role"].upper() + ": " + m["content"] for m in messages)
+        data = _post_json(self.base_url + "/chat/completions",
+                          {"model": self.spec.model,
+                           "messages": [{"role": "user", "content": prompt}],
+                           "stream": False, "temperature": 0,
+                           "max_tokens": min(24 if self.spec.model == "qc67-phos" else 32,
+                                             max(1, self.spec.max_tokens))},
+                          bearer=key, timeout=120.0)
+        return str(data["choices"][0]["message"]["content"])
+
+    def complete(self, prompt: str) -> str:
+        return self.chat([{"role": "user", "content": prompt}])
+
+
 class LlamaCppPythonModel:
     """Direct GGUF inference through optional llama-cpp-python."""
     def __init__(self, spec: ModelSpec) -> None:
@@ -126,11 +166,13 @@ def create_model(spec: ModelSpec) -> LocalChatModel:
     backend = spec.backend.strip().lower().replace("_", "-")
     if backend == "ollama":
         return OllamaChatModel(spec)
+    if backend == "qc67-original":
+        return QC67OriginalChatModel(spec)
     if backend in {"openai-compatible", "llama.cpp-server", "llama-server", "lm-studio"}:
         return OpenAICompatibleLocalModel(spec)
     if backend in {"llama-cpp-python", "gguf", "llama-cpp"}:
         return LlamaCppPythonModel(spec)
-    raise ValueError(f"unsupported local backend {spec.backend!r}; expected ollama, llama-cpp-python/gguf, llama.cpp-server, lm-studio, or openai-compatible")
+    raise ValueError(f"unsupported local backend {spec.backend!r}; expected ollama, llama-cpp-python/gguf, llama.cpp-server, lm-studio, or openai-compatible or qc67-original")
 
 
 def list_ollama_models(base_url: str = "http://127.0.0.1:11434", timeout: float = 4.0) -> list[str]:

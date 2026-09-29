@@ -42,15 +42,15 @@ For hands-on coding, select a capable verified installed language model and
 provide an owner-selected workspace; running/editing code needs explicit flags:
 
 ```bash
-cosmic.cypher-cli models add phos-original --backend openai-compatible \
+cosmic.cypher-cli models add phos-original --backend qc67-original \
   --model qc67-phos --url http://127.0.0.1:8771/v1
-cosmic.cypher-cli models add samgo-original --backend openai-compatible \
+cosmic.cypher-cli models add samgo-original --backend qc67-original \
   --model qc67-samgo --url http://127.0.0.1:8771/v1
 cosmic.cypher-cli code samgo-original "Inspect this repository" \
   --workspace /owner/selected/workspace
 ```
 
 For environments using the host API key, direct authenticated Beast Box owner
-chat is the supported production entrypoint; COSMIC.CYPHER's standalone CLI
-backend does not inject host secrets into requests, and is intended for
-separately authorized local development only.
+chat is the supported production entrypoint; COSMIC.CYPHER's qc67-original backend reads the existing host-only
+RAWRPHOS_API_KEY and sends it only to the exact original QC67 loopback URL.
+Running the CLI requires authorized access to the same trusted host.

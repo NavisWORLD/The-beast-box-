@@ -84,7 +84,7 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install -e '.[secure]' pytest
       - name: Test fail-closed pinned model selection and local HTTP auth
-        run: python -m pytest -o addopts= -q models/qc67/tests/test_local_adapter.py apps/beastbox-cloud/bridge/tests/test_qc67_owner_selection.py tests/test_owner_dialogue_recall.py tests/test_owner_memory_loop.py
+        run: python -m pytest -o addopts= -q models/qc67/tests/test_local_adapter.py tests/test_qc67_cypher.py apps/beastbox-cloud/bridge/tests/test_qc67_owner_selection.py tests/test_owner_dialogue_recall.py tests/test_owner_memory_loop.py
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
