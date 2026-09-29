@@ -9,6 +9,7 @@ on:
       - "models/rawrphos/tests/test_diagnostics.py"
       - "tests/test_owner_dialogue_recall.py"
       - "tests/test_hf_owner_catalog.py"
+      - "tests/test_owner_memory_loop.py"
       - ".github/workflows/owner-chat-hf-diagnostics-ci.yml"
   pull_request:
     paths:
@@ -18,6 +19,7 @@ on:
       - "models/rawrphos/tests/test_diagnostics.py"
       - "tests/test_owner_dialogue_recall.py"
       - "tests/test_hf_owner_catalog.py"
+      - "tests/test_owner_memory_loop.py"
       - ".github/workflows/owner-chat-hf-diagnostics-ci.yml"
 
 permissions:
@@ -46,7 +48,7 @@ jobs:
           python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
           python -m pip install -e '.[secure]' -e './models/rawrphos' pytest==8.4.2
       - name: Synthetic-only native batch diagnostics; no optimizer steps
-        run: python -m pytest -o addopts= -q models/rawrphos/tests/test_diagnostics.py tests/test_hf_owner_catalog.py tests/test_owner_dialogue_recall.py
+        run: python -m pytest -o addopts= -q models/rawrphos/tests/test_diagnostics.py tests/test_hf_owner_catalog.py tests/test_owner_dialogue_recall.py tests/test_owner_memory_loop.py tests/test_durable_runtime.py
   cloud-ui:
     runs-on: ubuntu-latest
     timeout-minutes: 12
