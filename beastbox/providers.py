@@ -138,8 +138,12 @@ class CompatibleChatProvider:
         native = (self.model == 'rawrphos-native' and
                   self.base_url.rstrip('/') in {'http://127.0.0.1:8767/v1', 'http://127.0.0.1:8768/v1'} and
                   self.allow_remote is False)
+        # Native owner dialogue uses reproducible stochastic sampling instead of
+        # greedy decoding. Evaluation/probes retain their separate seeded controls.
+        # This changes expressive style only; it does not change model weights,
+        # grant tool authority or imply online neural learning.
         payload = {'model': self.model, 'messages': [{'role': 'user', 'content': prompt}],
-                   'stream': False, 'temperature': 0, 'max_tokens': 64 if native else 256}
+                   'stream': False, 'temperature': 0.75 if native else 0, 'max_tokens': 64 if native else 256}
         if self.base_url.rstrip('/') == 'https://ollama.com/v1' and self.model in {'gpt-oss:120b', 'gpt-oss:20b'}:
             # GPT-OSS can exhaust a tiny output budget on reasoning before
             # producing user-facing content. Explicitly request low reasoning;
