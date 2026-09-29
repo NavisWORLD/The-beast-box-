@@ -132,12 +132,12 @@ def semantic_grade(text,gold,family):
     first=next((x.strip() for x in text.splitlines() if x.strip()),"")
     if family=="addition":
         return bool(re.fullmatch(
-            r"(?:The answer is\\s*|[0-9]+\\s*\\+\\s*[0-9]+\\s*(?:is|=)\\s*)"+
-            re.escape(gold)+r"\\.?",first,re.IGNORECASE))
+            r"(?:The answer is\s*|[0-9]+\s*\+\s*[0-9]+\s*(?:is|=)\s*)"+
+            re.escape(gold)+r"\.?",first,re.IGNORECASE))
     if family in ("uppercase","reverse"):
         return bool(re.fullmatch(
-            r"(?:The answer is|Result is|Reversed text is|Uppercase is)\\s*[:=]?\\s*"+
-            re.escape(gold)+r"\\.?",first))
+            r"(?:The answer is|Result is|Reversed text is|Uppercase is)\s*[:=]?\s*"+
+            re.escape(gold)+r"\.?",first))
     raise ValueError("unregistered family")
 
 def has_new_gold(text,gold):
