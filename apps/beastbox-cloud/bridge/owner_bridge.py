@@ -20,6 +20,7 @@ from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV
 from beastbox.cloud_connection_checks import verify_connection
 from beastbox.azure_read import AzureReadError, read_owner_text
 from beastbox.ollama_models import ModelInventoryUnavailable, fetch_public_models, MODEL_ID
+from beastbox.hf_owner_catalog import list_owner_models, CatalogUnavailable
 from beastbox.bio_inputs import bio_event
 from beastbox.cst_sensor_preview import compare_sensor_state
 from beastbox.engine_growth_report import engine_growth_report
@@ -39,7 +40,7 @@ from beastbox.signal_model_probe import signal_model_probe
 from beastbox.soul.archive_summary import archive_manifest
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "engine-growth"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "hf-inventory", "engine-growth"})
 POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe", "signal-model-probe"})
 
 
@@ -351,6 +352,43 @@ class OwnerBridge:
                          "brain_changed": changed, "authority_revoked": revoked,
                          "no_paid_inference": True, "inference": "NOT_ATTESTED_UNTIL_REAL_CHAT",
                          "substrate": "EXISTING_DURABLE_STATE"}
+        if (choice == "hf_owner_model" and set(data) == {"choice", "model", "spend_approved"}
+                and data["spend_approved"] is True):
+            requested = data["model"]
+            if not isinstance(requested, str) or len(requested) > 180:
+                return 400, {"error": "Invalid owner Hugging Face repository ID"}
+            if self.vault is None:
+                return 503, {"error": "Encrypted owner vault is required to select an HF model"}
+            saved = self.vault.read_host_only("huggingface")
+            if saved is None:
+                return 404, {"error": "Save your Hugging Face credential in Connections first"}
+            try:
+                inventory = list_owner_models(saved["secret"])
+            except CatalogUnavailable:
+                return 503, {"error": "Owner HF inventory cannot be verified; selection unchanged"}
+            match = next((item for item in inventory["models"]
+                          if item["id"] == requested and item["selectable"]), None)
+            if match is None:
+                return 409, {"error": "Repository is absent or has no eligible generic text-chat adapter; selection unchanged"}
+            previous = saved["config"]["model"]
+            prior_grant = self.app.authority.allowed("cloud")
+            try:
+                if previous != requested:
+                    self.vault.update_model("huggingface", requested)
+                status, result = self._connection_action(
+                    {"action": "activate", "provider": "huggingface", "spend_approved": True}
+                )
+                if status != 200:
+                    raise ConnectionError("HF model activation rejected")
+            except (ConnectionError, ValueError, OSError):
+                if previous != requested:
+                    self.vault.update_model("huggingface", previous)
+                if not prior_grant:
+                    self.app.authority.revoke("cloud")
+                return 503, {"error": "HF model selection failed; prior model configuration restored"}
+            return 200, {**result, "credential_preserved": True,
+                         "inventory": "OWNER_REPO_LISTED_INFERENCE_UNVERIFIED",
+                         "substrate": "EXISTING_DURABLE_STATE"}
         if (choice == "ollama_cloud" and set(data) == {"choice", "model", "spend_approved"}
                 and data["spend_approved"] is True):
             # Model selection is a single owner-initiated, read-only inventory
@@ -516,6 +554,14 @@ class OwnerBridge:
                          "status": "PUBLIC_MODEL_LIST_ONLY",
                          "credential_reused": True, "account_access_verified": False,
                          "inference_attested": False, "model_invoked": False}
+        if name == "hf-inventory" and method == "GET":
+            # Fixed, read-only Hub URL. Only the owner sees private repo names;
+            # encrypted credentials stay on the durable backend.
+            saved = self.vault.read_host_only("huggingface") if self.vault is not None else None
+            try:
+                return 200, list_owner_models(saved["secret"] if saved else None)
+            except CatalogUnavailable:
+                return 503, {"error": "Owner Hugging Face repository catalog unavailable; no model or credential changed"}
         if name == "chat-job" and method == "GET":
             query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
             if set(query) != {"id"} or len(query["id"]) != 1:
