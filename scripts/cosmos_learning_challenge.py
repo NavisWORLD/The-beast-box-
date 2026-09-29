@@ -127,7 +127,7 @@ def run_seed(seed: int) -> dict:
         root = Path(temp)
         a, correct, a_ids = _new_corpus(root / "domain_a.sqlite3", TRAIN_CORPUS, seed)
         b, transfer, b_ids = _new_corpus(root / "domain_b.sqlite3", TRANSFER_CORPUS, seed + 100)
-        blank, empty = _new_corpus(root / "empty.sqlite3", (), seed)
+        blank, empty, _ = _new_corpus(root / "empty.sqlite3", (), seed)
         try:
             if _top_id(empty, TRAIN_CORPUS[0][2], WEIGHTS) is not None:
                 raise AssertionError("no-memory negative control returned a fabricated memory")
