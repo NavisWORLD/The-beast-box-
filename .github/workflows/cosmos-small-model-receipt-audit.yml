@@ -1,0 +1,33 @@
+name: COSMOS 003 archived public-checkpoint receipt audit (no downloads)
+
+on:
+  pull_request:
+    branches: [main, experiment/cosmos-native-correction-002]
+    paths:
+      - "docs/experiments/cosmos-small-model-controls-003-*-receipt.json"
+      - "docs/experiments/COSMOS_SMALL_MODEL_CONTROLS_003_RESULTS.md"
+      - "scripts/verify_public_small_receipts_003.py"
+      - "tests/test_cosmos_public_small_receipts_003.py"
+      - ".github/workflows/cosmos-small-model-receipt-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  archived-source-evidence-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install source-only fixed test framework; NO model downloads
+        run: python -m pip install pytest==8.4.2
+      - name: Verify all recorded literal outputs and unmodified full receipt hashes
+        run: |
+          python -m pytest -q             tests/test_cosmos_native_correction_002.py             tests/test_cosmos_public_small_controls_003.py             tests/test_cosmos_public_small_receipts_003.py
+          python -m scripts.verify_public_small_receipts_003
