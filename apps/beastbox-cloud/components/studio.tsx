@@ -52,6 +52,9 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  const [liveContext,setLiveContext]=useState({text:'',include:false});
  const [sensorReceipt,setSensorReceipt]=useState('');
  const [temporaryReply,setTemporaryReply]=useState<Turn|null>(null);
+ const [temporaryJobId,setTemporaryJobId]=useState<string|null>(null);
+ const [rememberConsent,setRememberConsent]=useState(false);
+ const [rememberBusy,setRememberBusy]=useState(false);
  const [sensesActive,setSensesActive]=useState({camera:false,speech:false});
  const updateSensesActive=useCallback((camera:boolean,speech:boolean)=>setSensesActive(old=>old.camera===camera&&old.speech===speech?old:{camera,speech}),[]);
  const updateLiveContext=useCallback((text:string,include:boolean)=>setLiveContext(old=>old.text===text&&old.include===include?old:{text,include}),[]);
@@ -228,8 +231,26 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
      // backend. Show it for this browser session; never claim it is in memory.
      const replyText=(result.result as Record<string,unknown>).response as string;
      setTemporaryReply(ids.length?{id:'temporary-'+jobId,role:'assistant',kind:'temporary',text:replyText}:null);
+     setTemporaryJobId(ids.length?jobId:null);
+     setRememberConsent(false);
      if(confirmed)setSensorReceipt('Selected sensor observations were included as temporary text context in this completed model response. Raw frames/audio were not sent or stored.');
    }catch(e){setError((e as Error).message);}finally{setBusy(false);}
+ }
+ async function rememberTemporaryReply(){
+   if(!temporaryJobId||!temporaryReply||!rememberConsent||rememberBusy||busy)return;
+   setRememberBusy(true);setError('');
+   try{
+     const receipt=await api('bridge/remember-reply',{method:'POST',body:JSON.stringify({
+       job_id:temporaryJobId,consent:true
+     })});
+     if(receipt.remembered!==true||typeof receipt.memory_id!=='number')
+       throw new Error('The durable host did not confirm this memory write.');
+     // Show the real saved assistant turn from the durable conversation,
+     // never duplicate it with an optimistic local browser transcript.
+     await load();
+     setTemporaryReply(null);setTemporaryJobId(null);setRememberConsent(false);
+   }catch(e){setError((e as Error).message);}
+   finally{setRememberBusy(false);}
  }
  async function selectLocal(){
    if(!bridge||busy||!modelGate?.local_available)return;
@@ -240,7 +261,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
     await load();
    }catch(e){setError((e as Error).message);}finally{setBusy(false);}
  }
- async function logOut(){try{await api('session',{method:'DELETE'});}finally{setOwner(false);setTurns([]);releaseImageUrls(attachments);setAttachments([]);setTemporaryReply(null);setSensorReceipt('');setPhotoConsent(false);setPhotoReceipt('');}}
+ async function logOut(){try{await api('session',{method:'DELETE'});}finally{setOwner(false);setTurns([]);releaseImageUrls(attachments);setAttachments([]);setTemporaryReply(null);setTemporaryJobId(null);setRememberConsent(false);setSensorReceipt('');setPhotoConsent(false);setPhotoReceipt('');}}
  if(!owner)return <Login configured={configured} onLogin={()=>setOwner(true)}/>;
  const needsGrant=bridge&&!!profile&&profile.kind!=='reference'&&modelGate?.reapproval_required===true;
  const connected=bridge&&!!profile&&profile.kind!=='reference'&&model!=='UNAVAILABLE'&&model!=='NOT CONNECTED'&&modelGate!==null&&!needsGrant;
@@ -256,7 +277,12 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  <LiveSenses visible={page==='SETTINGS'} canSend={connected} onActivity={updateSensesActive} onContext={updateLiveContext} onDraft={summary=>{setPrompt(previous=>[previous.trim(),summary].filter(Boolean).join('\n\n').slice(0,8192));setPage('BRAIN');setMenu(false);}}/>
  {page==='COSMOS WORLD'?<CosmosWorld connected={connected} model={model} checkpoint={snapshot?.checkpoint_sequence} memoryCount={bridge ? records.length : null} traceCount={bridge ? trace.length : null} onOpen={destination=>{setPage(destination);setMenu(false);}}/>:page==='BRAIN'?<div className="brain-layout"><section className="chat-panel"><header className="chat-top"><div className="chat-badge">✦</div><div><h2>Brain</h2><p>Your conversation, your story.</p></div><span className={'model-pill '+(connected?'':'dim')}>{model}</span></header>
  {needsGrant&&<div className="inline-error cosmos-model-reapproval" role="status"><ShieldCheck size={17}/><span>Saved cloud model needs fresh owner approval after a host restart. Your Azure storage does not authorize model inference; your draft and COSMOS memory remain unchanged.</span><button type="button" className="outline-action" onClick={()=>setPage('BRAIN BAY')}>Review cloud model</button>{modelGate?.local_available&&<button type="button" className="outline-action" disabled={busy} onClick={()=>void selectLocal()}>Use local model · no cloud charge</button>}</div>}
- <div className="chat-thread" aria-live="polite">{turns.length===0?<div className="empty-chat"><div className="empty-orb"><span>✺</span></div><div className="eyebrow">WELCOME TO YOUR UNIVERSE</div><h1>What&apos;s on your<br/><em>cosmic mind?</em></h1><p>{connected?'Send a message to the configured provider. Only a completed inference call verifies a live response.':bridge?'The connected provider is a deterministic reference fixture. Configure a genuine model on the durable host before enabling chat.':'Your authentic Beast Box backend is not connected yet. This is a private UI preview; no fake responses will appear.'}</p>{backendHint[backendStatus]&&<p role="status">{backendHint[backendStatus]}</p>}{needsGrant&&<p role="status">Reapprove the saved cloud model in Brain Bay or select the installed local model without remote charges.</p>}<div className="suggestions"><button disabled={!connected} onClick={()=>setPrompt('What do you remember about our last conversation?')}>✺ What do you remember?</button><button disabled={!connected} onClick={()=>setPrompt('Show me our last checkpoint.')}>◇ Show last checkpoint</button><button disabled={!connected} onClick={()=>setPrompt('Help me explore the universe!')}>✦ Explore an idea</button></div></div>:turns.map(t=><div className={'message '+t.role} key={t.id}><div className="message-avatar">{t.role==='assistant'?'✺':'CD'}</div><div className="message-content"><span className="message-name">{t.role==='assistant'?(t.model||'MODEL · HISTORICAL ID UNRECORDED'):'YOU'}</span><p>{t.text}</p>{t.role==='assistant'?<SpokenResponse text={t.text}/>:null}</div></div>)}{temporaryReply&&<div className="message assistant" key={temporaryReply.id}><div className="message-avatar">✺</div><div className="message-content"><span className="message-name">{model} · TEMPORARY REPLY</span><p>{temporaryReply.text}</p><SpokenResponse text={temporaryReply.text}/><small>Generated with owner-selected temporary context. Not stored in durable conversation memory. This browser-only reply is replaced after your next completed turn and disappears on refresh.</small></div></div>}<div ref={bottom}/></div>
+ <div className="chat-thread" aria-live="polite">{turns.length===0?<div className="empty-chat"><div className="empty-orb"><span>✺</span></div><div className="eyebrow">WELCOME TO YOUR UNIVERSE</div><h1>What&apos;s on your<br/><em>cosmic mind?</em></h1><p>{connected?'Send a message to the configured provider. Only a completed inference call verifies a live response.':bridge?'The connected provider is a deterministic reference fixture. Configure a genuine model on the durable host before enabling chat.':'Your authentic Beast Box backend is not connected yet. This is a private UI preview; no fake responses will appear.'}</p>{backendHint[backendStatus]&&<p role="status">{backendHint[backendStatus]}</p>}{needsGrant&&<p role="status">Reapprove the saved cloud model in Brain Bay or select the installed local model without remote charges.</p>}<div className="suggestions"><button disabled={!connected} onClick={()=>setPrompt('What do you remember about our last conversation?')}>✺ What do you remember?</button><button disabled={!connected} onClick={()=>setPrompt('Show me our last checkpoint.')}>◇ Show last checkpoint</button><button disabled={!connected} onClick={()=>setPrompt('Help me explore the universe!')}>✦ Explore an idea</button></div></div>:turns.map(t=><div className={'message '+t.role} key={t.id}><div className="message-avatar">{t.role==='assistant'?'✺':'CD'}</div><div className="message-content"><span className="message-name">{t.role==='assistant'?(t.model||'MODEL · HISTORICAL ID UNRECORDED'):'YOU'}</span><p>{t.text}</p>{t.role==='assistant'?<SpokenResponse text={t.text}/>:null}</div></div>)}{temporaryReply&&<div className="message assistant" key={temporaryReply.id}><div className="message-avatar">✺</div><div className="message-content"><span className="message-name">{model} · TEMPORARY REPLY</span><p>{temporaryReply.text}</p><SpokenResponse text={temporaryReply.text}/><small>Generated using owner-selected temporary context. Not saved unless you approve below; otherwise it disappears on refresh.</small>
+ {temporaryJobId?<div className="record"><label className="cloud-spend"><input type="checkbox" checked={rememberConsent} disabled={rememberBusy||busy}
+ onChange={e=>setRememberConsent(e.target.checked)}/>
+ I explicitly approve keeping this assistant reply in COSMOS memory. It may quote private attachments or sensor text and could be retrieved by models I select later, including remote models. No raw media is saved.</label>
+ <button type="button" className="outline-action" disabled={!rememberConsent||rememberBusy||busy}
+ onClick={()=>void rememberTemporaryReply()}>{rememberBusy?'Remembering…':'Remember this reply in COSMOS'}</button></div>:null}</div></div>}<div ref={bottom}/></div>
  {error&&<div className="inline-error" role="alert"><CircleHelp size={16}/>{error}<button aria-label="Dismiss error" onClick={()=>setError('')}><X size={14}/></button></div>}{attachError&&<div className="inline-error" role="alert">{attachError}</div>}
  <div className="composer-area"><WebLookup canSend={connected&&!busy&&attachments.length<4} onStage={(name,text)=>{
     if(busy||attachments.length>=4){setAttachError('Remove another attachment before staging web context.');return;}
