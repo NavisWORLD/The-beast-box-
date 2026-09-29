@@ -371,6 +371,11 @@ class OwnerBridge:
             if match is None:
                 return 409, {"error": "Repository is absent or has no eligible generic text-chat adapter; selection unchanged"}
             previous = saved["config"]["model"]
+            if (previous != requested and
+                    (self.app.profile.kind == "hf_space" or
+                     self.app.profile.kind == "compatible" and
+                     self.app.profile.base_url == "https://router.huggingface.co/v1")):
+                return 409, {"error": "Switch to local in Brain Bay before changing an active Hugging Face model ID"}
             prior_grant = self.app.authority.allowed("cloud")
             try:
                 if previous != requested:
