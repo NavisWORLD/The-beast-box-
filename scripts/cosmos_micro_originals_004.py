@@ -31,7 +31,7 @@ ORIGINAL_SHA = {
     "weights/phos.pt": "bdcd4a39aa54bfc6c274580e210f993e528214d7207cb19dc258a2f801f6b84d",
     "weights/cosmos_born.pt": "bfb49099ef6be5584175ca9ef5ffe0e5509b5fc9be3a2c9ff3cbef2f16153906",
     "architecture/cosmos_state_ladder.py": "fa110c5205b71c7c3243dc5be76bc4b0e599c8e1fd1c5c1924d0e57f811216e9",
-    "architecture/cosmos_spark_cst.py": "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf5399aedcbb2967f1dc",
+    "architecture/cosmos_spark_cst.py": "955805d45f7b407ef5cc9b6efe178d9a5f63df5b32eaf539d9aedcbb2967f1dc",
     "spark_serve.py": "85de58dbe8bf0ff558a51343be1d68762c762bbd0c7a9fc02787a28c79abdd45",
 }
 LABELS = {"phos": ("weights/phos.pt", 162), "cosmos_born": ("weights/cosmos_born.pt", 99)}
