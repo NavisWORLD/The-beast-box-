@@ -204,6 +204,36 @@ class ReconciliationMemory:
             )
         return records
 
+    def recent_dialogue(self, *, limit: int = 24) -> list[MemoryRecord]:
+        """Newest retained chat turns, independent of high-volume sensor records.
+
+        This is read-only and shares the same verified durable database.
+        Other memory kinds can grow without crowding the conversational window.
+        """
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise ValueError("recent dialogue limit must be in 1..100")
+        rows = self.db.execute(
+            "SELECT id,created_at,kind,text,metadata_json,source_ids_json FROM memories "
+            "WHERE kind IN ('user_turn', 'assistant_turn') ORDER BY id DESC LIMIT ?",
+            (limit * 2,),
+        ).fetchall()
+        records = []
+        for row in rows:
+            metadata = json.loads(row["metadata_json"])
+            source_ids = json.loads(row["source_ids_json"])
+            if not isinstance(metadata, dict) or not isinstance(source_ids, list):
+                raise RuntimeError("invalid retained dialogue metadata")
+            if metadata.get("archived"):
+                continue
+            records.append(MemoryRecord(
+                id=int(row["id"]), created_at=float(row["created_at"]),
+                kind=str(row["kind"]), text=str(row["text"]),
+                metadata=metadata, source_ids=[int(value) for value in source_ids],
+            ))
+            if len(records) >= limit:
+                break
+        return records
+
     def associations(self, concept: str, *, limit: int = 10) -> list[tuple[str, float]]:
         c = concept.lower()
         rows = self.db.execute(
