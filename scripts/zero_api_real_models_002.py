@@ -111,7 +111,11 @@ class LocalCheckpoint:
         self.prompt_history.append(prompt)
         tok = self.tokenizer
         # Bounded context; record actual truncation. Purely local tokenizer/generation.
-        encoded = tok(prompt, return_tensors="pt", truncation=True, max_length=1024)
+        formatted = (tok.apply_chat_template(
+            [{"role": "user", "content": prompt}], tokenize=False,
+            add_generation_prompt=True)
+            if getattr(tok, "chat_template", None) else prompt)
+        encoded = tok(formatted, return_tensors="pt", truncation=True, max_length=1024)
         inp = encoded["input_ids"]
         tokens_in = int(inp.shape[-1])
         start = time.perf_counter()
@@ -299,7 +303,7 @@ def measured(cache: Path, staging: Path, output: Path, work: Path) -> int:
         a = step("real_model_A_local_cpu_load", lambda: LocalCheckpoint(
                  cache/"A", MODELS["A"], "A"))
         runtime = step("create_real_Beast_Box_substrate",
-                       lambda: DurableRuntime(work, a))
+                       lambda: DurableRuntime(work, a, recent_dialogue_limit=4))
         before = step("inspect_genesis",runtime.inspect)
         first_result = step("A_generated_turn_with_synthetic_memory",
                             lambda: runtime.respond(
@@ -318,6 +322,10 @@ def measured(cache: Path, staging: Path, output: Path, work: Path) -> int:
         step("B_adds_synthetic_memory",lambda: runtime.respond(
              "Remember the orbit seal is prism-birch for this test."))
         after_b = step("inspect_after_B", runtime.inspect)
+        b_record_present = any(
+            "prism-birch" in str(row["text"]).lower()
+            for row in runtime.memory.db.execute("SELECT text FROM memories").fetchall()
+        )
         # B also runs bounded model-generated planning while currently resident.
         agent = step("model_B_bounded_agent_task",lambda: run_local_agent(b, work))
         result["bounded_agent"] = agent
@@ -333,6 +341,16 @@ def measured(cache: Path, staging: Path, output: Path, work: Path) -> int:
                         runtime.respond("What is the orbit seal?"))
         a_routed = "prism-birch" in a.prompt_history[-1].lower()
         a_quality = "prism-birch" in a_return["response"].lower()
+        result["retrieval_diagnostics"] = {
+            "B_stage_phrase_physically_stored_in_sqlite": b_record_present,
+            "A_return_R12_selected_B_phrase": any(
+                "prism-birch" in h["text"].lower() for h in a_return["memory_hits"]),
+            "A_return_prompt_has_recent_owner_context":
+                "RECENT OWNER CONVERSATION" in a.prompt_history[-1],
+            "B_routing_memory_record_ids": b_result.get("routing",{}).get("memory_ids",[]),
+            "A_return_routing_memory_record_ids":
+                a_return.get("routing",{}).get("memory_ids",[]),
+        }
         final = step("inspect_final",runtime.inspect)
         result["model_A_first_metrics"] = a_gen
         result["model_A_return_metrics"] = a.generations.copy()
@@ -383,6 +401,8 @@ def measured(cache: Path, staging: Path, output: Path, work: Path) -> int:
         result["limitations"] = [
             "This is a GitHub-hosted CPU worker, not owner's own local hardware.",
             "True weights for two public pretrained checkpoints, not native RAWRPHOS.",
+            "Recent owner dialogue is explicitly enabled (last 4) as a persisted-memory "
+            "route. It is separately identified from the R12-selected memory list.",
             "Memory injected into prompt does not guarantee generated answer quality.",
             "Agent task is a short sandboxed two-step planning evaluation; model may fail.",
             "A Linux network namespace isolates only the measured process and descendants; "
