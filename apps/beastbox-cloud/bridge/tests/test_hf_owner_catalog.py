@@ -22,6 +22,7 @@ def fixture_catalog(_token):
         "models": [
             {"id": "phera-ra/demo-chat", "task": "text-generation", "selectable": True},
             {"id": "phera-ra/QC67_cosmo", "task": "text-generation", "selectable": False},
+            {"id": "phera-ra/second-chat", "task": "text-generation", "selectable": True},
         ],
         "research_artifacts": [], "inference_attested": False, "model_invoked": False,
     }
@@ -55,3 +56,12 @@ def test_owner_only_hf_inventory_and_credentials_preserved(tmp_path):
             assert bridge.vault.read_host_only("huggingface")["secret"] == "fixture-private-HF-token"
             assert bridge.app.authority.allowed("cloud")
             assert "fixture-private-HF-token" not in json.dumps(response)
+            # Changing a live HF binding behind an active profile must not
+            # strand that model on a mismatched encrypted credential.
+            switch_again = {"choice": "hf_owner_model", "model": "phera-ra/second-chat",
+                            "spend_approved": True}
+            status, refused = bridge.dispatch(
+                "POST", "/api/models", AUTH, json.dumps(switch_again).encode())
+            assert status == 409 and "Switch to local" in refused["error"]
+            assert bridge.vault.read_host_only("huggingface")["config"]["model"] == "phera-ra/demo-chat"
+            assert bridge.app.profile.model == "phera-ra/demo-chat"
