@@ -20,6 +20,10 @@ def test_fixed_disjoint_splits_and_new_four_binding_distribution():
             assert target==lookup[seq[-1]]
 
 def test_equal_initial_tensor_hash_and_finite_12d_mechanism():
+    # Main repository Product CI intentionally omits the optional native Torch
+    # package. The dedicated experiment CI installs it and MUST execute this
+    # mechanistic test (its workflow separately enforces that dedicated gate).
+    pytest.importorskip("rawrphos")
     parts=pilot.dataset(11)
     proof=pilot.mechanism_preflight(11,parts["train"])
     assert proof["causal_prefix_unchanged"] and proof["state_attention_active"]
