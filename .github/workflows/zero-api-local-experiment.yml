@@ -35,9 +35,11 @@ jobs:
         run: python -m pip install -e .
       - name: Execute real checked-out durable runtime without model API or network
         run: |
+          set -o pipefail
           mkdir -p build
           python scripts/zero_api_experiment.py --output build/zero-api-experiment.json \
             | tee build/zero-api-experiment-terminal.log
+          test -s build/zero-api-experiment.json
       - name: Archive successes AND failures
         if: always()
         uses: actions/upload-artifact@v4
