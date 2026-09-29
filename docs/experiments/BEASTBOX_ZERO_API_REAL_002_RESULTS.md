@@ -92,3 +92,33 @@ See [the owner-local launcher and Dockerfile](../../lab/zero_api_real/README.md)
 ## Strict no-answer-template follow-up — preserved failure, new protocol
 
 The original initial run used exact JSON answer examples, so it was NOT an independent model-planning demonstration. A separate stricter run [36628356524](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36628356524) eliminated those target JSON examples. Qwen selected the correct calculate_sum tool and values but returned an object with nested arguments. The original flat-only host parser safely rejected it, producing model_planning_succeeded=false and useful_task_completed=false. All structural A→B→A and isolated-container checks still passed. Do NOT retroactively score that run as successful agent execution. A separately defined protocol now accepts exactly either a flat or one-level nested allow-listed tool arguments object, with unchanged strict host capability and type checks. Its prospective result requires a new independent machine receipt.
+
+## Final prospective strict action-selection test: v2 (separate run)
+
+**2026-09-29, status: 11/11 STRUCTURAL PASS and one constrained model-selected two-step task PASS.** The exact [v2 run 36628867378](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36628867378) checked out PR merge-test commit `d25ef2a` of experimental source head `0df3ced18dca0e732d9ec63687255b0dd2abbb7b`. Full model manifests, raw responses, Docker host attestation, terminal logs, and result JSON are in GitHub Actions artifact `zero-api-real-models-receipts` (ID `11061786005`, GitHub artifact ZIP SHA-256 `4ae2ff85e1fa6d67a7abecb70cdbd7e6f9dfe1c371445f1cd348274605a5b858`, 14-day retention).
+
+**Prospectively declared correction:** The immediately preceding stricter no-answer-template experiment [run 36628356524](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36628356524) FAILED the model-task criterion: Qwen selected `calculate_sum` and the correct integers but returned a one-level nested JSON `arguments` object. The flat-only host parser rejected it. That failure remains a real failure. Before running v2, the source defined an exact schema permitting *only* either flat or one-level `arguments` objects for the two allow-listed actions, with no extra keys, and retained all type/value validation and temporary host authorization. The model task prompts described the goal and available tool interfaces but supplied NO literal target JSON examples.
+
+**Actual model-generated action requests** (code fences trimmed in this report; original full text in raw artifact):
+
+- `{"action":"calculate_sum","arguments":{"numbers":[7,11,6]}}`
+- After trusted tool returned 24: `{"action":"write_report","arguments":{"total":24}}`
+
+Both passed their strict host gate under separate temporary grants, after a no-grant probe was denied. The output file independently contained the correct synthetic result 24. The scripted host baseline was recorded separately; it was NOT credited to the model. This is one simple model-originated **constrained tool-selection** success, not evidence of general autonomous planning, reliability over distributions, or safe unrestricted agency.
+
+| Measured isolated v2 workload | Actual value |
+|---|---:|
+| Wall time | **21.566 s** |
+| Process CPU time | **37.720 s** |
+| Peak process RSS | **3,520,568 KiB (~3.36 GiB)** |
+| Durable SQLite storage after restart | **98,304 bytes** |
+| Structural checks passed | **11/11** |
+| Independently checked model-selected task | **1/1** (tiny constrained synthetic task) |
+| Paid model inference API requests | **0**, local weights only |
+| Whole-host traffic, owner physical machine and electricity cost | **NOT MEASURED** |
+
+The full container had `--network none`, and an independent Docker host `inspect` recorded that mode, zero exit status and no OOM. Container interfaces contained only `lo`; external connect probes to 1.1.1.1 and 8.8.8.8 were *attempted and blocked* with OS error 101. There was no measured loopback interface byte delta. This is OS-enforced **container-scoped** isolation, not an independently measured whole-host network audit. The public model weight files, CPU libraries and Docker image were preprovisioned with network access *before* the measured isolation boundary, and CI artifact upload used network *after* it.
+
+**Retained unfavorable recall observation:** Qwen B received real A-stage memory and generated the specified code; returning real SmolLM2 A received B-stage memory in its exact input but did **not** generate the expected B-stage navigation code. Successful structural continuity must NOT be called universally reliable semantic recall. The no-memory control had a different input length; results are a small descriptive example rather than matched statistical proof.
+
+**Outstanding physical proof:** All these runs were on a GitHub-hosted x86-64 computer. An owner-run reproduction of the launcher on Cory's own hardware, **independent whole-machine** network egress capture while other processes are controlled, and **actual electricity/power metering** have *not* occurred. The "$0" refers only to zero paid inference API calls; costs of internet downloads, hosted CI/compute/hardware and electricity are unknown. Actual RAWRPHOS native owner checkpoint testing is also a distinct future experiment; these two checkpoints were public SmolLM2 and Qwen.
