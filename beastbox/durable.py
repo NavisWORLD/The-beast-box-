@@ -105,7 +105,12 @@ class DurableRuntime(CosmosRuntime):
         anchor_authority: ContinuityAnchor | None = None,
         embedding_provider: EmbeddingProvider | None = None,
         allow_remote_embeddings: bool = False,
+        recent_dialogue_limit: int = 0,
     ):
+        if type(recent_dialogue_limit) is not int or not 0 <= recent_dialogue_limit <= 6:
+            raise ValueError("recent dialogue limit must be an integer in 0..6")
+        self._recent_dialogue_limit = recent_dialogue_limit
+        self._recent_dialogue_text = ""
         started = time.perf_counter()
         self._stage_started: float | None = None
         self._stages_ms: dict[str, float] = {}
@@ -275,11 +280,21 @@ class DurableRuntime(CosmosRuntime):
             self._retrieval_snapshot = capture_snapshot(self.memory)
         return lexical_from_snapshot(self._retrieval_snapshot, text, limit=5)
 
+    def _conversation_context(self) -> str:
+        return self._recent_dialogue_text
+
     def _route_memories(self, text, memories, state):
         # Reuse the historical router without constructing/importing a historical ledger.
         snapshot_rows = self._retrieval_snapshot
         if snapshot_rows is None:
             snapshot_rows = capture_snapshot(self.memory)
+        self._recent_dialogue_text = ""
+        recent_ids: list[int] = []
+        if self._recent_dialogue_limit:
+            from .retrieval_snapshot import recent_dialogue_from_snapshot
+            self._recent_dialogue_text, recent_ids = recent_dialogue_from_snapshot(
+                snapshot_rows, limit=self._recent_dialogue_limit
+            )
         try:
             adapter = cast(DadSonLedger, SimpleNamespace(memory=_RoutingMemoryView(self.memory, snapshot_rows)))
             records = RefractiveMemoryRouter(adapter).rank(
@@ -320,6 +335,9 @@ class DurableRuntime(CosmosRuntime):
             "memory_ids": [r["memory_id"] for r in records],
             "state_sha256": sha256_obj(self.r12_state),
         }
+        if recent_ids:
+            self._routing["recent_dialogue_ids"] = recent_ids
+            self._routing["recent_dialogue_sha256"] = sha256_obj(self._recent_dialogue_text)
         if semantic_info is not None:
             self._routing["semantic"] = semantic_info
         self._trace_stage("r12_routing")
@@ -370,6 +388,7 @@ class DurableRuntime(CosmosRuntime):
         cast(MeasuredProvider, self.provider).measurements = {}
         self._retrieval_snapshot = None
         self._semantic_precomputed = None
+        self._recent_dialogue_text = ""
         before = None
         committed = False
         try:
