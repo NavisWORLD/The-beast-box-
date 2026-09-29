@@ -1,0 +1,85 @@
+name: Zero paid-API real local checkpoints and isolated CPU
+
+on:
+  push:
+    branches: [experiment/zero-api-real-local-models-002]
+    paths:
+      - scripts/zero_api_real_models_002.py
+      - .github/workflows/zero-api-real-models-002.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - scripts/zero_api_real_models_002.py
+      - .github/workflows/zero-api-real-models-002.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-pretrained-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      TOKENIZERS_PARALLELISM: "false"
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      PIP_NO_INPUT: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Provision CPU-only software before measurement (NOT offline phase)
+        run: |
+          set -euo pipefail
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . transformers==4.51.3 huggingface_hub==0.30.2 psutil==7.0.0
+          if ! command -v ip; then sudo apt-get update && sudo apt-get install -y iproute2; fi
+          command -v setpriv
+      - name: Download, resolve exact HF revisions and hash actual local weight files
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          python scripts/zero_api_real_models_002.py --mode stage \
+            --cache "$PWD/build/zero-api-model-cache" \
+            --staging-receipt "$PWD/build/zero-api-pretrained-stage.json" \
+            2>&1 | tee build/zero-api-stage.log
+          test -s build/zero-api-pretrained-stage.json
+      - name: Enforce OS-level Linux network isolation and measure REAL local models
+        run: |
+          set -euo pipefail
+          NS="cosmos-zero-api-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          function teardown() { sudo ip netns del "$NS" 2>/dev/null || true; }
+          trap teardown EXIT
+          sudo ip netns add "$NS"
+          sudo ip -n "$NS" link set lo up
+          echo "offline network namespace: $NS"
+          echo "network links:"; sudo ip -n "$NS" -br link
+          echo "routes:"; sudo ip -n "$NS" route show
+          sudo ip netns exec "$NS" setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups \
+            env HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+            HF_HUB_DISABLE_TELEMETRY=1 OMP_NUM_THREADS=2 \
+            TOKENIZERS_PARALLELISM=false \
+            "$(command -v python)" scripts/zero_api_real_models_002.py --mode measure \
+              --cache "$PWD/build/zero-api-model-cache" \
+              --staging-receipt "$PWD/build/zero-api-pretrained-stage.json" \
+              --output "$PWD/build/zero-api-pretrained-results.json" \
+              --work "$PWD/build/zero-api-offline-runtime" \
+            2>&1 | tee build/zero-api-real-models.log
+          test -s build/zero-api-pretrained-results.json
+      - name: Preserve exact manifests, measurements and failures, excluding weight bytes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zero-api-two-real-models-receipts
+          path: |
+            build/zero-api-pretrained-stage.json
+            build/zero-api-pretrained-results.json
+            build/zero-api-stage.log
+            build/zero-api-real-models.log
+          if-no-files-found: warn
+          retention-days: 21
