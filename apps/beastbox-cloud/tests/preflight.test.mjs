@@ -33,7 +33,9 @@ test('owner-selected photos and PDFs submit only bounded extracted text; raw med
 });
 test('proxy excludes arbitrary tools and filesystem',()=>{
  const proxy=read('app/api/bridge/[endpoint]/route.ts');
- assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','chat-start','context','connections','bio','observations','models','azure-read','cns-model-probe','signal-model-probe'\]\)/);
+ assert.match(proxy,/const POST_ALLOW=new Set\(\['chat','chat-start','context','connections','bio','observations','models','remember-reply','azure-read','cns-model-probe','signal-model-probe'\]\)/);
+ assert.match(proxy,/endpoint==='remember-reply'/);
+ assert.match(proxy,/input\.consent!==true/);
  assert.match(proxy,/endpoint==='azure-read'/);
  assert.match(proxy,/read_confirmed!==true/);
  assert.doesNotMatch(proxy,/['"]workspace\/write['"]/);
