@@ -60,7 +60,10 @@ class OriginalModels:
         cfg = CosmosConfig()
         for key, value in samgo.get("config", {}).items():
             if hasattr(cfg, key) and isinstance(value, (int, float, str, bool)):
-                setattr(cfg, key, value)
+                try:
+                    setattr(cfg, key, value)
+                except AttributeError:
+                    pass  # derived read-only config properties are not checkpoint fields
         self.samgo = CosmosTransformer(cfg)
         self.samgo.load_state_dict(samgo["model_state_dict"], strict=True)
         self.samgo.eval()
