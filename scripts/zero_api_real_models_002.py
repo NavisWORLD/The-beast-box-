@@ -26,6 +26,18 @@ MODELS = {
     "A": "HuggingFaceTB/SmolLM2-135M-Instruct",
     "B": "Qwen/Qwen2.5-0.5B-Instruct",
 }
+# Reuse already source-frozen public checkpoint revisions AND upstream full
+# safetensors digests from cosmos_public_small_controls_003.py; refuse drift.
+PINS = {
+    "A": {
+        "revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+        "model.safetensors": "5af571cbf074e6d21a03528d2330792e532ca608f24ac70a143f6b369968ab8c",
+    },
+    "B": {
+        "revision": "ec7ddfa904d4d447eedd0b7f126df16957734abb",
+        "model.safetensors": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    },
+}
 FILE_WHITELIST = [
     "*.safetensors", "*.safetensors.index.json", "config.json",
     "generation_config.json", "tokenizer*", "vocab.json", "merges.txt",
@@ -61,15 +73,17 @@ def stage_models(cache: Path, output: Path) -> None:
     receipts: dict = {"schema": SCHEMA + "-staging", "models": {},
                       "not_measured": "Provisioning/download occurs with network before isolation."}
     for key, repo in MODELS.items():
-        info = api.model_info(repo)
-        revision = info.sha
+        revision = PINS[key]["revision"]
+        info = api.model_info(repo, revision=revision)
+        if info.sha != revision:
+            raise RuntimeError("Pinned HF commit changed or was not resolved")
         target = cache / key
         snapshot_download(repo_id=repo, revision=revision,
                           local_dir=target, allow_patterns=FILE_WHITELIST,
                           token=False)
         files = manifest_files(target)
-        if not any(x.endswith(".safetensors") for x in files):
-            raise RuntimeError(f"staging {key} has no locally stored weights")
+        if files.get("model.safetensors") != PINS[key]["model.safetensors"]:
+            raise RuntimeError(f"original pinned {key} safetensors digest mismatch")
         # Verify local-only loader during provisioning, before network isolation.
         tok = AutoTokenizer.from_pretrained(str(target), local_files_only=True,
                                              trust_remote_code=False)
@@ -80,6 +94,7 @@ def stage_models(cache: Path, output: Path) -> None:
         gc.collect()
         receipts["models"][key] = {
             "id": repo, "hf_git_revision": revision,
+            "upstream_expected_weights_sha256": PINS[key]["model.safetensors"],
             "parameter_count": params, "files_sha256": files,
             "weight_file_bytes": sum((target / n).stat().st_size for n in files
                                      if n.endswith(".safetensors"))
