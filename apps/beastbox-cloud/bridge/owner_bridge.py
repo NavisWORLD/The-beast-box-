@@ -41,7 +41,7 @@ from beastbox.soul.archive_summary import archive_manifest
 
 MAX_BYTES = 256_000
 GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "hf-inventory", "engine-growth"})
-POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe", "signal-model-probe"})
+POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "remember-reply", "azure-read", "guest-local", "cns-model-probe", "signal-model-probe"})
 
 
 class OwnerBridge:
@@ -441,6 +441,51 @@ class OwnerBridge:
             return status, result
         return 400, {"error": "Choose a configured model and approve remote usage explicitly"}
 
+    def _remember_verified_reply(self, job_id: str, completed: dict) -> tuple[int, dict]:
+        """Explicitly promote a server-verified temporary reply into durable chat.
+
+        Never accept assistant text from the browser; a model may have quoted
+        untrusted private attachments, so consent remains separate from chat.
+        """
+        result = completed.get("result")
+        if not isinstance(result, dict) or result.get("response_persistent") is not False:
+            return 409, {"error": "Only a completed temporary-context reply can be remembered"}
+        selected = result.get("context_used")
+        turn = result.get("result")
+        if not isinstance(selected, list) or not selected or not isinstance(turn, dict):
+            return 409, {"error": "No verified temporary reply for this job"}
+        response = turn.get("response")
+        if not isinstance(response, str) or not 1 <= len(response) <= 65536:
+            return 409, {"error": "Verified reply is missing or exceeds the memory bound"}
+        model = result.get("provider", {})
+        label = model.get("model") if isinstance(model, dict) else None
+        # Use the exact same durable root and continuity verification boundary.
+        runtime = DurableRuntime(self.root)
+        try:
+            # Serialized with the owning app lock and the admitted job lock.
+            # A repeated click must not duplicate a remembered conversation turn.
+            existing = runtime.memory.db.execute(
+                "SELECT id FROM memories WHERE kind='assistant_turn' "
+                "AND json_extract(metadata_json,'$.owner_approved_chat_job_id')=? LIMIT 1",
+                (job_id,),
+            ).fetchone()
+            if existing is not None:
+                return 200, {"remembered": True, "already_remembered": True,
+                             "memory_id": int(existing["id"]), "raw_media_saved": False}
+            meta = {"owner_approved_chat_job_id": job_id,
+                    "source": "explicit_owner_approved_temporary_reply",
+                    "attachment_content_saved": "REPLY_TEXT_ONLY",
+                    "origin": "verified_completed_chat_job"}
+            if isinstance(label, str) and 1 <= len(label) <= 180:
+                meta["model"] = label
+            receipt = runtime.store_external_memory(response, kind="assistant_turn", metadata=meta)
+        finally:
+            runtime.close()
+        return 200, {"remembered": True, "already_remembered": False,
+                     "memory_id": receipt["memory_id"],
+                     "checkpoint_sha256": receipt["checkpoint"]["sha256"],
+                     "raw_media_saved": False}
+
     def _observation_action(self, data: dict) -> tuple[int, dict]:
         """Persist *only* explicitly selected, bounded, unverified device text."""
         if not self.device_memory_enabled:
@@ -618,6 +663,21 @@ class OwnerBridge:
                 self.chat_jobs.release_guest()
         if name == "chat-start":
             return self.chat_jobs.start(data)
+        if name == "remember-reply":
+            # Obtain the trusted response from the completed job, not client
+            # text. Fail closed on expired jobs, in-flight turns or no consent.
+            if set(data) != {"job_id", "consent"} or data.get("consent") is not True:
+                return 400, {"error": "Explicit consent and a completed chat job are required"}
+            job_id = data.get("job_id")
+            if not isinstance(job_id, str):
+                return 400, {"error": "Invalid chat job"}
+            code, record = self.chat_jobs.get(job_id)
+            if code != 200 or record.get("state") != "complete":
+                return 409, {"error": "Verified completed chat job is unavailable; no memory change"}
+            with self.app._lock:
+                return self.chat_jobs.run_when_idle(
+                    lambda: self._remember_verified_reply(job_id, record)
+                )
         if name == "models":
             with self.app._lock:
                 return self.chat_jobs.run_when_idle(lambda: self._model_action(data))
