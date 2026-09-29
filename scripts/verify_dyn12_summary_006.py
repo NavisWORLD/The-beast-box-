@@ -32,7 +32,7 @@ def verify():
                 raise ValueError("wrong heldout denominator")
             if not all(0<=v<=n for v,n in zip(correct,count)):
                 raise ValueError("impossible correctness count")
-            observed=round(mean(v/n for v,n in zip(correct,count)),6)
+            observed=round(mean(round(v/n,6) for v,n in zip(correct,count)),6)
             if abs(observed-part["mean_accuracy"])>0.000001:
                 raise ValueError("aggregate does not match per-seed counts")
     for compared,key in (("standard","dyn12_minus_standard"),
