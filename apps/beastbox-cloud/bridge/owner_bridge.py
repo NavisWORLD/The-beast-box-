@@ -60,8 +60,11 @@ class OwnerBridge:
         if bool(model_path) != enabled:
             raise ValueError("explicit local semantic flag and installed model path must agree")
         embeddings = OfflineSentenceTransformer(model_path) if enabled else None
+        recent_raw = os.environ.get("BEASTBOX_CHAT_RECENT_TURNS", "4")
+        if not recent_raw.isascii() or not recent_raw.isdecimal() or not 0 <= int(recent_raw) <= 6:
+            raise ValueError("BEASTBOX_CHAT_RECENT_TURNS must be 0..6")
         self.app = CosmicApp(root, provider_secret_resolver=self._resolve_provider_secret if self.vault else None,
-                             embedding_provider=embeddings)
+                             embedding_provider=embeddings, recent_dialogue_limit=int(recent_raw))
         self._configure_explicit_local_tiny_provider(root)
         self.local_model_ready = os.environ.get("BEASTBOX_TINY_LOCAL_ENABLED") == "yes"
         self._configure_explicit_hf_provider(root)
