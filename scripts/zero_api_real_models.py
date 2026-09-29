@@ -185,9 +185,13 @@ def agent_task(model: CPUModel, target: Path, events: list) -> dict:
         return {"status": "INVALID", "authorized": False}
     report["denied_without_host_grant"] = gate("calculate_sum", numbers)["status"] == "DENIED"
     first = model.generate(
-        "You are a constrained task agent. Calculate the SUM of integers [7,11,6] by asking the "
-        "host to call its calculator. Output ONLY exactly one JSON object, with no prose: "
-        '{"action":"calculate_sum","numbers":[7,11,6]}',
+        "Choose the NEXT tool action for a safe, local, two-step task. "
+        "Goal: store a verified report containing the sum of dataset [7,11,6]. "
+        "Available tools: calculate_sum(numbers: list[int]) returns a trusted numeric total; "
+        "write_report(total: int) stores a result to the allowed workspace. "
+        "No tool results are available yet. Select the next necessary action and arguments. "
+        "Return one JSON object with action as the tool name and other keys as its arguments. "
+        "No explanation, examples, or markdown.",
         max_new_tokens=76)
     action1 = parse_first_json(first)
     report["raw_model_actions"].append(first[:500])
@@ -198,10 +202,13 @@ def agent_task(model: CPUModel, target: Path, events: list) -> dict:
         events.append({"type": "agent_host_tool_1", "result": response})
         if response.get("authorized") and response.get("total") == 24:
             second = model.generate(
-                "A prior authorized calculator returned this trustworthy observation: total=24 "
-                "for [7,11,6]. Next complete the task by asking host to write a VERIFIED "
-                "structured local report with total 24. Output ONLY one JSON object: "
-                '{"action":"write_report","total":24}',
+                "The goal remains to store a verified report of dataset [7,11,6]. "
+                "You already invoked an approved tool. Trustworthy observation: the "
+                "calculator returned {total: 24}. Choose the next needed tool action. "
+                "Available tools: calculate_sum(numbers: list[int]) calculates; "
+                "write_report(total: int) stores a verified result. "
+                "Return exactly one JSON object with action and necessary arguments. "
+                "No explanation, examples, or markdown.",
                 max_new_tokens=76)
             action2 = parse_first_json(second)
             report["raw_model_actions"].append(second[:500])

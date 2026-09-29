@@ -61,12 +61,12 @@ The number of enumerated lines does not equal the 11 individual machine Boolean 
 
 ## Real model-originated bounded task agent: one task passed
 
-The unprompted actor was NOT a deterministic substitute: Qwen2.5-0.5B generated these two bounded tool requests as its own outputs:
+**Initial test prompting qualification:** This particular successful task run gave Qwen the exact JSON request examples in BOTH prompts, so its behavior is strongly prompted structured tool-following, **NOT an independent action-selection or planning demonstration**. The executed Qwen model (not a deterministic stand-in) returned these two bounded tool requests:
 
 1. A structured request for the authorized host calculator to sum the synthetic numbers 7, 11, 6.
 2. After the trusted host returned 24, a structured request to write the verified total 24 to the synthetic-only results workspace.
 
-The test host first denied a tool request without authorization. Only exact allow-listed, type-checked arguments received explicit, temporary per-step grants. The final result contained the independently checked total 24; the raw agent JSON and checksum were preserved. This is **one successful tiny model-directed workflow**. It does NOT prove general autonomous planning, reliable self-correction, unrestricted tool authority, safety across varied tasks, or ability to perform arbitrary real-world actions. The host-only scripted baseline was measured separately and not credited to the model.
+The test host first denied a tool request without authorization. Only exact allow-listed, type-checked arguments received explicit, temporary per-step grants. The final result contained the independently checked total 24; the raw agent JSON and checksum were preserved. This is **one successful heavily prompted model-output tool workflow**. A stricter follow-up without literal target action JSON is being separately executed and must be reported, including failure if applicable. It does NOT prove general autonomous planning, reliable self-correction, unrestricted tool authority, safety across varied tasks, or ability to perform arbitrary real-world actions. The host-only scripted baseline was measured separately and not credited to the model.
 
 ## Cost / isolation scope
 
