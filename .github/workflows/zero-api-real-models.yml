@@ -1,12 +1,5 @@
 name: COSMOS zero paid-API real models (bounded offline CPU research)
 on:
-  push:
-    branches: [experiment/zero-api-real-models-002]
-    paths:
-      - scripts/zero_api_real_models.py
-      - scripts/zero_api_real_host.sh
-      - lab/zero_api_real/**
-      - .github/workflows/zero-api-real-models.yml
   pull_request:
     branches: [main]
     paths:
@@ -17,9 +10,6 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: zero-api-real-single
-  cancel-in-progress: true
 jobs:
   real-offline-models:
     runs-on: ubuntu-24.04
