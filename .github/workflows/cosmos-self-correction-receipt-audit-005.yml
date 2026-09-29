@@ -1,0 +1,30 @@
+name: COSMOS 005 source-only real result archive audit, no models or downloads
+
+on:
+  pull_request:
+    branches: [experiment/cosmos-small-model-controls-003, main]
+    paths:
+      - "docs/experiments/cosmos-self-correction-005-*-receipt.json"
+      - "docs/experiments/COSMOS_SELF_CORRECTION_005_RESULTS.md"
+      - "scripts/verify_self_critique_receipts_005.py"
+      - "tests/test_self_critique_receipts_005.py"
+      - ".github/workflows/cosmos-self-correction-receipt-audit-005.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  original-archived-results:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install pytest==8.4.2
+      - run: |
+          python -m pytest -q tests/test_self_critique_receipts_005.py
+          python -m scripts.verify_self_critique_receipts_005
