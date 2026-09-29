@@ -26,6 +26,7 @@ from beastbox.cst_sensor_preview import compare_sensor_state
 from beastbox.engine_growth_report import engine_growth_report
 from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
+from beastbox.background_consolidation import OwnerMemoryLoop
 from beastbox.semantic_retrieval import OfflineSentenceTransformer
 from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
 from beastbox.rawrphos_local import MODEL as NATIVE_ID, profile as native_profile, status as native_status
@@ -40,7 +41,7 @@ from beastbox.signal_model_probe import signal_model_probe
 from beastbox.soul.archive_summary import archive_manifest
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "hf-model-inventory", "engine-growth"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "hf-model-inventory", "engine-growth", "engine-loop"})
 POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe", "signal-model-probe"})
 
 
@@ -77,6 +78,21 @@ class OwnerBridge:
         if self.bio_persist_enabled:
             self.app.authority.grant("sensors")
         self.chat_jobs = ChatJobs(lambda payload: self.app.dispatch("POST", "/api/chat", payload))
+        # Explicit host flag: recurring, bounded source-index maintenance,
+        # never background LLM chat, online gradient steps or autonomous tools.
+        loop_flag = os.environ.get("BEASTBOX_OWNER_MEMORY_LOOP_ENABLED", "no")
+        if loop_flag not in {"yes", "no"}:
+            raise ValueError("BEASTBOX_OWNER_MEMORY_LOOP_ENABLED must be yes or no")
+        self.memory_loop = None
+        if loop_flag == "yes":
+            interval_raw = os.environ.get("BEASTBOX_OWNER_MEMORY_LOOP_SECONDS", "300")
+            if (not interval_raw.isascii() or not interval_raw.isdecimal()
+                    or not 60 <= int(interval_raw) <= 3600):
+                raise ValueError("BEASTBOX_OWNER_MEMORY_LOOP_SECONDS must be 60..3600")
+            self.memory_loop = OwnerMemoryLoop(
+                root, lock=self.app._lock, interval_seconds=int(interval_raw)
+            )
+            self.memory_loop.start()
 
     def _resolve_provider_secret(self, profile: ProviderProfile) -> str | None:
         if self.vault is None:
@@ -549,6 +565,12 @@ class OwnerBridge:
         allowed = GET_ALLOW if method == "GET" else POST_ALLOW if method == "POST" else frozenset()
         if name not in allowed:
             return 404, {"error": "unsupported route"}
+        if name == "engine-loop" and method == "GET":
+            if self.memory_loop is None:
+                return 200, {"schema": "owner-memory-loop-v1", "running": False,
+                             "enabled": False, "model_invoked": False,
+                             "weights_updated": False}
+            return 200, {"enabled": True, **self.memory_loop.status()}
         if name == "engine-growth" and method == "GET":
             with self.app._lock:
                 return 200, engine_growth_report(self.root)
@@ -736,6 +758,8 @@ def main() -> None:
     try:
         server.serve_forever()
     finally:
+        if bridge.memory_loop is not None:
+            bridge.memory_loop.stop()
         server.server_close()
 
 
