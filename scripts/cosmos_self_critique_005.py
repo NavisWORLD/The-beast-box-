@@ -69,7 +69,7 @@ def static_question(text):
             "in this form: FINAL: answer\nQuestion: "+text+"\nFINAL:")
 
 def review_prompt(case, previous):
-    return (static_question(case["question"])+"\nPrior model answer: "+
+    return ("Task: "+case["question"]+"\nPrior model answer: "+
             previous.replace("\n"," ")[:180]+"\n"
             "No checker, tool, reference answer or reviewer feedback is available. "
             "Check your own previous reasoning. First state VERDICT: CORRECT, "
@@ -118,8 +118,27 @@ def verdict(text):
 
 def grade(text,gold,family):
     answer=last_final(text)
-    # Case-sensitive alphanumeric evaluation avoids uppercase false credit.
+    # Case-sensitive alphanumeric strict response-format criterion.
     return answer==gold
+
+def semantic_grade(text,gold,family):
+    """Precommitted deterministic meaning-aware FIRST-LINE scoring.
+
+    Prevent false failure for a valid arithmetic sentence while prohibiting
+    substring credit inside rambling explanations or other wrong numbers.
+    Case-sensitive for invented reversal and uppercase tasks.
+    """
+    if grade(text,gold,family):return True
+    first=next((x.strip() for x in text.splitlines() if x.strip()),"")
+    if family=="addition":
+        return bool(re.fullmatch(
+            r"(?:The answer is\\s*|[0-9]+\\s*\\+\\s*[0-9]+\\s*(?:is|=)\\s*)"+
+            re.escape(gold)+r"\\.?",first,re.IGNORECASE))
+    if family in ("uppercase","reverse"):
+        return bool(re.fullmatch(
+            r"(?:The answer is|Result is|Reversed text is|Uppercase is)\\s*[:=]?\\s*"+
+            re.escape(gold)+r"\\.?",first))
+    raise ValueError("unregistered family")
 
 def has_new_gold(text,gold):
     # Conservative skip if a prior model review happens to mention the exact
@@ -208,6 +227,16 @@ def run(model):
         }
         rows.append({
             "id":case["id"],"family":case["family"],"conditions":outcomes,
+            "semantic_conditions":{
+                arm:(semantic_grade(value,case["transfer_gold"] if arm.startswith("new_task") else case["gold"],
+                                    case["family"]) if value is not None else None)
+                for arm,value in {
+                    "baseline":baseline, "neutral_retry":retry,"self_critique":own,
+                    "true_correctness_bit":assisted,"false_correctness_bit":misleading,
+                    "gold_disclosure":gold_control,"new_task_baseline":transfer_baseline,
+                    "new_task_after_critique":transfer if not transfer_leak else None,
+                }.items()
+            },
             "self_verdict":own_verdict,
             "self_detected_actual_wrong":own_verdict=="INCORRECT" and not baseline_ok,
             "self_false_error_alarm":own_verdict=="INCORRECT" and baseline_ok,
@@ -220,12 +249,16 @@ def run(model):
         "correct":sum(row["conditions"][arm] is True for row in rows),
         "scored":sum(row["conditions"][arm] is not None for row in rows)
     } for arm in ARMS}
-    wrong=[r for r in rows if not r["conditions"]["baseline"]]
-    correct=[r for r in rows if r["conditions"]["baseline"]]
+    semantic_aggregate={arm:{
+        "correct":sum(row["semantic_conditions"][arm] is True for row in rows),
+        "scored":sum(row["semantic_conditions"][arm] is not None for row in rows)
+    } for arm in ARMS}
+    wrong=[r for r in rows if not r["semantic_conditions"]["baseline"]]
+    correct=[r for r in rows if r["semantic_conditions"]["baseline"]]
     measures={
         "baseline_wrong_cases":len(wrong),
-        "self_corrected_wrong_cases":sum(r["conditions"]["self_critique"] for r in wrong),
-        "self_harmed_correct_cases":sum(not r["conditions"]["self_critique"] for r in correct),
+        "self_corrected_wrong_cases":sum(r["semantic_conditions"]["self_critique"] for r in wrong),
+        "self_harmed_correct_cases":sum(not r["semantic_conditions"]["self_critique"] for r in correct),
         "self_correctly_flagged_wrong_cases":sum(r["self_detected_actual_wrong"] for r in wrong),
         "self_false_alarm_correct_cases":sum(r["self_false_error_alarm"] for r in correct),
         "transfer_gold_leak_cases_excluded":sum(r["critic_contained_new_task_gold"] for r in rows),
@@ -236,9 +269,9 @@ def run(model):
     candidate=(len(wrong)>=4 and
         measures["self_corrected_wrong_cases"]>=0.75*len(wrong) and
         measures["self_harmed_correct_cases"]<=1 and
-        aggregate["new_task_after_critique"]["scored"]==8 and
-        aggregate["new_task_after_critique"]["correct"]-
-        aggregate["new_task_baseline"]["correct"]>=2)
+        semantic_aggregate["new_task_after_critique"]["scored"]==8 and
+        semantic_aggregate["new_task_after_critique"]["correct"]-
+        semantic_aggregate["new_task_baseline"]["correct"]>=2)
     return {
         "schema":"cosmos-genuine-prompt-self-critique-005-v1",
         "model":model.name,"original_checkpoint_sha256":model.original,
@@ -249,7 +282,8 @@ def run(model):
         "weights_unchanged":True,
         "no_owner_memory_training_or_cloud_inference":True,
         "generated_text":"graded transiently, never logged or saved",
-        "arms":list(ARMS),"aggregate":aggregate,"correction_measures":measures,
+        "arms":list(ARMS),"aggregate":aggregate,"semantic_aggregate":semantic_aggregate,
+        "correction_measures":measures,
         "synthetic_candidate_self_correction_pattern_observed":bool(candidate),
         "reliable_generative_self_correction_proven":False,
         "cases":rows,
@@ -291,7 +325,8 @@ def main():
     print(json.dumps({
         "model":result["model"],"model_original_sha256":result["original_checkpoint_sha256"],
         "fixture_sha256":result["fixture_sha256"],
-        "score_aggregate":result["aggregate"],
+        "strict_format_aggregate":result["aggregate"],
+        "semantic_first_line_aggregate":result["semantic_aggregate"],
         "correction_measures":result["correction_measures"],
         "synthetic_candidate_pattern":result["synthetic_candidate_self_correction_pattern_observed"],
         "reliable_generative_self_correction_proven":False,
