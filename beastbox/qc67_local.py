@@ -12,8 +12,6 @@ import urllib.request
 from beastbox.providers import _local_opener
 
 URL = "http://127.0.0.1:8771/v1"
-ROOT_ENV = "QC67_INSTALL_DIR"
-FLAG_ENV = "BEASTBOX_QC67_LOCAL_ENABLED"
 PINS = {
     "qc67-phos": "bdcd4a39aa54bfc6c274580e210f993e528214d7207cb19dc258a2f801f6b84d",
     "qc67-samgo": "871c265c062430c77d5528ee5fb9119f7d86668ebd81cfa4951db6a906a92b5a",
@@ -37,10 +35,10 @@ def status(model: str) -> dict:
               "kind": "local", "configured": False, "requires_spend_approval": False,
               "experimental": True, "readiness": "AVAILABLE_NOT_INSTALLED",
               "checkpoint_sha256": PINS[model], "origin": "phera-ra/QC67_cosmo"}
-    if os.environ.get(FLAG_ENV) != "yes":
+    if os.environ.get("BEASTBOX_QC67_LOCAL_ENABLED") != "yes":
         return result
-    root = Path(os.environ.get(ROOT_ENV, ""))
-    if not os.environ.get(ROOT_ENV) or root.is_symlink() or not root.is_dir():
+    root = Path(os.environ.get("QC67_INSTALL_DIR", ""))
+    if not os.environ.get("QC67_INSTALL_DIR") or root.is_symlink() or not root.is_dir():
         return result
     key = os.environ.get("RAWRPHOS_API_KEY", "")
     if len(key) < 32 or any(char in key for char in "\r\n"):

@@ -70,7 +70,7 @@ jobs:
       - name: Load immutable PHOS and SAMGO published weights into original architectures, STRICT
         run: python models/qc67/probe_originals.py
       - name: Real HTTP bearer + actual one-token inference with original PHOS and SAMGO
-        run: python models/qc67/tests/run_real_service_smoke.py
+        run: python -m models.qc67.tests.run_real_service_smoke
 
   owner-routing-and-http-perimeter:
     runs-on: ubuntu-latest
