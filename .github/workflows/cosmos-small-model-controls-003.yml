@@ -49,7 +49,7 @@ jobs:
       - name: Public-only release fetch, full SHA verification, and real CPU inference
         run: |
           mkdir -p build
-          env -u HF_TOKEN -u HUGGING_FACE_HUB_TOKEN python scripts/cosmos_public_small_controls_003.py \
+          env -u HF_TOKEN -u HUGGING_FACE_HUB_TOKEN python -m scripts.cosmos_public_small_controls_003 \
             --model ${{ matrix.model }} \
             --directory build/verified-${{ matrix.model }} \
             --output build/controls-${{ matrix.model }}.json
