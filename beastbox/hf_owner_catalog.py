@@ -14,7 +14,7 @@ import urllib.request
 
 OWNER = "phera-ra"
 API = "https://huggingface.co/api/models?author=phera-ra&limit=100"
-ID = re.compile(r"phera-ra/[A-Za-z0-9_.-]{1,150}\\Z", re.I)
+ID = re.compile(r"phera-ra/[A-Za-z0-9_.-]{1,150}\Z", re.I)
 MAX_BYTES = 1024 * 1024
 
 # Multiple models and a native engine can share one HF research repository.
@@ -41,7 +41,7 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 def list_owner_models(token: str | None = None, *, opener=None) -> dict:
     if token is not None and (not isinstance(token, str) or
-                              len(token) > 4096 or any(c in token for c in "\\r\\n\\x00")):
+                              len(token) > 4096 or any(c in token for c in "\r\n\x00")):
         raise CatalogUnavailable("HF_CATALOG_CREDENTIAL_INVALID")
     headers = {"Accept": "application/json", "User-Agent": "BeastBox-Owner-Catalog/1"}
     if token:
