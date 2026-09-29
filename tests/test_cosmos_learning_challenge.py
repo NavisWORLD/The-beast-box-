@@ -4,7 +4,9 @@ Tests validate leakage prevention and measurement, not an improvement claim.
 """
 from __future__ import annotations
 
+import hashlib
 import json
+from pathlib import Path
 
 import pytest
 
@@ -68,3 +70,9 @@ def test_output_is_canonical_and_reproducible_without_quality_threshold(tmp_path
     challenge.main()
     assert first.read_bytes() == second.read_bytes()
     assert json.loads(first.read_text())["schema"] == "cosmos-isolated-learning-challenge-v1"
+
+def test_committed_receipt_is_byte_pinned_and_reproduces_current_source():
+    path = Path(__file__).resolve().parent.parent / "docs/experiments/cosmos-learning-challenge-001-receipt.json"
+    payload = path.read_bytes()
+    assert hashlib.sha256(payload).hexdigest() == "0928b2333dc191d47857b252871acff3b4fff82065983e567772cb5b530db591"
+    assert json.loads(payload) == challenge.run_suite()
