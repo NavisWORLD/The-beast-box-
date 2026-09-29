@@ -124,3 +124,46 @@ properly deduplicated new data for a new experimental curriculum.
 **Release state:** These changes are a feature-branch integration candidate,
 not a verified production deployment or evidence that 14K/18K instruction
 following has improved.
+
+## 5. Opt-in ongoing memory consolidation (owner host only)
+
+The *chat loop* is event-driven: successful, verified owner turns persist
+the user text, non-transient assistant replies, Hebbian association changes
+and COSMOS/R12 state in the durable transaction. This is memory and software
+state growth, not online neural weight training.
+
+A separate non-inference maintenance thread may also run continuously while
+the Railway owner-bridge service is running. To enable after passing CI and
+the disposable restart check, set these host-only service variables:
+
+```text
+BEASTBOX_OWNER_MEMORY_LOOP_ENABLED=yes
+BEASTBOX_OWNER_MEMORY_LOOP_SECONDS=300
+```
+
+It wakes every five minutes, checks the existing durable substrate, and
+creates *only* provenance-marked thematic indices when at least three
+existing source records support a new group. It atomically records a new
+continuity checkpoint only when something actually changed. Unchanged
+intervals do **not** manufacture new memories or fake growth. Failures
+preserve the last verified checkpoint and retry at the next interval.
+The loop has no model access, credentials, tool authority, network inference,
+automatic code editing or weight updates. Invalid intervals under 60 seconds
+and over 3600 seconds are rejected.
+
+The owner-only GET `/api/engine-loop` reports whether it is running,
+completed checks, source-derived indices, latest checkpoint identity and
+a sanitized error flag. Compare it with `/api/engine-growth`; the
+cloud Engine Growth panel distinguishes verified memory progress from
+unproven improvements in model intelligence.
+
+The loop is **disabled by default** in GitHub and does not start just because
+these files were merged. Opt in on the durable Railway service only after
+the current deployed root and volume are verified. Do not enable the same
+maintenance loop in two independent containers sharing one live root.
+
+For true neural-network improvement, run a separate, bounded training
+candidate on consented/licensed, deduplicated material, compare held-out
+conversational quality against the pinned 14K checkpoint, and promote only
+after a quality gate. Chat history is never silently turned into training
+data. The 18K checkpoint remains experimental if its quality gate failed.
