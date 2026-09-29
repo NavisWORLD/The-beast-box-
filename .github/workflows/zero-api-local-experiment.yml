@@ -6,6 +6,11 @@ on:
     paths:
       - scripts/zero_api_experiment.py
       - .github/workflows/zero-api-local-experiment.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - scripts/zero_api_experiment.py
+      - .github/workflows/zero-api-local-experiment.yml
   workflow_dispatch:
 
 permissions:
