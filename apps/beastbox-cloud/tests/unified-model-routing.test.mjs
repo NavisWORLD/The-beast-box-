@@ -22,3 +22,21 @@ test('unified model options reach the owner-only validated gateway',()=>{
  assert.match(picker,/spend_approved:true/);
  assert.doesNotMatch(gateway,/['\"]workspace\/write['\"]/);
 });
+
+test('QC67 PHOS and SAMGO pass the same-origin owner model-selection gate',()=>{
+ const gateway=read('app/api/bridge/[endpoint]/route.ts');
+ const picker=read('components/model-switcher.tsx');
+ const backend=read('bridge/owner_bridge.py');
+ // Check the actual no-charge local branch rather than just the model names
+ // appearing elsewhere in the file. This caught the real production UI bug.
+ const localGate=gateway.match(/if\s*\(\s*\[([^\]]+)\]\.includes\(String\(choice\)\)\s*\)\s*\{/);
+ assert.ok(localGate,'local choice allowlist must exist');
+ for(const choice of ['qc67_phos','qc67_samgo']){
+   assert.ok(localGate[1].includes("'"+choice+"'"),choice+' must be allowed through the web gateway');
+   assert.ok(picker.includes("'"+choice+"'"),choice+' must appear in Brain Bay');
+   assert.ok(backend.includes('"'+choice+'"'),choice+' must be handled by the owner bridge');
+ }
+ assert.match(gateway,/if \(!await isOwner\(\)\)/);
+ assert.match(gateway,/Same-origin owner action required/);
+ assert.match(gateway,/if\(keys!=='choice'\)/);
+});
