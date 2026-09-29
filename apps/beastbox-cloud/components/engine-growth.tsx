@@ -12,6 +12,7 @@ type Report={
 export default function EngineGrowth(){
  const [report,setReport]=useState<Report|null>(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
+ const [loop,setLoop]=useState<{enabled:boolean;running:boolean;interval_seconds?:number;poll_count?:number;total_derived_indices?:number;last_error?:string|null}|null>(null);
  async function inspect(){
   if(busy)return;
   setBusy(true);setError('');setReport(null);
@@ -24,6 +25,12 @@ export default function EngineGrowth(){
      data.side_effects!=='NONE_READ_ONLY'||!Number.isSafeInteger(data.latest_sequence))
      throw new Error('Invalid or unverified engine report');
    setReport(data);
+   const loopRes=await fetch('/api/bridge/engine-loop',{cache:'no-store',credentials:'same-origin'});
+   if(loopRes.ok){
+    const loopState=await loopRes.json();
+    if(loopState.schema==='owner-memory-loop-v1'&&typeof loopState.running==='boolean'&&loopState.model_invoked===false)
+     setLoop(loopState);
+   }
   }catch(e){setError(e instanceof Error?e.message:'Engine report unavailable');}
   finally{setBusy(false);}
  }
@@ -33,6 +40,12 @@ export default function EngineGrowth(){
   <button type="button" className="outline-action" disabled={busy} onClick={()=>void inspect()}>
    <Activity size={15}/>{busy?'Inspecting…':'Inspect verified engine changes'}</button>
   {error?<p role="alert" className="inline-error">{error}</p>:null}
+  {loop?<div role="status" className="record">
+   <strong>Owner memory maintenance: {loop.running?'RUNNING':'NOT ENABLED'}</strong>
+   <p>{loop.running?'Source-derived memory index checks every '+loop.interval_seconds+' seconds.':'Conversation turns continue updating memory; periodic checks are opt-in on the durable host.'}</p>
+   {loop.running?<p>Completed checks: {loop.poll_count||0} · Derived indices: {loop.total_derived_indices||0}{loop.last_error?' · Last check failed; retry on next interval':''}</p>:null}
+   <p>Continuous index maintenance does not train or improve language-model weights.</p>
+  </div>:null}
   {report?<div role="status">
    <div className="insight-line"><span>Engine version</span><b>{report.engine_version}</b></div>
    <div className="insight-line"><span>Observed checkpoints</span><b>{report.observed_checkpoints} · sequence {report.earliest_observed_sequence}–{report.latest_sequence}</b></div>
