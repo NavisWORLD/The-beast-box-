@@ -1,0 +1,110 @@
+name: COSMOS 010 fresh independently trained real dyn12 longer model context tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/cosmos_native_length_transfer_010.py"
+      - "tests/test_cosmos_native_length_transfer_010.py"
+      - "docs/experiments/COSMOS_END_TO_END_009_010_PROTOCOL.md"
+      - ".github/workflows/cosmos-native-length-010.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cosmos-native-new-longlength-010-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  independent-original-native-CPU:
+    runs-on: ubuntu-latest
+    timeout-minutes: 32
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [19, 43, 71]
+    env:
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      HF_HUB_OFFLINE: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install original native architecture and CPU-only tensor engine
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install numpy==1.26.4 pytest==8.4.2 -e ./models/rawrphos
+      - name: Freeze independent splits and ensure real original active gradients and future-token causality
+        run: python -m pytest -q tests/test_cosmos_native_length_transfer_010.py
+      - name: Train all THREE independent original native attention modes to exactly matched budgets
+        run: |
+          mkdir -p build/native
+          python -m scripts.cosmos_native_length_transfer_010 \
+            --seed ${{ matrix.seed }} \
+            --output build/native/native-length-seed-${{ matrix.seed }}.json
+      - name: Ensure all 4, 5, 6 extrapolation results preserve every control
+        run: |
+          SEED=${{ matrix.seed }} python - <<'PY'
+          import json,os,pathlib,hashlib
+          path=pathlib.Path(f"build/native/native-length-seed-{os.environ['SEED']}.json")
+          original=path.read_bytes()
+          r=json.loads(original)
+          assert r["schema"]=="cosmos-original-dyn12-six-binding-010-seed-v1"
+          assert len(r["arms"])==3
+          assert {x["mode"] for x in r["arms"]}=={"dyn12","standard","shuffled_state"}
+          assert len({x["initial_parameter_sha256"] for x in r["arms"]})==1
+          assert len({x["allocated_parameters"] for x in r["arms"]})==1
+          for arm in r["arms"]:
+            assert arm["optimizer_steps"]==120 and arm["trained_samples"]==1440
+            assert all(arm["eval"][level]["count"]==128 for level in
+                       ("shift_four","shift_five","shift_six"))
+            assert arm["eval"]["test_three"]["count"]==256
+          assert r["preflight"]["causal_on_4_5_6"] is True
+          print("ORIGINAL_REAL_NATIVE_SEED_RECEIPT_SHA256="+hashlib.sha256(original).hexdigest())
+          print("ALL_MODES="+json.dumps({a["mode"]:a["eval"] for a in r["arms"]},sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-010-new-native-seed-${{ matrix.seed }}
+          path: build/native/native-length-seed-${{ matrix.seed }}.json
+          retention-days: 30
+          if-no-files-found: error
+
+  all-fresh-seed-controlled-summary:
+    needs: [independent-original-native-CPU]
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cosmos-010-new-native-seed-*
+          path: build/native
+          merge-multiple: true
+      - name: Report ALL previously unseen lengths and signed differences regardless of outcome
+        run: |
+          python -m scripts.cosmos_native_length_transfer_010 \
+            --summarize-dir build/native \
+            --output build/cosmos-010-complete.json
+          cat build/cosmos-010-complete.json
+          sha256sum build/native/*.json build/cosmos-010-complete.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cosmos-010-full-independent-native-length-evidence
+          path: |
+            build/native/*.json
+            build/cosmos-010-complete.json
+          retention-days: 30
+          if-no-files-found: error
