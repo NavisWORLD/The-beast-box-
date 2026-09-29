@@ -23,12 +23,20 @@ PORT=8768 HOST=127.0.0.1 gosu beastbox python -m rawrphos.inference.server \
   --checkpoint "$RAWRPHOS_18K_CHECKPOINT_PATH" --port 8768 \
   --expected-sha256 20932937afb3e0e1b62a4e5f38f92170046ae2928b437dc31b8a37d6538e701e &
 experimental_pid=$!
+qc67_pid=""
+if [[ "${BEASTBOX_QC67_LOCAL_ENABLED:-no}" == "yes" ]]; then
+  : "${QC67_INSTALL_DIR:?Pinned original QC67 installation required}"
+  gosu beastbox python -m models.qc67.inference.server --root "$QC67_INSTALL_DIR" &
+  qc67_pid=$!
+fi
 bridge_pid=""
 cleanup() {
   if [[ -n "$bridge_pid" ]]; then kill "$bridge_pid" 2>/dev/null || true; fi
   kill "$native_pid" 2>/dev/null || true
   kill "$experimental_pid" 2>/dev/null || true
+  if [[ -n "$qc67_pid" ]]; then kill "$qc67_pid" 2>/dev/null || true; fi
   if [[ -n "$bridge_pid" ]]; then wait "$bridge_pid" 2>/dev/null || true; fi
+  if [[ -n "$qc67_pid" ]]; then wait "$qc67_pid" 2>/dev/null || true; fi
   wait "$native_pid" 2>/dev/null || true
   wait "$experimental_pid" 2>/dev/null || true
 }
@@ -204,8 +212,45 @@ PY
     exit 70
   fi
 fi
+# Require independent native checkpoint identities BEFORE owner bridge starts.
+if [[ -n "$qc67_pid" ]]; then
+  if ! python - <<'PY'
+import json, os, time, urllib.request
+from beastbox.providers import _local_opener
+from beastbox.qc67_local import PINS, REVISION
+key=os.environ["RAWRPHOS_API_KEY"]
+for model, expected in PINS.items():
+    for attempt in range(120):
+        try:
+            req=urllib.request.Request(
+                "http://127.0.0.1:8771/model/info?model="+model,
+                headers={"Authorization":"Bearer "+key})
+            with _local_opener().open(req, timeout=3) as res:
+                data=json.loads(res.read(16384))
+            if (data.get("ready") is True and data.get("model_id")==model
+                and data.get("checkpoint_sha256")==expected
+                and data.get("revision")==REVISION
+                and data.get("model_weights_updated") is False
+                and data.get("serving_backend")=="pytorch-cpu-original"):
+                print("ORIGINAL_QC67_NATIVE_READY",model,expected,flush=True)
+                break
+        except (OSError,ValueError,TypeError):
+            pass
+        time.sleep(1)
+    else:
+        raise SystemExit("Original QC67 model did not pass readiness: "+model)
+PY
+  then
+    echo "Original QC67 checkpoint failed strict identity; prior production remains rollback" >&2
+    exit 70
+  fi
+fi
 "$BASE/start_tiny.sh" &
 bridge_pid=$!
-wait -n "$native_pid" "$experimental_pid" "$bridge_pid"
+if [[ -n "$qc67_pid" ]]; then
+  wait -n "$native_pid" "$experimental_pid" "$qc67_pid" "$bridge_pid"
+else
+  wait -n "$native_pid" "$experimental_pid" "$bridge_pid"
+fi
 echo "Native inference or existing bridge stopped; shutting down service" >&2
 exit 1

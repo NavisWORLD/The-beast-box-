@@ -27,6 +27,8 @@ from beastbox.engine_growth_report import engine_growth_report
 from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
 from beastbox.background_consolidation import OwnerMemoryLoop
+from beastbox.qc67_local import (PINS as QC67_PINS, URL as QC67_URL,
+                                  profile as qc67_profile, status as qc67_status)
 from beastbox.semantic_retrieval import OfflineSentenceTransformer
 from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
 from beastbox.rawrphos_local import MODEL as NATIVE_ID, profile as native_profile, status as native_status
@@ -67,6 +69,11 @@ class OwnerBridge:
             raise ValueError("BEASTBOX_CHAT_RECENT_TURNS must be 0..6")
         self.app = CosmicApp(root, provider_secret_resolver=self._resolve_provider_secret if self.vault else None,
                              embedding_provider=embeddings, recent_dialogue_limit=int(recent_raw))
+        # A persisted original research model must still be the same real
+        # local checkpoint after restart; otherwise refuse stale identity.
+        if self.app.profile.model in QC67_PINS and self.app.profile.base_url == QC67_URL:
+            if qc67_status(self.app.profile.model)["readiness"] != "INSTALLED_AND_READY":
+                raise ValueError("Persisted original QC67 model is not attested on this host")
         self._configure_explicit_local_tiny_provider(root)
         self.local_model_ready = os.environ.get("BEASTBOX_TINY_LOCAL_ENABLED") == "yes"
         self._configure_explicit_hf_provider(root)
@@ -190,7 +197,9 @@ class OwnerBridge:
         # Check actual weights even if an existing profile is already selected.
         verify_model()
         if (self.app.profile != requested and self.app.profile.kind != "reference"
-                and not self.app.profile.remote and self.app.profile.model != NATIVE_ID):
+                and not self.app.profile.remote and self.app.profile.model != NATIVE_ID
+                and not (self.app.profile.model in QC67_PINS
+                         and self.app.profile.base_url == QC67_URL)):
             raise ValueError("refusing to overwrite a previously selected Beast Box brain")
         # This health request cannot leave this host. Launch happens before
         # OwnerBridge in the opt-in image's entrypoint, never from HTTP input.
@@ -265,6 +274,8 @@ class OwnerBridge:
             })
         choices.append(native_status())
         choices.append(experimental_status())
+        choices.append(qc67_status("qc67-phos"))
+        choices.append(qc67_status("qc67-samgo"))
         listed = self.vault.list_public()["connections"] if self.vault is not None else []
         hf_configured = any(row["provider"] == "huggingface" and row["configured"] for row in listed)
         choices.append({"choice": "rawrphos_hf", "model": HF_NATIVE_MODEL,
@@ -320,6 +331,22 @@ class OwnerBridge:
                 "selected": "local", "model": profile.model,
                 "brain_changed": changed, "authority_revoked": revoked,
                 "no_paid_inference": True, "inference": "NOT_ATTESTED_UNTIL_REAL_CHAT",
+                "substrate": "EXISTING_DURABLE_STATE",
+            }
+        if choice in {"qc67_phos", "qc67_samgo"} and set(data) == {"choice"}:
+            model = "qc67-phos" if choice == "qc67_phos" else "qc67-samgo"
+            checked = qc67_status(model)
+            if checked["readiness"] != "INSTALLED_AND_READY":
+                return 503, {"error": "Original QC67 model unavailable: " +
+                             checked["readiness"] + "; prior brain retained"}
+            profile, changed, revoked = self.app._set_profile(qc67_profile(model))
+            return 200, {
+                "selected": choice, "model": model,
+                "checkpoint_sha256": checked["checkpoint_sha256"],
+                "origin": checked["origin"], "experimental": True,
+                "brain_changed": changed, "authority_revoked": revoked,
+                "no_paid_inference": True,
+                "inference": "ORIGINAL_CPU_FORWARD_VERIFIED_CHAT_QUALITY_UNPROVEN",
                 "substrate": "EXISTING_DURABLE_STATE",
             }
         if (choice == "rawrphos_hf" and set(data) == {"choice", "spend_approved"}

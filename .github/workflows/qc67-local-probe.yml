@@ -1,0 +1,94 @@
+name: QC67 public original-model adapter provenance probe
+on:
+  push:
+    branches: [feature/qc67-local-model-serving-20260928]
+    paths:
+      - .github/workflows/qc67-local-probe.yml
+      - models/qc67/**
+  pull_request:
+    paths:
+      - .github/workflows/qc67-local-probe.yml
+      - models/qc67/**
+permissions:
+  contents: read
+jobs:
+  public-original-artifact-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install "huggingface_hub>=0.30,<2"
+      - name: Verify published PHOS and SAMGO weights and inspect original loader (no weight download)
+        env:
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          HF_TOKEN: ""
+        run: |
+          python - <<'PY'
+          from huggingface_hub import HfApi, hf_hub_download
+          from pathlib import Path
+          import json
+          api=HfApi(token=False)
+          info=api.model_info("phera-ra/QC67_cosmo",files_metadata=True)
+          names={s.rfilename:s for s in info.siblings}
+          print("EXACT_ORIGINAL_REPO_SHA",info.sha,flush=True)
+          wanted=["weights/phos.pt","weights/samgo_weights.pt","tools/load_model.py","serving/cosmos_coder.py","architecture/phos_grow.py"]
+          print("MODEL_SOURCE_FILES", sorted(n for n in names if (n.startswith("tools/") or n.startswith("architecture/") or n.startswith("Cosmos/web/cosmosynapse/model/")) and n.endswith(".py"))[:100],flush=True)
+          for name in wanted:
+              item=names.get(name)
+              print("UPSTREAM_FILE",json.dumps({"path":name,"exists":item is not None,"size":getattr(item,"size",None),"lfs_sha256":(getattr(item,"lfs",None) or {}).get("sha256") if item else None}),flush=True)
+          for name in ("tools/cosmos_serve.py","architecture/phos_grow.py","architecture/phos_model.py"):
+              if name in names:
+                  path=hf_hub_download(repo_id="phera-ra/QC67_cosmo",filename=name,revision=info.sha,token=False)
+                  source=Path(path).read_text()
+                  print("ORIGINAL_SOURCE_BEGIN",name,flush=True)
+                  print("\n".join(f"{i+1}: {line}" for i,line in enumerate(source.splitlines()[:360])),flush=True)
+                  print("ORIGINAL_SOURCE_END",name,flush=True)
+          assert all(n in names for n in wanted[:2]), "Published original PHOS/SAMGO weights missing"
+          PY
+
+  strict-original-weight-load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      HF_TOKEN: ""
+      OMP_NUM_THREADS: "2"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+      - run: python -m pip install "huggingface_hub>=0.30,<2" tiktoken numpy
+      - name: Load immutable PHOS and SAMGO published weights into original architectures, STRICT
+        run: python models/qc67/probe_originals.py
+      - name: Real HTTP bearer + actual one-token inference with original PHOS and SAMGO
+        run: python -m models.qc67.tests.run_real_service_smoke
+
+  owner-routing-and-http-perimeter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e '.[secure]' pytest
+      - name: Test fail-closed pinned model selection and local HTTP auth
+        run: python -m pytest -o addopts= -q models/qc67/tests/test_local_adapter.py tests/test_qc67_cypher.py apps/beastbox-cloud/bridge/tests/test_qc67_owner_selection.py tests/test_owner_dialogue_recall.py tests/test_owner_memory_loop.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+        working-directory: apps/beastbox-cloud
+      - run: npm run typecheck
+        working-directory: apps/beastbox-cloud
