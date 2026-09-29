@@ -106,10 +106,7 @@ class CosmosRuntime:
         # is read from the same durable ledger, never browser memory.
         # In particular, no context-derived assistant reply is persisted here.
         native = getattr(getattr(self.provider, "delegate", self.provider), "model", None) == "rawrphos-native"
-        recent = [
-            record for record in reversed(self.memory.recent(limit=24))
-            if record.kind in {"user_turn", "assistant_turn"} and not record.metadata.get("archived")
-        ]
+        recent = list(reversed(self.memory.recent_dialogue(limit=24)))
         recent = recent[-(2 if native else 8):]
         dialogue = []
         remaining = 280 if native else 3200
