@@ -50,3 +50,22 @@ jobs:
                   print("ORIGINAL_SOURCE_END",name,flush=True)
           assert all(n in names for n in wanted[:2]), "Published original PHOS/SAMGO weights missing"
           PY
+
+  strict-original-weight-load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      HF_TOKEN: ""
+      OMP_NUM_THREADS: "2"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+      - run: python -m pip install "huggingface_hub>=0.30,<2" tiktoken numpy
+      - name: Load immutable PHOS and SAMGO published weights into original architectures, STRICT
+        run: python models/qc67/probe_originals.py
