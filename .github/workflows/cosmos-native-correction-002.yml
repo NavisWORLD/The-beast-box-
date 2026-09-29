@@ -1,0 +1,78 @@
+name: COSMOS native real-checkpoint correction pilot (pinned 14K and 18K CPU)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/cosmos_native_correction_002.py"
+      - "tests/test_cosmos_native_correction_002.py"
+      - "docs/experiments/COSMOS_NATIVE_CORRECTION_002_PROTOCOL.md"
+      - ".github/workflows/cosmos-native-correction-002.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cosmos-native-correction-002-\${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-pinned-native-cpu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    strategy:
+      fail-fast: false
+      matrix:
+        checkpoint: ["14k", "18k"]
+    env:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      TOKENIZERS_PARALLELISM: "false"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install CPU-only original native runtime and test runner
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos "pytest>=8,<10" "numpy==1.26.4"
+      - name: Protocol and anti-leakage contract tests (NOT measured checkpoint proof)
+        run: python -m pytest -q tests/test_cosmos_native_correction_002.py
+      - name: Verify public original released checkpoint against pinned archive and weight SHA
+        run: |
+          mkdir -p build
+          if [ "\${{ matrix.checkpoint }}" = "14k" ]; then
+            python models/rawrphos/scripts/install_pinned_14k.py --destination build/verified-14k > build/native-install-14k.json
+          else
+            python models/rawrphos/scripts/install_pinned_18k.py --destination build/verified-18k > build/native-install-18k.json
+          fi
+      - name: Real actual native PyTorch inference and teacher-forced measurements
+        run: |
+          python scripts/cosmos_native_correction_002.py \
+            --checkpoint \${{ matrix.checkpoint }} \
+            --directory build/verified-\${{ matrix.checkpoint }} \
+            --output build/native-pilot-\${{ matrix.checkpoint }}.json
+      - name: Validate all arms and log literal, source-bound synthetic receipt
+        run: |
+          PILOT_CHECKPOINT=\${{ matrix.checkpoint }} python - <<'PY'
+          import hashlib, json, os, pathlib
+          label=os.environ["PILOT_CHECKPOINT"]
+          p=pathlib.Path("build/native-pilot-"+label+".json")
+          raw=p.read_bytes()
+          x=json.loads(raw)
+          assert x["schema"]=="cosmos-native-prompt-feedback-002-v1"
+          assert x["checkpoint"]==label and x["no_model_training_or_product_memory"] is True
+          assert len(x["observations"])==4 and len(x["arms"])==6
+          assert len(x["parameter_sha256_unchanged"])==64
+          assert all(set(t["outcomes"])==set(x["arms"]) for t in x["observations"])
+          print("REAL_CHECKPOINT_SYNTHETIC_RECEIPT_SHA256="+hashlib.sha256(raw).hexdigest())
+          print(p.read_text())
+          PY
