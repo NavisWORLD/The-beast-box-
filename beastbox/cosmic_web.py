@@ -170,7 +170,7 @@ def _regular_directory(value: str | Path) -> Path:
 class CosmicApp:
     """Testable owner controller; HTTP is only a transport adapter around this."""
 
-    def __init__(self, root: str | Path, *, workspace_roots: Iterable[str | Path] = (), provider_secret_resolver: Callable[[ProviderProfile], str | None] | None = None, embedding_provider: EmbeddingProvider | None = None) -> None:
+    def __init__(self, root: str | Path, *, workspace_roots: Iterable[str | Path] = (), provider_secret_resolver: Callable[[ProviderProfile], str | None] | None = None, embedding_provider: EmbeddingProvider | None = None, recent_dialogue_limit: int = 0) -> None:
         supplied_root = Path(root).expanduser()
         if supplied_root.is_symlink():
             raise ValueError("cosmic runtime root cannot be a symlink")
@@ -182,6 +182,7 @@ class CosmicApp:
         # Explicit host-only, transient adapter. No provider or vector is persisted
         # in the model profile, substrate checkpoint or owner-authority grants.
         self._embedding_provider = embedding_provider
+        self._recent_dialogue_limit = recent_dialogue_limit
         self.workspace_allowlist: set[Path] = set()
         self.workspace: Workspace | None = None
         self.contexts: list[dict[str, Any]] = []
@@ -210,7 +211,8 @@ class CosmicApp:
         return provider
 
     def _runtime(self, profile: ProviderProfile | None = None) -> DurableRuntime:
-        return DurableRuntime(self.root, self._provider(profile), embedding_provider=self._embedding_provider)
+        return DurableRuntime(self.root, self._provider(profile), embedding_provider=self._embedding_provider,
+                              recent_dialogue_limit=self._recent_dialogue_limit)
 
     def _set_profile(self, raw: dict[str, Any]) -> tuple[ProviderProfile, bool, list[str]]:
         previous = self.profile.identity
