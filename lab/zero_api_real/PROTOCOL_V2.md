@@ -1,0 +1,3 @@
+# Strict model-directed task protocol v2
+
+This experiment explicitly fixes TWO accepted formats *before* the new run: an exact flat one-argument object or an exact one-level `arguments` envelope. Both must contain the exact allow-listed action, no additional keys and the exact expected numeric/list types. The trusted host grants each action independently and only writes a constrained synthetic result file. Model prompts supply a goal and a tool catalog but no literal answer JSON. Failure from strict v1 [run 36628356524](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36628356524) remains a failure. A new v2 run is required and its genuine pass or failure must be reported separately.
