@@ -1,0 +1,51 @@
+name: Zero paid-API COSMOS offline-fixture experiment
+
+on:
+  push:
+    branches: [experiment/zero-api-local-cosmos-001]
+    paths:
+      - scripts/zero_api_experiment.py
+      - .github/workflows/zero-api-local-experiment.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - scripts/zero_api_experiment.py
+      - .github/workflows/zero-api-local-experiment.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-fixture-cpu:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      PIP_NO_INPUT: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the checked-out Beast Box (setup is outside the isolated measurement window)
+        run: python -m pip install -e .
+      - name: Execute real checked-out durable runtime without model API or network
+        run: |
+          set -o pipefail
+          mkdir -p build
+          python scripts/zero_api_experiment.py --output build/zero-api-experiment.json \
+            | tee build/zero-api-experiment-terminal.log
+          test -s build/zero-api-experiment.json
+      - name: Archive successes AND failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zero-api-local-fixture-receipts
+          path: |
+            build/zero-api-experiment.json
+            build/zero-api-experiment-terminal.log
+          if-no-files-found: warn
