@@ -50,7 +50,8 @@ data=json.load(open(sys.argv[1]))
 host=json.load(open(sys.argv[2]))
 print(json.dumps({"status":data.get("status"),"checks":data.get("checks"),
                   "agent":data.get("agent"),"host_network_mode":host.get("network_mode")}, indent=2))
-if data.get("status") != "PASS_STRUCTURAL" or host.get("network_mode")!="none" or host.get("exit_code")!=0:
+if (data.get("status") != "PASS_STRUCTURAL" or host.get("network_mode")!="none"
+    or host.get("exit_code")!=0 or data.get("agent", {}).get("useful_task_completed") is not True):
     sys.exit(1)
 PY
 else
