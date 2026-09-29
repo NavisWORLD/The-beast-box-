@@ -12,7 +12,7 @@
 
 Can the actual Beast Box `DurableRuntime` retain a consistent hash-tracked software memory/state substrate when the actual original **native RAWRPHØS 14K weights** are replaced with a **different genuine pretrained language-model family** and then switched back, with inference constrained to locally loaded CPU models and a measured network-isolated process?
 
-The prospective source-committed test started with a completely **fresh synthetic-only SQLite store**, used original published model files pinned to precise SHA-256 identities, ran actual non-simulated CPU text generation before and after swaps, checked real model-delivered context, and ended with explicit close-and-reopen checkpoint verification. No owner conversation/database, proprietary credentials, paid inference services, optional quantum integrations, production server, live camera/audio feed or real physical actuator participated.
+The prospective source-committed test started with a completely **fresh synthetic-only SQLite store**, used original published model files pinned to precise SHA-256 identities, ran actual non-simulated CPU text generation before and after swaps, checked real model-delivered context, and ended with explicit close-and-reopen checkpoint verification. No owner conversation/database, private credentials, paid inference services, optional quantum integrations, production server, live camera/audio feed or real physical actuator participated.
 
 The two verified *different model families*:
 
