@@ -1,6 +1,6 @@
 import { bridgeConfigured, isOwner, safeJson } from '@/lib/security';
 export const runtime='nodejs';
-const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job','observations','models','model-inventory','hf-model-inventory','engine-growth']);
+const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job','observations','models','model-inventory','hf-model-inventory','engine-growth','engine-loop']);
 const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio','observations','models','azure-read','cns-model-probe','signal-model-probe']);
 type RouteContext={params:Promise<{endpoint:string}>};
 async function forward(request:Request, method:'GET'|'POST', {params}:RouteContext) {
