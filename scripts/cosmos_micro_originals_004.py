@@ -135,9 +135,30 @@ def load_original(label: str, root: Path):
         mod = import_checked_source("pinned_public_cosmos_spark", root / "spark_serve.py")
         model = mod.Spark(cfg["vocab"], cfg["n_embd"], cfg["n_head"],
                           cfg["n_layer"], cfg["block"])
-    # The historical Spark *serving script* uses strict=False; the scientific
-    # test is stricter so it never proceeds on an incomplete original state.
-    model.load_state_dict(ck["model"], strict=True)
+    # Original Spark registered four fixed triangular attention masks as
+    # persistent buffers; its public checkpoint omits ONLY those unlearned
+    # deterministic buffers (the upstream serving path used strict=False).
+    # Supply precisely those source-generated masks, with exact shape/content
+    # verification. Reject any other missing or unexpected key and strictly
+    # load EVERY original trained tensor; never initialize trained weights.
+    recorded = dict(ck["model"])
+    expected = model.state_dict()
+    missing = set(expected) - set(recorded)
+    unexpected = set(recorded) - set(expected)
+    if unexpected:
+        raise RuntimeError("unexpected original learned tensor or buffer keys")
+    if label == "cosmos_born":
+        allowed = {f"blocks.{i}.mask" for i in range(cfg["n_layer"])}
+        if missing != allowed:
+            raise RuntimeError("unexpected missing original learned tensor or buffer")
+        reference = torch.triu(torch.ones(128, 128) * float("-inf"), 1)
+        for name in sorted(allowed):
+            if expected[name].shape != reference.shape or not torch.equal(expected[name], reference):
+                raise RuntimeError("original immutable causal attention mask differs from source")
+            recorded[name] = expected[name]
+    elif missing:
+        raise RuntimeError("PHOS requires fully strict original source and weights")
+    model.load_state_dict(recorded, strict=True)
     model.eval()
     count = sum(p.numel() for p in model.parameters())
     if count >= 3_909_956 or count < 500_000:
