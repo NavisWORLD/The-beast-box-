@@ -197,6 +197,15 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
        </>}
       </>}
     </div>
+    <div className="record" aria-label="COSMOS custom engines">
+     <h3>Existing COSMOS custom models &amp; engines</h3>
+     <p><strong>PHOS / dyn12</strong> and <strong>SAMGO / 54D</strong> — known custom research lineages in
+      {' '}<a href="https://huggingface.co/phera-ra/QC67_cosmo" target="_blank" rel="noopener noreferrer">QC67 COSMOS</a>.
+      They are not generic Transformers Chat Completion endpoints; a verified pinned adapter is required before enabling chat selection.</p>
+     <p><strong>COSMIC.CYPHER</strong> — already integrated as a workspace/coding engine in Beast Box.
+      A distinct HF chat checkpoint for COSMIC.CYPHER is not independently attested; do not route the research source to a mismatched language model.</p>
+     <p>RAWRPHØS stable/experimental native options and the private hosted checkpoint remain separate above. No research weights are substituted or discarded.</p>
+    </div>
     {catalog.choices.some(x=>x.requires_spend_approval)?<label className="cloud-spend">
       <input type="checkbox" checked={spendApproved} disabled={busy}
        onChange={e=>setSpendApproved(e.target.checked)}/>
