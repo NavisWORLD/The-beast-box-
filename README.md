@@ -122,6 +122,16 @@ The first tool demo is denied. The second permits only a numeric simulated posit
 
 Back up through the CLI so SQLite WAL data is included. Restore requires a verified hash and a fresh directory, validates the copied checkpoint, and never overwrites existing history. Retain the backup hash separately. Hashes detect corruption; they are not signatures and cannot defeat a host that rewrites both data and receipts.
 
+## COSMOS Lab — real self-correction and 12D controls (29 September 2026)
+
+**[View the public research results on Beast Box](https://beastboxcosmos.xyz/research)**.
+Both requested experiments were executed on actual native/public model checkpoints or independently trained original native code, with immutable receipts, explicit negative controls and all unfavorable results retained:
+
+- **Generative self-correction:** blinded, model-originated self-critique on eight frozen synthetic problems produced **0/8** correct for RAWRPHØS 18K and **3/8** for separately pretrained Qwen 0.5B, the **same as their independent first answers**. No wrong-to-right corrections were observed. Giving Qwen the actual answer produced **5/8**, a separately labeled *answer-disclosure* control, **not** intrinsic self-correction. [Full report](docs/experiments/COSMOS_SELF_CORRECTION_005_RESULTS.md) · [Real original-checkpoint CPU run](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36592111897).
+- **Novel 12D advantage:** three independently trained native attention configurations started from identical tensor weights and received the same synthetic training episodes, minibatches and optimizer budget on three fixed seeds. Native dyn12 heldout test accuracy averaged **28.9%** versus **31.1%** for independently trained standard attention and **30.7%** for trained shuffled-state control. The predefined primary advantage test **failed**. An exploratory four-binding sequence-length shift returned **27.9%** for dyn12 versus **22.1%** standard; one tiny synthetic task with unequal active parameter/FLOPs remains insufficient to establish general benefit. [Full report](docs/experiments/COSMOS_DYN12_CONTROLLED_006_RESULTS.md) · [Real three-seed CPU run](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36591525286).
+
+**Release boundary:** merging and publishing these research results does **not** train or promote a new production model, grant autonomous model authority, demonstrate reliable self-correction or prove a novel intelligence advantage. The evidence is public, original weights remain preserved and production inference is unchanged.
+
 ## What was verified
 
 The separate frozen-model experiment **002 historical-4e53** recorded real Model A → Model B → Model A inference with the same hash-tracked substrate, cross-swap memory delivery, state accumulation, zero model-parameter drift, and A-only, empty-memory and shuffled-memory controls.
