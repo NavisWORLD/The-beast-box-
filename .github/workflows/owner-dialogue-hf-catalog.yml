@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - beastbox/runtime.py
+      - beastbox/memory.py
+      - beastbox/providers.py
       - beastbox/hf_owner_catalog.py
       - apps/beastbox-cloud/bridge/owner_bridge.py
       - apps/beastbox-cloud/bridge/tests/test_hf_owner_catalog.py
@@ -14,6 +16,7 @@ on:
       - models/rawrphos/training/preflight.py
       - models/rawrphos/tests/test_preflight.py
       - tests/test_recent_conversation_context.py
+      - tests/test_native_chat_sampling.py
       - tests/test_hf_owner_catalog.py
       - .github/workflows/owner-dialogue-hf-catalog.yml
   workflow_dispatch:
@@ -44,12 +47,13 @@ jobs:
           python -m pip install -e '.[secure]' -e './models/rawrphos[serve]' pytest==8.4.2
       - name: Compile edited Python source
         run: |
-          python -m compileall -q beastbox/runtime.py beastbox/hf_owner_catalog.py apps/beastbox-cloud/bridge/owner_bridge.py models/rawrphos/training/preflight.py
+          python -m compileall -q beastbox/runtime.py beastbox/memory.py beastbox/providers.py beastbox/hf_owner_catalog.py apps/beastbox-cloud/bridge/owner_bridge.py models/rawrphos/training/preflight.py
       - name: Verify real continuity, HF guardrails and CPU tensor diagnostics
         run: |
           mkdir -p build
           python -m pytest -o addopts= -q --junitxml=build/owner-dialogue-hf.xml \
             tests/test_recent_conversation_context.py \
+            tests/test_native_chat_sampling.py \
             tests/test_hf_owner_catalog.py \
             models/rawrphos/tests/test_preflight.py \
             apps/beastbox-cloud/bridge/tests/test_hf_owner_catalog.py \
@@ -81,7 +85,7 @@ jobs:
                    'production_training_occurred':False,
                    'model_weights_modified':False,
                    'production_deployment':False}
-          Path('build/owner-dialogue-hf-receipt.json').write_text(json.dumps(receipt,indent=2)+'\\n')
+          Path('build/owner-dialogue-hf-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
           print(json.dumps(receipt,sort_keys=True))
           PY
       - uses: actions/upload-artifact@v4
