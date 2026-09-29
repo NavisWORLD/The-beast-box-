@@ -1,0 +1,82 @@
+name: Original native RAWRPHOS 14K zero API offline CPU
+
+on:
+  push:
+    branches: [experiment/zero-api-native-rawrphos-003]
+    paths:
+      - scripts/zero_api_native_14k_003.py
+      - .github/workflows/zero-api-native-rawrphos-003.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - scripts/zero_api_native_14k_003.py
+      - .github/workflows/zero-api-native-rawrphos-003.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authentic-native-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 23
+    env:
+      TOKENIZERS_PARALLELISM: "false"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: CPU prerequisites installed before isolated measurement
+        run: |
+          set -euo pipefail
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos transformers==4.51.3 huggingface_hub==0.30.2
+          if ! command -v ip; then sudo apt-get update && sudo apt-get install -y iproute2; fi
+          command -v setpriv
+      - name: Provision published immutable original 14K RAWRPHOS and separate public pretrained model
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          python scripts/zero_api_native_14k_003.py --mode stage \
+            --cache "$PWD/build/zero-api-original-cache" \
+            --stage-receipt "$PWD/build/native-zero-api-stage.json" \
+            2>&1 | tee build/native-stage.log
+          test -s build/native-zero-api-stage.json
+      - name: Enter isolated Linux loopback-only namespace and execute original native inference
+        run: |
+          set -euo pipefail
+          NS="native-zero-api-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          function teardown() { sudo ip netns del "$NS" 2>/dev/null || true; }
+          trap teardown EXIT
+          sudo ip netns add "$NS"
+          sudo ip -n "$NS" link set lo up
+          echo "network namespace interfaces:"; sudo ip -n "$NS" -br link
+          echo "network namespace routes:"; sudo ip -n "$NS" route show
+          sudo ip netns exec "$NS" setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups \
+            env HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false \
+            OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 \
+            "$(command -v python)" scripts/zero_api_native_14k_003.py --mode measure \
+             --cache "$PWD/build/zero-api-original-cache" \
+             --stage-receipt "$PWD/build/native-zero-api-stage.json" \
+             --output "$PWD/build/native-zero-api-results.json" \
+             --work "$PWD/build/native-zero-api-runtime" \
+            2>&1 | tee build/native-offline-run.log
+          test -s build/native-zero-api-results.json
+      - name: Retain official checkpoint and offline proof, including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zero-api-real-original-native-14k-receipts
+          path: |
+            build/native-zero-api-stage.json
+            build/native-zero-api-results.json
+            build/native-stage.log
+            build/native-offline-run.log
+          if-no-files-found: warn
+          retention-days: 21
