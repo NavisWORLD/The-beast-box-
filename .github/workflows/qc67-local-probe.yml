@@ -37,15 +37,16 @@ jobs:
           names={s.rfilename:s for s in info.siblings}
           print("EXACT_ORIGINAL_REPO_SHA",info.sha,flush=True)
           wanted=["weights/phos.pt","weights/samgo_weights.pt","tools/load_model.py","serving/cosmos_coder.py","architecture/phos_grow.py"]
+          print("MODEL_SOURCE_FILES", sorted(n for n in names if (n.startswith("tools/") or n.startswith("architecture/") or n.startswith("Cosmos/web/cosmosynapse/model/")) and n.endswith(".py"))[:100],flush=True)
           for name in wanted:
               item=names.get(name)
               print("UPSTREAM_FILE",json.dumps({"path":name,"exists":item is not None,"size":getattr(item,"size",None),"lfs_sha256":(getattr(item,"lfs",None) or {}).get("sha256") if item else None}),flush=True)
-          for name in ("tools/load_model.py","serving/cosmos_coder.py"):
+          for name in ("tools/cosmos_serve.py","architecture/phos_grow.py","architecture/phos_model.py"):
               if name in names:
                   path=hf_hub_download(repo_id="phera-ra/QC67_cosmo",filename=name,revision=info.sha,token=False)
                   source=Path(path).read_text()
                   print("ORIGINAL_SOURCE_BEGIN",name,flush=True)
-                  print("\n".join(f"{i+1}: {line}" for i,line in enumerate(source.splitlines()[:180])),flush=True)
+                  print("\n".join(f"{i+1}: {line}" for i,line in enumerate(source.splitlines()[:360])),flush=True)
                   print("ORIGINAL_SOURCE_END",name,flush=True)
           assert all(n in names for n in wanted[:2]), "Published original PHOS/SAMGO weights missing"
           PY
