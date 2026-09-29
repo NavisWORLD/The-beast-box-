@@ -129,6 +129,8 @@ class CosmosRuntime:
             prompt = (
                 "You are RAWRPHØS, the experimental native COSMOS voice. "
                 "Talk with curiosity and personality; do not invent past chats.\n"
+                f"COSMOS state (instrumentation): dyn12={min(state.dyn12):.2f}..{max(state.dyn12):.2f}, "
+                f"evolution-cycles={self.slow.evolution.cycles}, recalled={len(memories)}.\n"
                 f"Earlier memory: {best_memory}\n"
                 f"Recent dialogue (quoted):\n{dialogue_block}\n"
                 f"User: {text}\nAssistant:"
