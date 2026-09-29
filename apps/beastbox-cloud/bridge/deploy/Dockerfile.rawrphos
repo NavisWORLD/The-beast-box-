@@ -24,6 +24,7 @@ COPY pyproject.toml README.md LICENSE ./
 COPY beastbox/ beastbox/
 COPY apps/beastbox-cloud/bridge/ apps/beastbox-cloud/bridge/
 COPY models/rawrphos/ models/rawrphos/
+COPY models/qc67/ models/qc67/
 # Formatting changes whitespace only; Railway still terminates HTTPS upstream.
 RUN caddy fmt --overwrite apps/beastbox-cloud/bridge/deploy/Caddyfile
 RUN pip install --no-cache-dir --no-compile '.[secure]' 'azure-storage-blob>=12.20,<13' 'gradio-client>=1.14,<2' \
@@ -47,6 +48,12 @@ RUN python -m pip install --no-cache-dir --no-compile 'torch==2.6.0+cpu' \
       --destination /opt/beastbox/rawrphos/step-00018000 \
  && chown -R beastbox:beastbox /opt/beastbox/rawrphos \
  && chmod 0755 apps/beastbox-cloud/bridge/deploy/start_rawrphos.sh
+# Build-time only immutable public originals. They are *not* loaded until the
+# explicit owner production flag is set; never download on a chat request.
+RUN python -m pip install --no-cache-dir --no-compile "huggingface_hub>=0.30,<2" "tiktoken>=0.7,<1" \
+ && python models/qc67/install_pinned.py --destination /opt/beastbox/qc67 \
+ && chown -R beastbox:beastbox /opt/beastbox/qc67
+ENV QC67_INSTALL_DIR=/opt/beastbox/qc67
 ENV RAWRPHOS_CHECKPOINT_PATH=/opt/beastbox/rawrphos/step-00014000 \
     RAWRPHOS_18K_CHECKPOINT_PATH=/opt/beastbox/rawrphos/step-00018000
 EXPOSE 8080

@@ -2,7 +2,7 @@
 import {useCallback,useEffect,useState} from 'react';
 import {Check,RefreshCcw,ShieldCheck} from 'lucide-react';
 
-type Choice='local'|'rawrphos_native'|'rawrphos_native_18k_experimental'|'rawrphos_hf'|'huggingface'|'ollama_cloud';
+type Choice='local'|'rawrphos_native'|'rawrphos_native_18k_experimental'|'rawrphos_hf'|'qc67_phos'|'qc67_samgo'|'huggingface'|'ollama_cloud';
 type Option={
  choice:Choice;model:string;kind:'local'|'remote';configured:boolean;
  requires_spend_approval:boolean;readiness:string;
@@ -112,6 +112,8 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
     choice==='rawrphos_native'?'Selected the stable native 14K CPU checkpoint. COSMOS history retained; no paid inference was made.':
     choice==='rawrphos_native_18k_experimental'?'Selected the experimental 18K CPU checkpoint. Its quality gate FAILED; instruction and multi-turn replies may be wrong. Stable 14K is still available, and COSMOS memory was preserved.':
      choice==='rawrphos_hf'?'Selected your private Hugging Face ZeroGPU RAWRPHØS 12K. Checkpoint identity was verified; try a real chat. Free quota and queue limits apply.':
+    choice==='qc67_phos'?'Selected original pinned PHOS CPU checkpoint. Experimental character model: short research replies, not proven conversational performance. COSMOS memory preserved.':
+    choice==='qc67_samgo'?'Selected original pinned SAMGO 54D CPU checkpoint. Experimental limited-context research replies; COSMOS memory preserved.':
     'Selected '+String(result.model||'the cloud model')+'. The encrypted key was retained. Actual inference and account entitlement still require a completed chat.'
    );
   }catch(e){setError((e as Error).message);}
@@ -135,16 +137,17 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
      const experimental=option.choice==='rawrphos_native_18k_experimental';
      const native=option.choice==='rawrphos_native'||experimental;
      const hosted=option.choice==='rawrphos_hf';
+     const original=option.choice==='qc67_phos'||option.choice==='qc67_samgo';
      const ready=option.readiness==='INSTALLED_AND_READY';
      return <div className="record" key={option.choice}>
-      <strong>{option.label||option.model}</strong> · {native?'Native PyTorch CPU':hosted?'Private Hugging Face ZeroGPU':option.choice==='local'?'Installed CPU model':option.choice==='huggingface'?'Hugging Face':'Ollama Cloud'}
-      <p>{native?'Status: '+option.readiness.replaceAll('_',' ')+(option.loaded_step?' · Loaded step '+option.loaded_step:'')+'. '+(ready?(experimental?'Pinned unpromoted 18K identity verified. The original quality gate FAILED; responses may be inaccurate. Owner-only test use; real chat still needs completion.':'Pinned 14K identity and loopback verified; real chat still needs completion.'):'Not selectable until Railway installs and verifies the model. No automatic fallback.'):hosted?'Private HF Space. '+(option.configured?'Ready for owner-authenticated checkpoint check when selected. Free daily GPU quota and queuing apply.':'Save a private Hugging Face token under Connections first. No browser token exposure.'):remote?'Encrypted credential configured. Model inference, account entitlement, available balance and latency are not attested.':'Local weights and loopback were verified on the host. Actual response still requires a completed chat.'}</p>
+      <strong>{option.label||option.model}</strong> · {native||original?'Native PyTorch CPU':hosted?'Private Hugging Face ZeroGPU':option.choice==='local'?'Installed CPU model':option.choice==='huggingface'?'Hugging Face':'Ollama Cloud'}
+      <p>{original?'Status: '+option.readiness.replaceAll('_',' ')+'. '+(ready?'Exact published weights and original architecture loaded; bounded research prompt only, chat quality is not attested.':'Not installed or not checkpoint-verified on this host; unavailable until exact pinned model is deployed.') :native?'Status: '+option.readiness.replaceAll('_',' ')+(option.loaded_step?' · Loaded step '+option.loaded_step:'')+'. '+(ready?(experimental?'Pinned unpromoted 18K identity verified. The original quality gate FAILED; responses may be inaccurate. Owner-only test use; real chat still needs completion.':'Pinned 14K identity and loopback verified; real chat still needs completion.'):'Not selectable until Railway installs and verifies the model. No automatic fallback.'):hosted?'Private HF Space. '+(option.configured?'Ready for owner-authenticated checkpoint check when selected. Free daily GPU quota and queuing apply.':'Save a private Hugging Face token under Connections first. No browser token exposure.'):remote?'Encrypted credential configured. Model inference, account entitlement, available balance and latency are not attested.':'Local weights and loopback were verified on the host. Actual response still requires a completed chat.'}</p>
       <button type="button" className="outline-action"
-       disabled={busy||(remote&&!spendApproved)||(!remote&&active)||(native&&!ready)||(hosted&&!option.configured)}
+       disabled={busy||(remote&&!spendApproved)||(!remote&&active)||((native||original)&&!ready)||(hosted&&!option.configured)}
        onClick={()=>void choose(option.choice)}>
        {active?<Check size={15}/>:<ShieldCheck size={15}/>}
        {active&&!(remote&&catalog.reapproval_required)?'Currently selected':
-        remote?(active?'Reapprove saved remote model':hosted?'Select RAWRPHØS via Hugging Face':'Select saved remote model'):native?(experimental?'Select experimental 18K':'Select stable 14K'):'Switch to local model'}
+        remote?(active?'Reapprove saved remote model':hosted?'Select RAWRPHØS via Hugging Face':'Select saved remote model'):original?('Select original '+(option.choice==='qc67_phos'?'PHOS':'SAMGO')):native?(experimental?'Select experimental 18K':'Select stable 14K'):'Switch to local model'}
       </button>
       {option.choice==='ollama_cloud'&&<div className="record" aria-label="Ollama cloud model choices">
        <h3>Ollama cloud models</h3>
@@ -199,11 +202,10 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
     </div>
     <div className="record" aria-label="COSMOS custom engines">
      <h3>Existing COSMOS custom models &amp; engines</h3>
-     <p><strong>PHOS / dyn12</strong> and <strong>SAMGO / 54D</strong> — known custom research lineages in
+     <p><strong>PHOS / dyn12</strong> and <strong>SAMGO / 54D</strong> — original pinned native PyTorch models when their verified loopback sidecar is installed; otherwise unavailable. Published provenance:
       {' '}<a href="https://huggingface.co/phera-ra/QC67_cosmo" target="_blank" rel="noopener noreferrer">QC67 COSMOS</a>.
-      They are not generic Transformers Chat Completion endpoints; a verified pinned adapter is required before enabling chat selection.</p>
-     <p><strong>COSMIC.CYPHER</strong> — already integrated as a workspace/coding engine in Beast Box.
-      A distinct HF chat checkpoint for COSMIC.CYPHER is not independently attested; do not route the research source to a mismatched language model.</p>
+      These original research models use small bounded prompt windows; a successful CPU forward is not proof of useful conversational responses.</p>
+     <p><strong>COSMIC.CYPHER</strong> — installed coding-agent engine, not a separate language-model checkpoint. Its CLI can register these two local model endpoints (or RAWRPHØS/SmolLM2) with explicit workspace permissions. Experimental PHOS/SAMGO may not reliably produce tool-action JSON.</p>
      <p>RAWRPHØS stable/experimental native options and the private hosted checkpoint remain separate above. No research weights are substituted or discarded.</p>
     </div>
     {catalog.choices.some(x=>x.requires_spend_approval)?<label className="cloud-spend">
