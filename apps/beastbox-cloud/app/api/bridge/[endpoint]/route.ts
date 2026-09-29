@@ -1,7 +1,7 @@
 import { bridgeConfigured, isOwner, safeJson } from '@/lib/security';
 export const runtime='nodejs';
 const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job','observations','models','model-inventory','hf-inventory','engine-growth']);
-const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio','observations','models','azure-read','cns-model-probe','signal-model-probe']);
+const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio','observations','models','remember-reply','azure-read','cns-model-probe','signal-model-probe']);
 type RouteContext={params:Promise<{endpoint:string}>};
 async function forward(request:Request, method:'GET'|'POST', {params}:RouteContext) {
   if (!await isOwner()) return safeJson(401,{error:'Owner authentication required'});
@@ -17,7 +17,7 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
   if (!bridgeConfigured()) return safeJson(503,{error:'A durable HTTPS Beast Box bridge has not been provisioned. No model call was performed.'});
   let body: string|undefined;
   if (method==='POST') {
-    if (endpoint==='connections'||endpoint==='bio'||endpoint==='chat-start'||endpoint==='observations'||endpoint==='models'||endpoint==='azure-read'||endpoint==='cns-model-probe'||endpoint==='signal-model-probe') {
+    if (endpoint==='connections'||endpoint==='bio'||endpoint==='chat-start'||endpoint==='observations'||endpoint==='models'||endpoint==='remember-reply'||endpoint==='azure-read'||endpoint==='cns-model-probe'||endpoint==='signal-model-probe') {
       // Cross-site forms must not edit credentials or submit sensitive bio readings.
       const origin=request.headers.get('origin');
       if (!origin || origin!==new URL(request.url).origin) return safeJson(403,{error:'Same-origin owner action required'});
@@ -36,6 +36,12 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
          input.blob_name.split('/').some(s=>!s||s==='.'||s==='..')||
          !/\.(txt|md|json|csv)$/i.test(input.blob_name))
          return safeJson(400,{error:'Confirm one exact Azure text blob name; no automatic retrieval'});
+    }
+    if(endpoint==='remember-reply'){
+      if(Object.keys(input).sort().join(',')!=='consent,job_id'||
+         input.consent!==true||typeof input.job_id!=='string'||
+         !/^[A-Za-z0-9_-]{32}$/.test(input.job_id))
+        return safeJson(400,{error:'Explicit owner consent and valid completed job ID required'});
     }
     if(endpoint==='models'){
       const keys=Object.keys(input).sort().join(',');
