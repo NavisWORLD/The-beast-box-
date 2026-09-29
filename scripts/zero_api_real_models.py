@@ -159,6 +159,22 @@ def parse_first_json(text):
             pass
     return None
 
+def extract_predeclared_tool(obj, action, arg):
+    """V2 predeclared parser: exactly one allowed argument, flat OR nested JSON.
+
+    Prior v1 strict run failed on a nested Qwen request. That failure remains
+    independent evidence; this v2 protocol was fixed before this new trial.
+    No arbitrary tool, extra field, coercion, shell, path or network is accepted.
+    """
+    if not isinstance(obj, dict) or obj.get("action") != action:
+        return None
+    if set(obj) == {"action", arg}:
+        return obj[arg]
+    if (set(obj) == {"action", "arguments"} and type(obj["arguments"]) is dict
+            and set(obj["arguments"]) == {arg}):
+        return obj["arguments"][arg]
+    return None
+
 def agent_task(model: CPUModel, target: Path, events: list) -> dict:
     """Two-step actual model-originated plan evaluated by a strict host gate.
 
@@ -168,7 +184,8 @@ def agent_task(model: CPUModel, target: Path, events: list) -> dict:
     numbers = [7, 11, 6]
     report = {"attempted": True, "model": model.model, "model_planning_succeeded": False,
               "useful_task_completed": False, "host_baseline_completed": False,
-              "raw_model_actions": [], "denied_without_host_grant": False}
+              "raw_model_actions": [], "denied_without_host_grant": False,
+              "protocol": "strict_exact_flat_or_nested_tool_args_v2"}
     # Verify explicit denial FIRST; the model cannot grant itself execution.
     grants = set()
     def gate(action, args):
@@ -195,10 +212,10 @@ def agent_task(model: CPUModel, target: Path, events: list) -> dict:
         max_new_tokens=76)
     action1 = parse_first_json(first)
     report["raw_model_actions"].append(first[:500])
-    if isinstance(action1, dict) and set(action1) == {"action", "numbers"} \
-            and action1["action"] == "calculate_sum":
+    args1 = extract_predeclared_tool(action1, "calculate_sum", "numbers")
+    if args1 is not None:
         grants.add("calculate_sum")  # distinct explicit trusted-host grant
-        response = gate(action1["action"], action1["numbers"])
+        response = gate("calculate_sum", args1)
         events.append({"type": "agent_host_tool_1", "result": response})
         if response.get("authorized") and response.get("total") == 24:
             second = model.generate(
@@ -212,10 +229,10 @@ def agent_task(model: CPUModel, target: Path, events: list) -> dict:
                 max_new_tokens=76)
             action2 = parse_first_json(second)
             report["raw_model_actions"].append(second[:500])
-            if isinstance(action2, dict) and set(action2) == {"action", "total"} \
-                    and action2["action"] == "write_report":
+            args2 = extract_predeclared_tool(action2, "write_report", "total")
+            if args2 is not None:
                 grants.add("write_report")
-                result2 = gate(action2["action"], action2["total"])
+                result2 = gate("write_report", args2)
                 events.append({"type": "agent_host_tool_2", "result": result2})
                 report["model_planning_succeeded"] = result2.get("authorized") is True
                 report["useful_task_completed"] = (target / "agent_task_result.json").is_file() \
