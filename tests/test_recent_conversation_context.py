@@ -57,6 +57,8 @@ def test_native_prompt_is_short_and_uses_shared_ledger(tmp_path):
         prompt = provider.prompts[1]
         assert "RAWRPHØS" in prompt
         assert "Recent dialogue (quoted)" in prompt
+        assert "COSMOS state (instrumentation): dyn12=" in prompt
+        assert "evolution-cycles=" in prompt
         assert "Remember Moon Garden" in prompt
         assert "User: hello" in prompt
         assert "QUANTUM HEART MODE" not in prompt
