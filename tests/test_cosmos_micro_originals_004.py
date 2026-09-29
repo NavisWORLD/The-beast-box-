@@ -21,6 +21,17 @@ def test_two_original_models_are_pinned_distinct_and_not_claimed_independent():
     assert len(micro.REV)==40
     assert len(micro.ORIGINAL_SHA)==5
     assert all(len(x)==64 for x in micro.ORIGINAL_SHA.values())
+    # Keep the copied subset bit-for-bit aligned with the pre-existing
+    # verified QC67 pins instead of maintaining a second handwritten hash.
+    import json
+    from pathlib import Path
+    canonical = json.loads((Path(__file__).resolve().parent.parent /
+                            "models/qc67/pins.json").read_text())
+    assert micro.REV == canonical["hf_revision"]
+    for name in ("weights/phos.pt", "architecture/cosmos_state_ladder.py",
+                 "architecture/cosmos_spark_cst.py"):
+        assert micro.ORIGINAL_SHA[name] == canonical["files"][name]
+
 
 
 def test_compact_controls_keep_correct_and_false_examples_distinct():
