@@ -20,6 +20,7 @@ from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV
 from beastbox.cloud_connection_checks import verify_connection
 from beastbox.azure_read import AzureReadError, read_owner_text
 from beastbox.ollama_models import ModelInventoryUnavailable, fetch_public_models, MODEL_ID
+from beastbox.hf_owner_catalog import CatalogUnavailable, OWNER_ID, fetch_owner_models
 from beastbox.bio_inputs import bio_event
 from beastbox.cst_sensor_preview import compare_sensor_state
 from beastbox.engine_growth_report import engine_growth_report
@@ -39,7 +40,7 @@ from beastbox.signal_model_probe import signal_model_probe
 from beastbox.soul.archive_summary import archive_manifest
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "engine-growth"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "hf-model-inventory", "engine-growth"})
 POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe", "signal-model-probe"})
 
 
@@ -354,6 +355,52 @@ class OwnerBridge:
                          "brain_changed": changed, "authority_revoked": revoked,
                          "no_paid_inference": True, "inference": "NOT_ATTESTED_UNTIL_REAL_CHAT",
                          "substrate": "EXISTING_DURABLE_STATE"}
+        if (choice == "huggingface" and set(data) == {"choice", "model", "spend_approved"}
+                and data["spend_approved"] is True):
+            requested = data["model"]
+            if not isinstance(requested, str) or OWNER_ID.fullmatch(requested) is None:
+                return 400, {"error": "Select a published owner Hugging Face model ID"}
+            if self.vault is None:
+                return 503, {"error": "Encrypted owner vault is unavailable"}
+            saved = self.vault.read_host_only("huggingface")
+            if saved is None:
+                return 404, {"error": "Owner Hugging Face credential is not configured"}
+            if (self.app.profile.kind == "compatible"
+                    and self.app.profile.base_url == "https://router.huggingface.co/v1"
+                    and self.app.profile.model != requested):
+                return 409, {"error": "Switch to local model before changing the active Hugging Face model"}
+            try:
+                listed = fetch_owner_models()
+            except CatalogUnavailable:
+                return 503, {"error": "Owner Hugging Face inventory unavailable; selection unchanged"}
+            match = next((row for row in listed["models"] if row["id"] == requested), None)
+            if not match:
+                return 409, {"error": "Requested model is absent from the verified public owner inventory"}
+            if match["router_candidate"] is not True:
+                return 409, {"error": "Research model requires a separately verified compatible serving adapter"}
+            previous = saved["config"]["model"]
+            prior_grant = self.app.authority.allowed("cloud")
+            if previous != requested:
+                try:
+                    self.vault.update_model("huggingface", requested)
+                except (ConnectionError, ValueError):
+                    return 400, {"error": "Encrypted model metadata update failed; selection unchanged"}
+            try:
+                code, result = self._connection_action({
+                    "action": "activate", "provider": "huggingface", "spend_approved": True
+                })
+                if code != 200:
+                    raise ValueError("model activation failed")
+            except (ValueError, OSError, ConnectionError):
+                if previous != requested:
+                    self.vault.update_model("huggingface", previous)
+                if not prior_grant:
+                    self.app.authority.revoke("cloud")
+                return 503, {"error": "Hugging Face model handoff failed; previous profile retained"}
+            return 200, {**result, "catalog": "PUBLIC_OWNER_MODEL_ROUTER_CANDIDATE",
+                         "account_access_verified": False, "credential_preserved": True,
+                         "inference": "NOT_ATTESTED_UNTIL_REAL_CHAT",
+                         "substrate": "EXISTING_DURABLE_STATE"}
         if (choice == "ollama_cloud" and set(data) == {"choice", "model", "spend_approved"}
                 and data["spend_approved"] is True):
             # Model selection is a single owner-initiated, read-only inventory
@@ -508,6 +555,11 @@ class OwnerBridge:
         if name == "models" and method == "GET":
             with self.app._lock:
                 return 200, self._model_catalog()
+        if name == "hf-model-inventory" and method == "GET":
+            try:
+                return 200, fetch_owner_models()
+            except CatalogUnavailable:
+                return 503, {"error": "Public owner Hugging Face inventory unavailable"}
         if name == "model-inventory" and method == "GET":
             if self.vault is None or self.vault.read_host_only("ollama_cloud") is None:
                 return 404, {"error": "Ollama Cloud credential is not configured"}
