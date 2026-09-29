@@ -18,7 +18,7 @@ def verify(label: str, root: Path=ROOT) -> dict:
     if hashlib.sha256(raw).hexdigest()!=RECEIPTS[label]:
         raise ValueError("source original receipt bytes changed")
     doc=json.loads(raw)
-    if raw!=json.dumps(doc,sort_keys=True,ensure_ascii=False,separators=(",",":"),allow_nan=False).encode()+b"\\n".replace(b"\\\\n",b"\\n"):
+    if raw!=json.dumps(doc,sort_keys=True,ensure_ascii=False,separators=(",",":"),allow_nan=False).encode()+bytes([10]):
         raise ValueError("noncanonical public evidence")
     target_path,_ = LABELS[label]
     if not (doc["schema"]=="cosmos-original-sub4m-prompt-feedback-004-v1"
