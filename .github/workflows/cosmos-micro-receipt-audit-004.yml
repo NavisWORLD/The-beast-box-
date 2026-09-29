@@ -1,0 +1,29 @@
+name: COSMOS 004 privacy-safe original checkpoint evidence audit (no models)
+on:
+  pull_request:
+    branches: [experiment/cosmos-native-correction-002]
+    paths:
+      - "docs/experiments/cosmos-micro-originals-004-*-measurements.json"
+      - "docs/experiments/COSMOS_MICRO_ORIGINALS_004_RESULTS.md"
+      - "scripts/verify_cosmos_micro_receipts_004.py"
+      - "tests/test_cosmos_micro_receipts_004.py"
+      - ".github/workflows/cosmos-micro-receipt-audit-004.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  independently-audit-archived-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install pytest==8.4.2
+      - name: Reproduce every recorded aggregate and ensure no literal checkpoint output leaked
+        run: |
+          python -m pytest -q tests/test_cosmos_micro_receipts_004.py
+          python -m scripts.verify_cosmos_micro_receipts_004
