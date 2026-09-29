@@ -10,8 +10,15 @@ from beastbox.providers import ReferenceTextProvider
 from beastbox.retrieval_snapshot import recent_dialogue_from_snapshot
 
 
+class _FixedReplyProvider:
+    model = "fixed-test-provider"
+
+    def generate(self, prompt):
+        return "Independent short fixture answer."
+
+
 def test_recent_dialogue_uses_active_snapshot_and_chronological_order(tmp_path):
-    r = DurableRuntime(tmp_path, ReferenceTextProvider(), recent_dialogue_limit=4)
+    r = DurableRuntime(tmp_path, _FixedReplyProvider(), recent_dialogue_limit=4)
     try:
         one = r.respond("The nebula-code phrase is cobalt goose.")
         second = r.respond("Can you still see the earlier message?")
@@ -61,7 +68,8 @@ def test_unselected_context_is_not_retained_as_assistant_memory(tmp_path):
     r = DurableRuntime(tmp_path, ReferenceTextProvider(), recent_dialogue_limit=4)
     try:
         turn = r.respond("Please analyze my attached notes.", transient_context="VERY_PRIVATE_ATTACHMENT_CANARY")
-        assert "VERY_PRIVATE_ATTACHMENT_CANARY" in turn["model"]["prompt"]
+        assert "VERY_PRIVATE_ATTACHMENT_CANARY" in turn["response"]
+        assert "prompt" not in turn["model"]
         assert r.memory.db.execute(
             "SELECT COUNT(*) FROM memories WHERE kind='assistant_turn'"
         ).fetchone()[0] == 0
