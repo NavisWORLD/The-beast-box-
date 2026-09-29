@@ -292,8 +292,17 @@ def run(label: str, root: Path) -> dict:
                           if surface == "full_native_text_bounded" else
                           compact_prompt(case,arm,prior_response=previous))
                 observed[arm] = measure_one(model, stoi, itos, case, arm,surface,prompt)
+            # These publicly released weights were trained on the author's
+            # logged experience. Responses remain transient in this process
+            # for correction input; publish only computed measurements.
+            # Short output hashes are also withheld to avoid dictionary attacks.
+            public = {
+                arm: {key:value for key,value in result.items()
+                      if key not in {"generation","generation_sha256"}}
+                for arm,result in observed.items()
+            }
             rows.append({"surface":surface,"id":case["id"],"family":case["family"],
-                         "gold":case["gold"],"outcomes":observed})
+                         "gold":case["gold"],"outcomes":public})
     last = params_digest(model)
     if first != last:
         raise RuntimeError("published model parameters mutated")
@@ -333,6 +342,7 @@ def run(label: str, root: Path) -> dict:
         "input_policy":"filter unsupported characters then left truncate to 116, no silent substitution",
         "generation_budget_characters":GENERATED_CHARACTERS,
         "no_model_training_memory_or_authority":True,
+        "literal_output_and_short_output_hashes":"ephemeral only, never published",
         "observations":rows,"aggregate":aggregate,
         "interpretation":(
             "same four synthetic cases, two separately labeled full/compact char prompts; "
