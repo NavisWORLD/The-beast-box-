@@ -195,7 +195,11 @@ def run_local_agent(provider: LocalCheckpoint, root: Path) -> dict:
         else:
             task = (
                 "You have read this note: " + note
-                + "\nTo complete the bounded report task, respond ONLY with a JSON object "
+                + "\nGenerate an EXACTLY extractive synthetic report. "
+                "Drop the prefix 'Synthetic case: orbital' and capitalize 'Component'. "
+                "The output may ONLY contain observed component ID and inspection need; "
+                "do NOT invent urgency, risks or unobserved facts. "
+                "Respond ONLY with a JSON object "
                 '{"action":"write_report","text":"<one short factual sentence based on note>"}. '
                 "Do not invent details. Do not ask for other tools."
             )
@@ -224,7 +228,10 @@ def run_local_agent(provider: LocalCheckpoint, root: Path) -> dict:
             continue
         if idx == 1 and set(action) == {"action", "text"} and action["action"] == "write_report":
             value = action["text"]
-            if not isinstance(value, str) or len(value)>180 or "cobalt-7" not in value.lower():
+            # Exact oracle for this synthetic fixed-answer task. Never approve
+            # unsupported claims merely because the expected keyword appears.
+            expected = "Component cobalt-7 requires inspection."
+            if not isinstance(value, str) or value.strip() != expected:
                 event["status"] = "rejected_output_invalid_or_unfaithful"
                 trace.append(event)
                 break
@@ -322,6 +329,24 @@ def measured(cache: Path, staging: Path, output: Path, work: Path) -> int:
         step("B_adds_synthetic_memory",lambda: runtime.respond(
              "Remember the orbit seal is prism-birch for this test."))
         after_b = step("inspect_after_B", runtime.inspect)
+        # Negative control: same real model B, but entirely separate empty history.
+        blank = step("start_memoryless_B_control",lambda:
+                     DurableRuntime(work.parent/"zero_api_fresh_control", b,
+                                    recent_dialogue_limit=4))
+        try:
+            blank_result = step("B_real_local_memoryless_recall",lambda:
+                                blank.respond("What is the stellar key?"))
+            result["negative_control"] = {
+                "same_real_B_no_prior_synthetic_memory": True,
+                "unseeded_prompt_has_marigold":
+                    "marigold" in b.prompt_history[-1].lower(),
+                "unseeded_output_has_marigold":
+                    "marigold" in blank_result["response"].lower(),
+                "distinct_system_id":
+                    blank.inspect()["system_id"] != after_b["system_id"],
+            }
+        finally:
+            blank.close()
         b_record_present = any(
             "prism-birch" in str(row["text"]).lower()
             for row in runtime.memory.db.execute("SELECT text FROM memories").fetchall()
@@ -366,6 +391,8 @@ def measured(cache: Path, staging: Path, output: Path, work: Path) -> int:
             "same_persistent_system_id_A_to_B_to_A":
                 before["system_id"] == after_b["system_id"] == final["system_id"],
             "model_B_received_A_stage_memory_in_prompt": b_routed,
+            "memoryless_B_prompt_excludes_A_secret":
+                not result["negative_control"]["unseeded_prompt_has_marigold"],
             "model_A_return_received_B_stage_memory_in_prompt": a_routed,
             "checkpoint_integrity": all(x["valid"] for x in (before,after_b,final)),
         }
@@ -404,7 +431,8 @@ def measured(cache: Path, staging: Path, output: Path, work: Path) -> int:
             "Recent owner dialogue is explicitly enabled (last 4) as a persisted-memory "
             "route. It is separately identified from the R12-selected memory list.",
             "Memory injected into prompt does not guarantee generated answer quality.",
-            "Agent task is a short sandboxed two-step planning evaluation; model may fail.",
+            "Agent task is a short sandboxed two-step planning evaluation with "
+            "an exact fixed-synthetic-answer validator; model may fail.",
             "A Linux network namespace isolates only the measured process and descendants; "
             "package/model downloads occurred before it, artifact upload afterward.",
             "Total cost includes unknown compute, electricity and internet provisioning; "
