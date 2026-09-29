@@ -1,0 +1,67 @@
+name: Owner chat, HF catalog and native tiny-batch integration
+on:
+  push:
+    branches: [fix/owner-chat-memory-hf-training-20260928]
+    paths:
+      - "beastbox/**"
+      - "apps/beastbox-cloud/**"
+      - "models/rawrphos/training/diagnose.py"
+      - "models/rawrphos/tests/test_diagnostics.py"
+      - "tests/test_owner_dialogue_recall.py"
+      - "tests/test_hf_owner_catalog.py"
+      - "tests/test_owner_memory_loop.py"
+      - ".github/workflows/owner-chat-hf-diagnostics-ci.yml"
+  pull_request:
+    paths:
+      - "beastbox/**"
+      - "apps/beastbox-cloud/**"
+      - "models/rawrphos/training/diagnose.py"
+      - "models/rawrphos/tests/test_diagnostics.py"
+      - "tests/test_owner_dialogue_recall.py"
+      - "tests/test_hf_owner_catalog.py"
+      - "tests/test_owner_memory_loop.py"
+      - ".github/workflows/owner-chat-hf-diagnostics-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: owner-chat-hf-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bounded-native-debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      OMP_NUM_THREADS: "2"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e '.[secure]' -e './models/rawrphos' pytest==8.4.2
+      - name: Synthetic-only native batch diagnostics; no optimizer steps
+        run: python -m pytest -o addopts= -q models/rawrphos/tests/test_diagnostics.py tests/test_hf_owner_catalog.py tests/test_owner_dialogue_recall.py tests/test_owner_memory_loop.py tests/test_durable_runtime.py
+  cloud-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+        working-directory: apps/beastbox-cloud
+      - run: npm run test
+        working-directory: apps/beastbox-cloud
+      - run: npm run typecheck
+        working-directory: apps/beastbox-cloud

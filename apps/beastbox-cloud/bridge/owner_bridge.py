@@ -20,11 +20,13 @@ from beastbox.cloud_connections import ConnectionVault, ConnectionError, KEY_ENV
 from beastbox.cloud_connection_checks import verify_connection
 from beastbox.azure_read import AzureReadError, read_owner_text
 from beastbox.ollama_models import ModelInventoryUnavailable, fetch_public_models, MODEL_ID
+from beastbox.hf_owner_catalog import CatalogUnavailable, OWNER_ID, fetch_owner_models
 from beastbox.bio_inputs import bio_event
 from beastbox.cst_sensor_preview import compare_sensor_state
 from beastbox.engine_growth_report import engine_growth_report
 from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
+from beastbox.background_consolidation import OwnerMemoryLoop
 from beastbox.semantic_retrieval import OfflineSentenceTransformer
 from beastbox.tiny_local import LOCAL_URL, compatible_profile, verify_model
 from beastbox.rawrphos_local import MODEL as NATIVE_ID, profile as native_profile, status as native_status
@@ -39,7 +41,7 @@ from beastbox.signal_model_probe import signal_model_probe
 from beastbox.soul.archive_summary import archive_manifest
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "engine-growth"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "hf-model-inventory", "engine-growth", "engine-loop"})
 POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe", "signal-model-probe"})
 
 
@@ -60,8 +62,11 @@ class OwnerBridge:
         if bool(model_path) != enabled:
             raise ValueError("explicit local semantic flag and installed model path must agree")
         embeddings = OfflineSentenceTransformer(model_path) if enabled else None
+        recent_raw = os.environ.get("BEASTBOX_CHAT_RECENT_TURNS", "4")
+        if not recent_raw.isascii() or not recent_raw.isdecimal() or not 0 <= int(recent_raw) <= 6:
+            raise ValueError("BEASTBOX_CHAT_RECENT_TURNS must be 0..6")
         self.app = CosmicApp(root, provider_secret_resolver=self._resolve_provider_secret if self.vault else None,
-                             embedding_provider=embeddings)
+                             embedding_provider=embeddings, recent_dialogue_limit=int(recent_raw))
         self._configure_explicit_local_tiny_provider(root)
         self.local_model_ready = os.environ.get("BEASTBOX_TINY_LOCAL_ENABLED") == "yes"
         self._configure_explicit_hf_provider(root)
@@ -73,6 +78,21 @@ class OwnerBridge:
         if self.bio_persist_enabled:
             self.app.authority.grant("sensors")
         self.chat_jobs = ChatJobs(lambda payload: self.app.dispatch("POST", "/api/chat", payload))
+        # Explicit host flag: recurring, bounded source-index maintenance,
+        # never background LLM chat, online gradient steps or autonomous tools.
+        loop_flag = os.environ.get("BEASTBOX_OWNER_MEMORY_LOOP_ENABLED", "no")
+        if loop_flag not in {"yes", "no"}:
+            raise ValueError("BEASTBOX_OWNER_MEMORY_LOOP_ENABLED must be yes or no")
+        self.memory_loop = None
+        if loop_flag == "yes":
+            interval_raw = os.environ.get("BEASTBOX_OWNER_MEMORY_LOOP_SECONDS", "300")
+            if (not interval_raw.isascii() or not interval_raw.isdecimal()
+                    or not 60 <= int(interval_raw) <= 3600):
+                raise ValueError("BEASTBOX_OWNER_MEMORY_LOOP_SECONDS must be 60..3600")
+            self.memory_loop = OwnerMemoryLoop(
+                root, lock=self.app._lock, interval_seconds=int(interval_raw)
+            )
+            self.memory_loop.start()
 
     def _resolve_provider_secret(self, profile: ProviderProfile) -> str | None:
         if self.vault is None:
@@ -351,6 +371,52 @@ class OwnerBridge:
                          "brain_changed": changed, "authority_revoked": revoked,
                          "no_paid_inference": True, "inference": "NOT_ATTESTED_UNTIL_REAL_CHAT",
                          "substrate": "EXISTING_DURABLE_STATE"}
+        if (choice == "huggingface" and set(data) == {"choice", "model", "spend_approved"}
+                and data["spend_approved"] is True):
+            requested = data["model"]
+            if not isinstance(requested, str) or OWNER_ID.fullmatch(requested) is None:
+                return 400, {"error": "Select a published owner Hugging Face model ID"}
+            if self.vault is None:
+                return 503, {"error": "Encrypted owner vault is unavailable"}
+            saved = self.vault.read_host_only("huggingface")
+            if saved is None:
+                return 404, {"error": "Owner Hugging Face credential is not configured"}
+            if (self.app.profile.kind == "compatible"
+                    and self.app.profile.base_url == "https://router.huggingface.co/v1"
+                    and self.app.profile.model != requested):
+                return 409, {"error": "Switch to local model before changing the active Hugging Face model"}
+            try:
+                listed = fetch_owner_models()
+            except CatalogUnavailable:
+                return 503, {"error": "Owner Hugging Face inventory unavailable; selection unchanged"}
+            match = next((row for row in listed["models"] if row["id"] == requested), None)
+            if not match:
+                return 409, {"error": "Requested model is absent from the verified public owner inventory"}
+            if match["router_candidate"] is not True:
+                return 409, {"error": "Research model requires a separately verified compatible serving adapter"}
+            previous = saved["config"]["model"]
+            prior_grant = self.app.authority.allowed("cloud")
+            if previous != requested:
+                try:
+                    self.vault.update_model("huggingface", requested)
+                except (ConnectionError, ValueError):
+                    return 400, {"error": "Encrypted model metadata update failed; selection unchanged"}
+            try:
+                code, result = self._connection_action({
+                    "action": "activate", "provider": "huggingface", "spend_approved": True
+                })
+                if code != 200:
+                    raise ValueError("model activation failed")
+            except (ValueError, OSError, ConnectionError):
+                if previous != requested:
+                    self.vault.update_model("huggingface", previous)
+                if not prior_grant:
+                    self.app.authority.revoke("cloud")
+                return 503, {"error": "Hugging Face model handoff failed; previous profile retained"}
+            return 200, {**result, "catalog": "PUBLIC_OWNER_MODEL_ROUTER_CANDIDATE",
+                         "account_access_verified": False, "credential_preserved": True,
+                         "inference": "NOT_ATTESTED_UNTIL_REAL_CHAT",
+                         "substrate": "EXISTING_DURABLE_STATE"}
         if (choice == "ollama_cloud" and set(data) == {"choice", "model", "spend_approved"}
                 and data["spend_approved"] is True):
             # Model selection is a single owner-initiated, read-only inventory
@@ -499,12 +565,23 @@ class OwnerBridge:
         allowed = GET_ALLOW if method == "GET" else POST_ALLOW if method == "POST" else frozenset()
         if name not in allowed:
             return 404, {"error": "unsupported route"}
+        if name == "engine-loop" and method == "GET":
+            if self.memory_loop is None:
+                return 200, {"schema": "owner-memory-loop-v1", "running": False,
+                             "enabled": False, "model_invoked": False,
+                             "weights_updated": False}
+            return 200, {"enabled": True, **self.memory_loop.status()}
         if name == "engine-growth" and method == "GET":
             with self.app._lock:
                 return 200, engine_growth_report(self.root)
         if name == "models" and method == "GET":
             with self.app._lock:
                 return 200, self._model_catalog()
+        if name == "hf-model-inventory" and method == "GET":
+            try:
+                return 200, fetch_owner_models()
+            except CatalogUnavailable:
+                return 503, {"error": "Public owner Hugging Face inventory unavailable"}
         if name == "model-inventory" and method == "GET":
             if self.vault is None or self.vault.read_host_only("ollama_cloud") is None:
                 return 404, {"error": "Ollama Cloud credential is not configured"}
@@ -681,6 +758,8 @@ def main() -> None:
     try:
         server.serve_forever()
     finally:
+        if bridge.memory_loop is not None:
+            bridge.memory_loop.stop()
         server.server_close()
 
 

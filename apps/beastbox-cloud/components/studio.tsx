@@ -51,6 +51,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  const [modelGate,setModelGate]=useState<{reapproval_required:boolean;remote_grant_active:boolean;local_available:boolean}|null>(null);
  const [liveContext,setLiveContext]=useState({text:'',include:false});
  const [sensorReceipt,setSensorReceipt]=useState('');
+ const [recallReceipt,setRecallReceipt]=useState<{recent:number;retrieved:number;persistent:boolean}|null>(null);
  const [temporaryReply,setTemporaryReply]=useState<Turn|null>(null);
  const [sensesActive,setSensesActive]=useState({camera:false,speech:false});
  const updateSensesActive=useCallback((camera:boolean,speech:boolean)=>setSensesActive(old=>old.camera===camera&&old.speech===speech?old:{camera,speech}),[]);
@@ -223,6 +224,13 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
      // bound to this completed turn; it does NOT prove full image/audio vision.
      const confirmed=Array.isArray(result.context_used)&&
        sensorContextId!==null&&result.context_used.includes(sensorContextId);
+     const completed=result.result as Record<string,unknown>;
+     const route=completed.routing&&typeof completed.routing==='object'?completed.routing as Record<string,unknown>:{};
+     setRecallReceipt({
+      recent:Array.isArray(route.recent_dialogue_ids)?route.recent_dialogue_ids.length:0,
+      retrieved:Array.isArray(completed.memory_hits)?completed.memory_hits.length:0,
+      persistent:result.response_persistent===true
+     });
      setPrompt('');releaseImageUrls(attachments);setAttachments([]);await load();
      // Context-derived assistant text is intentionally NOT persisted by the
      // backend. Show it for this browser session; never claim it is in memory.
@@ -240,7 +248,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
     await load();
    }catch(e){setError((e as Error).message);}finally{setBusy(false);}
  }
- async function logOut(){try{await api('session',{method:'DELETE'});}finally{setOwner(false);setTurns([]);releaseImageUrls(attachments);setAttachments([]);setTemporaryReply(null);setSensorReceipt('');setPhotoConsent(false);setPhotoReceipt('');}}
+ async function logOut(){try{await api('session',{method:'DELETE'});}finally{setOwner(false);setTurns([]);releaseImageUrls(attachments);setAttachments([]);setTemporaryReply(null);setSensorReceipt('');setRecallReceipt(null);setPhotoConsent(false);setPhotoReceipt('');}}
  if(!owner)return <Login configured={configured} onLogin={()=>setOwner(true)}/>;
  const needsGrant=bridge&&!!profile&&profile.kind!=='reference'&&modelGate?.reapproval_required===true;
  const connected=bridge&&!!profile&&profile.kind!=='reference'&&model!=='UNAVAILABLE'&&model!=='NOT CONNECTED'&&modelGate!==null&&!needsGrant;
@@ -268,6 +276,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  {attachments.some(a=>!!a.imageLabel)&&!photoMemoryEnabled?<p role="status" className="composer-note">Photo memory is disabled on the host. You may still send the local category as temporary text context.</p>:null}
  {photoReceipt?<p role="status" className="cloud-connect-success">{photoReceipt}</p>:null}
  {sensorReceipt?<p role="status" className="cloud-connect-success">{sensorReceipt}</p>:null}
+ {recallReceipt?<p role="status" className="composer-note">Last verified reply: {recallReceipt.recent} recent dialogue records supplied, {recallReceipt.retrieved} topical memories retrieved. {recallReceipt.persistent?'Ordinary reply stored durably.':'Temporary-context reply not retained; select explicit memory persistence separately.'} These are software retrieval receipts, not model-weight updates.</p>:null}
  {liveContext.include?<p role="status" className="composer-note">Selected sensor labels/transcripts will be provided as temporary context with your next message. This is not full camera vision. Open Settings to review or discard them.</p>:null}
  <div className="composer"><textarea aria-label="Message Beast Box" placeholder={connected?'Message Beast Box…':'Connect a durable backend to start chatting…'} value={prompt} onChange={e=>setPrompt(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();void send();}}} disabled={!connected||busy} rows={2}/><div className="composer-controls"><div><input ref={picker} aria-label="Choose files or photos to stage locally" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,text/plain,text/markdown,.md,.txt,.py,.js,.ts,.tsx,.json,.csv" multiple className="sr-only" onChange={e=>void pickFiles(e.target.files)} /><button className="composer-tool" disabled={busy||!!analyzingPhoto||!!extractingPdf||photoSaving} aria-label="Stage file or photo locally" title="Photos may be categorized locally; PDFs may be text-extracted locally with separate approval" onClick={()=>picker.current?.click()}><Paperclip size={18}/></button><span className="composer-note">✦ {attachments.length?'FILES STAGED LOCALLY':'YOUR STORY STAYS YOURS'}</span></div><button className="send-button" aria-label="Send message" disabled={!connected||busy||!!analyzingPhoto||!!extractingPdf||!prompt.trim()} onClick={()=>void send()}>{busy?<span className="loading-dot">✺</span>:<Send size={19}/>}</button></div></div><div className="composer-foot">PRIVATE PREVIEW · No response is simulated · <kbd>↵</kbd> send · <kbd>⇧↵</kbd> newline</div></div></section>
  <aside className="insight-rail"><section className="insight-card universe-card"><div className="card-label"><Telescope size={16}/> YOUR ORBIT</div><div className="small-planet">✺</div><h3>One story.<br/>Many brains.</h3><p>Carry your history through model changes—with authority firmly in your hands.</p><div className="small-progress"><span/></div></section><section className="insight-card"><div className="card-label"><Activity size={16}/> SUBSTRATE STATUS</div><div className="insight-line"><span>Connection</span><b className={connected?'green':''}>{connected?'Model configured':bridge?'Reference only':'Unavailable'}</b></div><div className="insight-line"><span>Checkpoint</span><b>{snapshot?.checkpoint_sequence!==undefined?String(snapshot.checkpoint_sequence):'—'}</b></div><div className="insight-line"><span>Memory records</span><b>{snapshot?.memory_records!==undefined?String(snapshot.memory_records):'—'}</b></div><button className="open-trace" onClick={()=>setPage('SYNAPSE TRACE')}>View synapse trace <ArrowRight size={15}/></button></section><section className="insight-card tiny-note"><span>✦</span><p>MODEL ≠ MEMORY<br/>MODEL ≠ STATE<br/>MODEL ≠ AUTHORITY</p></section></aside></div>:

@@ -13,12 +13,14 @@ type Catalog={
  remote_grant_active:boolean;reapproval_required:boolean;choices:Option[];
  inference_attested:boolean;no_automatic_fallback:boolean;
 };
+type HFEntry={id:string;task:string;library:string;router_candidate:boolean;selection_state:string};
+type HFInventory={models:HFEntry[];owner:string;status:'PUBLIC_OWNER_CATALOG_ONLY';account_access_verified:false;inference_attested:false;model_invoked:false};
 type Inventory={
  models:string[];status:'PUBLIC_MODEL_LIST_ONLY';account_access_verified:false;
  inference_attested:false;model_invoked:false;
 };
 
-async function bridge(method:'GET'|'POST',endpoint:'models'|'model-inventory',payload?:Record<string,unknown>):Promise<Record<string,unknown>>{
+async function bridge(method:'GET'|'POST',endpoint:'models'|'model-inventory'|'hf-model-inventory',payload?:Record<string,unknown>):Promise<Record<string,unknown>>{
  const response=await fetch('/api/bridge/'+endpoint,{method,cache:'no-store',credentials:'same-origin',
   headers:method==='POST'?{'Content-Type':'application/json'}:undefined,
   body:method==='POST'?JSON.stringify(payload):undefined});
@@ -32,6 +34,9 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
 }){
  const [catalog,setCatalog]=useState<Catalog|null>(null);
  const [ollamaModels,setOllamaModels]=useState<string[]>([]);
+ const [hfModels,setHFModels]=useState<HFEntry[]>([]);
+ const [hfStatus,setHFStatus]=useState<'loading'|'ready'|'unavailable'>('loading');
+ const [selectedHF,setSelectedHF]=useState('');
  const [selectedModel,setSelectedModel]=useState('');
  const [inventoryStatus,setInventoryStatus]=useState<'loading'|'ready'|'unavailable'|'not-configured'>('loading');
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
@@ -62,21 +67,43 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
    setOllamaModels([]);setInventoryStatus('unavailable');
   }
  },[backendReachable]);
+ const refreshHF=useCallback(async()=>{
+  if(!backendReachable){setHFModels([]);setHFStatus('unavailable');return;}
+  setHFStatus('loading');
+  try{
+   const received=await bridge('GET','hf-model-inventory') as unknown as HFInventory;
+   if(received.status!=='PUBLIC_OWNER_CATALOG_ONLY'||received.owner!=='phera-ra'||
+      received.account_access_verified!==false||received.model_invoked!==false||
+      !Array.isArray(received.models)||received.models.length>100||
+      received.models.some(x=>typeof x.id!=='string'||
+       !/^phera-ra\/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(x.id)||
+       typeof x.router_candidate!=='boolean'))throw new Error('Unverified HF inventory');
+   setHFModels(received.models);
+   setSelectedHF(old=>received.models.some(x=>x.id===old&&x.router_candidate)?old:
+     received.models.find(x=>x.router_candidate)?.id||'');
+   setHFStatus('ready');
+  }catch{setHFModels([]);setHFStatus('unavailable');}
+ },[backendReachable]);
  useEffect(()=>{void refresh().catch(()=>setError('Unable to inspect the model catalog.'));},[refresh]);
+ useEffect(()=>{void refreshHF();},[refreshHF]);
 
  async function choose(choice:Choice,model?:string){
   if(busy||!backendReachable)return;
   const remote=choice==='huggingface'||choice==='ollama_cloud'||choice==='rawrphos_hf';
   if(remote&&!spendApproved){setError('Approve possible usage charges before selecting a remote model.');return;}
-  if(model&&(!ollamaModels.includes(model)||inventoryStatus!=='ready')){
+  if(model&&choice==='ollama_cloud'&&(!ollamaModels.includes(model)||inventoryStatus!=='ready')){
    setError('Refresh the public Ollama inventory before switching models.');return;
+  }
+  if(model&&choice==='huggingface'&&(hfStatus!=='ready'||
+     !hfModels.some(x=>x.id===model&&x.router_candidate))){
+   setError('Only listed, compatible candidate owner models can be selected.');return;
   }
   setBusy(true);setError('');setNotice('');
   try {
    const result=await bridge('POST','models',{
     choice,...(model?{model}:{}),...(remote?{spend_approved:true}:{})
    });
-   await refresh();
+   await Promise.all([refresh(),refreshHF()]);
    onSwitched();
    setSpendApproved(false);
    setNotice(
@@ -143,13 +170,49 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
       </div>}
      </div>;
     })}
+    <div className="record" aria-label="My Hugging Face models">
+     <h3>My Hugging Face models · phera-ra</h3>
+     <p>Read-only public inventory. Research checkpoints are listed, but custom PHOS/SAMGO architectures need their own tested serving adapters. A Transformers tag is only a candidate, not proof the Router will serve it.</p>
+     {hfStatus==='loading'?<p role="status">Reading published owner models…</p>:
+      hfStatus==='unavailable'?<p role="status">Hugging Face public owner catalog unavailable. Saved model settings were not changed.</p>:
+      hfModels.length===0?<p>No public owner models returned.</p>:
+      <>
+       {hfModels.map(item=><p key={item.id}>
+        <strong>{item.id}</strong> · {item.task} · {item.library}
+        {' · '}{item.router_candidate?'Hosted text-generation candidate (not attested)':'Research model; requires verified serving adapter'}
+       </p>)}
+       {hfModels.some(x=>x.router_candidate)&&<>
+        <label htmlFor="my-hf-model">Select a hosted candidate</label>
+        <select id="my-hf-model" value={selectedHF} disabled={busy}
+         onChange={e=>setSelectedHF(e.target.value)}>
+         {hfModels.filter(x=>x.router_candidate).map(x=><option key={x.id} value={x.id}>{x.id}</option>)}
+        </select>
+        {catalog.choices.some(x=>x.choice==='huggingface'&&x.configured)?
+        <button type="button" className="outline-action"
+         disabled={busy||!spendApproved||!selectedHF}
+         onClick={()=>void choose('huggingface',selectedHF)}>
+         <ShieldCheck size={15}/> Switch to {selectedHF}
+        </button>:
+        <p>Add your encrypted Hugging Face credential in Connections before selecting a model.</p>}
+       </>}
+      </>}
+    </div>
+    <div className="record" aria-label="COSMOS custom engines">
+     <h3>Existing COSMOS custom models &amp; engines</h3>
+     <p><strong>PHOS / dyn12</strong> and <strong>SAMGO / 54D</strong> — known custom research lineages in
+      {' '}<a href="https://huggingface.co/phera-ra/QC67_cosmo" target="_blank" rel="noopener noreferrer">QC67 COSMOS</a>.
+      They are not generic Transformers Chat Completion endpoints; a verified pinned adapter is required before enabling chat selection.</p>
+     <p><strong>COSMIC.CYPHER</strong> — already integrated as a workspace/coding engine in Beast Box.
+      A distinct HF chat checkpoint for COSMIC.CYPHER is not independently attested; do not route the research source to a mismatched language model.</p>
+     <p>RAWRPHØS stable/experimental native options and the private hosted checkpoint remain separate above. No research weights are substituted or discarded.</p>
+    </div>
     {catalog.choices.some(x=>x.requires_spend_approval)?<label className="cloud-spend">
       <input type="checkbox" checked={spendApproved} disabled={busy}
        onChange={e=>setSpendApproved(e.target.checked)}/>
       I explicitly approve this provider&apos;s possible usage charges for remote model requests. Railway Trial credit does not pay these charges.
     </label>:null}
     <button type="button" className="outline-action" disabled={busy}
-     onClick={()=>void refresh().catch(()=>setError('Could not refresh model inventory.'))}>
+     onClick={()=>void Promise.all([refresh(),refreshHF()]).catch(()=>setError('Could not refresh model inventory.'))}>
      <RefreshCcw size={15}/> Refresh model list
     </button>
    </>}
