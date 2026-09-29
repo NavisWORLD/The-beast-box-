@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 cd "$(dirname "$0")/.."
 ROOT="build/zero-api-real"
-mkdir -p "$ROOT/models" "$ROOT/results"
+mkdir -p "$ROOT/models" "$ROOT/results" "$ROOT/docker-empty-context"
 command -v docker >/dev/null || { echo "Docker required; no isolation claim"; exit 2; }
 command -v python3 >/dev/null || { echo "Python3 required"; exit 2; }
 echo "Preparation is online: model weights and Python libraries download BEFORE isolation."
@@ -11,7 +11,7 @@ python3 -m pip install --disable-pip-version-check "huggingface-hub==0.29.3"
 python3 scripts/zero_api_real_models.py prepare --models "$ROOT/models" \
   | tee "$ROOT/results/model-prep.log"
 docker build --pull -t beastbox-zero-api-real:002 \
-  -f experiments/zero_api_real/Dockerfile . \
+  -f experiments/zero_api_real/Dockerfile "$ROOT/docker-empty-context" \
   2>&1 | tee "$ROOT/results/docker-build.log"
 # Only checked-out public code + synthetic workspace + offline weights are mounted.
 # Host credentials, home dirs, Docker socket and owner memory are NOT mounted.
