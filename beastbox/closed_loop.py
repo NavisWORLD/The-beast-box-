@@ -10,13 +10,15 @@ from datetime import datetime, timezone
 import hashlib
 import math
 from collections.abc import Mapping, Sequence
+from collections import Counter
 from typing import Any
 
 from .hashutil import sha256_obj, sha256_text
 from .reality_memory import (
     CLAIM_BOUNDARY, ZERO_SHA256, derive_r12_transition, sha256_json,
 )
-from .refractive_memory import WEIGHTS
+from .refractive_memory import WEIGHTS, _cosine_counts
+from .unicode_text import unicode_terms
 from .unicode_text import checked_utf8
 
 PROFILE = "cosmos-software-closed-loop-v1"
@@ -173,3 +175,52 @@ class ReviewedSnapshotDB:
                     return (self._count,)
             return CountCursor()
         return self._snapshot.execute(sql, *args)
+
+
+def unicode_rescore(
+    candidates: Sequence[dict[str, Any]], query: str, memory_view: Any,
+) -> list[dict[str, Any]]:
+    """Versioned additive overlay; never edits the sealed original R12 source.
+
+    The frozen original router is asked for ALL active snapshot candidates.
+    Replace only its old ASCII lexical and Hebbian features with shared
+    Unicode lexical keys; retain original spatial/current-CNS, recency,
+    integrity, provenance and original frozen WEIGHTS. The product's reviewed
+    adaptive reweighting, if opted in, operates AFTER these aligned features.
+    """
+    qterms = set(unicode_terms(query))
+    qcounts = Counter(unicode_terms(query))
+    scored = []
+    for original in candidates:
+        item = dict(original)
+        text = str(item["text"])
+        cterms = set(unicode_terms(text))
+        lexical = max(0.0, min(1.0, _cosine_counts(qcounts, Counter(unicode_terms(text)))))
+        pulls = []
+        for token in sorted(qterms):
+            for neighbor, weight in memory_view.associations(token, limit=10):
+                if neighbor in cterms:
+                    pulls.append(min(1.0, float(weight) / 5.0))
+        direct = len(qterms & cterms) / max(1, len(qterms | cterms))
+        hebbian = max(0.0, min(1.0, 0.5 * direct + 0.5 *
+                              (sum(pulls) / len(pulls) if pulls else 0.0)))
+        features = dict(item["components"])
+        features.update(lexical=lexical, hebbian=hebbian)
+        item["components"] = features
+        item["score"] = sum(float(WEIGHTS[key]) * float(features[key]) for key in WEIGHTS)
+        scored.append(item)
+    scored.sort(key=lambda x:(x["score"],x["memory_id"]),reverse=True)
+    return scored
+
+
+class UnicodeRoutingOverlay:
+    """Adapter for the original RefractiveMemoryRouter rank API and fit path."""
+
+    def __init__(self, frozen_router: Any, current_memory_view: Any):
+        self._frozen = frozen_router
+        self._memory = current_memory_view
+        # AdaptiveControl._candidates reads the historical router ledger.
+        self.ledger = frozen_router.ledger
+
+    def rank(self, query: str, **kwargs: Any) -> list[dict[str, Any]]:
+        return unicode_rescore(self._frozen.rank(query, **kwargs), query, self._memory)
