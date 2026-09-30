@@ -9,9 +9,12 @@ from typing import Any, Mapping
 
 from .box import AuthorityPolicy
 from .hashutil import sha256_obj
+from .unicode_text import checked_utf8
 
 
-def normalize_event(event: Mapping[str, Any]) -> dict[str, Any]:
+def normalize_event(event: Mapping[str, Any], *, normalization: str = "NFKC") -> dict[str, Any]:
+    if normalization not in {"NFC", "NFKC"}:
+        raise ValueError("unsupported Unicode normalization mode")
     if set(event) - {"schema", "source", "text", "features"}:
         raise ValueError("unknown sensor event fields")
     if event.get("schema") != "sensor-event-v1":
@@ -22,7 +25,8 @@ def normalize_event(event: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("unsupported sensor source")
     if not isinstance(raw, str) or not 1 <= len(raw) <= 8192:
         raise ValueError("event text must contain 1..8192 characters")
-    text = unicodedata.normalize("NFKC", raw).strip()
+    checked_utf8(raw, label="sensor event text")
+    text = unicodedata.normalize(normalization, raw).strip()
     if not text or len(text) > 8192 or any(ord(c) < 32 and c not in "\n\t" for c in text):
         raise ValueError("invalid event text")
     features = event.get("features", [])
