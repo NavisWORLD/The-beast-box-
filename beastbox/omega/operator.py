@@ -187,6 +187,7 @@ class CognitiveOperator:
         selector: str = "adaptive",
         min_trials: int = 2,
         runtime_kwargs: dict[str, Any] | None = None,
+        runtime_cls: type[TracedDurableRuntime] = TracedDurableRuntime,
     ):
         self.runtime_root = Path(runtime_root)
         self.control_dir = Path(control_dir)
@@ -203,6 +204,7 @@ class CognitiveOperator:
         self.store = OperatorStore(self.control_dir / "operator.sqlite3")
         self.trace_path = self.control_dir / "signal-trace.jsonl"
         self._runtime_kwargs = dict(runtime_kwargs or {})
+        self._runtime_cls = runtime_cls
         self.runtime: TracedDurableRuntime | None = None
         self._rr = 0
 
@@ -246,7 +248,7 @@ class CognitiveOperator:
     # ---- lifecycle -------------------------------------------------------
     def open(self) -> dict[str, Any]:
         if self.runtime is None:
-            self.runtime = TracedDurableRuntime(
+            self.runtime = self._runtime_cls(
                 self.runtime_root, self.pool.active, trace_path=self.trace_path, **self._runtime_kwargs
             )
         inspection = self.runtime.inspect()
@@ -388,7 +390,13 @@ class CognitiveOperator:
                 self.store.update(task["id"], status="DONE", outcome=result)
                 return
             text = payload["text"] if task["kind"] == "observe" else payload["question"]
-            name, rationale = self.select_model(task["kind"], int(payload.get("required_context", 0)))
+            if payload.get("required_model"):
+                name = str(payload["required_model"])
+                if name not in self.pool.specs:
+                    raise KeyError(f"model {name!r} is not registered by the host")
+                rationale: dict[str, Any] = {"selector": "host_required_model"}
+            else:
+                name, rationale = self.select_model(task["kind"], int(payload.get("required_context", 0)))
             self._activate(name)
             prediction = None
             if task["kind"] == "probe":

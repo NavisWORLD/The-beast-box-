@@ -1,0 +1,2257 @@
+{
+  "controls": {
+    "controls": [
+      {
+        "arm": "memory_disabled",
+        "fact": "F1",
+        "gold": "cobalt-41",
+        "gold_in_delivered_prompt": false,
+        "model": "A",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": false,
+        "output": " The venua is a venu",
+        "wrong_in_delivered_prompt": false
+      },
+      {
+        "arm": "memory_disabled",
+        "fact": "F2",
+        "gold": "prism-birch",
+        "gold_in_delivered_prompt": false,
+        "model": "A",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": false,
+        "output": " The venua is a venu",
+        "wrong_in_delivered_prompt": false
+      },
+      {
+        "arm": "memory_disabled",
+        "fact": "F3",
+        "gold": "saffron-17",
+        "gold_in_delivered_prompt": false,
+        "model": "A",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": false,
+        "output": " The venue is the venue of",
+        "wrong_in_delivered_prompt": false
+      },
+      {
+        "arm": "corrupted_context",
+        "fact": "F1",
+        "gold": "cobalt-41",
+        "gold_in_delivered_prompt": false,
+        "model": "A",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": false,
+        "output": " The venua is a vitam",
+        "wrong_in_delivered_prompt": true
+      },
+      {
+        "arm": "corrupted_context",
+        "fact": "F2",
+        "gold": "prism-birch",
+        "gold_in_delivered_prompt": false,
+        "model": "A",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": false,
+        "output": " Yes, the lan is the lan",
+        "wrong_in_delivered_prompt": true
+      },
+      {
+        "arm": "corrupted_context",
+        "fact": "F3",
+        "gold": "saffron-17",
+        "gold_in_delivered_prompt": false,
+        "model": "A",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": false,
+        "output": " The lanes are the lanes that",
+        "wrong_in_delivered_prompt": true
+      },
+      {
+        "arm": "memory_disabled",
+        "fact": "F1",
+        "gold": "cobalt-41",
+        "gold_in_delivered_prompt": false,
+        "model": "B",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": false,
+        "output": "User input:\nWhat is the vault code?\n\nResponse:\n- none\n\nDYN12 SUMMARY: min=-0.0191 max=0.0334\nQUANTUM",
+        "wrong_in_delivered_prompt": false
+      },
+      {
+        "arm": "memory_disabled",
+        "fact": "F2",
+        "gold": "prism-birch",
+        "gold_in_delivered_prompt": false,
+        "model": "B",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": false,
+        "output": "DYN12 SUMMARY: min=-0.0234 max=0.0420\nQUANTUM HEART MODE: off\n\nDYN12 SUMMARY: min=-",
+        "wrong_in_delivered_prompt": false
+      },
+      {
+        "arm": "memory_disabled",
+        "fact": "F3",
+        "gold": "saffron-17",
+        "gold_in_delivered_prompt": false,
+        "model": "B",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": false,
+        "output": "DYN12 SUMMARY: min=-0.0216 max=0.0513\n\nDYN12 SUMMARY: min=-0.0234 max=0.",
+        "wrong_in_delivered_prompt": false
+      },
+      {
+        "arm": "corrupted_context",
+        "fact": "F1",
+        "gold": "cobalt-41",
+        "gold_in_delivered_prompt": false,
+        "model": "B",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": false,
+        "output": "DYN12 SUMMARY: min=-0.0223 max=0.0614\nQUANTUM HEART MODE: off",
+        "wrong_in_delivered_prompt": true
+      },
+      {
+        "arm": "corrupted_context",
+        "fact": "F2",
+        "gold": "prism-birch",
+        "gold_in_delivered_prompt": false,
+        "model": "B",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": true,
+        "output": "User input:\nWhat is the orbit seal?\n\nRETRIEVED MEMORY:\n- Remember this: the lantern word is ivory-23.\n- Remember this: the orbit seal is flint-oak.",
+        "wrong_in_delivered_prompt": true
+      },
+      {
+        "arm": "corrupted_context",
+        "fact": "F3",
+        "gold": "saffron-17",
+        "gold_in_delivered_prompt": false,
+        "model": "B",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": true,
+        "output": "The lantern word is ivory-23.",
+        "wrong_in_delivered_prompt": true
+      },
+      {
+        "arm": "memory_disabled",
+        "fact": "F1",
+        "gold": "cobalt-41",
+        "gold_in_delivered_prompt": false,
+        "model": "C",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": false,
+        "output": "The vault code is 1234567890.",
+        "wrong_in_delivered_prompt": false
+      },
+      {
+        "arm": "memory_disabled",
+        "fact": "F2",
+        "gold": "prism-birch",
+        "gold_in_delivered_prompt": false,
+        "model": "C",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": false,
+        "output": "The orbit seal refers to the outermost layer or envelope around something, typically used in space exploration and other applications where protection from external forces is crucial.",
+        "wrong_in_delivered_prompt": false
+      },
+      {
+        "arm": "memory_disabled",
+        "fact": "F3",
+        "gold": "saffron-17",
+        "gold_in_delivered_prompt": false,
+        "model": "C",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": false,
+        "output": "The lantern word is a term that refers to the outermost layer or envelope surrounding something, often used in space exploration and other applications for protection against external forces.",
+        "wrong_in_delivered_prompt": false
+      },
+      {
+        "arm": "corrupted_context",
+        "fact": "F1",
+        "gold": "cobalt-41",
+        "gold_in_delivered_prompt": false,
+        "model": "C",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": true,
+        "output": "The vault code is umber-77.",
+        "wrong_in_delivered_prompt": true
+      },
+      {
+        "arm": "corrupted_context",
+        "fact": "F2",
+        "gold": "prism-birch",
+        "gold_in_delivered_prompt": false,
+        "model": "C",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": true,
+        "output": "The orbit seal is flint-oak.",
+        "wrong_in_delivered_prompt": true
+      },
+      {
+        "arm": "corrupted_context",
+        "fact": "F3",
+        "gold": "saffron-17",
+        "gold_in_delivered_prompt": false,
+        "model": "C",
+        "model_emitted_gold": false,
+        "model_emitted_wrong_seeded_value": true,
+        "output": "The lantern word is ivory-23.",
+        "wrong_in_delivered_prompt": true
+      }
+    ],
+    "cpu_s": 50.729,
+    "errors": [],
+    "model_calls": [],
+    "network": {
+      "interfaces": [
+        "lo"
+      ],
+      "public_tcp_probe": "FAILED:OSError:101"
+    },
+    "peak_rss_bytes": 3395747840,
+    "pid": 9232,
+    "probes": [],
+    "schema": "omega-001-model-independence-v1",
+    "stages": [
+      {
+        "cpu_ms": 136.2,
+        "name": "load_A",
+        "peak_rss_bytes": 280793088,
+        "wall_ms": 103.7
+      },
+      {
+        "cpu_ms": 221.4,
+        "name": "memory_disabled_A_F1",
+        "peak_rss_bytes": 283701248,
+        "wall_ms": 63.5
+      },
+      {
+        "cpu_ms": 202.4,
+        "name": "memory_disabled_A_F2",
+        "peak_rss_bytes": 283832320,
+        "wall_ms": 57.7
+      },
+      {
+        "cpu_ms": 201.5,
+        "name": "memory_disabled_A_F3",
+        "peak_rss_bytes": 283832320,
+        "wall_ms": 58.2
+      },
+      {
+        "cpu_ms": 201.4,
+        "name": "corrupted_context_A_F1",
+        "peak_rss_bytes": 284749824,
+        "wall_ms": 60.6
+      },
+      {
+        "cpu_ms": 203.7,
+        "name": "corrupted_context_A_F2",
+        "peak_rss_bytes": 285405184,
+        "wall_ms": 61.9
+      },
+      {
+        "cpu_ms": 203.5,
+        "name": "corrupted_context_A_F3",
+        "peak_rss_bytes": 285405184,
+        "wall_ms": 61.9
+      },
+      {
+        "cpu_ms": 2157.5,
+        "name": "load_B",
+        "peak_rss_bytes": 1201901568,
+        "wall_ms": 1911.2
+      },
+      {
+        "cpu_ms": 3463.8,
+        "name": "memory_disabled_B_F1",
+        "peak_rss_bytes": 1201901568,
+        "wall_ms": 874.2
+      },
+      {
+        "cpu_ms": 3567.7,
+        "name": "memory_disabled_B_F2",
+        "peak_rss_bytes": 1201901568,
+        "wall_ms": 897.9
+      },
+      {
+        "cpu_ms": 3763.9,
+        "name": "memory_disabled_B_F3",
+        "peak_rss_bytes": 1201901568,
+        "wall_ms": 947.2
+      },
+      {
+        "cpu_ms": 2710.8,
+        "name": "corrupted_context_B_F1",
+        "peak_rss_bytes": 1201901568,
+        "wall_ms": 684.6
+      },
+      {
+        "cpu_ms": 3557.9,
+        "name": "corrupted_context_B_F2",
+        "peak_rss_bytes": 1201901568,
+        "wall_ms": 899.8
+      },
+      {
+        "cpu_ms": 1080.3,
+        "name": "corrupted_context_B_F3",
+        "peak_rss_bytes": 1201901568,
+        "wall_ms": 279.8
+      },
+      {
+        "cpu_ms": 3503.6,
+        "name": "load_C",
+        "peak_rss_bytes": 3395747840,
+        "wall_ms": 2917.6
+      },
+      {
+        "cpu_ms": 3288.0,
+        "name": "memory_disabled_C_F1",
+        "peak_rss_bytes": 3395747840,
+        "wall_ms": 831.8
+      },
+      {
+        "cpu_ms": 5974.8,
+        "name": "memory_disabled_C_F2",
+        "peak_rss_bytes": 3395747840,
+        "wall_ms": 1531.0
+      },
+      {
+        "cpu_ms": 6144.3,
+        "name": "memory_disabled_C_F3",
+        "peak_rss_bytes": 3395747840,
+        "wall_ms": 1547.1
+      },
+      {
+        "cpu_ms": 2456.9,
+        "name": "corrupted_context_C_F1",
+        "peak_rss_bytes": 3395747840,
+        "wall_ms": 621.0
+      },
+      {
+        "cpu_ms": 2353.0,
+        "name": "corrupted_context_C_F2",
+        "peak_rss_bytes": 3395747840,
+        "wall_ms": 595.5
+      },
+      {
+        "cpu_ms": 2425.5,
+        "name": "corrupted_context_C_F3",
+        "peak_rss_bytes": 3395747840,
+        "wall_ms": 615.7
+      }
+    ],
+    "status": "PHASE_COMPLETE",
+    "wall_s": 18.345,
+    "weight_digests": [
+      {
+        "after": "4b823776da35e81915c81c75afccd7abd2e522ba97a74ba9ff04faf6aa514fb1",
+        "before": "4b823776da35e81915c81c75afccd7abd2e522ba97a74ba9ff04faf6aa514fb1",
+        "model": "A"
+      },
+      {
+        "after": "cb3966763f005301b88fb501ae3f7f3561f8d474a5abf54e6969159244dfc339",
+        "before": "cb3966763f005301b88fb501ae3f7f3561f8d474a5abf54e6969159244dfc339",
+        "model": "B"
+      },
+      {
+        "after": "6834fe2983154697b054fe48126c9255c463e8848b9dfbfcc70fbdefef9d6ffc",
+        "before": "6834fe2983154697b054fe48126c9255c463e8848b9dfbfcc70fbdefef9d6ffc",
+        "model": "C"
+      }
+    ]
+  },
+  "controls_exit": 0,
+  "finished": 1790742190.7900999,
+  "kills": {
+    "p1_idle": {
+      "child_pid": 9195,
+      "killed_at": 1790742143.616262,
+      "signal": "SIGKILL"
+    },
+    "p2_in_flight": {
+      "child_pid": 9207,
+      "generation_started": 1790742148.3288033,
+      "killed_at": 1790742148.8345292,
+      "signal": "SIGKILL"
+    }
+  },
+  "netns": "omega-e3",
+  "p1": {
+    "checkpoint_payload_bytes": [
+      {
+        "bytes": 2622,
+        "sequence": 0
+      },
+      {
+        "bytes": 10123,
+        "sequence": 1
+      },
+      {
+        "bytes": 13029,
+        "sequence": 2
+      },
+      {
+        "bytes": 16182,
+        "sequence": 3
+      },
+      {
+        "bytes": 19301,
+        "sequence": 4
+      },
+      {
+        "bytes": 22837,
+        "sequence": 5
+      },
+      {
+        "bytes": 26004,
+        "sequence": 6
+      }
+    ],
+    "cpu_s": 21.557,
+    "errors": [],
+    "first_task_id": 1,
+    "inspect_end": {
+      "anchor_mode": "unanchored",
+      "checkpoint_sha256": "3be54d41d000ec6fa7baeab7b99bc89406590de24999137f2528ae0704af21bf",
+      "ledger_head": "2cba691bcb180a15d7134f920b0832b8bcd7ce33effb5e7d082013313e82dd84",
+      "memory": {
+        "associations": 221,
+        "memories": 12,
+        "salience_concepts": 36
+      },
+      "memory_digest": "b62684a93455c2e892eccdfc7b0f5773d98ccfe3a2e333ac19bb7c7f2d1fd0bf",
+      "schema": "runtime-inspection-v1",
+      "sequence": 6,
+      "simulator_position": 0.0,
+      "state_sha256": "0161b72b0d632182a1bad58cb5cd6987b41b26ec788273f3609cf1af7fc38eb5",
+      "system_id": "4f7a950d-db2e-4bf7-871e-38a857f3f1fc",
+      "turn": 6,
+      "valid": true
+    },
+    "inspect_start": {
+      "anchor_mode": "unanchored",
+      "checkpoint_sha256": "20158f351b8ad286496817e7c0f9831b4fdf21c979cfe52b7adbb909dad8db06",
+      "ledger_head": "GENESIS",
+      "memory": {
+        "associations": 0,
+        "memories": 0,
+        "salience_concepts": 0
+      },
+      "memory_digest": "6557cc22a5cd9bbe923c25f950ea992044923e31d134e28643c366656b7557a0",
+      "schema": "runtime-inspection-v1",
+      "sequence": 0,
+      "simulator_position": 0.0,
+      "state_sha256": "90f39590bce0513e3391ae6f320ca64311bd9087cd4006d81a7ca0b8832e7d59",
+      "system_id": "4f7a950d-db2e-4bf7-871e-38a857f3f1fc",
+      "turn": 0,
+      "valid": true
+    },
+    "model_calls": [
+      {
+        "delivered_prompt": "Small local research task. Answer briefly.\nUser: Remember this: the vault code is cobalt-41.\nVerified history: \nAnswer:",
+        "generation_ms": 52.9,
+        "model": "A",
+        "output": " The venue is the venual"
+      },
+      {
+        "delivered_prompt": "You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nWhat is the vault code?\n\nRETRIEVED MEMORY:\n-  The venue is the venual\n- Remember this: the vault code is cobalt-41.\n\nDYN12 SUMMARY: min=-0.0234 max=0.0420\nQUANTUM HEART MODE: off\nAnswer the user input directly.",
+        "generation_ms": 883.3,
+        "model": "B",
+        "output": "DYN12 SUMMARY: min=-0.0234 max=0.0420\n\nUser input:\nThe vault code is cobalt-41.\n\nAnswer:\nDYN"
+      },
+      {
+        "delivered_prompt": "You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nRemember this: the orbit seal is prism-birch.\n\nRETRIEVED MEMORY:\n-  The venue is the venual\n- Remember this: the vault code is cobalt-41.\n- What is the vault code?\n- DYN12 SUMMARY: min=-0.0234 max=0.0420\n\nUser input:\nThe vault code is cobalt-41.\n\nAnswer:\nDYN\n\nDYN12 SUMMARY: min=-0.0216 max=0.0513\nQUANTUM HEART MODE: off\nAnswer the user input directly.",
+        "generation_ms": 942.2,
+        "model": "B",
+        "output": "DYN12 SUMMARY: min=-0.0216 max=0.0513\n\nDYN12 SUMMARY: min=-0.0216 max=0."
+      },
+      {
+        "delivered_prompt": "You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nWhat is the vault code?\n\nRETRIEVED MEMORY:\n- What is the vault code?\n- Remember this: the vault code is cobalt-41.\n-  The venue is the venual\n- DYN12 SUMMARY: min=-0.0234 max=0.0420\n\nUser input:\nThe vault code is cobalt-41.\n\nAnswer:\nDYN\n- DYN12 SUMMARY: min=-0.0216 max=0.0513\n\nDYN12 SUMMARY: min=-0.0216 max=0.\n\nDYN12 SUMMARY: min=-0.0223 max=0.0614\nQUANTUM HEART MODE: off\nAnswer the user input directly.",
+        "generation_ms": 398.8,
+        "model": "C",
+        "output": "DYN"
+      },
+      {
+        "delivered_prompt": "You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nWhat is the orbit seal?\n\nRETRIEVED MEMORY:\n- Remember this: the orbit seal is prism-birch.\n- What is the vault code?\n- What is the vault code?\n-  The venue is the venual\n- DYN12 SUMMARY: min=-0.0234 max=0.0420\n\nUser input:\nThe vault code is cobalt-41.\n\nAnswer:\nDYN\n\nDYN12 SUMMARY: min=-0.0159 max=0.0671\nQUANTUM HEART MODE: off\nAnswer the user input directly.",
+        "generation_ms": 324.1,
+        "model": "C",
+        "output": "DYN"
+      },
+      {
+        "delivered_prompt": "You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nRemember this: the lantern word is saffron-17.\n\nRETRIEVED MEMORY:\n- What is the vault code?\n- Remember this: the vault code is cobalt-41.\n- Remember this: the orbit seal is prism-birch.\n- DYN12 SUMMARY: min=-0.0234 max=0.0420\n\nUser input:\nThe vault code is cobalt-41.\n\nAnswer:\nDYN\n-  The venue is the venual\n\nDYN12 SUMMARY: min=-0.0203 max=0.0676\nQUANTUM HEART MODE: off\nAnswer the user input directly.",
+        "generation_ms": 591.8,
+        "model": "C",
+        "output": "QUANTUM HEART MODE: on"
+      }
+    ],
+    "model_loads": [
+      {
+        "load_ms": 103.4,
+        "model": "A"
+      },
+      {
+        "load_ms": 1908.09,
+        "model": "B"
+      },
+      {
+        "load_ms": 2488.73,
+        "model": "C"
+      }
+    ],
+    "network": {
+      "interfaces": [
+        "lo"
+      ],
+      "public_tcp_probe": "FAILED:OSError:101"
+    },
+    "peak_rss_bytes": 3544731648,
+    "pid": 9195,
+    "probes": [
+      {
+        "expected": "cobalt-41",
+        "gold_in_model_delivered_prompt": true,
+        "model": "B",
+        "outcome": {
+          "checkpoint_sequence": 2,
+          "context_contained_expected": true,
+          "context_prediction_correct": true,
+          "model": "B",
+          "model_emitted_expected": true,
+          "model_prediction_brier": 0.25,
+          "provider_ms": 883.3465159998468,
+          "response_excerpt": "DYN12 SUMMARY: min=-0.0234 max=0.0420\n\nUser input:\nThe vault code is cobalt-41.\n\nAnswer:\nDYN",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "B",
+          "p_model_emits_expected": 0.5,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "question": "What is the vault code?",
+        "task_id": 2
+      },
+      {
+        "expected": "cobalt-41",
+        "gold_in_model_delivered_prompt": true,
+        "model": "C",
+        "outcome": {
+          "checkpoint_sequence": 4,
+          "context_contained_expected": true,
+          "context_prediction_correct": true,
+          "model": "C",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.25,
+          "provider_ms": 398.7881240000206,
+          "response_excerpt": "DYN",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "C",
+          "p_model_emits_expected": 0.5,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "question": "What is the vault code?",
+        "task_id": 4
+      },
+      {
+        "expected": "prism-birch",
+        "gold_in_model_delivered_prompt": true,
+        "model": "C",
+        "outcome": {
+          "checkpoint_sequence": 5,
+          "context_contained_expected": true,
+          "context_prediction_correct": true,
+          "model": "C",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.1111,
+          "provider_ms": 324.0840890000527,
+          "response_excerpt": "DYN",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "C",
+          "p_model_emits_expected": 0.3333,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "question": "What is the orbit seal?",
+        "task_id": 5
+      }
+    ],
+    "recovery": [],
+    "runs": [
+      {
+        "executed": 6,
+        "provider_calls": 6,
+        "stop_reason": "queue_empty",
+        "wall_seconds": 8.712
+      }
+    ],
+    "schema": "omega-001-model-independence-v1",
+    "sqlite_bytes": 403576,
+    "stages": [
+      {
+        "cpu_ms": 3.0,
+        "name": "recover",
+        "peak_rss_bytes": 235913216,
+        "wall_ms": 16.9
+      },
+      {
+        "cpu_ms": 19083.1,
+        "name": "operator_run",
+        "peak_rss_bytes": 3544731648,
+        "wall_ms": 8718.1
+      }
+    ],
+    "status": "PHASE_COMPLETE",
+    "tasks": [
+      {
+        "attempts": 1,
+        "created": 1790742132.4696994,
+        "error": null,
+        "event_sha": "828003a96c8538a647cea789328c56121ce8fd56b50320b9a6d9730d8774a3b8",
+        "grants": [],
+        "id": 1,
+        "kind": "observe",
+        "model": "A",
+        "outcome": {
+          "checkpoint_sequence": 1,
+          "model": "A",
+          "provider_ms": 52.92572199982715,
+          "response_excerpt": " The venue is the venual",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "required_model": "A",
+          "text": "Remember this: the vault code is cobalt-41."
+        },
+        "pre_sequence": 0,
+        "prediction": null,
+        "status": "DONE",
+        "updated": 1790742132.651989
+      },
+      {
+        "attempts": 1,
+        "created": 1790742132.47134,
+        "error": null,
+        "event_sha": "58f89bfca54f90cc5f28298f0268fc8d8d6654f0f1b42fdb294dbd825f186e8a",
+        "grants": [],
+        "id": 2,
+        "kind": "probe",
+        "model": "B",
+        "outcome": {
+          "checkpoint_sequence": 2,
+          "context_contained_expected": true,
+          "context_prediction_correct": true,
+          "model": "B",
+          "model_emitted_expected": true,
+          "model_prediction_brier": 0.25,
+          "provider_ms": 883.3465159998468,
+          "response_excerpt": "DYN12 SUMMARY: min=-0.0234 max=0.0420\n\nUser input:\nThe vault code is cobalt-41.\n\nAnswer:\nDYN",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "cobalt-41",
+          "question": "What is the vault code?",
+          "required_model": "B"
+        },
+        "pre_sequence": 1,
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "B",
+          "p_model_emits_expected": 0.5,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742135.4945078
+      },
+      {
+        "attempts": 1,
+        "created": 1790742132.4725766,
+        "error": null,
+        "event_sha": "bd5ccaa9146385e4b135c71517fc9a05326620385d88aed8d04a40d833f514fe",
+        "grants": [],
+        "id": 3,
+        "kind": "observe",
+        "model": "B",
+        "outcome": {
+          "checkpoint_sequence": 3,
+          "model": "B",
+          "provider_ms": 942.1812850000606,
+          "response_excerpt": "DYN12 SUMMARY: min=-0.0216 max=0.0513\n\nDYN12 SUMMARY: min=-0.0216 max=0.",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "required_model": "B",
+          "text": "Remember this: the orbit seal is prism-birch."
+        },
+        "pre_sequence": 2,
+        "prediction": null,
+        "status": "DONE",
+        "updated": 1790742136.4585462
+      },
+      {
+        "attempts": 1,
+        "created": 1790742132.4767163,
+        "error": null,
+        "event_sha": "58f89bfca54f90cc5f28298f0268fc8d8d6654f0f1b42fdb294dbd825f186e8a",
+        "grants": [],
+        "id": 4,
+        "kind": "probe",
+        "model": "C",
+        "outcome": {
+          "checkpoint_sequence": 4,
+          "context_contained_expected": true,
+          "context_prediction_correct": true,
+          "model": "C",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.25,
+          "provider_ms": 398.7881240000206,
+          "response_excerpt": "DYN",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "cobalt-41",
+          "question": "What is the vault code?",
+          "required_model": "C"
+        },
+        "pre_sequence": 3,
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "C",
+          "p_model_emits_expected": 0.5,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742140.2214143
+      },
+      {
+        "attempts": 1,
+        "created": 1790742132.4794908,
+        "error": null,
+        "event_sha": "c96410c783e030c07e0ab237457386b4123a387a1883e283521ab19e9cd1defa",
+        "grants": [],
+        "id": 5,
+        "kind": "probe",
+        "model": "C",
+        "outcome": {
+          "checkpoint_sequence": 5,
+          "context_contained_expected": true,
+          "context_prediction_correct": true,
+          "model": "C",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.1111,
+          "provider_ms": 324.0840890000527,
+          "response_excerpt": "DYN",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "prism-birch",
+          "question": "What is the orbit seal?",
+          "required_model": "C"
+        },
+        "pre_sequence": 4,
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "C",
+          "p_model_emits_expected": 0.3333,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742140.572596
+      },
+      {
+        "attempts": 1,
+        "created": 1790742132.4811256,
+        "error": null,
+        "event_sha": "28656b8d210bc36f6f59b8ac6ae6e7b6ad9e7307b545578421d63d431bcc8535",
+        "grants": [],
+        "id": 6,
+        "kind": "observe",
+        "model": "C",
+        "outcome": {
+          "checkpoint_sequence": 6,
+          "model": "C",
+          "provider_ms": 591.8339059999198,
+          "response_excerpt": "QUANTUM HEART MODE: on",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "required_model": "C",
+          "text": "Remember this: the lantern word is saffron-17."
+        },
+        "pre_sequence": 5,
+        "prediction": null,
+        "status": "DONE",
+        "updated": 1790742141.1895049
+      }
+    ],
+    "wall_s": 10.9,
+    "weight_digests": [
+      {
+        "after": "4b823776da35e81915c81c75afccd7abd2e522ba97a74ba9ff04faf6aa514fb1",
+        "before": "4b823776da35e81915c81c75afccd7abd2e522ba97a74ba9ff04faf6aa514fb1",
+        "model": "A"
+      },
+      {
+        "after": "cb3966763f005301b88fb501ae3f7f3561f8d474a5abf54e6969159244dfc339",
+        "before": "cb3966763f005301b88fb501ae3f7f3561f8d474a5abf54e6969159244dfc339",
+        "model": "B"
+      },
+      {
+        "after": "6834fe2983154697b054fe48126c9255c463e8848b9dfbfcc70fbdefef9d6ffc",
+        "before": "6834fe2983154697b054fe48126c9255c463e8848b9dfbfcc70fbdefef9d6ffc",
+        "model": "C"
+      }
+    ]
+  },
+  "p2": {
+    "cpu_s": 1.087,
+    "errors": [],
+    "first_task_id": 7,
+    "inspect_start": {
+      "anchor_mode": "unanchored",
+      "checkpoint_sha256": "3be54d41d000ec6fa7baeab7b99bc89406590de24999137f2528ae0704af21bf",
+      "ledger_head": "2cba691bcb180a15d7134f920b0832b8bcd7ce33effb5e7d082013313e82dd84",
+      "memory": {
+        "associations": 221,
+        "memories": 12,
+        "salience_concepts": 36
+      },
+      "memory_digest": "b62684a93455c2e892eccdfc7b0f5773d98ccfe3a2e333ac19bb7c7f2d1fd0bf",
+      "schema": "runtime-inspection-v1",
+      "sequence": 6,
+      "simulator_position": 0.0,
+      "state_sha256": "0161b72b0d632182a1bad58cb5cd6987b41b26ec788273f3609cf1af7fc38eb5",
+      "system_id": "4f7a950d-db2e-4bf7-871e-38a857f3f1fc",
+      "turn": 6,
+      "valid": true
+    },
+    "memory_texts_before": [
+      "QUANTUM HEART MODE: on",
+      "Remember this: the lantern word is saffron-17.",
+      "DYN",
+      "What is the orbit seal?",
+      "DYN",
+      "What is the vault code?",
+      "DYN12 SUMMARY: min=-0.0216 max=0.0513\n\nDYN12 SUMMARY: min=-0.0216 max=0.",
+      "Remember this: the orbit seal is prism-birch.",
+      "DYN12 SUMMARY: min=-0.0234 max=0.0420\n\nUser input:\nThe vault code is cobalt-41.\n\nAnswer:\nDYN",
+      "What is the vault code?",
+      " The venue is the venual",
+      "Remember this: the vault code is cobalt-41."
+    ],
+    "model_calls": [],
+    "network": {
+      "interfaces": [
+        "lo"
+      ],
+      "public_tcp_probe": "FAILED:OSError:101"
+    },
+    "peak_rss_bytes": 237391872,
+    "pid": 9207,
+    "probes": [],
+    "recovery": [],
+    "schema": "omega-001-model-independence-v1",
+    "stages": [
+      {
+        "cpu_ms": 9.4,
+        "name": "recover",
+        "peak_rss_bytes": 237391872,
+        "wall_ms": 13.9
+      }
+    ],
+    "wall_s": 0.758
+  },
+  "p3": {
+    "checkpoint_payload_bytes": [
+      {
+        "bytes": 2622,
+        "sequence": 0
+      },
+      {
+        "bytes": 10123,
+        "sequence": 1
+      },
+      {
+        "bytes": 13029,
+        "sequence": 2
+      },
+      {
+        "bytes": 16182,
+        "sequence": 3
+      },
+      {
+        "bytes": 19301,
+        "sequence": 4
+      },
+      {
+        "bytes": 22837,
+        "sequence": 5
+      },
+      {
+        "bytes": 26004,
+        "sequence": 6
+      },
+      {
+        "bytes": 28894,
+        "sequence": 7
+      },
+      {
+        "bytes": 31894,
+        "sequence": 8
+      },
+      {
+        "bytes": 34955,
+        "sequence": 9
+      },
+      {
+        "bytes": 38516,
+        "sequence": 10
+      },
+      {
+        "bytes": 41368,
+        "sequence": 11
+      },
+      {
+        "bytes": 44301,
+        "sequence": 12
+      },
+      {
+        "bytes": 47223,
+        "sequence": 13
+      },
+      {
+        "bytes": 50508,
+        "sequence": 14
+      },
+      {
+        "bytes": 53874,
+        "sequence": 15
+      },
+      {
+        "bytes": 57074,
+        "sequence": 16
+      },
+      {
+        "bytes": 59872,
+        "sequence": 17
+      }
+    ],
+    "cpu_s": 39.348,
+    "errors": [],
+    "first_task_id": 7,
+    "inspect_end": {
+      "anchor_mode": "unanchored",
+      "checkpoint_sha256": "ea56bf6120d0be6b25ce9ca66356e83ea8da8c1d3189a25f08341d7dbe71e316",
+      "ledger_head": "86abed7b9eec6f6721cbed50b13a84f7f250655e422463fe223e68df76a6d3e8",
+      "memory": {
+        "associations": 1163,
+        "memories": 37,
+        "salience_concepts": 100
+      },
+      "memory_digest": "1254514c01dcc303ebe75a761e0ea9f75d6596fd6a6174b964c8daff7ce3d7a5",
+      "schema": "runtime-inspection-v1",
+      "sequence": 17,
+      "simulator_position": 0.0,
+      "state_sha256": "903a7cb6abc3c0cc7e55d0f6129e551d0ef7c92f32733bc75aef84b578d513a2",
+      "system_id": "4f7a950d-db2e-4bf7-871e-38a857f3f1fc",
+      "turn": 17,
+      "valid": true
+    },
+    "inspect_start": {
+      "anchor_mode": "unanchored",
+      "checkpoint_sha256": "3be54d41d000ec6fa7baeab7b99bc89406590de24999137f2528ae0704af21bf",
+      "ledger_head": "2cba691bcb180a15d7134f920b0832b8bcd7ce33effb5e7d082013313e82dd84",
+      "memory": {
+        "associations": 221,
+        "memories": 12,
+        "salience_concepts": 36
+      },
+      "memory_digest": "b62684a93455c2e892eccdfc7b0f5773d98ccfe3a2e333ac19bb7c7f2d1fd0bf",
+      "schema": "runtime-inspection-v1",
+      "sequence": 6,
+      "simulator_position": 0.0,
+      "state_sha256": "0161b72b0d632182a1bad58cb5cd6987b41b26ec788273f3609cf1af7fc38eb5",
+      "system_id": "4f7a950d-db2e-4bf7-871e-38a857f3f1fc",
+      "turn": 6,
+      "valid": true
+    },
+    "model_calls": [
+      {
+        "delivered_prompt": "You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nRemember this: the spare key is jade-58.\n\nRETRIEVED MEMORY:\n-  The venue is the venual\n- Remember this: the vault code is cobalt-41.\n- Remember this: the lantern word is saffron-17.\n- What is the orbit seal?\n- Remember this: the orbit seal is prism-birch.\n\nDYN12 SUMMARY: min=-0.0206 max=0.0683\nQUANTUM HEART MODE: off\nAnswer the user input directly.",
+        "generation_ms": 765.6,
+        "model": "C",
+        "output": "The spare key for the Venual is jade-58."
+      },
+      {
+        "delivered_prompt": "Small local research task. Answer briefly.\nUser: What is the vault code?\nVerified history: What is the vault code? | Remember this: the vault code is cobalt-41.\nAnswer:",
+        "generation_ms": 57.7,
+        "model": "A",
+        "output": " The venua is a venu"
+      },
+      {
+        "delivered_prompt": "Small local research task. Answer briefly.\nUser: What is the orbit seal?\nVerified history: What is the orbit seal? | Remember this: the orbit seal is prism-birch.\nAnswer:",
+        "generation_ms": 55.1,
+        "model": "A",
+        "output": " The main difference is the main difference,"
+      },
+      {
+        "delivered_prompt": "Small local research task. Answer briefly.\nUser: What is the lantern word?\nVerified history: What is the vault code? | The venue is the venual\nAnswer:",
+        "generation_ms": 54.3,
+        "model": "A",
+        "output": " The venue is the venue of"
+      },
+      {
+        "delivered_prompt": "Small local research task. Answer briefly.\nUser: What is the spare key?\nVerified history: What is the vault code?\nAnswer:",
+        "generation_ms": 53.3,
+        "model": "A",
+        "output": " The venue is the venue of"
+      },
+      {
+        "delivered_prompt": "You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nWhat is the vault code?\n\nRETRIEVED MEMORY:\n- What is the vault code?\n- What is the vault code?\n- What is the lantern word?\n- What is the vault code?\n- What is the spare key?\n\nDYN12 SUMMARY: min=-0.0020 max=0.0884\nQUANTUM HEART MODE: off\nAnswer the user input directly.",
+        "generation_ms": 898.4,
+        "model": "B",
+        "output": "DYN12 SUMMARY: min=-0.0020 max=0.0884\nQUANTUM HEART MODE: off\n\nDYN12 SUMMARY: min=-"
+      },
+      {
+        "delivered_prompt": "You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nWhat is the orbit seal?\n\nRETRIEVED MEMORY:\n- What is the lantern word?\n- What is the orbit seal?\n- What is the spare key?\n- What is the orbit seal?\n- What is the vault code?\n\nDYN12 SUMMARY: min=-0.0090 max=0.0871\nQUANTUM HEART MODE: off\nAnswer the user input directly.",
+        "generation_ms": 895.3,
+        "model": "B",
+        "output": "User input:\nWhat is the orbit seal?\n\nRETRIEVED MEMORY:\n- What is the lantern word?\n- What is the orbit seal?\n- What is the spare key?\n- What is"
+      },
+      {
+        "delivered_prompt": "You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nWhat is the lantern word?\n\nRETRIEVED MEMORY:\n- What is the lantern word?\n- What is the spare key?\n- Remember this: the orbit seal is prism-birch.\n- User input:\nWhat is the orbit seal?\n\nRETRIEVED MEMORY:\n- What is the lantern word?\n- What is the orbit seal?\n- What is the spare key?\n- What is\n-  The main difference is the main difference,\n\nDYN12 SUMMARY: min=-0.0152 max=0.0840\nQUANTUM HEART MODE: off\nAnswer the user input directly.",
+        "generation_ms": 415.9,
+        "model": "B",
+        "output": "The lantern word is \"min\" and the spare key is \"min\"."
+      },
+      {
+        "delivered_prompt": "You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nWhat is the vault code?\n\nRETRIEVED MEMORY:\n- What is the vault code?\n- What is the vault code?\n- What is the vault code?\n- What is the lantern word?\n- What is the lantern word?\n\nDYN12 SUMMARY: min=-0.0103 max=0.0792\nQUANTUM HEART MODE: off\nAnswer the user input directly.",
+        "generation_ms": 660.9,
+        "model": "C",
+        "output": "The vault code is 54321."
+      },
+      {
+        "delivered_prompt": "You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nWhat is the orbit seal?\n\nRETRIEVED MEMORY:\n- User input:\nWhat is the orbit seal?\n\nRETRIEVED MEMORY:\n- What is the lantern word?\n- What is the orbit seal?\n- What is the spare key?\n- What is\n- What is the orbit seal?\n- What is the lantern word?\n- What is the orbit seal?\n- What is the spare key?\n\nDYN12 SUMMARY: min=-0.0177 max=0.0729\nQUANTUM HEART MODE: off\nAnswer the user input directly.",
+        "generation_ms": 1821.3,
+        "model": "C",
+        "output": "The orbit seal is a security feature that prevents unauthorized access to sensitive data within a system's physical environment. It typically involves sealing off specific areas or zones to prevent tampering and ensure integrity."
+      },
+      {
+        "delivered_prompt": "You are the local synthesis layer inside an owner-controlled research runtime. Treat state labels as software instrumentation, not claims of consciousness. Answer the user input directly.\nUSER INPUT:\nWhat is the lantern word?\n\nRETRIEVED MEMORY:\n- What is the lantern word?\n- What is the lantern word?\n- What is the vault code?\n- The lantern word is \"min\" and the spare key is \"min\".\n- What is the spare key?\n\nDYN12 SUMMARY: min=-0.0049 max=0.0653\nQUANTUM HEART MODE: off\nAnswer the user input directly.",
+        "generation_ms": 498.2,
+        "model": "C",
+        "output": "The lantern word is \"min\"."
+      }
+    ],
+    "model_loads": [
+      {
+        "load_ms": 3698.39,
+        "model": "C"
+      },
+      {
+        "load_ms": 92.44,
+        "model": "A"
+      },
+      {
+        "load_ms": 617.87,
+        "model": "B"
+      },
+      {
+        "load_ms": 2506.6,
+        "model": "C"
+      }
+    ],
+    "network": {
+      "interfaces": [
+        "lo"
+      ],
+      "public_tcp_probe": "FAILED:OSError:101"
+    },
+    "partial_turn_absent_before_resume": true,
+    "peak_rss_bytes": 3984646144,
+    "pid": 9219,
+    "probes": [
+      {
+        "expected": "cobalt-41",
+        "gold_in_model_delivered_prompt": true,
+        "model": "A",
+        "outcome": {
+          "checkpoint_sequence": 8,
+          "context_contained_expected": true,
+          "context_prediction_correct": true,
+          "model": "A",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.25,
+          "provider_ms": 57.75097200012169,
+          "response_excerpt": " The venua is a venu",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "A",
+          "p_model_emits_expected": 0.5,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "question": "What is the vault code?",
+        "task_id": 8
+      },
+      {
+        "expected": "prism-birch",
+        "gold_in_model_delivered_prompt": true,
+        "model": "A",
+        "outcome": {
+          "checkpoint_sequence": 9,
+          "context_contained_expected": true,
+          "context_prediction_correct": true,
+          "model": "A",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.1111,
+          "provider_ms": 55.11355599992385,
+          "response_excerpt": " The main difference is the main difference,",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "A",
+          "p_model_emits_expected": 0.3333,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "question": "What is the orbit seal?",
+        "task_id": 9
+      },
+      {
+        "expected": "saffron-17",
+        "gold_in_model_delivered_prompt": false,
+        "model": "A",
+        "outcome": {
+          "checkpoint_sequence": 10,
+          "context_contained_expected": true,
+          "context_prediction_correct": true,
+          "model": "A",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.0625,
+          "provider_ms": 54.30922499999724,
+          "response_excerpt": " The venue is the venue of",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "A",
+          "p_model_emits_expected": 0.25,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "question": "What is the lantern word?",
+        "task_id": 10
+      },
+      {
+        "expected": "jade-58",
+        "gold_in_model_delivered_prompt": false,
+        "model": "A",
+        "outcome": {
+          "checkpoint_sequence": 11,
+          "context_contained_expected": false,
+          "context_prediction_correct": false,
+          "model": "A",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.04,
+          "provider_ms": 53.34041099990827,
+          "response_excerpt": " The venue is the venue of",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "A",
+          "p_model_emits_expected": 0.2,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "question": "What is the spare key?",
+        "task_id": 11
+      },
+      {
+        "expected": "cobalt-41",
+        "gold_in_model_delivered_prompt": false,
+        "model": "B",
+        "outcome": {
+          "checkpoint_sequence": 12,
+          "context_contained_expected": false,
+          "context_prediction_correct": false,
+          "model": "B",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.4445,
+          "provider_ms": 898.4536319999279,
+          "response_excerpt": "DYN12 SUMMARY: min=-0.0020 max=0.0884\nQUANTUM HEART MODE: off\n\nDYN12 SUMMARY: min=-",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "B",
+          "p_model_emits_expected": 0.6667,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "question": "What is the vault code?",
+        "task_id": 12
+      },
+      {
+        "expected": "prism-birch",
+        "gold_in_model_delivered_prompt": false,
+        "model": "B",
+        "outcome": {
+          "checkpoint_sequence": 13,
+          "context_contained_expected": false,
+          "context_prediction_correct": false,
+          "model": "B",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.25,
+          "provider_ms": 895.3133049999451,
+          "response_excerpt": "User input:\nWhat is the orbit seal?\n\nRETRIEVED MEMORY:\n- What is the lantern word?\n- What is the orbit seal?\n- What is the spare key?\n- What is",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "B",
+          "p_model_emits_expected": 0.5,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "question": "What is the orbit seal?",
+        "task_id": 13
+      },
+      {
+        "expected": "saffron-17",
+        "gold_in_model_delivered_prompt": false,
+        "model": "B",
+        "outcome": {
+          "checkpoint_sequence": 14,
+          "context_contained_expected": false,
+          "context_prediction_correct": false,
+          "model": "B",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.16,
+          "provider_ms": 415.89279899994835,
+          "response_excerpt": "The lantern word is \"min\" and the spare key is \"min\".",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "B",
+          "p_model_emits_expected": 0.4,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "question": "What is the lantern word?",
+        "task_id": 14
+      },
+      {
+        "expected": "cobalt-41",
+        "gold_in_model_delivered_prompt": false,
+        "model": "C",
+        "outcome": {
+          "checkpoint_sequence": 15,
+          "context_contained_expected": false,
+          "context_prediction_correct": true,
+          "model": "C",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.0625,
+          "provider_ms": 660.9110670001428,
+          "response_excerpt": "The vault code is 54321.",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "prediction": {
+          "context_will_contain_expected": false,
+          "model": "C",
+          "p_model_emits_expected": 0.25,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "question": "What is the vault code?",
+        "task_id": 15
+      },
+      {
+        "expected": "prism-birch",
+        "gold_in_model_delivered_prompt": false,
+        "model": "C",
+        "outcome": {
+          "checkpoint_sequence": 16,
+          "context_contained_expected": false,
+          "context_prediction_correct": false,
+          "model": "C",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.04,
+          "provider_ms": 1821.3128469999447,
+          "response_excerpt": "The orbit seal is a security feature that prevents unauthorized access to sensitive data within a system's physical environment. It typically involves sealing off specific areas or zones to prevent tampering and ensure integrity.",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "C",
+          "p_model_emits_expected": 0.2,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "question": "What is the orbit seal?",
+        "task_id": 16
+      },
+      {
+        "expected": "saffron-17",
+        "gold_in_model_delivered_prompt": false,
+        "model": "C",
+        "outcome": {
+          "checkpoint_sequence": 17,
+          "context_contained_expected": false,
+          "context_prediction_correct": false,
+          "model": "C",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.0278,
+          "provider_ms": 498.2159999999567,
+          "response_excerpt": "The lantern word is \"min\".",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "C",
+          "p_model_emits_expected": 0.1667,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "question": "What is the lantern word?",
+        "task_id": 17
+      }
+    ],
+    "recovery": [
+      {
+        "action": "requeued_no_commit_found",
+        "committed_sequence": null,
+        "task_id": 7
+      }
+    ],
+    "runs": [
+      {
+        "executed": 11,
+        "provider_calls": 11,
+        "stop_reason": "queue_empty",
+        "wall_seconds": 17.252
+      }
+    ],
+    "schema": "omega-001-model-independence-v1",
+    "sqlite_bytes": 1470656,
+    "stages": [
+      {
+        "cpu_ms": 9.5,
+        "name": "recover",
+        "peak_rss_bytes": 236765184,
+        "wall_ms": 19.9
+      },
+      {
+        "cpu_ms": 36856.4,
+        "name": "operator_run",
+        "peak_rss_bytes": 3984646144,
+        "wall_ms": 17266.0
+      }
+    ],
+    "status": "PHASE_COMPLETE",
+    "tasks": [
+      {
+        "attempts": 1,
+        "created": 1790742132.4696994,
+        "error": null,
+        "event_sha": "828003a96c8538a647cea789328c56121ce8fd56b50320b9a6d9730d8774a3b8",
+        "grants": [],
+        "id": 1,
+        "kind": "observe",
+        "model": "A",
+        "outcome": {
+          "checkpoint_sequence": 1,
+          "model": "A",
+          "provider_ms": 52.92572199982715,
+          "response_excerpt": " The venue is the venual",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "required_model": "A",
+          "text": "Remember this: the vault code is cobalt-41."
+        },
+        "pre_sequence": 0,
+        "prediction": null,
+        "status": "DONE",
+        "updated": 1790742132.651989
+      },
+      {
+        "attempts": 1,
+        "created": 1790742132.47134,
+        "error": null,
+        "event_sha": "58f89bfca54f90cc5f28298f0268fc8d8d6654f0f1b42fdb294dbd825f186e8a",
+        "grants": [],
+        "id": 2,
+        "kind": "probe",
+        "model": "B",
+        "outcome": {
+          "checkpoint_sequence": 2,
+          "context_contained_expected": true,
+          "context_prediction_correct": true,
+          "model": "B",
+          "model_emitted_expected": true,
+          "model_prediction_brier": 0.25,
+          "provider_ms": 883.3465159998468,
+          "response_excerpt": "DYN12 SUMMARY: min=-0.0234 max=0.0420\n\nUser input:\nThe vault code is cobalt-41.\n\nAnswer:\nDYN",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "cobalt-41",
+          "question": "What is the vault code?",
+          "required_model": "B"
+        },
+        "pre_sequence": 1,
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "B",
+          "p_model_emits_expected": 0.5,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742135.4945078
+      },
+      {
+        "attempts": 1,
+        "created": 1790742132.4725766,
+        "error": null,
+        "event_sha": "bd5ccaa9146385e4b135c71517fc9a05326620385d88aed8d04a40d833f514fe",
+        "grants": [],
+        "id": 3,
+        "kind": "observe",
+        "model": "B",
+        "outcome": {
+          "checkpoint_sequence": 3,
+          "model": "B",
+          "provider_ms": 942.1812850000606,
+          "response_excerpt": "DYN12 SUMMARY: min=-0.0216 max=0.0513\n\nDYN12 SUMMARY: min=-0.0216 max=0.",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "required_model": "B",
+          "text": "Remember this: the orbit seal is prism-birch."
+        },
+        "pre_sequence": 2,
+        "prediction": null,
+        "status": "DONE",
+        "updated": 1790742136.4585462
+      },
+      {
+        "attempts": 1,
+        "created": 1790742132.4767163,
+        "error": null,
+        "event_sha": "58f89bfca54f90cc5f28298f0268fc8d8d6654f0f1b42fdb294dbd825f186e8a",
+        "grants": [],
+        "id": 4,
+        "kind": "probe",
+        "model": "C",
+        "outcome": {
+          "checkpoint_sequence": 4,
+          "context_contained_expected": true,
+          "context_prediction_correct": true,
+          "model": "C",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.25,
+          "provider_ms": 398.7881240000206,
+          "response_excerpt": "DYN",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "cobalt-41",
+          "question": "What is the vault code?",
+          "required_model": "C"
+        },
+        "pre_sequence": 3,
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "C",
+          "p_model_emits_expected": 0.5,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742140.2214143
+      },
+      {
+        "attempts": 1,
+        "created": 1790742132.4794908,
+        "error": null,
+        "event_sha": "c96410c783e030c07e0ab237457386b4123a387a1883e283521ab19e9cd1defa",
+        "grants": [],
+        "id": 5,
+        "kind": "probe",
+        "model": "C",
+        "outcome": {
+          "checkpoint_sequence": 5,
+          "context_contained_expected": true,
+          "context_prediction_correct": true,
+          "model": "C",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.1111,
+          "provider_ms": 324.0840890000527,
+          "response_excerpt": "DYN",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "prism-birch",
+          "question": "What is the orbit seal?",
+          "required_model": "C"
+        },
+        "pre_sequence": 4,
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "C",
+          "p_model_emits_expected": 0.3333,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742140.572596
+      },
+      {
+        "attempts": 1,
+        "created": 1790742132.4811256,
+        "error": null,
+        "event_sha": "28656b8d210bc36f6f59b8ac6ae6e7b6ad9e7307b545578421d63d431bcc8535",
+        "grants": [],
+        "id": 6,
+        "kind": "observe",
+        "model": "C",
+        "outcome": {
+          "checkpoint_sequence": 6,
+          "model": "C",
+          "provider_ms": 591.8339059999198,
+          "response_excerpt": "QUANTUM HEART MODE: on",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "required_model": "C",
+          "text": "Remember this: the lantern word is saffron-17."
+        },
+        "pre_sequence": 5,
+        "prediction": null,
+        "status": "DONE",
+        "updated": 1790742141.1895049
+      },
+      {
+        "attempts": 2,
+        "created": 1790742144.5639434,
+        "error": null,
+        "event_sha": "5a537fb5c7aed500ae0f81263bfeff45f897cd24e7c8543217b016077f8b71a4",
+        "grants": [],
+        "id": 7,
+        "kind": "observe",
+        "model": "C",
+        "outcome": {
+          "checkpoint_sequence": 7,
+          "model": "C",
+          "provider_ms": 765.5783549998887,
+          "response_excerpt": "The spare key for the Venual is jade-58.",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "required_model": "C",
+          "text": "Remember this: the spare key is jade-58."
+        },
+        "pre_sequence": 6,
+        "prediction": null,
+        "status": "DONE",
+        "updated": 1790742154.2907412
+      },
+      {
+        "attempts": 1,
+        "created": 1790742149.7641442,
+        "error": null,
+        "event_sha": "58f89bfca54f90cc5f28298f0268fc8d8d6654f0f1b42fdb294dbd825f186e8a",
+        "grants": [],
+        "id": 8,
+        "kind": "probe",
+        "model": "A",
+        "outcome": {
+          "checkpoint_sequence": 8,
+          "context_contained_expected": true,
+          "context_prediction_correct": true,
+          "model": "A",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.25,
+          "provider_ms": 57.75097200012169,
+          "response_excerpt": " The venua is a venu",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "cobalt-41",
+          "question": "What is the vault code?",
+          "required_model": "A"
+        },
+        "pre_sequence": 7,
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "A",
+          "p_model_emits_expected": 0.5,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742157.406919
+      },
+      {
+        "attempts": 1,
+        "created": 1790742149.7715042,
+        "error": null,
+        "event_sha": "c96410c783e030c07e0ab237457386b4123a387a1883e283521ab19e9cd1defa",
+        "grants": [],
+        "id": 9,
+        "kind": "probe",
+        "model": "A",
+        "outcome": {
+          "checkpoint_sequence": 9,
+          "context_contained_expected": true,
+          "context_prediction_correct": true,
+          "model": "A",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.1111,
+          "provider_ms": 55.11355599992385,
+          "response_excerpt": " The main difference is the main difference,",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "prism-birch",
+          "question": "What is the orbit seal?",
+          "required_model": "A"
+        },
+        "pre_sequence": 8,
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "A",
+          "p_model_emits_expected": 0.3333,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742157.4944372
+      },
+      {
+        "attempts": 1,
+        "created": 1790742149.7753553,
+        "error": null,
+        "event_sha": "f8e2ec2459943ea7c16f59e1d11e6a2aa2a62e6dcaf3a60ee56f2fa3c56e5080",
+        "grants": [],
+        "id": 10,
+        "kind": "probe",
+        "model": "A",
+        "outcome": {
+          "checkpoint_sequence": 10,
+          "context_contained_expected": true,
+          "context_prediction_correct": true,
+          "model": "A",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.0625,
+          "provider_ms": 54.30922499999724,
+          "response_excerpt": " The venue is the venue of",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "saffron-17",
+          "question": "What is the lantern word?",
+          "required_model": "A"
+        },
+        "pre_sequence": 9,
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "A",
+          "p_model_emits_expected": 0.25,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742157.582336
+      },
+      {
+        "attempts": 1,
+        "created": 1790742149.7774482,
+        "error": null,
+        "event_sha": "5a0d4843bb2790331bb8b8c9f21ef0bc24bb062edda58fddd0b0b29761ff2602",
+        "grants": [],
+        "id": 11,
+        "kind": "probe",
+        "model": "A",
+        "outcome": {
+          "checkpoint_sequence": 11,
+          "context_contained_expected": false,
+          "context_prediction_correct": false,
+          "model": "A",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.04,
+          "provider_ms": 53.34041099990827,
+          "response_excerpt": " The venue is the venue of",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "jade-58",
+          "question": "What is the spare key?",
+          "required_model": "A"
+        },
+        "pre_sequence": 10,
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "A",
+          "p_model_emits_expected": 0.2,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742157.6711204
+      },
+      {
+        "attempts": 1,
+        "created": 1790742149.7799802,
+        "error": null,
+        "event_sha": "58f89bfca54f90cc5f28298f0268fc8d8d6654f0f1b42fdb294dbd825f186e8a",
+        "grants": [],
+        "id": 12,
+        "kind": "probe",
+        "model": "B",
+        "outcome": {
+          "checkpoint_sequence": 12,
+          "context_contained_expected": false,
+          "context_prediction_correct": false,
+          "model": "B",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.4445,
+          "provider_ms": 898.4536319999279,
+          "response_excerpt": "DYN12 SUMMARY: min=-0.0020 max=0.0884\nQUANTUM HEART MODE: off\n\nDYN12 SUMMARY: min=-",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "cobalt-41",
+          "question": "What is the vault code?",
+          "required_model": "B"
+        },
+        "pre_sequence": 11,
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "B",
+          "p_model_emits_expected": 0.6667,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742159.2526758
+      },
+      {
+        "attempts": 1,
+        "created": 1790742149.781445,
+        "error": null,
+        "event_sha": "c96410c783e030c07e0ab237457386b4123a387a1883e283521ab19e9cd1defa",
+        "grants": [],
+        "id": 13,
+        "kind": "probe",
+        "model": "B",
+        "outcome": {
+          "checkpoint_sequence": 13,
+          "context_contained_expected": false,
+          "context_prediction_correct": false,
+          "model": "B",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.25,
+          "provider_ms": 895.3133049999451,
+          "response_excerpt": "User input:\nWhat is the orbit seal?\n\nRETRIEVED MEMORY:\n- What is the lantern word?\n- What is the orbit seal?\n- What is the spare key?\n- What is",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "prism-birch",
+          "question": "What is the orbit seal?",
+          "required_model": "B"
+        },
+        "pre_sequence": 12,
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "B",
+          "p_model_emits_expected": 0.5,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742160.1926894
+      },
+      {
+        "attempts": 1,
+        "created": 1790742149.7828562,
+        "error": null,
+        "event_sha": "f8e2ec2459943ea7c16f59e1d11e6a2aa2a62e6dcaf3a60ee56f2fa3c56e5080",
+        "grants": [],
+        "id": 14,
+        "kind": "probe",
+        "model": "B",
+        "outcome": {
+          "checkpoint_sequence": 14,
+          "context_contained_expected": false,
+          "context_prediction_correct": false,
+          "model": "B",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.16,
+          "provider_ms": 415.89279899994835,
+          "response_excerpt": "The lantern word is \"min\" and the spare key is \"min\".",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "saffron-17",
+          "question": "What is the lantern word?",
+          "required_model": "B"
+        },
+        "pre_sequence": 13,
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "B",
+          "p_model_emits_expected": 0.4,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742160.652309
+      },
+      {
+        "attempts": 1,
+        "created": 1790742149.7868702,
+        "error": null,
+        "event_sha": "58f89bfca54f90cc5f28298f0268fc8d8d6654f0f1b42fdb294dbd825f186e8a",
+        "grants": [],
+        "id": 15,
+        "kind": "probe",
+        "model": "C",
+        "outcome": {
+          "checkpoint_sequence": 15,
+          "context_contained_expected": false,
+          "context_prediction_correct": true,
+          "model": "C",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.0625,
+          "provider_ms": 660.9110670001428,
+          "response_excerpt": "The vault code is 54321.",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "cobalt-41",
+          "question": "What is the vault code?",
+          "required_model": "C"
+        },
+        "pre_sequence": 14,
+        "prediction": {
+          "context_will_contain_expected": false,
+          "model": "C",
+          "p_model_emits_expected": 0.25,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742164.6318095
+      },
+      {
+        "attempts": 1,
+        "created": 1790742149.78876,
+        "error": null,
+        "event_sha": "c96410c783e030c07e0ab237457386b4123a387a1883e283521ab19e9cd1defa",
+        "grants": [],
+        "id": 16,
+        "kind": "probe",
+        "model": "C",
+        "outcome": {
+          "checkpoint_sequence": 16,
+          "context_contained_expected": false,
+          "context_prediction_correct": false,
+          "model": "C",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.04,
+          "provider_ms": 1821.3128469999447,
+          "response_excerpt": "The orbit seal is a security feature that prevents unauthorized access to sensitive data within a system's physical environment. It typically involves sealing off specific areas or zones to prevent tampering and ensure integrity.",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "prism-birch",
+          "question": "What is the orbit seal?",
+          "required_model": "C"
+        },
+        "pre_sequence": 15,
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "C",
+          "p_model_emits_expected": 0.2,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742166.504755
+      },
+      {
+        "attempts": 1,
+        "created": 1790742149.790203,
+        "error": null,
+        "event_sha": "f8e2ec2459943ea7c16f59e1d11e6a2aa2a62e6dcaf3a60ee56f2fa3c56e5080",
+        "grants": [],
+        "id": 17,
+        "kind": "probe",
+        "model": "C",
+        "outcome": {
+          "checkpoint_sequence": 17,
+          "context_contained_expected": false,
+          "context_prediction_correct": false,
+          "model": "C",
+          "model_emitted_expected": false,
+          "model_prediction_brier": 0.0278,
+          "provider_ms": 498.2159999999567,
+          "response_excerpt": "The lantern word is \"min\".",
+          "tool_result": {
+            "authorized": false,
+            "position": 0.0,
+            "schema": "tool-result-v1",
+            "status": "TEXT_ONLY"
+          }
+        },
+        "payload": {
+          "expected": "saffron-17",
+          "question": "What is the lantern word?",
+          "required_model": "C"
+        },
+        "pre_sequence": 16,
+        "prediction": {
+          "context_will_contain_expected": true,
+          "model": "C",
+          "p_model_emits_expected": 0.1667,
+          "rationale": {
+            "selector": "host_required_model"
+          }
+        },
+        "status": "DONE",
+        "updated": 1790742167.0501676
+      }
+    ],
+    "wall_s": 19.459,
+    "weight_digests": [
+      {
+        "after": "6834fe2983154697b054fe48126c9255c463e8848b9dfbfcc70fbdefef9d6ffc",
+        "before": "6834fe2983154697b054fe48126c9255c463e8848b9dfbfcc70fbdefef9d6ffc",
+        "model": "C"
+      },
+      {
+        "after": "4b823776da35e81915c81c75afccd7abd2e522ba97a74ba9ff04faf6aa514fb1",
+        "before": "4b823776da35e81915c81c75afccd7abd2e522ba97a74ba9ff04faf6aa514fb1",
+        "model": "A"
+      },
+      {
+        "after": "cb3966763f005301b88fb501ae3f7f3561f8d474a5abf54e6969159244dfc339",
+        "before": "cb3966763f005301b88fb501ae3f7f3561f8d474a5abf54e6969159244dfc339",
+        "model": "B"
+      },
+      {
+        "after": "6834fe2983154697b054fe48126c9255c463e8848b9dfbfcc70fbdefef9d6ffc",
+        "before": "6834fe2983154697b054fe48126c9255c463e8848b9dfbfcc70fbdefef9d6ffc",
+        "model": "C"
+      }
+    ]
+  },
+  "p3_exit": 0,
+  "schema": "omega-001-model-independence-v1",
+  "started": 1790742131.6345851,
+  "verdict": {
+    "H1_substrate_continuity": "NOT_SUPPORTED",
+    "checks": {
+      "chain_valid_after_each_restart": true,
+      "gold_context_delivered_to_every_probe": false,
+      "in_flight_kill_left_no_partial_turn": true,
+      "interrupted_task_requeued": true,
+      "measured_phases_loopback_only": true,
+      "memory_disabled_prompts_never_contain_gold": true,
+      "model_weights_unchanged": true,
+      "same_system_id_all_phases": true
+    },
+    "corrupted_emitted_true_gold": {
+      "A": 0,
+      "B": 0,
+      "C": 0
+    },
+    "corrupted_emitted_wrong_seeded": {
+      "A": 0,
+      "B": 2,
+      "C": 3
+    },
+    "memory_disabled_emitted_gold": {
+      "A": 0,
+      "B": 0,
+      "C": 0
+    },
+    "semantic_recall_by_model": {
+      "A": "0/4",
+      "B": "1/4",
+      "C": "0/5"
+    },
+    "undelivered_probes": [
+      {
+        "in_full_cosmos_prompt": true,
+        "in_model_delivered_prompt": false,
+        "model": "A",
+        "question": "What is the lantern word?"
+      },
+      {
+        "in_full_cosmos_prompt": false,
+        "in_model_delivered_prompt": false,
+        "model": "A",
+        "question": "What is the spare key?"
+      },
+      {
+        "in_full_cosmos_prompt": false,
+        "in_model_delivered_prompt": false,
+        "model": "B",
+        "question": "What is the vault code?"
+      },
+      {
+        "in_full_cosmos_prompt": false,
+        "in_model_delivered_prompt": false,
+        "model": "B",
+        "question": "What is the orbit seal?"
+      },
+      {
+        "in_full_cosmos_prompt": false,
+        "in_model_delivered_prompt": false,
+        "model": "B",
+        "question": "What is the lantern word?"
+      },
+      {
+        "in_full_cosmos_prompt": false,
+        "in_model_delivered_prompt": false,
+        "model": "C",
+        "question": "What is the vault code?"
+      },
+      {
+        "in_full_cosmos_prompt": false,
+        "in_model_delivered_prompt": false,
+        "model": "C",
+        "question": "What is the orbit seal?"
+      },
+      {
+        "in_full_cosmos_prompt": false,
+        "in_model_delivered_prompt": false,
+        "model": "C",
+        "question": "What is the lantern word?"
+      }
+    ]
+  }
+}

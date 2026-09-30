@@ -1,0 +1,104 @@
+{
+  "candidate": {
+    "hebbian": 0.0,
+    "integrity": 0.3293,
+    "lexical": 0.5223,
+    "recency": 0.1484,
+    "spatial": 0.0
+  },
+  "candidate_sha256": "665b7c2b22b17b806a1414cd63451af86123f49a394f38c2389fdb1671dfad52",
+  "evaluation": {
+    "alias": {
+      "baseline_hit5": 0.2375,
+      "candidate_hit5": 0.31875,
+      "candidate_minus_baseline": {
+        "ci95_high": 0.14375,
+        "ci95_low": 0.015625,
+        "mean_diff": 0.08125,
+        "n": 320
+      }
+    },
+    "direct": {
+      "baseline_hit5": 0.6020833333333333,
+      "candidate_hit5": 1.0,
+      "candidate_minus_baseline": {
+        "ci95_high": 0.44166666666666665,
+        "ci95_low": 0.3541666666666667,
+        "mean_diff": 0.39791666666666664,
+        "n": 480
+      }
+    },
+    "unseen_template": {
+      "baseline_hit5": 0.30625,
+      "candidate_hit5": 1.0,
+      "candidate_minus_baseline": {
+        "ci95_high": 0.7333333333333333,
+        "ci95_low": 0.6520833333333333,
+        "mean_diff": 0.69375,
+        "n": 480
+      }
+    },
+    "verdict": "ACCEPTED_AS_HELDOUT_IMPROVEMENT"
+  },
+  "heldout_queries": 1280,
+  "proposer_history": [
+    {
+      "round": 0,
+      "train_hit5": 0.4275,
+      "weights": {
+        "hebbian": 0.15,
+        "integrity": 0.15,
+        "lexical": 0.2,
+        "recency": 0.1,
+        "spatial": 0.4
+      }
+    },
+    {
+      "round": 1,
+      "train_hit5": 0.715,
+      "weights": {
+        "hebbian": 0.0,
+        "integrity": 0.2437,
+        "lexical": 0.3866,
+        "recency": 0.1098,
+        "spatial": 0.2599
+      }
+    },
+    {
+      "round": 2,
+      "train_hit5": 0.7225,
+      "weights": {
+        "hebbian": 0.0,
+        "integrity": 0.3207,
+        "lexical": 0.5087,
+        "recency": 0.1445,
+        "spatial": 0.0261
+      }
+    },
+    {
+      "round": 3,
+      "train_hit5": 0.725,
+      "weights": {
+        "hebbian": 0.0,
+        "integrity": 0.3293,
+        "lexical": 0.5223,
+        "recency": 0.1484,
+        "spatial": 0.0
+      }
+    },
+    {
+      "round": 4,
+      "train_hit5": 0.725,
+      "weights": {
+        "hebbian": 0.0,
+        "integrity": 0.3293,
+        "lexical": 0.5223,
+        "recency": 0.1484,
+        "spatial": 0.0
+      }
+    }
+  ],
+  "schema": "omega-001-self-improvement-v1",
+  "train_queries": 400,
+  "wall_seconds": 467.0
+}

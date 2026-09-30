@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OMEGA signal trace — Beast Box DurableRuntime</title>
+<style>
+  :root { --bg:#0b0f17; --panel:#121826; --line:#243047; --text:#dbe4f3; --dim:#8494b0; --acc:#6cc4ff;
+          --ok:#5ad19a; --bad:#ff7a7a; --warn:#f3c969; --mono: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; }
+  header { padding:14px 20px; border-bottom:1px solid var(--line); display:flex; gap:18px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; letter-spacing:.04em; }
+  .pill { font:12px var(--mono); padding:2px 8px; border:1px solid var(--line); border-radius:999px; color:var(--dim); }
+  .pill.ok { color:var(--ok); border-color:#2b5d47; } .pill.bad { color:var(--bad); border-color:#6b3030; }
+  main { display:grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 56px); }
+  aside { border-right:1px solid var(--line); overflow:auto; max-height: calc(100vh - 56px); }
+  .turn { padding:9px 14px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .turn:hover { background:#161e2f; } .turn.sel { background:#1a2540; border-left:3px solid var(--acc); padding-left:11px; }
+  .turn .t { font:12px var(--mono); color:var(--dim); } .turn .x { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  section { padding:16px 20px; overflow:auto; max-height: calc(100vh - 56px); }
+  .pipeline { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+  .stage { font:12px var(--mono); padding:6px 10px; border:1px solid var(--line); border-radius:6px; background:var(--panel); cursor:pointer; }
+  .stage .ms { color:var(--dim); margin-left:6px; } .stage.sel { border-color:var(--acc); color:var(--acc); }
+  .arrow { color:var(--dim); align-self:center; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap:14px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px 14px; }
+  .card.hl { border-color:var(--acc); }
+  .card h3 { margin:0 0 8px; font-size:13px; color:var(--acc); letter-spacing:.05em; text-transform:uppercase; }
+  .card .src { font:11px var(--mono); color:var(--dim); margin-bottom:8px; }
+  table { width:100%; border-collapse:collapse; font:12px var(--mono); }
+  th, td { text-align:left; padding:3px 6px; border-bottom:1px solid #1c2538; vertical-align:top; }
+  th { color:var(--dim); font-weight:normal; }
+  pre { font:12px var(--mono); white-space:pre-wrap; word-break:break-word; margin:0; max-height:260px; overflow:auto; background:#0d1320; padding:8px; border-radius:6px; }
+  .bars { display:grid; grid-template-columns: repeat(12, 1fr); gap:4px; height:120px; align-items:center; }
+  .bar { position:relative; height:100%; }
+  .bar .z { position:absolute; left:0; right:0; top:50%; border-top:1px dashed #2c3a55; }
+  .bar .b { position:absolute; left:10%; width:38%; background:#51607e; }
+  .bar .a { position:absolute; left:52%; width:38%; background:var(--acc); }
+  .bar .i { position:absolute; bottom:-16px; width:100%; text-align:center; font:10px var(--mono); color:var(--dim); }
+  .legend { font:11px var(--mono); color:var(--dim); margin-top:20px; }
+  .stack { display:flex; height:10px; width:160px; border-radius:3px; overflow:hidden; background:#0d1320; }
+  .kv { display:grid; grid-template-columns: 170px 1fr; gap:3px 10px; font:12px var(--mono); }
+  .kv div:nth-child(odd) { color:var(--dim); }
+  .spark { width:100%; height:70px; }
+  .muted { color:var(--dim); } .okc { color:var(--ok); } .badc { color:var(--bad); }
+  .drop { border:1px dashed var(--line); border-radius:8px; padding:30px; text-align:center; color:var(--dim); margin:40px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>OMEGA · SIGNAL TRACE</h1>
+  <span class="pill" id="src">no data</span>
+  <span class="pill" id="chain">chain: —</span>
+  <span class="pill" id="count">0 turns</span>
+  <span class="pill" id="live" hidden>LIVE · polling 1s</span>
+  <span class="muted" style="font-size:12px">Every value below was read from a running DurableRuntime at the named stage. Nothing is animated or synthesized.</span>
+</header>
+<main>
+  <aside id="turns"></aside>
+  <section id="detail"><div class="drop" id="drop">Open a trace bundle: drop a <code>signal-trace.jsonl</code> or bundle <code>.json</code> here, or build one with <code>python scripts/omega_viewer.py build</code>.</div></section>
+</main>
+<script>
+const COLORS = {spatial:"#9b7bff", lexical:"#6cc4ff", hebbian:"#5ad19a", recency:"#f3c969", integrity:"#8494b0", quality:"#ff9f6c"};
+const STAGE_CARD = {normalize:"event", memory_lookup:"lookup", state_cns:"state", r12_routing:"r12", model:"model",
+                    policy:"authority", bounded_output:"authority", memory_write:"hebbian", provenance:"checkpoint", checkpoint:"checkpoint"};
+let bundle = null, sel = 0, selStage = null;
+
+const esc = s => String(s ?? "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const f = (x, d=4) => (typeof x === "number" ? x.toFixed(d) : esc(x));
+
+function load(b) {
+  bundle = b; sel = Math.max(0, (b.records || []).length - 1);
+  document.getElementById("src").textContent = b.source || "trace";
+  const c = document.getElementById("chain");
+  c.textContent = b.chain_verified ? "hash chain verified (" + b.records.length + " records)" : "chain NOT verified";
+  c.className = "pill " + (b.chain_verified ? "ok" : "bad");
+  document.getElementById("count").textContent = b.records.length + " records";
+  renderList(); renderDetail();
+}
+
+function renderList() {
+  const el = document.getElementById("turns");
+  el.innerHTML = bundle.records.map((r, i) => {
+    const text = r.event ? r.event.text : (r.error || "");
+    const st = r.status === "COMMITTED" ? "" : ' <span class="badc">' + esc(r.status) + "</span>";
+    return `<div class="turn ${i===sel?"sel":""}" data-i="${i}"><div class="t">#${r.index} · turn ${r.turn ?? "—"} · ${esc(r.label || r.signal?.model?.model || "")}${st}</div><div class="x">${esc(text)}</div></div>`;
+  }).join("");
+  el.querySelectorAll(".turn").forEach(d => d.onclick = () => { sel = +d.dataset.i; selStage = null; renderList(); renderDetail(); });
+}
+
+function bars(before, after) {
+  if (!before || !after) return '<div class="muted">not recorded</div>';
+  return `<div class="bars">` + after.map((a, i) => {
+    const b = before[i], h = v => Math.min(50, Math.abs(v) * 50 / 0.5);
+    const pos = (v, cls) => `<div class="${cls}" style="${v>=0?`bottom:50%;height:${h(v)}%`:`top:50%;height:${h(v)}%`}"></div>`;
+    return `<div class="bar" title="d${i+1}: ${b.toFixed(5)} → ${a.toFixed(5)}"><div class="z"></div>${pos(b,"b")}${pos(a,"a")}<div class="i">${i+1}</div></div>`;
+  }).join("") + `</div><div class="legend">grey = before this turn (restored checkpoint) · blue = after StateFamily + CNS update · scale ±0.5</div>`;
+}
+
+function stack(c) {
+  const tot = Object.values(c).reduce((a, b) => a + b, 0) || 1;
+  return `<div class="stack">` + Object.entries(c).map(([k, v]) => `<div title="${k}=${v}" style="width:${100*v/tot}%;background:${COLORS[k]||"#777"}"></div>`).join("") + `</div>`;
+}
+
+function spark(values, label) {
+  const v = values.filter(x => typeof x === "number");
+  if (v.length < 2) return "";
+  const max = Math.max(...v), min = Math.min(...v), W = 600, H = 60;
+  const pts = values.map((x, i) => typeof x === "number" ? `${(i/(values.length-1))*W},${H - ((x-min)/((max-min)||1))*H}` : null).filter(Boolean).join(" ");
+  const cx = (sel/(values.length-1))*W;
+  return `<div class="muted" style="font:11px var(--mono)">${esc(label)} · min ${f(min,1)} · max ${f(max,1)}</div><svg class="spark" viewBox="0 0 ${W} ${H+4}" preserveAspectRatio="none"><polyline fill="none" stroke="#6cc4ff" stroke-width="1.5" points="${pts}"/><line x1="${cx}" x2="${cx}" y1="0" y2="${H}" stroke="#f3c969"/></svg>`;
+}
+
+function card(id, title, src, body) {
+  const hl = selStage && STAGE_CARD[selStage] === id ? " hl" : "";
+  return `<div class="card${hl}" id="card-${id}"><h3>${title}</h3><div class="src">${src}</div>${body}</div>`;
+}
+
+function renderDetail() {
+  const r = bundle.records[sel]; if (!r) return;
+  const s = r.signal || r.partial_signal || {}, m = r.metrics || {}, stages = m.stages_ms || {};
+  const pipe = (r.stages || []).map(st => `<span class="stage ${st===selStage?"sel":""}" data-s="${st}">${st}<span class="ms">${stages[st] != null ? f(stages[st],1)+"ms" : ""}</span></span>`).join('<span class="arrow">→</span>');
+  const sb = s.state_before || {}, sa = s.state_after || {};
+  const r12 = s.r12 || {}, heb = s.hebbian || {}, mw = s.memory_write || {}, mod = s.model || {}, au = s.authority || {};
+  const ranked = (r12.ranked || []).map((x, i) => `<tr><td>${i+1}</td><td>#${x.memory_id}</td><td>${esc(x.kind)}</td><td>${f(x.score,3)}</td><td>${stack(x.components)}</td><td>${Object.entries(x.components).map(([k,v])=>`<span style="color:${COLORS[k]}">${k[0]}</span>${f(v,2)}`).join(" ")}</td><td>${esc(x.text)}</td></tr>`).join("");
+  const hebRows = (heb.top_changed || []).map(c => `<tr><td>${esc(c.a)}</td><td>${esc(c.b)}</td><td>${f(c.weight_before,2)} → ${f(c.weight_after,2)}</td><td>${c.updates_before} → ${c.updates_after}</td></tr>`).join("");
+  const series = k => bundle.records.map(x => k(x));
+  const html = `
+  <div class="pipeline">${pipe || '<span class="muted">no committed stages</span>'}</div>
+  ${r.status !== "COMMITTED" ? `<div class="card" style="border-color:#6b3030;margin-bottom:14px"><h3 style="color:var(--bad)">${esc(r.status)}</h3><pre>${esc(r.error_type)}: ${esc(r.error)}</pre><div class="muted">The runtime rolled back this turn; the checkpoint below it is unchanged.</div></div>` : ""}
+  <div class="grid">
+   ${card("event","Sensor event","normalize_event() → normalized-event-v1",`<div class="kv"><div>source</div><div>${esc(r.event?.source)}</div><div>text</div><div>${esc(r.event?.text)}</div><div>features</div><div>${esc(JSON.stringify(r.event?.features))}</div><div>event sha256</div><div>${esc(r.event?.sha256?.slice(0,16))}…</div></div>`)}
+   ${card("state","12D state transition","StateFamily.update + CNS.tick (dyn12 as handed to R12)", bars(sb.dyn12, sa.mission_dyn12_after_cns) + `<div class="kv" style="margin-top:8px"><div>family step</div><div>${sb.family_step} → ${sa.family_step}</div><div>drive dimension</div><div>${esc(sa.drive_dimension)}</div><div>CNS trust</div><div>${f(sb.cns_trust,2)} → ${f(sa.cns_trust,2)}</div><div>Lorenz x,y,z</div><div>${["x","y","z"].map(k=>f(sa.cns_dark_matter?.[k],3)).join(", ")}</div><div>PHOS readout</div><div>${f(sa.phos_readout,5)}</div><div>dyn42 sha256</div><div>${esc(sb.dyn42_sha256?.slice(0,12))}… → ${esc(sa.dyn42_sha256?.slice(0,12))}…</div></div>`)}
+   ${card("lookup","Lexical lookup","DurableRuntime._retrieve_memories (snapshot)",`<table><tr><th>memory</th><th>kind</th><th>score</th></tr>${(s.memory_lookup?.lexical_hits||[]).map(h=>`<tr><td>#${h.memory_id}</td><td>${esc(h.kind)}</td><td>${f(h.score,3)}</td></tr>`).join("") || '<tr><td colspan=3 class="muted">no lexical hits</td></tr>'}</table>`)}
+   ${card("r12","R12 routing → context delivered","RefractiveMemoryRouter.rank · reality_coupling=" + f(r12.reality_coupling,2) + " · state " + esc((r12.r12_state_sha256||"").slice(0,10)),`<table><tr><th></th><th>id</th><th>kind</th><th>score</th><th>mix</th><th>components</th><th>text</th></tr>${ranked || '<tr><td colspan=7 class="muted">empty store</td></tr>'}</table><div class="legend">${Object.entries(COLORS).map(([k,c])=>`<span style="color:${c}">■</span> ${k}`).join(" · ")}</div>`)}
+   ${card("model","Model call","MeasuredProvider receipt",`<div class="kv"><div>provider / model</div><div>${esc(mod.provider)} / ${esc(mod.model)}</div><div>provider ms</div><div>${f(mod.provider_ms,1)}</div><div>prompt / output chars</div><div>${esc(mod.input_characters)} / ${esc(mod.output_characters)}</div></div><h3 style="margin-top:10px">prompt (exact)</h3><pre>${esc(mod.prompt)}</pre><h3 style="margin-top:10px">output</h3><pre>${esc(r.response)}</pre>`)}
+   ${card("authority","Authority decision","bounded_output() under host AuthorityPolicy",`<div class="kv"><div>granted this turn</div><div>${esc(JSON.stringify(au.granted_capabilities))}</div><div>status</div><div class="${au.tool_result?.authorized?"okc":""}">${esc(au.tool_result?.status)}</div><div>authorized</div><div>${esc(au.tool_result?.authorized)}</div><div>simulator position</div><div>${esc(au.tool_result?.position)}</div></div>`)}
+   ${card("hebbian","Hebbian update + memory write","ReconciliationMemory._hebbian_update, measured inside the turn transaction",`<div class="kv"><div>associations</div><div>${heb.associations_before} → ${heb.associations_after}</div><div>total weight</div><div>${f(heb.weight_sum_before,2)} → ${f(heb.weight_sum_after,2)}</div><div>pairs changed</div><div>${esc(heb.pairs_changed)}</div><div>rows written</div><div>${(mw.rows||[]).map(w=>"#"+w.memory_id+" "+w.kind).join(", ")}</div></div><table style="margin-top:8px"><tr><th>a</th><th>b</th><th>weight</th><th>updates</th></tr>${hebRows}</table>`)}
+   ${card("checkpoint","Provenance + checkpoint","ContinuityStore.append (committed)",`<div class="kv"><div>system id</div><div>${esc(r.system_id)}</div><div>sequence</div><div>${esc(r.checkpoint?.sequence)}</div><div>checkpoint sha256</div><div>${esc(r.checkpoint?.sha256)}</div><div>ledger head</div><div>${esc(r.ledger_head)}</div><div>trace record sha256</div><div>${esc(r.record_sha256)}</div><div>total turn ms</div><div>${f(m.total_ms,1)}</div></div>`)}
+   ${card("series","Across the run","measured per committed turn",
+      spark(series(x=>x.metrics?.provider_ms), "provider ms") +
+      spark(series(x=>x.signal?.hebbian?.associations_after), "association rows") +
+      spark(series(x=>x.metrics?.total_ms), "turn total ms") +
+      spark(series(x=>{const rk=x.signal?.r12?.ranked||[];return rk.filter(y=>y.kind==="assistant_turn").length;}), "assistant_turn rows in delivered top-5"))}
+   ${bundle.operator ? card("operator","Operator: queue, predictions, outcomes","operator.sqlite3 (host-owned)",
+      `<table><tr><th>task</th><th>kind</th><th>status</th><th>model</th><th>prediction</th><th>outcome</th></tr>${bundle.operator.tasks.map(t=>`<tr><td>${t.id}</td><td>${esc(t.kind)}</td><td class="${t.status==="DONE"?"okc":t.status==="FAILED"?"badc":""}">${esc(t.status)}</td><td>${esc(t.model)}</td><td>${t.prediction?`ctx:${t.prediction.context_will_contain_expected} p=${t.prediction.p_model_emits_expected}`:""}</td><td>${t.outcome?(t.outcome.model_emitted_expected!==undefined?`ctx:${t.outcome.context_contained_expected} emitted:${t.outcome.model_emitted_expected}`:esc(t.outcome.recovered||t.outcome.tool_result?.status||"")):esc(t.error||"")}</td></tr>`).join("")}</table><h3 style="margin-top:10px">model stats</h3><table>${(bundle.operator.model_stats||[]).map(x=>`<tr><td>${esc(x.model)}</td><td>${esc(x.kind)}</td><td>${x.successes}/${x.trials}</td></tr>`).join("")}</table><h3 style="margin-top:10px">journal (last 20)</h3><pre>${esc(bundle.operator.journal.slice(-20).map(j=>new Date(j.ts*1000).toISOString().slice(11,23)+" "+j.event+" "+JSON.stringify(Object.fromEntries(Object.entries(j).filter(([k])=>!["seq","ts","event"].includes(k))))).join("\n"))}</pre>`) : ""}
+  </div>`;
+  const d = document.getElementById("detail"); d.innerHTML = html;
+  d.querySelectorAll(".stage").forEach(e => e.onclick = () => { selStage = e.dataset.s; renderDetail();
+    const t = document.getElementById("card-" + STAGE_CARD[selStage]); if (t) t.scrollIntoView({block:"nearest"}); });
+}
+
+function parseText(name, text) {
+  if (name.endsWith(".jsonl")) {
+    const records = text.split("\n").filter(Boolean).map(l => JSON.parse(l));
+    return {source: name + " (unverified in browser)", chain_verified: false, records};
+  }
+  return JSON.parse(text);
+}
+document.addEventListener("dragover", e => e.preventDefault());
+document.addEventListener("drop", e => { e.preventDefault(); const file = e.dataTransfer.files[0];
+  file.text().then(t => load(parseText(file.name, t))); });
+document.addEventListener("keydown", e => { if (!bundle) return;
+  if (e.key === "ArrowDown" || e.key === "j") { sel = Math.min(bundle.records.length-1, sel+1); renderList(); renderDetail(); }
+  if (e.key === "ArrowUp" || e.key === "k") { sel = Math.max(0, sel-1); renderList(); renderDetail(); } });
+
+if (window.OMEGA_BUNDLE) load(window.OMEGA_BUNDLE);
+else fetch("bundle.json").then(r => r.ok ? r.json() : null).then(b => { if (!b) return;
+  const follow = () => { const atEnd = !bundle || sel === bundle.records.length - 1; const keep = sel; load(b); if (!atEnd) { sel = keep; renderList(); renderDetail(); } };
+  follow(); if (b.live) { document.getElementById("live").hidden = false;
+    setInterval(() => fetch("bundle.json").then(r => r.json()).then(nb => { if (nb.records.length !== bundle.records.length) { b = nb; follow(); } }), 1000); } }).catch(() => {});
+</script>
+</body>
+</html>
