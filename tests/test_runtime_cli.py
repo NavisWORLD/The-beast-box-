@@ -33,6 +33,22 @@ def test_cli_restart_backup_and_verified_restore(tmp_path):
     cli("restore", backup, "--data-dir", restored, "--sha256", receipt["sha256"], ok=False)
 
 
+def test_cli_persistent_queue_requires_explicit_resume(tmp_path):
+    root = tmp_path / "runtime"
+    queued = cli(
+        "queue-event", "queued observation", "--features", "[0.25]",
+        "--data-dir", root,
+    )
+    assert queued["status"] == "queued"
+    assert cli("queue-run", "--data-dir", root)["status"] == "STOPPED"
+    cli("queue-resume", "--reason", "test owner resume", "--data-dir", root)
+    result = cli("queue-run", "--max-tasks", "1", "--data-dir", root)
+    assert result["processed"][0]["status"] == "completed"
+    status = cli("queue-status", "--data-dir", root)
+    assert status["counts"]["completed"] == 1
+    assert status["audit"]["valid"] is True
+
+
 def test_inspect_missing_source_does_not_create_store(tmp_path):
     cli("inspect", "--data-dir", tmp_path / "absent", ok=False)
     assert not (tmp_path / "absent").exists()
