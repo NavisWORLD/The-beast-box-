@@ -42,6 +42,11 @@ def reviewed_weights(receipt: Mapping[str, Any] | None) -> dict[str, float] | No
     if receipt.get("frozen_weights") != dict(WEIGHTS):
         raise ValueError("adaptive router original component contract does not match")
     weights = receipt.get("learned_weights")
+    return checked_weight_vector(weights)
+
+
+def checked_weight_vector(weights: Any) -> dict[str, float]:
+    """Validate current original component contract before replay from ledger."""
     if not isinstance(weights, Mapping) or set(weights) != set(WEIGHTS):
         raise ValueError("adaptive router missing original component")
     if any(type(x) not in (float, int) or not math.isfinite(x) or x <= 0 or x > 1 for x in weights.values()):
