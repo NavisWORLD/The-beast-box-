@@ -19,7 +19,8 @@ from .adaptive_control import AdaptiveControl
 from .box import AuthorityPolicy
 from .closed_loop import (
     PROFILE as CLOSED_LOOP_PROFILE,
-    ReviewedSnapshotDB, advance_nonphysical_r12, host_software_event,
+    ReviewedSnapshotDB, UnicodeRoutingOverlay,
+    advance_nonphysical_r12, host_software_event,
     checked_weight_vector, rerank_with_host_review, reviewed_weights,
 )
 from .unicode_text import checked_utf8
@@ -377,17 +378,24 @@ class DurableRuntime(CosmosRuntime):
             )
         try:
             adapter = cast(DadSonLedger, SimpleNamespace(memory=_RoutingMemoryView(self.memory, snapshot_rows)))
-            records = RefractiveMemoryRouter(adapter).rank(
+            frozen_router = RefractiveMemoryRouter(adapter)
+            ranker = (
+                UnicodeRoutingOverlay(frozen_router, adapter.memory)
+                if self._unicode_mode else frozen_router
+            )
+            records = ranker.rank(
                 text,
                 sequence=self.r12_state["sequence"] if self._closed_loop else self.turn,
                 dyn12=state.dyn12,
                 r12_state=self.r12_state,
-                limit=len(snapshot_rows) if self.semantic_index is not None or self._reviewed_weights is not None else 5,
+                limit=len(snapshot_rows)
+                    if self.semantic_index is not None or self._reviewed_weights is not None or self._unicode_mode
+                    else 5,
             )
             if self._reviewed_weights is not None:
                 records = rerank_with_host_review(records, self._reviewed_weights)
-                if self.semantic_index is None:
-                    records = records[:5]
+            if self.semantic_index is None and (self._reviewed_weights is not None or self._unicode_mode):
+                records = records[:5]
             semantic_info: dict[str, Any] | None = None
             if self.semantic_index is not None:
                 # The embedding provider must never run inside BEGIN IMMEDIATE.
@@ -419,6 +427,8 @@ class DurableRuntime(CosmosRuntime):
             "memory_ids": [r["memory_id"] for r in records],
             "state_sha256": sha256_obj(self.r12_state),
         }
+        if self._unicode_mode:
+            self._routing["unicode_index"] = "NFC-index-v1; sealed-R12-additive-overlay"
         if software_transition is not None:
             self._routing["software_r12"] = software_transition
             self._routing["cns_state_sha256"] = sha256_obj(state.dyn12)
@@ -613,8 +623,13 @@ class DurableRuntime(CosmosRuntime):
                 view = _RoutingMemoryView(self.memory, snapshot_rows)
                 view.db = ReviewedSnapshotDB(snapshot_rows)
                 adapter = cast(DadSonLedger, SimpleNamespace(memory=view))
+                original_ranker = RefractiveMemoryRouter(adapter)
+                training_ranker = (
+                    UnicodeRoutingOverlay(original_ranker, view)
+                    if self._unicode_mode else original_ranker
+                )
                 control = AdaptiveControl(
-                    RefractiveMemoryRouter(adapter),
+                    training_ranker,
                     r12_state=self.r12_state,
                     dyn12=self.synaptic.state_family.dyn12,
                     sequence=self.r12_state["sequence"],
