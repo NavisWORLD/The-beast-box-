@@ -20,7 +20,7 @@ from .box import AuthorityPolicy
 from .closed_loop import (
     PROFILE as CLOSED_LOOP_PROFILE,
     ReviewedSnapshotDB, advance_nonphysical_r12, host_software_event,
-    rerank_with_host_review, reviewed_weights,
+    checked_weight_vector, rerank_with_host_review, reviewed_weights,
 )
 from .unicode_text import checked_utf8
 from .bridge import BridgePacket
@@ -135,6 +135,10 @@ class DurableRuntime(CosmosRuntime):
                 "unicode_mode": unicode_mode,
                 "weights_sha256": sha256_obj(self._reviewed_weights)
                     if self._reviewed_weights is not None else None,
+                "reviewed_weights": dict(self._reviewed_weights)
+                    if self._reviewed_weights is not None else None,
+                "feedback_examples": reviewed_routing_receipt.get("examples")
+                    if reviewed_routing_receipt is not None else None,
                 "feedback_authority": "host-supplied; never model inferred",
             }
             if closed_loop or unicode_mode else None
@@ -254,7 +258,24 @@ class DurableRuntime(CosmosRuntime):
         state = checkpoint["state"]
         saved_profile = state.get("wiring_profile")
         if saved_profile is not None and saved_profile != self._wiring_profile:
-            raise ValueError("persistent closed-loop/Unicode profile mismatch: supply the same host configuration")
+            # Only a verified checkpoint may restore previously *host-reviewed*
+            # routing weights; a model response can neither import weights nor
+            # silently downgrade a software-state feature at fresh process boot.
+            if (
+                self._closed_loop and self._reviewed_weights is None
+                and isinstance(saved_profile, dict)
+                and saved_profile.get("schema") == CLOSED_LOOP_PROFILE
+                and saved_profile.get("closed_loop") is True
+                and saved_profile.get("unicode_mode") is self._unicode_mode
+                and saved_profile.get("reviewed_weights") is not None
+            ):
+                restored_weights = checked_weight_vector(saved_profile["reviewed_weights"])
+                if sha256_obj(restored_weights) != saved_profile.get("weights_sha256"):
+                    raise ValueError("persistent reviewed routing weight hash mismatch")
+                self._reviewed_weights = restored_weights
+                self._wiring_profile = copy.deepcopy(saved_profile)
+            else:
+                raise ValueError("persistent closed-loop/Unicode profile mismatch: supply the same host configuration")
         self.system_id = checkpoint["system_id"]
         self.turn = state["turn"]
         self.cns = CNS(**state["cns"])
@@ -608,6 +629,8 @@ class DurableRuntime(CosmosRuntime):
                     "closed_loop": True,
                     "unicode_mode": self._unicode_mode,
                     "weights_sha256": sha256_obj(weights),
+                    "reviewed_weights": dict(weights),
+                    "feedback_examples": receipt["examples"],
                     "feedback_authority": "host-supplied; never model inferred",
                 }
                 safe_receipt = {
@@ -630,6 +653,7 @@ class DurableRuntime(CosmosRuntime):
             return {
                 "schema": "cosmos-durable-reviewed-routing-update-v1",
                 "weights": dict(weights),
+                "original_host_fit_receipt": receipt,
                 "receipt": safe_receipt,
                 "checkpoint_sha256": checkpoint["sha256"],
             }
