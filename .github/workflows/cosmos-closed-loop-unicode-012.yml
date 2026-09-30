@@ -64,6 +64,8 @@ jobs:
         with:
           python-version: "3.11"
       - name: No pretrained weights or GPU; lightweight original native tokenizer only
-        run: python -m pip install -e ./models/rawrphos --no-deps "tokenizers>=0.20,<0.23" pytest==8.4.2
+        run: |
+          python -m pip install "tokenizers>=0.20,<0.23" pytest==8.4.2
+          python -m pip install --no-deps -e ./models/rawrphos
       - name: Require exact original byte-BPE Unicode roundtrip and no silent compatibility folding
         run: python -m pytest -q models/rawrphos/tests/test_unicode_byte_bpe_012.py

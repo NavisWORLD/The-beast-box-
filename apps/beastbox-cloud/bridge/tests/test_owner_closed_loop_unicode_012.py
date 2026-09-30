@@ -118,12 +118,13 @@ def test_owner_background_index_loop_reopens_identical_profile_with_no_model_cal
                 bridge.memory_loop.stop()
 
 
-@pytest.mark.parametrize(("key", "invalid"), [
-    ("BEASTBOX_CLOSED_LOOP_ENABLED", "maybe"),
-    ("BEASTBOX_UNICODE_NFC_ENABLED", "True"),
-])
-def test_owner_configuration_fails_before_misinterpreting_flags(key, invalid):
-    with tempfile.TemporaryDirectory() as td:
-        with patch.dict(os.environ, {**FLAGS, key: invalid}, clear=False):
-            with __import__('pytest').raises(ValueError, match="must be yes or no"):
-                bridge_module.OwnerBridge(Path(td), TOKEN)
+def test_owner_configuration_fails_before_misinterpreting_flags():
+    import pytest
+    for key, invalid in (
+        ("BEASTBOX_CLOSED_LOOP_ENABLED", "maybe"),
+        ("BEASTBOX_UNICODE_NFC_ENABLED", "True"),
+    ):
+        with tempfile.TemporaryDirectory() as td:
+            with patch.dict(os.environ, {**FLAGS, key: invalid}, clear=False):
+                with pytest.raises(ValueError, match="must be yes or no"):
+                    bridge_module.OwnerBridge(Path(td), TOKEN)
