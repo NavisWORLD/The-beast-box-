@@ -1,0 +1,71 @@
+name: COSMOS 012 actual end-to-end state/feedback/Unicode integration
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "beastbox/closed_loop.py"
+      - "beastbox/unicode_text.py"
+      - "beastbox/durable.py"
+      - "models/rawrphos/tests/test_unicode_byte_bpe_012.py"
+      - "beastbox/cosmic_web.py"
+      - "beastbox/product_services.py"
+      - "apps/beastbox-cloud/bridge/owner_bridge.py"
+      - "apps/beastbox-cloud/bridge/tests/test_owner_closed_loop_unicode_012.py"
+      - ".env.example"
+      - "beastbox/events.py"
+      - "beastbox/memory.py"
+      - "beastbox/refractive_memory.py"
+      - "beastbox/reality_memory.py"
+      - "tests/test_cosmos_closed_loop_unicode_012.py"
+      - "docs/COSMOS_CLOSED_LOOP_UNICODE_INTEGRATION_012.md"
+      - ".github/workflows/cosmos-closed-loop-unicode-012.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actual-production-runtime-and-negative-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install existing dependency-free product runtime tests
+        run: python -m pip install -e . pytest==8.4.2
+      - name: Real actual host closed-loop+Unicode and historical compatibility tests
+        run: |
+          python -m pytest -q \
+            tests/test_cosmos_closed_loop_unicode_012.py \
+            tests/test_durable_runtime.py \
+            tests/test_r12_refractive_memory.py \
+            apps/beastbox-cloud/bridge/tests/test_owner_closed_loop_unicode_012.py
+      - name: Standard-library source syntax on all shipped 3.10-3.12 runtimes
+        run: python -m compileall -q beastbox/closed_loop.py beastbox/unicode_text.py beastbox/durable.py
+
+
+  original-native-byte-bpe-unicode-transport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: No pretrained weights or GPU; lightweight original native tokenizer only
+        run: |
+          python -m pip install "tokenizers>=0.20,<0.23" pytest==8.4.2
+          python -m pip install --no-deps -e ./models/rawrphos
+      - name: Require exact original byte-BPE Unicode roundtrip and no silent compatibility folding
+        run: python -m pytest -q models/rawrphos/tests/test_unicode_byte_bpe_012.py
