@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
+from .unicode_text import unicode_terms
+
 TOKEN_RE = re.compile(r"[A-Za-z0-9_']+")
 
 # Lightweight English-only filter for deterministic index summaries. This is
@@ -24,7 +26,7 @@ _CONSOLIDATION_ALGORITHM = "stopword-bucket-v1"
 
 
 def _tokens(text: str) -> list[str]:
-    return [t.lower() for t in TOKEN_RE.findall(text)]
+    return unicode_terms(text)
 
 
 def _cosine_counts(a: Counter[str], b: Counter[str]) -> float:
