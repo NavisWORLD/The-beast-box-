@@ -74,6 +74,11 @@ def test_activation_queue_is_persistent_bounded_and_master_stop_safe(tmp_path):
         "text": "queued browser observation",
         "features": [0.2],
     }
+    denied = app.dispatch(
+        "POST", "/api/activation", {"action": "enqueue_event", "event": event}
+    )
+    assert denied[0] == 403
+    app.dispatch("POST", "/api/authority", {"action": "grant", "name": "sensors"})
     queued = app.dispatch(
         "POST", "/api/activation", {"action": "enqueue_event", "event": event}
     )

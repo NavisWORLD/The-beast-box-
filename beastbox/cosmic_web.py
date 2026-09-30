@@ -325,6 +325,8 @@ class CosmicApp:
         engine = self._activation()
         try:
             if action == "enqueue_event" and set(body) == {"action", "event"}:
+                if not self.authority.allowed("sensors"):
+                    return 403, {"error": "sensors authority required"}
                 event = body.get("event")
                 if not isinstance(event, dict):
                     return 400, {"error": "invalid activation event"}
