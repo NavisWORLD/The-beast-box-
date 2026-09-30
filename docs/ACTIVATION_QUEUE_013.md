@@ -36,7 +36,7 @@ finally:
     engine.close()
 ```
 
-This staged branch deliberately introduces the library and its original regression tests first. No browser, public API or production background scheduler is enabled by this step. CLI/owner control-deck handlers will be ported only after conflicting activation module names and current SIGNALS telemetry are reconciled in review.
+The staged branch adds the original queue regression tests and owner-host CLI commands (`beastbox runtime queue-event`, `queue-status`, `queue-resume`, `queue-run`, `queue-stop`, `queue-cancel`, `queue-maintenance`). Run only against a disposable new substrate during acceptance. No browser, external API or production background scheduler is enabled by this step; the existing `beastbox runtime activate` command remains the separate Activation 007 experiment.
 
 ## Verification and release boundary
 
