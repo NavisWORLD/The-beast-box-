@@ -399,4 +399,3 @@ class ActivationEngine:
 
     def close(self) -> None:
         self.db.close()
-
