@@ -717,6 +717,20 @@ class CosmicApp:
                 return self._storage_verify(data)
             if method == "POST" and path == "/api/storage/import":
                 return self._storage_import(data)
+            if method == "GET" and path == "/api/omega/recovery":
+                from .omega.web import omega_recovery
+
+                return omega_recovery()
+            if method == "GET" and path == "/api/omega/experiments":
+                from .omega.web import omega_experiments
+
+                return omega_experiments(self.root)
+            if method == "POST" and path == "/api/omega/step":
+                from .omega.web import omega_step
+
+                return omega_step(self.root, data)
+            if method == "GET" and path == "/api/omega/operator":
+                return 200, {"operator": "use OmegaOperator.snapshot() in-process; HTTP exposes step/recovery/experiments"}
             return 404, {"error": "not found"}
         except PermissionError as exc:
             return 403, {"error": str(exc)}

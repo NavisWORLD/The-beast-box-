@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OMEGA — Substrate Activation Deck</title>
+<style>
+body { font-family: monospace; background: #0a0e14; color: #c9e1ff; margin: 0; padding: 16px; }
+h1 { font-size: 18px; }
+.node { border: 1px solid #2a3b55; border-radius: 8px; padding: 8px; margin: 6px 0; background: #101724; }
+.stage-ok { border-left: 4px solid #3fd68f; }
+label { display: block; margin-top: 12px; }
+button { background: #1c2b45; color: #c9e1ff; border: 1px solid #2a3b55; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
+pre { white-space: pre-wrap; word-break: break-word; background: #0d1320; padding: 8px; border-radius: 6px; max-height: 320px; overflow: auto; }
+small { color: #7d93b5; }
+</style>
+</head>
+<body>
+<h1>💀 OMEGA — SUBSTRATE ACTIVATION DECK</h1>
+<p><small>MODEL ≠ MEMORY · MODEL ≠ STATE · MODEL ≠ AUTHORITY · THE SUBSTRATE PERSISTS.<br>
+Every value below is polled from the live runtime. No canned animations.</small></p>
+
+<label>Event text <input id="text" size="60" value="Remember the sunflower code is marigold"></label>
+<button onclick="step()">STEP ORGANISM →</button>
+<button onclick="recovery()">RECOVER MAP</button>
+<button onclick="experiments()">RUN H1/H2/H3</button>
+
+<h2>Pipeline trace</h2>
+<div id="trace"></div>
+<h2>Raw telemetry</h2>
+<pre id="raw">{}</pre>
+
+<script>
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  return {status: r.status, body: await r.json().catch(() => ({}))};
+}
+async function step() {
+  const text = document.getElementById('text').value;
+  const token = document.body.dataset.session || '';
+  const r = await api('/api/omega/step', {method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-Beast-Session': token},
+    body: JSON.stringify({text})});
+  render(r.body);
+}
+async function recovery() {
+  const r = await api('/api/omega/recovery');
+  render(r.body);
+}
+async function experiments() {
+  const r = await api('/api/omega/experiments');
+  render(r.body);
+}
+function render(body) {
+  document.getElementById('raw').textContent = JSON.stringify(body, null, 2);
+  const stages = body.stages || (body.components || []);
+  const el = document.getElementById('trace');
+  el.innerHTML = '';
+  stages.forEach(s => {
+    const d = document.createElement('div');
+    d.className = 'node stage-ok';
+    d.textContent = (s.stage || s.id) + ' :: ' + JSON.stringify(s.detail || s.state || '').slice(0, 220);
+    el.appendChild(d);
+  });
+}
+</script>
+</body>
+</html>
