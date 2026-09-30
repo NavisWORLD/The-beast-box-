@@ -9,7 +9,7 @@ Implementation: `beastbox/activation_queue.py`, not `beastbox/activation.py`. Th
 - Defaults to **stopped**. Only a trusted host call to `set_stopped(False, reason=...)` resumes task processing.
 - Accepts bounded normalized software events or deterministic maintenance, not arbitrary code, tools, provider-controlled scheduling or physical sensor authority.
 - Keeps its own SQLite queue/audit journal and uses the existing `DurableRuntime` for all real turns. The queue never rewrites original memory or neural weights.
-- Records an explicit **at-least-once** limitation: interruption after committing a runtime turn but before queue acknowledgement may require owner reconciliation. The operator must not claim exactly-once execution.
+- Records an explicit **at-least-once** limitation: interruption after committing a runtime turn but before queue acknowledgement can cause duplicate replay. Expired running leases now automatically latch STOP until trusted-host checkpoint reconciliation and an explicit resume; do not claim exactly-once execution. A disposable child-process `os._exit(42)` post-commit fault test exercises the genuine SQLite restart path.
 - Host-configured `closed_loop` and `unicode_mode` flags must match the real substrate's previously checkpointed profile. Model text or browser payloads cannot change them.
 - Emergency stop persists independently of provider availability and preserves existing substrate data.
 
