@@ -118,6 +118,6 @@ def test_activation_propagates_verified_closed_loop_profile(tmp_path):
         inspection = runtime.inspect()
         assert inspection["wiring"]["closed_loop"] is True
         assert inspection["wiring"]["unicode_nfc"] is True
-        assert inspection["wiring"]["r12_sequence"] == 1
+        assert inspection["wiring"]["persisted_software_r12_sequence"] == 1
     finally:
         runtime.close()
