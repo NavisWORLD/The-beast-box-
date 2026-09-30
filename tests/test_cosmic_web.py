@@ -101,6 +101,7 @@ def test_cosmic_ui_has_real_browser_privacy_controls_and_progressive_surfaces():
         "REALITY",
         "MEMORY VAULT",
         "SYNAPSE TRACE",
+        "SIGNALS",
         "FILES",
         "WORKSPACE",
         "Q-BAY",

@@ -132,6 +132,10 @@ Both requested experiments were executed on actual native/public model checkpoin
 
 **Release boundary:** merging and publishing these research results does **not** train or promote a new production model, grant autonomous model authority, demonstrate reliable self-correction or prove a novel intelligence advantage. The evidence is public, original weights remain preserved and production inference is unchanged.
 
+## Substrate activation 007
+
+`beastbox runtime activate --data-dir ./activation-run` executes the existing durable loop and writes a receipt. The COSMIC **SIGNALS** view reads those receipt values: 12D state, Hebbian association counts, routing ids, the configured provider label, and the authorization decision. A reference-fixture label sequence A → B → C → A is a fixture rotation, not a verified language-model swap. The 12D advantage and blinded self-correction experiments were not rerun; their published negative results still stand. [Activation results](docs/experiments/COSMOS_SUBSTRATE_ACTIVATION_007_RESULTS.md).
+
 ## What was verified
 
 The separate frozen-model experiment **002 historical-4e53** recorded real Model A → Model B → Model A inference with the same hash-tracked substrate, cross-swap memory delivery, state accumulation, zero model-parameter drift, and A-only, empty-memory and shuffled-memory controls.
