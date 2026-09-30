@@ -34,9 +34,13 @@ class ActivationEngine:
         *,
         provider_factory: Callable[[], TextProvider] | None = None,
         lease_seconds: float = 60.0,
+        closed_loop: bool = False,
+        unicode_mode: bool = False,
     ) -> None:
         if not math.isfinite(lease_seconds) or not 1 <= lease_seconds <= 3600:
             raise ValueError("lease_seconds must be in 1..3600")
+        if type(closed_loop) is not bool or type(unicode_mode) is not bool:
+            raise ValueError("activation closed-loop and Unicode modes require exact booleans")
         supplied = Path(root).expanduser()
         if supplied.is_symlink():
             raise ValueError("activation root must not be a symlink")
@@ -47,6 +51,8 @@ class ActivationEngine:
             raise ValueError("activation database must not be a symlink")
         self.provider_factory = provider_factory or (lambda: ReferenceTextProvider())
         self.lease_seconds = float(lease_seconds)
+        self.closed_loop = closed_loop
+        self.unicode_mode = unicode_mode
         self.db = sqlite3.connect(self.path, timeout=10)
         self.db.row_factory = sqlite3.Row
         self._init_schema()
@@ -298,7 +304,12 @@ class ActivationEngine:
 
     def _execute(self, row: sqlite3.Row) -> dict[str, Any]:
         payload = json.loads(row["payload"])
-        runtime = DurableRuntime(self.root, self.provider_factory())
+        runtime = DurableRuntime(
+            self.root,
+            self.provider_factory(),
+            closed_loop=self.closed_loop,
+            unicode_mode=self.unicode_mode,
+        )
         try:
             if row["kind"] == "event":
                 result = runtime.respond_event(payload["event"])

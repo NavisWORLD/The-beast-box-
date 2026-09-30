@@ -128,6 +128,8 @@ def add_runtime_subparser(sub):
         if action == "queue-run":
             cmd.add_argument("--max-tasks", type=int, default=1)
             cmd.add_argument("--wall-seconds", type=float, default=30.0)
+            cmd.add_argument("--closed-loop", action="store_true")
+            cmd.add_argument("--unicode-nfc", action="store_true")
         if action in {"queue-stop", "queue-resume"}:
             cmd.add_argument("--reason", required=True)
         if action == "queue-cancel":
@@ -204,7 +206,12 @@ def handle_runtime(args):
                 )
             return provider
 
-        engine = ActivationEngine(args.data_dir, provider_factory=queued_provider)
+        engine = ActivationEngine(
+            args.data_dir,
+            provider_factory=queued_provider,
+            closed_loop=getattr(args, "closed_loop", False),
+            unicode_mode=getattr(args, "unicode_nfc", False),
+        )
         try:
             if action == "queue-event":
                 features = json.loads(args.features)

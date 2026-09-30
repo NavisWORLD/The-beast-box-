@@ -53,6 +53,15 @@ class OwnerBridge:
             raise ValueError("missing strong bridge token")
         self.token = token
         self.root = root
+        # Trusted owner service configuration ONLY, never browser JSON or
+        # model response. A persistent upgraded checkpoint rejects old-mode
+        # readers, so pass the SAME flags into all owner API/runtime surfaces.
+        close_flag = os.environ.get("BEASTBOX_CLOSED_LOOP_ENABLED", "no")
+        unicode_flag = os.environ.get("BEASTBOX_UNICODE_NFC_ENABLED", "no")
+        if close_flag not in {"yes", "no"} or unicode_flag not in {"yes", "no"}:
+            raise ValueError("COSMOS closed-loop/Unicode flags must be yes or no")
+        self.closed_loop_enabled = close_flag == "yes"
+        self.unicode_nfc_enabled = unicode_flag == "yes"
         self.device_memory_enabled = os.environ.get('BEASTBOX_DEVICE_MEMORY_ENABLED') == 'yes'
         self.vault = ConnectionVault(root) if os.environ.get(KEY_ENV) else None
         if self.vault is not None and os.environ.get("BEASTBOX_HF_MODEL_ID"):
@@ -68,7 +77,8 @@ class OwnerBridge:
         if not recent_raw.isascii() or not recent_raw.isdecimal() or not 0 <= int(recent_raw) <= 6:
             raise ValueError("BEASTBOX_CHAT_RECENT_TURNS must be 0..6")
         self.app = CosmicApp(root, provider_secret_resolver=self._resolve_provider_secret if self.vault else None,
-                             embedding_provider=embeddings, recent_dialogue_limit=int(recent_raw))
+                             embedding_provider=embeddings, recent_dialogue_limit=int(recent_raw),
+                             closed_loop=self.closed_loop_enabled, unicode_mode=self.unicode_nfc_enabled)
         # A persisted original research model must still be the same real
         # local checkpoint after restart; otherwise refuse stale identity.
         if self.app.profile.model in QC67_PINS and self.app.profile.base_url == QC67_URL:
@@ -97,7 +107,11 @@ class OwnerBridge:
                     or not 60 <= int(interval_raw) <= 3600):
                 raise ValueError("BEASTBOX_OWNER_MEMORY_LOOP_SECONDS must be 60..3600")
             self.memory_loop = OwnerMemoryLoop(
-                root, lock=self.app._lock, interval_seconds=int(interval_raw)
+                root, lock=self.app._lock, interval_seconds=int(interval_raw),
+                runtime_factory=lambda local_root: DurableRuntime(
+                    local_root, closed_loop=self.closed_loop_enabled,
+                    unicode_mode=self.unicode_nfc_enabled,
+                ),
             )
             self.memory_loop.start()
 
@@ -507,7 +521,10 @@ class OwnerBridge:
         # A stored record is retrievable by future models: no guarantee of
         # exclusion when the owner later selects a remote model.
         with self.app._lock:
-            runtime = DurableRuntime(self.root)
+            runtime = DurableRuntime(
+                self.root, closed_loop=self.closed_loop_enabled,
+                unicode_mode=self.unicode_nfc_enabled,
+            )
             try:
                 receipt = runtime.store_external_memory(
                     text, kind="device_observation", metadata=metadata

@@ -102,3 +102,22 @@ def test_queue_validates_event_and_budget_bounds(tmp_path):
             raise AssertionError("invalid task budget was accepted")
     finally:
         engine.close()
+
+
+def test_activation_propagates_verified_closed_loop_profile(tmp_path):
+    engine = ActivationEngine(tmp_path, closed_loop=True, unicode_mode=True)
+    try:
+        task = engine.enqueue("event", event("Unicode orbit Ω 🛰️"))
+        engine.set_stopped(False, reason="test connected profile")
+        assert engine.run(max_tasks=1)["processed"][0]["id"] == task["id"]
+    finally:
+        engine.close()
+
+    runtime = DurableRuntime(tmp_path, closed_loop=True, unicode_mode=True)
+    try:
+        inspection = runtime.inspect()
+        assert inspection["wiring"]["closed_loop"] is True
+        assert inspection["wiring"]["unicode_nfc"] is True
+        assert inspection["wiring"]["r12_sequence"] == 1
+    finally:
+        runtime.close()

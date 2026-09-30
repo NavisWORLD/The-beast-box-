@@ -30,6 +30,7 @@ beastbox runtime queue-status --data-dir ./my-beast
 beastbox runtime queue-resume --reason "owner approved bounded run" \
   --data-dir ./my-beast
 beastbox runtime queue-run --max-tasks 1 --wall-seconds 30 \
+  --closed-loop --unicode-nfc \
   --data-dir ./my-beast
 beastbox runtime queue-stop --reason "owner emergency stop" \
   --data-dir ./my-beast
@@ -39,6 +40,15 @@ beastbox runtime queue-stop --reason "owner emergency stop" \
 12-value transition, association-update counts, memory IDs, routing receipt,
 configured model identity, bounded action result, and measured process/provider
 timings in **SYNAPSE TRACE**.
+
+The recovered COSMOS 012 profile is explicit opt-in. `--closed-loop` advances
+the verified software R12 state from the current CNS output before routing;
+`--unicode-nfc` enables the matching Unicode-safe host profile. Once a runtime
+has checkpointed that profile, every opener must use the same flags or it fails
+closed. For the owner bridge/control deck, use the host-only
+`BEASTBOX_CLOSED_LOOP_ENABLED=yes` and `BEASTBOX_UNICODE_NFC_ENABLED=yes`
+configuration documented in
+[`COSMOS_CLOSED_LOOP_UNICODE_INTEGRATION_012.md`](COSMOS_CLOSED_LOOP_UNICODE_INTEGRATION_012.md).
 
 ## Recovery and cancellation
 

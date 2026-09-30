@@ -8,6 +8,8 @@ import re
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from .unicode_text import unicode_terms
+
 ZERO_SHA256 = "0" * 64
 PROVENANCE_CLASSES = {"measured", "derived", "synthetic"}
 PHYSICAL_SOURCE_TYPES = {"ibm_quantum_hardware_measurement"}
@@ -238,7 +240,11 @@ class RealityLedger:
 
 
 def _tokenize(text: str) -> set[str]:
-    return set(_TOKEN_RE.findall(str(text).lower().replace("_", " ")))
+    # Preserve the formula's exact historical ASCII tokenization; use the
+    # shared Unicode lexical keys only when non-ASCII characters occur.
+    if str(text).isascii():
+        return set(_TOKEN_RE.findall(str(text).lower().replace("_", " ")))
+    return set(unicode_terms(str(text)))
 
 
 def _counts_distribution(event: Mapping[str, Any]) -> dict[str, float]:

@@ -286,12 +286,23 @@ class ProductService:
         *,
         authority: AuthoritySession | None = None,
         max_file_bytes: int = 8 * 1024 * 1024,
+        closed_loop: bool = False,
+        unicode_mode: bool = False,
     ) -> None:
         self.root = Path(root).expanduser()
         self.authority = authority or AuthoritySession()
         if type(max_file_bytes) is not int or max_file_bytes < 1:
             raise ValueError("max_file_bytes must be a positive integer")
         self.max_file_bytes = max_file_bytes
+        if type(closed_loop) is not bool or type(unicode_mode) is not bool:
+            raise ValueError("host closed-loop and Unicode modes require exact booleans")
+        self._closed_loop = closed_loop
+        self._unicode_mode = unicode_mode
+
+    def _open_runtime(self) -> DurableRuntime:
+        return DurableRuntime(
+            self.root, closed_loop=self._closed_loop, unicode_mode=self._unicode_mode,
+        )
 
     def inspect_file(self, source: str | Path) -> FileInspection:
         path = Path(source).expanduser()
@@ -322,7 +333,7 @@ class ProductService:
         return optional_resource_status()
 
     def memory_records(self, *, limit: int = 50) -> list[dict[str, Any]]:
-        runtime = DurableRuntime(self.root)
+        runtime = self._open_runtime()
         try:
             return [
                 {**asdict(record), "sha256": hashlib.sha256(record.text.encode("utf-8")).hexdigest(), "persistent": True}
@@ -339,7 +350,7 @@ class ProductService:
         return turns
 
     def trace_events(self, *, limit: int = 50) -> list[dict[str, Any]]:
-        runtime = DurableRuntime(self.root)
+        runtime = self._open_runtime()
         try:
             checkpoints = runtime.continuity.history(limit=limit)
         finally:
@@ -372,7 +383,7 @@ class ProductService:
         return events
 
     def orbit_snapshot(self) -> dict[str, Any]:
-        runtime = DurableRuntime(self.root)
+        runtime = self._open_runtime()
         try:
             inspection = runtime.inspect()
         finally:

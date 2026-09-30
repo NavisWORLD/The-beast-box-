@@ -126,7 +126,7 @@ For stopped-by-default persistent task operation:
 ```bash
 beastbox runtime queue-event "bounded software observation" --features '[0.2]' --data-dir ./my-beast
 beastbox runtime queue-resume --reason "owner approved bounded run" --data-dir ./my-beast
-beastbox runtime queue-run --max-tasks 1 --wall-seconds 30 --data-dir ./my-beast
+beastbox runtime queue-run --max-tasks 1 --wall-seconds 30 --closed-loop --unicode-nfc --data-dir ./my-beast
 beastbox runtime queue-stop --reason "owner emergency stop" --data-dir ./my-beast
 ```
 

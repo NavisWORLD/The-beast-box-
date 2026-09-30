@@ -171,13 +171,19 @@ def _regular_directory(value: str | Path) -> Path:
 class CosmicApp:
     """Testable owner controller; HTTP is only a transport adapter around this."""
 
-    def __init__(self, root: str | Path, *, workspace_roots: Iterable[str | Path] = (), provider_secret_resolver: Callable[[ProviderProfile], str | None] | None = None, embedding_provider: EmbeddingProvider | None = None, recent_dialogue_limit: int = 0) -> None:
+    def __init__(self, root: str | Path, *, workspace_roots: Iterable[str | Path] = (), provider_secret_resolver: Callable[[ProviderProfile], str | None] | None = None, embedding_provider: EmbeddingProvider | None = None, recent_dialogue_limit: int = 0, closed_loop: bool = False, unicode_mode: bool = False) -> None:
         supplied_root = Path(root).expanduser()
         if supplied_root.is_symlink():
             raise ValueError("cosmic runtime root cannot be a symlink")
         self.root = supplied_root.absolute()
+        if type(closed_loop) is not bool or type(unicode_mode) is not bool:
+            raise ValueError("closed-loop and Unicode host flags must be booleans")
+        self._closed_loop = closed_loop
+        self._unicode_mode = unicode_mode
         self.authority = AuthoritySession()
-        self.service = ProductService(self.root, authority=self.authority)
+        self.service = ProductService(
+            self.root, authority=self.authority, closed_loop=closed_loop, unicode_mode=unicode_mode,
+        )
         self.profile = load_provider_profile(self.root)
         self._provider_secret_resolver = provider_secret_resolver
         # Explicit host-only, transient adapter. No provider or vector is persisted
@@ -212,11 +218,19 @@ class CosmicApp:
         return provider
 
     def _runtime(self, profile: ProviderProfile | None = None) -> DurableRuntime:
-        return DurableRuntime(self.root, self._provider(profile), embedding_provider=self._embedding_provider,
-                              recent_dialogue_limit=self._recent_dialogue_limit)
+        return DurableRuntime(
+            self.root, self._provider(profile), embedding_provider=self._embedding_provider,
+            recent_dialogue_limit=self._recent_dialogue_limit,
+            closed_loop=self._closed_loop, unicode_mode=self._unicode_mode,
+        )
 
     def _activation(self) -> ActivationEngine:
-        return ActivationEngine(self.root, provider_factory=self._provider)
+        return ActivationEngine(
+            self.root,
+            provider_factory=self._provider,
+            closed_loop=self._closed_loop,
+            unicode_mode=self._unicode_mode,
+        )
 
     def _set_profile(self, raw: dict[str, Any]) -> tuple[ProviderProfile, bool, list[str]]:
         previous = self.profile.identity
