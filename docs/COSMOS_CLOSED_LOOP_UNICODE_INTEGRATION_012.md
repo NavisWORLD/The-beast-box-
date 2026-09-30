@@ -29,6 +29,23 @@ receipt = runtime.apply_reviewed_feedback([
 # only previously hash-verified host-reviewed weights from durable history.
 ```
 
+## Actually connected owner service entrypoints
+
+The same opt-in flags are now threaded into **all existing authenticated service readers and writers**: `OwnerBridge` trusted environment → `CosmicApp._runtime` real chat → `ProductService` orbit/memory/conversation/trace readers → owner-approved device-observation persistence → bounded `OwnerMemoryLoop` maintenance. These previously separate short-lived `DurableRuntime(root)` openers must agree on one verified persisted profile; a misconfigured restart fails closed rather than silently taking down every owner read endpoint.
+
+The authenticated owner dashboard's `GET /api/orbit` now includes a hash-only `runtime.wiring` block for `closed_loop`, `unicode_nfc`, reviewed routing availability, persisted software R12 sequence/state hash and explicit no-physical-measurement/no-model-authority claims.
+
+For *new or isolated copied* owner substrate instances, set the host-only configuration (never browser JSON, provider output or public visitor parameters):
+
+```shell
+BEASTBOX_CLOSED_LOOP_ENABLED=yes
+BEASTBOX_UNICODE_NFC_ENABLED=yes
+```
+
+Flags default to `no` in `.env.example`. On an existing real owner production database, first verify source backups and recovery on a separate copy and ensure **every** owner bridge, reader and optional background index loop uses identical flags before opt-in; after the first upgraded checkpoint, accidental flag removal intentionally fails closed. Do not flip production blindly during a normal Git deploy.
+
+The original RAWRPHØS native tokenizer is **byte-level BPE**, with a separately tested Unicode byte transport roundtrip; this proves tokenization fidelity but not multilingual model instruction performance or unbounded context. Existing original PHOS/SAMGO character models retain whatever smaller vocabulary their checkpoint actually supports; no checkpoint or tokenizer is silently replaced.
+
 **Review is a trusted-host assertion, not a cryptographically verified human review.** No model output automatically updates the weights. All numerical weights must come through a validated original `AdaptiveControl.fit` receipt or that actual product `apply_reviewed_feedback` API. Learned weights are host-only state persisted in the chain, not model parameters. Use different reviewed training examples from subsequent held-out research evaluation cases.
 
 **Provenance law:** text, synthetic-demo and software-event are at most derived/synthetic *software events*. Nothing in this path automatically accepts purported physical instrument data, labels it measured, grants hardware authority or increases `reality_coupling`. Current R12 geometry uses `reality_coupling` to control actual reflection: for purely software input that coupling rightly remains zero. However its **software state, transition hashes and sequence are now live**, and its query/memory positions consume the current real CNS dyn12 and state sequence. A separate measured-sensor adapter would need strict owner-verified physical provenance before allowing nonzero hardware coupling; software success is not physics verification.
