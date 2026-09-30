@@ -476,6 +476,10 @@ class DurableRuntime(CosmosRuntime):
         if self.semantic_index is None and not self._closed_loop:
             return self._respond_event_serial(event, transient_context=transient_context)
         if not self._semantic_turn_lock.acquire(blocking=False):
+            if self.semantic_index is not None and not self._closed_loop:
+                # Preserve the original opt-in embedding adapter contract and
+                # its existing reentrant-callers security/error policy.
+                raise SemanticRetrievalError("concurrent semantic turns on one runtime are not supported; retry")
             raise RuntimeError("concurrent closed-loop/semantic turns on one runtime are not supported; retry")
         try:
             return self._respond_event_serial(event, transient_context=transient_context)
