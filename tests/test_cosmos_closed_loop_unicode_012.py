@@ -49,9 +49,11 @@ def test_unicode_nfc_is_lossless_and_legacy_nfkc_stays_explicit():
     assert "👩🏽‍🚀" in unicode_terms("hello 👩🏽‍🚀 goodbye")
     assert "☀️" in unicode_terms("☀️ and 🧠")
     assert "café" in unicode_terms("cafe\u0301")
-    for tokenizer in (mem_tokens, router_tokens):
-        assert "東京" in tokenizer("東京駅")
-        assert "👩🏽‍🚀" in tokenizer("👩🏽‍🚀")
+    assert "東京" in mem_tokens("東京駅")
+    assert "👩🏽‍🚀" in mem_tokens("👩🏽‍🚀")
+    # The original sealed R12 source MUST remain byte-identical. Unicode R12
+    # terms are computed in the versioned host overlay, not patched here.
+    assert router_tokens("東京駅") == []
     assert "東京" in event_tokens("東京駅")
     body={"schema":"sensor-event-v1","source":"text","text":"  ℌ café 👩🏽‍🚀  "}
     preserved=normalize_event(body,normalization="NFC")
