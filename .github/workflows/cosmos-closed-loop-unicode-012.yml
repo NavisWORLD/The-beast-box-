@@ -7,6 +7,7 @@ on:
       - "beastbox/closed_loop.py"
       - "beastbox/unicode_text.py"
       - "beastbox/durable.py"
+      - "models/rawrphos/tests/test_unicode_byte_bpe_012.py"
       - "beastbox/cosmic_web.py"
       - "beastbox/product_services.py"
       - "apps/beastbox-cloud/bridge/owner_bridge.py"
@@ -50,3 +51,19 @@ jobs:
             apps/beastbox-cloud/bridge/tests/test_owner_closed_loop_unicode_012.py
       - name: Standard-library source syntax on all shipped 3.10-3.12 runtimes
         run: python -m compileall -q beastbox/closed_loop.py beastbox/unicode_text.py beastbox/durable.py
+
+
+  original-native-byte-bpe-unicode-transport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: No pretrained weights or GPU; lightweight original native tokenizer only
+        run: python -m pip install -e ./models/rawrphos --no-deps "tokenizers>=0.20,<0.23" pytest==8.4.2
+      - name: Require exact original byte-BPE Unicode roundtrip and no silent compatibility folding
+        run: python -m pytest -q models/rawrphos/tests/test_unicode_byte_bpe_012.py
