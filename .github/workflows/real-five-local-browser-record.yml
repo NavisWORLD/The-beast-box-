@@ -1,0 +1,121 @@
+name: REAL five-local-model COSMIC browser conversation recording
+
+on:
+  push:
+    branches: [demo/real-all-five-local-browser-record-002]
+    paths:
+      - scripts/demo/real_original_models_browser_record.py
+      - .github/workflows/real-five-local-browser-record.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: true-five-local-browser-capture-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  record-real-synthetic-original-handoffs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    env:
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      TOKENIZERS_PARALLELISM: "false"
+      OMP_NUM_THREADS: "2"
+      OPENBLAS_NUM_THREADS: "2"
+      PIP_NO_INPUT: "1"
+      CMAKE_ARGS: "-DGGML_NATIVE=OFF -DGGML_OPENMP=OFF"
+      FORCE_CMAKE: "1"
+      # No owner API keys, no paid inference endpoints, no production data.
+      HF_TOKEN: ""
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install real local inference and actual browser recorder
+        run: |
+          set -euo pipefail
+          mkdir -p build/real-original-handoff
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e './models/rawrphos[serve]' \
+            playwright==1.55.0 'huggingface_hub>=0.30,<2' tiktoken numpy
+          python -m pip install 'llama-cpp-python[server]==0.3.16'
+          python -m playwright install --with-deps chromium
+          python -m py_compile scripts/demo/real_original_models_browser_record.py
+
+      - name: Stage and hash exact original published checkpoint files
+        run: |
+          set -euo pipefail
+          python models/rawrphos/scripts/install_pinned_14k.py \
+            --destination "$PWD/build/real-original-handoff/native-14k" \
+            | tee build/real-original-handoff/install-14k.json
+          python models/rawrphos/scripts/install_pinned_18k.py \
+            --destination "$PWD/build/real-original-handoff/native-18k" \
+            | tee build/real-original-handoff/install-18k.json
+          python models/qc67/install_pinned.py \
+            --destination "$PWD/build/real-original-handoff/qc67-originals" \
+            | tee build/real-original-handoff/install-qc67.json
+          python - <<'PY' | tee build/real-original-handoff/install-smol.json
+          import json
+          from pathlib import Path
+          from beastbox.tiny_local import fetch_pinned_model
+          path=Path('build/real-original-handoff/SmolLM2-135M-Instruct-Q4_K_M.gguf')
+          print(json.dumps({'local_model':'SmolLM2-135M-Instruct-Q4_K_M',
+                            'exact_pinned_sha256':fetch_pinned_model(path)}))
+          PY
+
+      - name: Actual 14K then 18K then PHOS then SAMGO then pinned SmolLM2 actual UI handoffs
+        run: |
+          set -euo pipefail
+          python scripts/demo/real_original_models_browser_record.py \
+            --output "$PWD/build/real-original-handoff/capture" \
+            --raw14 "$PWD/build/real-original-handoff/native-14k" \
+            --raw18 "$PWD/build/real-original-handoff/native-18k" \
+            --qc67 "$PWD/build/real-original-handoff/qc67-originals" \
+            --smol "$PWD/build/real-original-handoff/SmolLM2-135M-Instruct-Q4_K_M.gguf" \
+            2>&1 | tee build/real-original-handoff/actual-model-console.log
+
+      - name: Convert actual Playwright browser capture and seal file hashes
+        if: always()
+        run: |
+          set -u
+          out=build/real-original-handoff/capture
+          if [ -s "$out/REAL_FIVE_LOCAL_MODELS_COSMIC_UI.webm" ]; then
+            if ! command -v ffmpeg >/dev/null 2>&1; then
+              sudo apt-get update && sudo apt-get install -y ffmpeg
+            fi
+            ffmpeg -y -i "$out/REAL_FIVE_LOCAL_MODELS_COSMIC_UI.webm" \
+              -c:v libx264 -pix_fmt yuv420p -movflags +faststart \
+              "$out/REAL_FIVE_LOCAL_MODELS_COSMIC_UI.mp4" \
+              > "$out/ffmpeg.log" 2>&1
+            ffprobe -v error -show_entries format=duration,size \
+              -show_entries stream=codec_name,width,height -of json \
+              "$out/REAL_FIVE_LOCAL_MODELS_COSMIC_UI.mp4" \
+              > "$out/VIDEO_METADATA.json"
+          fi
+          if [ -d "$out" ]; then
+            (cd "$out" && find . -type f ! -name SHA256SUMS.txt \
+              -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS.txt)
+          fi
+
+      - name: Retain actual literal browser footage, transcripts, hashes and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-five-local-cosmic-video-${{ github.run_id }}
+          path: |
+            build/real-original-handoff/capture/
+            build/real-original-handoff/install-14k.json
+            build/real-original-handoff/install-18k.json
+            build/real-original-handoff/install-qc67.json
+            build/real-original-handoff/install-smol.json
+            build/real-original-handoff/actual-model-console.log
+          if-no-files-found: warn
+          retention-days: 90
