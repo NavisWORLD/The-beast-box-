@@ -146,3 +146,8 @@ footer { display: flex; gap: 24px; justify-content: space-between; border-top: 1
   .system-map { grid-template-columns: minmax(0, 1fr); }
   .observatory { padding: 16px; }
 }
+.signal-bars { display: grid; gap: 4px; margin: 12px 0; }
+.signal-bar { display: grid; grid-template-columns: 2.2rem minmax(0, 1fr) 4.8rem; gap: 8px; align-items: center; font-family: ui-monospace, monospace; font-size: 12px; }
+.signal-track { display: block; height: 8px; background: rgba(134, 174, 255, .22); border-radius: 99px; overflow: hidden; }
+.signal-fill { display: block; height: 100%; background: #86aeff; }
+.signal-stepper { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0; }

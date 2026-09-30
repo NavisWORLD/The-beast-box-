@@ -85,7 +85,8 @@ def add_runtime_subparser(sub):
     parser = sub.add_parser("runtime", help="durable local loop, inspection, model swap and recovery")
     commands = parser.add_subparsers(dest="runtime_action", required=True)
     for action in ("init", "chat", "inspect", "sensor-demo", "tool-demo", "backup", "restore", "verify-swap-receipt",
-                   "export", "verify-portable", "import", "exchange", "resource-status", "quantum-input", "wav-input", "light-input"):
+                   "export", "verify-portable", "import", "exchange", "resource-status", "quantum-input", "wav-input",
+                   "light-input", "activate"):
         cmd = commands.add_parser(action)
         cmd.add_argument("--data-dir", type=Path, default=Path(".beastbox/durable"))
         if action in {"chat", "sensor-demo", "exchange", "quantum-input", "wav-input", "light-input"}:
@@ -116,6 +117,8 @@ def add_runtime_subparser(sub):
         if action == "light-input":
             cmd.add_argument("--values", required=True, help="JSON list of measured values in [0,1]")
             cmd.add_argument("--source-label", required=True)
+        if action == "activate":
+            cmd.add_argument("--output", type=Path, default=None, help="write the activation receipt JSON here")
 
 
 def read_exchange(stream):
@@ -167,6 +170,13 @@ def handle_runtime(args):
     if action == "resource-status":
         from .optional_resources import resource_status
         return resource_status()
+    if action == "activate":
+        from .activation import run_activation
+        report = run_activation(args.data_dir)
+        if args.output is not None:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return report
     exchange = read_exchange(sys.stdin.buffer) if action == "exchange" else None
     if exchange is not None:
         action = exchange["operation"]

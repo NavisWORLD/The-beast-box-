@@ -41,6 +41,7 @@ from .refractive_memory import RefractiveMemoryRouter
 from .retrieval_snapshot import ReadOnlySnapshotDB, capture_snapshot, lexical_from_snapshot
 from .semantic_retrieval import EmbeddingProvider, SemanticRetrievalError, SnapshotSemanticIndex, fuse_r12_semantic
 from .runtime import CosmosRuntime
+from .signals import build_turn_signals, capture_signal_baseline
 from .state_family import StateFamily
 
 
@@ -549,9 +550,17 @@ class DurableRuntime(CosmosRuntime):
                 self._measure_boundary("checkpoint_verify")
                 self._restore(copy.deepcopy(before))
                 self._measure_boundary("checkpoint_restore")
+                signal_before = capture_signal_baseline(self)
                 # Numeric software events share the existing bounded bridge input.
                 packet = BridgePacket(audio_features=list(normalized["features"]))
                 result = super().respond(normalized["text"], bridge=packet, transient_context=transient_context)
+                signals = build_turn_signals(
+                    self,
+                    signal_before,
+                    result,
+                    event_sha256=normalized["sha256"],
+                    feature_count=len(normalized["features"]),
+                )
                 if transient_context:
                     measured = cast(MeasuredProvider, self.provider).receipt
                     measured.pop("prompt", None)
@@ -563,6 +572,7 @@ class DurableRuntime(CosmosRuntime):
                     "model": cast(MeasuredProvider, self.provider).receipt,
                     "tool_result": self._tool_result,
                     "trace": durable_trace,
+                    "signals": signals,
                 }
                 self.ledger.append("runtime_receipt", receipt)
                 checkpoint = self.continuity.append(self._state(), system_id=self.system_id, receipt=receipt)
@@ -574,6 +584,7 @@ class DurableRuntime(CosmosRuntime):
                     trace=list(self._trace),
                     routing=self._routing,
                     model=receipt["model"],
+                    signals=signals,
                     ledger_head=self.ledger.head,
                 )
             committed = True
