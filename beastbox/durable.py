@@ -175,6 +175,43 @@ class DurableRuntime(CosmosRuntime):
             raise
         self.startup_ms = (time.perf_counter() - started) * 1000
 
+    def _plasticity_snapshot(self) -> dict[str, int | float]:
+        """Measure persisted Hebbian tables without inferring learning quality."""
+        association = self.memory.db.execute(
+            "SELECT COUNT(*), COALESCE(SUM(updates),0), COALESCE(SUM(weight),0) FROM associations"
+        ).fetchone()
+        salience = self.memory.db.execute(
+            "SELECT COUNT(*), COALESCE(SUM(updates),0), COALESCE(SUM(weight),0) FROM salience"
+        ).fetchone()
+        return {
+            "association_edges": int(association[0]),
+            "association_updates": int(association[1]),
+            "association_weight_sum": float(association[2]),
+            "salience_concepts": int(salience[0]),
+            "salience_updates": int(salience[1]),
+            "salience_weight_sum": float(salience[2]),
+        }
+
+    def _observable_state(self) -> dict[str, Any]:
+        """Return real runtime state needed by the owner trace, not model reasoning."""
+        family = self.synaptic.state_family.as_dict()
+        return {
+            "turn": self.turn,
+            "cns_step": self.cns.step,
+            "cns_plasticity": dict(self.cns.plasticity),
+            "dyn12": list(family["dyn12"]),
+            "state_family_sha256": {
+                name: sha256_obj(values) for name, values in family.items()
+            },
+            "state_family_preflight": self.synaptic.state_family.preflight(),
+            "slow_state": {
+                "experiences": self.slow.organism.experiences,
+                "evolution_cycles": self.slow.evolution.cycles,
+                "evolution_patterns": dict(self.slow.evolution.patterns),
+                "monologue_entries": len(self.slow.monologue.thoughts),
+            },
+        }
+
     def _check_anchor(self, checkpoint: dict[str, Any]) -> None:
         if self._anchor_blocked:
             raise AnchorMismatch("external anchor publication failed; owner reconciliation is required")
@@ -382,6 +419,7 @@ class DurableRuntime(CosmosRuntime):
         self, event: dict[str, Any], *, transient_context: str = ""
     ) -> dict[str, Any]:
         started = time.perf_counter()
+        started_cpu = time.process_time()
         self._stage_started = started
         self._stages_ms = {}
         self.last_metrics = {}
@@ -438,20 +476,66 @@ class DurableRuntime(CosmosRuntime):
                 self._measure_boundary("checkpoint_verify")
                 self._restore(copy.deepcopy(before))
                 self._measure_boundary("checkpoint_restore")
+                state_before = self._observable_state()
+                plasticity_before = self._plasticity_snapshot()
+                memory_before = self.memory.stats()
                 # Numeric software events share the existing bounded bridge input.
                 packet = BridgePacket(audio_features=list(normalized["features"]))
                 result = super().respond(normalized["text"], bridge=packet, transient_context=transient_context)
+                state_after = self._observable_state()
+                plasticity_after = self._plasticity_snapshot()
+                memory_after = self.memory.stats()
+                conversation_event = self.ledger.events[-1]
+                memory_writes = {
+                    "input_memory_id": conversation_event.payload.get("input_memory_id"),
+                    "response_memory_id": conversation_event.payload.get("response_memory_id"),
+                    "records_added": memory_after["memories"] - memory_before["memories"],
+                }
                 if transient_context:
                     measured = cast(MeasuredProvider, self.provider).receipt
                     measured.pop("prompt", None)
                     measured["context_persistence"] = "HASH_ONLY; RESPONSE_NOT_PERSISTED"
                 durable_trace = [*self._trace, "checkpoint"]
+                telemetry = {
+                    "schema": "cosmos-runtime-telemetry-v1",
+                    "state_transition": {"before": state_before, "after": state_after},
+                    "hebbian_update": {
+                        "before": plasticity_before,
+                        "after": plasticity_after,
+                        "association_updates_applied": (
+                            plasticity_after["association_updates"]
+                            - plasticity_before["association_updates"]
+                        ),
+                        "salience_updates_applied": (
+                            plasticity_after["salience_updates"]
+                            - plasticity_before["salience_updates"]
+                        ),
+                        "interpretation": "co-occurrence metadata update; not model-weight learning",
+                    },
+                    "memory": {
+                        "retrieved_ids": list(self._routing.get("memory_ids", [])),
+                        "writes": memory_writes,
+                        "before": memory_before,
+                        "after": memory_after,
+                    },
+                    "outcome": {
+                        "prediction": None,
+                        "prediction_status": "NOT_EMITTED",
+                        "authorized_action": dict(self._tool_result),
+                    },
+                    "resources": {
+                        "process_cpu_ms": (time.process_time() - started_cpu) * 1000,
+                        "elapsed_ms_before_commit": (time.perf_counter() - started) * 1000,
+                        "provider": dict(cast(MeasuredProvider, self.provider).measurements),
+                    },
+                }
                 receipt = {
                     "event": normalized,
                     "routing": self._routing,
                     "model": cast(MeasuredProvider, self.provider).receipt,
                     "tool_result": self._tool_result,
                     "trace": durable_trace,
+                    "telemetry": telemetry,
                 }
                 self.ledger.append("runtime_receipt", receipt)
                 checkpoint = self.continuity.append(self._state(), system_id=self.system_id, receipt=receipt)
@@ -463,6 +547,7 @@ class DurableRuntime(CosmosRuntime):
                     trace=list(self._trace),
                     routing=self._routing,
                     model=receipt["model"],
+                    telemetry=telemetry,
                     ledger_head=self.ledger.head,
                 )
             committed = True

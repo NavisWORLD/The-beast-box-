@@ -35,6 +35,14 @@ def test_trace_events_are_durable_system_events_not_chain_of_thought(tmp_path):
     assert latest["stages"][-2:] == ["provenance", "checkpoint"]
     assert latest["model"]["provider"] == "ReferenceTextProvider"
     assert latest["routing"]["router"] == "RefractiveMemoryRouter"
+    telemetry = latest["telemetry"]
+    assert telemetry["schema"] == "cosmos-runtime-telemetry-v1"
+    assert len(telemetry["state_transition"]["before"]["dyn12"]) == 12
+    assert len(telemetry["state_transition"]["after"]["dyn12"]) == 12
+    assert telemetry["hebbian_update"]["association_updates_applied"] > 0
+    assert telemetry["hebbian_update"]["interpretation"].endswith("not model-weight learning")
+    assert telemetry["memory"]["writes"]["records_added"] == 2
+    assert telemetry["resources"]["process_cpu_ms"] >= 0
     assert "chain_of_thought" not in latest
     assert "prompt" not in latest["model"]
 

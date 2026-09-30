@@ -12,6 +12,7 @@ the runtime retains the story and enforces its own authority boundary.
 [Download Beast Box v0.7.0](https://github.com/NavisWORLD/The-beast-box-/releases/tag/v0.7.0) ·
 [COSMIC browser guide](docs/COSMIC_UI_GUIDE.md) · [5-minute Quickstart](docs/QUICKSTART.md) · [Combined Kit / EnD](kits/BEAST_BOX_COMBINED/EnD) ·
 [Architecture](docs/ECOSYSTEM_MANIFEST.json) · [Persistent Memory](docs/PORTABLE_STATE.md) ·
+[Bounded Continuous Activation](docs/ACTIVATION.md) ·
 [Model Swap Evidence](docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md) ·
 [Provider Setup](docs/PROVIDER_SETUP.md) · [Synapse Flash / Portable State](docs/PORTABLE_STATE.md) ·
 [Security](SECURITY.md) · [Threat model](docs/THREAT_MODEL.md) · [Optional external anchor](docs/TRUSTED_ANCHOR.md) · [Configured model routing](docs/MODEL_ROUTING_SCOPE.md) · [Versioned V1/V2 source](docs/VERSIONING.md) · [Scientific Boundaries](docs/CLAIM_BOUNDARIES.md) ·
@@ -119,6 +120,21 @@ beastbox runtime inspect --data-dir ./recovered-beast
 ```
 
 The first tool demo is denied. The second permits only a numeric simulated position update; it has no physical, shell, credential or network authority. Permission is supplied by the host for that invocation and is never restored from memory. Normalized events accept text and up to 16 finite numeric features in `[-1, 1]`, with explicit synthetic provenance. They do not capture audio, cameras or people.
+
+For stopped-by-default persistent task operation:
+
+```bash
+beastbox runtime queue-event "bounded software observation" --features '[0.2]' --data-dir ./my-beast
+beastbox runtime queue-resume --reason "owner approved bounded run" --data-dir ./my-beast
+beastbox runtime queue-run --max-tasks 1 --wall-seconds 30 --data-dir ./my-beast
+beastbox runtime queue-stop --reason "owner emergency stop" --data-dir ./my-beast
+```
+
+The queue accepts only normalized events and deterministic maintenance. It has
+explicit budgets, cancellation, finite recovery leases and a persistent
+emergency-stop latch. Execution is at-least-once; an interruption between the
+substrate commit and queue acknowledgement requires owner reconciliation.
+[Operational details and telemetry contract](docs/ACTIVATION.md).
 
 Back up through the CLI so SQLite WAL data is included. Restore requires a verified hash and a fresh directory, validates the copied checkpoint, and never overwrites existing history. Retain the backup hash separately. Hashes detect corruption; they are not signatures and cannot defeat a host that rewrites both data and receipts.
 

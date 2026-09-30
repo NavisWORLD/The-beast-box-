@@ -293,6 +293,24 @@
       ],
       "boundary_detail": "INTERFACE",
       "boundary": "Adapter around existing COSMOS runtime with atomic SQLite memory/state/provenance checkpoints; synthetic and text events; explicitly authorized simulated tool only. Synapse/HEARTLIGHT are responsibility mappings, not imported formal products."
+    },
+    {
+      "id": "bounded-continuous-activation",
+      "names": [
+        "ActivationEngine",
+        "persistent task queue",
+        "emergency stop"
+      ],
+      "status": "PRODUCT",
+      "origin": "Public Beast Box host-owned scheduling implementation",
+      "paths": [
+        "beastbox/activation.py",
+        "beastbox/runtime_cli.py",
+        "beastbox/cosmic_web.py",
+        "docs/ACTIVATION.md"
+      ],
+      "boundary_detail": "INTERFACE",
+      "boundary": "Stopped-by-default at-least-once queue for normalized events and deterministic maintenance. It cannot grant authority, preempt a blocking provider call, or establish autonomous intelligence or model-weight learning."
     }
   ],
   "integration_source_commit": "57d34fe",

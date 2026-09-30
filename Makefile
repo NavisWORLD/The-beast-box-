@@ -37,10 +37,10 @@ lint:
 	$(PYTHON) -m ruff check beastbox/doctor.py beastbox/portable_state.py tests/test_launch_surface.py tests/test_compatible_provider.py
 	$(PYTHON) -m ruff check beastbox/cosmic_demo.py tests/test_cosmic_product_polish.py scripts/smoke/cosmic_browser.py
 	$(PYTHON) -m ruff check beastbox/aliases.py beastbox/hashutil.py beastbox/logging_config.py \
-		beastbox/continuity.py beastbox/durable.py beastbox/events.py beastbox/providers.py \
+		beastbox/activation.py beastbox/continuity.py beastbox/durable.py beastbox/events.py beastbox/providers.py \
 		beastbox/runtime_cli.py beastbox/swap_receipt.py scripts/run_architecture_acceptance.py \
 		scripts/productization_receipt.py tests/test_durable_runtime.py tests/test_product_spine.py \
-		tests/test_runtime_cli.py tests/test_swap_receipt.py tests/test_experimental_boundary.py \
+		tests/test_activation.py tests/test_runtime_cli.py tests/test_swap_receipt.py tests/test_experimental_boundary.py \
 		scripts/seal_release_verification.py tests/test_release_verification.py \
 		beastbox/desktop.py beastbox/optional_resources.py beastbox/sensor_inputs.py tests/test_runtime_exchange.py \
 		beastbox/product_services.py tests/test_product_services.py tests/test_product_observability.py beastbox/memory.py \

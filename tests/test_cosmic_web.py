@@ -66,6 +66,38 @@ def test_sensor_events_require_matching_live_authority_and_master_stop_revokes(t
     assert app.dispatch("POST", "/api/event", {"modality": "microphone", "event": event})[0] == 403
 
 
+def test_activation_queue_is_persistent_bounded_and_master_stop_safe(tmp_path):
+    app = CosmicApp(tmp_path)
+    event = {
+        "schema": "sensor-event-v1",
+        "source": "software-event",
+        "text": "queued browser observation",
+        "features": [0.2],
+    }
+    queued = app.dispatch(
+        "POST", "/api/activation", {"action": "enqueue_event", "event": event}
+    )
+    assert queued[0] == 200
+    assert queued[1]["status"] == "queued"
+    assert app.dispatch("POST", "/api/activation", {
+        "action": "run", "max_tasks": 1, "wall_seconds": 1,
+    })[1]["status"] == "STOPPED"
+
+    app.dispatch("POST", "/api/activation", {
+        "action": "resume", "reason": "test owner resume",
+    })
+    completed = app.dispatch("POST", "/api/activation", {
+        "action": "run", "max_tasks": 1, "wall_seconds": 10,
+    })
+    assert completed[1]["processed"][0]["status"] == "completed"
+
+    app.dispatch("POST", "/api/authority", {"action": "grant", "name": "sensors"})
+    app.dispatch("POST", "/api/authority", {"action": "master_stop"})
+    status = app.dispatch("GET", "/api/activation")
+    assert status[1]["stopped"] is True
+    assert status[1]["execution_semantics"].startswith("AT_LEAST_ONCE")
+
+
 def test_qbay_live_submission_is_default_denied(tmp_path):
     app = CosmicApp(tmp_path)
     status, body = app.dispatch("POST", "/api/quantum", {"provider": "ibm", "shots": 16})

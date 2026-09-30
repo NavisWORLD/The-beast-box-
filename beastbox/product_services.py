@@ -366,6 +366,7 @@ class ProductService:
                     "routing": receipt.get("routing", {}),
                     "model": safe_model,
                     "tool_result": receipt.get("tool_result", {}),
+                    "telemetry": receipt.get("telemetry", {}),
                 }
             )
         return events

@@ -22,6 +22,7 @@ from typing import Any, Callable, Iterable
 import urllib.parse
 
 from .cosmic_ui import render_cosmic_ui
+from .activation import ActivationEngine
 from .cypher.workspace import FULL_REPLACEMENT_DIFF_HEADER, Workspace
 from .durable import DurableRuntime
 from .semantic_retrieval import EmbeddingProvider
@@ -214,6 +215,9 @@ class CosmicApp:
         return DurableRuntime(self.root, self._provider(profile), embedding_provider=self._embedding_provider,
                               recent_dialogue_limit=self._recent_dialogue_limit)
 
+    def _activation(self) -> ActivationEngine:
+        return ActivationEngine(self.root, provider_factory=self._provider)
+
     def _set_profile(self, raw: dict[str, Any]) -> tuple[ProviderProfile, bool, list[str]]:
         previous = self.profile.identity
         profile = ProviderProfile.from_dict(raw)
@@ -233,6 +237,11 @@ class CosmicApp:
             return 400, {"error": "invalid authority action"}
         if action == "master_stop" and set(body) == {"action"}:
             stopped = self.authority.master_privacy_stop()
+            activation = self._activation()
+            try:
+                activation.set_stopped(True, reason="master privacy stop")
+            finally:
+                activation.close()
             self.session_events.append({"kind": "master_stop", "revoked": stopped})
             return 200, {"stopped": stopped, "authority": self.authority.snapshot()}
         if action not in {"grant", "revoke"} or set(body) != {"action", "name"}:
@@ -310,6 +319,32 @@ class CosmicApp:
         finally:
             runtime.close()
         return 200, {"result": result, "runtime": inspection, "raw_media_transmitted": False}
+
+    def _activation_request(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        action = body.get("action")
+        engine = self._activation()
+        try:
+            if action == "enqueue_event" and set(body) == {"action", "event"}:
+                event = body.get("event")
+                if not isinstance(event, dict):
+                    return 400, {"error": "invalid activation event"}
+                return 200, engine.enqueue("event", event)
+            if action == "enqueue_maintenance" and set(body) == {"action"}:
+                return 200, engine.enqueue("maintenance", {})
+            if action == "run" and set(body) == {"action", "max_tasks", "wall_seconds"}:
+                return 200, engine.run(
+                    max_tasks=body.get("max_tasks"), wall_seconds=body.get("wall_seconds")
+                )
+            if action in {"stop", "resume"} and set(body) == {"action", "reason"}:
+                return 200, engine.set_stopped(action == "stop", reason=body.get("reason"))
+            if action == "cancel" and set(body) == {"action", "task_id", "reason"}:
+                task_id = body.get("task_id")
+                if not isinstance(task_id, str):
+                    return 400, {"error": "invalid activation task id"}
+                return 200, engine.cancel(task_id, reason=body.get("reason"))
+            return 400, {"error": "invalid activation request"}
+        finally:
+            engine.close()
 
     def _quantum(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         if not self.authority.allowed("quantum_live"):
@@ -657,6 +692,12 @@ class CosmicApp:
                 }
             if method == "GET" and path == "/api/resources":
                 return 200, {"resources": self.service.resource_status()}
+            if method == "GET" and path == "/api/activation":
+                activation = self._activation()
+                try:
+                    return 200, {**activation.status(), "tasks": activation.tasks()}
+                finally:
+                    activation.close()
             if method == "GET" and path == "/api/workspace":
                 return 200, self._workspace_snapshot()
             if method == "GET" and path == "/api/workspace/status":
@@ -686,6 +727,8 @@ class CosmicApp:
                 return self._chat(data)
             if method == "POST" and path == "/api/event":
                 return self._event(data)
+            if method == "POST" and path == "/api/activation":
+                return self._activation_request(data)
             if method == "POST" and path == "/api/quantum":
                 return self._quantum(data)
             if method == "POST" and path == "/api/workspace/allow":
