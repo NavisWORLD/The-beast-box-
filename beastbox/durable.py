@@ -15,10 +15,12 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable, Mapping, cast
 
+from .adaptive_control import AdaptiveControl
 from .box import AuthorityPolicy
 from .closed_loop import (
     PROFILE as CLOSED_LOOP_PROFILE,
-    advance_nonphysical_r12, host_software_event, rerank_with_host_review, reviewed_weights,
+    ReviewedSnapshotDB, advance_nonphysical_r12, host_software_event,
+    rerank_with_host_review, reviewed_weights,
 )
 from .unicode_text import checked_utf8
 from .bridge import BridgePacket
@@ -558,6 +560,88 @@ class DurableRuntime(CosmosRuntime):
                 self._measure_boundary("failure")
                 self._finish_measurements(started, "failed")
             raise
+
+    def apply_reviewed_feedback(
+        self, examples: list[Mapping[str, Any]], *, learning_rate: float = 0.12,
+    ) -> dict[str, Any]:
+        """HOST ONLY: connect actual reviewed pairwise routing to this durable loop.
+
+        Caller-supplied labels must be explicitly reviewed; the host-only
+        method is never invoked by text from an LLM. Fit uses only one verified
+        active source snapshot, current saved software R12 and actual synaptic
+        dyn12. It commits the new weight fingerprint in the SAME single-writer
+        continuity checkpoint as the review receipt, with complete rollback.
+        Neither model parameters nor hardware/physical authority can change.
+        """
+        if not self._closed_loop:
+            raise ValueError("host-reviewed training requires explicit closed-loop opt in")
+        if not self._semantic_turn_lock.acquire(blocking=False):
+            raise RuntimeError("cannot train reviewed routing during another active model turn")
+        before = None
+        committed = False
+        previous_weights = copy.deepcopy(self._reviewed_weights)
+        previous_profile = copy.deepcopy(self._wiring_profile)
+        try:
+            with self.memory.transaction():
+                before = self.continuity.verify()
+                self._check_anchor(before)
+                self._restore(copy.deepcopy(before))
+                snapshot_rows = capture_snapshot(self.memory)
+                if not 2 <= len(snapshot_rows) <= 1000:
+                    raise ValueError("reviewed routing requires 2..1000 active memory candidates")
+                view = _RoutingMemoryView(self.memory, snapshot_rows)
+                view.db = ReviewedSnapshotDB(snapshot_rows)
+                adapter = cast(DadSonLedger, SimpleNamespace(memory=view))
+                control = AdaptiveControl(
+                    RefractiveMemoryRouter(adapter),
+                    r12_state=self.r12_state,
+                    dyn12=self.synaptic.state_family.dyn12,
+                    sequence=self.r12_state["sequence"],
+                )
+                receipt = control.fit(examples, learning_rate=learning_rate)
+                weights = reviewed_weights(receipt)
+                if weights is None:
+                    raise RuntimeError("original product reviewer provided no learned weights")
+                self._reviewed_weights = weights
+                self._wiring_profile = {
+                    "schema": CLOSED_LOOP_PROFILE,
+                    "closed_loop": True,
+                    "unicode_mode": self._unicode_mode,
+                    "weights_sha256": sha256_obj(weights),
+                    "feedback_authority": "host-supplied; never model inferred",
+                }
+                safe_receipt = {
+                    "kind": "host-reviewed-software-routing-update",
+                    "training_count": receipt["examples"],
+                    "training_mistakes": receipt["mistakes_during_training"],
+                    "new_weights_sha256": sha256_obj(weights),
+                    "active_snapshot_sha256": self._snapshot_fingerprint(snapshot_rows),
+                    "R12_state_sha256": self.r12_state["state_sha256"],
+                    "CNS_synaptic_dyn12_sha256": sha256_obj(self.synaptic.state_family.dyn12),
+                    "feedback_review_attestation": "host asserted; no cryptographic human-review proof",
+                    "model_parameters_changed": False,
+                }
+                self.ledger.append("runtime_receipt", safe_receipt)
+                checkpoint = self.continuity.append(
+                    self._state(), system_id=self.system_id, receipt=safe_receipt
+                )
+            committed = True
+            self._publish_anchor(before, checkpoint)
+            return {
+                "schema": "cosmos-durable-reviewed-routing-update-v1",
+                "weights": dict(weights),
+                "receipt": safe_receipt,
+                "checkpoint_sha256": checkpoint["sha256"],
+            }
+        except BaseException:
+            if not committed:
+                self._reviewed_weights = previous_weights
+                self._wiring_profile = previous_profile
+                if before is not None:
+                    self._restore(before)
+            raise
+        finally:
+            self._semantic_turn_lock.release()
 
     def store_external_memory(
         self,
