@@ -5,14 +5,14 @@ from __future__ import annotations
 import json
 import math
 import unicodedata
-from typing import Any, Mapping
+from typing import Any, Literal, Mapping
 
 from .box import AuthorityPolicy
 from .hashutil import sha256_obj
 from .unicode_text import checked_utf8
 
 
-def normalize_event(event: Mapping[str, Any], *, normalization: str = "NFKC") -> dict[str, Any]:
+def normalize_event(event: Mapping[str, Any], *, normalization: Literal["NFC", "NFKC"] = "NFKC") -> dict[str, Any]:
     if normalization not in {"NFC", "NFKC"}:
         raise ValueError("unsupported Unicode normalization mode")
     if set(event) - {"schema", "source", "text", "features"}:
