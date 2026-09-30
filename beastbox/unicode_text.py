@@ -83,7 +83,9 @@ def unicode_terms(value: str) -> list[str]:
                 buf += char
                 index += 1
                 continue
-        if char == "_" or category[0] in "LNM":
+        if char in {"\u200d", "\ufe0e", "\ufe0f"} and kind == "symbol":
+            buf += char
+        elif char == "_" or category[0] in "LNM":
             # Join script-specific combining marks to their base. Do not split
             # a Devanagari/Arabic word on vowel marks or a Vietnamese accent.
             target = "cjk" if _cjk(char) else "word"
