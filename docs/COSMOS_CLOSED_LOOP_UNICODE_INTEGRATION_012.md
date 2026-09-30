@@ -42,7 +42,7 @@ BEASTBOX_CLOSED_LOOP_ENABLED=yes
 BEASTBOX_UNICODE_NFC_ENABLED=yes
 ```
 
-Flags default to `no` in `.env.example`. On an existing real owner production database, first verify source backups and recovery on a separate copy and ensure **every** owner bridge, reader and optional background index loop uses identical flags before opt-in; after the first upgraded checkpoint, accidental flag removal intentionally fails closed. Do not flip production blindly during a normal Git deploy.
+Flags are intentionally empty in `.env.example` to satisfy credential-safe CI inventory; unset/empty values are interpreted as `no` in owner runtime host configuration. On an existing real owner production database, first verify source backups and recovery on a separate copy and ensure **every** owner bridge, reader and optional background index loop uses identical flags before opt-in; after the first upgraded checkpoint, accidental flag removal intentionally fails closed. Do not flip production blindly during a normal Git deploy.
 
 The original RAWRPHØS native tokenizer is **byte-level BPE**, with a separately tested Unicode byte transport roundtrip; this proves tokenization fidelity but not multilingual model instruction performance or unbounded context. Existing original PHOS/SAMGO character models retain whatever smaller vocabulary their checkpoint actually supports; no checkpoint or tokenizer is silently replaced.
 
