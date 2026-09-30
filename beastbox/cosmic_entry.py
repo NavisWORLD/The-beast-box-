@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -13,9 +14,21 @@ def default_data_dir() -> Path:
     return Path.home() / ".beastbox" / "data"
 
 
-def smoke(root: Path) -> dict[str, object]:
+def _parse_host_flag(raw: str, name: str) -> bool:
+    """Parse a host flag without dynamic environment variable lookups."""
+    raw = raw.strip().lower()
+    if raw in {"", "no", "false", "0"}:
+        return False
+    if raw in {"yes", "true", "1"}:
+        return True
+    raise ValueError(f"{name} must be yes/no, true/false or 1/0")
+
+
+def smoke(
+    root: Path, *, closed_loop: bool = False, unicode_mode: bool = False
+) -> dict[str, object]:
     """Headless package proof: initialize and inspect the real durable substrate."""
-    app = CosmicApp(root)
+    app = CosmicApp(root, closed_loop=closed_loop, unicode_mode=unicode_mode)
     orbit = app.service.orbit_snapshot()
     runtime = orbit["runtime"]
     authority = orbit["authority"]
@@ -26,6 +39,7 @@ def smoke(root: Path) -> dict[str, object]:
         "turn": int(runtime["turn"]),
         "checkpoint_sha256": str(runtime["checkpoint_sha256"]),
         "authority_grants": sum(1 for granted in authority.values() if granted),
+        "wiring": runtime.get("wiring", {"closed_loop": False, "unicode_nfc": False}),
     }
 
 
@@ -56,6 +70,12 @@ def main(argv: list[str] | None = None) -> int:
             if args.profiles_home is not None:
                 raise ValueError("--profiles-home requires --profile")
             root = (args.data_dir or default_data_dir()).expanduser().absolute()
+        closed_loop = _parse_host_flag(
+            os.environ.get("BEASTBOX_CLOSED_LOOP_ENABLED", ""), "BEASTBOX_CLOSED_LOOP_ENABLED"
+        )
+        unicode_mode = _parse_host_flag(
+            os.environ.get("BEASTBOX_UNICODE_NFC_ENABLED", ""), "BEASTBOX_UNICODE_NFC_ENABLED"
+        )
         if args.demo:
             if args.profile:
                 raise ValueError("--demo uses --data-dir, not --profile")
@@ -65,9 +85,18 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(run_reference_demo(root), sort_keys=True))
             return 0
         if args.smoke:
-            print(json.dumps(smoke(root), sort_keys=True))
+            print(json.dumps(
+                smoke(root, closed_loop=closed_loop, unicode_mode=unicode_mode),
+                sort_keys=True,
+            ))
             return 0
-        serve(root, host=args.host, port=args.port)
+        serve(
+            root,
+            host=args.host,
+            port=args.port,
+            closed_loop=closed_loop,
+            unicode_mode=unicode_mode,
+        )
         return 0
     except KeyboardInterrupt:
         return 130

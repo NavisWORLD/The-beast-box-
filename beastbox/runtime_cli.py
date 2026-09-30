@@ -86,10 +86,11 @@ def add_runtime_subparser(sub):
     commands = parser.add_subparsers(dest="runtime_action", required=True)
     for action in ("init", "chat", "inspect", "sensor-demo", "tool-demo", "backup", "restore", "verify-swap-receipt",
                    "export", "verify-portable", "import", "exchange", "resource-status", "quantum-input", "wav-input",
-                   "light-input", "activate"):
+                   "light-input", "activate", "queue-event", "queue-maintenance", "queue-status",
+                   "queue-run", "queue-stop", "queue-resume", "queue-cancel"):
         cmd = commands.add_parser(action)
         cmd.add_argument("--data-dir", type=Path, default=Path(".beastbox/durable"))
-        if action in {"chat", "sensor-demo", "exchange", "quantum-input", "wav-input", "light-input"}:
+        if action in {"chat", "sensor-demo", "exchange", "quantum-input", "wav-input", "light-input", "queue-run"}:
             cmd.add_argument("--provider", choices=["reference", "ollama", "compatible"], default="reference")
             cmd.add_argument("--model", default="COSMOS reference")
             cmd.add_argument("--url", default=None)
@@ -119,6 +120,25 @@ def add_runtime_subparser(sub):
             cmd.add_argument("--source-label", required=True)
         if action == "activate":
             cmd.add_argument("--output", type=Path, default=None, help="write the activation receipt JSON here")
+        if action == "queue-event":
+            cmd.add_argument("text")
+            cmd.add_argument("--source", choices=["text", "synthetic-demo", "software-event"], default="software-event")
+            cmd.add_argument("--features", default="[]", help="JSON list of up to 16 values in [-1,1]")
+            cmd.add_argument("--max-attempts", type=int, default=1)
+        if action == "queue-maintenance":
+            cmd.add_argument("--min-group", type=int, default=3)
+            cmd.add_argument("--max-records", type=int, default=100)
+        if action == "queue-run":
+            cmd.add_argument("--max-tasks", type=int, default=1)
+            cmd.add_argument("--wall-seconds", type=float, default=30.0)
+            cmd.add_argument("--closed-loop", action="store_true")
+            cmd.add_argument("--unicode-nfc", action="store_true")
+        if action in {"queue-stop", "queue-resume"}:
+            cmd.add_argument("--reason", required=True)
+        if action == "queue-cancel":
+            cmd.add_argument("task_id")
+            cmd.add_argument("--reason", required=True)
+
 
 
 def read_exchange(stream):
@@ -170,6 +190,61 @@ def handle_runtime(args):
     if action == "resource-status":
         from .optional_resources import resource_status
         return resource_status()
+    if action.startswith("queue-"):
+        from .activation_queue import ActivationEngine
+
+        def queued_provider() -> TextProvider:
+            provider: TextProvider = ReferenceTextProvider(prefix=getattr(args, "model", "COSMOS reference"))
+            if getattr(args, "provider", None) == "ollama":
+                if args.model == "COSMOS reference":
+                    raise ValueError("Ollama requires an explicit --model name")
+                provider = LocalOllamaProvider(model=args.model, base_url=args.url or "http://127.0.0.1:11434")
+            if getattr(args, "provider", None) == "compatible":
+                if args.model == "COSMOS reference":
+                    raise ValueError("compatible backend requires an explicit --model")
+                provider = CompatibleChatProvider(
+                    args.model,
+                    args.url or "http://127.0.0.1:1234/v1",
+                    allow_remote=args.allow_remote,
+                    api_key_env=args.api_key_env,
+                )
+            return provider
+
+        engine = ActivationEngine(
+            args.data_dir,
+            provider_factory=queued_provider,
+            closed_loop=getattr(args, "closed_loop", False),
+            unicode_mode=getattr(args, "unicode_nfc", False),
+        )
+        try:
+            if action == "queue-event":
+                features = json.loads(args.features)
+                return engine.enqueue(
+                    "event",
+                    {
+                        "schema": "sensor-event-v1",
+                        "source": args.source,
+                        "text": args.text,
+                        "features": features,
+                    },
+                    max_attempts=args.max_attempts,
+                )
+            if action == "queue-maintenance":
+                return engine.enqueue(
+                    "maintenance",
+                    {"min_group": args.min_group, "max_records": args.max_records},
+                )
+            if action == "queue-status":
+                return {**engine.status(), "tasks": engine.tasks()}
+            if action == "queue-run":
+                return engine.run(max_tasks=args.max_tasks, wall_seconds=args.wall_seconds)
+            if action == "queue-stop":
+                return engine.set_stopped(True, reason=args.reason)
+            if action == "queue-resume":
+                return engine.set_stopped(False, reason=args.reason)
+            return engine.cancel(args.task_id, reason=args.reason)
+        finally:
+            engine.close()
     if action == "activate":
         from .activation import run_activation
         report = run_activation(args.data_dir)

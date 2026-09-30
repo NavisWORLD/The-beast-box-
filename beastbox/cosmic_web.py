@@ -22,6 +22,7 @@ from typing import Any, Callable, Iterable
 import urllib.parse
 
 from .cosmic_ui import render_cosmic_ui
+from .activation_queue import ActivationEngine
 from .cypher.workspace import FULL_REPLACEMENT_DIFF_HEADER, Workspace
 from .durable import DurableRuntime
 from .semantic_retrieval import EmbeddingProvider
@@ -223,6 +224,14 @@ class CosmicApp:
             closed_loop=self._closed_loop, unicode_mode=self._unicode_mode,
         )
 
+    def _activation(self) -> ActivationEngine:
+        return ActivationEngine(
+            self.root,
+            provider_factory=self._provider,
+            closed_loop=self._closed_loop,
+            unicode_mode=self._unicode_mode,
+        )
+
     def _set_profile(self, raw: dict[str, Any]) -> tuple[ProviderProfile, bool, list[str]]:
         previous = self.profile.identity
         profile = ProviderProfile.from_dict(raw)
@@ -233,6 +242,11 @@ class CosmicApp:
         changed = previous != profile.identity
         revoked = self.authority.revoke_all() if changed else []
         if changed:
+            engine = self._activation()
+            try:
+                engine.set_stopped(True, reason="provider changed; fresh host approval required")
+            finally:
+                engine.close()
             self.session_events.append({"kind": "brain_handoff", "model": profile.model, "authority_revoked": revoked})
         return profile, changed, revoked
 
@@ -242,6 +256,11 @@ class CosmicApp:
             return 400, {"error": "invalid authority action"}
         if action == "master_stop" and set(body) == {"action"}:
             stopped = self.authority.master_privacy_stop()
+            engine = self._activation()
+            try:
+                engine.set_stopped(True, reason="master privacy stop")
+            finally:
+                engine.close()
             self.session_events.append({"kind": "master_stop", "revoked": stopped})
             return 200, {"stopped": stopped, "authority": self.authority.snapshot()}
         if action not in {"grant", "revoke"} or set(body) != {"action", "name"}:
@@ -254,6 +273,11 @@ class CosmicApp:
                 self.authority.grant(name)
             else:
                 self.authority.revoke(name)
+                engine = self._activation()
+                try:
+                    engine.set_stopped(True, reason="host authority revoked; explicit reapproval required")
+                finally:
+                    engine.close()
         except ValueError as exc:
             return 400, {"error": str(exc)}
         self.session_events.append({"kind": "authority", "action": action, "name": name})
@@ -319,6 +343,35 @@ class CosmicApp:
         finally:
             runtime.close()
         return 200, {"result": result, "runtime": inspection, "raw_media_transmitted": False}
+
+    def _activation_request(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        action = body.get("action")
+        engine = self._activation()
+        try:
+            if action == "enqueue_event" and set(body) == {"action", "event"}:
+                if not self.authority.allowed("sensors"):
+                    return 403, {"error": "sensors authority required"}
+                event = body.get("event")
+                if not isinstance(event, dict):
+                    return 400, {"error": "invalid activation event"}
+                return 200, engine.enqueue("event", event)
+            if action == "enqueue_maintenance" and set(body) == {"action"}:
+                return 200, engine.enqueue("maintenance", {})
+            if action == "run" and set(body) == {"action", "max_tasks", "wall_seconds"}:
+                tasks, seconds = body.get("max_tasks"), body.get("wall_seconds")
+                if type(tasks) is not int or type(seconds) not in (int, float):
+                    return 400, {"error": "invalid activation run budget"}
+                return 200, engine.run(max_tasks=tasks, wall_seconds=seconds)
+            if action in {"stop", "resume"} and set(body) == {"action", "reason"}:
+                return 200, engine.set_stopped(action == "stop", reason=body.get("reason"))
+            if action == "cancel" and set(body) == {"action", "task_id", "reason"}:
+                task_id = body.get("task_id")
+                if not isinstance(task_id, str):
+                    return 400, {"error": "invalid activation task id"}
+                return 200, engine.cancel(task_id, reason=body.get("reason"))
+            return 400, {"error": "invalid activation request"}
+        finally:
+            engine.close()
 
     def _quantum(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         if not self.authority.allowed("quantum_live"):
@@ -666,6 +719,12 @@ class CosmicApp:
                 }
             if method == "GET" and path == "/api/resources":
                 return 200, {"resources": self.service.resource_status()}
+            if method == "GET" and path == "/api/activation":
+                engine = self._activation()
+                try:
+                    return 200, {**engine.status(), "tasks": engine.tasks()}
+                finally:
+                    engine.close()
             if method == "GET" and path == "/api/workspace":
                 return 200, self._workspace_snapshot()
             if method == "GET" and path == "/api/workspace/status":
@@ -695,6 +754,8 @@ class CosmicApp:
                 return self._chat(data)
             if method == "POST" and path == "/api/event":
                 return self._event(data)
+            if method == "POST" and path == "/api/activation":
+                return self._activation_request(data)
             if method == "POST" and path == "/api/quantum":
                 return self._quantum(data)
             if method == "POST" and path == "/api/workspace/allow":
@@ -734,7 +795,7 @@ class CosmicApp:
             # headers, provider error strings, context or credentials.
             return 502, {"error": "model provider request was not confirmed; no fallback",
                          "provider_failure": exc.code}
-        except (OSError, ValueError, RuntimeError, json.JSONDecodeError):
+        except (OSError, ValueError, RuntimeError, LookupError, json.JSONDecodeError):
             return 400, {"error": "request rejected; no fallback was performed"}
 
 
@@ -821,12 +882,17 @@ class CosmicHTTPServer(ThreadingHTTPServer):
     session_token: str
 
 
-def serve(root: str | Path, host: str = "127.0.0.1", port: int = 8081) -> None:
+def serve(
+    root: str | Path, host: str = "127.0.0.1", port: int = 8081,
+    *, closed_loop: bool = False, unicode_mode: bool = False,
+) -> None:
     bind = validate_bind_host(host)
     if type(port) is not int or not 1 <= port <= 65535:
         raise ValueError("port must be an integer in 1..65535")
+    if type(closed_loop) is not bool or type(unicode_mode) is not bool:
+        raise ValueError("host flags must be exact booleans")
     server = CosmicHTTPServer((bind, port), _CosmicHandler)
-    server.cosmic_app = CosmicApp(root)
+    server.cosmic_app = CosmicApp(root, closed_loop=closed_loop, unicode_mode=unicode_mode)
     server.session_token = secrets.token_urlsafe(32)
     try:
         runtime = server.cosmic_app.service.orbit_snapshot()["runtime"]
