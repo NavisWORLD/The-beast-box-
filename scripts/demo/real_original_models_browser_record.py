@@ -28,12 +28,14 @@ EXPECTED = {
     "RAWRPHOS 18K": "20932937afb3e0e1b62a4e5f38f92170046ae2928b437dc31b8a37d6538e701e",
     "PHOS": "bdcd4a39aa54bfc6c274580e210f993e528214d7207cb19dc258a2f801f6b84d",
     "SAMGO": "871c265c062430c77d5528ee5fb9119f7d86668ebd81cfa4951db6a906a92b5a",
+    "SMOLLM2 LOCAL": "2e8040ceae7815abe0dcb3540b9995eaa1fa0d2ca9e797d0a635ae4433c68c2d",
 }
 MODELS = [
     ("RAWRPHOS 14K", "rawrphos-native", "http://127.0.0.1:8767/v1", "raw14"),
     ("RAWRPHOS 18K", "rawrphos-native", "http://127.0.0.1:8768/v1", "raw18"),
     ("PHOS", "qc67-phos", "http://127.0.0.1:8771/v1", "qc67"),
     ("SAMGO", "qc67-samgo", "http://127.0.0.1:8771/v1", "qc67"),
+    ("SMOLLM2 LOCAL", "SmolLM2-135M-Instruct-Q4_K_M", "http://127.0.0.1:11522/v1", "smol"),
 ]
 # Exactly the same synthetic phrase, never Cory's personal facts or real secrets.
 SAY = [
@@ -41,6 +43,7 @@ SAY = [
     "New model, clock in. Try to tell me the earlier fictional phrase from the provided history, then say something new.",
     "PHOS, you're clocked in through the same substrate. Tell me what you can actually produce about our fictional mission.",
     "SAMGO, you're the fourth original checkpoint in this actual session. Say what you know; don't pretend you remember something missing.",
+    "SmolLM2, you are an independently pretrained model connected to the same Beast Box state. In two short sentences, introduce yourself and identify the fictional phrase from the earlier stored conversation if it reached you.",
 ]
 
 
@@ -109,7 +112,7 @@ def authority(page) -> dict[str, bool]:
     rows = page.locator(".authority-row")
     out = {}
     for i in range(rows.count()):
-        s = rows.nth(i).locator("span").inner_text().strip()
+        s = rows.nth(i).locator("strong").inner_text().strip()
         if " · " in s:
             label, state = s.split(" · ", 1)
             out[label.lower()] = state == "GRANTED"
@@ -168,6 +171,7 @@ def main() -> None:
     p.add_argument("--raw14", type=Path, required=True)
     p.add_argument("--raw18", type=Path, required=True)
     p.add_argument("--qc67", type=Path, required=True)
+    p.add_argument("--smol", type=Path, required=True)
     a = p.parse_args()
     out = a.output.resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -178,7 +182,7 @@ def main() -> None:
     events: list[dict] = []
     start_time = time.monotonic()
     receipt = {
-        "schema": "beastbox-real-original-browser-handoff-001-v1",
+        "schema": "beastbox-real-five-local-browser-handoff-002-v1",
         "source_sha": os.environ.get("GITHUB_SHA", "unknown"),
         "started_at_utc": utc(),
         "owner_memory_used": False,
@@ -194,7 +198,7 @@ def main() -> None:
         "qc67_receives_bounded_user_excerpt_not_full_memory": True,
     }
     processes: dict[str, subprocess.Popen] = {}
-    video_file = out / "REAL_FOUR_ORIGINAL_MODELS_COSMIC_UI.webm"
+    video_file = out / "REAL_FIVE_LOCAL_MODELS_COSMIC_UI.webm"
     failure = None
     prev_group = ""
     try:
@@ -251,20 +255,48 @@ def main() -> None:
                                           "--threads", "2", "--expected-sha256", EXPECTED[label]],
                                          out / "raw18-host.log", env)
                             target = "http://127.0.0.1:8768/model/info"
+                        elif group == "smol":
+                            from beastbox.tiny_local import verify_model
+                            if verify_model(a.smol) != EXPECTED[label]:
+                                raise RuntimeError("pinned public GGUF model hash mismatch")
+                            proc = start([sys.executable, "-m", "llama_cpp.server",
+                                          "--model", str(a.smol), "--model_alias", model,
+                                          "--chat_format", "chatml", "--host", "127.0.0.1",
+                                          "--port", "11522", "--n_gpu_layers", "0",
+                                          "--n_threads", "2", "--n_ctx", "4096"],
+                                         out / "smol-host.log", env)
+                            target = "http://127.0.0.1:11522/v1/models"
                         else:
                             proc = start([sys.executable, "-m", "models.qc67.inference.server",
                                           "--root", str(a.qc67)], out / "qc67-host.log", env)
                             target = "http://127.0.0.1:8771/model/info?model=qc67-phos"
                         processes[group] = proc
                         first_sha = EXPECTED["PHOS"] if group == "qc67" else EXPECTED[label]
-                        ready = wait_ready(proc, target, model="qc67-phos" if group == "qc67" else model,
-                                           expected=first_sha)
-                        current["startup_attested"] = True
-                        current["startup_sha256"] = ready["checkpoint_sha256"]
-                    info = http_json(base_url.removesuffix("/v1") + "/model/info" +
-                                     ("?model=" + model if group == "qc67" else ""))
-                    if info.get("checkpoint_sha256") != EXPECTED[label] or not info.get("ready"):
-                        raise RuntimeError("missing exact original checkpoint attestation")
+                        if group == "smol":
+                            ready = wait_ready(proc, target, model=None, max_seconds=180)
+                            served = ready.get("data") or []
+                            if not any(isinstance(row, dict) and row.get("id") == model for row in served):
+                                raise RuntimeError("pinned local GGUF server alias not attested")
+                            current["startup_attested"] = True
+                            current["startup_sha256"] = EXPECTED[label]
+                        else:
+                            ready = wait_ready(proc, target,
+                                model="qc67-phos" if group == "qc67" else model,
+                                expected=first_sha)
+                            current["startup_attested"] = True
+                            current["startup_sha256"] = ready["checkpoint_sha256"]
+                    if group == "smol":
+                        from beastbox.tiny_local import verify_model
+                        info = http_json(base_url + "/models", key=False)
+                        if verify_model(a.smol) != EXPECTED[label] or not any(
+                                isinstance(row, dict) and row.get("id") == model
+                                for row in info.get("data", [])):
+                            raise RuntimeError("pinned local GGUF not actually serving")
+                    else:
+                        info = http_json(base_url.removesuffix("/v1") + "/model/info" +
+                                         ("?model=" + model if group == "qc67" else ""))
+                        if info.get("checkpoint_sha256") != EXPECTED[label] or not info.get("ready"):
+                            raise RuntimeError("missing exact original checkpoint attestation")
                     current["model_info_verified"] = True
                     # No implicit privilege inheritance on brain swap. This test
                     # exercises real host authority; no tools are executed.
@@ -274,6 +306,10 @@ def main() -> None:
                     browser_clock_in(page, model, base_url)
                     after_swap = authority(page)
                     current["post_swap_authority"] = after_swap
+                    if len(after_swap) < 4 or "filesystem" not in after_swap:
+                        raise RuntimeError("owner authority UI snapshot missing; cannot verify revocation")
+                    if index > 0 and not before_grant.get("filesystem"):
+                        raise RuntimeError("previous owner grant was not visibly present before brain swap")
                     if any(after_swap.values()):
                         raise RuntimeError("authority inherited across model change")
                     nav(page, "ORBIT")
@@ -341,10 +377,11 @@ def main() -> None:
             event["label"] for event in events if not event.get("chat_succeeded")
         ]
         receipt["claim_limit"] = (
-            "Actual browser playback and real original model checkpoint serving on "
+            "Actual browser playback and real original checkpoint plus pinned GGUF serving on "
             "fresh disposable COSMOS memory. Wrong, truncated or failed answers "
             "are visible rather than repaired; QC67 sidecar supplies bounded user "
-            "input not the full COSMOS context. This does not claim a production "
+            "input not the full COSMOS context. An independent SmolLM2 model " 
+            "is separate from Cory\'s original checkpoint lineages. This does not claim production "
             "owner login, external billable providers, model quality, intrinsic "
             "self-improvement or that every model recalled previous dialogue."
         )
