@@ -244,3 +244,15 @@ def test_queue_ui_does_not_replace_measured_signals_view():
     assert 'SIGNALS' in html
     assert 'CONTINUOUS OPERATION' in html
     assert 'activationOut' in html
+
+
+def test_revocation_stops_queue_and_malformed_run_request_fails_closed(tmp_path):
+    app = CosmicApp(tmp_path)
+    app.dispatch('POST', '/api/authority', {'action': 'grant', 'name': 'sensors'})
+    app.dispatch('POST', '/api/activation', {'action': 'resume', 'reason': 'test trusted host'})
+    invalid = app.dispatch('POST', '/api/activation', {'action': 'run', 'max_tasks': '1', 'wall_seconds': '30'})
+    assert invalid[0] == 400
+    app.dispatch('POST', '/api/authority', {'action': 'revoke', 'name': 'sensors'})
+    status, snapshot = app.dispatch('GET', '/api/activation')
+    assert status == 200
+    assert snapshot['stopped'] is True
