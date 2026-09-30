@@ -66,6 +66,43 @@ def test_sensor_events_require_matching_live_authority_and_master_stop_revokes(t
     assert app.dispatch("POST", "/api/event", {"modality": "microphone", "event": event})[0] == 403
 
 
+def test_activation_queue_is_persistent_bounded_and_master_stop_safe(tmp_path):
+    app = CosmicApp(tmp_path)
+    event = {
+        "schema": "sensor-event-v1",
+        "source": "software-event",
+        "text": "queued browser observation",
+        "features": [0.2],
+    }
+    denied = app.dispatch(
+        "POST", "/api/activation", {"action": "enqueue_event", "event": event}
+    )
+    assert denied[0] == 403
+    app.dispatch("POST", "/api/authority", {"action": "grant", "name": "sensors"})
+    queued = app.dispatch(
+        "POST", "/api/activation", {"action": "enqueue_event", "event": event}
+    )
+    assert queued[0] == 200
+    assert queued[1]["status"] == "queued"
+    assert app.dispatch("POST", "/api/activation", {
+        "action": "run", "max_tasks": 1, "wall_seconds": 1,
+    })[1]["status"] == "STOPPED"
+
+    app.dispatch("POST", "/api/activation", {
+        "action": "resume", "reason": "test owner resume",
+    })
+    completed = app.dispatch("POST", "/api/activation", {
+        "action": "run", "max_tasks": 1, "wall_seconds": 10,
+    })
+    assert completed[1]["processed"][0]["status"] == "completed"
+
+    app.dispatch("POST", "/api/authority", {"action": "grant", "name": "sensors"})
+    app.dispatch("POST", "/api/authority", {"action": "master_stop"})
+    status = app.dispatch("GET", "/api/activation")
+    assert status[1]["stopped"] is True
+    assert status[1]["execution_semantics"].startswith("AT_LEAST_ONCE")
+
+
 def test_qbay_live_submission_is_default_denied(tmp_path):
     app = CosmicApp(tmp_path)
     status, body = app.dispatch("POST", "/api/quantum", {"provider": "ibm", "shots": 16})
@@ -129,6 +166,17 @@ def test_cosmic_headless_smoke_initializes_real_durable_state(tmp_path, capsys):
     assert len(receipt["checkpoint_sha256"]) == 64
 
 
+def test_cosmic_headless_smoke_activates_host_only_closed_loop_flags(
+    tmp_path, capsys, monkeypatch
+):
+    monkeypatch.setenv("BEASTBOX_CLOSED_LOOP_ENABLED", "yes")
+    monkeypatch.setenv("BEASTBOX_UNICODE_NFC_ENABLED", "yes")
+    assert cosmic_main(["--smoke", "--data-dir", str(tmp_path)]) == 0
+    receipt = json.loads(capsys.readouterr().out)
+    assert receipt["wiring"]["closed_loop"] is True
+    assert receipt["wiring"]["unicode_nfc"] is True
+
+
 def test_healthz_is_minimal_and_never_exposes_runtime_state(tmp_path):
     app = CosmicApp(tmp_path)
     status, body = app.dispatch("GET", "/healthz")
@@ -175,3 +223,24 @@ def test_readyz_fail_closed_without_exposing_memory_contents(tmp_path, monkeypat
     assert "prompt" not in encoded
     assert "memory_records" not in encoded
     assert "credential" not in encoded
+
+
+def test_provider_swap_stops_resumed_queue_and_preserves_pending_tasks(tmp_path):
+    app = CosmicApp(tmp_path)
+    app.dispatch('POST', '/api/authority', {'action': 'grant', 'name': 'sensors'})
+    event = {'schema': 'sensor-event-v1', 'source': 'software-event', 'text': 'pending after handoff', 'features': [0.1]}
+    queued = app.dispatch('POST', '/api/activation', {'action': 'enqueue_event', 'event': event})
+    assert queued[0] == 200
+    assert app.dispatch('POST', '/api/activation', {'action': 'resume', 'reason': 'test host'})[0] == 200
+    status = app.dispatch('POST', '/api/provider', {'kind': 'reference', 'model': 'Next test reference'})
+    assert status[0] == 200
+    after = app.dispatch('GET', '/api/activation')
+    assert after[1]['stopped'] is True
+    assert any(task['status'] == 'queued' for task in after[1]['tasks'])
+
+
+def test_queue_ui_does_not_replace_measured_signals_view():
+    html = render_cosmic_ui()
+    assert 'SIGNALS' in html
+    assert 'CONTINUOUS OPERATION' in html
+    assert 'activationOut' in html
