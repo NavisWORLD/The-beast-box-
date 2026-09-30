@@ -273,6 +273,11 @@ class CosmicApp:
                 self.authority.grant(name)
             else:
                 self.authority.revoke(name)
+                engine = self._activation()
+                try:
+                    engine.set_stopped(True, reason="host authority revoked; explicit reapproval required")
+                finally:
+                    engine.close()
         except ValueError as exc:
             return 400, {"error": str(exc)}
         self.session_events.append({"kind": "authority", "action": action, "name": name})
