@@ -107,7 +107,11 @@ class OwnerBridge:
                     or not 60 <= int(interval_raw) <= 3600):
                 raise ValueError("BEASTBOX_OWNER_MEMORY_LOOP_SECONDS must be 60..3600")
             self.memory_loop = OwnerMemoryLoop(
-                root, lock=self.app._lock, interval_seconds=int(interval_raw)
+                root, lock=self.app._lock, interval_seconds=int(interval_raw),
+                runtime_factory=lambda local_root: DurableRuntime(
+                    local_root, closed_loop=self.closed_loop_enabled,
+                    unicode_mode=self.unicode_nfc_enabled,
+                ),
             )
             self.memory_loop.start()
 
