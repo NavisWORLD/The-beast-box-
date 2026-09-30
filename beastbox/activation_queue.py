@@ -277,6 +277,13 @@ class ActivationEngine:
                     (moment, row["id"]),
                 )
                 self._audit("task_recovered", {"task_id": row["id"]})
+            if rows:
+                # A host crash may follow a committed runtime turn but precede
+                # task acknowledgement. Halt until the owner reconciles it.
+                self.db.execute(
+                    "UPDATE activation_meta SET value='true' WHERE key='stopped'"
+                )
+                self._audit("recovery_requires_host_reconciliation", {"count": len(rows)})
         return len(rows)
 
     def _claim(self, owner: str) -> sqlite3.Row | None:
