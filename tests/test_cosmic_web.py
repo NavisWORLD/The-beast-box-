@@ -163,6 +163,18 @@ def test_cosmic_headless_smoke_initializes_real_durable_state(tmp_path, capsys):
     assert receipt["turn"] == 0
     assert receipt["authority_grants"] == 0
     assert len(receipt["checkpoint_sha256"]) == 64
+    assert receipt["wiring"]["closed_loop"] is False
+
+
+def test_cosmic_headless_smoke_activates_host_only_closed_loop_flags(
+    tmp_path, capsys, monkeypatch
+):
+    monkeypatch.setenv("BEASTBOX_CLOSED_LOOP_ENABLED", "yes")
+    monkeypatch.setenv("BEASTBOX_UNICODE_NFC_ENABLED", "yes")
+    assert cosmic_main(["--smoke", "--data-dir", str(tmp_path)]) == 0
+    receipt = json.loads(capsys.readouterr().out)
+    assert receipt["wiring"]["closed_loop"] is True
+    assert receipt["wiring"]["unicode_nfc"] is True
 
 
 def test_healthz_is_minimal_and_never_exposes_runtime_state(tmp_path):

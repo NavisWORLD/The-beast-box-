@@ -871,12 +871,21 @@ class CosmicHTTPServer(ThreadingHTTPServer):
     session_token: str
 
 
-def serve(root: str | Path, host: str = "127.0.0.1", port: int = 8081) -> None:
+def serve(
+    root: str | Path,
+    host: str = "127.0.0.1",
+    port: int = 8081,
+    *,
+    closed_loop: bool = False,
+    unicode_mode: bool = False,
+) -> None:
     bind = validate_bind_host(host)
     if type(port) is not int or not 1 <= port <= 65535:
         raise ValueError("port must be an integer in 1..65535")
+    if type(closed_loop) is not bool or type(unicode_mode) is not bool:
+        raise ValueError("host closed-loop and Unicode flags must be booleans")
     server = CosmicHTTPServer((bind, port), _CosmicHandler)
-    server.cosmic_app = CosmicApp(root)
+    server.cosmic_app = CosmicApp(root, closed_loop=closed_loop, unicode_mode=unicode_mode)
     server.session_token = secrets.token_urlsafe(32)
     try:
         runtime = server.cosmic_app.service.orbit_snapshot()["runtime"]
