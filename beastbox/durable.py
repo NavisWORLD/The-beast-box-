@@ -851,7 +851,7 @@ class DurableRuntime(CosmosRuntime):
             c = self.continuity.verify()
             self._check_anchor(c)
             self._restore(c)
-            return {
+            summary = {
                 "schema": "runtime-inspection-v1",
                 "valid": True,
                 "anchor_mode": "external_cas" if self.anchor_authority is not None else "unanchored",
@@ -865,6 +865,19 @@ class DurableRuntime(CosmosRuntime):
                 "ledger_head": self.ledger.head,
                 "simulator_position": self.simulator_position,
             }
+            if self._wiring_profile is not None:
+                summary["wiring"] = {
+                    "schema": CLOSED_LOOP_PROFILE,
+                    "closed_loop": self._closed_loop,
+                    "unicode_nfc": self._unicode_mode,
+                    "host_reviewed_routing": self._reviewed_weights is not None,
+                    "reviewed_weights_sha256": self._wiring_profile.get("weights_sha256"),
+                    "persisted_software_r12_sequence": self.r12_state["sequence"],
+                    "persisted_software_r12_sha256": self.r12_state["state_sha256"],
+                    "physical_measurement_from_software": False,
+                    "model_authority_from_memory": False,
+                }
+            return summary
 
     def close(self) -> None:
         root = Path(self.config.data_dir)
