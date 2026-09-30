@@ -13,9 +13,14 @@ import uuid
 from dataclasses import asdict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, cast
+from typing import Any, Callable, Mapping, cast
 
 from .box import AuthorityPolicy
+from .closed_loop import (
+    PROFILE as CLOSED_LOOP_PROFILE,
+    advance_nonphysical_r12, host_software_event, rerank_with_host_review, reviewed_weights,
+)
+from .unicode_text import checked_utf8
 from .bridge import BridgePacket
 from .cns import CNS
 from .config import RuntimeConfig
@@ -57,6 +62,7 @@ class MeasuredProvider:
             self.measurements["provider_ms"] = (time.perf_counter() - started) * 1000
         if not isinstance(output, str) or len(output) > 65536:
             raise ValueError("provider response must be bounded text")
+        checked_utf8(output, label="provider response")
         self.measurements["output_characters"] = len(output)
         self.receipt = {
             "provider": type(self.delegate).__name__,
@@ -106,9 +112,31 @@ class DurableRuntime(CosmosRuntime):
         embedding_provider: EmbeddingProvider | None = None,
         allow_remote_embeddings: bool = False,
         recent_dialogue_limit: int = 0,
+        closed_loop: bool = False,
+        reviewed_routing_receipt: Mapping[str, Any] | None = None,
+        unicode_mode: bool = False,
     ):
         if type(recent_dialogue_limit) is not int or not 0 <= recent_dialogue_limit <= 6:
             raise ValueError("recent dialogue limit must be an integer in 0..6")
+        if type(closed_loop) is not bool or type(unicode_mode) is not bool:
+            raise ValueError("closed-loop and Unicode switches are explicit host booleans")
+        self._reviewed_weights = reviewed_weights(reviewed_routing_receipt)
+        if self._reviewed_weights is not None and not closed_loop:
+            raise ValueError("reviewed routing weights require a connected host closed loop")
+        self._closed_loop = closed_loop
+        self._unicode_mode = unicode_mode
+        self._current_normalized_event: dict[str, Any] | None = None
+        self._wiring_profile: dict[str, Any] | None = (
+            {
+                "schema": CLOSED_LOOP_PROFILE,
+                "closed_loop": closed_loop,
+                "unicode_mode": unicode_mode,
+                "weights_sha256": sha256_obj(self._reviewed_weights)
+                    if self._reviewed_weights is not None else None,
+                "feedback_authority": "host-supplied; never model inferred",
+            }
+            if closed_loop or unicode_mode else None
+        )
         self._recent_dialogue_limit = recent_dialogue_limit
         self._recent_dialogue_text = ""
         started = time.perf_counter()
@@ -202,7 +230,7 @@ class DurableRuntime(CosmosRuntime):
                 ) from exc
 
     def _state(self) -> dict[str, Any]:
-        return {
+        state = {
             "turn": self.turn,
             "cns": asdict(self.cns),
             "state_family": asdict(self.synaptic.state_family),
@@ -216,9 +244,15 @@ class DurableRuntime(CosmosRuntime):
             "r12_state": self.r12_state,
             "simulator_position": self.simulator_position,
         }
+        if self._wiring_profile is not None:
+            state["wiring_profile"] = self._wiring_profile
+        return state
 
     def _restore(self, checkpoint: dict[str, Any]) -> None:
         state = checkpoint["state"]
+        saved_profile = state.get("wiring_profile")
+        if saved_profile is not None and saved_profile != self._wiring_profile:
+            raise ValueError("persistent closed-loop/Unicode profile mismatch: supply the same host configuration")
         self.system_id = checkpoint["system_id"]
         self.turn = state["turn"]
         self.cns = CNS(**state["cns"])
@@ -284,6 +318,29 @@ class DurableRuntime(CosmosRuntime):
         return self._recent_dialogue_text
 
     def _route_memories(self, text, memories, state):
+        # The original CNS tick has already updated the exact mission dyn12.
+        # An opt-in host-only event advances nonphysical software R12 BEFORE
+        # the original ranker sees the same single verified memory snapshot.
+        software_transition = None
+        if self._closed_loop:
+            normalized = self._current_normalized_event
+            if normalized is None:
+                raise RuntimeError("closed-loop turn has no verified normalized event")
+            original = self.r12_state
+            event = host_software_event(
+                normalized, turn=self.turn, prior_state=original, cns_dyn12=state.dyn12
+            )
+            self.r12_state = advance_nonphysical_r12(original, event, text)
+            software_transition = {
+                "event": event,  # Sanitized nonphysical hashes, never raw owner text.
+                "previous_state_sha256": original["state_sha256"],
+                "new_state_sha256": self.r12_state["state_sha256"],
+                "sequence": self.r12_state["sequence"],
+                "cns_dyn12_sha256": sha256_obj(state.dyn12),
+                "physical_measurement_claimed": False,
+                "authority": "HOST_ONLY; NO MODEL TOOL GRANTS",
+            }
+            self._trace_stage("software_r12_transition")
         # Reuse the historical router without constructing/importing a historical ledger.
         snapshot_rows = self._retrieval_snapshot
         if snapshot_rows is None:
@@ -299,11 +356,15 @@ class DurableRuntime(CosmosRuntime):
             adapter = cast(DadSonLedger, SimpleNamespace(memory=_RoutingMemoryView(self.memory, snapshot_rows)))
             records = RefractiveMemoryRouter(adapter).rank(
                 text,
-                sequence=self.turn,
+                sequence=self.r12_state["sequence"] if self._closed_loop else self.turn,
                 dyn12=state.dyn12,
                 r12_state=self.r12_state,
-                limit=len(snapshot_rows) if self.semantic_index is not None else 5,
+                limit=len(snapshot_rows) if self.semantic_index is not None or self._reviewed_weights is not None else 5,
             )
+            if self._reviewed_weights is not None:
+                records = rerank_with_host_review(records, self._reviewed_weights)
+                if self.semantic_index is None:
+                    records = records[:5]
             semantic_info: dict[str, Any] | None = None
             if self.semantic_index is not None:
                 # The embedding provider must never run inside BEGIN IMMEDIATE.
@@ -335,6 +396,16 @@ class DurableRuntime(CosmosRuntime):
             "memory_ids": [r["memory_id"] for r in records],
             "state_sha256": sha256_obj(self.r12_state),
         }
+        if software_transition is not None:
+            self._routing["software_r12"] = software_transition
+            self._routing["cns_state_sha256"] = sha256_obj(state.dyn12)
+        if self._reviewed_weights is not None:
+            self._routing["reviewed_router"] = {
+                "mode": "host-supplied-original-components",
+                "weights_sha256": sha256_obj(self._reviewed_weights),
+                "trained_model_weights": False,
+                "human_review_attestation": "UNVERIFIED; caller host supplied receipt",
+            }
         if recent_ids:
             self._routing["recent_dialogue_ids"] = recent_ids
             self._routing["recent_dialogue_sha256"] = sha256_obj(self._recent_dialogue_text)
@@ -369,10 +440,10 @@ class DurableRuntime(CosmosRuntime):
         # The unlocked embedding interval permits OTHER independent runtimes
         # to write. It must not permit overlapping turns sharing THIS instance.
         # Reject rather than block: reentrant host plugins must fail closed.
-        if self.semantic_index is None:
+        if self.semantic_index is None and not self._closed_loop:
             return self._respond_event_serial(event, transient_context=transient_context)
         if not self._semantic_turn_lock.acquire(blocking=False):
-            raise SemanticRetrievalError("concurrent semantic turns on one runtime are not supported; retry")
+            raise RuntimeError("concurrent closed-loop/semantic turns on one runtime are not supported; retry")
         try:
             return self._respond_event_serial(event, transient_context=transient_context)
         finally:
@@ -389,12 +460,15 @@ class DurableRuntime(CosmosRuntime):
         self._retrieval_snapshot = None
         self._semantic_precomputed = None
         self._recent_dialogue_text = ""
+        self._current_normalized_event = None
         before = None
         committed = False
         try:
             if not isinstance(transient_context, str) or len(transient_context) > 512 * 1024:
                 raise ValueError("transient context exceeds the bounded input limit")
-            normalized = normalize_event(event)
+            checked_utf8(transient_context, label="temporary context")
+            normalized = normalize_event(event, normalization="NFC" if self._unicode_mode else "NFKC")
+            self._current_normalized_event = normalized if self._closed_loop else None
             self._trace = ["normalize"]
             self._measure_boundary("normalize")
             if self.semantic_index is not None:
@@ -471,10 +545,12 @@ class DurableRuntime(CosmosRuntime):
             self._finish_measurements(started, "committed")
             result["metrics"] = self.last_metrics
             self._semantic_precomputed = None
+            self._current_normalized_event = None
             return result
         except BaseException:
             self._retrieval_snapshot = None
             self._semantic_precomputed = None
+            self._current_normalized_event = None
             try:
                 if before is not None and not committed:
                     self._restore(before)
@@ -495,6 +571,7 @@ class DurableRuntime(CosmosRuntime):
             raise ValueError("persistent context text must contain 1..524288 characters")
         if not isinstance(kind, str) or not kind or len(kind) > 64:
             raise ValueError("persistent context kind is invalid")
+        checked_utf8(text, label="explicit persistent memory")
         meta = dict(metadata or {})
         before = None
         committed = False
