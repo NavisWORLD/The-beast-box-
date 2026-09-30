@@ -226,6 +226,10 @@ def main() -> None:
                                           record_video_size={"width": 1440, "height": 900},
                                           reduced_motion="reduce")
             page = context.new_page()
+            # Playwright otherwise AUTO-DISMISSES browser confirm dialogs, so an
+            # apparent GRANT click does not actually grant anything. Accept the
+            # actual local owner confirmation before asserting revocation.
+            page.on("dialog", lambda dialog: dialog.accept())
             browser_errors: list[str] = []
             page.on("pageerror", lambda e: browser_errors.append(str(e)))
             page.goto(BASE, wait_until="networkidle", timeout=30000)
@@ -318,6 +322,10 @@ def main() -> None:
                     if now_id != sid:
                         raise RuntimeError("substrate system ID changed")
                     grant(page, "filesystem")
+                    actual_grants = authority(page)
+                    if actual_grants.get("filesystem") is not True:
+                        raise RuntimeError("owner grant did not persist; cannot test revocation")
+                    current["actual_pre_next_swap_authority"] = actual_grants
                     current["filesystem_grant_given_to_host_only"] = True
                     try:
                         reply = chat(page, SAY[index])
