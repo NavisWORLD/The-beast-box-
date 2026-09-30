@@ -127,7 +127,7 @@ def main() -> int:
         try:
             _print(handle_runtime(args))
             return 0
-        except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
+        except (OSError, ValueError, RuntimeError, LookupError, sqlite3.Error) as exc:
             p.exit(2, f"runtime error: {exc}\n")
 
     if args.cmd == "profiles":
