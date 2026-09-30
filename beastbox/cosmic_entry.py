@@ -14,8 +14,9 @@ def default_data_dir() -> Path:
     return Path.home() / ".beastbox" / "data"
 
 
-def _host_flag(name: str) -> bool:
-    raw = os.environ.get(name, "").strip().lower()
+def _parse_host_flag(raw: str, name: str) -> bool:
+    """Parse a host flag without dynamic environment variable lookups."""
+    raw = raw.strip().lower()
     if raw in {"", "no", "false", "0"}:
         return False
     if raw in {"yes", "true", "1"}:
@@ -69,8 +70,12 @@ def main(argv: list[str] | None = None) -> int:
             if args.profiles_home is not None:
                 raise ValueError("--profiles-home requires --profile")
             root = (args.data_dir or default_data_dir()).expanduser().absolute()
-        closed_loop = _host_flag("BEASTBOX_CLOSED_LOOP_ENABLED")
-        unicode_mode = _host_flag("BEASTBOX_UNICODE_NFC_ENABLED")
+        closed_loop = _parse_host_flag(
+            os.environ.get("BEASTBOX_CLOSED_LOOP_ENABLED", ""), "BEASTBOX_CLOSED_LOOP_ENABLED"
+        )
+        unicode_mode = _parse_host_flag(
+            os.environ.get("BEASTBOX_UNICODE_NFC_ENABLED", ""), "BEASTBOX_UNICODE_NFC_ENABLED"
+        )
         if args.demo:
             if args.profile:
                 raise ValueError("--demo uses --data-dir, not --profile")
