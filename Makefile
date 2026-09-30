@@ -38,6 +38,7 @@ lint:
 	$(PYTHON) -m ruff check beastbox/cosmic_demo.py tests/test_cosmic_product_polish.py scripts/smoke/cosmic_browser.py
 	$(PYTHON) -m ruff check beastbox/aliases.py beastbox/hashutil.py beastbox/logging_config.py \
 		beastbox/continuity.py beastbox/durable.py beastbox/events.py beastbox/providers.py \
+		beastbox/signals.py beastbox/activation.py tests/test_substrate_activation.py \
 		beastbox/runtime_cli.py beastbox/swap_receipt.py scripts/run_architecture_acceptance.py \
 		scripts/productization_receipt.py tests/test_durable_runtime.py tests/test_product_spine.py \
 		tests/test_runtime_cli.py tests/test_swap_receipt.py tests/test_experimental_boundary.py \
@@ -54,6 +55,7 @@ lint:
 typecheck:
 	$(PYTHON) -m mypy beastbox/env_inventory.py beastbox/logging_config.py beastbox/hashutil.py beastbox/aliases.py \
 		beastbox/continuity.py beastbox/durable.py beastbox/events.py beastbox/providers.py \
+		beastbox/signals.py beastbox/activation.py \
 		beastbox/cli.py beastbox/cypher/models.py beastbox/runtime_cli.py beastbox/swap_receipt.py \
 		beastbox/product_services.py beastbox/memory.py beastbox/cosmic_web.py beastbox/cosmic_ui.py beastbox/cosmic_entry.py \
 		beastbox/sealed_storage.py beastbox/profiles.py beastbox/training/lineage.py beastbox/training/corpus.py \

@@ -100,6 +100,14 @@ def capability_inventory() -> dict[str, dict[str, str]]:
             "status": "IMPLEMENTED_AND_TESTED",
             "source": "DurableRuntime provider boundary + architecture acceptance",
         },
+        "measured_signal_trace": {
+            "status": "IMPLEMENTED_AND_TESTED",
+            "source": "beastbox.signals recorded on the durable turn receipt",
+        },
+        "three_verified_model_swap": {
+            "status": "NOT_ESTABLISHED",
+            "source": "no third verified checkpoint is configured; fixture label rotation is not this capability",
+        },
         "desktop_chat": {
             "status": "IMPLEMENTED_AND_TESTED",
             "source": "beastbox.desktop",
@@ -366,6 +374,7 @@ class ProductService:
                     "routing": receipt.get("routing", {}),
                     "model": safe_model,
                     "tool_result": receipt.get("tool_result", {}),
+                    "signals": receipt.get("signals") if isinstance(receipt.get("signals"), dict) else None,
                 }
             )
         return events
