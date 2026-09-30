@@ -10,7 +10,6 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from .dad_son import DadSonLedger
-from .unicode_text import unicode_terms
 
 PHASE = 0.17320508075688773
 LIVE_KIND = "live-source-epoch"
@@ -68,7 +67,7 @@ _SUSPICIOUS_WORDS = {
 
 
 def _tokens(text: str) -> list[str]:
-    return unicode_terms(str(text))
+    return [token.lower() for token in _TOKEN_RE.findall(str(text))]
 
 
 def _cosine_counts(left: Counter[str], right: Counter[str]) -> float:
