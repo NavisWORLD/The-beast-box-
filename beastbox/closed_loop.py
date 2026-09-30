@@ -146,3 +146,25 @@ def rerank_with_host_review(
         rescored.append(item)
     rescored.sort(key=lambda x:(x["score"],x["memory_id"]),reverse=True)
     return rescored
+
+
+class ReviewedSnapshotDB:
+    """Allow exactly the two historical read queries from AdaptiveControl.fit.
+
+    Fit sees the SAME active-only source snapshot as the real R12 inference
+    router. Archived records cannot silently participate as training rivals.
+    No writes, general SQL, attached databases or second source scans.
+    """
+
+    def __init__(self, rows: Sequence[Any]):
+        from .retrieval_snapshot import ReadOnlySnapshotDB
+        self._count = len(rows)
+        self._snapshot = ReadOnlySnapshotDB(list(rows))
+
+    def execute(self, sql: str, *args: Any):
+        if sql == "SELECT COUNT(*) FROM memories" and not args:
+            class CountCursor:
+                def fetchone(self_inner):
+                    return (self._count,)
+            return CountCursor()
+        return self._snapshot.execute(sql, *args)
