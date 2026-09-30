@@ -7,6 +7,11 @@ on:
       - "beastbox/closed_loop.py"
       - "beastbox/unicode_text.py"
       - "beastbox/durable.py"
+      - "beastbox/cosmic_web.py"
+      - "beastbox/product_services.py"
+      - "apps/beastbox-cloud/bridge/owner_bridge.py"
+      - "apps/beastbox-cloud/bridge/tests/test_owner_closed_loop_unicode_012.py"
+      - ".env.example"
       - "beastbox/events.py"
       - "beastbox/memory.py"
       - "beastbox/refractive_memory.py"
@@ -41,6 +46,7 @@ jobs:
           python -m pytest -q \
             tests/test_cosmos_closed_loop_unicode_012.py \
             tests/test_durable_runtime.py \
-            tests/test_r12_refractive_memory.py
+            tests/test_r12_refractive_memory.py \
+            apps/beastbox-cloud/bridge/tests/test_owner_closed_loop_unicode_012.py
       - name: Standard-library source syntax on all shipped 3.10-3.12 runtimes
         run: python -m compileall -q beastbox/closed_loop.py beastbox/unicode_text.py beastbox/durable.py
