@@ -358,9 +358,10 @@ class CosmicApp:
             if action == "enqueue_maintenance" and set(body) == {"action"}:
                 return 200, engine.enqueue("maintenance", {})
             if action == "run" and set(body) == {"action", "max_tasks", "wall_seconds"}:
-                return 200, engine.run(
-                    max_tasks=body.get("max_tasks"), wall_seconds=body.get("wall_seconds")
-                )
+                tasks, seconds = body.get("max_tasks"), body.get("wall_seconds")
+                if type(tasks) is not int or type(seconds) not in (int, float):
+                    return 400, {"error": "invalid activation run budget"}
+                return 200, engine.run(max_tasks=tasks, wall_seconds=seconds)
             if action in {"stop", "resume"} and set(body) == {"action", "reason"}:
                 return 200, engine.set_stopped(action == "stop", reason=body.get("reason"))
             if action == "cancel" and set(body) == {"action", "task_id", "reason"}:
