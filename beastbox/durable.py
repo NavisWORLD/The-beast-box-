@@ -143,6 +143,7 @@ class DurableRuntime(CosmosRuntime):
         self._trace: list[str] = []
         self._tool_result: dict[str, Any] = {}
         self._routing: dict[str, Any] = {}
+        self.last_ranked_records: list[dict[str, Any]] = []
         self._provider_generation = 0
         self._retrieval_snapshot: list[Any] | None = None
         # Opt-in scores are computed outside SQLite BEGIN IMMEDIATE and are never checkpointed.
@@ -329,6 +330,8 @@ class DurableRuntime(CosmosRuntime):
         finally:
             # Never carry retrieved context into another turn or checkpoint.
             self._retrieval_snapshot = None
+        # Observation-only copy for host tracers; never checkpointed or reused for routing.
+        self.last_ranked_records = records
         self._routing = {
             "router": "RefractiveMemoryRouter" if semantic_info is None else "R12+opt_in_semantic_rrf",
             "context_sha256": sha256_obj(records),
