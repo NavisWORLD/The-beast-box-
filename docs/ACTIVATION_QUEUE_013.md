@@ -36,10 +36,10 @@ finally:
     engine.close()
 ```
 
-The staged branch adds the original queue regression tests and owner-host CLI commands (`beastbox runtime queue-event`, `queue-status`, `queue-resume`, `queue-run`, `queue-stop`, `queue-cancel`, `queue-maintenance`). Run only against a disposable new substrate during acceptance. No browser, external API or production background scheduler is enabled by this step; the existing `beastbox runtime activate` command remains the separate Activation 007 experiment.
+The staged branch now includes original queue tests, the bounded host CLI (`beastbox runtime queue-*`) and a local owner COSMIC REALITY control panel. The controller's `/api/activation` endpoints require the existing local session token; normalized sensor enqueue requires explicit sensor authority, and any authority revocation, brain change or master privacy stop halts future queued execution. Stop preserves tasks and owner memory. The separately merged COSMIC SIGNALS view and `beastbox runtime activate` experiment remain intact. These additions do **not** turn on an unattended production daemon or expose new public access. Run only against a disposable new substrate during acceptance.
 
 ## Verification and release boundary
 
-Run `python -m pytest -q tests/test_activation_queue.py tests/test_cosmos_closed_loop_unicode_012.py tests/test_substrate_activation.py` after PR #162 is merged. Also require the whole exact-head CI/security/license/source-pristine matrix, host read/write consistency, restart, malformed task rejection and interruption/stop recovery.
+Run `python -m pytest -q tests/test_activation_queue.py tests/test_cosmos_closed_loop_unicode_012.py tests/test_substrate_activation.py` with merged PR #162. Also require the whole exact-head CI/security/license/source-pristine matrix, host read/write consistency, restart, malformed task rejection and interruption/stop recovery.
 
 This queue's software continuity or passing fixture tests do **not** establish semantic intelligence, continuous self-learning, verified native checkpoint swaps or intrinsic model self-correction. Production opt-in additionally requires a verified current Railway volume backup and separate-copy recovery drill.
