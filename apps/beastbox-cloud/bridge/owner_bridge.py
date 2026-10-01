@@ -43,8 +43,8 @@ from beastbox.signal_model_probe import signal_model_probe
 from beastbox.soul.archive_summary import archive_manifest
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "hf-model-inventory", "engine-growth", "engine-loop"})
-POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe", "signal-model-probe"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "hf-model-inventory", "engine-growth", "engine-loop", "activation"})
+POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe", "signal-model-probe", "activation", "authority"})
 
 
 class OwnerBridge:
@@ -609,6 +609,13 @@ class OwnerBridge:
         allowed = GET_ALLOW if method == "GET" else POST_ALLOW if method == "POST" else frozenset()
         if name not in allowed:
             return 404, {"error": "unsupported route"}
+        if name == "activation" and method == "GET":
+            # Separate status connection: never wait for an in-flight model.
+            engine = self.app._activation()
+            try:
+                return 200, {**engine.status(), "tasks": engine.tasks(limit=30)}
+            finally:
+                engine.close()
         if name == "engine-loop" and method == "GET":
             if self.memory_loop is None:
                 return 200, {"schema": "owner-memory-loop-v1", "running": False,
@@ -678,6 +685,31 @@ class OwnerBridge:
                 set(data) != {"scope", "name", "text"} or data.get("scope") != "temporary_attachment"
             ):
                 return 400, {"error": "cloud context is temporary attachment data only"}
+        if name == "authority":
+            # Cloud owner session exposes ONLY master stop, not host grants.
+            if set(data) != {"action"} or data["action"] != "master_stop":
+                return 400, {"error": "cloud authority supports only master_stop"}
+            return self.app._authority({"action": "master_stop"})
+        if name == "activation":
+            action = data.get("action")
+            if action == "stop" and set(data) == {"action", "reason"}:
+                # Stop bypasses the model-held lock. Provider calls already
+                # started cannot be preempted by the queue.
+                return self.app._activation_request(data)
+            if action == "enqueue_maintenance" and set(data) == {"action"}:
+                return self.chat_jobs.run_when_idle(
+                    lambda: self.app.dispatch("POST", "/api/activation", data))
+            if action == "run" and set(data) == {"action", "max_tasks", "wall_seconds"}:
+                tasks, seconds = data["max_tasks"], data["wall_seconds"]
+                if type(tasks) is not int or type(seconds) not in (int, float) or (
+                        not 1 <= tasks <= 3 or not 0.1 <= seconds <= 8):
+                    return 400, {"error": "activation run budget exceeded"}
+                return self.chat_jobs.run_when_idle(
+                    lambda: self.app.dispatch("POST", "/api/activation", data))
+            if action in {"resume", "cancel"}:
+                return self.chat_jobs.run_when_idle(
+                    lambda: self.app.dispatch("POST", "/api/activation", data))
+            return 400, {"error": "unsupported owner activation action"}
         if name == "cns-model-probe":
             with self.app._lock:
                 return self.chat_jobs.run_when_idle(lambda: cns_model_probe(data))
