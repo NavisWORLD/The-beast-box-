@@ -30,13 +30,16 @@ with sync_playwright() as p:
     unauth.on("pageerror", lambda error:errors.append(str(error)))
     response=unauth.goto(BASE,wait_until="domcontentloaded")
     assert response and response.status==200
-    assert unauth.get_by_text("Your AI.").count()>=1
+    assert unauth.get_by_text("A small companion.").count()>=1
     assert_form_landmarks(unauth,"landing")
     assert_no_overflow(unauth,"desktop landing")
     unauth.screenshot(path=str(OUT/"01-landing-desktop.png"),full_page=True)
     r=unauth.request.post(BASE+"/api/bridge/chat",data={"text":"Unauthorized attempt"})
     assert r.status==401, ("unauthenticated bridge",r.status)
-    unauth.get_by_role("link",name="Enter Cosmic Chaos").click()
+    unauth.get_by_role("link",name="Enter the Beast Cage").click()
+    assert unauth.get_by_role("heading",name="A small companion. An entire universe.").count()>=1
+    assert_no_overflow(unauth,"desktop cage")
+    unauth.get_by_role("link",name="Owner deck").click()
     unauth.get_by_label("OWNER PASSWORD").fill("public-ci-fixture-not-secret")
     unauth.get_by_role("button",name="Unlock workstation").click()
     unauth.get_by_text("BACKEND OFFLINE").wait_for(timeout=20000)
