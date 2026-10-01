@@ -32,6 +32,16 @@ class OwnerWingsTests(unittest.TestCase):
             status,run=owner.dispatch("POST","/api/activation",AUTH,b'{"action":"run","max_tasks":1,"wall_seconds":1}')
             self.assertEqual(status,200)
             self.assertEqual(run["status"],"STOPPED")
+    def test_stop_invalidates_previously_admitted_cloud_handoff(self):
+        with tempfile.TemporaryDirectory() as root:
+            owner=module.OwnerBridge(Path(root),TOKEN)
+            earlier=owner._stop_epoch
+            self.assertEqual(
+                owner.dispatch("POST","/api/authority",AUTH,b'{"action":"master_stop"}')[0],200)
+            with self.assertRaisesRegex(PermissionError,"invalidated"):
+                owner._remote_profile_handoff({"kind":"reference"},earlier)
+            self.assertFalse(owner.app.authority.allowed("cloud"))
+
     def test_cloud_never_enqueues_unconsented_sensor_events_or_unbounded_work(self):
         with tempfile.TemporaryDirectory() as root:
             owner=module.OwnerBridge(Path(root),TOKEN)

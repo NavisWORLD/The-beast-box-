@@ -13,6 +13,7 @@ import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import urllib.parse
+import threading
 
 from dataclasses import asdict
 from beastbox.cosmic_web import CosmicApp, ProviderProfile
@@ -53,6 +54,12 @@ class OwnerBridge:
             raise ValueError("missing strong bridge token")
         self.token = token
         self.root = root
+        # Independent of app inference lock: invalidate any owner model
+        # selection admitted before a master stop, even if its catalog query
+        # finishes afterward.
+        self._stop_lock = threading.Lock()
+        self._stop_epoch = 0
+        self._control_lock = threading.Lock()
         # Trusted owner service configuration ONLY, never browser JSON or
         # model response. A persistent upgraded checkpoint rejects old-mode
         # readers, so pass the SAME flags into all owner API/runtime surfaces.
@@ -133,7 +140,27 @@ class OwnerBridge:
                 return item["secret"]
         return None
 
-    def _connection_action(self, data: dict) -> tuple[int, dict]:
+    def _remote_profile_handoff(self, desired: dict, stop_epoch: int):
+        # Slow inventory lookups happen outside this short critical section.
+        # No stale model-selection request can restore a cloud grant after
+        # the owner pressed master stop.
+        with self._stop_lock:
+            if stop_epoch != self._stop_epoch:
+                raise PermissionError("owner privacy stop invalidated pending model approval")
+            allowed = self.app.authority.allowed("cloud")
+            self.app.authority.grant("cloud")
+            try:
+                profile, changed, revoked = self.app._set_profile(desired)
+            except Exception:
+                if not allowed:
+                    self.app.authority.revoke("cloud")
+                raise
+            self.app.authority.grant("cloud")
+            return profile, changed, revoked
+
+    def _connection_action(self, data: dict, *, stop_epoch: int | None = None) -> tuple[int, dict]:
+        if stop_epoch is None:
+            stop_epoch = self._stop_epoch
         if self.vault is None:
             return 503, {"error":"Encrypted owner vault is not provisioned on the durable host"}
         action = data.get("action")
@@ -188,13 +215,13 @@ class OwnerBridge:
                 # operation; the handoff itself revokes previous grants.
                 desired = {"kind":"compatible","model":saved["config"]["model"],
                            "base_url":endpoint,"allow_remote":True,"api_key_env":None}
-                self.app.authority.grant("cloud")
-                profile,changed,revoked = self.app._set_profile(desired)
-                self.app.authority.grant("cloud")
+                profile,changed,revoked = self._remote_profile_handoff(desired, stop_epoch)
                 return 200, {"selected":provider,"model":profile.model,
                              "brain_changed":changed,"authority_revoked":revoked,
                              "cloud_grant":"EXPLICIT_OWNER_SELECTION",
                              "inference":"NOT_ATTESTED_UNTIL_REAL_CHAT"}
+        except PermissionError:
+            return 403, {"error":"Owner stop invalidated pending cloud approval; select explicitly again"}
         except (ValueError, TypeError, KeyError):
             return 400, {"error":"connection request rejected; no secret was returned"}
         return 400, {"error":"unsupported connection action"}
@@ -326,8 +353,10 @@ class OwnerBridge:
             "no_automatic_fallback": True,
         }
 
-    def _model_action(self, data: dict) -> tuple[int, dict]:
+    def _model_action(self, data: dict, *, stop_epoch: int | None = None) -> tuple[int, dict]:
         """Owner-initiated model swap without replacing memory or authority."""
+        if stop_epoch is None:
+            stop_epoch = self._stop_epoch
         choice = data.get("choice")
         if choice == "local" and set(data) == {"choice"}:
             if not self.local_model_ready:
@@ -375,12 +404,13 @@ class OwnerBridge:
                 remote.attest()
             except Exception:
                 return 503, {"error": "Private RAWRPHØS Space identity unavailable; selection unchanged"}
-            self.app.authority.grant("cloud")
             try:
-                profile, changed, revoked = self.app._set_profile(hosted_native_profile())
+                profile, changed, revoked = self._remote_profile_handoff(
+                    hosted_native_profile(), stop_epoch)
+            except PermissionError:
+                return 403, {"error": "Owner stop invalidated pending RAWRPHØS approval; select explicitly again"}
             except (ValueError, ConnectionError):
                 return 503, {"error": "Private RAWRPHØS provider unavailable; selection unchanged"}
-            self.app.authority.grant("cloud")
             return 200, {"selected": "rawrphos_hf", "model": profile.model,
                          "loaded_step": HF_NATIVE_STEP, "checkpoint_sha256": HF_NATIVE_SHA,
                          "brain_changed": changed, "authority_revoked": revoked,
@@ -445,7 +475,7 @@ class OwnerBridge:
             try:
                 code, result = self._connection_action({
                     "action": "activate", "provider": "huggingface", "spend_approved": True
-                })
+                }, stop_epoch=stop_epoch)
                 if code != 200:
                     raise ValueError("model activation failed")
             except (ValueError, OSError, ConnectionError):
@@ -488,7 +518,7 @@ class OwnerBridge:
             try:
                 status, result = self._connection_action({
                     "action": "activate", "provider": "ollama_cloud", "spend_approved": True
-                })
+                }, stop_epoch=stop_epoch)
                 if status != 200:
                     raise ValueError("model activation failed")
             except (ValueError, OSError, ConnectionError):
@@ -506,7 +536,7 @@ class OwnerBridge:
                 and data["spend_approved"] is True):
             status, result = self._connection_action({
                 "action": "activate", "provider": choice, "spend_approved": True,
-            })
+            }, stop_epoch=stop_epoch)
             return status, result
         return 400, {"error": "Choose a configured model and approve remote usage explicitly"}
 
@@ -606,6 +636,7 @@ class OwnerBridge:
         if not parsed.path.startswith("/api/"):
             return 404, {"error": "unsupported route"}
         name = parsed.path.removeprefix("/api/")
+        request_stop_epoch = self._stop_epoch
         allowed = GET_ALLOW if method == "GET" else POST_ALLOW if method == "POST" else frozenset()
         if name not in allowed:
             return 404, {"error": "unsupported route"}
@@ -689,7 +720,9 @@ class OwnerBridge:
             # Cloud owner session exposes ONLY master stop, not host grants.
             if set(data) != {"action"} or data["action"] != "master_stop":
                 return 400, {"error": "cloud authority supports only master_stop"}
-            return self.app._authority({"action": "master_stop"})
+            with self._stop_lock:
+                self._stop_epoch += 1
+                return self.app._authority({"action": "master_stop"})
         if name == "activation":
             action = data.get("action")
             if action == "stop" and set(data) == {"action", "reason"}:
@@ -727,11 +760,13 @@ class OwnerBridge:
             return self.chat_jobs.start(data)
         if name == "models":
             with self.app._lock:
-                return self.chat_jobs.run_when_idle(lambda: self._model_action(data))
+                return self.chat_jobs.run_when_idle(
+                    lambda: self._model_action(data, stop_epoch=request_stop_epoch))
         if name == "connections":
             with self.app._lock:
                 if data.get("action") in {"activate", "remove", "save", "update_model"}:
-                    return self.chat_jobs.run_when_idle(lambda: self._connection_action(data))
+                    return self.chat_jobs.run_when_idle(
+                        lambda: self._connection_action(data, stop_epoch=request_stop_epoch))
                 return self._connection_action(data)
         if name == "azure-read":
             with self.app._lock:
