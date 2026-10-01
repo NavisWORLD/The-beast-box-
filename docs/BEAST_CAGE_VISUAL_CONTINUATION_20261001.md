@@ -1,0 +1,11 @@
+# Beast Cage UI — implementation scope and evidence
+
+Branch: `feature/beast-cage-cosmic-creature-20261001`, based on GitHub main `fbc8fb0a`. The user's screenshot shows a newer Beast Cage preview **not present in that GitHub main**. Reconcile any uncommitted Astra work before merging or deploying; do not replace unseen updates.
+
+This additive source change implements: (1) original editable SVG cosmic creature and observatory inspired by the user's references; (2) actual lightweight procedural 3D character rendered with Three.js, 3D petal geometry, star halo, star eyes, seeded galaxy surface, inertial motion and physically based materials; (3) static vector fallback when WebGL or animation is unavailable; (4) public `/beast-cage` exploratory page with explicitly opt-in, device-only cosmetic preference; (5) homepage invitation with original habitat artwork; and (6) a small persistent floating owner-workstation creature mounted outside page-specific components, using bounded safe viewport perches. It reacts to authentic UI status, actual local numeric microphone RMS, chat request lifecycle and changed runtime trace sequence without reading raw media or server credentials.
+
+Not implemented by this frontend: a fully art-directed production rig of the exact supplied image, independently persistent multiuser COSMOS identity records, isolated per-identity permissions, model inference on the public Beast Cage page, or actual iPhone physical hardware verification. Visual emotion and motion are illustration, not proof of consciousness, neural-weight growth or model understanding.
+
+Verification required: `npm test`, `npm run typecheck`, `npm run build` and the dedicated real Chromium acceptance workflow. It captures screenshots at 1440/430/390/375/320px and reduced-motion, exercises explicit local cosmetic save/reload, checks horizontal overflow and requires the actual 3D renderer when WebGL is supported. It never touches private owner data.
+
+Production is intentionally unchanged. Do not merge this visual branch or enable an automatic Vercel deployment until the competing newer UI implementation is reconciled and exact-branch checks pass. Keep the existing Railway deployment and owner storage untouched.
