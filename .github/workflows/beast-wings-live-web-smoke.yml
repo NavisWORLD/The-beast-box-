@@ -1,0 +1,106 @@
+name: Beast Wings public production smoke (no credentials)
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/beastbox-cloud/vercel.json
+      - .github/workflows/beast-wings-live-web-smoke.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: beast-wings-public-production-smoke
+  cancel-in-progress: true
+jobs:
+  public-verified-rollout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Verify live PWA, public perimeter and existing Railway health
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import ssl
+          import time
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          context=ssl.create_default_context()
+          def get(url):
+              req=urllib.request.Request(url,headers={"User-Agent":"BeastWings-read-only-smoke/1.0"},method="GET")
+              try:
+                  with urllib.request.urlopen(req,timeout=15,context=context) as resp:
+                      return resp.status,resp.geturl(),resp.read(65537)
+              except urllib.error.HTTPError as exc:
+                  return exc.code,exc.geturl(),exc.read(65537)
+
+          base="https://beastboxcosmos.xyz"
+          backend="https://cosmos-owner-bridge-production.up.railway.app"
+          receipt={
+              "schema":"beast-wings-public-production-smoke-v1",
+              "github_source_commit":os.environ.get("GITHUB_SHA"),
+              "no_credentials_used":True,
+              "owner_state_read":False,
+              "model_inference_attempted":False,
+          }
+          last="not started"
+          # Vercel's main deployment may begin after the GitHub push event.
+          for attempt in range(24):
+              try:
+                  status,redirect,raw=get(base+"/manifest.webmanifest")
+                  host=urllib.parse.urlsplit(redirect).hostname
+                  if status!=200 or host not in {"beastboxcosmos.xyz","www.beastboxcosmos.xyz"}:
+                      raise ValueError("manifest status or host mismatch")
+                  if len(raw)>65536:
+                      raise ValueError("unexpected oversized manifest")
+                  manifest=json.loads(raw)
+                  if manifest.get("name")!="BEAST BOX // COSMOS" or manifest.get("display")!="standalone":
+                      raise ValueError("production has not served the Beast Wings manifest yet")
+                  home,home_url,html=get(base+"/")
+                  if home!=200 or urllib.parse.urlsplit(home_url).hostname not in {"beastboxcosmos.xyz","www.beastboxcosmos.xyz"}:
+                      raise ValueError("public homepage unavailable")
+                  if b"BEAST BOX" not in html.upper() and b"COSMOS" not in html.upper():
+                      raise ValueError("live homepage lacks product identity")
+                  bridge,_,_=get(backend+"/healthz")
+                  if bridge!=200:
+                      raise ValueError("existing Railway health endpoint not ready")
+                  for route in ("/api/orbit","/api/models"):
+                      code,_,_=get(backend+route)
+                      if code!=401:
+                          raise ValueError("private Railway route did not reject no-token read")
+                      receipt["backend_"+route.removeprefix("/api/")+"_no_token_status"]=code
+                  client,_,_=get(base+"/api/bridge/activation")
+                  if client!=401:
+                      raise ValueError("cloud activation route did not reject anonymous access")
+                  receipt.update({
+                      "manifest_status":status,
+                      "manifest_name":manifest["name"],
+                      "manifest_display":manifest["display"],
+                      "homepage_status":home,
+                      "backend_health_status":bridge,
+                      "cloud_activation_anonymous_status":client,
+                      "frontend_effective_host":host,
+                      "attempt":attempt+1,
+                  })
+                  with open("beast-wings-live-smoke-receipt.json","w",encoding="utf-8") as out:
+                      json.dump(receipt,out,indent=2,sort_keys=True)
+                  print("BEAST_WINGS_LIVE_PUBLIC_SMOKE_PASS",json.dumps(receipt,sort_keys=True))
+                  break
+              except (urllib.error.URLError,TimeoutError,ValueError,json.JSONDecodeError) as exc:
+                  last=type(exc).__name__+":"+str(exc)[:140]
+                  if attempt==23:
+                      raise AssertionError("public live verification not confirmed: "+last)
+                  time.sleep(10)
+          PY
+      - name: Preserve non-sensitive public-only receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beast-wings-live-public-receipt
+          path: beast-wings-live-smoke-receipt.json
+          if-no-files-found: warn
+          retention-days: 30
