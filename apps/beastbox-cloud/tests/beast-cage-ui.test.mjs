@@ -32,7 +32,8 @@ test('local numeric signals and owner privacy stop never confer model authority'
  assert.match(dock,/beastbox:local-sensor-level/);
  assert.match(dock,/beastbox:master-privacy-stop/);
  assert.match(dock,/last.sequence/);
- assert.doesNotMatch(dock,/getUserMedia|api\('bridge|localStorage|Math.random/);
+ assert.match(dock,/localStorage.getItem\\('beastbox-cage-appearance-v1'\\)/);
+ assert.doesNotMatch(dock,/getUserMedia|api\\('bridge|localStorage\\.(?:setItem|removeItem)|Math.random/);
 });
 test('browser-only cosmetic preference is not a fake COSMOS identity',()=>{
  const cage=read('components/beast-cage-portal.tsx');
