@@ -59,7 +59,7 @@ export default function ActivationDeck(){
     {state?.tasks.map(task=><div key={task.id} className="record" style={{overflowWrap:'anywhere'}}>
       <strong>{task.kind} · {task.status}</strong>
       <small> {task.id} · attempts {task.attempts}/{task.max_attempts}</small>
-      {task.result&&<pre style={{overflowWrap:'anywhere',whiteSpace:'pre-wrap'}}>{JSON.stringify(task.result,null,2)}</pre>}
+      {task.result!==undefined&&task.result!==null&&<pre style={{overflowWrap:'anywhere',whiteSpace:'pre-wrap'}}>{JSON.stringify(task.result,null,2)}</pre>}
       {task.last_error&&<p role="status">Recorded failure: {task.last_error}</p>}
       {task.status==='queued'&&<button className="outline-action" disabled={loading||!why}
          onClick={()=>void act({action:'cancel',task_id:task.id,reason:why})}>Cancel pending task</button>}
