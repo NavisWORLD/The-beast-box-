@@ -69,20 +69,35 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
   if(visionTimer.current){clearInterval(visionTimer.current);visionTimer.current=null;}
   camera.current?.getTracks().forEach(t=>t.stop());camera.current=null;
   if(video.current)video.current.srcObject=null;
-  if(alive.current)setCameraOn(false);
- },[]);
+  if(alive.current){
+   setCameraOn(false);
+   // Revoke permission to reuse unsent visual labels after stopping capture.
+   setObservations(old=>old.filter(item=>item.source!=='camera_classifier'));
+   setIncludeInChat(false);setRememberConsent(false);onContext('',false);
+  }
+ },[onContext]);
  const stopSpeech=useCallback(()=>{
   speechWanted.current=false;
   if(speechTimer.current){clearTimeout(speechTimer.current);speechTimer.current=null;}
   const current=recognition.current;recognition.current=null;
   if(current){current.onend=null;current.onresult=null;current.onerror=null;try{current.abort();}catch{}}
-  if(alive.current)setSpeechOn(false);
- },[]);
+  if(alive.current){
+   setSpeechOn(false);
+   setObservations(old=>old.filter(item=>item.source!=='browser_speech'));
+   setIncludeInChat(false);setRememberConsent(false);onContext('',false);
+  }
+ },[onContext]);
  useEffect(()=>{
   alive.current=true;
-  const hidden=()=>{if(document.hidden){stopCamera();stopSpeech();if(alive.current)setNotice('Sensing stopped when the app became hidden.');}};
+  const hidden=()=>{if(document.hidden){
+   stopCamera();stopSpeech();
+   if(alive.current){
+    setObservations([]);setIncludeInChat(false);setRememberConsent(false);onContext('',false);
+    setNotice('Sensing stopped and unsent context revoked when the app became hidden.');
+   }
+  }};
   document.addEventListener('visibilitychange',hidden);
-  const pagehide=()=>{stopCamera();stopSpeech();};
+  const pagehide=()=>{stopCamera();stopSpeech();onContext('',false);};
   window.addEventListener('pagehide',pagehide);
   return ()=>{alive.current=false;document.removeEventListener('visibilitychange',hidden);
    window.removeEventListener('pagehide',pagehide);stopCamera();stopSpeech();onContext('',false);};
@@ -286,7 +301,8 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
    {includeInChat&&!text?<p role="status">No observations collected yet. Start vision or speech and wait for a result; nothing will be sent to the model without a result.</p>:null}
    <div className="cloud-connect-actions">
     <button type="button" onClick={draft} disabled={!canSend||!freshObservations.length}>Add observations to draft</button>
-    <button type="button" onClick={()=>{setObservations([]);setIncludeInChat(false);setRememberConsent(false);}}>Discard selection</button>
+    <button type="button" onClick={()=>{setObservations([]);setIncludeInChat(false);setRememberConsent(false);onContext('',false);}}>Discard selection</button>
+    <button type="button" onClick={()=>{stopCamera();stopSpeech();setObservations([]);setIncludeInChat(false);setRememberConsent(false);onContext('',false);setNotice('Live capture stopped; all unsent sensor observations discarded. Previously saved memories require separate owner correction.');}}>Stop all sensing and revoke unsent context</button>
    </div>
    <label className="cloud-spend"><input type="checkbox" checked={rememberConsent}
     onChange={e=>setRememberConsent(e.target.checked)} disabled={!memoryEnabled||!canSend}/>
@@ -298,7 +314,7 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
    {receipt?<p role="status" className="cloud-connect-success">{receipt}</p>:null}
    {notice?<p role="status" className="cloud-connect-success">{notice}</p>:null}
    {error?<p role="alert" className="inline-error">{error}</p>:null}
-   <p className="cloud-connect-foot">Observations expire from sendable context within four minutes. No background capture, automatic sending, diagnosis, identity recognition or live action authority. iOS may end the stream. Press Stop or hide the app to release permissions.</p>
+   <p className="cloud-connect-foot">Observations expire from sendable context within four minutes. No background capture, automatic sending, diagnosis, identity recognition or live action authority. iOS may end the stream. Press Stop or hide the app to stop capture and revoke unsent context; browser-level device permissions are controlled in browser settings. Previously persisted memories require separate owner correction.</p>
   </div>
  </section>;
 }

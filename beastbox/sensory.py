@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import math
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -20,7 +21,14 @@ class SensorySummary:
         return sha256_obj({"source": self.source, "captured_at": self.captured_at, "features": self.features})
 
     def is_fresh(self, max_age_seconds: float = 5.0, now: float | None = None) -> bool:
-        return (now or time.time()) - self.captured_at <= max_age_seconds
+        # Reject future-dated, non-finite and stale sensory observations.
+        timestamp = time.time() if now is None else now
+        values = (timestamp, self.captured_at, max_age_seconds)
+        if (any(isinstance(v, bool) or not isinstance(v, (int, float))
+                or not math.isfinite(v) for v in values) or max_age_seconds < 0):
+            return False
+        age = timestamp - self.captured_at
+        return 0 <= age <= max_age_seconds
 
 
 def freshness_gate(summary: SensorySummary | None, max_age_seconds: float = 5.0) -> SensorySummary | None:
