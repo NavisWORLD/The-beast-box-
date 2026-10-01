@@ -1,0 +1,53 @@
+name: DevDay genuine 3D turntable video
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/**'
+      - '.github/workflows/devday-3d-video.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install app and test 3D source contract
+        run: |
+          npm install --no-audit --no-fund
+          npm test
+          npm run typecheck
+          NEXT_TELEMETRY_DISABLED=1 npm run build
+      - name: Install Chromium
+        run: |
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Capture real Three.js rotation and four angles
+        shell: bash
+        run: |
+          npm run start -- --hostname 127.0.0.1 --port 3100 > /tmp/devday3d.log 2>&1 &
+          for n in $(seq 1 80); do if curl -fsS http://127.0.0.1:3100/beast-cage/turntable >/dev/null; then break; fi; sleep 1; done
+          python tests/devday_3d_turntable_browser.py
+      - name: Encode actual 3D footage to MP4
+        if: always()
+        run: |
+          if test -f browser-evidence/quest-3d/real-3d-turntable-360.webm; then
+            ffmpeg -y -loglevel error -i browser-evidence/quest-3d/real-3d-turntable-360.webm -c:v libx264 -pix_fmt yuv420p -movflags +faststart browser-evidence/quest-3d/real-3d-turntable-360.mp4
+          fi
+          cp ../../docs/DEV_DAY_BEAST_CAGE_3D_PROCESS.md browser-evidence/quest-3d/PROCESS.md || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: devday-original-beast-3d-turntable
+          path: apps/beastbox-cloud/browser-evidence/quest-3d/
+          if-no-files-found: warn
