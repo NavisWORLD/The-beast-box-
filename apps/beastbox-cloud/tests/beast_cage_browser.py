@@ -19,6 +19,16 @@ with sync_playwright() as p:
         page=context.new_page()
         errors=[]
         page.on("pageerror",lambda error:errors.append(str(error)))
+        # The public HOMEPAGE must render the actual creature too, not merely
+        # its static illustrative reference image.
+        home=page.goto(ROOT+"/",wait_until="domcontentloaded",timeout=30000)
+        assert home and home.status==200
+        page.get_by_role("heading",name=re.compile("A small companion")).wait_for()
+        no_overflow(page,str(width)+" homepage")
+        if page.evaluate("!!document.createElement('canvas').getContext('webgl')"):
+            page.locator(".beast-landing-creature [data-graphics='procedural-3d']").wait_for(timeout=16000)
+        if width in (1440,390,320):
+            page.screenshot(path=str(OUT/f"homepage-{width}.png"),full_page=True,animations="disabled")
         response=page.goto(ROOT+"/beast-cage",wait_until="domcontentloaded",timeout=30000)
         assert response and response.status==200,(width,"route")
         page.get_by_role("heading",name=re.compile("A small companion")).wait_for()
