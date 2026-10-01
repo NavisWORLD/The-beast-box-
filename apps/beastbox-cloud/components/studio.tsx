@@ -53,12 +53,18 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  const [turns,setTurns]=useState<Turn[]>([]),[prompt,setPrompt]=useState(''),[model,setModel]=useState('NOT CONNECTED');
  const [modelGate,setModelGate]=useState<{reapproval_required:boolean;remote_grant_active:boolean;local_available:boolean}|null>(null);
  const [liveContext,setLiveContext]=useState({text:'',include:false});
+ const sensorApprovalEpoch=useRef(0);
  const [sensorReceipt,setSensorReceipt]=useState('');
  const [recallReceipt,setRecallReceipt]=useState<{recent:number;retrieved:number;persistent:boolean}|null>(null);
  const [temporaryReply,setTemporaryReply]=useState<Turn|null>(null);
  const [sensesActive,setSensesActive]=useState({camera:false,speech:false});
  const updateSensesActive=useCallback((camera:boolean,speech:boolean)=>setSensesActive(old=>old.camera===camera&&old.speech===speech?old:{camera,speech}),[]);
- const updateLiveContext=useCallback((text:string,include:boolean)=>setLiveContext(old=>old.text===text&&old.include===include?old:{text,include}),[]);
+ const updateLiveContext=useCallback((text:string,include:boolean)=>{
+  // Synchronous revocation token prevents an in-flight staging request from
+  // starting a NEW chat after the owner has withdrawn sensor approval.
+  if(!include)sensorApprovalEpoch.current++;
+  setLiveContext(old=>old.text===text&&old.include===include?old:{text,include});
+ },[]);
  const [records,setRecords]=useState<Record<string,unknown>[]>([]),[orbit,setOrbit]=useState<Record<string,unknown>|null>(null),[trace,setTrace]=useState<Record<string,unknown>[]>([]),[snapshot,setSnapshot]=useState<Record<string,unknown>|null>(null),[profile,setProfile]=useState<Record<string,unknown>|null>(null);
  const [attachments,setAttachments]=useState<Attachment[]>([]),[attachError,setAttachError]=useState(''),[analyzingPhoto,setAnalyzingPhoto]=useState<File|null>(null);
  const [extractingPdf,setExtractingPdf]=useState<File|null>(null);
@@ -192,6 +198,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
      // Stage them as untrusted turn-only context, never append them to the
      // durable user turn. Raw camera frames/audio never enter this route.
      const userText=prompt.trim();
+     const approvalAtStart=sensorApprovalEpoch.current;
      let sensorContextId:number|null=null;
      const approvedContext=liveContext.include?liveContext.text.slice(0,2300).trim():'';
      if(approvedContext){
@@ -205,6 +212,10 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
        if(typeof staged.id!=='number')throw new Error('Backend did not confirm the selected sensor context.');
        sensorContextId=staged.id;ids.push(sensorContextId);
      }
+     // Stop or context withdrawal during async staging invalidates this
+     // NEW chat admission. An already-started provider call cannot be undone.
+     if(sensorContextId!==null&&approvalAtStart!==sensorApprovalEpoch.current)
+       throw new Error('Sensor approval changed during staging; this chat was not submitted.');
      // CPU inference may outlive Vercel's timeout; one idempotent job only.
      const chatText=userText;
      if(chatText.length>8192)throw new Error('Message exceeds the chat limit.');
@@ -223,11 +234,18 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
      if(state.state!=='complete')throw new Error(typeof state.error==='string'?state.error:'COSMOS did not confirm a completed answer. Check conversation before retrying or switch models in Brain Bay.');
      const result=state.result as Record<string,unknown>|undefined;
      if(!result?.result||typeof result.result!=='object'||typeof (result.result as Record<string,unknown>).response!=='string')throw new Error('Backend returned no verified model text');
-     // A returned context_used receipt proves the selected bounded text was
-     // bound to this completed turn; it does NOT prove full image/audio vision.
-     const confirmed=Array.isArray(result.context_used)&&
+     // context_used confirms host staging. The separate measured receipt
+     // verifies actual host-to-delegate prompt binding, NOT downstream token
+     // delivery, visual understanding or model interpretation.
+     const selected=Array.isArray(result.context_used)&&
        sensorContextId!==null&&result.context_used.includes(sensorContextId);
      const completed=result.result as Record<string,unknown>;
+     const modelReceipt=completed.model&&typeof completed.model==='object'?
+       completed.model as Record<string,unknown>:{};
+     const boundary=modelReceipt.temporary_context_boundary&&typeof modelReceipt.temporary_context_boundary==='object'?
+       modelReceipt.temporary_context_boundary as Record<string,unknown>:{};
+     const confirmed=selected&&boundary.schema==='temporary-context-boundary-v1'&&
+       boundary.selected_context_in_delegate_prompt===true;
      const route=completed.routing&&typeof completed.routing==='object'?completed.routing as Record<string,unknown>:{};
      setRecallReceipt({
       recent:Array.isArray(route.recent_dialogue_ids)?route.recent_dialogue_ids.length:0,
@@ -239,7 +257,8 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
      // backend. Show it for this browser session; never claim it is in memory.
      const replyText=(result.result as Record<string,unknown>).response as string;
      setTemporaryReply(ids.length?{id:'temporary-'+jobId,role:'assistant',kind:'temporary',text:replyText}:null);
-     if(confirmed)setSensorReceipt('Selected sensor observations were included as temporary text context in this completed model response. Raw frames/audio were not sent or stored.');
+     if(confirmed)setSensorReceipt('Host verified selected sensor text reached the chosen provider adapter prompt. Downstream truncation and interpretation are not attested; no raw camera or audio data was sent.');
+     else if(selected)setSensorReceipt('Host selected sensor text, but delivery to the provider adapter was not attested. Do not assume the model received it.');
    }catch(e){setError((e as Error).message);}finally{setBusy(false);}
  }
  async function selectLocal(){
@@ -279,7 +298,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  {attachments.some(a=>!!a.imageLabel)&&!photoMemoryEnabled?<p role="status" className="composer-note">Photo memory is disabled on the host. You may still send the local category as temporary text context.</p>:null}
  {photoReceipt?<p role="status" className="cloud-connect-success">{photoReceipt}</p>:null}
  {sensorReceipt?<p role="status" className="cloud-connect-success">{sensorReceipt}</p>:null}
- {recallReceipt?<p role="status" className="composer-note">Last verified reply: {recallReceipt.recent} recent dialogue records supplied, {recallReceipt.retrieved} topical memories retrieved. {recallReceipt.persistent?'Ordinary reply stored durably.':'Temporary-context reply not retained; select explicit memory persistence separately.'} These are software retrieval receipts, not model-weight updates.</p>:null}
+ {recallReceipt?<p role="status" className="composer-note">Last verified reply: {recallReceipt.recent} recent dialogue records selected by the host, {recallReceipt.retrieved} topical memories retrieved. {recallReceipt.persistent?'Ordinary reply stored durably.':'Temporary-context reply not retained; select explicit memory persistence separately.'} These are software retrieval receipts, not model-weight updates.</p>:null}
  {liveContext.include?<p role="status" className="composer-note">Selected sensor labels/transcripts will be provided as temporary context with your next message. This is not full camera vision. Open Settings to review or discard them.</p>:null}
  <div className="composer"><textarea aria-label="Message Beast Box" placeholder={connected?'Message Beast Box…':'Connect a durable backend to start chatting…'} value={prompt} onChange={e=>setPrompt(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();void send();}}} disabled={!connected||busy} rows={2}/><div className="composer-controls"><div><input ref={picker} aria-label="Choose files or photos to stage locally" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,text/plain,text/markdown,.md,.txt,.py,.js,.ts,.tsx,.json,.csv" multiple className="sr-only" onChange={e=>void pickFiles(e.target.files)} /><button className="composer-tool" disabled={busy||!!analyzingPhoto||!!extractingPdf||photoSaving} aria-label="Stage file or photo locally" title="Photos may be categorized locally; PDFs may be text-extracted locally with separate approval" onClick={()=>picker.current?.click()}><Paperclip size={18}/></button><span className="composer-note">✦ {attachments.length?'FILES STAGED LOCALLY':'YOUR STORY STAYS YOURS'}</span></div><button className="send-button" aria-label="Send message" disabled={!connected||busy||!!analyzingPhoto||!!extractingPdf||!prompt.trim()} onClick={()=>void send()}>{busy?<span className="loading-dot">✺</span>:<Send size={19}/>}</button></div></div><div className="composer-foot">PRIVATE PREVIEW · No response is simulated · <kbd>↵</kbd> send · <kbd>⇧↵</kbd> newline</div></div></section>
  <aside className="insight-rail"><section className="insight-card universe-card"><div className="card-label"><Telescope size={16}/> YOUR ORBIT</div><div className="small-planet">✺</div><h3>One story.<br/>Many brains.</h3><p>Carry your history through model changes—with authority firmly in your hands.</p><div className="small-progress"><span/></div></section><section className="insight-card"><div className="card-label"><Activity size={16}/> SUBSTRATE STATUS</div><div className="insight-line"><span>Connection</span><b className={connected?'green':''}>{connected?'Model configured':bridge?'Reference only':'Unavailable'}</b></div><div className="insight-line"><span>Checkpoint</span><b>{snapshot?.checkpoint_sequence!==undefined?String(snapshot.checkpoint_sequence):'—'}</b></div><div className="insight-line"><span>Memory records</span><b>{snapshot?.memory_records!==undefined?String(snapshot.memory_records):'—'}</b></div><button className="open-trace" onClick={()=>setPage('SYNAPSE TRACE')}>View synapse trace <ArrowRight size={15}/></button></section><section className="insight-card tiny-note"><span>✦</span><p>MODEL ≠ MEMORY<br/>MODEL ≠ STATE<br/>MODEL ≠ AUTHORITY</p></section></aside></div>:

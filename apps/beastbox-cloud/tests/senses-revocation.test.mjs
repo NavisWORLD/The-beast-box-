@@ -18,3 +18,10 @@ test('master stop immediately revokes local sensing before network acknowledgeme
  assert.match(deck,/window\.dispatchEvent\(new Event\('beastbox:master-privacy-stop'\)\)/);
  assert.match(deck,/Local capture stopped; remote stop NOT CONFIRMED/);
 });
+test('host context-selection and actual delegate-delivery receipts are separate',()=>{
+ const ui=readFileSync(new URL('../components/studio.tsx',import.meta.url),'utf8');
+ assert.match(ui,/boundary\.schema==='temporary-context-boundary-v1'/);
+ assert.match(ui,/downstream truncation and interpretation are not attested/i);
+ assert.match(ui,/sensorApprovalEpoch\.current/);
+ assert.match(ui,/this chat was not submitted/);
+});
