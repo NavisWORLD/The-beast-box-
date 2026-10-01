@@ -3,16 +3,18 @@ import {useEffect,useRef,useState} from 'react';
 
 export type CreatureState='idle'|'listening'|'observing'|'thinking'|'remembering'|'celebrating'|'sleeping'|'halted';
 export type CreatureLook='nebula'|'aurora'|'starlight';
-type Props={state?:CreatureState;look?:CreatureLook;intensity?:number;quality?:'auto'|'low';className?:string;label?:string};
+type Props={state?:CreatureState;look?:CreatureLook;intensity?:number;quality?:'auto'|'low';className?:string;label?:string;turntable?:boolean;turntableAngle?:number|null};
 
 /**
  * Original procedural 3D model. All animation is VISUAL; inferred feelings,
  * intelligence growth and real sensor measurements are never generated here.
  * The user-provided concept art is a reference, not a downloaded texture.
  */
-export default function CosmicCompanion3D({state='idle',look='nebula',intensity=0,quality='auto',className='',label='Cosmic companion'}:Props){
+export default function CosmicCompanion3D({state='idle',look='nebula',intensity=0,quality='auto',className='',label='Cosmic companion',turntable=false,turntableAngle=null}:Props){
  const canvas=useRef<HTMLCanvasElement>(null);
  const stateRef=useRef(state),intensityRef=useRef(0);
+ const rotationRef=useRef({turntable,angle:turntableAngle});
+ useEffect(()=>{rotationRef.current={turntable,angle:typeof turntableAngle==='number'&&Number.isFinite(turntableAngle)?turntableAngle:null};},[turntable,turntableAngle]);
  const [ready,setReady]=useState(false),[fallback,setFallback]=useState(false);
  const [reduced,setReduced]=useState(false);
  useEffect(()=>{stateRef.current=state;},[state]);
@@ -120,7 +122,7 @@ export default function CosmicCompanion3D({state='idle',look='nebula',intensity=
      renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
     };
     const observer=new ResizeObserver(resize);observer.observe(element);resize();
-    let prev=performance.now(),lastPaint=0,velocity=0,energy=0,bodyHeight=0,rendered=false;
+    let prev=performance.now(),lastPaint=0,velocity=0,energy=0,bodyHeight=0,rendered=false,turntablePhase=0;
     const animate=(now:number)=>{
      if(disposed||document.hidden)return;
      const dt=Math.min((now-prev)/1000,.07);prev=now;
@@ -136,7 +138,11 @@ export default function CosmicCompanion3D({state='idle',look='nebula',intensity=
      bodyHeight+=velocity*dt;
      const t=now/1000;
      creature.position.y=bodyHeight+(mood==='sleeping'?0:Math.sin(t*1.25)*.07);
-     creature.rotation.y=Math.sin(t*.42)*.13+(mood==='observing'?.16:0);
+     // Actual geometry turntable: no fake interpolated 2D views. Pause respects reduced-motion.
+     if(rotationRef.current.turntable)turntablePhase=(turntablePhase+dt*Math.PI/4)% (Math.PI*2);
+     creature.rotation.y=rotationRef.current.turntable?turntablePhase:
+      rotationRef.current.angle!==null?rotationRef.current.angle*Math.PI/180:
+      Math.sin(t*.42)*.13+(mood==='observing'?.16:0);
      creature.rotation.z=Math.sin(t*.73)*.055;
      body.scale.y=.99+energy*.08+(mood==='thinking'?.034*Math.sin(t*4):0);
      halo.rotation.y=t*.57;
