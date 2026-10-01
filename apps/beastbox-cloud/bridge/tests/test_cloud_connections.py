@@ -316,7 +316,10 @@ class BYOKTests(unittest.TestCase):
         self.assertEqual(code,200,result)
         self.assertTrue(restarted.app.authority.allowed("cloud"))
         self.assertFalse(restarted.app.authority.allowed("filesystem"))
-        for route in ("authority","workspace","workspace/run","quantum","storage/export"):
+        # Newly exposed owner-only authority permits only master_stop;
+        # an empty command must fail validation, not be treated as missing.
+        self.assertEqual(restarted.dispatch("POST","/api/authority",AUTH,b'{}')[0],400)
+        for route in ("workspace","workspace/run","quantum","storage/export"):
             self.assertEqual(restarted.dispatch("POST","/api/"+route,AUTH,b'{}')[0],404)
 
 
