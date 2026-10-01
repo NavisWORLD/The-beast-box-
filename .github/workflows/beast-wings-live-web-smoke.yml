@@ -59,6 +59,20 @@ jobs:
                   manifest=json.loads(raw)
                   if manifest.get("name")!="BEAST BOX // COSMOS" or manifest.get("display")!="standalone":
                       raise ValueError("production has not served the Beast Wings manifest yet")
+                  # Pin proof to THIS rollout's new immutable code, not an
+                  # unchanged PWA manifest from an earlier production release.
+                  mark,mark_url,mark_body=get(base+"/api/release")
+                  if mark!=200 or urllib.parse.urlsplit(mark_url).hostname not in {"beastboxcosmos.xyz","www.beastboxcosmos.xyz"}:
+                      raise ValueError("new Beast Wings public code marker not deployed")
+                  release=json.loads(mark_body)
+                  if (release.get("schema")!="beast-wings-senses-release-v1" or
+                      release.get("source_marker")!="beast-wings-merged-senses-5116e70b" or
+                      release.get("physical_hardware_verified") is not False or
+                      release.get("backend_activation_verified") is not False):
+                      raise ValueError("production release identity/limitations mismatch")
+                  receipt["release_marker"]=release["source_marker"]
+                  receipt["physical_hardware_verified"]=False
+                  receipt["backend_activation_verified"]=False
                   home,home_url,html=get(base+"/")
                   if home!=200 or urllib.parse.urlsplit(home_url).hostname not in {"beastboxcosmos.xyz","www.beastboxcosmos.xyz"}:
                       raise ValueError("public homepage unavailable")

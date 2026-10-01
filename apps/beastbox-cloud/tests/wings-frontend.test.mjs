@@ -19,3 +19,13 @@ test('signals are derived only from real trace events',()=>{
   assert.match(read('components/substrate-signals.tsx'),/substrate-signal-v1/);
   assert.doesNotMatch(read('components/substrate-signals.tsx'),/Math\.random|fake|mockSignals/);
 });
+
+test('public source marker is explicit and cannot masquerade as real device or backend proof',()=>{
+  const source=read('app/api/release/route.ts');
+  assert.match(source,/beast-wings-senses-release-v1/);
+  assert.match(source,/beast-wings-merged-senses-5116e70b/);
+  assert.match(source,/physical_hardware_verified:false/);
+  assert.match(source,/backend_activation_verified:false/);
+  assert.match(read('components/live-senses.tsx'),/beastbox:master-privacy-stop/);
+  assert.match(read('components/device-panel.tsx'),/beastbox:master-privacy-stop/);
+});
