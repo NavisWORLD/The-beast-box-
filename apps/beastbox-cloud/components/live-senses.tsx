@@ -45,6 +45,7 @@ function summary(items:Observation[]){
 export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity}:Props){
  const video=useRef<HTMLVideoElement>(null);
  const camera=useRef<MediaStream|null>(null), classifier=useRef<ImageClassifier|null>(null);
+ const cameraEpoch=useRef(0);
  const visionTimer=useRef<ReturnType<typeof setInterval>|null>(null);
  const recognition=useRef<SpeechEngine|null>(null),speechWanted=useRef(false);
  const speechRetries=useRef(0),speechTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
@@ -66,6 +67,8 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
   [text,includeInChat,canSend,freshObservations.length,onContext]);
 
  const stopCamera=useCallback(()=>{
+  // Invalidate a getUserMedia prompt still pending when the owner presses Stop.
+  cameraEpoch.current++;
   if(visionTimer.current){clearInterval(visionTimer.current);visionTimer.current=null;}
   camera.current?.getTracks().forEach(t=>t.stop());camera.current=null;
   if(video.current)video.current.srcObject=null;
@@ -136,6 +139,7 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
 
  async function startCamera(){
   if(starting||camera.current)return;
+  const requestEpoch=cameraEpoch.current;
   setStarting(true);setError('');setNotice('Loading a local image classifier after camera permission…');
   let stream:MediaStream|null=null;
   try{
@@ -143,14 +147,16 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
     throw new Error('Camera needs HTTPS and a supported browser.');
    // Ask permission directly within the button gesture; do not load a model first.
    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:320},height:{ideal:240}},audio:false});
-   if(!alive.current||document.hidden){stream.getTracks().forEach(t=>t.stop());return;}
+   if(!alive.current||document.hidden||requestEpoch!==cameraEpoch.current){
+    stream.getTracks().forEach(t=>t.stop());return;
+   }
    camera.current=stream;
    if(!video.current)throw new Error('Camera preview unavailable.');
    video.current.srcObject=stream;
    setCameraOn(true);
    await video.current.play();
    const engine=await loadVision();
-   if(!alive.current||camera.current!==stream)return;
+   if(!alive.current||camera.current!==stream||requestEpoch!==cameraEpoch.current)return;
    classifier.current=engine;
    const tick=()=>{
     if(document.hidden||camera.current!==stream||!classifier.current||!video.current||video.current.readyState<2)return;

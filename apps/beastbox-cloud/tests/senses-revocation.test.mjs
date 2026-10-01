@@ -25,3 +25,11 @@ test('host context-selection and actual delegate-delivery receipts are separate'
  assert.match(ui,/sensorApprovalEpoch\.current/);
  assert.match(ui,/this chat was not submitted/);
 });
+test('both device capture surfaces fence late permissions and receive immediate privacy stop',()=>{
+ const panel=readFileSync(new URL('../components/device-panel.tsx',import.meta.url),'utf8');
+ assert.match(senses,/requestEpoch!==cameraEpoch\.current/);
+ assert.match(panel,/requestEpoch!==cameraEpoch\.current/);
+ assert.match(panel,/requestEpoch!==micEpoch\.current/);
+ assert.match(panel,/window\.addEventListener\('beastbox:master-privacy-stop',stopAll\)/);
+ assert.match(panel,/Stop all capture and discard unsubmitted samples/);
+});

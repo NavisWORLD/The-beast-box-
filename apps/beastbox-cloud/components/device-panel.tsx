@@ -13,6 +13,7 @@ type Reading={camera?:string;microphone?:string};
 export default function DevicePanel({canSend,onDraft}:Props){
  const video=useRef<HTMLVideoElement>(null);
  const camera=useRef<MediaStream|null>(null),microphone=useRef<MediaStream|null>(null);
+ const cameraEpoch=useRef(0),micEpoch=useRef(0);
  const audio=useRef<AudioContext|null>(null),analyser=useRef<AnalyserNode|null>(null);
  const meter=useRef<ReturnType<typeof setInterval>|null>(null);
  const alive=useRef(true);
@@ -21,34 +22,53 @@ export default function DevicePanel({canSend,onDraft}:Props){
  const [consent,setConsent]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [working,setWorking]=useState(false);
  const stopCamera=useCallback(()=>{
+  cameraEpoch.current++;
   camera.current?.getTracks().forEach(track=>track.stop());camera.current=null;
   if(video.current)video.current.srcObject=null;
-  if(alive.current)setCameraOn(false);
+  if(alive.current){
+   setCameraOn(false);setConsent(false);
+   setSample(old=>({...old,camera:undefined}));
+  }
  },[]);
  const stopMic=useCallback(()=>{
+  micEpoch.current++;
   if(meter.current!==null){clearInterval(meter.current);meter.current=null;}
   analyser.current=null;
   microphone.current?.getTracks().forEach(track=>track.stop());microphone.current=null;
   if(audio.current){void audio.current.close().catch(()=>{});audio.current=null;}
-  if(alive.current){setMicOn(false);setLevel(0);}
+  if(alive.current){
+   setMicOn(false);setLevel(0);setConsent(false);
+   setSample(old=>({...old,microphone:undefined}));
+  }
  },[]);
  useEffect(()=>{
   alive.current=true;
-  const handleVisibility=()=>{if(document.hidden){stopCamera();stopMic();}};
+  const stopAll=()=>{stopCamera();stopMic();setConsent(false);setSample({});};
+  const handleVisibility=()=>{if(document.hidden)stopAll();};
   document.addEventListener('visibilitychange',handleVisibility);
-  return ()=>{alive.current=false;document.removeEventListener('visibilitychange',handleVisibility);
-   stopCamera();stopMic();};
+  window.addEventListener('beastbox:master-privacy-stop',stopAll);
+  window.addEventListener('pagehide',stopAll);
+  return ()=>{
+   alive.current=false;
+   document.removeEventListener('visibilitychange',handleVisibility);
+   window.removeEventListener('beastbox:master-privacy-stop',stopAll);
+   window.removeEventListener('pagehide',stopAll);
+   stopCamera();stopMic();
+  };
  },[stopCamera,stopMic]);
 
  async function startCamera(){
   if(working||camera.current)return;
+  const requestEpoch=cameraEpoch.current;
   setError('');setNotice('');setWorking(true);
   let stream:MediaStream|null=null;
   try{
    if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia)
     throw new Error('Camera requires browser support and a secure HTTPS page.');
    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
-   if(!alive.current){stream.getTracks().forEach(track=>track.stop());return;}
+   if(!alive.current||document.hidden||requestEpoch!==cameraEpoch.current){
+    stream.getTracks().forEach(track=>track.stop());return;
+   }
    camera.current=stream;
    if(!video.current)throw new Error('Camera preview is unavailable.');
    video.current.srcObject=stream;
@@ -62,13 +82,16 @@ export default function DevicePanel({canSend,onDraft}:Props){
  }
  async function startMic(){
   if(working||microphone.current)return;
+  const requestEpoch=micEpoch.current;
   setError('');setNotice('');setWorking(true);
   let stream:MediaStream|null=null;
   try{
    if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia)
     throw new Error('Microphone requires browser support and a secure HTTPS page.');
    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:false});
-   if(!alive.current){stream.getTracks().forEach(track=>track.stop());return;}
+   if(!alive.current||document.hidden||requestEpoch!==micEpoch.current){
+    stream.getTracks().forEach(track=>track.stop());return;
+   }
    microphone.current=stream;
    const ctx=new AudioContext();
    audio.current=ctx;
@@ -81,6 +104,9 @@ export default function DevicePanel({canSend,onDraft}:Props){
    node.connect(silent);silent.connect(ctx.destination);
    analyser.current=node;
    await ctx.resume();
+   if(!alive.current||document.hidden||requestEpoch!==micEpoch.current){
+    stopMic();return;
+   }
    meter.current=setInterval(()=>{
     if(!alive.current||!analyser.current)return;
     const data=new Float32Array(analyser.current.fftSize);
@@ -142,6 +168,7 @@ export default function DevicePanel({canSend,onDraft}:Props){
     I choose to draft these numeric summaries for COSMOS chat. Sending that chat will save its text in durable memory.</label>
   <div className="cloud-connect-actions">
    <button type="button" onClick={draft} disabled={!consent||!canSend||(!sample.camera&&!sample.microphone)}><ShieldCheck size={15}/> Add to chat draft (do not send yet)</button>
+   <button type="button" onClick={()=>{stopCamera();stopMic();setSample({});setConsent(false);}}>Stop all capture and discard unsubmitted samples</button>
   </div>
   {!canSend?<p className="cloud-connect-alert">Connect a genuine model before transferring a summary into chat. Device preview stays local.</p>:null}
   {notice?<p className="cloud-connect-success" role="status">{notice}</p>:null}
