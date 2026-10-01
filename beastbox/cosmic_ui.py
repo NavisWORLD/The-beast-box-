@@ -122,7 +122,7 @@ async function loadOrbit(){
  orbit=await api('/api/orbit');const runtime=orbit.runtime;
  $('systemId').textContent=runtime.system_id;$('checkpoint').textContent=shortHash(runtime.checkpoint_sha256)+'…';$('checkpoint').title=runtime.checkpoint_sha256;
  $('memoryCount').textContent=runtime.memory.memories;$('checkpointSeq').textContent='#'+runtime.sequence;
- const grants=Object.values(orbit.authority).filter(Boolean).length;$('grantCount').textContent=grants;$('railGrants').textContent=grants+' / 9 GRANTS ENABLED';
+ const grants=Object.values(orbit.authority).filter(Boolean).length;$('grantCount').textContent=grants;$('railGrants').textContent=grants+' / '+Object.keys(orbit.authority).length+' GRANTS ENABLED';
  const integrityLabel=runtime.valid?'SUBSTRATE VERIFIED':'SUBSTRATE INVALID';
  if($('runtimePill').textContent!==integrityLabel)$('runtimePill').textContent=integrityLabel;
  $('runtimePill').dataset.state=runtime.valid?'verified':'error';
@@ -155,6 +155,7 @@ const authorityPurpose={
  camera:['Camera capture','Allows explicit browser capture and bounded brightness observations. Raw frames stay in the browser.'],
  microphone:['Microphone capture','Allows explicit browser capture and bounded RMS observations. Raw audio stays in the browser.'],
  sensors:['Normalized sensor input','Allows owner-submitted numeric observations to enter the runtime. No physical device is connected by this grant.'],
+ device_memory:['Owner device text memory','Independent session-only gate for explicit, approved browser-derived text memory. Requires separate trusted host configuration for persistent cloud use. This grant neither captures devices nor starts data retention.'],
  cloud:['External model transport','Allows the configured remote provider to receive the current prompt and selected context.'],
  filesystem:['Workspace allowlisting & writes','Allows the owner to allowlist a root. Required again, with REPO_WRITE, to write files. Already-allowlisted reads remain available.'],
  repo_write:['Workspace file changes','Allows confined file writes with FILESYSTEM. Backups are local. Commit and push remain owner terminal actions.'],
@@ -163,7 +164,7 @@ const authorityPurpose={
  external_integrations:['External integration boundary','Reserved owner permission for separately configured integrations. No integration is activated by the grant alone.']
 };
 function renderAuthority(authority){
- $('authorityCount').textContent=Object.values(authority).filter(Boolean).length+' / 9 ENABLED';
+ $('authorityCount').textContent=Object.values(authority).filter(Boolean).length+' / '+Object.keys(authority).length+' ENABLED';
  const signature=JSON.stringify(authority);if(signature===authoritySignature)return;authoritySignature=signature;
  const box=$('authorityList');box.replaceChildren();Object.entries(authority).forEach(([name,on])=>{
   const row=el('div','authority-row'+(on?' granted':'')),copy=el('div'),title=el('strong');title.append(el('span','gate-dot'),document.createTextNode(name.toUpperCase()+' · '+(on?'GRANTED':'DENIED')));

@@ -117,7 +117,8 @@ def test_installed_demo_runs_real_handoff_and_rejects_existing_directory(tmp_pat
     assert receipt['provider'] == 'reference'
     assert receipt['model_interpretation_validated'] is False
     assert receipt['passed'] is True
-    assert len(receipt['authority_revoked']) == 9
+    assert len(receipt['authority_revoked']) == 10
+    assert 'device_memory' in receipt['authority_revoked']
     assert all(receipt['checks'].values())
     assert (root / 'capsule/manifest.json').is_file()
     assert (root / 'restored/runtime.sqlite3').is_file()
@@ -148,5 +149,7 @@ def test_polish_controls_expose_real_owner_flows_without_duplicate_ids():
     assert {'demoStart', 'demoNext', 'memoryMode', 'memoryQuery', 'searchWorkspace', 'previewDiff',
             'mapBrain', 'mapCore', 'mapCheckpoint', 'workspaceBranch'} <= set(controls.ids)
     assert '/api/workspace/search' in html
+    assert "device_memory:['Owner device text memory'" in html
+    assert "Object.keys(orbit.authority).length+' GRANTS ENABLED'" in html
     assert '/api/workspace/diff' in html
     assert 'SYSTEM TRACE' in html and 'NOT MODEL PRIVATE REASONING' in html
