@@ -38,8 +38,13 @@ jobs:
           npm run start -- --hostname 127.0.0.1 --port 3100 > /tmp/devday3d.log 2>&1 &
           for n in $(seq 1 80); do if curl -fsS http://127.0.0.1:3100/beast-cage/turntable >/dev/null; then break; fi; sleep 1; done
           python tests/devday_3d_turntable_browser.py
+      - name: Install MP4 encoder
+        if: success()
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
       - name: Encode actual 3D footage to MP4
-        if: always()
+        if: success()
         run: |
           if test -f browser-evidence/quest-3d/real-3d-turntable-360.webm; then
             ffmpeg -y -loglevel error -i browser-evidence/quest-3d/real-3d-turntable-360.webm -c:v libx264 -pix_fmt yuv420p -movflags +faststart browser-evidence/quest-3d/real-3d-turntable-360.mp4
