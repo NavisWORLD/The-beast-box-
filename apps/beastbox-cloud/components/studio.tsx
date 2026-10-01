@@ -16,6 +16,7 @@ import InstallApp from './install-app';
 import {classifyLocalPhoto} from '../lib/attachment-vision';
 import {extractLocalPdf} from '../lib/local-pdf';
 import CosmosWorld from './cosmos-world';
+import CosmicCompanionDock from './cosmic-companion-dock';
 import { Activity, Camera, Mic, ArrowDownToLine, ArrowLeftRight, ArrowRight, BrainCircuit, Check, ChevronDown, CircleHelp, CloudOff, Command, Database, File, FileText, Fingerprint, Github, Image as ImageIcon, LockKeyhole, LogOut, Menu, MessageCircle, Paperclip, Plus, Send, Settings2, Shield, ShieldCheck, Sparkles, Telescope, Trash2, X, Zap } from 'lucide-react';
 
 type Page='COSMOS WORLD'|'BRAIN'|'ORBIT'|'BRAIN BAY'|'MEMORY VAULT'|'SYNAPSE TRACE'|'ACTIVATION'|'FILES'|'AUTHORITY'|'SETTINGS';
@@ -50,6 +51,7 @@ function Login({configured,onLogin}:{configured:boolean;onLogin:()=>void}){
 export default function Studio({initialOwner,configured,initialBridge}:{initialOwner:boolean;configured:boolean;initialBridge:boolean}){
  const [owner,setOwner]=useState(initialOwner),[bridge,setBridge]=useState(initialBridge),[backendStatus,setBackendStatus]=useState('CHECKING'),[page,setPage]=useState<Page>('COSMOS WORLD');
  const [menu,setMenu]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const [chatActive,setChatActive]=useState(false);
  const [turns,setTurns]=useState<Turn[]>([]),[prompt,setPrompt]=useState(''),[model,setModel]=useState('NOT CONNECTED');
  const [modelGate,setModelGate]=useState<{reapproval_required:boolean;remote_grant_active:boolean;local_available:boolean}|null>(null);
  const [liveContext,setLiveContext]=useState({text:'',include:false});
@@ -184,7 +186,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  }
  async function send(){
    if(!connected||busy||analyzingPhoto||extractingPdf||!prompt.trim())return;
-   setBusy(true);setError('');setSensorReceipt('');
+   setBusy(true);setChatActive(true);setError('');setSensorReceipt('');
    try {
      if(attachments.some(a=>a.text===undefined)) throw new Error('For a photo tap Analyze locally; for a PDF tap Extract text locally. Raw files are not sent.');
      const ids:number[]=[];
@@ -259,7 +261,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
      setTemporaryReply(ids.length?{id:'temporary-'+jobId,role:'assistant',kind:'temporary',text:replyText}:null);
      if(confirmed)setSensorReceipt('Host verified selected sensor text reached the chosen provider adapter prompt. Downstream truncation and interpretation are not attested; no raw camera or audio data was sent.');
      else if(selected)setSensorReceipt('Host selected sensor text, but delivery to the provider adapter was not attested. Do not assume the model received it.');
-   }catch(e){setError((e as Error).message);}finally{setBusy(false);}
+   }catch(e){setError((e as Error).message);}finally{setChatActive(false);setBusy(false);}
  }
  async function selectLocal(){
    if(!bridge||busy||!modelGate?.local_available)return;
@@ -275,7 +277,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  const needsGrant=bridge&&!!profile&&profile.kind!=='reference'&&modelGate?.reapproval_required===true;
  const connected=bridge&&!!profile&&profile.kind!=='reference'&&model!=='UNAVAILABLE'&&model!=='NOT CONNECTED'&&modelGate!==null&&!needsGrant;
  const backendHint:Record<string,string>={BRIDGE_SETTINGS_MISSING:'Backend hosting is the next step. Configure BEASTBOX_CLOUD_BRIDGE_URL and BEASTBOX_CLOUD_BRIDGE_TOKEN in Vercel Preview only after the separate durable host is deployed.',BRIDGE_UNREACHABLE:'The configured backend is unreachable. Check the durable host, authenticated HTTPS ingress, and service health.',BRIDGE_AUTH_REJECTED:'The bridge rejected server authentication. Check matching server-side bridge tokens without exposing them.',BRIDGE_BAD_RESPONSE:'The backend did not return a valid COSMOS runtime and provider response.',REFERENCE_ONLY:'The durable bridge is reachable, but its model is a deterministic reference. Configure and verify an actual model on the host.',MODEL_PROFILE_CONFIGURED_NOT_ATTESTED:'A provider profile is configured. Live inference still needs a successful real-model conversation.'};
- return <div className="studio"><aside className={menu?'sidebar open':'sidebar'}>
+ return <div className="studio"><CosmicCompanionDock model={model} connected={connected} camera={sensesActive.camera} speech={sensesActive.speech} chatActive={chatActive} trace={trace} checkpoint={snapshot?.checkpoint_sequence}/><aside className={menu?'sidebar open':'sidebar'}>
    <div className="sidebar-brand"><span className="brand-mark">✺</span><span>BEAST BOX<small>COSMIC CHAOS</small></span><button className="mobile-only icon-button" aria-label="Close navigation" onClick={()=>setMenu(false)}><X size={20}/></button></div>
    <div className="workspace-switch"><span className="workspace-avatar">✶</span><span><b>Cory's universe</b><small>PRIVATE WORKSTATION</small></span><ChevronDown size={15}/></div>
    <div className="sidebar-label">YOUR UNIVERSE</div><nav aria-label="Workstation">{NAV.map(x=><button className={'nav-item '+(page===x.name?'selected':'')} key={x.name} onClick={()=>{setPage(x.name);setMenu(false);}}><x.icon size={18}/>{x.name}{page===x.name&&<span className="nav-glow"/>}</button>)}</nav>
