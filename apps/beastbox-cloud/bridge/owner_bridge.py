@@ -158,6 +158,14 @@ class OwnerBridge:
             self.app.authority.grant("cloud")
             return profile, changed, revoked
 
+    def _guarded_queue_mutation(self, data: dict, observed_epoch: int):
+        # A pending resume admitted before master stop must NEVER unstop the
+        # durable queue after the owner has revoked current authority.
+        with self._stop_lock:
+            if observed_epoch != self._stop_epoch:
+                return 403, {"error":"Owner privacy stop invalidated pending activation approval"}
+            return self.app._activation_request(data)
+
     def _connection_action(self, data: dict, *, stop_epoch: int | None = None) -> tuple[int, dict]:
         if stop_epoch is None:
             stop_epoch = self._stop_epoch
@@ -731,17 +739,19 @@ class OwnerBridge:
                 return self.app._activation_request(data)
             if action == "enqueue_maintenance" and set(data) == {"action"}:
                 return self.chat_jobs.run_when_idle(
-                    lambda: self.app.dispatch("POST", "/api/activation", data))
+                    lambda: self._guarded_queue_mutation(data, request_stop_epoch))
             if action == "run" and set(data) == {"action", "max_tasks", "wall_seconds"}:
                 tasks, seconds = data["max_tasks"], data["wall_seconds"]
                 if type(tasks) is not int or type(seconds) not in (int, float) or (
                         not 1 <= tasks <= 3 or not 0.1 <= seconds <= 8):
                     return 400, {"error": "activation run budget exceeded"}
                 return self.chat_jobs.run_when_idle(
-                    lambda: self.app.dispatch("POST", "/api/activation", data))
+                    lambda: (403, {"error":"Owner stop invalidated pending run"}) if
+                    request_stop_epoch != self._stop_epoch else
+                    self.app.dispatch("POST", "/api/activation", data))
             if action in {"resume", "cancel"}:
                 return self.chat_jobs.run_when_idle(
-                    lambda: self.app.dispatch("POST", "/api/activation", data))
+                    lambda: self._guarded_queue_mutation(data, request_stop_epoch))
             return 400, {"error": "unsupported owner activation action"}
         if name == "cns-model-probe":
             with self.app._lock:

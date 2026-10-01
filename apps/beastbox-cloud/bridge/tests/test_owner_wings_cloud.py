@@ -41,6 +41,11 @@ class OwnerWingsTests(unittest.TestCase):
             with self.assertRaisesRegex(PermissionError,"invalidated"):
                 owner._remote_profile_handoff({"kind":"reference"},earlier)
             self.assertFalse(owner.app.authority.allowed("cloud"))
+            code,_=owner._guarded_queue_mutation({"action":"resume","reason":"old browser approval"}, earlier)
+            self.assertEqual(code,403)
+            code,state=owner.dispatch("GET","/api/activation",AUTH)
+            self.assertEqual(code,200)
+            self.assertTrue(state["stopped"])
 
     def test_cloud_never_enqueues_unconsented_sensor_events_or_unbounded_work(self):
         with tempfile.TemporaryDirectory() as root:
