@@ -101,6 +101,10 @@ class OwnerBridge:
         self.bio_remote_allowed = self.bio_persist_enabled and os.environ.get("BEASTBOX_BIO_REMOTE_ALLOWED") == "yes"
         if self.bio_persist_enabled:
             self.app.authority.grant("sensors")
+        # A separate host-only capability: enabling owner device text must
+        # never implicitly authorize arbitrary sensor events.
+        if self.device_memory_enabled:
+            self.app.authority.grant("device_memory")
         self.chat_jobs = ChatJobs(lambda payload: self.app.dispatch("POST", "/api/chat", payload))
         # Explicit host flag: recurring, bounded source-index maintenance,
         # never background LLM chat, online gradient steps or autonomous tools.
@@ -559,6 +563,11 @@ class OwnerBridge:
         # A stored record is retrievable by future models: no guarantee of
         # exclusion when the owner later selects a remote model.
         with self.app._lock:
+            # Admission is serialized with master stop. An already admitted
+            # write may finish, but new work cannot pass after revocation.
+            with self._stop_lock:
+                if not self.app.authority.allowed("device_memory"):
+                    return 403, {"error": "Owner device-memory authority revoked; trusted host reapproval required"}
             runtime = DurableRuntime(
                 self.root, closed_loop=self.closed_loop_enabled,
                 unicode_mode=self.unicode_nfc_enabled,
@@ -689,7 +698,10 @@ class OwnerBridge:
                 return 400, {"error": "invalid chat job query"}
             return self.chat_jobs.get(query["id"][0])
         if name == "observations" and method == "GET":
-            return 200, {"enabled": self.device_memory_enabled, "raw_media_accepted": False,
+            ready = self.device_memory_enabled and self.app.authority.allowed("device_memory")
+            return 200, {"enabled": ready, "configured": self.device_memory_enabled,
+                         "reapproval_required": self.device_memory_enabled and not ready,
+                         "raw_media_accepted": False,
                          "owner": "SINGLE_OWNER_CONSENT", "source_verified": False}
         if name == "bio" and method == "GET":
             signal_probe_enabled = os.environ.get("BEASTBOX_SIGNAL_MODEL_PROBE_ENABLED", "no") == "yes"

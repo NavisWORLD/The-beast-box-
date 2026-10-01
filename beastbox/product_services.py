@@ -27,6 +27,7 @@ _ALLOWED_AUTHORITIES = frozenset(
         "camera",
         "microphone",
         "sensors",
+        "device_memory",
         "cloud",
         "repo_write",
         "filesystem",
