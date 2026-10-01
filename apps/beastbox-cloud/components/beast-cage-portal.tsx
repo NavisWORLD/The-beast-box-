@@ -38,7 +38,7 @@ export default function BeastCagePortal(){
   setLook('nebula');setSaved(false);
  }
  const current=LOOKS.find(x=>x.id===look)||LOOKS[0];
- return <main className="cage-universe">
+ return <main className="cage-universe" data-reduced-motion={prefersReduced}>
   <div className="cage-sky" aria-hidden="true"/>
   <header className="cage-topbar"><Link href="/" aria-label="Beast Box homepage" className="cage-brand"><span>✺</span><span>BEAST BOX<small>NAVISWORLD / COSMOS</small></span></Link>
    <nav aria-label="Beast Cage navigation"><a href="#habitat">Habitat</a><a href="#worlds">Explore</a><Link className="cage-nav-cta" href="/workspace">Owner deck <ArrowRight size={15}/></Link></nav>
