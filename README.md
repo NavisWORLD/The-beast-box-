@@ -9,7 +9,7 @@ the runtime retains the story and enforces its own authority boundary.
 
 **MODEL ≠ MEMORY · MODEL ≠ STATE · MODEL ≠ PROVENANCE · MODEL ≠ AUTHORITY**
 
-[Download Beast Box v0.7.0](https://github.com/NavisWORLD/The-beast-box-/releases/tag/v0.7.0) ·
+[Beast Wings integration](#beast-wings-integration-october-2026) · [Download Beast Box v0.7.0](https://github.com/NavisWORLD/The-beast-box-/releases/tag/v0.7.0) ·
 [COSMIC browser guide](docs/COSMIC_UI_GUIDE.md) · [5-minute Quickstart](docs/QUICKSTART.md) · [Combined Kit / EnD](kits/BEAST_BOX_COMBINED/EnD) ·
 [Architecture](docs/ECOSYSTEM_MANIFEST.json) · [Persistent Memory](docs/PORTABLE_STATE.md) ·
 [Model Swap Evidence](docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md) ·
@@ -48,6 +48,53 @@ The early cosmic/frequency language is preserved as historical theory/simulation
 
 
 **Python 3.10–3.12. No IBM account, cloud credential, GPU, or language model is required for the deterministic reference path.** In this Apache-2.0 revision, original Cory-owned software and documentation are licensed **Apache-2.0** under [LICENSE](LICENSE), except individually marked material. See [LICENSE_HISTORY.md](LICENSE_HISTORY.md) and [NOTICE](NOTICE) for scope and earlier releases.
+
+## Beast Wings integration (October 2026)
+
+**This is an update to the existing COSMOS / CST architecture, not a replacement for it.** The persistent substrate, native model artifacts, research history, source-bound receipts and original safety boundaries remain intact. The current source connects more of the previously separate software layers, while deployment and hardware checks retain their own status.
+
+### The connected host path
+
+The [closed-loop/Unicode integration](docs/COSMOS_CLOSED_LOOP_UNICODE_INTEGRATION_012.md) ([PR #161](https://github.com/NavisWORLD/The-beast-box-/pull/161)) adds an **explicitly host-enabled** connected turn:
+
+```text
+Permissioned event / owner text
+  → validated UTF-8 / optional Unicode NFC
+  → existing SYNAPSE and seven-role CNS (dyn12 / dyn42 / dyn54)
+  → hash-bound, software-only R12 state transition
+  → current-memory R12 retrieval / optional host-reviewed routing
+  → selected replaceable inference provider
+  → host authorization / bounded outputs
+  → atomic memory + Hebbian update + provenance + checkpoint ↺
+```
+
+This uses the existing `DurableRuntime`, not a new substitute brain. Its old behavior remains the default; the connected R12/Unicode profile requires matching trusted-host opt-in and verified checkpoint compatibility. **MODEL ≠ MEMORY · MODEL ≠ STATE · MODEL ≠ AUTHORITY.** Unicode-safe host transport does not upgrade each native model's learned tokenizer, language ability or context length.
+
+[PR #162](https://github.com/NavisWORLD/The-beast-box-/pull/162) adds checkpoint-backed `substrate-signal-v1` measurements to the COSMIC **SIGNALS / SYNAPSE TRACE** surface. Missing measurements display as unavailable rather than invented. The separate `beastbox runtime activate` experiment uses **reference fixtures**, not live multi-model inference; see its [recorded limits](docs/experiments/COSMOS_SUBSTRATE_ACTIVATION_007_RESULTS.md).
+
+[PR #164](https://github.com/NavisWORLD/The-beast-box-/pull/164) adds a separately stopped-by-default, host-owned [bounded activation queue](docs/ACTIVATION_QUEUE_013.md) with durable task receipts, restart reconciliation and persistent emergency stop. An interrupted turn can require reconciliation: this is **at-least-once**, not guaranteed exactly-once execution. It does not grant model-directed tools, uncontrolled autonomy or physical sensor authority.
+
+### Beast Wings app and consented sensory inputs
+
+The [installable COSMIC browser app](docs/BEAST_WINGS_FRONTEND_ONLY_RELEASE.md) ([PR #166](https://github.com/NavisWORLD/The-beast-box-/pull/166)) is an iPhone-friendly **Add to Home Screen** web app, not an App Store binary. The public frontend release has an [independent no-credential production smoke receipt](https://github.com/NavisWORLD/The-beast-box-/actions/runs/36796996434). That check does not authenticate an owner chat or test physical microphone/camera hardware.
+
+The browser's **permissioned camera and microphone surfaces** have explicit capture/stop handling and [sensory trust controls](docs/BEAST_WINGS_SENSORY_TRUST.md). Stop clears unsent selected observations and local capture; a privacy stop also prevents late-granted permission requests from silently reattaching tracks. These controls do not revoke browser/OS permissions, erase past durable records or preempt an already-running external inference request. The CLI `sensor-demo` remains a synthetic/normalized-event demo; do not confuse it with real hardware capture or instrument-grade provenance.
+
+[PR #165](https://github.com/NavisWORLD/The-beast-box-/pull/165) merged the **owner-only backend source** for bounded activation, master privacy stop and associated UI/bridge handling. Public and guest interfaces do not acquire owner task authority. The queue stays stopped until a trusted host enables it; no automatic unattended-agent claim follows from source integration.
+
+### Real-model evidence and its limits
+
+The historical [frozen A→B→A continuity evidence](docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md) remains preserved. Newer, separate [offline two-pretrained-model receipts](docs/experiments/BEASTBOX_ZERO_API_REAL_MODELS_002_RESULTS.md) and the [original native RAWRPHØS 14K → SmolLM2 → same RAWRPHØS receipts](docs/experiments/BEASTBOX_ZERO_API_ORIGINAL_NATIVE_003_RESULTS.md) document genuine locally loaded CPU inference, preserved hash-tracked substrate identity, and **zero paid inference API calls during the measured isolated workloads**. Downloads happened before measured network isolation; electricity and total hosting cost were not measured.
+
+The original-native test established actual prompt-context delivery and checkpoint continuity across model replacement; it **did not** establish reliable returning-model answer generation or successful faithful autonomous task completion. Stable native RAWRPHØS **14K** and experimental **18K** are distinct checkpoints. Original PHOS and SAMGO identities are preserved. Available source adapters or model names are **not** proof that every configured model is currently loaded, healthy or generating in production.
+
+### Deployment and verification boundary
+
+- **Repository:** the connected loop, signal receipts, bounded queue, web app and owner backend changes above are merged into `main`. The [read-only COSMOS CONNECT / MCP site](https://github.com/NavisWORLD/The-beast-box-/pull/167) remains a **separate open PR**, not an installed ChatGPT plugin.
+- **Frontend:** the installable frontend's public production marker and anonymous protections were independently smoke-tested. Owner-authenticated model inference and end-to-end on-device capture need separate receipts.
+- **Railway:** its deployment listing on **1 October 2026** reported `SUCCESS` for source commit `e9442ed3491cece8add50eb9f7f798bc38e1fc62`. Deployment status alone does **not** certify native-model readiness, sensor delivery, activation behavior, owner-memory continuity, or a verified production rollback. The [private production recovery runbook](docs/BEAST_WINGS_PRIVATE_RECOVERY_RUNBOOK.md) defines the required owner-volume backup, companion-state inventory and isolated-restore checks before enabling migrated closed-loop/Unicode behavior on existing owner data.
+
+**Scientific boundary:** this release is connected stateful **software**, not verified consciousness, biological life, AGI, superintelligence, physical sensing accuracy, novel 12D advantage or reliable model self-correction. The [negative controls and results](docs/CLAIM_BOUNDARIES.md) are not overwritten by integration work. [Synapse OS](https://github.com/NavisWORLD/Synapse-os-) remains a separate operating-system product with its own VM and hardware acceptance.
 
 ## Open your cosmic workstation
 
@@ -172,7 +219,7 @@ verified on `main`**; do not interpret the workspace as a completed study.
 | Knowledge/world store | Existing experimental R12 world store, separate from the normal conversation database |
 | Zeref | Checkpoint and conversation-experiment lineage |
 | Bio, entropy, IBM/quantum | Optional experimental adapters; explicitly enabled input paths |
-| Camera / physical actuators | Not implemented in the supported baseline |
+| Browser camera/microphone / physical actuators | Separately permissioned browser capture is present; CLI reference path is synthetic, live physical-device acceptance is distinct, and physical actuators are not implemented |
 
 The [machine-readable map](docs/ECOSYSTEM_MANIFEST.json) gives actual source paths and labels. Existing higher-dimensional state variants remain experimental instrumentation. This software does not establish consciousness, sentience, biological life, personal identity, resurrection, a soul, quantum advantage, extra physical dimensions or new physics. Generated prose is not scientific evidence.
 
