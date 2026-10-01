@@ -96,6 +96,30 @@ def test_bridge_flag_bearer_and_one_atomic_durable_checkpoint(tmp_path):
         assert len([r for r in records if r.kind == "device_observation"]) >= 1
 
 
+def test_master_privacy_stop_revokes_new_device_memory_admissions(tmp_path):
+    with patch.dict(os.environ, {
+        "BEASTBOX_DEVICE_MEMORY_ENABLED": "yes",
+        "BEASTBOX_TINY_LOCAL_ENABLED": "no", "BEASTBOX_HF_MODEL_ID": "",
+        "BEASTBOX_CONNECTION_VAULT_KEY": "", "BEASTBOX_BIO_INGEST_ENABLED": "no",
+    }):
+        owner = BRIDGE.OwnerBridge(tmp_path, TOKEN)
+        auth = "Bearer " + TOKEN
+        baseline = DurableRuntime(tmp_path)
+        original = baseline.inspect()
+        baseline.close()
+        assert owner.dispatch("GET", "/api/observations", auth)[1]["enabled"] is True
+        assert owner.dispatch("POST", "/api/authority", auth,
+                              b'{"action":"master_stop"}')[0] == 200
+        state = owner.dispatch("GET", "/api/observations", auth)[1]
+        assert state["enabled"] is False and state["reapproval_required"] is True
+        code, denial = owner.dispatch(
+            "POST", "/api/observations", auth, json.dumps(sample()).encode())
+        assert code == 403 and "revoked" in denial["error"]
+        after = DurableRuntime(tmp_path)
+        assert after.inspect()["sequence"] == original["sequence"]
+        after.close()
+
+
 def test_host_flag_fails_closed(tmp_path):
     with patch.dict(os.environ, {"BEASTBOX_DEVICE_MEMORY_ENABLED": "no", "BEASTBOX_TINY_LOCAL_ENABLED": "no",
                                  "BEASTBOX_HF_MODEL_ID": "", "BEASTBOX_CONNECTION_VAULT_KEY": ""}):
