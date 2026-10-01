@@ -1,6 +1,7 @@
 """Unedited genuine Chromium footage of the real procedurally rendered Three.js model.
 No AI inference, no mock API, and no fake prerendered 2D angle images."""
 from pathlib import Path
+import re
 from playwright.sync_api import sync_playwright, expect
 ROOT="http://127.0.0.1:3100"
 OUT=Path("browser-evidence/quest-3d")
@@ -18,7 +19,7 @@ with sync_playwright() as p:
  assert page.evaluate("!!document.createElement('canvas').getContext('webgl')"),"No browser WebGL, cannot claim an actual 3D recording"
  page.screenshot(path=str(OUT/"live-3d-auto.png"),full_page=True)
  for label,angle in [("front",0),("right",90),("back",180),("left",270)]:
-  page.get_by_role("button",name=lambda name,angle=angle: name.startswith(str(angle)+"°")).click()
+  page.get_by_role("button",name=re.compile(rf"^{angle}°")).click()
   expect(page.locator("[data-stage]")).to_have_attribute("data-view-angle",str(angle))
   page.wait_for_timeout(350)
   page.screenshot(path=str(OUT/f"{angle:03d}-{label}.png"),full_page=True)
