@@ -56,6 +56,41 @@ scp cosmos-owner-bridge-production.up.railway.app@ssh.railway.com:/tmp/beast-own
 
 Compare the local archive SHA-256 with the **original printed export receipt**. Store both copies away from the live Railway volume in owner-controlled encrypted storage, then remove the temporary container files only after confirmation. If SSH, SCP, storage, data size, or any missing companion state cannot be verified, keep the release blocked. Normal data transfer may count against Railway usage; do not provision new paid resources without explicit approval.
 
+## REQUIRED: capture the OTHER operational databases and configuration
+
+The portable ZIP contains **only** `runtime.sqlite3`. An integrated running Beast also uses `activation.sqlite3` for the durable work queue and hash-linked task audit, `owner-connections.sqlite3` for the encrypted cloud credential vault, and `cosmic-provider.json` for the selected provider profile. Some installations also have a separately sealed working DB, companion evidence or other state. Do not call a portable ZIP alone a complete production recovery.
+
+**Before any file export**, use the actual owner interface's master stop and ensure all existing in-flight owner work is finished or explicitly reconciled. Stop starting owner chats, sensor persistence and new tasks during the capture maintenance window. Multi-file online SQLite backups are individually consistent but NOT automatically atomic across different databases when other processes continue writing. If quiescence cannot be demonstrated, no full-release recovery is established.
+
+In your private existing Railway shell, back up the separate activation queue using the same standard Python SQLite online API (without printing task payloads). This can be executed after the owner vault snapshot above:
+
+```sh
+python - <<'PY'
+from pathlib import Path
+import sqlite3
+src=Path('/srv/beastbox/data/activation.sqlite3')
+dst=Path('/tmp/beast-owner-activation-PRIVATE-UNIQUE.sqlite3')
+if not src.is_file() or src.is_symlink() or dst.exists():
+    raise SystemExit('Queue database not available or destination exists; investigate, do not claim success')
+with sqlite3.connect(f'file:{src}?mode=ro',uri=True) as live:
+    with sqlite3.connect(str(dst)) as copy:
+        live.backup(copy)
+        if copy.execute('PRAGMA quick_check').fetchone()[0]!='ok':
+            raise SystemExit('Queue snapshot integrity check failed')
+        n=copy.execute("SELECT COUNT(*) FROM activation_tasks WHERE status='running'").fetchone()[0]
+        if n:
+            raise SystemExit('In-flight queue records present: reconcile before release')
+dst.chmod(0o600)
+print('PRIVATE_ACTIVATION_DB_COPY_VERIFIED; no task data printed')
+PY
+```
+
+On the owner's encrypted machine, fetch this queue copy with Railway's authenticated `scp`, and preserve `cosmic-provider.json` if present using the same private SSH/SFTP route. Record exact SHA-256 hashes of the files privately and compare source to transferred copies. Independently inventory the whole `/srv/beastbox/data` directory **without pasting its contents into chat**, including evidence files and any `runtime.sqlite3.sealed` that exist. Back up and validate every required operational companion; keep host secrets separately in existing owner-controlled secret management, not alongside backups. If a required file is missing or you cannot verify the complete inventory, stop rather than claiming a full backup.
+
+On the isolated restored directory, place the queue snapshot as `activation.sqlite3` after the portable-state import. Verify its `PRAGMA quick_check`, then open `beastbox.activation_queue.ActivationEngine` against the isolated path (with the original production version and matching host mode flags), call `verify_audit()`, inspect `status()` and `tasks()` privately, and close without running queued tasks. Match the separately recorded hashes and selected provider profile. Encrypted vault recovery must separately confirm the preserved host key works without displaying any credentials.
+
+A complete sign-off needs two independent facts: (a) the portable substrate system ID and checkpoint match after isolated restoration, and (b) the queue audit, encrypted vault, provider profile and any other required state can also be independently restored. A verified ZIP by itself does not permit PR #165 to merge.
+
 ## Isolated recovery validation on the trusted computer
 
 Use the actual production-source version of Beast Box (the pinned deployment commit above) with supported Python dependencies. Place the private archive outside the repository. Run this ONLY in a private shell; it does not access the production service:
