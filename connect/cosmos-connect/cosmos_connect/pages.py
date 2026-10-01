@@ -271,7 +271,8 @@ document.getElementById("ci-form").addEventListener("submit", async (event) => {
   slot.appendChild(note);
   (payload.runs || []).forEach((run) => {
     const row = document.createElement("p");
-    row.textContent = String(run.conclusion) + " " + String(run.head_sha) + " " + String(run.html_url || "");
+    row.textContent = String(run.record_state) + " conclusion=" + String(run.conclusion)
+      + " " + String(run.head_sha) + " " + String(run.html_url || "");
     slot.appendChild(row);
   });
   if (payload.code) {
