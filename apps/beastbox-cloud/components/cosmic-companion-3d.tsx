@@ -3,18 +3,18 @@ import {useEffect,useRef,useState} from 'react';
 
 export type CreatureState='idle'|'listening'|'observing'|'thinking'|'remembering'|'celebrating'|'sleeping'|'halted';
 export type CreatureLook='nebula'|'aurora'|'starlight';
-type Props={state?:CreatureState;look?:CreatureLook;intensity?:number;quality?:'auto'|'low';className?:string;label?:string;turntable?:boolean;turntableAngle?:number};
+type Props={state?:CreatureState;look?:CreatureLook;intensity?:number;quality?:'auto'|'low';className?:string;label?:string;turntable?:boolean;turntableAngle?:number|null};
 
 /**
  * Original procedural 3D model. All animation is VISUAL; inferred feelings,
  * intelligence growth and real sensor measurements are never generated here.
  * The user-provided concept art is a reference, not a downloaded texture.
  */
-export default function CosmicCompanion3D({state='idle',look='nebula',intensity=0,quality='auto',className='',label='Cosmic companion',turntable=false,turntableAngle=0}:Props){
+export default function CosmicCompanion3D({state='idle',look='nebula',intensity=0,quality='auto',className='',label='Cosmic companion',turntable=false,turntableAngle=null}:Props){
  const canvas=useRef<HTMLCanvasElement>(null);
  const stateRef=useRef(state),intensityRef=useRef(0);
  const rotationRef=useRef({turntable,angle:turntableAngle});
- useEffect(()=>{rotationRef.current={turntable,angle:Number.isFinite(turntableAngle)?turntableAngle:0};},[turntable,turntableAngle]);
+ useEffect(()=>{rotationRef.current={turntable,angle:typeof turntableAngle==='number'&&Number.isFinite(turntableAngle)?turntableAngle:null};},[turntable,turntableAngle]);
  const [ready,setReady]=useState(false),[fallback,setFallback]=useState(false);
  const [reduced,setReduced]=useState(false);
  useEffect(()=>{stateRef.current=state;},[state]);
@@ -141,7 +141,7 @@ export default function CosmicCompanion3D({state='idle',look='nebula',intensity=
      // Actual geometry turntable: no fake interpolated 2D views. Pause respects reduced-motion.
      if(rotationRef.current.turntable)turntablePhase=(turntablePhase+dt*Math.PI/4)% (Math.PI*2);
      creature.rotation.y=rotationRef.current.turntable?turntablePhase:
-      Number.isFinite(rotationRef.current.angle)&&rotationRef.current.angle!==0?rotationRef.current.angle*Math.PI/180:
+      rotationRef.current.angle!==null?rotationRef.current.angle*Math.PI/180:
       Math.sin(t*.42)*.13+(mood==='observing'?.16:0);
      creature.rotation.z=Math.sin(t*.73)*.055;
      body.scale.y=.99+energy*.08+(mood==='thinking'?.034*Math.sin(t*4):0);
