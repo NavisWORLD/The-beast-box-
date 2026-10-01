@@ -20,6 +20,9 @@ export default function ActivationDeck(){
   async function act(body:Record<string,unknown>,urgent=false){
     if(!urgent&&loading)return;
     if(!urgent)setLoading(true);
+    // Local devices must stop before the remote request can time out.
+    // The backend is only confirmed stopped by an authenticated receipt.
+    if(body.action==='master_stop')window.dispatchEvent(new Event('beastbox:master-privacy-stop'));
     setError('');setNotice('');
     try{
       const r=await fetch('/api/bridge/'+(body.action==='master_stop'?'authority':'activation'),{
@@ -30,7 +33,9 @@ export default function ActivationDeck(){
         body.action==='stop'?'Queued execution stopped; a running provider call may still finish.':
         'Operation acknowledged by the host. Inspect the durable receipts below.');
       await refresh();
-    }catch(e){setError(e instanceof Error?e.message:'Operation was not confirmed');}
+    }catch(e){setError(e instanceof Error?
+      (body.action==='master_stop'?'Local capture stopped; remote stop NOT CONFIRMED: ':'')+e.message:
+      'Operation was not confirmed');}
     finally{if(!urgent)setLoading(false);}
   }
   const why=reason.trim().slice(0,180);

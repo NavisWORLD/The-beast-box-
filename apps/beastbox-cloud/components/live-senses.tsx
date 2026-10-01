@@ -98,9 +98,17 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
   }};
   document.addEventListener('visibilitychange',hidden);
   const pagehide=()=>{stopCamera();stopSpeech();onContext('',false);};
+  const privacyStop=()=>{
+   stopCamera();stopSpeech();
+   setObservations([]);setIncludeInChat(false);setRememberConsent(false);onContext('',false);
+   if(alive.current)setNotice('Master privacy stop halted local capture and cleared live sensor context.');
+  };
+  window.addEventListener('beastbox:master-privacy-stop',privacyStop);
   window.addEventListener('pagehide',pagehide);
   return ()=>{alive.current=false;document.removeEventListener('visibilitychange',hidden);
-   window.removeEventListener('pagehide',pagehide);stopCamera();stopSpeech();onContext('',false);};
+   window.removeEventListener('pagehide',pagehide);
+   window.removeEventListener('beastbox:master-privacy-stop',privacyStop);
+   stopCamera();stopSpeech();onContext('',false);};
  },[stopCamera,stopSpeech,onContext]);
  useEffect(()=>{
   if(!canSend){setMemoryEnabled(false);return;}

@@ -11,4 +11,10 @@ test('hide, discard and stop-all clear all unsubmitted sensor context',()=>{
  assert.match(senses,/Sensing stopped and unsent context revoked when the app became hidden/);
  assert.match(senses,/Stop all sensing and revoke unsent context/);
  assert.match(senses,/Previously saved memories require separate owner correction/);
+ assert.match(senses,/beastbox:master-privacy-stop/);
+});
+test('master stop immediately revokes local sensing before network acknowledgement',()=>{
+ const deck=readFileSync(new URL('../components/activation-deck.tsx',import.meta.url),'utf8');
+ assert.match(deck,/window\.dispatchEvent\(new Event\('beastbox:master-privacy-stop'\)\)/);
+ assert.match(deck,/Local capture stopped; remote stop NOT CONFIRMED/);
 });
