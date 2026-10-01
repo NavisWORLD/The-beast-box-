@@ -50,3 +50,25 @@ test('accessible iPhone and 320px fallback styling exists',()=>{
  assert.match(css,/pointer-events:none/);
  assert.match(read('app/layout.tsx'),/device-width/);
 });
+
+test('homepage truly renders the procedural galaxy creature, not merely a static SVG',()=>{
+ const home=read('app/page.tsx');
+ assert.match(home,/CosmicCompanion3D quality="low"/);
+ assert.match(home,/Enter the Beast Cage/);
+});
+test('chosen cosmetic look persists into owner dock but does not change model or memory',()=>{
+ const cage=read('components/beast-cage-portal.tsx');
+ const dock=read('components/cosmic-companion-dock.tsx');
+ assert.match(cage,/beastbox:cage-look-changed/);
+ assert.match(dock,/beastbox-cage-appearance-v1/);
+ assert.match(dock,/CosmicCompanion3D look=\{look\}/);
+ assert.doesNotMatch(cage,/\/api\/bridge/);
+});
+test('all world cards use allowlisted owner-only deep links',()=>{
+ const cage=read('components/beast-cage-portal.tsx'),owner=read('components/studio.tsx');
+ for(const path of ['brain-bay','memory-nebula','sensorium','synapse-observatory','connector-dock']){
+  assert.ok(cage.includes('/workspace#'+path));
+  assert.ok(owner.includes("'"+path+"'"));
+ }
+ assert.match(owner,/if\(!owner\)return/);
+});

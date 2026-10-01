@@ -9,3 +9,5 @@ Not implemented by this frontend: a fully art-directed production rig of the exa
 Verification required: `npm test`, `npm run typecheck`, `npm run build` and the dedicated real Chromium acceptance workflow. It captures screenshots at 1440/430/390/375/320px and reduced-motion, exercises explicit local cosmetic save/reload, checks horizontal overflow and requires the actual 3D renderer when WebGL is supported. It never touches private owner data.
 
 Production is intentionally unchanged. Do not merge this visual branch or enable an automatic Vercel deployment until the competing newer UI implementation is reconciled and exact-branch checks pass. Keep the existing Railway deployment and owner storage untouched.
+
+Follow-up integration: landing hero now renders the same actual procedural 3D (with vector fallback), the explicitly saved device-only look follows the authenticated owner dock without copying user identity or memory, and each public world card deep-links to an allowlisted section of the owner workspace **after authentication**. These changes are UI-only; owner settings host the existing sensing and connector controls. No new tool permissions are granted.

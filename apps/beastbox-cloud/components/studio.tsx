@@ -101,6 +101,17 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
    }catch(e){setError((e as Error).message);setBridge(false);setBackendStatus('BRIDGE_UNREACHABLE');setModel('UNAVAILABLE');setModelGate(null);}
  },[owner]);
  useEffect(()=>{void load();},[load]);
+ useEffect(()=>{
+  if(!owner)return;
+  // Explicit, allowlisted owner-navigation deep links; never bypass login.
+  const destinations:Record<string,Page>={
+   'brain-bay':'BRAIN BAY','memory-nebula':'MEMORY VAULT',
+   'sensorium':'SETTINGS','synapse-observatory':'SYNAPSE TRACE',
+   'connector-dock':'SETTINGS','the-beast-cage':'COSMOS WORLD'
+  };
+  const destination=destinations[window.location.hash.slice(1).toLowerCase()];
+  if(destination)setPage(destination);
+ },[owner]);
  useEffect(()=>{bottom.current?.scrollIntoView({behavior:'smooth',block:'end'});},[turns.length]);
  useEffect(()=>()=>{for(const url of imageUrls.current)URL.revokeObjectURL(url);imageUrls.current.clear();},[]);
  async function pickFiles(files:FileList|null) {

@@ -15,11 +15,25 @@ type SensorPacket={schema:'local-measurement-v1';kind:'microphone'|'camera';leve
  */
 export default function CosmicCompanionDock({model,connected,camera,speech,chatActive,trace,checkpoint}:Props){
  const [hidden,setHidden]=useState(false),[paused,setPaused]=useState(false),[reduced,setReduced]=useState(false);
+ const [look,setLook]=useState<'nebula'|'aurora'|'starlight'>('nebula');
  const [perch,setPerch]=useState(0),[typing,setTyping]=useState(false);
  const [audioLevel,setAudioLevel]=useState(0),[memoryPulse,setMemoryPulse]=useState(false),[stopped,setStopped]=useState(false);
  const observed=useRef<string|null>(null),roamTick=useRef(0);
  const last=trace.length?trace[trace.length-1]:null;
  const receipt=last&&last.sequence!==undefined?String(last.sequence):null;
+ useEffect(()=>{
+  // A purely cosmetic preference follows the user between public habitat and
+  // the already-authenticated workstation. No identity or memory is copied.
+  const read=()=>{
+   try{
+    const value=window.localStorage.getItem('beastbox-cage-appearance-v1');
+    if(value==='nebula'||value==='aurora'||value==='starlight')setLook(value);
+    else setLook('nebula');
+   }catch{setLook('nebula');}
+  };
+  read();window.addEventListener('beastbox:cage-look-changed',read);
+  return()=>window.removeEventListener('beastbox:cage-look-changed',read);
+ },[]);
  useEffect(()=>{
   const media=window.matchMedia('(prefers-reduced-motion: reduce)');
   const update=()=>setReduced(media.matches);
@@ -79,7 +93,7 @@ export default function CosmicCompanionDock({model,connected,camera,speech,chatA
    {hidden?<Eye size={15}/>:<EyeOff size={15}/>}<span>{hidden?'Show companion':'Hide'}</span>
   </button>
   {!hidden&&<div className="companion-floater">
-   <CosmicCompanion3D state={paused?'sleeping':state} intensity={speech?audioLevel:0} quality="low" label="Decorative galaxy companion reacting to permitted activity"/>
+   <CosmicCompanion3D look={look} state={paused?'sleeping':state} intensity={speech?audioLevel:0} quality="low" label="Decorative galaxy companion reacting to permitted activity"/>
    <div className="companion-dock-plate"><span aria-hidden="true">✧</span><span>{status}</span></div>
    <div className="companion-dock-actions">
     <button type="button" onClick={()=>setPaused(p=>!p)} aria-label={paused?'Resume companion animation':'Pause companion animation'}>{paused?<Play size={13}/>:<Pause size={13}/>}</button>
