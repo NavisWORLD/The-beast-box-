@@ -26,7 +26,7 @@ node - "$out/mcp-list.json" <<'NODE'
 const fs=require('node:fs');const p=process.argv[2];const entries=JSON.parse(fs.readFileSync(p,'utf8'));
 if (!Array.isArray(entries)) throw new Error('Codex did not return an MCP server list');
 const match=entries.find(x=>x.name==='openaiDeveloperDocs');
-if (!match || match.url!=='https://developers.openai.com/mcp') throw new Error('Actual Codex CLI did not register docs MCP correctly');
+if (!match || match.transport?.url!=='https://developers.openai.com/mcp' || !match.enabled) throw new Error('Actual Codex CLI did not register docs MCP correctly');
 console.log('CODEX_MCP_VERIFIED: server exists at the exact official read-only documentation endpoint');
 NODE
 printf "CODEX_MCP_VERIFIED: official read-only docs server registered and verified.\n" | tee -a "$transcript"
