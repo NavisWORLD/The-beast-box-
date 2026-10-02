@@ -8,6 +8,8 @@ import styles from './gba-guest-lab.module.css';
 import GenesisForge from './genesis-forge';
 import {type CreatureProfile,type AmbientAction} from '../lib/creature-profile';
 import {profilePreview} from '../lib/gba-companion';
+import {createCreatureGlb} from '../lib/creature-glb';
+import {useCompanion} from './companion-provider';
 
 const LOOKS:{value:Look;name:string}[]=[{value:'nebula',name:'Nebby'},{value:'aurora',name:'Lumen'},{value:'starlight',name:'Orion'}];
 const STATES:{value:Mood;name:string;description:string}[]=[
@@ -19,8 +21,10 @@ const STATES:{value:Mood;name:string;description:string}[]=[
 const STORAGE='beastbox-cage-appearance-v1';
 export default function GuestGbaLab(){
  const [look,setLook]=useState<Look>('nebula'),[mood,setMood]=useState<Mood>('idle');
- const [busy,setBusy]=useState(false),[error,setError]=useState(''),[done,setDone]=useState(false);
+ const [busy,setBusy]=useState(false),[modelBusy,setModelBusy]=useState(false),[error,setError]=useState(''),[done,setDone]=useState(false);
  const [creature,setCreature]=useState<CreatureProfile|null>(null),[ambient,setAmbient]=useState<AmbientAction>('hover');
+ const {profile:sharedProfile,selectProfile,clearProfile}=useCompanion();
+ useEffect(()=>{if(sharedProfile){setCreature(sharedProfile);setLook(sharedProfile.baseLook);}},[sharedProfile]);
  const preview=useRef<HTMLCanvasElement>(null);
  useEffect(()=>{
   try{
@@ -32,11 +36,24 @@ export default function GuestGbaLab(){
   if(preview.current){if(creature)profilePreview(creature,mood,preview.current);else spritePreview(look,mood,preview.current);}
  },[look,mood,creature]);
  function chooseLook(next:Look){
-  setLook(next);setCreature(null);setDone(false);
+  setLook(next);setCreature(null);clearProfile();setDone(false);
   try{
    window.localStorage.setItem(STORAGE,next);
    window.dispatchEvent(new Event('beastbox:cage-look-changed'));
   }catch{/* guest still works without storage */}
+ }
+ async function exportModel(){
+  if(modelBusy)return;
+  setModelBusy(true);setError('');
+  try{
+   const glb=await createCreatureGlb(creature,look);
+   const url=URL.createObjectURL(new Blob([Uint8Array.from(glb)],{type:'model/gltf-binary'}));
+   const anchor=document.createElement('a');
+   anchor.href=url;anchor.download='beast-cage-'+(creature?creature.id:look)+'-original-3d.glb';
+   document.body.appendChild(anchor);anchor.click();anchor.remove();
+   window.setTimeout(()=>URL.revokeObjectURL(url),8000);
+  }catch(e){setError(e instanceof Error?e.message:'The original 3D source could not be exported.');}
+  finally{setModelBusy(false);}
  }
  async function exportPack(){
   if(busy)return;
@@ -67,11 +84,11 @@ export default function GuestGbaLab(){
     states, then export a real GBA-ready character module for your game or Codex.
     This playground is interactive artwork, not an artificial model or a sensor reading.</p>
   </section>
-  <GenesisForge value={creature} onChange={next=>{setCreature(next);setLook(next.baseLook);setDone(false);}} onAmbient={setAmbient}/>
+  <GenesisForge value={creature} onChange={next=>{setCreature(next);selectProfile(next);setLook(next.baseLook);setDone(false);}} onAmbient={setAmbient}/>
   <div className={styles.grid}>
    <section className={styles.orbit} aria-label="Animated companion test environment">
     <span className={styles.constellation} aria-hidden="true">✧ ✦ ･｡ ☆ ﾟ</span>
-    <div className={styles.model} data-ambient-behavior={ambient} style={{filter:creature?`hue-rotate(${creature.appearance.hueShift}deg)`:undefined,transform:ambient==='orbit'?'translateX(9px) rotate(3deg)':ambient==='perch'?'translateY(9px)':undefined}}><CosmicCompanion3D look={look} state={mood as CreatureState} label={'Cosmic companion: '+mood}/></div>
+    <div className={styles.model} data-ambient-behavior={ambient} style={{filter:creature?`hue-rotate(${creature.appearance.hueShift}deg)`:undefined,transform:ambient==='orbit'?'translateX(9px) rotate(3deg)':ambient==='perch'?'translateY(9px)':undefined}}><CosmicCompanion3D look={look} profile={creature} state={mood as CreatureState} label={'Cosmic companion: '+mood}/></div>
     <div className={styles.status}><span aria-hidden="true">✧</span> {label.description}</div>
     <div className={styles.actions} role="group" aria-label="Explore illustrative companion animation states">
      {STATES.map(item=><button type="button" key={item.value} className={mood===item.value?styles.active:''}
@@ -98,6 +115,10 @@ export default function GuestGbaLab(){
       contain <strong>no private memories, measured CNS values or neural weights.</strong></p>
      <button type="button" disabled={busy} onClick={()=>void exportPack()} className={styles.download}>
       <Download size={18}/> {busy?'Building your game pack…':'Download my GBA companion (.zip)'}
+     </button>
+     <button type="button" className={styles.modelDownload} disabled={modelBusy}
+       onClick={()=>void exportModel()} aria-label="Download original animated 3D model GLB">
+       {modelBusy?'Exporting real 3D geometry…':'Download original 3D model (.glb)'}
      </button>
      {error?<p role="alert" className={styles.error}>{error}</p>:null}
      {done?<p role="status" className={styles.success}>Your portable game pack was generated in this browser.</p>:null}
