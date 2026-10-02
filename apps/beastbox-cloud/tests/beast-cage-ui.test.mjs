@@ -15,9 +15,11 @@ test('owner-only runtime and stateless guest remain separate from public cage',(
 });
 test('real geometric 3D, GPU bounds and reduced-motion illustration fallback',()=>{
  const model=read('components/cosmic-companion-3d.tsx');
+ const rig=read('lib/creature-model.ts');
  assert.match(model,/new THREE.WebGLRenderer/);
- assert.match(model,/new THREE.ExtrudeGeometry/);
- assert.match(model,/new THREE.MeshPhysicalMaterial/);
+ assert.match(model,/createCreatureRig\(/);
+ assert.match(rig,/new THREE.ExtrudeGeometry/);
+ assert.match(rig,/new THREE.MeshPhysicalMaterial/);
  assert.match(model,/requestAnimationFrame/);
  assert.match(model,/document.hidden/);
  assert.match(model,/prefers-reduced-motion: reduce/);
@@ -55,7 +57,10 @@ test('accessible iPhone and 320px fallback styling exists',()=>{
 
 test('homepage truly renders the procedural galaxy creature, not merely a static SVG',()=>{
  const home=read('app/page.tsx');
- assert.match(home,/CosmicCompanion3D quality="low"/);
+ const hero=read('components/homepage-creature.tsx');
+ assert.match(home,/HomepageCreature/);
+ assert.match(hero,/CosmicCompanion3D quality="low"/);
+ assert.match(hero,/turntable=\{spin\}/);
  assert.match(home,/Enter the Beast Cage/);
 });
 test('chosen cosmetic look persists into owner dock but does not change model or memory',()=>{
@@ -73,4 +78,30 @@ test('all world cards use allowlisted owner-only deep links',()=>{
   assert.ok(owner.includes("'"+path+"'"));
  }
  assert.match(owner,/if\(!owner\)return/);
+});
+
+test('seeded 3D source is shared with its actual downloaded GLB',()=>{
+ const component=read('components/cosmic-companion-3d.tsx');
+ const rig=read('lib/creature-model.ts'),exporter=read('lib/creature-glb.ts');
+ const lab=read('components/gba-guest-lab.tsx');
+ assert.match(component,/createCreatureRig\(profile,look,quality\)/);
+ assert.match(rig,/profile\.appearance\.constellation/);
+ assert.match(rig,/profile\.appearance\.finPattern/);
+ assert.match(rig,/profile\.appearance\.haloPattern/);
+ assert.match(exporter,/createCreatureRig\(profile,look,'auto'\)/);
+ assert.match(exporter,/animations:creatureAnimationClips\(\)/);
+ assert.match(exporter,/GLTFExporter/);
+ assert.match(lab,/Download original 3D model/);
+ assert.doesNotMatch(exporter,/fetch\(|\/api\/bridge|credentials|localStorage/);
+});
+test('one persistent public companion never copies model authority or records',()=>{
+ const layout=read('app/layout.tsx'),roamer=read('components/companion-provider.tsx');
+ const geometry=read('lib/companion-roaming.ts');
+ assert.match(layout,/<CompanionProvider>\{children\}<\/CompanionProvider>/);
+ assert.match(roamer,/beastbox:master-privacy-stop/);
+ assert.match(roamer,/selectSafeRoamSpot/);
+ assert.match(roamer,/usePathname/);
+ assert.match(roamer,/validCreature/);
+ assert.match(geometry,/rectanglesIntersect/);
+ assert.doesNotMatch(roamer,/\/api\/bridge|getUserMedia|localStorage|indexedDB|setModel/);
 });

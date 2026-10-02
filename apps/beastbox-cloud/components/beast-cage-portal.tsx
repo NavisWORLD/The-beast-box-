@@ -26,6 +26,7 @@ export default function BeastCagePortal(){
  const [expanded,setExpanded]=useState(false);
  const {profile:creature,selectProfile,clearProfile}=useCompanion();
  const [ambient,setAmbient]=useState<AmbientAction>('hover');
+ useEffect(()=>{if(creature)setLook(creature.baseLook);},[creature?.id,creature?.baseLook]);
  useEffect(()=>{
   const media=window.matchMedia('(prefers-reduced-motion: reduce)');
   const onChange=()=>setPrefersReduced(media.matches);
