@@ -5,6 +5,9 @@ import {ArrowLeft,ArrowRight,Download,ShieldCheck,Gamepad2,Sparkles} from 'lucid
 import CosmicCompanion3D,{type CreatureState} from './cosmic-companion-3d';
 import {makeGbaZip,spritePreview,type Look,type Mood} from '../lib/gba-companion';
 import styles from './gba-guest-lab.module.css';
+import GenesisForge from './genesis-forge';
+import {type CreatureProfile,type AmbientAction} from '../lib/creature-profile';
+import {profilePreview} from '../lib/gba-companion';
 
 const LOOKS:{value:Look;name:string}[]=[{value:'nebula',name:'Nebby'},{value:'aurora',name:'Lumen'},{value:'starlight',name:'Orion'}];
 const STATES:{value:Mood;name:string;description:string}[]=[
@@ -17,6 +20,7 @@ const STORAGE='beastbox-cage-appearance-v1';
 export default function GuestGbaLab(){
  const [look,setLook]=useState<Look>('nebula'),[mood,setMood]=useState<Mood>('idle');
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[done,setDone]=useState(false);
+ const [creature,setCreature]=useState<CreatureProfile|null>(null),[ambient,setAmbient]=useState<AmbientAction>('hover');
  const preview=useRef<HTMLCanvasElement>(null);
  useEffect(()=>{
   try{
@@ -25,10 +29,10 @@ export default function GuestGbaLab(){
   }catch{/* optional visual choice only */}
  },[]);
  useEffect(()=>{
-  if(preview.current)spritePreview(look,mood,preview.current);
- },[look,mood]);
+  if(preview.current){if(creature)profilePreview(creature,mood,preview.current);else spritePreview(look,mood,preview.current);}
+ },[look,mood,creature]);
  function chooseLook(next:Look){
-  setLook(next);setDone(false);
+  setLook(next);setCreature(null);setDone(false);
   try{
    window.localStorage.setItem(STORAGE,next);
    window.dispatchEvent(new Event('beastbox:cage-look-changed'));
@@ -39,10 +43,10 @@ export default function GuestGbaLab(){
   setBusy(true);setError('');setDone(false);
   try{
    // Deliberately NULL: public guests do not read owner routes or memory.
-   const zip=await makeGbaZip(look,null);
+   const zip=creature?await makeGbaZip(look,null,creature):await makeGbaZip(look,null);
    const blob=new Blob([Uint8Array.from(zip)],{type:'application/zip'});
    const url=URL.createObjectURL(blob),anchor=document.createElement('a');
-   anchor.href=url;anchor.download='beast-cage-'+look+'-gba-module.zip';
+   anchor.href=url;anchor.download='beast-cage-'+(creature?creature.id:look)+'-gba-module.zip';
    document.body.appendChild(anchor);anchor.click();anchor.remove();
    window.setTimeout(()=>URL.revokeObjectURL(url),5000);
    setDone(true);
@@ -63,10 +67,11 @@ export default function GuestGbaLab(){
     states, then export a real GBA-ready character module for your game or Codex.
     This playground is interactive artwork, not an artificial model or a sensor reading.</p>
   </section>
+  <GenesisForge value={creature} onChange={next=>{setCreature(next);setLook(next.baseLook);setDone(false);}} onAmbient={setAmbient}/>
   <div className={styles.grid}>
    <section className={styles.orbit} aria-label="Animated companion test environment">
     <span className={styles.constellation} aria-hidden="true">✧ ✦ ･｡ ☆ ﾟ</span>
-    <CosmicCompanion3D look={look} state={mood as CreatureState} className={styles.model} label={'Cosmic companion: '+mood}/>
+    <div className={styles.model} data-ambient-behavior={ambient} style={{filter:creature?`hue-rotate(${creature.appearance.hueShift}deg)`:undefined,transform:ambient==='orbit'?'translateX(9px) rotate(3deg)':ambient==='perch'?'translateY(9px)':undefined}}><CosmicCompanion3D look={look} state={mood as CreatureState} label={'Cosmic companion: '+mood}/></div>
     <div className={styles.status}><span aria-hidden="true">✧</span> {label.description}</div>
     <div className={styles.actions} role="group" aria-label="Explore illustrative companion animation states">
      {STATES.map(item=><button type="button" key={item.value} className={mood===item.value?styles.active:''}
@@ -86,10 +91,10 @@ export default function GuestGbaLab(){
      <div className={styles.pixelArt}>
       <canvas ref={preview} role="img" aria-label={'Actual 64 by 64 pixel-art '+look+' sprite preview in '+mood+' state'}/>
       <div><Gamepad2 size={23}/><strong>GBA importable module</strong>
-       <small>Four authentic pixel sprite frames • 4bpp tiles • C99 module • 60-byte portable state</small></div>
+       <small>Four authentic pixel sprite frames • 4bpp tiles • C99 module • 60-byte legacy state {creature?'• new 64-byte GBA game-stat profile':''}</small></div>
      </div>
      <p>The downloadable bundle contains editable art, your chosen palette,
-      code and a clearly labeled visual-only companion profile. Guest exports
+      code and a clearly labeled visual-only companion profile. Generated characters also include deterministic fictional game stats. Guest exports
       contain <strong>no private memories, measured CNS values or neural weights.</strong></p>
      <button type="button" disabled={busy} onClick={()=>void exportPack()} className={styles.download}>
       <Download size={18}/> {busy?'Building your game pack…':'Download my GBA companion (.zip)'}
