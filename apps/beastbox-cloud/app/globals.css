@@ -390,3 +390,8 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 .cage-generated-status{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:12px;padding:15px 22px;color:#bfefff;font:700 12px 'Space Grotesk';background:#15253d;border-block:1px solid #95d5f83b}
 .cage-generated-status a{color:#ffe2ba;text-decoration:underline}
 @supports(padding:max(0px)){.cage-universe{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}.cage-topbar{padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}}
+
+@supports(padding:max(0px)){
+ .public-header{padding-top:max(18px,env(safe-area-inset-top,0px));padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
+ .landing{padding-bottom:env(safe-area-inset-bottom,0px)}
+}

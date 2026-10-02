@@ -139,7 +139,7 @@ export default function CompanionProvider({children}:{children:ReactNode}){
  const parked=halted||paused||!canShow;
  return <Context.Provider value={context}>
   {children}
-  {showPublic?<aside data-companion-overlay="true" className={styles.shell}
+  {showPublic?<aside data-companion-overlay="true" className={styles.shell+(!canShow?' '+styles.parked:'')}
     aria-label="Cosmic companion game habitat" data-companion-state={state}
     data-roaming={canShow&&!parked?'active':'parked'}
     style={canShow&&spot?{left:spot.left,top:spot.top,width:spot.width}:undefined}>

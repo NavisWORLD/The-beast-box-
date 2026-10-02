@@ -110,7 +110,7 @@ export default function CosmicCompanion3D({state='idle',look='nebula',intensity=
  },[look,quality,reduced,fallback,profile]);
  const selected=profile&&validCreature(profile)?profile:null;
  const appearance=(selected?`hue-rotate(${selected.appearance.hueShift}deg) brightness(${.7+selected.appearance.glow/200})`:look==='aurora'?'hue-rotate(42deg)':look==='starlight'?'saturate(.68) brightness(1.18)':'none');
- return <div className={'cosmic-creature3d '+className} aria-label={label} data-creature-state={state} data-graphics={ready?'procedural-3d':'illustration'} data-motion={paused?'paused':reduced?'reduced':'active'}>
+ return <div className={'cosmic-creature3d '+className} aria-label={label} data-creature-state={state} data-graphics={ready?'procedural-3d':'illustration'} data-motion={paused?'paused':reduced?'reduced':'active'} data-creature-id={selected?.id??'preview'} data-cosmetic-hue={selected?.appearance.hueShift??0}>
   <img className={'cosmic-creature-fallback '+(ready&&!reduced?'hidden':'')} src="/cosmic-creature.svg" alt="" style={{filter:appearance}}/>
   {!reduced&&!fallback?<canvas ref={canvas} className="cosmic-creature-canvas" aria-hidden="true"/>:null}
  </div>;
