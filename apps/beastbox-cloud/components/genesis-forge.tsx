@@ -27,6 +27,9 @@ export default function GenesisForge({
  const [error,setError]=useState('');
  const tick=useRef(0);
  useEffect(()=>{
+  if(value&&validCreature(value))window.dispatchEvent(new CustomEvent('beastbox:genesis-selected',{detail:value}));
+ },[value]);
+ useEffect(()=>{
   try{
    const item=JSON.parse(localStorage.getItem(KEY)??'[]');
    if(Array.isArray(item))setSaved(item.filter(validCreature).slice(0,MAX_SAVES));
@@ -68,6 +71,7 @@ export default function GenesisForge({
   if(!value)return;
   const next=pickAmbientAction(value,tick.current++);
   setAction(next);onAmbient?.(next);
+  window.dispatchEvent(new CustomEvent('beastbox:ambient-action',{detail:next}));
  }
  return <section className={css.forge} aria-label="Genesis Forge procedural character generator">
   <div className={css.heading}>
@@ -97,6 +101,19 @@ export default function GenesisForge({
     <span className={css.overline}>CREATURE // {value.id.toUpperCase()}</span>
     <h3>{value.name}</h3>
     <p>{value.family.toUpperCase()} · Level {value.game.level} · Game-only character</p>
+    <fieldset className={css.appearance}><legend>Fine-tune this creature's original genome</legend>
+     <label>Color shift <output>{value.appearance.hueShift}°</output>
+      <input type="range" min={-127} max={127} step={1} value={value.appearance.hueShift}
+       aria-label="Creature color shift"
+       onChange={event=>onChange({...value,appearance:{...value.appearance,hueShift:Number(event.target.value)}})} />
+     </label>
+     <label>Galaxy glow <output>{value.appearance.glow}%</output>
+      <input type="range" min={40} max={100} step={1} value={value.appearance.glow}
+       aria-label="Creature glow"
+       onChange={event=>onChange({...value,appearance:{...value.appearance,glow:Number(event.target.value)}})} />
+     </label>
+     <p>Cosmetic edits preserve the same generated fictional game stats.</p>
+    </fieldset>
     <div className={css.chips}>
      <span>✧ Glow {value.appearance.glow}</span>
      <span>◈ Halo {value.appearance.haloPattern+1}</span>
