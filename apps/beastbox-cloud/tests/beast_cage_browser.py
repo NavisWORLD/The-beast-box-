@@ -38,8 +38,12 @@ with sync_playwright() as p:
         expect(lumen).to_have_attribute("aria-pressed","true")
         page.get_by_role("button",name="Save look on this device").click()
         expect(page.locator(".cage-save-status")).to_contain_text("Visual look saved locally")
-        page.reload(wait_until="domcontentloaded")
-        expect(page.get_by_role("button",name=re.compile("Lumen"))).to_have_attribute("aria-pressed","true",timeout=5000)
+        # Verify local storage write BEFORE navigation. Wait for hydration
+        # after reload; WebGL shader setup on slow CI can outlive DOMContentLoaded.
+        assert page.evaluate("localStorage.getItem('beastbox-cage-appearance-v1')")=="aurora"
+        page.reload(wait_until="load")
+        page.wait_for_function("localStorage.getItem('beastbox-cage-appearance-v1')==='aurora'",timeout=15000)
+        expect(page.get_by_role("button",name=re.compile("Lumen"))).to_have_attribute("aria-pressed","true",timeout=15000)
         no_overflow(page,str(width)+" persisted")
         # If this browser actually supports WebGL, this test requires real 3D,
         # not a screenshot pretending a model was rendered.
