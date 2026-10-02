@@ -84,7 +84,7 @@ export default function BeastCageTalk(){
      </div>
      <small>{text.length}/700 characters. Speech transcription may use your browser&apos;s speech service. You review text before sending.</small>
     </form>
-    <div className={styles.foot}><Link href="/try">Other guest options ↗</Link><Link href="/workspace">Owner memory demo ↗</Link></div>
+    <div className={styles.foot}><Link href="/beast-cage/guest">Visual guest + GBA download ↗</Link><Link href="/try">Other guest options ↗</Link><Link href="/workspace">Owner memory demo ↗</Link></div>
    </section>
   </div>
   <p className={styles.disclaimer}>The animation shows frontend states, not model emotions, awareness, cognition or hardware measurements. Model failures remain visible; no invented replies.</p>
