@@ -2,6 +2,7 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {Activity,Eye,EyeOff,Pause,Play,ShieldCheck} from 'lucide-react';
 import CosmicCompanion3D,{type CreatureState} from './cosmic-companion-3d';
+import {useCompanion} from './companion-provider';
 
 type Props={
  model:string;connected:boolean;camera:boolean;speech:boolean;
@@ -14,6 +15,8 @@ type SensorPacket={schema:'local-measurement-v1';kind:'microphone'|'camera';leve
  * never authentic server telemetry or permission grants.
  */
 export default function CosmicCompanionDock({model,connected,camera,speech,chatActive,trace,checkpoint}:Props){
+ const {profile:cosmeticProfile}=useCompanion();
+ const stoppedRef=useRef(false);
  const [hidden,setHidden]=useState(false),[paused,setPaused]=useState(false),[reduced,setReduced]=useState(false);
  const [look,setLook]=useState<'nebula'|'aurora'|'starlight'>('nebula');
  const [perch,setPerch]=useState(0),[typing,setTyping]=useState(false);
@@ -53,11 +56,12 @@ export default function CosmicCompanionDock({model,connected,camera,speech,chatA
   const onMeasurement=(event:Event)=>{
    if(!(event instanceof CustomEvent))return;
    const packet=event.detail as SensorPacket|undefined;
+   if(stoppedRef.current)return;
    if(packet?.schema!=='local-measurement-v1'||packet.kind!=='microphone')return;
    if(!Number.isFinite(packet.level)||packet.level<0||packet.level>1)return;
    setAudioLevel(packet.active===false?0:packet.level);
   };
-  const stop=()=>{setStopped(true);setAudioLevel(0);setMemoryPulse(false);};
+  const stop=()=>{stoppedRef.current=true;setStopped(true);setAudioLevel(0);setMemoryPulse(false);};
   window.addEventListener('beastbox:local-sensor-level',onMeasurement);
   window.addEventListener('beastbox:master-privacy-stop',stop);
   return()=>{
@@ -65,7 +69,10 @@ export default function CosmicCompanionDock({model,connected,camera,speech,chatA
    window.removeEventListener('beastbox:master-privacy-stop',stop);
   };
  },[]);
- useEffect(()=>{if(camera||speech)setStopped(false);if(!speech)setAudioLevel(0);},[camera,speech]);
+ // A permission flag remaining true is NOT a valid signal to reset privacy stop.
+ // Only a fresh component/session may reset this cosmetic latch; backend
+ // restart authorization remains exclusively with the existing owner host.
+ useEffect(()=>{if(!speech)setAudioLevel(0);},[speech]);
  useEffect(()=>{
   const focusIn=(event:FocusEvent)=>{
    const el=event.target;
@@ -93,11 +100,11 @@ export default function CosmicCompanionDock({model,connected,camera,speech,chatA
    {hidden?<Eye size={15}/>:<EyeOff size={15}/>}<span>{hidden?'Show companion':'Hide'}</span>
   </button>
   {!hidden&&<div className="companion-floater">
-   <CosmicCompanion3D look={look} state={paused?'sleeping':state} intensity={speech?audioLevel:0} quality="low" label="Decorative galaxy companion reacting to permitted activity"/>
+   <CosmicCompanion3D look={look} profile={cosmeticProfile} state={stopped?'halted':paused?'sleeping':state} paused={paused||stopped} intensity={stopped?0:speech?audioLevel:0} quality="low" label="Decorative galaxy companion reacting to permitted activity"/>
    <div className="companion-dock-plate"><span aria-hidden="true">✧</span><span>{status}</span></div>
    <div className="companion-dock-actions">
     <button type="button" onClick={()=>setPaused(p=>!p)} aria-label={paused?'Resume companion animation':'Pause companion animation'}>{paused?<Play size={13}/>:<Pause size={13}/>}</button>
-    <span title="Actual inference readiness must be checked in Brain Bay">{connected?<Activity size={13}/>:<ShieldCheck size={13}/>} {model==='NOT CONNECTED'?'Awaiting model':model.slice(0,26)}</span>
+    <span title="Cosmetic game profile only; actual provider readiness must be checked in Brain Bay">{connected?<Activity size={13}/>:<ShieldCheck size={13}/>} {model==='NOT CONNECTED'?'Awaiting model':model.slice(0,26)}</span>
    </div>
    <span className="sr-only" aria-live="polite">{status} · Checkpoint {checkpoint===null||checkpoint===undefined?'unavailable':'recorded in owner workstation'}.</span>
   </div>}
