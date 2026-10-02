@@ -67,7 +67,7 @@ export default function BeastCagePortal(){
    onAmbient={setAmbient}/>
   {creature?<div className="cage-generated-status" role="status">
    ✧ {creature.name} · {creature.family} · {ambient} (classical seeded visual behavior)
-   <a href="/beast-cage/guest">Take this creature to the GBA Game Lab ↗</a>
+   <Link href="/beast-cage/guest">Take this creature to the GBA Game Lab ↗</Link>
   </div>:null}
   <section className="cage-invariants"><span>MODEL ≠ MEMORY</span><span>MODEL ≠ IDENTITY</span><span>MODEL ≠ AUTHORITY</span></section>
   <section className="cage-customize" id="customize" aria-labelledby="customize-title">

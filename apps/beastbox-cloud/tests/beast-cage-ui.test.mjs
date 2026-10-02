@@ -105,3 +105,12 @@ test('one persistent public companion never copies model authority or records',(
  assert.match(geometry,/rectanglesIntersect/);
  assert.doesNotMatch(roamer,/\/api\/bridge|getUserMedia|localStorage|indexedDB|setModel/);
 });
+
+test('generated character moves between Cage and guest via client navigation, never full reload',()=>{
+ const cage=read('components/beast-cage-portal.tsx');
+ const guest=read('components/gba-guest-lab.tsx');
+ assert.match(cage,/<Link href="\/beast-cage\/guest">Take this creature/);
+ assert.doesNotMatch(cage,/<a href="\/beast-cage\/guest">Take this creature/);
+ assert.match(guest,/profile:sharedProfile/);
+ assert.match(guest,/createCreatureGlb\(creature,look\)/);
+});
