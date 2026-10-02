@@ -1,0 +1,90 @@
+name: Cosmic Genesis public live proof
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/beastbox-cloud/vercel.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cosmic-genesis-public-proof
+  cancel-in-progress: false
+jobs:
+  verify-public:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Verify real Vercel marker, original guest routes, and owner boundary
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python - <<'PY'
+          import json,os,pathlib,ssl,time,urllib.request,urllib.error,urllib.parse
+          ROOT="https://beastboxcosmos.xyz"
+          CONTEXT=ssl.create_default_context()
+          HEADERS={"User-Agent":"CosmicGenesis-ReadOnlyLiveProof/1.0","Cache-Control":"no-cache"}
+          LIMIT=400000
+          def read(path):
+              request=urllib.request.Request(ROOT+path,headers=HEADERS,method="GET")
+              try:
+                  with urllib.request.urlopen(request,timeout=14,context=CONTEXT) as response:
+                      host=urllib.parse.urlsplit(response.geturl()).hostname
+                      if host not in ("beastboxcosmos.xyz","www.beastboxcosmos.xyz"):
+                          raise ValueError("Unexpected external redirect: "+path)
+                      return response.status,response.read(LIMIT+1)
+              except urllib.error.HTTPError as exc:
+                  return exc.code,exc.read(4096)
+          receipt={
+           "schema":"cosmic-genesis-v1-live-public-proof",
+           "github_trigger":os.getenv("GITHUB_SHA"),
+           "no_credentials":True,"no_private_data_read":True,
+           "model_inference_attempted":False,"physical_gba_hardware_tested":False
+          }
+          last="not attempted"
+          for attempt in range(42):
+              try:
+                  status,raw=read("/api/genesis-release")
+                  if status!=200 or len(raw)>LIMIT:raise ValueError("New Genesis release endpoint not ready")
+                  marker=json.loads(raw)
+                  if (marker.get("release")!="cosmic-genesis-v1-20261002" or
+                      marker.get("generator_version")!=1 or
+                      marker.get("gba_profile")!="BCP1-64-byte-optional" or
+                      marker.get("owner_data_in_public_export") is not False or
+                      marker.get("actual_quantum_hardware") is not False):
+                      raise ValueError("Exact new release code/limitations not live")
+                  page,body=read("/beast-cage/guest")
+                  if page!=200 or b"Catch a star" not in body or b"GENESIS FORGE" not in body.upper():
+                      raise ValueError("New public Genesis UI not present")
+                  source,c=read("/gba-module/beast_creature_profile.c")
+                  if source!=200 or b"beast_decode_game_profile" not in c:
+                      raise ValueError("New downloadable C99 decoder missing")
+                  legacy,_=read("/api/gba-release")
+                  if legacy!=200:raise ValueError("Prior game export release regressed")
+                  protect,_=read("/api/bridge/activation")
+                  if protect!=401:raise ValueError("Anonymous owner API read not rejected")
+                  receipt.update({
+                   "public_verified":True,"exact_release_marker":marker["release"],
+                   "guest_http":page,"gba_decoder_http":source,
+                   "legacy_release_http":legacy,"owner_anonymous_http":protect,
+                   "attempt":attempt+1
+                  })
+                  print("COSMIC_GENESIS_LIVE_PROOF_PASS",json.dumps(receipt,sort_keys=True))
+                  break
+              except (ValueError,urllib.error.URLError,TimeoutError,json.JSONDecodeError) as exc:
+                  last=type(exc).__name__+":"+str(exc)[:250]
+                  if attempt==41:
+                      receipt.update({"public_verified":False,"last_error":last})
+                      print("COSMIC_GENESIS_LIVE_PROOF_FAILED",json.dumps(receipt,sort_keys=True))
+                      raise
+                  time.sleep(10)
+          pathlib.Path("cosmic-genesis-live-proof.json").write_text(json.dumps(receipt,indent=2,sort_keys=True)+"\n")
+          PY
+      - name: Preserve public non-sensitive evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmic-genesis-live-public-attestation
+          path: cosmic-genesis-live-proof.json
+          if-no-files-found: warn
+          retention-days: 30

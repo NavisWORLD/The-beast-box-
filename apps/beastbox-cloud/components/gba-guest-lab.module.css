@@ -40,3 +40,9 @@
 @media(max-width:850px){.grid{grid-template-columns:1fr}.orbit{min-height:440px}.model{max-height:320px}.next{margin-left:18px;margin-right:18px}}
 @media(max-width:430px){.header>span{display:none}.intro{padding-top:36px}.grid{gap:15px}.orbit{padding:12px;min-height:390px}.panel{padding:16px}.actions{gap:4px}.actions button{font-size:10px;padding:11px 1px}.looks button{font-size:11px}.pixelArt{grid-template-columns:114px 1fr;gap:9px}.pixelArt canvas{width:110px;height:110px}.next{padding:19px}}
 @media(prefers-reduced-motion:reduce){.model{transition:none}}
+
+@media(max-width:430px){
+ .orbit{padding-bottom:20px;min-height:415px}
+ .orbit>small{margin-top:17px;line-height:1.6;text-align:center}
+ .actions button{min-height:44px;font-size:11px}
+}

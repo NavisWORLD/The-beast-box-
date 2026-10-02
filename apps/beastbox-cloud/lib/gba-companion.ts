@@ -3,6 +3,7 @@
  * never an LLM, living organism, credential, private memory, or permission grant.
  * Only an explicit owner click may include validated measured dyn12 samples.
  */
+import {FAMILIES,STAT_NAMES,validCreature,type CreatureProfile} from './creature-profile';
 export type Look='nebula'|'aurora'|'starlight';
 export type Mood='idle'|'listening'|'thinking'|'celebrating';
 export type Measured={sequence:number;checkpoint:string;cns:number[];synaptic:number[]};
@@ -181,10 +182,104 @@ function sourceHeader(tiles:Uint8Array,palette:Uint8Array):string{
  for(let i=0;i<32;i+=2)text+='0x'+(palette16[i]|palette16[i+1]<<8).toString(16).padStart(4,'0')+', ';
  return text+'\n};\n#endif\n';
 }
-export async function makeGbaZip(look:Look,measured:Measured|null):Promise<Uint8Array>{
+/** v1 extension. The old 60-byte BCG1 signal format remains unchanged. */
+function hueRotate(color:number,angle:number):number{
+ const r=((color>>>16)&255)/255,g=((color>>>8)&255)/255,b=(color&255)/255;
+ const max=Math.max(r,g,b),min=Math.min(r,g,b),delta=max-min;
+ let h=0,s=0;const l=(max+min)/2;
+ if(delta>0){
+  s=delta/(1-Math.abs(2*l-1));
+  if(max===r)h=((g-b)/delta)%6;
+  else if(max===g)h=(b-r)/delta+2;
+  else h=(r-g)/delta+4;
+  h*=60;
+ }
+ h=((h+angle)%360+360)%360;
+ const c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;
+ let nr=0,ng=0,nb=0;
+ if(h<60){nr=c;ng=x;}else if(h<120){nr=x;ng=c;}
+ else if(h<180){ng=c;nb=x;}else if(h<240){ng=x;nb=c;}
+ else if(h<300){nr=x;nb=c;}else{nr=c;nb=x;}
+ const channel=(v:number)=>Math.min(255,Math.max(0,Math.round((v+m)*255)));
+ return (channel(nr)<<16)|(channel(ng)<<8)|channel(nb);
+}
+export function profilePaletteBytes(profile:CreatureProfile):Uint8Array{
+ if(!validCreature(profile))throw Error('Invalid generated game character');
+ const colors=PALETTES[profile.baseLook].map((color,i)=>i===0?color:hueRotate(color,profile.appearance.hueShift));
+ const output=new Uint8Array(32);
+ colors.forEach((color,i)=>{
+  const [r,g,b]=colorComponents(color),bgr=(r>>3)|((g>>3)<<5)|((b>>3)<<10);
+  output[i*2]=bgr&255;output[i*2+1]=bgr>>>8;
+ });
+ return output;
+}
+export function profileFramePixels(profile:CreatureProfile,mood:Mood):Uint8Array{
+ if(!validCreature(profile))throw Error('Invalid generated game character');
+ const out=framePixels(profile.baseLook,mood);
+ // Distinct seeded galaxy highlights within the existing original silhouette.
+ let n=profile.appearance.constellation;
+ for(let i=0;i<9;i++){
+  n=(Math.imul(n,1664525)+1013904223)>>>0;
+  const x=19+n%27,y=24+((n>>>11)%22),at=y*64+x;
+  if(out[at]>0&&out[at]<9)out[at]=i%3===0?11:8;
+ }
+ return out;
+}
+export function profileSpriteTiles(profile:CreatureProfile):Uint8Array{
+ const out=new Uint8Array(8192);
+ MOODS.forEach((mood,frame)=>{
+  const pixels=profileFramePixels(profile,mood);
+  for(let ty=0;ty<8;ty++)for(let tx=0;tx<8;tx++){
+   const tile=(ty*8+tx)*32+frame*2048;
+   for(let y=0;y<8;y++)for(let x=0;x<8;x+=2){
+    const pos=(ty*8+y)*64+tx*8+x;
+    out[tile+y*4+x/2]=pixels[pos]|(pixels[pos+1]<<4);
+   }
+  }
+ });
+ return out;
+}
+export function profilePreview(profile:CreatureProfile,mood:Mood,canvas:HTMLCanvasElement){
+ const ctx=canvas.getContext('2d');if(!ctx)throw Error('Pixel preview unavailable');
+ const palette=profilePaletteBytes(profile),pixels=profileFramePixels(profile,mood);
+ canvas.width=64;canvas.height=64;
+ const image=ctx.createImageData(64,64);
+ for(let i=0;i<4096;i++){
+  const color=pixels[i],value=palette[color*2]|(palette[color*2+1]<<8),j=i*4;
+  image.data[j]=((value&31)*255/31)|0;
+  image.data[j+1]=(((value>>5)&31)*255/31)|0;
+  image.data[j+2]=(((value>>10)&31)*255/31)|0;
+  image.data[j+3]=color===0?0:255;
+ }
+ ctx.putImageData(image,0,0);
+}
+/** Compact versioned game data, NEVER an authenticated COSMOS checkpoint. */
+export function creatureProfileBytes(profile:CreatureProfile):Uint8Array{
+ if(!validCreature(profile))throw Error('Invalid game character');
+ const out=new Uint8Array(64),view=new DataView(out.buffer);
+ out.set([66,67,80,49]); // BCP1; distinct from legacy BCG1 CNS snapshot
+ out[4]=1;out[5]=FAMILIES.indexOf(profile.family);out[6]=LOOKS.indexOf(profile.baseLook);
+ STAT_NAMES.forEach((key,i)=>{out[8+i]=profile.game.stats[key];});
+ (['curiosity','energy','playfulness','caution','independence'] as const)
+  .forEach((key,i)=>{out[18+i]=profile.temperament[key];});
+ view.setInt8(23,Math.max(-128,Math.min(127,profile.appearance.hueShift)));
+ view.setUint32(24,Number.parseInt(profile.id.slice(3),16),true);
+ view.setUint32(60,crc32(out.subarray(0,60)),true);
+ return out;
+}
+function creatureHeader(bytes:Uint8Array):string{
+ const lines=['#ifndef BEAST_CAGE_CREATURE_PROFILE_H','#define BEAST_CAGE_CREATURE_PROFILE_H',
+  '/* BCP1: purely fictional seeded game statistics; no private owner data. */',
+  'static const unsigned char beast_creature_profile[64] = {'];
+ for(let i=0;i<64;i+=8)lines.push('  '+Array.from(bytes.slice(i,i+8)).map(x=>'0x'+x.toString(16).padStart(2,'0')).join(', ')+',');
+ lines.push('};','#endif','');return lines.join('\n');
+}
+
+export async function makeGbaZip(look:Look,measured:Measured|null,profile?:CreatureProfile):Promise<Uint8Array>{
  if(!validLook(look))throw Error('Unsupported visual look');
+ if(profile&&(!validCreature(profile)||profile.baseLook!==look))throw Error('Game character and sprite look disagree');
  // No remote provider calls; fetch only fixed public same-origin module source.
- const resources=['beast_companion.h','beast_companion.c','example_gba.c','README.md','AGENTS.md'];
+ const resources=['beast_companion.h','beast_companion.c','example_gba.c','README.md','AGENTS.md',...(profile?['beast_creature_profile.h','beast_creature_profile.c','GENESIS_PROFILE.md']:[])];
  const entries:{name:string;bytes:Uint8Array}[]=[];
  for(const name of resources){
   const result=await fetch('/gba-module/'+name,{credentials:'omit'});
@@ -196,11 +291,20 @@ export async function makeGbaZip(look:Look,measured:Measured|null):Promise<Uint8
  const art=await fetch('/cosmic-creature.svg',{credentials:'omit'});
  if(!art.ok)throw Error('Companion source artwork is unavailable');
  entries.push({name:'art/cosmic-creature.svg',bytes:new Uint8Array(await art.arrayBuffer())});
- const tiles=spriteTiles(look),palette=paletteBytes(look),encoder=new TextEncoder(),manifest=soulManifest(look,measured);
+ const tiles=profile?profileSpriteTiles(profile):spriteTiles(look),palette=profile?profilePaletteBytes(profile):paletteBytes(look),encoder=new TextEncoder(),manifest=soulManifest(look,measured);
  entries.push({name:'gba/companion_tiles.4bpp',bytes:tiles});
  entries.push({name:'gba/companion_palette.bgr555',bytes:palette});
  entries.push({name:'gba/companion_assets.h',bytes:encoder.encode(sourceHeader(tiles,palette))});
  entries.push({name:'gba/companion_state.bin',bytes:stateBytes(look,measured)});
+ if(profile){
+  const bytes=creatureProfileBytes(profile);
+  const safe={schema:profile.schema,version:profile.version,id:profile.id,seed:profile.seed,name:profile.name,
+   family:profile.family,baseLook:profile.baseLook,appearance:profile.appearance,
+   temperament:profile.temperament,game:profile.game,provenance:profile.provenance};
+  entries.push({name:'gba/companion_profile.bin',bytes});
+  entries.push({name:'gba/companion_profile.h',bytes:encoder.encode(creatureHeader(bytes))});
+  entries.push({name:'companion.profile.json',bytes:encoder.encode(JSON.stringify(safe,null,2)+'\n')});
+ }
  entries.push({name:'companion.soul.json',bytes:encoder.encode(JSON.stringify(manifest,null,2)+'\n')});
  entries.push({name:'PROVENANCE.txt',bytes:encoder.encode('Cory Davis / NavisWORLD. Original Beast Cage character source, GBA pixel-art adaptation and explicitly approved optional numeric signals. No model weights or private memory exported.\n')});
  return zipStore(entries);

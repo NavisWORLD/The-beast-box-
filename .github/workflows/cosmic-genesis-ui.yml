@@ -1,0 +1,65 @@
+name: Cosmic Genesis real gameplay/browser
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/**'
+      - '.github/workflows/cosmic-genesis-ui.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  genesis:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 27
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify both C99 GBA parsers
+        run: |
+          cc -std=c99 -Wall -Wextra -Werror -pedantic -fsyntax-only public/gba-module/beast_companion.c
+          cc -std=c99 -Wall -Wextra -Werror -pedantic -fsyntax-only public/gba-module/beast_creature_profile.c
+      - name: Install exact app dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run original plus new gameplay tests
+        run: npm test
+      - name: Strict TypeScript
+        run: npm run typecheck
+      - name: Production Next build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Install real Chromium
+        run: |
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Built public game lab and actual binary download tests
+        run: |
+          npm run start -- --hostname 127.0.0.1 --port 3100 > /tmp/genesis-next.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          python - <<'PY'
+          import time,urllib.request
+          for _ in range(90):
+              try:
+                  if urllib.request.urlopen('http://127.0.0.1:3100/beast-cage/guest',timeout=3).status==200:break
+              except Exception:time.sleep(1)
+          else:raise RuntimeError('The actual built public game route failed to start')
+          PY
+          python tests/cosmic_genesis_browser.py
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Upload authentic screenshots and audited game ZIP
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmic-genesis-real-game-browser-evidence
+          path: apps/beastbox-cloud/browser-evidence/cosmic-genesis/
+          if-no-files-found: warn
