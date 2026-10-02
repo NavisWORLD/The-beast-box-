@@ -1,0 +1,58 @@
+name: DevDay upgraded cosmic Site browser demo
+on:
+  pull_request:
+    paths:
+      - "tools/devday/updated-cosmic-deck-v2/**"
+      - ".github/workflows/devday-cosmic-deck-v2-browser.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  authentic-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bring forward the genuine WebGL rotation artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m pip install pillow
+          mkdir -p tools/devday/updated-cosmic-deck-v2/assets
+          gh run download 36942346790 -n devday-original-beast-3d-turntable -R "${{ github.repository }}" -D /tmp/actual-turntable
+          find /tmp/actual-turntable -type f | head -30
+          VID="$(find /tmp/actual-turntable -type f -iname '*.mp4' | head -n 1)"
+          test -n "$VID" && test -s "$VID"
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          ffmpeg -y -nostdin -hide_banner -loglevel error -ss 3.4 -i "$VID" -an -vf "scale=960:-2" -c:v libx264 -preset veryfast -crf 24 -pix_fmt yuv420p -movflags +faststart tools/devday/updated-cosmic-deck-v2/assets/real-3d-turntable.mp4
+          echo 'Actual previously recorded WebGL video transferred; no synthetic inference or new source is claimed.'
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image,ImageOps,ImageDraw
+          root=Path('/tmp/actual-turntable')
+          pics=[next(root.rglob(x),None) for x in ['000-front.png','090-right.png','180-back.png','270-left.png']]
+          if all(pics):
+              thumbs=[ImageOps.fit(Image.open(x).convert('RGB'),(500,300)) for x in pics]
+              canvas=Image.new('RGB',(1000,600))
+              for i,im in enumerate(thumbs): canvas.paste(im,((i%2)*500,(i//2)*300))
+              canvas.save('tools/devday/updated-cosmic-deck-v2/assets/four-real-3d-views.jpg',quality=86)
+          else:
+              raise RuntimeError('Missing exact 0/90/180/270 browser screenshots; do not fabricate evidence')
+          PY
+      - name: Install real Chromium browser
+        run: |
+          python -m pip install playwright==1.55.0 pillow
+          python -m playwright install --with-deps chromium
+      - name: Capture authentic controls + desktop/mobile evidence
+        run: python tools/devday/updated-cosmic-deck-v2/record_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: devday-new-deck-browser-evidence
+          path: recorded-cosmic-deck-v2/
+          retention-days: 2
+          if-no-files-found: warn
