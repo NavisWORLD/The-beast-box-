@@ -110,20 +110,35 @@ export function generateCreature(input:string,chosenFamily?:Family):CreatureProf
 export function validCreature(value:unknown):value is CreatureProfile{
  if(!value||typeof value!=='object'||Array.isArray(value))return false;
  const x=value as Partial<CreatureProfile>;
- if(x.schema!==GENESIS_SCHEMA||x.version!==GENESIS_VERSION||!x.seed||typeof x.seed!=='string'||!FAMILIES.includes(x.family as Family))return false;
+ const keys=(object:object,names:readonly string[])=>{
+  const actual=Object.keys(object).sort(),allowed=[...names].sort();
+  return actual.length===allowed.length&&actual.every((key,i)=>key===allowed[i]);
+ };
+ if(!keys(x,['schema','version','id','seed','name','family','baseLook','appearance',
+             'temperament','game','provenance']))return false;
+ if(x.schema!==GENESIS_SCHEMA||x.version!==GENESIS_VERSION||
+    !x.seed||typeof x.seed!=='string'||!FAMILIES.includes(x.family as Family))return false;
  let expected:CreatureProfile;
  try{expected=generateCreature(x.seed,x.family);}catch{return false;}
- if(x.id!==expected.id||x.baseLook!==expected.baseLook||typeof x.name!=='string'||x.name.length>40)return false;
- if(x.provenance!==expected.provenance)return false;
- if(!x.appearance||!Number.isInteger(x.appearance.hueShift)||Math.abs(x.appearance.hueShift)>180)return false;
- const game=x.game;if(!game)return false;
+ if(x.seed!==expected.seed||x.id!==expected.id||x.baseLook!==expected.baseLook||
+    x.name!==expected.name||x.provenance!==expected.provenance)return false;
+ const a=x.appearance;
+ if(!a||typeof a!=='object'||!keys(a,['hueShift','glow','finPattern','haloPattern','constellation']))return false;
+ if(!Number.isInteger(a.hueShift)||Math.abs(a.hueShift)>127||
+    !Number.isInteger(a.glow)||a.glow<40||a.glow>100||
+    !Number.isInteger(a.finPattern)||a.finPattern<0||a.finPattern>3||
+    !Number.isInteger(a.haloPattern)||a.haloPattern<0||a.haloPattern>2||
+    !Number.isInteger(a.constellation)||a.constellation<0||a.constellation>65535)return false;
+ const game=x.game;if(!game||!keys(game,['stats','level','experience']))return false;
  const stats=game.stats;
- if(!stats||!Number.isInteger(game.level)||game.level<1||game.level>100)return false;
- if(!Number.isInteger(game.experience)||game.experience<0||game.experience>1000000)return false;
- if(STAT_NAMES.some(k=>!Number.isInteger(stats[k])||stats[k]<20||stats[k]>80))return false;
+ if(!stats||!keys(stats,STAT_NAMES)||game.level!==1||game.experience!==0)return false;
+ if(STAT_NAMES.some(k=>!Number.isInteger(stats[k])||stats[k]<20||stats[k]>80||
+                        stats[k]!==expected.game.stats[k]))return false;
  if(STAT_NAMES.reduce((n,k)=>n+stats[k],0)!==500)return false;
  const t=x.temperament;
- if(!t||(['curiosity','energy','playfulness','caution','independence'] as const).some(k=>!Number.isInteger(t[k])||t[k]<20||t[k]>80))return false;
+ const traits=['curiosity','energy','playfulness','caution','independence'] as const;
+ if(!t||!keys(t,traits)||traits.some(k=>!Number.isInteger(t[k])||
+                   t[k]!==expected.temperament[k]))return false;
  return true;
 }
 export type AmbientAction='hover'|'orbit'|'perch'|'rest';

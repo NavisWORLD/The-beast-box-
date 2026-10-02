@@ -48,7 +48,12 @@ export default function GenesisForge({
  }
  function save(){
   if(!value||!validCreature(value)){setError('Generate a valid character first.');return;}
-  const next=[value,...saved.filter(x=>x.id!==value.id)].slice(0,MAX_SAVES);
+  const remaining=saved.filter(x=>x.id!==value.id);
+  if(remaining.length>=MAX_SAVES){
+   setError('Eight game characters are already saved here. Delete one explicitly before saving another.');
+   return;
+  }
+  const next=[value,...remaining];
   try{
    localStorage.setItem(KEY,JSON.stringify(next));setSaved(next);
    setMessage('Saved this game-only character on this device. No COSMOS records were changed.');

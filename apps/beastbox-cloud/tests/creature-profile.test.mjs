@@ -50,3 +50,14 @@ test('behavior is purely reproducible classical visual action',()=>{
  assert.ok(new Set(first).size>2);
  assert.throws(()=>pickAmbientAction(x,-1));
 });
+
+test('v1 imported profiles reject extra keys and stat tampering rather than exporting it',()=>{
+ const x=generateCreature('strict-v1');
+ assert.equal(validCreature({...x,appearance:{...x.appearance,owner_memory:'never'}}),false);
+ assert.equal(validCreature({...x,private_owner_token:'never'}),false);
+ const stats={...x.game.stats};
+ const winner=STAT_NAMES.find(k=>stats[k]<80),loser=STAT_NAMES.find(k=>k!==winner&&stats[k]>20);
+ stats[winner]++;stats[loser]--;
+ assert.equal(validCreature({...x,game:{...x.game,stats}}),false);
+ assert.equal(validCreature({...x,temperament:{...x.temperament,curiosity:0}}),false);
+});
