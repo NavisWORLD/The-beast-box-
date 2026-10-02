@@ -38,6 +38,7 @@ export default function DevicePanel({canSend,onDraft}:Props){
   if(audio.current){void audio.current.close().catch(()=>{});audio.current=null;}
   if(alive.current){
    setMicOn(false);setLevel(0);setConsent(false);
+   window.dispatchEvent(new CustomEvent('beastbox:local-sensor-level',{detail:{schema:'local-measurement-v1',kind:'microphone',level:0,active:false}}));
    setSample(old=>({...old,microphone:undefined}));
   }
  },[]);
@@ -112,7 +113,10 @@ export default function DevicePanel({canSend,onDraft}:Props){
     const data=new Float32Array(analyser.current.fftSize);
     analyser.current.getFloatTimeDomainData(data);
     const rms=Math.sqrt(data.reduce((sum,x)=>sum+x*x,0)/data.length);
-    setLevel(Math.min(1,rms));
+    const safeLevel=Math.min(1,Math.max(0,rms));
+    setLevel(safeLevel);
+    // Aggregate amplitude only: browser-local animation, no recording or storage.
+    window.dispatchEvent(new CustomEvent('beastbox:local-sensor-level',{detail:{schema:'local-measurement-v1',kind:'microphone',level:safeLevel,active:true}}));
    },250);
    if(alive.current)setMicOn(true);
   }catch{

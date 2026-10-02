@@ -1,0 +1,56 @@
+name: Beast Cage real Side Quest UI recording
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/**'
+      - '.github/workflows/beast-cage-sidequest.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sidequest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run typecheck
+      - name: Build real Next.js app
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Install Chromium browser
+        run: |
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Real Chromium visual footage (no fake model answers)
+        shell: bash
+        run: |
+          npm run start -- --port 3100 > /tmp/beast-sidequest.log 2>&1 &
+          for n in $(seq 1 75); do if curl -fsS http://127.0.0.1:3100/beast-cage/talk >/dev/null; then break; fi; sleep 1; done
+          python tests/beast_cage_talk_browser.py
+      - name: Encode shareable MP4s
+        if: always()
+        run: |
+          if command -v ffmpeg >/dev/null; then
+            for file in browser-evidence/sidequest/demo-ui-*.webm; do
+              test -e "$file" || continue
+              ffmpeg -y -loglevel error -i "$file" -c:v libx264 -preset fast -pix_fmt yuv420p "${file%.webm}.mp4"
+            done
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: beast-cage-original-sidequest-browser-footage
+          path: apps/beastbox-cloud/browser-evidence/sidequest/
+          if-no-files-found: warn

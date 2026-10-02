@@ -239,3 +239,144 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 .guest-bottom{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:35px 0;color:var(--muted);font-size:11px}
 .guest-bottom a{color:var(--cyan)}
 @media(max-width:560px){.guest-top{flex-wrap:wrap;justify-content:space-between}.guest-top span{order:-1;width:100%}.guest-options{grid-template-columns:1fr}.guest-submit{align-items:stretch;flex-direction:column}.guest-submit button{justify-content:center}.guest-hero{margin:25px auto}}
+
+
+/* BEAST CAGE // visual-only world and original procedural 3D companion.
+   Never infer operational health from the animation. */
+.cosmic-creature3d{position:relative;width:100%;height:100%;min-height:1px;aspect-ratio:1;isolation:isolate;pointer-events:none;filter:drop-shadow(0 15px 35px rgba(145,110,250,.28))}
+.cosmic-creature-fallback,.cosmic-creature-canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transition:opacity .35s ease}
+.cosmic-creature-fallback{z-index:0;opacity:1;filter:drop-shadow(0 10px 30px #9263db70)}
+.cosmic-creature-fallback.hidden{opacity:0}
+.cosmic-creature-canvas{z-index:1}
+.beast-landing-hero{min-height:700px;grid-template-columns:1.02fr .98fr;isolation:isolate}
+.beast-landing-hero:before{content:'';position:absolute;inset:4% -1%;z-index:-1;pointer-events:none;background:radial-gradient(circle at 68% 33%,#6986f21b,transparent 48%)}
+.beast-landing-art{height:clamp(360px,42vw,610px);position:relative;border-radius:48% 48% 39% 39%;background:radial-gradient(ellipse at 60% 40%,#b7c3fd2e,transparent 47%),url('/cosmic-habitat.svg') center/cover;isolation:isolate;box-shadow:0 30px 140px #a073c72e;border:1px solid #c8e5ff2a;overflow:hidden}
+.beast-landing-art:before{content:'';position:absolute;inset:4%;border-radius:49%;border:1px solid #ddf4ff72;box-shadow:inset 0 0 55px #94effa33,0 0 50px #9f72fe2d;pointer-events:none}
+.beast-landing-art:after{content:'';position:absolute;inset:0;background:linear-gradient(150deg,#ffffff1c,transparent 35%,#070c1840 80%);pointer-events:none}
+.beast-landing-creature{position:absolute;left:7%;top:22%;width:48%;height:55%;transform-origin:50% 70%;animation:beast-hero-bob 7s ease-in-out infinite;filter:drop-shadow(0 14px 40px #b282ff70)}
+.beast-landing-creature img{display:block;width:100%;height:100%;object-fit:contain}
+.beast-landing-caption{position:absolute;right:5%;bottom:6%;z-index:2;font:700 9px 'Space Grotesk',sans-serif;color:#f2e4ff;letter-spacing:.16em;text-shadow:0 2px 8px #141528}
+@keyframes beast-hero-bob{50%{transform:translate3d(0,-12px,0) rotate(3deg)}}
+.cage-universe{min-height:100vh;background:radial-gradient(ellipse 80% 40% at 69% 11%,#28275c52,transparent 70%),radial-gradient(ellipse at 7% 72%,#17335e55,transparent 54%),#090e1b;color:#eff1ff;position:relative;isolation:isolate;overflow:hidden}
+.cage-sky{position:absolute;inset:0;z-index:-1;opacity:.54;pointer-events:none;background-image:radial-gradient(1px 1px at 10% 13%,#cfefff 98%,transparent),radial-gradient(1px 1px at 70% 38%,#d3b9ff 98%,transparent),radial-gradient(1px 1px at 90% 75%,#fff9db 98%,transparent);background-size:237px 281px,409px 313px,501px 443px}
+.cage-topbar,.cage-footer{max-width:1480px;margin:auto;padding:24px clamp(20px,5vw,70px);display:flex;align-items:center;justify-content:space-between;gap:15px}
+.cage-topbar{position:relative;z-index:3;border-bottom:1px solid #bacaff19;flex-wrap:wrap}
+.cage-brand{display:flex;align-items:center;gap:12px;font:800 14px 'Space Grotesk',sans-serif;letter-spacing:.14em}
+.cage-brand>span:first-child{font-size:39px;color:#a2faff;text-shadow:0 0 17px #80e9ef}
+.cage-brand small{display:block;font:600 9px 'DM Sans',sans-serif;color:#abb4d4;letter-spacing:.13em;margin-top:3px}
+.cage-topbar nav{display:flex;align-items:center;gap:clamp(12px,2.3vw,29px);font:600 12px 'Space Grotesk',sans-serif;color:#c1cae2}
+.cage-topbar nav>a:hover,.cage-secondary:hover{color:#96f4f7}
+.cage-nav-cta,.cage-secondary{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 14px;border-radius:12px;border:1px solid #d4d0ff46;background:#ffffff0a;color:#e8ecff}
+.cage-nav-cta{background:#20274781}
+.cage-hero{max-width:1500px;margin:auto;min-height:680px;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);align-items:center;gap:clamp(18px,3vw,45px);padding:50px clamp(20px,5vw,70px) 74px}
+.cage-headline{position:relative;z-index:2}
+.cage-eyebrow{display:inline-flex;align-items:center;gap:8px;color:#9ae2ec;font:700 10px 'Space Grotesk',sans-serif;letter-spacing:.19em}
+.cage-headline h1{font:700 clamp(47px,5.4vw,87px)/1.08 'Space Grotesk',sans-serif;letter-spacing:-.065em;max-width:670px;margin:24px 0}
+.cage-headline>p:not(.cage-quiet){font-size:clamp(14px,1.1vw,17px);line-height:1.8;max-width:530px;color:#bdc7df}
+.cage-hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:32px}
+.cage-primary{border:0;border-radius:13px;padding:15px 20px;display:inline-flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(115deg,#acfbff,#c7b7ff,#f8d7ff);color:#17132c;font:800 12px 'Space Grotesk',sans-serif;box-shadow:0 8px 30px #baa1ff40;transition:transform .18s}
+.cage-primary:hover{transform:translateY(-3px)}
+.cage-quiet{display:flex;gap:6px;align-items:flex-start;color:#9caacb;font-size:11px;line-height:1.5;margin-top:23px;max-width:480px}
+.cage-habitat-visual{min-height:clamp(430px,47vw,650px);position:relative;display:grid;place-items:center;isolation:isolate;background:radial-gradient(ellipse at 52% 42%,#a7b4ff38,transparent 57%),url('/cosmic-habitat.svg') center/cover;border-radius:51% 49% 47% 53%;border:1px solid #e0ecff55;box-shadow:inset 0 0 70px #b7faff24,0 0 85px #ae8cfc28,0 0 9px #d8f7ff80;overflow:hidden}
+.cage-habitat-visual:before{content:'';position:absolute;inset:4%;border:1px solid #eafaff45;border-radius:50%;pointer-events:none}
+.cage-hero-creature{position:absolute!important;width:clamp(260px,35vw,460px)!important;height:clamp(275px,37vw,480px)!important;filter:drop-shadow(0 20px 35px #755beb73)}
+.cage-orbit{position:absolute;border:1px solid #f6db9e9c;border-radius:50%;width:88%;height:37%;transform:rotate(-23deg);top:62%;box-shadow:0 0 22px #d1a9ff40;pointer-events:none}
+.cage-orbit-two{transform:rotate(35deg);border-color:#b3c8ff6e;width:65%;height:31%;top:44%;opacity:.5}
+.cage-habitat-caption{position:absolute;bottom:7%;right:5%;font:700 9px 'Space Grotesk',sans-serif;letter-spacing:.2em;color:#e3deff;opacity:.9}
+.cage-invariants{padding:20px;display:flex;justify-content:center;gap:clamp(20px,6vw,92px);border-top:1px solid #c7bafa2d;border-bottom:1px solid #c7bafa2d;color:#9fe0e6;font:700 11px 'Space Grotesk';letter-spacing:.13em;flex-wrap:wrap;background:#151a2b96}
+.cage-customize,.cage-worlds{max-width:1400px;margin:auto;padding:94px clamp(20px,5vw,70px) 70px}
+.cage-section-heading{max-width:580px;margin-bottom:35px}
+.cage-section-heading h2,.cage-continuity h2{font:700 clamp(37px,4.4vw,60px)/1.13 'Space Grotesk',sans-serif;letter-spacing:-.045em;margin:19px 0}
+.cage-section-heading>p,.cage-continuity p{color:#b5c1dc;font-size:14px;line-height:1.85}
+.cage-look-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.cage-look-card{border:1px solid #b4c6ec31;border-radius:22px;padding:19px;background:linear-gradient(155deg,#212541e8,#101627f5);display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;transition:transform .2s,border .2s;box-shadow:0 15px 40px #0003;color:#f5efff}
+.cage-look-card:hover{transform:translateY(-5px);border-color:#b5eeff9e}
+.cage-look-card.selected{border:2px solid #9ff4f7;box-shadow:0 0 0 3px #9ff4f71d,0 13px 50px #8e79fb35}
+.cage-look-art{display:block;width:100%;aspect-ratio:1.1;max-height:245px;position:relative;background:radial-gradient(ellipse at 50% 66%,#ba8bfd43,transparent 60%),radial-gradient(ellipse at 57% 30%,#96b2ee30,transparent 60%);border-radius:15px}
+.cage-look-art img{width:100%;height:100%;object-fit:contain}
+.cage-look-card.cyan img{filter:hue-rotate(42deg)}
+.cage-look-card.rose img{filter:saturate(.68) brightness(1.18)}
+.cage-look-card strong{font:700 22px 'Space Grotesk';margin-top:12px}
+.cage-look-card small{font-size:12px;color:#b7bedd;line-height:1.4;text-align:center}
+.cage-select-label{font:700 11px 'Space Grotesk';color:#9aebf8;margin:18px 0 6px}
+.cage-save-panel{display:flex;gap:18px 30px;flex-wrap:wrap;align-items:center;margin:23px 0 0;padding:25px;border-radius:19px;background:#1720399e;border:1px solid #a6c3fa30}
+.cage-save-panel p{flex:1;min-width:210px;font-size:12px;line-height:1.75;color:#aebddb}
+.cage-save-panel p strong{color:#f8efff;font:700 16px 'Space Grotesk'}
+.cage-save-panel>div{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.cage-save-status{width:100%;color:#9bd1df;font-size:11px}
+.cage-worlds{padding-top:56px}
+.cage-world-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px}
+.cage-world-card{position:relative;border:1px solid #b9c7fc25;border-radius:21px;background:linear-gradient(140deg,#1c2541eb,#121726);padding:22px;display:flex;flex-direction:column;gap:13px;min-height:265px;transition:transform .22s,border .22s}
+.cage-world-card:hover{transform:translateY(-5px);border-color:#aeeaff86}
+.cage-world-decoration{height:125px;display:grid;place-items:center;color:#a6dfff;background:radial-gradient(ellipse at 50% 77%,#888add47,transparent 50%),radial-gradient(ellipse at 45% 35%,#996cf02e,transparent 60%);border:1px solid #d4bdff0d;border-radius:13px}
+.cage-world-tag{font:700 9px 'Space Grotesk',sans-serif;letter-spacing:.15em;color:#9ecedc}
+.cage-world-card strong{font:700 20px 'Space Grotesk',sans-serif;letter-spacing:-.02em}
+.cage-world-card>span:not(.cage-world-tag):not(.cage-world-decoration){font-size:12px;line-height:1.65;color:#aab8d5}
+.cage-world-go{position:absolute;bottom:23px;right:22px;color:#b1eefd}
+.cage-continuity{max-width:1250px;margin:20px auto 100px;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:clamp(22px,5vw,85px);padding:38px clamp(20px,5vw,55px);border:1px solid #aaa7fa32;border-radius:29px;background:linear-gradient(120deg,#1d1d3fbb,#112a419e)}
+.cage-continuity-art{display:grid;place-items:center;min-height:325px;background:radial-gradient(ellipse,#baacff3d,transparent 70%);border-radius:40%}
+.cage-continuity-art img{width:min(80%,310px);filter:drop-shadow(0 8px 30px #bea2f05f)}
+.cage-continuity .cage-secondary{margin-top:15px;font-size:12px}
+.cage-footer{border-top:1px solid #a9b6df2c;color:#899ab8;font-size:10px;letter-spacing:.04em;flex-wrap:wrap}
+.cage-footer button{border:1px solid #aac8f14a;background:#1d243d;color:#d9eaff;padding:9px 13px;border-radius:8px}
+.cage-footer p{flex-basis:100%;line-height:1.6}
+/* Roving character: all scene pixels are pointer-transparent. Only compact
+   explicit controls receive pointer events. This is a bounded viewport perch
+   system, never arbitrary full-screen collision-obscuring motion. */
+.companion-dock{position:fixed;z-index:18;right:24px;bottom:100px;width:145px;pointer-events:none;transform:translate3d(0,0,0);transition:transform 2.5s cubic-bezier(.18,.7,.12,1);filter:drop-shadow(0 8px 23px #aa9bfc44)}
+.companion-dock.companion-perch-1{transform:translate3d(-16px,-22vh,0)}
+.companion-dock.companion-perch-2{transform:translate3d(-19vw,-8vh,0)}
+.companion-dock.companion-parked{transform:translate3d(0,0,0)}
+.companion-visibility{pointer-events:auto;position:absolute;z-index:2;top:-2px;right:0;display:inline-flex;align-items:center;gap:6px;border:1px solid #bed9f65b;background:#181b39dc;backdrop-filter:blur(10px);border-radius:99px;padding:6px 9px;font:700 10px 'Space Grotesk';color:#d9f0ff;box-shadow:0 5px 14px #1013356a}
+.companion-visibility:hover{border-color:#7aebf3}
+.companion-floater{padding-top:17px;transition:opacity .28s}
+.companion-floater>.cosmic-creature3d{height:139px}
+.companion-dock-plate{display:flex;align-items:center;gap:5px;justify-content:center;font:600 9px 'Space Grotesk';line-height:1.4;color:#e2eeff;text-align:center;background:#0e1730cb;border:1px solid #9ccdfb46;border-radius:11px;padding:7px}
+.companion-dock-plate>span:first-child{color:#fff1ac}
+.companion-dock-actions{pointer-events:auto;display:flex;justify-content:space-between;gap:6px;align-items:center;margin-top:6px;font-size:10px;color:#cad4e9;background:#0d1631d4;border-radius:12px;padding:4px 8px}
+.companion-dock-actions button{border:0;background:none;color:#abedff;display:grid;place-items:center;border-radius:8px;padding:5px}
+.companion-dock-actions span{display:inline-flex;gap:4px;align-items:center;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:108px}
+.companion-parked .companion-floater{opacity:.13;pointer-events:none}
+.companion-still{transition:none}
+@media(max-width:1024px){
+ .cage-hero{grid-template-columns:1fr;min-height:auto;padding-top:45px}
+ .cage-headline h1{max-width:800px}
+ .cage-habitat-visual{width:100%;max-width:800px;min-height:510px;margin:0 auto}
+ .cage-world-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .beast-landing-hero{grid-template-columns:1fr}
+ .beast-landing-art{max-width:800px;width:100%;margin:0 auto}
+}
+@media(max-width:680px){
+ .cage-topbar{padding:17px 20px}
+ .cage-topbar nav>a:not(.cage-nav-cta){display:none}
+ .cage-headline h1{font-size:clamp(40px,9vw,62px)}
+ .cage-hero{gap:10px;padding-bottom:36px}
+ .cage-habitat-visual{min-height:clamp(310px,87vw,490px)}
+ .cage-hero-creature{width:79%!important;height:87%!important}
+ .cage-customize,.cage-worlds{padding:68px 18px 35px}
+ .cage-look-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+ .cage-look-card{padding:11px}
+ .cage-look-art{aspect-ratio:.89}
+ .cage-look-card strong{font-size:17px}
+ .cage-look-card small{font-size:11px}
+ .cage-select-label{font-size:10px}
+ .cage-world-grid{gap:12px}
+ .cage-world-card{min-height:250px;padding:14px}
+ .cage-world-decoration{height:92px}
+ .cage-world-card strong{font-size:16px}
+ .cage-continuity{margin:35px 18px 75px;grid-template-columns:1fr;padding:18px 23px 35px}
+ .cage-continuity-art{min-height:215px}
+ .cage-continuity-art img{width:min(55%,195px)}
+ .cage-invariants{font-size:9px;gap:13px}
+ .companion-dock{width:82px;right:14px;bottom:clamp(112px,16vh,165px);transition:none}
+ .companion-dock.companion-perch-1,.companion-dock.companion-perch-2{transform:none}
+ .companion-floater>.cosmic-creature3d{height:84px}
+ .companion-visibility{right:0;top:-12px}
+ .companion-visibility span{display:none}
+ .companion-dock-plate{font-size:8px;padding:4px;line-height:1.25;max-height:32px;overflow:hidden}
+ .companion-dock-actions span{display:none}
+ .beast-landing-art{height:clamp(290px,90vw,440px);border-radius:37%}
+ .beast-landing-caption{font-size:8px}
+}
+@media(max-width:360px){.cage-look-grid,.cage-world-grid{grid-template-columns:1fr}.cage-look-art{max-height:215px}.cage-hero-actions{align-items:stretch}.cage-hero-actions a{width:100%}.cage-topbar nav{gap:6px}}
+@media(prefers-reduced-motion:reduce){.beast-landing-creature{animation:none}.companion-dock,.cage-primary,.cage-world-card,.cage-look-card{transition:none!important}.cage-orbit{animation:none!important}}
