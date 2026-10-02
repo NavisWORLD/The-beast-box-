@@ -54,7 +54,7 @@ jobs:
                       marker.get("actual_quantum_hardware") is not False):
                       raise ValueError("Exact new release code/limitations not live")
                   page,body=read("/beast-cage/guest")
-                  if page!=200 or b"Catch a star" not in body or b"Genesis Forge" not in body:
+                  if page!=200 or b"Catch a star" not in body or b"GENESIS FORGE" not in body.upper():
                       raise ValueError("New public Genesis UI not present")
                   source,c=read("/gba-module/beast_creature_profile.c")
                   if source!=200 or b"beast_decode_game_profile" not in c:
