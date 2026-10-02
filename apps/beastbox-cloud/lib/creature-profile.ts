@@ -110,15 +110,16 @@ export function generateCreature(input:string,chosenFamily?:Family):CreatureProf
 export function validCreature(value:unknown):value is CreatureProfile{
  if(!value||typeof value!=='object'||Array.isArray(value))return false;
  const x=value as Partial<CreatureProfile>;
- if(x.schema!==GENESIS_SCHEMA||x.version!==GENESIS_VERSION||!x.seed||typeof x.seed!=='string')return false;
+ if(x.schema!==GENESIS_SCHEMA||x.version!==GENESIS_VERSION||!x.seed||typeof x.seed!=='string'||!FAMILIES.includes(x.family as Family))return false;
  let expected:CreatureProfile;
  try{expected=generateCreature(x.seed,x.family);}catch{return false;}
  if(x.id!==expected.id||x.baseLook!==expected.baseLook||typeof x.name!=='string'||x.name.length>40)return false;
  if(x.provenance!==expected.provenance)return false;
  if(!x.appearance||!Number.isInteger(x.appearance.hueShift)||Math.abs(x.appearance.hueShift)>180)return false;
- const stats=x.game?.stats;
- if(!stats||!Number.isInteger(x.game?.level)||x.game.level<1||x.game.level>100)return false;
- if(!Number.isInteger(x.game?.experience)||x.game.experience<0||x.game.experience>1000000)return false;
+ const game=x.game;if(!game)return false;
+ const stats=game.stats;
+ if(!stats||!Number.isInteger(game.level)||game.level<1||game.level>100)return false;
+ if(!Number.isInteger(game.experience)||game.experience<0||game.experience>1000000)return false;
  if(STAT_NAMES.some(k=>!Number.isInteger(stats[k])||stats[k]<20||stats[k]>80))return false;
  if(STAT_NAMES.reduce((n,k)=>n+stats[k],0)!==500)return false;
  const t=x.temperament;
