@@ -1,0 +1,81 @@
+name: Cosmic Genesis V2 exact live proof
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/beastbox-cloud/vercel.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cosmic-genesis-v2-exact-public-proof
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Assert the new immutable frontend, guest game route and owner API boundary
+        run: |
+          python - <<'PY'
+          import json,os,pathlib,ssl,time,urllib.error,urllib.request,urllib.parse
+          root='https://beastboxcosmos.xyz'
+          context=ssl.create_default_context()
+          receipt={'schema':'cosmic-genesis-v2-public-proof',
+                   'trigger_sha':os.getenv('GITHUB_SHA'),
+                   'reads_private_owner_data':False,
+                   'performs_paid_inference':False,
+                   'physical_iphone_tested':False}
+          def get(path):
+              req=urllib.request.Request(root+path,headers={
+                'User-Agent':'CosmicGenesis-V2-ExactProof/1.0','Cache-Control':'no-cache'
+              })
+              try:
+                  with urllib.request.urlopen(req,timeout=16,context=context) as response:
+                      if urllib.parse.urlparse(response.url).hostname not in ('beastboxcosmos.xyz','www.beastboxcosmos.xyz'):
+                          raise ValueError('Redirected outside expected production domain')
+                      return response.status,response.read(400001)
+              except urllib.error.HTTPError as e:
+                  return e.code,e.read(4096)
+          for attempt in range(42):
+              try:
+                  status,raw=get('/api/genesis-3d-release')
+                  if status!=200 or len(raw)>400000:raise ValueError('V2 frontend marker unavailable')
+                  marker=json.loads(raw)
+                  assert marker.get('release')=='cosmic-genesis-v2-3d-20261002'
+                  assert marker.get('genome_schema')=='beast-cage-creature-v1'
+                  assert marker.get('export_format')=='animated-original-3d-glb'
+                  assert marker.get('real_owner_telemetry_in_public_route') is False
+                  page,html=get('/beast-cage/guest')
+                  if page!=200 or b'Catch a star' not in html or b'3D model' not in html:
+                      raise ValueError('Guest 3D export interface is not live')
+                  old,oldraw=get('/api/genesis-release')
+                  if old!=200 or json.loads(oldraw).get('release')!='cosmic-genesis-v1-20261002':
+                      raise ValueError('Prior Genesis release regressed')
+                  source,c=get('/gba-module/beast_creature_profile.c')
+                  if source!=200 or b'beast_decode_game_profile' not in c:
+                      raise ValueError('Existing GBA game profile decoder missing')
+                  owner,_=get('/api/bridge/activation')
+                  if owner!=401:raise ValueError('Anonymous owner activation was not rejected')
+                  receipt.update({'exact_release':marker['release'],'public_verified':True,
+                                  'guest_http':page,'legacy_http':old,
+                                  'gba_c99_http':source,'owner_anon_http':owner,
+                                  'attempts':attempt+1})
+                  print('COSMIC_GENESIS_V2_LIVE_PROOF_PASS',json.dumps(receipt,sort_keys=True))
+                  break
+              except (ValueError,AssertionError,urllib.error.URLError,TimeoutError,json.JSONDecodeError) as exc:
+                  if attempt==41:
+                      receipt.update({'public_verified':False,
+                                      'last_error':str(exc)[:250]})
+                      print('COSMIC_GENESIS_V2_LIVE_PROOF_FAILED',json.dumps(receipt,sort_keys=True))
+                      raise
+                  time.sleep(10)
+          pathlib.Path('genesis-v2-live-proof.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cosmic-genesis-v2-public-proof
+          path: genesis-v2-live-proof.json
+          if-no-files-found: warn
+          retention-days: 30
