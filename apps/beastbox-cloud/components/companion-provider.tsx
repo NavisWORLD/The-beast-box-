@@ -15,6 +15,7 @@ import styles from './companion-provider.module.css';
 type CompanionContextValue={
  profile:CreatureProfile|null;
  selectProfile:(candidate:CreatureProfile)=>void;
+ clearProfile:()=>void;
 };
 const Context=createContext<CompanionContextValue|undefined>(undefined);
 export function useCompanion(){
@@ -132,7 +133,8 @@ export default function CompanionProvider({children}:{children:ReactNode}){
  const state:CreatureState=halted?'halted':
   action==='rest'?'sleeping':action==='orbit'?'celebrating':
   action==='perch'?'observing':'idle';
- const context=useMemo(()=>({profile,selectProfile:onProfile}),[profile,onProfile]);
+ const clearProfile=useCallback(()=>{setProfile(null);setAction('hover');tickRef.current=0;setTick(0);},[]);
+ const context=useMemo(()=>({profile,selectProfile:onProfile,clearProfile}),[profile,onProfile,clearProfile]);
  const canShow=showPublic&&!hidden&&!typing&&pageVisible&&!reduced&&spot!==null;
  const parked=halted||paused||!canShow;
  return <Context.Provider value={context}>
