@@ -35,3 +35,15 @@
 @media(max-width:650px){.profile{grid-template-columns:1fr}.creator{grid-template-columns:1fr}.stats dl{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:360px){.stats dl{grid-template-columns:1fr}.forge{border-radius:15px}}
 @media(prefers-reduced-motion:reduce){.forge *{scroll-behavior:auto}}
+
+/* mobile-stat-readability: no microtext or crowded two-column game attributes */
+@media(max-width:430px){
+ .stats dl{grid-template-columns:1fr;gap:12px}
+ .stats strong{font-size:13px}
+ .stat{font-size:13px}
+ .stat meter{height:10px}
+ .heading p,.identity p{font-size:13px;line-height:1.8}
+ .forge>small{font-size:11px}
+ .overline{font-size:11px;line-height:1.5}
+ .collection strong,.saved button{font-size:12px}
+}
