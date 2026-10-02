@@ -279,7 +279,7 @@ export async function makeGbaZip(look:Look,measured:Measured|null,profile?:Creat
  if(!validLook(look))throw Error('Unsupported visual look');
  if(profile&&(!validCreature(profile)||profile.baseLook!==look))throw Error('Game character and sprite look disagree');
  // No remote provider calls; fetch only fixed public same-origin module source.
- const resources=['beast_companion.h','beast_companion.c','example_gba.c','README.md','AGENTS.md',...(profile?['beast_creature_profile.h','beast_creature_profile.c']:[])];
+ const resources=['beast_companion.h','beast_companion.c','example_gba.c','README.md','AGENTS.md',...(profile?['beast_creature_profile.h','beast_creature_profile.c','GENESIS_PROFILE.md']:[])];
  const entries:{name:string;bytes:Uint8Array}[]=[];
  for(const name of resources){
   const result=await fetch('/gba-module/'+name,{credentials:'omit'});
