@@ -41,14 +41,14 @@ export default function BeastCagePortal(){
  return <main className="cage-universe" data-reduced-motion={prefersReduced}>
   <div className="cage-sky" aria-hidden="true"/>
   <header className="cage-topbar"><Link href="/" aria-label="Beast Box homepage" className="cage-brand"><span>✺</span><span>BEAST BOX<small>NAVISWORLD / COSMOS</small></span></Link>
-   <nav aria-label="Beast Cage navigation"><a href="#habitat">Habitat</a><a href="#worlds">Explore</a><Link href="/beast-cage/talk">Talk</Link><Link className="cage-nav-cta" href="/workspace">Owner deck <ArrowRight size={15}/></Link></nav>
+   <nav aria-label="Beast Cage navigation"><a href="#habitat">Habitat</a><a href="#worlds">Explore</a><Link href="/beast-cage/talk">Talk</Link><Link href="/beast-cage/guest">Game lab</Link><Link className="cage-nav-cta" href="/workspace">Owner deck <ArrowRight size={15}/></Link></nav>
   </header>
   <section className="cage-hero" id="habitat" aria-labelledby="cage-title">
    <div className="cage-headline">
     <span className="cage-eyebrow"><Sparkles size={13}/> WELCOME TO THE BEAST CAGE</span>
     <h1 id="cage-title">A small companion.<br/><em>An entire universe.</em></h1>
     <p>Give your ideas a little cosmic troublemaker. Keep the story in COSMOS, choose your compatible brain in the owner workstation, and let real signals inspire its motion.</p>
-    <div className="cage-hero-actions"><Link className="cage-primary" href="/beast-cage/talk">Talk to the real Beast <ArrowRight size={17}/></Link><Link className="cage-secondary" href="/beast-cage/turntable">See the real 3D model ↻</Link><a className="cage-secondary" href="#customize">Customize your companion</a><Link className="cage-secondary" href="/workspace">Open real workstation ↗</Link></div>
+    <div className="cage-hero-actions"><Link className="cage-primary" href="/beast-cage/talk">Talk to the real Beast <ArrowRight size={17}/></Link><Link className="cage-secondary" href="/beast-cage/turntable">See the real 3D model ↻</Link><Link className="cage-secondary" href="/beast-cage/guest">Play + export a GBA character 🎮</Link><a className="cage-secondary" href="#customize">Customize your companion</a><Link className="cage-secondary" href="/workspace">Open real workstation ↗</Link></div>
     <p className="cage-quiet"><LockKeyhole size={13}/> Customization below is a browser-only visual preview, not an additional COSMOS identity or memory store.</p>
    </div>
    <div className="cage-habitat-visual" role="img" aria-label="Original cosmic observatory with a floating galaxy companion">
