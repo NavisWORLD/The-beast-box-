@@ -395,3 +395,14 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
  .public-header{padding-top:max(18px,env(safe-area-inset-top,0px));padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
  .landing{padding-bottom:env(safe-area-inset-bottom,0px)}
 }
+
+/* The 3D CHARACTER floats; real buttons NEVER drift beneath the user's mouse
+   or touch as a side effect of animated artwork. Real-browser regression. */
+.beast-landing-creature:has(.cosmos-home-hero){animation:none!important}
+.cosmos-home-hero>.cosmic-creature3d{
+ animation:beast-hero-bob 7s ease-in-out infinite;
+ transform-origin:50% 70%;
+}
+@media(prefers-reduced-motion:reduce){
+ .cosmos-home-hero>.cosmic-creature3d{animation:none!important}
+}
