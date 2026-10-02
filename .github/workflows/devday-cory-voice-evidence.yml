@@ -15,7 +15,7 @@ jobs:
       - name: Retrieve user-requested HeyGen narration (no model credentials)
         run: |
           mkdir -p evidence
-          curl --fail --show-error --silent --location --retry 2 --max-time 80 --output evidence/cory-devday-voiceover.wav 'https://resource2.heygen.ai/text_to_speech/9403409b8fab4d52a22cc5e32124a934/de3911a4020c464886cf529e2afd1779/id=133b21c5-3b16-41e7-b62f-283b5df627b3.wav'
+          curl --fail --show-error --silent --location --retry 2 --max-time 80 --output evidence/cory-devday-voiceover.wav 'https://resource2.heygen.ai/text_to_speech/9403409b8fab4d52a22cc5e32124a934/de3911a4020c464886cf529e2afd1779/id=101d9966-de5e-4c9e-a2fe-c3013935aa39.wav'
           test -s evidence/cory-devday-voiceover.wav
           file evidence/cory-devday-voiceover.wav
           ffprobe -v error -show_entries format=duration -of default=nokey=1:noprint_wrappers=1 evidence/cory-devday-voiceover.wav | awk '{if ($1<15 || $1>30) exit 1; printf("VERIFIED user-requested voice narration: %.2f seconds\n",$1)}'
