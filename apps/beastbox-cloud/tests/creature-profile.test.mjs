@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {generateCreature,FAMILIES,STAT_NAMES,validCreature,pickAmbientAction,stableCreatureId} from '../lib/creature-profile.ts';
+import ts from 'typescript';
+import {readFileSync} from 'node:fs';
+const source=readFileSync(new URL('../lib/creature-profile.ts',import.meta.url),'utf8');
+const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2020}}).outputText;
+const {generateCreature,FAMILIES,STAT_NAMES,validCreature,pickAmbientAction,stableCreatureId}
+ = await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
 test('v1 deterministic profiles replay with exact identity and stats',()=>{
  const a=generateCreature('  Nebula-1  '),b=generateCreature('Nebula-1');
  assert.deepEqual(a,b);assert.equal(a.id,stableCreatureId('Nebula-1'));
