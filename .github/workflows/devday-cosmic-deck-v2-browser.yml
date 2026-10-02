@@ -21,6 +21,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          python -m pip install pillow
           mkdir -p tools/devday/updated-cosmic-deck-v2/assets
           gh run download 36942346790 -n devday-original-beast-3d-turntable -R "${{ github.repository }}" -D /tmp/actual-turntable
           find /tmp/actual-turntable -type f | head -30
