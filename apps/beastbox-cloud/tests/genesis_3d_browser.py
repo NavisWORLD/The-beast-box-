@@ -71,7 +71,11 @@ with sync_playwright() as p:
    json_size=struct.unpack_from("<I",raw,12)[0]
    assert raw[16:20]==b"JSON"
    model=json.loads(raw[20:20+json_size].decode("utf-8").rstrip(" "))
-   assert len(model["meshes"])>=12 and len(model["images"])>=1
+   # GLB reuses geometries across many scene nodes. Count actual mesh instances
+   # rather than demanding one distinct mesh definition per repeated lobe/fin.
+   assert len(model["meshes"])>=8 and len(model["images"])>=1
+   assert sum("mesh" in node for node in model["nodes"])>=25
+   assert len(model["materials"])>=5 and len(raw)>30000
    animations={a["name"] for a in model.get("animations",[])}
    assert {"idle","listening","thinking","celebrating"}<=animations,animations
    assert model["asset"]["version"]=="2.0"
