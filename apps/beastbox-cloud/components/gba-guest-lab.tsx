@@ -9,6 +9,7 @@ import GenesisForge from './genesis-forge';
 import {type CreatureProfile,type AmbientAction} from '../lib/creature-profile';
 import {profilePreview} from '../lib/gba-companion';
 import {createCreatureGlb} from '../lib/creature-glb';
+import {useCompanion} from './companion-provider';
 
 const LOOKS:{value:Look;name:string}[]=[{value:'nebula',name:'Nebby'},{value:'aurora',name:'Lumen'},{value:'starlight',name:'Orion'}];
 const STATES:{value:Mood;name:string;description:string}[]=[
@@ -22,6 +23,8 @@ export default function GuestGbaLab(){
  const [look,setLook]=useState<Look>('nebula'),[mood,setMood]=useState<Mood>('idle');
  const [busy,setBusy]=useState(false),[modelBusy,setModelBusy]=useState(false),[error,setError]=useState(''),[done,setDone]=useState(false);
  const [creature,setCreature]=useState<CreatureProfile|null>(null),[ambient,setAmbient]=useState<AmbientAction>('hover');
+ const {profile:sharedProfile,selectProfile,clearProfile}=useCompanion();
+ useEffect(()=>{if(sharedProfile){setCreature(sharedProfile);setLook(sharedProfile.baseLook);}},[sharedProfile]);
  const preview=useRef<HTMLCanvasElement>(null);
  useEffect(()=>{
   try{
@@ -33,7 +36,7 @@ export default function GuestGbaLab(){
   if(preview.current){if(creature)profilePreview(creature,mood,preview.current);else spritePreview(look,mood,preview.current);}
  },[look,mood,creature]);
  function chooseLook(next:Look){
-  setLook(next);setCreature(null);setDone(false);
+  setLook(next);setCreature(null);clearProfile();setDone(false);
   try{
    window.localStorage.setItem(STORAGE,next);
    window.dispatchEvent(new Event('beastbox:cage-look-changed'));
@@ -81,7 +84,7 @@ export default function GuestGbaLab(){
     states, then export a real GBA-ready character module for your game or Codex.
     This playground is interactive artwork, not an artificial model or a sensor reading.</p>
   </section>
-  <GenesisForge value={creature} onChange={next=>{setCreature(next);setLook(next.baseLook);setDone(false);}} onAmbient={setAmbient}/>
+  <GenesisForge value={creature} onChange={next=>{setCreature(next);selectProfile(next);setLook(next.baseLook);setDone(false);}} onAmbient={setAmbient}/>
   <div className={styles.grid}>
    <section className={styles.orbit} aria-label="Animated companion test environment">
     <span className={styles.constellation} aria-hidden="true">✧ ✦ ･｡ ☆ ﾟ</span>

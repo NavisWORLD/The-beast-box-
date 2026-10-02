@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {ArrowRight,BrainCircuit,DatabaseZap,LockKeyhole,Orbit,ShieldCheck,SlidersHorizontal,Sparkles,Volume2} from 'lucide-react';
 import CosmicCompanion3D,{type CreatureLook} from './cosmic-companion-3d';
 import GenesisForge from './genesis-forge';
+import {useCompanion} from './companion-provider';
 import {type CreatureProfile,type AmbientAction} from '../lib/creature-profile';
 const LOOKS:{id:CreatureLook;label:string;detail:string;accent:string}[]=[
  {id:'nebula',label:'Nebby',detail:'A curious little pocket galaxy',accent:'violet'},
@@ -23,7 +24,7 @@ export default function BeastCagePortal(){
  const [look,setLook]=useState<CreatureLook>('nebula');
  const [saved,setSaved]=useState(false),[prefersReduced,setPrefersReduced]=useState(false);
  const [expanded,setExpanded]=useState(false);
- const [creature,setCreature]=useState<CreatureProfile|null>(null);
+ const {profile:creature,selectProfile,clearProfile}=useCompanion();
  const [ambient,setAmbient]=useState<AmbientAction>('hover');
  useEffect(()=>{
   const media=window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -61,7 +62,7 @@ export default function BeastCagePortal(){
     <span className="cage-habitat-caption">✧ YOUR OWN POCKET UNIVERSE</span>
    </div>
   </section>
-  <GenesisForge value={creature} onChange={next=>{setCreature(next);setLook(next.baseLook);}}
+  <GenesisForge value={creature} onChange={next=>{selectProfile(next);setLook(next.baseLook);}}
    onAmbient={setAmbient}/>
   {creature?<div className="cage-generated-status" role="status">
    ✧ {creature.name} · {creature.family} · {ambient} (classical seeded visual behavior)
@@ -72,7 +73,7 @@ export default function BeastCagePortal(){
    <div className="cage-section-heading"><span className="cage-eyebrow"><SlidersHorizontal size={13}/> A LOOK THAT FEELS LIKE YOURS</span>
     <h2 id="customize-title">Meet the first<br/><em>little constellations.</em></h2>
     <p>Preview an original companion look. Save only the visual preference to this device, or clear it whenever you like.</p></div>
-   <div className="cage-look-grid">{LOOKS.map(item=><button type="button" className={'cage-look-card '+item.accent+(look===item.id?' selected':'')} key={item.id} aria-pressed={look===item.id} onClick={()=>{setLook(item.id);setSaved(false);}}>
+   <div className="cage-look-grid">{LOOKS.map(item=><button type="button" className={'cage-look-card '+item.accent+(look===item.id?' selected':'')} key={item.id} aria-pressed={look===item.id} onClick={()=>{setLook(item.id);clearProfile();setSaved(false);}}>
     <span className="cage-look-art"><img src="/cosmic-creature.svg" alt="" aria-hidden="true"/></span>
     <strong>{item.label}</strong><small>{item.detail}</small><span className="cage-select-label">{look===item.id?'✓ Selected':'Choose this look'} →</span>
    </button>)}</div>
