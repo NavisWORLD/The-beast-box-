@@ -27,7 +27,8 @@ jobs:
           find /tmp/actual-turntable -type f | head -30
           VID="$(find /tmp/actual-turntable -type f -iname '*.mp4' | head -n 1)"
           test -n "$VID" && test -s "$VID"
-          cp "$VID" tools/devday/updated-cosmic-deck-v2/assets/real-3d-turntable.mp4
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          ffmpeg -y -nostdin -hide_banner -loglevel error -ss 3.4 -i "$VID" -an -vf "scale=960:-2" -c:v libx264 -preset veryfast -crf 24 -pix_fmt yuv420p -movflags +faststart tools/devday/updated-cosmic-deck-v2/assets/real-3d-turntable.mp4
           echo 'Actual previously recorded WebGL video transferred; no synthetic inference or new source is claimed.'
           python - <<'PY'
           from pathlib import Path
