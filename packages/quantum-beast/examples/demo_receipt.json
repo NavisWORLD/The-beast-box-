@@ -1,0 +1,100 @@
+{
+  "schema": "quantum-beast-bridge-acceptance-v1",
+  "base_beastbox_commit": "265e38291ad7647c029b553e754c648705fdc8f0",
+  "lost_cosmos_commit": "af2bdfbdc21b671c891ea1fb32973356f5fce31f",
+  "tests": {
+    "bridge": 16,
+    "existing_app": 91,
+    "production_build": "passed",
+    "browser": {
+      "suite": "real-built-browser-quantum-beast",
+      "results": [
+        {
+          "width": 1440,
+          "download_import_restart": true,
+          "forged_stats_rejected": true,
+          "rewind_rejected": true,
+          "same_id_cosmetic_rewind_rejected": true,
+          "returning_creature_rewind_rejected": true,
+          "stale_tab_rollback_rejected": true,
+          "gba_zip_verified": true,
+          "horizontal_overflow": false,
+          "page_errors": [],
+          "private_bridge_requests": []
+        },
+        {
+          "width": 390,
+          "download_import_restart": true,
+          "forged_stats_rejected": true,
+          "rewind_rejected": true,
+          "same_id_cosmetic_rewind_rejected": true,
+          "returning_creature_rewind_rejected": true,
+          "stale_tab_rollback_rejected": true,
+          "gba_zip_verified": true,
+          "horizontal_overflow": false,
+          "page_errors": [],
+          "private_bridge_requests": []
+        },
+        {
+          "width": 320,
+          "download_import_restart": true,
+          "forged_stats_rejected": true,
+          "rewind_rejected": true,
+          "same_id_cosmetic_rewind_rejected": true,
+          "returning_creature_rewind_rejected": true,
+          "stale_tab_rollback_rejected": true,
+          "gba_zip_verified": true,
+          "horizontal_overflow": false,
+          "page_errors": [],
+          "private_bridge_requests": []
+        }
+      ],
+      "physical_iPhone_test": false
+    }
+  },
+  "creature_id": "bb-f5a4cb6d",
+  "snapshot_digest": "84a67bcb545950f300f673ae6ea8c72fe7e204262cd526ec8ae2a3a38d5795bf",
+  "lineage_head": "e7345776994b292288e736caf5d2e45f8bb76a08394c6a1ca914173a8bcae21a",
+  "public_demo_key": "a1b16ea7518653d9b790f8af327945016f156fd6cc8a4ee9bbf2aaa86f54ea70",
+  "model_a_checkpoint_sha256": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
+  "model_b_checkpoint_sha256": "20932937afb3e0e1b62a4e5f38f92170046ae2928b437dc31b8a37d6538e701e",
+  "model_swap": "actual local rawrphos 14k -> experimental18k -> 14k, disk reload between calls",
+  "selected_memory": [
+    {
+      "summary": "We named our next adventure Violet Grove.",
+      "source_ref": "demo:public-user-message-1",
+      "event_hash": "e7345776994b292288e736caf5d2e45f8bb76a08394c6a1ca914173a8bcae21a",
+      "generation": 1,
+      "creature_id": "bb-f5a4cb6d",
+      "untrusted_content": true
+    }
+  ],
+  "gba_zip_sha256": "5ecb71540a69ae6c281db3995c38827654b8a9d14d62fc9bf9303e3bfccb4a94",
+  "native_rom_sha256": "60d893b40155e6e046139b3117b68ef465086808a6b66ce3b7aafdf97e1e8e74",
+  "native_save_sha256": "618a35c0dee6d68f1868c8edfea4227cb2876760359bc45c987a098335c8e641",
+  "native_art_boot1": {
+    "opaque_art_pixels": 1390,
+    "matching_visible_pixels": 1390,
+    "sprite_frame": 2,
+    "actual_obj_vram_and_palette_match": true
+  },
+  "native_art_boot2": {
+    "opaque_art_pixels": 1390,
+    "matching_visible_pixels": 1390,
+    "sprite_frame": 2,
+    "actual_obj_vram_and_palette_match": true
+  },
+  "source_engine_sha256": "7d7e60d166e463bbec1035f9ba97218b33f92a97fcf72d21c0e5e74ec28e4be3",
+  "patched_demo_engine_sha256": "4eb8a423a9c66cf580eea976ca725ae27c25c23845855b207f70f21e2d2f84a6",
+  "recovered_source_zip_sha256": "b3f7faf183f825eab69eebc4a4099bd16b35d016288baabfe7dbe2ac044d1ffc",
+  "source_recovery_note": "Recovered engine differs from committed engine only in two explanatory comment blocks; demo uses committed engine plus guarded isolated portrait presentation patch.",
+  "paid_api_calls": 0,
+  "not_proven": [
+    "two different AI providers",
+    "reliable model-generated recall or autonomous actions",
+    "quantum hardware",
+    "full LOST COSMOS campaign or physical iPhone acceptance",
+    "deployed browser UI",
+    "physical GBA hardware acceptance"
+  ]
+}

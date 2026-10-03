@@ -5,6 +5,7 @@ import {
  type AmbientAction,type CreatureProfile,type Family
 } from '../lib/creature-profile';
 import css from './genesis-forge.module.css';
+import QuantumBeastTransfer from './quantum-beast-transfer';
 
 const KEY='beastbox-genesis-v1-saved-game-characters';
 const MAX_SAVES=8;
@@ -144,6 +145,7 @@ export default function GenesisForge({
   </div>}
   {error&&<p role="alert" className={css.error}>{error}</p>}
   {message&&<p role="status" className={css.notice}>{message}</p>}
+  <QuantumBeastTransfer profile={value} onImport={onChange}/>
   <small>No cloud inference, real sensors, quantum hardware or owner permissions are
    required. Optional save stays in this browser; use the ZIP to move your game character.</small>
  </section>;

@@ -129,7 +129,7 @@ export default function CompanionProvider({children}:{children:ReactNode}){
    window.removeEventListener('scroll',schedule);
    window.visualViewport?.removeEventListener('resize',schedule);
   };
- },[showPublic,hidden,typing,pageVisible,reduced,tick,pathname]);
+ },[showPublic,hidden,typing,pageVisible,reduced,tick,pathname,profile]);
  const state:CreatureState=halted?'halted':
   action==='rest'?'sleeping':action==='orbit'?'celebrating':
   action==='perch'?'observing':'idle';

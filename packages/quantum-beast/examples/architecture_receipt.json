@@ -1,0 +1,222 @@
+{
+  "schema": "quantum-beast-bridge-architecture-acceptance-v1",
+  "bridge_version": "1.0.1",
+  "creature_id": "bb-f5a4cb6d",
+  "source": {
+    "file_sha256": "64b34dd6e72dff1b045518dad89fa9f70814e7fbddd02b0c29fa431a0e0b5f38",
+    "digest": "84a67bcb545950f300f673ae6ea8c72fe7e204262cd526ec8ae2a3a38d5795bf",
+    "lineage_head": "e7345776994b292288e736caf5d2e45f8bb76a08394c6a1ca914173a8bcae21a",
+    "generation": 1,
+    "verification": {
+      "integrity": true,
+      "stats_verified": true,
+      "signature": "trusted",
+      "creature_id": "bb-f5a4cb6d",
+      "lineage_head": "e7345776994b292288e736caf5d2e45f8bb76a08394c6a1ca914173a8bcae21a",
+      "digest": "84a67bcb545950f300f673ae6ea8c72fe7e204262cd526ec8ae2a3a38d5795bf",
+      "events": 1,
+      "authority": false
+    }
+  },
+  "demo_host": {
+    "public_key": "1ab218512d3b7c37fe3cd3bebbb2648ab6df7aced2dde1ad8cb99b9f69c887f7",
+    "note": "Independent isolated demo host verified the pinned source, then attested the same content. This is not owner-key rotation; private keys are not saved."
+  },
+  "final": {
+    "digest": "c419d59c22836d079b8c9d1cab03f3e42c1dd94f387ce18c41cdc52a4f4ccca9",
+    "lineage_head": "25e696ccce10a8d878f3944320102a37cbe3f734cc87b222451f35151139b43b",
+    "generation": 3,
+    "snapshot_file_sha256": "2912b2103e6dae6ac8bb0be73f8a46851135b23417962be4ea2bbacf81db35d0",
+    "gba_zip_sha256": "69bcb70a9705e6bcc1dc01afc5c8071c94c75f6ab537392b9adc7b7fc1cf3cfb"
+  },
+  "raw_continuity_sha256": "43995b1f371c53226ea71fed1ef6d0a2a8e089911bf96ba4b9bb60d9943627d7",
+  "model_runs": [
+    {
+      "label": "A",
+      "model": "RAWRPHOS-native",
+      "weight_sha256": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
+      "driver_sha256": "3e2ebbee65fb038b324ab17a6f0e55a09ca74341e9e93d8430e781844718fe75",
+      "context_sha256": "31c202a1eb753947d55cf7a41a6ddf55633991dafb9c2ef8feea4e903188ce28",
+      "output": " Many people have a great time at the beach. They offer a range of functions and have fun.",
+      "metrics": {
+        "tokenization_seconds": 0.0003569290001905756,
+        "prefill_and_first_token_seconds": 0.014609711000048264,
+        "generation_seconds": 0.32647539499998857,
+        "prompt_tokens": 87,
+        "generated_tokens": 26,
+        "decode_tokens_per_second": 80.1627151771042,
+        "total_tokens_per_second": 79.63846708877068,
+        "cache_enabled": true
+      },
+      "host_decision": "rejected"
+    },
+    {
+      "label": "B",
+      "model": "HuggingFaceTB/SmolLM2-135M-Instruct",
+      "weight_sha256": "5af571cbf074e6d21a03528d2330792e532ca608f24ac70a143f6b369968ab8c",
+      "driver_sha256": "0f41edcdaa7568e484de3a9a43c2b98ce369900926f7463120b60c183605362f",
+      "context_sha256": "9c408fa23e36cacb353701da7a67cf80436f04ae6532788bfbdf6e8fa8c2d9a9",
+      "output": "Violet Grove",
+      "metrics": {
+        "input_tokens": 115,
+        "output_tokens": 4,
+        "load_seconds": 0.2530657170000268,
+        "generation_seconds": 0.4158576259999336
+      },
+      "host_decision": "approved",
+      "runtime": "transformers-local-cpu",
+      "revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "architecture": "llama",
+      "versions": {
+        "python": "3.12.14",
+        "torch": "2.6.0+cpu",
+        "transformers": "4.57.1"
+      },
+      "checkpoint_input_scope": "Only six verified private copies; optional source inputs never loaded",
+      "network_guard": "Python socket connections blocked; local_files_only and offline loaders"
+    },
+    {
+      "label": "A-returned",
+      "model": "RAWRPHOS-native",
+      "weight_sha256": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
+      "driver_sha256": "3e2ebbee65fb038b324ab17a6f0e55a09ca74341e9e93d8430e781844718fe75",
+      "context_sha256": "9c408fa23e36cacb353701da7a67cf80436f04ae6532788bfbdf6e8fa8c2d9a9",
+      "output": " Many people have a great time at the beach. They offer a range of functions and have fun.",
+      "metrics": {
+        "tokenization_seconds": 0.00041617700003371283,
+        "prefill_and_first_token_seconds": 0.02255611000009594,
+        "generation_seconds": 0.308188138000105,
+        "prompt_tokens": 109,
+        "generated_tokens": 26,
+        "decode_tokens_per_second": 87.52519867974752,
+        "total_tokens_per_second": 84.36405167544488,
+        "cache_enabled": true
+      }
+    }
+  ],
+  "model_b_answer_matches_source": true,
+  "original_public_memory": {
+    "summary": "We named our next adventure Violet Grove.",
+    "source_ref": "demo:public-user-message-1",
+    "event_hash": "e7345776994b292288e736caf5d2e45f8bb76a08394c6a1ca914173a8bcae21a",
+    "generation": 1,
+    "creature_id": "bb-f5a4cb6d",
+    "untrusted_content": true
+  },
+  "host_receipts": [
+    {
+      "decision": "rejected",
+      "reason": "Generated reply did not match this bounded recall task",
+      "proposal_id": "493deba8041a7ca0c10a33fb040bc3207284b07d5324a53019d8544526d0c98e",
+      "lineage_head": "e7345776994b292288e736caf5d2e45f8bb76a08394c6a1ca914173a8bcae21a",
+      "digest": "84a67bcb545950f300f673ae6ea8c72fe7e204262cd526ec8ae2a3a38d5795bf",
+      "generation": 1
+    },
+    {
+      "decision": "approved",
+      "reason": "Actual MCP read returned the previously approved source event; public demo observation",
+      "proposal_id": "868de2b70f5cc6a93675cc71a08d6c7795f5cb6c70f46fd28625d91c103a8bf3",
+      "kind": "memory",
+      "previous_head": "e7345776994b292288e736caf5d2e45f8bb76a08394c6a1ca914173a8bcae21a",
+      "lineage_head": "b0166f0c1a6e6c4b4cf0b8edfbaf4741011ed36de592528372b8c6bc1faa25b8",
+      "digest": "6f1fb65856ff1e66c49c639ee2d504b3e2f6394f43001b2e35a1226e7c95431e",
+      "generation": 2
+    },
+    {
+      "decision": "approved",
+      "reason": "Exact generated adventure name matches the approved source memory",
+      "proposal_id": "8d5927953a80fcfc1287e2d740e750d36ac88c564c98373aa6c1f06f6324b802",
+      "kind": "message",
+      "previous_head": "b0166f0c1a6e6c4b4cf0b8edfbaf4741011ed36de592528372b8c6bc1faa25b8",
+      "lineage_head": "25e696ccce10a8d878f3944320102a37cbe3f734cc87b222451f35151139b43b",
+      "digest": "c419d59c22836d079b8c9d1cab03f3e42c1dd94f387ce18c41cdc52a4f4ccca9",
+      "generation": 3
+    }
+  ],
+  "continuity": {
+    "same_creature": true,
+    "original_event_prefix_preserved": true,
+    "original_memory_retrieved_by_all": true,
+    "model_swap_preserves_state": true,
+    "protected_fields_unchanged": true,
+    "game_assets_unchanged": true,
+    "initial_generation": 1,
+    "final_generation": 3
+  },
+  "game_asset_sha256": {
+    "gba/companion_state.bin": "1871711f245166a11bdeaebf7d0378a7ad051a9cf5b9e4fad85db20df8207c55",
+    "gba/companion_profile.bin": "a9ae595530437e00b8ccbe2a908db3b5b60c959c308bf6338f5e1adb5f41159a",
+    "gba/companion_tiles.4bpp": "3b219d61cbd1a760241f451b2757788787ff5afa8790c55e80f6d5b1c6514e53",
+    "gba/companion_palette.bgr555": "2602cc18471624c681c5d9ad7b148020310e7f6c7b2e8ecefd7b1bede241fe67",
+    "companion.profile.json": "d2581f710bd861e4834b251a694a156df49f4bd62f7822961e915cb104aae529"
+  },
+  "mcp_sessions": [
+    {
+      "label": "A: RAWRPHOS-native",
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "rpc_message_count": 15
+    },
+    {
+      "label": "B: Transformers/SmolLM2-Llama",
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "rpc_message_count": 13
+    },
+    {
+      "label": "A reconnected: RAWRPHOS-native",
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "rpc_message_count": 15
+    }
+  ],
+  "tests": {
+    "node_bridge_mcp": 18,
+    "python_checkpoint_guards": 2
+  },
+  "native": {
+    "rom_sha256": "60d893b40155e6e046139b3117b68ef465086808a6b66ce3b7aafdf97e1e8e74",
+    "elf_sha256": "f32011d6e0edb66ca090d176128ffa765f9a0088e7b7aa37de4bb676d4368ba1",
+    "export_zip_sha256": "69bcb70a9705e6bcc1dc01afc5c8071c94c75f6ab537392b9adc7b7fc1cf3cfb",
+    "creature_id": "bb-f5a4cb6d",
+    "save_sha256": "618a35c0dee6d68f1868c8edfea4227cb2876760359bc45c987a098335c8e641",
+    "visible_portrait_boot1": {
+      "opaque_art_pixels": 1390,
+      "matching_visible_pixels": 1390,
+      "sprite_frame": 2,
+      "actual_obj_vram_and_palette_match": true
+    },
+    "visible_portrait_boot2": {
+      "opaque_art_pixels": 1390,
+      "matching_visible_pixels": 1390,
+      "sprite_frame": 2,
+      "actual_obj_vram_and_palette_match": true
+    },
+    "memory_writes": false,
+    "savestate_loads": false,
+    "full_campaign": false,
+    "physical_iPhone_test": false
+  },
+  "prompt_probes": {
+    "public-model-probe.json": "66c551dc12694778f7e31fcc7c19982041beee88997a60cc840cff246a1da79c",
+    "public-model-highlight-probe.json": "4419fafa23de469084f7dce148f6a92d0bdde271b29728d770852eed6033a85c"
+  },
+  "orchestration": "Host-directed MCP calls, local inference, separate host approval; not autonomous model tool planning",
+  "paid_api_calls": 0,
+  "training_performed": false,
+  "network_inference": false,
+  "not_proven": [
+    "hosted inference from two paid providers",
+    "general recall reliability",
+    "autonomous tool choice",
+    "quantum hardware",
+    "physical GBA/iPhone acceptance",
+    "full game campaign"
+  ]
+}

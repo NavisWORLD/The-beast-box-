@@ -1,0 +1,539 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "QBEAST1"
+    },
+    "version": {
+      "const": 1
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "version",
+        "id",
+        "seed",
+        "name",
+        "family",
+        "baseLook",
+        "appearance",
+        "temperament",
+        "game",
+        "provenance"
+      ],
+      "properties": {
+        "schema": {
+          "const": "beast-cage-creature-v1"
+        },
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^bb-[a-f0-9]{8}$"
+        },
+        "seed": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "family": {
+          "enum": [
+            "nebula",
+            "aurora",
+            "void",
+            "plasma",
+            "memory",
+            "signal",
+            "starlight"
+          ]
+        },
+        "baseLook": {
+          "enum": [
+            "nebula",
+            "aurora",
+            "starlight"
+          ]
+        },
+        "provenance": {
+          "const": "classical-seeded-game-generation"
+        },
+        "appearance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "hueShift": {
+              "type": "integer",
+              "minimum": -127,
+              "maximum": 127
+            },
+            "glow": {
+              "type": "integer",
+              "minimum": 40,
+              "maximum": 100
+            },
+            "finPattern": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "haloPattern": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "constellation": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535
+            }
+          },
+          "required": [
+            "hueShift",
+            "glow",
+            "finPattern",
+            "haloPattern",
+            "constellation"
+          ]
+        },
+        "temperament": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "curiosity": {
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 80
+            },
+            "energy": {
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 80
+            },
+            "playfulness": {
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 80
+            },
+            "caution": {
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 80
+            },
+            "independence": {
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 80
+            }
+          },
+          "required": [
+            "curiosity",
+            "energy",
+            "playfulness",
+            "caution",
+            "independence"
+          ]
+        },
+        "game": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "level": {
+              "const": 1
+            },
+            "experience": {
+              "const": 0
+            },
+            "stats": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "hp": {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 80
+                },
+                "energy": {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 80
+                },
+                "signal": {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 80
+                },
+                "memory": {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 80
+                },
+                "resonance": {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 80
+                },
+                "agility": {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 80
+                },
+                "chaos": {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 80
+                },
+                "stability": {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 80
+                },
+                "curiosity": {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 80
+                },
+                "evolution": {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 80
+                }
+              },
+              "required": [
+                "hp",
+                "energy",
+                "signal",
+                "memory",
+                "resonance",
+                "agility",
+                "chaos",
+                "stability",
+                "curiosity",
+                "evolution"
+              ]
+            }
+          },
+          "required": [
+            "level",
+            "experience",
+            "stats"
+          ]
+        }
+      }
+    },
+    "public_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "dyn12-public-v1"
+        },
+        "mode": {
+          "enum": [
+            "unavailable",
+            "approved_projection"
+          ]
+        },
+        "values": {
+          "type": "array",
+          "minItems": 12,
+          "maxItems": 12,
+          "items": {
+            "type": "number",
+            "minimum": -127.996,
+            "maximum": 127.996
+          }
+        },
+        "source_sha256": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema",
+        "mode",
+        "values",
+        "source_sha256"
+      ]
+    },
+    "progress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "trust": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "bond": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "evolution_stage": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        }
+      },
+      "required": [
+        "trust",
+        "bond",
+        "evolution_stage"
+      ]
+    },
+    "events": {
+      "type": "array",
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 512
+          },
+          "parent": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "proposal_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "kind": {
+            "enum": [
+              "message",
+              "action",
+              "memory"
+            ]
+          },
+          "payload": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  }
+                },
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "action": {
+                    "enum": [
+                      "hover",
+                      "orbit",
+                      "perch",
+                      "rest"
+                    ]
+                  }
+                },
+                "required": [
+                  "action"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "source_ref": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 96
+                  }
+                },
+                "required": [
+                  "summary",
+                  "source_ref"
+                ]
+              }
+            ]
+          },
+          "hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "generation",
+          "parent",
+          "proposal_id",
+          "kind",
+          "payload",
+          "hash"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "message"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "action"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "hover",
+                        "orbit",
+                        "perch",
+                        "rest"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "action"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "memory"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "source_ref": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 96
+                    }
+                  },
+                  "required": [
+                    "summary",
+                    "source_ref"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "generation": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 512
+    },
+    "lineage_head": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "const": "Ed25519"
+        },
+        "public_key": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{128}$"
+        }
+      },
+      "required": [
+        "algorithm",
+        "public_key",
+        "value"
+      ]
+    }
+  },
+  "required": [
+    "format",
+    "version",
+    "profile",
+    "public_state",
+    "progress",
+    "events",
+    "generation",
+    "lineage_head",
+    "digest"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Quantum Beast Bridge QBEAST1",
+  "description": "Structural validation only. The bundled verifier also regenerates seeded stats, verifies hashes and signature trust, applies byte limits and rejects duplicate JSON keys."
+}
