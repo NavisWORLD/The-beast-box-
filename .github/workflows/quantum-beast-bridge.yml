@@ -1,0 +1,93 @@
+name: Quantum Beast Bridge
+on:
+  pull_request:
+    branches: [main]
+    paths: ['packages/quantum-beast/**', 'apps/beastbox-cloud/**', '.github/workflows/quantum-beast-bridge.yml']
+  push:
+    branches: [feature/quantum-beast-bridge-001]
+    paths: ['packages/quantum-beast/**', 'apps/beastbox-cloud/**', '.github/workflows/quantum-beast-bridge.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bridge-and-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Validate bridge, source extraction, hostile inputs and real stdio
+        working-directory: packages/quantum-beast
+        run: npm ci && npm test
+      - name: Existing public application regression and production build
+        working-directory: apps/beastbox-cloud
+        env: {NEXT_TELEMETRY_DISABLED: '1'}
+        run: npm ci && npm test && npm run build
+      - name: Real desktop and mobile browser import/export and history safeguards
+        working-directory: apps/beastbox-cloud
+        env: {NEXT_TELEMETRY_DISABLED: '1'}
+        run: |
+          set -euo pipefail
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+          npm run start -- --hostname 127.0.0.1 --port 3100 > /tmp/qbeast-browser-server.log 2>&1 &
+          QB_SERVER_PID=$!
+          trap 'kill "$QB_SERVER_PID" 2>/dev/null || true' EXIT
+          python - <<'PY'
+          import time,urllib.request
+          for i in range(60):
+              try:
+                  urllib.request.urlopen('http://127.0.0.1:3100/beast-cage',timeout=2);break
+              except Exception:
+                  time.sleep(1)
+          else: raise SystemExit('Production server did not become ready')
+          PY
+          python tests/quantum_beast_browser.py --output ../../build/qbeast-browser --example ../../packages/quantum-beast/examples/beast.qbeast
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quantum-beast-browser-receipts
+          path: build/qbeast-browser
+          if-no-files-found: warn
+          retention-days: 21
+  native-gba-import:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: NavisWORLD/Cosmic-synapse-the-living-universe-sim-engine-
+          ref: af2bdfbdc21b671c891ea1fb32973356f5fce31f
+          path: build/lost-cosmos
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install native build and real emulator dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang lld llvm libmgba-dev ffmpeg
+      - name: Build bridge and export original BCG1/BCP1
+        working-directory: packages/quantum-beast
+        run: |
+          npm ci && npm run build
+          node bin/quantum-beast.cjs export-gba --store examples/beast.qbeast --output ../../build/beast-gba.zip
+      - name: Import into isolated original game and verify controller/save/visible-art continuity
+        run: |
+          set -euo pipefail
+          QB_GAME_ROOT="$PWD/build/lost-cosmos/gba/lost-cosmos-living-multiverse"
+          cp -a "$QB_GAME_ROOT/LOST_COSMOS_V10_SOURCE" build/imported-game
+          python "$QB_GAME_ROOT/tools/import_beastbox.py" build/beast-gba.zip build/imported-game
+          python packages/quantum-beast/examples/apply_lost_cosmos_portrait_fix.py build/imported-game
+          (cd build/imported-game && IMPORTED_BEAST=1 bash build_v5.sh)
+          bash "$QB_GAME_ROOT/tools/mgba_build.sh"
+          python packages/quantum-beast/examples/test_lost_cosmos.py --game-tools "$QB_GAME_ROOT/tools" --rom build/imported-game/LOST_COSMOS_V10_OPENING_QA.gba --elf build/imported-game/lost_cosmos_v5.elf --export-zip build/beast-gba.zip --output build/qbeast-native
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quantum-beast-native-receipts
+          path: build/qbeast-native
+          if-no-files-found: warn
+          retention-days: 21
