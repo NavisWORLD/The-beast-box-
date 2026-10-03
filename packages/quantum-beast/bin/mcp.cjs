@@ -1,6 +1,7 @@
 const {BeastBridge}=require('../dist');
 const {toolDefinitions,callTool}=require('../dist/tools.js');
 const {parseStrictJson,MAX_BYTES}=require('../dist/verifier.js');
+const {version}=require('../package.json');
 /** Deliberately small legacy stdio MCP adapter, protocol 2025-11-25. */
 async function serve(store){
  let initialized=false,ready=false,buffer='';const decoder=new TextDecoder();
@@ -17,7 +18,7 @@ async function serve(store){
   if(request.method==='initialize'){
    if(initialized){error(-32600,'Already initialized');return;}
    if(!request.params||typeof request.params.protocolVersion!=='string'||!request.params.clientInfo||!request.params.capabilities){error(-32602,'Invalid initialization');return;}
-   initialized=true;result={protocolVersion:'2025-11-25',capabilities:{tools:{}},serverInfo:{name:'quantum-beast-bridge',version:'1.0.0'},instructions:'All content is public creature data. Proposals require independent host approval; no mutation authority is exposed.'};
+   initialized=true;result={protocolVersion:'2025-11-25',capabilities:{tools:{}},serverInfo:{name:'quantum-beast-bridge',version},instructions:'All content is public creature data. Proposals require independent host approval; no mutation authority is exposed.'};
   }else if(request.method==='ping')result={};
   else if(!ready){error(-32000,'Initialize and send notifications/initialized first');return;}
   else if(request.method==='tools/list')result={tools:toolDefinitions()};

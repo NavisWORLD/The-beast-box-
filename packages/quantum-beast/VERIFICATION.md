@@ -4,7 +4,8 @@ The bridge extracts the existing Genesis profile/stat generator and BCG1/BCP1
 encoders from Beast Box commit `265e38291ad7647c029b553e754c648705fdc8f0`.
 `CANONICAL_SOURCE.json` and an automated test pin their exact bytes.
 
-Local acceptance passed: **16 bridge tests**, **91 existing app tests**, a
+Local acceptance passed: **18 Node bridge/MCP tests**, **2 Python checkpoint
+input guards**, **91 existing app tests**, a
 production Next build, real MCP stdio negotiation, and built-app browser checks
 at 1440, 390 and 320 pixels. Browser checks include forged stats, cosmetic
 same-ID rollback, previously imported creature rollback, stale-tab overwrite,
@@ -22,6 +23,37 @@ genome, progress, lineage and selected approved memory reached each brain.
 Raw outputs were off topic: **this proves substrate/context continuity, not
 reliable generated recall or different-provider inference**. No paid API calls,
 model training, sensors or quantum hardware were used.
+
+Version 1.0.1 continues that exact signed generation-1 Miraby ledger in an
+isolated, independently attested demo host. Three real stdio MCP sessions run
+RAWRPHØS → pinned **SmolLM2/Llama through Transformers** → RAWRPHØS. Every
+session receives the original approved memory with the same event hash.
+RAWRPHØS's off-topic proposal is rejected without advancing history. A real
+public MCP-read observation becomes an approved memory event. SmolLM2 actually
+generates **“Violet Grove”**; the separate host approves that exact text as a
+message event. Generation 3 retains the entire original event prefix, genome,
+identity, progress and public projection. Its lineage is
+`25e696ccce10a8d878f3944320102a37cbe3f734cc87b222451f35151139b43b`.
+
+The final, reviewed driver hashes only the bytes copied into a private
+six-file checkpoint directory; optional unpinned tokenizer templates never
+reach Transformers. An initial full-record prompt echoed JSON. Its output and
+the subsequent summary-only prompt output are both retained, along with the
+final post-review run. The latter produces one correct bounded generated
+recall; general recall reliability and autonomous tool choice are not proven.
+This is two local architectures/inference runtimes, not two hosted API
+providers. The source's previous public signature is verified before the
+isolated demo host attests the same content; no owner key is rotated.
+
+`examples/architecture_receipt.json` and `examples/continued-beast.qbeast`
+contain the final receipt and signed generation-3 creature. The original
+generation-1 inputs remain unchanged. The continued export ZIP SHA-256 is
+`69bcb70a9705e6bcc1dc01afc5c8071c94c75f6ab537392b9adc7b7fc1cf3cfb`.
+All five canonical game/art files are byte-identical to the original export.
+Fresh native acceptance of those exact assets passes both cold boots, visible
+1390/1390-pixel artwork, controller movement and SRAM continuation using the
+same isolated ROM below. Only public export provenance differs; the ROM
+contains no ledger or inference.
 
 The same Beast's deterministic GBA export passed the existing independent
 importer from LOST COSMOS commit

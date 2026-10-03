@@ -21,7 +21,7 @@ jobs:
         with: {python-version: '3.12'}
       - name: Validate bridge, source extraction, hostile inputs and real stdio
         working-directory: packages/quantum-beast
-        run: npm ci && npm test
+        run: npm ci && npm test && python examples/test_public_model.py
       - name: Existing public application regression and production build
         working-directory: apps/beastbox-cloud
         env: {NEXT_TELEMETRY_DISABLED: '1'}
@@ -75,7 +75,17 @@ jobs:
         working-directory: packages/quantum-beast
         run: |
           npm ci && npm run build
-          node bin/quantum-beast.cjs export-gba --store examples/beast.qbeast --output ../../build/beast-gba.zip
+          node - <<'JS'
+          const fs=require('node:fs/promises'),{parseSnapshot,exportGba}=require('./dist');
+          (async()=>{
+            const receipt=require('./examples/architecture_receipt.json');
+            const options={trustedPublicKey:receipt.demo_host.public_key};
+            const snapshot=await parseSnapshot(await fs.readFile('examples/continued-beast.qbeast','utf8'),options);
+            const pack=await exportGba(snapshot,options);
+            if(pack.sha256!==receipt.final.gba_zip_sha256)throw Error('Continued export differs from verified receipt');
+            await fs.writeFile('../../build/beast-gba.zip',pack.zip,{flag:'wx'});
+          })().catch(e=>{console.error(e);process.exitCode=1;});
+          JS
       - name: Import into isolated original game and verify controller/save/visible-art continuity
         run: |
           set -euo pipefail

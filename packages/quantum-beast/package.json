@@ -1,13 +1,13 @@
 {
   "name": "@navisworld/quantum-beast",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Small provider-neutral Beast Box companion bridge with host-gated lineage and native GBA export",
   "license": "Apache-2.0",
   "engines": {"node": ">=22"},
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {"quantum-beast": "bin/quantum-beast.cjs"},
-  "files": ["dist", "bin", "schema", "manifest.json", "plugin.json", "examples", "README.md", "SECURITY.md", "VERIFICATION.md", "LICENSE", "CANONICAL_SOURCE.json"],
+  "files": ["dist/*.js", "dist/*.d.ts", "dist/canonical/*.js", "dist/canonical/*.d.ts", "bin/*.cjs", "schema/*.json", "manifest.json", "plugin.json", "examples/*.cjs", "examples/*.py", "examples/*.json", "examples/*.qbeast", "README.md", "SECURITY.md", "VERIFICATION.md", "LICENSE", "CANONICAL_SOURCE.json"],
   "scripts": {"build": "tsc -p tsconfig.json", "test": "npm run build && node --test tests/*.test.cjs", "demo": "node examples/continuity.cjs"},
   "devDependencies": {"typescript": "5.9.3", "@types/node": "22.18.6"}
 }

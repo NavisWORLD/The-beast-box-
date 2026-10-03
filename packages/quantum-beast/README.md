@@ -8,7 +8,7 @@ The package reuses the exact version-1 Genesis profile, stat generator and BCG1/
 ## Install the downloadable package
 
 ```sh
-npm install -g ./navisworld-quantum-beast-1.0.0.tgz
+npm install -g ./navisworld-quantum-beast-1.0.1.tgz
 quantum-beast install ./unsigned-example.qbeast --store ./my-beast/beast.qbeast
 quantum-beast verify --store ./my-beast/beast.qbeast
 ```
@@ -82,9 +82,25 @@ The pinned LOST COSMOS engine's imported roster originally redraws beyond VBlank
 ```sh
 npm ci
 npm test
+python3 examples/test_public_model.py
 node examples/continuity.cjs --beastbox-root /path/to/beast-box --model-a /path/to/pinned-14k --model-b /path/to/pinned-18k --output /new/demo-directory
 ```
 
-The optional demo uses the existing Beast Box native CPU inference code plus two pinned RAWRPHØS checkpoints. It records real generated outputs and exact approved context, reopens disk state between A→B→A, signs the ledger, and exports the same creature. Its Python/PyTorch dependencies and weights are not bundled. This proves context/identity continuity across actual checkpoint replacement; it does not prove reliable generative recall, different-provider inference, consciousness or quantum computation.
+The original demo uses the existing Beast Box native CPU inference code plus two pinned RAWRPHØS checkpoints. Its raw replies were off topic; the evidence proves context continuity across checkpoint replacement.
+
+The 1.0.1 demonstration uses **RAWRPHØS → SmolLM2/Llama → RAWRPHØS** with three separate real MCP sessions. It verifies the original signed Miraby ledger, starts an isolated demo host with the same content, records an actual public recall observation, and submits generated replies through `beast_propose_message`. The independent host rejects the native model's off-topic reply. SmolLM2 generates “Violet Grove”, which the host approves without substituting its text. Reconnecting A retains the original memory, appended events, protected fields and game assets. This is one bounded successful generated recall, not a general reliability or autonomous planning claim.
+
+```sh
+node examples/architecture_continuity.cjs \
+  --beastbox-root /path/to/beast-box \
+  --model-a /path/to/pinned-rawrphos-14k \
+  --model-b /path/to/pinned-smollm2-135m-instruct \
+  --python /absolute/path/to/inference-venv/bin/python \
+  --output /new/isolated/demo-directory
+```
+
+Optional demo dependencies, installed separately from the bridge: `torch==2.6.0` (CPU wheel), `transformers==4.57.1`, and `safetensors==0.5.3`. The public model ID is `HuggingFaceTB/SmolLM2-135M-Instruct`, revision `12fd25f77366fa6b3b4b768ec3050bf629380bac`, also pinned in Beast Box's `scripts/zero_api_real_models_002.py`. Stage its `config.json`, `generation_config.json`, `tokenizer.json`, `tokenizer_config.json`, `special_tokens_map.json`, and `model.safetensors` outside this package. `public_model.py` hashes the copied bytes and gives local-only safe loaders a private copy of only those six files; unpinned chat templates and later source changes cannot override the input. It blocks Python socket connections. This is not an OS sandbox. It performs no downloads or remote-code execution.
+
+`examples/continued-beast.qbeast` and `examples/architecture_receipt.json` retain the actual signed generation-3 outcome and independent demo host's public key. The initial generation-1 examples remain unchanged for reproduction. Full public transcripts, both prompt probes, generated outputs and host receipts accompany the evidence download. No weights, private keys or optional inference dependencies are bundled. No hosted API, paid inference, training or new creature mechanics are involved.
 
 See `SECURITY.md`, `schema/qbeast.schema.json`, `CANONICAL_SOURCE.json` and the accompanying actual verification/evidence receipts. Production UI deployment and iPhone/Delta acceptance must be reported separately from local tests.
