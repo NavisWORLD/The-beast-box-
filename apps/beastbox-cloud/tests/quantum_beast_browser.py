@@ -2,6 +2,8 @@
 import argparse,json,re,zipfile,subprocess
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
+# Match the existing Genesis/WebGL acceptance budget on CPU-only CI runners.
+expect.set_options(timeout=23000)
 ap=argparse.ArgumentParser();ap.add_argument('--output',type=Path,required=True);ap.add_argument('--example',type=Path,required=True);args=ap.parse_args()
 args.output.mkdir(parents=True,exist_ok=True)
 root=Path(__file__).resolve().parents[3]
@@ -14,7 +16,12 @@ def import_package(page,payload):
  control=page.get_by_label('Quantum Beast file')
  # File setters can dispatch changes into disabled controls. Wait for each
  # actual transfer to finish instead of matching a prior identical alert.
- expect(control).to_be_enabled();control.set_input_files(payload);expect(control).to_be_enabled()
+ expect(control).to_be_enabled();control.set_input_files(payload)
+ try:expect(control).to_be_enabled()
+ except Exception:
+  page.screenshot(path=str(args.output/'failed-import.png'))
+  diagnostics=page.evaluate("async()=>({alerts:[...document.querySelectorAll('[role=alert]')].map(x=>x.textContent),locks:await navigator.locks.query(),storage:localStorage.getItem('beastbox-quantum-beast-public-v1')})")
+  (args.output/'failed-import.json').write_text(json.dumps(diagnostics,indent=2)+'\n');print(json.dumps(diagnostics));raise
 results=[]
 with sync_playwright() as p:
  browser=p.chromium.launch(headless=True,args=['--no-sandbox','--use-angle=swiftshader'])
