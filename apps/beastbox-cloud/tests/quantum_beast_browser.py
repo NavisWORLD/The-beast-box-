@@ -10,6 +10,11 @@ def fixture(script):
  return result.stdout.encode()
 cosmetic=fixture("const c=require('./dist'),fs=require('fs');(async()=>{const old=await c.parseSnapshot(fs.readFileSync(process.argv[1],'utf8'));const p=old.profile;p.appearance.hueShift++;console.log(await c.serializeSnapshot(await c.createSnapshot(p)));})().catch(e=>{console.error(e);process.exit(1)});")
 newer=fixture("const c=require('./dist'),fs=require('fs');(async()=>{const old=await c.parseSnapshot(fs.readFileSync(process.argv[1],'utf8'));const b=await c.BeastBridge.load(old),p=await b.record_event({summary:'We continued the same public adventure.',source_ref:'test:browser-2'});console.log(await c.serializeSnapshot(await c.approveProposal(old,p,{allow:['memory'],public_memory:true})));})().catch(e=>{console.error(e);process.exit(1)});")
+def import_package(page,payload):
+ control=page.get_by_label('Quantum Beast file')
+ # File setters can dispatch changes into disabled controls. Wait for each
+ # actual transfer to finish instead of matching a prior identical alert.
+ expect(control).to_be_enabled();control.set_input_files(payload);expect(control).to_be_enabled()
 results=[]
 with sync_playwright() as p:
  browser=p.chromium.launch(headless=True,args=['--no-sandbox','--use-angle=swiftshader'])
@@ -22,23 +27,23 @@ with sync_playwright() as p:
   with page.expect_download() as pending:page.get_by_role('button',name='DOWNLOAD QUANTUM BEAST',exact=True).click()
   file=args.output/f'beast-{width}.qbeast';pending.value.save_as(file);original=json.loads(file.read_text())
   assert original['profile']['id']=='bb-f5a4cb6d' and original['events']==[]
-  page.get_by_label('Quantum Beast file').set_input_files(str(args.example.resolve()))
+  import_package(page,str(args.example.resolve()))
   receipt=page.get_by_label('Portable Beast verification');expect(receipt).to_contain_text('1 approved events')
   stored=page.evaluate("localStorage.getItem('beastbox-quantum-beast-public-v1')")
   snapshot=json.loads(json.loads(stored)['text']);assert snapshot['generation']==1
   forged=json.loads(json.dumps(snapshot));forged['profile']['game']['stats']['hp']+=1
-  page.get_by_label('Quantum Beast file').set_input_files({'name':'forged.qbeast','mimeType':'application/json','buffer':json.dumps(forged).encode()})
+  import_package(page,{'name':'forged.qbeast','mimeType':'application/json','buffer':json.dumps(forged).encode()})
   expect(page.get_by_label('Quantum Beast portable companion bridge').get_by_role('alert')).to_contain_text('Forged or malformed');assert page.evaluate("localStorage.getItem('beastbox-quantum-beast-public-v1')")==stored
-  page.get_by_label('Quantum Beast file').set_input_files(str(file))
+  import_package(page,str(file))
   expect(page.get_by_label('Quantum Beast portable companion bridge').get_by_role('alert')).to_contain_text('rewind or fork');assert page.evaluate("localStorage.getItem('beastbox-quantum-beast-public-v1')")==stored
-  page.get_by_label('Quantum Beast file').set_input_files({'name':'cosmetic-rewind.qbeast','mimeType':'application/json','buffer':cosmetic})
+  import_package(page,{'name':'cosmetic-rewind.qbeast','mimeType':'application/json','buffer':cosmetic})
   expect(page.get_by_label('Quantum Beast portable companion bridge').get_by_role('alert')).to_contain_text('rewind or fork');assert page.evaluate("localStorage.getItem('beastbox-quantum-beast-public-v1')")==stored
   page.get_by_label('Character seed').fill('a-distinct-browser-creature');page.get_by_role('button',name='Generate from this seed',exact=True).click()
   with page.expect_download():page.get_by_role('button',name='Start a new portable life (backs up previous Beast)',exact=True).click()
   expect(receipt).to_contain_text('0 approved events')
-  page.get_by_label('Quantum Beast file').set_input_files(str(file))
+  import_package(page,str(file))
   expect(page.get_by_label('Quantum Beast portable companion bridge').get_by_role('alert')).to_contain_text('rewind or fork')
-  page.get_by_label('Quantum Beast file').set_input_files(str(args.example.resolve()));expect(receipt).to_contain_text('1 approved events')
+  import_package(page,str(args.example.resolve()));expect(receipt).to_contain_text('1 approved events')
   page.reload(wait_until='domcontentloaded');expect(receipt).to_contain_text('1 approved events')
   with page.expect_download() as pending:page.get_by_role('button',name='DOWNLOAD QUANTUM BEAST',exact=True).click()
   restored=args.output/f'restored-{width}.qbeast';pending.value.save_as(restored);assert json.loads(restored.read_text())==snapshot
@@ -53,7 +58,7 @@ with sync_playwright() as p:
   # Real two-tab stale writer: B appends; A must not overwrite the advanced save.
   second=context.new_page();second.goto('http://127.0.0.1:3100/beast-cage',wait_until='domcontentloaded')
   expect(second.get_by_label('Portable Beast verification')).to_contain_text('1 approved events')
-  second.get_by_label('Quantum Beast file').set_input_files({'name':'continued.qbeast','mimeType':'application/json','buffer':newer})
+  import_package(second,{'name':'continued.qbeast','mimeType':'application/json','buffer':newer})
   expect(second.get_by_label('Portable Beast verification')).to_contain_text('2 approved events')
   page.get_by_role('button',name='DOWNLOAD QUANTUM BEAST',exact=True).click()
   expect(page.get_by_label('Quantum Beast portable companion bridge').get_by_role('alert')).to_contain_text('Another tab changed')
