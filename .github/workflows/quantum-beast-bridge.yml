@@ -45,7 +45,9 @@ jobs:
                   time.sleep(1)
           else: raise SystemExit('Production server did not become ready')
           PY
-          python tests/quantum_beast_browser.py --output ../../build/qbeast-browser --example ../../packages/quantum-beast/examples/beast.qbeast
+          # Existing Genesis CI verifies animated 3D separately. Run bridge
+          # ledger/permission acceptance in the supported reduced-motion UI.
+          python tests/quantum_beast_browser.py --reduced-motion --output ../../build/qbeast-browser --example ../../packages/quantum-beast/examples/beast.qbeast
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -4,7 +4,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 # Match the existing Genesis/WebGL acceptance budget on CPU-only CI runners.
 expect.set_options(timeout=23000)
-ap=argparse.ArgumentParser();ap.add_argument('--output',type=Path,required=True);ap.add_argument('--example',type=Path,required=True);args=ap.parse_args()
+ap=argparse.ArgumentParser();ap.add_argument('--output',type=Path,required=True);ap.add_argument('--example',type=Path,required=True);ap.add_argument('--reduced-motion',action='store_true');args=ap.parse_args()
 args.output.mkdir(parents=True,exist_ok=True)
 root=Path(__file__).resolve().parents[3]
 def fixture(script):
@@ -26,7 +26,7 @@ results=[]
 with sync_playwright() as p:
  browser=p.chromium.launch(headless=True,args=['--no-sandbox','--use-angle=swiftshader'])
  for width,height in [(1440,1000),(390,844),(320,720)]:
-  context=browser.new_context(viewport={'width':width,'height':height},accept_downloads=True)
+  context=browser.new_context(viewport={'width':width,'height':height},accept_downloads=True,reduced_motion='reduce' if args.reduced_motion else 'no-preference')
   page=context.new_page();errors=[];private=[]
   page.on('pageerror',lambda x:errors.append(str(x)));page.on('request',lambda r:private.append(r.url) if '/api/bridge' in r.url else None)
   response=page.goto('http://127.0.0.1:3100/beast-cage',wait_until='domcontentloaded');assert response.status==200
@@ -63,11 +63,15 @@ with sync_playwright() as p:
   size=page.evaluate('({scroll:document.documentElement.scrollWidth,width:document.documentElement.clientWidth})');assert size['scroll']<=size['width']+1,size
   page.get_by_label('Quantum Beast portable companion bridge').screenshot(path=str(args.output/f'bridge-{width}.png'))
   # Real two-tab stale writer: B appends; A must not overwrite the advanced save.
-  second=context.new_page();second.goto('http://127.0.0.1:3100/beast-cage',wait_until='domcontentloaded')
-  expect(second.get_by_label('Portable Beast verification')).to_contain_text('1 approved events')
+  second=context.new_page();second.bring_to_front();response=second.goto('http://127.0.0.1:3100/beast-cage',wait_until='domcontentloaded');assert response.status==200
+  try:expect(second.get_by_label('Portable Beast verification')).to_contain_text('1 approved events')
+  except Exception:
+   second.screenshot(path=str(args.output/'failed-restore.png'))
+   diagnostics=second.evaluate("async()=>({alerts:[...document.querySelectorAll('[role=alert]')].map(x=>x.textContent),locks:await navigator.locks.query(),storage:localStorage.getItem('beastbox-quantum-beast-public-v1'),ready:document.readyState,visibility:document.visibilityState})")
+   (args.output/'failed-restore.json').write_text(json.dumps(diagnostics,indent=2)+'\n');print(json.dumps(diagnostics));raise
   import_package(second,{'name':'continued.qbeast','mimeType':'application/json','buffer':newer})
   expect(second.get_by_label('Portable Beast verification')).to_contain_text('2 approved events')
-  page.get_by_role('button',name='DOWNLOAD QUANTUM BEAST',exact=True).click()
+  page.bring_to_front();page.get_by_role('button',name='DOWNLOAD QUANTUM BEAST',exact=True).click()
   expect(page.get_by_label('Quantum Beast portable companion bridge').get_by_role('alert')).to_contain_text('Another tab changed')
   assert json.loads(json.loads(page.evaluate("localStorage.getItem('beastbox-quantum-beast-public-v1')"))['text'])['generation']==2
   second.close()
@@ -75,5 +79,5 @@ with sync_playwright() as p:
   results.append({'width':width,'download_import_restart':True,'forged_stats_rejected':True,'rewind_rejected':True,'same_id_cosmetic_rewind_rejected':True,'returning_creature_rewind_rejected':True,'stale_tab_rollback_rejected':True,'gba_zip_verified':True,'horizontal_overflow':False,'page_errors':errors,'private_bridge_requests':private})
   context.close()
  browser.close()
-(args.output/'browser.json').write_text(json.dumps({'suite':'real-built-browser-quantum-beast','results':results,'physical_iPhone_test':False},indent=2)+'\n')
+(args.output/'browser.json').write_text(json.dumps({'suite':'real-built-browser-quantum-beast','results':results,'motion':'reduced' if args.reduced_motion else 'normal','physical_iPhone_test':False},indent=2)+'\n')
 print('PASS actual public import/export, local restart, hostile inputs and matching GBA at desktop/390px/320px')
