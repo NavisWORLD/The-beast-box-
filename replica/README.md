@@ -89,7 +89,7 @@ Each step is logged to `~/.beastbox-replica/logs/<step>.log` and marked PASS/FAI
 | `rawrphos_probe` | Loads the 14K checkpoint in-process and generates 40 tokens at temperature 0 | — |
 | `pytest_beastbox` | Full `pytest` suite from the repo root (`tests/`) | — |
 | `pytest_rawrphos` | `pytest models/rawrphos/tests` | — |
-| `rust_cargo_test` / `html_node_test` | `cargo test --locked` in `rust/` (target dir outside the repo) and `node --test html/tests/` | Skipped if the tools are missing or `--no-extras` is given |
+| `rust_cargo_test` / `html_node_test` | `cargo test --locked` in `rust/` (target dir outside the repo) and `node --test` on each `html/tests/*.js` file. The files are passed explicitly so Node 22 runs them; Debian/Ubuntu's `nodejs` package accepts a directory, but Node 22 tries to load that directory as a module. | Skipped if the tools are missing or `--no-extras` is given |
 
 At the end, `scripts/summarize.py` writes `results/summary.json`, which the dashboard reads, and prints the table.
 It exits 0 on `PASS` or `PASS_WITH_KNOWN_ISSUES`, and 1 on `FAIL`.

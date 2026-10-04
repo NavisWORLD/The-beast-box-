@@ -258,7 +258,13 @@ run_rust() {
   cd "$REPO_DIR/rust" && CARGO_TARGET_DIR="$BB_HOME/cargo-target" cargo test --locked 2>&1 | tee "$RESULTS/cargo_test.txt"; return "${PIPESTATUS[0]}"
 }
 run_html() {
-  cd "$REPO_DIR" && node --test html/tests/ 2>&1 | tee "$RESULTS/node_html_test.txt"; return "${PIPESTATUS[0]}"
+  # Pass the test files themselves. Node 18 (Debian/Ubuntu nodejs) accepts the
+  # directory, but Node 22 treats `html/tests` as a module path and never runs them.
+  cd "$REPO_DIR" || return 1
+  local files=(html/tests/*.js)
+  [[ -f "${files[0]}" ]] || { echo "no HTML tests in $REPO_DIR/html/tests"; return 1; }
+  node --test "${files[@]}" 2>&1 | tee "$RESULTS/node_html_test.txt"
+  return "${PIPESTATUS[0]}"
 }
 
 python_summary() {

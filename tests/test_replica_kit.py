@@ -47,6 +47,7 @@ def test_replica_files_are_present_and_key_stays_outside_the_repo() -> None:
     setup = (KIT / "setup.sh").read_text(encoding="utf-8")
     run = (KIT / "run.sh").read_text(encoding="utf-8")
     assert PIN in setup
+    assert "html/tests/*.js" in setup
     assert 'BB_HOME/secrets' in setup or '"$BB_HOME/secrets"' in setup
     assert "rawrphos_api_key" in setup
     assert "chmod 600" in setup
