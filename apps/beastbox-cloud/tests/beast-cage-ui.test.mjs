@@ -139,3 +139,34 @@ test('unified Spark companion uses the real sprite, gait and voice modules witho
  assert.match(release,/same_companion_profile:true/);
  assert.doesNotMatch(spark,/SIM_EARTH|<iframe|getUserMedia|\/api\/bridge/);
 });
+
+test('public Beast generator loads all sanitized seed shards and never ships raw workload payloads',()=>{
+ const app=read('public/spark/app.mjs');
+ const spark=read('components/spark-beast-companion.tsx');
+ const cage=read('components/beast-cage-portal.tsx');
+ const release=read('app/api/companion-release/route.ts');
+ const index=JSON.parse(read('public/spark/user-seeds-20261004.json'));
+ assert.equal(index.schema,'spark-beasts-public-seed-pack-index-v1');
+ assert.equal(index.totals.unique_jobs,96);
+ assert.equal(index.shards.length,4);
+ assert.equal(index.privacy.raw_circuits_published,false);
+ assert.equal(index.privacy.user_ids_published,false);
+ assert.equal(index.privacy.original_signal_payloads_published,false);
+ assert.equal(index.privacy.derived_counts_public,true);
+ let total=0;
+ for(const path of index.shards){
+  const shard=JSON.parse(read('public'+path.replace('/spark','/spark')));
+  assert.equal(shard.schema,'spark-beasts-public-seed-shard-v1');
+  total+=shard.runs.length;
+  const raw=JSON.stringify(shard);
+  assert.doesNotMatch(raw,/QuantumCircuit|user_id|BEGIN PRIVATE|authorization|api[_ -]?key/i);
+ }
+ assert.equal(total,96);
+ assert.match(app,/user-seeds-20261004\.json/);
+ assert.match(app,/num_bits >= 2/);
+ assert.match(spark,/user-seeds-20261004\.json/);
+ assert.match(spark,/item\.num_bits>=2/);
+ assert.match(cage,/Open Public Beast Generator/);
+ assert.match(release,/public_seed_jobs_added:96/);
+ assert.match(release,/original_signal_payloads_published:false/);
+});
