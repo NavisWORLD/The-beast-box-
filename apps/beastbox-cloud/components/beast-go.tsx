@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { care, goTo, PLACES, placeById, rememberExchange, talkAndGrow } from '../lib/companion/adventure.mjs';
 import { askBeast } from '../lib/companion/ask-beast.mjs';
 import { buildChatContext } from '../lib/companion/context.mjs';
-import { BAG, focusBeast, GBA_KEYS, hudCard, keyboardLegend, pressCartridge, QUICK, sheetGesture } from '../lib/companion/go-hud.mjs';
+import { BAG, focusBeast, GBA_KEYS, hudCard, keyboardLegend, pressCartridge, QUICK, sheetGesture, sparkVisualState } from '../lib/companion/go-hud.mjs';
 import { adoptBeast, shownName } from '../lib/companion/session.mjs';
 import { buildGenome } from '../lib/companion/spark/genome.mjs';
 import runs from '../lib/companion/spark/runs.json';
+import { useCompanion } from './companion-provider';
 import { useBeastSession } from './beast-session';
-import PixelBeast from './pixel-beast';
+import SparkBeastCompanion from './spark-beast-companion';
 import css from './beast-go.module.css';
 
 const recorded = runs as Array<{ key: string; backend: string; job_id: string; pub_index: number; num_bits: number; shots: number; counts: Record<string, number> }>;
@@ -17,6 +18,7 @@ type SheetId = 'menu' | 'bag' | 'beasts' | 'talk' | 'map' | 'settings' | null;
 const GAME_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'z', 'x', 'Z', 'X', 'Enter', 'v', 'V', 'q', 'Q', 'e', 'E']);
 
 export default function BeastGo() {
+  const { profile } = useCompanion();
   const { ready, session, trail, sensorLog, change, setTrail } = useBeastSession();
   const [sheet, setSheet] = useState<SheetId>(null);
   const [touch, setTouch] = useState(false);
@@ -123,16 +125,18 @@ export default function BeastGo() {
 
   return <main className={css.field} data-go-screen="true">
     <h1 className={css.sr}>Lost Cosmos field</h1>
-    <button type="button" className={css.card} onClick={() => toggle('beasts')}>
-      <span className={css.portrait} aria-hidden="true">
-        {beast ? <PixelBeast genome={beast.genome} stage={beast.stage} pose="idle" emote={beast.mood === 'sleep' ? 'sleep' : beast.mood === 'evolve' ? 'evolve' : beast.mood === 'happy' ? 'happy' : 'watch'} label={`${card.name} portrait`} /> : <span className={css.mark}>✺</span>}
+    <div className={css.card}>
+      <span className={css.portrait}>
+        <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook ?? 'nebula'} compact state={sparkVisualState(card.mood)} className={css.spark} label={`${profile?.name || 'Spark Beast'} portrait`} />
       </span>
-      <span className={css.meta}>
-        <strong>{ready ? card.name : 'Loading save'}</strong>
-        <span>Lv {card.stage} · {card.mood}</span>
-        <span className={css.xp} role="meter" aria-label={`Experience ${card.xp}`} aria-valuemin={0} aria-valuemax={card.goal || card.xp || 1} aria-valuenow={card.xp}><i style={{ width: `${Math.round(card.ratio * 100)}%` }} /></span>
-      </span>
-    </button>
+      <button type="button" className={css.identity} onClick={() => toggle('beasts')}>
+        <span className={css.meta}>
+          <strong>{ready ? (profile?.name || 'Spark Beast') : 'Loading save'}</strong>
+          <span>Lv {card.stage} · {card.mood}</span>
+          <span className={css.xp} role="meter" aria-label={`Experience ${card.xp}`} aria-valuemin={0} aria-valuemax={card.goal || card.xp || 1} aria-valuenow={card.xp}><i style={{ width: `${Math.round(card.ratio * 100)}%` }} /></span>
+        </span>
+      </button>
+    </div>
     {touch && !sheet ? <div className={css.pad} aria-label="Touch controls">
       {(['up', 'left', 'right', 'down'] as const).map((button) => <button key={button} type="button" aria-label={GBA_KEYS[button].label} onPointerDown={(event) => hold(button, event)}>{GBA_KEYS[button].label}</button>)}
     </div> : null}
@@ -166,6 +170,8 @@ export default function BeastGo() {
       </> : null}
       {sheet === 'beasts' ? <>
         <h2>Beasts</h2>
+        <p>{profile ? `${profile.name} · ${profile.family} is the Spark Beast game profile on this browser.` : 'Customize chooses the Spark Beast. This portrait uses that same profile, including the preview when none is saved yet.'}</p>
+        <div className={css.row}><Link href="/beast-cage#customize">Customize this Beast</Link></div>
         <div className={css.list}>
           {(session?.bestiary || []).map((item: { seed: string; name?: string }) => <button key={item.seed} type="button" aria-pressed={beast?.seed === item.seed} onClick={() => change((draft) => { focusBeast(draft, item.seed); })}>{item.name || 'Beast'}{beast?.seed === item.seed ? ' · with you' : ''}</button>)}
         </div>

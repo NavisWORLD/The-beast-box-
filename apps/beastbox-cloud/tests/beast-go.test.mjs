@@ -4,7 +4,7 @@ import test from "node:test";
 import { askBeast } from "../lib/companion/ask-beast.mjs";
 import { adoptBeast, createSession } from "../lib/companion/session.mjs";
 import { FULL_PATH, modeFor } from "../lib/companion/gba-dock.mjs";
-import { focusBeast, hudCard, keyboardLegend, pressCartridge, QUICK, sheetGesture } from "../lib/companion/go-hud.mjs";
+import { focusBeast, hudCard, keyboardLegend, pressCartridge, QUICK, sheetGesture, sparkVisualState } from "../lib/companion/go-hud.mjs";
 
 const read = (path) => readFileSync(new URL("../" + path, import.meta.url), "utf8");
 
@@ -66,6 +66,12 @@ test("the field HUD is a portrait, quick buttons, a round menu, and swipe sheets
   assert.match(ui, /aria-label="Main menu"/);
   assert.match(ui, /sheetGesture/);
   assert.match(ui, /askBeast/);
+  assert.match(ui, /SparkBeastCompanion/);
+  assert.match(ui, /useCompanion\(\)/);
+  assert.doesNotMatch(ui, /PixelBeast/);
+  assert.equal(sparkVisualState("sleep"), "sleeping");
+  assert.equal(sparkVisualState("happy"), "celebrating");
+  assert.equal(sparkVisualState("idle"), "idle");
   assert.match(ui, /Swipe up for the menu/);
   assert.match(ui, /Touch controls/);
   assert.doesNotMatch(ui, /mockReply|fakeAnswer|Math\.random/);

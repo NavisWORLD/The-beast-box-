@@ -12,6 +12,7 @@ export const QUICK = [
   { id: "settings", label: "Settings" },
 ];
 
+/** @type {{ id: string, label: string, kind: "feed" | "pet" | "rest" | "spark" }[]} */
 export const BAG = [
   { id: "feed", label: "Feed", kind: "feed" },
   { id: "pet", label: "Pet", kind: "pet" },
@@ -43,6 +44,12 @@ export function keyboardLegend() {
     ["Q / E", "L / R"],
     ["Escape", "Close a sheet"],
   ];
+}
+
+export function sparkVisualState(mood) {
+  if (mood === "sleep") return "sleeping";
+  if (mood === "evolve" || mood === "happy") return "celebrating";
+  return "idle";
 }
 
 export function hudCard(beast) {
