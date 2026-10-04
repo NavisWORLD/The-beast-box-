@@ -1,98 +1,45 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Spark Beasts · Beast Box</title>
-  <link rel="stylesheet" href="/spark/spark.css">
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="theme-color" content="#0c1228"><title>Spark Beasts · Beast Box</title>
+ <link rel="stylesheet" href="/spark/spark.css">
 </head>
 <body>
-  <header class="top">
-    <div>
-      <p class="eyebrow">Beast Box · public spark</p>
-      <h1>Spark Beasts</h1>
-    </div>
-    <nav>
-      <a href="/">Beast Box</a>
-      <a href="/beast-cage/go">Play in Lost COSMOS</a>
-    </nav>
-  </header>
-  <p class="honest" id="honest">
-    A beast is a game companion sparked on this device from a simulated signal, or a Muse headband after you consent, plus one recorded IBM Quantum count distribution.
-    Those counts are a fixed seed from a past hardware job. There is no live quantum link and no entanglement.
-    Beasts are not conscious. This page is not a medical device. Traits, the bestiary, and the download stay in your browser.
-  </p>
-  <main>
-    <section class="stage-wrap" aria-label="Live beast">
-      <canvas id="view" width="400" height="360"></canvas>
-      <p id="bubble" class="bubble" hidden></p>
-      <p id="line" class="line"></p>
-      <div class="plate">
-        <strong id="nameplate">Spark a beast</strong>
-        <span id="mood"></span>
-      </div>
-      <div class="stage-picks">
-        <button type="button" id="pick1">Stage I</button>
-        <button type="button" id="pick2">Stage II</button>
-        <button type="button" id="pick3">Stage III</button>
-        <button type="button" id="voice">Voice off</button>
-      </div>
-    </section>
-    <section class="panel">
-      <h2>Signal</h2>
-      <p class="hint">cosmic-muse-traits-v1. Focus is beta, calm is alpha, spark is gamma, each 0–100.</p>
-      <label>Simulated headband
-        <select id="profile"></select>
-      </label>
-      <button type="button" id="use-profile">Spark this profile</button>
-      <label>focus <input id="focus" type="range" min="0" max="100" value="30"> <b id="vfocus">30</b></label>
-      <label>calm <input id="calm" type="range" min="0" max="100" value="30"> <b id="vcalm">30</b></label>
-      <label>spark <input id="spark" type="range" min="0" max="100" value="20"> <b id="vspark">20</b></label>
-      <p id="bucket" class="hint"></p>
-      <label>Keeper label, optional <input id="keeper" maxlength="24" autocomplete="off" placeholder="public game name"></label>
-      <button type="button" id="drift">Drift the simulated signal</button>
-      <h2>Muse headband</h2>
-      <label class="check"><input id="consent" type="checkbox"> I consent to read derived focus, calm, and spark from a Muse on this device. Raw samples stay here and are discarded. Not a medical measurement.</label>
-      <p id="btnote" class="hint"></p>
-      <div class="row">
-        <button type="button" id="muse">Connect Muse</button>
-        <button type="button" id="stop-muse">Disconnect</button>
-      </div>
-      <h2>Recorded quantum run</h2>
-      <p id="totals" class="hint"></p>
-      <label>Find a job <input id="q" placeholder="ibm_fez or a job id"></label>
-      <label>Run <select id="run"></select></label>
-      <div class="row">
-        <button type="button" id="surprise">Pick from the seed</button>
-        <button type="button" id="spark" class="primary">Spark beast</button>
-      </div>
-      <h2>This beast</h2>
-      <p id="meta"></p>
-      <p id="quantum"></p>
-      <p class="seed">Seed <code id="seed"></code></p>
-      <div class="row">
-        <button type="button" id="download">Download .qbeast</button>
-        <a class="button" href="/beast-cage/go">Play in Lost COSMOS</a>
-      </div>
-      <p id="status" role="status"></p>
-    </section>
-  </main>
-  <section class="evol" aria-label="Evolution stages">
-    <h2>Three stages</h2>
-    <div class="evol-grid">
-      <figure><canvas id="st1"></canvas><figcaption id="nm1"></figcaption></figure>
-      <figure><canvas id="st2"></canvas><figcaption id="nm2"></figcaption></figure>
-      <figure><canvas id="st3"></canvas><figcaption id="nm3"></figcaption></figure>
-    </div>
+ <header class="top"><div><p class="eyebrow">BEAST BOX · PUBLIC SPARK</p><h1>Spark Beasts</h1></div><nav aria-label="Spark navigation"><a href="/beast-cage">Beast Cage</a><a href="/beast-cage/play">Adventure</a></nav></header>
+ <main>
+  <section class="stage-wrap" aria-label="Active creature habitat">
+   <div class="plate"><div><strong id="nameplate">Opening your habitat…</strong><span id="form">STAGE I</span></div><button type="button" id="voice" aria-pressed="false">🔇 SOUND OFF</button></div>
+   <p id="meta" class="hint"></p>
+   <div class="habitat"><span class="habitat-tag">LOCAL HABITAT</span><canvas id="view" width="400" height="320" aria-label="Your interactive Spark Beast" role="img"></canvas><p id="bubble" class="bubble" hidden></p></div>
+   <div class="speech"><span id="mood">Waking up</span><p id="line" role="status">A little companion, ready to explore.</p></div>
+   <div class="interactions" role="group" aria-label="Care for your Beast"><button type="button" id="pet">PET</button><button type="button" id="play">PLAY</button><button type="button" id="train">TRAIN</button><button type="button" id="rest">REST</button><button type="button" id="talk">TALK</button><button type="button" id="care">CARE</button></div>
+   <div id="training" hidden><p class="hint">Tap TRAIN in the bright window. Six tries.</p><div class="training-bar"><i></i><b id="train-mark"></b></div></div>
+   <form id="talk-form" hidden><label for="talk-text">Talk to your game companion</label><div class="row"><input id="talk-text" maxlength="400" autocomplete="off" placeholder="Hello, little beast…"><button type="submit">SEND</button></div><p id="talk-reply" role="status"></p><small class="hint">On-device pattern replies. No model or microphone needed.</small></form>
+   <p id="care-stats" class="stats">Care XP 0 · Bond 1 · Energy 100</p>
+   <button type="button" id="generate" class="primary generate">GENERATE NEW BEAST ⚛</button>
+   <div class="provenance"><p id="quantum">RECORDED QUANTUM SEED</p><code id="identity"></code></div>
+   <div class="destinations"><a class="button" href="/beast-cage#customize">CARE IN BEAST BOX</a><a class="button primary" id="lost-cosmos" href="/sol-game">PLAY IN LOST COSMOS 🎮</a></div>
+   <p id="status" role="status">Your saved identity stays on this device.</p>
+   <details><summary>Stage previews · I / II / III</summary><p class="hint">Visual previews only. LOST COSMOS owns earned cartridge evolution.</p><div class="stage-picks"><button type="button" id="pick1" aria-pressed="true">Stage I</button><button type="button" id="pick2" aria-pressed="false">Stage II</button><button type="button" id="pick3" aria-pressed="false">Stage III</button></div><div class="evol-grid"><figure><canvas id="st1"></canvas><figcaption id="nm1"></figcaption></figure><figure><canvas id="st2"></canvas><figcaption id="nm2"></figcaption></figure><figure><canvas id="st3"></canvas><figcaption id="nm3"></figcaption></figure></div></details>
   </section>
-  <section class="gallery">
-    <h2>Bestiary</h2>
-    <p class="hint">Starter beasts are sparked in this browser from the recorded table. Beasts you spark are saved only in local storage.</p>
-    <div id="bestiary" class="grid"></div>
+  <section class="panel" aria-label="Generator settings">
+   <details class="recipe"><summary>Signal &amp; seed lab</summary>
+    <h2>Signal drives</h2><p class="hint">A simulated signal works without sensors. Change drives to hear and see mood responses; regenerate to make a new genome.</p>
+    <label>Simulated headband<select id="profile"></select></label><button type="button" id="use-profile">Generate from this profile</button>
+    <label>Focus <input id="focus" type="range" min="0" max="100" value="30"><b id="vfocus">30</b></label>
+    <label>Calm <input id="calm" type="range" min="0" max="100" value="30"><b id="vcalm">30</b></label>
+    <label>Spark <input id="spark" type="range" min="0" max="100" value="20"><b id="vspark">20</b></label>
+    <p id="bucket" class="hint"></p><label>Keeper label · optional<input id="keeper" maxlength="24" autocomplete="off" placeholder="public game label"></label><button type="button" id="drift">Drift simulated signal</button>
+    <h2>Recorded quantum run</h2><p id="totals" class="hint"></p><label>Find a recorded job<input id="q" placeholder="ibm_fez or job ID"></label><label>Run<select id="run"></select></label><div class="row"><button type="button" id="surprise">Choose another seed</button><button type="button" id="regenerate">Regenerate this recipe</button></div>
+    <p id="provenance" class="hint"></p><p class="seed">Genome seed <code id="seed"></code></p>
+    <h2>Optional Muse headband</h2><label class="check"><input id="consent" type="checkbox"> I consent to derived focus, calm and spark on this device. Raw samples are discarded. Not a medical measurement.</label><p id="btnote" class="hint"></p><div class="row"><button type="button" id="muse">Connect Muse</button><button type="button" id="stop-muse">Disconnect</button></div>
+   </details>
+   <h2>Keep your little beast</h2><p class="hint">Same seed. Same QBEAST. Your care, name and pattern chat stay in this browser across Beast Box pages.</p><button type="button" id="download">Download .qbeast</button>
+   <details class="honest" id="honest"><summary>Recorded seeds · real game, clear limits</summary><p>A beast is a game companion created locally using derived traits and one recorded IBM Quantum count distribution. These are fixed seeds from past hardware jobs, not live quantum computation, entanglement or quantum advantage. Beasts are not conscious. This is not a medical device.</p><p>Sound is synthesized on this device after your tap. No audio, raw sensor streams, owner memory or authority is sent to the game. Browser care XP is separate from earned native evolution.</p></details>
   </section>
-  <footer>
-    <p>Recorded counts seed the Beast Box 12D to 54D loop, then a labelled SHA-256 stream. The .qbeast file is QBEAST1: a public game companion whose stats Lost COSMOS rebuilds from the seed. Host progress stays at zero. The memory note is the spark card.</p>
-  </footer>
-  <script type="module" src="/spark/app.mjs"></script>
-</body>
-</html>
+ </main>
+ <section class="gallery"><h2>Your bestiary</h2><p class="hint">Pick a saved recipe to bring back the same Beast and its care state.</p><div id="bestiary" class="grid"></div></section>
+ <footer><p>SPARK → QBEAST → BEAST CAGE → LOST COSMOS → NATIVE GBA. Game identity stays separate from COSMOS memory and authority.</p></footer>
+ <script type="module" src="/spark/app.mjs"></script>
+</body></html>

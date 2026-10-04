@@ -5,6 +5,7 @@ import {createSnapshot,parseSnapshot,serializeSnapshot,verifySnapshot,MAX_BYTES,
 import {exportGba} from '../../../packages/quantum-beast/src/gba_export';
 import {lostCosmosShareUrl,LOST_COSMOS_SOURCE_SHA} from '../../../packages/quantum-beast/src/lost_cosmos';
 import css from './quantum-beast-transfer.module.css';
+import {useBeastSession} from './beast-session';
 const KEY='beastbox-quantum-beast-public-v1';
 function assertContinuation(next:Snapshot,previous:Snapshot){
  if(next.profile.id!==previous.profile.id)return;
@@ -17,6 +18,7 @@ async function storedSnapshot(raw:string){
 }
 function download(bytes:BlobPart,name:string,type:string){const url=URL.createObjectURL(new Blob([bytes],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 export default function QuantumBeastTransfer({profile,onImport}:{profile:CreatureProfile|null;onImport:(profile:CreatureProfile)=>void}){
+ const {session}=useBeastSession();
  const [snapshot,setSnapshot]=useState<Snapshot|null>(null),[key,setKey]=useState('');
  const [status,setStatus]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  const [verifiedKey,setVerifiedKey]=useState<string|undefined>(),[signature,setSignature]=useState('absent');
@@ -49,6 +51,7 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
  }
  async function openLostCosmos(){
   if(!profile)throw Error('Choose a Beast before opening Lost COSMOS.');
+  if(session?.beast?.qbeast?.profile?.id===profile.id){window.location.assign('/sol-game');return;}
   if(snapshot&&!matches)throw Error('The selected genome differs from the saved Beast. Import its file or start a new portable life first.');
   const s=snapshot??await createSnapshot(profile);
   if(!snapshot)await remember(s);

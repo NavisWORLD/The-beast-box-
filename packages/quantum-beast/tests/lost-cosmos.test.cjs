@@ -5,7 +5,7 @@ const {createSnapshot,canonical}=require('../dist/verifier.js');
 const {generateCreature}=require('../dist/canonical/creature-profile.js');
 const {lostCosmosShare,lostCosmosShareUrl,LOST_COSMOS_SOURCE_SHA,LOST_COSMOS_URL}=require('../dist/lost_cosmos.js');
 
-test('same verified Beast gets one stable Lost COSMOS cage transfer and the pinned PR 31 persistent game URL',async()=>{
+test('same verified Beast gets one stable Lost COSMOS cage transfer and the current native cartridge URL',async()=>{
  const profile=generateCreature('quantum-beast-first-contact','nebula');
  const snapshot=await createSnapshot(profile);
  const a=await lostCosmosShare(snapshot);
@@ -25,5 +25,5 @@ test('same verified Beast gets one stable Lost COSMOS cage transfer and the pinn
  const decoded=JSON.parse(decodeURIComponent(url.split('#lcshare=')[1]));
  assert.equal(decoded.transfer,a.transfer);
  assert.equal(decoded.checksum,a.checksum);
- assert.equal(LOST_COSMOS_SOURCE_SHA,'2e600160937943d3cafcf27e88a0474ba6aba43d');
+ assert.equal(LOST_COSMOS_SOURCE_SHA,'a4057c5a8d57963bb27e157eab683852ab58bc28');
 });

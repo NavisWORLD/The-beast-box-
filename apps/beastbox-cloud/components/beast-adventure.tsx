@@ -297,7 +297,7 @@ export default function BeastAdventure() {
           return <button key={id} type="button" className={css.place} style={{ left: `${spot.x}%`, top: `${spot.y}%` }} aria-pressed={trail.place === id} onClick={() => setTrail(goTo(trail, id))}>{spot.name}</button>;
         })}
         <div className={css.beast} style={{ left: `${trail.beast.x}%`, top: `${trail.beast.y}%` }}>
-          {beast ? <PixelBeast genome={{ ...beast.genome, facing: trail.facing }} stage={beast.stage} pose={reaction.pose === 'emote' ? 'emote' : reaction.pose} emote={reaction.emote} facing={trail.facing} reduced={reduced} label={`${shownName(beast)} ${reaction.pose}, ${reaction.reason}`} /> : null}
+          {beast ? <PixelBeast publicSpark={!!beast?.qbeast} genome={{ ...beast.genome, facing: trail.facing }} stage={beast.stage} pose={reaction.pose === 'emote' ? 'emote' : reaction.pose} emote={reaction.emote} facing={trail.facing} reduced={reduced} label={`${shownName(beast)} ${reaction.pose}, ${reaction.reason}`} /> : null}
         </div>
         <p className={css.emote} style={{ left: `${trail.beast.x}%`, top: `${trail.beast.y}%` }}>{beast ? reaction.reason : 'Meet a spark beast in the care deck.'}</p>
         <video ref={video} muted playsInline style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }} aria-hidden="true" />
