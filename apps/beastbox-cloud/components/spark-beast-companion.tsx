@@ -1,0 +1,210 @@
+'use client';
+import {useEffect,useMemo,useRef,useState} from 'react';
+import {Volume2,VolumeX} from 'lucide-react';
+import {generateCreature,type BaseLook,type CreatureProfile} from '../lib/creature-profile';
+import {blit,renderBeast,SPRITE} from '../public/spark/draw.mjs';
+import {buildGenome} from '../public/spark/genome.mjs';
+import {Voice} from '../public/spark/voice.mjs';
+import styles from './spark-beast-companion.module.css';
+
+type VisualState='idle'|'listening'|'thinking'|'remembering'|'observing'|'sleeping'|'celebrating'|'halted';
+type Run={
+ key:string;backend:string;job_id:string;pub_index:number;num_bits:number;
+ shots:number;counts:Record<string,number>;counts_sha256:string;
+};
+type Genome={
+ names:Record<number,string>;island:string;temperament:string;element:string;body:string;
+ pose:string;ears:string;wings:string;tail:string;quantum:{top_state:string};
+ behavior:{
+  gait:string;tempo_hz:number;amplitude_px:number;blink_mean_s:number;
+  sensitivity:Record<string,number>;thresholds:Record<string,number>;
+ };
+ voice:Record<string,unknown>;
+};
+type Props={
+ profile?:CreatureProfile|null;
+ fallbackLook?:BaseLook;
+ state?:VisualState;
+ paused?:boolean;
+ intensity?:number;
+ compact?:boolean;
+ controls?:boolean;
+ className?:string;
+ label?:string;
+};
+
+function expand(row:Record<string,unknown>):Run{
+ const counts:Record<string,number>={};
+ for(const part of String(row.c||'').split(',')){
+  if(!part)continue;
+  const [k,v]=part.split(':');
+  if(k)counts[k]=Number(v)||0;
+ }
+ return {
+  key:String(row.k||''),backend:String(row.b||''),job_id:String(row.j||''),
+  pub_index:Number(row.p)||0,num_bits:Number(row.n)||0,shots:Number(row.s)||0,
+  counts,counts_sha256:String(row.h||'')
+ };
+}
+function clamp(n:number){return Math.max(0,Math.min(100,Math.round(n)));}
+function traits(profile:CreatureProfile){
+ const s=profile.game.stats,t=profile.temperament;
+ return {
+  focus:clamp((s.signal+s.memory+s.stability)/3),
+  calm:clamp((s.stability+s.memory+t.caution)/3),
+  spark:clamp((s.energy+s.resonance+t.playfulness)/3)
+ };
+}
+function hash(text:string){
+ let out=2166136261;
+ for(const byte of new TextEncoder().encode(text)){out^=byte;out=Math.imul(out,16777619);}
+ return out>>>0;
+}
+function moodFor(state:VisualState){
+ if(state==='celebrating')return 'spark';
+ if(state==='sleeping'||state==='remembering'||state==='halted')return 'calm';
+ if(state==='thinking'||state==='observing'||state==='listening')return 'focus';
+ return 'neutral';
+}
+function driveFor(mood:string,intensity:number){
+ const base=Math.max(0,Math.min(1.2,intensity||0));
+ return {
+  focus:mood==='focus'?Math.max(.68,base):base*.2,
+  calm:mood==='calm'?Math.max(.68,base):base*.2,
+  spark:mood==='spark'?Math.max(.72,base):base*.2
+ };
+}
+
+export default function SparkBeastCompanion({
+ profile,fallbackLook='nebula',state='idle',paused=false,intensity=0,
+ compact=false,controls=false,className='',label='Spark Beast companion'
+}:Props){
+ const fallback=useMemo(()=>generateCreature('beastbox-spark-'+fallbackLook,fallbackLook==='aurora'?'aurora':fallbackLook==='starlight'?'starlight':'nebula'),[fallbackLook]);
+ const active=profile??fallback;
+ const canvas=useRef<HTMLCanvasElement>(null),mover=useRef<HTMLDivElement>(null);
+ const frame=useRef<number>(0),lastEye=useRef(''),utterance=useRef(0);
+ const audio=useRef<AudioContext|null>(null),audioOut=useRef<AudioNode|null>(null);
+ const [run,setRun]=useState<Run|null>(null),[gen,setGen]=useState<Genome|null>(null);
+ const [stage,setStage]=useState<1|2|3>(2),[sound,setSound]=useState(false);
+ const [error,setError]=useState(''),[reduced,setReduced]=useState(false);
+
+ useEffect(()=>{
+  const media=window.matchMedia('(prefers-reduced-motion: reduce)');
+  const update=()=>setReduced(media.matches);
+  update();media.addEventListener('change',update);
+  return()=>media.removeEventListener('change',update);
+ },[]);
+
+ useEffect(()=>{
+  let cancelled=false;
+  void fetch('/spark/runs.json',{cache:'force-cache'}).then(async response=>{
+   if(!response.ok)throw new Error('Recorded Spark seed table unavailable');
+   const table=await response.json() as {runs?:Record<string,unknown>[]};
+   const runs=(table.runs||[]).map(expand).filter(item=>item.num_bits>=5&&Object.keys(item.counts).length>0);
+   if(!runs.length)throw new Error('No recorded Spark seed distributions');
+   const chosen=runs[hash(active.id+'|'+active.seed)%runs.length];
+   if(!cancelled)setRun(chosen);
+  }).catch(err=>{if(!cancelled)setError(err instanceof Error?err.message:'Spark renderer unavailable');});
+  return()=>{cancelled=true;};
+ },[active.id,active.seed]);
+
+ useEffect(()=>{
+  if(!run)return;
+  try{
+   const next=buildGenome(traits(active),run,active.id,10) as Genome;
+   setGen(next);setError('');lastEye.current='';
+  }catch(err){setError(err instanceof Error?err.message:'Spark genome could not be built');}
+ },[active,run]);
+
+ useEffect(()=>{
+  if(!gen||!canvas.current)return;
+  const ctx=canvas.current.getContext('2d');
+  if(!ctx)return;
+  const scale=4;
+  canvas.current.width=SPRITE*scale;canvas.current.height=SPRITE*scale;
+  const start=performance.now();
+  let previous=start;
+  const behavior=gen.behavior;
+  const mood=moodFor(state);
+  const loop=(now:number)=>{
+   const t=(now-start)/1000,dt=Math.min(.05,(now-previous)/1000||.016);previous=now;
+   void dt;
+   const blink=Math.max(1.5,Number(behavior.blink_mean_s)||3.5);
+   let eye='open';
+   if(state==='halted'||state==='sleeping')eye='sleepy';
+   else if(mood==='spark')eye='sparkle';
+   else if((t%blink)<.12)eye='closed';
+   else if(mood==='calm')eye='sleepy';
+   if(eye!==lastEye.current){
+    blit(ctx,renderBeast(gen,stage,eye),0,0,scale);
+    lastEye.current=eye;
+   }
+   const node=mover.current;
+   if(node){
+    if(paused||reduced||state==='halted'){
+     node.style.transform='translate3d(0,0,0)';
+    }else{
+     const tempo=Math.max(.2,Number(behavior.tempo_hz)||.7);
+     const phase=t*tempo*Math.PI*2;
+     const amp=(compact?1.3:2.5)*(Math.max(1,Number(behavior.amplitude_px)||1));
+     let x=0,y=0,r=0;
+     switch(behavior.gait){
+      case 'hop': y=-Math.abs(Math.sin(phase*.5))*amp*1.8;break;
+      case 'sway': x=Math.sin(phase)*amp;r=Math.sin(phase)*2;break;
+      case 'scuttle': x=Math.sin(phase*1.7)*amp*.9;break;
+      case 'float': y=Math.sin(phase*.5)*amp-2;break;
+      case 'wobble': x=Math.sin(phase)*amp*.7;r=Math.sin(phase*.7)*3;break;
+      case 'pulse': y=Math.sin(phase)*amp*.35;break;
+      default:y=-(.5-.5*Math.cos(phase))*amp*.8;
+     }
+     node.style.transform=`translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0) rotate(${r.toFixed(2)}deg)`;
+    }
+   }
+   frame.current=requestAnimationFrame(loop);
+  };
+  frame.current=requestAnimationFrame(loop);
+  return()=>cancelAnimationFrame(frame.current);
+ },[gen,stage,state,paused,reduced,compact]);
+
+ async function speak(){
+  if(!gen)return;
+  try{
+   let ac=audio.current;
+   if(!ac){
+    ac=new AudioContext();
+    audio.current=ac;
+    audioOut.current=Voice.master(ac) as AudioNode;
+   }
+   if(ac.state==='suspended')await ac.resume();
+   const mood=moodFor(state);
+   const u=Voice.utterance(gen.voice,stage,mood,utterance.current++,driveFor(mood,intensity||.55));
+   Voice.schedule(ac,audioOut.current,ac.currentTime+.03,gen.voice,u);
+   setSound(true);
+   window.setTimeout(()=>setSound(false),Math.max(400,Math.ceil((u.dur||1)*1000)));
+  }catch(err){setError(err instanceof Error?err.message:'Creature voice unavailable');}
+ }
+
+ const name=gen?.names?.[stage]||active.name;
+ return <figure className={[styles.root,compact?styles.compact:'',className].filter(Boolean).join(' ')}
+   data-spark-beast="true" data-state={state} data-stage={stage} aria-label={label}>
+  <div className={styles.aura} aria-hidden="true"/>
+  <div className={styles.mover} ref={mover}>
+   <canvas ref={canvas} className={styles.canvas} aria-label={name+' pixel creature sprite'}/>
+  </div>
+  {!compact?<figcaption className={styles.meta}>
+   <strong>{name}</strong>
+   <span>{gen?gen.temperament+' · '+gen.body+' · '+gen.island:'Building Spark genome…'}</span>
+   {run?<small>RECORDED QUANTUM SEED · {run.backend} · {run.num_bits}-bit · {run.counts_sha256.slice(0,10)}…</small>:null}
+   <small>Recorded counts seed the game art. No live quantum link, awareness, or sensor authority.</small>
+  </figcaption>:null}
+  {controls&&!compact?<div className={styles.controls}>
+   <div className={styles.stages} role="group" aria-label="Preview evolution stage">
+    {([1,2,3] as const).map(value=><button type="button" key={value} aria-pressed={stage===value}
+      onClick={()=>{setStage(value);lastEye.current='';}}>Stage {value}</button>)}
+   </div>
+   <button type="button" className={styles.voice} onClick={()=>void speak()} disabled={!gen}
+     aria-label="Play this creature's generated Spark voice">{sound?<VolumeX size={15}/>:<Volume2 size={15}/>} {sound?'Speaking…':'Hear Beast'}</button>
+  </div>:null}
+  {error?<span className={styles.error} role="status">{error}</span>:null}
+ </figure>;
+}
