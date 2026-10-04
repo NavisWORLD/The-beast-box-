@@ -4,7 +4,7 @@ import {
  type ReactNode
 } from 'react';
 import {usePathname} from 'next/navigation';
-import {Pause,Play,Eye,EyeOff} from 'lucide-react';
+import {Pause,Play,Eye,EyeOff,Volume2,VolumeX} from 'lucide-react';
 import SparkBeastCompanion from './spark-beast-companion';
 import LostCosmosDock from './lost-cosmos-dock';
 import {BeastSessionProvider} from './beast-session';
@@ -45,6 +45,7 @@ export default function CompanionProvider({children}:{children:ReactNode}){
  const [action,setAction]=useState<AmbientAction>('hover');
  const [paused,setPaused]=useState(false),[hidden,setHidden]=useState(false);
  const [halted,setHalted]=useState(false),[typing,setTyping]=useState(false);
+ const [soundEnabled,setSoundEnabled]=useState(false);
  const [reduced,setReduced]=useState(false),[spot,setSpot]=useState<Spot|null>(null);
  const [tick,setTick]=useState(0),tickRef=useRef(0);
  const [pageVisible,setPageVisible]=useState(true);
@@ -71,7 +72,7 @@ export default function CompanionProvider({children}:{children:ReactNode}){
    const next=event.detail;
    if(next==='hover'||next==='orbit'||next==='perch'||next==='rest')setAction(next);
   };
-  const onStop=()=>{setHalted(true);setPaused(true);setAction('rest');};
+  const onStop=()=>{setHalted(true);setPaused(true);setSoundEnabled(false);setAction('rest');};
   const onFocus=()=>setTyping(editingText());
   const onVisibility=()=>setPageVisible(!document.hidden);
   const motion=window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -96,14 +97,21 @@ export default function CompanionProvider({children}:{children:ReactNode}){
  },[onProfile]);
  const showPublic=pathname==='/'||pathname==='/beast-cage';
  useEffect(()=>{
-  if(!profile||!showPublic||paused||halted||hidden||reduced||!pageVisible)return;
+  if(!showPublic||paused||halted||hidden||reduced||!pageVisible)return;
+  const fallback:AmbientAction[]=['hover','orbit','perch','rest'];
   const clock=window.setInterval(()=>{
-   tickRef.current++;
-   setTick(tickRef.current);
-   setAction(pickAmbientAction(profile,tickRef.current));
-  },14000);
+   const next=++tickRef.current;
+   setTick(next);
+   const nextAction=profile?pickAmbientAction(profile,next):fallback[next%fallback.length];
+   setAction(nextAction);
+   if(soundEnabled&&next%2===1){
+    window.dispatchEvent(new CustomEvent('beastbox:spark-chirp',{
+     detail:{channel:'roamer',intensity:nextAction==='orbit'?.9:.58}
+    }));
+   }
+  },11000);
   return()=>window.clearInterval(clock);
- },[profile,showPublic,paused,halted,hidden,reduced,pageVisible]);
+ },[profile,showPublic,paused,halted,hidden,reduced,pageVisible,soundEnabled]);
  useEffect(()=>{
   if(!showPublic||hidden||typing||!pageVisible||reduced){setSpot(null);return;}
   let animation=0;
@@ -147,12 +155,21 @@ export default function CompanionProvider({children}:{children:ReactNode}){
   action==='perch'?'observing' as const:'idle' as const;
  const clearProfile=useCallback(()=>{setProfile(null);setAction('hover');tickRef.current=0;setTick(0);try{window.localStorage.removeItem(ACTIVE_PROFILE_KEY);}catch{/* optional browser-only game profile */}},[]);
  const context=useMemo(()=>({profile,selectProfile:onProfile,clearProfile}),[profile,onProfile,clearProfile]);
+ const toggleSound=()=>{
+  setSoundEnabled(current=>{
+   const next=!current;
+   if(next){
+    window.dispatchEvent(new CustomEvent('beastbox:spark-chirp',{detail:{channel:'roamer',intensity:.62}}));
+   }
+   return next;
+  });
+ };
  const canShow=showPublic&&!hidden&&!typing&&pageVisible&&!reduced&&spot!==null;
  const parked=halted||paused||!canShow;
  return <Context.Provider value={context}>
   <BeastSessionProvider>
   {children}
-  <LostCosmosDock />
+  <LostCosmosDock creature={profile} />
   </BeastSessionProvider>
   {showPublic?<aside data-companion-overlay="true" className={styles.shell+(!canShow?' '+styles.parked:'')}
     aria-label="Cosmic companion game habitat" data-companion-state={state}
@@ -171,10 +188,15 @@ export default function CompanionProvider({children}:{children:ReactNode}){
        aria-label={halted?'Resume decorative companion only':paused?'Resume companion animation':'Pause companion animation'}>
       {parked?<Play size={15}/>:<Pause size={15}/>}
      </button>:null}
+     {!hidden?<button type="button" className={styles.control} onClick={toggleSound}
+       aria-pressed={soundEnabled}
+       aria-label={soundEnabled?'Mute creature sounds':'Enable creature sounds'}>
+      {soundEnabled?<Volume2 size={15}/>:<VolumeX size={15}/>}
+     </button>:null}
     </div>
     {canShow?<div className={styles.figure} aria-hidden="true">
       <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook??'nebula'}
-       state={state} compact paused={parked}
+       state={state} compact paused={parked} audioChannel="roamer"
        label="Roaming Spark Beast game creature"/>
      </div>:null}
     <span className={styles.sr} aria-live="polite">
