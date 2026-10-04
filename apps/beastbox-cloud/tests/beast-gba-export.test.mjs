@@ -43,9 +43,11 @@ test('exact public source archive and server release marker are present',()=>{
  for(const name of ['beast_companion.h','beast_companion.c','example_gba.c','README.md','AGENTS.md'])
   assert.ok(read('public/gba-module/'+name).length>120,name);
  const api=read('app/api/gba-release/route.ts');
- assert.match(api,/beast-cage-lost-cosmos-62a2922-20261004/);
- assert.match(api,/62a2922dae7fcba93a040ac2473221d41a043c6f/);
+ assert.match(api,/beast-cage-lost-cosmos-pr31-2e600160-20261004/);
+ assert.match(api,/2e600160937943d3cafcf27e88a0474ba6aba43d/);
  assert.match(api,/same_cage_transfer:true/);
+ assert.match(api,/persistent-gba-player/);
+ assert.match(api,/shared-spark-care-ledger/);
  assert.match(api,/guest_contains_private_memory:false/);
  assert.match(api,/hardware_tested:false/);
  const c=read('public/gba-module/beast_companion.c');
@@ -60,7 +62,7 @@ test('Quantum Beast bridge launches the same portable identity into current Lost
  assert.match(transfer,/PLAY THIS BEAST IN LOST COSMOS/);
  assert.match(transfer,/lostCosmosShareUrl/);
  assert.match(transfer,/window\.location\.assign\(url\)/);
- assert.match(bridge,/62a2922dae7fcba93a040ac2473221d41a043c6f/);
+ assert.match(bridge,/2e600160937943d3cafcf27e88a0474ba6aba43d/);
  assert.match(bridge,/beastbox-lost-cosmos-transfer-v1/);
  assert.match(bridge,/LCSHARE1/);
  assert.match(bridge,/origin:'beast'/);
