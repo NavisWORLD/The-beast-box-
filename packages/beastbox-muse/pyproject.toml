@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "beastbox-muse"
+version = "0.1.0"
+description = "Plug-and-play Interaxon Muse kit for The Beast Box. Wellness and game signals, not medical."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+ble = ["bleak>=0.22.3"]
+lsl = ["pylsl>=1.16"]
+
+[project.scripts]
+beastbox-muse = "beastbox_muse.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+beastbox_muse = ["muse_browser.js"]

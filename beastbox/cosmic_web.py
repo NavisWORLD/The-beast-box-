@@ -816,7 +816,7 @@ class _CosmicHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
-        self.send_header("Permissions-Policy", "camera=(self), microphone=(self), geolocation=()")
+        self.send_header("Permissions-Policy", "camera=(self), microphone=(self), bluetooth=(self), geolocation=()")
         self.send_header(
             "Content-Security-Policy",
             "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; "

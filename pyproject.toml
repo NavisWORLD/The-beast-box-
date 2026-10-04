@@ -28,6 +28,7 @@ huggingface = ["huggingface-hub>=0.27"]
 ml = ["torch>=2.2", "numpy>=2.0"]
 local-llm = ["llama-cpp-python>=0.3.9"]
 secure = ["cryptography>=44.0.0"]
+muse = ["bleak>=0.22.3"]
 dev = ["pytest>=8.0", "coverage>=7.0", "ruff>=0.12", "mypy>=1.17", "numpy>=2.0", "cryptography>=44.0.0"]
 
 [project.urls]
@@ -44,20 +45,23 @@ cosmic-cypher = "beastbox.cypher.cli:main"
 cypher = "beastbox.cypher.cli:main"
 zeref = "beastbox.cypher.easy_ollama:main"
 beast-arms = "beastbox.arms.cli:main"
+beastbox-muse = "beastbox_muse.cli:main"
 
 [tool.setuptools]
 include-package-data = false
 
 [tool.setuptools.package-data]
 beastbox = ["ui_theme.css", "cosmic_layout.css"]
+beastbox_muse = ["muse_browser.js"]
 
 [tool.setuptools.packages.find]
-include = ["beastbox*"]
+where = [".", "packages/beastbox-muse/src"]
+include = ["beastbox*", "beastbox_muse*"]
 exclude = ["tests*", "scripts*", "docs*", "experiments*", "evidence*", "QUANTUM_BEAST_STARTER*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = [".", "packages/beastbox-muse/src"]
 addopts = "-q"
 
 [tool.ruff]

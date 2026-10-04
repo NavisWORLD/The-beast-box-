@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Beast Box · Muse kit</title>
+<style>
+  body{margin:0;font:16px/1.45 ui-sans-serif,system-ui,sans-serif;background:#10141c;color:#e7eef8}
+  main{max-width:760px;margin:0 auto;padding:28px 20px 48px}
+  h1{font-size:1.6rem;margin:0 0 8px}
+  .warn{background:#3a2a12;border:1px solid #d7a15a;padding:12px 14px;border-radius:10px}
+  button{font:inherit;margin:8px 8px 0 0;padding:8px 12px;border-radius:8px;border:1px solid #8aa0c8;background:#1c2636;color:#e7eef8}
+  button.primary{background:#2a4570}
+  pre{white-space:pre-wrap;background:#0c1016;padding:14px;border-radius:10px;min-height:8rem}
+  label{display:block;margin-top:14px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Muse kit</h1>
+  <p class="warn">Wellness and game signals only. Not a medical measurement, diagnosis, or treatment. Raw EEG stays in this page. Focus, calm, and spark match the Cosmic Synapse HANDHELD schema.</p>
+  <p id="support"></p>
+  <label><input id="consent" type="checkbox"> I consent to derive focus, calm, and spark on this machine</label>
+  <p>
+    <button class="primary" id="simulate" type="button">Simulate headband</button>
+    <button id="connect" type="button">Connect Muse</button>
+    <button id="stop" type="button">Stop</button>
+  </p>
+  <pre id="out">No window yet.</pre>
+</main>
+<script src="muse.js"></script>
+<script>
+const out = document.getElementById('out');
+const support = window.BeastboxMuse.browserSupport();
+document.getElementById('support').textContent = support.reason || 'Web Bluetooth is available. You can connect a headband or run the simulator.';
+let link = null;
+function paint(snapshot) {
+  out.textContent = JSON.stringify({
+    disclaimer: snapshot.disclaimer,
+    traits: snapshot.traits,
+    relative: snapshot.relative,
+    bioFeatures: snapshot.bioFeatures,
+    rawEeg: 'omitted'
+  }, null, 2);
+}
+function consented() {
+  if (document.getElementById('consent').checked) return true;
+  out.textContent = 'Tick consent first. Nothing is read until you do.';
+  return false;
+}
+document.getElementById('simulate').onclick = () => {
+  if (!consented()) return;
+  paint(window.BeastboxMuse.simulatedSnapshot());
+};
+document.getElementById('connect').onclick = async () => {
+  if (!consented()) return;
+  const ready = window.BeastboxMuse.browserSupport();
+  if (!ready.ok) { out.textContent = ready.reason; return; }
+  if (link) await link.stop();
+  link = new window.BeastboxMuse.MuseLink(paint);
+  try { await link.connect(); }
+  catch (error) { out.textContent = error.message; }
+};
+document.getElementById('stop').onclick = async () => {
+  if (link) await link.stop();
+  link = null;
+  out.textContent = 'Stopped. The page buffer was cleared.';
+};
+</script>
+</body>
+</html>
