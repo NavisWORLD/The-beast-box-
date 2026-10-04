@@ -34,16 +34,19 @@ test('local numeric signals and owner privacy stop never confer model authority'
  assert.match(dock,/beastbox:local-sensor-level/);
  assert.match(dock,/beastbox:master-privacy-stop/);
  assert.match(dock,/last.sequence/);
- assert.ok(dock.includes("localStorage.getItem('beastbox-cage-appearance-v1')"));
+ assert.match(dock,/SparkBeastCompanion profile=\{cosmeticProfile\}/);
  for(const forbidden of ['getUserMedia',"api('bridge",'localStorage.setItem','localStorage.removeItem','Math.random'])
   assert.equal(dock.includes(forbidden),false,'Unexpected companion authority or retention: '+forbidden);
 });
-test('browser-only cosmetic preference is not a fake COSMOS identity',()=>{
+test('browser-only active Beast profile is not a fake COSMOS identity or authority',()=>{
  const cage=read('components/beast-cage-portal.tsx');
+ const provider=read('components/companion-provider.tsx');
  assert.match(cage,/beastbox-cage-appearance-v1/);
- assert.match(cage,/window.localStorage.setItem\(STORAGE,look\)/);
- assert.match(cage,/browser-only visual preview, not an additional COSMOS identity/);
- assert.doesNotMatch(cage,/fetch\(|api\('bridge/);
+ assert.match(cage,/SparkBeastCompanion/);
+ assert.match(provider,/beastbox-active-creature-v1/);
+ assert.match(provider,/validCreature/);
+ assert.doesNotMatch(cage,/api\('bridge/);
+ assert.doesNotMatch(provider,/api\('bridge|getUserMedia|Authorization|BEASTBOX_CLOUD_BRIDGE_TOKEN/);
 });
 test('accessible iPhone and 320px fallback styling exists',()=>{
  const css=read('app/globals.css');
@@ -63,13 +66,14 @@ test('homepage truly renders the procedural galaxy creature, not merely a static
  assert.match(hero,/turntable=\{spin\}/);
  assert.match(home,/Enter the Beast Cage/);
 });
-test('chosen cosmetic look persists into owner dock but does not change model or memory',()=>{
+test('the same active Spark Beast reaches customize and the owner dock without model authority',()=>{
  const cage=read('components/beast-cage-portal.tsx');
  const dock=read('components/cosmic-companion-dock.tsx');
- assert.match(cage,/beastbox:cage-look-changed/);
- assert.match(dock,/beastbox-cage-appearance-v1/);
- assert.match(dock,/CosmicCompanion3D look=\{look\}/);
+ assert.match(cage,/SparkBeastCompanion profile=\{creature\}/);
+ assert.match(dock,/SparkBeastCompanion profile=\{cosmeticProfile\}/);
+ assert.match(dock,/beastbox:master-privacy-stop/);
  assert.doesNotMatch(cage,/\/api\/bridge/);
+ assert.doesNotMatch(dock,/localStorage\.setItem|getUserMedia|api\('bridge/);
 });
 test('all world cards use allowlisted owner-only deep links',()=>{
  const cage=read('components/beast-cage-portal.tsx'),owner=read('components/studio.tsx');
@@ -94,7 +98,7 @@ test('seeded 3D source is shared with its actual downloaded GLB',()=>{
  assert.match(lab,/Download original 3D model/);
  assert.doesNotMatch(exporter,/fetch\(|\/api\/bridge|credentials|localStorage/);
 });
-test('one persistent public companion never copies model authority or records',()=>{
+test('one persistent public companion stores only its validated game profile',()=>{
  const layout=read('app/layout.tsx'),roamer=read('components/companion-provider.tsx');
  const geometry=read('lib/companion-roaming.ts');
  assert.match(layout,/<CompanionProvider>\{children\}<\/CompanionProvider>/);
@@ -102,8 +106,10 @@ test('one persistent public companion never copies model authority or records',(
  assert.match(roamer,/selectSafeRoamSpot/);
  assert.match(roamer,/usePathname/);
  assert.match(roamer,/validCreature/);
+ assert.match(roamer,/beastbox-active-creature-v1/);
+ assert.match(roamer,/SparkBeastCompanion/);
  assert.match(geometry,/rectanglesIntersect/);
- assert.doesNotMatch(roamer,/\/api\/bridge|getUserMedia|localStorage|indexedDB|setModel/);
+ assert.doesNotMatch(roamer,/\/api\/bridge|getUserMedia|indexedDB|setModel|Authorization|ownerToken/);
 });
 
 test('generated character moves between Cage and guest via client navigation, never full reload',()=>{
@@ -113,4 +119,54 @@ test('generated character moves between Cage and guest via client navigation, ne
  assert.doesNotMatch(cage,/<a href="\/beast-cage\/guest">Take this creature/);
  assert.match(guest,/profile:sharedProfile/);
  assert.match(guest,/createCreatureGlb\(creature,look\)/);
+});
+
+test('unified Spark companion uses the real sprite, gait and voice modules without SIM EARTH',()=>{
+ const spark=read('components/spark-beast-companion.tsx');
+ const settings=read('components/spark-beast-settings.tsx');
+ const release=read('app/api/companion-release/route.ts');
+ const studio=read('components/studio.tsx');
+ assert.match(spark,/public\/spark\/draw\.mjs/);
+ assert.match(spark,/public\/spark\/genome\.mjs/);
+ assert.match(spark,/public\/spark\/voice\.mjs/);
+ assert.match(spark,/\/spark\/runs\.json/);
+ assert.match(spark,/renderBeast/);
+ assert.match(spark,/behavior\.gait/);
+ assert.match(spark,/Voice\.utterance/);
+ assert.match(studio,/SparkBeastSettings/);
+ assert.match(settings,/SIM EARTH embedded here/);
+ assert.match(release,/sim_earth_embedded:false/);
+ assert.match(release,/same_companion_profile:true/);
+ assert.doesNotMatch(spark,/SIM_EARTH|<iframe|getUserMedia|\/api\/bridge/);
+});
+
+test('public Beast generator loads all sanitized seed shards and never ships raw workload payloads',()=>{
+ const app=read('public/spark/app.mjs');
+ const spark=read('components/spark-beast-companion.tsx');
+ const cage=read('components/beast-cage-portal.tsx');
+ const release=read('app/api/companion-release/route.ts');
+ const index=JSON.parse(read('public/spark/user-seeds-20261004.json'));
+ assert.equal(index.schema,'spark-beasts-public-seed-pack-index-v1');
+ assert.equal(index.totals.unique_jobs,96);
+ assert.equal(index.shards.length,4);
+ assert.equal(index.privacy.raw_circuits_published,false);
+ assert.equal(index.privacy.user_ids_published,false);
+ assert.equal(index.privacy.original_signal_payloads_published,false);
+ assert.equal(index.privacy.derived_counts_public,true);
+ let total=0;
+ for(const path of index.shards){
+  const shard=JSON.parse(read('public'+path.replace('/spark','/spark')));
+  assert.equal(shard.schema,'spark-beasts-public-seed-shard-v1');
+  total+=shard.runs.length;
+  const raw=JSON.stringify(shard);
+  assert.doesNotMatch(raw,/QuantumCircuit|user_id|BEGIN PRIVATE|authorization|api[_ -]?key/i);
+ }
+ assert.equal(total,96);
+ assert.match(app,/user-seeds-20261004\.json/);
+ assert.match(app,/num_bits >= 2/);
+ assert.match(spark,/user-seeds-20261004\.json/);
+ assert.match(spark,/item\.num_bits>=2/);
+ assert.match(cage,/Open Public Beast Generator/);
+ assert.match(release,/public_seed_jobs_added:96/);
+ assert.match(release,/original_signal_payloads_published:false/);
 });
