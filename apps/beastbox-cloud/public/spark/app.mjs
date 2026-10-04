@@ -335,13 +335,19 @@ async function main() {
     $("profile").append(opt);
   }
   $("profile").value = "balanced";
-  const table = await fetch("/spark/runs.json").then((res) => res.json());
-  runs = table.runs.map(expand);
+  const index = await fetch("/spark/user-seeds-20261004.json").then((res) => res.json());
+  const paths = ["/spark/runs.json", ...(Array.isArray(index.shards) ? index.shards : [])];
+  const tables = await Promise.all(paths.map((path) => fetch(path).then((res) => {
+    if (!res.ok) throw new Error("Spark seed pack unavailable: " + path);
+    return res.json();
+  })));
+  const merged = tables.flatMap((table) => Array.isArray(table.runs) ? table.runs.map(expand) : []);
+  runs = [...new Map(merged.map((run) => [run.key, run])).values()];
   byKey = new Map(runs.map((run) => [run.key, run]));
-  $("totals").textContent = `${table.totals.entries} recorded distributions from ${table.totals.unique_jobs} IBM jobs.`;
+  $("totals").textContent = `${runs.length} recorded distributions from ${new Set(runs.map((run) => run.job_id)).size} IBM jobs · ${index.totals?.unique_jobs || 0} new public jobs added.`;
   try { bestiary = JSON.parse(localStorage.getItem(STORE) || "[]"); } catch { bestiary = []; }
   if (!Array.isArray(bestiary)) bestiary = [];
-  fillRunSelect(runs.filter((run) => run.num_bits >= 5).slice(0, 12));
+  fillRunSelect(runs.filter((run) => run.num_bits >= 2).slice(0, 12));
   showTraits(simulateStable("balanced"));
   drawBestiary();
   adopt(starterEntries()[0], false);
