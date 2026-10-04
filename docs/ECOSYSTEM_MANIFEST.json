@@ -308,6 +308,22 @@
         "beastbox/cosmic_ui.py"
       ],
       "boundary": "Displays values the runtime computed. Fixture label rotation is not a verified three-model swap. A 12D change is not an architectural-advantage result."
+    },
+    {
+      "id": "replica-kit",
+      "names": [
+        "Phera's Beast Box",
+        "exact replica"
+      ],
+      "status": "PRODUCT",
+      "origin": "Install-and-check kit for a fresh Debian or Ubuntu machine",
+      "paths": [
+        "replica/setup.sh",
+        "replica/run.sh",
+        "replica/dashboard/server.py",
+        "replica/README.md"
+      ],
+      "boundary": "Rebuilds and checks this repository. The RAWRPHOS loopback key is generated at runtime into an owner-only file outside the repo. The dashboard is a local status page and does not add model authority, remote providers, or a new runtime."
     }
   ],
   "integration_source_commit": "57d34fe",

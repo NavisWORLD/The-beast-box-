@@ -10,7 +10,7 @@ the runtime retains the story and enforces its own authority boundary.
 **MODEL ≠ MEMORY · MODEL ≠ STATE · MODEL ≠ PROVENANCE · MODEL ≠ AUTHORITY**
 
 [Beast Wings integration](#beast-wings-integration-october-2026) · [Download Beast Box v0.7.0](https://github.com/NavisWORLD/The-beast-box-/releases/tag/v0.7.0) ·
-[COSMIC browser guide](docs/COSMIC_UI_GUIDE.md) · [5-minute Quickstart](docs/QUICKSTART.md) · [Combined Kit / EnD](kits/BEAST_BOX_COMBINED/EnD) ·
+[COSMIC browser guide](docs/COSMIC_UI_GUIDE.md) · [5-minute Quickstart](docs/QUICKSTART.md) · [Combined Kit / EnD](kits/BEAST_BOX_COMBINED/EnD) · [Exact replica](replica/README.md) ·
 [Architecture](docs/ECOSYSTEM_MANIFEST.json) · [Persistent Memory](docs/PORTABLE_STATE.md) ·
 [Model Swap Evidence](docs/PERSISTENT_SUBSTRATE_MODEL_SWAP_002_FINAL_REPORT.md) ·
 [Provider Setup](docs/PROVIDER_SETUP.md) · [Synapse Flash / Portable State](docs/PORTABLE_STATE.md) ·
@@ -153,6 +153,17 @@ beastbox runtime chat "Recall the sunflower code" --data-dir ./my-beast \
 Run again with another installed model, then the original model. Keep the same `--data-dir`. Configured provider labels are recorded; this interactive path does not attest model-weight hashes. Exact frozen-model identities belong to the separate historical experiment below. Ollama stays loopback-only. The compatible adapter permits explicitly authorized HTTPS remote endpoints; URL credentials, redirects and environment proxies remain forbidden.
 
 The existing [COSMIC.CYPHER](docs/COSMIC_CYPHER.md) tooling also supports GGUF, LM Studio and llama.cpp. Its conversation/coding persistence is a separate legacy surface; use `beastbox runtime` for the transactional continuity contract described here.
+
+## Exact replica
+
+[Phera's Beast Box replica kit](replica/README.md) rebuilds this repository on a fresh Debian or Ubuntu machine and checks doctor, the cosmic smoke test, the E1–E20 gauntlet, both pytest suites, Rust, and the HTML tests. From this checkout the kit uses the checkout it lives in. `--clone` still builds the pinned v0.7.1 commit instead.
+
+```bash
+./replica/setup.sh
+./replica/run.sh start
+```
+
+Cosmic UI is on port 8081, the RAWRPHØS server on 8767, and the dashboard on 8090. The virtualenv, checkpoint, and loopback API key stay under `~/.beastbox-replica`, outside this repository.
 
 ## Sensors, tools and recovery
 
