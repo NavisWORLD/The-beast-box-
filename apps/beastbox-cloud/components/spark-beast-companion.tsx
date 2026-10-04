@@ -187,7 +187,8 @@ export default function SparkBeastCompanion({
 
  const name=gen?.names?.[stage]||active.name;
  return <figure className={[styles.root,compact?styles.compact:'',className].filter(Boolean).join(' ')}
-   data-spark-beast="true" data-state={state} data-stage={stage} aria-label={label}>
+   data-spark-beast="true" data-creature-id={active.id} data-cosmetic-hue={active.appearance.hueShift}
+   data-state={state} data-stage={stage} aria-label={label}>
   <div className={styles.aura} aria-hidden="true"/>
   <div className={styles.mover} ref={mover}>
    <canvas ref={canvas} className={styles.canvas} aria-label={name+' pixel creature sprite'}/>
