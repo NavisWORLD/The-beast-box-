@@ -1,0 +1,13 @@
+{
+  "attention_mode": "dyn12",
+  "checkpoint_sha256": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
+  "exporter": "torch.onnx.export legacy tracer, opset 17",
+  "note": "The exported graph matched PyTorch argmax on these lengths. Python boolean checks in the module are tracer constants, not a second architecture. This page runs the JavaScript dyn12 implementation on the unmodified safetensors file instead of shipping the ONNX graph.",
+  "runtime": "onnxruntime 1.20.1 CPUExecutionProvider",
+  "rows": [
+    {"sequence_length": 6, "max_abs_logit_error": 1.1920928955078125e-05, "argmax_match": true},
+    {"sequence_length": 4, "max_abs_logit_error": 1.1444091796875e-05, "argmax_match": true},
+    {"sequence_length": 1, "max_abs_logit_error": 4.76837158203125e-06, "argmax_match": true},
+    {"sequence_length": 8, "max_abs_logit_error": 1.0967254638671875e-05, "argmax_match": true}
+  ]
+}

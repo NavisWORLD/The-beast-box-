@@ -1,0 +1,116 @@
+{
+  "model_id": "rawrphos-native",
+  "training_steps": 14000,
+  "parameter_count": 3909956,
+  "attention_mode": "dyn12",
+  "decoding": "greedy temperature 0",
+  "checkpoint_sha256": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
+  "tokenizer_sha256": "f704e9b75e816cc4ef203bc6c4afeeb966cbc11f369fb3b5f4d81c1505c8619c",
+  "source": "Python rawrphos.architecture.generation.generate on the pinned 14K checkpoint, cache on, temperature 0",
+  "cases": [
+    {
+      "prompt": "Once upon a time,",
+      "max_new_tokens": 16,
+      "prompt_ids": [
+        1,
+        450,
+        473,
+        262,
+        413,
+        15
+      ],
+      "generated_ids": [
+        417,
+        290,
+        262,
+        419,
+        474,
+        17,
+        304,
+        419,
+        474,
+        290,
+        262,
+        845,
+        15,
+        344,
+        825,
+        984
+      ],
+      "text": " there was a little girl. The little girl was a small, with many people"
+    },
+    {
+      "prompt": "user: Hello\nassistant:",
+      "max_new_tokens": 16,
+      "prompt_ids": [
+        1,
+        500,
+        278,
+        29,
+        326,
+        2376,
+        202,
+        915,
+        554,
+        593,
+        29
+      ],
+      "generated_ids": [
+        326,
+        2376,
+        4,
+        1819,
+        493,
+        334,
+        508,
+        366,
+        2081,
+        34,
+        2
+      ],
+      "text": " Hello! How can I help you today?"
+    },
+    {
+      "prompt": "user: Remember the sunflower code is marigold\nassistant:",
+      "max_new_tokens": 24,
+      "prompt_ids": [
+        1,
+        500,
+        278,
+        29,
+        595,
+        654,
+        1063,
+        265,
+        4064,
+        1358,
+        652,
+        71,
+        72,
+        390,
+        1426,
+        331,
+        2053,
+        202,
+        915,
+        554,
+        593,
+        29
+      ],
+      "generated_ids": [
+        326,
+        2376,
+        4,
+        1819,
+        493,
+        334,
+        508,
+        366,
+        2081,
+        34,
+        2
+      ],
+      "text": " Hello! How can I help you today?"
+    }
+  ]
+}
