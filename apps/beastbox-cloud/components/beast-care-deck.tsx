@@ -177,6 +177,7 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
           <button type="button" onClick={saveLcx1} disabled={!beast}>Download LCX1 save</button>
           <button type="button" onClick={() => file.current?.click()}>Import cage</button>
           <Link href="/beast-cage/play">Adventure with this beast</Link>
+          <Link href="/beast-cage/go">Open the field</Link>
         </div>
         <input ref={file} type="file" accept=".qbeast,.json,.sav,.lcx1,application/json" hidden onChange={(event) => void onImport(event.target.files)} />
         <p className={css.note} role="status">{status}</p>
