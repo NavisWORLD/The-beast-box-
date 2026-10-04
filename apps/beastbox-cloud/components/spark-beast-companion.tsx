@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {Volume2,VolumeX} from 'lucide-react';
 import {generateCreature,type BaseLook,type CreatureProfile} from '../lib/creature-profile';
 import {blit,renderBeast,SPRITE} from '../public/spark/draw.mjs';
@@ -29,6 +29,7 @@ type Props={
  intensity?:number;
  compact?:boolean;
  controls?:boolean;
+ audioChannel?:string;
  className?:string;
  label?:string;
 };
@@ -77,7 +78,7 @@ function driveFor(mood:string,intensity:number){
 
 export default function SparkBeastCompanion({
  profile,fallbackLook='nebula',state='idle',paused=false,intensity=0,
- compact=false,controls=false,className='',label='Spark Beast companion'
+ compact=false,controls=false,audioChannel,className='',label='Spark Beast companion'
 }:Props){
  const fallback=useMemo(()=>generateCreature('beastbox-spark-'+fallbackLook,fallbackLook==='aurora'?'aurora':fallbackLook==='starlight'?'starlight':'nebula'),[fallbackLook]);
  const active=profile??fallback;
@@ -176,7 +177,7 @@ export default function SparkBeastCompanion({
   return()=>cancelAnimationFrame(frame.current);
  },[gen,stage,state,paused,reduced,compact]);
 
- async function speak(){
+ const speak=useCallback(async (voiceIntensity=intensity||.55)=>{
   if(!gen)return;
   try{
    let ac=audio.current;
@@ -187,12 +188,24 @@ export default function SparkBeastCompanion({
    }
    if(ac.state==='suspended')await ac.resume();
    const mood=moodFor(state);
-   const u=Voice.utterance(gen.voice,stage,mood,utterance.current++,driveFor(mood,intensity||.55));
+   const u=Voice.utterance(gen.voice,stage,mood,utterance.current++,driveFor(mood,voiceIntensity));
    Voice.schedule(ac,audioOut.current,ac.currentTime+.03,gen.voice,u);
    setSound(true);
    window.setTimeout(()=>setSound(false),Math.max(400,Math.ceil((u.dur||1)*1000)));
   }catch(err){setError(err instanceof Error?err.message:'Creature voice unavailable');}
- }
+ },[gen,stage,state,intensity]);
+
+ useEffect(()=>{
+  if(!audioChannel)return;
+  const onChirp=(event:Event)=>{
+   if(!(event instanceof CustomEvent))return;
+   const detail=event.detail as {channel?:string;intensity?:number}|undefined;
+   if(detail?.channel!==audioChannel)return;
+   void speak(Number(detail.intensity)||intensity||.55);
+  };
+  window.addEventListener('beastbox:spark-chirp',onChirp);
+  return()=>window.removeEventListener('beastbox:spark-chirp',onChirp);
+ },[audioChannel,intensity,speak]);
 
  const name=gen?.names?.[stage]||active.name;
  return <figure className={[styles.root,compact?styles.compact:'',className].filter(Boolean).join(' ')}
