@@ -157,7 +157,8 @@ export default function BeastGo() {
 
   return <main className={css.field} data-go-screen="true">
     <h1 className={css.sr}>Lost Cosmos field</h1>
-    {guestMode ? <p className={css.guestNote} data-guest-play="true">Guests play with a beast saved in this browser. No owner authority and no private memory. Talk uses the guest-safe brain.</p> : null}
+    {guestMode ? <p className={css.guestNote} data-guest-play="true">Guest-safe play · no owner memory or authority.</p> : null}
+    <Link className={css.exit} href="/beast-cage" aria-label="Back to Beast Cage">×</Link>
     <div className={css.card}>
       <span className={css.portrait}>
         <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook ?? 'nebula'} compact state={sparkVisualState(card.mood)} className={css.spark} label={`${profile?.name || 'Spark Beast'} portrait`} />
@@ -191,7 +192,7 @@ export default function BeastGo() {
       <button type="button" className={css.handle} aria-label="Swipe down to close" onPointerDown={onPointerDown} onPointerUp={onPointerUp} onClick={() => setSheet(null)}><i /></button>
       {sheet === 'menu' ? <>
         <h2>Field menu</h2>
-        <div className={css.list}>
+        <div className={`${css.list} ${css.menuGrid}`}>
           {QUICK.map((item) => <button key={item.id} type="button" onClick={() => setSheet(item.id as SheetId)}>{item.label}</button>)}
         </div>
       </> : null}
@@ -239,7 +240,7 @@ export default function BeastGo() {
           <button type="button" aria-pressed={sound} onClick={toggleSound}>Sound {sound ? 'on' : 'off'}</button>
           <button type="button" aria-pressed={touch} onClick={() => setTouch((value) => !value)}>Touch controls {touch ? 'on' : 'off'}</button>
         </div>
-        <p>These switches stay on this field screen. Brain Bay, Model Bay, and owner settings are left as they are. On a phone the touch pad walks the cartridge. On a desktop the same keys work from the keyboard.</p>
+        <p>Sound and touch controls only affect this game screen. Owner settings stay separate.</p>
         <div className={css.list}>
           {keyboardLegend().map(([key, action]) => <p key={key} className={css.copy}>{key}: {action}</p>)}
         </div>
