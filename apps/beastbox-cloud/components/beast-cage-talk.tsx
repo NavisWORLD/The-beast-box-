@@ -3,6 +3,8 @@ import {useCallback,useEffect,useRef,useState,type FormEvent} from 'react';
 import Link from 'next/link';
 import CosmicCompanion3D,{type CreatureState} from './cosmic-companion-3d';
 import BeastCareDeck from './beast-care-deck';
+import SparkWanderer from './spark-wanderer';
+import {useCompanion} from './companion-provider';
 import styles from './beast-cage-talk.module.css';
 
 type Reply={provider?:string;model?:string;step?:number;reply?:string;guest_stateless?:boolean;error?:string};
@@ -11,6 +13,7 @@ type Recognition={lang:string;interimResults:boolean;onresult:((event:SpeechResu
 type BrowserSpeech=Window&{SpeechRecognition?:new()=>Recognition;webkitSpeechRecognition?:new()=>Recognition};
 
 export default function BeastCageTalk(){
+ const {profile}=useCompanion();
  const [text,setText]=useState(''),[reply,setReply]=useState(''),[error,setError]=useState('');
  const [busy,setBusy]=useState(false),[listening,setListening]=useState(false),[speaking,setSpeaking]=useState(false);
  const [motion,setMotion]=useState(true),[hasReply,setHasReply]=useState(false);
@@ -69,6 +72,7 @@ export default function BeastCageTalk(){
     <button className={styles.motion} type="button" aria-pressed={motion} onClick={()=>setMotion(v=>!v)}>{motion?'Pause':'Enable'} reactive animation</button>
    </section>
    <section className={styles.panel} aria-label="Real RAWRPHØS guest chat">
+    <div className={styles.yard}><SparkWanderer profile={profile} pulse={hasReply?reply:''} thinking={busy}/></div>
     <div className={styles.tag}><span className={styles.dot}/>RAWRPHØS • LOCAL GUEST • STABLE 14K</div>
     <p className={styles.intro}>Guest mode is stateless: no access to Cory&apos;s private memories, tools or owner controls. The live model may be slow, unavailable, or produce imperfect text.</p>
     <div className={styles.response} role="status" aria-live="polite">
@@ -85,7 +89,7 @@ export default function BeastCageTalk(){
      </div>
      <small>{text.length}/700 characters. Speech transcription may use your browser&apos;s speech service. You review text before sending.</small>
     </form>
-    <div className={styles.foot}><Link href="/beast-cage/guest">Visual guest + GBA download ↗</Link><Link href="/try">Other guest options ↗</Link><Link href="/workspace">Owner memory demo ↗</Link></div>
+    <div className={styles.foot}><Link href="/beast-cage/go">Lost Cosmos field ↗</Link><Link href="/beast-cage/guest">Visual guest + GBA download ↗</Link><Link href="/try">Other guest options ↗</Link><Link href="/workspace">Owner memory demo ↗</Link></div>
    </section>
   </div>
   <BeastCareDeck />

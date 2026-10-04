@@ -1,10 +1,10 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import type { CreatureProfile } from '../lib/creature-profile';
+import { modeFor } from '../lib/companion/gba-dock.mjs';
 import css from './lost-cosmos-dock.module.css';
 
-const MINI = new Set(['/beast-cage', '/beast-cage/talk', '/beast-cage/guest', '/beast-cage/play']);
 type WindowEmu = Window & {
   EJS_player?: string;
   EJS_core?: string;
@@ -13,14 +13,8 @@ type WindowEmu = Window & {
   EJS_startOnLoaded?: boolean;
   EJS_color?: string;
   EJS_volume?: number;
-  EJS_emulator?: { setVolume?: (value: number) => void; gameManager?: { FS?: { writeFile: (path: string, data: Uint8Array) => void } } };
+  EJS_emulator?: { setVolume?: (value: number) => void; gameManager?: { FS?: { writeFile: (path: string, data: Uint8Array) => void }; simulateInput?: (player: number, index: number, value: number) => void } };
 };
-
-function modeFor(path: string) {
-  if (path.startsWith('/workspace')) return 'parked';
-  if (MINI.has(path)) return 'mini';
-  return 'parked';
-}
 
 export default function LostCosmosDock({ creature }: { creature?: CreatureProfile | null }) {
   const pathname = usePathname() || '/';
@@ -29,15 +23,28 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
   const [closed, setClosed] = useState(false);
   const [booted, setBooted] = useState(false);
   const [note, setNote] = useState('Lost Cosmos V11.2 Spark is ready.');
-  const shown = mode === 'mini';
-  const wide = shown && expanded && !closed;
+  const volume = useRef(0.28);
+  const shown = mode === 'mini' || mode === 'full';
+  const wide = mode === 'mini' && expanded && !closed;
   const connectedName = creature?.name || 'Spark Beast';
   const readyText = `V11.2 Spark is ready for ${connectedName}. The cartridge stays mounted while you move around Beast Box.`;
 
   useEffect(() => {
     const host = window as WindowEmu;
-    host.EJS_emulator?.setVolume?.(shown && !closed ? 0.28 : 0);
+    host.EJS_emulator?.setVolume?.(shown && !closed ? volume.current : 0);
   }, [shown, closed]);
+
+  useEffect(() => {
+    function onVolume(event: Event) {
+      const value = Number((event as CustomEvent).detail);
+      if (!Number.isFinite(value)) return;
+      volume.current = Math.max(0, Math.min(1, value));
+      const host = window as WindowEmu;
+      if (modeFor(window.location.pathname) !== 'parked') host.EJS_emulator?.setVolume?.(volume.current);
+    }
+    window.addEventListener('beastbox:gba-volume', onVolume);
+    return () => window.removeEventListener('beastbox:gba-volume', onVolume);
+  }, []);
 
   useEffect(() => {
     function onSave() {
@@ -62,7 +69,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
     host.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
     host.EJS_startOnLoaded = true;
     host.EJS_color = '#68e5ee';
-    host.EJS_volume = shown && !closed ? 0.28 : 0;
+    host.EJS_volume = shown && !closed ? volume.current : 0;
     const script = document.createElement('script');
     script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
     script.async = true;
@@ -72,20 +79,20 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
     setNote(`Playing V11.2 Spark with ${connectedName}. The emulator remains mounted when this dock is minimized or closed.`);
   }
 
-  const state = closed ? 'closed' : wide ? 'expanded' : 'mini';
-  const className = [css.dock, wide ? css.wide : '', closed ? css.closed : '', shown ? '' : css.parked].filter(Boolean).join(' ');
-  return <aside className={className} aria-hidden={shown ? undefined : true} aria-label={`Lost Cosmos cartridge connected to ${connectedName}`}
+  const state = mode === 'full' ? 'full' : closed ? 'closed' : wide ? 'expanded' : 'mini';
+  const className = [css.dock, mode === 'full' ? css.full : '', wide ? css.wide : '', mode === 'mini' && closed ? css.closed : '', mode === 'parked' ? css.parked : ''].filter(Boolean).join(' ');
+  return <aside className={className} data-cosmos-mode={mode} data-rom-source="/api/gba-rom" aria-hidden={shown ? undefined : true} aria-label={`Lost Cosmos cartridge connected to ${connectedName}`}
     data-lost-cosmos-dock="true" data-dock-state={state} data-creature-id={creature?.id || 'fallback'}>
-    {shown && closed ? <button type="button" className={css.launcher} onClick={() => setClosed(false)}
+    {mode === 'mini' && closed ? <button type="button" className={css.launcher} onClick={() => setClosed(false)}
       aria-label="Open Lost Cosmos player"><span>🎮</span><strong>LOST COSMOS</strong><small>Open</small></button> : null}
     <div className={css.bar}>
       <strong>LOST COSMOS</strong>
-      <span title={connectedName}>{wide ? `Connected · ${connectedName}` : connectedName}</span>
+      <span title={connectedName}>V11.2 Spark · {connectedName}</span>
       <div className={css.actions}>
         <a href="/spark/index.html" className={css.generate}>Generate Beast</a>
-        {shown ? <button type="button" onClick={() => setExpanded((value) => !value)}
+        {mode === 'mini' ? <button type="button" onClick={() => setExpanded((value) => !value)}
           aria-label={wide ? 'Minimize Lost Cosmos player' : 'Expand Lost Cosmos player'}>{wide ? 'Mini' : 'Expand'}</button> : null}
-        {shown ? <button type="button" className={css.close} onClick={() => { setExpanded(false); setClosed(true); }}
+        {mode === 'mini' ? <button type="button" className={css.close} onClick={() => { setExpanded(false); setClosed(true); }}
           aria-label="Close Lost Cosmos player">×</button> : null}
       </div>
     </div>
@@ -96,6 +103,6 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
         <button type="button" onClick={play}>Play V11.2 Spark</button>
       </div> : null}
     </div>
-    {shown && booted ? <p className={css.status}>{note}</p> : null}
+    {shown && booted && mode !== 'full' ? <p className={css.status}>{note}</p> : null}
   </aside>;
 }

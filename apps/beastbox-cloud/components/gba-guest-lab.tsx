@@ -77,6 +77,7 @@ export default function GuestGbaLab(){
    <span>THE LITTLE BEAST // GAME LAB</span>
    <Link href="/beast-cage/talk">Real guest chat <ArrowRight size={16}/></Link>
    <Link href="/beast-cage/play">Adventure <ArrowRight size={16}/></Link>
+   <Link href="/beast-cage/go">Lost Cosmos field <ArrowRight size={16}/></Link>
   </header>
   <section className={styles.intro}>
    <span><Sparkles size={16}/> FREE PUBLIC PLAYGROUND • ZERO OWNER PERMISSIONS</span>
@@ -104,7 +105,7 @@ export default function GuestGbaLab(){
       aria-pressed={look===item.value} className={look===item.value?styles.chosen:''}
       onClick={()=>chooseLook(item.value)}>{item.name} <span>{look===item.value?'✦':'◇'}</span></button>)}</div>
     <div className={styles.export}>
-     <span className={styles.eyebrow}>02 / RETRO GAME PORTAL</span>\n     <p><strong>The playable target keeps the current Lost COSMOS PR #31 / V11.2 bridge.</strong> The same Beast identity flows into its single cage and persistent player. Beast Box keeps the adventure/care experience, but does not embed the SIM EARTH planetary world.</p>
+     <span className={styles.eyebrow}>02 / RETRO GAME PORTAL</span>\n     <p><strong>The playable target keeps the current Lost COSMOS PR #31 / V11.2 bridge.</strong> The same Beast identity flows into its single cage and persistent player. Beast Box keeps the adventure/care experience and routes gameplay into the native Lost COSMOS field and cartridge.</p>
      <div className={styles.pixelArt}>
       <canvas ref={preview} role="img" aria-label={'Actual 64 by 64 pixel-art '+look+' sprite preview in '+mood+' state'}/>
       <div><Gamepad2 size={23}/><strong>GBA importable module</strong>

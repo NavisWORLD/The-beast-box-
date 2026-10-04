@@ -19,7 +19,7 @@ import {extractLocalPdf} from '../lib/local-pdf';
 import CosmosWorld from './cosmos-world';
 import CosmicCompanionDock from './cosmic-companion-dock';
 import SparkBeastSettings from './spark-beast-settings';
-import { Activity, Camera, Mic, ArrowDownToLine, ArrowLeftRight, ArrowRight, BrainCircuit, Check, ChevronDown, CircleHelp, CloudOff, Command, Database, File, FileText, Fingerprint, Github, Image as ImageIcon, LockKeyhole, LogOut, Menu, MessageCircle, Paperclip, Plus, Send, Settings2, Shield, ShieldCheck, Sparkles, Telescope, Trash2, X, Zap } from 'lucide-react';
+import { Activity, Camera, Mic, ArrowDownToLine, ArrowLeftRight, ArrowRight, BrainCircuit, Check, ChevronDown, CircleHelp, CloudOff, Command, Database, File, FileText, Fingerprint, Gamepad2, Github, Image as ImageIcon, LockKeyhole, LogOut, Menu, MessageCircle, Paperclip, Plus, Send, Settings2, Shield, ShieldCheck, Sparkles, Telescope, Trash2, X, Zap } from 'lucide-react';
 
 type Page='COSMOS WORLD'|'BRAIN'|'ORBIT'|'BRAIN BAY'|'MEMORY VAULT'|'SYNAPSE TRACE'|'ACTIVATION'|'FILES'|'AUTHORITY'|'SETTINGS';
 type Turn={id:string,role:'user'|'assistant',text:string,kind?:string,model?:string};
@@ -271,6 +271,8 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
      // Context-derived assistant text is intentionally NOT persisted by the
      // backend. Show it for this browser session; never claim it is in memory.
      const replyText=(result.result as Record<string,unknown>).response as string;
+     const petModel=typeof modelReceipt.name==='string'?modelReceipt.name:model;
+     window.dispatchEvent(new CustomEvent('beastbox:pet-growth',{detail:{text:(chatText+'\n'+replyText).slice(0,700),model:petModel}}));
      setTemporaryReply(ids.length?{id:'temporary-'+jobId,role:'assistant',kind:'temporary',text:replyText}:null);
      if(confirmed)setSensorReceipt('Host verified selected sensor text reached the chosen provider adapter prompt. Downstream truncation and interpretation are not attested; no raw camera or audio data was sent.');
      else if(selected)setSensorReceipt('Host selected sensor text, but delivery to the provider adapter was not attested. Do not assume the model received it.');
@@ -293,7 +295,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
  return <div className="studio"><CosmicCompanionDock model={model} connected={connected} camera={sensesActive.camera} speech={sensesActive.speech} chatActive={chatActive} trace={trace} checkpoint={snapshot?.checkpoint_sequence}/><aside className={menu?'sidebar open':'sidebar'}>
    <div className="sidebar-brand"><span className="brand-mark">✺</span><span>BEAST BOX<small>COSMIC CHAOS</small></span><button className="mobile-only icon-button" aria-label="Close navigation" onClick={()=>setMenu(false)}><X size={20}/></button></div>
    <div className="workspace-switch"><span className="workspace-avatar">✶</span><span><b>Cory's universe</b><small>PRIVATE WORKSTATION</small></span><ChevronDown size={15}/></div>
-   <div className="sidebar-label">YOUR UNIVERSE</div><nav aria-label="Workstation">{NAV.map(x=><button className={'nav-item '+(page===x.name?'selected':'')} key={x.name} onClick={()=>{setPage(x.name);setMenu(false);}}><x.icon size={18}/>{x.name}{page===x.name&&<span className="nav-glow"/>}</button>)}</nav>
+   <div className="sidebar-label">YOUR UNIVERSE</div><nav aria-label="Workstation">{NAV.map(x=><button className={'nav-item '+(page===x.name?'selected':'')} key={x.name} onClick={()=>{setPage(x.name);setMenu(false);}}><x.icon size={18}/>{x.name}{page===x.name&&<span className="nav-glow"/>}</button>)}<Link className="nav-item" href="/beast-cage/go" onClick={()=>setMenu(false)}><Gamepad2 size={18}/>LOST COSMOS</Link></nav>
    <div className="sidebar-end"><div className="sidebar-tip"><span>✦</span><strong>SWAP THE BRAIN.</strong><br/>KEEP THE STORY.<small>Memory outside the model.</small></div><a href="https://github.com/NavisWORLD/The-beast-box-" target="_blank" rel="noreferrer" className="sidebar-git"><Github size={17}/> View repository <ArrowRight size={15}/></a><button className="sidebar-logout" onClick={logOut}><LogOut size={16}/> Lock workstation</button></div>
  </aside>
  <main className="main-shell" id="main-content"><header className="app-header"><div className="header-left"><button className="icon-button mobile-only" onClick={()=>setMenu(true)} aria-label="Open navigation"><Menu size={22}/></button><span className="tiny-orbit">✺</span><span className="breadcrumbs">YOUR UNIVERSE <b>/</b> <strong>{page}</strong></span></div><div className="header-right">{(sensesActive.camera||sensesActive.speech)&&<button type="button" className="icon-button" aria-label="Open sensing settings" title="Sensing active · open Settings" onClick={()=>{setPage('SETTINGS');setMenu(false);}}>{sensesActive.camera?<Camera size={16}/>:null}{sensesActive.speech?<Mic size={16}/>:null}</button>}<span className={'status-chip '+(connected?'online':'offline')}><span className="pulse"/>{connected?'MODEL CONFIGURED':needsGrant?'MODEL REAPPROVAL':bridge?'REFERENCE ONLY':'BACKEND OFFLINE'}</span><button className="icon-button" aria-label="Refresh status" onClick={()=>void load()}><Activity size={17}/></button><span className="avatar">CD</span></div></header>

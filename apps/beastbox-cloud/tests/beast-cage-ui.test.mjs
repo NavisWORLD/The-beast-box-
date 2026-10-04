@@ -134,7 +134,7 @@ test('unified Spark companion uses the real sprite, gait and voice modules witho
  assert.match(spark,/behavior\.gait/);
  assert.match(spark,/Voice\.utterance/);
  assert.match(studio,/SparkBeastSettings/);
- assert.match(settings,/SIM EARTH embedded here/);
+ assert.match(settings,/Separate planetary simulator embedded/);
  assert.match(release,/sim_earth_embedded:false/);
  assert.match(release,/same_companion_profile:true/);
  assert.doesNotMatch(spark,/SIM_EARTH|<iframe|getUserMedia|\/api\/bridge/);
@@ -186,6 +186,10 @@ test('mobile Lost Cosmos dock can mini expand close and reopen without dropping 
  assert.match(dock,/creature\?\.id/);
  assert.match(css,/width:min\(250px,calc\(100vw - 72px\)\)/);
  assert.match(css,/\.closed \.screen/);
+ assert.match(css,/\.dock:not\(\.wide\):not\(\.full\)\{pointer-events:none\}/);
+ assert.match(css,/\.dock:not\(\.wide\):not\(\.full\) \.bar\{pointer-events:none\}/);
+ assert.match(css,/\.dock:not\(\.wide\):not\(\.full\) \.screen\{pointer-events:none\}/);
+ assert.match(css,/\.poster button.*\.launcher\{pointer-events:auto\}/);
  assert.match(roamer,/Enable creature sounds/);
  assert.match(roamer,/beastbox:spark-chirp/);
  assert.match(roamer,/audioChannel="roamer"/);
@@ -194,4 +198,12 @@ test('mobile Lost Cosmos dock can mini expand close and reopen without dropping 
  assert.match(spark,/audioChannel\?:string/);
  assert.match(spark,/beastbox:spark-chirp/);
  assert.doesNotMatch(roamer,/getUserMedia|\/api\/bridge|Authorization/);
+});
+
+test('roaming pet reserves the full mobile dock footprint including its toolbar',()=>{
+ const provider=read('components/companion-provider.tsx');
+ assert.match(provider,/padX=width<680\?84:54/);
+ assert.match(provider,/padTop=width<680\?64:44/);
+ assert.match(provider,/aside\[data-cosmos-mode="mini"\]/);
+ assert.match(provider,/rect\.left-padX/);
 });

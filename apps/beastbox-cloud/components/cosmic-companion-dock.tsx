@@ -3,6 +3,9 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {Activity,Eye,EyeOff,Pause,Play,ShieldCheck} from 'lucide-react';
 import SparkBeastCompanion from './spark-beast-companion';
 import {useCompanion} from './companion-provider';
+import {useBeastSession} from './beast-session';
+import {DRAGON_RUN_KEY,DRAGON_TRAITS,noteModelActivity,petClaim,petPose} from '../lib/companion/pet-dragon.mjs';
+import {selectSafeRoamSpot,type Rect} from '../lib/companion-roaming';
 
 type Props={
  model:string;connected:boolean;camera:boolean;speech:boolean;
@@ -17,10 +20,12 @@ type SensorPacket={schema:'local-measurement-v1';kind:'microphone'|'camera';leve
  */
 export default function CosmicCompanionDock({model,connected,camera,speech,chatActive,trace,checkpoint}:Props){
  const {profile:cosmeticProfile}=useCompanion();
+ const {session,change}=useBeastSession();
  const stoppedRef=useRef(false);
  const [hidden,setHidden]=useState(false),[paused,setPaused]=useState(false),[reduced,setReduced]=useState(false);
  const [perch,setPerch]=useState(0),[typing,setTyping]=useState(false);
  const [audioLevel,setAudioLevel]=useState(0),[memoryPulse,setMemoryPulse]=useState(false),[stopped,setStopped]=useState(false);
+ const [frame,setFrame]=useState(0),[spot,setSpot]=useState<{left:number;top:number}|null>(null);
  const observed=useRef<string|null>(null),roamTick=useRef(0);
  const last=trace.length?trace[trace.length-1]:null;
  const receipt=last&&last.sequence!==undefined?String(last.sequence):null;
@@ -71,28 +76,62 @@ export default function CosmicCompanionDock({model,connected,camera,speech,chatA
   return()=>{document.removeEventListener('focusin',focusIn);document.removeEventListener('focusout',focusOut);};
  },[]);
  useEffect(()=>{
-  if(hidden||paused||typing||reduced)return;
-  const timer=window.setInterval(()=>{
-   if(document.hidden||window.innerWidth<900)return;
-   roamTick.current++;
-   setPerch(roamTick.current%3);
-  },17000);
+  const onGrowth=(event:Event)=>{
+   if(!(event instanceof CustomEvent))return;
+   const detail=event.detail as {text?:string;model?:string}|undefined;
+   const text=typeof detail?.text==='string'?detail.text:'';
+   if(!text.trim())return;
+   change(draft=>{noteModelActivity(draft,text,detail?.model||'');});
+  };
+  window.addEventListener('beastbox:pet-growth',onGrowth);
+  return()=>window.removeEventListener('beastbox:pet-growth',onGrowth);
+ },[change]);
+ useEffect(()=>{
+  const timer=window.setInterval(()=>setFrame(value=>value+1),480);
   return()=>window.clearInterval(timer);
- },[hidden,paused,typing,reduced]);
- const state=stopped?'halted' as const:chatActive?'thinking' as const:memoryPulse?'remembering' as const:camera?'observing' as const:speech?'listening' as const:!connected?'sleeping' as const:'idle' as const;
+ },[]);
+ useEffect(()=>{
+  if(hidden||paused||typing||reduced||stopped){setSpot(null);return;}
+  const viewport=window.visualViewport;
+  const width=viewport?.width||window.innerWidth;
+  const height=viewport?.height||window.innerHeight;
+  const avoid:Rect[]=[];
+  const targets=document.querySelectorAll<HTMLElement>('main button, main a, main input, main textarea, [role="dialog"], aside.sidebar, header button');
+  for(const element of targets){
+   if(avoid.length>=160)break;
+   if(element.closest('.companion-dock'))continue;
+   const rect=element.getBoundingClientRect();
+   if(rect.width<1||rect.height<1)continue;
+   avoid.push({left:rect.left,top:rect.top,width:rect.width,height:rect.height});
+  }
+  const next=selectSafeRoamSpot(width,height,avoid,frame);
+  setSpot(next?{left:next.left,top:next.top}:null);
+  roamTick.current=frame;
+  setPerch(frame%3);
+ },[frame,hidden,paused,typing,reduced,stopped]);
+ const pose=petPose(frame,{
+  seed:session?.mind?.steps||1,
+  tokens:session?.pet?.steps||0,
+  sensor:speech?audioLevel:0,
+  chat:chatActive,
+  learned:session?.pet?.learned===true
+ },reduced||paused||stopped);
+ const state=stopped?'halted' as const:pose.visual==='thinking'?'thinking' as const:pose.visual==='listening'?'listening' as const:pose.visual==='celebrating'?'celebrating' as const:memoryPulse?'remembering' as const:camera?'observing' as const:!connected?'sleeping' as const:'idle' as const;
  const status=stopped?'Local privacy stop activated':chatActive?'Chat request in progress':memoryPulse?'New recorded trace receipt':camera?'Local camera enabled':speech?'Browser speech enabled':connected?'Idle · provider configured':'Idle · model not confirmed';
  const safe=typing||hidden;
  const show=useCallback(()=>setHidden(old=>!old),[]);
- return <div className={'companion-dock companion-perch-'+perch+(safe?' companion-parked':'')+(paused||reduced?' companion-still':'')} data-visual-signal={state} aria-label="Cosmic companion controls">
+ const claim=petClaim(pose);
+ return <div className={'companion-dock companion-perch-'+perch+(safe?' companion-parked':'')+(paused||reduced?' companion-still':'')} data-visual-signal={state} data-pet-dragon="true" data-pet-claim={pose.claim} aria-label="Pet dragon companion" style={spot&&!reduced&&!paused&&!stopped?{left:spot.left,top:spot.top,right:'auto',bottom:'auto'}:undefined}>
   <button className="companion-visibility" onClick={show} type="button" aria-label={hidden?'Show cosmic companion':'Minimize cosmic companion'} title={hidden?'Show companion':'Minimize companion'}>
    {hidden?<Eye size={15}/>:<EyeOff size={15}/>}<span>{hidden?'Show companion':'Hide'}</span>
   </button>
   {!hidden&&<div className="companion-floater">
    <SparkBeastCompanion profile={cosmeticProfile} fallbackLook={cosmeticProfile?.baseLook??'nebula'}
-    state={stopped?'halted':paused?'sleeping':state} paused={paused||stopped}
-    intensity={stopped?0:speech?audioLevel:0} compact
-    label="Spark Beast companion reacting to permitted activity"/>
-   <div className="companion-dock-plate"><span aria-hidden="true">✧</span><span>{status}</span></div>
+    state={stopped?'halted':paused?'sleeping':state} paused={paused||stopped||reduced}
+    intensity={stopped?0:speech?audioLevel:chatActive?0.7:0} compact
+    seedRunKey={DRAGON_RUN_KEY} seedTraits={DRAGON_TRAITS}
+    label="Pet dragon Spark Beast"/>
+   <div className="companion-dock-plate"><span aria-hidden="true">✧</span><span>{status}. {claim}</span></div>
    <div className="companion-dock-actions">
     <button type="button" onClick={()=>setPaused(p=>!p)} aria-label={paused?'Resume companion animation':'Pause companion animation'}>{paused?<Play size={13}/>:<Pause size={13}/>}</button>
     <span title="Cosmetic game profile only; actual provider readiness must be checked in Brain Bay">{connected?<Activity size={13}/>:<ShieldCheck size={13}/>} {model==='NOT CONNECTED'?'Awaiting model':model.slice(0,26)}</span>

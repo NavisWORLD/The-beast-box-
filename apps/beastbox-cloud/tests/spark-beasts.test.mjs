@@ -42,7 +42,9 @@ test('public spark page states the honesty boundary and links the game', () => {
   assert.match(html, /no live quantum link and no entanglement/);
   assert.match(html, /not a medical device/);
   assert.match(html, /not conscious/);
-  assert.match(html, /https:\/\/navisworld\.github\.io\/Cosmic-synapse-the-living-universe-sim-engine-\//);
+  assert.match(html, /href="\/beast-cage\/go"/);
+  assert.match(html, /Play in Lost COSMOS/);
+  assert.doesNotMatch(html, /Play in Living Universe|SIM_EARTH_7_08_REALITY_BODY|navisworld\.github\.io\/Cosmic-synapse/);
   assert.match(html, /Download \.qbeast/);
   assert.match(read('apps/beastbox-cloud/app/page.tsx'), /href="\/spark\/index.html"/);
   assert.match(read('apps/beastbox-cloud/next.config.ts'), /source: '\/spark'/);
