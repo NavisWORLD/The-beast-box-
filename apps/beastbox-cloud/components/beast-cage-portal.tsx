@@ -2,11 +2,11 @@
 import {useEffect,useState} from 'react';
 import Link from 'next/link';
 import {ArrowRight,BrainCircuit,DatabaseZap,LockKeyhole,Orbit,ShieldCheck,SlidersHorizontal,Sparkles,Volume2} from 'lucide-react';
-import CosmicCompanion3D,{type CreatureLook} from './cosmic-companion-3d';
+import SparkBeastCompanion from './spark-beast-companion';
 import GenesisForge from './genesis-forge';
 import {useCompanion} from './companion-provider';
-import {type CreatureProfile,type AmbientAction} from '../lib/creature-profile';
-const LOOKS:{id:CreatureLook;label:string;detail:string;accent:string}[]=[
+import {generateCreature,type BaseLook,type AmbientAction} from '../lib/creature-profile';
+const LOOKS:{id:BaseLook;label:string;detail:string;accent:string}[]=[
  {id:'nebula',label:'Nebby',detail:'A curious little pocket galaxy',accent:'violet'},
  {id:'aurora',label:'Lumen',detail:'The quiet glow of cosmic dawn',accent:'cyan'},
  {id:'starlight',label:'Orion',detail:'A whimsical celestial explorer',accent:'rose'}
@@ -21,7 +21,7 @@ const WORLDS=[
 ];
 const STORAGE='beastbox-cage-appearance-v1';
 export default function BeastCagePortal(){
- const [look,setLook]=useState<CreatureLook>('nebula');
+ const [look,setLook]=useState<BaseLook>('nebula');
  const [saved,setSaved]=useState(false),[prefersReduced,setPrefersReduced]=useState(false);
  const [expanded,setExpanded]=useState(false);
  const {profile:creature,selectProfile,clearProfile}=useCompanion();
@@ -31,7 +31,7 @@ export default function BeastCagePortal(){
   const media=window.matchMedia('(prefers-reduced-motion: reduce)');
   const onChange=()=>setPrefersReduced(media.matches);
   onChange();media.addEventListener('change',onChange);
-  try{const item=window.localStorage.getItem(STORAGE);if(item&&LOOKS.some(x=>x.id===item)){setLook(item as CreatureLook);setSaved(true);}}
+  try{const item=window.localStorage.getItem(STORAGE);if(item&&LOOKS.some(x=>x.id===item)){setLook(item as BaseLook);setSaved(true);}}
   catch{/* private browsing/storage unavailable: visual preview remains usable */}
   return()=>media.removeEventListener('change',onChange);
  },[]);
@@ -41,7 +41,7 @@ export default function BeastCagePortal(){
  }
  function clear(){
   try{window.localStorage.removeItem(STORAGE);window.dispatchEvent(new Event('beastbox:cage-look-changed'));}catch{/* state still resets */ }
-  setLook('nebula');setSaved(false);
+  clearProfile();setLook('nebula');setSaved(false);
  }
  const current=LOOKS.find(x=>x.id===look)||LOOKS[0];
  return <main className="cage-universe" data-reduced-motion={prefersReduced}>
@@ -53,13 +53,15 @@ export default function BeastCagePortal(){
    <div className="cage-headline">
     <span className="cage-eyebrow"><Sparkles size={13}/> WELCOME TO THE BEAST CAGE</span>
     <h1 id="cage-title">A small companion.<br/><em>An entire universe.</em></h1>
-    <p>Give your ideas a little cosmic troublemaker. Keep the story in COSMOS, choose your compatible brain in the owner workstation, and let real signals inspire its motion.</p>
+    <p>Give your ideas a little cosmic troublemaker. The active Beast now uses the same Spark sprite family, seeded gait, eyes and generated voice across customization, the owner dock and the GBA handoff.</p>
     <div className="cage-hero-actions"><Link className="cage-primary" href="/beast-cage/talk">Talk to the real Beast <ArrowRight size={17}/></Link><Link className="cage-secondary" href="/beast-cage/turntable">See the real 3D model ↻</Link><Link className="cage-secondary" href="/beast-cage/guest">Play + export a GBA character 🎮</Link><a className="cage-secondary" href="#customize">Customize your companion</a><Link className="cage-secondary" href="/workspace">Open real workstation ↗</Link></div>
-    <p className="cage-quiet"><LockKeyhole size={13}/> Customization below is a browser-only visual preview, not an additional COSMOS identity or memory store.</p>
+    <p className="cage-quiet"><LockKeyhole size={13}/> One browser game profile drives the visible Beast. Model choice, COSMOS memory and authority stay separate.</p>
    </div>
    <div className="cage-habitat-visual" role="img" aria-label="Original cosmic observatory with a floating galaxy companion">
     <div className="cage-orbit cage-orbit-one" aria-hidden="true"/><div className="cage-orbit cage-orbit-two" aria-hidden="true"/>
-    <CosmicCompanion3D look={look} profile={creature} quality="auto" className="cage-hero-creature" label="Interactive three-dimensional cosmic companion"/>
+    <SparkBeastCompanion profile={creature} fallbackLook={look}
+     state={ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
+     label="Active Spark Beast companion"/>
     <span className="cage-habitat-caption">✧ YOUR OWN POCKET UNIVERSE</span>
    </div>
   </section>
@@ -73,12 +75,18 @@ export default function BeastCagePortal(){
   <section className="cage-customize" id="customize" aria-labelledby="customize-title">
    <div className="cage-section-heading"><span className="cage-eyebrow"><SlidersHorizontal size={13}/> A LOOK THAT FEELS LIKE YOURS</span>
     <h2 id="customize-title">Meet the first<br/><em>little constellations.</em></h2>
-    <p>Preview an original companion look. Save only the visual preference to this device, or clear it whenever you like.</p></div>
-   <div className="cage-look-grid">{LOOKS.map(item=><button type="button" className={'cage-look-card '+item.accent+(look===item.id?' selected':'')} key={item.id} aria-pressed={look===item.id} onClick={()=>{setLook(item.id);clearProfile();setSaved(false);}}>
-    <span className="cage-look-art"><img src="/cosmic-creature.svg" alt="" aria-hidden="true"/></span>
-    <strong>{item.label}</strong><small>{item.detail}</small><span className="cage-select-label">{look===item.id?'✓ Selected':'Choose this look'} →</span>
+    <p>Customize the same Beast that roams the site and crosses into Lost COSMOS. Stage controls are previews; earned cartridge evolution still comes from gameplay.</p></div>
+   <SparkBeastCompanion profile={creature} fallbackLook={look}
+    state={ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
+    controls label="Customizable Spark Beast preview"/>
+   <div className="cage-look-grid">{LOOKS.map(item=><button type="button" className={'cage-look-card '+item.accent+(look===item.id?' selected':'')} key={item.id} aria-pressed={look===item.id} onClick={()=>{
+    const starter=generateCreature('beastbox-starter-'+item.id,item.id);
+    setLook(item.id);selectProfile(starter);setSaved(false);
+   }}>
+    <span className="cage-look-art" aria-hidden="true">✦</span>
+    <strong>{item.label}</strong><small>{item.detail}</small><span className="cage-select-label">{look===item.id?'✓ Active family':'Choose starter'} →</span>
    </button>)}</div>
-   <div className="cage-save-panel"><p><strong>{current.label} is ready to explore.</strong><br/>This changes appearance only. Real memory, model choice and permissions remain in COSMOS.</p><div><button type="button" className="cage-primary" onClick={save}>Save look on this device</button><button type="button" className="cage-secondary" onClick={clear}>Clear saved look</button></div><span role="status" className="cage-save-status">{saved?'Visual look saved locally. No private COSMOS data copied.':'Look is a temporary preview until you save it.'}</span></div>
+   <div className="cage-save-panel"><p><strong>{creature?.name||current.label} is ready to explore.</strong><br/>The active game profile is browser-local. Real memory, model choice and permissions remain in COSMOS.</p><div><button type="button" className="cage-primary" onClick={save}>Save visual family</button><button type="button" className="cage-secondary" onClick={clear}>Clear active Beast</button></div><span role="status" className="cage-save-status">{saved?'Visual family saved locally. The active Beast profile is also retained locally.':'Generate or choose a starter to keep one Beast across the site.'}</span></div>
   </section>
   <section className="cage-worlds" id="worlds" aria-labelledby="world-title">
    <div className="cage-section-heading"><span className="cage-eyebrow">ONE COSMOS. MANY PLACES TO EXPLORE.</span><h2 id="world-title">Your workstation,<br/><em>with a sense of wonder.</em></h2><p>Every operational state and measurement comes from the authenticated runtime; ambient art stays illustrative.</p></div>
@@ -88,7 +96,7 @@ export default function BeastCagePortal(){
   </section>
   <section className="cage-continuity"><div className="cage-continuity-art" aria-hidden="true"><img src="/cosmic-creature.svg" alt=""/></div><div><span className="cage-eyebrow">THE STORY LIVES OUTSIDE THE MODEL</span><h2>Different brain.<br/><em>Your chosen continuity.</em></h2><p>In the real owner workstation, deliberate provider changes can preserve authorized external substrate memory. A visual look isn't an AI checkpoint, and preview cards do not run model inference.</p><Link href="/workspace" className="cage-secondary">Open Brain Bay in the workstation ↗</Link></div></section>
   <footer className="cage-footer"><span>✺ BEAST BOX · CORY DAVIS / NAVISWORLD</span><span>Ambient animation ≠ model understanding</span><button onClick={()=>setExpanded(x=>!x)} type="button" aria-expanded={expanded}>{expanded?'Hide':'Show'} accessibility notes</button>
-   {expanded?<p>Animated companion uses a WebGL procedural mesh if supported. Reduced motion uses its static original illustration. It never records sensor data or starts inference on this public page.</p>:null}
+   {expanded?<p>The active companion uses the local Spark pixel renderer and recorded game-seed distributions. Reduced motion disables roaming transforms. Sound starts only after your tap. It never records sensor media or starts model inference on this public page.</p>:null}
   </footer>
  </main>;
 }
