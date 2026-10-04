@@ -186,8 +186,10 @@ test('mobile Lost Cosmos dock can mini expand close and reopen without dropping 
  assert.match(dock,/creature\?\.id/);
  assert.match(css,/width:min\(250px,calc\(100vw - 72px\)\)/);
  assert.match(css,/\.closed \.screen/);
+ assert.match(css,/\.dock:not\(\.wide\):not\(\.full\)\{pointer-events:none\}/);
+ assert.match(css,/\.dock:not\(\.wide\):not\(\.full\) \.bar\{pointer-events:none\}/);
  assert.match(css,/\.dock:not\(\.wide\):not\(\.full\) \.screen\{pointer-events:none\}/);
- assert.match(css,/\.dock:not\(\.wide\):not\(\.full\) \.poster button\{pointer-events:auto\}/);
+ assert.match(css,/\.poster button.*\.launcher\{pointer-events:auto\}/);
  assert.match(roamer,/Enable creature sounds/);
  assert.match(roamer,/beastbox:spark-chirp/);
  assert.match(roamer,/audioChannel="roamer"/);
