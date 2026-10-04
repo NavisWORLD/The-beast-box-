@@ -195,3 +195,11 @@ test('mobile Lost Cosmos dock can mini expand close and reopen without dropping 
  assert.match(spark,/beastbox:spark-chirp/);
  assert.doesNotMatch(roamer,/getUserMedia|\/api\/bridge|Authorization/);
 });
+
+test('roaming pet reserves the full mobile dock footprint including its toolbar',()=>{
+ const provider=read('components/companion-provider.tsx');
+ assert.match(provider,/padX=width<680\?84:54/);
+ assert.match(provider,/padTop=width<680\?64:44/);
+ assert.match(provider,/aside\[data-cosmos-mode="mini"\]/);
+ assert.match(provider,/rect\.left-padX/);
+});
