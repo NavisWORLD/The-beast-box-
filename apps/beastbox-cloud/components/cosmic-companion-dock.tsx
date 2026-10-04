@@ -1,7 +1,7 @@
 'use client';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {Activity,Eye,EyeOff,Pause,Play,ShieldCheck} from 'lucide-react';
-import CosmicCompanion3D,{type CreatureState} from './cosmic-companion-3d';
+import SparkBeastCompanion from './spark-beast-companion';
 import {useCompanion} from './companion-provider';
 
 type Props={
@@ -10,33 +10,21 @@ type Props={
 };
 type SensorPacket={schema:'local-measurement-v1';kind:'microphone'|'camera';level:number;active?:boolean};
 /**
- * This visual companion does not read raw camera frames, speech transcripts,
- * credentials or memory contents. Browser-only measurements are decorative,
+ * This Spark Beast surface does not read raw camera frames, speech transcripts,
+ * credentials or memory contents. Browser-only measurements only select bounded
+ * visual moods; the recorded quantum seed is art/game provenance, not live sensing.
  * never authentic server telemetry or permission grants.
  */
 export default function CosmicCompanionDock({model,connected,camera,speech,chatActive,trace,checkpoint}:Props){
  const {profile:cosmeticProfile}=useCompanion();
  const stoppedRef=useRef(false);
  const [hidden,setHidden]=useState(false),[paused,setPaused]=useState(false),[reduced,setReduced]=useState(false);
- const [look,setLook]=useState<'nebula'|'aurora'|'starlight'>('nebula');
  const [perch,setPerch]=useState(0),[typing,setTyping]=useState(false);
  const [audioLevel,setAudioLevel]=useState(0),[memoryPulse,setMemoryPulse]=useState(false),[stopped,setStopped]=useState(false);
  const observed=useRef<string|null>(null),roamTick=useRef(0);
  const last=trace.length?trace[trace.length-1]:null;
  const receipt=last&&last.sequence!==undefined?String(last.sequence):null;
- useEffect(()=>{
-  // A purely cosmetic preference follows the user between public habitat and
-  // the already-authenticated workstation. No identity or memory is copied.
-  const read=()=>{
-   try{
-    const value=window.localStorage.getItem('beastbox-cage-appearance-v1');
-    if(value==='nebula'||value==='aurora'||value==='starlight')setLook(value);
-    else setLook('nebula');
-   }catch{setLook('nebula');}
-  };
-  read();window.addEventListener('beastbox:cage-look-changed',read);
-  return()=>window.removeEventListener('beastbox:cage-look-changed',read);
- },[]);
+
  useEffect(()=>{
   const media=window.matchMedia('(prefers-reduced-motion: reduce)');
   const update=()=>setReduced(media.matches);
@@ -91,7 +79,7 @@ export default function CosmicCompanionDock({model,connected,camera,speech,chatA
   },17000);
   return()=>window.clearInterval(timer);
  },[hidden,paused,typing,reduced]);
- const state:CreatureState=stopped?'halted':chatActive?'thinking':memoryPulse?'remembering':camera?'observing':speech?'listening':!connected?'sleeping':'idle';
+ const state=stopped?'halted' as const:chatActive?'thinking' as const:memoryPulse?'remembering' as const:camera?'observing' as const:speech?'listening' as const:!connected?'sleeping' as const:'idle' as const;
  const status=stopped?'Local privacy stop activated':chatActive?'Chat request in progress':memoryPulse?'New recorded trace receipt':camera?'Local camera enabled':speech?'Browser speech enabled':connected?'Idle · provider configured':'Idle · model not confirmed';
  const safe=typing||hidden;
  const show=useCallback(()=>setHidden(old=>!old),[]);
@@ -100,7 +88,10 @@ export default function CosmicCompanionDock({model,connected,camera,speech,chatA
    {hidden?<Eye size={15}/>:<EyeOff size={15}/>}<span>{hidden?'Show companion':'Hide'}</span>
   </button>
   {!hidden&&<div className="companion-floater">
-   <CosmicCompanion3D look={look} profile={cosmeticProfile} state={stopped?'halted':paused?'sleeping':state} paused={paused||stopped} intensity={stopped?0:speech?audioLevel:0} quality="low" label="Decorative galaxy companion reacting to permitted activity"/>
+   <SparkBeastCompanion profile={cosmeticProfile} fallbackLook={cosmeticProfile?.baseLook??'nebula'}
+    state={stopped?'halted':paused?'sleeping':state} paused={paused||stopped}
+    intensity={stopped?0:speech?audioLevel:0} compact
+    label="Spark Beast companion reacting to permitted activity"/>
    <div className="companion-dock-plate"><span aria-hidden="true">✧</span><span>{status}</span></div>
    <div className="companion-dock-actions">
     <button type="button" onClick={()=>setPaused(p=>!p)} aria-label={paused?'Resume companion animation':'Pause companion animation'}>{paused?<Play size={13}/>:<Pause size={13}/>}</button>
