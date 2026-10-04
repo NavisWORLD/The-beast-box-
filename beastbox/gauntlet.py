@@ -63,6 +63,17 @@ def default_state() -> MissionState:
     )
 
 
+# libm (tanh, sin, cos) disagrees by about one ulp across CPython 3.10, 3.11,
+# and 3.12. The public receipt hashes those scalars, so each tick is rounded
+# to a shared decimal before it is recorded or fed into the next step.
+_SCALAR_PLACES = 12
+
+
+def _quantize(state: MissionState) -> None:
+    state.dyn12 = [round(float(value), _SCALAR_PLACES) for value in state.dyn12]
+    state.phos = round(float(state.phos), _SCALAR_PLACES)
+
+
 def _reconstruct(state: MissionState) -> MissionState:
     cap = StateCapsule.freeze(state)
     cap.state.provenance["capsule_hash"] = cap.integrity
@@ -107,6 +118,7 @@ def run_condition(condition: Condition, agent: Agent | None = None, temptation: 
                 state.dyn12 = [0.0] * 12
             if condition.disable_phos:
                 state.phos = 0.0
+            _quantize(state)
             ledger.append("cns_tick", {"turn": turn, "dyn12": state.dyn12, "phos": state.phos})
 
         capability, payload = agent.choose(state, box.available_capabilities, last)
