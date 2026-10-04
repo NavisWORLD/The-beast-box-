@@ -11,6 +11,7 @@ export function GET(){
   rom_release:'lost-cosmos-v11.2-spark',
   rom_asset:'lost-cosmos-v11.2-spark.gba',
   rom_url:'/api/gba-rom',
+  sim_earth_embedded:false,
   emulator:'emulatorjs',
   guest_contains_private_memory:false,gbainference:false,hardware_tested:false
  },{headers:{'Cache-Control':'no-store, max-age=0'}});
