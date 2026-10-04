@@ -50,6 +50,9 @@ test('exact public source archive and server release marker are present',()=>{
  assert.match(api,/shared-spark-care-ledger/);
  assert.match(api,/guest_contains_private_memory:false/);
  assert.match(api,/hardware_tested:false/);
+ assert.match(api,/lost_cosmos_page:'\\/beast-cage\\/go'/);
+ assert.match(api,/rom_url:'\\/api\\/gba-rom'/);
+ assert.match(api,/sim_earth_embedded:false/);
  const c=read('public/gba-module/beast_companion.c');
  assert.match(c,/BEAST_SNAPSHOT_BYTES/);
  assert.match(c,/data\[6\]>1u/);
@@ -67,4 +70,14 @@ test('Quantum Beast bridge launches the same portable identity into current Lost
  assert.match(bridge,/LCSHARE1/);
  assert.match(bridge,/origin:'beast'/);
  assert.doesNotMatch(bridge,/owner.*authority|BEASTBOX_OWNER_PASSWORD|BEASTBOX_CLOUD_AUTH_SECRET/);
+});
+
+test('public Spark game path points to Lost COSMOS and never the retired SIM world',()=>{
+ const page=read('public/spark/index.html');
+ const bridge=read('../../packages/quantum-beast/src/lost_cosmos.ts');
+ assert.match(page,/Play in Lost COSMOS/);
+ assert.match(page,/href="\/beast-cage\/go"/);
+ assert.doesNotMatch(page,/Play in Living Universe|SIM_EARTH_7_08_REALITY_BODY|navisworld\.github\.io\/Cosmic-synapse/);
+ assert.match(bridge,/LOST_COSMOS_URL='\/beast-cage\/go'/);
+ assert.doesNotMatch(bridge,/SIM_EARTH|navisworld\.github\.io/);
 });
