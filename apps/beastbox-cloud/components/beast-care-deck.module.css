@@ -1,0 +1,23 @@
+.deck{margin:28px auto 10px;max-width:1120px;padding:22px;border:1px solid rgba(185,193,255,.18);border-radius:28px;background:linear-gradient(160deg,rgba(17,21,42,.92),rgba(8,11,23,.92));color:#eef0ff}
+.deck h2{font-family:'Space Grotesk',sans-serif;letter-spacing:-.04em;margin:8px 0 6px;font-size:clamp(28px,4vw,42px)}
+.deck h2 em{font-style:normal;color:#b1a8ff}
+.lede{color:#bec8e2;line-height:1.6;max-width:70ch}
+.grid{display:grid;grid-template-columns:minmax(220px,280px) 1fr;gap:22px;align-items:start;margin-top:18px}
+.stage{border-radius:24px;background:radial-gradient(circle at 50% 40%,rgba(131,98,202,.45),transparent 55%),#101731;min-height:260px;display:grid;place-items:center;position:relative}
+.caption{position:absolute;left:12px;right:12px;bottom:12px;text-align:center;font-size:11px;letter-spacing:.14em;color:#d7fff8}
+.panel{display:flex;flex-direction:column;gap:12px}
+.stats{display:flex;flex-wrap:wrap;gap:8px}
+.stats span,.flag{border:1px solid rgba(104,229,238,.35);border-radius:999px;padding:6px 10px;font-size:12px;color:#d9fbff}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.row button,.row a,.deck button{border:0;border-radius:12px;padding:10px 12px;background:#273253;color:#e5f5ff;font-weight:700;font-size:12px;cursor:pointer}
+.primary{background:linear-gradient(110deg,#a1f4f8,#c9b1ff)!important;color:#18102d!important}
+.deck form{display:flex;flex-wrap:wrap;gap:8px}
+.deck input,.deck textarea{border-radius:12px;border:1px solid rgba(139,145,200,.4);background:#0a1127;color:#fff;padding:10px 12px;font:inherit}
+.deck textarea{width:100%;min-height:72px}
+.note{color:#aeb9d1;font-size:12px;line-height:1.5}
+.reply{white-space:pre-wrap;background:#0a1228bc;border:1px solid rgba(164,189,242,.25);border-radius:16px;padding:12px;min-height:64px}
+.weights{display:flex;gap:14px;align-items:center}
+.bar{height:10px;border-radius:99px;background:#1c2544;position:relative;overflow:hidden;flex:1;min-width:140px}
+.bar i{position:absolute;top:0;bottom:0;width:22%;left:39%;background:rgba(104,229,238,.35)}
+.bar b{position:absolute;top:-3px;bottom:-3px;width:8px;border-radius:99px;background:#ffe59a}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}

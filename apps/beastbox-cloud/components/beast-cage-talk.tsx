@@ -2,6 +2,7 @@
 import {useCallback,useEffect,useRef,useState,type FormEvent} from 'react';
 import Link from 'next/link';
 import CosmicCompanion3D,{type CreatureState} from './cosmic-companion-3d';
+import BeastCareDeck from './beast-care-deck';
 import styles from './beast-cage-talk.module.css';
 
 type Reply={provider?:string;model?:string;step?:number;reply?:string;guest_stateless?:boolean;error?:string};
@@ -87,6 +88,7 @@ export default function BeastCageTalk(){
     <div className={styles.foot}><Link href="/beast-cage/guest">Visual guest + GBA download ↗</Link><Link href="/try">Other guest options ↗</Link><Link href="/workspace">Owner memory demo ↗</Link></div>
    </section>
   </div>
+  <BeastCareDeck />
   <p className={styles.disclaimer}>The animation shows frontend states, not model emotions, awareness, cognition or hardware measurements. Model failures remain visible; no invented replies.</p>
  </div>
 }

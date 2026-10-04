@@ -1,0 +1,12 @@
+.dock{position:fixed;z-index:40;right:16px;bottom:16px;width:min(360px,calc(100vw - 24px));border:1px solid rgba(104,229,238,.45);border-radius:22px;background:#0c1228f2;box-shadow:0 18px 50px #0008;color:#eef0ff;overflow:hidden}
+.wide{width:min(920px,calc(100vw - 24px));height:min(640px,calc(100vh - 24px));display:flex;flex-direction:column}
+.parked{position:fixed;left:-240vw;top:0;width:360px;height:280px;visibility:hidden;pointer-events:none}
+.bar{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 12px;font-size:12px;letter-spacing:.08em}
+.bar button{border:0;border-radius:10px;padding:7px 10px;background:#243156;color:#e7fbff;font-weight:700;cursor:pointer}
+.screen{position:relative;min-height:220px;background:#070b16}
+.wide .screen{flex:1;min-height:420px}
+.screen canvas,.screen iframe{max-width:100%}
+.poster{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:16px;gap:8px}
+.poster button{border:0;border-radius:12px;padding:12px 14px;font-weight:800;background:linear-gradient(110deg,#a1f4f8,#c9b1ff);color:#18102d;cursor:pointer}
+.poster p{margin:0;color:#c5d0ea;font-size:12px;line-height:1.5}
+@media(max-width:760px){.dock{right:8px;bottom:8px}}
