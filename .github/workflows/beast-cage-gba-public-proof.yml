@@ -63,8 +63,22 @@ jobs:
                       companion.get("recorded_quantum_seed") is not True or
                       companion.get("live_quantum_link") is not False or
                       companion.get("sim_earth_embedded") is not False or
-                      companion.get("owner_authority_copied") is not False):
+                      companion.get("owner_authority_copied") is not False or
+                      companion.get("public_seed_jobs_added")!=96 or
+                      companion.get("public_seed_shards")!=4 or
+                      companion.get("raw_circuits_published") is not False or
+                      companion.get("user_ids_published") is not False or
+                      companion.get("original_signal_payloads_published") is not False or
+                      companion.get("derived_counts_public") is not True):
                       raise RuntimeError("Unified Spark companion release not established")
+                  seeds_code,seeds_raw=get("/spark/user-seeds-20261004.json")
+                  if seeds_code!=200:
+                      raise RuntimeError("Public seed index status "+str(seeds_code))
+                  seeds=json.loads(seeds_raw)
+                  if (seeds.get("schema")!="spark-beasts-public-seed-pack-index-v1" or
+                      seeds.get("totals",{}).get("unique_jobs")!=96 or
+                      len(seeds.get("shards",[]))!=4):
+                      raise RuntimeError("Public seed index is incomplete")
                   guest,body=get("/beast-cage/guest")
                   if guest!=200 or b"Catch a star" not in body:
                       raise RuntimeError("Public guest character game lab not served")
@@ -77,7 +91,7 @@ jobs:
                   previous,raw=get("/api/release")
                   if previous!=200:
                       raise RuntimeError("Previous production release identity regressed")
-                  receipt.update({"public_verified":True,"marker":marker["source_marker"],"lost_cosmos_commit":marker["lost_cosmos_commit"],"same_cage_transfer":marker["same_cage_transfer"],"persistent_gba_player":True,"shared_care_ledger":True,"companion_marker":companion["source_marker"],"same_companion_profile":True,"sim_earth_embedded":False,"guest_http":guest,"chat_http":talk,"gba_source_http":source,"previous_release_http":previous})
+                  receipt.update({"public_verified":True,"marker":marker["source_marker"],"lost_cosmos_commit":marker["lost_cosmos_commit"],"same_cage_transfer":marker["same_cage_transfer"],"persistent_gba_player":True,"shared_care_ledger":True,"companion_marker":companion["source_marker"],"same_companion_profile":True,"sim_earth_embedded":False,"public_seed_jobs":96,"public_seed_index_http":seeds_code,"guest_http":guest,"chat_http":talk,"gba_source_http":source,"previous_release_http":previous})
                   print("BEAST_CAGE_GBA_PUBLIC_PROOF_SUCCESS",json.dumps(receipt,sort_keys=True))
                   break
               except Exception as exc:
