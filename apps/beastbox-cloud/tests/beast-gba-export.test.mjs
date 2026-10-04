@@ -43,7 +43,9 @@ test('exact public source archive and server release marker are present',()=>{
  for(const name of ['beast_companion.h','beast_companion.c','example_gba.c','README.md','AGENTS.md'])
   assert.ok(read('public/gba-module/'+name).length>120,name);
  const api=read('app/api/gba-release/route.ts');
- assert.match(api,/beast-cage-lost-cosmos-62a2922-20261004/);\n assert.match(api,/62a2922dae7fcba93a040ac2473221d41a043c6f/);\n assert.match(api,/same_cage_transfer:true/);
+ assert.match(api,/beast-cage-lost-cosmos-62a2922-20261004/);
+ assert.match(api,/62a2922dae7fcba93a040ac2473221d41a043c6f/);
+ assert.match(api,/same_cage_transfer:true/);
  assert.match(api,/guest_contains_private_memory:false/);
  assert.match(api,/hardware_tested:false/);
  const c=read('public/gba-module/beast_companion.c');
