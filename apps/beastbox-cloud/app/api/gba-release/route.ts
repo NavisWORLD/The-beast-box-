@@ -2,8 +2,12 @@ import {NextResponse} from 'next/server';
 export const dynamic='force-dynamic';
 export function GET(){
  return NextResponse.json({
-  schema:'beast-cage-gba-release-v1',source_marker:'beast-cage-guest-gba-20261001',
-  features:['guest-visual-test','download-gba-4bpp','optional-explicit-owner-dyn12'],
+  schema:'beast-cage-gba-release-v1',
+  source_marker:'beast-cage-lost-cosmos-62a2922-20261004',
+  lost_cosmos_commit:'62a2922dae7fcba93a040ac2473221d41a043c6f',
+  lost_cosmos_page:'https://navisworld.github.io/Cosmic-synapse-the-living-universe-sim-engine-/standalone/SIM_EARTH_7_08_REALITY_BODY.html',
+  same_cage_transfer:true,
+  features:['guest-visual-test','download-gba-4bpp','qbeast-to-lost-cosmos-share','stable-one-cage-transfer','play-current-lost-cosmos','optional-explicit-owner-dyn12'],
   guest_contains_private_memory:false,gbainference:false,hardware_tested:false
  },{headers:{'Cache-Control':'no-store, max-age=0'}});
 }

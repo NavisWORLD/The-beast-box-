@@ -81,8 +81,7 @@ export default function GuestGbaLab(){
    <span><Sparkles size={16}/> FREE PUBLIC PLAYGROUND • ZERO OWNER PERMISSIONS</span>
    <h1>Catch a star.<br/><em>Take it into your game.</em></h1>
    <p>Meet the little cosmic troublemaker. Play with its looks and animation
-    states, then export a real GBA-ready character module for your game or Codex.
-    This playground is interactive artwork, not an artificial model or a sensor reading.</p>
+    states, then carry the same portable Beast into the current Lost COSMOS cartridge or export a GBA-ready character module for your own game or Codex.\n    This playground is interactive artwork, not an artificial model or a sensor reading.</p>
   </section>
   <GenesisForge value={creature} onChange={next=>{setCreature(next);selectProfile(next);setLook(next.baseLook);setDone(false);}} onAmbient={setAmbient}/>
   <div className={styles.grid}>
@@ -104,7 +103,7 @@ export default function GuestGbaLab(){
       aria-pressed={look===item.value} className={look===item.value?styles.chosen:''}
       onClick={()=>chooseLook(item.value)}>{item.name} <span>{look===item.value?'✦':'◇'}</span></button>)}</div>
     <div className={styles.export}>
-     <span className={styles.eyebrow}>02 / RETRO GAME PORTAL</span>
+     <span className={styles.eyebrow}>02 / RETRO GAME PORTAL</span>\n     <p><strong>The playable target is the current Lost COSMOS build at commit 62a2922.</strong> Use the Quantum Beast Bridge above to send this exact identity into its single cage, then PLAY GBA. The module download below remains for custom/offline integrations.</p>
      <div className={styles.pixelArt}>
       <canvas ref={preview} role="img" aria-label={'Actual 64 by 64 pixel-art '+look+' sprite preview in '+mood+' state'}/>
       <div><Gamepad2 size={23}/><strong>GBA importable module</strong>
