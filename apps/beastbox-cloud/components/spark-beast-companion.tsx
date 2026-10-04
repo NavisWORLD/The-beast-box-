@@ -111,7 +111,8 @@ export default function SparkBeastCompanion({
  useEffect(()=>{
   if(!run)return;
   try{
-   const next=buildGenome(traits(active),run,active.id,10) as Genome;
+   // The JS Spark generator types its optional user id as null; run selection is already domain-separated by active.id above.
+   const next=buildGenome(traits(active),run,null,10) as unknown as Genome;
    setGen(next);setError('');lastEye.current='';
   }catch(err){setError(err instanceof Error?err.message:'Spark genome could not be built');}
  },[active,run]);
