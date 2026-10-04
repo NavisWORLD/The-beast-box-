@@ -5,7 +5,7 @@ import {
 } from 'react';
 import {usePathname} from 'next/navigation';
 import {Pause,Play,Eye,EyeOff} from 'lucide-react';
-import CosmicCompanion3D,{type CreatureState} from './cosmic-companion-3d';
+import SparkBeastCompanion from './spark-beast-companion';
 import LostCosmosDock from './lost-cosmos-dock';
 import {BeastSessionProvider} from './beast-session';
 import {
@@ -20,6 +20,7 @@ type CompanionContextValue={
  clearProfile:()=>void;
 };
 const Context=createContext<CompanionContextValue|undefined>(undefined);
+const ACTIVE_PROFILE_KEY='beastbox-active-creature-v1';
 export function useCompanion(){
  const value=useContext(Context);
  if(!value)throw new Error('Companion context is unavailable');
@@ -34,9 +35,9 @@ function editingText(){
 }
 /**
  * Public GAME companion. Owns no sensors, memory, inference, execution, or
- * persistence. Actual owner telemetry remains in the existing owner dock.
- * Its persistent React shell merely preserves chosen cosmetic game profile
- * and bounded roaming state across ordinary public Next navigation.
+ * model authority or raw sensor media. Actual owner telemetry remains in the
+ * existing owner dock. Its persistent React shell preserves only a validated
+ * browser-local game profile and bounded roaming state across navigation.
  */
 export default function CompanionProvider({children}:{children:ReactNode}){
  const pathname=usePathname();
@@ -51,6 +52,15 @@ export default function CompanionProvider({children}:{children:ReactNode}){
   if(!validCreature(candidate))return;
   setProfile(candidate);tickRef.current=0;setTick(0);
   setAction('hover');
+  try{window.localStorage.setItem(ACTIVE_PROFILE_KEY,JSON.stringify(candidate));}catch{/* optional browser-only game profile */}
+ },[]);
+ useEffect(()=>{
+  try{
+   const raw=window.localStorage.getItem(ACTIVE_PROFILE_KEY);
+   if(!raw)return;
+   const candidate=JSON.parse(raw) as unknown;
+   if(validCreature(candidate)){setProfile(candidate);setAction('hover');}
+  }catch{/* private browsing or invalid local game profile: continue without persistence */}
  },[]);
  useEffect(()=>{
   const onSelected=(event:Event)=>{
@@ -132,10 +142,10 @@ export default function CompanionProvider({children}:{children:ReactNode}){
    window.visualViewport?.removeEventListener('resize',schedule);
   };
  },[showPublic,hidden,typing,pageVisible,reduced,tick,pathname,profile]);
- const state:CreatureState=halted?'halted':
-  action==='rest'?'sleeping':action==='orbit'?'celebrating':
-  action==='perch'?'observing':'idle';
- const clearProfile=useCallback(()=>{setProfile(null);setAction('hover');tickRef.current=0;setTick(0);},[]);
+ const state=halted?'halted' as const:
+  action==='rest'?'sleeping' as const:action==='orbit'?'celebrating' as const:
+  action==='perch'?'observing' as const:'idle' as const;
+ const clearProfile=useCallback(()=>{setProfile(null);setAction('hover');tickRef.current=0;setTick(0);try{window.localStorage.removeItem(ACTIVE_PROFILE_KEY);}catch{/* optional browser-only game profile */}},[]);
  const context=useMemo(()=>({profile,selectProfile:onProfile,clearProfile}),[profile,onProfile,clearProfile]);
  const canShow=showPublic&&!hidden&&!typing&&pageVisible&&!reduced&&spot!==null;
  const parked=halted||paused||!canShow;
@@ -163,9 +173,9 @@ export default function CompanionProvider({children}:{children:ReactNode}){
      </button>:null}
     </div>
     {canShow?<div className={styles.figure} aria-hidden="true">
-      <CosmicCompanion3D look={profile?.baseLook??'nebula'} profile={profile}
-       state={state} quality="low" paused={parked}
-       label="Illustrative roaming cosmic game creature"/>
+      <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook??'nebula'}
+       state={state} compact paused={parked}
+       label="Roaming Spark Beast game creature"/>
      </div>:null}
     <span className={styles.sr} aria-live="polite">
       {halted?'Decorative character stopped; backend permissions unchanged':

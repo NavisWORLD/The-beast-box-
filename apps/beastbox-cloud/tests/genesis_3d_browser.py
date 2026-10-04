@@ -38,7 +38,7 @@ with sync_playwright() as p:
   page.get_by_label("Character seed").fill("life-engine-art-acceptance")
   page.get_by_label("Cosmic family").select_option("aurora")
   page.get_by_role("button",name="Generate from this seed").click()
-  hero=page.locator(".cage-habitat-visual .cosmic-creature3d")
+  hero=page.locator('.cage-habitat-visual [data-spark-beast="true"]')
   expect(hero).to_have_attribute("data-creature-id",re.compile("^bb-"),timeout=23000)
   creature_id=hero.get_attribute("data-creature-id")
   selected_stats=page.get_by_label("Balanced fictional game stats").inner_text()
@@ -57,7 +57,7 @@ with sync_playwright() as p:
   page.get_by_role("link",name=re.compile("Take this creature to the GBA Game Lab")).click()
   page.wait_for_url("**/beast-cage/guest",timeout=15000)
   expect(page.get_by_role("heading",name=re.compile("Catch a star"))).to_be_visible()
-  guest=page.get_by_role("region",name="Animated companion test environment").locator('.cosmic-creature3d[data-creature-id="'+creature_id+'"]')
+  guest=page.get_by_role("region",name="Animated companion test environment").locator('[data-spark-beast="true"][data-creature-id="'+creature_id+'"]')
   expect(guest).to_be_visible(timeout=23000)
   fits(page,str(width)+" guest")
   if width in [1440,390,320]:page.screenshot(path=str(OUT/f"guest-{width}.png"),full_page=True,animations="disabled")
@@ -91,12 +91,12 @@ with sync_playwright() as p:
     assert len(z.read("gba/companion_tiles.4bpp"))==8192
   assert not errors,(width,errors)
   assert not private_requests,(width,private_requests)
-  results.append({"width":width,"shared_id":creature_id,"seeded_3d":True,
+  results.append({"width":width,"shared_id":creature_id,"spark_ui":True,"downloadable_seeded_3d":True,
    "cosmetic_edit_stats_constant":True,"public_authority_requests":0})
   context.close()
  reduced=browser.new_context(viewport={"width":390,"height":844},reduced_motion="reduce")
  page=reduced.new_page();load(page,"/beast-cage")
- expect(page.locator(".cage-habitat-visual .cosmic-creature-fallback")).to_be_visible()
+ expect(page.locator('.cage-habitat-visual [data-spark-beast="true"]')).to_be_visible()
  fits(page,"reduced motion");page.screenshot(path=str(OUT/"reduced-motion.png"),full_page=True)
  reduced.close()
  fallback=browser.new_context(viewport={"width":320,"height":720})
@@ -107,7 +107,7 @@ with sync_playwright() as p:
   };
  }""")
  page=fallback.new_page();load(page,"/beast-cage")
- expect(page.locator(".cage-habitat-visual .cosmic-creature-fallback")).to_be_visible(timeout=10000)
+ expect(page.locator('.cage-habitat-visual [data-spark-beast="true"]')).to_be_visible(timeout=10000)
  fits(page,"no WebGL");page.screenshot(path=str(OUT/"no-webgl.png"),full_page=True)
  fallback.close();browser.close()
  (OUT/"acceptance.json").write_text(json.dumps({"browser":"real built Chromium",

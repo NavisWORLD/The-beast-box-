@@ -2,7 +2,7 @@
 import {useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
 import {ArrowLeft,ArrowRight,Download,ShieldCheck,Gamepad2,Sparkles} from 'lucide-react';
-import CosmicCompanion3D,{type CreatureState} from './cosmic-companion-3d';
+import SparkBeastCompanion from './spark-beast-companion';
 import {makeGbaZip,spritePreview,type Look,type Mood} from '../lib/gba-companion';
 import styles from './gba-guest-lab.module.css';
 import GenesisForge from './genesis-forge';
@@ -81,14 +81,14 @@ export default function GuestGbaLab(){
   <section className={styles.intro}>
    <span><Sparkles size={16}/> FREE PUBLIC PLAYGROUND • ZERO OWNER PERMISSIONS</span>
    <h1>Catch a star.<br/><em>Take it into your game.</em></h1>
-   <p>Meet the little cosmic troublemaker. Play with its looks and animation
-    states, then carry the same portable Beast into the current Lost COSMOS cartridge or export a GBA-ready character module for your own game or Codex.\n    This playground is interactive artwork, not an artificial model or a sensor reading.</p>
+   <p>Meet the same Spark Beast used by Customize, care and the owner dock. Preview its recorded-seed sprite, movement, eyes, stages and local generated voice, then carry that portable identity into Lost COSMOS or export a GBA-ready module. This playground is game software, not a consciousness or sensor claim.</p>
   </section>
   <GenesisForge value={creature} onChange={next=>{setCreature(next);selectProfile(next);setLook(next.baseLook);setDone(false);}} onAmbient={setAmbient}/>
   <div className={styles.grid}>
    <section className={styles.orbit} aria-label="Animated companion test environment">
     <span className={styles.constellation} aria-hidden="true">✧ ✦ ･｡ ☆ ﾟ</span>
-    <div className={styles.model} data-ambient-behavior={ambient} style={{filter:creature?`hue-rotate(${creature.appearance.hueShift}deg)`:undefined,transform:ambient==='orbit'?'translateX(9px) rotate(3deg)':ambient==='perch'?'translateY(9px)':undefined}}><CosmicCompanion3D look={look} profile={creature} state={mood as CreatureState} label={'Cosmic companion: '+mood}/></div>
+    <div className={styles.model} data-ambient-behavior={ambient}><SparkBeastCompanion profile={creature} fallbackLook={look}
+      state={mood} controls label={'Spark Beast game companion: '+mood}/></div>
     <div className={styles.status}><span aria-hidden="true">✧</span> {label.description}</div>
     <div className={styles.actions} role="group" aria-label="Explore illustrative companion animation states">
      {STATES.map(item=><button type="button" key={item.value} className={mood===item.value?styles.active:''}
@@ -104,7 +104,7 @@ export default function GuestGbaLab(){
       aria-pressed={look===item.value} className={look===item.value?styles.chosen:''}
       onClick={()=>chooseLook(item.value)}>{item.name} <span>{look===item.value?'✦':'◇'}</span></button>)}</div>
     <div className={styles.export}>
-     <span className={styles.eyebrow}>02 / RETRO GAME PORTAL</span>\n     <p><strong>The playable target is Lost COSMOS PR #31 at commit 2e600160.</strong> Use the Quantum Beast Bridge above to send this exact identity into its single cage. The GBA stays mounted in its persistent player while MODELS shares the Spark Beast care ledger for naming, talk, training, bond, XP, and earned evolution. The module download below remains for custom/offline integrations.</p>
+     <span className={styles.eyebrow}>02 / RETRO GAME PORTAL</span>\n     <p><strong>The playable target keeps the current Lost COSMOS PR #31 / V11.2 bridge.</strong> The same Beast identity flows into its single cage and persistent player. Beast Box keeps the adventure/care experience, but does not embed the SIM EARTH planetary world.</p>
      <div className={styles.pixelArt}>
       <canvas ref={preview} role="img" aria-label={'Actual 64 by 64 pixel-art '+look+' sprite preview in '+mood+' state'}/>
       <div><Gamepad2 size={23}/><strong>GBA importable module</strong>
