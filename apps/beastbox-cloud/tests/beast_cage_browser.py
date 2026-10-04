@@ -36,8 +36,8 @@ with sync_playwright() as p:
         lumen=page.get_by_role("button",name=re.compile("Lumen"))
         lumen.click()
         expect(lumen).to_have_attribute("aria-pressed","true")
-        page.get_by_role("button",name="Save look on this device").click()
-        expect(page.locator(".cage-save-status")).to_contain_text("Visual look saved locally")
+        page.get_by_role("button",name="Save visual family").click()
+        expect(page.locator(".cage-save-status")).to_contain_text("Visual family saved locally")
         # Verify local storage write BEFORE navigation. Wait for hydration
         # after reload; WebGL shader setup on slow CI can outlive DOMContentLoaded.
         assert page.evaluate("localStorage.getItem('beastbox-cage-appearance-v1')")=="aurora"
@@ -45,12 +45,12 @@ with sync_playwright() as p:
         page.wait_for_function("localStorage.getItem('beastbox-cage-appearance-v1')==='aurora'",timeout=15000)
         expect(page.get_by_role("button",name=re.compile("Lumen"))).to_have_attribute("aria-pressed","true",timeout=15000)
         no_overflow(page,str(width)+" persisted")
-        # If this browser actually supports WebGL, this test requires real 3D,
-        # not a screenshot pretending a model was rendered.
-        supports_gl=page.evaluate("!!document.createElement('canvas').getContext('webgl')")
-        if supports_gl:
-            page.locator(".cage-hero-creature[data-graphics='procedural-3d']").wait_for(timeout=16000)
-        mode=page.locator(".cage-hero-creature").get_attribute("data-graphics")
+        # The Beast Cage now renders the unified Spark companion. The separate
+        # turntable workflow still verifies/export the genuine 3D model.
+        spark=page.locator('.cage-habitat-visual [data-spark-beast="true"]')
+        spark.wait_for(timeout=16000)
+        expect(spark).to_have_attribute("data-creature-id",re.compile("^bb-"))
+        mode="spark"
         page.screenshot(path=str(OUT/f"cage-{width}.png"),full_page=True,animations="disabled")
         assert not errors,(width,errors[:4])
         results.append((width,mode,"passed"))
@@ -59,9 +59,9 @@ with sync_playwright() as p:
     page=reduced.new_page()
     page.goto(ROOT+"/beast-cage",wait_until="domcontentloaded")
     expect(page.locator(".cage-universe")).to_have_attribute("data-reduced-motion","true")
-    expect(page.locator(".cosmic-creature-fallback")).to_be_visible()
+    expect(page.locator('[data-spark-beast="true"]').first).to_be_visible()
     no_overflow(page,"reduced-motion")
     page.screenshot(path=str(OUT/"reduced-motion.png"),full_page=True,animations="disabled")
     reduced.close()
     browser.close()
-print("BEAST_CAGE_BROWSER_PASS",results,"Static reduced-motion fallback passed. No physical sensors accessed.")
+print("BEAST_CAGE_BROWSER_PASS",results,"Reduced-motion Spark companion passed. No physical sensors accessed.")
