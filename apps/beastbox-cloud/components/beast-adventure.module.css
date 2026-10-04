@@ -1,0 +1,19 @@
+.page{min-height:100vh;background:#090e1b;color:#f1edff;padding:18px 18px 120px}
+.top{max-width:1120px;margin:0 auto 18px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.top a{color:#a8eef9;font-weight:800;letter-spacing:.12em}
+.layout{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:1.15fr .85fr;gap:18px}
+.map{position:relative;min-height:460px;border-radius:28px;border:1px solid rgba(153,156,227,.35);background:radial-gradient(circle at 20% 70%,rgba(61,125,160,.35),transparent 40%),radial-gradient(circle at 78% 30%,rgba(131,98,202,.4),transparent 42%),#101731;overflow:hidden}
+.place{position:absolute;transform:translate(-50%,-50%);border:1px solid rgba(184,238,255,.45);background:#121833cc;color:#e7fbff;border-radius:14px;padding:8px 10px;font-size:12px;font-weight:700;cursor:pointer}
+.beast{position:absolute;width:150px;height:150px;transform:translate(-50%,-70%);pointer-events:none}
+.beast canvas{width:150px!important;height:150px!important}
+.emote{position:absolute;transform:translate(-50%,-120px);background:#0c1228ee;border:1px solid rgba(104,229,238,.4);border-radius:12px;padding:6px 8px;font-size:11px;max-width:180px}
+.side{border-radius:28px;padding:18px;background:linear-gradient(160deg,#1a2144,#111829);border:1px solid rgba(170,163,240,.28);display:flex;flex-direction:column;gap:10px}
+.sensors{display:flex;flex-wrap:wrap;gap:8px}
+.sensors button{border-radius:999px;border:1px solid rgba(104,229,238,.35);background:#10182e;color:#e7fbff;padding:7px 10px;font-size:12px;font-weight:700}
+.on{background:#163b3a!important;border-color:#79edb5!important}
+.chat{white-space:pre-wrap;background:#0a1228bc;border:1px solid rgba(164,189,242,.25);border-radius:16px;padding:12px;min-height:120px}
+.side textarea{width:100%;box-sizing:border-box;border-radius:12px;border:1px solid rgba(139,145,200,.4);background:#0a1127;color:#fff;padding:10px;font:inherit}
+.send{border:0;border-radius:12px;padding:11px 14px;font-weight:800;background:linear-gradient(110deg,#a1f4f8,#c9b1ff);color:#18102d;cursor:pointer}
+.note{color:#aeb9d1;font-size:12px;line-height:1.5}
+.label{font-size:11px;letter-spacing:.14em;color:#86e2eb;font-weight:800}
+@media(max-width:860px){.layout{grid-template-columns:1fr}.map{min-height:380px}}

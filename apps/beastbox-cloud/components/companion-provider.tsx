@@ -6,6 +6,8 @@ import {
 import {usePathname} from 'next/navigation';
 import {Pause,Play,Eye,EyeOff} from 'lucide-react';
 import CosmicCompanion3D,{type CreatureState} from './cosmic-companion-3d';
+import LostCosmosDock from './lost-cosmos-dock';
+import {BeastSessionProvider} from './beast-session';
 import {
  pickAmbientAction,validCreature,type CreatureProfile,type AmbientAction
 } from '../lib/creature-profile';
@@ -138,7 +140,10 @@ export default function CompanionProvider({children}:{children:ReactNode}){
  const canShow=showPublic&&!hidden&&!typing&&pageVisible&&!reduced&&spot!==null;
  const parked=halted||paused||!canShow;
  return <Context.Provider value={context}>
+  <BeastSessionProvider>
   {children}
+  <LostCosmosDock />
+  </BeastSessionProvider>
   {showPublic?<aside data-companion-overlay="true" className={styles.shell+(!canShow?' '+styles.parked:'')}
     aria-label="Cosmic companion game habitat" data-companion-state={state}
     data-roaming={canShow&&!parked?'active':'parked'}

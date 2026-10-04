@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {ArrowRight,BrainCircuit,DatabaseZap,LockKeyhole,Orbit,ShieldCheck,SlidersHorizontal,Sparkles,Volume2} from 'lucide-react';
 import CosmicCompanion3D,{type CreatureLook} from './cosmic-companion-3d';
 import GenesisForge from './genesis-forge';
+import BeastCareDeck from './beast-care-deck';
 import {useCompanion} from './companion-provider';
 import {type CreatureProfile,type AmbientAction} from '../lib/creature-profile';
 const LOOKS:{id:CreatureLook;label:string;detail:string;accent:string}[]=[
@@ -47,7 +48,7 @@ export default function BeastCagePortal(){
  return <main className="cage-universe" data-reduced-motion={prefersReduced}>
   <div className="cage-sky" aria-hidden="true"/>
   <header className="cage-topbar"><Link href="/" aria-label="Beast Box homepage" className="cage-brand"><span>✺</span><span>BEAST BOX<small>NAVISWORLD / COSMOS</small></span></Link>
-   <nav aria-label="Beast Cage navigation"><a href="#habitat">Habitat</a><a href="#worlds">Explore</a><Link href="/beast-cage/talk">Talk</Link><Link href="/beast-cage/guest">Game lab</Link><Link className="cage-nav-cta" href="/workspace">Owner deck <ArrowRight size={15}/></Link></nav>
+   <nav aria-label="Beast Cage navigation"><a href="#habitat">Habitat</a><a href="#worlds">Explore</a><Link href="/beast-cage/talk">Talk</Link><Link href="/beast-cage/play">Adventure</Link><Link href="/beast-cage/guest">Game lab</Link><Link className="cage-nav-cta" href="/workspace">Owner deck <ArrowRight size={15}/></Link></nav>
   </header>
   <section className="cage-hero" id="habitat" aria-labelledby="cage-title">
    <div className="cage-headline">
@@ -69,6 +70,7 @@ export default function BeastCagePortal(){
    ✧ {creature.name} · {creature.family} · {ambient} (classical seeded visual behavior)
    <Link href="/beast-cage/guest">Take this creature to the GBA Game Lab ↗</Link>
   </div>:null}
+  <BeastCareDeck />
   <section className="cage-invariants"><span>MODEL ≠ MEMORY</span><span>MODEL ≠ IDENTITY</span><span>MODEL ≠ AUTHORITY</span></section>
   <section className="cage-customize" id="customize" aria-labelledby="customize-title">
    <div className="cage-section-heading"><span className="cage-eyebrow"><SlidersHorizontal size={13}/> A LOOK THAT FEELS LIKE YOURS</span>

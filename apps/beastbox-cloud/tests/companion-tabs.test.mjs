@@ -1,0 +1,33 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { importSession, exportSession } from "../lib/companion/session.mjs";
+import { adoptBeast, createSession, finishTraining, switchTab, talk, tickEmulator } from "../lib/companion/session.mjs";
+
+test("tab switches keep the game, the chat, and the emulator heartbeat", () => {
+  const session = createSession();
+  adoptBeast(session, { seed: "abc", island: "The Crown", body: "pup", names: { 1: "Solpup", 2: "Solpaw", 3: "Solrex" } });
+  talk(session, "sunflower code is marigold");
+  finishTraining(session, 4, 6);
+  tickEmulator(session);
+  tickEmulator(session);
+  session.emulator.booted = true;
+  const chat = session.chat.length;
+  const xp = session.beast.xp;
+  const ticks = session.emulator.ticks;
+  switchTab(session, "talk");
+  switchTab(session, "gba");
+  switchTab(session, "lab");
+  switchTab(session, "play");
+  assert.equal(session.chat.length, chat);
+  assert.equal(session.beast.xp, xp);
+  assert.equal(session.emulator.ticks, ticks);
+  assert.equal(session.emulator.booted, true);
+  assert.equal(session.emulator.mounted, true);
+  tickEmulator(session);
+  assert.equal(session.emulator.ticks, ticks + 1);
+  const restored = importSession(exportSession(session));
+  assert.equal(restored.chat.length, session.chat.length);
+  assert.equal(restored.beast.xp, session.beast.xp);
+  assert.equal(restored.emulator.ticks, session.emulator.ticks);
+  assert.equal(restored.mind.vocab.sunflower.count, 1);
+});
