@@ -170,3 +170,25 @@ test('public Beast generator loads all sanitized seed shards and never ships raw
  assert.match(release,/public_seed_jobs_added:96/);
  assert.match(release,/original_signal_payloads_published:false/);
 });
+
+test('mobile Lost Cosmos dock can mini expand close and reopen without dropping the connected Beast',()=>{
+ const dock=read('components/lost-cosmos-dock.tsx');
+ const css=read('components/lost-cosmos-dock.module.css');
+ const roamer=read('components/companion-provider.tsx');
+ const spark=read('components/spark-beast-companion.tsx');
+ assert.match(dock,/data-lost-cosmos-dock="true"/);
+ assert.match(dock,/data-dock-state=\{state\}/);
+ assert.match(dock,/Open Lost Cosmos player/);
+ assert.match(dock,/Close Lost Cosmos player/);
+ assert.match(dock,/Expand Lost Cosmos player/);
+ assert.match(dock,/Generate Beast/);
+ assert.match(dock,/creature\?\.id/);
+ assert.match(css,/width:min\(250px,calc\(100vw - 72px\)\)/);
+ assert.match(css,/\.closed \.screen/);
+ assert.match(roamer,/Enable creature sounds/);
+ assert.match(roamer,/beastbox:spark-chirp/);
+ assert.match(roamer,/audioChannel="roamer"/);
+ assert.match(spark,/audioChannel\?:string/);
+ assert.match(spark,/beastbox:spark-chirp/);
+ assert.doesNotMatch(roamer,/getUserMedia|\/api\/bridge|Authorization/);
+});
