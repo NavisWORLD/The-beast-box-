@@ -134,7 +134,16 @@ export default function CompanionProvider({children}:{children:ReactNode}){
     if(element.closest('[data-companion-overlay]'))continue;
     const rect=element.getBoundingClientRect();
     if(rect.width<1||rect.height<1||rect.bottom<0||rect.top>height)continue;
-    avoid.push({left:rect.left,top:rect.top,width:rect.width,height:rect.height});
+    // The roaming Beast toolbar sits above and can be wider than the sprite.
+    // Give the persistent cartridge dock a padded exclusion footprint so its
+    // poster/actions never cover the Beast sound/pause/hide controls on mobile.
+    if(element.matches('aside[data-cosmos-mode="mini"],aside[data-cosmos-mode="full"]')){
+     const padX=width<680?84:54,padTop=width<680?64:44;
+     const left=Math.max(0,rect.left-padX),top=Math.max(0,rect.top-padTop);
+     avoid.push({left,top,width:Math.min(width-left,rect.width+padX),height:rect.height+padTop});
+    }else{
+     avoid.push({left:rect.left,top:rect.top,width:rect.width,height:rect.height});
+    }
    }
    setSpot(selectSafeRoamSpot(width,height,avoid,tick));
   };
