@@ -103,7 +103,7 @@ export default function GuestGbaLab(){
       aria-pressed={look===item.value} className={look===item.value?styles.chosen:''}
       onClick={()=>chooseLook(item.value)}>{item.name} <span>{look===item.value?'✦':'◇'}</span></button>)}</div>
     <div className={styles.export}>
-     <span className={styles.eyebrow}>02 / RETRO GAME PORTAL</span>\n     <p><strong>The playable target is the current Lost COSMOS build at commit 62a2922.</strong> Use the Quantum Beast Bridge above to send this exact identity into its single cage, then PLAY GBA. The module download below remains for custom/offline integrations.</p>
+     <span className={styles.eyebrow}>02 / RETRO GAME PORTAL</span>\n     <p><strong>The playable target is Lost COSMOS PR #31 at commit 2e600160.</strong> Use the Quantum Beast Bridge above to send this exact identity into its single cage. The GBA stays mounted in its persistent player while MODELS shares the Spark Beast care ledger for naming, talk, training, bond, XP, and earned evolution. The module download below remains for custom/offline integrations.</p>
      <div className={styles.pixelArt}>
       <canvas ref={preview} role="img" aria-label={'Actual 64 by 64 pixel-art '+look+' sprite preview in '+mood+' state'}/>
       <div><Gamepad2 size={23}/><strong>GBA importable module</strong>
