@@ -54,7 +54,7 @@ export default function BeastCagePortal(){
     <span className="cage-eyebrow"><Sparkles size={13}/> WELCOME TO THE BEAST CAGE</span>
     <h1 id="cage-title">A small companion.<br/><em>An entire universe.</em></h1>
     <p>Give your ideas a little cosmic troublemaker. The active Beast now uses the same Spark sprite family, seeded gait, eyes and generated voice across customization, the owner dock and the GBA handoff.</p>
-    <div className="cage-hero-actions"><Link className="cage-primary" href="/beast-cage/talk">Talk to the real Beast <ArrowRight size={17}/></Link><Link className="cage-secondary" href="/beast-cage/turntable">See the real 3D model ↻</Link><Link className="cage-secondary" href="/beast-cage/guest">Play + export a GBA character 🎮</Link><a className="cage-secondary" href="#customize">Customize your companion</a><Link className="cage-secondary" href="/workspace">Open real workstation ↗</Link></div>
+    <div className="cage-hero-actions"><Link className="cage-primary" href="/beast-cage/talk">Talk to the real Beast <ArrowRight size={17}/></Link><Link className="cage-secondary" href="/beast-cage/turntable">See the real 3D model ↻</Link><Link className="cage-secondary" href="/beast-cage/guest">Play + export a GBA character 🎮</Link><a className="cage-secondary" href="/spark/index.html">Open Public Beast Generator ⚛</a><a className="cage-secondary" href="#customize">Customize your companion</a><Link className="cage-secondary" href="/workspace">Open real workstation ↗</Link></div>
     <p className="cage-quiet"><LockKeyhole size={13}/> One browser game profile drives the visible Beast. Model choice, COSMOS memory and authority stay separate.</p>
    </div>
    <div className="cage-habitat-visual" role="img" aria-label="Original cosmic observatory with a floating galaxy companion">
@@ -75,7 +75,7 @@ export default function BeastCagePortal(){
   <section className="cage-customize" id="customize" aria-labelledby="customize-title">
    <div className="cage-section-heading"><span className="cage-eyebrow"><SlidersHorizontal size={13}/> A LOOK THAT FEELS LIKE YOURS</span>
     <h2 id="customize-title">Meet the first<br/><em>little constellations.</em></h2>
-    <p>Customize the same Beast that roams the site and crosses into Lost COSMOS. Stage controls are previews; earned cartridge evolution still comes from gameplay.</p></div>
+    <p>Customize the same Beast that roams the site and crosses into Lost COSMOS. Stage controls are previews; earned cartridge evolution still comes from gameplay. The public generator can now draw from the expanded recorded-seed pool.</p><a className="cage-secondary" href="/spark/index.html">Generate from the public IBM seed archive ↗</a></div>
    <SparkBeastCompanion profile={creature} fallbackLook={look}
     state={ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
     controls label="Customizable Spark Beast preview"/>
