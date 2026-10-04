@@ -34,7 +34,7 @@ test('local numeric signals and owner privacy stop never confer model authority'
  assert.match(dock,/beastbox:local-sensor-level/);
  assert.match(dock,/beastbox:master-privacy-stop/);
  assert.match(dock,/last.sequence/);
- assert.ok(dock.includes("localStorage.getItem('beastbox-cage-appearance-v1')"));
+ assert.match(dock,/SparkBeastCompanion profile=\{cosmeticProfile\}/);
  for(const forbidden of ['getUserMedia',"api('bridge",'localStorage.setItem','localStorage.removeItem','Math.random'])
   assert.equal(dock.includes(forbidden),false,'Unexpected companion authority or retention: '+forbidden);
 });
