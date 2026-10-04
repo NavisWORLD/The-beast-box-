@@ -50,8 +50,8 @@ test('exact public source archive and server release marker are present',()=>{
  assert.match(api,/shared-spark-care-ledger/);
  assert.match(api,/guest_contains_private_memory:false/);
  assert.match(api,/hardware_tested:false/);
- assert.match(api,/lost_cosmos_page:'\\/beast-cage\\/go'/);
- assert.match(api,/rom_url:'\\/api\\/gba-rom'/);
+ assert.ok(api.includes("lost_cosmos_page:'/beast-cage/go'"));
+ assert.ok(api.includes("rom_url:'/api/gba-rom'"));
  assert.match(api,/sim_earth_embedded:false/);
  const c=read('public/gba-module/beast_companion.c');
  assert.match(c,/BEAST_SNAPSHOT_BYTES/);
