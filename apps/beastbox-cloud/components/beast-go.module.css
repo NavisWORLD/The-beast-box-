@@ -1,5 +1,6 @@
 .field{position:fixed;inset:0;z-index:50;pointer-events:none;color:#eef0ff;font-family:'DM Sans',sans-serif}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.guestNote{position:absolute;top:max(96px,calc(env(safe-area-inset-top) + 86px));left:max(10px,env(safe-area-inset-left));max-width:min(280px,calc(100vw - 20px));margin:0;padding:8px 10px;border-radius:14px;background:#0c1228d8;color:#d5e7ff;font-size:11px;line-height:1.45;pointer-events:none}
 .card{position:absolute;top:max(10px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));display:flex;gap:10px;align-items:center;padding:8px 14px 8px 8px;border-radius:999px;background:#0c1228e6;border:1px solid rgba(104,229,238,.45);pointer-events:auto;max-width:min(320px,calc(100vw - 20px));box-shadow:0 10px 30px #0006}
 .portrait{width:72px;height:72px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 50% 40%,#5b4d86,#12182e);flex:none;display:grid;place-items:center}
 .portrait figure{width:72px;height:72px;min-height:0;border:0;background:transparent;box-shadow:none}

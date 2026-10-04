@@ -128,6 +128,7 @@ export function exportSession(session) {
     emulator: { mounted: true, ticks: session.emulator.ticks, booted: !!session.emulator.booted },
     train: session.train,
     mood: session.mood,
+    pet: session.pet || null,
   };
 }
 
@@ -146,5 +147,6 @@ export function importSession(raw) {
     rounds: Number(raw.train?.rounds) || 0,
   };
   session.mood = raw.mood || "idle";
+  session.pet = raw.pet && raw.pet.modelWeightsTrained === false ? raw.pet : null;
   return session;
 }

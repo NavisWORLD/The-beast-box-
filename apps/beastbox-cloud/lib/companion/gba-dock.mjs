@@ -1,6 +1,6 @@
 /** Where the one mounted Lost Cosmos screen is allowed to show. */
 
-export const MINI_PATHS = ["/beast-cage", "/beast-cage/talk", "/beast-cage/guest", "/beast-cage/play"];
+export const MINI_PATHS = ["/", "/try", "/beast-cage", "/beast-cage/talk", "/beast-cage/guest", "/beast-cage/play"];
 export const FULL_PATH = "/beast-cage/go";
 
 export function modeFor(path) {

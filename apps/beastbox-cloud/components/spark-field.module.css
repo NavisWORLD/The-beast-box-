@@ -1,0 +1,10 @@
+.block{margin-top:14px}
+.block h3,.sealed h3{margin:0 0 6px;font-size:16px;font-family:'Space Grotesk',sans-serif}
+.stages{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.stages button,.list button,.pull{border:1px solid rgba(185,193,255,.28);border-radius:12px;background:#12182e;color:#eef0ff;padding:8px 10px;font-weight:700;cursor:pointer}
+.stages button[aria-pressed="true"]{border-color:#68e5ee;color:#04121a;background:linear-gradient(160deg,#a1f4f8,#c9b1ff)}
+.list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow:auto;margin-top:8px}
+.list button{text-align:left}
+.sprite{width:96px;height:96px;image-rendering:pixelated;background:#10182e;border-radius:12px}
+.sealed{margin-top:16px;padding:12px;border:1px dashed rgba(104,229,238,.5);border-radius:16px}
+.pull{margin-top:8px;background:linear-gradient(110deg,#a1f4f8,#c9b1ff);color:#18102d;border:0}

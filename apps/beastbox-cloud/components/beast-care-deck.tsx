@@ -134,7 +134,7 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
   return <section className={css.deck} aria-label="Shared beast care">
     <span className={css.flag}>ON THIS DEVICE · SHARED CARE</span>
     <h2>Name it. Feed it. <em>Let it learn.</em></h2>
-    <p className={css.lede}>Stage 2 arrives at 40 XP and stage 3 at 120 XP. Bond, chat, and pattern weights stay in this browser and in the .qbeast export. The RAWRPHØS guest panel above is a separate stateless model.</p>
+    <p className={css.lede}>Stage 2 arrives at 40 XP and stage 3 at 120 XP. Bond, chat, and pattern weights stay in this browser and in the .qbeast export. The RAWRPHØS guest panel above is a separate stateless model. These Hebbian weights are the on-device substrate. A selected Brain Bay model is not trained by the pet dragon.</p>
     {!ready || !session ? <p className={css.note}>Opening the local save…</p> : <div className={css.grid}>
       {sprite ? <div className={css.stage}>
         {beast ? <PixelBeast genome={beast.genome} stage={beast.stage} pose={beast.mood === 'sleep' ? 'emote' : beast.mood === 'evolve' ? 'emote' : 'idle'} emote={beast.mood === 'sleep' ? 'sleep' : beast.mood === 'evolve' ? 'evolve' : beast.mood === 'happy' ? 'happy' : 'watch'} label={`${shownName(beast)}, stage ${beast.stage}, ${beast.mood}`} /> : <p className={css.note}>No beast in this save yet.</p>}

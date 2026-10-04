@@ -12,6 +12,7 @@ import {
  pickAmbientAction,validCreature,type CreatureProfile,type AmbientAction
 } from '../lib/creature-profile';
 import {selectSafeRoamSpot,type Rect,type Spot} from '../lib/companion-roaming';
+import {DRAGON_RUN_KEY,DRAGON_TRAITS} from '../lib/companion/pet-dragon.mjs';
 import styles from './companion-provider.module.css';
 
 type CompanionContextValue={
@@ -97,11 +98,12 @@ export default function CompanionProvider({children}:{children:ReactNode}){
  },[onProfile]);
  const showPublic=pathname==='/'||pathname==='/beast-cage';
  useEffect(()=>{
-  if(!showPublic||paused||halted||hidden||reduced||!pageVisible)return;
+  if(!showPublic||paused||halted||hidden||!pageVisible)return;
   const fallback:AmbientAction[]=['hover','orbit','perch','rest'];
   const clock=window.setInterval(()=>{
    const next=++tickRef.current;
    setTick(next);
+   if(reduced)return;
    const nextAction=profile?pickAmbientAction(profile,next):fallback[next%fallback.length];
    setAction(nextAction);
    if(soundEnabled&&next%2===1){
@@ -109,7 +111,7 @@ export default function CompanionProvider({children}:{children:ReactNode}){
      detail:{channel:'roamer',intensity:nextAction==='orbit'?.9:.58}
     }));
    }
-  },11000);
+  },1600);
   return()=>window.clearInterval(clock);
  },[profile,showPublic,paused,halted,hidden,reduced,pageVisible,soundEnabled]);
  useEffect(()=>{
@@ -125,7 +127,7 @@ export default function CompanionProvider({children}:{children:ReactNode}){
    if(height<window.innerHeight*.72){setSpot(null);return;}
    const avoid:Rect[]=[];
    const targets=document.querySelectorAll<HTMLElement>(
-    'main h1, main h2, main h3, main p, main button, main a, main input, main textarea, [role="dialog"], [data-critical-control]'
+    'main h1, main h2, main h3, main p, main button, main a, main input, main textarea, [role="dialog"], [data-critical-control], aside[data-cosmos-mode="mini"], aside[data-cosmos-mode="full"]'
    );
    for(const element of targets){
     if(avoid.length>=160)break;
@@ -171,8 +173,8 @@ export default function CompanionProvider({children}:{children:ReactNode}){
   {children}
   <LostCosmosDock creature={profile} />
   </BeastSessionProvider>
-  {showPublic?<aside data-companion-overlay="true" className={styles.shell+(!canShow?' '+styles.parked:'')}
-    aria-label="Cosmic companion game habitat" data-companion-state={state}
+  {showPublic?<aside data-companion-overlay="true" data-pet-dragon="true" className={styles.shell+(!canShow?' '+styles.parked:'')}
+    aria-label="Pet dragon game habitat" data-companion-state={state}
     data-roaming={canShow&&!parked?'active':'parked'}
     style={canShow&&spot?{left:spot.left,top:spot.top,width:spot.width}:undefined}>
     <div className={styles.toolbar}>
@@ -196,8 +198,9 @@ export default function CompanionProvider({children}:{children:ReactNode}){
     </div>
     {canShow?<div className={styles.figure} aria-hidden="true">
       <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook??'nebula'}
-       state={state} compact paused={parked} audioChannel="roamer"
-       label="Roaming Spark Beast game creature"/>
+       state={state} compact paused={parked||reduced} audioChannel="roamer"
+       seedRunKey={DRAGON_RUN_KEY} seedTraits={DRAGON_TRAITS}
+       label="Roaming pet dragon Spark Beast"/>
      </div>:null}
     <span className={styles.sr} aria-live="polite">
       {halted?'Decorative character stopped; backend permissions unchanged':

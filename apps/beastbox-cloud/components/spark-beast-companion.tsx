@@ -32,6 +32,8 @@ type Props={
  audioChannel?:string;
  className?:string;
  label?:string;
+ seedRunKey?:string;
+ seedTraits?:{focus:number;calm:number;spark:number};
 };
 
 function expand(row:Record<string,unknown>):Run{
@@ -78,7 +80,8 @@ function driveFor(mood:string,intensity:number){
 
 export default function SparkBeastCompanion({
  profile,fallbackLook='nebula',state='idle',paused=false,intensity=0,
- compact=false,controls=false,audioChannel,className='',label='Spark Beast companion'
+ compact=false,controls=false,audioChannel,className='',label='Spark Beast companion',
+ seedRunKey='',seedTraits
 }:Props){
  const fallback=useMemo(()=>generateCreature('beastbox-spark-'+fallbackLook,fallbackLook==='aurora'?'aurora':fallbackLook==='starlight'?'starlight':'nebula'),[fallbackLook]);
  const active=profile??fallback;
@@ -112,20 +115,22 @@ export default function SparkBeastCompanion({
     .filter(item=>item.num_bits>=2&&Object.keys(item.counts).length>0);
    const runs=[...new Map(merged.map(item=>[item.key,item])).values()];
    if(!runs.length)throw new Error('No recorded Spark seed distributions');
-   const chosen=runs[hash(active.id+'|'+active.seed)%runs.length];
+   const hashed=runs[hash(active.id+'|'+active.seed)%runs.length];
+   const pinned=seedRunKey?runs.find(item=>item.key===seedRunKey):null;
+   const chosen=pinned||hashed;
    if(!cancelled)setRun(chosen);
   })().catch(err=>{if(!cancelled)setError(err instanceof Error?err.message:'Spark renderer unavailable');});
   return()=>{cancelled=true;};
- },[active.id,active.seed]);
+ },[active.id,active.seed,seedRunKey]);
 
  useEffect(()=>{
   if(!run)return;
   try{
    // The JS Spark generator types its optional user id as null; run selection is already domain-separated by active.id above.
-   const next=buildGenome(traits(active),run,null,10) as unknown as Genome;
+   const next=buildGenome(seedTraits||traits(active),run,null,10) as unknown as Genome;
    setGen(next);setError('');lastEye.current='';
   }catch(err){setError(err instanceof Error?err.message:'Spark genome could not be built');}
- },[active,run]);
+ },[active,run,seedTraits]);
 
  useEffect(()=>{
   if(!gen||!canvas.current)return;

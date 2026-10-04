@@ -11,10 +11,28 @@ function defaultUuid() {
   return "00000000-0000-4000-8000-000000000000";
 }
 
+/** Guest field talk keeps the local scene and drops stored memories and sensors. */
+export function guestSafeContext(context = {}) {
+  const source = context || {};
+  return {
+    name: source.name || "Spark Beast",
+    location: source.location || "Lost Cosmos",
+    nearby: Array.isArray(source.nearby) ? source.nearby.slice(0, 6) : [],
+    mood: source.mood || "idle",
+    level: source.level || 1,
+    xp: source.xp || 0,
+    bond: source.bond || 0,
+    energy: source.energy ?? 100,
+    memories: [],
+    sensors: [],
+  };
+}
+
 /**
  * @param {{
  *   context?: object,
  *   saying?: string,
+ *   audience?: "guest",
  *   fetchImpl: (url: string, init?: RequestInit) => Promise<{ ok?: boolean, json: () => Promise<any> }>,
  *   sleep?: (ms: number) => Promise<void>,
  *   now?: () => number,
@@ -26,12 +44,33 @@ export async function askBeast(input = {}) {
   const context = input.context;
   const saying = input.saying;
   const fetchImpl = input.fetchImpl;
+  const guestAudience = input.audience === "guest";
   const sleep = input.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   const now = input.now || (() => Date.now());
   const uuid = input.uuid || defaultUuid;
   const deadlineMs = Number.isFinite(input.deadlineMs) ? input.deadlineMs : 40_000;
-  const guestPrompt = renderContextPrompt(context, saying, 700);
+  const spoken = guestAudience ? guestSafeContext(context) : context;
+  const guestPrompt = renderContextPrompt(spoken, saying, 700);
   const ownerPrompt = renderContextPrompt(context, saying, 4000);
+  if (guestAudience) {
+    let reply = "";
+    let label = chooseBrain({ guestReady: true }).label;
+    try {
+      const guest = await fetchImpl("/api/guest", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(guestBody(guestPrompt)),
+      });
+      const payload = await guest.json();
+      const read = interpretModelResult("guest-rawrphos", payload);
+      if (read.ok && read.reply) reply = read.reply;
+      else label = fallbackAfterFailure(read.reason).failure;
+    } catch (error) {
+      label = fallbackAfterFailure(error instanceof Error ? error.message : "RAWRPHØS guest did not answer").failure;
+    }
+    return { reply, label, pending: false, audience: "guest" };
+  }
   let route = chooseBrain({ ownerReady: false, guestReady: false });
   try {
     const statusResponse = await fetchImpl("/api/status", { cache: "no-store", credentials: "same-origin" });

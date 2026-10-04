@@ -77,6 +77,7 @@ export default function GuestGbaLab(){
    <span>THE LITTLE BEAST // GAME LAB</span>
    <Link href="/beast-cage/talk">Real guest chat <ArrowRight size={16}/></Link>
    <Link href="/beast-cage/play">Adventure <ArrowRight size={16}/></Link>
+   <Link href="/beast-cage/go">Lost Cosmos field <ArrowRight size={16}/></Link>
   </header>
   <section className={styles.intro}>
    <span><Sparkles size={16}/> FREE PUBLIC PLAYGROUND • ZERO OWNER PERMISSIONS</span>

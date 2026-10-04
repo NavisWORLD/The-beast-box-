@@ -87,7 +87,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
       aria-label="Open Lost Cosmos player"><span>🎮</span><strong>LOST COSMOS</strong><small>Open</small></button> : null}
     <div className={css.bar}>
       <strong>LOST COSMOS</strong>
-      <span title={connectedName}>{wide ? `Connected · ${connectedName}` : connectedName}</span>
+      <span title={connectedName}>V11.2 Spark · {connectedName}</span>
       <div className={css.actions}>
         <a href="/spark/index.html" className={css.generate}>Generate Beast</a>
         {mode === 'mini' ? <button type="button" onClick={() => setExpanded((value) => !value)}
