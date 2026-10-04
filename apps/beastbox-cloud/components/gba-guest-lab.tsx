@@ -11,7 +11,7 @@ import {profilePreview} from '../lib/gba-companion';
 import {createCreatureGlb} from '../lib/creature-glb';
 import {useCompanion} from './companion-provider';
 
-const LOOKS:{value:Look;name:string}[]=[{value:'nebula',name:'Nebby'},{value:'aurora',name:'Lumen'},{value:'starlight',name:'Orion'}];
+const LOOKS:{value:Look;name:string}[]=[{value:'nebula',name:'Nebula'},{value:'aurora',name:'Aurora'},{value:'starlight',name:'Starlight'}];
 const STATES:{value:Mood;name:string;description:string}[]=[
  {value:'idle',name:'Explore',description:'Float through a little imagined universe.'},
  {value:'listening',name:'Listen',description:'Illustrative listening pose; no microphone requested.'},
@@ -74,15 +74,14 @@ export default function GuestGbaLab(){
  return <main className={styles.page}>
   <header className={styles.header}>
    <Link href="/beast-cage"><ArrowLeft size={16}/> Beast Cage</Link>
-   <span>THE LITTLE BEAST // GAME LAB</span>
-   <Link href="/beast-cage/talk">Real guest chat <ArrowRight size={16}/></Link>
-   <Link href="/beast-cage/play">Adventure <ArrowRight size={16}/></Link>
-   <Link href="/beast-cage/go">Lost Cosmos field <ArrowRight size={16}/></Link>
+   <span>YOUR BEAST</span>
+   <Link href="/beast-cage/go">Play Lost COSMOS <ArrowRight size={16}/></Link>
+   <Link href="/beast-cage/talk">Talk <ArrowRight size={16}/></Link>
   </header>
   <section className={styles.intro}>
-   <span><Sparkles size={16}/> FREE PUBLIC PLAYGROUND • ZERO OWNER PERMISSIONS</span>
-   <h1>Catch a star.<br/><em>Take it into your game.</em></h1>
-   <p>Meet the same Spark Beast used by Customize, care and the owner dock. Preview its recorded-seed sprite, movement, eyes, stages and local generated voice, then carry that portable identity into Lost COSMOS or export a GBA-ready module. This playground is game software, not a consciousness or sensor claim.</p>
+   <span><Sparkles size={16}/> ONE BEAST · ONE SAVE · ONE GAME</span>
+   <h1>Your Beast.<br/><em>Ready to play.</em></h1>
+   <p>The creature you already chose stays the same here. Try its animations, then jump straight into Lost COSMOS.</p>
   </section>
   <GenesisForge value={creature} onChange={next=>{setCreature(next);selectProfile(next);setLook(next.baseLook);setDone(false);}} onAmbient={setAmbient}/>
   <div className={styles.grid}>
@@ -105,11 +104,14 @@ export default function GuestGbaLab(){
       aria-pressed={look===item.value} className={look===item.value?styles.chosen:''}
       onClick={()=>chooseLook(item.value)}>{item.name} <span>{look===item.value?'✦':'◇'}</span></button>)}</div>
     <div className={styles.export}>
-     <span className={styles.eyebrow}>02 / RETRO GAME PORTAL</span>\n     <p><strong>The playable target keeps the current Lost COSMOS PR #31 / V11.2 bridge.</strong> The same Beast identity flows into its single cage and persistent player. Beast Box keeps the adventure/care experience and routes gameplay into the native Lost COSMOS field and cartridge.</p>
+     <span className={styles.eyebrow}>02 / PLAY</span>
+     <p><strong>{creature?.name || 'Your Beast'} is ready.</strong> Its same browser-local identity follows you into Lost COSMOS.</p>
+     <Link href="/beast-cage/go" className={styles.playNow}>Play Lost COSMOS <ArrowRight size={18}/></Link>
+     <details className={styles.advanced}><summary>Exports & developer files</summary>
      <div className={styles.pixelArt}>
       <canvas ref={preview} role="img" aria-label={'Actual 64 by 64 pixel-art '+look+' sprite preview in '+mood+' state'}/>
       <div><Gamepad2 size={23}/><strong>GBA importable module</strong>
-       <small>Four authentic pixel sprite frames • 4bpp tiles • C99 module • 60-byte legacy state {creature?'• new 64-byte GBA game-stat profile':''}</small></div>
+       <small>Pixel art, GBA-ready files and the portable game profile.</small></div>
      </div>
      <p>The downloadable bundle contains editable art, your chosen palette,
       code and a clearly labeled visual-only companion profile. Generated characters also include deterministic fictional game stats. Guest exports
@@ -123,19 +125,16 @@ export default function GuestGbaLab(){
      </button>
      {error?<p role="alert" className={styles.error}>{error}</p>:null}
      {done?<p role="status" className={styles.success}>Your portable game pack was generated in this browser.</p>:null}
-     <p className={styles.disclaimer}><ShieldCheck size={16}/> To include actual COSMOS numeric
-      synaptic signals instead, authenticate in the owner workstation and explicitly export
-      a validated checkpoint from Synapse Trace. Guests never receive that data.</p>
+     <p className={styles.disclaimer}><ShieldCheck size={16}/> Advanced owner-only signal exports remain in the authenticated workstation. Guest exports never include private memory or owner permissions.</p>
+     </details>
     </div>
    </section>
   </div>
   <section className={styles.next}>
-   <strong>Want to hear it talk for real?</strong>
-   <p>The free visual sandbox works even when the model host is offline.
-    The separate guest chat calls the existing limited, stateless RAWRPHØS route
-    and shows errors rather than invented responses.</p>
-   <Link href="/beast-cage/talk">Try real RAWRPHØS guest chat <ArrowRight size={16}/></Link>
-   <Link href="/beast-cage/turntable">Spin the actual 360° 3D model ↻</Link>
+   <strong>Keep going with the same Beast.</strong>
+   <p>Talk to it, change its look, or jump back into the game.</p>
+   <Link href="/beast-cage/talk">Talk <ArrowRight size={16}/></Link>
+   <Link href="/beast-cage/go">Play Lost COSMOS <ArrowRight size={16}/></Link>
   </section>
   <footer className={styles.footer}>CORY DAVIS // NAVISWORLD • MODEL ≠ MEMORY ≠ AUTHORITY • GBA ART ≠ LLM</footer>
  </main>;
