@@ -321,9 +321,11 @@
         "replica/setup.sh",
         "replica/run.sh",
         "replica/dashboard/server.py",
+        "replica/scripts/ollama_registry_pull.py",
+        "replica/scripts/cosmic_client.py",
         "replica/README.md"
       ],
-      "boundary": "Rebuilds and checks this repository. The RAWRPHOS loopback key is generated at runtime into an owner-only file outside the repo. The dashboard is a local status page and does not add model authority, remote providers, or a new runtime."
+      "boundary": "Rebuilds and checks this repository. The RAWRPHOS loopback key is generated at runtime into an owner-only file outside the repo. Optional Ollama is a user-local CPU extract under the kit home, not a systemd service. The dashboard switches Cosmic's existing provider and does not add model authority, remote providers, or a new runtime."
     }
   ],
   "integration_source_commit": "57d34fe",

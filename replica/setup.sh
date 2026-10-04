@@ -27,6 +27,9 @@ PY_VERSION="3.12"
 TORCH_SPEC="${BB_TORCH_SPEC:-torch==2.14.1}"
 TORCH_INDEX="https://download.pytorch.org/whl/cpu"
 DO_APT=1; DO_TESTS=1; DO_EXTRAS=1; WITH_GBA=0; PINNED=1; FORCE_CLONE=0; PLAN=0
+WITH_OLLAMA=0; WITH_QC67=0
+OLLAMA_MODELS_WANTED="${BB_OLLAMA_MODELS:-qwen2.5:1.5b qwen2.5:3b}"   # ~0.99 GB + ~1.93 GB, CPU-friendly
+OLLAMA_PORT=11434
 
 usage() {
   cat <<USAGE
@@ -44,6 +47,9 @@ Usage: ./setup.sh [options]
   --no-extras       skip Rust (cargo test) and HTML (node --test) checks
   --with-gba        also install clang/lld/llvm/libmgba-dev (Lost COSMOS GBA toolchain)
   --unpinned        ignore constraints.txt (take latest compatible PyPI versions)
+  --with-ollama     install Ollama (CPU build, under HOME/ollama, loopback only) and pull small models
+  --ollama-models "A B"  models to pull with --with-ollama (default: "qwen2.5:1.5b qwen2.5:3b", ~2.9 GB)
+  --with-qc67       install Cory's pinned QC67 PHOS/SAMGO original weights (~150 MB) for the :8771 sidecar
   --plan            print repo_dir, cloned, and ref, then exit before installing
   -h, --help
 USAGE
@@ -62,6 +68,9 @@ while [[ $# -gt 0 ]]; do
     --no-extras) DO_EXTRAS=0; shift;;
     --with-gba) WITH_GBA=1; shift;;
     --unpinned) PINNED=0; shift;;
+    --with-ollama) WITH_OLLAMA=1; shift;;
+    --ollama-models) OLLAMA_MODELS_WANTED="$2"; WITH_OLLAMA=1; shift 2;;
+    --with-qc67) WITH_QC67=1; shift;;
     --plan) PLAN=1; shift;;
     -h|--help) usage; exit 0;;
     *) echo "unknown option: $1" >&2; usage; exit 2;;
@@ -267,6 +276,74 @@ run_html() {
   return "${PIPESTATUS[0]}"
 }
 
+# ---------- optional: Ollama (setup.sh --with-ollama) ----------
+# Uses the official Ollama release archive (the same file https://ollama.com/install.sh downloads), but
+# installs it user-local under $BB_HOME/ollama with ONLY the CPU runtime (CUDA/ROCm/Vulkan libs are skipped,
+# which saves several GB) and without sudo/systemd. An ollama already on PATH is reused.
+OLLAMA_DIR="$BB_HOME/ollama"; OLLAMA_BIN="$OLLAMA_DIR/bin/ollama"
+install_ollama() {
+  if [[ -x "$OLLAMA_BIN" ]]; then "$OLLAMA_BIN" --version 2>&1 | tail -1; return 0; fi
+  if command -v ollama >/dev/null 2>&1; then
+    mkdir -p "$OLLAMA_DIR/bin"; ln -sf "$(command -v ollama)" "$OLLAMA_BIN"; echo "reusing system ollama: $(command -v ollama)"; return 0
+  fi
+  if ! command -v zstd >/dev/null 2>&1; then
+    [[ $DO_APT -eq 1 ]] || { echo "zstd is required (apt-get install zstd)"; return 1; }
+    $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends zstd || return 1
+  fi
+  mkdir -p "$OLLAMA_DIR"
+  local arch; arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+  curl -fsSL "https://ollama.com/download/ollama-linux-$arch.tar.zst" \
+    | zstd -d | tar -xf - -C "$OLLAMA_DIR" --exclude='lib/ollama/cuda_*' --exclude='lib/ollama/rocm*' \
+        --exclude='lib/ollama/vulkan*' --exclude='lib/ollama/mlx*' || return 1
+  "$OLLAMA_BIN" --version 2>&1 | tail -1
+}
+
+ollama_has() { OLLAMA_HOST="127.0.0.1:$OLLAMA_PORT" "$OLLAMA_BIN" list 2>/dev/null | awk 'NR>1{print $1}' | grep -qx "$1"; }
+
+ollama_pull_models() {
+  local m
+  if ! (exec 3<>"/dev/tcp/127.0.0.1/$OLLAMA_PORT") 2>/dev/null; then
+    "$HERE/run.sh" ollama start --home "$BB_HOME" || return 1
+    echo "(ollama left running in the background; stop it with ./run.sh ollama stop)"
+  fi
+  for m in $OLLAMA_MODELS_WANTED; do
+    if ollama_has "$m"; then echo "$m already present"; continue; fi
+    # Normal path: ollama pull. Fallback: some proxies/sandboxes use fake-IP DNS (198.18.x.x) and Ollama's
+    # redirect guard then refuses the registry's blob CDN ("redirect target not allowed ... non-public").
+    # The fallback fetches the same public manifest + blobs and verifies every SHA-256 digest.
+    OLLAMA_HOST="127.0.0.1:$OLLAMA_PORT" "$OLLAMA_BIN" pull "$m" 2>&1 | tr '\r' '\n' | grep -v '^\s*$' | tail -n 3
+    if ! ollama_has "$m"; then
+      echo "ollama pull $m did not complete; using the SHA-256-verified registry fallback"
+      python3 "$HERE/scripts/ollama_registry_pull.py" "$OLLAMA_DIR/models" "$m" || return 1
+    fi
+  done
+  OLLAMA_HOST="127.0.0.1:$OLLAMA_PORT" "$OLLAMA_BIN" list
+}
+
+ollama_probe() {  # real two-turn memory check through Beast Box's own durable runtime CLI
+  # Uses the LAST (usually largest) model; pass = the turn-1 fact is retrieved from durable memory for turn 2
+  # and the model answered. Whether a tiny model actually uses the memory is printed, not enforced.
+  local m="${OLLAMA_MODELS_WANTED##* }" d="$DATA/ollama-probe"
+  "$VENV/bin/beastbox" doctor --data-dir "$DATA/doctor-ollama" --provider ollama --model "$m" > "$RESULTS/doctor_ollama.json" || return 1
+  rm -rf "$d"
+  cd "$DATA" && "$VENV/bin/beastbox" runtime chat --data-dir "$d" --provider ollama --model "$m" \
+      "Remember this: my dragon is called Ember." > "$RESULTS/ollama_probe_turn1.json" &&
+    "$VENV/bin/beastbox" runtime chat --data-dir "$d" --provider ollama --model "$m" \
+      "What is my dragon called?" > "$RESULTS/ollama_probe_turn2.json" || return 1
+  "$VENV/bin/python" -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+hit = any("Ember" in h["text"] for h in d["memory_hits"])
+print("model:", sys.argv[2]); print("answer:", d["response"].strip()[:300])
+print("turn-1 fact retrieved from durable memory:", hit, "| answer names Ember:", "ember" in d["response"].lower())
+sys.exit(0 if hit and d["response"].strip() else 1)' "$RESULTS/ollama_probe_turn2.json" "$m"
+}
+
+install_qc67() {  # QC67 sidecar needs tiktoken (GPT-2 BPE for SAMGO); weights are pinned + SHA-256 verified
+  uv pip install --python "$VENV/bin/python" tiktoken || return 1
+  cd "$REPO_DIR" && "$VENV/bin/python" -m models.qc67.install_pinned --destination "$BB_HOME/models/qc67-originals"
+}
+
 python_summary() {
   local py="$VENV/bin/python"; [[ -x "$py" ]] || py="python3"
   "$py" "$HERE/scripts/summarize.py" --home "$BB_HOME" --repo-dir "$REPO_DIR" --venv "$VENV" --model-dir "$MODEL_DIR"
@@ -291,6 +368,10 @@ if [[ $DO_TESTS -eq 1 ]]; then
   step pytest_beastbox run_pytest_main
   step pytest_rawrphos run_pytest_rawrphos
 else skip pytest_beastbox "--skip-tests"; skip pytest_rawrphos "--skip-tests"; fi
+if [[ $WITH_OLLAMA -eq 1 ]]; then
+  step ollama_install install_ollama && step ollama_models ollama_pull_models && step ollama_chat_probe ollama_probe
+else skip ollama_install "use --with-ollama"; fi
+if [[ $WITH_QC67 -eq 1 ]]; then step qc67_install install_qc67; fi
 if [[ $DO_EXTRAS -eq 1 ]]; then
   if command -v cargo >/dev/null; then step rust_cargo_test run_rust; else skip rust_cargo_test "cargo not installed"; fi
   if command -v node >/dev/null; then step html_node_test run_html; else skip html_node_test "node not installed"; fi
@@ -298,5 +379,5 @@ else skip rust_cargo_test "--no-extras"; skip html_node_test "--no-extras"; fi
 
 python_summary; rc=$?
 echo
-echo "Next: $HERE/run.sh start --home $BB_HOME   (Cosmic UI :8081, Phera dashboard :8090)"
+echo "Next: $HERE/run.sh start --home $BB_HOME   (Cosmic UI :8081, Phera dashboard :8090$( [[ $WITH_OLLAMA -eq 1 ]] && echo ', Ollama :11434'))"
 exit $rc

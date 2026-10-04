@@ -6,6 +6,15 @@
 * GET  /api/health       last real setup/gauntlet/doctor/test results (results/summary.json) + live service checks
 * POST /api/generate     RAWRPHOS text generation via the local authenticated rawrphos server (127.0.0.1:8767)
 * POST /api/gauntlet     re-run `beastbox run --condition all` + `beastbox doctor` right now (about 1 s)
+* GET  /api/backends     live list of brains Beast Box can use right now (reference, every installed Ollama model,
+                         RAWRPHOS 14K, QC67 PHOS/SAMGO, LM Studio / llama.cpp if running) + the ones that are blocked and why
+* POST /api/brain        {"id"}          switch Cory's Cosmic runtime to that brain (Cosmic POST /api/provider)
+* POST /api/chat         {"text","id"?}  one durable turn through Cosmic's own runtime (POST /api/chat); reports which
+                         brain answered and which durable memories were retrieved
+* GET  /api/conversation durable conversation turns from Cosmic (GET /api/conversation) + which brain wrote each answer
+
+Chat goes through the running Cosmic UI so there is ONE substrate: switching brains keeps memory/story. The Cosmic
+per-session CSRF token is read from Cosmic's own loopback page server-side and never sent to this dashboard's browser.
 
 The RAWRPHOS API key is read from BB_HOME/secrets and only used server-side; it never reaches the browser.
 Nothing here edits the Beast Box repo.
@@ -13,6 +22,7 @@ Nothing here edits the Beast Box repo.
 import argparse
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -25,6 +35,12 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 RAWR_URL = "http://127.0.0.1:8767"
+OLLAMA_URL = "http://127.0.0.1:11434"
+QC67_URL = "http://127.0.0.1:8771"
+OPTIONAL_COMPAT = (("lmstudio", "LM Studio", "http://127.0.0.1:1234/v1"),
+                   ("llamacpp", "llama.cpp server", "http://127.0.0.1:8080/v1"))
+LOOPBACK = urllib.request.build_opener(urllib.request.ProxyHandler({}))  # never route loopback via a proxy
+CHAT_LOCK = threading.Lock()
 GAUNTLET_LOCK = threading.Lock()
 _cpu_prev = {"t": None}
 _cpu_lock = threading.Lock()
@@ -151,7 +167,8 @@ class App:
     def services(self):
         run = self.home / "run"
         out = {}
-        for name, port in (("cosmic", self.cosmic_port), ("rawrphos", 8767), ("dashboard", None)):
+        for name, port in (("cosmic", self.cosmic_port), ("rawrphos", 8767), ("ollama", 11434), ("qc67", 8771),
+                           ("dashboard", None)):
             pid = os.getpid() if name == "dashboard" else pid_alive(run / f"{name}.pid")
             out[name] = {"pid": pid, "port": port, "listening": True if port is None else port_open(port)}
         try:
@@ -247,6 +264,195 @@ class App:
                      "model": r.get("model")}
 
 
+    # ---------- brains: discovery, switching and chat through Cory's Cosmic runtime ----------
+    def _get_json(self, url, headers=None, timeout=3):
+        req = urllib.request.Request(url, headers=headers or {})
+        with LOOPBACK.open(req, timeout=timeout) as r:
+            return json.loads(r.read(1 << 20))
+
+    def cosmic(self, method, path, body=None, timeout=300, _retry=True):
+        base = f"http://127.0.0.1:{self.cosmic_port}"
+        if method == "POST" and not getattr(self, "_cosmic_token", None):
+            html = LOOPBACK.open(base + "/", timeout=10).read().decode("utf-8", "replace")
+            m = re.search(r'sessionKey\s*=\s*("[^"]+")', html)
+            if not m:
+                raise RuntimeError("Cosmic session token not found")
+            self._cosmic_token = json.loads(m.group(1))
+        headers = {"Content-Type": "application/json"}
+        if method == "POST":
+            headers["X-Beast-Session"] = self._cosmic_token
+        data = json.dumps(body or {}).encode() if method == "POST" else None
+        req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
+        try:
+            with LOOPBACK.open(req, timeout=timeout) as r:
+                return r.status, json.loads(r.read(4 << 20))
+        except urllib.error.HTTPError as e:
+            if e.code == 403 and method == "POST" and _retry:  # Cosmic restarted -> new session token
+                self._cosmic_token = None
+                return self.cosmic(method, path, body, timeout, _retry=False)
+            try:
+                return e.code, json.loads(e.read(1 << 20))
+            except ValueError:
+                return e.code, {"error": f"Cosmic HTTP {e.code}"}
+
+    @staticmethod
+    def _same(profile, active):
+        if not active or active.get("kind") != profile["kind"] or active.get("model") != profile["model"]:
+            return False
+        if profile["kind"] == "reference":
+            return True
+        norm = lambda u: (u or "").rstrip("/")  # noqa: E731
+        return norm(active.get("base_url")) == norm(profile.get("base_url"))
+
+    def backends(self):
+        out = []
+        out.append({"id": "reference", "label": "COSMOS reference fixture", "family": "Beast Box built-in",
+                    "available": True, "kind": "reference", "chat_quality": "echo",
+                    "note": "Default runtime provider. Deterministic: echoes the composed prompt + retrieved memory. Not an LLM.",
+                    "profile": {"kind": "reference", "model": "COSMOS reference"}})
+        try:
+            tags = self._get_json(OLLAMA_URL + "/api/tags")
+            try:
+                loaded = {m["name"] for m in self._get_json(OLLAMA_URL + "/api/ps").get("models", [])}
+            except Exception:  # noqa: BLE001
+                loaded = set()
+            models = sorted(tags.get("models", []), key=lambda m: m.get("size", 0))
+            for m in models:
+                d = m.get("details") or {}
+                out.append({"id": "ollama:" + m["name"], "label": m["name"], "family": "Ollama (local CPU)",
+                            "available": True, "kind": "ollama", "chat_quality": "llm",
+                            "size_bytes": m.get("size"), "params": d.get("parameter_size"),
+                            "quant": d.get("quantization_level"), "loaded": m["name"] in loaded,
+                            "profile": {"kind": "ollama", "model": m["name"], "base_url": OLLAMA_URL}})
+            if not models:
+                out.append({"id": "ollama:none", "label": "Ollama (no models pulled)", "family": "Ollama (local CPU)",
+                            "available": False, "kind": "ollama", "reason": "Ollama is running but has no models; ollama pull <name>"})
+        except Exception:  # noqa: BLE001
+            out.append({"id": "ollama:offline", "label": "Ollama", "family": "Ollama (local CPU)", "available": False,
+                        "kind": "ollama", "reason": "Ollama not running on 127.0.0.1:11434 (./run.sh ollama start, or setup.sh --with-ollama)"})
+        key = self.key()
+        auth = {"Authorization": "Bearer " + key} if key else {}
+        try:
+            info = self._get_json(RAWR_URL + "/model/info", auth)
+            ok = info.get("ready") is True
+            out.append({"id": "rawrphos-native", "label": "RAWRPHOS native 14K", "family": "Cory's own model (local CPU)",
+                        "available": ok, "kind": "compatible", "chat_quality": "tiny-story",
+                        "params": f"{info.get('parameter_count', 0) / 1e6:.1f}M", "reason": None if ok else "server not ready",
+                        "note": "3.9M-param story model, 384-token window; Beast Box caps it at 64 output tokens.",
+                        "profile": {"kind": "compatible", "model": "rawrphos-native", "base_url": RAWR_URL + "/v1",
+                                    "api_key_env": "RAWRPHOS_API_KEY"}})
+        except Exception:  # noqa: BLE001
+            out.append({"id": "rawrphos-native", "label": "RAWRPHOS native 14K", "family": "Cory's own model (local CPU)",
+                        "available": False, "kind": "compatible", "reason": "RAWRPHOS server not running on :8767 (./run.sh start)"})
+        for mid, label in (("qc67-phos", "QC67 PHOS (12D char LM)"), ("qc67-samgo", "QC67 SAMGO (54D LM)")):
+            try:
+                info = self._get_json(f"{QC67_URL}/model/info?model={mid}", auth)
+                ok = info.get("ready") is True and info.get("model_id") == mid
+                out.append({"id": mid, "label": label, "family": "QC67 originals (local CPU, experimental)",
+                            "available": ok, "kind": "compatible", "chat_quality": "experimental",
+                            "reason": None if ok else "sidecar not ready",
+                            "note": "Sees only your latest message (bounded-owner-input-only), not retrieved memory.",
+                            "profile": {"kind": "compatible", "model": mid, "base_url": QC67_URL + "/v1",
+                                        "api_key_env": "RAWRPHOS_API_KEY"}})
+            except Exception:  # noqa: BLE001
+                out.append({"id": mid, "label": label, "family": "QC67 originals (local CPU, experimental)",
+                            "available": False, "kind": "compatible",
+                            "reason": "QC67 sidecar not running on :8771 (install pinned weights, then ./run.sh qc67 start)"})
+        for prefix, label, base in OPTIONAL_COMPAT:
+            try:
+                models = self._get_json(base + "/models", timeout=1.5).get("data", [])
+                for m in models[:20]:
+                    out.append({"id": f"{prefix}:{m['id']}", "label": m["id"], "family": label + " (OpenAI-compatible, local)",
+                                "available": True, "kind": "compatible", "chat_quality": "llm",
+                                "profile": {"kind": "compatible", "model": m["id"], "base_url": base}})
+            except Exception:  # noqa: BLE001
+                out.append({"id": prefix, "label": label, "family": "OpenAI-compatible (local)", "available": False,
+                            "kind": "compatible", "reason": f"nothing listening at {base}"})
+        out.append({"id": "cloud", "label": "Cloud APIs (OpenAI-compatible HTTPS, e.g. Ollama Cloud / OpenAI / OpenRouter)",
+                    "family": "Remote (needs your credentials)", "available": False, "kind": "compatible",
+                    "reason": "needs an API key in a host env var set before Cosmic starts + allow_remote + a 'cloud' "
+                              "authority grant in Cosmic; no keys are configured on this box"})
+        out.append({"id": "hf_space", "label": "RAWRPHOS 12K on Cory's private HF ZeroGPU Space",
+                    "family": "Remote (owner-only)", "available": False, "kind": "hf_space",
+                    "reason": "private Space; needs Cory's HF token from his encrypted owner vault + cloud authority"})
+        status, prov = (None, None)
+        try:
+            status, prov = self.cosmic("GET", "/api/provider", timeout=5)
+        except Exception:  # noqa: BLE001
+            pass
+        active = prov.get("profile") if status == 200 else None
+        active_id = None
+        for b in out:
+            b["active"] = bool(b.get("profile")) and self._same(b["profile"], active)
+            if b["active"]:
+                active_id = b["id"]
+        return {"at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "active_profile": active, "active_id": active_id,
+                "cosmic_up": status == 200, "backends": out}
+
+    def _profile_for(self, bid):
+        for b in self.backends()["backends"]:
+            if b["id"] == bid:
+                if not b.get("available") or not b.get("profile"):
+                    return None, b.get("reason") or "not available"
+                return b, None
+        return None, "unknown backend id"
+
+    def set_brain(self, body):
+        b, err = self._profile_for(body.get("id"))
+        if err:
+            return 409, {"error": err}
+        status, res = self.cosmic("POST", "/api/provider", b["profile"])
+        if status != 200:
+            return status, {"error": res.get("error", "Cosmic refused the provider"), "cosmic": res}
+        return 200, {"active_id": b["id"], "label": b["label"], "brain_changed": res.get("brain_changed"),
+                     "authority_revoked": res.get("authority_revoked"), "profile": res.get("profile")}
+
+    def chat(self, body):
+        text = body.get("text")
+        if not isinstance(text, str) or not 1 <= len(text.strip()) <= 4000:
+            return 400, {"error": "message must be 1-4000 characters"}
+        req = {"text": text}
+        brain = None
+        if body.get("id"):
+            brain, err = self._profile_for(body["id"])
+            if err:
+                return 409, {"error": err}
+            req["provider"] = brain["profile"]
+        if not CHAT_LOCK.acquire(timeout=1):
+            return 429, {"error": "another chat turn is still running"}
+        try:
+            t0 = time.perf_counter()
+            status, res = self.cosmic("POST", "/api/chat", req, timeout=600)
+            wall = round(time.perf_counter() - t0, 2)
+        finally:
+            CHAT_LOCK.release()
+        if status != 200:
+            return status, {"error": res.get("error", f"Cosmic HTTP {status}"),
+                            "provider_failure": res.get("provider_failure")}
+        r = res.get("result", {})
+        prof = res.get("provider") or {}
+        label = (r.get("model") or {}).get("model") if isinstance(r.get("model"), dict) else None
+        return 200, {"response": r.get("response"), "wall_seconds": wall,
+                     "brain": {"id": brain["id"] if brain else None, "label": brain["label"] if brain else prof.get("model"),
+                               "kind": prof.get("kind"), "model": prof.get("model"), "recorded_label": label},
+                     "brain_changed": res.get("brain_changed"), "substrate_preserved": res.get("substrate_preserved"),
+                     "memory_hits": [h.get("text", "")[:300] for h in r.get("memory_hits", [])],
+                     "memory_records": ((res.get("runtime") or {}).get("memory") or {}).get("memories"),
+                     "checkpoint_sequence": (res.get("runtime") or {}).get("sequence"),
+                     "system_id": (res.get("runtime") or {}).get("system_id")}
+
+    def conversation(self):
+        status, res = self.cosmic("GET", "/api/conversation", timeout=20)
+        if status != 200:
+            return status, {"error": res.get("error", "Cosmic unavailable")}
+        turns = []
+        for t in res.get("turns", [])[-60:]:
+            md = t.get("metadata") or {}
+            turns.append({"role": "you" if t.get("kind") == "user_turn" else "beast", "text": t.get("text", "")[:4000],
+                          "brain": md.get("model"), "id": t.get("id"), "created_at": t.get("created_at")})
+        return 200, {"turns": turns}
+
+
 def make_handler(app):
     class H(BaseHTTPRequestHandler):
         server_version = "PheraBeastBox/1.0"
@@ -274,6 +480,10 @@ def make_handler(app):
                 return self.send(200, app.health())
             if path == "/healthz":
                 return self.send(200, {"ok": True})
+            if path == "/api/backends":
+                return self.send(200, app.backends())
+            if path == "/api/conversation":
+                return self.send(*app.conversation())
             return self.send(404, {"error": "not found"})
 
         def do_POST(self):
@@ -294,6 +504,10 @@ def make_handler(app):
                 return self.send(*app.generate(body))
             if path == "/api/gauntlet":
                 return self.send(*app.rerun_gauntlet())
+            if path == "/api/brain":
+                return self.send(*app.set_brain(body))
+            if path == "/api/chat":
+                return self.send(*app.chat(body))
             return self.send(404, {"error": "not found"})
 
     return H

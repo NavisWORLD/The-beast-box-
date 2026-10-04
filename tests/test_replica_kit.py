@@ -16,6 +16,9 @@ REQUIRED = (
     "constraints.txt",
     "README.md",
     "scripts/summarize.py",
+    "scripts/ollama_registry_pull.py",
+    "scripts/cosmic_client.py",
+    "scripts/cosmic_feature_sweep.py",
     "dashboard/server.py",
     "dashboard/index.html",
 )
@@ -48,11 +51,20 @@ def test_replica_files_are_present_and_key_stays_outside_the_repo() -> None:
     run = (KIT / "run.sh").read_text(encoding="utf-8")
     assert PIN in setup
     assert "html/tests/*.js" in setup
+    assert "--with-ollama" in setup and "--with-qc67" in setup
+    assert "lib/ollama/cuda_" in setup
+    assert "systemctl" not in setup
+    assert "ollama-linux-" in setup
     assert 'BB_HOME/secrets' in setup or '"$BB_HOME/secrets"' in setup
     assert "rawrphos_api_key" in setup
     assert "chmod 600" in setup
     assert "RAWRPHOS_API_KEY" not in (KIT / "constraints.txt").read_text(encoding="utf-8")
     assert "secrets/rawrphos_api_key" in run
+    assert "--no-ollama" in run and "ollama serve" in run
+    page = (KIT / "dashboard" / "index.html").read_text(encoding="utf-8")
+    server = (KIT / "dashboard" / "server.py").read_text(encoding="utf-8")
+    assert "Brains" in page and "Talk to the Beast" in page
+    assert "/api/provider" in server and "/api/brain" in server and "/api/chat" in server
     for script in ("setup.sh", "run.sh"):
         mode = (KIT / script).stat().st_mode
         assert mode & stat.S_IXUSR

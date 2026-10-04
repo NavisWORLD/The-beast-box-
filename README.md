@@ -156,14 +156,15 @@ The existing [COSMIC.CYPHER](docs/COSMIC_CYPHER.md) tooling also supports GGUF, 
 
 ## Exact replica
 
-[Phera's Beast Box replica kit](replica/README.md) rebuilds this repository on a fresh Debian or Ubuntu machine and checks doctor, the cosmic smoke test, the E1–E20 gauntlet, both pytest suites, Rust, and the HTML tests. From this checkout the kit uses the checkout it lives in. `--clone` still builds the pinned v0.7.1 commit instead.
+[Phera's Beast Box replica kit](replica/README.md) rebuilds this repository on a fresh Debian or Ubuntu machine and checks doctor, the cosmic smoke test, the E1–E20 gauntlet, both pytest suites, Rust, and the HTML tests. From this checkout the kit uses the checkout it lives in. `--clone` still builds the pinned v0.7.1 commit instead. Optional `--with-ollama` installs a user-local CPU Ollama under the kit home, and the dashboard can switch brains through Cosmic while memory stays on the substrate.
 
 ```bash
 ./replica/setup.sh
+./replica/setup.sh --with-ollama --ollama-models "qwen2.5:1.5b"
 ./replica/run.sh start
 ```
 
-Cosmic UI is on port 8081, the RAWRPHØS server on 8767, and the dashboard on 8090. The virtualenv, checkpoint, and loopback API key stay under `~/.beastbox-replica`, outside this repository.
+Cosmic UI is on port 8081, the RAWRPHØS server on 8767, and the dashboard on 8090. The virtualenv, checkpoint, Ollama files, and loopback API key stay under `~/.beastbox-replica`, outside this repository.
 
 ## Sensors, tools and recovery
 
