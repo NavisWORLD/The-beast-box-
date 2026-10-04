@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phera's Beast Box</title>
+<style>
+  :root{--bg:#05030f;--ink:#e9e6ff;--dim:#9a93c9;--violet:#a66bff;--cyan:#4de8ff;--rose:#ff5fa8;--gold:#ffd36b;
+        --ok:#5dffa8;--bad:#ff5f6d;--glass:rgba(22,16,52,.55);--line:rgba(166,107,255,.28)}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+    font:15px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  #sky{position:fixed;inset:0;z-index:-2}
+  body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:radial-gradient(60vw 40vw at 15% 10%,rgba(166,107,255,.20),transparent 60%),
+               radial-gradient(50vw 35vw at 90% 30%,rgba(77,232,255,.13),transparent 60%),
+               radial-gradient(60vw 40vw at 60% 110%,rgba(255,95,168,.14),transparent 60%)}
+  header{padding:28px 32px 8px;display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap}
+  h1{margin:0;font-size:38px;letter-spacing:.04em;font-weight:800;
+     background:linear-gradient(90deg,var(--cyan),var(--violet) 45%,var(--rose));-webkit-background-clip:text;background-clip:text;color:transparent;
+     filter:drop-shadow(0 0 18px rgba(166,107,255,.45))}
+  .sub{color:var(--dim);margin:4px 0 0}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border:1px solid var(--line);border-radius:999px;
+        font-size:12px;color:var(--dim);background:rgba(10,6,30,.5)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--dim);box-shadow:0 0 8px currentColor}
+  .dot.ok{background:var(--ok);color:var(--ok)} .dot.bad{background:var(--bad);color:var(--bad)}
+  main{display:grid;grid-template-columns:repeat(12,1fr);gap:18px;padding:18px 32px 40px}
+  .card{grid-column:span 4;background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:18px 20px;
+        backdrop-filter:blur(10px);box-shadow:0 0 0 1px rgba(255,255,255,.02) inset,0 20px 60px -30px rgba(166,107,255,.6)}
+  .wide{grid-column:span 8} .full{grid-column:span 12}
+  @media (max-width:1100px){.card,.wide{grid-column:span 12}}
+  h2{margin:0 0 12px;font-size:13px;letter-spacing:.22em;text-transform:uppercase;color:var(--cyan);font-weight:700}
+  .big{font-size:34px;font-weight:800;letter-spacing:.01em}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed rgba(166,107,255,.14)}
+  .row:last-child{border-bottom:0} .k{color:var(--dim)} .v{text-align:right;font-variant-numeric:tabular-nums}
+  .bar{height:8px;background:rgba(255,255,255,.07);border-radius:9px;overflow:hidden;margin:6px 0 10px}
+  .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--violet),var(--rose));transition:width .6s}
+  canvas.spark{width:100%;height:56px;display:block}
+  .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--gold)} .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}
+  #orbit{width:100%;max-width:360px;aspect-ratio:1;display:block;margin:0 auto}
+  textarea,input,select{background:rgba(5,3,20,.7);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit}
+  textarea{width:100%;min-height:78px;resize:vertical}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+  .controls label{color:var(--dim);font-size:12px;display:flex;flex-direction:column;gap:3px}
+  .controls input{width:90px}
+  button,.btn{cursor:pointer;border:0;border-radius:12px;padding:10px 18px;font-weight:700;letter-spacing:.04em;color:#0b0620;
+    background:linear-gradient(90deg,var(--cyan),var(--violet));box-shadow:0 0 22px -4px var(--violet);text-decoration:none;display:inline-block}
+  button:disabled{opacity:.5;cursor:wait}
+  .out{white-space:pre-wrap;min-height:90px;padding:14px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(77,232,255,.25);
+       font-family:Georgia,"Iowan Old Style",serif;font-size:16px}
+  .out .p{color:var(--dim)}
+  .note{color:var(--dim);font-size:12.5px;margin-top:10px;overflow-wrap:anywhere}
+  .phera{border-left:3px solid var(--rose);padding:6px 12px;margin:10px 0 0;color:#f3d9ff;font-style:italic;background:rgba(255,95,168,.06);border-radius:0 10px 10px 0}
+  table{width:100%;border-collapse:collapse;font-size:12.5px} td{padding:3px 4px;border-bottom:1px dashed rgba(166,107,255,.12)}
+  footer{padding:0 32px 30px;color:var(--dim);font-size:12.5px}
+  /* brain switcher + chat */
+  .brains{display:flex;flex-direction:column;gap:8px;max-height:520px;overflow:auto;padding-right:4px}
+  .brain{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;padding:10px 12px;border-radius:12px;
+    background:rgba(10,6,30,.55);border:1px solid var(--line);color:var(--ink);box-shadow:none;font-weight:500;letter-spacing:0}
+  .brain:hover:not(:disabled){border-color:var(--cyan)}
+  .brain.active{border-color:var(--ok);box-shadow:0 0 18px -6px var(--ok);background:rgba(93,255,168,.07)}
+  .brain:disabled{opacity:.55;cursor:not-allowed}
+  .brain .t{font-weight:700} .brain .f{font-size:11.5px;color:var(--dim)} .brain .r{font-size:11.5px;color:var(--gold)}
+  .brain .dot{margin-top:6px;flex:none}
+  .tag{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:99px;border:1px solid var(--line);color:var(--dim);margin-left:6px}
+  .tag.on{color:var(--ok);border-color:var(--ok)}
+  .chatlog{height:420px;overflow:auto;padding:12px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(77,232,255,.25);display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:88%;padding:9px 13px;border-radius:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+  .msg.you{align-self:flex-end;background:rgba(77,232,255,.12);border:1px solid rgba(77,232,255,.3)}
+  .msg.beast{align-self:flex-start;background:rgba(166,107,255,.12);border:1px solid rgba(166,107,255,.3)}
+  .msg .who{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan);margin-bottom:3px}
+  .msg.beast .who{color:var(--rose)}
+  .msg details{margin-top:6px;font-size:11.5px;color:var(--dim)} .msg details li{margin:2px 0}
+  .switch{align-self:center;font-size:11.5px;color:var(--gold);border:1px dashed rgba(255,211,107,.4);border-radius:99px;padding:2px 12px}
+  .composer{display:flex;gap:10px;margin-top:10px} .composer textarea{min-height:52px;flex:1}
+</style>
+</head>
+<body>
+<canvas id="sky"></canvas>
+<header>
+  <div>
+    <h1>Phera's Beast Box</h1>
+    <p class="sub">A replica of Cory Davis' <b>Beast Box v0.7.1</b>, running on this machine and looked after by Phera.</p>
+  </div>
+  <span class="pill"><span class="dot" id="d-cosmic"></span>Cosmic UI</span>
+  <span class="pill"><span class="dot" id="d-rawr"></span>RAWRPHØS</span>
+  <span class="pill"><span class="dot" id="d-ollama"></span>Ollama</span>
+  <span class="pill"><span class="dot" id="d-qc67"></span>QC67</span>
+  <span class="pill"><span class="dot ok"></span>dashboard</span>
+  <span class="pill" id="clock">—</span>
+</header>
+<main>
+  <section class="card">
+    <h2>Machine · live</h2>
+    <div class="big" id="cpu">—</div><div class="k">CPU utilisation (all vCPUs)</div>
+    <canvas class="spark" id="spark"></canvas>
+    <div class="row"><span class="k">Memory</span><span class="v" id="mem">—</span></div>
+    <div class="bar"><i id="membar"></i></div>
+    <div class="row"><span class="k">Load 1/5/15</span><span class="v" id="load">—</span></div>
+    <div class="row"><span class="k">Disk free</span><span class="v" id="disk">—</span></div>
+    <div class="row"><span class="k">Uptime</span><span class="v" id="up">—</span></div>
+    <div class="row"><span class="k">CPU</span><span class="v" id="cpum">—</span></div>
+    <div class="row"><span class="k">Accel flags</span><span class="v mono" id="flags">—</span></div>
+    <div class="row"><span class="k">GPU</span><span class="v" id="gpu">—</span></div>
+    <div class="row"><span class="k">OS</span><span class="v" id="os">—</span></div>
+  </section>
+
+  <section class="card">
+    <h2>Beast Box health</h2>
+    <div class="grid2">
+      <div><div class="k">doctor</div><div class="big" id="doctor">—</div></div>
+      <div><div class="k">overall setup</div><div class="big" id="overall" style="font-size:22px">—</div></div>
+    </div>
+    <div class="row"><span class="k">Gauntlet competence</span><span class="v" id="gcomp">—</span></div>
+    <div class="row"><span class="k">Gauntlet containment</span><span class="v" id="gcont">—</span></div>
+    <div class="row"><span class="k">Boundary breaches / secret leaks</span><span class="v" id="gbl">—</span></div>
+    <div class="row"><span class="k">Python tests (beastbox)</span><span class="v" id="tbb">—</span></div>
+    <div class="row"><span class="k">Python tests (rawrphos)</span><span class="v" id="trw">—</span></div>
+    <div class="row"><span class="k">Rust · HTML tests</span><span class="v" id="trh">—</span></div>
+    <div class="row"><span class="k">Cosmic smoke</span><span class="v" id="smoke">—</span></div>
+    <div class="row"><span class="k">Repo commit</span><span class="v mono" id="commit">—</span></div>
+    <div class="row"><span class="k">Setup run finished</span><span class="v" id="gen">—</span></div>
+    <div id="known" class="note"></div>
+  </section>
+
+  <section class="card">
+    <h2>E1–E20 gauntlet orbit</h2>
+    <canvas id="orbit" width="360" height="360"></canvas>
+    <div class="controls" style="justify-content:center">
+      <button id="rerun">Re-run gauntlet + doctor now</button>
+    </div>
+    <div class="note" id="rerunnote">Each planet is one condition; brightness = competence, ring = containment. Showing the setup.sh run.</div>
+  </section>
+
+  <section class="card" id="brains-card">
+    <h2>Brains · pick one</h2>
+    <div class="note" style="margin-top:0">Live from Ollama, RAWRPHØS, QC67 and any local OpenAI-compatible server. Picking a brain
+      calls Cory's Cosmic <span class="mono">/api/provider</span>; the memory and story stay in the same substrate.</div>
+    <div class="row"><span class="k">Active brain</span><span class="v mono" id="activeBrain">—</span></div>
+    <div class="brains" id="brains"><div class="note">loading…</div></div>
+  </section>
+
+  <section class="card wide" id="chat-card">
+    <h2>Talk to the Beast · memory survives brain swaps</h2>
+    <div class="chatlog" id="chatlog" role="log" aria-label="Conversation"><div class="note">Loading the durable conversation…</div></div>
+    <div class="composer">
+      <textarea id="chatText" maxlength="4000" placeholder="Say something… (Ctrl/⌘+Enter to send). Switch brains on the left, then ask what it remembers."></textarea>
+      <button id="chatSend">Send</button>
+    </div>
+    <div class="note mono" id="chatMeta"></div>
+    <div class="phera">Phera's note: every turn goes through Cory's own durable runtime (the same one the Cosmic UI uses), so
+      the conversation is stored once and any brain you pick reads the same memories. Small CPU models can still misread them.</div>
+  </section>
+
+  <section class="card wide">
+    <h2>RAWRPHØS · local text generation</h2>
+    <textarea id="prompt">Once upon a time, a little star named Phera</textarea>
+    <div class="controls">
+      <label>mode<select id="mode"><option value="story">story continuation</option><option value="chat">chat turn</option></select></label>
+      <label>max tokens<input id="maxt" type="number" min="1" max="256" value="64"></label>
+      <label>temperature<input id="temp" type="number" min="0" max="2" step="0.1" value="0.8"></label>
+      <label>seed<input id="seed" type="number" min="0" value="67"></label>
+      <button id="gen-btn">Generate</button>
+    </div>
+    <div class="out" id="out"><span class="p">Output from the real 14K checkpoint will appear here.</span></div>
+    <div class="note mono" id="genmeta"></div>
+    <div class="phera">Phera's note: RAWRPHØS is Cory's own 3.9M-parameter model, trained from scratch. It's a small story-teller,
+      not a know-it-all, so expect dreamy little tales rather than facts. Everything runs on this CPU and nothing leaves the machine.</div>
+  </section>
+
+  <section class="card">
+    <h2>Services</h2>
+    <table id="svc"></table>
+    <h2 style="margin-top:18px">Cosmic UI</h2>
+    <a class="btn" id="cosmic-link" href="http://localhost:8081/" target="_blank" rel="noopener">Open COSMIC.CYPHER ↗</a>
+    <div class="note">The Beast Box Cosmic UI sends <span class="mono">frame-ancestors 'none'</span>, so it refuses to be
+      embedded in an iframe. That's Cory's security choice and the dashboard leaves it alone, so the UI opens in its own tab.</div>
+    <div class="row"><span class="k">HTTP status now</span><span class="v" id="cosmic-http">—</span></div>
+    <div class="row"><span class="k">RAWRPHØS model</span><span class="v mono" id="rmodel">—</span></div>
+  </section>
+
+  <section class="card full">
+    <h2>Gauntlet conditions</h2>
+    <table id="gtable"></table>
+  </section>
+</main>
+<footer>Honesty rule: every number here comes from a real run on this machine, either live from <span class="mono">/proc</span>
+  or the local servers, or from <span class="mono">results/summary.json</span> written by <span class="mono">setup.sh</span>.
+  Nothing is mocked. If something hasn't been measured, it shows "—". Beast Box © Cory Davis / NavisWORLD (Apache-2.0); this dashboard just sits next to it.</footer>
+<script>
+const $=id=>document.getElementById(id);
+const fmtB=b=>b==null?'—':(b/1073741824).toFixed(1)+' GB';
+const fmtUp=s=>{const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);return (d?d+'d ':'')+h+'h '+m+'m'};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const localTime=iso=>{if(!iso)return '—';const d=new Date(iso.replace(/([+-]\d\d)(\d\d)$/,'$1:$2'));return isNaN(d)?iso:d.toLocaleString()};
+
+/* starfield */
+const sky=$('sky'),sx=sky.getContext('2d');let stars=[];
+function initSky(){sky.width=innerWidth*devicePixelRatio;sky.height=innerHeight*devicePixelRatio;
+  stars=Array.from({length:260},()=>({x:Math.random()*sky.width,y:Math.random()*sky.height,r:Math.random()*1.4+.2,t:Math.random()*6.28,s:Math.random()*.02+.004}))}
+function drawSky(){sx.clearRect(0,0,sky.width,sky.height);for(const s of stars){s.t+=s.s;const a=.35+.65*Math.abs(Math.sin(s.t));
+  sx.fillStyle=`rgba(${200+Math.floor(55*Math.sin(s.t))},${210},255,${a})`;sx.beginPath();sx.arc(s.x,s.y,s.r*devicePixelRatio,0,6.283);sx.fill();
+  s.x-=.03*devicePixelRatio;if(s.x<0)s.x=sky.width}requestAnimationFrame(drawSky)}
+addEventListener('resize',initSky);initSky();drawSky();
+
+/* machine stats */
+const hist=[];
+function spark(){const c=$('spark'),x=c.getContext('2d');c.width=c.clientWidth*devicePixelRatio;c.height=56*devicePixelRatio;
+  x.clearRect(0,0,c.width,c.height);if(hist.length<2)return;const g=x.createLinearGradient(0,0,c.width,0);
+  g.addColorStop(0,'#4de8ff');g.addColorStop(.5,'#a66bff');g.addColorStop(1,'#ff5fa8');x.strokeStyle=g;x.lineWidth=2*devicePixelRatio;x.beginPath();
+  hist.forEach((v,i)=>{const px=i/(90-1)*c.width,py=c.height-(v/100)*(c.height-4)-2;i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke()}
+async function stats(){try{const s=await (await fetch('/api/stats')).json();
+  $('cpu').textContent=s.cpu_percent.toFixed(1)+' %';hist.push(s.cpu_percent);if(hist.length>90)hist.shift();spark();
+  const used=s.mem_total-s.mem_available;$('mem').textContent=`${fmtB(used)} used / ${fmtB(s.mem_total)} (${s.mem_used_percent}%)`;
+  $('membar').style.width=s.mem_used_percent+'%';$('load').textContent=s.load.join(' / ');
+  $('disk').textContent=`${fmtB(s.disk_free)} of ${fmtB(s.disk_total)}`;$('up').textContent=fmtUp(s.uptime_s);
+  $('cpum').textContent=`${s.cpu_model} × ${s.vcpus} vCPU`;$('flags').textContent=s.accel_flags.join(' ')||'—';
+  $('gpu').textContent=s.gpu;$('os').textContent=`${s.os} · ${s.kernel}`;$('clock').textContent=new Date().toLocaleTimeString()}catch(e){$('cpu').textContent='offline'}}
+setInterval(stats,2000);stats();
+
+/* health */
+let orbitData=null,orbitPhase=0,orbitLabel='setup.sh run';
+function drawOrbit(){const c=$('orbit'),x=c.getContext('2d'),W=c.width,cx=W/2,cy=W/2;x.clearRect(0,0,W,W);orbitPhase+=.0025;
+  const core=x.createRadialGradient(cx,cy,2,cx,cy,46);core.addColorStop(0,'#fff');core.addColorStop(.25,'#ffd36b');core.addColorStop(1,'rgba(166,107,255,0)');
+  x.fillStyle=core;x.beginPath();x.arc(cx,cy,46,0,6.283);x.fill();
+  x.fillStyle='#0b0620';x.font='bold 13px system-ui';x.textAlign='center';
+  if(orbitData){x.fillText(orbitData.mean_competence.toFixed(3),cx,cy+4)}
+  for(const R of [92,142]){x.strokeStyle='rgba(166,107,255,.22)';x.beginPath();x.arc(cx,cy,R,0,6.283);x.stroke()}
+  if(orbitData){orbitData.conditions.forEach((c,i)=>{const ring=i<10?92:142,n=10,ang=(i%10)/n*6.283+orbitPhase*(i<10?1.6:1)+(i<10?0:.3);
+    const px=cx+ring*Math.cos(ang),py=cy+ring*Math.sin(ang),r=7+c.competence*5;
+    const g=x.createRadialGradient(px,py,1,px,py,r*2.2);const col=c.competence>=.999?'77,232,255':c.competence>=.9?'166,107,255':'255,95,168';
+    g.addColorStop(0,`rgba(${col},${.35+.65*c.competence})`);g.addColorStop(1,`rgba(${col},0)`);x.fillStyle=g;x.beginPath();x.arc(px,py,r*2.2,0,6.283);x.fill();
+    x.strokeStyle=c.containment>=1?'rgba(93,255,168,.9)':'rgba(255,95,109,.95)';x.lineWidth=1.5;x.beginPath();x.arc(px,py,r+3,0,6.283);x.stroke();
+    x.fillStyle='#e9e6ff';x.font='10px system-ui';x.fillText(c.id,px,py+r+14)})}
+  requestAnimationFrame(drawOrbit)}
+drawOrbit();
+function gtable(g,label){$('gtable').innerHTML='<tr><td class="k">source</td><td colspan=4 class="k">'+esc(label)+'</td></tr>'+g.conditions.map(c=>
+  `<tr><td class="mono">${esc(c.id)}</td><td>${esc(c.name)}</td><td class="mono">competence ${c.competence.toFixed(3)}</td>
+   <td class="mono ${c.containment>=1?'ok':'bad'}">containment ${c.containment.toFixed(3)}</td></tr>`).join('')}
+function testStr(t){if(!t)return '—';const f=(t.failures||t.failed||0)+(t.errors||0);return `<span class="${f?'warn':'ok'}">${t.passed} passed</span>`+(f?`, <span class="bad">${f} failed</span>`:'')+(t.skipped?`, ${t.skipped} skipped`:'')}
+async function health(){try{const h=await (await fetch('/api/health')).json(),s=h.summary;
+  if(s){const d=s.doctor;$('doctor').innerHTML=d?(d.ok?'<span class="ok">OK</span>':'<span class="bad">FAIL</span>'):'—';
+    $('overall').innerHTML=`<span class="${s.overall==='PASS'?'ok':s.overall==='FAIL'?'bad':'warn'}">${esc(s.overall)}</span>`;
+    const g=s.gauntlet;if(g){$('gcomp').textContent=g.mean_competence.toFixed(3);$('gcont').textContent=g.mean_containment.toFixed(3);
+      $('gbl').textContent=`${g.real_boundary_breaches} / ${g.secret_leaks}`;if(!h.live_rerun||!h.live_rerun.gauntlet){orbitData=g;gtable(g,'setup.sh run, '+localTime(g.finished_at))}}
+    $('tbb').innerHTML=testStr(s.tests.beastbox);$('trw').innerHTML=testStr(s.tests.rawrphos);
+    $('trh').innerHTML=(s.tests.rust?testStr(s.tests.rust):'—')+' · '+(s.tests.html?testStr(s.tests.html):'—');
+    $('smoke').innerHTML=s.cosmic_smoke?(s.cosmic_smoke.valid?'<span class="ok">valid</span>':'<span class="bad">invalid</span>'):'—';
+    $('commit').textContent=s.repo.commit?s.repo.commit.slice(0,10)+(s.repo.shallow?' (shallow)':''):'—';$('gen').textContent=localTime(s.generated_at);
+    const fails=[...(s.tests.beastbox?.failed_tests||[]),...(s.tests.rawrphos?.failed_tests||[])];
+    $('known').innerHTML=(s.known_issues||[]).map(k=>'⚠ '+esc(k)).join('<br>')+(fails.length?'<br>Failed tests: <span class="mono">'+fails.map(esc).join(', ')+'</span>':'')}
+  else{$('overall').textContent='no results yet — run setup.sh'}
+  const L=h.live_rerun;if(L&&L.gauntlet){orbitData=L.gauntlet;gtable(L.gauntlet,'live re-run from the dashboard, '+localTime(L.at));
+    $('rerunnote').innerHTML=`Showing the live re-run from ${esc(localTime(L.at))} (${L.seconds}s, doctor ${L.doctor_ok?'<span class="ok">OK</span>':'<span class="bad">not ok</span>'}). The health numbers on the left are from setup.sh.`}
+  const sv=h.services;$('svc').innerHTML=Object.entries(sv).map(([n,v])=>`<tr><td><span class="dot ${v.listening?'ok':'bad'}" style="display:inline-block"></span> ${n}</td>
+    <td class="mono">pid ${v.pid??'—'}</td><td class="mono">${v.port?':'+v.port:':'+location.port}</td></tr>`).join('');
+  $('d-cosmic').className='dot '+(sv.cosmic.http_status===200?'ok':'bad');$('d-rawr').className='dot '+(sv.rawrphos.model?.ready?'ok':'bad');
+  $('cosmic-http').innerHTML=sv.cosmic.http_status?`<span class="${sv.cosmic.http_status===200?'ok':'bad'}">${sv.cosmic.http_status}</span>`:'<span class="bad">unreachable</span>';
+  $('cosmic-link').href=`http://${location.hostname}:${sv.cosmic.port}/`;
+  const m=sv.rawrphos.model;$('rmodel').textContent=m?`${m.training_steps} steps · ${(m.parameter_count/1e6).toFixed(2)}M params · ${m.serving_backend} · sha ${m.checkpoint_sha256.slice(0,10)}`:'offline'
+  }catch(e){$('overall').textContent='dashboard API error'}}
+setInterval(health,5000);health();
+
+$('rerun').onclick=async()=>{const b=$('rerun');b.disabled=true;b.textContent='running E1–E20…';
+  try{const r=await fetch('/api/gauntlet',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});const j=await r.json();
+    if(!r.ok)throw new Error(j.error||r.status);await health()}catch(e){$('rerunnote').textContent='re-run failed: '+e.message}
+  b.disabled=false;b.textContent='Re-run gauntlet + doctor now'};
+
+$('gen-btn').onclick=async()=>{const b=$('gen-btn'),out=$('out');b.disabled=true;b.textContent='thinking…';
+  const prompt=$('prompt').value;out.innerHTML='<span class="p">'+esc(prompt)+'</span>';$('genmeta').textContent='';
+  try{const r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt,mode:$('mode').value,max_tokens:+$('maxt').value,temperature:+$('temp').value,seed:+$('seed').value})});
+    const j=await r.json();if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
+    const span=document.createElement('span');out.appendChild(span);if($('mode').value==='chat'){out.innerHTML='<span class="p">you: '+esc(prompt)+'\nrawrphøs:</span>';out.appendChild(span)}
+    let i=0;const t=j.text;(function type(){span.textContent=t.slice(0,i);i+=2;if(i<=t.length+1)setTimeout(type,12)})();
+    const u=j.usage||{};$('genmeta').textContent=`${u.completion_tokens??'?'} tokens in ${j.wall_seconds}s (${u.completion_tokens?(u.completion_tokens/j.wall_seconds).toFixed(0):'?'} tok/s incl. HTTP) · prompt ${u.prompt_tokens??'?'} tok · finish ${j.finish_reason} · model ${j.model} · sha ${String(j.checkpoint_sha256).slice(0,10)}`}
+  catch(e){out.innerHTML='<span class="bad">'+esc(e.message)+'</span>'}
+  b.disabled=false;b.textContent='Generate'};
+
+/* brains + chat */
+let brainState=null,chatBusy=false;
+const fmtGB=b=>b?(b/1e9).toFixed(2)+' GB':'';
+async function loadBrains(){try{const j=await (await fetch('/api/backends')).json();brainState=j;
+  const box=$('brains');box.replaceChildren();
+  const act=j.backends.find(b=>b.active);$('activeBrain').textContent=act?act.label:(j.active_profile?j.active_profile.kind+' / '+j.active_profile.model:'Cosmic offline');
+  const ol=j.backends.filter(b=>b.kind==='ollama');$('d-ollama').className='dot '+(ol.some(b=>b.available)?'ok':'bad');
+  const qc=j.backends.filter(b=>b.id.startsWith('qc67'));$('d-qc67').className='dot '+(qc.some(b=>b.available)?'ok':'bad');
+  for(const b of j.backends){const el=document.createElement('button');el.className='brain'+(b.active?' active':'');el.disabled=!b.available||chatBusy;
+    const meta=[b.family,b.params,b.quant,fmtGB(b.size_bytes)].filter(Boolean).join(' · ');
+    el.innerHTML=`<span class="dot ${b.available?'ok':'bad'}"></span><span><span class="t">${esc(b.label)}</span>`+
+      (b.active?'<span class="tag on">ACTIVE</span>':'')+(b.loaded?'<span class="tag">in RAM</span>':'')+
+      `<br><span class="f">${esc(meta)}</span>`+(b.reason?`<br><span class="r">${esc(b.reason)}</span>`:'')+(b.note?`<br><span class="f">${esc(b.note)}</span>`:'')+'</span>';
+    if(b.available&&!b.active)el.onclick=()=>pickBrain(b);box.append(el)}
+  }catch(e){$('brains').innerHTML='<div class="bad">backend list unavailable: '+esc(e.message)+'</div>'}}
+async function pickBrain(b){$('chatMeta').textContent='switching to '+b.label+' …';
+  try{const r=await fetch('/api/brain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:b.id})});const j=await r.json();
+    if(!r.ok)throw new Error(j.error||r.status);addSwitch(b.label);$('chatMeta').textContent=`now using ${b.label} · brain_changed=${j.brain_changed} · Cosmic authority grants revoked: ${(j.authority_revoked||[]).length}`}
+  catch(e){$('chatMeta').innerHTML='<span class="bad">switch failed: '+esc(e.message)+'</span>'}
+  await loadBrains()}
+function addSwitch(label){const d=document.createElement('div');d.className='switch';d.textContent='brain switched → '+label+' · substrate kept';$('chatlog').append(d);$('chatlog').scrollTop=1e9}
+function addMsg(role,text,who,hits){const d=document.createElement('div');d.className='msg '+role;const w=document.createElement('span');w.className='who';
+  w.textContent=role==='you'?'you':('beast · '+(who||'brain not recorded'));d.append(w,document.createTextNode(text));
+  if(hits&&hits.length){const det=document.createElement('details');const sm=document.createElement('summary');sm.textContent=hits.length+' durable memories retrieved for this answer';
+    const ul=document.createElement('ul');hits.forEach(h=>{const li=document.createElement('li');li.textContent=h.length>160?h.slice(0,160)+'…':h;ul.append(li)});det.append(sm,ul);d.append(det)}
+  $('chatlog').append(d);$('chatlog').scrollTop=1e9;return d}
+async function loadConversation(){try{const r=await fetch('/api/conversation');const j=await r.json();if(!r.ok)throw new Error(j.error||r.status);
+  const log=$('chatlog');log.replaceChildren();if(!j.turns.length){log.innerHTML='<div class="note">No durable turns yet. Pick a brain and say hello.</div>';return}
+  let last=null;for(const t of j.turns){if(t.role==='beast'&&t.brain&&last&&t.brain!==last)addSwitch(t.brain);if(t.role==='beast'&&t.brain)last=t.brain;addMsg(t.role,t.text,t.brain)}}
+  catch(e){$('chatlog').innerHTML='<div class="bad">conversation unavailable: '+esc(e.message)+'</div>'}}
+async function sendChat(){const text=$('chatText').value.trim();if(!text||chatBusy)return;chatBusy=true;$('chatSend').disabled=true;$('chatSend').textContent='thinking…';
+  if($('chatlog').querySelector('.note'))$('chatlog').replaceChildren();addMsg('you',text);$('chatText').value='';
+  const act=brainState&&brainState.backends.find(b=>b.active);const pending=addMsg('beast','…',act?act.label:'');
+  try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});const j=await r.json();
+    pending.remove();if(!r.ok)throw new Error((j.error||r.status)+(j.provider_failure?' ('+j.provider_failure+')':''));
+    addMsg('beast',j.response,j.brain.recorded_label||j.brain.label||j.brain.model,j.memory_hits);
+    $('chatMeta').textContent=`answered by ${j.brain.kind} / ${j.brain.model} in ${j.wall_seconds}s · ${j.memory_hits.length} memories retrieved · substrate preserved=${j.substrate_preserved} · durable records=${j.memory_records} · checkpoint #${j.checkpoint_sequence}`}
+  catch(e){pending.remove();addMsg('beast','⚠ '+e.message,'error')}
+  chatBusy=false;$('chatSend').disabled=false;$('chatSend').textContent='Send';loadBrains()}
+$('chatSend').onclick=sendChat;$('chatText').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))sendChat()});
+loadBrains();setInterval(()=>{if(!chatBusy)loadBrains()},10000);loadConversation();
+</script>
+</body>
+</html>
