@@ -67,12 +67,13 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
   setStatus('Imported the same public Beast, including its approved history. No owner memory or permissions imported.');
  }
  return <section className={css.panel} data-critical-control aria-label="Quantum Beast portable companion bridge">
-  <div><span className={css.kicker}>QUANTUM BEAST BRIDGE</span><h3>One Beast. Many brains.</h3>
-   <p>Carry this creature’s identity, appearance and approved memories to a compatible runtime. Its host approves every new event.</p></div>
+  <div><span className={css.kicker}>PORTABLE BEAST</span><h3>Keep the same Beast.</h3>
+   <p>Play first. Import, export and verification tools stay available when you need them.</p></div>
+  <button type="button" className={css.playGame} disabled={!profile||busy||!ready||Boolean(snapshot&&!matches)} onClick={()=>void run(openLostCosmos)}>PLAY THIS BEAST IN LOST COSMOS</button>
+  <details className={css.advanced}><summary>Transfer / export options</summary>
   <div className={css.actions}>
-   <button type="button" disabled={!profile||busy||!ready} onClick={()=>void run(exportPortable)}>DOWNLOAD QUANTUM BEAST</button>
-   <button type="button" disabled={busy||!ready} onClick={()=>input.current?.click()}>IMPORT QUANTUM BEAST</button>
-   <button type="button" className={css.playGame} disabled={!profile||busy||!ready||Boolean(snapshot&&!matches)} onClick={()=>void run(openLostCosmos)}>PLAY THIS BEAST IN LOST COSMOS</button>
+   <button type="button" disabled={!profile||busy||!ready} onClick={()=>void run(exportPortable)}>Download Beast file (.qbeast)</button>
+   <button type="button" disabled={busy||!ready} onClick={()=>input.current?.click()}>Import Beast file</button>
    {snapshot&&matches?<button type="button" disabled={busy||!ready} onClick={()=>void run(async()=>{const pack=await exportGba(snapshot,verifiedKey?{trustedPublicKey:verifiedKey}:{});download(Uint8Array.from(pack.zip).buffer,snapshot.profile.id+'-gba.zip','application/zip');setStatus('Exported original BCG1 art and BCP1 seeded stats for offline LOST COSMOS import.');})}>Export this Beast to GBA</button>:null}
    <input ref={input} disabled={busy||!ready} className={css.file} type="file" accept=".qbeast,application/json" aria-label="Quantum Beast file" onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)void run(()=>importFile(file));}}/>
   </div>
@@ -88,6 +89,7 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
   <details className={css.details}><summary>Verify a trusted publisher</summary><label>Publisher public key (optional)<input value={key} maxLength={64} placeholder="Externally verified 64-character public key" onChange={e=>setKey(e.target.value)} /></label><p>A checksum proves integrity. A source signature is trusted only when its public key matches a key you supply independently.</p></details>
   {error?<p className={css.error} role="alert">{error}</p>:null}
   {status?<p className={css.status} role="status">{status}</p>:null}
-  <small>Quantum-inspired game identity; no quantum hardware or cloud inference runs here. Portable files contain public data only. Lost COSMOS handoff targets native source {LOST_COSMOS_SOURCE_SHA.slice(0,8)} with the same QBEAST identity and a stable one-cage transfer ID; host permissions never travel.</small>
+  <small>Advanced details: portable files contain public game identity data only. QBEAST continuity and the pinned Lost COSMOS source {LOST_COSMOS_SOURCE_SHA.slice(0,8)} are preserved; host permissions never travel.</small>
+  </details>
  </section>;
 }
