@@ -97,14 +97,23 @@ export default function SparkBeastCompanion({
 
  useEffect(()=>{
   let cancelled=false;
-  void fetch('/spark/runs.json',{cache:'force-cache'}).then(async response=>{
-   if(!response.ok)throw new Error('Recorded Spark seed table unavailable');
-   const table=await response.json() as {runs?:Record<string,unknown>[]};
-   const runs=(table.runs||[]).map(expand).filter(item=>item.num_bits>=5&&Object.keys(item.counts).length>0);
+  void (async()=>{
+   const indexResponse=await fetch('/spark/user-seeds-20261004.json',{cache:'force-cache'});
+   if(!indexResponse.ok)throw new Error('Public Spark seed index unavailable');
+   const index=await indexResponse.json() as {shards?:string[]};
+   const paths=['/spark/runs.json',...(Array.isArray(index.shards)?index.shards:[])];
+   const tables=await Promise.all(paths.map(async path=>{
+    const response=await fetch(path,{cache:'force-cache'});
+    if(!response.ok)throw new Error('Recorded Spark seed table unavailable: '+path);
+    return response.json() as Promise<{runs?:Record<string,unknown>[]}>;
+   }));
+   const merged=tables.flatMap(table=>(table.runs||[]).map(expand))
+    .filter(item=>item.num_bits>=2&&Object.keys(item.counts).length>0);
+   const runs=[...new Map(merged.map(item=>[item.key,item])).values()];
    if(!runs.length)throw new Error('No recorded Spark seed distributions');
    const chosen=runs[hash(active.id+'|'+active.seed)%runs.length];
    if(!cancelled)setRun(chosen);
-  }).catch(err=>{if(!cancelled)setError(err instanceof Error?err.message:'Spark renderer unavailable');});
+  })().catch(err=>{if(!cancelled)setError(err instanceof Error?err.message:'Spark renderer unavailable');});
   return()=>{cancelled=true;};
  },[active.id,active.seed]);
 
