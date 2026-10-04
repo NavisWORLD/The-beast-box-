@@ -134,7 +134,7 @@ test('unified Spark companion uses the real sprite, gait and voice modules witho
  assert.match(spark,/behavior\.gait/);
  assert.match(spark,/Voice\.utterance/);
  assert.match(studio,/SparkBeastSettings/);
- assert.match(settings,/SIM EARTH embedded here/);
+ assert.match(settings,/Separate planetary simulator embedded/);
  assert.match(release,/sim_earth_embedded:false/);
  assert.match(release,/same_companion_profile:true/);
  assert.doesNotMatch(spark,/SIM_EARTH|<iframe|getUserMedia|\/api\/bridge/);
