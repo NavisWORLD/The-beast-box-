@@ -44,7 +44,9 @@ jobs:
                   if code!=200:raise RuntimeError("Release endpoint status "+str(code))
                   marker=json.loads(raw)
                   if (marker.get("schema")!="beast-cage-gba-release-v1" or
-                      marker.get("source_marker")!="beast-cage-guest-gba-20261001" or
+                      marker.get("source_marker")!="beast-cage-lost-cosmos-62a2922-20261004" or
+                      marker.get("lost_cosmos_commit")!="62a2922dae7fcba93a040ac2473221d41a043c6f" or
+                      marker.get("same_cage_transfer") is not True or
                       marker.get("guest_contains_private_memory") is not False or
                       marker.get("gbainference") is not False or
                       marker.get("hardware_tested") is not False):
@@ -61,7 +63,7 @@ jobs:
                   previous,raw=get("/api/release")
                   if previous!=200:
                       raise RuntimeError("Previous production release identity regressed")
-                  receipt.update({"public_verified":True,"marker":marker["source_marker"],"guest_http":guest,"chat_http":talk,"gba_source_http":source,"previous_release_http":previous})
+                  receipt.update({"public_verified":True,"marker":marker["source_marker"],"lost_cosmos_commit":marker["lost_cosmos_commit"],"same_cage_transfer":marker["same_cage_transfer"],"guest_http":guest,"chat_http":talk,"gba_source_http":source,"previous_release_http":previous})
                   print("BEAST_CAGE_GBA_PUBLIC_PROOF_SUCCESS",json.dumps(receipt,sort_keys=True))
                   break
               except Exception as exc:
