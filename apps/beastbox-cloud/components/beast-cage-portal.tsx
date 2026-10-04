@@ -25,9 +25,9 @@ export default function BeastCagePortal(){
  const [look,setLook]=useState<BaseLook>('nebula');
  const [saved,setSaved]=useState(false),[prefersReduced,setPrefersReduced]=useState(false);
  const [expanded,setExpanded]=useState(false);
- const {profile:creature,selectProfile,clearProfile}=useCompanion();
+ const {profile:creature,selectProfile,clearProfile,visualLook,selectLook}=useCompanion();
  const [ambient,setAmbient]=useState<AmbientAction>('hover');
- useEffect(()=>{if(creature)setLook(creature.baseLook);},[creature?.id,creature?.baseLook]);
+ useEffect(()=>{setLook(visualLook);},[visualLook]);
  useEffect(()=>{
   const media=window.matchMedia('(prefers-reduced-motion: reduce)');
   const onChange=()=>setPrefersReduced(media.matches);
@@ -60,7 +60,7 @@ export default function BeastCagePortal(){
    </div>
    <div className="cage-habitat-visual" role="img" aria-label="Original cosmic observatory with a floating galaxy companion">
     <div className="cage-orbit cage-orbit-one" aria-hidden="true"/><div className="cage-orbit cage-orbit-two" aria-hidden="true"/>
-    <SparkBeastCompanion profile={creature} fallbackLook={look}
+    <SparkBeastCompanion profile={creature} fallbackLook={look} visualLook={look}
      state={ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
      label="Active Spark Beast companion"/>
     <span className="cage-habitat-caption">✧ YOUR OWN POCKET UNIVERSE</span>
@@ -78,17 +78,18 @@ export default function BeastCagePortal(){
    <div className="cage-section-heading"><span className="cage-eyebrow"><SlidersHorizontal size={13}/> CHANGE THE LOOK</span>
     <h2 id="customize-title">Same Beast.<br/><em>Different style.</em></h2>
     <p>These are appearance choices, not different identities. Your generated Beast keeps its own name and game history.</p></div>
-   <SparkBeastCompanion profile={creature} fallbackLook={look}
+   <SparkBeastCompanion profile={creature} fallbackLook={look} visualLook={look}
     state={ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
     controls label="Customizable Spark Beast preview"/>
    <div className="cage-look-grid">{LOOKS.map(item=><button type="button" className={'cage-look-card '+item.accent+(look===item.id?' selected':'')} key={item.id} aria-pressed={look===item.id} onClick={()=>{
-    const starter=generateCreature('beastbox-starter-'+item.id,item.id);
-    setLook(item.id);selectProfile(starter);setSaved(false);
+    setLook(item.id);selectLook(item.id);
+    if(!creature)selectProfile(generateCreature('beastbox-starter',item.id));
+    setSaved(false);
    }}>
     <span className="cage-look-art" aria-hidden="true"><SparkBeastCompanion profile={generateCreature('beastbox-starter-'+item.id,item.id)} fallbackLook={item.id} compact state="idle" /></span>
     <strong>{item.label}</strong><small>{item.detail}</small><span className="cage-select-label">{look===item.id?'✓ Active look':'Use this look'} →</span>
    </button>)}</div>
-   <div className="cage-save-panel"><p><strong>{creature?.name||current.label} is ready to explore.</strong><br/>The active game profile is browser-local. Real memory, model choice and permissions remain in COSMOS.</p><div><button type="button" className="cage-primary" onClick={save}>Save look</button><button type="button" className="cage-secondary" onClick={clear}>Reset Beast</button></div><span role="status" className="cage-save-status">{saved?'Visual family saved locally. The active Beast profile is also retained locally.':'Generate or choose a starter to keep one Beast across the site.'}</span></div>
+   <div className="cage-save-panel"><p><strong>{creature?.name||current.label} is ready to explore.</strong><br/>The active game profile is browser-local. Real memory, model choice and permissions remain in COSMOS.</p><div><button type="button" className="cage-primary" onClick={()=>{selectLook(look);save();}}>Save look</button><button type="button" className="cage-secondary" onClick={clear}>Reset Beast</button></div><span role="status" className="cage-save-status">{saved?'Visual family saved locally. The active Beast profile is also retained locally.':'Generate or choose a starter to keep one Beast across the site.'}</span></div>
   </section>
   <details className="cage-advanced"><summary>More things you can do</summary><div className="cage-advanced-links"><Link href="/beast-cage/play">Care & Adventure</Link><Link href="/beast-cage/guest">Game exports</Link><Link href="/beast-cage/turntable">3D model</Link><a href="/spark/index.html">Open Public Beast Generator</a><Link href="/workspace">Owner COSMOS tools</Link></div><section className="cage-worlds" id="worlds" aria-labelledby="world-title">
    <div className="cage-section-heading"><span className="cage-eyebrow">ONE COSMOS. MANY PLACES TO EXPLORE.</span><h2 id="world-title">Your workstation,<br/><em>with a sense of wonder.</em></h2><p>Every operational state and measurement comes from the authenticated runtime; ambient art stays illustrative.</p></div>
