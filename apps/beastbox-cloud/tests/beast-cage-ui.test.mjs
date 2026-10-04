@@ -175,6 +175,7 @@ test('mobile Lost Cosmos dock can mini expand close and reopen without dropping 
  const dock=read('components/lost-cosmos-dock.tsx');
  const css=read('components/lost-cosmos-dock.module.css');
  const roamer=read('components/companion-provider.tsx');
+ const roamerCss=read('components/companion-provider.module.css');
  const spark=read('components/spark-beast-companion.tsx');
  assert.match(dock,/data-lost-cosmos-dock="true"/);
  assert.match(dock,/data-dock-state=\{state\}/);
@@ -188,6 +189,8 @@ test('mobile Lost Cosmos dock can mini expand close and reopen without dropping 
  assert.match(roamer,/Enable creature sounds/);
  assert.match(roamer,/beastbox:spark-chirp/);
  assert.match(roamer,/audioChannel="roamer"/);
+ assert.match(roamerCss,/width:110px/);
+ assert.match(roamerCss,/top 1\.55s/);
  assert.match(spark,/audioChannel\?:string/);
  assert.match(spark,/beastbox:spark-chirp/);
  assert.doesNotMatch(roamer,/getUserMedia|\/api\/bridge|Authorization/);
