@@ -6,7 +6,7 @@ import SparkBeastCompanion from './spark-beast-companion';
 import {makeGbaZip,spritePreview,type Look,type Mood} from '../lib/gba-companion';
 import styles from './gba-guest-lab.module.css';
 import GenesisForge from './genesis-forge';
-import {type CreatureProfile,type AmbientAction} from '../lib/creature-profile';
+import {generateCreature,type CreatureProfile,type AmbientAction} from '../lib/creature-profile';
 import {profilePreview} from '../lib/gba-companion';
 import {createCreatureGlb} from '../lib/creature-glb';
 import {useCompanion} from './companion-provider';
@@ -23,8 +23,8 @@ export default function GuestGbaLab(){
  const [look,setLook]=useState<Look>('nebula'),[mood,setMood]=useState<Mood>('idle');
  const [busy,setBusy]=useState(false),[modelBusy,setModelBusy]=useState(false),[error,setError]=useState(''),[done,setDone]=useState(false);
  const [creature,setCreature]=useState<CreatureProfile|null>(null),[ambient,setAmbient]=useState<AmbientAction>('hover');
- const {profile:sharedProfile,selectProfile,clearProfile}=useCompanion();
- useEffect(()=>{if(sharedProfile){setCreature(sharedProfile);setLook(sharedProfile.baseLook);}},[sharedProfile]);
+ const {profile:sharedProfile,selectProfile,visualLook,selectLook}=useCompanion();
+ useEffect(()=>{if(sharedProfile)setCreature(sharedProfile);setLook(visualLook);},[sharedProfile,visualLook]);
  const preview=useRef<HTMLCanvasElement>(null);
  useEffect(()=>{
   try{
@@ -36,7 +36,11 @@ export default function GuestGbaLab(){
   if(preview.current){if(creature)profilePreview(creature,mood,preview.current);else spritePreview(look,mood,preview.current);}
  },[look,mood,creature]);
  function chooseLook(next:Look){
-  setLook(next);setCreature(null);clearProfile();setDone(false);
+  setLook(next);selectLook(next);setDone(false);
+  if(!creature&&!sharedProfile){
+   const starter=generateCreature('beastbox-starter',next);
+   setCreature(starter);selectProfile(starter);
+  }
   try{
    window.localStorage.setItem(STORAGE,next);
    window.dispatchEvent(new Event('beastbox:cage-look-changed'));
@@ -87,7 +91,7 @@ export default function GuestGbaLab(){
   <div className={styles.grid}>
    <section className={styles.orbit} aria-label="Animated companion test environment">
     <span className={styles.constellation} aria-hidden="true">✧ ✦ ･｡ ☆ ﾟ</span>
-    <div className={styles.model} data-ambient-behavior={ambient}><SparkBeastCompanion profile={creature} fallbackLook={look}
+    <div className={styles.model} data-ambient-behavior={ambient}><SparkBeastCompanion profile={creature} fallbackLook={look} visualLook={look}
       state={mood} controls label={'Spark Beast game companion: '+mood}/></div>
     <div className={styles.status}><span aria-hidden="true">✧</span> {label.description}</div>
     <div className={styles.actions} role="group" aria-label="Explore illustrative companion animation states">
@@ -97,9 +101,9 @@ export default function GuestGbaLab(){
     <small>Visual-only game sandbox. No camera, microphone or memory access.</small>
    </section>
    <section className={styles.panel} aria-label="Configure and export game companion">
-    <span className={styles.eyebrow}>01 / CHOOSE YOUR COMPANION</span>
-    <h2>Build your little monster.</h2>
-    <p>Choose its appearance. This option is saved locally for this browser only.</p>
+    <span className={styles.eyebrow}>01 / CHOOSE A LOOK</span>
+    <h2>Style your Beast.</h2>
+    <p>Change the visual style without changing the Beast’s name, ID, stats or history.</p>
     <div className={styles.looks}>{LOOKS.map(item=><button key={item.value} type="button"
       aria-pressed={look===item.value} className={look===item.value?styles.chosen:''}
       onClick={()=>chooseLook(item.value)}>{item.name} <span>{look===item.value?'✦':'◇'}</span></button>)}</div>
