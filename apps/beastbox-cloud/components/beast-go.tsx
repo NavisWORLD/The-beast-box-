@@ -22,7 +22,7 @@ type SheetId = 'menu' | 'bag' | 'beasts' | 'talk' | 'map' | 'settings' | null;
 const GAME_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'z', 'x', 'Z', 'X', 'Enter', 'v', 'V', 'q', 'Q', 'e', 'E']);
 
 export default function BeastGo() {
-  const { profile, selectProfile } = useCompanion();
+  const { profile, selectProfile, visualLook } = useCompanion();
   const { ready, session, trail, sensorLog, change, setTrail } = useBeastSession();
   const [sheet, setSheet] = useState<SheetId>(null);
   const [touch, setTouch] = useState(false);
@@ -161,7 +161,7 @@ export default function BeastGo() {
     <Link className={css.exit} href="/beast-cage" aria-label="Back to Beast Cage">×</Link>
     <div className={css.card}>
       <span className={css.portrait}>
-        <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook ?? 'nebula'} compact state={sparkVisualState(card.mood)} className={css.spark} label={`${profile?.name || 'Spark Beast'} portrait`} />
+        <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook ?? 'nebula'} visualLook={visualLook} compact state={sparkVisualState(card.mood)} className={css.spark} label={`${profile?.name || 'Spark Beast'} portrait`} />
       </span>
       <button type="button" className={css.identity} onClick={() => toggle('beasts')}>
         <span className={css.meta}>
