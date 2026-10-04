@@ -1,5 +1,17 @@
 # BEAST BOX // COSMIC CHAOS 🌌
 
+## Spark Beasts (public)
+
+`/spark/index.html` is a static section (also rewritten from `/spark`). Visitors spark a game companion from a simulated or consented Muse signal and one recorded IBM count distribution. The page does not use the owner password. See `spark-beasts/README.md`.
+
+To deploy this app on Vercel:
+
+1. Import `NavisWORLD/The-beast-box-`. Framework preset: Next.js. **Root Directory: `apps/beastbox-cloud`.** Do not deploy the repository root and do not set a Python entrypoint.
+2. `apps/beastbox-cloud/vercel.json` currently sets `git.deploymentEnabled.main` to false, so a push to `main` does not auto-deploy. In the Vercel project, deploy this app (Production or Preview) from `main` after merge, or set that flag so `main` deploys. Spark Beasts is public; the workstation at `/workspace` still needs `BEASTBOX_OWNER_PASSWORD` and `BEASTBOX_CLOUD_AUTH_SECRET` (32+ characters) if you want owner login.
+3. Open `/spark/index.html` after the deployment is ready. No extra environment variable is required for Spark Beasts.
+
+
+
 **Owner:** Cory Davis / NavisWORLD. **Scope:** isolated Vercel frontend, NOT a new Beast Box runtime.
 
 This app resides in apps/beastbox-cloud/. It is an owner-gated responsive frontend for the existing beastbox/cosmic_web.py API contract. BRAIN, ORBIT, BRAIN BAY, MEMORY VAULT, SYNAPSE TRACE, FILES, AUTHORITY and SETTINGS display actual backend data when available. No fake model responses or memory.
