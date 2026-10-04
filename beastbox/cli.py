@@ -31,6 +31,16 @@ def _print(value) -> None:
     print(json.dumps(value, indent=2, sort_keys=True, default=str))
 
 
+def _add_muse_parser(sub) -> None:
+    try:
+        from beastbox_muse.cli import add_parser
+    except ImportError:
+        missing = sub.add_parser("muse", help="Muse headband kit (package not importable)")
+        missing.set_defaults(muse_missing=True)
+        return
+    add_parser(sub)
+
+
 def main() -> int:
     p = argparse.ArgumentParser(prog="beastbox", description="COSMOS/CST + Zeref/R12 local ecosystem, continuity research and coder")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -112,6 +122,7 @@ def main() -> int:
 
     add_ecosystem_subparsers(sub)
     add_runtime_subparser(sub)
+    _add_muse_parser(sub)
 
     profiles = sub.add_parser(
         "profiles",
@@ -122,6 +133,18 @@ def main() -> int:
     profiles.add_argument("--home", type=Path, help="profile home; default ~/.beastbox")
 
     args = p.parse_args()
+
+    if args.cmd == "muse":
+        if getattr(args, "muse_missing", False):
+            p.exit(2, "Muse kit is not importable. From this repository: pip install -e '.[muse]'.\n")
+        from beastbox_muse.cli import handle_args
+        from beastbox_muse.privacy import MuseKitError
+
+        try:
+            _print(handle_args(args))
+            return 0
+        except MuseKitError as exc:
+            p.exit(2, f"{exc}\n")
 
     if args.cmd == "runtime":
         try:
