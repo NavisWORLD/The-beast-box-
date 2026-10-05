@@ -63,8 +63,8 @@ h2{margin:.55rem 0 .35rem;font-size:1rem;color:#f3d797}
 .plate span{display:block;color:var(--gold);font:.7rem ui-monospace,SFMono-Regular,monospace;letter-spacing:.08em;margin-top:6px}
 #meta{margin:8px 0 0}
 .sound-stack{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
-#voice,#music{min-height:38px;white-space:nowrap;font-size:.67rem;font-weight:800}
-#voice.on,#music[aria-pressed=true]{border-color:#5de9f46e;background:#17334d;color:#e8fdff;box-shadow:0 0 22px #54dff31b}
+#voice,#music,#mic-react{min-height:38px;white-space:nowrap;font-size:.67rem;font-weight:800}
+#voice.on,#music[aria-pressed=true],#mic-react[aria-pressed=true]{border-color:#5de9f46e;background:#17334d;color:#e8fdff;box-shadow:0 0 22px #54dff31b}
 
 .habitat{position:relative;min-height:385px;overflow:hidden;margin-top:14px;border:1px solid #456187;border-radius:17px;background:
  radial-gradient(circle at 50% 78%,#1d4860 0,#122842 31%,transparent 58%),
@@ -204,7 +204,7 @@ footer nav{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}footer 
  .spark-brand b{font-size:.76rem}.spark-brand small{max-width:210px}
  .habitat-status{display:none}
  .plate strong{font-size:1.25rem}
- #voice,#music{font-size:.61rem;padding-inline:8px}
+ #voice,#music,#mic-react{font-size:.61rem;padding-inline:8px}
  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
  .next-route{grid-template-columns:1fr}.next-route>*{border-right:0;border-bottom:1px solid #334968!important}.next-route>*:last-child{border-bottom:0!important}
 }
