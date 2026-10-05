@@ -5,12 +5,14 @@ import {bluetoothNote,connectMuse} from './muse.mjs';
 import {serializeQbeast} from './qbeast.mjs';
 import {PROFILES,simulateStable} from './signal.mjs';
 import {Voice} from './voice.mjs';
+import {getBeastAudio} from './shared/beast-audio-engine.mjs';
 import {habitatPose} from './habitat.mjs';
 import {QBEAST_KEY,SESSION_KEY,selectSpark,saveSparkSession,readSparkSession,replaySpark,withSparkLock} from './identity.mjs';
 import {careAction,finishTraining,talk,shownName} from './shared/session.mjs';
 const STORE='spark-beasts-bestiary-v1',QVM_STORE='spark-qvm-growth-v1',SOUND_KEY='spark-beast-sound-v2',SCALE=4,$=id=>document.getElementById(id);
 const media=matchMedia('(prefers-reduced-motion: reduce)');
-let reduceMotion=media.matches,runs=[],qvmRuns=[],byKey=new Map(),current=null,muse=null,voiceOn=false,soundWanted=true,audioCtx=null,audioOut=null,stage=1,preview=false,drift=false,runtime=null,cache={},bestiary=[],session=null,busy=false,starterCache=[],qvmGrowth=0,lastViewportWidth=innerWidth;
+const beastAudio=getBeastAudio();
+let reduceMotion=media.matches,runs=[],qvmRuns=[],byKey=new Map(),current=null,muse=null,voiceOn=false,soundWanted=true,voiceBus=null,stage=1,preview=false,drift=false,runtime=null,cache={},bestiary=[],session=null,busy=false,starterCache=[],qvmGrowth=0,lastViewportWidth=innerWidth;
 const target={focus:30,calm:30,spark:20},felt={...target};
 media.addEventListener('change',()=>{reduceMotion=media.matches});
 function expand(row){return {key:row.k,backend:row.b,job_id:row.j,pub_index:row.p,num_bits:row.n,shots:row.s,counts:Object.fromEntries(row.c.split(',').map(part=>{const [k,v]=part.split(':');return [k,Number(v)]})),counts_sha256:row.h};}
@@ -39,6 +41,28 @@ function cacheEyes(gen){
   }
  }
 }
+function audioSceneFor(gen=current?.gen){
+ if(!gen)return null;
+ return {id:'spark-public',seedKey:gen.seed,element:gen.element||'spark',temperament:gen.temperament||'Curious',enabled:soundWanted};
+}
+function voiceOutput(){
+ const output=beastAudio.output();if(!output)return null;
+ if(!voiceBus||voiceBus.ctx!==output.ctx){
+  const gain=output.ctx.createGain();gain.gain.value=.13;gain.connect(output.dest);voiceBus={ctx:output.ctx,gain};
+ }
+ return voiceBus;
+}
+function audioSfx(kind){
+ if(!current||!soundWanted||!voiceOn)return false;
+ return beastAudio.sfx(kind,{element:current.gen.element||'spark',seedKey:current.gen.seed});
+}
+function syncAudioUi(){
+ const snap=beastAudio.getSnapshot(),music=$('music'),volume=$('music-volume'),state=$('audio-state');
+ if(music){music.textContent=snap.musicOn?'♫ MUSIC ON':'♫ MUSIC OFF';music.setAttribute('aria-pressed',String(snap.musicOn));}
+ if(volume&&document.activeElement!==volume)volume.value=String(Math.round(snap.volume*100));
+ if(state)state.textContent=!soundWanted?'Muted on this device':voiceOn?(snap.musicOn?'Creature voice + procedural music active':'Creature voice active · music off'):'Wakes on your first tap · synthesized locally';
+}
+beastAudio.subscribe(syncAudioUi);
 function readQvmGrowth(seed){try{const saved=JSON.parse(localStorage.getItem(QVM_STORE)||'{}');return saved.seed===seed?Math.max(0,Math.min(1,Number(saved.growth)||0)):0;}catch{return 0;}}
 function saveQvmGrowth(){if(!current)return;try{localStorage.setItem(QVM_STORE,JSON.stringify({seed:current.gen.seed,growth:qvmGrowth,source_sha256:'7ef23c00005a2053d1fc830985330f4db322b3bf6144fd79fd1561d14c425599'}));}catch{}}
 function updateQvmGrowth(){const label=$('qvm-growth'),bar=$('qvm-growth-bar');if(!label||!bar)return;const pct=Math.round(qvmGrowth*100);bar.style.width=`${pct}%`;label.textContent=`SIM GROWTH ${pct}% · browser-local · native stage unchanged`;label.parentElement?.setAttribute('aria-valuenow',String(pct));}
