@@ -9,6 +9,8 @@ import { adoptBeast, shownName } from '../lib/companion/session.mjs';
 import { buildGenome } from '../lib/companion/spark/genome.mjs';
 import runs from '../lib/companion/spark/runs.json';
 import { generateCreature, type CreatureProfile } from '../lib/creature-profile';
+import { seedKeyFor } from '../lib/companion/beast-moves.mjs';
+import { useBeastAudio } from './use-beast-audio';
 import { useCompanion } from './companion-provider';
 import { useBeastSession } from './beast-session';
 import SparkBeastCompanion from './spark-beast-companion';
@@ -41,6 +43,25 @@ export default function BeastGo() {
   const beast = session?.beast;
   const card = hudCard(beast);
   const place = placeById(trail.place);
+  // Seeded field theme + menu SFX. Silent until a gesture; this screen's Sound switch gates it too.
+  const { audio: music, state: musicState } = useBeastAudio();
+  const genomeNow = (beast as { genome?: { element?: string; temperament?: string } } | undefined)?.genome;
+  const fieldSeed = genomeNow ? seedKeyFor(genomeNow) : `profile:${profile?.seed || 'sparkbeast'}`;
+  const fieldElement = genomeNow?.element || 'spark';
+  const fieldTemper = genomeNow?.temperament || 'Curious';
+  function sfx(kind: string) {
+    if (sound) music.sfx(kind, { element: fieldElement, seedKey: fieldSeed });
+  }
+  useEffect(() => {
+    music.setScene({ id: 'field', seedKey: fieldSeed, element: fieldElement, temperament: fieldTemper, enabled: sound });
+  }, [music, fieldSeed, fieldElement, fieldTemper, sound]);
+  useEffect(() => () => music.clearScene('field'), [music]);
+  const stageNow = Number(card.stage) || 0;
+  const lastStage = useRef<number | null>(null);
+  useEffect(() => {
+    if (lastStage.current !== null && stageNow > lastStage.current && sound) music.sfx('levelup', { element: fieldElement, seedKey: fieldSeed });
+    lastStage.current = stageNow;
+  }, [stageNow, sound, music, fieldElement, fieldSeed]);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,6 +141,7 @@ export default function BeastGo() {
   }, []);
 
   function toggle(next: SheetId) {
+    sfx('blip');
     setSheet((current) => current === next ? null : next);
   }
 
@@ -154,6 +176,7 @@ export default function BeastGo() {
   }
 
   function useItem(kind: 'feed' | 'pet' | 'rest' | 'spark') {
+    sfx('confirm');
     change((draft) => { care(draft, kind); });
   }
 
@@ -162,6 +185,7 @@ export default function BeastGo() {
     const saying = text.trim();
     if (!saying || busy || !session) return;
     setBusy(true);
+    sfx('confirm');
     setText('');
     const raw = buildChatContext({ session, trail, sensors: null, sensorLog });
     const context = guestMode ? guestSafeContext(raw) : raw;
@@ -197,7 +221,17 @@ export default function BeastGo() {
   function toggleSound() {
     const next = !sound;
     setSound(next);
-    window.dispatchEvent(new CustomEvent('beastbox:gba-volume', { detail: next ? 0.35 : 0 }));
+    window.dispatchEvent(new CustomEvent('beastbox:gba-volume', { detail: next ? (musicState.focus === 'beast' ? 0.06 : 0.35) : 0 }));
+    if (next) { music.sparkUnmute(); music.unlock(); music.sfx('confirm', { element: fieldElement, seedKey: fieldSeed }); }
+  }
+
+  // Audio focus: "Game audio" ducks the beast music while the cartridge runs;
+  // "Beast music" turns the cartridge down instead. Both stay behind the Sound switch.
+  function toggleFocus() {
+    const next = musicState.focus === 'beast' ? 'game' : 'beast';
+    music.setFocus(next);
+    window.dispatchEvent(new CustomEvent('beastbox:gba-volume', { detail: sound ? (next === 'beast' ? 0.06 : 0.35) : 0 }));
+    sfx('blip');
   }
 
   return <main className={css.field} data-go-screen="true">
@@ -239,7 +273,7 @@ export default function BeastGo() {
       {sheet === 'menu' ? <>
         <h2>Field menu</h2>
         <div className={css.list}>
-          {QUICK.map((item) => <button key={item.id} type="button" onClick={() => setSheet(item.id as SheetId)}>{item.label}</button>)}
+          {QUICK.map((item) => <button key={item.id} type="button" onClick={() => { sfx('confirm'); setSheet(item.id as SheetId); }}>{item.label}</button>)}
         </div>
       </> : null}
       {sheet === 'bag' ? <>
@@ -253,7 +287,7 @@ export default function BeastGo() {
         <p>{profile ? `${profile.name} · ${profile.family} is the Spark Beast game profile on this browser.` : 'Customize chooses the Spark Beast. This portrait uses that same profile, including the preview when none is saved yet.'}</p>
         <div className={css.row}><Link href="/beast-cage#customize">Customize this Beast</Link></div>
         <div className={css.list}>
-          {(session?.bestiary || []).map((item: { seed: string; name?: string }) => <button key={item.seed} type="button" aria-pressed={beast?.seed === item.seed} onClick={() => change((draft) => { focusBeast(draft, item.seed); })}>{item.name || 'Beast'}{beast?.seed === item.seed ? ' · with you' : ''}</button>)}
+          {(session?.bestiary || []).map((item: { seed: string; name?: string }) => <button key={item.seed} type="button" aria-pressed={beast?.seed === item.seed} onClick={() => { sfx('confirm'); change((draft) => { focusBeast(draft, item.seed); }); }}>{item.name || 'Beast'}{beast?.seed === item.seed ? ' · with you' : ''}</button>)}
         </div>
         {!session?.bestiary?.length ? <button className={css.send} type="button" onClick={meet}>Meet a spark beast</button> : null}
         <SparkFieldRoster onChoose={(choice) => keepLocal(choice.genome, choice.name)} />
@@ -276,7 +310,7 @@ export default function BeastGo() {
         <h2>Map</h2>
         <p>Lost Cosmos on this cartridge is the world. These field notes share the care trail with Adventure. You are near {place.name}.</p>
         <div className={css.list}>
-          {PLACES.map((spot) => <button key={spot.id} type="button" aria-pressed={trail.place === spot.id} onClick={() => setTrail(goTo(trail, spot.id))}>{spot.name}</button>)}
+          {PLACES.map((spot) => <button key={spot.id} type="button" aria-pressed={trail.place === spot.id} onClick={() => { sfx('blip'); setTrail(goTo(trail, spot.id)); }}>{spot.name}</button>)}
         </div>
         <p>Nearby: {place.nearby.join(', ')}.</p>
       </> : null}
@@ -285,6 +319,11 @@ export default function BeastGo() {
         <div className={css.row}>
           <button type="button" aria-pressed={sound} onClick={toggleSound}>Sound {sound ? 'on' : 'off'}</button>
           <button type="button" aria-pressed={touch} onClick={() => setTouch((value) => !value)}>Touch controls {touch ? 'on' : 'off'}</button>
+        </div>
+        <div className={css.row} data-beast-music="true">
+          <button type="button" aria-pressed={musicState.musicOn} onClick={() => { music.unlock(); music.setMusic(!musicState.musicOn); }}>Music {musicState.musicOn ? 'on' : 'off'}</button>
+          <button type="button" aria-pressed={musicState.focus === 'beast'} onClick={toggleFocus}>Audio focus: {musicState.focus === 'beast' ? 'Beast music' : 'Game audio'}</button>
+          <label className={css.copy}>Music volume <input type="range" min={0} max={100} step={5} value={Math.round(musicState.volume * 100)} aria-label="Beast music volume" onChange={(event) => music.setVolume(Number(event.target.value) / 100)} /></label>
         </div>
         <p>These switches stay on this field screen. Brain Bay, Model Bay, and owner settings are left as they are. On a phone the touch pad walks the cartridge. On a desktop the same keys work from the keyboard.</p>
         <div className={css.list}>

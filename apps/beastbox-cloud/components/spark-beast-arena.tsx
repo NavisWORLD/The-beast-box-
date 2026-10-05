@@ -1,11 +1,12 @@
 'use client';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {Volume2,VolumeX,Zap} from 'lucide-react';
+import {Music,Volume2,VolumeX,Zap} from 'lucide-react';
 import SparkBeastCompanion,{type Genome} from './spark-beast-companion';
 import {useBeastSession} from './beast-session';
 import {buildMoveset,nextAttackDelay,pickAttack,roamAt,roarFor} from '../lib/companion/beast-moves.mjs';
 import type {BaseLook,CreatureProfile} from '../lib/creature-profile';
 import styles from './spark-beast-arena.module.css';
+import {useBeastAudio} from './use-beast-audio';
 
 type VisualState='idle'|'listening'|'thinking'|'remembering'|'observing'|'sleeping'|'celebrating'|'halted';
 type Move=NonNullable<ReturnType<typeof pickAttack>>;
@@ -33,7 +34,6 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
  const [toast,setToast]=useState<{text:string;crit:boolean;id:number}|null>(null);
  const [phase,setPhase]=useState<'idle'|'charge'|'strike'>('idle');
  const counter=useRef(0),fx=useRef<Fx|null>(null),busy=useRef(false);
- const audio=useRef<AudioContext|null>(null);
  const roamPos=useRef({x:0,y:0});
  const moveset:Moveset|null=useMemo(()=>genome?buildMoveset(genome):null,[genome]);
  const onGenome=useCallback((next:Genome)=>setGenome(next),[]);
@@ -79,26 +79,22 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
   return()=>cancelAnimationFrame(frame);
  },[moveset,visible,reduced]);
 
+ // Shared music + SFX engine: silent until a user gesture, behind the limiter, honours the Spark mute.
+ const {audio:music,state:musicState}=useBeastAudio();
  const ensureAudio=useCallback(async()=>{
-  try{
-   if(!audio.current){
-    const Ctor=window.AudioContext||(window as unknown as {webkitAudioContext?:typeof AudioContext}).webkitAudioContext;
-    if(!Ctor)return null;
-    audio.current=new Ctor();
-   }
-   if(audio.current.state==='suspended')await audio.current.resume();
-   return audio.current;
-  }catch{return null;}
- },[]);
+  music.unlock();
+  return music.output();
+ },[music]);
 
  // WebAudio roar: a swept, formant-filtered sawtooth plus a noise breath and an impact thump.
  const roar=useCallback(async(move:Move)=>{
   if(!soundRef.current||!genome)return;
-  const ac=await ensureAudio();
-  if(!ac)return;
+  const output=await ensureAudio();
+  if(!output)return;
+  const ac=output.ctx as BaseAudioContext;
   const spec=roarFor(genome,move);
   const t0=ac.currentTime+.02,charge=move.chargeMs/1000,dur=spec.seconds;
-  const out=ac.createGain();out.gain.value=.9;out.connect(ac.destination);
+  const out=ac.createGain();out.gain.value=.9;out.connect(output.dest as AudioNode);
   const osc=ac.createOscillator();osc.type='sawtooth';
   osc.frequency.setValueAtTime(spec.startHz*.7,t0);
   osc.frequency.exponentialRampToValueAtTime(spec.startHz,t0+charge*.8);
@@ -144,6 +140,7 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
   busy.current=true;
   setToast({text:`${name} used ${move.name}!`,crit:move.crit,id:move.counter});
   void roar(move);
+  if(soundRef.current)music.attack(move,{element:moveset.element,seedKey:moveset.key});
   if(soundRef.current&&move.counter%2===0)window.dispatchEvent(new CustomEvent('beastbox:spark-chirp',{detail:{channel:'habitat',intensity:.9}}));
   const node=root.current;
   if(reduced||!node){
@@ -300,7 +297,6 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
   return()=>window.clearTimeout(id);
  },[toast]);
 
- useEffect(()=>()=>{void audio.current?.close().catch(()=>{});},[]);
  // The site-wide Spark mute (beastbox:spark-mute) also silences the habitat beast.
  useEffect(()=>{
   const mute=()=>{soundRef.current=false;userMuted.current=true;setSound(false);};
@@ -310,8 +306,23 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
 
  function setSoundOn(next:boolean){
   soundRef.current=next;setSound(next);
-  if(next)void ensureAudio();
+  if(next){music.sparkUnmute();void ensureAudio();}
  }
+
+ // Seeded habitat theme: plays while this cage's Sound toggle is on (after a gesture), battle layer during attacks.
+ useEffect(()=>{
+  if(!moveset)return;
+  music.setScene({id:'habitat',seedKey:moveset.key,element:moveset.element,temperament:moveset.temperament,enabled:sound&&visible});
+ },[music,moveset,sound,visible]);
+ useEffect(()=>()=>music.clearScene('habitat'),[music]);
+
+ // Level-up fanfare when the shared care save reaches a new stage.
+ const stageNow=Number(session?.beast?.stage)||0;
+ const lastStage=useRef<number|null>(null);
+ useEffect(()=>{
+  if(lastStage.current!==null&&stageNow>lastStage.current&&soundRef.current)music.sfx('levelup',{element:moveset?.element,seedKey:moveset?.key});
+  lastStage.current=stageNow;
+ },[stageNow,music,moveset]);
  function onTap(){
   // Browser autoplay rules: the first tap is the user gesture that wakes the voice.
   if(!soundRef.current&&!userMuted.current)setSoundOn(true);
@@ -335,6 +346,16 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
    <button type="button" className={styles.tool} onClick={onTap} disabled={!moveset} aria-label="Make the beast attack">
     <Zap size={14}/><span>Attack</span>
    </button>
+   <button type="button" className={styles.tool} aria-pressed={musicState.musicOn}
+    aria-label={musicState.musicOn?'Turn the beast music off':'Turn the beast music on'}
+    onClick={()=>{music.unlock();music.setMusic(!musicState.musicOn);}}>
+    <Music size={14}/><span>{musicState.musicOn?'Music on':'Music off'}</span>
+   </button>
+   <label className={styles.volume}>
+    <span className={styles.sr}>Beast music volume</span>
+    <input type="range" min={0} max={100} step={5} value={Math.round(musicState.volume*100)}
+     aria-label="Beast music volume" onChange={e=>music.setVolume(Number(e.target.value)/100)}/>
+   </label>
   </div>
   <p className={styles.toast} role="status" aria-live="polite" data-move-toast="true" data-crit={toast?.crit?'true':undefined} key={toast?.id??'none'}>
    {toast?<><strong>{toast.text}</strong>{toast.crit?<em> Critical!</em>:null}<small>Seeded move · recorded IBM counts, no live quantum link</small></>:null}
