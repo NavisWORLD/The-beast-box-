@@ -54,15 +54,23 @@ export default function BeastCagePortal(){
  return <main className="cage-universe" data-reduced-motion={prefersReduced}>
   <div className="cage-sky" aria-hidden="true"/>
   <header className="cage-topbar"><Link href="/" aria-label="Beast Box homepage" className="cage-brand"><span>✺</span><span>BEAST BOX<small>NAVISWORLD / COSMOS</small></span></Link>
-   <nav aria-label="Beast Cage navigation"><a href="#habitat">Habitat</a><a href="#worlds">Explore</a><Link href="/beast-cage/talk">Talk</Link><Link href="/beast-cage/play">Adventure</Link><Link href="/beast-cage/go">Go</Link><Link href="/beast-cage/guest">Game lab</Link><Link className="cage-nav-cta" href="/workspace">Owner deck <ArrowRight size={15}/></Link></nav>
+   <nav aria-label="Beast Box journey">
+    <Link href="/">Home</Link>
+    <Link href="/spark/index.html">My Beast</Link>
+    <Link href="/beast-cage" aria-current="page">Beast Cage</Link>
+    <Link href="/sol-game">Lost COSMOS</Link>
+    <Link href="/workspace#brain-bay">Brain Bay</Link>
+    <Link href="/research">Lab</Link>
+    <Link className="cage-nav-cta" href="/workspace#settings">Settings <ArrowRight size={15}/></Link>
+   </nav>
   </header>
   <section className="cage-hero" id="habitat" aria-labelledby="cage-title">
    <div className="cage-headline">
     <span className="cage-eyebrow"><Sparkles size={13}/> WELCOME TO THE BEAST CAGE</span>
     <h1 id="cage-title">A small companion.<br/><em>An entire universe.</em></h1>
-    <p>Give your ideas a little cosmic troublemaker. The active Beast uses the same Spark sprite family, seeded gait, eyes and generated voice across customization, care, the owner dock and the GBA handoff.</p>
-    <div className="cage-hero-actions"><Link className="cage-primary" href="/beast-cage/talk">Talk to the real Beast <ArrowRight size={17}/></Link><Link className="cage-secondary" href="/beast-cage/turntable">See the real 3D model ↻</Link><Link className="cage-secondary" href="/beast-cage/guest">Play + export a GBA character 🎮</Link><a className="cage-secondary" href="/spark/index.html">Open Public Beast Generator ⚛</a><a className="cage-secondary" href="#customize">Customize your companion</a><Link className="cage-secondary" href="/workspace">Open real workstation ↗</Link></div>
-    <p className="cage-quiet"><LockKeyhole size={13}/> One browser-local game profile drives the visible Beast. Model choice, COSMOS memory and authority stay separate.</p>
+    <p>For dreamers, idlers, players, builders and anyone with a strange little idea: this is the place to live with your Beast. Care for it, talk to it, shape its look, then take the same identity into LOST COSMOS.</p>
+    <div className="cage-hero-actions"><Link className="cage-primary" href="/beast-cage/talk">Talk to My Beast <ArrowRight size={17}/></Link><a className="cage-secondary" href="#customize">Customize</a><Link className="cage-secondary" href="/sol-game">Enter LOST COSMOS 🎮</Link></div>
+    <p className="cage-quiet"><LockKeyhole size={13}/><span>One Beast stays at the center. More ways to explore: <Link href="/beast-cage/turntable">3D model</Link> · <Link href="/beast-cage/play">Adventure</Link> · <Link href="/beast-cage/guest">Game lab</Link> · <a href="/spark/index.html">Open Public Beast Generator</a> · <Link href="/workspace">Owner deck</Link>.</span></p>
    </div>
    <div className="cage-habitat-visual" role="group" aria-label="Original cosmic observatory with a floating galaxy companion">
     <div className="cage-orbit cage-orbit-one" aria-hidden="true"/><div className="cage-orbit cage-orbit-two" aria-hidden="true"/>
@@ -97,12 +105,12 @@ export default function BeastCagePortal(){
    <div className="cage-save-panel"><p><strong>{creatureName||current.label} is ready to explore.</strong><br/>The active game profile is browser-local. Real memory, model choice and permissions remain in COSMOS.</p><div><button type="button" className="cage-primary" onClick={save}>Save visual family</button><button type="button" className="cage-secondary" onClick={clear}>Clear active Beast</button></div><span role="status" className="cage-save-status">{saved?'Visual family saved locally. The active Beast profile is also retained locally.':'Generate or choose a starter to keep one Beast across the site.'}</span></div>
   </section>
   <section className="cage-worlds" id="worlds" aria-labelledby="world-title">
-   <div className="cage-section-heading"><span className="cage-eyebrow">ONE COSMOS. MANY PLACES TO EXPLORE.</span><h2 id="world-title">Your workstation,<br/><em>with a sense of wonder.</em></h2><p>Every operational state and measurement comes from the authenticated runtime; ambient art stays illustrative.</p></div>
+   <div className="cage-section-heading"><span className="cage-eyebrow">GO DEEPER WHEN YOU WANT</span><h2 id="world-title">The machinery lives<br/><em>under the magic.</em></h2><p>Brain Bay, memory, sensors, evidence and connectors stay available for people who want the deeper system. You never need them just to enjoy your Beast.</p></div>
    <div className="cage-world-grid">{WORLDS.map(world=><Link key={world.name} href={world.href} className="cage-world-card">
     <span className="cage-world-decoration" aria-hidden="true"><world.icon size={52} strokeWidth={1.05}/></span><span className="cage-world-tag">{world.tag}</span><strong>{world.name}</strong><span>{world.description}</span><ArrowRight size={15} aria-hidden="true" className="cage-world-go"/>
    </Link>)}</div>
   </section>
-  <section className="cage-continuity"><div className="cage-continuity-art" aria-hidden="true"><img src="/cosmic-creature.svg" alt=""/></div><div><span className="cage-eyebrow">THE STORY LIVES OUTSIDE THE MODEL</span><h2>Different brain.<br/><em>Your chosen continuity.</em></h2><p>In the real owner workstation, deliberate provider changes can preserve authorized external substrate memory. A visual look isn't an AI checkpoint, and preview cards do not run model inference.</p><Link href="/workspace" className="cage-secondary">Open Brain Bay in the workstation ↗</Link></div></section>
+  <section className="cage-continuity"><div className="cage-continuity-art" aria-hidden="true"><img src="/cosmic-creature.svg" alt=""/></div><div><span className="cage-eyebrow">THE STORY LIVES OUTSIDE THE MODEL</span><h2>Different brain.<br/><em>Your chosen continuity.</em></h2><p>In the real owner workstation, deliberate provider changes can preserve authorized external substrate memory. A visual look isn't an AI checkpoint, and preview cards do not run model inference.</p><Link href="/workspace#brain-bay" className="cage-secondary">Open Brain Bay ↗</Link></div></section>
   <footer className="cage-footer"><span>✺ BEAST BOX · CORY DAVIS / NAVISWORLD</span><span>Ambient animation ≠ model understanding</span><button onClick={()=>setExpanded(x=>!x)} type="button" aria-expanded={expanded}>{expanded?'Hide':'Show'} accessibility notes</button>
    {expanded?<p>The active companion uses the local Spark pixel renderer and recorded game-seed distributions. Reduced motion disables roaming transforms. Sound starts only after your tap. It never records sensor media or starts model inference on this public page.</p>:null}
   </footer>
