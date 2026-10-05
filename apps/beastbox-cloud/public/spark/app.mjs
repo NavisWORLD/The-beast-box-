@@ -212,9 +212,14 @@ function browserReact(kind){
 function wirePageNavigation(){
  const buttons=[...document.querySelectorAll('[data-jump]')],sections=[...document.querySelectorAll('[data-section]')];
  const activate=id=>{for(const button of buttons){const on=button.getAttribute('data-jump')===id;if(on)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');}};
- for(const button of buttons)button.addEventListener('click',()=>{const id=button.getAttribute('data-jump'),targetNode=id&&document.querySelector(id);if(!targetNode)return;targetNode.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'});activate(id);});
+ const jump=(id,push=true)=>{const targetNode=id&&document.querySelector(id);if(!targetNode)return;targetNode.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'});activate(id);if(push&&history.replaceState)history.replaceState(null,'',id);};
+ for(const button of buttons)button.addEventListener('click',()=>jump(button.getAttribute('data-jump')));
  if('IntersectionObserver'in window){const observer=new IntersectionObserver(entries=>{const visible=entries.filter(entry=>entry.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];if(visible)activate('#'+visible.target.id);},{rootMargin:'-18% 0px -58% 0px',threshold:[.08,.25,.5]});for(const section of sections)observer.observe(section);}
- document.addEventListener('keydown',event=>{if(event.key!=='Escape')return;const form=$('talk-form');if(form&&!form.hidden){form.hidden=true;$('talk').focus();}});
+ if(location.hash&&document.querySelector(location.hash))requestAnimationFrame(()=>jump(location.hash,false));
+ document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'){const form=$('talk-form');if(form&&!form.hidden){form.hidden=true;$('talk').focus();}}
+  if(event.altKey&&['1','2','3'].includes(event.key)){event.preventDefault();jump(['#habitat','#seed-lab','#bestiary-section'][Number(event.key)-1]);}
+ });
 }
 function loop(prev){const now=performance.now();tick(Math.min(.05,(now-prev)/1000)||.016);requestAnimationFrame(()=>loop(now));}
 async function main(){
