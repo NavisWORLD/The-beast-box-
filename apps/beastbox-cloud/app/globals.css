@@ -42,7 +42,7 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 .feature-section{max-width:1440px;margin:0 auto;padding:105px clamp(22px,6vw,100px) 115px}
 .feature-section h2{font:700 clamp(35px,4vw,61px)/1.15 'Space Grotesk';letter-spacing:-.045em;margin:16px 0 40px}
 .feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:17px}
-.feature-card{min-height:240px;border-radius:23px;background:linear-gradient(160deg,#1b1e36,#101629);border:1px solid var(--line);padding:30px;transition:transform .2s}
+.feature-card{display:block;color:inherit;min-height:240px;border-radius:23px;background:linear-gradient(160deg,#1b1e36,#101629);border:1px solid var(--line);padding:30px;transition:transform .2s}
 .feature-card:hover{transform:translateY(-5px)}.feature-card svg{color:var(--cyan)}.feature-card h3{margin:34px 0 10px;font:700 15px 'Space Grotesk';letter-spacing:.07em}.feature-card p{font-size:13px;line-height:1.7;color:#98a4c1}
 .public-footer{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:26px clamp(22px,6vw,100px);border-top:1px solid var(--line);color:#7584a7;font:600 10px 'Space Grotesk';letter-spacing:.09em}
 .studio{display:flex;min-height:100vh;background:#0b0f1c;background-image:radial-gradient(circle at 67% -22%,#54358226,transparent 45%)}
@@ -264,8 +264,8 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 .cage-brand{display:flex;align-items:center;gap:12px;font:800 14px 'Space Grotesk',sans-serif;letter-spacing:.14em}
 .cage-brand>span:first-child{font-size:39px;color:#a2faff;text-shadow:0 0 17px #80e9ef}
 .cage-brand small{display:block;font:600 9px 'DM Sans',sans-serif;color:#abb4d4;letter-spacing:.13em;margin-top:3px}
-.cage-topbar nav{display:flex;align-items:center;gap:clamp(12px,2.3vw,29px);font:600 12px 'Space Grotesk',sans-serif;color:#c1cae2}
-.cage-topbar nav>a:hover,.cage-secondary:hover{color:#96f4f7}
+.cage-topbar nav{display:flex;align-items:center;gap:clamp(7px,1.25vw,18px);flex-wrap:wrap;font:600 12px 'Space Grotesk',sans-serif;color:#c1cae2}
+.cage-topbar nav>a:hover,.cage-topbar nav>a[aria-current=page],.cage-secondary:hover{color:#96f4f7}.cage-topbar nav>a[aria-current=page]{text-decoration:underline;text-underline-offset:5px}
 .cage-nav-cta,.cage-secondary{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 14px;border-radius:12px;border:1px solid #d4d0ff46;background:#ffffff0a;color:#e8ecff}
 .cage-nav-cta{background:#20274781}
 .cage-hero{max-width:1500px;margin:auto;min-height:680px;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);align-items:center;gap:clamp(18px,3vw,45px);padding:50px clamp(20px,5vw,70px) 74px}
@@ -276,7 +276,7 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 .cage-hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:32px}
 .cage-primary{border:0;border-radius:13px;padding:15px 20px;display:inline-flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(115deg,#acfbff,#c7b7ff,#f8d7ff);color:#17132c;font:800 12px 'Space Grotesk',sans-serif;box-shadow:0 8px 30px #baa1ff40;transition:transform .18s}
 .cage-primary:hover{transform:translateY(-3px)}
-.cage-quiet{display:flex;gap:6px;align-items:flex-start;color:#9caacb;font-size:11px;line-height:1.5;margin-top:23px;max-width:480px}
+.cage-quiet{display:flex;gap:6px;align-items:flex-start;color:#9caacb;font-size:11px;line-height:1.65;margin-top:23px;max-width:560px}.cage-quiet a{color:#ccefff;text-decoration:underline;text-underline-offset:2px}
 .cage-habitat-visual{min-height:clamp(430px,47vw,650px);position:relative;display:grid;place-items:center;isolation:isolate;background:radial-gradient(ellipse at 52% 42%,#a7b4ff38,transparent 57%),url('/cosmic-habitat.svg') center/cover;border-radius:51% 49% 47% 53%;border:1px solid #e0ecff55;box-shadow:inset 0 0 70px #b7faff24,0 0 85px #ae8cfc28,0 0 9px #d8f7ff80;overflow:hidden}
 .cage-habitat-visual:before{content:'';position:absolute;inset:4%;border:1px solid #eafaff45;border-radius:50%;pointer-events:none}
 .cage-hero-creature{position:absolute!important;width:clamp(260px,35vw,460px)!important;height:clamp(275px,37vw,480px)!important;filter:drop-shadow(0 20px 35px #755beb73)}
@@ -348,7 +348,9 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 }
 @media(max-width:680px){
  .cage-topbar{padding:17px 20px}
- .cage-topbar nav>a:not(.cage-nav-cta){display:none}
+ .cage-topbar nav{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;padding-bottom:3px;gap:6px}
+ .cage-topbar nav>a{display:inline-flex!important;flex:0 0 auto;min-height:40px;align-items:center;padding:8px 10px;border-radius:10px;background:#ffffff08}
+ .cage-topbar nav>a[aria-current=page]{background:#19334c}
  .cage-headline h1{font-size:clamp(40px,9vw,62px)}
  .cage-hero{gap:10px;padding-bottom:36px}
  .cage-habitat-visual{min-height:clamp(310px,87vw,490px)}
