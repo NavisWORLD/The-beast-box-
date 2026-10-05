@@ -34,6 +34,33 @@ export const GBA_KEYS = {
   r: { key: "e", code: "KeyE", index: 11, label: "R" },
 };
 
+export const STANDARD_GAMEPAD_BUTTONS = {
+  0: "a", 1: "b",
+  4: "l", 5: "r", 6: "l", 7: "r",
+  8: "select", 9: "start",
+  12: "up", 13: "down", 14: "left", 15: "right",
+};
+
+export function gamepadButtons(gamepad, deadzone = 0.55) {
+  const active = new Set();
+  const buttons = gamepad?.buttons || [];
+  for (const [index, logical] of Object.entries(STANDARD_GAMEPAD_BUTTONS)) {
+    const button = buttons[Number(index)];
+    if (button && (button.pressed === true || Number(button.value) > 0.5)) active.add(logical);
+  }
+  const x = Number(gamepad?.axes?.[0]);
+  const y = Number(gamepad?.axes?.[1]);
+  if (Number.isFinite(x)) {
+    if (x <= -deadzone) active.add("left");
+    if (x >= deadzone) active.add("right");
+  }
+  if (Number.isFinite(y)) {
+    if (y <= -deadzone) active.add("up");
+    if (y >= deadzone) active.add("down");
+  }
+  return [...active];
+}
+
 export function keyboardLegend() {
   return [
     ["Arrows", "Move"],
@@ -42,6 +69,7 @@ export function keyboardLegend() {
     ["Enter", "Start"],
     ["V", "Select"],
     ["Q / E", "L / R"],
+    ["Gamepad", "D-pad / sticks · A / B · Start / Select · L / R"],
     ["Escape", "Close a sheet"],
   ];
 }
