@@ -11,6 +11,8 @@ import runs from '../lib/companion/spark/runs.json';
 import { generateCreature, type CreatureProfile } from '../lib/creature-profile';
 import { seedKeyFor } from '../lib/companion/beast-moves.mjs';
 import { useBeastAudio } from './use-beast-audio';
+import { useMusePair } from './use-muse-pair';
+import MusePairPanel from './muse-pair-panel';
 import { useCompanion } from './companion-provider';
 import { useBeastSession } from './beast-session';
 import SparkBeastCompanion from './spark-beast-companion';
@@ -20,7 +22,7 @@ import SparkWanderer from './spark-wanderer';
 import css from './beast-go.module.css';
 
 const recorded = runs as Array<{ key: string; backend: string; job_id: string; pub_index: number; num_bits: number; shots: number; counts: Record<string, number> }>;
-type SheetId = 'menu' | 'bag' | 'beasts' | 'talk' | 'map' | 'settings' | null;
+type SheetId = 'menu' | 'bag' | 'beasts' | 'talk' | 'map' | 'settings' | 'muse' | null;
 const GAME_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'z', 'x', 'Z', 'X', 'Enter', 'v', 'V', 'q', 'Q', 'e', 'E']);
 
 export default function BeastGo() {
@@ -49,6 +51,13 @@ export default function BeastGo() {
   const fieldSeed = genomeNow ? seedKeyFor(genomeNow) : `profile:${profile?.seed || 'sparkbeast'}`;
   const fieldElement = genomeNow?.element || 'spark';
   const fieldTemper = genomeNow?.temperament || 'Curious';
+  // Pair Muse (opt-in, soft consumer EEG): colours the portrait pose and the HUD mood line.
+  const { state: museState } = useMusePair();
+  const museMood = museState.influence.active ? museState.influence.mood : '';
+  const portraitState = museMood === 'sparky' ? 'celebrating' : museMood === 'drowsy' ? 'sleeping' : museMood === 'focused' ? 'observing' : sparkVisualState(card.mood);
+  useEffect(() => {
+    if (window.location.hash === '#pair-muse') setSheet('muse');
+  }, []);
   function sfx(kind: string) {
     if (sound) music.sfx(kind, { element: fieldElement, seedKey: fieldSeed });
   }
@@ -239,12 +248,12 @@ export default function BeastGo() {
     {guestMode && guestOpen ? <p className={css.guestNote} data-guest-play="true" id="go-guest-note">Guests play with a beast saved in this browser. No owner authority and no private memory. Talk uses the guest-safe brain.</p> : null}
     <div className={css.card} ref={cardRef}>
       <span className={css.portrait}>
-        <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook ?? 'nebula'} compact state={sparkVisualState(card.mood)} className={css.spark} label={`${profile?.name || 'Spark Beast'} portrait`} />
+        <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook ?? 'nebula'} compact state={portraitState} className={css.spark} label={`${profile?.name || 'Spark Beast'} portrait`} />
       </span>
       <button type="button" className={css.identity} onClick={() => toggle('beasts')}>
         <span className={css.meta}>
           <strong>{ready ? (profile?.name || 'Spark Beast') : 'Loading save'}</strong>
-          <span>Lv {card.stage} · {card.mood}</span>
+          <span>Lv {card.stage} · {card.mood}{museMood ? ` · Muse ${museMood}` : ''}</span>
           <span className={css.xp} role="meter" aria-label={`Experience ${card.xp}`} aria-valuemin={0} aria-valuemax={card.goal || card.xp || 1} aria-valuenow={card.xp}><i style={{ width: `${Math.round(card.ratio * 100)}%` }} /></span>
         </span>
       </button>
@@ -274,6 +283,7 @@ export default function BeastGo() {
         <h2>Field menu</h2>
         <div className={css.list}>
           {QUICK.map((item) => <button key={item.id} type="button" onClick={() => { sfx('confirm'); setSheet(item.id as SheetId); }}>{item.label}</button>)}
+          <button type="button" data-pair-muse="menu" onClick={() => { sfx('confirm'); setSheet('muse'); }}>Pair Muse</button>
         </div>
       </> : null}
       {sheet === 'bag' ? <>
@@ -314,6 +324,13 @@ export default function BeastGo() {
         </div>
         <p>Nearby: {place.nearby.join(', ')}.</p>
       </> : null}
+      {sheet === 'muse' ? <>
+        <h2>Pair Muse</h2>
+        <MusePairPanel id="pair-muse" />
+        <div className={css.row}>
+          <button type="button" onClick={() => { sfx('blip'); setSheet('settings'); }}>Back to Settings</button>
+        </div>
+      </> : null}
       {sheet === 'settings' ? <>
         <h2>Settings</h2>
         <div className={css.row}>
@@ -323,6 +340,7 @@ export default function BeastGo() {
         <div className={css.row} data-beast-music="true">
           <button type="button" aria-pressed={musicState.musicOn} onClick={() => { music.unlock(); music.setMusic(!musicState.musicOn); }}>Music {musicState.musicOn ? 'on' : 'off'}</button>
           <button type="button" aria-pressed={musicState.focus === 'beast'} onClick={toggleFocus}>Audio focus: {musicState.focus === 'beast' ? 'Beast music' : 'Game audio'}</button>
+          <button type="button" data-pair-muse="settings" onClick={() => { sfx('confirm'); setSheet('muse'); }}>Pair Muse{museState.status === 'connected' ? ' · connected' : ''}</button>
           <label className={css.copy}>Music volume <input type="range" min={0} max={100} step={5} value={Math.round(musicState.volume * 100)} aria-label="Beast music volume" onChange={(event) => music.setVolume(Number(event.target.value) / 100)} /></label>
         </div>
         <p>These switches stay on this field screen. Brain Bay, Model Bay, and owner settings are left as they are. On a phone the touch pad walks the cartridge. On a desktop the same keys work from the keyboard.</p>

@@ -24,7 +24,7 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
       };
     }
   } catch { /* storage unavailable: defaults */ }
-  const state = { unlocked: false, sparkMuted: false, hidden: false, gameRunning: false, battle: 0, scene: null, ...prefs };
+  const state = { unlocked: false, sparkMuted: false, hidden: false, gameRunning: false, battle: 0, intensity: 0, scene: null, ...prefs };
   let ctx = null, master = null, timer = null, loopStart = 0, nextIndex = 0, loopCount = 0, params = null, events = [];
   let battleUntil = 0;
   const listeners = new Set();
@@ -41,10 +41,12 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
   function ensureContext() {
     if (!sfxAudible() || !createContext) return null;
     if (!ctx) {
-      ctx = createContext();
-      if (!ctx) return null;
-      stats.contexts++;
-      master = buildMaster(ctx);
+      try {
+        ctx = createContext();
+        if (!ctx) return null;
+        stats.contexts++;
+        master = buildMaster(ctx);
+      } catch { ctx = null; master = null; return null; } // no audio device: stay silent
     }
     if (ctx.state === "suspended" && typeof ctx.resume === "function") { try { void ctx.resume(); } catch { /* resumes on next gesture */ } }
     return ctx;
@@ -59,7 +61,9 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
     master.music.gain.cancelScheduledValues(t);
     master.music.gain.setTargetAtTime(Math.max(0, target), t, ramp / 3);
     master.battle.gain.cancelScheduledValues(t);
-    master.battle.gain.setTargetAtTime(state.battle, t, state.battle ? 0.15 : 0.6);
+    // Attacks bring the battle layer in fully; a paired Muse's soft intensity can lift it part way.
+    const battleLevel = Math.max(state.battle, state.intensity * 0.55);
+    master.battle.gain.setTargetAtTime(battleLevel, t, state.battle ? 0.15 : 0.8);
   }
   function tick(lookahead = 0.35) {
     if (!ctx || !master || !params || !musicAudible()) return;
@@ -72,8 +76,7 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
       const when = loopStart + (loopCount * LOOP_BEATS + ev.t) * spb;
       if (when > horizon) break;
       if (when >= ctx.currentTime - 0.05) {
-        renderNote(ctx, ev.layer === "battle" ? master.battle : master.calm, ev, params, when, spb);
-        stats.notes++;
+        try { renderNote(ctx, ev.layer === "battle" ? master.battle : master.calm, ev, params, when, spb); stats.notes++; } catch { /* skip one note */ }
       }
       nextIndex++;
     }
@@ -121,6 +124,12 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
     setHidden(hidden) { state.hidden = Boolean(hidden); refresh(); },
     sparkMute() { state.sparkMuted = true; stopMusic(); emit(); },
     sparkUnmute() { state.sparkMuted = false; refresh(); },
+    /** Soft 0..1 music intensity from the opt-in Muse signal (0 when unpaired). */
+    setIntensity(value) {
+      const next = Math.max(0, Math.min(1, Number(value) || 0));
+      if (Math.abs(next - state.intensity) < 0.02) return;
+      state.intensity = next; applyLevels(); emit();
+    },
     /** Fade the battle layer in for `seconds`. */
     battle(seconds = 3) {
       if (!musicAudible() || !ctx) return;
@@ -129,7 +138,7 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
     /** Play one SFX. Returns false when gated (no gesture yet, or muted). */
     sfx(kind, { element = "spark", seedKey = "spark-fallback", delay = 0 } = {}) {
       if (!ensureContext()) return false;
-      renderSfx(ctx, master.sfx, sfxSpec(kind, element, seedKey), ctx.currentTime + 0.01 + Math.max(0, delay));
+      try { renderSfx(ctx, master.sfx, sfxSpec(kind, element, seedKey), ctx.currentTime + 0.01 + Math.max(0, delay)); } catch { return false; }
       stats.sfx++;
       return true;
     },
@@ -148,7 +157,7 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
     tick,
     subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     getSnapshot() { return cached; },
-    stats() { return { ...stats, musicGain: master ? master.music.gain.value : 0 }; },
+    stats() { return { ...stats, musicGain: master ? master.music.gain.value : 0, battleGain: master ? master.battle.gain.value : 0 }; },
     dispose() { stopMusic(); try { ctx && ctx.close && ctx.close(); } catch { /* closed */ } ctx = null; master = null; },
   };
 }
@@ -165,7 +174,7 @@ export function getBeastAudio() {
     setTimer: (fn, ms) => window.setInterval(fn, ms),
     clearTimer: (id) => window.clearInterval(id),
   });
-  const unlock = () => shared.unlock();
+  const unlock = () => { try { shared.unlock(); } catch { /* audio is optional */ } };
   for (const type of ["pointerdown", "keydown", "touchend"]) window.addEventListener(type, unlock, { capture: true, passive: true });
   window.addEventListener("beastbox:spark-mute", () => shared.sparkMute());
   window.addEventListener("beastbox:spark-unmute", () => shared.sparkUnmute());

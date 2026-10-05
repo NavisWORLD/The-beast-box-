@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {ArrowRight,BrainCircuit,DatabaseZap,LockKeyhole,Orbit,ShieldCheck,SlidersHorizontal,Sparkles,Volume2} from 'lucide-react';
 import SparkBeastCompanion from './spark-beast-companion';
 import SparkBeastArena from './spark-beast-arena';
+import MusePairPanel from './muse-pair-panel';
 import GenesisForge from './genesis-forge';
 import BeastCareDeck from './beast-care-deck';
 import {useBeastSession} from './beast-session';
@@ -49,6 +50,8 @@ export default function BeastCagePortal(){
   clearProfile();setLook('nebula');setSaved(false);
  }
  const current=LOOKS.find(x=>x.id===look)||LOOKS[0];
+ // Deep link from the owner deck or elsewhere: /beast-cage#pair-muse opens the Pair Muse panel.
+ useEffect(()=>{if(window.location.hash==='#pair-muse'){const node=document.getElementById('pair-muse');if(node instanceof HTMLDetailsElement)node.open=true;}},[]);
  return <main className="cage-universe" data-reduced-motion={prefersReduced}>
   <div className="cage-sky" aria-hidden="true"/>
   <header className="cage-topbar"><Link href="/" aria-label="Beast Box homepage" className="cage-brand"><span>✺</span><span>BEAST BOX<small>NAVISWORLD / COSMOS</small></span></Link>
@@ -78,6 +81,7 @@ export default function BeastCagePortal(){
   </div>:null}
   <BeastCareDeck />
   <section className="cage-invariants"><span>MODEL ≠ MEMORY</span><span>MODEL ≠ IDENTITY</span><span>MODEL ≠ AUTHORITY</span></section>
+  <details className="cage-muse-pair" id="pair-muse"><summary>Pair Muse · optional headband</summary><MusePairPanel/></details>
   <section className="cage-customize" id="customize" aria-labelledby="customize-title">
    <div className="cage-section-heading"><span className="cage-eyebrow"><SlidersHorizontal size={13}/> A LOOK THAT FEELS LIKE YOURS</span>
     <h2 id="customize-title">Meet the first<br/><em>little constellations.</em></h2>

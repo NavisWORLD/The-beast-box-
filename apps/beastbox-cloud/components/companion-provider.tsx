@@ -14,7 +14,8 @@ import {
 import {selectSafeRoamSpot,type Rect,type Spot} from '../lib/companion-roaming';
 import {DRAGON_RUN_KEY,DRAGON_TRAITS} from '../lib/companion/pet-dragon.mjs';
 import styles from './companion-provider.module.css';
-import {useBeastAudio} from './use-beast-audio';
+import {getBeastAudio} from '../lib/companion/beast-audio-engine.mjs';
+import {getMusePair} from '../lib/companion/muse-pair.mjs';
 
 type CompanionContextValue={
  profile:CreatureProfile|null;
@@ -172,7 +173,15 @@ export default function CompanionProvider({children}:{children:ReactNode}){
  const clearProfile=useCallback(()=>{setProfile(null);setAction('hover');tickRef.current=0;setTick(0);try{window.localStorage.removeItem(ACTIVE_PROFILE_KEY);}catch{/* optional browser-only game profile */}},[]);
  const context=useMemo(()=>({profile,selectProfile:onProfile,clearProfile}),[profile,onProfile,clearProfile]);
  // Pet SFX ride the shared limiter; they only play while the pet's own sound is on.
- const {audio:petAudio}=useBeastAudio();
+ // The provider wraps the whole site, so it talks to the shared engines without subscribing (no extra renders).
+ const petAudio=useMemo(()=>getBeastAudio(),[]);
+ // A paired Muse (opt-in, in-page only) gently lifts the beast music's battle layer.
+ useEffect(()=>{
+  const muse=getMusePair();
+  const apply=()=>{const now=muse.getSnapshot();petAudio.setIntensity(now.influence.active?now.influence.intensity:0);};
+  apply();
+  return muse.subscribe(apply);
+ },[petAudio]);
  const petGenome=useRef<{element?:string;seed?:string}|null>(null);
  const petSfx=(kind:string)=>{
   if(!soundEnabled)return;
@@ -183,13 +192,18 @@ export default function CompanionProvider({children}:{children:ReactNode}){
    const next=!current;
    if(!next)window.dispatchEvent(new Event('beastbox:spark-mute'));
    if(next){
-    window.dispatchEvent(new Event('beastbox:spark-unmute'));
-    petAudio.unlock();
-    petAudio.sfx('confirm',{element:petGenome.current?.element||'spark',seedKey:'pet:'+(petGenome.current?.seed||'dragon')});
     window.dispatchEvent(new CustomEvent('beastbox:spark-chirp',{detail:{channel:'roamer',intensity:.62}}));
    }
    return next;
   });
+  // Shared music engine cues run outside the state updater (it may run twice in dev).
+  if(!soundEnabled){
+   try{
+    window.dispatchEvent(new Event('beastbox:spark-unmute'));
+    petAudio.unlock();
+    petAudio.sfx('confirm',{element:petGenome.current?.element||'spark',seedKey:'pet:'+(petGenome.current?.seed||'dragon')});
+   }catch{/* audio is optional */}
+  }
  };
  const canShow=showPublic&&!hidden&&!typing&&pageVisible&&!reduced&&spot!==null;
  // Anchor the toolbar to the sprite's first drawn row (the Spark canvas has transparent headroom).
