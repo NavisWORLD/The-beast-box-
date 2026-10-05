@@ -14,7 +14,7 @@ type Run={
  key:string;backend:string;job_id:string;pub_index:number;num_bits:number;
  shots:number;counts:Record<string,number>;counts_sha256:string;
 };
-export export type SparkGenome={
+export type SparkGenome={
  names:Record<number,string>;island:string;temperament:string;element:string;body:string;
  pose:string;ears:string;wings:string;tail:string;quantum:{top_state:string};
  behavior:{
@@ -38,7 +38,7 @@ type Props={
  seedRunKey?:string;
  seedTraits?:{focus:number;calm:number;spark:number};
  /** Optional: receive the built Spark genome (e.g. for the seeded habitat attack moves). */
- onGenome?:(genome:Genome)=>void;
+ onGenome?:(genome:SparkGenome)=>void;
 };
 
 function expand(row:Record<string,unknown>):Run{
@@ -116,7 +116,7 @@ export default function SparkBeastCompanion({
    if(!cancelled)setRun(chosen);
   })().catch(err=>{if(!cancelled)setError(err instanceof Error?err.message:'Spark renderer unavailable');});
   return()=>{cancelled=true;};
- },[active.id,active.seed,sameSpark?.seed,seedRunKey]);
+ },[active.id,active.seed,sameSpark?.seed,seedRunKey,genomeOverride]);
 
  useEffect(()=>{
   if(genomeOverride){setGen(genomeOverride);setError('');lastEye.current='';return;}
@@ -126,7 +126,7 @@ export default function SparkBeastCompanion({
    const next=(sameSpark?sameSpark.genome:buildGenome(seedTraits||traits(active),run,null,10)) as unknown as SparkGenome;
    setGen(next);setError('');lastEye.current='';
   }catch(err){setError(err instanceof Error?err.message:'Spark genome could not be built');}
- },[active,run,sameSpark?.genome,seedTraits]);
+ },[active,run,sameSpark?.genome,seedTraits,genomeOverride]);
  useEffect(()=>{if(sameSpark){setStage(sameSpark.nativeStage||1);lastEye.current='';}},[sameSpark?.seed]);
 
  useEffect(()=>{if(gen&&onGenome)onGenome(gen);},[gen,onGenome]);
