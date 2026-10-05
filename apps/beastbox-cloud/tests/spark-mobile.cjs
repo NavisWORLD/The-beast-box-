@@ -26,6 +26,7 @@ for(const width of widths){
  const layout=await page.evaluate(()=>({body:document.documentElement.scrollWidth,w:innerWidth,view:document.querySelector('#view').getBoundingClientRect().toJSON(),buttons:[...document.querySelectorAll('.interactions button,#voice,#generate,#lost-cosmos')].map(el=>el.getBoundingClientRect().toJSON())}));assert.ok(layout.body<=width,`overflow at ${width}: ${layout.body}`);assert.ok(layout.view.width>230);for(const b of layout.buttons)assert.ok(b.x>=0&&b.right<=width);
  await page.screenshot({path:out+`/spark-${width}.png`,fullPage:true});
  console.log('Width',width,'public interaction passed');await page.goto(root+'/beast-cage');await page.waitForFunction(id=>document.querySelector('[data-spark-beast][data-creature-id="'+id+'"]'),identity.profile.id,{timeout:30000});
+ await page.waitForFunction(name=>document.querySelector('[data-lost-cosmos-dock]')?.getAttribute('aria-label')==='Lost Cosmos cartridge connected to '+name,saved.beast.displayName);
  await page.getByRole('button',{name:'Close Lost Cosmos player',exact:true}).click();await page.getByRole('button',{name:'Open Lost Cosmos player',exact:true}).click();
  console.log('Width',width,'cage passed');await page.goto(root+'/beast-cage/play');await page.waitForFunction(()=>document.querySelector('canvas'));
  console.log('Width',width,'adventure passed');await page.goto(root+'/beast-cage/guest');await page.waitForFunction(()=>document.querySelector('[data-creature-id]'));

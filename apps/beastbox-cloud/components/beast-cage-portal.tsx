@@ -6,6 +6,7 @@ import SparkBeastCompanion from './spark-beast-companion';
 import GenesisForge from './genesis-forge';
 import BeastCareDeck from './beast-care-deck';
 import {useBeastSession} from './beast-session';
+import {shownName} from '../lib/companion/session.mjs';
 import {useCompanion} from './companion-provider';
 import {generateCreature,type BaseLook,type AmbientAction} from '../lib/creature-profile';
 const LOOKS:{id:BaseLook;label:string;detail:string;accent:string}[]=[
@@ -30,6 +31,7 @@ export default function BeastCagePortal(){
  const [ambient,setAmbient]=useState<AmbientAction>('hover');
  const {session}=useBeastSession();
  const sameSpark=!!creature&&!!session?.beast?.qbeast&&session.beast.qbeast.profile.id===creature.id;
+ const creatureName=sameSpark?shownName(session.beast):creature?.name;
  useEffect(()=>{if(creature)setLook(creature.baseLook);},[creature?.id,creature?.baseLook]);
  useEffect(()=>{
   const media=window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -70,9 +72,9 @@ export default function BeastCagePortal(){
    </div>
   </section>
   {!sameSpark?<GenesisForge value={creature} onChange={next=>{selectProfile(next);setLook(next.baseLook);}}
-   onAmbient={setAmbient}/>:<div className="cage-generated-status"><span>{session.beast.displayName} · same recorded genome and QBEAST</span><Link href="/sol-game">Play this Beast in LOST COSMOS 🎮</Link></div>}
+   onAmbient={setAmbient}/>:<div className="cage-generated-status"><span>{creatureName} · same recorded genome and QBEAST</span><Link href="/sol-game">Play this Beast in LOST COSMOS 🎮</Link></div>}
   {creature?<div className="cage-generated-status" role="status">
-   ✧ {creature.name} · {creature.family} · {ambient} (classical seeded visual behavior)
+   ✧ {creatureName} · {creature.family} · {ambient} (classical seeded visual behavior)
    <Link href="/beast-cage/guest">Take this creature to the GBA Game Lab ↗</Link>
   </div>:null}
   <BeastCareDeck />
@@ -91,7 +93,7 @@ export default function BeastCagePortal(){
     <span className="cage-look-art" aria-hidden="true">✦</span>
     <strong>{item.label}</strong><small>{item.detail}</small><span className="cage-select-label">{look===item.id?'✓ Active family':'Choose starter'} →</span>
    </button>)}</div>:<p className="cage-quiet">This Beast’s palette and body belong to its recorded genome. Preview its forms above, or name and care for it in the shared deck.</p>}
-   <div className="cage-save-panel"><p><strong>{creature?.name||current.label} is ready to explore.</strong><br/>The active game profile is browser-local. Real memory, model choice and permissions remain in COSMOS.</p><div><button type="button" className="cage-primary" onClick={save}>Save visual family</button><button type="button" className="cage-secondary" onClick={clear}>Clear active Beast</button></div><span role="status" className="cage-save-status">{saved?'Visual family saved locally. The active Beast profile is also retained locally.':'Generate or choose a starter to keep one Beast across the site.'}</span></div>
+   <div className="cage-save-panel"><p><strong>{creatureName||current.label} is ready to explore.</strong><br/>The active game profile is browser-local. Real memory, model choice and permissions remain in COSMOS.</p><div><button type="button" className="cage-primary" onClick={save}>Save visual family</button><button type="button" className="cage-secondary" onClick={clear}>Clear active Beast</button></div><span role="status" className="cage-save-status">{saved?'Visual family saved locally. The active Beast profile is also retained locally.':'Generate or choose a starter to keep one Beast across the site.'}</span></div>
   </section>
   <section className="cage-worlds" id="worlds" aria-labelledby="world-title">
    <div className="cage-section-heading"><span className="cage-eyebrow">ONE COSMOS. MANY PLACES TO EXPLORE.</span><h2 id="world-title">Your workstation,<br/><em>with a sense of wonder.</em></h2><p>Every operational state and measurement comes from the authenticated runtime; ambient art stays illustrative.</p></div>
