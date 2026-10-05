@@ -45,6 +45,11 @@ test('public spark page states the honesty boundary and links the game', () => {
   assert.match(html, /id="lost-cosmos" href="\/sol-game"/);
   assert.doesNotMatch(html,/Play in Living Universe|SIM_EARTH|Pocket Reality/);
   assert.match(html, /Download \.qbeast/);
+  assert.match(html, /SOUND READY/);
+  const app = read('apps/beastbox-cloud/public/spark/app.mjs');
+  assert.match(app, /SOUND_KEY='spark-beast-sound-v2'/);
+  assert.match(app, /window\.addEventListener\('pointerdown',unlockPreferredSound/);
+  assert.match(app, /soundWanted=readSoundWanted\(\)/);
   assert.match(read('apps/beastbox-cloud/app/page.tsx'), /href="\/spark\/index.html"/);
   assert.match(read('apps/beastbox-cloud/next.config.ts'), /source: '\/spark'/);
 });
