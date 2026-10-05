@@ -51,7 +51,8 @@
  .dock.pill:not(.full){width:auto;max-width:calc(100vw - 16px);border-radius:999px}
  .dock.pill .bar{min-height:38px;padding:5px 6px 5px 12px;gap:7px}
  .dock.tucked:not(.full){right:0;border-radius:999px 0 0 999px;border-right:0}
- .dock.tucked .bar>strong,.dock.tucked .generate,.dock.tucked .actions{display:none}
+ /* Tucked keeps only the tab and the close button, so the player can always be closed. */
+ .dock.tucked .bar>strong,.dock.tucked .actions>:not(.close){display:none}
  .dock.tucked .bar{padding:5px 8px 5px 10px}
  .dock.tucked .tab{display:grid;place-items:center;pointer-events:auto;border:0;background:transparent;color:#e7fbff;font-size:16px;width:28px;height:28px;padding:0;cursor:pointer}
 }
