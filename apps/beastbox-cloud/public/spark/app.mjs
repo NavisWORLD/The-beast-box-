@@ -8,9 +8,9 @@ import {Voice} from './voice.mjs';
 import {habitatPose} from './habitat.mjs';
 import {QBEAST_KEY,SESSION_KEY,selectSpark,saveSparkSession,readSparkSession,replaySpark,withSparkLock} from './identity.mjs';
 import {careAction,finishTraining,talk,shownName} from './shared/session.mjs';
-const STORE='spark-beasts-bestiary-v1',QVM_STORE='spark-qvm-growth-v1',SCALE=4,$=id=>document.getElementById(id);
+const STORE='spark-beasts-bestiary-v1',QVM_STORE='spark-qvm-growth-v1',SOUND_KEY='spark-beast-sound-v2',SCALE=4,$=id=>document.getElementById(id);
 const media=matchMedia('(prefers-reduced-motion: reduce)');
-let reduceMotion=media.matches,runs=[],qvmRuns=[],byKey=new Map(),current=null,muse=null,voiceOn=false,audioCtx=null,audioOut=null,stage=1,preview=false,drift=false,runtime=null,cache={},bestiary=[],session=null,busy=false,starterCache=[],qvmGrowth=0,lastViewportWidth=innerWidth;
+let reduceMotion=media.matches,runs=[],qvmRuns=[],byKey=new Map(),current=null,muse=null,voiceOn=false,soundWanted=true,audioCtx=null,audioOut=null,stage=1,preview=false,drift=false,runtime=null,cache={},bestiary=[],session=null,busy=false,starterCache=[],qvmGrowth=0,lastViewportWidth=innerWidth;
 const target={focus:30,calm:30,spark:20},felt={...target};
 media.addEventListener('change',()=>{reduceMotion=media.matches});
 function expand(row){return {key:row.k,backend:row.b,job_id:row.j,pub_index:row.p,num_bits:row.n,shots:row.s,counts:Object.fromEntries(row.c.split(',').map(part=>{const [k,v]=part.split(':');return [k,Number(v)]})),counts_sha256:row.h};}
@@ -109,12 +109,36 @@ function starterEntries(){
 }
 function drawBestiary(){const grid=$('bestiary');grid.replaceChildren();const combined=[...bestiary,...starterEntries()],seen=new Set();for(const entry of combined){const key=JSON.stringify(entry);if(seen.has(key)||!byKey.has(entry.run))continue;seen.add(key);try{const gen=buildGenome(entry.traits,byKey.get(entry.run),entry.user||null,10),btn=document.createElement('button'),canvas=document.createElement('canvas'),label=document.createElement('span');btn.type='button';btn.className='beast-card';paintStage(canvas,gen,1);label.textContent=`${gen.names[1]} · ${gen.body} · ${gen.island}`;btn.append(canvas,label);btn.addEventListener('click',()=>void run(()=>adopt(entry)));grid.append(btn);if(seen.size>=24)break;}catch{}}}
 function download(){if(!session?.beast)return;const text=serializeQbeast(session.beast.qbeast),url=URL.createObjectURL(new Blob([text],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=shownName(session.beast)+'.qbeast';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$('status').textContent='Your existing QBEAST identity downloaded. Native evolution is earned in LOST COSMOS.';}
+function readSoundWanted(){try{return localStorage.getItem(SOUND_KEY)!=='off';}catch{return true;}}
+function saveSoundWanted(){try{localStorage.setItem(SOUND_KEY,soundWanted?'on':'off');}catch{}}
+function updateVoiceButton(){
+ const button=$('voice');if(!button)return;
+ button.textContent=voiceOn?'🔊 SOUND ON':soundWanted?'🔊 SOUND READY':'🔇 SOUND OFF';
+ button.setAttribute('aria-pressed',String(soundWanted));
+ button.classList.toggle('on',soundWanted);
+}
+async function startVoice(announce=false){
+ if(!soundWanted||voiceOn)return;
+ const AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw Error('This browser does not provide local WebAudio.');
+ audioCtx=new AC();audioOut=Voice.master(audioCtx);audioOut.gain.value=.13;
+ await audioCtx.resume();if(audioCtx.state!=='running')throw Error('Tap once more to unlock sound.');
+ voiceOn=true;updateVoiceButton();if(announce)say('spark','Sound is on. Tiny beast noises unlocked.');
+}
+async function stopVoice(){
+ voiceOn=false;
+ if(audioOut&&audioCtx)audioOut.gain.setValueAtTime(0,audioCtx.currentTime);
+ await audioCtx?.close();audioCtx=null;audioOut=null;updateVoiceButton();
+}
 async function enableVoice(){
  try{
-  if(voiceOn){voiceOn=false;if(audioOut)audioOut.gain.setValueAtTime(0,audioCtx.currentTime);await audioCtx?.close();audioCtx=null;audioOut=null;}
-  else{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw Error('This browser does not provide local WebAudio.');audioCtx=new AC();audioOut=Voice.master(audioCtx);audioOut.gain.value=.13;await audioCtx.resume();if(audioCtx.state!=='running')throw Error('Tap Sound again to unlock audio.');voiceOn=true;say('spark','That is my own generated voice.');}
-  $('voice').textContent=voiceOn?'🔊 SOUND ON':'🔇 SOUND OFF';$('voice').setAttribute('aria-pressed',String(voiceOn));$('voice').classList.toggle('on',voiceOn);
- }catch(e){voiceOn=false;$('status').textContent=e.message;}
+  if(voiceOn){soundWanted=false;saveSoundWanted();await stopVoice();}
+  else{soundWanted=true;saveSoundWanted();await startVoice(true);}
+ }catch(e){voiceOn=false;updateVoiceButton();$('status').textContent=e.message;}
+}
+function unlockPreferredSound(event){
+ if(!soundWanted||voiceOn)return;
+ if(event?.target?.closest?.('#voice'))return;
+ void startVoice(false).catch(e=>{$('status').textContent=e.message;});
 }
 let training=null;
 async function interaction(kind){
@@ -151,6 +175,7 @@ function browserReact(kind){
 }
 function loop(prev){const now=performance.now();tick(Math.min(.05,(now-prev)/1000)||.016);requestAnimationFrame(()=>loop(now));}
 async function main(){
+ soundWanted=readSoundWanted();updateVoiceButton();
  $('btnote').textContent=bluetoothNote()||'';for(const key of Object.keys(PROFILES)){const opt=document.createElement('option');opt.value=opt.textContent=key;$('profile').append(opt)}$('profile').value='balanced';
  const [index,qvmReceipt]=await Promise.all([
   fetch('/spark/user-seeds-20261004.json').then(r=>r.json()),
@@ -166,6 +191,7 @@ async function main(){
  const raw=localStorage.getItem(QBEAST_KEY);
  if(raw){const active=replaySpark(JSON.parse(raw).text,byKey);const saved=await withSparkLock(()=>selectSpark(localStorage,active.gen));showCreature(active.entry,saved,false);}
  else await adopt(bestiary[0]&&byKey.has(bestiary[0].run)?bestiary[0]:starterEntries()[0]);
+ window.addEventListener('pointerdown',unlockPreferredSound,{capture:true});window.addEventListener('keydown',unlockPreferredSound,{capture:true});
  $('generate').addEventListener('click',()=>void run(async()=>{surpriseRun();await spark()}));$('regenerate').addEventListener('click',()=>void run(()=>spark()));$('use-profile').addEventListener('click',()=>void run(async()=>{showTraits(simulateStable($('profile').value));await spark('profile')}));$('surprise').addEventListener('click',surpriseRun);$('q').addEventListener('input',searchRuns);$('download').addEventListener('click',download);$('voice').addEventListener('click',()=>void enableVoice());$('drift').addEventListener('click',()=>{drift=!drift;$('drift').classList.toggle('on',drift)});$('muse').addEventListener('click',()=>void museClick());$('stop-muse').addEventListener('click',()=>{muse?.stop();muse=null;$('status').textContent='Muse disconnected. Samples cleared.'});$('qvm-replay').addEventListener('click',()=>void run(()=>replayQvmScenario()));
  for(const k of ['focus','calm','spark'])$(k).addEventListener('input',()=>showTraits(readTraits()));for(const kind of ['pet','play','train','rest','care'])$(kind).addEventListener('click',()=>void run(()=>interaction(kind)));$('view').addEventListener('click',()=>void run(()=>interaction('pet')));$('talk').addEventListener('click',()=>{$('talk-form').hidden=!$('talk-form').hidden;if(!$('talk-form').hidden)$('talk-text').focus()});$('talk-form').addEventListener('submit',speak);
  for(const which of [1,2,3])$(`pick${which}`).addEventListener('click',()=>{stage=which;preview=stage!==session.beast.nativeStage;updatePlate();runtime.state='celebrate';runtime.until=runtime.T+1.5;$('status').textContent='Visual preview only. Your earned native stage and QBEAST progression did not change.'});
