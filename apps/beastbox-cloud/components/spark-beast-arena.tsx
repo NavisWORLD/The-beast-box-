@@ -301,6 +301,12 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
  },[toast]);
 
  useEffect(()=>()=>{void audio.current?.close().catch(()=>{});},[]);
+ // The site-wide Spark mute (beastbox:spark-mute) also silences the habitat beast.
+ useEffect(()=>{
+  const mute=()=>{soundRef.current=false;userMuted.current=true;setSound(false);};
+  window.addEventListener('beastbox:spark-mute',mute);
+  return()=>window.removeEventListener('beastbox:spark-mute',mute);
+ },[]);
 
  function setSoundOn(next:boolean){
   soundRef.current=next;setSound(next);
