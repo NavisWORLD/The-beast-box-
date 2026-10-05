@@ -156,7 +156,9 @@ resolve_account() {
     if [ -z "$RUN_AS" ]; then
         if [ "$(id -u)" -ne 0 ]; then RUN_AS="$(id -un)"; else RUN_AS="${SUDO_USER:-}"; fi
     fi
-    [ -n "$RUN_AS" ] && [ "$RUN_AS" != root ] || die "choose the account with --run-as USER (not root)."
+    if [ -z "$RUN_AS" ] || [ "$RUN_AS" = root ]; then
+        die "choose the account with --run-as USER (not root)."
+    fi
     RUN_HOME="$(getent passwd "$RUN_AS" | cut -d: -f6)"
     [ -n "$RUN_HOME" ] || die "account '$RUN_AS' does not exist."
 }
