@@ -3,6 +3,7 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {useBeastSession} from './beast-session';
 import {serializeQbeast} from '../public/spark/qbeast.mjs';
 import {checkedSpark} from '../public/spark/identity.mjs';
+import SolGameTalk from './sol-game-talk';
 const ROOT='https://navisworld.github.io';
 const GAME=ROOT+'/Cosmic-synapse-the-living-universe-sim-engine-/arcade/sol-spark-gate/?mode=handheld';
 export default function SolSparkPlayer({compact=false,active=true}:{compact?:boolean;active?:boolean}){
@@ -35,6 +36,7 @@ export default function SolSparkPlayer({compact=false,active=true}:{compact?:boo
   window.addEventListener('message',message);return()=>window.removeEventListener('message',message);
  },[send,beast]);
  return <section data-spark-player data-creature-id={beast?.qbeast?.profile.id||''} style={{width:'100%',minWidth:0,color:'#d5def4'}}>
+  <SolGameTalk active={active}/>
   {!started?<div style={{padding:compact?12:22,textAlign:'center'}}>
    <p>{ready?note:'Opening your local Beast…'}</p>
    <button type="button" disabled={!ready||!beast?.qbeast} onClick={()=>setStarted(true)} style={{padding:12,border:'1px solid #7ee7ff',borderRadius:8,background:'#14304a',color:'#7ee7ff'}}>SEND BEAST &amp; PLAY 🎮</button>

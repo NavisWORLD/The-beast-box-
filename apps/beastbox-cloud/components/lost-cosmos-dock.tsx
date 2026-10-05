@@ -6,6 +6,7 @@ import { modeFor } from '../lib/companion/gba-dock.mjs';
 import css from './lost-cosmos-dock.module.css';
 import SolSparkPlayer from './sol-spark-player';
 import {useBeastSession} from './beast-session';
+import {shownName} from '../lib/companion/session.mjs';
 
 type WindowEmu = Window & {
   EJS_player?: string;
@@ -37,7 +38,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
   const wide = mode === 'mini' && expanded && !closed;
   // On phones the mini player is a collapsed pill so it stays clear of page buttons.
   const pill = mode === 'mini' && !closed && !wide && narrow;
-  const connectedName = creature?.name || 'Spark Beast';
+  const connectedName = spark ? shownName(session.beast) : creature?.name || 'Spark Beast';
   const readyText = `V11.2 Spark is ready for ${connectedName}. The cartridge stays mounted while you move around Beast Box.`;
 
   useEffect(() => {
