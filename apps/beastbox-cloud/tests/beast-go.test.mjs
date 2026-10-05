@@ -29,8 +29,8 @@ test("the field route is full screen and every other page keeps the cartridge pa
   assert.match(dock, /data-cosmos-mode=\{mode\}/);
   assert.match(dock, /EJS_gameUrl = '\/api\/gba-rom'/);
   assert.match(dock, /data-rom-source="\/api\/gba-rom"/);
-  assert.match(dock, /V11\.2 Spark/);
-  assert.doesNotMatch(dock, /1\.11|11\.1/);
+  assert.match(dock, /Lost COSMOS is ready/);
+  assert.doesNotMatch(dock, /V11\.2 Spark|1\.11|11\.1/);
   assert.match(dock, /id="lost-cosmos-screen"/);
   assert.match(read("components/lost-cosmos-dock.module.css"), /left:-240vw/);
 });
@@ -63,7 +63,8 @@ test("Brain Bay, Model Bay, cosmos world, and owner settings are not edited for 
 
 test("cage nav links the field beside Adventure and the deploy guard stays off", () => {
   const portal = read("components/beast-cage-portal.tsx");
-  assert.match(portal, /href="\/beast-cage\/play">Adventure<\/Link><Link href="\/beast-cage\/go">Go<\/Link>/);
+  assert.match(portal, /href="\/beast-cage\/go">Play<\/Link>/);
+  assert.match(portal, /href="\/beast-cage\/play">Care & Adventure<\/Link>/);
   assert.match(read("components/beast-care-deck.tsx"), /href="\/beast-cage\/go"/);
   assert.match(read("app/beast-cage/go/page.tsx"), /BeastGo/);
   assert.match(read("app/layout.tsx"), /<CompanionProvider>\{children\}<\/CompanionProvider>/);
@@ -85,6 +86,8 @@ test("the field HUD is a portrait, quick buttons, a round menu, and swipe sheets
   assert.equal(sparkVisualState("happy"), "celebrating");
   assert.equal(sparkVisualState("idle"), "idle");
   assert.match(ui, /Swipe up for the menu/);
+  assert.match(ui, /Back to Beast Cage/);
+  assert.match(ui, /menuGrid/);
   assert.match(ui, /Touch controls/);
   assert.doesNotMatch(ui, /mockReply|fakeAnswer|Math\.random/);
   assert.deepEqual(QUICK.map((item) => item.label), ["Bag", "Beasts", "Talk", "Map", "Settings"]);
@@ -222,8 +225,8 @@ test("guests on the field use the guest-safe brain and a local beast, with no ow
   assert.deepEqual(guestSafeContext({ memories: [secret], sensors: ["camera on"] }).memories, []);
   const ui = read("components/beast-go.tsx");
   assert.match(ui, /audience: guestMode \? 'guest'/);
-  assert.match(ui, /No owner authority and no private memory/);
-  assert.match(ui, /guest-safe brain/);
+  assert.match(ui, /Guest-safe play · no owner memory or authority/);
+  assert.match(ui, /guestSafeContext/);
   assert.doesNotMatch(ui, /mockReply|fakeAnswer|Math\.random/);
   for (const path of ["app/page.tsx", "app/try/page.tsx", "components/gba-guest-lab.tsx", "components/beast-cage-talk.tsx"]) {
     assert.match(read(path), /href="\/beast-cage\/go"/);
