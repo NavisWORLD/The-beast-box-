@@ -80,7 +80,7 @@ test("the habitat beast is seeded, honest, muted until a tap, and respects reduc
   assert.doesNotMatch(arena, /getUserMedia|\/api\/bridge|Authorization/);
 });
 
-test("the field screen fits the cartridge in a safe area and keeps our touch pad", () => {
+test("the field screen fits the cartridge in a real handheld shell with one controller", () => {
   const dock = read("components/lost-cosmos-dock.tsx");
   const css = read("components/lost-cosmos-dock.module.css");
   const go = read("components/beast-go.tsx");
@@ -88,11 +88,24 @@ test("the field screen fits the cartridge in a safe area and keeps our touch pad
   assert.match(css, /aspect-ratio:3\/2/);
   assert.match(css, /var\(--go-safe-top/);
   assert.match(css, /var\(--go-safe-bottom/);
+  assert.match(css, /var\(--go-safe-left/);
+  assert.match(css, /var\(--go-safe-right/);
   assert.match(go, /--go-safe-top/);
-  assert.match(go, /aria-label="Touch controls"/);
+  assert.match(go, /--go-safe-left/);
+  assert.match(go, /--go-safe-right/);
+  assert.match(go, /aria-label="Game Boy direction pad"/);
+  assert.match(go, /aria-label="Game Boy buttons"/);
+  assert.match(go, /aria-label="Select"/);
+  assert.match(go, /aria-label="Start"/);
+  assert.match(go, /Close field menu/);
+  assert.match(go, /BEAST BOY/);
   assert.match(go, /aria-expanded=\{guestOpen\}/);
   assert.match(dock, /data-dock-pill=/);
   assert.match(dock, /Show Lost Cosmos player/);
+  const fieldCss = read("components/beast-go.module.css");
+  assert.match(fieldCss,/\.actions \.a,\.actions \.b/);
+  assert.match(fieldCss,/orientation:landscape/);
+  assert.match(fieldCss,/\.menuGrid/);
   const roamer = read("components/companion-provider.module.css");
   assert.match(roamer, /\.shell\[data-anchored="true"\] \.toolbar/);
 });
