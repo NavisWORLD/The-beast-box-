@@ -31,15 +31,22 @@
     <label>Calm <input id="calm" type="range" min="0" max="100" value="30"><b id="vcalm">30</b></label>
     <label>Spark <input id="spark" type="range" min="0" max="100" value="20"><b id="vspark">20</b></label>
     <p id="bucket" class="hint"></p><label>Keeper label · optional<input id="keeper" maxlength="24" autocomplete="off" placeholder="public game label"></label><button type="button" id="drift">Drift simulated signal</button>
-    <h2>Recorded quantum run</h2><p id="totals" class="hint"></p><label>Find a recorded job<input id="q" placeholder="ibm_fez or job ID"></label><label>Run<select id="run"></select></label><div class="row"><button type="button" id="surprise">Choose another seed</button><button type="button" id="regenerate">Regenerate this recipe</button></div>
+    <h2>Recorded quantum / simulator seed</h2><p id="totals" class="hint"></p><label>Find a recorded job<input id="q" placeholder="ibm_fez, rigetti-qvm, or job ID"></label><label>Run<select id="run"></select></label><div class="row"><button type="button" id="surprise">Choose another seed</button><button type="button" id="regenerate">Regenerate this recipe</button></div>
     <p id="provenance" class="hint"></p><p class="seed">Genome seed <code id="seed"></code></p>
+    <div class="qvm-lab">
+      <h2>Rigetti QVM simulation growth</h2>
+      <p class="hint">Process one complete archived Azure-hosted Rigetti QVM scenario: 3 simulator jobs, 256 recorded shots total. The actual recorded counts drive browser-local size, glow and reaction FX. This is simulator data, not a QPU run, and it does not fake native evolution.</p>
+      <button type="button" id="qvm-replay">PROCESS 3 QVM SIM BATCHES ⚛</button>
+      <div class="growth-meter" role="progressbar" aria-label="Rigetti simulator visual growth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="qvm-growth-bar"></i></div>
+      <p id="qvm-growth" class="qvm-growth">SIM GROWTH 0% · browser-local · native stage unchanged</p>
+    </div>
     <h2>Optional Muse headband</h2><label class="check"><input id="consent" type="checkbox"> I consent to derived focus, calm and spark on this device. Raw samples are discarded. Not a medical measurement.</label><p id="btnote" class="hint"></p><div class="row"><button type="button" id="muse">Connect Muse</button><button type="button" id="stop-muse">Disconnect</button></div>
    </details>
    <h2>Keep your little beast</h2><p class="hint">Same seed. Same QBEAST. Your care, name and pattern chat stay in this browser across Beast Box pages.</p><button type="button" id="download">Download .qbeast</button>
-   <details class="honest" id="honest"><summary>Recorded seeds · real game, clear limits</summary><p>A beast is a game companion created locally using derived traits and one recorded IBM Quantum count distribution. These are fixed seeds from past hardware jobs, not live quantum computation, entanglement or quantum advantage. Beasts are not conscious. This is not a medical device.</p><p>Sound is synthesized on this device after your tap. No audio, raw sensor streams, owner memory or authority is sent to the game. Browser care XP is separate from earned native evolution.</p></details>
+   <details class="honest" id="honest"><summary>Recorded seeds · real game, clear limits</summary><p>A beast is a game companion created locally from derived traits plus a recorded count distribution. IBM entries are fixed past hardware-job seeds. Rigetti entries are archived Azure-hosted QVM simulator outputs and are explicitly not QPU measurements. No button here submits a new cloud job or proves quantum advantage.</p><p>Sound and reaction FX are synthesized on this device after your tap. Browser habitat awareness is limited to this page's visibility, connectivity state and viewport size; it does not crawl arbitrary sites or gain host authority. Browser care / simulator growth remain separate from earned native LOST COSMOS evolution.</p></details>
   </section>
  </main>
- <section class="gallery"><h2>Your bestiary</h2><p class="hint">Pick a saved recipe to bring back the same Beast and its care state.</p><div id="bestiary" class="grid"></div></section>
+ <section class="gallery"><h2>Your bestiary</h2><p class="hint">Saved companions appear first, followed by deterministic representatives across the body and island families so the roster is not six copies of the same silhouette.</p><div id="bestiary" class="grid"></div></section>
  <footer><p>SPARK → QBEAST → BEAST CAGE → LOST COSMOS → NATIVE GBA. Game identity stays separate from COSMOS memory and authority.</p></footer>
  <script type="module" src="/spark/app.mjs"></script>
 </body></html>
