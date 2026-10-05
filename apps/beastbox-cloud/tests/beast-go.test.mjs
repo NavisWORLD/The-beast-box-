@@ -8,7 +8,7 @@ import { wanderFrame } from "../lib/companion/wander.mjs";
 import { noteModelActivity, petClaim, petPose } from "../lib/companion/pet-dragon.mjs";
 import { adoptBeast, createSession } from "../lib/companion/session.mjs";
 import { FULL_PATH, modeFor } from "../lib/companion/gba-dock.mjs";
-import { focusBeast, hudCard, keyboardLegend, pressCartridge, QUICK, sheetGesture, sparkVisualState } from "../lib/companion/go-hud.mjs";
+import { focusBeast, gamepadButtons, hudCard, keyboardLegend, pressCartridge, QUICK, sheetGesture, sparkVisualState } from "../lib/companion/go-hud.mjs";
 
 const read = (path) => readFileSync(new URL("../" + path, import.meta.url), "utf8");
 
@@ -113,6 +113,21 @@ test("touch controls press the GBA keys the cartridge already listens for", () =
   assert.equal(events[0].key, "z");
   assert.equal(events[1].type, "keyup");
   assert.equal(pressCartridge("nope", true, host), false);
+});
+
+test("standard physical gamepads normalize into the same logical cartridge controls", () => {
+  const buttons = Array.from({ length: 16 }, () => ({ pressed: false, value: 0 }));
+  buttons[0] = { pressed: true, value: 1 };
+  buttons[9] = { pressed: true, value: 1 };
+  buttons[12] = { pressed: true, value: 1 };
+  assert.deepEqual(new Set(gamepadButtons({ buttons, axes: [0.8, 0] })), new Set(["a", "start", "up", "right"]));
+  assert.deepEqual(gamepadButtons({ buttons: [], axes: [0.2, -0.3] }), []);
+  const ui = read("components/beast-go.tsx");
+  assert.match(ui, /navigator\.getGamepads/);
+  assert.match(ui, /gamepadconnected/);
+  assert.match(ui, /gamepaddisconnected/);
+  assert.match(ui, /controllerInput\(button, true\)/);
+  assert.match(ui, /controllerInput\(button, false\)/);
 });
 
 test("focusing another beast keeps the care stats on the party row", () => {
