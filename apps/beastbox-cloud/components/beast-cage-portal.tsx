@@ -3,6 +3,7 @@ import {useEffect,useState} from 'react';
 import Link from 'next/link';
 import {ArrowRight,BrainCircuit,DatabaseZap,LockKeyhole,Orbit,ShieldCheck,SlidersHorizontal,Sparkles,Volume2} from 'lucide-react';
 import SparkBeastCompanion from './spark-beast-companion';
+import SparkBeastArena from './spark-beast-arena';
 import GenesisForge from './genesis-forge';
 import BeastCareDeck from './beast-care-deck';
 import {useBeastSession} from './beast-session';
@@ -63,9 +64,9 @@ export default function BeastCagePortal(){
     <div className="cage-hero-actions"><Link className="cage-primary" href="/beast-cage/talk">Talk to the real Beast <ArrowRight size={17}/></Link><Link className="cage-secondary" href="/beast-cage/turntable">See the real 3D model ↻</Link><Link className="cage-secondary" href="/beast-cage/guest">Play + export a GBA character 🎮</Link><a className="cage-secondary" href="/spark/index.html">Open Public Beast Generator ⚛</a><a className="cage-secondary" href="#customize">Customize your companion</a><Link className="cage-secondary" href="/workspace">Open real workstation ↗</Link></div>
     <p className="cage-quiet"><LockKeyhole size={13}/> One browser-local game profile drives the visible Beast. Model choice, COSMOS memory and authority stay separate.</p>
    </div>
-   <div className="cage-habitat-visual" role="img" aria-label="Original cosmic observatory with a floating galaxy companion">
+   <div className="cage-habitat-visual" role="group" aria-label="Original cosmic observatory with a floating galaxy companion">
     <div className="cage-orbit cage-orbit-one" aria-hidden="true"/><div className="cage-orbit cage-orbit-two" aria-hidden="true"/>
-    <SparkBeastCompanion profile={creature} fallbackLook={look}
+    <SparkBeastArena profile={creature} fallbackLook={look}
      state={ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
      label="Active Spark Beast companion"/>
     <span className="cage-habitat-caption">✧ YOUR OWN POCKET UNIVERSE</span>

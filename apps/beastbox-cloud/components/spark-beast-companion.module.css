@@ -9,5 +9,5 @@
 .error{position:relative;z-index:4;padding:0 12px 12px;font-size:9px;color:#ffc7b5;text-align:center}
 .compact{min-height:0;width:92px;height:92px;border:0;background:transparent;overflow:visible;box-shadow:none}.compact .aura{width:88%;opacity:.75}.compact .canvas{width:92px;filter:drop-shadow(0 7px 10px rgba(0,0,0,.38)) drop-shadow(0 0 12px rgba(151,115,255,.35))}
 @keyframes sparkAura{0%,100%{transform:scale(.9);opacity:.65}50%{transform:scale(1.08);opacity:1}}
-@media(max-width:680px){.root{min-height:200px;border-radius:18px}.canvas{width:min(215px,72vw)}.meta small{max-width:310px}.controls{padding-bottom:14px}}
+@media(max-width:680px){.root{min-height:200px;border-radius:18px}.root.compact{min-height:0}.canvas{width:min(215px,72vw)}.meta small{max-width:310px}.controls{padding-bottom:14px}}
 @media(prefers-reduced-motion:reduce){.aura{animation:none}.mover{transform:none!important}}

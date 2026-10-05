@@ -3,6 +3,13 @@
 .full .bar,.full .status,.full .launcher{display:none}
 .full .screen{flex:1;min-height:0;max-height:none;height:100%}
 .full .screen canvas,.full .screen iframe{max-height:none;height:100%;width:100%}
+/* Field safe area: the game sits between the portrait card and the bottom HUD /
+   touch pad that /beast-cage/go publishes, at the GBA's native 3:2 aspect. */
+.full .screen{display:grid;place-items:center;box-sizing:border-box;padding:var(--go-safe-top,104px) max(0px,env(safe-area-inset-right)) var(--go-safe-bottom,176px) max(0px,env(safe-area-inset-left));container-type:size}
+.full .game{width:min(100cqw,150cqh);height:auto;aspect-ratio:3/2;max-width:100%;max-height:100%;background:#000;border-radius:6px;overflow:hidden;box-shadow:0 0 0 1px rgba(104,229,238,.18),0 18px 50px #0009}
+.full .game canvas{width:100%!important;height:100%!important}
+/* Our field touch pad drives the cartridge; EmulatorJS's own virtual gamepad would sit on top of it. */
+.full :global(.ejs_virtualGamepad_parent){display:none!important}
 .wide{width:min(920px,calc(100vw - 24px));height:min(640px,calc(100dvh - 24px));display:flex;flex-direction:column}
 .parked{position:fixed;left:-240vw;top:0;width:280px;height:180px;visibility:hidden;pointer-events:none}
 .closed{width:auto;border:0;background:transparent;box-shadow:none;overflow:visible}
@@ -27,6 +34,7 @@
 .poster{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:10px 12px;gap:6px}
 .poster button{border:0;border-radius:10px;padding:9px 11px;font-weight:800;font-size:11px;background:linear-gradient(110deg,#a1f4f8,#c9b1ff);color:#18102d;cursor:pointer}
 .poster p{margin:0;color:#c5d0ea;font-size:10px;line-height:1.35;max-width:240px}
+.tab{display:none}
 .status{position:relative;margin:0;padding:6px 9px;color:#aebbd9;font-size:9px;line-height:1.35;border-top:1px solid rgba(104,229,238,.1)}
 @media(max-width:760px){
  .dock:not(.full){right:8px;bottom:8px;width:min(250px,calc(100vw - 72px));border-radius:14px}
@@ -36,6 +44,17 @@
  .wide{width:calc(100vw - 16px);height:min(560px,calc(100dvh - 16px))}
  .wide .bar>span,.wide .generate{display:inline-flex}.wide .screen{min-height:360px;max-height:none}
  .poster{padding:8px}.poster p{font-size:9px}.poster button{padding:8px 10px;font-size:10px}
+}
+@media(max-width:760px){
+ /* Phone mini player: a collapsed pill (bar only) so it never covers page controls; Expand opens the real player. */
+ .dock.pill .screen,.dock.pill .status{display:none}
+ .dock.pill:not(.full){width:auto;max-width:calc(100vw - 16px);border-radius:999px}
+ .dock.pill .bar{min-height:38px;padding:5px 6px 5px 12px;gap:7px}
+ .dock.tucked:not(.full){right:0;border-radius:999px 0 0 999px;border-right:0}
+ /* Tucked keeps only the tab and the close button, so the player can always be closed. */
+ .dock.tucked .bar>strong,.dock.tucked .actions>:not(.close){display:none}
+ .dock.tucked .bar{padding:5px 8px 5px 10px}
+ .dock.tucked .tab{display:grid;place-items:center;pointer-events:auto;border:0;background:transparent;color:#e7fbff;font-size:16px;width:28px;height:28px;padding:0;cursor:pointer}
 }
 @media(max-width:360px){.dock:not(.full){width:min(232px,calc(100vw - 64px))}.wide{width:calc(100vw - 12px);right:6px}}
 @media(prefers-reduced-motion:reduce){.dock{transition:none}}

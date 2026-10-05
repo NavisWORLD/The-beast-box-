@@ -28,9 +28,16 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
   const [closed, setClosed] = useState(false);
   const [booted, setBooted] = useState(false);
   const [note, setNote] = useState('Lost Cosmos V11.2 Spark is ready.');
+  const [narrow, setNarrow] = useState(false);
+  const [tucked, setTucked] = useState(false);
+  const pinned = useRef(false);
+  const pillWidth = useRef(250);
+  const shell = useRef<HTMLElement>(null);
   const volume = useRef(0.28);
   const shown = mode === 'mini' || mode === 'full';
   const wide = mode === 'mini' && expanded && !closed;
+  // On phones the mini player is a collapsed pill so it stays clear of page buttons.
+  const pill = mode === 'mini' && !closed && !wide && narrow;
   const connectedName = spark ? shownName(session.beast) : creature?.name || 'Spark Beast';
   const readyText = `V11.2 Spark is ready for ${connectedName}. The cartridge stays mounted while you move around Beast Box.`;
 
@@ -38,6 +45,51 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
     const host = window as WindowEmu;
     host.EJS_emulator?.setVolume?.(shown && !closed ? volume.current : 0);
   }, [shown, closed]);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 760px)');
+    const apply = () => setNarrow(media.matches);
+    apply();
+    media.addEventListener('change', apply);
+    return () => media.removeEventListener('change', apply);
+  }, []);
+
+  // Avoid-rects: if the pill would sit on a visible page control, tuck it into a
+  // small edge tab. Tapping the tab brings the pill back until the next scroll.
+  useEffect(() => {
+    if (!pill) { setTucked(false); return; }
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      if (pinned.current) return;
+      const node = shell.current;
+      if (node && !node.classList.contains(css.tucked)) pillWidth.current = node.getBoundingClientRect().width || pillWidth.current;
+      const width = window.innerWidth, height = window.innerHeight;
+      const box = { left: width - 8 - pillWidth.current, top: height - 8 - 40, right: width - 8, bottom: height - 8 };
+      const gap = 6;
+      const controls = document.querySelectorAll<HTMLElement>('main a, main button, main input, main textarea, main select, [data-critical-control]');
+      let hit = false;
+      for (const element of controls) {
+        if (element.closest('[data-lost-cosmos-dock], [data-companion-overlay]')) continue;
+        const rect = element.getBoundingClientRect();
+        if (rect.width < 1 || rect.height < 1 || rect.bottom < 0 || rect.top > height) continue;
+        if (rect.left < box.right + gap && rect.right + gap > box.left && rect.top < box.bottom + gap && rect.bottom + gap > box.top) { hit = true; break; }
+      }
+      setTucked(hit);
+    };
+    const schedule = () => { if (!frame) frame = window.requestAnimationFrame(measure); };
+    const onScroll = () => { pinned.current = false; schedule(); };
+    schedule();
+    const settle = window.setTimeout(schedule, 900);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', schedule);
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.clearTimeout(settle);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', schedule);
+    };
+  }, [pill, pathname]);
 
   useEffect(() => {
     function onVolume(event: Event) {
@@ -85,12 +137,14 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
   }
 
   const state = mode === 'full' ? 'full' : closed ? 'closed' : wide ? 'expanded' : 'mini';
-  const className = [css.dock, mode === 'full' ? css.full : '', wide ? css.wide : '', mode === 'mini' && closed ? css.closed : '', mode === 'parked' ? css.parked : ''].filter(Boolean).join(' ');
-  return <aside className={className} data-cosmos-mode={mode} data-rom-source="/api/gba-rom" aria-hidden={shown ? undefined : true} aria-label={`Lost Cosmos cartridge connected to ${connectedName}`}
+  const className = [css.dock, mode === 'full' ? css.full : '', wide ? css.wide : '', mode === 'mini' && closed ? css.closed : '', mode === 'parked' ? css.parked : '', pill ? css.pill : '', pill && tucked ? css.tucked : ''].filter(Boolean).join(' ');
+  return <aside ref={shell} className={className} data-dock-pill={pill ? (tucked ? 'tucked' : 'pill') : undefined} data-cosmos-mode={mode} data-rom-source="/api/gba-rom" aria-hidden={shown ? undefined : true} aria-label={`Lost Cosmos cartridge connected to ${connectedName}`}
     data-lost-cosmos-dock="true" data-dock-state={state} data-creature-id={creature?.id || 'fallback'}>
     {mode === 'mini' && closed ? <button type="button" className={css.launcher} onClick={() => setClosed(false)}
       aria-label="Open Lost Cosmos player"><span>🎮</span><strong>LOST COSMOS</strong><small>Open</small></button> : null}
     <div className={css.bar}>
+      {pill && tucked ? <button type="button" className={css.tab} onClick={() => { pinned.current = true; setTucked(false); }}
+        aria-label="Show Lost Cosmos player">🎮</button> : null}
       <strong>LOST COSMOS</strong>
       <span title={connectedName}>V11.2 Spark · {connectedName}</span>
       <div className={css.actions}>
@@ -102,7 +156,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
       </div>
     </div>
     <div className={css.screen}>
-      {spark?<SolSparkPlayer compact active={shown&&!closed}/>:<div id="lost-cosmos-screen" /> }
+      {spark?<SolSparkPlayer compact active={shown&&!closed}/>:<div id="lost-cosmos-screen" className={css.game} /> }
       {!spark && !booted && shown ? <div className={css.poster}>
         <p>{readyText}</p>
         <button type="button" onClick={play}>Play V11.2 Spark</button>
