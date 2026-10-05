@@ -14,7 +14,7 @@ type Run={
  key:string;backend:string;job_id:string;pub_index:number;num_bits:number;
  shots:number;counts:Record<string,number>;counts_sha256:string;
 };
-export type Genome={
+export export type SparkGenome={
  names:Record<number,string>;island:string;temperament:string;element:string;body:string;
  pose:string;ears:string;wings:string;tail:string;quantum:{top_state:string};
  behavior:{
@@ -32,6 +32,7 @@ type Props={
  compact?:boolean;
  controls?:boolean;
  audioChannel?:string;
+ genomeOverride?:SparkGenome|null;
  className?:string;
  label?:string;
  seedRunKey?:string;
@@ -84,7 +85,7 @@ function driveFor(mood:string,intensity:number){
 
 export default function SparkBeastCompanion({
  profile,fallbackLook='nebula',state='idle',paused=false,intensity=0,
- compact=false,controls=false,audioChannel,className='',label='Spark Beast companion',
+ compact=false,controls=false,audioChannel,genomeOverride,className='',label='Spark Beast companion',
  seedRunKey='',seedTraits,onGenome
 }:Props){
  const fallback=useMemo(()=>generateCreature('beastbox-spark-'+fallbackLook,fallbackLook==='aurora'?'aurora':fallbackLook==='starlight'?'starlight':'nebula'),[fallbackLook]);
@@ -94,7 +95,7 @@ export default function SparkBeastCompanion({
  const canvas=useRef<HTMLCanvasElement>(null),mover=useRef<HTMLDivElement>(null);
  const frame=useRef<number>(0),lastEye=useRef(''),utterance=useRef(0);
  const audio=useRef<AudioContext|null>(null),audioOut=useRef<AudioNode|null>(null);
- const [run,setRun]=useState<Run|null>(null),[gen,setGen]=useState<Genome|null>(null);
+ const [run,setRun]=useState<Run|null>(null),[gen,setGen]=useState<SparkGenome|null>(null);
  const [stage,setStage]=useState<1|2|3>(2),[sound,setSound]=useState(false);
  const [error,setError]=useState(''),[reduced,setReduced]=useState(false);
 
@@ -106,6 +107,7 @@ export default function SparkBeastCompanion({
  },[]);
 
  useEffect(()=>{
+  if(genomeOverride){setRun(null);return;}
   let cancelled=false;
   void (async()=>{
    const runs=await loadSparkRuns();
@@ -117,10 +119,11 @@ export default function SparkBeastCompanion({
  },[active.id,active.seed,sameSpark?.seed,seedRunKey]);
 
  useEffect(()=>{
+  if(genomeOverride){setGen(genomeOverride);setError('');lastEye.current='';return;}
   if(!run)return;
   try{
    // The JS Spark generator types its optional user id as null; run selection is already domain-separated by active.id above.
-   const next=(sameSpark?sameSpark.genome:buildGenome(seedTraits||traits(active),run,null,10)) as unknown as Genome;
+   const next=(sameSpark?sameSpark.genome:buildGenome(seedTraits||traits(active),run,null,10)) as unknown as SparkGenome;
    setGen(next);setError('');lastEye.current='';
   }catch(err){setError(err instanceof Error?err.message:'Spark genome could not be built');}
  },[active,run,sameSpark?.genome,seedTraits]);
