@@ -115,7 +115,7 @@ export default function CompanionProvider({children}:{children:ReactNode}){
      detail:{channel:'roamer',intensity:nextAction==='orbit'?.9:.58}
     }));
    }
-  },4200);
+  },1600);
   return()=>window.clearInterval(clock);
  },[profile,showPublic,paused,halted,hidden,reduced,pageVisible,soundEnabled]);
  useEffect(()=>{
