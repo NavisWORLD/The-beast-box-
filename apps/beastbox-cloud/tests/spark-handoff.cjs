@@ -3,8 +3,9 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
 const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/sol-handoff',localGame=process.argv[4];
 (async()=>{
  await fs.mkdir(out,{recursive:true});const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
- const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),page=await context.newPage(),errors=[],wrong=[];
+ const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),page=await context.newPage(),errors=[],wrong=[],modelRequests=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(/SIM_EARTH|Pocket.Reality|standalone\//i.test(r.url()))wrong.push(r.url())});
+ page.on('request',r=>{if(r.url().startsWith(root+'/api/guest')||r.url().startsWith(root+'/api/bridge'))modelRequests.push(r.url())});
  if(localGame)await context.route('https://navisworld.github.io/**',async route=>{
   const url=new URL(route.request().url()),prefix='/Cosmic-synapse-the-living-universe-sim-engine-';
   assert.ok(url.pathname.startsWith(prefix));const response=await route.fetch({url:localGame+url.pathname.slice(prefix.length)+url.search});await route.fulfill({response});
@@ -26,6 +27,47 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
   },snapshot);
   assert.equal(verified.id,verified.nativeId);assert.equal(verified.seed,verified.nativeSeed);assert.equal(verified.art,'SPK1');assert.equal(verified.bytes,32768);
   await hand.locator('#game canvas').first().screenshot({path:out+'/native-public-title.png'});
-  assert.deepEqual(wrong,[]);assert.deepEqual(errors,[]);await fs.writeFile(out+'/report.json',JSON.stringify({passed:true,qbeast:snapshot.profile.id,seed:snapshot.profile.seed,verified,realNativeCore:true,noSimEarth:true,consoleErrors:errors},null,2));console.log('PASS: public Spark → shared identity → actual current GBA core, same art and BCP1');
+  assert.deepEqual(modelRequests,[],'opening the cartridge never automatically calls a model');
+  const talk=player.locator('[data-spark-game-talk]'),before=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')));
+  await talk.getByRole('button',{name:/^TALK TO /}).click();
+  await talk.getByRole('button',{name:'PET',exact:true}).click();
+  await talk.locator('[data-game-care]').filter({hasText:'Care XP '+(before.beast.xp+4)}).waitFor();
+  // This is an explicit response-contract fixture. Production model inference
+  // is checked separately against the live, existing RAWRPHØS guest host.
+  let sent;
+  await context.route(root+'/api/guest',async route=>{
+   sent=route.request().postDataJSON();
+   await route.fulfill({json:{provider:'rawrphos-local',model:'rawrphos-native',step:14000,guest_stateless:true,reply:'Cartridge chat contract confirmed.'}});
+  });
+  await talk.getByRole('textbox').fill('Hello from the cartridge');await talk.getByRole('button',{name:'SEND TO MODEL',exact:true}).click();
+  await talk.getByRole('status').filter({hasText:'reply saved with this Beast'}).waitFor();
+  assert.equal(sent.provider,'rawrphos-local');assert.match(sent.text,/Lost COSMOS/);assert.match(sent.text,/Hello from the cartridge/);
+  assert.ok(!sent.text.includes(snapshot.profile.id));assert.ok(!sent.text.includes(snapshot.profile.seed));
+  const afterTalk=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')));
+  assert.deepEqual(afterTalk.beast.qbeast,snapshot);assert.equal(afterTalk.beast.stage,1);assert.equal(afterTalk.beast.xp,before.beast.xp+7);
+  assert.equal(afterTalk.chat.at(-1).text,'Cartridge chat contract confirmed.');
+  assert.equal(page.frames().find(f=>f.url().includes('/sol-spark-gate/handheld.html')),core,'chat never remounts the native game');
+  await talk.getByRole('button',{name:'CLOSE TALK',exact:true}).click();await talk.getByRole('button',{name:/^TALK TO /}).click();
+  assert.equal(page.frames().find(f=>f.url().includes('/sol-spark-gate/handheld.html')),core);
+  await context.route(root+'/api/guest',async route=>route.fulfill({json:{reply:'Unverified fake answer'}}));
+  await talk.getByRole('textbox').fill('A second message');await talk.getByRole('button',{name:'SEND TO MODEL',exact:true}).click();
+  await talk.getByRole('status').filter({hasText:'no verified text'}).waitFor();
+  assert.equal(await talk.getByText('Unverified fake answer',{exact:true}).count(),0);
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast.xp),afterTalk.beast.xp);
+  await context.route(root+'/api/guest',async route=>{
+   await new Promise(resolve=>setTimeout(resolve,500));
+   try{await route.fulfill({json:{provider:'rawrphos-local',model:'rawrphos-native',step:14000,guest_stateless:true,reply:'Canceled response must not be remembered.'}});}catch{/* browser canceled the request */}
+  });
+  await talk.getByRole('textbox').fill('Cancel this request');await talk.getByRole('button',{name:'SEND TO MODEL',exact:true}).click();
+  await talk.getByRole('button',{name:'CANCEL',exact:true}).click();await page.waitForTimeout(600);
+  assert.equal(await talk.getByText('Canceled response must not be remembered.',{exact:true}).count(),0);
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast.xp),afterTalk.beast.xp);
+  assert.equal(page.frames().find(f=>f.url().includes('/sol-spark-gate/handheld.html')),core);
+  assert.ok(modelRequests.every(url=>url===root+'/api/guest'));
+  await page.screenshot({path:out+'/native-game-cage-talk.png',fullPage:true});
+  await page.goto(root+'/beast-cage');await page.waitForFunction(id=>document.querySelector('[data-spark-beast][data-creature-id="'+id+'"]'),snapshot.profile.id);
+  const afterNavigation=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')));
+  assert.deepEqual(afterNavigation.beast.qbeast,snapshot);assert.deepEqual(afterNavigation.chat,afterTalk.chat);assert.equal(afterNavigation.beast.xp,afterTalk.beast.xp);
+  assert.deepEqual(wrong,[]);assert.deepEqual(errors,[]);await fs.writeFile(out+'/report.json',JSON.stringify({passed:true,qbeast:snapshot.profile.id,seed:snapshot.profile.seed,verified,realNativeCore:true,noSimEarth:true,gameChatContractFixture:true,gameChatKeepsNativeMounted:true,sharedCageCareAndChat:true,noAutomaticModelCalls:true,noOwnerModelCalls:true,consoleErrors:errors},null,2));console.log('PASS: same QBEAST → actual current GBA, guest talk contract, same Cage care/chat and no native remount');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});
