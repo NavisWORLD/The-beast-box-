@@ -155,8 +155,9 @@ async function startVoice(announce=false){
 }
 async function stopVoice(){
  voiceOn=false;
- try{if(voiceBus?.gain&&voiceBus?.ctx){const t=voiceBus.ctx.currentTime;voiceBus.gain.gain.cancelScheduledValues(t);voiceBus.gain.gain.setTargetAtTime(0,t,.015);setTimeout(()=>{try{voiceBus?.gain?.disconnect?.()}catch{}},120);}}catch{}
- voiceBus=null;beastAudio.sparkMute();updateVoiceButton();
+ const oldBus=voiceBus;voiceBus=null;
+ try{if(oldBus?.gain&&oldBus?.ctx){const t=oldBus.ctx.currentTime;oldBus.gain.gain.cancelScheduledValues(t);oldBus.gain.gain.setTargetAtTime(0,t,.015);setTimeout(()=>{try{oldBus.gain.disconnect()}catch{}},120);}}catch{}
+ beastAudio.sparkMute();updateVoiceButton();
 }
 async function enableVoice(){
  try{
