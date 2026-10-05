@@ -80,7 +80,7 @@ function showCreature(entry,nextSession,spawn=true){
  qvmGrowth=readQvmGrowth(gen.seed);
  const scene=audioSceneFor(gen);if(scene)beastAudio.setScene(scene);syncAudioUi();
  runtime={rnd:mulberry32(gen.behavior.prng_seed),T:0,nextBlink:2,blinkUntil:-1,utt:0,lastSay:-20,nextVoice:12,state:spawn?'spawn':'idle',until:spawn?1.2:0,spawn:spawn?0:1,qvmPulseUntil:-1,qvmStep:0};
- Object.assign(felt,target);updatePlate();drawBestiary();say('neutral',spawn?`${shownName(session.beast)} just sparked in. Let's explore!`:`${shownName(session.beast)} is back. Same paws, same seed.`);
+ Object.assign(felt,target);updatePlate();drawBestiary();notifyNativeBridge();say('neutral',spawn?`${shownName(session.beast)} just sparked in. Let's explore!`:`${shownName(session.beast)} is back. Same paws, same seed.`);
 }
 async function adopt(entry,spawn=true){const gen=buildGenome(entry.traits,byKey.get(entry.run),entry.user||null,10);const next=await withSparkLock(()=>selectSpark(localStorage,gen));showCreature(entry,next,spawn);}
 function drive(){
@@ -185,7 +185,7 @@ async function interaction(kind){
    if(training.round>=6){const result=finishTraining(session,training.hits,6);$('status').textContent=`Training complete · ${training.hits}/6 hits · +${result.gain} care XP. Cartridge evolution is earned in the game.`;training=null;completedTraining=true;$('train').textContent='TRAIN';$('training').hidden=true;}
    else{$('training').hidden=false;$('train').textContent=`TAP ${training.round}/6`;}
   }else careAction(session,kind==='play'?'spark':kind==='care'?'feed':kind);
-  saveSparkSession(localStorage,session);
+  saveSparkSession(localStorage,session);notifyNativeBridge();
  });
  const cue={pet:'blip',play:'burst',train:completedTraining?'levelup':'charge',rest:'faint',care:'confirm'}[kind]||'blip';audioSfx(cue);
  if(kind==='play'||kind==='train')beastAudio.battle(kind==='play'?1.8:1.2);
@@ -231,7 +231,7 @@ async function speak(event){
    session=readSparkSession(localStorage);if(session.beast?.seed!==current.gen.seed)throw Error('Reload the current Beast before talking.');
    if(remote?.reply){rememberExchange(session,text,remote.reply);reply=remote.reply;}
    else reply=talk(session,text).reply;
-   saveSparkSession(localStorage,session);
+   saveSparkSession(localStorage,session);notifyNativeBridge();
   });
   runtime.state='listen';runtime.until=runtime.T+3;updatePlate();say('focus',reply.slice(0,900));$('talk-reply').textContent=reply;$('talk-text').value='';
   if(remote){setTalkSource('COSMOS · '+remote.model,true);audioSfx('confirm');$('status').textContent=remote.persistent?'Active Brain Bay model replied through COSMOS and the host confirmed persistence.':'Active Brain Bay model replied through COSMOS. This browser also kept the exchange with the same Beast.';}
@@ -269,9 +269,41 @@ function wirePageNavigation(){
   if(event.altKey&&['1','2','3'].includes(event.key)){event.preventDefault();jump(['#habitat','#seed-lab','#bestiary-section'][Number(event.key)-1]);}
  });
 }
+function nativeBridgeState(){
+ if(!current||!session?.beast)return null;
+ const beast=session.beast,nativeStage=Math.max(1,Math.min(3,Number(beast.nativeStage||beast.stage||1)));
+ return {
+  displayName:shownName(beast),
+  species:current.gen.names?.[nativeStage]||current.gen.names?.[1]||shownName(beast),
+  stage:nativeStage,
+  xp:Number(beast.xp||0),
+  bond:Number(beast.bond||0),
+  energy:Number.isFinite(Number(beast.energy))?Number(beast.energy):null
+ };
+}
+function nativeCommand(cmd){
+ if(!cmd||typeof cmd!=='object'||typeof cmd.command!=='string')return false;
+ const command=cmd.command.toLowerCase();
+ if(command==='feed'){void run(()=>interaction('care'));return true;}
+ if(command==='play'){void run(()=>interaction('play'));return true;}
+ if(command==='attack'){void run(()=>interaction('train'));return true;}
+ if(command==='talk'){
+  $('talk-form').hidden=false;
+  const input=$('talk-text');input.value=String(cmd.text||'Hi from Android').slice(0,120);
+  input.dispatchEvent(new Event('input',{bubbles:true}));
+  if(typeof $('talk-form').requestSubmit==='function')$('talk-form').requestSubmit();
+  else $('talk-form').dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));
+  return true;
+ }
+ return false;
+}
+function installNativeBridge(){
+ window.BeastBoxDevice={version:2,getState:nativeBridgeState,onCommand:nativeCommand};
+}
+function notifyNativeBridge(){window.dispatchEvent(new Event('beastbox:session-changed'));}
 function loop(prev){const now=performance.now();tick(Math.min(.05,(now-prev)/1000)||.016);requestAnimationFrame(()=>loop(now));}
 async function main(){
- soundWanted=readSoundWanted();if(soundWanted)beastAudio.sparkUnmute();else beastAudio.sparkMute();updateVoiceButton();syncAudioUi();wirePageNavigation();
+ soundWanted=readSoundWanted();if(soundWanted)beastAudio.sparkUnmute();else beastAudio.sparkMute();updateVoiceButton();syncAudioUi();wirePageNavigation();installNativeBridge();
  $('btnote').textContent=bluetoothNote()||'';for(const key of Object.keys(PROFILES)){const opt=document.createElement('option');opt.value=opt.textContent=key;$('profile').append(opt)}$('profile').value='balanced';
  const [index,qvmReceipt]=await Promise.all([
   fetch('/spark/user-seeds-20261004.json').then(r=>r.json()),
