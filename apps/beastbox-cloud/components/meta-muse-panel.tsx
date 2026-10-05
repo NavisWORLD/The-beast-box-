@@ -8,7 +8,8 @@ import MetaMuseQr from './meta-muse-qr';
 import styles from './meta-muse.module.css';
 
 type Method = { id: string; label: string; available: boolean; how: string };
-type Storage = { configured: boolean; kind: string; missing: string[]; connectorUrl: string; serverCardUrl?: string; pairingMethods?: Method[] };
+type StorageOption = { id: string; label: string; vars: string[]; found: string[]; missing: string[]; complete: boolean };
+type Storage = { configured: boolean; working?: boolean; checked?: boolean; kind: string; via?: string; lookingFor?: string; found?: string[]; missing: string[]; options?: StorageOption[]; connectorUrl: string; serverCardUrl?: string; pairingMethods?: Method[] };
 type Grant = { id: string; kind: 'oauth' | 'pat'; client: string; scope: string; readOnly: boolean; createdAt: string; lastUsedAt: string | null };
 type Status = { paired: boolean; deviceId?: string | null; deviceName?: string | null; serverCardUrl?: string; createdAt: string; lastActivityAt: string | null; lastActivity: { tool: string; at: string; via: string } | null; connections: Grant[]; pendingActions: number; snapshotSyncedAt: string | null };
 
@@ -32,6 +33,7 @@ export default function MetaMusePanel() {
   const [token, setToken] = useState<{ token: string; scope: string; expiresAt: string } | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [checkingStorage, setCheckingStorage] = useState(false);
   const beast = session?.beast;
   const defaultName = `Beast Box · ${beast ? shownName(beast) : 'my beast'}`.slice(0, 60);
   const shownDeviceName = nameTouched ? deviceName : (status?.deviceName || defaultName);
@@ -39,20 +41,42 @@ export default function MetaMusePanel() {
 
   const refresh = useCallback(async () => {
     const link = readLink();
-    setLinked(!!link);
-    if (!link) { setStatus(null); return; }
+    if (!link) { setLinked(false); setStatus(null); return; }
     const res = await museApi('link', { secret: link.deviceSecret });
     if (res.status === 401) { writeLink(null); setLinked(false); setStatus(null); setMessage('This browser was unpaired.'); return; }
-    if (res.ok) setStatus(res.data);
+    if (res.ok && res.data?.paired === true) { setLinked(true); setStatus(res.data); return; }
+    setLinked(false);
+    setStatus(null);
   }, []);
 
+  const recheckStorage = useCallback(async (announce = false) => {
+    setCheckingStorage(true);
+    try {
+      const res = await museApi('storage');
+      if (!res.ok || !res.data) throw new Error('Storage status could not be read.');
+      setStorage(res.data);
+      if (res.data.configured === true && res.data.working === true) {
+        await refresh();
+        if (announce) setMessage('Connector storage is confirmed working. Pairing is on.');
+      } else {
+        setLinked(false);
+        setStatus(null);
+        if (announce) setMessage(res.data.configured === true
+          ? 'Storage variables were found, but the read/write/delete check is still failing.'
+          : 'Connector storage is still not configured on this deployment.');
+      }
+    } catch (error) {
+      setLinked(false); setStatus(null);
+      if (announce) setMessage(error instanceof Error ? error.message : 'Storage status could not be read.');
+    } finally { setCheckingStorage(false); }
+  }, [refresh]);
+
   useEffect(() => {
-    void museApi('storage').then((res) => { if (res.data) setStorage(res.data); });
-    void refresh();
+    void recheckStorage(false);
     const on = () => { void refresh(); };
     window.addEventListener(LINK_EVENT, on);
     return () => window.removeEventListener(LINK_EVENT, on);
-  }, [refresh]);
+  }, [refresh, recheckStorage]);
 
   async function pair() {
     if (!consent || busy) return;
@@ -95,6 +119,7 @@ export default function MetaMusePanel() {
     setMessage('Unpaired. Every Meta Muse token for this beast is revoked and the server copy is deleted.');
   }
 
+  const storageReady = storage?.configured === true && storage?.working === true;
   const snippet = museCodeSnippet(connectorUrl, token?.token);
   return <div className={styles.panel} data-meta-muse-panel="true">
     <h2>Pair with Meta Muse</h2>
@@ -120,12 +145,34 @@ export default function MetaMusePanel() {
       <span>{linked ? `Paired${beast ? ` · ${shownName(beast)}` : ''} · last activity ${when(status?.lastActivityAt)}${status?.lastActivity ? ` (${status.lastActivity.tool})` : ''} · last sync ${when(status?.snapshotSyncedAt)}` : 'Not paired. Nothing leaves this browser.'}</span>
     </div>
 
-    {storage && !storage.configured ? <p className={styles.error} role="alert">Connector storage is not configured on this deployment, so pairing is off. Needed: {storage.missing.join(', ')}.</p> : null}
+    {storage && !storageReady ? <div className={styles.box} role="status" data-meta-muse-storage-setup="true">
+      <p className={styles.error}>{storage.configured
+        ? 'Storage variables are present, but the connector has not confirmed a working Redis read/write/delete cycle yet. Pairing stays off.'
+        : 'Connector storage is not configured on this deployment, so pairing stays off.'}</p>
+      <p className={styles.small}><b>Deployment is looking for:</b> {storage.lookingFor || 'Vercel KV or Upstash Redis REST'}.</p>
+      {(storage.options || []).map((option) => <div key={option.id} className={styles.box}>
+        <span className={styles.label}>{option.label}</span>
+        <p className={styles.small}><b>Expected:</b> {option.vars.join(' + ')}</p>
+        <p className={styles.small}><b>Found:</b> {option.found.length ? option.found.join(', ') : 'none'}</p>
+        <p className={styles.small}><b>Missing:</b> {option.missing.length ? option.missing.join(', ') : 'none'}</p>
+      </div>)}
+      <span className={styles.label}>Set it up in Vercel</span>
+      <ol className={styles.small}>
+        <li>Open the Vercel dashboard.</li>
+        <li>Open the <b>the-beast-box</b> project.</li>
+        <li>Open the <b>Storage</b> tab.</li>
+        <li>Create a <b>KV database</b> (or <b>Upstash Redis</b>).</li>
+        <li>Connect that storage to the <b>the-beast-box</b> project so Vercel adds either <code>KV_REST_API_URL</code> + <code>KV_REST_API_TOKEN</code>, or <code>UPSTASH_REDIS_REST_URL</code> + <code>UPSTASH_REDIS_REST_TOKEN</code>.</li>
+        <li>Redeploy the project so the running deployment receives those variables.</li>
+        <li>Come back here and tap <b>Recheck storage</b>. No hard reload is required.</li>
+      </ol>
+      <div className={styles.row}><button type="button" className={styles.secondary} disabled={checkingStorage} onClick={() => void recheckStorage(true)}>{checkingStorage ? 'Checking…' : 'Recheck storage'}</button></div>
+    </div> : null}
 
     {!linked ? <div className={styles.box}>
       <label className={styles.check}><input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
         <span>Share a minimal snapshot of {beast ? shownName(beast) : 'my beast'} with the Beast Box connector while paired: name, species, element, stage, mood, stats, care values, seed provenance, moves and Lost Cosmos progress. Not chat history, memory or sensors. No model training.</span></label>
-      <div className={styles.row}><button type="button" className={styles.primary} disabled={!consent || busy || !ready || (storage ? !storage.configured : false)} onClick={() => void pair()}>Pair this beast</button></div>
+      <div className={styles.row}><button type="button" className={styles.primary} disabled={!consent || busy || !ready || !storageReady} onClick={() => void pair()}>Pair this beast</button></div>
     </div> : <>
       <div className={styles.box}>
         <span className={styles.label}>Muse app pairing code</span>

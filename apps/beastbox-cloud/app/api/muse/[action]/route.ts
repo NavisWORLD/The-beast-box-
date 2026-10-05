@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { createAccount, createPat, deviceAccount, newPairingCode, publicStatus, revokeById, setDeviceName, unpairAccount } from '@/lib/muse/auth.mjs';
 import { PAIRING_METHODS, pairingLink, serverCardUrl } from '@/lib/muse/discovery.mjs';
 import { validateSnapshot } from '@/lib/muse/snapshot.mjs';
@@ -13,7 +14,24 @@ type Ctx = { params: Promise<{ action: string }> };
 function storagePayload(request: Request) {
   const s = museStorage();
   const origin = originOf(request);
-  return { configured: s.configured, kind: s.kind, missing: s.missing, connectorUrl: mcpUrl(origin), serverCardUrl: serverCardUrl(origin), pairingMethods: PAIRING_METHODS };
+  return { ...s, connectorUrl: mcpUrl(origin), serverCardUrl: serverCardUrl(origin), pairingMethods: PAIRING_METHODS };
+}
+
+async function storageHealthPayload(request: Request) {
+  const base = storagePayload(request);
+  const store = museStore();
+  if (!base.configured || !store) return { ...base, working: false, checked: true };
+  if (base.kind === 'memory-dev') return { ...base, working: true, checked: true };
+  const key = 'bbm:storage-probe:' + randomUUID();
+  try {
+    await store.set(key, { ok: true }, 30);
+    const value = await store.get(key);
+    await store.del(key);
+    return { ...base, working: value?.ok === true, checked: true };
+  } catch {
+    try { await store.del(key); } catch { /* best effort cleanup */ }
+    return { ...base, working: false, checked: true };
+  }
 }
 
 /** Same origin, or an allow-listed origin calling a pairing/sync route (see lib/muse/cors.mjs). */
@@ -32,7 +50,7 @@ async function device(request: Request, action: string) {
 }
 
 async function get(request: Request, action: string) {
-  if (action === 'storage') return json(200, storagePayload(request));
+  if (action === 'storage') return json(200, await storageHealthPayload(request));
   if (action !== 'link') return json(404, { error: 'not_found' });
   const d = await device(request, action);
   if (d.error) return d.error;

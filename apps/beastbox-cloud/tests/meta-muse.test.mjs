@@ -266,7 +266,15 @@ test("storage: production without a Redis REST store is reported, never faked", 
   const missing = storageStatus({ NODE_ENV: "production" });
   assert.equal(missing.configured, false);
   assert.match(missing.missing[0], /KV_REST_API_URL/);
-  assert.equal(storageStatus({ NODE_ENV: "production", KV_REST_API_URL: "https://x", KV_REST_API_TOKEN: "t" }).kind, "redis-rest");
+  assert.equal(missing.options.length, 2);
+  assert.deepEqual(missing.options[0].vars, ["KV_REST_API_URL", "KV_REST_API_TOKEN"]);
+  assert.deepEqual(missing.options[1].vars, ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"]);
+  const partial = storageStatus({ NODE_ENV: "production", KV_REST_API_URL: "https://x" });
+  assert.deepEqual(partial.options[0].found, ["KV_REST_API_URL"]);
+  assert.deepEqual(partial.options[0].missing, ["KV_REST_API_TOKEN"]);
+  const configured = storageStatus({ NODE_ENV: "production", KV_REST_API_URL: "https://x", KV_REST_API_TOKEN: "t" });
+  assert.equal(configured.kind, "redis-rest");
+  assert.equal(configured.lookingFor, "Vercel KV / Marketplace Redis");
   const calls = [];
   const fake = async (url, init) => { calls.push({ url, body: JSON.parse(init.body), auth: init.headers.Authorization }); return new Response(JSON.stringify([{ result: JSON.stringify({ a: 1 }) }])); };
   const store = createRedisRestStore({ url: "https://kv.example/", token: "tok", fetchImpl: fake });
@@ -299,6 +307,19 @@ test("UI is additive: owner deck keeps LOST COSMOS and adds META MUSE; GO menu a
   assert.match(panel, /only after Meta reviews and approves them/);
   assert.match(panel, /Muse Connector Platform/);
   assert.match(panel, /Unpair/);
+  assert.match(panel, /Vercel dashboard/);
+  assert.match(panel, /the-beast-box/);
+  assert.match(panel, /Storage/);
+  assert.match(panel, /KV_REST_API_URL/);
+  assert.match(panel, /UPSTASH_REDIS_REST_URL/);
+  assert.match(panel, /Recheck storage/);
+  assert.match(panel, /Not paired\. Nothing leaves this browser\./);
+  assert.match(panel, /res\.data\.configured === true && res\.data\.working === true/);
+  const museRoute = read("app/api/muse/[action]/route.ts");
+  assert.match(museRoute, /storageHealthPayload/);
+  assert.match(museRoute, /await store\.set/);
+  assert.match(museRoute, /await store\.get/);
+  assert.match(museRoute, /await store\.del/);
   assert.match(read("components/companion-provider.tsx"), /<MetaMuseSync \/>/);
 });
 
