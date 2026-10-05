@@ -1,0 +1,36 @@
+/* Meta Muse pairing: consent page and Pair panel. Uses the site palette. */
+.page{min-height:100vh;display:grid;place-items:start center;padding:48px 18px 120px;background:radial-gradient(ellipse 80% 45% at 70% 10%,rgba(89,51,137,.22),transparent 60%),var(--bg)}
+.card{width:min(560px,100%);border:1px solid var(--line);border-radius:18px;background:#0f1428f2;padding:22px;box-shadow:0 18px 60px #0007}
+.eyebrow{margin:0 0 6px;color:#b5b6ff;letter-spacing:.18em;font:700 10px 'Space Grotesk',sans-serif;text-transform:uppercase}
+.card h1,.panel h2{margin:0 0 10px;font:700 24px/1.15 'Space Grotesk',sans-serif;letter-spacing:-.02em}
+.panel h2{font-size:18px}
+.muted{color:var(--muted);font-size:13px;line-height:1.55;margin:6px 0}
+.note{border:1px solid rgba(255,229,154,.28);background:#2a2412aa;color:#ffeec0;border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.5;margin:12px 0}
+.error{border:1px solid #ff8a9a66;background:#3a121b99;color:#ffd0d7;border-radius:12px;padding:10px 12px;font-size:13px;margin:12px 0}
+.field{display:grid;gap:6px;margin:14px 0}
+.field label,.label{font:700 11px 'Space Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#c8d0e8}
+.input{border:1px solid rgba(104,229,238,.35);background:#0a1022;color:var(--text);border-radius:10px;padding:11px 12px;font:700 18px 'Space Grotesk',monospace;letter-spacing:.18em;text-transform:uppercase}
+.choices{display:grid;gap:8px;margin:12px 0}
+.choice{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#121933;cursor:pointer}
+.choice input{margin-top:3px;accent-color:#68e5ee}
+.choice strong{display:block;font-size:14px}
+.choice span{display:block;color:var(--muted);font-size:12px;line-height:1.45;margin-top:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.primary,.secondary,.danger{border:0;border-radius:11px;padding:10px 14px;font-weight:800;font-size:13px}
+.primary{background:linear-gradient(125deg,#79ecf4,#a99cff 65%,#ded0ff);color:#090c20}
+.secondary{background:#1c2546;color:#e7fbff;border:1px solid rgba(104,229,238,.25)}
+.danger{background:#3a1520;color:#ffd0d7;border:1px solid #ff8a9a55}
+.panel{display:grid;gap:10px;color:var(--text)}
+.box{border:1px solid var(--line);border-radius:12px;background:#0c1226;padding:10px 12px}
+.code{display:block;font:600 12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-all;color:#bdf6fa;margin:6px 0 0}
+.big{font:800 26px 'Space Grotesk',monospace;letter-spacing:.2em;color:var(--gold)}
+.status{display:flex;gap:8px;align-items:center;font-size:13px}
+.dot{width:8px;height:8px;border-radius:50%;background:#59607a}
+.on{background:var(--green);box-shadow:0 0 10px var(--green)}
+.list{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:6px}
+.list li{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px;color:#c8d0e8}
+.small{font-size:11px;color:var(--muted)}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:#c8d0e8;line-height:1.45}
+.check input{margin-top:2px;accent-color:#68e5ee}
+.radio{display:inline-flex;gap:6px;align-items:center;white-space:nowrap;font-size:12px;color:#c8d0e8}
+.radio input{accent-color:#68e5ee}

@@ -17,10 +17,11 @@ import SparkBeastCompanion from './spark-beast-companion';
 import SparkFieldRoster from './spark-field-roster';
 import SparkMachine from './spark-machine';
 import SparkWanderer from './spark-wanderer';
+import MetaMusePanel from './meta-muse-panel';
 import css from './beast-go.module.css';
 
 const recorded = runs as Array<{ key: string; backend: string; job_id: string; pub_index: number; num_bits: number; shots: number; counts: Record<string, number> }>;
-type SheetId = 'menu' | 'bag' | 'beasts' | 'talk' | 'map' | 'settings' | null;
+type SheetId = 'menu' | 'bag' | 'beasts' | 'talk' | 'map' | 'settings' | 'metamuse' | null;
 const GAME_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'z', 'x', 'Z', 'X', 'Enter', 'v', 'V', 'q', 'Q', 'e', 'E']);
 
 export default function BeastGo() {
@@ -82,6 +83,14 @@ export default function BeastGo() {
     apply();
     media.addEventListener('change', apply);
     return () => media.removeEventListener('change', apply);
+  }, []);
+
+  useEffect(() => {
+    // #meta-muse (owner deck, Brain Bay) opens the Pair with Meta Muse sheet.
+    const open = () => { if (window.location.hash === '#meta-muse') setSheet('metamuse'); };
+    open();
+    window.addEventListener('hashchange', open);
+    return () => window.removeEventListener('hashchange', open);
   }, []);
 
   useEffect(() => {
@@ -282,6 +291,7 @@ export default function BeastGo() {
         <h2>Field menu</h2>
         <div className={css.list}>
           {QUICK.map((item) => <button key={item.id} type="button" onClick={() => { sfx('confirm'); setSheet(item.id as SheetId); }}>{item.label}</button>)}
+          <button type="button" data-meta-muse-entry="menu" onClick={() => { sfx('confirm'); setSheet('metamuse'); }}>Pair with Meta Muse</button>
         </div>
       </> : null}
       {sheet === 'bag' ? <>
@@ -342,7 +352,11 @@ export default function BeastGo() {
           <Link href="/beast-cage/play">Adventure</Link>
           <Link href="/workspace">Owner deck</Link>
         </div>
+        <div className={css.row}>
+          <button type="button" data-meta-muse-entry="settings" onClick={() => { sfx('confirm'); setSheet('metamuse'); }}>Pair with Meta Muse</button>
+        </div>
       </> : null}
+      {sheet === 'metamuse' ? <MetaMusePanel /> : null}
     </section>
   </main>;
 }

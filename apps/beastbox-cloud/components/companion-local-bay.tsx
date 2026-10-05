@@ -316,6 +316,7 @@ export default function CompanionLocalBay({variant='bay'}:{variant?:'bay'|'chat'
    <label><input type="checkbox" checked={optInImport} onChange={event=>setOptInImport(event.target.checked)}/> I opt in to importing this chat export</label>
    <input aria-label="Import opt-in chat export" type="file" accept="application/json,.json" onChange={event=>{const file=event.target.files?.[0];event.target.value='';if(file)void importChat(file).catch(error=>setNotice((error as Error).message));}}/>
   </div>
+  {variant==='bay'?<p className={styles.note} data-meta-muse-link="true">Meta Muse (Meta&apos;s AI agent) can pair with your field beast through the Beast Box connector. <a href="/beast-cage/go#meta-muse">Pair with Meta Muse</a></p>:null}
  </article>;
 }
 
