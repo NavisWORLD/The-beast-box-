@@ -28,6 +28,7 @@ Muse EEG headband.
 | Revocation (RFC 7009) | `POST /api/muse/oauth/revoke` |
 | One-tap pairing landing page (QR code target) | `GET /connect/meta-muse/pair#connector=…&code=…&device=…` |
 | Browser-only device routes (same-origin, device secret) | `/api/muse/link`, `/code`, `/sync`, `/pat`, `/device`, `/grant`, `/storage` |
+| CORS for the pairing/sync routes (allow-list `https://navisworld.github.io`, OPTIONS preflight) | `/api/muse/storage`, `/link`, `/code`, `/sync`, `/device` (`lib/muse/cors.mjs`) |
 
 Code: `apps/beastbox-cloud/lib/muse/` (`auth.mjs`, `tools.mjs`, `store.mjs`, `rate-limit.mjs`,
 `snapshot.mjs`, `discovery.mjs`, `pairing-link.mjs`, `bridge-talk.mjs`), routes under
@@ -114,6 +115,19 @@ Pair with Meta Muse** (also in **Settings**, and linked from the Brain Bay compa
 The panel shows connection status, each connection (OAuth client or token) with its access level
 and last use, last activity, last sync, pending actions, **Revoke** per connection and **Unpair**.
 Unpair revokes every token, removes the device link and deletes the server copy.
+
+### 2.3.1 Pair from Spark Beasts (GitHub Pages)
+
+The Lost Cosmos **Spark Beasts** page
+(`https://navisworld.github.io/Cosmic-synapse-the-living-universe-sim-engine-/arcade/spark-beasts/`) has its own
+**Pair with Meta Muse** panel that uses the same pairing and sync API from another origin. The
+pairing and sync routes (`storage`, `link`, `code`, `sync`, `device`) answer CORS for the
+allow-listed origin `https://navisworld.github.io` only (exact match, no credentials, `Vary:
+Origin`), plus an `OPTIONS` preflight; `http://localhost`/`127.0.0.1` are also allowed outside
+production for local testing. Token minting (`pat`), per-connection revoke (`grant`), OAuth and
+`/api/mcp` stay same-origin / unchanged. Every response, including `503 storage_not_configured`,
+carries the CORS headers so the Spark page can show the reason. The device secret for a Spark beast
+lives in that page's localStorage (`spark-beasts-meta-muse-v1`).
 
 ### 2.4 Discovery: what can and cannot find this device
 

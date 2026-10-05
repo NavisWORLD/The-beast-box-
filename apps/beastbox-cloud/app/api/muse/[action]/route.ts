@@ -3,6 +3,7 @@ import { PAIRING_METHODS, pairingLink, serverCardUrl } from '@/lib/muse/discover
 import { validateSnapshot } from '@/lib/muse/snapshot.mjs';
 import { syncAccount } from '@/lib/muse/tools.mjs';
 import { clientBucket, deviceSecretOf, json, limited, mcpUrl, museStorage, museStore, noStorage, originOf, readJson, sameOrigin } from '@/lib/muse/server';
+import { corsOrigin, preflight, withCors } from '@/lib/muse/cors.mjs';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,30 +16,33 @@ function storagePayload(request: Request) {
   return { configured: s.configured, kind: s.kind, missing: s.missing, connectorUrl: mcpUrl(origin), serverCardUrl: serverCardUrl(origin), pairingMethods: PAIRING_METHODS };
 }
 
-async function device(request: Request) {
+/** Same origin, or an allow-listed origin calling a pairing/sync route (see lib/muse/cors.mjs). */
+function allowedCaller(request: Request, action: string) {
+  return sameOrigin(request) || !!corsOrigin(request.headers.get('origin'), action);
+}
+
+async function device(request: Request, action: string) {
   const store = museStore();
   if (!store) return { error: noStorage() };
-  if (!sameOrigin(request)) return { error: json(403, { error: 'same_origin_required' }) };
+  if (!allowedCaller(request, action)) return { error: json(403, { error: 'same_origin_required' }) };
   const secret = deviceSecretOf(request);
   const account = secret ? await deviceAccount(store, secret) : null;
   if (!account) return { error: json(401, { error: 'not_paired', error_description: 'This browser is not paired with Meta Muse.' }) };
   return { store, secret, account };
 }
 
-export async function GET(request: Request, ctx: Ctx) {
-  const { action } = await ctx.params;
+async function get(request: Request, action: string) {
   if (action === 'storage') return json(200, storagePayload(request));
   if (action !== 'link') return json(404, { error: 'not_found' });
-  const d = await device(request);
+  const d = await device(request, action);
   if (d.error) return d.error;
   return json(200, { ...publicStatus(d.account), serverCardUrl: serverCardUrl(originOf(request), d.account.deviceId), storage: storagePayload(request) });
 }
 
-export async function POST(request: Request, ctx: Ctx) {
-  const { action } = await ctx.params;
+async function post(request: Request, action: string) {
   const store = museStore();
   if (!store) return noStorage();
-  if (!sameOrigin(request)) return json(403, { error: 'same_origin_required' });
+  if (!allowedCaller(request, action)) return json(403, { error: 'same_origin_required' });
   let body: any = {};
   try { body = await readJson(request, 16000); } catch { return json(400, { error: 'invalid_json' }); }
 
@@ -51,7 +55,7 @@ export async function POST(request: Request, ctx: Ctx) {
     return json(201, { deviceSecret, ...publicStatus(account), serverCardUrl: serverCardUrl(originOf(request), account.deviceId), storage: storagePayload(request) });
   }
 
-  const d = await device(request);
+  const d = await device(request, action);
   if (d.error) return d.error;
   const { account } = d;
 
@@ -84,9 +88,8 @@ export async function POST(request: Request, ctx: Ctx) {
   return json(404, { error: 'not_found' });
 }
 
-export async function DELETE(request: Request, ctx: Ctx) {
-  const { action } = await ctx.params;
-  const d = await device(request);
+async function del(request: Request, action: string) {
+  const d = await device(request, action);
   if (d.error) return d.error;
   if (action === 'link') return json(200, await unpairAccount(d.store!, d.account.id, d.secret));
   if (action === 'grant') {
@@ -95,4 +98,23 @@ export async function DELETE(request: Request, ctx: Ctx) {
     return json(200, await revokeById(d.store!, d.account.id, id));
   }
   return json(404, { error: 'not_found' });
+}
+
+// Every response from the pairing/sync routes carries CORS headers for allow-listed origins,
+// including 503 storage_not_configured and errors, so the calling page can show the reason.
+export async function GET(request: Request, ctx: Ctx) {
+  const { action } = await ctx.params;
+  return withCors(request, action, await get(request, action));
+}
+export async function POST(request: Request, ctx: Ctx) {
+  const { action } = await ctx.params;
+  return withCors(request, action, await post(request, action));
+}
+export async function DELETE(request: Request, ctx: Ctx) {
+  const { action } = await ctx.params;
+  return withCors(request, action, await del(request, action));
+}
+export async function OPTIONS(request: Request, ctx: Ctx) {
+  const { action } = await ctx.params;
+  return preflight(request, action);
 }
