@@ -4,6 +4,7 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
 (async()=>{
  await fs.mkdir(out,{recursive:true});const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),page=await context.newPage(),errors=[],wrong=[],modelRequests=[];
+ await page.addInitScript(()=>{const buttons=Array.from({length:16},()=>({pressed:false,value:0}));window.__beastBoxFakeGamepad={id:'Beast Box CI standard controller',index:0,connected:true,mapping:'standard',timestamp:0,buttons,axes:[0,0],vibrationActuator:null};Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>[window.__beastBoxFakeGamepad]});});
  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(/SIM_EARTH|Pocket.Reality|standalone\//i.test(r.url()))wrong.push(r.url())});
  page.on('request',r=>{if(r.url().startsWith(root+'/api/guest')||r.url().startsWith(root+'/api/bridge'))modelRequests.push(r.url())});
  if(localGame)await context.route('https://navisworld.github.io/**',async route=>{
@@ -26,6 +27,13 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
   const deckA=page.locator('[data-handheld-controls="game-boy"]').getByRole('button',{name:'A',exact:true});
   await deckA.tap();await page.waitForTimeout(120);
   assert.deepEqual(await core.evaluate(()=>window.__beastBoyInputs.slice(-2)),[[0,8,1],[0,8,0]],'real mobile Beast Boy A tap reaches the mounted native core');
+  const beforeGamepad=await core.evaluate(()=>window.__beastBoyInputs.length);
+  await page.evaluate(()=>{const b=window.__beastBoxFakeGamepad.buttons[0];b.pressed=true;b.value=1;window.__beastBoxFakeGamepad.timestamp=performance.now();});
+  await page.waitForFunction(async before=>{const frame=[...document.querySelectorAll('iframe')].find(el=>el.contentWindow);return true;},beforeGamepad).catch(()=>{});
+  for(let i=0;i<30&&await core.evaluate(n=>window.__beastBoyInputs.length<=n,beforeGamepad);i++)await page.waitForTimeout(20);
+  await page.evaluate(()=>{const b=window.__beastBoxFakeGamepad.buttons[0];b.pressed=false;b.value=0;window.__beastBoxFakeGamepad.timestamp=performance.now();});
+  for(let i=0;i<30&&await core.evaluate(n=>window.__beastBoyInputs.length<n+2,beforeGamepad);i++)await page.waitForTimeout(20);
+  assert.deepEqual(await core.evaluate(n=>window.__beastBoyInputs.slice(n,n+2),beforeGamepad),[[0,8,1],[0,8,0]],'standard Gamepad API A press/release reaches the same mounted native core');
   const deckInput=async(button,down)=>page.evaluate(({button,down})=>window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button,down}})),{button,down});
   const beforeBad=await core.evaluate(()=>window.__beastBoyInputs.length);await deckInput('nope',true);await page.waitForTimeout(50);
   assert.equal(await core.evaluate(()=>window.__beastBoyInputs.length),beforeBad,'unknown Beast Boy controls are rejected');
@@ -77,6 +85,6 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
   await page.goto(root+'/beast-cage');await page.waitForFunction(id=>document.querySelector('[data-spark-beast][data-creature-id="'+id+'"]'),snapshot.profile.id);
   const afterNavigation=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')));
   assert.deepEqual(afterNavigation.beast.qbeast,snapshot);assert.deepEqual(afterNavigation.chat,afterTalk.chat);assert.equal(afterNavigation.beast.xp,afterTalk.beast.xp);
-  assert.deepEqual(wrong,[]);assert.deepEqual(errors,[]);await fs.writeFile(out+'/report.json',JSON.stringify({passed:true,qbeast:snapshot.profile.id,seed:snapshot.profile.seed,verified,realNativeCore:true,noSimEarth:true,gameChatContractFixture:true,gameChatKeepsNativeMounted:true,sharedCageCareAndChat:true,beastBoyControlsHitNativeCore:true,realMobileDeckTap:true,gameAudioUnlockVisible:true,noAutomaticModelCalls:true,noOwnerModelCalls:true,consoleErrors:errors},null,2));console.log('PASS: same QBEAST → actual current GBA, Beast Boy controls, guest talk contract, same Cage care/chat and no native remount');
+  assert.deepEqual(wrong,[]);assert.deepEqual(errors,[]);await fs.writeFile(out+'/report.json',JSON.stringify({passed:true,qbeast:snapshot.profile.id,seed:snapshot.profile.seed,verified,realNativeCore:true,noSimEarth:true,gameChatContractFixture:true,gameChatKeepsNativeMounted:true,sharedCageCareAndChat:true,beastBoyControlsHitNativeCore:true,realMobileDeckTap:true,physicalGamepadHitsNativeCore:true,gameAudioUnlockVisible:true,noAutomaticModelCalls:true,noOwnerModelCalls:true,consoleErrors:errors},null,2));console.log('PASS: same QBEAST → actual current GBA, Beast Boy controls, guest talk contract, same Cage care/chat and no native remount');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});
