@@ -24,6 +24,17 @@ export default function SolSparkPlayer({compact=false,active=true}:{compact?:boo
   update();document.addEventListener('visibilitychange',update);return()=>document.removeEventListener('visibilitychange',update);
  },[active,started]);
  useEffect(()=>{
+  const allowed=new Set(['up','down','left','right','a','b','start','select','l','r']);
+  const forward=(event:Event)=>{
+   const detail=(event as CustomEvent<{button?:unknown;down?:unknown}>).detail;
+   const button=typeof detail?.button==='string'?detail.button.toLowerCase():'';
+   if(!allowed.has(button)||typeof detail?.down!=='boolean')return;
+   frame.current?.contentWindow?.postMessage({type:'sol-spark-input',button,down:detail.down},ROOT);
+  };
+  window.addEventListener('beastbox:gba-input',forward);
+  return()=>window.removeEventListener('beastbox:gba-input',forward);
+ },[]);
+ useEffect(()=>{
   const message=(event:MessageEvent)=>{
    if(event.origin!==ROOT||event.source!==frame.current?.contentWindow)return;
    if(event.data?.type==='sol-spark-ready')send();
