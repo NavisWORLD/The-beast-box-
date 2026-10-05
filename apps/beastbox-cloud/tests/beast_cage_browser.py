@@ -42,7 +42,12 @@ with sync_playwright() as p:
             expect(dock).to_have_attribute("data-dock-state","closed")
             page.get_by_role("button",name="Open Lost Cosmos player").click()
             expect(dock).to_have_attribute("data-dock-state","mini")
-        page.get_by_role("button",name="Enable creature sounds").click()
+        # The decorative companion roams continuously in the default-motion pass.
+        # Exercise the same real button through keyboard activation so the test
+        # verifies behavior without racing its animated screen position.
+        sound_button=page.get_by_role("button",name="Enable creature sounds")
+        sound_button.focus()
+        page.keyboard.press("Enter")
         expect(page.get_by_role("button",name="Mute creature sounds")).to_have_attribute("aria-pressed","true")
         lumen=page.get_by_role("button",name=re.compile("Lumen"))
         lumen.click()
