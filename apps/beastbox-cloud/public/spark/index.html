@@ -93,10 +93,10 @@
    </div>
 
    <form id="talk-form" class="talk-card" hidden>
-    <label for="talk-text">Talk to your game companion</label>
+    <div class="talk-head"><label for="talk-text">Talk to your game companion</label><span id="talk-source">LOCAL PATTERN</span></div>
     <div class="row"><input id="talk-text" maxlength="400" autocomplete="off" placeholder="Hello, little beast…"><button type="submit">SEND</button></div>
     <p id="talk-reply" role="status"></p>
-    <small class="hint">On-device pattern reply here. Rich guest-model talk lives in Beast Cage / Lost Cosmos.</small>
+    <small class="hint">When you are signed in as owner, Spark uses the active Brain Bay model through the server-side COSMOS bridge. Your Ollama/HF key never enters this HTML. Public visitors stay on the local pattern companion.</small>
    </form>
 
    <div class="stats-row">
