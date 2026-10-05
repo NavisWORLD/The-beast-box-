@@ -68,6 +68,8 @@ test('public spark page states the honesty boundary and links the game', () => {
   assert.match(app, /function toggleMicReaction/);
   assert.match(app, /\$\('mic-react'\)\.addEventListener\('click'/);
   assert.match(app, /document\.hidden&&micEnabled/);
+  assert.match(app, /const request=\+\+micEpoch/);
+  assert.match(app, /request!==micEpoch\|\|document\.hidden/);
   const sync = read('apps/beastbox-cloud/scripts/sync-spark-shared.mjs');
   assert.match(sync, /'beast-audio'/);
   assert.match(sync, /'beast-audio-engine'/);
