@@ -78,7 +78,7 @@ export function grantXp(session, amount, reason) {
   beast.energy = Math.max(0, Math.min(100, beast.energy - (reason === "rest" ? -12 : 4)));
   if (reason === "rest") beast.energy = Math.min(100, beast.energy + 16);
   beast.stage = beast.qbeast ? Math.max(1, Math.min(3, beast.nativeStage || 1)) : stageFromXp(beast.xp);
-  beast.mood = beast.stage > before ? "evolve" : reason === "rest" ? "sleep" : "happy";
+  beast.mood = beast.stage > before ? "evolve" : reason === "rest" ? "sleep" : reason === "qvm" ? "spark" : "happy";
   session.mood = beast.mood;
   const entry = session.bestiary.find((item) => item.seed === beast.seed);
   if (entry) entry.name = shownName(beast);
