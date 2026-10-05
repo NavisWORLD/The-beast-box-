@@ -209,3 +209,19 @@ test('roaming pet reserves the full mobile dock footprint including its toolbar'
  assert.match(provider,/aside\[data-cosmos-mode="mini"\]/);
  assert.match(provider,/rect\.left-padX/);
 });
+
+test('browser-aware Beast only observes bounded in-app context and never becomes a crawler',()=>{
+ const provider=read('components/companion-provider.tsx');
+ assert.match(provider,/beastbox:browser-context/);
+ assert.match(provider,/document\.elementsFromPoint/);
+ assert.match(provider,/data-browser-route=\{pathname\}/);
+ assert.match(provider,/data-browser-zone=\{browserZone\}/);
+ assert.match(provider,/route:pathname,zone,visible/);
+ assert.doesNotMatch(provider,/fetch\(|XMLHttpRequest|WebSocket|document\.cookie|window\.open|navigator\.clipboard|history\.pushState/);
+ const css=read('components/companion-provider.module.css');
+ assert.match(css,/position:fixed/);
+ assert.match(css,/bottom:calc\(72px/);
+ const sprite=read('components/spark-beast-companion.module.css');
+ assert.match(sprite,/@keyframes sparkFx/);
+ assert.match(sprite,/prefers-reduced-motion/);
+});
