@@ -9,6 +9,7 @@ import {getBeastAudio} from './shared/beast-audio-engine.mjs';
 import {habitatPose} from './habitat.mjs';
 import {QBEAST_KEY,SESSION_KEY,selectSpark,saveSparkSession,readSparkSession,replaySpark,withSparkLock} from './identity.mjs';
 import {careAction,finishTraining,talk,shownName} from './shared/session.mjs';
+import {rememberExchange} from './shared/adventure.mjs';
 const STORE='spark-beasts-bestiary-v1',QVM_STORE='spark-qvm-growth-v1',SOUND_KEY='spark-beast-sound-v2',SCALE=4,$=id=>document.getElementById(id);
 const media=matchMedia('(prefers-reduced-motion: reduce)');
 const beastAudio=getBeastAudio();
@@ -190,7 +191,53 @@ async function interaction(kind){
  if(kind==='play'||kind==='train')beastAudio.battle(kind==='play'?1.8:1.2);
  runtime.state=kind==='rest'?'rest':kind==='train'?'train':'celebrate';runtime.until=runtime.T+(kind==='rest'?12:2.6);updatePlate();say(kind==='rest'?'calm':kind==='train'?'focus':'spark',kind==='rest'?'Curling up for a little rest.':kind==='pet'?'A soft pat. We are getting closer.':kind==='care'?'A snack and a little care.':kind==='train'?'Tap in the bright window. Six tries!':'Catch the spark!');
 }
-async function speak(event){event.preventDefault();const text=$('talk-text').value.trim();if(!text)return;await run(async()=>{let reply;await withSparkLock(()=>{session=readSparkSession(localStorage);if(session.beast?.seed!==current.gen.seed)throw Error('Reload the current Beast before talking.');reply=talk(session,text).reply;saveSparkSession(localStorage,session)});runtime.state='listen';runtime.until=runtime.T+3;updatePlate();say('focus',reply);$('talk-reply').textContent=reply;$('talk-text').value='';});}
+function setTalkSource(label,remote=false){const node=$('talk-source');if(!node)return;node.textContent=label;node.classList.toggle('remote',remote);}
+async function activeModelTalk(text){
+ if(!current||!session?.beast)return null;
+ const beast={
+  name:shownName(session.beast),seed:current.gen.seed,stage:session.beast.nativeStage||session.beast.stage||1,
+  body:current.gen.body,element:current.gen.element,island:current.gen.island
+ };
+ const start=await fetch('/api/spark/chat',{
+  method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({text,beast})
+ });
+ const first=await start.json().catch(()=>({error:'Invalid Spark model response'}));
+ if(start.status===401)return null;
+ if(!start.ok)throw Error(typeof first.error==='string'?first.error:'Active Brain Bay model unavailable');
+ if(typeof first.job_id!=='string')throw Error('COSMOS returned no Spark chat job');
+ const deadline=Date.now()+90_000;
+ while(Date.now()<deadline){
+  await new Promise(resolve=>setTimeout(resolve,950));
+  const poll=await fetch('/api/spark/chat?id='+encodeURIComponent(first.job_id),{credentials:'same-origin',cache:'no-store'});
+  const state=await poll.json().catch(()=>({error:'Invalid Spark model response'}));
+  if(poll.status===401)return null;
+  if(!poll.ok)throw Error(typeof state.error==='string'?state.error:'Active Brain Bay model failed');
+  if(state.state==='running')continue;
+  if(state.state==='complete'&&typeof state.reply==='string'&&state.reply.trim())
+   return {reply:state.reply.trim(),model:typeof state.model==='string'?state.model:'active Brain Bay model',persistent:state.persistent===true};
+  throw Error('Active Brain Bay model returned no usable reply');
+ }
+ throw Error('The active model is still processing. Try again after it finishes.');
+}
+async function speak(event){
+ event.preventDefault();const text=$('talk-text').value.trim();if(!text)return;
+ await run(async()=>{
+  $('talk-reply').textContent='Connecting to the active Brain Bay model…';setTalkSource('CHECKING COSMOS');
+  let remote=null,remoteError=null;
+  try{remote=await activeModelTalk(text);}catch(error){remoteError=error instanceof Error?error:Error('Active model unavailable');}
+  let reply='';
+  await withSparkLock(()=>{
+   session=readSparkSession(localStorage);if(session.beast?.seed!==current.gen.seed)throw Error('Reload the current Beast before talking.');
+   if(remote?.reply){rememberExchange(session,text,remote.reply);reply=remote.reply;}
+   else reply=talk(session,text).reply;
+   saveSparkSession(localStorage,session);
+  });
+  runtime.state='listen';runtime.until=runtime.T+3;updatePlate();say('focus',reply.slice(0,900));$('talk-reply').textContent=reply;$('talk-text').value='';
+  if(remote){setTalkSource('COSMOS · '+remote.model,true);audioSfx('confirm');$('status').textContent=remote.persistent?'Active Brain Bay model replied through COSMOS and the host confirmed persistence.':'Active Brain Bay model replied through COSMOS. This browser also kept the exchange with the same Beast.';}
+  else{setTalkSource('LOCAL PATTERN');if(remoteError)$('status').textContent='Cloud model unavailable, so the on-device pattern companion replied instead. '+remoteError.message;}
+ });
+}
 async function museClick(){if(!$('consent').checked){$('status').textContent='Check consent before connecting your headband.';return}try{muse?.stop();muse=await connectMuse(traits=>{showTraits(traits);$('status').textContent='Derived traits updated locally. Raw samples discarded.'});$('status').textContent=`Connected to ${muse.name}. Derived AF7 traits stay here.`;}catch(e){$('status').textContent=e.message||'Muse connection cancelled.'}}
 function qvmScenarioForCurrent(){if(!current||!qvmRuns.length)return 1;return 1+(parseInt(current.gen.seed.slice(0,8),16)%8);}
 async function processQvmBatch(row){
