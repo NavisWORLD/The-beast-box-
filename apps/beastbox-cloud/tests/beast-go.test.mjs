@@ -349,8 +349,12 @@ test("field touch UI is one Game Boy-style deck with a closable sheet and a real
   assert.match(ui, /data-handheld-controls="game-boy"/);
   assert.match(ui, /aria-label="Select"/);
   assert.match(ui, /aria-label="Close field menu"/);
+  assert.match(ui, /function controllerInput/);
+  assert.match(ui, /Cross-origin LOST COSMOS core/);
   assert.match(ui, /beastbox:gba-input/);
+  assert.match(ui, /!event\.isTrusted/);
   assert.match(ui, /window\.addEventListener\('keyup', onKey\)/);
+  assert.match(ui, /Android\/WebView fallback/);
   assert.match(ui, /lostpointercapture/);
   assert.match(player, /sol-spark-input/);
   assert.match(player, /beastbox:gba-input/);
