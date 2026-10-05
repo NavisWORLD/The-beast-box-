@@ -41,7 +41,7 @@ export default function SolSparkPlayer({compact=false,active=true}:{compact?:boo
    {!beast?.qbeast?<p><a href="/spark/index.html">Generate your Spark Beast</a></p>:null}
   </div>:<>
    <p role="status" style={{fontSize:11,padding:'4px 10px',margin:0}}>{note}</p>
-   <iframe ref={frame} title="Current native LOST COSMOS with your exact Spark QBEAST" src={GAME} onLoad={send} allow="autoplay; fullscreen; gamepad" allowFullScreen style={{width:'100%',height:compact?610:850,border:0,display:'block'}}/>
+   <iframe ref={frame} title="Current native LOST COSMOS with your exact Spark QBEAST" src={GAME} onLoad={send} allow="autoplay; fullscreen; gamepad; screen-wake-lock" allowFullScreen style={{width:'100%',height:compact?610:850,border:0,display:'block'}}/>
   </>}
  </section>;
 }

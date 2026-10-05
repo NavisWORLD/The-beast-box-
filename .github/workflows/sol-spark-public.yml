@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: NavisWORLD/Cosmic-synapse-the-living-universe-sim-engine-
-          ref: f2c3683f697b7ee5d35557028c4416556226bb9b
+          ref: d70a666e93d5fc4d9c8a44bad9d323938bf146ac
           path: native-game
           persist-credentials: false
       - name: Build the pinned current native game and install Chromium
