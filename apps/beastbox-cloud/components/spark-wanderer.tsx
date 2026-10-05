@@ -2,16 +2,17 @@
 import { useEffect, useState } from 'react';
 import type { CreatureProfile } from '../lib/creature-profile';
 import { wanderFrame } from '../lib/companion/wander.mjs';
-import SparkBeastCompanion from './spark-beast-companion';
+import SparkBeastCompanion,{type SparkGenome} from './spark-beast-companion';
 import css from './spark-wanderer.module.css';
 
 type Props = {
   profile?: CreatureProfile | null;
   pulse?: string;
   thinking?: boolean;
+  genome?: SparkGenome | null;
 };
 
-export default function SparkWanderer({ profile, pulse = '', thinking = false }: Props) {
+export default function SparkWanderer({ profile, pulse = '', thinking = false, genome = null }: Props) {
   const [tick, setTick] = useState(0);
   const [reaction, setReaction] = useState(0);
   const [reduced, setReduced] = useState(false);
@@ -40,7 +41,7 @@ export default function SparkWanderer({ profile, pulse = '', thinking = false }:
   const frame = wanderFrame(tick, reaction, thinking, reduced);
   return <div className={css.lane} data-spark-wander="true" data-wander-mode={frame.mode}>
     <div className={css.beast} style={{ transform: `translate3d(${frame.x}px, ${frame.y}px, 0)` }}>
-      <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook ?? 'nebula'} compact state={frame.visual === 'thinking' ? 'thinking' : frame.visual === 'celebrating' ? 'celebrating' : frame.visual === 'observing' ? 'observing' : 'idle'} label="Spark Beast wandering the chat" />
+      <SparkBeastCompanion profile={profile} genomeOverride={genome} fallbackLook={profile?.baseLook ?? 'nebula'} compact state={frame.visual === 'thinking' ? 'thinking' : frame.visual === 'celebrating' ? 'celebrating' : frame.visual === 'observing' ? 'observing' : 'idle'} label="Spark Beast wandering the chat" />
     </div>
   </div>;
 }
