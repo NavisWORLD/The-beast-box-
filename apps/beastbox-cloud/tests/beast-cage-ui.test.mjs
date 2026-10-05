@@ -16,6 +16,21 @@ test('owner-only runtime and stateless guest remain separate from public cage',(
  assert.match(home,/href="\/research"/);
  assert.match(read('app/try/page.tsx'),/guest_stateless/);
 });
+test('public journey is simple, welcoming, and consistent across the main surfaces',()=>{
+ const home=read('app/page.tsx'),spark=read('public/spark/index.html'),cage=read('components/beast-cage-portal.tsx'),game=read('app/sol-game/page.tsx'),studio=read('components/studio.tsx');
+ for(const label of ['My Beast','Beast Cage','Lost COSMOS','Brain Bay','Lab']) assert.match(home,new RegExp(label));
+ assert.match(home,/A place for every person/);
+ assert.match(home,/Dreamer, idler with time to wander, player, builder/);
+ assert.match(home,/NO LOGIN TO MEET YOUR BEAST/);
+ assert.match(spark,/MY BEAST → BEAST CAGE → LOST COSMOS/);
+ assert.match(spark,/Mobile Spark navigation/);
+ assert.match(cage,/Talk to My Beast/);
+ assert.match(cage,/Enter LOST COSMOS/);
+ assert.match(cage,/More ways to explore/);
+ assert.match(game,/YOUR BEAST · YOUR CARTRIDGE · SAME IDENTITY/);
+ assert.match(studio,/'settings':'SETTINGS'/);
+});
+
 test('real geometric 3D, GPU bounds and reduced-motion illustration fallback',()=>{
  const model=read('components/cosmic-companion-3d.tsx');
  const rig=read('lib/creature-model.ts');
