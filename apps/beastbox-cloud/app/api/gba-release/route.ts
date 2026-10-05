@@ -4,7 +4,7 @@ export function GET(){
  return NextResponse.json({
   schema:'beast-cage-gba-release-v1',
   source_marker:'beast-cage-lost-cosmos-spark-alive-20261004',
-  lost_cosmos_commit:'d70a666e93d5fc4d9c8a44bad9d323938bf146ac',
+  lost_cosmos_commit:'5dd5ea0081ef61922f0a7b4b394736c9ac321629',
   lost_cosmos_page:'https://navisworld.github.io/Cosmic-synapse-the-living-universe-sim-engine-/arcade/sol-spark-gate/?mode=handheld',
   same_cage_transfer:true,
   features:['guest-visual-test','download-gba-4bpp','qbeast-to-lost-cosmos-share','stable-one-cage-transfer','play-current-lost-cosmos','persistent-gba-player','shared-spark-care-ledger','model-bay-care','optional-explicit-owner-dyn12','in-page-v11-2-spark','lost-cosmos-field','continuous-public-spark','gesture-generated-voice','same-qbeast-native-art'],

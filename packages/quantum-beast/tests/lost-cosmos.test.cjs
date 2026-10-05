@@ -25,5 +25,5 @@ test('same verified Beast gets one stable Lost COSMOS cage transfer and the curr
  const decoded=JSON.parse(decodeURIComponent(url.split('#lcshare=')[1]));
  assert.equal(decoded.transfer,a.transfer);
  assert.equal(decoded.checksum,a.checksum);
- assert.equal(LOST_COSMOS_SOURCE_SHA,'d70a666e93d5fc4d9c8a44bad9d323938bf146ac');
+ assert.equal(LOST_COSMOS_SOURCE_SHA,'5dd5ea0081ef61922f0a7b4b394736c9ac321629');
 });
