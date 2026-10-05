@@ -167,7 +167,7 @@ export function getBeastAudio() {
     clearTimer: (id) => window.clearInterval(id),
   });
   const unlock = () => { try { shared.unlock(); } catch { /* audio is optional */ } };
-  for (const type of ["pointerdown", "keydown", "touchend"]) window.addEventListener(type, unlock, { capture: true, passive: true });
+  for (const type of ["pointerdown", "touchstart", "touchend", "click", "keydown"]) window.addEventListener(type, unlock, { capture: true, passive: true });
   window.addEventListener("beastbox:spark-mute", () => shared.sparkMute());
   window.addEventListener("beastbox:spark-unmute", () => shared.sparkUnmute());
   window.addEventListener("beastbox:gba-running", (event) => shared.setGameRunning(Boolean(event.detail)));

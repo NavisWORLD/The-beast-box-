@@ -197,3 +197,11 @@ test("audio sources stay procedural and the Music control is in the sound UI", (
   assert.match(read("components/lost-cosmos-dock.tsx"), /beastbox:gba-running/);
   assert.match(read("components/companion-provider.tsx"), /beastbox:spark-unmute/);
 });
+
+
+test("browser audio unlock surface includes iPhone touch and click gestures", () => {
+  const engine = read("lib/companion/beast-audio-engine.mjs");
+  assert.match(engine, /"touchstart"/);
+  assert.match(engine, /"touchend"/);
+  assert.match(engine, /"click"/);
+});

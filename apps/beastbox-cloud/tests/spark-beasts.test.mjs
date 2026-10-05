@@ -57,6 +57,8 @@ test('public spark page states the honesty boundary and links the game', () => {
   assert.match(app, /function wirePageNavigation/);
   assert.match(app, /history\.replaceState/);
   assert.match(app, /window\.addEventListener\('pointerdown',unlockPreferredSound/);
+  assert.match(app, /window\.addEventListener\('touchstart',unlockPreferredSound/);
+  assert.match(app, /window\.addEventListener\('click',unlockPreferredSound/);
   assert.match(app, /soundWanted=readSoundWanted\(\)/);
   const sync = read('apps/beastbox-cloud/scripts/sync-spark-shared.mjs');
   assert.match(sync, /'beast-audio'/);
