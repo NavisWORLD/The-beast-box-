@@ -30,6 +30,14 @@ for(const width of widths){
  console.log('Width',width,'cage passed');await page.goto(root+'/beast-cage/play');await page.waitForFunction(()=>document.querySelector('canvas'));
  console.log('Width',width,'adventure passed');await page.goto(root+'/beast-cage/guest');await page.waitForFunction(()=>document.querySelector('[data-creature-id]'));
  console.log('Width',width,'guest passed');await page.goto(root+'/sol-game');await page.waitForFunction(id=>document.querySelector('[data-spark-player]')?.dataset.creatureId===id,identity.profile.id);
+ const talkPanel=page.locator('main [data-spark-game-talk]');
+ await talkPanel.getByRole('button',{name:/^TALK TO /}).click();
+ await talkPanel.getByRole('textbox').fill('Hello from the cartridge');
+ const talkLayout=await talkPanel.evaluate(el=>({right:el.getBoundingClientRect().right,inputs:[...el.querySelectorAll('button,textarea')].map(b=>b.getBoundingClientRect().toJSON()),body:document.documentElement.scrollWidth}));
+ assert.ok(talkLayout.body<=width&&talkLayout.right<=width,`game talk overflow at ${width}`);
+ for(const b of talkLayout.inputs)assert.ok(b.x>=0&&b.right<=width);
+ await page.screenshot({path:out+`/game-talk-${width}.png`,fullPage:true});
+ await talkPanel.getByRole('button',{name:'CLOSE TALK',exact:true}).click();
  console.log('Width',width,'native entry passed');await page.goto(root+'/spark/index.html');await page.waitForFunction(id=>document.querySelector('#view')?.dataset.creatureId===id,identity.profile.id);assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast.xp),saved.beast.xp);
  await page.reload();await page.waitForFunction(id=>document.querySelector('#view')?.dataset.creatureId===id,identity.profile.id);assert.equal(await page.evaluate(()=>window.__audioCount),0,'sound never autoplays after reopen');
  await page.locator('#generate').click();await page.waitForFunction(id=>document.querySelector('#view').dataset.creatureId!==id,identity.profile.id);
