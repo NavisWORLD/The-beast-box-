@@ -77,6 +77,7 @@ function showCreature(entry,nextSession,spawn=true){
  $('provenance').textContent=`Job ${run.job_id} · pub ${run.pub_index} · ${run.num_bits}-bit · ${run.shots} recorded shots · counts SHA-256 ${run.counts_sha256}`;
  $('seed').textContent=gen.seed;for(const which of [1,2,3]){paintStage($(`st${which}`),gen,which);$(`nm${which}`).textContent=gen.names[which];}
  qvmGrowth=readQvmGrowth(gen.seed);
+ const scene=audioSceneFor(gen);if(scene)beastAudio.setScene(scene);syncAudioUi();
  runtime={rnd:mulberry32(gen.behavior.prng_seed),T:0,nextBlink:2,blinkUntil:-1,utt:0,lastSay:-20,nextVoice:12,state:spawn?'spawn':'idle',until:spawn?1.2:0,spawn:spawn?0:1,qvmPulseUntil:-1,qvmStep:0};
  Object.assign(felt,target);updatePlate();drawBestiary();say('neutral',spawn?`${shownName(session.beast)} just sparked in. Let's explore!`:`${shownName(session.beast)} is back. Same paws, same seed.`);
 }
@@ -88,7 +89,13 @@ function drive(){
   return [key,(.3*felt[key]/100+.7*excess)*be.sensitivity[key]];
  }));
 }
-function say(mood,text){if(!current||!runtime)return;const u=Voice.utterance(current.gen.voice,stage,mood,runtime.utt++,drive());$('bubble').hidden=false;$('bubble').textContent=u.text;$('line').textContent=text||({calm:'A quiet little moment.',focus:'Those eyes miss nothing.',spark:'Tiny paws. Big sparks.',neutral:'Ready to explore.'}[mood]);runtime.bubbleUntil=runtime.T+Math.max(2.4,u.dur+.8);runtime.lastSay=runtime.T;if(voiceOn&&audioCtx?.state==='running'&&audioOut)Voice.schedule(audioCtx,audioOut,audioCtx.currentTime+.03,current.gen.voice,u);}
+function say(mood,text){
+ if(!current||!runtime)return;
+ const u=Voice.utterance(current.gen.voice,stage,mood,runtime.utt++,drive());
+ $('bubble').hidden=false;$('bubble').textContent=u.text;$('line').textContent=text||({calm:'A quiet little moment.',focus:'Those eyes miss nothing.',spark:'Tiny paws. Big sparks.',neutral:'Ready to explore.'}[mood]);
+ runtime.bubbleUntil=runtime.T+Math.max(2.4,u.dur+.8);runtime.lastSay=runtime.T;
+ if(voiceOn){const out=voiceOutput();if(out)Voice.schedule(out.ctx,out.gain,out.ctx.currentTime+.03,current.gen.voice,u);}
+}
 function tick(dt){
  if(!current||!runtime||document.hidden)return;runtime.T+=dt;const be=current.gen.behavior;
  if(drift&&!reduceMotion){const values={};for(const k of ['focus','calm','spark'])values[k]=Math.round(Math.max(0,Math.min(100,target[k]+Math.sin(runtime.T*.3+k.length)*8*dt)));showTraits(values);}
@@ -138,24 +145,22 @@ function saveSoundWanted(){try{localStorage.setItem(SOUND_KEY,soundWanted?'on':'
 function updateVoiceButton(){
  const button=$('voice');if(!button)return;
  button.textContent=voiceOn?'🔊 SOUND ON':soundWanted?'🔊 SOUND READY':'🔇 SOUND OFF';
- button.setAttribute('aria-pressed',String(soundWanted));
- button.classList.toggle('on',soundWanted);
+ button.setAttribute('aria-pressed',String(soundWanted));button.classList.toggle('on',soundWanted);syncAudioUi();
 }
 async function startVoice(announce=false){
  if(!soundWanted||voiceOn)return;
- const AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw Error('This browser does not provide local WebAudio.');
- audioCtx=new AC();audioOut=Voice.master(audioCtx);audioOut.gain.value=.13;
- await audioCtx.resume();if(audioCtx.state!=='running')throw Error('Tap once more to unlock sound.');
- voiceOn=true;updateVoiceButton();if(announce)say('spark','Sound is on. Tiny beast noises unlocked.');
+ beastAudio.sparkUnmute();beastAudio.unlock();const scene=audioSceneFor();if(scene)beastAudio.setScene(scene);
+ const out=voiceOutput();if(!out)throw Error('This browser does not provide local WebAudio.');
+ voiceOn=true;updateVoiceButton();if(announce){audioSfx('confirm');say('spark','Sound is on. Tiny beast noises and music are unlocked.');}
 }
 async function stopVoice(){
  voiceOn=false;
- if(audioOut&&audioCtx)audioOut.gain.setValueAtTime(0,audioCtx.currentTime);
- await audioCtx?.close();audioCtx=null;audioOut=null;updateVoiceButton();
+ try{if(voiceBus?.gain&&voiceBus?.ctx){const t=voiceBus.ctx.currentTime;voiceBus.gain.gain.cancelScheduledValues(t);voiceBus.gain.gain.setTargetAtTime(0,t,.015);setTimeout(()=>{try{voiceBus?.gain?.disconnect?.()}catch{}},120);}}catch{}
+ voiceBus=null;beastAudio.sparkMute();updateVoiceButton();
 }
 async function enableVoice(){
  try{
-  if(voiceOn){soundWanted=false;saveSoundWanted();await stopVoice();}
+  if(soundWanted){soundWanted=false;saveSoundWanted();await stopVoice();}
   else{soundWanted=true;saveSoundWanted();await startVoice(true);}
  }catch(e){voiceOn=false;updateVoiceButton();$('status').textContent=e.message;}
 }
@@ -164,6 +169,10 @@ function unlockPreferredSound(event){
  if(event?.target?.closest?.('#voice'))return;
  void startVoice(false).catch(e=>{$('status').textContent=e.message;});
 }
+function toggleMusic(){
+ beastAudio.unlock();const snap=beastAudio.getSnapshot();beastAudio.setMusic(!snap.musicOn);audioSfx('blip');syncAudioUi();
+}
+function setMusicVolume(event){beastAudio.setVolume(Number(event.target.value)/100);syncAudioUi();}
 let training=null;
 async function interaction(kind){
  await withSparkLock(()=>{const latest=readSparkSession(localStorage);if(latest.beast?.seed!==current.gen.seed)throw Error('Another page selected a different Beast. Reload to continue.');session=latest;
