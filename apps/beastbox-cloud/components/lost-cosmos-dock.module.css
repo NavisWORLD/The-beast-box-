@@ -39,3 +39,9 @@
 }
 @media(max-width:360px){.dock:not(.full){width:min(232px,calc(100vw - 64px))}.wide{width:calc(100vw - 12px);right:6px}}
 @media(prefers-reduced-motion:reduce){.dock{transition:none}}
+
+@media(max-width:760px){
+ .closed .launcher{width:46px;height:46px;padding:0;display:grid;place-items:center;border-radius:50%}
+ .closed .launcher strong,.closed .launcher small{display:none}.closed .launcher span{font-size:19px}
+ .dock.closed{right:10px;bottom:calc(14px + env(safe-area-inset-bottom))}
+}

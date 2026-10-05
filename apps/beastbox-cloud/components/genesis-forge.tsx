@@ -76,32 +76,30 @@ export default function GenesisForge({
  }
  return <section className={css.forge} aria-label="Genesis Forge procedural character generator">
   <div className={css.heading}>
-   <span className={css.overline}>✧ THE GENESIS FORGE · CLASSICAL PROCEDURAL GENERATION</span>
-   <h2>Every little monster <em>gets its own stars.</em></h2>
-   <p>Generate a reproducible game character with original cosmic styling, a
-    personality and balanced GBA statistics. These are fictional gameplay
-    attributes, not COSMOS memory or intelligence measurements.</p>
+   <span className={css.overline}>✧ CREATE YOUR BEAST</span>
+   <h2>Make a Beast <em>that stays yours.</em></h2>
+   <p>Generate a new creature, keep its name, and carry the same game identity across Beast Box and Lost COSMOS.</p>
   </div>
   <div className={css.creator}>
-   <label>Character seed
+   <label>Seed (optional)
     <input value={seed} maxLength={64} aria-label="Character seed"
       onChange={e=>setSeed(e.target.value)} placeholder="Choose a seed" />
    </label>
-   <label>Cosmic family
+   <label>Body family
     <select value={family} aria-label="Cosmic family"
       onChange={e=>setFamily(e.target.value as Family|'surprise')}>
      <option value="surprise">Surprise me</option>
      {FAMILIES.map(item=><option key={item} value={item}>{item[0].toUpperCase()+item.slice(1)}</option>)}
     </select>
    </label>
-   <button type="button" onClick={()=>roll(seed)} className={css.primary}>Generate from this seed</button>
-   <button type="button" onClick={randomBirth} className={css.outline}>Random birth ✧</button>
+   <button type="button" onClick={()=>roll(seed)} className={css.primary}>Create Beast</button>
+   <button type="button" onClick={randomBirth} className={css.outline}>Surprise me ✧</button>
   </div>
   {value&&<div className={css.profile} aria-label="Generated game character details">
    <div className={css.identity}>
-    <span className={css.overline}>CREATURE // {value.id.toUpperCase()}</span>
+    <span className={css.overline}>YOUR BEAST</span>
     <h3>{value.name}</h3>
-    <p>{value.family.toUpperCase()} · Level {value.game.level} · Game-only character</p>
+    <p>{value.family.toUpperCase()} · Level {value.game.level} · Beast Box companion</p>
     <fieldset className={css.appearance}><legend>Fine-tune this creature's original genome</legend>
      <label>Color shift <output>{value.appearance.hueShift}°</output>
       <input type="range" min={-127} max={127} step={1} value={value.appearance.hueShift}
@@ -125,14 +123,14 @@ export default function GenesisForge({
      behavior, not measured sensor activity.</p>
     <button type="button" onClick={save} className={css.outline}>Save game character on this device</button>
    </div>
-   <div aria-label="Balanced fictional game stats" className={css.stats}>
-    <strong>GBA · CHARACTER STATS <span>500 / 500 POINTS</span></strong>
+   <details className={css.statsDetails}><summary>Game stats · 500 points</summary><div aria-label="Balanced fictional game stats" className={css.stats}>
+    <strong>CHARACTER STATS <span>500 / 500</span></strong>
     <dl>{STAT_NAMES.map(key=><div key={key} className={css.stat}>
       <dt>{key==='hp'?'HP':key.replace(/^\w/,c=>c.toUpperCase())}</dt>
       <dd>{value.game.stats[key]}</dd>
       <meter min="20" max="80" value={value.game.stats[key]} aria-label={key+' fictional points'}/>
      </div>)}</dl>
-   </div>
+   </div></details>
   </div>}
   {saved.length>0&&<div className={css.collection} aria-label="Saved browser-only game characters">
    <strong>Your little constellation ({saved.length}/{MAX_SAVES})</strong>

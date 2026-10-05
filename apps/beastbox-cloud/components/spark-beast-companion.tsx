@@ -24,6 +24,7 @@ type Genome={
 type Props={
  profile?:CreatureProfile|null;
  fallbackLook?:BaseLook;
+ visualLook?:BaseLook;
  state?:VisualState;
  paused?:boolean;
  intensity?:number;
@@ -79,7 +80,7 @@ function driveFor(mood:string,intensity:number){
 }
 
 export default function SparkBeastCompanion({
- profile,fallbackLook='nebula',state='idle',paused=false,intensity=0,
+ profile,fallbackLook='nebula',visualLook,state='idle',paused=false,intensity=0,
  compact=false,controls=false,audioChannel,className='',label='Spark Beast companion',
  seedRunKey='',seedTraits
 }:Props){
@@ -215,7 +216,7 @@ export default function SparkBeastCompanion({
  const name=gen?.names?.[stage]||active.name;
  return <figure className={[styles.root,compact?styles.compact:'',className].filter(Boolean).join(' ')}
    data-spark-beast="true" data-creature-id={active.id} data-cosmetic-hue={active.appearance.hueShift}
-   data-state={state} data-stage={stage} aria-label={label}>
+   data-visual-look={visualLook||fallbackLook} data-state={state} data-stage={stage} aria-label={label}>
   <div className={styles.aura} aria-hidden="true"/>
   <div className={styles.mover} ref={mover}>
    <canvas ref={canvas} className={styles.canvas} aria-label={name+' pixel creature sprite'}/>

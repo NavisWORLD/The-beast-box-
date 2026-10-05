@@ -406,3 +406,26 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 @media(prefers-reduced-motion:reduce){
  .cosmos-home-hero>.cosmic-creature3d{animation:none!important}
 }
+
+/* Beast Box public UX consolidation: keep the primary player path simple. */
+.cage-advanced{max-width:1210px;margin:16px auto 38px;border:1px solid var(--line);border-radius:18px;background:#11172a99;overflow:hidden}
+.cage-advanced>summary{cursor:pointer;list-style:none;padding:16px 20px;font:700 12px 'Space Grotesk';letter-spacing:.05em;color:#b8f6fb}
+.cage-advanced>summary::-webkit-details-marker{display:none}
+.cage-advanced>summary:after{content:'+';float:right;font-size:18px;color:#a7b8db}.cage-advanced[open]>summary:after{content:'–'}
+.cage-advanced-links{display:flex;flex-wrap:wrap;gap:8px;padding:0 20px 18px}
+.cage-advanced-links a{border:1px solid #9cb7e43a;border-radius:999px;padding:9px 12px;background:#18213a;color:#d9eaff;font-size:11px;font-weight:700}
+.cage-look-art{min-height:130px;display:grid;place-items:center;overflow:hidden}
+.cage-look-art figure{width:120px!important;height:120px!important;min-height:0!important;margin:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+@media(max-width:680px){
+ .cage-topbar nav a:nth-of-type(n+4){display:none}
+ .cage-hero-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important}
+ .cage-hero-actions .cage-primary{grid-column:1/-1;justify-content:center}
+ .cage-look-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+ .cage-look-card{padding:10px 7px!important;min-height:190px!important}
+ .cage-look-art{min-height:92px}
+ .cage-look-art figure{width:82px!important;height:82px!important}
+ .cage-look-card strong{font-size:13px!important}.cage-look-card small{font-size:10px!important;line-height:1.3!important}
+ .cage-select-label{font-size:9px!important}
+ .cage-worlds{padding-top:18px!important}
+ .cage-continuity{display:none!important}
+}

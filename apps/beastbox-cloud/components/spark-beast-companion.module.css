@@ -11,3 +11,10 @@
 @keyframes sparkAura{0%,100%{transform:scale(.9);opacity:.65}50%{transform:scale(1.08);opacity:1}}
 @media(max-width:680px){.root{min-height:200px;border-radius:18px}.canvas{width:min(215px,72vw)}.meta small{max-width:310px}.controls{padding-bottom:14px}}
 @media(prefers-reduced-motion:reduce){.aura{animation:none}.mover{transform:none!important}}
+
+.root[data-visual-look="nebula"] .canvas{filter:drop-shadow(0 13px 18px rgba(0,0,0,.42)) drop-shadow(0 0 15px rgba(145,119,255,.32)) hue-rotate(-8deg)}
+.root[data-visual-look="aurora"] .canvas{filter:drop-shadow(0 13px 18px rgba(0,0,0,.42)) drop-shadow(0 0 17px rgba(90,238,255,.36)) hue-rotate(58deg) saturate(1.08)}
+.root[data-visual-look="starlight"] .canvas{filter:drop-shadow(0 13px 18px rgba(0,0,0,.42)) drop-shadow(0 0 17px rgba(255,191,226,.34)) hue-rotate(-48deg) saturate(1.12)}
+.root[data-visual-look="aurora"] .aura{background:radial-gradient(circle,rgba(96,241,255,.22),rgba(83,145,255,.10) 42%,transparent 70%)}
+.root[data-visual-look="starlight"] .aura{background:radial-gradient(circle,rgba(255,210,155,.20),rgba(255,113,206,.10) 42%,transparent 70%)}
+.compact[data-visual-look="nebula"] .canvas,.compact[data-visual-look="aurora"] .canvas,.compact[data-visual-look="starlight"] .canvas{width:92px}

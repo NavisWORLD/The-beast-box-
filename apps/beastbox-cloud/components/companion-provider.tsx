@@ -9,7 +9,7 @@ import SparkBeastCompanion from './spark-beast-companion';
 import LostCosmosDock from './lost-cosmos-dock';
 import {BeastSessionProvider} from './beast-session';
 import {
- pickAmbientAction,validCreature,type CreatureProfile,type AmbientAction
+ pickAmbientAction,validCreature,type CreatureProfile,type AmbientAction,type BaseLook
 } from '../lib/creature-profile';
 import {selectSafeRoamSpot,type Rect,type Spot} from '../lib/companion-roaming';
 import {DRAGON_RUN_KEY,DRAGON_TRAITS} from '../lib/companion/pet-dragon.mjs';
@@ -19,9 +19,12 @@ type CompanionContextValue={
  profile:CreatureProfile|null;
  selectProfile:(candidate:CreatureProfile)=>void;
  clearProfile:()=>void;
+ visualLook:BaseLook;
+ selectLook:(look:BaseLook)=>void;
 };
 const Context=createContext<CompanionContextValue|undefined>(undefined);
 const ACTIVE_PROFILE_KEY='beastbox-active-creature-v1';
+const ACTIVE_LOOK_KEY='beastbox-cage-appearance-v1';
 export function useCompanion(){
  const value=useContext(Context);
  if(!value)throw new Error('Companion context is unavailable');
@@ -43,6 +46,7 @@ function editingText(){
 export default function CompanionProvider({children}:{children:ReactNode}){
  const pathname=usePathname();
  const [profile,setProfile]=useState<CreatureProfile|null>(null);
+ const [visualLook,setVisualLook]=useState<BaseLook>('nebula');
  const [action,setAction]=useState<AmbientAction>('hover');
  const [paused,setPaused]=useState(false),[hidden,setHidden]=useState(false);
  const [halted,setHalted]=useState(false),[typing,setTyping]=useState(false);
@@ -58,11 +62,18 @@ export default function CompanionProvider({children}:{children:ReactNode}){
  },[]);
  useEffect(()=>{
   try{
+   const savedLook=window.localStorage.getItem(ACTIVE_LOOK_KEY);
+   if(savedLook==='nebula'||savedLook==='aurora'||savedLook==='starlight')setVisualLook(savedLook);
    const raw=window.localStorage.getItem(ACTIVE_PROFILE_KEY);
    if(!raw)return;
    const candidate=JSON.parse(raw) as unknown;
    if(validCreature(candidate)){setProfile(candidate);setAction('hover');}
   }catch{/* private browsing or invalid local game profile: continue without persistence */}
+ },[]);
+ const selectLook=useCallback((look:BaseLook)=>{
+  if(look!=='nebula'&&look!=='aurora'&&look!=='starlight')return;
+  setVisualLook(look);
+  try{window.localStorage.setItem(ACTIVE_LOOK_KEY,look);}catch{/* optional visual preference */}
  },[]);
  useEffect(()=>{
   const onSelected=(event:Event)=>{
@@ -165,7 +176,7 @@ export default function CompanionProvider({children}:{children:ReactNode}){
   action==='rest'?'sleeping' as const:action==='orbit'?'celebrating' as const:
   action==='perch'?'observing' as const:'idle' as const;
  const clearProfile=useCallback(()=>{setProfile(null);setAction('hover');tickRef.current=0;setTick(0);try{window.localStorage.removeItem(ACTIVE_PROFILE_KEY);}catch{/* optional browser-only game profile */}},[]);
- const context=useMemo(()=>({profile,selectProfile:onProfile,clearProfile}),[profile,onProfile,clearProfile]);
+ const context=useMemo(()=>({profile,selectProfile:onProfile,clearProfile,visualLook,selectLook}),[profile,onProfile,clearProfile,visualLook,selectLook]);
  const toggleSound=()=>{
   setSoundEnabled(current=>{
    const next=!current;
@@ -206,7 +217,7 @@ export default function CompanionProvider({children}:{children:ReactNode}){
      </button>:null}
     </div>
     {canShow?<div className={styles.figure} aria-hidden="true">
-      <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook??'nebula'}
+      <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook??'nebula'} visualLook={visualLook}
        state={state} compact paused={parked||reduced} audioChannel="roamer"
        seedRunKey={DRAGON_RUN_KEY} seedTraits={DRAGON_TRAITS}
        label="Roaming pet dragon Spark Beast"/>

@@ -63,6 +63,7 @@ test('Quantum Beast bridge launches the same portable identity into current Lost
  const transfer=read('components/quantum-beast-transfer.tsx');
  const bridge=read('../../packages/quantum-beast/src/lost_cosmos.ts');
  assert.match(transfer,/PLAY THIS BEAST IN LOST COSMOS/);
+ assert.match(transfer,/Transfer \/ export options/);
  assert.match(transfer,/lostCosmosShareUrl/);
  assert.match(transfer,/window\.location\.assign\(url\)/);
  assert.match(bridge,/2e600160937943d3cafcf27e88a0474ba6aba43d/);
@@ -80,4 +81,13 @@ test('public Spark game path points to Lost COSMOS and never the retired SIM wor
  assert.doesNotMatch(page,/Play in Living Universe|SIM_EARTH_7_08_REALITY_BODY|navisworld\.github\.io\/Cosmic-synapse/);
  assert.match(bridge,/LOST_COSMOS_URL='\/beast-cage\/go'/);
  assert.doesNotMatch(bridge,/SIM_EARTH|navisworld\.github\.io/);
+});
+
+test('game lab hides technical exports behind one clean play path',()=>{
+ const lab=read('components/gba-guest-lab.tsx');
+ assert.match(lab,/01 \/ CHOOSE A LOOK/);
+ assert.match(lab,/02 \/ PLAY/);
+ assert.match(lab,/Play Lost COSMOS/);
+ assert.match(lab,/Exports & developer files/);
+ assert.doesNotMatch(lab,/RETRO GAME PORTAL\\n|PR #31 \/ V11\.2 bridge/);
 });

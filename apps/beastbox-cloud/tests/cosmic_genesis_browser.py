@@ -29,13 +29,14 @@ with sync_playwright() as p:
   forge=page.get_by_role("region",name="Genesis Forge procedural character generator")
   forge.get_by_label("Character seed").fill("genesis-v1-acceptance")
   forge.get_by_label("Cosmic family").select_option("nebula")
-  forge.get_by_role("button",name="Generate from this seed").click()
+  forge.get_by_role("button",name="Create Beast").click()
+  forge.get_by_text("Game stats · 500 points",exact=True).click()
   card=forge.get_by_label("Balanced fictional game stats")
   expect(card).to_be_visible()
   initial=card.inner_text()
   # Family and appearance options must not silently reroll gameplay attributes.
   forge.get_by_label("Cosmic family").select_option("aurora")
-  forge.get_by_role("button",name="Generate from this seed").click()
+  forge.get_by_role("button",name="Create Beast").click()
   assert card.inner_text()==initial,(width,"cosmetic family changed game stats")
   forge.get_by_role("button",name="Let it explore").click()
   expect(forge.get_by_text("Classical seeded behavior",exact=False)).to_be_visible()
@@ -46,8 +47,11 @@ with sync_playwright() as p:
   saved_label=forge.get_by_role("button",name=re.compile("^Select "))
   expect(saved_label).to_be_visible()
   saved_label.click()
+  forge.get_by_text("Game stats · 500 points",exact=True).click()
+  expect(card).to_be_visible()
   assert card.inner_text()==initial
-  # Exact real public browser download: inspect bytes, CRC, extension, and privacy flags.
+  # Exact real public browser download: advanced export stays available behind progressive disclosure.
+  page.get_by_text("Exports & developer files",exact=True).click()
   button=page.get_by_role("button",name=re.compile("Download my GBA companion"))
   with page.expect_download(timeout=20000) as pending:button.click()
   download=pending.value

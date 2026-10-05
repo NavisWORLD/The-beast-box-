@@ -22,12 +22,16 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
   const [expanded, setExpanded] = useState(false);
   const [closed, setClosed] = useState(false);
   const [booted, setBooted] = useState(false);
-  const [note, setNote] = useState('Lost Cosmos V11.2 Spark is ready.');
+  const [note, setNote] = useState('Lost COSMOS is ready.');
   const volume = useRef(0.28);
   const shown = mode === 'mini' || mode === 'full';
   const wide = mode === 'mini' && expanded && !closed;
   const connectedName = creature?.name || 'Spark Beast';
-  const readyText = `V11.2 Spark is ready for ${connectedName}. The cartridge stays mounted while you move around Beast Box.`;
+  const readyText = `${connectedName} is ready to play.`;
+
+  useEffect(() => {
+    if (mode === 'mini' && window.matchMedia('(max-width: 760px)').matches) setClosed(true);
+  }, [mode]);
 
   useEffect(() => {
     const host = window as WindowEmu;
@@ -73,10 +77,10 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
     const script = document.createElement('script');
     script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
     script.async = true;
-    script.onerror = () => setNote('The emulator script did not load. The V11.2 ROM route is still available at /api/gba-rom.');
+    script.onerror = () => setNote('The game player did not load. You can retry from this dock.');
     document.body.appendChild(script);
     setBooted(true);
-    setNote(`Playing V11.2 Spark with ${connectedName}. The emulator remains mounted when this dock is minimized or closed.`);
+    setNote(`Playing with ${connectedName}. The game stays mounted when this dock is minimized.`);
   }
 
   const state = mode === 'full' ? 'full' : closed ? 'closed' : wide ? 'expanded' : 'mini';
@@ -87,9 +91,9 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
       aria-label="Open Lost Cosmos player"><span>🎮</span><strong>LOST COSMOS</strong><small>Open</small></button> : null}
     <div className={css.bar}>
       <strong>LOST COSMOS</strong>
-      <span title={connectedName}>V11.2 Spark · {connectedName}</span>
+      <span title={connectedName}>{connectedName}</span>
       <div className={css.actions}>
-        <a href="/spark/index.html" className={css.generate}>Generate Beast</a>
+        <a href="/spark/index.html" className={css.generate}>New Beast</a>
         {mode === 'mini' ? <button type="button" onClick={() => setExpanded((value) => !value)}
           aria-label={wide ? 'Minimize Lost Cosmos player' : 'Expand Lost Cosmos player'}>{wide ? 'Mini' : 'Expand'}</button> : null}
         {mode === 'mini' ? <button type="button" className={css.close} onClick={() => { setExpanded(false); setClosed(true); }}
@@ -100,7 +104,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
       <div id="lost-cosmos-screen" />
       {!booted && shown ? <div className={css.poster}>
         <p>{readyText}</p>
-        <button type="button" onClick={play}>Play V11.2 Spark</button>
+        <button type="button" onClick={play}>Play</button>
       </div> : null}
     </div>
     {shown && booted && mode !== 'full' ? <p className={css.status}>{note}</p> : null}

@@ -115,7 +115,7 @@ test('one persistent public companion stores only its validated game profile',()
 test('generated character moves between Cage and guest via client navigation, never full reload',()=>{
  const cage=read('components/beast-cage-portal.tsx');
  const guest=read('components/gba-guest-lab.tsx');
- assert.match(cage,/<Link href="\/beast-cage\/guest">Take this creature/);
+ assert.match(cage,/<Link href="\/beast-cage\/guest">Play with this Beast/);
  assert.doesNotMatch(cage,/<a href="\/beast-cage\/guest">Take this creature/);
  assert.match(guest,/profile:sharedProfile/);
  assert.match(guest,/createCreatureGlb\(creature,look\)/);
@@ -182,7 +182,7 @@ test('mobile Lost Cosmos dock can mini expand close and reopen without dropping 
  assert.match(dock,/Open Lost Cosmos player/);
  assert.match(dock,/Close Lost Cosmos player/);
  assert.match(dock,/Expand Lost Cosmos player/);
- assert.match(dock,/Generate Beast/);
+ assert.match(dock,/New Beast/);
  assert.match(dock,/creature\?\.id/);
  assert.match(css,/width:min\(250px,calc\(100vw - 72px\)\)/);
  assert.match(css,/\.closed \.screen/);
@@ -206,4 +206,40 @@ test('roaming pet reserves the full mobile dock footprint including its toolbar'
  assert.match(provider,/padTop=width<680\?64:44/);
  assert.match(provider,/aside\[data-cosmos-mode="mini"\]/);
  assert.match(provider,/rect\.left-padX/);
+});
+
+test('public UX keeps one Beast identity while visual style stays separate',()=>{
+ const provider=read('components/companion-provider.tsx');
+ const cage=read('components/beast-cage-portal.tsx');
+ const guest=read('components/gba-guest-lab.tsx');
+ const spark=read('components/spark-beast-companion.tsx');
+ assert.match(provider,/visualLook:BaseLook/);
+ assert.match(provider,/selectLook:\(look:BaseLook\)=>void/);
+ assert.match(spark,/visualLook\?:BaseLook/);
+ assert.match(spark,/data-visual-look=\{visualLook\|\|fallbackLook\}/);
+ assert.match(cage,/selectLook\(item\.id\)/);
+ assert.match(cage,/if\(!creature\)selectProfile/);
+ assert.doesNotMatch(cage,/selectProfile\(starter\)/);
+ assert.match(guest,/selectLook\(next\)/);
+ assert.doesNotMatch(guest,/clearProfile\(\)/);
+ assert.doesNotMatch(guest,/RETRO GAME PORTAL\\n|PR #31 \/ V11\.2 bridge/);
+ for(const oldName of ['Nebby','Lumen','Orion'])assert.doesNotMatch(cage,new RegExp("label:'"+oldName+"'"));
+ assert.match(cage,/label:'Nebula'/);
+ assert.match(cage,/label:'Aurora'/);
+ assert.match(cage,/label:'Starlight'/);
+});
+
+test('mobile public flow exposes play first and keeps advanced tools collapsed',()=>{
+ const cage=read('components/beast-cage-portal.tsx');
+ const guest=read('components/gba-guest-lab.tsx');
+ const transfer=read('components/quantum-beast-transfer.tsx');
+ const dock=read('components/lost-cosmos-dock.tsx');
+ assert.match(cage,/Play Lost COSMOS/);
+ assert.match(cage,/More things you can do/);
+ assert.match(guest,/Play Lost COSMOS/);
+ assert.match(guest,/Exports & developer files/);
+ assert.match(transfer,/PORTABLE BEAST/);
+ assert.match(transfer,/Transfer \/ export options/);
+ assert.match(dock,/matchMedia\('\(max-width: 760px\)'\)/);
+ assert.doesNotMatch(dock,/Play V11\.2 Spark|V11\.2 Spark ·/);
 });
