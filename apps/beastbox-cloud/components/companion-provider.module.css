@@ -1,4 +1,4 @@
-.shell{position:fixed;z-index:20;left:auto;top:auto;bottom:calc(20px + env(safe-area-inset-bottom,0px));right:12px;width:140px;pointer-events:none;isolation:isolate;transition:left .9s cubic-bezier(.21,.63,.17,1),top .9s cubic-bezier(.21,.63,.17,1)}
+.shell{position:fixed;z-index:20;left:auto;top:auto;bottom:calc(20px + env(safe-area-inset-bottom,0px));right:12px;width:140px;pointer-events:none;isolation:isolate;transition:left 2.8s cubic-bezier(.21,.63,.17,1),top 2.8s cubic-bezier(.21,.63,.17,1)}
 .toolbar{display:flex;gap:7px;justify-content:flex-end;position:absolute;top:-28px;right:0;z-index:2;pointer-events:auto}
 .control{display:grid;place-items:center;padding:7px;min-height:34px;min-width:34px;border:1px solid #9beffda1;border-radius:50%;background:#13233ce8;color:#cbf7ff;backdrop-filter:blur(10px);box-shadow:0 5px 14px #060a1c7a;cursor:pointer}
 .control:hover,.control:focus-visible{outline:2px solid #a0eff3;outline-offset:2px}
@@ -12,7 +12,7 @@
 .shell[data-side="left"] .toolbar{left:0;right:auto;justify-content:flex-start}
 .shell[data-anchored="true"] .toolbar{top:calc(var(--pet-w,110px) * var(--sprite-top,.4) - 40px)}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-@media(max-width:680px){.shell{width:110px;transition:left .65s cubic-bezier(.21,.63,.17,1),top .65s cubic-bezier(.21,.63,.17,1);right:10px;bottom:calc(26px + env(safe-area-inset-bottom,0px))}.toolbar{top:-37px}}
+@media(max-width:680px){.shell{width:110px;transition:left 1.55s cubic-bezier(.21,.63,.17,1),top 1.55s cubic-bezier(.21,.63,.17,1);right:10px;bottom:calc(26px + env(safe-area-inset-bottom,0px))}.toolbar{top:-37px}}
 @media(prefers-reduced-motion:reduce){.shell{transition:none}}
 
 /* When all viewport perches intersect content, park controls in real document flow instead of obstructing text or actionable UI. */
