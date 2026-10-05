@@ -5,8 +5,8 @@
 .full .screen canvas,.full .screen iframe{max-height:none;height:100%;width:100%}
 /* Field safe area: the game sits between the portrait card and the bottom HUD /
    touch pad that /beast-cage/go publishes, at the GBA's native 3:2 aspect. */
-.full .screen{display:grid;place-items:center;box-sizing:border-box;padding:var(--go-safe-top,104px) max(0px,env(safe-area-inset-right)) var(--go-safe-bottom,176px) max(0px,env(safe-area-inset-left));container-type:size}
-.full .game{width:min(100cqw,150cqh);height:auto;aspect-ratio:3/2;max-width:100%;max-height:100%;background:#000;border-radius:6px;overflow:hidden;box-shadow:0 0 0 1px rgba(104,229,238,.18),0 18px 50px #0009}
+.full .screen{display:grid;place-items:center;box-sizing:border-box;padding:var(--go-safe-top,104px) var(--go-safe-right,max(0px,env(safe-area-inset-right))) var(--go-safe-bottom,176px) var(--go-safe-left,max(0px,env(safe-area-inset-left)));container-type:size}
+.full .game{width:min(100cqw,150cqh);height:auto;aspect-ratio:3/2;max-width:100%;max-height:100%;background:#05070c;border:9px solid #22293f;border-radius:18px;overflow:hidden;box-shadow:inset 0 0 0 2px #05070c,0 0 0 2px #525c78,0 22px 54px #000b}
 .full .game canvas{width:100%!important;height:100%!important}
 /* Our field touch pad drives the cartridge; EmulatorJS's own virtual gamepad would sit on top of it. */
 .full :global(.ejs_virtualGamepad_parent){display:none!important}
