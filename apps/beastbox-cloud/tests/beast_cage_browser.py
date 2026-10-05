@@ -38,6 +38,11 @@ with sync_playwright() as p:
         box=dock.bounding_box()
         assert box and box["width"]<=300,(width,box)
         if width in (390,320):
+            # On phones the mini player is a pill; when it would cover a page control it
+            # tucks into an edge tab, and tapping the tab brings the pill controls back.
+            if dock.get_attribute("data-dock-pill")=="tucked":
+                page.get_by_role("button",name="Show Lost Cosmos player").click()
+                expect(dock).to_have_attribute("data-dock-pill","pill")
             page.get_by_role("button",name="Close Lost Cosmos player").click()
             expect(dock).to_have_attribute("data-dock-state","closed")
             page.get_by_role("button",name="Open Lost Cosmos player").click()
