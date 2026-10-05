@@ -16,16 +16,19 @@ with sync_playwright() as p:
   page.on("pageerror",lambda e:errors.append(str(e)))
   resp=page.goto(ROOT+"/beast-cage/guest",wait_until="domcontentloaded")
   assert resp and resp.status==200
-  expect(page.get_by_role("heading",name="Catch a star. Take it into your game.")).to_be_visible()
+  expect(page.get_by_role("heading",name="Your Beast. Ready to play.")).to_be_visible()
+  expect(page.get_by_role("link",name="Play Lost COSMOS")).to_be_visible()
   assert no_overflow(page),width
-  page.get_by_role("button",name="Lumen").click()
+  page.get_by_role("button",name="Aurora").click()
   page.get_by_role("button",name="Celebrate").click()
   expect(page.get_by_role("button",name="Celebrate")).to_have_attribute("aria-pressed","true")
   if width in (1440,390,320):page.screenshot(path=str(OUT/("guest-"+str(width)+".png")),full_page=True,animations="disabled")
+  page.get_by_text("Exports & developer files",exact=True).click()
   with page.expect_download(timeout=12000) as pending:
    page.get_by_role("button",name="Download my GBA companion (.zip)").click()
   download=pending.value
-  assert download.suggested_filename=="beast-cage-aurora-gba-module.zip"
+  assert download.suggested_filename.startswith("beast-cage-bb-")
+  assert download.suggested_filename.endswith("-gba-module.zip")
   path=OUT/("pack-"+str(width)+".zip")
   download.save_as(path)
   with zipfile.ZipFile(path) as z:
