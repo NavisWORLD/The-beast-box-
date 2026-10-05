@@ -87,8 +87,9 @@ test('the dock and GO serve V11.3 plus the merged Beast Boy controller bridge (#
  assert.match(rom,/const SHA='6f9c22fa22b32694d606c854b4da26b4394b2ecaa86842cc1998c8cfe57b1fb3'/);
  assert.match(rom,/arcade\/lost-cosmos\/rom\/lost-cosmos\.gba/);
  const api=read('app/api/gba-release/route.ts');
- assert.match(api,/lost_cosmos_main_commit:'1262149063249a7a21f356a90f7ad160cf917526'/);
- assert.match(api,/lost_cosmos_main_prs:\[33,34,35,38\]/);
+ assert.match(api,/lost_cosmos_main_commit:'e5eb46e36096a6c024f6c035923d821d18833f41'/);
+ assert.match(api,/lost_cosmos_main_prs:\[33,34,35,38,39\]/);
  assert.match(api,/rom_sha256:'6f9c22fa22b32694d606c854b4da26b4394b2ecaa86842cc1998c8cfe57b1fb3'/);
  assert.match(api,/beast-boy-controller-bridge/);
+ assert.match(api,/cache-busted-controller-receiver/);
 });

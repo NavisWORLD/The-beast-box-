@@ -14,16 +14,17 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
   await page.goto(root+'/spark/index.html');await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId);
   await page.locator('#generate').click();await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Spawned'));
   const snapshot=await page.evaluate(()=>JSON.parse(JSON.parse(localStorage.getItem('beastbox-quantum-beast-public-v1')).text));
-  await page.locator('#lost-cosmos').click();const player=page.locator('main [data-spark-player]');await player.getByRole('button',{name:'SEND BEAST & PLAY 🎮',exact:true}).click();
+  await page.goto(root+'/beast-cage/go');await page.locator('[data-handheld-controls="game-boy"]').waitFor({state:'visible'});const player=page.locator('[data-lost-cosmos-dock] [data-spark-player]');await player.getByRole('button',{name:'SEND BEAST & PLAY 🎮',exact:true}).click();
   await player.getByRole('status').filter({hasText:'same QBEAST verified'}).waitFor({timeout:60000});
   const gate=player.frameLocator('iframe'),hand=gate.frameLocator('#handheld');await hand.locator('#status').filter({hasText:'cartridge mailbox'}).waitFor();
   await hand.locator('#consent').check();await hand.locator('#play').click();await hand.getByText(/^start game$/i).click({timeout:60000});
   await hand.locator('#status').filter({hasText:/Cartridge running|Journey restored/}).waitFor({timeout:90000});
   const core=page.frames().find(f=>f.url().includes('/sol-spark-gate/handheld.html'));assert.ok(core);
   await core.evaluate(()=>{const gm=EJS_emulator.gameManager,original=gm.simulateInput.bind(gm);window.__beastBoyInputs=[];gm.simulateInput=(player,index,value)=>{window.__beastBoyInputs.push([player,index,value]);return original(player,index,value);};});
+  const deckA=page.locator('[data-handheld-controls="game-boy"]').getByRole('button',{name:'A',exact:true});
+  await deckA.tap();await page.waitForTimeout(120);
+  assert.deepEqual(await core.evaluate(()=>window.__beastBoyInputs.slice(-2)),[[0,8,1],[0,8,0]],'real mobile Beast Boy A tap reaches the mounted native core');
   const deckInput=async(button,down)=>page.evaluate(({button,down})=>window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button,down}})),{button,down});
-  await deckInput('a',true);await deckInput('a',false);await page.waitForTimeout(100);
-  assert.deepEqual(await core.evaluate(()=>window.__beastBoyInputs.slice(-2)),[[0,8,1],[0,8,0]],'Beast Boy A press/release reaches the mounted native core');
   const beforeBad=await core.evaluate(()=>window.__beastBoyInputs.length);await deckInput('nope',true);await page.waitForTimeout(50);
   assert.equal(await core.evaluate(()=>window.__beastBoyInputs.length),beforeBad,'unknown Beast Boy controls are rejected');
   const verified=await core.evaluate(async snapshot=>{
@@ -74,6 +75,6 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
   await page.goto(root+'/beast-cage');await page.waitForFunction(id=>document.querySelector('[data-spark-beast][data-creature-id="'+id+'"]'),snapshot.profile.id);
   const afterNavigation=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')));
   assert.deepEqual(afterNavigation.beast.qbeast,snapshot);assert.deepEqual(afterNavigation.chat,afterTalk.chat);assert.equal(afterNavigation.beast.xp,afterTalk.beast.xp);
-  assert.deepEqual(wrong,[]);assert.deepEqual(errors,[]);await fs.writeFile(out+'/report.json',JSON.stringify({passed:true,qbeast:snapshot.profile.id,seed:snapshot.profile.seed,verified,realNativeCore:true,noSimEarth:true,gameChatContractFixture:true,gameChatKeepsNativeMounted:true,sharedCageCareAndChat:true,beastBoyControlsHitNativeCore:true,noAutomaticModelCalls:true,noOwnerModelCalls:true,consoleErrors:errors},null,2));console.log('PASS: same QBEAST → actual current GBA, Beast Boy controls, guest talk contract, same Cage care/chat and no native remount');
+  assert.deepEqual(wrong,[]);assert.deepEqual(errors,[]);await fs.writeFile(out+'/report.json',JSON.stringify({passed:true,qbeast:snapshot.profile.id,seed:snapshot.profile.seed,verified,realNativeCore:true,noSimEarth:true,gameChatContractFixture:true,gameChatKeepsNativeMounted:true,sharedCageCareAndChat:true,beastBoyControlsHitNativeCore:true,realMobileDeckTap:true,noAutomaticModelCalls:true,noOwnerModelCalls:true,consoleErrors:errors},null,2));console.log('PASS: same QBEAST → actual current GBA, Beast Boy controls, guest talk contract, same Cage care/chat and no native remount');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});
