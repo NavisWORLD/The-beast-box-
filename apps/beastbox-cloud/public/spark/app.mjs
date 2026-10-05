@@ -233,7 +233,7 @@ async function speak(event){
    else reply=talk(session,text).reply;
    saveSparkSession(localStorage,session);
   });
-  runtime.state='listen';runtime.until=runtime.T+3;updatePlate();say('focus',reply);$('talk-reply').textContent=reply;$('talk-text').value='';
+  runtime.state='listen';runtime.until=runtime.T+3;updatePlate();say('focus',reply.slice(0,900));$('talk-reply').textContent=reply;$('talk-text').value='';
   if(remote){setTalkSource('COSMOS · '+remote.model,true);audioSfx('confirm');$('status').textContent=remote.persistent?'Active Brain Bay model replied through COSMOS and the host confirmed persistence.':'Active Brain Bay model replied through COSMOS. This browser also kept the exchange with the same Beast.';}
   else{setTalkSource('LOCAL PATTERN');if(remoteError)$('status').textContent='Cloud model unavailable, so the on-device pattern companion replied instead. '+remoteError.message;}
  });
