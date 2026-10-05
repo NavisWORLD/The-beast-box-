@@ -6,22 +6,39 @@ import { blit, renderBeast, SPRITE } from '../public/spark/draw.mjs';
 import css from './spark-field.module.css';
 
 type StageCard = { stage: number; mark: string; name: string };
-type CreatureCard = { kind: string; body: string; island: string; stages: StageCard[]; genome: { seed: string; names: Record<number, string> } };
-type RareCard = { kind: string; key: string; num_bits: number; name: string; body: string; genome: { seed: string; names: Record<number, string> } };
+type Genome = { seed: string; names: Record<number, string>; [key: string]: unknown };
+type CreatureCard = { kind: string; body: string; island: string; stages: StageCard[]; genome: Genome };
+type RareCard = { kind: string; key: string; num_bits: number; name: string; body: string; genome: Genome };
 type Catalog = {
   creatures: CreatureCard[];
   charlet: CreatureCard & { name: string };
   rares: RareCard[];
 };
+type Choice = { name: string; genome: Genome };
 
-type Choice = { name: string; genome: { seed: string; names: Record<number, string> } };
+function RosterCard({ genome, stage, name, detail, rare = false, onChoose }:{
+  genome: Genome; stage: 1|2|3; name: string; detail: string; rare?: boolean; onChoose:()=>void;
+}){
+  const canvas=useRef<HTMLCanvasElement>(null);
+  useEffect(()=>{
+    const node=canvas.current;
+    if(!node)return;
+    const ctx=node.getContext('2d');
+    if(!ctx)return;
+    const scale=3;
+    node.width=SPRITE*scale;node.height=SPRITE*scale;
+    blit(ctx,renderBeast(genome,stage,'open'),0,0,scale);
+  },[genome,stage]);
+  return <button type="button" className={css.rosterCard} data-roster-card={rare?'rare':'core'} onClick={onChoose}>
+    <canvas ref={canvas} className={css.rosterCanvas} aria-label={`${name} stage ${STAGE_MARK[stage]} sprite`}/>
+    <strong>{name}</strong><span>{detail}</span>{rare?<small>RARE · RECORDED 12-BIT SEED</small>:null}
+  </button>;
+}
 
 export default function SparkFieldRoster({ onChoose }: { onChoose: (choice: Choice) => void }) {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [stage, setStage] = useState<1 | 2 | 3>(1);
   const [error, setError] = useState('');
-  const [picked, setPicked] = useState<Choice | null>(null);
-  const sprite = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,36 +54,39 @@ export default function SparkFieldRoster({ onChoose }: { onChoose: (choice: Choi
     return () => { cancelled = true; };
   }, []);
 
-  useEffect(() => {
-    const genome = picked?.genome;
-    const canvas = sprite.current;
-    if (!genome || !canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const scale = 3;
-    canvas.width = SPRITE * scale;
-    canvas.height = SPRITE * scale;
-    blit(ctx, renderBeast(genome, stage, 'open'), 0, 0, scale);
-  }, [picked, stage]);
-
   return <section className={css.block} aria-label="Spark Beast roster">
-    <h3>Roster</h3>
-    <p>Every Spark Beast body, stages I, II, and III, Charlet, and the 12 rares from recorded 12-bit runs.</p>
-    <div className={css.stages} role="group" aria-label="Evolution stage">
-      {([1, 2, 3] as const).map((value) => <button key={value} type="button" aria-pressed={stage === value} onClick={() => setStage(value)}>Stage {STAGE_MARK[value]}</button>)}
-    </div>
-    {error ? <p role="status">{error}</p> : null}
-    {!catalog && !error ? <p>Loading the recorded roster…</p> : null}
-    {catalog ? <>
-      <canvas ref={sprite} data-roster-sprite="true" className={css.sprite} aria-label={picked ? `${picked.name} stage ${STAGE_MARK[stage]}` : 'Choose a Spark Beast'} />
-      <div className={css.list}>
-        {catalog.creatures.map((creature) => {
-          const shown = creature.stages.find((item) => item.stage === stage) || creature.stages[0];
-          return <button key={creature.body} type="button" onClick={() => { const choice = { name: shown.name, genome: creature.genome }; setPicked(choice); onChoose(choice); }}>{creature.body} · Stage {shown.mark} · {shown.name}</button>;
-        })}
-        <button type="button" onClick={() => { const shown = catalog.charlet.stages.find((item) => item.stage === stage) || catalog.charlet.stages[0]; const choice = { name: stage === 1 ? catalog.charlet.name : shown.name, genome: catalog.charlet.genome }; setPicked(choice); onChoose(choice); }}>Charlet · Stage {STAGE_MARK[stage]} · {stage === 1 ? catalog.charlet.name : catalog.charlet.stages.find((item) => item.stage === stage)?.name}</button>
-        {catalog.rares.map((rare) => <button key={rare.key} type="button" onClick={() => { const choice = { name: rare.name, genome: rare.genome }; setPicked(choice); onChoose(choice); }}>Rare · {rare.name}</button>)}
+    <div className={css.rosterHead}><div><h3>All Spark Beasts</h3><p>Every core body family, all three visual stages, Charlet, and the 12 recorded rare forms.</p></div>
+      <div className={css.stages} role="group" aria-label="Evolution stage preview">
+        {([1,2,3] as const).map(value=><button key={value} type="button" aria-pressed={stage===value} onClick={()=>setStage(value)}>Stage {STAGE_MARK[value]}</button>)}
       </div>
-    </> : null}
+    </div>
+    <p className={css.previewNote}>Stage buttons preview art only. Earned evolution still comes from game progression.</p>
+    {error?<p role="status">{error}</p>:null}
+    {!catalog&&!error?<p>Loading the recorded roster…</p>:null}
+    {catalog?<>
+      <div className={css.rosterGrid} aria-label="Core Spark Beast families">
+        {catalog.creatures.map(creature=>{
+          const shown=creature.stages.find(item=>item.stage===stage)||creature.stages[0];
+          return <RosterCard key={creature.body} genome={creature.genome} stage={stage} name={shown.name}
+            detail={`${creature.body} · ${creature.island}`}
+            onChoose={()=>onChoose({name:shown.name,genome:creature.genome})}/>;
+        })}
+        {(()=>{
+          const shown=catalog.charlet.stages.find(item=>item.stage===stage)||catalog.charlet.stages[0];
+          const name=stage===1?catalog.charlet.name:shown.name;
+          return <RosterCard genome={catalog.charlet.genome} stage={stage} name={name}
+            detail="Charlet line · Cinder Drift" onChoose={()=>onChoose({name,genome:catalog.charlet.genome})}/>;
+        })()}
+      </div>
+      <h4 className={css.rareTitle}>Recorded rare forms · 12</h4>
+      <div className={css.rosterGrid} aria-label="Rare Spark Beasts">
+        {catalog.rares.map(rare=>{
+          const name=rare.genome.names?.[stage]||rare.name;
+          return <RosterCard key={rare.key} genome={rare.genome} stage={stage} name={name}
+            detail={`${rare.body} · ${rare.key.split(':')[0]}`} rare
+            onChoose={()=>onChoose({name,genome:rare.genome})}/>;
+        })}
+      </div>
+    </>:null}
   </section>;
 }
