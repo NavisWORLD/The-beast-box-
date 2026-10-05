@@ -342,12 +342,18 @@ test("the pet dragon loops from a recorded seed and only grows on-device weights
   assert.doesNotMatch(dock, /Math\.random/);
 });
 
-test("field touch UI is one Game Boy-style deck with a closable sheet instead of stacked floating controls", () => {
+test("field touch UI is one Game Boy-style deck with a closable sheet and a real cartridge bridge", () => {
   const ui = read("components/beast-go.tsx");
   const css = read("components/beast-go.module.css");
+  const player = read("components/sol-spark-player.tsx");
   assert.match(ui, /data-handheld-controls="game-boy"/);
   assert.match(ui, /aria-label="Select"/);
   assert.match(ui, /aria-label="Close field menu"/);
+  assert.match(ui, /beastbox:gba-input/);
+  assert.match(ui, /window\.addEventListener\('keyup', onKey\)/);
+  assert.match(ui, /lostpointercapture/);
+  assert.match(player, /sol-spark-input/);
+  assert.match(player, /beastbox:gba-input/);
   assert.match(css, /\.handheld\{/);
   assert.match(css, /\.sheetClose\{/);
   assert.doesNotMatch(css, /\.orb\{/);

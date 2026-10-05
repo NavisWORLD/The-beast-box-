@@ -95,16 +95,31 @@ export default function BeastGo() {
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && event.type === 'keydown') {
         setSheet(null);
         return;
       }
       const target = event.target;
       if (target instanceof HTMLElement && target.closest('textarea, input')) return;
-      if (GAME_KEYS.has(event.key)) event.preventDefault();
+      if (!GAME_KEYS.has(event.key)) return;
+      event.preventDefault();
+      if (event.type === 'keydown' && event.repeat) return;
+      const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+      const entry = Object.entries(GBA_KEYS).find(([, spec]) => {
+        const mapped = spec.key.length === 1 ? spec.key.toLowerCase() : spec.key;
+        return mapped === key;
+      });
+      if (!entry) return;
+      window.dispatchEvent(new CustomEvent('beastbox:gba-input', {
+        detail: { button: entry[0], down: event.type === 'keydown' },
+      }));
     }
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keyup', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onKey);
+    };
   }, []);
 
   // Publish the safe game area (between the portrait card and the bottom HUD /
@@ -162,15 +177,21 @@ export default function BeastGo() {
 
   function hold(button: string, event: React.PointerEvent<HTMLButtonElement>) {
     event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    const target = event.currentTarget;
+    target.setPointerCapture(event.pointerId);
     pressCartridge(button, true, window);
+    let released = false;
     const release = () => {
+      if (released) return;
+      released = true;
       pressCartridge(button, false, window);
-      event.currentTarget.removeEventListener('pointerup', release);
-      event.currentTarget.removeEventListener('pointercancel', release);
+      target.removeEventListener('pointerup', release);
+      target.removeEventListener('pointercancel', release);
+      target.removeEventListener('lostpointercapture', release);
     };
-    event.currentTarget.addEventListener('pointerup', release);
-    event.currentTarget.addEventListener('pointercancel', release);
+    target.addEventListener('pointerup', release);
+    target.addEventListener('pointercancel', release);
+    target.addEventListener('lostpointercapture', release);
   }
 
   function meet() {
