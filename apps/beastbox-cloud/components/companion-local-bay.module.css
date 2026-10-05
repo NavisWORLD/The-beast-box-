@@ -1,0 +1,33 @@
+.card {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.note {
+  margin: 0;
+}
+.choice {
+  text-align: left;
+}
+.choice[aria-pressed="true"] {
+  outline: 2px solid currentColor;
+}
+.log {
+  max-height: 180px;
+  overflow: auto;
+  margin: 0;
+  white-space: pre-wrap;
+}
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

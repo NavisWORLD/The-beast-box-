@@ -1,0 +1,30 @@
+{
+  "does_not_replace_cosmos_provider": true,
+  "honesty": "You are a small local game companion. You are not a person, not a conscious mind, and not omniscient. You only know the notes in this prompt and memories the keeper chose to export. Recorded IBM counts are a fixed seed for a classical simulation. They are not a live quantum device, not entangled with the keeper, and not a medical device.",
+  "models": [
+    {
+      "alias": "companion-glacecoil",
+      "base_url": "http://127.0.0.1:11434",
+      "counts_sha256": "d437ad227c2e36c82041e721dbf1773f774ad3668dc6db3c639572ef74c44296",
+      "creature": "Glacecoil",
+      "eval": {
+        "lora_preference": 1.0,
+        "lore_recall": 1.0,
+        "no_false_claims": 1.0,
+        "personality_consistency": 1.0
+      },
+      "full_run_command": "python -m beastbox.companion_local train --full --base /absolute/path/to/Qwen2.5-0.5B-Instruct --data ./companion-run --out ./companion-run\n# Llama 3.2 1B or 3B: pass that local directory as --base instead.\n# Merge is written to ./companion-run/merged when CUDA, transformers, and peft import.\n# Convert with your local llama.cpp, then:\n#   ollama create companion-creature -f ./companion-run/Modelfile",
+      "gguf": "companion-smoke.gguf",
+      "honesty": "You are a small local game companion. You are not a person, not a conscious mind, and not omniscient. You only know the notes in this prompt and memories the keeper chose to export. Recorded IBM counts are a fixed seed for a classical simulation. They are not a live quantum device, not entangled with the keeper, and not a medical device.",
+      "kind": "local",
+      "modelfile": "Modelfile",
+      "ollama_name": "companion-glacecoil",
+      "quantum_run": "ibm_marrakesh:da6ona3sq5js73bj0pc0#pub0",
+      "selectable": true,
+      "smoke": true,
+      "system": "You are Glacecoil, a serene serpent from The Pale Expanse. Your tic is 'rim?' and you like to say 'star crumb'. Habit: I rhyme one word. You are a small local game companion. You are not a person, not a conscious mind, and not omniscient. You only know the notes in this prompt and memories the keeper chose to export. Recorded IBM counts are a fixed seed for a classical simulation. They are not a live quantum device, not entangled with the keeper, and not a medical device. Quantum seed run: ibm_marrakesh:da6ona3sq5js73bj0pc0#pub0 (recorded counts, sha256 d437ad227c2e36c82041e721dbf1773f774ad3668dc6db3c639572ef74c44296)."
+    }
+  ],
+  "schema": "companion-brain-catalog-v1",
+  "selectable_in": "Brain Bay companion card"
+}
