@@ -14,6 +14,7 @@ import {
 import {selectSafeRoamSpot,type Rect,type Spot} from '../lib/companion-roaming';
 import {DRAGON_RUN_KEY,DRAGON_TRAITS} from '../lib/companion/pet-dragon.mjs';
 import styles from './companion-provider.module.css';
+import {getBeastAudio} from '../lib/companion/beast-audio-engine.mjs';
 
 type CompanionContextValue={
  profile:CreatureProfile|null;
@@ -170,6 +171,14 @@ export default function CompanionProvider({children}:{children:ReactNode}){
   action==='perch'?'observing' as const:'idle' as const;
  const clearProfile=useCallback(()=>{setProfile(null);setAction('hover');tickRef.current=0;setTick(0);try{window.localStorage.removeItem(ACTIVE_PROFILE_KEY);}catch{/* optional browser-only game profile */}},[]);
  const context=useMemo(()=>({profile,selectProfile:onProfile,clearProfile}),[profile,onProfile,clearProfile]);
+ // Pet SFX ride the shared limiter; they only play while the pet's own sound is on.
+ // The provider wraps the whole site, so it talks to the shared engines without subscribing (no extra renders).
+ const petAudio=useMemo(()=>getBeastAudio(),[]);
+ const petGenome=useRef<{element?:string;seed?:string}|null>(null);
+ const petSfx=(kind:string)=>{
+  if(!soundEnabled)return;
+  petAudio.sfx(kind,{element:petGenome.current?.element||'spark',seedKey:'pet:'+(petGenome.current?.seed||profile?.seed||'dragon')});
+ };
  const toggleSound=()=>{
   setSoundEnabled(current=>{
    const next=!current;
@@ -179,6 +188,14 @@ export default function CompanionProvider({children}:{children:ReactNode}){
    }
    return next;
   });
+  // Shared music engine cues run outside the state updater (it may run twice in dev).
+  if(!soundEnabled){
+   try{
+    window.dispatchEvent(new Event('beastbox:spark-unmute'));
+    petAudio.unlock();
+    petAudio.sfx('confirm',{element:petGenome.current?.element||'spark',seedKey:'pet:'+(petGenome.current?.seed||'dragon')});
+   }catch{/* audio is optional */}
+  }
  };
  const canShow=showPublic&&!hidden&&!typing&&pageVisible&&!reduced&&spot!==null;
  // Anchor the toolbar to the sprite's first drawn row (the Spark canvas has transparent headroom).
@@ -212,12 +229,13 @@ export default function CompanionProvider({children}:{children:ReactNode}){
     style={canShow&&spot?{left:spot.left,top:spot.top,width:spot.width,['--pet-w' as string]:spot.width+'px',['--sprite-top' as string]:String(spriteTop)}:undefined}>
     <div className={styles.toolbar}>
      <button type="button" className={styles.control}
-       onClick={()=>setHidden(x=>!x)} aria-label={hidden?'Show roaming companion':'Hide roaming companion'}>
+       onClick={()=>{petSfx(hidden?'confirm':'flee');setHidden(x=>!x);}} aria-label={hidden?'Show roaming companion':'Hide roaming companion'}>
       {hidden?<Eye size={15}/>:<EyeOff size={15}/>}
      </button>
      {!hidden?<button type="button" className={styles.control}
        onClick={()=>{
-        if(halted){setHalted(false);setPaused(false);return;}
+        if(halted){petSfx('confirm');setHalted(false);setPaused(false);return;}
+        petSfx(paused?'confirm':'faint');
         setPaused(x=>!x);
        }}
        aria-label={halted?'Resume decorative companion only':paused?'Resume companion animation':'Pause companion animation'}>
@@ -233,6 +251,7 @@ export default function CompanionProvider({children}:{children:ReactNode}){
       <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook??'nebula'}
        state={state} compact paused={parked||reduced} audioChannel="roamer"
        seedRunKey={DRAGON_RUN_KEY} seedTraits={DRAGON_TRAITS}
+       onGenome={(genome:{element?:string;seed?:string})=>{petGenome.current=genome;}}
        label="Roaming pet dragon Spark Beast"/>
      </div>:null}
     <span className={styles.sr} aria-live="polite">

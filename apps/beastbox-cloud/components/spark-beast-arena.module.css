@@ -6,7 +6,10 @@
 .flash{position:absolute;inset:0;pointer-events:none;z-index:5;opacity:0;background:radial-gradient(circle at 50% 48%,#ffffffd0,#c9b1ff66 38%,transparent 70%);mix-blend-mode:screen}
 .hit{position:absolute;inset:8% 10% 18%;z-index:3;border:0;border-radius:50%;background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .hit:focus-visible{outline:2px dashed #a0eff3;outline-offset:-6px}
-.tools{position:absolute;z-index:6;top:9%;left:50%;transform:translateX(-50%);display:flex;gap:6px}
+.tools{position:absolute;z-index:6;top:9%;left:50%;transform:translateX(-50%);display:flex;gap:6px;flex-wrap:wrap;justify-content:center;width:min(86%,250px)}
+.volume{display:inline-flex;align-items:center;border:1px solid #9beffd8a;border-radius:999px;background:#101a31e6;padding:0 10px;backdrop-filter:blur(8px)}
+.volume input{width:74px;accent-color:#a1f4f8;height:20px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 .tool{white-space:nowrap;display:inline-flex;align-items:center;gap:5px;border:1px solid #9beffd8a;border-radius:999px;background:#101a31e6;color:#dff9ff;padding:6px 10px;font:700 10px 'Space Grotesk',sans-serif;letter-spacing:.06em;cursor:pointer;backdrop-filter:blur(8px)}
 .tool[aria-pressed="true"]{background:linear-gradient(110deg,#a1f4f8,#c9b1ff);color:#18102d;border-color:#fff8}
 .tool:disabled{opacity:.5;cursor:default}
@@ -16,5 +19,5 @@
 .toast:not(:empty){border-radius:14px}
 .toast em{color:#ffd77a;font-style:normal;margin-left:4px}
 @keyframes toastIn{0%{opacity:0;translate:0 8px;scale:.9}12%{opacity:1;translate:0 0;scale:1.06}20%{scale:1}85%{opacity:1}100%{opacity:0;translate:0 -6px}}
-@media(max-width:680px){.tools{top:7%}.toast{top:18%;font-size:11px}}
+@media(max-width:680px){.tools{top:7%}.toast{top:28%;font-size:11px}}
 @media(prefers-reduced-motion:reduce){.arena :global([data-spark-beast="true"]) canvas{translate:none;scale:1;transition:none}.toast:not(:empty){animation:none}}

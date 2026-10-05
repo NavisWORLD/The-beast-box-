@@ -81,3 +81,13 @@ test('public Spark game path points to Lost COSMOS and never the retired SIM wor
  assert.match(bridge,/LOST_COSMOS_URL=.*arcade\/lost-cosmos\/synapse\.html/);
  assert.doesNotMatch(bridge,/SIM_EARTH|Pocket Reality|standalone\//);
 });
+
+test('the dock and GO serve the Lost Cosmos ROM built from current game main (#34 + #35, not #33)',()=>{
+ const rom=read('app/api/gba-rom/route.ts');
+ assert.match(rom,/const SHA='303865b4d1c9d0297e5b59e3945e5ee74dbafdcc344aec8deb9434ab87f9899a'/);
+ assert.match(rom,/arcade\/lost-cosmos\/rom\/lost-cosmos\.gba/);
+ const api=read('app/api/gba-release/route.ts');
+ assert.match(api,/lost_cosmos_main_commit:'12ed44df23ffc9a5c55c7a31a9bf45e423540c53'/);
+ assert.match(api,/lost_cosmos_main_prs:\[34,35\]/);
+ assert.match(api,/rom_sha256:'303865b4d1c9d0297e5b59e3945e5ee74dbafdcc344aec8deb9434ab87f9899a'/);
+});

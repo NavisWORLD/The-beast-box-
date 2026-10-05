@@ -46,6 +46,11 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
     host.EJS_emulator?.setVolume?.(shown && !closed ? volume.current : 0);
   }, [shown, closed]);
 
+  // Tell the beast music engine when the cartridge is audible so "Game audio" focus can duck the web music.
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('beastbox:gba-running', { detail: booted && shown && !closed }));
+  }, [booted, shown, closed]);
+
   useEffect(() => {
     const media = window.matchMedia('(max-width: 760px)');
     const apply = () => setNarrow(media.matches);
