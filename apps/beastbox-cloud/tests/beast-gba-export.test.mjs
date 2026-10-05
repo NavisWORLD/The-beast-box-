@@ -44,7 +44,7 @@ test('exact public source archive and server release marker are present',()=>{
   assert.ok(read('public/gba-module/'+name).length>120,name);
  const api=read('app/api/gba-release/route.ts');
  assert.match(api,/beast-cage-lost-cosmos-spark-alive-20261004/);
- assert.match(api,/a4057c5a8d57963bb27e157eab683852ab58bc28/);
+ assert.match(api,/f2c3683f697b7ee5d35557028c4416556226bb9b/);
  assert.match(api,/same_cage_transfer:true/);
  assert.match(api,/persistent-gba-player/);
  assert.match(api,/shared-spark-care-ledger/);
@@ -65,7 +65,7 @@ test('Quantum Beast bridge launches the same portable identity into current Lost
  assert.match(transfer,/PLAY THIS BEAST IN LOST COSMOS/);
  assert.match(transfer,/lostCosmosShareUrl/);
  assert.match(transfer,/window\.location\.assign\(url\)/);
- assert.match(bridge,/a4057c5a8d57963bb27e157eab683852ab58bc28/);
+ assert.match(bridge,/f2c3683f697b7ee5d35557028c4416556226bb9b/);
  assert.match(bridge,/beastbox-lost-cosmos-transfer-v1/);
  assert.match(bridge,/LCSHARE1/);
  assert.match(bridge,/origin:'beast'/);

@@ -1,6 +1,6 @@
 import {canonical,type Snapshot,verifySnapshot,type VerifyOptions} from './verifier';
 
-export const LOST_COSMOS_SOURCE_SHA='a4057c5a8d57963bb27e157eab683852ab58bc28' as const;
+export const LOST_COSMOS_SOURCE_SHA='f2c3683f697b7ee5d35557028c4416556226bb9b' as const;
 export const LOST_COSMOS_URL='https://navisworld.github.io/Cosmic-synapse-the-living-universe-sim-engine-/arcade/lost-cosmos/synapse.html' as const;
 
 const PRIVATE=/(?:api[_ -]?key|password|credential|authorization|biometric|owner[_ -]?memory|private[_ -]?(?:key|state)|-----BEGIN|\bBearer\s|\bsk-[a-z0-9_-]{8,})/i;

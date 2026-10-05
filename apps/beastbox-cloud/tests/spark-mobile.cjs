@@ -43,12 +43,18 @@ for(const width of widths){
     const data=(await ac.startRendering()).getChannelData(0),bytes=new Uint8Array(data.buffer);
     const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(n=>n.toString(16).padStart(2,'0')).join('');
     let peak=0,sum=0;for(const v of data){peak=Math.max(peak,Math.abs(v));sum+=v*v;}
-    return {hash,peak,rms:Math.sqrt(sum/data.length)};
+    return {hash,peak,rms:Math.sqrt(sum/data.length),utterance:JSON.stringify(u),data};
    }
-   return {first:await render(previous,1,'spark'),again:await render(previous,1,'spark'),calm:await render(previous,3,'calm'),other:await render(current,1,'spark')};
+   const first=await render(previous,1,'spark'),again=await render(previous,1,'spark'),calm=await render(previous,3,'calm'),other=await render(current,1,'spark');
+   let maxDifference=0;for(let i=0;i<first.data.length;i++)maxDifference=Math.max(maxDifference,Math.abs(first.data[i]-again.data[i]));
+   for(const v of [first,again,calm,other])delete v.data;
+   return {first,again,calm,other,maxDifference};
   },saved.beast.genome);
-  assert.equal(voice.first.hash,voice.again.hash,'same genome produces deterministic audio');assert.notEqual(voice.first.hash,voice.calm.hash,'stage and mood vary the voice');assert.notEqual(voice.first.hash,voice.other.hash,'new beast has a different voice');
-  for(const v of Object.values(voice)){assert.ok(v.peak>0&&v.peak<.8);assert.ok(v.rms>0);}
+  assert.equal(voice.first.utterance,voice.again.utterance,'same genome produces the exact generated voice phrase');
+  // Browser DSP can round parallel filters differently; compare actual samples.
+  assert.ok(voice.maxDifference<.00001,`repeat waveform differs by ${voice.maxDifference}`);
+  assert.notEqual(voice.first.hash,voice.calm.hash,'stage and mood vary the voice');assert.notEqual(voice.first.hash,voice.other.hash,'new beast has a different voice');
+  for(const v of [voice.first,voice.again,voice.calm,voice.other]){assert.ok(v.peak>0&&v.peak<.8);assert.ok(v.rms>0);}
   await fs.writeFile(out+'/voice-report.json',JSON.stringify(voice,null,2));
  }
  assert.equal(await page.locator('a:has-text("Play in Living Universe")').count(),0);results.push({width,identity:identity.profile.id,careXP:saved.beast.xp,audio:'gesture-on/closed-off',navigation:'same QBEAST',overflow:false});await context.close();

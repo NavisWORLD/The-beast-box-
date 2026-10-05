@@ -5,7 +5,7 @@ import {serializeQbeast} from '../public/spark/qbeast.mjs';
 import {checkedSpark} from '../public/spark/identity.mjs';
 const ROOT='https://navisworld.github.io';
 const GAME=ROOT+'/Cosmic-synapse-the-living-universe-sim-engine-/arcade/sol-spark-gate/?mode=handheld';
-export default function SolSparkPlayer({compact=false}:{compact?:boolean}){
+export default function SolSparkPlayer({compact=false,active=true}:{compact?:boolean;active?:boolean}){
  const {ready,session}=useBeastSession();
  const frame=useRef<HTMLIFrameElement>(null);
  const [started,setStarted]=useState(false),[note,setNote]=useState('Your saved QBEAST will enter the current native cartridge.');
@@ -15,8 +15,13 @@ export default function SolSparkPlayer({compact=false}:{compact?:boolean}){
    if(!beast?.qbeast)throw Error('Generate a Spark Beast first, then return here.');
    const text=serializeQbeast(beast.qbeast);checkedSpark(text);
    frame.current?.contentWindow?.postMessage({type:'sol-spark-qbeast',text},ROOT);
+   frame.current?.contentWindow?.postMessage({type:'sol-spark-player-state',active:active&&!document.hidden},ROOT);
   }catch(err){setNote(err instanceof Error?err.message:'Could not verify the saved Beast.');}
- },[beast?.qbeast]);
+ },[beast?.qbeast,active]);
+ useEffect(()=>{
+  const update=()=>frame.current?.contentWindow?.postMessage({type:'sol-spark-player-state',active:active&&!document.hidden},ROOT);
+  update();document.addEventListener('visibilitychange',update);return()=>document.removeEventListener('visibilitychange',update);
+ },[active,started]);
  useEffect(()=>{
   const message=(event:MessageEvent)=>{
    if(event.origin!==ROOT||event.source!==frame.current?.contentWindow)return;

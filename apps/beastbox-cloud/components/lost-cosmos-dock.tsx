@@ -101,7 +101,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
       </div>
     </div>
     <div className={css.screen}>
-      {spark?<SolSparkPlayer compact/>:<div id="lost-cosmos-screen" /> }
+      {spark?<SolSparkPlayer compact active={shown&&!closed}/>:<div id="lost-cosmos-screen" /> }
       {!spark && !booted && shown ? <div className={css.poster}>
         <p>{readyText}</p>
         <button type="button" onClick={play}>Play V11.2 Spark</button>
