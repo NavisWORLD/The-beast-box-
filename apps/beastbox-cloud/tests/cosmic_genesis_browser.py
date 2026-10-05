@@ -47,6 +47,8 @@ with sync_playwright() as p:
   saved_label=forge.get_by_role("button",name=re.compile("^Select "))
   expect(saved_label).to_be_visible()
   saved_label.click()
+  forge.get_by_text("Game stats · 500 points",exact=True).click()
+  expect(card).to_be_visible()
   assert card.inner_text()==initial
   # Exact real public browser download: advanced export stays available behind progressive disclosure.
   page.get_by_text("Exports & developer files",exact=True).click()
