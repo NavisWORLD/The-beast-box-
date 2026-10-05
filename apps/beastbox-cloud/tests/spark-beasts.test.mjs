@@ -48,6 +48,9 @@ test('public spark page states the honesty boundary and links the game', () => {
   assert.match(html, /SOUND READY/);
   assert.match(html, /<button[^>]*id="music"[^>]*>[^<]*MUSIC ON<\/button>/);
   assert.match(html, /id="music-volume"/);
+  assert.match(html, /id="mic-react"/);
+  assert.match(html, /Microphone reaction is optional and permission-gated/);
+  assert.match(html, /raw audio is never saved or uploaded/);
   for (const href of ['/', '/beast-cage', '/beast-cage/go', '/sol-game']) assert.ok(html.includes(`href="${href}"`), href);
   for (const target of ['#habitat', '#seed-lab', '#bestiary-section']) assert.ok(html.includes(`data-jump="${target}"`), target);
   const app = read('apps/beastbox-cloud/public/spark/app.mjs');
@@ -60,6 +63,11 @@ test('public spark page states the honesty boundary and links the game', () => {
   assert.match(app, /window\.addEventListener\('touchstart',unlockPreferredSound/);
   assert.match(app, /window\.addEventListener\('click',unlockPreferredSound/);
   assert.match(app, /soundWanted=readSoundWanted\(\)/);
+  assert.match(app, /navigator\.mediaDevices\?\.getUserMedia/);
+  assert.match(app, /createAnalyser/);
+  assert.match(app, /function toggleMicReaction/);
+  assert.match(app, /\$\('mic-react'\)\.addEventListener\('click'/);
+  assert.match(app, /document\.hidden&&micEnabled/);
   const sync = read('apps/beastbox-cloud/scripts/sync-spark-shared.mjs');
   assert.match(sync, /'beast-audio'/);
   assert.match(sync, /'beast-audio-engine'/);
