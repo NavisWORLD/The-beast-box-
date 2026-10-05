@@ -29,7 +29,6 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
   assert.deepEqual(await core.evaluate(()=>window.__beastBoyInputs.slice(-2)),[[0,8,1],[0,8,0]],'real mobile Beast Boy A tap reaches the mounted native core');
   const beforeGamepad=await core.evaluate(()=>window.__beastBoyInputs.length);
   await page.evaluate(()=>{const b=window.__beastBoxFakeGamepad.buttons[0];b.pressed=true;b.value=1;window.__beastBoxFakeGamepad.timestamp=performance.now();});
-  await page.waitForFunction(async before=>{const frame=[...document.querySelectorAll('iframe')].find(el=>el.contentWindow);return true;},beforeGamepad).catch(()=>{});
   for(let i=0;i<30&&await core.evaluate(n=>window.__beastBoyInputs.length<=n,beforeGamepad);i++)await page.waitForTimeout(20);
   await page.evaluate(()=>{const b=window.__beastBoxFakeGamepad.buttons[0];b.pressed=false;b.value=0;window.__beastBoxFakeGamepad.timestamp=performance.now();});
   for(let i=0;i<30&&await core.evaluate(n=>window.__beastBoyInputs.length<n+2,beforeGamepad);i++)await page.waitForTimeout(20);
