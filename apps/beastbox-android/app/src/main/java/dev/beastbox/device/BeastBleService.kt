@@ -56,6 +56,9 @@ class BeastBleService : Service() {
     private var advertising = false
     private var advertisedName: String? = null
     private var running = false
+    /** Set if the renamed GAP name didn't fit (adapter rename not applied yet); use service-data name instead. */
+    private var nameFallback = false
+    private var advertisedWithAdapterName = false
 
     private val stateListener: (BeastState) -> Unit = { state -> onStateChanged(state) }
 
@@ -101,6 +104,7 @@ class BeastBleService : Service() {
         adapter = bt
         advertiser = adv
         running = true
+        nameFallback = false
         BeastHub.setStatus(AdvertisingStatus.Starting)
         BeastHub.addStateListener(stateListener)
         registerBluetoothStateReceiver()
@@ -122,13 +126,13 @@ class BeastBleService : Service() {
         unregisterBluetoothStateReceiver()
         main.removeCallbacksAndMessages(null)
         try {
-            if (advertising) advertiser?.stopAdvertising(advertiseCallback)
-        } catch (e: SecurityException) { Log.w(TAG, "stopAdvertising", e) }
+            advertiser?.stopAdvertising(advertiseCallback)
+        } catch (e: Exception) { Log.w(TAG, "stopAdvertising", e) } // SecurityException / adapter turning off
         advertising = false
         try {
             gattServer?.clearServices()
             gattServer?.close()
-        } catch (e: SecurityException) { Log.w(TAG, "close gatt", e) }
+        } catch (e: Exception) { Log.w(TAG, "close gatt", e) }
         gattServer = null
         connected.clear()
         subscribers.clear()
@@ -270,7 +274,7 @@ class BeastBleService : Service() {
                     characteristic.value = value
                     server.notifyCharacteristicChanged(device, characteristic, false)
                 }
-            } catch (e: SecurityException) { Log.w(TAG, "notify", e) }
+            } catch (e: Exception) { Log.w(TAG, "notify", e) }
         }
     }
 
@@ -279,7 +283,7 @@ class BeastBleService : Service() {
     private fun beginAdvertising(state: BeastState) {
         val adv = advertiser ?: return
         val name = BeastProtocol.advertisedName(state.shownName)
-        val renamed = settings.renameAdapter && applyAdapterName(name)
+        val renamed = settings.renameAdapter && !nameFallback && applyAdapterName(name)
         // Delay lets the controller pick up the new adapter name before it goes into the scan response.
         main.postDelayed({
             if (!running) return@postDelayed
@@ -307,14 +311,17 @@ class BeastBleService : Service() {
             try {
                 adv.startAdvertising(advSettings, data, scan, advertiseCallback)
                 advertisedName = name
+                advertisedWithAdapterName = renamed
             } catch (e: SecurityException) {
                 fail("Advertise permission was revoked")
+            } catch (e: IllegalStateException) {
+                fail("Bluetooth is off")
             }
         }, if (renamed) RENAME_SETTLE_MS else 0L)
     }
 
     private fun restartAdvertising(state: BeastState) {
-        try { advertiser?.stopAdvertising(advertiseCallback) } catch (e: SecurityException) { Log.w(TAG, "stop", e) }
+        try { advertiser?.stopAdvertising(advertiseCallback) } catch (e: Exception) { Log.w(TAG, "stop", e) }
         advertising = false
         beginAdvertising(state)
     }
@@ -322,8 +329,11 @@ class BeastBleService : Service() {
     private val advertiseCallback = object : AdvertiseCallback() {
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
             main.post {
+                if (!running) return@post
                 advertising = true
                 publishStatus()
+                // The beast may have been renamed while this advert was starting.
+                if (BeastProtocol.advertisedName(BeastHub.state.shownName) != advertisedName) restartAdvertising(BeastHub.state)
             }
         }
 
@@ -336,8 +346,16 @@ class BeastBleService : Service() {
                 else -> "internal error $errorCode"
             }
             main.post {
-                if (errorCode == AdvertiseCallback.ADVERTISE_FAILED_ALREADY_STARTED) { advertising = true; publishStatus() }
-                else fail("Advertising failed: $reason")
+                if (!running) return@post
+                when {
+                    errorCode == AdvertiseCallback.ADVERTISE_FAILED_ALREADY_STARTED -> { advertising = true; publishStatus() }
+                    errorCode == AdvertiseCallback.ADVERTISE_FAILED_DATA_TOO_LARGE && advertisedWithAdapterName && !nameFallback -> {
+                        Log.w(TAG, "GAP name too long for the scan response; falling back to service-data name")
+                        nameFallback = true
+                        beginAdvertising(BeastHub.state)
+                    }
+                    else -> fail("Advertising failed: $reason")
+                }
             }
         }
     }

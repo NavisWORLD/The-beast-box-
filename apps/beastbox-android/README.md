@@ -50,7 +50,8 @@ Requires Android 8.0+ (API 26) and a phone whose Bluetooth chip supports periphe
     in the BLE advert, so the app temporarily renames the phone's Bluetooth to `Beast Box · <name>` and
     restores the original name when you switch BLE off. The original is saved, so it can still be restored
     after a crash. If you turn renaming off, the advert carries the beast name as service data (≤ 11 bytes)
-    and the GAP name stays your phone's name.
+    and the GAP name stays your phone's name. The app also falls back to this mode on its own if the
+    renamed advert is too large.
 - Spark a beast in the page. The advertised name follows the active beast's nickname, or its species if it
   has no nickname.
 
