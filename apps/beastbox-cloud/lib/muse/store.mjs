@@ -12,6 +12,11 @@ export const STORE_ENV = [
   ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
 ];
 
+export const STORE_OPTIONS = [
+  { id: "vercel-kv", label: "Vercel KV / Marketplace Redis", vars: STORE_ENV[0] },
+  { id: "upstash-redis-rest", label: "Upstash Redis REST", vars: STORE_ENV[1] },
+];
+
 export function createMemoryStore(now = () => Date.now()) {
   const map = new Map();
   const live = (key) => {
@@ -68,11 +73,28 @@ export function createRedisRestStore({ url, token, fetchImpl = fetch }) {
 
 /** Which storage is configured. Only variable names are reported, never values. */
 export function storageStatus(env = process.env) {
-  for (const [u, t] of STORE_ENV) {
-    if (env[u] && env[t]) return { configured: true, kind: "redis-rest", via: u, missing: [] };
-  }
-  if (env.NODE_ENV !== "production") return { configured: true, kind: "memory-dev", via: "next dev / tests only", missing: [] };
-  return { configured: false, kind: "none", via: "", missing: ["KV_REST_API_URL + KV_REST_API_TOKEN (or UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN)"] };
+  const options = STORE_OPTIONS.map((option) => {
+    const vars = [...option.vars];
+    const found = vars.filter((name) => Boolean(env[name]));
+    const missing = vars.filter((name) => !env[name]);
+    return { id: option.id, label: option.label, vars, found, missing, complete: missing.length === 0 };
+  });
+  const active = options.find((option) => option.complete);
+  if (active) return {
+    configured: true, kind: "redis-rest", via: active.id, lookingFor: active.label,
+    found: active.found, missing: [], options,
+  };
+  if (env.NODE_ENV !== "production") return {
+    configured: true, kind: "memory-dev", via: "next dev / tests only", lookingFor: "Development memory store",
+    found: [], missing: [], options,
+  };
+  const ranked = [...options].sort((a, b) => b.found.length - a.found.length);
+  return {
+    configured: false, kind: "none", via: "", lookingFor: ranked[0]?.found.length ? ranked[0].label : "Vercel KV or Upstash Redis REST",
+    found: options.flatMap((option) => option.found),
+    missing: options.flatMap((option) => option.missing),
+    options,
+  };
 }
 
 /** The store for this deployment, or null when production storage is missing. */
