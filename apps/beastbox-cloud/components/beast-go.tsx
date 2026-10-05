@@ -102,6 +102,7 @@ export default function BeastGo() {
       const target = event.target;
       if (target instanceof HTMLElement && target.closest('textarea, input')) return;
       if (!GAME_KEYS.has(event.key)) return;
+      if (!event.isTrusted) return;
       event.preventDefault();
       if (event.type === 'keydown' && event.repeat) return;
       const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
@@ -175,23 +176,39 @@ export default function BeastGo() {
     if (action === 'close') setSheet(null);
   }
 
+  function controllerInput(button: string, down: boolean) {
+    if (!Object.prototype.hasOwnProperty.call(GBA_KEYS, button)) return false;
+    // Local fallback core (when mounted directly in Beast Box).
+    pressCartridge(button, down, window);
+    // Cross-origin LOST COSMOS core. Touch never relies on a synthetic key event.
+    window.dispatchEvent(new CustomEvent('beastbox:gba-input', { detail: { button, down } }));
+    return true;
+  }
+
   function hold(button: string, event: React.PointerEvent<HTMLButtonElement>) {
     event.preventDefault();
     const target = event.currentTarget;
-    target.setPointerCapture(event.pointerId);
-    pressCartridge(button, true, window);
+    const pointerId = event.pointerId;
+    controllerInput(button, true);
+    try { target.setPointerCapture(pointerId); } catch { /* Android/WebView fallback uses window release listeners. */ }
     let released = false;
-    const release = () => {
+    const release = (raw?: Event) => {
+      const pointer = raw as PointerEvent | undefined;
+      if (pointer && Number.isFinite(pointer.pointerId) && pointer.pointerId !== pointerId) return;
       if (released) return;
       released = true;
-      pressCartridge(button, false, window);
+      controllerInput(button, false);
       target.removeEventListener('pointerup', release);
       target.removeEventListener('pointercancel', release);
       target.removeEventListener('lostpointercapture', release);
+      window.removeEventListener('pointerup', release, true);
+      window.removeEventListener('pointercancel', release, true);
     };
     target.addEventListener('pointerup', release);
     target.addEventListener('pointercancel', release);
     target.addEventListener('lostpointercapture', release);
+    window.addEventListener('pointerup', release, true);
+    window.addEventListener('pointercancel', release, true);
   }
 
   function meet() {
