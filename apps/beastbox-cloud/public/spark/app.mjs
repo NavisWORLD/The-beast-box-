@@ -14,6 +14,7 @@ const STORE='spark-beasts-bestiary-v1',QVM_STORE='spark-qvm-growth-v1',SOUND_KEY
 const media=matchMedia('(prefers-reduced-motion: reduce)');
 const beastAudio=getBeastAudio();
 let reduceMotion=media.matches,runs=[],qvmRuns=[],byKey=new Map(),current=null,muse=null,voiceOn=false,soundWanted=true,voiceBus=null,stage=1,preview=false,drift=false,runtime=null,cache={},bestiary=[],session=null,busy=false,starterCache=[],qvmGrowth=0,lastViewportWidth=innerWidth;
+let micStream=null,micContext=null,micSource=null,micAnalyser=null,micData=null,micEnabled=false,micLevel=0,micLastReaction=-20;
 const target={focus:30,calm:30,spark:20},felt={...target};
 media.addEventListener('change',()=>{reduceMotion=media.matches});
 function expand(row){return {key:row.k,backend:row.b,job_id:row.j,pub_index:row.p,num_bits:row.n,shots:row.s,counts:Object.fromEntries(row.c.split(',').map(part=>{const [k,v]=part.split(':');return [k,Number(v)]})),counts_sha256:row.h};}
@@ -97,8 +98,16 @@ function say(mood,text){
  runtime.bubbleUntil=runtime.T+Math.max(2.4,u.dur+.8);runtime.lastSay=runtime.T;
  if(voiceOn){const out=voiceOutput();if(out)Voice.schedule(out.ctx,out.gain,out.ctx.currentTime+.03,current.gen.voice,u);}
 }
+function sampleMicLevel(){
+ if(!micEnabled||!micAnalyser||!micData||document.hidden){micLevel*=.88;return micLevel;}
+ micAnalyser.getByteTimeDomainData(micData);let sum=0;
+ for(const sample of micData){const value=(sample-128)/128;sum+=value*value;}
+ const rms=Math.min(1,Math.sqrt(sum/Math.max(1,micData.length))*3.4);micLevel+=(rms-micLevel)*.28;
+ if(runtime&&micLevel>.16&&runtime.state==='idle'&&runtime.T-micLastReaction>.65){runtime.state='listen';runtime.until=runtime.T+.75;micLastReaction=runtime.T;}
+ return micLevel;
+}
 function tick(dt){
- if(!current||!runtime||document.hidden)return;runtime.T+=dt;const be=current.gen.behavior;
+ if(!current||!runtime||document.hidden)return;runtime.T+=dt;const be=current.gen.behavior,micPulse=sampleMicLevel();
  if(drift&&!reduceMotion){const values={};for(const k of ['focus','calm','spark'])values[k]=Math.round(Math.max(0,Math.min(100,target[k]+Math.sin(runtime.T*.3+k.length)*8*dt)));showTraits(values);}
  const kf=1-Math.exp(-dt/be.latency_s);for(const k of ['focus','calm','spark'])felt[k]+=(target[k]-felt[k])*kf;
  const drv=drive();let mood='neutral',best=.25;for(const k of ['focus','calm','spark'])if(drv[k]>best){best=drv[k];mood=k;}
@@ -112,10 +121,11 @@ function tick(dt){
  const pose=habitatPose(current.gen,runtime.T,runtime.state,reduceMotion),canvas=$('view'),ctx=canvas.getContext('2d');
  ctx.clearRect(0,0,canvas.width,canvas.height);ctx.imageSmoothingEnabled=false;ctx.save();
  const spawn=runtime.state==='spawn'&&!reduceMotion?Math.min(1,runtime.T/1.2):1;
- ctx.globalAlpha=Math.max(.08,spawn);ctx.translate(pose.x+128,pose.y+128);ctx.rotate(pose.rotation);const grown=pose.scale*(1+qvmGrowth*.22);ctx.scale(grown,grown);ctx.drawImage(cache[stage][eye],-128,-128);
+ ctx.globalAlpha=Math.max(.08,spawn);ctx.translate(pose.x+128,pose.y+128);ctx.rotate(pose.rotation);const grown=pose.scale*(1+qvmGrowth*.22+micPulse*.05);ctx.scale(grown,grown);ctx.drawImage(cache[stage][eye],-128,-128);
  if(!reduceMotion&&runtime.T<runtime.qvmPulseUntil){const pulse=Math.max(0,Math.min(1,runtime.qvmPulseUntil-runtime.T));ctx.globalCompositeOperation='lighter';ctx.strokeStyle=`rgba(126,231,255,${.24+pulse*.34})`;ctx.lineWidth=2;for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(0,0,72+i*17+(1-pulse)*18,0,Math.PI*2);ctx.stroke();}for(let i=0;i<7;i++){const a=runtime.T*(1.8+i*.07)+i*.9,r=88+i*4;ctx.fillStyle=i%2?'#f3c15b':'#7ee7ff';ctx.fillRect(Math.cos(a)*r,Math.sin(a)*r,3,3);}}
+ if(!reduceMotion&&micEnabled&&micPulse>.025){ctx.globalCompositeOperation='lighter';ctx.strokeStyle=`rgba(121,234,245,${Math.min(.48,.08+micPulse*.38)})`;ctx.lineWidth=2+micPulse*3;ctx.beginPath();ctx.arc(0,0,82+micPulse*22,0,Math.PI*2);ctx.stroke();}
  ctx.restore();
- canvas.dataset.x=pose.x.toFixed(2);canvas.dataset.y=pose.y.toFixed(2);canvas.dataset.gait=be.gait;canvas.dataset.state=runtime.state;
+ canvas.dataset.x=pose.x.toFixed(2);canvas.dataset.y=pose.y.toFixed(2);canvas.dataset.gait=be.gait;canvas.dataset.state=runtime.state;canvas.dataset.micLevel=micLevel.toFixed(3);
  $('mood').textContent=`${runtime.state==='idle'?(pose.pause?'looking around':mood):runtime.state} · ${be.gait}`;
  if(training){const phase=((performance.now()-training.start)/900)%1;$('train-mark').style.left=`${phase*100}%`;}
 }
@@ -175,6 +185,41 @@ function toggleMusic(){
  beastAudio.unlock();const snap=beastAudio.getSnapshot();beastAudio.setMusic(!snap.musicOn);audioSfx('blip');syncAudioUi();
 }
 function setMusicVolume(event){beastAudio.setVolume(Number(event.target.value)/100);syncAudioUi();}
+function updateMicButton(){
+ const button=$('mic-react');if(!button)return;
+ button.textContent=micEnabled?'🎙 MIC REACTION ON':'🎙 MIC REACTION OFF';
+ button.setAttribute('aria-pressed',String(micEnabled));
+}
+async function stopMicReaction(note='Microphone reaction is off.'){
+ micEnabled=false;micLevel=0;micLastReaction=-20;
+ const stream=micStream,context=micContext,source=micSource,analyser=micAnalyser;
+ micStream=micContext=micSource=micAnalyser=micData=null;
+ try{source?.disconnect();}catch{}try{analyser?.disconnect();}catch{}
+ try{stream?.getTracks().forEach(track=>track.stop());}catch{}
+ try{if(context&&context.state!=='closed')await context.close();}catch{}
+ updateMicButton();if(note)$('status').textContent=note;
+}
+async function startMicReaction(){
+ if(micEnabled)return;
+ if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia)throw Error('Microphone reaction needs browser microphone support on a secure HTTPS page.');
+ let stream=null,context=null;
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)throw Error('This browser does not provide local audio analysis.');
+  context=new AudioCtx();if(context.state==='suspended')await context.resume();
+  const source=context.createMediaStreamSource(stream),analyser=context.createAnalyser();analyser.fftSize=256;analyser.smoothingTimeConstant=.55;source.connect(analyser);
+  micStream=stream;micContext=context;micSource=source;micAnalyser=analyser;micData=new Uint8Array(analyser.fftSize);micEnabled=true;micLevel=0;updateMicButton();
+  $('status').textContent='Microphone reaction is on. Only local amplitude drives glow and listening motion; raw audio is never saved or uploaded.';
+ }catch(error){
+  try{stream?.getTracks().forEach(track=>track.stop());}catch{}try{if(context&&context.state!=='closed')await context.close();}catch{}
+  throw error;
+ }
+}
+async function toggleMicReaction(){
+ if(micEnabled){await stopMicReaction();return;}
+ try{await startMicReaction();}
+ catch(error){await stopMicReaction('');const denied=error?.name==='NotAllowedError'||error?.name==='SecurityError';$('status').textContent=denied?'Microphone permission was not granted. Your Beast still works normally without it.':(error?.message||'Microphone reaction is unavailable in this browser.');}
+}
 let training=null;
 async function interaction(kind){
  let completedTraining=false;
@@ -320,10 +365,10 @@ async function main(){
  if(raw){const active=replaySpark(JSON.parse(raw).text,byKey);const saved=await withSparkLock(()=>selectSpark(localStorage,active.gen));showCreature(active.entry,saved,false);}
  else await adopt(bestiary[0]&&byKey.has(bestiary[0].run)?bestiary[0]:starterEntries()[0]);
  window.addEventListener('pointerdown',unlockPreferredSound,{capture:true});window.addEventListener('touchstart',unlockPreferredSound,{capture:true,passive:true});window.addEventListener('click',unlockPreferredSound,{capture:true});window.addEventListener('keydown',unlockPreferredSound,{capture:true});
- $('generate').addEventListener('click',()=>void run(async()=>{surpriseRun();audioSfx('charge');await spark()}));$('regenerate').addEventListener('click',()=>void run(()=>spark()));$('use-profile').addEventListener('click',()=>void run(async()=>{showTraits(simulateStable($('profile').value));await spark('profile')}));$('surprise').addEventListener('click',()=>{surpriseRun();audioSfx('blip')});$('q').addEventListener('input',searchRuns);$('download').addEventListener('click',download);$('voice').addEventListener('click',()=>void enableVoice());$('music').addEventListener('click',toggleMusic);$('music-volume').addEventListener('input',setMusicVolume);$('drift').addEventListener('click',()=>{drift=!drift;$('drift').classList.toggle('on',drift);audioSfx('blip')});$('muse').addEventListener('click',()=>void museClick());$('stop-muse').addEventListener('click',()=>{muse?.stop();muse=null;$('status').textContent='Muse disconnected. Samples cleared.'});$('qvm-replay').addEventListener('click',()=>void run(()=>replayQvmScenario()));
+ $('generate').addEventListener('click',()=>void run(async()=>{surpriseRun();audioSfx('charge');await spark()}));$('regenerate').addEventListener('click',()=>void run(()=>spark()));$('use-profile').addEventListener('click',()=>void run(async()=>{showTraits(simulateStable($('profile').value));await spark('profile')}));$('surprise').addEventListener('click',()=>{surpriseRun();audioSfx('blip')});$('q').addEventListener('input',searchRuns);$('download').addEventListener('click',download);$('voice').addEventListener('click',()=>void enableVoice());$('music').addEventListener('click',toggleMusic);$('mic-react').addEventListener('click',()=>void toggleMicReaction());$('music-volume').addEventListener('input',setMusicVolume);$('drift').addEventListener('click',()=>{drift=!drift;$('drift').classList.toggle('on',drift);audioSfx('blip')});$('muse').addEventListener('click',()=>void museClick());$('stop-muse').addEventListener('click',()=>{muse?.stop();muse=null;$('status').textContent='Muse disconnected. Samples cleared.'});$('qvm-replay').addEventListener('click',()=>void run(()=>replayQvmScenario()));
  for(const k of ['focus','calm','spark'])$(k).addEventListener('input',()=>showTraits(readTraits()));for(const kind of ['pet','play','train','rest','care'])$(kind).addEventListener('click',()=>void run(()=>interaction(kind)));$('view').addEventListener('click',()=>void run(()=>interaction('pet')));$('talk').addEventListener('click',()=>{$('talk-form').hidden=!$('talk-form').hidden;if(!$('talk-form').hidden)$('talk-text').focus()});$('talk-form').addEventListener('submit',speak);
  for(const which of [1,2,3])$(`pick${which}`).addEventListener('click',()=>{stage=which;preview=stage!==session.beast.nativeStage;updatePlate();runtime.state='celebrate';runtime.until=runtime.T+1.5;$('status').textContent='Visual preview only. Your earned native stage and QBEAST progression did not change.'});
- document.addEventListener('visibilitychange',()=>{beastAudio.setHidden(document.hidden);if(!document.hidden)browserReact('visible');});
+ document.addEventListener('visibilitychange',()=>{beastAudio.setHidden(document.hidden);if(document.hidden&&micEnabled)void stopMicReaction('Microphone reaction paused when this page was hidden.');else if(!document.hidden)browserReact('visible');});window.addEventListener('pagehide',()=>{muse?.stop();if(micEnabled)void stopMicReaction('');});
  window.addEventListener('online',()=>browserReact('online'));window.addEventListener('offline',()=>browserReact('offline'));
  let resizeTimer=0;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(Math.abs(innerWidth-lastViewportWidth)>=80){lastViewportWidth=innerWidth;browserReact('resize');}},220);});
  requestAnimationFrame(now=>loop(now));
