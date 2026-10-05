@@ -1,0 +1,428 @@
+{
+  "angles_rad": [
+    0.34,
+    0.58,
+    0.84,
+    1.12,
+    1.43,
+    1.76,
+    2.18,
+    2.67
+  ],
+  "backend_exact_allowlist": [
+    "rigetti.sim.qvm"
+  ],
+  "cloud_model_api_calls_permitted": 0,
+  "complete": true,
+  "completed_provider_jobs": 24,
+  "original_real_physical_measurements": 0,
+  "owner_opt_in_required": true,
+  "phases": [
+    {
+      "name": "history_a",
+      "shots": 64
+    },
+    {
+      "name": "history_b",
+      "shots": 64
+    },
+    {
+      "name": "future_held_out",
+      "shots": 128
+    }
+  ],
+  "physical_hardware_jobs_permitted": 0,
+  "provider_job_cap": 24,
+  "public_rows_sha256": "7ef23c00005a2053d1fc830985330f4db322b3bf6144fd79fd1561d14c425599",
+  "scenario_records": [
+    {
+      "batches": [
+        {
+          "counts": {
+            "00": 62,
+            "01": 0,
+            "10": 0,
+            "11": 2
+          },
+          "job_id": "9f547ef0-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_a",
+          "program_sha256": "b9f009adfa6dcf5d2a4b8784e37a54e75becadf306f330e215eb9c4833686280",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 63,
+            "01": 0,
+            "10": 0,
+            "11": 1
+          },
+          "job_id": "a57da538-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_b",
+          "program_sha256": "b9f009adfa6dcf5d2a4b8784e37a54e75becadf306f330e215eb9c4833686280",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 127,
+            "01": 0,
+            "10": 0,
+            "11": 1
+          },
+          "job_id": "a9f7a4ba-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "future_held_out",
+          "program_sha256": "b9f009adfa6dcf5d2a4b8784e37a54e75becadf306f330e215eb9c4833686280",
+          "shots": 128,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        }
+      ],
+      "scenario": 1,
+      "theta_rad": 0.34
+    },
+    {
+      "batches": [
+        {
+          "counts": {
+            "00": 57,
+            "01": 0,
+            "10": 0,
+            "11": 7
+          },
+          "job_id": "aebc856a-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_a",
+          "program_sha256": "ffc533467951283eb1685e6e2f13d677709cd6edcd2bb60bde4ba8f11ab024d3",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 62,
+            "01": 0,
+            "10": 0,
+            "11": 2
+          },
+          "job_id": "b33ba58a-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_b",
+          "program_sha256": "ffc533467951283eb1685e6e2f13d677709cd6edcd2bb60bde4ba8f11ab024d3",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 120,
+            "01": 0,
+            "10": 0,
+            "11": 8
+          },
+          "job_id": "b827e630-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "future_held_out",
+          "program_sha256": "ffc533467951283eb1685e6e2f13d677709cd6edcd2bb60bde4ba8f11ab024d3",
+          "shots": 128,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        }
+      ],
+      "scenario": 2,
+      "theta_rad": 0.58
+    },
+    {
+      "batches": [
+        {
+          "counts": {
+            "00": 54,
+            "01": 0,
+            "10": 0,
+            "11": 10
+          },
+          "job_id": "bca0a5bc-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_a",
+          "program_sha256": "320b87bf29aa1f0d4ed31128966b774dd7ef5f4a03562ea1f95f2fa97e02b974",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 49,
+            "01": 0,
+            "10": 0,
+            "11": 15
+          },
+          "job_id": "c0e97996-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_b",
+          "program_sha256": "320b87bf29aa1f0d4ed31128966b774dd7ef5f4a03562ea1f95f2fa97e02b974",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 117,
+            "01": 0,
+            "10": 0,
+            "11": 11
+          },
+          "job_id": "c43f01ae-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "future_held_out",
+          "program_sha256": "320b87bf29aa1f0d4ed31128966b774dd7ef5f4a03562ea1f95f2fa97e02b974",
+          "shots": 128,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        }
+      ],
+      "scenario": 3,
+      "theta_rad": 0.84
+    },
+    {
+      "batches": [
+        {
+          "counts": {
+            "00": 47,
+            "01": 0,
+            "10": 0,
+            "11": 17
+          },
+          "job_id": "c8c02782-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_a",
+          "program_sha256": "67b83a749bc8945e0cad190980a8e34cbc99c2e6824e32a9d41acccc9fae8185",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 45,
+            "01": 0,
+            "10": 0,
+            "11": 19
+          },
+          "job_id": "cd45cc30-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_b",
+          "program_sha256": "67b83a749bc8945e0cad190980a8e34cbc99c2e6824e32a9d41acccc9fae8185",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 95,
+            "01": 0,
+            "10": 0,
+            "11": 33
+          },
+          "job_id": "d21513ec-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "future_held_out",
+          "program_sha256": "67b83a749bc8945e0cad190980a8e34cbc99c2e6824e32a9d41acccc9fae8185",
+          "shots": 128,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        }
+      ],
+      "scenario": 4,
+      "theta_rad": 1.12
+    },
+    {
+      "batches": [
+        {
+          "counts": {
+            "00": 44,
+            "01": 0,
+            "10": 0,
+            "11": 20
+          },
+          "job_id": "d52eb678-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_a",
+          "program_sha256": "f8ded699a16778e3570ac41498021b9e866003bf27135a7815b0bcadffeb4a07",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 36,
+            "01": 0,
+            "10": 0,
+            "11": 28
+          },
+          "job_id": "d9ff0806-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_b",
+          "program_sha256": "f8ded699a16778e3570ac41498021b9e866003bf27135a7815b0bcadffeb4a07",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 67,
+            "01": 0,
+            "10": 0,
+            "11": 61
+          },
+          "job_id": "de79652a-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "future_held_out",
+          "program_sha256": "f8ded699a16778e3570ac41498021b9e866003bf27135a7815b0bcadffeb4a07",
+          "shots": 128,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        }
+      ],
+      "scenario": 5,
+      "theta_rad": 1.43
+    },
+    {
+      "batches": [
+        {
+          "counts": {
+            "00": 24,
+            "01": 0,
+            "10": 0,
+            "11": 40
+          },
+          "job_id": "e3724a1a-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_a",
+          "program_sha256": "2b9c221c02409ca31147b0b4888e7d5fd1f31af7c9e8ed19e20e4ede93292a0e",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 28,
+            "01": 0,
+            "10": 0,
+            "11": 36
+          },
+          "job_id": "e7f66fd0-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_b",
+          "program_sha256": "2b9c221c02409ca31147b0b4888e7d5fd1f31af7c9e8ed19e20e4ede93292a0e",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 46,
+            "01": 0,
+            "10": 0,
+            "11": 82
+          },
+          "job_id": "eca6be54-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "future_held_out",
+          "program_sha256": "2b9c221c02409ca31147b0b4888e7d5fd1f31af7c9e8ed19e20e4ede93292a0e",
+          "shots": 128,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        }
+      ],
+      "scenario": 6,
+      "theta_rad": 1.76
+    },
+    {
+      "batches": [
+        {
+          "counts": {
+            "00": 18,
+            "01": 0,
+            "10": 0,
+            "11": 46
+          },
+          "job_id": "f124dbe6-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_a",
+          "program_sha256": "091f3fe8a5015db1e677f9adb730549c4eb956891426ab4a199367c35bd0a9ec",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 15,
+            "01": 0,
+            "10": 0,
+            "11": 49
+          },
+          "job_id": "f5f4415c-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_b",
+          "program_sha256": "091f3fe8a5015db1e677f9adb730549c4eb956891426ab4a199367c35bd0a9ec",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 24,
+            "01": 0,
+            "10": 0,
+            "11": 104
+          },
+          "job_id": "fa71ae72-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "future_held_out",
+          "program_sha256": "091f3fe8a5015db1e677f9adb730549c4eb956891426ab4a199367c35bd0a9ec",
+          "shots": 128,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        }
+      ],
+      "scenario": 7,
+      "theta_rad": 2.18
+    },
+    {
+      "batches": [
+        {
+          "counts": {
+            "00": 6,
+            "01": 0,
+            "10": 0,
+            "11": 58
+          },
+          "job_id": "ff3fb976-b963-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_a",
+          "program_sha256": "8601820b73a71cd7308f0b79bbcc0f1fdb27e998c3057886b2d02e7e33b9c28b",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 4,
+            "01": 0,
+            "10": 0,
+            "11": 60
+          },
+          "job_id": "03b677f6-b964-11f1-a931-7ced8d4b9fd2",
+          "phase": "history_b",
+          "program_sha256": "8601820b73a71cd7308f0b79bbcc0f1fdb27e998c3057886b2d02e7e33b9c28b",
+          "shots": 64,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        },
+        {
+          "counts": {
+            "00": 7,
+            "01": 0,
+            "10": 0,
+            "11": 121
+          },
+          "job_id": "0845c2b8-b964-11f1-a931-7ced8d4b9fd2",
+          "phase": "future_held_out",
+          "program_sha256": "8601820b73a71cd7308f0b79bbcc0f1fdb27e998c3057886b2d02e7e33b9c28b",
+          "shots": 128,
+          "source": "ACTUAL_AZURE_CLOUD_SIMULATOR",
+          "target": "rigetti.sim.qvm"
+        }
+      ],
+      "scenario": 8,
+      "theta_rad": 2.67
+    }
+  ],
+  "scenarios": 8,
+  "schema": "cosmos-stage015-prospective-free-qvm-triplets-v1",
+  "source_class": "NEW_AZURE_CLOUD_QVM_SIMULATION_NOT_QPU",
+  "total_simulated_shot_cap": 2048,
+  "will_not_retry_or_switch_provider": true
+}
