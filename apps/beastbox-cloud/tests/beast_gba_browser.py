@@ -17,7 +17,7 @@ with sync_playwright() as p:
   resp=page.goto(ROOT+"/beast-cage/guest",wait_until="domcontentloaded")
   assert resp and resp.status==200
   expect(page.get_by_role("heading",name="Your Beast. Ready to play.")).to_be_visible()
-  expect(page.get_by_role("link",name="Play Lost COSMOS")).to_be_visible()
+  expect(page.get_by_label("Configure and export game companion").get_by_role("link",name="Play Lost COSMOS")).to_be_visible()
   assert no_overflow(page),width
   page.get_by_role("button",name="Aurora").click()
   page.get_by_role("button",name="Celebrate").click()
