@@ -109,7 +109,7 @@ export default function Studio({initialOwner,configured,initialBridge}:{initialO
   // Explicit, allowlisted owner-navigation deep links; never bypass login.
   const destinations:Record<string,Page>={
    'brain-bay':'BRAIN BAY','memory-nebula':'MEMORY VAULT',
-   'sensorium':'SETTINGS','synapse-observatory':'SYNAPSE TRACE',
+   'settings':'SETTINGS','sensorium':'SETTINGS','synapse-observatory':'SYNAPSE TRACE',
    'connector-dock':'SETTINGS','the-beast-cage':'COSMOS WORLD'
   };
   const destination=destinations[window.location.hash.slice(1).toLowerCase()];
