@@ -314,7 +314,7 @@ test("UI is additive: owner deck keeps LOST COSMOS and adds META MUSE; GO menu a
   assert.match(panel, /UPSTASH_REDIS_REST_URL/);
   assert.match(panel, /Recheck storage/);
   assert.match(panel, /Not paired\. Nothing leaves this browser\./);
-  assert.match(panel, /storage\.working === true/);
+  assert.match(panel, /res\.data\.configured === true && res\.data\.working === true/);
   const museRoute = read("app/api/muse/[action]/route.ts");
   assert.match(museRoute, /storageHealthPayload/);
   assert.match(museRoute, /await store\.set/);
