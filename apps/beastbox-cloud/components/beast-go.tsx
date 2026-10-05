@@ -35,9 +35,7 @@ export default function BeastGo() {
   const [guestOpen, setGuestOpen] = useState(false);
   const drag = useRef<{ y: number; id: number } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const chromeRef = useRef<HTMLDivElement>(null);
-  const padRef = useRef<HTMLDivElement>(null);
-  const actionsRef = useRef<HTMLDivElement>(null);
+  const deckRef = useRef<HTMLDivElement>(null);
   const beast = session?.beast;
   const card = hudCard(beast);
   const place = placeById(trail.place);
@@ -89,21 +87,17 @@ export default function BeastGo() {
       if (sheet) return; // keep the last area while a sheet is open so the game does not jump
       const height = window.innerHeight;
       const card = cardRef.current?.getBoundingClientRect();
-      const tops = [chromeRef.current, padRef.current, actionsRef.current]
-        .map((node) => node?.getBoundingClientRect())
-        .filter((rect): rect is DOMRect => Boolean(rect && rect.height > 0))
-        .map((rect) => rect.top);
+      const deck = deckRef.current?.getBoundingClientRect();
       const top = Math.max(0, Math.round((card ? card.bottom : 0) + 8));
-      const ceiling = tops.length ? Math.min(...tops) : height;
-      // The chrome fades in from transparent, so its top padding/handle may overlap the game a little.
-      const bottom = Math.max(0, Math.round(height - ceiling + (tops.length ? -6 : 0)));
+      const ceiling = deck && deck.height > 0 ? deck.top : height;
+      const bottom = Math.max(0, Math.round(height - ceiling + (deck ? 4 : 0)));
       root.style.setProperty('--go-safe-top', `${top}px`);
       root.style.setProperty('--go-safe-bottom', `${bottom}px`);
     };
     const schedule = () => { if (!frame) frame = window.requestAnimationFrame(measure); };
     schedule();
     const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(schedule) : null;
-    for (const node of [cardRef.current, chromeRef.current, padRef.current, actionsRef.current]) if (node && observer) observer.observe(node);
+    for (const node of [cardRef.current, deckRef.current]) if (node && observer) observer.observe(node);
     window.addEventListener('resize', schedule);
     window.visualViewport?.addEventListener('resize', schedule);
     return () => {
@@ -217,25 +211,39 @@ export default function BeastGo() {
       {guestMode ? <button type="button" className={css.guestChip} data-guest-play="true" aria-expanded={guestOpen} aria-controls="go-guest-note"
         aria-label={guestOpen ? 'Hide the guest play note' : 'Show the guest play note'} onClick={() => setGuestOpen((value) => !value)}>Guest {guestOpen ? '▴' : 'ⓘ'}</button> : null}
     </div>
-    {touch && !sheet ? <div className={css.pad} ref={padRef} aria-label="Touch controls">
-      {(['up', 'left', 'right', 'down'] as const).map((button) => <button key={button} type="button" aria-label={GBA_KEYS[button].label} onPointerDown={(event) => hold(button, event)}>{GBA_KEYS[button].label}</button>)}
-    </div> : null}
-    {touch && !sheet ? <div className={css.actions} ref={actionsRef} aria-label="Touch buttons">
-      <button type="button" aria-label="L" onPointerDown={(event) => hold('l', event)}>L</button>
-      <button type="button" aria-label="R" onPointerDown={(event) => hold('r', event)}>R</button>
-      <button type="button" className={css.a} aria-label="A" onPointerDown={(event) => hold('a', event)}>A</button>
-      <button type="button" aria-label="B" onPointerDown={(event) => hold('b', event)}>B</button>
-      <button type="button" className={css.wide} aria-label="Start" onPointerDown={(event) => hold('start', event)}>Start</button>
-    </div> : null}
-    <div className={css.chrome} ref={chromeRef} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
-      <button type="button" className={css.handle} aria-label="Swipe up for the menu" onClick={() => toggle('menu')}><i /></button>
-      <div className={css.quick} role="toolbar" aria-label="Field shortcuts">
-        {QUICK.map((item) => <button key={item.id} type="button" aria-pressed={sheet === item.id} onClick={() => toggle(item.id as SheetId)}>{item.label}</button>)}
+    {touch && !sheet ? <div className={css.handheld} ref={deckRef} data-handheld-controls="game-boy" aria-label="Game Boy style touch controls">
+      <div className={css.shoulders}>
+        <button type="button" aria-label="L" onPointerDown={(event) => hold('l', event)}>L</button>
+        <span>BEAST BOY · LOST COSMOS</span>
+        <button type="button" aria-label="R" onPointerDown={(event) => hold('r', event)}>R</button>
       </div>
-      <button type="button" className={css.orb} aria-label="Main menu" aria-expanded={sheet === 'menu'} onClick={() => toggle('menu')}>Menu</button>
-    </div>
+      <div className={css.face}>
+        <div className={css.pad} aria-label="Touch controls">
+          <button type="button" aria-label="Up" onPointerDown={(event) => hold('up', event)}>▲</button>
+          <button type="button" aria-label="Left" onPointerDown={(event) => hold('left', event)}>◀</button>
+          <i aria-hidden="true" />
+          <button type="button" aria-label="Right" onPointerDown={(event) => hold('right', event)}>▶</button>
+          <button type="button" aria-label="Down" onPointerDown={(event) => hold('down', event)}>▼</button>
+        </div>
+        <div className={css.systemKeys}>
+          <button type="button" aria-label="Select" onPointerDown={(event) => hold('select', event)}>SELECT</button>
+          <button type="button" aria-label="Start" onPointerDown={(event) => hold('start', event)}>START</button>
+          <button type="button" className={css.menuKey} aria-label="Main menu" aria-expanded={sheet === 'menu'} onClick={() => toggle('menu')}>☰ MENU</button>
+        </div>
+        <div className={css.actions} aria-label="Touch buttons">
+          <button type="button" className={css.b} aria-label="B" onPointerDown={(event) => hold('b', event)}>B</button>
+          <button type="button" className={css.a} aria-label="A" onPointerDown={(event) => hold('a', event)}>A</button>
+        </div>
+      </div>
+    </div> : <div className={css.screenMenu} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
+      <button type="button" className={css.handle} aria-label="Swipe up for the menu" onClick={() => toggle('menu')}><i /></button>
+      <button type="button" aria-label="Main menu" aria-expanded={sheet === 'menu'} onClick={() => toggle('menu')}>☰</button>
+    </div>}
     <section className={`${css.sheet} ${sheet ? css.open : ''}`} role="dialog" aria-modal="false" aria-hidden={sheet ? undefined : true} aria-label={sheet ? `${sheet} sheet` : 'Closed sheet'}>
-      <button type="button" className={css.handle} aria-label="Swipe down to close" onPointerDown={onPointerDown} onPointerUp={onPointerUp} onClick={() => setSheet(null)}><i /></button>
+      <div className={css.sheetHead}>
+        <button type="button" className={css.handle} aria-label="Swipe down to close" onPointerDown={onPointerDown} onPointerUp={onPointerUp} onClick={() => setSheet(null)}><i /></button>
+        <button type="button" className={css.sheetClose} aria-label="Close field menu" onClick={() => setSheet(null)}>×</button>
+      </div>
       {sheet === 'menu' ? <>
         <h2>Field menu</h2>
         <div className={css.list}>
