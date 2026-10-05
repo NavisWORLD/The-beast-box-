@@ -221,6 +221,7 @@ export default function SparkBeastCompanion({
    data-spark-beast="true" data-creature-id={active.id} data-cosmetic-hue={active.appearance.hueShift}
    data-state={state} data-stage={stage} aria-label={label}>
   <div className={styles.aura} aria-hidden="true"/>
+  <div className={styles.fx} aria-hidden="true"><i/><i/><i/><i/></div>
   <div className={styles.mover} ref={mover}>
    <canvas ref={canvas} className={styles.canvas} aria-label={name+' pixel creature sprite'}/>
   </div>
