@@ -109,3 +109,44 @@ python -m beastbox.companion_local train --out ./companion-run \
 
 The catalog's `ollama_name` is `companion-glacecoil` for the serene fixture
 seeded by `ibm_marrakesh:da6ona3sq5js73bj0pc0#pub0`.
+
+## Real fine-tune in GitHub Actions
+
+`.github/workflows/companion-train.yml` trains the real model on a CPU
+runner. It is additive: the smoke trainer above, Brain Bay, Model Bay,
+Settings, and the Vercel guard are unchanged.
+
+1. Build the dataset with the existing builder (`train --out`), then
+   `sft-data`, which adds paraphrased lore, honesty probes, and persona chat.
+   Every eval prompt is kept out of training by exact wording.
+2. `finetune` runs a real LoRA SFT (rank 16, all attention and MLP
+   projections, loss on assistant tokens only) on
+   `Qwen/Qwen2.5-0.5B-Instruct` with CPU torch, then merges the adapter.
+3. `eval-model` generates replies from the merged model and from the base
+   model on 10 held-out prompts and scores both with the same checks as
+   `pipeline.evaluate`. Output: `eval.json` and `eval.md`.
+4. llama.cpp `convert_hf_to_gguf.py` (pinned tag) writes a q8_0 GGUF, and
+   `modelfile` writes an Ollama Modelfile with the Qwen chat template and the
+   creature SYSTEM prompt. The workflow then runs an Ollama smoke test.
+5. The GGUF, Modelfile, and eval are published as release
+   `companion-glacecoil-v1`.
+
+```bash
+gh workflow run companion-train.yml -f steps=200
+# after it finishes:
+gh release download companion-glacecoil-v1 --pattern 'companion-glacecoil.gguf' --pattern Modelfile
+ollama create companion-glacecoil -f Modelfile
+ollama run companion-glacecoil
+```
+
+The same commands run locally if torch, transformers, and peft are installed:
+
+```bash
+python -m beastbox.companion_local train --out ./companion-run
+python -m beastbox.companion_local sft-data --out ./companion-run --expect-creature glacecoil
+python -m beastbox.companion_local finetune --base Qwen/Qwen2.5-0.5B-Instruct --data ./companion-run --out ./companion-run
+python -m beastbox.companion_local eval-model --model ./companion-run/merged --data ./companion-run --out ./companion-run
+```
+
+This is a small 0.5B model fine-tuned for one creature's personality. It is
+not conscious and it does not know everything.
