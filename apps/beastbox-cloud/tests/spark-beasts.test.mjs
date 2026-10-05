@@ -46,7 +46,7 @@ test('public spark page states the honesty boundary and links the game', () => {
   assert.doesNotMatch(html,/Play in Living Universe|SIM_EARTH|Pocket Reality/);
   assert.match(html, /Download \.qbeast/);
   assert.match(html, /SOUND READY/);
-  assert.match(html, /id="music"[^>]*MUSIC ON/);
+  assert.match(html, /<button[^>]*id="music"[^>]*>[^<]*MUSIC ON<\/button>/);
   assert.match(html, /id="music-volume"/);
   for (const href of ['/', '/beast-cage', '/beast-cage/go', '/sol-game']) assert.ok(html.includes(`href="${href}"`), href);
   for (const target of ['#habitat', '#seed-lab', '#bestiary-section']) assert.ok(html.includes(`data-jump="${target}"`), target);
