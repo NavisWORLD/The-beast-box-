@@ -1,24 +1,27 @@
 'use client';
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
 import Link from 'next/link';
 import CosmicCompanion3D,{type CreatureLook} from '@/components/cosmic-companion-3d';
+import {useCompanion} from '@/components/companion-provider';
 import styles from './turntable.module.css';
 
 const ANGLES=[0,90,180,270] as const;
 export default function CreatureTurntable(){
- const [look,setLook]=useState<CreatureLook>('nebula');
+ const {profile}=useCompanion();
+ const [look,setLook]=useState<CreatureLook>(profile?.baseLook??'nebula');
  const [spin,setSpin]=useState(true),[angle,setAngle]=useState<number>(0);
  const [showProcess,setShowProcess]=useState(false);
+ useEffect(()=>{if(profile)setLook(profile.baseLook);},[profile?.id,profile?.baseLook]);
  return <main className={styles.page}>
   <header className={styles.header}><Link href="/beast-cage">← BEAST CAGE</Link><span>CORY DAVIS / NAVISWORLD</span><Link href="/beast-cage/talk">TALK TO THE BEAST ↗</Link></header>
   <section className={styles.intro}>
    <span>DEV DAY SIDE QUEST // ORIGINAL PROCEDURAL MESH</span>
-   <h1>Meet the Beast <em>in 3D.</em></h1>
-   <p>One real Three.js model, viewed from every angle. Built from Cory&apos;s original galaxy-creature character concept, with its galaxy body, iridescent fins, starry eyes and golden orbiting star.</p>
+   <h1>Meet {profile?.name||'the Beast'} <em>in 3D.</em></h1>
+   <p>The active browser Beast now drives this real Three.js rig: its saved hue, glow, fin pattern, halo pattern and constellation seed carry into the mesh instead of falling back to one generic creature.</p>
   </section>
   <div className={styles.stage} data-stage="real-3d-turntable" data-view-angle={spin?'spinning':angle} aria-label="Actual rotating Three.js cosmic creature">
     <span className={styles.star} aria-hidden="true">✧</span>
-    <CosmicCompanion3D look={look} state="idle" turntable={spin} turntableAngle={spin?null:angle} quality="auto" className={styles.model} label={spin?'Real 3D rotating cosmic companion':'Real 3D companion at '+angle+' degrees'}/>
+    <CosmicCompanion3D profile={profile} look={look} state="idle" turntable={spin} turntableAngle={spin?null:angle} quality="auto" className={styles.model} label={spin?'Real 3D rotating '+(profile?.name||'cosmic companion'):'Real 3D '+(profile?.name||'companion')+' at '+angle+' degrees'}/>
     <div className={styles.stageLabel}>{spin?'LIVE GEOMETRY • FULL 360° ROTATION':'LIVE GEOMETRY • '+angle+'° VIEW'}</div>
   </div>
   <section className={styles.controls} aria-label="3D turntable camera controls">
