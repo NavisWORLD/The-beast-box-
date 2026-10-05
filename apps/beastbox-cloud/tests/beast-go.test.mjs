@@ -72,7 +72,7 @@ test("cage nav links the field beside Adventure and the deploy guard stays off",
   assert.equal(guard.git.deploymentEnabled.main, false);
 });
 
-test("the field HUD is a portrait, quick buttons, a round menu, and swipe sheets over the same talk path", () => {
+test("the field HUD keeps the same talk path inside a closable handheld menu", () => {
   const ui = read("components/beast-go.tsx");
   for (const label of ["Bag", "Beasts", "Talk", "Map", "Settings"]) assert.match(ui, new RegExp(label));
   assert.match(ui, /aria-label="Main menu"/);
@@ -84,7 +84,11 @@ test("the field HUD is a portrait, quick buttons, a round menu, and swipe sheets
   assert.equal(sparkVisualState("sleep"), "sleeping");
   assert.equal(sparkVisualState("happy"), "celebrating");
   assert.equal(sparkVisualState("idle"), "idle");
-  assert.match(ui, /Swipe up for the menu/);
+  assert.match(ui, /Close field menu/);
+  assert.match(ui, /Game Boy direction pad/);
+  assert.match(ui, /Game Boy buttons/);
+  assert.match(ui, /aria-label="Select"/);
+  assert.match(ui, /BEAST BOY/);
   assert.match(ui, /Touch controls/);
   assert.doesNotMatch(ui, /mockReply|fakeAnswer|Math\.random/);
   assert.deepEqual(QUICK.map((item) => item.label), ["Bag", "Beasts", "Talk", "Map", "Settings"]);
@@ -256,6 +260,9 @@ test("the roster covers every body, stages I through III, Charlet, and twelve ra
   assert.match(roster, /Charlet/);
   assert.match(roster, /Stage \{STAGE_MARK/);
   assert.match(roster, /renderBeast/);
+  assert.match(roster, /data-roster-card/);
+  assert.match(roster, /catalog\.rares\.map/);
+  assert.match(roster, /rosterGrid/);
   assert.match(read("app/api/companion-release/route.ts"), /sim_earth_embedded:false/);
 });
 
@@ -340,4 +347,18 @@ test("the pet dragon loops from a recorded seed and only grows on-device weights
   assert.match(read("components/studio.tsx"), /beastbox:pet-growth/);
   assert.match(read("components/beast-care-deck.tsx"), /not trained by the pet dragon/);
   assert.doesNotMatch(dock, /Math\.random/);
+});
+
+test("field uses exact active genome, archived Rigetti growth, and no live-QPU claim",()=>{
+ const ui=read("components/beast-go.tsx");
+ const sprite=read("components/spark-beast-companion.tsx");
+ const growth=read("components/rigetti-growth-panel.tsx");
+ assert.match(ui,/genomeOverride=\{beast\?\.genome \|\| null\}/);
+ assert.match(ui,/RigettiGrowthPanel/);
+ assert.match(ui,/genome=\{beast\?\.genome \|\| null\}/);
+ assert.match(sprite,/genomeOverride\?:SparkGenome\|null/);
+ assert.match(growth,/archived simulator/);
+ assert.match(growth,/No new cloud job, no QPU/);
+ assert.match(growth,/\/spark\/rigetti-qvm-growth\.json/);
+ assert.doesNotMatch(growth,/submit|azure.*api|rigetti.*api|fetch\([^)]*http/i);
 });
