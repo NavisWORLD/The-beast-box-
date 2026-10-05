@@ -4,6 +4,7 @@ import {test} from 'node:test';
 import {buildGenome} from '../public/spark/genome.mjs';
 import {buildQbeast, loadQbeast, serializeQbeast} from '../public/spark/qbeast.mjs';
 import {renderBeast} from '../public/spark/draw.mjs';
+import {catalogForms,CORE_RECIPES,RARE_KEYS} from '../public/spark/roster.mjs';
 
 const root = new URL('../../../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), 'utf8');
@@ -47,4 +48,24 @@ test('public spark page states the honesty boundary and links the game', () => {
   assert.match(html, /Download \.qbeast/);
   assert.match(read('apps/beastbox-cloud/app/page.tsx'), /href="\/spark\/index.html"/);
   assert.match(read('apps/beastbox-cloud/next.config.ts'), /source: '\/spark'/);
+});
+
+test('public bestiary always exposes the complete core and rare visual catalog',()=>{
+ const table=JSON.parse(read('apps/beastbox-cloud/public/spark/runs.json'));
+ const by=new Map(table.runs.map(row=>[row.k,expand(row)]));
+ const forms=catalogForms(by);
+ assert.equal(CORE_RECIPES.length,11);
+ assert.equal(RARE_KEYS.length,12);
+ assert.equal(forms.length,48);
+ assert.equal(forms.filter(row=>row.rare).length,12);
+ assert.equal(new Set(forms.filter(row=>!row.rare&&row.label!=='Charlet line').map(row=>row.body)).size,11);
+ assert.equal(forms.some(row=>row.name==='Charlet'),true);
+ assert.deepEqual([...new Set(forms.filter(row=>!row.rare&&row.label!=='Charlet line').map(row=>row.stage))].sort(),[1,2,3]);
+ const app=read('apps/beastbox-cloud/public/spark/app.mjs');
+ const html=read('apps/beastbox-cloud/public/spark/index.html');
+ assert.match(app,/catalogForms\(byKey\)/);
+ assert.match(app,/catalog-count/);
+ assert.match(html,/id="catalog"/);
+ assert.match(html,/11 body families/);
+ assert.match(html,/12 recorded rare forms/);
 });
