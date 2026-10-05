@@ -48,7 +48,7 @@ export function keyboardLegend() {
 
 export function sparkVisualState(mood) {
   if (mood === "sleep") return "sleeping";
-  if (mood === "evolve" || mood === "happy") return "celebrating";
+  if (mood === "evolve" || mood === "happy" || mood === "spark") return "celebrating";
   return "idle";
 }
 
