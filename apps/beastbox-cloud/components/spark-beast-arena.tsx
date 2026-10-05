@@ -7,7 +7,6 @@ import {buildMoveset,nextAttackDelay,pickAttack,roamAt,roarFor} from '../lib/com
 import type {BaseLook,CreatureProfile} from '../lib/creature-profile';
 import styles from './spark-beast-arena.module.css';
 import {useBeastAudio} from './use-beast-audio';
-import {useMusePair} from './use-muse-pair';
 
 type VisualState='idle'|'listening'|'thinking'|'remembering'|'observing'|'sleeping'|'celebrating'|'halted';
 type Move=NonNullable<ReturnType<typeof pickAttack>>;
@@ -82,12 +81,6 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
 
  // Shared music + SFX engine: silent until a user gesture, behind the limiter, honours the Spark mute.
  const {audio:music,state:musicState}=useBeastAudio();
- // Opt-in Pair Muse signal (soft consumer EEG, never uploaded): nudges attack energy and the idle pose.
- const {state:museState}=useMusePair();
- const museEnergy=useRef(.5);
- museEnergy.current=museState.influence.active?museState.influence.energy:.5;
- const museMood=museState.influence.active?museState.influence.mood:'';
- const shownState=state==='idle'&&museMood?(museMood==='sparky'?'celebrating':museMood==='drowsy'?'sleeping':museMood==='focused'?'observing':'idle'):state;
  const ensureAudio=useCallback(async()=>{
   music.unlock();
   return music.output();
@@ -273,7 +266,7 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
  useEffect(()=>{
   if(!moveset||!visible||reduced)return;
   let timer=0;
-  const arm=()=>{timer=window.setTimeout(()=>{attack('timer');arm();},Math.round(nextAttackDelay(moveset,counter.current)*(1.5-museEnergy.current)));};
+  const arm=()=>{timer=window.setTimeout(()=>{attack('timer');arm();},nextAttackDelay(moveset,counter.current));};
   timer=window.setTimeout(()=>{attack('timer');arm();},1800);
   return()=>window.clearTimeout(timer);
  },[moveset,visible,reduced,attack]);
@@ -337,8 +330,8 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
  }
 
  return <div ref={root} className={styles.arena} data-beast-arena="true" data-phase={phase}
-   data-attack-style={fx.current?.move.style||'none'} data-reduced-motion={reduced} data-sound={sound?'on':'off'} data-muse-mood={museMood||undefined}>
-  <SparkBeastCompanion profile={profile} fallbackLook={fallbackLook} state={shownState} audioChannel="habitat"
+   data-attack-style={fx.current?.move.style||'none'} data-reduced-motion={reduced} data-sound={sound?'on':'off'}>
+  <SparkBeastCompanion profile={profile} fallbackLook={fallbackLook} state={state} audioChannel="habitat"
    onGenome={onGenome} label={label}/>
   <canvas ref={fxCanvas} className={styles.fx} aria-hidden="true"/>
   <div ref={flash} className={styles.flash} aria-hidden="true"/>
