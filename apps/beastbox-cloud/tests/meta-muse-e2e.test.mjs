@@ -175,3 +175,32 @@ test("the MCP SDK's own OAuth discovery and RFC 7591 registration work against B
   const client = await registerClient(info.authorizationServerUrl, { metadata: info.authorizationServerMetadata, clientMetadata: { client_name: "SDK DCR", redirect_uris: ["http://127.0.0.1:9999/cb"], grant_types: ["authorization_code", "refresh_token"], response_types: ["code"], token_endpoint_auth_method: "none" } });
   assert.match(client.client_id, /^bbm_client_/);
 });
+
+test("CORS: an allow-listed page origin can preflight, pair, sync and unpair; a foreign origin cannot", { skip }, async () => {
+  const PAGE = process.env.BEASTBOX_E2E_PAGE_ORIGIN || "http://127.0.0.1:8099";
+  const pre = await fetch(BASE + "/api/muse/sync", { method: "OPTIONS", headers: { Origin: PAGE, "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "authorization, content-type" } });
+  assert.equal(pre.status, 204);
+  assert.equal(pre.headers.get("access-control-allow-origin"), PAGE);
+  assert.match(pre.headers.get("access-control-allow-headers"), /Authorization/);
+  const call = (path, { method = "POST", secret, body, origin = PAGE } = {}) => fetch(BASE + "/api/muse/" + path, {
+    method, headers: { Origin: origin, "Content-Type": "application/json", ...(secret ? { Authorization: "Bearer " + secret } : {}) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const session = createSession();
+  adoptBeast(session, buildGenome({ focus: 30, calm: 50, spark: 20 }, runs[2], null), "Pip");
+  const link = await call("link", { body: { consent: "share-beast-snapshot", snapshot: minimalSnapshot(exportSession(session), {}), deviceName: "Beast Box · Pip" } });
+  assert.equal(link.status, 201);
+  assert.equal(link.headers.get("access-control-allow-origin"), PAGE);
+  const { deviceSecret } = await link.json();
+  const sync = await call("sync", { secret: deviceSecret, body: { ack: [] } });
+  assert.equal(sync.status, 200);
+  assert.equal(sync.headers.get("access-control-allow-origin"), PAGE);
+  const foreign = await call("sync", { secret: deviceSecret, body: { ack: [] }, origin: "https://evil.example" });
+  assert.equal(foreign.status, 403);
+  assert.equal(foreign.headers.get("access-control-allow-origin"), null);
+  const pat = await call("pat", { secret: deviceSecret, body: { access: "care" } });
+  assert.equal(pat.status, 403, "token minting stays same-origin only");
+  const gone = await call("link", { method: "DELETE", secret: deviceSecret });
+  assert.equal(gone.status, 200);
+  assert.equal(gone.headers.get("access-control-allow-origin"), PAGE);
+});
