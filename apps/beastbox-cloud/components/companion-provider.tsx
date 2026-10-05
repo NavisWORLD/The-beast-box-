@@ -50,6 +50,7 @@ export default function CompanionProvider({children}:{children:ReactNode}){
  const [reduced,setReduced]=useState(false),[spot,setSpot]=useState<Spot|null>(null);
  const [tick,setTick]=useState(0),tickRef=useRef(0);
  const [pageVisible,setPageVisible]=useState(true);
+ const [browserZone,setBrowserZone]=useState('page');
  const [spriteTop,setSpriteTop]=useState(.4);
  const petRef=useRef<HTMLElement>(null);
  const onProfile=useCallback((candidate:CreatureProfile)=>{
@@ -99,6 +100,29 @@ export default function CompanionProvider({children}:{children:ReactNode}){
   };
  },[onProfile]);
  const showPublic=pathname==='/'||pathname==='/beast-cage';
+ useEffect(()=>{
+  if(!showPublic)return;
+  let frame=0,last='';
+  const observe=()=>{
+   frame=0;
+   const x=Math.max(1,Math.min(window.innerWidth-1,window.innerWidth*.5));
+   const y=Math.max(1,Math.min(window.innerHeight-1,window.innerHeight*.42));
+   const stack=document.elementsFromPoint(x,y);
+   const node=stack.find((item)=>item instanceof HTMLElement&&item.closest('main section,main article,main [id]')) as HTMLElement|undefined;
+   const host=node?.closest('section,article,[id]') as HTMLElement|null;
+   const zone=(host?.id||host?.getAttribute('aria-label')||host?.tagName?.toLowerCase()||'page').slice(0,64);
+   const next=pathname+'#'+zone;
+   if(next!==last){
+    last=next;setBrowserZone(zone);setAction('perch');
+    window.dispatchEvent(new CustomEvent('beastbox:browser-context',{detail:{route:pathname,zone,visible:!document.hidden}}));
+    if(soundEnabled)window.dispatchEvent(new CustomEvent('beastbox:spark-chirp',{detail:{channel:'roamer',intensity:.48}}));
+   }
+  };
+  const schedule=()=>{if(!frame)frame=window.requestAnimationFrame(observe);};
+  schedule();window.addEventListener('scroll',schedule,{passive:true});window.addEventListener('resize',schedule);
+  return()=>{if(frame)window.cancelAnimationFrame(frame);window.removeEventListener('scroll',schedule);window.removeEventListener('resize',schedule);};
+ },[showPublic,pathname,soundEnabled]);
+
  useEffect(()=>{
   if(!showPublic||paused||halted||hidden||!pageVisible)return;
   const fallback:AmbientAction[]=['hover','orbit','perch','rest'];
