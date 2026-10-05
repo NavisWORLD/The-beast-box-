@@ -15,6 +15,7 @@ import SparkBeastCompanion from './spark-beast-companion';
 import SparkFieldRoster from './spark-field-roster';
 import SparkMachine from './spark-machine';
 import SparkWanderer from './spark-wanderer';
+import RigettiGrowthPanel from './rigetti-growth-panel';
 import css from './beast-go.module.css';
 
 const recorded = runs as Array<{ key: string; backend: string; job_id: string; pub_index: number; num_bits: number; shots: number; counts: Record<string, number> }>;
@@ -205,11 +206,11 @@ export default function BeastGo() {
     {guestMode && guestOpen ? <p className={css.guestNote} data-guest-play="true" id="go-guest-note">Guests play with a beast saved in this browser. No owner authority and no private memory. Talk uses the guest-safe brain.</p> : null}
     <div className={css.card} ref={cardRef}>
       <span className={css.portrait}>
-        <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook ?? 'nebula'} compact state={sparkVisualState(card.mood)} className={css.spark} label={`${profile?.name || 'Spark Beast'} portrait`} />
+        <SparkBeastCompanion profile={profile} genomeOverride={beast?.genome || null} fallbackLook={profile?.baseLook ?? 'nebula'} compact state={sparkVisualState(card.mood)} className={css.spark} label={`${shownName(beast)} portrait`} />
       </span>
       <button type="button" className={css.identity} onClick={() => toggle('beasts')}>
         <span className={css.meta}>
-          <strong>{ready ? (profile?.name || 'Spark Beast') : 'Loading save'}</strong>
+          <strong>{ready ? shownName(beast) : 'Loading save'}</strong>
           <span>Lv {card.stage} · {card.mood}</span>
           <span className={css.xp} role="meter" aria-label={`Experience ${card.xp}`} aria-valuemin={0} aria-valuemax={card.goal || card.xp || 1} aria-valuenow={card.xp}><i style={{ width: `${Math.round(card.ratio * 100)}%` }} /></span>
         </span>
@@ -257,11 +258,12 @@ export default function BeastGo() {
         </div>
         {!session?.bestiary?.length ? <button className={css.send} type="button" onClick={meet}>Meet a spark beast</button> : null}
         <SparkFieldRoster onChoose={(choice) => keepLocal(choice.genome, choice.name)} />
+        <RigettiGrowthPanel />
         <SparkMachine onReveal={(result) => keepLocal(result.genome, result.name, result.profile)} />
       </> : null}
       {sheet === 'talk' ? <>
         <h2>Talk</h2>
-        <SparkWanderer profile={profile} pulse={answer} thinking={busy} />
+        <SparkWanderer profile={profile} genome={beast?.genome || null} pulse={answer} thinking={busy} />
         <div className={css.reply} role="status">
           <strong>{label}</strong>
           <p>{busy ? 'Waiting for a verified reply…' : answer || 'Type to your beast. If Brain Bay or the RAWRPHØS guest host is quiet, the on-device pattern memory answers and says so.'}</p>
