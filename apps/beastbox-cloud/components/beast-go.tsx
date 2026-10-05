@@ -218,28 +218,29 @@ export default function BeastGo() {
       {guestMode ? <button type="button" className={css.guestChip} data-guest-play="true" aria-expanded={guestOpen} aria-controls="go-guest-note"
         aria-label={guestOpen ? 'Hide the guest play note' : 'Show the guest play note'} onClick={() => setGuestOpen((value) => !value)}>Guest {guestOpen ? '▴' : 'ⓘ'}</button> : null}
     </div>
-    {touch && !sheet ? <div className={css.pad} ref={padRef} aria-label="Touch controls">
-      {(['up', 'left', 'right', 'down'] as const).map((button) => <button key={button} type="button" aria-label={GBA_KEYS[button].label} onPointerDown={(event) => hold(button, event)}>{GBA_KEYS[button].label}</button>)}
+    {touch && !sheet ? <div className={css.pad} ref={padRef} aria-label="Game Boy direction pad" data-handheld-control="dpad">
+      {(['up','left','right','down'] as const).map((button) => <button key={button} type="button" aria-label={GBA_KEYS[button].label} onPointerDown={(event) => hold(button, event)}>{button==='up'?'▲':button==='down'?'▼':button==='left'?'◀':'▶'}</button>)}
     </div> : null}
-    {touch && !sheet ? <div className={css.actions} ref={actionsRef} aria-label="Touch buttons">
-      <button type="button" aria-label="L" onPointerDown={(event) => hold('l', event)}>L</button>
-      <button type="button" aria-label="R" onPointerDown={(event) => hold('r', event)}>R</button>
+    {touch && !sheet ? <div className={css.actions} ref={actionsRef} aria-label="Game Boy buttons" data-handheld-control="buttons">
+      <button type="button" className={css.shoulder} aria-label="L" onPointerDown={(event) => hold('l', event)}>L</button>
+      <button type="button" className={css.shoulder} aria-label="R" onPointerDown={(event) => hold('r', event)}>R</button>
       <button type="button" className={css.a} aria-label="A" onPointerDown={(event) => hold('a', event)}>A</button>
-      <button type="button" aria-label="B" onPointerDown={(event) => hold('b', event)}>B</button>
-      <button type="button" className={css.wide} aria-label="Start" onPointerDown={(event) => hold('start', event)}>Start</button>
+      <button type="button" className={css.b} aria-label="B" onPointerDown={(event) => hold('b', event)}>B</button>
+      <button type="button" className={css.system} aria-label="Select" onPointerDown={(event) => hold('select', event)}>Select</button>
+      <button type="button" className={css.system} aria-label="Start" onPointerDown={(event) => hold('start', event)}>Start</button>
     </div> : null}
     <div className={css.chrome} ref={chromeRef} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
-      <button type="button" className={css.handle} aria-label="Swipe up for the menu" onClick={() => toggle('menu')}><i /></button>
+      <div className={css.consoleBrand} aria-hidden="true"><strong>BEAST BOY</strong><span>LOST COSMOS</span></div>
       <div className={css.quick} role="toolbar" aria-label="Field shortcuts">
         {QUICK.map((item) => <button key={item.id} type="button" aria-pressed={sheet === item.id} onClick={() => toggle(item.id as SheetId)}>{item.label}</button>)}
       </div>
       <button type="button" className={css.orb} aria-label="Main menu" aria-expanded={sheet === 'menu'} onClick={() => toggle('menu')}>Menu</button>
     </div>
     <section className={`${css.sheet} ${sheet ? css.open : ''}`} role="dialog" aria-modal="false" aria-hidden={sheet ? undefined : true} aria-label={sheet ? `${sheet} sheet` : 'Closed sheet'}>
-      <button type="button" className={css.handle} aria-label="Swipe down to close" onPointerDown={onPointerDown} onPointerUp={onPointerUp} onClick={() => setSheet(null)}><i /></button>
+      <div className={css.sheetBar}><button type="button" className={css.handle} aria-label="Swipe down to close" onPointerDown={onPointerDown} onPointerUp={onPointerUp} onClick={() => setSheet(null)}><i /></button><button type="button" className={css.sheetClose} aria-label="Close field menu" onClick={() => setSheet(null)}>×</button></div>
       {sheet === 'menu' ? <>
         <h2>Field menu</h2>
-        <div className={css.list}>
+        <div className={`${css.list} ${css.menuGrid}`}>
           {QUICK.map((item) => <button key={item.id} type="button" onClick={() => setSheet(item.id as SheetId)}>{item.label}</button>)}
         </div>
       </> : null}
