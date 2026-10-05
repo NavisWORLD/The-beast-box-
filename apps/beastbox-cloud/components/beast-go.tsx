@@ -32,7 +32,12 @@ export default function BeastGo() {
   const [answer, setAnswer] = useState('');
   const [guestMode, setGuestMode] = useState(true);
   const [label, setLabel] = useState('Guests play with a beast saved in this browser. No owner authority and no private memory. Talk uses the guest-safe brain.');
+  const [guestOpen, setGuestOpen] = useState(false);
   const drag = useRef<{ y: number; id: number } | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const chromeRef = useRef<HTMLDivElement>(null);
+  const padRef = useRef<HTMLDivElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
   const beast = session?.beast;
   const card = hudCard(beast);
   const place = placeById(trail.place);
@@ -72,6 +77,46 @@ export default function BeastGo() {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Publish the safe game area (between the portrait card and the bottom HUD /
+  // touch pad) so the full-screen cartridge never sits under the field chrome.
+  useEffect(() => {
+    const root = document.documentElement;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      if (sheet) return; // keep the last area while a sheet is open so the game does not jump
+      const height = window.innerHeight;
+      const card = cardRef.current?.getBoundingClientRect();
+      const tops = [chromeRef.current, padRef.current, actionsRef.current]
+        .map((node) => node?.getBoundingClientRect())
+        .filter((rect): rect is DOMRect => Boolean(rect && rect.height > 0))
+        .map((rect) => rect.top);
+      const top = Math.max(0, Math.round((card ? card.bottom : 0) + 8));
+      const ceiling = tops.length ? Math.min(...tops) : height;
+      // The chrome fades in from transparent, so its top padding/handle may overlap the game a little.
+      const bottom = Math.max(0, Math.round(height - ceiling + (tops.length ? -6 : 0)));
+      root.style.setProperty('--go-safe-top', `${top}px`);
+      root.style.setProperty('--go-safe-bottom', `${bottom}px`);
+    };
+    const schedule = () => { if (!frame) frame = window.requestAnimationFrame(measure); };
+    schedule();
+    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(schedule) : null;
+    for (const node of [cardRef.current, chromeRef.current, padRef.current, actionsRef.current]) if (node && observer) observer.observe(node);
+    window.addEventListener('resize', schedule);
+    window.visualViewport?.addEventListener('resize', schedule);
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+      window.removeEventListener('resize', schedule);
+      window.visualViewport?.removeEventListener('resize', schedule);
+    };
+  }, [sheet, touch, guestMode]);
+
+  useEffect(() => () => {
+    document.documentElement.style.removeProperty('--go-safe-top');
+    document.documentElement.style.removeProperty('--go-safe-bottom');
   }, []);
 
   function toggle(next: SheetId) {
@@ -157,8 +202,8 @@ export default function BeastGo() {
 
   return <main className={css.field} data-go-screen="true">
     <h1 className={css.sr}>Lost Cosmos field</h1>
-    {guestMode ? <p className={css.guestNote} data-guest-play="true">Guests play with a beast saved in this browser. No owner authority and no private memory. Talk uses the guest-safe brain.</p> : null}
-    <div className={css.card}>
+    {guestMode && guestOpen ? <p className={css.guestNote} data-guest-play="true" id="go-guest-note">Guests play with a beast saved in this browser. No owner authority and no private memory. Talk uses the guest-safe brain.</p> : null}
+    <div className={css.card} ref={cardRef}>
       <span className={css.portrait}>
         <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook ?? 'nebula'} compact state={sparkVisualState(card.mood)} className={css.spark} label={`${profile?.name || 'Spark Beast'} portrait`} />
       </span>
@@ -169,18 +214,20 @@ export default function BeastGo() {
           <span className={css.xp} role="meter" aria-label={`Experience ${card.xp}`} aria-valuemin={0} aria-valuemax={card.goal || card.xp || 1} aria-valuenow={card.xp}><i style={{ width: `${Math.round(card.ratio * 100)}%` }} /></span>
         </span>
       </button>
+      {guestMode ? <button type="button" className={css.guestChip} data-guest-play="true" aria-expanded={guestOpen} aria-controls="go-guest-note"
+        aria-label={guestOpen ? 'Hide the guest play note' : 'Show the guest play note'} onClick={() => setGuestOpen((value) => !value)}>Guest {guestOpen ? '▴' : 'ⓘ'}</button> : null}
     </div>
-    {touch && !sheet ? <div className={css.pad} aria-label="Touch controls">
+    {touch && !sheet ? <div className={css.pad} ref={padRef} aria-label="Touch controls">
       {(['up', 'left', 'right', 'down'] as const).map((button) => <button key={button} type="button" aria-label={GBA_KEYS[button].label} onPointerDown={(event) => hold(button, event)}>{GBA_KEYS[button].label}</button>)}
     </div> : null}
-    {touch && !sheet ? <div className={css.actions} aria-label="Touch buttons">
+    {touch && !sheet ? <div className={css.actions} ref={actionsRef} aria-label="Touch buttons">
       <button type="button" aria-label="L" onPointerDown={(event) => hold('l', event)}>L</button>
       <button type="button" aria-label="R" onPointerDown={(event) => hold('r', event)}>R</button>
       <button type="button" className={css.a} aria-label="A" onPointerDown={(event) => hold('a', event)}>A</button>
       <button type="button" aria-label="B" onPointerDown={(event) => hold('b', event)}>B</button>
       <button type="button" className={css.wide} aria-label="Start" onPointerDown={(event) => hold('start', event)}>Start</button>
     </div> : null}
-    <div className={css.chrome} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
+    <div className={css.chrome} ref={chromeRef} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
       <button type="button" className={css.handle} aria-label="Swipe up for the menu" onClick={() => toggle('menu')}><i /></button>
       <div className={css.quick} role="toolbar" aria-label="Field shortcuts">
         {QUICK.map((item) => <button key={item.id} type="button" aria-pressed={sheet === item.id} onClick={() => toggle(item.id as SheetId)}>{item.label}</button>)}

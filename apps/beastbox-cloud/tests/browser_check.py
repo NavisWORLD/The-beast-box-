@@ -94,7 +94,7 @@ with sync_playwright() as p:
     assert_no_overflow(page,"mobile workstation")
     page.screenshot(path=str(OUT/"05-workstation-mobile.png"),full_page=True)
     page.get_by_role("button",name="Stage file or photo locally").click()
-    page.locator('input[type="file"]').set_input_files({"name":"ci-photo.png","mimeType":"image/png","buffer":PNG})
+    page.locator('.composer input[type="file"][aria-label="Choose files or photos to stage locally"]').set_input_files({"name":"ci-photo.png","mimeType":"image/png","buffer":PNG})
     page.get_by_text("ci-photo.png").wait_for(timeout=8000)
     assert page.get_by_text("LOCAL ONLY").count()>0
     assert page.get_by_role("button",name="Send message").is_disabled()

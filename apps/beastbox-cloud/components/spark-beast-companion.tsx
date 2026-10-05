@@ -14,7 +14,7 @@ type Run={
  key:string;backend:string;job_id:string;pub_index:number;num_bits:number;
  shots:number;counts:Record<string,number>;counts_sha256:string;
 };
-type Genome={
+export type Genome={
  names:Record<number,string>;island:string;temperament:string;element:string;body:string;
  pose:string;ears:string;wings:string;tail:string;quantum:{top_state:string};
  behavior:{
@@ -36,6 +36,8 @@ type Props={
  label?:string;
  seedRunKey?:string;
  seedTraits?:{focus:number;calm:number;spark:number};
+ /** Optional: receive the built Spark genome (e.g. for the seeded habitat attack moves). */
+ onGenome?:(genome:Genome)=>void;
 };
 
 function expand(row:Record<string,unknown>):Run{
@@ -83,7 +85,7 @@ function driveFor(mood:string,intensity:number){
 export default function SparkBeastCompanion({
  profile,fallbackLook='nebula',state='idle',paused=false,intensity=0,
  compact=false,controls=false,audioChannel,className='',label='Spark Beast companion',
- seedRunKey='',seedTraits
+ seedRunKey='',seedTraits,onGenome
 }:Props){
  const fallback=useMemo(()=>generateCreature('beastbox-spark-'+fallbackLook,fallbackLook==='aurora'?'aurora':fallbackLook==='starlight'?'starlight':'nebula'),[fallbackLook]);
  const active=profile??fallback;
@@ -123,6 +125,8 @@ export default function SparkBeastCompanion({
   }catch(err){setError(err instanceof Error?err.message:'Spark genome could not be built');}
  },[active,run,sameSpark?.genome,seedTraits]);
  useEffect(()=>{if(sameSpark){setStage(sameSpark.nativeStage||1);lastEye.current='';}},[sameSpark?.seed]);
+
+ useEffect(()=>{if(gen&&onGenome)onGenome(gen);},[gen,onGenome]);
 
  useEffect(()=>{
   if(!gen||!canvas.current)return;

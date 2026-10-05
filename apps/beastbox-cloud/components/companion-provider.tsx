@@ -50,6 +50,8 @@ export default function CompanionProvider({children}:{children:ReactNode}){
  const [reduced,setReduced]=useState(false),[spot,setSpot]=useState<Spot|null>(null);
  const [tick,setTick]=useState(0),tickRef=useRef(0);
  const [pageVisible,setPageVisible]=useState(true);
+ const [spriteTop,setSpriteTop]=useState(.4);
+ const petRef=useRef<HTMLElement>(null);
  const onProfile=useCallback((candidate:CreatureProfile)=>{
   if(!validCreature(candidate))return;
   setProfile(candidate);tickRef.current=0;setTick(0);
@@ -142,7 +144,9 @@ export default function CompanionProvider({children}:{children:ReactNode}){
      const left=Math.max(0,rect.left-padX),top=Math.max(0,rect.top-padTop);
      avoid.push({left,top,width:Math.min(width-left,rect.width+padX),height:rect.height+padTop});
     }else{
-     avoid.push({left:rect.left,top:rect.top,width:rect.width,height:rect.height});
+     // The hide/pause/mute toolbar is wider than the sprite, so pad controls sideways by its overhang.
+     const overhang=width<680?38:20;
+     avoid.push({left:rect.left-overhang,top:rect.top,width:rect.width+overhang*2,height:rect.height});
     }
    }
    setSpot(selectSafeRoamSpot(width,height,avoid,tick));
@@ -177,15 +181,35 @@ export default function CompanionProvider({children}:{children:ReactNode}){
   });
  };
  const canShow=showPublic&&!hidden&&!typing&&pageVisible&&!reduced&&spot!==null;
+ // Anchor the toolbar to the sprite's first drawn row (the Spark canvas has transparent headroom).
+ useEffect(()=>{
+  if(!canShow)return;
+  const id=window.setTimeout(()=>{
+   const canvas=petRef.current?.querySelector('canvas');
+   const ctx=canvas?.getContext('2d');
+   if(!canvas||!ctx||!canvas.width||!canvas.height)return;
+   try{
+    const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+    for(let y=0;y<canvas.height;y++){
+     for(let x=0;x<canvas.width;x++){
+      if(data[(y*canvas.width+x)*4+3]>20){setSpriteTop(Math.max(0,Math.min(.6,y/canvas.height)));return;}
+     }
+    }
+   }catch{/* unreadable canvas: keep the default anchor */}
+  },700);
+  return()=>window.clearTimeout(id);
+ },[canShow,profile?.id]);
  const parked=halted||paused||!canShow;
  return <Context.Provider value={context}>
   <BeastSessionProvider>
   {children}
   <LostCosmosDock creature={profile} />
-  {showPublic?<aside data-companion-overlay="true" data-pet-dragon="true" className={styles.shell+(!canShow?' '+styles.parked:'')}
+  {showPublic?<aside ref={petRef} data-companion-overlay="true" data-pet-dragon="true" className={styles.shell+(!canShow?' '+styles.parked:'')}
     aria-label="Cosmic companion game habitat" data-companion-state={state}
     data-roaming={canShow&&!parked?'active':'parked'}
-    style={canShow&&spot?{left:spot.left,top:spot.top,width:spot.width}:undefined}>
+    data-anchored={canShow?'true':undefined}
+    data-side={canShow&&spot&&spot.left<(typeof window==='undefined'?0:window.innerWidth/2)?'left':'right'}
+    style={canShow&&spot?{left:spot.left,top:spot.top,width:spot.width,['--pet-w' as string]:spot.width+'px',['--sprite-top' as string]:String(spriteTop)}:undefined}>
     <div className={styles.toolbar}>
      <button type="button" className={styles.control}
        onClick={()=>setHidden(x=>!x)} aria-label={hidden?'Show roaming companion':'Hide roaming companion'}>
