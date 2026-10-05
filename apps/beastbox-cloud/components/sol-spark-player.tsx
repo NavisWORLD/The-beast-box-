@@ -5,7 +5,7 @@ import {serializeQbeast} from '../public/spark/qbeast.mjs';
 import {checkedSpark} from '../public/spark/identity.mjs';
 import SolGameTalk from './sol-game-talk';
 const ROOT='https://navisworld.github.io';
-const GAME=ROOT+'/Cosmic-synapse-the-living-universe-sim-engine-/arcade/sol-spark-gate/?mode=handheld&controller=iphoneaudio40';
+const GAME=ROOT+'/Cosmic-synapse-the-living-universe-sim-engine-/arcade/sol-spark-gate/?mode=handheld&controller=previeworigin41';
 export default function SolSparkPlayer({compact=false,active=true}:{compact?:boolean;active?:boolean}){
  const {ready,session}=useBeastSession();
  const frame=useRef<HTMLIFrameElement>(null);
