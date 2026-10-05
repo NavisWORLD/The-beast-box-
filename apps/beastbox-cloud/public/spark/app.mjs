@@ -14,7 +14,7 @@ const STORE='spark-beasts-bestiary-v1',QVM_STORE='spark-qvm-growth-v1',SOUND_KEY
 const media=matchMedia('(prefers-reduced-motion: reduce)');
 const beastAudio=getBeastAudio();
 let reduceMotion=media.matches,runs=[],qvmRuns=[],byKey=new Map(),current=null,muse=null,voiceOn=false,soundWanted=true,voiceBus=null,stage=1,preview=false,drift=false,runtime=null,cache={},bestiary=[],session=null,busy=false,starterCache=[],qvmGrowth=0,lastViewportWidth=innerWidth;
-let micStream=null,micContext=null,micSource=null,micAnalyser=null,micData=null,micEnabled=false,micLevel=0,micLastReaction=-20;
+let micStream=null,micContext=null,micSource=null,micAnalyser=null,micData=null,micEnabled=false,micLevel=0,micLastReaction=-20,micEpoch=0;
 const target={focus:30,calm:30,spark:20},felt={...target};
 media.addEventListener('change',()=>{reduceMotion=media.matches});
 function expand(row){return {key:row.k,backend:row.b,job_id:row.j,pub_index:row.p,num_bits:row.n,shots:row.s,counts:Object.fromEntries(row.c.split(',').map(part=>{const [k,v]=part.split(':');return [k,Number(v)]})),counts_sha256:row.h};}
@@ -191,7 +191,7 @@ function updateMicButton(){
  button.setAttribute('aria-pressed',String(micEnabled));
 }
 async function stopMicReaction(note='Microphone reaction is off.'){
- micEnabled=false;micLevel=0;micLastReaction=-20;
+ micEpoch++;micEnabled=false;micLevel=0;micLastReaction=-20;
  const stream=micStream,context=micContext,source=micSource,analyser=micAnalyser;
  micStream=micContext=micSource=micAnalyser=micData=null;
  try{source?.disconnect();}catch{}try{analyser?.disconnect();}catch{}
@@ -202,9 +202,13 @@ async function stopMicReaction(note='Microphone reaction is off.'){
 async function startMicReaction(){
  if(micEnabled)return;
  if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia)throw Error('Microphone reaction needs browser microphone support on a secure HTTPS page.');
- let stream=null,context=null;
+ const request=++micEpoch;let stream=null,context=null;
  try{
   stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+  if(request!==micEpoch||document.hidden){
+   stream.getTracks().forEach(track=>track.stop());stream=null;
+   throw Error('Microphone reaction was cancelled before it started.');
+  }
   const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)throw Error('This browser does not provide local audio analysis.');
   context=new AudioCtx();if(context.state==='suspended')await context.resume();
   const source=context.createMediaStreamSource(stream),analyser=context.createAnalyser();analyser.fftSize=256;analyser.smoothingTimeConstant=.55;source.connect(analyser);
