@@ -82,12 +82,12 @@ test('public Spark game path points to Lost COSMOS and never the retired SIM wor
  assert.doesNotMatch(bridge,/SIM_EARTH|Pocket Reality|standalone\//);
 });
 
-test('the dock and GO serve the Lost Cosmos ROM built from current game main (#34 + #35, not #33)',()=>{
+test('the dock and GO serve the Lost Cosmos ROM built from current game main (V11.3: #33 + #34 + #35)',()=>{
  const rom=read('app/api/gba-rom/route.ts');
- assert.match(rom,/const SHA='303865b4d1c9d0297e5b59e3945e5ee74dbafdcc344aec8deb9434ab87f9899a'/);
+ assert.match(rom,/const SHA='6f9c22fa22b32694d606c854b4da26b4394b2ecaa86842cc1998c8cfe57b1fb3'/);
  assert.match(rom,/arcade\/lost-cosmos\/rom\/lost-cosmos\.gba/);
  const api=read('app/api/gba-release/route.ts');
- assert.match(api,/lost_cosmos_main_commit:'12ed44df23ffc9a5c55c7a31a9bf45e423540c53'/);
- assert.match(api,/lost_cosmos_main_prs:\[34,35\]/);
- assert.match(api,/rom_sha256:'303865b4d1c9d0297e5b59e3945e5ee74dbafdcc344aec8deb9434ab87f9899a'/);
+ assert.match(api,/lost_cosmos_main_commit:'dcbc85d974031ba261e6040d1de64a0738982a19'/);
+ assert.match(api,/lost_cosmos_main_prs:\[33,34,35\]/);
+ assert.match(api,/rom_sha256:'6f9c22fa22b32694d606c854b4da26b4394b2ecaa86842cc1998c8cfe57b1fb3'/);
 });
