@@ -5,12 +5,14 @@ import {bluetoothNote,connectMuse} from './muse.mjs';
 import {serializeQbeast} from './qbeast.mjs';
 import {PROFILES,simulateStable} from './signal.mjs';
 import {Voice} from './voice.mjs';
+import {getBeastAudio} from './shared/beast-audio-engine.mjs';
 import {habitatPose} from './habitat.mjs';
 import {QBEAST_KEY,SESSION_KEY,selectSpark,saveSparkSession,readSparkSession,replaySpark,withSparkLock} from './identity.mjs';
 import {careAction,finishTraining,talk,shownName} from './shared/session.mjs';
 const STORE='spark-beasts-bestiary-v1',QVM_STORE='spark-qvm-growth-v1',SOUND_KEY='spark-beast-sound-v2',SCALE=4,$=id=>document.getElementById(id);
 const media=matchMedia('(prefers-reduced-motion: reduce)');
-let reduceMotion=media.matches,runs=[],qvmRuns=[],byKey=new Map(),current=null,muse=null,voiceOn=false,soundWanted=true,audioCtx=null,audioOut=null,stage=1,preview=false,drift=false,runtime=null,cache={},bestiary=[],session=null,busy=false,starterCache=[],qvmGrowth=0,lastViewportWidth=innerWidth;
+const beastAudio=getBeastAudio();
+let reduceMotion=media.matches,runs=[],qvmRuns=[],byKey=new Map(),current=null,muse=null,voiceOn=false,soundWanted=true,voiceBus=null,stage=1,preview=false,drift=false,runtime=null,cache={},bestiary=[],session=null,busy=false,starterCache=[],qvmGrowth=0,lastViewportWidth=innerWidth;
 const target={focus:30,calm:30,spark:20},felt={...target};
 media.addEventListener('change',()=>{reduceMotion=media.matches});
 function expand(row){return {key:row.k,backend:row.b,job_id:row.j,pub_index:row.p,num_bits:row.n,shots:row.s,counts:Object.fromEntries(row.c.split(',').map(part=>{const [k,v]=part.split(':');return [k,Number(v)]})),counts_sha256:row.h};}
@@ -39,6 +41,28 @@ function cacheEyes(gen){
   }
  }
 }
+function audioSceneFor(gen=current?.gen){
+ if(!gen)return null;
+ return {id:'spark-public',seedKey:gen.seed,element:gen.element||'spark',temperament:gen.temperament||'Curious',enabled:soundWanted};
+}
+function voiceOutput(){
+ const output=beastAudio.output();if(!output)return null;
+ if(!voiceBus||voiceBus.ctx!==output.ctx){
+  const gain=output.ctx.createGain();gain.gain.value=.13;gain.connect(output.dest);voiceBus={ctx:output.ctx,gain};
+ }
+ return voiceBus;
+}
+function audioSfx(kind){
+ if(!current||!soundWanted||!voiceOn)return false;
+ return beastAudio.sfx(kind,{element:current.gen.element||'spark',seedKey:current.gen.seed});
+}
+function syncAudioUi(){
+ const snap=beastAudio.getSnapshot(),music=$('music'),volume=$('music-volume'),state=$('audio-state');
+ if(music){music.textContent=snap.musicOn?'♫ MUSIC ON':'♫ MUSIC OFF';music.setAttribute('aria-pressed',String(snap.musicOn));}
+ if(volume&&document.activeElement!==volume)volume.value=String(Math.round(snap.volume*100));
+ if(state)state.textContent=!soundWanted?'Muted on this device':voiceOn?(snap.musicOn?'Creature voice + procedural music active':'Creature voice active · music off'):'Wakes on your first tap · synthesized locally';
+}
+beastAudio.subscribe(syncAudioUi);
 function readQvmGrowth(seed){try{const saved=JSON.parse(localStorage.getItem(QVM_STORE)||'{}');return saved.seed===seed?Math.max(0,Math.min(1,Number(saved.growth)||0)):0;}catch{return 0;}}
 function saveQvmGrowth(){if(!current)return;try{localStorage.setItem(QVM_STORE,JSON.stringify({seed:current.gen.seed,growth:qvmGrowth,source_sha256:'7ef23c00005a2053d1fc830985330f4db322b3bf6144fd79fd1561d14c425599'}));}catch{}}
 function updateQvmGrowth(){const label=$('qvm-growth'),bar=$('qvm-growth-bar');if(!label||!bar)return;const pct=Math.round(qvmGrowth*100);bar.style.width=`${pct}%`;label.textContent=`SIM GROWTH ${pct}% · browser-local · native stage unchanged`;label.parentElement?.setAttribute('aria-valuenow',String(pct));}
@@ -53,6 +77,7 @@ function showCreature(entry,nextSession,spawn=true){
  $('provenance').textContent=`Job ${run.job_id} · pub ${run.pub_index} · ${run.num_bits}-bit · ${run.shots} recorded shots · counts SHA-256 ${run.counts_sha256}`;
  $('seed').textContent=gen.seed;for(const which of [1,2,3]){paintStage($(`st${which}`),gen,which);$(`nm${which}`).textContent=gen.names[which];}
  qvmGrowth=readQvmGrowth(gen.seed);
+ const scene=audioSceneFor(gen);if(scene)beastAudio.setScene(scene);syncAudioUi();
  runtime={rnd:mulberry32(gen.behavior.prng_seed),T:0,nextBlink:2,blinkUntil:-1,utt:0,lastSay:-20,nextVoice:12,state:spawn?'spawn':'idle',until:spawn?1.2:0,spawn:spawn?0:1,qvmPulseUntil:-1,qvmStep:0};
  Object.assign(felt,target);updatePlate();drawBestiary();say('neutral',spawn?`${shownName(session.beast)} just sparked in. Let's explore!`:`${shownName(session.beast)} is back. Same paws, same seed.`);
 }
@@ -64,7 +89,13 @@ function drive(){
   return [key,(.3*felt[key]/100+.7*excess)*be.sensitivity[key]];
  }));
 }
-function say(mood,text){if(!current||!runtime)return;const u=Voice.utterance(current.gen.voice,stage,mood,runtime.utt++,drive());$('bubble').hidden=false;$('bubble').textContent=u.text;$('line').textContent=text||({calm:'A quiet little moment.',focus:'Those eyes miss nothing.',spark:'Tiny paws. Big sparks.',neutral:'Ready to explore.'}[mood]);runtime.bubbleUntil=runtime.T+Math.max(2.4,u.dur+.8);runtime.lastSay=runtime.T;if(voiceOn&&audioCtx?.state==='running'&&audioOut)Voice.schedule(audioCtx,audioOut,audioCtx.currentTime+.03,current.gen.voice,u);}
+function say(mood,text){
+ if(!current||!runtime)return;
+ const u=Voice.utterance(current.gen.voice,stage,mood,runtime.utt++,drive());
+ $('bubble').hidden=false;$('bubble').textContent=u.text;$('line').textContent=text||({calm:'A quiet little moment.',focus:'Those eyes miss nothing.',spark:'Tiny paws. Big sparks.',neutral:'Ready to explore.'}[mood]);
+ runtime.bubbleUntil=runtime.T+Math.max(2.4,u.dur+.8);runtime.lastSay=runtime.T;
+ if(voiceOn){const out=voiceOutput();if(out)Voice.schedule(out.ctx,out.gain,out.ctx.currentTime+.03,current.gen.voice,u);}
+}
 function tick(dt){
  if(!current||!runtime||document.hidden)return;runtime.T+=dt;const be=current.gen.behavior;
  if(drift&&!reduceMotion){const values={};for(const k of ['focus','calm','spark'])values[k]=Math.round(Math.max(0,Math.min(100,target[k]+Math.sin(runtime.T*.3+k.length)*8*dt)));showTraits(values);}
@@ -114,24 +145,23 @@ function saveSoundWanted(){try{localStorage.setItem(SOUND_KEY,soundWanted?'on':'
 function updateVoiceButton(){
  const button=$('voice');if(!button)return;
  button.textContent=voiceOn?'🔊 SOUND ON':soundWanted?'🔊 SOUND READY':'🔇 SOUND OFF';
- button.setAttribute('aria-pressed',String(soundWanted));
- button.classList.toggle('on',soundWanted);
+ button.setAttribute('aria-pressed',String(soundWanted));button.classList.toggle('on',soundWanted);syncAudioUi();
 }
 async function startVoice(announce=false){
  if(!soundWanted||voiceOn)return;
- const AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw Error('This browser does not provide local WebAudio.');
- audioCtx=new AC();audioOut=Voice.master(audioCtx);audioOut.gain.value=.13;
- await audioCtx.resume();if(audioCtx.state!=='running')throw Error('Tap once more to unlock sound.');
- voiceOn=true;updateVoiceButton();if(announce)say('spark','Sound is on. Tiny beast noises unlocked.');
+ beastAudio.sparkUnmute();beastAudio.unlock();const scene=audioSceneFor();if(scene)beastAudio.setScene(scene);
+ const out=voiceOutput();if(!out)throw Error('This browser does not provide local WebAudio.');
+ voiceOn=true;updateVoiceButton();if(announce){audioSfx('confirm');say('spark','Sound is on. Tiny beast noises and music are unlocked.');}
 }
 async function stopVoice(){
  voiceOn=false;
- if(audioOut&&audioCtx)audioOut.gain.setValueAtTime(0,audioCtx.currentTime);
- await audioCtx?.close();audioCtx=null;audioOut=null;updateVoiceButton();
+ const oldBus=voiceBus;voiceBus=null;
+ try{if(oldBus?.gain&&oldBus?.ctx){const t=oldBus.ctx.currentTime;oldBus.gain.gain.cancelScheduledValues(t);oldBus.gain.gain.setTargetAtTime(0,t,.015);setTimeout(()=>{try{oldBus.gain.disconnect()}catch{}},120);}}catch{}
+ beastAudio.sparkMute();updateVoiceButton();
 }
 async function enableVoice(){
  try{
-  if(voiceOn){soundWanted=false;saveSoundWanted();await stopVoice();}
+  if(soundWanted){soundWanted=false;saveSoundWanted();await stopVoice();}
   else{soundWanted=true;saveSoundWanted();await startVoice(true);}
  }catch(e){voiceOn=false;updateVoiceButton();$('status').textContent=e.message;}
 }
@@ -140,17 +170,24 @@ function unlockPreferredSound(event){
  if(event?.target?.closest?.('#voice'))return;
  void startVoice(false).catch(e=>{$('status').textContent=e.message;});
 }
+function toggleMusic(){
+ beastAudio.unlock();const snap=beastAudio.getSnapshot();beastAudio.setMusic(!snap.musicOn);audioSfx('blip');syncAudioUi();
+}
+function setMusicVolume(event){beastAudio.setVolume(Number(event.target.value)/100);syncAudioUi();}
 let training=null;
 async function interaction(kind){
+ let completedTraining=false;
  await withSparkLock(()=>{const latest=readSparkSession(localStorage);if(latest.beast?.seed!==current.gen.seed)throw Error('Another page selected a different Beast. Reload to continue.');session=latest;
   if(kind==='train'){
    if(!training)training={start:performance.now(),round:0,hits:0};
    const phase=((performance.now()-training.start)/900)%1;training.hits+=phase>.35&&phase<.65?1:0;training.round++;
-   if(training.round>=6){const result=finishTraining(session,training.hits,6);$('status').textContent=`Training complete · ${training.hits}/6 hits · +${result.gain} care XP. Cartridge evolution is earned in the game.`;training=null;$('train').textContent='TRAIN';$('training').hidden=true;}
+   if(training.round>=6){const result=finishTraining(session,training.hits,6);$('status').textContent=`Training complete · ${training.hits}/6 hits · +${result.gain} care XP. Cartridge evolution is earned in the game.`;training=null;completedTraining=true;$('train').textContent='TRAIN';$('training').hidden=true;}
    else{$('training').hidden=false;$('train').textContent=`TAP ${training.round}/6`;}
   }else careAction(session,kind==='play'?'spark':kind==='care'?'feed':kind);
   saveSparkSession(localStorage,session);
  });
+ const cue={pet:'blip',play:'burst',train:completedTraining?'levelup':'charge',rest:'faint',care:'confirm'}[kind]||'blip';audioSfx(cue);
+ if(kind==='play'||kind==='train')beastAudio.battle(kind==='play'?1.8:1.2);
  runtime.state=kind==='rest'?'rest':kind==='train'?'train':'celebrate';runtime.until=runtime.T+(kind==='rest'?12:2.6);updatePlate();say(kind==='rest'?'calm':kind==='train'?'focus':'spark',kind==='rest'?'Curling up for a little rest.':kind==='pet'?'A soft pat. We are getting closer.':kind==='care'?'A snack and a little care.':kind==='train'?'Tap in the bright window. Six tries!':'Catch the spark!');
 }
 async function speak(event){event.preventDefault();const text=$('talk-text').value.trim();if(!text)return;await run(async()=>{let reply;await withSparkLock(()=>{session=readSparkSession(localStorage);if(session.beast?.seed!==current.gen.seed)throw Error('Reload the current Beast before talking.');reply=talk(session,text).reply;saveSparkSession(localStorage,session)});runtime.state='listen';runtime.until=runtime.T+3;updatePlate();say('focus',reply);$('talk-reply').textContent=reply;$('talk-text').value='';});}
@@ -158,7 +195,7 @@ async function museClick(){if(!$('consent').checked){$('status').textContent='Ch
 function qvmScenarioForCurrent(){if(!current||!qvmRuns.length)return 1;return 1+(parseInt(current.gen.seed.slice(0,8),16)%8);}
 async function processQvmBatch(row){
  if(!current||!runtime)throw Error('Spark a Beast before replaying the simulator.');
- const metrics=growthFromQvmBatch(row);qvmGrowth=Math.min(1,qvmGrowth+metrics.delta);saveQvmGrowth();runtime.qvmPulseUntil=runtime.T+1.35;runtime.state='celebrate';runtime.until=runtime.T+1.6;runtime.qvmStep++;
+ const metrics=growthFromQvmBatch(row);qvmGrowth=Math.min(1,qvmGrowth+metrics.delta);saveQvmGrowth();runtime.qvmPulseUntil=runtime.T+1.35;runtime.state='celebrate';runtime.until=runtime.T+1.6;runtime.qvmStep++;audioSfx(runtime.qvmStep%3===0?'confirm':'beam');
  updatePlate();say('spark',`Rigetti QVM simulator · scenario ${row.qvm.scenario} · ${row.qvm.phase} processed. Visual growth is now ${Math.round(qvmGrowth*100)}%.`);
  $('status').textContent=`Processed archived Azure-hosted Rigetti QVM simulator job ${row.job_id}. No QPU and no new cloud job was used.`;
  await new Promise(resolve=>setTimeout(resolve,620));
@@ -173,9 +210,21 @@ function browserReact(kind){
  const copy={online:'Browser link is back. I can see this page is online.',offline:'Browser link went offline. I will stay local.',visible:'You came back to my browser habitat.',resize:'My browser habitat changed size. Scooting into the new space.'}[kind];
  if(!copy)return;runtime.state=kind==='offline'?'rest':'listen';runtime.until=runtime.T+2.2;say(kind==='offline'?'calm':'focus',copy);
 }
+function wirePageNavigation(){
+ const buttons=[...document.querySelectorAll('[data-jump]')],sections=[...document.querySelectorAll('[data-section]')];
+ const activate=id=>{for(const button of buttons){const on=button.getAttribute('data-jump')===id;if(on)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');}};
+ const jump=(id,push=true)=>{const targetNode=id&&document.querySelector(id);if(!targetNode)return;targetNode.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'});activate(id);if(push&&history.replaceState)history.replaceState(null,'',id);};
+ for(const button of buttons)button.addEventListener('click',()=>jump(button.getAttribute('data-jump')));
+ if('IntersectionObserver'in window){const observer=new IntersectionObserver(entries=>{const visible=entries.filter(entry=>entry.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];if(visible)activate('#'+visible.target.id);},{rootMargin:'-18% 0px -58% 0px',threshold:[.08,.25,.5]});for(const section of sections)observer.observe(section);}
+ if(location.hash&&document.querySelector(location.hash))requestAnimationFrame(()=>jump(location.hash,false));
+ document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'){const form=$('talk-form');if(form&&!form.hidden){form.hidden=true;$('talk').focus();}}
+  if(event.altKey&&['1','2','3'].includes(event.key)){event.preventDefault();jump(['#habitat','#seed-lab','#bestiary-section'][Number(event.key)-1]);}
+ });
+}
 function loop(prev){const now=performance.now();tick(Math.min(.05,(now-prev)/1000)||.016);requestAnimationFrame(()=>loop(now));}
 async function main(){
- soundWanted=readSoundWanted();updateVoiceButton();
+ soundWanted=readSoundWanted();if(soundWanted)beastAudio.sparkUnmute();else beastAudio.sparkMute();updateVoiceButton();syncAudioUi();wirePageNavigation();
  $('btnote').textContent=bluetoothNote()||'';for(const key of Object.keys(PROFILES)){const opt=document.createElement('option');opt.value=opt.textContent=key;$('profile').append(opt)}$('profile').value='balanced';
  const [index,qvmReceipt]=await Promise.all([
   fetch('/spark/user-seeds-20261004.json').then(r=>r.json()),
@@ -192,10 +241,10 @@ async function main(){
  if(raw){const active=replaySpark(JSON.parse(raw).text,byKey);const saved=await withSparkLock(()=>selectSpark(localStorage,active.gen));showCreature(active.entry,saved,false);}
  else await adopt(bestiary[0]&&byKey.has(bestiary[0].run)?bestiary[0]:starterEntries()[0]);
  window.addEventListener('pointerdown',unlockPreferredSound,{capture:true});window.addEventListener('keydown',unlockPreferredSound,{capture:true});
- $('generate').addEventListener('click',()=>void run(async()=>{surpriseRun();await spark()}));$('regenerate').addEventListener('click',()=>void run(()=>spark()));$('use-profile').addEventListener('click',()=>void run(async()=>{showTraits(simulateStable($('profile').value));await spark('profile')}));$('surprise').addEventListener('click',surpriseRun);$('q').addEventListener('input',searchRuns);$('download').addEventListener('click',download);$('voice').addEventListener('click',()=>void enableVoice());$('drift').addEventListener('click',()=>{drift=!drift;$('drift').classList.toggle('on',drift)});$('muse').addEventListener('click',()=>void museClick());$('stop-muse').addEventListener('click',()=>{muse?.stop();muse=null;$('status').textContent='Muse disconnected. Samples cleared.'});$('qvm-replay').addEventListener('click',()=>void run(()=>replayQvmScenario()));
+ $('generate').addEventListener('click',()=>void run(async()=>{surpriseRun();audioSfx('charge');await spark()}));$('regenerate').addEventListener('click',()=>void run(()=>spark()));$('use-profile').addEventListener('click',()=>void run(async()=>{showTraits(simulateStable($('profile').value));await spark('profile')}));$('surprise').addEventListener('click',()=>{surpriseRun();audioSfx('blip')});$('q').addEventListener('input',searchRuns);$('download').addEventListener('click',download);$('voice').addEventListener('click',()=>void enableVoice());$('music').addEventListener('click',toggleMusic);$('music-volume').addEventListener('input',setMusicVolume);$('drift').addEventListener('click',()=>{drift=!drift;$('drift').classList.toggle('on',drift);audioSfx('blip')});$('muse').addEventListener('click',()=>void museClick());$('stop-muse').addEventListener('click',()=>{muse?.stop();muse=null;$('status').textContent='Muse disconnected. Samples cleared.'});$('qvm-replay').addEventListener('click',()=>void run(()=>replayQvmScenario()));
  for(const k of ['focus','calm','spark'])$(k).addEventListener('input',()=>showTraits(readTraits()));for(const kind of ['pet','play','train','rest','care'])$(kind).addEventListener('click',()=>void run(()=>interaction(kind)));$('view').addEventListener('click',()=>void run(()=>interaction('pet')));$('talk').addEventListener('click',()=>{$('talk-form').hidden=!$('talk-form').hidden;if(!$('talk-form').hidden)$('talk-text').focus()});$('talk-form').addEventListener('submit',speak);
  for(const which of [1,2,3])$(`pick${which}`).addEventListener('click',()=>{stage=which;preview=stage!==session.beast.nativeStage;updatePlate();runtime.state='celebrate';runtime.until=runtime.T+1.5;$('status').textContent='Visual preview only. Your earned native stage and QBEAST progression did not change.'});
- document.addEventListener('visibilitychange',()=>{if(document.hidden&&voiceOn)void audioCtx?.suspend();else{if(voiceOn)void audioCtx?.resume();browserReact('visible');}});
+ document.addEventListener('visibilitychange',()=>{beastAudio.setHidden(document.hidden);if(!document.hidden)browserReact('visible');});
  window.addEventListener('online',()=>browserReact('online'));window.addEventListener('offline',()=>browserReact('offline'));
  let resizeTimer=0;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(Math.abs(innerWidth-lastViewportWidth)>=80){lastViewportWidth=innerWidth;browserReact('resize');}},220);});
  requestAnimationFrame(now=>loop(now));

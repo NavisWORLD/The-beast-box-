@@ -1,52 +1,231 @@
 <!doctype html>
 <html lang="en">
 <head>
- <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
- <meta name="theme-color" content="#0c1228"><title>Spark Beasts · Beast Box</title>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+ <meta name="theme-color" content="#070b18">
+ <meta name="color-scheme" content="dark">
+ <title>Spark Beasts · Beast Box</title>
  <link rel="stylesheet" href="/spark/spark.css">
 </head>
 <body>
- <header class="top"><div><p class="eyebrow">BEAST BOX · PUBLIC SPARK</p><h1>Spark Beasts</h1></div><nav aria-label="Spark navigation"><a href="/beast-cage">Beast Cage</a><a href="/beast-cage/play">Adventure</a></nav></header>
+ <a class="skip-link" href="#habitat">Skip to your Beast</a>
+ <header class="top" id="top">
+  <a class="spark-brand" href="/" aria-label="Beast Box home">
+   <span class="spark-mark" aria-hidden="true">✺</span>
+   <span><b>BEAST BOX</b><small>SPARK BEASTS · PUBLIC GAME</small></span>
+  </a>
+  <nav class="route-nav" aria-label="Beast Box journey">
+   <a href="/spark/index.html" aria-current="page">Spark</a>
+   <a href="/beast-cage">Cage</a>
+   <a href="/beast-cage/go">Field</a>
+   <a href="/sol-game">Lost Cosmos</a>
+   <a href="/">Home</a>
+  </nav>
+ </header>
+
+ <section class="journey" aria-label="Current companion route">
+  <span class="journey-title">ONE BEAST · ONE IDENTITY</span>
+  <ol>
+   <li class="current"><b>01</b><span>SPARK</span></li>
+   <li><b>02</b><a href="/beast-cage">CARE</a></li>
+   <li><b>03</b><a href="/beast-cage/go">FIELD</a></li>
+   <li><b>04</b><a href="/sol-game">GBA</a></li>
+  </ol>
+ </section>
+
+ <nav class="section-nav" aria-label="Spark page sections">
+  <button type="button" data-jump="#habitat" aria-current="page">Companion</button>
+  <button type="button" data-jump="#seed-lab">Seed lab</button>
+  <button type="button" data-jump="#bestiary-section">Bestiary</button>
+  <a class="play-chip" href="/sol-game">Play GBA 🎮</a>
+ </nav>
+
  <main>
-  <section class="stage-wrap" aria-label="Active creature habitat">
-   <div class="plate"><div><strong id="nameplate">Opening your habitat…</strong><span id="form">STAGE I</span></div><button type="button" id="voice" aria-pressed="true">🔊 SOUND READY</button></div>
-   <p id="meta" class="hint"></p>
-   <div class="habitat"><span class="habitat-tag">LOCAL HABITAT</span><canvas id="view" width="400" height="320" aria-label="Your interactive Spark Beast" role="img"></canvas><p id="bubble" class="bubble" hidden></p></div>
-   <div class="speech"><span id="mood">Waking up</span><p id="line" role="status">A little companion, ready to explore.</p></div>
-   <div class="interactions" role="group" aria-label="Care for your Beast"><button type="button" id="pet">PET</button><button type="button" id="play">PLAY</button><button type="button" id="train">TRAIN</button><button type="button" id="rest">REST</button><button type="button" id="talk">TALK</button><button type="button" id="care">CARE</button></div>
-   <div id="training" hidden><p class="hint">Tap TRAIN in the bright window. Six tries.</p><div class="training-bar"><i></i><b id="train-mark"></b></div></div>
-   <form id="talk-form" hidden><label for="talk-text">Talk to your game companion</label><div class="row"><input id="talk-text" maxlength="400" autocomplete="off" placeholder="Hello, little beast…"><button type="submit">SEND</button></div><p id="talk-reply" role="status"></p><small class="hint">On-device pattern replies. No model or microphone needed.</small></form>
-   <p id="care-stats" class="stats">Care XP 0 · Bond 1 · Energy 100</p>
-   <button type="button" id="generate" class="primary generate">GENERATE NEW BEAST ⚛</button>
-   <div class="provenance"><p id="quantum">RECORDED QUANTUM SEED</p><code id="identity"></code></div>
-   <div class="destinations"><a class="button" href="/beast-cage#customize">CARE IN BEAST BOX</a><a class="button primary" id="lost-cosmos" href="/sol-game">PLAY IN LOST COSMOS 🎮</a></div>
-   <p id="status" role="status">Sound is enabled by default and starts on your first tap or keypress, as required by mobile browsers. Your saved identity stays on this device.</p>
-   <details><summary>Stage previews · I / II / III</summary><p class="hint">Visual previews only. LOST COSMOS owns earned cartridge evolution.</p><div class="stage-picks"><button type="button" id="pick1" aria-pressed="true">Stage I</button><button type="button" id="pick2" aria-pressed="false">Stage II</button><button type="button" id="pick3" aria-pressed="false">Stage III</button></div><div class="evol-grid"><figure><canvas id="st1"></canvas><figcaption id="nm1"></figcaption></figure><figure><canvas id="st2"></canvas><figcaption id="nm2"></figcaption></figure><figure><canvas id="st3"></canvas><figcaption id="nm3"></figcaption></figure></div></details>
-  </section>
-  <section class="panel" aria-label="Generator settings">
-   <details class="recipe"><summary>Signal &amp; seed lab</summary>
-    <h2>Signal drives</h2><p class="hint">A simulated signal works without sensors. Change drives to hear and see mood responses; regenerate to make a new genome.</p>
-    <label>Simulated headband<select id="profile"></select></label><button type="button" id="use-profile">Generate from this profile</button>
-    <label>Focus <input id="focus" type="range" min="0" max="100" value="30"><b id="vfocus">30</b></label>
-    <label>Calm <input id="calm" type="range" min="0" max="100" value="30"><b id="vcalm">30</b></label>
-    <label>Spark <input id="spark" type="range" min="0" max="100" value="20"><b id="vspark">20</b></label>
-    <p id="bucket" class="hint"></p><label>Keeper label · optional<input id="keeper" maxlength="24" autocomplete="off" placeholder="public game label"></label><button type="button" id="drift">Drift simulated signal</button>
-    <h2>Recorded quantum / simulator seed</h2><p id="totals" class="hint"></p><label>Find a recorded job<input id="q" placeholder="ibm_fez, rigetti-qvm, or job ID"></label><label>Run<select id="run"></select></label><div class="row"><button type="button" id="surprise">Choose another seed</button><button type="button" id="regenerate">Regenerate this recipe</button></div>
-    <p id="provenance" class="hint"></p><p class="seed">Genome seed <code id="seed"></code></p>
-    <div class="qvm-lab">
-      <h2>Rigetti QVM simulation growth</h2>
-      <p class="hint">Process one complete archived Azure-hosted Rigetti QVM scenario: 3 simulator jobs, 256 recorded shots total. The actual recorded counts drive browser-local size, glow and reaction FX. This is simulator data, not a QPU run, and it does not fake native evolution.</p>
-      <button type="button" id="qvm-replay">PROCESS 3 QVM SIM BATCHES ⚛</button>
-      <div class="growth-meter" role="progressbar" aria-label="Rigetti simulator visual growth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="qvm-growth-bar"></i></div>
-      <p id="qvm-growth" class="qvm-growth">SIM GROWTH 0% · browser-local · native stage unchanged</p>
+  <section class="stage-wrap" id="habitat" data-section="habitat" aria-label="Active creature habitat">
+   <div class="habitat-head">
+    <div>
+     <p class="eyebrow">ACTIVE QBEAST · LOCAL COMPANION</p>
+     <div class="plate"><div><strong id="nameplate">Opening your habitat…</strong><span id="form">STAGE I</span></div></div>
+     <p id="meta" class="hint"></p>
     </div>
-    <h2>Optional Muse headband</h2><label class="check"><input id="consent" type="checkbox"> I consent to derived focus, calm and spark on this device. Raw samples are discarded. Not a medical measurement.</label><p id="btnote" class="hint"></p><div class="row"><button type="button" id="muse">Connect Muse</button><button type="button" id="stop-muse">Disconnect</button></div>
+    <div class="sound-stack" aria-label="Creature audio controls">
+     <button type="button" id="voice" aria-pressed="true">🔊 SOUND READY</button>
+     <button type="button" id="music" aria-pressed="true">♫ MUSIC ON</button>
+    </div>
+   </div>
+
+   <div class="habitat">
+    <div class="habitat-stars" aria-hidden="true"></div>
+    <span class="habitat-tag">LIVE PIXEL HABITAT</span>
+    <span class="habitat-status"><i></i> LOCAL · SAFE · SAVED</span>
+    <canvas id="view" width="400" height="320" aria-label="Your interactive Spark Beast" role="img"></canvas>
+    <p id="bubble" class="bubble" hidden></p>
+   </div>
+
+   <div class="speech">
+    <span id="mood">Waking up</span>
+    <p id="line" role="status">A little companion, ready to explore.</p>
+   </div>
+
+   <div class="interactions" role="group" aria-label="Care for your Beast">
+    <button type="button" id="pet"><span>♡</span>PET</button>
+    <button type="button" id="play"><span>✦</span>PLAY</button>
+    <button type="button" id="train"><span>⚡</span>TRAIN</button>
+    <button type="button" id="rest"><span>☾</span>REST</button>
+    <button type="button" id="talk"><span>◌</span>TALK</button>
+    <button type="button" id="care"><span>✚</span>CARE</button>
+   </div>
+
+   <div class="audio-strip">
+    <div>
+     <strong>CREATURE AUDIO</strong>
+     <span id="audio-state">Wakes on your first tap · synthesized locally</span>
+    </div>
+    <label for="music-volume">Music
+     <input id="music-volume" type="range" min="0" max="100" step="5" value="50" aria-label="Spark Beast music volume">
+    </label>
+   </div>
+
+   <div id="training" hidden>
+    <p class="hint">Tap TRAIN in the bright window. Six tries.</p>
+    <div class="training-bar"><i></i><b id="train-mark"></b></div>
+   </div>
+
+   <form id="talk-form" class="talk-card" hidden>
+    <label for="talk-text">Talk to your game companion</label>
+    <div class="row"><input id="talk-text" maxlength="400" autocomplete="off" placeholder="Hello, little beast…"><button type="submit">SEND</button></div>
+    <p id="talk-reply" role="status"></p>
+    <small class="hint">On-device pattern reply here. Rich guest-model talk lives in Beast Cage / Lost Cosmos.</small>
+   </form>
+
+   <div class="stats-row">
+    <p id="care-stats" class="stats">Care XP 0 · Bond 1 · Energy 100</p>
+    <a href="/beast-cage">Open full care →</a>
+   </div>
+
+   <button type="button" id="generate" class="primary generate">GENERATE NEW BEAST ⚛</button>
+
+   <div class="identity-card">
+    <div class="provenance"><p id="quantum">RECORDED QUANTUM SEED</p><code id="identity"></code></div>
+    <p class="identity-note">Appearance, care and QBEAST identity stay together. Native evolution is still earned in LOST COSMOS.</p>
+   </div>
+
+   <div class="destinations">
+    <a class="button" href="/beast-cage#customize"><span>02</span> CARE IN BEAST BOX</a>
+    <a class="button" href="/beast-cage/go"><span>03</span> OPEN FIELD</a>
+    <a class="button primary" id="lost-cosmos" href="/sol-game"><span>04</span> PLAY IN LOST COSMOS 🎮</a>
+   </div>
+
+   <p id="status" role="status">Sound is ready and begins only after your first interaction, as required by mobile browsers. Your saved identity stays on this device.</p>
+
+   <details class="stage-preview">
+    <summary>Preview evolution forms · I / II / III</summary>
+    <p class="hint">Visual previews only. LOST COSMOS owns earned cartridge evolution.</p>
+    <div class="stage-picks">
+     <button type="button" id="pick1" aria-pressed="true">Stage I</button>
+     <button type="button" id="pick2" aria-pressed="false">Stage II</button>
+     <button type="button" id="pick3" aria-pressed="false">Stage III</button>
+    </div>
+    <div class="evol-grid">
+     <figure><canvas id="st1"></canvas><figcaption id="nm1"></figcaption></figure>
+     <figure><canvas id="st2"></canvas><figcaption id="nm2"></figcaption></figure>
+     <figure><canvas id="st3"></canvas><figcaption id="nm3"></figcaption></figure>
+    </div>
    </details>
-   <h2>Keep your little beast</h2><p class="hint">Same seed. Same QBEAST. Your care, name and pattern chat stay in this browser across Beast Box pages.</p><button type="button" id="download">Download .qbeast</button>
-   <details class="honest" id="honest"><summary>Recorded seeds · real game, clear limits</summary><p>A beast is a game companion created locally from derived traits plus a recorded count distribution. IBM entries are fixed past hardware-job seeds: they are not live quantum computation, entanglement or quantum advantage. Rigetti entries are archived Azure-hosted QVM simulator outputs and are explicitly not QPU measurements. No button here submits a new cloud job or proves quantum advantage. Beasts are game software, not conscious, and this is not a medical device.</p><p>Sound and reaction FX are synthesized on this device after your tap. Browser habitat awareness is limited to this page's visibility, connectivity state and viewport size; it does not crawl arbitrary sites or gain host authority. Browser care / simulator growth remain separate from earned native LOST COSMOS evolution.</p></details>
   </section>
+
+  <aside class="panel" id="seed-lab" data-section="seed-lab" aria-label="Generator settings">
+   <div class="panel-head">
+    <p class="eyebrow">GENOME CONSOLE</p>
+    <h2>Signal + seed lab</h2>
+    <p class="hint">The companion works without sensors. Tune drives, pick an approved recorded seed, or leave everything alone and just play.</p>
+   </div>
+
+   <details class="recipe" open>
+    <summary>Signal drives</summary>
+    <label>Simulated headband<select id="profile"></select></label>
+    <button type="button" id="use-profile">Generate from this profile</button>
+
+    <div class="drive-grid">
+     <label>Focus <span><input id="focus" type="range" min="0" max="100" value="30"><b id="vfocus">30</b></span></label>
+     <label>Calm <span><input id="calm" type="range" min="0" max="100" value="30"><b id="vcalm">30</b></span></label>
+     <label>Spark <span><input id="spark" type="range" min="0" max="100" value="20"><b id="vspark">20</b></span></label>
+    </div>
+    <p id="bucket" class="hint"></p>
+    <label>Keeper label · optional<input id="keeper" maxlength="24" autocomplete="off" placeholder="public game label"></label>
+    <button type="button" id="drift">Drift simulated signal</button>
+   </details>
+
+   <details class="recipe" open>
+    <summary>Recorded quantum / simulator seed</summary>
+    <p id="totals" class="hint"></p>
+    <label>Find a recorded job<input id="q" placeholder="ibm_fez, rigetti-qvm, or job ID"></label>
+    <label>Run<select id="run"></select></label>
+    <div class="row"><button type="button" id="surprise">Choose another seed</button><button type="button" id="regenerate">Regenerate recipe</button></div>
+    <p id="provenance" class="hint"></p>
+    <p class="seed">Genome seed <code id="seed"></code></p>
+   </details>
+
+   <div class="qvm-lab">
+    <div class="lab-title"><span>SIM FX</span><h2>Rigetti QVM growth</h2></div>
+    <p class="hint">Replay one archived Azure-hosted Rigetti QVM scenario: 3 simulator jobs, 256 recorded shots total. This is simulator data, not a QPU run. It changes browser-local size, glow and reaction FX — never native evolution.</p>
+    <button type="button" id="qvm-replay">PROCESS 3 QVM SIM BATCHES ⚛</button>
+    <div class="growth-meter" role="progressbar" aria-label="Rigetti simulator visual growth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="qvm-growth-bar"></i></div>
+    <p id="qvm-growth" class="qvm-growth">SIM GROWTH 0% · browser-local · native stage unchanged</p>
+   </div>
+
+   <details class="recipe">
+    <summary>Optional Muse headband</summary>
+    <label class="check"><input id="consent" type="checkbox"> I consent to derived focus, calm and spark on this device. Raw samples are discarded. Not a medical measurement.</label>
+    <p id="btnote" class="hint"></p>
+    <div class="row"><button type="button" id="muse">Connect Muse</button><button type="button" id="stop-muse">Disconnect</button></div>
+   </details>
+
+   <section class="keep-card">
+    <p class="eyebrow">TAKE IT WITH YOU</p>
+    <h2>Keep your little beast</h2>
+    <p class="hint">Same seed. Same QBEAST. Care, name and local game state stay linked across Beast Box surfaces.</p>
+    <button type="button" id="download">Download .qbeast</button>
+   </section>
+
+   <details class="honest" id="honest">
+    <summary>What is real here?</summary>
+    <p>A beast is game software created locally from derived traits plus a recorded count distribution. IBM entries are fixed past hardware-job seeds: this is not live quantum computation, entanglement or quantum advantage. Rigetti entries are archived Azure-hosted QVM simulator outputs and are not QPU measurements. Beasts are not conscious, and this is not a medical device.</p>
+    <p>Creature sound, procedural music and reaction FX are synthesized on this device after a user gesture. Browser habitat awareness is limited to this page's visibility, connectivity state and viewport size; it does not crawl arbitrary sites or gain host authority.</p>
+   </details>
+  </aside>
  </main>
- <section class="gallery"><h2>Your bestiary</h2><p class="hint">Saved companions appear first, followed by deterministic representatives across the body and island families so the roster is not six copies of the same silhouette.</p><div id="bestiary" class="grid"></div></section>
- <footer><p>SPARK → QBEAST → BEAST CAGE → LOST COSMOS → NATIVE GBA. Game identity stays separate from COSMOS memory and authority.</p></footer>
+
+ <section class="gallery" id="bestiary-section" data-section="bestiary">
+  <div class="gallery-head">
+   <div><p class="eyebrow">YOUR LOCAL ROSTER</p><h2>Bestiary</h2></div>
+   <a href="/beast-cage">Manage in Beast Cage →</a>
+  </div>
+  <p class="hint">Saved companions appear first, followed by deterministic representatives across body and island families.</p>
+  <div id="bestiary" class="grid"></div>
+ </section>
+
+ <section class="next-route" aria-label="Continue your Beast journey">
+  <div><span>01</span><small>YOU ARE HERE</small><strong>Spark a Beast</strong></div>
+  <a href="/beast-cage"><span>02</span><small>NEXT</small><strong>Care + customize</strong></a>
+  <a href="/beast-cage/go"><span>03</span><small>EXPLORE</small><strong>Open the field</strong></a>
+  <a href="/sol-game"><span>04</span><small>PLAY</small><strong>Enter LOST COSMOS</strong></a>
+ </section>
+
+ <footer>
+  <p>SPARK → QBEAST → BEAST CAGE → LOST COSMOS → NATIVE GBA</p>
+  <nav aria-label="Footer navigation"><a href="/">Home</a><a href="/beast-cage">Cage</a><a href="/beast-cage/go">Field</a><a href="/sol-game">GBA</a><a href="#top">Top ↑</a></nav>
+  <small>Game identity stays separate from COSMOS memory and authority.</small>
+ </footer>
+
+ <nav class="mobile-nav" aria-label="Mobile Spark navigation">
+  <button type="button" data-jump="#habitat">Beast</button>
+  <button type="button" data-jump="#seed-lab">Lab</button>
+  <button type="button" data-jump="#bestiary-section">Roster</button>
+  <a href="/sol-game">GBA 🎮</a>
+ </nav>
+
  <script type="module" src="/spark/app.mjs"></script>
-</body></html>
+</body>
+</html>

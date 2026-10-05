@@ -406,3 +406,16 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 @media(prefers-reduced-motion:reduce){
  .cosmos-home-hero>.cosmic-creature3d{animation:none!important}
 }
+
+
+/* Public journey navigation shared by the landing header. */
+.public-header{flex-wrap:wrap}
+.public-journey-links{display:flex;align-items:center;justify-content:center;gap:4px;padding:5px;border:1px solid #94b1df26;border-radius:999px;background:#111a31a6;backdrop-filter:blur(14px)}
+.public-journey-links a{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:7px 11px;border-radius:999px;color:#aebbd7;font:700 10px 'Space Grotesk',sans-serif;letter-spacing:.06em}
+.public-journey-links a:hover,.public-journey-links a:focus-visible{background:#1f3150;color:#ebfbff}
+@media(max-width:1120px){.public-header .pill{display:none}}
+@media(max-width:700px){
+ .public-header{align-items:center;gap:10px 14px}
+ .public-journey-links{order:3;width:100%;justify-content:space-between;border-radius:14px;overflow-x:auto}
+ .public-journey-links a{flex:1;min-width:58px;padding-inline:7px}
+}

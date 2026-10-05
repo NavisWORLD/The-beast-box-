@@ -10,6 +10,9 @@ test('owner-only runtime and stateless guest remain separate from public cage',(
  assert.match(studio,/onContext=\{updateLiveContext\}/);
  assert.match(read('app/beast-cage/page.tsx'),/BeastCagePortal/);
  assert.match(home,/href="\/beast-cage"/);
+ assert.match(home,/className="public-journey-links"/);
+ assert.match(home,/href="\/spark\/index\.html"/);
+ assert.match(home,/href="\/sol-game"/);
  assert.match(home,/href="\/research"/);
  assert.match(read('app/try/page.tsx'),/guest_stateless/);
 });
