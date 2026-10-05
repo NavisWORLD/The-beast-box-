@@ -39,12 +39,11 @@ test('browser spark matches the Python golden genome and QBEAST1 bytes', () => {
 
 test('public spark page states the honesty boundary and links the game', () => {
   const html = read('apps/beastbox-cloud/public/spark/index.html');
-  assert.match(html, /no live quantum link and no entanglement/);
+  assert.match(html, /not live quantum computation, entanglement or quantum advantage/);
   assert.match(html, /not a medical device/);
   assert.match(html, /not conscious/);
-  assert.match(html, /href="\/beast-cage\/go"/);
-  assert.match(html, /Play in Lost COSMOS/);
-  assert.doesNotMatch(html, /Play in Living Universe|SIM_EARTH_7_08_REALITY_BODY|navisworld\.github\.io\/Cosmic-synapse/);
+  assert.match(html, /id="lost-cosmos" href="\/sol-game"/);
+  assert.doesNotMatch(html,/Play in Living Universe|SIM_EARTH|Pocket Reality/);
   assert.match(html, /Download \.qbeast/);
   assert.match(read('apps/beastbox-cloud/app/page.tsx'), /href="\/spark\/index.html"/);
   assert.match(read('apps/beastbox-cloud/next.config.ts'), /source: '\/spark'/);

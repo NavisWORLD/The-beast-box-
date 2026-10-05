@@ -4,6 +4,8 @@ import { usePathname } from 'next/navigation';
 import type { CreatureProfile } from '../lib/creature-profile';
 import { modeFor } from '../lib/companion/gba-dock.mjs';
 import css from './lost-cosmos-dock.module.css';
+import SolSparkPlayer from './sol-spark-player';
+import {useBeastSession} from './beast-session';
 
 type WindowEmu = Window & {
   EJS_player?: string;
@@ -18,6 +20,8 @@ type WindowEmu = Window & {
 
 export default function LostCosmosDock({ creature }: { creature?: CreatureProfile | null }) {
   const pathname = usePathname() || '/';
+  const {session}=useBeastSession();
+  const spark=!!creature&&!!session?.beast?.qbeast&&session.beast.qbeast.profile.id===creature.id;
   const mode = modeFor(pathname);
   const [expanded, setExpanded] = useState(false);
   const [closed, setClosed] = useState(false);
@@ -97,8 +101,8 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
       </div>
     </div>
     <div className={css.screen}>
-      <div id="lost-cosmos-screen" />
-      {!booted && shown ? <div className={css.poster}>
+      {spark?<SolSparkPlayer compact active={shown&&!closed}/>:<div id="lost-cosmos-screen" /> }
+      {!spark && !booted && shown ? <div className={css.poster}>
         <p>{readyText}</p>
         <button type="button" onClick={play}>Play V11.2 Spark</button>
       </div> : null}

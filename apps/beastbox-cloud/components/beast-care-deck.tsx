@@ -8,6 +8,9 @@ import { buildGenome } from '../lib/companion/spark/genome.mjs';
 import runs from '../lib/companion/spark/runs.json';
 import { useBeastSession } from './beast-session';
 import PixelBeast from './pixel-beast';
+import {serializeQbeast} from '../public/spark/qbeast.mjs';
+import {replaySpark,selectSpark,withSparkLock} from '../public/spark/identity.mjs';
+import {loadSparkRuns} from '../public/spark/runs.mjs';
 import WeightGrid from './weight-grid';
 import css from './beast-care-deck.module.css';
 
@@ -35,6 +38,7 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
   const mind = session?.mind;
 
   function meet() {
+    if(beast?.qbeast){window.location.href='/spark/index.html';return;}
     const run = recorded[0];
     const genome = buildGenome({ focus: 40, calm: 40, spark: 20 }, run, null);
     change((draft) => { adoptBeast(draft, genome, name || 'Moss'); });
@@ -75,13 +79,14 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
   function saveQbeast() {
     if (!beast) return;
     const notes = (session?.chat || []).map((turn: { role: string; text: string }) => `${turn.role}: ${turn.text}`);
-    const text = exportQbeast(beast.genome, session?.mind, beast.xp, notes);
+    const text = beast.qbeast?serializeQbeast(beast.qbeast):exportQbeast(beast.genome, session?.mind, beast.xp, notes);
     download(text, `${shownName(beast)}.qbeast`, 'application/json');
-    setStatus('Exported a QBEAST1 file with pattern memory and this chat. Host progress stays zero so the file verifies without a signing key.');
+    setStatus(beast.qbeast?'Exported this exact verified Spark identity. Care and pattern chat remain in this browser.':'Exported a QBEAST1 file with pattern memory and this chat. Host progress stays zero so the file verifies without a signing key.');
   }
 
   function saveLcx1() {
     if (!beast) return;
+    if(beast.qbeast){window.location.href='/sol-game';return;}
     download(exportLcx1(beast.genome, beast.xp), `${shownName(beast)}.sav`, 'application/octet-stream');
     window.dispatchEvent(new CustomEvent('beastbox:lcx1-ready'));
     setStatus('Exported an LCX1 mailbox inside a Lost Cosmos SRAM save, with LCG1 growth for the earned experience.');
@@ -91,10 +96,12 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
     const item = list?.[0];
     if (!item) return;
     try {
+      if(item.size>524288)throw Error('Choose a public creature file under 512 KB.');
       const bytes = new Uint8Array(await item.arrayBuffer());
       const head = String.fromCharCode(...bytes.subarray(0, 4));
       const mailbox = bytes.length > 24836 ? String.fromCharCode(...bytes.subarray(24832, 24836)) : '';
       if (head === 'LCX1' || mailbox === 'LCX1') {
+        if(beast?.qbeast){window.location.assign('/sol-game');return;}
         const cage = importLcx1(bytes);
         const genome = buildGenome({ focus: cage.focus, calm: cage.calm, spark: cage.spark }, recorded[0], null);
         change((draft) => {
@@ -107,7 +114,16 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
         setStatus(`Imported LCX1 traits. Experience ${cage.xp}, stage ${stageFromXp(cage.xp)}. The sprite was rebuilt from those traits and a recorded quantum run.`);
         return;
       }
-      const imported = importQbeast(new TextDecoder().decode(bytes));
+      const text=new TextDecoder().decode(bytes),snapshot=JSON.parse(text);
+      if(snapshot.events?.[0]?.payload?.source_ref==='public:spark-beasts'){
+        const runs=await loadSparkRuns();
+        const replay=replaySpark(text,new Map(runs.map(run=>[run.key,run])));
+        await withSparkLock(()=>selectSpark(localStorage,replay.gen,{snapshot:replay.snapshot}));
+        window.dispatchEvent(new Event('beastbox:spark-session'));
+        window.dispatchEvent(new CustomEvent('beastbox:genesis-selected',{detail:replay.snapshot.profile}));
+        setStatus('Restored the exact Spark identity and its saved care state.');return;
+      }
+      const imported = importQbeast(text);
       const run = recorded.find((entry) => entry.key === imported.card.run) || recorded[0];
       const genome = buildGenome(imported.card.traits, run, null);
       change((draft) => {
@@ -134,10 +150,10 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
   return <section className={css.deck} aria-label="Shared beast care">
     <span className={css.flag}>ON THIS DEVICE · SHARED CARE</span>
     <h2>Name it. Feed it. <em>Let it learn.</em></h2>
-    <p className={css.lede}>Stage 2 arrives at 40 XP and stage 3 at 120 XP. Bond, chat, and pattern weights stay in this browser and in the .qbeast export. The RAWRPHØS guest panel above is a separate stateless model. These Hebbian weights are the on-device substrate. A selected Brain Bay model is not trained by the pet dragon.</p>
+    <p className={css.lede}>{beast?.qbeast?'Care XP and bond follow this exact QBEAST. Native evolution is earned in LOST COSMOS.':'Stage 2 arrives at 40 XP and stage 3 at 120 XP.'} {beast?.qbeast?'Bond, chat, and pattern weights stay in this browser. The .qbeast preserves the verified identity.':'Bond, chat, and pattern weights stay in this browser and in the .qbeast export.'} The RAWRPHØS guest panel above is a separate stateless model. These Hebbian weights are the on-device substrate. A selected Brain Bay model is not trained by the pet dragon.</p>
     {!ready || !session ? <p className={css.note}>Opening the local save…</p> : <div className={css.grid}>
       {sprite ? <div className={css.stage}>
-        {beast ? <PixelBeast genome={beast.genome} stage={beast.stage} pose={beast.mood === 'sleep' ? 'emote' : beast.mood === 'evolve' ? 'emote' : 'idle'} emote={beast.mood === 'sleep' ? 'sleep' : beast.mood === 'evolve' ? 'evolve' : beast.mood === 'happy' ? 'happy' : 'watch'} label={`${shownName(beast)}, stage ${beast.stage}, ${beast.mood}`} /> : <p className={css.note}>No beast in this save yet.</p>}
+        {beast ? <PixelBeast publicSpark={!!beast.qbeast} genome={beast.genome} stage={beast.stage} pose={beast.mood === 'sleep' ? 'emote' : beast.mood === 'evolve' ? 'emote' : 'idle'} emote={beast.mood === 'sleep' ? 'sleep' : beast.mood === 'evolve' ? 'evolve' : beast.mood === 'happy' ? 'happy' : 'watch'} label={`${shownName(beast)}, stage ${beast.stage}, ${beast.mood}`} /> : <p className={css.note}>No beast in this save yet.</p>}
         <span className={css.caption}>{beast ? shownName(beast).toUpperCase() : 'WAITING'}</span>
       </div> : null}
       <div className={css.panel}>

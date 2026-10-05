@@ -43,14 +43,14 @@ test('exact public source archive and server release marker are present',()=>{
  for(const name of ['beast_companion.h','beast_companion.c','example_gba.c','README.md','AGENTS.md'])
   assert.ok(read('public/gba-module/'+name).length>120,name);
  const api=read('app/api/gba-release/route.ts');
- assert.match(api,/beast-cage-lost-cosmos-pr31-2e600160-20261004/);
- assert.match(api,/2e600160937943d3cafcf27e88a0474ba6aba43d/);
+ assert.match(api,/beast-cage-lost-cosmos-spark-alive-20261004/);
+ assert.match(api,/5dd5ea0081ef61922f0a7b4b394736c9ac321629/);
  assert.match(api,/same_cage_transfer:true/);
  assert.match(api,/persistent-gba-player/);
  assert.match(api,/shared-spark-care-ledger/);
  assert.match(api,/guest_contains_private_memory:false/);
  assert.match(api,/hardware_tested:false/);
- assert.ok(api.includes("lost_cosmos_page:'/beast-cage/go'"));
+ assert.match(api,/lost_cosmos_page:.*arcade\/sol-spark-gate\//);
  assert.ok(api.includes("rom_url:'/api/gba-rom'"));
  assert.match(api,/sim_earth_embedded:false/);
  const c=read('public/gba-module/beast_companion.c');
@@ -65,7 +65,7 @@ test('Quantum Beast bridge launches the same portable identity into current Lost
  assert.match(transfer,/PLAY THIS BEAST IN LOST COSMOS/);
  assert.match(transfer,/lostCosmosShareUrl/);
  assert.match(transfer,/window\.location\.assign\(url\)/);
- assert.match(bridge,/2e600160937943d3cafcf27e88a0474ba6aba43d/);
+ assert.match(bridge,/5dd5ea0081ef61922f0a7b4b394736c9ac321629/);
  assert.match(bridge,/beastbox-lost-cosmos-transfer-v1/);
  assert.match(bridge,/LCSHARE1/);
  assert.match(bridge,/origin:'beast'/);
@@ -75,9 +75,9 @@ test('Quantum Beast bridge launches the same portable identity into current Lost
 test('public Spark game path points to Lost COSMOS and never the retired SIM world',()=>{
  const page=read('public/spark/index.html');
  const bridge=read('../../packages/quantum-beast/src/lost_cosmos.ts');
- assert.match(page,/Play in Lost COSMOS/);
- assert.match(page,/href="\/beast-cage\/go"/);
+ assert.match(page,/PLAY IN LOST COSMOS/);
+ assert.match(page,/href="\/sol-game"/);
  assert.doesNotMatch(page,/Play in Living Universe|SIM_EARTH_7_08_REALITY_BODY|navisworld\.github\.io\/Cosmic-synapse/);
- assert.match(bridge,/LOST_COSMOS_URL='\/beast-cage\/go'/);
- assert.doesNotMatch(bridge,/SIM_EARTH|navisworld\.github\.io/);
+ assert.match(bridge,/LOST_COSMOS_URL=.*arcade\/lost-cosmos\/synapse\.html/);
+ assert.doesNotMatch(bridge,/SIM_EARTH|Pocket Reality|standalone\//);
 });

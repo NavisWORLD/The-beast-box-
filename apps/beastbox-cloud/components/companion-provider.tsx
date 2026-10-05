@@ -169,6 +169,7 @@ export default function CompanionProvider({children}:{children:ReactNode}){
  const toggleSound=()=>{
   setSoundEnabled(current=>{
    const next=!current;
+   if(!next)window.dispatchEvent(new Event('beastbox:spark-mute'));
    if(next){
     window.dispatchEvent(new CustomEvent('beastbox:spark-chirp',{detail:{channel:'roamer',intensity:.62}}));
    }
@@ -181,9 +182,8 @@ export default function CompanionProvider({children}:{children:ReactNode}){
   <BeastSessionProvider>
   {children}
   <LostCosmosDock creature={profile} />
-  </BeastSessionProvider>
   {showPublic?<aside data-companion-overlay="true" data-pet-dragon="true" className={styles.shell+(!canShow?' '+styles.parked:'')}
-    aria-label="Pet dragon game habitat" data-companion-state={state}
+    aria-label="Cosmic companion game habitat" data-companion-state={state}
     data-roaming={canShow&&!parked?'active':'parked'}
     style={canShow&&spot?{left:spot.left,top:spot.top,width:spot.width}:undefined}>
     <div className={styles.toolbar}>
@@ -216,5 +216,6 @@ export default function CompanionProvider({children}:{children:ReactNode}){
         'Classical seeded companion movement; not measured intelligence or live sensory input'}
     </span>
    </aside>:null}
+  </BeastSessionProvider>
  </Context.Provider>;
 }

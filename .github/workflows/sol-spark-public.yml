@@ -1,0 +1,58 @@
+name: Sol Spark mobile and native identity
+on:
+  pull_request:
+    paths: ['apps/beastbox-cloud/**', 'packages/quantum-beast/**', '.github/workflows/sol-spark-public.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-game:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Existing tests, TypeScript and production build
+        working-directory: apps/beastbox-cloud
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+          npm run typecheck
+          npm run build
+      - uses: actions/checkout@v4
+        with:
+          repository: NavisWORLD/Cosmic-synapse-the-living-universe-sim-engine-
+          ref: 5dd5ea0081ef61922f0a7b4b394736c9ac321629
+          path: native-game
+          persist-credentials: false
+      - name: Build the pinned current native game and install Chromium
+        run: |
+          sudo apt-get update && sudo apt-get install -y clang lld llvm
+          (cd native-game && bash scripts/build-lost-cosmos-arcade.sh)
+          npm install --prefix /tmp/sol-browser --no-save --ignore-scripts playwright@1.62.1
+          /tmp/sol-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Real phone widths, sound gesture, navigation, QBEAST and GBA handoff
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          (cd apps/beastbox-cloud && npm run start -- --port 3000) > /tmp/sol-next.log 2>&1 &
+          next_pid=$!
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory native-game > /tmp/sol-native.log 2>&1 &
+          game_pid=$!
+          trap 'kill "$next_pid" "$game_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 45); do if curl --fail --silent http://127.0.0.1:3000/spark/index.html > /dev/null; then break; fi; sleep 1; done
+          NODE_PATH=/tmp/sol-browser/node_modules node apps/beastbox-cloud/tests/spark-mobile.cjs http://127.0.0.1:3000 /tmp/sol-evidence/mobile
+          NODE_PATH=/tmp/sol-browser/node_modules node apps/beastbox-cloud/tests/spark-handoff.cjs http://127.0.0.1:3000 /tmp/sol-evidence/handoff http://127.0.0.1:8765
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sol-spark-mobile-native-${{ github.sha }}
+          path: |
+            /tmp/sol-evidence/
+            /tmp/sol-next.log
+            /tmp/sol-native.log
+          retention-days: 30
