@@ -3,3 +3,10 @@
 @media(max-width:800px){main{grid-template-columns:1fr}.top{align-items:start}.top nav{padding-top:3px;gap:6px;flex-direction:column}.stage-wrap,.panel{padding:12px}.interactions{grid-template-columns:repeat(3,minmax(0,1fr))}.interactions button{font-size:.74rem}.plate strong{font-size:1.15rem}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.speech{min-height:69px}.panel{margin-top:0}#meta{margin:8px 0;font-size:.72rem}}
 @media(max-width:350px){.top,main,.gallery,footer{width:calc(100% - 20px)}.top{gap:6px}.top nav{font-size:.72rem}.eyebrow{font-size:.58rem}h1{font-size:1.85rem}.plate strong{font-size:1rem}.destinations a{font-size:.61rem}.stats{font-size:10px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto;animation:none!important;transition:none!important}}
+
+.qvm-lab{margin-top:14px;padding:12px;border:1px solid #35527f;border-radius:12px;background:linear-gradient(145deg,#101a35,#0a1228)}
+.qvm-lab h2{margin-top:0}.qvm-lab>button{width:100%;font-weight:800;letter-spacing:.035em;border-color:#7ee7ff;background:linear-gradient(110deg,#153149,#252352)}
+.growth-meter{height:10px;margin:12px 0 6px;border-radius:99px;background:#172240;overflow:hidden;border:1px solid #314878}
+.growth-meter i{display:block;width:0;height:100%;background:linear-gradient(90deg,#7ee7ff,#c9b1ff,#f3c15b);transition:width .35s ease}
+.qvm-growth{margin:0;color:#b8c9eb;font:10px/1.5 monospace;letter-spacing:.03em}
+@media(prefers-reduced-motion:reduce){.growth-meter i{transition:none}}
