@@ -22,12 +22,34 @@ for(const width of widths){
  await page.locator('#voice').click();await page.waitForFunction(()=>document.querySelector('#voice').textContent.includes('SOUND ON'));assert.equal(await page.locator('#voice').getAttribute('aria-pressed'),'true');assert.equal(await page.evaluate(()=>window.__audioCount),1,'unmute does not create a second audio context');
  await page.locator('#music').click();await page.waitForFunction(()=>document.querySelector('#music').textContent.includes('MUSIC OFF'));await page.locator('#music').click();await page.waitForFunction(()=>document.querySelector('#music').textContent.includes('MUSIC ON'));
  await page.locator('#music-volume').evaluate(el=>{el.value='35';el.dispatchEvent(new Event('input',{bubbles:true}));});
+ if(width===390){
+  await page.evaluate(async()=>{
+   const sourceContext=new AudioContext();await sourceContext.resume();
+   const oscillator=sourceContext.createOscillator(),gain=sourceContext.createGain(),destination=sourceContext.createMediaStreamDestination();
+   oscillator.frequency.value=440;gain.gain.value=.72;oscillator.connect(gain).connect(destination);oscillator.start();
+   window.__sparkMicFixture={sourceContext,oscillator,stream:destination.stream};
+   const media=navigator.mediaDevices||{};
+   if(!navigator.mediaDevices)Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:media});
+   Object.defineProperty(media,'getUserMedia',{configurable:true,value:async()=>destination.stream});
+  });
+  await page.locator('#mic-react').click();
+  await page.waitForFunction(()=>document.querySelector('#mic-react')?.getAttribute('aria-pressed')==='true');
+  await page.waitForFunction(()=>Number(document.querySelector('#view')?.dataset.micLevel||0)>.05);
+  await page.waitForFunction(()=>document.querySelector('#view')?.dataset.state==='listen');
+  await page.locator('#mic-react').click();
+  await page.waitForFunction(()=>document.querySelector('#mic-react')?.getAttribute('aria-pressed')==='false');
+  assert.equal(await page.evaluate(()=>window.__sparkMicFixture.stream.getAudioTracks()[0].readyState),'ended','turning mic reaction off stops the captured track');
+  await page.evaluate(async()=>{try{window.__sparkMicFixture.oscillator.stop()}catch{};await window.__sparkMicFixture.sourceContext.close();Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async()=>{throw new DOMException('Denied by fixture','NotAllowedError')}});});
+  await page.locator('#mic-react').click();
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent.includes('permission was not granted'));
+  assert.equal(await page.locator('#mic-react').getAttribute('aria-pressed'),'false','denied microphone permission leaves the Beast usable and mic off');
+ }
  await page.locator('.stage-wrap > details summary').click();
  const stages=[];for(const s of [1,2,3]){await page.locator('#pick'+s).click();stages.push((await page.locator('#view').screenshot()).toString('base64'));}assert.equal(new Set(stages).size,3);
  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')));assert.equal(saved.beast.stage,1);assert.equal(saved.beast.qbeast.profile.id,identity.profile.id);assert.deepEqual(saved.beast.qbeast,identity);
  await page.locator('#run').waitFor({state:'visible'});await page.locator('#run').evaluate((el,key)=>{if(!Array.from(el.options).some(o=>o.value===key)){const o=document.createElement('option');o.value=key;o.textContent=key;el.append(o);}el.value=key;},saved.beast.genome.inputs.quantum_run);
  await page.locator('#regenerate').click();await page.waitForTimeout(200);assert.equal(await page.locator('#view').getAttribute('data-creature-id'),identity.profile.id,'regeneration retains deterministic identity');
- const layout=await page.evaluate(()=>({body:document.documentElement.scrollWidth,w:innerWidth,view:document.querySelector('#view').getBoundingClientRect().toJSON(),buttons:[...document.querySelectorAll('.interactions button,#voice,#music,#generate,#lost-cosmos,.mobile-nav button,.mobile-nav a')].map(el=>el.getBoundingClientRect().toJSON())}));assert.ok(layout.body<=width,`overflow at ${width}: ${layout.body}`);assert.ok(layout.view.width>230);for(const b of layout.buttons)assert.ok(b.x>=0&&b.right<=width);
+ const layout=await page.evaluate(()=>({body:document.documentElement.scrollWidth,w:innerWidth,view:document.querySelector('#view').getBoundingClientRect().toJSON(),buttons:[...document.querySelectorAll('.interactions button,#voice,#music,#mic-react,#generate,#lost-cosmos,.mobile-nav button,.mobile-nav a')].map(el=>el.getBoundingClientRect().toJSON())}));assert.ok(layout.body<=width,`overflow at ${width}: ${layout.body}`);assert.ok(layout.view.width>230);for(const b of layout.buttons)assert.ok(b.x>=0&&b.right<=width);
  await page.locator('[data-jump="#seed-lab"]').first().click();await page.waitForFunction(()=>location.hash==='#seed-lab');await page.locator('[data-jump="#habitat"]').first().click();await page.waitForFunction(()=>location.hash==='#habitat');
  await page.screenshot({path:out+`/spark-${width}.png`,fullPage:true});
  console.log('Width',width,'public interaction passed');await page.goto(root+'/beast-cage');await page.waitForFunction(id=>document.querySelector('[data-spark-beast][data-creature-id="'+id+'"]'),identity.profile.id,{timeout:30000});

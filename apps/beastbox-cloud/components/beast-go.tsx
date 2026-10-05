@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { care, goTo, PLACES, placeById, rememberExchange, talkAndGrow } from '../lib/companion/adventure.mjs';
 import { askBeast, guestSafeContext } from '../lib/companion/ask-beast.mjs';
 import { buildChatContext } from '../lib/companion/context.mjs';
-import { BAG, focusBeast, GBA_KEYS, hudCard, keyboardLegend, pressCartridge, QUICK, sheetGesture, sparkVisualState } from '../lib/companion/go-hud.mjs';
+import { BAG, focusBeast, GBA_KEYS, gamepadButtons, hudCard, keyboardLegend, pressCartridge, QUICK, sheetGesture, sparkVisualState } from '../lib/companion/go-hud.mjs';
 import { adoptBeast, shownName } from '../lib/companion/session.mjs';
 import { buildGenome } from '../lib/companion/spark/genome.mjs';
 import runs from '../lib/companion/spark/runs.json';
@@ -120,6 +120,43 @@ export default function BeastGo() {
     return () => {
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('keyup', onKey);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof navigator.getGamepads !== 'function') return;
+    let frame = 0;
+    let active = new Set<string>();
+    const pads = () => Array.from(navigator.getGamepads()).filter((pad): pad is Gamepad => pad !== null && pad.connected !== false);
+    const releaseAll = () => {
+      for (const button of active) controllerInput(button, false);
+      active.clear();
+    };
+    const poll = () => {
+      frame = 0;
+      if (document.hidden) { releaseAll(); return; }
+      const connected = pads();
+      if (!connected.length) { releaseAll(); return; }
+      const next = new Set<string>();
+      for (const pad of connected) for (const button of gamepadButtons(pad)) next.add(button);
+      for (const button of next) if (!active.has(button)) controllerInput(button, true);
+      for (const button of active) if (!next.has(button)) controllerInput(button, false);
+      active = next;
+      frame = window.requestAnimationFrame(poll);
+    };
+    const start = () => { if (!frame) frame = window.requestAnimationFrame(poll); };
+    const stop = () => { if (frame) window.cancelAnimationFrame(frame); frame = 0; releaseAll(); };
+    const reconnect = () => { stop(); if (pads().length) start(); };
+    const visibility = () => { if (document.hidden) stop(); else if (pads().length) start(); };
+    window.addEventListener('gamepadconnected', start);
+    window.addEventListener('gamepaddisconnected', reconnect);
+    document.addEventListener('visibilitychange', visibility);
+    if (pads().length) start();
+    return () => {
+      stop();
+      window.removeEventListener('gamepadconnected', start);
+      window.removeEventListener('gamepaddisconnected', reconnect);
+      document.removeEventListener('visibilitychange', visibility);
     };
   }, []);
 
@@ -381,7 +418,7 @@ export default function BeastGo() {
           <button type="button" aria-pressed={musicState.focus === 'beast'} onClick={toggleFocus}>Audio focus: {musicState.focus === 'beast' ? 'Beast music' : 'Game audio'}</button>
           <label className={css.copy}>Music volume <input type="range" min={0} max={100} step={5} value={Math.round(musicState.volume * 100)} aria-label="Beast music volume" onChange={(event) => music.setVolume(Number(event.target.value) / 100)} /></label>
         </div>
-        <p>These switches stay on this field screen. Brain Bay, Model Bay, and owner settings are left as they are. On a phone the touch pad walks the cartridge. On a desktop the same keys work from the keyboard.</p>
+        <p>These switches stay on this field screen. Brain Bay, Model Bay, and owner settings are left as they are. On a phone the touch pad walks the cartridge. On desktop the same actions work from the keyboard, and standard browser Gamepad API controllers feed the exact same cartridge input path when connected.</p>
         <div className={css.list}>
           {keyboardLegend().map(([key, action]) => <p key={key} className={css.copy}>{key}: {action}</p>)}
         </div>
