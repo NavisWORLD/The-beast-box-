@@ -48,3 +48,44 @@
   .actions{bottom:calc(150px + env(safe-area-inset-bottom))}
 }
 @media(prefers-reduced-motion:reduce){.sheet{transition:none}}
+
+/* BEAST BOY: one coherent controller outside the 3:2 cartridge screen. */
+.field::before{content:'';position:absolute;left:0;right:0;bottom:0;height:210px;z-index:0;pointer-events:none;background:linear-gradient(180deg,transparent 0,#22293a 24%,#30384b 100%);border-radius:42px 42px 0 0;box-shadow:inset 0 2px 0 #5a657b55}
+.consoleBrand{display:flex;align-items:baseline;gap:7px;color:#78859f;text-shadow:0 1px #fff2;font-family:'Space Grotesk',sans-serif;letter-spacing:.12em}
+.consoleBrand strong{font-size:12px}.consoleBrand span{font-size:8px}
+.pad{z-index:2}.pad button{border:0!important;border-radius:8px!important;background:linear-gradient(145deg,#202431,#0e1118)!important;color:#bac1ce!important;box-shadow:inset 1px 1px 0 #5d6575,0 4px 8px #0007;font-size:15px}
+.actions{z-index:2;grid-template-columns:56px 56px!important;align-items:center}
+.actions button{border-color:#111724!important;box-shadow:inset 1px 1px 0 #ffffff25,0 5px 10px #0007}
+.actions .a,.actions .b{width:54px;height:54px;min-height:54px;border-radius:50%!important;background:radial-gradient(circle at 35% 28%,#d5a5f1,#7f3c98 65%,#442555)!important;color:#fff!important;font-size:17px!important}
+.actions .b{transform:translateY(12px)}
+.actions .shoulder{min-height:28px;height:28px;border-radius:999px!important;background:#161b27!important;color:#aeb8c9!important;font-size:10px}
+.actions .system{min-height:24px;height:24px;border-radius:999px!important;background:#111620!important;color:#9ea8ba!important;font-size:8px;padding:2px 6px}
+.chrome{z-index:2;gap:5px;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:transparent}
+.quick{max-width:390px}.orb{width:auto;height:38px;padding:0 16px;border:1px solid #6b7488;border-radius:999px;background:linear-gradient(180deg,#444e61,#242b3a);color:#e7eaf0;box-shadow:inset 0 1px #ffffff33,0 4px 10px #0008;font-size:10px}
+.sheetBar{display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:4;background:#0c1228f5;padding-bottom:4px}
+.sheetBar .handle{margin:auto}
+.sheetClose{width:36px;height:36px;border:1px solid #7985a04d;border-radius:50%;background:#20283d;color:#fff;font-size:22px;line-height:1;cursor:pointer}
+.menuGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.menuGrid button{text-align:center;min-height:48px}
+@media(max-width:700px){
+ .field::before{height:176px;border-radius:34px 34px 0 0}
+ .quick{display:none}
+ .consoleBrand{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);white-space:nowrap}
+ .orb{min-width:92px;height:34px}
+ .pad{bottom:calc(70px + env(safe-area-inset-bottom));grid-template-columns:44px 44px 44px;gap:2px}
+ .pad button{min-height:44px!important}
+ .actions{bottom:calc(68px + env(safe-area-inset-bottom));grid-template-columns:50px 50px!important;gap:5px 8px}
+ .actions .a,.actions .b{width:48px;height:48px;min-height:48px}
+ .actions .shoulder{height:22px;min-height:22px}.actions .system{height:21px;min-height:21px}
+ .chrome{padding:4px 8px calc(8px + env(safe-area-inset-bottom))}
+ .sheet{max-height:min(58dvh,500px)}
+}
+@media(orientation:landscape) and (max-height:600px){
+ .field::before{inset:0;background:linear-gradient(90deg,#30384b 0 21%,transparent 29% 71%,#30384b 79% 100%);border-radius:0}
+ .card{transform:scale(.82);transform-origin:top left}
+ .pad{left:max(12px,env(safe-area-inset-left));bottom:50%;transform:translateY(50%);grid-template-columns:40px 40px 40px;gap:2px}
+ .pad button{min-height:40px!important}
+ .actions{right:max(12px,env(safe-area-inset-right));bottom:50%;transform:translateY(50%);grid-template-columns:48px 48px!important}
+ .actions .a,.actions .b{width:46px;height:46px;min-height:46px}
+ .chrome{height:42px;padding:3px 8px calc(4px + env(safe-area-inset-bottom))}
+ .consoleBrand{position:static}.orb{position:absolute;right:50%;transform:translateX(50%);height:30px}
+}
