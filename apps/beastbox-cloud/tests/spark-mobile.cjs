@@ -9,15 +9,17 @@ for(const width of widths){
  const page=await context.newPage();page.on('pageerror',e=>errors.push(`${width}: ${e.message}`));
  await page.addInitScript(()=>{window.__audioCount=0;window.__audioContexts=[];const AC=window.AudioContext;window.AudioContext=class extends AC{constructor(...args){super(...args);window.__audioCount++;window.__audioContexts.push(this)}};});
  await page.goto(root+'/spark/index.html');await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId,{timeout:30000});
- assert.equal(await page.evaluate(()=>window.__audioCount),0);
+ assert.equal(await page.evaluate(()=>window.__audioCount),0,'browser must stay silent before the first user gesture');
+ assert.equal(await page.locator('#voice').getAttribute('aria-pressed'),'true');assert.match(await page.locator('#voice').textContent(),/SOUND READY/);
  const before=await page.locator('#view').screenshot();await page.waitForTimeout(1600);const after=await page.locator('#view').screenshot();assert.ok(!before.equals(after),'creature must animate');
  await page.locator('#generate').click();await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Spawned'));
+ await page.waitForFunction(()=>document.querySelector('#voice').textContent.includes('SOUND ON'));assert.equal(await page.evaluate(()=>window.__audioCount),1,'first gesture unlocks default-on sound');assert.equal(await page.evaluate(()=>window.__audioContexts[0].state),'running');
  const identity=await page.evaluate(()=>JSON.parse(JSON.parse(localStorage.getItem('beastbox-quantum-beast-public-v1')).text));
  await page.locator('#pet').click();await page.waitForFunction(()=>document.querySelector('#care-stats').textContent.includes('XP 4'));
  await page.locator('#rest').click();await page.waitForFunction(()=>document.querySelector('#view').dataset.state==='rest');
  await page.locator('#talk').click();await page.locator('#talk-text').fill('Hello little beast');await page.locator('#talk-form button').click();await page.waitForFunction(()=>document.querySelector('#talk-reply').textContent.length>0);
- await page.locator('#voice').click();await page.waitForFunction(()=>document.querySelector('#voice').getAttribute('aria-pressed')==='true');assert.equal(await page.evaluate(()=>window.__audioContexts[0].state),'running');
- await page.locator('#voice').click();await page.waitForFunction(()=>window.__audioContexts[0].state==='closed');
+ await page.locator('#voice').click();await page.waitForFunction(()=>document.querySelector('#voice').getAttribute('aria-pressed')==='false');await page.waitForFunction(()=>window.__audioContexts[0].state==='closed');
+ await page.locator('#voice').click();await page.waitForFunction(()=>document.querySelector('#voice').textContent.includes('SOUND ON'));assert.equal(await page.locator('#voice').getAttribute('aria-pressed'),'true');assert.equal(await page.evaluate(()=>window.__audioContexts[1].state),'running');
  await page.locator('.stage-wrap > details summary').click();
  const stages=[];for(const s of [1,2,3]){await page.locator('#pick'+s).click();stages.push((await page.locator('#view').screenshot()).toString('base64'));}assert.equal(new Set(stages).size,3);
  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')));assert.equal(saved.beast.stage,1);assert.equal(saved.beast.qbeast.profile.id,identity.profile.id);assert.deepEqual(saved.beast.qbeast,identity);
@@ -40,8 +42,8 @@ for(const width of widths){
  await page.screenshot({path:out+`/game-talk-${width}.png`,fullPage:true});
  await talkPanel.getByRole('button',{name:'CLOSE TALK',exact:true}).click();
  console.log('Width',width,'native entry passed');await page.goto(root+'/spark/index.html');await page.waitForFunction(id=>document.querySelector('#view')?.dataset.creatureId===id,identity.profile.id);assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast.xp),saved.beast.xp);
- await page.reload();await page.waitForFunction(id=>document.querySelector('#view')?.dataset.creatureId===id,identity.profile.id);assert.equal(await page.evaluate(()=>window.__audioCount),0,'sound never autoplays after reopen');
- await page.locator('#generate').click();await page.waitForFunction(id=>document.querySelector('#view').dataset.creatureId!==id,identity.profile.id);
+ await page.reload();await page.waitForFunction(id=>document.querySelector('#view')?.dataset.creatureId===id,identity.profile.id);assert.equal(await page.evaluate(()=>window.__audioCount),0,'sound stays browser-policy silent until a new gesture after reopen');assert.match(await page.locator('#voice').textContent(),/SOUND READY/);
+ await page.locator('#generate').click();await page.waitForFunction(id=>document.querySelector('#view').dataset.creatureId!==id,identity.profile.id);await page.waitForFunction(()=>document.querySelector('#voice').textContent.includes('SOUND ON'));assert.equal(await page.evaluate(()=>window.__audioCount),1);
  if(width===390){
   const voice=await page.evaluate(async previous=>{
    const {Voice}=await import('/spark/voice.mjs');
@@ -66,7 +68,7 @@ for(const width of widths){
   for(const v of [voice.first,voice.again,voice.calm,voice.other]){assert.ok(v.peak>0&&v.peak<.8);assert.ok(v.rms>0);}
   await fs.writeFile(out+'/voice-report.json',JSON.stringify(voice,null,2));
  }
- assert.equal(await page.locator('a:has-text("Play in Living Universe")').count(),0);results.push({width,identity:identity.profile.id,careXP:saved.beast.xp,audio:'gesture-on/closed-off',navigation:'same QBEAST',overflow:false});await context.close();
+ assert.equal(await page.locator('a:has-text("Play in Living Universe")').count(),0);results.push({width,identity:identity.profile.id,careXP:saved.beast.xp,audio:'default-on/first-gesture-unlock/persistent-mute',navigation:'same QBEAST',overflow:false});await context.close();
 }
 const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'}),page=await context.newPage();
 page.on('pageerror',e=>errors.push(e.message));await page.goto(root+'/spark/index.html');await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId);
