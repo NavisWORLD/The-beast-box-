@@ -21,7 +21,7 @@ for(const width of widths){
  await page.locator('#voice').click();await page.waitForFunction(()=>document.querySelector('#voice').getAttribute('aria-pressed')==='false');await page.waitForFunction(()=>document.querySelector('#audio-state').textContent.includes('Muted'));assert.equal(await page.evaluate(()=>window.__audioCount),1,'mute reuses the one shared audio context');
  await page.locator('#voice').click();await page.waitForFunction(()=>document.querySelector('#voice').textContent.includes('SOUND ON'));assert.equal(await page.locator('#voice').getAttribute('aria-pressed'),'true');assert.equal(await page.evaluate(()=>window.__audioCount),1,'unmute does not create a second audio context');
  await page.locator('#music').click();await page.waitForFunction(()=>document.querySelector('#music').textContent.includes('MUSIC OFF'));await page.locator('#music').click();await page.waitForFunction(()=>document.querySelector('#music').textContent.includes('MUSIC ON'));
- await page.locator('#music-volume').fill('35');
+ await page.locator('#music-volume').evaluate(el=>{el.value='35';el.dispatchEvent(new Event('input',{bubbles:true}));});
  await page.locator('.stage-wrap > details summary').click();
  const stages=[];for(const s of [1,2,3]){await page.locator('#pick'+s).click();stages.push((await page.locator('#view').screenshot()).toString('base64'));}assert.equal(new Set(stages).size,3);
  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')));assert.equal(saved.beast.stage,1);assert.equal(saved.beast.qbeast.profile.id,identity.profile.id);assert.deepEqual(saved.beast.qbeast,identity);
