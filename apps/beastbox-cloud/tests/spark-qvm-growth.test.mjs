@@ -32,3 +32,5 @@ test("public simulator growth is visible, browser-local, and never claims QPU or
   assert.match(page, /native stage unchanged/);
   assert.doesNotMatch(page, /live Rigetti|Rigetti QPU/);
 });
+
+// PR runs against guarded main; simulator tests do not enable production deploys.
