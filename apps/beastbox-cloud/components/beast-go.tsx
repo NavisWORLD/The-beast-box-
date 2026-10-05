@@ -88,18 +88,25 @@ export default function BeastGo() {
     const measure = () => {
       frame = 0;
       if (sheet) return; // keep the last area while a sheet is open so the game does not jump
-      const height = window.innerHeight;
-      const card = cardRef.current?.getBoundingClientRect();
-      const tops = [chromeRef.current, padRef.current, actionsRef.current]
-        .map((node) => node?.getBoundingClientRect())
-        .filter((rect): rect is DOMRect => Boolean(rect && rect.height > 0))
-        .map((rect) => rect.top);
-      const top = Math.max(0, Math.round((card ? card.bottom : 0) + 8));
-      const ceiling = tops.length ? Math.min(...tops) : height;
-      // The chrome fades in from transparent, so its top padding/handle may overlap the game a little.
-      const bottom = Math.max(0, Math.round(height - ceiling + (tops.length ? -6 : 0)));
-      root.style.setProperty('--go-safe-top', `${top}px`);
-      root.style.setProperty('--go-safe-bottom', `${bottom}px`);
+      const width=window.innerWidth,height=window.innerHeight;
+      const card=cardRef.current?.getBoundingClientRect();
+      const chrome=chromeRef.current?.getBoundingClientRect();
+      const pad=padRef.current?.getBoundingClientRect();
+      const actions=actionsRef.current?.getBoundingClientRect();
+      const landscape=width>height*1.15;
+      if(landscape&&pad&&actions){
+        root.style.setProperty('--go-safe-top','8px');
+        root.style.setProperty('--go-safe-bottom',`${Math.max(8,Math.round(height-(chrome?.top??height)+4))}px`);
+        root.style.setProperty('--go-safe-left',`${Math.max(12,Math.round(pad.right+12))}px`);
+        root.style.setProperty('--go-safe-right',`${Math.max(12,Math.round(width-actions.left+12))}px`);
+      }else{
+        const rects=[chrome,pad,actions].filter((rect):rect is DOMRect=>Boolean(rect&&rect.height>0));
+        const ceiling=rects.length?Math.min(...rects.map(rect=>rect.top)):height;
+        root.style.setProperty('--go-safe-top',`${Math.max(0,Math.round((card?card.bottom:0)+8))}px`);
+        root.style.setProperty('--go-safe-bottom',`${Math.max(0,Math.round(height-ceiling+(rects.length?-6:0)))}px`);
+        root.style.setProperty('--go-safe-left','0px');
+        root.style.setProperty('--go-safe-right','0px');
+      }
     };
     const schedule = () => { if (!frame) frame = window.requestAnimationFrame(measure); };
     schedule();
@@ -118,6 +125,8 @@ export default function BeastGo() {
   useEffect(() => () => {
     document.documentElement.style.removeProperty('--go-safe-top');
     document.documentElement.style.removeProperty('--go-safe-bottom');
+    document.documentElement.style.removeProperty('--go-safe-left');
+    document.documentElement.style.removeProperty('--go-safe-right');
   }, []);
 
   function toggle(next: SheetId) {
