@@ -86,7 +86,7 @@ export default function BeastCagePortal(){
     if(!creature)selectProfile(generateCreature('beastbox-starter',item.id));
     setSaved(false);
    }}>
-    <span className="cage-look-art" aria-hidden="true"><SparkBeastCompanion profile={generateCreature('beastbox-starter-'+item.id,item.id)} fallbackLook={item.id} compact state="idle" /></span>
+    <span className="cage-look-art" aria-hidden="true"><SparkBeastCompanion profile={generateCreature('beastbox-style-preview','nebula')} fallbackLook={item.id} visualLook={item.id} compact state="idle" /></span>
     <strong>{item.label}</strong><small>{item.detail}</small><span className="cage-select-label">{look===item.id?'✓ Active look':'Use this look'} →</span>
    </button>)}</div>
    <div className="cage-save-panel"><p><strong>{creature?.name||current.label} is ready to explore.</strong><br/>The active game profile is browser-local. Real memory, model choice and permissions remain in COSMOS.</p><div><button type="button" className="cage-primary" onClick={()=>{selectLook(look);save();}}>Save look</button><button type="button" className="cage-secondary" onClick={clear}>Reset Beast</button></div><span role="status" className="cage-save-status">{saved?'Visual family saved locally. The active Beast profile is also retained locally.':'Generate or choose a starter to keep one Beast across the site.'}</span></div>
