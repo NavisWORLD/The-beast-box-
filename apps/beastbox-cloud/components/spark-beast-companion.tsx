@@ -6,6 +6,8 @@ import {blit,renderBeast,SPRITE} from '../public/spark/draw.mjs';
 import {buildGenome} from '../public/spark/genome.mjs';
 import {Voice} from '../public/spark/voice.mjs';
 import styles from './spark-beast-companion.module.css';
+import {useBeastSession} from './beast-session';
+import {loadSparkRuns} from '../public/spark/runs.mjs';
 
 type VisualState='idle'|'listening'|'thinking'|'remembering'|'observing'|'sleeping'|'celebrating'|'halted';
 type Run={
@@ -87,6 +89,8 @@ export default function SparkBeastCompanion({
 }:Props){
  const fallback=useMemo(()=>generateCreature('beastbox-spark-'+fallbackLook,fallbackLook==='aurora'?'aurora':fallbackLook==='starlight'?'starlight':'nebula'),[fallbackLook]);
  const active=profile??fallback;
+ const {session}=useBeastSession();
+ const sameSpark=session?.beast?.qbeast?.profile?.id===active.id?session.beast:null;
  const canvas=useRef<HTMLCanvasElement>(null),mover=useRef<HTMLDivElement>(null);
  const frame=useRef<number>(0),lastEye=useRef(''),utterance=useRef(0);
  const audio=useRef<AudioContext|null>(null),audioOut=useRef<AudioNode|null>(null);
@@ -104,35 +108,23 @@ export default function SparkBeastCompanion({
  useEffect(()=>{
   let cancelled=false;
   void (async()=>{
-   const indexResponse=await fetch('/spark/user-seeds-20261004.json',{cache:'force-cache'});
-   if(!indexResponse.ok)throw new Error('Public Spark seed index unavailable');
-   const index=await indexResponse.json() as {shards?:string[]};
-   const paths=['/spark/runs.json',...(Array.isArray(index.shards)?index.shards:[])];
-   const tables=await Promise.all(paths.map(async path=>{
-    const response=await fetch(path,{cache:'force-cache'});
-    if(!response.ok)throw new Error('Recorded Spark seed table unavailable: '+path);
-    return response.json() as Promise<{runs?:Record<string,unknown>[]}>;
-   }));
-   const merged=tables.flatMap(table=>(table.runs||[]).map(expand))
-    .filter(item=>item.num_bits>=2&&Object.keys(item.counts).length>0);
-   const runs=[...new Map(merged.map(item=>[item.key,item])).values()];
-   if(!runs.length)throw new Error('No recorded Spark seed distributions');
-   const hashed=runs[hash(active.id+'|'+active.seed)%runs.length];
-   const pinned=seedRunKey?runs.find(item=>item.key===seedRunKey):null;
-   const chosen=pinned||hashed;
+   const runs=await loadSparkRuns();
+   const chosen=sameSpark?runs.find(item=>item.key===sameSpark.genome.inputs.quantum_run):(runs.find(item=>item.key===seedRunKey)||runs[hash(active.id+'|'+active.seed)%runs.length]);
+   if(!chosen)throw new Error('Saved Spark run is unavailable');
    if(!cancelled)setRun(chosen);
   })().catch(err=>{if(!cancelled)setError(err instanceof Error?err.message:'Spark renderer unavailable');});
   return()=>{cancelled=true;};
- },[active.id,active.seed,seedRunKey]);
+ },[active.id,active.seed,sameSpark?.seed,seedRunKey]);
 
  useEffect(()=>{
   if(!run)return;
   try{
    // The JS Spark generator types its optional user id as null; run selection is already domain-separated by active.id above.
-   const next=buildGenome(seedTraits||traits(active),run,null,10) as unknown as Genome;
+   const next=(sameSpark?sameSpark.genome:buildGenome(seedTraits||traits(active),run,null,10)) as unknown as Genome;
    setGen(next);setError('');lastEye.current='';
   }catch(err){setError(err instanceof Error?err.message:'Spark genome could not be built');}
- },[active,run,seedTraits]);
+ },[active,run,sameSpark?.genome,seedTraits]);
+ useEffect(()=>{if(sameSpark){setStage(sameSpark.nativeStage||1);lastEye.current='';}},[sameSpark?.seed]);
 
  useEffect(()=>{if(gen&&onGenome)onGenome(gen);},[gen,onGenome]);
 
@@ -191,9 +183,12 @@ export default function SparkBeastCompanion({
   try{
    let ac=audio.current;
    if(!ac){
-    ac=new AudioContext();
+    const AC=window.AudioContext||((window as Window & {webkitAudioContext?:typeof AudioContext}).webkitAudioContext);
+    if(!AC)throw new Error('WebAudio unavailable');
+    ac=new AC();
     audio.current=ac;
     audioOut.current=Voice.master(ac) as AudioNode;
+    (audioOut.current as GainNode).gain.value=.13;
    }
    if(ac.state==='suspended')await ac.resume();
    const mood=moodFor(state);
@@ -204,6 +199,11 @@ export default function SparkBeastCompanion({
   }catch(err){setError(err instanceof Error?err.message:'Creature voice unavailable');}
  },[gen,stage,state,intensity]);
 
+ useEffect(()=>{
+  const mute=()=>{void audio.current?.close();audio.current=null;audioOut.current=null;setSound(false);};
+  window.addEventListener('beastbox:spark-mute',mute);
+  return()=>{window.removeEventListener('beastbox:spark-mute',mute);mute();};
+ },[]);
  useEffect(()=>{
   if(!audioChannel)return;
   const onChirp=(event:Event)=>{
@@ -216,7 +216,7 @@ export default function SparkBeastCompanion({
   return()=>window.removeEventListener('beastbox:spark-chirp',onChirp);
  },[audioChannel,intensity,speak]);
 
- const name=gen?.names?.[stage]||active.name;
+ const name=sameSpark?.displayName||gen?.names?.[stage]||active.name;
  return <figure className={[styles.root,compact?styles.compact:'',className].filter(Boolean).join(' ')}
    data-spark-beast="true" data-creature-id={active.id} data-cosmetic-hue={active.appearance.hueShift}
    data-state={state} data-stage={stage} aria-label={label}>
@@ -233,7 +233,7 @@ export default function SparkBeastCompanion({
   {controls&&!compact?<div className={styles.controls}>
    <div className={styles.stages} role="group" aria-label="Preview evolution stage">
     {([1,2,3] as const).map(value=><button type="button" key={value} aria-pressed={stage===value}
-      onClick={()=>{setStage(value);lastEye.current='';}}>Stage {value}</button>)}
+      onClick={()=>{setStage(value);lastEye.current='';}}>Preview {value}</button>)}
    </div>
    <button type="button" className={styles.voice} onClick={()=>void speak()} disabled={!gen}
      aria-label="Play this creature's generated Spark voice">{sound?<VolumeX size={15}/>:<Volume2 size={15}/>} {sound?'Speaking…':'Hear Beast'}</button>

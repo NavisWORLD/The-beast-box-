@@ -57,3 +57,5 @@
 }
 @media(max-width:360px){.dock:not(.full){width:min(232px,calc(100vw - 64px))}.wide{width:calc(100vw - 12px);right:6px}}
 @media(prefers-reduced-motion:reduce){.dock{transition:none}}
+
+.wide .screen{overflow:auto}.screen [data-spark-player]{font-size:11px}.screen [data-spark-player] button{font-size:10px}

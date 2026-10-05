@@ -129,7 +129,8 @@ test('unified Spark companion uses the real sprite, gait and voice modules witho
  assert.match(spark,/public\/spark\/draw\.mjs/);
  assert.match(spark,/public\/spark\/genome\.mjs/);
  assert.match(spark,/public\/spark\/voice\.mjs/);
- assert.match(spark,/\/spark\/runs\.json/);
+ assert.match(spark,/loadSparkRuns/);
+ assert.match(read('public/spark/runs.mjs'),/\/spark\/runs\.json/);
  assert.match(spark,/renderBeast/);
  assert.match(spark,/behavior\.gait/);
  assert.match(spark,/Voice\.utterance/);
@@ -163,9 +164,10 @@ test('public Beast generator loads all sanitized seed shards and never ships raw
  }
  assert.equal(total,96);
  assert.match(app,/user-seeds-20261004\.json/);
- assert.match(app,/num_bits >= 2/);
- assert.match(spark,/user-seeds-20261004\.json/);
- assert.match(spark,/item\.num_bits>=2/);
+ assert.match(app,/num_bits>=2/);
+ assert.match(read('public/spark/runs.mjs'),/user-seeds-20261004\.json/);
+ assert.match(spark,/sameSpark\?runs\.find/);
+ assert.match(read('public/spark/runs.mjs'),/index\.shards/);
  assert.match(cage,/Open Public Beast Generator/);
  assert.match(release,/public_seed_jobs_added:96/);
  assert.match(release,/original_signal_payloads_published:false/);

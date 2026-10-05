@@ -3,6 +3,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { createTrail } from '../lib/companion/adventure.mjs';
 import { openIndexedDb } from '../lib/companion/learn.mjs';
 import { createSession, exportSession, importSession } from '../lib/companion/session.mjs';
+import {replaySpark,readSparkSession} from '../public/spark/identity.mjs';
+import {serializeQbeast} from '../public/spark/qbeast.mjs';
+import {loadSparkRuns} from '../public/spark/runs.mjs';
 
 const KEY = 'beastbox-companion-session-v1';
 
@@ -54,9 +57,16 @@ export function BeastSessionProvider({ children }: { children: React.ReactNode }
         const value = store ? await store.get('session') : null;
         if (value && typeof value === 'object') stored = value as Record<string, unknown>;
       } catch { /* IndexedDB unavailable */ }
-      if (!stored) stored = readLocal();
+      // The static generator writes the same local record; it is authoritative
+      // over an older IndexedDB mirror after a full-page navigation.
+      stored = readLocal() || stored;
       if (cancel) return;
-      const next = importSession(stored);
+      let next: any = importSession(stored);
+      if(next.beast?.qbeast){
+       try{next=readSparkSession(localStorage);const runs=await loadSparkRuns();const replay=replaySpark(serializeQbeast(next.beast.qbeast),new Map(runs.map(run=>[run.key,run])));next.beast.genome=replay.gen;next.beast.stage=next.beast.nativeStage||1;}
+       catch{next=createSession();}
+      }
+      if(cancel)return;
       const place = typeof stored?.place === 'string' ? stored.place : 'grove';
       const restoredTrail = stored?.trail && typeof stored.trail === 'object' ? stored.trail as Trail : createTrail(place);
       const log = Array.isArray(stored?.sensorLog) ? stored.sensorLog.filter((line) => typeof line === 'string').slice(-8) : [];
@@ -100,6 +110,13 @@ export function BeastSessionProvider({ children }: { children: React.ReactNode }
       return sessionNow;
     });
   }, [remember]);
+
+  useEffect(()=>{
+    const reload=()=>{try{const next=readSparkSession(localStorage);setSession(next);}catch{/* invalid local records remain available for recovery */}};
+    const changed=(event:StorageEvent)=>{if(event.key===KEY)reload();};
+    window.addEventListener('storage',changed);window.addEventListener('beastbox:spark-selected',reload);
+    return()=>{window.removeEventListener('storage',changed);window.removeEventListener('beastbox:spark-selected',reload);};
+  },[]);
 
   const value = useMemo(() => ({ ready, session, trail, sensorLog, change, setTrail, noteSensor }), [ready, session, trail, sensorLog, change, setTrail, noteSensor]);
   return <Context.Provider value={value}>{children}</Context.Provider>;

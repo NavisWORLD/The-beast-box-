@@ -6,6 +6,7 @@ import SparkBeastCompanion from './spark-beast-companion';
 import SparkBeastArena from './spark-beast-arena';
 import GenesisForge from './genesis-forge';
 import BeastCareDeck from './beast-care-deck';
+import {useBeastSession} from './beast-session';
 import {useCompanion} from './companion-provider';
 import {generateCreature,type BaseLook,type AmbientAction} from '../lib/creature-profile';
 const LOOKS:{id:BaseLook;label:string;detail:string;accent:string}[]=[
@@ -28,6 +29,8 @@ export default function BeastCagePortal(){
  const [expanded,setExpanded]=useState(false);
  const {profile:creature,selectProfile,clearProfile}=useCompanion();
  const [ambient,setAmbient]=useState<AmbientAction>('hover');
+ const {session}=useBeastSession();
+ const sameSpark=!!creature&&!!session?.beast?.qbeast&&session.beast.qbeast.profile.id===creature.id;
  useEffect(()=>{if(creature)setLook(creature.baseLook);},[creature?.id,creature?.baseLook]);
  useEffect(()=>{
   const media=window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -67,8 +70,8 @@ export default function BeastCagePortal(){
     <span className="cage-habitat-caption">✧ YOUR OWN POCKET UNIVERSE</span>
    </div>
   </section>
-  <GenesisForge value={creature} onChange={next=>{selectProfile(next);setLook(next.baseLook);}}
-   onAmbient={setAmbient}/>
+  {!sameSpark?<GenesisForge value={creature} onChange={next=>{selectProfile(next);setLook(next.baseLook);}}
+   onAmbient={setAmbient}/>:<div className="cage-generated-status"><span>{session.beast.displayName} · same recorded genome and QBEAST</span><Link href="/sol-game">Play this Beast in LOST COSMOS 🎮</Link></div>}
   {creature?<div className="cage-generated-status" role="status">
    ✧ {creature.name} · {creature.family} · {ambient} (classical seeded visual behavior)
    <Link href="/beast-cage/guest">Take this creature to the GBA Game Lab ↗</Link>
@@ -82,13 +85,13 @@ export default function BeastCagePortal(){
    <SparkBeastCompanion profile={creature} fallbackLook={look}
     state={ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
     controls label="Customizable Spark Beast preview"/>
-   <div className="cage-look-grid">{LOOKS.map(item=><button type="button" className={'cage-look-card '+item.accent+(look===item.id?' selected':'')} key={item.id} aria-pressed={look===item.id} onClick={()=>{
+   {!sameSpark?<div className="cage-look-grid">{LOOKS.map(item=><button type="button" className={'cage-look-card '+item.accent+(look===item.id?' selected':'')} key={item.id} aria-pressed={look===item.id} onClick={()=>{
     const starter=generateCreature('beastbox-starter-'+item.id,item.id);
     setLook(item.id);selectProfile(starter);setSaved(false);
    }}>
     <span className="cage-look-art" aria-hidden="true">✦</span>
     <strong>{item.label}</strong><small>{item.detail}</small><span className="cage-select-label">{look===item.id?'✓ Active family':'Choose starter'} →</span>
-   </button>)}</div>
+   </button>)}</div>:<p className="cage-quiet">This Beast’s palette and body belong to its recorded genome. Preview its forms above, or name and care for it in the shared deck.</p>}
    <div className="cage-save-panel"><p><strong>{creature?.name||current.label} is ready to explore.</strong><br/>The active game profile is browser-local. Real memory, model choice and permissions remain in COSMOS.</p><div><button type="button" className="cage-primary" onClick={save}>Save visual family</button><button type="button" className="cage-secondary" onClick={clear}>Clear active Beast</button></div><span role="status" className="cage-save-status">{saved?'Visual family saved locally. The active Beast profile is also retained locally.':'Generate or choose a starter to keep one Beast across the site.'}</span></div>
   </section>
   <section className="cage-worlds" id="worlds" aria-labelledby="world-title">

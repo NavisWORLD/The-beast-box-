@@ -44,8 +44,8 @@ jobs:
                   if code!=200:raise RuntimeError("Release endpoint status "+str(code))
                   marker=json.loads(raw)
                   if (marker.get("schema")!="beast-cage-gba-release-v1" or
-                      marker.get("source_marker")!="beast-cage-lost-cosmos-pr31-2e600160-20261004" or
-                      marker.get("lost_cosmos_commit")!="2e600160937943d3cafcf27e88a0474ba6aba43d" or
+                      marker.get("source_marker")!="beast-cage-lost-cosmos-spark-alive-20261004" or
+                      marker.get("lost_cosmos_commit")!="5dd5ea0081ef61922f0a7b4b394736c9ac321629" or
                       marker.get("same_cage_transfer") is not True or
                       "persistent-gba-player" not in marker.get("features",[]) or
                       "shared-spark-care-ledger" not in marker.get("features",[]) or
