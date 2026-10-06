@@ -93,8 +93,8 @@ export default function CosmicSupportWidget() {
       '🐉 tiny dragon noises intensify',
       '⚛️ spark accepted. science unaffected.',
     ];
-    const next = (quipIndex + 1) % quips.length;
-    setQuipIndex(next);
+    const next = quipIndex % quips.length;
+    setQuipIndex((value) => value + 1);
     setBeastLine(quips[next]);
     setStardustBurst((value) => value + 1);
     react(quips[next]);
