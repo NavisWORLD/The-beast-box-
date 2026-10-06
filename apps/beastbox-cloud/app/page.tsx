@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import HomepageCreature from '../components/homepage-creature';
+import CosmicSupportWidget from '../components/cosmic-support-widget';
 import { ArrowUpRight, BrainCircuit, Orbit, Sparkles } from 'lucide-react';
 
 const P=[
@@ -44,6 +45,8 @@ export default function Home(){
   <div><p className="eyebrow">START SIMPLE · GO DEEP WHEN YOU WANT</p><h2>There is a door<br/><em>for however you think.</em></h2></div>
   <div className="feature-grid">{P.map(x=><Link key={x.title} href={x.href} className="feature-card"><x.icon size={27}/><h3>{x.title}</h3><p>{x.copy}</p><span className="secondary-link">Open →</span></Link>)}</div>
  </section>
+
+ <CosmicSupportWidget/>
 
  <footer className="public-footer">
   <span>© CORY DAVIS · BEAST BOX</span>
