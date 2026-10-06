@@ -12,6 +12,8 @@ export default function CosmicSupportWidget() {
   const [soundOn, setSoundOn] = useState(true);
   const [reacting, setReacting] = useState(false);
   const [beastLine, setBeastLine] = useState('psst… got any stardust?');
+  const [stardustBurst, setStardustBurst] = useState(0);
+  const [quipIndex, setQuipIndex] = useState(0);
   const audioContextRef = useRef<AudioContext | null>(null);
   const reactionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -22,7 +24,7 @@ export default function CosmicSupportWidget() {
     reactionTimerRef.current = setTimeout(() => setReacting(false), 850);
   };
 
-  const playBeastChirp = (kind: 'open' | 'close' | 'fuel' = 'open', force = false) => {
+  const playBeastChirp = (kind: 'open' | 'close' | 'fuel' | 'spark' = 'open', force = false) => {
     if ((!soundOn && !force) || typeof window === 'undefined' || !window.AudioContext) return;
 
     try {
@@ -34,9 +36,11 @@ export default function CosmicSupportWidget() {
       const notes =
         kind === 'fuel'
           ? [523.25, 783.99, 1046.5]
-          : kind === 'close'
-            ? [659.25, 493.88]
-            : [587.33, 783.99, 987.77];
+          : kind === 'spark'
+            ? [880, 1174.66, 1567.98, 2093]
+            : kind === 'close'
+              ? [659.25, 493.88]
+              : [587.33, 783.99, 987.77];
 
       notes.forEach((frequency, index) => {
         const osc = ctx.createOscillator();
@@ -78,6 +82,23 @@ export default function CosmicSupportWidget() {
           : '☕ tiny cosmic coffee acquired!';
     react(line);
     playBeastChirp('fuel');
+  };
+
+  const petBeast = () => {
+    const quips = [
+      '✨ MORE STARDUST!!',
+      '🌌 hehe… cosmic snacks',
+      '💫 that tickles my orbit!',
+      '⭐ stardust reserves: emotionally full',
+      '🐉 tiny dragon noises intensify',
+      '⚛️ spark accepted. science unaffected.',
+    ];
+    const next = quipIndex % quips.length;
+    setQuipIndex((value) => value + 1);
+    setBeastLine(quips[next]);
+    setStardustBurst((value) => value + 1);
+    react(quips[next]);
+    playBeastChirp('spark');
   };
 
   const toggleSound = () => {
@@ -145,14 +166,28 @@ export default function CosmicSupportWidget() {
           </div>
 
           <div className="support-beast-stage" aria-label="Cosmic Beast support companion">
-            <span className={`support-beast-shell support-beast-large ${reacting ? 'is-reacting' : ''}`}>
-              <img className="support-beast-img" src="/cosmic-creature.svg" alt="A smiling purple cosmic Beast" />
-              <span className="support-beast-glow" aria-hidden="true" />
-              <span className="support-beast-spark" aria-hidden="true">✦</span>
-            </span>
+            <button
+              type="button"
+              className="support-beast-pet"
+              onClick={petBeast}
+              aria-label="Sprinkle stardust on the Beast"
+              title="Sprinkle stardust"
+            >
+              <span className={`support-beast-shell support-beast-large ${reacting ? 'is-reacting' : ''}`}>
+                <img className="support-beast-img" src="/cosmic-creature.svg" alt="A smiling purple cosmic Beast" />
+                <span className="support-beast-glow" aria-hidden="true" />
+                <span className="support-beast-spark" aria-hidden="true">✦</span>
+                <span key={stardustBurst} className="support-stardust-burst" aria-hidden="true">
+                  {Array.from({ length: 14 }).map((_, index) => <i key={index}>✦</i>)}
+                </span>
+              </span>
+            </button>
             <div className="support-beast-bubble" aria-live="polite">
               <small>BEAST TRANSMISSION</small>
               <strong>{beastLine}</strong>
+              <button type="button" className="support-stardust-action" onClick={petBeast}>
+                ✦ sprinkle more stardust
+              </button>
             </div>
           </div>
 
