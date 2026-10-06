@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Coffee, Github, Heart, Sparkles, Volume2, VolumeX, X, Zap } from 'lucide-react';
 
 const STRIPE_URL = 'https://buy.stripe.com/3cIbJ27zN7kO8mN97pa7C01';
@@ -22,8 +22,8 @@ export default function CosmicSupportWidget() {
     reactionTimerRef.current = setTimeout(() => setReacting(false), 850);
   };
 
-  const playBeastChirp = (kind: 'open' | 'close' | 'fuel' = 'open') => {
-    if (!soundOn || typeof window === 'undefined' || !window.AudioContext) return;
+  const playBeastChirp = (kind: 'open' | 'close' | 'fuel' = 'open', force = false) => {
+    if ((!soundOn && !force) || typeof window === 'undefined' || !window.AudioContext) return;
 
     try {
       const ctx = audioContextRef.current ?? new window.AudioContext();
@@ -84,10 +84,16 @@ export default function CosmicSupportWidget() {
     const next = !soundOn;
     setSoundOn(next);
     setBeastLine(next ? '🔊 chirps enabled!' : '🔇 stealth Beast mode');
-    if (next) {
-      setTimeout(() => playBeastChirp('open'), 0);
-    }
+    if (next) playBeastChirp('open', true);
   };
+
+  useEffect(() => {
+    return () => {
+      if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
+      const ctx = audioContextRef.current;
+      if (ctx && ctx.state !== 'closed') void ctx.close();
+    };
+  }, []);
 
   return (
     <aside className={`cosmic-support ${open ? 'is-open' : ''}`} aria-label="Support Beast Box">
