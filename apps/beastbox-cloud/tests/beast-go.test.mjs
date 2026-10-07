@@ -63,7 +63,8 @@ test("Brain Bay, Model Bay, cosmos world, and owner settings are not edited for 
 
 test("cage nav links the field beside Adventure and the intentional main production deploy stays on", () => {
   const portal = read("components/beast-cage-portal.tsx");
-  assert.match(portal, /href="\/beast-cage\/play">Adventure<\/Link><Link href="\/beast-cage\/go">Go<\/Link>/);
+  assert.match(portal, /href="\/beast-cage\/play">Adventure<\/Link>/);
+  assert.match(portal, /href="\/sol-game">Enter LOST COSMOS/);
   assert.match(read("components/beast-care-deck.tsx"), /href="\/beast-cage\/go"/);
   assert.match(read("app/beast-cage/go/page.tsx"), /BeastGo/);
   assert.match(read("app/layout.tsx"), /<CompanionProvider>\{children\}<\/CompanionProvider>/);
