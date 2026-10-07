@@ -10,7 +10,7 @@ const GAME=ROOT+'/Cosmic-synapse-the-living-universe-sim-engine-/arcade/sol-spar
 export default function SolSparkPlayer({compact=false,active=true}:{compact?:boolean;active?:boolean}){
  const {ready,session}=useBeastSession();
  const frame=useRef<HTMLIFrameElement>(null);
- const [started,setStarted]=useState(false),[note,setNote]=useState('Your saved QBEAST will enter the current native cartridge.');
+ const [started,setStarted]=useState(false),[note,setNote]=useState('Your saved QBEAST will enter the current native cartridge.'),[admitted,setAdmitted]=useState(false);
  const beast=session?.beast;
  const send=useCallback(()=>{
   try{
@@ -75,7 +75,8 @@ export default function SolSparkPlayer({compact=false,active=true}:{compact?:boo
    if(event.data?.type==='sol-spark-ready')send();
    if(event.data?.type==='sol-spark-admitted'){
     if(event.data.id!==beast?.qbeast?.profile.id||event.data.seed!==beast?.seed){setNote('The game did not confirm the selected identity.');return;}
-    setNote(`${beast.displayName||beast.genome.names[1]} · same QBEAST verified. Allow local import, then start the cartridge below.`);
+    setNote(`${beast.displayName||beast.genome.names[1]} · same QBEAST verified. Press Start Lost COSMOS.`);
+    setAdmitted(true);
    }
    if(event.data?.type==='sol-spark-rejected')setNote('Game handoff: '+String(event.data.message).slice(0,180));
   };
@@ -89,6 +90,7 @@ export default function SolSparkPlayer({compact=false,active=true}:{compact?:boo
    {!beast?.qbeast?<p><a href="/spark/index.html">Generate your Spark Beast</a></p>:null}
   </div>:<>
    <p role="status" style={{fontSize:11,padding:'4px 10px',margin:0}}>{note}</p>
+   {admitted?<button type="button" onClick={()=>frame.current?.contentWindow?.postMessage({type:'sol-spark-start'},ROOT)} style={{margin:'8px 10px',padding:12,border:'1px solid #7ee7ff',borderRadius:8,background:'#14304a',color:'#7ee7ff'}}>START LOST COSMOS</button>:null}
    <iframe ref={frame} title="Current native LOST COSMOS with your exact Spark QBEAST" src={GAME} onLoad={send} allow="autoplay; fullscreen; gamepad; screen-wake-lock" allowFullScreen style={{width:'100%',height:compact?610:850,border:0,display:'block'}}/>
    <div aria-label="Lost COSMOS controls" style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8,padding:12,touchAction:'none'}}>
     {(['up','down','left','right','a','b','start','select'] as const).map(button=><button key={button} type="button" aria-label={GBA_KEYS[button].label} onPointerDown={event=>hold(button,true,event)} onPointerUp={event=>hold(button,false,event)} onPointerCancel={event=>hold(button,false,event)} style={{minHeight:48,border:'1px solid #7ee7ff',borderRadius:8,background:'#14304a',color:'#7ee7ff'}}>{GBA_KEYS[button].label}</button>)}
