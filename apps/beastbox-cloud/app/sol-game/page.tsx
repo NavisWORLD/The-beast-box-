@@ -19,5 +19,5 @@ export default function SolGame(){return <main style={{minHeight:'100vh',backgro
  <p>Your exact recorded-seed companion. Native art, movement, chirps and battery saves. Open TALK to chat with your Beast through the available guest-safe brain and care for it while the cartridge stays open.</p>
  <p style={{fontSize:12,color:'#9aadd4'}}><Link href="/beast-cage/go">Explore the web field first →</Link></p>
  <SolSparkPlayer/>
- <p style={{fontSize:12,color:'#9aadd4'}}>Native chat: START → PARTY → companion → CHAT. D-pad selects letters, A adds, L erases, SELECT sends, B returns. Save your journey from the emulator before loading another creature.</p>
+ <p style={{fontSize:12,color:'#9aadd4'}}>Cartridge V11.3. The file hash is 6f9c22fa. The ROM header still says COSMOS V11.2. That string is stale. The bytes are the V11.3 release, not the V11.2 file.</p>
  </main>}
