@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { adoptBeast, applyGameReturn, createSession, exportSession, grantXp, importSession, swapBrain } from "../lib/companion/session.mjs";
+import { adoptBeast, applyGameReturn, createSession, exportSession, grantXp, importSession, progressFromLocalGrowth, swapBrain } from "../lib/companion/session.mjs";
 import { care, rememberExchange, talkAndGrow, train } from "../lib/companion/adventure.mjs";
 
 function hatch() {
@@ -82,6 +82,20 @@ test("Lost COSMOS return updates allowlisted game fields once and cannot rewrite
   assert.equal(wrong.ok, false);
   assert.equal(session.beast.localGrowth.qbeast_id, "bb-spine01");
 });
+
+test("local growth maps into existing QBEAST progress fields and stays unsigned", () => {
+  const session = hatch();
+  care(session, "pet");
+  const progress = progressFromLocalGrowth(session.beast);
+  assert.equal(progress.trust, 0);
+  assert.equal(progress.bond, session.beast.bond);
+  assert.equal(progress.evolution_stage, 0);
+  assert.equal(session.beast.seed, "spine-seed");
+  assert.equal(session.beast.localGrowth.qbeast_id, "bb-spine01");
+  assert.equal(session.beast.localGrowth.signature, "none");
+  assert.equal(session.beast.qbeast.progress, undefined);
+});
+
 
 test("old session without local growth still loads", () => {
   const legacy = { schema: "beastbox-companion-session-v1", beast: { seed: "old", xp: 9, bond: 3, energy: 80, stage: 1, mood: "idle" }, train: { score: 1, rounds: 1 } };

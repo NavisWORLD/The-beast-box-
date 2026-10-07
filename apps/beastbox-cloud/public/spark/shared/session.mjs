@@ -45,6 +45,16 @@ export function tickEmulator(session) {
   return session.emulator.ticks;
 }
 
+export function progressFromLocalGrowth(beast) {
+  const growth = beast?.localGrowth || {};
+  const stage = Math.floor(Number(growth.stage ?? beast?.stage) || 1);
+  return {
+    trust: 0,
+    bond: Math.max(0, Math.min(100, Math.floor(Number(growth.bond ?? beast?.bond) || 0))),
+    evolution_stage: Math.max(0, Math.min(2, stage - 1)),
+  };
+}
+
 export function beastIdentity(beast) {
   if (!beast) return null;
   return beast.qbeast?.profile?.id || beast.id || (beast.seed ? `seed:${beast.seed}` : null);
