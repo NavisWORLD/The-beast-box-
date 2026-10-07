@@ -61,7 +61,7 @@ test("Brain Bay, Model Bay, cosmos world, and owner settings are not edited for 
   assert.match(read("components/beast-adventure.tsx"), /\/api\/bridge\/chat-start/);
 });
 
-test("cage nav links the field beside Adventure and the deploy guard stays off", () => {
+test("cage nav links the field beside Adventure and the intentional main production deploy stays on", () => {
   const portal = read("components/beast-cage-portal.tsx");
   assert.match(portal, /href="\/beast-cage\/play">Adventure<\/Link><Link href="\/beast-cage\/go">Go<\/Link>/);
   assert.match(read("components/beast-care-deck.tsx"), /href="\/beast-cage\/go"/);
@@ -69,7 +69,7 @@ test("cage nav links the field beside Adventure and the deploy guard stays off",
   assert.match(read("app/layout.tsx"), /<CompanionProvider>\{children\}<\/CompanionProvider>/);
   assert.match(read("components/studio.tsx"), /<CosmosWorld /);
   const guard = JSON.parse(read("vercel.json"));
-  assert.equal(guard.git.deploymentEnabled.main, false);
+  assert.equal(guard.git.deploymentEnabled.main, true);
 });
 
 test("the field HUD is a portrait, quick buttons, a round menu, and swipe sheets over the same talk path", () => {
