@@ -240,7 +240,8 @@ test("guests on the field use the guest-safe brain and a local beast, with no ow
   assert.match(ui, /No owner authority and no private memory/);
   assert.match(ui, /guest-safe brain/);
   assert.doesNotMatch(ui, /mockReply|fakeAnswer|Math\.random/);
-  for (const path of ["app/page.tsx", "app/try/page.tsx", "components/gba-guest-lab.tsx", "components/beast-cage-talk.tsx"]) {
+  assert.match(read("app/page.tsx"), /href="\/sol-game"/);
+  for (const path of ["app/try/page.tsx", "components/gba-guest-lab.tsx", "components/beast-cage-talk.tsx"]) {
     assert.match(read(path), /href="\/beast-cage\/go"/);
   }
   const talk = read("components/beast-cage-talk.tsx");
