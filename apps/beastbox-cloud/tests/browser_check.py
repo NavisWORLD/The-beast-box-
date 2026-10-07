@@ -30,7 +30,7 @@ with sync_playwright() as p:
     unauth.on("pageerror", lambda error:errors.append(str(error)))
     response=unauth.goto(BASE,wait_until="domcontentloaded")
     assert response and response.status==200
-    assert unauth.get_by_text("A small companion.").count()>=1
+    assert unauth.get_by_role("heading",name="A place for every person. A universe for every idea.").count()>=1
     assert_form_landmarks(unauth,"landing")
     assert_no_overflow(unauth,"desktop landing")
     unauth.screenshot(path=str(OUT/"01-landing-desktop.png"),full_page=True)

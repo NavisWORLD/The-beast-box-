@@ -65,6 +65,7 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
     }
     setHits(nextHits);
     setRound(nextRound);
+    setStatus(`Training ${nextRound}/6. ${hit ? 'Nice hit. ' : 'Missed the bright window. '}Keep going.`);
   }
 
   function speak(event: React.FormEvent) {
