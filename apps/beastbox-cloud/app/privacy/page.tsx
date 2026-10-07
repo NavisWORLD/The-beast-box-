@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Privacy · Beast Box',
-  description: 'What Beast Box stores on this device, what a recorded seed is, and what is not sent.',
+  description: 'A local-first companion runtime. Your beast stays on this device. Recorded seeds stay labeled.',
 };
 
 export default function PrivacyPage() {
@@ -21,14 +21,32 @@ export default function PrivacyPage() {
         <Link className="header-enter" href="/">Home</Link>
       </header>
       <section className="hero" style={{ display: 'block', minHeight: 'auto', paddingBottom: 80 }}>
-        <p className="eyebrow">YOUR DEVICE · YOUR CHOICE</p>
-        <h1 style={{ fontSize: 'clamp(40px, 6vw, 72px)' }}>What stays here.</h1>
+        <p className="eyebrow">LIVE SUBSTRATE · LOCAL FIRST</p>
+        <h1 style={{ fontSize: 'clamp(40px, 6vw, 72px)' }}>The record stays yours.</h1>
         <div className="hero-copy" style={{ maxWidth: 720 }}>
-          <p>A public Beast is game software. Its name, care, and QBEAST file stay in this browser unless you download or export them. Clearing site data for beastboxcosmos.xyz removes that local save. It does not delete a file you already downloaded.</p>
-          <p>Microphone reaction, if you turn it on, uses local amplitude for animation. Raw audio is not saved and is not uploaded. A Muse connection, if you consent, keeps derived focus, calm, and spark. Raw samples are discarded. This is not a medical device and not a diagnosis.</p>
-          <p>Recorded quantum seeds are fixed past measurement counts, mostly IBM job records. Rigetti entries used by the growth lab are archived simulator outputs. A seed is not a live quantum link, and a creature is not conscious.</p>
-          <p>Public visitors talk through the on-device pattern companion. That is not a hosted language model. Owner Brain Bay uses a separate configured route. If that route is down, the status says backend offline. A missing model does not invent a reply or rewrite the creature.</p>
-          <p>Owner memory, model weights, and tool permissions are not in the public creature file. A gadget or watch is not shipping on this page. See <Link href="/next">what is coming</Link>.</p>
+          <p>This is a working companion runtime. Memory, state, and provenance live outside the model. The creature is the face of that record.</p>
+          <p>Creatures can be born from real recorded quantum measurements. Those counts are fixed. The labels stay exact.</p>
+          <p>Your beast's name, care, and QBEAST file stay in this browser.</p>
+          <p>Download or export them and they're yours to keep.</p>
+          <p>Clearing site data removes the local save.</p>
+          <p>Microphone reaction uses local amplitude only.</p>
+          <p>Raw audio is never saved. Raw audio is never uploaded.</p>
+          <p>A Muse connection keeps derived focus, calm, and spark.</p>
+          <p>Raw samples are discarded.</p>
+          <p>This is not a medical device. This is not a diagnosis.</p>
+          <p>Recorded quantum seeds are fixed past measurement counts.</p>
+          <p>IBM entries are hardware job records. Rigetti entries are archived simulator outputs.</p>
+          <p>A seed is not a live quantum link.</p>
+          <p>A creature is not conscious.</p>
+          <p>The companion grows from the signals you choose to send. Those signals pass through the sensor layer and the state layer. Talking and explaining feed that growth. The local brain reacts and learns. The experience changes with it.</p>
+          <p>Public visitors get the on-device pattern companion.</p>
+          <p>That is not a hosted language model.</p>
+          <p>Owner Brain Bay uses a separate route.</p>
+          <p>When that route is down, the status says backend offline.</p>
+          <p>A missing model never invents a reply.</p>
+          <p>A missing model never rewrites the creature.</p>
+          <p>Owner memory, model weights, and tool permissions are not in the public file.</p>
+          <p>The gadget and watch are not shipping. <Link href="/next">See what is next.</Link></p>
           <p><Link className="primary-link" href="/spark/index.html">Back to My Beast</Link></p>
         </div>
       </section>
