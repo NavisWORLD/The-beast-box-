@@ -53,6 +53,7 @@ jobs:
             sleep 1
           done
           python tests/browser_check.py
+          SUPPORT_EVIDENCE_DIR=browser-evidence/support python tests/support_shrine_browser.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:

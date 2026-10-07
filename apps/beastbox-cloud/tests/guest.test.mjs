@@ -42,7 +42,8 @@ test('owner homepage links guest but keeps private workstation',()=>{
  const page=read('app/page.tsx');
  const guest=read('app/try/page.tsx');
  assert.match(page,/<Link href="\/try"/);
- assert.match(page,/<Link href="\/workspace"/);
+ assert.match(page,/<Link href="\/workspace#brain-bay"/);
+ assert.match(page,/<Link[^>]*href="\/workspace#settings"/);
  assert.match(guest,/href="\/workspace"/);
  const bridge=read('bridge/owner_bridge.py');
  assert.match(bridge,/if name == "guest-local":/);

@@ -1,245 +1,161 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Coffee, Github, Heart, Sparkles, Volume2, VolumeX, X, Zap } from 'lucide-react';
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { createPortal } from 'react-dom';
+import { Coffee, Github, Heart, Volume2, VolumeX, X } from 'lucide-react';
+import { SUPPORT_PORTALS, SUPPORT_TIERS, type SupportGroup, type SupportTier } from '../lib/support-tiers';
+import { createSupportAudio } from '../lib/support-audio.mjs';
+import { shownName } from '../lib/companion/session.mjs';
+import { useCompanion } from './companion-provider';
+import { useBeastSession } from './beast-session';
+import { useBeastAudio } from './use-beast-audio';
+import SupportMascot from './support-mascot';
+import SupportTierCard from './support-tier-card';
 
-const STRIPE_URL = 'https://buy.stripe.com/3cIbJ27zN7kO8mN97pa7C01';
-const SPONSORS_URL = 'https://github.com/sponsors/NavisWORLD';
-const COFFEE_URL = 'https://buymeacoffee.com/Cosmic_syanpse';
+const SOUND_KEY = 'beastbox-support-sound-v1';
+const QUIPS = ['✨ MORE STARDUST!!', '🌌 hehe… cosmic snacks', '💫 that tickles my orbit!',
+  '🐉 tiny dragon noises intensify', '⚛️ spark accepted. science unaffected.'];
 
 export default function CosmicSupportWidget() {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [group, setGroup] = useState<SupportGroup>('monthly');
   const [soundOn, setSoundOn] = useState(true);
-  const [reacting, setReacting] = useState(false);
   const [beastLine, setBeastLine] = useState('psst… got any stardust?');
-  const [stardustBurst, setStardustBurst] = useState(0);
-  const [quipIndex, setQuipIndex] = useState(0);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const reactionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const react = (line: string) => {
-    setBeastLine(line);
-    setReacting(true);
-    if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
-    reactionTimerRef.current = setTimeout(() => setReacting(false), 850);
-  };
-
-  const playBeastChirp = (kind: 'open' | 'close' | 'fuel' | 'spark' = 'open', force = false) => {
-    if ((!soundOn && !force) || typeof window === 'undefined' || !window.AudioContext) return;
-
-    try {
-      const ctx = audioContextRef.current ?? new window.AudioContext();
-      audioContextRef.current = ctx;
-      if (ctx.state === 'suspended') void ctx.resume();
-
-      const now = ctx.currentTime;
-      const notes =
-        kind === 'fuel'
-          ? [523.25, 783.99, 1046.5]
-          : kind === 'spark'
-            ? [880, 1174.66, 1567.98, 2093]
-            : kind === 'close'
-              ? [659.25, 493.88]
-              : [587.33, 783.99, 987.77];
-
-      notes.forEach((frequency, index) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        const start = now + index * 0.055;
-        const stop = start + 0.13;
-
-        osc.type = index % 2 === 0 ? 'sine' : 'triangle';
-        osc.frequency.setValueAtTime(frequency, start);
-        osc.frequency.exponentialRampToValueAtTime(frequency * 1.035, stop);
-
-        gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(0.045, start + 0.018);
-        gain.gain.exponentialRampToValueAtTime(0.0001, stop);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(start);
-        osc.stop(stop + 0.02);
-      });
-    } catch {
-      // Sound is optional. Browsers may decline AudioContext creation.
-    }
-  };
-
-  const togglePanel = () => {
-    const next = !open;
-    setOpen(next);
-    react(next ? '✨ oh! a visitor!' : '🌙 back to orbit…');
-    playBeastChirp(next ? 'open' : 'close');
-  };
-
-  const supportClick = (kind: 'stripe' | 'github' | 'coffee') => {
-    const line =
-      kind === 'stripe'
-        ? '⚡ COSMIC FUEL DETECTED!'
-        : kind === 'github'
-          ? '💖 a new constellation friend!'
-          : '☕ tiny cosmic coffee acquired!';
-    react(line);
-    playBeastChirp('fuel');
-  };
-
-  const petBeast = () => {
-    const quips = [
-      '✨ MORE STARDUST!!',
-      '🌌 hehe… cosmic snacks',
-      '💫 that tickles my orbit!',
-      '⭐ stardust reserves: emotionally full',
-      '🐉 tiny dragon noises intensify',
-      '⚛️ spark accepted. science unaffected.',
-    ];
-    const next = quipIndex % quips.length;
-    setQuipIndex((value) => value + 1);
-    setBeastLine(quips[next]);
-    setStardustBurst((value) => value + 1);
-    react(quips[next]);
-    playBeastChirp('spark');
-  };
-
-  const toggleSound = () => {
-    const next = !soundOn;
-    setSoundOn(next);
-    setBeastLine(next ? '🔊 chirps enabled!' : '🔇 stealth Beast mode');
-    if (next) playBeastChirp('open', true);
-  };
+  const [reaction, setReaction] = useState<string | null>(null);
+  const [burst, setBurst] = useState(0);
+  const launcherRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const quipRef = useRef(0);
+  const soundRef = useRef(true);
+  const playerRef = useRef<ReturnType<typeof createSupportAudio> | null>(null);
+  const { audio, state: audioState } = useBeastAudio();
+  // Read existing identity only. Support never writes, adopts or evolves a Beast.
+  const { profile } = useCompanion();
+  const { ready, session } = useBeastSession();
+  const name = ready && session?.beast ? shownName(session.beast) : profile?.name;
+  const audible = soundOn && !audioState.sparkMuted;
 
   useEffect(() => {
+    setMounted(true);
+    try {
+      soundRef.current = localStorage.getItem(SOUND_KEY) !== 'false';
+      setSoundOn(soundRef.current);
+    } catch { /* a UI preference is optional */ }
+    playerRef.current = createSupportAudio(audio, { enabled: () => soundRef.current });
     return () => {
-      if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
-      const ctx = audioContextRef.current;
-      if (ctx && ctx.state !== 'closed') void ctx.close();
+      if (timerRef.current) clearTimeout(timerRef.current);
+      playerRef.current?.dispose(); playerRef.current = null;
     };
-  }, []);
+  }, [audio]);
 
-  return (
-    <aside className={`cosmic-support ${open ? 'is-open' : ''}`} aria-label="Support Beast Box">
-      {!open ? (
-        <button
-          type="button"
-          className="cosmic-support-launcher"
-          onClick={togglePanel}
-          aria-expanded="false"
-          aria-label="Open Feed the Beast support panel"
-        >
-          <span className={`support-beast-shell ${reacting ? 'is-reacting' : ''}`} aria-hidden="true">
-            <img className="support-beast-img" src="/cosmic-creature.svg" alt="" />
-            <span className="support-beast-glow" />
-            <span className="support-beast-spark">✦</span>
-          </span>
-          <span className="support-launcher-copy">
-            <small>THE BEAST HAS NOTICED YOU</small>
-            <strong>Feed the Beast</strong>
-            <em>{beastLine}</em>
-          </span>
-          <Heart className="support-launcher-heart" size={18} aria-hidden="true" />
-        </button>
-      ) : (
-        <div className="cosmic-support-panel">
-          <div className="support-constellation" aria-hidden="true">
-            <i/><i/><i/><i/><i/>
-          </div>
+  useEffect(() => {
+    if (audioState.hidden || audioState.sparkMuted) playerRef.current?.stop();
+  }, [audioState.hidden, audioState.sparkMuted]);
+  useEffect(() => { if (open) closeRef.current?.focus(); }, [open]);
 
+  const react = (line: string, id = 'beast') => {
+    setBeastLine(line); setReaction(id); setBurst(value => value + 1);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setReaction(null), 900);
+  };
+  const chirp = (tier = SUPPORT_TIERS[0]) => {
+    if (!soundRef.current || audio.getSnapshot().sparkMuted) return;
+    // Only explicit click/key/touch activations call this function.
+    audio.unlock(); void playerRef.current?.play(tier.sound);
+  };
+  const openPanel = () => { setOpen(true); react('✨ oh! a visitor!'); chirp(); };
+  const closePanel = () => {
+    setOpen(false); react('🌙 back to orbit…'); playerRef.current?.stop();
+    requestAnimationFrame(() => launcherRef.current?.focus());
+  };
+  const toggleSound = () => {
+    const next = !audible;
+    soundRef.current = next; setSoundOn(next);
+    try { localStorage.setItem(SOUND_KEY, String(next)); } catch { /* optional */ }
+    if (next) { audio.sparkUnmute(); chirp(); setBeastLine('🔊 tiny chirps enabled!'); }
+    else { playerRef.current?.stop(); setBeastLine('🔇 stealth Beast mode'); }
+  };
+  const meet = (tier: SupportTier) => {
+    react(tier.interactionLines[quipRef.current++ % tier.interactionLines.length], tier.id); chirp(tier);
+  };
+  const depart = (tier?: SupportTier, portal = 'cosmic fuel') => {
+    // A link is a departure, not a payment receipt. Reserved success copy is
+    // never used without a future server-verified payment signal.
+    react(`Opening ${portal} portal…${tier ? ` ${tier.name} is waving goodbye.` : ''}`, tier?.id); chirp(tier);
+  };
+  const petBeast = () => { react(QUIPS[quipRef.current++ % QUIPS.length]); chirp(SUPPORT_TIERS[4]); };
+  const selectTab = (next: SupportGroup) => { setGroup(next); setReaction(null); };
+  const tabKeys = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let next = index;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') next = 1 - index;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = 1;
+    else return;
+    event.preventDefault(); selectTab(next === 0 ? 'monthly' : 'once'); tabRefs.current[next]?.focus();
+  };
+
+  if (!mounted) return null;
+  // The landing artwork creates a stacking context. Mount alongside the existing
+  // game dock so its controls cannot intercept this panel's checkout buttons.
+  return createPortal(
+    <aside className={`cosmic-support ${open ? 'is-open' : ''} ${audioState.hidden ? 'is-paused' : ''}`} aria-label="Support Beast Box">
+      {!open ? <button ref={launcherRef} type="button" className="cosmic-support-launcher" onClick={openPanel}
+        aria-expanded="false" aria-controls="living-support-shrine" aria-label="Open Feed the Beast support panel">
+        <span className="support-beast-shell" aria-hidden="true"><SupportMascot reacting={reaction === 'beast'}/></span>
+        <span className="support-launcher-copy"><small>THE BEAST HAS NOTICED YOU</small><strong>Feed the Beast</strong><em>Support the tiny universe.</em></span>
+        <Heart className="support-launcher-heart" size={18} aria-hidden="true"/>
+      </button> : <section id="living-support-shrine" className="cosmic-support-panel" role="dialog" aria-modal="false"
+        aria-labelledby="support-title" onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); closePanel(); } }}>
+        <div className="support-shrine-topbar">
+          <span className="support-room-plaque">NAVISWORLD / SECRET ROOM</span>
           <div className="support-panel-tools">
-            <button
-              type="button"
-              className="support-sound"
-              onClick={toggleSound}
-              aria-label={soundOn ? 'Mute Beast sounds' : 'Enable Beast sounds'}
-              aria-pressed={soundOn}
-              title={soundOn ? 'Mute Beast sounds' : 'Enable Beast sounds'}
-            >
-              {soundOn ? <Volume2 size={16}/> : <VolumeX size={16}/>}
+            <button type="button" className="support-sound" onClick={toggleSound} aria-pressed={audible}
+              aria-label={audible ? 'Mute Beast sounds' : 'Enable Beast sounds'} title={audible ? 'Mute Beast sounds' : 'Enable Beast sounds'}>
+              {audible ? <Volume2 size={18} aria-hidden="true"/> : <VolumeX size={18} aria-hidden="true"/>}
             </button>
-            <button
-              type="button"
-              className="support-close"
-              onClick={togglePanel}
-              aria-label="Close support panel"
-            >
-              <X size={17}/>
-            </button>
+            <button ref={closeRef} type="button" className="support-close" onClick={closePanel} aria-label="Close support panel"><X size={20} aria-hidden="true"/></button>
           </div>
-
-          <div className="support-beast-stage" aria-label="Cosmic Beast support companion">
-            <button
-              type="button"
-              className="support-beast-pet"
-              onClick={petBeast}
-              aria-label="Sprinkle stardust on the Beast"
-              title="Sprinkle stardust"
-            >
-              <span className={`support-beast-shell support-beast-large ${reacting ? 'is-reacting' : ''}`}>
-                <img className="support-beast-img" src="/cosmic-creature.svg" alt="A smiling purple cosmic Beast" />
-                <span className="support-beast-glow" aria-hidden="true" />
-                <span className="support-beast-spark" aria-hidden="true">✦</span>
-                <span key={stardustBurst} className="support-stardust-burst" aria-hidden="true">
-                  {Array.from({ length: 14 }).map((_, index) => <i key={index}>✦</i>)}
-                </span>
-              </span>
-            </button>
-            <div className="support-beast-bubble" aria-live="polite">
-              <small>BEAST TRANSMISSION</small>
-              <strong>{beastLine}</strong>
-              <button type="button" className="support-stardust-action" onClick={petBeast}>
-                ✦ sprinkle more stardust
-              </button>
-            </div>
-          </div>
-
-          <p className="support-kicker"><Sparkles size={14}/> FUEL THE LIVING COSMOS</p>
-          <h2>Keep the strange little universe alive.</h2>
-          <p className="support-copy">
-            Beast Box is open source. Support helps cover hosting, compute, storage, hardware
-            prototypes, documentation, experiments, and the time it takes to keep shipping.
-          </p>
-
-          <div className="support-fuel" aria-label="Ways support helps">
-            <span>✦ hosting + storage</span>
-            <span>⚛ compute + experiments</span>
-            <span>🐉 creature + game work</span>
-          </div>
-
-          <a
-            className="support-primary"
-            href={STRIPE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => supportClick('stripe')}
-          >
-            Direct Cosmic Fuel via Stripe <Zap size={18}/>
-          </a>
-
-          <a
-            className="support-secondary"
-            href={SPONSORS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => supportClick('github')}
-          >
-            Sponsor the COSMOS on GitHub <Github size={17}/>
-          </a>
-
-          <a
-            className="support-secondary support-coffee"
-            href={COFFEE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => supportClick('coffee')}
-          >
-            Send a Cosmic Coffee <Coffee size={17}/>
-          </a>
-
-          <p className="support-honesty">
-            Support is optional. Curiosity is free. The Beast remains suspiciously hungry.
-            No fake counters, scarcity, equity, or promised returns.
-          </p>
         </div>
-      )}
-    </aside>
+        <div className="support-shrine-scroll">
+          <header className="support-shrine-header">
+            <button type="button" className="support-beast-pet" onClick={petBeast} aria-label="Sprinkle stardust on the Beast">
+              <SupportMascot reacting={reaction === 'beast'}/>
+              {reaction === 'beast' && burst > 0 && <span key={burst} className="support-stardust-burst" aria-hidden="true">
+                {Array.from({length:12},(_,i)=><i key={i} style={{'--i':i} as CSSProperties}>✦</i>)}
+              </span>}
+            </button>
+            <div><p className="support-kicker">THE LIVING SUPPORT SHRINE</p><h2 id="support-title">Feed the Beast</h2>
+              <p className="support-copy">Support the tiny universe.<br/>Encourage bad ideas.</p>
+              {name && <p className="support-active-name">{String(name).slice(0,32)} found the secret room.</p>}
+            </div>
+          </header>
+          <div className="support-beast-bubble" role="status" aria-live="polite" aria-atomic="true"><span data-support-transmission>{beastLine}</span></div>
+          <p className="support-workshop-copy">This workshop runs on stardust, code, and alarming persistence. Hosting, compute, games, experiments, prototype goblins. You get the idea.</p>
+          <div className="support-tabs" role="tablist" aria-label="Choose a support rhythm">
+            {(['monthly','once'] as const).map((tab,i)=><button key={tab} type="button" ref={el => { tabRefs.current[i] = el; }}
+              role="tab" id={`support-tab-${tab}`} aria-selected={group === tab} aria-controls={`support-tiers-${tab}`}
+              tabIndex={group === tab ? 0 : -1} onClick={() => selectTab(tab)} onKeyDown={event => tabKeys(event,i)}>
+              {tab === 'monthly' ? 'Monthly Companions' : 'One-Time Fuel'}
+            </button>)}
+          </div>
+          {(['monthly','once'] as const).map(tab=><div key={tab} role="tabpanel" id={`support-tiers-${tab}`}
+            aria-labelledby={`support-tab-${tab}`} hidden={group !== tab} className="support-tier-grid">
+            {group === tab && SUPPORT_TIERS.filter(tier=>tier.group === tab).map(tier=><SupportTierCard key={tier.id} tier={tier}
+              reacting={reaction === tier.id} burst={burst} onMeet={meet} onDepart={depart}/>)}
+          </div>)}
+          <p className="support-checkout-note">Each option opens its own Stripe checkout in a new tab. Monthly support is recurring; one-time fuel is a single payment.</p>
+          <div className="support-other-portals">
+            <a href={SUPPORT_PORTALS.sponsors} target="_blank" rel="noopener noreferrer" onClick={()=>depart(undefined,'GitHub Sponsors')}><Github size={17} aria-hidden="true"/>GitHub Sponsors</a>
+            <a href={SUPPORT_PORTALS.coffee} target="_blank" rel="noopener noreferrer" onClick={()=>depart(undefined,'cosmic coffee')}><Coffee size={17} aria-hidden="true"/>Buy Me a Coffee</a>
+          </div>
+          <p className="support-honesty">Support is optional. Curiosity is free. The Beast remains suspiciously hungry.</p>
+          <p className="support-boundary">Voluntary support provides no equity, ownership, investment returns, or guaranteed feature delivery. Petting, sounds and stardust are cosmetic. Payment never changes creature identity or scientific results.</p>
+          <span className="support-sticker" aria-hidden="true">MODEL ≠ BEAST · NULL RESULTS LIVE HERE TOO</span>
+        </div>
+      </section>}
+    </aside>, document.body
   );
 }

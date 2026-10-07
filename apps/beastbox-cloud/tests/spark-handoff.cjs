@@ -2,7 +2,7 @@
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs/promises');
 const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/sol-handoff',localGame=process.argv[4];
 (async()=>{
- await fs.mkdir(out,{recursive:true});const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ await fs.mkdir(out,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.BEAST_BROWSER_EXECUTABLE,args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),page=await context.newPage(),errors=[],wrong=[],modelRequests=[];
  await page.addInitScript(()=>{const buttons=Array.from({length:16},()=>({pressed:false,value:0}));window.__beastBoxFakeGamepad={id:'Beast Box CI standard controller',index:0,connected:true,mapping:'standard',timestamp:0,buttons,axes:[0,0],vibrationActuator:null};Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>[window.__beastBoxFakeGamepad]});});
  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(/SIM_EARTH|Pocket.Reality|standalone\//i.test(r.url()))wrong.push(r.url())});
