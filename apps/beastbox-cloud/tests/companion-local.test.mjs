@@ -65,7 +65,7 @@ test('memory grows, recalls, and exports a spark-loadable qbeast without raw med
   assert.equal(loopbackOnly('https://example.com/api/chat'), false);
 });
 
-test('Brain Bay card is additive and the vercel guard stays closed', () => {
+test('Brain Bay card is additive and intentional main production deploy stays enabled', () => {
   const bay = read('../components/companion-local-bay.tsx');
   const studio = read('../components/studio.tsx');
   const vercel = read('../vercel.json');
@@ -80,7 +80,7 @@ test('Brain Bay card is additive and the vercel guard stays closed', () => {
   assert.match(studio, /<CompanionLocalBay variant="bay"\/>/);
   assert.match(studio, /<CompanionLocalBay variant="chat"\/>/);
   assert.match(studio, /<LiveSenses visible=\{page==='SETTINGS'\}/);
-  assert.match(vercel, /"main": false/);
+  assert.match(vercel, /"main": true/);
   assert.doesNotMatch(read('../components/cosmos-world.tsx'), /CompanionLocalBay/);
   assert.doesNotMatch(read('../components/model-switcher.tsx'), /CompanionLocalBay/);
 });
