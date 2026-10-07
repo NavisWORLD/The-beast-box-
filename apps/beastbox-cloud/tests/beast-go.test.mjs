@@ -61,15 +61,17 @@ test("Brain Bay, Model Bay, cosmos world, and owner settings are not edited for 
   assert.match(read("components/beast-adventure.tsx"), /\/api\/bridge\/chat-start/);
 });
 
-test("cage nav links the field beside Adventure and the deploy guard stays off", () => {
+test("cage keeps game discovery paths and main deployment remains intentionally enabled", () => {
   const portal = read("components/beast-cage-portal.tsx");
-  assert.match(portal, /href="\/beast-cage\/play">Adventure<\/Link><Link href="\/beast-cage\/go">Go<\/Link>/);
+  assert.match(portal, /href="\/beast-cage\/play">Adventure<\/Link>/);
+  assert.match(portal, /href="\/sol-game"/);
   assert.match(read("components/beast-care-deck.tsx"), /href="\/beast-cage\/go"/);
   assert.match(read("app/beast-cage/go/page.tsx"), /BeastGo/);
   assert.match(read("app/layout.tsx"), /<CompanionProvider>\{children\}<\/CompanionProvider>/);
   assert.match(read("components/studio.tsx"), /<CosmosWorld /);
   const guard = JSON.parse(read("vercel.json"));
-  assert.equal(guard.git.deploymentEnabled.main, false);
+  assert.equal(guard.git.deploymentEnabled.main, true);
+  assert.equal(guard.git.deploymentEnabled['feature/cosmic-chaos-vercel-app-001'], false);
 });
 
 test("the field HUD is a portrait, quick buttons, a round menu, and swipe sheets over the same talk path", () => {
@@ -240,7 +242,10 @@ test("guests on the field use the guest-safe brain and a local beast, with no ow
   assert.match(ui, /No owner authority and no private memory/);
   assert.match(ui, /guest-safe brain/);
   assert.doesNotMatch(ui, /mockReply|fakeAnswer|Math\.random/);
-  for (const path of ["app/page.tsx", "app/try/page.tsx", "components/gba-guest-lab.tsx", "components/beast-cage-talk.tsx"]) {
+  // The simplified homepage enters Lost COSMOS through its primary game route;
+  // the field's existing guest entry points retain their direct Go link.
+  assert.match(read('app/page.tsx'), /href="\/sol-game"/);
+  for (const path of ["app/try/page.tsx", "components/gba-guest-lab.tsx", "components/beast-cage-talk.tsx"]) {
     assert.match(read(path), /href="\/beast-cage\/go"/);
   }
   const talk = read("components/beast-cage-talk.tsx");

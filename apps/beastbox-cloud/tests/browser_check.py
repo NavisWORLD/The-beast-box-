@@ -1,8 +1,9 @@
 """Browser acceptance for the isolated private preview; uses public CI-only credentials."""
 import base64
 import json
+import os
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 
 BASE="http://127.0.0.1:3100"
 OUT=Path("browser-evidence")
@@ -23,21 +24,26 @@ def assert_form_landmarks(page, label):
     assert not unlabeled, f"{label}: controls missing labels: {unlabeled}"
 
 with sync_playwright() as p:
-    browser=p.chromium.launch(channel="chrome",headless=True,args=["--no-sandbox"])
+    launch={"headless":True,"args":["--no-sandbox"]}
+    if os.environ.get("SUPPORT_BROWSER_EXECUTABLE"):
+        launch["executable_path"]=os.environ["SUPPORT_BROWSER_EXECUTABLE"]
+    else:
+        launch["channel"]="chrome"
+    browser=p.chromium.launch(**launch)
     desktop=browser.new_context(viewport={"width":1440,"height":900},device_scale_factor=1)
     unauth=desktop.new_page()
     errors=[]
     unauth.on("pageerror", lambda error:errors.append(str(error)))
     response=unauth.goto(BASE,wait_until="domcontentloaded")
     assert response and response.status==200
-    assert unauth.get_by_text("A small companion.").count()>=1
+    assert unauth.get_by_text("A place for every person.").count()>=1
     assert_form_landmarks(unauth,"landing")
     assert_no_overflow(unauth,"desktop landing")
     unauth.screenshot(path=str(OUT/"01-landing-desktop.png"),full_page=True)
     r=unauth.request.post(BASE+"/api/bridge/chat",data={"text":"Unauthorized attempt"})
     assert r.status==401, ("unauthenticated bridge",r.status)
     unauth.get_by_role("link",name="Enter the Beast Cage").click()
-    assert unauth.get_by_role("heading",name="A small companion. An entire universe.").count()>=1
+    expect(unauth.get_by_role("heading",name="A small companion. An entire universe.")).to_be_visible()
     assert_no_overflow(unauth,"desktop cage")
     unauth.get_by_role("link",name="Owner deck").click()
     unauth.get_by_label("OWNER PASSWORD").fill("public-ci-fixture-not-secret")

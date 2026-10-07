@@ -48,7 +48,9 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
         master = buildMaster(ctx);
       } catch { ctx = null; master = null; return null; } // no audio device: stay silent
     }
-    if (ctx.state === "suspended" && typeof ctx.resume === "function") { try { void ctx.resume(); } catch { /* resumes on next gesture */ } }
+    if (ctx.state === "suspended" && typeof ctx.resume === "function") {
+      try { Promise.resolve(ctx.resume()).catch(() => {}); } catch { /* resumes on next gesture */ }
+    }
     return ctx;
   }
   function musicLevel() {

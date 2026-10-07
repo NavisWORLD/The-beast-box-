@@ -9,6 +9,23 @@ the runtime retains the story and enforces its own authority boundary.
 
 **MODEL ≠ MEMORY · MODEL ≠ STATE · MODEL ≠ PROVENANCE · MODEL ≠ AUTHORITY**
 
+## Feed the Beast 🐉
+
+This workshop runs on stardust, code, caffeine, and alarming persistence.
+Meet the **[Living Support Shrine](https://www.beastboxcosmos.xyz)**: tap the little
+Beast for optional support, creature reactions, and tiny interaction-only chirps.
+
+**Monthly Companions:** [Pocket Spark — $5/month](https://buy.stripe.com/3cIbJ27zN7kO8mN97pa7C01) · [Beast Keeper — $15/month](https://buy.stripe.com/fZueVe5rF7kO9qR3N5a7C02) · [COSMOS Builder — $50/month](https://buy.stripe.com/3cI28s2ft7kO6eF0ATa7C03) · [Universe Patron — $150/month](https://buy.stripe.com/6oU00kaLZax0eLb5Vda7C04)
+
+**One-Time Fuel:** [Feed the Beast — $10](https://donate.stripe.com/cNiaEY4nBcF87iJ1EXa7C05) · [Compute Burst — $50](https://donate.stripe.com/3cI8wQ8DRbB446x5Vda7C06) · [Hardware Rune — $100](https://donate.stripe.com/4gM00kdYb5cG8mN0ATa7C07) · [Launch Fuel — $500](https://donate.stripe.com/fZu7sM4nB20u0UlfvNa7C08)
+
+Also: **[GitHub Sponsors](https://github.com/sponsors/NavisWORLD)** · **[Buy Me a Coffee](https://buymeacoffee.com/Cosmic_syanpse)**.
+Support funds hosting, compute, storage, hardware, games, experiments, documentation,
+and development time. Support is optional. Curiosity is free. It provides no equity,
+ownership, investment returns, or guaranteed feature delivery. Cosmetic reactions
+never change QBEAST identity, model authority, or scientific results. Opening
+checkout is not payment confirmation.
+
 [Beast Wings integration](#beast-wings-integration-october-2026) · [Download Beast Box v0.7.0](https://github.com/NavisWORLD/The-beast-box-/releases/tag/v0.7.0) ·
 [COSMIC browser guide](docs/COSMIC_UI_GUIDE.md) · [5-minute Quickstart](docs/QUICKSTART.md) · [Combined Kit / EnD](kits/BEAST_BOX_COMBINED/EnD) · [Exact replica](replica/README.md) ·
 [Architecture](docs/ECOSYSTEM_MANIFEST.json) · [Persistent Memory](docs/PORTABLE_STATE.md) ·
