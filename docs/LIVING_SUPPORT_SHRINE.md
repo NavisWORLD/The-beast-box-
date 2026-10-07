@@ -61,6 +61,17 @@ consciousness; MODEL ≠ MEMORY ≠ STATE ≠ AUTHORITY.
 - Existing desktop/mobile/tablet browser acceptance passed with no console errors:
   public journey, owner authentication, offline gate, memory honesty, image staging
   and fail-closed BYOK settings.
+- Beast Cage's real browser suite passed at 1440, 430, 390, 375 and 320px,
+  including reduced motion. Its homepage check now uses the intentionally updated
+  heading; Cage identity, local save, game dock and genuine 3D checks remain.
+- The real native handoff suite passed: the same QBEAST entered the cartridge,
+  touch and Gamepad API controls reached its native core, care/chat stayed shared,
+  and chat did not remount the game. The existing strict press/release assertions
+  remain. Investigation found the field's keyboard fallback and controller bridge
+  forwarded duplicate edges; the player now forwards each transition once.
+  Local diagnostics used the hash-verified public V11.3 cartridge release
+  `6f9c22fa22b32694d606c854b4da26b4394b2ecaa86842cc1998c8cfe57b1fb3`.
+  CI builds the pinned original source independently.
 - Profile validator passed: **18 SVGs parsed, 17 local image references checked**.
 - `git diff --check`: passed. No lint command is configured in this app.
 

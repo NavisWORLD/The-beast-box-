@@ -1,5 +1,6 @@
 """Real public browser acceptance with original art, no owner data or sensors."""
 from pathlib import Path
+import os
 import re
 from playwright.sync_api import sync_playwright, expect
 
@@ -13,7 +14,8 @@ def no_overflow(page,label):
     assert sizes["scroll"]<=sizes["width"]+1,(label,sizes)
 
 with sync_playwright() as p:
-    browser=p.chromium.launch(headless=True,args=["--no-sandbox","--enable-webgl","--use-gl=angle","--use-angle=swiftshader"])
+    executable=os.environ.get("BEAST_BROWSER_EXECUTABLE")
+    browser=p.chromium.launch(headless=True,**({"executable_path":executable} if executable else {}),args=["--no-sandbox","--enable-webgl","--use-gl=angle","--use-angle=swiftshader"])
     for width,height in [(1440,900),(430,932),(390,844),(375,812),(320,720)]:
         context=browser.new_context(viewport={"width":width,"height":height},device_scale_factor=1,is_mobile=width<500,has_touch=width<500)
         page=context.new_page()
@@ -23,7 +25,7 @@ with sync_playwright() as p:
         # its static illustrative reference image.
         home=page.goto(ROOT+"/",wait_until="domcontentloaded",timeout=30000)
         assert home and home.status==200
-        page.get_by_role("heading",name=re.compile("A small companion")).wait_for()
+        expect(page.get_by_role("heading",level=1)).to_contain_text("A place for every person.")
         no_overflow(page,str(width)+" homepage")
         if page.evaluate("!!document.createElement('canvas').getContext('webgl')"):
             page.locator(".beast-landing-creature [data-graphics='procedural-3d']").wait_for(timeout=16000)

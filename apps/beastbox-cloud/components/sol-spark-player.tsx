@@ -26,10 +26,15 @@ export default function SolSparkPlayer({compact=false,active=true}:{compact?:boo
  },[active,started]);
  useEffect(()=>{
   const allowed=new Set(['up','down','left','right','a','b','start','select','l','r']);
+  const pressed=new Set<string>();
   const forward=(event:Event)=>{
    const detail=(event as CustomEvent<{button?:unknown;down?:unknown}>).detail;
    const button=typeof detail?.button==='string'?detail.button.toLowerCase():'';
    if(!allowed.has(button)||typeof detail?.down!=='boolean')return;
+   if(!frame.current?.contentWindow||pressed.has(button)===detail.down)return;
+   // The field's local keyboard fallback and controller can emit the same
+   // edge. Forward one transition to the native core, including one release.
+   if(detail.down)pressed.add(button);else pressed.delete(button);
    frame.current?.contentWindow?.postMessage({type:'sol-spark-input',button,down:detail.down},ROOT);
   };
   window.addEventListener('beastbox:gba-input',forward);
