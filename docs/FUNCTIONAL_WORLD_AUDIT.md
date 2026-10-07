@@ -21,6 +21,15 @@ This is a receipt, not a claim that every control works. UNVERIFIED is not PASS.
 | Lost COSMOS | Up, Down, Left, Right, A, B, Start, Select | Native game responds | Not pressed inside the core | UNVERIFIED |
 | Lost COSMOS | Native save return | Real save becomes `lost-cosmos-return-v1` | Not extracted | UNVERIFIED |
 
-## Not yet pressed
+## Pressed on production 2026-10-07
+
+| Surface | Control | Expected | Actual | Status |
+| --- | --- | --- | --- | --- |
+| Spark | Pet | Bond and XP move | `bb-21e80659` went from XP 0 bond 1 energy 100 to XP 4 bond 3 energy 96 | PASS |
+| Spark | Train | Training changes state | Click did not change the visible care line | UNVERIFIED |
+| Lost COSMOS | Send Beast | Frame mounts | Iframe opened the handheld gate | PASS |
+| Lost COSMOS | Up | Native core responds | ArrowUp on the gate page did not change the screenshot | UNVERIFIED |
+| Navigation | Home, My Beast, Cage, Brain Bay, Lab, Settings | Links render | Present on `/sol-game` | UNVERIFIED, not followed this pass |
+
 
 Home, Cage, Brain Bay, Lab, Settings, audio, mic, model selectors, mobile widths, and import/export were not re-exercised in this pass. They stay UNVERIFIED. Nothing was removed.
