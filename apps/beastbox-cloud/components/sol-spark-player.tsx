@@ -3,6 +3,7 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {useBeastSession} from './beast-session';
 import {serializeQbeast} from '../public/spark/qbeast.mjs';
 import {checkedSpark} from '../public/spark/identity.mjs';
+import {GBA_KEYS, gamepadButtons} from '../lib/companion/go-hud.mjs';
 import SolGameTalk from './sol-game-talk';
 const ROOT='https://navisworld.github.io';
 const GAME=ROOT+'/Cosmic-synapse-the-living-universe-sim-engine-/arcade/sol-spark-gate/?mode=handheld&controller=previeworigin41';
@@ -35,6 +36,40 @@ export default function SolSparkPlayer({compact=false,active=true}:{compact?:boo
   return()=>window.removeEventListener('beastbox:gba-input',forward);
  },[]);
  useEffect(()=>{
+  if(!started)return;
+  const onKey=(event:KeyboardEvent)=>{
+   const target=event.target;
+   if(target instanceof HTMLElement&&target.closest('textarea, input'))return;
+   const entry=Object.entries(GBA_KEYS).find(([,spec])=>spec.key.toLowerCase()===event.key.toLowerCase());
+   if(!entry)return;
+   event.preventDefault();
+   if(event.type==='keydown'&&event.repeat)return;
+   window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button:entry[0],down:event.type==='keydown'}}));
+  };
+  window.addEventListener('keydown',onKey);
+  window.addEventListener('keyup',onKey);
+  return()=>{window.removeEventListener('keydown',onKey);window.removeEventListener('keyup',onKey);};
+ },[started]);
+ useEffect(()=>{
+  if(!started||typeof navigator.getGamepads!=='function')return;
+  let frame=0;let active=new Set<string>();
+  const release=()=>{for(const button of active)window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button,down:false}}));active=new Set();};
+  const poll=()=>{
+   frame=window.requestAnimationFrame(poll);
+   const next=new Set<string>();
+   for(const pad of navigator.getGamepads())if(pad)for(const button of gamepadButtons(pad))next.add(button);
+   for(const button of next)if(!active.has(button))window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button,down:true}}));
+   for(const button of active)if(!next.has(button))window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button,down:false}}));
+   active=next;
+  };
+  frame=window.requestAnimationFrame(poll);
+  return()=>{window.cancelAnimationFrame(frame);release();};
+ },[started]);
+ function hold(button:string,down:boolean,event:React.PointerEvent<HTMLButtonElement>){
+  event.preventDefault();
+  window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button,down}}));
+ }
+ useEffect(()=>{
   const message=(event:MessageEvent)=>{
    if(event.origin!==ROOT||event.source!==frame.current?.contentWindow)return;
    if(event.data?.type==='sol-spark-ready')send();
@@ -55,6 +90,9 @@ export default function SolSparkPlayer({compact=false,active=true}:{compact?:boo
   </div>:<>
    <p role="status" style={{fontSize:11,padding:'4px 10px',margin:0}}>{note}</p>
    <iframe ref={frame} title="Current native LOST COSMOS with your exact Spark QBEAST" src={GAME} onLoad={send} allow="autoplay; fullscreen; gamepad; screen-wake-lock" allowFullScreen style={{width:'100%',height:compact?610:850,border:0,display:'block'}}/>
+   <div aria-label="Lost COSMOS controls" style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8,padding:12,touchAction:'none'}}>
+    {(['up','down','left','right','a','b','start','select'] as const).map(button=><button key={button} type="button" aria-label={GBA_KEYS[button].label} onPointerDown={event=>hold(button,true,event)} onPointerUp={event=>hold(button,false,event)} onPointerCancel={event=>hold(button,false,event)} style={{minHeight:48,border:'1px solid #7ee7ff',borderRadius:8,background:'#14304a',color:'#7ee7ff'}}>{GBA_KEYS[button].label}</button>)}
+   </div>
   </>}
  </section>;
 }
