@@ -45,6 +45,82 @@ export function tickEmulator(session) {
   return session.emulator.ticks;
 }
 
+export function progressFromLocalGrowth(beast) {
+  const growth = beast?.localGrowth || {};
+  const stage = Math.floor(Number(growth.stage ?? beast?.stage) || 1);
+  return {
+    trust: 0,
+    bond: Math.max(0, Math.min(100, Math.floor(Number(growth.bond ?? beast?.bond) || 0))),
+    evolution_stage: Math.max(0, Math.min(2, stage - 1)),
+  };
+}
+
+export function beastIdentity(beast) {
+  if (!beast) return null;
+  return beast.qbeast?.profile?.id || beast.id || (beast.seed ? `seed:${beast.seed}` : null);
+}
+
+function mirrorGrowth(session) {
+  const beast = session.beast;
+  if (!beast) return null;
+  const prior = beast.localGrowth && typeof beast.localGrowth === "object" ? beast.localGrowth : {};
+  beast.localGrowth = {
+    schema: "qbeast-local-growth-v1",
+    status: "unsigned-local",
+    signature: "none",
+    qbeast_id: beastIdentity(beast),
+    seed: beast.seed,
+    xp: beast.xp,
+    bond: beast.bond,
+    energy: beast.energy,
+    stage: beast.stage,
+    mood: beast.mood,
+    train: { score: session.train?.score || 0, rounds: session.train?.rounds || 0 },
+    memory_steps: session.mind?.steps || 0,
+    game: prior.game || beast.game || {},
+    applied: Array.isArray(prior.applied) ? prior.applied : [],
+    model: prior.model || null,
+    note: "Pending local growth. Not a signed QBEAST progress update.",
+  };
+  if (beast.qbeast) beast.qbeastProgress = "pending-unsigned";
+  return beast.localGrowth;
+}
+
+export function swapBrain(session, provider) {
+  if (!session.beast) return { ok: false, reason: "no beast" };
+  const id = beastIdentity(session.beast);
+  const xp = session.beast.xp;
+  const bond = session.beast.bond;
+  const steps = session.mind?.steps || 0;
+  mirrorGrowth(session);
+  session.beast.localGrowth.model = { provider: String(provider || "unset").slice(0, 64), swapped: true };
+  if (beastIdentity(session.beast) !== id || session.beast.xp !== xp || session.beast.bond !== bond || (session.mind?.steps || 0) !== steps) {
+    throw new Error("brain swap changed creature state");
+  }
+  return { ok: true, qbeast_id: id, xp, bond, memory_steps: steps, model: session.beast.localGrowth.model.provider };
+}
+
+const GAME_FIELDS = ["game_xp", "game_level", "game_stage", "discovered", "inventory", "beacons", "echoes", "flags", "native_save"];
+
+export function applyGameReturn(session, payload) {
+  if (!session.beast) return { ok: false, reason: "no beast" };
+  if (!payload || payload.schema !== "lost-cosmos-return-v1") return { ok: false, reason: "schema" };
+  const id = beastIdentity(session.beast);
+  if (payload.qbeast_id !== id) return { ok: false, reason: "identity" };
+  const eventId = String(payload.event_id || "");
+  if (!eventId || eventId.length > 80) return { ok: false, reason: "event" };
+  mirrorGrowth(session);
+  if (session.beast.localGrowth.applied.includes(eventId)) return { ok: true, duplicate: true, qbeast_id: id };
+  const game = { ...session.beast.localGrowth.game };
+  for (const key of GAME_FIELDS) {
+    if (payload[key] !== undefined) game[key] = payload[key];
+  }
+  session.beast.game = game;
+  session.beast.localGrowth.game = game;
+  session.beast.localGrowth.applied = [...session.beast.localGrowth.applied, eventId].slice(-64);
+  return { ok: true, duplicate: false, qbeast_id: id, game };
+}
+
 export function shownName(beast) {
   if (!beast) return "Beast";
   return beast.displayName || beast.genome?.names?.[String(beast.stage)] || beast.genome?.names?.[beast.stage] || "Beast";
@@ -66,6 +142,7 @@ export function adoptBeast(session, genome, displayName = "") {
     session.bestiary.push({ seed: genome.seed, name: shownName(beast), island: genome.island, body: genome.body, genome });
   }
   session.mood = "happy";
+  mirrorGrowth(session);
   return beast;
 }
 
@@ -82,7 +159,8 @@ export function grantXp(session, amount, reason) {
   session.mood = beast.mood;
   const entry = session.bestiary.find((item) => item.seed === beast.seed);
   if (entry) entry.name = shownName(beast);
-  return { ok: true, gain, xp: beast.xp, stage: beast.stage, evolved: beast.stage > before, from: before };
+  mirrorGrowth(session);
+  return { ok: true, gain, xp: beast.xp, stage: beast.stage, evolved: beast.stage > before, from: before, qbeast_id: beastIdentity(beast) };
 }
 
 export function careAction(session, kind) {
@@ -104,6 +182,7 @@ export function talk(session, text) {
   const name = shownName(session.beast);
   const safe = isKidSafe(text);
   session.chat.push({ role: "you", text: String(text || "").slice(0, 400) });
+  // Local Hebbian pattern update. Not inference-model training and not QBEAST identity.
   if (safe) observeText(session.mind, text);
   const reply = replyFromMind(session.mind, text, name);
   if (safe) observeText(session.mind, reply);
@@ -113,8 +192,9 @@ export function talk(session, text) {
     session.beast.bond = Math.min(100, session.beast.bond + 1);
     session.beast.mood = "happy";
     session.mood = "happy";
+    mirrorGrowth(session);
   }
-  return { reply, steps: session.mind.steps, safe };
+  return { reply, steps: session.mind.steps, safe, qbeast_id: beastIdentity(session.beast) };
 }
 
 export function exportSession(session) {
@@ -148,5 +228,6 @@ export function importSession(raw) {
   };
   session.mood = raw.mood || "idle";
   session.pet = raw.pet && raw.pet.modelWeightsTrained === false ? raw.pet : null;
+  if (session.beast) mirrorGrowth(session);
   return session;
 }
