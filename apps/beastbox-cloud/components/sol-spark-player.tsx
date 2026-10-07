@@ -28,6 +28,7 @@ export default function SolSparkPlayer({compact=false,active=true}:{compact?:boo
  useEffect(()=>{
   const allowed=new Set(['up','down','left','right','a','b','start','select','l','r']);
   const forward=(event:Event)=>{
+   if(!running)return;
    const detail=(event as CustomEvent<{button?:unknown;down?:unknown}>).detail;
    const button=typeof detail?.button==='string'?detail.button.toLowerCase():'';
    if(!allowed.has(button)||typeof detail?.down!=='boolean')return;
@@ -35,7 +36,7 @@ export default function SolSparkPlayer({compact=false,active=true}:{compact?:boo
   };
   window.addEventListener('beastbox:gba-input',forward);
   return()=>window.removeEventListener('beastbox:gba-input',forward);
- },[]);
+ },[running]);
  useEffect(()=>{
   if(!running)return;
   const onKey=(event:KeyboardEvent)=>{
