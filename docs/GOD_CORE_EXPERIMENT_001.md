@@ -2,14 +2,14 @@
 
 **Status:** Executable, exploratory protocol. Results are produced from the exact committed code and pinned, already published source tables. Neither the tests nor this README claim quantum advantage or biological life.
 
-Run locally from \`apps/beastbox-cloud\`:
+Run locally from `apps/beastbox-cloud`:
 
-\`\`\`bash
+```bash
 node scripts/god-core-experiments.mjs --write
 node --test tests/god-core-experiments.test.mjs
-\`\`\`
+```
 
-The script writes \`experiment-evidence/god-core-001/results.json\` (generated, not a new quantum data source). The test prints a machine-readable \`GOD_CORE_001_RESULTS\` line in CI output.
+The script writes `experiment-evidence/god-core-001/results.json` (generated, not a new quantum data source). The test prints a machine-readable `GOD_CORE_001_RESULTS` line in CI output.
 
 **A.** Reproduce the same genome from the same source and parameters, 36 tests across three input classes.
 
