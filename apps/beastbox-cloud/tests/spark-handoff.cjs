@@ -81,6 +81,21 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
   assert.equal(page.frames().find(f=>f.url().includes('/sol-spark-gate/handheld.html')),core);
   assert.ok(modelRequests.every(url=>url===root+'/api/guest'));
   await page.screenshot({path:out+'/native-game-cage-talk.png',fullPage:true});
+  // Force a browser without WebGL after a real native-cartridge round trip.
+  // The homepage must paint the *same* QBEAST's local sprite, not a new preview.
+  await page.addInitScript(()=>{Object.defineProperty(window,'WebGLRenderingContext',{configurable:true,value:undefined});});
+  await page.goto(root+'/');
+  await page.locator('.cosmos-home-hero [data-graphics="qbeast-sprite"]').waitFor({timeout:20000});
+  await page.waitForFunction(()=>{
+    const canvas=document.querySelector('.cosmos-home-hero [data-fallback="same-qbeast-sprite"] canvas');
+    if(!canvas)return false;
+    try{const rgba=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;return Array.from(rgba).some((n,i)=>i%4===3&&n>0);}
+    catch{return false;}
+  },null,{timeout:20000});
+  const visual=await page.locator('.cosmos-home-hero [data-graphics="qbeast-sprite"]').evaluate(node=>({id:node.getAttribute('data-creature-id'),stage:node.querySelector('[data-fallback="same-qbeast-sprite"] canvas')?.getAttribute('aria-label')}));
+  assert.equal(visual.id,snapshot.profile.id,'same QBEAST ID survives missing WebGL');
+  assert.match(visual.stage||'',/recorded-seed sprite/);
+  assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast.qbeast),snapshot);
   await page.goto(root+'/beast-cage');await page.waitForFunction(id=>document.querySelector('[data-spark-beast][data-creature-id="'+id+'"]'),snapshot.profile.id);
   const afterNavigation=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')));
   assert.deepEqual(afterNavigation.beast.qbeast,snapshot);assert.deepEqual(afterNavigation.chat,afterTalk.chat);assert.equal(afterNavigation.beast.xp,afterTalk.beast.xp);

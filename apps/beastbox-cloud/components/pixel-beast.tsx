@@ -14,9 +14,15 @@ function paint(canvas: HTMLCanvasElement, genome: Genome, stage: number, eyes: s
   const key=[genome.seed,stage,eyes,facing,publicSpark].join('|');
   let sheet=sheets.get(key);
   if(!sheet){
-    const drawn=publicSpark?{rgba:renderBeast(genome,Math.min(3,Math.max(1,stage)),eyes)}:renderSprite({...genome,facing},Math.min(3,Math.max(1,stage)),{eyes});
-    sheet=document.createElement('canvas');sheet.width=sheet.height=64;
-    sheet.getContext('2d')?.putImageData(new ImageData(new Uint8ClampedArray(drawn.rgba),64,64),0,0);
+    try{
+      const drawn=publicSpark?{rgba:renderBeast(genome,Math.min(3,Math.max(1,stage)),eyes)}:renderSprite({...genome,facing},Math.min(3,Math.max(1,stage)),{eyes});
+      sheet=document.createElement('canvas');sheet.width=sheet.height=64;
+      sheet.getContext('2d')?.putImageData(new ImageData(new Uint8ClampedArray(drawn.rgba),64,64),0,0);
+    }catch{
+      // A malformed legacy visual must not crash the care/game UI. The
+      // static art below the pixel canvas remains available.
+      return;
+    }
     if(sheets.size>=48)sheets.delete(sheets.keys().next().value!);
     sheets.set(key,sheet);
   }

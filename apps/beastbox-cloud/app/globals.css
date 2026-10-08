@@ -516,3 +516,9 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 
 /* Keep the collapsed guide clear of the existing bottom-right cartridge dock. */
 @media(max-width:620px){.cosmic-support:not(.is-open){right:auto}.cosmic-support-launcher{margin-left:0}.cosmic-support:not(.is-open) .cosmic-support-launcher{width:96px;min-height:88px;justify-content:center;flex-direction:column;gap:0;padding:2px 4px 8px;border-radius:22px}.cosmic-support:not(.is-open) .support-beast-shell{width:64px;height:64px}.cosmic-support:not(.is-open) .support-launcher-copy strong{font-size:11px}.cosmic-support:not(.is-open) .support-launcher-copy small,.cosmic-support:not(.is-open) .support-launcher-copy em,.cosmic-support:not(.is-open) .support-launcher-heart{display:none}}
+
+/* Safari/low-memory fallback: the saved Beast uses its actual QBEAST pixels. */
+.cosmic-creature-pixel{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden;filter:drop-shadow(0 14px 22px #73dbff6b)}
+.cosmic-creature-pixel canvas{width:min(86%,340px)!important;max-height:95%;object-fit:contain;image-rendering:pixelated}
+.cosmos-home-qbeast{position:absolute;left:10px;right:10px;bottom:46px;z-index:3;margin:0;padding:8px 12px;background:#0c1839dd;border:1px solid #8de9ff65;border-radius:12px;text-align:center;color:#d0faff;font:700 12px/1.4 'Space Grotesk',sans-serif;overflow-wrap:anywhere}
+@media(prefers-reduced-motion:reduce){.cosmic-creature-pixel,.cosmos-home-qbeast{animation:none!important;transition:none!important}}
