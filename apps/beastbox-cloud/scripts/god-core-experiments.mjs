@@ -5,7 +5,7 @@
 import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
-import {dirname,join} from 'node:path';
+import {dirname,join,resolve} from 'node:path';
 import {buildGenome,canonicalJson} from '../public/spark/genome.mjs';
 import {expandQvmReceipt,QVM_SOURCE_CLASS} from '../public/spark/qvm-growth.mjs';
 import {createBehavior,stepBehavior,feedbackBehavior,ACTIONS} from '../lib/companion/behavior.mjs';
@@ -74,7 +74,7 @@ export function runGodCoreExperiment(){
  }
  return {schema:'beastbox-god-core-experiment-001',source_classes:['RECORDED IBM COUNTS','CLASSICAL CONTROL','SIMULATOR / QVM'],qvm_source_class:QVM_SOURCE_CLASS,protocol:{genome:'existing lost-cosmos-beast-genome-v2',behavior:'beastbox-behavior-v1',run_row_rule:'first 12 published IBM archive rows, first 12 pinned QVM batches, SHA256 classical bitstrings matched to IBM bit width and shot counts',cohort_per_class:12,traits,ticks:TICKS,long_ticks:LONG_TICKS,environment:'four 60-tick habitats with deterministic toy/attention/comfort/noise',feedback:'positive grove outcome every 15 ticks after tick 60; ablation omits outcome',checkpoint:'JSON roundtrip at tick 120 then identical stimulus replay',runtime_class:'classical deterministic software'},tests:{A_repeated_genesis:genesis.length,B_paired_source_comparison:diff,C_behavioral_diversity:new Set(measured.map(r=>JSON.stringify(r.actions))).size,D_controlled_preference_change:replay.length,E_restart_replay:replay.length,F_long_bounded_runs:longRuns.length},comparisons:{pairwise_differences:diff,interpretation:'Descriptive outcomes of different seeded cohorts; no quantum advantage, causal source isolation, statistical significance or external provider re-attestation established.'},memoryAblation:replay,longRuns,sourceRows:rows,limitations:['IBM archive labels come from existing published records; not newly verified at provider.','Rigetti data are pinned Azure QVM SIMULATOR results, never QPU.','Deterministic SHA-256 controls are reproducible classical pseudorandom input, not a hardware RNG.','The 12-per-source cohort and hand-designed environment are exploratory, not a blinded physical experiment.','Only bounded operational artificial-life-like properties are tested.','No physical iPhone battery, biological life or consciousness claims.']};
 }
-if(process.argv[1] && fileURLToPath(import.meta.url)===process.argv[1]){
+if(process.argv[1] && fileURLToPath(import.meta.url)===resolve(process.argv[1])){
  const report=runGodCoreExperiment(),json=JSON.stringify(report,null,2)+'\n';
  if(process.argv.includes('--write')){const dir=join(base,'../experiment-evidence/god-core-001');mkdirSync(dir,{recursive:true});writeFileSync(join(dir,'results.json'),json);}
  console.log(JSON.stringify({schema:report.schema,tests:report.tests,interpretation:report.comparisons.interpretation,rows:report.sourceRows.length,sha256:sha(json)}));
