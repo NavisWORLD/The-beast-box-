@@ -12,6 +12,7 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
   const [busy, setBusy] = useState(false), [status, setStatus] = useState('');
   const [model, setModel] = useState<'guest'|'connected'>('guest');
   const [includeGameView, setIncludeGameView] = useState(false);
+  const [shareMemories, setShareMemories] = useState(false);
   const [viewStatus, setViewStatus] = useState('');
   const [lastReply, setLastReply] = useState('');
   const { audio, state: audioState } = useBeastAudio();
@@ -28,7 +29,7 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
   }
   useEffect(() => {
-    cancel(); setOpen(false); setStatus(''); setText(''); setLastReply(''); setViewStatus('');
+    cancel(); setOpen(false); setStatus(''); setText(''); setLastReply(''); setViewStatus(''); setShareMemories(false);
     return () => { request.current.sequence++; request.current.controller?.abort(); };
   }, [key, active]);
 
@@ -46,7 +47,7 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
       if(includeGameView)setViewStatus(observation?.status==='observed'
         ? 'Native pixels sampled (brightness/contrast/color only). No enemy or map detection.'
         : 'Live framebuffer unavailable. No vision data was supplied.');
-      const result = await askGameBeast({ session, saying, model, observation, fetchImpl: fetch, signal: controller.signal });
+      const result = await askGameBeast({ session, saying, model, observation, shareMemories: model==='connected' && shareMemories, fetchImpl: fetch, signal: controller.signal });
       if (sequence !== request.current.sequence || currentKey.current !== expectedKey) return;
       if (controller.signal.aborted) { setStatus('The model request timed out. Your game and Beast are still here.'); return; }
       if (!result.reply) { setStatus(String(result.label).slice(0, 240)); return; }
@@ -97,13 +98,17 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
     </button>
     {open ? <section id={panelId} aria-label={`Talk to ${name}`} style={{ marginTop: 10, padding: 12, background: '#0c192d', border: '1px solid #355570', borderRadius: 10 }}>
       <strong>{name} · same Beast, same Cage</strong>
-      <p style={{ fontSize: 12, color: '#b0c4df', lineHeight: 1.5 }}>Same QBEAST. Use RAWRPHØS guest, or your authenticated connected Brain Bay if available. Native cartridge CHAT remains local authored dialogue; this panel is real model-backed text.</p>
+      <p style={{ fontSize: 12, color: '#b0c4df', lineHeight: 1.5 }}>Same QBEAST. RAWRPHØS guest receives no saved memories. Your connected Brain Bay can read bounded local memories only when you opt in. Native cartridge CHAT remains local authored dialogue; this panel is model-backed text when a provider replies.</p>
       <label style={{display:'grid',gap:4,fontSize:12,marginBottom:8}}>Talking brain
-       <select value={model} onChange={event=>setModel(event.target.value==='connected'?'connected':'guest')} style={{minHeight:44,fontSize:16,padding:8,background:'#15253d',color:'#eef7ff'}}>
+       <select value={model} onChange={event=>{const next=event.target.value==='connected'?'connected':'guest';setModel(next);if(next!=='connected')setShareMemories(false);}} style={{minHeight:44,fontSize:16,padding:8,background:'#15253d',color:'#eef7ff'}}>
         <option value="guest">RAWRPHØS · guest</option>
         <option value="connected">My connected Brain Bay · authenticated</option>
        </select>
       </label>
+      {model==='connected' ? <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12,lineHeight:1.5,marginBottom:8}}>
+       <input type="checkbox" checked={shareMemories} onChange={event=>setShareMemories(event.target.checked)}/>
+       Let my connected brain use up to four saved Beast memory summaries for this question (off by default; may leave this device through the authorized Brain Bay provider)
+      </label> : null}
       <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12,lineHeight:1.5,marginBottom:8}}>
        <input type="checkbox" checked={includeGameView} onChange={event=>setIncludeGameView(event.target.checked)}/>
        Include fresh native pixel signals with each model message (not screenshots or object recognition)
