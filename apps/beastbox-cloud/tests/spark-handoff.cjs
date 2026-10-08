@@ -56,7 +56,12 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
    await route.fulfill({json:{provider:'rawrphos-local',model:'rawrphos-native',step:14000,guest_stateless:true,reply:'Cartridge chat contract confirmed.'}});
   });
   await talk.getByRole('textbox').fill('Hello from the cartridge');await talk.getByRole('button',{name:'SEND TO MODEL',exact:true}).click();
-  await talk.getByRole('status').filter({hasText:'reply saved with this Beast'}).waitFor();
+  try{await talk.getByRole('status').filter({hasText:'reply saved with this Beast'}).waitFor({timeout:30000});}
+  catch(error){
+   const message=await talk.getByRole('status').allTextContents().catch(()=>[]);
+   const state=await page.evaluate(()=>({stored:!!localStorage.getItem('beastbox-companion-session-v1'),url:location.pathname}));
+   throw new Error('Game model reply did not complete; visible statuses='+JSON.stringify(message)+'; state='+JSON.stringify(state)+'; cause='+String(error));
+  }
   assert.equal(sent.provider,'rawrphos-local');assert.match(sent.text,/Lost COSMOS/);assert.match(sent.text,/Hello from the cartridge/);
   assert.ok(!sent.text.includes(snapshot.profile.id));assert.ok(!sent.text.includes(snapshot.profile.seed));
   const afterTalk=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')));
