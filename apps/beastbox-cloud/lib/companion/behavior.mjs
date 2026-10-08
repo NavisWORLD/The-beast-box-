@@ -8,7 +8,7 @@ const seedOf=b=>String(b?.genome?.seed||b?.seed||'');
 export function createBehavior(beast){
  const seed=seedOf(beast);
  if(!/^[a-f0-9]{16,128}$/i.test(seed))throw Error('Verified genesis seed required');
- const t=beast?.genome?.t||{};
+ const t=beast?.genome?.inputs?.traits||beast?.genome?.t||{};
  return {schema:BEHAVIOR_SCHEMA,seed,tick:0,energy:clamp(beast?.energy??100),curiosity:round(clamp(25+clamp(t.spark??50)*.5+clamp(t.focus??50)*.2)),preferences:{grove:0,nest:0,shore:0,observatory:0},position:{x:.5,y:.5},lastAction:'idle',memory:[],events:[]};
 }
 export function validateBehavior(value,beast){

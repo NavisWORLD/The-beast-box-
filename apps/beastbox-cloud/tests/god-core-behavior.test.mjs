@@ -20,3 +20,10 @@ test('feedback changes future preference-weighted decisions and survives JSON',(
  assert.deepEqual(JSON.parse(JSON.stringify(session.beast.behavior)),session.beast.behavior);
 });
 test('invalid lineage seed does not initialize runtime',()=>assert.throws(()=>createBehavior({seed:'invalid'}),/Verified genesis/));
+
+test('real QBEAST inputs.traits change behavioral initial conditions',()=>{
+ const seed='e'.repeat(64);
+ const low={seed,genome:{seed,inputs:{traits:{focus:0,calm:50,spark:0}}}};
+ const high={seed,genome:{seed,inputs:{traits:{focus:100,calm:50,spark:100}}}};
+ assert.ok(createBehavior(high).curiosity>createBehavior(low).curiosity);
+});
