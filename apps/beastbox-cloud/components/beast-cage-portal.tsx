@@ -6,6 +6,7 @@ import SparkBeastCompanion from './spark-beast-companion';
 import SparkBeastArena from './spark-beast-arena';
 import GenesisForge from './genesis-forge';
 import BeastCareDeck from './beast-care-deck';
+import QbeastMenagerie from './qbeast-menagerie';
 import {useBeastSession} from './beast-session';
 import {shownName} from '../lib/companion/session.mjs';
 import {useCompanion} from './companion-provider';
@@ -87,6 +88,7 @@ export default function BeastCagePortal(){
    <Link href="/beast-cage/guest">Take this creature to the GBA Game Lab ↗</Link>
   </div>:null}
   <BeastCareDeck />
+  <QbeastMenagerie />
   <section className="cage-invariants"><span>MODEL ≠ MEMORY</span><span>MODEL ≠ IDENTITY</span><span>MODEL ≠ AUTHORITY</span></section>
   <section className="cage-customize" id="customize" aria-labelledby="customize-title">
    <div className="cage-section-heading"><span className="cage-eyebrow"><SlidersHorizontal size={13}/> A LOOK THAT FEELS LIKE YOURS</span>
