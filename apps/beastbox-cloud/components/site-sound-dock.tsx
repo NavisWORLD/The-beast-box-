@@ -35,7 +35,7 @@ export default function SiteSoundDock(){
    window.dispatchEvent(new Event('beastbox:spark-unmute'));
   }
  }
- return <aside className={styles.dock} aria-label="Cosmic sound controls" data-site-sound={soundOn?'on':'off'}>
+ return <aside className={styles.dock+(pathname.startsWith("/workspace")?" "+styles.workspace:"")} aria-label="Cosmic sound controls" data-site-sound={soundOn?'on':'off'}>
   <div className={styles.compact}>
    <button type="button" className={styles.main} onClick={toggle} aria-pressed={soundOn}
     aria-label={soundOn?'Mute the entire Beast Box site':'Enable sound throughout Beast Box'}>
