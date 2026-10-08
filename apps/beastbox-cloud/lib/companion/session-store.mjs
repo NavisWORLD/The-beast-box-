@@ -13,6 +13,8 @@ export function updateDeviceSession(storage,expectedId,mutate,extra={}){
  const draft=importSession(JSON.parse(JSON.stringify(exportSession(current))));
  mutate(draft);
  if(selectedIdentity(draft)!==expectedId)throw Error('An ordinary state update cannot replace the Beast identity.');
+ if(draft.beast?.seed!==current.beast?.seed || draft.beast?.genome?.seed!==current.beast?.genome?.seed)
+  throw Error('An ordinary state update cannot replace the original genesis or lineage.');
  if(draft.beast?.qbeast)saveSparkSession(storage,draft);
  else storage.setItem(SESSION_KEY,JSON.stringify(exportSession(draft)));
  // Preserve UI-only trail and sensor metadata without letting a stale React snapshot replace care.
