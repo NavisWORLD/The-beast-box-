@@ -89,7 +89,7 @@ test("the field screen fits the cartridge in a safe area and keeps our touch pad
   assert.match(css, /var\(--go-safe-top/);
   assert.match(css, /var\(--go-safe-bottom/);
   assert.match(go, /--go-safe-top/);
-  assert.match(go, /aria-label="Touch controls"/);
+  assert.match(go, /<GbaControls/);
   assert.match(go, /aria-expanded=\{guestOpen\}/);
   assert.match(dock, /data-dock-pill=/);
   assert.match(dock, /Show Lost Cosmos player/);

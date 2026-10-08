@@ -1,105 +1,175 @@
 'use client';
 import {useCallback,useEffect,useRef,useState} from 'react';
+import Link from 'next/link';
 import {useBeastSession} from './beast-session';
 import {serializeQbeast} from '../public/spark/qbeast.mjs';
 import {checkedSpark} from '../public/spark/identity.mjs';
-import {GBA_KEYS, gamepadButtons} from '../lib/companion/go-hud.mjs';
+import {GBA_KEYS,gamepadButtons} from '../lib/companion/go-hud.mjs';
+import {applyGameReturn,shownName} from '../lib/companion/session.mjs';
+import {createPlayerDisplay} from '../lib/companion/player-display.mjs';
+import GbaControls,{controllerInput} from './gba-controls';
 import SolGameTalk from './sol-game-talk';
+import css from './sol-spark-player.module.css';
+
 const ROOT='https://navisworld.github.io';
-const GAME=ROOT+'/Cosmic-synapse-the-living-universe-sim-engine-/arcade/sol-spark-gate/?mode=handheld&controller=previeworigin41';
-export default function SolSparkPlayer({compact=false,active=true}:{compact?:boolean;active?:boolean}){
- const {ready,session}=useBeastSession();
- const frame=useRef<HTMLIFrameElement>(null);
- const [started,setStarted]=useState(false),[note,setNote]=useState('Your saved QBEAST will enter the current native cartridge.'),[admitted,setAdmitted]=useState(false);
- const beast=session?.beast;
- const send=useCallback(()=>{
-  try{
-   if(!beast?.qbeast)throw Error('Generate a Spark Beast first, then return here.');
-   const text=serializeQbeast(beast.qbeast);checkedSpark(text);
-   frame.current?.contentWindow?.postMessage({type:'sol-spark-qbeast',text},ROOT);
-   frame.current?.contentWindow?.postMessage({type:'sol-spark-player-state',active:active&&!document.hidden},ROOT);
-  }catch(err){setNote(err instanceof Error?err.message:'Could not verify the saved Beast.');}
- },[beast?.qbeast,active]);
+const GAME=ROOT+'/Cosmic-synapse-the-living-universe-sim-engine-/arcade/sol-spark-gate/?mode=handheld&controller=previeworigin41&player=shell45&bridge=return44';
+type Mode='normal'|'fullscreen'|'immersive'|'minimized';
+
+export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean;stage?:boolean}) {
+ const {ready,session,change}=useBeastSession();
+ const frame=useRef<HTMLIFrameElement>(null),shell=useRef<HTMLElement>(null);
+ const display=useRef<ReturnType<typeof createPlayerDisplay>|null>(null);
+ // Bind once on SEND BEAST. Care, navigation and layout never resend a starter save.
+ const [bound,setBound]=useState<any>(null),[admitted,setAdmitted]=useState(false),[running,setRunning]=useState(false);
+ const [mode,setMode]=useState<Mode>('normal'),[note,setNote]=useState('Your Beast has a cartridge to explore.');
+ const [starting,setStarting]=useState(false),[returning,setReturning]=useState(false),[audio,setAudio]=useState({wanted:false,running:false});
+ const sources=useRef(new Map<string,Set<string>>()),pressed=useRef(new Set<string>()),keyboardHeld=useRef(new Set<string>()),returnTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+ const pendingReturn=useRef<{id:string;event:string}|null>(null),sent=useRef(false);
+ const minimized=mode==='minimized'||(!stage&&!bound&&mode==='normal');
+ const expanded=mode==='fullscreen'||mode==='immersive';
+ const inputEnabled=running&&!minimized&&active;
+ const inputLive=useRef(inputEnabled);inputLive.current=inputEnabled;
+ const name=shownName(bound||session?.beast),id=bound?.qbeast?.profile.id||session?.beast?.qbeast?.profile.id||'';
+ const post=useCallback((data:Record<string,unknown>)=>frame.current?.contentWindow?.postMessage(data,ROOT),[]);
+ const release=useCallback(()=>{
+  window.dispatchEvent(new Event('beastbox:gba-release'));
+  for(const button of pressed.current)post({type:'sol-spark-input',button,down:false});
+  pressed.current.clear();sources.current.clear();
+  keyboardHeld.current.clear();
+ },[post]);
  useEffect(()=>{
-  const update=()=>frame.current?.contentWindow?.postMessage({type:'sol-spark-player-state',active:active&&!document.hidden},ROOT);
+  const node=shell.current;if(!node)return;
+  const controller=createPlayerDisplay({document,shell:node,changed:(next:Mode)=>setMode(next),release});
+  display.current=controller;
+  return()=>{controller.dispose();display.current=null;};
+ },[release]);
+ useEffect(()=>{if(!inputEnabled)release();},[inputEnabled,release]);
+ useEffect(()=>{if(!stage&&bound)void display.current?.minimize();},[stage,bound]);
+ useEffect(()=>{
+  if(mode!=='immersive')return;
+  const body=document.body,html=document.documentElement,x=window.scrollX,y=window.scrollY;
+  const old={overflow:body.style.overflow,position:body.style.position,top:body.style.top,left:body.style.left,width:body.style.width,html:html.style.overflow};
+  body.style.overflow='hidden';body.style.position='fixed';body.style.top=`-${y}px`;body.style.left=`-${x}px`;body.style.width='100%';html.style.overflow='hidden';
+  return()=>{Object.assign(body.style,{overflow:old.overflow,position:old.position,top:old.top,left:old.left,width:old.width});html.style.overflow=old.html;window.scrollTo(x,y);};
+ },[mode]);
+ useEffect(()=>{
+  const update=()=>post({type:'sol-spark-player-state',active:active&&!minimized&&!document.hidden});
   update();document.addEventListener('visibilitychange',update);return()=>document.removeEventListener('visibilitychange',update);
- },[active,started]);
+ },[active,minimized,bound,post]);
  useEffect(()=>{
-  const allowed=new Set(['up','down','left','right','a','b','start','select','l','r']);
-  const pressed=new Set<string>();
+  window.dispatchEvent(new CustomEvent('beastbox:gba-running',{detail:running&&active&&!minimized&&audio.wanted}));
+  return()=>{window.dispatchEvent(new CustomEvent('beastbox:gba-running',{detail:false}));};
+ },[running,active,minimized,audio.wanted]);
+ useEffect(()=>{
   const forward=(event:Event)=>{
-   const detail=(event as CustomEvent<{button?:unknown;down?:unknown}>).detail;
+   const detail=(event as CustomEvent<{button?:unknown;down?:unknown;source?:unknown}>).detail;
    const button=typeof detail?.button==='string'?detail.button.toLowerCase():'';
-   if(!allowed.has(button)||typeof detail?.down!=='boolean')return;
-   if(!frame.current?.contentWindow||pressed.has(button)===detail.down)return;
-   // The field's local keyboard fallback and controller can emit the same
-   // edge. Forward one transition to the native core, including one release.
-   if(detail.down)pressed.add(button);else pressed.delete(button);
-   frame.current?.contentWindow?.postMessage({type:'sol-spark-input',button,down:detail.down},ROOT);
+   if(!Object.prototype.hasOwnProperty.call(GBA_KEYS,button)||typeof detail?.down!=='boolean')return;
+   if(detail.down&&!inputLive.current)return;
+   const source=['pointer','keyboard','gamepad'].includes(String(detail.source))?String(detail.source):'legacy';
+   const held=sources.current.get(button)||new Set<string>();
+   if(detail.down)held.add(source);else held.delete(source);
+   if(held.size)sources.current.set(button,held);else sources.current.delete(button);
+   const down=held.size>0;
+   if(!frame.current?.contentWindow||pressed.current.has(button)===down)return;
+   if(down)pressed.current.add(button);else pressed.current.delete(button);
+   // The legacy local fallback can emit the same edge. Forward each native edge once.
+   post({type:'sol-spark-input',button,down});
   };
-  window.addEventListener('beastbox:gba-input',forward);
-  return()=>window.removeEventListener('beastbox:gba-input',forward);
- },[]);
+  const hidden=()=>{if(document.hidden)release();};
+  window.addEventListener('beastbox:gba-input',forward);window.addEventListener('blur',release);window.addEventListener('orientationchange',release);document.addEventListener('visibilitychange',hidden);
+  return()=>{release();window.removeEventListener('beastbox:gba-input',forward);window.removeEventListener('blur',release);window.removeEventListener('orientationchange',release);document.removeEventListener('visibilitychange',hidden);};
+ },[post,release]);
  useEffect(()=>{
-  if(!started)return;
+  if(!inputEnabled)return;
   const onKey=(event:KeyboardEvent)=>{
    const target=event.target;
-   if(target instanceof HTMLElement&&target.closest('textarea, input'))return;
    const entry=Object.entries(GBA_KEYS).find(([,spec])=>spec.key.toLowerCase()===event.key.toLowerCase());
-   if(!entry)return;
-   event.preventDefault();
-   if(event.type==='keydown'&&event.repeat)return;
-   window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button:entry[0],down:event.type==='keydown'}}));
+   if(event.isTrusted&&event.type==='keyup'&&entry&&keyboardHeld.current.has(entry[0])){keyboardHeld.current.delete(entry[0]);controllerInput(entry[0],false,'keyboard');return;}
+   if(!event.isTrusted||target instanceof HTMLElement&&target.closest('textarea,input,select,[contenteditable="true"]'))return;
+   if(target instanceof HTMLElement&&target.closest('button')&&(event.key==='Enter'||event.key===' '))return;
+   if(event.key==='Escape'&&mode==='immersive'){void display.current?.normal();return;}
+   if(!entry)return;event.preventDefault();if(event.repeat)return;
+   if(event.type==='keydown')keyboardHeld.current.add(entry[0]);controllerInput(entry[0],event.type==='keydown','keyboard');
   };
-  window.addEventListener('keydown',onKey);
-  window.addEventListener('keyup',onKey);
-  return()=>{window.removeEventListener('keydown',onKey);window.removeEventListener('keyup',onKey);};
- },[started]);
+  window.addEventListener('keydown',onKey);window.addEventListener('keyup',onKey);
+  return()=>{window.removeEventListener('keydown',onKey);window.removeEventListener('keyup',onKey);release();};
+ },[inputEnabled,mode,release]);
  useEffect(()=>{
-  if(!started||typeof navigator.getGamepads!=='function')return;
-  let frame=0;let active=new Set<string>();
-  const release=()=>{for(const button of active)window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button,down:false}}));active=new Set();};
+  if(!inputEnabled||typeof navigator.getGamepads!=='function')return;
+  let raf=0,held=new Set<string>();
+  const reset=()=>{for(const button of held)controllerInput(button,false,'gamepad');held.clear();};
   const poll=()=>{
-   frame=window.requestAnimationFrame(poll);
-   const next=new Set<string>();
-   for(const pad of navigator.getGamepads())if(pad)for(const button of gamepadButtons(pad))next.add(button);
-   for(const button of next)if(!active.has(button))window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button,down:true}}));
-   for(const button of active)if(!next.has(button))window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button,down:false}}));
-   active=next;
+   raf=window.requestAnimationFrame(poll);const next=new Set<string>();
+   if(!document.hidden)for(const pad of navigator.getGamepads())if(pad&&pad.connected!==false)for(const button of gamepadButtons(pad))next.add(button);
+   for(const button of next)if(!held.has(button))controllerInput(button,true,'gamepad');
+   for(const button of held)if(!next.has(button))controllerInput(button,false,'gamepad');held=next;
   };
-  frame=window.requestAnimationFrame(poll);
-  return()=>{window.cancelAnimationFrame(frame);release();};
- },[started]);
- function hold(button:string,down:boolean,event:React.PointerEvent<HTMLButtonElement>){
-  event.preventDefault();
-  window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button,down}}));
- }
+  raf=window.requestAnimationFrame(poll);window.addEventListener('gamepaddisconnected',reset);window.addEventListener('beastbox:gba-release',reset);
+  return()=>{window.cancelAnimationFrame(raf);reset();window.removeEventListener('gamepaddisconnected',reset);window.removeEventListener('beastbox:gba-release',reset);};
+ },[inputEnabled]);
+ const send=useCallback(()=>{
+  if(!bound||sent.current)return;
+  try{const text=serializeQbeast(bound.qbeast);checkedSpark(text);post({type:'sol-spark-qbeast',text});post({type:'sol-spark-player-state',active:active&&!document.hidden});}
+  catch(error){setNote(error instanceof Error?error.message:'Your Beast could not be verified.');}
+ },[bound,active,post]);
  useEffect(()=>{
   const message=(event:MessageEvent)=>{
    if(event.origin!==ROOT||event.source!==frame.current?.contentWindow)return;
-   if(event.data?.type==='sol-spark-ready')send();
-   if(event.data?.type==='sol-spark-admitted'){
-    if(event.data.id!==beast?.qbeast?.profile.id||event.data.seed!==beast?.seed){setNote('The game did not confirm the selected identity.');return;}
-    setNote(`${beast.displayName||beast.genome.names[1]} · same QBEAST verified. Press Start Lost COSMOS.`);
-    setAdmitted(true);
+   const data=event.data;
+   if(data?.type==='sol-spark-ready'){send();return;}
+   if(data?.type==='sol-spark-admitted'){
+    if(data.id!==bound?.qbeast?.profile.id||data.seed!==bound?.seed){setNote('The game could not verify this Beast.');return;}
+    sent.current=true;setAdmitted(true);setNote(`${shownName(bound)} · same Beast verified. Ready for Lost COSMOS.`);return;
    }
-   if(event.data?.type==='sol-spark-rejected')setNote('Game handoff: '+String(event.data.message).slice(0,180));
+   if(data?.type==='sol-spark-start-error'){setStarting(false);setNote('Lost COSMOS could not start: '+String(data.message||'Please try START LOST COSMOS again.').slice(0,180));return;}
+   if(data?.type==='sol-spark-running'&&sent.current){setStarting(false);setRunning(true);setNote(`${shownName(bound)} · cartridge running. ${data.resumed?'Choose CONTINUE to keep your journey.':'Choose NEW GAME to begin your journey.'}`);return;}
+   if(data?.type==='sol-spark-audio-state'){setAudio({wanted:data.wanted===true,running:data.running===true});return;}
+   if(data?.type==='sol-spark-input-ack'&&data.down===true&&data.applied!==true){setNote('The cartridge is still starting. Try again when the picture moves.');return;}
+   if(data?.type==='sol-spark-return'){
+    const payload=data.payload;
+    if(!returning||!payload||payload.schema!=='lost-cosmos-return-v1'||payload.qbeast_id!==bound?.qbeast?.profile.id||payload.qbeast_id!==session?.beast?.qbeast?.profile.id||!/^native-[0-9a-f]{64}$/.test(payload.event_id||'')||typeof payload.native_save!=='string'||payload.native_save.length!==43692){setReturning(false);setNote('This journey does not match your selected Beast. Nothing was changed.');return;}
+    pendingReturn.current={id:payload.qbeast_id,event:payload.event_id};change(draft=>{applyGameReturn(draft,payload);});return;
+   }
+   if(data?.type==='sol-spark-return-error'){setReturning(false);setNote('Journey save: '+String(data.message||'Try saving after entering the game.').slice(0,180));return;}
+   if(data?.type==='sol-spark-rejected'&&!sent.current)setNote('Beast verification: '+String(data.message).slice(0,180));
   };
   window.addEventListener('message',message);return()=>window.removeEventListener('message',message);
- },[send,beast]);
- return <section data-spark-player data-creature-id={beast?.qbeast?.profile.id||''} style={{width:'100%',minWidth:0,color:'#d5def4'}}>
-  <SolGameTalk active={active}/>
-  {!started?<div style={{padding:compact?12:22,textAlign:'center'}}>
-   <p>{ready?note:'Opening your local Beast…'}</p>
-   <button type="button" disabled={!ready||!beast?.qbeast} onClick={()=>setStarted(true)} style={{padding:12,border:'1px solid #7ee7ff',borderRadius:8,background:'#14304a',color:'#7ee7ff'}}>SEND BEAST &amp; PLAY 🎮</button>
-   {!beast?.qbeast?<p><a href="/spark/index.html">Generate your Spark Beast</a></p>:null}
-  </div>:<>
-   <p role="status" style={{fontSize:11,padding:'4px 10px',margin:0}}>{note}</p>
-   {admitted?<button type="button" onClick={()=>frame.current?.contentWindow?.postMessage({type:'sol-spark-start'},ROOT)} style={{margin:'8px 10px',padding:12,border:'1px solid #7ee7ff',borderRadius:8,background:'#14304a',color:'#7ee7ff'}}>START LOST COSMOS</button>:null}
-   <iframe ref={frame} title="Current native LOST COSMOS with your exact Spark QBEAST" src={GAME} onLoad={send} allow="autoplay; fullscreen; gamepad; screen-wake-lock" allowFullScreen style={{width:'100%',height:compact?610:850,border:0,display:'block'}}/>
-   <div aria-label="Lost COSMOS controls" style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8,padding:12,touchAction:'none'}}>
-    {(['up','down','left','right','a','b','start','select'] as const).map(button=><button key={button} type="button" aria-label={GBA_KEYS[button].label} onPointerDown={event=>hold(button,true,event)} onPointerUp={event=>hold(button,false,event)} onPointerCancel={event=>hold(button,false,event)} style={{minHeight:48,border:'1px solid #7ee7ff',borderRadius:8,background:'#14304a',color:'#7ee7ff'}}>{GBA_KEYS[button].label}</button>)}
-   </div>
-  </>}
+ },[send,bound,session,returning,change]);
+ useEffect(()=>{
+  const pending=pendingReturn.current;if(!pending)return;
+  if(session?.beast?.qbeast?.profile.id===pending.id&&session.beast.localGrowth?.applied?.includes(pending.event)){pendingReturn.current=null;setReturning(false);setNote(`${name} · journey saved to the same Beast. Your cartridge is still running.`);}
+ },[session,name]);
+ useEffect(()=>{
+  if(!returning)return;
+  returnTimer.current=setTimeout(()=>{pendingReturn.current=null;setReturning(false);setNote('The journey did not return yet. Your game is still running; try SAVE JOURNEY again.');},15000);
+  return()=>{if(returnTimer.current)clearTimeout(returnTimer.current);};
+ },[returning]);
+ useEffect(()=>{
+  if(!starting)return;const timer=setTimeout(()=>{setStarting(false);setNote('Lost COSMOS is taking longer to load. Keep the game open, or try START LOST COSMOS again.');},90000);return()=>clearTimeout(timer);
+ },[starting]);
+ function bind() {
+  try{checkedSpark(serializeQbeast(session.beast.qbeast));setBound(JSON.parse(JSON.stringify(session.beast)));setNote('Sending your Beast…');void display.current?.normal();}
+  catch(error){setNote(error instanceof Error?error.message:'Choose your Beast first.');}
+ }
+ function saveJourney(){setReturning(true);setNote('Saving your native journey…');post({type:'sol-spark-return-request'});}
+ return <section ref={shell} className={css.shell} data-lost-cosmos-player-shell data-spark-player data-creature-id={id} data-running={running} data-player-mode={minimized?'minimized':mode} data-player-stage={stage} aria-label={`Lost COSMOS player · ${name}`}>
+  <header className={css.header}><div className={css.identity}><span className={css.light} data-lit={running} aria-hidden="true"/><div><strong>{name}</strong><small>LOST COSMOS · {running?'RUNNING':admitted?'BEAST VERIFIED':'YOUR BEAST / YOUR GAME'}</small></div></div>
+   {minimized?(bound?<button type="button" onClick={()=>void display.current?.restore()}>RESTORE GAME</button>:<Link className={css.open} href="/sol-game" onClick={()=>void display.current?.restore()}>OPEN GAME</Link>):null}
+   {minimized?<span className={css.sound}>{audio.wanted?(audio.running?'SOUND ON':'SOUND ARMED'):'SOUND OFF'}</span>:null}
+  </header>
+  <div className={css.status}><p role="status">{ready?note:'Finding your saved Beast…'}</p></div>
+  <div className={css.screen}>
+   {bound?<iframe ref={frame} title="Native LOST COSMOS cartridge" src={GAME} onLoad={send} allow="autoplay; fullscreen; gamepad; screen-wake-lock" allowFullScreen/>:<div className={css.poster}><span aria-hidden="true">🐉 🎮</span><p>Same Beast. New adventure.</p><button type="button" disabled={!ready||!session?.beast?.qbeast} onClick={bind}>SEND BEAST</button>{!session?.beast?.qbeast?<Link href="/spark/index.html">Choose your Spark Beast</Link>:null}</div>}
+  </div>
+  <div className={css.playAction}>{admitted&&!running?<button type="button" disabled={starting} onClick={()=>{setStarting(true);setNote('Starting Lost COSMOS…');post({type:'sol-spark-start'});}}>{starting?'STARTING…':'START LOST COSMOS'}</button>:null}</div>
+  <div className={css.controls}><GbaControls enabled={inputEnabled}/></div>
+  <nav className={css.toolbar} aria-label="Game actions">
+   <button type="button" onClick={()=>expanded?void display.current?.normal():void display.current?.expand()}>{expanded?'RETURN':'FULL SCREEN'}</button>
+   <button type="button" onClick={()=>void display.current?.minimize()}>MINIMIZE</button>
+   <button type="button" disabled={!running||returning} onClick={saveJourney}>{returning?'SAVING…':'SAVE JOURNEY'}</button>
+   <Link href="/beast-cage" onClick={()=>void display.current?.minimize()}>BEAST BOX ↗</Link>
+  </nav>
+  <div className={css.talk}><SolGameTalk active={active&&!minimized}/></div>
  </section>;
 }

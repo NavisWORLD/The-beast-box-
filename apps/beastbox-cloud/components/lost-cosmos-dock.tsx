@@ -24,6 +24,8 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
   const {session}=useBeastSession();
   const spark=!!creature&&!!session?.beast?.qbeast&&session.beast.qbeast.profile.id===creature.id;
   const mode = modeFor(pathname);
+  const [nativeOwned,setNativeOwned]=useState(false);
+  useEffect(()=>{if(session?.beast?.qbeast)setNativeOwned(true);},[session?.beast?.qbeast]);
   const [expanded, setExpanded] = useState(false);
   const [closed, setClosed] = useState(false);
   const [booted, setBooted] = useState(false);
@@ -143,6 +145,9 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
 
   const state = mode === 'full' ? 'full' : closed ? 'closed' : wide ? 'expanded' : 'mini';
   const className = [css.dock, mode === 'full' ? css.full : '', wide ? css.wide : '', mode === 'mini' && closed ? css.closed : '', mode === 'parked' ? css.parked : '', pill ? css.pill : '', pill && tucked ? css.tucked : ''].filter(Boolean).join(' ');
+  if(nativeOwned)return <aside className={css.sparkDock} aria-label={`Lost Cosmos cartridge connected to ${connectedName}`} data-lost-cosmos-dock="true" data-cosmos-mode={mode} data-dock-state="native" data-rom-source="/api/gba-rom" data-creature-id={session?.beast?.qbeast?.profile.id||''}>
+    <SolSparkPlayer stage={mode==='full'} />
+  </aside>;
   return <aside ref={shell} className={className} data-dock-pill={pill ? (tucked ? 'tucked' : 'pill') : undefined} data-cosmos-mode={mode} data-rom-source="/api/gba-rom" aria-hidden={shown ? undefined : true} aria-label={`Lost Cosmos cartridge connected to ${connectedName}`}
     data-lost-cosmos-dock="true" data-dock-state={state} data-creature-id={creature?.id || 'fallback'}>
     {mode === 'mini' && closed ? <button type="button" className={css.launcher} onClick={() => setClosed(false)}
@@ -161,7 +166,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
       </div>
     </div>
     <div className={css.screen}>
-      {spark?<SolSparkPlayer compact active={shown&&!closed}/>:<div id="lost-cosmos-screen" className={css.game} /> }
+      <div id="lost-cosmos-screen" className={css.game} />
       {!spark && !booted && shown ? <div className={css.poster}>
         <p>{readyText}</p>
         <button type="button" onClick={play}>Play V11.2 Spark</button>

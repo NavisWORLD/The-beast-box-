@@ -15,11 +15,11 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
   await page.goto(root+'/spark/index.html');await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId);
   await page.locator('#generate').click();await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Spawned'));
   const snapshot=await page.evaluate(()=>JSON.parse(JSON.parse(localStorage.getItem('beastbox-quantum-beast-public-v1')).text));
-  await page.goto(root+'/beast-cage/go');await page.locator('[data-handheld-controls="game-boy"]').waitFor({state:'visible'});const player=page.locator('[data-lost-cosmos-dock] [data-spark-player]');await player.getByRole('button',{name:'SEND BEAST & PLAY 🎮',exact:true}).click();
-  await player.getByRole('status').filter({hasText:'same QBEAST verified'}).waitFor({timeout:60000});
-  const gate=player.frameLocator('iframe'),hand=gate.frameLocator('#handheld');await hand.locator('#status').filter({hasText:'cartridge mailbox'}).waitFor();
-  await hand.locator('#consent').check();await hand.locator('#play').click();await hand.getByText(/^start game$/i).click({timeout:60000});
-  await hand.locator('#status').filter({hasText:/Cartridge running|Journey restored/}).waitFor({timeout:90000});
+  await page.goto(root+'/beast-cage/go');await page.locator('[data-handheld-controls="game-boy"]').waitFor({state:'visible'});const player=page.locator('[data-lost-cosmos-dock] [data-spark-player]');await player.getByRole('button',{name:'SEND BEAST',exact:true}).click();
+  await player.getByRole('status').filter({hasText:'same Beast verified'}).waitFor({timeout:60000});
+  const gate=player.frameLocator('iframe'),hand=gate.frameLocator('#handheld');
+  await player.getByRole('button',{name:'START LOST COSMOS',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('[data-lost-cosmos-player-shell]')?.dataset.running==='true',null,{timeout:90000});
   await hand.locator('#audio').click();await hand.locator('#audio').waitFor({state:'visible'});
   assert.equal(await hand.locator('#audio').getAttribute('aria-pressed'),'true','explicit game-audio consent is reachable in the nested handheld');
   const core=page.frames().find(f=>f.url().includes('/sol-spark-gate/handheld.html'));assert.ok(core);
@@ -84,6 +84,6 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
   await page.goto(root+'/beast-cage');await page.waitForFunction(id=>document.querySelector('[data-spark-beast][data-creature-id="'+id+'"]'),snapshot.profile.id);
   const afterNavigation=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')));
   assert.deepEqual(afterNavigation.beast.qbeast,snapshot);assert.deepEqual(afterNavigation.chat,afterTalk.chat);assert.equal(afterNavigation.beast.xp,afterTalk.beast.xp);
-  assert.deepEqual(wrong,[]);assert.deepEqual(errors,[]);await fs.writeFile(out+'/report.json',JSON.stringify({passed:true,qbeast:snapshot.profile.id,seed:snapshot.profile.seed,verified,realNativeCore:true,noSimEarth:true,gameChatContractFixture:true,gameChatKeepsNativeMounted:true,sharedCageCareAndChat:true,beastBoyControlsHitNativeCore:true,realMobileDeckTap:true,physicalGamepadHitsNativeCore:true,gameAudioUnlockVisible:true,noAutomaticModelCalls:true,noOwnerModelCalls:true,consoleErrors:errors},null,2));console.log('PASS: same QBEAST → actual current GBA, Beast Boy controls, guest talk contract, same Cage care/chat and no native remount');
+  assert.deepEqual(wrong,[]);assert.deepEqual(errors,[]);await fs.writeFile(out+'/report.json',JSON.stringify({passed:true,qbeast:snapshot.profile.id,seed:snapshot.profile.seed,verified,realNativeCore:true,noSimEarth:true,gameChatContractFixture:true,gameChatKeepsNativeMounted:true,sharedCageCareAndChat:true,beastBoyControlsHitNativeCore:true,realMobileDeckTap:true,standardGamepadApiFixtureHitsNativeCore:true,gameAudioUnlockVisible:true,noAutomaticModelCalls:true,noOwnerModelCalls:true,consoleErrors:errors},null,2));console.log('PASS: same QBEAST → actual current GBA, Beast Boy controls, guest talk contract, same Cage care/chat and no native remount');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});

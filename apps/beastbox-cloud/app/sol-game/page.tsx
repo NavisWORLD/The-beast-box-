@@ -1,6 +1,5 @@
 import type {Metadata} from 'next';
 import Link from 'next/link';
-import SolSparkPlayer from '../../components/sol-spark-player';
 
 export const metadata:Metadata={title:'LOST COSMOS · Your Spark Beast',description:'Send your same QBEAST into the current native LOST COSMOS cartridge.'};
 
@@ -18,6 +17,6 @@ export default function SolGame(){return <main style={{minHeight:'100vh',backgro
  <h1 style={{fontSize:'clamp(24px,5vw,40px)'}}>PLAY IN LOST COSMOS 🎮</h1>
  <p>Your exact recorded-seed companion. Native art, movement, chirps and battery saves. Open TALK to chat with your Beast through the available guest-safe brain and care for it while the cartridge stays open.</p>
  <p style={{fontSize:12,color:'#9aadd4'}}><Link href="/beast-cage/go">Explore the web field first →</Link></p>
- <SolSparkPlayer/>
+ <p>The Game Boy player stays with you. Minimize it to explore Beast Box, then restore your current adventure.</p>
  <p style={{fontSize:12,color:'#9aadd4'}}>Cartridge V11.3. The file hash is 6f9c22fa. The ROM header still says COSMOS V11.2. That string is stale. The bytes are the V11.3 release, not the V11.2 file.</p>
  </main>}

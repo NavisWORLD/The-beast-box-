@@ -19,6 +19,7 @@ import SparkMachine from './spark-machine';
 import SparkWanderer from './spark-wanderer';
 import MetaMusePanel from './meta-muse-panel';
 import css from './beast-go.module.css';
+import GbaControls, {controllerInput as normalizedControllerInput} from './gba-controls';
 
 const recorded = runs as Array<{ key: string; backend: string; job_id: string; pub_index: number; num_bits: number; shots: number; counts: Record<string, number> }>;
 type SheetId = 'menu' | 'bag' | 'beasts' | 'talk' | 'map' | 'settings' | 'metamuse' | null;
@@ -40,6 +41,7 @@ export default function BeastGo() {
   const cardRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<HTMLDivElement>(null);
   const beast = session?.beast;
+  const nativePlayer = Boolean(beast?.qbeast);
   const card = hudCard(beast);
   const place = placeById(trail.place);
   // Seeded field theme + menu SFX. Silent until a gesture; this screen's Sound switch gates it too.
@@ -94,6 +96,7 @@ export default function BeastGo() {
   }, []);
 
   useEffect(() => {
+    if (nativePlayer) return;
     function onKey(event: KeyboardEvent) {
       if (event.key === 'Escape' && event.type === 'keydown') {
         setSheet(null);
@@ -121,9 +124,10 @@ export default function BeastGo() {
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('keyup', onKey);
     };
-  }, []);
+  }, [nativePlayer]);
 
   useEffect(() => {
+    if (nativePlayer) return;
     if (typeof navigator.getGamepads !== 'function') return;
     let frame = 0;
     let active = new Set<string>();
@@ -158,7 +162,7 @@ export default function BeastGo() {
       window.removeEventListener('gamepaddisconnected', reconnect);
       document.removeEventListener('visibilitychange', visibility);
     };
-  }, []);
+  }, [nativePlayer]);
 
   // Publish the safe game area (between the portrait card and the bottom HUD /
   // touch pad) so the full-screen cartridge never sits under the field chrome.
@@ -214,38 +218,8 @@ export default function BeastGo() {
   }
 
   function controllerInput(button: string, down: boolean) {
-    if (!Object.prototype.hasOwnProperty.call(GBA_KEYS, button)) return false;
-    // Local fallback core (when mounted directly in Beast Box).
-    pressCartridge(button, down, window);
-    // Cross-origin LOST COSMOS core. Touch never relies on a synthetic key event.
-    window.dispatchEvent(new CustomEvent('beastbox:gba-input', { detail: { button, down } }));
-    return true;
-  }
-
-  function hold(button: string, event: React.PointerEvent<HTMLButtonElement>) {
-    event.preventDefault();
-    const target = event.currentTarget;
-    const pointerId = event.pointerId;
-    controllerInput(button, true);
-    try { target.setPointerCapture(pointerId); } catch { /* Android/WebView fallback uses window release listeners. */ }
-    let released = false;
-    const release = (raw?: Event) => {
-      const pointer = raw as PointerEvent | undefined;
-      if (pointer && Number.isFinite(pointer.pointerId) && pointer.pointerId !== pointerId) return;
-      if (released) return;
-      released = true;
-      controllerInput(button, false);
-      target.removeEventListener('pointerup', release);
-      target.removeEventListener('pointercancel', release);
-      target.removeEventListener('lostpointercapture', release);
-      window.removeEventListener('pointerup', release, true);
-      window.removeEventListener('pointercancel', release, true);
-    };
-    target.addEventListener('pointerup', release);
-    target.addEventListener('pointercancel', release);
-    target.addEventListener('lostpointercapture', release);
-    window.addEventListener('pointerup', release, true);
-    window.addEventListener('pointercancel', release, true);
+    // Cross-origin LOST COSMOS core and local fallback share one normalized deck.
+    return normalizedControllerInput(button, down);
   }
 
   function meet() {
@@ -329,30 +303,8 @@ export default function BeastGo() {
       {guestMode ? <button type="button" className={css.guestChip} data-guest-play="true" aria-expanded={guestOpen} aria-controls="go-guest-note"
         aria-label={guestOpen ? 'Hide the guest play note' : 'Show the guest play note'} onClick={() => setGuestOpen((value) => !value)}>Guest {guestOpen ? '▴' : 'ⓘ'}</button> : null}
     </div>
-    {touch && !sheet ? <div className={css.handheld} ref={deckRef} data-handheld-controls="game-boy" aria-label="Game Boy style touch controls">
-      <div className={css.shoulders}>
-        <button type="button" aria-label="L" onPointerDown={(event) => hold('l', event)}>L</button>
-        <span>BEAST BOY · LOST COSMOS</span>
-        <button type="button" aria-label="R" onPointerDown={(event) => hold('r', event)}>R</button>
-      </div>
-      <div className={css.face}>
-        <div className={css.pad} aria-label="Touch controls">
-          <button type="button" aria-label="Up" onPointerDown={(event) => hold('up', event)}>▲</button>
-          <button type="button" aria-label="Left" onPointerDown={(event) => hold('left', event)}>◀</button>
-          <i aria-hidden="true" />
-          <button type="button" aria-label="Right" onPointerDown={(event) => hold('right', event)}>▶</button>
-          <button type="button" aria-label="Down" onPointerDown={(event) => hold('down', event)}>▼</button>
-        </div>
-        <div className={css.systemKeys}>
-          <button type="button" aria-label="Select" onPointerDown={(event) => hold('select', event)}>SELECT</button>
-          <button type="button" aria-label="Start" onPointerDown={(event) => hold('start', event)}>START</button>
-          <button type="button" className={css.menuKey} aria-label="Main menu" aria-expanded={sheet === 'menu'} onClick={() => toggle('menu')}>☰ MENU</button>
-        </div>
-        <div className={css.actions} aria-label="Touch buttons">
-          <button type="button" className={css.b} aria-label="B" onPointerDown={(event) => hold('b', event)}>B</button>
-          <button type="button" className={css.a} aria-label="A" onPointerDown={(event) => hold('a', event)}>A</button>
-        </div>
-      </div>
+    {!nativePlayer && touch && !sheet ? <div className={css.handheld} ref={deckRef}>
+      <GbaControls shoulders onMenu={() => toggle('menu')} />
     </div> : <div className={css.screenMenu} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
       <button type="button" className={css.handle} aria-label="Swipe up for the menu" onClick={() => toggle('menu')}><i /></button>
       <button type="button" aria-label="Main menu" aria-expanded={sheet === 'menu'} onClick={() => toggle('menu')}>☰</button>
