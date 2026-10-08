@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {buildGenome} from '../public/spark/genome.mjs';
 import {selectSpark,readSparkSession,SESSION_KEY} from '../public/spark/identity.mjs';
 import {updateDeviceSession,selectedIdentity} from '../lib/companion/session-store.mjs';
-import {careAction,advanceCreature} from '../lib/companion/session.mjs';
+import {careAction,advanceCreature,adoptBeast} from '../lib/companion/session.mjs';
 const table=JSON.parse(fs.readFileSync(new URL('../public/spark/runs.json',import.meta.url)));
 const row=table.runs[0], run={key:row.k,backend:row.b,job_id:row.j,pub_index:row.p,num_bits:row.n,shots:row.s,counts:Object.fromEntries(row.c.split(',').map(p=>{const[k,v]=p.split(':');return[k,+v]})),counts_sha256:row.h};
 const gen=buildGenome({focus:30,calm:50,spark:80},run,'Sol',10);
@@ -34,4 +34,20 @@ test('a non-selection mutation cannot forge or silently change identity',()=>{
  const before=store.getItem(SESSION_KEY);
  assert.throws(()=>updateDeviceSession(store,id,s=>{s.beast.seed='f'.repeat(64)}),/cannot replace|recipe mismatch/);
  assert.equal(store.getItem(SESSION_KEY),before);
+});
+
+test('legacy Meet and LCX1 import remain explicit unsigned selections without signing QBEAST',()=>{
+ const store=storage(), first=selectedIdentity(readSparkSession(store));
+ assert.equal(first,null);
+ updateDeviceSession(store,first,s=>{
+  const b=adoptBeast(s,gen,'Moss');assert.equal(b.qbeast,undefined);
+ },{place:'grove'},{allowUnsignedAdoption:true});
+ const current=readSparkSession(store),id=selectedIdentity(current);
+ assert.ok(id.startsWith('seed:'));assert.equal(current.beast.displayName,'Moss');
+ updateDeviceSession(store,id,s=>careAction(s,'pet'));
+ assert.equal(readSparkSession(store).beast.xp,4);
+ selectSpark(store,gen);
+ const signed=selectedIdentity(readSparkSession(store));
+ assert.throws(()=>updateDeviceSession(store,signed,s=>adoptBeast(s,gen,'FORGED'),{}, {allowUnsignedAdoption:true}),/cannot replace/);
+ assert.equal(selectedIdentity(readSparkSession(store)),signed);
 });
