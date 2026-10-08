@@ -93,7 +93,7 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
   if (!ready || !key || !active) return null;
   const button = { minHeight: 44, padding: '9px 12px', border: '1px solid #53718e', borderRadius: 8, background: '#14304a', color: '#b8efff', cursor: 'pointer' };
   return <div data-spark-game-talk data-creature-id={session.beast.qbeast.profile.id} style={{ padding: 10, minWidth: 0, overflowWrap: 'anywhere' }}>
-    <button type="button" style={button} aria-expanded={open} aria-controls={panelId} onClick={() => { if (open) cancel(); setOpen(!open); }}>
+    <button type="button" style={button} aria-expanded={open} aria-controls={panelId} onClick={() => { if (open) { cancel(); setShareMemories(false); setIncludeGameView(false); } setOpen(!open); }}>
       {open ? 'CLOSE TALK' : `TALK TO ${name.toUpperCase()} 💬`}
     </button>
     {open ? <section id={panelId} aria-label={`Talk to ${name}`} style={{ marginTop: 10, padding: 12, background: '#0c192d', border: '1px solid #355570', borderRadius: 10 }}>
@@ -107,7 +107,7 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
       </label>
       {model==='connected' ? <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12,lineHeight:1.5,marginBottom:8}}>
        <input type="checkbox" checked={shareMemories} onChange={event=>setShareMemories(event.target.checked)}/>
-       Let my connected brain use up to four saved Beast memory summaries for this question (off by default; may leave this device through the authorized Brain Bay provider)
+       Share up to four relevant saved Beast memories with connected Brain Bay while checked (off by default; may leave this device through the authorized provider)
       </label> : null}
       <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12,lineHeight:1.5,marginBottom:8}}>
        <input type="checkbox" checked={includeGameView} onChange={event=>setIncludeGameView(event.target.checked)}/>
