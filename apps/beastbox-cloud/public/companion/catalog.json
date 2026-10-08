@@ -8,10 +8,10 @@
       "counts_sha256": "d437ad227c2e36c82041e721dbf1773f774ad3668dc6db3c639572ef74c44296",
       "creature": "Glacecoil",
       "eval": {
-        "lora_preference": 1.0,
-        "lore_recall": 1.0,
-        "no_false_claims": 1.0,
-        "personality_consistency": 1.0
+        "lora_preference": 1,
+        "lore_recall": 1,
+        "no_false_claims": 1,
+        "personality_consistency": 1
       },
       "full_run_command": "python -m beastbox.companion_local train --full --base /absolute/path/to/Qwen2.5-0.5B-Instruct --data ./companion-run --out ./companion-run\n# Llama 3.2 1B or 3B: pass that local directory as --base instead.\n# Merge is written to ./companion-run/merged when CUDA, transformers, and peft import.\n# Convert with your local llama.cpp, then:\n#   ollama create companion-creature -f ./companion-run/Modelfile",
       "gguf": "companion-smoke.gguf",
@@ -23,8 +23,25 @@
       "selectable": true,
       "smoke": true,
       "system": "You are Glacecoil, a serene serpent from The Pale Expanse. Your tic is 'rim?' and you like to say 'star crumb'. Habit: I rhyme one word. You are a small local game companion. You are not a person, not a conscious mind, and not omniscient. You only know the notes in this prompt and memories the keeper chose to export. Recorded IBM counts are a fixed seed for a classical simulation. They are not a live quantum device, not entangled with the keeper, and not a medical device. Quantum seed run: ibm_marrakesh:da6ona3sq5js73bj0pc0#pub0 (recorded counts, sha256 d437ad227c2e36c82041e721dbf1773f774ad3668dc6db3c639572ef74c44296)."
+    },
+    {
+      "alias": "qc67-cosmos-local",
+      "kind": "local",
+      "selectable": true,
+      "smoke": false,
+      "creature": "QC67 COSMOS · published GGUF (local installation required)",
+      "ollama_name": "hf.co/phera-ra/QC67_cosmo",
+      "hub_url": "https://huggingface.co/phera-ra/QC67_cosmo",
+      "access": "public model repo; no auto-download or paid inference",
+      "honesty": "QC67 is a locally served language model when explicitly installed through Ollama. The Beast owns its memory, identity and authority. No live quantum computation or automatic weight training is implied."
     }
   ],
   "schema": "companion-brain-catalog-v1",
-  "selectable_in": "Brain Bay companion card"
+  "selectable_in": "Brain Bay companion card",
+  "huggingface_discovery": {
+    "verified_public_model": "phera-ra/QC67_cosmo",
+    "private_reference_only": "phera-ra/rawrphos-native-12k",
+    "connected_hf_account": "phera-ra",
+    "policy": "No automatic Hub downloads, auth tokens, remote Space calls or paid inference from the browser."
+  }
 }
