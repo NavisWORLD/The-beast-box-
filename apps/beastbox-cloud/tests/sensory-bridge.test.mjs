@@ -61,4 +61,6 @@ test('Only honest provider references are exposed; model sharing remains separat
  assert.match(ui,/checked=\{shareWithLocalModel\}/);
  assert.match(ui,/approved:linkToBeast&&shareWithLocalModel/);
  assert.match(ui,/changeBeast\(draft=>\{applySensedEvent/);
+ assert.match(ui,/lastBeastKey\.current!==selectedBeastKey/);
+ assert.match(ui,/Master privacy stop revoked sensor\/model sharing/);
 });
