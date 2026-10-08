@@ -4,7 +4,7 @@ This adds a consent-gated bridge between the existing Brain Bay sensor card, the
 
 ## Data flow
 
-Create/select Beast → separately enable camera/microphone → local provider returns a bounded semantic text or sound-amplitude event → separate user opt-in to link to active Beast → identity check and 8-second throttle → append up to eight source-labeled summaries to the same local Beast save → one bounded environmental behavior update.
+Create/select Beast → separately enable camera/microphone → local provider returns a bounded semantic text or sound-amplitude event → separate user opt-in to link to active Beast → identity check and 8-second throttle → append up to eight source-labeled summaries to the same local Beast save → one bounded environmental behavior update → local Hebbian association update only for approved semantic descriptions (never noise amplitude alone).
 
 Model sharing requires an additional checkbox. Only up to three marked **untrusted sensor interpretations** are sent to an explicitly selected local Ollama model. No automatic remote HF calls or credentials. Raw video frames, PCM/audio, tokens and private inputs are rejected, not persisted.
 
