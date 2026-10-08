@@ -36,3 +36,8 @@
  .shell[data-player-mode=minimized] .header>button,.shell[data-player-mode=minimized] .open{width:calc(100% - 67px);min-width:44px;font-size:10px;padding:7px}
 }
 @media(max-width:359px){.shell[data-player-mode=minimized]{width:156px}.shell[data-player-mode=minimized] .screen{width:50px;height:34px}.shell[data-player-mode=minimized] .header>button,.shell[data-player-mode=minimized] .open{width:calc(100% - 56px)}}
+
+/* Sound is unlocked in the inner emulator frame, not by a synthetic parent click. */
+.gameAudioHint{margin:0;padding:7px 10px;border:1px solid #68d7ec70;border-radius:9px;background:#123042;color:#d4f7ff;font-size:12px;line-height:1.45}
+.shell[data-player-mode=fullscreen] .gameAudioHint,.shell[data-player-mode=immersive] .gameAudioHint{max-width:700px;align-self:center;width:100%}
+.shell[data-player-mode=minimized] .gameAudioHint{display:none}
