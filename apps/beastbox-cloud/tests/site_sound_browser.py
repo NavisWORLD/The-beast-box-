@@ -26,8 +26,6 @@ with sync_playwright() as playwright:
  launch={"headless":True,"args":["--no-sandbox","--disable-dev-shm-usage"]}
  if os.environ.get("SUPPORT_BROWSER_EXECUTABLE"):
   launch["executable_path"]=os.environ["SUPPORT_BROWSER_EXECUTABLE"]
- else:
-  launch["channel"]="chrome"
  browser=playwright.chromium.launch(**launch)
  try:
   for width in [320,375,390,430,1440]:
