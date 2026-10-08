@@ -41,12 +41,20 @@ with sync_playwright() as playwright:
    assert response and response.status==200
    pill=page.locator('[aria-label="Cosmic sound controls"]')
    expect(pill).to_be_visible()
-   expect(page.get_by_role("button",name="Mute the entire Beast Box site")).to_be_visible()
+   expect(page.get_by_role("button",name="Activate Beast Box sound with a test chirp")).to_be_visible()
    assert page.evaluate("window.__cosmosAudio.contexts")==0,"audio context created without user interaction"
    assert page.evaluate("document.documentElement.scrollWidth<=innerWidth+1"),f"{width} horizontal overflow"
    # A real click/tap is required before music/SFX may schedule.
    settings=page.get_by_role("button",name="Open sound options")
    settings.tap() if width<600 else settings.click()
+   # User-facing proof of WebAudio initialization: a gesture, a real context and oscillators.
+   chirp=page.get_by_role("button",name="Test Beast Box sound with a short chirp")
+   chirp.tap() if width<600 else chirp.click()
+   expect(page.get_by_role("button",name="Mute the entire Beast Box site")).to_be_visible(timeout=10000)
+   assert page.evaluate("window.__cosmosAudio.contexts")>=1,"No AudioContext after activation"
+   assert page.evaluate("window.__cosmosAudio.oscillators")>=1,"No oscillator after test chirp"
+   if width<600:
+    assert pill.bounding_box()["width"]<112,"Mobile sound controls block creature or buttons"
    slider=page.get_by_role("slider",name="Beast Box music, creature and effect volume")
    expect(slider).to_be_visible()
    slider.press("Home")
@@ -66,7 +74,7 @@ with sync_playwright() as playwright:
    assert page.evaluate("document.documentElement.scrollWidth<=innerWidth+1"),f"{width} Cage overflow"
    assert not errors, f"{width} errors: {errors}"
    page.screenshot(path=str(OUT/f"sound-{width}.png"))
-   results.append({"width":width,"no_autoplay":True,"mute_persisted":True,"volume_persisted":True,"unmute_after_navigation":True,"no_horizontal_overflow":True,"errors":errors})
+   results.append({"width":width,"no_autoplay":True,"chirp_oscillator_rendered":True,"compact_mobile_sound":True,"mute_persisted":True,"volume_persisted":True,"unmute_after_navigation":True,"no_horizontal_overflow":True,"errors":errors})
    context.close()
  finally:browser.close()
 (OUT/"report.json").write_text(json.dumps({"mode":"Chrome viewport checks, NOT physical Safari","views":results},indent=2)+"\n")
