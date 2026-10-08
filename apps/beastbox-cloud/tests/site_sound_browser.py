@@ -53,6 +53,9 @@ with sync_playwright() as playwright:
    assert page.evaluate("window.__cosmosAudio.oscillators")>=1,"No oscillator after test chirp"
    if width<600:
     assert pill.bounding_box()["width"]<112,"Mobile sound controls block creature or buttons"
+    support=page.get_by_role("button",name="Open Feed the Beast support panel")
+    expect(support).to_be_visible()
+    assert support.bounding_box()["width"]<=72,"Support launcher covers mobile care and gallery"
    slider=page.get_by_role("slider",name="Beast Box music, creature and effect volume")
    expect(slider).to_be_visible()
    slider.press("Home")
