@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, ArrowUpRight, Atom, BrainCircuit, FlaskConical, ShieldCheck } from 'lucide-react';
 import styles from './research.module.css';
+import GodCoreInspector from '@/components/god-core-inspector';
 
 export const metadata: Metadata = {
   title: 'COSMOS Lab // The Two Falsification Tests — Beast Box',
@@ -107,6 +108,8 @@ export default function ResearchIndex() {
             <a href={repo + '/pull/150'} target="_blank" rel="noopener noreferrer">Source and controls <ArrowUpRight size={14} aria-hidden="true" /></a>
           </div>
         </section>
+
+        <GodCoreInspector />
 
         <section className={styles.boundaries} aria-labelledby="bounds-title">
           <h2 id="bounds-title"><ShieldCheck size={22} aria-hidden="true" /> What we are—and are not—claiming</h2>
