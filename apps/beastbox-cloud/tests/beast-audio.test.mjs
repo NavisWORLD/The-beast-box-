@@ -205,3 +205,32 @@ test("browser audio unlock surface includes iPhone touch and click gestures", ()
   assert.match(engine, /"touchend"/);
   assert.match(engine, /"click"/);
 });
+
+test("site mute persists and volume reaches the shared SFX bus",()=>{
+ const storage=memoryStorage(),{audio,log}=engine(storage);
+ audio.unlock();audio.setScene({id:"site",...sceneFor(1),enabled:true});
+ audio.setVolume(0.3);
+ const gains=log.filter(node=>node.kind==="gain");
+ assert.ok(gains[3].gain.events.some(e=>e[0]==="setTargetAtTime"&&Math.abs(e[1]-0.27)<1e-9));
+ audio.sparkMute();
+ assert.equal(storage.getItem("beastbox-site-sound-v1"),"off");
+ assert.equal(audio.sfx("blip"),false);
+ audio.sparkUnmute();
+ assert.equal(storage.getItem("beastbox-site-sound-v1"),"on");
+ audio.setHidden(true);
+ assert.equal(audio.output(),null,"hidden app should not provide audio");
+ assert.equal(audio.sfx("blip"),false,"hidden app must not chirp");
+ audio.setHidden(false);
+ assert.equal(audio.sfx("blip"),true);
+});
+test("cross-page sound dock and one-context creature voice",()=>{
+ const dock=read("components/site-sound-dock.tsx"),css=read("components/site-sound-dock.module.css");
+ const sprite=read("components/spark-beast-companion.tsx");
+ assert.match(read("app/layout.tsx"),/<SiteSoundDock\/>/);
+ assert.match(dock,/Beast Box music, creature and effect volume/);
+ assert.match(dock,/spark-mute/);
+ assert.match(css,/safe-area-inset-bottom/);
+ assert.match(sprite,/getBeastAudio\(\)/);
+ assert.doesNotMatch(sprite,/new AC\(\)/);
+ assert.match(read("public/spark/app.mjs"),/beastbox-site-sound-v1/);
+});
