@@ -70,6 +70,12 @@ def run(browser, engine, width, reduced=False):
     launcher = page.get_by_role("button", name="Open Feed the Beast support panel")
     expect(launcher).to_be_visible()
     assert page.evaluate("window.__supportAudio.contexts") == 0, "audio autoplay"
+    # Ambient music is independent from shrine SFX. Pause the site soundtrack
+    # before asserting that Mute Beast sounds creates no additional voices.
+    options = page.get_by_role("button", name="Open sound options")
+    options.tap() if width < 600 else options.click()
+    page.get_by_role("button", name="Pause cosmic background music").click()
+    page.get_by_role("button", name="Close sound options").click()
     initial = page.evaluate(CANONICAL)
     launcher.tap() if width < 600 else launcher.click()
     shrine = page.get_by_role("dialog", name="Feed the Beast")

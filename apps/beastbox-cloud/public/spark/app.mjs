@@ -151,8 +151,8 @@ function starterEntries(){
 }
 function drawBestiary(){const grid=$('bestiary');grid.replaceChildren();const combined=[...bestiary,...starterEntries()],seen=new Set();for(const entry of combined){const key=JSON.stringify(entry);if(seen.has(key)||!byKey.has(entry.run))continue;seen.add(key);try{const gen=buildGenome(entry.traits,byKey.get(entry.run),entry.user||null,10),btn=document.createElement('button'),canvas=document.createElement('canvas'),label=document.createElement('span');btn.type='button';btn.className='beast-card';paintStage(canvas,gen,1);label.textContent=`${gen.names[1]} · ${gen.body} · ${gen.island}`;btn.append(canvas,label);btn.addEventListener('click',()=>void run(()=>adopt(entry)));grid.append(btn);if(seen.size>=24)break;}catch{}}}
 function download(){if(!session?.beast)return;const text=serializeQbeast(session.beast.qbeast),url=URL.createObjectURL(new Blob([text],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=shownName(session.beast)+'.qbeast';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$('status').textContent='Your existing QBEAST identity downloaded. Native evolution is earned in LOST COSMOS.';}
-function readSoundWanted(){try{return localStorage.getItem(SOUND_KEY)!=='off';}catch{return true;}}
-function saveSoundWanted(){try{localStorage.setItem(SOUND_KEY,soundWanted?'on':'off');}catch{}}
+function readSoundWanted(){try{return localStorage.getItem('beastbox-site-sound-v1')!=='off'&&localStorage.getItem(SOUND_KEY)!=='off';}catch{return true;}}
+function saveSoundWanted(){try{localStorage.setItem(SOUND_KEY,soundWanted?'on':'off');localStorage.setItem('beastbox-site-sound-v1',soundWanted?'on':'off');}catch{}}
 function updateVoiceButton(){
  const button=$('voice');if(!button)return;
  button.textContent=voiceOn?'🔊 SOUND ON':soundWanted?'🔊 SOUND READY':'🔇 SOUND OFF';

@@ -9,6 +9,7 @@
 import { buildMaster, LOOP_BEATS, musicParams, renderNote, renderSfx, sfxSpec, themeEvents } from "./beast-audio.mjs";
 
 export const MUSIC_STORAGE_KEY = "beastbox-music-v1";
+export const SITE_SOUND_STORAGE_KEY = "beastbox-site-sound-v1";
 const DUCK = 0.12;
 
 export function createBeastAudio({ createContext = null, storage = null, setTimer = null, clearTimer = null } = {}) {
@@ -31,12 +32,13 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
   const stats = { contexts: 0, notes: 0, sfx: 0 };
 
   const save = () => { try { storage && storage.setItem(MUSIC_STORAGE_KEY, JSON.stringify({ musicOn: state.musicOn, volume: state.volume, focus: state.focus })); } catch { /* optional */ } };
+  const saveSite = (enabled) => { try { storage && storage.setItem(SITE_SOUND_STORAGE_KEY, enabled ? "on" : "off"); } catch { /* optional */ } };
   const snapshot = () => ({ ...state, scene: state.scene ? { ...state.scene } : null, playing: Boolean(timer) });
   let cached = snapshot();
   const emit = () => { cached = snapshot(); for (const fn of listeners) fn(); };
 
   const musicAudible = () => state.unlocked && !state.sparkMuted && !state.hidden && state.musicOn && Boolean(state.scene && state.scene.enabled);
-  const sfxAudible = () => state.unlocked && !state.sparkMuted;
+  const sfxAudible = () => state.unlocked && !state.sparkMuted && !state.hidden;
 
   function ensureContext() {
     if (!sfxAudible() || !createContext) return null;
@@ -49,7 +51,7 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
       } catch { ctx = null; master = null; return null; } // no audio device: stay silent
     }
     if (ctx.state === "suspended" && typeof ctx.resume === "function") {
-      try { Promise.resolve(ctx.resume()).catch(() => {}); } catch { /* resumes on next gesture */ }
+      try { Promise.resolve(ctx.resume()).then(() => { if (ctx && ctx.state === "running" && !timer && musicAudible()) refresh(); }).catch(() => {}); } catch { /* resumes on next gesture */ }
     }
     return ctx;
   }
@@ -64,6 +66,8 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
     master.music.gain.setTargetAtTime(Math.max(0, target), t, ramp / 3);
     master.battle.gain.cancelScheduledValues(t);
     master.battle.gain.setTargetAtTime(state.battle, t, state.battle ? 0.15 : 0.6);
+    master.sfx.gain.cancelScheduledValues(t);
+    master.sfx.gain.setTargetAtTime(state.sparkMuted || state.hidden ? 0 : state.volume * 0.9, t, 0.035);
   }
   function tick(lookahead = 0.35) {
     if (!ctx || !master || !params || !musicAudible()) return;
@@ -84,6 +88,7 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
   function startMusic() {
     if (!musicAudible() || timer) { applyLevels(); return; }
     if (!ensureContext()) return;
+    if (ctx.state === "suspended") { applyLevels(); return; }
     params = musicParams(state.scene);
     events = themeEvents(params).slice().sort((a, b) => a.t - b.t);
     loopStart = ctx.currentTime + 0.08; nextIndex = 0; loopCount = 0;
@@ -122,8 +127,8 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
     setGameRunning(running) { state.gameRunning = Boolean(running); applyLevels(); emit(); },
     /** Page hidden (tab in background): stop the music loop; SFX stay gated by their callers. */
     setHidden(hidden) { state.hidden = Boolean(hidden); refresh(); },
-    sparkMute() { state.sparkMuted = true; stopMusic(); emit(); },
-    sparkUnmute() { state.sparkMuted = false; refresh(); },
+    sparkMute() { state.sparkMuted = true; saveSite(false); stopMusic(); emit(); },
+    sparkUnmute() { state.sparkMuted = false; saveSite(true); refresh(); },
     /** Fade the battle layer in for `seconds`. */
     battle(seconds = 3) {
       if (!musicAudible() || !ctx) return;
@@ -168,6 +173,10 @@ export function getBeastAudio() {
     setTimer: (fn, ms) => window.setInterval(fn, ms),
     clearTimer: (id) => window.clearInterval(id),
   });
+  // Keep the existing first-gesture sound behavior: no autoplay. A saved
+  // explicit MUTE survives navigation; a fresh visitor can hear after a tap.
+  try { if (window.localStorage.getItem(SITE_SOUND_STORAGE_KEY) === "off") shared.sparkMute(); }
+  catch { /* storage unavailable: the user still controls mute in this document */ }
   const unlock = () => { try { shared.unlock(); } catch { /* audio is optional */ } };
   for (const type of ["pointerdown", "touchstart", "touchend", "click", "keydown"]) window.addEventListener(type, unlock, { capture: true, passive: true });
   window.addEventListener("beastbox:spark-mute", () => shared.sparkMute());

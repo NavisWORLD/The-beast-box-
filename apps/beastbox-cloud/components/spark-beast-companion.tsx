@@ -1,5 +1,6 @@
 'use client';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {getBeastAudio} from '../lib/companion/beast-audio-engine.mjs';
 import {Volume2,VolumeX} from 'lucide-react';
 import {generateCreature,type BaseLook,type CreatureProfile} from '../lib/creature-profile';
 import {blit,renderBeast,SPRITE} from '../public/spark/draw.mjs';
@@ -93,7 +94,7 @@ export default function SparkBeastCompanion({
  const sameSpark=session?.beast?.qbeast?.profile?.id===active.id?session.beast:null;
  const canvas=useRef<HTMLCanvasElement>(null),mover=useRef<HTMLDivElement>(null);
  const frame=useRef<number>(0),lastEye=useRef(''),utterance=useRef(0);
- const audio=useRef<AudioContext|null>(null),audioOut=useRef<AudioNode|null>(null);
+ const voiceNodes=useRef(new Map<GainNode,ReturnType<typeof setTimeout>>());
  const [run,setRun]=useState<Run|null>(null),[gen,setGen]=useState<Genome|null>(null);
  const [stage,setStage]=useState<1|2|3>(2),[sound,setSound]=useState(false);
  const [error,setError]=useState(''),[reduced,setReduced]=useState(false);
@@ -178,31 +179,42 @@ export default function SparkBeastCompanion({
   return()=>cancelAnimationFrame(frame.current);
  },[gen,stage,state,paused,reduced,compact]);
 
- const speak=useCallback(async (voiceIntensity=intensity||.55)=>{
+ const speak=useCallback(async(voiceIntensity=intensity||.55,explicit=false)=>{
   if(!gen)return;
   try{
-   let ac=audio.current;
-   if(!ac){
-    const AC=window.AudioContext||((window as Window & {webkitAudioContext?:typeof AudioContext}).webkitAudioContext);
-    if(!AC)throw new Error('WebAudio unavailable');
-    ac=new AC();
-    audio.current=ac;
-    audioOut.current=Voice.master(ac) as AudioNode;
-    (audioOut.current as GainNode).gain.value=.13;
+   const engine=getBeastAudio();
+   if(explicit){engine.sparkUnmute();engine.unlock();}
+   const output=engine.output();if(!output)return;
+   const {ctx,dest}=output;
+   if(ctx.state==='suspended'){
+    try{await ctx.resume();}catch{return;}
+    if(ctx.state!=='running'||engine.getSnapshot().sparkMuted||engine.getSnapshot().hidden)return;
    }
-   if(ac.state==='suspended')await ac.resume();
    const mood=moodFor(state);
    const u=Voice.utterance(gen.voice,stage,mood,utterance.current++,driveFor(mood,voiceIntensity));
-   Voice.schedule(ac,audioOut.current,ac.currentTime+.03,gen.voice,u);
+   const node=ctx.createGain();node.gain.value=.17;node.connect(dest);
+   Voice.schedule(ctx,node,ctx.currentTime+.03,gen.voice,u);
    setSound(true);
-   window.setTimeout(()=>setSound(false),Math.max(400,Math.ceil((u.dur||1)*1000)));
+   const timer=setTimeout(()=>{
+    voiceNodes.current.delete(node);
+    try{node.disconnect();}catch{}
+    if(voiceNodes.current.size===0)setSound(false);
+   },Math.max(400,Math.ceil((u.dur||1)*1000)+150));
+   voiceNodes.current.set(node,timer);
   }catch(err){setError(err instanceof Error?err.message:'Creature voice unavailable');}
  },[gen,stage,state,intensity]);
 
  useEffect(()=>{
-  const mute=()=>{void audio.current?.close();audio.current=null;audioOut.current=null;setSound(false);};
-  window.addEventListener('beastbox:spark-mute',mute);
-  return()=>{window.removeEventListener('beastbox:spark-mute',mute);mute();};
+  const silence=()=>{
+   for(const [node,timer] of voiceNodes.current){
+    clearTimeout(timer);try{node.disconnect();}catch{}
+   }
+   voiceNodes.current.clear();setSound(false);
+  };
+  window.addEventListener('beastbox:spark-mute',silence);
+  const visibility=()=>{if(document.hidden)silence();};
+  document.addEventListener('visibilitychange',visibility);
+  return()=>{window.removeEventListener('beastbox:spark-mute',silence);document.removeEventListener('visibilitychange',visibility);silence();};
  },[]);
  useEffect(()=>{
   if(!audioChannel)return;
@@ -235,7 +247,7 @@ export default function SparkBeastCompanion({
     {([1,2,3] as const).map(value=><button type="button" key={value} aria-pressed={stage===value}
       onClick={()=>{setStage(value);lastEye.current='';}}>Preview {value}</button>)}
    </div>
-   <button type="button" className={styles.voice} onClick={()=>void speak()} disabled={!gen}
+   <button type="button" className={styles.voice} onClick={()=>void speak(intensity||.55,true)} disabled={!gen}
      aria-label="Play this creature's generated Spark voice">{sound?<VolumeX size={15}/>:<Volume2 size={15}/>} {sound?'Speaking…':'Hear Beast'}</button>
   </div>:null}
   {error?<span className={styles.error} role="status">{error}</span>:null}
