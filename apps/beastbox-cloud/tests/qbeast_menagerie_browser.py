@@ -14,7 +14,10 @@ OUT.mkdir(parents=True,exist_ok=True)
 report=[]
 
 with sync_playwright() as playwright:
-    browser=playwright.chromium.launch(headless=True,args=["--no-sandbox","--disable-dev-shm-usage","--use-gl=swiftshader"])
+    launch={"headless":True,"args":["--no-sandbox","--disable-dev-shm-usage","--use-gl=swiftshader"]}
+    if os.environ.get("SUPPORT_BROWSER_EXECUTABLE"): launch["executable_path"]=os.environ["SUPPORT_BROWSER_EXECUTABLE"]
+    else: launch["channel"]="chrome"
+    browser=playwright.chromium.launch(**launch)
     try:
         for width,height in [(320,720),(375,812),(390,844),(430,932),(1280,900)]:
             context=browser.new_context(viewport={"width":width,"height":height},reduced_motion="reduce",device_scale_factor=1)
