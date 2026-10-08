@@ -210,8 +210,8 @@ test("site mute persists and volume reaches the shared SFX bus",()=>{
  const storage=memoryStorage(),{audio,log}=engine(storage);
  audio.unlock();audio.setScene({id:"site",...sceneFor(1),enabled:true});
  audio.setVolume(0.3);
- const gains=log.filter(node=>node.kind==="gain");
- assert.ok(gains[3].gain.events.some(e=>e[0]==="setTargetAtTime"&&Math.abs(e[1]-0.27)<1e-9));
+ const output=audio.output();
+ assert.ok(output && output.dest.gain.events.some(e=>e[0]==="setTargetAtTime"&&Math.abs(e[1]-0.27)<1e-9));
  audio.sparkMute();
  assert.equal(storage.getItem("beastbox-site-sound-v1"),"off");
  assert.equal(audio.sfx("blip"),false);
