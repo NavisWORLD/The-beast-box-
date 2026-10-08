@@ -24,11 +24,13 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
   const {session}=useBeastSession();
   const spark=!!creature&&!!session?.beast?.qbeast&&session.beast.qbeast.profile.id===creature.id;
   const mode = modeFor(pathname);
-  const [nativeOwned,setNativeOwned]=useState(false);
-  useEffect(()=>{if(session?.beast?.qbeast)setNativeOwned(true);},[session?.beast?.qbeast]);
+  const [nativeOwned,setNativeOwned]=useState(pathname==='/sol-game');
   const [expanded, setExpanded] = useState(false);
   const [closed, setClosed] = useState(false);
   const [booted, setBooted] = useState(false);
+  // Fresh game visits show the same player and Beast chooser before a cartridge exists.
+  // An already booted legacy cartridge retains its owner through navigation.
+  useEffect(()=>{if(session?.beast?.qbeast||pathname==='/sol-game'&&!booted)setNativeOwned(true);},[session?.beast?.qbeast,pathname,booted]);
   const [note, setNote] = useState('Lost Cosmos V11.2 Spark is ready.');
   const [narrow, setNarrow] = useState(false);
   const [tucked, setTucked] = useState(false);
