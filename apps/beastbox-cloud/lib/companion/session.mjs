@@ -231,3 +231,6 @@ export function importSession(raw) {
   if (session.beast) mirrorGrowth(session);
   return session;
 }
+
+// Non-authoritative deterministic behavior: no native progress or XP rewards.
+export {advanceCreature,recordCreatureExperience} from './behavior.mjs';
