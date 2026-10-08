@@ -18,7 +18,7 @@ type Store = {
   session: any;
   trail: Trail;
   sensorLog: string[];
-  change: (mutate: (session: any) => void) => void;
+  change: (mutate: (session: any) => void, options?: {allowUnsignedAdoption?:boolean}) => void;
   setTrail: (next: Trail) => void;
   noteSensor: (line: string) => void;
   storageStatus: string;
@@ -83,12 +83,12 @@ export function BeastSessionProvider({ children }: { children: React.ReactNode }
 
   // Every care, model, native-game and behavior mutation starts from the latest saved
   // snapshot under the generator's existing cross-tab Web Lock. Never save a stale React state.
-  const change = useCallback((mutate: (session: any) => void) => {
+  const change = useCallback((mutate: (session: any) => void, options: {allowUnsignedAdoption?:boolean} = {}) => {
     const expected = selectedIdentity(latest.current);
     writes.current = writes.current.catch(() => undefined).then(async () => {
       const next = await withSparkLock(() => updateDeviceSession(localStorage, expected, mutate, {
         place:extra.current.trail.place,trail:extra.current.trail,sensorLog:extra.current.sensorLog
-      }));
+      },options));
       latest.current = next;
       setSession(next);
       setStorageStatus('Saved on this device');
