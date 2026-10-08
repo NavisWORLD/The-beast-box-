@@ -21,7 +21,7 @@ export default function HomepageCreature(){
  const [waved,setWaved]=useState(false);
  const activeName=savedBeast?shownName(savedBeast):'';
  const waveMood=waved?'observing':'idle';
- return <div className="cosmos-home-hero" aria-label={genome?'Your saved Beast observatory':'Meet the cosmic dragon, your workshop guide'}>
+ return <div className="cosmos-home-hero" aria-label="Interactive cosmic companion observatory">
   <CosmicCompanion3D quality="low" profile={profile}
    preferSprite={Boolean(genome)} spriteGenome={genome}
    spriteStage={savedBeast?.nativeStage||savedBeast?.stage||1}
