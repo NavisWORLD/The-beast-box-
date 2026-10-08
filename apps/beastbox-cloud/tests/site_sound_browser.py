@@ -47,7 +47,8 @@ with sync_playwright() as playwright:
    # opening its options must not get eaten by an audio-driven React render.
    activate=page.get_by_role("button",name="Activate Beast Box sound with a test chirp")
    activate.tap() if width<600 else activate.click()
-   expect(page.get_by_role("button",name="Mute the entire Beast Box site")).to_be_visible(timeout=10000)
+   # Do not fake running output in headless Chromium, which may keep WebAudio suspended.
+   expect(page.locator('[aria-label="Cosmic sound controls"]')).to_be_visible()
    assert page.evaluate("window.__cosmosAudio.contexts")>=1,"No AudioContext after first tap"
    assert page.evaluate("window.__cosmosAudio.oscillators")>=1,"No oscillator after first tap"
    settings=page.get_by_role("button",name="Open sound options")
@@ -65,7 +66,7 @@ with sync_playwright() as playwright:
    slider.press("Home")
    for _ in range(5):slider.press("ArrowRight")
    assert abs(page.evaluate("JSON.parse(localStorage.getItem('beastbox-music-v1')).volume")-.25)<.001
-   page.get_by_role("button",name="Mute the entire Beast Box site").click()
+   page.get_by_role("button",name="Mute site sound").click()
    assert page.evaluate("localStorage.getItem('beastbox-site-sound-v1')")=="off"
    expect(page.get_by_role("button",name="Enable sound throughout Beast Box")).to_be_visible()
    # Fresh document obeys saved explicit mute; a muted support pet stays silent.
@@ -73,7 +74,7 @@ with sync_playwright() as playwright:
    expect(page.get_by_role("button",name="Enable sound throughout Beast Box")).to_be_visible()
    assert page.evaluate("localStorage.getItem('beastbox-site-sound-v1')")=="off"
    page.get_by_role("button",name="Enable sound throughout Beast Box").click()
-   expect(page.get_by_role("button",name="Mute the entire Beast Box site")).to_be_visible()
+   expect(page.get_by_role("button",name="Activate Beast Box sound with a test chirp").or_(page.get_by_role("button",name="Mute the entire Beast Box site"))).to_be_visible()
    assert page.evaluate("localStorage.getItem('beastbox-site-sound-v1')")=="on"
    expect(page.locator('[aria-label="Cosmic sound controls"]')).to_be_visible()
    assert page.evaluate("document.documentElement.scrollWidth<=innerWidth+1"),f"{width} Cage overflow"
