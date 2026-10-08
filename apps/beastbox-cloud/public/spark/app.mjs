@@ -64,7 +64,8 @@ function syncAudioUi(){
  if(volume&&document.activeElement!==volume)volume.value=String(Math.round(snap.volume*100));
  if(state)state.textContent=!soundWanted?'Muted on this device':voiceOn?(snap.musicOn?'Creature voice + procedural music active':'Creature voice active · music off'):'Wakes on your first tap · synthesized locally';
 }
-beastAudio.subscribe(syncAudioUi);
+// Safari may resume sound after the tapped AudioContext promise resolves.
+beastAudio.subscribe(()=>{syncAudioUi();updateVoiceButton();});
 function readQvmGrowth(seed){try{const saved=JSON.parse(localStorage.getItem(QVM_STORE)||'{}');return saved.seed===seed?Math.max(0,Math.min(1,Number(saved.growth)||0)):0;}catch{return 0;}}
 function saveQvmGrowth(){if(!current)return;try{localStorage.setItem(QVM_STORE,JSON.stringify({seed:current.gen.seed,growth:qvmGrowth,source_sha256:'7ef23c00005a2053d1fc830985330f4db322b3bf6144fd79fd1561d14c425599'}));}catch{}}
 function updateQvmGrowth(){const label=$('qvm-growth'),bar=$('qvm-growth-bar');if(!label||!bar)return;const pct=Math.round(qvmGrowth*100);bar.style.width=`${pct}%`;label.textContent=`SIM GROWTH ${pct}% · browser-local · native stage unchanged`;label.parentElement?.setAttribute('aria-valuenow',String(pct));}
@@ -155,7 +156,8 @@ function readSoundWanted(){try{return localStorage.getItem('beastbox-site-sound-
 function saveSoundWanted(){try{localStorage.setItem(SOUND_KEY,soundWanted?'on':'off');localStorage.setItem('beastbox-site-sound-v1',soundWanted?'on':'off');}catch{}}
 function updateVoiceButton(){
  const button=$('voice');if(!button)return;
- button.textContent=voiceOn?'🔊 SOUND ON':soundWanted?'🔊 SOUND READY':'🔇 SOUND OFF';
+ const contextReady=beastAudio.getSnapshot().contextState==='running';
+ button.textContent=voiceOn&&contextReady?'🔊 SOUND ON':soundWanted?'🔊 TAP FOR SOUND':'🔇 SOUND OFF';
  button.setAttribute('aria-pressed',String(soundWanted));button.classList.toggle('on',soundWanted);syncAudioUi();
 }
 async function startVoice(announce=false){
@@ -172,8 +174,13 @@ async function stopVoice(){
 }
 async function enableVoice(){
  try{
-  if(soundWanted){soundWanted=false;saveSoundWanted();await stopVoice();}
-  else{soundWanted=true;saveSoundWanted();await startVoice(true);}
+  // SOUND READY must activate on the first tap, not silently turn itself off.
+  if(soundWanted&&voiceOn&&beastAudio.getSnapshot().contextState==='running'){
+   soundWanted=false;saveSoundWanted();await stopVoice();
+  }else{
+   if(!soundWanted){soundWanted=true;saveSoundWanted();}
+   voiceOn=false;await startVoice(true);
+  }
  }catch(e){voiceOn=false;updateVoiceButton();$('status').textContent=e.message;}
 }
 function unlockPreferredSound(event){

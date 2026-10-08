@@ -1,0 +1,50 @@
+name: Site sound mobile gesture proof
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/components/site-sound-dock*'
+      - 'apps/beastbox-cloud/lib/companion/beast-audio-engine.mjs'
+      - 'apps/beastbox-cloud/tests/site_sound_browser.py'
+      - 'apps/beastbox-cloud/public/spark/app.mjs'
+      - 'apps/beastbox-cloud/tests/beast-audio.test.mjs'
+      - '.github/workflows/site-sound-mobile.yml'
+  workflow_dispatch:
+jobs:
+  real-browser-sound:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/beastbox-cloud/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install app and browser
+        run: |
+          npm ci --no-audit --no-fund
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Production build
+        run: npm run build
+      - name: Check real context / oscillator on 320, 375, 390, 430 and desktop
+        run: |
+          npm run start -- --hostname 127.0.0.1 --port 3100 > /tmp/beast-audio-next.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:3100/ > /dev/null; then break; fi
+            sleep 1
+          done
+          python tests/site_sound_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: site-sound-mobile-proof
+          path: apps/beastbox-cloud/browser-evidence/site-sound/
+          if-no-files-found: warn
+          retention-days: 14

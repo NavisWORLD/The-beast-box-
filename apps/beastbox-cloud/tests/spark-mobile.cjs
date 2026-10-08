@@ -10,7 +10,7 @@ for(const width of widths){
  await page.addInitScript(()=>{window.__audioCount=0;window.__audioContexts=[];const AC=window.AudioContext;window.AudioContext=class extends AC{constructor(...args){super(...args);window.__audioCount++;window.__audioContexts.push(this)}};});
  await page.goto(root+'/spark/index.html');await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId,{timeout:30000});
  assert.equal(await page.evaluate(()=>window.__audioCount),0,'browser must stay silent before the first user gesture');
- assert.equal(await page.locator('#voice').getAttribute('aria-pressed'),'true');assert.match(await page.locator('#voice').textContent(),/SOUND READY/);
+ assert.equal(await page.locator('#voice').getAttribute('aria-pressed'),'true');assert.match(await page.locator('#voice').textContent(),/TAP FOR SOUND/);
  const before=await page.locator('#view').screenshot();await page.waitForTimeout(1600);const after=await page.locator('#view').screenshot();assert.ok(!before.equals(after),'creature must animate');
  await page.locator('#generate').click();await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Spawned'));
  await page.waitForFunction(()=>document.querySelector('#voice').textContent.includes('SOUND ON'));assert.equal(await page.evaluate(()=>window.__audioCount),1,'first gesture unlocks default-on sound');assert.equal(await page.evaluate(()=>window.__audioContexts[0].state),'running');
@@ -75,7 +75,7 @@ for(const width of widths){
  await page.screenshot({path:out+`/game-talk-${width}.png`,fullPage:true});
  await talkPanel.getByRole('button',{name:'CLOSE TALK',exact:true}).click();
  console.log('Width',width,'native entry passed');await page.goto(root+'/spark/index.html');await page.waitForFunction(id=>document.querySelector('#view')?.dataset.creatureId===id,identity.profile.id);assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast.xp),saved.beast.xp);
- await page.reload();await page.waitForFunction(id=>document.querySelector('#view')?.dataset.creatureId===id,identity.profile.id);assert.equal(await page.evaluate(()=>window.__audioCount),0,'sound stays browser-policy silent until a new gesture after reopen');assert.match(await page.locator('#voice').textContent(),/SOUND READY/);
+ await page.reload();await page.waitForFunction(id=>document.querySelector('#view')?.dataset.creatureId===id,identity.profile.id);assert.equal(await page.evaluate(()=>window.__audioCount),0,'sound stays browser-policy silent until a new gesture after reopen');assert.match(await page.locator('#voice').textContent(),/TAP FOR SOUND/);
  await page.locator('#generate').click();await page.waitForFunction(id=>document.querySelector('#view').dataset.creatureId!==id,identity.profile.id);await page.waitForFunction(()=>document.querySelector('#voice').textContent.includes('SOUND ON'));assert.equal(await page.evaluate(()=>window.__audioCount),1);
  if(width===390){
   const voice=await page.evaluate(async previous=>{

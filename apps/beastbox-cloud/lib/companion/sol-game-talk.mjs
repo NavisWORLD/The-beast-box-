@@ -9,7 +9,19 @@ export function gameBeastKey(session) {
     ? `${beast.qbeast.profile.id}:${beast.seed}` : '';
 }
 
-export async function askGameBeast({ session, saying, fetchImpl, signal }) {
+/**
+ * A verified, opt-in optical measurement; not object recognition or native
+ * player/world state. Never send raw pixels or invent enemies, items, position.
+ */
+export function gameObservationLine(observation) {
+ if (observation?.status !== 'observed' || observation.source !== 'native-emulator-display') return '';
+ const numeric = value => Number.isFinite(value) && value >= 0 && value <= 100 ? Math.round(value) : null;
+ const brightness=numeric(observation.brightness),contrast=numeric(observation.contrast),change=numeric(observation.frameChange);
+ if ([brightness,contrast,change].some(x=>x===null) || !['red','green','blue','mixed'].includes(observation.dominant)) return '';
+ return 'Observed native game screen pixels on request: brightness '+brightness+'/100, contrast '+contrast+'/100, dominant colors '+observation.dominant+', frame-change '+change+'/100. This does NOT identify objects, enemies, map location, or actions.';
+}
+
+export async function askGameBeast({ session, saying, fetchImpl, signal, model = 'guest', observation = null }) {
   if (!gameBeastKey(session)) throw new Error('Choose your Spark Beast first.');
   const text = String(saying || '').trim();
   if (!text || text.length > 280 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(text)) {
@@ -20,8 +32,10 @@ export async function askGameBeast({ session, saying, fetchImpl, signal }) {
   const context = guestSafeContext(buildChatContext({ session, sensors: null, sensorLog: [] }));
   context.location = 'Lost COSMOS';
   context.nearby = [];
+  const optics = gameObservationLine(observation);
+  const question = optics ? text+'\n'+optics : text;
   const result = await askBeast({
-    context, saying: text, audience: 'guest',
+    context, saying: question, audience: model === 'connected' ? undefined : 'guest',
     fetchImpl: async (url, init) => {
       const response = await fetchImpl(url, { ...init, signal });
       if (response.ok === false) throw new Error('Guest model unavailable. Please try again later.');

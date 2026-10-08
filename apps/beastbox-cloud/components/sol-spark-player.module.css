@@ -20,3 +20,27 @@
 .shell[data-player-mode=minimized] .open{width:calc(100% - 100px)}
 .shell .controls button{padding:0}
 @media(max-width:620px){.shell[data-player-mode=minimized]{bottom:calc(max(8px,env(safe-area-inset-bottom)) + 128px)}}
+
+/* Minimized cartridge stays mounted but becomes a small restore tile on phones. */
+@media(max-width:620px){
+ .shell[data-player-mode=minimized]{
+  right:max(8px,env(safe-area-inset-right,0px));
+  bottom:calc(env(safe-area-inset-bottom,0px) + 119px);
+  width:min(188px,calc(100vw - 88px));
+  max-height:124px;padding:7px;gap:2px;
+  border-radius:13px;
+ }
+ .shell[data-player-mode=minimized] .identity strong{font-size:12px}
+ .shell[data-player-mode=minimized] .identity small{display:none}
+ .shell[data-player-mode=minimized] .screen{width:61px;height:41px;min-height:0;right:6px;bottom:7px;border-width:2px}
+ .shell[data-player-mode=minimized] .header>button,.shell[data-player-mode=minimized] .open{width:calc(100% - 67px);min-width:44px;font-size:10px;padding:7px}
+}
+@media(max-width:359px){.shell[data-player-mode=minimized]{width:156px}.shell[data-player-mode=minimized] .screen{width:50px;height:34px}.shell[data-player-mode=minimized] .header>button,.shell[data-player-mode=minimized] .open{width:calc(100% - 56px)}}
+
+/* Sound is unlocked in the inner emulator frame, not by a synthetic parent click. */
+.gameAudioHint{margin:0;padding:7px 10px;border:1px solid #68d7ec70;border-radius:9px;background:#123042;color:#d4f7ff;font-size:12px;line-height:1.45}
+.shell[data-player-mode=fullscreen] .gameAudioHint,.shell[data-player-mode=immersive] .gameAudioHint{max-width:700px;align-self:center;width:100%}
+.shell[data-player-mode=minimized] .gameAudioHint{display:none}
+
+/* Keep real model dialogue accessible when the shell enters fullscreen; do not put an overlay over native pixels or D-pad. */
+.shell[data-player-mode=fullscreen] .talk,.shell[data-player-mode=immersive] .talk{display:block;width:100%;max-width:700px;max-height:min(28dvh,220px);overflow:auto;align-self:center;flex:0 0 auto;border-radius:9px}

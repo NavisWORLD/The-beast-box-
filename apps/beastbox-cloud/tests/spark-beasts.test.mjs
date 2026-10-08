@@ -45,7 +45,7 @@ test('public spark page states the honesty boundary and links the game', () => {
   assert.match(html, /id="lost-cosmos" href="\/sol-game"/);
   assert.doesNotMatch(html,/Play in Living Universe|SIM_EARTH|Pocket Reality/);
   assert.match(html, /Download \.qbeast/);
-  assert.match(html, /SOUND READY/);
+  assert.match(html, /TAP FOR SOUND/);
   assert.match(html, /<button[^>]*id="music"[^>]*>[^<]*MUSIC ON<\/button>/);
   assert.match(html, /id="music-volume"/);
   assert.match(html, /id="mic-react"/);

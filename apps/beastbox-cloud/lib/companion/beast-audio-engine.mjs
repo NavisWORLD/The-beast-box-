@@ -25,15 +25,15 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
       };
     }
   } catch { /* storage unavailable: defaults */ }
-  const state = { unlocked: false, sparkMuted: false, hidden: false, gameRunning: false, battle: 0, scene: null, ...prefs };
+  const state = { unlocked: false, sparkMuted: false, hidden: false, gameRunning: false, battle: 0, scene: null, audioError: null, ...prefs };
   let ctx = null, master = null, timer = null, loopStart = 0, nextIndex = 0, loopCount = 0, params = null, events = [];
-  let battleUntil = 0;
+  let battleUntil = 0, resumePending = false;
   const listeners = new Set();
   const stats = { contexts: 0, notes: 0, sfx: 0 };
 
   const save = () => { try { storage && storage.setItem(MUSIC_STORAGE_KEY, JSON.stringify({ musicOn: state.musicOn, volume: state.volume, focus: state.focus })); } catch { /* optional */ } };
   const saveSite = (enabled) => { try { storage && storage.setItem(SITE_SOUND_STORAGE_KEY, enabled ? "on" : "off"); } catch { /* optional */ } };
-  const snapshot = () => ({ ...state, scene: state.scene ? { ...state.scene } : null, playing: Boolean(timer) });
+  const snapshot = () => ({ ...state, contextState: ctx?.state || (state.unlocked ? 'unavailable' : 'locked'), audioError: state.audioError || null, scene: state.scene ? { ...state.scene } : null, playing: Boolean(timer) });
   let cached = snapshot();
   const emit = () => { cached = snapshot(); for (const fn of listeners) fn(); };
 
@@ -48,10 +48,21 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
         if (!ctx) return null;
         stats.contexts++;
         master = buildMaster(ctx);
-      } catch { ctx = null; master = null; return null; } // no audio device: stay silent
+        state.audioError = null;
+        // iOS Safari may suspend its context after audio interruptions or backgrounding.
+        // React must read the actual device state, not only the saved mute preference.
+        if (typeof ctx.addEventListener === "function") ctx.addEventListener("statechange", () => {
+          if (ctx?.state === "running") refresh();
+          else { stopMusic(); emit(); }
+        });
+      } catch { ctx = null; master = null; state.audioError = "Audio device unavailable. Check Safari sound settings."; emit(); return null; } // no audio device: stay silent
     }
-    if (ctx.state === "suspended" && typeof ctx.resume === "function") {
-      try { Promise.resolve(ctx.resume()).then(() => { if (ctx && ctx.state === "running" && !timer && musicAudible()) refresh(); }).catch(() => {}); } catch { /* resumes on next gesture */ }
+    if ((ctx.state === "suspended" || ctx.state === "interrupted") && typeof ctx.resume === "function" && !resumePending) {
+      try { resumePending = true; Promise.resolve(ctx.resume()).then(() => {
+        state.audioError = null;
+        if (ctx && ctx.state === "running") refresh(); else emit();
+      }).catch(() => { state.audioError = "Safari kept audio suspended. Tap Test Chirp again."; emit(); }).finally(() => { resumePending = false; }); }
+      catch { resumePending = false; state.audioError = "Audio resume blocked. Tap Test Chirp again."; emit(); }
     }
     return ctx;
   }
@@ -113,8 +124,8 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
   }
 
   return {
-    /** Called from a real user gesture. */
-    unlock() { if (state.unlocked) { ensureContext(); return; } state.unlocked = true; ensureContext(); refresh(); },
+    /** Called synchronously from a real user gesture, including after foreground resume. */
+    unlock() { if (!state.unlocked) state.unlocked = true; ensureContext(); refresh(); },
     setScene(scene) {
       const next = scene ? { seedKey: String(scene.seedKey || "spark-fallback"), element: scene.element || "spark", temperament: scene.temperament || "Curious", enabled: scene.enabled !== false, id: scene.id || "scene" } : null;
       state.scene = next; refresh();
@@ -157,7 +168,7 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
     subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     getSnapshot() { return cached; },
     stats() { return { ...stats, musicGain: master ? master.music.gain.value : 0 }; },
-    dispose() { stopMusic(); try { ctx && ctx.close && ctx.close(); } catch { /* closed */ } ctx = null; master = null; },
+    dispose() { stopMusic(); try { ctx && ctx.close && ctx.close(); } catch { /* closed */ } ctx = null; master = null; emit(); },
   };
 }
 
@@ -182,6 +193,11 @@ export function getBeastAudio() {
   window.addEventListener("beastbox:spark-mute", () => shared.sparkMute());
   window.addEventListener("beastbox:spark-unmute", () => shared.sparkUnmute());
   window.addEventListener("beastbox:gba-running", (event) => shared.setGameRunning(Boolean(event.detail)));
-  document.addEventListener("visibilitychange", () => shared.setHidden(document.hidden));
+  document.addEventListener("visibilitychange", () => {
+    shared.setHidden(document.hidden);
+    // The context can return suspended; it must never claim "playing" until another gesture.
+    if (!document.hidden) shared.getSnapshot();
+  });
+  window.addEventListener("pageshow", () => shared.setHidden(document.hidden));
   return shared;
 }
