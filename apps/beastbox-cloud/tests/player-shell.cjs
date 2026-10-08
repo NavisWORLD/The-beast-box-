@@ -19,7 +19,13 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
  const page=await context.newPage(),errors=[],romRequests=[];
  page.on('pageerror',error=>errors.push(error.message));page.on('request',request=>{if(request.url().includes('/rom/lost-cosmos.gba'))romRequests.push(request.url());});
  try{
-  await page.goto(root+'/spark/index.html');await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId);
+  await page.goto(root+'/sol-game');
+  const freshShell=page.locator('[data-lost-cosmos-player-shell]');
+  await freshShell.getByRole('link',{name:'Choose your Spark Beast',exact:true}).waitFor({timeout:5000});
+  assert.equal(await freshShell.getByRole('button',{name:'SEND BEAST',exact:true}).isDisabled(),true,'fresh visitors choose their Beast before sending it');
+  assert.equal(await page.locator('iframe').count(),0,'choosing a Beast does not boot another cartridge');
+  await freshShell.getByRole('link',{name:'Choose your Spark Beast',exact:true}).click();await page.waitForURL(root+'/spark/index.html');
+  await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId);
   await page.locator('#generate').click();await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Spawned'));
   const qbeast=await page.evaluate(()=>JSON.parse(JSON.parse(localStorage.getItem('beastbox-quantum-beast-public-v1')).text));
   await page.goto(root+'/sol-game');
