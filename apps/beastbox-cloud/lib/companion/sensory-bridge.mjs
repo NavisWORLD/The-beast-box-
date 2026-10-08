@@ -7,6 +7,7 @@
  */
 import {beastIdentity} from './session.mjs';
 import {advanceCreature} from './behavior.mjs';
+import {observeText} from './learn.mjs';
 
 export const SENSE_RECORD_SCHEMA='beastbox-local-sense-v1';
 const RAW_KEYS=new Set(['image','images','frame','frames','pixels','jpeg','png','webp','base64','blob','audio','pcm','wav','sample','samples','token','api_key','password']);
@@ -61,6 +62,11 @@ export function applySensedEvent(session,event,{consented=false,expectedId='',no
  const tick=advanceCreature(session,{place:chosenPlace,sound:record.sound,attention:record.attention,toy:0,comfort:.5});
  if(!tick.ok)return tick;
  b.senseNotes=[...old,note].slice(-8);
+ // This is the existing local Hebbian association engine, not training an LLM.
+ // A pure amplitude number supplies environmental input but no invented words.
+ if((record.kind==='vision_summary'||record.kind==='speech_summary')&&session.mind){
+  observeText(session.mind,record.summary);
+ }
  if(beastIdentity(b)!==id||b.xp!==priorXp||b.bond!==priorBond||b.stage!==priorStage||b.nativeStage!==priorNative)
   throw Error('Sensor event crossed creature or game authority boundaries.');
  return {ok:true,kind:record.kind,source:record.source,qbeast_id:id,behavior:tick.event.action,stored:'text-summary-only'};
