@@ -43,14 +43,18 @@ with sync_playwright() as playwright:
    assert page.evaluate("window.__cosmosAudio.contexts")==0,"audio context created without user interaction"
    assert page.evaluate("document.documentElement.scrollWidth<=innerWidth+1"),f"{width} horizontal overflow"
    # A real click/tap is required before music/SFX may schedule.
+   # The main button is the reliable FIRST Safari gesture. After sound starts,
+   # opening its options must not get eaten by an audio-driven React render.
+   activate=page.get_by_role("button",name="Activate Beast Box sound with a test chirp")
+   activate.tap() if width<600 else activate.click()
+   expect(page.get_by_role("button",name="Mute the entire Beast Box site")).to_be_visible(timeout=10000)
+   assert page.evaluate("window.__cosmosAudio.contexts")>=1,"No AudioContext after first tap"
+   assert page.evaluate("window.__cosmosAudio.oscillators")>=1,"No oscillator after first tap"
    settings=page.get_by_role("button",name="Open sound options")
    settings.tap() if width<600 else settings.click()
-   # User-facing proof of WebAudio initialization: a gesture, a real context and oscillators.
    chirp=page.get_by_role("button",name="Test Beast Box sound with a short chirp")
+   expect(chirp).to_be_visible()
    chirp.tap() if width<600 else chirp.click()
-   expect(page.get_by_role("button",name="Mute the entire Beast Box site")).to_be_visible(timeout=10000)
-   assert page.evaluate("window.__cosmosAudio.contexts")>=1,"No AudioContext after activation"
-   assert page.evaluate("window.__cosmosAudio.oscillators")>=1,"No oscillator after test chirp"
    if width<600:
     assert pill.bounding_box()["width"]<112,"Mobile sound controls block creature or buttons"
     support=page.get_by_role("button",name="Open Feed the Beast support panel")
