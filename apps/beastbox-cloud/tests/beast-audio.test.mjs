@@ -246,3 +246,10 @@ test("Safari UI can distinguish configured audio from the actual context readine
   audio.sparkMute();
   assert.equal(audio.getSnapshot().sparkMuted,true);
 });
+
+test("public Spark first sound tap enables audio instead of muting a ready speaker",()=>{
+  const app=read("public/spark/app.mjs");
+  assert.match(app,/SOUND READY must activate on the first tap/);
+  assert.match(app,/soundWanted&&voiceOn&&beastAudio\.getSnapshot\(\)\.contextState==='running'/);
+  assert.doesNotMatch(app,/if\(soundWanted\)\{soundWanted=false;saveSoundWanted\(\);await stopVoice\(\);\}/);
+});
