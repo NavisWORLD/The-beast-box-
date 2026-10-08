@@ -49,7 +49,8 @@ with sync_playwright() as playwright:
    settings.tap() if width<600 else settings.click()
    slider=page.get_by_role("slider",name="Beast Box music, creature and effect volume")
    expect(slider).to_be_visible()
-   slider.fill("25")
+   slider.press("Home")
+   for _ in range(5):slider.press("ArrowRight")
    assert abs(page.evaluate("JSON.parse(localStorage.getItem('beastbox-music-v1')).volume")-.25)<.001
    page.get_by_role("button",name="Mute the entire Beast Box site").click()
    assert page.evaluate("localStorage.getItem('beastbox-site-sound-v1')")=="off"
