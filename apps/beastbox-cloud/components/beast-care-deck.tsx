@@ -137,9 +137,9 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
           draft.chat = imported.notes.slice(-80).map((note: string) => {
             const you = note.startsWith('you:');
             return { role: you ? 'you' : 'beast', text: note.replace(/^(you|beast):\s*/, '') };
-          }, {allowUnsignedAdoption:true});
+          });
         }
-      });
+      }, {allowUnsignedAdoption:true});
       setStatus('Imported the .qbeast file. Pattern weights and notes came back from the public memory events.');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'That cage file could not be read.');
