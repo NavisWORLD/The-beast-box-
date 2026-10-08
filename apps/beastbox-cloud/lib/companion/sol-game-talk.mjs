@@ -69,7 +69,7 @@ export async function askGameBeast({ session, saying, fetchImpl, signal, model =
     throw new Error('Use a message of 1–280 characters.');
   }
   // The cartridge owns its actual location and earned progression. Do not
-  // describe a browser trail as the native location, or send stored memories.
+  // describe a browser trail as the native location. Stored memories require explicit connected-provider consent.
   const context = gameChatContext(session,{model,shareMemories,query:text});
   const optics = gameObservationLine(observation);
   const question = optics ? text+'\n'+optics : text;
