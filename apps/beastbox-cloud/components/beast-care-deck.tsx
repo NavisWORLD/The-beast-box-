@@ -41,7 +41,7 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
     if(beast?.qbeast){window.location.href='/spark/index.html';return;}
     const run = recorded[0];
     const genome = buildGenome({ focus: 40, calm: 40, spark: 20 }, run, null);
-    change((draft) => { adoptBeast(draft, genome, name || 'Moss'); });
+    change((draft) => { adoptBeast(draft, genome, name || 'Moss'); }, {allowUnsignedAdoption:true});
     setStatus('A spark beast is on this device. Pattern memory starts empty.');
   }
 
@@ -110,7 +110,7 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
             draft.beast.xp = cage.xp;
             draft.beast.stage = stageFromXp(cage.xp);
           }
-        });
+        }, {allowUnsignedAdoption:true});
         setStatus(`Imported LCX1 traits. Experience ${cage.xp}, stage ${stageFromXp(cage.xp)}. The sprite was rebuilt from those traits and a recorded quantum run.`);
         return;
       }
@@ -137,7 +137,7 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
           draft.chat = imported.notes.slice(-80).map((note: string) => {
             const you = note.startsWith('you:');
             return { role: you ? 'you' : 'beast', text: note.replace(/^(you|beast):\s*/, '') };
-          });
+          }, {allowUnsignedAdoption:true});
         }
       });
       setStatus('Imported the .qbeast file. Pattern weights and notes came back from the public memory events.');
