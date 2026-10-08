@@ -74,6 +74,15 @@ with sync_playwright() as playwright:
    expect(page.locator('[aria-label="Cosmic sound controls"]')).to_be_visible()
    assert page.evaluate("document.documentElement.scrollWidth<=innerWidth+1"),f"{width} Cage overflow"
    assert not errors, f"{width} errors: {errors}"
+   if width==390:
+    # Static /spark page has its own sound button. On iPhone it must ACTIVATE,
+    # not interpret the first attempt as an instruction to mute.
+    page.goto(BASE+"/spark/index.html",wait_until="domcontentloaded",timeout=60000)
+    voice=page.locator("#voice")
+    expect(voice).to_contain_text("TAP FOR SOUND",timeout=30000)
+    voice.tap()
+    expect(voice).to_contain_text("SOUND ON",timeout=15000)
+    assert page.evaluate("window.__cosmosAudio.contexts")>=1,"Static Spark did not open audio after tap"
    page.screenshot(path=str(OUT/f"sound-{width}.png"))
    results.append({"width":width,"no_autoplay":True,"chirp_oscillator_rendered":True,"compact_mobile_sound":True,"mute_persisted":True,"volume_persisted":True,"unmute_after_navigation":True,"no_horizontal_overflow":True,"errors":errors})
    context.close()
