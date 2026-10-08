@@ -54,11 +54,11 @@ with sync_playwright() as playwright:
             next_btn=room.get_by_role("button",name="More recorded seeds")
             assert next_btn.is_enabled(),f"{width}: archive cannot page past first twelve"
             next_btn.click()
-            page.wait_for_function("(oldId)=>document.querySelector('#menagerie [data-archive-qbeast-id]')?.dataset.archiveQbeastId !== oldId",ids[0],timeout=30000)
+            page.wait_for_function("(oldId)=>document.querySelector('#menagerie [data-archive-qbeast-id]')?.dataset.archiveQbeastId !== oldId",arg=ids[0],timeout=30000)
             after_ids=room.locator("[data-archive-qbeast-id]").evaluate_all("(items)=>items.map(x=>x.dataset.archiveQbeastId)")
             assert after_ids[0]!=ids[0],f"{width}: pager did not change records"
             room.get_by_role("button",name="Previous seeds").click()
-            page.wait_for_function("(original)=>document.querySelector('#menagerie [data-archive-qbeast-id]')?.dataset.archiveQbeastId===original",ids[0],timeout=30000)
+            page.wait_for_function("(original)=>document.querySelector('#menagerie [data-archive-qbeast-id]')?.dataset.archiveQbeastId===original",arg=ids[0],timeout=30000)
             assert page.evaluate("localStorage.getItem('beastbox-companion-session-v1')")==before,f"{width}: gallery changed the saved companion"
             assert not errors,f"{width}: JS errors: {errors}"
             room.screenshot(path=str(OUT/f"menagerie-{width}.png"))
