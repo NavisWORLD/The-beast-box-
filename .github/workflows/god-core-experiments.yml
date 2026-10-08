@@ -1,0 +1,36 @@
+name: God Core reproducible experiments
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/scripts/god-core-experiments.mjs'
+      - 'apps/beastbox-cloud/tests/god-core-experiments.test.mjs'
+      - 'apps/beastbox-cloud/lib/companion/behavior.mjs'
+      - 'apps/beastbox-cloud/public/spark/**'
+      - '.github/workflows/god-core-experiments.yml'
+  workflow_dispatch:
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/beastbox-cloud/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Run and preserve reproducible cohort evidence
+        run: node scripts/god-core-experiments.mjs --write
+      - name: Verify behavior, feedback, restart and provenance distinctions
+        run: node --test tests/god-core-experiments.test.mjs
+      - name: Upload raw scientific result
+        uses: actions/upload-artifact@v4
+        with:
+          name: god-core-experiment-001
+          path: apps/beastbox-cloud/experiment-evidence/god-core-001/results.json
+          if-no-files-found: error
+          retention-days: 90
