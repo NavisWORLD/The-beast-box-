@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSession, adoptBeast } from '../lib/companion/session.mjs';
-import { askGameBeast, gameBeastKey, rememberGameReply } from '../lib/companion/sol-game-talk.mjs';
+import { askGameBeast, gameObservationLine, gameBeastKey, rememberGameReply } from '../lib/companion/sol-game-talk.mjs';
 
 function spark() {
  const session = createSession();
@@ -63,4 +63,31 @@ test('game talk validates bounded messages before calling the existing model', a
   await assert.rejects(askGameBeast({ session: spark(), saying, fetchImpl: async () => { calls++; } }), /1–280/);
  }
  assert.equal(calls, 0);
+});
+
+test('game optical context must come from the native display and never invent objects',async()=>{
+ const measurement={status:'observed',source:'native-emulator-display',brightness:48,contrast:85,dominant:'blue',frameChange:15};
+ assert.match(gameObservationLine(measurement),/brightness 48\/100/);
+ assert.match(gameObservationLine(measurement),/does NOT identify objects/);
+ assert.equal(gameObservationLine({...measurement,source:'fictional'}),'');
+ assert.equal(gameObservationLine({...measurement,dominant:'enemy nearby'}),'');
+ const texts=[];
+ const result=await askGameBeast({session:spark(),saying:'What can you sense?',observation:measurement,fetchImpl:async(url,init)=>{
+  texts.push(JSON.parse(init.body).text);
+  return {ok:true,json:async()=>verified};
+ }});
+ assert.equal(result.reply,verified.reply);
+ assert.match(texts[0],/Observed native game screen pixels/);
+ assert.doesNotMatch(texts[0],/PRIVATE OLD CHAT|recorded-1|bb-spark/);
+});
+test('explicit connected model uses existing authenticated Brain Bay route, not a second game model',async()=>{
+ const calls=[];
+ const result=await askGameBeast({session:spark(),saying:'Guide me',model:'connected',fetchImpl:async(url,init)=>{
+  calls.push(url);
+  if(url==='/api/status')return {ok:true,json:async()=>({owner:true,backendReachable:true,providerKind:'ollama_cloud'})};
+  if(url==='/api/bridge/chat-start')return {ok:true,json:async()=>({state:'done',job_id:'job-1',result:{result:{response:'The way ahead is yours.'}}})};
+  throw Error('Unexpected endpoint '+url);
+ }});
+ assert.equal(result.reply,'The way ahead is yours.');
+ assert.deepEqual(calls,['/api/status','/api/bridge/chat-start']);
 });
