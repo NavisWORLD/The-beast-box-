@@ -6,14 +6,14 @@ import PixelBeast from './pixel-beast';
 
 export type CreatureState='idle'|'listening'|'observing'|'thinking'|'remembering'|'celebrating'|'sleeping'|'halted';
 export type CreatureLook='nebula'|'aurora'|'starlight';
-type Props={state?:CreatureState;look?:CreatureLook;intensity?:number;quality?:'auto'|'low';className?:string;label?:string;turntable?:boolean;turntableAngle?:number|null;profile?:CreatureProfile|null;paused?:boolean;spriteGenome?:{seed?:string;facing?:string}|null;spriteStage?:number;spriteName?:string;preferSprite?:boolean};
+type Props={state?:CreatureState;look?:CreatureLook;intensity?:number;quality?:'auto'|'low';className?:string;label?:string;turntable?:boolean;turntableAngle?:number|null;profile?:CreatureProfile|null;paused?:boolean;spriteGenome?:{seed?:string;facing?:string}|null;spriteStage?:number;spriteName?:string;spriteId?:string;preferSprite?:boolean};
 
 /**
  * Original procedural 3D model. All animation is VISUAL; inferred feelings,
  * intelligence growth and real sensor measurements are never generated here.
  * The user-provided concept art is a reference, not a downloaded texture.
  */
-export default function CosmicCompanion3D({state='idle',look='nebula',intensity=0,quality='auto',className='',label='Cosmic companion',turntable=false,turntableAngle=null,profile=null,paused=false,spriteGenome=null,spriteStage=1,spriteName='',preferSprite=false}:Props){
+export default function CosmicCompanion3D({state='idle',look='nebula',intensity=0,quality='auto',className='',label='Cosmic companion',turntable=false,turntableAngle=null,profile=null,paused=false,spriteGenome=null,spriteStage=1,spriteName='',spriteId='',preferSprite=false}:Props){
  const canvas=useRef<HTMLCanvasElement>(null);
  const stateRef=useRef(state),intensityRef=useRef(0),pausedRef=useRef(paused);
  const rotationRef=useRef({turntable,angle:turntableAngle});
@@ -120,7 +120,7 @@ export default function CosmicCompanion3D({state='idle',look='nebula',intensity=
  const showSprite=Boolean(activeSprite)&&(preferSprite||fallback||reduced||!ready);
  const earnedStage=Number.isFinite(spriteStage)?Math.max(1,Math.min(3,Math.floor(spriteStage))):1;
  const appearance=(selected?`hue-rotate(${selected.appearance.hueShift}deg) brightness(${.7+selected.appearance.glow/200})`:look==='aurora'?'hue-rotate(42deg)':look==='starlight'?'saturate(.68) brightness(1.18)':'none');
- return <div className={'cosmic-creature3d '+className} aria-label={label} data-creature-state={state} data-graphics={showSprite?'qbeast-sprite':ready?'procedural-3d':'illustration'} data-motion={paused?'paused':reduced?'reduced':'active'} data-creature-id={selected?.id??'preview'} data-cosmetic-hue={selected?.appearance.hueShift??0}>
+ return <div className={'cosmic-creature3d '+className} aria-label={label} data-creature-state={state} data-graphics={showSprite?'qbeast-sprite':ready?'procedural-3d':'illustration'} data-motion={paused?'paused':reduced?'reduced':'active'} data-creature-id={showSprite&&spriteId?spriteId:(selected?.id??'preview')} data-cosmetic-hue={selected?.appearance.hueShift??0}>
   <img className={'cosmic-creature-fallback '+(ready&&!reduced?'hidden':'')} src="/cosmic-creature.svg" alt="" style={{filter:appearance}}/>
   {showSprite&&activeSprite?<div className="cosmic-creature-pixel" data-fallback="same-qbeast-sprite"><PixelBeast genome={activeSprite} stage={earnedStage} publicSpark pose={paused||reduced?'idle':state==='sleeping'?'emote':state==='celebrating'?'react':'idle'} emote={state==='sleeping'?'sleep':state==='celebrating'?'spark':'watch'} reduced={paused||reduced} label={`${spriteName||label} · same recorded-seed sprite, form ${earnedStage}`}/></div>:null}
   {!reduced&&!fallback&&!preferSprite?<canvas ref={canvas} className="cosmic-creature-canvas" aria-hidden="true"/>:null}

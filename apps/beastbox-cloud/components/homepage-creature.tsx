@@ -15,7 +15,7 @@ export default function HomepageCreature(){
  const [spin,setSpin]=useState(false),[angle,setAngle]=useState<number|null>(null);
  return <div className="cosmos-home-hero" aria-label="Interactive cosmic companion observatory">
   <CosmicCompanion3D quality="low" profile={profile}
-   preferSprite={Boolean(genome)} spriteGenome={genome} spriteStage={savedBeast?.nativeStage||savedBeast?.stage||1} spriteName={savedBeast?shownName(savedBeast):''}
+   preferSprite={Boolean(genome)} spriteGenome={genome} spriteStage={savedBeast?.nativeStage||savedBeast?.stage||1} spriteName={savedBeast?shownName(savedBeast):''} spriteId={savedBeast?.qbeast?.profile?.id||''}
    look={profile?.baseLook??'nebula'}
    label={savedBeast?`${shownName(savedBeast)} · QBEAST ${savedBeast.qbeast.profile.id}`:"Procedural 3D preview dragon with a golden orbiting star"}
    turntable={spin} turntableAngle={angle}/>
