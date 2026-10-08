@@ -1,0 +1,11 @@
+.bubble{position:absolute;z-index:4;top:6px;right:-90%;width:90%;max-width:none;padding:12px;border:1px solid #ccbbeb91;border-radius:17px 17px 7px 17px;background:linear-gradient(145deg,#241b3dec,#151e38ec);box-shadow:0 10px 30px #060a18a8;color:#f4ecff;font-size:11px;line-height:1.5;pointer-events:auto;backdrop-filter:blur(10px)}
+.bubble strong{display:block;color:#afeaf9;letter-spacing:.08em;font:700 9px/1.5 'Space Grotesk',sans-serif}
+.bubble p{margin:7px 0;color:#f0e4ff;font-size:11px;line-height:1.5}
+.bubble small{display:block;margin-top:8px;font-size:9px;line-height:1.5;color:#d4cde2;overflow-wrap:anywhere}
+.bubble a{color:#9aefff;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.stats{font-variant-numeric:tabular-nums}
+.actions{display:grid;gap:6px}
+.actions button,.actions a{display:flex;align-items:center;justify-content:center;min-height:44px;border:1px solid #a3eff39a;border-radius:10px;background:#203855;color:#d0faff;font-size:11px;font-weight:700;text-decoration:none;padding:7px 9px}
+.actions button[aria-pressed=true]{background:#464079;color:#fff0fd}
+@media(max-width:560px){.bubble{right:-90%;top:0;width:90%;max-width:none;padding:9px}.bubble strong{font-size:8px}.bubble p{font-size:10px;margin:5px 0}.bubble small{font-size:8px}.actions button,.actions a{min-height:44px}}
+@media(prefers-reduced-motion:reduce){.bubble,.actions *{animation:none!important;transition:none!important;backdrop-filter:none}}
