@@ -4,6 +4,7 @@ No fake telemetry, network hardware request, saved creature mutation or ROM rese
 CI verifies 320/375/390/430/desktop and actual Canvas pixel alpha, not source strings.
 """
 import json
+import re
 import os
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -30,7 +31,7 @@ with sync_playwright() as playwright:
             first=room.locator("[data-archive-qbeast-id]").first
             first.wait_for(state="visible",timeout=75000)
             count=room.locator("[data-archive-qbeast-id]").count()
-            assert 1<=count<=12, f"{width}: expected bounded real sprite cards, got {count}"
+            assert count==24, f"{width}: expected exactly 24 bounded real sprite cards, got {count}"
             before=page.evaluate("localStorage.getItem('beastbox-companion-session-v1')")
             ids=room.locator("[data-archive-qbeast-id]").evaluate_all("(items)=>items.map(x=>x.dataset.archiveQbeastId)")
             assert len(ids)==len(set(ids)),f"{width}: duplicate example IDs"
@@ -48,6 +49,11 @@ with sync_playwright() as playwright:
                 const d=ctx.getImageData(0,0,c.width,c.height).data;
                 for(let i=3;i<d.length;i+=4)if(d[i]>0)return true;return false;}""",timeout=30000)
             assert pixel_ready(),f"{width}: blank archive sprite"
+            # Stage II is a recipe preview, not a native-earned evolution or a new QBEAST.
+            second=first.get_by_role("button",name=re.compile(r"form 2$"))
+            second.click()
+            assert second.get_attribute("aria-pressed")=="true",f"{width}: stage preview did not change"
+            assert first.get_by_text("Design previews · no earned evolution").is_visible()
             first.locator("summary").click()
             assert first.get_by_text("Count SHA-256").is_visible(),f"{width}: missing count receipt"
             first.locator("summary").click()
@@ -55,7 +61,7 @@ with sync_playwright() as playwright:
             overflow=page.evaluate("document.documentElement.scrollWidth-document.documentElement.clientWidth")
             assert overflow<=1,f"{width}: {overflow}px horizontal overflow"
             next_btn=room.get_by_role("button",name="More recorded seeds")
-            assert next_btn.is_enabled(),f"{width}: archive cannot page past first twelve"
+            assert next_btn.is_enabled(),f"{width}: archive cannot page past first 24"
             next_btn.click()
             page.wait_for_function("(oldId)=>document.querySelector('#menagerie [data-archive-qbeast-id]')?.dataset.archiveQbeastId !== oldId",arg=ids[0],timeout=30000)
             after_ids=room.locator("[data-archive-qbeast-id]").evaluate_all("(items)=>items.map(x=>x.dataset.archiveQbeastId)")
