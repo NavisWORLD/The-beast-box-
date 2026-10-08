@@ -2,6 +2,7 @@
 import { askBeast, guestSafeContext } from './ask-beast.mjs';
 import { buildChatContext } from './context.mjs';
 import { rememberExchange } from './adventure.mjs';
+import {isKidSafe,tokenize} from './learn.mjs';
 
 export function gameBeastKey(session) {
   const beast = session?.beast;
@@ -22,18 +23,41 @@ export function gameObservationLine(observation) {
 }
 
 
+/** Local lexical/learned-link retrieval. This is NOT semantic embedding, AI inference
+ * or an inference model's hidden memory. Scores are deterministic and replayable.
+ */
+export function gameRelevantMemories(session,saying,limit=4){
+ const candidates=(Array.isArray(session?.chat)?session.chat:[]).slice(-80);
+ const query=new Set(tokenize(String(saying||'').slice(0,280)));
+ const associations=new Set();
+ for(const token of query){
+  const edges=session?.mind?.next?.[token];
+  if(edges && typeof edges==='object')for(const [linked,count] of Object.entries(edges)){
+   if(Number(count)>0)associations.add(linked);
+  }
+ }
+ const ranked=candidates.map((turn,index)=>{
+  const text=typeof turn?.text==='string'?turn.text.replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,140):'';
+  if(!text||!isKidSafe(text))return null;
+  const tokens=new Set(tokenize(text));
+  let score=0;
+  for(const token of tokens){if(query.has(token))score+=4;else if(associations.has(token))score+=2;}
+  return {text:(turn.role==='you'?'You: ':'Beast: ')+text,score,index};
+ }).filter(Boolean);
+ ranked.sort((a,b)=>b.score-a.score||b.index-a.index);
+ return ranked.slice(0,Math.max(0,Math.min(4,Math.floor(limit)||0))).map(row=>row.text.slice(0,140));
+}
+
 /** Explicit opt-in for sharing only a bounded existing local memory summary.
  * Guest chat remains stateless regardless of the toggle. Native ROM state,
  * QBEAST signing authority and raw game pixels never enter the model prompt.
  */
-export function gameChatContext(session,{model='guest',shareMemories=false}={}){
+export function gameChatContext(session,{model='guest',shareMemories=false,query=''}={}){
  const source=buildChatContext({session,sensors:null,sensorLog:[]});
  const context=guestSafeContext(source);
  context.location='Lost COSMOS';context.nearby=[];
  if(model==='connected' && shareMemories===true){
-  context.memories=(Array.isArray(source.memories)?source.memories:[])
-   .filter(x=>typeof x==='string' && x.trim())
-   .slice(-4).map(x=>x.replace(/[\u0000-\u001f\u007f]/g,' ').slice(0,140));
+  context.memories=gameRelevantMemories(session,query,4);
  }
  return context;
 }
@@ -46,7 +70,7 @@ export async function askGameBeast({ session, saying, fetchImpl, signal, model =
   }
   // The cartridge owns its actual location and earned progression. Do not
   // describe a browser trail as the native location, or send stored memories.
-  const context = gameChatContext(session,{model,shareMemories});
+  const context = gameChatContext(session,{model,shareMemories,query:text});
   const optics = gameObservationLine(observation);
   const question = optics ? text+'\n'+optics : text;
   const result = await askBeast({
