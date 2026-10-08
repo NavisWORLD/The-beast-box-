@@ -522,3 +522,13 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 .cosmic-creature-pixel canvas{width:min(86%,340px)!important;max-height:95%;object-fit:contain;image-rendering:pixelated}
 .cosmos-home-qbeast{position:absolute;left:10px;right:10px;bottom:46px;z-index:3;margin:0;padding:8px 12px;background:#0c1839dd;border:1px solid #8de9ff65;border-radius:12px;text-align:center;color:#d0faff;font:700 12px/1.4 'Space Grotesk',sans-serif;overflow-wrap:anywhere}
 @media(prefers-reduced-motion:reduce){.cosmic-creature-pixel,.cosmos-home-qbeast{animation:none!important;transition:none!important}}
+
+/* The floating support Beast remains visible, but stops covering the iPhone care screen. */
+@media(max-width:620px){
+ .cosmic-support:not(.is-open) .cosmic-support-launcher{
+  width:60px;min-width:60px;height:64px;min-height:64px;
+  padding:3px;border-radius:18px;
+ }
+ .cosmic-support:not(.is-open) .support-beast-shell{width:50px;height:50px}
+ .cosmic-support:not(.is-open) .support-launcher-copy{display:none}
+}
