@@ -23,7 +23,8 @@ export default function QbeastMenagerie(){
  const {session,ready}=useBeastSession();
  const [archiveRuns,setArchiveRuns]=useState<any[]>([]);
  const [page,setPage]=useState(0);
- const pageSize=12;
+ const [preview,setPreview]=useState<{id:string;stage:number}|null>(null);
+ const pageSize=24;
  const pageCount=Math.max(1,Math.ceil(archiveRuns.length/pageSize));
  const [status,setStatus]=useState<'loading'|'ready'|'unavailable'>('loading');
  const [family,setFamily]=useState('all');
@@ -67,11 +68,16 @@ export default function QbeastMenagerie(){
    <div className={styles.filters}><label htmlFor="menagerie-family">Explore by family</label><select id="menagerie-family" value={family} onChange={event=>setFamily(event.target.value)}>
     <option value="all">All families on this page</option>
     {families.map(name=><option value={name} key={name}>{name}</option>)}
-   </select><small>{visible.length} examples on this page · {archiveRuns.length} public recorded seed rows</small></div>
+   </select><small>{visible.length} rendered forms on this page · {archiveRuns.length} recorded source rows · 24 at a time</small></div>
    <div className={styles.grid}>
     {visible.map(item=><article className={styles.card} key={item.id} data-archive-qbeast-id={item.id} data-origin={item.origin}>
      <div className={styles.portrait}>
-      <PixelBeast genome={item.genome} stage={1} publicSpark reduced label={item.name+' · '+item.body+' · generated recorded-seed example'}/>
+      <PixelBeast genome={item.genome} stage={preview?.id===item.id?preview.stage:1} publicSpark reduced label={item.name+' · '+item.body+' · '+(preview?.id===item.id?'unearned designed form preview '+preview.stage:'recorded-seed generated stage one example')}/>
+     </div>
+     <div className={styles.formSelect} role="group" aria-label={'Preview '+item.name+' forms'}>
+      {[1,2,3].map(n=><button key={n} type="button" aria-pressed={(preview?.id===item.id?preview.stage:1)===n}
+       aria-label={'Preview '+item.name+' form '+n} onClick={()=>setPreview({id:item.id,stage:n})}>{['I','II','III'][n-1]}</button>)}
+      <small>Design previews · no earned evolution</small>
      </div>
      <div className={styles.cardText}><span className={styles.origin}>{item.origin}</span><h3>{item.name}</h3><p>{item.family} · {item.body} · {item.island}</p>
       <span className={styles.preview}>DERIVED EXAMPLE · NOT IN YOUR SAVE</span>
