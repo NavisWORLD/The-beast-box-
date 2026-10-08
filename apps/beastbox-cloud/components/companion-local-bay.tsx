@@ -39,6 +39,17 @@ export default function CompanionLocalBay({variant='bay'}:{variant?:'bay'|'chat'
  const [card,setCard]=useState<Record<string,unknown>|null>(null);
  const [models,setModels]=useState<Model[]>([]);
  const [selected,setSelected]=useState('');
+ const selectedBeastKey=beastIdentity(activeSession?.beast)||'';
+ const lastBeastKey=useRef(selectedBeastKey);
+ useEffect(()=>{
+  if(lastBeastKey.current!==selectedBeastKey){
+   lastBeastKey.current=selectedBeastKey;
+   linkRef.current=false;
+   setLinkToBeast(false);
+   setShareWithLocalModel(false);
+   lastAccepted.current=0;
+  }
+ },[selectedBeastKey]);
  const [cameraOn,setCameraOn]=useState(false);
  const [micOn,setMicOn]=useState(false);
  const [speechMode,setSpeechMode]=useState<'off'|'whisper.cpp'|'web-speech-fallback'>('off');
@@ -104,7 +115,7 @@ export default function CompanionLocalBay({variant='bay'}:{variant?:'bay'|'chat'
   memoryRef.current=readMemory();
   setMemoryCount(memoryRef.current.records.length);
   try{setSelected(window.localStorage.getItem(BRAIN_KEY)||'');}catch{setSelected('');}
-  const stop=()=>{stopAll();setNotice('Master privacy stop halted companion camera and microphone. Stored notes are text only.');};
+  const stop=()=>{linkRef.current=false;setLinkToBeast(false);setShareWithLocalModel(false);stopAll();setNotice('Master privacy stop revoked sensor/model sharing and halted camera and microphone.');};
   window.addEventListener('beastbox:master-privacy-stop', stop);
   return()=>{alive.current=false;window.removeEventListener('beastbox:master-privacy-stop', stop);stopAll();};
  },[stopAll]);
