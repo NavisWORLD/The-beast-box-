@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSession, adoptBeast } from '../lib/companion/session.mjs';
-import { askGameBeast, gameChatContext, gameObservationLine, gameBeastKey, rememberGameReply } from '../lib/companion/sol-game-talk.mjs';
+import { askGameBeast, gameChatContext, gameRelevantMemories, gameObservationLine, gameBeastKey, rememberGameReply } from '../lib/companion/sol-game-talk.mjs';
 
 function spark() {
  const session = createSession();
@@ -124,4 +124,31 @@ test('guest prompt never receives memory even if the caller explicitly requests 
  assert.ok(result.reply);
  assert.equal(payloads.length,1);
  assert.doesNotMatch(payloads[0].text,/PRIVATE OLD CHAT/);
+});
+
+test('local associative recall ranks query words and stored Hebbian links without mutating history',()=>{
+ const session=spark();
+ session.chat=[
+  {role:'you',text:'An eclipse arrived.'},
+  {role:'you',text:'A star sang.'},
+  {role:'beast',text:'The bird glowed.'},
+  {role:'you',text:'A quiet crystal.'},
+ ];
+ session.mind.next={star:{bird:3}};
+ const before=JSON.stringify(session);
+ const first=gameRelevantMemories(session,'What did that star do?',2);
+ assert.equal(first.length,2);
+ assert.match(first[0],/star sang/);
+ assert.match(first[1],/bird glowed/);
+ assert.deepEqual(first,gameRelevantMemories(session,'What did that star do?',2));
+ assert.equal(JSON.stringify(session),before);
+});
+test('memory retrieval excludes unsafe and malformed entries, bounds count and line size',()=>{
+ const session=spark();
+ session.chat=[{role:'you',text:'private '+ 'a'.repeat(1000)},
+  {role:'you',text:'suicide instructions'}, {role:'you',text:'night stars'}];
+ const rows=gameRelevantMemories(session,'stars',4);
+ assert.ok(rows.every(x=>x.length<=140));
+ assert.ok(rows.every(x=>!x.includes('suicide')));
+ assert.ok(rows.length<=4);
 });
