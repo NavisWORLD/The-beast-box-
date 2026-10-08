@@ -4,6 +4,7 @@ import CosmicCompanion3D from './cosmic-companion-3d';
 import {useCompanion} from './companion-provider';
 import {useBeastSession} from './beast-session';
 import {shownName} from '../lib/companion/session.mjs';
+import {visualStateFromBeast} from '../lib/companion/creature-visual-state.mjs';
 /** Original real geometric hero, sharing the selected PUBLIC game genome. */
 export default function HomepageCreature(){
  const {profile}=useCompanion();
@@ -15,11 +16,11 @@ export default function HomepageCreature(){
  const [spin,setSpin]=useState(false),[angle,setAngle]=useState<number|null>(null);
  return <div className="cosmos-home-hero" aria-label="Interactive cosmic companion observatory">
   <CosmicCompanion3D quality="low" profile={profile}
-   preferSprite={Boolean(genome)} spriteGenome={genome} spriteStage={savedBeast?.nativeStage||savedBeast?.stage||1} spriteName={savedBeast?shownName(savedBeast):''} spriteId={savedBeast?.qbeast?.profile?.id||''}
+   preferSprite={Boolean(genome)} spriteGenome={genome} spriteStage={savedBeast?.nativeStage||savedBeast?.stage||1} spriteName={savedBeast?shownName(savedBeast):''} state={visualStateFromBeast(savedBeast)} spriteId={savedBeast?.qbeast?.profile?.id||''}
    look={profile?.baseLook??'nebula'}
    label={savedBeast?`${shownName(savedBeast)} · QBEAST ${savedBeast.qbeast.profile.id}`:"Procedural 3D preview dragon with a golden orbiting star"}
    turntable={spin} turntableAngle={angle}/>
-  {genome?<p className="cosmos-home-qbeast" role="status">✦ {shownName(savedBeast)} · {savedBeast.qbeast.profile.id} · same recorded-sprite identity</p>:null}
+  {genome?<p className="cosmos-home-qbeast" role="status">✦ {shownName(savedBeast)} · {savedBeast.qbeast.profile.id} · {Number.isFinite(savedBeast.energy)?`energy ${Math.round(Math.max(0,Math.min(100,savedBeast.energy)))}% · `:''}same recorded-sprite identity</p>:null}
   {!genome?<div className="cosmos-home-controls" aria-label="Real 3D rotation controls">
    <button type="button" aria-pressed={spin} onClick={()=>{setSpin(x=>!x);setAngle(null);}}>Rotate 360°</button>
    <button type="button" onClick={()=>{setSpin(false);setAngle(0);}}>Front</button>
