@@ -234,3 +234,15 @@ test("cross-page sound dock and one-context creature voice",()=>{
  assert.doesNotMatch(sprite,/new AC\(\)/);
  assert.match(read("public/spark/app.mjs"),/beastbox-site-sound-v1/);
 });
+
+test("Safari UI can distinguish configured audio from the actual context readiness", () => {
+  const {audio} = engine();
+  const before = audio.getSnapshot();
+  assert.equal(before.contextState,"locked");
+  assert.equal(before.unlocked,false);
+  audio.unlock();
+  assert.equal(audio.getSnapshot().contextState,"running");
+  assert.equal(audio.getSnapshot().unlocked,true);
+  audio.sparkMute();
+  assert.equal(audio.getSnapshot().sparkMuted,true);
+});
