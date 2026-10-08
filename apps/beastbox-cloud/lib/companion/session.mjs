@@ -4,6 +4,7 @@
  */
 
 import { createMind, importMind, isKidSafe, observeText, replyFromMind } from "./learn.mjs";
+import {recordCreatureExperience as recordBehaviorFeedback} from "./behavior.mjs";
 
 export const TABS = ["play", "cage", "train", "talk", "bestiary", "gba", "lab"];
 export const STAGE_XP = [0, 40, 120];
@@ -167,7 +168,12 @@ export function careAction(session, kind) {
   const table = { pet: 4, feed: 6, rest: 2, spark: 3 };
   if (!(kind in table)) throw new Error("unknown care");
   if (session.beast) session.beast.bond = Math.min(100, (session.beast.bond || 0) + (kind === "pet" ? 2 : 1));
-  return grantXp(session, table[kind], kind);
+  const result = grantXp(session, table[kind], kind);
+  // Real care is a bounded feedback event, not quantum evidence or model learning.
+  if (/^[0-9a-f]{16,128}$/i.test(session.beast?.seed || "")) {
+    recordBehaviorFeedback(session, {kind: "care:" + kind, place: session.beast.behavior?.events?.at(-1)?.place || "grove", reward: kind === "rest" ? .4 : 1});
+  }
+  return result;
 }
 
 export function finishTraining(session, hits, total = 6) {

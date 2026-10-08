@@ -10,6 +10,15 @@ export function visualStateFromBeast(beast){
   case 'listening':return 'listening';
   case 'thinking':return 'thinking';
   case 'halted':return 'halted';
-  default:return 'idle';
+  default:
+   // Reflect computational actions only when no explicit care/speech mood overrides them.
+   switch(beast.behavior?.lastAction){
+    case 'rest': return 'sleeping';
+    case 'listen': return 'listening';
+    case 'inspect':
+    case 'explore': return 'thinking';
+    case 'play': return 'celebrating';
+    default: return 'idle';
+   }
  }
 }

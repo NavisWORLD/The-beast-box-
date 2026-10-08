@@ -2,8 +2,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createTrail } from '../lib/companion/adventure.mjs';
 import { openIndexedDb } from '../lib/companion/learn.mjs';
-import { createSession, exportSession, importSession } from '../lib/companion/session.mjs';
-import {replaySpark,readSparkSession} from '../public/spark/identity.mjs';
+import { createSession, exportSession, importSession, advanceCreature } from '../lib/companion/session.mjs';
+import {replaySpark,readSparkSession,saveSparkSession,withSparkLock} from '../public/spark/identity.mjs';
 import {serializeQbeast} from '../public/spark/qbeast.mjs';
 import {loadSparkRuns} from '../public/spark/runs.mjs';
 
@@ -117,6 +117,27 @@ export function BeastSessionProvider({ children }: { children: React.ReactNode }
     window.addEventListener('storage',changed);window.addEventListener('beastbox:spark-selected',reload);
     return()=>{window.removeEventListener('storage',changed);window.removeEventListener('beastbox:spark-selected',reload);};
   },[]);
+
+  // One bounded classical behavior tick while visible; no background catch-up.
+  // The existing public QBEAST Web Lock serializes this with Spark selection.
+  const activeQbeastId = session?.beast?.qbeast?.profile?.id;
+  useEffect(() => {
+    if (!ready || !activeQbeastId) return;
+    let stopped = false;
+    const timer = window.setInterval(() => {
+      if (document.hidden || stopped) return;
+      void withSparkLock(() => {
+        if (stopped) return;
+        const latest = readSparkSession(localStorage);
+        if (latest.beast?.qbeast?.profile?.id !== activeQbeastId) return;
+        advanceCreature(latest, {place: extra.current.trail.place});
+        saveSparkSession(localStorage, latest);
+        remember({...exportSession(latest), place: extra.current.trail.place, trail: extra.current.trail, sensorLog: extra.current.sensorLog});
+        setSession(latest);
+      }).catch(() => { /* no speculative unsaved state if storage/locks fail */ });
+    }, 8000);
+    return () => {stopped = true; window.clearInterval(timer);};
+  }, [ready, activeQbeastId, remember]);
 
   const value = useMemo(() => ({ ready, session, trail, sensorLog, change, setTrail, noteSensor }), [ready, session, trail, sensorLog, change, setTrail, noteSensor]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
