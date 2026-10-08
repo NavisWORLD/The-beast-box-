@@ -128,7 +128,7 @@ export function BeastSessionProvider({ children }: { children: React.ReactNode }
       if (document.hidden || stopped) return;
       void withSparkLock(() => {
         if (stopped) return;
-        const latest = readSparkSession(localStorage);
+        const latest: any = readSparkSession(localStorage);
         if (latest.beast?.qbeast?.profile?.id !== activeQbeastId) return;
         advanceCreature(latest, {place: extra.current.trail.place});
         saveSparkSession(localStorage, latest);
