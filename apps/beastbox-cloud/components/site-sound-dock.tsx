@@ -56,6 +56,8 @@ export default function SiteSoundDock(){
   </div>
   {open?<section id="cosmos-sound-options" className={styles.panel} aria-label="Sound options">
    <strong>✦ COSMIC SOUND</strong>
+   <button type="button" className={styles.music} aria-label="Mute site sound" disabled={!soundOn}
+    onClick={()=>{audio.sparkMute();window.dispatchEvent(new Event('beastbox:spark-mute'));}}>🔇 MUTE SOUND</button>
    <p role="status">{!soundOn?'Sound muted':state.hidden?'Audio paused in the background':state.audioError||(!state.unlocked?'Tap Test Chirp to unlock Safari audio':!audible?'Audio context is '+state.contextState+' · tap Test Chirp':'AudioContext running · ready to play')}. Original sounds are synthesized locally after your tap.</p>
    <label htmlFor="cosmos-master-volume">Volume · {Math.round(state.volume*100)}%</label>
    <input type="range" id="cosmos-master-volume" min="0" max="100" step="5" value={Math.round(state.volume*100)}
