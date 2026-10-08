@@ -27,7 +27,7 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
   } catch { /* storage unavailable: defaults */ }
   const state = { unlocked: false, sparkMuted: false, hidden: false, gameRunning: false, battle: 0, scene: null, audioError: null, ...prefs };
   let ctx = null, master = null, timer = null, loopStart = 0, nextIndex = 0, loopCount = 0, params = null, events = [];
-  let battleUntil = 0;
+  let battleUntil = 0, resumePending = false;
   const listeners = new Set();
   const stats = { contexts: 0, notes: 0, sfx: 0 };
 
@@ -53,16 +53,16 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
         // React must read the actual device state, not only the saved mute preference.
         if (typeof ctx.addEventListener === "function") ctx.addEventListener("statechange", () => {
           if (ctx?.state === "running") refresh();
-          else emit();
+          else { stopMusic(); emit(); }
         });
       } catch { ctx = null; master = null; state.audioError = "Audio device unavailable. Check Safari sound settings."; emit(); return null; } // no audio device: stay silent
     }
-    if (ctx.state === "suspended" && typeof ctx.resume === "function") {
-      try { Promise.resolve(ctx.resume()).then(() => {
+    if ((ctx.state === "suspended" || ctx.state === "interrupted") && typeof ctx.resume === "function" && !resumePending) {
+      try { resumePending = true; Promise.resolve(ctx.resume()).then(() => {
         state.audioError = null;
         if (ctx && ctx.state === "running") refresh(); else emit();
-      }).catch(() => { state.audioError = "Safari kept audio suspended. Tap Test Chirp again."; emit(); }); }
-      catch { state.audioError = "Audio resume blocked. Tap Test Chirp again."; emit(); }
+      }).catch(() => { state.audioError = "Safari kept audio suspended. Tap Test Chirp again."; emit(); }).finally(() => { resumePending = false; }); }
+      catch { resumePending = false; state.audioError = "Audio resume blocked. Tap Test Chirp again."; emit(); }
     }
     return ctx;
   }
