@@ -173,9 +173,10 @@ export function getBeastAudio() {
     setTimer: (fn, ms) => window.setInterval(fn, ms),
     clearTimer: (id) => window.clearInterval(id),
   });
-  // Silent by default. Persist choice, not an unlocked audio context.
-  try { if (window.localStorage.getItem(SITE_SOUND_STORAGE_KEY) !== "on") shared.sparkMute(); }
-  catch { shared.sparkMute(); }
+  // Keep the existing first-gesture sound behavior: no autoplay. A saved
+  // explicit MUTE survives navigation; a fresh visitor can hear after a tap.
+  try { if (window.localStorage.getItem(SITE_SOUND_STORAGE_KEY) === "off") shared.sparkMute(); }
+  catch { /* storage unavailable: the user still controls mute in this document */ }
   const unlock = () => { try { shared.unlock(); } catch { /* audio is optional */ } };
   for (const type of ["pointerdown", "touchstart", "touchend", "click", "keydown"]) window.addEventListener(type, unlock, { capture: true, passive: true });
   window.addEventListener("beastbox:spark-mute", () => shared.sparkMute());
