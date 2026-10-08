@@ -20,6 +20,7 @@ test('Approved local model interpretation becomes a bounded note and causally sc
  assert.equal(s.beast.senseNotes[0].schema,SENSE_RECORD_SCHEMA);
  assert.equal(s.beast.senseNotes[0].summary,'a book on the desk');
  assert.equal(s.beast.behavior.tick,1);
+ assert.equal(s.mind.steps,1,'Approved semantic sensor label updates the existing Hebbian mind');
  assert.equal(s.beast.behavior.events.at(-1).input.attention,.6);
  assert.equal(s.beast.xp,xp);assert.equal(s.beast.bond,bond);assert.equal(s.beast.stage,stage);
  assert.deepEqual(modelSensedContext(s),[]);
@@ -30,12 +31,14 @@ test('Approved local model interpretation becomes a bounded note and causally sc
 test('Microphone burst is rate-limited, frame/audio bytes are rejected, and consent revocation is effective',()=>{
  const s=scene(),id=beastIdentity(s.beast),grant={consented:true,expectedId:id};
  assert.equal(applySensedEvent(s,sound,{...grant,nowMs:10000}).ok,true);
- const first=s.beast.behavior.tick;
+ const first=s.beast.behavior.tick, mindSteps=s.mind.steps;
+ assert.equal(mindSteps,0,'A loudness value never invents speech tokens');
  assert.deepEqual(applySensedEvent(s,sound,{...grant,nowMs:10500}),{ok:false,reason:'rate_limited'});
  assert.equal(s.beast.behavior.tick,first);
  assert.deepEqual(applySensedEvent(s,sound,{...grant,nowMs:18000,consented:false}),{ok:false,reason:'consent_required'});
  for(let i=0;i<12;i++)applySensedEvent(s,sound,{...grant,nowMs:20000+i*8000});
  assert.ok(s.beast.senseNotes.length<=8);
+ assert.equal(s.mind.steps,0,'Sound levels alone cannot update semantic weights');
  assert.equal(s.beast.senseNotes.every(x=>!('audio'in x)&&!('frame'in x)&&!('pixels'in x)),true);
  assert.throws(()=>normalizeSensedEvent({...visual,image:'base64pixels'}),/Raw sensor media/);
  assert.throws(()=>normalizeSensedEvent({...sound,audio:new Uint8Array(8)}),/Raw sensor media/);
