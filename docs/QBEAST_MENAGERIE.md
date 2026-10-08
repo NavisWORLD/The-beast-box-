@@ -10,3 +10,7 @@ This change adds a read-only habitat collection to the **existing** Beast Cage a
 - The gallery never calls \`change()\`, creates native save data, alters a signed QBEAST record, or gives any scientific/game authority.
 
 Verification: \`npm test\`, \`npm run typecheck\`, \`npm run build\`, and browser/mobile checks. Physical iPhone Safari must be labeled unverified until tested on hardware. V11.3 ROM and Game Boy shell remain unchanged.
+
+## Archive browsing
+
+The gallery loads the allowlisted recorded-seed registry once, but renders only twelve stage-one pixels at a time. Previous/next paging visits each run's deterministic example instead of silently dropping records from a twelve-card highlight sample. Filters explicitly apply to the currently visible page. A saved user QBEAST is never generated or replaced by paging.
