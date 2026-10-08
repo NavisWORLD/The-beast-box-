@@ -21,7 +21,24 @@ export function gameObservationLine(observation) {
  return 'Observed native game screen pixels on request: brightness '+brightness+'/100, contrast '+contrast+'/100, dominant colors '+observation.dominant+', frame-change '+change+'/100. This does NOT identify objects, enemies, map location, or actions.';
 }
 
-export async function askGameBeast({ session, saying, fetchImpl, signal, model = 'guest', observation = null }) {
+
+/** Explicit opt-in for sharing only a bounded existing local memory summary.
+ * Guest chat remains stateless regardless of the toggle. Native ROM state,
+ * QBEAST signing authority and raw game pixels never enter the model prompt.
+ */
+export function gameChatContext(session,{model='guest',shareMemories=false}={}){
+ const source=buildChatContext({session,sensors:null,sensorLog:[]});
+ const context=guestSafeContext(source);
+ context.location='Lost COSMOS';context.nearby=[];
+ if(model==='connected' && shareMemories===true){
+  context.memories=(Array.isArray(source.memories)?source.memories:[])
+   .filter(x=>typeof x==='string' && x.trim())
+   .slice(-4).map(x=>x.replace(/[\u0000-\u001f\u007f]/g,' ').slice(0,140));
+ }
+ return context;
+}
+
+export async function askGameBeast({ session, saying, fetchImpl, signal, model = 'guest', observation = null, shareMemories = false }) {
   if (!gameBeastKey(session)) throw new Error('Choose your Spark Beast first.');
   const text = String(saying || '').trim();
   if (!text || text.length > 280 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(text)) {
@@ -29,9 +46,7 @@ export async function askGameBeast({ session, saying, fetchImpl, signal, model =
   }
   // The cartridge owns its actual location and earned progression. Do not
   // describe a browser trail as the native location, or send stored memories.
-  const context = guestSafeContext(buildChatContext({ session, sensors: null, sensorLog: [] }));
-  context.location = 'Lost COSMOS';
-  context.nearby = [];
+  const context = gameChatContext(session,{model,shareMemories});
   const optics = gameObservationLine(observation);
   const question = optics ? text+'\n'+optics : text;
   const result = await askBeast({
