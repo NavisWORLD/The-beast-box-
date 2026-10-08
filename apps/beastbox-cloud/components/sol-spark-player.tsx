@@ -12,7 +12,7 @@ import SolGameTalk from './sol-game-talk';
 import css from './sol-spark-player.module.css';
 
 const ROOT='https://navisworld.github.io';
-const GAME=ROOT+'/Cosmic-synapse-the-living-universe-sim-engine-/arcade/sol-spark-gate/?mode=handheld&controller=previeworigin41&player=shell45&bridge=return44&audiofix=41';
+const GAME=ROOT+'/Cosmic-synapse-the-living-universe-sim-engine-/arcade/sol-spark-gate/?mode=handheld&controller=previeworigin41&player=shell45&bridge=return44&audiofix=42&optical=01';
 type Mode='normal'|'fullscreen'|'immersive'|'minimized';
 
 export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean;stage?:boolean}) {
