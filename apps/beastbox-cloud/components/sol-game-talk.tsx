@@ -14,7 +14,7 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
   const [includeGameView, setIncludeGameView] = useState(false);
   const [viewStatus, setViewStatus] = useState('');
   const [lastReply, setLastReply] = useState('');
-  const { state: audioState } = useBeastAudio();
+  const { audio, state: audioState } = useBeastAudio();
   const request = useRef<{ sequence: number; controller?: AbortController }>({ sequence: 0 });
   const key = gameBeastKey(session), currentKey = useRef(key);
   currentKey.current = key;
@@ -71,13 +71,19 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
     if(!lastReply || typeof window==='undefined')return;
     if(audioState.sparkMuted){setStatus('Unmute Beast Box sound before using the device voice.');return;}
     if(!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window)){setStatus('Speech playback is not supported by this browser. The text reply is still available.');return;}
-    // Web Speech playback must begin directly inside this user tap on iPhone.
-    window.speechSynthesis.cancel();
+    // Both audio unlock and Web Speech scheduling must begin in this *trusted tap*
+    // on Safari. A queued utterance is not proof that the speaker played.
+    audio.unlock();
+    const speech=window.speechSynthesis;
+    speech.cancel();
+    try{speech.resume();}catch{/* Some browsers do not expose resume. */}
     const line=new SpeechSynthesisUtterance(lastReply.slice(0,520));
     line.lang='en-US';line.pitch=1.18;line.rate=1.04;line.volume=Math.max(0,Math.min(0.8,audioState.volume));
-    line.onerror=()=>setStatus('Safari speech could not play. Text is saved; check device media output.');
-    window.speechSynthesis.speak(line);
-    setStatus('Speaking the model reply through this device. The model supplies text; Safari supplies the voice.');
+    line.onstart=()=>setStatus('Device voice started · the connected model supplied the text.');
+    line.onend=()=>setStatus('Device voice finished. The game and your Beast are still running.');
+    line.onerror=()=>setStatus('Safari speech could not play. Text is saved; check iPhone Silent Mode, media volume and Bluetooth output.');
+    try{speech.speak(line);setStatus('Starting device voice… If this stays silent, check iPhone sound output.');}
+    catch{setStatus('Device voice could not start. The model reply remains available as text.');}
   }
   function careFor(kind: string) {
     change(draft => { if (gameBeastKey(draft) === key) care(draft, kind); });
