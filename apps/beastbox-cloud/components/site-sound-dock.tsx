@@ -27,10 +27,6 @@ export default function SiteSoundDock(){
   return()=>audio.clearScene('cosmos-world-ambience');
  },[audio,room,state.sparkMuted]);
  function toggle(){
-  if(soundOn&&!state.unlocked){
-   audio.unlock();audio.sfx('confirm',{element:ROOMS[room].element,seedKey:ROOMS[room].seedKey});
-   return;
-  }
   if(soundOn){audio.sparkMute();window.dispatchEvent(new Event('beastbox:spark-mute'));}
   else{
    audio.sparkUnmute();
@@ -41,9 +37,9 @@ export default function SiteSoundDock(){
  }
  return <aside className={styles.dock} aria-label="Cosmic sound controls" data-site-sound={soundOn?'on':'off'}>
   <div className={styles.compact}>
-   <button type="button" className={styles.main} onClick={toggle} aria-pressed={soundOn&&state.unlocked}
-    aria-label={soundOn&&state.unlocked?'Mute the entire Beast Box site':'Enable sound throughout Beast Box'}>
-    {soundOn?<Volume2 size={19}/>:<VolumeX size={19}/>}<span>{soundOn&&state.unlocked?'SOUND ON':'ENABLE SOUND'}</span>
+   <button type="button" className={styles.main} onClick={toggle} aria-pressed={soundOn}
+    aria-label={soundOn?'Mute the entire Beast Box site':'Enable sound throughout Beast Box'}>
+    {soundOn?<Volume2 size={19}/>:<VolumeX size={19}/>}<span>{soundOn?'SOUND ON':'ENABLE SOUND'}</span>
    </button>
    <button type="button" className={styles.settings} onClick={()=>setOpen(value=>!value)}
     aria-label={open?'Close sound options':'Open sound options'} aria-expanded={open} aria-controls="cosmos-sound-options">
