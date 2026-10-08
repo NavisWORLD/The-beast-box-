@@ -29,3 +29,12 @@ test('empty or malformed tables do not invent specimens',()=>{
  assert.deepEqual(makeArchiveMenagerie([null,{key:'broken'}],12),[]);
  assert.deepEqual(makeArchiveMenagerie([row('ibm_foo:test')],0),[]);
 });
+
+test('every archived source row can be visited through sequential bounded pages',()=>{
+ const runs=Array.from({length:30},(_,i)=>row('ibm_marrakesh:page-'+i));
+ const chunks=[];
+ for(let p=0;p<Math.ceil(runs.length/12);p++)chunks.push(...makeArchiveMenagerie(runs.slice(p*12,(p+1)*12),12));
+ assert.equal(chunks.length,30);
+ assert.equal(new Set(chunks.map(item=>item.runKey)).size,30);
+ assert.equal(new Set(chunks.map(item=>item.id)).size,30);
+});

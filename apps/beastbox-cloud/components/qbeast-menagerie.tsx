@@ -21,18 +21,21 @@ type Specimen={
  */
 export default function QbeastMenagerie(){
  const {session,ready}=useBeastSession();
- const [specimens,setSpecimens]=useState<Specimen[]>([]);
+ const [archiveRuns,setArchiveRuns]=useState<any[]>([]);
+ const [page,setPage]=useState(0);
+ const pageSize=12;
+ const pageCount=Math.max(1,Math.ceil(archiveRuns.length/pageSize));
  const [status,setStatus]=useState<'loading'|'ready'|'unavailable'>('loading');
  const [family,setFamily]=useState('all');
  useEffect(()=>{
   let cancelled=false;
   void loadSparkRuns().then(runs=>{
    if(cancelled)return;
-   const items=makeArchiveMenagerie(runs,12) as Specimen[];
-   setSpecimens(items);setStatus(items.length?'ready':'unavailable');
+   setArchiveRuns(runs);setStatus(runs.length?'ready':'unavailable');
   }).catch(()=>{if(!cancelled)setStatus('unavailable');});
   return()=>{cancelled=true;};
  },[]);
+ const specimens=useMemo(()=>makeArchiveMenagerie(archiveRuns.slice(page*pageSize,(page+1)*pageSize),pageSize) as Specimen[],[archiveRuns,page]);
  const families=useMemo(()=>Array.from(new Set(specimens.map(item=>item.family))).sort(),[specimens]);
  const visible=family==='all'?specimens:specimens.filter(item=>item.family===family);
  const beast=ready&&session?.beast?.qbeast?.profile?.id?session.beast:null;
@@ -62,9 +65,9 @@ export default function QbeastMenagerie(){
   {status==='unavailable'?<p className={styles.note} role="status">Archive unavailable right now. Your saved Beast and its local progress are unchanged.</p>:null}
   {status==='ready'?<>
    <div className={styles.filters}><label htmlFor="menagerie-family">Explore by family</label><select id="menagerie-family" value={family} onChange={event=>setFamily(event.target.value)}>
-    <option value="all">All available families</option>
+    <option value="all">All families on this page</option>
     {families.map(name=><option value={name} key={name}>{name}</option>)}
-   </select><small>{visible.length} archived examples · stage 1 preview</small></div>
+   </select><small>{visible.length} examples on this page · {archiveRuns.length} public recorded seed rows</small></div>
    <div className={styles.grid}>
     {visible.map(item=><article className={styles.card} key={item.id} data-archive-qbeast-id={item.id} data-origin={item.origin}>
      <div className={styles.portrait}>
@@ -82,6 +85,12 @@ export default function QbeastMenagerie(){
      </div>
     </article>)}
    </div>
+   {!visible.length?<p className={styles.note}>No examples in that family on this page. Try all families or another archive page.</p>:null}
+   <nav className={styles.pager} aria-label="Recorded seed archive pages">
+    <button type="button" disabled={page===0} onClick={()=>{setPage(p=>Math.max(0,p-1));setFamily('all');}}>← Previous seeds</button>
+    <span>Page {page+1} of {pageCount} · {archiveRuns.length} published run rows</span>
+    <button type="button" disabled={page>=pageCount-1} onClick={()=>{setPage(p=>Math.min(pageCount-1,p+1));setFamily('all');}}>More recorded seeds →</button>
+   </nav>
   </>:null}
   <p className={styles.boundary}>Recorded counts ≠ a continuously quantum-computed creature. Simulator records must remain SIMULATOR; a visual preview does not confer a verified saved identity or game authority.</p>
  </section>;

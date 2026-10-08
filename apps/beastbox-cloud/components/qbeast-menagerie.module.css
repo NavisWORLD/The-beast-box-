@@ -9,3 +9,9 @@
 @media(max-width:860px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:530px){.room{margin:27px 12px;padding:16px;border-radius:20px}.grid{grid-template-columns:minmax(0,1fr)}.yours{padding:12px;gap:12px}.yours .portrait{flex:0 0 105px;min-height:105px}.yours .portrait canvas{max-width:110px}.yourText h3{font-size:18px}.yourText p{font-size:11px}.card .portrait{min-height:155px}.filters select{flex:1;min-width:0}.heading h2{font-size:28px}}
 @media(prefers-reduced-motion:reduce){.room *, .room *:before,.room *:after{animation:none!important;transition:none!important}}
+
+.pager{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:24px 0 8px}
+.pager button{min-height:44px;padding:10px 14px;border:1px solid #86c6e99c;border-radius:11px;background:#1a3047;color:#c7f6ff;font-size:12px;font-weight:700}
+.pager button:disabled{opacity:.45;cursor:not-allowed}
+.pager span{font-size:12px;color:#e1cfe9;font-variant-numeric:tabular-nums}
+@media(max-width:530px){.pager{justify-content:center}.pager button{flex:1 1 44%;min-width:0}.pager span{order:-1;text-align:center;flex-basis:100%}}
