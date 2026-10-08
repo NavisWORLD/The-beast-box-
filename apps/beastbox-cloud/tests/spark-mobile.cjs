@@ -1,7 +1,7 @@
 /* Actual browser acceptance: public renderer, care, audio and shared identity. */
 const {chromium}=require('playwright');const assert=require('node:assert/strict');const fs=require('node:fs/promises');
 const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/sol-spark-mobile';
-(async()=>{await fs.mkdir(out,{recursive:true});const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+(async()=>{await fs.mkdir(out,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.BEAST_BROWSER_EXECUTABLE,args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const errors=[],results=[];
 const widths=process.argv[4]?[Number(process.argv[4])]:[430,390,375,320];
 for(const width of widths){
@@ -53,12 +53,20 @@ for(const width of widths){
  await page.locator('[data-jump="#seed-lab"]').first().click();await page.waitForFunction(()=>location.hash==='#seed-lab');await page.locator('[data-jump="#habitat"]').first().click();await page.waitForFunction(()=>location.hash==='#habitat');
  await page.screenshot({path:out+`/spark-${width}.png`,fullPage:true});
  console.log('Width',width,'public interaction passed');await page.goto(root+'/beast-cage');await page.waitForFunction(id=>document.querySelector('[data-spark-beast][data-creature-id="'+id+'"]'),identity.profile.id,{timeout:30000});
- await page.waitForFunction(name=>document.querySelector('[data-lost-cosmos-dock]')?.getAttribute('aria-label')==='Lost Cosmos cartridge connected to '+name,saved.beast.displayName);
- await page.getByRole('button',{name:'Close Lost Cosmos player',exact:true}).click();await page.getByRole('button',{name:'Open Lost Cosmos player',exact:true}).click();
+ await page.waitForFunction(name=>{const dock=document.querySelector('[data-lost-cosmos-dock]');return dock?.dataset.dockState==='native'&&dock.getAttribute('aria-label')==='Lost Cosmos cartridge connected to '+name;},saved.beast.displayName);
+ const player=page.locator('[data-lost-cosmos-player-shell]');
+ assert.equal(await player.getAttribute('data-player-mode'),'minimized');
+ await player.getByRole('link',{name:'OPEN GAME',exact:true}).click();await page.waitForURL(root+'/sol-game');
+ await page.waitForFunction(()=>document.querySelector('[data-lost-cosmos-player-shell]')?.dataset.playerMode==='normal');
+ await player.getByRole('button',{name:'MINIMIZE',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('[data-lost-cosmos-player-shell]')?.dataset.playerMode==='minimized');
+ await player.getByRole('link',{name:'OPEN GAME',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('[data-lost-cosmos-player-shell]')?.dataset.playerMode==='normal');
+ assert.equal(await player.getAttribute('data-creature-id'),identity.profile.id,'opening and restoring the unstarted player keeps the same Beast');
  console.log('Width',width,'cage passed');await page.goto(root+'/beast-cage/play');await page.waitForFunction(()=>document.querySelector('canvas'));
  console.log('Width',width,'adventure passed');await page.goto(root+'/beast-cage/guest');await page.waitForFunction(()=>document.querySelector('[data-creature-id]'));
  console.log('Width',width,'guest passed');await page.goto(root+'/sol-game');await page.waitForFunction(id=>document.querySelector('[data-spark-player]')?.dataset.creatureId===id,identity.profile.id);
- const talkPanel=page.locator('main [data-spark-game-talk]');
+ const talkPanel=page.locator('[data-lost-cosmos-player-shell] [data-spark-game-talk]');
  await talkPanel.getByRole('button',{name:/^TALK TO /}).click();
  await talkPanel.getByRole('textbox').fill('Hello from the cartridge');
  const talkLayout=await talkPanel.evaluate(el=>({right:el.getBoundingClientRect().right,inputs:[...el.querySelectorAll('button,textarea')].map(b=>b.getBoundingClientRect().toJSON()),body:document.documentElement.scrollWidth}));

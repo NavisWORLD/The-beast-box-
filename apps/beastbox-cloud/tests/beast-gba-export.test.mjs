@@ -87,8 +87,9 @@ test('the dock and GO serve V11.3 plus controller and iPhone audio bridges',()=>
  assert.match(rom,/const SHA='6f9c22fa22b32694d606c854b4da26b4394b2ecaa86842cc1998c8cfe57b1fb3'/);
  assert.match(rom,/arcade\/lost-cosmos\/rom\/lost-cosmos\.gba/);
  const api=read('app/api/gba-release/route.ts');
- assert.match(api,/lost_cosmos_main_commit:'8fc599a5f63e61eb06d4fc858d8e5170c8a797dc'/);
- assert.match(api,/lost_cosmos_main_prs:\[33,34,35,38,39,40,41\]/);
+ assert.match(api,/lost_cosmos_main_commit:'f1647ef9e148d442299b76ef097545b3c1210852'/);
+ assert.match(api,/lost_cosmos_main_prs:\[33,34,35,38,39,40,41,44,45,46,47\]/);
+ assert.ok(read('../../.github/workflows/sol-spark-public.yml').includes("ref: f1647ef9e148d442299b76ef097545b3c1210852"),'CI boots the native bridge named by the public receipt');
  assert.match(api,/rom_sha256:'6f9c22fa22b32694d606c854b4da26b4394b2ecaa86842cc1998c8cfe57b1fb3'/);
  assert.match(api,/beast-boy-controller-bridge/);
  assert.match(api,/cache-busted-controller-receiver/);

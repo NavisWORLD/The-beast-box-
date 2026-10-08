@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: NavisWORLD/Cosmic-synapse-the-living-universe-sim-engine-
-          ref: 8fc599a5f63e61eb06d4fc858d8e5170c8a797dc
+          ref: f1647ef9e148d442299b76ef097545b3c1210852
           path: native-game
           persist-credentials: false
       - name: Build the pinned controller-bridged native game and install Chromium
@@ -39,7 +39,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          (cd apps/beastbox-cloud && npm run start -- --port 3000) > /tmp/sol-next.log 2>&1 &
+          (cd apps/beastbox-cloud && npm run start -- --hostname 127.0.0.1 --port 3000) > /tmp/sol-next.log 2>&1 &
           next_pid=$!
           python3 -m http.server 8765 --bind 127.0.0.1 --directory native-game > /tmp/sol-native.log 2>&1 &
           game_pid=$!
@@ -47,6 +47,7 @@ jobs:
           for i in $(seq 1 45); do if curl --fail --silent http://127.0.0.1:3000/spark/index.html > /dev/null; then break; fi; sleep 1; done
           NODE_PATH=/tmp/sol-browser/node_modules node apps/beastbox-cloud/tests/spark-mobile.cjs http://127.0.0.1:3000 /tmp/sol-evidence/mobile
           NODE_PATH=/tmp/sol-browser/node_modules node apps/beastbox-cloud/tests/spark-handoff.cjs http://127.0.0.1:3000 /tmp/sol-evidence/handoff http://127.0.0.1:8765
+          NODE_PATH=/tmp/sol-browser/node_modules node apps/beastbox-cloud/tests/player-shell.cjs http://127.0.0.1:3000 /tmp/sol-evidence/player-shell http://127.0.0.1:8765
       - uses: actions/upload-artifact@v4
         if: always()
         with:

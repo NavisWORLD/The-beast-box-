@@ -60,3 +60,9 @@
 @media(prefers-reduced-motion:reduce){.dock{transition:none}}
 
 .wide .screen{overflow:auto}.screen [data-spark-player]{font-size:11px}.screen [data-spark-player] button{font-size:10px}
+
+/* The existing persistent layout owns the sole native player on both game routes. */
+.sparkDock{position:fixed;inset:8px;z-index:70;pointer-events:none;overflow:auto;padding:max(0px,env(safe-area-inset-top)) max(0px,env(safe-area-inset-right)) max(0px,env(safe-area-inset-bottom)) max(0px,env(safe-area-inset-left))}
+.sparkDock [data-lost-cosmos-player-shell]{pointer-events:auto}
+.sparkDock[data-cosmos-mode=mini],.sparkDock[data-cosmos-mode=parked]{inset:auto;right:8px;bottom:8px;width:min(440px,calc(100vw - 16px));max-height:calc(100dvh - 16px)}
+.sparkDock:has([data-player-mode=minimized]){inset:auto;right:0;bottom:0;width:0;height:0;overflow:visible}

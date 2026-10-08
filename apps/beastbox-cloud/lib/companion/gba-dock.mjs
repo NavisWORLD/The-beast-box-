@@ -6,7 +6,7 @@ export const FULL_PATH = "/beast-cage/go";
 export function modeFor(path) {
   const value = String(path || "/").replace(/\/+$/, "") || "/";
   if (value.startsWith("/workspace")) return "parked";
-  if (value === FULL_PATH) return "full";
+  if (value === FULL_PATH || value === "/sol-game") return "full";
   if (MINI_PATHS.includes(value)) return "mini";
   return "parked";
 }
