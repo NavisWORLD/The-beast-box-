@@ -43,7 +43,8 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   const iframe=await shell.locator('iframe').elementHandle();
   const core=page.frames().find(f=>f.url().includes('/sol-spark-gate/handheld.html'));
   assert.ok(core,'one native cartridge is mounted');
-  assert.equal(await core.evaluate(()=>[...document.querySelectorAll('.ejs_menu_button,.ejs_menu_bar,.ejs_virtualGamepad_parent')].every(node=>getComputedStyle(node).display==='none')),true,'embedded cartridge leaves controls and fullscreen ownership to the player shell');
+  assert.equal(await core.evaluate(()=>!!EJS_emulator.elements.menuToggle),true,'touch fixture exposes the actual emulator menu toggle');
+  assert.equal(await core.evaluate(()=>['menu','menuToggle'].every(key=>!EJS_emulator.elements[key]||getComputedStyle(EJS_emulator.elements[key]).display==='none')),true,'embedded cartridge leaves controls and fullscreen ownership to the player shell');
   await core.evaluate(()=>{window.__originalCore=EJS_emulator;const gm=EJS_emulator.gameManager,sim=gm.simulateInput.bind(gm);window.__shellInputs=[];gm.simulateInput=(p,i,v)=>{window.__shellInputs.push([p,i,v]);return sim(p,i,v);};});
   const identity=await core.evaluate(()=>Array.from(EJS_emulator.gameManager.getSaveFile(false).subarray(24704,24832)));
   const continuity=async label=>{
