@@ -110,15 +110,25 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
   // Some browsers route the final keyup to the newly focused editor (or drop it).
   // Release ONLY the keyboard source when focus enters an editable field, keeping
   // simultaneous pointer/gamepad holds intact and preventing a stuck native key.
-  const onFocus=(event:FocusEvent)=>{
-   const target=event.target;
-   if(!(target instanceof HTMLElement)||!target.closest('textarea,input,select,[contenteditable="true"]'))return;
-   for(const button of keyboardHeld.current)controllerInput(button,false,'keyboard');
+  const releaseKeyboard=()=>{
+   // Consult the actual input-source map. KeyboardHeld is a convenience cache,
+   // but the source map owns the native press and must never remain stuck.
+   const active=new Set([...keyboardHeld.current,...[...sources.current].filter(([,held])=>held.has('keyboard')).map(([button])=>button)]);
+   for(const button of active)controllerInput(button,false,'keyboard');
    keyboardHeld.current.clear();
   };
+  const onFocus=(event:FocusEvent)=>{
+   const target=event.target;
+   if(target instanceof HTMLElement&&target.closest('textarea,input,select,[contenteditable="true"]'))releaseKeyboard();
+  };
+  const onFocusOut=(event:FocusEvent)=>{
+   const next=event.relatedTarget;
+   if(next instanceof HTMLElement&&next.closest('textarea,input,select,[contenteditable="true"]'))releaseKeyboard();
+  };
   window.addEventListener('keydown',onKey);window.addEventListener('keyup',onKey);
-  window.addEventListener('focusin',onFocus,true);
-  return()=>{window.removeEventListener('keydown',onKey);window.removeEventListener('keyup',onKey);window.removeEventListener('focusin',onFocus,true);release();};
+  document.addEventListener('focusin',onFocus,true);
+  document.addEventListener('focusout',onFocusOut,true);
+  return()=>{window.removeEventListener('keydown',onKey);window.removeEventListener('keyup',onKey);document.removeEventListener('focusin',onFocus,true);document.removeEventListener('focusout',onFocusOut,true);release();};
  },[inputEnabled,mode,release]);
  useEffect(()=>{
   if(!inputEnabled||typeof navigator.getGamepads!=='function')return;
