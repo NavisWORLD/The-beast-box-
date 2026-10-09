@@ -27,7 +27,7 @@ jobs:
       - name: Install IBM Qiskit Runtime
         run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.51'
       # Re-run after the owner rotated IBM_QUANTUM_TOKEN; no hardware submission.
-      - name: Recheck rotated IBM Cloud API key and exact Open Plan quota (READ ONLY)
+      - name: Verify remaining IBM quota AFTER completed physical job (READ ONLY)
         env:
           IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
         run: python scripts/ibm_open_plan_preflight.py
