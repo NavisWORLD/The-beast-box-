@@ -47,3 +47,22 @@ test('device journey restore keeps the already applied simulator receipt even wh
  const forged=JSON.parse(file);forged.session.beast.qvmStimulus.counts_sha256='0'.repeat(64);
  assert.throws(()=>readDeviceJourney(JSON.stringify(forged),byKey));
 });
+
+test('the completed fresh IBM-derived Azure workload enters the same core once and survives save/load',()=>{
+ const fresh=JSON.parse(readFileSync(new URL('../public/spark/azure-final-ibm-qvm-20261009.json',import.meta.url)));
+ const s=session(),identity=canonicalJson(s.beast.qbeast);
+ const result=api.applyRecordedQvmStimulus(s,fresh);
+ assert.equal(result.duplicate,false);
+ assert.equal(result.environment.attention,(219+234)/512);
+ assert.equal(result.marker.job_id,'32d6fc6c-c42d-11f1-ae67-000d3ad41960');
+ assert.equal(canonicalJson(s.beast.qbeast),identity);
+ assert.equal(s.beast.xp,0);
+ const loaded=importSession(exportSession(s));
+ const before=canonicalJson(exportSession(loaded));
+ assert.equal(api.applyRecordedQvmStimulus(loaded,fresh).duplicate,true);
+ assert.equal(canonicalJson(exportSession(loaded)),before);
+ const wrong={...fresh,source_run_id:37989851630};
+ assert.throws(()=>api.applyRecordedQvmStimulus(session(),wrong));
+ const changed={...fresh,counts:{...fresh.counts,'00':218,'11':235}};
+ assert.throws(()=>api.applyRecordedQvmStimulus(session(),changed));
+});

@@ -78,7 +78,7 @@ test('new Marrakesh hardware source is separate, opt-in, checked and replayable 
  assert.equal(archived.length,5676);
  assert.ok(!archived.some(row=>row.job_id==='db4l2uclf4us73c2td10'));
  const newRuns=await registry.loadSparkRuns({includeNewHardware:true});
- assert.equal(newRuns.length,5680);
+ assert.equal(newRuns.length,5682);
  assert.equal(newRuns.filter(row=>row.job_id==='db4kcfklf4us73c2sjb0').length,2);
  assert.equal(newRuns.filter(row=>row.job_id==='db4l2uclf4us73c2td10').length,2);
  const target=newRuns.find(row=>row.job_id==='db4l2uclf4us73c2td10');
@@ -93,6 +93,22 @@ test('new Marrakesh hardware source is separate, opt-in, checked and replayable 
  assert.equal(qbeast.profile.id,'bb-82fbc8ff');
  assert.equal(replaySpark(serializeQbeast(qbeast),new Map(newRuns.map(row=>[row.key,row]))).gen.seed,genome.seed);
  const all=await registry.loadSparkRuns({includeQvm:true,includeNewHardware:true});
- assert.equal(all.length,5704);
+ assert.equal(all.length,5706);
  assert.equal(all.filter(row=>row.backend==='rigetti.sim.qvm').length,24);
+});
+
+test('the fresh final IBM source restores Umbrascale in the shared device registry',async t=>{
+ localFetch(t);
+ const runs=await registry.loadSparkRuns({includeNewHardware:true});
+ const source=runs.find(row=>row.key==='db4m3bslf4us73c2ui9g:bell-xx');
+ assert.ok(source,'Fresh completed IBM source must be available');
+ assert.equal(source.backend,'ibm_fez');
+ assert.equal(source.shots,4096);
+ assert.deepEqual(source.counts,{'00':2054,'01':133,'10':74,'11':1835});
+ const genome=buildGenome({focus:75,calm:20,spark:95},source,'Ethereal-live-19',10);
+ assert.equal(genome.body,'dragonling');
+ const beast=buildQbeast(genome);
+ assert.equal(beast.profile.id,'bb-8546076e');
+ assert.equal(genome.names[1],'Umbrascale');
+ assert.equal(replaySpark(serializeQbeast(beast),new Map(runs.map(row=>[row.key,row]))).gen.seed,genome.seed);
 });

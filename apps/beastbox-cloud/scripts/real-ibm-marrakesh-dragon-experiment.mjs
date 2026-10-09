@@ -54,12 +54,21 @@ function environmentAt(t,phases,realHardware){
  return {place,sound:clamp(pulse.entropy),toy:clamp(pulse.p11*2),
   attention:clamp(.2+pulse.delta+realHardware.correlation_gap*.10),comfort:clamp(pulse.p00)};
 }
-function run({keeperPrefix='Marrakesh-dragon-',recordedStimulus=null}={}){
+function run({keeperPrefix='Marrakesh-dragon-',recordedStimulus=null,hardwareReceipt=null}={}){
  check(/^[A-Za-z0-9 ._-]{1,21}$/.test(keeperPrefix),'Invalid public keeper prefix');
- const ibm=JSON.parse(readFileSync(join(DIR,'../experiment-input/ibm-marrakesh-20261009-longer-receipt.json'),'utf8'));
- check(ibm.job_id==='db4l2uclf4us73c2td10'&&ibm.backend_name==='ibm_marrakesh'&&ibm.job_status==='DONE'&&ibm.source_class==='RECORDED_IBM_HARDWARE','Physical source identity/status mismatch');
+ const ibm=hardwareReceipt||JSON.parse(readFileSync(join(DIR,'../experiment-input/ibm-marrakesh-20261009-longer-receipt.json'),'utf8'));
+ check(ibm.schema==='navisworld-ibm-longer-onejob-physics-receipt-v1'&&/^[a-z0-9]{20}$/.test(ibm.job_id)&&/^ibm_[a-z0-9]+$/.test(ibm.backend_name)&&ibm.job_status==='DONE'&&ibm.source_class==='RECORDED_IBM_HARDWARE','Physical source identity/status mismatch');
+ check(hardwareReceipt||ibm.job_id==='db4l2uclf4us73c2td10'&&ibm.backend_name==='ibm_marrakesh','Pinned default physical source changed');
  check(sha(canonical(ibm.measurements))===ibm.counts_digest_sha256,'Full four-circuit hardware count digest mismatch');
- check(Object.keys(ibm.measurements).length===4&&Object.values(ibm.measurements).every(c=>Object.values(c).reduce((a,b)=>a+b,0)===4096),'Missing or corrupted 4x4096 IBM counts');
+ const circuitNames=['bell_zz','bell_xx','decoupled_zz','decoupled_xx'];
+ check(ibm.shot_count===16384&&canonical(Object.keys(ibm.measurements).sort())===canonical([...circuitNames].sort()),'Missing or corrupted 4x4096 IBM counts');
+ for(const [index,name] of circuitNames.entries()){
+  const counts=ibm.measurements[name];
+  validateRun({key:ibm.job_id+':'+name,backend:ibm.backend_name,job_id:ibm.job_id,pub_index:index,num_bits:2,shots:4096,counts,counts_sha256:sha(canonical(counts))});
+  const parity=((counts['00']||0)+(counts['11']||0)-(counts['01']||0)-(counts['10']||0))/4096;
+  check(ibm.expectations?.[name.replace(/_(zz|xx)$/,(_,basis)=>'_'+basis.toUpperCase())]===parity,'Hardware expectation disagrees with measured counts');
+ }
+ check(sha(canonical({domain:'NAVISWORLD::IBM::ETERNAL_DRAGON_120S::QBEAST::V1',job_id:ibm.job_id,backend:ibm.backend_name,counts:ibm.measurements}))===ibm.beast_genesis_digest_sha256,'Hardware genesis source digest mismatch');
  const measured=ibm.measurements.bell_xx;
  const recorded=validateRun({key:ibm.job_id+':bell-xx',backend:ibm.backend_name,
    job_id:ibm.job_id,pub_index:1,num_bits:2,shots:4096,counts:measured,
@@ -105,7 +114,7 @@ function run({keeperPrefix='Marrakesh-dragon-',recordedStimulus=null}={}){
  let checkpoint=null,replay=null,exact=true,firstImpact=null;
  for(let t=0;t<TICKS;t++){
   const env=environmentAt(t,phases,realHardware);
-  if(t===0) say(t,'Hello little dragon. Real IBM Marrakesh measurements initialized your genome. We are beginning a safe simulation in the grove.');
+  if(t===0) say(t,`Hello little dragon. Real ${hardwareReceipt?recorded.backend:'IBM Marrakesh'} measurements initialized your genome. We are beginning a safe simulation in the grove.`);
   if(t===30) say(t,'The observatory is our next room. A Rigetti simulator signal influences your environment. What do you remember about explore?');
   if(t===60) { const text='We reached the shore. Your identity and experiences are saved. What do you remember about the grove?';
    say(t,text);if(replay){const same=talk(replay,text);check(same.reply===conversations.at(-1).actual_local_reply,'Conversation failed save replay');} }
