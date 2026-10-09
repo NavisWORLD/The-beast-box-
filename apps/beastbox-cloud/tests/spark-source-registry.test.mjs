@@ -71,3 +71,26 @@ test('conflicting rows sharing a run key are rejected instead of silently replac
  });
  await assert.rejects(registry.loadSparkRuns(),/conflict/i);
 });
+
+test('new Marrakesh hardware source is separate, opt-in, checked and replayable without modifying October 4 totals',async t=>{
+ localFetch(t);
+ const archived=await registry.loadSparkRuns();
+ assert.equal(archived.length,5676);
+ assert.ok(!archived.some(row=>row.job_id==='db4l2uclf4us73c2td10'));
+ const newRuns=await registry.loadSparkRuns({includeNewHardware:true});
+ assert.equal(newRuns.length,5677);
+ const target=newRuns.find(row=>row.job_id==='db4l2uclf4us73c2td10');
+ assert.ok(target);
+ assert.equal(target.key,'db4l2uclf4us73c2td10:bell-xx');
+ assert.equal(target.backend,'ibm_marrakesh');
+ assert.equal(target.shots,4096);
+ assert.equal(target.counts['00'],1994);
+ const genome=buildGenome({focus:75,calm:20,spark:95},target,'Marrakesh-dragon-6',10);
+ assert.equal(genome.body,'dragonling');
+ const qbeast=buildQbeast(genome);
+ assert.equal(qbeast.profile.id,'bb-82fbc8ff');
+ assert.equal(replaySpark(serializeQbeast(qbeast),new Map(newRuns.map(row=>[row.key,row]))).gen.seed,genome.seed);
+ const all=await registry.loadSparkRuns({includeQvm:true,includeNewHardware:true});
+ assert.equal(all.length,5701);
+ assert.equal(all.filter(row=>row.backend==='rigetti.sim.qvm').length,24);
+});
