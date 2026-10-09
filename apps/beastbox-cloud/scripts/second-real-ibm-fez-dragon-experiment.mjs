@@ -60,7 +60,7 @@ function run(){
  check(Object.keys(ibm.measurements).length===4&&Object.values(ibm.measurements).every(c=>Object.values(c).reduce((a,b)=>a+b,0)===256),'Missing or corrupted 4x256 IBM counts');
  const measured=ibm.measurements.bell_xx;
  const recorded=validateRun({key:ibm.job_id+':bell-xx',backend:ibm.backend_name,
-   job_id:ibm.job_id,pub_index:0,num_bits:2,shots:256,counts:measured,
+   job_id:ibm.job_id,pub_index:1,num_bits:2,shots:256,counts:measured,
    counts_sha256:sha(canonical(measured))});
  // User requested a dragonling: deterministic rejection selection is logged in the receipt.
  // This is explicitly USER-CONDITIONED morphology, not an unbiased raw quantum draw.
