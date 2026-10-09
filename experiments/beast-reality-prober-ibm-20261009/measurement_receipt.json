@@ -1,0 +1,51 @@
+{
+  "schema": "navisworld-ibm-onejob-physics-receipt-v1",
+  "source_class": "RECORDED_IBM_HARDWARE",
+  "job_id": "db4kcfklf4us73c2sjb0",
+  "backend_name": "ibm_fez",
+  "job_status": "DONE",
+  "shot_count": 1024,
+  "submitted_on_or_before": "2026-10-09T19:53:40.504520+00:00",
+  "measurements": {
+    "bell_xx": {
+      "10": 5,
+      "11": 119,
+      "00": 124,
+      "01": 8
+    },
+    "bell_zz": {
+      "10": 11,
+      "11": 106,
+      "00": 131,
+      "01": 8
+    },
+    "decoupled_xx": {
+      "10": 125,
+      "00": 131
+    },
+    "decoupled_zz": {
+      "11": 1,
+      "00": 130,
+      "01": 125
+    }
+  },
+  "expectations": {
+    "bell_XX": 0.8984375,
+    "bell_ZZ": 0.8515625,
+    "decoupled_XX": 0.0234375,
+    "decoupled_ZZ": 0.0234375
+  },
+  "counts_digest_sha256": "db2e398585112c5125e3b08c915c3125d7ad4878160c6c6f95d3a7acbb0945ab",
+  "beast_genesis_digest_sha256": "e8c14a442dea949a6cd5d2f40572f9b2b139e689413954b698d102f34866c0f6",
+  "hardware_metrics": {
+    "quantum_seconds": null
+  },
+  "qpu_job_limit_seconds": 60,
+  "study_limitations": [
+    "ZZ/XX correlations are hardware measurements, not full state vector tomography.",
+    "Two-basis correlation differences do not alone establish a CHSH/Bell inequality violation.",
+    "Decoupled controls omit CX gate; not evidence of dynamical decoupling.",
+    "Subsequent creature personality and conversation are classical computations.",
+    "No Azure Cosmos DB write or live game conversation occurred in this job."
+  ]
+}
