@@ -146,9 +146,11 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   await core.waitForFunction(n=>window.__shellInputs.length>=n+1,before);
   assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n,n+1),before),[[0,6,1]],'the held Left press reaches native core before focus transfer');
   await shell.locator('textarea').focus();
-  await page.keyboard.up('ArrowLeft');
+  // Release must reach the native core as soon as an editor takes focus.
+  // Never depend on an eventual keyup being delivered to the original target.
   await core.waitForFunction(n=>window.__shellInputs.length>=n+2,before);
-  assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n,n+2),before),[[0,6,1],[0,6,0]],'keyup still releases when focus moves into TALK');
+  await page.keyboard.up('ArrowLeft');
+  assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n),before),[[0,6,1],[0,6,0]],'focus transfer releases held native Left exactly once, even after keyboard up');
   await shell.getByRole('button',{name:'CLOSE TALK',exact:true}).click();
   // A controlled standard Gamepad API fixture; this is not a physical-controller receipt.
   before=await core.evaluate(()=>window.__shellInputs.length);await page.evaluate(()=>{window.__testPad.buttons[0]={pressed:true,value:1};});await core.waitForFunction(n=>window.__shellInputs.length>n,before);
