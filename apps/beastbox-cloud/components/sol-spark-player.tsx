@@ -107,8 +107,18 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
    if(!entry)return;event.preventDefault();if(event.repeat)return;
    if(event.type==='keydown')keyboardHeld.current.add(entry[0]);controllerInput(entry[0],event.type==='keydown','keyboard');
   };
+  // Some browsers route the final keyup to the newly focused editor (or drop it).
+  // Release ONLY the keyboard source when focus enters an editable field, keeping
+  // simultaneous pointer/gamepad holds intact and preventing a stuck native key.
+  const onFocus=(event:FocusEvent)=>{
+   const target=event.target;
+   if(!(target instanceof HTMLElement)||!target.closest('textarea,input,select,[contenteditable="true"]'))return;
+   for(const button of keyboardHeld.current)controllerInput(button,false,'keyboard');
+   keyboardHeld.current.clear();
+  };
   window.addEventListener('keydown',onKey);window.addEventListener('keyup',onKey);
-  return()=>{window.removeEventListener('keydown',onKey);window.removeEventListener('keyup',onKey);release();};
+  window.addEventListener('focusin',onFocus,true);
+  return()=>{window.removeEventListener('keydown',onKey);window.removeEventListener('keyup',onKey);window.removeEventListener('focusin',onFocus,true);release();};
  },[inputEnabled,mode,release]);
  useEffect(()=>{
   if(!inputEnabled||typeof navigator.getGamepads!=='function')return;
