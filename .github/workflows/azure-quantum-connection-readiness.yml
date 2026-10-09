@@ -1,0 +1,37 @@
+name: Azure Quantum — Connection String Read-Only Probe
+on:
+  pull_request:
+    paths:
+      - 'scripts/azure_quantum_readonly_preflight.py'
+      - 'tests/test_azure_quantum_readonly_preflight.py'
+      - '.github/workflows/azure-quantum-connection-readiness.yml'
+permissions:
+  contents: read
+jobs:
+  connect-without-submitting:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/azure-quantum-secret-readonly-preflight-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test security boundaries offline
+        run: python -m pip install pytest && pytest -q tests/test_azure_quantum_readonly_preflight.py
+      - name: Install Azure Quantum QDK SDK
+        run: python -m pip install 'qdk[azure]'
+      - name: Connect to Azure Quantum and LIST simulator targets only
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+        run: python scripts/azure_quantum_readonly_preflight.py
+      - name: Store sanitized workspace capabilities only
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: azure-quantum-target-readiness-${{ github.run_id }}
+          path: _azure_quantum_readiness/receipt.json
+          retention-days: 7
+          if-no-files-found: error

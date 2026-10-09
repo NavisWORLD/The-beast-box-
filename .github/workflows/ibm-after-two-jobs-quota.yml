@@ -1,0 +1,32 @@
+name: IBM Open Plan — Actual Usage After Two Physical Jobs
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/ibm-after-two-jobs-quota.yml'
+permissions:
+  contents: read
+jobs:
+  read-only-usage:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/ibm-after-two-jobs-usage-readonly-20261009' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50'
+      - name: Verify cumulative used and remaining hardware seconds (READ ONLY)
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py
+      - name: Preserve sanitized actual quota
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ibm-after-two-jobs-usage-${{ github.run_id }}
+          path: _ibm_open_plan_preflight/receipt.json
+          retention-days: 7
+          if-no-files-found: error

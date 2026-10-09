@@ -18,14 +18,13 @@ import {renderBeast} from '../public/spark/draw.mjs';
 import {createSession,adoptBeast,advanceCreature,recordCreatureExperience,exportSession,importSession,swapBrain,beastIdentity,talk} from '../lib/companion/session.mjs';
 import {createBehavior,ACTIONS} from '../lib/companion/behavior.mjs';
 import {observeText} from '../lib/companion/learn.mjs';
-import {applyRecordedQvmStimulus} from '../lib/companion/recorded-qvm-stimulus.mjs';
 
 const DIR=dirname(fileURLToPath(import.meta.url));
 const sha=x=>createHash('sha256').update(typeof x==='string'?x:Buffer.from(x)).digest('hex');
 const canonical=x=>canonicalJson(x);
 const check=(ok,why)=>{if(!ok)throw Error(why)};
 const clamp=x=>Math.max(0,Math.min(1,x));
-const TRAITS={focus:75,calm:20,spark:95};
+const TRAITS={focus:40,calm:10,spark:100};
 const TICKS=90, ROOM_TICKS=30;
 const SOURCE_CLASS='RECORDED_IBM_HARDWARE_VERIFIED_JOB_RECEIPT';
 const crcTable=Array.from({length:256},(_,i)=>{let c=i;for(let j=0;j<8;j++)c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);return c>>>0;});
@@ -54,19 +53,18 @@ function environmentAt(t,phases,realHardware){
  return {place,sound:clamp(pulse.entropy),toy:clamp(pulse.p11*2),
   attention:clamp(.2+pulse.delta+realHardware.correlation_gap*.10),comfort:clamp(pulse.p00)};
 }
-function run({keeperPrefix='Marrakesh-dragon-',recordedStimulus=null}={}){
- check(/^[A-Za-z0-9 ._-]{1,21}$/.test(keeperPrefix),'Invalid public keeper prefix');
- const ibm=JSON.parse(readFileSync(join(DIR,'../experiment-input/ibm-marrakesh-20261009-longer-receipt.json'),'utf8'));
- check(ibm.job_id==='db4l2uclf4us73c2td10'&&ibm.backend_name==='ibm_marrakesh'&&ibm.job_status==='DONE'&&ibm.source_class==='RECORDED_IBM_HARDWARE','Physical source identity/status mismatch');
+function run(){
+ const ibm=JSON.parse(readFileSync(join(DIR,'../experiment-input/ibm-fez-20261009-measurement-receipt.json'),'utf8'));
+ check(ibm.job_id==='db4kcfklf4us73c2sjb0'&&ibm.backend_name==='ibm_fez'&&ibm.job_status==='DONE'&&ibm.source_class==='RECORDED_IBM_HARDWARE','Physical source identity/status mismatch');
  check(sha(canonical(ibm.measurements))===ibm.counts_digest_sha256,'Full four-circuit hardware count digest mismatch');
- check(Object.keys(ibm.measurements).length===4&&Object.values(ibm.measurements).every(c=>Object.values(c).reduce((a,b)=>a+b,0)===4096),'Missing or corrupted 4x4096 IBM counts');
- const measured=ibm.measurements.bell_xx;
- const recorded=validateRun({key:ibm.job_id+':bell-xx',backend:ibm.backend_name,
-   job_id:ibm.job_id,pub_index:1,num_bits:2,shots:4096,counts:measured,
+ check(Object.keys(ibm.measurements).length===4&&Object.values(ibm.measurements).every(c=>Object.values(c).reduce((a,b)=>a+b,0)===256),'Missing or corrupted 4x256 IBM counts');
+ const measured=ibm.measurements.bell_zz;
+ const recorded=validateRun({key:ibm.job_id+':bell-zz',backend:ibm.backend_name,
+   job_id:ibm.job_id,pub_index:0,num_bits:2,shots:256,counts:measured,
    counts_sha256:sha(canonical(measured))});
  // User requested a dragonling: deterministic rejection selection is logged in the receipt.
  // This is explicitly USER-CONDITIONED morphology, not an unbiased raw quantum draw.
- const domain=keeperPrefix; // QBEAST keeper/public label supports <=24 ASCII chars
+ const domain='NavisWORLD-dragon-'; // QBEAST keeper/public label supports <=24 ASCII chars
  let genome=null,selectedAttempt=-1;
  for(let attempt=0;attempt<256;attempt++){
    const candidate=buildGenome(TRAITS,recorded,domain+attempt,10);
@@ -97,15 +95,13 @@ function run({keeperPrefix='Marrakesh-dragon-',recordedStimulus=null}={}){
  const say=(time,text)=>{const response=talk(original,text);conversations.push({tick:time,observer_input:text,actual_local_reply:response.reply,engine:'existing-heb bian-pattern-memory'.replace(' ','') ,qbeast_id:response.qbeast_id,safe:response.safe,steps:response.steps});return response;};
  // Scripted learning observations, NOT experiences claimed to come from a player.
  for(let i=0;i<12;i++)observeText(original.mind,realMemoryPhrase,{seed:genome.seed});
- const azureStimulus=recordedStimulus?applyRecordedQvmStimulus(original,recordedStimulus):null;
- if(recordedStimulus){applyRecordedQvmStimulus(control,recordedStimulus);say(-1,'A recorded 512-shot Azure simulator signal entered your observatory. What do you remember about the grove?');}
  const stateBefore=JSON.parse(JSON.stringify(exportSession(original)));
  const actions=Object.fromEntries(ACTIONS.map(a=>[a,0])),controlActions={...actions};
  const samples=[],snapshots=[],fullTimeline=[];
  let checkpoint=null,replay=null,exact=true,firstImpact=null;
  for(let t=0;t<TICKS;t++){
   const env=environmentAt(t,phases,realHardware);
-  if(t===0) say(t,'Hello little dragon. Real IBM Marrakesh measurements initialized your genome. We are beginning a safe simulation in the grove.');
+  if(t===0) say(t,'Hello little dragon. Real IBM Fez measurements initialized your genome. We are beginning a safe simulation in the grove.');
   if(t===30) say(t,'The observatory is our next room. A Rigetti simulator signal influences your environment. What do you remember about explore?');
   if(t===60) { const text='We reached the shore. Your identity and experiences are saved. What do you remember about the grove?';
    say(t,text);if(replay){const same=talk(replay,text);check(same.reply===conversations.at(-1).actual_local_reply,'Conversation failed save replay');} }
@@ -142,20 +138,18 @@ function run({keeperPrefix='Marrakesh-dragon-',recordedStimulus=null}={}){
    position:a.state.position,lastAction:a.event.action});
  }
  check(exact&&canonical(replay.beast.behavior)===canonical(original.beast.behavior),'Save/load replay changed behavior');
- if(recordedStimulus){const before=canonical(exportSession(replay));check(applyRecordedQvmStimulus(replay,recordedStimulus).duplicate&&canonical(exportSession(replay))===before,'Recorded Azure input applied again after save/load');}
  check(canonical(original.beast.genome)===genesis&&canonical(original.beast.qbeast)===profile,'Genesis/identity mutated');
  check(beastIdentity(original.beast)===originalIdentity&&original.beast.xp===0,'Behavior manufactured game progress');
  check(original.beast.behavior.memory.length<=24&&original.beast.behavior.events.length<=32,'Runtime grew beyond bounded state');
  check(Object.values(actions).reduce((a,b)=>a+b,0)===TICKS,'Tick accounting changed');
  const portrait=png(imageA,64,8);
  const output={
-  schema:'beastbox-single-real-ibm-marrakesh-dragon-experiment-v1',
+  schema:'beastbox-single-real-ibm-dragon-experiment-v1',
   provenance:{genesis:SOURCE_CLASS,genesis_backend:recorded.backend,genesis_job:recorded.job_id,
    genesis_pub_index:recorded.pub_index,genesis_counts_sha256:recorded.counts_sha256,
    genesis_shots:recorded.shots,source_job_hardware_shots:ibm.shot_count,
    genesis_selection_mode:'user-conditioned dragonling first-match, first 256 deterministic candidates',
    candidate_index:selectedAttempt,candidate_count_tested:selectedAttempt+1,
-   keeper_label:domain+selectedAttempt,
    hardware_full_counts_sha256:ibm.counts_digest_sha256,
    hardware_genesis_source_sha256:ibm.beast_genesis_digest_sha256,
    measured_circuits:Object.keys(ibm.measurements),measured_correlations:realHardware,
@@ -171,7 +165,7 @@ function run({keeperPrefix='Marrakesh-dragon-',recordedStimulus=null}={}){
    behavioral_tic:genome.behavior?.tic,stage:1,genome_traits:genome.inputs.traits},
   qbeast:{id:originalIdentity,family:qbeast.profile.family,snapshot_digest:qbeast.digest,
    identical_across_replay:true,native_stage_unchanged:true,native_progress_awarded:false},
-  protocol:{genesis_selection:'first deterministic dragonling candidate from real IBM Marrakesh Bell XX recorded measurement; morphology selection is user-conditioned',
+  protocol:{genesis_selection:'first deterministic dragonling candidate from real IBM Fez Bell ZZ recorded measurement; morphology selection is user-conditioned',
    training:'12 scripted grove explore observations in learned branch only',
    ablation:'matched untrained branch; identical genome, stimulus schedule and scripted feedback',
    simulator:'Three preserved Azure Rigetti QVM scenario-1 count batches provide bounded ENVIRONMENT stimulus only',
@@ -179,7 +173,6 @@ function run({keeperPrefix='Marrakesh-dragon-',recordedStimulus=null}={}){
    steps:TICKS,rooms:['grove','observatory','shore'],checkpoint_tick:45,
    runtime:'classical deterministic God Core + actual local Hebbian talk(); no browser, cloud model, new QPU job, or database writes'},
   simulator_phases:phases,
-  recorded_azure_stimulus:recordedStimulus?{receipt:recordedStimulus,environment:azureStimulus.environment,actual_event:azureStimulus.event,replay_marker:azureStimulus.marker,duplicate_after_save_load:true}:null,
   conversation:{turns:conversations,engine:'Beast Box local Hebbian pattern memory (NOT connected Ollama or human-like comprehension)',actual_model_inference_calls:0},
   native_game:{executed_in_this_run:false,why:'This Node assay does not boot EmulatorJS; no synthetic native progress is permitted',qbeast_portable:true,identity:originalIdentity},
   observed:{action_counts:actions,untrained_action_counts:controlActions,
@@ -203,16 +196,16 @@ function run({keeperPrefix='Marrakesh-dragon-',recordedStimulus=null}={}){
  };
  return {output,portrait,qbeast,session:original};
 }
-export function runRealIBMDragonExperiment(options){return run(options);}
+export function runRealIBMDragonExperiment(){return run();}
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const {output,portrait,qbeast,session}=run();
- const dir=resolve(DIR,'../experiment-evidence/real-ibm-marrakesh-dragon-001');
+ const dir=resolve(DIR,'../experiment-evidence/real-ibm-fez-dragon-001');
  mkdirSync(dir,{recursive:true});
  writeFileSync(join(dir,'receipt.json'),JSON.stringify(output,null,2)+'\n');
  writeFileSync(join(dir,'beast.png'),portrait);
  writeFileSync(join(dir,'qbeast.json'),serializeQbeast(qbeast));
  writeFileSync(join(dir,'unsigned-session.json'),JSON.stringify(exportSession(session),null,2)+'\n');
- console.log('REAL_IBM_MARRAKESH_DRAGON_RESULT '+JSON.stringify({name:output.genome.name,id:output.qbeast.id,
+ console.log('REAL_IBM_DRAGON_RESULT '+JSON.stringify({name:output.genome.name,id:output.qbeast.id,
   body:output.genome.body,temperament:output.genome.temperament,
   source:output.provenance.genesis_backend,simulator:output.provenance.simulator_backend,
   actions:output.observed.action_counts,energy:output.observed.final_energy,

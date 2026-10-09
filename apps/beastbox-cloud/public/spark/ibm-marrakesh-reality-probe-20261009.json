@@ -4,7 +4,7 @@
   "source_backend": "ibm_marrakesh",
   "source_job_id": "db4l2uclf4us73c2td10",
   "source_counts_digest_sha256": "6b5438dc3ad1ab02cd6440822ea8fe89e1b66fa664174454c9471a65196d2910",
-  "source_notes": "2026-10-09 actual IBM Marrakesh QPU job, Bell-XX 4096-shot two-bit output; no ongoing physical QPU connection; not part of October 4 archive.",
+  "source_notes": "Real IBM Marrakesh job 2026-10-09: independently recorded Bell XX (PUB 1) and Bell ZZ (PUB 0), 4096 shots each. Separate from the October 4 archive. Deterministic classical replay, not a continuing QPU connection.",
   "runs": [
     {
       "k": "db4l2uclf4us73c2td10:bell-xx",
@@ -15,6 +15,16 @@
       "s": 4096,
       "c": "00:1994,01:27,10:18,11:2057",
       "h": "8722018cf2e7c23cb09aea30072eb375dac111d6106fddc6ce27365813cf5e19"
+    },
+    {
+      "k": "db4l2uclf4us73c2td10:bell-zz",
+      "b": "ibm_marrakesh",
+      "j": "db4l2uclf4us73c2td10",
+      "p": 0,
+      "n": 2,
+      "s": 4096,
+      "c": "00:2057,01:24,10:35,11:1980",
+      "h": "9ab6237bef9799575f9ffb557d442e8b2975839b53f7a19848e218ac14adb7b8"
     }
   ]
 }

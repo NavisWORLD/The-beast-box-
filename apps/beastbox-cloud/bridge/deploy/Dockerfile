@@ -1,7 +1,9 @@
 # Build from repository root: docker build -f apps/beastbox-cloud/bridge/deploy/Dockerfile .
 # Vercel remains frontend-only; Caddy fronts the loopback COSMOS owner bridge.
-FROM caddy:2.10.2 AS caddy
-FROM python:3.12-slim-bookworm AS production
+ARG CADDY_IMAGE=caddy:2.10.2
+ARG PYTHON_IMAGE=python:3.12-slim-bookworm
+FROM ${CADDY_IMAGE} AS caddy
+FROM ${PYTHON_IMAGE} AS production
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates gosu util-linux \
  && rm -rf /var/lib/apt/lists/* \

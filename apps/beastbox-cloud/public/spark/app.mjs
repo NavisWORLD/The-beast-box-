@@ -12,6 +12,7 @@ import {careAction,finishTraining,talk,shownName,advanceCreature,exportSession} 
 import {rememberExchange,nameBeast} from './shared/adventure.mjs';
 import {loadSparkRuns,validateQvmReceipt} from './runs.mjs';
 import {readDeviceJourney,restoreDeviceJourney,serializeDeviceJourney} from './device-journey.mjs';
+import {applyRecordedQvmStimulus,validateRecordedQvmStimulus} from './shared/recorded-qvm-stimulus.mjs';
 const STORE='spark-beasts-bestiary-v1',QVM_STORE='spark-qvm-growth-v1',SOUND_KEY='spark-beast-sound-v2',SCALE=4,$=id=>document.getElementById(id);
 const media=matchMedia('(prefers-reduced-motion: reduce)');
 const beastAudio=getBeastAudio();
@@ -152,6 +153,14 @@ async function spark(from='sliders'){
  const entry={traits:{focus:traits.focus,calm:traits.calm,spark:traits.spark},run:selectedRun().key,user:user||null};
  await adopt(entry);
  bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();$('status').textContent='Spawned and saved on this device. The same QBEAST is ready for Beast Box and LOST COSMOS.';
+}
+async function sparkFinalDragon(){
+ const seedRun=byKey.get('db4l2uclf4us73c2td10:bell-xx');if(!seedRun)throw Error('The verified Marrakesh source is unavailable.');
+ const entry={traits:{focus:80,calm:20,spark:100},run:seedRun.key,user:'Ethereal-dragon-21'};
+ const gen=buildGenome(entry.traits,seedRun,entry.user,10);
+ if(gen.body!=='dragonling'||gen.seed!=='bee3707fa173a6cdf20b79fe79874c6689b9b5e20642139af813132eb937f3a3')throw Error('Final dragon recipe verification failed.');
+ fillRunSelect([seedRun]);await adopt(entry);bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
+ $('status').textContent='Duskscale sparked and saved. Its genome comes from recorded IBM Marrakesh Bell XX measurements. The same recipe always returns this QBEAST.';
 }
 function starterEntries(){
  if(starterCache.length)return starterCache;
@@ -323,6 +332,18 @@ async function replayQvmScenario(){
  for(const row of rows)await processQvmBatch(row);
  $('status').textContent=`Scenario ${scenario} complete: 3 archived Rigetti QVM simulator batches changed this Beast's browser-local growth and effects. Native LOST COSMOS stage is still earned only in the game.`;
 }
+async function applyAzureStimulus(){
+ if(!current)throw Error('Spark a Beast first.');
+ const response=await fetch('/spark/azure-rigetti-qvm-20261009.json');if(!response.ok)throw Error('The recorded Azure simulator result is unavailable.');
+ const receipt=validateRecordedQvmStimulus(await response.json());
+ await withSparkLock(()=>{
+  const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed. Try again.');
+  const result=applyRecordedQvmStimulus(next,receipt);saveSparkSession(localStorage,next);session=next;updatePlate();notifyNativeBridge();
+  $('azure-stimulus-result').textContent=result.duplicate?`Already experienced by ${shownName(next.beast)} · saved at tick ${result.marker.tick}.`:`${shownName(next.beast)} chose ${result.event.action} · behavior tick ${result.event.tick} · recorded counts 00:241 / 11:271.`;
+  if(!result.duplicate){runtime.qvmPulseUntil=runtime.T+1.35;runtime.state='listen';runtime.until=runtime.T+2;say('focus',`${shownName(next.beast)} experienced the recorded simulator signal in the observatory.`);audioSfx('beam');}
+  $('status').textContent=result.duplicate?'This recorded signal is already in this Beast’s saved experience.':'512 recorded Azure simulator shots entered the existing behavior core once. Identity and native progress remain linked to this Beast.';
+ });
+}
 function browserReact(kind){
  if(!current||!runtime)return;
  const copy={online:'Browser link is back. I can see this page is online.',offline:'Browser link went offline. I will stay local.',visible:'You came back to my browser habitat.',resize:'My browser habitat changed size. Scooting into the new space.'}[kind];
@@ -395,6 +416,7 @@ async function main(){
  $('save-here').addEventListener('click',()=>void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');saveSparkSession(localStorage,next);session=next;});$('save-state').textContent='SAVED ON THIS DEVICE';audioSfx('confirm');}));
  $('download-journey').addEventListener('click',()=>void run(async()=>{const next=readSparkSession(localStorage);deviceDownload(serializeDeviceJourney(next,byKey),shownName(next.beast)+'.beastjourney');$('status').textContent='Device journey created. Local memory and behavior are unsigned; native authority is unchanged.';}));
  $('import-journey').addEventListener('change',()=>void run(async()=>{const file=$('import-journey').files?.[0];if(!file)return;if(file.size>2*1024*1024)throw Error('Choose a journey under 2 MiB.');const journey=readDeviceJourney(await file.text(),byKey),next=await withSparkLock(()=>restoreDeviceJourney(localStorage,journey));showCreature(journey.entry,next,false);$('status').textContent='Device journey restored. Same identity, local memory; native artifacts remain unsigned.';$('import-journey').value='';}));
+ $('final-dragon').addEventListener('click',()=>void run(()=>sparkFinalDragon()));$('azure-stimulus').addEventListener('click',()=>void run(()=>applyAzureStimulus()));
  $('save-state').textContent='SAVED ON THIS DEVICE';coreTimer=setInterval(()=>void activityTick(),8000);
  window.addEventListener('storage',event=>{if(event.key==='beastbox-reduced-motion-v1')syncMotion();});
  for(const which of [1,2,3])$(`pick${which}`).addEventListener('click',()=>{stage=which;preview=stage!==session.beast.nativeStage;updatePlate();runtime.state='celebrate';runtime.until=runtime.T+1.5;$('status').textContent='Visual preview only. Your earned native stage and QBEAST progression did not change.'});

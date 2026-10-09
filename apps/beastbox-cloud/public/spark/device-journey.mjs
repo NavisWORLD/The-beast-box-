@@ -4,6 +4,7 @@ import {serializeQbeast} from './qbeast.mjs';
 import {replaySpark,selectSpark,saveSparkSession,readSparkSession,SESSION_KEY,QBEAST_KEY,PROFILE_KEY} from './identity.mjs';
 import {exportSession,importSession} from './shared/session.mjs';
 import {validateBehavior} from './shared/behavior.mjs';
+import {validateQvmStimulusMarker} from './shared/recorded-qvm-stimulus.mjs';
 import {loadSparkRuns} from './runs.mjs';
 
 export const DEVICE_JOURNEY_SCHEMA='beastbox-device-journey-v1';
@@ -54,7 +55,8 @@ function validateSession(raw,replay,byKey){
  allowed(raw,['schema','tab','beast','bestiary','chat','mind','emulator','train','mood','pet']);
  if(raw.schema!=='beastbox-companion-session-v1'||!object(raw.beast))fail('no companion session.');
  const b=raw.beast;
- allowed(b,['id','seed','genome','displayName','xp','bond','energy','stage','mood','qbeast','nativeStage','qbeastProgress','localGrowth','game','behavior','journeyNative']);
+ allowed(b,['id','seed','genome','displayName','xp','bond','energy','stage','mood','qbeast','nativeStage','qbeastProgress','localGrowth','game','behavior','journeyNative','qvmStimulus']);
+ if(b.qvmStimulus)validateQvmStimulusMarker(b.qvmStimulus,b);
  if(b.seed!==replay.gen.seed||canonicalJson(b.genome)!==canonicalJson(replay.gen)||canonicalJson(b.qbeast)!==canonicalJson(replay.snapshot))fail('session and recorded identity disagree.');
  if(typeof b.displayName!=='string'||b.displayName.length>24||!integer(b.xp)||!integer(b.bond,100)||!Number.isFinite(b.energy)||b.energy<0||b.energy>100||!integer(b.stage,3,1)||!integer(b.nativeStage??1,3,1))fail('care state is outside its bounds.');
  if(typeof b.mood!=='string'||b.mood.length>24||typeof raw.mood!=='string'||raw.mood.length>24)fail('invalid mood.');
@@ -112,6 +114,8 @@ export function restoreDeviceJourney(storage,journey){
  try{
   selectSpark(storage,journey.gen,{snapshot:journey.snapshot});
   const selected=readSparkSession(storage),host=selected.beast;
+  // An intentional older local restore must not consume the same simulator job twice.
+  if(host.qvmStimulus){validateQvmStimulusMarker(host.qvmStimulus,host);b.qvmStimulus=clone(host.qvmStimulus);}
   b.journeyNative=nativeArchive(b,host);nativeBounds(b.journeyNative);
   b.nativeStage=host.nativeStage||1;b.stage=b.nativeStage;b.game=clone(host.game||host.localGrowth?.game||{});
   if(b.localGrowth){b.localGrowth.game=clone(b.game);b.localGrowth.applied=clone(host.localGrowth?.applied||[]);b.localGrowth.stage=b.stage;}
