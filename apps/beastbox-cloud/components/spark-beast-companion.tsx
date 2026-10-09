@@ -106,7 +106,7 @@ export default function SparkBeastCompanion({
  useEffect(()=>{
   let cancelled=false;
   void (async()=>{
-   const runs=await loadSparkRuns({includeQvm:Boolean(sameSpark)});
+   const runs=await loadSparkRuns({includeQvm:Boolean(sameSpark),includeNewHardware:true});
    const chosen=sameSpark?runs.find(item=>item.key===sameSpark.genome.inputs.quantum_run):(runs.find(item=>item.key===seedRunKey)||runs[hash(active.id+'|'+active.seed)%runs.length]);
    if(!chosen)throw new Error('Saved Spark run is unavailable');
    if(!cancelled)setRun(chosen);
