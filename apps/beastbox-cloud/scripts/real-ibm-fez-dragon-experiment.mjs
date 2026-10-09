@@ -64,7 +64,7 @@ function run(){
    counts_sha256:sha(canonical(measured))});
  // User requested a dragonling: deterministic rejection selection is logged in the receipt.
  // This is explicitly USER-CONDITIONED morphology, not an unbiased raw quantum draw.
- const domain='NavisWORLD::IBM_FEZ_20261009::DRAGON_REQUEST::v1';
+ const domain='NavisWORLD-dragon-'; // QBEAST keeper/public label supports <=24 ASCII chars
  let genome=null,selectedAttempt=-1;
  for(let attempt=0;attempt<256;attempt++){
    const candidate=buildGenome(TRAITS,recorded,domain+':'+attempt,10);
