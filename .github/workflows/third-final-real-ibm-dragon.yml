@@ -1,0 +1,54 @@
+name: THIRD FINAL REAL IBM DRAGON - Single Guarded New Genesis
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/third-final-real-ibm-dragon.yml'
+      - 'scripts/final_third_ibm_dragon_20261009.py'
+      - 'apps/beastbox-cloud/scripts/third-final-real-dragon-20261009.mjs'
+permissions:
+  contents: read
+concurrency:
+  group: navisworld-third-final-real-ibm-dragon-20261009-onejob
+  cancel-in-progress: false
+jobs:
+  physical-birth:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/final-unique-real-ibm-third-dragon-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 48
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test immutable QPU safety and quota accounting
+        run: python -m unittest discover -s tests -p test_ibm_open_plan_preflight.py -v
+      - name: Install official IBM provider client
+        run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+      - name: Only submit ONE new physical hardware job after verifying live owner quota
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_REAL_QPU_ONE_JOB: YES_ONE_REAL_JOB
+        run: PYTHONPATH=scripts python scripts/final_third_ibm_dragon_20261009.py
+      - name: Build fresh measured sprite, QBEAST, behavioral log, local conversation, and exact replay
+        run: node apps/beastbox-cloud/scripts/third-final-real-dragon-20261009.mjs
+      - name: Read-only postflight IBM usage, no additional submission
+        if: success()
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py
+      - name: Preserve provider receipts, original counts, sprite, QBEAST, behavior and memory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: third-final-new-real-ibm-dragon-${{ github.run_id }}
+          path: |
+            _ibm_third_final_dragon_20261009/
+            _ibm_open_plan_preflight/receipt.json
+            apps/beastbox-cloud/experiment-evidence/third-final-real-dragon-20261009/
+          retention-days: 30
+          if-no-files-found: warn
