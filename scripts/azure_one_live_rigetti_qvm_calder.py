@@ -37,21 +37,15 @@ def main():
             "new_jobs_submitted":0,"status":"EXISTS_REFUSE_DUPLICATE"})
         print("AZURE_QVM_EXISTING_JOB_REUSE_NO_RESUBMISSION")
         return 0
-    circuit=QuantumCircuit(2,2)
-    circuit.h(0)
-    circuit.cx(0,1)
-    circuit.measure([0,1],[0,1])
-    provider=AzureQuantumProvider(workspace)
-    backend=provider.get_backend(TARGET)
+    # Submit an explicitly allowed simulator-only Quil job through the SDK.
+    quil="DECLARE ro BIT[2]\nH 0\nCNOT 0 1\nMEASURE 0 ro[0]\nMEASURE 1 ro[1]\n"
     record("proposed.json",{
-        "schema":"beastbox-azure-qvm-circuit-v1",
-        "name":JOB_NAME,"backend":TARGET,"source_class":"LIVE_AZURE_CLOUD_SIMULATOR",
-        "shots":SHOTS,"circuit":"2-qubit H, CX, two Z measurements",
-        "simulation_only":True,"max_new_jobs":1,"cosmos_db_writes":0})
-    # The Qiskit Azure adapter handles Quil/QIR translation.
-    # Explicitly pass the job name so remote checks remain idempotent.
-    job=backend.run(circuit,shots=SHOTS,job_name=JOB_NAME)
-    job_id=str(job.job_id())
+        "schema":"beastbox-azure-qvm-quil-v1","name":JOB_NAME,
+        "backend":TARGET,"source_class":"LIVE_AZURE_CLOUD_SIMULATOR",
+        "shots":SHOTS,"simulation_only":True,
+        "max_new_jobs":1,"cosmos_db_writes":0})
+    job=t.submit(quil,JOB_NAME,shots=SHOTS)
+    job_id=str(job.id)
     record("submission.json",{"schema":"beastbox-azure-qvm-job-submission-v1",
         "job_id":job_id,"name":JOB_NAME,"target":TARGET,
         "source_class":"SIMULATOR_JOB_SUBMITTED","shots_requested":SHOTS,
