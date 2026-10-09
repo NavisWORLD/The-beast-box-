@@ -31,10 +31,22 @@ const project=path.resolve(__dirname,'../experiment-evidence/real-ibm-fez-dragon
    localStorage.setItem('beastbox-active-creature-v1',JSON.stringify(snapshot.profile));
    localStorage.setItem('beastbox-companion-session-v1',JSON.stringify(session));
   },{snapshot,session});
+  const seedResponse=await page.request.get(root+'/spark/ibm-fez-reality-probe-20261009.json');
+  assert.equal(seedResponse.status(),200,'IBM Fez public seed registry is missing');
+  const realSource=await seedResponse.json();
+  assert.equal(realSource.runs?.[0]?.j,'db4kcfklf4us73c2sjb0','Public IBM job mismatch');
   await page.goto(root+'/sol-game');
   const shell=page.locator('[data-lost-cosmos-player-shell]');
-  await shell.getByRole('button',{name:'SEND BEAST',exact:true}).waitFor({timeout:45000});
-  await shell.getByRole('button',{name:'SEND BEAST',exact:true}).click();
+  const sendButton=shell.getByRole('button',{name:'SEND BEAST',exact:true});
+  await sendButton.waitFor({timeout:45000});
+  try{
+   await page.waitForFunction(()=>{const b=[...document.querySelectorAll('button')].find(x=>x.textContent?.trim()==='SEND BEAST');return b&&!b.disabled;},null,{timeout:20000});
+  }catch(error){
+   const diag=await page.evaluate(()=>({status:[...document.querySelectorAll('[role="status"]')].map(x=>x.textContent?.slice(0,200)),
+    persisted:!!localStorage.getItem('beastbox-companion-session-v1'),selected:!!localStorage.getItem('beastbox-quantum-beast-public-v1')}));
+   throw new Error('Emberlet refused by device recovery: '+JSON.stringify(diag)+' '+String(error));
+  }
+  await sendButton.click();
   await shell.getByRole('status').filter({hasText:'same Beast verified'}).waitFor({timeout:60000});
   await shell.getByRole('button',{name:'START LOST COSMOS',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('[data-lost-cosmos-player-shell]')?.dataset.running==='true',null,{timeout:90000});
