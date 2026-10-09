@@ -1,0 +1,53 @@
+# Deployment acceptance only: no IBM job, no Azure job, no secrets, no fabricated replies.
+name: Production birth recordings - both live dragon game conversations
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/beastbox-cloud/public/spark/**'
+      - 'apps/beastbox-cloud/tests/two-dragons-production-chat.cjs'
+      - '.github/workflows/two-dragons-production-chat.yml'
+permissions:
+  contents: read
+jobs:
+  live-both-avatars:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Confirm actual newly deployed measured sources are public before claiming live test
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ready=0
+          for attempt in $(seq 1 60); do
+            if curl -fsS --max-time 15 'https://www.beastboxcosmos.xyz/spark/ibm-second-final-reality-probe-20261009.json' | grep -q 'db4n37g4qg6s73c2de00' &&
+               curl -fsS --max-time 15 'https://www.beastboxcosmos.xyz/spark/azure-second-final-ibm-qvm-20261009.json' | grep -q '71cf7c02-c435-11f1-ae67-7ced8d52b5e1'; then ready=1;break;fi
+            sleep 15
+          done
+          test "$ready" -eq 1 || { echo 'Production never exposed new immutable measured dragon receipts'; exit 1; }
+      - name: Check browser program and install actual Playwright
+        run: |
+          node --check tests/two-dragons-production-chat.cjs
+          npm install --prefix "$RUNNER_TEMP/dragon-production-browser" --no-audit --no-fund playwright@1.55.0
+          "$RUNNER_TEMP/dragon-production-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Record two genuine production game sessions, real guest inference, 32KB native saves
+        run: |
+          export NODE_PATH="$RUNNER_TEMP/dragon-production-browser/node_modules"
+          node tests/two-dragons-production-chat.cjs
+      - name: Preserve BOTH actual gameplay videos, screenshots, complete model replies, timestamps and provider HTTP status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: two-real-dragons-production-birth-${{ github.run_id }}
+          path: apps/beastbox-cloud/browser-evidence/both-dragons-production-live/
+          retention-days: 30
+          if-no-files-found: warn
