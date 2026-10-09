@@ -26,12 +26,12 @@ check(recordedQvmStimulusPath(session.beast)==='/spark/azure-second-final-ibm-qv
 validateRecordedQvmStimulus(sim);
 const before=session.beast.behavior.tick;
 const event=applyRecordedQvmStimulus(session,sim);
-check(event.ok&&!event.duplicate&&event.event.tick>before,'New simulator signal failed to enter existing behavior core exactly once');
+check(event.ok&&!event.duplicate&&event.event.tick===before&&session.beast.behavior.tick===before+1,'New simulator signal failed to advance saved behavior by exactly one tick');
 const advanced=importSession(exportSession(session));
 check(advanced.beast.qbeast.profile.id==='bb-d41e5bd4','Pistonwyrm lost identity after simulator save/import');
 const state=j(advanced.beast.behavior),repeat=applyRecordedQvmStimulus(advanced,sim);
 check(repeat.ok&&repeat.duplicate&&j(advanced.beast.behavior)===state,'Second simulator stimulus illegally advanced the Beast');
-const output={schema:'beastbox-pistonwyrm-live-ibm-azure-behavior-integration-v1',ibm_job:hardware.job_id,ibm_physical_shots:hardware.shot_count,source_sha256:hardware.counts_digest_sha256,azure_simulator_job:sim.job_id,azure_simulator_shots:sim.shots,azure_counts_sha256:sim.counts_sha256,quantum_state_transferred:false,creature_classical_engine:true,beast_id:'bb-d41e5bd4',name:genome.names[1],behavior_tick_before:before,behavior_tick_after:event.event.tick,actual_behavior_action:event.event.action,actual_environment:event.environment,once_only:repeat.duplicate,save_import_identity_exact:true,model_inference_calls:0,azure_cosmos_db_writes:0};
+const output={schema:'beastbox-pistonwyrm-live-ibm-azure-behavior-integration-v1',ibm_job:hardware.job_id,ibm_physical_shots:hardware.shot_count,source_sha256:hardware.counts_digest_sha256,azure_simulator_job:sim.job_id,azure_simulator_shots:sim.shots,azure_counts_sha256:sim.counts_sha256,quantum_state_transferred:false,creature_classical_engine:true,beast_id:'bb-d41e5bd4',name:genome.names[1],behavior_tick_before:before,behavior_tick_after:advanced.beast.behavior.tick,actual_event_tick:event.event.tick,actual_behavior_action:event.event.action,actual_environment:event.environment,once_only:repeat.duplicate,save_import_identity_exact:true,model_inference_calls:0,azure_cosmos_db_writes:0};
 const dir=resolve(root,'experiment-evidence/pistonwyrm-azure-core-20261009');
 mkdirSync(dir,{recursive:true});
 writeFileSync(resolve(dir,'proof.json'),JSON.stringify(output,null,2)+'\n');
