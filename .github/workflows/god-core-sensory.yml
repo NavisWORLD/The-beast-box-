@@ -1,0 +1,35 @@
+name: God Core sensory continuity
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/lib/companion/sensory-bridge.mjs'
+      - 'apps/beastbox-cloud/components/companion-local-bay.tsx'
+      - 'apps/beastbox-cloud/public/companion/catalog.json'
+      - 'apps/beastbox-cloud/tests/sensory-bridge.test.mjs'
+      - '.github/workflows/god-core-sensory.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sensor-identity-and-model-privacy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/beastbox-cloud/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Verify sensor consent, same QBEAST and no native XP mutation
+        run: node --test tests/sensory-bridge.test.mjs
+      - name: Run existing companion test suite
+        run: npm test
+      - name: Check Next.js types
+        run: npm run typecheck
+      - name: Compile production app
+        run: npm run build

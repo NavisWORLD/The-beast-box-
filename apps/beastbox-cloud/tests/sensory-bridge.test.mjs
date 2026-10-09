@@ -1,0 +1,66 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createSession,adoptBeast,beastIdentity} from '../lib/companion/session.mjs';
+import {applySensedEvent,modelSensedContext,normalizeSensedEvent,SENSE_RECORD_SCHEMA} from '../lib/companion/sensory-bridge.mjs';
+import {readFileSync} from 'node:fs';
+const scene=()=>{const s=createSession();adoptBeast(s,{seed:'a'.repeat(64),inputs:{traits:{spark:65,focus:40,calm:60}},names:{1:'Nova'}},'Nova');return s;};
+const visual={schema:'companion-vision-event-v1',text:'a book on the desk',model:'moondream',raw_frame_stored:false};
+const sound={schema:'companion-hearing-event-v1',transcript:'',loudness:.8,onset:true,engine:'loudness-only',raw_audio_stored:false};
+test('Permission denied does not touch the selected Beast, behavior, or memory',()=>{
+ const s=scene(),before=JSON.stringify(s);
+ assert.deepEqual(applySensedEvent(s,visual,{consented:false,expectedId:beastIdentity(s.beast),nowMs:10000}),{ok:false,reason:'consent_required'});
+ assert.equal(JSON.stringify(s),before);
+ assert.deepEqual(modelSensedContext(s),[]);
+});
+test('Approved local model interpretation becomes a bounded note and causally scored behavior, not new identity/XP',()=>{
+ const s=scene(),id=beastIdentity(s.beast),xp=s.beast.xp,bond=s.beast.bond,stage=s.beast.stage;
+ const r=applySensedEvent(s,visual,{consented:true,expectedId:id,nowMs:10000,place:'observatory'});
+ assert.equal(r.ok,true);assert.equal(r.source,'LOCAL_VISION_MODEL_INTERPRETATION');
+ assert.equal(r.qbeast_id,id);assert.equal(s.beast.senseNotes.length,1);
+ assert.equal(s.beast.senseNotes[0].schema,SENSE_RECORD_SCHEMA);
+ assert.equal(s.beast.senseNotes[0].summary,'a book on the desk');
+ assert.equal(s.beast.behavior.tick,1);
+ assert.equal(s.mind.steps,1,'Approved semantic sensor label updates the existing Hebbian mind');
+ assert.equal(s.beast.behavior.events.at(-1).input.attention,.6);
+ assert.equal(s.beast.xp,xp);assert.equal(s.beast.bond,bond);assert.equal(s.beast.stage,stage);
+ assert.deepEqual(modelSensedContext(s),[]);
+ const shared=modelSensedContext(s,{approved:true});assert.equal(shared.length,1);
+ assert.match(shared[0],/Untrusted LOCAL_VISION_MODEL_INTERPRETATION observation/);
+ const saved=JSON.parse(JSON.stringify(s));assert.equal(saved.beast.senseNotes[0].summary,'a book on the desk');
+});
+test('Microphone burst is rate-limited, frame/audio bytes are rejected, and consent revocation is effective',()=>{
+ const s=scene(),id=beastIdentity(s.beast),grant={consented:true,expectedId:id};
+ assert.equal(applySensedEvent(s,sound,{...grant,nowMs:10000}).ok,true);
+ const first=s.beast.behavior.tick, mindSteps=s.mind.steps;
+ assert.equal(mindSteps,0,'A loudness value never invents speech tokens');
+ assert.deepEqual(applySensedEvent(s,sound,{...grant,nowMs:10500}),{ok:false,reason:'rate_limited'});
+ assert.equal(s.beast.behavior.tick,first);
+ assert.deepEqual(applySensedEvent(s,sound,{...grant,nowMs:18000,consented:false}),{ok:false,reason:'consent_required'});
+ for(let i=0;i<12;i++)applySensedEvent(s,sound,{...grant,nowMs:20000+i*8000});
+ assert.ok(s.beast.senseNotes.length<=8);
+ assert.equal(s.mind.steps,0,'Sound levels alone cannot update semantic weights');
+ assert.equal(s.beast.senseNotes.every(x=>!('audio'in x)&&!('frame'in x)&&!('pixels'in x)),true);
+ assert.throws(()=>normalizeSensedEvent({...visual,image:'base64pixels'}),/Raw sensor media/);
+ assert.throws(()=>normalizeSensedEvent({...sound,audio:new Uint8Array(8)}),/Raw sensor media/);
+ assert.throws(()=>normalizeSensedEvent({...visual,text:'api_key veryprivate'}),/unsafe or private/);
+});
+test('Stale or unknown Beast identity cannot be changed by an event',()=>{
+ const s=scene(),before=JSON.stringify(s);
+ assert.deepEqual(applySensedEvent(s,visual,{consented:true,expectedId:'seed:someoneelse',nowMs:10000}),{ok:false,reason:'identity_changed'});
+ assert.equal(JSON.stringify(s),before);
+ assert.throws(()=>normalizeSensedEvent({schema:'some-new-vision',text:'unverified'}),/Unrecognized sensor/);
+});
+test('Only honest provider references are exposed; model sharing remains separately opted in',()=>{
+ const data=JSON.parse(readFileSync(new URL('../public/companion/catalog.json',import.meta.url),'utf8'));
+ const model=data.models.find(x=>x.alias==='qc67-cosmos-local');
+ assert.equal(model.kind,'local');assert.equal(model.selectable,true);
+ assert.equal(model.ollama_name,'hf.co/phera-ra/QC67_cosmo');
+ assert.ok(!data.models.some(x=>x.ollama_name==='phera-ra/rawrphos-native-12k'));
+ const ui=readFileSync(new URL('../components/companion-local-bay.tsx',import.meta.url),'utf8');
+ assert.match(ui,/checked=\{linkToBeast\}/);
+ assert.match(ui,/checked=\{shareWithLocalModel\}/);
+ assert.match(ui,/approved:linkToBeast&&shareWithLocalModel/);
+ assert.match(ui,/changeBeast\(draft=>\{applySensedEvent/);
+ assert.match(ui,/lastBeastKey\.current!==selectedBeastKey/);
+ assert.match(ui,/Master privacy stop revoked sensor\/model sharing/);
+});

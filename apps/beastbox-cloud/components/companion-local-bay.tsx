@@ -1,5 +1,8 @@
 'use client';
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {useBeastSession} from './beast-session';
+import {beastIdentity} from '../lib/companion/session.mjs';
+import {applySensedEvent,modelSensedContext} from '../lib/companion/sensory-bridge.mjs';
 import styles from './companion-local-bay.module.css';
 import {
   CompanionMemory, acceptHearing, acceptVision, birth, loopbackOnly, reply, simulateLive,
@@ -26,9 +29,27 @@ function writeMemory(store:CompanionMemory){
 
 /** Additive Brain Bay card. It does not call the existing model switcher. */
 export default function CompanionLocalBay({variant='bay'}:{variant?:'bay'|'chat'}){
+ const {session:activeSession,change:changeBeast,ready:beastReady}=useBeastSession();
+ const activeSessionRef=useRef(activeSession);
+ activeSessionRef.current=activeSession;
+ const [linkToBeast,setLinkToBeast]=useState(false);
+ const [shareWithLocalModel,setShareWithLocalModel]=useState(false);
+ const linkRef=useRef(false),lastAccepted=useRef(0);
+ linkRef.current=linkToBeast;
  const [card,setCard]=useState<Record<string,unknown>|null>(null);
  const [models,setModels]=useState<Model[]>([]);
  const [selected,setSelected]=useState('');
+ const selectedBeastKey=beastIdentity(activeSession?.beast)||'';
+ const lastBeastKey=useRef(selectedBeastKey);
+ useEffect(()=>{
+  if(lastBeastKey.current!==selectedBeastKey){
+   lastBeastKey.current=selectedBeastKey;
+   linkRef.current=false;
+   setLinkToBeast(false);
+   setShareWithLocalModel(false);
+   lastAccepted.current=0;
+  }
+ },[selectedBeastKey]);
  const [cameraOn,setCameraOn]=useState(false);
  const [micOn,setMicOn]=useState(false);
  const [speechMode,setSpeechMode]=useState<'off'|'whisper.cpp'|'web-speech-fallback'>('off');
@@ -65,7 +86,15 @@ export default function CompanionLocalBay({variant='bay'}:{variant?:'bay'|'chat'
   else memoryRef.current.add(`loudness ${Number(event.loudness||0).toFixed(2)} onset ${Boolean(event.onset)}`, 'hearing', String(event.engine||'loudness-only'));
   writeMemory(memoryRef.current);
   setMemoryCount(memoryRef.current.records.length);
- },[]);
+  if(linkRef.current){
+   const id=beastIdentity(activeSessionRef.current?.beast);
+   const now=Date.now();
+   if(id&&now-lastAccepted.current>=8000){
+    lastAccepted.current=now;
+    changeBeast(draft=>{applySensedEvent(draft,event,{consented:true,expectedId:id,nowMs:now,place:'grove'});});
+   }
+  }
+ },[changeBeast]);
 
  const stopAll=useCallback(()=>{
   streamRef.current?.getTracks().forEach(track=>track.stop());
@@ -86,7 +115,7 @@ export default function CompanionLocalBay({variant='bay'}:{variant?:'bay'|'chat'
   memoryRef.current=readMemory();
   setMemoryCount(memoryRef.current.records.length);
   try{setSelected(window.localStorage.getItem(BRAIN_KEY)||'');}catch{setSelected('');}
-  const stop=()=>{stopAll();setNotice('Master privacy stop halted companion camera and microphone. Stored notes are text only.');};
+  const stop=()=>{linkRef.current=false;setLinkToBeast(false);setShareWithLocalModel(false);stopAll();setNotice('Master privacy stop revoked sensor/model sharing and halted camera and microphone.');};
   window.addEventListener('beastbox:master-privacy-stop', stop);
   return()=>{alive.current=false;window.removeEventListener('beastbox:master-privacy-stop', stop);stopAll();};
  },[stopAll]);
@@ -236,7 +265,8 @@ export default function CompanionLocalBay({variant='bay'}:{variant?:'bay'|'chat'
     if(!model||!loopbackOnly(OLLAMA))throw new Error('loopback required');
     const response=await fetch(OLLAMA, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
      model:model.ollama_name, stream:false,
-     messages:[{role:'system', content:String(current.honesty||'')},{role:'user', content:text}],
+     messages:[{role:'system', content:String(current.honesty||'')},{role:'user', content:
+      [text,...modelSensedContext(activeSessionRef.current,{approved:linkToBeast&&shareWithLocalModel})].join('\n')}],
     })});
     const data=await response.json();
     if(response.ok&&typeof data?.message?.content==='string'&&data.message.content.trim()){
@@ -301,6 +331,21 @@ export default function CompanionLocalBay({variant='bay'}:{variant?:'bay'|'chat'
      <option value="web-speech-fallback">Web Speech fallback (may leave the device)</option>
     </select></label>
    </div>
+   <div className={styles.row}>
+    <label><input type="checkbox" checked={linkToBeast} disabled={!beastReady||!beastIdentity(activeSession?.beast)}
+      onChange={event=>{setLinkToBeast(event.target.checked);if(!event.target.checked)setShareWithLocalModel(false);}}/>
+      Link approved sensor summaries to my active Beast (local save; no XP or native stage changes)</label>
+    <label><input type="checkbox" checked={shareWithLocalModel} disabled={!linkToBeast}
+      onChange={event=>setShareWithLocalModel(event.target.checked)}/>
+      Separately allow my already-selected LOCAL Ollama model to receive up to three saved sensor summaries</label>
+   </div>
+   <p className={styles.note} role="status">Linked Beast: {beastReady&&beastIdentity(activeSession?.beast)
+     ?String(beastIdentity(activeSession.beast)).slice(0,24)+'… · '+(activeSession.beast.senseNotes?.length||0)+' approved text summaries'
+     :'No active Beast chosen yet.'} Source descriptions are model interpretations, not proof of what the camera saw. No raw frames or audio enter the Beast save.</p>
+   <p className={styles.note}>Verified HF references (not automatic paid inference):
+    <a href="https://huggingface.co/phera-ra/QC67_cosmo" target="_blank" rel="noopener noreferrer"> QC67 local GGUF</a> ·
+    <a href="https://huggingface.co/phera-ra/rawrphos-native-12k" target="_blank" rel="noopener noreferrer"> RAWRPHØS private 12K checkpoint</a>.
+    Private model access requires its own authorized runtime; these links do not connect credentials.</p>
    <p className={styles.note}>Vision sends a frame to loopback Ollama ({visionModel}, for example moondream or llava) and keeps the sentence only. Hearing loudness is on-device. Web Speech is a labeled fallback, not whisper.cpp.</p>
    <video ref={videoRef} className={styles.hidden} muted playsInline aria-hidden="true"/>
    <canvas ref={canvasRef} className={styles.hidden} aria-hidden="true"/>
