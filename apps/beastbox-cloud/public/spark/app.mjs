@@ -162,6 +162,16 @@ async function sparkFinalDragon(){
  fillRunSelect([seedRun]);await adopt(entry);bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
  $('status').textContent='Duskscale sparked and saved. Its genome comes from recorded IBM Marrakesh Bell XX measurements. The same recipe always returns this QBEAST.';
 }
+async function sparkUmbrascale(){
+ const seedRun=byKey.get('db4m3bslf4us73c2ui9g:bell-xx');
+ if(!seedRun)throw Error('Umbrascale measured IBM Fez receipt is unavailable. No substitute seed permitted.');
+ const entry={traits:{focus:80,calm:20,spark:100},run:seedRun.key,user:'Ethereal-live-19'};
+ const gen=buildGenome(entry.traits,seedRun,entry.user,10);
+ if(gen.body!=='dragonling'||gen.seed!=='3b2c070e58d9ff433a3fdf06aa4dc4a5d9ce55511d8c5933f562f395ac880abc'||gen.names[1]!=='Umbrascale')throw Error('Pinned Umbrascale identity failed source replay.');
+ fillRunSelect([seedRun]);await adopt(entry);
+ bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
+ $('status').textContent='Umbrascale has been restored from the completed IBM Fez source. Same QBEAST, ready for Lost COSMOS and the archived Azure simulator input.';
+}
 async function sparkPistonwyrm(){
  const seedRun=byKey.get('db4n37g4qg6s73c2de00:bell-xx');
  if(!seedRun)throw Error('Pistonwyrm physical IBM Fez receipt not loaded. No replacement seed will be substituted.');
@@ -428,7 +438,7 @@ async function main(){
  $('save-here').addEventListener('click',()=>void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');saveSparkSession(localStorage,next);session=next;});$('save-state').textContent='SAVED ON THIS DEVICE';audioSfx('confirm');}));
  $('download-journey').addEventListener('click',()=>void run(async()=>{const next=readSparkSession(localStorage);deviceDownload(serializeDeviceJourney(next,byKey),shownName(next.beast)+'.beastjourney');$('status').textContent='Device journey created. Local memory and behavior are unsigned; native authority is unchanged.';}));
  $('import-journey').addEventListener('change',()=>void run(async()=>{const file=$('import-journey').files?.[0];if(!file)return;if(file.size>2*1024*1024)throw Error('Choose a journey under 2 MiB.');const journey=readDeviceJourney(await file.text(),byKey),next=await withSparkLock(()=>restoreDeviceJourney(localStorage,journey));showCreature(journey.entry,next,false);$('status').textContent='Device journey restored. Same identity, local memory; native artifacts remain unsigned.';$('import-journey').value='';}));
- $('final-dragon').addEventListener('click',()=>void run(()=>sparkFinalDragon()));$('pistonwyrm').addEventListener('click',()=>void run(()=>sparkPistonwyrm()));$('azure-stimulus').addEventListener('click',()=>void run(()=>applyAzureStimulus()));
+ $('final-dragon').addEventListener('click',()=>void run(()=>sparkFinalDragon()));$('pistonwyrm').addEventListener('click',()=>void run(()=>sparkPistonwyrm()));$('umbrascale').addEventListener('click',()=>void run(()=>sparkUmbrascale()));$('azure-stimulus').addEventListener('click',()=>void run(()=>applyAzureStimulus()));
  $('save-state').textContent='SAVED ON THIS DEVICE';coreTimer=setInterval(()=>void activityTick(),8000);
  window.addEventListener('storage',event=>{if(event.key==='beastbox-reduced-motion-v1')syncMotion();});
  for(const which of [1,2,3])$(`pick${which}`).addEventListener('click',()=>{stage=which;preview=stage!==session.beast.nativeStage;updatePlate();runtime.state='celebrate';runtime.until=runtime.T+1.5;$('status').textContent='Visual preview only. Your earned native stage and QBEAST progression did not change.'});
