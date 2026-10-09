@@ -1,0 +1,47 @@
+name: IBM Marrakesh Dragon — Real Genesis, Memory and Behavior
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/scripts/real-ibm-marrakesh-dragon-experiment.mjs'
+      - 'apps/beastbox-cloud/experiment-input/ibm-marrakesh-20261009-longer-receipt.json'
+      - '.github/workflows/marrakesh-real-hardware-beast-genesis.yml'
+permissions:
+  contents: read
+jobs:
+  real-hardware-derived-genesis-offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate a fresh dragon and run existing God Core without external jobs
+        run: node apps/beastbox-cloud/scripts/real-ibm-marrakesh-dragon-experiment.mjs
+      - name: Verify lineage, memory, conversation and replay receipts
+        run: |
+          node - <<'JS'
+          const p='./apps/beastbox-cloud/experiment-evidence/real-ibm-marrakesh-dragon-001/receipt.json';
+          const r=require(p);
+          if(r.provenance.genesis_job!=='db4l2uclf4us73c2td10'||r.genome.body!=='dragonling')throw Error('Incorrect real-hardware dragon source or form');
+          if(r.provenance.genesis_backend!=='ibm_marrakesh'||r.provenance.genesis_shots!==4096)throw Error('Incorrect shot source');
+          if(!r.acceptance.save_load_replay_exact||!r.acceptance.qbeast_identity_preserved)throw Error('Same Beast replay failed');
+          if(r.provenance.quantum_hardware_jobs_submitted!==0||r.provenance.azure_jobs_submitted!==0||r.provenance.azure_db_writes!==0)throw Error('Unexpected live job or database claim');
+          if(r.conversation.turns.length!==3||r.observed.full_timeline.length!==90||r.native_game.executed_in_this_run)throw Error('Conversation/decision count or native authority claim inaccurate');
+          if(Object.values(r.observed.action_counts).reduce((a,b)=>a+b,0)!==90)throw Error('Behavior count does not match ticks');
+          console.log('PASS IBM-MARRAKESH_DRAGON '+JSON.stringify({name:r.genome.name,id:r.qbeast.id,temperament:r.genome.temperament,actions:r.observed.action_counts,dialogue_turns:3,replay:true}));
+          JS
+      - name: Upload reproducible fresh dragon portrait, QBEAST, transcript and behavior
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: marrakesh-new-dragon-${{ github.run_id }}
+          path: |
+            apps/beastbox-cloud/experiment-evidence/real-ibm-marrakesh-dragon-001/receipt.json
+            apps/beastbox-cloud/experiment-evidence/real-ibm-marrakesh-dragon-001/beast.png
+            apps/beastbox-cloud/experiment-evidence/real-ibm-marrakesh-dragon-001/qbeast.json
+            apps/beastbox-cloud/experiment-evidence/real-ibm-marrakesh-dragon-001/unsigned-session.json
+          retention-days: 30
+          if-no-files-found: error
