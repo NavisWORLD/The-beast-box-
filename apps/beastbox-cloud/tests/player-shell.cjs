@@ -73,6 +73,21 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   assert.equal(await page.evaluate(()=>!!document.fullscreenElement),mode==='fullscreen','mode reports actual Fullscreen API reality');
   assert.equal(await page.evaluate(()=>!document.fullscreenElement||document.fullscreenElement.matches('[data-lost-cosmos-player-shell]')),true,'game AND controls belong to the fullscreen element');
   await continuity('expanded');
+  // Fullscreen owns both native pixels and the real model chat. Do not hide
+  // the composer behind the emulator or unmount it when docking the player.
+  await shell.getByRole('button',{name:/^TALK TO /}).click();
+  const gameComposer=shell.locator('textarea');
+  const draft='Same Beast, same story through the Game Boy.';
+  await gameComposer.fill(draft);
+  await gameComposer.scrollIntoViewIfNeeded();
+  assert.equal(await gameComposer.evaluate(node=>{const rect=node.getBoundingClientRect();return rect.top>=0&&rect.bottom<=innerHeight+2;}),true,'fullscreen conversation composer is viewport-reachable');
+  await shell.getByRole('button',{name:'MINIMIZE',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('[data-lost-cosmos-player-shell]')?.dataset.playerMode==='minimized');
+  await continuity('chat minimized');
+  await shell.getByRole('button',{name:'RESTORE GAME',exact:true}).click();
+  await continuity('chat restored');
+  assert.equal(await gameComposer.inputValue(),draft,'minimize/restore keeps the same unsent message and chat instance');
+  await shell.getByRole('button',{name:'CLOSE TALK',exact:true}).click();
   const resize=async(width,height)=>{
    if(await page.evaluate(()=>!!document.fullscreenElement))await page.evaluate(()=>document.exitFullscreen());
    else if(await shell.getAttribute('data-player-mode')==='immersive')await shell.getByRole('button',{name:'RETURN',exact:true}).click();
