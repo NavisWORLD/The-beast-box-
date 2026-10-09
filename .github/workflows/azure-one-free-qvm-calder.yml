@@ -1,0 +1,38 @@
+name: Azure — One Live Free Rigetti QVM for Calderscale
+on:
+  pull_request:
+    paths:
+      - 'scripts/azure_one_live_rigetti_qvm_calder.py'
+      - '.github/workflows/azure-one-free-qvm-calder.yml'
+permissions:
+  contents: read
+concurrency:
+  group: beastbox-calderscale-azure-qvm-20261009
+  cancel-in-progress: false
+jobs:
+  one-simulator:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/azure-live-qvm-calder-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install QDK Azure and Qiskit adapter
+        run: python -m pip install "qdk[azure,qiskit]"
+      - name: Execute at most one 512-shot simulator job with a fixed remote ID
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+          BEAST_AZURE_QVM_ONE_JOB: YES_ONE_FREE_SIMULATOR
+        run: python scripts/azure_one_live_rigetti_qvm_calder.py
+      - name: Preserve submitted ID, actual simulator counts and failure artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: azure-calderscale-one-qvm-${{ github.run_id }}
+          path: _azure_calder_qvm_001/
+          retention-days: 30
+          if-no-files-found: warn
