@@ -136,7 +136,11 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n,n+2),before),[[0,7,1],[0,7,0]],'keyboard reaches native core after restore');
   before=await core.evaluate(()=>window.__shellInputs.length);await page.keyboard.down('z');await control('A').tap();await page.keyboard.up('z');await core.waitForFunction(n=>window.__shellInputs.length>=n+2,before);
   assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n),before),[[0,8,1],[0,8,0]],'touch release never cancels a keyboard-held A');
-  await shell.getByRole('button',{name:/^TALK TO /}).click();await page.locator('[data-lost-cosmos-player-shell] strong').first().click();
+  await shell.getByRole('button',{name:/^TALK TO /}).click();
+  // Focus a real, keyboard-accessible player target. A nonfocusable <strong>
+  // does not reliably reclaim focus after using Talk in all browser engines.
+  await shell.focus();
+  assert.equal(await shell.evaluate(node=>document.activeElement===node),true,'Game Boy can reclaim keyboard focus from chat controls');
   before=await core.evaluate(()=>window.__shellInputs.length);await page.keyboard.down('ArrowLeft');await shell.locator('textarea').focus();await page.keyboard.up('ArrowLeft');await core.waitForFunction(n=>window.__shellInputs.length>=n+2,before);
   assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n,n+2),before),[[0,6,1],[0,6,0]],'keyup still releases when focus moves into TALK');
   await shell.getByRole('button',{name:'CLOSE TALK',exact:true}).click();
