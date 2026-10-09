@@ -35,6 +35,7 @@ with sync_playwright() as playwright:
             first.wait_for(state="visible",timeout=75000)
             count=room.locator("[data-archive-qbeast-id]").count()
             assert count==24, f"{width}: expected exactly 24 bounded real sprite cards, got {count}"
+            page.wait_for_function("() => { const raw=localStorage.getItem('beastbox-companion-session-v1'); if(!raw)return false; try{return typeof JSON.parse(raw).place==='string'}catch{return false} }",timeout=15000)
             before=page.evaluate("localStorage.getItem('beastbox-companion-session-v1')")
             ids=room.locator("[data-archive-qbeast-id]").evaluate_all("(items)=>items.map(x=>x.dataset.archiveQbeastId)")
             assert len(ids)==len(set(ids)),f"{width}: duplicate example IDs"
