@@ -30,6 +30,7 @@ const sourcePath=process.argv[7]||'/spark/ibm-marrakesh-reality-probe-20261009.j
  page.on('pageerror',e=>errors.push(e.message));
  try{
   await page.goto(root+'/spark/index.html');
+  await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId,null,{timeout:30000});
   // Exercise the real selector rather than bypassing cross-tab/save authority.
   await page.evaluate(async ({snapshot,session})=>{
    const {selectSpark,saveSparkSession,withSparkLock}=await import('/spark/identity.mjs');
