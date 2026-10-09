@@ -1,0 +1,55 @@
+name: Real IBM Fez Emberlet — Native GBA and Recorded Controls
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/tests/real-ibm-fez-dragon-native.cjs'
+      - 'apps/beastbox-cloud/scripts/real-ibm-fez-dragon-experiment.mjs'
+      - '.github/workflows/real-ibm-fez-dragon-native.yml'
+permissions:
+  contents: read
+jobs:
+  emberlet-native-emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Regenerate Emberlet deterministically from immutable real QPU counts
+        run: node scripts/real-ibm-fez-dragon-experiment.mjs
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Install Chromium Playwright test runner
+        run: |
+          npm install --prefix "$RUNNER_TEMP/beast-browser" --no-audit --no-fund playwright@1.55.0
+          "$RUNNER_TEMP/beast-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Start site and play real Emberlet QBEAST in native GBA
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export NODE_PATH="$RUNNER_TEMP/beast-browser/node_modules"
+          evidence="$GITHUB_WORKSPACE/apps/beastbox-cloud/browser-evidence/real-ibm-fez-dragon"
+          mkdir -p "$evidence"
+          npm start -- -H 127.0.0.1 -p 3000 > "$evidence/server.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for n in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node tests/real-ibm-fez-dragon-native.cjs http://127.0.0.1:3000 "$evidence"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: emberlet-native-actual-game-${{ github.run_id }}
+          path: apps/beastbox-cloud/browser-evidence/real-ibm-fez-dragon/
+          retention-days: 30
+          if-no-files-found: warn
