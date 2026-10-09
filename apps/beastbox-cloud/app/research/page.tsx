@@ -111,6 +111,32 @@ export default function ResearchIndex() {
 
         <GodCoreInspector />
 
+        <section className={styles.section} aria-labelledby="hf-substrate-title">
+          <p className={styles.sectionTag}><BrainCircuit size={18} aria-hidden="true" /> 04 / PUBLISHED HUGGING FACE LINEAGE</p>
+          <h2 id="hf-substrate-title">The model can change. <em>The Beast stays.</em></h2>
+          <p>
+            The verified public <strong>phera-ra/QC67_cosmo</strong> research release preserves
+            architecture notes, training lineage, quantum-genesis documentation, a measurement
+            manifest and negative findings. These are source artifacts, not a silent new model
+            installation. Brain Bay only runs a model after the existing provider verifies it;
+            the local Beast stores its identity and permitted memory separately.
+          </p>
+          <div className={styles.links}>
+            <a href="https://huggingface.co/phera-ra/QC67_cosmo" target="_blank" rel="noopener noreferrer">Public model/research release <ArrowUpRight size={14} aria-hidden="true" /></a>
+            <a href="https://huggingface.co/phera-ra/QC67_cosmo/tree/main/architecture" target="_blank" rel="noopener noreferrer">PHOS / CST architecture <ArrowUpRight size={14} aria-hidden="true" /></a>
+            <a href="https://huggingface.co/phera-ra/QC67_cosmo/blob/main/FINDINGS.md" target="_blank" rel="noopener noreferrer">Findings, controls and null results <ArrowUpRight size={14} aria-hidden="true" /></a>
+            <a href="https://huggingface.co/phera-ra/QC67_cosmo/blob/main/QUANTUM_CREATURE.md" target="_blank" rel="noopener noreferrer">Quantum creature genesis notes <ArrowUpRight size={14} aria-hidden="true" /></a>
+            <a href="https://huggingface.co/phera-ra/QC67_cosmo/blob/main/data/quantum_measurements_manifest.json" target="_blank" rel="noopener noreferrer">Measurement manifest <ArrowUpRight size={14} aria-hidden="true" /></a>
+          </div>
+          <p>
+            Inside Lost COSMOS, a connected Brain Bay can now use a bounded summary of the
+            selected Beast&apos;s saved conversations only if its keeper enables memory sharing.
+            Guest chat is still stateless. Game-frame brightness and color signals are
+            opt-in measurements, not full image understanding. No remote model receives
+            QBEAST signing authority or raw camera frames from this feature.
+          </p>
+        </section>
+
         <section className={styles.boundaries} aria-labelledby="bounds-title">
           <h2 id="bounds-title"><ShieldCheck size={22} aria-hidden="true" /> What we are—and are not—claiming</h2>
           <p>

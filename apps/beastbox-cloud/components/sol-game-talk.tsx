@@ -12,6 +12,7 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
   const [busy, setBusy] = useState(false), [status, setStatus] = useState('');
   const [model, setModel] = useState<'guest'|'connected'>('guest');
   const [includeGameView, setIncludeGameView] = useState(false);
+  const [shareMemories, setShareMemories] = useState(false);
   const [viewStatus, setViewStatus] = useState('');
   const [lastReply, setLastReply] = useState('');
   const { audio, state: audioState } = useBeastAudio();
@@ -30,7 +31,7 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
   // A different QBEAST must not inherit the previous creature's draft or reply.
   // Minimizing or temporarily hiding this player is NOT an identity change.
   useEffect(() => {
-    cancel(); setOpen(false); setStatus(''); setText(''); setLastReply(''); setViewStatus('');
+    cancel(); setOpen(false); setStatus(''); setText(''); setLastReply(''); setViewStatus(''); setShareMemories(false);
     return () => { request.current.sequence++; request.current.controller?.abort(); };
   }, [key]);
   // Cancel in-flight calls while the game surface is inactive, but keep the
@@ -53,7 +54,7 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
       if(includeGameView)setViewStatus(observation?.status==='observed'
         ? 'Native pixels sampled (brightness/contrast/color only). No enemy or map detection.'
         : 'Live framebuffer unavailable. No vision data was supplied.');
-      const result = await askGameBeast({ session, saying, model, observation, fetchImpl: fetch, signal: controller.signal });
+      const result = await askGameBeast({ session, saying, model, observation, shareMemories: model==='connected' && shareMemories, fetchImpl: fetch, signal: controller.signal });
       if (sequence !== request.current.sequence || currentKey.current !== expectedKey) return;
       if (controller.signal.aborted) { setStatus('The model request timed out. Your game and Beast are still here.'); return; }
       if (!result.reply) { setStatus(String(result.label).slice(0, 240)); return; }
@@ -100,18 +101,22 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
   if (!ready || !key || !active) return null;
   const button = { minHeight: 44, padding: '9px 12px', border: '1px solid #53718e', borderRadius: 8, background: '#14304a', color: '#b8efff', cursor: 'pointer' };
   return <div data-spark-game-talk data-creature-id={session.beast.qbeast.profile.id} style={{ padding: 10, minWidth: 0, overflowWrap: 'anywhere' }}>
-    <button type="button" style={button} aria-expanded={open} aria-controls={panelId} onClick={() => { if (open) cancel(); setOpen(!open); }}>
+    <button type="button" style={button} aria-expanded={open} aria-controls={panelId} onClick={() => { if (open) { cancel(); setShareMemories(false); setIncludeGameView(false); } setOpen(!open); }}>
       {open ? 'CLOSE TALK' : `TALK TO ${name.toUpperCase()} 💬`}
     </button>
     {open ? <section id={panelId} aria-label={`Talk to ${name}`} style={{ marginTop: 10, padding: 12, background: '#0c192d', border: '1px solid #355570', borderRadius: 10 }}>
       <strong>{name} · same Beast, same Cage</strong>
-      <p style={{ fontSize: 12, color: '#b0c4df', lineHeight: 1.5 }}>Same QBEAST. Use RAWRPHØS guest, or your authenticated connected Brain Bay if available. Native cartridge CHAT remains local authored dialogue; this panel is real model-backed text.</p>
+      <p style={{ fontSize: 12, color: '#b0c4df', lineHeight: 1.5 }}>Same QBEAST. RAWRPHØS guest receives no saved memories. The connected Brain Bay can use at most four local memories only when you explicitly opt in. Native cartridge CHAT remains local authored dialogue; this panel uses actual model output where available.</p>
       <label style={{display:'grid',gap:4,fontSize:12,marginBottom:8}}>Talking brain
-       <select value={model} onChange={event=>setModel(event.target.value==='connected'?'connected':'guest')} style={{minHeight:44,fontSize:16,padding:8,background:'#15253d',color:'#eef7ff'}}>
+       <select value={model} onChange={event=>{const next=event.target.value==='connected'?'connected':'guest';setModel(next);if(next!=='connected')setShareMemories(false);}} style={{minHeight:44,fontSize:16,padding:8,background:'#15253d',color:'#eef7ff'}}>
         <option value="guest">RAWRPHØS · guest</option>
         <option value="connected">My connected Brain Bay · authenticated</option>
        </select>
       </label>
+      {model==='connected'? <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12,lineHeight:1.5,marginBottom:8}}>
+        <input type="checkbox" checked={shareMemories} onChange={event=>setShareMemories(event.target.checked)}/>
+        Share up to four relevant saved Beast memories with this connected Brain Bay only while checked. Off by default; these excerpts may leave your device through your authorized provider.
+      </label>:null}
       <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12,lineHeight:1.5,marginBottom:8}}>
        <input type="checkbox" checked={includeGameView} onChange={event=>setIncludeGameView(event.target.checked)}/>
        Include fresh native pixel signals with each model message (not screenshots or object recognition)
