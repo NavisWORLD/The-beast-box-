@@ -152,3 +152,15 @@ test('memory retrieval excludes unsafe and malformed entries, bounds count and l
  assert.ok(rows.every(x=>!x.includes('suicide')));
  assert.ok(rows.length<=4);
 });
+
+test('game Talk UI does not expose memories to guest and keeps chat through minimize',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const ui=readFileSync(new URL('../components/sol-game-talk.tsx',import.meta.url),'utf8');
+ assert.match(ui,/shareMemories: model==='connected' && shareMemories/);
+ assert.match(ui,/model==='connected'\? <label/);
+ assert.match(ui,/checked=\{shareMemories\}/);
+ assert.match(ui,/setShareMemories\(false\)/);
+ assert.match(ui,/if \(!active\) cancel\(\)/);
+ assert.match(ui,/\}, \[key\]\);/);
+ assert.doesNotMatch(ui,/\}, \[key, active\]\);/);
+});
