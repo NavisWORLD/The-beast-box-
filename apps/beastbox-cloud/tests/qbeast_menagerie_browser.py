@@ -22,6 +22,9 @@ with sync_playwright() as playwright:
     try:
         for width,height in [(320,720),(375,812),(390,844),(430,932),(1280,900)]:
             context=browser.new_context(viewport={"width":width,"height":height},reduced_motion="reduce",device_scale_factor=1)
+            # Test read-only gallery browsing with the real activity-pause setting.
+            # Automatic behavior ticks are independent of gallery interactions.
+            context.add_init_script("localStorage.setItem('beastbox-behavior-paused-v1', 'true')")
             page=context.new_page()
             errors=[]
             page.on("pageerror",lambda error:errors.append(str(error)))
