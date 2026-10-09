@@ -1,0 +1,36 @@
+name: Single Spark Beast — recorded IBM genesis and Rigetti QVM replay
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/scripts/single-beast-spark-experiment.mjs'
+      - '.github/workflows/one-beast-spark-experiment.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  one-beast-no-cloud-spend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run existing genome, QBEAST, archived Rigetti simulator and God Core
+        run: node apps/beastbox-cloud/scripts/single-beast-spark-experiment.mjs
+      - name: Verify actual experiment evidence
+        run: |
+          node -e "const r=require('./apps/beastbox-cloud/experiment-evidence/one-beast-spark-001/receipt.json');if(!r.acceptance.repeat_genome_exact||!r.acceptance.save_load_replay_exact||r.provenance.quantum_hardware_jobs_submitted!==0||r.provenance.azure_jobs_submitted!==0||r.provenance.azure_db_writes!==0||r.observed.trace_samples.length<10)process.exit(1); console.log('PASS: recorded-source Beast, QVM simulator pulses, 90 genuine God Core ticks and exact replay; no external jobs');"
+      - name: Upload Beast portrait, source and behavioral trace
+        uses: actions/upload-artifact@v4
+        with:
+          name: one-beast-spark-genesis-${{ github.run_id }}
+          path: |
+            apps/beastbox-cloud/experiment-evidence/one-beast-spark-001/receipt.json
+            apps/beastbox-cloud/experiment-evidence/one-beast-spark-001/beast.png
+            apps/beastbox-cloud/experiment-evidence/one-beast-spark-001/qbeast.json
+            apps/beastbox-cloud/experiment-evidence/one-beast-spark-001/unsigned-session.json
+          retention-days: 30
+          if-no-files-found: error

@@ -30,7 +30,7 @@ export default function QbeastMenagerie(){
  const [family,setFamily]=useState('all');
  useEffect(()=>{
   let cancelled=false;
-  void loadSparkRuns().then(runs=>{
+  void loadSparkRuns({includeNewHardware:true}).then(runs=>{
    if(cancelled)return;
    setArchiveRuns(runs);setStatus(runs.length?'ready':'unavailable');
   }).catch(()=>{if(!cancelled)setStatus('unavailable');});

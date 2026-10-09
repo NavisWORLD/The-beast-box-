@@ -47,7 +47,7 @@ export function BeastSessionProvider({children}:{children:React.ReactNode}){
    let next:any=importSession(stored);
    try{
     if(next.beast?.qbeast){
-     const runs=await loadSparkRuns({includeQvm:true});if(cancelled)return;
+     const runs=await loadSparkRuns({includeQvm:true,includeNewHardware:true});if(cancelled)return;
      // Archive loading is asynchronous: re-read instead of resurrecting stale state.
      next=await withSparkLock(()=>recovering?recoverMirroredSession(localStorage,stored,new Map(runs.map((run:any)=>[run.key,run]))):readSparkSession(localStorage));
      if(next.beast?.qbeast){const replay=replaySpark(serializeQbeast(next.beast.qbeast),new Map(runs.map((run:any)=>[run.key,run])));next.beast.genome=replay.gen;next.beast.stage=next.beast.nativeStage||1;}

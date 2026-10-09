@@ -62,9 +62,9 @@ def run():
     if not connection:
         raise RuntimeError("GitHub Actions secret AZURE_QUANTUM_CONNECTION_STRING is absent")
     from qdk.azure import Workspace
-    # Microsoft QDK supports this exact environment variable, so no need to
-    # parse/reprint the connection string or forward it anywhere else.
-    workspace = Workspace()
+    # The actual successful QDK probe used explicit connection-string auth.
+    # Keep the existing sanitized receipt and never print or parse credentials.
+    workspace = Workspace.from_connection_string(connection)
     return receipt_for(workspace.get_targets())
 
 

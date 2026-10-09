@@ -15,6 +15,10 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   const buttons=Array.from({length:16},()=>({pressed:false,value:0}));window.__testPad={id:'Standard Gamepad API fixture',index:0,connected:true,mapping:'standard',timestamp:0,buttons,axes:[0,0]};
   Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>[window.__testPad]});
   window.__shellMessages=[];window.addEventListener('message',event=>{if(event.origin==='https://navisworld.github.io'&&event.data?.type?.startsWith('sol-spark-'))window.__shellMessages.push(event.data);});
+  window.__focusInputTrace=[];
+  for(const type of ['focusin','focusout','keydown','keyup','beastbox:gba-input','beastbox:gba-release']){
+   window.addEventListener(type,event=>{window.__focusInputTrace.push({type:event.type,target:event.target?.tagName,key:event.key,trusted:event.isTrusted,detail:event.detail});window.__focusInputTrace=window.__focusInputTrace.slice(-80);},true);
+  }
  });
  const page=await context.newPage(),errors=[],romRequests=[];
  page.on('pageerror',error=>errors.push(error.message));page.on('request',request=>{if(request.url().includes('/rom/lost-cosmos.gba'))romRequests.push(request.url());});
@@ -148,7 +152,9 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   await shell.locator('textarea').focus();
   // Release must reach the native core as soon as an editor takes focus.
   // Never depend on an eventual keyup being delivered to the original target.
-  await core.waitForFunction(n=>window.__shellInputs.length>=n+2,before);
+  try{await core.waitForFunction(n=>window.__shellInputs.length>=n+2,before);}catch(error){
+   console.log('FOCUS_RELEASE_DIAGNOSTIC '+JSON.stringify({page:await page.evaluate(()=>({active:document.activeElement?.outerHTML?.slice(0,300),hasFocus:document.hasFocus(),trace:window.__focusInputTrace})),native:await core.evaluate(()=>window.__shellInputs.slice(-16))}));throw error;
+  }
   await page.keyboard.up('ArrowLeft');
   assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n),before),[[0,6,1],[0,6,0]],'focus transfer releases held native Left exactly once, even after keyboard up');
   await shell.getByRole('button',{name:'CLOSE TALK',exact:true}).click();

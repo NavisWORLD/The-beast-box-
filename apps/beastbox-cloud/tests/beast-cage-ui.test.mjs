@@ -182,7 +182,8 @@ test('public Beast generator loads all sanitized seed shards and never ships raw
   assert.doesNotMatch(raw,/QuantumCircuit|user_id|BEGIN PRIVATE|authorization|api[_ -]?key/i);
  }
  assert.equal(total,96);
- assert.match(app,/loadSparkRuns\(\)/);
+ assert.match(app,/loadSparkRuns\(\{includeNewHardware:true\}\)/);
+ assert.match(read('public/spark/runs.mjs'),/MARRAKESH_HARDWARE_PATH/);
  assert.match(app,/num_bits>=2/);
  assert.match(read('public/spark/runs.mjs'),/user-seeds-20261004\.json/);
  assert.match(spark,/sameSpark\?runs\.find/);

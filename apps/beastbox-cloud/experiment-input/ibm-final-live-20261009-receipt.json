@@ -1,0 +1,55 @@
+{
+  "backend_name": "ibm_fez",
+  "beast_genesis_digest_sha256": "50981b4feb3624c5d876b2e4bce163a30cb5265c50184f133b45dafe3de28e1c",
+  "counts_digest_sha256": "cf0a4973c0dbc074fc11a6bc7ce8439ecd61248c1a5c96a63571725c61e8b25b",
+  "expectations": {
+    "bell_XX": 0.89892578125,
+    "bell_ZZ": 0.8720703125,
+    "decoupled_XX": 0.04150390625,
+    "decoupled_ZZ": 0.00146484375
+  },
+  "fresh_hardware_jobs_submitted_this_attempt": 0,
+  "hardware_metrics": {
+    "quantum_seconds": null
+  },
+  "job_id": "db4m3bslf4us73c2ui9g",
+  "job_status": "DONE",
+  "measurements": {
+    "bell_xx": {
+      "10": 74,
+      "11": 1835,
+      "00": 2054,
+      "01": 133
+    },
+    "bell_zz": {
+      "10": 134,
+      "11": 1848,
+      "00": 1986,
+      "01": 128
+    },
+    "decoupled_xx": {
+      "10": 1957,
+      "11": 4,
+      "00": 2129,
+      "01": 6
+    },
+    "decoupled_zz": {
+      "10": 11,
+      "11": 8,
+      "00": 2043,
+      "01": 2034
+    }
+  },
+  "notice": "Authenticated read-only recovery of completed physical job; no new submission.",
+  "observed_utc": "2026-10-09T21:54:49.264716+00:00",
+  "qpu_job_limit_seconds": 120,
+  "schema": "navisworld-ibm-longer-onejob-physics-receipt-v1",
+  "shot_count": 16384,
+  "source_actions_run_id": 37995804292,
+  "source_class": "RECORDED_IBM_HARDWARE",
+  "study_limitations": [
+    "Two-basis correlations do not establish CHSH violation or a full state vector.",
+    "Control omits CX; no dynamical decoupling claim.",
+    "Creature state and conversation use classical software."
+  ]
+}

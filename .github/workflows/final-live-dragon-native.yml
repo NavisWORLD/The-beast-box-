@@ -1,0 +1,62 @@
+name: Fresh IBM Azure Umbrascale genesis and real native gameplay
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/scripts/final-live-dragon-experiment.mjs'
+      - 'apps/beastbox-cloud/experiment-input/ibm-final-live-20261009-receipt.json'
+      - 'apps/beastbox-cloud/public/spark/ibm-final-live-reality-probe-20261009.json'
+      - 'apps/beastbox-cloud/public/spark/azure-final-ibm-qvm-20261009.json'
+      - '.github/workflows/final-live-dragon-native.yml'
+permissions:
+  contents: read
+jobs:
+  measured-dragon-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Run source, identity, stimulus and replay acceptance
+        run: node --test tests/final-live-dragon-receipt.test.mjs tests/recorded-qvm-stimulus.test.mjs tests/spark-source-registry.test.mjs
+      - name: Generate the fresh IBM and Azure measurement-derived dragon
+        run: node scripts/final-live-dragon-experiment.mjs
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Install browser
+        run: |
+          npm install --prefix "$RUNNER_TEMP/final-browser" --no-audit --no-fund playwright@1.55.0
+          "$RUNNER_TEMP/final-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Boot the existing native cartridge and record actual controls
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export NODE_PATH="$RUNNER_TEMP/final-browser/node_modules"
+          evidence="$GITHUB_WORKSPACE/apps/beastbox-cloud/browser-evidence/final-umbrascale"
+          mkdir -p "$evidence"
+          npm start -- -H 127.0.0.1 -p 3000 > "$evidence/server.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for n in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node tests/marrakesh-dragon-native.cjs http://127.0.0.1:3000 "$evidence" experiment-evidence/final-live-umbrascale-001 bb-8546076e db4m3bslf4us73c2ui9g /spark/ibm-final-live-reality-probe-20261009.json
+      - name: Preserve actual generation, trace, save, screenshot and video
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-umbrascale-native-${{ github.run_id }}
+          path: |
+            apps/beastbox-cloud/experiment-evidence/final-live-umbrascale-001/
+            apps/beastbox-cloud/browser-evidence/final-umbrascale/
+          retention-days: 30
+          if-no-files-found: warn
