@@ -17,7 +17,7 @@ export const BASE_REVISION='aab168e607e5b9a896ead547bfeb88ffc499ccff';
 export const STAGE015_REVISION='cd5d9321cb30f5327d14bbdd3f71751b630d81a3';
 const DEFAULT_ROOT=fileURLToPath(new URL('../',import.meta.url));
 const PUBLIC_ROOT='apps/beastbox-cloud/public';
-const OUTPUT='experiments/beast-awakens-001/genesis';
+const OUTPUT='evidence/beast-awakens-001/genesis';
 const MAX_EVIDENCE_BYTES=16*1024*1024;
 const codePaths=[
  'scripts/audit-creature-genesis.mjs',

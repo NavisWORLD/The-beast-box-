@@ -16,7 +16,7 @@ import {observeText,recallAssociations,ASSOCIATION_LIMITS} from '../apps/beastbo
 import {runGodCoreExperiment} from '../apps/beastbox-cloud/scripts/god-core-experiments.mjs';
 
 const ROOT=fileURLToPath(new URL('../',import.meta.url));
-const APP='apps/beastbox-cloud/',OUTPUT='experiments/hf-genesis-001';
+const APP='apps/beastbox-cloud/',OUTPUT='evidence/hf-genesis-001';
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const hash=x=>sha(canonicalJson(x));
 const same=(a,b)=>canonicalJson(a)===canonicalJson(b);

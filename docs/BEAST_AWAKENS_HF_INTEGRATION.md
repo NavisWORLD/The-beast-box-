@@ -11,7 +11,7 @@ The connected account identified itself as `phera-ra`. Its public model listing
 returned `phera-ra/QC67_cosmo`; this is not an inventory of private repositories.
 Thirty selected source/artifact files were downloaded read-only at revision
 [`b414724c627300c41b099dcc6853766d08fd27a4`](https://huggingface.co/phera-ra/QC67_cosmo/tree/b414724c627300c41b099dcc6853766d08fd27a4).
-Every selected byte hash is retained in the [source manifest](../experiments/hf-genesis-001/source-manifest.json)
+Every selected byte hash is retained in the [source manifest](../evidence/hf-genesis-001/source-manifest.json)
 and was checked by the [audit script](../scripts/audit-huggingface-genesis.mjs).
 No Python creation loop, cloud-heart integration, training job or quantum job was run.
 
@@ -32,8 +32,8 @@ explicit installed loopback Ollama tag. Selecting a provider sends no message;
 only an explicit typed message invokes it. An unavailable provider leaves the
 same Beast present and labels the pattern fallback as a non-model response.
 
-HF framework code has Cory Davis's proprietary license; the pinned notice also
-identifies separately licensed research and citation
+HF framework code carries a separate Cory Davis license, distinct from Beast
+Box's Apache-2.0 license; the pinned notice also identifies research and citation
 [10.5281/zenodo.17574447](https://doi.org/10.5281/zenodo.17574447).
 This integration does not redistribute the entire engine, stored identities,
 keys or weights or claim to relicense them. New bounded browser code implements
@@ -117,9 +117,9 @@ identity or scientific authority.
 
 ## Fresh controlled experiment
 
-[Machine results](../experiments/hf-genesis-001/results.json),
-[complete decisions](../experiments/hf-genesis-001/events.jsonl.gz) and
-[initial/checkpoint/final states](../experiments/hf-genesis-001/states.jsonl.gz)
+[Machine results](../evidence/hf-genesis-001/results.json),
+[complete decisions](../evidence/hf-genesis-001/events.jsonl.gz) and
+[initial/checkpoint/final states](../evidence/hf-genesis-001/states.jsonl.gz)
 include source/code hashes, protocol, genesis digests, failures/limitations and
 the preserved source-baseline comparison.
 

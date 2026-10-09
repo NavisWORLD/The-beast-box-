@@ -7,7 +7,7 @@ import {canonicalJson} from '../apps/beastbox-cloud/public/spark/genome.mjs';
 import {loadGenesisSources} from './audit-creature-genesis.mjs';
 const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const sha=b=>createHash('sha256').update(b).digest('hex');
-const manifestPath=resolve(ROOT,'experiments/hf-genesis-001/source-manifest.json');
+const manifestPath=resolve(ROOT,'evidence/hf-genesis-001/source-manifest.json');
 export async function auditHuggingFace({sourceDir='/tmp/beast-hf-qc67',fetchSources=false}={}){
  const manifest=JSON.parse(readFileSync(manifestPath));
  if(manifest.repository!=='phera-ra/QC67_cosmo'||manifest.revision!=='b414724c627300c41b099dcc6853766d08fd27a4')throw Error('Unexpected source pin.');
@@ -59,7 +59,7 @@ export async function auditHuggingFace({sourceDir='/tmp/beast-hf-qc67',fetchSour
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const index=process.argv.indexOf('--source-dir'),sourceDir=index>=0?process.argv[index+1]:undefined;
  const report=await auditHuggingFace({sourceDir,fetchSources:process.argv.includes('--fetch')});
- const text=JSON.stringify(report,null,2)+'\n',path=resolve(ROOT,'experiments/hf-genesis-001/source-audit.json');
+ const text=JSON.stringify(report,null,2)+'\n',path=resolve(ROOT,'evidence/hf-genesis-001/source-audit.json');
  if(process.argv.includes('--write'))writeFileSync(path,text);
  if(process.argv.includes('--check')&&readFileSync(path,'utf8')!==text)throw Error('Pinned source audit does not reproduce.');
  console.log(JSON.stringify({records:report.archive.records,classes:report.archive.classes,shots:report.archive.shots,overlap:report.overlap,sha256:sha(text)}));
