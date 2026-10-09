@@ -26,13 +26,36 @@ const job='71cf7c02-c435-11f1-ae67-7ced8d52b5e1',id='bb-d41e5bd4';
   result.one_shot_behavior_tick=after.tick;
   result.tests.push('Azure duplicate signal refused additional behavior advancement');
   await page.screenshot({path:path.join(dir,'real-pistonwyrm-on-spark.png'),fullPage:true});
+  // The native emulator is hosted from the separate Cosmic Synapse GitHub Pages
+  // repository. Refuse to claim integration before its immutable recorded-run
+  // admission table is actually published. Do not bypass verification.
+  const cartridgeSource='https://navisworld.github.io/Cosmic-synapse-the-living-universe-sim-engine-/arcade/spark-beasts/data/ibm-pistonwyrm-20261009-supplement.json';
+  let nativeSourceReady=false;
+  for(let attempt=0;attempt<60;attempt++){
+   try{
+    const fetched=await page.request.get(cartridgeSource,{timeout:12000});
+    if(fetched.ok()){
+     const data=await fetched.json();
+     if(data.job_id==='db4n37g4qg6s73c2de00'&&data.counts_digest_sha256==='d084218f57511e33070fbbf82a055d74bf77636b6c07eaa82bd6f1d1208a18d9'){
+      nativeSourceReady=true;break;
+     }
+    }
+   }catch{/* deployment propagation can lag */}
+   await page.waitForTimeout(5000);
+  }
+  assert.ok(nativeSourceReady,'Real GitHub Pages native cartridge table has not deployed verified Pistonwyrm IBM source');
+  result.tests.push('Actual GitHub Pages native cartridge source table recognizes pinned IBM digest');
   response=await page.goto(base+'/sol-game');assert.equal(response.status(),200);
   const shell=page.locator('[data-lost-cosmos-player-shell]');
   const send=shell.getByRole('button',{name:'SEND BEAST',exact:true});
   await send.waitFor({timeout:45000});
   await page.waitForFunction(()=>{let b=[...document.querySelectorAll('button')].find(x=>x.textContent?.trim()==='SEND BEAST');return b&&!b.disabled;},null,{timeout:30000});
   await send.click();
-  await shell.getByRole('status').filter({hasText:'same Beast verified'}).waitFor({timeout:30000});
+  try{await shell.getByRole('status').filter({hasText:'same Beast verified'}).waitFor({timeout:30000});}
+  catch(e){
+   const statuses=await shell.getByRole('status').allTextContents();
+   throw Error('Native cartridge denied the measured dragon: '+JSON.stringify({statuses,sourceReady:nativeSourceReady})+' '+String(e));
+  }
   await shell.getByRole('button',{name:'START LOST COSMOS',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('[data-lost-cosmos-player-shell]')?.dataset.running==='true',null,{timeout:90000});
   const core=page.frames().find(f=>f.url().includes('/sol-spark-gate/handheld.html'));assert.ok(core,'real GBA not mounted');
