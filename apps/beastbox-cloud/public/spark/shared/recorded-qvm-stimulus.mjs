@@ -5,11 +5,14 @@ import {sha256Hex} from './qpack/sha.mjs';
 const APPROVED=[
  {job:'dc9a1e78-c423-11f1-ae67-e4fade257188',digest:'b3b53db7eb47e7c70fa94aeea1f7c1532a8db7bf5215b3f324cbf339e9d69370',run:37989851630,keys:['00','11']},
  {job:'32d6fc6c-c42d-11f1-ae67-000d3ad41960',digest:'0960953da112ef2ba6e769354d42842b584e7cd3913d02c2d33461fdadfbf347',run:37996938703,keys:['00','01','10','11']},
+ {job:'71cf7c02-c435-11f1-ae67-7ced8d52b5e1',digest:'e559902784bf212d9cd86e1a887bbb69bac908c195133ff3e026b7e695a8db82',run:38002300373,keys:['00','01','10','11']},
 ];
 const MARKER='beastbox-recorded-qvm-input-v1';
 const sameKeys=(object,keys)=>object&&typeof object==='object'&&!Array.isArray(object)&&canonicalJson(Object.keys(object).sort())===canonicalJson([...keys].sort());
 export function recordedQvmStimulusPath(beast){
- return /^db4m3bslf4us73c2ui9g:bell-(xx|zz)$/.test(beast?.genome?.inputs?.quantum_run||'')?'/spark/azure-final-ibm-qvm-20261009.json':'/spark/azure-rigetti-qvm-20261009.json';
+ const source=beast?.genome?.inputs?.quantum_run||'';
+ if(/^db4n37g4qg6s73c2de00:bell-(xx|zz)$/.test(source))return '/spark/azure-second-final-ibm-qvm-20261009.json';
+ return /^db4m3bslf4us73c2ui9g:bell-(xx|zz)$/.test(source)?'/spark/azure-final-ibm-qvm-20261009.json':'/spark/azure-rigetti-qvm-20261009.json';
 }
 export function validateRecordedQvmStimulus(receipt){
  const spec=APPROVED.find(row=>row.job===receipt?.job_id);

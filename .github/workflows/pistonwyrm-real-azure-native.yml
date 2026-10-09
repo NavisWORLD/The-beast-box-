@@ -1,0 +1,78 @@
+name: Pistonwyrm real IBM Azure stimulus and native game acceptance
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/public/spark/**'
+      - 'apps/beastbox-cloud/lib/companion/recorded-qvm-stimulus.mjs'
+      - 'apps/beastbox-cloud/scripts/pistonwyrm-live-ibm-azure-behavior.mjs'
+      - 'apps/beastbox-cloud/tests/pistonwyrm-native-azure-e2e.cjs'
+      - '.github/workflows/pistonwyrm-real-azure-native.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  genuine-pistonwyrm:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 32
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Reuse actual Pistonwyrm physical IBM receipt, genome, sprite and exact session
+        uses: actions/download-artifact@v4
+        with:
+          name: second-final-real-ibm-dragon-38001957043
+          run-id: 38001957043
+          github-token: ${{ github.token }}
+          path: .
+      - name: Read original fresh Azure Rigetti QVM simulator result
+        uses: actions/download-artifact@v4
+        with:
+          name: pistonwyrm-live-azure-qvm-38002300373
+          run-id: 38002300373
+          github-token: ${{ github.token }}
+          path: _azure_second_final_dragon_20261009
+      - name: Check experimental receipt integrity and one-shot behavior update
+        run: |
+          node scripts/pistonwyrm-live-ibm-azure-behavior.mjs
+          node --test tests/recorded-qvm-stimulus.test.mjs tests/spark-source-registry.test.mjs
+      - name: Build existing production app without a new creature engine
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Install real browser
+        run: |
+          npm install --prefix "$RUNNER_TEMP/piston-browser" --no-audit --no-fund playwright@1.55.0
+          "$RUNNER_TEMP/piston-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Use public Spark to generate Pistonwyrm, apply recorded Azure once, boot actual cartridge, save and play
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export NODE_PATH="$RUNNER_TEMP/piston-browser/node_modules"
+          evidence="$GITHUB_WORKSPACE/apps/beastbox-cloud/browser-evidence/pistonwyrm-integration"
+          mkdir -p "$evidence"
+          npm start -- -H 127.0.0.1 -p 3000 > "$evidence/server.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for n in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/spark/index.html >/dev/null; then break; fi
+            sleep 1
+          done
+          node tests/pistonwyrm-native-azure-e2e.cjs http://127.0.0.1:3000 "$evidence"
+      - name: Preserve source hashes, real creature behavior, actual native screenshots and video
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pistonwyrm-ibm-azure-native-proof-${{ github.run_id }}
+          path: |
+            apps/beastbox-cloud/experiment-evidence/pistonwyrm-azure-core-20261009/
+            apps/beastbox-cloud/browser-evidence/pistonwyrm-integration/
+          retention-days: 30
+          if-no-files-found: warn
