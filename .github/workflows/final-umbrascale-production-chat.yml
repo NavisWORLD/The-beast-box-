@@ -1,0 +1,43 @@
+name: Final Umbrascale actual production game and model recording
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/final-umbrascale-production-chat.yml'
+      - 'apps/beastbox-cloud/tests/umbrascale-production-chat.cjs'
+permissions:
+  contents: read
+jobs:
+  production-game-chat:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Generate pinned measured dragon and exact portable session
+        run: node scripts/final-live-dragon-experiment.mjs
+      - name: Install genuine browser
+        run: |
+          npm install --prefix "$RUNNER_TEMP/production-browser" --no-audit --no-fund playwright@1.55.0
+          "$RUNNER_TEMP/production-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Exercise live production, native game, three real guest model conversations
+        run: |
+          export NODE_PATH="$RUNNER_TEMP/production-browser/node_modules"
+          node tests/umbrascale-production-chat.cjs
+      - name: Preserve real network, gameplay, chat transcript, screenshot, and video evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-umbrascale-real-game-chat-${{ github.run_id }}
+          path: |
+            apps/beastbox-cloud/browser-evidence/final-umbrascale-production/
+          retention-days: 30
+          if-no-files-found: warn
