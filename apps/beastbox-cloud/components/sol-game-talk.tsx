@@ -27,10 +27,17 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
     setBusy(false);
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
   }
+  // A different QBEAST must not inherit the previous creature's draft or reply.
+  // Minimizing or temporarily hiding this player is NOT an identity change.
   useEffect(() => {
     cancel(); setOpen(false); setStatus(''); setText(''); setLastReply(''); setViewStatus('');
     return () => { request.current.sequence++; request.current.controller?.abort(); };
-  }, [key, active]);
+  }, [key]);
+  // Cancel in-flight calls while the game surface is inactive, but keep the
+  // draft, completed reply, model choice and open state for instant restore.
+  useEffect(() => {
+    if (!active) cancel();
+  }, [active]);
 
   async function send(event: React.FormEvent) {
     event.preventDefault();
