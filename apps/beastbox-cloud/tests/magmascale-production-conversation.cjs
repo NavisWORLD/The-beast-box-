@@ -45,6 +45,19 @@ const specs=[
     await panel.waitFor({timeout:35000});
     assert.equal(await panel.getAttribute('data-creature-id'),spec.id,'Wrong QBEAST in game dialogue panel');
     await panel.getByRole('button',{name:/TALK TO .*💬/}).click();
+    // Optional grounded browser vision: numerical native pixels only, never pretend
+    // the tiny model recognized game objects. Record denial/failure accurately.
+    try{
+     const check=panel.getByLabel('Include fresh native pixel signals with each model message (not screenshots or object recognition)');
+     await check.check({timeout:6500});
+     report.optical_consent=await check.isChecked();
+    }catch(error){report.optical_consent=false;report.optical_error=String(error).slice(0,260);}
+    if(report.optical_consent){
+     try{
+      await panel.getByRole('button',{name:/LOOK AT GAME/}).click();
+      report.optical_status=(await panel.locator('p[role="status"]').allTextContents()).filter(Boolean).join(' | ').slice(0,600);
+     }catch(error){report.optical_status='Native pixel observation failed: '+String(error).slice(0,160);}
+    } else report.optical_status='Explicit native-frame opt-in unavailable. No visual evidence passed to the hosted model.';
     const sayings=[
       'Hello '+spec.name+'. You have just sparked into Lost COSMOS from recorded physical IBM measurements. What would you like to explore?',
       'I am here playing alongside you. What do you know about our game, and what should we try together next?',
