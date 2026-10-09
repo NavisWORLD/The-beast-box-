@@ -1,0 +1,25 @@
+/** Generate a new QBEAST only after IBM confirms 16,384 real measured shots. */
+import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
+import {resolve,dirname,join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {runRealIBMDragonExperiment} from './real-ibm-marrakesh-dragon-experiment.mjs';
+import {serializeQbeast} from '../public/spark/qbeast.mjs';
+import {exportSession} from '../lib/companion/session.mjs';
+const DIR=dirname(fileURLToPath(import.meta.url));
+const file=resolve(DIR,'../../../_ibm_third_final_dragon_20261009/measurement_receipt.json');
+const hardware=JSON.parse(readFileSync(file,'utf8'));
+if(hardware.source_class!=='RECORDED_IBM_HARDWARE'||hardware.job_status!=='DONE'||hardware.shot_count!==16384)throw Error('Fresh complete IBM hardware is mandatory; no fallback to a previous dragon');
+if(['db4n37g4qg6s73c2de00','db4m3bslf4us73c2ui9g'].includes(hardware.job_id))throw Error('Existing dragon IBM job is not a new birth');
+const {output,portrait,qbeast,session}=runRealIBMDragonExperiment({keeperPrefix:'Final-gen3-',hardwareReceipt:hardware});
+if(output.provenance.genesis_job!==hardware.job_id||!output.acceptance.save_load_replay_exact||output.qbeast.id!==qbeast.profile.id)throw Error('Measured seed, memory or save-replay verification failed');
+output.schema='beastbox-third-unique-real-ibm-dragon-v1';
+output.protocol.new_azure_qvm='WAITING_FOR_ACTUAL_FRESH_CLOUD_RUN';
+output.protocol.hosted_model_conversation='WAITING_FOR_ACTUAL_FRESH_HOSTED_RUN';
+output.protocol.public_native_cartridge='WAITING_FOR_VERIFIED_SOURCE_ADMISSION';
+output.protocol.randomness_claim='IBM sampled bit counts seed deterministic dragonling-conditioned search, not unbiased organism draw';
+const out=resolve(DIR,'../experiment-evidence/third-final-real-dragon-20261009');mkdirSync(out,{recursive:true});
+writeFileSync(join(out,'receipt.json'),JSON.stringify(output,null,2)+'\n');
+writeFileSync(join(out,'beast.png'),portrait);
+writeFileSync(join(out,'qbeast.json'),serializeQbeast(qbeast));
+writeFileSync(join(out,'unsigned-session.json'),JSON.stringify(exportSession(session),null,2)+'\n');
+console.log('THIRD_REAL_IBM_DRAGON '+JSON.stringify({name:output.genome.name,qbeast_id:output.qbeast.id,ibm_job:hardware.job_id,backend:hardware.backend_name,shots:hardware.shot_count,actions:output.observed.action_counts,local_pattern_conversations:output.conversation.turns.length,save_replay:output.acceptance.save_load_replay_exact,azure:output.protocol.new_azure_qvm}));
