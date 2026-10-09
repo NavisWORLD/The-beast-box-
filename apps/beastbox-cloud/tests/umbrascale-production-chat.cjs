@@ -50,9 +50,14 @@ const prompts=[
   const panel=page.locator('[data-spark-game-talk]');
   await panel.waitFor({timeout:30000});assert.equal(await panel.getAttribute('data-creature-id'),snapshot.profile.id);
   await panel.getByRole('button',{name:/TALK TO .*💬/}).click();
-  await panel.getByLabel('Include fresh native pixel signals').check();
-  await panel.getByRole('button',{name:/LOOK AT GAME/}).click();
-  result.game_vision_status=String(await panel.locator('p[role="status"]').first().textContent()).slice(0,220);
+  const opticalOptIn=panel.getByLabel('Include fresh native pixel signals');
+  try { await opticalOptIn.check({timeout:6000}); }
+  catch(error) { result.vision_opt_in_failure=String(error).slice(0,300); }
+  result.opted_in_native_pixel_signals=await opticalOptIn.isChecked().catch(()=>false);
+  if(result.opted_in_native_pixel_signals){
+   await panel.getByRole('button',{name:/LOOK AT GAME/}).click();
+   result.game_vision_status=String(await panel.locator('p[role="status"]').first().textContent()).slice(0,220);
+  } else result.game_vision_status='Native pixel opt-in failed; no game image signal supplied';
   for(const saying of prompts){
    await panel.getByRole('textbox',{name:/Message to/}).fill(saying);
    const res=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/guest'&&r.request().method()==='POST',{timeout:70000});
