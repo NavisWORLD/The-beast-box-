@@ -1,0 +1,58 @@
+name: Pistonwyrm final IBM source - one fresh Azure Rigetti QVM
+on:
+  pull_request:
+    paths:
+      - 'scripts/azure_second_final_qvm.py'
+      - '.github/workflows/second-final-ibm-azure-qvm.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: final-second-ibm-azure-qvm-onejob-20261009
+  cancel-in-progress: false
+jobs:
+  second-dragon-qvm:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/final-second-ibm-azure-qvm-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Retrieve exact successful physical source (no new IBM job)
+        uses: actions/download-artifact@v4
+        with:
+          name: second-final-real-ibm-dragon-38001957043
+          run-id: 38001957043
+          github-token: ${{ github.token }}
+          path: .
+      - name: Refuse missing or mismatched source before cloud access
+        run: |
+          PYTHONPATH=scripts python - <<'PY'
+          import json
+          from pathlib import Path
+          from azure_second_final_qvm import verify
+          source=Path('_ibm_second_final_dragon_20261009/measurement_receipt.json')
+          receipt=json.loads(source.read_text())
+          verify(receipt)
+          print('VERIFIED_PHYSICAL_IBM_SOURCE='+receipt['job_id'])
+          PY
+      - name: Install official Azure Quantum client
+        run: python -m pip install 'qdk[azure]'
+      - name: Execute or recover exactly one genuine cloud simulator job
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+          BEAST_AZURE_QVM_ONE_JOB: YES_ONE_FREE_SIMULATOR
+        run: PYTHONPATH=scripts python scripts/azure_second_final_qvm.py
+      - name: Archive actual Azure submission and measured simulator counts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pistonwyrm-live-azure-qvm-${{ github.run_id }}
+          path: |
+            _azure_second_final_dragon_20261009/
+          retention-days: 30
+          if-no-files-found: warn
