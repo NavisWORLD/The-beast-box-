@@ -1,0 +1,55 @@
+# One owner-authorized fresh Open Plan QPU job. Stable tag ensures retries recover.
+name: Second Final Real IBM Dragon - One Guarded QPU Genesis
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/second-final-ibm-dragon.yml'
+      - 'scripts/final_second_ibm_dragon_20261009.py'
+      - 'apps/beastbox-cloud/scripts/second-final-real-dragon-20261009.mjs'
+permissions:
+  contents: read
+concurrency:
+  group: navisworld-second-final-ibm-dragon-20261009-single-hardware-job
+  cancel-in-progress: false
+jobs:
+  second-final-real-ibm:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/final-second-real-ibm-dragon-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 48
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate hard Open Plan quota and probe safety
+        run: python -m unittest discover -s tests -p test_ibm_open_plan_preflight.py -v
+      - name: Install official IBM Runtime
+        run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+      - name: ONE real hardware submission or exact-tag read-only recovery
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_REAL_QPU_ONE_JOB: YES_ONE_REAL_JOB
+        run: PYTHONPATH=scripts python scripts/final_second_ibm_dragon_20261009.py
+      - name: Generate a brand new measured dragon, run behavior, local talk and exact save
+        run: node apps/beastbox-cloud/scripts/second-final-real-dragon-20261009.mjs
+      - name: Recheck cumulative physical hardware usage
+        if: success()
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py
+      - name: Archive unchanged counts, job ID, full creature trace, sprite and portable session
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: second-final-real-ibm-dragon-${{ github.run_id }}
+          path: |
+            _ibm_second_final_dragon_20261009/
+            _ibm_open_plan_preflight/receipt.json
+            apps/beastbox-cloud/experiment-evidence/second-final-real-dragon-20261009/
+          retention-days: 30
+          if-no-files-found: warn
