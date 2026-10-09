@@ -1,0 +1,52 @@
+# Explicitly user-requested fresh physical job. ONE 16,384-shot sampler call.
+# Never merge/restart this workflow without preserving the fixed job tag.
+name: Eternal Beast — Second IBM QPU Long-Shot Probe
+on:
+  pull_request:
+    paths:
+      - 'scripts/ibm_eternal_dragon_longer_probe.py'
+      - '.github/workflows/ibm-eternal-dragon-longer-qpu.yml'
+permissions:
+  contents: read
+concurrency:
+  group: eternal-beast-second-qpu-job-20261009
+  cancel-in-progress: false
+jobs:
+  longer-one-job:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/ibm-eternal-dragon-longer-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 48
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate fake quotas before using secret
+        run: python -m unittest discover -s tests -p test_ibm_open_plan_preflight.py -v
+      - name: Install IBM Qiskit client
+        run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+      - name: Verify four physical circuits and long-shot request offline
+        run: |
+          PYTHONPATH=scripts python - <<'PY'
+          from ibm_eternal_dragon_longer_probe import circuits, SHOTS_PER_CIRCUIT, QPU_HARD_CAP, TAG
+          from ibm_eternal_dragon_longer_probe import EXPECTED_CIRCUITS
+          assert [name for name,_ in circuits()] == EXPECTED_CIRCUITS
+          assert SHOTS_PER_CIRCUIT == 4096 and len(circuits()) == 4
+          assert QPU_HARD_CAP == 120 and TAG.endswith("longer-onejob-v1")
+          print("PASS: 4 circuits, 16,384 real shots requested, unique idempotent tag, 120s cap")
+          PY
+      - name: One real physical Open Plan QPU job (hard cap 120s, total cap 300s)
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_REAL_QPU_ONE_JOB: YES_ONE_REAL_JOB
+        run: python scripts/ibm_eternal_dragon_longer_probe.py
+      - name: Preserve job receipt even if hardware queue exceeds runner time
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eternal-dragon-second-ibm-physical-${{ github.run_id }}
+          path: _ibm_eternal_dragon_longer_probe/
+          retention-days: 30
+          if-no-files-found: warn
