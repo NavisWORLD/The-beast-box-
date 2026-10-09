@@ -1,0 +1,52 @@
+name: MAGMASCALE - Final production birth, real game, FIVE model replies
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/beastbox-cloud/public/spark/**'
+      - 'apps/beastbox-cloud/tests/magmascale-production-conversation.cjs'
+      - '.github/workflows/magmascale-production-birth.yml'
+permissions:
+  contents: read
+jobs:
+  birth-recording:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require both actual provider receipts to be publicly deployed
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ready=0
+          for i in $(seq 1 60); do
+            if curl -fsS --max-time 15 'https://www.beastboxcosmos.xyz/spark/ibm-third-final-reality-probe-20261009.json' | grep -q 'db4nlt2mb58s7389er6g' &&
+               curl -fsS --max-time 15 'https://www.beastboxcosmos.xyz/spark/azure-third-final-ibm-qvm-20261009.json' | grep -q 'e26d2fc1-c43a-11f1-ae67-7c1e523ea660'; then ready=1;break;fi
+            sleep 15
+          done
+          test "$ready" -eq 1 || { echo 'Production not serving genuine third Magmascale source receipts';exit 1; }
+      - name: Check actual browser program and install real Chromium
+        run: |
+          node --check tests/magmascale-production-conversation.cjs
+          npm install --prefix "$RUNNER_TEMP/magmascale-production-browser" --no-audit --no-fund playwright@1.55.0
+          "$RUNNER_TEMP/magmascale-production-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Record five real hosted inference exchanges, verified native cartridge, save and screenshot
+        run: |
+          export NODE_PATH="$RUNNER_TEMP/magmascale-production-browser/node_modules"
+          node tests/magmascale-production-conversation.cjs
+      - name: Preserve authentic game video, full replies, HTTP status, screenshots and exact timestamps
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-magmascale-real-production-birth-${{ github.run_id }}
+          path: apps/beastbox-cloud/browser-evidence/magmascale-production-live/
+          retention-days: 30
+          if-no-files-found: warn
