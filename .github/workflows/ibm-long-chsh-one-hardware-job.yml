@@ -1,0 +1,43 @@
+# One explicitly owner-authorized longer real IBM QPU run, 2026-10-09.
+# The script independently verifies Open Plan, cumulative spend and idempotent tag.
+name: IBM Long CHSH — One Real Hardware Job
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/ibm-long-chsh-one-hardware-job.yml'
+permissions:
+  contents: read
+concurrency:
+  group: navisworld-one-ibm-qpu-probe-20261009
+  cancel-in-progress: false
+jobs:
+  measured-long-probe:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/ibm-long-chsh-reality-probe-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install compatible Qiskit Runtime (no job)
+        run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+      - name: Retest ideal circuits and Open Plan safeguards BEFORE external execution
+        run: |
+          python -m unittest discover -s tests -p test_ibm_open_plan_preflight.py -v
+          python -m unittest discover -s tests -p test_ibm_long_chsh_probe.py -v
+      - name: Validate remaining owner budget, then submit MAX ONE physical QPU sampler job
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_REAL_QPU_ONE_JOB: YES_ONE_REAL_JOB
+        run: python scripts/ibm_beast_long_chsh_probe.py
+      - name: Preserve exact IBM submission, measured histogram or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beast-long-chsh-real-qpu-${{ github.run_id }}
+          path: _ibm_beast_long_chsh/
+          retention-days: 30
+          if-no-files-found: warn
