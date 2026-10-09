@@ -186,6 +186,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
   </div>
   {running&&!minimized?<p className={css.gameAudioHint} role="status">{!audio.wanted?'🔊 iPhone: tap ENABLE GAME SOUND inside the Game Boy. Use 🔔 Test speaker there to check device output separately.':!audio.running?'🔊 Safari game sound is still unverified. In the Game Boy tap RESUME SOUND, then 🔔 TEST SPEAKER. A test chirp alone does not prove cartridge audio.':'🔊 The native emulator AudioContext is running. If silent, check the cartridge audio menu, iPhone media volume, Silent Mode and Bluetooth output.'}</p>:null}
   <div className={css.playAction}>{admitted&&!running?<button type="button" disabled={starting} onClick={()=>{setStarting(true);setNote('Starting Lost COSMOS…');post({type:'sol-spark-start'});}}>{starting?'STARTING…':'START LOST COSMOS'}</button>:null}</div>
+  <div className={css.talk}><SolGameTalk active={active} observeGame={observeGame}/></div>
   <div className={css.controls}><GbaControls enabled={inputEnabled}/></div>
   <nav className={css.toolbar} aria-label="Game actions">
    <button type="button" onClick={()=>expanded?void display.current?.normal():void display.current?.expand()}>{expanded?'RETURN':'FULL SCREEN'}</button>
@@ -193,6 +194,5 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
    <button type="button" disabled={!running||returning} onClick={saveJourney}>{returning?'SAVING…':'SAVE JOURNEY'}</button>
    <Link href="/beast-cage" onClick={()=>void display.current?.minimize()}>BEAST BOX ↗</Link>
   </nav>
-  <div className={css.talk}><SolGameTalk active={active&&!minimized} observeGame={observeGame}/></div>
  </section>;
 }
