@@ -48,7 +48,17 @@ const project=path.resolve(__dirname,'../experiment-evidence/second-real-ibm-fez
    throw new Error('Second dragon refused by device recovery: '+JSON.stringify(diag)+' '+String(error));
   }
   await sendButton.click();
-  await shell.getByRole('status').filter({hasText:'same Beast verified'}).waitFor({timeout:60000});
+  try{
+   await shell.getByRole('status').filter({hasText:'same Beast verified'}).waitFor({timeout:25000});
+  }catch(e){
+   const diag=await page.evaluate(()=>({
+    playerStatus:[...document.querySelectorAll('[data-lost-cosmos-player-shell] [role="status"]')].map(x=>x.textContent?.slice(0,350)),
+    creatureId:document.querySelector('[data-lost-cosmos-player-shell]')?.getAttribute('data-creature-id'),
+    savedId:JSON.parse(localStorage.getItem('beastbox-companion-session-v1')||'null')?.beast?.qbeast?.profile?.id,
+    frameCount:document.querySelectorAll('[data-lost-cosmos-player-shell] iframe').length
+   }));
+   throw Error('Native Beast admission failed: '+JSON.stringify({diag,frameUrls:page.frames().map(f=>f.url()).slice(0,4),errors})+' '+String(e));
+  }
   await shell.getByRole('button',{name:'START LOST COSMOS',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('[data-lost-cosmos-player-shell]')?.dataset.running==='true',null,{timeout:90000});
   const core=page.frames().find(f=>f.url().includes('/sol-spark-gate/handheld.html'));
