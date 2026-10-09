@@ -1,0 +1,81 @@
+name: IBM Marrakesh Noctlet — Native GBA Gameplay
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/scripts/real-ibm-marrakesh-dragon-experiment.mjs'
+      - 'apps/beastbox-cloud/tests/marrakesh-dragon-native.cjs'
+      - '.github/workflows/marrakesh-dragon-native.yml'
+permissions:
+  contents: read
+jobs:
+  genesis-and-conversation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Execute real IBM Marrakesh measurement-derived dragon genesis, QVM simulation and local dialogue
+        run: node apps/beastbox-cloud/scripts/real-ibm-marrakesh-dragon-experiment.mjs
+      - name: Verify distinct identity, hardware source, actual local conversation, replay, no cloud spending
+        run: |
+          node --input-type=module -e "import {readFileSync} from 'node:fs';const r=JSON.parse(readFileSync('apps/beastbox-cloud/experiment-evidence/real-ibm-marrakesh-dragon-001/receipt.json'));if(r.genome.body!=='dragonling'||r.qbeast.id!=='bb-82fbc8ff'||r.provenance.genesis_job!=='db4l2uclf4us73c2td10'||r.provenance.genesis_pub_index!==1||r.conversation.turns.length!==3||r.provenance.azure_db_writes!==0||!r.acceptance.save_load_replay_exact||r.native_game.executed_in_this_run!==false)process.exit(1);console.log('PASS: distinct IBM Bell XX dragon, memory, 90 state-driven ticks, 3 local replies, no cloud spend');"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: marrakesh-noctlet-genesis-${{ github.run_id }}
+          path: |
+            apps/beastbox-cloud/experiment-evidence/real-ibm-marrakesh-dragon-001/receipt.json
+            apps/beastbox-cloud/experiment-evidence/real-ibm-marrakesh-dragon-001/beast.png
+            apps/beastbox-cloud/experiment-evidence/real-ibm-marrakesh-dragon-001/qbeast.json
+            apps/beastbox-cloud/experiment-evidence/real-ibm-marrakesh-dragon-001/unsigned-session.json
+          retention-days: 30
+          if-no-files-found: error
+  real-native-v11-cartridge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Generate the same Noctlet from real IBM Marrakesh before native test
+        run: node scripts/real-ibm-marrakesh-dragon-experiment.mjs
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Install Chromium Playwright
+        run: |
+          npm install --prefix "$RUNNER_TEMP/beast-browser" --no-audit --no-fund playwright@1.55.0
+          "$RUNNER_TEMP/beast-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Start real app and test mounted native cartridge with new dragon
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export NODE_PATH="$RUNNER_TEMP/beast-browser/node_modules"
+          evidence="$GITHUB_WORKSPACE/apps/beastbox-cloud/browser-evidence/marrakesh-noctlet"
+          mkdir -p "$evidence"
+          npm start -- -H 127.0.0.1 -p 3000 > "$evidence/server.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for n in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node tests/marrakesh-dragon-native.cjs http://127.0.0.1:3000 "$evidence"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: marrakesh-noctlet-native-${{ github.run_id }}
+          path: apps/beastbox-cloud/browser-evidence/marrakesh-noctlet/
+          retention-days: 30
+          if-no-files-found: warn
