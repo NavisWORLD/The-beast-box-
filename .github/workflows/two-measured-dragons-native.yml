@@ -1,0 +1,85 @@
+name: Two measured dragons - shared Spark, Azure, native GBA acceptance
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/public/spark/**'
+      - 'apps/beastbox-cloud/lib/companion/recorded-qvm-stimulus.mjs'
+      - 'apps/beastbox-cloud/scripts/pistonwyrm-live-ibm-azure-behavior.mjs'
+      - 'apps/beastbox-cloud/tests/pistonwyrm-native-azure-e2e.cjs'
+      - '.github/workflows/two-measured-dragons-native.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  both-dragons:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Retrieve exactly the original physical IBM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: second-final-real-ibm-dragon-38001957043
+          run-id: 38001957043
+          github-token: ${{ github.token }}
+          path: .
+      - name: Retrieve exactly the original Azure QVM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pistonwyrm-live-azure-qvm-38002300373
+          run-id: 38002300373
+          github-token: ${{ github.token }}
+          path: _azure_second_final_dragon_20261009
+      - name: Install app dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify genuine measured-source public registry and one-shot stimulus
+        run: |
+          node --check public/spark/app.mjs
+          node --check public/spark/runs.mjs
+          node --check scripts/pistonwyrm-live-ibm-azure-behavior.mjs
+          node scripts/pistonwyrm-live-ibm-azure-behavior.mjs
+          node --test tests/spark-source-registry.test.mjs tests/recorded-qvm-stimulus.test.mjs tests/final-live-dragon-receipt.test.mjs
+          node scripts/final-live-dragon-experiment.mjs
+      - name: Build unmodified existing Next production application
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: npm run build
+      - name: Install real mobile Playwright Chromium
+        run: |
+          npm install --prefix "$RUNNER_TEMP/both-dragon-browser" --no-audit --no-fund playwright@1.55.0
+          "$RUNNER_TEMP/both-dragon-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify Pistonwyrm birth, Azure once-only, and real native game; verify Umbrascale regression
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export NODE_PATH="$RUNNER_TEMP/both-dragon-browser/node_modules"
+          evidence="$GITHUB_WORKSPACE/apps/beastbox-cloud/browser-evidence/both-measured-dragons"
+          mkdir -p "$evidence"
+          npm start -- -H 127.0.0.1 -p 3000 > "$evidence/server.log" 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for n in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node tests/pistonwyrm-native-azure-e2e.cjs http://127.0.0.1:3000 "$evidence/pistonwyrm"
+          node tests/marrakesh-dragon-native.cjs http://127.0.0.1:3000 "$evidence/umbrascale" experiment-evidence/final-live-umbrascale-001 bb-8546076e db4m3bslf4us73c2ui9g /spark/ibm-final-live-reality-probe-20261009.json
+      - name: Retain original-source linkage, actual behavior proof, cartridge screenshots and videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: both-real-dragons-native-azure-${{ github.run_id }}
+          path: |
+            apps/beastbox-cloud/browser-evidence/both-measured-dragons/
+            apps/beastbox-cloud/experiment-evidence/pistonwyrm-azure-core-20261009/
+          retention-days: 30
+          if-no-files-found: warn
