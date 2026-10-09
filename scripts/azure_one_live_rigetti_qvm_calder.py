@@ -24,8 +24,7 @@ def main():
     if not secret or os.environ.get("BEAST_AZURE_QVM_ONE_JOB")!="YES_ONE_FREE_SIMULATOR":
         raise RuntimeError("Missing explicitly authorized simulator execution configuration")
     from qdk.azure import Workspace
-    from qdk.azure.qiskit import AzureQuantumProvider
-    from qiskit import QuantumCircuit
+    # Provider-native Quil pathway; no Qiskit adapter required.
     workspace=Workspace.from_connection_string(secret)
     t=workspace.get_targets(TARGET)
     if getattr(t,"name",None)!=TARGET:
