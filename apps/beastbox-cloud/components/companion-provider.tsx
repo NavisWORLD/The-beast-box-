@@ -1,4 +1,5 @@
 'use client';
+import {useUniverseMotion} from './use-universe-motion';
 import {
  createContext,useCallback,useContext,useEffect,useMemo,useRef,useState,
  type ReactNode
@@ -49,7 +50,8 @@ export default function CompanionProvider({children}:{children:ReactNode}){
  const [paused,setPaused]=useState(false),[hidden,setHidden]=useState(false);
  const [halted,setHalted]=useState(false),[typing,setTyping]=useState(false);
  const [soundEnabled,setSoundEnabled]=useState(false);
- const [reduced,setReduced]=useState(false),[spot,setSpot]=useState<Spot|null>(null);
+ const {reduced}=useUniverseMotion();
+ const [spot,setSpot]=useState<Spot|null>(null);
  const [tick,setTick]=useState(0),tickRef=useRef(0);
  const [pageVisible,setPageVisible]=useState(true);
  const [spriteTop,setSpriteTop]=useState(.4);
@@ -80,16 +82,13 @@ export default function CompanionProvider({children}:{children:ReactNode}){
   const onStop=()=>{setHalted(true);setPaused(true);setSoundEnabled(false);setAction('rest');};
   const onFocus=()=>setTyping(editingText());
   const onVisibility=()=>setPageVisible(!document.hidden);
-  const motion=window.matchMedia('(prefers-reduced-motion: reduce)');
-  const onMotion=()=>setReduced(motion.matches);
-  onMotion();onVisibility();
+  onVisibility();
   window.addEventListener('beastbox:genesis-selected',onSelected);
   window.addEventListener('beastbox:ambient-action',onAmbient);
   window.addEventListener('beastbox:master-privacy-stop',onStop);
   document.addEventListener('focusin',onFocus);
   document.addEventListener('focusout',onFocus);
   document.addEventListener('visibilitychange',onVisibility);
-  motion.addEventListener('change',onMotion);
   return()=>{
    window.removeEventListener('beastbox:genesis-selected',onSelected);
    window.removeEventListener('beastbox:ambient-action',onAmbient);
@@ -97,7 +96,6 @@ export default function CompanionProvider({children}:{children:ReactNode}){
    document.removeEventListener('focusin',onFocus);
    document.removeEventListener('focusout',onFocus);
    document.removeEventListener('visibilitychange',onVisibility);
-   motion.removeEventListener('change',onMotion);
   };
  },[onProfile]);
  const showPublic=pathname==='/'||pathname==='/beast-cage';

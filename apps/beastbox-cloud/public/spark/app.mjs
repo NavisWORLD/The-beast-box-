@@ -8,15 +8,18 @@ import {Voice} from './voice.mjs';
 import {getBeastAudio} from './shared/beast-audio-engine.mjs';
 import {habitatPose} from './habitat.mjs';
 import {QBEAST_KEY,SESSION_KEY,selectSpark,saveSparkSession,readSparkSession,replaySpark,withSparkLock} from './identity.mjs';
-import {careAction,finishTraining,talk,shownName} from './shared/session.mjs';
-import {rememberExchange} from './shared/adventure.mjs';
+import {careAction,finishTraining,talk,shownName,advanceCreature,exportSession} from './shared/session.mjs';
+import {rememberExchange,nameBeast} from './shared/adventure.mjs';
+import {loadSparkRuns,validateQvmReceipt} from './runs.mjs';
+import {readDeviceJourney,restoreDeviceJourney,serializeDeviceJourney} from './device-journey.mjs';
 const STORE='spark-beasts-bestiary-v1',QVM_STORE='spark-qvm-growth-v1',SOUND_KEY='spark-beast-sound-v2',SCALE=4,$=id=>document.getElementById(id);
 const media=matchMedia('(prefers-reduced-motion: reduce)');
 const beastAudio=getBeastAudio();
-let reduceMotion=media.matches,runs=[],qvmRuns=[],byKey=new Map(),current=null,muse=null,voiceOn=false,soundWanted=true,voiceBus=null,stage=1,preview=false,drift=false,runtime=null,cache={},bestiary=[],session=null,busy=false,starterCache=[],qvmGrowth=0,lastViewportWidth=innerWidth;
+let reduceMotion=media.matches,runs=[],qvmRuns=[],byKey=new Map(),current=null,muse=null,voiceOn=false,soundWanted=true,voiceBus=null,stage=1,preview=false,drift=false,runtime=null,cache={},bestiary=[],session=null,busy=false,starterCache=[],qvmGrowth=0,lastViewportWidth=innerWidth,coreTimer=0;
 let micStream=null,micContext=null,micSource=null,micAnalyser=null,micData=null,micEnabled=false,micLevel=0,micLastReaction=-20,micEpoch=0;
 const target={focus:30,calm:30,spark:20},felt={...target};
-media.addEventListener('change',()=>{reduceMotion=media.matches});
+function syncMotion(){let saved=false;try{saved=localStorage.getItem('beastbox-reduced-motion-v1')==='true';}catch{}reduceMotion=media.matches||saved;document.documentElement.dataset.beastboxReducedMotion=String(reduceMotion);}
+media.addEventListener('change',syncMotion);syncMotion();
 function expand(row){return {key:row.k,backend:row.b,job_id:row.j,pub_index:row.p,num_bits:row.n,shots:row.s,counts:Object.fromEntries(row.c.split(',').map(part=>{const [k,v]=part.split(':');return [k,Number(v)]})),counts_sha256:row.h};}
 function mulberry32(a){return ()=>{a|=0;a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296};}
 function readTraits(){return Object.fromEntries(['focus','calm','spark'].map(k=>[k,Number($(k).value)]));}
@@ -76,7 +79,7 @@ function showCreature(entry,nextSession,spawn=true){
  const gen=buildGenome(entry.traits,run,entry.user||null,10);current={entry,gen,run};session=nextSession;stage=session.beast.nativeStage||1;preview=false;
  cacheEyes(gen);showTraits(entry.traits);$('keeper').value=entry.user||'';
  $('meta').textContent=`${gen.temperament} · ${gen.element} · ${gen.body} · ${gen.island}`;
- $('quantum').textContent=`RECORDED QUANTUM SEED · ${run.backend} · ${run.counts_sha256.slice(0,12)}…`;
+ $('quantum').textContent=`${run.qvm?'SIMULATOR SEED':'RECORDED QUANTUM SEED'} · ${run.backend} · ${run.counts_sha256.slice(0,12)}…`;
  $('provenance').textContent=`Job ${run.job_id} · pub ${run.pub_index} · ${run.num_bits}-bit · ${run.shots} recorded shots · counts SHA-256 ${run.counts_sha256}`;
  $('seed').textContent=gen.seed;for(const which of [1,2,3]){paintStage($(`st${which}`),gen,which);$(`nm${which}`).textContent=gen.names[which];}
  qvmGrowth=readQvmGrowth(gen.seed);
@@ -114,10 +117,12 @@ function tick(dt){
  const drv=drive();let mood='neutral',best=.25;for(const k of ['focus','calm','spark'])if(drv[k]>best){best=drv[k];mood=k;}
  if(runtime.state!=='idle'&&runtime.T>runtime.until)runtime.state='idle';
  if(runtime.state==='idle'&&session.beast.energy<30){runtime.state='rest';runtime.until=runtime.T+8;}
+ const core=session.beast.behavior;
+ if(runtime.state==='idle'&&core){if(core.lastAction==='rest')mood='calm';else if(core.lastAction==='play')mood='spark';else if(['listen','inspect','explore'].includes(core.lastAction))mood='focus';}
  if(runtime.state==='rest')mood='calm';else if(runtime.state==='celebrate'||runtime.state==='spawn')mood='spark';else if(runtime.state==='train'||runtime.state==='listen')mood='focus';
  if(runtime.T>=runtime.nextVoice){runtime.nextVoice=runtime.T+12+runtime.rnd()*16;if(voiceOn&&runtime.T-runtime.lastSay>6)say(mood);}
  let eye='open';if(runtime.T>runtime.nextBlink){runtime.blinkUntil=runtime.T+.14;runtime.nextBlink=runtime.T+be.blink_mean_s*(.7+runtime.rnd());}
- if(runtime.state==='rest')eye='closed';else if(!reduceMotion&&runtime.T<runtime.blinkUntil)eye='closed';else if(mood==='calm')eye='sleepy';else if(mood==='spark')eye='sparkle';
+ if(runtime.state==='rest'||core?.lastAction==='rest'&&runtime.state==='idle')eye='closed';else if(!reduceMotion&&runtime.T<runtime.blinkUntil)eye='closed';else if(mood==='calm')eye='sleepy';else if(mood==='spark')eye='sparkle';
  if(runtime.T>runtime.bubbleUntil)$('bubble').hidden=true;
  const pose=habitatPose(current.gen,runtime.T,runtime.state,reduceMotion),canvas=$('view'),ctx=canvas.getContext('2d');
  ctx.clearRect(0,0,canvas.width,canvas.height);ctx.imageSmoothingEnabled=false;ctx.save();
@@ -127,10 +132,20 @@ function tick(dt){
  if(!reduceMotion&&micEnabled&&micPulse>.025){ctx.globalCompositeOperation='lighter';ctx.strokeStyle=`rgba(121,234,245,${Math.min(.48,.08+micPulse*.38)})`;ctx.lineWidth=2+micPulse*3;ctx.beginPath();ctx.arc(0,0,82+micPulse*22,0,Math.PI*2);ctx.stroke();}
  ctx.restore();
  canvas.dataset.x=pose.x.toFixed(2);canvas.dataset.y=pose.y.toFixed(2);canvas.dataset.gait=be.gait;canvas.dataset.state=runtime.state;canvas.dataset.micLevel=micLevel.toFixed(3);
- $('mood').textContent=`${runtime.state==='idle'?(pose.pause?'looking around':mood):runtime.state} · ${be.gait}`;
+ $('mood').textContent=`${runtime.state==='idle'&&core?core.lastAction:runtime.state==='idle'?(pose.pause?'looking around':mood):runtime.state} · ${be.gait}`;
  if(training){const phase=((performance.now()-training.start)/900)%1;$('train-mark').style.left=`${phase*100}%`;}
 }
-async function run(work){if(busy)return;busy=true;try{await work()}catch(e){$('status').textContent=e.message||'Could not save this Beast.'}finally{busy=false}}
+async function run(work){if(busy)return;busy=true;try{await work()}catch(e){$('status').textContent=e.message||'Could not save this Beast.';if($('save-state'))$('save-state').textContent='SAVE NOT CONFIRMED';}finally{busy=false}}
+async function activityTick(){
+ if(document.hidden||busy||!current||localStorage.getItem('beastbox-behavior-paused-v1')==='true')return;
+ await run(async()=>{await withSparkLock(()=>{
+  if(document.hidden||localStorage.getItem('beastbox-behavior-paused-v1')==='true')return;
+  const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)return;
+  advanceCreature(next,{place:'grove',sound:micEnabled?micLevel:0});saveSparkSession(localStorage,next);session=next;updatePlate();
+  $('core-activity').textContent=`${shownName(next.beast)} · ${next.beast.behavior.lastAction} · behavior energy ${Math.round(next.beast.behavior.energy)}/100 · tick ${next.beast.behavior.tick}`;
+ });});
+}
+function deviceDownload(text,name){const url=URL.createObjectURL(new Blob([text],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 async function spark(from='sliders'){
  const traits=from==='profile'?simulateStable($('profile').value):bucketTraits(readTraits(),10),user=$('keeper').value.trim();
  if(user&&!/^[A-Za-z0-9 ._-]{1,24}$/.test(user))throw Error('Keeper label must be 1–24 public characters.');
@@ -361,13 +376,11 @@ function loop(prev){const now=performance.now();tick(Math.min(.05,(now-prev)/100
 async function main(){
  soundWanted=readSoundWanted();if(soundWanted)beastAudio.sparkUnmute();else beastAudio.sparkMute();updateVoiceButton();syncAudioUi();wirePageNavigation();installNativeBridge();
  $('btnote').textContent=bluetoothNote()||'';for(const key of Object.keys(PROFILES)){const opt=document.createElement('option');opt.value=opt.textContent=key;$('profile').append(opt)}$('profile').value='balanced';
- const [index,qvmReceipt]=await Promise.all([
-  fetch('/spark/user-seeds-20261004.json').then(r=>r.json()),
+ const [ibmRuns,qvmReceipt]=await Promise.all([
+  loadSparkRuns(),
   fetch('/spark/rigetti-qvm-sim.json').then(r=>r.ok?r.json():null).catch(()=>null)
  ]);
- const tables=await Promise.all(['/spark/runs.json',...(index.shards||[])].map(path=>fetch(path).then(r=>{if(!r.ok)throw Error('Recorded seed table unavailable.');return r.json()})));
- qvmRuns=qvmReceipt?expandQvmReceipt(qvmReceipt):[];
- const ibmRuns=tables.flatMap(t=>(t.runs||[]).map(expand));
+ qvmRuns=qvmReceipt?validateQvmReceipt(qvmReceipt):[];
  runs=[...new Map([...ibmRuns,...qvmRuns].map(r=>[r.key,r])).values()];byKey=new Map(runs.map(r=>[r.key,r]));starterCache=[];
  $('totals').textContent=`${ibmRuns.length} recorded IBM distributions · ${new Set(ibmRuns.map(r=>r.job_id)).size} IBM jobs · ${qvmRuns.length} archived Azure Rigetti QVM simulator batches.`;
  try{bestiary=JSON.parse(localStorage.getItem(STORE)||'[]')}catch{bestiary=[]}if(!Array.isArray(bestiary))bestiary=[];
@@ -378,8 +391,14 @@ async function main(){
  window.addEventListener('pointerdown',unlockPreferredSound,{capture:true});window.addEventListener('touchstart',unlockPreferredSound,{capture:true,passive:true});window.addEventListener('click',unlockPreferredSound,{capture:true});window.addEventListener('keydown',unlockPreferredSound,{capture:true});
  $('generate').addEventListener('click',()=>void run(async()=>{surpriseRun();audioSfx('charge');await spark()}));$('regenerate').addEventListener('click',()=>void run(()=>spark()));$('use-profile').addEventListener('click',()=>void run(async()=>{showTraits(simulateStable($('profile').value));await spark('profile')}));$('surprise').addEventListener('click',()=>{surpriseRun();audioSfx('blip')});$('q').addEventListener('input',searchRuns);$('download').addEventListener('click',download);$('voice').addEventListener('click',()=>void enableVoice());$('music').addEventListener('click',toggleMusic);$('mic-react').addEventListener('click',()=>void toggleMicReaction());$('music-volume').addEventListener('input',setMusicVolume);$('drift').addEventListener('click',()=>{drift=!drift;$('drift').classList.toggle('on',drift);audioSfx('blip')});$('muse').addEventListener('click',()=>void museClick());$('stop-muse').addEventListener('click',()=>{muse?.stop();muse=null;$('status').textContent='Muse disconnected. Samples cleared.'});$('qvm-replay').addEventListener('click',()=>void run(()=>replayQvmScenario()));
  for(const k of ['focus','calm','spark'])$(k).addEventListener('input',()=>showTraits(readTraits()));for(const kind of ['pet','play','train','rest','care'])$(kind).addEventListener('click',()=>void run(()=>interaction(kind)));$('view').addEventListener('click',()=>void run(()=>interaction('pet')));$('talk').addEventListener('click',()=>{$('talk-form').hidden=!$('talk-form').hidden;if(!$('talk-form').hidden)$('talk-text').focus()});$('talk-form').addEventListener('submit',speak);
+ $('name-form').addEventListener('submit',event=>{event.preventDefault();void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');const named=nameBeast(next,$('beast-name').value);if(!named.ok)throw Error('Choose a name of up to 24 characters.');saveSparkSession(localStorage,next);session=next;});updatePlate();$('status').textContent=`Named ${shownName(session.beast)}. Same QBEAST, saved on this device.`;runtime.state='celebrate';runtime.until=runtime.T+1.5;});});
+ $('save-here').addEventListener('click',()=>void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');saveSparkSession(localStorage,next);session=next;});$('save-state').textContent='SAVED ON THIS DEVICE';audioSfx('confirm');}));
+ $('download-journey').addEventListener('click',()=>void run(async()=>{const next=readSparkSession(localStorage);deviceDownload(serializeDeviceJourney(next,byKey),shownName(next.beast)+'.beastjourney');$('status').textContent='Device journey created. Local memory and behavior are unsigned; native authority is unchanged.';}));
+ $('import-journey').addEventListener('change',()=>void run(async()=>{const file=$('import-journey').files?.[0];if(!file)return;if(file.size>2*1024*1024)throw Error('Choose a journey under 2 MiB.');const journey=readDeviceJourney(await file.text(),byKey),next=await withSparkLock(()=>restoreDeviceJourney(localStorage,journey));showCreature(journey.entry,next,false);$('status').textContent='Device journey restored. Same identity, local memory; native artifacts remain unsigned.';$('import-journey').value='';}));
+ $('save-state').textContent='SAVED ON THIS DEVICE';coreTimer=setInterval(()=>void activityTick(),8000);
+ window.addEventListener('storage',event=>{if(event.key==='beastbox-reduced-motion-v1')syncMotion();});
  for(const which of [1,2,3])$(`pick${which}`).addEventListener('click',()=>{stage=which;preview=stage!==session.beast.nativeStage;updatePlate();runtime.state='celebrate';runtime.until=runtime.T+1.5;$('status').textContent='Visual preview only. Your earned native stage and QBEAST progression did not change.'});
- document.addEventListener('visibilitychange',()=>{beastAudio.setHidden(document.hidden);if(document.hidden&&micEnabled)void stopMicReaction('Microphone reaction paused when this page was hidden.');else if(!document.hidden)browserReact('visible');});window.addEventListener('pagehide',()=>{muse?.stop();if(micEnabled)void stopMicReaction('');});
+ document.addEventListener('visibilitychange',()=>{beastAudio.setHidden(document.hidden);if(document.hidden&&micEnabled)void stopMicReaction('Microphone reaction paused when this page was hidden.');else if(!document.hidden)browserReact('visible');});window.addEventListener('pagehide',()=>{clearInterval(coreTimer);coreTimer=0;muse?.stop();if(micEnabled)void stopMicReaction('');});window.addEventListener('pageshow',()=>{if(!coreTimer)coreTimer=setInterval(()=>void activityTick(),8000);});
  window.addEventListener('online',()=>browserReact('online'));window.addEventListener('offline',()=>browserReact('offline'));
  let resizeTimer=0;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(Math.abs(innerWidth-lastViewportWidth)>=80){lastViewportWidth=innerWidth;browserReact('resize');}},220);});
  requestAnimationFrame(now=>loop(now));

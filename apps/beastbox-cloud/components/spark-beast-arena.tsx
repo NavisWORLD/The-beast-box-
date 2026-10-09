@@ -1,8 +1,10 @@
 'use client';
+import {useUniverseMotion} from './use-universe-motion';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {Music,Volume2,VolumeX,Zap} from 'lucide-react';
 import SparkBeastCompanion,{type Genome} from './spark-beast-companion';
 import {useBeastSession} from './beast-session';
+import {careAction,shownName} from '../lib/companion/session.mjs';
 import {buildMoveset,nextAttackDelay,pickAttack,roamAt,roarFor} from '../lib/companion/beast-moves.mjs';
 import type {BaseLook,CreatureProfile} from '../lib/creature-profile';
 import styles from './spark-beast-arena.module.css';
@@ -26,25 +28,21 @@ function lcg(seed:number){let s=seed>>>0||1;return()=>{s=(Math.imul(s,1664525)+1
 export default function SparkBeastArena({profile,fallbackLook='nebula',state='idle',label}:{
  profile?:CreatureProfile|null;fallbackLook?:BaseLook;state?:VisualState;label?:string;
 }){
- const {session}=useBeastSession();
+ const {session,change}=useBeastSession();
  const root=useRef<HTMLDivElement>(null),fxCanvas=useRef<HTMLCanvasElement>(null),flash=useRef<HTMLDivElement>(null);
  const [genome,setGenome]=useState<Genome|null>(null);
  const [sound,setSound]=useState(false),soundRef=useRef(false),userMuted=useRef(false);
- const [reduced,setReduced]=useState(false),[visible,setVisible]=useState(true);
+ const {reduced}=useUniverseMotion();
+ const [visible,setVisible]=useState(true);
  const [toast,setToast]=useState<{text:string;crit:boolean;id:number}|null>(null);
  const [phase,setPhase]=useState<'idle'|'charge'|'strike'>('idle');
  const counter=useRef(0),fx=useRef<Fx|null>(null),busy=useRef(false);
  const roamPos=useRef({x:0,y:0});
  const moveset:Moveset|null=useMemo(()=>genome?buildMoveset(genome):null,[genome]);
  const onGenome=useCallback((next:Genome)=>setGenome(next),[]);
- const name=genome?.names?.[2]||genome?.names?.[1]||profile?.name||'Spark Beast';
+ const core=genome&&session?.beast&&genome.seed===session.beast.seed?session.beast.behavior:null;
+ const name=core?shownName(session.beast):genome?.names?.[2]||genome?.names?.[1]||profile?.name||'Spark Beast';
 
- useEffect(()=>{
-  const media=window.matchMedia('(prefers-reduced-motion: reduce)');
-  const update=()=>setReduced(media.matches);
-  update();media.addEventListener('change',update);
-  return()=>media.removeEventListener('change',update);
- },[]);
 
  useEffect(()=>{
   const node=root.current;
@@ -60,6 +58,12 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
  useEffect(()=>{
   const node=root.current;
   if(!node||!moveset||!visible)return;
+  if(core){
+   const rect=node.getBoundingClientRect(),p=core.position;
+   const x=reduced?0:(p.x-.5)*rect.width*.5,y=reduced?0:(p.y-.5)*rect.height*.25;
+   node.style.setProperty('--roam-x',x.toFixed(1)+'px');node.style.setProperty('--roam-y',y.toFixed(1)+'px');
+   node.style.setProperty('--roam-face',String(x<roamPos.current.x?-1:1));roamPos.current={x,y};return;
+  }
   if(reduced){node.style.setProperty('--roam-x','0px');node.style.setProperty('--roam-y','0px');roamPos.current={x:0,y:0};return;}
   let frame=0,clock=0,last=performance.now();
   const loop=(now:number)=>{
@@ -77,7 +81,7 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
   };
   frame=requestAnimationFrame(loop);
   return()=>cancelAnimationFrame(frame);
- },[moveset,visible,reduced]);
+ },[moveset,visible,reduced,core]);
 
  // Shared music + SFX engine: silent until a user gesture, behind the limiter, honours the Spark mute.
  const {audio:music,state:musicState}=useBeastAudio();
@@ -264,12 +268,12 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
 
  // Self-started attacks on a seeded timer while the habitat is on screen.
  useEffect(()=>{
-  if(!moveset||!visible||reduced)return;
+  if(!moveset||!visible||reduced||core)return;
   let timer=0;
   const arm=()=>{timer=window.setTimeout(()=>{attack('timer');arm();},nextAttackDelay(moveset,counter.current));};
   timer=window.setTimeout(()=>{attack('timer');arm();},1800);
   return()=>window.clearTimeout(timer);
- },[moveset,visible,reduced,attack]);
+ },[moveset,visible,reduced,attack,Boolean(core)]);
 
  // Chat events: a new line in the shared care chat, or an explicit beastbox:beast-chat event.
  const chatCount=Array.isArray(session?.chat)?session.chat.length:0;
@@ -286,10 +290,10 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
 
  // Idle voice: an occasional chirp in the beast's own generated voice once sound is on.
  useEffect(()=>{
-  if(!sound||!visible)return;
+  if(!sound||!visible||core)return;
   const clock=window.setInterval(()=>{if(!busy.current)window.dispatchEvent(new CustomEvent('beastbox:spark-chirp',{detail:{channel:'habitat',intensity:.55}}));},9000);
   return()=>window.clearInterval(clock);
- },[sound,visible]);
+ },[sound,visible,Boolean(core)]);
 
  useEffect(()=>{
   if(!toast)return;
@@ -316,6 +320,8 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
  },[music,moveset,sound,visible]);
  useEffect(()=>()=>music.clearScene('habitat'),[music]);
 
+ useEffect(()=>{if(sound&&visible&&['play','listen'].includes(core?.lastAction)&&!document.hidden)window.dispatchEvent(new CustomEvent('beastbox:spark-chirp',{detail:{channel:'habitat',intensity:.4}}));},[core?.tick,sound,visible]);
+
  // Level-up fanfare when the shared care save reaches a new stage.
  const stageNow=Number(session?.beast?.stage)||0;
  const lastStage=useRef<number|null>(null);
@@ -326,11 +332,12 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
  function onTap(){
   // Browser autoplay rules: the first tap is the user gesture that wakes the voice.
   if(!soundRef.current&&!userMuted.current)setSoundOn(true);
+  if(core)void change(draft=>{careAction(draft,'spark');});
   attack('tap');
  }
 
  return <div ref={root} className={styles.arena} data-beast-arena="true" data-phase={phase}
-   data-attack-style={fx.current?.move.style||'none'} data-reduced-motion={reduced} data-sound={sound?'on':'off'}>
+   data-behavior-action={core?.lastAction||'visual-preview'} data-attack-style={fx.current?.move.style||'none'} data-reduced-motion={reduced} data-sound={sound?'on':'off'}>
   <SparkBeastCompanion profile={profile} fallbackLook={fallbackLook} state={state} audioChannel="habitat"
    onGenome={onGenome} label={label}/>
   <canvas ref={fxCanvas} className={styles.fx} aria-hidden="true"/>

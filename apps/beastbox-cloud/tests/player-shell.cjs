@@ -73,6 +73,21 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   assert.equal(await page.evaluate(()=>!!document.fullscreenElement),mode==='fullscreen','mode reports actual Fullscreen API reality');
   assert.equal(await page.evaluate(()=>!document.fullscreenElement||document.fullscreenElement.matches('[data-lost-cosmos-player-shell]')),true,'game AND controls belong to the fullscreen element');
   await continuity('expanded');
+  // Fullscreen owns both native pixels and the real model chat. Do not hide
+  // the composer behind the emulator or unmount it when docking the player.
+  await shell.getByRole('button',{name:/^TALK TO /}).click();
+  const gameComposer=shell.locator('textarea');
+  const draft='Same Beast, same story through the Game Boy.';
+  await gameComposer.fill(draft);
+  await gameComposer.scrollIntoViewIfNeeded();
+  assert.equal(await gameComposer.evaluate(node=>{const rect=node.getBoundingClientRect();return rect.top>=0&&rect.bottom<=innerHeight+2;}),true,'fullscreen conversation composer is viewport-reachable');
+  await shell.getByRole('button',{name:'MINIMIZE',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('[data-lost-cosmos-player-shell]')?.dataset.playerMode==='minimized');
+  await continuity('chat minimized');
+  await shell.getByRole('button',{name:'RESTORE GAME',exact:true}).click();
+  await continuity('chat restored');
+  assert.equal(await gameComposer.inputValue(),draft,'minimize/restore keeps the same unsent message and chat instance');
+  await shell.getByRole('button',{name:'CLOSE TALK',exact:true}).click();
   const resize=async(width,height)=>{
    if(await page.evaluate(()=>!!document.fullscreenElement))await page.evaluate(()=>document.exitFullscreen());
    else if(await shell.getAttribute('data-player-mode')==='immersive')await shell.getByRole('button',{name:'RETURN',exact:true}).click();
@@ -121,9 +136,21 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n,n+2),before),[[0,7,1],[0,7,0]],'keyboard reaches native core after restore');
   before=await core.evaluate(()=>window.__shellInputs.length);await page.keyboard.down('z');await control('A').tap();await page.keyboard.up('z');await core.waitForFunction(n=>window.__shellInputs.length>=n+2,before);
   assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n),before),[[0,8,1],[0,8,0]],'touch release never cancels a keyboard-held A');
-  await shell.getByRole('button',{name:/^TALK TO /}).click();await page.locator('[data-lost-cosmos-player-shell] strong').first().click();
-  before=await core.evaluate(()=>window.__shellInputs.length);await page.keyboard.down('ArrowLeft');await shell.locator('textarea').focus();await page.keyboard.up('ArrowLeft');await core.waitForFunction(n=>window.__shellInputs.length>=n+2,before);
-  assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n,n+2),before),[[0,6,1],[0,6,0]],'keyup still releases when focus moves into TALK');
+  await shell.getByRole('button',{name:/^TALK TO /}).click();
+  // Focus a real, keyboard-accessible player target. A nonfocusable <strong>
+  // does not reliably reclaim focus after using Talk in all browser engines.
+  await shell.focus();
+  assert.equal(await shell.evaluate(node=>document.activeElement===node),true,'Game Boy can reclaim keyboard focus from chat controls');
+  before=await core.evaluate(()=>window.__shellInputs.length);
+  await page.keyboard.down('ArrowLeft');
+  await core.waitForFunction(n=>window.__shellInputs.length>=n+1,before);
+  assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n,n+1),before),[[0,6,1]],'the held Left press reaches native core before focus transfer');
+  await shell.locator('textarea').focus();
+  // Release must reach the native core as soon as an editor takes focus.
+  // Never depend on an eventual keyup being delivered to the original target.
+  await core.waitForFunction(n=>window.__shellInputs.length>=n+2,before);
+  await page.keyboard.up('ArrowLeft');
+  assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n),before),[[0,6,1],[0,6,0]],'focus transfer releases held native Left exactly once, even after keyboard up');
   await shell.getByRole('button',{name:'CLOSE TALK',exact:true}).click();
   // A controlled standard Gamepad API fixture; this is not a physical-controller receipt.
   before=await core.evaluate(()=>window.__shellInputs.length);await page.evaluate(()=>{window.__testPad.buttons[0]={pressed:true,value:1};});await core.waitForFunction(n=>window.__shellInputs.length>n,before);

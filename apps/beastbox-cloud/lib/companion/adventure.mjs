@@ -117,14 +117,14 @@ export function talkAndGrow(session, text) {
   return { ...result, ...growth };
 }
 
-export function rememberExchange(session, userText, beastText) {
+export function rememberExchange(session, userText, beastText, {learnReply=true}={}) {
   const you = String(userText || "").slice(0, 400);
   const beastLine = String(beastText || "").slice(0, 400);
   const safe = isKidSafe(you) && isKidSafe(beastLine);
   session.chat.push({ role: "you", text: you });
-  if (safe) observeText(session.mind, you);
+  if (safe) observeText(session.mind, you,{seed:session.beast?.seed||''});
   session.chat.push({ role: "beast", text: beastLine });
-  if (safe) observeText(session.mind, beastLine);
+  if (safe && learnReply) observeText(session.mind, beastLine,{seed:session.beast?.seed||''});
   if (session.chat.length > 80) session.chat.splice(0, session.chat.length - 80);
   if (!session.beast || !safe) return { safe, xp: session.beast?.xp || 0, evolved: false, stage: session.beast?.stage || 1 };
   session.beast.bond = Math.min(100, (session.beast.bond || 0) + 1);

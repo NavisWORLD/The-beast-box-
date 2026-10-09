@@ -63,10 +63,23 @@ def run(browser, engine, width, reduced=False):
     context = browser.new_context(viewport={"width":width, "height":844},
                                   has_touch=width < 600, reduced_motion="reduce" if reduced else "no-preference")
     context.add_init_script(AUDIO_PROBE)
+    # Isolate support effects from the explicitly pausable eight-second activity
+    # loop. Use a real generator-selected QBEAST, rather than an empty save.
+    context.add_init_script("localStorage.setItem('beastbox-behavior-paused-v1','true')")
     page = context.new_page()
     errors = []
     page.on("pageerror", lambda err: errors.append(str(err)))
     page.goto(BASE, wait_until="networkidle")
+    page.evaluate("""async () => {
+      const [{loadSparkRuns},{buildGenome},{selectSpark,withSparkLock}]=await Promise.all([
+        import('/spark/runs.mjs'),import('/spark/genome.mjs'),import('/spark/identity.mjs')]);
+      const runs=await loadSparkRuns();
+      await withSparkLock(()=>selectSpark(localStorage,buildGenome({focus:50,calm:70,spark:30},runs[0])));
+      window.dispatchEvent(new Event('beastbox:spark-selected'));
+    }""")
+    # Initial provider metadata coalesces after 900ms. It is unrelated to shrine
+    # interaction; retain the full strict byte comparison after it settles.
+    page.wait_for_timeout(1100)
     launcher = page.get_by_role("button", name="Open Feed the Beast support panel")
     expect(launcher).to_be_visible()
     assert page.evaluate("window.__supportAudio.contexts") == 0, "audio autoplay"

@@ -107,8 +107,28 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
    if(!entry)return;event.preventDefault();if(event.repeat)return;
    if(event.type==='keydown')keyboardHeld.current.add(entry[0]);controllerInput(entry[0],event.type==='keydown','keyboard');
   };
+  // Some browsers route the final keyup to the newly focused editor (or drop it).
+  // Release ONLY the keyboard source when focus enters an editable field, keeping
+  // simultaneous pointer/gamepad holds intact and preventing a stuck native key.
+  const releaseKeyboard=()=>{
+   // Consult the actual input-source map. KeyboardHeld is a convenience cache,
+   // but the source map owns the native press and must never remain stuck.
+   const active=new Set([...keyboardHeld.current,...[...sources.current].filter(([,held])=>held.has('keyboard')).map(([button])=>button)]);
+   for(const button of active)controllerInput(button,false,'keyboard');
+   keyboardHeld.current.clear();
+  };
+  const onFocus=(event:FocusEvent)=>{
+   const target=event.target;
+   if(target instanceof HTMLElement&&target.closest('textarea,input,select,[contenteditable="true"]'))releaseKeyboard();
+  };
+  const onFocusOut=(event:FocusEvent)=>{
+   const next=event.relatedTarget;
+   if(next instanceof HTMLElement&&next.closest('textarea,input,select,[contenteditable="true"]'))releaseKeyboard();
+  };
   window.addEventListener('keydown',onKey);window.addEventListener('keyup',onKey);
-  return()=>{window.removeEventListener('keydown',onKey);window.removeEventListener('keyup',onKey);release();};
+  document.addEventListener('focusin',onFocus,true);
+  document.addEventListener('focusout',onFocusOut,true);
+  return()=>{window.removeEventListener('keydown',onKey);window.removeEventListener('keyup',onKey);document.removeEventListener('focusin',onFocus,true);document.removeEventListener('focusout',onFocusOut,true);release();};
  },[inputEnabled,mode,release]);
  useEffect(()=>{
   if(!inputEnabled||typeof navigator.getGamepads!=='function')return;
@@ -151,7 +171,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
    if(data?.type==='sol-spark-return'){
     const payload=data.payload;
     if(!returning||!payload||payload.schema!=='lost-cosmos-return-v1'||payload.qbeast_id!==bound?.qbeast?.profile.id||payload.qbeast_id!==session?.beast?.qbeast?.profile.id||!/^native-[0-9a-f]{64}$/.test(payload.event_id||'')||typeof payload.native_save!=='string'||payload.native_save.length!==43692){setReturning(false);setNote('This journey does not match your selected Beast. Nothing was changed.');return;}
-    pendingReturn.current={id:payload.qbeast_id,event:payload.event_id};change(draft=>{applyGameReturn(draft,payload);});return;
+    pendingReturn.current={id:payload.qbeast_id,event:payload.event_id};void change(draft=>{const result=applyGameReturn(draft,payload);if(!result.ok)throw Error('Journey did not match this Beast.');}).then(saved=>{if(!saved.ok){pendingReturn.current=null;setReturning(false);setNote(saved.reason||'This journey could not be saved. Try SAVE JOURNEY again.');}});return;
    }
    if(data?.type==='sol-spark-return-error'){setReturning(false);setNote('Journey save: '+String(data.message||'Try saving after entering the game.').slice(0,180));return;}
    if(data?.type==='sol-spark-rejected'&&!sent.current)setNote('Beast verification: '+String(data.message).slice(0,180));
@@ -175,7 +195,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
   catch(error){setNote(error instanceof Error?error.message:'Choose your Beast first.');}
  }
  function saveJourney(){setReturning(true);setNote('Saving your native journey…');post({type:'sol-spark-return-request'});}
- return <section ref={shell} className={css.shell} data-lost-cosmos-player-shell data-spark-player data-creature-id={id} data-running={running} data-player-mode={minimized?'minimized':mode} data-player-stage={stage} aria-label={`Lost COSMOS player · ${name}`}>
+ return <section ref={shell} tabIndex={0} className={css.shell} data-lost-cosmos-player-shell data-spark-player data-creature-id={id} data-running={running} data-player-mode={minimized?'minimized':mode} data-player-stage={stage} aria-label={`Lost COSMOS player · ${name}`}>
   <header className={css.header}><div className={css.identity}><span className={css.light} data-lit={running} aria-hidden="true"/><div><strong>{name}</strong><small>LOST COSMOS · {running?'RUNNING':admitted?'BEAST VERIFIED':'YOUR BEAST / YOUR GAME'}</small></div></div>
    {minimized?(bound?<button type="button" onClick={()=>void display.current?.restore()}>RESTORE GAME</button>:<Link className={css.open} href="/sol-game" onClick={()=>void display.current?.restore()}>OPEN GAME</Link>):null}
    {minimized?<span className={css.sound}>{audio.wanted?(audio.running?'SOUND ON':'SOUND ARMED'):'SOUND OFF'}</span>:null}
@@ -186,6 +206,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
   </div>
   {running&&!minimized?<p className={css.gameAudioHint} role="status">{!audio.wanted?'🔊 iPhone: tap ENABLE GAME SOUND inside the Game Boy. Use 🔔 Test speaker there to check device output separately.':!audio.running?'🔊 Safari game sound is still unverified. In the Game Boy tap RESUME SOUND, then 🔔 TEST SPEAKER. A test chirp alone does not prove cartridge audio.':'🔊 The native emulator AudioContext is running. If silent, check the cartridge audio menu, iPhone media volume, Silent Mode and Bluetooth output.'}</p>:null}
   <div className={css.playAction}>{admitted&&!running?<button type="button" disabled={starting} onClick={()=>{setStarting(true);setNote('Starting Lost COSMOS…');post({type:'sol-spark-start'});}}>{starting?'STARTING…':'START LOST COSMOS'}</button>:null}</div>
+  <div className={css.talk}><SolGameTalk active={active} observeGame={observeGame}/></div>
   <div className={css.controls}><GbaControls enabled={inputEnabled}/></div>
   <nav className={css.toolbar} aria-label="Game actions">
    <button type="button" onClick={()=>expanded?void display.current?.normal():void display.current?.expand()}>{expanded?'RETURN':'FULL SCREEN'}</button>
@@ -193,6 +214,5 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
    <button type="button" disabled={!running||returning} onClick={saveJourney}>{returning?'SAVING…':'SAVE JOURNEY'}</button>
    <Link href="/beast-cage" onClick={()=>void display.current?.minimize()}>BEAST BOX ↗</Link>
   </nav>
-  <div className={css.talk}><SolGameTalk active={active&&!minimized} observeGame={observeGame}/></div>
  </section>;
 }

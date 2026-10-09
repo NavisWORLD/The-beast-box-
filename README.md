@@ -9,6 +9,8 @@ the runtime retains the story and enforces its own authority boundary.
 
 **MODEL ≠ MEMORY · MODEL ≠ STATE · MODEL ≠ PROVENANCE · MODEL ≠ AUTHORITY**
 
+The [Hugging Face Genesis integration](docs/BEAST_AWAKENS_HF_INTEGRATION.md) connects learned local memory to the existing Beast behavior core, with pinned source receipts, a controlled memory ablation and replayable traces. One QBEAST; optional brains; no live quantum link.
+
 ## Feed the Beast 🐉
 
 This workshop runs on stardust, code, caffeine, and alarming persistence.

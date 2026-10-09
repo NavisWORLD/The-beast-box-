@@ -4,7 +4,7 @@
  */
 
 import { createMind, importMind, isKidSafe, observeText, replyFromMind } from "./learn.mjs";
-import {recordCreatureExperience as recordBehaviorFeedback} from "./behavior.mjs";
+import {recordCreatureExperience as recordBehaviorFeedback,validateBehavior} from "./behavior.mjs";
 
 export const TABS = ["play", "cage", "train", "talk", "bestiary", "gba", "lab"];
 export const STAGE_XP = [0, 40, 120];
@@ -181,6 +181,7 @@ export function finishTraining(session, hits, total = 6) {
   session.train.rounds += 1;
   session.train.score += score;
   const result = grantXp(session, 2 + score * 3, "train");
+  if(/^[0-9a-f]{16,128}$/i.test(session.beast?.seed||''))recordBehaviorFeedback(session,{kind:'training',place:session.beast.behavior?.events?.at(-1)?.place||'grove',reward:score/Math.max(1,total)});
   return { ...result, score, total };
 }
 
@@ -189,9 +190,10 @@ export function talk(session, text) {
   const safe = isKidSafe(text);
   session.chat.push({ role: "you", text: String(text || "").slice(0, 400) });
   // Local Hebbian pattern update. Not inference-model training and not QBEAST identity.
-  if (safe) observeText(session.mind, text);
   const reply = replyFromMind(session.mind, text, name);
-  if (safe) observeText(session.mind, reply);
+  // Read prior experience before learning the current turn. Authored pattern prose
+  // is not an external experience and must not recursively train itself.
+  if (safe) observeText(session.mind, text,{seed:session.beast?.seed||''});
   session.chat.push({ role: "beast", text: reply });
   if (session.chat.length > 80) session.chat.splice(0, session.chat.length - 80);
   if (session.beast && safe) {
@@ -222,9 +224,9 @@ export function importSession(raw) {
   const session = createSession();
   if (!raw || raw.schema !== "beastbox-companion-session-v1") return session;
   if (TABS.includes(raw.tab)) session.tab = raw.tab;
-  session.beast = raw.beast || null;
-  session.bestiary = Array.isArray(raw.bestiary) ? raw.bestiary : [];
-  session.chat = Array.isArray(raw.chat) ? raw.chat.slice(-80) : [];
+  session.beast = raw.beast ? structuredClone(raw.beast) : null;
+  session.bestiary = Array.isArray(raw.bestiary) ? structuredClone(raw.bestiary) : [];
+  session.chat = Array.isArray(raw.chat) ? structuredClone(raw.chat.slice(-80)) : [];
   session.mind = importMind(raw.mind);
   session.emulator.ticks = Number(raw.emulator?.ticks) || 0;
   session.emulator.booted = !!raw.emulator?.booted;
@@ -234,7 +236,10 @@ export function importSession(raw) {
   };
   session.mood = raw.mood || "idle";
   session.pet = raw.pet && raw.pet.modelWeightsTrained === false ? raw.pet : null;
-  if (session.beast) mirrorGrowth(session);
+  if (session.beast) {
+    if(session.beast.behavior)session.beast.behavior=structuredClone(validateBehavior(session.beast.behavior,session.beast));
+    mirrorGrowth(session);
+  }
   return session;
 }
 

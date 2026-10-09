@@ -273,12 +273,14 @@ export default function BeastAdventure() {
     }
     if (!spoken && !ownerPending) {
       let local = '';
-      change((draft) => { local = talkAndGrow(draft, saying).reply || ''; });
+      const saved=await change((draft) => { local = talkAndGrow(draft, saying).reply || ''; });
+      if(!saved.ok){setLabel(saved.reason||'The exchange could not be saved.');setBusy(false);return;}
       spoken = local;
       spokenLabel = `${spokenLabel} Local pattern reply is separate and is not a model answer.`;
     } else if (spoken) {
       const line = spoken;
-      change((draft) => { rememberExchange(draft, saying, line); });
+      const saved=await change((draft) => { rememberExchange(draft, saying, line); });
+      if(!saved.ok){setLabel(saved.reason||'The exchange could not be saved.');setBusy(false);return;}
     }
     setAnswer(spoken);
     setLabel(spokenLabel);

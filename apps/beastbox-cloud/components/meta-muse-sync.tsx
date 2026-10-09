@@ -38,7 +38,7 @@ export default function MetaMuseSync() {
         const seen = new Set(link.applied);
         const fresh = actions.filter((a) => !seen.has(a.id));
         if (fresh.length) {
-          change((draft) => {
+          const saved=await change((draft) => {
             for (const a of fresh) {
               if (!draft.beast || (a.seed && draft.beast.seed !== a.seed)) continue;
               if (a.type === 'feed') care(draft, 'feed');
@@ -47,6 +47,7 @@ export default function MetaMuseSync() {
               else if (a.type === 'talk') rememberExchange(draft, String(a.args?.you || ''), String(a.args?.beast || ''));
             }
           });
+          if(!saved.ok)return;
         }
         const still = new Set(actions.map((a) => a.id));
         const applied = [...link.applied.filter((id) => still.has(id)), ...fresh.map((a) => a.id)].slice(-100);

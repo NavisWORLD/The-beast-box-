@@ -27,10 +27,17 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
     setBusy(false);
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
   }
+  // A different QBEAST must not inherit the previous creature's draft or reply.
+  // Minimizing or temporarily hiding this player is NOT an identity change.
   useEffect(() => {
     cancel(); setOpen(false); setStatus(''); setText(''); setLastReply(''); setViewStatus('');
     return () => { request.current.sequence++; request.current.controller?.abort(); };
-  }, [key, active]);
+  }, [key]);
+  // Cancel in-flight calls while the game surface is inactive, but keep the
+  // draft, completed reply, model choice and open state for instant restore.
+  useEffect(() => {
+    if (!active) cancel();
+  }, [active]);
 
   async function send(event: React.FormEvent) {
     event.preventDefault();
@@ -50,7 +57,8 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
       if (sequence !== request.current.sequence || currentKey.current !== expectedKey) return;
       if (controller.signal.aborted) { setStatus('The model request timed out. Your game and Beast are still here.'); return; }
       if (!result.reply) { setStatus(String(result.label).slice(0, 240)); return; }
-      change(draft => { rememberGameReply(draft, expectedKey, saying, result); });
+      const saved=await change(draft => { rememberGameReply(draft, expectedKey, saying, result); });
+      if(!saved.ok){setStatus(saved.reason||'The reply arrived but could not be saved. Your cartridge is still running.');setLastReply(result.reply);return;}
       setText(''); setLastReply(result.reply); setStatus((result.label||'Model reply')+' · reply saved with this Beast on this device. Tap HEAR REPLY for iPhone voice.');
     } catch (error) {
       if (sequence === request.current.sequence) setStatus(error instanceof Error ? error.message : 'The guest model could not answer.');

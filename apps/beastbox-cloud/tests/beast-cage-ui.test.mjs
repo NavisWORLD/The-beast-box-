@@ -40,7 +40,7 @@ test('real geometric 3D, GPU bounds and reduced-motion illustration fallback',()
  assert.match(rig,/new THREE.MeshPhysicalMaterial/);
  assert.match(model,/requestAnimationFrame/);
  assert.match(model,/document.hidden/);
- assert.match(model,/prefers-reduced-motion: reduce/);
+ assert.match(model,/useUniverseMotion/);assert.match(read('components/use-universe-motion.ts'),/prefers-reduced-motion: reduce/);
  assert.match(model,/cosmic-creature.svg/);
  assert.doesNotMatch(model,/fetch\(|getUserMedia\(|MediaRecorder|localStorage/);
 });
@@ -93,9 +93,10 @@ test('the same active Spark Beast reaches customize and the owner dock without m
  assert.doesNotMatch(cage,/\/api\/bridge/);
  assert.doesNotMatch(dock,/localStorage\.setItem|getUserMedia|api\('bridge/);
 });
-test('all world cards use allowlisted owner-only deep links',()=>{
+test('public Brain Bay is separate while advanced world cards retain allowlisted owner-only links',()=>{
  const cage=read('components/beast-cage-portal.tsx'),owner=read('components/studio.tsx');
- for(const path of ['brain-bay','memory-nebula','sensorium','synapse-observatory','connector-dock']){
+ assert.ok(cage.includes("href:'/brain-bay'"));
+ for(const path of ['memory-nebula','sensorium','synapse-observatory','connector-dock']){
   assert.ok(cage.includes('/workspace#'+path));
   assert.ok(owner.includes("'"+path+"'"));
  }
@@ -181,7 +182,7 @@ test('public Beast generator loads all sanitized seed shards and never ships raw
   assert.doesNotMatch(raw,/QuantumCircuit|user_id|BEGIN PRIVATE|authorization|api[_ -]?key/i);
  }
  assert.equal(total,96);
- assert.match(app,/user-seeds-20261004\.json/);
+ assert.match(app,/loadSparkRuns\(\)/);
  assert.match(app,/num_bits>=2/);
  assert.match(read('public/spark/runs.mjs'),/user-seeds-20261004\.json/);
  assert.match(spark,/sameSpark\?runs\.find/);

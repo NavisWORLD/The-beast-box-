@@ -1,4 +1,5 @@
 'use client';
+import {useUniverseMotion} from './use-universe-motion';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {getBeastAudio} from '../lib/companion/beast-audio-engine.mjs';
 import {Volume2,VolumeX} from 'lucide-react';
@@ -16,6 +17,7 @@ type Run={
  shots:number;counts:Record<string,number>;counts_sha256:string;
 };
 export type Genome={
+ seed:string;
  names:Record<number,string>;island:string;temperament:string;element:string;body:string;
  pose:string;ears:string;wings:string;tail:string;quantum:{top_state:string};
  behavior:{
@@ -97,19 +99,14 @@ export default function SparkBeastCompanion({
  const voiceNodes=useRef(new Map<GainNode,ReturnType<typeof setTimeout>>());
  const [run,setRun]=useState<Run|null>(null),[gen,setGen]=useState<Genome|null>(null);
  const [stage,setStage]=useState<1|2|3>(2),[sound,setSound]=useState(false);
- const [error,setError]=useState(''),[reduced,setReduced]=useState(false);
+ const [error,setError]=useState('');
+ const {reduced}=useUniverseMotion();
 
- useEffect(()=>{
-  const media=window.matchMedia('(prefers-reduced-motion: reduce)');
-  const update=()=>setReduced(media.matches);
-  update();media.addEventListener('change',update);
-  return()=>media.removeEventListener('change',update);
- },[]);
 
  useEffect(()=>{
   let cancelled=false;
   void (async()=>{
-   const runs=await loadSparkRuns();
+   const runs=await loadSparkRuns({includeQvm:Boolean(sameSpark)});
    const chosen=sameSpark?runs.find(item=>item.key===sameSpark.genome.inputs.quantum_run):(runs.find(item=>item.key===seedRunKey)||runs[hash(active.id+'|'+active.seed)%runs.length]);
    if(!chosen)throw new Error('Saved Spark run is unavailable');
    if(!cancelled)setRun(chosen);

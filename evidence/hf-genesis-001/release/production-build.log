@@ -1,0 +1,79 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> beastbox-cosmic-chaos@0.1.0 prebuild
+> node scripts/sync-spark-shared.mjs
+
+
+> beastbox-cosmic-chaos@0.1.0 build
+> next build
+
+▲ Next.js 16.3.8 (Turbopack)
+✓ Running next.config.ts took 19ms
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 191ms
+  Running TypeScript ...
+  Finished TypeScript in 1687ms ...
+  Collecting page data using 8 workers ...
+  Generating static pages using 8 workers (0/21) ...
+  Generating static pages using 8 workers (5/21)
+Failed to load dynamic font for ✦ . Error: Error: Failed to download dynamic font. Status: 400
+    at ignore-listed frames
+  Generating static pages using 8 workers (10/21)
+  Generating static pages using 8 workers (15/21)
+✓ Generating static pages using 8 workers (21/21) in 5.3s
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /.well-known/ai-catalog.json
+├ ƒ /.well-known/mcp-server-card
+├ ƒ /.well-known/mcp.json
+├ ƒ /.well-known/mcp/catalog.json
+├ ƒ /.well-known/oauth-authorization-server/[[...path]]
+├ ƒ /.well-known/oauth-protected-resource/[[...path]]
+├ ƒ /api/bridge/[endpoint]
+├ ƒ /api/companion-release
+├ ƒ /api/gba-release
+├ ƒ /api/gba-rom
+├ ƒ /api/genesis-3d-release
+├ ƒ /api/genesis-release
+├ ƒ /api/guest
+├ ƒ /api/mcp
+├ ƒ /api/mcp/server-card
+├ ƒ /api/muse/[action]
+├ ƒ /api/muse/oauth/[step]
+├ ƒ /api/release
+├ ƒ /api/session
+├ ƒ /api/spark/chat
+├ ƒ /api/status
+├ ƒ /api/web-search
+├ ○ /apple-icon
+├ ○ /beast-cage
+├ ○ /beast-cage/go
+├ ○ /beast-cage/guest
+├ ○ /beast-cage/play
+├ ○ /beast-cage/talk
+├ ○ /beast-cage/turntable
+├ ○ /brain-bay
+├ ƒ /connect/meta-muse
+├ ○ /connect/meta-muse/pair
+├ ○ /manifest.webmanifest
+├ ○ /next
+├ ○ /privacy
+├ ○ /research
+├ ○ /research/stage015
+├ ○ /settings
+├ ○ /sol-game
+├ ○ /try
+└ ƒ /workspace
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

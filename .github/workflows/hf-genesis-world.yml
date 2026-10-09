@@ -1,0 +1,67 @@
+name: HF Genesis same-Beast world acceptance
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/**'
+      - 'scripts/audit-creature-genesis.mjs'
+      - 'scripts/audit-huggingface-genesis.mjs'
+      - 'scripts/experiment-hf-genesis.mjs'
+      - 'evidence/hf-genesis-001/**'
+      - '.github/workflows/hf-genesis-world.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hf-genesis-world-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  same-beast:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Install isolated browser test dependencies
+        run: |
+          npm install --prefix "$RUNNER_TEMP/beast-browser" --no-audit --no-fund playwright@1.55.0
+          "$RUNNER_TEMP/beast-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Guest, provider failure, sound, and actual native cartridge
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export NODE_PATH="$RUNNER_TEMP/beast-browser/node_modules"
+          export BEAST_EVIDENCE_DIR="$GITHUB_WORKSPACE/apps/beastbox-cloud/browser-evidence/hf-genesis/brain"
+          output="$GITHUB_WORKSPACE/apps/beastbox-cloud/browser-evidence/hf-genesis"
+          mkdir -p "$output"
+          npm start -- -H 127.0.0.1 -p 3000 > "$output/server.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for n in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node tests/hf-genesis-world.cjs http://127.0.0.1:3000 "$output/guest" | tee "$output/guest.log"
+          node tests/brain-world.cjs http://127.0.0.1:3000 | tee "$output/brain.log"
+          node tests/spark-mobile.cjs http://127.0.0.1:3000 "$output/spark" | tee "$output/spark.log"
+          node tests/player-shell.cjs http://127.0.0.1:3000 "$output/player" | tee "$output/player.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hf-genesis-world-${{ github.run_id }}
+          path: apps/beastbox-cloud/browser-evidence/hf-genesis/
+          if-no-files-found: warn
+          retention-days: 30

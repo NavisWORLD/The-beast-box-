@@ -68,7 +68,8 @@ test("the habitat beast is seeded, honest, muted until a tap, and respects reduc
   assert.doesNotMatch(lib, /Math\.random/);
   assert.doesNotMatch(arena, /Math\.random/);
   assert.match(arena, /useState\(false\),soundRef/);
-  assert.match(arena, /prefers-reduced-motion: reduce/);
+  assert.match(arena, /useUniverseMotion/);
+  assert.match(read("components/use-universe-motion.ts"), /prefers-reduced-motion: reduce/);
   assert.match(arena, /attack\('tap'\)/);
   assert.match(arena, /attack\('timer'\)/);
   assert.match(arena, /attack\('chat'\)/);
