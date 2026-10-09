@@ -1,0 +1,37 @@
+name: Real IBM Fez → Dragon Genesis → God Core Replay
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/scripts/real-ibm-fez-dragon-experiment.mjs'
+      - 'apps/beastbox-cloud/experiment-input/ibm-fez-20261009-measurement-receipt.json'
+      - '.github/workflows/real-ibm-fez-dragon.yml'
+permissions:
+  contents: read
+jobs:
+  real-ibm-fez-dragon-classical-development:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Execute and validate real IBM Fez dragon genesis, Rigetti QVM historical stimuli, God Core behavior and local talk
+        run: node apps/beastbox-cloud/scripts/real-ibm-fez-dragon-experiment.mjs
+      - name: Check immutable source receipt and tested behavior
+        run: |
+          node --input-type=module -e "import {readFileSync} from 'node:fs';let r=JSON.parse(readFileSync('apps/beastbox-cloud/experiment-evidence/real-ibm-fez-dragon-001/receipt.json'));if(r.genome.body!=='dragonling'||r.provenance.genesis_job!=='db4kcfklf4us73c2sjb0'||r.conversation.turns.length!==3||r.provenance.azure_db_writes!==0||!r.acceptance.save_load_replay_exact||r.native_game.executed_in_this_run!==false)process.exit(1);console.log('PASS real hardware origin + explicit simulator input + real classical creature behavior + local conversation + exact session replay');"
+      - name: Preserve actual dragon sprite, full trace, QBEAST and session
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-ibm-fez-dragon-${{ github.run_id }}
+          path: |
+            apps/beastbox-cloud/experiment-evidence/real-ibm-fez-dragon-001/receipt.json
+            apps/beastbox-cloud/experiment-evidence/real-ibm-fez-dragon-001/beast.png
+            apps/beastbox-cloud/experiment-evidence/real-ibm-fez-dragon-001/qbeast.json
+            apps/beastbox-cloud/experiment-evidence/real-ibm-fez-dragon-001/unsigned-session.json
+          retention-days: 30
+          if-no-files-found: error
