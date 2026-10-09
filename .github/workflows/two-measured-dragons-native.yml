@@ -6,6 +6,8 @@ on:
       - 'apps/beastbox-cloud/lib/companion/recorded-qvm-stimulus.mjs'
       - 'apps/beastbox-cloud/scripts/pistonwyrm-live-ibm-azure-behavior.mjs'
       - 'apps/beastbox-cloud/tests/pistonwyrm-native-azure-e2e.cjs'
+      - 'apps/beastbox-cloud/tests/spark-source-registry.test.mjs'
+      - 'apps/beastbox-cloud/tests/two-dragons-production-chat.cjs'
       - '.github/workflows/two-measured-dragons-native.yml'
 permissions:
   contents: read
@@ -44,6 +46,7 @@ jobs:
       - name: Verify genuine measured-source public registry and one-shot stimulus
         run: |
           node --check public/spark/app.mjs
+          node --check tests/two-dragons-production-chat.cjs
           node --check public/spark/runs.mjs
           node --check scripts/pistonwyrm-live-ibm-azure-behavior.mjs
           node scripts/pistonwyrm-live-ibm-azure-behavior.mjs
