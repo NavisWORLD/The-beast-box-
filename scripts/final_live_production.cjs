@@ -98,6 +98,30 @@ const sourcePath=process.argv[7]||'/spark/ibm-final-live-reality-probe-20261009.
   await page.waitForTimeout(1000);
   const still=await core.evaluate(()=>EJS_emulator.gameManager.getSaveFile(false));
   assert.ok(still?.length===32768,'Native save disappeared after input');
+  // Hold trusted touch input across actual GBA frames; a one-frame tap can
+  // reach the controller bridge without being sampled by the title screen.
+  const touch=await context.newCDPSession(page);
+  const hold=async(name,ms=220)=>{
+   const node=pad.getByRole('button',{name,exact:true});await node.scrollIntoViewIfNeeded();
+   const box=await node.boundingBox();assert.ok(box);
+   await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:box.x+box.width/2,y:box.y+box.height/2,id:1}]});
+   await page.waitForTimeout(ms);
+   await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+   await page.waitForTimeout(350);
+  };
+  const initialized=await core.evaluate(()=>{const gm=EJS_emulator.gameManager;gm.saveSaveFiles();const bytes=gm.getSaveFile(false);return bytes&&String.fromCharCode(...bytes.subarray(1024,1028))==='LCR1';});
+  if(!initialized){await hold('A');await page.waitForTimeout(600);await hold('Start');}
+  await core.waitForFunction(()=>{
+   const gm=EJS_emulator.gameManager;gm.saveSaveFiles();const bytes=gm.getSaveFile(false);
+   return bytes&&String.fromCharCode(...bytes.subarray(1024,1028))==='LCR1';
+  },null,{timeout:90000});
+  await page.waitForTimeout(3000);
+  await core.locator('#game canvas').first().screenshot({path:path.join(output,'umbrascale-overworld-before.png')});
+  const movement=[];
+  for(const name of ['Right','Down','Left','Up']){
+   const began=new Date().toISOString();await hold(name,450);movement.push({button:name,hold_ms:450,started_utc:began,completed_utc:new Date().toISOString()});
+  }
+  await core.locator('#game canvas').first().screenshot({path:path.join(output,'umbrascale-overworld-after.png')});
   const screenshot=path.join(output,'umbrascale-live-native.png');
   await core.locator('#game canvas').first().screenshot({path:screenshot});
   const handshake=process.env.BEAST_LIVE_QPU_HANDSHAKE_DIR;
@@ -149,10 +173,14 @@ const sourcePath=process.argv[7]||'/spark/ibm-final-live-reality-probe-20261009.
   assert.equal(saved.beast.qbeast.profile.id,snapshot.profile.id);
   assert.equal(saved.beast.qvmStimulus.job_id,'32d6fc6c-c42d-11f1-ae67-000d3ad41960','Fresh Azure stimulus marker disappeared');
   await fs.writeFile(path.join(output,'post-live-session.json'),JSON.stringify(saved,null,2)+'\n');
+  const battery=await core.evaluate(()=>{const gm=EJS_emulator.gameManager;gm.saveSaveFiles();return Array.from(gm.getSaveFile(false));});
+  assert.equal(battery.length,32768);
+  assert.equal(new DataView(Uint8Array.from(battery).buffer).getUint32(24712,true),rendered.nativeId,'Live gameplay changed the measured companion identity');
+  await fs.writeFile(path.join(output,'umbrascale-live-native.sav'),Buffer.from(battery));
   const observed={schema:'beastbox-final-live-production-dragon-test-v1',qbeast_id:snapshot.profile.id,
    ibm_source_job:genesis.provenance.genesis_job,game:'Lost COSMOS V11.3 native EmulatorJS',
    native_id:machine.nativeId,native_seed:machine.nativeSeed,
-   start_select_handshake:true,button_a_press_release_verified:true,
+   start_select_handshake:true,button_a_press_release_verified:true,native_roster_initialized:true,observed_movement_inputs:movement,
    screenshot:'umbrascale-live-native.png',video:'native-gameplay.webm',
    native_save_marker:machine.nativeMarker,native_save_bytes:machine.length,actual_a_input:pressed.slice(-2),
    recorded_gameplay:'real emulator input and screenshot, not inferred quest completion',
