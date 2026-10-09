@@ -1,0 +1,40 @@
+# Manual, read-only readiness check. No hardware jobs can run from here.
+name: IBM Open Plan — Five Minute Preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ibm-open-plan-readiness-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test budget guard with fake usage
+        run: python -m unittest discover -s tests -p test_ibm_open_plan_preflight.py -v
+      - name: Install read-only IBM client
+        run: python -m pip install "qiskit-ibm-runtime>=0.45,<0.51"
+      - name: Read Open Plan allowance using GitHub Actions Secret
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py
+      - name: Save sanitized quota receipt
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ibm-open-plan-readiness-${{ github.run_id }}
+          path: _ibm_open_plan_preflight/receipt.json
+          retention-days: 7
+          if-no-files-found: error
