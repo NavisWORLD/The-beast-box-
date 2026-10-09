@@ -18,7 +18,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build real CPU model image with pinned immutable artifact
-        run: docker build -f apps/beastbox-cloud/bridge/deploy/Dockerfile.tiny -t beastbox-tiny:ci .
+        run: >-
+          docker build -f apps/beastbox-cloud/bridge/deploy/Dockerfile.tiny
+          --build-arg CADDY_IMAGE=public.ecr.aws/docker/library/caddy:2.10.2@sha256:c3d7ee5d2b11f9dc54f947f68a734c84e9c9666c92c88a7f30b9cba5da182adb
+          --build-arg PYTHON_IMAGE=public.ecr.aws/docker/library/python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258
+          -t beastbox-tiny:ci .
       - name: Prepare isolated fictional test volume
         run: mkdir -p "$RUNNER_TEMP/beastbox-tiny-test"
       - name: Run actual CPU model under 1 GiB memory / 2 CPUs

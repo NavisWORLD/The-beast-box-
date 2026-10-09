@@ -89,7 +89,7 @@ const expectedIdentity=process.argv[5]||'bb-82fbc8ff';
   await button.tap();await page.waitForTimeout(300);
   const pressed=await core.evaluate(n=>window.__dragonInput.slice(n),before);
   assert.deepEqual(pressed.slice(-2),[[0,8,1],[0,8,0]],'A press/release not delivered to native core');
-  await pad.getByRole('button',{name:'START',exact:true}).tap();
+  await pad.getByRole('button',{name:'Start',exact:true}).tap();
   await page.waitForTimeout(1000);
   const still=await core.evaluate(()=>EJS_emulator.gameManager.getSaveFile(false));
   assert.ok(still?.length===32768,'Native save disappeared after input');
