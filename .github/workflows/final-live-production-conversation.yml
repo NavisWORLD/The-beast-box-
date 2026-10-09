@@ -1,0 +1,50 @@
+name: Final live production dragon gameplay conversation and bounded IBM overlap
+on:
+  pull_request:
+    paths:
+      - 'scripts/ibm_live_dragon_conversation.py'
+      - 'scripts/final_live_production.cjs'
+      - '.github/workflows/final-live-production-conversation.yml'
+permissions:
+  contents: read
+concurrency:
+  group: umbrascale-final-production-qpu-20261009
+  cancel-in-progress: false
+jobs:
+  live-production:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/production-dragon-final-live-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Recreate final dragon from exact completed IBM and Azure receipts
+        run: node apps/beastbox-cloud/scripts/final-live-dragon-experiment.mjs
+      - name: Install physical probe SDK and browser
+        run: |
+          python -m pip install qiskit qiskit-ibm-runtime
+          npm install --prefix "$RUNNER_TEMP/final-live-browser" --no-audit --no-fund playwright@1.55.0
+          "$RUNNER_TEMP/final-live-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Real production GBA and hosted chat synchronized to one bounded physical probe
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_REAL_QPU_ONE_JOB: YES_ONE_REAL_JOB
+          NODE_PATH: ${{ runner.temp }}/final-live-browser/node_modules
+        run: python scripts/ibm_live_dragon_conversation.py
+      - name: Preserve physics receipts, timeline, actual UI replies, session, screenshots and gameplay video
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: umbrascale-final-production-${{ github.run_id }}
+          path: |
+            _final_live_production/
+            apps/beastbox-cloud/experiment-evidence/final-live-umbrascale-001/
+          retention-days: 30
+          if-no-files-found: warn
