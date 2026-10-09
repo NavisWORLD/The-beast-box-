@@ -17,8 +17,8 @@ const sim=load(resolve(root,'public/spark/azure-third-final-ibm-qvm-20261009.jso
 const cloud=load(resolve(repo,'_azure_third_final_dragon_20261009/result.json'));
 check(hardware.job_id==='db4nlt2mb58s7389er6g'&&hardware.job_status==='DONE'&&hardware.shot_count===16384,'Physical source missing or altered');
 check(source.job_id===hardware.job_id&&source.counts_digest_sha256===hardware.counts_digest_sha256,'Public IBM source does not correspond to hardware');
-check(cloud.schema==='beastbox-final2-azure-live-qvm-result-v1'&&cloud.job_id===sim.job_id&&cloud.source.ibm_job_id===hardware.job_id&&cloud.counts_sha256===sim.counts_sha256&&j(cloud.counts)===j(sim.counts),'Public simulator stimulus differs from real Azure result');
-const run=expandRun(source.runs[0]),genome=buildGenome({focus:80,calm:20,spark:100},run,'Final-gen3-11',10);
+check(cloud.schema==='beastbox-final3-azure-live-qvm-result-v1'&&cloud.job_id===sim.job_id&&cloud.source.ibm_job_id===hardware.job_id&&cloud.counts_sha256===sim.counts_sha256&&j(cloud.counts)===j(sim.counts),'Public simulator stimulus differs from real Azure result');
+const run=expandRun(source.runs.find(r=>r.k==='db4nlt2mb58s7389er6g:bell-xx')),genome=buildGenome({focus:80,calm:20,spark:100},run,'Final-gen3-11',10);
 check(genome.body==='dragonling'&&genome.seed==='98d38e4ca857ffbd878a57eb8f6b8dc5be199b1e9f565dc56945579bc9d5e358'&&genome.names[1]==='Magmascale','Public Magmascale recipe mismatch');
 const session=importSession(load(resolve(root,'experiment-evidence/third-final-real-dragon-20261009/unsigned-session.json')));
 check(session.beast.seed===genome.seed&&session.beast.qbeast.profile.id==='bb-e9850e96','Native source and session are not the same Magmascale');
