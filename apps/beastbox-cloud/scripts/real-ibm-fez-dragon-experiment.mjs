@@ -59,7 +59,7 @@ function run(){
  check(sha(canonical(ibm.measurements))===ibm.counts_digest_sha256,'Full four-circuit hardware count digest mismatch');
  check(Object.keys(ibm.measurements).length===4&&Object.values(ibm.measurements).every(c=>Object.values(c).reduce((a,b)=>a+b,0)===256),'Missing or corrupted 4x256 IBM counts');
  const measured=ibm.measurements.bell_zz;
- const recorded=validateRun({key:ibm.job_id+':bell_zz',backend:ibm.backend_name,
+ const recorded=validateRun({key:ibm.job_id+':bell-zz',backend:ibm.backend_name,
    job_id:ibm.job_id,pub_index:0,num_bits:2,shots:256,counts:measured,
    counts_sha256:sha(canonical(measured))});
  // User requested a dragonling: deterministic rejection selection is logged in the receipt.
@@ -67,7 +67,7 @@ function run(){
  const domain='NavisWORLD-dragon-'; // QBEAST keeper/public label supports <=24 ASCII chars
  let genome=null,selectedAttempt=-1;
  for(let attempt=0;attempt<256;attempt++){
-   const candidate=buildGenome(TRAITS,recorded,domain+':'+attempt,10);
+   const candidate=buildGenome(TRAITS,recorded,domain+attempt,10);
    if(candidate.body==='dragonling'){genome=candidate;selectedAttempt=attempt;break;}
  }
  check(!!genome&&selectedAttempt>=0,'No dragonling generated from bounded deterministic search');
