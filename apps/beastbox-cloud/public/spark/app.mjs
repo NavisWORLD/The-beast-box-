@@ -377,7 +377,7 @@ async function main(){
  soundWanted=readSoundWanted();if(soundWanted)beastAudio.sparkUnmute();else beastAudio.sparkMute();updateVoiceButton();syncAudioUi();wirePageNavigation();installNativeBridge();
  $('btnote').textContent=bluetoothNote()||'';for(const key of Object.keys(PROFILES)){const opt=document.createElement('option');opt.value=opt.textContent=key;$('profile').append(opt)}$('profile').value='balanced';
  const [ibmRuns,qvmReceipt]=await Promise.all([
-  loadSparkRuns(),
+  loadSparkRuns({includeNewHardware:true}),
   fetch('/spark/rigetti-qvm-sim.json').then(r=>r.ok?r.json():null).catch(()=>null)
  ]);
  qvmRuns=qvmReceipt?validateQvmReceipt(qvmReceipt):[];
