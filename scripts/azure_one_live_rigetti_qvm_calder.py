@@ -51,8 +51,19 @@ def main():
         "source_class":"SIMULATOR_JOB_SUBMITTED","shots_requested":SHOTS,
         "new_jobs_submitted":1,"qpu_jobs_submitted":0,"cosmos_db_writes":0})
     print("AZURE_QVM_SUBMITTED="+job_id,flush=True)
-    result=job.result()
-    counts={str(k).replace(" ",""):int(v) for k,v in result.get_counts(circuit).items()}
+    result=job.get_results()
+    record("raw_simulator_result.json",{"job_id":job_id,"provider_result":result,
+        "source_class":"RIGETTI_QVM_SIMULATOR"})
+    values=result.get("ro") if isinstance(result,dict) else None
+    counts={}
+    if isinstance(values,list):
+        for item in values:
+            bits="".join(str(int(b)) for b in item) if isinstance(item,(list,tuple)) else str(item)
+            counts[bits]=counts.get(bits,0)+1
+    elif isinstance(values,dict):
+        counts={str(k):int(v) for k,v in values.items()}
+    if not counts:
+        raise RuntimeError("Simulator result format not parsed; raw output preserved")
     if sum(counts.values())!=SHOTS or any(k not in ("00","01","10","11") for k in counts):
         raise RuntimeError("QVM returned invalid counts; raw submission retained")
     digest=hashlib.sha256(json.dumps(counts,sort_keys=True,separators=(",",":")).encode()).hexdigest()
