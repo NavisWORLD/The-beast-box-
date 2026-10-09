@@ -9,7 +9,7 @@ import {loadSparkRuns} from './runs.mjs';
 export const DEVICE_JOURNEY_SCHEMA='beastbox-device-journey-v1';
 export const DEVICE_JOURNEY_LIMIT=2*1024*1024;
 export async function loadDeviceJourneyRuns(){
- return loadSparkRuns({includeQvm:true});
+ return loadSparkRuns({includeQvm:true,includeNewHardware:true});
 }
 const clone=value=>JSON.parse(JSON.stringify(value));
 const object=value=>!!value&&typeof value==='object'&&!Array.isArray(value);
