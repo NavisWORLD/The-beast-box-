@@ -1,0 +1,21 @@
+/** New IBM hardware receipt -> existing deterministic QBEAST and local behavior. */
+import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
+import {resolve,dirname,join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {runRealIBMDragonExperiment} from './real-ibm-marrakesh-dragon-experiment.mjs';
+import {serializeQbeast} from '../public/spark/qbeast.mjs';
+import {exportSession} from '../lib/companion/session.mjs';
+const DIR=dirname(fileURLToPath(import.meta.url));
+const hardware=JSON.parse(readFileSync(resolve(DIR,'../../../_ibm_second_final_dragon_20261009/measurement_receipt.json'),'utf8'));
+if(hardware.source_class!=='RECORDED_IBM_HARDWARE'||hardware.job_status!=='DONE'||hardware.shot_count!==16384)throw Error('A real completed hardware receipt is required.');
+const {output,portrait,qbeast,session}=runRealIBMDragonExperiment({keeperPrefix:'Final-gen2-',hardwareReceipt:hardware});
+if(output.provenance.genesis_job!==hardware.job_id||!output.acceptance.save_load_replay_exact||output.qbeast.id!==qbeast.profile.id)throw Error('Measured identity or save replay failed');
+output.schema='beastbox-second-final-real-ibm-dragon-v1';
+output.protocol.new_azure_qvm='NOT_YET_RUN_FOR_THIS_NEW_JOB';
+const out=resolve(DIR,'../experiment-evidence/second-final-real-dragon-20261009');
+mkdirSync(out,{recursive:true});
+writeFileSync(join(out,'receipt.json'),JSON.stringify(output,null,2)+'\n');
+writeFileSync(join(out,'beast.png'),portrait);
+writeFileSync(join(out,'qbeast.json'),serializeQbeast(qbeast));
+writeFileSync(join(out,'unsigned-session.json'),JSON.stringify(exportSession(session),null,2)+'\n');
+console.log('SECOND_REAL_IBM_DRAGON '+JSON.stringify({name:output.genome.name,qbeast_id:output.qbeast.id,ibm_job:hardware.job_id,shots:hardware.shot_count,action_counts:output.observed.action_counts,local_conversations:output.conversation.turns.length,save_replay:output.acceptance.save_load_replay_exact,azure:output.protocol.new_azure_qvm}));
