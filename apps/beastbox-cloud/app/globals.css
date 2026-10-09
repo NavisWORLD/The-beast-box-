@@ -532,3 +532,6 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
  .cosmic-support:not(.is-open) .support-beast-shell{width:50px;height:50px}
  .cosmic-support:not(.is-open) .support-launcher-copy{display:none}
 }
+
+/* Saved device preference complements the existing operating-system media queries. */
+html[data-beastbox-reduced-motion="true"] *,html[data-beastbox-reduced-motion="true"] *::before,html[data-beastbox-reduced-motion="true"] *::after{animation-duration:0.001ms!important;animation-iteration-count:1!important;transition-duration:0.001ms!important;scroll-behavior:auto!important;}

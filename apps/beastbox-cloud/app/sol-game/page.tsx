@@ -9,9 +9,9 @@ export default function SolGame(){return <main style={{minHeight:'100vh',backgro
   <Link href="/spark/index.html" style={{padding:'8px 10px'}}>My Beast</Link>
   <Link href="/beast-cage" style={{padding:'8px 10px'}}>Beast Cage</Link>
   <span aria-current="page" style={{padding:'8px 10px',borderRadius:9,background:'#17314c',color:'#7ee7ff'}}>Lost COSMOS</span>
-  <Link href="/workspace#brain-bay" style={{padding:'8px 10px'}}>Brain Bay</Link>
+  <Link href="/brain-bay" style={{padding:'8px 10px'}}>Brain Bay</Link>
   <Link href="/research" style={{padding:'8px 10px'}}>Lab</Link>
-  <Link href="/workspace#settings" style={{padding:'8px 10px'}}>Settings</Link>
+  <Link href="/settings" style={{padding:'8px 10px'}}>Settings</Link>
  </nav>
  <p style={{fontSize:11,letterSpacing:'.14em',color:'#7ee7ff',fontWeight:800}}>YOUR BEAST · YOUR CARTRIDGE · SAME IDENTITY</p>
  <h1 style={{fontSize:'clamp(24px,5vw,40px)'}}>PLAY IN LOST COSMOS 🎮</h1>

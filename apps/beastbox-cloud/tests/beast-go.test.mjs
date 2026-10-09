@@ -358,7 +358,7 @@ test("the pet dragon loops from a recorded seed and only grows on-device weights
   assert.match(dock, /selectSafeRoamSpot/);
   assert.match(read("components/companion-provider.tsx"), /data-pet-dragon="true"/);
   assert.match(read("components/studio.tsx"), /beastbox:pet-growth/);
-  assert.match(read("components/beast-care-deck.tsx"), /not trained by the pet dragon/);
+  assert.match(read("components/beast-care-deck.tsx"), /A selected model is not trained by this companion/);
   assert.doesNotMatch(dock, /Math\.random/);
 });
 

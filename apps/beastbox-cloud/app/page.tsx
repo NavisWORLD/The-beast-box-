@@ -6,7 +6,7 @@ import { ArrowUpRight, BrainCircuit, Orbit, Sparkles } from 'lucide-react';
 const P=[
  {icon:Sparkles,title:'MEET YOUR BEAST',copy:'Create or load one companion, care for it, name it, and keep the same identity as you move through Beast Box.',href:'/spark/index.html'},
  {icon:Orbit,title:'EXPLORE + PLAY',copy:'Take your Beast into the Cage and LOST COSMOS. You can just play; the technical layers never have to get in the way.',href:'/beast-cage'},
- {icon:BrainCircuit,title:'GO DEEPER WHEN YOU WANT',copy:'Brain Bay and the Lab hold the models, experiments, sensors, evidence and advanced controls for people who want them.',href:'/workspace#brain-bay'}
+ {icon:BrainCircuit,title:'GO DEEPER WHEN YOU WANT',copy:'Brain Bay and the Lab hold the models, experiments, sensors, evidence and advanced controls for people who want them.',href:'/brain-bay'}
 ];
 
 export default function Home(){
@@ -18,11 +18,11 @@ export default function Home(){
    <Link href="/spark/index.html">My Beast</Link>
    <Link href="/beast-cage">Beast Cage</Link>
    <Link href="/sol-game">Lost COSMOS</Link>
-   <Link href="/workspace#brain-bay">Brain Bay</Link>
+   <Link href="/brain-bay">Brain Bay</Link>
    <Link href="/research">Lab</Link>
   </nav>
   <span className="pill"><span className="pulse"/> DREAMERS · IDLERS · PLAYERS · BUILDERS</span>
-  <Link className="header-enter" href="/workspace#settings">Settings <ArrowUpRight size={16}/></Link>
+  <Link className="header-enter" href="/settings">Settings <ArrowUpRight size={16}/></Link>
  </header>
 
  <section className="hero">

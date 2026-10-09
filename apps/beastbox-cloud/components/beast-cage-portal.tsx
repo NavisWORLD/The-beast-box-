@@ -6,6 +6,9 @@ import SparkBeastCompanion from './spark-beast-companion';
 import SparkBeastArena from './spark-beast-arena';
 import GenesisForge from './genesis-forge';
 import BeastCareDeck from './beast-care-deck';
+import CreatureHabitat from './creature-habitat';
+import {visualStateFromBeast} from '../lib/companion/creature-visual-state.mjs';
+import {useUniverseMotion} from './use-universe-motion';
 import QbeastMenagerie from './qbeast-menagerie';
 import {useBeastSession} from './beast-session';
 import {shownName} from '../lib/companion/session.mjs';
@@ -18,7 +21,7 @@ const LOOKS:{id:BaseLook;label:string;detail:string;accent:string}[]=[
 ];
 const WORLDS=[
  {name:'The Beast Cage',description:'Meet your companion and configure its appearance.',icon:Sparkles,tag:'COSMIC HABITAT',href:'/beast-cage'},
- {name:'Brain Bay',description:'Real models, deliberate selection and transparent readiness.',icon:BrainCircuit,tag:'REPLACEABLE INFERENCE',href:'/workspace#brain-bay'},
+ {name:'Brain Bay',description:'Real models, deliberate selection and transparent readiness.',icon:BrainCircuit,tag:'REPLACEABLE INFERENCE',href:'/brain-bay'},
  {name:'Memory Nebula',description:'Your records remain outside the model you select.',icon:DatabaseZap,tag:'AUTHORIZED PERSISTENCE',href:'/workspace#memory-nebula'},
  {name:'Sensorium',description:'Permissioned browser sensing, not imagined perception.',icon:Volume2,tag:'LOCAL SENSORS',href:'/workspace#sensorium'},
  {name:'Synapse Observatory',description:'Recorded events and genuine state receipts.',icon:Orbit,tag:'MEASURED SOFTWARE',href:'/workspace#synapse-observatory'},
@@ -27,7 +30,8 @@ const WORLDS=[
 const STORAGE='beastbox-cage-appearance-v1';
 export default function BeastCagePortal(){
  const [look,setLook]=useState<BaseLook>('nebula');
- const [saved,setSaved]=useState(false),[prefersReduced,setPrefersReduced]=useState(false);
+ const [saved,setSaved]=useState(false);
+ const {reduced:prefersReduced}=useUniverseMotion();
  const [expanded,setExpanded]=useState(false);
  const {profile:creature,selectProfile,clearProfile}=useCompanion();
  const [ambient,setAmbient]=useState<AmbientAction>('hover');
@@ -36,12 +40,8 @@ export default function BeastCagePortal(){
  const creatureName=sameSpark?shownName(session.beast):creature?.name;
  useEffect(()=>{if(creature)setLook(creature.baseLook);},[creature?.id,creature?.baseLook]);
  useEffect(()=>{
-  const media=window.matchMedia('(prefers-reduced-motion: reduce)');
-  const onChange=()=>setPrefersReduced(media.matches);
-  onChange();media.addEventListener('change',onChange);
   try{const item=window.localStorage.getItem(STORAGE);if(item&&LOOKS.some(x=>x.id===item)){setLook(item as BaseLook);setSaved(true);}}
   catch{/* private browsing/storage unavailable: visual preview remains usable */}
-  return()=>media.removeEventListener('change',onChange);
  },[]);
  function save(){
   try{window.localStorage.setItem(STORAGE,look);window.dispatchEvent(new Event('beastbox:cage-look-changed'));setSaved(true);}
@@ -60,9 +60,9 @@ export default function BeastCagePortal(){
     <Link href="/spark/index.html">My Beast</Link>
     <Link href="/beast-cage" aria-current="page">Beast Cage</Link>
     <Link href="/sol-game">Lost COSMOS</Link>
-    <Link href="/workspace#brain-bay">Brain Bay</Link>
+    <Link href="/brain-bay">Brain Bay</Link>
     <Link href="/research">Lab</Link>
-    <Link className="cage-nav-cta" href="/workspace#settings">Settings <ArrowRight size={15}/></Link>
+    <Link className="cage-nav-cta" href="/settings">Settings <ArrowRight size={15}/></Link>
    </nav>
   </header>
   <section className="cage-hero" id="habitat" aria-labelledby="cage-title">
@@ -76,7 +76,7 @@ export default function BeastCagePortal(){
    <div className="cage-habitat-visual" role="group" aria-label="Original cosmic observatory with a floating galaxy companion">
     <div className="cage-orbit cage-orbit-one" aria-hidden="true"/><div className="cage-orbit cage-orbit-two" aria-hidden="true"/>
     <SparkBeastArena profile={creature} fallbackLook={look}
-     state={ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
+     state={sameSpark?visualStateFromBeast(session.beast):ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
      label="Active Spark Beast companion"/>
     <span className="cage-habitat-caption">✧ YOUR OWN POCKET UNIVERSE</span>
    </div>
@@ -87,6 +87,7 @@ export default function BeastCagePortal(){
    ✧ {creatureName} · {creature.family} · {ambient} (classical seeded visual behavior)
    <Link href="/beast-cage/guest">Take this creature to the GBA Game Lab ↗</Link>
   </div>:null}
+  <CreatureHabitat />
   <BeastCareDeck />
   <QbeastMenagerie />
   <section className="cage-invariants"><span>MODEL ≠ MEMORY</span><span>MODEL ≠ IDENTITY</span><span>MODEL ≠ AUTHORITY</span></section>
@@ -95,7 +96,7 @@ export default function BeastCagePortal(){
     <h2 id="customize-title">Meet the first<br/><em>little constellations.</em></h2>
     <p>Customize the same Beast that roams the site, uses the shared care deck, and crosses into Lost COSMOS. Stage controls are previews; earned cartridge evolution still comes from gameplay. The public generator can draw from the expanded recorded-seed pool.</p><a className="cage-secondary" href="/spark/index.html">Generate from the public IBM seed archive ↗</a></div>
    <SparkBeastCompanion profile={creature} fallbackLook={look}
-    state={ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
+    state={sameSpark?visualStateFromBeast(session.beast):ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
     controls label="Customizable Spark Beast preview"/>
    {!sameSpark?<div className="cage-look-grid">{LOOKS.map(item=><button type="button" className={'cage-look-card '+item.accent+(look===item.id?' selected':'')} key={item.id} aria-pressed={look===item.id} onClick={()=>{
     const starter=generateCreature('beastbox-starter-'+item.id,item.id);
@@ -112,7 +113,7 @@ export default function BeastCagePortal(){
     <span className="cage-world-decoration" aria-hidden="true"><world.icon size={52} strokeWidth={1.05}/></span><span className="cage-world-tag">{world.tag}</span><strong>{world.name}</strong><span>{world.description}</span><ArrowRight size={15} aria-hidden="true" className="cage-world-go"/>
    </Link>)}</div>
   </section>
-  <section className="cage-continuity"><div className="cage-continuity-art" aria-hidden="true"><img src="/cosmic-creature.svg" alt=""/></div><div><span className="cage-eyebrow">THE STORY LIVES OUTSIDE THE MODEL</span><h2>Different brain.<br/><em>Your chosen continuity.</em></h2><p>In the real owner workstation, deliberate provider changes can preserve authorized external substrate memory. A visual look isn't an AI checkpoint, and preview cards do not run model inference.</p><Link href="/workspace#brain-bay" className="cage-secondary">Open Brain Bay ↗</Link></div></section>
+  <section className="cage-continuity"><div className="cage-continuity-art" aria-hidden="true"><img src="/cosmic-creature.svg" alt=""/></div><div><span className="cage-eyebrow">THE STORY LIVES OUTSIDE THE MODEL</span><h2>Different brain.<br/><em>Your chosen continuity.</em></h2><p>In the real owner workstation, deliberate provider changes can preserve authorized external substrate memory. A visual look isn't an AI checkpoint, and preview cards do not run model inference.</p><Link href="/brain-bay" className="cage-secondary">Open Brain Bay ↗</Link></div></section>
   <footer className="cage-footer"><span>✺ BEAST BOX · CORY DAVIS / NAVISWORLD</span><span>Ambient animation ≠ model understanding</span><button onClick={()=>setExpanded(x=>!x)} type="button" aria-expanded={expanded}>{expanded?'Hide':'Show'} accessibility notes</button>
    {expanded?<p>The active companion uses the local Spark pixel renderer and recorded game-seed distributions. Reduced motion disables roaming transforms. Sound starts only after your tap. It never records sensor media or starts model inference on this public page.</p>:null}
   </footer>

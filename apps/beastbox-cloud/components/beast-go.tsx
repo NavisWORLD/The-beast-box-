@@ -224,7 +224,7 @@ export default function BeastGo() {
 
   function meet() {
     const genome = buildGenome({ focus: 40, calm: 40, spark: 20 }, recorded[0], null);
-    change((draft) => { adoptBeast(draft, genome, 'Moss'); });
+    change((draft) => { adoptBeast(draft, genome, 'Moss'); },{allowUnsignedAdoption:true});
   }
 
   function useItem(kind: 'feed' | 'pet' | 'rest' | 'spark') {
@@ -249,12 +249,14 @@ export default function BeastGo() {
     });
     if (!result.reply && !result.pending) {
       let local = '';
-      change((draft) => { local = talkAndGrow(draft, saying).reply || ''; });
+      const saved=await change((draft) => { local = talkAndGrow(draft, saying).reply || ''; });
+      if(!saved.ok){setLabel(saved.reason||'The exchange could not be saved.');setBusy(false);return;}
       setAnswer(local);
       setLabel(`${result.label} Local pattern reply is separate and is not a model answer.`);
     } else if (result.reply) {
       const line = result.reply;
-      change((draft) => { rememberExchange(draft, saying, line); });
+      const saved=await change((draft) => { rememberExchange(draft, saying, line); });
+      if(!saved.ok){setLabel(saved.reason||'The exchange could not be saved.');setBusy(false);return;}
       setAnswer(line);
       setLabel(result.label);
     } else {
@@ -267,7 +269,7 @@ export default function BeastGo() {
   function keepLocal(genome: { seed: string; names?: Record<number, string> }, name: string, nextProfile?: CreatureProfile) {
     const seed = String(nextProfile ? nextProfile.seed : genome.seed).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32) || 'sparkbeast';
     selectProfile(nextProfile || generateCreature(seed, profile?.baseLook ?? 'nebula'));
-    change((draft) => { adoptBeast(draft, genome, name); });
+    change((draft) => { adoptBeast(draft, genome, name); },{allowUnsignedAdoption:true});
   }
 
   function toggleSound() {
@@ -332,7 +334,7 @@ export default function BeastGo() {
         <p>{profile ? `${profile.name} · ${profile.family} is the Spark Beast game profile on this browser.` : 'Customize chooses the Spark Beast. This portrait uses that same profile, including the preview when none is saved yet.'}</p>
         <div className={css.row}><Link href="/beast-cage#customize">Customize this Beast</Link></div>
         <div className={css.list}>
-          {(session?.bestiary || []).map((item: { seed: string; name?: string }) => <button key={item.seed} type="button" aria-pressed={beast?.seed === item.seed} onClick={() => { sfx('confirm'); change((draft) => { focusBeast(draft, item.seed); }); }}>{item.name || 'Beast'}{beast?.seed === item.seed ? ' · with you' : ''}</button>)}
+          {(session?.bestiary || []).map((item: { seed: string; name?: string }) => <button key={item.seed} type="button" aria-pressed={beast?.seed === item.seed} onClick={() => { sfx('confirm'); change((draft) => { focusBeast(draft, item.seed); },{allowUnsignedAdoption:true}); }}>{item.name || 'Beast'}{beast?.seed === item.seed ? ' · with you' : ''}</button>)}
         </div>
         {!session?.bestiary?.length ? <button className={css.send} type="button" onClick={meet}>Meet a spark beast</button> : null}
         <SparkFieldRoster onChoose={(choice) => keepLocal(choice.genome, choice.name)} />

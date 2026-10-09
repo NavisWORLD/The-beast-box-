@@ -50,7 +50,8 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
       if (sequence !== request.current.sequence || currentKey.current !== expectedKey) return;
       if (controller.signal.aborted) { setStatus('The model request timed out. Your game and Beast are still here.'); return; }
       if (!result.reply) { setStatus(String(result.label).slice(0, 240)); return; }
-      change(draft => { rememberGameReply(draft, expectedKey, saying, result); });
+      const saved=await change(draft => { rememberGameReply(draft, expectedKey, saying, result); });
+      if(!saved.ok){setStatus(saved.reason||'The reply arrived but could not be saved. Your cartridge is still running.');setLastReply(result.reply);return;}
       setText(''); setLastReply(result.reply); setStatus((result.label||'Model reply')+' · reply saved with this Beast on this device. Tap HEAR REPLY for iPhone voice.');
     } catch (error) {
       if (sequence === request.current.sequence) setStatus(error instanceof Error ? error.message : 'The guest model could not answer.');

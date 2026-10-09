@@ -1,4 +1,5 @@
 'use client';
+import {useUniverseMotion} from './use-universe-motion';
 import {useEffect,useRef,useState} from 'react';
 import {type CreatureProfile,validCreature} from '../lib/creature-profile';
 import {createCreatureRig} from '../lib/creature-model';
@@ -19,16 +20,10 @@ export default function CosmicCompanion3D({state='idle',look='nebula',intensity=
  const rotationRef=useRef({turntable,angle:turntableAngle});
  useEffect(()=>{rotationRef.current={turntable,angle:typeof turntableAngle==='number'&&Number.isFinite(turntableAngle)?turntableAngle:null};},[turntable,turntableAngle]);
  const [ready,setReady]=useState(false),[fallback,setFallback]=useState(false);
- const [reduced,setReduced]=useState(false);
+ const {reduced}=useUniverseMotion();
  useEffect(()=>{stateRef.current=state;},[state]);
  useEffect(()=>{pausedRef.current=paused;},[paused]);
  useEffect(()=>{intensityRef.current=Number.isFinite(intensity)?Math.min(1,Math.max(0,intensity)):0;},[intensity]);
- useEffect(()=>{
-  const query=window.matchMedia('(prefers-reduced-motion: reduce)');
-  const update=()=>setReduced(query.matches);
-  update();query.addEventListener('change',update);
-  return()=>query.removeEventListener('change',update);
- },[]);
  useEffect(()=>{
   const element=canvas.current;
   if(!element||reduced||fallback||preferSprite||typeof window.WebGLRenderingContext==='undefined')return;

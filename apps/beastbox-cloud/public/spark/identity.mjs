@@ -62,16 +62,19 @@ export function selectSpark(storage,gen,{snapshot=null}={}){
  if(previous&&previous.profile.id!==next.profile.id)updates.set(SESSION_KEY+'-creature-'+previous.profile.id,storage.getItem(SESSION_KEY));
  if(old&&old.profile.id!==next.profile.id&&!storage.getItem(QBEAST_KEY+'-creature-'+old.profile.id))updates.set(QBEAST_KEY+'-creature-'+old.profile.id,raw);
  const before=new Map([...updates.keys()].map(k=>[k,storage.getItem(k)]));
- try{for(const [k,v] of updates)storage.setItem(k,v);}catch(err){for(const [k,v] of before)try{v===null?storage.removeItem(k):storage.setItem(k,v)}catch{}throw err;}
+ try{for(const [k,v] of updates){storage.setItem(k,v);if(storage.getItem(k)!==v)throw Error('The browser could not confirm the device selection. Download your Beast file before leaving.');}}catch(err){for(const [k,v] of before)try{v===null?storage.removeItem(k):storage.setItem(k,v)}catch{}throw err;}
  return session;
 }
-export function saveSparkSession(storage,session){
+export function saveSparkSession(storage,session,{metadata={}}={}){
  const current=readSparkSession(storage);
  if(!session.beast?.qbeast||current.beast?.seed!==session.beast.seed)throw Error('Another page changed the selected Beast. Reload before caring for it.');
  const active=stored(storage.getItem(QBEAST_KEY));
  if(active?.profile.id!==session.beast.qbeast.profile.id)throw Error('Another page changed this identity.');
  session.beast.qbeast=active;
- storage.setItem(SESSION_KEY,JSON.stringify(exportSession(session)));
+ const safeMetadata=Object.fromEntries(['place','trail','sensorLog'].filter(k=>Object.hasOwn(metadata,k)).map(k=>[k,metadata[k]]));
+ const text=JSON.stringify({...exportSession(session),...safeMetadata});
+ storage.setItem(SESSION_KEY,text);
+ if(storage.getItem(SESSION_KEY)!==text)throw Error('The browser could not confirm the device save. Download your Beast file before leaving.');
  return session;
 }
 export async function withSparkLock(work){

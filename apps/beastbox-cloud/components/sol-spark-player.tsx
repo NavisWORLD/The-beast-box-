@@ -151,7 +151,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
    if(data?.type==='sol-spark-return'){
     const payload=data.payload;
     if(!returning||!payload||payload.schema!=='lost-cosmos-return-v1'||payload.qbeast_id!==bound?.qbeast?.profile.id||payload.qbeast_id!==session?.beast?.qbeast?.profile.id||!/^native-[0-9a-f]{64}$/.test(payload.event_id||'')||typeof payload.native_save!=='string'||payload.native_save.length!==43692){setReturning(false);setNote('This journey does not match your selected Beast. Nothing was changed.');return;}
-    pendingReturn.current={id:payload.qbeast_id,event:payload.event_id};change(draft=>{applyGameReturn(draft,payload);});return;
+    pendingReturn.current={id:payload.qbeast_id,event:payload.event_id};void change(draft=>{const result=applyGameReturn(draft,payload);if(!result.ok)throw Error('Journey did not match this Beast.');}).then(saved=>{if(!saved.ok){pendingReturn.current=null;setReturning(false);setNote(saved.reason||'This journey could not be saved. Try SAVE JOURNEY again.');}});return;
    }
    if(data?.type==='sol-spark-return-error'){setReturning(false);setNote('Journey save: '+String(data.message||'Try saving after entering the game.').slice(0,180));return;}
    if(data?.type==='sol-spark-rejected'&&!sent.current)setNote('Beast verification: '+String(data.message).slice(0,180));

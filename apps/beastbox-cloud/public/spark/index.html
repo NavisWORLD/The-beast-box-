@@ -20,9 +20,9 @@
    <a href="/spark/index.html" aria-current="page">My Beast</a>
    <a href="/beast-cage">Beast Cage</a>
    <a href="/sol-game">Lost COSMOS</a>
-   <a href="/workspace#brain-bay">Brain Bay</a>
+   <a href="/brain-bay">Brain Bay</a>
    <a href="/research">Lab</a>
-   <a href="/workspace#settings">Settings</a>
+   <a href="/settings">Settings</a>
   </nav>
  </header>
 
@@ -78,6 +78,8 @@
     <button type="button" id="talk"><span>◌</span>TALK</button>
     <button type="button" id="care"><span>✚</span>CARE</button>
    </div>
+   <form id="name-form" class="first-steps"><label for="beast-name">Give your Beast a name</label><input id="beast-name" maxlength="24" autocomplete="off" placeholder="A name for your little weirdo"><button type="submit">NAME MY BEAST</button><button type="button" id="save-here">SAVE ON THIS DEVICE</button><span id="save-state" role="status">Checking device save…</span></form>
+   <p id="core-activity" class="hint" aria-live="off">Getting settled · bounded local behavior</p>
 
    <div class="audio-strip">
     <div>
@@ -189,6 +191,9 @@
     <h2>Keep your little beast</h2>
     <p class="hint">Same seed. Same QBEAST. Care, name and local game state stay linked across Beast Box surfaces.</p>
     <button type="button" id="download">Download .qbeast</button>
+    <button type="button" id="download-journey">Download device journey</button>
+    <label class="hint">Restore a device journey <input type="file" id="import-journey" accept=".beastjourney,.json,application/json"></label>
+    <p class="hint">The journey file carries local care, learned memory and behavior. Unsigned local state; it does not grant native game or signed QBEAST authority.</p>
    </section>
 
    <details class="honest" id="honest">
@@ -216,7 +221,7 @@
 
  <footer>
   <p>MY BEAST → BEAST CAGE → LOST COSMOS</p>
-  <nav aria-label="Footer navigation"><a href="/">Home</a><a href="/spark/index.html">My Beast</a><a href="/beast-cage">Cage</a><a href="/beast-cage/go">Field</a><a href="/sol-game">Lost COSMOS</a><a href="/workspace#brain-bay">Brain Bay</a><a href="/research">Lab</a><a href="/privacy">Privacy</a><a href="/next">Coming soon</a><a href="#top">Top ↑</a></nav>
+  <nav aria-label="Footer navigation"><a href="/">Home</a><a href="/spark/index.html">My Beast</a><a href="/beast-cage">Cage</a><a href="/beast-cage/go">Field</a><a href="/sol-game">Lost COSMOS</a><a href="/brain-bay">Brain Bay</a><a href="/research">Lab</a><a href="/privacy">Privacy</a><a href="/next">Coming soon</a><a href="#top">Top ↑</a></nav>
   <small>Game identity stays separate from COSMOS memory and authority.</small>
  </footer>
 
@@ -224,7 +229,7 @@
   <button type="button" data-jump="#habitat">My Beast</button>
   <a href="/beast-cage">Cage</a>
   <a href="/sol-game">COSMOS</a>
-  <a href="/workspace#brain-bay">Brain</a>
+  <a href="/brain-bay">Brain</a>
  </nav>
 
  <script type="module" src="/spark/app.mjs"></script>

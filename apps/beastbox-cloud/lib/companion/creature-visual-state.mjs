@@ -3,7 +3,9 @@ export function visualStateFromBeast(beast){
  if(!beast)return 'idle';
  const energy=Number(beast.energy);
  if(Number.isFinite(energy)&&energy<=10)return 'sleeping';
- switch(beast.mood){
+ const recent=!beast.behavior||beast.behavior.tick-(beast.behavior.lastFeedback?.tick??-999)>=0&&beast.behavior.tick-(beast.behavior.lastFeedback?.tick??-999)<=1;
+ const mood=['happy','sleep','evolve'].includes(beast.mood)&&!recent?'idle':beast.mood;
+ switch(mood){
   case 'sleep':return 'sleeping';
   case 'evolve':
   case 'happy':return 'celebrating';
@@ -16,8 +18,9 @@ export function visualStateFromBeast(beast){
     case 'rest': return 'sleeping';
     case 'listen': return 'listening';
     case 'inspect':
-    case 'explore': return 'thinking';
+    case 'explore': return beast.behavior.events?.at(-1)?.input?.associations?.length?'remembering':'thinking';
     case 'play': return 'celebrating';
+    case 'wander': return 'observing';
     default: return 'idle';
    }
  }
