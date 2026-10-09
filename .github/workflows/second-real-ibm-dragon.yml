@@ -1,0 +1,81 @@
+name: Second Real IBM Fez Dragon — Replay and Native Gameplay
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/scripts/second-real-ibm-fez-dragon-experiment.mjs'
+      - 'apps/beastbox-cloud/tests/second-ibm-fez-dragon-native.cjs'
+      - '.github/workflows/second-real-ibm-dragon.yml'
+permissions:
+  contents: read
+jobs:
+  genesis-and-conversation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Execute second physical IBM source to distinct dragon genesis, QVM simulation and local dialogue
+        run: node apps/beastbox-cloud/scripts/second-real-ibm-fez-dragon-experiment.mjs
+      - name: Verify distinct identity, hardware source, actual local conversation, replay, no cloud spending
+        run: |
+          node --input-type=module -e "import {readFileSync} from 'node:fs';const r=JSON.parse(readFileSync('apps/beastbox-cloud/experiment-evidence/second-real-ibm-fez-dragon-001/receipt.json'));if(r.genome.body!=='dragonling'||r.qbeast.id==='bb-2879516e'||r.provenance.genesis_job!=='db4kcfklf4us73c2sjb0'||r.provenance.genesis_pub_index!==0||r.conversation.turns.length!==3||r.provenance.azure_db_writes!==0||!r.acceptance.save_load_replay_exact||r.native_game.executed_in_this_run!==false)process.exit(1);console.log('PASS: distinct IBM Bell XX dragon, memory, 90 state-driven ticks, 3 local replies, no cloud spend');"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: second-real-ibm-dragon-genesis-${{ github.run_id }}
+          path: |
+            apps/beastbox-cloud/experiment-evidence/second-real-ibm-fez-dragon-001/receipt.json
+            apps/beastbox-cloud/experiment-evidence/second-real-ibm-fez-dragon-001/beast.png
+            apps/beastbox-cloud/experiment-evidence/second-real-ibm-fez-dragon-001/qbeast.json
+            apps/beastbox-cloud/experiment-evidence/second-real-ibm-fez-dragon-001/unsigned-session.json
+          retention-days: 30
+          if-no-files-found: error
+  real-native-v11-cartridge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Generate same new dragon before native test
+        run: node scripts/second-real-ibm-fez-dragon-experiment.mjs
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Install Chromium Playwright
+        run: |
+          npm install --prefix "$RUNNER_TEMP/beast-browser" --no-audit --no-fund playwright@1.55.0
+          "$RUNNER_TEMP/beast-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Start real app and test mounted native cartridge with new dragon
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export NODE_PATH="$RUNNER_TEMP/beast-browser/node_modules"
+          evidence="$GITHUB_WORKSPACE/apps/beastbox-cloud/browser-evidence/second-real-ibm-dragon"
+          mkdir -p "$evidence"
+          npm start -- -H 127.0.0.1 -p 3000 > "$evidence/server.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for n in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node tests/second-ibm-fez-dragon-native.cjs http://127.0.0.1:3000 "$evidence"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: second-real-ibm-dragon-native-${{ github.run_id }}
+          path: apps/beastbox-cloud/browser-evidence/second-real-ibm-dragon/
+          retention-days: 30
+          if-no-files-found: warn
