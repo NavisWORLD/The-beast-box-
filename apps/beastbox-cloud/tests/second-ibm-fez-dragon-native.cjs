@@ -27,10 +27,10 @@ const project=path.resolve(__dirname,'../experiment-evidence/second-real-ibm-fez
  page.on('pageerror',e=>errors.push(e.message));
  try{
   await page.goto(root+'/spark/index.html');
-  await page.evaluate(({snapshot,session})=>{
-   localStorage.setItem('beastbox-quantum-beast-public-v1',JSON.stringify({text:JSON.stringify(snapshot)+'\n'}));
-   localStorage.setItem('beastbox-active-creature-v1',JSON.stringify(snapshot.profile));
-   localStorage.setItem('beastbox-companion-session-v1',JSON.stringify(session));
+  // Exercise the real selector rather than bypassing cross-tab/save authority.
+  await page.evaluate(async ({snapshot,session})=>{
+   const {selectSpark,withSparkLock}=await import('/spark/identity.mjs');
+   await withSparkLock(()=>selectSpark(localStorage,session.beast.genome,{snapshot}));
   },{snapshot,session});
   const seedResponse=await page.request.get(root+'/spark/ibm-fez-reality-probe-20261009.json');
   assert.equal(seedResponse.status(),200,'IBM Fez public seed registry is missing');
