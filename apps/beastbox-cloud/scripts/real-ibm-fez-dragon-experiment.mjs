@@ -97,7 +97,7 @@ function run(){
  for(let i=0;i<12;i++)observeText(original.mind,realMemoryPhrase,{seed:genome.seed});
  const stateBefore=JSON.parse(JSON.stringify(exportSession(original)));
  const actions=Object.fromEntries(ACTIONS.map(a=>[a,0])),controlActions={...actions};
- const samples=[],snapshots=[],counterfactual=[];
+ const samples=[],snapshots=[],fullTimeline=[];
  let checkpoint=null,replay=null,exact=true,firstImpact=null;
  for(let t=0;t<TICKS;t++){
   const env=environmentAt(t,phases,realHardware);
@@ -114,6 +114,7 @@ function run(){
   const a=advanceCreature(original,env),b=advanceCreature(control,env);
   check(a.ok&&b.ok,'Behavior runtime refused the environment');
   actions[a.event.action]++;controlActions[b.event.action]++;
+  fullTimeline.push({tick:t,phase:phases[Math.floor(t/ROOM_TICKS)].phase,room:env.place,action:a.event.action,energy:a.state.energy,curiosity:a.state.curiosity,position:a.state.position,association_count:a.event.input.associations.length,control_action:b.event.action});
   if(t===0)firstImpact={learned_scores:a.event.scores,control_scores:b.event.scores,
    associations:a.event.input.associations,action:a.event.action};
   const interesting=t<15||t%15===0||t>=87;
@@ -181,7 +182,7 @@ function run(){
    final_energy:original.beast.behavior.energy,final_curiosity:original.beast.behavior.curiosity,
    learned_preferences:original.beast.behavior.preferences,observations:original.mind.steps,
    final_position:original.beast.behavior.position,final_action:original.beast.behavior.lastAction,
-   phase_checkpoints:snapshots,trace_samples:samples,trace_sha256:sha(canonical(samples))},
+   phase_checkpoints:snapshots,trace_samples:samples,full_timeline:fullTimeline,full_timeline_sha256:sha(canonical(fullTimeline)),trace_sha256:sha(canonical(samples))},
   acceptance:{repeat_genome_exact:true,repeat_portrait_exact:true,
    save_load_replay_exact:exact,model_swap_identity_exact:true,
    qbeast_identity_preserved:true,unauthorized_xp_awarded:0,hardware_spend_seconds:0},
