@@ -1,0 +1,80 @@
+# Owner authorized one fresh bounded hardware workload in the 2026-10-09 continuation.
+# Stable tag prevents another submission on workflow retries; no provider secrets are exported.
+name: Final Ethereal Dragon — One Fresh IBM Hardware Workload
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/final-ethereal-live-qpu.yml'
+permissions:
+  contents: read
+concurrency:
+  group: navisworld-final-ethereal-live-onejob-20261009
+  cancel-in-progress: false
+jobs:
+  fresh-one-hardware-job:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/ibm-ethereal-final-live-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 48
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify existing quota guards before using owner secret
+        run: python -m unittest discover -s tests -p test_ibm_open_plan_preflight.py -v
+      - name: Install bounded IBM runtime dependencies
+        run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+      - name: Recover completed hardware job read-only; never submit again
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: |
+          PYTHONPATH=scripts python - <<'PY'
+          import os, json
+          from pathlib import Path
+          from qiskit_ibm_runtime import QiskitRuntimeService
+          import ibm_eternal_dragon_longer_probe as probe
+          probe.OUT = Path('_ibm_final_ethereal_live_probe')
+          service = QiskitRuntimeService(channel='ibm_quantum_platform', token=os.environ['IBM_QUANTUM_TOKEN'], plans_preference=['open'])
+          job = service.job('db4m3bslf4us73c2ui9g')
+          assert str(job.status()) == 'DONE'
+          assert str(job.backend().name) == 'ibm_fez'
+          assert not bool(job.backend().configuration().simulator)
+          raw = job.result()
+          assert len(raw) == len(probe.EXPECTED_CIRCUITS)
+          counts = {name: probe.counts_for(raw[i]) for i,name in enumerate(probe.EXPECTED_CIRCUITS)}
+          assert probe.digest(counts) == 'cf0a4973c0dbc074fc11a6bc7ce8439ecd61248c1a5c96a63571725c61e8b25b'
+          receipt = {
+            'schema': 'navisworld-ibm-longer-onejob-physics-receipt-v1',
+            'job_id': str(job.job_id()), 'backend_name': str(job.backend().name),
+            'source_class': 'RECORDED_IBM_HARDWARE', 'job_status': str(job.status()),
+            'shot_count': sum(sum(c.values()) for c in counts.values()),
+            'measurements': counts,
+            'expectations': dict(zip(['bell_ZZ','bell_XX','decoupled_ZZ','decoupled_XX'],[probe.same_parity(counts[n]) for n in probe.EXPECTED_CIRCUITS])),
+            'counts_digest_sha256': probe.digest(counts),
+            'beast_genesis_digest_sha256': probe.digest({'domain':'NAVISWORLD::IBM::ETERNAL_DRAGON_120S::QBEAST::V1','job_id':str(job.job_id()),'backend':str(job.backend().name),'counts':counts}),
+            'qpu_job_limit_seconds':120, 'hardware_metrics':{'quantum_seconds':None},
+            'source_actions_run_id':37995804292, 'observed_utc':probe.stamp(),
+            'fresh_hardware_jobs_submitted_this_attempt':0,
+            'notice':'Authenticated read-only recovery of completed physical job; no new submission.',
+            'study_limitations':['Two-basis correlations do not establish CHSH violation or a full state vector.','Control omits CX; no dynamical decoupling claim.','Creature state and conversation use classical software.']
+          }
+          assert receipt['beast_genesis_digest_sha256'] == '50981b4feb3624c5d876b2e4bce163a30cb5265c50184f133b45dafe3de28e1c'
+          probe.save('measurement_receipt.json', receipt)
+          print('SANITIZED_FINAL_HARDWARE_RECEIPT=' + json.dumps(receipt, sort_keys=True))
+          PY
+      - name: Recheck actual cumulative usage without another job
+        if: success()
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: final-ethereal-real-ibm-${{ github.run_id }}
+          path: |
+            _ibm_final_ethereal_live_probe/
+            _ibm_open_plan_preflight/receipt.json
+          retention-days: 30
+          if-no-files-found: warn
