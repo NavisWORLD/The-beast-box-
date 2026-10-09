@@ -12,7 +12,7 @@ import {careAction,finishTraining,talk,shownName,advanceCreature,exportSession} 
 import {rememberExchange,nameBeast} from './shared/adventure.mjs';
 import {loadSparkRuns,validateQvmReceipt} from './runs.mjs';
 import {readDeviceJourney,restoreDeviceJourney,serializeDeviceJourney} from './device-journey.mjs';
-import {applyRecordedQvmStimulus,validateRecordedQvmStimulus} from './shared/recorded-qvm-stimulus.mjs';
+import {applyRecordedQvmStimulus,validateRecordedQvmStimulus,recordedQvmStimulusPath} from './shared/recorded-qvm-stimulus.mjs';
 const STORE='spark-beasts-bestiary-v1',QVM_STORE='spark-qvm-growth-v1',SOUND_KEY='spark-beast-sound-v2',SCALE=4,$=id=>document.getElementById(id);
 const media=matchMedia('(prefers-reduced-motion: reduce)');
 const beastAudio=getBeastAudio();
@@ -334,12 +334,12 @@ async function replayQvmScenario(){
 }
 async function applyAzureStimulus(){
  if(!current)throw Error('Spark a Beast first.');
- const response=await fetch('/spark/azure-rigetti-qvm-20261009.json');if(!response.ok)throw Error('The recorded Azure simulator result is unavailable.');
+ const response=await fetch(recordedQvmStimulusPath(session.beast));if(!response.ok)throw Error('The recorded Azure simulator result is unavailable.');
  const receipt=validateRecordedQvmStimulus(await response.json());
  await withSparkLock(()=>{
   const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed. Try again.');
   const result=applyRecordedQvmStimulus(next,receipt);saveSparkSession(localStorage,next);session=next;updatePlate();notifyNativeBridge();
-  $('azure-stimulus-result').textContent=result.duplicate?`Already experienced by ${shownName(next.beast)} · saved at tick ${result.marker.tick}.`:`${shownName(next.beast)} chose ${result.event.action} · behavior tick ${result.event.tick} · recorded counts 00:241 / 11:271.`;
+  $('azure-stimulus-result').textContent=result.duplicate?`Already experienced by ${shownName(next.beast)} · saved at tick ${result.marker.tick}.`:`${shownName(next.beast)} chose ${result.event.action} · behavior tick ${result.event.tick} · recorded counts ${Object.entries(receipt.counts).sort(([a],[b])=>a.localeCompare(b)).map(([bits,n])=>bits+':'+n).join(' / ')}.`;
   if(!result.duplicate){runtime.qvmPulseUntil=runtime.T+1.35;runtime.state='listen';runtime.until=runtime.T+2;say('focus',`${shownName(next.beast)} experienced the recorded simulator signal in the observatory.`);audioSfx('beam');}
   $('status').textContent=result.duplicate?'This recorded signal is already in this Beast’s saved experience.':'512 recorded Azure simulator shots entered the existing behavior core once. Identity and native progress remain linked to this Beast.';
  });

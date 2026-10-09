@@ -66,3 +66,10 @@ test('the completed fresh IBM-derived Azure workload enters the same core once a
  const changed={...fresh,counts:{...fresh.counts,'00':218,'11':235}};
  assert.throws(()=>api.applyRecordedQvmStimulus(session(),changed));
 });
+
+test('the public signal selects the new IBM-derived Azure receipt for both fresh measured PUBs',()=>{
+ const path=api.recordedQvmStimulusPath;
+ assert.equal(path({genome:{inputs:{quantum_run:'db4m3bslf4us73c2ui9g:bell-xx'}}}),'/spark/azure-final-ibm-qvm-20261009.json');
+ assert.equal(path({genome:{inputs:{quantum_run:'db4m3bslf4us73c2ui9g:bell-zz'}}}),'/spark/azure-final-ibm-qvm-20261009.json');
+ assert.equal(path(session().beast),'/spark/azure-rigetti-qvm-20261009.json');
+});

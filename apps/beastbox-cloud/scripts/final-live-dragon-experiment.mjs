@@ -12,6 +12,7 @@ export function runFinalLiveDragon(){
  const result=runRealIBMDragonExperiment({keeperPrefix:'Ethereal-live-',hardwareReceipt,recordedStimulus});
  if(result.output.qbeast.id!=='bb-8546076e'||result.output.genome.name!=='Umbrascale'||result.output.provenance.candidate_index!==19)throw Error('Final fresh dragon identity changed.');
  result.output.schema='beastbox-final-live-ibm-azure-dragon-experiment-v1';
+ result.output.protocol.genesis_selection='first deterministic dragonling candidate from completed physical IBM Fez Bell XX measurements; morphology selection is user-conditioned';
  result.output.protocol.simulator+='; the fresh receipt-derived 512-shot Azure result enters the existing behavior core once';
  result.output.limitations=result.output.limitations.map(line=>line.startsWith('Only the archived Rigetti')?'Both cloud provider jobs completed before their receipts entered this assay. No QPU remains connected to the classical behavior loop.':line);
  return result;

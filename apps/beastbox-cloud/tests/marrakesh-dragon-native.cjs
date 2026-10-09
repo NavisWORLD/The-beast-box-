@@ -32,8 +32,9 @@ const sourcePath=process.argv[7]||'/spark/ibm-marrakesh-reality-probe-20261009.j
   await page.goto(root+'/spark/index.html');
   // Exercise the real selector rather than bypassing cross-tab/save authority.
   await page.evaluate(async ({snapshot,session})=>{
-   const {selectSpark,withSparkLock}=await import('/spark/identity.mjs');
-   await withSparkLock(()=>selectSpark(localStorage,session.beast.genome,{snapshot}));
+   const {selectSpark,saveSparkSession,withSparkLock}=await import('/spark/identity.mjs');
+   const {importSession}=await import('/spark/shared/session.mjs');
+   await withSparkLock(()=>{selectSpark(localStorage,session.beast.genome,{snapshot});saveSparkSession(localStorage,importSession(session));});
   },{snapshot,session});
   const seedResponse=await page.request.get(root+sourcePath);
   assert.equal(seedResponse.status(),200,'IBM Marrakesh public seed registry is missing');
