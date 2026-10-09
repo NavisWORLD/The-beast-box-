@@ -71,7 +71,7 @@ function run(){
    if(candidate.body==='dragonling'){genome=candidate;selectedAttempt=attempt;break;}
  }
  check(!!genome&&selectedAttempt>=0,'No dragonling generated from bounded deterministic search');
- check(canonical(genome)===canonical(buildGenome(TRAITS,recorded,domain+':'+selectedAttempt,10)),'Genome not deterministic');
+ check(canonical(genome)===canonical(buildGenome(TRAITS,recorded,domain+selectedAttempt,10)),'Genome not deterministic');
  const cor=ibm.expectations;
  const realHardware={
   bell_zz:Number(cor.bell_ZZ),bell_xx:Number(cor.bell_XX),
