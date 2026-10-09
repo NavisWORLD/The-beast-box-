@@ -1,0 +1,57 @@
+name: Third Magmascale New IBM to ONE Real Azure Rigetti QVM
+on:
+  pull_request:
+    paths:
+      - 'scripts/azure_third_final_qvm.py'
+      - '.github/workflows/third-final-ibm-azure-qvm.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: final-third-ibm-azure-qvm-onejob-20261009
+  cancel-in-progress: false
+jobs:
+  third-dragon-qvm:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/final-unique-real-ibm-third-dragon-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Retrieve exact NEW physical IBM provider artifact, not prior dragon
+        uses: actions/download-artifact@v4
+        with:
+          name: third-final-new-real-ibm-dragon-38005372001
+          run-id: 38005372001
+          github-token: ${{ github.token }}
+          path: .
+      - name: Validate exact physical measurements and genome without cloud access
+        run: |
+          PYTHONPATH=scripts python - <<'PY'
+          import json
+          from pathlib import Path
+          from azure_third_final_qvm import verify
+          receipt=json.loads(Path('_ibm_third_final_dragon_20261009/measurement_receipt.json').read_text())
+          verify(receipt)
+          print('VERIFIED_FRESH_IBM_JOB='+receipt['job_id'])
+          PY
+      - name: Install Azure official quantum SDK
+        run: python -m pip install 'qdk[azure]'
+      - name: One real Azure cloud Rigetti QVM 512-shot job, or exact-name recovery
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+          BEAST_AZURE_QVM_ONE_JOB: YES_ONE_FREE_SIMULATOR
+        run: PYTHONPATH=scripts python scripts/azure_third_final_qvm.py
+      - name: Archive authentic Azure input, submission ID, raw results and counts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: magmascale-live-azure-qvm-${{ github.run_id }}
+          path: |
+            _azure_third_final_dragon_20261009/
+          retention-days: 30
+          if-no-files-found: warn
