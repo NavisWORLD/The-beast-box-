@@ -6,6 +6,8 @@ import {expandQvmReceipt,QVM_SOURCE_CLASS,QVM_SOURCE_SHA,QVM_TARGET} from './qvm
 export const SPARK_INDEX_PATH='/spark/user-seeds-20261004.json';
 export const SPARK_BASE_PATH='/spark/runs.json';
 export const QVM_RECEIPT_PATH='/spark/rigetti-qvm-sim.json';
+// Independent real IBM Fez 2026-10-09 job; not part of historical October 4 archive counts.
+export const REAL_FEZ_DRAGON_SOURCE_PATH='/spark/ibm-fez-reality-probe-20261009.json';
 const HEX=/^[a-f0-9]{64}$/;
 const approvedPath=path=>typeof path==='string'&&/^\/spark\/[a-z0-9-]+\.json$/.test(path);
 
@@ -60,7 +62,7 @@ async function fetchJson(path){
 export async function loadSparkRuns({includeQvm=false}={}){
  const index=await fetchJson(SPARK_INDEX_PATH);
  if(index.schema!=='spark-beasts-public-seed-pack-index-v1'||!Array.isArray(index.shards))throw Error('Invalid recorded seed index.');
- const paths=[SPARK_BASE_PATH,...index.shards];
+ const paths=[SPARK_BASE_PATH,...index.shards,REAL_FEZ_DRAGON_SOURCE_PATH];
  if(paths.some(path=>!approvedPath(path)))throw Error('Unapproved recorded seed path.');
  const tables=await Promise.all(paths.map(fetchJson));
  const byKey=new Map();
