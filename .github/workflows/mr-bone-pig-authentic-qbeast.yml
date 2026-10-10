@@ -1,0 +1,47 @@
+name: Mr Bone Pig measured-source QBEAST 1 - photo IBM plus Azure
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/scripts/mr-bone-pig-real-photo-qbeast.mjs'
+      - '.github/workflows/mr-bone-pig-authentic-qbeast.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  actual-qbeast-genesis:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Retrieve exact authentic original-photo conditioned IBM QPU receipt
+        uses: actions/download-artifact@v4
+        with:
+          name: mr-bone-pig-original-photo-real-ibm-38013370393
+          run-id: 38013370393
+          github-token: ${{ github.token }}
+          path: .
+      - name: Retrieve exact authentic photo-derived live Azure Rigetti simulator counts
+        uses: actions/download-artifact@v4
+        with:
+          name: mr-bone-pig-photo-live-azure-qvm-38013525896
+          run-id: 38013525896
+          github-token: ${{ github.token }}
+          path: _azure_bone_pig_image_light12d_20261010
+      - name: Build real QBEAST1 with 48 classical steps and exact save/restore
+        run: |
+          node --check apps/beastbox-cloud/scripts/mr-bone-pig-real-photo-qbeast.mjs
+          node apps/beastbox-cloud/scripts/mr-bone-pig-real-photo-qbeast.mjs
+      - name: Archive actual QBEAST bytes, portable state, numerical creature data and pixel sprite
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mr-bone-pig-authentic-ibm-azure-qbeast-${{ github.run_id }}
+          path: apps/beastbox-cloud/experiment-evidence/mr-bone-pig-photo-ibm-azure-20261010/
+          retention-days: 30
+          if-no-files-found: warn
