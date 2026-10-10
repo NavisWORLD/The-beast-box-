@@ -4,7 +4,7 @@ import {GBA_KEYS, pressCartridge} from '../lib/companion/go-hud.mjs';
 import css from './gba-controls.module.css';
 
 /** Both the web field and the persistent native shell use this input contract. */
-export function controllerInput(button:string,down:boolean,source:'legacy'|'pointer'|'keyboard'|'gamepad'='legacy') {
+export function controllerInput(button:string,down:boolean,source:'legacy'|'pointer'|'keyboard'|'gamepad'|'agent'='legacy') {
  if(!Object.prototype.hasOwnProperty.call(GBA_KEYS,button))return false;
  pressCartridge(button,down,window);
  window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button,down,source}}));
