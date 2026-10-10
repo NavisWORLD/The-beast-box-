@@ -1,0 +1,35 @@
+name: FIVE genuine new IBM/Azure creatures in public Spark and game bridge
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/public/spark/**'
+      - 'apps/beastbox-cloud/lib/companion/recorded-qvm-stimulus.mjs'
+      - 'apps/beastbox-cloud/tests/five-new-real-media-qbeast-web.test.mjs'
+      - '.github/workflows/five-new-real-media-live-spark.yml'
+permissions:
+  contents: read
+jobs:
+  production-source-and-cage-acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install original production app without rebuilding architecture
+        run: npm ci --no-audit --no-fund
+      - name: Verify five distinct exact IBM->QBEAST identities, actual Azure 512-shot approval, existing registry
+        run: |
+          node --check public/spark/app.mjs
+          node --check public/spark/runs.mjs
+          node --test tests/five-new-real-media-qbeast-web.test.mjs tests/spark-source-registry.test.mjs tests/recorded-qvm-stimulus.test.mjs
+      - name: Build actual production Next.js application
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
