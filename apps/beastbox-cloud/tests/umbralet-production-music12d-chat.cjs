@@ -22,6 +22,8 @@ const specs=[
     await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId,null,{timeout:40000});
     await page.locator(spec.selector).click();
     await page.waitForFunction(id=>document.querySelector('#view')?.dataset.creatureId===id,spec.id,{timeout:30000});
+    // Birth renders before its 48 recorded CST12 steps finish. Never race it.
+    await page.waitForFunction(()=>{try{return JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast.behavior.tick>=48}catch{return false}},null,{timeout:40000});
     const first=await page.evaluate(()=>({id:JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast.qbeast.profile.id,
       run:JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast.genome.inputs.quantum_run}));
     assert.equal(first.id,spec.id);assert.equal(first.run,spec.ibm+':bell-xx');
