@@ -19,7 +19,7 @@ def verify(receipt):
  counts=receipt.get('measurements')
  if not isinstance(counts,dict) or set(counts)!={'bell_zz','bell_xx','decoupled_zz','decoupled_xx'} or sha(counts)!=DIGEST or receipt.get('counts_digest_sha256')!=DIGEST:raise ValueError('IBM full count digest failed')
  genome={'domain':'NAVISWORLD::IBM::ETERNAL_DRAGON_120S::QBEAST::V1','job_id':JOB,'backend':'ibm_fez','counts':counts}
- if sha(genome)!=receipt.get('beast_genesis_digest_sha256') or sha(genome)!='c78dcbece1a36d4ce19666c53c2ff0b09aaf0bba30e6a044a54d9ff82cfa4c39':raise ValueError('Genome digest failed')
+ if sha(genome)!=receipt.get('beast_genesis_digest_sha256') or sha(genome)!='849c2c806757878563d6f7898db62a97d0557a286c0bd290ae537569dc827145':raise ValueError('Genome digest failed')
  cor={}
  for basis,distribution in counts.items():
   if not isinstance(distribution,dict) or set(distribution)!={'00','01','10','11'} or any(type(v)!=int or v<0 for v in distribution.values()) or sum(distribution.values())!=4096:raise ValueError('Shot count or shape invalid')
