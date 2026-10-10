@@ -7,7 +7,7 @@ import { useBeastAudio } from './use-beast-audio';
 import { askGameBeast, gameBeastKey, rememberGameReply } from '../lib/companion/sol-game-talk.mjs';
 import {proposeGuidedGameAction,MAX_GUIDED_STEPS} from '../lib/companion/guided-game.mjs';
 
-export default function SolGameTalk({ active = true, observeGame, applyGameAction }: { active?: boolean; observeGame?: () => Promise<any | null>; applyGameAction?: (button:string,expectedKey:string)=>Promise<boolean> }) {
+export default function SolGameTalk({ active = true, observeGame, applyGameAction, canGuide = false }: { active?: boolean; observeGame?: () => Promise<any | null>; applyGameAction?: (button:string,expectedKey:string)=>Promise<boolean>; canGuide?:boolean }) {
   const { ready, session, change } = useBeastSession();
   const [open, setOpen] = useState(false), [text, setText] = useState('');
   const [busy, setBusy] = useState(false), [status, setStatus] = useState('');
@@ -39,6 +39,7 @@ export default function SolGameTalk({ active = true, observeGame, applyGameActio
     cancel(); setOpen(false); setStatus(''); setText(''); setLastReply(''); setViewStatus(''); setShareMemories(false);
     return () => { request.current.sequence++; request.current.controller?.abort(); };
   }, [key]);
+  useEffect(()=>{if(!canGuide)cancel();},[canGuide]);
   // Cancel in-flight calls while the game surface is inactive, but keep the
   // draft, completed reply, model choice and open state for instant restore.
   useEffect(() => {
@@ -76,7 +77,7 @@ export default function SolGameTalk({ active = true, observeGame, applyGameActio
   async function guideThreeSteps() {
     // Explicit tap only. The model receives bounded native pixel measurements,
     // never unconsented screenshot data or permission to choose arbitrary tools.
-    if(guiding||busy||!active||!includeGameView||!observeGame||!applyGameAction)return;
+    if(guiding||busy||!active||!canGuide||!includeGameView||!observeGame||!applyGameAction)return;
     const epoch=++guideEpoch.current,expectedKey=key,controller=new AbortController();
     request.current.controller=controller;
     setGuiding(true);setStatus('Experimental RAWRPHØS controller: up to three measured steps, one safe key each.');
@@ -162,7 +163,7 @@ export default function SolGameTalk({ active = true, observeGame, applyGameActio
       </label>
       <button type="button" style={button} disabled={!observeGame||busy} onClick={()=>void inspectGame()}>👁️ LOOK AT GAME</button>
       <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center',marginTop:8}}>
-       <button type="button" style={button} disabled={!includeGameView||!applyGameAction||!active||busy||guiding} onClick={()=>void guideThreeSteps()}>
+       <button type="button" style={button} disabled={!includeGameView||!applyGameAction||!active||!canGuide||busy||guiding} onClick={()=>void guideThreeSteps()}>
          {guiding?'RAWRPHØS EXPLORING…':'TRY 3 GUIDED STEPS · EXPERIMENTAL'}
        </button>
        {guiding?<button type="button" style={button} onClick={cancel}>STOP & RELEASE</button>:null}
