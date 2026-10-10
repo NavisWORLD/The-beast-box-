@@ -1,0 +1,55 @@
+name: Lumenwisp II new IBM → authentic Azure Rigetti QVM continuation
+on:
+  pull_request:
+    paths:
+      - 'scripts/azure_lumenwisp_secondgen_qvm.py'
+      - '.github/workflows/lumenwisp-new-real-azure-qvm.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: lumenwisp-generation-2-one-azure-simulator-job
+  cancel-in-progress: false
+jobs:
+  actual-cloud-simulator:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/lumenwisp-qbeast-offspring-new-real-ibm-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Fetch the EXACT new generation-II physical IBM provider counts, never original Wraith
+        uses: actions/download-artifact@v4
+        with:
+          name: lumenwisp-generation-two-real-ibm-38025788890
+          run-id: 38025788890
+          github-token: ${{ github.token }}
+          path: .
+      - name: Validate new authentic physical QPU receipt and parental QBEAST lineage
+        run: |
+          PYTHONPATH=scripts python - <<'PY'
+          import json
+          from pathlib import Path
+          from azure_lumenwisp_secondgen_qvm import verify
+          r=json.loads(Path('_ibm_lumenwisp_native_pixel12d_20261009/measurement_receipt.json').read_text())
+          verify(r)
+          assert r['second_generation_pre_hardware']['feature_packet_sha256']=='47dd7682ace55167c070e6703d8cb3defedb7c44e1302054533996d7b0097720'
+          print('NEW_REAL_IBM_LUMENWISP_SOURCE='+r['job_id'])
+          PY
+      - name: Install Azure official QDK
+        run: python -m pip install 'qdk[azure]'
+      - name: Submit ONE actual Azure Rigetti QVM cloud job or recover exact same submitted job name
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+          BEAST_AZURE_QVM_ONE_JOB: YES_ONE_FREE_SIMULATOR
+        run: PYTHONPATH=scripts python scripts/azure_lumenwisp_secondgen_qvm.py
+      - name: Archive actual new Azure simulator receipt, raw counts and exact hardware lineage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumenwisp-generation-two-real-azure-${{ github.run_id }}
+          path: _azure_lumenwisp_native_pixel12d_20261009/
+          retention-days: 30
+          if-no-files-found: warn

@@ -1,0 +1,76 @@
+name: Lumenwisp generation II - Wraith QBEAST pixel → NEW real IBM hardware
+on:
+  pull_request:
+    paths:
+      - 'scripts/build_lumenwisp_native_sprite12d.py'
+      - 'scripts/ibm_lumenwisp_real_offspring_qpu.py'
+      - '.github/workflows/lumenwisp-new-real-ibm-birth.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: second-gen-lumenwisp-parent-wraith-single-hardware-job-20261009
+  cancel-in-progress: false
+jobs:
+  original-new-hardware-birth:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/lumenwisp-qbeast-offspring-new-real-ibm-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Download the original independently archived REAL IBM-seeded Wraith QBEAST pixel sprite and behavior
+        uses: actions/download-artifact@v4
+        with:
+          name: wraith-authentic-qbeast-38022761676
+          run-id: 38022761676
+          github-token: ${{ github.token }}
+          path: build/lumenwisp-parent-wraith/
+      - name: Derive NEW original 12-channel light input from real previous-gen native sprite, not imagined game vision
+        run: |
+          python -m py_compile scripts/build_lumenwisp_native_sprite12d.py scripts/ibm_lumenwisp_real_offspring_qpu.py
+          python scripts/build_lumenwisp_native_sprite12d.py
+          PYTHONPATH=scripts python - <<'PY'
+          from ibm_lumenwisp_real_offspring_qpu import verified_image_light
+          p=verified_image_light()
+          assert p['parent_qbeast_id']=='bb-4a61a8d5'
+          assert p['parent_ibm_job_id']=='db4rg5klf4us73c34tqg'
+          print('LUMENWISP_PARENT_REAL_SOURCE='+p['feature_packet_sha256'])
+          PY
+          python -m unittest discover -s tests -p test_ibm_open_plan_preflight.py -v
+      - name: Install official real IBM provider SDK
+        run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+      - name: Confirm 12D native pixel and ACTUAL parent actions both change newly compiled physical gates
+        run: |
+          PYTHONPATH=scripts python - <<'PY'
+          from ibm_lumenwisp_real_offspring_qpu import verified_image_light,circuits
+          p=verified_image_light();real=circuits(p)
+          no_pixels={**p,'global_12d':[0]*12,'quarter_means_12d':[[0]*12 for _ in range(4)]}
+          no_actions={**p,'behavior_mix':[0]*4}
+          assert all(str(a[1])!=str(b[1]) for a,b in zip(real,circuits(no_pixels)))
+          assert all(str(a[1])!=str(b[1]) for a,b in zip(real,circuits(no_actions)))
+          print('REAL_NEW_IBMQ_PARENT_PIXELS_AND_BEHAVIOR_ABLATION=PASS')
+          PY
+      - name: Submit ONE NEW actual IBM physical QPU job with strict Open Plan 300-second cumulative owner quota
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_REAL_QPU_ONE_JOB: YES_ONE_REAL_JOB
+        run: PYTHONPATH=scripts python scripts/ibm_lumenwisp_real_offspring_qpu.py
+      - name: Postflight owner quota read-only
+        if: success()
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py
+      - name: Archive actual original native sprite-light source, original parent receipts, new QPU counts and any failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumenwisp-generation-two-real-ibm-${{ github.run_id }}
+          path: |
+            build/lumenwisp-pre-qpu/
+            _ibm_lumenwisp_native_pixel12d_20261009/
+            _ibm_open_plan_preflight/receipt.json
+          retention-days: 30
+          if-no-files-found: warn
