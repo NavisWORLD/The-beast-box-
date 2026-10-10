@@ -1,0 +1,61 @@
+name: Zeref fresh hardware heartbeat, actual Azure QVM and isolated RAWRPHOS training
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/zeref-fresh-heart-sound-live.yml'
+      - 'scripts/zeref_fresh_heart_live.py'
+      - 'scripts/zeref_sound_train_sandbox.py'
+      - 'apps/beastbox-cloud/scripts/zeref-heart-sound-dragon.mjs'
+permissions:
+  contents: read
+concurrency:
+  group: navisworld-zeref-heart-sound-20261010-onejob
+  cancel-in-progress: false
+jobs:
+  measured-birth:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/zeref-heart-sound-live-20261010' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify physical-source and original cumulative budget contracts
+        run: |
+          PYTHONPATH=.:scripts python -m unittest discover -s tests -p test_zeref_fresh_heart_live.py -v
+          python -m unittest discover -s tests -p test_ibm_open_plan_preflight.py -v
+      - name: Install official quantum clients
+        run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5' 'qdk[azure]'
+      - name: Exactly one new measured five-PUB hardware job and one idempotent Azure simulator job
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+          BEAST_REAL_QPU_ONE_JOB: YES_ONE_REAL_JOB
+          BEAST_AZURE_QVM_ONE_JOB: YES_ONE_FREE_SIMULATOR
+        run: PYTHONPATH=.:scripts python scripts/zeref_fresh_heart_live.py
+      - name: Install bounded CPU training runtime
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos Pillow
+      - name: Verify existing published 14K checkpoint without modifying it
+        run: python models/rawrphos/scripts/install_pinned_14k.py --destination _zeref_live_20261010/base-14000
+      - name: Actual 64-step sound and heartbeat training fork, controls and bounded sandbox dialogue
+        run: PYTHONPATH=.:scripts python scripts/zeref_sound_train_sandbox.py
+      - name: New measured QBEAST, original sprite, sound behavior and exact replay
+        run: node apps/beastbox-cloud/scripts/zeref-heart-sound-dragon.mjs
+      - name: Preserve original counts, provider receipts, checkpoint, audio, ledger and creature
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-fresh-heart-sound-${{ github.run_id }}
+          path: |
+            _zeref_live_20261010/
+            apps/beastbox-cloud/experiment-evidence/zeref-heart-sound-20261010/
+          retention-days: 30
+          if-no-files-found: warn
