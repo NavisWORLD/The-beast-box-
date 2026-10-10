@@ -151,14 +151,15 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   await page.keyboard.down('ArrowLeft');
   await core.waitForFunction(n=>window.__shellInputs.length>=n+1,before);
   assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n,n+1),before),[[0,6,1]],'the held Left press reaches native core before focus transfer');
-  // Capture the precise number of native inputs AFTER the held key was
-  // verified down. A previous key may already have been released while focus
-  // moved into the shell; comparing against the older count can race.
-  const afterHeldDown=await core.evaluate(()=>window.__shellInputs.length);
+  // The native Left-UP may race the diagnostic snapshot immediately after
+  // the verified key-down. Observe it relative to the pre-keydown baseline,
+  // rather than accidentally discarding a valid early release.
   await shell.locator('textarea').focus();
-  // Require the real native Left-UP event during focus transfer, BEFORE any
-  // Playwright page.keyboard.up; merely trusting a keyboard state is not enough.
-  try{await core.waitForFunction(n=>window.__shellInputs.slice(n).some(e=>e[0]===0&&e[1]===6&&e[2]===0),afterHeldDown);}catch(error){
+  // Require an actual native LEFT-UP event before issuing keyboard.up.
+  // This still checks the physical emulator signal, never a mocked release.
+  // Poll on a wall-clock interval: the emulator iframe may suspend requestAnimationFrame
+  // while the chat textarea is focused, although native key-up has arrived.
+  try{await core.waitForFunction(n=>window.__shellInputs.slice(n).some(e=>e[0]===0&&e[1]===6&&e[2]===0),before,{polling:100,timeout:30000});}catch(error){
    console.log('FOCUS_RELEASE_DIAGNOSTIC '+JSON.stringify({page:await page.evaluate(()=>({active:document.activeElement?.outerHTML?.slice(0,300),hasFocus:document.hasFocus(),trace:window.__focusInputTrace})),native:await core.evaluate(()=>window.__shellInputs.slice(-16))}));throw error;
   }
   await page.keyboard.up('ArrowLeft');

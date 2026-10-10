@@ -1,0 +1,47 @@
+name: FIVE distinct IBM/Azure-verified QBEAST births and 48-step saved behavior
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/scripts/five-media-real-ibm-azure-qbeast.mjs'
+      - '.github/workflows/five-real-media-qbeast-birth.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  five-canonical-native-beasts:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download exact brand-new 5 × 16,384 physical IBM measurements
+        uses: actions/download-artifact@v4
+        with:
+          name: five-media-real-ibm-38029814847
+          run-id: 38029814847
+          github-token: ${{ github.token }}
+          path: .
+      - name: Download exact 5 × 512 actually completed separate Azure Rigetti QVM measurements
+        uses: actions/download-artifact@v4
+        with:
+          name: five-new-azure-real-simulator-38030239709
+          run-id: 38030239709
+          github-token: ${{ github.token }}
+          path: _azure_five_multisource_qbeasts_20261010
+      - name: Verify provider receipts, create 5 unique authentic QBEAST identities, 48 steps per creature, save/reload
+        run: |
+          node --check apps/beastbox-cloud/scripts/five-media-real-ibm-azure-qbeast.mjs
+          node apps/beastbox-cloud/scripts/five-media-real-ibm-azure-qbeast.mjs
+      - name: Preserve 5 genuine native sprites, verified QBEASTs, behavior traces, portable saves and unminted NFT JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: five-actual-new-qbeast-birth-${{ github.run_id }}
+          path: apps/beastbox-cloud/experiment-evidence/five-media-genesis-20261010/
+          retention-days: 30
+          if-no-files-found: warn
