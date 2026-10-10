@@ -18,6 +18,13 @@ TARGET='rigetti.sim.qvm'
 SHOTS=512
 NAMES=('Zeref-Nightcat-Dragon','Umbrascale-Starseed','Pistonwyrm-Gearseed','Heartflare-Moonfire','Moonwraith-Cassette-Kit')
 MANIFEST='7e34156b41e37c65cc1b8bba6810ca27764afc52cfaa9b5c64c7e146e61598ab'
+EXPECTED_NEW_HARDWARE={
+ 'Zeref-Nightcat-Dragon':('db4tc8kvf2bc73cv3np0','ee0ecbc7d7073f6a130653ca8ed0f89f56876138a6dea49664477157f988e1bb'),
+ 'Umbrascale-Starseed':('db4tdtkvf2bc73cv3qng','c8ab49c149cdc4c2e6d1f23decd6f54cd8b3571b6c0b6f2546810752ba207376'),
+ 'Pistonwyrm-Gearseed':('db4te084qg6s73c2m3lg','cfe37f452193e1502c2390a68dd412712ae7f53bdc98dde90997bf2a22dc1882'),
+ 'Heartflare-Moonfire':('db4te4g4qg6s73c2m470','bc36ac7a9e6866b0c15314144d58847293499ab8a20d4725ea93ec274531cc97'),
+ 'Moonwraith-Cassette-Kit':('db4te7slf4us73c3888g','59c3ae19b5b8c3e0f03353ccdf5471dd5c5718fed5e4ee1969d0f57bb6f07aec')}
+
 PUBS=('bell_zz','bell_xx','decoupled_zz','decoupled_xx')
 def now():return datetime.now(timezone.utc).isoformat()
 def canon(v):return json.dumps(v,sort_keys=True,separators=(',',':'),allow_nan=False)
@@ -28,6 +35,8 @@ def save(p,v):
 def verify(r,alias):
  if r.get('schema')!='beastbox-five-real-media-ibm-20261010-v1' or r.get('source_class')!='RECORDED_IBM_HARDWARE' or r.get('alias')!=alias or r.get('status')!='DONE' or not r.get('backend_name','').startswith('ibm_'):
   raise ValueError('Not the actual completed physical IBM source for '+alias)
+ if (r.get('job_id'),r.get('counts_sha256'))!=EXPECTED_NEW_HARDWARE[alias]:
+  raise ValueError('Source is not the exact new physical IBM job and counts for '+alias)
  if r.get('source_manifest_sha256')!=MANIFEST or r.get('shots')!=16384:
   raise ValueError('Wrong source media or hardware shots')
  c=r.get('counts')
