@@ -202,9 +202,28 @@ async function sparkUmbralet(){
  const gen=buildGenome(entry.traits,seedRun,entry.user,10);
  if(gen.body!=='dragonling'||gen.seed!=='f67c3ba56f42fe7777a905745fa7b64f50aa0950859a8ddd829603a6bd33c4fd'||gen.names[1]!=='Umbralet')throw Error('Recorded CST12→physical IBM source does not regenerate exact Umbralet identity.');
  fillRunSelect([seedRun]);await adopt(entry);
+ // Play the 48 measured music-control windows through this exact new QBEAST's
+ // existing classical behavior engine BEFORE handing it to the game.
+ const audioResponse=await fetch('/spark/umbralet-song-cst12-recorded-drive-20261009.json',{cache:'no-store'});
+ if(!audioResponse.ok)throw Error('Original 12D music controls unavailable; no fake birth step.');
+ const drive=await audioResponse.json();
+ if(drive?.schema!=='beastbox-cosmos-12-channel-song-drive-v1'||drive.source?.pre_hardware_ibm_job!=='db4og3slf4us73c319h0'||drive.source?.full_48_window_cst12_packet_sha256!=='84807db6e44e0bad5b494a6408ec7a0d8390f66399759e439b56f19ac8bb0e99'||!Array.isArray(drive.quarter_means)||drive.quarter_means.length!==4||drive.step_count!==48)throw Error('The actual pinned song/CST12 packet does not match IBM genesis.');
+ await withSparkLock(()=>{
+  const fresh=readSparkSession(localStorage);
+  if(fresh.beast?.seed!=='f67c3ba56f42fe7777a905745fa7b64f50aa0950859a8ddd829603a6bd33c4fd'||fresh.beast?.qbeast?.profile?.id!=='bb-1e1759f3')throw Error('CST12 drive cannot attach to the wrong Beast.');
+  for(let k=0;k<48;k++){
+   const v=drive.quarter_means[Math.floor(k/12)];
+   if(!Array.isArray(v)||v.length!==12||v.some(n=>typeof n!=='number'||!Number.isFinite(n)||n<0||n>1))throw Error('Corrupted 12-channel audio drive.');
+   if([4,5,6,7,9].some(index=>v[index]!==0))throw Error('Unmeasured bio/device motion cannot be added to a song.');
+   const environment={place:k<12?'observatory':k<24?'grove':k<36?'shore':'observatory',sound:v[2],toy:v[1],attention:v[0],comfort:v[3]};
+   const result=advanceCreature(fresh,environment);
+   if(!result.ok)throw Error('Recorded 12D musical behavior step '+k+' failed.');
+  }
+  saveSparkSession(localStorage,fresh);session=fresh;updatePlate();notifyNativeBridge();
+ });
  bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);
  localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
- $('status').textContent='Umbralet arrived through your FULL SONG → 48 COSMOS 12D windows → REAL IBM Fez music-conditioned gates → 16,384 physical shots. The separate 512-shot Azure simulator recording is ready to apply once; the same QBEAST can enter Lost COSMOS.';
+ $('status').textContent='Umbralet arrived through your FULL SONG → 48 COSMOS 12D windows → REAL IBM Fez music-conditioned gates → 16,384 physical shots. 48 music-derived classical steps are saved to the exact QBEAST. The separate 512-shot Azure simulator signal can enter once, then Lost COSMOS.';
 }
 function starterEntries(){
  if(starterCache.length)return starterCache;
