@@ -44,10 +44,10 @@ for(const [i,[name,expectedIBM,expectedDigest]] of expected.entries()){
  }
  const v=source.global_12d;
  const traits={focus:Math.round(35+v[3]*50),calm:Math.round(28+v[0]*60),spark:Math.round(38+v[7]*60)};
- const genome=buildGenome(traits,runs[1],name+'-original-five-media',10);
+ const genome=buildGenome(traits,runs[1],name,10);
  const qbeast=buildQbeast(genome);
  check(qbeast.profile.id.startsWith('bb-'),'Native QBEAST identity invalid');
- check(canonicalJson(buildGenome(traits,runs[1],name+'-original-five-media',10))===canonicalJson(genome),'Quantum-seeded genome not reproducible');
+ check(canonicalJson(buildGenome(traits,runs[1],name,10))===canonicalJson(genome),'Quantum-seeded genome not reproducible');
  const pixel=renderBeast(genome,1,'open');check(pixel.length===64*64*4,'Native sprite bytes invalid');
  const session=createSession();adoptBeast(session,genome,name);session.beast.qbeast=structuredClone(qbeast);
  session.beast.behavior=createBehavior(session.beast);
