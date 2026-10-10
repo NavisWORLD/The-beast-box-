@@ -1,0 +1,55 @@
+{
+  "additional_waveform_pub_shots": 4096,
+  "backend_name": "ibm_fez",
+  "beast_genesis_digest_sha256": "dedfed51eb2cf8a1554988098814f38362b0f39b927823a607e51fef188e86fd",
+  "control_definition": "No-CX separable control, not dynamical decoupling",
+  "counts_digest_sha256": "e0565f6879b9ac8016fb1dfc660c62962c3bdf38ae675fff23114c9cc05b12e6",
+  "expectations": {
+    "bell_XX": 0.91015625,
+    "bell_ZZ": 0.85205078125,
+    "decoupled_XX": -0.03076171875,
+    "decoupled_ZZ": 0.001953125
+  },
+  "hardware_metrics": {
+    "quantum_seconds": null,
+    "timestamps": {
+      "created": "2026-10-10T02:25:36.435813Z",
+      "finished": "2026-10-10T02:25:49.039601Z",
+      "running": "2026-10-10T02:25:37.803208Z"
+    }
+  },
+  "job_id": "db4q484vf2bc73cuuuag",
+  "job_status": "DONE",
+  "measurements": {
+    "bell_xx": {
+      "00": 2023,
+      "01": 76,
+      "10": 108,
+      "11": 1889
+    },
+    "bell_zz": {
+      "00": 1960,
+      "01": 110,
+      "10": 193,
+      "11": 1833
+    },
+    "decoupled_xx": {
+      "00": 1979,
+      "01": 8,
+      "10": 2103,
+      "11": 6
+    },
+    "decoupled_zz": {
+      "00": 1970,
+      "01": 1982,
+      "10": 62,
+      "11": 82
+    }
+  },
+  "physical_job_total_shots": 20480,
+  "qpu_job_limit_seconds": 60,
+  "recorded_utc": "2026-10-10T02:25:49.739478+00:00",
+  "schema": "navisworld-ibm-longer-onejob-physics-receipt-v1",
+  "shot_count": 16384,
+  "source_class": "RECORDED_IBM_HARDWARE"
+}

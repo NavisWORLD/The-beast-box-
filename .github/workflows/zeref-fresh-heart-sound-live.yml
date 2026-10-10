@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   measured-birth:
-    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/zeref-heart-sound-live-20261010' }}
+    if: ${{ github.event.action == 'opened' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/zeref-heart-sound-live-20261010' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:

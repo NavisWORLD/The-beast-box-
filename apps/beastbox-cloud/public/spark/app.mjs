@@ -195,6 +195,48 @@ async function sparkMagmascale(){
  localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
  $('status').textContent='Magmascale sparked from a third NEW physical IBM Fez job. This exact QBEAST can enter Lost COSMOS and its verified 512-shot Azure QVM experience can be added once.';
 }
+async function sparkUmbralet(){
+ const seedRun=byKey.get('db4og3slf4us73c319h0:bell-xx');
+ if(!seedRun)throw Error('The authentic song-before-IBM 12D Fez hardware source has not loaded. An older beast cannot substitute.');
+ const entry={traits:{focus:80,calm:20,spark:100},run:seedRun.key,user:'Music12D-5'};
+ const gen=buildGenome(entry.traits,seedRun,entry.user,10);
+ if(gen.body!=='dragonling'||gen.seed!=='f67c3ba56f42fe7777a905745fa7b64f50aa0950859a8ddd829603a6bd33c4fd'||gen.names[1]!=='Umbralet')throw Error('Recorded CST12→physical IBM source does not regenerate exact Umbralet identity.');
+ fillRunSelect([seedRun]);await adopt(entry);
+ // Play the 48 measured music-control windows through this exact new QBEAST's
+ // existing classical behavior engine BEFORE handing it to the game.
+ const audioResponse=await fetch('/spark/umbralet-song-cst12-recorded-drive-20261009.json',{cache:'no-store'});
+ if(!audioResponse.ok)throw Error('Original 12D music controls unavailable; no fake birth step.');
+ const drive=await audioResponse.json();
+ if(drive?.schema!=='beastbox-cosmos-12-channel-song-drive-v1'||drive.source?.pre_hardware_ibm_job!=='db4og3slf4us73c319h0'||drive.source?.full_48_window_cst12_packet_sha256!=='84807db6e44e0bad5b494a6408ec7a0d8390f66399759e439b56f19ac8bb0e99'||!Array.isArray(drive.quarter_means)||drive.quarter_means.length!==4||drive.step_count!==48)throw Error('The actual pinned song/CST12 packet does not match IBM genesis.');
+ await withSparkLock(()=>{
+  const fresh=readSparkSession(localStorage);
+  if(fresh.beast?.seed!=='f67c3ba56f42fe7777a905745fa7b64f50aa0950859a8ddd829603a6bd33c4fd'||fresh.beast?.qbeast?.profile?.id!=='bb-1e1759f3')throw Error('CST12 drive cannot attach to the wrong Beast.');
+  for(let k=0;k<48;k++){
+   const v=drive.quarter_means[Math.floor(k/12)];
+   if(!Array.isArray(v)||v.length!==12||v.some(n=>typeof n!=='number'||!Number.isFinite(n)||n<0||n>1))throw Error('Corrupted 12-channel audio drive.');
+   if([4,5,6,7,9].some(index=>v[index]!==0))throw Error('Unmeasured bio/device motion cannot be added to a song.');
+   const environment={place:k<12?'observatory':k<24?'grove':k<36?'shore':'observatory',sound:v[2],toy:v[1],attention:v[0],comfort:v[3]};
+   const result=advanceCreature(fresh,environment);
+   if(!result.ok)throw Error('Recorded 12D musical behavior step '+k+' failed.');
+  }
+  saveSparkSession(localStorage,fresh);session=fresh;updatePlate();notifyNativeBridge();
+ });
+ bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);
+ localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
+ $('status').textContent='Umbralet arrived through your FULL SONG → 48 COSMOS 12D windows → REAL IBM Fez music-conditioned gates → 16,384 physical shots. 48 music-derived classical steps are saved to the exact QBEAST. The separate 512-shot Azure simulator signal can enter once, then Lost COSMOS.';
+}
+async function sparkZeref(){
+ const seedRun=byKey.get('db4q484vf2bc73cuuuag:bell-xx');
+ if(!seedRun)throw Error('The verified Zeref heartbeat hardware source is unavailable.');
+ const entry={traits:{focus:80,calm:20,spark:100},run:seedRun.key,user:'Zeref-heart-15'};
+ const genome=buildGenome(entry.traits,seedRun,entry.user,10);
+ if(genome.body!=='dragonling'||genome.seed!=='8e2e927e2cfaf489cb7c10172836286bb08869cfff0c2508b5c6371e052e54ed'||genome.names[1]!=='Scorchwyrm')throw Error('Zeref measured recipe failed exact replay.');
+ fillRunSelect([seedRun]);await adopt(entry);
+ await withSparkLock(()=>{const next=readSparkSession(localStorage);nameBeast(next,'Zeref');saveSparkSession(localStorage,next);session=next;});
+ updatePlate();notifyNativeBridge();
+ bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
+ $('status').textContent='Zeref sparked from the completed IBM Fez heartbeat experiment. Its measured genome is Scorchwyrm. The same QBEAST is ready for the Cage, Lost COSMOS and its recorded Azure input.';
+}
 function starterEntries(){
  if(starterCache.length)return starterCache;
  const profiles=['serene','focused','sparky','balanced','dreamy','steady','restless','mock'];
@@ -351,7 +393,7 @@ async function speak(event){
   else{setTalkSource('LOCAL PATTERN');if(remoteError)$('status').textContent='Cloud model unavailable, so the on-device pattern companion replied instead. '+remoteError.message;}
  });
 }
-async function museClick(){if(!$('consent').checked){$('status').textContent='Check consent before connecting your headband.';return}try{muse?.stop();muse=await connectMuse(traits=>{showTraits(traits);$('status').textContent='Derived traits updated locally. Raw samples discarded.'});$('status').textContent=`Connected to ${muse.name}. Derived AF7 traits stay here.`;}catch(e){$('status').textContent=e.message||'Muse connection cancelled.'}}
+async function museClick(){if(!$('consent').checked){$('status').textContent='Check consent before connecting your headband.';return}try{muse?.stop();muse=await connectMuse(traits=>{showTraits(traits);$('status').textContent='Derived traits updated locally. Raw samples discarded.'});$('status').textContent=`Connected to ${muse.name}. Derived AF7 traits sere.`;}catch(e){$('status').textContent=e.message||'Muse connection cancelled.'}}
 function qvmScenarioForCurrent(){if(!current||!qvmRuns.length)return 1;return 1+(parseInt(current.gen.seed.slice(0,8),16)%8);}
 async function processQvmBatch(row){
  if(!current||!runtime)throw Error('Spark a Beast before replaying the simulator.');
@@ -449,7 +491,7 @@ async function main(){
  $('save-here').addEventListener('click',()=>void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');saveSparkSession(localStorage,next);session=next;});$('save-state').textContent='SAVED ON THIS DEVICE';audioSfx('confirm');}));
  $('download-journey').addEventListener('click',()=>void run(async()=>{const next=readSparkSession(localStorage);deviceDownload(serializeDeviceJourney(next,byKey),shownName(next.beast)+'.beastjourney');$('status').textContent='Device journey created. Local memory and behavior are unsigned; native authority is unchanged.';}));
  $('import-journey').addEventListener('change',()=>void run(async()=>{const file=$('import-journey').files?.[0];if(!file)return;if(file.size>2*1024*1024)throw Error('Choose a journey under 2 MiB.');const journey=readDeviceJourney(await file.text(),byKey),next=await withSparkLock(()=>restoreDeviceJourney(localStorage,journey));showCreature(journey.entry,next,false);$('status').textContent='Device journey restored. Same identity, local memory; native artifacts remain unsigned.';$('import-journey').value='';}));
- $('final-dragon').addEventListener('click',()=>void run(()=>sparkFinalDragon()));$('pistonwyrm').addEventListener('click',()=>void run(()=>sparkPistonwyrm()));$('magmascale').addEventListener('click',()=>void run(()=>sparkMagmascale()));$('umbrascale').addEventListener('click',()=>void run(()=>sparkUmbrascale()));$('azure-stimulus').addEventListener('click',()=>void run(()=>applyAzureStimulus()));
+ $('zeref').addEventListener('click',()=>void run(()=>sparkZeref()));$('final-dragon').addEventListener('click',()=>void run(()=>sparkFinalDragon()));$('pistonwyrm').addEventListener('click',()=>void run(()=>sparkPistonwyrm()));$('magmascale').addEventListener('click',()=>void run(()=>sparkMagmascale()));$('umbralet').addEventListener('click',()=>void run(()=>sparkUmbralet()));$('umbrascale').addEventListener('click',()=>void run(()=>sparkUmbrascale()));$('azure-stimulus').addEventListener('click',()=>void run(()=>applyAzureStimulus()));
  $('save-state').textContent='SAVED ON THIS DEVICE';coreTimer=setInterval(()=>void activityTick(),8000);
  window.addEventListener('storage',event=>{if(event.key==='beastbox-reduced-motion-v1')syncMotion();});
  for(const which of [1,2,3])$(`pick${which}`).addEventListener('click',()=>{stage=which;preview=stage!==session.beast.nativeStage;updatePlate();runtime.state='celebrate';runtime.until=runtime.T+1.5;$('status').textContent='Visual preview only. Your earned native stage and QBEAST progression did not change.'});
@@ -458,4 +500,4 @@ async function main(){
  let resizeTimer=0;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(Math.abs(innerWidth-lastViewportWidth)>=80){lastViewportWidth=innerWidth;browserReact('resize');}},220);});
  requestAnimationFrame(now=>loop(now));
 }
-main().catch(err=>{$('status').textContent=err.message||'Spark Beasts could not start.'});
+main().then(()=>{if(new URL(location.href).searchParams.get('beast')==='zeref')void run(()=>sparkZeref());}).catch(err=>{$('status').textContent=err.message||'Spark Beasts could not start.'});

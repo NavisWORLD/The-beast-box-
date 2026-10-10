@@ -180,7 +180,7 @@ function run({keeperPrefix='Marrakesh-dragon-',recordedStimulus=null,hardwareRec
    behavioral_tic:genome.behavior?.tic,stage:1,genome_traits:genome.inputs.traits},
   qbeast:{id:originalIdentity,family:qbeast.profile.family,snapshot_digest:qbeast.digest,
    identical_across_replay:true,native_stage_unchanged:true,native_progress_awarded:false},
-  protocol:{genesis_selection:'first deterministic dragonling candidate from real IBM Marrakesh Bell XX recorded measurement; morphology selection is user-conditioned',
+  protocol:{genesis_selection:`first deterministic dragonling candidate from ${recorded.backend} Bell XX recorded measurement; morphology selection is user-conditioned`,
    training:'12 scripted grove explore observations in learned branch only',
    ablation:'matched untrained branch; identical genome, stimulus schedule and scripted feedback',
    simulator:'Three preserved Azure Rigetti QVM scenario-1 count batches provide bounded ENVIRONMENT stimulus only',

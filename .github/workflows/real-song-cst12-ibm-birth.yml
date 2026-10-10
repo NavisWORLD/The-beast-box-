@@ -1,0 +1,76 @@
+name: REAL COSMOS MUSIC 12D → IBM QPU → NEW DRAGON
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/real-song-cst12-ibm-birth.yml'
+      - 'scripts/ibm_cosmos_music12d_new_qpu.py'
+      - 'experiment-input/cosmos-music-original-song-cst12-20261009.json'
+      - 'apps/beastbox-cloud/scripts/music12d-real-ibm-genesis.mjs'
+permissions:
+  contents: read
+concurrency:
+  group: navisworld-real-song-4410ed-cst12-ibm-onejob-20261009
+  cancel-in-progress: false
+jobs:
+  fresh-real-song-qpu-birth:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/audio-cst12-prehardware-ibm-fourth-genesis-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify no secrets or false sensor readings and check QPU guard tests
+        run: |
+          python -m py_compile scripts/ibm_cosmos_music12d_new_qpu.py
+          PYTHONPATH=scripts python - <<'PY'
+          from ibm_cosmos_music12d_new_qpu import verified_audio
+          packet=verified_audio()
+          assert packet['window_count']==48
+          assert len(packet['cst12_aggregated'])==12
+          print('SONG_STATE_VERIFIED '+packet['audio_packet_sha256'])
+          PY
+          python -m unittest discover -s tests -p test_ibm_open_plan_preflight.py -v
+      - name: Install official IBM hardware provider SDK
+        run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+      - name: Prove 12D actually changes compiled quantum circuits BEFORE physical submission
+        run: |
+          PYTHONPATH=scripts python - <<'PY'
+          from ibm_cosmos_music12d_new_qpu import verified_audio,circuits
+          packet=verified_audio()
+          a=circuits(packet)
+          altered={**packet,'cst12_aggregated':[0]*12,'cst12_quarter_means':[[0]*12 for i in range(4)]}
+          b=circuits(altered)
+          assert len(a)==4 and len(b)==4
+          assert all(str(x[1])!=str(y[1]) for x,y in zip(a,b)), 'Music did not affect gates: abort QPU!'
+          print('TRUE_PRE_QPU_SONG12D_GATE_DIFFERENCE=YES')
+          PY
+      - name: One new IBM real hardware job from song-conditioned RX RY RZ gates (or exact remote-tag recovery)
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_REAL_QPU_ONE_JOB: YES_ONE_REAL_JOB
+        run: PYTHONPATH=scripts python scripts/ibm_cosmos_music12d_new_qpu.py
+      - name: Generate entirely fresh QBEAST, real behavior timeline and exact 12D-audio-conditioned save
+        run: node apps/beastbox-cloud/scripts/music12d-real-ibm-genesis.mjs
+      - name: Read-only actual QPU postflight quota
+        if: success()
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py
+      - name: Preserve exact song hash and gate circuit, IBM shots and new creature evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-song-12d-ibm-new-beast-${{ github.run_id }}
+          path: |
+            _ibm_cst12_music_birth_20261009/
+            _ibm_open_plan_preflight/receipt.json
+            apps/beastbox-cloud/experiment-evidence/music-12d-ibm-20261009/
+          retention-days: 30
+          if-no-files-found: warn

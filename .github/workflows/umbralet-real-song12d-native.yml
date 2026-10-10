@@ -1,0 +1,79 @@
+name: Umbralet real IBM Azure native GBA acceptance
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/public/spark/**'
+      - 'apps/beastbox-cloud/lib/companion/recorded-qvm-stimulus.mjs'
+      - 'apps/beastbox-cloud/scripts/umbralet-music12d-ibm-azure-behavior.mjs'
+      - 'apps/beastbox-cloud/tests/umbralet-music12d-native-e2e.cjs'
+      - '.github/workflows/umbralet-real-song12d-native.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  umbralet-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Fetch actual fresh IBM job and full recorded creature state
+        uses: actions/download-artifact@v4
+        with:
+          name: real-song-12d-ibm-new-beast-38009590963
+          run-id: 38009590963
+          github-token: ${{ github.token }}
+          path: .
+      - name: Fetch actual fresh Azure Rigetti QVM cloud result
+        uses: actions/download-artifact@v4
+        with:
+          name: real-song12d-new-azure-qvm-38009805252
+          run-id: 38009805252
+          github-token: ${{ github.token }}
+          path: _azure_cst12_music_birth_20261009
+      - name: Verify exact IBM/Azure hashes and once-only behavior replay
+        run: |
+          node --check tests/umbralet-music12d-native-e2e.cjs
+          node scripts/umbralet-music12d-ibm-azure-behavior.mjs
+          node --test tests/recorded-qvm-stimulus.test.mjs tests/spark-source-registry.test.mjs
+      - name: Existing production build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Install real Playwright Chromium
+        run: |
+          npm install --prefix "$RUNNER_TEMP/umbralet-browser" --no-audit --no-fund playwright@1.55.0
+          "$RUNNER_TEMP/umbralet-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Real native GBA Playwright game run, 32KB save, Umbralet identity, controls
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export NODE_PATH="$RUNNER_TEMP/umbralet-browser/node_modules"
+          evidence="$GITHUB_WORKSPACE/apps/beastbox-cloud/browser-evidence/umbralet-integration"
+          mkdir -p "$evidence"
+          npm start -- -H 127.0.0.1 -p 3000 > "$evidence/server.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for n in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/spark/index.html >/dev/null; then break; fi
+            sleep 1
+          done
+          node tests/umbralet-music12d-native-e2e.cjs http://127.0.0.1:3000 "$evidence"
+      - name: Archive actual browser and native game recording
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: umbralet-real-game-birth-${{ github.run_id }}
+          path: |
+            apps/beastbox-cloud/browser-evidence/umbralet-integration/
+            apps/beastbox-cloud/experiment-evidence/umbralet-azure-core-20261009/
+          retention-days: 30
+          if-no-files-found: warn
