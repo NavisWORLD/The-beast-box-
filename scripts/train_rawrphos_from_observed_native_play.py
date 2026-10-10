@@ -140,7 +140,7 @@ def main():
  "basic_text_retention_nll":nll(model,retain_tokens)}
  cand=ROOT/"candidate-actual-native-frame-imitation-001"
  meta={"schema":"rawrphos-observed-raw-native-frames-fork-v1",
-  "parent_steps":14000,"fresh_optimizer_steps":STEPS,"not_canonical_training_continuation":True,
+  "parent_steps":14000,"fresh_optimizer_steps":STEPS,"training_steps":14000+STEPS,"not_canonical_training_continuation":True,
   "dataset_source_class":manifest["source_class"],"dataset_sha256":sha(source_bytes),
   "train_episodes":[0,1,2],"heldout_episodes":[3],"train_pairs":len(train),"heldout_pairs":len(heldout),
   "labels_are_scripted_optical_policy_not_human_oracle":True,
