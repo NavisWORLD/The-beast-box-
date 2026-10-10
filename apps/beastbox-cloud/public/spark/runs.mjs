@@ -12,6 +12,7 @@ export const FEZ_HARDWARE_PATH='/spark/ibm-fez-reality-probe-20261009.json';
 export const FINAL_HARDWARE_PATH='/spark/ibm-final-live-reality-probe-20261009.json';
 export const SECOND_FINAL_HARDWARE_PATH='/spark/ibm-second-final-reality-probe-20261009.json';
 export const THIRD_FINAL_HARDWARE_PATH='/spark/ibm-third-final-reality-probe-20261009.json';
+export const ZEREF_HEART_HARDWARE_PATH='/spark/ibm-zeref-heart-sound-20261010.json';
 export const MUSIC12D_IBM_HARDWARE_PATH='/spark/ibm-real-song-cst12-umbralet-20261009.json';
 const HEX=/^[a-f0-9]{64}$/;
 const approvedPath=path=>typeof path==='string'&&/^\/spark\/[a-z0-9-]+\.json$/.test(path);
@@ -67,7 +68,7 @@ async function fetchJson(path){
 export async function loadSparkRuns({includeQvm=false,includeNewHardware=false}={}){
  const index=await fetchJson(SPARK_INDEX_PATH);
  if(index.schema!=='spark-beasts-public-seed-pack-index-v1'||!Array.isArray(index.shards))throw Error('Invalid recorded seed index.');
- const paths=[SPARK_BASE_PATH,...index.shards,...(includeNewHardware?[FEZ_HARDWARE_PATH,MARRAKESH_HARDWARE_PATH,FINAL_HARDWARE_PATH,SECOND_FINAL_HARDWARE_PATH,THIRD_FINAL_HARDWARE_PATH,MUSIC12D_IBM_HARDWARE_PATH]:[])];
+ const paths=[SPARK_BASE_PATH,...index.shards,...(includeNewHardware?[FEZ_HARDWARE_PATH,MARRAKESH_HARDWARE_PATH,FINAL_HARDWARE_PATH,SECOND_FINAL_HARDWARE_PATH,THIRD_FINAL_HARDWARE_PATH,MUSIC12D_IBM_HARDWARE_PATH,ZEREF_HEART_HARDWARE_PATH]:[])];
  if(paths.some(path=>!approvedPath(path)))throw Error('Unapproved recorded seed path.');
  const tables=await Promise.all(paths.map(fetchJson));
  const byKey=new Map();

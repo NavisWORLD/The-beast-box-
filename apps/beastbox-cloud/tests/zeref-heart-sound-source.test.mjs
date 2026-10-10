@@ -1,0 +1,24 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {loadSparkRuns} from '../public/spark/runs.mjs';
+import {buildGenome} from '../public/spark/genome.mjs';
+import {buildQbeast} from '../public/spark/qbeast.mjs';
+import {createSession,adoptBeast,exportSession,importSession} from '../lib/companion/session.mjs';
+import {applyRecordedQvmStimulus,recordedQvmStimulusPath} from '../lib/companion/recorded-qvm-stimulus.mjs';
+const read=p=>JSON.parse(readFileSync(new URL('../public'+p,import.meta.url),'utf8'));
+test('fresh Zeref keeps its measured identity and applies its exact Azure receipt only once across reload',async t=>{
+ t.mock.method(globalThis,'fetch',async p=>Response.json(read(p)));
+ const runs=await loadSparkRuns({includeNewHardware:true}),run=runs.find(x=>x.key==='db4q484vf2bc73cuuuag:bell-xx');
+ const genome=buildGenome({focus:80,calm:20,spark:100},run,'Zeref-heart-15',10);
+ assert.equal(genome.names[1],'Scorchwyrm');assert.equal(buildQbeast(genome).profile.id,'bb-deada969');
+ const session=createSession();adoptBeast(session,genome,'Zeref');
+ session.beast.qbeast=buildQbeast(genome);
+ const path=recordedQvmStimulusPath(session.beast);assert.equal(path,'/spark/azure-zeref-heart-sound-20261010.json');
+ const receipt=read(path);assert.equal(applyRecordedQvmStimulus(session,receipt).duplicate,false);
+ const restored=importSession(JSON.parse(JSON.stringify(exportSession(session)))),before=JSON.stringify(exportSession(restored));
+ assert.equal(applyRecordedQvmStimulus(restored,receipt).duplicate,true);assert.equal(JSON.stringify(exportSession(restored)),before);
+ const altered=structuredClone(receipt);altered.counts['00']--;altered.counts['11']++;
+ assert.throws(()=>applyRecordedQvmStimulus(createSession(),altered),/digest|changed/);
+ assert.equal((await loadSparkRuns()).length,5676);
+});

@@ -1,0 +1,2754 @@
+{
+  "schema": "beastbox-companion-session-v1",
+  "tab": "play",
+  "beast": {
+    "seed": "8e2e927e2cfaf489cb7c10172836286bb08869cfff0c2508b5c6371e052e54ed",
+    "genome": {
+      "schema": "lost-cosmos-beast-genome-v2",
+      "seed": "8e2e927e2cfaf489cb7c10172836286bb08869cfff0c2508b5c6371e052e54ed",
+      "inputs": {
+        "traits": {
+          "focus": 80,
+          "calm": 20,
+          "spark": 100
+        },
+        "quantum_run": "db4q484vf2bc73cuuuag:bell-xx",
+        "user_id": "Zeref-heart-15"
+      },
+      "quantum": {
+        "backend": "ibm_fez",
+        "job_id": "db4q484vf2bc73cuuuag",
+        "pub_index": 1,
+        "counts_sha256": "151c96aed2079f274a3b3b0bf725d5f27b8bda0d83164c335d1b203bc5dd0bdc",
+        "top_state": "00",
+        "top_state_int": 0,
+        "num_bits": 2,
+        "entropy_norm": 0.6313,
+        "marginals": [
+          0.4797,
+          0.4875
+        ]
+      },
+      "engine": {
+        "dyn12": [
+          0.45314,
+          -0.2528,
+          -0.14771,
+          0.3077,
+          0.40979,
+          -0.16781,
+          -0.35483,
+          0.40341,
+          0.42095,
+          -0.13664,
+          -0.42535,
+          0.43991
+        ],
+        "island_affinity": {
+          "Eridoria Prime": 0.0096,
+          "Hollow Verdance": 0.0001,
+          "The Crown": 0.0012,
+          "The Pale Expanse": 0,
+          "Rust Meridian": 0.0029,
+          "Cinder Drift": 0.0609,
+          "Umbral Deep": 0.0001,
+          "The Shattered Reef": 0.0049
+        }
+      },
+      "island": "Cinder Drift",
+      "element": "ember",
+      "body": "dragonling",
+      "ears": "flame",
+      "tail": "flame",
+      "wings": "bat",
+      "pattern": "stripes",
+      "pattern_variant": 22,
+      "pattern_variant_source": "top_state bit + seed-hash bits",
+      "pose": "side",
+      "eye_style": "round",
+      "mouth": "open",
+      "glow": "native",
+      "facing": "left",
+      "temperament": "Fierce",
+      "behavior": {
+        "gait": "wobble",
+        "tempo_hz": 1.314,
+        "amplitude_px": 2,
+        "swing": 0.326,
+        "accents": [
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "accents_source": "top_state bits q0..q1 + seed-hash padding",
+        "breath_hz": 0.298,
+        "breath_px": 2,
+        "appendage_mul": 1.09,
+        "appendage_px": 1,
+        "blink_mean_s": 5.5,
+        "double_blink_p": 0.29,
+        "habits": [
+          {
+            "name": "double_hop",
+            "every_s": 9.77
+          },
+          {
+            "name": "turn_around",
+            "every_s": 6.82
+          },
+          {
+            "name": "shake",
+            "every_s": 11.76
+          }
+        ],
+        "quirks": [
+          {
+            "name": "echo_bounce",
+            "every_s": 7.3,
+            "strength": 0.919
+          },
+          {
+            "name": "startles",
+            "every_s": 8.35,
+            "strength": 0.97
+          }
+        ],
+        "sensitivity": {
+          "focus": 1.239,
+          "calm": 0.937,
+          "spark": 0.824
+        },
+        "reacts_most_to": "focus",
+        "thresholds": {
+          "focus": 36,
+          "calm": 40,
+          "spark": 28
+        },
+        "latency_s": 0.75,
+        "flavors": {
+          "focus": "paces",
+          "calm": "melts",
+          "spark": "spins"
+        },
+        "chattiness": 0.54,
+        "tic": "scr~",
+        "prng_seed": 2385416830
+      },
+      "voice": {
+        "style": "growl",
+        "base_pitch_hz": 325.5,
+        "formants_hz": [
+          583,
+          1679
+        ],
+        "formant_q": 6.22,
+        "wave": "sawtooth",
+        "brightness": 0.586,
+        "breath": 0.213,
+        "speed_sps": 4.09,
+        "vibrato_hz": 5.11,
+        "vibrato_cents": 42.7,
+        "am_hz": 38.8,
+        "contour": "rise",
+        "jump_semitones": 6.62,
+        "rhythm": [
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "rhythm_source": "top_state bit + seed-hash padding (1-bit run)",
+        "vowels": [
+          "a",
+          "o",
+          "i",
+          "e"
+        ],
+        "vowel_formants": [
+          [
+            800,
+            1200
+          ],
+          [
+            500,
+            900
+          ],
+          [
+            320,
+            2500
+          ],
+          [
+            500,
+            1900
+          ]
+        ],
+        "vowel_source": "top outcomes of the run",
+        "consonants": [
+          "gr",
+          "r",
+          "g",
+          "hr"
+        ],
+        "phrase_syllables": [
+          2,
+          5
+        ],
+        "gain": 0.685,
+        "prng_seed": 2961729999,
+        "chattiness": 0.54
+      },
+      "genes": {
+        "chub": 0.6454,
+        "head": 0.4748,
+        "legs": 0.1821,
+        "ear_size": 0.7874,
+        "tail_size": 0.7446,
+        "wing_size": 0.6288,
+        "eye_size": 0.3908,
+        "eye_gap": 0.6437,
+        "hue": 0.6052,
+        "sat": 0.5774,
+        "val": 0.4982,
+        "pattern_density": 0.5399,
+        "pattern_scale": 0.3394,
+        "glow_amount": 0.5972
+      },
+      "stats": {
+        "1": {
+          "hp": 30,
+          "atk": 39,
+          "def": 30,
+          "spd": 39,
+          "spark": 43
+        },
+        "2": {
+          "hp": 50,
+          "atk": 64,
+          "def": 50,
+          "spd": 66,
+          "spark": 71
+        },
+        "3": {
+          "hp": 73,
+          "atk": 94,
+          "def": 73,
+          "spd": 96,
+          "spark": 104
+        }
+      },
+      "names": {
+        "1": "Scorchwyrm",
+        "2": "Magmaclaw",
+        "3": "Pyretyrant"
+      }
+    },
+    "displayName": "Zeref",
+    "xp": 0,
+    "bond": 4,
+    "energy": 80,
+    "stage": 1,
+    "mood": "happy",
+    "localGrowth": {
+      "schema": "qbeast-local-growth-v1",
+      "status": "unsigned-local",
+      "signature": "none",
+      "qbeast_id": "bb-deada969",
+      "seed": "8e2e927e2cfaf489cb7c10172836286bb08869cfff0c2508b5c6371e052e54ed",
+      "xp": 0,
+      "bond": 4,
+      "energy": 80,
+      "stage": 1,
+      "mood": "happy",
+      "train": {
+        "score": 0,
+        "rounds": 0
+      },
+      "memory_steps": 15,
+      "game": {},
+      "applied": [],
+      "model": null,
+      "note": "Pending local growth. Not a signed QBEAST progress update."
+    },
+    "qbeast": {
+      "format": "QBEAST1",
+      "version": 1,
+      "profile": {
+        "schema": "beast-cage-creature-v1",
+        "version": 1,
+        "id": "bb-deada969",
+        "seed": "8e2e927e2cfaf489cb7c10172836286bb08869cfff0c2508b5c6371e052e54ed",
+        "name": "Vexara",
+        "family": "memory",
+        "baseLook": "starlight",
+        "appearance": {
+          "hueShift": 32,
+          "glow": 62,
+          "finPattern": 0,
+          "haloPattern": 2,
+          "constellation": 48288
+        },
+        "temperament": {
+          "curiosity": 33,
+          "energy": 67,
+          "playfulness": 63,
+          "caution": 36,
+          "independence": 42
+        },
+        "game": {
+          "stats": {
+            "hp": 44,
+            "energy": 63,
+            "signal": 33,
+            "memory": 44,
+            "resonance": 42,
+            "agility": 44,
+            "chaos": 47,
+            "stability": 68,
+            "curiosity": 52,
+            "evolution": 63
+          },
+          "level": 1,
+          "experience": 0
+        },
+        "provenance": "classical-seeded-game-generation"
+      },
+      "public_state": {
+        "schema": "dyn12-public-v1",
+        "mode": "unavailable",
+        "values": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "source_sha256": null
+      },
+      "progress": {
+        "trust": 0,
+        "bond": 0,
+        "evolution_stage": 0
+      },
+      "events": [
+        {
+          "generation": 1,
+          "parent": "c39f7838e9a151b2a664fad92b1d2108ab70fb4ef335a023686790769a32aae0",
+          "proposal_id": "bb2db4785f2667888ca1172c86082d9676deae1e9d0ce14aef52f8e002e82854",
+          "kind": "memory",
+          "payload": {
+            "summary": "Spark Beasts v1. Recorded quantum seed, game companion. traits=80,20,100 bucket=10 run=db4q484vf2bc73cuuuag:bell-xx name=Magmaclaw keeper=Zeref-heart-15",
+            "source_ref": "public:spark-beasts"
+          },
+          "hash": "d51430d0b0d77867eaf30d67cf1e73ba3f286458d9f302468223c7f065ccfb7b"
+        }
+      ],
+      "generation": 1,
+      "lineage_head": "d51430d0b0d77867eaf30d67cf1e73ba3f286458d9f302468223c7f065ccfb7b",
+      "digest": "23b4e2d6f736cf25f32242d0910d18df6939c3a89b1b50efecb83e94161363ad"
+    },
+    "behavior": {
+      "schema": "beastbox-behavior-v1",
+      "seed": "8e2e927e2cfaf489cb7c10172836286bb08869cfff0c2508b5c6371e052e54ed",
+      "tick": 97,
+      "energy": 62.9,
+      "curiosity": 97.3,
+      "preferences": {
+        "grove": 0,
+        "nest": 0,
+        "shore": 0,
+        "observatory": 0
+      },
+      "position": {
+        "x": 0.653,
+        "y": 0.55
+      },
+      "lastAction": "explore",
+      "memory": [],
+      "events": [
+        {
+          "tick": 65,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "rest",
+          "input": {
+            "energy": 54.5,
+            "curiosity": 100,
+            "sound": 0.3880426742256263,
+            "toy": 0,
+            "attention": 0.2,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.167,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.2,
+            "wander": 1.727,
+            "listen": 2.364,
+            "idle": 1
+          },
+          "result": {
+            "energy": 61.5,
+            "curiosity": 100,
+            "position": {
+              "x": 0.615,
+              "y": 0.463
+            }
+          }
+        },
+        {
+          "tick": 66,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "rest",
+          "input": {
+            "energy": 61.5,
+            "curiosity": 100,
+            "sound": 0.4116728242243242,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 2.933,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.7,
+            "wander": 1.82,
+            "listen": 2.935,
+            "idle": 1
+          },
+          "result": {
+            "energy": 68.5,
+            "curiosity": 100,
+            "position": {
+              "x": 0.615,
+              "y": 0.463
+            }
+          }
+        },
+        {
+          "tick": 67,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "rest",
+          "input": {
+            "energy": 68.5,
+            "curiosity": 100,
+            "sound": 0.504659172617355,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 2.7,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.7,
+            "wander": 1.913,
+            "listen": 3.214,
+            "idle": 1
+          },
+          "result": {
+            "energy": 75.5,
+            "curiosity": 100,
+            "position": {
+              "x": 0.615,
+              "y": 0.463
+            }
+          }
+        },
+        {
+          "tick": 68,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "explore",
+          "input": {
+            "energy": 75.5,
+            "curiosity": 100,
+            "sound": 0.48788059340947487,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 2.467,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.7,
+            "wander": 2.007,
+            "listen": 3.164,
+            "idle": 1
+          },
+          "result": {
+            "energy": 73.1,
+            "curiosity": 98.4,
+            "position": {
+              "x": 0.587,
+              "y": 0.432
+            }
+          }
+        },
+        {
+          "tick": 69,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "explore",
+          "input": {
+            "energy": 73.1,
+            "curiosity": 98.4,
+            "sound": 0.49636561046690436,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 2.547,
+            "explore": 3.341,
+            "inspect": 2.514,
+            "play": 1.7,
+            "wander": 1.975,
+            "listen": 3.189,
+            "idle": 1
+          },
+          "result": {
+            "energy": 70.7,
+            "curiosity": 96.8,
+            "position": {
+              "x": 0.634,
+              "y": 0.427
+            }
+          }
+        },
+        {
+          "tick": 70,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "wander",
+          "input": {
+            "energy": 70.7,
+            "curiosity": 96.8,
+            "sound": 0.519178886374551,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 2.627,
+            "explore": 3.305,
+            "inspect": 2.489,
+            "play": 1.7,
+            "wander": 1.943,
+            "listen": 3.258,
+            "idle": 1
+          },
+          "result": {
+            "energy": 69.2,
+            "curiosity": 97.3,
+            "position": {
+              "x": 0.654,
+              "y": 0.477
+            }
+          }
+        },
+        {
+          "tick": 71,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "wander",
+          "input": {
+            "energy": 69.2,
+            "curiosity": 97.3,
+            "sound": 0.38312084377877464,
+            "toy": 0,
+            "attention": 0.2,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 2.677,
+            "explore": 3.316,
+            "inspect": 2.497,
+            "play": 1.2,
+            "wander": 1.923,
+            "listen": 2.349,
+            "idle": 1
+          },
+          "result": {
+            "energy": 67.7,
+            "curiosity": 97.8,
+            "position": {
+              "x": 0.7,
+              "y": 0.501
+            }
+          }
+        },
+        {
+          "tick": 72,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 67.7,
+            "curiosity": 97.8,
+            "sound": 0.39404876980231424,
+            "toy": 0,
+            "attention": 0.2,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 2.727,
+            "explore": 3.327,
+            "inspect": 2.505,
+            "play": 1.2,
+            "wander": 1.903,
+            "listen": 2.382,
+            "idle": 1
+          },
+          "result": {
+            "energy": 65.7,
+            "curiosity": 98.3,
+            "position": {
+              "x": 0.668,
+              "y": 0.502
+            }
+          }
+        },
+        {
+          "tick": 73,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 65.7,
+            "curiosity": 98.3,
+            "sound": 0.3880426742256263,
+            "toy": 0,
+            "attention": 0.2,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 2.793,
+            "explore": 3.338,
+            "inspect": 2.512,
+            "play": 1.2,
+            "wander": 1.876,
+            "listen": 2.364,
+            "idle": 1
+          },
+          "result": {
+            "energy": 63.7,
+            "curiosity": 98.8,
+            "position": {
+              "x": 0.662,
+              "y": 0.478
+            }
+          }
+        },
+        {
+          "tick": 74,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 63.7,
+            "curiosity": 98.8,
+            "sound": 0.4116728242243242,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 2.86,
+            "explore": 3.35,
+            "inspect": 2.52,
+            "play": 1.7,
+            "wander": 1.849,
+            "listen": 2.935,
+            "idle": 1
+          },
+          "result": {
+            "energy": 61.7,
+            "curiosity": 99.3,
+            "position": {
+              "x": 0.678,
+              "y": 0.525
+            }
+          }
+        },
+        {
+          "tick": 75,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 61.7,
+            "curiosity": 99.3,
+            "sound": 0.504659172617355,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 2.927,
+            "explore": 3.361,
+            "inspect": 2.528,
+            "play": 1.7,
+            "wander": 1.823,
+            "listen": 3.214,
+            "idle": 1
+          },
+          "result": {
+            "energy": 59.7,
+            "curiosity": 99.8,
+            "position": {
+              "x": 0.72,
+              "y": 0.546
+            }
+          }
+        },
+        {
+          "tick": 76,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 59.7,
+            "curiosity": 99.8,
+            "sound": 0.48788059340947487,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 2.993,
+            "explore": 3.372,
+            "inspect": 2.535,
+            "play": 1.7,
+            "wander": 1.796,
+            "listen": 3.164,
+            "idle": 1
+          },
+          "result": {
+            "energy": 57.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.684,
+              "y": 0.544
+            }
+          }
+        },
+        {
+          "tick": 77,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 57.7,
+            "curiosity": 100,
+            "sound": 0.49636561046690436,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.06,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.7,
+            "wander": 1.769,
+            "listen": 3.189,
+            "idle": 1
+          },
+          "result": {
+            "energy": 55.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.674,
+              "y": 0.516
+            }
+          }
+        },
+        {
+          "tick": 78,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "wander",
+          "input": {
+            "energy": 55.7,
+            "curiosity": 100,
+            "sound": 0.519178886374551,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.127,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.7,
+            "wander": 1.743,
+            "listen": 3.258,
+            "idle": 1
+          },
+          "result": {
+            "energy": 54.2,
+            "curiosity": 100,
+            "position": {
+              "x": 0.687,
+              "y": 0.559
+            }
+          }
+        },
+        {
+          "tick": 79,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "wander",
+          "input": {
+            "energy": 54.2,
+            "curiosity": 100,
+            "sound": 0.38312084377877464,
+            "toy": 0,
+            "attention": 0.2,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.177,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.2,
+            "wander": 1.723,
+            "listen": 2.349,
+            "idle": 1
+          },
+          "result": {
+            "energy": 52.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.726,
+              "y": 0.576
+            }
+          }
+        },
+        {
+          "tick": 80,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 52.7,
+            "curiosity": 100,
+            "sound": 0.39404876980231424,
+            "toy": 0,
+            "attention": 0.2,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.227,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.2,
+            "wander": 1.703,
+            "listen": 2.382,
+            "idle": 1
+          },
+          "result": {
+            "energy": 50.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.678,
+              "y": 0.605
+            }
+          }
+        },
+        {
+          "tick": 81,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 50.7,
+            "curiosity": 100,
+            "sound": 0.3880426742256263,
+            "toy": 0,
+            "attention": 0.2,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.293,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.2,
+            "wander": 1.676,
+            "listen": 2.364,
+            "idle": 1
+          },
+          "result": {
+            "energy": 48.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.704,
+              "y": 0.56
+            }
+          }
+        },
+        {
+          "tick": 82,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 48.7,
+            "curiosity": 100,
+            "sound": 0.4116728242243242,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.36,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.7,
+            "wander": 1.649,
+            "listen": 2.935,
+            "idle": 1
+          },
+          "result": {
+            "energy": 46.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.704,
+              "y": 0.541
+            }
+          }
+        },
+        {
+          "tick": 83,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 46.7,
+            "curiosity": 100,
+            "sound": 0.504659172617355,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.427,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.7,
+            "wander": 1.623,
+            "listen": 3.214,
+            "idle": 1
+          },
+          "result": {
+            "energy": 44.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.678,
+              "y": 0.548
+            }
+          }
+        },
+        {
+          "tick": 84,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 44.7,
+            "curiosity": 100,
+            "sound": 0.48788059340947487,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.493,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.7,
+            "wander": 1.596,
+            "listen": 3.164,
+            "idle": 1
+          },
+          "result": {
+            "energy": 42.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.633,
+              "y": 0.574
+            }
+          }
+        },
+        {
+          "tick": 85,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 42.7,
+            "curiosity": 100,
+            "sound": 0.49636561046690436,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.56,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.7,
+            "wander": 1.569,
+            "listen": 3.189,
+            "idle": 1
+          },
+          "result": {
+            "energy": 40.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.663,
+              "y": 0.525
+            }
+          }
+        },
+        {
+          "tick": 86,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 40.7,
+            "curiosity": 100,
+            "sound": 0.519178886374551,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.627,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.7,
+            "wander": 1.543,
+            "listen": 3.258,
+            "idle": 1
+          },
+          "result": {
+            "energy": 38.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.667,
+              "y": 0.502
+            }
+          }
+        },
+        {
+          "tick": 87,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 38.7,
+            "curiosity": 100,
+            "sound": 0.38312084377877464,
+            "toy": 0,
+            "attention": 0.2,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.693,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.2,
+            "wander": 1.516,
+            "listen": 2.349,
+            "idle": 1
+          },
+          "result": {
+            "energy": 36.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.645,
+              "y": 0.505
+            }
+          }
+        },
+        {
+          "tick": 88,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 36.7,
+            "curiosity": 100,
+            "sound": 0.39404876980231424,
+            "toy": 0,
+            "attention": 0.2,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.76,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.2,
+            "wander": 1.489,
+            "listen": 2.382,
+            "idle": 1
+          },
+          "result": {
+            "energy": 34.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.604,
+              "y": 0.541
+            }
+          }
+        },
+        {
+          "tick": 89,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "play",
+          "input": {
+            "energy": 34.7,
+            "curiosity": 100,
+            "sound": 0.3880426742256263,
+            "toy": 0,
+            "attention": 0.2,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.827,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.2,
+            "wander": 1.463,
+            "listen": 2.364,
+            "idle": 1
+          },
+          "result": {
+            "energy": 32.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.637,
+              "y": 0.503
+            }
+          }
+        },
+        {
+          "tick": 90,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "rest",
+          "input": {
+            "energy": 32.7,
+            "curiosity": 100,
+            "sound": 0.4116728242243242,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.893,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.7,
+            "wander": 1.436,
+            "listen": 2.935,
+            "idle": 1
+          },
+          "result": {
+            "energy": 39.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.637,
+              "y": 0.503
+            }
+          }
+        },
+        {
+          "tick": 91,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "rest",
+          "input": {
+            "energy": 39.7,
+            "curiosity": 100,
+            "sound": 0.504659172617355,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.66,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.7,
+            "wander": 1.529,
+            "listen": 3.214,
+            "idle": 1
+          },
+          "result": {
+            "energy": 46.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.637,
+              "y": 0.503
+            }
+          }
+        },
+        {
+          "tick": 92,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "rest",
+          "input": {
+            "energy": 46.7,
+            "curiosity": 100,
+            "sound": 0.48788059340947487,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.427,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.7,
+            "wander": 1.623,
+            "listen": 3.164,
+            "idle": 1
+          },
+          "result": {
+            "energy": 53.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.637,
+              "y": 0.503
+            }
+          }
+        },
+        {
+          "tick": 93,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "rest",
+          "input": {
+            "energy": 53.7,
+            "curiosity": 100,
+            "sound": 0.49636561046690436,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.193,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.7,
+            "wander": 1.716,
+            "listen": 3.189,
+            "idle": 1
+          },
+          "result": {
+            "energy": 60.7,
+            "curiosity": 100,
+            "position": {
+              "x": 0.637,
+              "y": 0.503
+            }
+          }
+        },
+        {
+          "tick": 94,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "explore",
+          "input": {
+            "energy": 60.7,
+            "curiosity": 100,
+            "sound": 0.519178886374551,
+            "toy": 0,
+            "attention": 0.7,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 2.96,
+            "explore": 3.376,
+            "inspect": 2.538,
+            "play": 1.7,
+            "wander": 1.809,
+            "listen": 3.258,
+            "idle": 1
+          },
+          "result": {
+            "energy": 58.3,
+            "curiosity": 98.4,
+            "position": {
+              "x": 0.619,
+              "y": 0.502
+            }
+          }
+        },
+        {
+          "tick": 95,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "rest",
+          "input": {
+            "energy": 58.3,
+            "curiosity": 98.4,
+            "sound": 0.38312084377877464,
+            "toy": 0,
+            "attention": 0.2,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 3.04,
+            "explore": 3.341,
+            "inspect": 2.514,
+            "play": 1.2,
+            "wander": 1.777,
+            "listen": 2.349,
+            "idle": 1
+          },
+          "result": {
+            "energy": 65.3,
+            "curiosity": 98.9,
+            "position": {
+              "x": 0.619,
+              "y": 0.502
+            }
+          }
+        },
+        {
+          "tick": 96,
+          "kind": "behavior",
+          "place": "observatory",
+          "action": "explore",
+          "input": {
+            "energy": 65.3,
+            "curiosity": 98.9,
+            "sound": 0.39404876980231424,
+            "toy": 0,
+            "attention": 0.2,
+            "comfort": 0.65,
+            "memoryBonus": 0,
+            "associations": [
+              {
+                "word": "explore",
+                "association": 1.186,
+                "matrix": 0.483,
+                "cues": [
+                  "observatory"
+                ],
+                "score": 1.234
+              }
+            ]
+          },
+          "scores": {
+            "rest": 2.807,
+            "explore": 3.352,
+            "inspect": 2.522,
+            "play": 1.2,
+            "wander": 1.871,
+            "listen": 2.382,
+            "idle": 1
+          },
+          "result": {
+            "energy": 62.9,
+            "curiosity": 97.3,
+            "position": {
+              "x": 0.653,
+              "y": 0.55
+            }
+          }
+        }
+      ]
+    },
+    "qbeastProgress": "pending-unsigned",
+    "qvmStimulus": {
+      "schema": "beastbox-recorded-qvm-input-v1",
+      "source_class": "RECORDED_AZURE_CLOUD_SIMULATOR",
+      "job_id": "e8c296e8-c451-11f1-ae67-3833c5ea2281",
+      "counts_sha256": "04cb592a1984b8759e40225ceb69057fb740803566c05e075b2c9a0e0f35f7ac",
+      "qbeast_id": "bb-deada969",
+      "seed": "8e2e927e2cfaf489cb7c10172836286bb08869cfff0c2508b5c6371e052e54ed",
+      "tick": 0
+    }
+  },
+  "bestiary": [
+    {
+      "seed": "8e2e927e2cfaf489cb7c10172836286bb08869cfff0c2508b5c6371e052e54ed",
+      "name": "Zeref",
+      "island": "Cinder Drift",
+      "body": "dragonling",
+      "genome": {
+        "schema": "lost-cosmos-beast-genome-v2",
+        "seed": "8e2e927e2cfaf489cb7c10172836286bb08869cfff0c2508b5c6371e052e54ed",
+        "inputs": {
+          "traits": {
+            "focus": 80,
+            "calm": 20,
+            "spark": 100
+          },
+          "quantum_run": "db4q484vf2bc73cuuuag:bell-xx",
+          "user_id": "Zeref-heart-15"
+        },
+        "quantum": {
+          "backend": "ibm_fez",
+          "job_id": "db4q484vf2bc73cuuuag",
+          "pub_index": 1,
+          "counts_sha256": "151c96aed2079f274a3b3b0bf725d5f27b8bda0d83164c335d1b203bc5dd0bdc",
+          "top_state": "00",
+          "top_state_int": 0,
+          "num_bits": 2,
+          "entropy_norm": 0.6313,
+          "marginals": [
+            0.4797,
+            0.4875
+          ]
+        },
+        "engine": {
+          "dyn12": [
+            0.45314,
+            -0.2528,
+            -0.14771,
+            0.3077,
+            0.40979,
+            -0.16781,
+            -0.35483,
+            0.40341,
+            0.42095,
+            -0.13664,
+            -0.42535,
+            0.43991
+          ],
+          "island_affinity": {
+            "Eridoria Prime": 0.0096,
+            "Hollow Verdance": 0.0001,
+            "The Crown": 0.0012,
+            "The Pale Expanse": 0,
+            "Rust Meridian": 0.0029,
+            "Cinder Drift": 0.0609,
+            "Umbral Deep": 0.0001,
+            "The Shattered Reef": 0.0049
+          }
+        },
+        "island": "Cinder Drift",
+        "element": "ember",
+        "body": "dragonling",
+        "ears": "flame",
+        "tail": "flame",
+        "wings": "bat",
+        "pattern": "stripes",
+        "pattern_variant": 22,
+        "pattern_variant_source": "top_state bit + seed-hash bits",
+        "pose": "side",
+        "eye_style": "round",
+        "mouth": "open",
+        "glow": "native",
+        "facing": "left",
+        "temperament": "Fierce",
+        "behavior": {
+          "gait": "wobble",
+          "tempo_hz": 1.314,
+          "amplitude_px": 2,
+          "swing": 0.326,
+          "accents": [
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "accents_source": "top_state bits q0..q1 + seed-hash padding",
+          "breath_hz": 0.298,
+          "breath_px": 2,
+          "appendage_mul": 1.09,
+          "appendage_px": 1,
+          "blink_mean_s": 5.5,
+          "double_blink_p": 0.29,
+          "habits": [
+            {
+              "name": "double_hop",
+              "every_s": 9.77
+            },
+            {
+              "name": "turn_around",
+              "every_s": 6.82
+            },
+            {
+              "name": "shake",
+              "every_s": 11.76
+            }
+          ],
+          "quirks": [
+            {
+              "name": "echo_bounce",
+              "every_s": 7.3,
+              "strength": 0.919
+            },
+            {
+              "name": "startles",
+              "every_s": 8.35,
+              "strength": 0.97
+            }
+          ],
+          "sensitivity": {
+            "focus": 1.239,
+            "calm": 0.937,
+            "spark": 0.824
+          },
+          "reacts_most_to": "focus",
+          "thresholds": {
+            "focus": 36,
+            "calm": 40,
+            "spark": 28
+          },
+          "latency_s": 0.75,
+          "flavors": {
+            "focus": "paces",
+            "calm": "melts",
+            "spark": "spins"
+          },
+          "chattiness": 0.54,
+          "tic": "scr~",
+          "prng_seed": 2385416830
+        },
+        "voice": {
+          "style": "growl",
+          "base_pitch_hz": 325.5,
+          "formants_hz": [
+            583,
+            1679
+          ],
+          "formant_q": 6.22,
+          "wave": "sawtooth",
+          "brightness": 0.586,
+          "breath": 0.213,
+          "speed_sps": 4.09,
+          "vibrato_hz": 5.11,
+          "vibrato_cents": 42.7,
+          "am_hz": 38.8,
+          "contour": "rise",
+          "jump_semitones": 6.62,
+          "rhythm": [
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "rhythm_source": "top_state bit + seed-hash padding (1-bit run)",
+          "vowels": [
+            "a",
+            "o",
+            "i",
+            "e"
+          ],
+          "vowel_formants": [
+            [
+              800,
+              1200
+            ],
+            [
+              500,
+              900
+            ],
+            [
+              320,
+              2500
+            ],
+            [
+              500,
+              1900
+            ]
+          ],
+          "vowel_source": "top outcomes of the run",
+          "consonants": [
+            "gr",
+            "r",
+            "g",
+            "hr"
+          ],
+          "phrase_syllables": [
+            2,
+            5
+          ],
+          "gain": 0.685,
+          "prng_seed": 2961729999,
+          "chattiness": 0.54
+        },
+        "genes": {
+          "chub": 0.6454,
+          "head": 0.4748,
+          "legs": 0.1821,
+          "ear_size": 0.7874,
+          "tail_size": 0.7446,
+          "wing_size": 0.6288,
+          "eye_size": 0.3908,
+          "eye_gap": 0.6437,
+          "hue": 0.6052,
+          "sat": 0.5774,
+          "val": 0.4982,
+          "pattern_density": 0.5399,
+          "pattern_scale": 0.3394,
+          "glow_amount": 0.5972
+        },
+        "stats": {
+          "1": {
+            "hp": 30,
+            "atk": 39,
+            "def": 30,
+            "spd": 39,
+            "spark": 43
+          },
+          "2": {
+            "hp": 50,
+            "atk": 64,
+            "def": 50,
+            "spd": 66,
+            "spark": 71
+          },
+          "3": {
+            "hp": 73,
+            "atk": 94,
+            "def": 73,
+            "spd": 96,
+            "spark": 104
+          }
+        },
+        "names": {
+          "1": "Scorchwyrm",
+          "2": "Magmaclaw",
+          "3": "Pyretyrant"
+        }
+      }
+    }
+  ],
+  "chat": [
+    {
+      "role": "you",
+      "text": "Hello little dragon. Real ibm_fez measurements initialized your genome. We are beginning a safe simulation in the grove."
+    },
+    {
+      "role": "beast",
+      "text": "Scorchwyrm remembers links from \"grove\": explore. Learned on this device; pattern memory, not a model answer."
+    },
+    {
+      "role": "you",
+      "text": "The observatory is our next room. A Rigetti simulator signal influences your environment. What do you remember about explore?"
+    },
+    {
+      "role": "beast",
+      "text": "Scorchwyrm remembers links from \"explore\": grove. Learned on this device; pattern memory, not a model answer."
+    },
+    {
+      "role": "you",
+      "text": "We reached the shore. Your identity and experiences are saved. What do you remember about the grove?"
+    },
+    {
+      "role": "beast",
+      "text": "Scorchwyrm remembers links from \"grove, remember\": explore, initialized, real. Learned on this device; pattern memory, not a model answer."
+    }
+  ],
+  "mind": {
+    "schema": "beastbox-hebbian-mind-v1",
+    "dim": 16,
+    "steps": 15,
+    "tokenCount": 77,
+    "vocab": {
+      "grove": {
+        "count": 14
+      },
+      "explore": {
+        "count": 13
+      },
+      "the": {
+        "count": 4
+      },
+      "your": {
+        "count": 3
+      },
+      "about": {
+        "count": 2
+      },
+      "are": {
+        "count": 2
+      },
+      "do": {
+        "count": 2
+      },
+      "remember": {
+        "count": 2
+      },
+      "we": {
+        "count": 2
+      },
+      "what": {
+        "count": 2
+      },
+      "you": {
+        "count": 2
+      },
+      "and": {
+        "count": 1
+      },
+      "beginning": {
+        "count": 1
+      },
+      "dragon": {
+        "count": 1
+      },
+      "environment": {
+        "count": 1
+      },
+      "experiences": {
+        "count": 1
+      },
+      "fez": {
+        "count": 1
+      },
+      "genome": {
+        "count": 1
+      },
+      "hello": {
+        "count": 1
+      },
+      "ibm": {
+        "count": 1
+      },
+      "identity": {
+        "count": 1
+      },
+      "in": {
+        "count": 1
+      },
+      "influences": {
+        "count": 1
+      },
+      "initialized": {
+        "count": 1
+      },
+      "is": {
+        "count": 1
+      },
+      "little": {
+        "count": 1
+      },
+      "measurements": {
+        "count": 1
+      },
+      "next": {
+        "count": 1
+      },
+      "observatory": {
+        "count": 1
+      },
+      "our": {
+        "count": 1
+      },
+      "reached": {
+        "count": 1
+      },
+      "real": {
+        "count": 1
+      },
+      "rigetti": {
+        "count": 1
+      },
+      "room": {
+        "count": 1
+      },
+      "safe": {
+        "count": 1
+      },
+      "saved": {
+        "count": 1
+      },
+      "shore": {
+        "count": 1
+      },
+      "signal": {
+        "count": 1
+      },
+      "simulation": {
+        "count": 1
+      },
+      "simulator": {
+        "count": 1
+      }
+    },
+    "next": {
+      "grove": {
+        "explore": 12
+      },
+      "the": {
+        "grove": 2,
+        "observatory": 1,
+        "shore": 1
+      },
+      "your": {
+        "environment": 1,
+        "genome": 1,
+        "identity": 1
+      },
+      "about": {
+        "explore": 1,
+        "the": 1
+      },
+      "are": {
+        "beginning": 1,
+        "saved": 1
+      },
+      "do": {
+        "you": 2
+      },
+      "remember": {
+        "about": 2
+      },
+      "we": {
+        "are": 1,
+        "reached": 1
+      },
+      "what": {
+        "do": 2
+      },
+      "you": {
+        "remember": 2
+      },
+      "and": {
+        "experiences": 1
+      },
+      "beginning": {
+        "safe": 1
+      },
+      "dragon": {
+        "real": 1
+      },
+      "environment": {
+        "what": 1
+      },
+      "experiences": {
+        "are": 1
+      },
+      "fez": {
+        "measurements": 1
+      },
+      "genome": {
+        "we": 1
+      },
+      "hello": {
+        "little": 1
+      },
+      "ibm": {
+        "fez": 1
+      },
+      "identity": {
+        "and": 1
+      },
+      "in": {
+        "the": 1
+      },
+      "influences": {
+        "your": 1
+      },
+      "initialized": {
+        "your": 1
+      },
+      "is": {
+        "our": 1
+      },
+      "little": {
+        "dragon": 1
+      },
+      "measurements": {
+        "initialized": 1
+      },
+      "next": {
+        "room": 1
+      },
+      "observatory": {
+        "is": 1
+      },
+      "our": {
+        "next": 1
+      },
+      "reached": {
+        "the": 1
+      },
+      "real": {
+        "ibm": 1
+      },
+      "rigetti": {
+        "simulator": 1
+      },
+      "room": {
+        "rigetti": 1
+      },
+      "safe": {
+        "simulation": 1
+      },
+      "saved": {
+        "what": 1
+      },
+      "shore": {
+        "your": 1
+      },
+      "signal": {
+        "influences": 1
+      },
+      "simulation": {
+        "in": 1
+      },
+      "simulator": {
+        "signal": 1
+      }
+    },
+    "associations": {
+      "schema": "beastbox-associations-v1",
+      "observations": 15,
+      "concepts": {
+        "explore": 7.96,
+        "grove": 7.96,
+        "remember": 2.368,
+        "beginning": 1.189,
+        "dragon": 1.189,
+        "genome": 1.189,
+        "hello": 1.189,
+        "initialized": 1.189,
+        "little": 1.189,
+        "measurements": 1.189,
+        "real": 1.189,
+        "safe": 1.189,
+        "simulation": 1.189,
+        "environment": 1.186,
+        "influences": 1.186,
+        "next": 1.186,
+        "observatory": 1.186,
+        "rigetti": 1.186,
+        "room": 1.186,
+        "signal": 1.186,
+        "simulator": 1.186,
+        "experiences": 1.182,
+        "identity": 1.182,
+        "reached": 1.182,
+        "saved": 1.182,
+        "shore": 1.182
+      },
+      "links": {
+        "explore|grove": 7.654,
+        "beginning|dragon": 1.189,
+        "beginning|genome": 1.189,
+        "beginning|grove": 1.189,
+        "beginning|hello": 1.189,
+        "beginning|initialized": 1.189,
+        "beginning|little": 1.189,
+        "beginning|measurements": 1.189,
+        "beginning|real": 1.189,
+        "beginning|safe": 1.189,
+        "beginning|simulation": 1.189,
+        "dragon|genome": 1.189,
+        "dragon|grove": 1.189,
+        "dragon|hello": 1.189,
+        "dragon|initialized": 1.189,
+        "dragon|little": 1.189,
+        "dragon|measurements": 1.189,
+        "dragon|real": 1.189,
+        "dragon|safe": 1.189,
+        "dragon|simulation": 1.189,
+        "genome|grove": 1.189,
+        "genome|hello": 1.189,
+        "genome|initialized": 1.189,
+        "genome|little": 1.189,
+        "genome|measurements": 1.189,
+        "genome|real": 1.189,
+        "genome|safe": 1.189,
+        "genome|simulation": 1.189,
+        "grove|hello": 1.189,
+        "grove|initialized": 1.189,
+        "grove|little": 1.189,
+        "grove|measurements": 1.189,
+        "grove|real": 1.189,
+        "grove|safe": 1.189,
+        "grove|simulation": 1.189,
+        "hello|initialized": 1.189,
+        "hello|little": 1.189,
+        "hello|measurements": 1.189,
+        "hello|real": 1.189,
+        "hello|safe": 1.189,
+        "hello|simulation": 1.189,
+        "initialized|little": 1.189,
+        "initialized|measurements": 1.189,
+        "initialized|real": 1.189,
+        "initialized|safe": 1.189,
+        "initialized|simulation": 1.189,
+        "little|measurements": 1.189,
+        "little|real": 1.189,
+        "little|safe": 1.189,
+        "little|simulation": 1.189,
+        "measurements|real": 1.189,
+        "measurements|safe": 1.189,
+        "measurements|simulation": 1.189,
+        "real|safe": 1.189,
+        "real|simulation": 1.189,
+        "safe|simulation": 1.189,
+        "environment|explore": 1.186,
+        "environment|influences": 1.186,
+        "environment|next": 1.186,
+        "environment|observatory": 1.186,
+        "environment|remember": 1.186,
+        "environment|rigetti": 1.186,
+        "environment|room": 1.186,
+        "environment|signal": 1.186,
+        "environment|simulator": 1.186,
+        "explore|influences": 1.186,
+        "explore|next": 1.186,
+        "explore|observatory": 1.186,
+        "explore|remember": 1.186,
+        "explore|rigetti": 1.186,
+        "explore|room": 1.186,
+        "explore|signal": 1.186,
+        "explore|simulator": 1.186,
+        "influences|next": 1.186,
+        "influences|observatory": 1.186,
+        "influences|remember": 1.186,
+        "influences|rigetti": 1.186,
+        "influences|room": 1.186,
+        "influences|signal": 1.186,
+        "influences|simulator": 1.186,
+        "next|observatory": 1.186,
+        "next|remember": 1.186,
+        "next|rigetti": 1.186,
+        "next|room": 1.186,
+        "next|signal": 1.186,
+        "next|simulator": 1.186,
+        "observatory|remember": 1.186,
+        "observatory|rigetti": 1.186,
+        "observatory|room": 1.186,
+        "observatory|signal": 1.186,
+        "observatory|simulator": 1.186,
+        "remember|rigetti": 1.186,
+        "remember|room": 1.186,
+        "remember|signal": 1.186,
+        "remember|simulator": 1.186,
+        "rigetti|room": 1.186,
+        "rigetti|signal": 1.186,
+        "rigetti|simulator": 1.186,
+        "room|signal": 1.186,
+        "room|simulator": 1.186,
+        "signal|simulator": 1.186,
+        "experiences|grove": 1.182,
+        "experiences|identity": 1.182,
+        "experiences|reached": 1.182,
+        "experiences|remember": 1.182,
+        "experiences|saved": 1.182,
+        "experiences|shore": 1.182,
+        "grove|identity": 1.182,
+        "grove|reached": 1.182,
+        "grove|remember": 1.182,
+        "grove|saved": 1.182,
+        "grove|shore": 1.182,
+        "identity|reached": 1.182,
+        "identity|remember": 1.182,
+        "identity|saved": 1.182,
+        "identity|shore": 1.182,
+        "reached|remember": 1.182,
+        "reached|saved": 1.182,
+        "reached|shore": 1.182,
+        "remember|saved": 1.182,
+        "remember|shore": 1.182,
+        "saved|shore": 1.182
+      }
+    },
+    "weights": [
+      [
+        0.15,
+        0.15,
+        0.15,
+        0.1,
+        0.05,
+        0,
+        0.1,
+        0.05,
+        0.1,
+        0.1,
+        0.1,
+        0.15,
+        0.15,
+        0.15,
+        0.05,
+        0.25
+      ],
+      [
+        0.1,
+        0,
+        0,
+        0,
+        0.25,
+        0.15,
+        0,
+        0.1,
+        0,
+        0.1,
+        0.2,
+        0,
+        0.05,
+        0.05,
+        0.15,
+        0.05
+      ],
+      [
+        0.05,
+        0.15,
+        0.15,
+        0.1,
+        0.2,
+        0.1,
+        0,
+        0.15,
+        0.25,
+        0.1,
+        0.2,
+        0,
+        0.05,
+        0.05,
+        0.2,
+        0.05
+      ],
+      [
+        0.1,
+        0,
+        0.6,
+        0.05,
+        0.05,
+        0.05,
+        0.05,
+        0,
+        0.05,
+        0.1,
+        0.1,
+        0,
+        0.65,
+        0.05,
+        0.1,
+        0.6
+      ],
+      [
+        0.1,
+        0.05,
+        0.3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0.1,
+        0,
+        0.1,
+        0.35,
+        0.1,
+        0,
+        0.4
+      ],
+      [
+        0.05,
+        0,
+        0.15,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0.05,
+        0,
+        0.05,
+        0.25,
+        0.1,
+        0,
+        0.25
+      ],
+      [
+        0,
+        0.05,
+        0,
+        0.05,
+        0.1,
+        0.1,
+        0.05,
+        0,
+        0.05,
+        0,
+        0,
+        0,
+        0.1,
+        0.1,
+        0.1,
+        0.05
+      ],
+      [
+        0.1,
+        0.05,
+        0.15,
+        0,
+        0.05,
+        0.05,
+        0,
+        0.05,
+        0,
+        0.1,
+        0,
+        0.1,
+        0.1,
+        0,
+        0,
+        0.15
+      ],
+      [
+        0.15,
+        0,
+        0.6,
+        0.05,
+        0.15,
+        0.15,
+        0.05,
+        0,
+        0.05,
+        0.15,
+        0.15,
+        0,
+        0.65,
+        0.05,
+        0.2,
+        0.6
+      ],
+      [
+        0.15,
+        0.15,
+        0.15,
+        0.1,
+        0.1,
+        0.05,
+        0.1,
+        0.1,
+        0.1,
+        0.1,
+        0.1,
+        0.15,
+        0.1,
+        0.1,
+        0.05,
+        0.2
+      ],
+      [
+        0.15,
+        0.15,
+        0.25,
+        0,
+        0.1,
+        0.05,
+        0.1,
+        0.1,
+        0,
+        0.1,
+        0.1,
+        0.15,
+        0.1,
+        0.05,
+        0,
+        0.25
+      ],
+      [
+        0.05,
+        0.1,
+        0.05,
+        0.15,
+        0,
+        0,
+        0.05,
+        0,
+        0.15,
+        0.05,
+        0,
+        0.05,
+        0.2,
+        0.15,
+        0.05,
+        0.15
+      ],
+      [
+        0.15,
+        0.15,
+        0.15,
+        0.15,
+        0.15,
+        0.1,
+        0,
+        0.1,
+        0.3,
+        0.2,
+        0.2,
+        0.05,
+        0.05,
+        0.05,
+        0.25,
+        0.05
+      ],
+      [
+        0.15,
+        0.05,
+        0,
+        0.1,
+        0.15,
+        0.1,
+        0.05,
+        0.05,
+        0.1,
+        0.15,
+        0.15,
+        0.05,
+        0.1,
+        0.1,
+        0.15,
+        0.05
+      ],
+      [
+        0.05,
+        0,
+        0.75,
+        0.05,
+        0,
+        0,
+        0.05,
+        0,
+        0.05,
+        0.05,
+        0.05,
+        0,
+        0.9,
+        0.15,
+        0.05,
+        0.85
+      ],
+      [
+        0.15,
+        0.15,
+        0.15,
+        0.15,
+        0.15,
+        0,
+        0,
+        0.2,
+        0.3,
+        0.2,
+        0.3,
+        0.05,
+        0.1,
+        0.1,
+        0.15,
+        0.1
+      ]
+    ]
+  },
+  "emulator": {
+    "mounted": true,
+    "ticks": 0,
+    "booted": false
+  },
+  "train": {
+    "score": 0,
+    "rounds": 0
+  },
+  "mood": "happy",
+  "pet": null
+}

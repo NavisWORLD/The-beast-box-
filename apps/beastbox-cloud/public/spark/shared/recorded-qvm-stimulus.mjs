@@ -3,6 +3,7 @@ import {advanceCreature} from './behavior.mjs';
 import {canonicalJson} from './qpack/canon.mjs';
 import {sha256Hex} from './qpack/sha.mjs';
 const APPROVED=[
+ {job:'e8c296e8-c451-11f1-ae67-3833c5ea2281',digest:'04cb592a1984b8759e40225ceb69057fb740803566c05e075b2c9a0e0f35f7ac',run:38016882014,keys:['00','01','10','11']},
  {job:'dc9a1e78-c423-11f1-ae67-e4fade257188',digest:'b3b53db7eb47e7c70fa94aeea1f7c1532a8db7bf5215b3f324cbf339e9d69370',run:37989851630,keys:['00','11']},
  {job:'32d6fc6c-c42d-11f1-ae67-000d3ad41960',digest:'0960953da112ef2ba6e769354d42842b584e7cd3913d02c2d33461fdadfbf347',run:37996938703,keys:['00','01','10','11']},
  {job:'71cf7c02-c435-11f1-ae67-7ced8d52b5e1',digest:'e559902784bf212d9cd86e1a887bbb69bac908c195133ff3e026b7e695a8db82',run:38002300373,keys:['00','01','10','11']},
@@ -13,6 +14,7 @@ const MARKER='beastbox-recorded-qvm-input-v1';
 const sameKeys=(object,keys)=>object&&typeof object==='object'&&!Array.isArray(object)&&canonicalJson(Object.keys(object).sort())===canonicalJson([...keys].sort());
 export function recordedQvmStimulusPath(beast){
  const source=beast?.genome?.inputs?.quantum_run||'';
+ if(/^db4q484vf2bc73cuuuag:bell-(xx|zz)$/.test(source))return '/spark/azure-zeref-heart-sound-20261010.json';
  if(/^db4og3slf4us73c319h0:bell-(xx|zz)$/.test(source))return '/spark/azure-real-song-cst12-umbralet-20261009.json';
  if(/^db4nlt2mb58s7389er6g:bell-(xx|zz)$/.test(source))return '/spark/azure-third-final-ibm-qvm-20261009.json';
  if(/^db4n37g4qg6s73c2de00:bell-(xx|zz)$/.test(source))return '/spark/azure-second-final-ibm-qvm-20261009.json';

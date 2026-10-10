@@ -1,0 +1,79 @@
+{
+  "schema": "beastbox-zeref-production-fixture-v1",
+  "qbeast": {
+    "id": "bb-deada969",
+    "family": "memory",
+    "snapshot_digest": "23b4e2d6f736cf25f32242d0910d18df6939c3a89b1b50efecb83e94161363ad",
+    "identical_across_replay": true,
+    "native_stage_unchanged": true,
+    "native_progress_awarded": false
+  },
+  "provenance": {
+    "genesis": "RECORDED_IBM_HARDWARE_VERIFIED_JOB_RECEIPT",
+    "genesis_backend": "ibm_fez",
+    "genesis_job": "db4q484vf2bc73cuuuag",
+    "genesis_pub_index": 1,
+    "genesis_counts_sha256": "151c96aed2079f274a3b3b0bf725d5f27b8bda0d83164c335d1b203bc5dd0bdc",
+    "genesis_shots": 4096,
+    "source_job_hardware_shots": 16384,
+    "genesis_selection_mode": "user-conditioned dragonling first-match, first 256 deterministic candidates",
+    "candidate_index": 15,
+    "candidate_count_tested": 16,
+    "keeper_label": "Zeref-heart-15",
+    "hardware_full_counts_sha256": "e0565f6879b9ac8016fb1dfc660c62962c3bdf38ae675fff23114c9cc05b12e6",
+    "hardware_genesis_source_sha256": "dedfed51eb2cf8a1554988098814f38362b0f39b927823a607e51fef188e86fd",
+    "measured_circuits": [
+      "bell_xx",
+      "bell_zz",
+      "decoupled_xx",
+      "decoupled_zz"
+    ],
+    "measured_correlations": {
+      "bell_zz": 0.85205078125,
+      "bell_xx": 0.91015625,
+      "decoupled_zz": 0.001953125,
+      "decoupled_xx": -0.03076171875,
+      "correlation_gap": 0.8955078125
+    },
+    "simulator": "NEW_AZURE_CLOUD_QVM_SIMULATION_NOT_QPU",
+    "simulator_backend": "rigetti.sim.qvm",
+    "qvm_scenario": 1,
+    "simulator_source_sha256": "7ef23c00005a2053d1fc830985330f4db322b3bf6144fd79fd1561d14c425599",
+    "quantum_hardware_jobs_submitted": 0,
+    "azure_jobs_submitted": 0,
+    "azure_db_writes": 0,
+    "model_inference_calls": 0,
+    "warning": "Recorded distributions are not a density matrix, complex amplitudes, or an entanglement witness."
+  },
+  "genome": {
+    "seed": "8e2e927e2cfaf489cb7c10172836286bb08869cfff0c2508b5c6371e052e54ed",
+    "genome_sha256": "889018c4ba71776250bbaf702bedf3b995b7034a3e2dd153190ba347e0730bf1",
+    "name": "Scorchwyrm",
+    "name_stages": {
+      "1": "Scorchwyrm",
+      "2": "Magmaclaw",
+      "3": "Pyretyrant"
+    },
+    "island": "Cinder Drift",
+    "element": "ember",
+    "body": "dragonling",
+    "temperament": "Fierce",
+    "pose": "side",
+    "ears": "flame",
+    "wings": "bat",
+    "tail": "flame",
+    "pattern": "stripes",
+    "eye_style": "round",
+    "glow": "native",
+    "voice_style": "growl",
+    "behavioral_tic": "scr~",
+    "stage": 1,
+    "genome_traits": {
+      "focus": 80,
+      "calm": 20,
+      "spark": 100
+    }
+  },
+  "keeper_name": "Zeref",
+  "training_checkpoint_sha256": "033c32ddf760b1924ae9e2ea1ca15522f9ba2f2448ad67761b40a39961ab5cb8"
+}

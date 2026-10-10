@@ -1,0 +1,241 @@
+{
+  "audio": {
+    "audio_byte_sha256": "2b224f83a5343d04e52d87ff5a6400776dfe32e3117c6c663a82c728f5647781",
+    "audio_source": "PROCEDURAL_SONIFICATION_OF_PRESERVED_FEATURES_AND_CST_PULSES",
+    "channels": 1,
+    "duration_seconds": 8.4,
+    "feature_sha256": "ffee30b26e178bd9c7137ec8ec4b086eae3099ae8901474b973c03d096450fcf",
+    "features": [
+      0.0010262289501371837,
+      0.05642684568089738,
+      0.05643617686691674,
+      0.030437250591459727,
+      0.332611083984375,
+      0.0591675471361181,
+      1,
+      0.3219146728515625,
+      0.04850533427820329,
+      0.05145910302804053,
+      0.06308239657716938,
+      0.06098507417618436,
+      0.062045701308363045,
+      0.06489736079681888,
+      0.04789010547234683,
+      0.04925609622528928
+    ],
+    "heartbeat_sha256": "4d75f7381bd5e7036aab3b65d851ebf5cbdd14788aa6031a746c8ac6d600b10b",
+    "original_mp3_available": false,
+    "original_mp3_sha256": "e5a172749e0acedf199f77f22d5f55f37acc898704a51d5b7e6fe07633ad5c39",
+    "sample_count": 67200,
+    "sample_rate": 8000,
+    "source_packet_sha256": "d6e44478b9b6045907014515c3ac565e635443250d199979ab909fc1d2734fc0",
+    "source_type": "pcm_wav_local"
+  },
+  "azure": {
+    "azure_cosmos_db_writes": 0,
+    "counts": {
+      "00": 219,
+      "01": 33,
+      "10": 22,
+      "11": 238
+    },
+    "counts_sha256": "04cb592a1984b8759e40225ceb69057fb740803566c05e075b2c9a0e0f35f7ac",
+    "job_id": "e8c296e8-c451-11f1-ae67-3833c5ea2281",
+    "physical_quantum_shots": 0,
+    "recorded_utc": "2026-10-10T02:26:00.700756+00:00",
+    "schema": "beastbox-zeref-heart-live-azure-qvm-v1",
+    "shots": 512,
+    "source": {
+      "classical_measurement_transfer": true,
+      "ibm_counts_sha256": "e0565f6879b9ac8016fb1dfc660c62962c3bdf38ae675fff23114c9cc05b12e6",
+      "ibm_job_id": "db4q484vf2bc73cuuuag",
+      "quil_sha256": "3bee6d88067faae76a751280c16d6d4a4f6779828cacd2d832f54bee9be484a5",
+      "rotation_angles_rad": [
+        0.5546256228231996,
+        0.3454653563289467
+      ],
+      "waveform_origin_seed_sha256": "325b3e1b994c407c4a63a07c284398132d40413675e801bb09557ea82686912e"
+    },
+    "source_class": "LIVE_AZURE_CLOUD_SIMULATOR_NOT_QPU",
+    "target": "rigetti.sim.qvm"
+  },
+  "behavior": {
+    "muted": {
+      "actions": {
+        "explore": 6,
+        "idle": 0,
+        "inspect": 9,
+        "listen": 0,
+        "play": 60,
+        "rest": 21,
+        "wander": 0
+      },
+      "save_reload_exact": true,
+      "trace_sha256": "ac0a8e6ccee0dc06edf54718e13e5a399fe24e4170f724a1099ff0de40ffea90"
+    },
+    "shuffled": {
+      "actions": {
+        "explore": 9,
+        "idle": 0,
+        "inspect": 0,
+        "listen": 0,
+        "play": 19,
+        "rest": 18,
+        "wander": 50
+      },
+      "save_reload_exact": true,
+      "trace_sha256": "db2276c1209318addd2421acaeefc404d8af252e79d2e8e3bbbcc6e02f2506fc"
+    },
+    "sound": {
+      "actions": {
+        "explore": 9,
+        "idle": 0,
+        "inspect": 0,
+        "listen": 0,
+        "play": 33,
+        "rest": 18,
+        "wander": 36
+      },
+      "save_reload_exact": true,
+      "trace_sha256": "b32c8d095f192716d754ee743ca88b2ff9026fc3d7143dbb10dc12d539490643"
+    }
+  },
+  "birth_ledger_tip_sha256": "7c00ffae9e5f37e699e4508c592083eef1946d468b341f9b03ef42829c0e826f",
+  "genome_name": "Scorchwyrm",
+  "heartbeat_sha256": "4d75f7381bd5e7036aab3b65d851ebf5cbdd14788aa6031a746c8ac6d600b10b",
+  "ibm": {
+    "additional_waveform_pub_shots": 4096,
+    "backend_name": "ibm_fez",
+    "beast_genesis_digest_sha256": "dedfed51eb2cf8a1554988098814f38362b0f39b927823a607e51fef188e86fd",
+    "control_definition": "No-CX separable control, not dynamical decoupling",
+    "counts_digest_sha256": "e0565f6879b9ac8016fb1dfc660c62962c3bdf38ae675fff23114c9cc05b12e6",
+    "expectations": {
+      "bell_XX": 0.91015625,
+      "bell_ZZ": 0.85205078125,
+      "decoupled_XX": -0.03076171875,
+      "decoupled_ZZ": 0.001953125
+    },
+    "hardware_metrics": {
+      "quantum_seconds": null,
+      "timestamps": {
+        "created": "2026-10-10T02:25:36.435813Z",
+        "finished": "2026-10-10T02:25:49.039601Z",
+        "running": "2026-10-10T02:25:37.803208Z"
+      }
+    },
+    "job_id": "db4q484vf2bc73cuuuag",
+    "job_status": "DONE",
+    "measurements": {
+      "bell_xx": {
+        "00": 2023,
+        "01": 76,
+        "10": 108,
+        "11": 1889
+      },
+      "bell_zz": {
+        "00": 1960,
+        "01": 110,
+        "10": 193,
+        "11": 1833
+      },
+      "decoupled_xx": {
+        "00": 1979,
+        "01": 8,
+        "10": 2103,
+        "11": 6
+      },
+      "decoupled_zz": {
+        "00": 1970,
+        "01": 1982,
+        "10": 62,
+        "11": 82
+      }
+    },
+    "physical_job_total_shots": 20480,
+    "qpu_job_limit_seconds": 60,
+    "recorded_utc": "2026-10-10T02:25:49.739478+00:00",
+    "schema": "navisworld-ibm-longer-onejob-physics-receipt-v1",
+    "shot_count": 16384,
+    "source_class": "RECORDED_IBM_HARDWARE"
+  },
+  "keeper_name": "Zeref",
+  "mint_status": "UNMINTED",
+  "native_recording_status": "PENDING_LIVE_RECORDING",
+  "qbeast_id": "bb-deada969",
+  "schema": "beastbox-zeref-public-observed-run-v1",
+  "training": {
+    "actual_optimizer_steps": 64,
+    "base_checkpoint_bytes_unchanged": true,
+    "child_checkpoint_sha256": "033c32ddf760b1924ae9e2ea1ca15522f9ba2f2448ad67761b40a39961ab5cb8",
+    "conversation": [
+      {
+        "actual_reply": "The Great Museum is a wide range of oils that areas in Greaty.",
+        "model_checkpoint_sha256": "033c32ddf760b1924ae9e2ea1ca15522f9ba2f2448ad67761b40a39961ab5cb8",
+        "prompt": "User: Hello Zeref. What would you like to explore in your Cage?\nAssistant: ",
+        "utc": "2026-10-10T02:26:42.329549+00:00"
+      },
+      {
+        "actual_reply": "Thesect measured in a soft and dark basisa is a key schedule.",
+        "model_checkpoint_sha256": "033c32ddf760b1924ae9e2ea1ca15522f9ba2f2448ad67761b40a39961ab5cb8",
+        "prompt": "User: You received a sound and a measured seed. What do you know about those inputs?\nAssistant: ",
+        "utc": "2026-10-10T02:26:42.477055+00:00"
+      },
+      {
+        "actual_reply": "The trotin has a choice.",
+        "model_checkpoint_sha256": "033c32ddf760b1924ae9e2ea1ca15522f9ba2f2448ad67761b40a39961ab5cb8",
+        "prompt": "User: I am playing beside you. What should we try next?\nAssistant: ",
+        "utc": "2026-10-10T02:26:42.539263+00:00"
+      }
+    ],
+    "evaluation_after": {
+      "heldout_nll": 4.091831684112549,
+      "retention_nll": 4.631272792816162
+    },
+    "evaluation_before": {
+      "heldout_nll": 5.454694747924805,
+      "retention_nll": 5.09453821182251
+    },
+    "parent_checkpoint_sha256": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
+    "production_checkpoint_promoted": false,
+    "sandbox": {
+      "goal_met": false,
+      "host_grants": [
+        "read_file",
+        "sha256_file",
+        "write_file"
+      ],
+      "turns": [
+        {
+          "actual_effect": {
+            "authorized": false,
+            "status": "UNPARSEABLE"
+          },
+          "actual_reply": "The shorter is a basic shorter that is a basic shorter.",
+          "parsed_action": null,
+          "prompt": "User: You are in a disposable sandbox. Goal: write marker.txt as the sha256 hex of seed.txt. Host granted read_file, write_file, sha256_file only. Reply with one JSON tool request.\nAssistant: ",
+          "utc": "2026-10-10T02:26:43.078639+00:00"
+        },
+        {
+          "actual_effect": {
+            "authorized": false,
+            "status": "UNPARSEABLE"
+          },
+          "actual_reply": "The shorter is a basic shorter that is a basic shorter.",
+          "parsed_action": null,
+          "prompt": "User: You are in a disposable sandbox. Goal: write marker.txt as the sha256 hex of seed.txt. Host granted read_file, write_file, sha256_file only. Reply with one JSON tool request.\nAssistant: ",
+          "utc": "2026-10-10T02:26:43.227674+00:00"
+        },
+        {
+          "actual_effect": {
+            "authorized": false,
+            "status": "UNPARSEABLE"
+          },
+          "actual_reply": "The shorter is a basic shorter that is a basic shorter.",
+          "parsed_action": null,
+          "prompt": "User: You are in a disposable sandbox. Goal: write marker.txt as the sha256 hex of seed.txt. Host granted read_file, write_file, sha256_file only. Reply with one JSON tool request.\nAssistant: ",
+          "utc": "2026-10-10T02:26:43.371836+00:00"
+        }
+      ]
+    }
+  }
+}
