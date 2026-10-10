@@ -27,7 +27,8 @@ const sourcePath=process.argv[7]||'/spark/ibm-zeref-heart-sound-20261010.json';
  assert.equal(genesis.provenance.genesis_job,expectedJob);
  const browser=await chromium.launch({headless:true,executablePath:process.env.BEAST_BROWSER_EXECUTABLE,args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,recordVideo:{dir:path.join(output,'video'),size:{width:390,height:844}}});
- const page=await context.newPage(),errors=[];
+ context.setDefaultTimeout(20000);
+ const page=await context.newPage(),errors=[];page.setDefaultNavigationTimeout(60000);
  page.on('pageerror',e=>errors.push(e.message));
  try{
   await page.goto(root+'/spark/index.html');
@@ -146,6 +147,23 @@ const sourcePath=process.argv[7]||'/spark/ibm-zeref-heart-sound-20261010.json';
   await core.locator('#game canvas').first().screenshot({path:path.join(output,'zeref-overworld-after.png')});
   const screenshot=path.join(output,'zeref-live-native.png');
   await core.locator('#game canvas').first().screenshot({path:screenshot});
+  const panel=shell.locator('[data-spark-game-talk]');
+  const ensureComposer=async()=>{
+   if(!await panel.getByRole('textbox').isVisible())await panel.getByRole('button',{name:/^TALK TO /}).tap();
+   await panel.getByRole('textbox').waitFor({state:'visible',timeout:10000});
+   await page.waitForTimeout(400);
+  };
+  await ensureComposer();
+  let opticalConsent=false;
+  try{const check=panel.getByRole('checkbox',{name:/Include fresh native pixel signals/});await check.check({timeout:6500});opticalConsent=await check.isChecked();}
+  catch(error){await fs.writeFile(path.join(output,'optical-consent-unavailable.json'),JSON.stringify({utc:new Date().toISOString(),message:String(error).slice(0,260),pixel_observation_claimed:false}));}
+  // A moving mobile layout can make a checkbox tap hit the Talk toggle.
+  // Reconfirm the composer BEFORE submitting any physical provider job.
+  await ensureComposer();
+  await panel.getByRole('textbox').fill('Hello Zeref. We are preparing the real measured-source recording.');
+  await panel.getByRole('button',{name:'SEND TO MODEL',exact:true}).waitFor({state:'visible'});
+  assert.equal(await panel.getByRole('button',{name:'SEND TO MODEL',exact:true}).isEnabled(),true);
+  await fs.writeFile(path.join(output,'composer-ready.json'),JSON.stringify({utc:new Date().toISOString(),qbeast_id:expectedIdentity,actual_ui_ready:true}));
   const handshake=process.env.BEAST_LIVE_QPU_HANDSHAKE_DIR;
   const qpuStatus=async()=>handshake?JSON.parse(await fs.readFile(path.join(handshake,'qpu-status.json'),'utf8')):null;
   if(handshake){
@@ -160,18 +178,14 @@ const sourcePath=process.argv[7]||'/spark/ibm-zeref-heart-sound-20261010.json';
     await page.waitForTimeout(200);
    }
   }
-  const panel=shell.locator('[data-spark-game-talk]');
-  await panel.getByRole('button',{name:/^TALK TO /}).click();
-  let opticalConsent=false;
-  try{const check=panel.getByRole('checkbox',{name:/Include fresh native pixel signals/});await check.check({timeout:6500});opticalConsent=await check.isChecked();}
-  catch(error){await fs.writeFile(path.join(output,'optical-consent-unavailable.json'),JSON.stringify({utc:new Date().toISOString(),message:String(error).slice(0,260),pixel_observation_claimed:false}));}
   const liveConversation=[],frameObservations=[];
   for(const [i,message] of [
-   'Hello Zeref. Your genome came from IBM Fez measurements and a 512-shot Azure simulation. We are running a new IBM probe while you play. What do you notice?',
+   handshake?'Hello Zeref. Your genome came from IBM Fez measurements and a 512-shot Azure simulation. We are running a new IBM probe while you play. What do you notice?':'Hello Zeref. Your genome came from IBM Fez measurements and a 512-shot Azure simulation. Those jobs are completed; this is a production conversation preflight. What do you notice?',
    'We pressed A and Start in the actual GBA cartridge. Your identity is still bb-deada969. The screen signals are brightness and color measurements. How are you feeling?',
    'In the sound assay you wandered 36 times, played 33 times and rested 18 times. These are classical recorded actions. Would you like to rest here?'
   ].entries()){
-   if(opticalConsent)await panel.getByRole('button',{name:/LOOK AT GAME/}).click();
+   await ensureComposer();
+   if(opticalConsent)await panel.getByRole('button',{name:/LOOK AT GAME/}).tap();
    await page.waitForTimeout(300);
    const frameText=await panel.getByRole('status').allTextContents();frameObservations.push({utc:new Date().toISOString(),actual_ui:frameText.filter(x=>/Observed game pixels|readable native frame/.test(x))});
    await fs.writeFile(path.join(output,'frame-observations.json'),JSON.stringify(frameObservations,null,2)+'\n');
@@ -179,7 +193,7 @@ const sourcePath=process.argv[7]||'/spark/ibm-zeref-heart-sound-20261010.json';
    const started=new Date().toISOString();
    await panel.getByRole('textbox').fill(message);
    const responsePromise=page.waitForResponse(r=>r.url()===root+'/api/guest'&&r.request().method()==='POST',{timeout:70000});
-   await panel.getByRole('button',{name:'SEND TO MODEL',exact:true}).click();
+   await panel.getByRole('button',{name:'SEND TO MODEL',exact:true}).tap();
    const response=await responsePromise,payload=await response.json();
    await fs.writeFile(path.join(output,'model-response-'+i+'.json'),JSON.stringify({http_status:response.status(),observed_utc:new Date().toISOString(),payload},null,2)+'\n');
    assert.equal(response.status(),200,'Actual guest inference failed');
@@ -217,5 +231,13 @@ const sourcePath=process.argv[7]||'/spark/ibm-zeref-heart-sound-20261010.json';
    browser_pageerrors:errors};
   await fs.writeFile(path.join(output,'game-evidence.json'),JSON.stringify(observed,null,2)+'\n');
   console.log('FINAL_LIVE_PRODUCTION_GAME '+JSON.stringify(observed));
- }finally{const video=page.video();await context.close();if(video)await video.saveAs(path.join(output,'native-gameplay.webm'));await browser.close();}
+ }catch(error){
+  await fs.writeFile(path.join(output,'browser-failure.json'),JSON.stringify({utc:new Date().toISOString(),message:String(error).slice(0,1800),browser_pageerrors:errors}));
+  try{
+   const state=await page.evaluate(()=>({buttons:[...document.querySelectorAll('[data-spark-game-talk] button')].map(n=>({text:n.textContent,disabled:n.disabled})),textareas:[...document.querySelectorAll('[data-spark-game-talk] textarea')].map(n=>({visible:!!n.getClientRects().length,value:n.value,disabled:n.disabled})),identity:JSON.parse(localStorage.getItem('beastbox-companion-session-v1')||'null')?.beast?.qbeast?.profile?.id}));
+   await fs.writeFile(path.join(output,'failure-ui-state.json'),JSON.stringify(state,null,2));
+   await page.screenshot({path:path.join(output,'failure-screen.png'),timeout:5000});
+  }catch{}
+  throw error;
+ }finally{const video=page.video();await context.close().catch(()=>{});if(video)await video.saveAs(path.join(output,'native-gameplay.webm')).catch(()=>{});await browser.close().catch(()=>{});}
 })().catch(e=>{console.error('FINAL_LIVE_PRODUCTION_FAILED',e?.stack||String(e));process.exitCode=1;});
