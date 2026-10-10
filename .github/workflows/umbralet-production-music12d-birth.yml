@@ -29,10 +29,10 @@ jobs:
           ready=0
           for i in $(seq 1 60); do
             if curl -fsS --max-time 15 'https://www.beastboxcosmos.xyz/spark/ibm-real-song-cst12-umbralet-20261009.json' | grep -q 'db4og3slf4us73c319h0' &&
-               curl -fsS --max-time 15 'https://www.beastboxcosmos.xyz/spark/azure-real-song-cst12-umbralet-20261009.json' | grep -q 'e26d2fc1-c43a-11f1-ae67-7c1e523ea660'; then ready=1;break;fi
+               curl -fsS --max-time 15 'https://www.beastboxcosmos.xyz/spark/azure-real-song-cst12-umbralet-20261009.json' | grep -q 'd7c48ad5-c442-11f1-ae67-70a8a5253f9c'; then ready=1;break;fi
             sleep 15
           done
-          test "$ready" -eq 1 || { echo 'Production not serving genuine third Umbralet source receipts';exit 1; }
+          test "$ready" -eq 1 || { echo 'Production not serving genuine music-conditioned Umbralet source receipts';exit 1; }
       - name: Check actual browser program and install real Chromium
         run: |
           node --check tests/umbralet-production-music12d-chat.cjs
