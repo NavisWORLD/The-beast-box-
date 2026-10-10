@@ -1,0 +1,57 @@
+name: Zeref actual production Cage, native game, hosted chat and concurrent IBM workload
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/zeref-live-production-recording.yml'
+      - 'scripts/ibm_live_dragon_conversation.py'
+      - 'scripts/final_live_production.cjs'
+permissions:
+  contents: read
+concurrency:
+  group: zeref-production-quantum-overlap-20261010-onejob
+  cancel-in-progress: false
+jobs:
+  real-live-recording:
+    if: ${{ github.event.action == 'opened' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/zeref-live-production-recording-20261010' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install official IBM client and genuine browser
+        run: |
+          python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+          npm install --prefix "$RUNNER_TEMP/zeref-browser" --no-audit --no-fund playwright@1.55.0
+          "$RUNNER_TEMP/zeref-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify public Zeref deployment and exact native source admission
+        run: |
+          python - <<'PY'
+          import json, urllib.request
+          root='https://www.beastboxcosmos.xyz'
+          with urllib.request.urlopen(root+'/spark/ibm-zeref-heart-sound-20261010.json') as response: source=json.load(response)
+          assert source['runs'][0]['j']=='db4q484vf2bc73cuuuag'
+          with urllib.request.urlopen(root+'/spark/zeref-live-20261010/run-summary.json') as response: source=json.load(response)
+          assert source['qbeast_id']=='bb-deada969'
+          PY
+      - name: Record real Cage and native input before ONE bounded physical job, then actual overlapping model calls
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_REAL_QPU_ONE_JOB: YES_ONE_REAL_JOB
+        run: |
+          export NODE_PATH="$RUNNER_TEMP/zeref-browser/node_modules"
+          PYTHONPATH=.:scripts python scripts/ibm_live_dragon_conversation.py
+      - name: Preserve all actual provider counts, status intervals, full replies, Cage/game video, pixels and native save
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-live-production-quantum-recording-${{ github.run_id }}
+          path: _zeref_live_production_20261010/
+          retention-days: 30
+          if-no-files-found: warn
