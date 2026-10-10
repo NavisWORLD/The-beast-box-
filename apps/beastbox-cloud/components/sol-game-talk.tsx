@@ -88,10 +88,10 @@ export default function SolGameTalk({ active = true, observeGame, applyGameActio
         const pixels=await observeGame();
         if(epoch!==guideEpoch.current||currentKey.current!==expectedKey||controller.signal.aborted)break;
         const proposal=await proposeGuidedGameAction({
-          session,saying:'',observation:pixels,fetchImpl:fetch,signal:controller.signal,model
+          session,observation:pixels,fetchImpl:fetch,signal:controller.signal,model
         });
         if(epoch!==guideEpoch.current||currentKey.current!==expectedKey||controller.signal.aborted)break;
-        if(!proposal.ok){setStatus('Guided control stopped at step '+(step+1)+': '+proposal.reason);return;}
+        if(!proposal.ok||!('command' in proposal)){setStatus('Guided control stopped at step '+(step+1)+': '+(proposal.reason||'Invalid model action'));return;}
         if(proposal.button){
           const applied=await applyGameAction(proposal.button,expectedKey);
           if(!applied){setStatus('Game unavailable or identity changed; control stopped without injecting a key.');return;}
