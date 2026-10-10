@@ -7,11 +7,13 @@ const APPROVED=[
  {job:'32d6fc6c-c42d-11f1-ae67-000d3ad41960',digest:'0960953da112ef2ba6e769354d42842b584e7cd3913d02c2d33461fdadfbf347',run:37996938703,keys:['00','01','10','11']},
  {job:'71cf7c02-c435-11f1-ae67-7ced8d52b5e1',digest:'e559902784bf212d9cd86e1a887bbb69bac908c195133ff3e026b7e695a8db82',run:38002300373,keys:['00','01','10','11']},
  {job:'e26d2fc1-c43a-11f1-ae67-7c1e523ea660',digest:'8c2ee491e0d2518c7d187972e53ee89f4663185137ee9713773904ba2d9d094f',run:38005563477,keys:['00','01','10','11']},
+ {job:'d7c48ad5-c442-11f1-ae67-70a8a5253f9c',digest:'0263c31eaed46663ea1e83c759702e611b1d37ee2d0fbbd24d20ad2bcd308f5d',run:38009805252,keys:['00','01','10','11']},
 ];
 const MARKER='beastbox-recorded-qvm-input-v1';
 const sameKeys=(object,keys)=>object&&typeof object==='object'&&!Array.isArray(object)&&canonicalJson(Object.keys(object).sort())===canonicalJson([...keys].sort());
 export function recordedQvmStimulusPath(beast){
  const source=beast?.genome?.inputs?.quantum_run||'';
+ if(/^db4og3slf4us73c319h0:bell-(xx|zz)$/.test(source))return '/spark/azure-real-song-cst12-umbralet-20261009.json';
  if(/^db4nlt2mb58s7389er6g:bell-(xx|zz)$/.test(source))return '/spark/azure-third-final-ibm-qvm-20261009.json';
  if(/^db4n37g4qg6s73c2de00:bell-(xx|zz)$/.test(source))return '/spark/azure-second-final-ibm-qvm-20261009.json';
  return /^db4m3bslf4us73c2ui9g:bell-(xx|zz)$/.test(source)?'/spark/azure-final-ibm-qvm-20261009.json':'/spark/azure-rigetti-qvm-20261009.json';
