@@ -1,0 +1,118 @@
+name: RAWRPHOS next proof - REAL Lost COSMOS pixels to native CPU learning
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs'
+      - 'scripts/train_rawrphos_from_observed_native_play.py'
+      - '.github/workflows/rawrphos-observed-native-game-learning.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: rawrphos-original-game-actual-native-frames-learning-20261010
+  cancel-in-progress: false
+jobs:
+  capture-real-native-play:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Install and build the existing unmodified production Beast Box web game shell
+        working-directory: apps/beastbox-cloud
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - uses: actions/checkout@v4
+        with:
+          repository: NavisWORLD/Cosmic-synapse-the-living-universe-sim-engine-
+          ref: main
+          path: native-game
+          persist-credentials: false
+      - name: Build real original Lost COSMOS GBA ROM and install isolated actual Chromium browser
+        run: |
+          set -Eeuo pipefail
+          (cd native-game && git rev-parse HEAD) | tee /tmp/actual-native-game-head
+          echo "NATIVE_GAME_HEAD=$(cat /tmp/actual-native-game-head)" >> "$GITHUB_ENV"
+          echo "WEB_APP_HEAD=$GITHUB_SHA" >> "$GITHUB_ENV"
+          sudo apt-get update
+          sudo apt-get install -y clang lld llvm ffmpeg
+          (cd native-game && bash scripts/build-lost-cosmos-arcade.sh)
+          npm install --prefix /tmp/native-observation-browser --no-save --ignore-scripts playwright@1.62.1
+          /tmp/native-observation-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Record 56 actual ORIGINAL native-emulator observations, 56 physical-controller ACKs and honest browser gameplay video
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p /tmp/native-observed-guidance
+          (cd apps/beastbox-cloud && npm run start -- --hostname 127.0.0.1 --port 3000) >/tmp/native-observed-guidance/next.log 2>&1 &
+          next_pid=$!
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory native-game >/tmp/native-observed-guidance/original-game.log 2>&1 &
+          game_pid=$!
+          trap 'kill "$next_pid" "$game_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:3000/spark/index.html >/dev/null && curl -fsS http://127.0.0.1:8765/arcade/sol-spark-gate/handheld.html >/dev/null; then break; fi
+            sleep 1
+          done
+          NODE_PATH=/tmp/native-observation-browser/node_modules \
+            node apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs \
+            http://127.0.0.1:3000 http://127.0.0.1:8765 /tmp/native-observed-guidance
+          test -s /tmp/native-observed-guidance/native-evidence-manifest.json
+          test -s /tmp/native-observed-guidance/native-observation-actions.jsonl
+          echo "ACTUAL_NATIVE_EMULATOR_TRACE_SHA256=$(sha256sum /tmp/native-observed-guidance/native-observation-actions.jsonl | cut -d' ' -f1)"
+          for file in /tmp/native-observed-guidance/*.webm; do
+            [ -s "$file" ] || continue
+            ffmpeg -hide_banner -loglevel error -y -i "$file" -c:v libx264 -preset veryfast -pix_fmt yuv420p /tmp/native-observed-guidance/real-native-gameplay.mp4
+            break
+          done
+      - name: Archive original native ROM/browser versions, ACTUAL input ACKs, measurable optical states, and actual gameplay video
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: actual-lumenwisp-native-pixels-actions-${{ github.run_id }}
+          path: /tmp/native-observed-guidance/
+          retention-days: 30
+          if-no-files-found: warn
+  genuine-model-training:
+    needs: capture-real-native-play
+    runs-on: ubuntu-24.04
+    timeout-minutes: 48
+    env:
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install CPU-only PyTorch and the exact original native RAWRPHOS model code
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos
+      - name: Acquire and verify original published 14K RAWRPHOS weights without touching live checkpoint
+        run: |
+          mkdir -p build
+          python models/rawrphos/scripts/install_pinned_14k.py --destination build/verified-rawrphos-14k | tee build/original-native-checkpoint.json
+      - name: Download ONLY the actual native optical/action results from this preceding capture run
+        uses: actions/download-artifact@v4
+        with:
+          name: actual-lumenwisp-native-pixels-actions-${{ github.run_id }}
+          path: build/rawrphos-observed-game-001/inputs
+      - name: Do 128 REAL CPU optimizer steps on actual native frame observations; hold out whole episode and emit literal text
+        run: |
+          python -m py_compile scripts/train_rawrphos_from_observed_native_play.py
+          python scripts/train_rawrphos_from_observed_native_play.py
+      - name: Archive baseline/candidate immutable weight hashes, trained weights, all true model outputs and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawrphos-actual-native-game-training-${{ github.run_id }}
+          path: |
+            build/original-native-checkpoint.json
+            build/rawrphos-observed-game-001/
+          retention-days: 30
+          if-no-files-found: warn
