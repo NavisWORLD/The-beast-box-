@@ -1,0 +1,60 @@
+name: FIVE new source-bound live Azure Rigetti QVM continuations (IBM hardware already complete)
+on:
+  pull_request:
+    paths:
+      - 'scripts/azure_five_media_quantum_continuation.py'
+      - '.github/workflows/five-media-real-azure-qvm.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: five-authentic-azure-qvm-from-81920-fresh-ibm-shots-20261010
+  cancel-in-progress: false
+jobs:
+  five-authentic-cloud-simulators:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/five-media-azure-qbeast-followup-20261010' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download immutable receipts for all FIVE independently completed physical IBM jobs
+        uses: actions/download-artifact@v4
+        with:
+          name: five-media-real-ibm-38029814847
+          run-id: 38029814847
+          github-token: ${{ github.token }}
+          path: .
+      - name: Validate exact fresh IBM job IDs, shot totals, original media commitment and counts hashes
+        run: |
+          python -m py_compile scripts/azure_five_media_quantum_continuation.py
+          PYTHONPATH=scripts python - <<'PY'
+          import json
+          from pathlib import Path
+          from azure_five_media_quantum_continuation import NAMES,IBM,verify,EXPECTED_NEW_HARDWARE
+          for i,alias in enumerate(NAMES):
+              p=IBM/f'{i+1}-{alias.lower()}'/'measurement_receipt.json'
+              r=json.loads(p.read_text())
+              verify(r,alias)
+              assert (r['job_id'],r['counts_sha256'])==EXPECTED_NEW_HARDWARE[alias]
+              print('FIVE_AUTHENTIC_IBM_SOURCE_VERIFIED='+alias+':'+r['job_id'])
+          PY
+      - name: Install authentic Azure Quantum QDK SDK
+        run: python -m pip install 'qdk[azure]'
+      - name: Submit five distinct cloud Rigetti 512-shot simulations ONLY from new IBM measured counts, deduplicate by job name
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+          BEAST_AZURE_QVM_FIVE: YES_FIVE_EXISTING_IBM_RECEIPTS
+        run: PYTHONPATH=scripts python scripts/azure_five_media_quantum_continuation.py
+      - name: Preserve each real Azure submission, provider raw result, simulation count and failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: five-new-azure-real-simulator-${{ github.run_id }}
+          path: _azure_five_multisource_qbeasts_20261010/
+          retention-days: 30
+          if-no-files-found: warn
