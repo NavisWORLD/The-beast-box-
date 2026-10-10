@@ -195,6 +195,17 @@ async function sparkMagmascale(){
  localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
  $('status').textContent='Magmascale sparked from a third NEW physical IBM Fez job. This exact QBEAST can enter Lost COSMOS and its verified 512-shot Azure QVM experience can be added once.';
 }
+async function sparkUmbralet(){
+ const seedRun=byKey.get('db4og3slf4us73c319h0:bell-xx');
+ if(!seedRun)throw Error('The authentic song-before-IBM 12D Fez hardware source has not loaded. An older beast cannot substitute.');
+ const entry={traits:{focus:80,calm:20,spark:100},run:seedRun.key,user:'Music12D-5'};
+ const gen=buildGenome(entry.traits,seedRun,entry.user,10);
+ if(gen.body!=='dragonling'||gen.seed!=='f67c3ba56f42fe7777a905745fa7b64f50aa0950859a8ddd829603a6bd33c4fd'||gen.names[1]!=='Umbralet')throw Error('Recorded CST12→physical IBM source does not regenerate exact Umbralet identity.');
+ fillRunSelect([seedRun]);await adopt(entry);
+ bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);
+ localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
+ $('status').textContent='Umbralet arrived through your FULL SONG → 48 COSMOS 12D windows → REAL IBM Fez music-conditioned gates → 16,384 physical shots. The separate 512-shot Azure simulator recording is ready to apply once; the same QBEAST can enter Lost COSMOS.';
+}
 function starterEntries(){
  if(starterCache.length)return starterCache;
  const profiles=['serene','focused','sparky','balanced','dreamy','steady','restless','mock'];
@@ -449,7 +460,7 @@ async function main(){
  $('save-here').addEventListener('click',()=>void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');saveSparkSession(localStorage,next);session=next;});$('save-state').textContent='SAVED ON THIS DEVICE';audioSfx('confirm');}));
  $('download-journey').addEventListener('click',()=>void run(async()=>{const next=readSparkSession(localStorage);deviceDownload(serializeDeviceJourney(next,byKey),shownName(next.beast)+'.beastjourney');$('status').textContent='Device journey created. Local memory and behavior are unsigned; native authority is unchanged.';}));
  $('import-journey').addEventListener('change',()=>void run(async()=>{const file=$('import-journey').files?.[0];if(!file)return;if(file.size>2*1024*1024)throw Error('Choose a journey under 2 MiB.');const journey=readDeviceJourney(await file.text(),byKey),next=await withSparkLock(()=>restoreDeviceJourney(localStorage,journey));showCreature(journey.entry,next,false);$('status').textContent='Device journey restored. Same identity, local memory; native artifacts remain unsigned.';$('import-journey').value='';}));
- $('final-dragon').addEventListener('click',()=>void run(()=>sparkFinalDragon()));$('pistonwyrm').addEventListener('click',()=>void run(()=>sparkPistonwyrm()));$('magmascale').addEventListener('click',()=>void run(()=>sparkMagmascale()));$('umbrascale').addEventListener('click',()=>void run(()=>sparkUmbrascale()));$('azure-stimulus').addEventListener('click',()=>void run(()=>applyAzureStimulus()));
+ $('final-dragon').addEventListener('click',()=>void run(()=>sparkFinalDragon()));$('pistonwyrm').addEventListener('click',()=>void run(()=>sparkPistonwyrm()));$('magmascale').addEventListener('click',()=>void run(()=>sparkMagmascale()));$('umbralet').addEventListener('click',()=>void run(()=>sparkUmbralet()));$('umbrascale').addEventListener('click',()=>void run(()=>sparkUmbrascale()));$('azure-stimulus').addEventListener('click',()=>void run(()=>applyAzureStimulus()));
  $('save-state').textContent='SAVED ON THIS DEVICE';coreTimer=setInterval(()=>void activityTick(),8000);
  window.addEventListener('storage',event=>{if(event.key==='beastbox-reduced-motion-v1')syncMotion();});
  for(const which of [1,2,3])$(`pick${which}`).addEventListener('click',()=>{stage=which;preview=stage!==session.beast.nativeStage;updatePlate();runtime.state='celebrate';runtime.until=runtime.T+1.5;$('status').textContent='Visual preview only. Your earned native stage and QBEAST progression did not change.'});
