@@ -36,11 +36,13 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   // RED: current main has no dedicated shell/fullscreen action.
   const shell=page.locator('[data-lost-cosmos-player-shell]');
   await shell.getByRole('button',{name:'FULL SCREEN',exact:true}).waitFor({timeout:5000});
+  // Do not block the real cartridge handshake script before admission.
+  // Only intercept the subsequent START phase, which the test intentionally fails.
+  await shell.getByRole('button',{name:'SEND BEAST',exact:true}).click();
+  await shell.getByRole('status').filter({hasText:'same Beast verified'}).waitFor({timeout:60000});
   let releaseLoader;const loaderGate=new Promise(resolve=>{releaseLoader=resolve;});
   const loaderPattern='**/arcade/sol-spark-gate/handheld.mjs?**';
   await context.route(loaderPattern,async route=>{await loaderGate;await route.fallback();});
-  await shell.getByRole('button',{name:'SEND BEAST',exact:true}).click();
-  await shell.getByRole('status').filter({hasText:'same Beast verified'}).waitFor({timeout:60000});
   const releasePattern='**/arcade/lost-cosmos/rom/release.json';
   await context.route(releasePattern,route=>route.fulfill({status:503,body:'forced startup failure fixture'}));
   await shell.getByRole('button',{name:'START LOST COSMOS',exact:true}).click();
