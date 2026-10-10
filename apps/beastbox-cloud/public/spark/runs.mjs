@@ -14,6 +14,11 @@ export const SECOND_FINAL_HARDWARE_PATH='/spark/ibm-second-final-reality-probe-2
 export const THIRD_FINAL_HARDWARE_PATH='/spark/ibm-third-final-reality-probe-20261009.json';
 export const WRAITH_HARDWARE_PATH='/spark/ibm-wraith-20261010.json';
 export const LUMENWISP_HARDWARE_PATH='/spark/ibm-lumenwisp-20261010.json';
+export const ZEREF_NIGHTCAT_HARDWARE_PATH='/spark/ibm-zeref-nightcat-dragon-20261010.json';
+export const UMBRASCALE_STARSEED_HARDWARE_PATH='/spark/ibm-umbrascale-starseed-20261010.json';
+export const PISTONWYRM_GEARSEED_HARDWARE_PATH='/spark/ibm-pistonwyrm-gearseed-20261010.json';
+export const HEARTFLARE_MOONFIRE_HARDWARE_PATH='/spark/ibm-heartflare-moonfire-20261010.json';
+export const MOONWRAITH_CASSETTE_HARDWARE_PATH='/spark/ibm-moonwraith-cassette-kit-20261010.json';
 export const ZEREF_HEART_HARDWARE_PATH='/spark/ibm-zeref-heart-sound-20261010.json';
 export const MUSIC12D_IBM_HARDWARE_PATH='/spark/ibm-real-song-cst12-umbralet-20261009.json';
 const HEX=/^[a-f0-9]{64}$/;
@@ -70,7 +75,7 @@ async function fetchJson(path){
 export async function loadSparkRuns({includeQvm=false,includeNewHardware=false}={}){
  const index=await fetchJson(SPARK_INDEX_PATH);
  if(index.schema!=='spark-beasts-public-seed-pack-index-v1'||!Array.isArray(index.shards))throw Error('Invalid recorded seed index.');
- const paths=[SPARK_BASE_PATH,...index.shards,...(includeNewHardware?[FEZ_HARDWARE_PATH,MARRAKESH_HARDWARE_PATH,FINAL_HARDWARE_PATH,SECOND_FINAL_HARDWARE_PATH,THIRD_FINAL_HARDWARE_PATH,MUSIC12D_IBM_HARDWARE_PATH,ZEREF_HEART_HARDWARE_PATH,WRAITH_HARDWARE_PATH,LUMENWISP_HARDWARE_PATH]:[])];
+ const paths=[SPARK_BASE_PATH,...index.shards,...(includeNewHardware?[FEZ_HARDWARE_PATH,MARRAKESH_HARDWARE_PATH,FINAL_HARDWARE_PATH,SECOND_FINAL_HARDWARE_PATH,THIRD_FINAL_HARDWARE_PATH,MUSIC12D_IBM_HARDWARE_PATH,ZEREF_HEART_HARDWARE_PATH,WRAITH_HARDWARE_PATH,LUMENWISP_HARDWARE_PATH,ZEREF_NIGHTCAT_HARDWARE_PATH,UMBRASCALE_STARSEED_HARDWARE_PATH,PISTONWYRM_GEARSEED_HARDWARE_PATH,HEARTFLARE_MOONFIRE_HARDWARE_PATH,MOONWRAITH_CASSETTE_HARDWARE_PATH]:[])];
  if(paths.some(path=>!approvedPath(path)))throw Error('Unapproved recorded seed path.');
  const tables=await Promise.all(paths.map(fetchJson));
  const byKey=new Map();

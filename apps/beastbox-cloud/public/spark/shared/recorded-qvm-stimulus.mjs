@@ -11,11 +11,21 @@ const APPROVED=[
  {job:'d7c48ad5-c442-11f1-ae67-70a8a5253f9c',digest:'0263c31eaed46663ea1e83c759702e611b1d37ee2d0fbbd24d20ad2bcd308f5d',run:38009805252,keys:['00','01','10','11']},
  {job:'3c9e2a90-c45f-11f1-ae67-7ced8dda8a51',digest:'6e8fe47d1f53583623eb98eccd7715117d8dd2f889c0acabc12bef0c9e41f5ba',run:38022572501,keys:['00','01','10','11']},
  {job:'ce11385c-c467-11f1-ae67-6045bdae353a',digest:'29890c8daab6b5cfad8bde076ae1d918b7548db9c9f32b0ceee60f02b0d1c210',run:38025920199,keys:['00','01','10','11']},
+ {job:'ea5d60c6-c471-11f1-ae67-e4fade1b1144',digest:'8f7a8a76ee2e7d458044bf27c13cf82078863ee44df0193f24e2598ed49534a8',run:38030239709,keys:['00','01','10','11']},
+ {job:'f06449d1-c471-11f1-ae67-e4fade1b1144',digest:'018069d99acbb8af320ee2cf05fada3ba0f55a22c535fff123e44322f9d90117',run:38030239709,keys:['00','01','10','11']},
+ {job:'f4e1e2e3-c471-11f1-ae67-e4fade1b1144',digest:'845b264d1d12f24ff745a1aedef5f8e928503009d2a83b854249b517268292ca',run:38030239709,keys:['00','01','10','11']},
+ {job:'f9ae5f31-c471-11f1-ae67-e4fade1b1144',digest:'842b16442206eb0f5be795cc419cb58171e933ec7e10e9ef320243851662642b',run:38030239709,keys:['00','01','10','11']},
+ {job:'fe224e3d-c471-11f1-ae67-e4fade1b1144',digest:'7b03a2e046c9d88bf695da11439e29c5a94c58b938b3574e04e58aee2f4269b1',run:38030239709,keys:['00','01','10','11']},
 ];
 const MARKER='beastbox-recorded-qvm-input-v1';
 const sameKeys=(object,keys)=>object&&typeof object==='object'&&!Array.isArray(object)&&canonicalJson(Object.keys(object).sort())===canonicalJson([...keys].sort());
 export function recordedQvmStimulusPath(beast){
  const source=beast?.genome?.inputs?.quantum_run||'';
+ if(/^db4tc8kvf2bc73cv3np0:bell-(xx|zz)$/.test(source))return '/spark/azure-zeref-nightcat-dragon-20261010.json';
+ if(/^db4tdtkvf2bc73cv3qng:bell-(xx|zz)$/.test(source))return '/spark/azure-umbrascale-starseed-20261010.json';
+ if(/^db4te084qg6s73c2m3lg:bell-(xx|zz)$/.test(source))return '/spark/azure-pistonwyrm-gearseed-20261010.json';
+ if(/^db4te4g4qg6s73c2m470:bell-(xx|zz)$/.test(source))return '/spark/azure-heartflare-moonfire-20261010.json';
+ if(/^db4te7slf4us73c3888g:bell-(xx|zz)$/.test(source))return '/spark/azure-moonwraith-cassette-kit-20261010.json';
  if(/^db4sba4lf4us73c36910:bell-(xx|zz)$/.test(source))return '/spark/azure-lumenwisp-20261010.json';
  if(/^db4rg5klf4us73c34tqg:bell-(xx|zz)$/.test(source))return '/spark/azure-wraith-20261010.json';
  if(/^db4q484vf2bc73cuuuag:bell-(xx|zz)$/.test(source))return '/spark/azure-zeref-heart-sound-20261010.json';
