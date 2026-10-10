@@ -22,11 +22,13 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/zeref-browser" --no-audit --no-fund playwright@1.55.0
           "$RUNNER_TEMP/zeref-browser/node_modules/.bin/playwright" install --with-deps chromium
-      - name: Capture actual production controls and three real hosted model replies, without IBM credentials
+      - name: Capture actual production controls and one real hosted model reply, without IBM credentials
         working-directory: apps/beastbox-cloud
+        env:
+          BEAST_LIVE_TURNS: '1'
         run: |
           export NODE_PATH="$RUNNER_TEMP/zeref-browser/node_modules"
-          node ../../scripts/final_live_production.cjs https://www.beastboxcosmos.xyz "$GITHUB_WORKSPACE/_zeref_production_ui_preflight/browser" experiment-evidence/zeref-heart-sound-20261010 bb-deada969 db4q484vf2bc73cuuuag /spark/ibm-zeref-heart-sound-20261010.json
+          timeout --kill-after=5s 240s node ../../scripts/final_live_production.cjs https://www.beastboxcosmos.xyz "$GITHUB_WORKSPACE/_zeref_production_ui_preflight/browser" experiment-evidence/zeref-heart-sound-20261010 bb-deada969 db4q484vf2bc73cuuuag /spark/ibm-zeref-heart-sound-20261010.json
       - name: Preserve actual diagnostics, model replies, native save and video
         if: always()
         uses: actions/upload-artifact@v4

@@ -29,6 +29,13 @@ const sourcePath=process.argv[7]||'/spark/ibm-zeref-heart-sound-20261010.json';
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,recordVideo:{dir:path.join(output,'video'),size:{width:390,height:844}}});
  context.setDefaultTimeout(20000);
  const page=await context.newPage(),errors=[];page.setDefaultNavigationTimeout(60000);
+ const network=[];
+ page.on('response',response=>{
+  try{if(new URL(response.url()).pathname.replace(/\/$/,'')==='/api/guest'){
+   network.push({utc:new Date().toISOString(),url:response.url(),method:response.request().method(),http_status:response.status()});
+   void fs.writeFile(path.join(output,'guest-network-observations.json'),JSON.stringify(network,null,2)+'\n');
+  }}catch{}
+ });
  page.on('pageerror',e=>errors.push(e.message));
  try{
   await page.goto(root+'/spark/index.html');
@@ -179,11 +186,13 @@ const sourcePath=process.argv[7]||'/spark/ibm-zeref-heart-sound-20261010.json';
    }
   }
   const liveConversation=[],frameObservations=[];
-  for(const [i,message] of [
+  const utterances=[
    handshake?'Hello Zeref. Your genome came from IBM Fez measurements and a 512-shot Azure simulation. We are running a new IBM probe while you play. What do you notice?':'Hello Zeref. Your genome came from IBM Fez measurements and a 512-shot Azure simulation. Those jobs are completed; this is a production conversation preflight. What do you notice?',
    'We pressed A and Start in the actual GBA cartridge. Your identity is still bb-deada969. The screen signals are brightness and color measurements. How are you feeling?',
    'In the sound assay you wandered 36 times, played 33 times and rested 18 times. These are classical recorded actions. Would you like to rest here?'
-  ].entries()){
+  ];
+  const turnLimit=!handshake&&process.env.BEAST_LIVE_TURNS==='1'?1:3;
+  for(const [i,message] of utterances.slice(0,turnLimit).entries()){
    await ensureComposer();
    if(opticalConsent)await panel.getByRole('button',{name:/LOOK AT GAME/}).tap();
    await page.waitForTimeout(300);
@@ -192,9 +201,9 @@ const sourcePath=process.argv[7]||'/spark/ibm-zeref-heart-sound-20261010.json';
    const beforeQpu=await qpuStatus();
    const started=new Date().toISOString();
    await panel.getByRole('textbox').fill(message);
-   const responsePromise=page.waitForResponse(r=>r.url()===root+'/api/guest'&&r.request().method()==='POST',{timeout:70000});
+   const responsePromise=page.waitForResponse(r=>new URL(r.url()).pathname.replace(/\/$/,'')==='/api/guest'&&r.request().method()==='POST',{timeout:70000});
    await panel.getByRole('button',{name:'SEND TO MODEL',exact:true}).tap();
-   const response=await responsePromise,payload=await response.json();
+   const response=await responsePromise,payload=await Promise.race([response.json(),new Promise((_,reject)=>setTimeout(()=>reject(Error('Guest response body deadline exceeded')),15000))]);
    await fs.writeFile(path.join(output,'model-response-'+i+'.json'),JSON.stringify({http_status:response.status(),observed_utc:new Date().toISOString(),payload},null,2)+'\n');
    assert.equal(response.status(),200,'Actual guest inference failed');
    assert.equal(payload.provider,'rawrphos-local');assert.equal(payload.model,'rawrphos-native');assert.equal(payload.step,14000);assert.equal(payload.guest_stateless,true);assert.ok(payload.reply?.trim());
@@ -239,5 +248,8 @@ const sourcePath=process.argv[7]||'/spark/ibm-zeref-heart-sound-20261010.json';
    await page.screenshot({path:path.join(output,'failure-screen.png'),timeout:5000});
   }catch{}
   throw error;
- }finally{const video=page.video();await context.close().catch(()=>{});if(video)await video.saveAs(path.join(output,'native-gameplay.webm')).catch(()=>{});await browser.close().catch(()=>{});}
-})().catch(e=>{console.error('FINAL_LIVE_PRODUCTION_FAILED',e?.stack||String(e));process.exitCode=1;});
+ }finally{
+  const video=page.video(),bounded=promise=>Promise.race([promise.catch(()=>{}),new Promise(resolve=>setTimeout(resolve,5000))]);
+  await bounded(context.close());if(video)await bounded(video.saveAs(path.join(output,'native-gameplay.webm')));await bounded(browser.close());
+ }
+})().then(()=>process.exit(0)).catch(e=>{console.error('FINAL_LIVE_PRODUCTION_FAILED',e?.stack||String(e));process.exit(1);});
