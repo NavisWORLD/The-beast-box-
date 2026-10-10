@@ -1,0 +1,61 @@
+name: Mr Bone Pig PHOTO-LIGHT IBM → live Azure QVM
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/mr-bone-pig-photo-azure-qvm.yml'
+      - 'scripts/azure_mr_bone_pig_photo_qvm.py'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: mr-bone-pig-956f9f-azure-once-20261010
+  cancel-in-progress: false
+jobs:
+  azure-photo-simulation:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/mr-bone-pig-original-photo-light12d-real-ibm-20261010' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download ONLY verified authentic physical photo-conditioned IBM evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: mr-bone-pig-original-photo-real-ibm-38013370393
+          run-id: 38013370393
+          github-token: ${{ github.token }}
+          path: .
+      - name: Verify actual source image hash, full IBM result and photo QPU gate provenance
+        run: |
+          PYTHONPATH=scripts python - <<'PY'
+          import json
+          from pathlib import Path
+          from azure_mr_bone_pig_photo_qvm import verify
+          p=Path('_ibm_bone_pig_image_light12d_20261010/measurement_receipt.json')
+          r=json.loads(p.read_text())
+          verify(r)
+          photo=r.get('image_light_pre_hardware') or {}
+          assert photo['original_photo_sha256']=='956f9fe57bd80146dfba01f5683fe694daae26ebf9e498f377425be74b973475'
+          assert photo['image_feature_commitment_sha256']=='766ee1954035205368387fb407bbe0d1c4fdc6ab96b91b27f0486f8d66e3b472'
+          print('ACTUAL_PHOTO_IN_IBM_PHYSICAL_JOB='+r['job_id'])
+          PY
+      - name: Install Azure Quantum official provider
+        run: python -m pip install 'qdk[azure]'
+      - name: Submit ONE real Azure Rigetti cloud QVM, or recover exact previous
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+          BEAST_AZURE_QVM_ONE_JOB: YES_ONE_FREE_SIMULATOR
+        run: PYTHONPATH=scripts python scripts/azure_mr_bone_pig_photo_qvm.py
+      - name: Archive provider program, job ID, raw simulator result, true counts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mr-bone-pig-photo-live-azure-qvm-${{ github.run_id }}
+          path: |
+            _azure_bone_pig_image_light12d_20261010/
+          retention-days: 30
+          if-no-files-found: warn

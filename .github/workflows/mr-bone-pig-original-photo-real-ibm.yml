@@ -1,0 +1,70 @@
+name: Mr Bone Pig ORIGINAL PHOTO Light12D to real IBM QPU
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/mr-bone-pig-original-photo-real-ibm.yml'
+      - 'scripts/ibm_mr_bone_pig_image_light12d.py'
+      - 'experiment-input/mr-bone-pig-original-image-light12d-20261010.json'
+permissions:
+  contents: read
+concurrency:
+  group: navisworld-bonepig-photo956f9fe5-real-ibm-onejob
+  cancel-in-progress: false
+jobs:
+  actual-hardware-measurement:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/mr-bone-pig-original-photo-light12d-real-ibm-20261010' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate original picture and quota safeguards (NO hardware call)
+        run: |
+          python -m py_compile scripts/ibm_mr_bone_pig_image_light12d.py
+          PYTHONPATH=scripts python - <<'PY'
+          from ibm_mr_bone_pig_image_light12d import verified_image_light
+          packet=verified_image_light()
+          assert packet['source_file_sha256']=='956f9fe57bd80146dfba01f5683fe694daae26ebf9e498f377425be74b973475'
+          assert packet['feature_commitment_sha256']=='766ee1954035205368387fb407bbe0d1c4fdc6ab96b91b27f0486f8d66e3b472'
+          print('VERIFIED_ORIGINAL_BONEPIG_PHOTO_FEATURES_PRE_QPU='+packet['feature_commitment_sha256'])
+          PY
+          python -m unittest discover -s tests -p test_ibm_open_plan_preflight.py -v
+      - name: Install official IBM Qiskit Runtime
+        run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+      - name: Abort if picture-derived 12D light state does not change real quantum gates
+        run: |
+          PYTHONPATH=scripts python - <<'PY'
+          from ibm_mr_bone_pig_image_light12d import verified_image_light,circuits
+          x=verified_image_light()
+          a=circuits(x)
+          zero=dict(x,global_12d=[0]*12,quadrants_12d=[[0]*12 for i in range(4)])
+          b=circuits(zero)
+          assert len(a)==4 and len(b)==4
+          assert all(str(p[1])!=str(q[1]) for p,q in zip(a,b)), 'Original image does NOT affect QPU gates'
+          assert a[0][1]!=a[1][1], 'Bell Z and X basis not distinguished'
+          print('REAL_PICTURE_LIGHT12D_PRE_QPU_ABLATION=PASS')
+          PY
+      - name: Exactly ONE true IBM Quantum hardware job or remote-tag recovery
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_REAL_QPU_ONE_JOB: YES_ONE_REAL_JOB
+        run: PYTHONPATH=scripts python scripts/ibm_mr_bone_pig_image_light12d.py
+      - name: Read-only IBM quota postflight
+        if: success()
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py
+      - name: Preserve actual original-photo commitment, quantum job ID, all four PUB counts, hardware receipt and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mr-bone-pig-original-photo-real-ibm-${{ github.run_id }}
+          path: |
+            _ibm_bone_pig_image_light12d_20261010/
+            _ibm_open_plan_preflight/receipt.json
+          retention-days: 30
+          if-no-files-found: warn
