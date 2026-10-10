@@ -5,8 +5,9 @@ import { care } from '../lib/companion/adventure.mjs';
 import { shownName } from '../lib/companion/session.mjs';
 import { useBeastAudio } from './use-beast-audio';
 import { askGameBeast, gameBeastKey, rememberGameReply } from '../lib/companion/sol-game-talk.mjs';
+import {proposeGuidedGameAction,MAX_GUIDED_STEPS} from '../lib/companion/guided-game.mjs';
 
-export default function SolGameTalk({ active = true, observeGame }: { active?: boolean; observeGame?: () => Promise<any | null> }) {
+export default function SolGameTalk({ active = true, observeGame, applyGameAction }: { active?: boolean; observeGame?: () => Promise<any | null>; applyGameAction?: (button:string,expectedKey:string)=>Promise<boolean> }) {
   const { ready, session, change } = useBeastSession();
   const [open, setOpen] = useState(false), [text, setText] = useState('');
   const [busy, setBusy] = useState(false), [status, setStatus] = useState('');
@@ -15,6 +16,8 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
   const [shareMemories, setShareMemories] = useState(false);
   const [viewStatus, setViewStatus] = useState('');
   const [lastReply, setLastReply] = useState('');
+  const [guiding,setGuiding]=useState(false);
+  const guideEpoch=useRef(0);
   const { audio, state: audioState } = useBeastAudio();
   const request = useRef<{ sequence: number; controller?: AbortController }>({ sequence: 0 });
   const key = gameBeastKey(session), currentKey = useRef(key);
@@ -22,6 +25,8 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
   const panelId = useId(), name = shownName(session?.beast);
 
   function cancel() {
+    guideEpoch.current++;
+    setGuiding(false);
     request.current.sequence++;
     request.current.controller?.abort();
     request.current.controller = undefined;
@@ -43,7 +48,7 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
   async function send(event: React.FormEvent) {
     event.preventDefault();
     const saying = text.trim();
-    if (!saying || busy || !key || !active) return;
+    if (!saying || busy || guiding || !key || !active) return;
     const controller = new AbortController(), sequence = ++request.current.sequence, expectedKey = key;
     request.current.controller = controller;
     setBusy(true); setStatus(model==='connected'?'Asking the connected Brain Bay…':'Asking the RAWRPHØS guest brain…');
@@ -66,6 +71,40 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
     } finally {
       clearTimeout(timeout);
       if (sequence === request.current.sequence) { setBusy(false); request.current.controller = undefined; }
+    }
+  }
+  async function guideThreeSteps() {
+    // Explicit tap only. The model receives bounded native pixel measurements,
+    // never unconsented screenshot data or permission to choose arbitrary tools.
+    if(guiding||busy||!active||!includeGameView||!observeGame||!applyGameAction)return;
+    const epoch=++guideEpoch.current,expectedKey=key,controller=new AbortController();
+    request.current.controller=controller;
+    setGuiding(true);setStatus('Experimental RAWRPHØS controller: up to three measured steps, one safe key each.');
+    const timeout=setTimeout(()=>controller.abort(),90000);
+    const actual=[];
+    try{
+      for(let step=0;step<MAX_GUIDED_STEPS;step++){
+        if(epoch!==guideEpoch.current||currentKey.current!==expectedKey||controller.signal.aborted)break;
+        const pixels=await observeGame();
+        if(epoch!==guideEpoch.current||currentKey.current!==expectedKey||controller.signal.aborted)break;
+        const proposal=await proposeGuidedGameAction({
+          session,saying:'',observation:pixels,fetchImpl:fetch,signal:controller.signal,model
+        });
+        if(epoch!==guideEpoch.current||currentKey.current!==expectedKey||controller.signal.aborted)break;
+        if(!proposal.ok){setStatus('Guided control stopped at step '+(step+1)+': '+proposal.reason);return;}
+        if(proposal.button){
+          const applied=await applyGameAction(proposal.button,expectedKey);
+          if(!applied){setStatus('Game unavailable or identity changed; control stopped without injecting a key.');return;}
+        }
+        actual.push(proposal.command);
+        setStatus('Real model decisions '+actual.join(' → ')+' · bounded native game input, not object recognition.');
+      }
+      if(epoch===guideEpoch.current&&!controller.signal.aborted)setStatus('Guided trial completed: '+actual.join(' → ')+'. No model authority to save, evolve, or change identity.');
+    }catch(error){
+      if(epoch===guideEpoch.current)setStatus('Guided trial stopped: '+(error instanceof Error?error.message:'Native observation failed.'));
+    }finally{
+      clearTimeout(timeout);
+      if(epoch===guideEpoch.current){setGuiding(false);request.current.controller=undefined;}
     }
   }
   async function inspectGame(){
@@ -122,6 +161,13 @@ export default function SolGameTalk({ active = true, observeGame }: { active?: b
        Include fresh native pixel signals with each model message (not screenshots or object recognition)
       </label>
       <button type="button" style={button} disabled={!observeGame||busy} onClick={()=>void inspectGame()}>👁️ LOOK AT GAME</button>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center',marginTop:8}}>
+       <button type="button" style={button} disabled={!includeGameView||!applyGameAction||!active||busy||guiding} onClick={()=>void guideThreeSteps()}>
+         {guiding?'RAWRPHØS EXPLORING…':'TRY 3 GUIDED STEPS · EXPERIMENTAL'}
+       </button>
+       {guiding?<button type="button" style={button} onClick={cancel}>STOP & RELEASE</button>:null}
+      </div>
+      <p style={{fontSize:11,color:'#9fb7ce'}}>Requires your native-pixel opt-in and running game. The real model must output a valid single button; otherwise nothing moves. It cannot press START/SELECT, save, or grant itself tools.</p>
       <p role="status" style={{fontSize:11,color:'#aaddeb'}}>{viewStatus}</p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <button type="button" style={button} onClick={() => careFor('pet')}>PET</button>
