@@ -29,14 +29,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: real-song-12d-ibm-new-beast-38009590963
-          run-id: 38005372001
+          run-id: 38009590963
           github-token: ${{ github.token }}
           path: .
       - name: Fetch actual fresh Azure Rigetti QVM cloud result
         uses: actions/download-artifact@v4
         with:
           name: real-song12d-new-azure-qvm-38009805252
-          run-id: 38005563477
+          run-id: 38009805252
           github-token: ${{ github.token }}
           path: _azure_cst12_music_birth_20261009
       - name: Verify exact IBM/Azure hashes and once-only behavior replay
