@@ -1,0 +1,33 @@
+{
+  "schema": "spark-beasts-public-seed-shard-v1",
+  "source_class": "RECORDED_IBM_HARDWARE",
+  "job_id": "db4og3slf4us73c319h0",
+  "backend": "ibm_fez",
+  "counts_digest_sha256": "2ac2025a72f6d376783aded12561370260d5285fb697ecd2040c31f4ebcbb8d7",
+  "source_run_id": 38009590963,
+  "song_original_file_sha256": "4410ed871310ae2ce4429c7f525b93105f1a5d4521213fe052f0ecefea9a7e47",
+  "audio_packet_sha256": "84807db6e44e0bad5b494a6408ec7a0d8390f66399759e439b56f19ac8bb0e99",
+  "notice": "Four physical IBM circuits (16,384 total shots) were conditioned using the user's song-derived 12-channel COSMOS Music state BEFORE execution. This seed shard includes two 4096-shot measured Bell bases; full four-PUB counts are in provider artifact. Music processing is classical and the numeric 12D channels are software state.",
+  "runs": [
+    {
+      "k": "db4og3slf4us73c319h0:bell-zz",
+      "b": "ibm_fez",
+      "j": "db4og3slf4us73c319h0",
+      "p": 0,
+      "n": 2,
+      "s": 4096,
+      "c": "00:915,01:1002,10:1206,11:973",
+      "h": "8eb3a18ffb9ce08189bcaf401f3d394bd936d8ad187856e5cab999dc11a14432"
+    },
+    {
+      "k": "db4og3slf4us73c319h0:bell-xx",
+      "b": "ibm_fez",
+      "j": "db4og3slf4us73c319h0",
+      "p": 1,
+      "n": 2,
+      "s": 4096,
+      "c": "00:1818,01:302,10:327,11:1649",
+      "h": "f89e093ce5f8a6f5546c28760bd36a8f2501e382ed43ac14cf829b400db4629d"
+    }
+  ]
+}
