@@ -12,6 +12,17 @@ const mirror=process.argv[3]||'http://127.0.0.1:8765';
 const output=process.argv[4]||'/tmp/native-observed-guidance';
 const sha=v=>crypto.createHash('sha256').update(v).digest('hex');
 const actions=['RIGHT','UP','LEFT','DOWN','A','B','RIGHT','RIGHT','UP','LEFT','A','DOWN','RIGHT','B'];
+// A bounded scripted heuristic observes actual optical values before every input.
+// This is a demonstration policy, NOT evidence of optimal gameplay behavior.
+function teacher(o,episode,step){
+ if(o.brightness<20)return 'A';
+ if(o.frameChange<5)return 'RIGHT';
+ if(o.contrast>70)return 'LEFT';
+ if(o.dominant==='blue')return 'UP';
+ if(o.dominant==='green')return 'DOWN';
+ if(o.brightness>70)return 'B';
+ return actions[(episode*3+step)%actions.length];
+}
 const nativeIndex={UP:4,DOWN:5,LEFT:6,RIGHT:7,A:8,B:0};
 const safe=o=>o&&o.status==='observed'&&o.source==='native-emulator-display'
   &&['red','green','blue','mixed'].includes(o.dominant)
@@ -97,15 +108,15 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
    const entries=[];
    const beginning=await saveDigest();
    for(let i=0;i<actions.length;i++){
-    const policyAction=actions[(i+episode*3)%actions.length];
     const before=await optics();
+    const policyAction=teacher(before,episode,i);
     const native_ack_digest=await input(policyAction);
     await delay(260);
     const after=await optics();
     entries.push({schema:'beastbox-real-native-emulator-action-v1',
       parent:'Lumenwisp',qbeast_id:signed.id,episode,step:i,
       before,action:policyAction,after,native_ack_digest,
-      teacher:'SCRIPTED_ACTION_SEQUENCE_NOT_HUMAN_NOT_MODEL',
+      teacher:'OBSERVATION_CONDITIONED_SCRIPTED_HEURISTIC_NOT_HUMAN_NOT_MODEL',
       reward_proxy:Math.abs(after.brightness-before.brightness)+Math.abs(after.contrast-before.contrast)+Math.abs(after.frameChange-before.frameChange),
       reward_is_not_native_progress:true});
    }
@@ -121,7 +132,7 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   await fs.writeFile(output+'/native-observation-actions.jsonl',jsonl);
   const manifest={schema:'beastbox-observed-native-play-v1',source_class:'ORIGINAL_EMULATOR_NATIVE_PIXEL_OBSERVATIONS',
    qbeast_id:signed.id,alias:'Lumenwisp',sampling:'actual original native emulator 32x24 optical numeric features',
-   controller:'real native simulatedInput ACK, scripted teacher, no model decisions',
+   controller:'real native simulatedInput ACK, optical-observation-conditioned scripted teacher, no model decisions',
    episodes,events:raw.length,jsonl_sha256:sha(jsonl),
    dataset_has_human_labels:false,goal_reward_observed:false,
    training_is_behavioral_cloning_of_scripted_controller:true,
