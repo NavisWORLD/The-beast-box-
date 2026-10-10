@@ -184,6 +184,17 @@ async function sparkPistonwyrm(){
  localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
  $('status').textContent='Pistonwyrm is here from completed physical IBM Fez measurements. Same QBEAST is ready for Lost COSMOS. The separate 512-shot Azure QVM recording can be applied once below.';
 }
+async function sparkMagmascale(){
+ const seedRun=byKey.get('db4nlt2mb58s7389er6g:bell-xx');
+ if(!seedRun)throw Error('Third new 2026-10-09 physical IBM Fez source is unavailable. Magmascale will not use a stand-in seed.');
+ const entry={traits:{focus:80,calm:20,spark:100},run:seedRun.key,user:'Final-gen3-11'};
+ const genome=buildGenome(entry.traits,seedRun,entry.user,10);
+ if(genome.body!=='dragonling'||genome.seed!=='98d38e4ca857ffbd878a57eb8f6b8dc5be199b1e9f565dc56945579bc9d5e358'||genome.names[1]!=='Magmascale')throw Error('New measured Magmascale recipe failed verified identity regeneration.');
+ fillRunSelect([seedRun]);await adopt(entry);
+ bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);
+ localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
+ $('status').textContent='Magmascale sparked from a third NEW physical IBM Fez job. This exact QBEAST can enter Lost COSMOS and its verified 512-shot Azure QVM experience can be added once.';
+}
 function starterEntries(){
  if(starterCache.length)return starterCache;
  const profiles=['serene','focused','sparky','balanced','dreamy','steady','restless','mock'];
@@ -438,7 +449,7 @@ async function main(){
  $('save-here').addEventListener('click',()=>void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');saveSparkSession(localStorage,next);session=next;});$('save-state').textContent='SAVED ON THIS DEVICE';audioSfx('confirm');}));
  $('download-journey').addEventListener('click',()=>void run(async()=>{const next=readSparkSession(localStorage);deviceDownload(serializeDeviceJourney(next,byKey),shownName(next.beast)+'.beastjourney');$('status').textContent='Device journey created. Local memory and behavior are unsigned; native authority is unchanged.';}));
  $('import-journey').addEventListener('change',()=>void run(async()=>{const file=$('import-journey').files?.[0];if(!file)return;if(file.size>2*1024*1024)throw Error('Choose a journey under 2 MiB.');const journey=readDeviceJourney(await file.text(),byKey),next=await withSparkLock(()=>restoreDeviceJourney(localStorage,journey));showCreature(journey.entry,next,false);$('status').textContent='Device journey restored. Same identity, local memory; native artifacts remain unsigned.';$('import-journey').value='';}));
- $('final-dragon').addEventListener('click',()=>void run(()=>sparkFinalDragon()));$('pistonwyrm').addEventListener('click',()=>void run(()=>sparkPistonwyrm()));$('umbrascale').addEventListener('click',()=>void run(()=>sparkUmbrascale()));$('azure-stimulus').addEventListener('click',()=>void run(()=>applyAzureStimulus()));
+ $('final-dragon').addEventListener('click',()=>void run(()=>sparkFinalDragon()));$('pistonwyrm').addEventListener('click',()=>void run(()=>sparkPistonwyrm()));$('magmascale').addEventListener('click',()=>void run(()=>sparkMagmascale()));$('umbrascale').addEventListener('click',()=>void run(()=>sparkUmbrascale()));$('azure-stimulus').addEventListener('click',()=>void run(()=>applyAzureStimulus()));
  $('save-state').textContent='SAVED ON THIS DEVICE';coreTimer=setInterval(()=>void activityTick(),8000);
  window.addEventListener('storage',event=>{if(event.key==='beastbox-reduced-motion-v1')syncMotion();});
  for(const which of [1,2,3])$(`pick${which}`).addEventListener('click',()=>{stage=which;preview=stage!==session.beast.nativeStage;updatePlate();runtime.state='celebrate';runtime.until=runtime.T+1.5;$('status').textContent='Visual preview only. Your earned native stage and QBEAST progression did not change.'});
