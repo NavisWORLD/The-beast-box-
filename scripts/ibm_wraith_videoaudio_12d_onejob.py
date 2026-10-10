@@ -23,7 +23,7 @@ from pathlib import Path
 from ibm_open_plan_preflight import quota_receipt
 
 TAG = "navisworld-wraith-glyph303c-videoef1e-audio-v1"
-OUT = Path("_ibm_bone_pig_image_light12d_20261010")
+OUT = Path("_ibm_wraith_videoaudio_light12d_20261009")
 PACKET_PATH = Path("experiment-input/wraith-image-video-audio-light12d-20261009.json")
 SOURCE_SHA = "303c9d2865195f0f1f7c19eaf889fa989270435e4a3047a7eb6d4b6c6de0449d"
 FEATURE_SHA = "ceede33f8d78a88f8d69e315490558e9bc21c8b88cf935bd8b1e6c52d57e2f04"
