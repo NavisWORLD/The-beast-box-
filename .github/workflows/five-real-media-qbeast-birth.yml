@@ -32,7 +32,7 @@ jobs:
           name: five-new-azure-real-simulator-38030239709
           run-id: 38030239709
           github-token: ${{ github.token }}
-          path: .
+          path: _azure_five_multisource_qbeasts_20261010
       - name: Verify provider receipts, create 5 unique authentic QBEAST identities, 48 steps per creature, save/reload
         run: |
           node --check apps/beastbox-cloud/scripts/five-media-real-ibm-azure-qbeast.mjs
