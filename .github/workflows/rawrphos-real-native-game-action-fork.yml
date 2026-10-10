@@ -1,0 +1,46 @@
+name: RAWRPHOS real CPU game-control training - isolated 64 step fork
+on:
+  pull_request:
+    paths:
+      - scripts/train_rawrphos_native_game_actions.py
+      - .github/workflows/rawrphos-real-native-game-action-fork.yml
+permissions:
+  contents: read
+concurrency:
+  group: rawrphos-game-action-fork-original-14k-20261009
+  cancel-in-progress: false
+jobs:
+  actual-native-cpu-training:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install pinned CPU torch and native RAWRPHOS code
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos
+      - name: Install exact published real 14K checkpoint with SHA256 verification
+        run: |
+          mkdir -p build
+          python models/rawrphos/scripts/install_pinned_14k.py --destination build/verified-rawrphos-14k | tee build/actual-native-14k-parent.json
+      - name: REAL training of a separately versioned 64-step action-syntax fork
+        run: |
+          python -m py_compile scripts/train_rawrphos_native_game_actions.py
+          python scripts/train_rawrphos_native_game_actions.py
+      - name: Archive actual heldout losses, actual text outputs, child weights, original SHA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: actual-rawrphos-native-game-action-fork-${{ github.run_id }}
+          path: |
+            build/actual-native-14k-parent.json
+            build/rawrphos-native-game-guidance-001/
+          retention-days: 30
+          if-no-files-found: warn
