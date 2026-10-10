@@ -393,7 +393,7 @@ async function speak(event){
   else{setTalkSource('LOCAL PATTERN');if(remoteError)$('status').textContent='Cloud model unavailable, so the on-device pattern companion replied instead. '+remoteError.message;}
  });
 }
-async function museClick(){if(!$('consent').checked){$('status').textContent='Check consent before connecting your headband.';return}try{muse?.stop();muse=await connectMuse(traits=>{showTraits(traits);$('status').textContent='Derived traits updated locally. Raw samples discarded.'});$('status').textContent=`Connected to ${muse.name}. Derived AF7 traits sere.`;}catch(e){$('status').textContent=e.message||'Muse connection cancelled.'}}
+async function museClick(){if(!$('consent').checked){$('status').textContent='Check consent before connecting your headband.';return}try{muse?.stop();muse=await connectMuse(traits=>{showTraits(traits);$('status').textContent='Derived traits updated locally. Raw samples discarded.'});$('status').textContent=`Connected to ${muse.name}. Derived AF7 traits stay here.`;}catch(e){$('status').textContent=e.message||'Muse connection cancelled.'}}
 function qvmScenarioForCurrent(){if(!current||!qvmRuns.length)return 1;return 1+(parseInt(current.gen.seed.slice(0,8),16)%8);}
 async function processQvmBatch(row){
  if(!current||!runtime)throw Error('Spark a Beast before replaying the simulator.');
