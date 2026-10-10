@@ -237,6 +237,34 @@ async function sparkZeref(){
  bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
  $('status').textContent='Zeref sparked from the completed IBM Fez heartbeat experiment. Its measured genome is Scorchwyrm. The same QBEAST is ready for the Cage, Lost COSMOS and its recorded Azure input.';
 }
+async function sparkWraith(){
+ const run=byKey.get('db4rg5klf4us73c34tqg:bell-xx');
+ if(!run)throw Error('Wraith original uploaded image/video/audio REAL IBM source unavailable. No substitute simulated seed allowed.');
+ const entry={traits:{focus:42,calm:54,spark:71},run:run.key,user:'WraithGlyphVideoAudio-17'};
+ const genome=buildGenome(entry.traits,run,entry.user,10);
+ if(genome.body!=='moth'||genome.seed!=='385f040c4f5ce01904176448585007de206cd0f92ec34f61f7e08de72256bc85'||genome.names[1]!=='Lunlet')
+  throw Error('Measured Wraith/QBEAST recipe does not match the original IBM provider receipt.');
+ fillRunSelect([run]);await adopt(entry);
+ await withSparkLock(()=>{const next=readSparkSession(localStorage);nameBeast(next,'Wraith');saveSparkSession(localStorage,next);session=next;});
+ updatePlate();notifyNativeBridge();
+ bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);
+ localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
+ $('status').textContent='Wraith REAL IBM video/audio quantum-seeded QBEAST verified. Actual native form is Moth; visual phantom artwork is separate. Azure simulator is available once.';
+}
+async function sparkLumenwisp(){
+ const run=byKey.get('db4sba4lf4us73c36910:bell-xx');
+ if(!run)throw Error('NEW physical IBM Marrakesh offspring source has not loaded; refusing Wraith count replay.');
+ const entry={traits:{focus:36,calm:82,spark:46},run:run.key,user:'Lumenwisp-Generation2'};
+ const genome=buildGenome(entry.traits,run,entry.user,10);
+ if(genome.body!=='pup'||genome.seed!=='4ced51bdaae978a93970996759131f610a1be5bf9c3c5dd12b16849fbc16a0e2'||genome.names[1]!=='Gildlet')
+  throw Error('New measured offspring recipe does not match its IBM+Azure source and saved canonical QBEAST.');
+ fillRunSelect([run]);await adopt(entry);
+ await withSparkLock(()=>{const next=readSparkSession(localStorage);nameBeast(next,'Lumenwisp');saveSparkSession(localStorage,next);session=next;});
+ updatePlate();notifyNativeBridge();
+ bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);
+ localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
+ $('status').textContent='Lumenwisp is NEW physical IBM-seeded Generation II, descended from Wraith native sprite and recorded classical behavior. Native Lost COSMOS bridge can use the same QBEAST; independent Azure simulator input is available once.';
+}
 function starterEntries(){
  if(starterCache.length)return starterCache;
  const profiles=['serene','focused','sparky','balanced','dreamy','steady','restless','mock'];
@@ -491,7 +519,7 @@ async function main(){
  $('save-here').addEventListener('click',()=>void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');saveSparkSession(localStorage,next);session=next;});$('save-state').textContent='SAVED ON THIS DEVICE';audioSfx('confirm');}));
  $('download-journey').addEventListener('click',()=>void run(async()=>{const next=readSparkSession(localStorage);deviceDownload(serializeDeviceJourney(next,byKey),shownName(next.beast)+'.beastjourney');$('status').textContent='Device journey created. Local memory and behavior are unsigned; native authority is unchanged.';}));
  $('import-journey').addEventListener('change',()=>void run(async()=>{const file=$('import-journey').files?.[0];if(!file)return;if(file.size>2*1024*1024)throw Error('Choose a journey under 2 MiB.');const journey=readDeviceJourney(await file.text(),byKey),next=await withSparkLock(()=>restoreDeviceJourney(localStorage,journey));showCreature(journey.entry,next,false);$('status').textContent='Device journey restored. Same identity, local memory; native artifacts remain unsigned.';$('import-journey').value='';}));
- $('zeref').addEventListener('click',()=>void run(()=>sparkZeref()));$('final-dragon').addEventListener('click',()=>void run(()=>sparkFinalDragon()));$('pistonwyrm').addEventListener('click',()=>void run(()=>sparkPistonwyrm()));$('magmascale').addEventListener('click',()=>void run(()=>sparkMagmascale()));$('umbralet').addEventListener('click',()=>void run(()=>sparkUmbralet()));$('umbrascale').addEventListener('click',()=>void run(()=>sparkUmbrascale()));$('azure-stimulus').addEventListener('click',()=>void run(()=>applyAzureStimulus()));
+ $('zeref').addEventListener('click',()=>void run(()=>sparkZeref()));$('final-dragon').addEventListener('click',()=>void run(()=>sparkFinalDragon()));$('pistonwyrm').addEventListener('click',()=>void run(()=>sparkPistonwyrm()));$('magmascale').addEventListener('click',()=>void run(()=>sparkMagmascale()));$('umbralet').addEventListener('click',()=>void run(()=>sparkUmbralet()));$('wraith').addEventListener('click',()=>void run(()=>sparkWraith()));$('lumenwisp').addEventListener('click',()=>void run(()=>sparkLumenwisp()));$('umbrascale').addEventListener('click',()=>void run(()=>sparkUmbrascale()));$('azure-stimulus').addEventListener('click',()=>void run(()=>applyAzureStimulus()));
  $('save-state').textContent='SAVED ON THIS DEVICE';coreTimer=setInterval(()=>void activityTick(),8000);
  window.addEventListener('storage',event=>{if(event.key==='beastbox-reduced-motion-v1')syncMotion();});
  for(const which of [1,2,3])$(`pick${which}`).addEventListener('click',()=>{stage=which;preview=stage!==session.beast.nativeStage;updatePlate();runtime.state='celebrate';runtime.until=runtime.T+1.5;$('status').textContent='Visual preview only. Your earned native stage and QBEAST progression did not change.'});

@@ -9,11 +9,15 @@ const APPROVED=[
  {job:'71cf7c02-c435-11f1-ae67-7ced8d52b5e1',digest:'e559902784bf212d9cd86e1a887bbb69bac908c195133ff3e026b7e695a8db82',run:38002300373,keys:['00','01','10','11']},
  {job:'e26d2fc1-c43a-11f1-ae67-7c1e523ea660',digest:'8c2ee491e0d2518c7d187972e53ee89f4663185137ee9713773904ba2d9d094f',run:38005563477,keys:['00','01','10','11']},
  {job:'d7c48ad5-c442-11f1-ae67-70a8a5253f9c',digest:'0263c31eaed46663ea1e83c759702e611b1d37ee2d0fbbd24d20ad2bcd308f5d',run:38009805252,keys:['00','01','10','11']},
+ {job:'3c9e2a90-c45f-11f1-ae67-7ced8dda8a51',digest:'6e8fe47d1f53583623eb98eccd7715117d8dd2f889c0acabc12bef0c9e41f5ba',run:38022572501,keys:['00','01','10','11']},
+ {job:'ce11385c-c467-11f1-ae67-6045bdae353a',digest:'29890c8daab6b5cfad8bde076ae1d918b7548db9c9f32b0ceee60f02b0d1c210',run:38025920199,keys:['00','01','10','11']},
 ];
 const MARKER='beastbox-recorded-qvm-input-v1';
 const sameKeys=(object,keys)=>object&&typeof object==='object'&&!Array.isArray(object)&&canonicalJson(Object.keys(object).sort())===canonicalJson([...keys].sort());
 export function recordedQvmStimulusPath(beast){
  const source=beast?.genome?.inputs?.quantum_run||'';
+ if(/^db4sba4lf4us73c36910:bell-(xx|zz)$/.test(source))return '/spark/azure-lumenwisp-20261010.json';
+ if(/^db4rg5klf4us73c34tqg:bell-(xx|zz)$/.test(source))return '/spark/azure-wraith-20261010.json';
  if(/^db4q484vf2bc73cuuuag:bell-(xx|zz)$/.test(source))return '/spark/azure-zeref-heart-sound-20261010.json';
  if(/^db4og3slf4us73c319h0:bell-(xx|zz)$/.test(source))return '/spark/azure-real-song-cst12-umbralet-20261009.json';
  if(/^db4nlt2mb58s7389er6g:bell-(xx|zz)$/.test(source))return '/spark/azure-third-final-ibm-qvm-20261009.json';

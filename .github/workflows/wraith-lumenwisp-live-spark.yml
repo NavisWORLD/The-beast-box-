@@ -1,0 +1,33 @@
+name: Real Wraith + Lumenwisp dual-generation Spark and native identity
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/public/spark/**'
+      - 'apps/beastbox-cloud/lib/companion/recorded-qvm-stimulus.mjs'
+      - 'apps/beastbox-cloud/tests/wraith-lumenwisp-real-genesis.test.mjs'
+      - '.github/workflows/wraith-lumenwisp-live-spark.yml'
+permissions:
+  contents: read
+jobs:
+  exact-native-matched-hardware:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Install existing production app
+        run: npm ci --no-audit --no-fund
+      - name: Validate real QPU seed shards, exact QBEAST identities, and simulator hash guards
+        run: |
+          node --check public/spark/runs.mjs
+          node --check public/spark/app.mjs
+          node --test tests/wraith-lumenwisp-real-genesis.test.mjs tests/spark-source-registry.test.mjs tests/recorded-qvm-stimulus.test.mjs
+      - name: Build actual application for Vercel
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
