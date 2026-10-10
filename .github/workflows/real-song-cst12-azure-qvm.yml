@@ -1,0 +1,57 @@
+name: Real song CST12 IBM → new Azure QVM continuation
+on:
+  pull_request:
+    paths:
+      - 'scripts/azure_cosmos_music12d_qvm.py'
+      - '.github/workflows/real-song-cst12-azure-qvm.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: real-song-4410ed-ibm-to-azure-qvm-once-20261009
+  cancel-in-progress: false
+jobs:
+  music12d-cloud-quantum-sim:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/audio-cst12-prehardware-ibm-fourth-genesis-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download ORIGINAL successful new music-conditioned IBM QPU receipt (never replay old dragon)
+        uses: actions/download-artifact@v4
+        with:
+          name: real-song-12d-ibm-new-beast-38009590963
+          run-id: 38009590963
+          github-token: ${{ github.token }}
+          path: .
+      - name: Refuse if the real QPU did not encode user's song before measurement
+        run: |
+          PYTHONPATH=scripts python - <<'PY'
+          import json
+          from pathlib import Path
+          from azure_cosmos_music12d_qvm import verify
+          source=json.loads(Path('_ibm_cst12_music_birth_20261009/measurement_receipt.json').read_text())
+          verify(source)
+          assert source['audio_pre_hardware']['full_cosmos_12d_packet_sha256']=='84807db6e44e0bad5b494a6408ec7a0d8390f66399759e439b56f19ac8bb0e99'
+          print('VERIFIED_MUSIC_SONG_PRE_QPU_IBM='+source['job_id'])
+          PY
+      - name: Install official Azure Quantum SDK
+        run: python -m pip install 'qdk[azure]'
+      - name: ONE genuinely submitted Azure Rigetti simulator job or exact matching name recovery
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+          BEAST_AZURE_QVM_ONE_JOB: YES_ONE_FREE_SIMULATOR
+        run: PYTHONPATH=scripts python scripts/azure_cosmos_music12d_qvm.py
+      - name: Archive original song→IBM→Azure program, actual job IDs and counts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-song12d-new-azure-qvm-${{ github.run_id }}
+          path: _azure_cst12_music_birth_20261009/
+          retention-days: 30
+          if-no-files-found: warn
