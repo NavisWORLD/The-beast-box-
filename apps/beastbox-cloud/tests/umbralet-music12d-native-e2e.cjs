@@ -13,6 +13,8 @@ const job='d7c48ad5-c442-11f1-ae67-70a8a5253f9c',id='bb-1e1759f3';
   await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId,null,{timeout:40000});
   await page.locator('#umbralet').click();
   await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId==='bb-1e1759f3',null,{timeout:30000});
+    // Birth renders before its 48 recorded CST12 steps finish. Never race it.
+    await page.waitForFunction(()=>{try{return JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast.behavior.tick>=48}catch{return false}},null,{timeout:40000});
   const musicBirth=await page.evaluate(()=>{
     const s=JSON.parse(localStorage.getItem('beastbox-companion-session-v1'));
     return {qbeast_id:s.beast.qbeast.profile.id,behavior_tick:s.beast.behavior.tick,recorded_source:s.beast.genome.inputs.quantum_run};
