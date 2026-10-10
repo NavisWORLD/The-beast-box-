@@ -9,6 +9,7 @@ import {applyGameReturn,shownName} from '../lib/companion/session.mjs';
 import {createPlayerDisplay} from '../lib/companion/player-display.mjs';
 import GbaControls,{controllerInput} from './gba-controls';
 import SolGameTalk from './sol-game-talk';
+import {gameBeastKey} from '../lib/companion/sol-game-talk.mjs';
 import css from './sol-spark-player.module.css';
 
 const ROOT='https://navisworld.github.io';
@@ -25,6 +26,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
  const [starting,setStarting]=useState(false),[returning,setReturning]=useState(false),[audio,setAudio]=useState({wanted:false,running:false});
  const sources=useRef(new Map<string,Set<string>>()),pressed=useRef(new Set<string>()),keyboardHeld=useRef(new Set<string>()),returnTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
  const pendingReturn=useRef<{id:string;event:string}|null>(null),sent=useRef(false);
+ const modelHeld=useRef<string|null>(null);
  const observationWait=useRef<{requestId:string;beastId:string;timer:ReturnType<typeof setTimeout>;resolve:(value:any)=>void}|null>(null);
  const minimized=mode==='minimized'||(!stage&&!bound&&mode==='normal');
  const expanded=mode==='fullscreen'||mode==='immersive';
@@ -49,6 +51,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
  const release=useCallback(()=>{
   window.dispatchEvent(new Event('beastbox:gba-release'));
   for(const button of pressed.current)post({type:'sol-spark-input',button,down:false});
+  if(modelHeld.current){controllerInput(modelHeld.current,false,'agent');modelHeld.current=null;}
   pressed.current.clear();sources.current.clear();
   keyboardHeld.current.clear();
  },[post]);
@@ -81,7 +84,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
    const button=typeof detail?.button==='string'?detail.button.toLowerCase():'';
    if(!Object.prototype.hasOwnProperty.call(GBA_KEYS,button)||typeof detail?.down!=='boolean')return;
    if(detail.down&&!inputLive.current)return;
-   const source=['pointer','keyboard','gamepad'].includes(String(detail.source))?String(detail.source):'legacy';
+   const source=['pointer','keyboard','gamepad','agent'].includes(String(detail.source))?String(detail.source):'legacy';
    const held=sources.current.get(button)||new Set<string>();
    if(detail.down)held.add(source);else held.delete(source);
    if(held.size)sources.current.set(button,held);else sources.current.delete(button);
@@ -194,6 +197,22 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
   try{checkedSpark(serializeQbeast(session.beast.qbeast));setBound(JSON.parse(JSON.stringify(session.beast)));setNote('Sending your Beast…');void display.current?.normal();}
   catch(error){setNote(error instanceof Error?error.message:'Choose your Beast first.');}
  }
+ const applyGameAction=useCallback(async(button:string,expectedKey:string):Promise<boolean>=>{
+    const valid=['up','down','left','right','a','b'].includes(button);
+    const identity=bound?.qbeast?.profile?.id&&bound.seed?bound.qbeast.profile.id+':'+bound.seed:'';
+    if(!valid||!expectedKey||expectedKey!==identity||gameBeastKey(session)!==identity||
+       !inputLive.current||!running||document.hidden||modelHeld.current)return false;
+    modelHeld.current=button;
+    try{
+      controllerInput(button,true,'agent');
+      await new Promise(resolve=>setTimeout(resolve,125));
+      return inputLive.current && !document.hidden &&
+             gameBeastKey(session)===expectedKey;
+    }finally{
+      controllerInput(button,false,'agent');
+      if(modelHeld.current===button)modelHeld.current=null;
+    }
+  },[bound,session,running]);
  function saveJourney(){setReturning(true);setNote('Saving your native journey…');post({type:'sol-spark-return-request'});}
  return <section ref={shell} tabIndex={0} className={css.shell} data-lost-cosmos-player-shell data-spark-player data-creature-id={id} data-running={running} data-player-mode={minimized?'minimized':mode} data-player-stage={stage} aria-label={`Lost COSMOS player · ${name}`}>
   <header className={css.header}><div className={css.identity}><span className={css.light} data-lit={running} aria-hidden="true"/><div><strong>{name}</strong><small>LOST COSMOS · {running?'RUNNING':admitted?'BEAST VERIFIED':'YOUR BEAST / YOUR GAME'}</small></div></div>
@@ -206,7 +225,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
   </div>
   {running&&!minimized?<p className={css.gameAudioHint} role="status">{!audio.wanted?'🔊 iPhone: tap ENABLE GAME SOUND inside the Game Boy. Use 🔔 Test speaker there to check device output separately.':!audio.running?'🔊 Safari game sound is still unverified. In the Game Boy tap RESUME SOUND, then 🔔 TEST SPEAKER. A test chirp alone does not prove cartridge audio.':'🔊 The native emulator AudioContext is running. If silent, check the cartridge audio menu, iPhone media volume, Silent Mode and Bluetooth output.'}</p>:null}
   <div className={css.playAction}>{admitted&&!running?<button type="button" disabled={starting} onClick={()=>{setStarting(true);setNote('Starting Lost COSMOS…');post({type:'sol-spark-start'});}}>{starting?'STARTING…':'START LOST COSMOS'}</button>:null}</div>
-  <div className={css.talk}><SolGameTalk active={active} observeGame={observeGame}/></div>
+  <div className={css.talk}><SolGameTalk active={active&&running&&!minimized} observeGame={observeGame} applyGameAction={applyGameAction}/></div>
   <div className={css.controls}><GbaControls enabled={inputEnabled}/></div>
   <nav className={css.toolbar} aria-label="Game actions">
    <button type="button" onClick={()=>expanded?void display.current?.normal():void display.current?.expand()}>{expanded?'RETURN':'FULL SCREEN'}</button>
