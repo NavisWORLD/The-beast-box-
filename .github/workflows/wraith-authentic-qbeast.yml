@@ -1,0 +1,45 @@
+name: WRAITH - REAL IBM + Azure measured QBEAST generation
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/scripts/wraith-real-multisource-qbeast.mjs'
+      - '.github/workflows/wraith-authentic-qbeast.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  new-wraith-qbeast:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Download original Wraith real IBM hardware source (16,384 shots)
+        uses: actions/download-artifact@v4
+        with:
+          name: wraith-original-media-real-ibm-38022442093
+          run-id: 38022442093
+          github-token: ${{ github.token }}
+          path: .
+      - name: Download original Azure simulator continuation (512 recorded cloud shots)
+        uses: actions/download-artifact@v4
+        with:
+          name: wraith-azure-real-simulator-38022572501
+          run-id: 38022572501
+          github-token: ${{ github.token }}
+          path: _azure_wraith_videoaudio_light12d_20261009
+      - name: Run existing Beast Box canonical QBEAST engine, record exactly 48 steps, save/replay
+        run: |
+          node --check apps/beastbox-cloud/scripts/wraith-real-multisource-qbeast.mjs
+          node apps/beastbox-cloud/scripts/wraith-real-multisource-qbeast.mjs
+      - name: Archive actual new immutable QBEAST, stats, native pixel sprite and portable state
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wraith-authentic-qbeast-${{ github.run_id }}
+          path: apps/beastbox-cloud/experiment-evidence/wraith-photo-ibm-azure-20261010/
+          retention-days: 30
+          if-no-files-found: warn

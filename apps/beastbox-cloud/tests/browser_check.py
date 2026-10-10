@@ -84,7 +84,7 @@ with sync_playwright() as p:
     page.goto(BASE+"/workspace",wait_until="domcontentloaded")
     page.get_by_label("OWNER PASSWORD").fill("public-ci-fixture-not-secret")
     page.get_by_role("button",name="Unlock workstation").click()
-    page.get_by_text("BACKEND OFFLINE").wait_for(timeout=20000)
+    # Mobile hydration and the first authenticated status request can lag behind login.\n    # Wait for the actual offline status chip; do not substitute mocked connectivity.\n    page.locator(".app-header .status-chip.offline").get_by_text("BACKEND OFFLINE").wait_for(timeout=60000)
     assert_form_landmarks(page,"mobile workstation")
     assert page.get_by_role("navigation",name="Choose a cosmic world").get_by_role("button").count()==5
     world_buttons=page.get_by_role("navigation",name="Choose a cosmic world").get_by_role("button")

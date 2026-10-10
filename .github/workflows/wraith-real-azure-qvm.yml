@@ -1,0 +1,55 @@
+name: WRAITH original glyph/video/audio IBM → REAL Azure Rigetti QVM
+on:
+  pull_request:
+    paths:
+      - 'scripts/azure_wraith_multisource_qvm.py'
+      - '.github/workflows/wraith-real-azure-qvm.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: wraith-videoef1e-real-ibm-to-azure-qvm-onejob
+  cancel-in-progress: false
+jobs:
+  actual-azure-simulator:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/wraith-real-image-video-audio-ibm-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Download authentic Wraith physical IBM counts and original media provenance
+        uses: actions/download-artifact@v4
+        with:
+          name: wraith-original-media-real-ibm-38022442093
+          run-id: 38022442093
+          github-token: ${{ github.token }}
+          path: .
+      - name: Verify original glyph, video/audio and full physical IBM counts
+        run: |
+          PYTHONPATH=scripts python - <<'PY'
+          import json
+          from pathlib import Path
+          from azure_wraith_multisource_qvm import verify
+          d=json.loads(Path('_ibm_wraith_videoaudio_light12d_20261009/measurement_receipt.json').read_text())
+          verify(d)
+          assert d['wraith_multisource_pre_hardware']['video_motion_and_audio_are_qpu_gate_controls'] is True
+          print('ACTUAL_WRAITH_IBM_JOB='+d['job_id'])
+          PY
+      - name: Install official Azure Quantum QDK
+        run: python -m pip install 'qdk[azure]'
+      - name: Submit one real Azure Rigetti cloud QVM job (or recover same exact tagged job)
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+          BEAST_AZURE_QVM_ONE_JOB: YES_ONE_FREE_SIMULATOR
+        run: PYTHONPATH=scripts python scripts/azure_wraith_multisource_qvm.py
+      - name: Preserve actual simulator raw counts, source hashes, program, and job receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wraith-azure-real-simulator-${{ github.run_id }}
+          path: _azure_wraith_videoaudio_light12d_20261009/
+          retention-days: 30
+          if-no-files-found: warn

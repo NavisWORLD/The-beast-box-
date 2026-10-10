@@ -1,0 +1,78 @@
+name: WRAITH - original glyph + video + audio 12D REAL IBM Quantum
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/wraith-original-video-audio-ibm.yml'
+      - 'scripts/ibm_wraith_videoaudio_12d_onejob.py'
+      - 'experiment-input/wraith-image-video-audio-light12d-20261009.json'
+permissions:
+  contents: read
+concurrency:
+  group: wraith-glyph303c-movieef1e-one-authentic-qpu
+  cancel-in-progress: false
+jobs:
+  real-ibm-wraith:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/wraith-real-image-video-audio-ibm-20261009' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pre-validate original icon/video/audio commitment and owner QPU safeguards
+        run: |
+          python -m py_compile scripts/ibm_wraith_videoaudio_12d_onejob.py
+          PYTHONPATH=scripts python - <<'PY'
+          from ibm_wraith_videoaudio_12d_onejob import verified_image_light
+          p=verified_image_light()
+          assert p['source_video_sha256']=='ef1e0982371a0d74ab25ee994f51f011bd6efa9b4e7fa5c25ca7a39acf4358f5'
+          assert p['source_image_sha256']=='303c9d2865195f0f1f7c19eaf889fa989270435e4a3047a7eb6d4b6c6de0449d'
+          assert p['source_kind']=='ACTUAL_USER_GLYPH_AND_UPLOADED_VIDEO_AUDIO'
+          print('ORIGINAL_WRAITH_GLYPH_MOVIE_AUDIO_PACKET_VERIFIED='+p['qpu_summary_sha256'])
+          PY
+          python -m unittest discover -s tests -p test_ibm_open_plan_preflight.py -v
+      - name: Install official Qiskit provider on runner
+        run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+      - name: Prove BOTH original Wraith icon and actual video/audio materially change all quantum gate sequences
+        run: |
+          PYTHONPATH=scripts python - <<'PY'
+          from ibm_wraith_videoaudio_12d_onejob import verified_image_light,circuits
+          p=verified_image_light()
+          real=circuits(p)
+          def ablate(idxs):
+            q=dict(p,global_12d=p['global_12d'].copy(),quarter_means_12d=[r.copy() for r in p['quarter_means_12d']])
+            for i in idxs:
+              q['global_12d'][i]=0
+              for w in q['quarter_means_12d']:w[i]=0
+            return circuits(q)
+          no_icon=ablate([0,1,2,3,4,5,11])
+          no_video_audio=ablate([6,7,8,9,10])
+          assert len(real)==4
+          assert all(str(a[1])!=str(b[1]) for a,b in zip(real,no_icon)), 'Icon failed to affect quantum gates'
+          assert all(str(a[1])!=str(b[1]) for a,b in zip(real,no_video_audio)), 'Video/audio failed to affect quantum gates'
+          print('TRUE_PRE_QPU_ICON_LIGHT_ABLATION=PASS')
+          print('TRUE_PRE_QPU_VIDEO_AUDIO_ABLATION=PASS')
+          PY
+      - name: ONE guarded physical IBM 4x4096-shot job or idempotent exact-tag recovery, NO simulator substitution
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_REAL_QPU_ONE_JOB: YES_ONE_REAL_JOB
+        run: PYTHONPATH=scripts python scripts/ibm_wraith_videoaudio_12d_onejob.py
+      - name: Read-only owner quota after experiment
+        if: success()
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py
+      - name: Archive genuine source/preflight, submitted IBM ID, physical counts and failure receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wraith-original-media-real-ibm-${{ github.run_id }}
+          path: |
+            _ibm_wraith_videoaudio_light12d_20261009/
+            _ibm_open_plan_preflight/receipt.json
+          retention-days: 30
+          if-no-files-found: warn
