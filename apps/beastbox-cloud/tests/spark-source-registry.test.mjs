@@ -78,7 +78,9 @@ test('new Marrakesh hardware source is separate, opt-in, checked and replayable 
  assert.equal(archived.length,5676);
  assert.ok(!archived.some(row=>row.job_id==='db4l2uclf4us73c2td10'));
  const newRuns=await registry.loadSparkRuns({includeNewHardware:true});
- assert.equal(newRuns.length,5690);
+ assert.equal(newRuns.length,5694);
+ assert.equal(newRuns.filter(row=>row.job_id==='db4rg5klf4us73c34tqg').length,2);
+ assert.equal(newRuns.filter(row=>row.job_id==='db4sba4lf4us73c36910').length,2);
  assert.equal(newRuns.filter(row=>row.job_id==='db4og3slf4us73c319h0').length,2);
  assert.equal(newRuns.filter(row=>row.job_id==='db4nlt2mb58s7389er6g').length,2);
  assert.equal(newRuns.filter(row=>row.job_id==='db4n37g4qg6s73c2de00').length,2);
@@ -97,7 +99,7 @@ test('new Marrakesh hardware source is separate, opt-in, checked and replayable 
  assert.equal(qbeast.profile.id,'bb-82fbc8ff');
  assert.equal(replaySpark(serializeQbeast(qbeast),new Map(newRuns.map(row=>[row.key,row]))).gen.seed,genome.seed);
  const all=await registry.loadSparkRuns({includeQvm:true,includeNewHardware:true});
- assert.equal(all.length,5714);
+ assert.equal(all.length,5718);
  assert.equal(all.filter(row=>row.backend==='rigetti.sim.qvm').length,24);
 });
 
