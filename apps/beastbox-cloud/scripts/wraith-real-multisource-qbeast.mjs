@@ -17,7 +17,7 @@ const sha=x=>createHash('sha256').update(x).digest('hex');
 const check=(v,msg)=>{if(!v)throw Error(msg)};
 const receipt=read('_ibm_wraith_videoaudio_light12d_20261009/measurement_receipt.json');
 const azure=read('_azure_wraith_videoaudio_light12d_20261009/result.json');
-const packet=read('experiment-input/wraith-original-image-light12d-20261010.json');
+const packet=read('experiment-input/wraith-image-video-audio-light12d-20261009.json');
 const sourceImage='303c9d2865195f0f1f7c19eaf889fa989270435e4a3047a7eb6d4b6c6de0449d';
 const sourceVideo='ef1e0982371a0d74ab25ee994f51f011bd6efa9b4e7fa5c25ca7a39acf4358f5';
 const sourceFeatures='ceede33f8d78a88f8d69e315490558e9bc21c8b88cf935bd8b1e6c52d57e2f04';
