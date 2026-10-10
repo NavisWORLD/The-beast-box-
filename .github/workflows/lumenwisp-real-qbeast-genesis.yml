@@ -1,0 +1,44 @@
+name: Lumenwisp II fresh real IBM/Azure → genuinely new canonical QBEAST
+on:
+  pull_request:
+    paths:
+      - 'apps/beastbox-cloud/scripts/lumenwisp-real-ibm-azure-qbeast.mjs'
+      - '.github/workflows/lumenwisp-real-qbeast-genesis.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  real-new-creature:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Fetch genuine newly measured 16384-shot IBM counts AND original source pixel commitment
+        uses: actions/download-artifact@v4
+        with:
+          name: lumenwisp-generation-two-real-ibm-38025788890
+          run-id: 38025788890
+          github-token: ${{ github.token }}
+          path: .
+      - name: Fetch genuinely submitted unique Azure QVM result from the NEW IBM job
+        uses: actions/download-artifact@v4
+        with:
+          name: lumenwisp-generation-two-real-azure-38025920199
+          run-id: 38025920199
+          github-token: ${{ github.token }}
+          path: _azure_lumenwisp_native_pixel12d_20261009
+      - name: Generate brand new Lumenwisp QBEAST, 48 true classical behavior decisions and exact native session
+        run: |
+          node --check apps/beastbox-cloud/scripts/lumenwisp-real-ibm-azure-qbeast.mjs
+          node apps/beastbox-cloud/scripts/lumenwisp-real-ibm-azure-qbeast.mjs
+      - name: Preserve exact new identity, measured source, pixel sprite, 48-step trace and unmodified portable save
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumenwisp-real-generation-two-new-qbeast-${{ github.run_id }}
+          path: apps/beastbox-cloud/experiment-evidence/lumenwisp-real-generation2-20261009/
+          retention-days: 30
+          if-no-files-found: warn
