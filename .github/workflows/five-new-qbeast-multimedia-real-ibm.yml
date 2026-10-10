@@ -1,0 +1,68 @@
+name: 5 FRESH real IBM jobs - original photos song videos Zeref heart features
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/five-new-qbeast-multimedia-real-ibm.yml'
+      - 'scripts/ibm_five_media_real_birth.py'
+      - 'experiment-input/five-creature-real-media-12d-20261010.json'
+permissions:
+  contents: read
+concurrency:
+  group: navisworld-five-media-7e34156b41e3-physical-ibm-exclusive
+  cancel-in-progress: false
+jobs:
+  five-unique-real-qpu:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/five-media-real-qpu-batch-20261010' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 95
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate genuine photos, song and two videos + preserved feature-only Zeref heart
+        run: |
+          python -m py_compile scripts/ibm_five_media_real_birth.py
+          PYTHONPATH=scripts python - <<'PY'
+          from ibm_five_media_real_birth import validate
+          data=validate()
+          for creature in data['creatures']:
+              assert len(creature['global_12d']) == 12
+              print('SIGNED_PRE_HARDWARE_CREATURE='+creature['name']+' '+creature['windows48_sha256'])
+          PY
+          python -m unittest discover -s tests -p test_ibm_open_plan_preflight.py -v
+      - name: Install official IBM physical QPU runtime SDK
+        run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+      - name: Independently prove each of five real media packets changes actual quantum circuit gates
+        run: |
+          PYTHONPATH=scripts python - <<'PY'
+          from ibm_five_media_real_birth import validate,circuits
+          for creature in validate()['creatures']:
+              measured=circuits(creature['global_12d'])
+              zero=circuits([0]*12)
+              assert len(measured)==4
+              assert all(str(a[1])!=str(b[1]) for a,b in zip(measured,zero))
+              print('ACTUAL_MULTISOURCE_PRE_QPU_ABLATION_PASS='+creature['name'])
+          PY
+      - name: Submit at most FIVE fresh real IBM hardware jobs, each unique/remote-tag-deduplicated, sequential strict 300s aggregate cap
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_REAL_QPU_FIVE_MEDIA: YES_FIVE_TAGGED_REAL_JOBS
+        run: PYTHONPATH=scripts python scripts/ibm_five_media_real_birth.py
+      - name: Verify actual IBM quota after latest job
+        if: success()
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py
+      - name: Preserve all fresh IBM provider job IDs, counts, timings, circuit commitments, and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: five-media-real-ibm-${{ github.run_id }}
+          path: |
+            _ibm_five_multisource_qbeasts_20261010/
+            _ibm_open_plan_preflight/receipt.json
+          retention-days: 30
+          if-no-files-found: warn
