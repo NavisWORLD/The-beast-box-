@@ -2,7 +2,7 @@ import {blit,renderBeast,SPRITE} from './draw.mjs';
 import {BODIES,buildGenome,bucketTraits} from './genome.mjs';
 import {expandQvmReceipt,growthFromQvmBatch,scenarioRuns} from './qvm-growth.mjs';
 import {bluetoothNote,connectMuse} from './muse.mjs';
-import {serializeQbeast} from './qbeast.mjs';
+import {buildQbeast,serializeQbeast} from './qbeast.mjs';
 import {PROFILES,simulateStable} from './signal.mjs';
 import {Voice} from './voice.mjs';
 import {getBeastAudio} from './shared/beast-audio-engine.mjs';
@@ -266,6 +266,25 @@ async function sparkLumenwisp(){
  $('status').textContent='Lumenwisp is NEW physical IBM-seeded Generation II, descended from Wraith native sprite and recorded classical behavior. Native Lost COSMOS bridge can use the same QBEAST; independent Azure simulator input is available once.';
 }
 
+
+const BONE_PIG={alias:'Mr Bone Pig',job:'db4pa784qg6s73c2g5vg',traits:{focus:75,calm:55,spark:84},user:'BonePigPhoto-24',
+ seed:'28a3f13ee58a62a78bf2b03143f2d88210ad037e325870e947037f2a0331222c',body:'pup',native:'Rimepup',id:'bb-62603ee3'};
+async function sparkBonePig(){
+ const run=byKey.get(BONE_PIG.job+':bell-xx');
+ if(!run)throw Error('Original Mr Bone Pig physical IBM photo-conditioned receipt unavailable. No substituted seed.');
+ const entry={traits:BONE_PIG.traits,run:run.key,user:BONE_PIG.user};
+ const genome=buildGenome(entry.traits,run,entry.user,10);
+ if(genome.seed!==BONE_PIG.seed||genome.body!==BONE_PIG.body||genome.names[1]!==BONE_PIG.native)
+  throw Error('Mr Bone Pig saved native identity no longer reproduces from original hardware counts.');
+ fillRunSelect([run]);await adopt(entry);
+ if(session?.beast?.qbeast?.profile?.id!==BONE_PIG.id)throw Error('Original Mr Bone Pig canonical QBEAST identity mismatch.');
+ await withSparkLock(()=>{const next=readSparkSession(localStorage);nameBeast(next,'Mr Bone Pig');saveSparkSession(localStorage,next);session=next;});
+ updatePlate();notifyNativeBridge();
+ bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);
+ localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
+ $('status').textContent='Mr Bone Pig // '+BONE_PIG.id+' · original portrait → recorded physical IBM Marrakesh counts → separate Azure Rigetti simulator. Native Rimepup form, game identity preserved. Classical behavior, NFT unminted.';
+}
+
 const REAL_FIVE_MEDIA_BIRTHS=[{"alias":"Zeref-Nightcat-Dragon","job":"db4tc8kvf2bc73cv3np0","traits":{"focus":72,"calm":55,"spark":53},"seed":"6c94f1ff03c7ced766b1b0281db3c93816814bbd276c10c6cda8b1cdce8c1398","body":"serpent","native":"Tideling","id":"bb-f740d771","button":"new-zeref-nightcat"},{"alias":"Umbrascale-Starseed","job":"db4tdtkvf2bc73cv3qng","traits":{"focus":72,"calm":56,"spark":55},"seed":"4895a7212c332b0501f40a5784321aac79e07bdb7f9242ef3602c47e80968eb7","body":"serpent","native":"Mosscoil","id":"bb-b396edfe","button":"new-umbrascale-starseed"},{"alias":"Pistonwyrm-Gearseed","job":"db4te084qg6s73c2m3lg","traits":{"focus":73,"calm":57,"spark":56},"seed":"226bd3cafa2614315a4b538d6dcb26afe118800538fae7152c5fc2d13aa3fcad","body":"pup","native":"Boltlet","id":"bb-4c633cb5","button":"new-pistonwyrm-gearseed"},{"alias":"Heartflare-Moonfire","job":"db4te4g4qg6s73c2m470","traits":{"focus":73,"calm":58,"spark":55},"seed":"847950fde92c19fd85b591fc7932c3ba3fb586547eb0d4c0e6ba52564fc19531","body":"biped","native":"Regalbit","id":"bb-5f6b911b","button":"new-heartflare-moonfire"},{"alias":"Moonwraith-Cassette-Kit","job":"db4te7slf4us73c3888g","traits":{"focus":72,"calm":56,"spark":52},"seed":"1ea83dd020ec994e4a8d569fac2a18d86e6701d538a1f7289def97e77fb2ec6a","body":"moth","native":"Halolet","id":"bb-c190e914","button":"new-moonwraith-cassette"}];
 async function sparkMeasuredMediaCreature(spec){
  const run=byKey.get(spec.job+':bell-xx');
@@ -294,7 +313,63 @@ function starterEntries(){
  for(const item of candidates){if(picked.length>=18)break;take(item);}
  starterCache=picked;return starterCache;
 }
-function drawBestiary(){const grid=$('bestiary');grid.replaceChildren();const combined=[...bestiary,...starterEntries()],seen=new Set();for(const entry of combined){const key=JSON.stringify(entry);if(seen.has(key)||!byKey.has(entry.run))continue;seen.add(key);try{const gen=buildGenome(entry.traits,byKey.get(entry.run),entry.user||null,10),btn=document.createElement('button'),canvas=document.createElement('canvas'),label=document.createElement('span');btn.type='button';btn.className='beast-card';paintStage(canvas,gen,1);label.textContent=`${gen.names[1]} · ${gen.body} · ${gen.island}`;btn.append(canvas,label);btn.addEventListener('click',()=>void run(()=>adopt(entry)));grid.append(btn);if(seen.size>=24)break;}catch{}}}
+
+/** Source-pinned recipes, shown even before saving a creature on this device. */
+function featuredRoster(){
+ const pinned=[
+  {label:'Mr Bone Pig',tag:'Original portrait · IBM hardware + Azure simulator',spec:BONE_PIG,create:sparkBonePig},
+  {label:'Wraith',tag:'Glyph / video / audio · IBM hardware',spec:{job:'db4rg5klf4us73c34tqg',traits:{focus:42,calm:54,spark:71},user:'WraithGlyphVideoAudio-17',id:'bb-4a61a8d5'},create:sparkWraith},
+  {label:'Lumenwisp',tag:'Wraith offspring · new IBM hardware',spec:{job:'db4sba4lf4us73c36910',traits:{focus:36,calm:82,spark:46},user:'Lumenwisp-Generation2',id:'bb-983f386b'},create:sparkLumenwisp},
+  ...REAL_FIVE_MEDIA_BIRTHS.map(spec=>({label:spec.alias,tag:'Five-media birth · IBM hardware + Azure simulator',spec:{...spec,user:spec.alias},create:()=>sparkMeasuredMediaCreature(spec)})),
+  {label:'Zeref',tag:'Heart-derived recorded IBM hardware',spec:{job:'db4q484vf2bc73cuuuag',traits:{focus:80,calm:20,spark:100},user:'Zeref-heart-15'},create:sparkZeref},
+  {label:'Umbralet',tag:'Original song / 12D recorded IBM hardware',spec:{job:'db4og3slf4us73c319h0',traits:{focus:80,calm:20,spark:100},user:'Music12D-5'},create:sparkUmbralet},
+  {label:'Magmascale',tag:'Recorded third IBM hardware run',spec:{job:'db4nlt2mb58s7389er6g',traits:{focus:80,calm:20,spark:100},user:'Final-gen3-11'},create:sparkMagmascale},
+  {label:'Pistonwyrm',tag:'Recorded second IBM hardware run',spec:{job:'db4n37g4qg6s73c2de00',traits:{focus:75,calm:20,spark:95},user:'Final-gen2-2'},create:sparkPistonwyrm},
+  {label:'Umbrascale',tag:'Recorded IBM hardware dragon',spec:{job:'db4m3bslf4us73c2ui9g',traits:{focus:80,calm:20,spark:100},user:'Ethereal-live-19'},create:sparkUmbrascale},
+  {label:'Duskscale',tag:'Recorded first dragon hardware run',spec:{job:'db4l2uclf4us73c2td10',traits:{focus:80,calm:20,spark:100},user:'Ethereal-dragon-21'},create:sparkFinalDragon}
+ ];
+ return pinned.map(item=>({...item,entry:{traits:item.spec.traits,run:item.spec.job+':bell-xx',user:item.spec.user}}));
+}
+function drawBestiary(){
+ const grid=$('bestiary');if(!grid)return;
+ const filter=($('roster-search')?.value||'').trim().toLowerCase(),fragment=document.createDocumentFragment();
+ const entries=[...featuredRoster().map(x=>({...x,kind:'recorded'})),...bestiary.map(entry=>({entry,kind:'saved'})),...starterEntries().map(entry=>({entry,kind:'starter'}))];
+ const seen=new Set();let count=0,featuredCount=0;
+ for(const item of entries){
+  const entry=item.entry,run=byKey.get(entry.run);if(!run)continue;
+  try{
+   const genome=buildGenome(entry.traits,run,entry.user||null,10),id=buildQbeast(genome).profile.id;
+   if(item.spec?.seed&&genome.seed!==item.spec.seed)continue;
+   if(item.spec?.id&&id!==item.spec.id)continue;
+   if(seen.has(id))continue;seen.add(id);
+   const name=item.label||genome.names[1],caption=item.tag||(genome.body+' · '+genome.island);
+   if(filter&&!(name+' '+caption+' '+id+' '+genome.body+' '+run.job_id).toLowerCase().includes(filter))continue;
+   const card=document.createElement('article');card.className='beast-card roster-card';
+   if(session?.beast?.qbeast?.profile?.id===id)card.classList.add('roster-active');
+   const canvas=document.createElement('canvas');paintStage(canvas,genome,1);canvas.setAttribute('aria-hidden','true');
+   const title=document.createElement('strong');title.textContent=name;
+   const subtitle=document.createElement('small');subtitle.textContent=caption;
+   const identity=document.createElement('code');identity.textContent=id;
+   const actions=document.createElement('div');actions.className='roster-actions';
+   const choose=async(mode)=>{
+    if(item.create)await item.create();else await adopt(entry);
+    if(mode==='play'){location.assign('/sol-game');return;}
+    document.getElementById('habitat')?.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'});
+    if(mode==='talk'){$('talk-form').hidden=false;$('talk-text').focus();}
+   };
+   for(const [mode,label] of [['select','Select'],['play','Play 🎮'],['talk','Talk']]){
+    const button=document.createElement('button');button.type='button';button.textContent=label;
+    button.setAttribute('aria-label',label.replace(' 🎮','')+' with '+name);
+    button.addEventListener('click',()=>void run(()=>choose(mode)));actions.append(button);
+   }
+   card.append(canvas,title,subtitle,identity,actions);fragment.append(card);
+   count++;if(item.kind==='recorded')featuredCount++;
+  }catch(err){console.warn('Roster entry rejected without substituting creature identity:',item.label||entry.user,err.message);}
+ }
+ grid.replaceChildren(fragment);
+ if($('roster-count'))$('roster-count').textContent=count+' creatures shown · '+featuredCount+' recorded favorites · '+seen.size+' distinct IDs checked';
+}
+
 function download(){if(!session?.beast)return;const text=serializeQbeast(session.beast.qbeast),url=URL.createObjectURL(new Blob([text],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=shownName(session.beast)+'.qbeast';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$('status').textContent='Your existing QBEAST identity downloaded. Native evolution is earned in LOST COSMOS.';}
 function readSoundWanted(){try{return localStorage.getItem('beastbox-site-sound-v1')!=='off'&&localStorage.getItem(SOUND_KEY)!=='off';}catch{return true;}}
 function saveSoundWanted(){try{localStorage.setItem(SOUND_KEY,soundWanted?'on':'off');localStorage.setItem('beastbox-site-sound-v1',soundWanted?'on':'off');}catch{}}
@@ -530,13 +605,13 @@ async function main(){
  if(raw){const active=replaySpark(JSON.parse(raw).text,byKey);const saved=await withSparkLock(()=>selectSpark(localStorage,active.gen));showCreature(active.entry,saved,false);}
  else await adopt(bestiary[0]&&byKey.has(bestiary[0].run)?bestiary[0]:starterEntries()[0]);
  window.addEventListener('pointerdown',unlockPreferredSound,{capture:true});window.addEventListener('touchstart',unlockPreferredSound,{capture:true,passive:true});window.addEventListener('click',unlockPreferredSound,{capture:true});window.addEventListener('keydown',unlockPreferredSound,{capture:true});
- $('generate').addEventListener('click',()=>void run(async()=>{surpriseRun();audioSfx('charge');await spark()}));$('regenerate').addEventListener('click',()=>void run(()=>spark()));$('use-profile').addEventListener('click',()=>void run(async()=>{showTraits(simulateStable($('profile').value));await spark('profile')}));$('surprise').addEventListener('click',()=>{surpriseRun();audioSfx('blip')});$('q').addEventListener('input',searchRuns);$('download').addEventListener('click',download);$('voice').addEventListener('click',()=>void enableVoice());$('music').addEventListener('click',toggleMusic);$('mic-react').addEventListener('click',()=>void toggleMicReaction());$('music-volume').addEventListener('input',setMusicVolume);$('drift').addEventListener('click',()=>{drift=!drift;$('drift').classList.toggle('on',drift);audioSfx('blip')});$('muse').addEventListener('click',()=>void museClick());$('stop-muse').addEventListener('click',()=>{muse?.stop();muse=null;$('status').textContent='Muse disconnected. Samples cleared.'});$('qvm-replay').addEventListener('click',()=>void run(()=>replayQvmScenario()));
+ $('generate').addEventListener('click',()=>void run(async()=>{surpriseRun();audioSfx('charge');await spark()}));$('regenerate').addEventListener('click',()=>void run(()=>spark()));$('use-profile').addEventListener('click',()=>void run(async()=>{showTraits(simulateStable($('profile').value));await spark('profile')}));$('surprise').addEventListener('click',()=>{surpriseRun();audioSfx('blip')});$('roster-search').addEventListener('input',drawBestiary);$('q').addEventListener('input',searchRuns);$('download').addEventListener('click',download);$('voice').addEventListener('click',()=>void enableVoice());$('music').addEventListener('click',toggleMusic);$('mic-react').addEventListener('click',()=>void toggleMicReaction());$('music-volume').addEventListener('input',setMusicVolume);$('drift').addEventListener('click',()=>{drift=!drift;$('drift').classList.toggle('on',drift);audioSfx('blip')});$('muse').addEventListener('click',()=>void museClick());$('stop-muse').addEventListener('click',()=>{muse?.stop();muse=null;$('status').textContent='Muse disconnected. Samples cleared.'});$('qvm-replay').addEventListener('click',()=>void run(()=>replayQvmScenario()));
  for(const k of ['focus','calm','spark'])$(k).addEventListener('input',()=>showTraits(readTraits()));for(const kind of ['pet','play','train','rest','care'])$(kind).addEventListener('click',()=>void run(()=>interaction(kind)));$('view').addEventListener('click',()=>void run(()=>interaction('pet')));$('talk').addEventListener('click',()=>{$('talk-form').hidden=!$('talk-form').hidden;if(!$('talk-form').hidden)$('talk-text').focus()});$('talk-form').addEventListener('submit',speak);
  $('name-form').addEventListener('submit',event=>{event.preventDefault();void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');const named=nameBeast(next,$('beast-name').value);if(!named.ok)throw Error('Choose a name of up to 24 characters.');saveSparkSession(localStorage,next);session=next;});updatePlate();$('status').textContent=`Named ${shownName(session.beast)}. Same QBEAST, saved on this device.`;runtime.state='celebrate';runtime.until=runtime.T+1.5;});});
  $('save-here').addEventListener('click',()=>void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');saveSparkSession(localStorage,next);session=next;});$('save-state').textContent='SAVED ON THIS DEVICE';audioSfx('confirm');}));
  $('download-journey').addEventListener('click',()=>void run(async()=>{const next=readSparkSession(localStorage);deviceDownload(serializeDeviceJourney(next,byKey),shownName(next.beast)+'.beastjourney');$('status').textContent='Device journey created. Local memory and behavior are unsigned; native authority is unchanged.';}));
  $('import-journey').addEventListener('change',()=>void run(async()=>{const file=$('import-journey').files?.[0];if(!file)return;if(file.size>2*1024*1024)throw Error('Choose a journey under 2 MiB.');const journey=readDeviceJourney(await file.text(),byKey),next=await withSparkLock(()=>restoreDeviceJourney(localStorage,journey));showCreature(journey.entry,next,false);$('status').textContent='Device journey restored. Same identity, local memory; native artifacts remain unsigned.';$('import-journey').value='';}));
- $('zeref').addEventListener('click',()=>void run(()=>sparkZeref()));$('final-dragon').addEventListener('click',()=>void run(()=>sparkFinalDragon()));$('pistonwyrm').addEventListener('click',()=>void run(()=>sparkPistonwyrm()));$('magmascale').addEventListener('click',()=>void run(()=>sparkMagmascale()));$('umbralet').addEventListener('click',()=>void run(()=>sparkUmbralet()));$('wraith').addEventListener('click',()=>void run(()=>sparkWraith()));$('new-zeref-nightcat').addEventListener('click',()=>void run(()=>sparkMeasuredMediaCreature(REAL_FIVE_MEDIA_BIRTHS.find(b=>b.button==='new-zeref-nightcat'))));$('new-umbrascale-starseed').addEventListener('click',()=>void run(()=>sparkMeasuredMediaCreature(REAL_FIVE_MEDIA_BIRTHS.find(b=>b.button==='new-umbrascale-starseed'))));$('new-pistonwyrm-gearseed').addEventListener('click',()=>void run(()=>sparkMeasuredMediaCreature(REAL_FIVE_MEDIA_BIRTHS.find(b=>b.button==='new-pistonwyrm-gearseed'))));$('new-heartflare-moonfire').addEventListener('click',()=>void run(()=>sparkMeasuredMediaCreature(REAL_FIVE_MEDIA_BIRTHS.find(b=>b.button==='new-heartflare-moonfire'))));$('new-moonwraith-cassette').addEventListener('click',()=>void run(()=>sparkMeasuredMediaCreature(REAL_FIVE_MEDIA_BIRTHS.find(b=>b.button==='new-moonwraith-cassette'))));$('lumenwisp').addEventListener('click',()=>void run(()=>sparkLumenwisp()));$('umbrascale').addEventListener('click',()=>void run(()=>sparkUmbrascale()));$('azure-stimulus').addEventListener('click',()=>void run(()=>applyAzureStimulus()));
+ $('bone-pig').addEventListener('click',()=>void run(()=>sparkBonePig()));$('zeref').addEventListener('click',()=>void run(()=>sparkZeref()));$('final-dragon').addEventListener('click',()=>void run(()=>sparkFinalDragon()));$('pistonwyrm').addEventListener('click',()=>void run(()=>sparkPistonwyrm()));$('magmascale').addEventListener('click',()=>void run(()=>sparkMagmascale()));$('umbralet').addEventListener('click',()=>void run(()=>sparkUmbralet()));$('wraith').addEventListener('click',()=>void run(()=>sparkWraith()));$('new-zeref-nightcat').addEventListener('click',()=>void run(()=>sparkMeasuredMediaCreature(REAL_FIVE_MEDIA_BIRTHS.find(b=>b.button==='new-zeref-nightcat'))));$('new-umbrascale-starseed').addEventListener('click',()=>void run(()=>sparkMeasuredMediaCreature(REAL_FIVE_MEDIA_BIRTHS.find(b=>b.button==='new-umbrascale-starseed'))));$('new-pistonwyrm-gearseed').addEventListener('click',()=>void run(()=>sparkMeasuredMediaCreature(REAL_FIVE_MEDIA_BIRTHS.find(b=>b.button==='new-pistonwyrm-gearseed'))));$('new-heartflare-moonfire').addEventListener('click',()=>void run(()=>sparkMeasuredMediaCreature(REAL_FIVE_MEDIA_BIRTHS.find(b=>b.button==='new-heartflare-moonfire'))));$('new-moonwraith-cassette').addEventListener('click',()=>void run(()=>sparkMeasuredMediaCreature(REAL_FIVE_MEDIA_BIRTHS.find(b=>b.button==='new-moonwraith-cassette'))));$('lumenwisp').addEventListener('click',()=>void run(()=>sparkLumenwisp()));$('umbrascale').addEventListener('click',()=>void run(()=>sparkUmbrascale()));$('azure-stimulus').addEventListener('click',()=>void run(()=>applyAzureStimulus()));
  $('save-state').textContent='SAVED ON THIS DEVICE';coreTimer=setInterval(()=>void activityTick(),8000);
  window.addEventListener('storage',event=>{if(event.key==='beastbox-reduced-motion-v1')syncMotion();});
  for(const which of [1,2,3])$(`pick${which}`).addEventListener('click',()=>{stage=which;preview=stage!==session.beast.nativeStage;updatePlate();runtime.state='celebrate';runtime.until=runtime.T+1.5;$('status').textContent='Visual preview only. Your earned native stage and QBEAST progression did not change.'});
