@@ -612,3 +612,18 @@ html[data-beastbox-reduced-motion="true"] *,html[data-beastbox-reduced-motion="t
 /* Phones: lift the hero buttons a little so the corner controls do not sit on them at first view. */
 @media(max-width:500px){.landing .hero{padding-top:26px}.landing .hero-cta{margin:22px 0}}
 @media(max-width:900px){.public-journey-links{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent);padding-right:30px!important}}
+
+/* ZEREF // MOONWRAITH: live home guide + support mascot rig. */
+.zeref-moonwraith{position:relative;width:100%;height:100%;display:grid;grid-template-rows:minmax(0,1fr) auto;place-items:center;min-height:1px}
+.zeref-stage{display:block;width:100%;height:100%;max-width:100%;aspect-ratio:1;padding:0;margin:0;border:0;background:none;border-radius:50%;cursor:pointer;color:inherit;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.zeref-stage:focus-visible{outline:3px solid #b2f2ff;outline-offset:4px}
+.zeref-svg{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 10px #a77bffa0) drop-shadow(0 14px 22px #05020caa)}
+.zeref-svg [data-part]{will-change:transform,opacity}
+.zeref-caption{margin:2px 0 0;padding:3px 10px;border-radius:999px;background:#140d26c4;border:1px solid #b99bff55;color:#efe4ff;font:600 10px/1.4 'Space Grotesk',system-ui,sans-serif;letter-spacing:.04em;pointer-events:none;white-space:nowrap}
+.zeref-caption strong{color:#d9c2ff}
+.zeref-caption [data-zeref-mood]{color:#9aefff}
+.cosmos-home-hero>.zeref-moonwraith{width:100%;height:100%}
+.zeref-support .support-mascot-wings{transform-origin:200px 256px}
+.zeref-support.is-winged .support-mascot-wings{transform:scale(1.12)}
+@media(max-width:560px){.zeref-caption{font-size:9px;padding:2px 8px}}
+@media(prefers-reduced-motion:reduce){.zeref-svg [data-part]{will-change:auto;transition:none!important}}
