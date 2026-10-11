@@ -1,0 +1,128 @@
+name: Zeref 009 - original native Save Game commits player position after controlled Zeref gameplay
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - 'scripts/zeref_native_inference_server_008.py'
+      - 'scripts/zeref_native_progress_008.cjs'
+      - 'apps/beastbox-cloud/tests/zeref-native-committed-movement-009.cjs'
+      - 'tests/zeref_native_progress_008.test.cjs'
+      - 'tests/zeref_native_save_009.test.cjs'
+      - '.github/workflows/zeref-native-save-menu-009.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: zeref-009-neutral-game-save-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+jobs:
+  real-native-comparative-rollouts:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/zeref-real-saved-movement-009-20261011' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 115
+    env:
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Check comparator contract, pure policy tests and Python syntax before spending CPU
+        run: |
+          node --test tests/zeref_native_progress_008.test.cjs tests/zeref_native_save_009.test.cjs
+          node --check apps/beastbox-cloud/tests/zeref-native-committed-movement-009.cjs
+          python -m py_compile scripts/zeref_native_inference_server_008.py
+      - name: Install CPU-only PyTorch and unchanged original RAWRPHOS native architecture
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos
+      - name: Restore exact original published 14K checkpoint with SHA verification
+        run: |
+          mkdir -p build
+          python models/rawrphos/scripts/install_pinned_14k.py --destination build/verified-rawrphos-14k | tee build/zeref-009-original-checkpoint.json
+      - name: Restore exact approved Zeref 006 continuation checkpoint (no new training)
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: NavisWORLD/The-beast-box-
+          run-id: 38129248023
+          name: zeref-006-accepted-checkpoint-38129248023
+          path: build/zeref-009-artifact
+      - name: Verify exact saved candidate weights, origin receipt and no automatic model promotion
+        run: |
+          set -Eeuo pipefail
+          CAND=$(find build/zeref-009-artifact -type d -name accepted-checkpoint -print -quit)
+          test -n "$CAND" || { echo 'Original candidate checkpoint missing; no imitation or substitute weights'; exit 1; }
+          test -s "$CAND/manifest.json" || { echo 'No native training checkpoint manifest'; exit 1; }
+          test -s "$(dirname "$CAND")/approval.json" || { echo 'Experiment 006 approval missing'; exit 1; }
+          export BEAST_008_CANDIDATE_PATH="$CAND"
+          echo "BEAST_008_CANDIDATE_PATH=$CAND" >> "$GITHUB_ENV"
+          python - <<'PY'
+          from rawrphos.training.checkpoint import load_checkpoint
+          from pathlib import Path
+          import json,os
+          m=load_checkpoint(Path(os.environ['BEAST_008_CANDIDATE_PATH']),expected_checkpoint_sha256='37ca3f8fc9cdc0e78175508fc816ed02d5a12da1f3b106505715b7366fde5a48',load_training_state=False)
+          assert m['metadata'].get('production_promoted') is False
+          approval=json.loads((Path(os.environ['BEAST_008_CANDIDATE_PATH']).parent/'approval.json').read_text())
+          assert approval['approved'] is True and approval['checkpoint_sha256']==m['metadata']['checkpoint_sha256'] and approval['qbeast_id']=='bb-deada969'
+          print('EXPERIMENT_009_VERIFIED_APPROVED_006_SHA='+m['metadata']['checkpoint_sha256'])
+          PY
+      - name: Install unchanged Beast Box production app and actual native cartridge
+        working-directory: apps/beastbox-cloud
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - uses: actions/checkout@v4
+        with:
+          repository: NavisWORLD/Cosmic-synapse-the-living-universe-sim-engine-
+          ref: main
+          path: native-game
+          persist-credentials: false
+      - name: Build ORIGINAL GBA ROM and isolated actual Chromium emulator (no game replacement)
+        run: |
+          set -Eeuo pipefail
+          echo "NATIVE_GAME_HEAD=$(cd native-game && git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "WEB_APP_HEAD=$GITHUB_SHA" >> "$GITHUB_ENV"
+          sudo apt-get update
+          sudo apt-get install -y clang lld llvm ffmpeg
+          (cd native-game && bash scripts/build-lost-cosmos-arcade.sh)
+          npm install --prefix /tmp/zeref-009-browser --no-save --ignore-scripts playwright@1.62.1
+          /tmp/zeref-009-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Native SAVE MENU SMOKE then 006 Zeref 6-policy committed player position experiment
+        run: |
+          set -Eeuo pipefail
+          mkdir -p /tmp/zeref-009-evaluation
+          python -u scripts/zeref_native_inference_server_008.py > /tmp/zeref-009-evaluation/actual-model.log 2>&1 &
+          model_pid=$!
+          (cd apps/beastbox-cloud && npm run start -- --hostname 127.0.0.1 --port 3000) > /tmp/zeref-009-evaluation/next.log 2>&1 &
+          web_pid=$!
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory native-game > /tmp/zeref-009-evaluation/native-game.log 2>&1 &
+          game_pid=$!
+          trap 'kill "$model_pid" "$web_pid" "$game_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:8778/health > /tmp/zeref-009-evaluation/inference-health.json && curl -fsS http://127.0.0.1:3000/spark/index.html > /dev/null && curl -fsS http://127.0.0.1:8765/arcade/sol-spark-gate/handheld.html > /dev/null; then break; fi
+            sleep 2
+          done
+          test -s /tmp/zeref-009-evaluation/inference-health.json
+          mkdir -p /tmp/zeref-009-smoke
+          ZEREF_009_SAVE_SMOKE=1 NODE_PATH=/tmp/zeref-009-browser/node_modules node apps/beastbox-cloud/tests/zeref-native-committed-movement-009.cjs http://127.0.0.1:3000 http://127.0.0.1:8765 /tmp/zeref-009-smoke
+          test -s /tmp/zeref-009-smoke/report.json
+          echo 'NATIVE_009_NEUTRAL_SAVE_SMOKE_PASSED=true'
+          NODE_PATH=/tmp/zeref-009-browser/node_modules node apps/beastbox-cloud/tests/zeref-native-committed-movement-009.cjs http://127.0.0.1:3000 http://127.0.0.1:8765 /tmp/zeref-009-evaluation
+          test -s /tmp/zeref-009-evaluation/report.json
+          test -s /tmp/zeref-009-evaluation/real-native-policy-rollouts.jsonl
+          sha256sum /tmp/zeref-009-evaluation/real-native-policy-rollouts.jsonl
+      - name: Preserve literal model decisions, real native frame/ACK outcomes, videos or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-009-real-native-committed-movement-${{ github.run_id }}
+          path: |
+            /tmp/zeref-009-evaluation/
+            /tmp/zeref-009-smoke/
+          retention-days: 30
+          if-no-files-found: warn
