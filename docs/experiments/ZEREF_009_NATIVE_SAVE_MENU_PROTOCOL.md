@@ -38,3 +38,14 @@ No new IBM QPU or Azure work. No production checkpoint promotion, save editing, 
 
 ## Acceptance
 Require test suite pass, real WAIT=zero saved displacement and RIGHT=nonzero, then compare model displacement against every independent baseline on the full 18 episodes. If the native game enters a dialogue/battle/menu that blocks normal saving, fail visibly rather than inferring fictitious progress. A passing protocol does NOT automatically imply the model beats any baseline. Archive exact measurements.
+
+## Root cause of "RIGHT ACK but zero saved movement" (2026-10-11, Milestone 1 of OPERATION: THE LAST FORGE)
+
+The original native game was **not** blocking movement. Evidence, all from unmodified ROM execution with no memory writes:
+
+- **Real mGBA (libmgba bridge, `tools/mgba.py`):** after the exact 009 title entry (A, then START skip) and the identical neutral SAVE GAME → SLOT1 baseline, eight RIGHT presses moved `player` from (160,344) to (290,344). The second SAVE GAME UI wrote checksum-valid `LCV5` with x=290. From the same start tile the four directions all move: RIGHT 160→220, LEFT 220→160, DOWN 344→404, UP 404→344 (30 held frames each, 2 px/frame).
+- **Real Chromium + pinned EmulatorJS 4.2.3 + same ROM:** the same 009 key timing (180 ms menu holds, 145 ms policy holds) gave, for the after-policy save, an **unflushed** `getSaveFile(false)` read of (160,344) for every policy, while a **flushed** read (`saveSaveFiles()` first) gave WAIT (160,344), RIGHT (290,344), LEFT (18,344), DOWN (160,486), UP (160,204).
+
+EmulatorJS `getSaveFile(false)` returns the virtual-FS `.srm` file only; it does not copy the running core's battery RAM (`getSaveFile(t){!1!==t&&this.saveSaveFiles();...}`). The handheld flushes that file every 5 s (`checkpointNow`), so the baseline save could be observed while the fresh after-policy save was still sitting in core RAM 350 ms later. The 008 "no new saves" result used the same unflushed read and is affected the same way.
+
+Fix: every 009 SRAM snapshot now calls `saveSaveFiles()` (the same read-only battery export the handheld uses) before `getSaveFile(false)`. Assertions and thresholds are unchanged: WAIT must still be exactly 0 px and RIGHT must still be > 0 px.

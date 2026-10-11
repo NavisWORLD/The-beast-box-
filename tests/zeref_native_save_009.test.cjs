@@ -33,3 +33,11 @@ test('the experiment does not create fresh quantum jobs or promote candidate wei
  assert.match(source,/new_ibm_hardware_jobs_in_this_run:0/);
  assert.doesNotMatch(workflow,/secrets\.IBM|SamplerV2|qiskit/);
 });
+test('every SRAM snapshot flushes the running core battery before reading the EmulatorJS file',()=>{
+ // getSaveFile(false) alone returns the stale virtual-FS file (root cause of 0 px RIGHT).
+ const reads=source.match(/getSaveFile\?\.\(false\)/g)||[];
+ const flushes=source.match(/gm\?\.saveSaveFiles\?\.\(\);/g)||[];
+ assert.ok(reads.length>=2,'expected the progress and digest reads');
+ assert.equal(flushes.length,reads.length,'each native SRAM read must be preceded by saveSaveFiles()');
+ assert.match(source,/flushedNativeSram/);
+});

@@ -129,7 +129,9 @@ async function infer(kind,observation,episode,step){
     }
     async function saveDigest(){
      return core.evaluate(async()=>{
-      const raw=window.EJS_emulator?.gameManager?.getSaveFile?.(false);
+      // Flush the running core's battery RAM first (see flushedNativeSram note).
+      const gm=window.EJS_emulator?.gameManager;gm?.saveSaveFiles?.();
+      const raw=gm?.getSaveFile?.(false);
       if(!raw||raw.length<256)return null;
       const digest=await crypto.subtle.digest('SHA-256',new Uint8Array(raw));
       return Array.from(new Uint8Array(digest),v=>v.toString(16).padStart(2,'0')).join('');
@@ -139,8 +141,17 @@ async function infer(kind,observation,episode,step){
      // Same original EmulatorJS SRAM export used for player battery saves.
      // Transfer only the 7,296-byte native public game-save region to this
      // local CI process; NEVER archive raw bytes or share with the model.
+     // flushedNativeSram: EmulatorJS 4.2.3 getSaveFile(false) only reads the
+     // virtual-FS .srm file; it does NOT copy the running core's battery RAM.
+     // Without saveSaveFiles() first, a fresh in-game SAVE GAME stays invisible
+     // until the handheld's 5 s checkpoint happens to run, so the 009 smoke read
+     // the previous (baseline) save and reported 0 px for RIGHT. Reproduced on
+     // 2026-10-11: unflushed read 160,344 vs flushed read 290,344 after 8 RIGHT.
+     // saveSaveFiles() is the same read-only battery export the handheld uses in
+     // checkpointNow(); it never writes game memory.
      const saved=await core.evaluate(()=>{
-      const b=window.EJS_emulator?.gameManager?.getSaveFile?.(false);
+      const gm=window.EJS_emulator?.gameManager;gm?.saveSaveFiles?.();
+      const b=gm?.getSaveFile?.(false);
       if(!b||b.length<7296)return null;
       return Array.from(new Uint8Array(b).subarray(0,7296));
      });
