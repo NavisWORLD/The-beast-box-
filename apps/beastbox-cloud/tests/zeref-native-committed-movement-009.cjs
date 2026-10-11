@@ -199,7 +199,15 @@ async function infer(kind,observation,episode,step){
     // No direct SRAM writes, native game cheats or emulator API mutation.
     const nativeSaveMenuKeys=['START','RIGHT','UP','A','DOWN','DOWN','DOWN','A','A','A'];
     const saveMenuAcks=[];
-    for(const key of nativeSaveMenuKeys)saveMenuAcks.push(await input(key));
+    // ACK != a processed GBA key edge: the real 38158546878 recording showed
+    // rapid successive DOWNs ACKed by EmulatorJS but only TWO processed by
+    // native VBlank scanning. Wait ~6 ROM frames released between each key,
+    // and hold each press for ~11 frames to ensure down/up are sampled.
+    for(const key of nativeSaveMenuKeys){
+     await delay(100);
+     saveMenuAcks.push(await input(key,180));
+     await delay(100);
+    }
     await delay(250);
     const committedAfterNativeMenu=await progressSnapshot();
     const committedSavedDelta=change(firstSavedProgress,committedAfterNativeMenu);
