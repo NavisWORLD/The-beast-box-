@@ -61,8 +61,8 @@ function decode(raw){
    player_level:a[128],boss_flags:a[149],story_flags:u16(a,200)},
   v11_valid:v11,campaign_valid:comp,
   v11:v11?{
-   visited_mask:a[q+248],visited_count:pop(a[q+248]),
-   beacons_mask:a[q+249],beacons_count:pop(a[q+249]),
+   visited_mask:a[q+241],visited_count:pop(a[q+241]),
+   beacons_mask:a[q+242],beacons_count:pop(a[q+242]),
    quest_done_mask:u16(a,q+344),quests_completed:pop(u16(a,q+344)),
    boss_done_mask:u16(a,q+346),bosses_completed:pop(u16(a,q+346)),
    cores_found_mask:u16(a,q+348),cores_found:pop(u16(a,q+348)),
