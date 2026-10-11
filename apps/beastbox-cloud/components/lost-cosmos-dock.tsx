@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import type React from 'react';
 import { usePathname } from 'next/navigation';
 import type { CreatureProfile } from '../lib/creature-profile';
 import { modeFor } from '../lib/companion/gba-dock.mjs';
@@ -54,6 +55,36 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('beastbox:gba-running', { detail: booted && shown && !closed }));
   }, [booted, shown, closed]);
+
+  // A full-screen player must not cover the page's own nav ([data-page-nav]).
+  // Start the fixed player just below it, and follow it when the page scrolls.
+  const [navClear, setNavClear] = useState<number | null>(null);
+  useEffect(() => {
+    if (!nativeOwned || mode !== 'full') { setNavClear(null); return; }
+    let frame = 0;
+    const first = document.querySelector<HTMLElement>('main [data-page-nav]');
+    const current = first?.querySelector<HTMLElement>('[aria-current]');
+    // The nav is one scrollable row on phones; keep the current page in view.
+    if (first && current && first.scrollWidth > first.clientWidth) first.scrollLeft = Math.max(0, current.offsetLeft - (first.clientWidth - current.offsetWidth) / 2);
+    const measure = () => {
+      frame = 0;
+      const nav = document.querySelector<HTMLElement>('main [data-page-nav]');
+      if (!nav) { setNavClear(null); return; }
+      const bottom = nav.getBoundingClientRect().bottom;
+      setNavClear(bottom > 0 ? Math.round(bottom + 8) : null);
+    };
+    const schedule = () => { if (!frame) frame = window.requestAnimationFrame(measure); };
+    schedule();
+    const settle = window.setTimeout(schedule, 600);
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.clearTimeout(settle);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+    };
+  }, [nativeOwned, mode, pathname]);
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 760px)');
@@ -147,7 +178,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
 
   const state = mode === 'full' ? 'full' : closed ? 'closed' : wide ? 'expanded' : 'mini';
   const className = [css.dock, mode === 'full' ? css.full : '', wide ? css.wide : '', mode === 'mini' && closed ? css.closed : '', mode === 'parked' ? css.parked : '', pill ? css.pill : '', pill && tucked ? css.tucked : ''].filter(Boolean).join(' ');
-  if(nativeOwned)return <aside className={css.sparkDock} aria-label={`Lost Cosmos cartridge connected to ${connectedName}`} data-lost-cosmos-dock="true" data-cosmos-mode={mode} data-dock-state="native" data-rom-source="/api/gba-rom" data-creature-id={session?.beast?.qbeast?.profile.id||''}>
+  if(nativeOwned)return <aside className={css.sparkDock} style={navClear!==null?({'--nav-clear':`${navClear}px`} as React.CSSProperties):undefined} aria-label={`Lost Cosmos cartridge connected to ${connectedName}`} data-lost-cosmos-dock="true" data-cosmos-mode={mode} data-dock-state="native" data-rom-source="/api/gba-rom" data-creature-id={session?.beast?.qbeast?.profile.id||''}>
     <SolSparkPlayer stage={mode==='full'} />
   </aside>;
   return <aside ref={shell} className={className} data-dock-pill={pill ? (tucked ? 'tucked' : 'pill') : undefined} data-cosmos-mode={mode} data-rom-source="/api/gba-rom" aria-hidden={shown ? undefined : true} aria-label={`Lost Cosmos cartridge connected to ${connectedName}`}
