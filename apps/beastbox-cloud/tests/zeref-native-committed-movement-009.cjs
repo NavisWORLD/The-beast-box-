@@ -144,7 +144,19 @@ async function infer(kind,observation,episode,step){
       if(!b||b.length<7296)return null;
       return Array.from(new Uint8Array(b).subarray(0,7296));
      });
-     return decode(saved);
+     const observation=decode(saved);
+     // Report ONLY public game-save integrity metadata. Do not archive raw
+     // 7,296-byte SRAM, user data, secrets or emulator state for this test.
+     if(observation.status!=='validated_committed_native_sram'&&Array.isArray(saved)&&saved.length>=191){
+      let native=0x6d;
+      for(let i=0;i<190;i++)if(i!==126&&i!==127)native=(native+saved[i]+7*i)&255;
+      observation.validation_diagnostic={
+       length:saved.length,save_magic:saved.slice(0,5).map(x=>String.fromCharCode(x)).join(''),
+       stored_checksum:saved[190],recomputed_checksum:native,
+       checksum_mismatch:saved[190]!==native
+      };
+     }
+     return observation;
     }
     // Identical initial title-entry sequence for every independent episode.
     await delay(1600);await input('A');await delay(650);
@@ -211,6 +223,15 @@ async function infer(kind,observation,episode,step){
     await delay(250);
     const committedAfterNativeMenu=await progressSnapshot();
     const committedSavedDelta=change(firstSavedProgress,committedAfterNativeMenu);
+    const savedStateAudit={policy,episode,
+      before:{status:firstSavedProgress.status,location:firstSavedProgress.committed_location||null,
+        reason:firstSavedProgress.reason||null,validation_diagnostic:firstSavedProgress.validation_diagnostic||null},
+      after:{status:committedAfterNativeMenu.status,location:committedAfterNativeMenu.committed_location||null,
+        reason:committedAfterNativeMenu.reason||null,validation_diagnostic:committedAfterNativeMenu.validation_diagnostic||null},
+      menu_acknowledgments:saveMenuAcks.length,neutral_menu_key_sequence:nativeSaveMenuKeys,
+      original_rom_was_not_modified:true,raw_sram_archived:false};
+    console.log('ZEREF_009_ORIGINAL_NATIVE_SAVE_AUDIT='+JSON.stringify(savedStateAudit));
+    await output('save-audit-'+policy+'-'+episode+'.json',savedStateAudit);
     await input('B');await input('B');
     const end=await saveDigest();
     assert.equal(rows.length,STEPS);
