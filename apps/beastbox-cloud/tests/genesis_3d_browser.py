@@ -34,7 +34,13 @@ with sync_playwright() as p:
   fits(page,str(width)+" homepage")
   if width in [1440,390,320]:page.screenshot(path=str(OUT/f"home-{width}.png"),full_page=True,animations="disabled")
   page.get_by_role("link",name=re.compile("Enter the Beast Cage")).click()
-  expect(page.get_by_role("heading",name=re.compile("A small companion"))).to_be_visible()
+  page.wait_for_url("**/beast-cage",timeout=30000)
+  try:
+   expect(page.get_by_role("heading",name=re.compile("A small companion"))).to_be_visible(timeout=20000)
+  except Exception as failure:
+   page.screenshot(path=str(OUT/f"cage-route-diagnostic-{width}.png"),full_page=True)
+   body=page.locator("body").inner_text(timeout=5000)[:600]
+   raise AssertionError(f"Cage hero missing at {page.url}; browser errors={errors[:4]}; body={body}") from failure
   page.get_by_label("Character seed").fill("life-engine-art-acceptance")
   page.get_by_label("Cosmic family").select_option("aurora")
   page.get_by_role("button",name="Generate from this seed").click()
