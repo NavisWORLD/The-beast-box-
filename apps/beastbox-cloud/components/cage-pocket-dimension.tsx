@@ -40,7 +40,10 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   const parent=canvas.closest('.cage-habitat-visual') as HTMLElement|null;
   const activePointers=new Map<number,Pointer>();
   let moved=false,suppressClick=false;
-  const isControl=(target:EventTarget|null)=>target instanceof Element&&Boolean(target.closest('button,input,select,textarea,a,summary,[contenteditable="true"]'));
+  const isControl=(target:EventTarget|null)=>target instanceof Element&&Boolean(
+   target.closest('input,select,textarea,a,summary,[contenteditable="true"]')||
+   target.closest('button:not([aria-label^="Tap "])')
+  );
   const pointerDown=(event:PointerEvent)=>{
    if(isControl(event.target)||event.button!==0&&event.pointerType==='mouse')return;
    activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});moved=false;
