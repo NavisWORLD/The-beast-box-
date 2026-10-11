@@ -158,14 +158,52 @@ async function infer(kind,observation,episode,step){
      }
      return observation;
     }
+    // Genuine V11 game UI save controls, identical before/after the policy.
+    // Original content_v11_menus.h: SYSTEM index3 -> SAVE -> SLOT1.
+    // Slot starts blank in a new browser context; later it is occupied.
+    async function neutralCommittedSave(slotOccupied,stage){
+     const keys=['START','RIGHT','UP','A','DOWN','DOWN','DOWN','A','A','A',
+       ...(slotOccupied?['A']:[])];
+     const acks=[];
+     for(const key of keys){
+      await delay(100);
+      acks.push(await input(key,180));
+      await delay(100);
+     }
+     await delay(350);
+     const snap=await progressSnapshot();
+     const trace={stage,keys,native_controller_ack_count:acks.length,
+       saved_status:snap.status,saved_location:snap.committed_location||null,
+       diagnostic:snap.validation_diagnostic||null,
+       original_game_UI_only:true,raw_sram_archived:false};
+     console.log('ZEREF_009_REAL_NEUTRAL_SAVE='+JSON.stringify(trace));
+     await output('neutral-save-'+policy+'-'+episode+'-'+stage+'.json',trace);
+     // Close native SAVE SLOT -> SYSTEM -> PAUSE -> field.
+     // Distinct GBA key edges need several released frames to be processed.
+     for(let i=0;i<3;i++){
+      await delay(100);
+      acks.push(await input('B',180));
+      await delay(100);
+     }
+     await delay(350);
+     return {snapshot:snap,keys,acks,trace};
+    }
     // Identical initial title-entry sequence for every independent episode.
     await delay(1600);await input('A');await delay(650);
     await page.evaluate(()=>window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button:'start',down:true,source:'agent'}})));
     await delay(150);
     await page.evaluate(()=>window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button:'start',down:false,source:'agent'}})));
     await delay(1700);
+    // New cartridge SRAM was all 0xFF in the REAL 38159497390 run.
+    // A first post-policy save is NOT comparable with nonexistent save data.
+    // Establish source-verified initial conditions using the exact SAME
+    // neutral native menu for every WAIT/RIGHT/RANDOM/model episode.
+    const bootUninitialized=await progressSnapshot();
+    const initialSave=await neutralCommittedSave(false,'before-policy');
+    const firstSavedProgress=initialSave.snapshot;
+    assert.equal(firstSavedProgress.status,'validated_committed_native_sram',
+      'Native V11 baseline save did not commit before model actions');
     const first=await observation(),begin=await saveDigest();
-    const firstSavedProgress=await progressSnapshot();
     const rows=[],random=seededRandom(20261011+episode);
     for(let step=0;step<STEPS;step++){
      const before=await observation();
@@ -197,48 +235,36 @@ async function infer(kind,observation,episode,step){
        optical_frame_change_is_not_game_reward:true,earned_reward:null,dialogue_advancement:null,
        real_area_discovered:null});
     }
-    // These keys are a NEUTRAL, explicitly logged native game menu audit,
-    // applied identically after every policy's own action window. Original C
-    // Source-verified V11.3 menu, NOT the pre-V11 legacy setting_sel menu:
-    // native START -> RIGHT -> UP selects SYSTEM (pause page 9), then A.
-    // content_v11_menus.h::v11_update_pause starts v11_sel=0 (AUDIO).
-    // DOWN x3 selects SAVE GAME (v11_sel=3), A opens SAVE SLOT page 44.
-    // A saves an empty slot; if occupied, A arms overwrite and next A saves.
-    // One final A dismisses confirmation. These keys are neutral audit
-    // actions AFTER the policy window and are NEVER model commands.
-    // Crucially: UP from v11_sel=0 wraps to index 12/SFX and toggles sound,
-    // which was OBSERVED in the failed real browser recording 38157714812.
-    // No direct SRAM writes, native game cheats or emulator API mutation.
-    const nativeSaveMenuKeys=['START','RIGHT','UP','A','DOWN','DOWN','DOWN','A','A','A'];
-    const saveMenuAcks=[];
-    // ACK != a processed GBA key edge: the real 38158546878 recording showed
-    // rapid successive DOWNs ACKed by EmulatorJS but only TWO processed by
-    // native VBlank scanning. Wait ~6 ROM frames released between each key,
-    // and hold each press for ~11 frames to ensure down/up are sampled.
-    for(const key of nativeSaveMenuKeys){
-     await delay(100);
-     saveMenuAcks.push(await input(key,180));
-     await delay(100);
-    }
-    await delay(250);
-    const committedAfterNativeMenu=await progressSnapshot();
+    // Run the same measured native SAVE UI again. SLOT1 is now occupied
+    // by our initial neutral baseline, so V11 requires a second A to confirm
+    // overwrite. This after-policy save is NOT part of any AI policy.
+    const committed=await neutralCommittedSave(true,'after-policy');
+    const nativeSaveMenuKeys=committed.keys;
+    const saveMenuAcks=committed.acks;
+    const committedAfterNativeMenu=committed.snapshot;
     const committedSavedDelta=change(firstSavedProgress,committedAfterNativeMenu);
     const savedStateAudit={policy,episode,
       before:{status:firstSavedProgress.status,location:firstSavedProgress.committed_location||null,
         reason:firstSavedProgress.reason||null,validation_diagnostic:firstSavedProgress.validation_diagnostic||null},
       after:{status:committedAfterNativeMenu.status,location:committedAfterNativeMenu.committed_location||null,
         reason:committedAfterNativeMenu.reason||null,validation_diagnostic:committedAfterNativeMenu.validation_diagnostic||null},
+      boot_sram_status:bootUninitialized.status,
+      before_policy_save_status:firstSavedProgress.status,
       menu_acknowledgments:saveMenuAcks.length,neutral_menu_key_sequence:nativeSaveMenuKeys,
       original_rom_was_not_modified:true,raw_sram_archived:false};
     console.log('ZEREF_009_ORIGINAL_NATIVE_SAVE_AUDIT='+JSON.stringify(savedStateAudit));
     await output('save-audit-'+policy+'-'+episode+'.json',savedStateAudit);
-    await input('B');await input('B');
     const end=await saveDigest();
     assert.equal(rows.length,STEPS);
     if(pageErrors.length)throw Error('Actual browser reported exception(s): '+pageErrors.join(' | '));
     const episodeRecord={policy,episode,qbeast_id:QBEAST,rows,
      first_optical_signature:opticsSignature(first),
      initial_native_saved_progress_status:firstSavedProgress.status,
+     bootstrap_empty_sram_status:bootUninitialized.status,
+     neutral_initial_save_menu_keys:initialSave.keys,
+     neutral_initial_save_menu_acks:initialSave.acks,
+     neutral_after_save_menu_keys:committed.keys,
+     neutral_after_save_menu_acks:committed.acks,
      original_native_save_menu_keys:nativeSaveMenuKeys,
      original_native_save_menu_acks:saveMenuAcks,
      committed_start_native_snapshot:firstSavedProgress,
