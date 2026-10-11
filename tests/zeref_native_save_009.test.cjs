@@ -11,8 +11,8 @@ test('native Game Boy START mapping is exact and neutral menu save is distinct f
  assert.match(source,/neutral_initial_save_menu_acks:initialSave\.acks/);
  assert.match(source,/neutral_after_save_menu_acks:committed\.acks/);
  assert.match(source,/original_native_save_menu_acks:saveMenuAcks/);
- assert.ok(source.includes('content_v11_menus.h::v11_update_pause'),'V11 save route must be documented in native runner');
- assert.match(source,/failed real browser recording 38157714812/);
+ assert.ok(source.includes('Original content_v11_menus.h:'),'V11 save route must remain grounded in source');
+ assert.ok(source.includes('New cartridge SRAM was all 0xFF'),'Real blank-SRAM diagnosis must not be lost');
  assert.ok(source.includes("await input('B',180)"),'Return to field after neutral save using real native Game Boy B key');
  assert.match(source,/neutral_ui_commands_not_part_of_model_or_script_policy:true/);
  assert.doesNotMatch(source,/gameManager\.(?:setSaveFile|writeMemory)\(/);
