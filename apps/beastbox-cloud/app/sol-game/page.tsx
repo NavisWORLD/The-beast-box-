@@ -22,5 +22,5 @@ export default function SolGame(){return <main style={{minHeight:'100vh',backgro
  <p>Your exact recorded-seed companion. Native art, movement, chirps and battery saves. Open TALK to chat with your Beast through the available guest-safe brain and care for it while the cartridge stays open.</p>
  <p style={{fontSize:12,color:'#9aadd4'}}><Link href="/beast-cage/go">Explore the web field first →</Link></p>
  <p>The Game Boy player stays with you. Minimize it to explore Beast Box, then restore your current adventure.</p>
- <p style={{fontSize:12,color:'#9aadd4'}}>Cartridge V11.4, with the new PROLOGUE: Ash in the Forge. The file hash is a1de1ab1. The ROM header still says COSMOS V11.2. That string is stale. The bytes are the V11.4 release. Older saves still load.</p>
+ <p style={{fontSize:12,color:'#9aadd4'}}>Cartridge V11.5. New: the Beast Home in Brindlemark, where your beast lives and you can feed it, play with it, pet it and put it to bed. Roads, grass and flowers are redrawn. The file hash is 9263730a and the ROM header says COSMOS V11.5. Older saves still load.</p>
  </main>}
