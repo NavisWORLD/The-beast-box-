@@ -11,6 +11,10 @@ const root=process.argv[2]||'http://127.0.0.1:3000';
 const mirror=process.argv[3]||'http://127.0.0.1:8765';
 const output=process.argv[4]||'/tmp/native-observed-guidance';
 const sha=v=>crypto.createHash('sha256').update(v).digest('hex');
+const PROFILE=process.env.NAVISWORLD_NATIVE_TRAINING_BEAST==='zeref'
+ ?{selector:'zeref',id:'bb-deada969',alias:'Zeref',source_job:'db4q484vf2bc73cuuuag',seed:'8e2e927e2cfaf489cb7c10172836286bb08869cfff0c2508b5c6371e052e54ed'}
+ :{selector:'lumenwisp',id:'bb-983f386b',alias:'Lumenwisp',source_job:'db4sba4lf4us73c36910'};
+if(process.env.NAVISWORLD_NATIVE_TRAINING_BEAST&&!['zeref','lumenwisp'].includes(process.env.NAVISWORLD_NATIVE_TRAINING_BEAST))throw Error('Unapproved native model training identity');
 const actions=['RIGHT','UP','LEFT','DOWN','A','B','RIGHT','RIGHT','UP','LEFT','A','DOWN','RIGHT','B'];
 // A bounded scripted heuristic observes actual optical values before every input.
 // This is a demonstration policy, NOT evidence of optimal gameplay behavior.
@@ -45,13 +49,14 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  try{
   await page.goto(root+'/spark/index.html',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId,{timeout:45000});
-  await page.locator('#lumenwisp').click();
-  await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId==='bb-983f386b',null,{timeout:45000});
+  await page.locator('#'+PROFILE.selector).click();
+  await page.waitForFunction(want=>document.querySelector('#view')?.dataset.creatureId===want,PROFILE.id,{timeout:45000});
   const signed=await page.evaluate(()=>{
    const entry=JSON.parse(localStorage.getItem('beastbox-quantum-beast-public-v1'));
-   const q=JSON.parse(entry.text);return {id:q.profile.id,seed:q.genome?.seed||'',text_sha256:null};
+   const q=JSON.parse(entry.text);return {id:q.profile.id,seed:q.profile?.seed||'',text_sha256:null};
   });
-  assert.equal(signed.id,'bb-983f386b','Exact verified new IBM Lumenwisp was not selected');
+  assert.equal(signed.id,PROFILE.id,'Exact verified measured-source QBEAST was not selected');
+  if(PROFILE.seed)assert.equal(signed.seed,PROFILE.seed,'Zeref signed recorded-genome seed was not preserved');
   await page.goto(root+'/sol-game',{waitUntil:'domcontentloaded'});
   const shell=page.locator('[data-lost-cosmos-player-shell]');
   await shell.getByRole('button',{name:'SEND BEAST',exact:true}).click();
@@ -114,7 +119,7 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
     await delay(260);
     const after=await optics();
     entries.push({schema:'beastbox-real-native-emulator-action-v1',
-      parent:'Lumenwisp',qbeast_id:signed.id,episode,step:i,
+      parent:PROFILE.alias,qbeast_id:signed.id,episode,step:i,
       before,action:policyAction,after,native_ack_digest,
       teacher:'OBSERVATION_CONDITIONED_SCRIPTED_HEURISTIC_NOT_HUMAN_NOT_MODEL',
       reward_proxy:Math.abs(after.brightness-before.brightness)+Math.abs(after.contrast-before.contrast)+Math.abs(after.frameChange-before.frameChange),
@@ -131,7 +136,7 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const jsonl=raw.map(row=>JSON.stringify(row)).join('\n')+'\n';
   await fs.writeFile(output+'/native-observation-actions.jsonl',jsonl);
   const manifest={schema:'beastbox-observed-native-play-v1',source_class:'ORIGINAL_EMULATOR_NATIVE_PIXEL_OBSERVATIONS',
-   qbeast_id:signed.id,alias:'Lumenwisp',sampling:'actual original native emulator 32x24 optical numeric features',
+   qbeast_id:signed.id,alias:PROFILE.alias,ibm_source_job_id:PROFILE.source_job,sampling:'actual original native emulator 32x24 optical numeric features',
    controller:'real native simulatedInput ACK, optical-observation-conditioned scripted teacher, no model decisions',
    episodes,events:raw.length,jsonl_sha256:sha(jsonl),
    dataset_has_human_labels:false,goal_reward_observed:false,

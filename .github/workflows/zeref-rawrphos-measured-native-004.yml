@@ -1,0 +1,148 @@
+name: Zeref 004 - real IBM 10s guarded QPU and original RAWRPHOS native CPU training
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'scripts/zeref_native_004_ibm.py'
+      - 'scripts/train_rawrphos_from_observed_native_play.py'
+      - 'apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs'
+      - '.github/workflows/zeref-rawrphos-measured-native-004.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: zeref-004-single-run-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+jobs:
+  physical-ibm:
+    # Exact one-time trigger: new source changes cannot auto-submit more QPU jobs.
+    if: ${{ github.event.action == 'opened' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/zeref-rawrphos-measured-native-training-004-20261010' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Preflight strict owner quantum budget and original recorded Zeref provider seed contracts
+        run: |
+          python -m unittest discover -s tests -p test_ibm_open_plan_preflight.py -v
+          python -m py_compile scripts/zeref_native_004_ibm.py
+      - name: Install pinned official IBM client and compiler
+        run: |
+          python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+      - name: Authorize at most ONE physical IBM Zeref stimulus after live owner 300-second Open Plan guard
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_ZEREF_IBM_ONE_JOB: AUTHORIZE_ONE_ZEREF_10S_QPU
+        run: |
+          PYTHONPATH=.:scripts python scripts/zeref_native_004_ibm.py
+      - name: Preserve genuine IBM job ID, counts, budget, or exact blocker
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-004-ibm-qpu-readiness-and-receipt-${{ github.run_id }}
+          path: _zeref_native_ibm_004/
+          retention-days: 30
+          if-no-files-found: warn
+  capture-zeref-game:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Build EXISTING Beast Box application without replacing its cartridge
+        working-directory: apps/beastbox-cloud
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - uses: actions/checkout@v4
+        with:
+          repository: NavisWORLD/Cosmic-synapse-the-living-universe-sim-engine-
+          ref: main
+          path: native-game
+          persist-credentials: false
+      - name: Build actual original GBA ROM and install isolated Chromium
+        run: |
+          set -Eeuo pipefail
+          echo "NATIVE_GAME_HEAD=$(cd native-game && git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "WEB_APP_HEAD=$GITHUB_SHA" >> "$GITHUB_ENV"
+          sudo apt-get update
+          sudo apt-get install -y clang lld llvm ffmpeg
+          (cd native-game && bash scripts/build-lost-cosmos-arcade.sh)
+          npm install --prefix /tmp/zeref-004-browser --no-save --ignore-scripts playwright@1.62.1
+          /tmp/zeref-004-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Capture 56 genuine native Zeref game frames and controller ACKs, actual video
+        env:
+          NAVISWORLD_NATIVE_TRAINING_BEAST: zeref
+        run: |
+          set -Eeuo pipefail
+          mkdir -p /tmp/zeref-004-capture
+          (cd apps/beastbox-cloud && npm run start -- --hostname 127.0.0.1 --port 3000) >/tmp/zeref-004-capture/next.log 2>&1 &
+          web_pid=$!
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory native-game >/tmp/zeref-004-capture/native-game.log 2>&1 &
+          rom_pid=$!
+          trap 'kill "$web_pid" "$rom_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:3000/spark/index.html >/dev/null && curl -fsS http://127.0.0.1:8765/arcade/sol-spark-gate/handheld.html >/dev/null; then break; fi
+            sleep 1
+          done
+          NODE_PATH=/tmp/zeref-004-browser/node_modules node apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs http://127.0.0.1:3000 http://127.0.0.1:8765 /tmp/zeref-004-capture
+          test -s /tmp/zeref-004-capture/native-observation-actions.jsonl
+          sha256sum /tmp/zeref-004-capture/native-observation-actions.jsonl
+          for file in /tmp/zeref-004-capture/*.webm; do
+            [ -s "$file" ] || continue
+            ffmpeg -hide_banner -loglevel error -y -i "$file" -c:v libx264 -preset veryfast -pix_fmt yuv420p /tmp/zeref-004-capture/native-zeref-video.mp4
+            break
+          done
+      - name: Archive verified observations, unmodified ROM lineage, or exact failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: actual-zeref-native-frames-${{ github.run_id }}
+          path: /tmp/zeref-004-capture/
+          retention-days: 30
+          if-no-files-found: warn
+  isolated-rawrphos-training:
+    needs: capture-zeref-game
+    runs-on: ubuntu-24.04
+    timeout-minutes: 48
+    env:
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      TOKENIZERS_PARALLELISM: 'false'
+      NAVISWORLD_NATIVE_TRAINING_BEAST: zeref
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install real CPU PyTorch and original RAWRPHOS architecture
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos
+      - name: SHA256 verify original native 14K frozen checkpoint
+        run: |
+          mkdir -p build
+          python models/rawrphos/scripts/install_pinned_14k.py --destination build/verified-rawrphos-14k | tee build/zeref-004-parent-checkpoint.json
+      - name: Download ONLY new Zeref frame and native ACK evidence, never the earlier Lumenwisp observations
+        uses: actions/download-artifact@v4
+        with:
+          name: actual-zeref-native-frames-${{ github.run_id }}
+          path: build/rawrphos-zeref-observed-game-004/inputs
+      - name: 128 real CPU AdamW updates and frozen-parent/heldout comparisons
+        run: |
+          python -m py_compile scripts/train_rawrphos_from_observed_native_play.py
+          python scripts/train_rawrphos_from_observed_native_play.py
+      - name: Archive original and trained model hashes, real generated replies and unchanged production gate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawrphos-zeref-original-game-real-cpu-training-${{ github.run_id }}
+          path: |
+            build/zeref-004-parent-checkpoint.json
+            build/rawrphos-zeref-observed-game-004/
+          retention-days: 30
+          if-no-files-found: warn
