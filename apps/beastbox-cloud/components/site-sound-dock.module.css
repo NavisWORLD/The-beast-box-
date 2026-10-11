@@ -33,8 +33,6 @@
 @media(min-width:851px){.workspace{left:259px}}
 @media(max-width:620px){
  .dock{left:max(8px,env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 10px)}
- /* Home phones: one bottom row (sound, support Beast, game pill). The music
-    options stay one tap away in Settings and on every other page. */
- :global(body:has(.cosmic-support:not(.is-open))) .dock{left:max(8px,env(safe-area-inset-left,0px));bottom:max(18px,calc(env(safe-area-inset-bottom,0px) + 14px))}
- :global(body:has(.cosmic-support:not(.is-open))) .compact .settings{display:none}
+ /* Home phones: stack just above the support Beast, both options kept. */
+ :global(body:has(.cosmic-support:not(.is-open))) .dock{left:max(12px,env(safe-area-inset-left,0px));bottom:max(84px,calc(env(safe-area-inset-bottom,0px) + 80px))}
 }

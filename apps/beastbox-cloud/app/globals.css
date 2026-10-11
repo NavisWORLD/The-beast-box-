@@ -609,5 +609,6 @@ html[data-beastbox-reduced-motion="true"] *,html[data-beastbox-reduced-motion="t
  html body :is(button,[role=button],select,summary):not([role=switch]):not([data-lost-cosmos-dock] *,[data-handheld-controls] *,[data-lost-cosmos-dock],[data-handheld-controls]){min-height:44px;min-width:44px}
  html body input[type=range]:not([data-lost-cosmos-dock] *,[data-handheld-controls] *){min-height:44px}
 }
-@media(max-width:620px){body:has([data-site-sound]) .cosmic-support:not(.is-open){left:calc(max(8px,env(safe-area-inset-left,0px)) + 56px)}}
+/* Phones: lift the hero buttons a little so the corner controls do not sit on them at first view. */
+@media(max-width:500px){.landing .hero{padding-top:26px}.landing .hero-cta{margin:22px 0}}
 @media(max-width:900px){.public-journey-links{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent);padding-right:30px!important}}
