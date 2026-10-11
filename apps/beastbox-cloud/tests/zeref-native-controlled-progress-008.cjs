@@ -54,10 +54,11 @@ async function infer(kind,observation,episode,step){
   assert.deepEqual(health.models,MODEL_HASHES,'Original and candidate weights do not match pinned training receipt');
   await output('preregistered-controls.json',{schema:'beastbox-zeref-native-policy-arena-008',qbeast_id:QBEAST,
    original_ibm_job:JOB,original_ibm_genome_seed:GENOME,model_checkpoints:MODEL_HASHES,
+   actual_committed_sram_is_observed_only_if_checksum_valid:true,
    source_native_ref:process.env.NATIVE_GAME_HEAD||null,source_web_ref:process.env.WEB_APP_HEAD||null,
    policy_order:policyOrder,episodes_each:EPISODES,steps_each:STEPS,
    start:'fresh browser context per episode, exact Zeref selection, same native cartridge initial A+START sequence',
-   progress_metrics_observable:false,
+   progress_metrics_observable:'committed game save only; null if never saved',
    warning:'Optical novelty / framebuffer changes are not navigation rewards, area exploration, dialogue or advancement.'});
   let runIndex=0;
   for(const {policy,episode} of policyOrder){
@@ -219,7 +220,7 @@ async function infer(kind,observation,episode,step){
     unavailable_saved_state_steps:rows.length-confirmed.length}];
   }));
   const report={schema:'beastbox-zeref-native-controlled-rollouts-008',
-    source_class:'REAL_NATIVE_GBA_EMULATOR_OBSERVATIONS_AND_CONTROLLER_ACKS',
+    source_class:'REAL_NATIVE_GBA_EMULATOR_OBSERVATIONS_CONTROLLER_ACKS_AND_OPTIONAL_VALID_SRAM',
     qbeast_id:QBEAST,source_ibm_job_id:JOB,source_seed:GENOME,
     baseline_original_weights_sha256:MODEL_HASHES.original,candidate_weights_sha256:MODEL_HASHES.candidate,
     policies:POLICIES,episodes_per_policy:EPISODES,steps_per_episode:STEPS,
@@ -232,8 +233,9 @@ async function infer(kind,observation,episode,step){
     source_frame_sha256:SHA(digest),each_arm:summaries,episodes:data,
     model_replies_are_real_cpu_inference:true,no_live_production_model_promotion:true,
     new_ibm_hardware_jobs_in_this_run:0,quantum_trained_weights:false,
-    no_game_reward_or_semantic_dialogue_instrumentation:true,
-    measured_outcomes_are_optical_not_progress:true,
+    objective_events_observed_only_from_checksum_valid_native_save:true,
+    semantic_dialogue_progress_still_uninstrumented:true,
+    unsaved_live_coordinates_not_measured:true,
     no_claim_of_intelligent_exploration_or_learned_game_success:true,
     errors,run_timestamp:new Date().toISOString()};
   await output('report.json',report);
