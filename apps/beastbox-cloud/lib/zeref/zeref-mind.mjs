@@ -103,8 +103,9 @@ const EXPR={
 };
 const MOUTHS=['smile','grin','o','frown','sleepy'];
 
-export function createMind({profile=ZEREF_PROFILE,source=ZEREF_RECORDED_SOURCE,care={},reduced=false,hour=12}={}){
- const seed=recordedSeed(source);
+export function createMind({profile=ZEREF_PROFILE,source=ZEREF_RECORDED_SOURCE,care={},reduced=false,hour=12,seed:given=null}={}){
+ // `seed` lets another beast use ITS OWN recorded-count features (see rig-style.mjs); default is Zeref's shard.
+ const seed=given&&given.digest&&given.features?given:recordedSeed(source);
  const traits=temperamentFor(profile,seed);
  const st=profile.stats||{};
  const m={

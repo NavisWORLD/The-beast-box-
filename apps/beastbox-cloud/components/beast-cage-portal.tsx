@@ -16,6 +16,9 @@ import {shownName} from '../lib/companion/session.mjs';
 import {useCompanion} from './companion-provider';
 import {generateCreature,type BaseLook,type AmbientAction} from '../lib/creature-profile';
 import BrandCrest from '@/components/brand-crest';
+import ZerefDiaryPanel from './zeref-diary-panel';
+import {ZEREF_PROFILE} from '../lib/zeref/zeref-mind.mjs';
+const VIEW_STORAGE='beastbox-cage-view-v1';
 const LOOKS:{id:BaseLook;label:string;detail:string;accent:string}[]=[
  {id:'nebula',label:'Nebby',detail:'A curious little pocket galaxy',accent:'violet'},
  {id:'aurora',label:'Lumen',detail:'The quiet glow of cosmic dawn',accent:'cyan'},
@@ -42,6 +45,11 @@ export default function BeastCagePortal(){
  const {session}=useBeastSession();
  const sameSpark=!!creature&&!!session?.beast?.qbeast&&session.beast.qbeast.profile.id===creature.id;
  const creatureName=sameSpark?shownName(session.beast):creature?.name;
+ // Default view: the ZEREF rig exploring the dimensional pocket. The original pixel sprite stays one tap away.
+ const [view,setView]=useState<'pocket'|'classic'>('pocket');
+ useEffect(()=>{try{if(window.localStorage.getItem(VIEW_STORAGE)==='classic')setView('classic');}catch{}},[]);
+ const chooseView=(next:'pocket'|'classic')=>{setView(next);try{window.localStorage.setItem(VIEW_STORAGE,next);}catch{}};
+ const pocketName=creature?(creatureName||creature.name):'Zeref';
  useEffect(()=>{if(creature)setLook(creature.baseLook);},[creature?.id,creature?.baseLook]);
  useEffect(()=>{
   try{const item=window.localStorage.getItem(STORAGE);if(item&&LOOKS.some(x=>x.id===item)){setLook(item as BaseLook);setSaved(true);}}
@@ -88,10 +96,16 @@ export default function BeastCagePortal(){
      reduced={prefersReduced} onActiveChange={onPocketActive}/>
     <SparkBeastArena profile={creature} fallbackLook={look}
      state={sameSpark?visualStateFromBeast(session.beast):ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
-     label="Active Spark Beast companion"/>
+     label="Active Spark Beast companion" rig={view==='pocket'}/>
     <span className="cage-habitat-caption">✧ YOUR OWN POCKET UNIVERSE</span>
    </div>
+   <div className="cage-view-toggle" role="group" aria-label="Habitat view">
+    <button type="button" aria-pressed={view==='pocket'} onClick={()=>chooseView('pocket')}>✦ Pocket explorer</button>
+    <button type="button" aria-pressed={view==='classic'} onClick={()=>chooseView('classic')}>Classic pixel sprite</button>
+    <a href="#zeref-diary">Zeref&apos;s Diary ↓</a>
+   </div>
   </section>
+  <ZerefDiaryPanel journalId={creature?creature.id:ZEREF_PROFILE.id} beastName={pocketName}/>
   {!sameSpark?<GenesisForge value={creature} onChange={next=>{selectProfile(next);setLook(next.baseLook);}}
    onAmbient={setAmbient}/>:<div className="cage-generated-status"><span>{creatureName} · same recorded genome and QBEAST</span><Link href="/sol-game">Play this Beast in LOST COSMOS 🎮</Link></div>}
   {creature?<div className="cage-generated-status" role="status">

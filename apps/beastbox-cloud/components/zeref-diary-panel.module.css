@@ -1,0 +1,26 @@
+.panel{max-width:1360px;margin:0 auto 34px;padding:26px clamp(16px,4vw,44px);border:1px solid #b9a4ff40;border-radius:26px;background:linear-gradient(160deg,#120d2acc,#0a1124d9);box-shadow:0 0 40px #8f6bff1f;color:#d9def2}
+.head h2{font:700 clamp(28px,3.6vw,44px)/1.1 'Space Grotesk',sans-serif;letter-spacing:-.04em;margin:6px 0 10px;color:#fff}
+.tag{margin:0;font:700 10px 'Space Grotesk',sans-serif;letter-spacing:.2em;color:#c9b1ff}
+.lede{max-width:720px;margin:0 0 18px;font-size:14px;line-height:1.7;color:#bcc6e0}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.card{min-width:0;padding:16px;border-radius:18px;background:#0d1530cc;border:1px solid #8fe8ff2e}
+.card h3{margin:0 0 8px;font:700 13px 'Space Grotesk',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#a7f0ff}
+.stage{margin:0 0 8px;color:#fff}
+.card meter{width:100%;height:12px}
+.small{margin:8px 0 0;font-size:12px;line-height:1.55;color:#a9b5d3;overflow-wrap:anywhere}
+.signals{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.signals span{font-size:11px;padding:4px 8px;border-radius:999px;background:#1a2446;color:#cfd7f2;text-transform:capitalize}
+.thought{margin:0;font:600 15px/1.55 'Space Grotesk',sans-serif;color:#f1ebff;overflow-wrap:anywhere}
+.combos{margin:8px 0 0;padding-left:18px;font-size:12px;line-height:1.5;color:#d7ccff}
+.entries{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:8px}
+.entries li{display:grid;gap:3px;padding:10px 12px;border-radius:14px;background:#0c142bb3;border:1px solid #ffffff12;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.when{font:700 10px 'Space Grotesk',sans-serif;letter-spacing:.12em;color:#8fe8ff}
+.entries small{color:#93a1c4;font-size:11px}
+.labels{margin:16px 0 0;font-size:11px;line-height:1.6;color:#8d9abb}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+@media(max-width:680px){.panel{margin:0 12px 28px;padding:20px 14px;border-radius:20px}}
+.badges{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.badgeBirth,.badgeSim,.badgeFallback{display:inline-block;font:700 10px 'Space Grotesk',sans-serif;letter-spacing:.06em;padding:4px 8px;border-radius:999px}
+.badgeBirth{background:#2a1f4d;color:#e5d6ff;border:1px solid #b57bff66}
+.badgeSim{background:#0f2f3a;color:#a7f0ff;border:1px solid #8fe8ff66}
+.badgeFallback{background:#2b2333;color:#d8c9b8;border:1px solid #ffffff22}

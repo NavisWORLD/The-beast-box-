@@ -1,0 +1,92 @@
+name: Zeref diary loop (forever pocket)
+# Birth spark: recorded IBM ibm_marrakesh counts (identity, never re-run).
+# Growth: each tick runs ONE small circuit on the FREE Azure Quantum Rigetti
+# QVM simulator (rigetti.sim.qvm, $0, simulated, never a QPU) parameterised
+# from Zeref's current signals; its counts feed the mind step. On failure the
+# deterministic step runs and the real (sanitised) error is logged.
+# Advances ZEREF's deterministic mind once per tick and appends one
+# hash-chained entry to the data-only `zeref-diary` branch. That branch has
+# no app code and disables Vercel deploys, so ticks never redeploy production.
+# Seeded from recorded IBM counts (not a live quantum link); Zeref is a game
+# companion, and diary lines are generated (template unless an owner-approved
+# model is configured via repo variables + HF_TOKEN).
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+    inputs:
+      care:
+        description: 'Real care events to credit this tick (0-20)'
+        required: false
+        default: '0'
+permissions:
+  contents: write
+concurrency:
+  group: zeref-diary-loop
+  cancel-in-progress: false
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: |
+            apps/beastbox-cloud/lib/zeref
+            apps/beastbox-cloud/public/spark
+            apps/beastbox-cloud/scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check out (or create) the data-only diary branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          git config --global user.name 'zeref-diary-loop[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$remote" zeref-diary >/dev/null 2>&1; then
+            git clone --quiet --depth 1 --branch zeref-diary "$remote" diary
+          else
+            mkdir diary && cd diary && git init -q -b zeref-diary && git remote add origin "$remote"
+            mkdir -p apps/beastbox-cloud
+            printf '{"git":{"deploymentEnabled":false}}\n' > vercel.json
+            printf '{"git":{"deploymentEnabled":false}}\n' > apps/beastbox-cloud/vercel.json
+            printf '# Zeref diary (data only)\n\nAppend-only, hash-chained diary written by .github/workflows/zeref-diary-loop.yml on main.\nBirth spark: recorded IBM ibm_marrakesh counts (identity). Growth: free Azure Quantum Rigetti QVM simulator per tick (simulated, not hardware). Zeref is a game companion; lines are generated.\nDeploys are disabled for this branch.\n' > README.md
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Plan this tick's growth circuit from Zeref's current state
+        run: node apps/beastbox-cloud/scripts/zeref-diary-tick.mjs diary/zeref --plan growth-plan.json
+      - name: Run it on the free Rigetti QVM simulator (Azure Quantum)
+        continue-on-error: true
+        timeout-minutes: 6
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --quiet "qdk[azure]" || { printf '{"ok":false,"target":"rigetti.sim.qvm","error":"qdk install failed on runner"}\n' > growth-receipt.json; exit 0; }
+          python apps/beastbox-cloud/scripts/zeref_diary_qvm.py growth-plan.json growth-receipt.json
+      - name: Tick
+        env:
+          ZEREF_DIARY_MODEL: ${{ vars.ZEREF_DIARY_MODEL }}
+          ZEREF_DIARY_MODEL_BILLING_APPROVED: ${{ vars.ZEREF_DIARY_MODEL_BILLING_APPROVED }}
+          HF_TOKEN: ${{ vars.ZEREF_DIARY_MODEL_BILLING_APPROVED == 'yes' && secrets.HFTOKEN || '' }}
+          CARE: ${{ github.event.inputs.care || '0' }}
+        run: |
+          set -Eeuo pipefail
+          case "$CARE" in ''|*[!0-9]*) CARE=0;; esac
+          node apps/beastbox-cloud/scripts/zeref-diary-tick.mjs diary/zeref --care "$CARE" --qvm growth-receipt.json | tee tick.log
+      - name: Commit and push (append-only)
+        run: |
+          set -Eeuo pipefail
+          cd diary
+          git add -A
+          msg="zeref diary: $(grep -o '"tick":[0-9]*' ../tick.log | head -1) [skip ci]"
+          git commit -q -m "$msg"
+          for i in 1 2 3; do git push -q origin HEAD:zeref-diary && exit 0; sleep 5; git pull -q --rebase origin zeref-diary || true; done
+          exit 1
