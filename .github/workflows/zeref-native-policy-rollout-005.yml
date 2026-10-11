@@ -57,6 +57,7 @@ jobs:
           CAND=$(find build/zeref-005-artifact -type d -name candidate-actual-native-frame-imitation-001 -print -quit)
           test -n "$CAND" || { echo 'Original candidate checkpoint missing; no imitation or substitute weights'; exit 1; }
           test -s "$CAND/manifest.json" || { echo 'No native training checkpoint manifest'; exit 1; }
+          export BEAST_005_CANDIDATE_PATH="$CAND"
           echo "BEAST_005_CANDIDATE_PATH=$CAND" >> "$GITHUB_ENV"
           python - <<'PY'
           from rawrphos.training.checkpoint import load_checkpoint
