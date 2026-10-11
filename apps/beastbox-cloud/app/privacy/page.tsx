@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import JourneyLinks from '@/components/journey-links';
 import BrandCrest from '@/components/brand-crest';
 
 export const metadata: Metadata = {
@@ -13,13 +14,8 @@ export default function PrivacyPage() {
       <div className="starscape" aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>
       <header className="public-header">
         <Link className="brand" href="/" aria-label="Beast Box home"><BrandCrest className="brand-mark" size={42}/><span>BEAST BOX <small>PRIVACY</small></span></Link>
-        <nav className="public-journey-links" aria-label="Beast Box journey">
-          <Link href="/spark/index.html">My Beast</Link>
-          <Link href="/beast-cage">Beast Cage</Link>
-          <Link href="/workspace#brain-bay">Brain Bay</Link>
-          <Link href="/next">Coming soon</Link>
-        </nav>
-        <Link className="header-enter" href="/">Home</Link>
+        <JourneyLinks skip={["settings"]} extra={[{label:"Coming soon",href:"/next"}]}/>
+        <Link className="header-enter" href="/settings">Settings</Link>
       </header>
       <section className="hero" style={{ display: 'block', minHeight: 'auto', paddingBottom: 80 }}>
         <p className="eyebrow">LIVE SUBSTRATE · LOCAL FIRST</p>
@@ -32,7 +28,7 @@ export default function PrivacyPage() {
           <p>The companion reacts to the signals you send. It does not learn from them. Public visitors get the on-device pattern companion. That is not a hosted language model.</p>
           <p>Owner Brain Bay uses a separate route. When that route is down, the status says backend offline. A missing model never invents a reply. A missing model never rewrites the creature.</p>
           <p>Owner memory, model weights, and tool permissions are not in the public file. The gadget and watch are not shipping. <Link href="/next">See what is next.</Link></p>
-          <p><Link className="primary-link" href="/spark/index.html">Back to My Beast</Link></p>
+          <p><a className="primary-link" href="/spark/index.html">Back to My Beast</a></p>
         </div>
       </section>
     </main>

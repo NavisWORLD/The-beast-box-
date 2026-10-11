@@ -47,7 +47,7 @@ export default function QbeastMenagerie(){
    <span className={styles.eyebrow}>THE QBEAST MENAGERIE · ACTUAL SEED-DERIVED SPRITES</span>
    <h2 id="menagerie-title">Every strange little form has <em>an origin.</em></h2>
    <p>Explore real renderings from the approved recorded-count archive. These are <strong>generated previews</strong>, not collected or evolved pets. Your own verified QBEAST is shown separately.</p>
-   <Link href="/spark/index.html" className={styles.portal}>Meet or create your own Beast →</Link>
+   <a href="/spark/index.html" className={styles.portal}>Meet or create your own Beast →</a>
   </div>
   {active?<article className={styles.yours} data-saved-qbeast-id={active.qbeast.profile.id}>
    <div className={styles.portrait}>

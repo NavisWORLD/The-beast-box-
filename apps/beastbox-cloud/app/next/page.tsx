@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import JourneyLinks from '@/components/journey-links';
 import BrandCrest from '@/components/brand-crest';
 
 export const metadata: Metadata = {
@@ -13,12 +14,8 @@ export default function NextPage() {
       <div className="starscape" aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>
       <header className="public-header">
         <Link className="brand" href="/" aria-label="Beast Box home"><BrandCrest className="brand-mark" size={42}/><span>BEAST BOX <small>COMING SOON</small></span></Link>
-        <nav className="public-journey-links" aria-label="Beast Box journey">
-          <Link href="/spark/index.html">My Beast</Link>
-          <Link href="/beast-cage">Beast Cage</Link>
-          <Link href="/privacy">Privacy</Link>
-        </nav>
-        <Link className="header-enter" href="/">Home</Link>
+        <JourneyLinks skip={["settings"]} extra={[{label:"Privacy",href:"/privacy"}]}/>
+        <Link className="header-enter" href="/settings">Settings</Link>
       </header>
       <section className="hero" style={{ display: 'block', minHeight: 'auto', paddingBottom: 80 }}>
         <p className="eyebrow">NOT SHIPPED · BLUEPRINT</p>
@@ -27,7 +24,7 @@ export default function NextPage() {
           <p>The creature you can use tonight lives in the browser: My Beast, Beast Cage, Lost COSMOS, and Brain Bay. A Meta Muse gadget and a sensor watch are the next place it could be carried. They are not a product you can buy or pair from this site yet.</p>
           <p>The planned rule is on-device first. A walk, a sleep bucket, or an active-day flag could be opted in. Raw heart rate, location, and waveforms would stay on the device. Nothing here syncs those signals today.</p>
           <p>Open work, not a release: the Muse gadget bridge is PR #200, and the Android BLE experiment is PR #199. Neither is merged. A public connector still needs its own storage and review.</p>
-          <p><Link className="primary-link" href="/spark/index.html">Meet the beast that exists</Link></p>
+          <p><a className="primary-link" href="/spark/index.html">Meet the beast that exists</a></p>
         </div>
       </section>
     </main>

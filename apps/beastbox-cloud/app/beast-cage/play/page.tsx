@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import JourneyLinks from '@/components/journey-links';
 import BeastAdventure from '@/components/beast-adventure';
 
 export const metadata: Metadata = {
@@ -7,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function PlayPage() {
-  return <BeastAdventure />;
+  return <><div className="room-strip room-strip-top"><JourneyLinks current="cage" label="Beast Box rooms"/></div><BeastAdventure /></>;
 }

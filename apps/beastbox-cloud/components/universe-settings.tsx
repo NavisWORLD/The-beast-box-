@@ -63,7 +63,7 @@ export default function UniverseSettings(){
      <div className={styles.sectionLabel}><span>YOUR COMPANION</span><span className={styles.localTag}>LOCAL</span></div>
      <div className={styles.portrait} data-motion={motion.reduced?'reduced':'full'}>{beast?.genome?<PixelBeast genome={beast.genome} publicSpark={Boolean(beast.qbeast)} stage={beast.qbeast?beast.nativeStage||1:beast.stage||1} reduced={motion.reduced} label={`${shownName(beast)}, your selected Beast`}/>:<Sparkles size={70} strokeWidth={1} aria-hidden="true"/>}</div>
      <h2>{beast?shownName(beast):'Your Beast belongs here'}</h2>
-     {beast?<><code title={beastIdentity(beast)||''}>{beastIdentity(beast)}</code><p>One shared local session across your rooms.</p><span className={styles.provider}>Brain choice · {publicBrainProvider(session)==='local-mind'?'On-device pattern':publicBrainProvider(session)==='guest-rawrphos'?'RAWRPHØS guest':'Local Ollama'}</span></>:<><p>Labeled preview · no Beast selected.</p><Link href="/spark/index.html" className={styles.meet}>Meet a Beast <ArrowUpRight size={14} aria-hidden="true"/></Link></>}
+     {beast?<><code title={beastIdentity(beast)||''}>{beastIdentity(beast)}</code><p>One shared local session across your rooms.</p><span className={styles.provider}>Brain choice · {publicBrainProvider(session)==='local-mind'?'On-device pattern':publicBrainProvider(session)==='guest-rawrphos'?'RAWRPHØS guest':'Local Ollama'}</span></>:<><p>Labeled preview · no Beast selected.</p><a href="/spark/index.html" className={styles.meet}>Meet a Beast <ArrowUpRight size={14} aria-hidden="true"/></a></>}
     </section>
     <section className={styles.notes}>
      <span>YOUR SPACE, YOUR CHOICE</span>

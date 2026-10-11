@@ -24,3 +24,15 @@
  .compact .main span{display:none}
  .panel{max-height:calc(100dvh - 225px);overflow:auto;overscroll-behavior:contain}
 }
+
+/* Front-end finishing pass: the sound switch sits in the bottom corner instead of
+   floating over hero buttons and page text. On Home it lines up beside the
+   support Beast; on phones it stacks just above it. */
+.dock{bottom:max(16px,calc(env(safe-area-inset-bottom,0px) + 12px));left:max(16px,env(safe-area-inset-left,0px))}
+:global(body:has(.cosmic-support:not(.is-open))) .dock{left:calc(max(16px,env(safe-area-inset-left,0px)) + 284px);bottom:max(28px,calc(env(safe-area-inset-bottom,0px) + 22px))}
+@media(min-width:851px){.workspace{left:259px}}
+@media(max-width:620px){
+ .dock{left:max(8px,env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 10px)}
+ /* Home phones: stack just above the support Beast, both options kept. */
+ :global(body:has(.cosmic-support:not(.is-open))) .dock{left:max(12px,env(safe-area-inset-left,0px));bottom:max(84px,calc(env(safe-area-inset-bottom,0px) + 80px))}
+}

@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 import Link from 'next/link';
+import JourneyLinks from '@/components/journey-links';
 import CosmicCompanion3D,{type CreatureLook} from '@/components/cosmic-companion-3d';
 import {useCompanion} from '@/components/companion-provider';
 import styles from './turntable.module.css';
@@ -14,6 +15,7 @@ export default function CreatureTurntable(){
  useEffect(()=>{if(profile)setLook(profile.baseLook);},[profile?.id,profile?.baseLook]);
  return <main className={styles.page}>
   <header className={styles.header}><Link href="/beast-cage">← BEAST CAGE</Link><span>CORY DAVIS / NAVISWORLD</span><Link href="/beast-cage/talk">TALK TO THE BEAST ↗</Link></header>
+  <div className="room-strip"><JourneyLinks current="cage" label="Beast Box rooms"/></div>
   <section className={styles.intro}>
    <span>DEV DAY SIDE QUEST // ORIGINAL PROCEDURAL MESH</span>
    <h1>Meet {profile?.name||'the Beast'} <em>in 3D.</em></h1>
