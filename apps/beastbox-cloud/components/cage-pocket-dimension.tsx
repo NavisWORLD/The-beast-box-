@@ -145,7 +145,7 @@ export default function CagePocketDimension({genome,qbeastId,profile,fallbackLoo
     starGeo.setAttribute('position',new THREE.Float32BufferAttribute(stars,3));
     const points=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xaccfff,size:.042,transparent:true,opacity:.78}));
     scene.add(points);
-    let creature:THREE.Object3D;
+    let creature:import('three').Object3D;
     let spriteTexture:import('three').CanvasTexture|null=null;
     let rig:ReturnType<typeof createCreatureRig>|null=null;
     if(qbeastId){
