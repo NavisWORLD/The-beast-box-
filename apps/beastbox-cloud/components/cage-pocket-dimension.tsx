@@ -1,260 +1,245 @@
 'use client';
-import {useCallback,useEffect,useRef,useState} from 'react';
-import {Compass,Expand,Minus,Plus,RotateCcw,Settings2} from 'lucide-react';
-import type {BaseLook,CreatureProfile} from '../lib/creature-profile';
-import {renderBeast} from '../public/spark/draw.mjs';
-import {createCreatureRig} from '../lib/creature-model';
+import {useEffect,useRef,useState} from 'react';
+import {createPocketSky,orbitPosition} from '../lib/pocket-sky.mjs';
 import styles from './cage-pocket-dimension.module.css';
 
 type View={theta:number;phi:number;zoom:number};
 type Pointer={x:number;y:number};
 type Props={
- genome:any|null; qbeastId:string|null; profile:CreatureProfile|null;
- fallbackLook:BaseLook; stage:number; state:string; reduced:boolean;
- behaviorPosition:{x:number;y:number}|null; onActiveChange:(active:boolean)=>void;
+ seed:string|null; qbeastId:string|null; stage:number; reduced:boolean;
+ behaviorPosition:{x:number;y:number}|null; state:string;
+ onActiveChange:(active:boolean)=>void;
 };
-const STORAGE='beastbox-cage-pocket-settings-v1';
-const INITIAL:View={theta:.65,phi:1.08,zoom:10};
-const clamp=(v:number,low:number,high:number)=>Math.max(low,Math.min(high,v));
-const seedValue=(key:string)=>{let h=2166136261;for(const ch of key){h=Math.imul(h^ch.charCodeAt(0),16777619);}return h>>>0;};
+const clamp=(x:number,low:number,high:number)=>Math.min(high,Math.max(low,x));
+const visualSeed=(s:string)=>{let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);return h>>>0;};
+const randomFor=(s:string)=>{let v=visualSeed(s)||1;return()=>{v^=v<<13;v^=v>>>17;v^=v<<5;return(v>>>0)/4294967296;};};
+
 /**
- * Actual WebGL 3D environment inside the EXISTING Beast Cage circle.
- * The QBEAST is the existing native 64x64 sprite, displayed as a 3D-world
- * billboard. Orbit/zoom are camera-only; no genome, game or saved authority
- * is manufactured by exploring this local presentation.
+ * A REAL 3D ENVIRONMENT, NOT A REPLACEMENT CREATURE.
+ * Adapted in scope from the owner's two original CodePen archives:
+ * GENESIS X Night Ops (terrain/atmosphere) and Genesis Engine Definitive
+ * Core (reproducible celestial orbits). Both historical applications remain
+ * separate. No microphone permissions, new model, quantum run, or game state.
+ *
+ * The existing SparkBeastArena remains visible and interactive IN FRONT of
+ * this canvas, with exactly the original canonical QBEAST sprite/voice/saves.
  */
-export default function CagePocketDimension({genome,qbeastId,profile,fallbackLook,stage,state,reduced,behaviorPosition,onActiveChange}:Props){
+export default function CagePocketDimension({seed,qbeastId,stage,reduced,behaviorPosition,state,onActiveChange}:Props){
  const canvasRef=useRef<HTMLCanvasElement>(null);
- const view=useRef<View>({...INITIAL}),pointers=useRef<Map<number,Pointer>>(new Map());
- const position=useRef(behaviorPosition),motionState=useRef(state),autoRef=useRef(true);
- const [enabled,setEnabled]=useState(true),[ready,setReady]=useState(false),[failed,setFailed]=useState(false);
- const [autoOrbit,setAutoOrbit]=useState(false),[quality,setQuality]=useState<'low'|'auto'>('auto'),[zoom,setZoom]=useState(10),[settingsLoaded,setSettingsLoaded]=useState(false);
- const [message,setMessage]=useState('Drag to orbit · pinch or scroll to zoom');
- const stageSafe=clamp(Math.floor(Number(stage)||1),1,3);
- const id=qbeastId||profile?.id||'visual-preview';
- useEffect(()=>{position.current=behaviorPosition;},[behaviorPosition?.x,behaviorPosition?.y]);
- useEffect(()=>{motionState.current=state;},[state]);
- useEffect(()=>{autoRef.current=autoOrbit;},[autoOrbit]);
- useEffect(()=>{
-  try{
-   const parsed=JSON.parse(localStorage.getItem(STORAGE)||'null');
-   if(parsed&&typeof parsed==='object'){
-    if(typeof parsed.enabled==='boolean')setEnabled(parsed.enabled);
-    if(parsed.quality==='low'||parsed.quality==='auto')setQuality(parsed.quality);
-    if(typeof parsed.autoOrbit==='boolean')setAutoOrbit(parsed.autoOrbit);
-   }
-  }catch{/* Privacy mode: defaults are entirely local */ }
-  finally{setSettingsLoaded(true);}
- },[]);
- useEffect(()=>{
-  if(!settingsLoaded)return; // Never overwrite restored preferences with hydration defaults.
-  try{localStorage.setItem(STORAGE,JSON.stringify({enabled,quality,autoOrbit}));}catch{/* view works without storage */ }
- },[settingsLoaded,enabled,quality,autoOrbit]);
- useEffect(()=>{onActiveChange(enabled&&ready&&!failed);return()=>onActiveChange(false);},[enabled,ready,failed,onActiveChange]);
- const changeZoom=useCallback((next:number)=>{
-  const z=clamp(next,5.7,14.4);view.current.zoom=z;setZoom(z);
- },[]);
- const reset=()=>{view.current={...INITIAL};setZoom(INITIAL.zoom);setMessage('Pocket view reset · same Beast');};
- const onPointerDown=(e:React.PointerEvent<HTMLCanvasElement>)=>{
-  if(e.pointerType==='mouse'&&e.button!==0)return;
-  e.currentTarget.setPointerCapture(e.pointerId);
-  pointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY});
- };
- const onPointerMove=(e:React.PointerEvent<HTMLCanvasElement>)=>{
-  const last=pointers.current.get(e.pointerId);if(!last)return;
-  if(pointers.current.size===1){
-   const v=view.current;
-   v.theta-=(e.clientX-last.x)*.009;
-   v.phi=clamp(v.phi+(e.clientY-last.y)*.008,.37,1.47);
-  }else if(pointers.current.size===2){
-   const other=[...pointers.current.entries()].find(([id])=>id!==e.pointerId)?.[1];
-   if(other){
-    const before=Math.hypot(last.x-other.x,last.y-other.y);
-    const after=Math.hypot(e.clientX-other.x,e.clientY-other.y);
-    if(before>15&&after>15)changeZoom(view.current.zoom*(before/after));
-   }
-  }
-  pointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY});
- };
- const releasePointer=(e:React.PointerEvent<HTMLCanvasElement>)=>{
-  pointers.current.delete(e.pointerId);
-  if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);
- };
- const onKeyboard=(e:React.KeyboardEvent<HTMLCanvasElement>)=>{
-  if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();view.current.theta+=(e.key==='ArrowLeft'?.18:-.18);}
-  if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();view.current.phi=clamp(view.current.phi+(e.key==='ArrowUp'?-.14:.14),.37,1.47);}
-  if(e.key==='+'||e.key==='='){e.preventDefault();changeZoom(view.current.zoom-.7);}
-  if(e.key==='-'){e.preventDefault();changeZoom(view.current.zoom+.7);}
- };
+ const motion=useRef({position:behaviorPosition,state,stage,impulse:0});
+ const cameraView=useRef<View>({theta:.7,phi:1.05,zoom:10.6});
+ const [ready,setReady]=useState(false),[failed,setFailed]=useState(false);
+ const id=qbeastId||'visual-preview';
+ const key=seed||'beastbox-visual-preview';
+ useEffect(()=>{motion.current.position=behaviorPosition;motion.current.state=state;motion.current.stage=stage;},[behaviorPosition?.x,behaviorPosition?.y,state,stage]);
+ useEffect(()=>{onActiveChange(ready&&!failed);return()=>onActiveChange(false);},[ready,failed,onActiveChange]);
  useEffect(()=>{
   const canvas=canvasRef.current;
-  if(!enabled||failed||!canvas)return;
-  let disposed=false,raf=0,cleanup=()=>{};
-  setReady(false);
-  void (async()=>{
+  if(!canvas||failed)return;
+  let disposed=false,frame=0,cleanup=()=>{};
+  const parent=canvas.closest('.cage-habitat-visual') as HTMLElement|null;
+  const activePointers=new Map<number,Pointer>();
+  let moved=false,suppressClick=false;
+  const isControl=(target:EventTarget|null)=>target instanceof Element&&Boolean(target.closest('button,input,select,textarea,a,summary,[contenteditable="true"]'));
+  const pointerDown=(event:PointerEvent)=>{
+   if(isControl(event.target)||event.button!==0&&event.pointerType==='mouse')return;
+   activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});moved=false;
+  };
+  const pointerMove=(event:PointerEvent)=>{
+   const prev=activePointers.get(event.pointerId);if(!prev)return;
+   const dx=event.clientX-prev.x,dy=event.clientY-prev.y;
+   if(Math.abs(dx)+Math.abs(dy)>3)moved=true;
+   if(activePointers.size===1){
+    cameraView.current.theta-=dx*.009;
+    cameraView.current.phi=clamp(cameraView.current.phi+dy*.008,.35,1.47);
+   }else if(activePointers.size===2){
+    const other=[...activePointers.entries()].find(([id])=>id!==event.pointerId)?.[1];
+    if(other){
+     const before=Math.hypot(prev.x-other.x,prev.y-other.y);
+     const after=Math.hypot(event.clientX-other.x,event.clientY-other.y);
+     if(before>18&&after>18)cameraView.current.zoom=clamp(cameraView.current.zoom*before/after,5.9,14.2);
+    }
+   }
+   activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+  };
+  const pointerEnd=(event:PointerEvent)=>{
+   if(activePointers.has(event.pointerId)&&moved)suppressClick=true;
+   activePointers.delete(event.pointerId);
+  };
+  const clickCapture=(event:MouseEvent)=>{
+   // A camera drag on the companion must not turn into an accidental attack.
+   if(suppressClick&&!isControl(event.target)){
+    event.preventDefault();event.stopImmediatePropagation();
+   }
+   suppressClick=false;
+  };
+  const wheel=(event:WheelEvent)=>{
+   if(isControl(event.target))return;
+   event.preventDefault();
+   cameraView.current.zoom=clamp(cameraView.current.zoom+event.deltaY*.013,5.9,14.2);
+  };
+  const keyboard=(event:KeyboardEvent)=>{
+   if(event.target!==parent||isControl(event.target))return;
+   if(event.key==='ArrowLeft'||event.key==='ArrowRight'){
+    event.preventDefault();cameraView.current.theta+=(event.key==='ArrowLeft'?.17:-.17);
+   }else if(event.key==='ArrowUp'||event.key==='ArrowDown'){
+    event.preventDefault();cameraView.current.phi=clamp(cameraView.current.phi+(event.key==='ArrowUp'?-.14:.14),.35,1.47);
+   }else if(event.key==='+'||event.key==='='){
+    event.preventDefault();cameraView.current.zoom=clamp(cameraView.current.zoom-.7,5.9,14.2);
+   }else if(event.key==='-'){
+    event.preventDefault();cameraView.current.zoom=clamp(cameraView.current.zoom+.7,5.9,14.2);
+   }else if(event.key==='Home'){
+    event.preventDefault();cameraView.current={theta:.7,phi:1.05,zoom:10.6};
+   }
+  };
+  // Existing sound-generator events: sound is a *visual stimulus*, not proof
+  // of external microphone hearing or physical quantum/natural growth.
+  const chirp=(e:Event)=>{const raw=Number((e as CustomEvent)?.detail?.intensity);motion.current.impulse=clamp(motion.current.impulse+(Number.isFinite(raw)?raw:.35)*.32,0,1.25);};
+  const mute=()=>{motion.current.impulse=0;};
+  const option={passive:true} as AddEventListenerOptions;
+  if(parent){
+   parent.addEventListener('pointerdown',pointerDown,option);
+   parent.addEventListener('pointermove',pointerMove,option);
+   parent.addEventListener('pointerup',pointerEnd,option);
+   parent.addEventListener('pointercancel',pointerEnd,option);
+   parent.addEventListener('wheel',wheel,{passive:false});
+   parent.addEventListener('keydown',keyboard);
+   parent.addEventListener('click',clickCapture,true);
+  }
+  window.addEventListener('beastbox:spark-chirp',chirp);
+  window.addEventListener('beastbox:spark-mute',mute);
+  const releaseListeners=()=>{
+   if(parent){
+    parent.removeEventListener('pointerdown',pointerDown);
+    parent.removeEventListener('pointermove',pointerMove);
+    parent.removeEventListener('pointerup',pointerEnd);
+    parent.removeEventListener('pointercancel',pointerEnd);
+    parent.removeEventListener('wheel',wheel);
+    parent.removeEventListener('keydown',keyboard);
+    parent.removeEventListener('click',clickCapture,true);
+   }
+   window.removeEventListener('beastbox:spark-chirp',chirp);
+   window.removeEventListener('beastbox:spark-mute',mute);
+  };
+  void(async()=>{
    try{
-    if(!window.WebGLRenderingContext)throw Error('WebGL is not available');
+    if(!window.WebGLRenderingContext)throw Error('WebGL unavailable');
     const THREE=await import('three');
     if(disposed)return;
-    const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:quality==='auto',powerPreference:'low-power'});
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,quality==='low'?1:1.5));
+    const low=window.innerWidth<600||window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:!low,powerPreference:'low-power'});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?1:1.4));
     renderer.outputColorSpace=THREE.SRGBColorSpace;
-    renderer.setClearColor(0x070d21,1);
     const scene=new THREE.Scene();
-    scene.background=new THREE.Color(0x070d21);
-    scene.fog=new THREE.FogExp2(0x141333,.038);
-    const camera=new THREE.PerspectiveCamera(44,1,.1,80);
-    scene.add(new THREE.HemisphereLight(0xaeddfc,0x1c1036,2.1));
-    const glow=new THREE.PointLight(0x8befff,25,10);
-    glow.position.set(0,4,1);scene.add(glow);
-    const rim=new THREE.PointLight(0xffa0eb,18,12);
-    rim.position.set(-3,2,-3);scene.add(rim);
-    const ground=new THREE.Mesh(new THREE.BoxGeometry(9.1,.32,9.1),new THREE.MeshStandardMaterial({color:0x122644,metalness:.2,roughness:.76}));
-    ground.position.y=-.21;scene.add(ground);
-    const grid=new THREE.GridHelper(9,12,0x6ad4ff,0x2e5274);
-    grid.position.y=-.035;scene.add(grid);
-    // A real 3D cube chamber: the circle is only the viewport/mask.
-    const chamber=new THREE.Mesh(new THREE.BoxGeometry(9.4,5.3,9.4),new THREE.MeshBasicMaterial({color:0x7757cd,transparent:true,opacity:.048,depthWrite:false,side:THREE.BackSide}));
-    chamber.position.y=2.37;scene.add(chamber);
-    const chamberEdge=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(9.4,5.3,9.4)),new THREE.LineBasicMaterial({color:0x6ab5f3,transparent:true,opacity:.27}));
-    chamberEdge.position.y=2.37;scene.add(chamberEdge);
-    const altar=new THREE.Mesh(new THREE.CylinderGeometry(1.12,1.26,.16,32),new THREE.MeshStandardMaterial({color:0x302b66,metalness:.58,roughness:.4,emissive:0x241152,emissiveIntensity:.3}));
-    altar.position.y=.08;scene.add(altar);
-    const ring=new THREE.Mesh(new THREE.TorusGeometry(1.32,.032,7,54),new THREE.MeshBasicMaterial({color:0x9bf2ff,transparent:true,opacity:.77}));
-    ring.rotation.x=Math.PI/2;ring.position.y=.17;scene.add(ring);
-    const seed=seedValue(String(genome?.seed||profile?.id||'beastbox-pocket'));
-    let randomState=seed||1;
-    const rand=()=>{randomState^=randomState<<13;randomState^=randomState>>>17;randomState^=randomState<<5;return(randomState>>>0)/4294967296;};
-    const cubeMat=new THREE.MeshStandardMaterial({color:0x253b69,roughness:.78,metalness:.15});
-    const crystalMat=new THREE.MeshStandardMaterial({color:0x73e6ef,emissive:0x1a5a88,emissiveIntensity:.55,roughness:.24,metalness:.38});
-    const violetMat=new THREE.MeshStandardMaterial({color:0xc39af1,emissive:0x45288e,emissiveIntensity:.5,roughness:.29,metalness:.25});
-    // World geometry is stable for this QBEAST; it is not new quantum data.
-    for(let i=0;i<(quality==='low'?22:36);i++){
-     const x=(rand()-.5)*8.15,z=(rand()-.5)*8.15;
-     if(Math.hypot(x,z)<1.75)continue;
-     const h=.15+rand()*.8;
-     const mesh=i%3===0
-      ?new THREE.Mesh(new THREE.OctahedronGeometry(.18+rand()*.27,0),i%2?crystalMat:violetMat)
-      :new THREE.Mesh(new THREE.BoxGeometry(.35+rand()*.45,h,.35+rand()*.45),cubeMat);
-     mesh.position.set(x,i%3===0?.28:-.02+h/2,z);
-     mesh.rotation.y=rand()*Math.PI;
-     scene.add(mesh);
+    scene.background=new THREE.Color(0x070e22);
+    scene.fog=new THREE.FogExp2(0x0c1730,.035);
+    const camera=new THREE.PerspectiveCamera(46,1,.1,70);
+    scene.add(new THREE.HemisphereLight(0x94d9ff,0x20113b,1.8));
+    const moonlight=new THREE.PointLight(0xa8eaff,24,12);
+    moonlight.position.set(0,4,1);scene.add(moonlight);
+    const glow=new THREE.PointLight(0xba82f4,13,11);glow.position.set(-2,2,-3);scene.add(glow);
+    const stone=new THREE.MeshStandardMaterial({color:0x19304d,roughness:.9,metalness:.06});
+    const floraMat=new THREE.MeshStandardMaterial({color:0x3fa8a0,emissive:0x0c5b6a,emissiveIntensity:.24,roughness:.52});
+    const crystalMat=new THREE.MeshStandardMaterial({color:0x9b9cf6,emissive:0x554b9e,emissiveIntensity:.3,metalness:.2,roughness:.32});
+    const ground=new THREE.Mesh(new THREE.BoxGeometry(9.1,.22,9.1),stone);
+    ground.position.y=-.17;scene.add(ground);
+    const grid=new THREE.GridHelper(9,12,0x4983a4,0x284c74);
+    grid.position.y=-.05;scene.add(grid);
+    // Dimensional pocket: finite cubic world occupying only the circle.
+    const bounds=new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(9.2,5.2,9.2)),
+      new THREE.LineBasicMaterial({color:0x718dcc,transparent:true,opacity:.27}));
+    bounds.position.y=2.45;scene.add(bounds);
+    const seedRandom=randomFor(key),flora:import('three').Object3D[]=[];
+    for(let i=0;i<(low?17:34);i++){
+     const x=(seedRandom()-.5)*7.8,z=(seedRandom()-.5)*7.8;
+     if(Math.hypot(x,z)<1.4)continue;
+     const height=.24+seedRandom()*.76;
+     if(i%4===0){
+      const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(.14+seedRandom()*.22,0),crystalMat);
+      crystal.position.set(x,.3,z);scene.add(crystal);flora.push(crystal);
+     }else{
+      const trunk=new THREE.Mesh(new THREE.ConeGeometry(.14+seedRandom()*.15,height,5),floraMat);
+      trunk.position.set(x,height*.5,z);scene.add(trunk);flora.push(trunk);
+     }
     }
-    const starGeo=new THREE.BufferGeometry(),stars:number[]=[];
-    for(let i=0;i<(quality==='low'?60:130);i++)stars.push((rand()-.5)*8.7,.7+rand()*4.25,(rand()-.5)*8.7);
-    starGeo.setAttribute('position',new THREE.Float32BufferAttribute(stars,3));
-    const points=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xaccfff,size:.042,transparent:true,opacity:.78}));
-    scene.add(points);
-    let creature:import('three').Object3D;
-    let spriteTexture:import('three').CanvasTexture|null=null;
-    let rig:ReturnType<typeof createCreatureRig>|null=null;
-    if(qbeastId){
-     if(!genome?.seed)throw Error('Canonical QBEAST has not restored its genome');
-     const rgba=renderBeast(genome,stageSafe,'open');
-     if(rgba.length!==64*64*4)throw Error('Canonical sprite did not render at 64x64');
-     const art=document.createElement('canvas');art.width=art.height=64;
-     const ctx=art.getContext('2d');if(!ctx)throw Error('Native sprite canvas unavailable');
-     ctx.putImageData(new ImageData(new Uint8ClampedArray(rgba),64,64),0,0);
-     spriteTexture=new THREE.CanvasTexture(art);spriteTexture.colorSpace=THREE.SRGBColorSpace;
-     spriteTexture.magFilter=THREE.NearestFilter;spriteTexture.minFilter=THREE.NearestFilter;
-     const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTexture,transparent:true,alphaTest:.015,depthTest:true}));
-     sprite.scale.set(2.05,2.05,1);creature=sprite;
-    }else{
-     rig=createCreatureRig(profile,fallbackLook,quality);
-     creature=rig.group;creature.scale.setScalar(.57);
-    }
-    creature.position.set(0,1.17,0);scene.add(creature);
-    const shadow=new THREE.Mesh(new THREE.CircleGeometry(.62,28),new THREE.MeshBasicMaterial({color:0x020a18,transparent:true,opacity:.4,depthWrite:false}));
-    shadow.rotation.x=-Math.PI/2;shadow.position.y=.16;scene.add(shadow);
-    const onLost=(e:Event)=>{e.preventDefault();setFailed(true);setReady(false);};
-    canvas.addEventListener('webglcontextlost',onLost);
+    // The second CodePen's cyrb128/sfc32-based small celestial generator;
+    // unlike its huge planetary scene, we cap this to 2–4 tiny bodies.
+    const sky=createPocketSky(key,{quality:low?'low':'auto'});
+    const skyGeometry=new THREE.SphereGeometry(1,low?8:12,low?6:10);
+    const orbiters=sky.bodies.map(body=>{
+     const color=new THREE.Color().setHSL(body.hue/360,.65,.6);
+     const object=new THREE.Mesh(skyGeometry,new THREE.MeshBasicMaterial({color}));
+     object.scale.setScalar(body.size);scene.add(object);
+     return{body,object};
+    });
+    const starsGeom=new THREE.BufferGeometry(),points:number[]=[];
+    for(let i=0;i<(low?55:120);i++)points.push((seedRandom()-.5)*8.8,.5+seedRandom()*4.5,(seedRandom()-.5)*8.8);
+    starsGeom.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
+    scene.add(new THREE.Points(starsGeom,new THREE.PointsMaterial({color:0xb2dfff,size:.042,transparent:true,opacity:.75})));
     const resize=()=>{
      if(disposed)return;
-     const bounds=canvas.getBoundingClientRect();
-     if(bounds.width<2||bounds.height<2)return;
-     renderer.setSize(Math.floor(bounds.width),Math.floor(bounds.height),false);
-     camera.aspect=bounds.width/bounds.height;camera.updateProjectionMatrix();
+     const rect=canvas.getBoundingClientRect();
+     if(rect.width<2||rect.height<2)return;
+     renderer.setSize(Math.floor(rect.width),Math.floor(rect.height),false);
+     camera.aspect=rect.width/rect.height;camera.updateProjectionMatrix();
     };
-    const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;
-    observer?.observe(canvas);window.addEventListener('resize',resize);resize();
-    let previous=performance.now(),lastPaint=0,t=0,rendered=false,visible=true;
-    const intersect=typeof IntersectionObserver!=='undefined'?new IntersectionObserver(entries=>{visible=entries.some(e=>e.isIntersecting);},{threshold:.02}):null;
-    intersect?.observe(canvas);
-    const move=new THREE.Vector3(0,0,0),focus=new THREE.Vector3(0,.9,0);
+    const ro=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;
+    ro?.observe(canvas);resize();
+    let visible=true,last=performance.now(),elapsed=0,lastPaint=0,rendered=false;
+    const io=typeof IntersectionObserver!=='undefined'?new IntersectionObserver(entries=>visible=entries.some(e=>e.isIntersecting),{threshold:.01}):null;
+    io?.observe(canvas);
+    const onContextLost=(e:Event)=>{e.preventDefault();setReady(false);setFailed(true);};
+    canvas.addEventListener('webglcontextlost',onContextLost);
+    const focus=new THREE.Vector3(0,.85,0);
     const animate=(now:number)=>{
      if(disposed)return;
-     raf=requestAnimationFrame(animate);
-     const dt=Math.min(.06,Math.max(0,(now-previous)/1000));previous=now;
-     if(document.hidden||!visible||now-lastPaint<(quality==='low'?55:33))return;
+     frame=requestAnimationFrame(animate);
+     const dt=clamp((now-last)/1000,0,.06);last=now;
+     if(document.hidden||!visible||now-lastPaint<(low?55:33))return;
      lastPaint=now;
-     if(!reduced)t+=dt;
-     const p=position.current;
-     const hasPosition=p&&Number.isFinite(p.x)&&Number.isFinite(p.y);
-     const x=hasPosition?(clamp(p.x,0,1)-.5)*5.8:(reduced?0:Math.sin(t*.28+seed%9)*1.2);
-     const z=hasPosition?(clamp(p.y,0,1)-.5)*5.8:(reduced?0:Math.cos(t*.23+seed%7)*1.05);
-     move.lerp(new THREE.Vector3(x,0,z),Math.min(1,dt*2.5));
-     creature.position.set(move.x,1.22+(!reduced?Math.sin(t*1.55)*.09:0),move.z);
-     shadow.position.set(move.x,.17,move.z);
-     if(rig){rig.halo.rotation.y=t*.5;rig.group.rotation.y=reduced?0:Math.sin(t*.4)*.24;}
-     const v=view.current;
-     if(autoRef.current&&!reduced&&pointers.current.size===0)v.theta+=dt*.12;
-     focus.lerp(new THREE.Vector3(move.x*.25,.7,move.z*.25),Math.min(1,dt*2.4));
-     camera.position.set(focus.x+v.zoom*Math.sin(v.phi)*Math.sin(v.theta),
-      focus.y+v.zoom*Math.cos(v.phi),
-      focus.z+v.zoom*Math.sin(v.phi)*Math.cos(v.theta));
+     if(!reduced)elapsed+=dt;
+     motion.current.impulse=Math.max(0,motion.current.impulse-dt*.35);
+     const pulse=motion.current.impulse;
+     // World vegetation responds to the recorded/native stage and actual
+     // local creature audio events. This is cosmetic, not learned growth.
+     const growth=1+(clamp(motion.current.stage,1,3)-1)*.1+pulse*.19;
+     flora.forEach((o,i)=>{o.scale.y=1+(growth-1)*(.6+(i%3)*.2);});
+     moonlight.intensity=24+pulse*12;
+     for(const {body,object} of orbiters){
+      const xyz=orbitPosition(body,elapsed,!reduced);
+      object.position.set(xyz.x,xyz.y,xyz.z);
+     }
+     const v=cameraView.current;
+     camera.position.set(v.zoom*Math.sin(v.phi)*Math.sin(v.theta),v.zoom*Math.cos(v.phi),v.zoom*Math.sin(v.phi)*Math.cos(v.theta));
      camera.lookAt(focus);
-     ring.rotation.z=reduced?0:t*.07;
      try{renderer.render(scene,camera);}catch{setReady(false);setFailed(true);return;}
      if(!rendered){rendered=true;setReady(true);}
     };
-    raf=requestAnimationFrame(animate);
+    frame=requestAnimationFrame(animate);
     cleanup=()=>{
-     cancelAnimationFrame(raf);window.removeEventListener('resize',resize);
-     observer?.disconnect();intersect?.disconnect();canvas.removeEventListener('webglcontextlost',onLost);
-     rig?.dispose();
-     if(rig)scene.remove(rig.group);
+     cancelAnimationFrame(frame);ro?.disconnect();io?.disconnect();
+     canvas.removeEventListener('webglcontextlost',onContextLost);
      const geometries=new Set<import('three').BufferGeometry>(),materials=new Set<import('three').Material>();
-     scene.traverse(obj=>{
-      if(obj instanceof THREE.Mesh||obj instanceof THREE.Points||obj instanceof THREE.LineSegments||obj instanceof THREE.Sprite){
-       if(obj instanceof THREE.Mesh||obj instanceof THREE.Points||obj instanceof THREE.LineSegments)geometries.add(obj.geometry);
-       const material=obj.material;
-       (Array.isArray(material)?material:[material]).forEach(m=>materials.add(m));
+     scene.traverse(o=>{
+      if(o instanceof THREE.Mesh||o instanceof THREE.LineSegments||o instanceof THREE.Points){
+       geometries.add(o.geometry);
+       const m=o.material;(Array.isArray(m)?m:[m]).forEach(k=>materials.add(k));
       }
      });
-     geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());
-     spriteTexture?.dispose();renderer.dispose();
+     geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();
     };
    }catch{
-    if(!disposed){setReady(false);setFailed(true);setMessage('3D unavailable · original Beast habitat preserved');}
+    if(!disposed){setFailed(true);setReady(false);}
    }
   })();
-  return()=>{disposed=true;cancelAnimationFrame(raf);cleanup();setReady(false);};
- },[enabled,failed,quality,id,genome?.seed,profile?.id,stageSafe,fallbackLook,reduced]);
- return <div className={styles.root} data-pocket-dimension="true" data-pocket-state={!enabled?'classic':failed?'fallback':ready?'ready':'loading'} data-creature-id={id}>
-  {enabled&&!failed?<canvas ref={canvasRef} className={styles.canvas} data-pocket-webgl="true"
-   role="img" aria-label={"Interactive 3D cube-world camera around "+(qbeastId||'the preview creature')+". Drag, pinch or use arrow keys to orbit. This is visual exploration, not native game progression."}
-   tabIndex={0} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={releasePointer} onPointerCancel={releasePointer}
-   onKeyDown={onKeyboard} onWheel={e=>{e.preventDefault();changeZoom(view.current.zoom+e.deltaY*.012);}}
-  />:null}
-  <details className={styles.settings} data-pocket-settings="true">
-   <summary><Settings2 size={16} aria-hidden="true"/> World settings</summary>
-   <div className={styles.panel}>
-    <strong>DIMENSIONAL POCKET</strong>
-    <p>Camera-only exploration. This Beast keeps its original QBEAST ID, care, model, memories and native game save.</p>
-    <label className={styles.switch}><input type="checkbox" checked={enabled} onChange={e=>{setFailed(false);setEnabled(e.target.checked);}}/>3D pocket enabled</label>
-    <label className={styles.switch}><input type="checkbox" checked={autoOrbit} onChange={e=>setAutoOrbit(e.target.checked)}/>Slow camera orbit</label>
-    <label>Zoom distance <input type="range" min="5.7" max="14.4" step=".1" value={zoom} disabled={!enabled} onChange={e=>changeZoom(Number(e.target.value))}/></label>
-    <label>Render quality <select value={quality} onChange={e=>setQuality(e.target.value==='low'?'low':'auto')}><option value="auto">Balanced</option><option value="low">Battery saver</option></select></label>
-    <div className={styles.actions}>
-     <button type="button" onClick={()=>changeZoom(view.current.zoom-.9)} disabled={!enabled} aria-label="Zoom into pocket world"><Plus size={16}/> Near</button>
-     <button type="button" onClick={()=>changeZoom(view.current.zoom+.9)} disabled={!enabled} aria-label="Zoom out of pocket world"><Minus size={16}/> Far</button>
-     <button type="button" onClick={reset}><RotateCcw size={16}/> Reset</button>
-    </div>
-    <p className={styles.notice}>{failed?'WebGL unavailable: original habitat is active. Try Classic mode.':ready?'3D pocket active · recorded QBEAST preserved':enabled?'Building dimensional space…':'Original circular habitat active'}</p>
-   </div>
-  </details>
-  {ready&&enabled?<div className={styles.hint} aria-hidden="true"><Compass size={13}/> Orbit · pinch to zoom</div>:null}
-  {!ready&&enabled&&!failed?<span className={styles.loading} role="status">Opening pocket dimension…</span>:null}
-  <span className={styles.sr} role="status">{message}</span>
+  return()=>{disposed=true;cancelAnimationFrame(frame);cleanup();releaseListeners();};
+ },[key,failed,reduced]);
+ return <div className={styles.root} data-pocket-dimension="true"
+  data-world-source="genesis-nightops-core-visual-v1"
+  data-pocket-state={failed?'fallback':ready?'ready':'loading'} data-creature-id={id}>
+  {!failed?<canvas data-pocket-webgl="true" className={styles.canvas} ref={canvasRef}
+   aria-hidden="true"/>:null}
+  {!failed&&!ready?<span className={styles.sr} role="status">Opening the dimensional world behind your Beast…</span>:null}
  </div>;
 }
