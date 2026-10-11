@@ -197,7 +197,7 @@ async function infer(kind,observation,episode,step){
     // Crucially: UP from v11_sel=0 wraps to index 12/SFX and toggles sound,
     // which was OBSERVED in the failed real browser recording 38157714812.
     // No direct SRAM writes, native game cheats or emulator API mutation.
-    const nativeSaveMenuKeys=['START','RIGHT','UP','A','DOWN','DOWN','DOWN','A','A','A','A'];
+    const nativeSaveMenuKeys=['START','RIGHT','UP','A','DOWN','DOWN','DOWN','A','A','A'];
     const saveMenuAcks=[];
     for(const key of nativeSaveMenuKeys)saveMenuAcks.push(await input(key));
     await delay(250);
