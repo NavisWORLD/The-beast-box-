@@ -41,6 +41,30 @@ with sync_playwright() as p:
   hero=page.locator('.cage-habitat-visual [data-spark-beast="true"]')
   expect(hero).to_have_attribute("data-creature-id",re.compile("^bb-"),timeout=23000)
   creature_id=hero.get_attribute("data-creature-id")
+  # The same selected companion is inside a real 3D cube chamber, not a second Beast identity.
+  pocket=page.locator('[data-pocket-dimension="true"]')
+  expect(pocket).to_have_attribute("data-creature-id",creature_id)
+  page.wait_for_function("""() => ['ready','fallback'].includes(
+    document.querySelector('[data-pocket-dimension]')?.dataset.pocketState)""",timeout=25000)
+  pocket_state=pocket.get_attribute("data-pocket-state")
+  if pocket_state=="ready":
+   expect(pocket.locator('canvas[data-pocket-webgl]')).to_have_count(1)
+   pocket.locator('canvas').focus()
+   page.keyboard.press("ArrowRight")
+   box=page.locator(".cage-habitat-visual").bounding_box()
+   assert box and abs(box["width"]-box["height"])<2,(width,box)
+   page.locator('[data-pocket-settings="true"] summary').click()
+   page.get_by_role("slider",name="Zoom distance").fill("7.6")
+   assert page.get_by_role("slider",name="Zoom distance").input_value()=="7.6"
+   # This toggles rendering only; the selected Beast survives.
+   page.get_by_label("3D pocket enabled").uncheck()
+   expect(pocket).to_have_attribute("data-pocket-state","classic")
+   assert hero.get_attribute("data-creature-id")==creature_id
+   page.get_by_label("3D pocket enabled").check()
+   page.wait_for_function("""() => document.querySelector('[data-pocket-dimension]')?.dataset.pocketState==='ready'""",timeout=25000)
+   page.locator('[data-pocket-settings="true"] summary').click()
+  fits(page,str(width)+" dimensional pocket")
+
   selected_stats=page.get_by_label("Balanced fictional game stats").inner_text()
   before=hero.get_attribute("data-cosmetic-hue")
   page.get_by_role("slider",name="Creature color shift").focus()
