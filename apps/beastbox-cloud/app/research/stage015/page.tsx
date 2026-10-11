@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, ArrowUpRight, CheckCircle2, FlaskConical, Orbit, ShieldCheck } from 'lucide-react';
 import styles from './stage015.module.css';
+import BrandCrest from '@/components/brand-crest';
 
 export const metadata: Metadata = {
   title: 'COSMOS Lab // Stage 015 — Beast Box',
@@ -88,6 +89,6 @@ export default function Stage015Research() {
       </div>
       <p className={styles.note}>The GitHub receipts record cloud simulator executions, not physical QPU results. Artifact auditing does not independently authenticate Azure billing or account ownership.</p>
     </section>
-    <footer className={styles.footer}><Link href="/">✺ BEAST BOX</Link><span>CORY DAVIS · COSMOS · MODEL ≠ MEMORY · RESEARCH ≠ HYPE</span><a href={repo+'/pull/125'} target="_blank" rel="noopener noreferrer">OPEN RESEARCH PR ↗</a></footer>
+    <footer className={styles.footer}><Link href="/" aria-label="Beast Box home"><BrandCrest size={14} decorative style={{verticalAlign:'-2px',marginRight:6}}/>BEAST BOX</Link><span>CORY DAVIS · COSMOS · MODEL ≠ MEMORY · RESEARCH ≠ HYPE</span><a href={repo+'/pull/125'} target="_blank" rel="noopener noreferrer">OPEN RESEARCH PR ↗</a></footer>
   </main>;
 }

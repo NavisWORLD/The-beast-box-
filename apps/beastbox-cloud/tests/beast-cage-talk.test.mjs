@@ -19,9 +19,10 @@ test('speech and pending status remain explicit and reversible',()=>{
  assert.match(talk,/Response|response/);
  assert.match(talk,/window\.speechSynthesis/);
 });
-test('old abstract favicon is replaced by galaxy creature art',()=>{
- const icon=read('public/beast-icon.svg'),apple=read('app/apple-icon.tsx');
+test('galaxy creature art is preserved while the site icon moves to the Cosmic Forge Dragon crest',()=>{
+ const icon=read('public/beast-icon.svg'),layout=read('app/layout.tsx'),manifest=read('app/manifest.ts');
  assert.match(icon,/iridescent petals and a golden orbiting star/);
- assert.match(apple,/radial-gradient/);
- assert.doesNotMatch(apple,/>B</);
+ assert.doesNotMatch(layout,/beast-icon\.svg|'\/apple-icon'/);
+ assert.doesNotMatch(manifest,/beast-icon\.svg/);
+ assert.match(layout,/BRAND_ICONS\.apple180/);
 });

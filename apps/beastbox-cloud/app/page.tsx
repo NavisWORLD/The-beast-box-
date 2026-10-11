@@ -2,6 +2,7 @@ import Link from 'next/link';
 import HomepageCreature from '../components/homepage-creature';
 import CosmicSupportWidget from '../components/cosmic-support-widget';
 import { ArrowUpRight, BrainCircuit, Orbit, Sparkles } from 'lucide-react';
+import BrandCrest from '@/components/brand-crest';
 
 const P=[
  {icon:Sparkles,title:'MEET YOUR BEAST',copy:'Create or load one companion, care for it, name it, and keep the same identity as you move through Beast Box.',href:'/spark/index.html'},
@@ -13,7 +14,7 @@ export default function Home(){
  return <main className="landing">
  <div className="starscape" aria-hidden="true"><span/><span/><span/><span/><span/><span/></div>
  <header className="public-header">
-  <Link className="brand" href="/" aria-label="Beast Box home"><span className="brand-mark">✺</span><span>BEAST BOX <small>BY CORY DAVIS</small></span></Link>
+  <Link className="brand" href="/" aria-label="Beast Box home"><BrandCrest className="brand-mark" size={42}/><span>BEAST BOX <small>BY CORY DAVIS</small></span></Link>
   <nav className="public-journey-links" aria-label="Beast Box journey">
    <Link href="/spark/index.html">My Beast</Link>
    <Link href="/beast-cage">Beast Cage</Link>
