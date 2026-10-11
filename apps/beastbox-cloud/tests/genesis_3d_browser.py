@@ -34,13 +34,43 @@ with sync_playwright() as p:
   fits(page,str(width)+" homepage")
   if width in [1440,390,320]:page.screenshot(path=str(OUT/f"home-{width}.png"),full_page=True,animations="disabled")
   page.get_by_role("link",name=re.compile("Enter the Beast Cage")).click()
-  expect(page.get_by_role("heading",name=re.compile("A small companion"))).to_be_visible()
+  page.wait_for_url("**/beast-cage",timeout=30000)
+  try:
+   expect(page.get_by_role("heading",name=re.compile("A small companion"))).to_be_visible(timeout=20000)
+  except Exception as failure:
+   page.screenshot(path=str(OUT/f"cage-route-diagnostic-{width}.png"),full_page=True)
+   body=page.locator("body").inner_text(timeout=5000)[:600]
+   raise AssertionError(f"Cage hero missing at {page.url}; browser errors={errors[:4]}; body={body}") from failure
   page.get_by_label("Character seed").fill("life-engine-art-acceptance")
   page.get_by_label("Cosmic family").select_option("aurora")
   page.get_by_role("button",name="Generate from this seed").click()
   hero=page.locator('.cage-habitat-visual [data-spark-beast="true"]')
   expect(hero).to_have_attribute("data-creature-id",re.compile("^bb-"),timeout=23000)
   creature_id=hero.get_attribute("data-creature-id")
+  # The uploaded Genesis sources contribute only the BACKGROUND world.
+  # The original visible creature, tap-to-attack and sound controls stay intact.
+  pocket=page.locator('[data-pocket-dimension="true"]')
+  expect(pocket).to_have_attribute("data-creature-id","visual-preview")
+  page.wait_for_function("""() => ['ready','fallback'].includes(
+    document.querySelector('[data-pocket-dimension]')?.dataset.pocketState)""",timeout=30000)
+  pocket_state=pocket.get_attribute("data-pocket-state")
+  expect(page.locator('.cage-habitat-visual [data-spark-beast="true"]')).to_be_visible()
+  expect(page.get_by_role("button",name=re.compile("Make the beast attack"))).to_be_visible()
+  assert page.locator('[data-pocket-settings]').count()==0
+  if pocket_state=="ready":
+   expect(pocket.locator('canvas[data-pocket-webgl]')).to_have_count(1)
+   stage=page.locator('.cage-habitat-visual')
+   box=stage.bounding_box()
+   assert box and abs(box["width"]-box["height"])<2,(width,box)
+   stage.focus()
+   page.keyboard.press("ArrowRight")
+   page.keyboard.press("+")
+   # Existing creature sound events drive only visual flora/light pulsing.
+   page.evaluate("""() => window.dispatchEvent(
+     new CustomEvent('beastbox:spark-chirp',{detail:{intensity:0.6}}))""")
+   expect(hero).to_have_attribute("data-creature-id",creature_id)
+  fits(page,str(width)+" background dimensional pocket")
+
   selected_stats=page.get_by_label("Balanced fictional game stats").inner_text()
   before=hero.get_attribute("data-cosmetic-hue")
   page.get_by_role("slider",name="Creature color shift").focus()

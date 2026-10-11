@@ -283,6 +283,27 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 .cage-orbit{position:absolute;border:1px solid #f6db9e9c;border-radius:50%;width:88%;height:37%;transform:rotate(-23deg);top:62%;box-shadow:0 0 22px #d1a9ff40;pointer-events:none}
 .cage-orbit-two{transform:rotate(35deg);border-color:#b3c8ff6e;width:65%;height:31%;top:44%;opacity:.5}
 .cage-habitat-caption{position:absolute;bottom:7%;right:5%;font:700 9px 'Space Grotesk',sans-serif;letter-spacing:.2em;color:#e3deff;opacity:.9}
+
+/* The existing circular Cage becomes a viewport into genuine 3D geometry.
+   Never remove the sound/attack Arena or replace the signed QBEAST identity. */
+.cage-habitat-visual.cage-pocket-active{background:#070d21;border-radius:50%;aspect-ratio:1/1;min-height:0;box-shadow:inset 0 0 28px #9be7ff23,0 0 40px #ac8fff37,0 0 8px #d8f7ff89}
+.cage-pocket-active .cage-orbit{opacity:0;pointer-events:none}
+/* The original Arena and QBEAST sprite remain ABOVE the dimensional backdrop. */
+.cage-pocket-active [data-beast-arena="true"]{z-index:2}
+.cage-pocket-active:focus-visible{outline:2px dashed #a0eff3;outline-offset:3px}
+.cage-pocket-active [data-beast-arena="true"] [class*="hit"]{touch-action:none}
+
+
+.cage-pocket-active [data-beast-arena="true"] [class*="tools"]{pointer-events:auto;top:4%;left:17%;width:min(65%,250px);transform:none;justify-content:flex-start;z-index:8}
+
+.cage-pocket-active .cage-habitat-caption{right:14%;bottom:16%;z-index:3;font-size:8px;text-align:right;max-width:40%;line-height:1.6}
+@media(max-width:680px){
+ .cage-habitat-visual.cage-pocket-active{width:100%;max-width:490px;min-height:0}
+ .cage-pocket-active [data-beast-arena="true"] [class*="tools"]{top:15%;left:17%;width:66%;gap:4px}
+ .cage-pocket-active [data-beast-arena="true"] [class*="tools"] [class*="tool"]{padding:5px 7px;font-size:9px}
+
+}
+
 .cage-invariants{padding:20px;display:flex;justify-content:center;gap:clamp(20px,6vw,92px);border-top:1px solid #c7bafa2d;border-bottom:1px solid #c7bafa2d;color:#9fe0e6;font:700 11px 'Space Grotesk';letter-spacing:.13em;flex-wrap:wrap;background:#151a2b96}
 .cage-customize,.cage-worlds{max-width:1400px;margin:auto;padding:94px clamp(20px,5vw,70px) 70px}
 .cage-section-heading{max-width:580px;margin-bottom:35px}

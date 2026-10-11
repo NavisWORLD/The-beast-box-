@@ -1,9 +1,10 @@
 'use client';
-import {useEffect,useState} from 'react';
+import {useCallback,useEffect,useState} from 'react';
 import Link from 'next/link';
 import {ArrowRight,BrainCircuit,DatabaseZap,LockKeyhole,Orbit,ShieldCheck,SlidersHorizontal,Sparkles,Volume2} from 'lucide-react';
 import SparkBeastCompanion from './spark-beast-companion';
 import SparkBeastArena from './spark-beast-arena';
+import CagePocketDimension from './cage-pocket-dimension';
 import GenesisForge from './genesis-forge';
 import BeastCareDeck from './beast-care-deck';
 import CreatureHabitat from './creature-habitat';
@@ -33,6 +34,8 @@ export default function BeastCagePortal(){
  const [saved,setSaved]=useState(false);
  const {reduced:prefersReduced}=useUniverseMotion();
  const [expanded,setExpanded]=useState(false);
+ const [pocketReady,setPocketReady]=useState(false);
+ const onPocketActive=useCallback((active:boolean)=>setPocketReady(active),[]);
  const {profile:creature,selectProfile,clearProfile}=useCompanion();
  const [ambient,setAmbient]=useState<AmbientAction>('hover');
  const {session}=useBeastSession();
@@ -73,8 +76,15 @@ export default function BeastCagePortal(){
     <div className="cage-hero-actions"><Link className="cage-primary" href="/beast-cage/talk">Talk to My Beast <ArrowRight size={17}/></Link><a className="cage-secondary" href="#customize">Customize</a><Link className="cage-secondary" href="/sol-game">Enter LOST COSMOS 🎮</Link></div>
     <p className="cage-quiet"><LockKeyhole size={13}/><span>One Beast stays at the center. More ways to explore: <Link href="/beast-cage/turntable">3D model</Link> · <Link href="/beast-cage/play">Adventure</Link> · <Link href="/beast-cage/guest">Game lab</Link> · <a href="/spark/index.html">Open Public Beast Generator</a> · <Link href="/workspace">Owner deck</Link>.</span></p>
    </div>
-   <div className="cage-habitat-visual" role="group" aria-label="Original cosmic observatory with a floating galaxy companion">
+   <div className={'cage-habitat-visual'+(pocketReady?' cage-pocket-active':'')} role="group" aria-label="Circular dimensional world behind the original Spark Beast; drag or pinch to explore, or focus and use arrow keys and plus/minus to move the view" tabIndex={0}>
     <div className="cage-orbit cage-orbit-one" aria-hidden="true"/><div className="cage-orbit cage-orbit-two" aria-hidden="true"/>
+    <CagePocketDimension
+     seed={sameSpark?session.beast.genome?.seed||session.beast.seed:null}
+     qbeastId={sameSpark?session.beast.qbeast.profile.id:null}
+     stage={sameSpark?(session.beast.nativeStage||1):1}
+     behaviorPosition={sameSpark?session.beast.behavior?.position||null:null}
+     state={sameSpark?visualStateFromBeast(session.beast):ambient}
+     reduced={prefersReduced} onActiveChange={onPocketActive}/>
     <SparkBeastArena profile={creature} fallbackLook={look}
      state={sameSpark?visualStateFromBeast(session.beast):ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
      label="Active Spark Beast companion"/>
