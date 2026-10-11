@@ -54,8 +54,11 @@ with sync_playwright() as p:
    box=page.locator(".cage-habitat-visual").bounding_box()
    assert box and abs(box["width"]-box["height"])<2,(width,box)
    page.locator('[data-pocket-settings="true"] summary').click()
-   page.get_by_role("slider",name="Zoom distance").fill("7.6")
-   assert page.get_by_role("slider",name="Zoom distance").input_value()=="7.6"
+   slider=page.get_by_role("slider",name="Zoom distance")
+   old_zoom=float(slider.input_value())
+   slider.focus()
+   page.keyboard.press("ArrowLeft")
+   assert float(slider.input_value())<old_zoom
    # This toggles rendering only; the selected Beast survives.
    page.get_by_label("3D pocket enabled").uncheck()
    expect(pocket).to_have_attribute("data-pocket-state","classic")
