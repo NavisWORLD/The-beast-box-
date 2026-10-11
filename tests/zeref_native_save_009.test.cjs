@@ -6,7 +6,7 @@ test('native Game Boy START mapping is exact and neutral menu save is distinct f
  assert.match(source,/const INPUT=\{UP:4,DOWN:5,LEFT:6,RIGHT:7,A:8,B:0,START:3\}/);
  assert.match(source,/const nativeSaveMenuKeys=\['START','RIGHT','UP','A','DOWN','DOWN','DOWN','A','A','A'\]/);
  assert.match(source,/original_native_save_menu_acks:saveMenuAcks/);
- assert.match(source,/content_v11_menus\\.h::v11_update_pause/);
+ assert.ok(source.includes('content_v11_menus.h::v11_update_pause'),'V11 save route must be documented in native runner');
  assert.match(source,/failed real browser recording 38157714812/);
  assert.match(source,/await input\('B'\);await input\('B'\)/);
  assert.match(source,/neutral_ui_commands_not_part_of_model_or_script_policy:true/);
