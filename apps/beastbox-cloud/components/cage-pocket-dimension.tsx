@@ -28,7 +28,7 @@ export default function CagePocketDimension({genome,qbeastId,profile,fallbackLoo
  const view=useRef<View>({...INITIAL}),pointers=useRef<Map<number,Pointer>>(new Map());
  const position=useRef(behaviorPosition),motionState=useRef(state),autoRef=useRef(true);
  const [enabled,setEnabled]=useState(true),[ready,setReady]=useState(false),[failed,setFailed]=useState(false);
- const [autoOrbit,setAutoOrbit]=useState(false),[quality,setQuality]=useState<'low'|'auto'>('auto'),[zoom,setZoom]=useState(10);
+ const [autoOrbit,setAutoOrbit]=useState(false),[quality,setQuality]=useState<'low'|'auto'>('auto'),[zoom,setZoom]=useState(10),[settingsLoaded,setSettingsLoaded]=useState(false);
  const [message,setMessage]=useState('Drag to orbit · pinch or scroll to zoom');
  const stageSafe=clamp(Math.floor(Number(stage)||1),1,3);
  const id=qbeastId||profile?.id||'visual-preview';
@@ -38,15 +38,18 @@ export default function CagePocketDimension({genome,qbeastId,profile,fallbackLoo
  useEffect(()=>{
   try{
    const parsed=JSON.parse(localStorage.getItem(STORAGE)||'null');
-   if(!parsed||typeof parsed!=='object')return;
-   if(typeof parsed.enabled==='boolean')setEnabled(parsed.enabled);
-   if(parsed.quality==='low'||parsed.quality==='auto')setQuality(parsed.quality);
-   if(typeof parsed.autoOrbit==='boolean')setAutoOrbit(parsed.autoOrbit);
+   if(parsed&&typeof parsed==='object'){
+    if(typeof parsed.enabled==='boolean')setEnabled(parsed.enabled);
+    if(parsed.quality==='low'||parsed.quality==='auto')setQuality(parsed.quality);
+    if(typeof parsed.autoOrbit==='boolean')setAutoOrbit(parsed.autoOrbit);
+   }
   }catch{/* Privacy mode: defaults are entirely local */ }
+  finally{setSettingsLoaded(true);}
  },[]);
  useEffect(()=>{
+  if(!settingsLoaded)return; // Never overwrite restored preferences with hydration defaults.
   try{localStorage.setItem(STORAGE,JSON.stringify({enabled,quality,autoOrbit}));}catch{/* view works without storage */ }
- },[enabled,quality,autoOrbit]);
+ },[settingsLoaded,enabled,quality,autoOrbit]);
  useEffect(()=>{onActiveChange(enabled&&ready&&!failed);return()=>onActiveChange(false);},[enabled,ready,failed,onActiveChange]);
  const changeZoom=useCallback((next:number)=>{
   const z=clamp(next,5.7,14.4);view.current.zoom=z;setZoom(z);
