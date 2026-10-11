@@ -7,5 +7,5 @@
 .actions{display:grid;gap:6px}
 .actions button,.actions a{display:flex;align-items:center;justify-content:center;min-height:44px;border:1px solid #a3eff39a;border-radius:10px;background:#203855;color:#d0faff;font-size:11px;font-weight:700;text-decoration:none;padding:7px 9px}
 .actions button[aria-pressed=true]{background:#464079;color:#fff0fd}
-@media(max-width:560px){.bubble{right:-90%;top:0;width:90%;max-width:none;padding:9px}.bubble strong{font-size:8px}.bubble p{font-size:10px;margin:5px 0}.bubble small{font-size:8px}.actions button,.actions a{min-height:44px}}
+@media(max-width:560px){.zerefStats{display:none}.bubble{right:-90%;top:0;width:90%;max-width:none;padding:9px}.bubble strong{font-size:8px}.bubble p{font-size:10px;margin:5px 0}.bubble small{font-size:8px}.actions button,.actions a{min-height:44px}}
 @media(prefers-reduced-motion:reduce){.bubble,.actions *{animation:none!important;transition:none!important;backdrop-filter:none}}
