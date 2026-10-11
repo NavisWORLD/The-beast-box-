@@ -1,0 +1,42 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
+test('original Beast Cage hero retains existing active QBEAST Arena, sound, and game links',()=>{
+ const portal=read('../components/beast-cage-portal.tsx');
+ assert.match(portal,/SparkBeastArena profile=\{creature\}/);
+ assert.match(portal,/CagePocketDimension profile=\{creature\}/);
+ assert.match(portal,/sameSpark\?session\.beast\.genome:null/);
+ assert.match(portal,/sameSpark\?session\.beast\.qbeast\.profile\.id:null/);
+ assert.match(portal,/href="\/sol-game"/);
+ assert.match(portal,/onActiveChange=\{onPocketActive\}/);
+});
+test('camera-only 3D cube world reuses native sprite and original game identity',()=>{
+ const code=read('../components/cage-pocket-dimension.tsx');
+ assert.match(code,/new THREE\.WebGLRenderer/);
+ assert.match(code,/new THREE\.BoxGeometry\(9\.4,5\.3,9\.4\)/);
+ assert.match(code,/new THREE\.PerspectiveCamera/);
+ assert.match(code,/renderBeast\(genome,stageSafe,'open'\)/);
+ assert.match(code,/qbeastId/);
+ assert.match(code,/data-pocket-webgl="true"/);
+ assert.match(code,/data-pocket-settings="true"/);
+ assert.match(code,/onPointerDown/);
+ assert.match(code,/onPointerMove/);
+ assert.match(code,/onPointerCancel/);
+ assert.match(code,/onKeyDown/);
+ assert.match(code,/Zoom distance/);
+ assert.match(code,/3D pocket enabled/);
+ assert.match(code,/reduced/);
+ assert.match(code,/localStorage\.setItem\(STORAGE/);
+ assert.doesNotMatch(code,/\/api\/quantum|submit.*ibm|new.*SamplerV2/i);
+});
+test('three-dimensional optional view never blocks original mobile visual fallback',()=>{
+ const css=read('../app/globals.css');
+ const local=read('../components/cage-pocket-dimension.module.css');
+ assert.match(css,/\.cage-pocket-active \[data-beast-arena="true"\] \[data-spark-beast="true"\]/);
+ assert.match(css,/\.cage-pocket-active \[data-beast-arena="true"\] \[class\*="tools"\]/);
+ assert.match(css,/\.cage-habitat-visual\.cage-pocket-active/);
+ assert.match(local,/\.canvas:focus-visible/);
+ assert.match(local,/\.settings summary:focus-visible/);
+ assert.match(local,/touch-action:none/);
+});
