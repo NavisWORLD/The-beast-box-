@@ -178,7 +178,7 @@ async function infer(kind,observation,episode,step){
     console.log('ZEREF_005_NATIVE_EPISODE='+JSON.stringify({policy,episode,steps:rows.length,
      optics:summarizeArm([episodeRecord]).unique_observed_optical_signatures,
      model_valid:rows.filter(r=>r.is_model&&r.model_valid_action).length,
-     source_id:QBEAST,progress_proven:false}),flush=true);
+     source_id:QBEAST,progress_proven:false}));
     await output('partial-results.json',{completed_episodes:runIndex,policy_episodes:Object.fromEntries(POLICIES.map(p=>[p,data[p].length])),errors});
    }finally{
     await context.close();
