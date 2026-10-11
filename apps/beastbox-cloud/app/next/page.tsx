@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import JourneyLinks from '@/components/journey-links';
 import BrandCrest from '@/components/brand-crest';
 
 export const metadata: Metadata = {
@@ -13,12 +14,8 @@ export default function NextPage() {
       <div className="starscape" aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>
       <header className="public-header">
         <Link className="brand" href="/" aria-label="Beast Box home"><BrandCrest className="brand-mark" size={42}/><span>BEAST BOX <small>COMING SOON</small></span></Link>
-        <nav className="public-journey-links" aria-label="Beast Box journey">
-          <Link href="/spark/index.html">My Beast</Link>
-          <Link href="/beast-cage">Beast Cage</Link>
-          <Link href="/privacy">Privacy</Link>
-        </nav>
-        <Link className="header-enter" href="/">Home</Link>
+        <JourneyLinks skip={["settings"]} extra={[{label:"Privacy",href:"/privacy"}]}/>
+        <Link className="header-enter" href="/settings">Settings</Link>
       </header>
       <section className="hero" style={{ display: 'block', minHeight: 'auto', paddingBottom: 80 }}>
         <p className="eyebrow">NOT SHIPPED · BLUEPRINT</p>

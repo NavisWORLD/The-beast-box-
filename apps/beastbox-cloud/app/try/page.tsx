@@ -1,5 +1,6 @@
 'use client';
 import {useState,type FormEvent} from 'react';
+import JourneyLinks from '@/components/journey-links';
 import Link from 'next/link';
 import {ArrowLeft,ArrowRight,BrainCircuit,Globe,ShieldCheck,KeyRound} from 'lucide-react';
 import BrandCrest from '@/components/brand-crest';
@@ -28,7 +29,7 @@ export default function TryBeastBox(){
   finally{setBusy(false);}
  }
  return <main className="guest-page">
-  <header className="guest-top"><Link href="/"><ArrowLeft size={17}/> Back to COSMOS</Link><span><BrandCrest size={16} decorative style={{verticalAlign:'-3px',marginRight:6}}/>BEAST BOX · PUBLIC GUEST LAB</span><Link href="/beast-cage/go">Lost Cosmos field <ArrowRight size={16}/></Link><Link href="/workspace">Owner login <ArrowRight size={16}/></Link></header>
+  <header className="guest-top"><Link href="/"><ArrowLeft size={17}/> Back to COSMOS</Link><span><BrandCrest size={16} decorative style={{verticalAlign:'-3px',marginRight:6}}/>BEAST BOX · PUBLIC GUEST LAB</span><Link href="/beast-cage/go">Lost Cosmos field <ArrowRight size={16}/></Link><Link href="/workspace">Owner login <ArrowRight size={16}/></Link></header><div className="room-strip"><JourneyLinks label="Beast Box rooms"/></div>
   <section className="guest-hero"><p className="eyebrow">CORY DAVIS / NAVISWORLD</p><h1>Meet the <em>Beast.</em></h1>
    <p>Try the pinned local RAWRPHØS model on Cory&apos;s backend, or connect your own Hugging Face account. This guest conversation is stateless: it does not read or write Cory&apos;s COSMOS memory or grant tools.</p>
   </section>

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
+import JourneyLinks from '@/components/journey-links';
 import Link from 'next/link';
-import { ArrowLeft, ArrowUpRight, CheckCircle2, FlaskConical, Orbit, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, CheckCircle2, FlaskConical, ShieldCheck } from 'lucide-react';
 import styles from './stage015.module.css';
 import BrandCrest from '@/components/brand-crest';
 
@@ -25,9 +26,9 @@ export default function Stage015Research() {
   return <main className={styles.root}>
     <div className={styles.glow} aria-hidden="true" />
     <header className={styles.header}>
-      <Link href="/" className={styles.brand}><Orbit size={22} aria-hidden="true"/> BEAST BOX <span>// COSMOS LAB</span></Link>
+      <Link href="/" className={styles.brand}><BrandCrest size={24} decorative style={{verticalAlign:'middle',marginRight:8}}/> BEAST BOX <span>// COSMOS LAB</span></Link>
       <Link href="/" className={styles.back}><ArrowLeft size={15} aria-hidden="true"/> Back to Beast Box</Link>
-    </header>
+    </header><div className="room-strip"><JourneyLinks current="lab" label="Beast Box rooms"/></div>
 
     <section className={styles.hero} aria-labelledby="report-title">
       <div className={styles.eyebrow}><span className={styles.statusDot} aria-hidden="true" /> PUBLISHED RESEARCH // 26 SEP 2026</div>

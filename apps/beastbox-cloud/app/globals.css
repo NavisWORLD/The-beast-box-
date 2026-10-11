@@ -556,3 +556,58 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 
 /* Saved device preference complements the existing operating-system media queries. */
 html[data-beastbox-reduced-motion="true"] *,html[data-beastbox-reduced-motion="true"] *::before,html[data-beastbox-reduced-motion="true"] *::after{animation-duration:0.001ms!important;animation-iteration-count:1!important;transition-duration:0.001ms!important;scroll-behavior:auto!important;}
+
+/* ── Front-end finishing pass (2026-10-11): one journey nav, real touch targets,
+      calmer floating docks. Additive: nothing above is removed. ── */
+.journey-icon{font-size:13px;line-height:1;margin-right:6px}
+.public-journey-links a{min-height:44px;white-space:nowrap;font-size:11px}
+.public-journey-links a[aria-current=page]{background:linear-gradient(135deg,#24506c,#3b2f6b);color:#f2fdff;box-shadow:inset 0 0 0 1px #7fe9f466}
+.public-journey-links .journey-extra{color:#cdbfff}
+.room-strip{max-width:1180px;margin:14px auto 0;padding:0 clamp(16px,4vw,40px);display:flex;justify-content:center}
+.header-enter{min-height:44px;padding:0 6px}
+@media(max-width:900px){
+ .public-journey-links{justify-content:flex-start!important;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;max-width:100%}
+ .public-journey-links::-webkit-scrollbar{display:none}
+ .public-journey-links a{flex:0 0 auto!important;min-width:auto!important;padding-inline:12px!important;scroll-snap-align:start}
+ .room-strip .public-journey-links{width:100%}
+}
+/* Phones and tablets: every tappable control gets a 44px target. The Game Boy
+   handheld and the Lost COSMOS player keep their own sizing. */
+@media (pointer:coarse){
+ :where(header,nav,footer,.public-footer,.guest-top,.guest-bottom) a:where(:not([data-lost-cosmos-dock] *,[data-handheld-controls] *)){min-height:44px;display:inline-flex;align-items:center}
+ :where(button,[role=button],select,summary):where(:not([data-lost-cosmos-dock] *,[data-handheld-controls] *)){min-height:44px}
+ :where(input[type=checkbox],input[type=radio]):where(:not([data-lost-cosmos-dock] *)){width:22px;height:22px;flex:none}
+ :where(.secondary-link){min-height:44px}
+}
+/* Keep the last bit of every page scrollable clear of the bottom docks. */
+@media(max-width:620px){body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 76px)}}
+.cage-topbar nav>a{display:inline-flex;align-items:center;min-height:44px;padding:8px 10px;border-radius:10px}
+.room-strip-top{padding-top:max(12px,env(safe-area-inset-top,0px))}
+/* Home: friendlier cards and a world map of every room. */
+.feature-card{position:relative;overflow:hidden;--tone:#6fe7f2}
+.feature-card[data-tone="1"]{--tone:#f08bd8}.feature-card[data-tone="2"]{--tone:#b39cff}
+.feature-card::before{content:'';position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,var(--tone),transparent)}
+.feature-card svg{color:var(--tone)!important}
+.feature-card:hover,.feature-card:focus-visible{border-color:color-mix(in srgb,var(--tone) 55%,transparent);box-shadow:0 14px 44px color-mix(in srgb,var(--tone) 16%,transparent)}
+.feature-card .secondary-link{margin-top:6px;padding:0 14px;border-radius:999px;border:1px solid color-mix(in srgb,var(--tone) 45%,transparent);color:var(--tone);min-height:40px}
+.room-map{max-width:1440px;margin:0 auto;padding:0 clamp(22px,6vw,100px) 110px}
+.room-map h2{font:700 clamp(28px,3.2vw,44px)/1.15 'Space Grotesk';letter-spacing:-.03em;margin:14px 0 28px}
+.room-map-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.room-tile{--tone:#6fe7f2;display:flex;flex-direction:column;gap:6px;min-height:150px;padding:20px;border-radius:22px;color:inherit;border:1px solid color-mix(in srgb,var(--tone) 30%,transparent);background:radial-gradient(circle at 85% 10%,color-mix(in srgb,var(--tone) 20%,transparent),transparent 60%),linear-gradient(160deg,#1a1f3a,#111629);transition:transform .18s,box-shadow .18s,border-color .18s}
+.room-tile[data-room=cage]{--tone:#9cf0b8}.room-tile[data-room=game]{--tone:#f08bd8}.room-tile[data-room=brain]{--tone:#b39cff}.room-tile[data-room=lab]{--tone:#ffd27a}.room-tile[data-room=settings]{--tone:#9fb4d8}
+.room-tile:hover,.room-tile:focus-visible{transform:translateY(-4px);border-color:var(--tone);box-shadow:0 14px 40px color-mix(in srgb,var(--tone) 18%,transparent)}
+.room-tile-icon{font-size:30px;line-height:1;filter:drop-shadow(0 4px 12px #0007)}
+.room-tile strong{font:700 17px 'Space Grotesk',sans-serif;margin-top:6px;color:#f4f6ff}
+.room-tile small{font-size:13px;line-height:1.5;color:#b4bfd7}
+.room-tile-go{margin-top:auto;font:700 12px 'Space Grotesk',sans-serif;color:var(--tone)}
+@media(max-width:500px){.room-map{padding:0 18px 80px}.room-map-grid{grid-template-columns:1fr 1fr;gap:10px}.room-tile{min-height:132px;padding:14px;border-radius:18px}.room-tile strong{font-size:15px}.room-tile small{font-size:12px}}
+@media(max-width:340px){.room-map-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.room-tile,.feature-card{transition:none}.room-tile:hover,.feature-card:hover{transform:none}}
+/* Coarse pointers: a firmer 44px floor that beats single-class component
+   sizes. Switches keep their own size (they carry an invisible tap halo). */
+@media (pointer:coarse){
+ html body :is(button,[role=button],select,summary):not([role=switch]):not([data-lost-cosmos-dock] *,[data-handheld-controls] *,[data-lost-cosmos-dock],[data-handheld-controls]){min-height:44px;min-width:44px}
+ html body input[type=range]:not([data-lost-cosmos-dock] *,[data-handheld-controls] *){min-height:44px}
+}
+@media(max-width:620px){body:has([data-site-sound]) .cosmic-support:not(.is-open){left:calc(max(8px,env(safe-area-inset-left,0px)) + 56px)}}
+@media(max-width:900px){.public-journey-links{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent);padding-right:30px!important}}

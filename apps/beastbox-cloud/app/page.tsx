@@ -3,6 +3,16 @@ import HomepageCreature from '../components/homepage-creature';
 import CosmicSupportWidget from '../components/cosmic-support-widget';
 import { ArrowUpRight, BrainCircuit, Orbit, Sparkles } from 'lucide-react';
 import BrandCrest from '@/components/brand-crest';
+import { ROOMS } from '@/lib/rooms';
+
+const ROOM_BLURBS:Record<string,string>={
+ beast:'Hatch, name and care for your own Spark Beast.',
+ cage:'Visit its habitat, talk to it and change its look.',
+ game:'Take your Beast into the LOST COSMOS adventure.',
+ brain:'Pick which brain your Beast thinks with.',
+ lab:'See the real experiments and evidence.',
+ settings:'Sound, motion and your saved Beast.'
+};
 
 const P=[
  {icon:Sparkles,title:'MEET YOUR BEAST',copy:'Create or load one companion, care for it, name it, and keep the same identity as you move through Beast Box.',href:'/spark/index.html'},
@@ -16,11 +26,11 @@ export default function Home(){
  <header className="public-header">
   <Link className="brand" href="/" aria-label="Beast Box home"><BrandCrest className="brand-mark" size={42}/><span>BEAST BOX <small>BY CORY DAVIS</small></span></Link>
   <nav className="public-journey-links" aria-label="Beast Box journey">
-   <Link href="/spark/index.html">My Beast</Link>
-   <Link href="/beast-cage">Beast Cage</Link>
-   <Link href="/sol-game">Lost COSMOS</Link>
-   <Link href="/brain-bay">Brain Bay</Link>
-   <Link href="/research">Lab</Link>
+   <Link href="/spark/index.html" prefetch={false}><span className="journey-icon" aria-hidden="true">🐣</span>My Beast</Link>
+   <Link href="/beast-cage" prefetch={false}><span className="journey-icon" aria-hidden="true">🏰</span>Beast Cage</Link>
+   <Link href="/sol-game" prefetch={false}><span className="journey-icon" aria-hidden="true">🎮</span>Lost COSMOS</Link>
+   <Link href="/brain-bay" prefetch={false}><span className="journey-icon" aria-hidden="true">🧠</span>Brain Bay</Link>
+   <Link href="/research" prefetch={false}><span className="journey-icon" aria-hidden="true">🔬</span>Lab</Link>
   </nav>
   <span className="pill"><span className="pulse"/> DREAMERS · IDLERS · PLAYERS · BUILDERS</span>
   <Link className="header-enter" href="/settings">Settings <ArrowUpRight size={16}/></Link>
@@ -44,7 +54,18 @@ export default function Home(){
  <section className="value-strip"><span>MODEL ≠ MEMORY</span><span>MODEL ≠ STATE</span><span>MODEL ≠ AUTHORITY</span></section>
  <section className="feature-section">
   <div><p className="eyebrow">START SIMPLE · GO DEEP WHEN YOU WANT</p><h2>There is a door<br/><em>for however you think.</em></h2></div>
-  <div className="feature-grid">{P.map(x=><Link key={x.title} href={x.href} className="feature-card"><x.icon size={27}/><h3>{x.title}</h3><p>{x.copy}</p><span className="secondary-link">Open →</span></Link>)}</div>
+  <div className="feature-grid">{P.map(x=><Link key={x.title} href={x.href} className="feature-card" data-tone={P.indexOf(x)}><x.icon size={27}/><h3>{x.title}</h3><p>{x.copy}</p><span className="secondary-link">Open →</span></Link>)}</div>
+ </section>
+
+ <section className="room-map" aria-labelledby="room-map-title">
+  <p className="eyebrow">YOUR WORLD MAP</p>
+  <h2 id="room-map-title">Where should your Beast go next?</h2>
+  <div className="room-map-grid">{ROOMS.filter(room=>room.key!=='home').map(room=><Link key={room.key} href={room.href} prefetch={false} className="room-tile" data-room={room.key}>
+   <span className="room-tile-icon" aria-hidden="true">{room.icon}</span>
+   <strong>{room.label}</strong>
+   <small>{ROOM_BLURBS[room.key]}</small>
+   <span className="room-tile-go" aria-hidden="true">Go →</span>
+  </Link>)}</div>
  </section>
 
  <CosmicSupportWidget/>

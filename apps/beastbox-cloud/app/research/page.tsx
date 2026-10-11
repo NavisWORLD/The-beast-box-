@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import JourneyLinks from '@/components/journey-links';
 import Link from 'next/link';
 import { ArrowLeft, ArrowUpRight, Atom, BrainCircuit, FlaskConical, ShieldCheck } from 'lucide-react';
 import styles from './research.module.css';
@@ -27,7 +28,7 @@ export default function ResearchIndex() {
       <header className={styles.header}>
         <Link href="/" className={styles.brand} aria-label="Beast Box home"><BrandCrest size={28} decorative style={{verticalAlign:'middle',marginRight:8}}/>BEAST BOX <span>// COSMOS LAB</span></Link>
         <Link href="/" className={styles.back}><ArrowLeft size={15} aria-hidden="true" /> Back to the Beast</Link>
-      </header>
+      </header><div className="room-strip"><JourneyLinks current="lab" label="Beast Box rooms"/></div>
       <div className={styles.content}>
         <section className={styles.hero} aria-labelledby="research-title">
           <p className={styles.eyebrow}>CORY DAVIS / NAVISWORLD · VERIFIED RESEARCH · 29 SEPTEMBER 2026</p>

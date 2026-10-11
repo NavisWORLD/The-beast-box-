@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import JourneyLinks from '@/components/journey-links';
 import BrandCrest from '@/components/brand-crest';
 
 export const metadata: Metadata = {
@@ -13,13 +14,8 @@ export default function PrivacyPage() {
       <div className="starscape" aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>
       <header className="public-header">
         <Link className="brand" href="/" aria-label="Beast Box home"><BrandCrest className="brand-mark" size={42}/><span>BEAST BOX <small>PRIVACY</small></span></Link>
-        <nav className="public-journey-links" aria-label="Beast Box journey">
-          <Link href="/spark/index.html">My Beast</Link>
-          <Link href="/beast-cage">Beast Cage</Link>
-          <Link href="/workspace#brain-bay">Brain Bay</Link>
-          <Link href="/next">Coming soon</Link>
-        </nav>
-        <Link className="header-enter" href="/">Home</Link>
+        <JourneyLinks skip={["settings"]} extra={[{label:"Coming soon",href:"/next"}]}/>
+        <Link className="header-enter" href="/settings">Settings</Link>
       </header>
       <section className="hero" style={{ display: 'block', minHeight: 'auto', paddingBottom: 80 }}>
         <p className="eyebrow">LIVE SUBSTRATE · LOCAL FIRST</p>

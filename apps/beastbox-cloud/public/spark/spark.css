@@ -232,3 +232,24 @@ footer nav{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}footer 
 }
 
 .first-steps{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:18px 0;padding:16px;border:1px solid #617190;border-radius:16px;background:#14243b}.first-steps label{flex-basis:100%;color:#d1e9ff}.first-steps input{min-width:0;width:100%;max-width:280px;min-height:44px;font-size:16px;padding:10px;border:1px solid #647c9f;background:#0a1425;color:#f1f7ff;border-radius:9px}.first-steps button{min-height:44px;flex:1 1 140px}.first-steps span{font-size:12px;color:#b7e3d2;flex-basis:100%}.keep-card input[type=file]{max-width:100%;font-size:14px;margin-block:10px}html[data-beastbox-reduced-motion="true"] *,html[data-beastbox-reduced-motion="true"] *::before,html[data-beastbox-reduced-motion="true"] *::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important;}
+
+/* Front-end finishing pass (2026-10-11): phones get the full seven-room
+   journey as one swipeable row (the three-step strip stays on wider screens),
+   a Home button in the bottom bar, and 44px tap targets. */
+.route-nav a{display:inline-flex;align-items:center;min-height:44px}
+@media(max-width:680px){
+ .top{flex-wrap:wrap;gap:8px}
+ .route-nav{display:flex;flex-wrap:nowrap;justify-content:flex-start;width:100%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;gap:4px;padding:4px;border:1px solid #6f87b13b;border-radius:14px;background:#0a1225cc}
+ .route-nav::-webkit-scrollbar{display:none}
+ .route-nav a{flex:0 0 auto;padding:8px 12px;font-size:.72rem;white-space:nowrap}
+ .journey{display:none}
+ .mobile-nav{grid-template-columns:repeat(5,minmax(0,1fr))}
+ .mobile-nav button,.mobile-nav a{min-height:44px}
+ .section-nav button{min-height:44px}
+}
+@media (pointer:coarse){
+ html body :is(button,select,summary,[role=button]):not([role=switch]){min-height:44px;min-width:44px}
+ html body input[type=range]{min-height:44px}
+ .route-nav a,.mobile-nav a,.spark-brand,.next-route a,footer a{min-height:44px}
+}
+@media(max-width:680px){.route-nav{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent);padding-right:30px}}

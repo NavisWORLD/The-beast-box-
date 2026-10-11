@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import JourneyLinks from '@/components/journey-links';
 import BeastCageTalk from '@/components/beast-cage-talk';
 export const metadata: Metadata = { title: 'Talk to the Beast · BEAST BOX', description: 'A real guest chat with RAWRPHØS and an animated cosmic companion. Guest sessions do not access owner memory.' };
 export default function TalkPage() {
@@ -8,6 +9,7 @@ export default function TalkPage() {
       <Link href="/beast-cage" style={{fontWeight:800,color:'#a8eef9',letterSpacing:'.14em'}}>✦ BEAST CAGE</Link>
       <Link href="/workspace" style={{fontSize:12,color:'#ddd1ff'}}>OWNER WORKSTATION ↗</Link>
     </header>
+    <div className="room-strip"><JourneyLinks current="cage" label="Beast Box rooms"/></div>
     <BeastCageTalk />
   </main>;
 }
