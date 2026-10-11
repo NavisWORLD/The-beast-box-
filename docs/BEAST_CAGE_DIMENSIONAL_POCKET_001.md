@@ -1,52 +1,69 @@
-# Beast Cage dimensional pocket — source boundary and acceptance
+# BEAST CAGE // DIMENSIONAL POCKET 001 — Background-only world
 
-## Owner request
+## Scope correction from owner (2026-10-10)
 
-Change only the existing **circular Beast Cage habitat** into a rotatable,
-zoomable, genuinely three-dimensional cube chamber. Retain current Spark
-Beast, original native 64×64 measured-seed sprite, model/source identity,
-sound/attack controls and LOST COSMOS Game Boy bridge. Add a discoverable
-**World settings** tab with classic mode, orbit, quality, zoom and reset.
+The two historic engines are **visual world research**, not new Beast graphics,
+settings, model authority, a second creature engine or a second GBA game.
 
-Screenshot target: October 10, 2026 iPhone Safari circular habitat showing Zeref.
+**The circular Beast Cage retains its original SparkBeastArena, original
+64×64 QBEAST sprite, audio, attack controls, saves, models and native Lost COSMOS
+bridge, visible ABOVE the WebGL environment.** Only its BACKGROUND becomes a
+deterministically generated, true spatial 3D cube chamber.
 
-Historical CodePen references supplied for comparative study:
+The user may explore that background with drag/orbit, pinch/wheel zoom, or
+keyboard arrows and +/-. There is NO additional settings/graphics UI, and
+the original audio/game controls remain present. The existing site Settings
+route is not changed.
 
-- https://codepen.io/cory-davis-the-builder/pen/bNpXqmm
-- https://codepen.io/cory-davis-the-builder/pen/azdBZzX
+## Primary sources supplied by the owner
 
-**Source inspection limitation:** These CodePen pages could not be retrieved
-through the available external web reader. This change therefore does not
-claim to transplant or reproduce their algorithms. It reuses already-existing
-Beast Box Three.js and canonical Spark 64×64 rendering exclusively. Before
-claiming a CodePen-derived port, obtain the user's HTML/CSS/JS exports.
+The actual source HTML has now been extracted from both uploaded CodePen ZIPs.
+These are locally supplied works and no external access has to be assumed.
 
-## Implementation
+1. GENESIS X v19.5 / NIGHT OPS — codepen bNpXqmm
+   - Uploaded source HTML SHA256:
+     cdbdd829261121544e7ab3bd9bae3707abc29daef7c84022f5d48dccd485e785
+   - Reviewed terrain, atmospheric light, stars, shaders and audio analysis.
+   - The full original engine uses large GPU scenes, microhpone permissions,
+     thousands of particles, and UI panels. Those are NOT transplanted.
 
-- New CagePocketDimension component draws true 3D scene geometry:
-  cube walls, floor, grid, crystal field, altar, atmospheric stars.
-  This is not sim-earth or a second GBA game.
-- Canonical QBEAST uses the existing renderBeast native 64x64 sprite,
-  projected as a Three.js billboard in the world. No new identity.
-  Preview-only profiles use the existing createCreatureRig geometry.
-- Roaming position is read from saved behavioral state when present,
-  otherwise a purely cosmetic local visual path. No fabricated gameplay,
-  model inference, measurement event, or quantum call.
-- Drag, touch, pinch, wheel, arrow keys and +/- move the camera only;
-  camera interaction never writes creature memory, evolution or authority.
-- World settings persist only nonsensitive presentation choices.
-- WebGL failure or disabled 3D restores the original Arena without losing
-  sound, attack, interaction or navigation.
-- Renderer, geometry, materials, textures, observers disposed on route
-  changes. Frame updates respect visibility and quality limits.
-- Existing built-browser acceptance enhanced across real Chromium phone
-  viewport sizes, verifying identity across 3D/classic toggles.
+2. Genesis Engine: The Definitive Core — codepen azdBZzX
+   - Uploaded source HTML SHA256:
+     67a1c104cff0b7574a36b9a3d278f4ba265164e7403d15d5a2883724a7f0c810
+   - Reused the cyrb128 -> sfc32 deterministic seeded procedural method
+     and the concept of small orbiting celestial bodies in lib/pocket-sky.mjs.
+   - No new sensor permissions, astronomy API, external inference, huge
+     planetary scale or expensive full-screen post-processing.
 
-## Remaining gates
+## Implemented engineering boundaries
 
-- Full GitHub Actions CI and built Next.js browser tests must pass.
-- Physical iOS Safari gestures, WebGL restart and zoom require on-device
-  validation. Chromium emulation is not physical iPhone certification.
-- Extend the dimensional background into other routes after the circle
-  proves stable. Multiple unnecessary WebGL canvases should not run on phones.
-- CodePen comparison remains blocked pending exported source.
+- Actual Three.js spatial geometry: finite floor and cube edges, seeded small
+  conifers, crystals, stars, fog, atmospheric lights and bounded orbital bodies.
+- Seeded visuals derive from selected creature seed where available; that seed
+  is **already recorded source data**, not a new measurement.
+- Existing creature remains rendered by SparkBeastArena in the foreground.
+  Its canonical genome and stage remain unchanged by world rendering.
+- Existing audio-generator event (beastbox:spark-chirp) changes light and flora
+  growth VISUALLY, with a bounded decaying response. This is not microphone
+  perception, physiological growth or AI learning.
+- Recorded local stage modulates visual scenery; only native game/care systems
+  can earn progression.
+- The existing tap-to-attack button and sound/mute controls work on top of the
+  visual backdrop; after significant camera drags, accidental attack clicks
+  are suppressed.
+- Background camera interaction is optional and modifies camera coordinates
+  only; it never changes the creature state, memory, game save or model.
+- Capped geometry, 2–4 sky objects, reduced-motion handling, low-DPR phone
+  rendering, offscreen pause, and renderer/resource disposal.
+- WebGL failure leaves the original arena and static circular background.
+
+## Acceptance / outstanding
+
+- CI TypeScript, Next production build and real Chromium browser coverage.
+- On iPhone: check drag/pinch against Safari scrolling, tap-to-attack, sound
+  unlock, rounded clipping, route resume, low power, and no horizontal overflow.
+- Headless Chromium/mobile viewports are not physical iPhone Safari proof.
+- Other pages can reuse this environment as a passive background after the
+  single Cage viewport is stable; do NOT auto-start multiple active 3D scenes.
+- No new quantum workloads, provider deployments, experimental behaviors,
+  permissions, NFT mints or model promotions were initiated in this change.
