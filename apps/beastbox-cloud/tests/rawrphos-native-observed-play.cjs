@@ -53,7 +53,7 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   await page.waitForFunction(want=>document.querySelector('#view')?.dataset.creatureId===want,PROFILE.id,{timeout:45000});
   const signed=await page.evaluate(()=>{
    const entry=JSON.parse(localStorage.getItem('beastbox-quantum-beast-public-v1'));
-   const q=JSON.parse(entry.text);return {id:q.profile.id,seed:q.genome?.seed||'',text_sha256:null};
+   const q=JSON.parse(entry.text);return {id:q.profile.id,seed:q.profile?.seed||'',text_sha256:sha(entry.text)};
   });
   assert.equal(signed.id,PROFILE.id,'Exact verified measured-source QBEAST was not selected');
   if(PROFILE.seed)assert.equal(signed.seed,PROFILE.seed,'Zeref signed recorded-genome seed was not preserved');
