@@ -228,7 +228,7 @@ export default function CagePocketDimension({genome,qbeastId,profile,fallbackLoo
   return()=>{disposed=true;cancelAnimationFrame(raf);cleanup();setReady(false);};
  },[enabled,failed,quality,id,genome?.seed,profile?.id,stageSafe,fallbackLook,reduced]);
  return <div className={styles.root} data-pocket-dimension="true" data-pocket-state={!enabled?'classic':failed?'fallback':ready?'ready':'loading'} data-creature-id={id}>
-  {enabled&&!failed?<canvas ref={canvasRef} className={styles.canvas}
+  {enabled&&!failed?<canvas ref={canvasRef} className={styles.canvas} data-pocket-webgl="true"
    role="img" aria-label={"Interactive 3D cube-world camera around "+(qbeastId||'the preview creature')+". Drag, pinch or use arrow keys to orbit. This is visual exploration, not native game progression."}
    tabIndex={0} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={releasePointer} onPointerCancel={releasePointer}
    onKeyDown={onKeyboard} onWheel={e=>{e.preventDefault();changeZoom(view.current.zoom+e.deltaY*.012);}}
