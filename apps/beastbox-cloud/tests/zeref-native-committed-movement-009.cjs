@@ -187,10 +187,17 @@ async function infer(kind,observation,episode,step){
     }
     // These keys are a NEUTRAL, explicitly logged native game menu audit,
     // applied identically after every policy's own action window. Original C
-    // native pause UI: START -> RIGHT (column 2) -> UP (System row) -> A
-    // -> UP (Save) -> A. No direct SRAM writes, game cheats or emulator API
-    // mutation. Real save_game() must write actual source-defined coordinates.
-    const nativeSaveMenuKeys=['START','RIGHT','UP','A','UP','A'];
+    // Source-verified V11.3 menu, NOT the pre-V11 legacy setting_sel menu:
+    // native START -> RIGHT -> UP selects SYSTEM (pause page 9), then A.
+    // content_v11_menus.h::v11_update_pause starts v11_sel=0 (AUDIO).
+    // DOWN x3 selects SAVE GAME (v11_sel=3), A opens SAVE SLOT page 44.
+    // A saves an empty slot; if occupied, A arms overwrite and next A saves.
+    // One final A dismisses confirmation. These keys are neutral audit
+    // actions AFTER the policy window and are NEVER model commands.
+    // Crucially: UP from v11_sel=0 wraps to index 12/SFX and toggles sound,
+    // which was OBSERVED in the failed real browser recording 38157714812.
+    // No direct SRAM writes, native game cheats or emulator API mutation.
+    const nativeSaveMenuKeys=['START','RIGHT','UP','A','DOWN','DOWN','DOWN','A','A','A','A'];
     const saveMenuAcks=[];
     for(const key of nativeSaveMenuKeys)saveMenuAcks.push(await input(key));
     await delay(250);
