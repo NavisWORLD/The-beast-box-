@@ -15,6 +15,7 @@ import {useBeastSession} from './beast-session';
 import {shownName} from '../lib/companion/session.mjs';
 import {useCompanion} from './companion-provider';
 import {generateCreature,type BaseLook,type AmbientAction} from '../lib/creature-profile';
+import BrandCrest from '@/components/brand-crest';
 const LOOKS:{id:BaseLook;label:string;detail:string;accent:string}[]=[
  {id:'nebula',label:'Nebby',detail:'A curious little pocket galaxy',accent:'violet'},
  {id:'aurora',label:'Lumen',detail:'The quiet glow of cosmic dawn',accent:'cyan'},
@@ -57,7 +58,7 @@ export default function BeastCagePortal(){
  const current=LOOKS.find(x=>x.id===look)||LOOKS[0];
  return <main className="cage-universe" data-reduced-motion={prefersReduced}>
   <div className="cage-sky" aria-hidden="true"/>
-  <header className="cage-topbar"><Link href="/" aria-label="Beast Box homepage" className="cage-brand"><span>✺</span><span>BEAST BOX<small>NAVISWORLD / COSMOS</small></span></Link>
+  <header className="cage-topbar"><Link href="/" aria-label="Beast Box homepage" className="cage-brand"><BrandCrest className="cage-brand-crest" size={40} decorative/><span>BEAST BOX<small>NAVISWORLD / COSMOS</small></span></Link>
    <nav aria-label="Beast Box journey">
     <Link href="/">Home</Link>
     <Link href="/spark/index.html">My Beast</Link>
@@ -124,7 +125,7 @@ export default function BeastCagePortal(){
    </Link>)}</div>
   </section>
   <section className="cage-continuity"><div className="cage-continuity-art" aria-hidden="true"><img src="/cosmic-creature.svg" alt=""/></div><div><span className="cage-eyebrow">THE STORY LIVES OUTSIDE THE MODEL</span><h2>Different brain.<br/><em>Your chosen continuity.</em></h2><p>In the real owner workstation, deliberate provider changes can preserve authorized external substrate memory. A visual look isn't an AI checkpoint, and preview cards do not run model inference.</p><Link href="/brain-bay" className="cage-secondary">Open Brain Bay ↗</Link></div></section>
-  <footer className="cage-footer"><span>✺ BEAST BOX · CORY DAVIS / NAVISWORLD</span><span>Ambient animation ≠ model understanding</span><button onClick={()=>setExpanded(x=>!x)} type="button" aria-expanded={expanded}>{expanded?'Hide':'Show'} accessibility notes</button>
+  <footer className="cage-footer"><span><BrandCrest size={14} decorative style={{verticalAlign:'-2px',marginRight:6}}/>BEAST BOX · CORY DAVIS / NAVISWORLD</span><span>Ambient animation ≠ model understanding</span><button onClick={()=>setExpanded(x=>!x)} type="button" aria-expanded={expanded}>{expanded?'Hide':'Show'} accessibility notes</button>
    {expanded?<p>The active companion uses the local Spark pixel renderer and recorded game-seed distributions. Reduced motion disables roaming transforms. Sound starts only after your tap. It never records sensor media or starts model inference on this public page.</p>:null}
   </footer>
  </main>;

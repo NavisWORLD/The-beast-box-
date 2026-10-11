@@ -2,6 +2,7 @@
 import {useState,type FormEvent} from 'react';
 import Link from 'next/link';
 import {ArrowLeft,ArrowRight,BrainCircuit,Globe,ShieldCheck,KeyRound} from 'lucide-react';
+import BrandCrest from '@/components/brand-crest';
 type Provider='rawrphos-local'|'huggingface-byok';
 type Reply={provider?:Provider;model?:string;step?:number;reply?:string;guest_stateless?:boolean;charged_to?:string;error?:string};
 export default function TryBeastBox(){
@@ -27,7 +28,7 @@ export default function TryBeastBox(){
   finally{setBusy(false);}
  }
  return <main className="guest-page">
-  <header className="guest-top"><Link href="/"><ArrowLeft size={17}/> Back to COSMOS</Link><span>✺ BEAST BOX · PUBLIC GUEST LAB</span><Link href="/beast-cage/go">Lost Cosmos field <ArrowRight size={16}/></Link><Link href="/workspace">Owner login <ArrowRight size={16}/></Link></header>
+  <header className="guest-top"><Link href="/"><ArrowLeft size={17}/> Back to COSMOS</Link><span><BrandCrest size={16} decorative style={{verticalAlign:'-3px',marginRight:6}}/>BEAST BOX · PUBLIC GUEST LAB</span><Link href="/beast-cage/go">Lost Cosmos field <ArrowRight size={16}/></Link><Link href="/workspace">Owner login <ArrowRight size={16}/></Link></header>
   <section className="guest-hero"><p className="eyebrow">CORY DAVIS / NAVISWORLD</p><h1>Meet the <em>Beast.</em></h1>
    <p>Try the pinned local RAWRPHØS model on Cory&apos;s backend, or connect your own Hugging Face account. This guest conversation is stateless: it does not read or write Cory&apos;s COSMOS memory or grant tools.</p>
   </section>
@@ -55,6 +56,6 @@ export default function TryBeastBox(){
    {error?<p role="alert" className="guest-error">{error}</p>:null}
    {reply?<section className="guest-reply" role="status"><strong>{reply.provider==='rawrphos-local'?'RAWRPHØS · stable 14K':reply.model||'Hugging Face model'}</strong><p>{reply.reply}</p><small>Real model response · stateless guest session · answers may be wrong</small></section>:null}
   </form>
-  <footer className="guest-bottom">✺ BEAST BOX COSMOS · MODEL ≠ MEMORY ≠ AUTHORITY <Link href="https://github.com/NavisWORLD/The-beast-box-" target="_blank" rel="noopener noreferrer">Open source ↗</Link></footer>
+  <footer className="guest-bottom"><BrandCrest size={14} decorative style={{verticalAlign:'-2px',marginRight:6}}/>BEAST BOX COSMOS · MODEL ≠ MEMORY ≠ AUTHORITY <Link href="https://github.com/NavisWORLD/The-beast-box-" target="_blank" rel="noopener noreferrer">Open source ↗</Link></footer>
  </main>;
 }

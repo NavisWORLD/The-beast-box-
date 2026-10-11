@@ -1,10 +1,12 @@
 import type {Metadata} from 'next';
 import Link from 'next/link';
+import BrandCrest from '@/components/brand-crest';
 
 export const metadata:Metadata={title:'LOST COSMOS · Your Spark Beast',description:'Send your same QBEAST into the current native LOST COSMOS cartridge.'};
 
 export default function SolGame(){return <main style={{minHeight:'100vh',background:'#0b1122',color:'#eef5ff',padding:'18px min(5vw,30px)'}}>
  <nav aria-label="Beast Box journey" style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:18,padding:6,border:'1px solid #314878',borderRadius:14,background:'#0e162b'}}>
+  <Link href="/" aria-label="Beast Box home" style={{display:'inline-flex',padding:'2px 4px 2px 2px'}}><BrandCrest size={30} decorative/></Link>
   <Link href="/" style={{padding:'8px 10px'}}>Home</Link>
   <Link href="/spark/index.html" style={{padding:'8px 10px'}}>My Beast</Link>
   <Link href="/beast-cage" style={{padding:'8px 10px'}}>Beast Cage</Link>

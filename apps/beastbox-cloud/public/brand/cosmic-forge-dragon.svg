@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">NavisWORLD Cosmic Forge Dragon</title>
+  <desc id="desc">Electric cyan dragon face with a luminous indigo wing and violet forge crystal, surrounded by an incomplete orbital ring on a midnight cosmic square.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#111936"/><stop offset=".55" stop-color="#0b1026"/><stop offset="1" stop-color="#070a17"/></linearGradient>
+    <linearGradient id="dragon" x1=".05" y1=".15" x2="1" y2=".9"><stop stop-color="#bcfaff"/><stop offset=".37" stop-color="#4fe0ef"/><stop offset=".72" stop-color="#3890f7"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
+    <linearGradient id="wing" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b28bff"/><stop offset="1" stop-color="#4837aa"/></linearGradient>
+    <linearGradient id="crystal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ebd5ff"/><stop offset=".45" stop-color="#aa7af9"/><stop offset="1" stop-color="#3d6ae8"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="7" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" rx="114" fill="url(#bg)"/>
+  <rect x="10" y="10" width="492" height="492" rx="104" fill="none" stroke="#6372b0" stroke-opacity=".3" stroke-width="2"/>
+  <g fill="none" stroke-linecap="round">
+    <path d="M116 355A180 180 0 0 1 145 133" stroke="#6df1ff" stroke-opacity=".55" stroke-width="9"/>
+    <path d="M180 100A180 180 0 0 1 392 138" stroke="#b192ff" stroke-opacity=".55" stroke-width="9"/>
+    <path d="M423 190A180 180 0 0 1 391 379" stroke="#6df1ff" stroke-opacity=".55" stroke-width="9"/>
+    <path d="M341 415A180 180 0 0 1 153 398" stroke="#b192ff" stroke-opacity=".55" stroke-width="9"/>
+  </g>
+  <path d="M118 174Q111 113 156 89L171 161Q217 136 258 151L287 101Q305 130 297 164Q359 179 389 227L345 233Q408 270 393 334Q359 318 343 284Q322 354 259 397Q226 361 222 310Q178 347 141 335Q161 304 166 274Q118 243 118 174Z" fill="url(#wing)" fill-opacity=".74" stroke="#bca3ff" stroke-opacity=".6" stroke-width="6"/>
+  <g filter="url(#glow)"><path d="M161 207Q178 184 208 184L225 150L248 182Q290 183 320 211L357 209L334 229L374 242Q383 246 380 264L338 278Q324 279 313 288L310 316Q303 336 285 344L275 316L248 311Q214 303 199 276L172 269Q161 259 161 244Z" fill="url(#dragon)"/></g>
+  <path d="M164 214Q190 193 213 206Q234 195 260 202Q287 204 299 227L332 233L352 247L331 251Q308 254 296 269Q265 277 241 269L220 260Q194 269 177 253Z" fill="#0c1735" opacity=".9"/>
+  <path d="M202 232Q221 216 240 224Q232 238 209 239Z" fill="#d4ffff"/>
+  <path d="M209 232L231 227" stroke="#0a2345" stroke-width="5" stroke-linecap="round"/>
+  <path d="M285 252L332 255" stroke="#a6fbff" stroke-width="6" stroke-linecap="round"/>
+  <path d="M262 286Q278 298 301 286" stroke="#62def7" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M234 310L256 367L278 310" fill="url(#crystal)" stroke="#d4aaff" stroke-width="5"/>
+  <path d="M256 318V366" stroke="#f9eaff" stroke-opacity=".65" stroke-width="3"/>
+  <path d="M150 379L161 390L150 401L139 390Z" fill="#6ce9ff" opacity=".9"/>
+  <path d="M389 148L399 158L389 168L379 158Z" fill="#dab8ff" opacity=".9"/>
+  <circle cx="374" cy="382" r="4.5" fill="#9febff"/>
+  <circle cx="123" cy="129" r="3.5" fill="#ba92ff"/>
+</svg>

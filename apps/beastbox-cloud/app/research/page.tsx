@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowUpRight, Atom, BrainCircuit, FlaskConical, ShieldCheck } from 'lucide-react';
 import styles from './research.module.css';
 import GodCoreInspector from '@/components/god-core-inspector';
+import BrandCrest from '@/components/brand-crest';
 
 export const metadata: Metadata = {
   title: 'COSMOS Lab // The Two Falsification Tests — Beast Box',
@@ -24,7 +25,7 @@ export default function ResearchIndex() {
     <main className={styles.page}>
       <div className={styles.aura} aria-hidden="true" />
       <header className={styles.header}>
-        <Link href="/" className={styles.brand}>✦ BEAST BOX <span>// COSMOS LAB</span></Link>
+        <Link href="/" className={styles.brand} aria-label="Beast Box home"><BrandCrest size={28} decorative style={{verticalAlign:'middle',marginRight:8}}/>BEAST BOX <span>// COSMOS LAB</span></Link>
         <Link href="/" className={styles.back}><ArrowLeft size={15} aria-hidden="true" /> Back to the Beast</Link>
       </header>
       <div className={styles.content}>
