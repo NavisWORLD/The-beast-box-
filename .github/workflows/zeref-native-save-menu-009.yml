@@ -44,7 +44,7 @@ jobs:
         run: |
           mkdir -p build
           python models/rawrphos/scripts/install_pinned_14k.py --destination build/verified-rawrphos-14k | tee build/zeref-009-original-checkpoint.json
-      - name: Restore trained but unpromoted Zeref experiment 004 real CPU checkpoint from original run
+      - name: Restore exact approved Zeref 006 continuation checkpoint (no new training)
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
@@ -55,7 +55,7 @@ jobs:
       - name: Verify exact saved candidate weights, origin receipt and no automatic model promotion
         run: |
           set -Eeuo pipefail
-          CAND=$(find build/zeref-008-artifact -type d -name accepted-checkpoint -print -quit)
+          CAND=$(find build/zeref-009-artifact -type d -name accepted-checkpoint -print -quit)
           test -n "$CAND" || { echo 'Original candidate checkpoint missing; no imitation or substitute weights'; exit 1; }
           test -s "$CAND/manifest.json" || { echo 'No native training checkpoint manifest'; exit 1; }
           test -s "$(dirname "$CAND")/approval.json" || { echo 'Experiment 006 approval missing'; exit 1; }
