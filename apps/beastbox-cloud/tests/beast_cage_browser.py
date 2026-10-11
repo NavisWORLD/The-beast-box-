@@ -27,7 +27,10 @@ with sync_playwright() as p:
         assert home and home.status==200
         expect(page.get_by_role("heading",level=1)).to_contain_text("A place for every person.")
         no_overflow(page,str(width)+" homepage")
+        # ZEREF the Moonwraith is the default live guide; the procedural 3D guide stays one tap away.
+        page.locator(".beast-landing-creature .zeref-stage").wait_for(timeout=16000)
         if page.evaluate("!!document.createElement('canvas').getContext('webgl')"):
+            page.locator(".beast-landing-creature").get_by_role("button",name="3D model",exact=True).click()
             page.locator(".beast-landing-creature [data-graphics='procedural-3d']").wait_for(timeout=16000)
         if width in (1440,390,320):
             page.screenshot(path=str(OUT/f"homepage-{width}.png"),full_page=True,animations="disabled")
