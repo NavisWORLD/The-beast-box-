@@ -15,7 +15,8 @@ test('Bounded optimizer resumes actual checkpoint and fails closed without fresh
  const s=read('scripts/zeref_continuation_006.py');
  for(const needle of ['load_training_state=True','opt.load_state_dict(parent["state"]["optimizer"])','UPDATES=64',
    'source_digest==prior_digest','accepted_as_next_training_parent','teacher_agreement_not_worse',
-   'no_new_qpu_job','production_promoted','native_game_progress_demonstrated']){
+   'no_new_qpu_job','production_promoted','native_game_progress_demonstrated',
+   'CANONICAL_APPROVED_ROOT','canonical_lineage_root_sha256']){
   assert.ok(s.includes(needle),'Missing nonnegotiable proof '+needle);
  }
  assert.doesNotMatch(s,/QiskitRuntimeService|SamplerV2|import azure|run_ibm_qpu/);
@@ -25,6 +26,10 @@ test('Scheduled Zeref CPU heartbeat keeps one-at-a-time serialized training and 
  assert.match(s,/cron: '17 \*\/6 \* \* \*'/);
  assert.match(s,/cancel-in-progress: false/);
  assert.match(s,/zeref-006-accepted-checkpoint-/);
+ assert.ok(s.includes('zeref-006-canonical-37ca3f8f'),'Exactly named canonical artifact needed to avoid 100-item GitHub paging loss');
+ assert.ok(s.includes('38129248023'),'Bootstrap must use actual original approved 006 AdamW continuation');
+ assert.ok(!s.includes('38109635009'),'Must never silently reset Zeref to old 004 CPU checkpoint');
+ assert.ok(s.includes('ZEREF_010_VERIFIED_CANONICAL_PARENT'),'Verify parent SHA BEFORE capturing expensive new episodes');
  assert.match(s,/actions\/download-artifact|gh run download/);
  assert.match(s,/python -u scripts\/zeref_continuation_006.py/);
  assert.doesNotMatch(s,/IBM_QUANTUM_TOKEN|BEAST_ZEREF_IBM_ONE_JOB|secrets\.IBM/);
