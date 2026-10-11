@@ -76,10 +76,10 @@ export default function BeastCagePortal(){
     <div className="cage-hero-actions"><Link className="cage-primary" href="/beast-cage/talk">Talk to My Beast <ArrowRight size={17}/></Link><a className="cage-secondary" href="#customize">Customize</a><Link className="cage-secondary" href="/sol-game">Enter LOST COSMOS 🎮</Link></div>
     <p className="cage-quiet"><LockKeyhole size={13}/><span>One Beast stays at the center. More ways to explore: <Link href="/beast-cage/turntable">3D model</Link> · <Link href="/beast-cage/play">Adventure</Link> · <Link href="/beast-cage/guest">Game lab</Link> · <a href="/spark/index.html">Open Public Beast Generator</a> · <Link href="/workspace">Owner deck</Link>.</span></p>
    </div>
-   <div className={'cage-habitat-visual'+(pocketReady?' cage-pocket-active':'')} role="group" aria-label="Circular interactive dimensional pocket and original Spark Beast companion">
+   <div className={'cage-habitat-visual'+(pocketReady?' cage-pocket-active':'')} role="group" aria-label="Circular dimensional world behind the original Spark Beast; drag or pinch to explore, or focus and use arrow keys and plus/minus to move the view" tabIndex={0}>
     <div className="cage-orbit cage-orbit-one" aria-hidden="true"/><div className="cage-orbit cage-orbit-two" aria-hidden="true"/>
-    <CagePocketDimension profile={creature} fallbackLook={look}
-     genome={sameSpark?session.beast.genome:null}
+    <CagePocketDimension
+     seed={sameSpark?session.beast.genome?.seed||session.beast.seed:null}
      qbeastId={sameSpark?session.beast.qbeast.profile.id:null}
      stage={sameSpark?(session.beast.nativeStage||1):1}
      behaviorPosition={sameSpark?session.beast.behavior?.position||null:null}
