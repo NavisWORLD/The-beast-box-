@@ -208,7 +208,15 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      // local creature audio events. This is cosmetic, not learned growth.
      const growth=1+(clamp(motion.current.stage,1,3)-1)*.1+pulse*.19;
      flora.forEach((o,i)=>{o.scale.y=1+(growth-1)*(.6+(i%3)*.2);});
-     moonlight.intensity=24+pulse*12;
+     moonlight.intensity=(motion.current.state==='sleeping'?16:24)+pulse*12;
+     // Follow the existing saved creature's bounded environmental position:
+     // moving light is presentation only; it does not create a new position.
+     const p=motion.current.position;
+     if(p&&Number.isFinite(p.x)&&Number.isFinite(p.y)){
+      glow.position.lerp(new THREE.Vector3(
+       (clamp(p.x,0,1)-.5)*5,1.9,(clamp(p.y,0,1)-.5)*5
+      ),Math.min(1,dt*2.2));
+     }
      for(const {body,object} of orbiters){
       const xyz=orbitPosition(body,elapsed,!reduced);
       object.position.set(xyz.x,xyz.y,xyz.z);
