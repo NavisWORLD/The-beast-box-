@@ -16,6 +16,11 @@ const PROFILE=process.env.NAVISWORLD_NATIVE_TRAINING_BEAST==='zeref'
  :{selector:'lumenwisp',id:'bb-983f386b',alias:'Lumenwisp',source_job:'db4sba4lf4us73c36910'};
 if(process.env.NAVISWORLD_NATIVE_TRAINING_BEAST&&!['zeref','lumenwisp'].includes(process.env.NAVISWORLD_NATIVE_TRAINING_BEAST))throw Error('Unapproved native model training identity');
 const actions=['RIGHT','UP','LEFT','DOWN','A','B','RIGHT','RIGHT','UP','LEFT','A','DOWN','RIGHT','B'];
+// Every 006 capture is a new real emulator run; rotate only the explicit
+// SCRIPTED demonstrator's fallback actions, never the framebuffer evidence.
+const cycleRaw=process.env.NAVISWORLD_NATIVE_TRAINING_CYCLE||'0';
+if(!/^\\d{1,20}$/.test(cycleRaw))throw Error('Invalid observed-native training cycle ID');
+const cycle=Number(BigInt(cycleRaw)%BigInt(actions.length));
 // A bounded scripted heuristic observes actual optical values before every input.
 // This is a demonstration policy, NOT evidence of optimal gameplay behavior.
 function teacher(o,episode,step){
@@ -25,7 +30,7 @@ function teacher(o,episode,step){
  if(o.dominant==='blue')return 'UP';
  if(o.dominant==='green')return 'DOWN';
  if(o.brightness>70)return 'B';
- return actions[(episode*3+step)%actions.length];
+ return actions[(episode*3+step+cycle)%actions.length];
 }
 const nativeIndex={UP:4,DOWN:5,LEFT:6,RIGHT:7,A:8,B:0};
 const safe=o=>o&&o.status==='observed'&&o.source==='native-emulator-display'
@@ -141,6 +146,7 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
    episodes,events:raw.length,jsonl_sha256:sha(jsonl),
    dataset_has_human_labels:false,goal_reward_observed:false,
    training_is_behavioral_cloning_of_scripted_controller:true,
+   teacher_cycle_offset:cycle,cycle_source:'GitHub Actions run ID mod scripted fallback length',
    native_game_progress_proven:false,
    errors,source_native_ref:process.env.NATIVE_GAME_HEAD||'native main at workflow checkout',
    source_web_ref:process.env.WEB_APP_HEAD||'current PR checkout'};
