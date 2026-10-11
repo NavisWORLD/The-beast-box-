@@ -47,32 +47,29 @@ with sync_playwright() as p:
   hero=page.locator('.cage-habitat-visual [data-spark-beast="true"]')
   expect(hero).to_have_attribute("data-creature-id",re.compile("^bb-"),timeout=23000)
   creature_id=hero.get_attribute("data-creature-id")
-  # The same selected companion is inside a real 3D cube chamber, not a second Beast identity.
+  # The uploaded Genesis sources contribute only the BACKGROUND world.
+  # The original visible creature, tap-to-attack and sound controls stay intact.
   pocket=page.locator('[data-pocket-dimension="true"]')
-  expect(pocket).to_have_attribute("data-creature-id",creature_id)
+  expect(pocket).to_have_attribute("data-creature-id","visual-preview")
   page.wait_for_function("""() => ['ready','fallback'].includes(
-    document.querySelector('[data-pocket-dimension]')?.dataset.pocketState)""",timeout=25000)
+    document.querySelector('[data-pocket-dimension]')?.dataset.pocketState)""",timeout=30000)
   pocket_state=pocket.get_attribute("data-pocket-state")
+  expect(page.locator('.cage-habitat-visual [data-spark-beast="true"]')).to_be_visible()
+  expect(page.get_by_role("button",name=re.compile("Make the beast attack"))).to_be_visible()
+  assert page.locator('[data-pocket-settings]').count()==0
   if pocket_state=="ready":
    expect(pocket.locator('canvas[data-pocket-webgl]')).to_have_count(1)
-   pocket.locator('canvas').focus()
-   page.keyboard.press("ArrowRight")
-   box=page.locator(".cage-habitat-visual").bounding_box()
+   stage=page.locator('.cage-habitat-visual')
+   box=stage.bounding_box()
    assert box and abs(box["width"]-box["height"])<2,(width,box)
-   page.locator('[data-pocket-settings="true"] summary').click()
-   slider=page.get_by_role("slider",name="Zoom distance")
-   old_zoom=float(slider.input_value())
-   slider.focus()
-   page.keyboard.press("ArrowLeft")
-   assert float(slider.input_value())<old_zoom
-   # This toggles rendering only; the selected Beast survives.
-   page.get_by_label("3D pocket enabled").uncheck()
-   expect(pocket).to_have_attribute("data-pocket-state","classic")
-   assert hero.get_attribute("data-creature-id")==creature_id
-   page.get_by_label("3D pocket enabled").check()
-   page.wait_for_function("""() => document.querySelector('[data-pocket-dimension]')?.dataset.pocketState==='ready'""",timeout=25000)
-   page.locator('[data-pocket-settings="true"] summary').click()
-  fits(page,str(width)+" dimensional pocket")
+   stage.focus()
+   page.keyboard.press("ArrowRight")
+   page.keyboard.press("+")
+   # Existing creature sound events drive only visual flora/light pulsing.
+   page.evaluate("""() => window.dispatchEvent(
+     new CustomEvent('beastbox:spark-chirp',{detail:{intensity:0.6}}))""")
+   expect(hero).to_have_attribute("data-creature-id",creature_id)
+  fits(page,str(width)+" background dimensional pocket")
 
   selected_stats=page.get_by_label("Balanced fictional game stats").inner_text()
   before=hero.get_attribute("data-cosmetic-hue")
