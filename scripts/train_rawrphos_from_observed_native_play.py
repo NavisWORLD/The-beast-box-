@@ -6,27 +6,35 @@ but training uses actual classical native-emulator pixels and scripted actions.
 Script teacher is NOT optimal navigation. Archive true heldout action outputs.
 """
 from __future__ import annotations
-import hashlib,json,math,random,time
+import hashlib,json,math,random,time,os
 from pathlib import Path
 import torch
 from rawrphos.inference.engine import Engine
 from rawrphos.scripts.install_pinned_14k import WEIGHT_SHA
 from rawrphos.training.checkpoint import load_checkpoint,save_checkpoint,parameter_hash,rng_state,hash_file
 
-ROOT=Path("build/rawrphos-observed-game-001")
+BEAST=os.environ.get('NAVISWORLD_NATIVE_TRAINING_BEAST','lumenwisp')
+if BEAST not in ('lumenwisp','zeref'):raise ValueError('Unsupported native training QBEAST identity')
+PROFILE={
+ 'lumenwisp':{'id':'bb-983f386b','alias':'Lumenwisp','job':'db4sba4lf4us73c36910'},
+ 'zeref':{'id':'bb-deada969','alias':'Zeref','job':'db4q484vf2bc73cuuuag'},
+}[BEAST]
+ROOT=Path('build/rawrphos-zeref-observed-game-004' if BEAST=='zeref' else 'build/rawrphos-observed-game-001')
 IN=ROOT/"inputs"
 BASE=Path("build/verified-rawrphos-14k")
 STEPS=128
 LR=0.000018
-SEED=20261010
+SEED=20261010 if BEAST=='lumenwisp' else 20261011
 ACTIONS=set("UP DOWN LEFT RIGHT A B WAIT".split())
 
 def sha(b):return hashlib.sha256(b).hexdigest()
 def validate():
  manifest=json.loads((IN/"native-evidence-manifest.json").read_text())
  data=(IN/"native-observation-actions.jsonl").read_bytes()
- if manifest.get("schema")!="beastbox-observed-native-play-v1" or manifest.get("qbeast_id")!="bb-983f386b" or sha(data)!=manifest["jsonl_sha256"]:
+ if manifest.get("schema")!="beastbox-observed-native-play-v1" or manifest.get("qbeast_id")!=PROFILE['id'] or sha(data)!=manifest["jsonl_sha256"]:
   raise ValueError("Missing authentic actual native browser observation dataset")
+ if manifest.get('alias')!=PROFILE['alias'] or manifest.get('ibm_source_job_id',PROFILE['job'])!=PROFILE['job']:
+  raise ValueError('Native observation identity/provenance mismatch')
  if manifest.get("source_class")!="ORIGINAL_EMULATOR_NATIVE_PIXEL_OBSERVATIONS" or manifest.get("events")!=56:
   raise ValueError("Training must never use synthetic scenes in this mode")
  if manifest.get("dataset_has_human_labels") is not False or manifest.get("goal_reward_observed") is not False:
@@ -159,6 +167,8 @@ def main():
   "train_pairs":42,"heldout_pairs":14,"real_cpu_optimizer_steps":STEPS,
   "actual_weight_change_verified":True,"candidate_checkpoint_verified_reload":True,
   "source_class":"ACTUAL_NATIVE_OPTICAL_MEASUREMENTS_AND_REAL_CONTROLLER_ACKS",
+  "qbeast_id":PROFILE["id"],"alias":PROFILE["alias"],"original_ibm_job_id":PROFILE["job"],
+  "fresh_IBM_jobs_submitted_by_training":0,"quantum_training_claimed":False,
   "teacher":"OBSERVATION_CONDITIONED_SCRIPTED_HEURISTIC",
   "not_semantic_navigation":True,"native_gameplay_success_not_demonstrated":True,
   "metrics_before":initial,"metrics_after":after,
