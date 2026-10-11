@@ -1,0 +1,138 @@
+name: Zeref 006 - resumable real native RAWRPHOS learning heartbeat
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - 'apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs'
+      - 'scripts/zeref_continuation_006.py'
+      - '.github/workflows/zeref-continuous-learning-006.yml'
+      - 'tests/zeref_continuation_006_contract.test.cjs'
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: zeref-006-single-approved-learning-lineage
+  cancel-in-progress: false
+jobs:
+  train-zeref:
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/zeref-resumable-continuous-learning-006-20261011') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      TOKENIZERS_PARALLELISM: 'false'
+      NAVISWORLD_NATIVE_TRAINING_BEAST: zeref
+      NAVISWORLD_NATIVE_TRAINING_CYCLE: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Verify lineage and bounded training invariants
+        run: |
+          set -Eeuo pipefail
+          node --test tests/zeref_continuation_006_contract.test.cjs
+          node --check apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs
+          python -m py_compile scripts/zeref_continuation_006.py
+      - name: Resume newest approved Zeref checkpoint or pinned Experiment 004 original child
+        run: |
+          set -Eeuo pipefail
+          mkdir -p build/zeref-006
+          name="$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" --jq '.artifacts | map(select(.expired == false and (.name | startswith("zeref-006-accepted-checkpoint-")))) | sort_by(.created_at) | last | .name // empty')"
+          if [ -n "$name" ]; then
+            run_id="$(printf '%s' "$name" | sed 's/.*-//')"
+            case "$run_id" in ''|*[!0-9]*) echo "Invalid approved artifact run ID"; exit 1;; esac
+            gh run download "$run_id" --repo "${{ github.repository }}" -n "$name" -D build/zeref-006/previous
+            PARENT="$(find build/zeref-006/previous -type d -name accepted-checkpoint -print -quit)"
+            test -n "$PARENT" || exit 1
+            test -s "$(dirname "$PARENT")/approval.json" || exit 1
+          else
+            gh run download 38109635009 --repo "${{ github.repository }}" -n rawrphos-zeref-original-game-real-cpu-training-38109635009 -D build/zeref-006/bootstrap
+            PARENT="$(find build/zeref-006/bootstrap -type d -name candidate-actual-native-frame-imitation-001 -print -quit)"
+            test -n "$PARENT" || { echo 'Original SHA-pinned 004 checkpoint missing; no replacement model'; exit 1; }
+          fi
+          echo "BEAST_006_PARENT_PATH=$PARENT" >> "$GITHUB_ENV"
+      - name: Build EXISTING Beast Box without changing original native cartridge
+        working-directory: apps/beastbox-cloud
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - uses: actions/checkout@v4
+        with:
+          repository: NavisWORLD/Cosmic-synapse-the-living-universe-sim-engine-
+          ref: main
+          path: native-game
+          persist-credentials: false
+      - name: Build genuine original GBA ROM and install isolated browser
+        run: |
+          set -Eeuo pipefail
+          echo "NATIVE_GAME_HEAD=$(cd native-game && git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "WEB_APP_HEAD=$GITHUB_SHA" >> "$GITHUB_ENV"
+          sudo apt-get update
+          sudo apt-get install -y clang lld llvm
+          (cd native-game && bash scripts/build-lost-cosmos-arcade.sh)
+          npm install --prefix /tmp/zeref-006-browser --no-save --ignore-scripts playwright@1.62.1
+          /tmp/zeref-006-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Capture 56 FRESH real Zeref native frames and acknowledged scripted keypresses
+        run: |
+          set -Eeuo pipefail
+          mkdir -p build/zeref-006/inputs
+          (cd apps/beastbox-cloud && npm run start -- --hostname 127.0.0.1 --port 3000) > build/zeref-006/app.log 2>&1 &
+          web_pid=$!
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory native-game > build/zeref-006/native-game.log 2>&1 &
+          game_pid=$!
+          trap 'kill "$web_pid" "$game_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:3000/spark/index.html >/dev/null && curl -fsS http://127.0.0.1:8765/arcade/sol-spark-gate/handheld.html >/dev/null; then break; fi
+            sleep 2
+          done
+          for attempt in 1 2; do
+            if NODE_PATH=/tmp/zeref-006-browser/node_modules node apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs http://127.0.0.1:3000 http://127.0.0.1:8765 build/zeref-006/inputs; then
+              test -s build/zeref-006/inputs/native-evidence-manifest.json
+              test -s build/zeref-006/inputs/native-observation-actions.jsonl
+              sha256sum build/zeref-006/inputs/native-observation-actions.jsonl
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
+      - name: Install real native model CPU runtime
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos
+      - name: Resume exact AdamW state, perform up to 64 new CPU updates and test heldout/retention
+        run: |
+          set -Eeuo pipefail
+          python -u scripts/zeref_continuation_006.py
+          test -s build/zeref-006/report.json
+      - name: Persist fresh actual frame evidence, training results or honest failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-006-observed-training-report-${{ github.run_id }}
+          path: |
+            build/zeref-006/inputs/native-observation-actions.jsonl
+            build/zeref-006/inputs/native-evidence-manifest.json
+            build/zeref-006/inputs/failed-native-observation.json
+            build/zeref-006/report.json
+            build/zeref-006/rejected.json
+            build/zeref-006/failure.json
+          retention-days: 90
+          if-no-files-found: warn
+      - name: Persist ONLY the approved model and optimizer to resume on next six-hour cycle
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-006-accepted-checkpoint-${{ github.run_id }}
+          path: |
+            build/zeref-006/accepted-checkpoint/
+            build/zeref-006/approval.json
+          retention-days: 90
+          if-no-files-found: ignore
