@@ -9,8 +9,11 @@ The original native Lost COSMOS V11.3 C source has an actual player-facing pause
 - RIGHT on menu moves to \`pause_sel=5\` (second column).
 - UP wraps to \`pause_sel=9\`, the \`SYSTEM\` menu entry mapped to page 9 in native array \`P[10]={1,11,18,4,5,28,20,6,26,9}\`.
 - A enters page 9.
-- UP selects \`setting_sel=4\` (SAVE GAME), from the native new-game \`setting_sel=0\` state.
-- A calls **the actual cartridge's \`save_game()\` function**, persisting world, room, x, y, chapter, quest and all native CRC checks. B/B exits the menu.
+- The first immediate correction successfully restored the approved 006 checkpoint but the actual 009 native smoke run (GitHub Actions 38157714812) showed SYSTEM selecting SFX OFF, not Save Game; both policies left unchanged saves. The model did not fail.
+- The current original ROM is V11, not the older settings UI. Original native source content_v11_menus.h::v11_update_pause owns SYSTEM page 9, with entries AUDIO=0, TEXT SPEED=1, BRIGHTNESS=2, SAVE GAME=3, LOAD GAME=4, and SFX=12. UP from index zero wraps to 12/SFX. Therefore the old UP+A action was wrong.
+- Correct neutral source-defined menu route: START opens pause, RIGHT+UP selects SYSTEM, A enters it, DOWN three times selects SAVE GAME (v11_sel=3), A enters SAVE // THREE SLOTS (pause_page=44), A saves an empty slot or arms an occupied slot, and one more A confirms an overwrite or dismisses a save confirmation.
+- Original native v11_slot_save() calls save_game(), which records actual room/world/position/quest values and validates CRC. This is the game's own UI save path, not a direct SRAM modification or a model action.
+- Any B/B cleanup only changes later menu focus. It cannot be mistaken for Zeref's policy input. Smoke still MUST independently verify WAIT=0 and RIGHT>0 committed displacement, or fail closed.
 - The existing unchanged native \`arcade/sol-spark-gate/controls.mjs\` maps START to EmulatorJS index 3, RIGHT to 7, UP to 4, A to 8, B to 0.
 
 **This is a neutral measurement-only operation performed identically AFTER each policy's own action window**, not an action chosen by Zeref or its baselines. The test does not write SRAM, patch ROM, inject game state, or read hidden live gameplay RAM.
