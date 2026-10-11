@@ -13,12 +13,13 @@ on:
 permissions:
   contents: read
   actions: read
+# Manual CPU training uses the existing frozen lineage and same global serialized runner.
 concurrency:
   group: zeref-006-single-approved-learning-lineage
   cancel-in-progress: false
 jobs:
   train-zeref:
-    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/zeref-resumable-continuous-learning-006-20261011') }}
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'feature/zeref-resumable-continuous-learning-006-20261011' || startsWith(github.head_ref, 'feature/zeref-manual-cpu-'))) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
@@ -41,23 +42,51 @@ jobs:
           node --test tests/zeref_continuation_006_contract.test.cjs
           node --check apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs
           python -m py_compile scripts/zeref_continuation_006.py
-      - name: Resume newest approved Zeref checkpoint or pinned Experiment 004 original child
+      - name: Resume ONLY the canonical SHA-pinned Zeref 006 model and AdamW state
         run: |
           set -Eeuo pipefail
           mkdir -p build/zeref-006
-          name="$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" --jq '.artifacts | map(select(.expired == false and (.name | startswith("zeref-006-accepted-checkpoint-")))) | sort_by(.created_at) | last | .name // empty')"
-          if [ -n "$name" ]; then
-            run_id="$(printf '%s' "$name" | sed 's/.*-//')"
-            case "$run_id" in ''|*[!0-9]*) echo "Invalid approved artifact run ID"; exit 1;; esac
-            gh run download "$run_id" --repo "${{ github.repository }}" -n "$name" -D build/zeref-006/previous
+          # GitHub artifacts are paginated; scanning only the latest 100
+          # made the last real run silently fork from the older 004 weights.
+          # An EXACT fixed artifact name keeps canonical descendants
+          # discoverable regardless of unrelated repo CI artifact volume.
+          canonical_name="zeref-006-canonical-37ca3f8f"
+          canonical_run="$(gh api "repos/${{ github.repository }}/actions/artifacts?name=$canonical_name&per_page=100" --jq '.artifacts | map(select(.expired == false and .name == "zeref-006-canonical-37ca3f8f")) | sort_by(.created_at) | last | .workflow_run.id // empty')"
+          if [ -n "$canonical_run" ]; then
+            case "$canonical_run" in ''|*[!0-9]*) echo "Invalid canonical lineage run id"; exit 1;; esac
+            echo "RESUME_CANONICAL_ZEREF_DESCENDANT_RUN=$canonical_run"
+            gh run download "$canonical_run" --repo "${{ github.repository }}" -n "$canonical_name" -D build/zeref-006/previous
             PARENT="$(find build/zeref-006/previous -type d -name accepted-checkpoint -print -quit)"
-            test -n "$PARENT" || exit 1
-            test -s "$(dirname "$PARENT")/approval.json" || exit 1
           else
-            gh run download 38109635009 --repo "${{ github.repository }}" -n rawrphos-zeref-original-game-real-cpu-training-38109635009 -D build/zeref-006/bootstrap
-            PARENT="$(find build/zeref-006/bootstrap -type d -name candidate-actual-native-frame-imitation-001 -print -quit)"
-            test -n "$PARENT" || { echo 'Original SHA-pinned 004 checkpoint missing; no replacement model'; exit 1; }
+            # Initial independently approved 006 child: 14K+004+006.
+            # NEVER fall back to 004, a sibling fork or randomly new weights.
+            echo "RESUME_PINNED_APPROVED_ZEREF_006_ROOT=37ca3f8fc9cdc0e78175508fc816ed02d5a12da1f3b106505715b7366fde5a48"
+            gh run download 38129248023 --repo "${{ github.repository }}" -n zeref-006-accepted-checkpoint-38129248023 -D build/zeref-006/bootstrap
+            PARENT="$(find build/zeref-006/bootstrap -type d -name accepted-checkpoint -print -quit)"
           fi
+          test -n "$PARENT" || { echo "Canonical checkpoint artifact missing; refusing training"; exit 1; }
+          test -s "$PARENT/manifest.json"
+          test -s "$PARENT/training_state.pt"
+          test -s "$(dirname "$PARENT")/approval.json"
+          export BEAST_006_PARENT_PATH="$PARENT"
+          python - <<'PY'
+          import os,json,hashlib
+          from pathlib import Path
+          p=Path(os.environ['BEAST_006_PARENT_PATH'])
+          root='37ca3f8fc9cdc0e78175508fc816ed02d5a12da1f3b106505715b7366fde5a48'
+          m=json.loads((p/'metadata.json').read_text())
+          a=json.loads((p.parent/'approval.json').read_text())
+          actual=hashlib.sha256((p/'model.safetensors').read_bytes()).hexdigest()
+          assert m['checkpoint_sha256']==a['checkpoint_sha256']==actual
+          assert a['approved'] is True and a['qbeast_id']==m['qbeast_id']=='bb-deada969'
+          assert m['production_promoted'] is False and a['production_promoted'] is False
+          if actual==root:
+           assert m['approved_cycle_count']==1 and a['approved_cycle_count']==1
+          else:
+           assert m['canonical_lineage_root_sha256']==a['canonical_lineage_root_sha256']==root
+          print('ZEREF_010_VERIFIED_CANONICAL_PARENT='+json.dumps({
+           'sha256':actual,'canonical_root':root,'approved_cycle_count':m['approved_cycle_count']}),flush=True)
+          PY
           echo "BEAST_006_PARENT_PATH=$PARENT" >> "$GITHUB_ENV"
       - name: Build EXISTING Beast Box without changing original native cartridge
         working-directory: apps/beastbox-cloud
@@ -130,7 +159,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: zeref-006-accepted-checkpoint-${{ github.run_id }}
+          name: zeref-006-canonical-37ca3f8f
           path: |
             build/zeref-006/accepted-checkpoint/
             build/zeref-006/approval.json

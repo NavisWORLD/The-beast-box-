@@ -20,6 +20,7 @@ ROOT=Path("build/zeref-006")
 IN=ROOT/"inputs"
 PARENT=Path(os.environ.get("BEAST_006_PARENT_PATH",""))
 ORIGINAL_CANDIDATE="86d9084ee3d302fdf37980e89eef60c86be90bc4538f0bfc9e7c3b39db92fcc8"
+CANONICAL_APPROVED_ROOT="37ca3f8fc9cdc0e78175508fc816ed02d5a12da1f3b106505715b7366fde5a48"
 ZEREF="bb-deada969"
 IBM="db4q484vf2bc73cuuuag"
 UPDATES=64
@@ -74,32 +75,43 @@ def inspect_source():
   raise ValueError("Native emulator captured insufficiently varied screen observations")
  return manifest,digest,rows
 def parent_proof():
- if not PARENT.is_dir():raise FileNotFoundError("Last approved RAWRPHOS parent checkpoint unavailable; never start random new weights")
+ if not PARENT.is_dir():
+  raise FileNotFoundError("Last approved canonical Zeref checkpoint unavailable; no fallback or model reset")
  metadata=json.loads((PARENT/"metadata.json").read_text())
  digest=metadata.get("checkpoint_sha256")
  prior=PARENT.parent/"approval.json"
- if digest==ORIGINAL_CANDIDATE:
-  if metadata.get("production_promoted") is not False or metadata.get("fresh_optimizer_steps")!=128:
-   raise ValueError("Original Zeref 004 lineage or production protection mismatched")
-  cycle=0
-  prior_dataset=metadata.get("dataset_sha256")
+ if not prior.is_file():raise ValueError("Missing immutable canonical-lineage approval receipt")
+ approval=json.loads(prior.read_text())
+ cycle=metadata.get("approved_cycle_count")
+ if (metadata.get("schema")!="rawrphos-zeref-resumable-native-006" or
+     metadata.get("qbeast_id")!=ZEREF or
+     metadata.get("production_promoted") is not False or
+     approval.get("schema")!="zeref-native-approved-cycle-v1" or
+     approval.get("approved") is not True or
+     approval.get("qbeast_id")!=ZEREF or
+     approval.get("production_promoted") is not False or
+     approval.get("checkpoint_sha256")!=digest or
+     approval.get("parent_checkpoint_sha256")!=metadata.get("parent_checkpoint_sha256") or
+     approval.get("dataset_sha256")!=metadata.get("dataset_sha256") or
+     type(cycle) is not int or cycle<1 or cycle>64 or
+     approval.get("approved_cycle_count")!=cycle or
+     metadata.get("training_steps")!=14000+128+64*cycle):
+  raise ValueError("Invalid signed original Zeref 006 CPU checkpoint lineage/approval")
+ if digest==CANONICAL_APPROVED_ROOT:
+  # Original independent 006 cycle has no explicit root field; exact SHA
+  # and its source optimizer parent are the anchored proof.
+  if (cycle!=1 or metadata.get("parent_checkpoint_sha256")!=ORIGINAL_CANDIDATE):
+   raise ValueError("Pinned actual approved Zeref 006 genesis does not match its real experiment")
  else:
-  approval=json.loads(prior.read_text())
-  if (metadata.get("schema")!="rawrphos-zeref-resumable-native-006" or
-      metadata.get("production_promoted") is not False or
-      approval.get("approved") is not True or
-      approval.get("checkpoint_sha256")!=digest or
-      approval.get("qbeast_id")!=ZEREF or
-      approval.get("parent_checkpoint_sha256")!=metadata.get("parent_checkpoint_sha256")):
-   raise ValueError("Unverified accepted continuation checkpoint")
-  cycle=metadata.get("approved_cycle_count")
-  prior_dataset=metadata.get("dataset_sha256")
-  if type(cycle) is not int or cycle<1 or cycle>100000:raise ValueError("Invalid continuation cycle")
+  if (metadata.get("canonical_lineage_root_sha256")!=CANONICAL_APPROVED_ROOT or
+      approval.get("canonical_lineage_root_sha256")!=CANONICAL_APPROVED_ROOT):
+   raise ValueError("Detected stale artifact/paginated 004 fork; cannot rejoin canonical Zeref line")
  parent=load_checkpoint(PARENT,expected_checkpoint_sha256=digest,load_training_state=True)
- if parent["metadata"].get("checkpoint_sha256")!=digest:raise ValueError("SHA mismatch in parent")
+ if parent["metadata"].get("checkpoint_sha256")!=digest:
+  raise ValueError("Checkpoint full-file integrity failed")
  if not isinstance(parent["state"],dict) or "optimizer" not in parent["state"]:
-  raise ValueError("Cannot resume real AdamW optimizer state")
- return parent,cycle,prior_dataset
+  raise ValueError("Cannot resume native AdamW without verified original optimizer state")
+ return parent,cycle,metadata["dataset_sha256"]
 def main():
  now=time.perf_counter()
  torch.set_num_threads(2)
@@ -153,6 +165,7 @@ def main():
  temp=ROOT/"unreviewed-candidate"
  meta={"schema":"rawrphos-zeref-resumable-native-006",
   "parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"],
+  "canonical_lineage_root_sha256":CANONICAL_APPROVED_ROOT,
   "approved_cycle_count":cycle+1,
   "training_steps":parent["metadata"]["training_steps"]+UPDATES,
   "cycle_optimizer_updates":UPDATES,
@@ -179,6 +192,7 @@ def main():
  report={"schema":"beastbox-zeref-resumable-training-cycle-006",
   "qbeast_id":ZEREF,"original_ibm_job_id":IBM,
   "parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"],
+  "canonical_lineage_root_sha256":CANONICAL_APPROVED_ROOT,
   "candidate_checkpoint_sha256":saved["checkpoint_sha256"],
   "dataset_sha256":source_digest,
   "previous_dataset_sha256":prior_digest,
@@ -199,6 +213,7 @@ def main():
   "training_logs":logs,"elapsed_seconds":round(time.perf_counter()-now,3)}
  save_json(ROOT/"report.json",report)
  print("ZEREF_006_REAL_TRAINING_GATE="+json.dumps({"approved":accepted,"cycle":cycle+1,
+   "canonical_root":CANONICAL_APPROVED_ROOT,
    "parent":report["parent_checkpoint_sha256"],"candidate":saved["checkpoint_sha256"],
    "baseline":baseline,"trial":trial,"gate":guard}),flush=True)
  if accepted:
@@ -208,6 +223,7 @@ def main():
    "approved":True,"qbeast_id":ZEREF,
    "checkpoint_sha256":saved["checkpoint_sha256"],
    "parent_checkpoint_sha256":report["parent_checkpoint_sha256"],
+   "canonical_lineage_root_sha256":CANONICAL_APPROVED_ROOT,
    "dataset_sha256":source_digest,
    "approved_cycle_count":cycle+1,"production_promoted":False})
  else:

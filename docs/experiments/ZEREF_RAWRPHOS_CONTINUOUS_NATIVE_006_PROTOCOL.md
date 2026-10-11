@@ -16,9 +16,15 @@ Owner requested continuing real, interrupted/resumable RAWRPHØS training from t
 - Experiment 005 established live game-controller competence: trained model 36/36 valid actions + ACKs, original model 0/36; **game reward, map completion, dialogue and earned progression still not instrumented**.
 - **NO fresh IBM hardware or Azure QVM workloads** in 006; classical learning does not count as quantum model training.
 
+## Lineage correction from the immediate 010 experiment
+
+The first PR #286 immediate CPU cycle from GitHub Actions run `38158726567` genuinely collected 56 new native observations and performed 64 optimizer updates, but its artifact query scanned only the newest 100 unrelated repository artifacts. The original accepted 006 child fell outside that page, and the run **incorrectly bootstrapped from the older 004 candidate** `86d9084ee3d302fdf37980e89eef60c86be90bc4538f0bfc9e7c3b39db92fcc8` as a separate valid training *fork*. It created SHA `409f85256825d0009c3c122b3b411e18018c3233518ebb2c6c7873d86ad27887`. The data and checkpoint remain honest exploratory evidence but are **NOT part of the canonical 006 optimizer continuation**. No real learning or owner experiment history is discarded.
+
+The workflow was amended to query a fixed exact canonical artifact name and fail closed on incompatible parent hashes. The rooted continuation resumes **the actual approved 006 192-step parent**, not the separate fork. This rule also applies to the six-hour recurring workflow once this fix merges.
+
 ## How continuations work
 
-A job finds the **latest approved checkpoint artifact** from this exact experiment, downloads it, verifies its complete bundled safetensors manifest and published approval digest, loads original AdamW optimizer moments and state, then starts a new bounded series. If none exists, it securely downloads the pinned 004 parent artifact from Actions run 38109635009.
+A job now resumes **only descendants of the independently approved Experiment 006 checkpoint**, SHA `37ca3f8fc9cdc0e78175508fc816ed02d5a12da1f3b106505715b7366fde5a48` (original accepted artifact, Actions run `38129248023`). Newly approved descendants publish under the EXACT GitHub artifact name `zeref-006-canonical-37ca3f8f`; the GitHub API is queried by that exact name, not an unsafe latest-100-artifacts prefix scan. The complete file manifest, model SHA, approval receipt, canonical ancestor SHA and actual saved optimizer moments must validate before optimizer work. If no descendant exists, download the original approved 006 checkpoint. **Never restart from 004, from a sibling fork, random weights or an unknown old artifact.**
 
 The original, previous and rejected candidate checkpoints never overwrite each other. Every cycle captures **new actual framebuffer values and native controller ACKs** from the original ROM. GitHub run ID rotates the *explicit scripted teacher* fallback sequence only; this is NOT reinforcement learning, a human demonstration, or evidence of semantic vision.
 
