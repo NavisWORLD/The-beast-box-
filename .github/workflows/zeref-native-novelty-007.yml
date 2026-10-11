@@ -1,0 +1,47 @@
+name: Zeref 007 - real emulator novelty evidence audit
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - 'scripts/zeref_native_novelty_007.cjs'
+      - 'scripts/zeref_007_evaluate.cjs'
+      - 'tests/zeref_native_novelty_007.test.cjs'
+      - '.github/workflows/zeref-native-novelty-007.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  actual-native-novelty:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Verify independent native novelty tests
+        run: |
+          node --test tests/zeref_native_novelty_007.test.cjs
+          node --check scripts/zeref_007_evaluate.cjs
+      - name: Restore real native emulator observations from original six-policy 005 run
+        uses: actions/download-artifact@v4
+        with:
+          repository: NavisWORLD/The-beast-box-
+          github-token: ${{ github.token }}
+          run-id: 38117338699
+          name: zeref-005-real-native-controlled-policy-results-38117338699
+          path: build/zeref-007
+      - name: Compare optical novelty without claiming game progress
+        run: |
+          set -Eeuo pipefail
+          test -s build/zeref-007/report.json
+          node scripts/zeref_007_evaluate.cjs build/zeref-007/report.json build/zeref-007/novelty-report.json
+      - name: Archive reproducible comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-007-native-optical-novelty-${{ github.run_id }}
+          path: build/zeref-007/novelty-report.json
+          retention-days: 90
+          if-no-files-found: warn
