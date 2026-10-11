@@ -291,6 +291,7 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 /* The original Arena and QBEAST sprite remain ABOVE the dimensional backdrop. */
 .cage-pocket-active [data-beast-arena="true"]{z-index:2}
 .cage-pocket-active:focus-visible{outline:2px dashed #a0eff3;outline-offset:3px}
+.cage-pocket-active [data-beast-arena="true"] [class*="hit"]{touch-action:none}
 
 
 .cage-pocket-active [data-beast-arena="true"] [class*="tools"]{pointer-events:auto;top:4%;left:17%;width:min(65%,250px);transform:none;justify-content:flex-start;z-index:8}
