@@ -9,15 +9,15 @@ export function GET(){
   // Public Git source receipt only. Local builds report null; no owner settings are exposed.
   frontend_commit_sha:commit&&/^[0-9a-f]{40}$/i.test(commit)?commit:null,
   lost_cosmos_commit:'5dd5ea0081ef61922f0a7b4b394736c9ac321629',
-  // Pinned native bridge source. PRs #44/#45 add native start/return and shell presentation; ROM bytes are V11.5 (game PR #60, merge a83b3a77: Beast Home and graphics pass; PR #59 added the PROLOGUE).
+  // Pinned native bridge source. PRs #44/#45 add native start/return and shell presentation; ROM bytes are V11.6 (game PR #61, merge 55318622: first-person / Mode-7 3D VIEW prototype; PR #60 added the Beast Home and graphics pass, PR #59 the PROLOGUE).
   lost_cosmos_main_commit:'f1647ef9e148d442299b76ef097545b3c1210852',
   lost_cosmos_main_prs:[33,34,35,38,39,40,41,44,45,46,47],
   lost_cosmos_page:'https://navisworld.github.io/Cosmic-synapse-the-living-universe-sim-engine-/arcade/sol-spark-gate/?mode=handheld',
   same_cage_transfer:true,
   features:['guest-visual-test','download-gba-4bpp','qbeast-to-lost-cosmos-share','stable-one-cage-transfer','play-current-lost-cosmos','persistent-gba-player','shared-spark-care-ledger','model-bay-care','optional-explicit-owner-dyn12','in-page-v11-2-spark','lost-cosmos-field','continuous-public-spark','gesture-generated-voice','same-qbeast-native-art','procedural-beast-music','beast-boy-controller-bridge','beast-boy-android-touch-direct','cache-busted-controller-receiver','iphone-safari-audio-unlock','explicit-game-audio-consent','vercel-preview-controller-origin','fullscreen-player-with-controls','immersive-api-fallback','minimize-without-remount','native-save-return'],
-  rom_release:'current-verified-v11.5',
-  rom_sha256:'9263730ab9e2eca2610ff3d8fd4c91d07a89aeee19edb59c242a44d8b2a1e7f7',
-  rom_asset:'lost-cosmos-v11.5.gba',
+  rom_release:'current-verified-v11.6',
+  rom_sha256:'4acdc8d57709a1fa89324100514e70056a815e846b6f2bec78e20b6d23f9db45',
+  rom_asset:'lost-cosmos-v11.6.gba',
   rom_url:'/api/gba-rom',
   sim_earth_embedded:false,
   emulator:'emulatorjs',
