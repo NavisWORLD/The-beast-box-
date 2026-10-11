@@ -28,7 +28,7 @@ export default function PrivacyPage() {
           <p>The companion reacts to the signals you send. It does not learn from them. Public visitors get the on-device pattern companion. That is not a hosted language model.</p>
           <p>Owner Brain Bay uses a separate route. When that route is down, the status says backend offline. A missing model never invents a reply. A missing model never rewrites the creature.</p>
           <p>Owner memory, model weights, and tool permissions are not in the public file. The gadget and watch are not shipping. <Link href="/next">See what is next.</Link></p>
-          <p><Link className="primary-link" href="/spark/index.html">Back to My Beast</Link></p>
+          <p><a className="primary-link" href="/spark/index.html">Back to My Beast</a></p>
         </div>
       </section>
     </main>

@@ -10,7 +10,7 @@ export default function SolGame(){return <main style={{minHeight:'100vh',backgro
  <nav data-page-nav aria-label="Beast Box journey" style={{display:'flex',alignItems:'center',gap:8,flexWrap:'nowrap',overflowX:'auto',whiteSpace:'nowrap',scrollbarWidth:'none',marginBottom:18,padding:6,border:'1px solid #314878',borderRadius:14,background:'#0e162b'}}>
   <Link href="/" aria-label="Beast Box home" style={{display:'inline-flex',padding:'2px 4px 2px 2px'}}><BrandCrest size={30} decorative/></Link>
   <Link href="/" style={{padding:'8px 10px'}}>Home</Link>
-  <Link href="/spark/index.html" style={{padding:'8px 10px'}}>My Beast</Link>
+  <a href="/spark/index.html" style={{padding:'8px 10px'}}>My Beast</a>
   <Link href="/beast-cage" style={{padding:'8px 10px'}}>Beast Cage</Link>
   <span aria-current="page" style={{padding:'8px 10px',borderRadius:9,background:'#17314c',color:'#7ee7ff'}}>Lost COSMOS</span>
   <Link href="/brain-bay" style={{padding:'8px 10px'}}>Brain Bay</Link>

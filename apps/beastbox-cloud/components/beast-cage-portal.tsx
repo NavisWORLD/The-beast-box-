@@ -61,7 +61,7 @@ export default function BeastCagePortal(){
   <header className="cage-topbar"><Link href="/" aria-label="Beast Box homepage" className="cage-brand"><BrandCrest className="cage-brand-crest" size={40} decorative/><span>BEAST BOX<small>NAVISWORLD / COSMOS</small></span></Link>
    <nav aria-label="Beast Box journey">
     <Link href="/">Home</Link>
-    <Link href="/spark/index.html">My Beast</Link>
+    <a href="/spark/index.html">My Beast</a>
     <Link href="/beast-cage" aria-current="page">Beast Cage</Link>
     <Link href="/sol-game">Lost COSMOS</Link>
     <Link href="/brain-bay">Brain Bay</Link>

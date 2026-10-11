@@ -78,7 +78,7 @@ export default function BrainBayWorkshop(){
     </div>
     <div className={styles.identity}>
      <h2>{beast?name:'Your story starts here'}</h2>
-     {beast?<><code title={identity||''}>{identity}</code><dl className={styles.metrics}><div><dt>XP</dt><dd>{beast.xp}</dd></div><div><dt>Bond</dt><dd>{beast.bond}</dd></div><div><dt>Pattern steps</dt><dd>{session.mind?.steps||0}</dd></div></dl><p>Brain selection keeps this identity, genome and local growth.</p></>:<><p>Choose a Beast in My Beast, then bring it into the workshop.</p><Link className={styles.meet} href="/spark/index.html">Meet a Beast <ChevronRight size={16} aria-hidden="true"/></Link></>}
+     {beast?<><code title={identity||''}>{identity}</code><dl className={styles.metrics}><div><dt>XP</dt><dd>{beast.xp}</dd></div><div><dt>Bond</dt><dd>{beast.bond}</dd></div><div><dt>Pattern steps</dt><dd>{session.mind?.steps||0}</dd></div></dl><p>Brain selection keeps this identity, genome and local growth.</p></>:<><p>Choose a Beast in My Beast, then bring it into the workshop.</p><a className={styles.meet} href="/spark/index.html">Meet a Beast <ChevronRight size={16} aria-hidden="true"/></a></>}
     </div>
    </section>
    <section className={styles.socketCard} aria-labelledby="socket-title">

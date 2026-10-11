@@ -41,7 +41,7 @@ export default function HomepageCreature(){
     <p>{waved?'Oh! A visitor waved. Want to meet a creature of your own?':'That little dragon noticed you. Curious what lives in here?'}</p>
     <div className={styles.actions}>
      <button type="button" aria-pressed={waved} onClick={()=>setWaved(value=>!value)}>{waved?'Wave again ✦':'Wave hello ✦'}</button>
-     <Link href="/spark/index.html">Meet your Beast →</Link>
+     <a href="/spark/index.html">Meet your Beast →</a>
     </div>
     <small>Guide reaction is visual only. Your own Beast begins when you create one.</small>
    </>}
