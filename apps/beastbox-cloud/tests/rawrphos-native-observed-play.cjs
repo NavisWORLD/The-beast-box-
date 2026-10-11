@@ -19,7 +19,7 @@ const actions=['RIGHT','UP','LEFT','DOWN','A','B','RIGHT','RIGHT','UP','LEFT','A
 // Every 006 capture is a new real emulator run; rotate only the explicit
 // SCRIPTED demonstrator's fallback actions, never the framebuffer evidence.
 const cycleRaw=process.env.NAVISWORLD_NATIVE_TRAINING_CYCLE||'0';
-if(!/^\\d{1,20}$/.test(cycleRaw))throw Error('Invalid observed-native training cycle ID');
+if(!/^[0-9]{1,20}$/.test(cycleRaw))throw Error('Invalid observed-native training cycle ID');
 const cycle=Number(BigInt(cycleRaw)%BigInt(actions.length));
 // A bounded scripted heuristic observes actual optical values before every input.
 // This is a demonstration policy, NOT evidence of optimal gameplay behavior.
