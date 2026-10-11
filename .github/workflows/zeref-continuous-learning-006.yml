@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   train-zeref:
-    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/zeref-resumable-continuous-learning-006-20261011') }}
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'feature/zeref-resumable-continuous-learning-006-20261011' || startsWith(github.head_ref, 'feature/zeref-manual-cpu-'))) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
