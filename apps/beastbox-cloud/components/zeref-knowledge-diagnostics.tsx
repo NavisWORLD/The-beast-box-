@@ -9,6 +9,7 @@ type Status={schema:string;experiment:string;qbeast_id:string;run_url:string|nul
  native:{parent?:string;candidate?:string}|null;failed_gates:string[];identity_note:string;honesty:string};
 
 const short=(s:string|null|undefined)=>s?s.slice(0,8)+'…':'none';
+const f1=(v?:number)=>typeof v==='number'?v.toFixed(1):'–';
 const mean=(a?:Arm[])=>a&&a.length?(a.reduce((s,x)=>s+x.cells_visited,0)/a.length).toFixed(1):'–';
 
 /**
@@ -24,8 +25,8 @@ export default function ZerefKnowledgeDiagnostics({loop,beastId}:{loop:Loop;beas
   <h3>What Zeref knows · diagnostics</h3>
   <p className={styles.small}><b>Pocket learner</b> ({beastId}, deterministic rules, live): {loop?<>{loop.cells_visited}/{loop.cells_total} patches explored · {loop.known_rifts??'?'} rifts learned by bumping · {loop.moves_succeeded} moves ok / {loop.moves_blocked} blocked{loop.favorite_spot?<> · favourite: {loop.favorite_spot}</>:null}</>:'no loop data yet'}. Simple running averages over its own outcomes; this is what moves him in the habitat.</p>
   {st?<p className={styles.small} data-neural-accepted={String(st.accepted)}><b>Neural model</b> (RAWRPHOS, {st.qbeast_id}, Experiment {st.experiment}): {st.status}. Parent {short(st.parent_sha256)}{st.candidate_sha256?<> → candidate {short(st.candidate_sha256)}</>:null}.
-   {e?<> On {e.layouts} pocket layouts it never trained on, mean patches explored: random {e.random?.cells_visited??'–'}, hand-coded pocket learner {e.pocket_learner?.cells_visited??'–'}, greedy frontier {e.greedy_frontier?.cells_visited??'–'}, parent model {e.parent?.cells_visited??'–'}, trained model {mean(e.candidate_seeds)} (no-memory ablation {mean(e.no_memory_seeds)}, shuffled-label control {mean(e.shuffled_seeds)}).</>:null}
-   {st.failed_gates?.length?<> Failed gates: {st.failed_gates.join(', ')}.</>:null}
+   {e?<> On {e.layouts} pocket layouts it never trained on, mean patches explored: random {f1(e.random?.cells_visited)}, hand-coded pocket learner {f1(e.pocket_learner?.cells_visited)}, greedy frontier {f1(e.greedy_frontier?.cells_visited)}, parent model {f1(e.parent?.cells_visited)}, trained model {mean(e.candidate_seeds)} (no-memory ablation {mean(e.no_memory_seeds)}, shuffled-label control {mean(e.shuffled_seeds)}).</>:null}
+   {st.failed_gates?.length?<> Failed gates: {st.failed_gates.map(g=>g.replace(/^G\d+_/,'').replace(/_/g,' ')).join('; ')}.</>:null}
    {st.run_url?<> <a href={st.run_url} rel="noreferrer" target="_blank">Evidence run</a>.</>:null}</p>
    :<p className={styles.small}>{err?'Neural experiment status unavailable; nothing is shown rather than an invented result.':'Loading neural model status…'}</p>}
   {st?<p className={styles.small}>{st.identity_note} {st.honesty}</p>:null}
