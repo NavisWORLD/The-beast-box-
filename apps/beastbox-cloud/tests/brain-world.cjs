@@ -10,6 +10,12 @@ const origin=process.env.BEAST_BROWSER_ORIGIN||process.argv[2]||'http://127.0.0.
 const key='beastbox-companion-session-v1';
 const rooms=['/','/spark/index.html','/beast-cage','/sol-game','/brain-bay','/research','/settings'];
 async function readSession(page){return page.evaluate(k=>JSON.parse(localStorage.getItem(k)||'null'),key);}
+async function openSharedChat(page){
+ await page.locator('button[aria-controls="beast-chat-overlay"]').click();
+ const dialog=page.locator('[data-companion-chat-overlay]');
+ await expect(dialog).toBeVisible();
+ return dialog;
+}
 function invariant(session){
  return {id:session.beast.qbeast.profile.id,qbeast:session.beast.qbeast,genome:session.beast.genome,xp:session.beast.xp,bond:session.beast.bond,stage:session.beast.stage,mind:session.mind};
 }
@@ -45,10 +51,11 @@ async function checkRooms(page){
  try{
   await page.goto(origin+'/brain-bay');
   await expect(page.getByRole('heading',{name:/Swap the brain/})).toBeVisible();
-  // No saved Beast: the shared talk panel speaks as Zeref, and nothing is sent until the visitor presses Send.
-  await expect(page.getByText('Zeref is answering until you meet your own Beast')).toBeVisible();
-  await expect(page.getByRole('heading',{name:'Talk to Zeref'})).toBeVisible();
-  await expect(page.getByText(/Brain: RAWRPHØS guest/)).toBeVisible();
+  // No saved Beast: open the actual shared chat first; passive page load must not infer.
+  let dialog=await openSharedChat(page);
+  await expect(dialog.getByText(/Showing Zeref, the site Beast/)).toBeVisible();
+  await expect(dialog.getByRole('heading',{name:'Talk to Zeref'})).toBeVisible();
+  await expect(dialog.getByText(/Brain: RAWRPHØS guest/)).toBeVisible();
   assert.equal(guestCalls.length,0);assert.equal(loopbackCalls.length,0);
   await checkRooms(page);
 
@@ -63,16 +70,17 @@ async function checkRooms(page){
   });
   await page.reload();
   await expect(page.getByRole('img',{name:/your selected Beast/})).toBeVisible();
+  dialog=await openSharedChat(page);
   const before=await readSession(page);
   assert.equal(before.beast.qbeast.profile.id,selectedId);
-  const beastName=(await page.locator('[data-talk-state] h2').textContent()).replace(/^Talk to /,'');
+  const beastName=(await dialog.locator('[data-talk-state] h2').textContent()).replace(/^Talk to /,'');
   assert.ok(beastName&&beastName!=='Zeref'&&!/Finding/.test(beastName),'Talk panel must speak as the saved Beast: '+beastName);
 
   // Guest host failure: honest offline state, no reply text, no growth from a failed request.
-  await page.getByLabel(/^Message to /).fill('quiet star');
-  await page.getByRole('button',{name:'Send',exact:true}).click();
-  await expect(page.locator('[data-talk-state="offline"]')).toBeVisible();
-  await expect(page.getByText('Model offline: no reply was received')).toBeVisible();
+  await dialog.getByLabel(/^Message to /).fill('quiet star');
+  await dialog.getByRole('button',{name:'Send',exact:true}).click();
+  await expect(dialog.locator('[data-talk-state="offline"]')).toBeVisible();
+  await expect(dialog.getByText('Model offline: no reply was received')).toBeVisible();
   assert.equal(guestCalls.length,1);
   assert.deepEqual(Object.keys(guestCalls[0]).sort(),['provider','text']);
   assert.equal(guestCalls[0].provider,'rawrphos-local');
@@ -81,16 +89,17 @@ async function checkRooms(page){
   assert.deepEqual(invariant(await readSession(page)),invariant(before),'failed requests never change the Beast');
 
   // Local Ollama: explicit choice, persona as system text, honest connection help.
-  await page.getByRole('button',{name:'Change brain'}).click();
-  await page.locator('label').filter({hasText:'My local Ollama'}).click();
-  await page.getByLabel('Model tag').fill('tiny:latest');
+  await dialog.getByRole('button',{name:'Change brain'}).click();
+  await dialog.locator('label').filter({hasText:'My local Ollama'}).click();
+  await dialog.getByLabel('Model tag').fill('tiny:latest');
   assert.equal(loopbackCalls.length,0,'Selecting a brain must not send a message');
   await page.reload();
-  await expect(page.getByText(/Brain: My local Ollama/)).toBeVisible();
-  await page.getByLabel(/^Message to /).fill('quiet star');
-  await page.getByRole('button',{name:'Send',exact:true}).click();
-  await expect(page.locator('[data-talk-state="offline"]')).toBeVisible();
-  await expect(page.getByText(/OLLAMA_ORIGINS=/).first()).toBeVisible();
+  dialog=await openSharedChat(page);
+  await expect(dialog.getByText(/Brain: My local Ollama/)).toBeVisible();
+  await dialog.getByLabel(/^Message to /).fill('quiet star');
+  await dialog.getByRole('button',{name:'Send',exact:true}).click();
+  await expect(dialog.locator('[data-talk-state="offline"]')).toBeVisible();
+  await expect(dialog.getByText(/OLLAMA_ORIGINS=/).first()).toBeVisible();
   assert.equal(loopbackCalls.length,1);
   assert.equal(loopbackCalls[0].model,'tiny:latest');
   assert.equal(loopbackCalls[0].messages[0].role,'system');
@@ -98,6 +107,8 @@ async function checkRooms(page){
   assert.deepEqual(loopbackCalls[0].messages.at(-1),{role:'user',content:'quiet star'});
   assert.deepEqual((await readSession(page)).beast.qbeast,before.beast.qbeast);
 
+  await dialog.getByRole('button',{name:'Close chat'}).click();
+  await expect(dialog).toBeHidden();
   await page.getByRole('navigation',{name:'Universe rooms'}).getByRole('link',{name:'SETTINGS',exact:true}).click();
   await expect(page.getByRole('heading',{name:/A little quieter/})).toBeVisible();
   const mute=page.getByRole('switch',{name:'Mute website sound'});
