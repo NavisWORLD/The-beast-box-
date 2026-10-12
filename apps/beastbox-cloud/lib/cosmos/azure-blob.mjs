@@ -54,7 +54,7 @@ async function call(cfg,method,name,{query='',body=null,headers={},timeoutMs=150
  if(body!=null)h['Content-Length']=String(Buffer.byteLength(body));
  else if(method==='PUT')h['Content-Length']='0';
  if(cfg.mode==='key')h.Authorization=sign(cfg,method,url,h);
- const res=await fetch(url,{method,headers:h,body:body??undefined,signal:AbortSignal.timeout(timeoutMs),cache:'no-store'});
+ const res=await fetch(url,{method,headers:h,body:body??undefined,signal:AbortSignal.timeout(timeoutMs),cache:'no-store',redirect:'error'});
  return res;
 }
 
@@ -88,6 +88,15 @@ export async function putBlob(cfg,name,text,{contentType='application/json; char
  const res=await call(cfg,'PUT',name,{body:text,headers});
  if(!res.ok)throw await fail(res,'write');
  return res.headers.get('etag');
+}
+
+/** Conditional cleanup only. An etag is required so a changed object is never deleted. */
+export async function deleteBlob(cfg,name,{ifMatch}={}){
+ if(typeof ifMatch!=='string'||!ifMatch)throw Error('Storage delete requires an etag.');
+ const res=await call(cfg,'DELETE',name,{headers:{'If-Match':ifMatch}});
+ if(res.status===404)return false;
+ if(!res.ok)throw await fail(res,'delete');
+ return true;
 }
 
 /** All blob names under a prefix (follows continuation markers, bounded). */
