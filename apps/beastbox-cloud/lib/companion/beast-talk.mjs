@@ -8,9 +8,10 @@
  */
 import { Stream } from "../../public/spark/engine.mjs";
 import { beastIdentity, shownName } from "./session.mjs";
-import { interpretModelResult } from "./brain.mjs";
+import { gameObservationLine } from "./native-optics.mjs";
+import { ownerChatBody, interpretModelResult } from "./brain.mjs";
 
-export const TALK_ROUTES = Object.freeze(["guest-rawrphos", "local-ollama", "hf-byok"]);
+export const TALK_ROUTES = Object.freeze(["guest-rawrphos", "local-ollama", "hf-byok", "connected-brain-bay"]);
 export const DEFAULT_ROUTE = "guest-rawrphos";
 export const DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434";
 export const DEFAULT_OLLAMA_MODEL = "companion-glacecoil";
@@ -23,6 +24,7 @@ const CATCHPHRASES = ["oh crumbs", "tiny beep", "hehe", "psst", "star crumb", "w
 const HABITS = ["rhymes one word", "adds a little squeak", "asks a tiny question back", "counts on its paws"];
 
 export const ROUTE_INFO = Object.freeze({
+  "connected-brain-bay": {label:"Connected Brain Bay",model:"configured owner provider",detail:"Your paired Brain Bay provider. No automatic fallback or weight transfer."},
   "guest-rawrphos": {
     label: "RAWRPHØS guest",
     model: "rawrphos-native · 14K checkpoint",
@@ -109,11 +111,11 @@ export function personaFrame(persona) {
 }
 
 /** Single bounded prompt for text-only routes (guest host, HF). The keeper's words always survive. */
-export function framePrompt(persona, history, text, limit = GUEST_LIMIT) {
+export function framePrompt(persona, history, text, limit = GUEST_LIMIT, observation = null) {
   const p = persona || ZEREF;
   const said = clean(text, MAX_MESSAGE);
   const tail = `\nKeeper: ${said}\n${p.name}:`;
-  let head = personaFrame(p);
+  let head = (gameObservationLine(observation) ? gameObservationLine(observation)+"\n" : "") + personaFrame(p);
   const recent = (Array.isArray(history) ? history : []).slice(-2)
     .map((turn) => (turn.role === "you" ? "Keeper: " : p.name + ": ") + clean(turn.text, 110));
   let body = recent.length ? "\n" + recent.join("\n") : "";
@@ -138,6 +140,7 @@ export function connectHelp(route) {
   const common = [
     "Your Beast, its name and its memories stay the same whichever brain you pick.",
   ];
+  if (route === "connected-brain-bay") return ["Pair your owner session and configure a provider in Brain Bay. Requests use that selected provider only.",...common];
   if (route === "local-ollama") return [
     "Install Ollama from ollama.com and pull a model, e.g. `ollama pull qwen2.5:0.5b` (or create companion-glacecoil from the Beast Box Modelfile).",
     `Start it so this site may call it: OLLAMA_ORIGINS=${origin} ollama serve`,
@@ -181,15 +184,33 @@ export async function talkToBeast(input) {
   const text = clean(input?.text, MAX_MESSAGE);
   const fetchImpl = input?.fetchImpl || globalThis.fetch;
   const signal = input?.signal;
-  const history = Array.isArray(input?.history) ? input.history : [];
+  const history = input?.shareHistory === true && Array.isArray(input?.history) ? input.history : [];
+  const observation = input?.observation;
   if (!text) return failure(route, "Type a message first.");
   try {
+    if (route === "connected-brain-bay") {
+      const statusResponse=await fetchImpl("/api/status",{cache:"no-store",signal});
+      const status=await readJson(statusResponse);
+      if(!statusResponse.ok||status.owner!==true||status.backendReachable!==true)return failure(route,"Pair your owner session with an available Brain Bay provider first.");
+      const response=await fetchImpl("/api/bridge/chat-start",{method:"POST",signal,headers:{"Content-Type":"application/json"},body:JSON.stringify(ownerChatBody(framePrompt(persona,history,text,8192,observation),crypto.randomUUID()))});
+      let payload=await readJson(response);
+      if(!response.ok)return failure(route,payload?.error||"Brain Bay did not accept the request.",response.status);
+      const until=Date.now()+55000;
+      while(payload?.state!=="done"&&payload?.state!=="failed"&&payload?.job_id&&Date.now()<until){
+        await new Promise((resolve,reject)=>{if(signal?.aborted){reject(new Error("Cancelled"));return;}const abort=()=>{clearTimeout(timer);reject(new Error("Cancelled"));};const timer=setTimeout(()=>{signal?.removeEventListener("abort",abort);resolve();},1000);signal?.addEventListener("abort",abort,{once:true});});
+        const job=await fetchImpl("/api/bridge/chat-job?job_id="+encodeURIComponent(payload.job_id),{cache:"no-store",signal});payload=await readJson(job);if(!job.ok)return failure(route,payload?.error||"Brain Bay job unavailable.",job.status);
+      }
+      if(payload?.state!=="done")return failure(route,payload?.error||"Brain Bay did not finish. No reply was received.");
+      const read=interpretModelResult("owner-bridge",payload);
+      if(!read.ok||!read.reply||read.reply.length>6000)return failure(route,read.reason||"No verified Brain Bay reply.");
+      return {ok:true,route,reply:read.reply,model:clean(status.providerKind||"Brain Bay",80),label:ROUTE_INFO[route].label,at:Date.now()};
+    }
     if (route === "local-ollama") {
       const base = String(input?.ollama?.url || DEFAULT_OLLAMA_URL).replace(/\/+$/, "");
       const model = String(input?.ollama?.model || DEFAULT_OLLAMA_MODEL).trim();
       if (!validOllamaUrl(base)) return failure(route, "Local Ollama must be on this computer (http://127.0.0.1:11434 or http://localhost:11434).");
       if (!MODEL_TAG.test(model) || model.includes("://")) return failure(route, "Enter the tag of a model you installed in Ollama, e.g. qwen2.5:0.5b.");
-      const messages = [{ role: "system", content: personaFrame(persona) }];
+      const messages = [{ role: "system", content: (gameObservationLine(observation)?gameObservationLine(observation)+"\n":"")+personaFrame(persona) }];
       for (const turn of history.slice(-6)) messages.push({ role: turn.role === "you" ? "user" : "assistant", content: clean(turn.text, 400) });
       messages.push({ role: "user", content: text });
       const response = await fetchImpl(base + "/api/chat", {
@@ -217,7 +238,7 @@ export async function talkToBeast(input) {
       const response = await fetchImpl("/api/guest", {
         method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider: "huggingface-byok", text: framePrompt(persona, history, text), hf_key: key, model, spend_confirmed: true }),
+        body: JSON.stringify({ provider: "huggingface-byok", text: framePrompt(persona, history, text, GUEST_LIMIT, observation), hf_key: key, model, spend_confirmed: true }),
       });
       const payload = await readJson(response).catch(() => null);
       if (!response.ok) return failure(route, typeof payload?.error === "string" ? payload.error : `Hugging Face request failed (${response.status}).`, response.status);
@@ -228,7 +249,7 @@ export async function talkToBeast(input) {
     const response = await fetchImpl("/api/guest", {
       method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "rawrphos-local", text: framePrompt(persona, history, text) }),
+      body: JSON.stringify({ provider: "rawrphos-local", text: framePrompt(persona, history, text, GUEST_LIMIT, observation) }),
     });
     const payload = await readJson(response).catch(() => null);
     if (!response.ok) {
@@ -268,3 +289,9 @@ export function readTalkLog(storage, key) {
 export function writeTalkLog(storage, key, rows) {
   try { storage?.setItem(LOG_PREFIX + key, JSON.stringify(rows.slice(-MAX_LOG))); return true; } catch { return false; }
 }
+
+export const TALK_RETENTION_KEY="beastbox-talk-retention-v1";
+export const DRAFT_PREFIX="beastbox-talk-draft-v1:";
+export function readTalkRetention(storage){try{return storage?.getItem(TALK_RETENTION_KEY)==="session"?"session":"device";}catch{return "session";}}
+export function readTalkDraft(storage,key){try{return String(storage?.getItem(DRAFT_PREFIX+key)||"").slice(0,MAX_MESSAGE);}catch{return "";}}
+export function writeTalkDraft(storage,key,text){try{storage?.setItem(DRAFT_PREFIX+key,String(text||"").slice(0,MAX_MESSAGE));return true;}catch{return false;}}

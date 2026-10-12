@@ -1,4 +1,4 @@
-export type TalkRoute = 'guest-rawrphos' | 'local-ollama' | 'hf-byok';
+export type TalkRoute = 'guest-rawrphos' | 'local-ollama' | 'hf-byok' | 'connected-brain-bay';
 export type TalkPersona = { key: string; name: string; kind: string; traits: string[]; catchphrase: string; habit: string; source: 'spark' | 'cage' | 'zeref' };
 export type TalkTurn = { role: 'you' | 'beast'; text: string; model?: string; route?: string; at?: number };
 export type TalkSuccess = { ok: true; route: TalkRoute; reply: string; model: string; label: string; at: number };
@@ -12,14 +12,19 @@ export const MAX_MESSAGE: number;
 export const ROUTE_INFO: Readonly<Record<TalkRoute, { label: string; model: string; detail: string }>>;
 export function talkPersona(input?: { beast?: any; cage?: any }): TalkPersona;
 export function personaFrame(persona: TalkPersona): string;
-export function framePrompt(persona: TalkPersona, history: TalkTurn[], text: string, limit?: number): string;
+export function framePrompt(persona: TalkPersona, history: TalkTurn[], text: string, limit?: number, observation?: any): string;
 export function validOllamaUrl(value: string): boolean;
 export function connectHelp(route: string): string[];
 export function talkToBeast(input: {
-  route?: string; persona?: TalkPersona; history?: TalkTurn[]; text: string; fetchImpl?: typeof fetch; signal?: AbortSignal;
+  route?: string; persona?: TalkPersona; history?: TalkTurn[]; shareHistory?: boolean; observation?: any; text: string; fetchImpl?: typeof fetch; signal?: AbortSignal;
   ollama?: { url?: string; model?: string }; hf?: { key?: string; model?: string; spendConfirmed?: boolean };
 }): Promise<TalkSuccess | TalkFailure>;
 export const LOG_PREFIX: string;
 export const MAX_LOG: number;
 export function readTalkLog(storage: Pick<Storage, 'getItem'> | null | undefined, key: string): TalkTurn[];
 export function writeTalkLog(storage: Pick<Storage, 'setItem'> | null | undefined, key: string, rows: TalkTurn[]): boolean;
+
+export const TALK_RETENTION_KEY: string;
+export function readTalkRetention(storage: Pick<Storage,'getItem'> | null | undefined): 'device' | 'session';
+export function readTalkDraft(storage: Pick<Storage,'getItem'> | null | undefined,key:string):string;
+export function writeTalkDraft(storage: Pick<Storage,'setItem'> | null | undefined,key:string,text:string):boolean;

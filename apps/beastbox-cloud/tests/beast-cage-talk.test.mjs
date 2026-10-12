@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
-test('cage links a real, stateless model conversation separate from owner console',()=>{
+test('cage links a real, shared model conversation with explicit owner pairing',()=>{
  const cage=read('components/beast-cage-portal.tsx'),talk=read('components/beast-cage-talk.tsx');
  const panel=read('components/beast-talk-panel.tsx'),lib=read('lib/companion/beast-talk.mjs');
  assert.match(cage,/href="\/beast-cage\/talk"/);
@@ -10,7 +10,7 @@ test('cage links a real, stateless model conversation separate from owner consol
  assert.match(lib,/fetchImpl\("\/api\/guest"/);
  assert.match(lib,/provider: "rawrphos-local"/);
  assert.match(lib,/interpretModelResult\("guest-rawrphos", payload\)/);
- assert.doesNotMatch(talk+panel+lib,/\/api\/bridge|ownerToken|mockReply|fakeAnswer|Math\.random/);
+ assert.doesNotMatch(talk+panel+lib,/ownerToken|mockReply|fakeAnswer|Math\.random/);
 });
 test('speech and pending status remain explicit and reversible',()=>{
  const panel=read('components/beast-talk-panel.tsx');
