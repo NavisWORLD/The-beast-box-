@@ -19,7 +19,7 @@ export default function UniverseSettings(){
  const [notice,setNotice]=useState('');
  const [pocket3d,setPocket3d]=useState({...DEFAULT_POCKET_3D});
  useEffect(()=>{
-  const sync=()=>setPocket3d(readPocket3D(window.localStorage));
+  const sync=()=>{try{setPocket3d(readPocket3D(window.localStorage));}catch{setPocket3d({...DEFAULT_POCKET_3D});}};
   const changed=(event:StorageEvent)=>{if(event.key===POCKET_3D_KEY)sync();};
   sync();window.addEventListener('storage',changed);
   return()=>window.removeEventListener('storage',changed);
