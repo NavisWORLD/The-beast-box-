@@ -17,6 +17,11 @@ export function readPocket3D(storage){
  try {const text=storage?.getItem(POCKET_3D_KEY);return text?normalizePocket3D(JSON.parse(text)):{...DEFAULT_POCKET_3D};}
  catch{return {...DEFAULT_POCKET_3D};}
 }
+/** Browser boundary: scene rendering never reads device storage directly. */
+export function devicePocket3D(){
+ try{return readPocket3D(window.localStorage);}
+ catch{return {...DEFAULT_POCKET_3D};}
+}
 export function savePocket3D(storage,next){
  const value=normalizePocket3D(next);
  storage.setItem(POCKET_3D_KEY,JSON.stringify(value));
