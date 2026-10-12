@@ -101,7 +101,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           python -u scripts/zeref_experiment_011.py --parent "$ZEREF_011_PARENT" --native build/zeref-011/native \
-            --out build/zeref-011/out --seeds 3 --updates 384 --lr 1.5e-5 --train-layouts 48 --eval-layouts 24 \
+            --out build/zeref-011/out --seeds 3 --updates 384 --lr 1e-5 --train-layouts 48 --eval-layouts 24 \
             --eval-split eval --steps 40 --threads 4 --batch-pocket 5 --batch-native 3 --arms candidate,no-memory,shuffled
       - name: Upload evidence (always)
         if: always()

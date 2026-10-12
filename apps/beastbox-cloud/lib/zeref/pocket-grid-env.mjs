@@ -58,8 +58,22 @@ export function observe(e){
   const i=idx(rr,cc);
   n[k]=L.known_blocked.includes(i)?{kind:'rift-known'}:{kind:'open',visits:L.cells[i],poi:e.poiAt[i]||null};
  }
- return {row:r,col:c,visits_here:L.cells[e.cell],poi_here:e.poiAt[e.cell]||null,neighbors:n,
+ return {row:r,col:c,visits_here:L.cells[e.cell],poi_here:e.poiAt[e.cell]||null,neighbors:n,frontier:frontierDirection(e),
   cells_visited:L.cells.filter(v=>v>0).length,known_rifts:L.known_blocked.length,step:e.t,steps_left:e.maxSteps-e.t,energy:e.energy};
+}
+
+/**
+ * Memory summary: first step of the shortest path to the nearest cell the Beast
+ * has NOT visited, through cells it has not learned are rifts (its own memory map;
+ * unlearned rifts stay invisible). null when everything reachable is explored.
+ */
+export function frontierDirection(e){
+ const L=e.learner,seen=new Set([e.cell]),q=[[e.cell,null]];
+ while(q.length){const [i,first]=q.shift();const [r,c]=rc(i);
+  for(const k of MOVES){const [dr,dc]=D[k],rr=r+dr,cc=c+dc;if(!inGrid(rr,cc))continue;const j=idx(rr,cc);
+   if(seen.has(j)||L.known_blocked.includes(j))continue;seen.add(j);const f=first||k;
+   if(L.cells[j]===0)return f;q.push([j,f]);}}
+ return null;
 }
 
 /** Apply one key. Returns {obs, outcome, reward, done, record}. */

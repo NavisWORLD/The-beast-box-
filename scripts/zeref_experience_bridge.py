@@ -179,7 +179,8 @@ def pocket_prompt(obs, memory: bool = True) -> str:
     j = lambda g: " ".join(groups[g]) or "none"
     # Instruction first, perception last (nearest the reply).
     if memory:
-        body = f"Wall: {j('wall')}. Learned rift: {j('rift')}. Visited: {j('visited')}. New ground: {j('new')}."
+        body = (f"Wall: {j('wall')}. Learned rift: {j('rift')}. Visited: {j('visited')}. "
+                f"Nearest unexplored via: {obs.get('frontier') or 'none'}. New ground: {j('new')}.")
     else:
         body = f"Wall: {j('wall')}. Open: {j('open')}."
     return "User: Pocket step. Reply exactly ACTION: UP, DOWN, LEFT, RIGHT, or WAIT. " + body + "\nAssistant: "

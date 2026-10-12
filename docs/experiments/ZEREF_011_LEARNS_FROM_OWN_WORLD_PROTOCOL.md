@@ -20,7 +20,7 @@ After RAWRPHOS (`bb-deada969`) trains on its **own verified experiences** (outco
 
 ## Environment
 
-`pocket-grid-env.mjs` uses the Cage pocket's own seeded layout (`createPocket`/`riftCells`, 8×5 grid, 3 hidden void rifts, 7 points of interest), scored with the pocket learner's `enterCell`/`learn`. One key per step, 40 steps per episode. The policy sees only grid edges, its visited neighbours and the rifts it has already bumped into. Python drives the Node rules over JSON lines, so there is a single source of truth.
+`pocket-grid-env.mjs` uses the Cage pocket's own seeded layout (`createPocket`/`riftCells`, 8×5 grid, 3 hidden void rifts, 7 points of interest), scored with the pocket learner's `enterCell`/`learn`. One key per step, 40 steps per episode. The policy sees only grid edges, its visited neighbours, the rifts it has already bumped into, and one memory summary: the first step toward the nearest cell it has not visited yet, computed from its own visited map (unlearned rifts stay invisible). Python drives the Node rules over JSON lines, so there is a single source of truth.
 
 ## Data (fixed)
 
@@ -29,7 +29,7 @@ After RAWRPHOS (`bb-deada969`) trains on its **own verified experiences** (outco
 
 ## Training (fixed before the evaluation run; chosen on `exp011-val-*` layouts)
 
-AdamW resumed from the parent's moments, lr 1.5e-5, wd 0.01, 384 updates, batches of 5 pocket + 3 native, grad clip 1.0, torch 2.6.0 CPU, deterministic algorithms, seeds 20261011 / 21261011 / 22261011.
+AdamW resumed from the parent's moments, lr 1e-5, wd 0.01, 384 updates, batches of 5 pocket + 3 native, grad clip 1.0, torch 2.6.0 CPU, deterministic algorithms, seeds 20261011 / 21261011 / 22261011.
 
 ## Arms (evaluated on unseen layouts `exp011-eval-0..23`)
 
@@ -44,3 +44,12 @@ If accepted, the run publishes `zeref-011-accepted-d0df90ea` with an approval re
 ## Honesty boundaries
 
 No quantum workload. Quantum provenance stays separate from weights. No new IBM jobs. No cartridge change. The pocket is a deterministic simulation, never reported as game progress. The native teacher is scripted. Coverage of a simulated pocket is not intelligence or consciousness.
+
+## Development history (validation layouts only, before the official run)
+
+The official run's eval layouts (`exp011-eval-*`) were never used during development. On `exp011-val-*`:
+- A verbose prompt produced no learning.
+- Supervising only the key broke the `ACTION:` prefix.
+- With a compact prompt and full-reply loss, the model learned but bumped into walls and rifts a lot.
+- With perception placed last in the prompt (1.5e-5×384), there were no wall bumps and 1.3 rift bumps, but coverage was 16.5 vs the pocket-learner's 24.75, and language retention was 18.7% worse (above the 10% gate).
+- Changes for the official run: add the visited-map frontier summary and lower lr to 1e-5. These were fixed before the run, not tuned on its results.
