@@ -92,7 +92,12 @@ async function checkRooms(page){
 
   // Local Ollama: explicit choice, persona as system text, honest connection help.
   await dialog.getByRole('button',{name:'Change brain'}).click();
-  await dialog.locator('label').filter({hasText:'My local Ollama'}).click();
+  // Selecting the exact native radio is required: a generic label click can
+  // hit nested descriptive text and leave the provider unchanged.
+  const ollamaChoice=dialog.locator('input[type="radio"][value="local-ollama"]');
+  await ollamaChoice.check();
+  await expect(ollamaChoice).toBeChecked();
+  await expect(dialog.getByLabel('Model tag')).toBeVisible();
   await dialog.getByLabel('Model tag').fill('tiny:latest');
   assert.equal(loopbackCalls.length,0,'Selecting a brain must not send a message');
   await page.reload();
