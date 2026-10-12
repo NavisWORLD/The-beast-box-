@@ -1,0 +1,175 @@
+{
+ "schema": "zeref-diary/v1",
+ "identity": {
+  "beast_id": "bb-7f9c2a03",
+  "name": "Zeref",
+  "title": "Moonwraith",
+  "recorded_digest": "2b46bb2e3594ae7c3bd562fe37419bd893234f7e54a0300e53599e6b7a96c3e4",
+  "backend": "ibm_marrakesh",
+  "job_id": "db4te7slf4us73c3888g",
+  "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
+  "source_class": "RECORDED_IBM_HARDWARE"
+ },
+ "tick": 1,
+ "xp": 155,
+ "stage": 1,
+ "stage_name": "Moonling",
+ "signals": {
+  "energy": 90,
+  "signal": 75,
+  "memory": 63,
+  "resonance": 94
+ },
+ "bond": 0.25,
+ "care_total": 0,
+ "places": {
+  "Rift Gate": 1
+ },
+ "last_tick_at": "2026-10-12T00:08:55.270Z",
+ "last_entry_hash": "a6727f4166052acec9a3a5c70d61123fd318ba8a7406a8eb0032a57576af7533",
+ "combos_total": 48,
+ "next_stage": {
+  "stage": 2,
+  "name": "Duskwing",
+  "xp": 300
+ },
+ "learning": {
+  "cells_visited": 14,
+  "cells_total": 40,
+  "known_rifts": 3,
+  "moves_succeeded": 19,
+  "moves_blocked": 3,
+  "blocked_rate": 0.136,
+  "favorite_spot": "Rift Gate",
+  "favorite_value": 0.366,
+  "prefs": {
+   "explore": 0.843,
+   "visit": 0.5421,
+   "rest": 0.35,
+   "play": 0.4
+  },
+  "decisions": 14,
+  "label": "learned behaviour from its own experience, not consciousness"
+ },
+ "labels": {
+  "seed": "Seeded from recorded IBM ibm_marrakesh counts (job db4te7slf4us73c3888g). Not a live quantum link.",
+  "mind": "Zeref is a game companion with a deterministic mind. Diary lines are generated, not a conscious mind.",
+  "loop": "Written by the scheduled Zeref diary loop (GitHub Actions), one hash-chained entry per tick.",
+  "growth": "Growth ticks run a small circuit on the free Azure Quantum Rigetti QVM simulator (simulated, not hardware). If it fails, the deterministic step runs and the real error is logged."
+ },
+ "birth_spark": {
+  "provider": "IBM Quantum",
+  "backend": "ibm_marrakesh",
+  "job_id": "db4te7slf4us73c3888g",
+  "source": "recorded hardware counts (birth seed, never re-run)"
+ },
+ "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 1,
+   "at": "2026-10-12T00:08:55.270Z",
+   "hour_local": 19,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 90,
+    "signal": 75,
+    "memory": 63,
+    "resonance": 94
+   },
+   "bond": 0.3,
+   "mood": "curious",
+   "place": "Rift Gate",
+   "places_visited": [
+    "Rift Gate"
+   ],
+   "discovered_combos": [
+    {
+     "key": "idle|still|moon-pool|folded|sway|open|smile",
+     "name": "idle · folded wings · sway tail · open eyes · smile mouth at a moon pool"
+    },
+    {
+     "key": "pounce|pounce|moon-pool|folded|sway|open|smile",
+     "name": "pouncing · folded wings · sway tail · open eyes · smile mouth at a moon pool"
+    },
+    {
+     "key": "pounce|pounce|moon-pool|folded|sway|open|grin",
+     "name": "pouncing · folded wings · sway tail · open eyes · grin mouth at a moon pool"
+    },
+    {
+     "key": "pounce|pounce|open-pocket|full-spread|flick|open|grin",
+     "name": "pouncing · full-spread wings · flick tail · open eyes · grin mouth in the open pocket"
+    },
+    {
+     "key": "curious|still|open-pocket|folded|sway|open|o",
+     "name": "curious · folded wings · sway tail · open eyes · o mouth in the open pocket"
+    }
+   ],
+   "new_combo_count": 48,
+   "combos_total": 48,
+   "xp_gain": 155,
+   "xp": 155,
+   "stage": 1,
+   "stage_name": "Moonling",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "156654dd-c5d1-11f1-ae67-3833c5dd6293",
+    "job_name": "zeref-diary-tick-1-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "100": 1,
+     "101": 224,
+     "110": 23,
+     "010": 8
+    },
+    "counts_sha256": "18e01e0ca2e1583da61ee19709712a0663bd172973aa58ed339ed1be881a97ec",
+    "circuit_params": {
+     "energy": 2.827433,
+     "signal": 2.450442,
+     "resonance": 2.984513
+    },
+    "quil_sha256": "32cb33933fda28ba287806784f659a90d0c5ca9da44ec1bdde1cfe20213f6524"
+   },
+   "learning": {
+    "new_cells": 13,
+    "moves_succeeded": 19,
+    "moves_blocked": 3,
+    "goals": {
+     "explore": 13,
+     "visit": 1
+    },
+    "cells_visited": 14,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.136,
+    "favorite_spot": "Rift Gate",
+    "prefs": {
+     "explore": 0.843,
+     "visit": 0.5421,
+     "rest": 0.35,
+     "play": 0.4
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "I found a seam in the pocket and stared at it. Spent most of the tick at Rift Gate. I found 13 patches I had never stepped on. Bumped into a void rift. I will remember where it is. The simulator sparks lined up even and calm. My body tried 48 new move combinations.",
+    "by": "deterministic-template"
+   },
+   "prev_hash": null,
+   "hash": "a6727f4166052acec9a3a5c70d61123fd318ba8a7406a8eb0032a57576af7533"
+  }
+ ],
+ "generated_at": "2026-10-12T00:08:55.270Z",
+ "thought_source_note": "model-not-configured"
+}
