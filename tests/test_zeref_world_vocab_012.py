@@ -4,7 +4,7 @@ import json
 import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
-DATA=ROOT/"experiments/zeref/world-vocab-012/grounded-cards.json"
+DATA=ROOT/"research/zeref/world-vocab-012/grounded-cards.json"
 TRAIN=ROOT/"scripts/zeref_world_vocab_012.py"
 FLOW=ROOT/".github/workflows/zeref-world-vocab-012.yml"
 
