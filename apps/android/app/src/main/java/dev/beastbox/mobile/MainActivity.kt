@@ -2,8 +2,10 @@ package dev.beastbox.mobile
 
 import android.app.Activity
 import android.os.Bundle
+import android.os.Build
 import android.text.InputType
 import android.view.View
+import android.view.WindowInsets
 import android.widget.*
 import org.json.JSONObject
 import java.util.concurrent.Executors
@@ -21,15 +23,23 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= 30) window.setDecorFitsSystemWindows(false)
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 28, 24, 24)
         }
         val scroll = ScrollView(this).apply { addView(layout) }
+        scroll.setOnApplyWindowInsetsListener { view, insets ->
+            if (Build.VERSION.SDK_INT >= 30) {
+                val safe = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout() or WindowInsets.Type.ime())
+                view.setPadding(safe.left, safe.top, safe.right, safe.bottom)
+            }
+            insets
+        }
         setContentView(scroll)
         fun label(text: String) = TextView(this).apply { this.text = text; layout.addView(this) }
-        label("BEAST BOX · 0.6.0 candidate").textSize = 24f
-        label("On-device Python runtime · debug signed sideload build").textSize = 14f
+        label("BEAST BOX · ${BuildConfig.VERSION_NAME}").textSize = 24f
+        label(if (BuildConfig.DEBUG) "On-device Python runtime · debug signed sideload build" else "On-device Python runtime · release build").textSize = 14f
         label("Reference A/B are deterministic text fixtures, not language models. Ollama requires an engine and weights running on this Android device. No engine or weights are bundled.")
         provider = Spinner(this).apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,

@@ -3,8 +3,13 @@ name: Android on-device runtime candidate
 on:
   workflow_dispatch:
   workflow_call:
+  pull_request:
+    paths:
+      - 'apps/android/**'
+      - 'beastbox/**'
+      - '.github/workflows/android-app.yml'
   push:
-    branches: [polish/beast-box-launch-003]
+    branches: [main]
     paths:
       - 'apps/android/**'
       - 'beastbox/**'
