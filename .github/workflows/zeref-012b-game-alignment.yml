@@ -1,0 +1,50 @@
+name: Zeref 012B pocket exploration evidence + quantum/action pairing audit
+on:
+  pull_request:
+    paths:
+      - 'scripts/audit_zeref_012b_game_alignment.mjs'
+      - 'apps/beastbox-cloud/tests/zeref-012b-game-alignment.test.mjs'
+      - 'apps/beastbox-cloud/lib/zeref/**'
+      - 'apps/beastbox-cloud/public/spark/ibm-zeref-heart-sound-20261010.json'
+      - '.github/workflows/zeref-012b-game-alignment.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  game-alignment:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Run deterministic source/consent/pairing/rollout contracts
+        run: |
+          node --test apps/beastbox-cloud/tests/zeref-012b-game-alignment.test.mjs
+      - name: Execute all train and heldout pocket rollouts, publish immutable proof
+        run: |
+          set -Eeuo pipefail
+          node scripts/audit_zeref_012b_game_alignment.mjs --write
+          node scripts/audit_zeref_012b_game_alignment.mjs --check
+          node - <<'NODE'
+          const fs=require('fs');
+          const p=JSON.parse(fs.readFileSync('build/zeref-012b-alignment/manifest.json','utf8'));
+          if(p.qbeast_id!=='bb-deada969'||p.training.layouts!==32||p.evaluation.layouts!==24||
+             p.training.record_count!==3840||p.evaluation.record_count!==2880||
+             p.verified_quantum_game_training_pairs!==0||
+             p.quantum_action_pairing.signalClaimAllowed!==false||
+             p.model_weights_updated!==false||p.production_promoted!==false||
+             p.real_native_game_progress_claimed!==false||
+             p.user_private_data_used!==false)throw Error('Zeref provenance, count, identity or authority changed');
+          console.log('ZEREF_012B_EVIDENCE_ACCEPTED_NO_CAUSAL_MEASUREMENT_PAIRING');
+          NODE
+      - name: Upload just public deterministic research evidence (not model weights)
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-012b-game-alignment-${{ github.run_id }}
+          path: build/zeref-012b-alignment/
+          if-no-files-found: error
+          retention-days: 30
