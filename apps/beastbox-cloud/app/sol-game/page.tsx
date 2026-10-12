@@ -22,5 +22,5 @@ export default function SolGame(){return <main style={{minHeight:'100vh',backgro
  <p>Your exact recorded-seed companion. Native art, movement, chirps and battery saves. Open TALK to chat with your Beast through the available guest-safe brain and care for it while the cartridge stays open.</p>
  <p style={{fontSize:12,color:'#9aadd4'}}><Link href="/beast-cage/go">Explore the web field first →</Link></p>
  <p>The Game Boy player stays with you. Minimize it to explore Beast Box, then restore your current adventure.</p>
- <p style={{fontSize:12,color:'#9aadd4'}}>Cartridge V11.6. New: a 3D view. Press START, open SYSTEM and choose 3D VIEW to walk the field in first person with your beast beside you. A switches to the Beast Cage camera, and SELECT goes back to the normal map. The Beast Home from V11.5 is still in Brindlemark. The file hash is 4acdc8d5 and the ROM header says COSMOS V11.6. Older saves still load.</p>
+ <p style={{fontSize:12,color:'#9aadd4'}}>Cartridge V11.7. New: Act I, The First Heart. After the prologue, take the northeast road to Oakwood, help Ravenswood find Aurel's lost map, climb Cragstone, and face the Stone Regent. You can fight it or mend it. Then Malakar arrives. The 3D VIEW (START, SYSTEM) and the Beast Home are still there. The file hash is 03a02029 and the ROM header says COSMOS V11.7. Older saves still load.</p>
  </main>}
