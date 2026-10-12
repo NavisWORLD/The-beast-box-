@@ -31,7 +31,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
  const cameraView=useRef<View>({theta:.7,phi:1.05,zoom:10.6});
  const [visualSettings,setVisualSettings]=useState({...DEFAULT_POCKET_3D});
  useEffect(()=>{
-  const sync=()=>setVisualSettings(readPocket3D(window.localStorage));
+  const sync=()=>{try{setVisualSettings(readPocket3D(window.localStorage));}catch{setVisualSettings({...DEFAULT_POCKET_3D});}};
   const onStorage=(event:StorageEvent)=>{if(event.key===POCKET_3D_KEY)sync();};
   sync();window.addEventListener(POCKET_3D_EVENT,sync);window.addEventListener('storage',onStorage);
   return()=>{window.removeEventListener(POCKET_3D_EVENT,sync);window.removeEventListener('storage',onStorage);};
@@ -40,7 +40,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
  const id=qbeastId||'visual-preview';
  const key=seed||'beastbox-visual-preview';
  useEffect(()=>{motion.current.position=behaviorPosition;motion.current.state=state;motion.current.stage=stage;},[behaviorPosition?.x,behaviorPosition?.y,state,stage]);
- useEffect(()=>{onActiveChange(ready&&!failed);return()=>onActiveChange(false);},[ready,failed,onActiveChange]);
+ useEffect(()=>{onActiveChange(visualSettings.enabled&&ready&&!failed);return()=>onActiveChange(false);},[ready,failed,visualSettings.enabled,onActiveChange]);
  useEffect(()=>{
   const canvas=canvasRef.current;
   if(!canvas||failed||!visualSettings.enabled)return;
