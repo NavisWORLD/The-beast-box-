@@ -25,7 +25,9 @@ const cycle=Number(BigInt(cycleRaw)%BigInt(actions.length));
 // This is a demonstration policy, NOT evidence of optimal gameplay behavior.
 function teacher(o,episode,step){
  if(o.brightness<20)return 'A';
- if(o.frameChange<5)return 'RIGHT';
+ // Static screens previously forced RIGHT for ~95% of all observations.
+ // Try diverse legal keys on static scenes; do not call these inputs successful navigation.
+ if(o.frameChange<5)return actions[(episode*3+step+cycle)%actions.length];
  if(o.contrast>70)return 'LEFT';
  if(o.dominant==='blue')return 'UP';
  if(o.dominant==='green')return 'DOWN';
@@ -138,6 +140,11 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   assert.equal(raw.length,56,'Expected 56 genuine native observation/action pairs');
   assert.ok(raw.every(v=>safe(v.before)&&safe(v.after)&&v.qbeast_id===signed.id&&/^[a-f0-9]{64}$/.test(v.native_ack_digest)));
   assert.ok(new Set(raw.map(v=>JSON.stringify(v.before))).size>=3,'Game observations insufficiently varied; refuse training');
+  // Fail closed on one-direction demonstrations, without inferring movement or reward.
+  const counts=Object.fromEntries([...new Set(raw.map(v=>v.action))].sort().map(k=>[k,raw.filter(v=>v.action===k).length]));
+  const dominantShare=Math.max(...Object.values(counts))/raw.length;
+  assert.ok(Object.keys(counts).length>=4,'Native scripted teacher lacks action diversity (minimum four keys)');
+  assert.ok(dominantShare<=0.65,'Native scripted teacher is too one-directional (maximum 65% of events)');
   const jsonl=raw.map(row=>JSON.stringify(row)).join('\n')+'\n';
   await fs.writeFile(output+'/native-observation-actions.jsonl',jsonl);
   const manifest={schema:'beastbox-observed-native-play-v1',source_class:'ORIGINAL_EMULATOR_NATIVE_PIXEL_OBSERVATIONS',
@@ -146,6 +153,8 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
    episodes,events:raw.length,jsonl_sha256:sha(jsonl),
    dataset_has_human_labels:false,goal_reward_observed:false,
    training_is_behavioral_cloning_of_scripted_controller:true,
+   scripted_teacher_action_histogram:counts,
+   scripted_teacher_dominant_action_fraction:dominantShare,
    teacher_cycle_offset:cycle,cycle_source:'GitHub Actions run ID mod scripted fallback length',
    native_game_progress_proven:false,
    errors,source_native_ref:process.env.NATIVE_GAME_HEAD||'native main at workflow checkout',
