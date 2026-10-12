@@ -1,0 +1,86 @@
+name: Zeref 012 - source-grounded world vocabulary shadow CPU research
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - 'research/zeref/world-vocab-012/grounded-cards.json'
+      - 'scripts/zeref_world_vocab_012.py'
+      - 'tests/test_zeref_world_vocab_012.py'
+      - '.github/workflows/zeref-world-vocab-012.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: zeref-world-vocab-012-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  source-grounded-cpu:
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.base_ref == 'main' && startsWith(github.head_ref, 'feature/zeref-world-vocab-012-') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify provenance, isolation and shadow model contract
+        run: |
+          set -Eeuo pipefail
+          python -m unittest discover -s tests -p 'test_zeref_world_vocab_012.py' -v
+          python -m py_compile scripts/zeref_world_vocab_012.py
+      - name: Recover exact approved Zeref 006 cycle 5 + optimizer
+        run: |
+          set -Eeuo pipefail
+          mkdir -p build/zeref-world-vocab-012/parent
+          gh run download 38210153369 --repo "${{ github.repository }}" -n zeref-006-canonical-37ca3f8f -D build/zeref-world-vocab-012/parent
+          P="$(find build/zeref-world-vocab-012/parent -type d -name accepted-checkpoint -print -quit)"
+          test -n "$P" && test -s "$P/training_state.pt"
+          test "$(sha256sum "$P/model.safetensors" | cut -d' ' -f1)" = 460a1a3fbbc16919c5030af16d5bd451ef43e96fd28b8c3201ca7efca1250ef2
+          echo "ZEREF_WORLD_012_PARENT=$P" >> "$GITHUB_ENV"
+          echo 'VERIFIED_WORLD_PARENT=006_CYCLE_5_PINNED'
+      - name: Recover exact genuine native-ROM evidence
+        run: |
+          set -Eeuo pipefail
+          mkdir -p build/zeref-world-vocab-012/native
+          gh run download 38210153369 --repo "${{ github.repository }}" -n zeref-006-observed-training-report-38210153369 -D build/zeref-world-vocab-012/native
+          find build/zeref-world-vocab-012/native -name native-observation-actions.jsonl -type f -print
+          test "$(find build/zeref-world-vocab-012/native -name native-observation-actions.jsonl -type f | wc -l)" -eq 1
+          test "$(find build/zeref-world-vocab-012/native -name native-evidence-manifest.json -type f | wc -l)" -eq 1
+      - name: Install CPU PyTorch and the existing RAWRPHOS model
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e ./models/rawrphos
+      - name: Train bounded source-backed world vocabulary shadow with game retention
+        run: |
+          set -Eeuo pipefail
+          python -u scripts/zeref_world_vocab_012.py --parent "$ZEREF_WORLD_012_PARENT" --native build/zeref-world-vocab-012/native
+          test -s build/zeref-world-vocab-012/report.json
+      - name: Persist evidence or honest rejection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-world-vocab-012-report-${{ github.run_id }}
+          path: |
+            build/zeref-world-vocab-012/report.json
+            build/zeref-world-vocab-012/rejected.json
+            build/zeref-world-vocab-012/approval.json
+          retention-days: 90
+          if-no-files-found: warn
+      - name: Persist only approved shadow model (never canonical 006)
+        if: success() && hashFiles('build/zeref-world-vocab-012/approval.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-world-vocab-012-accepted-shadow-${{ github.run_id }}
+          path: |
+            build/zeref-world-vocab-012/accepted-shadow-checkpoint/
+            build/zeref-world-vocab-012/approval.json
+          retention-days: 90
+          if-no-files-found: error

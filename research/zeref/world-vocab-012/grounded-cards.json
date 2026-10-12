@@ -1,0 +1,289 @@
+{
+  "schema": "zeref-world-knowledge-cards/v1",
+  "purpose": "Bounded retrieval-grounded research SFT; not proof of general world knowledge",
+  "curated_at": "2026-10-12",
+  "training_identity": "bb-deada969",
+  "tokenizer_policy": "preserve pinned byte-level BPE; check roundtrip and hash without resizing embeddings",
+  "cards": [
+    {
+      "id": "sun-star",
+      "split": "train",
+      "question": "What is the Sun?",
+      "evidence": "The Sun is the star at the center of our solar system.",
+      "answer": "the star at the center of our solar system",
+      "source_url": "https://science.nasa.gov/solar-system/solar-system-facts/",
+      "source_name": "NASA Science",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "solar-planets",
+      "split": "train",
+      "question": "How many planets orbit the Sun?",
+      "evidence": "The solar system has eight planets.",
+      "answer": "eight planets",
+      "source_url": "https://science.nasa.gov/solar-system/solar-system-facts/",
+      "source_name": "NASA Science",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "solar-galaxy",
+      "split": "train",
+      "question": "Which galaxy contains our solar system?",
+      "evidence": "The solar system is in the Milky Way galaxy.",
+      "answer": "the Milky Way galaxy",
+      "source_url": "https://science.nasa.gov/solar-system/solar-system-facts/",
+      "source_name": "NASA Science",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "mercury",
+      "split": "train",
+      "question": "Which planet is nearest to the Sun?",
+      "evidence": "Mercury is the nearest planet to the Sun.",
+      "answer": "Mercury",
+      "source_url": "https://science.nasa.gov/solar-system/solar-system-facts/",
+      "source_name": "NASA Science",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "venus-moon",
+      "split": "train",
+      "question": "Does Venus have a natural moon?",
+      "evidence": "Venus has no natural moons.",
+      "answer": "no natural moons",
+      "source_url": "https://science.nasa.gov/solar-system/solar-system-facts/",
+      "source_name": "NASA Science",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "mars-position",
+      "split": "train",
+      "question": "Which planet is fourth from the Sun?",
+      "evidence": "Mars is the fourth planet from the Sun.",
+      "answer": "Mars",
+      "source_url": "https://science.nasa.gov/solar-system/solar-system-facts/",
+      "source_name": "NASA Science",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "gas-giants",
+      "split": "train",
+      "question": "Name the gas giants in our solar system.",
+      "evidence": "Jupiter and Saturn are gas giants.",
+      "answer": "Jupiter and Saturn",
+      "source_url": "https://science.nasa.gov/solar-system/solar-system-facts/",
+      "source_name": "NASA Science",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "ice-giants",
+      "split": "train",
+      "question": "Which planets are ice giants?",
+      "evidence": "Uranus and Neptune are ice giants.",
+      "answer": "Uranus and Neptune",
+      "source_url": "https://science.nasa.gov/solar-system/solar-system-facts/",
+      "source_name": "NASA Science",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "earth-position",
+      "split": "train",
+      "question": "Which planet is third from the Sun?",
+      "evidence": "Earth is the third planet from the Sun.",
+      "answer": "Earth",
+      "source_url": "https://science.nasa.gov/earth/facts/",
+      "source_name": "NASA Science",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "water-cycle",
+      "split": "train",
+      "question": "What is the water cycle?",
+      "evidence": "The water cycle describes how water moves on, above and below Earth.",
+      "answer": "how water moves on, above and below Earth",
+      "source_url": "https://www.usgs.gov/water-science-school/water-cycle",
+      "source_name": "USGS Water Science School",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "evaporation",
+      "split": "train",
+      "question": "What is evaporation?",
+      "evidence": "Evaporation changes liquid water into water vapor.",
+      "answer": "liquid water into water vapor",
+      "source_url": "https://www.usgs.gov/water-science-school/science/evaporation-and-water-cycle",
+      "source_name": "USGS Water Science School",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "condensation",
+      "split": "train",
+      "question": "What is condensation?",
+      "evidence": "Condensation changes water vapor into liquid water.",
+      "answer": "water vapor into liquid water",
+      "source_url": "https://www.usgs.gov/water-science-school/science/condensation-and-water-cycle",
+      "source_name": "USGS Water Science School",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "precipitation",
+      "split": "train",
+      "question": "What is precipitation?",
+      "evidence": "Precipitation is water falling from clouds as rain, snow, sleet or hail.",
+      "answer": "water falling from clouds",
+      "source_url": "https://www.usgs.gov/water-science-school/science/precipitation-and-water-cycle",
+      "source_name": "USGS Water Science School",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "infiltration",
+      "split": "train",
+      "question": "What is infiltration?",
+      "evidence": "Infiltration is water soaking into soil and rock.",
+      "answer": "water soaking into soil and rock",
+      "source_url": "https://www.usgs.gov/water-science-school/science/infiltration-and-water-cycle",
+      "source_name": "USGS Water Science School",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "groundwater",
+      "split": "train",
+      "question": "Where is groundwater found?",
+      "evidence": "Groundwater is water stored below the ground surface.",
+      "answer": "below the ground surface",
+      "source_url": "https://www.usgs.gov/water-science-school/water-cycle",
+      "source_name": "USGS Water Science School",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "meter",
+      "split": "train",
+      "question": "What does a meter measure?",
+      "evidence": "The meter is the SI base unit of length.",
+      "answer": "length",
+      "source_url": "https://www.nist.gov/si-redefinition/definitions-si-base-units",
+      "source_name": "NIST",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "second",
+      "split": "train",
+      "question": "What does a second measure?",
+      "evidence": "The second is the SI base unit of time.",
+      "answer": "time",
+      "source_url": "https://www.nist.gov/si-redefinition/definitions-si-base-units",
+      "source_name": "NIST",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "kilogram",
+      "split": "train",
+      "question": "What does a kilogram measure?",
+      "evidence": "The kilogram is the SI base unit of mass.",
+      "answer": "mass",
+      "source_url": "https://www.nist.gov/si-redefinition/definitions-si-base-units",
+      "source_name": "NIST",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "kelvin",
+      "split": "train",
+      "question": "What does kelvin measure?",
+      "evidence": "The kelvin is the SI base unit of thermodynamic temperature.",
+      "answer": "thermodynamic temperature",
+      "source_url": "https://www.nist.gov/si-redefinition/definitions-si-base-units",
+      "source_name": "NIST",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "moon-tides",
+      "split": "train",
+      "question": "What influences ocean tides most strongly?",
+      "evidence": "The Moon has the strongest influence on ocean tides.",
+      "answer": "The Moon",
+      "source_url": "https://oceanservice.noaa.gov/facts/tidefrequency.html",
+      "source_name": "NOAA Ocean Service",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "tide-wave",
+      "split": "train",
+      "question": "What are ocean tides?",
+      "evidence": "Tides are long waves that make the sea rise and fall.",
+      "answer": "long waves that make the sea rise and fall",
+      "source_url": "https://oceanservice.noaa.gov/facts/tidefrequency.html",
+      "source_name": "NOAA Ocean Service",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "solar-formation",
+      "split": "holdout",
+      "question": "About how old is the solar system?",
+      "evidence": "The solar system formed about 4.6 billion years ago.",
+      "answer": "about 4.6 billion years",
+      "source_url": "https://science.nasa.gov/solar-system/solar-system-facts/",
+      "source_name": "NASA Science",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "rocky-planets",
+      "split": "holdout",
+      "question": "Which are the four rocky inner planets?",
+      "evidence": "Mercury, Venus, Earth and Mars are rocky inner planets.",
+      "answer": "Mercury, Venus, Earth and Mars",
+      "source_url": "https://science.nasa.gov/solar-system/solar-system-facts/",
+      "source_name": "NASA Science",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "moon-distance",
+      "split": "holdout",
+      "question": "About how far is the Moon from Earth?",
+      "evidence": "The Moon averages about 384,400 kilometers from Earth.",
+      "answer": "about 384,400 kilometers",
+      "source_url": "https://science.nasa.gov/earth/facts/",
+      "source_name": "NASA Science",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "clouds",
+      "split": "holdout",
+      "question": "What process helps form clouds?",
+      "evidence": "Condensation of water vapor helps form clouds.",
+      "answer": "Condensation of water vapor",
+      "source_url": "https://www.usgs.gov/water-science-school/science/condensation-and-water-cycle",
+      "source_name": "USGS Water Science School",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "rain",
+      "split": "holdout",
+      "question": "How does rain return water to Earth?",
+      "evidence": "Rain is a form of precipitation that returns water to the surface.",
+      "answer": "precipitation",
+      "source_url": "https://www.usgs.gov/water-science-school/science/precipitation-and-water-cycle",
+      "source_name": "USGS Water Science School",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "ampere",
+      "split": "holdout",
+      "question": "What does an ampere measure?",
+      "evidence": "The ampere is the SI base unit of electric current.",
+      "answer": "electric current",
+      "source_url": "https://www.nist.gov/si-redefinition/definitions-si-base-units",
+      "source_name": "NIST",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    },
+    {
+      "id": "tide-lunar-day",
+      "split": "holdout",
+      "question": "How long is a lunar day?",
+      "evidence": "A lunar day lasts about 24 hours and 50 minutes.",
+      "answer": "about 24 hours and 50 minutes",
+      "source_url": "https://oceanservice.noaa.gov/facts/tidefrequency.html",
+      "source_name": "NOAA Ocean Service",
+      "provenance": "Original concise factual paraphrase checked against linked public agency reference; not a verbatim quote"
+    }
+  ]
+}
