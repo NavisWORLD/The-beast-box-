@@ -30,3 +30,19 @@ Training is restricted to 128 steps maximum by the script, though this workflow 
 For future training that might improve Lost COSMOS play or conversation, obtain genuinely temporally/task-aligned measurement and experience pairs. Compare against identical classical, shuffled, QVM and no-conditioning controls; preserve train/eval job separation; measure native-game legal actions, visited-cell coverage, blocked moves, generalization, and chat retention; then allow promotion only when every predeclared gate passes. Zeref 011 remains rejected (its G4 and G9 failed); nothing here overrides that result.
 
 Sprite, animation, Game Boy UI, iPhone scrolling/audio and model-route polish remain a separate later release.
+
+## First completed CPU observation (run 38318767080, 2026-10-12)
+
+All four arms completed **32 real adapter-only AdamW optimizer steps**, passed research evidence checks, and uploaded separate adapter-only safetensors. The approved parent checkpoint hash was verified and remained unchanged, including unconditioned outputs. Five dedicated Python contract tests also passed.
+
+| Arm | Held-out balanced accuracy (24 examples) | Two-class NLL |
+| --- | ---: | ---: |
+| Frozen parent, no adapter | 0.50 | 0.702864 |
+| Recorded IBM features, correctly paired to the derived readout label | 0.50 | 0.694715 |
+| Shuffled IBM features | 0.50 | 0.700328 |
+| Independent classical vectors | 0.50 | 0.702520 |
+| Constant classical features | 0.50 | 0.700480 |
+
+Report SHA-256: `4366f0fff0e3950d2b901972f786205f0a88a777366507a705ae12a2b4830176`. Evidence: https://github.com/NavisWORLD/The-beast-box-/actions/runs/38318767080 .
+
+**Interpretation:** The adapter genuinely received optimizer updates and can be stored independently, but all arms remain at chance-level held-out accuracy. A small IBM-arm NLL difference does not prove generalization, useful Zeref behavior, quantum advantage, or a passing descendant. Do **not** promote the adapter to live chat or gameplay. Any subsequent pass needs a predeclared stronger task, meaningful temporal pairing, more seeds and behavior gates.
