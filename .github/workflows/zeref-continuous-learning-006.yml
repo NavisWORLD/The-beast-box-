@@ -30,6 +30,16 @@ jobs:
       NAVISWORLD_NATIVE_TRAINING_BEAST: zeref
       NAVISWORLD_NATIVE_TRAINING_CYCLE: ${{ github.run_id }}
     steps:
+      # Explicit owner-requested controlled CPU continuation after Azure Blob read/write proof.
+      # Still the established 006 lineage: this does NOT endorse rejected experiment 011,
+      # grant browser/camera/microphone consent, or invoke IBM/Azure quantum workloads.
+      - name: Record training scope and non-promotional experiment boundaries
+        run: |
+          echo 'ZEREF_TRAINING_SCOPE=CPU_ONLY_NATIVE_GAME_OBSERVATION_IMITATION'
+          echo 'ZEREF_PRIVATE_CAMERA_MICROPHONE_CHAT=NOT_INCLUDED'
+          echo 'ZEREF_QUANTUM_PROVIDER_JOBS_SUBMITTED=0'
+          echo 'ZEREF_011_REJECTED_CANDIDATE=NOT_PARENT_OR_PROMOTED'
+          echo 'ZEREF_PREVIOUS_APPROVED_CHECKPOINT=MANDATORY_SHA_VERIFICATION'
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
       - uses: actions/setup-node@v4
