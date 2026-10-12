@@ -9,11 +9,15 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -28,6 +32,8 @@ import android.widget.RadioGroup
 import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import org.json.JSONObject
 
 /**
@@ -46,30 +52,48 @@ class MainActivity : Activity() {
     /** Origin of the page currently shown; written on the UI thread, read by the JS bridge thread. */
     @Volatile private var currentOrigin: String? = null
     @Volatile private var allowedOrigin: String? = null
+    private var messageListenerInstalled = false
+    private var predictiveBack: OnBackInvokedCallback? = null
 
     private val commandListener: (CommandFrame, String) -> Unit = { frame, source -> deliverToPage(frame, source) }
     private val statusListener: (AdvertisingStatus) -> Unit = { status -> renderStatus(status) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= 30) window.setDecorFitsSystemWindows(false)
         settings = BeastSettings(this)
         setContentView(buildLayout())
         configureWebView()
         BeastHub.addCommandListener(commandListener)
         BeastHub.addStatusListener(statusListener)
-        loadConfiguredUrl()
+        loadConfiguredUrl(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= 33) {
+            predictiveBack = OnBackInvokedCallback { navigateBack() }.also {
+                onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, it)
+            }
+        }
     }
 
     override fun onDestroy() {
+        if (Build.VERSION.SDK_INT >= 33) predictiveBack?.let { onBackInvokedDispatcher.unregisterOnBackInvokedCallback(it) }
         BeastHub.removeCommandListener(commandListener)
         BeastHub.removeStatusListener(statusListener)
         webView.destroy()
         super.onDestroy()
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        webView.saveState(outState)
+        super.onSaveInstanceState(outState)
+    }
+
     @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
     override fun onBackPressed() {
-        if (webView.canGoBack()) webView.goBack() else super.onBackPressed()
+        navigateBack()
+    }
+
+    private fun navigateBack() {
+        if (webView.canGoBack()) webView.goBack() else finish()
     }
 
     // ---- UI -----------------------------------------------------------------------------------
@@ -79,6 +103,13 @@ class MainActivity : Activity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.rgb(12, 10, 24))
+            setOnApplyWindowInsetsListener { view, insets ->
+                if (Build.VERSION.SDK_INT >= 30) {
+                    val safe = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout() or WindowInsets.Type.ime())
+                    view.setPadding(safe.left, safe.top, safe.right, safe.bottom)
+                }
+                insets
+            }
         }
         val bar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -132,7 +163,7 @@ class MainActivity : Activity() {
 
     // ---- WebView ------------------------------------------------------------------------------
 
-    @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
+    @SuppressLint("SetJavaScriptEnabled")
     private fun configureWebView() {
         webView.settings.apply {
             javaScriptEnabled = true
@@ -142,13 +173,12 @@ class MainActivity : Activity() {
             allowFileAccess = false
             allowContentAccess = false
         }
-        webView.addJavascriptInterface(BeastBridge { isTrustedPage() }, "BeastBoxNative")
         webView.webChromeClient = WebChromeClient()
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val url = request.url
-                // http(s) (including Vercel SSO hops) stays in the WebView; other schemes go to the OS.
-                if (url.scheme == "https" || url.scheme == "http") return false
+                // HTTPS navigation/SSO stays inside; exact-origin bridge remains unavailable to other sites.
+                if (url.scheme == "https") return false
                 runCatching { startActivity(Intent(Intent.ACTION_VIEW, url)) }
                 return true
             }
@@ -162,8 +192,8 @@ class MainActivity : Activity() {
             }
 
             override fun onPageFinished(view: WebView, url: String?) {
-                currentOrigin = BeastSettings.originOf(url)
-                if (isTrustedPage()) view.evaluateJavascript(bridgeScript, null)
+                currentOrigin = BeastSettings.originOf(view.url)
+                if (isTrustedPage() && BeastSettings.originOf(url) == allowedOrigin) view.evaluateJavascript(bridgeScript, null)
             }
         }
     }
@@ -177,16 +207,31 @@ class MainActivity : Activity() {
         return currentOrigin == allowed
     }
 
-    private fun loadConfiguredUrl() {
+    private fun loadConfiguredUrl(savedState: Bundle? = null) {
         val url = settings.startUrl
         allowedOrigin = BeastSettings.originOf(url)
-        webView.loadUrl(url)
+        currentOrigin = null
+        if (messageListenerInstalled) {
+            WebViewCompat.removeWebMessageListener(webView, "BeastBoxNative")
+            messageListenerInstalled = false
+        }
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+            val origin = requireNotNull(allowedOrigin)
+            val bridge = BeastBridge { isTrustedPage() }
+            WebViewCompat.addWebMessageListener(webView, "BeastBoxNative", setOf(origin)) { _, message, sourceOrigin, isMainFrame, _ ->
+                if (WebOrigin.accepts(allowedOrigin, sourceOrigin.toString(), isMainFrame)) bridge.receive(message.data)
+            }
+            messageListenerInstalled = true
+        } else {
+            Toast.makeText(this, R.string.webview_bridge_unavailable, Toast.LENGTH_LONG).show()
+        }
+        if (savedState == null || webView.restoreState(savedState) == null) webView.loadUrl(url)
     }
 
     private fun deliverToPage(frame: CommandFrame, source: String) {
         if (!isTrustedPage()) return
-        val js = "window.__beastBoxDevice&&window.__beastBoxDevice.receive(" +
-            JSONObject.quote(BeastBridge.commandJson(frame, source)) + ")"
+        val js = "if(window.location.origin===" + JSONObject.quote(allowedOrigin) + ") { window.__beastBoxDevice&&window.__beastBoxDevice.receive(" +
+            JSONObject.quote(BeastBridge.commandJson(frame, source)) + "); }"
         webView.evaluateJavascript(js, null)
         Toast.makeText(this, getString(R.string.toast_command, frame.command.word, source), Toast.LENGTH_SHORT).show()
     }

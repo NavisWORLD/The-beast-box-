@@ -112,7 +112,7 @@ After each page load on the configured origin, the app injects
 [`assets/beastbox-bridge.js`](app/src/main/assets/beastbox-bridge.js):
 
 - **Page → phone.** About every 1.5 s, the bridge sends `{displayName, species, stage, xp, bond, energy}` to
-  `BeastBoxNative.reportState(json)`. If the page defines `window.BeastBoxDevice.getState()`, that is used
+  the origin-scoped `BeastBoxNative.postMessage(...)` channel. If the page defines `window.BeastBoxDevice.getState()`, that is used
   first. This is the explicit hook for the Beast Box web app. Otherwise the bridge reads the Spark Beasts
   local store (`localStorage["spark-beasts-v1"]`, active beast).
 - **Phone → page.** A BLE command calls `window.__beastBoxDevice.receive(json)` with
@@ -126,10 +126,9 @@ After each page load on the configured origin, the app injects
   | feed | `#care` (Care/feed) |
   | play | `#play` (Play) |
   | attack | `#train` (Training) |
-  | talk | fills `#talk-text` and submits `#talk-form` |
+  | talk | opens the shared chat pop-up with a draft; the user presses Send |
 
-The bridge only accepts calls while the top-level page is on the configured origin, and it never lets page
-JS control Bluetooth. A same-origin page can only report state.
+The bridge uses AndroidX `WebMessageListener` with the exact configured HTTPS origin and a main-frame check. Cross-origin pages and every iframe are denied. Default HTTPS port 443 is normalized; embedded URL credentials are rejected. Older System WebView versions without that API show a recovery message while web play remains available. No all-frame JavaScript interface is exposed. A trusted main page can only report state. BLE Talk supplies a bounded draft and never submits a model request automatically.
 
 ## Muse findings
 
@@ -196,3 +195,5 @@ gradle --no-daemon testDebugUnitTest lintDebug assembleDebug
 
 If you push a tag `beastbox-android-experimental-v*`, CI also publishes a not-latest pre-release with the
 debug APK and its SHA-256.
+
+API 35 system bars, display cutouts and IME insets are applied to the existing layout. Back navigates WebView history (including shared chat history entries) before closing the activity. WebView storage stays separate from Chrome: use the existing Spark QBEAST export/import for explicit transfer; clearing app data removes local saves. Audio requires a user gesture. Camera and microphone remain permission-disabled in this wrapper; Open in browser is available for supported sensor flows.
