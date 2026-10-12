@@ -10,3 +10,6 @@ export function growthLook(stage?:number):{stage:number;scale:number;aura:number
 export function blendFrame(f:any,p:Pocket,m:any,o?:{stage?:number}):any;
 export function comboOf(f:any,p:Pocket,m:any):{key:string;name:string;parts:Record<string,string>};
 export function sampleCombo(p:Pocket,f:any,m:any):{key:string;name:string;parts:Record<string,string>}|null;
+export function attachLearner(p:any,L:any):any;
+export function callBeast(p:any):void;
+export function setSenses(p:any,s:{others?:{id:string;x:number;y:number}[];sound?:{active:boolean;level:number}|null}):void;

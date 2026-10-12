@@ -1,4 +1,10 @@
 name: Zeref diary loop (forever pocket)
+# Also grows every OPTED-IN player beast ("Grow in the cosmos", public profile
+# only) in its own Azure Blob folder beasts/<id>/ — round-robin, at most
+# COSMOS_BATCH (6, hard cap 10) beasts per tick, one free Rigetti QVM job each.
+# Needs AZURE_STORAGE_CONNECTION_STRING or AZURE_STORAGE_CONTAINER_SAS_URL;
+# without it those steps log "storage not configured" and Zeref's repo diary
+# continues unchanged.
 # Birth spark: recorded IBM ibm_marrakesh counts (identity, never re-run).
 # Growth: each tick runs ONE small circuit on the FREE Azure Quantum Rigetti
 # QVM simulator (rigetti.sim.qvm, $0, simulated, never a QPU) parameterised
@@ -27,13 +33,14 @@ concurrency:
 jobs:
   tick:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 14
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
           sparse-checkout: |
             apps/beastbox-cloud/lib/zeref
+            apps/beastbox-cloud/lib/cosmos
             apps/beastbox-cloud/public/spark
             apps/beastbox-cloud/scripts
           persist-credentials: false
@@ -62,15 +69,26 @@ jobs:
           python-version: '3.12'
       - name: Plan this tick's growth circuit from Zeref's current state
         run: node apps/beastbox-cloud/scripts/zeref-diary-tick.mjs diary/zeref --plan growth-plan.json
-      - name: Run it on the free Rigetti QVM simulator (Azure Quantum)
+      - name: Plan the cosmos batch (opted-in beasts, round-robin)
         continue-on-error: true
-        timeout-minutes: 6
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          AZURE_STORAGE_CONTAINER_SAS_URL: ${{ secrets.AZURE_STORAGE_CONTAINER_SAS_URL }}
+          AZURE_STORAGE_CONTAINER: ${{ vars.AZURE_STORAGE_CONTAINER || 'beast-cosmos' }}
+          COSMOS_BATCH: ${{ vars.COSMOS_BATCH || '6' }}
+        run: node apps/beastbox-cloud/scripts/cosmos-grow.mjs plan cosmos-plan.json
+      - name: Run the circuits on the free Rigetti QVM simulator (Azure Quantum)
+        continue-on-error: true
+        timeout-minutes: 10
         env:
           AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
         run: |
           set -Eeuo pipefail
           python -m pip install --quiet "qdk[azure]" || { printf '{"ok":false,"target":"rigetti.sim.qvm","error":"qdk install failed on runner"}\n' > growth-receipt.json; exit 0; }
           python apps/beastbox-cloud/scripts/zeref_diary_qvm.py growth-plan.json growth-receipt.json
+          if [ -s cosmos-plan.json ] && grep -q '"beast_id"' cosmos-plan.json; then
+            python apps/beastbox-cloud/scripts/zeref_diary_qvm.py cosmos-plan.json cosmos-receipts.json
+          fi
       - name: Tick
         env:
           ZEREF_DIARY_MODEL: ${{ vars.ZEREF_DIARY_MODEL }}
@@ -90,3 +108,13 @@ jobs:
           git commit -q -m "$msg"
           for i in 1 2 3; do git push -q origin HEAD:zeref-diary && exit 0; sleep 5; git pull -q --rebase origin zeref-diary || true; done
           exit 1
+      - name: Grow the cosmos batch and mirror Zeref into his folder
+        if: always()
+        continue-on-error: true
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          AZURE_STORAGE_CONTAINER_SAS_URL: ${{ secrets.AZURE_STORAGE_CONTAINER_SAS_URL }}
+          AZURE_STORAGE_CONTAINER: ${{ vars.AZURE_STORAGE_CONTAINER || 'beast-cosmos' }}
+        run: |
+          [ -f cosmos-plan.json ] && node apps/beastbox-cloud/scripts/cosmos-grow.mjs apply cosmos-plan.json cosmos-receipts.json
+          node apps/beastbox-cloud/scripts/cosmos-grow.mjs mirror-zeref diary/zeref

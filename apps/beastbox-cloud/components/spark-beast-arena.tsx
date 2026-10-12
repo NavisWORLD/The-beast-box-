@@ -1,7 +1,8 @@
 'use client';
 import {useUniverseMotion} from './use-universe-motion';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {Music,Volume2,VolumeX,Zap} from 'lucide-react';
+import {Hand,Music,Volume2,VolumeX,Zap} from 'lucide-react';
+const LEARNER_KEY='beastbox-pocket-learner-v1:';
 import SparkBeastCompanion,{type Genome} from './spark-beast-companion';
 import {useBeastSession} from './beast-session';
 import {careAction,shownName} from '../lib/companion/session.mjs';
@@ -10,7 +11,8 @@ import type {BaseLook,CreatureProfile} from '../lib/creature-profile';
 import styles from './spark-beast-arena.module.css';
 import {useBeastAudio} from './use-beast-audio';
 import type {RigDriver} from './spark-rig';
-import {createPocket} from '../lib/zeref/zeref-pocket.mjs';
+import {attachLearner,callBeast,createPocket,setSenses} from '../lib/zeref/zeref-pocket.mjs';
+import {learningSummary,restoreLearner} from '../lib/zeref/pocket-learner.mjs';
 import {ZEREF_PROFILE} from '../lib/zeref/zeref-mind.mjs';
 import {recordArrival,recordCare,recordCombo} from '../lib/zeref/pocket-journal';
 
@@ -54,9 +56,28 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
  const journalId=guide?ZEREF_PROFILE.id:(profile?.id||'preview');
  const [diaryStage,setDiaryStage]=useState(1);
  const [pocketPlace,setPocketPlace]=useState<{name:string;kind:string}|null>(null);
- const pocket=useMemo(()=>rig&&!core&&genome?createPocket({digest:guide?'zeref-moonwraith':genome.seed,key:journalId,reduced}):null,
+ // No leash: the rig pocket now runs for saved beasts too. The beast picks its own goals (explore,
+ // visit, rest, play) with a small learner persisted per beast on this device; it only comes over when
+ // called or tapped. The saved behaviour core still receives care; it no longer pins the position.
+ const pocket=useMemo(()=>{
+  if(!rig||!genome)return null;
+  const p=createPocket({digest:guide?'zeref-moonwraith':genome.seed,key:journalId,reduced});
+  let raw=null;try{raw=JSON.parse(localStorage.getItem(LEARNER_KEY+journalId)||'null');}catch{}
+  return attachLearner(p,restoreLearner(raw));
+ },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  [rig,Boolean(core),genome?.seed,guide,journalId,reduced]);
+  [rig,genome?.seed,guide,journalId,reduced]);
+ useEffect(()=>{
+  if(!pocket?.learner)return;
+  const save=()=>{try{localStorage.setItem(LEARNER_KEY+journalId,JSON.stringify(pocket.learner));}catch{}
+   window.dispatchEvent(new CustomEvent('beastbox:pocket-learning',{detail:{journalId,goal:pocket.goal,summary:learningSummary(pocket.learner,pocket.pois)}}));};
+  save();const iv=window.setInterval(save,4000);
+  const onHide=()=>{if(document.hidden)save();};document.addEventListener('visibilitychange',onHide);
+  const onSense=(e:Event)=>{const d=(e as CustomEvent).detail;if(d?.schema==='local-measurement-v1'&&d.kind==='microphone')setSenses(pocket,{sound:d.active?{active:true,level:Number(d.level)||0}:null});};
+  window.addEventListener('beastbox:local-sensor-level',onSense);
+  const onCall=()=>callBeast(pocket);window.addEventListener('beastbox:call-beast',onCall);
+  return()=>{save();window.clearInterval(iv);document.removeEventListener('visibilitychange',onHide);window.removeEventListener('beastbox:local-sensor-level',onSense);window.removeEventListener('beastbox:call-beast',onCall);};
+ },[pocket,journalId]);
  const feet=useRef({x:0,y:0,at:-9});
  const savedStage=Number(session?.beast?.nativeStage||session?.beast?.stage)||1;
  const rigDriver:RigDriver|null=useMemo(()=>rig?{
@@ -78,6 +99,7 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
   },
   onEvent:(ev:any)=>{
    if(ev.type==='arrive'){setPocketPlace({name:String(ev.name),kind:String(ev.kind)});recordArrival(journalId,String(ev.name));}
+   else if(ev.type==='decide'||ev.type==='blocked'||ev.type==='came'){const node=root.current;if(node){node.dataset.pocketGoal=String(ev.goal||(ev.type==='came'?'come':node.dataset.pocketGoal||''));if(ev.type==='blocked')node.dataset.lastBlocked=String(ev.cell);}}
    else if(ev.type==='combo')recordCombo(journalId,{key:String(ev.key),name:String(ev.name)});
   }
  }:null,[rig,pocket,guide,diaryStage,savedStage,journalId]);
@@ -104,7 +126,7 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
  useEffect(()=>{
   const node=root.current;
   if(!node||!moveset||!visible)return;
-  if(core){
+  if(core&&!pocket){
    const rect=node.getBoundingClientRect(),p=core.position;
    const x=reduced?0:(p.x-.5)*rect.width*.5,y=reduced?0:(p.y-.5)*rect.height*.25;
    node.style.setProperty('--roam-x',x.toFixed(1)+'px');node.style.setProperty('--roam-y',y.toFixed(1)+'px');
@@ -383,6 +405,7 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
   if(!soundRef.current&&!userMuted.current)setSoundOn(true);
   if(core)void change(draft=>{careAction(draft,'spark');});
   if(rig){recordCare(journalId,'taps');cue('tap');}
+  if(pocket)callBeast(pocket); // tapped: it comes over to you
   attack('tap');
  }
 
@@ -407,6 +430,9 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
    <button type="button" className={styles.tool} onClick={onTap} disabled={!moveset} aria-label="Make the beast attack">
     <Zap size={14}/><span>Attack</span>
    </button>
+   {pocket?<button type="button" className={styles.tool} aria-label={`Call ${name} over`} onClick={()=>{callBeast(pocket);recordCare(journalId,'taps');}}>
+    <Hand size={14}/><span>Call</span>
+   </button>:null}
    <button type="button" className={styles.tool} aria-pressed={musicState.musicOn}
     aria-label={musicState.musicOn?'Turn the beast music off':'Turn the beast music on'}
     onClick={()=>{music.unlock();music.setMusic(!musicState.musicOn);}}>

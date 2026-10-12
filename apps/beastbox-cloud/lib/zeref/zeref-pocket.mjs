@@ -14,6 +14,7 @@
  * They are combinations of existing animation channels, not new animations.
  */
 import {forceBehavior} from './zeref-mind.mjs';
+import {callTarget,cellOf,chooseGoal,enterCell,learn,perceive,riftCells} from './pocket-learner.mjs';
 
 export const POCKET_SCHEMA='zeref-pocket/v1';
 export const POI_KINDS=Object.freeze(['moon-pool','crystal','portal']);
@@ -35,7 +36,8 @@ export function pocketRandom(p){p.rng=(p.rng+0x6D2B79F5)|0;let t=p.rng;t=Math.im
 export function createPocket({digest='',key='',reduced=false}={}){
  const p={schema:POCKET_SCHEMA,rng:hash32(String(digest)+'|pocket|'+String(key))|0,reduced:Boolean(reduced),
   t:0,x:0,y:.15,face:1,phase:'rest',phaseStart:0,phaseEnd:1.2,gait:'walk',target:null,lastTarget:null,
-  pois:[],visits:{},order:[],arrivals:0,seen:{},sampleAt:0};
+  pois:[],visits:{},order:[],arrivals:0,seen:{},sampleAt:0,
+  learner:null,rifts:[],cell:-1,goal:null,tripFresh:0,called:false,sense:{others:[],sound:null},lastBlocked:null};
  const kinds=['moon-pool','moon-pool','crystal','crystal','crystal','portal','portal'];
  const used={};
  for(const kind of kinds){
@@ -52,7 +54,29 @@ export function createPocket({digest='',key='',reduced=false}={}){
   used[kind].add(name);
   p.pois.push({id:kind+'-'+p.pois.length,kind,name,x:+best.x.toFixed(3),y:+best.y.toFixed(3)});
  }
+ p.rifts=riftCells(p.pois,String(digest)+'|'+String(key));
+ p.cell=cellOf(p.x,p.y);
  return p;
+}
+
+/** Give the pocket a learner (autonomous goals). Without one the beast keeps the simple POI wander. */
+export function attachLearner(p,L){p.learner=L;if(L&&p.cell>=0&&L.cells[p.cell]===0)L.cells[p.cell]=1;return p;}
+/** The user called or tapped: the beast comes over (next decision point, or right away if idle). */
+export function callBeast(p){p.called=true;if(p.phase!=='travel'||p.goal!=='come'){p.phase='rest';p.phaseEnd=p.t;}}
+/** Update what the beast can sense (other beasts in the pocket; mic level only if the user enabled it). */
+export function setSenses(p,{others,sound}={}){if(others)p.sense.others=others;if(sound!==undefined)p.sense.sound=sound;}
+
+function rewardFor(p,m,goal,target){
+ const e=m.energy??60,T=m.traits||{};
+ if(goal==='explore')return p.tripFresh>0?Math.min(1,.35+.3*p.tripFresh):-.15;
+ if(goal==='play')return .2+(T.playfulness??.5)*.5;
+ if(goal==='come')return .6;
+ if(goal==='visit'&&target){
+  const seen=p.visits[target.id]||0;
+  const fit=target.kind==='moon-pool'?(e<55?.85:.2):target.kind==='crystal'?(e>=55?.75:.15):.35+(T.curiosity??.5)*.4;
+  return fit-Math.min(.4,Math.max(0,seen-2)*.08);
+ }
+ return 0;
 }
 
 /** Seeded, mind-weighted choice of the next place to visit. */
@@ -98,7 +122,29 @@ export function stepPocket(p,m,dt,{busy=false}={}){
  dt=clamp(Number(dt)||0,0,.1);p.t+=dt;const events=[];
  if(busy||m.reaction)return events;
  if(p.phase==='rest'){
-  if(p.t>=p.phaseEnd&&m.behavior!=='sleep'){
+  if(p.called&&!p.reduced){
+   p.called=false;p.goal='come';p.tripFresh=0;
+   const to=callTarget();p.lastTarget=p.target?.id||null;p.target=to;p.gait='walk';
+   if(p.learner){p.learner.goals.come=(p.learner.goals.come||0)+1;p.learner.goal='come';}
+   if(m.behavior==='sleep')forceBehavior(m,'blink');
+   setPhase(p,'travel',30);forceBehavior(m,'walk');events.push({type:'depart',poi:'call',gait:'walk',goal:'come'});
+  }else if(p.called&&p.reduced){p.called=false;const to=callTarget();p.x=to.x;p.y=to.y;p.target=to;p.goal='come';arrive(p,m,to,events);}
+  else if(p.t>=p.phaseEnd&&m.behavior!=='sleep'&&p.learner){
+   const sense=perceive(p,p.sense);
+   const {goal,target}=chooseGoal(p.learner,p,m,()=>pocketRandom(p),sense);
+   p.goal=goal;p.tripFresh=0;
+   events.push({type:'decide',goal,target:target?.id||null});
+   if(goal==='rest'){
+    const e=m.energy??60;learn(p.learner,'rest',e<50?.6:-.1);
+    forceBehavior(m,e<45?'sleep':'blink');setPhase(p,'rest',2.5+pocketRandom(p)*3);
+   }else{
+    p.lastTarget=p.target?.id||null;p.target=target;
+    const dist=Math.hypot(target.x-p.x,target.y-p.y);
+    p.gait=goal==='play'?(m.reduced?'walk':'pounce'):gaitFor(p,m,dist);
+    if(p.reduced){p.x=target.x;p.y=target.y;const c=cellOf(p.x,p.y);if(c!==p.cell){p.cell=c;const r=enterCell(p.learner,c,[]);if(r.fresh)p.tripFresh++;}arrive(p,m,target,events);}
+    else{setPhase(p,'travel',30);forceBehavior(m,p.gait);events.push({type:'depart',poi:target.id,gait:p.gait,goal});}
+   }
+  }else if(p.t>=p.phaseEnd&&m.behavior!=='sleep'){
    const poi=pickTarget(p,m);
    p.lastTarget=p.target?.id||null;p.target=poi;
    const dist=Math.hypot(poi.x-p.x,poi.y-p.y);
@@ -112,14 +158,41 @@ export function stepPocket(p,m,dt,{busy=false}={}){
   if(m.behavior!==p.gait)forceBehavior(m,p.gait);
   const dx=poi.x-p.x,dy=poi.y-p.y,dist=Math.hypot(dx,dy);
   const speed=SPEED[p.gait]*(.6+clamp((m.energy??60)/100)*.6);
-  if(dist<=speed*dt||dist<.01||p.t>=p.phaseEnd){p.x=poi.x;p.y=poi.y;arrive(p,m,poi,events);}
-  else{p.x+=dx/dist*speed*dt;p.y+=dy/dist*speed*dt;if(Math.abs(dx)>.02)p.face=dx<0?-1:1;}
+  if(dist<=speed*dt||dist<.01||p.t>=p.phaseEnd){
+   if(p.learner&&p.goal!=='come'){const c=cellOf(poi.x,poi.y);if(c!==p.cell){const r=enterCell(p.learner,c,p.rifts);
+    if(r.outcome==='blocked'){learn(p.learner,p.goal||'explore',-.5,null);p.lastBlocked=c;events.push({type:'blocked',cell:c,goal:p.goal});forceBehavior(m,'curious');setPhase(p,'rest',1.2+pocketRandom(p));return events;}
+    p.cell=c;if(r.fresh){p.tripFresh++;events.push({type:'new-cell',cell:c});}}}
+   else p.cell=cellOf(poi.x,poi.y);
+   p.x=poi.x;p.y=poi.y;arrive(p,m,poi,events);}
+  else{
+   const nx=p.x+dx/dist*speed*dt,ny=p.y+dy/dist*speed*dt;
+   const c=p.learner?cellOf(nx,ny):p.cell;
+   if(p.learner&&c!==p.cell&&p.goal!=='come'){
+    const r=enterCell(p.learner,c,p.rifts);
+    if(r.outcome==='blocked'){
+     // bumped into a void rift: the move fails, the beast remembers the cell and re-plans
+     learn(p.learner,p.goal||'explore',-.5,p.goal==='visit'?poi.id:null);
+     p.lastBlocked=c;events.push({type:'blocked',cell:c,goal:p.goal});
+     forceBehavior(m,'curious');setPhase(p,'rest',1.2+pocketRandom(p));return events;
+    }
+    p.cell=c;if(r.fresh){p.tripFresh++;events.push({type:'new-cell',cell:c});}
+   }else if(c!==p.cell){p.cell=c;if(p.learner&&p.learner.cells[c]===0)p.learner.cells[c]=1;}
+   p.x=nx;p.y=ny;if(Math.abs(dx)>.02)p.face=dx<0?-1:1;
+  }
  }else if(p.phase==='interact'){
   if(p.t>=p.phaseEnd&&m.behavior!=='sleep'){setPhase(p,'rest',1.2+pocketRandom(p)*2.6);if(!m.reduced)forceBehavior(m,'idle');}
  }
  return events;
 }
 function arrive(p,m,poi,events){
+ const isPoi=POI_KINDS.includes(poi.kind);
+ if(p.learner&&p.goal){learn(p.learner,p.goal,rewardFor(p,m,p.goal,poi),isPoi?poi.id:null);}
+ if(!isPoi){
+  const b=poi.kind==='call'?'blink':poi.kind==='play'?(m.reduced?'idle':'curious'):'curious';
+  forceBehavior(m,b);setPhase(p,'interact',poi.kind==='call'?4:1.5+pocketRandom(p)*2);
+  events.push({type:poi.kind==='call'?'came':'explored',poi:poi.id,name:poi.name,kind:poi.kind,behavior:m.behavior,fresh:p.tripFresh});
+  return;
+ }
  p.visits[poi.id]=(p.visits[poi.id]||0)+1;p.arrivals++;p.order.push(poi.id);if(p.order.length>40)p.order.shift();
  const b=arrivalBehavior(p,m,poi);
  forceBehavior(m,b);

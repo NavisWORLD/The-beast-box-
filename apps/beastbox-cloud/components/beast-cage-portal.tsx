@@ -1,5 +1,5 @@
 'use client';
-import {useCallback,useEffect,useState} from 'react';
+import {useCallback,useEffect,useMemo,useState} from 'react';
 import Link from 'next/link';
 import {ArrowRight,BrainCircuit,DatabaseZap,LockKeyhole,Orbit,ShieldCheck,SlidersHorizontal,Sparkles,Volume2} from 'lucide-react';
 import SparkBeastCompanion from './spark-beast-companion';
@@ -13,6 +13,7 @@ import {useUniverseMotion} from './use-universe-motion';
 import QbeastMenagerie from './qbeast-menagerie';
 import {useBeastSession} from './beast-session';
 import {shownName} from '../lib/companion/session.mjs';
+import {publicProfileFromBeast,publicProfileFromCreature,type CosmosProfile} from '../public/spark/cosmos-profile.mjs';
 import {useCompanion} from './companion-provider';
 import {generateCreature,type BaseLook,type AmbientAction} from '../lib/creature-profile';
 import BrandCrest from '@/components/brand-crest';
@@ -50,6 +51,11 @@ export default function BeastCagePortal(){
  useEffect(()=>{try{if(window.localStorage.getItem(VIEW_STORAGE)==='classic')setView('classic');}catch{}},[]);
  const chooseView=(next:'pocket'|'classic')=>{setView(next);try{window.localStorage.setItem(VIEW_STORAGE,next);}catch{}};
  const pocketName=creature?(creatureName||creature.name):'Zeref';
+ const cosmosProfile=useMemo<CosmosProfile|null>(()=>{
+  if(!creature)return {schema:'cosmos-beast-public/v1',id:ZEREF_PROFILE.id,name:'Zeref',provenance:{kind:'recorded-quantum-genome',backend:'ibm_marrakesh'},traits:{}};
+  return (sameSpark?publicProfileFromBeast(session.beast,{name:creatureName}):null)||publicProfileFromCreature(creature);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+ },[creature?.id,sameSpark,creatureName]);
  useEffect(()=>{if(creature)setLook(creature.baseLook);},[creature?.id,creature?.baseLook]);
  useEffect(()=>{
   try{const item=window.localStorage.getItem(STORAGE);if(item&&LOOKS.some(x=>x.id===item)){setLook(item as BaseLook);setSaved(true);}}
@@ -105,7 +111,7 @@ export default function BeastCagePortal(){
     <a href="#zeref-diary">Zeref&apos;s Diary ↓</a>
    </div>
   </section>
-  <ZerefDiaryPanel journalId={creature?creature.id:ZEREF_PROFILE.id} beastName={pocketName}/>
+  <ZerefDiaryPanel journalId={creature?creature.id:ZEREF_PROFILE.id} beastName={pocketName} cosmosProfile={cosmosProfile}/>
   {!sameSpark?<GenesisForge value={creature} onChange={next=>{selectProfile(next);setLook(next.baseLook);}}
    onAmbient={setAmbient}/>:<div className="cage-generated-status"><span>{creatureName} · same recorded genome and QBEAST</span><Link href="/sol-game">Play this Beast in LOST COSMOS 🎮</Link></div>}
   {creature?<div className="cage-generated-status" role="status">

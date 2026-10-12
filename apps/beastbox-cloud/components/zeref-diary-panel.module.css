@@ -24,3 +24,8 @@
 .badgeBirth{background:#2a1f4d;color:#e5d6ff;border:1px solid #b57bff66}
 .badgeSim{background:#0f2f3a;color:#a7f0ff;border:1px solid #8fe8ff66}
 .badgeFallback{background:#2b2333;color:#d8c9b8;border:1px solid #ffffff22}
+.learn{margin:8px 0;padding-left:18px;font-size:13px;line-height:1.5;color:#d9d2ee}
+.hearRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
+.hear{min-height:40px;padding:8px 14px;border-radius:999px;border:1px solid #8fe8ff55;background:#0f2f3a;color:#dff8ff;font:600 13px 'Space Grotesk',sans-serif;cursor:pointer}
+.hear[aria-pressed='true']{background:#2a1f4d;border-color:#b57bff88}
+.hear:disabled{opacity:.55;cursor:default}

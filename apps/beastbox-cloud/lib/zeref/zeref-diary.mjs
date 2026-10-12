@@ -18,9 +18,11 @@
  * Pure: no filesystem, no network, no clock. The caller supplies `now`.
  */
 import {ZEREF_PROFILE,ZEREF_RECORDED_SOURCE,createMind,describeMind,frameFor,nextRandom,recordedSeed,stepMind} from './zeref-mind.mjs';
-import {blendFrame,createPocket,sampleCombo,stepPocket} from './zeref-pocket.mjs';
+import {attachLearner,blendFrame,createPocket,sampleCombo,stepPocket} from './zeref-pocket.mjs';
+import {learningSummary,restoreLearner} from './pocket-learner.mjs';
 import {canonicalJson} from '../../public/spark/genome.mjs';
 import {sha256Hex} from '../../public/spark/sha.mjs';
+import {validatePublicProfile} from '../../public/spark/cosmos-profile.mjs';
 
 export const DIARY_SCHEMA='zeref-diary/v1';
 export const DIARY_TIMEZONE='America/Chicago';
@@ -68,7 +70,7 @@ export function planGrowthCircuit(state){
  const quil=['DECLARE ro BIT[3]',`RY(${params.energy}) 0`,`RY(${params.signal}) 1`,`RX(${params.resonance}) 2`,'CNOT 0 1','CNOT 1 2',
   'MEASURE 0 ro[0]','MEASURE 1 ro[1]','MEASURE 2 ro[2]'].join('\n')+'\n';
  return {schema:'zeref-growth-circuit/v1',tick,target:QVM_TARGET,shots:QVM_SHOTS,params,quil,quil_sha256:sha256Hex(quil),
-  job_name:`zeref-diary-tick-${tick}-${state.identity.beast_id}`};
+  job_name:`${state.identity.seed_features?'beast-growth':'zeref-diary'}-tick-${tick}-${state.identity.beast_id}`};
 }
 
 /** Validate simulator counts; returns features or null. */
@@ -84,6 +86,34 @@ export function countsFeatures(counts,shots=QVM_SHOTS){
  return {p0:p(0),p1:p(1),p2:p(2),odd,entropy:ent};
 }
 
+/**
+ * Tick-0 state for any opted-in beast (public profile only). Identity is fixed
+ * here: id, name, and a digest of the provenance the player's own save carries
+ * (recorded backend/job/count digest, or the classical seed). Never re-measured.
+ */
+export function genesisForBeast(rawProfile){
+ const v=validatePublicProfile(rawProfile);if(!v.ok)throw Error(v.error);
+ const pr=v.profile,pv=pr.provenance,t=pr.traits;
+ if(pr.id===ZEREF_PROFILE.id)return genesisState();
+ const digest=sha256Hex(canonicalJson({id:pr.id,provenance:pv}));
+ const byte=i=>parseInt(digest.slice(i*2,i*2+2),16)/255;
+ const m=Array.isArray(t.marginals)?t.marginals:[];
+ const z=Number.isFinite(m[0])?m[0]:byte(0),x=Number.isFinite(m[1])?m[1]:byte(1),ent=Number.isFinite(t.entropy_norm)?t.entropy_norm:.6;
+ const recorded=pv.kind==='recorded-quantum-genome';
+ const st=t.stats||{};
+ return {
+  schema:DIARY_SCHEMA,
+  identity:{beast_id:pr.id,name:pr.name,title:'',recorded_digest:digest,backend:recorded?pv.backend:'classical',job_id:recorded?pv.job_id:'',
+   source_path:null,source_class:pv.kind,
+   seed_features:{zzOdd:+z.toFixed(4),xxEven:+x.toFixed(4),lean:+((z-.5)*2).toFixed(4),noise:+(.08+(1-Math.min(1,ent))*.2).toFixed(4)},
+   birth_spark:recorded?{provider:'recorded genome',backend:pv.backend,job_id:pv.job_id,source:'recorded counts from the player\'s own save (birth seed, never re-run)'}
+    :{provider:'classical seed',backend:'none',job_id:'',source:'classical seeded game generation (no quantum birth spark)'}},
+  tick:0,xp:0,stage:1,stage_name:STAGES[0].name,
+  signals:{energy:st.energy??70,signal:st.signal??60,memory:st.memory??50,resonance:st.resonance??60},
+  bond:0,care_total:0,combos_known:[],places:{},learner:null,last_tick_at:null,last_entry_hash:null
+ };
+}
+
 /** Tick-0 state. The identity block is written once here and copied verbatim forever after. */
 export function genesisState({profile=ZEREF_PROFILE,source=ZEREF_RECORDED_SOURCE}={}){
  const seed=recordedSeed(source);
@@ -93,7 +123,7 @@ export function genesisState({profile=ZEREF_PROFILE,source=ZEREF_RECORDED_SOURCE
    backend:source.backend,job_id:source.job_id,source_path:source.path,source_class:source.source_class},
   tick:0,xp:0,stage:1,stage_name:STAGES[0].name,
   signals:{energy:profile.stats.energy,signal:profile.stats.signal,memory:profile.stats.memory,resonance:profile.stats.resonance},
-  bond:0,care_total:0,combos_known:[],places:{},last_tick_at:null,last_entry_hash:null
+  bond:0,care_total:0,combos_known:[],places:{},learner:null,last_tick_at:null,last_entry_hash:null
  };
 }
 
@@ -108,11 +138,13 @@ const OPENERS={
  affectionate:['Slow blink for whoever is reading this.','I saved a warm spot for you.','I remember the last visit.']
 };
 /** Deterministic diary line from state (no model). */
-export function templateThought({mood,place,newCombos,stage,grew,rng,spark=null}){
+export function templateThought({mood,place,newCombos,stage,grew,rng,spark=null,learning=null}){
  const pick=a=>a[Math.floor(rng()*a.length)%a.length];
  const opener=pick(OPENERS[mood]||OPENERS.content);
  const bits=[opener];
  if(place)bits.push(`Spent most of the tick at ${place}.`);
+ if(learning&&learning.new_cells>0)bits.push(learning.new_cells===1?'I found one patch of the pocket I had never stepped on.':`I found ${learning.new_cells} patches I had never stepped on.`);
+ if(learning&&learning.moves_blocked>0)bits.push('Bumped into a void rift. I will remember where it is.');
  if(spark)bits.push(spark.odd>.5?'The simulator sparks fizzed odd and restless.':'The simulator sparks lined up even and calm.');
  if(newCombos>0)bits.push(newCombos===1?'My body did a new combination of moves.':`My body tried ${newCombos} new move combinations.`);
  if(grew)bits.push(`I feel bigger. Stage ${grew}.`);
@@ -140,7 +172,7 @@ export function stepDiary(prev,{now,care=0,thought=null,growth=null}={}){
  const elapsedH=prev.last_tick_at?clamp((Date.parse(now)-Date.parse(prev.last_tick_at))/3.6e6,0,48):.5;
  const rngState={rng:hash32(identity.recorded_digest+':tick:'+tick)|0};
  const rng=()=>nextRandom(rngState);
- const seed=recordedSeed();
+ const seed=identity.seed_features?{digest:identity.recorded_digest,runs:1,shots:0,backend:identity.backend,job_id:identity.job_id,features:identity.seed_features}:recordedSeed();
  // Signals drift: rest at night, spend energy by day; resonance breathes slowly.
  // Growth source: real counts from the free Rigetti QVM SIMULATOR when this tick's job succeeded,
  // otherwise the deterministic step with the real error recorded. Counts are never invented.
@@ -163,20 +195,29 @@ export function stepDiary(prev,{now,care=0,thought=null,growth=null}={}){
  const careN=clamp(Math.floor(Number(care)||0),0,CARE_CAP_PER_TICK);
  state.care_total+=careN;state.bond=clamp(state.bond+careN*2+.25,0,100);
  // Replay a seeded exploration with the same mind + pocket the browser uses.
- const profile={...ZEREF_PROFILE,stats:{...s}};
- const m=createMind({profile,care:{energy:s.energy,bond:state.bond},hour});
+ const zeref=identity.beast_id===ZEREF_PROFILE.id&&!identity.seed_features;
+ const profile=zeref?{...ZEREF_PROFILE,stats:{...s}}:{id:identity.beast_id,name:identity.name,title:'',stats:{...s}};
+ const m=createMind({profile,care:{energy:s.energy,bond:state.bond},hour,seed:zeref?null:seed});
  m.rng=(hash32(identity.recorded_digest+':mind:'+tick)^(q?parseInt(growthSource.counts_sha256.slice(8,16),16):0))|0;
  const p=createPocket({digest:identity.recorded_digest,key:identity.beast_id});
  p.rng=(hash32(identity.recorded_digest+':walk:'+tick)^(q?parseInt(growthSource.counts_sha256.slice(16,24),16):0))|0;
+ // No leash: the beast picks its own goals and learns from outcomes; the learner persists tick to tick.
+ const L=restoreLearner(prev.learner);attachLearner(p,L);
+ const before={cells:L.cells.filter(v=>v>0).length,ok:L.moves.succeeded,blocked:L.moves.blocked};const goalsTick={};
  const known=new Set(prev.combos_known);const fresh=[];const visits={};const moods={};
  for(let i=0;i<SIM_SECONDS/SIM_DT;i++){
   stepMind(m,SIM_DT,{hour});
-  for(const ev of stepPocket(p,m,SIM_DT))if(ev.type==='arrive')visits[ev.name]=(visits[ev.name]||0)+1;
+  for(const ev of stepPocket(p,m,SIM_DT)){if(ev.type==='arrive')visits[ev.name]=(visits[ev.name]||0)+1;if(ev.type==='decide')goalsTick[ev.goal]=(goalsTick[ev.goal]||0)+1;}
   const f=blendFrame(frameFor(m),p,m,{stage:prev.stage});
   const c=sampleCombo(p,f,m);
   if(c&&!known.has(c.key)){known.add(c.key);fresh.push({key:c.key,name:c.name});}
   const mood=describeMind(m).mood;moods[mood]=(moods[mood]||0)+1;
  }
+ state.learner=L;
+ const ls=learningSummary(L,p.pois);
+ const learning={new_cells:ls.cells_visited-before.cells,moves_succeeded:L.moves.succeeded-before.ok,moves_blocked:L.moves.blocked-before.blocked,
+  goals:Object.fromEntries(Object.keys(goalsTick).sort().map(k=>[k,goalsTick[k]])),cells_visited:ls.cells_visited,cells_total:ls.cells_total,
+  known_rifts:ls.known_rifts,blocked_rate:ls.blocked_rate,favorite_spot:ls.favorite_spot,prefs:ls.prefs,label:'learned behaviour from its own experience, not consciousness'};
  const mood=Object.entries(moods).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0][0];
  const place=Object.entries(visits).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]?.[0]||null;
  for(const [k,v] of Object.entries(visits))state.places[k]=(state.places[k]||0)+v;
@@ -188,13 +229,13 @@ export function stepDiary(prev,{now,care=0,thought=null,growth=null}={}){
  state.tick=tick;state.last_tick_at=now;
  const line=thought&&typeof thought.text==='string'&&thought.text.trim()&&thought.by
   ?{text:thought.text.trim().slice(0,280),by:String(thought.by)}
-  :{text:templateThought({mood,place,newCombos:fresh.length,stage:st.stage,grew,rng,spark:q}),by:'deterministic-template'};
+  :{text:templateThought({mood,place,newCombos:fresh.length,stage:st.stage,grew,rng,spark:q,learning}),by:'deterministic-template'};
  const entry={
   schema:DIARY_SCHEMA,beast_id:identity.beast_id,tick,at:now,hour_local:hour,timezone:DIARY_TIMEZONE,
   signals:{...s},bond:r1(state.bond),mood,place,places_visited:Object.keys(visits).sort(),
   discovered_combos:fresh.slice(0,5),new_combo_count:fresh.length,combos_total:state.combos_known.length,
   xp_gain:xpGain,xp:state.xp,stage:st.stage,stage_name:st.name,grew:Boolean(grew),care:careN,
-  birth_spark:BIRTH_SPARK,growth_source:growthSource,
+  birth_spark:identity.birth_spark||BIRTH_SPARK,growth_source:growthSource,learning,
   thought:line,prev_hash:prev.last_entry_hash,hash:''
  };
  entry.hash=entryHash(entry);
@@ -218,8 +259,10 @@ export function verifyChain(entries,identity){
 
 /** Small public summary served to the site (no combos_known list). */
 export function summarize(state,entries,limit=12){
- const {combos_known,...rest}=state;
+ const {combos_known,learner,...rest}=state;
  const ns=nextStage(state.xp);
+ const L=restoreLearner(learner);
  return {...rest,combos_total:combos_known.length,next_stage:ns?{stage:ns.stage,name:ns.name,xp:ns.xp}:null,
-  labels:DIARY_LABELS,birth_spark:BIRTH_SPARK,recent:entries.slice(-limit).reverse()};
+  learning:{...learningSummary(L,[]),favorite_spot:entries.length?entries[entries.length-1].learning?.favorite_spot??null:null,label:'learned behaviour from its own experience, not consciousness'},
+  labels:DIARY_LABELS,birth_spark:state.identity.birth_spark||BIRTH_SPARK,recent:entries.slice(-limit).reverse()};
 }

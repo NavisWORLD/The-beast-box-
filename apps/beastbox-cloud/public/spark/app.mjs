@@ -9,6 +9,7 @@ import {getBeastAudio} from './shared/beast-audio-engine.mjs';
 import {habitatPose} from './habitat.mjs';
 import {QBEAST_KEY,SESSION_KEY,selectSpark,saveSparkSession,readSparkSession,replaySpark,withSparkLock} from './identity.mjs';
 import {careAction,finishTraining,talk,shownName,advanceCreature,exportSession} from './shared/session.mjs';
+import {renderCosmos} from './cosmos-optin.mjs';
 import {rememberExchange,nameBeast} from './shared/adventure.mjs';
 import {loadSparkRuns,validateQvmReceipt} from './runs.mjs';
 import {readDeviceJourney,restoreDeviceJourney,serializeDeviceJourney} from './device-journey.mjs';
@@ -86,7 +87,7 @@ function showCreature(entry,nextSession,spawn=true){
  qvmGrowth=readQvmGrowth(gen.seed);
  const scene=audioSceneFor(gen);if(scene)beastAudio.setScene(scene);syncAudioUi();
  runtime={rnd:mulberry32(gen.behavior.prng_seed),T:0,nextBlink:2,blinkUntil:-1,utt:0,lastSay:-20,nextVoice:12,state:spawn?'spawn':'idle',until:spawn?1.2:0,spawn:spawn?0:1,qvmPulseUntil:-1,qvmStep:0};
- Object.assign(felt,target);updatePlate();drawBestiary();notifyNativeBridge();say('neutral',spawn?`${shownName(session.beast)} just sparked in. Let's explore!`:`${shownName(session.beast)} is back. Same paws, same seed.`);
+ Object.assign(felt,target);updatePlate();drawBestiary();notifyNativeBridge();void renderCosmos(session.beast,shownName(session.beast)).catch(()=>{});say('neutral',spawn?`${shownName(session.beast)} just sparked in. Let's explore!`:`${shownName(session.beast)} is back. Same paws, same seed.`);
 }
 async function adopt(entry,spawn=true){const gen=buildGenome(entry.traits,byKey.get(entry.run),entry.user||null,10);const next=await withSparkLock(()=>selectSpark(localStorage,gen));showCreature(entry,next,spawn);}
 function drive(){
