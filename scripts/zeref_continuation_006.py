@@ -44,6 +44,33 @@ def exact_model_replies(path,rows):
 def counts(rows):
  return {"valid_actions":sum(x["legal_action"] is not None for x in rows),
    "script_teacher_matches":sum(x["script_agreement"] for x in rows),"observations":len(rows)}
+def observation_diagnostics(native_rows, parent_replies, candidate_replies):
+ """Descriptive audit ONLY: distinguish diverse button strings and raster signals
+ from real game movement, quest completion, or autonomous improvement.
+ No thresholds, training labels, rewards, or checkpoint approval rules change.
+ """
+ from collections import Counter
+ actions=Counter(r["action"] for r in native_rows)
+ def policy_counts(replies):
+  decoded=[r["legal_action"].split(": ",1)[1] for r in replies if r.get("legal_action")]
+  hist=Counter(decoded)
+  return {"histogram":dict(sorted(hist.items())),
+          "unique_actions":len(hist),
+          "dominant_action_fraction":round(max(hist.values())/len(decoded),4) if decoded else None}
+ unique_before=len({json.dumps(r["before"],sort_keys=True) for r in native_rows})
+ unique_after=len({json.dumps(r["after"],sort_keys=True) for r in native_rows})
+ changing_pairs=sum(r["before"]!=r["after"] for r in native_rows)
+ return {"source":"original_native_rom_emulator_screen_summaries",
+         "scripted_teacher_action_histogram":dict(sorted(actions.items())),
+         "unique_before_frame_summaries":unique_before,
+         "unique_after_frame_summaries":unique_after,
+         "different_before_after_summaries":changing_pairs,
+         "native_observation_pairs":len(native_rows),
+         "parent_policy_actions":policy_counts(parent_replies),
+         "candidate_policy_actions":policy_counts(candidate_replies),
+         "visual_metrics_not_verified_game_movement":True,
+         "policy_diversity_not_quest_progress":True}
+
 def inspect_source():
  manifest=json.loads((IN/"native-evidence-manifest.json").read_text())
  raw=(IN/"native-observation-actions.jsonl").read_bytes()
@@ -204,6 +231,7 @@ def main():
   "heldout_before_nll":original_held,"heldout_after_nll":new_held,
   "retention_before_nll":original_ret,"retention_after_nll":new_ret,
   "parent_heldout":baseline,"candidate_heldout":trial,
+  "native_observation_diagnostics":observation_diagnostics(rows,parent_out,trial_out),
   "candidate_literal_heldout_replies":trial_out,
   "parent_literal_heldout_replies":parent_out,
   "gate":guard,"accepted_as_next_training_parent":accepted,
@@ -232,6 +260,7 @@ def main():
   shutil.rmtree(temp)
   save_json(ROOT/"rejected.json",{"approved":False,"reason":"Measured heldout or retention gate failed",
     "candidate_sha256":saved["checkpoint_sha256"],"reuse_last_accepted_parent":True})
+ print("ZEREF_006_OBSERVATION_DIAGNOSTICS="+json.dumps(report["native_observation_diagnostics"]),flush=True)
  print("ZEREF_006_NEXT_PARENT="+json.dumps({"accepted":accepted,
        "optimizer_steps_completed":UPDATES,"checkpoint_preserved":accepted}),flush=True)
 if __name__=="__main__":

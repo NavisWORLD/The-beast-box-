@@ -34,3 +34,22 @@ test('Scheduled Zeref CPU heartbeat keeps one-at-a-time serialized training and 
  assert.match(s,/python -u scripts\/zeref_continuation_006.py/);
  assert.doesNotMatch(s,/IBM_QUANTUM_TOKEN|BEAST_ZEREF_IBM_ONE_JOB|secrets\.IBM/);
 });
+
+test('Observation diagnostics distinguish teacher imitation from verified game progress',()=>{
+ const s=read('scripts/zeref_continuation_006.py');
+ for(const needle of [
+  'native_observation_diagnostics',
+  'unique_before_frame_summaries',
+  'unique_after_frame_summaries',
+  'different_before_after_summaries',
+  'scripted_teacher_action_histogram',
+  'parent_policy_actions',
+  'candidate_policy_actions',
+  'dominant_action_fraction',
+  'visual_metrics_not_verified_game_movement',
+  'policy_diversity_not_quest_progress',
+  'ZEREF_006_OBSERVATION_DIAGNOSTICS',
+ ])assert.ok(s.includes(needle),'Missing observable policy/raster audit: '+needle);
+ assert.match(s,/"native_game_progress_demonstrated":False/);
+ assert.match(s,/"teacher_is_scripted_not_human":True/);
+});
