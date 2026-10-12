@@ -337,14 +337,14 @@ function drawBestiary(){
  const entries=[...featuredRoster().map(x=>({...x,kind:'recorded'})),...bestiary.map(entry=>({entry,kind:'saved'})),...starterEntries().map(entry=>({entry,kind:'starter'}))];
  const seen=new Set();let count=0,featuredCount=0;
  for(const item of entries){
-  const entry=item.entry,run=byKey.get(entry.run);if(!run)continue;
+  const entry=item.entry,seedRun=byKey.get(entry.run);if(!seedRun)continue;
   try{
-   const genome=buildGenome(entry.traits,run,entry.user||null,10),id=buildQbeast(genome).profile.id;
+   const genome=buildGenome(entry.traits,seedRun,entry.user||null,10),id=buildQbeast(genome).profile.id;
    if(item.spec?.seed&&genome.seed!==item.spec.seed)continue;
    if(item.spec?.id&&id!==item.spec.id)continue;
    if(seen.has(id))continue;seen.add(id);
    const name=item.label||genome.names[1],caption=item.tag||(genome.body+' · '+genome.island);
-   if(filter&&!(name+' '+caption+' '+id+' '+genome.body+' '+run.job_id).toLowerCase().includes(filter))continue;
+   if(filter&&!(name+' '+caption+' '+id+' '+genome.body+' '+seedRun.job_id).toLowerCase().includes(filter))continue;
    const card=document.createElement('article');card.className='beast-card roster-card';
    if(session?.beast?.qbeast?.profile?.id===id)card.classList.add('roster-active');
    const canvas=document.createElement('canvas');paintStage(canvas,genome,1);canvas.setAttribute('aria-hidden','true');
