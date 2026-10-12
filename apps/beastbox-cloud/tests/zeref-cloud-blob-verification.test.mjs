@@ -80,6 +80,25 @@ test('unsafe URLs, expired SAS and missing cleanup permission refuse all writes'
   }
 });
 
+test('wrong SAS URL shape produces actionable, credential-free diagnostics with no network traffic',async()=>{
+ const good=env().AZURE_STORAGE_CONTAINER_SAS_URL;
+ const cases=[
+  [good.replace('/beast-cosmos?', '/?'), 'AZURE_CONTAINER_PATH_MISSING'],
+  [good.replace('/beast-cosmos?', '/another-container?'), 'AZURE_CONTAINER_NAME_MISMATCH'],
+  [good.replace('sr=c', 'ss=b&srt=sco'), 'ACCOUNT_SAS_NOT_CONTAINER_SCOPED'],
+ ];
+ for(const [url,reason] of cases){
+  const storage=blobService();
+  const receipt=await withBlob(storage,{env:env({AZURE_STORAGE_CONTAINER_SAS_URL:url})});
+  assert.equal(receipt.status,'BLOCKED');
+  assert.equal(receipt.reason,reason);
+  assert.equal(receipt.write.attempted,false);
+  assert.equal(storage.requests.length,0);
+  assert.ok(!JSON.stringify(receipt).includes('private-test-signature'));
+  assert.ok(!JSON.stringify(receipt).includes('https://'));
+ }
+});
+
 test('isolated synthetic object is byte-verified, conditionally deleted, and read back absent',async()=>{
   const storage=blobService();const receipt=await withBlob(storage,{env:env()});
   assert.equal(receipt.status,'PASSED');assert.equal(receipt.readback.sha256_matches,true);
