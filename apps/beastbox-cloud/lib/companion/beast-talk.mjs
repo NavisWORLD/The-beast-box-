@@ -113,12 +113,20 @@ export function framePrompt(persona, history, text, limit = GUEST_LIMIT, context
   const p = persona || ZEREF;
   const said = clean(text, MAX_MESSAGE);
   const tail = `\nKeeper: ${said}\n${p.name}:`;
-  let head = personaFrame(p) + (context ? "\n" + clean(context, 260) : "");
+  const personaText = personaFrame(p);
+  const memoryText = context ? "\n" + clean(context, 260) : "";
+  let head = personaText + memoryText;
   const recent = (Array.isArray(history) ? history : []).slice(-2)
     .map((turn) => (turn.role === "you" ? "Keeper: " : p.name + ": ") + clean(turn.text, 110));
   let body = recent.length ? "\n" + recent.join("\n") : "";
   if (head.length + body.length + tail.length > limit) body = "";
-  if (head.length + tail.length > limit) head = head.slice(0, Math.max(0, limit - tail.length));
+  if (head.length + tail.length > limit) {
+    const budget = Math.max(0, limit - tail.length);
+    // Even with a long visitor message, keep both creature identity and
+    // consented local experience in the bounded guest-model prompt.
+    const memoryBudget = memoryText ? Math.min(memoryText.length, Math.max(0, budget - 85)) : 0;
+    head = personaText.slice(0, budget - memoryBudget) + memoryText.slice(0, memoryBudget);
+  }
   return (head + body + tail).slice(0, limit);
 }
 
