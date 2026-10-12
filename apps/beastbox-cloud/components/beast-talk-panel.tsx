@@ -3,6 +3,8 @@ import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'reac
 import {useBeastSession} from './beast-session';
 import {useCompanion} from './companion-provider';
 import {rememberExchange} from '../lib/companion/adventure.mjs';
+import {getOrCreateVisitorId,freshGrowth,readVisitorGrowth,writeVisitorGrowth,advanceVisitorGrowth,growthModelContext} from '../lib/companion/visitor-growth.mjs';
+import type {VisitorGrowth} from '../lib/companion/visitor-growth.mjs';
 import {beastIdentity} from '../lib/companion/session.mjs';
 import type {TalkRoute} from '../lib/companion/beast-talk.mjs';
 import {
@@ -21,7 +23,7 @@ type SpeechResult={results:ArrayLike<{0:{transcript:string}}>};
 type Recognition={lang:string;interimResults:boolean;onresult:((event:SpeechResult)=>void)|null;onerror:(()=>void)|null;onend:(()=>void)|null;start:()=>void;stop:()=>void};
 type BrowserSpeech=Window&{SpeechRecognition?:new()=>Recognition;webkitSpeechRecognition?:new()=>Recognition};
 
-const PREFS_KEY='beastbox-talk-prefs-v1',HF_KEY='beastbox-talk-hf-key-v1';
+const PREFS_KEY='beastbox-talk-prefs-v1',HF_KEY='beastbox-talk-hf-key-v1',GROWTH_CONSENT_KEY='beastbox-growth-context-consent-v1';
 const DEFAULT_PREFS:Prefs={route:DEFAULT_ROUTE as Route,ollamaUrl:DEFAULT_OLLAMA_URL,ollamaModel:DEFAULT_OLLAMA_MODEL,hfModel:DEFAULT_HF_MODEL};
 const time=(at?:number)=>at?new Date(at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'';
 
@@ -41,27 +43,34 @@ export default function BeastTalkPanel({onState,compact=false,title}:{onState?:(
  const [text,setText]=useState(''),[busy,setBusy]=useState(false),[offline,setOffline]=useState<Offline|null>(null);
  const [verifiedAt,setVerifiedAt]=useState<number|null>(null),[listening,setListening]=useState(false),[speaking,setSpeaking]=useState(false);
  const [showBrains,setShowBrains]=useState(false);
+ const [visitorId,setVisitorId]=useState<string|null>(null),[growth,setGrowth]=useState<VisitorGrowth|null>(null),[shareGrowth,setShareGrowth]=useState(false);
  const pending=useRef<AbortController|null>(null),speech=useRef<Recognition|null>(null),logEnd=useRef<HTMLDivElement>(null);
  const personaKey=useRef(persona.key);personaKey.current=persona.key;
 
  useEffect(()=>{
   try{const raw=localStorage.getItem(PREFS_KEY);if(raw){const saved=JSON.parse(raw);setPrefs(p=>({...p,...saved,route:TALK_ROUTES.includes(saved?.route)?saved.route:p.route}));}}catch{/* defaults */}
   try{setHfKey(sessionStorage.getItem(HF_KEY)||'');}catch{/* private mode */}
+  try{setShareGrowth(localStorage.getItem(GROWTH_CONSENT_KEY)==='yes');}catch{/* private by default */}
   const controller=new AbortController();
   fetch('/api/talk',{cache:'no-store',signal:controller.signal}).then(r=>r.ok?r.json():null).then(setStatus).catch(()=>setStatus({}));
   return()=>controller.abort();
  },[]);
  // Each Beast keeps its own conversation. Switching Beasts never mixes logs.
- useEffect(()=>{setLog(readTalkLog(localStorage,persona.key));setOffline(null);setVerifiedAt(null);},[persona.key]);
+ useEffect(()=>{pending.current?.abort();pending.current=null;setBusy(false);setLog(readTalkLog(localStorage,persona.key));setOffline(null);setVerifiedAt(null);
+  const id=getOrCreateVisitorId(localStorage);setVisitorId(id);setGrowth(id?readVisitorGrowth(localStorage,id,persona.key):null);
+ },[persona.key]);
  useEffect(()=>()=>{pending.current?.abort();speech.current?.stop();if(typeof window!=='undefined')window.speechSynthesis?.cancel();},[]);
  useEffect(()=>{logEnd.current?.scrollIntoView({block:'nearest'});},[log.length]);
  const state:TalkState=busy?'thinking':listening?'listening':speaking?'speaking':offline?'offline':verifiedAt?'replied':'idle';
  useEffect(()=>{onState?.(state);},[state,onState]);
 
  const savePrefs=useCallback((next:Partial<Prefs>)=>{
-  setPrefs(p=>{const merged={...p,...next};try{localStorage.setItem(PREFS_KEY,JSON.stringify(merged));}catch{/* optional */}return merged;});
+  const merged={...prefs,...next};setPrefs(merged);
+  try{localStorage.setItem(PREFS_KEY,JSON.stringify(merged));}catch{/* optional */}
   setOffline(null);setVerifiedAt(null);
- },[]);
+ },[prefs]);
+ function toggleGrowth(value:boolean){setShareGrowth(value);try{localStorage.setItem(GROWTH_CONSENT_KEY,value?'yes':'no');}catch{/* optional */}}
+ function resetGrowth(){if(!visitorId||busy)return;const fresh=freshGrowth(visitorId,persona.key);writeVisitorGrowth(localStorage,fresh);setGrowth(fresh);}
  function rememberKey(value:string){setHfKey(value);try{if(value)sessionStorage.setItem(HF_KEY,value);else sessionStorage.removeItem(HF_KEY);}catch{/* optional */}}
 
  const route=prefs.route,info=ROUTE_INFO[route];
@@ -87,12 +96,15 @@ export default function BeastTalkPanel({onState,compact=false,title}:{onState?:(
   const forKey=persona.key,beastId=beastIdentity(session?.beast||null);
   setBusy(true);setOffline(null);
   try{
-   const result=await talkToBeast({route,persona,history:log,text:saying,signal:controller.signal,
+   const result=await talkToBeast({route,persona,history:shareGrowth?log:[],context:shareGrowth?growthModelContext(growth):'',text:saying,signal:controller.signal,
     ollama:{url:prefs.ollamaUrl,model:prefs.ollamaModel},hf:{key:hfKey,model:prefs.hfModel,spendConfirmed:spend}});
    if(pending.current!==controller||personaKey.current!==forKey)return;
    if(!result.ok){setOffline({error:result.error,help:result.help,route:result.route});return;}
    const next=[...log,{role:'you' as const,text:saying,at:Date.now()},{role:'beast' as const,text:result.reply,model:result.model,route:result.route,at:result.at}];
    setLog(next);writeTalkLog(localStorage,forKey,next);setVerifiedAt(result.at);setText('');
+   if(visitorId){const prior=growth?.beastKey===forKey?growth:freshGrowth(visitorId,forKey);
+    const updated=advanceVisitorGrowth(prior,{text:saying,reply:result.reply,verified:true});
+    writeVisitorGrowth(localStorage,updated);setGrowth(updated);}
    // Same Beast, same growth: a verified exchange adds to the saved Beast's chat and bond.
    if(beastId&&session?.beast)void change(draft=>{if(beastIdentity(draft.beast)===beastId)rememberExchange(draft,saying,result.reply);});
   }finally{
@@ -141,6 +153,15 @@ export default function BeastTalkPanel({onState,compact=false,title}:{onState?:(
    </div>
    <button type="button" className={styles.ghost} aria-expanded={showBrains} onClick={()=>setShowBrains(v=>!v)}>{showBrains?'Done':'Change brain'}</button>
   </div>
+
+  <details className={styles.brains} data-visitor-growth>
+   <summary>My COSMOS growth · {growth?.exchanges??0} verified exchanges · this browser only</summary>
+   <p>Curiosity {growth?.curiosity??50} · Resonance {growth?.resonance??50} · Stability {growth?.stability??50} · Signal {growth?.signal??50}</p>
+   <small>Local classical QVM-inspired stimulus (Rigetti-style simulation, NOT a Rigetti cloud or hardware run). No shared model weights are retrained. The growth record stores aggregates, not raw conversation text.</small>
+   <label className={styles.check}><input type="checkbox" checked={shareGrowth} onChange={e=>toggleGrowth(e.target.checked)}/> Share my local growth summary and recent conversation with whichever brain I select. Off by default.</label>
+   <small>When enabled, cloud model providers may receive this context. Your browser ID is never included.</small>
+   <button type="button" className={styles.ghost} onClick={resetGrowth} disabled={!visitorId||busy}>Reset my local growth</button>
+  </details>
 
   {showBrains?<fieldset className={styles.brains}>
    <legend>Choose which model gives {persona.name} a voice</legend>
