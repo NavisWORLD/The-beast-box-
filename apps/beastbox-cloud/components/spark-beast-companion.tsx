@@ -47,6 +47,8 @@ type Props={
  rig?:boolean;
  /** Optional pocket driver (Beast Cage habitat): roaming, discoveries, growth stage. */
  rigDriver?:RigDriver|null;
+ /** In the Cage, the verified saved QBEAST is authoritative over the separate starter display profile. */
+ preferSavedBeast?:boolean;
 };
 
 function expand(row:Record<string,unknown>):Run{
@@ -94,12 +96,12 @@ function driveFor(mood:string,intensity:number){
 export default function SparkBeastCompanion({
  profile,fallbackLook='nebula',state='idle',paused=false,intensity=0,
  compact=false,controls=false,audioChannel,className='',label='Spark Beast companion',
- seedRunKey='',seedTraits,onGenome,rig=false,rigDriver=null
+ seedRunKey='',seedTraits,onGenome,rig=false,rigDriver=null,preferSavedBeast=false
 }:Props){
  const fallback=useMemo(()=>generateCreature('beastbox-spark-'+fallbackLook,fallbackLook==='aurora'?'aurora':fallbackLook==='starlight'?'starlight':'nebula'),[fallbackLook]);
  const active=profile??fallback;
  const {session}=useBeastSession();
- const sameSpark=session?.beast?.qbeast?.profile?.id===active.id?session.beast:null;
+ const sameSpark=session?.beast?.qbeast&&(preferSavedBeast||session.beast.qbeast.profile.id===active.id)?session.beast:null;
  const canvas=useRef<HTMLCanvasElement>(null),mover=useRef<HTMLDivElement>(null);
  const frame=useRef<number>(0),lastEye=useRef(''),utterance=useRef(0);
  const voiceNodes=useRef(new Map<GainNode,ReturnType<typeof setTimeout>>());
@@ -233,7 +235,7 @@ export default function SparkBeastCompanion({
 
  const name=sameSpark?.displayName||gen?.names?.[stage]||active.name;
  // Rig mode with no chosen Beast: the site guide Zeref lives in the habitat (same rule as the home page).
- const guide=rig&&!profile;
+ const guide=rig&&!profile&&!sameSpark;
  const rigName=guide?ZEREF_PROFILE.name:name;
  const rigStats=active.game?.stats as unknown as Record<string,number>|undefined;
  return <figure className={[styles.root,compact?styles.compact:'',rig?styles.rigMode:'',className].filter(Boolean).join(' ')}
