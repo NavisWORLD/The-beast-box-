@@ -29,7 +29,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
  const canvasRef=useRef<HTMLCanvasElement>(null);
  const motion=useRef({position:behaviorPosition,state,stage,impulse:0});
  const cameraView=useRef<View>({theta:.7,phi:1.05,zoom:10.6});
- const [visualSettings,setVisualSettings]=useState({...DEFAULT_POCKET_3D});
+ const [visualSettings,setVisualSettings]=useState<{enabled:boolean;quality:'auto'|'low'|'high'}>({...DEFAULT_POCKET_3D});
  useEffect(()=>{
   const sync=()=>setVisualSettings(devicePocket3D());
   const onStorage=(event:StorageEvent)=>{if(event.key===POCKET_3D_KEY)sync();};
