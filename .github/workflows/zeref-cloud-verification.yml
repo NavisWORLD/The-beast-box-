@@ -35,7 +35,7 @@ jobs:
           BEASTBOX_BLOB_PROBE_APPROVAL: YES_ISOLATED_CREATE_READ_DELETE
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
           AZURE_STORAGE_CONTAINER_SAS_URL: ${{ secrets.AZURE_STORAGE_CONTAINER_SAS_URL }}
-          AZURE_STORAGE_CONTAINER: ${{ vars.AZURE_STORAGE_CONTAINER || 'beast-cosmos' }}
+          AZURE_STORAGE_CONTAINER: beastbox
         run: node scripts/zeref_cloud_blob_probe.mjs build/zeref-cloud-verification/receipt.json
       - uses: actions/upload-artifact@v4
         if: always()
