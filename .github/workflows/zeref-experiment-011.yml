@@ -6,15 +6,8 @@ name: Zeref 011 - learns from his own world (bounded CPU trial)
 # workflow never writes the 006 canonical artifact, never promotes a model to
 # production, never changes the cartridge and submits no quantum jobs.
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
-    paths:
-      - 'scripts/zeref_experiment_011.py'
-      - 'scripts/zeref_experience_bridge.py'
-      - 'apps/beastbox-cloud/lib/zeref/experience-record.mjs'
-      - 'apps/beastbox-cloud/lib/zeref/pocket-grid-env.mjs'
-      - 'apps/beastbox-cloud/scripts/zeref-pocket-grid-cli.mjs'
-      - '.github/workflows/zeref-experiment-011.yml'
+  # The predeclared official trial ran once from PR #298 (run 38191707756, REJECTED).
+  # Further runs are manual only so unrelated pushes never re-spend CPU.
   workflow_dispatch:
 permissions:
   contents: read
@@ -24,7 +17,6 @@ concurrency:
   cancel-in-progress: false
 jobs:
   trial:
-    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.head_ref, 'feature/zeref-learns-own-world-011')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     env:

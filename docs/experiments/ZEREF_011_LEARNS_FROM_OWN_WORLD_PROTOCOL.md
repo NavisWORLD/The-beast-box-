@@ -53,3 +53,28 @@ The official run's eval layouts (`exp011-eval-*`) were never used during develop
 - With a compact prompt and full-reply loss, the model learned but bumped into walls and rifts a lot.
 - With perception placed last in the prompt (1.5e-5×384), there were no wall bumps and 1.3 rift bumps, but coverage was 16.5 vs the pocket-learner's 24.75, and language retention was 18.7% worse (above the 10% gate).
 - Changes for the official run: add the visited-map frontier summary and lower lr to 1e-5. These were fixed before the run, not tuned on its results.
+
+## Official result: run 38191707756 (2026-10-11, 8:20–8:50 PM CT): **REJECTED**
+
+Fresh native capture cycle 6 (jsonl `0c4ff2da…`). Pocket: 3,840 records → 2,022 outcome-selected examples (`872abdbf…`). Each seed did 384 AdamW updates (optimizer step 320 → 704). Candidate seed 0 = `d56ea217…`, which is not kept as a parent. Evaluated on 24 unseen layouts, 40 steps each:
+
+| arm | cells explored | blocked moves | notes |
+|---|---|---|---|
+| random | 14.71 | 7.92 | |
+| pocket-learner (site, hand-coded) | 24.50 | 1.58 | |
+| greedy-frontier (hand-coded BFS) | 32.96 | 2.67 | |
+| parent d0df90ea | 3.42 | 37.58 | always RIGHT |
+| **candidate** seeds 0/1/2 | 28.83 / 32.46 / 20.38 (mean 27.22) | 3.46 / 2.54 / 1.67 | legal 100% |
+| no-memory ablation | 2.00 / 3.42 / 5.13 | 0 / 37.6 / 35.9 | |
+| shuffled-label control | 3.42 / 2.00 / 7.54 | 37.6 / 39.0 / 32.6 | |
+
+- Seed 0 beat the pocket-learner on 19 layouts and lost on 3. Against greedy-frontier it won 1 and lost 21.
+- Native held-out: parent 14/14 legal with 14 teacher matches (NLL 0.0107). Candidate 14/14 legal with 14 matches (NLL 0.0057).
+- Language retention NLL: parent 4.940, candidate 5.724 (+15.9%).
+- Save/reload and pocket-memory replay checks were identical.
+
+Gates: G1, G2, G3, G5, G6, G7, G8 and G10 passed. **G4 failed** (blocked 3.46 vs 1.58) and **G9 failed** (retention +15.9% vs the 10% limit). The candidate is rejected; `d0df90ea` stays the approved parent, and no `zeref-011-accepted-*` artifact was published.
+
+What it shows: the neural policy did learn to use its own memory of where it has been. It explores well past its parent and, on average, past the site's hand-coded policy. The no-memory and shuffled-label controls collapse, so the gain comes from memory plus outcome-selected targets, not from the prompt format. It does not beat the stronger BFS heuristic. It bumps into rifts more than the hand-coded policy and erodes the base language prompts.
+
+Follow-up tried on validation layouts only, not an official run: rehearsal on the parent's own replies (it answers chat prompts with "ACTION: RIGHT") gave retention 7.13. Rehearsal on replies from the 14K conversational ancestor gave 6.40. Neither fixes G9. The `--batch-rehearsal` option stays available but is off by default.

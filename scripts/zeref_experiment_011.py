@@ -33,6 +33,7 @@ ZEREF = "bb-deada969"
 ZEREF_DIGEST = "23b4e2d6f736cf25f32242d0910d18df6939c3a89b1b50efecb83e94161363ad"
 IBM_BIRTH = "db4q484vf2bc73cuuuag"
 PARENT_SHA = "d0df90ea090b410aa5da5051b20e21ae5728236f7371450807f1af662fb02445"
+BASE_14K_SHA = "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5"
 CANONICAL_ROOT = "37ca3f8fc9cdc0e78175508fc816ed02d5a12da1f3b106505715b7366fde5a48"
 # bb-deada969 QBEAST temperament (curiosity 33, playfulness 63) and game energy 63.
 TRAITS = {"curiosity": .33, "playfulness": .63, "sleepiness": .3}
@@ -167,11 +168,38 @@ def examples_from(recs, memory=True):
 
 # ------------------------------- training -------------------------------
 
-def train(parent_dir, pocket_ex, native_ex, *, updates, lr, seed, batch_pocket, batch_native, threads):
+# Language rehearsal (Experiment 012 option): generic prompts, DISJOINT from the two
+# retention-gate prompts. Targets are the pinned conversational 14K ANCESTOR's own
+# greedy replies (no new knowledge, no hand-written answers); they only anchor language.
+REHEARSAL_PROMPTS = [
+    "Name a color.", "What day comes after Monday?", "Say goodbye.", "What is the opposite of hot?", "Count to three.",
+    "Name an animal.", "What do cats say?", "Tell me a short greeting.", "What is one plus one?", "Name a fruit.",
+    "What color is the sky?", "Say thank you.", "What is three plus three?", "Name a planet.", "What do you drink?",
+    "Say good morning.", "What is the opposite of up?", "Name a shape.", "How many legs does a dog have?", "Say yes.",
+    "What is ten minus one?", "Name a season.", "What sound does a cow make?", "Say good night.", "Name a number.",
+    "What is the opposite of big?", "What is water?", "Name a tree.", "Say please.", "What is five plus five?",
+    "Who are you?", "Are you a game companion?", "What is the moon?", "Name a game key.", "What is a dragon?",
+    "Describe the night sky.", "Say something kind.", "What is two times three?", "Name a day of the week.", "What is fire?",
+]
+assert not any(p in ("Say hello.", "What is two plus two?") for p in REHEARSAL_PROMPTS)
+
+
+def rehearsal_set(model, tok):
+    model.eval(); out = []
+    for q in REHEARSAL_PROMPTS:
+        pr = f"User: {q}\nAssistant: "
+        r = reply(model, tok, pr, max_new=32).strip()
+        if r:
+            out.append({"prompt": pr, "target": r, "label_kind": "base14k_replay"})
+    model.train()
+    return out
+
+def train(parent_dir, pocket_ex, native_ex, *, updates, lr, seed, batch_pocket, batch_native, threads, rehearsal=None, batch_rehearsal=0):
     torch.manual_seed(seed); random.seed(seed)
     m = load_parent(parent_dir); model, tok = m["model"], m["tokenizer"]
     pt = [tokens(tok, e["prompt"], e["target"]) for e in pocket_ex]
     nt = [tokens(tok, e["prompt"], e["target"]) for e in native_ex]
+    rt = [tokens(tok, e["prompt"], e["target"]) for e in (rehearsal or [])]
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=.01)
     opt.load_state_dict(m["state"]["optimizer"])
     for g in opt.param_groups:
@@ -182,6 +210,8 @@ def train(parent_dir, pocket_ex, native_ex, *, updates, lr, seed, batch_pocket, 
         opt.zero_grad(set_to_none=True)
         rows = [pt[i] for i in torch.randint(len(pt), (batch_pocket,), generator=gen).tolist()]
         rows += [nt[i] for i in torch.randint(len(nt), (batch_native,), generator=gen).tolist()]
+        if rt and batch_rehearsal:
+            rows += [rt[i] for i in torch.randint(len(rt), (batch_rehearsal,), generator=gen).tolist()]
         x, y, mk = collate(rows)
         loss = model(x, targets=y, attention_mask=mk)["loss"]
         if not bool(torch.isfinite(loss)):
@@ -261,6 +291,7 @@ def main():
     ap.add_argument("--steps", type=int, default=40); ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--arms", default="candidate,no-memory,shuffled")
     ap.add_argument("--batch-pocket", type=int, default=5); ap.add_argument("--batch-native", type=int, default=3)
+    ap.add_argument("--rehearsal-source", default=""); ap.add_argument("--batch-rehearsal", type=int, default=0); ap.add_argument("--experiment", default="011")
     a = ap.parse_args()
     t0 = time.time(); torch.set_num_threads(a.threads); torch.use_deterministic_algorithms(True)
     out = Path(a.out); out.mkdir(parents=True, exist_ok=False)
@@ -304,6 +335,16 @@ def main():
         res["baselines"][pol] = run_policy(pocket, eval_keys, a.steps, pol)
         print(f"ZEREF_011_EVAL {pol} {json.dumps(res['baselines'][pol]['mean'])}", flush=True)
     pm, ptok = parent["model"], parent["tokenizer"]; pm.eval()
+    rehearsal = []
+    if a.batch_rehearsal:
+        # Anchor = the pinned conversational RAWRPHOS 14K base (pre-game ancestor of the parent),
+        # because the game-trained parent now answers chat prompts with "ACTION: RIGHT".
+        base = load_checkpoint(Path(a.rehearsal_source), expected_checkpoint_sha256=BASE_14K_SHA, load_training_state=False)
+        rehearsal = rehearsal_set(base["model"], base["tokenizer"]); del base
+    if rehearsal:
+        dump(out / "rehearsal.json", rehearsal)
+        data["rehearsal_sha256"] = sha(json.dumps(rehearsal, sort_keys=True).encode()); data["rehearsal_examples"] = len(rehearsal)
+        dump(out / "dataset.json", data)
     res["neural"]["parent"] = {"pocket": run_policy(pocket, eval_keys, a.steps, "parent-neural", pm, ptok),
                                "native": native_eval(pm, ptok, native_held), "retention_nll": retention_nll(pm, ptok)}
     print("ZEREF_011_EVAL parent " + json.dumps(res["neural"]["parent"]["pocket"]["mean"]), flush=True)
@@ -314,7 +355,8 @@ def main():
         for s in range(a.seeds):
             seed = 20261011 + 1000 * s
             m, model, tok, opt, gen, logs, adam_steps = train(parent_dir, exs, native_train, updates=a.updates, lr=a.lr, seed=seed,
-                                                              batch_pocket=a.batch_pocket, batch_native=a.batch_native, threads=a.threads)
+                                                              batch_pocket=a.batch_pocket, batch_native=a.batch_native, threads=a.threads,
+                                                              rehearsal=rehearsal, batch_rehearsal=a.batch_rehearsal)
             model.eval()
             r = {"seed": seed, "train_log": logs, "adamw_step_after": adam_steps, "parameter_sha256": parameter_hash(model),
                  "pocket": run_policy(pocket, eval_keys, a.steps, f"{arm}-neural", model, tok, memory),
@@ -381,7 +423,7 @@ def main():
               "canonical_lineage_root_sha256": CANONICAL_ROOT, "candidate_checkpoint_sha256": saved["checkpoint_sha256"] if saved else None,
               "accepted": accepted, "gates": gates, "dataset": data, "results": res,
               "protocol": {"updates": a.updates, "lr": a.lr, "seeds": a.seeds, "train_layouts": a.train_layouts, "eval_layouts": a.eval_layouts,
-                           "eval_split": a.eval_split, "steps": a.steps, "batch": f"{a.batch_pocket} pocket + {a.batch_native} native", "torch": torch.__version__},
+                           "eval_split": a.eval_split, "steps": a.steps, "batch": f"{a.batch_pocket} pocket + {a.batch_native} native + {a.batch_rehearsal} rehearsal", "experiment": a.experiment, "torch": torch.__version__},
               "honesty": {"quantum_training": False, "new_ibm_jobs": 0, "production_promoted": False, "cartridge_changed": False,
                           "pocket_is_simulation": True, "native_teacher_is_scripted": True, "real_game_progress_claimed": False},
               "wall_seconds": round(time.time() - t0, 1)}
