@@ -1,0 +1,30 @@
+{
+  "schema": "zeref-isolated-blob-verification/v1",
+  "status": "PASSED",
+  "at": "2026-10-12T05:10:53.840Z",
+  "credentials": {
+    "AZURE_STORAGE_CONNECTION_STRING": false,
+    "AZURE_STORAGE_CONTAINER_SAS_URL": true
+  },
+  "provider_jobs_submitted": 0,
+  "model_calls": 0,
+  "production_objects_touched": 0,
+  "write": {
+    "attempted": true,
+    "acknowledged": true,
+    "etag_received": true
+  },
+  "readback": {
+    "sha256_matches": true,
+    "bytes_match": true
+  },
+  "cleanup": {
+    "attempted": true,
+    "confirmed_absent": true,
+    "delete_acknowledged": true
+  },
+  "credential_mode": "sas",
+  "object_name": "verification/zeref-cloud/38206819494-1/d7a6e033-5f6b-4a3b-a08c-389acffd5cfe.json",
+  "payload_sha256": "bfa5b88c49f90f79bbf5e4fb2fd7372742feceabfb8a5cae86c07c584e202a10",
+  "payload_bytes": 193
+}

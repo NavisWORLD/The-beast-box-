@@ -1,0 +1,15 @@
+.card{min-width:0;padding:18px;margin:14px 0;border:1px solid #75deff38;border-radius:18px;background:linear-gradient(145deg,#102237cc,#19102dba);color:#dce6f9}
+.tag{margin:0 0 8px;color:#79e3ff;font:700 10px/1.5 'Space Grotesk',sans-serif;letter-spacing:.13em}
+.card h3{margin:0 0 8px;font:700 18px/1.3 'Space Grotesk',sans-serif;color:#f3f1ff}
+.summary{font-size:14px;line-height:1.6;margin:8px 0}
+.small,.trial p{font-size:12px;line-height:1.65;overflow-wrap:anywhere;color:#b9c7df;margin:8px 0}
+.card code{font-size:11px;color:#c5c4ff;overflow-wrap:anywhere}
+.card a{color:#90e5ff;text-decoration:underline;text-underline-offset:3px}
+.card a:focus-visible,.card summary:focus-visible{outline:2px solid #90e5ff;outline-offset:4px;border-radius:5px}
+.trials{display:grid;gap:8px;margin-top:14px}
+.trial,.limits{border-top:1px solid #ffffff18;padding-top:8px}
+.trial summary,.limits summary{min-height:44px;cursor:pointer;font-size:12px;line-height:1.6;color:#d5e6fa}
+.trial summary span{margin-right:8px}
+.trial summary b{display:inline-block;font-size:10px;letter-spacing:.04em;padding:3px 6px;border:1px solid #e3a4cb40;border-radius:7px;color:#e3afca;vertical-align:middle}
+.limits{margin-top:12px}
+@media(max-width:420px){.card{padding:14px}.trial summary span{display:inline}}
