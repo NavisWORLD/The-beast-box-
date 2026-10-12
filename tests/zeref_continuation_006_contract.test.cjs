@@ -53,3 +53,23 @@ test('Observation diagnostics distinguish teacher imitation from verified game p
  assert.match(s,/"native_game_progress_demonstrated":False/);
  assert.match(s,/"teacher_is_scripted_not_human":True/);
 });
+
+test('Static native screen no longer creates a RIGHT-only teacher distribution',()=>{
+ const cap=read('apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs');
+ const train=read('scripts/zeref_continuation_006.py');
+ assert.match(cap,/if\(o\.frameChange<5\)return actions\[\(episode\*3\+step\+cycle\)%actions\.length\]/);
+ assert.doesNotMatch(cap,/if\(o\.frameChange<5\)return 'RIGHT'/);
+ for(const needle of ['scripted_teacher_action_histogram',
+                      'scripted_teacher_dominant_action_fraction',
+                      'Object.keys(counts).length>=4','dominantShare<=0.65']){
+  assert.ok(cap.includes(needle),'missing native teacher diversity safeguard: '+needle);
+ }
+ for(const needle of ['actual_actions=Counter(r["action"] for r in rows)',
+                      'scripted_teacher_action_histogram',
+                      'native_heldout_policy_not_single_action',
+                      'candidate_action_diversity_not_navigation_progress']){
+  assert.ok(train.includes(needle),'missing research-only action-diversity receipt/gate: '+needle);
+ }
+ assert.match(train,/"native_game_progress_demonstrated":False/);
+ assert.match(train,/"teacher_is_scripted_not_human":True/);
+});
