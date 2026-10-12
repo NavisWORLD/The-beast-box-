@@ -24,8 +24,15 @@ test('actual published IBM inventory and 24 simulator batches are independently 
  assert.equal(manifest.provider_jobs_submitted,0);
  assert.equal(manifest.owner_private_training_data_imported,false);
  const ibm=['train','validation','test'].flatMap(s=>records(contents['ibm-'+s+'.jsonl']));
+ const all=records(contents['ibm-all-verified-source-rows.jsonl']);
+ const repeated=records(contents['ibm-repeated-counts-audit-only.jsonl']);
  const sim=records(contents['rigetti-qvm-simulator-held-separate.jsonl']);
- assert.equal(ibm.length,manifest.snapshots.combined_ibm.rows);
+ assert.equal(all.length,manifest.snapshots.combined_ibm.rows);
+ assert.equal(ibm.length,manifest.snapshots.unique_count_candidates.rows);
+ assert.equal(repeated.length,manifest.snapshots.repeated_count_rows_audit_only.rows);
+ assert.equal(ibm.length+repeated.length,all.length);
+ assert.ok(ibm.length>=3000);
+ assert.ok(['validation','test'].every(s=>records(contents['ibm-'+s+'.jsonl']).length>=ibm.length*.03));
  assert.ok(ibm.every(r=>r.source_class==='RECORDED_IBM_HARDWARE'&&r.role==='STATE_CONDITIONING_ONLY'));
  assert.ok(sim.every(r=>r.source_class==='RECORDED_AZURE_RIGETTI_QVM_SIMULATOR'&&r.split==='simulator_separate'));
  assert.equal(new Set(ibm.map(r=>r.run_key)).size,ibm.length);
@@ -67,13 +74,13 @@ test('known numerical feature proportions and tamper rejection do not relabel ou
  const good={k:'fake',b:'ibm_fez',j:'job',p:0,n:2,s:10,c:'00:5,01:1,10:1,11:3',h:'0'.repeat(64)};
  assert.throws(()=>expandRun(good),/digest/i);
 });
-test('splitter rejects leakage by pinning full jobs and identical distributions',()=>{
+test('splitter keeps all PUBs from one IBM job together; exact repeat counts are isolated during corpus selection',()=>{
  const fixture=[
   {key:'x',backend:'ibm_fez',job_id:'a',counts_sha256:'1'.repeat(64)},
   {key:'y',backend:'ibm_fez',job_id:'a',counts_sha256:'2'.repeat(64)},
   {key:'z',backend:'ibm_fez',job_id:'b',counts_sha256:'2'.repeat(64)},
  ];
  const labels=splitIbmRuns(fixture);
- assert.equal(labels.get('x'),labels.get('y'));
- assert.equal(labels.get('y'),labels.get('z'));
+ assert.equal(labels.get('x'),labels.get('y')); // Both PUBs of a job share a split
+ assert.ok(['train','validation','test'].includes(labels.get('z')));
 });
