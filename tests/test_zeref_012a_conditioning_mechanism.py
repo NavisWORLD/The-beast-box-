@@ -4,6 +4,12 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+import importlib.util
+
+# The product test matrix does not install the optional native RAWRPHOS package.
+# The dedicated CPU-only experiment workflow installs it and runs every test.
+if importlib.util.find_spec('rawrphos') is None:
+    raise unittest.SkipTest('RAWRPHOS native adapter tests run in dedicated CPU workflow')
 
 import torch
 from rawrphos.architecture.model import RawrphosConfig, RawrphosLM
