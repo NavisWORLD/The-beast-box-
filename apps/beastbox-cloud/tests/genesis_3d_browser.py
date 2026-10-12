@@ -142,7 +142,44 @@ with sync_playwright() as p:
  page=fallback.new_page();load(page,"/beast-cage")
  expect(page.locator('.cage-habitat-visual [data-spark-beast="true"]')).to_be_visible(timeout=10000)
  fits(page,"no WebGL");page.screenshot(path=str(OUT/"no-webgl.png"),full_page=True)
- fallback.close();browser.close()
+ fallback.close()
+ # The original procedural 3D renderer and native cartridge are not replaced.
+ # Exercise the actual built settings page, persistent local quality, and Cage
+ # fallback through the existing in-browser Three.js component.
+ settings_context=browser.new_context(viewport={"width":390,"height":844},is_mobile=True,has_touch=True)
+ settings_page=settings_context.new_page()
+ settings_errors=[]
+ settings_page.on("pageerror",lambda error:settings_errors.append(str(error)))
+ load(settings_page,"/settings")
+ scenery=settings_page.get_by_role("switch",name="Three.js pocket scenery")
+ quality=settings_page.get_by_label("3D rendering quality")
+ expect(scenery).to_have_attribute("aria-checked","true")
+ quality.select_option("low")
+ expect(quality).to_have_value("low")
+ settings_page.reload()
+ expect(settings_page.get_by_label("3D rendering quality")).to_have_value("low")
+ scenery=settings_page.get_by_role("switch",name="Three.js pocket scenery")
+ scenery.click()
+ expect(scenery).to_have_attribute("aria-checked","false")
+ assert json.loads(settings_page.evaluate("localStorage.getItem('beastbox-pocket-3d-settings-v1')"))=={"enabled":False,"quality":"low"}
+ load(settings_page,"/beast-cage")
+ expect(settings_page.locator('[data-pocket-dimension="true"]')).to_have_attribute("data-pocket-state","disabled")
+ expect(settings_page.locator('.cage-habitat-visual [data-spark-beast="true"]')).to_be_visible()
+ settings_page.get_by_role("button",name="Reset 3D camera").click()
+ fits(settings_page,"3D off still preserves original creature")
+ load(settings_page,"/settings")
+ settings_page.get_by_role("switch",name="Three.js pocket scenery").click()
+ settings_page.get_by_label("3D rendering quality").select_option("high")
+ assert json.loads(settings_page.evaluate("localStorage.getItem('beastbox-pocket-3d-settings-v1')"))=={"enabled":True,"quality":"high"}
+ load(settings_page,"/beast-cage")
+ settings_page.wait_for_function("""() => ['ready','fallback'].includes(
+    document.querySelector('[data-pocket-dimension]')?.dataset.pocketState)""",timeout=30000)
+ expect(settings_page.locator('.cage-habitat-visual [data-spark-beast="true"]')).to_be_visible()
+ fits(settings_page,"3D high quality iPhone")
+ assert not settings_errors,settings_errors
+ settings_page.screenshot(path=str(OUT/"pocket-settings-390.png"),full_page=True,animations="disabled")
+ settings_context.close()
+ browser.close()
  (OUT/"acceptance.json").write_text(json.dumps({"browser":"real built Chromium",
  "physical_iphone":False,"hardware_sensors":False,"results":results},indent=2))
  print("COSMIC_GENESIS_REAL_3D_BROWSER_PASS",json.dumps(results),flush=True)
