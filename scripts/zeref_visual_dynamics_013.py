@@ -139,7 +139,7 @@ def main():
       "action_outcome_causality_proven":False,
       "game_objective_progress_proven":False,
       "neural_architecture":"auxiliary small CPU visual predictor; NOT RAWRPHOS",
-      "rawwrphos_weights_or_approved_006_modified":False,
+      "rawrphos_weights_or_approved_006_modified":False,
       "external_quantum_jobs_submitted":0,"private_sensor_data_used":False,
       "train_size":len(tr),"holdout_size":len(hold),
       "seed":SEED,"steps":STEPS,"lr":LEARNING_RATE,
