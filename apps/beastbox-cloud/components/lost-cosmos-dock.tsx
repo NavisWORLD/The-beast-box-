@@ -35,6 +35,9 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
   const [note, setNote] = useState('Lost Cosmos V11.2 Spark is ready.');
   const [narrow, setNarrow] = useState(false);
   const [tucked, setTucked] = useState(false);
+  // Desktop: the preview card collapses to the same pill when it would cover a page control.
+  const [crowded, setCrowded] = useState(false);
+  const cardSize = useRef({ width: 284, height: 230 });
   const pinned = useRef(false);
   const pillWidth = useRef(250);
   const shell = useRef<HTMLElement>(null);
@@ -42,7 +45,8 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
   const shown = mode === 'mini' || mode === 'full';
   const wide = mode === 'mini' && expanded && !closed;
   // On phones the mini player is a collapsed pill so it stays clear of page buttons.
-  const pill = mode === 'mini' && !closed && !wide && narrow;
+  const floating = mode === 'mini' && !closed && !wide;
+  const pill = floating && (narrow || crowded);
   const connectedName = spark ? shownName(session.beast) : creature?.name || 'Spark Beast';
   const readyText = `V11.2 Spark is ready for ${connectedName}. The cartridge stays mounted while you move around Beast Box.`;
 
@@ -94,28 +98,36 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
     return () => media.removeEventListener('change', apply);
   }, []);
 
-  // Avoid-rects: if the pill would sit on a visible page control, tuck it into a
-  // small edge tab. Tapping the tab brings the pill back until the next scroll.
+  // Avoid-rects: if the player would sit on a visible page control, shrink it. On phones the
+  // pill tucks into a small edge tab; on desktop the preview card first collapses to the pill,
+  // then tucks too if the pill still covers something. Tapping the tab restores it until the next scroll.
   useEffect(() => {
-    if (!pill) { setTucked(false); return; }
+    if (!floating) { setTucked(false); setCrowded(false); return; }
     let frame = 0;
-    const measure = () => {
-      frame = 0;
-      if (pinned.current) return;
-      const node = shell.current;
-      if (node && !node.classList.contains(css.tucked)) pillWidth.current = node.getBoundingClientRect().width || pillWidth.current;
-      const width = window.innerWidth, height = window.innerHeight;
-      const box = { left: width - 8 - pillWidth.current, top: height - 8 - 40, right: width - 8, bottom: height - 8 };
-      const gap = 6;
+    const covers = (boxWidth: number, boxHeight: number) => {
+      const width = window.innerWidth, height = window.innerHeight, gap = 6, inset = narrow ? 8 : 14;
+      const box = { left: width - inset - boxWidth, top: height - inset - boxHeight, right: width - inset, bottom: height - inset };
       const controls = document.querySelectorAll<HTMLElement>('main a, main button, main input, main textarea, main select, [data-critical-control]');
-      let hit = false;
       for (const element of controls) {
         if (element.closest('[data-lost-cosmos-dock], [data-companion-overlay]')) continue;
         const rect = element.getBoundingClientRect();
         if (rect.width < 1 || rect.height < 1 || rect.bottom < 0 || rect.top > height) continue;
-        if (rect.left < box.right + gap && rect.right + gap > box.left && rect.top < box.bottom + gap && rect.bottom + gap > box.top) { hit = true; break; }
+        if (rect.left < box.right + gap && rect.right + gap > box.left && rect.top < box.bottom + gap && rect.bottom + gap > box.top) return true;
       }
-      setTucked(hit);
+      return false;
+    };
+    const measure = () => {
+      frame = 0;
+      if (pinned.current) return;
+      const node = shell.current;
+      if (node && !node.classList.contains(css.tucked)) {
+        const rect = node.getBoundingClientRect();
+        if (node.classList.contains(css.pill)) pillWidth.current = rect.width || pillWidth.current;
+        else if (rect.width && rect.height) cardSize.current = { width: rect.width, height: rect.height };
+      }
+      const cardHit = !narrow && covers(cardSize.current.width, cardSize.current.height);
+      setCrowded(cardHit);
+      setTucked((narrow || cardHit) && covers(pillWidth.current, 40));
     };
     const schedule = () => { if (!frame) frame = window.requestAnimationFrame(measure); };
     const onScroll = () => { pinned.current = false; schedule(); };
@@ -129,7 +141,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', schedule);
     };
-  }, [pill, pathname]);
+  }, [floating, narrow, pathname]);
 
   useEffect(() => {
     function onVolume(event: Event) {
@@ -186,7 +198,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
     {mode === 'mini' && closed ? <button type="button" className={css.launcher} onClick={() => setClosed(false)}
       aria-label="Open Lost Cosmos player"><span>🎮</span><strong>LOST COSMOS</strong><small>Open</small></button> : null}
     <div className={css.bar}>
-      {pill && tucked ? <button type="button" className={css.tab} onClick={() => { pinned.current = true; setTucked(false); }}
+      {pill && tucked ? <button type="button" className={css.tab} onClick={() => { pinned.current = true; setTucked(false); setCrowded(false); }}
         aria-label="Show Lost Cosmos player">🎮</button> : null}
       <strong>LOST COSMOS</strong>
       <span title={connectedName}>V11.2 Spark · {connectedName}</span>

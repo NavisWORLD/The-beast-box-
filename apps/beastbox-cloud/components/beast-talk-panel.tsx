@@ -82,7 +82,8 @@ export default function BeastTalkPanel({onState,compact=false,title}:{onState?:(
   if(busy||!ready||!saying||saying.length>MAX_MESSAGE)return;
   speech.current?.stop();window.speechSynthesis?.cancel();setSpeaking(false);
   const controller=new AbortController();pending.current=controller;
-  const timeout=window.setTimeout(()=>controller.abort(),65000);
+  // A model on the visitor's own CPU can take minutes on a slow or busy computer; Cancel is always shown.
+  const timeout=window.setTimeout(()=>controller.abort(),route==='local-ollama'?180000:65000);
   const forKey=persona.key,beastId=beastIdentity(session?.beast||null);
   setBusy(true);setOffline(null);
   try{
