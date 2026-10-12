@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {createPocketSky,orbitPosition} from '../lib/pocket-sky.mjs';
+import {DEFAULT_POCKET_3D,POCKET_3D_KEY,POCKET_3D_EVENT,POCKET_3D_CAMERA_RESET,devicePocket3D} from '../lib/companion/pocket-3d-settings.mjs';
 import styles from './cage-pocket-dimension.module.css';
 
 type View={theta:number;phi:number;zoom:number};
@@ -28,14 +29,21 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
  const canvasRef=useRef<HTMLCanvasElement>(null);
  const motion=useRef({position:behaviorPosition,state,stage,impulse:0});
  const cameraView=useRef<View>({theta:.7,phi:1.05,zoom:10.6});
+ const [visualSettings,setVisualSettings]=useState<{enabled:boolean;quality:'auto'|'low'|'high'}>({...DEFAULT_POCKET_3D});
+ useEffect(()=>{
+  const sync=()=>setVisualSettings(devicePocket3D());
+  const onStorage=(event:StorageEvent)=>{if(event.key===POCKET_3D_KEY)sync();};
+  sync();window.addEventListener(POCKET_3D_EVENT,sync);window.addEventListener('storage',onStorage);
+  return()=>{window.removeEventListener(POCKET_3D_EVENT,sync);window.removeEventListener('storage',onStorage);};
+ },[]);
  const [ready,setReady]=useState(false),[failed,setFailed]=useState(false);
  const id=qbeastId||'visual-preview';
  const key=seed||'beastbox-visual-preview';
  useEffect(()=>{motion.current.position=behaviorPosition;motion.current.state=state;motion.current.stage=stage;},[behaviorPosition?.x,behaviorPosition?.y,state,stage]);
- useEffect(()=>{onActiveChange(ready&&!failed);return()=>onActiveChange(false);},[ready,failed,onActiveChange]);
+ useEffect(()=>{onActiveChange(visualSettings.enabled&&ready&&!failed);return()=>onActiveChange(false);},[ready,failed,visualSettings.enabled,onActiveChange]);
  useEffect(()=>{
   const canvas=canvasRef.current;
-  if(!canvas||failed)return;
+  if(!canvas||failed||!visualSettings.enabled)return;
   let disposed=false,frame=0,cleanup=()=>{};
   const parent=canvas.closest('.cage-habitat-visual') as HTMLElement|null;
   const activePointers=new Map<number,Pointer>();
@@ -99,6 +107,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   // of external microphone hearing or physical quantum/natural growth.
   const chirp=(e:Event)=>{const raw=Number((e as CustomEvent)?.detail?.intensity);motion.current.impulse=clamp(motion.current.impulse+(Number.isFinite(raw)?raw:.35)*.32,0,1.25);};
   const mute=()=>{motion.current.impulse=0;};
+  const resetCamera=()=>{cameraView.current={theta:.7,phi:1.05,zoom:10.6};};
   const option={passive:true} as AddEventListenerOptions;
   if(parent){
    parent.addEventListener('pointerdown',pointerDown,option);
@@ -111,6 +120,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   }
   window.addEventListener('beastbox:spark-chirp',chirp);
   window.addEventListener('beastbox:spark-mute',mute);
+  window.addEventListener(POCKET_3D_CAMERA_RESET,resetCamera);
   const releaseListeners=()=>{
    if(parent){
     parent.removeEventListener('pointerdown',pointerDown);
@@ -123,13 +133,15 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    }
    window.removeEventListener('beastbox:spark-chirp',chirp);
    window.removeEventListener('beastbox:spark-mute',mute);
+   window.removeEventListener(POCKET_3D_CAMERA_RESET,resetCamera);
   };
   void(async()=>{
    try{
     if(!window.WebGLRenderingContext)throw Error('WebGL unavailable');
     const THREE=await import('three');
     if(disposed)return;
-    const low=window.innerWidth<600||window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // User quality never overrides the OS reduced-motion safety boundary.
+    const low=reduced||visualSettings.quality==='low'||(visualSettings.quality==='auto'&&window.innerWidth<600);
     const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:!low,powerPreference:'low-power'});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?1:1.4));
     renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -245,12 +257,12 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    }
   })();
   return()=>{disposed=true;cancelAnimationFrame(frame);cleanup();releaseListeners();};
- },[key,failed,reduced]);
+ },[key,failed,reduced,visualSettings.enabled,visualSettings.quality]);
  return <div className={styles.root} data-pocket-dimension="true"
   data-world-source="genesis-nightops-core-visual-v1"
-  data-pocket-state={failed?'fallback':ready?'ready':'loading'} data-creature-id={id}>
-  {!failed?<canvas data-pocket-webgl="true" className={styles.canvas} ref={canvasRef}
+  data-pocket-state={!visualSettings.enabled?'disabled':failed?'fallback':ready?'ready':'loading'} data-creature-id={id}>
+  {visualSettings.enabled&&!failed?<canvas data-pocket-webgl="true" className={styles.canvas} ref={canvasRef}
    aria-hidden="true"/>:null}
-  {!failed&&!ready?<span className={styles.sr} role="status">Opening the dimensional world behind your Beast…</span>:null}
+  {!visualSettings.enabled?<span className={styles.sr} role="status">3D scenery is off. Your Beast and game remain available.</span>:!failed&&!ready?<span className={styles.sr} role="status">Opening the dimensional world behind your Beast…</span>:null}
  </div>;
 }
