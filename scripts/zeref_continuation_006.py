@@ -100,6 +100,14 @@ def inspect_source():
    if o.get("dominant") not in ("red","blue","green","mixed"):raise ValueError("Invalid optical source")
  if len({json.dumps(r["before"],sort_keys=True) for r in rows})<MIN_ACTUAL_OBSERVATIONS:
   raise ValueError("Native emulator captured insufficiently varied screen observations")
+ # Verify diversity on the actual 56 observed keypress receipts, not a claim in
+ # the manifest. This guards against more cycles merely teaching ACTION: RIGHT.
+ from collections import Counter
+ actual_actions=Counter(r["action"] for r in rows)
+ if len(actual_actions)<4 or max(actual_actions.values())/len(rows)>.65:
+  raise ValueError("Fresh native scripted examples remain too one-directional")
+ if manifest.get("scripted_teacher_action_histogram") != dict(sorted(actual_actions.items())):
+  raise ValueError("Native teacher distribution receipt disagrees with real action rows")
  return manifest,digest,rows
 def parent_proof():
  if not PARENT.is_dir():
@@ -213,7 +221,11 @@ def main():
   "all_14_actions_valid":trial["valid_actions"]==14,
   "teacher_agreement_not_worse":trial["script_teacher_matches"]>=baseline["script_teacher_matches"],
   "heldout_nll_not_worse_than_5_percent":new_held<=max(.01,original_held*1.05),
-  "language_retention_nll_not_worse_than_10_percent":new_ret<=max(.01,original_ret*1.10)
+  "language_retention_nll_not_worse_than_10_percent":new_ret<=max(.01,original_ret*1.10),
+  # Stronger (never weaker) gate: a model that predicts RIGHT in all 14 heldout
+  # original-ROM observations cannot become the approved training parent.
+  # This measures action-label diversity, NOT verified movement/quest progress.
+  "native_heldout_policy_not_single_action":len({r["legal_action"] for r in trial_out if r["legal_action"]})>=2
  }
  accepted=all(guard.values())
  report={"schema":"beastbox-zeref-resumable-training-cycle-006",
@@ -238,6 +250,7 @@ def main():
   "production_promoted":False,"measured_objective_game_progress":None,
   "native_game_progress_demonstrated":False,
   "teacher_is_scripted_not_human":True,
+  "candidate_action_diversity_not_navigation_progress":True,
   "training_logs":logs,"elapsed_seconds":round(time.perf_counter()-now,3)}
  save_json(ROOT/"report.json",report)
  print("ZEREF_006_REAL_TRAINING_GATE="+json.dumps({"approved":accepted,"cycle":cycle+1,
