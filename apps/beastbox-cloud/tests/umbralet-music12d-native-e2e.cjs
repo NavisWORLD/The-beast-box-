@@ -62,10 +62,14 @@ const job='d7c48ad5-c442-11f1-ae67-70a8a5253f9c',id='bb-1e1759f3';
   await send.waitFor({timeout:45000});
   await page.waitForFunction(()=>{let b=[...document.querySelectorAll('button')].find(x=>x.textContent?.trim()==='SEND BEAST');return b&&!b.disabled;},null,{timeout:30000});
   await send.click();
-  try{await shell.getByRole('status').filter({hasText:'same Beast verified'}).waitFor({timeout:30000});}
-  catch(e){
+  // The mailbox ACK proves canonical identity, not native roster import.
+  // Preserve the stronger proof below: actual mounted core, 32KB save and A/Start ACKs.
+  try{
+   await shell.getByRole('status').filter({hasText:'identity validated'}).waitFor({timeout:30000});
+   await shell.getByText('Verified local QBEAST mailbox.',{exact:false}).waitFor({timeout:30000});
+  }catch(e){
    const statuses=await shell.getByRole('status').allTextContents();
-   throw Error('Native cartridge denied the measured dragon: '+JSON.stringify({statuses,sourceReady:nativeSourceReady})+' '+String(e));
+   throw Error('QBEAST identity handoff was not acknowledged: '+JSON.stringify({statuses,sourceReady:nativeSourceReady})+' '+String(e));
   }
   await shell.getByRole('button',{name:'START LOST COSMOS',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('[data-lost-cosmos-player-shell]')?.dataset.running==='true',null,{timeout:90000});
