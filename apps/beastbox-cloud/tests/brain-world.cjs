@@ -53,7 +53,9 @@ async function checkRooms(page){
   await expect(page.getByRole('heading',{name:/Swap the brain/})).toBeVisible();
   // No saved Beast: open the actual shared chat first; passive page load must not infer.
   let dialog=await openSharedChat(page);
-  await expect(dialog.getByText(/Showing Zeref, the site Beast/)).toBeVisible();
+  // Compact modal deliberately hides the longer explanatory subtitle. It is
+  // preserved for screen readers and the visible identity heading is checked below.
+  await expect(dialog.getByText(/Showing Zeref, the site Beast/)).toHaveCount(1);
   await expect(dialog.getByRole('heading',{name:'Talk to Zeref'})).toBeVisible();
   await expect(dialog.getByText(/Brain: RAWRPHØS guest/)).toBeVisible();
   assert.equal(guestCalls.length,0);assert.equal(loopbackCalls.length,0);
