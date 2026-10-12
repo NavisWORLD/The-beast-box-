@@ -68,12 +68,19 @@ for(const width of widths){
  console.log('Width',width,'guest passed');await page.goto(root+'/sol-game');await page.waitForFunction(id=>document.querySelector('[data-spark-player]')?.dataset.creatureId===id,identity.profile.id);
  const talkPanel=page.locator('[data-lost-cosmos-player-shell] [data-spark-game-talk]');
  await talkPanel.getByRole('button',{name:/^TALK TO /}).click();
- await talkPanel.getByRole('textbox').fill('Hello from the cartridge');
- const talkLayout=await talkPanel.evaluate(el=>({right:el.getBoundingClientRect().right,inputs:[...el.querySelectorAll('button,textarea')].map(b=>b.getBoundingClientRect().toJSON()),body:document.documentElement.scrollWidth}));
- assert.ok(talkLayout.body<=width&&talkLayout.right<=width,`game talk overflow at ${width}`);
+ // Game chat now opens the shared persistent overlay, not an inline textbox.
+ // Verify the REAL modal, scrollable composer, and still-mounted native player.
+ const overlay=page.locator('[data-companion-chat-overlay]');
+ await overlay.waitFor({state:'visible'});
+ await overlay.getByRole('textbox').fill('Hello from the cartridge');
+ const talkLayout=await overlay.evaluate(el=>({right:el.getBoundingClientRect().right,left:el.getBoundingClientRect().left,inputs:[...el.querySelectorAll('button,textarea')].filter(b=>b.getClientRects().length).map(b=>b.getBoundingClientRect().toJSON()),body:document.documentElement.scrollWidth,scrollArea:!!el.querySelector('textarea'),gameMounted:!!document.querySelector('[data-lost-cosmos-player-shell]')}));
+ assert.ok(talkLayout.gameMounted&&talkLayout.scrollArea,'game remains mounted and chat composer remains accessible');
+ assert.ok(talkLayout.body<=width&&talkLayout.left>=0&&talkLayout.right<=width,`shared game chat overflow at ${width}`);
  for(const b of talkLayout.inputs)assert.ok(b.x>=0&&b.right<=width);
  await page.screenshot({path:out+`/game-talk-${width}.png`,fullPage:true});
- await talkPanel.getByRole('button',{name:'CLOSE TALK',exact:true}).click();
+ await overlay.getByRole('button',{name:'Close chat',exact:true}).click();
+ await overlay.waitFor({state:'hidden'});
+ assert.equal(await player.getAttribute('data-creature-id'),identity.profile.id,'closing shared chat retains mounted game identity');
  console.log('Width',width,'native entry passed');await page.goto(root+'/spark/index.html');await page.waitForFunction(id=>document.querySelector('#view')?.dataset.creatureId===id,identity.profile.id);assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast.xp),saved.beast.xp);
  await page.reload();await page.waitForFunction(id=>document.querySelector('#view')?.dataset.creatureId===id,identity.profile.id);assert.equal(await page.evaluate(()=>window.__audioCount),0,'sound stays browser-policy silent until a new gesture after reopen');assert.match(await page.locator('#voice').textContent(),/TAP FOR SOUND/);
  await page.locator('#generate').click();await page.waitForFunction(id=>document.querySelector('#view').dataset.creatureId!==id,identity.profile.id);await page.waitForFunction(()=>document.querySelector('#voice').textContent.includes('SOUND ON'));assert.equal(await page.evaluate(()=>window.__audioCount),1);
