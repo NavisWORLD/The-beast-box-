@@ -77,31 +77,19 @@ export function featureRow(run,source,sourceClass,split){
  };
 }
 
-class DisjointSet{
- constructor(){this.parent=new Map();}
- root(x){if(!this.parent.has(x))this.parent.set(x,x);const p=this.parent.get(x);if(p!==x)this.parent.set(x,this.root(p));return this.parent.get(x);}
- join(a,b){a=this.root(a);b=this.root(b);if(a!==b)this.parent.set(a<b?b:a,a<b?a:b);}
-}
-
 /**
- * Leakage-safe split: connected components of shared job AND exact raw-count
- * digest. A multi-PUB job or identical archived counts cannot straddle splits.
+ * Stable job-based partitioning. Exact repeated count distributions are
+ * de-duplicated BEFORE collecting training candidates; otherwise the large
+ * one-bit connected component starves the held-out splits of useful samples.
  */
 export function splitIbmRuns(runs){
- const groups=new DisjointSet();
- for(const r of runs)groups.join('job:'+r.backend+':'+r.job_id,'counts:'+r.counts_sha256);
- const assignments=new Map();
+ const assignments=new Map(),jobs=new Map();
  for(const r of runs){
-  const group=groups.root('job:'+r.backend+':'+r.job_id);
-  const bucket=parseInt(hex(group).slice(0,8),16)%10;
-  assignments.set(r.key,bucket<8?'train':bucket===8?'validation':'test');
- }
- const jobs=new Map(),counts=new Map();
- for(const r of runs){
-  const split=assignments.get(r.key),job=r.backend+':'+r.job_id;
+  const job=r.backend+':'+r.job_id;
+  const bucket=parseInt(hex('job:'+job).slice(0,8),16)%10;
+  const split=bucket<8?'train':bucket===8?'validation':'test';
   if(jobs.has(job)&&jobs.get(job)!==split)throw Error('Train/test job leakage');
-  if(counts.has(r.counts_sha256)&&counts.get(r.counts_sha256)!==split)throw Error('Train/test identical-count leakage');
-  jobs.set(job,split);counts.set(r.counts_sha256,split);
+  jobs.set(job,split);assignments.set(r.key,split);
  }
  return assignments;
 }
@@ -138,13 +126,29 @@ export function buildCorpus({root=ROOT}={}){
  const qvmRows=genesis.qvmRuns.map((run,i)=>featureRow(run,
    {path:qvmFile,fileSha256:genesis.sources.qvm.sha256,rowIndex:i},
    'RECORDED_AZURE_RIGETTI_QVM_SIMULATOR','simulator_separate'));
- const partitions=Object.fromEntries(['train','validation','test'].map(split=>[split,ibmRows.filter(r=>r.split===split)]));
+ // All IBM source rows are retained in the audit, while a single counts
+ // digest representative is selected for non-leaking train/eval candidates.
+ const selectedDigests=new Set(),selectedRows=[],repeatedRows=[];
+ for(const row of sortedRows(ibmRows)){
+  if(selectedDigests.has(row.counts_sha256))repeatedRows.push({...row,selection:'AUDIT_ONLY_REPEATED_COUNT_DISTRIBUTION'});
+  else{selectedDigests.add(row.counts_sha256);selectedRows.push({...row,selection:'UNIQUE_COUNT_TRAINING_CANDIDATE'});}
+ }
+ const partitions=Object.fromEntries(['train','validation','test'].map(split=>[split,selectedRows.filter(r=>r.split===split)]));
+ const jobs=new Map(),hashes=new Map();
+ for(const [split,rows] of Object.entries(partitions))for(const row of rows){
+  const job=row.backend+':'+row.job_id;
+  if(jobs.has(job)&&jobs.get(job)!==split)throw Error('Train/test job leakage');
+  if(hashes.has(row.counts_sha256))throw Error('Duplicated count in train/eval data');
+  jobs.set(job,split);hashes.set(row.counts_sha256,split);
+ }
  if(genesis.archiveRuns.length!==5676||genesis.sources.archive.shots!==25576380||
     genesis.qvmRuns.length!==24||genesis.sources.qvm.shots!==2048)throw Error('Pinned published baseline census changed');
  const contents={
   'ibm-train.jsonl':serialize(partitions.train),
   'ibm-validation.jsonl':serialize(partitions.validation),
   'ibm-test.jsonl':serialize(partitions.test),
+  'ibm-all-verified-source-rows.jsonl':serialize(ibmRows),
+  'ibm-repeated-counts-audit-only.jsonl':serialize(repeatedRows),
   'rigetti-qvm-simulator-held-separate.jsonl':serialize(qvmRows),
  };
  const artifacts=Object.fromEntries(Object.entries(contents).map(([path,data])=>[path,digestInfo(Buffer.from(data),path)]));
@@ -156,8 +160,9 @@ export function buildCorpus({root=ROOT}={}){
   export_role:'state conditioning only; no language/action/reward supervision',
   feature_labels:FEATURE_LABELS,
   snapshots:{archive:genesis.sources.archive,additional_recorded_ibm:summary(newRuns),
-   combined_ibm:summary(ibmRows),qvm_simulator:summary(qvmRows)},
-  split_basis:'Union of job and identical-count digest; deterministic SHA-256 buckets by connected component',
+   combined_ibm:summary(ibmRows),unique_count_candidates:summary(selectedRows),
+   repeated_count_rows_audit_only:summary(repeatedRows),qvm_simulator:summary(qvmRows)},
+  split_basis:'One selected representative per identical count digest (all originals archived); SHA-256 hashed job-level splits',
   split_counts:Object.fromEntries(Object.entries(partitions).map(([key,rows])=>[key,summary(rows)])),
   source_files:[...genesis.sources.tables.map(({path,sha256,bytes})=>({path,sha256,bytes})),
    ...extraPaths.map(path=>{const p=PUBLIC+path,bytes=readFileSync(resolve(root,p));return digestInfo(bytes,p);}),
