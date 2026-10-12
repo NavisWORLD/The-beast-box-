@@ -12,11 +12,11 @@ export const MAX_MESSAGE: number;
 export const ROUTE_INFO: Readonly<Record<TalkRoute, { label: string; model: string; detail: string }>>;
 export function talkPersona(input?: { beast?: any; cage?: any }): TalkPersona;
 export function personaFrame(persona: TalkPersona): string;
-export function framePrompt(persona: TalkPersona, history: TalkTurn[], text: string, limit?: number): string;
+export function framePrompt(persona: TalkPersona, history: TalkTurn[], text: string, limit?: number, context?: string): string;
 export function validOllamaUrl(value: string): boolean;
 export function connectHelp(route: string): string[];
 export function talkToBeast(input: {
-  route?: string; persona?: TalkPersona; history?: TalkTurn[]; text: string; fetchImpl?: typeof fetch; signal?: AbortSignal;
+  route?: string; persona?: TalkPersona; history?: TalkTurn[]; context?: string; text: string; fetchImpl?: typeof fetch; signal?: AbortSignal;
   ollama?: { url?: string; model?: string }; hf?: { key?: string; model?: string; spendConfirmed?: boolean };
 }): Promise<TalkSuccess | TalkFailure>;
 export const LOG_PREFIX: string;
