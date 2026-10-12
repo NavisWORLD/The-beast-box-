@@ -4,6 +4,7 @@ import {readJournal,type Journal} from '../lib/zeref/pocket-journal';
 import styles from './zeref-diary-panel.module.css';
 import PocketLearningCard from './pocket-learning-card';
 import GrowInCosmos from './grow-in-cosmos';
+import ZerefKnowledgeDiagnostics from './zeref-knowledge-diagnostics';
 import type {CosmosProfile} from '../public/spark/cosmos-profile.mjs';
 
 type Entry={tick:number;at:string;mood:string;place:string|null;new_combo_count:number;combos_total:number;discovered_combos:{key:string;name:string}[];xp:number;xp_gain:number;stage:number;stage_name:string;grew:boolean;signals:Record<string,number>;thought:{text:string;by:string};hash:string;
@@ -76,6 +77,7 @@ export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null}
     <p className={styles.small}>Discovered combos are new blends of existing rig channels (action, gait, place, wings, tail, eyes, mouth), not new hand-made animations. Stored only in this browser.</p>
    </div>
    <PocketLearningCard journalId={journalId} beastName={beastName} loop={journalId==='bb-7f9c2a03'?diary?.learning||null:null}/>
+   <ZerefKnowledgeDiagnostics beastId={journalId} loop={journalId==='bb-7f9c2a03'?diary?.learning||null:null}/>
    <GrowInCosmos profile={cosmosProfile}/>
   </div>
   {diary?.recent?.length?<ol className={styles.entries} aria-label="Recent diary entries">{diary.recent.slice(0,6).map(e=><li key={e.hash}>

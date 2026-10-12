@@ -1,0 +1,25 @@
+{
+  "schema": "zeref-checkpoint-lineage-audit/v1",
+  "audited_at": "2026-10-11T19:40:00-05:00",
+  "base": {"sha256": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5", "steps": 14000, "what": "RAWRPHOS native 14K"},
+  "chain": [
+    {"exp": "004", "sha256": "86d9084ee3d302fdf37980e89eef60c86be90bc4538f0bfc9e7c3b39db92fcc8", "steps": 14128, "updates": 128},
+    {"exp": "006 cycle 1 (canonical root)", "sha256": "37ca3f8fc9cdc0e78175508fc816ed02d5a12da1f3b106505715b7366fde5a48", "steps": 14192, "run": 38129248023},
+    {"exp": "006 cycle 2", "sha256": "2cd607208a3621b4fc089fc5b8cedc1ef67c40f85100f5220860b386a82a26f5", "steps": 14256, "run": 38159724228, "artifact": 11708954493},
+    {"exp": "006 cycle 3", "sha256": "d0df90ea090b410aa5da5051b20e21ae5728236f7371450807f1af662fb02445", "steps": 14320, "run": 38179059173, "event": "schedule on main 2026-10-11T22:06Z (5:06 PM CT)", "artifact": 11717317500, "training_state_sha256": "b63df6c51fae781e052e5c96fe988e82847482369a15043229391b47819e96b3", "dataset_sha256": "bd240240631e9d4293def2bc0020af42a3569ae9554858404a38c546fc1edcc4"}
+  ],
+  "excluded": [
+    {"sha256": "409f85256825d0009c3c122b3b411e18018c3233518ebb2c6c7873d86ad27887", "why": "run 38158726567 forked from 004 (pagination bug); documented non-canonical"},
+    {"exp": "007, 008, 009", "why": "evaluation-only workflows; they load 37ca3f8f read-only and produce no checkpoints. 008 SRAM read may be affected by the unflushed-save bug fixed later; not used as training data here"}
+  ],
+  "newer_than_d0df90ea": "none: only 2 non-expired artifacts named zeref-006-canonical-37ca3f8f exist; newest is d0df90ea. No releases newer than 2026-10-05.",
+  "verification": {
+    "model_safetensors_sha256_recomputed": "d0df90ea090b410aa5da5051b20e21ae5728236f7371450807f1af662fb02445",
+    "manifest_matches": true,
+    "approval_receipt": {"approved": true, "approved_cycle_count": 3, "parent": "2cd60720...", "canonical_root": "37ca3f8f...", "production_promoted": false, "qbeast_id": "bb-deada969"},
+    "parameter_sha256_recomputed": "1aecbfee1cadbfb46e86dadac8ea35d7744065477cc30f308745a000b1efd2c6 (matches metadata)",
+    "adamw_state": "present: 86 param states with exp_avg/exp_avg_sq, step=320 (=128 from 004 + 3x64 from 006), lr 9e-06, wd 0.01; rng + data_rng present"
+  },
+  "chosen_parent": "d0df90ea090b410aa5da5051b20e21ae5728236f7371450807f1af662fb02445",
+  "concurrency_note": "The 006 heartbeat (cron 17 */6 UTC on main) will also resume d0df90ea at its next tick. Experiment 011 publishes under its own artifact name; it does NOT write the zeref-006-canonical-37ca3f8f artifact, so the two lines stay distinct until the owner chooses."
+}
