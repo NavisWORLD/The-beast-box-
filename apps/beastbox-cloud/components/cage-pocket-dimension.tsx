@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {createPocketSky,orbitPosition} from '../lib/pocket-sky.mjs';
-import {DEFAULT_POCKET_3D,POCKET_3D_KEY,POCKET_3D_EVENT,POCKET_3D_CAMERA_RESET,readPocket3D} from '../lib/companion/pocket-3d-settings.mjs';
+import {DEFAULT_POCKET_3D,POCKET_3D_KEY,POCKET_3D_EVENT,POCKET_3D_CAMERA_RESET,devicePocket3D} from '../lib/companion/pocket-3d-settings.mjs';
 import styles from './cage-pocket-dimension.module.css';
 
 type View={theta:number;phi:number;zoom:number};
@@ -31,7 +31,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
  const cameraView=useRef<View>({theta:.7,phi:1.05,zoom:10.6});
  const [visualSettings,setVisualSettings]=useState({...DEFAULT_POCKET_3D});
  useEffect(()=>{
-  const sync=()=>{try{setVisualSettings(readPocket3D(window.localStorage));}catch{setVisualSettings({...DEFAULT_POCKET_3D});}};
+  const sync=()=>setVisualSettings(devicePocket3D());
   const onStorage=(event:StorageEvent)=>{if(event.key===POCKET_3D_KEY)sync();};
   sync();window.addEventListener(POCKET_3D_EVENT,sync);window.addEventListener('storage',onStorage);
   return()=>{window.removeEventListener(POCKET_3D_EVENT,sync);window.removeEventListener('storage',onStorage);};
