@@ -44,6 +44,7 @@ export default function Home(){
    <p>Dreamer, idler with time to wander, player, builder, researcher, artist, or just curious: start with a little Beast and go only as deep as you want. The creature comes first. The machinery is there when you are ready for it.</p>
    <div className="hero-cta">
     <a href="/spark/index.html" className="primary-link">Meet My Beast <ArrowUpRight size={19}/></a>
+    <Link href="/beast-cage/talk" prefetch={false} className="secondary-link" data-talk-entry>Talk to My Beast 💬</Link>
     <Link href="/beast-cage" className="secondary-link">Enter the Beast Cage <ArrowUpRight size={17}/></Link>
     <Link href="/sol-game" className="secondary-link">Play LOST COSMOS <ArrowUpRight size={17}/></Link>
    </div>
