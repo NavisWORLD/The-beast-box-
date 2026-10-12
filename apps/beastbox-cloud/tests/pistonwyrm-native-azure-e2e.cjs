@@ -51,7 +51,8 @@ const job='71cf7c02-c435-11f1-ae67-7ced8d52b5e1',id='bb-d41e5bd4';
   await send.waitFor({timeout:45000});
   await page.waitForFunction(()=>{let b=[...document.querySelectorAll('button')].find(x=>x.textContent?.trim()==='SEND BEAST');return b&&!b.disabled;},null,{timeout:30000});
   await send.click();
-  try{await shell.getByRole('status').filter({hasText:'same Beast verified'}).waitFor({timeout:30000});}
+  try{await shell.getByRole('status').filter({hasText:'identity validated'}).waitFor({timeout:30000});
+    assert.match(await shell.getByText('Verified local QBEAST mailbox.',{exact:false}).textContent(),/Native roster import is not confirmed yet/,'identity ACK must not be mistaken for game-roster import');}
   catch(e){
    const statuses=await shell.getByRole('status').allTextContents();
    throw Error('Native cartridge denied the measured dragon: '+JSON.stringify({statuses,sourceReady:nativeSourceReady})+' '+String(e));
