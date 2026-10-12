@@ -10,17 +10,17 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 2,
- "xp": 215,
+ "tick": 3,
+ "xp": 292,
  "stage": 1,
  "stage_name": "Moonling",
  "signals": {
-  "energy": 100,
-  "signal": 72,
-  "memory": 64,
-  "resonance": 95
+  "energy": 95,
+  "signal": 69,
+  "memory": 65,
+  "resonance": 96
  },
- "bond": 0.5,
+ "bond": 0.75,
  "care_total": 0,
  "combos_known": [
   "idle|still|moon-pool|folded|sway|open|smile",
@@ -86,10 +86,33 @@
   "walk|walk|open-pocket|folded|lash|open|smile",
   "pounce|pounce|open-pocket|folded|flick|open|grin",
   "curious|still|portal|folded|sway|open|grin",
-  "curious|still|portal|folded|sway|open|o"
+  "curious|still|portal|folded|sway|open|o",
+  "hover|hover|moon-pool|beating|sway|open|smile",
+  "hover|hover|open-pocket|full-spread|sway|open|grin",
+  "charge|still|open-pocket|folded|sway|half|grin",
+  "charge|still|open-pocket|beating|sway|half|grin",
+  "idle|still|open-pocket|folded|sway|closed|o",
+  "pounce|pounce|open-pocket|beating|sway|open|grin",
+  "blink|still|open-pocket|folded|sway|half|smile",
+  "pounce|still|open-pocket|folded|sway|open|grin",
+  "pounce|still|open-pocket|full-spread|lash|open|grin",
+  "curious|still|open-pocket|folded|sway|closed|grin",
+  "walk|walk|portal|folded|flick|open|smile",
+  "walk|walk|portal|folded|sway|open|smile",
+  "walk|walk|crystal|folded|sway|open|smile",
+  "walk|walk|crystal|folded|flick|open|smile",
+  "curious|still|crystal|folded|sway|open|smile",
+  "blink|still|crystal|folded|sway|open|smile",
+  "blink|still|crystal|folded|sway|closed|smile",
+  "blink|still|crystal|folded|sway|half|smile",
+  "walk|walk|open-pocket|folded|sway|open|grin",
+  "hover|still|portal|full-spread|flick|open|grin",
+  "hover|still|portal|beating|sway|open|grin",
+  "pounce|still|portal|folded|sway|open|grin"
  ],
  "places": {
-  "Rift Gate": 1
+  "Rift Gate": 1,
+  "Lattice Arch": 1
  },
  "learner": {
   "schema": "pocket-learner/v1",
@@ -99,41 +122,41 @@
    1,
    2,
    1,
-   0,
-   0,
-   0,
+   1,
+   1,
+   1,
    1,
    3,
    2,
    1,
+   3,
    2,
-   1,
-   0,
-   0,
-   0,
-   1,
    0,
    2,
-   1,
    0,
    1,
    0,
+   2,
+   2,
+   0,
+   2,
+   1,
    1,
    3,
    2,
    2,
    2,
    0,
-   0,
-   0,
+   2,
+   2,
    1,
    1,
    1,
    2,
    1,
-   0,
-   0,
-   0
+   1,
+   2,
+   1
   ],
   "known_blocked": [
    18,
@@ -141,28 +164,29 @@
    29
   ],
   "moves": {
-   "succeeded": 36,
+   "succeeded": 54,
    "blocked": 3
   },
   "value": {
-   "portal-6": 0.3661
+   "portal-6": 0.3661,
+   "portal-5": 0.3639
   },
   "prefs": {
    "explore": 1,
-   "visit": 0.5421,
-   "rest": 0.323,
+   "visit": 0.5831,
+   "rest": 0.242,
    "play": 0.4
   },
   "goals": {
-   "explore": 23,
-   "visit": 1,
-   "rest": 1,
+   "explore": 32,
+   "visit": 2,
+   "rest": 4,
    "play": 0,
    "come": 0
   },
   "goal": "explore",
-  "decisions": 25
+  "decisions": 38
  },
- "last_tick_at": "2026-10-12T06:29:29.604Z",
- "last_entry_hash": "830bb3948c30adc6ad1372ad25331c7837bc3271fce4a8054cd69e04e151aad4"
+ "last_tick_at": "2026-10-12T16:04:18.190Z",
+ "last_entry_hash": "a917c8b189593e928d701b461f4af8c30bb6136caa3141bc00554edbffa6d1ba"
 }
