@@ -19,6 +19,7 @@ import {generateCreature,type BaseLook,type AmbientAction} from '../lib/creature
 import BrandCrest from '@/components/brand-crest';
 import ZerefDiaryPanel from './zeref-diary-panel';
 import {ZEREF_PROFILE} from '../lib/zeref/zeref-mind.mjs';
+import {creatureVisual} from '../public/spark/creature-assets.mjs';
 const VIEW_STORAGE='beastbox-cage-view-v1';
 const LOOKS:{id:BaseLook;label:string;detail:string;accent:string}[]=[
  {id:'nebula',label:'Nebby',detail:'A curious little pocket galaxy',accent:'violet'},
@@ -44,18 +45,21 @@ export default function BeastCagePortal(){
  const {profile:creature,selectProfile,clearProfile}=useCompanion();
  const [ambient,setAmbient]=useState<AmbientAction>('hover');
  const {session}=useBeastSession();
- const sameSpark=!!creature&&!!session?.beast?.qbeast&&session.beast.qbeast.profile.id===creature.id;
+ const sameSpark=!!session?.beast?.qbeast;
  const creatureName=sameSpark?shownName(session.beast):creature?.name;
+ // The model/persona and the companion starter profile do not override the verified saved QBEAST.
+ const savedVisual=sameSpark?creatureVisual({id:session.beast.qbeast.profile.id,genome:session.beast.genome}):null;
  // Default view: the ZEREF rig exploring the dimensional pocket. The original pixel sprite stays one tap away.
  const [view,setView]=useState<'pocket'|'classic'>('pocket');
  useEffect(()=>{try{if(window.localStorage.getItem(VIEW_STORAGE)==='classic')setView('classic');}catch{}},[]);
  const chooseView=(next:'pocket'|'classic')=>{setView(next);try{window.localStorage.setItem(VIEW_STORAGE,next);}catch{}};
- const pocketName=creature?(creatureName||creature.name):'Zeref';
+ const pocketName=creatureName||'Zeref';
  const cosmosProfile=useMemo<CosmosProfile|null>(()=>{
+  if(sameSpark)return publicProfileFromBeast(session.beast,{name:creatureName});
   if(!creature)return {schema:'cosmos-beast-public/v1',id:ZEREF_PROFILE.id,name:'Zeref',provenance:{kind:'recorded-quantum-genome',backend:'ibm_marrakesh'},traits:{}};
-  return (sameSpark?publicProfileFromBeast(session.beast,{name:creatureName}):null)||publicProfileFromCreature(creature);
+  return publicProfileFromCreature(creature);
   // eslint-disable-next-line react-hooks/exhaustive-deps
- },[creature?.id,sameSpark,creatureName]);
+ },[creature?.id,sameSpark,creatureName,session?.beast]);
  useEffect(()=>{if(creature)setLook(creature.baseLook);},[creature?.id,creature?.baseLook]);
  useEffect(()=>{
   try{const item=window.localStorage.getItem(STORAGE);if(item&&LOOKS.some(x=>x.id===item)){setLook(item as BaseLook);setSaved(true);}}
@@ -102,7 +106,8 @@ export default function BeastCagePortal(){
      reduced={prefersReduced} onActiveChange={onPocketActive}/>
     <SparkBeastArena profile={creature} fallbackLook={look}
      state={sameSpark?visualStateFromBeast(session.beast):ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
-     label="Active Spark Beast companion" rig={view==='pocket'}/>
+     label="Active Spark Beast companion" preferSavedBeast={sameSpark}
+     rig={view==='pocket'&&(!savedVisual||savedVisual.renderer==='moonwraith-rig')}/>
     <span className="cage-habitat-caption">✧ YOUR OWN POCKET UNIVERSE</span>
    </div>
    <div className="cage-view-toggle" role="group" aria-label="Habitat view">
@@ -111,7 +116,7 @@ export default function BeastCagePortal(){
     <a href="#zeref-diary">Zeref&apos;s Diary ↓</a>
    </div>
   </section>
-  <ZerefDiaryPanel journalId={creature?creature.id:ZEREF_PROFILE.id} beastName={pocketName} cosmosProfile={cosmosProfile}/>
+  <ZerefDiaryPanel journalId={sameSpark?session.beast.qbeast.profile.id:creature?creature.id:ZEREF_PROFILE.id} beastName={pocketName} cosmosProfile={cosmosProfile}/>
   {!sameSpark?<GenesisForge value={creature} onChange={next=>{selectProfile(next);setLook(next.baseLook);}}
    onAmbient={setAmbient}/>:<div className="cage-generated-status"><span>{creatureName} · same recorded genome and QBEAST</span><Link href="/sol-game">Play this Beast in LOST COSMOS 🎮</Link></div>}
   {creature?<div className="cage-generated-status" role="status">
@@ -128,7 +133,7 @@ export default function BeastCagePortal(){
     <p>Customize the same Beast that roams the site, uses the shared care deck, and crosses into Lost COSMOS. Stage controls are previews; earned cartridge evolution still comes from gameplay. The public generator can draw from the expanded recorded-seed pool.</p><a className="cage-secondary" href="/spark/index.html">Generate from the public IBM seed archive ↗</a></div>
    <SparkBeastCompanion profile={creature} fallbackLook={look}
     state={sameSpark?visualStateFromBeast(session.beast):ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
-    controls label="Customizable Spark Beast preview"/>
+    controls label="Customizable Spark Beast preview" preferSavedBeast={sameSpark}/>
    {!sameSpark?<div className="cage-look-grid">{LOOKS.map(item=><button type="button" className={'cage-look-card '+item.accent+(look===item.id?' selected':'')} key={item.id} aria-pressed={look===item.id} onClick={()=>{
     const starter=generateCreature('beastbox-starter-'+item.id,item.id);
     setLook(item.id);selectProfile(starter);setSaved(false);
