@@ -3,7 +3,7 @@ on:
   pull_request:
     types: [opened, reopened, synchronize]
     paths:
-      - 'experiments/zeref/world-vocab-012/grounded-cards.json'
+      - 'research/zeref/world-vocab-012/grounded-cards.json'
       - 'scripts/zeref_world_vocab_012.py'
       - 'tests/test_zeref_world_vocab_012.py'
       - '.github/workflows/zeref-world-vocab-012.yml'
