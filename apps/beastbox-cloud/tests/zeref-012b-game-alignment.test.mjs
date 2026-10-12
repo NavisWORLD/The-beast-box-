@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdtempSync,mkdirSync,writeFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {ZEREF,IBM_BIRTH,assessCausalLink,readZerefIbmReceipt,rollout,buildReport}
  from '../../../scripts/audit_zeref_012b_game_alignment.mjs';
@@ -93,11 +95,15 @@ test('all outputs have stable byte hashes and all source code digests match',()=
   assert.equal(hex(readFileSync(root+path)),digest);
  }
 });
-test('tampered Zeref receipt is rejected',()=>{
- const source=readZerefIbmReceipt();
- const obj=JSON.parse(readFileSync(fileURLToPath(new URL('../public/spark/ibm-zeref-heart-sound-20261010.json',import.meta.url))));
- obj.runs[0].c='00:4096,01:0,10:0,11:0';
- // Existing expandRun independently verifies the count digest, preventing injected fake outcomes.
- assert.notEqual(obj.runs[0].h,hex(JSON.stringify(obj.runs[0].c)));
- assert.equal(source.recordedRows,2);
+test('tampered Zeref receipt cannot pass independently hashed outcome validation',()=>{
+ const src=fileURLToPath(new URL('../public/spark/ibm-zeref-heart-sound-20261010.json',import.meta.url));
+ const folder=mkdtempSync(join(tmpdir(),'zeref-012b-proof-'));
+ try{
+  const target=join(folder,'apps/beastbox-cloud/public/spark/ibm-zeref-heart-sound-20261010.json');
+  mkdirSync(dirname(target),{recursive:true});
+  const doc=JSON.parse(readFileSync(src,'utf8'));
+  doc.runs[0].c='00:4096,01:0,10:0,11:0';
+  writeFileSync(target,JSON.stringify(doc));
+  assert.throws(()=>readZerefIbmReceipt(folder),/digest/i);
+ }finally{rmSync(folder,{recursive:true,force:true});}
 });
