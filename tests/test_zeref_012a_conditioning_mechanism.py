@@ -65,6 +65,18 @@ class MechanismContracts(unittest.TestCase):
         self.assertEqual(parameter_hash(base), before)
         self.assertGreater(sum(float(p.abs().sum()) for p in adapter.project[-1].parameters()), 0)
 
+    def test_no_adapter_baseline_evaluation_regression(self):
+        torch.manual_seed(10)
+        model = RawrphosLM(RawrphosConfig(vocab_size=320, d_model=32, n_heads=4,
+                                         n_layers=2, max_seq_len=32))
+        ids = torch.tensor([[1,31,40]], dtype=torch.long)
+        rows = [{"features": [.1,.1,.1,.1,.1,.1,.3,.1,.1,.1,.1,.1], "run_key":"low"},
+                {"features": [.9,.9,.9,.9,.9,.9,.7,.9,.9,.9,.9,.9], "run_key":"high"}]
+        report = M.evaluation(model, None, ids, [42,43], rows, "aligned_ibm", .5, 11)
+        self.assertEqual(report["rows"], 2)
+        self.assertTrue(0 <= report["balanced_accuracy"] <= 1)
+        self.assertTrue(report["two_class_nll"] > 0)
+
     def test_rejects_unlabelled_or_misclassified_sources(self):
         example = {"schema": "rawrphos-recorded-count-conditioning/v1", "role": "STATE_CONDITIONING_ONLY",
                    "source_class": "RECORDED_IBM_HARDWARE", "split":"train", "action_label":None,
