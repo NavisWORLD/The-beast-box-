@@ -34,7 +34,8 @@ test('site settings and original Cage renderer use one presentation-only prefere
  const cage=source('components/beast-cage-portal.tsx');
  assert.match(settings,/savePocket3D/);
  assert.match(settings,/Three.js pocket/);
- assert.match(pocket,/readPocket3D/);
+ assert.match(pocket,/devicePocket3D/);
+ assert.doesNotMatch(pocket,/localStorage|fetch\(/,'renderer must not access saved creature data, storage or network');
  assert.match(pocket,/webglcontextlost/);
  assert.match(pocket,/renderer\.render\(scene,camera\)/);
  assert.match(cage,/POCKET_3D_CAMERA_RESET/);
