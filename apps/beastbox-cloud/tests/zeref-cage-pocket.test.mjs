@@ -131,7 +131,10 @@ test('Cage wiring: rig is default, classic sprite reachable, diary + labels, loo
  const portal=read('components/beast-cage-portal.tsx'),arena=read('components/spark-beast-arena.tsx'),spark=read('components/spark-beast-companion.tsx');
  assert.match(portal,/useState<'pocket'\|'classic'>\('pocket'\)/);
  assert.match(portal,/Classic pixel sprite/);
- assert.match(portal,/rig=\{view==='pocket'\}/);
+ assert.match(portal,/rig=\{view==='pocket'&&\(!savedVisual\|\|savedVisual\.renderer==='moonwraith-rig'\)\}/,
+  'pocket view retains the established Moonwraith rig, but other saved QBEASTs render their recorded native genome');
+ assert.match(portal,/preferSavedBeast=\{sameSpark\}/,'saved creature must override an unrelated starter profile');
+ assert.match(portal,/creatureVisual\(\{id:session\.beast\.qbeast\.profile\.id/,'presentation follows the exact selected QBEAST');
  assert.match(portal,/<ZerefDiaryPanel/);
  assert.match(arena,/createPocket\(/);assert.match(arena,/beastbox:rig-cue/);assert.match(arena,/Make the beast attack/);
  assert.match(spark,/<SparkRig /);assert.match(spark,/renderBeast/,'pixel renderer kept for the classic view');
