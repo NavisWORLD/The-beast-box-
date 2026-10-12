@@ -64,8 +64,11 @@ def encode(r,action_conditioned=True):
     s=r["before"]
     xs=[float(s[k])/100 for k in ("brightness","contrast","frameChange")]
     xs += [1.0 if s["dominant"]==v else 0.0 for v in DOMINANTS]
-    if action_conditioned:
-        xs += [1.0 if r["action"]==a else 0.0 for a in ACTIONS]
+    # Equal-length vectors in both arms: the blind arm gets six fixed zeros.
+    # The neural architectures, parameter counts and random minibatch order
+    # are otherwise exactly matched. Optical effects are observational only.
+    xs += ([1.0 if r["action"]==a else 0.0 for a in ACTIONS]
+           if action_conditioned else [0.0]*len(ACTIONS))
     return xs
 
 def target(r): return [float(r["after"][k])/100 for k in ("brightness","contrast","frameChange")]
@@ -79,11 +82,11 @@ def make_model(inputs):
 
 def train(rows,use_action):
     torch.manual_seed(SEED)
-    model=make_model(13 if use_action else 7)
+    model=make_model(13)
     opt=torch.optim.AdamW(model.parameters(),lr=LEARNING_RATE,weight_decay=.01)
     X=torch.tensor([encode(r,use_action) for r in rows],dtype=torch.float32)
     Y=torch.tensor([target(r) for r in rows],dtype=torch.float32)
-    generator=torch.Generator().manual_seed(SEED+int(use_action)*913)
+    generator=torch.Generator().manual_seed(SEED)
     train_losses=[]
     for i in range(STEPS):
         ix=torch.randint(len(rows),(16,),generator=generator)
@@ -137,6 +140,9 @@ def main():
       "source_controller":"acknowledged original GBA emulator",
       "source_is_optical_aggregates_not_objects_or_coordinates":True,
       "action_outcome_causality_proven":False,
+      "teacher_action_assignments_were_not_randomized":True,
+      "pilot_reuses_known_holdout_not_independent_replication":True,
+      "matched_model_dimensions_initialization_and_batch_order":True,
       "game_objective_progress_proven":False,
       "neural_architecture":"auxiliary small CPU visual predictor; NOT RAWRPHOS",
       "rawrphos_weights_or_approved_006_modified":False,
