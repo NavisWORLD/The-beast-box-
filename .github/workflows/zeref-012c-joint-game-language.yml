@@ -1,0 +1,113 @@
+name: Zeref 012C actual joint game and language learning trial (research only)
+on:
+  pull_request:
+    paths:
+      - 'scripts/zeref_012c_joint_training.py'
+      - 'scripts/zeref_012c_joint_dialogue.py'
+      - 'tests/test_zeref_012c_dialogue.py'
+      - '.github/workflows/zeref-012c-joint-game-language.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: zeref-012c-research-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  joint-trial:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '3'
+      MKL_NUM_THREADS: '3'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate authored guest-safe language curriculum and syntax
+        run: |
+          set -Eeuo pipefail
+          python -m unittest discover -s tests -p test_zeref_012c_dialogue.py -v
+          python -m py_compile scripts/zeref_012c_joint_dialogue.py scripts/zeref_012c_joint_training.py
+          python scripts/zeref_012c_joint_dialogue.py
+      - name: Download fixed completed 012B observed pocket evidence and the real native ROM capture from 011
+        run: |
+          set -Eeuo pipefail
+          gh run download 38321516632 --repo "${{ github.repository }}" \
+            -n zeref-012b-game-alignment-38321516632 -D build/zeref-012c/input/pocket
+          gh run download 38191707756 --repo "${{ github.repository }}" \
+            -n zeref-011-evidence-38191707756 -D build/zeref-012c/input/native-011
+          D="$(find build/zeref-012c/input/pocket -type f -name pocket-outcome-selected-train.jsonl -printf '%h\\n' -quit)"
+          N="$(find build/zeref-012c/input/native-011 -type f -name native-evidence-manifest.json -printf '%h\\n' -quit)"
+          test -n "$D" && test -f "$D/manifest.json"
+          test -n "$N" && test -f "$N/native-observation-actions.jsonl"
+          echo "ZEREF_012C_GAME=$D" >> "$GITHUB_ENV"
+          echo "ZEREF_012C_NATIVE=$N" >> "$GITHUB_ENV"
+      - name: Retrieve only the approved 006 Zeref parent and verify physical checkpoint SHA
+        run: |
+          set -Eeuo pipefail
+          gh run download 38179059173 --repo "${{ github.repository }}" \
+            -n zeref-006-canonical-37ca3f8f -D build/zeref-012c/input/parent
+          P="$(find build/zeref-012c/input/parent -type d -name accepted-checkpoint -print -quit)"
+          test -n "$P" && test -f "$(dirname "$P")/approval.json"
+          test "$(sha256sum "$P/model.safetensors" | cut -d' ' -f1)" = d0df90ea090b410aa5da5051b20e21ae5728236f7371450807f1af662fb02445
+          echo "ZEREF_012C_PARENT=$P" >> "$GITHUB_ENV"
+      - name: Install CPU native RAWRPHOS and preserve optimizer lineage
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e ./models/rawrphos
+      - name: Run REAL 160-update game-only vs game+language vs shuffled-control neural training
+        run: |
+          set -Eeuo pipefail
+          python -u scripts/zeref_012c_joint_training.py \
+            --parent "$ZEREF_012C_PARENT" \
+            --game "$ZEREF_012C_GAME" \
+            --native "$ZEREF_012C_NATIVE" \
+            --out build/zeref-012c/out --updates 160 --seed 20261012 \
+            --lr 1e-5 --threads 3 --eval-layouts 8
+      - name: Verify actual neural updates, conversation evaluation and forbidden promotions
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('build/zeref-012c/out/report.json')
+          r=json.loads(p.read_text())
+          assert r['schema']=='zeref-012c-joint-game-dialogue/v1'
+          assert r['training_performed'] is True and r['full_model_neural_weights_updated_in_shadow'] is True
+          assert r['parent_unchanged'] is True and r['production_promoted'] is False
+          assert r['training_parent_promoted'] is False
+          assert r['private_user_chats_used'] is False and r['guest_personal_state_used'] is False
+          assert r['new_ibm_hardware_jobs']==0 and r['new_rigetti_jobs']==0
+          assert r['evidence_quantum_action_pairs']==0
+          assert r['updates_per_arm']==160 and len(r['arms'])==3
+          assert r['language_training_examples']==60 and r['language_heldout_examples']==20
+          assert r['canonical_parent_checkpoint_sha256']=='d0df90ea090b410aa5da5051b20e21ae5728236f7371450807f1af662fb02445'
+          assert r['shadow_checkpoint']
+          assert all(v['optimizer_updates']==160 and v['parent_parameter_sha256']!=v['trained_parameter_sha256']
+                     for v in r['arms'].values())
+          assert len(r['acceptance_gates'])==10
+          assert (Path('build/zeref-012c/out/shadow-joint-checkpoint')/'manifest.json').is_file()
+          print("ZEREF_012C_COMPLETE_NEURAL_TRAINING_NO_AUTOMATIC_PROMOTION")
+          print("Acceptance gates:",json.dumps(r['acceptance_gates'],sort_keys=True))
+          PY
+      - name: Retain report and rejected or passing research-only shadow separately from production
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-012c-joint-language-game-research-${{ github.run_id }}
+          path: |
+            build/zeref-012c/out/report.json
+            build/zeref-012c/out/shadow-joint-checkpoint/
+          retention-days: 60
+          if-no-files-found: warn
