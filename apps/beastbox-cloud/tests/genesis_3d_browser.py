@@ -165,7 +165,7 @@ with sync_playwright() as p:
  load(settings_page,"/beast-cage")
  expect(settings_page.locator('[data-pocket-dimension="true"]')).to_have_attribute("data-pocket-state","disabled")
  expect(settings_page.locator('.cage-habitat-visual [data-spark-beast="true"]')).to_be_visible()
- settings_page.get_by_role("button",name="Reset 3D camera").click()
+ settings_page.get_by_role("button",name="Reset 3D pocket camera").click()
  fits(settings_page,"3D off still preserves original creature")
  load(settings_page,"/settings")
  settings_page.get_by_role("switch",name="Three.js pocket scenery").click()
