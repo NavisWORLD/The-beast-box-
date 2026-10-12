@@ -1,0 +1,46 @@
+name: Zeref isolated Azure Blob verification (no provider jobs)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/zeref-cloud-verification-20261012]
+    paths:
+      - scripts/zeref_cloud_blob_probe.mjs
+      - apps/beastbox-cloud/lib/cosmos/azure-blob.mjs
+      - apps/beastbox-cloud/tests/zeref-cloud-blob-verification.test.mjs
+      - .github/workflows/zeref-cloud-verification.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zeref-isolated-cloud-verification-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  isolated-blob:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify create-only and guarded cleanup behavior locally
+        run: node --test apps/beastbox-cloud/tests/zeref-cloud-blob-verification.test.mjs
+      - name: Probe exactly one isolated synthetic test object and clean up
+        env:
+          BEASTBOX_BLOB_PROBE_APPROVAL: YES_ISOLATED_CREATE_READ_DELETE
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          AZURE_STORAGE_CONTAINER_SAS_URL: ${{ secrets.AZURE_STORAGE_CONTAINER_SAS_URL }}
+          AZURE_STORAGE_CONTAINER: beastbox
+        run: node scripts/zeref_cloud_blob_probe.mjs build/zeref-cloud-verification/receipt.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zeref-cloud-verification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/zeref-cloud-verification/receipt.json
+          if-no-files-found: error
+          retention-days: 7
