@@ -1,0 +1,71 @@
+name: Zeref 013 - original-ROM visual effect prediction (CPU shadow)
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - 'scripts/zeref_visual_dynamics_013.py'
+      - 'tests/test_zeref_visual_dynamics_013.py'
+      - '.github/workflows/zeref-visual-dynamics-013.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: zeref-013-readonly-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  real-optical-dynamics:
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.base_ref == 'main' && startsWith(github.head_ref, 'feature/zeref-visual-dynamics-013-') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate experiment 013 source-isolation contract
+        run: |
+          set -Eeuo pipefail
+          python -m unittest discover -s tests -p 'test_zeref_visual_dynamics_013.py' -v
+          python -m py_compile scripts/zeref_visual_dynamics_013.py
+      - name: Recover exactly the already-saved real native emulator capture
+        run: |
+          set -Eeuo pipefail
+          mkdir -p build/zeref-visual-dynamics-013/input
+          gh run download 38216640554 --repo "${{ github.repository }}" -n zeref-006-observed-training-report-38216640554 -D build/zeref-visual-dynamics-013/input
+          X="$(find build/zeref-visual-dynamics-013/input -name native-observation-actions.jsonl -type f -print -quit)"
+          test -n "$X"
+          test "$(sha256sum "$X" | cut -d' ' -f1)" = be3a7dc65877e4a024657dd910c33f4b1ebbbe7c4cdb10df74ad1b5d25ae8e1b
+          echo 'AUTHENTIC_ROM_OBSERVATION_HASH_VERIFIED=true'
+      - name: Install CPU-only torch
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+      - name: Train action-conditioned and action-blind optical prediction controls
+        run: |
+          set -Eeuo pipefail
+          python scripts/zeref_visual_dynamics_013.py --native build/zeref-visual-dynamics-013/input
+          test -s build/zeref-visual-dynamics-013/report.json
+      - name: Preserve measured optical outcome report or scientific rejection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-013-real-optical-dynamics-report-${{ github.run_id }}
+          path: |
+            build/zeref-visual-dynamics-013/report.json
+            build/zeref-visual-dynamics-013/rejected.json
+          retention-days: 90
+          if-no-files-found: warn
+      - name: Preserve only an accepted auxiliary research predictor
+        if: success() && hashFiles('build/zeref-visual-dynamics-013/auxiliary-optical-predictor.pt') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-013-accepted-auxiliary-predictor-${{ github.run_id }}
+          path: build/zeref-visual-dynamics-013/auxiliary-optical-predictor.pt
+          retention-days: 90
+          if-no-files-found: error
