@@ -109,11 +109,11 @@ export function personaFrame(persona) {
 }
 
 /** Single bounded prompt for text-only routes (guest host, HF). The keeper's words always survive. */
-export function framePrompt(persona, history, text, limit = GUEST_LIMIT) {
+export function framePrompt(persona, history, text, limit = GUEST_LIMIT, context = "") {
   const p = persona || ZEREF;
   const said = clean(text, MAX_MESSAGE);
   const tail = `\nKeeper: ${said}\n${p.name}:`;
-  let head = personaFrame(p);
+  let head = personaFrame(p) + (context ? "\n" + clean(context, 260) : "");
   const recent = (Array.isArray(history) ? history : []).slice(-2)
     .map((turn) => (turn.role === "you" ? "Keeper: " : p.name + ": ") + clean(turn.text, 110));
   let body = recent.length ? "\n" + recent.join("\n") : "";
@@ -182,6 +182,7 @@ export async function talkToBeast(input) {
   const fetchImpl = input?.fetchImpl || globalThis.fetch;
   const signal = input?.signal;
   const history = Array.isArray(input?.history) ? input.history : [];
+  const context = clean(input?.context, 260);
   if (!text) return failure(route, "Type a message first.");
   try {
     if (route === "local-ollama") {
@@ -189,7 +190,7 @@ export async function talkToBeast(input) {
       const model = String(input?.ollama?.model || DEFAULT_OLLAMA_MODEL).trim();
       if (!validOllamaUrl(base)) return failure(route, "Local Ollama must be on this computer (http://127.0.0.1:11434 or http://localhost:11434).");
       if (!MODEL_TAG.test(model) || model.includes("://")) return failure(route, "Enter the tag of a model you installed in Ollama, e.g. qwen2.5:0.5b.");
-      const messages = [{ role: "system", content: personaFrame(persona) }];
+      const messages = [{ role: "system", content: personaFrame(persona) + (context ? "\n" + context : "") }];
       for (const turn of history.slice(-6)) messages.push({ role: turn.role === "you" ? "user" : "assistant", content: clean(turn.text, 400) });
       messages.push({ role: "user", content: text });
       const response = await fetchImpl(base + "/api/chat", {
@@ -217,7 +218,7 @@ export async function talkToBeast(input) {
       const response = await fetchImpl("/api/guest", {
         method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider: "huggingface-byok", text: framePrompt(persona, history, text), hf_key: key, model, spend_confirmed: true }),
+        body: JSON.stringify({ provider: "huggingface-byok", text: framePrompt(persona, history, text, GUEST_LIMIT, context), hf_key: key, model, spend_confirmed: true }),
       });
       const payload = await readJson(response).catch(() => null);
       if (!response.ok) return failure(route, typeof payload?.error === "string" ? payload.error : `Hugging Face request failed (${response.status}).`, response.status);
@@ -228,7 +229,7 @@ export async function talkToBeast(input) {
     const response = await fetchImpl("/api/guest", {
       method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "rawrphos-local", text: framePrompt(persona, history, text) }),
+      body: JSON.stringify({ provider: "rawrphos-local", text: framePrompt(persona, history, text, GUEST_LIMIT, context) }),
     });
     const payload = await readJson(response).catch(() => null);
     if (!response.ok) {
