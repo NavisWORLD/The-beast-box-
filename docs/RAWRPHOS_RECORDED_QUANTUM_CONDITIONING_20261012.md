@@ -16,7 +16,7 @@ Only already public, sanitized counts are read; no owner private chats, photos, 
 
 Each feature row preserves source-class, backend, job ID, PUB index, count hash, source file path/hash/row index and 12 bounded classical numerical features. Features include a per-bit marginal (first five bits, zero padding for unmeasured positions), even-parity fraction, support, and entropy. These are **not twelve independently measured quantum degrees of freedom**. A nullable action/reward/dialogue label makes it impossible to mistake these rows for policy supervision.
 
-The deterministic IBM train/validation/test split groups by connected components of **shared physical job and identical published count hash**, preventing a multi-PUB job or exactly repeated count map from appearing on both sides of a split. Rigetti simulator inputs remain completely separate.
+The exporter retains **all 5,706 IBM records** in `ibm-all-verified-source-rows.jsonl`. The candidate train/validation/test splits use **one representative per identical count digest**, while preserving the remaining measured job/PUB records in `ibm-repeated-counts-audit-only.jsonl` (equality of the measured count distributions does NOT mean those physical jobs were duplicates). This avoids the huge one-bit identical-count connected component collapsing the holdout splits. The selected samples are then split together by IBM job with deterministic SHA-256 buckets (roughly 80/10/10) and tests assert that no exact count digest or job is shared across the candidate splits. The complete count evidence remains available for future analyses. Rigetti simulator inputs stay completely separate.
 
 ## Reproduce (Node.js 24)
 
@@ -26,7 +26,7 @@ node scripts/prepare_rawrphos_quantum_conditioning.mjs --write
 node scripts/prepare_rawrphos_quantum_conditioning.mjs --check
 ```
 
-Output (not committed to source): `build/rawrphos-quantum-conditioning/{ibm-train.jsonl,ibm-validation.jsonl,ibm-test.jsonl,rigetti-qvm-simulator-held-separate.jsonl,manifest.json}`.
+Output (not committed to source): `build/rawrphos-quantum-conditioning/` with `ibm-{train,validation,test}.jsonl`, `ibm-all-verified-source-rows.jsonl`, `ibm-repeated-counts-audit-only.jsonl`, `rigetti-qvm-simulator-held-separate.jsonl`, and `manifest.json`.
 
 The workflow `rawrphos-quantum-conditioning.yml` exports a GitHub Actions artifact with exact SHA-256 per input file and output stream. This is *training-input evidence*, not a trained model checkpoint. No IBM, Azure, or Rigetti provider job is submitted.
 
