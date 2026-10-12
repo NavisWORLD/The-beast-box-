@@ -19,14 +19,18 @@ function safeError(error){
   azure_code:/^[A-Za-z][A-Za-z0-9]{0,79}$/.test(error?.code||'')?error.code:null};
 }
 
-function validateConfiguration(cfg,now){
+function validateConfiguration(cfg,now,expectedContainer='beast-cosmos'){
  if(!cfg)return 'STORAGE_CONFIGURATION_INVALID';
  let url;try{url=new URL(cfg.containerUrl);}catch{return 'STORAGE_CONFIGURATION_INVALID';}
+ // Precise but credential-free diagnostics: NEVER echo a URL, path, SAS field or account name.
  if(url.protocol!=='https:'||url.username||url.password||url.port||url.search||url.hash||
-   !/^[a-z0-9]{3,24}\.blob\.core\.windows\.net$/.test(url.hostname)||
-   !/^\/[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/.test(url.pathname))return 'AZURE_CONTAINER_URL_REQUIRED';
+   !/^[a-z0-9]{3,24}\.blob\.core\.windows\.net$/.test(url.hostname))return 'AZURE_HTTPS_BLOB_ENDPOINT_REQUIRED';
+ if(url.pathname==='/'||!url.pathname)return 'AZURE_CONTAINER_PATH_MISSING';
+ if(!/^\/[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/.test(url.pathname))return 'AZURE_CONTAINER_PATH_INVALID';
+ if(url.pathname!==`/${expectedContainer}`)return 'AZURE_CONTAINER_NAME_MISMATCH';
  if(cfg.mode==='sas'){
   const sas=new URLSearchParams(cfg.sas);
+  if(sas.has('ss')||sas.has('srt'))return 'ACCOUNT_SAS_NOT_CONTAINER_SCOPED';
   if(sas.get('sr')!=='c'||!sas.get('sig')||['comp','restype','snapshot','versionid'].some(k=>sas.has(k)))return 'CONTAINER_SAS_REQUIRED';
   const permission=sas.get('sp')||'';
   if(!permission.includes('r')||!permission.includes('d')||!/[cw]/.test(permission))return 'SAS_READ_CREATE_DELETE_REQUIRED';
@@ -52,7 +56,7 @@ export async function runBlobVerification({env=process.env,now=new Date()}={}){
  const run=String(env.GITHUB_RUN_ID||''),attempt=String(env.GITHUB_RUN_ATTEMPT||'');
  if(!/^[1-9][0-9]{0,19}$/.test(run)||!/^[1-9][0-9]{0,4}$/.test(attempt))return block('NUMERIC_RUN_ID_REQUIRED');
  if(!Object.values(receipt.credentials).some(Boolean))return block('STORAGE_CREDENTIAL_MISSING');
- const cfg=storageConfig(env),invalid=validateConfiguration(cfg,now);
+ const cfg=storageConfig(env),invalid=validateConfiguration(cfg,now,String(env.AZURE_STORAGE_CONTAINER||'beast-cosmos').trim());
  if(invalid)return block(invalid);
  receipt.credential_mode=cfg.mode;
  const name=`verification/zeref-cloud/${run}-${attempt}/${randomUUID()}.json`;
