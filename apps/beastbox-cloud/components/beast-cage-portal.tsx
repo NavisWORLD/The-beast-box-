@@ -20,6 +20,7 @@ import BrandCrest from '@/components/brand-crest';
 import ZerefDiaryPanel from './zeref-diary-panel';
 import {ZEREF_PROFILE} from '../lib/zeref/zeref-mind.mjs';
 import {creatureVisual} from '../public/spark/creature-assets.mjs';
+import {POCKET_3D_CAMERA_RESET} from '../lib/companion/pocket-3d-settings.mjs';
 const VIEW_STORAGE='beastbox-cage-view-v1';
 const LOOKS:{id:BaseLook;label:string;detail:string;accent:string}[]=[
  {id:'nebula',label:'Nebby',detail:'A curious little pocket galaxy',accent:'violet'},
@@ -113,6 +114,7 @@ export default function BeastCagePortal(){
    <div className="cage-view-toggle" role="group" aria-label="Habitat view">
     <button type="button" aria-pressed={view==='pocket'} onClick={()=>chooseView('pocket')}>✦ Pocket explorer</button>
     <button type="button" aria-pressed={view==='classic'} onClick={()=>chooseView('classic')}>Classic pixel sprite</button>
+    <button type="button" onClick={()=>window.dispatchEvent(new Event(POCKET_3D_CAMERA_RESET))} aria-label="Reset 3D pocket camera">Reset 3D camera</button>
     <a href="#zeref-diary">Zeref&apos;s Diary ↓</a>
    </div>
   </section>
