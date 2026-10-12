@@ -49,3 +49,5 @@
 
 .modelDownload{width:100%;padding:13px 16px;min-height:47px;margin-top:10px;border:1px solid #a5e9f8a6;border-radius:12px;background:#273458;color:#e4f8ff;font-weight:700}.modelDownload:disabled{opacity:.6}
 .header{padding-top:max(21px,env(safe-area-inset-top,0px))}.page{padding-bottom:env(safe-area-inset-bottom,0px)}
+/* Phones: the companion's stage/voice controls sit below the sprite, so let the model box grow instead of letting the mood buttons cover them. */
+@media(max-width:850px){.model{max-height:none;flex:0 0 auto}.actions{margin-top:12px}}
