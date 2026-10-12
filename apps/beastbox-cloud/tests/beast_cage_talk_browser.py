@@ -1,4 +1,5 @@
 """Real public UI-only footage; does not mock or claim successful model inference."""
+import re
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 ROOT="http://127.0.0.1:3100"
@@ -16,10 +17,11 @@ with sync_playwright() as p:
   page.on("request",lambda req:sent.append(req.url) if "/api/guest" in req.url else None)
   response=page.goto(ROOT+"/beast-cage/talk",wait_until="domcontentloaded",timeout=45000)
   assert response and response.status==200
-  expect(page.get_by_role("heading",name="Talk to the little Beast.")).to_be_visible()
-  input=page.get_by_label("Say something to the Beast")
+  expect(page.get_by_role("heading",name="Talk to your Beast.")).to_be_visible()
+  expect(page.get_by_text("Brain: RAWRPHØS guest")).to_be_visible()
+  input=page.get_by_label(re.compile("^Message to "))
   input.fill("Hey Beast, introduce yourself!")
-  expect(page.get_by_role("button",name="Send to real model")).to_be_enabled()
+  expect(page.get_by_role("button",name="Send",exact=True)).to_be_enabled()
   page.wait_for_timeout(1900)
   assert not sent,"Recording MUST NOT use a simulated or paid chat request"
   assert not errors,(width,errors)
@@ -31,7 +33,7 @@ with sync_playwright() as p:
   context.close()
  reduced=browser.new_context(viewport={"width":390,"height":844},reduced_motion="reduce")
  page=reduced.new_page();page.goto(ROOT+"/beast-cage/talk",wait_until="domcontentloaded")
- expect(page.get_by_role("heading",name="Talk to the little Beast.")).to_be_visible()
+ expect(page.get_by_role("heading",name="Talk to your Beast.")).to_be_visible()
  page.screenshot(path=str(OUT/"talk-reduced-motion.png"),full_page=True)
  reduced.close();browser.close()
 print("REAL_SIDEQUEST_BROWSER_PASS UI footage recorded without fabricating model responses")
