@@ -46,8 +46,8 @@ jobs:
             -n zeref-012b-game-alignment-38321516632 -D build/zeref-012c/input/pocket
           gh run download 38191707756 --repo "${{ github.repository }}" \
             -n zeref-011-evidence-38191707756 -D build/zeref-012c/input/native-011
-          D="$(find build/zeref-012c/input/pocket -type f -name pocket-outcome-selected-train.jsonl -printf '%h\\n' -quit)"
-          N="$(find build/zeref-012c/input/native-011 -type f -name native-evidence-manifest.json -printf '%h\\n' -quit)"
+          D="$(find build/zeref-012c/input/pocket -type f -name pocket-outcome-selected-train.jsonl -printf '%h\n' -quit)"
+          N="$(find build/zeref-012c/input/native-011 -type f -name native-evidence-manifest.json -printf '%h\n' -quit)"
           test -n "$D" && test -f "$D/manifest.json"
           test -n "$N" && test -f "$N/native-observation-actions.jsonl"
           echo "ZEREF_012C_GAME=$D" >> "$GITHUB_ENV"
