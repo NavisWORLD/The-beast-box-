@@ -1,0 +1,15 @@
+export const POCKET_SCHEMA:string;export const POI_KINDS:readonly string[];export const GAITS:readonly string[];export const PHASES:readonly string[];
+export type Poi={id:string;kind:string;name:string;x:number;y:number};
+export type Pocket={schema:string;rng:number;reduced:boolean;t:number;x:number;y:number;face:number;phase:string;phaseStart:number;phaseEnd:number;gait:string;target:Poi|null;lastTarget:string|null;pois:Poi[];visits:Record<string,number>;order:string[];arrivals:number;seen:Record<string,number>;sampleAt:number};
+export function pocketRandom(p:{rng:number}):number;
+export function createPocket(o?:{digest?:string;key?:string;reduced?:boolean}):Pocket;
+export function poiWeights(p:Pocket,m:any):number[];
+export function stepPocket(p:Pocket,m:any,dt:number,o?:{busy?:boolean}):{type:string;[k:string]:any}[];
+export function placeOf(p:Pocket):Poi|null;
+export function growthLook(stage?:number):{stage:number;scale:number;aura:number;rings:number};
+export function blendFrame(f:any,p:Pocket,m:any,o?:{stage?:number}):any;
+export function comboOf(f:any,p:Pocket,m:any):{key:string;name:string;parts:Record<string,string>};
+export function sampleCombo(p:Pocket,f:any,m:any):{key:string;name:string;parts:Record<string,string>}|null;
+export function attachLearner(p:any,L:any):any;
+export function callBeast(p:any):void;
+export function setSenses(p:any,s:{others?:{id:string;x:number;y:number}[];sound?:{active:boolean;level:number}|null}):void;

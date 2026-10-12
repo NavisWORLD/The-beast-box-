@@ -14,7 +14,7 @@ export const LOCOMOTION:readonly ZerefBehavior[];
 export function recordedSeed(source?:ZerefRecordedSource):ZerefSeed;
 export function nextRandom(m:{rng:number}):number;
 export function temperamentFor(profile?:ZerefProfile,seed?:ZerefSeed):Record<string,number>;
-export function createMind(options?:{profile?:ZerefProfile;source?:ZerefRecordedSource;care?:{energy?:number;bond?:number};reduced?:boolean;hour?:number}):ZerefMind;
+export function createMind(options?:{profile?:ZerefProfile;source?:ZerefRecordedSource;care?:{energy?:number;bond?:number};reduced?:boolean;hour?:number;seed?:ZerefSeed|null}):ZerefMind;
 export function behaviorWeights(m:ZerefMind):Record<ZerefBehavior,number>;
 export function stepMind(m:ZerefMind,dt:number,inputs?:{hour?:number;pointer?:{x:number;y:number;moved:boolean}}):ZerefMind;
 export function tapMind(m:ZerefMind,options?:{hold?:boolean}):ZerefReaction;

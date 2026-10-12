@@ -3,6 +3,7 @@ import {useState} from 'react';
 import Link from 'next/link';
 import CosmicCompanion3D from './cosmic-companion-3d';
 import ZerefMoonwraith from './zeref-moonwraith';
+import ZerefLatestThought from './zeref-latest-thought';
 import {useCompanion} from './companion-provider';
 import {useBeastSession} from './beast-session';
 import {shownName} from '../lib/companion/session.mjs';
@@ -52,6 +53,7 @@ export default function HomepageCreature(){
     {showZeref?<small>Showing Zeref, the site guide. Your Beast&apos;s identity is unchanged.</small>:null}
    </>:showZeref?<><strong>✦ ZEREF · MOONWRAITH · <span data-zeref-mood>{zMood.toUpperCase()}</span></strong>
     <p>{line||'*soft moon-purr* I\u2019m right here.'}</p>
+    <ZerefLatestThought className={styles.thought}/>
     <div className={styles.actions}>
      <button type="button" aria-pressed={waved} onClick={()=>{setWaved(value=>!value);setGreet(value=>value+1);}}>{waved?'Wave again ✦':'Wave hello ✦'}</button>
      <a href="/spark/index.html">Meet your Beast →</a>

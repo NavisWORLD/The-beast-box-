@@ -1,0 +1,17 @@
+export const LEARNER_SCHEMA:string;
+export const GRID:{cols:number;rows:number;x0:number;x1:number;y0:number;y1:number};
+export const GOALS:readonly string[];
+export type Learner={schema:string;cells:number[];known_blocked:number[];moves:{succeeded:number;blocked:number};value:Record<string,number>;prefs:Record<string,number>;goals:Record<string,number>;goal:string|null;decisions:number};
+export type LearningSummary={cells_visited:number;cells_total:number;known_rifts:number;moves_succeeded:number;moves_blocked:number;blocked_rate:number;favorite_spot:string|null;favorite_value:number|null;prefs:Record<string,number>;decisions:number};
+export function cellOf(x:number,y:number):number;
+export function cellCenter(i:number):{x:number;y:number};
+export function riftCells(pois:any[],seedKey:string):number[];
+export function createLearner():Learner;
+export function restoreLearner(raw:unknown):Learner;
+export function perceive(p:any,s?:any):{near:any[];beasts:any[];sound:number|null};
+export function goalUtilities(L:Learner,p:any,m:any,sense?:any):Record<string,number>;
+export function chooseGoal(L:Learner,p:any,m:any,rand:()=>number,sense?:any):{goal:string;target:any;utilities:Record<string,number>};
+export function callTarget():{id:string;kind:string;name:string;x:number;y:number};
+export function enterCell(L:Learner,cell:number,rifts:number[]):{outcome:'ok'|'blocked';fresh:boolean};
+export function learn(L:Learner,goal:string,reward:number,placeId?:string|null):void;
+export function learningSummary(L:Learner,pois?:any[]):LearningSummary;

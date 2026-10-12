@@ -627,3 +627,15 @@ html[data-beastbox-reduced-motion="true"] *,html[data-beastbox-reduced-motion="t
 .zeref-support.is-winged .support-mascot-wings{transform:scale(1.12)}
 @media(max-width:560px){.zeref-caption{font-size:9px;padding:2px 8px}}
 @media(prefers-reduced-motion:reduce){.zeref-svg [data-part]{will-change:auto;transition:none!important}}
+
+/* Beast Cage: pocket explorer / classic view toggle under the circle. */
+.cage-view-toggle{grid-column:2;justify-self:center;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:-20px}
+.cage-view-toggle button,.cage-view-toggle a{min-height:44px;display:inline-flex;align-items:center;padding:8px 14px;border-radius:999px;border:1px solid #9beffd66;background:#101a31e6;color:#dff9ff;font:700 12px 'Space Grotesk',sans-serif;letter-spacing:.04em;cursor:pointer;text-decoration:none}
+.cage-view-toggle button[aria-pressed="true"]{background:linear-gradient(110deg,#a1f4f8,#c9b1ff);color:#18102d;border-color:#fff8}
+@media(max-width:1100px){.cage-view-toggle{grid-column:1;margin-top:0}}
+/* iPhone: the caption collided with the beast's meta text; the meta already labels the pocket. */
+@media(max-width:680px){
+ .cage-pocket-active .cage-habitat-caption{display:none}
+ /* Room for the fixed sound dock and mini player so the last text can scroll clear of them. */
+ .cage-universe{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+}

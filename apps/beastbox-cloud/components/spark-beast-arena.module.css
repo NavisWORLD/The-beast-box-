@@ -1,14 +1,14 @@
 .arena{position:absolute;inset:0;display:grid;place-items:center;z-index:1;--roam-x:0px;--roam-y:0px;--roam-face:1;--charge:1}
 .arena :global([data-spark-beast="true"]){overflow:visible;z-index:2}
-.arena :global([data-spark-beast="true"]) canvas{translate:var(--roam-x) var(--roam-y);scale:calc(var(--charge) * var(--roam-face)) var(--charge);transition:scale .12s ease-out}
-.arena:not([data-behavior-action="visual-preview"]) :global([data-spark-beast="true"]) canvas{transition:scale .12s ease-out,translate 1.2s ease-out}
-.arena[data-reduced-motion="true"] :global([data-spark-beast="true"]) canvas{translate:none;scale:1;transition:none}
-.arena[data-phase="charge"] :global([data-spark-beast="true"]) canvas{filter:drop-shadow(0 0 16px #fff8) drop-shadow(0 0 28px #9cf6ffaa)}
+.arena :global([data-spark-beast="true"]) [data-beast-sprite]{translate:var(--roam-x) var(--roam-y);scale:calc(var(--charge) * var(--roam-face)) var(--charge);transition:scale .12s ease-out}
+.arena:not([data-behavior-action="visual-preview"]) :global([data-spark-beast="true"]) [data-beast-sprite]{transition:scale .12s ease-out,translate 1.2s ease-out}
+.arena[data-reduced-motion="true"] :global([data-spark-beast="true"]) [data-beast-sprite]{translate:none;scale:1;transition:none}
+.arena[data-phase="charge"] :global([data-spark-beast="true"]) [data-beast-sprite]{filter:drop-shadow(0 0 16px #fff8) drop-shadow(0 0 28px #9cf6ffaa)}
 .fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
 .flash{position:absolute;inset:0;pointer-events:none;z-index:5;opacity:0;background:radial-gradient(circle at 50% 48%,#ffffffd0,#c9b1ff66 38%,transparent 70%);mix-blend-mode:screen}
 .hit{position:absolute;inset:8% 10% 18%;z-index:3;border:0;border-radius:50%;background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .hit:focus-visible{outline:2px dashed #a0eff3;outline-offset:-6px}
-.tools{position:absolute;z-index:6;top:9%;left:50%;transform:translateX(-50%);display:flex;gap:6px;flex-wrap:wrap;justify-content:center;width:min(86%,250px)}
+.tools{position:absolute;z-index:6;top:9%;left:0;right:0;margin-inline:auto;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;width:min(86%,250px)}
 .volume{display:inline-flex;align-items:center;border:1px solid #9beffd8a;border-radius:999px;background:#101a31e6;padding:0 10px;backdrop-filter:blur(8px)}
 .volume input{width:74px;accent-color:#a1f4f8;height:20px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
@@ -21,5 +21,28 @@
 .toast:not(:empty){border-radius:14px}
 .toast em{color:#ffd77a;font-style:normal;margin-left:4px}
 @keyframes toastIn{0%{opacity:0;translate:0 8px;scale:.9}12%{opacity:1;translate:0 0;scale:1.06}20%{scale:1}85%{opacity:1}100%{opacity:0;translate:0 -6px}}
-@media(max-width:680px){.tools{top:7%}.toast{top:28%;font-size:11px}}
-@media(prefers-reduced-motion:reduce){.arena :global([data-spark-beast="true"]) canvas{translate:none;scale:1;transition:none}.toast:not(:empty){animation:none}}
+
+@media(prefers-reduced-motion:reduce){.arena :global([data-spark-beast="true"]) [data-beast-sprite]{translate:none;scale:1;transition:none}.toast:not(:empty){animation:none}}
+
+/* Rig mode: the rig faces its own path; arena never mirrors it. */
+.arena[data-rig="true"] :global([data-spark-beast="true"]) [data-beast-sprite]{scale:var(--charge)}
+.arena[data-rig="true"][data-behavior-action="visual-preview"]:not([data-reduced-motion="true"]) :global([data-spark-beast="true"]) [data-beast-sprite]{transition:scale .12s ease-out}
+/* Dimensional pocket points of interest, drawn on the existing 3D grid world. */
+.pois{position:absolute;inset:0;z-index:1;pointer-events:none}
+.poi{position:absolute;width:0;height:0}
+.poi i{position:absolute;left:-18px;top:-7px;width:36px;height:14px;border-radius:50%;opacity:.75;transition:opacity .4s,transform .4s}
+.poi[data-poi-kind="moon-pool"] i{background:radial-gradient(ellipse,#e9f4ffcc,#8fb8ff66 45%,transparent 72%);box-shadow:0 0 14px #b9d7ff88}
+.poi[data-poi-kind="crystal"] i{left:-7px;top:-22px;width:14px;height:22px;border-radius:2px;clip-path:polygon(50% 0,100% 38%,70% 100%,30% 100%,0 38%);background:linear-gradient(160deg,#f2e6ff,#b57bff 55%,#5b2fb0);box-shadow:0 0 12px #c9a6ff}
+.poi[data-poi-kind="portal"] i{left:-13px;top:-30px;width:26px;height:32px;border-radius:50% 50% 45% 45%;border:2px solid #8fe8ff;background:radial-gradient(ellipse at 50% 60%,#1a0d3acc,#6a3fd155 60%,transparent);box-shadow:0 0 14px #8fe8ff99,inset 0 0 10px #b57bff}
+.poi[data-active="true"] i{opacity:1;transform:scale(1.25)}
+@media(max-width:680px){
+ /* iPhone: one compact icon row clear of the circle edge, slider on its own short row; 44px targets kept. */
+ .tools{top:8%;gap:4px;width:min(78%,230px)}
+ .tool{width:44px;height:44px;padding:0;justify-content:center}
+ .tool span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+ .volume{height:30px;padding:0 10px}
+ .volume input{width:96px}
+ .toast{top:30%;font-size:11px}
+ .poi i{scale:.8}
+}
+@media(prefers-reduced-motion:reduce){.poi i{transition:none}}

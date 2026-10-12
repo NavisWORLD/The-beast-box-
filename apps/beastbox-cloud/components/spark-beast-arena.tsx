@@ -1,7 +1,8 @@
 'use client';
 import {useUniverseMotion} from './use-universe-motion';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {Music,Volume2,VolumeX,Zap} from 'lucide-react';
+import {Hand,Music,Volume2,VolumeX,Zap} from 'lucide-react';
+const LEARNER_KEY='beastbox-pocket-learner-v1:';
 import SparkBeastCompanion,{type Genome} from './spark-beast-companion';
 import {useBeastSession} from './beast-session';
 import {careAction,shownName} from '../lib/companion/session.mjs';
@@ -9,6 +10,11 @@ import {buildMoveset,nextAttackDelay,pickAttack,roamAt,roarFor} from '../lib/com
 import type {BaseLook,CreatureProfile} from '../lib/creature-profile';
 import styles from './spark-beast-arena.module.css';
 import {useBeastAudio} from './use-beast-audio';
+import type {RigDriver} from './spark-rig';
+import {attachLearner,callBeast,createPocket,setSenses} from '../lib/zeref/zeref-pocket.mjs';
+import {learningSummary,restoreLearner} from '../lib/zeref/pocket-learner.mjs';
+import {ZEREF_PROFILE} from '../lib/zeref/zeref-mind.mjs';
+import {recordArrival,recordCare,recordCombo} from '../lib/zeref/pocket-journal';
 
 type VisualState='idle'|'listening'|'thinking'|'remembering'|'observing'|'sleeping'|'celebrating'|'halted';
 type Move=NonNullable<ReturnType<typeof pickAttack>>;
@@ -25,8 +31,10 @@ function lcg(seed:number){let s=seed>>>0||1;return()=>{s=(Math.imul(s,1664525)+1
  * a roar and attack effects. Moves come from the recorded-seed genome, so each
  * beast fights differently. Sound stays off until the visitor taps.
  */
-export default function SparkBeastArena({profile,fallbackLook='nebula',state='idle',label}:{
+export default function SparkBeastArena({profile,fallbackLook='nebula',state='idle',label,rig=true}:{
  profile?:CreatureProfile|null;fallbackLook?:BaseLook;state?:VisualState;label?:string;
+ /** High-quality ZEREF rig + dimensional-pocket roaming (default). false = original pixel sprite. */
+ rig?:boolean;
 }){
  const {session,change}=useBeastSession();
  const root=useRef<HTMLDivElement>(null),fxCanvas=useRef<HTMLCanvasElement>(null),flash=useRef<HTMLDivElement>(null);
@@ -41,7 +49,67 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
  const moveset:Moveset|null=useMemo(()=>genome?buildMoveset(genome):null,[genome]);
  const onGenome=useCallback((next:Genome)=>setGenome(next),[]);
  const core=genome&&session?.beast&&genome.seed===session.beast.seed?session.beast.behavior:null;
- const name=core?shownName(session.beast):genome?.names?.[2]||genome?.names?.[1]||profile?.name||'Spark Beast';
+ const guide=rig&&!profile;
+ const name=core?shownName(session.beast):guide?'Zeref':genome?.names?.[2]||genome?.names?.[1]||profile?.name||'Spark Beast';
+ // DIMENSIONAL POCKET: seeded places (moon pools, crystals, portals) the rig explores on its own.
+ // A saved Beast with a live behavior core keeps that core's authoritative position instead.
+ const journalId=guide?ZEREF_PROFILE.id:(profile?.id||'preview');
+ const [diaryStage,setDiaryStage]=useState(1);
+ const [pocketPlace,setPocketPlace]=useState<{name:string;kind:string}|null>(null);
+ // No leash: the rig pocket now runs for saved beasts too. The beast picks its own goals (explore,
+ // visit, rest, play) with a small learner persisted per beast on this device; it only comes over when
+ // called or tapped. The saved behaviour core still receives care; it no longer pins the position.
+ const pocket=useMemo(()=>{
+  if(!rig||!genome)return null;
+  const p=createPocket({digest:guide?'zeref-moonwraith':genome.seed,key:journalId,reduced});
+  let raw=null;try{raw=JSON.parse(localStorage.getItem(LEARNER_KEY+journalId)||'null');}catch{}
+  return attachLearner(p,restoreLearner(raw));
+ },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [rig,genome?.seed,guide,journalId,reduced]);
+ useEffect(()=>{
+  if(!pocket?.learner)return;
+  const save=()=>{try{localStorage.setItem(LEARNER_KEY+journalId,JSON.stringify(pocket.learner));}catch{}
+   window.dispatchEvent(new CustomEvent('beastbox:pocket-learning',{detail:{journalId,goal:pocket.goal,summary:learningSummary(pocket.learner,pocket.pois)}}));};
+  save();const iv=window.setInterval(save,4000);
+  const onHide=()=>{if(document.hidden)save();};document.addEventListener('visibilitychange',onHide);
+  const onSense=(e:Event)=>{const d=(e as CustomEvent).detail;if(d?.schema==='local-measurement-v1'&&d.kind==='microphone')setSenses(pocket,{sound:d.active?{active:true,level:Number(d.level)||0}:null});};
+  window.addEventListener('beastbox:local-sensor-level',onSense);
+  const onCall=()=>callBeast(pocket);window.addEventListener('beastbox:call-beast',onCall);
+  return()=>{save();window.clearInterval(iv);document.removeEventListener('visibilitychange',onHide);window.removeEventListener('beastbox:local-sensor-level',onSense);window.removeEventListener('beastbox:call-beast',onCall);};
+ },[pocket,journalId]);
+ const feet=useRef({x:0,y:0,at:-9});
+ const savedStage=Number(session?.beast?.nativeStage||session?.beast?.stage)||1;
+ const rigDriver:RigDriver|null=useMemo(()=>rig?{
+  pocket,busy:()=>busy.current,stage:guide?diaryStage:Math.min(5,savedStage+1),
+  onPocket:(p:any)=>{
+   const node=root.current;if(!node)return;
+   const now=performance.now();
+   if(now-feet.current.at>1000){
+    const mover=node.querySelector('[data-beast-sprite]')?.parentElement as HTMLElement|null;
+    const box=node.getBoundingClientRect(),m=mover?.getBoundingClientRect();
+    if(m&&box.width){feet.current={x:(m.left+m.width/2-box.left)/box.width*100,y:(m.top+m.height*.9-box.top)/box.height*100,at:now};
+     node.style.setProperty('--feet-x',feet.current.x.toFixed(1)+'%');node.style.setProperty('--feet-y',feet.current.y.toFixed(1)+'%');}
+    node.dataset.pocketPhase=p.phase;
+   }
+   const rect=node.getBoundingClientRect();
+   node.style.setProperty('--roam-x',(p.x*rect.width*.3).toFixed(1)+'px');
+   node.style.setProperty('--roam-y',(p.y*rect.height*.16).toFixed(1)+'px');
+   node.style.setProperty('--roam-face','1');
+  },
+  onEvent:(ev:any)=>{
+   if(ev.type==='arrive'){setPocketPlace({name:String(ev.name),kind:String(ev.kind)});recordArrival(journalId,String(ev.name));}
+   else if(ev.type==='decide'||ev.type==='blocked'||ev.type==='came'){const node=root.current;if(node){node.dataset.pocketGoal=String(ev.goal||(ev.type==='came'?'come':node.dataset.pocketGoal||''));if(ev.type==='blocked')node.dataset.lastBlocked=String(ev.cell);}}
+   else if(ev.type==='combo')recordCombo(journalId,{key:String(ev.key),name:String(ev.name)});
+  }
+ }:null,[rig,pocket,guide,diaryStage,savedStage,journalId]);
+ useEffect(()=>{
+  const onDiary=(e:Event)=>{const st=Number((e as CustomEvent).detail?.stage);if(st>=1&&st<=5)setDiaryStage(st);};
+  window.addEventListener('beastbox:zeref-diary',onDiary);
+  return()=>window.removeEventListener('beastbox:zeref-diary',onDiary);
+ },[]);
+ useEffect(()=>{if(rig)recordCare(journalId,'visits');},[rig,journalId]);
+ const cue=useCallback((c:string)=>{if(rig)window.dispatchEvent(new CustomEvent('beastbox:rig-cue',{detail:{channel:'habitat',cue:c}}));},[rig]);
 
 
  useEffect(()=>{
@@ -58,13 +126,14 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
  useEffect(()=>{
   const node=root.current;
   if(!node||!moveset||!visible)return;
-  if(core){
+  if(core&&!pocket){
    const rect=node.getBoundingClientRect(),p=core.position;
    const x=reduced?0:(p.x-.5)*rect.width*.5,y=reduced?0:(p.y-.5)*rect.height*.25;
    node.style.setProperty('--roam-x',x.toFixed(1)+'px');node.style.setProperty('--roam-y',y.toFixed(1)+'px');
    node.style.setProperty('--roam-face',String(x<roamPos.current.x?-1:1));roamPos.current={x,y};return;
   }
-  if(reduced){node.style.setProperty('--roam-x','0px');node.style.setProperty('--roam-y','0px');roamPos.current={x:0,y:0};return;}
+  if(reduced&&!pocket){node.style.setProperty('--roam-x','0px');node.style.setProperty('--roam-y','0px');roamPos.current={x:0,y:0};return;}
+  if(pocket)return; // the rig's pocket driver moves the beast (see rigDriver.onPocket)
   let frame=0,clock=0,last=performance.now();
   const loop=(now:number)=>{
    // The beast plants its feet while it attacks, then keeps wandering its seeded path.
@@ -81,7 +150,7 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
   };
   frame=requestAnimationFrame(loop);
   return()=>cancelAnimationFrame(frame);
- },[moveset,visible,reduced,core]);
+ },[moveset,visible,reduced,core,pocket]);
 
  // Shared music + SFX engine: silent until a user gesture, behind the limiter, honours the Spark mute.
  const {audio:music,state:musicState}=useBeastAudio();
@@ -129,7 +198,7 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
 
  const spriteCenter=useCallback(()=>{
   const node=root.current;
-  const sprite=node?.querySelector('[data-spark-beast="true"] canvas') as HTMLElement|null;
+  const sprite=node?.querySelector('[data-spark-beast="true"] [data-beast-sprite]') as HTMLElement|null;
   if(!node)return{x:0,y:0};
   const box=node.getBoundingClientRect();
   if(!sprite)return{x:box.width/2,y:box.height/2};
@@ -142,6 +211,7 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
   const move=pickAttack(moveset,counter.current++,trigger);
   if(!move)return;
   busy.current=true;
+  cue('charge');
   setToast({text:`${name} used ${move.name}!`,crit:move.crit,id:move.counter});
   void roar(move);
   if(soundRef.current)music.attack(move,{element:moveset.element,seedKey:moveset.key});
@@ -159,7 +229,7 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
   const to={x:Math.max(box.width*.12,Math.min(box.width*.88,from.x+side*box.width*(.3+((move.counter*37)%20)/100))),y:Math.max(box.height*.2,Math.min(box.height*.8,from.y-box.height*.12+((move.counter*53)%25)/100*box.height))};
   fx.current={move,start:performance.now(),from,to,particles:[],struck:false,seed:move.counter*2654435761};
   setPhase('charge');
- },[moveset,name,roar,reduced,spriteCenter]);
+ },[moveset,name,roar,reduced,spriteCenter,cue]);
 
  // Effects renderer: charge-up, strike (beam / slash / burst / quake), impact particles, shake and hit flash.
  useEffect(()=>{
@@ -214,7 +284,8 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
      spawn(from.x,from.y,Math.round(move.particles/2),140,move.accentHue);
      habitat?.animate?.(Array.from({length:8},(_,i)=>({translate:`${(i%2?1:-1)*move.shake*(1-i/8)}px ${((i*3)%2?-1:1)*move.shake*.6*(1-i/8)}px`})).concat([{translate:'0 0'}]),{duration:380,easing:'ease-out'});
      flash.current?.animate?.([{opacity:0},{opacity:move.crit?.9:.65},{opacity:0}],{duration:260});
-     node.querySelector('[data-spark-beast="true"] canvas')?.animate?.([{filter:'brightness(1)'},{filter:'brightness(2.6) saturate(1.6)'},{filter:'brightness(1)'}],{duration:220});
+     cue('strike');
+     node.querySelector('[data-spark-beast="true"] [data-beast-sprite]')?.animate?.([{filter:'brightness(1)'},{filter:'brightness(2.6) saturate(1.6)'},{filter:'brightness(1)'}],{duration:220});
     }
     ctx.shadowColor=c;ctx.shadowBlur=24;
     if(move.style==='beam'){
@@ -333,13 +404,19 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
   // Browser autoplay rules: the first tap is the user gesture that wakes the voice.
   if(!soundRef.current&&!userMuted.current)setSoundOn(true);
   if(core)void change(draft=>{careAction(draft,'spark');});
+  if(rig){recordCare(journalId,'taps');cue('tap');}
+  if(pocket)callBeast(pocket); // tapped: it comes over to you
   attack('tap');
  }
 
  return <div ref={root} className={styles.arena} data-beast-arena="true" data-phase={phase}
+   data-rig={rig?'true':'false'} data-pocket-place={pocketPlace?.name||''} data-pocket-poi-kind={pocketPlace?.kind||''}
    data-behavior-action={core?.lastAction||'visual-preview'} data-attack-style={fx.current?.move.style||'none'} data-reduced-motion={reduced} data-sound={sound?'on':'off'}>
+  {pocket?<div className={styles.pois} aria-hidden="true">{pocket.pois.map((poi:any)=><span key={poi.id} className={styles.poi} data-poi-kind={poi.kind}
+    data-active={pocketPlace?.name===poi.name?'true':undefined}
+    style={{left:`calc(var(--feet-x,50%) + ${(poi.x*30).toFixed(1)}%)`,top:`calc(var(--feet-y,62%) + ${(poi.y*16).toFixed(1)}%)`}}><i/></span>)}</div>:null}
   <SparkBeastCompanion profile={profile} fallbackLook={fallbackLook} state={state} audioChannel="habitat"
-   onGenome={onGenome} label={label}/>
+   onGenome={onGenome} label={label} rig={rig} rigDriver={rigDriver}/>
   <canvas ref={fxCanvas} className={styles.fx} aria-hidden="true"/>
   <div ref={flash} className={styles.flash} aria-hidden="true"/>
   <button type="button" className={styles.hit} onClick={onTap} disabled={!moveset}
@@ -353,6 +430,9 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
    <button type="button" className={styles.tool} onClick={onTap} disabled={!moveset} aria-label="Make the beast attack">
     <Zap size={14}/><span>Attack</span>
    </button>
+   {pocket?<button type="button" className={styles.tool} aria-label={`Call ${name} over`} onClick={()=>{callBeast(pocket);recordCare(journalId,'taps');}}>
+    <Hand size={14}/><span>Call</span>
+   </button>:null}
    <button type="button" className={styles.tool} aria-pressed={musicState.musicOn}
     aria-label={musicState.musicOn?'Turn the beast music off':'Turn the beast music on'}
     onClick={()=>{music.unlock();music.setMusic(!musicState.musicOn);}}>
