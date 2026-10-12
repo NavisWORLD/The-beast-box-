@@ -4,20 +4,21 @@ import {test} from 'node:test';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 test('cage links a real, stateless model conversation separate from owner console',()=>{
  const cage=read('components/beast-cage-portal.tsx'),talk=read('components/beast-cage-talk.tsx');
+ const panel=read('components/beast-talk-panel.tsx'),lib=read('lib/companion/beast-talk.mjs');
  assert.match(cage,/href="\/beast-cage\/talk"/);
- assert.match(talk,/fetch\('\/api\/guest'/);
- assert.match(talk,/provider:'rawrphos-local'/);
- assert.match(talk,/result\.model!=='rawrphos-native'/);
- assert.match(talk,/result\.step!==14000/);
- assert.match(talk,/result\.guest_stateless!==true/);
- assert.doesNotMatch(talk,/\/api\/bridge|localStorage|ownerToken|mockReply|fakeAnswer|Math\.random/);
+ assert.match(talk,/<BeastTalkPanel/);
+ assert.match(lib,/fetchImpl\("\/api\/guest"/);
+ assert.match(lib,/provider: "rawrphos-local"/);
+ assert.match(lib,/interpretModelResult\("guest-rawrphos", payload\)/);
+ assert.doesNotMatch(talk+panel+lib,/\/api\/bridge|ownerToken|mockReply|fakeAnswer|Math\.random/);
 });
 test('speech and pending status remain explicit and reversible',()=>{
- const talk=read('components/beast-cage-talk.tsx');
- assert.match(talk,/SpeechRecognition/);assert.match(talk,/You review text before sending/);
- assert.match(talk,/controller\.abort\(\)/);assert.match(talk,/hasReply/);
- assert.match(talk,/Response|response/);
- assert.match(talk,/window\.speechSynthesis/);
+ const panel=read('components/beast-talk-panel.tsx');
+ assert.match(panel,/SpeechRecognition/);
+ assert.match(panel,/controller\.abort\(\)/);
+ assert.match(panel,/Model offline/);
+ assert.match(panel,/window\.speechSynthesis/);
+ assert.match(panel,/Brain: \{info\.label\}/);
 });
 test('galaxy creature art is preserved while the site icon moves to the Cosmic Forge Dragon crest',()=>{
  const icon=read('public/beast-icon.svg'),layout=read('app/layout.tsx'),manifest=read('app/manifest.ts');

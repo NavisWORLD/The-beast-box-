@@ -251,7 +251,8 @@ test("guests on the field use the guest-safe brain and a local beast, with no ow
   const talk = read("components/beast-cage-talk.tsx");
   assert.match(talk, /CosmicCompanion3D/);
   assert.match(talk, /SparkWanderer/);
-  assert.match(talk, /fetch\('\/api\/guest'/);
+  assert.match(talk, /<BeastTalkPanel/);
+  assert.match(read("lib/companion/beast-talk.mjs"), /fetchImpl\("\/api\/guest"/);
   assert.doesNotMatch(talk, /\/api\/bridge|localStorage|ownerToken|mockReply|fakeAnswer|Math\.random/);
   assert.match(read("components/gba-guest-lab.tsx"), /No camera, microphone or memory access/);
   assert.doesNotMatch(read("components/gba-guest-lab.tsx"), /\/api\/bridge|ownerToken|navigator\.mediaDevices/);

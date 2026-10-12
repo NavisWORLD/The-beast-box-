@@ -9,9 +9,9 @@ test('guest game-lab is public, local and separated from stateless real model ch
  assert.match(lab,/makeGbaZip\(look,null\)/);
  assert.match(lab,/No camera, microphone or memory access/);
  assert.doesNotMatch(lab,/\/api\/bridge|ownerToken|BEASTBOX_CLOUD_BRIDGE_TOKEN|navigator\.mediaDevices/);
- const guest=read('components/beast-cage-talk.tsx');
- assert.match(guest,/fetch\('\/api\/guest'/);
- assert.match(guest,/guest_stateless!==true/);
+ const guest=read('lib/companion/beast-talk.mjs'),brain=read('lib/companion/brain.mjs');
+ assert.match(guest,/fetchImpl\("\/api\/guest"/);
+ assert.match(brain,/guest_stateless === true/);
 });
 test('portable GBA export never copies private content into guest pack',()=>{
  const source=read('lib/gba-companion.ts');

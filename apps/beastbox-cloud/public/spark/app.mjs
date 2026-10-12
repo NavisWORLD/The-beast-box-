@@ -468,8 +468,26 @@ async function interaction(kind){
  runtime.state=kind==='rest'?'rest':kind==='train'?'train':'celebrate';runtime.until=runtime.T+(kind==='rest'?12:2.6);updatePlate();say(kind==='rest'?'calm':kind==='train'?'focus':'spark',kind==='rest'?'Curling up for a little rest.':kind==='pet'?'A soft pat. We are getting closer.':kind==='care'?'A snack and a little care.':kind==='train'?'Tap in the bright window. Six tries!':'Catch the spark!');
 }
 function setTalkSource(label,remote=false){const node=$('talk-source');if(!node)return;node.textContent=label;node.classList.toggle('remote',remote);}
+/** Free public brain. Same request /beast-cage/talk makes; only a verified native 14K reply is accepted. */
+function guestFrame(text){
+ const g=current.gen,name=shownName(session.beast);
+ const head=`You are ${name}, a ${[g.element,g.body].filter(Boolean).join(' ')} from ${g.island||'the Lost Cosmos'}, the keeper's Beast Box companion. Personality: ${String(g.temperament||'gentle').toLowerCase()}, loyal, curious. You are a small game companion, not a person. Reply in one or two short, kind sentences as ${name}.`;
+ const tail=`\nKeeper: ${text.slice(0,400)}\n${name}:`;
+ return (head.slice(0,700-tail.length)+tail).slice(0,700);
+}
+async function guestModelTalk(text){
+ if(!current||!session?.beast)return null;
+ const response=await fetch('/api/guest',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:'rawrphos-local',text:guestFrame(text)})});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(response.status===429?'the free guest brain is resting ('+(data.error||'usage limit reached')+')':typeof data.error==='string'?data.error:'guest brain unavailable');
+ if(data.provider!=='rawrphos-local'||data.model!=='rawrphos-native'||data.step!==14000||data.guest_stateless!==true||typeof data.reply!=='string'||!data.reply.trim())throw Error('the guest brain sent no verified reply');
+ return {reply:data.reply.trim(),model:'rawrphos-native 14K',guest:true};
+}
 async function activeModelTalk(text){
  if(!current||!session?.beast)return null;
+ // Only the signed-in owner has an active Brain Bay model; visitors skip straight to the guest brain (no 401 noise).
+ const routes=await fetch('/api/talk',{cache:'no-store',credentials:'same-origin'}).then(r=>r.ok?r.json():null).catch(()=>null);
+ if(routes?.owner!==true)return null;
  const beast={
   name:shownName(session.beast),seed:current.gen.seed,stage:session.beast.nativeStage||session.beast.stage||1,
   body:current.gen.body,element:current.gen.element,island:current.gen.island
@@ -502,6 +520,8 @@ async function speak(event){
   $('talk-reply').textContent='Connecting to the active Brain Bay model…';setTalkSource('CHECKING COSMOS');
   let remote=null,remoteError=null;
   try{remote=await activeModelTalk(text);}catch(error){remoteError=error instanceof Error?error:Error('Active model unavailable');}
+  // Public visitors: the free RAWRPHØS guest brain voices this same Beast (identity framed in the message).
+  if(!remote&&!remoteError){$('talk-reply').textContent='Asking the free RAWRPHØS guest brain…';setTalkSource('CHECKING GUEST BRAIN');try{remote=await guestModelTalk(text);}catch(error){remoteError=error instanceof Error?error:Error('Guest model unavailable');}}
   let reply='';
   await withSparkLock(()=>{
    session=readSparkSession(localStorage);if(session.beast?.seed!==current.gen.seed)throw Error('Reload the current Beast before talking.');
@@ -510,8 +530,9 @@ async function speak(event){
    saveSparkSession(localStorage,session);notifyNativeBridge();
   });
   runtime.state='listen';runtime.until=runtime.T+3;updatePlate();say('focus',reply.slice(0,900));$('talk-reply').textContent=reply;$('talk-text').value='';
-  if(remote){setTalkSource('COSMOS · '+remote.model,true);audioSfx('confirm');$('status').textContent=remote.persistent?'Active Brain Bay model replied through COSMOS and the host confirmed persistence.':'Active Brain Bay model replied through COSMOS. This browser also kept the exchange with the same Beast.';}
-  else{setTalkSource('LOCAL PATTERN');if(remoteError)$('status').textContent='Cloud model unavailable, so the on-device pattern companion replied instead. '+remoteError.message;}
+  if(remote?.guest){setTalkSource('RAWRPHØS GUEST · 14K',true);audioSfx('confirm');$('status').textContent='The free RAWRPHØS guest model replied as your Beast. This browser kept the exchange with the same Beast.';}
+  else if(remote){setTalkSource('COSMOS · '+remote.model,true);audioSfx('confirm');$('status').textContent=remote.persistent?'Active Brain Bay model replied through COSMOS and the host confirmed persistence.':'Active Brain Bay model replied through COSMOS. This browser also kept the exchange with the same Beast.';}
+  else{setTalkSource('LOCAL PATTERN · MODEL OFFLINE');$('status').textContent='Model offline: '+(remoteError?remoteError.message:'no model answered')+'. The on-device pattern companion replied instead (not a model reply). Connect a brain in Talk to Beast: /beast-cage/talk';}
  });
 }
 async function museClick(){if(!$('consent').checked){$('status').textContent='Check consent before connecting your headband.';return}try{muse?.stop();muse=await connectMuse(traits=>{showTraits(traits);$('status').textContent='Derived traits updated locally. Raw samples discarded.'});$('status').textContent=`Connected to ${muse.name}. Derived AF7 traits stay here.`;}catch(e){$('status').textContent=e.message||'Muse connection cancelled.'}}

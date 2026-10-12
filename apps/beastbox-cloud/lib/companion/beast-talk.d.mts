@@ -1,0 +1,25 @@
+export type TalkRoute = 'guest-rawrphos' | 'local-ollama' | 'hf-byok';
+export type TalkPersona = { key: string; name: string; kind: string; traits: string[]; catchphrase: string; habit: string; source: 'spark' | 'cage' | 'zeref' };
+export type TalkTurn = { role: 'you' | 'beast'; text: string; model?: string; route?: string; at?: number };
+export type TalkSuccess = { ok: true; route: TalkRoute; reply: string; model: string; label: string; at: number };
+export type TalkFailure = { ok: false; route: TalkRoute; status: number; error: string; help: string[] };
+export const TALK_ROUTES: readonly TalkRoute[];
+export const DEFAULT_ROUTE: TalkRoute;
+export const DEFAULT_OLLAMA_URL: string;
+export const DEFAULT_OLLAMA_MODEL: string;
+export const DEFAULT_HF_MODEL: string;
+export const MAX_MESSAGE: number;
+export const ROUTE_INFO: Readonly<Record<TalkRoute, { label: string; model: string; detail: string }>>;
+export function talkPersona(input?: { beast?: any; cage?: any }): TalkPersona;
+export function personaFrame(persona: TalkPersona): string;
+export function framePrompt(persona: TalkPersona, history: TalkTurn[], text: string, limit?: number): string;
+export function validOllamaUrl(value: string): boolean;
+export function connectHelp(route: string): string[];
+export function talkToBeast(input: {
+  route?: string; persona?: TalkPersona; history?: TalkTurn[]; text: string; fetchImpl?: typeof fetch; signal?: AbortSignal;
+  ollama?: { url?: string; model?: string }; hf?: { key?: string; model?: string; spendConfirmed?: boolean };
+}): Promise<TalkSuccess | TalkFailure>;
+export const LOG_PREFIX: string;
+export const MAX_LOG: number;
+export function readTalkLog(storage: Pick<Storage, 'getItem'> | null | undefined, key: string): TalkTurn[];
+export function writeTalkLog(storage: Pick<Storage, 'setItem'> | null | undefined, key: string, rows: TalkTurn[]): boolean;
