@@ -153,14 +153,11 @@ test('memory retrieval excludes unsafe and malformed entries, bounds count and l
  assert.ok(rows.length<=4);
 });
 
-test('game Talk UI does not expose memories to guest and keeps chat through minimize',async()=>{
+test('game registers one shared persistent chat without creating model requests',async()=>{
  const {readFileSync}=await import('node:fs');
  const ui=readFileSync(new URL('../components/sol-game-talk.tsx',import.meta.url),'utf8');
- assert.match(ui,/shareMemories: model==='connected' && shareMemories/);
- assert.match(ui,/model==='connected'\? <label/);
- assert.match(ui,/checked=\{shareMemories\}/);
- assert.match(ui,/setShareMemories\(false\)/);
- assert.match(ui,/if \(!active\) cancel\(\)/);
- assert.match(ui,/\}, \[key\]\);/);
- assert.doesNotMatch(ui,/\}, \[key, active\]\);/);
+ assert.match(ui,/beastbox:game-chat-bridge/);assert.match(ui,/beastbox:request-game-chat-bridge/);assert.match(ui,/beastbox:open-chat/);
+ assert.doesNotMatch(ui,/askGameBeast|fetch\(|setOpen|textarea/);
+ const panel=readFileSync(new URL('../components/beast-talk-panel.tsx',import.meta.url),'utf8');
+ assert.match(panel,/shareHistory,observation/);assert.match(panel,/gameBridge\?\.key===gameBeastKey/);
 });

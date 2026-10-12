@@ -24,6 +24,7 @@ export const MAX_LOG: number;
 export function readTalkLog(storage: Pick<Storage, 'getItem'> | null | undefined, key: string): TalkTurn[];
 export function writeTalkLog(storage: Pick<Storage, 'setItem'> | null | undefined, key: string, rows: TalkTurn[]): boolean;
 
+export const DRAFT_PREFIX: string;
 export const TALK_RETENTION_KEY: string;
 export function readTalkRetention(storage: Pick<Storage,'getItem'> | null | undefined): 'device' | 'session';
 export function readTalkDraft(storage: Pick<Storage,'getItem'> | null | undefined,key:string):string;

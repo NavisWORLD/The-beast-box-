@@ -8,6 +8,7 @@ import {usePathname} from 'next/navigation';
 import {Pause,Play,Eye,EyeOff,Volume2,VolumeX} from 'lucide-react';
 import SparkBeastCompanion from './spark-beast-companion';
 import LostCosmosDock from './lost-cosmos-dock';
+import BeastChatOverlay from './beast-chat-overlay';
 import MetaMuseSync from './meta-muse-sync';
 import {BeastSessionProvider} from './beast-session';
 import {
@@ -219,6 +220,7 @@ export default function CompanionProvider({children}:{children:ReactNode}){
  return <Context.Provider value={context}>
   <BeastSessionProvider>
   {children}
+  <BeastChatOverlay />
   <LostCosmosDock creature={profile} />
   <MetaMuseSync />
   {showPublic?<aside ref={petRef} data-companion-overlay="true" data-pet-dragon="true" className={styles.shell+(!canShow?' '+styles.parked:'')}

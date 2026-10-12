@@ -2,8 +2,7 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
 import {useBeastSession} from './beast-session';
-import {serializeQbeast} from '../public/spark/qbeast.mjs';
-import {checkedSpark} from '../public/spark/identity.mjs';
+import {createGameHandoff} from '../lib/companion/game-handoff.mjs';
 import {GBA_KEYS,gamepadButtons} from '../lib/companion/go-hud.mjs';
 import {applyGameReturn,shownName} from '../lib/companion/session.mjs';
 import {createPlayerDisplay} from '../lib/companion/player-display.mjs';
@@ -23,6 +22,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
  // Bind once on SEND BEAST. Care, navigation and layout never resend a starter save.
  const [bound,setBound]=useState<any>(null),[admitted,setAdmitted]=useState(false),[running,setRunning]=useState(false);
  const [mode,setMode]=useState<Mode>('normal'),[note,setNote]=useState('Your Beast has a cartridge to explore.');
+ const [paused,setPaused]=useState(false),[pausePending,setPausePending]=useState(false),[reloading,setReloading]=useState(false),[bridgeStatus,setBridgeStatus]=useState('No saved companion has been sent.');
  const [starting,setStarting]=useState(false),[returning,setReturning]=useState(false),[audio,setAudio]=useState({wanted:false,running:false});
  const sources=useRef(new Map<string,Set<string>>()),pressed=useRef(new Set<string>()),keyboardHeld=useRef(new Set<string>()),returnTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
  const pendingReturn=useRef<{id:string;event:string}|null>(null),sent=useRef(false);
@@ -30,7 +30,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
  const observationWait=useRef<{requestId:string;beastId:string;timer:ReturnType<typeof setTimeout>;resolve:(value:any)=>void}|null>(null);
  const minimized=mode==='minimized'||(!stage&&!bound&&mode==='normal');
  const expanded=mode==='fullscreen'||mode==='immersive';
- const inputEnabled=running&&!minimized&&active;
+ const inputEnabled=running&&!paused&&!pausePending&&!reloading&&!minimized&&active;
  const inputLive=useRef(inputEnabled);inputLive.current=inputEnabled;
  const name=shownName(bound||session?.beast),id=bound?.qbeast?.profile.id||session?.beast?.qbeast?.profile.id||'';
  const post=useCallback((data:Record<string,unknown>)=>frame.current?.contentWindow?.postMessage(data,ROOT),[]);
@@ -104,7 +104,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
    const target=event.target;
    const entry=Object.entries(GBA_KEYS).find(([,spec])=>spec.key.toLowerCase()===event.key.toLowerCase());
    if(event.isTrusted&&event.type==='keyup'&&entry&&keyboardHeld.current.has(entry[0])){keyboardHeld.current.delete(entry[0]);controllerInput(entry[0],false,'keyboard');return;}
-   if(!event.isTrusted||target instanceof HTMLElement&&target.closest('textarea,input,select,[contenteditable="true"]'))return;
+   if(!event.isTrusted||target instanceof HTMLElement&&target.closest('textarea,input,select,[contenteditable="true"],[data-companion-chat-overlay]'))return;
    if(target instanceof HTMLElement&&target.closest('button')&&(event.key==='Enter'||event.key===' '))return;
    if(event.key==='Escape'&&mode==='immersive'){void display.current?.normal();return;}
    if(!entry)return;event.preventDefault();if(event.repeat)return;
@@ -122,11 +122,11 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
   };
   const onFocus=(event:FocusEvent)=>{
    const target=event.target;
-   if(target instanceof HTMLElement&&target.closest('textarea,input,select,[contenteditable="true"]'))releaseKeyboard();
+   if(target instanceof HTMLElement&&target.closest('textarea,input,select,[contenteditable="true"],[data-companion-chat-overlay]'))releaseKeyboard();
   };
   const onFocusOut=(event:FocusEvent)=>{
    const next=event.relatedTarget;
-   if(next instanceof HTMLElement&&next.closest('textarea,input,select,[contenteditable="true"]'))releaseKeyboard();
+   if(next instanceof HTMLElement&&next.closest('textarea,input,select,[contenteditable="true"],[data-companion-chat-overlay]'))releaseKeyboard();
   };
   window.addEventListener('keydown',onKey);window.addEventListener('keyup',onKey);
   document.addEventListener('focusin',onFocus,true);
@@ -148,7 +148,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
  },[inputEnabled]);
  const send=useCallback(()=>{
   if(!bound||sent.current)return;
-  try{const text=serializeQbeast(bound.qbeast);checkedSpark(text);post({type:'sol-spark-qbeast',text});post({type:'sol-spark-player-state',active:active&&!document.hidden});}
+  try{post(createGameHandoff(bound));post({type:'sol-spark-player-state',active:active&&!document.hidden});}
   catch(error){setNote(error instanceof Error?error.message:'Your Beast could not be verified.');}
  },[bound,active,post]);
  useEffect(()=>{
@@ -165,10 +165,18 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
    if(data?.type==='sol-spark-ready'){send();return;}
    if(data?.type==='sol-spark-admitted'){
     if(data.id!==bound?.qbeast?.profile.id||data.seed!==bound?.seed){setNote('The game could not verify this Beast.');return;}
-    sent.current=true;setAdmitted(true);setNote(`${shownName(bound)} · same Beast verified. Ready for Lost COSMOS.`);return;
+    sent.current=true;setAdmitted(true);setBridgeStatus('Verified local QBEAST mailbox. Native roster import is not confirmed yet.');setNote(`${shownName(bound)} · identity validated. Ready to start Lost COSMOS.`);return;
    }
+   if(data?.type==='sol-spark-identity-status'){
+    if(data.qbeast_id!==bound?.qbeast?.profile.id||data.seed!==bound?.seed)return;
+    const label=data.status==='imported'?'Native saved roster matches this exact QBEAST.':data.status==='mailbox-ready'?'Local mailbox ready; native companion import pending.':data.status==='missing'?'No matching native companion: choose CONTINUE for an existing journey, or recover the compatible saved beast.':'Native identity validation failed; recover the original save.';
+    setBridgeStatus(label+' '+String(data.message||'').slice(0,180));return;
+   }
+   if(data?.type==='sol-spark-pause-state'){setPausePending(false);if(data.applied===true){setPaused(data.paused===true);setNote(data.paused?'Cartridge paused by your action.':'Cartridge resumed.');}else setNote('The native core could not change pause state.');return;}
+   if(data?.type==='sol-spark-reloading'){setReloading(true);setNote('Reloading the current identity-checked battery…');return;}
+   if(data?.type==='sol-spark-reload-error'){setReloading(false);setNote('Reload stopped: '+String(data.message||'The current save could not be verified.').slice(0,180));return;}
    if(data?.type==='sol-spark-start-error'){setStarting(false);setNote('Lost COSMOS could not start: '+String(data.message||'Please try START LOST COSMOS again.').slice(0,180));return;}
-   if(data?.type==='sol-spark-running'&&sent.current){setStarting(false);setRunning(true);setNote(`${shownName(bound)} · cartridge running. ${data.resumed?'Choose CONTINUE to keep your journey.':'Choose NEW GAME to begin your journey.'}`);return;}
+   if(data?.type==='sol-spark-running'&&sent.current){setStarting(false);setReloading(false);setPaused(false);setRunning(true);setNote(`${shownName(bound)} · cartridge running. ${data.resumed?'Choose CONTINUE to keep your journey.':'Choose NEW GAME to begin your journey.'}`);return;}
    if(data?.type==='sol-spark-audio-state'){setAudio({wanted:data.wanted===true,running:data.running===true});return;}
    if(data?.type==='sol-spark-input-ack'&&data.down===true&&data.applied!==true){setNote('The cartridge is still starting. Try again when the picture moves.');return;}
    if(data?.type==='sol-spark-return'){
@@ -194,7 +202,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
   if(!starting)return;const timer=setTimeout(()=>{setStarting(false);setNote('Lost COSMOS is taking longer to load. Keep the game open, or try START LOST COSMOS again.');},90000);return()=>clearTimeout(timer);
  },[starting]);
  function bind() {
-  try{checkedSpark(serializeQbeast(session.beast.qbeast));setBound(JSON.parse(JSON.stringify(session.beast)));setNote('Sending your Beast…');void display.current?.normal();}
+  try{createGameHandoff(session.beast);setBound(JSON.parse(JSON.stringify(session.beast)));setNote('Sending your Beast…');void display.current?.normal();}
   catch(error){setNote(error instanceof Error?error.message:'Choose your Beast first.');}
  }
  const applyGameAction=useCallback(async(button:string,expectedKey:string):Promise<boolean>=>{
@@ -213,21 +221,26 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
       if(modelHeld.current===button)modelHeld.current=null;
     }
   },[bound,session,running]);
+ useEffect(()=>{if(!pausePending)return;const timeout=setTimeout(()=>{setPausePending(false);setNote('Pause response unavailable. The cartridge remains mounted.');},4000);return()=>clearTimeout(timeout);},[pausePending]);
+ function pause(){release();setPausePending(true);post({type:'sol-spark-player-state',active:active&&!minimized,paused:!paused});}
+ function reload(){release();setReloading(true);post({type:'sol-spark-reload-request'});}
  function saveJourney(){setReturning(true);setNote('Saving your native journey…');post({type:'sol-spark-return-request'});}
  return <section ref={shell} tabIndex={0} className={css.shell} data-lost-cosmos-player-shell data-spark-player data-creature-id={id} data-running={running} data-player-mode={minimized?'minimized':mode} data-player-stage={stage} aria-label={`Lost COSMOS player · ${name}`}>
   <header className={css.header}><div className={css.identity}><span className={css.light} data-lit={running} aria-hidden="true"/><div><strong>{name}</strong><small>LOST COSMOS · {running?'RUNNING':admitted?'BEAST VERIFIED':'YOUR BEAST / YOUR GAME'}</small></div></div>
    {minimized?(bound?<button type="button" onClick={()=>void display.current?.restore()}>RESTORE GAME</button>:<Link className={css.open} href="/sol-game" onClick={()=>void display.current?.restore()}>OPEN GAME</Link>):null}
    {minimized?<span className={css.sound}>{audio.wanted?(audio.running?'SOUND ON':'SOUND ARMED'):'SOUND OFF'}</span>:null}
+   {!minimized?<div className={css.talk}><SolGameTalk active={active} observeGame={observeGame} applyGameAction={applyGameAction} canGuide={inputEnabled} gameKey={bound?.qbeast?.profile.id&&bound.seed?bound.qbeast.profile.id+':'+bound.seed:''}/></div>:null}
   </header>
-  <div className={css.status}><p role="status">{ready?note:'Finding your saved Beast…'}</p></div>
-  <div className={css.screen}>
+  <div className={css.status}><p role="status">{ready?note:'Finding your saved Beast…'}</p><details><summary>Companion connection</summary><p>{bridgeStatus}</p><code>{id||'No canonical saved identity selected'}</code><p>Saved identities, display personas and local snapshots remain separate. Native palette/body representations use the recorded seed; web sprite accents may differ.</p>{!bound||bridgeStatus.startsWith('No matching')?<a href="/spark/index.html">Choose or recover a compatible Spark Beast</a>:null}</details></div>
+  <div className={css.screen} data-has-frame={!!bound}>
    {bound?<iframe ref={frame} title="Native LOST COSMOS cartridge" src={GAME} onLoad={send} allow="autoplay; fullscreen; gamepad; screen-wake-lock" allowFullScreen/>:<div className={css.poster}><span aria-hidden="true">🐉 🎮</span><p>Same Beast. New adventure.</p><button type="button" disabled={!ready||!session?.beast?.qbeast} onClick={bind}>SEND BEAST</button>{!session?.beast?.qbeast?<a href="/spark/index.html">Choose your Spark Beast</a>:null}</div>}
   </div>
   {running&&!minimized?<p className={css.gameAudioHint} role="status">{!audio.wanted?'🔊 iPhone: tap ENABLE GAME SOUND inside the Game Boy. Use 🔔 Test speaker there to check device output separately.':!audio.running?'🔊 Safari game sound is still unverified. In the Game Boy tap RESUME SOUND, then 🔔 TEST SPEAKER. A test chirp alone does not prove cartridge audio.':'🔊 The native emulator AudioContext is running. If silent, check the cartridge audio menu, iPhone media volume, Silent Mode and Bluetooth output.'}</p>:null}
   <div className={css.playAction}>{admitted&&!running?<button type="button" disabled={starting} onClick={()=>{setStarting(true);setNote('Starting Lost COSMOS…');post({type:'sol-spark-start'});}}>{starting?'STARTING…':'START LOST COSMOS'}</button>:null}</div>
-  <div className={css.talk}><SolGameTalk active={active} observeGame={observeGame} applyGameAction={applyGameAction} canGuide={inputEnabled}/></div>
   <div className={css.controls}><GbaControls enabled={inputEnabled}/></div>
   <nav className={css.toolbar} aria-label="Game actions">
+   <button type="button" disabled={!running||pausePending||reloading} onClick={pause}>{pausePending?'WAIT…':paused?'RESUME':'PAUSE'}</button>
+   <button type="button" disabled={!running||reloading||returning} onClick={reload}>{reloading?'RELOADING…':'RELOAD SAVE'}</button>
    <button type="button" onClick={()=>expanded?void display.current?.normal():void display.current?.expand()}>{expanded?'RETURN':'FULL SCREEN'}</button>
    <button type="button" onClick={()=>void display.current?.minimize()}>MINIMIZE</button>
    <button type="button" disabled={!running||returning} onClick={saveJourney}>{returning?'SAVING…':'SAVE JOURNEY'}</button>
