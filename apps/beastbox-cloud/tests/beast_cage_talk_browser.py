@@ -18,10 +18,15 @@ with sync_playwright() as p:
   response=page.goto(ROOT+"/beast-cage/talk",wait_until="domcontentloaded",timeout=45000)
   assert response and response.status==200
   expect(page.get_by_role("heading",name="Talk to your Beast.")).to_be_visible()
-  expect(page.get_by_text("Brain: RAWRPHØS guest")).to_be_visible()
-  input=page.get_by_label(re.compile("^Message to "))
+  # The shared composer is deliberately hidden until the visitor opens it.
+  page.locator('button[aria-controls="beast-chat-overlay"]').click()
+  overlay=page.locator('[data-companion-chat-overlay]')
+  expect(overlay).to_be_visible()
+  expect(overlay.get_by_text("Brain: RAWRPHØS guest")).to_be_visible()
+  input=overlay.get_by_label(re.compile("^Message to "))
   input.fill("Hey Beast, introduce yourself!")
-  expect(page.get_by_role("button",name="Send",exact=True)).to_be_enabled()
+  expect(overlay.get_by_role("button",name="Send",exact=True)).to_be_enabled()
+  assert page.evaluate("!!document.querySelector('[data-companion-chat-overlay]')"),"shared companion modal must stay mounted"
   page.wait_for_timeout(1900)
   assert not sent,"Recording MUST NOT use a simulated or paid chat request"
   assert not errors,(width,errors)
