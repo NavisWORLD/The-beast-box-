@@ -1,0 +1,91 @@
+{
+ "accepted": false,
+ "candidate_sha256": "d56ea217f28fe45d42f198843f7f6ba494c2c58cc54d3835c67ade7108f10d52",
+ "eval": {
+  "candidate_seeds": [
+   {
+    "blocked": 3.4583,
+    "cells_visited": 28.8333,
+    "legal": 1.0
+   },
+   {
+    "blocked": 2.5417,
+    "cells_visited": 32.4583,
+    "legal": 1.0
+   },
+   {
+    "blocked": 1.6667,
+    "cells_visited": 20.375,
+    "legal": 1.0
+   }
+  ],
+  "greedy_frontier": {
+   "blocked": 2.6667,
+   "cells_visited": 32.9583
+  },
+  "layouts": 24,
+  "no_memory_seeds": [
+   {
+    "blocked": 0.0,
+    "cells_visited": 2.0,
+    "legal": 1.0
+   },
+   {
+    "blocked": 37.5833,
+    "cells_visited": 3.4167,
+    "legal": 1.0
+   },
+   {
+    "blocked": 35.875,
+    "cells_visited": 5.125,
+    "legal": 1.0
+   }
+  ],
+  "parent": {
+   "blocked": 37.5833,
+   "cells_visited": 3.4167,
+   "legal": 1.0
+  },
+  "pocket_learner": {
+   "blocked": 1.5833,
+   "cells_visited": 24.5
+  },
+  "random": {
+   "blocked": 7.9167,
+   "cells_visited": 14.7083
+  },
+  "shuffled_seeds": [
+   {
+    "blocked": 37.5833,
+    "cells_visited": 3.4167,
+    "legal": 1.0
+   },
+   {
+    "blocked": 39.0,
+    "cells_visited": 2.0,
+    "legal": 1.0
+   },
+   {
+    "blocked": 32.5833,
+    "cells_visited": 7.5417,
+    "legal": 1.0
+   }
+  ]
+ },
+ "experiment": "011",
+ "failed_gates": [
+  "G4_blocked_not_worse_than_pocket_learner",
+  "G9_language_retention_within_10pct"
+ ],
+ "honesty": "Pocket results come from a deterministic simulation, not game progress. Native targets are a scripted teacher. No quantum training, no new IBM jobs.",
+ "identity_note": "The neural model belongs to bb-deada969. The Moonwraith display id bb-7f9c2a03 is not associated with it (unverified), so neural results do not drive the Moonwraith rig.",
+ "native": {
+  "candidate": "14/14 legal, 14 teacher matches",
+  "parent": "14/14 legal, 14 teacher matches"
+ },
+ "parent_sha256": "d0df90ea090b410aa5da5051b20e21ae5728236f7371450807f1af662fb02445",
+ "qbeast_id": "bb-deada969",
+ "run_url": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/38191707756",
+ "schema": "zeref-learning-status/v1",
+ "status": "candidate REJECTED by predeclared gates; approved parent kept"
+}

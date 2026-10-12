@@ -1,0 +1,52 @@
+{
+  "schema": "zeref-identity-audit/v1",
+  "audited_at": "2026-10-11T19:35:00-05:00",
+  "repo_head": "fa001841 (NavisWORLD/The-beast-box- main, after PR #295)",
+  "identities": {
+    "bb-deada969": {
+      "role": "Original research + RAWRPHOS training QBEAST (keeper name Zeref)",
+      "kind": "canonical saved QBEAST1 file",
+      "id_derivation": "bb-%08x of fnv1a('identity|1|'+seed); recomputed and MATCHES",
+      "seed": "8e2e927e2cfaf489cb7c10172836286bb08869cfff0c2508b5c6371e052e54ed",
+      "profile_name_in_file": "Vexara (genome name Scorchwyrm/Magmaclaw; keeper attribute 'Zeref')",
+      "birth_quantum_job": "db4q484vf2bc73cuuuag (IBM hardware, recorded counts; ibm_counts_sha256 e0565f6879b9ac8016fb1dfc660c62962c3bdf38ae675fff23114c9cc05b12e6)",
+      "later_physical_probe": "db4r4mqmb58s7389j0s0 ibm_marrakesh (2026-10-10, recorded; not identity)",
+      "qbeast_digest": "23b4e2d6f736cf25f32242d0910d18df6939c3a89b1b50efecb83e94161363ad",
+      "lineage_head": "d51430d0b0d77867eaf30d67cf1e73ba3f286458d9f302468223c7f065ccfb7b",
+      "files": "apps/beastbox-cloud/public/spark/zeref-live-20261010/{qbeast.json,Zeref.qbeast,nft-metadata.json,Zeref_live_native.sav}",
+      "used_by": "RAWRPHOS 004/005/006/007/008/009/010 training + evaluation, native save Zeref_live_native.sav"
+    },
+    "bb-7f9c2a03": {
+      "role": "Moonwraith home/Beast Cage DISPLAY profile (Zeref rig)",
+      "kind": "hard-coded display default in lib/zeref/zeref-mind.mjs (ZEREF_PROFILE), documented in code as 'Display defaults, not a saved QBEAST'",
+      "origin": "Text 'QBEAST bb-7f9c2a03' printed on Cory's uploaded Moonwraith card image (attachment 6c6138cc...png); adopted in commit 34400dc0 (PR #293, 2026-10-11)",
+      "id_derivation": "NO seed preimage found: 41,961 distinct 64-hex strings in the repo tested against fnv1a('identity|1|'+s); none yields 7f9c2a03. No QBEAST file with this id exists in either repo (GitHub code search: only 4 code refs + 3 tests, all from PRs #293/#295).",
+      "temperament_seed_source": "Moonwraith-Cassette-Kit recorded IBM job db4te7slf4us73c3888g (ibm_marrakesh, bell-zz/bell-xx). NOTE: that same job already births a DIFFERENT canonical QBEAST, bb-c190e914 (five-media batch).",
+      "stats_source": "sprite-atlas display stats (energy 90, signal 78, memory 62, resonance 95) from Cory's atlas image",
+      "used_by": "home rig, support mascot, Beast Cage pocket, zeref-diary loop (zeref-diary branch), grow-in-cosmos"
+    }
+  },
+  "comparison": {
+    "same_seed": false,
+    "same_birth_ibm_job": false,
+    "same_backend": "no (deada969 birth: db4q484vf2bc73cuuuag; 7f9c2a03 temperament: db4te7slf4us73c3888g on ibm_marrakesh)",
+    "cryptographic_link": "none found",
+    "shared_evidence": "both are presented to the owner under the name 'Zeref' (keeper attribute on deada969; display name on 7f9c2a03)"
+  },
+  "verdict": "UNVERIFIED — association cannot be established from evidence. Kept SEPARATE. No association record created. No seeds mixed, no ids rewritten.",
+  "proposed_for_owner_approval": {
+    "schema": "zeref-identity-association/v1",
+    "status": "PROPOSED_NOT_APPROVED",
+    "relation": "display_persona_of",
+    "subject": "bb-7f9c2a03",
+    "object": "bb-deada969",
+    "meaning": "bb-7f9c2a03 is the Moonwraith presentation (art, rig, pocket diary) of the companion whose immutable training identity is bb-deada969",
+    "evidence": ["owner naming only (both called Zeref)"],
+    "migration_rules": [
+      "never rewrite either id or seed",
+      "training data keeps origin qbeast id; pocket records from bb-7f9c2a03 enter bb-deada969 training only if association is APPROVED by owner",
+      "IBM birth receipts stay attached to their own id"
+    ],
+    "requires": "explicit owner approval (Cory)"
+  }
+}
