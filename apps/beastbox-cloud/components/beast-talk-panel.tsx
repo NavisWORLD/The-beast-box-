@@ -78,9 +78,14 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
  useEffect(()=>{const draft=(event:Event)=>{const value=(event as CustomEvent).detail?.draft;if(typeof value==='string')editText(value);};window.addEventListener('beastbox:open-chat',draft);return()=>window.removeEventListener('beastbox:open-chat',draft);},[persona.key]);
  const savePrefs=useCallback((next:Partial<Prefs>)=>{
   pending.current?.abort();pending.current=null;setBusy(false);
-  setPrefs(p=>{const merged={...p,...next};try{localStorage.setItem(PREFS_KEY,JSON.stringify(merged));}catch{/* optional */}return merged;});
+  // React state updaters must be pure: writing localStorage inside the updater
+  // can be replayed or deferred by concurrent rendering, making the controlled
+  // provider radio snap back despite a user click.
+  const merged={...prefs,...next};
+  setPrefs(merged);
+  try{localStorage.setItem(PREFS_KEY,JSON.stringify(merged));}catch{/* optional device preference */}
   setOffline(null);setVerifiedAt(null);
- },[]);
+ },[prefs]);
  function rememberKey(value:string){setHfKey(value);try{if(value)sessionStorage.setItem(HF_KEY,value);else sessionStorage.removeItem(HF_KEY);}catch{/* optional */}}
 
  const route=prefs.route,info=ROUTE_INFO[route];
