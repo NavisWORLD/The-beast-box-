@@ -40,3 +40,18 @@ test('deterministic bounded classical stimulus; only metadata is persisted or sh
  const key=[...s._map.keys()][0];s._map.set(key,JSON.stringify({...v,visitorId:b}));
  assert.equal(readVisitorGrowth(s,a,'zeref').exchanges,0);
 });
+
+test('aggregate visitor context is compatible with all three model routes and never sends visitor ID',async()=>{
+ const {talkToBeast,talkPersona}=await import('../lib/companion/beast-talk.mjs');
+ const state=advanceVisitorGrowth(freshGrowth(a,'zeref'),{text:'hello there',reply:'welcome home',verified:true});
+ const context=growthModelContext(state),persona=talkPersona({});
+ const bodies=[];
+ const base={persona,text:'my next message',context,history:[]};
+ const guest=await talkToBeast({...base,fetchImpl:async(_url,init)=>{bodies.push(JSON.parse(init.body));return new Response(JSON.stringify({provider:'rawrphos-local',model:'rawrphos-native',step:14000,guest_stateless:true,reply:'hello!'}));}});
+ assert.equal(guest.ok,true);
+ const local=await talkToBeast({...base,route:'local-ollama',ollama:{url:'http://127.0.0.1:11434',model:'zeref'},fetchImpl:async(_url,init)=>{bodies.push(JSON.parse(init.body));return new Response(JSON.stringify({done:true,model:'zeref',message:{content:'I remember a signal.'}}));}});
+ assert.equal(local.ok,true);
+ const hf=await talkToBeast({...base,route:'hf-byok',hf:{key:'hf_'+'a'.repeat(30),model:'test/model',spendConfirmed:true},fetchImpl:async(_url,init)=>{bodies.push(JSON.parse(init.body));return new Response(JSON.stringify({provider:'huggingface-byok',model:'test/model',reply:'hello visitor'}));}});
+ assert.equal(hf.ok,true);
+ for(const body of bodies){const raw=JSON.stringify(body);assert.match(raw,/Visitor-local experience/);assert.doesNotMatch(raw,/11111111-1111/);}
+});
