@@ -95,7 +95,14 @@ async function checkRooms(page){
   // Selecting the exact native radio is required: a generic label click can
   // hit nested descriptive text and leave the provider unchanged.
   const ollamaChoice=dialog.locator('input[type="radio"][value="local-ollama"]');
-  await ollamaChoice.check();
+  await ollamaChoice.click();
+  const selection=await dialog.evaluate(node=>({
+   route:node.querySelector('[data-talk-route]')?.getAttribute('data-talk-route'),
+   radios:[...node.querySelectorAll('input[name="talk-brain"]')].map(input=>({value:input.value,checked:input.checked})),
+   stored:localStorage.getItem('beastbox-talk-prefs-v1'),
+   providerOptionsVisible:!!node.querySelector('input[placeholder*="glacecoil"]')
+  }));
+  assert.equal(selection.route,'local-ollama','Controlled radio choice must persist in the actual chat panel: '+JSON.stringify(selection));
   await expect(ollamaChoice).toBeChecked();
   await expect(dialog.getByLabel('Model tag')).toBeVisible();
   await dialog.getByLabel('Model tag').fill('tiny:latest');
