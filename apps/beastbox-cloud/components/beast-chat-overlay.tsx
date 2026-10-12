@@ -60,7 +60,7 @@ export default function BeastChatOverlay(){
    {open&&mobile?<button type="button" className={styles.scrim} aria-label="Dismiss creature chat" onClick={close}/>:null}
    <section ref={panel} id="beast-chat-overlay" role="dialog" aria-modal={mobile||undefined} aria-label={`Talk to ${persona.name}`} data-companion-chat-overlay data-expanded={expanded||undefined} className={styles.panel} hidden={!open} style={{'--chat-vh':geometry.height+'px','--chat-bottom':geometry.bottom+'px'} as React.CSSProperties}>
     <header className={styles.header}>
-     <div className={styles.name}><strong>{persona.name}</strong><small>{session?.beast?.qbeast?.profile.id||profile?.id||'Moonwraith display persona · choose a saved beast to connect'}</small></div>
+     <div className={styles.name}><h2>Talk to {persona.name}</h2><small>{session?.beast?.qbeast?.profile.id||profile?.id||'Moonwraith display persona · choose a saved beast to connect'}</small></div>
      <button type="button" onClick={()=>setExpanded(x=>!x)} aria-label={expanded?'Compact chat':'Expand chat'}>{expanded?'↙':'↗'}</button>
      <button type="button" onClick={close} aria-label="Minimize chat">−</button><button type="button" onClick={close} aria-label="Close chat">×</button>
     </header>
