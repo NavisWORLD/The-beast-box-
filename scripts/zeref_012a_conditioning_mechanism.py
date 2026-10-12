@@ -153,7 +153,9 @@ class StateConditionAdapter(nn.Module):
 
 
 def evaluation(model, adapter, ids, class_ids, rows, arm, median, seed, batch_size=8):
-    model.eval()\n    if adapter is not None:\n        adapter.eval()
+    model.eval()
+    if adapter is not None:
+        adapter.eval()
     targets = [label_from_feature(r["features"], median) for r in rows]
     features = arm_rows(rows, arm, seed)
     predictions = []
