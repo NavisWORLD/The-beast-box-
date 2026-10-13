@@ -29,7 +29,7 @@ class Budget{
 }
 function workRecord(value){const record={...value};delete record.hash;return {...record,hash:digest(record)};}
 function verifyWork(blob,owner,id,event){const value=parse(blob),{hash,...unsigned}=value;if(hash!==digest(unsigned)||value.schema!=='private-growth-work/v1'||value.owner!==owner||value.beastId!==id||value.plan?.event_id!==event)throw Error('CORRUPT_GROWTH_WORK');return value;}
-async function putWork(store,path,value,old){await store.io.put(path,json(workRecord(value)),old?{ifMatch:old.etag}:{ifNoneMatch:'*'});return store.io.get(path);}
+async function putWork(store,path,value,old){return store.putAuxiliary(value.owner,value.beastId,path,json(workRecord(value)),old?{ifMatch:old.etag}:{ifNoneMatch:'*'});}
 
 export async function runPrivateGrowth(store,execute,{now=Date.now,maxJobs=2,maxAttempts=16,userDaily=2}={}){
  const time=typeof now==='function'?now:()=>now,limits={maxJobs:bounded(maxJobs,2,2),maxAttempts:bounded(maxAttempts,16,16),userDaily:bounded(userDaily,2,2)};
@@ -38,12 +38,16 @@ export async function runPrivateGrowth(store,execute,{now=Date.now,maxJobs=2,max
  const key=await signingKey(store),budget=new Budget(store,limits),initial=await budget.read(),start=initial.state.cursor%Math.max(1,subjects.length);let serviced=0;
  for(let offset=0;offset<subjects.length&&serviced<limits.maxJobs;offset++){
   const index=(start+offset)%subjects.length,owner=subjects[index];let account;
-  try{account=parse(await store.assertOwner(owner));}catch{continue;}
+  try{account=parse(await store.assertOwner(owner));}catch{
+   // Revoked credentials never regain read authority. Sweep even COMPLETE
+   // owners for writers that died between a late PUT and its erasure fence.
+   try{const status=await store.ownerStatus(owner);if(!status.active&&(status.erasurePending||(await store.io.list(store.scope+'users/'+owner+'/beasts/')).some(name=>!name.endsWith('/head.json'))))await store.revoke(owner);}catch{}continue;
+  }
   for(const id of account.beasts||[]){
-   if(serviced>=limits.maxJobs)break;let row;try{row=await store.read(owner,id);}catch{continue;}
+   if(serviced>=limits.maxJobs)break;let row;try{row=await store.read(owner,id);}catch(error){if(error.code==='PRIVATE_BEAST_DELETED'){try{await store.remove(owner,id);}catch{}}continue;}
    if(!row.record.growth.optedIn||(!row.record.growth.schedule&&!row.record.growth.pending))continue;
    const state=(await budget.read()).state,reservation=state.creatures[identity(owner,id)];let event=reservation?.eventId,jobBlob=event?await store.io.get(store.path(owner,id)+'/growth-jobs/'+event+'.json'):null,work=jobBlob?verifyWork(jobBlob,owner,id,event):null;
-   const resumed=work?.phase==='APPLY_PENDING';
+   const resumed=work?.phase==='APPLY_PENDING'||(['COMPLETE','BLOCKED_EXTERNAL'].includes(work?.phase)&&['RESERVED','SUBMITTING','APPLY_PENDING','UNKNOWN'].includes(reservation?.phase));
    if(resumed){
     // Complete the checkpoint/commit only; never execute the provider twice.
    }else{
@@ -51,11 +55,13 @@ export async function runPrivateGrowth(store,execute,{now=Date.now,maxJobs=2,max
     event='growth-'+randomUUID();let plan;try{plan=privateGrowthPlan(row.record,event,{now:new Date(time()).toISOString()});}catch{continue;}
     if(!await budget.reserve(owner,id,event,time(),(index+1)%subjects.length,row.record.growth.tick))continue;
     serviced++;report.attempted++;const path=store.path(owner,id)+'/growth-jobs/'+event+'.json';
-    work={schema:'private-growth-work/v1',owner,beastId:id,plan,phase:'RESERVED',startedAt:new Date(time()).toISOString()};jobBlob=await putWork(store,path,work,null);
+    work={schema:'private-growth-work/v1',owner,beastId:id,plan,phase:'RESERVED',startedAt:new Date(time()).toISOString()};
     try{
+     jobBlob=await putWork(store,path,work,null);
      const fresh=await store.read(owner,id);if(!fresh.record.growth.optedIn||fresh.record.growth.tick!==row.record.growth.tick)throw Object.assign(Error('CANCELED'),{status:403});
      await budget.mark(owner,id,event,'SUBMITTING');work.phase='SUBMITTING';jobBlob=await putWork(store,path,work,jobBlob);
      work.raw=await execute(plan);work.completedAt=new Date(time()).toISOString();
+     if(work.raw?.submission_unknown===true){work.phase='UNKNOWN';jobBlob=await putWork(store,path,work,jobBlob);await budget.mark(owner,id,event,'UNKNOWN');report.unknown++;break;}
      // Recheck consent/revocation after external execution and before recording.
      const latest=await store.read(owner,id);if(!latest.record.growth.optedIn)throw Object.assign(Error('CANCELED'),{status:403});
      work.receipt=sealWorkerReceipt(key,plan,work.raw,{startedAt:work.startedAt,completedAt:work.completedAt});work.phase='APPLY_PENDING';jobBlob=await putWork(store,path,work,jobBlob);await budget.mark(owner,id,event,'APPLY_PENDING');
@@ -63,7 +69,7 @@ export async function runPrivateGrowth(store,execute,{now=Date.now,maxJobs=2,max
      const canceled=[403,404,410].includes(error.status);await budget.mark(owner,id,event,canceled?'CANCELED':'UNKNOWN');report[canceled?'canceled':'unknown']++;break;
     }
    }
-   if(work.phase==='APPLY_PENDING'){
+   if(work.phase==='APPLY_PENDING'||resumed){
     if(resumed)serviced++;
     const path=store.path(owner,id)+'/growth-jobs/'+event+'.json';
     try{

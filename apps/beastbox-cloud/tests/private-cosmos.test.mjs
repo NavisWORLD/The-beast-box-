@@ -7,6 +7,30 @@ const secret='test-only-signing-key-'.repeat(3);
 function storage(){const blobs=new Map();let n=0;return {blobs,get:async p=>blobs.get(p)||null,put:async(p,text,opts={})=>{const old=blobs.get(p);if(opts.ifNoneMatch==='*'&&old||opts.ifMatch&&opts.ifMatch!==old?.etag)throw Object.assign(Error('Conflict'),{status:412});const etag='"'+(++n)+'"';blobs.set(p,{text,etag});return etag;},list:async prefix=>[...blobs.keys()].filter(p=>p.startsWith(prefix)),delete:async(p,{ifMatch})=>{assert.equal(blobs.get(p)?.etag,ifMatch);blobs.delete(p);}};}
 const profile={schema:'cosmos-beast-public/v1',id:'bb-a1234567',name:'Zeref',provenance:{kind:'classical-seeded-game-generation',seed:'personal-fixture'},traits:{family:'VOID',stats:{energy:70,signal:50}}};
 async function fixture(){const io=storage(),store=new PrivateCosmos(io,{scope:'isolated-tests/fixture'});const a=owner.issueCredential(secret,{now:1000}),b=owner.issueCredential(secret,{now:1000});await store.admit(a.subject);await store.admit(b.subject);return {store,io,a:a.subject,b:b.subject};}
+const exchange={kind:'conversation-exchange',text:'A PRIVATE FIXTURE',reply:'MODEL PROTOCOL FIXTURE',provider:'guest-rawrphos',model:'native-fixture',clientAt:123};
+test('completed chat requires separate creature consent, then stores both unverified turns atomically',async()=>{
+ const {store,a,b}=await fixture();await store.create(a,profile,'event-create');await store.create(b,profile,'event-other-create');
+ await assert.rejects(store.update(a,profile.id,exchange,'event-exchange',1),/CONVERSATION_NOT_OPTED_IN/);
+ assert.equal((await store.read(a,profile.id)).record.conversations.length,0);
+ await store.update(a,profile.id,{kind:'chat-consent',enabled:true},'event-chat-consent',1);
+ const result=await store.update(a,profile.id,exchange,'event-exchange',2);
+ assert.equal(result.version,3);assert.deepEqual(result.record.conversations.map(row=>row.role),['you','beast']);
+ assert.deepEqual(result.record.conversations.map(row=>row.id),['event-exchange-you','event-exchange-beast']);
+ for(const row of result.record.conversations){assert.equal(row.eligibleForTraining,false);assert.equal(row.validation,'unverified');assert.equal(row.provider,exchange.provider);}
+ assert.equal(result.record.personalityState.engagement,1);assert.equal((await store.read(b,profile.id)).record.conversations.length,0);
+ assert.equal((await store.update(a,profile.id,exchange,'event-exchange',2)).record.conversations.length,2);
+ await assert.rejects(store.update(a,profile.id,{...exchange,reply:'DIFFERENT'},'event-exchange',3),/EVENT_ID_REUSED/);
+});
+test('invalid or interrupted chat never exposes half an exchange; reset turns consent off',async()=>{
+ const {store,io,a}=await fixture();await store.create(a,profile,'event-create');await store.update(a,profile.id,{kind:'chat-consent',enabled:true},'event-chat-consent',1);
+ for(const invalid of [{reply:''},{text:'x'.repeat(401)},{provider:'paid-fallback'},{clientAt:-1}])await assert.rejects(store.update(a,profile.id,{...exchange,...invalid},'event-invalid-'+Object.keys(invalid)[0],2));
+ assert.equal((await store.read(a,profile.id)).record.conversations.length,0);
+ const put=io.put;let interrupted=true;io.put=async(path,...rest)=>{if(path.endsWith('/head.json')&&interrupted){interrupted=false;throw Error('TEST HEAD INTERRUPTED');}return put(path,...rest);};
+ await assert.rejects(store.update(a,profile.id,exchange,'event-atomic-retry',2));assert.equal((await store.read(a,profile.id)).record.conversations.length,0);
+ const restored=await store.update(a,profile.id,exchange,'event-atomic-retry',2);assert.equal(restored.record.conversations.length,2);
+ const reset=await store.update(a,profile.id,{kind:'reset'},'event-reset-chat',restored.version);assert.equal(reset.record.sync.conversationConsent,false);assert.equal(reset.record.conversations.length,0);
+ await assert.rejects(store.update(a,profile.id,exchange,'event-after-reset',reset.version),/CONVERSATION_NOT_OPTED_IN/);
+});
 test('secure guest credentials reject forged, expired and legacy owner tokens',()=>{const token=owner.issueCredential(secret,{now:1000});assert.equal(owner.verifyCredential(secret,token.token,{now:1001}).subject,token.subject);for(const invalid of [token.token+'x',token.token.replace(token.subject,'u_'+'0'.repeat(32)), '1000.foo.mac', ''])assert.equal(owner.verifyCredential(secret,invalid,{now:1001}),null);assert.equal(owner.verifyCredential(secret,token.token,{now:1000+owner.CREDENTIAL_AGE+1}),null);});
 test('two owners can use identical names and IDs without sharing any private records',async()=>{const {store,a,b}=await fixture();await store.create(a,profile,'event-a-create');await store.create(b,profile,'event-b-create');await store.update(a,profile.id,{kind:'conversation',role:'you',text:'A ONLY'},'event-a-chat',1);assert.equal((await store.read(a,profile.id)).record.conversations[0].text,'A ONLY');assert.equal((await store.read(b,profile.id)).record.conversations.length,0);await assert.rejects(store.read('client-supplied-user',profile.id));await assert.rejects(store.read(b,'bb-other'));});
 test('stale ETags and reused event IDs cannot overwrite or repeat private memory',async()=>{const {store,a}=await fixture();await store.create(a,profile,'event-create');await store.update(a,profile.id,{kind:'memory',text:'one'},'event-memory',1);await store.update(a,profile.id,{kind:'memory',text:'one'},'event-memory',1);assert.equal((await store.read(a,profile.id)).record.memory.length,1);await assert.rejects(store.update(a,profile.id,{kind:'memory',text:'other'},'event-memory',1));await assert.rejects(store.update(a,profile.id,{kind:'memory',text:'stale'},'event-stale',1));});

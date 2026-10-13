@@ -57,9 +57,10 @@ All test objects are conditionally removed and absence checked. Protocol
 fixtures are not cloud receipts. A completed cloud test alone does not establish
 production deployment or browser acceptance.
 
-Release gates still require actual Azure HTTP ownership tests, the authenticated
-QVM artifact, actual scheduler cloud acceptance, shared conversation integration,
-mobile/native continuity, CI/security review and verified production deployment.
+Release gates still require the repaired ownership and conversation paths to pass
+fresh Azure HTTP acceptance, shared conversation browser integration, native
+continuity and verified production deployment. Prior cloud receipts remain valid
+evidence for their exact tested revisions.
 Issue 323 must remain open until the required gates are evidenced.
 
 ## First real cloud evidence
@@ -86,3 +87,43 @@ can resume without another quantum submission. No private inputs or job receipts
 are published by the production scheduler. Immutable simulation receipt objects
 are private and erased by Delete/Revocation. The independent cost ledger retains
 opaque hashes and counters to prevent reset-based quota bypass.
+
+
+## Real API and worker evidence
+
+[Worker run 38398284914](https://github.com/NavisWORLD/The-beast-box-/actions/runs/38398284914)
+at `c2ae6b13302fb804799d406899f86a25d81a0164` completed one real QVM execution,
+one private state application, zero pending/unknown work and verified cleanup.
+Job `7cb776f4-c702-11f1-ae67-7ced8dc0ee29`, 256 shots, simulator receipt hash
+`22afe7c7508a0e592bdbf0251465771c410f4cccd16787753f8cd98825df57ea`.
+Its initial HTTP test exposed nested Spark stats handling; the next revision fixed
+that adapter without replacing genome or identity generation.
+
+[HTTP run 38399264551](https://github.com/NavisWORLD/The-beast-box-/actions/runs/38399264551)
+at `e2b48917adfe82869377d8462b2546ba410ef4e4` passed 11 real production-Next/Azure
+API gates: signed ownership, identical-name independent identities, cross-account
+read/write/growth/delete denial, CSRF and forged/expired credentials, idempotence,
+concurrent writes, one-use pairing, process restart, corruption recovery, reset,
+delete and revoke. Test-only objects were erased. The sanitized artifact digest is
+`5abf308f674a1e59bfade37715887857dfc9397194bd17633dc57c57cac0b5e5`.
+
+## Review repairs and explicit conversation consent
+
+Independent review reproduced late-write erasure races, failed revocation retry,
+interrupted QVM application/finalization, and ambiguous provider submissions. New
+regressions verify cleanup fences, deletion-only signed retry, immutable rebasing,
+quota reconciliation and durable UNKNOWN status without re-submitting a job.
+A writer dying after a Blob PUT leaves inaccessible residual data until the next
+bounded scheduler sweep or signed erase retry; multi-Blob synchronous erasure is
+not claimed. Admission/tombstone and hashed quota metadata remain after revocation.
+
+Conversation persistence requires a separate per-creature opt-in. The chat adapter
+imports two completed turns in one atomic head revision; client-imported dialogue
+remains unverified and excluded from training. Retries reuse an immutable event ID.
+Reset disables chat consent. No private history is sent to a provider by enabling
+storage; provider history sharing remains a separate explicit choice.
+
+Fresh local verification after these repairs: 457 tests, 451 passed, zero failures,
+six existing skips; typecheck and production build passed. The review regression
+fixtures are not cloud jobs or model replies. A fresh actual Azure API run and
+browser integration are still required before these latest edits can be released.

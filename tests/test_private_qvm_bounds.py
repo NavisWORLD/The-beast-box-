@@ -16,7 +16,7 @@ spec.loader.exec_module(driver)
 
 
 class PrivateBounds(unittest.TestCase):
-    def execute(self, quota, changes=None):
+    def execute(self, quota, changes=None, submission_error=None):
         calls = []
         quil = "DECLARE ro BIT[3]\nMEASURE 0 ro[0]\nMEASURE 1 ro[1]\nMEASURE 2 ro[2]\n"
         plan = {"target": "rigetti.sim.qvm", "shots": 256, "cost_cap_usd": 0,
@@ -31,6 +31,8 @@ class PrivateBounds(unittest.TestCase):
             name = "rigetti.sim.qvm"
             def submit(self, *args, **kwargs):
                 calls.append(kwargs)
+                if submission_error:
+                    raise submission_error
                 return Job()
         class Workspace:
             @classmethod
@@ -68,3 +70,23 @@ class PrivateBounds(unittest.TestCase):
         self.assertEqual(receipt["counts"], {"000": 256})
         self.assertTrue(receipt["private_execution"])
         self.assertEqual(receipt["event_id"], "fixture-event")
+
+    def test_possible_submission_connection_loss_is_explicitly_unknown(self):
+        receipt, calls = self.execute(
+            [{"dimension": "emulator_hours", "limit": 5, "utilization": 0, "holds": 0}],
+            submission_error=ConnectionError("accepted submission response lost"),
+        )
+        self.assertFalse(receipt["ok"])
+        self.assertTrue(receipt.get("submission_unknown"))
+        self.assertEqual(len(calls), 1)
+
+    def test_definite_provider_rejection_is_not_an_unknown_submission(self):
+        class Rejected(Exception):
+            status_code = 400
+        receipt, calls = self.execute(
+            [{"dimension": "emulator_hours", "limit": 5, "utilization": 0, "holds": 0}],
+            submission_error=Rejected("invalid request rejected before admission"),
+        )
+        self.assertFalse(receipt["ok"])
+        self.assertIs(receipt.get("submission_unknown"), False)
+        self.assertEqual(len(calls), 1)

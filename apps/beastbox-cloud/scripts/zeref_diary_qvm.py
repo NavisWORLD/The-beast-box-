@@ -54,7 +54,7 @@ def main(plan_path, out_path, private_bounded=False):
                  "beast_id": p.get("beast_id"), "shots": p.get("shots"), "simulated": True, "job_id": None} for p in plans]
     if private_bounded:
         for p, receipt in zip(plans, receipts):
-            receipt.update(private_execution=True, quil_sha256=hashlib.sha256(str(p.get("quil", "")).encode()).hexdigest(),
+            receipt.update(private_execution=True, submission_unknown=False, quil_sha256=hashlib.sha256(str(p.get("quil", "")).encode()).hexdigest(),
                            input_hash=p.get("input_hash"), event_id=p.get("event_id"), tick=p.get("tick"))
     meta = {}
     jobs = [None] * len(plans)
@@ -99,6 +99,14 @@ def main(plan_path, out_path, private_bounded=False):
                 print("ZEREF_QVM_SUBMITTED=" + receipts[i]["job_id"], flush=True)
             except Exception as err:
                 receipts[i]["error"] = type(err).__name__ + ": " + sanitize(err, secret)
+                if private_bounded:
+                    # A transport/server failure can occur after provider
+                    # acceptance. Only explicit request/auth/quota rejections
+                    # prove that automatic retry cannot duplicate submission.
+                    status = getattr(err, "status_code", None)
+                    if status is None:
+                        status = getattr(getattr(err, "response", None), "status_code", None)
+                    receipts[i]["submission_unknown"] = status not in (400, 401, 403, 404, 413, 422, 429)
         for i, p in enumerate(plans):
             if jobs[i] is None:
                 continue

@@ -7,6 +7,7 @@ export class PrivateCosmos {
  constructor(io:PrivateIO,options?:{scope?:string;limits?:Record<string,number>});
  ownerPath(owner:string):string;
  assertOwner(owner:string):Promise<{text:string;etag:string}>;
+ ownerStatus(owner:string):Promise<{active:boolean;erasurePending:boolean}>;
  admit(owner:string):Promise<void>;
  read(owner:string,id:string):Promise<any>;
  create(owner:string,profile:any,eventId:string,options?:{qbeastText?:string|null;quantumGenesis?:any}):Promise<any>;

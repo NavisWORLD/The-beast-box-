@@ -34,6 +34,8 @@ jobs:
         with:
           python-version: '3.12'
       - working-directory: apps/beastbox-cloud
+        run: npm ci --no-audit --no-fund
+      - working-directory: apps/beastbox-cloud
         run: node --test tests/private-*.test.mjs
       - name: Verify the existing driver rejects paid targets and missing quotas
         run: python -m unittest discover -s tests -p test_private_qvm_bounds.py
@@ -52,7 +54,6 @@ jobs:
       - name: Build the existing production application
         working-directory: apps/beastbox-cloud
         run: |
-          npm ci --no-audit --no-fund
           npm run typecheck
           npm run build
       - name: Actual signed ownership, pairing, cross-user denial and restart over HTTP
