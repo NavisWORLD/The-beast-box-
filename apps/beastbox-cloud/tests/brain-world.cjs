@@ -63,7 +63,16 @@ async function checkRooms(page){
   await expect(dialog.getByRole('heading',{name:'Talk to Zeref'})).toBeVisible();
   await expect(dialog.getByText(/Brain: RAWRPHØS guest/)).toBeVisible();
   assert.equal(guestCalls.length,0);assert.equal(loopbackCalls.length,0);
-  assert.equal(await page.getByRole('navigation',{name:'Universe rooms'}).count(),0,'the open mobile modal hides background navigation from accessibility');
+  const visibleNavCount=await page.getByRole('navigation',{name:'Universe rooms'}).count();
+  if(visibleNavCount){
+   const debug=await page.evaluate(()=>{
+    const nav=document.querySelector('nav[aria-label="Universe rooms"]');
+    const dialog=document.querySelector('[data-companion-chat-overlay]');
+    const chain=[];for(let node=nav;node&&chain.length<10;node=node.parentElement)chain.push({tag:node.tagName,id:node.id,inert:node.inert,ariaHidden:node.getAttribute('aria-hidden')});
+    return {width:innerWidth,mobile:matchMedia('(max-width:700px)').matches,fullscreen:document.fullscreenElement?.tagName||null,modal:dialog?.getAttribute('aria-modal'),dialogHidden:dialog?.hidden,hostCount:document.querySelectorAll('[data-companion-chat-host]').length,body:Array.from(document.body.children).map(x=>({tag:x.tagName,id:x.id,inert:x.inert,chatHost:x.hasAttribute('data-companion-chat-host')})),chain};
+   });
+   throw new Error('Mobile chat exposes background navigation: '+JSON.stringify(debug));
+  }
   await dialog.getByRole('button',{name:'Close chat',exact:true}).click();await expect(dialog).toBeHidden();
   await checkRooms(page);
 
