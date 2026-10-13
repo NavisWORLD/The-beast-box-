@@ -28,10 +28,13 @@ async function checkRooms(page){
  await context.addInitScript(()=>{
   if(navigator.mediaDevices)navigator.mediaDevices.getUserMedia=async()=>{await window.__noteSensorRequest();throw Error('Unexpected sensor permission request');};
  });
- const page=await context.newPage(),errors=[],privateCalls=[],guestCalls=[],loopbackCalls=[];
+ const page=await context.newPage(),errors=[],privateCalls=[],guestCalls=[],loopbackCalls=[],cloudConfigurationReads=[];
+ const anonymousCloudMetadata=await context.request.get(origin+'/api/cosmos/private/session');
+ if(anonymousCloudMetadata.status()===200){const metadata=await anonymousCloudMetadata.json();assert.notEqual(metadata.authorized,true);assert.equal(metadata.owner,undefined);assert.equal(metadata.record,undefined);assert.equal(metadata.conversations,undefined);assert.equal(anonymousCloudMetadata.headers()['set-cookie'],undefined);}
  page.on('pageerror',error=>errors.push(error.message));
  page.on('request',request=>{
   const url=new URL(request.url());
+  if(url.origin===new URL(origin).origin&&url.pathname==='/api/cosmos/private/session'&&request.method()==='GET'){cloudConfigurationReads.push(request.method());return;}
   if(url.origin===new URL(origin).origin&&url.pathname.startsWith('/api/')&&!['/api/guest','/api/talk'].includes(url.pathname))privateCalls.push(url.pathname);
  });
  await page.route('**/api/guest',async route=>{
@@ -149,7 +152,8 @@ async function checkRooms(page){
     }
    }
   }
-  assert.deepEqual(privateCalls,[],'Public rooms must not call private APIs');
+  assert.deepEqual(privateCalls,[],'Public rooms must not call private data APIs');
+  assert.ok(cloudConfigurationReads.every(method=>method==='GET'),'Optional configuration must never issue credentials or write private data');
   const publicPrivateRequests=privateCalls.length;
   await page.goto(origin+'/workspace#brain-bay');
   await expect(page.getByLabel('OWNER PASSWORD')).toBeVisible();

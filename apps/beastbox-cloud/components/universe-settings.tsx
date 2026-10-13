@@ -3,6 +3,7 @@ import {useEffect,useState} from 'react';
 import Link from 'next/link';
 import {ArrowUpRight,AudioLines,BrainCircuit,Eye,LockKeyhole,Music2,Settings2,Sparkles,VolumeX} from 'lucide-react';
 import UniverseRoomNav from './universe-room-nav';
+import PrivateCosmosPanel from './private-cosmos-panel';
 import PixelBeast from './pixel-beast';
 import {useBeastAudio} from './use-beast-audio';
 import {useBeastSession} from './beast-session';
@@ -48,7 +49,7 @@ export default function UniverseSettings(){
    <p>Simple controls for the whole website. Your Beast keeps its identity and story.</p>
   </section>
   <div className={styles.layout}>
-   <div className={styles.controls}>
+   <div className={styles.controls}><PrivateCosmosPanel/>
     <section className={styles.panel} aria-labelledby="sound-title">
      <div className={styles.sectionLabel}><span>01 / SOUND</span><AudioLines size={20} aria-hidden="true"/></div>
      <h2 id="sound-title">Set the atmosphere.</h2>
