@@ -27,7 +27,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: node --test apps/beastbox-cloud/tests/private-cosmos.test.mjs
+      - working-directory: apps/beastbox-cloud
+        run: node --test tests/private-cosmos.test.mjs tests/private-qvm-stimulus.test.mjs
       - name: Install the existing authenticated QVM driver dependencies
         run: python -m pip install --quiet 'qdk[azure]'
       - name: Isolated synthetic worlds, conditional cleanup and one bounded free QVM job
