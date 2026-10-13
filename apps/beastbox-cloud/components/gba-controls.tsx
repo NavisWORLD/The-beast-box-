@@ -1,17 +1,25 @@
 'use client';
-import {useEffect, useRef} from 'react';
-import {GBA_KEYS, pressCartridge} from '../lib/companion/go-hud.mjs';
+import {useEffect, useRef, useState} from 'react';
+import {GBA_KEYS, GBA_ACTIONS, normalizeGameButton, pressCartridge} from '../lib/companion/go-hud.mjs';
 import css from './gba-controls.module.css';
 
 /** Both the web field and the persistent native shell use this input contract. */
 export function controllerInput(button:string,down:boolean,source:'legacy'|'pointer'|'keyboard'|'gamepad'|'agent'='legacy') {
- if(!Object.prototype.hasOwnProperty.call(GBA_KEYS,button))return false;
+ const normalized=normalizeGameButton(button);if(!normalized)return false;button=normalized;
  pressCartridge(button,down,window);
  window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button,down,source}}));
  return true;
 }
 
 export default function GbaControls({enabled=true,onMenu,shoulders=false}:{enabled?:boolean;onMenu?:()=>void;shoulders?:boolean}) {
+ const [pressed,setPressed]=useState<Set<string>>(new Set());
+ const visualSources=useRef(new Map<string,Set<string>>());
+ useEffect(()=>{
+  const reflect=(event:Event)=>{const detail=(event as CustomEvent).detail,button=normalizeGameButton(detail?.button);if(!button||typeof detail?.down!=='boolean'||detail.down&&!enabled)return;const sources=visualSources.current.get(button)||new Set<string>();const source=String(detail.source||'legacy');if(detail.down)sources.add(source);else sources.delete(source);if(sources.size)visualSources.current.set(button,sources);else visualSources.current.delete(button);setPressed(new Set(visualSources.current.keys()));};
+  const clear=()=>{visualSources.current.clear();setPressed(new Set());};
+  window.addEventListener('beastbox:gba-input',reflect);window.addEventListener('beastbox:gba-release',clear);window.addEventListener('blur',clear);
+  return()=>{window.removeEventListener('beastbox:gba-input',reflect);window.removeEventListener('beastbox:gba-release',clear);window.removeEventListener('blur',clear);};
+ },[enabled]);
  const held=useRef(new Map<string,{button:string;release:()=>void}>());
  useEffect(()=>{
   const release=()=>{for(const item of [...held.current.values()])item.release();};
@@ -50,8 +58,9 @@ export default function GbaControls({enabled=true,onMenu,shoulders=false}:{enabl
   if(event.key!==' '&&event.key!=='Enter')return;
   event.preventDefault();if(event.repeat)return;controllerInput(button,down,'keyboard');
  }
- const button=(name:keyof typeof GBA_KEYS,label:string,className?:string)=><button type="button" disabled={!enabled} className={className} aria-label={GBA_KEYS[name].label} onPointerDown={event=>hold(name,event)} onKeyDown={event=>key(name,event,true)} onKeyUp={event=>key(name,event,false)} onBlur={()=>controllerInput(name,false,'keyboard')}>{label}</button>;
+ const button=(name:keyof typeof GBA_KEYS,label:string,className?:string)=><button type="button" disabled={!enabled} className={className} aria-label={GBA_KEYS[name].label} data-game-action={GBA_ACTIONS[name]} data-pressed={pressed.has(name)||undefined} onPointerDown={event=>hold(name,event)} onKeyDown={event=>key(name,event,true)} onKeyUp={event=>key(name,event,false)} onBlur={()=>controllerInput(name,false,'keyboard')}>{label}</button>;
  return <div className={css.handheld} data-handheld-controls="game-boy" aria-label="Lost COSMOS controls">
+  <div className={css.brand} aria-hidden="true">BEAST BOY <span>•</span> LOST COSMOS</div>
   {shoulders?<div className={css.shoulders}>{button('l','L')}<span>BEAST BOY · LOST COSMOS</span>{button('r','R')}</div>:null}
   <div className={css.face}>
    <div className={css.pad} aria-label="D-pad">{button('up','▲',css.up)}{button('left','◀',css.left)}<i aria-hidden="true"/>{button('right','▶',css.right)}{button('down','▼',css.down)}</div>
