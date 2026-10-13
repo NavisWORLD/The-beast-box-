@@ -1,29 +1,31 @@
 package dev.beastbox.device
 
 import android.util.Log
-import android.webkit.JavascriptInterface
 import org.json.JSONObject
 
 /**
- * Exposed to page JavaScript as `window.BeastBoxNative`. It only accepts state reports while the
- * WebView's top-level page is on the configured origin; it never exposes Bluetooth control to JS.
+ * Receives main-frame, exact-origin WebMessageListener messages only. It never exposes Bluetooth control to JS.
  */
 class BeastBridge(private val isTrustedPage: () -> Boolean) {
 
-    @JavascriptInterface
-    fun reportState(json: String?) {
+    fun receive(message: String?) {
+        if (!isTrustedPage() || message == null || message.length > 8192) return
+        val envelope = runCatching { JSONObject(message) }.getOrNull() ?: return
+        when (envelope.optString("kind")) {
+            "state" -> reportState(envelope.optString("json"))
+            "log" -> log(envelope.optString("message"))
+        }
+    }
+
+    private fun reportState(json: String?) {
         if (!isTrustedPage() || json == null || json.length > 4096) return
         val state = runCatching { parse(JSONObject(json)) }.getOrNull() ?: return
         BeastHub.reportFromWeb(state)
     }
 
-    @JavascriptInterface
-    fun log(message: String?) {
+    private fun log(message: String?) {
         if (isTrustedPage()) Log.i(TAG, (message ?: "").take(300))
     }
-
-    @JavascriptInterface
-    fun bridgeVersion(): Int = 1
 
     companion object {
         private const val TAG = "BeastBoxBridge"

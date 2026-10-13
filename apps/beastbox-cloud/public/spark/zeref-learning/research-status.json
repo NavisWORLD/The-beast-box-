@@ -1,0 +1,295 @@
+{
+  "audited_at": "2026-10-12T09:08:06.429565+00:00",
+  "claims": {
+    "general_world_knowledge_proven": false,
+    "native_objective_progress_proven": false,
+    "new_ibm_qpu_jobs": 0,
+    "private_camera_microphone_chat_training": false,
+    "quantum_training": false,
+    "workflow_success_is_model_acceptance": false
+  },
+  "display_identity": {
+    "association_to_training_identity": "UNVERIFIED",
+    "neural_results_drive_display_rig": false,
+    "qbeast_id": "bb-7f9c2a03"
+  },
+  "earlier_local_continuation": {
+    "canonical_evidence": false,
+    "included_in_product_metrics": false,
+    "reason": "Scratch reset before a durable evidence bundle; no checkpoints or report survive. No training was restarted.",
+    "status": "UNAVAILABLE_UNRELEASED"
+  },
+  "latest_approved_research_parent": {
+    "adamw_state_count": 86,
+    "approved_cycle": 5,
+    "canonical_lineage_root_sha256": "37ca3f8fc9cdc0e78175508fc816ed02d5a12da1f3b106505715b7366fde5a48",
+    "checkpoint_sha256": "460a1a3fbbc16919c5030af16d5bd451ef43e96fd28b8c3201ca7efca1250ef2",
+    "experiment": "006",
+    "gate_results": {
+      "all_14_actions_valid": true,
+      "heldout_nll_not_worse_than_5_percent": true,
+      "language_retention_nll_not_worse_than_10_percent": true,
+      "teacher_agreement_not_worse": true
+    },
+    "manifest_files_verified": 6,
+    "native_game_progress_proven": false,
+    "native_heldout": {
+      "observations": 14,
+      "script_teacher_matches": 12,
+      "valid_actions": 14
+    },
+    "native_heldout_actions": {
+      "dominant_action_fraction": 1,
+      "histogram": {
+        "RIGHT": 14
+      },
+      "unique_actions": 1
+    },
+    "optimizer_and_rng_present": true,
+    "optimizer_step": 448,
+    "optimizer_training_state_sha256": "d2717528f5ad8cf946579f455d0f2284fcb536198f62cc6f8427d8d1179ebfec",
+    "parameter_sha256": "c388597ce469cf02a02a6c63f3d118c9499f8387a61f97cfbd8aad1ce27c4f15",
+    "parent_checkpoint_sha256": "658dc4a051d4d90d047819d0067636563bfea3021645253f7a7fff0f84260c47",
+    "production_promoted": false,
+    "run_url": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/38210153369",
+    "source_artifact": 11728233755,
+    "source_run": 38210153369,
+    "status": "APPROVED_RESEARCH_PARENT",
+    "tokenizer_sha256": "f704e9b75e816cc4ef203bc6c4afeeb966cbc11f369fb3b5f4d81c1505c8619c",
+    "training_steps": 14448
+  },
+  "latest_research": [
+    {
+      "boundary": "Small retrieval-card test; general world knowledge and native objective progress are not proven.",
+      "checkpoint_candidate": "5da17ac614e73e9bc3e9c8e5d35a8af8aea6bb1d3140d21b3aed4832e8bbab7d",
+      "checkpoint_parent": "460a1a3fbbc16919c5030af16d5bd451ef43e96fd28b8c3201ca7efca1250ef2",
+      "eligible_as_parent": false,
+      "experiment": "012",
+      "failed_gates": [
+        "G2_native_heldout_nll_within_5pct",
+        "G5_source_grounded_generated_answers_not_worse"
+      ],
+      "gates": {
+        "G1_world_heldout_nll_improves": true,
+        "G2_native_heldout_nll_within_5pct": false,
+        "G3_basic_language_retention_within_10pct": true,
+        "G4_unsupported_question_nll_not_worse": true,
+        "G5_source_grounded_generated_answers_not_worse": false,
+        "G6_frozen_tokenizer_and_checkpoint_integrity": true
+      },
+      "generated_answers": {
+        "candidate": {
+          "correct": 0,
+          "total": 7
+        },
+        "parent": {
+          "correct": 0,
+          "total": 7
+        }
+      },
+      "heldout_card_count": 7,
+      "kind": "RAWRPHOS_RESEARCH_SHADOW",
+      "losses": {
+        "candidate": {
+          "abstain_nll": 1.2817949056625366,
+          "language_nll": 4.786257743835449,
+          "native_nll": 0.05573665217629501,
+          "world_nll": 4.770834990910122
+        },
+        "parent": {
+          "abstain_nll": 4.972059726715088,
+          "language_nll": 4.975111961364746,
+          "native_nll": 0.047497735325513143,
+          "world_nll": 5.681971073150635
+        }
+      },
+      "name": "Source-grounded world vocabulary",
+      "native_training_evidence_sha256": "ebdf3cd9ea39dc6c8615d6464679a19be7d364748d105689a6f3f197f0408882",
+      "production_promoted": false,
+      "run_url": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/38211691174",
+      "source_artifact": 11728539546,
+      "source_cards_sha256": "abe30ebe3581811e8e576bc7464e91a0472a967847747a23f57d123b74621cb4",
+      "source_run": 38211691174,
+      "status": "REJECTED",
+      "summary": "Heldout world loss improved, but native loss worsened 17.3% and generated grounded answers stayed 0/7.",
+      "train_card_count": 21,
+      "training_updates": 96
+    },
+    {
+      "boundary": "Auxiliary predictor, not RAWRPHOS training; reused holdout, nonrandomized teacher actions, no causal or objective-progress proof.",
+      "eligible_as_parent": false,
+      "experiment": "013",
+      "failed_gates": [
+        "G2_heldout_action_conditioned_beats_blind_5pct"
+      ],
+      "gates": {
+        "G1_heldout_better_than_screen_persistence_10pct": true,
+        "G2_heldout_action_conditioned_beats_blind_5pct": false,
+        "G3_no_synthetic_data_private_images_or_earned_progress": true,
+        "G4_finite_and_checksum_bound": true
+      },
+      "heldout_pairs": 14,
+      "kind": "AUXILIARY_OPTICAL_PREDICTOR",
+      "losses": {
+        "action_blind": 0.004229728030733393,
+        "action_conditioned": 0.004602115886624801,
+        "persistence": 0.006490476190476191
+      },
+      "name": "Corrected optical dynamics",
+      "native_capture_source_run": 38216640554,
+      "native_training_evidence_sha256": "be3a7dc65877e4a024657dd910c33f4b1ebbbe7c4cdb10df74ad1b5d25ae8e1b",
+      "optimizer_updates_per_arm": 256,
+      "production_promoted": false,
+      "rawrphos_weights_modified": false,
+      "run_url": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/38217863402",
+      "source_artifact": 11733001305,
+      "source_run": 38217863402,
+      "status": "REJECTED",
+      "summary": "Action-conditioned MSE 0.004602 is worse than matched action-blind MSE 0.004230.",
+      "train_pairs": 42
+    }
+  ],
+  "preserved_history": [
+    {
+      "candidate_sha256": "d56ea217f28fe45d42f198843f7f6ba494c2c58cc54d3835c67ade7108f10d52",
+      "eligible_as_parent": false,
+      "experiment": "011",
+      "failed_gates": [
+        "G4_blocked_not_worse_than_pocket_learner",
+        "G9_language_retention_within_10pct"
+      ],
+      "parent_sha256": "d0df90ea090b410aa5da5051b20e21ae5728236f7371450807f1af662fb02445",
+      "production_promoted": false,
+      "run_url": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/38191707756",
+      "source_report_sha256": "f04e4447f002d9cf58618a6a9f3ed752fc61b0ff277e2984f28fe1260979f4ff",
+      "source_run": 38191707756,
+      "status": "REJECTED"
+    },
+    {
+      "candidate_sha256": "e3a64800f2d57b2a45a04fa69dbc7c188ebcc7d5a4df6076bec0637ea3fc56a9",
+      "eligible_as_parent": false,
+      "experiment": "006",
+      "failed_gates": [
+        "heldout_nll_not_worse_than_5_percent"
+      ],
+      "name": "Scheduled cycle 6 attempt",
+      "production_promoted": false,
+      "run_url": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/38211094365",
+      "source_run": 38211094365,
+      "status": "REJECTED"
+    },
+    {
+      "candidate_actions": {
+        "dominant_action_fraction": 1,
+        "histogram": {
+          "RIGHT": 14
+        },
+        "unique_actions": 1
+      },
+      "candidate_sha256": "dbca4513190d14adc923e98137dfed63009ba55a2ad3877d97820619c3547fe5",
+      "eligible_as_parent": false,
+      "experiment": "006",
+      "failed_gates": [
+        "native_heldout_policy_not_single_action"
+      ],
+      "name": "Balanced observation cycle 6 attempt",
+      "production_promoted": false,
+      "run_url": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/38216640554",
+      "source_run": 38216640554,
+      "status": "REJECTED",
+      "training_updates": 64
+    }
+  ],
+  "research_source_commit": "e063f6f06880910f37da6061db97d0cb0edd7ad4",
+  "schema": "zeref-research-status/v2",
+  "sources": [
+    {
+      "artifact_id": 11728233755,
+      "downloaded_zip_sha256": "f2018c2d75e1b6ac4ea53fc3b60023183786b919ae3fb16fed4e8bbe546ebdf7",
+      "files": {
+        "accepted-checkpoint/config.json": "2c235032f96a32d6e05b96ebec36ac879edd5dce80298df0682e777768b40650",
+        "accepted-checkpoint/manifest.json": "28dd2d6b67355374bade9e342b404260a21de5fd8e3f0c7a076036dbd504c6cb",
+        "accepted-checkpoint/metadata.json": "2ef7573bca03382f593faa742e88da4a629c74deea917cc6738cbe36f3c403b1",
+        "accepted-checkpoint/model.safetensors": "460a1a3fbbc16919c5030af16d5bd451ef43e96fd28b8c3201ca7efca1250ef2",
+        "accepted-checkpoint/tokenizer/metadata.json": "29c704d725bf6fe2e4c868e63dc29b1f299044542325a81f2bf08607b55889d2",
+        "accepted-checkpoint/tokenizer/tokenizer.json": "f704e9b75e816cc4ef203bc6c4afeeb966cbc11f369fb3b5f4d81c1505c8619c",
+        "accepted-checkpoint/training_state.pt": "d2717528f5ad8cf946579f455d0f2284fcb536198f62cc6f8427d8d1179ebfec",
+        "approval.json": "d13a394e6c4082f4bc814f3ea65da0233bb4bcc094e15c0aaf42b602ea584c58"
+      },
+      "run_id": 38210153369,
+      "run_url": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/38210153369"
+    },
+    {
+      "artifact_id": 11728393185,
+      "downloaded_zip_sha256": "8f3a0cf2048f4940a0c112622947513c9a0114c2b01bed5f158691e414fba52e",
+      "files": {
+        "inputs/native-evidence-manifest.json": "2a25f083824778487930b135900682b176c0b8f54d43567fb521241a6a61e769",
+        "inputs/native-observation-actions.jsonl": "ebdf3cd9ea39dc6c8615d6464679a19be7d364748d105689a6f3f197f0408882",
+        "report.json": "eccd6af9828fcd63df350fedb7f87d5525265866929231615360803682d9f549"
+      },
+      "run_id": 38210153369,
+      "run_url": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/38210153369"
+    },
+    {
+      "artifact_id": 11729258951,
+      "downloaded_zip_sha256": "53128cd0444eef5c6b8631293c9422fc7a7973604d1f68b1ac4640887c8542b2",
+      "files": {
+        "inputs/native-evidence-manifest.json": "ff40463a776c4c511ff4164ab7a387833fa0d75ec4a7656ff679c4e551006223",
+        "inputs/native-observation-actions.jsonl": "4a4aafc1eddc72c95f05dd37115016d20d9966d5391f4f7abceead8b4aac199e",
+        "rejected.json": "64cff152dc6f02d88a7a8ae72c57a8c307a4d286a2790fc0de5ce2100950677b",
+        "report.json": "6ac458fd7d3d1ca132c1218f5d843c671589e93c9ce7081be743a5688d51b4a5"
+      },
+      "run_id": 38211094365,
+      "run_url": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/38211094365"
+    },
+    {
+      "artifact_id": 11732394269,
+      "downloaded_zip_sha256": "a7c8969a054b655ed5a9689a19daec4bb3fc3fe96c6e95cad38ac3fe9a6e78bd",
+      "files": {
+        "inputs/native-evidence-manifest.json": "e71029fc358d2b8b72ccc5733a72501f15e625c9897aef06577db00575b222df",
+        "inputs/native-observation-actions.jsonl": "be3a7dc65877e4a024657dd910c33f4b1ebbbe7c4cdb10df74ad1b5d25ae8e1b",
+        "rejected.json": "38013fc5590bbb914b43aac17181110045270b9bdc5da4d5ac9b346d2bc0bf7c",
+        "report.json": "50e7f4e02dbd1cbed34a7a5dc7828de082d2d973c57d99c88f9144a45320c9f5"
+      },
+      "run_id": 38216640554,
+      "run_url": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/38216640554"
+    },
+    {
+      "artifact_id": 11728539546,
+      "downloaded_zip_sha256": "168d78c8ee3add74bb6bc35e3950235e3eb29ec378f90588375b633618d8f2f9",
+      "files": {
+        "rejected.json": "7c84c2987741090f92a0eb05c9ee883c70578814bbc2ed37630e995764a81968",
+        "report.json": "3aaa4726faea35ebd21177a2ae861922daaf2ac0d556448ecbba84f2d9cd7423"
+      },
+      "run_id": 38211691174,
+      "run_url": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/38211691174"
+    },
+    {
+      "artifact_id": 11733001305,
+      "downloaded_zip_sha256": "dd8108c0bece8b0fcc684eb17aadf9fd9a77573d169fe6b324bb6c35d45ad602",
+      "files": {
+        "rejected.json": "dc216c1b78468815f5840d9a81d4ce2d82056a58547af3dc3602bcd71cc2b937",
+        "report.json": "ab710aede9fb2a88b5a220f91f872d76b366086c0609aeaff9bfa4744c7783e6"
+      },
+      "run_id": 38217863402,
+      "run_url": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/38217863402"
+    }
+  ],
+  "training_identity": {
+    "family": "RAWRPHOS",
+    "original_ibm_job_id": "db4q484vf2bc73cuuuag",
+    "qbeast_id": "bb-deada969"
+  },
+  "production_runtime": {
+    "audited_at": "2026-10-12T14:28:14Z",
+    "service": "Railway cosmos-owner-bridge",
+    "deployment_id": "ab9ac5bd-d1a1-46b9-bbce-018b001dfa46",
+    "health_ready": true,
+    "stable_checkpoint_sha256": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
+    "stable_training_steps": 14000,
+    "load_verified_at": "2026-10-10T03:28:58.153405274Z",
+    "fresh_inference_verified": false,
+    "approved_research_checkpoint_served": false,
+    "unpromoted_18000_checkpoint_sha256": "20932937afb3e0e1b62a4e5f38f92170046ae2928b437dc31b8a37d6538e701e"
+  }
+}

@@ -31,10 +31,12 @@ function lcg(seed:number){let s=seed>>>0||1;return()=>{s=(Math.imul(s,1664525)+1
  * a roar and attack effects. Moves come from the recorded-seed genome, so each
  * beast fights differently. Sound stays off until the visitor taps.
  */
-export default function SparkBeastArena({profile,fallbackLook='nebula',state='idle',label,rig=true}:{
+export default function SparkBeastArena({profile,fallbackLook='nebula',state='idle',label,rig=true,preferSavedBeast=false}:{
  profile?:CreatureProfile|null;fallbackLook?:BaseLook;state?:VisualState;label?:string;
  /** High-quality ZEREF rig + dimensional-pocket roaming (default). false = original pixel sprite. */
  rig?:boolean;
+ /** Keep a verified saved creature authoritative over an unrelated starter display profile. */
+ preferSavedBeast?:boolean;
 }){
  const {session,change}=useBeastSession();
  const root=useRef<HTMLDivElement>(null),fxCanvas=useRef<HTMLCanvasElement>(null),flash=useRef<HTMLDivElement>(null);
@@ -49,11 +51,12 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
  const moveset:Moveset|null=useMemo(()=>genome?buildMoveset(genome):null,[genome]);
  const onGenome=useCallback((next:Genome)=>setGenome(next),[]);
  const core=genome&&session?.beast&&genome.seed===session.beast.seed?session.beast.behavior:null;
- const guide=rig&&!profile;
+ const canonicalSaved=preferSavedBeast&&!!session?.beast?.qbeast;
+ const guide=rig&&!profile&&!canonicalSaved;
  const name=core?shownName(session.beast):guide?'Zeref':genome?.names?.[2]||genome?.names?.[1]||profile?.name||'Spark Beast';
  // DIMENSIONAL POCKET: seeded places (moon pools, crystals, portals) the rig explores on its own.
  // A saved Beast with a live behavior core keeps that core's authoritative position instead.
- const journalId=guide?ZEREF_PROFILE.id:(profile?.id||'preview');
+ const journalId=canonicalSaved?session.beast.qbeast.profile.id:guide?ZEREF_PROFILE.id:(profile?.id||'preview');
  const [diaryStage,setDiaryStage]=useState(1);
  const [pocketPlace,setPocketPlace]=useState<{name:string;kind:string}|null>(null);
  // No leash: the rig pocket now runs for saved beasts too. The beast picks its own goals (explore,
@@ -416,7 +419,7 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
     data-active={pocketPlace?.name===poi.name?'true':undefined}
     style={{left:`calc(var(--feet-x,50%) + ${(poi.x*30).toFixed(1)}%)`,top:`calc(var(--feet-y,62%) + ${(poi.y*16).toFixed(1)}%)`}}><i/></span>)}</div>:null}
   <SparkBeastCompanion profile={profile} fallbackLook={fallbackLook} state={state} audioChannel="habitat"
-   onGenome={onGenome} label={label} rig={rig} rigDriver={rigDriver}/>
+   onGenome={onGenome} label={label} rig={rig} rigDriver={rigDriver} preferSavedBeast={preferSavedBeast}/>
   <canvas ref={fxCanvas} className={styles.fx} aria-hidden="true"/>
   <div ref={flash} className={styles.flash} aria-hidden="true"/>
   <button type="button" className={styles.hit} onClick={onTap} disabled={!moveset}

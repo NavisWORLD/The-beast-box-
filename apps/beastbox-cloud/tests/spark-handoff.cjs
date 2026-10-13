@@ -16,7 +16,8 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
   await page.locator('#generate').click();await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Spawned'));
   const snapshot=await page.evaluate(()=>JSON.parse(JSON.parse(localStorage.getItem('beastbox-quantum-beast-public-v1')).text));
   await page.goto(root+'/beast-cage/go');await page.locator('[data-handheld-controls="game-boy"]').waitFor({state:'visible'});const player=page.locator('[data-lost-cosmos-dock] [data-spark-player]');await player.getByRole('button',{name:'SEND BEAST',exact:true}).click();
-  await player.getByRole('status').filter({hasText:'same Beast verified'}).waitFor({timeout:60000});
+  await player.getByRole('status').filter({hasText:'identity validated. Ready to start Lost COSMOS'}).waitFor({timeout:60000});
+  assert.equal(await player.getByRole('button',{name:'START LOST COSMOS',exact:true}).isEnabled(),true,'a validated mailbox permits starting the original cartridge; native identity is checked separately below');
   const gate=player.frameLocator('iframe'),hand=gate.frameLocator('#handheld');
   await player.getByRole('button',{name:'START LOST COSMOS',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('[data-lost-cosmos-player-shell]')?.dataset.running==='true',null,{timeout:90000});

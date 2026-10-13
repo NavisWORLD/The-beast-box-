@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowUpRight, Atom, BrainCircuit, FlaskConical, ShieldCheck 
 import styles from './research.module.css';
 import GodCoreInspector from '@/components/god-core-inspector';
 import BrandCrest from '@/components/brand-crest';
+import ZerefResearchCard from '@/components/zeref-research-card';
 
 export const metadata: Metadata = {
   title: 'COSMOS Lab // The Two Falsification Tests — Beast Box',
@@ -47,6 +48,7 @@ export default function ResearchIndex() {
           </div>
         </section>
 
+        <ZerefResearchCard/>
         <section className={styles.summary} aria-label="Experiment overview">
           <div><span className={styles.mono}>005</span><strong>REAL SELF-CRITIQUE</strong><small>Original native checkpoint and Qwen calibration</small></div>
           <div><span className={styles.mono}>006</span><strong>TRAINED 12D CONTROLS</strong><small>3 seeds · 3 independently trained attention modes</small></div>

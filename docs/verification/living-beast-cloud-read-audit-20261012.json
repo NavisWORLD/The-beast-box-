@@ -1,0 +1,492 @@
+{
+  "schema": "living-beast-cloud-read-audit/v1",
+  "audit_kind": "read-only; no jobs or storage mutations",
+  "production_reads": {
+    "observed_at": "2026-10-12T14:28:14.400486+00:00",
+    "reads": [
+      {
+        "url": "https://www.beastboxcosmos.xyz/api/cosmos/beasts",
+        "status": 200,
+        "sha256": "f4500fdb873b21de87a0e89af4413acce61a1b1d62b81900790f29c296e13769",
+        "headers": {
+          "Content-Type": "application/json",
+          "Date": "Mon, 12 Oct 2026 14:28:06 GMT",
+          "X-Vercel-Cache": "MISS",
+          "X-Vercel-Id": "cle1::iad1::m7kws-1791815286737-8742f96962a3"
+        },
+        "body": {
+          "configured": true,
+          "label": "Opt-in, public profile only. Growth runs on a free Rigetti simulator (simulated). Learned behaviour, not consciousness."
+        }
+      },
+      {
+        "url": "https://www.beastboxcosmos.xyz/api/cosmos/beasts/bb-7f9c2a03",
+        "status": 200,
+        "sha256": "2b13534d2f5faa0bf5e8c342ed10d2ce576e14f11c34fe0db83f39a3cf440518",
+        "headers": {
+          "Content-Type": "application/json",
+          "Date": "Mon, 12 Oct 2026 14:28:09 GMT",
+          "X-Vercel-Cache": "MISS",
+          "X-Vercel-Id": "cle1::iad1::wb9wk-1791815289726-8ea441ff9c15"
+        },
+        "body": {
+          "ok": true,
+          "registered": true,
+          "id": "bb-7f9c2a03",
+          "profile": {
+            "id": "bb-7f9c2a03",
+            "name": "Zeref",
+            "provenance": {
+              "kind": "recorded-quantum-genome",
+              "backend": "ibm_marrakesh"
+            },
+            "registered_at": "2026-10-12T06:29:31.277Z"
+          },
+          "diary": {
+            "schema": "zeref-diary/v1",
+            "identity": {
+              "beast_id": "bb-7f9c2a03",
+              "name": "Zeref",
+              "title": "Moonwraith",
+              "recorded_digest": "2b46bb2e3594ae7c3bd562fe37419bd893234f7e54a0300e53599e6b7a96c3e4",
+              "backend": "ibm_marrakesh",
+              "job_id": "db4te7slf4us73c3888g",
+              "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
+              "source_class": "RECORDED_IBM_HARDWARE"
+            },
+            "tick": 2,
+            "xp": 215,
+            "stage": 1,
+            "stage_name": "Moonling",
+            "signals": {
+              "energy": 100,
+              "signal": 72,
+              "memory": 64,
+              "resonance": 95
+            },
+            "bond": 0.5,
+            "care_total": 0,
+            "places": {
+              "Rift Gate": 1
+            },
+            "last_tick_at": "2026-10-12T06:29:29.604Z",
+            "last_entry_hash": "830bb3948c30adc6ad1372ad25331c7837bc3271fce4a8054cd69e04e151aad4",
+            "combos_total": 64,
+            "next_stage": {
+              "stage": 2,
+              "name": "Duskwing",
+              "xp": 300
+            },
+            "learning": {
+              "cells_visited": 25,
+              "cells_total": 40,
+              "known_rifts": 3,
+              "moves_succeeded": 36,
+              "moves_blocked": 3,
+              "blocked_rate": 0.077,
+              "favorite_spot": "Rift Gate",
+              "favorite_value": 0.366,
+              "prefs": {
+                "explore": 1,
+                "visit": 0.5421,
+                "rest": 0.323,
+                "play": 0.4
+              },
+              "decisions": 25,
+              "label": "learned behaviour from its own experience, not consciousness"
+            },
+            "labels": {
+              "seed": "Seeded from recorded IBM ibm_marrakesh counts (job db4te7slf4us73c3888g). Not a live quantum link.",
+              "mind": "Zeref is a game companion with a deterministic mind. Diary lines are generated, not a conscious mind.",
+              "loop": "Written by the scheduled Zeref diary loop (GitHub Actions), one hash-chained entry per tick.",
+              "growth": "Growth ticks run a small circuit on the free Azure Quantum Rigetti QVM simulator (simulated, not hardware). If it fails, the deterministic step runs and the real error is logged."
+            },
+            "birth_spark": {
+              "provider": "IBM Quantum",
+              "backend": "ibm_marrakesh",
+              "job_id": "db4te7slf4us73c3888g",
+              "source": "recorded hardware counts (birth seed, never re-run)"
+            },
+            "recent": [
+              {
+                "schema": "zeref-diary/v1",
+                "beast_id": "bb-7f9c2a03",
+                "tick": 2,
+                "at": "2026-10-12T06:29:29.604Z",
+                "hour_local": 1,
+                "timezone": "America/Chicago",
+                "signals": {
+                  "energy": 100,
+                  "signal": 72,
+                  "memory": 64,
+                  "resonance": 95
+                },
+                "bond": 0.5,
+                "mood": "curious",
+                "place": null,
+                "places_visited": [],
+                "discovered_combos": [
+                  {
+                    "key": "curious|still|open-pocket|folded|sway|closed|o",
+                    "name": "curious \u00b7 folded wings \u00b7 sway tail \u00b7 closed eyes \u00b7 o mouth in the open pocket"
+                  },
+                  {
+                    "key": "sleep|still|open-pocket|folded|flick|closed|sleepy",
+                    "name": "sleep \u00b7 folded wings \u00b7 flick tail \u00b7 closed eyes \u00b7 sleepy mouth in the open pocket"
+                  },
+                  {
+                    "key": "sleep|still|open-pocket|beating|flick|closed|sleepy",
+                    "name": "sleep \u00b7 beating wings \u00b7 flick tail \u00b7 closed eyes \u00b7 sleepy mouth in the open pocket"
+                  },
+                  {
+                    "key": "sleep|still|open-pocket|folded|lash|closed|sleepy",
+                    "name": "sleep \u00b7 folded wings \u00b7 lash tail \u00b7 closed eyes \u00b7 sleepy mouth in the open pocket"
+                  },
+                  {
+                    "key": "sleep|still|open-pocket|beating|lash|closed|sleepy",
+                    "name": "sleep \u00b7 beating wings \u00b7 lash tail \u00b7 closed eyes \u00b7 sleepy mouth in the open pocket"
+                  }
+                ],
+                "new_combo_count": 16,
+                "combos_total": 64,
+                "xp_gain": 60,
+                "xp": 215,
+                "stage": 1,
+                "stage_name": "Moonling",
+                "grew": false,
+                "care": 0,
+                "birth_spark": {
+                  "provider": "IBM Quantum",
+                  "backend": "ibm_marrakesh",
+                  "job_id": "db4te7slf4us73c3888g",
+                  "source": "recorded hardware counts (birth seed, never re-run)"
+                },
+                "growth_source": {
+                  "kind": "rigetti-qvm-simulated",
+                  "simulated": true,
+                  "provider": "azure-quantum/rigetti",
+                  "target": "rigetti.sim.qvm",
+                  "job_id": "41ba5f58-c606-11f1-ae67-6045bd498847",
+                  "job_name": "zeref-diary-tick-2-bb-7f9c2a03",
+                  "shots": 256,
+                  "counts": {
+                    "100": 2,
+                    "101": 208,
+                    "110": 40,
+                    "001": 2,
+                    "010": 4
+                  },
+                  "counts_sha256": "bd5dfb5dc8a0764b9c20b2730f60809abc6f44970d93f44a7e3fcf0fbb95c002",
+                  "circuit_params": {
+                    "energy": 2.827433,
+                    "signal": 2.356194,
+                    "resonance": 2.953097
+                  },
+                  "quil_sha256": "24a0da66fabfc32e73633766ea49ccde5d91e6f7bf122c7e2fe776508ded11c9"
+                },
+                "learning": {
+                  "new_cells": 11,
+                  "moves_succeeded": 17,
+                  "moves_blocked": 0,
+                  "goals": {
+                    "explore": 10,
+                    "rest": 1
+                  },
+                  "cells_visited": 25,
+                  "cells_total": 40,
+                  "known_rifts": 3,
+                  "blocked_rate": 0.077,
+                  "favorite_spot": "Rift Gate",
+                  "prefs": {
+                    "explore": 1,
+                    "visit": 0.5421,
+                    "rest": 0.323,
+                    "play": 0.4
+                  },
+                  "label": "learned behaviour from its own experience, not consciousness"
+                },
+                "thought": {
+                  "text": "New smell near the gate. Investigating. I found 11 patches I had never stepped on. The simulator sparks lined up even and calm. My body tried 16 new move combinations.",
+                  "by": "deterministic-template"
+                },
+                "prev_hash": "a6727f4166052acec9a3a5c70d61123fd318ba8a7406a8eb0032a57576af7533",
+                "hash": "830bb3948c30adc6ad1372ad25331c7837bc3271fce4a8054cd69e04e151aad4"
+              },
+              {
+                "schema": "zeref-diary/v1",
+                "beast_id": "bb-7f9c2a03",
+                "tick": 1,
+                "at": "2026-10-12T00:08:55.270Z",
+                "hour_local": 19,
+                "timezone": "America/Chicago",
+                "signals": {
+                  "energy": 90,
+                  "signal": 75,
+                  "memory": 63,
+                  "resonance": 94
+                },
+                "bond": 0.3,
+                "mood": "curious",
+                "place": "Rift Gate",
+                "places_visited": [
+                  "Rift Gate"
+                ],
+                "discovered_combos": [
+                  {
+                    "key": "idle|still|moon-pool|folded|sway|open|smile",
+                    "name": "idle \u00b7 folded wings \u00b7 sway tail \u00b7 open eyes \u00b7 smile mouth at a moon pool"
+                  },
+                  {
+                    "key": "pounce|pounce|moon-pool|folded|sway|open|smile",
+                    "name": "pouncing \u00b7 folded wings \u00b7 sway tail \u00b7 open eyes \u00b7 smile mouth at a moon pool"
+                  },
+                  {
+                    "key": "pounce|pounce|moon-pool|folded|sway|open|grin",
+                    "name": "pouncing \u00b7 folded wings \u00b7 sway tail \u00b7 open eyes \u00b7 grin mouth at a moon pool"
+                  },
+                  {
+                    "key": "pounce|pounce|open-pocket|full-spread|flick|open|grin",
+                    "name": "pouncing \u00b7 full-spread wings \u00b7 flick tail \u00b7 open eyes \u00b7 grin mouth in the open pocket"
+                  },
+                  {
+                    "key": "curious|still|open-pocket|folded|sway|open|o",
+                    "name": "curious \u00b7 folded wings \u00b7 sway tail \u00b7 open eyes \u00b7 o mouth in the open pocket"
+                  }
+                ],
+                "new_combo_count": 48,
+                "combos_total": 48,
+                "xp_gain": 155,
+                "xp": 155,
+                "stage": 1,
+                "stage_name": "Moonling",
+                "grew": false,
+                "care": 0,
+                "birth_spark": {
+                  "provider": "IBM Quantum",
+                  "backend": "ibm_marrakesh",
+                  "job_id": "db4te7slf4us73c3888g",
+                  "source": "recorded hardware counts (birth seed, never re-run)"
+                },
+                "growth_source": {
+                  "kind": "rigetti-qvm-simulated",
+                  "simulated": true,
+                  "provider": "azure-quantum/rigetti",
+                  "target": "rigetti.sim.qvm",
+                  "job_id": "156654dd-c5d1-11f1-ae67-3833c5dd6293",
+                  "job_name": "zeref-diary-tick-1-bb-7f9c2a03",
+                  "shots": 256,
+                  "counts": {
+                    "100": 1,
+                    "101": 224,
+                    "110": 23,
+                    "010": 8
+                  },
+                  "counts_sha256": "18e01e0ca2e1583da61ee19709712a0663bd172973aa58ed339ed1be881a97ec",
+                  "circuit_params": {
+                    "energy": 2.827433,
+                    "signal": 2.450442,
+                    "resonance": 2.984513
+                  },
+                  "quil_sha256": "32cb33933fda28ba287806784f659a90d0c5ca9da44ec1bdde1cfe20213f6524"
+                },
+                "learning": {
+                  "new_cells": 13,
+                  "moves_succeeded": 19,
+                  "moves_blocked": 3,
+                  "goals": {
+                    "explore": 13,
+                    "visit": 1
+                  },
+                  "cells_visited": 14,
+                  "cells_total": 40,
+                  "known_rifts": 3,
+                  "blocked_rate": 0.136,
+                  "favorite_spot": "Rift Gate",
+                  "prefs": {
+                    "explore": 0.843,
+                    "visit": 0.5421,
+                    "rest": 0.35,
+                    "play": 0.4
+                  },
+                  "label": "learned behaviour from its own experience, not consciousness"
+                },
+                "thought": {
+                  "text": "I found a seam in the pocket and stared at it. Spent most of the tick at Rift Gate. I found 13 patches I had never stepped on. Bumped into a void rift. I will remember where it is. The simulator sparks lined up even and calm. My body tried 48 new move combinations.",
+                  "by": "deterministic-template"
+                },
+                "prev_hash": null,
+                "hash": "a6727f4166052acec9a3a5c70d61123fd318ba8a7406a8eb0032a57576af7533"
+              }
+            ],
+            "generated_at": "2026-10-12T06:29:29.604Z",
+            "thought_source_note": "model-not-configured"
+          },
+          "configured": true,
+          "verified": true
+        }
+      },
+      {
+        "url": "https://cosmos-owner-bridge-production.up.railway.app/healthz",
+        "status": 200,
+        "sha256": "50c26b466c6bdbc5fbf4317506bb7319892a9e7c4b9c94483140853f50fad251",
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8",
+          "Date": "Mon, 12 Oct 2026 14:28:14 GMT"
+        },
+        "body": {
+          "ready": true,
+          "service": "beastbox-owner-bridge"
+        }
+      }
+    ]
+  },
+  "other_beast_reads": {
+    "observed_at": "2026-10-12T14:29:16.219905+00:00",
+    "reads": [
+      {
+        "url": "https://www.beastboxcosmos.xyz/api/cosmos/beasts/bb-deada969",
+        "status": 200,
+        "configured": true,
+        "registered": false,
+        "verified": true,
+        "id": "bb-deada969",
+        "error": null,
+        "diary_identity": null,
+        "tick": null
+      },
+      {
+        "url": "https://www.beastboxcosmos.xyz/api/cosmos/beasts/bb-4a61a8d5",
+        "status": 200,
+        "configured": true,
+        "registered": false,
+        "verified": true,
+        "id": "bb-4a61a8d5",
+        "error": null,
+        "diary_identity": null,
+        "tick": null
+      },
+      {
+        "url": "https://www.beastboxcosmos.xyz/api/cosmos/beasts/bb-62603ee3",
+        "status": 200,
+        "configured": true,
+        "registered": false,
+        "verified": true,
+        "id": "bb-62603ee3",
+        "error": null,
+        "diary_identity": null,
+        "tick": null
+      }
+    ]
+  },
+  "production_release": {
+    "url": "https://www.beastboxcosmos.xyz/api/gba-release",
+    "status": 200,
+    "body": {
+      "schema": "beast-cage-gba-release-v1",
+      "source_marker": "beast-cage-lost-cosmos-spark-alive-20261004",
+      "player_shell_marker": "lost-cosmos-player-shell-20261008",
+      "frontend_commit_sha": "e063f6f06880910f37da6061db97d0cb0edd7ad4",
+      "lost_cosmos_commit": "5dd5ea0081ef61922f0a7b4b394736c9ac321629",
+      "lost_cosmos_main_commit": "f1647ef9e148d442299b76ef097545b3c1210852",
+      "lost_cosmos_main_prs": [
+        33,
+        34,
+        35,
+        38,
+        39,
+        40,
+        41,
+        44,
+        45,
+        46,
+        47
+      ],
+      "lost_cosmos_page": "https://navisworld.github.io/Cosmic-synapse-the-living-universe-sim-engine-/arcade/sol-spark-gate/?mode=handheld",
+      "same_cage_transfer": true,
+      "features": [
+        "guest-visual-test",
+        "download-gba-4bpp",
+        "qbeast-to-lost-cosmos-share",
+        "stable-one-cage-transfer",
+        "play-current-lost-cosmos",
+        "persistent-gba-player",
+        "shared-spark-care-ledger",
+        "model-bay-care",
+        "optional-explicit-owner-dyn12",
+        "in-page-v11-2-spark",
+        "lost-cosmos-field",
+        "continuous-public-spark",
+        "gesture-generated-voice",
+        "same-qbeast-native-art",
+        "procedural-beast-music",
+        "beast-boy-controller-bridge",
+        "beast-boy-android-touch-direct",
+        "cache-busted-controller-receiver",
+        "iphone-safari-audio-unlock",
+        "explicit-game-audio-consent",
+        "vercel-preview-controller-origin",
+        "fullscreen-player-with-controls",
+        "immersive-api-fallback",
+        "minimize-without-remount",
+        "native-save-return"
+      ],
+      "rom_release": "current-verified-v11.8",
+      "rom_sha256": "ddf1ca9b44a12520e9448ec45ccd8b3914d3b3e983361b512718e575dd219f7d",
+      "rom_asset": "lost-cosmos-v11.8.gba",
+      "rom_url": "/api/gba-rom",
+      "sim_earth_embedded": false,
+      "emulator": "emulatorjs",
+      "guest_contains_private_memory": false,
+      "gbainference": false,
+      "hardware_tested": false
+    }
+  },
+  "provenance_validation": {
+    "ibm_files": 15,
+    "ibm_count_rows": 30,
+    "azure_count_receipts": 14,
+    "diary_chain": {
+      "ok": true,
+      "tick": 2,
+      "head": "830bb3948c30adc6ad1372ad25331c7837bc3271fce4a8054cd69e04e151aad4"
+    },
+    "diary_recent_hashes": [
+      {
+        "tick": 2,
+        "hash": "830bb3948c30adc6ad1372ad25331c7837bc3271fce4a8054cd69e04e151aad4"
+      },
+      {
+        "tick": 1,
+        "hash": "a6727f4166052acec9a3a5c70d61123fd318ba8a7406a8eb0032a57576af7533"
+      }
+    ],
+    "moonwraith_public_shots": 8192
+  },
+  "scheduled_diary": {
+    "run_id": 38212729460,
+    "event": "schedule",
+    "conclusion": "success",
+    "mirror_confirmed": true,
+    "mirror_beast_id": "bb-7f9c2a03"
+  },
+  "railway": {
+    "deployment_id": "ab9ac5bd-d1a1-46b9-bbce-018b001dfa46",
+    "service": "cosmos-owner-bridge",
+    "status": "SUCCESS",
+    "volume_mb": 500,
+    "volume_path": "/srv/beastbox/data",
+    "staged_changes": 0,
+    "stable_steps": 14000,
+    "stable_load_verified_at": "2026-10-10T03:28:58.153405274Z",
+    "fresh_inference_verified": false,
+    "unpromoted_18000_load_verified_at": "2026-10-10T03:28:58.563075607Z"
+  },
+  "vercel_connector": {
+    "authorized_team_count": 0,
+    "project_read_http": 403,
+    "scope": "zerefs-end"
+  },
+  "provider_job_submissions": 0,
+  "model_requests": 0,
+  "production_objects_mutated": 0
+}

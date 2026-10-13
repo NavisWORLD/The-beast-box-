@@ -34,6 +34,14 @@ export const GBA_KEYS = {
   r: { key: "e", code: "KeyE", index: 11, label: "R" },
 };
 
+/** Public action names are aliases of the original EmulatorJS contract. */
+export const GBA_ACTIONS=Object.freeze({up:'MOVE_UP',down:'MOVE_DOWN',left:'MOVE_LEFT',right:'MOVE_RIGHT',a:'ACTION_A',b:'ACTION_B',start:'START',select:'SELECT',l:'ACTION_L',r:'ACTION_R'});
+export function normalizeGameButton(value){
+ const name=String(value||'');
+ if(Object.hasOwn(GBA_KEYS,name))return name;
+ return Object.keys(GBA_ACTIONS).find(button=>GBA_ACTIONS[button]===name)||null;
+}
+
 export const STANDARD_GAMEPAD_BUTTONS = {
   0: "a", 1: "b",
   4: "l", 5: "r", 6: "l", 7: "r",
@@ -147,7 +155,7 @@ export function pressCartridge(button, down, host) {
   const spec = GBA_KEYS[button];
   if (!spec || !host) return false;
   const sim = host.EJS_emulator?.gameManager?.simulateInput;
-  if (typeof sim === "function") sim(0, spec.index, down ? 1 : 0);
+  if (typeof sim === "function") { sim(0, spec.index, down ? 1 : 0); return true; }
   if (typeof host.dispatchEvent === "function") host.dispatchEvent(keyEvent(down ? "keydown" : "keyup", spec));
   return true;
 }

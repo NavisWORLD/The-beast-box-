@@ -1,0 +1,96 @@
+name: Zeref 012A recorded-measurement adapter mechanism (frozen approved parent)
+on:
+  pull_request:
+    paths:
+      - 'scripts/zeref_012a_conditioning_mechanism.py'
+      - 'tests/test_zeref_012a_conditioning_mechanism.py'
+      - '.github/workflows/zeref-012a-conditioning-mechanism.yml'
+      - 'scripts/prepare_rawrphos_quantum_conditioning.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: zeref-012a-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  mechanism:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build and hash the exact recorded IBM training partitions
+        run: |
+          set -Eeuo pipefail
+          node --test apps/beastbox-cloud/tests/rawrphos-quantum-conditioning.test.mjs
+          node scripts/prepare_rawrphos_quantum_conditioning.mjs --write
+          node scripts/prepare_rawrphos_quantum_conditioning.mjs --check
+      - name: Install bounded CPU-only native RAWRPHOS runtime
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e ./models/rawrphos
+          python -m py_compile scripts/zeref_012a_conditioning_mechanism.py
+          python -m unittest discover -s tests -p test_zeref_012a_conditioning_mechanism.py -v
+      - name: Fetch the approved Zeref 006 cycle-3 parent, not the rejected 011 candidate
+        run: |
+          set -Eeuo pipefail
+          gh run download 38179059173 --repo "${{ github.repository }}" \
+            -n zeref-006-canonical-37ca3f8f -D build/zeref-012a-parent
+          P="$(find build/zeref-012a-parent -type d -name accepted-checkpoint -print -quit)"
+          test -n "$P"
+          test -f "$(dirname "$P")/approval.json"
+          test "$(sha256sum "$P/model.safetensors" | cut -d' ' -f1)" = d0df90ea090b410aa5da5051b20e21ae5728236f7371450807f1af662fb02445
+          echo "ZEREF_PARENT=$P" >> "$GITHUB_ENV"
+      - name: Actual CPU optimization of small adapter arms, frozen parent; no new quantum jobs
+        run: |
+          set -Eeuo pipefail
+          python -u scripts/zeref_012a_conditioning_mechanism.py \
+            --parent "$ZEREF_PARENT" \
+            --corpus build/rawrphos-quantum-conditioning \
+            --out build/zeref-012a-mechanism \
+            --steps 32 --seed 20261012 --threads 2
+      - name: Verify strict model/nonproduction boundary
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('build/zeref-012a-mechanism/report.json')
+          r=json.loads(p.read_text())
+          assert r['schema']=='zeref-012a-conditioner-mechanism/v1'
+          assert r['parent_checkpoint_sha256']=='d0df90ea090b410aa5da5051b20e21ae5728236f7371450807f1af662fb02445'
+          assert r['model_weights_updated'] is False
+          assert r['model_promoted'] is False
+          assert r['quantum_advantage_claimed'] is False
+          assert r['signal_claim_allowed'] is False
+          assert r['adapter_initial_zero_impact'] is True
+          assert r['unconditioned_parent_logits_bit_identical'] is True
+          assert len(r['results'])==4
+          assert all(x['adapter_parameters']>0 for x in r['results'].values())
+          print('ZEREF_012A_EVIDENCE_CHECK_OK')
+          PY
+      - name: Publish ONLY adapter research evidence, never production model or visitor data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-012a-adapter-mechanism-${{ github.run_id }}
+          path: |
+            build/zeref-012a-mechanism/report.json
+            build/zeref-012a-mechanism/adapter-*.safetensors
+          retention-days: 30
+          if-no-files-found: warn

@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 import styles from './zeref-diary-panel.module.css';
+import ZerefResearchCard from './zeref-research-card';
 
 type Loop={cells_visited:number;cells_total:number;known_rifts?:number;moves_blocked:number;moves_succeeded:number;blocked_rate?:number;favorite_spot:string|null;prefs?:Record<string,number>}|null;
 type Arm={cells_visited:number;blocked:number;legal?:number};
@@ -24,7 +25,8 @@ export default function ZerefKnowledgeDiagnostics({loop,beastId}:{loop:Loop;beas
  return <div className={styles.card} data-zeref-knowledge data-neural-status={st?.status||'unknown'}>
   <h3>What Zeref knows · diagnostics</h3>
   <p className={styles.small}><b>Pocket learner</b> ({beastId}, deterministic rules, live): {loop?<>{loop.cells_visited}/{loop.cells_total} patches explored · {loop.known_rifts??'?'} rifts learned by bumping · {loop.moves_succeeded} moves ok / {loop.moves_blocked} blocked{loop.favorite_spot?<> · favourite: {loop.favorite_spot}</>:null}</>:'no loop data yet'}. Simple running averages over its own outcomes; this is what moves him in the habitat.</p>
-  {st?<p className={styles.small} data-neural-accepted={String(st.accepted)}><b>Neural model</b> (RAWRPHOS, {st.qbeast_id}, Experiment {st.experiment}): {st.status}. Parent {short(st.parent_sha256)}{st.candidate_sha256?<> → candidate {short(st.candidate_sha256)}</>:null}.
+  <ZerefResearchCard beastId={beastId}/>
+  {st?<p className={styles.small} data-neural-accepted={String(st.accepted)}><b>Historical neural experiment</b> (RAWRPHOS, {st.qbeast_id}, Experiment {st.experiment}): {st.status}. Parent {short(st.parent_sha256)}{st.candidate_sha256?<> → candidate {short(st.candidate_sha256)}</>:null}.
    {e?<> On {e.layouts} pocket layouts it never trained on, mean patches explored: random {f1(e.random?.cells_visited)}, hand-coded pocket learner {f1(e.pocket_learner?.cells_visited)}, greedy frontier {f1(e.greedy_frontier?.cells_visited)}, parent model {f1(e.parent?.cells_visited)}, trained model {mean(e.candidate_seeds)} (no-memory ablation {mean(e.no_memory_seeds)}, shuffled-label control {mean(e.shuffled_seeds)}).</>:null}
    {st.failed_gates?.length?<> Failed gates: {st.failed_gates.map(g=>g.replace(/^G\d+_/,'').replace(/_/g,' ')).join('; ')}.</>:null}
    {st.run_url?<> <a href={st.run_url} rel="noreferrer" target="_blank">Evidence run</a>.</>:null}</p>

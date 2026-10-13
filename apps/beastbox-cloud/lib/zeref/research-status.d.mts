@@ -1,0 +1,5 @@
+type Approved={checkpoint_sha256:string;training_steps:number;approved_cycle:number;experiment:string;run_url:string;optimizer_training_state_sha256:string;optimizer_step:number;adamw_state_count:number;native_heldout_actions:{histogram:Record<string,number>;unique_actions:number};production_promoted:false};
+type Trial={experiment:string;name?:string;status:'REJECTED';eligible_as_parent:false;production_promoted:false;run_url:string;summary?:string;failed_gates:string[];boundary?:string;training_updates?:number;optimizer_updates_per_arm?:number;generated_answers?:{candidate:{correct:number;total:number};parent:{correct:number;total:number}};losses?:Record<string,any>};
+type Runtime={audited_at:string;stable_checkpoint_sha256:string;stable_training_steps:number;fresh_inference_verified:boolean;approved_research_checkpoint_served:boolean};
+export type ResearchEvidence={approved:Approved;trials:Trial[];history:Trial[];runtime:Runtime|null;trainingId:string;displayId:string;auditedAt:string};
+export function researchEvidence(raw:unknown):ResearchEvidence|null;

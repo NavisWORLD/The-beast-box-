@@ -7,6 +7,7 @@ plugins {
 android {
     namespace = "dev.beastbox.mobile"
     compileSdk = 35
+    buildFeatures { buildConfig = true }
     defaultConfig {
         applicationId = "dev.beastbox.mobile"
         minSdk = 24

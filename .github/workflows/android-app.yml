@@ -3,8 +3,13 @@ name: Android on-device runtime candidate
 on:
   workflow_dispatch:
   workflow_call:
+  pull_request:
+    paths:
+      - 'apps/android/**'
+      - 'beastbox/**'
+      - '.github/workflows/android-app.yml'
   push:
-    branches: [polish/beast-box-launch-003]
+    branches: [main]
     paths:
       - 'apps/android/**'
       - 'beastbox/**'
@@ -26,7 +31,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+      # GitHub's hosted Ubuntu image already supplies cmdline-tools. The older
+      # setup-android action attempts to install the removed SDK "tools" package
+      # and fails before any Gradle or emulator acceptance can actually execute.
+      - name: Provision SDK from hosted runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          sdkmanager="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$sdkmanager" || { echo "::error::Hosted SDK manager not found: $sdkmanager"; exit 1; }
+          echo "ANDROID_HOME=$sdk_root" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$sdk_root" >> "$GITHUB_ENV"
+          echo "$sdk_root/platform-tools" >> "$GITHUB_PATH"
+          echo "$sdk_root/emulator" >> "$GITHUB_PATH"
+          echo "$sdk_root/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          # Keep license failures visible; avoid 'yes' SIGPIPE from pipefail.
+          set +o pipefail
+          yes | "$sdkmanager" --licenses > /dev/null
+          set -o pipefail
+          "$sdkmanager" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a
         with:
           gradle-version: '8.11.1'

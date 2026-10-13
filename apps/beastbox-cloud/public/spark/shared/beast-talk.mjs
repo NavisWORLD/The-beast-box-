@@ -111,16 +111,29 @@ export function personaFrame(persona) {
 }
 
 /** Single bounded prompt for text-only routes (guest host, HF). The keeper's words always survive. */
-export function framePrompt(persona, history, text, limit = GUEST_LIMIT, observation = null) {
+export function framePrompt(persona, history, text, limit = GUEST_LIMIT, context = "", observation = null) {
+  if(context&&typeof context==='object'){observation=context;context='';}
   const p = persona || ZEREF;
   const said = clean(text, MAX_MESSAGE);
   const tail = `\nKeeper: ${said}\n${p.name}:`;
-  let head = (gameObservationLine(observation) ? gameObservationLine(observation)+"\n" : "") + personaFrame(p);
+  const personaText = personaFrame(p);
+  const opticalText=gameObservationLine(observation);
+  const memoryText = context ? "\n" + clean(context, 260) : "";
+  let head = personaText + memoryText + (opticalText?'\n'+opticalText:'');
   const recent = (Array.isArray(history) ? history : []).slice(-2)
     .map((turn) => (turn.role === "you" ? "Keeper: " : p.name + ": ") + clean(turn.text, 110));
   let body = recent.length ? "\n" + recent.join("\n") : "";
   if (head.length + body.length + tail.length > limit) body = "";
-  if (head.length + tail.length > limit) head = head.slice(0, Math.max(0, limit - tail.length));
+  if (head.length + tail.length > limit) {
+    const budget = Math.max(0, limit - tail.length);
+    // Preserve the complete optical limitation. Cutting its disclaimer would
+    // incorrectly turn brightness measurements into claimed game perception.
+    const opticalBlock=opticalText?'\n'+opticalText:'';
+    const safeOptics=opticalBlock.length<=budget-32?opticalBlock:opticalText?'\nGame context omitted: prompt limit.':'';
+    const identityBudget=Math.min(85,Math.max(0,budget-safeOptics.length));
+    const memoryBudget=Math.min(memoryText.length,Math.max(0,budget-safeOptics.length-identityBudget));
+    head=personaText.slice(0,identityBudget)+memoryText.slice(0,memoryBudget)+safeOptics;
+  }
   return (head + body + tail).slice(0, limit);
 }
 
@@ -186,13 +199,14 @@ export async function talkToBeast(input) {
   const signal = input?.signal;
   const history = input?.shareHistory === true && Array.isArray(input?.history) ? input.history : [];
   const observation = input?.observation;
+  const context = clean(input?.context,260);
   if (!text) return failure(route, "Type a message first.");
   try {
     if (route === "connected-brain-bay") {
       const statusResponse=await fetchImpl("/api/status",{cache:"no-store",signal});
       const status=await readJson(statusResponse);
       if(!statusResponse.ok||status.owner!==true||status.backendReachable!==true)return failure(route,"Pair your owner session with an available Brain Bay provider first.");
-      const response=await fetchImpl("/api/bridge/chat-start",{method:"POST",signal,headers:{"Content-Type":"application/json"},body:JSON.stringify(ownerChatBody(framePrompt(persona,history,text,8192,observation),crypto.randomUUID()))});
+      const response=await fetchImpl("/api/bridge/chat-start",{method:"POST",signal,headers:{"Content-Type":"application/json"},body:JSON.stringify(ownerChatBody(framePrompt(persona,history,text,8192,context,observation),crypto.randomUUID()))});
       let payload=await readJson(response);
       if(!response.ok)return failure(route,payload?.error||"Brain Bay did not accept the request.",response.status);
       const until=Date.now()+55000;
@@ -210,7 +224,7 @@ export async function talkToBeast(input) {
       const model = String(input?.ollama?.model || DEFAULT_OLLAMA_MODEL).trim();
       if (!validOllamaUrl(base)) return failure(route, "Local Ollama must be on this computer (http://127.0.0.1:11434 or http://localhost:11434).");
       if (!MODEL_TAG.test(model) || model.includes("://")) return failure(route, "Enter the tag of a model you installed in Ollama, e.g. qwen2.5:0.5b.");
-      const messages = [{ role: "system", content: (gameObservationLine(observation)?gameObservationLine(observation)+"\n":"")+personaFrame(persona) }];
+      const messages = [{ role: "system", content: (gameObservationLine(observation)?gameObservationLine(observation)+"\n":"")+personaFrame(persona)+(context?"\n"+context:"") }];
       for (const turn of history.slice(-6)) messages.push({ role: turn.role === "you" ? "user" : "assistant", content: clean(turn.text, 400) });
       messages.push({ role: "user", content: text });
       const response = await fetchImpl(base + "/api/chat", {
@@ -238,7 +252,7 @@ export async function talkToBeast(input) {
       const response = await fetchImpl("/api/guest", {
         method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider: "huggingface-byok", text: framePrompt(persona, history, text, GUEST_LIMIT, observation), hf_key: key, model, spend_confirmed: true }),
+        body: JSON.stringify({ provider: "huggingface-byok", text: framePrompt(persona, history, text, GUEST_LIMIT, context, observation), hf_key: key, model, spend_confirmed: true }),
       });
       const payload = await readJson(response).catch(() => null);
       if (!response.ok) return failure(route, typeof payload?.error === "string" ? payload.error : `Hugging Face request failed (${response.status}).`, response.status);
@@ -249,7 +263,7 @@ export async function talkToBeast(input) {
     const response = await fetchImpl("/api/guest", {
       method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "rawrphos-local", text: framePrompt(persona, history, text, GUEST_LIMIT, observation) }),
+      body: JSON.stringify({ provider: "rawrphos-local", text: framePrompt(persona, history, text, GUEST_LIMIT, context, observation) }),
     });
     const payload = await readJson(response).catch(() => null);
     if (!response.ok) {

@@ -111,6 +111,9 @@ test("touch controls press the GBA keys the cartridge already listens for", () =
   assert.equal(pressCartridge("a", true, host), true);
   assert.equal(pressCartridge("a", false, host), true);
   assert.deepEqual(presses, [[0, 8, 1], [0, 8, 0]]);
+  assert.equal(events.length,0,'the direct API must not also emit a second key transport');
+  const fallback={dispatchEvent:event=>events.push(event)};
+  pressCartridge('a',true,fallback);pressCartridge('a',false,fallback);
   assert.equal(events[0].type, "keydown");
   assert.equal(events[0].key, "z");
   assert.equal(events[1].type, "keyup");

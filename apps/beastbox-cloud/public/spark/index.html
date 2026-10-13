@@ -100,13 +100,6 @@
     <div class="training-bar"><i></i><b id="train-mark"></b></div>
    </div>
 
-   <form id="talk-form" class="talk-card" hidden>
-    <div class="talk-head"><label for="talk-text">Talk to your game companion</label><span id="talk-source">LOCAL PATTERN</span></div>
-    <div class="row"><input id="talk-text" maxlength="400" autocomplete="off" placeholder="Hello, little beast…"><button type="submit">SEND</button></div>
-    <p id="talk-reply" role="status"></p>
-    <small class="hint">When you are signed in as owner, Spark uses the active Brain Bay model through the server-side COSMOS bridge. Your Ollama/HF key never enters this HTML. Public visitors get the free RAWRPHØS guest model; if it is offline you will see that clearly. <a href="/beast-cage/talk">Full Talk to Beast room (choose a brain) ↗</a></small>
-   </form>
-
    <div class="stats-row">
     <p id="care-stats" class="stats">Care XP 0 · Bond 1 · Energy 100</p>
     <a href="/beast-cage">Open full care →</a>
@@ -258,6 +251,70 @@
   <a href="/sol-game">COSMOS</a>
   <a href="/brain-bay">Brain</a>
  </nav>
+
+ <div id="spark-chat" class="spark-chat-overlay" hidden>
+  <section id="talk-dialog" class="spark-chat-dialog" role="dialog" aria-modal="true" aria-label="Talk to your Beast" aria-describedby="talk-persona" tabindex="-1" data-expanded="false">
+   <header class="spark-chat-header">
+    <canvas id="talk-avatar" width="64" height="64" aria-hidden="true"></canvas>
+    <div class="spark-chat-heading"><span>YOUR COSMIC COMPANION</span><h2 id="talk-title">Talk to your Beast</h2><p id="talk-persona"></p></div>
+    <div class="spark-chat-window-actions">
+     <button type="button" id="talk-minimize" aria-label="Minimize conversation" title="Minimize">−</button>
+     <button type="button" id="talk-expand" aria-label="Expand conversation" aria-pressed="false" title="Change conversation size">↗</button>
+     <button type="button" id="talk-close" aria-label="Close conversation" title="Close">×</button>
+    </div>
+   </header>
+   <div id="talk-brain-bar" class="spark-chat-brain" data-tone="ready">
+    <i aria-hidden="true"></i><div><strong id="talk-source"></strong><p id="talk-reply" role="status" aria-live="polite"></p></div>
+    <button type="button" id="talk-change-brain" aria-expanded="false" aria-controls="talk-brains">Change brain</button>
+   </div>
+   <div id="talk-scroll" class="spark-chat-scroll" tabindex="0" aria-label="Scrollable conversation and settings">
+    <fieldset id="talk-brains" class="spark-chat-brains" hidden>
+     <legend>Choose the brain that answers</legend>
+     <div id="talk-route-options" class="spark-chat-routes"></div>
+     <div id="talk-ollama-fields" class="spark-chat-fields" hidden>
+      <label for="talk-ollama-url">Ollama address</label><input id="talk-ollama-url" type="url" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:11434">
+      <label for="talk-ollama-model">Installed model tag</label><input id="talk-ollama-model" autocomplete="off" spellcheck="false" placeholder="companion-glacecoil">
+     </div>
+     <div id="talk-hf-fields" class="spark-chat-fields" hidden>
+      <label for="talk-hf-key">Your Hugging Face token</label><input id="talk-hf-key" type="password" autocomplete="off" spellcheck="false" placeholder="hf_…">
+      <label for="talk-hf-model">Hugging Face model ID</label><input id="talk-hf-model" autocomplete="off" spellcheck="false" placeholder="owner/model-name">
+      <label class="spark-chat-check"><input id="talk-hf-spend" type="checkbox">Any charges go to my own Hugging Face account.</label>
+      <small>Your token stays in this browser tab. It is sent through the Hugging Face proxy only for a request you confirm.</small>
+     </div>
+     <ul id="talk-help" class="spark-chat-help"></ul>
+    </fieldset>
+    <p id="talk-empty" class="spark-chat-empty"></p>
+    <div id="talk-history" role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversation with your Beast"></div>
+    <div id="talk-offline" class="spark-chat-offline" role="alert" hidden><strong>No model reply received</strong><p id="talk-error"></p><ul id="talk-error-help"></ul><button type="button" id="talk-pattern">Try on-device pattern</button><small>A local scripted reply. It is separate from verified model history.</small></div>
+    <div id="talk-pattern-reply" class="spark-chat-pattern" data-talk-pattern hidden><strong>On-device pattern · scripted</strong><p id="talk-pattern-text"></p></div>
+    <details class="spark-chat-options">
+     <summary>Conversation settings</summary>
+     <label for="talk-retention">Keep this conversation</label><select id="talk-retention"><option value="device">On this device</option><option value="session">In this tab only</option></select>
+     <label class="spark-chat-check"><input id="talk-share-history" type="checkbox">Share recent conversation with the selected provider</label>
+     <p>Your current message and creature identity go to the brain you choose. Recent history stays private until you enable sharing.</p>
+     <section id="talk-private-cloud" class="spark-chat-private" aria-label="Optional private cloud conversation">
+      <h3>My private cloud conversation</h3>
+      <button type="button" id="talk-cloud-restore">Restore my cloud conversation</button>
+      <label class="spark-chat-check"><input id="talk-cloud-sync" type="checkbox" disabled>Save new verified exchanges to my private cloud</label>
+      <p id="talk-cloud-status" role="status" aria-live="polite">Private cloud is optional. Restore this creature’s conversation to check ownership and consent.</p>
+      <button type="button" id="talk-cloud-retry" hidden>Retry cloud save</button>
+      <p>Restore checks your private owner session and this selected creature. Cloud saving requires its separate consent in <a href="/settings">Settings</a>. Imported turns are unverified history. Use the separate history checkbox to choose what you share with a provider.</p>
+     </section>
+     <label class="spark-chat-check"><input id="talk-share-growth" type="checkbox">Share aggregate local experience with the selected provider</label>
+     <p id="talk-growth"></p><p>Experience uses a local classical QVM-inspired simulation. It does not train a model or run on quantum hardware.</p>
+     <div class="spark-chat-setting-actions"><button type="button" id="talk-clear">Clear conversation</button><button type="button" id="talk-reset-growth">Reset local experience</button></div>
+     <a href="/beast-cage/talk">Open the full Talk to Beast room ↗</a>
+    </details>
+   </div>
+   <form id="talk-form" class="spark-chat-composer">
+    <label for="talk-text" id="talk-input-label" class="spark-chat-sr-only">Message to your Beast</label>
+    <textarea id="talk-text" rows="2" maxlength="400" autocomplete="off" placeholder="Say something to your Beast…"></textarea>
+    <div class="spark-chat-send-row"><span id="talk-count">0/400</span><span>Enter to send · Shift + Enter for a new line</span><button type="button" id="talk-cancel" hidden>Cancel</button><button type="submit" id="talk-send" class="primary" aria-label="Send message">Send <span aria-hidden="true">↑</span></button></div>
+    <p id="talk-save-note" role="status"></p>
+   </form>
+  </section>
+ </div>
+ <button type="button" id="talk-resume" class="spark-chat-resume" aria-label="Resume conversation with your Beast" hidden><span aria-hidden="true">◌</span><span id="talk-resume-label">Talk to your Beast</span><span aria-hidden="true">↗</span></button>
 
  <script type="module" src="/spark/app.mjs"></script>
 </body>

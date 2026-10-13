@@ -3,7 +3,8 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
 const path=require('node:path');
-const {chromium}=require('playwright');
+const {chromium,webkit}=require('playwright');
+const browserEngine=process.env.BEAST_TEST_BROWSER==='webkit'?'webkit':'chromium';
 const expect=require('playwright/test').expect.configure({timeout:20000});
 
 const origin=process.env.BEAST_BROWSER_ORIGIN||process.argv[2]||'http://127.0.0.1:3000';
@@ -27,17 +28,20 @@ async function checkRooms(page){
 }
 
 (async()=>{
- const browser=await chromium.launch({headless:true,...(process.env.BEAST_BROWSER_EXECUTABLE?{executablePath:process.env.BEAST_BROWSER_EXECUTABLE}:{}),args:['--no-sandbox','--disable-dev-shm-usage','--use-angle=swiftshader']});
+ const browser=await (browserEngine==='webkit'?webkit:chromium).launch({headless:true,...(process.env.BEAST_BROWSER_EXECUTABLE?{executablePath:process.env.BEAST_BROWSER_EXECUTABLE}:{}),args:browserEngine==='chromium'?['--no-sandbox','--disable-dev-shm-usage','--use-angle=swiftshader']:[]});
  const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'no-preference'});
  let sensorCalls=0;
  await context.exposeFunction('__noteSensorRequest',()=>{sensorCalls++;});
  await context.addInitScript(()=>{
   if(navigator.mediaDevices)navigator.mediaDevices.getUserMedia=async()=>{await window.__noteSensorRequest();throw Error('Unexpected sensor permission request');};
  });
- const page=await context.newPage(),errors=[],privateCalls=[],guestCalls=[],loopbackCalls=[];
+ const page=await context.newPage(),errors=[],privateCalls=[],guestCalls=[],loopbackCalls=[],cloudConfigurationReads=[];
+ const anonymousCloudMetadata=await context.request.get(origin+'/api/cosmos/private/session');
+ if(anonymousCloudMetadata.status()===200){const metadata=await anonymousCloudMetadata.json();assert.notEqual(metadata.authorized,true);assert.equal(metadata.owner,undefined);assert.equal(metadata.record,undefined);assert.equal(metadata.conversations,undefined);assert.equal(anonymousCloudMetadata.headers()['set-cookie'],undefined);}
  page.on('pageerror',error=>errors.push(error.message));
  page.on('request',request=>{
   const url=new URL(request.url());
+  if(url.origin===new URL(origin).origin&&url.pathname==='/api/cosmos/private/session'&&request.method()==='GET'){cloudConfigurationReads.push(request.method());return;}
   if(url.origin===new URL(origin).origin&&url.pathname.startsWith('/api/')&&!['/api/guest','/api/talk'].includes(url.pathname))privateCalls.push(url.pathname);
  });
  await page.route('**/api/guest',async route=>{
@@ -175,12 +179,13 @@ async function checkRooms(page){
    }
   }
   assert.deepEqual(privateCalls,[],'Public rooms must not call private APIs');
+  assert.ok(cloudConfigurationReads.every(method=>method==='GET'),'Passive optional cloud configuration checks must never issue ownership credentials or write private data');
   const publicPrivateRequests=privateCalls.length;
   await page.goto(origin+'/workspace#brain-bay');
   await expect(page.getByLabel('OWNER PASSWORD')).toBeVisible();
   await expect(page.getByRole('button',{name:/Unlock workstation/})).toBeVisible();
   assert.equal(sensorCalls,0);
   assert.deepEqual(errors,[]);
-  console.log(JSON.stringify({passed:true,widths:[320,375,390,430,1280],guestFailureRequests:guestCalls.length,explicitLoopbackRequests:loopbackCalls.length,publicPrivateRequests,ownerLoginRequests:privateCalls,liveInferenceVerified:false}));
+  console.log(JSON.stringify({passed:true,browserEngine,physicalDevice:false,widths:[320,375,390,430,1280],guestFailureRequests:guestCalls.length,explicitLoopbackRequests:loopbackCalls.length,publicPrivateRequests,ownerLoginRequests:privateCalls,liveInferenceVerified:false}));
  }finally{await context.close();await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

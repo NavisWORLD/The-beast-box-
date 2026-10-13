@@ -1,0 +1,38 @@
+name: RAWRPHOS recorded quantum conditioning dataset (no training)
+on:
+  pull_request:
+    paths:
+      - 'scripts/prepare_rawrphos_quantum_conditioning.mjs'
+      - 'scripts/audit-creature-genesis.mjs'
+      - 'apps/beastbox-cloud/tests/rawrphos-quantum-conditioning.test.mjs'
+      - 'apps/beastbox-cloud/public/spark/*json'
+      - '.github/workflows/rawrphos-quantum-conditioning.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check actual published workload integrity and split isolation
+        run: |
+          node --test apps/beastbox-cloud/tests/rawrphos-quantum-conditioning.test.mjs
+      - name: Export reproducible training-conditioning inputs and verify exact bytes
+        run: |
+          node scripts/prepare_rawrphos_quantum_conditioning.mjs --write
+          node scripts/prepare_rawrphos_quantum_conditioning.mjs --check
+          echo 'No RAWRPHOS checkpoint loaded or modified; no provider jobs submitted.'
+      - name: Archive input features and proof (NOT trained model weights)
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawrphos-quantum-conditioning-${{ github.sha }}
+          path: build/rawrphos-quantum-conditioning/
+          retention-days: 30
+          if-no-files-found: error

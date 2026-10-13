@@ -10,7 +10,12 @@
 (function () {
   'use strict';
   if (window.__beastBoxDevice || !window.BeastBoxNative) return;
-  var NATIVE = window.BeastBoxNative;
+  var channel = window.BeastBoxNative;
+  if (typeof channel.postMessage !== 'function') return;
+  var NATIVE = {
+    reportState: function (json) { channel.postMessage(JSON.stringify({ kind: 'state', json: json })); },
+    log: function (message) { channel.postMessage(JSON.stringify({ kind: 'log', message: String(message).slice(0, 300) })); }
+  };
   var SESSION_KEY = 'beastbox-companion-session-v1';
   var LEGACY_KEY = 'spark-beasts-v1';
   var lastSent = '';
@@ -96,19 +101,22 @@
   }
 
   function talk(cmd) {
+    // A nearby BLE client may suggest a draft; only the user can authorize Send.
+    // The shared React/Spark pop-up receives the same event without creating another chat client.
+    try {
+      window.dispatchEvent(new CustomEvent('beastbox:open-chat', {
+        detail: { draft: String(cmd.text || 'Hi from a Beast Box device!').slice(0, 120) }
+      }));
+    } catch (e) { return false; }
     var open = document.getElementById('talk');
     var input = document.getElementById('talk-text') || document.getElementById('chat-input');
-    var form = document.getElementById('talk-form') || document.getElementById('chat-form');
-    if ((!input || !form) && open) {
+    if (!input && open) {
       open.click();
       input = document.getElementById('talk-text') || document.getElementById('chat-input');
-      form = document.getElementById('talk-form') || document.getElementById('chat-form');
     }
-    if (!input || !form) return false;
+    if (!input) return true; // The shared pop-up adapter owns its React draft state.
     input.value = String(cmd.text || 'Hi from a Beast Box device!').slice(0, 120);
     input.dispatchEvent(new Event('input', { bubbles: true }));
-    if (typeof form.requestSubmit === 'function') form.requestSubmit();
-    else form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
     return true;
   }
 
@@ -127,7 +135,7 @@
     var handled = false;
     try {
       var hook = window.BeastBoxDevice;
-      if (hook && typeof hook.onCommand === 'function') handled = hook.onCommand(cmd) === true;
+      if (cmd.command !== 'talk' && hook && typeof hook.onCommand === 'function') handled = hook.onCommand(cmd) === true;
     } catch (e) {}
     if (!handled && SPARK_ADAPTER[cmd.command]) handled = SPARK_ADAPTER[cmd.command](cmd);
     try { NATIVE.log('command ' + cmd.command + ' from ' + cmd.source + (handled ? ' applied' : ' not applied')); } catch (e) {}

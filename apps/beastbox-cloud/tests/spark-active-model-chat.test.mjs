@@ -8,6 +8,8 @@ test('Spark active-model chat is owner-gated and keeps provider credentials off 
  const route=read('app/api/spark/chat/route.ts');
  const app=read('public/spark/app.mjs');
  const html=read('public/spark/index.html');
+ const popup=read('public/spark/chat-popup.mjs');
+ const shared=read('lib/companion/beast-talk.mjs');
  assert.match(route,/isOwner/);
  assert.match(route,/bridgeConfigured/);
  assert.match(route,/BEASTBOX_CLOUD_BRIDGE_TOKEN/);
@@ -15,13 +17,17 @@ test('Spark active-model chat is owner-gated and keeps provider credentials off 
  assert.match(route,/chat-job/);
  assert.match(route,/temporary_attachment/);
  assert.doesNotMatch(route,/OLLAMA_API_KEY|HF_TOKEN|ollama\.com\/api\/chat/);
- assert.match(app,/fetch\('\/api\/spark\/chat'/);
- assert.match(app,/credentials:'same-origin'/);
+ assert.match(app,/createSparkChatPopup/);
+ assert.match(popup,/talkToBeast/);
+ assert.match(shared,/connected-brain-bay/);
+ assert.match(shared,/ownerChatBody/);
+ assert.match(shared,/\/api\/bridge\/chat-start/);
  assert.match(app,/rememberExchange/);
- assert.match(app,/LOCAL PATTERN/);
- assert.match(html,/active Brain Bay model/);
- assert.match(html,/key never enters this HTML/);
- assert.doesNotMatch(app+html,/Bearer\s|OLLAMA_API_KEY|sk-[A-Za-z0-9]/);
+ assert.match(html,/On-device pattern · scripted/);
+ assert.match(html,/Brain Bay/);
+ assert.match(html,/Your Hugging Face token/);
+ assert.doesNotMatch(app+html+popup,/OLLAMA_API_KEY|BEASTBOX_CLOUD_BRIDGE_TOKEN|sk-[A-Za-z0-9]/);
+ assert.match(popup,/spendConfirmed/);
 });
 
 test('Spark client never chooses or silently approves a paid provider',()=>{

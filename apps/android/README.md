@@ -73,3 +73,5 @@ Pinned compatibility sources:
 - [Chaquopy 17.0 setup](https://chaquo.com/chaquopy/doc/current/android.html): Python 3.12, API 24+, AGP 7.3–9.2, 64-bit ABIs.
 - [AGP 8.9 compatibility](https://developer.android.com/build/releases/agp-8-9-0-release-notes): Gradle 8.11.1, JDK 17, API 35.
 - [Kotlin Gradle compatibility](https://kotlinlang.org/docs/gradle-configure-project.html): Kotlin 2.2.10 supports AGP through 8.10 and Gradle through 8.14.
+
+The header now reports the installed build version and debug/release type. API 35 cutout, system bar and keyboard insets preserve access to the existing runtime controls. The on-device runtime remains independent of the website QBEAST save; it is not a substitute for the canonical web creature session.
