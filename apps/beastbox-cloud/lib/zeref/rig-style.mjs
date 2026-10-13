@@ -1,8 +1,8 @@
 /**
  * Rig skins: the high-quality ZEREF vector rig for every habitat beast.
  *
- * - The site's Zeref (or a saved beast named Zeref) wears Cory's canonical
- *   Moonwraith palette from the sprite atlas / character card.
+ * - Only the exact Moonwraith display identity wears its canonical palette.
+ *   A visitor's rename does not select another creature's visual identity.
  * - Any other Spark Beast gets a comparable rig variant tinted and featured
  *   from ITS OWN recorded-seed genome (island palette + hue/sat/val genes,
  *   wings, ears/horns, tail, glow). Purely visual: identity, stats and saves
@@ -24,8 +24,8 @@ export const ZEREF_SKIN=Object.freeze({
  features:Object.freeze({wings:true,moonHorns:true,crescent:true,horns:false,tailTip:'wisp'})
 });
 
-export function isZerefBeast({id,name}={}){
- return id===ZEREF_PROFILE.id||/\bzeref\b/i.test(String(name||''));
+export function isZerefBeast({id}={}){
+ return id===ZEREF_PROFILE.id;
 }
 
 /** Genome -> rig skin. Returns ZEREF_SKIN for Zeref. */

@@ -115,10 +115,11 @@ test('thoughts: template by default, a supplied model line is labelled, care is 
  assert.equal(STAGES.length,5);
 });
 
-test('rig skins: Zeref canonical, other beasts tinted from their own genome',()=>{
- assert.ok(isZerefBeast({name:'Zeref'})&&isZerefBeast({id:ZEREF_PROFILE.id})&&!isZerefBeast({name:'Emberkin'}));
+test('rig skins: exact Moonwraith identity is canonical, names do not override recorded genomes',()=>{
+ assert.ok(isZerefBeast({id:ZEREF_PROFILE.id})&&!isZerefBeast({name:'Zeref'})&&!isZerefBeast({name:'Emberkin'}));
  const gen={island:'Cinder Drift',genes:{hue:.5,sat:.5,val:.5},glow:'native',wings:'none',ears:'horns',tail:'flame',seed:'abc',quantum:{marginals:[.3,.7],entropy_norm:.8,counts_sha256:'ff'}};
- assert.equal(skinFromGenome(gen,{name:'Zeref'}),ZEREF_SKIN);
+ assert.equal(skinFromGenome(gen,{id:ZEREF_PROFILE.id,name:'Renamed guide'}),ZEREF_SKIN);
+ assert.equal(skinFromGenome(gen,{id:'bb-deada969',name:'Zeref'}).canonical,false);
  const s=skinFromGenome(gen,{name:'Emberkin',id:'bb-1'});
  assert.equal(s.canonical,false);assert.equal(s.features.wings,false);assert.equal(s.features.horns,true);
  assert.notEqual(s.fur[1],ZEREF_SKIN.fur[1]);assert.match(s.fur[1],/^#[0-9a-f]{6}$/);
