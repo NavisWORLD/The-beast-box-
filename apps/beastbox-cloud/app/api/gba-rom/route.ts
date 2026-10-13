@@ -2,15 +2,15 @@ import {NextResponse} from 'next/server';
 import {createHash} from 'node:crypto';
 export const dynamic='force-dynamic';
 const RELEASE='https://navisworld.github.io/Cosmic-synapse-the-living-universe-sim-engine-/arcade/lost-cosmos/rom/lost-cosmos.gba';
-const SHA='ddf1ca9b44a12520e9448ec45ccd8b3914d3b3e983361b512718e575dd219f7d';
+const SHA='425e2ace92a7c2c3d15db9b1cdd61ef538ddf46510255a2857afa27e613657c2';
 export async function GET(){
  try{
   const upstream=await fetch(RELEASE+'?v='+SHA,{cache:'no-store',signal:AbortSignal.timeout(20000)});
   if(!upstream.ok||!upstream.body)throw Error('Cartridge unavailable');
   const chunks:Uint8Array[]=[];let total=0;const reader=upstream.body.getReader();
-  while(true){const next=await reader.read();if(next.done)break;total+=next.value.byteLength;if(total>1_500_000){await reader.cancel();throw Error('Cartridge size limit');}chunks.push(next.value);}
+  while(true){const next=await reader.read();if(next.done)break;total+=next.value.byteLength;if(total>3_000_000){await reader.cancel();throw Error('Cartridge size limit');}chunks.push(next.value);}
   const body=new Uint8Array(total);let offset=0;for(const chunk of chunks){body.set(chunk,offset);offset+=chunk.byteLength;}
-  if(total!==1048576||body[0xb2]!==0x96||createHash('sha256').update(body).digest('hex')!==SHA)throw Error('Cartridge hash mismatch');
+  if(total!==2097152||body[0xb2]!==0x96||createHash('sha256').update(body).digest('hex')!==SHA)throw Error('Cartridge hash mismatch');
   return new Response(body,{headers:{'Content-Type':'application/octet-stream','Content-Length':String(total),'Cache-Control':'public, max-age=300','X-Lost-Cosmos-SHA256':SHA,'X-Content-Type-Options':'nosniff'}});
  }catch{return NextResponse.json({error:'The verified current LOST COSMOS cartridge is not available. Reload after the release completes.'},{status:502});}
 }
