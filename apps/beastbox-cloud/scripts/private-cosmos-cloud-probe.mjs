@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {PrivateCosmos,azurePrivateIO} from '../lib/cosmos/private-memory.mjs';
 import {storageConfig} from '../lib/cosmos/azure-blob.mjs';
 import {issueCredential,verifyCredential} from '../lib/cosmos/private-owner.mjs';
-import {privateGrowthPlan,sealWorkerReceipt} from '../lib/cosmos/private-qvm.mjs';
+import {runPrivateGrowth} from '../lib/cosmos/private-growth-worker.mjs';
 const out=process.argv[2]||'build/private-cosmos';mkdirSync(out,{recursive:true});
 const config=storageConfig(),report={schema:'private-cosmos-cloud-acceptance/v1',azure:'BLOCKED_EXTERNAL',qvm:'BLOCKED_EXTERNAL',checks:[],cleanup:false};
 if(!config||process.env.BEASTBOX_PRIVATE_PROBE_APPROVAL!=='YES_ISOLATED_PRIVATE_TEST'){writeFileSync(out+'/report.json',JSON.stringify(report,null,2));process.exit(2);}
@@ -22,14 +22,15 @@ try{
  await assert.rejects(store.update(a.subject,id,{kind:'memory',text:'stale'},randomUUID(),first.version));report.checks.push('stale version rejected');
  const consent=await store.update(a.subject,id,{kind:'growth-consent',enabled:true,schedule:false},randomUUID(),reread.version);
  if(process.env.BEASTBOX_PRIVATE_QVM_SMOKE==='true'){
- const plan=privateGrowthPlan(consent.record,randomUUID());writeFileSync(out+'/plan.json',JSON.stringify(plan,null,2));
- const startedAt=new Date().toISOString();
- // Reuse the existing authenticated Rigetti executor; one fixed free target,256shots.
- if(process.env.AZURE_QUANTUM_CONNECTION_STRING){const child=spawnSync('python',['scripts/zeref_diary_qvm.py',out+'/plan.json',out+'/qvm-raw.json'],{stdio:['ignore','ignore','ignore'],timeout:300000});if(child.status!==0)report.checks.push('QVM driver unavailable or timed out');}
- const raw=(()=>{try{return JSON.parse(readFileSync(out+'/qvm-raw.json'));}catch{return {ok:false,error:'QVM credential or driver unavailable'};}})();
- const receipt=sealWorkerReceipt(secret,plan,raw,{startedAt,completedAt:new Date().toISOString()});
- const applied=await store.applyQvm(a.subject,id,plan,receipt,plan.event_id,consent.version,secret);assert.equal(applied.record.simulationReceipts.at(-1).receipt_hash,receipt.receipt_hash);assert.equal((await store.read(b.subject,other)).record.simulationReceipts.length,0);
- report.qvm=receipt.status;report.receipt={hash:receipt.receipt_hash,job_id:receipt.job_id,target:receipt.target,shots:receipt.shots,counts:receipt.counts,startedAt:receipt.startedAt,completedAt:receipt.completedAt,source:'remote simulator, never physical QPU'};
+ await store.update(a.subject,id,{kind:'simulation-request'},randomUUID(),consent.version);
+ const worker=await runPrivateGrowth(store,async plan=>{
+  writeFileSync(out+'/plan.json',JSON.stringify(plan,null,2));
+  if(process.env.AZURE_QUANTUM_CONNECTION_STRING){const child=spawnSync('python',['scripts/zeref_diary_qvm.py',out+'/plan.json',out+'/qvm-raw.json','--private-bounded'],{stdio:['ignore','ignore','ignore'],timeout:300000});if(child.status!==0)report.checks.push('QVM driver unavailable or timed out');}
+  try{return JSON.parse(readFileSync(out+'/qvm-raw.json'));}catch{return {ok:false,target:plan.target,beast_id:plan.beast_id,job_name:plan.job_name,shots:plan.shots,job_id:null,error:'QVM credential or driver unavailable'};}
+ },{maxJobs:1});
+ const applied=await store.read(a.subject,id),receipt=applied.record.simulationReceipts.at(-1);
+ assert.equal((await store.read(b.subject,other)).record.simulationReceipts.length,0);report.worker=worker;
+ report.qvm=receipt?.status||'BLOCKED_EXTERNAL';if(receipt)report.receipt={hash:receipt.receipt_hash,job_id:receipt.job_id,target:receipt.target,shots:receipt.shots,counts:receipt.counts,startedAt:receipt.startedAt,completedAt:receipt.completedAt,source:'remote simulator, never physical QPU'};
  }else report.qvm='NOT_REQUESTED';
  await store.remove(a.subject,id);await assert.rejects(store.read(a.subject,id));await store.revoke(b.subject);await assert.rejects(store.read(b.subject,other));report.checks.push('real conditional private deletion and credential revocation verified');report.azure='PASSED';
 }catch(error){report.error=error?.code||'PRIVATE_ACCEPTANCE_FAILED';}

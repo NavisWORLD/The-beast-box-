@@ -9,7 +9,7 @@ environment only and never printed or written. On any failure a receipt with
 ok:false and a sanitised error is written so the diary logs the real failure
 and uses its deterministic step; counts are never invented.
 """
-import json, os, re, sys, time
+import hashlib, json, os, re, sys, time
 from pathlib import Path
 
 ALLOWED_TARGET = "rigetti.sim.qvm"
@@ -44,7 +44,7 @@ def storage_diagnostic(secret):
     return {"connection_string_keys": keys, "carries_storage_credential": has_storage}
 
 
-def main(plan_path, out_path):
+def main(plan_path, out_path, private_bounded=False):
     out = Path(out_path)
     raw = json.loads(Path(plan_path).read_text())
     batch = isinstance(raw, dict) and isinstance(raw.get("plans"), list)
@@ -52,6 +52,10 @@ def main(plan_path, out_path):
     secret = os.environ.get("AZURE_QUANTUM_CONNECTION_STRING", "").strip()
     receipts = [{"ok": False, "provider": "azure-quantum/rigetti", "target": ALLOWED_TARGET, "job_name": p.get("job_name"),
                  "beast_id": p.get("beast_id"), "shots": p.get("shots"), "simulated": True, "job_id": None} for p in plans]
+    if private_bounded:
+        for p, receipt in zip(plans, receipts):
+            receipt.update(private_execution=True, quil_sha256=hashlib.sha256(str(p.get("quil", "")).encode()).hexdigest(),
+                           input_hash=p.get("input_hash"), event_id=p.get("event_id"), tick=p.get("tick"))
     meta = {}
     jobs = [None] * len(plans)
     try:
@@ -59,6 +63,10 @@ def main(plan_path, out_path):
             raise RuntimeError("no plans")
         if any(p.get("target") != ALLOWED_TARGET for p in plans):
             raise RuntimeError("a plan target is not the free Rigetti QVM simulator; refusing the whole batch")
+        if private_bounded and (len(plans) > 2 or any(not isinstance(p.get("shots"), int) or not 1 <= p["shots"] <= 256 or p.get("cost_cap_usd") != 0 for p in plans)):
+            raise RuntimeError("private worker limits reject this batch before submission")
+        if private_bounded and any(r["quil_sha256"] != p.get("quil_sha256") for p, r in zip(plans, receipts)):
+            raise RuntimeError("private circuit digest mismatch before submission")
         if not secret:
             raise RuntimeError("AZURE_QUANTUM_CONNECTION_STRING not available to this run")
         meta["storage_check"] = storage_diagnostic(secret)
@@ -73,6 +81,14 @@ def main(plan_path, out_path):
             meta["quotas"] = quotas
         except Exception as qerr:
             meta["quotas_error"] = type(qerr).__name__
+        if private_bounded:
+            # Conservative preflight for the already configured free simulator.
+            # Missing quota evidence blocks execution; it is never interpreted as
+            # permission to submit. No paid target is selected by this driver.
+            hours = [q for q in meta.get("quotas", []) if q.get("dimension") == "emulator_hours"]
+            required = len(plans) * 300 / 3600
+            if not hours or any(not isinstance(q.get("limit"), (int, float)) or q["limit"] - float(q.get("utilization") or 0) - float(q.get("holds") or 0) < required for q in hours):
+                raise RuntimeError("private simulator quota unavailable or insufficient")
         target = ws.get_targets(ALLOWED_TARGET)
         if getattr(target, "name", None) != ALLOWED_TARGET:
             raise RuntimeError("workspace did not return the rigetti.sim.qvm target")
@@ -107,4 +123,4 @@ def main(plan_path, out_path):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1], sys.argv[2]))
+    sys.exit(main(sys.argv[1], sys.argv[2], "--private-bounded" in sys.argv[3:]))

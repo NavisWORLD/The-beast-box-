@@ -44,8 +44,8 @@ database, container or paid provider is provisioned by this code.
 ## Configuration and acceptance
 
 Server-only configuration: existing Azure Blob credentials and container,
-`BEASTBOX_CLOUD_AUTH_SECRET` (at least 32 characters), and explicit
-`BEASTBOX_PRIVATE_MEMORY_ENABLED=true`. An optional trusted
+`BEASTBOX_CLOUD_AUTH_SECRET` (at least 32 characters), with an optional
+`BEASTBOX_PRIVATE_MEMORY_ENABLED=false` server kill switch. An optional trusted
 `BEASTBOX_PRIVATE_MEMORY_PREFIX` isolates staging. Values are never returned in
 diagnostics. An unconfigured private endpoint fails closed.
 
@@ -58,6 +58,31 @@ fixtures are not cloud receipts. A completed cloud test alone does not establish
 production deployment or browser acceptance.
 
 Release gates still require actual Azure HTTP ownership tests, the authenticated
-QVM artifact, bounded scheduler acceptance, shared conversation integration,
+QVM artifact, actual scheduler cloud acceptance, shared conversation integration,
 mobile/native continuity, CI/security review and verified production deployment.
 Issue 323 must remain open until the required gates are evidenced.
+
+## First real cloud evidence
+
+Actions run [38395232677](https://github.com/NavisWORLD/The-beast-box-/actions/runs/38395232677)
+at `c1010c14503a97ae0d0333dd85f8fb7de88f239c` passed the isolated Azure lifecycle
+and returned Rigetti simulator job `5a5cfa50-c6ff-11f1-ae67-6045bdae5396`,
+256 actual shots, receipt SHA-256
+`a4e218fc0619b5812954c1904b79808106e3e1914ca16c579ed760db1a44daf5`.
+The sanitized report, input plan and provider response are retained in
+`docs/verification/private-cosmos-323/`. Cleanup was verified. Subsequent push
+acceptance does not submit quantum jobs; a manual workflow dispatch must explicitly
+request another bounded smoke.
+
+## Bounded worker
+
+The trusted worker reuses the existing planner and Python driver. It services
+at most two distinct owners per run, two attempts per owner per UTC day, one
+attempt per creature per 24 hours, and 16 lifetime attempts per creature. Operator
+variables may lower those limits. Quota reservations persist independently of
+reset/recovery. Unknown submissions are held without automatic retry. Completed
+provider results are stored before checkpoint application so a failed head write
+can resume without another quantum submission. No private inputs or job receipts
+are published by the production scheduler. Immutable simulation receipt objects
+are private and erased by Delete/Revocation. The independent cost ledger retains
+opaque hashes and counters to prevent reset-based quota bypass.

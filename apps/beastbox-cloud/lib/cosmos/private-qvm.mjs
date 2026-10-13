@@ -10,13 +10,17 @@ const seal=(secret,value)=>createHmac('sha256',secret).update('private-qvm/v1\0'
 export function privateGrowthPlan(record,eventId,{now=new Date().toISOString()}={}){
  if(!record?.growth?.optedIn||record.growth.jobs>=16)throw Error('PRIVATE_QVM_CONSENT_OR_JOB_CAP');
  if(record.growth.lastCompleted&&Date.parse(now)-Date.parse(record.growth.lastCompleted)<86400000)throw Error('PRIVATE_QVM_DAILY_CAP');
- const state=genesisForBeast(record.profile);state.tick=record.growth.tick;state.signals={...state.signals,...record.profile.traits.stats};
+ const state=genesisForBeast(record.profile);state.tick=record.growth.tick;state.signals={...state.signals,...record.profile.traits.stats,...record.growth.signals};
+ // Classical bounded state feedback, distinct from a neural-weight update.
+ const curiosity=record.personalityState?.curiosity??50;
+ state.signals.signal=Math.max(0,Math.min(100,state.signals.signal+(curiosity-50)*.04));
  const plan=planGrowthCircuit(state);if(plan.target!=='rigetti.sim.qvm'||plan.shots>256||plan.shots<1)throw Error('PRIVATE_QVM_BUDGET_OR_TARGET');
- return {...plan,schema:'private-growth-plan/v1',scope:'private-cosmos',owner:record.owner,beast_id:record.beastId,event_id:eventId,input_hash:h({owner:record.owner,id:record.beastId,tick:plan.tick,signals:state.signals,quil_sha256:plan.quil_sha256}),job_name:'private-qvm-'+h({owner:record.owner,eventId}).slice(0,24),planned_at:now,cost_cap_usd:0};
+ return {...plan,schema:'private-growth-plan/v1',scope:'private-cosmos',owner:record.owner,beast_id:record.beastId,event_id:eventId,inputs:{signals:state.signals,curiosity,source:'canonical profile plus bounded classical state; not neural training'},input_hash:h({owner:record.owner,id:record.beastId,tick:plan.tick,signals:state.signals,quil_sha256:plan.quil_sha256}),job_name:'private-qvm-'+h({owner:record.owner,eventId}).slice(0,24),planned_at:now,cost_cap_usd:0};
 }
 export function sealWorkerReceipt(secret,plan,raw,{startedAt=null,completedAt=null}={}){
  if(typeof secret!=='string'||secret.length<32)throw Error('QVM_SIGNING_UNCONFIGURED');
- const valid=typeof startedAt==='string'&&typeof completedAt==='string'&&Number.isFinite(Date.parse(startedAt))&&Date.parse(completedAt)>=Date.parse(startedAt)&&raw?.ok===true&&raw.target==='rigetti.sim.qvm'&&raw.beast_id===plan.beast_id&&raw.job_name===plan.job_name&&raw.shots===plan.shots&&/^[-a-zA-Z0-9]{8,100}$/.test(raw.job_id||'')&&countsFeatures(raw.counts,plan.shots);
+ const boundedMatch=raw?.private_execution!==true||(raw.quil_sha256===plan.quil_sha256&&raw.input_hash===plan.input_hash&&raw.tick===plan.tick&&raw.event_id===plan.event_id);
+ const valid=boundedMatch&&typeof startedAt==='string'&&typeof completedAt==='string'&&Number.isFinite(Date.parse(startedAt))&&Date.parse(completedAt)>=Date.parse(startedAt)&&raw?.ok===true&&raw.target==='rigetti.sim.qvm'&&raw.beast_id===plan.beast_id&&raw.job_name===plan.job_name&&raw.shots===plan.shots&&/^[-a-zA-Z0-9]{8,100}$/.test(raw.job_id||'')&&countsFeatures(raw.counts,plan.shots);
  const record={schema:'private-qvm-receipt/v1',owner:plan.owner,beast_id:plan.beast_id,tick:plan.tick,event_id:plan.event_id,input_hash:plan.input_hash,quil_sha256:plan.quil_sha256,target:'rigetti.sim.qvm',status:valid?'RIGETTI_QVM_REMOTE':'BLOCKED_EXTERNAL',simulated:true,job_id:raw?.job_id||null,shots:plan.shots,counts:valid?raw.counts:null,error:valid?null:'Authenticated provider execution did not produce a valid matching result.',startedAt,completedAt,request:plan,providerReceipt:raw};
  return {...record,receipt_hash:h(record),mac:seal(secret,record)};
 }

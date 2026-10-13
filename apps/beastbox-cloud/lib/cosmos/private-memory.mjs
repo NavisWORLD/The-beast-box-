@@ -23,7 +23,7 @@ export function azurePrivateIO(cfg){return {get:name=>getBlob(cfg,name),put:(nam
 function empty(profile,owner){return {schema:PRIVATE_SCHEMA,owner,beastId:profile.id,profile,identity:{qbeastId:profile.id,seed:profile.provenance.seed,provenance:profile.provenance,authority:'PRIVATE_MEMORY_ONLY',genesisValidation:'CLIENT_CLAIM_UNVERIFIED'},memory:[],conversations:[],personalityState:{source:'bounded classical interaction rules',curiosity:50,trust:0,engagement:0},sensorHistory:[],quantumGenesis:{source:profile.provenance,verification:'CLIENT_CLAIM_UNVERIFIED',freshHardwareJob:false},simulationReceipts:[],learningEvents:[],evolutionHistory:[],gameCheckpoints:[],model:{provider:null,model:null},growth:{optedIn:false,schedule:false,tick:0,status:'OFF',jobs:0,lastAttempt:null},sync:{version:1,recentEvents:{},migrations:[]}};}
 function append(rows,value,max){return [...rows,value].slice(-max);}
 function text(value,max=2000){if(typeof value!=='string'||!value.trim()||value.length>max||/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value))throw fail('INVALID_TEXT');return value;}
-function apply(record,action,at){
+function apply(record,action,at,event){
  const next=clone(record);
  switch(action?.kind){
   case 'memory':next.memory=append(next.memory,{text:text(action.text),at,source:'OWNER_AUTHORIZED_IMPORT_UNVERIFIED'},LIMITS.memory);break;
@@ -38,8 +38,8 @@ function apply(record,action,at){
   }
   case 'sensor':{const value=action.amplitude;if(action.consent!==true||!Number.isFinite(value)||value<0||value>1)throw fail('SENSOR_CONSENT_OR_VALUE_INVALID');next.sensorHistory=append(next.sensorHistory,{at,amplitude:value,source:'CLIENT_MIC_AMPLITUDE_UNVERIFIED'},LIMITS.events);break;}
   case 'experience':if(!action.observation||!['MOVE_UP','MOVE_DOWN','MOVE_LEFT','MOVE_RIGHT','ACTION_A','ACTION_B','START','SELECT','WAIT'].includes(action.action))throw fail('INVALID_EXPERIENCE');next.learningEvents=append(next.learningEvents,{at,action:action.action,observation:text(JSON.stringify(action.observation),2000),source:'CLIENT_OBSERVATION_UNVERIFIED',validation:'unverified',eligibleForTraining:false},LIMITS.events);break;
-  case 'growth-consent':if(typeof action.enabled!=='boolean'||typeof action.schedule!=='boolean')throw fail('INVALID_GROWTH_CONSENT');next.growth.optedIn=action.enabled;next.growth.schedule=action.enabled&&action.schedule;next.growth.status=action.enabled?'READY':'OFF';break;
-  case 'simulation-request':if(!next.growth.optedIn)throw fail('GROWTH_NOT_OPTED_IN',403);next.growth.status='BLOCKED_EXTERNAL';next.growth.lastAttempt=at;next.simulationReceipts=append(next.simulationReceipts,{status:'BLOCKED_EXTERNAL',target:'rigetti.sim.qvm',job_id:null,counts:null,at,error:'A configured authenticated private-growth worker and approved quota are required.'},LIMITS.events);break;
+  case 'growth-consent':if(typeof action.enabled!=='boolean'||typeof action.schedule!=='boolean')throw fail('INVALID_GROWTH_CONSENT');next.growth.optedIn=action.enabled;next.growth.schedule=action.enabled&&action.schedule;next.growth.status=action.enabled?'READY':'OFF';if(!action.enabled)next.growth.pending=null;break;
+  case 'simulation-request':if(!next.growth.optedIn)throw fail('GROWTH_NOT_OPTED_IN',403);if(next.growth.pending)throw fail('SIMULATION_ALREADY_QUEUED',409);next.growth.status='QUEUED';next.growth.pending={eventId:event,requestedAt:at};break;
   case 'reset':{const reset=empty(next.profile,next.owner);reset.identity=next.identity;reset.quantumGenesis=next.quantumGenesis;reset.sync=next.sync;reset.simulationReceipts=next.simulationReceipts;reset.evolutionHistory=next.evolutionHistory;reset.gameCheckpoints=next.gameCheckpoints;reset.growth={...next.growth,optedIn:false,schedule:false,status:'OFF'};return reset;}
   default:throw fail('UNSUPPORTED_MEMORY_ACTION');
  }
@@ -61,7 +61,7 @@ export class PrivateCosmos{
   const record=empty(profile,owner);if(quantumGenesis)record.quantumGenesis=quantumGenesis;if(qbeastText){const {snapshot}=checkedSpark(qbeastText);if(snapshot.profile.id!==profile.id||snapshot.profile.seed!==profile.provenance.seed)throw fail('QBEAST_PROFILE_MISMATCH',409);record.identity.qbeastText=qbeastText;record.identity.genesisValidation='QBEAST_INTEGRITY_VALID_PROVIDER_CLAIM_UNVERIFIED';}
   return this.commit(owner,profile.id,record,{kind:'create',profile,qbeastText},id,null);
  }
- async update(owner,id,action,event,expectedVersion){if(!eventId(event))throw fail('INVALID_EVENT_ID');const old=await this.read(owner,id),digest=hash(action);const already=old.record.sync.recentEvents[event];if(already){if(already!==digest)throw fail('EVENT_ID_REUSED',409);return old;}if(old.version!==expectedVersion)throw fail('STALE_VERSION',409);const next=apply(old.record,action,new Date().toISOString());return this.commit(owner,id,next,action,event,old);}
+ async update(owner,id,action,event,expectedVersion){if(!eventId(event))throw fail('INVALID_EVENT_ID');const old=await this.read(owner,id),digest=hash(action);const already=old.record.sync.recentEvents[event];if(already){if(already!==digest)throw fail('EVENT_ID_REUSED',409);return old;}if(old.version!==expectedVersion)throw fail('STALE_VERSION',409);const next=apply(old.record,action,new Date().toISOString(),event);return this.commit(owner,id,next,action,event,old);}
  async commit(owner,id,record,action,event,old){const base=this.path(owner,id),path=base+'/commits/'+event+'.json',digest=hash(action),sequence=(old?.version||0)+1;if(sequence>this.limits.commits)throw fail('PRIVATE_COMMIT_CAP',429);const existing=await this.io.get(path);let doc;
   if(existing){doc=parse(existing);if(doc.inputHash!==digest||doc.owner!==owner||doc.beastId!==id||doc.parentHash!==(old?.head.hash||null))throw fail('PREPARED_COMMIT_CONFLICT',409);const {hash:checksum,...unsigned}=doc;if(hash(unsigned)!==checksum)throw fail('CORRUPT_PREPARED_COMMIT',422);}
   else{record.sync.version=sequence;record.sync.recentEvents={...record.sync.recentEvents,[event]:digest};const unsigned={schema:'private-commit/v1',owner,beastId:id,eventId:event,inputHash:digest,parentHash:old?.head.hash||null,sequence,record};doc={...unsigned,hash:hash(unsigned)};const serialized=json(doc);if(Buffer.byteLength(serialized)>this.limits.bytes)throw fail('PRIVATE_RECORD_CAP',413);await this.io.put(path,serialized,{ifNoneMatch:'*'});}
@@ -85,9 +85,10 @@ export class PrivateCosmos{
   const digest=hash({kind:'trusted-qvm-receipt',receipt});if(old.record.sync.recentEvents[event]===digest)return old;
   if(plan.owner!==owner||plan.beast_id!==id||plan.tick!==old.record.growth.tick+1||event!==plan.event_id)throw fail('QVM_RECEIPT_BINDING_FAILED',403);
   if(old.version!==version)throw fail('STALE_VERSION',409);
-  const next=clone(old.record);next.simulationReceipts=append(next.simulationReceipts,receipt,LIMITS.events);
+  const next=clone(old.record);next.growth.pending=null;next.growth.lastAttempt=receipt.startedAt;next.simulationReceipts=append(next.simulationReceipts,receipt,LIMITS.events);
   const feature=receipt.status==='RIGETTI_QVM_REMOTE'?countsFeatures(receipt.counts,receipt.shots):null;
-  if(feature){next.growth.tick=plan.tick;next.growth.jobs++;next.growth.lastCompleted=receipt.completedAt;next.growth.status='RIGETTI_QVM_REMOTE';next.personalityState.curiosity=Math.max(0,Math.min(100,next.personalityState.curiosity+Math.round((feature.p0-.5)*4)));}
+  const ledger=this.path(owner,id)+'/simulation-receipts/'+event+'.json',saved=await this.io.get(ledger);if(saved){if(parse(saved).receipt_hash!==receipt.receipt_hash)throw fail('QVM_LEDGER_CONFLICT',409);}else await this.io.put(ledger,json(receipt),{ifNoneMatch:'*'});
+  if(feature){next.growth.tick=plan.tick;next.growth.jobs++;next.growth.lastCompleted=receipt.completedAt;next.growth.status='RIGETTI_QVM_REMOTE';next.personalityState.curiosity=Math.max(0,Math.min(100,next.personalityState.curiosity+Math.round((feature.p0-.5)*4)));const signals={...next.profile.traits.stats,...next.growth.signals};for(const [name,p] of [['energy',feature.p0],['signal',feature.p1],['resonance',feature.p2]])signals[name]=Math.max(0,Math.min(100,(signals[name]??50)+(p-.5)*4));next.growth.signals=signals;}
   else next.growth.status='BLOCKED_EXTERNAL';
   return this.commit(owner,id,next,{kind:'trusted-qvm-receipt',receipt},event,old);
  }
@@ -103,7 +104,7 @@ export class PrivateCosmos{
  async remove(owner,id){
   await this.assertOwner(owner);const base=this.path(owner,id),blob=await this.io.get(base+'/head.json');if(!blob)throw fail('PRIVATE_BEAST_NOT_FOUND',404);const head=parse(blob);
   if(!head.deleted)await this.io.put(base+'/head.json',json({deleted:true,sequence:Number.isSafeInteger(head.sequence)?head.sequence+1:1}),{ifMatch:blob.etag});
-  for(const name of await this.io.list(base+'/commits/')){const row=await this.io.get(name);if(row)await this.io.delete(name,{ifMatch:row.etag});}return {deleted:true};
+  for(const name of await this.io.list(base+'/')){if(name.endsWith('/head.json'))continue;const row=await this.io.get(name);if(row)await this.io.delete(name,{ifMatch:row.etag});}return {deleted:true};
  }
  async revoke(owner){
   const row=await this.assertOwner(owner),account=parse(row);await this.io.put(this.ownerPath(owner),json({...account,active:false,pair:null,revokedAt:new Date().toISOString()}),{ifMatch:row.etag});

@@ -34,7 +34,9 @@ jobs:
         with:
           python-version: '3.12'
       - working-directory: apps/beastbox-cloud
-        run: node --test tests/private-cosmos.test.mjs tests/private-qvm-stimulus.test.mjs
+        run: node --test tests/private-*.test.mjs
+      - name: Verify the existing driver rejects paid targets and missing quotas
+        run: python -m unittest discover -s tests -p test_private_qvm_bounds.py
       - name: Install the existing authenticated QVM driver dependencies
         run: python -m pip install --quiet 'qdk[azure]'
       - name: Isolated synthetic worlds, conditional cleanup and one bounded free QVM job
@@ -45,7 +47,7 @@ jobs:
           AZURE_STORAGE_CONTAINER_SAS_URL: ${{ secrets.AZURE_STORAGE_CONTAINER_SAS_URL }}
           AZURE_STORAGE_CONTAINER: beastbox
           AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
-          BEASTBOX_PRIVATE_QVM_SMOKE: ${{ github.event_name == 'workflow_dispatch' && inputs.run_qvm && 'true' || 'false' }}
+          BEASTBOX_PRIVATE_QVM_SMOKE: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_qvm || github.event_name == 'push' && contains(github.event.head_commit.message, '[private-qvm-smoke]')) && 'true' || 'false' }}
         run: node scripts/private-cosmos-cloud-probe.mjs build/private-cosmos
       - name: Build the existing production application
         working-directory: apps/beastbox-cloud
