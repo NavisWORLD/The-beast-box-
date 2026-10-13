@@ -135,7 +135,7 @@ async function popupFits(page) {
    const identity=await page.locator('#view').getAttribute('data-creature-id');
    await page.reload();
    await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId==='bb-4a61a8d5');
-   await page.locator('#talk').click();
+   try{await page.locator('#talk').click();}catch(error){console.error('STATIC_RELOAD_DIAGNOSTIC',JSON.stringify({url:page.url(),viewport,...await page.evaluate(()=>({ready:document.readyState,title:document.title,talk:!!document.querySelector('#talk'),inert:document.querySelector('main')?.inert,dialogHidden:document.querySelector('#spark-chat')?.hidden,history:history.state,body:document.body?.innerText.slice(0,300)}))}));throw error;}
    assert.equal(await page.locator('#talk-text').inputValue(),draft,'device draft survives reload for the same canonical Beast');
    await page.getByText('Conversation settings',{exact:true}).click();
    await page.getByLabel('Keep this conversation',{exact:true}).selectOption('session');

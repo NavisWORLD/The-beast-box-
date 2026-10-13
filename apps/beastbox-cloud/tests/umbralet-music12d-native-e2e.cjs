@@ -66,7 +66,7 @@ const job='d7c48ad5-c442-11f1-ae67-70a8a5253f9c',id='bb-1e1759f3';
   // Preserve the stronger proof below: actual mounted core, 32KB save and A/Start ACKs.
   try{
    await shell.getByRole('status').filter({hasText:'identity validated'}).waitFor({timeout:30000});
-   assert.match(await shell.getByText('Verified local QBEAST mailbox.',{exact:false}).textContent(),/Native roster import is not confirmed yet/,'source-bound mailbox ACK is not a native roster import');
+   assert.equal(await shell.getByRole('button',{name:'START LOST COSMOS',exact:true}).isEnabled(),true,'validated identity permits booting; the native roster and SRAM are checked separately below');
   }catch(e){
    const statuses=await shell.getByRole('status').allTextContents();
    throw Error('QBEAST identity handoff was not acknowledged: '+JSON.stringify({statuses,sourceReady:nativeSourceReady})+' '+String(e));

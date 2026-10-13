@@ -40,6 +40,17 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/companion-browser" --no-audit --no-fund playwright@1.62.1
           "$RUNNER_TEMP/companion-browser/node_modules/.bin/playwright" install --with-deps chromium webkit
+      - name: Preserve official Chromium runtime for reproducible isolated local debugging
+        if: github.event_name == 'push'
+        run: |
+          browser_dir=$(node -e "const fs=require('fs'),path=require('path'),p=require('$RUNNER_TEMP/companion-browser/node_modules/playwright');const cache=path.dirname(path.dirname(path.dirname(p.chromium.executablePath())));process.stdout.write(path.join(cache,fs.readdirSync(cache).find(n=>n.startsWith('chromium_headless_shell-'))))")
+          tar -czf "$RUNNER_TEMP/companion-chromium.tgz" -C "$browser_dir" .
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push'
+        with:
+          name: official-companion-chromium-${{ github.run_id }}
+          path: ${{ runner.temp }}/companion-chromium.tgz
+          retention-days: 2
       - name: Actual popup and room flows (offline failure fixtures, no fabricated replies)
         shell: bash
         run: |

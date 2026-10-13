@@ -63,6 +63,8 @@ async function checkRooms(page){
   await expect(dialog.getByRole('heading',{name:'Talk to Zeref'})).toBeVisible();
   await expect(dialog.getByText(/Brain: RAWRPHØS guest/)).toBeVisible();
   assert.equal(guestCalls.length,0);assert.equal(loopbackCalls.length,0);
+  assert.equal(await page.getByRole('navigation',{name:'Universe rooms'}).count(),0,'the open mobile modal hides background navigation from accessibility');
+  await dialog.getByRole('button',{name:'Close chat',exact:true}).click();await expect(dialog).toBeHidden();
   await checkRooms(page);
 
   // Use the actual public generator/identity modules and shared storage path.
