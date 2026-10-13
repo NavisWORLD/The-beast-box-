@@ -8,7 +8,7 @@ import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {once} from 'node:events';
 import {storageConfig} from '../lib/cosmos/azure-blob.mjs';
 import {azurePrivateIO} from '../lib/cosmos/private-memory.mjs';
-import {PRIVATE_COOKIE,issueCredential} from '../lib/cosmos/private-owner.mjs';
+import {PRIVATE_COOKIE,issueCredential,verifyCredential} from '../lib/cosmos/private-owner.mjs';
 import {buildGenome} from '../public/spark/genome.mjs';
 import {expandRun} from '../public/spark/runs.mjs';
 import {buildQbeast,serializeQbeast} from '../public/spark/qbeast.mjs';
@@ -27,6 +27,7 @@ async function start(){
 }
 async function stop(){if(server&&server.exitCode===null){const closed=once(server,'close');server.kill('SIGTERM');await closed;}}
 async function api(path,{cookie='',method='GET',body,requestOrigin=origin}={}){
+ const claim=cookie?verifyCredential(secret,cookie.split('=').slice(1).join('=')):null;if(body!==undefined&&claim)body={expectedOwner:claim.subject,...body};
  const response=await fetch(origin+'/api/cosmos/private/'+path,{method,headers:{...(cookie?{Cookie:cookie}:{}),...(body===undefined?{}:{Origin:requestOrigin,'Content-Type':'application/json'})},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(30000)});
  const data=await response.json();report.lastOperation={path,method,status:response.status,apiStatus:data.status||null,cookieIssued:response.headers.has('set-cookie')};return {response,status:response.status,data};
 }
@@ -44,10 +45,11 @@ try{
  check='completed chat has explicit per-creature consent and two-turn atomic idempotence';
  const atomic={eventId:randomUUID(),version:changed.data.version,action:{kind:'conversation-exchange',text:'PRIVATE USER FIXTURE',reply:'MODEL PROTOCOL FIXTURE ONLY',provider:'guest-rawrphos',model:'native-fixture',clientAt:Date.now()}};
  assert.equal((await api('beasts/'+idA,{cookie:ca,method:'PUT',body:atomic})).status,403);
- changed=await api('beasts/'+idA,{cookie:ca,method:'PUT',body:{action:{kind:'chat-consent',enabled:true},eventId:randomUUID(),version:changed.data.version}});assert.equal(changed.status,200);atomic.version=changed.data.version;
+ changed=await api('beasts/'+idA,{cookie:ca,method:'PUT',body:{action:{kind:'chat-consent',enabled:true},eventId:randomUUID(),version:changed.data.version}});assert.equal(changed.status,200);atomic.version=changed.data.version;atomic.expectedSeed=createdA.data.record.identity.seed;
  changed=await api('beasts/'+idA,{cookie:ca,method:'PUT',body:atomic});assert.equal(changed.status,200);assert.equal(changed.data.record.conversations.length,3);assert.equal(changed.data.record.conversations.at(-1).eligibleForTraining,false);
  const replay=await api('beasts/'+idA,{cookie:ca,method:'PUT',body:atomic});assert.equal(replay.data.version,changed.data.version);assert.equal(replay.data.record.conversations.length,3);
  assert.equal((await api('beasts/'+idB,{cookie:cb})).data.record.conversations.length,0);assert.equal((await api('beasts/'+another.profile.id,{cookie:ca})).data.record.conversations.length,0);pass();
+ check='owner changes between read and write cannot disclose an old conversation into the new account';const bTwin=await api('beasts',{cookie:cb,method:'POST',body:inputA});assert.equal(bTwin.status,200);const beforeTwin=hash(bTwin.data.record);for(const request of [{method:'PUT',body:{...atomic,version:bTwin.data.version,expectedOwner:a.data.owner}},{method:'DELETE',body:{expectedOwner:a.data.owner}}])assert.equal((await api('beasts/'+idA,{cookie:cb,...request})).status,409);assert.equal(hash((await api('beasts/'+idA,{cookie:cb})).data.record),beforeTwin);pass();
  check='stale and simultaneous conditional writes cannot overwrite one another';assert.equal((await api('beasts/'+idA,{cookie:ca,method:'PUT',body:{...body,eventId:randomUUID()}})).status,409);const concurrent=await Promise.all([0,1].map(i=>api('beasts/'+idA,{cookie:ca,method:'PUT',body:{action:{kind:'memory',text:'CONCURRENT SYNTHETIC '+i},eventId:randomUUID(),version:changed.data.version}})));assert.equal(concurrent.filter(x=>x.status===200).length,1);assert.ok(concurrent.some(x=>[409,412].includes(x.status)));pass();
  check='explicit one-use device pairing restores only the issued private owner';const paired=await api('pair',{cookie:ca,method:'POST',body:{action:'issue'}});assert.equal(paired.status,200);assert.equal((await api('pair',{method:'POST',body:{action:'redeem',pairCode:paired.data.pairCode}})).status,403);const redeemed=await api('pair',{method:'POST',body:{action:'redeem',consent:true,pairCode:paired.data.pairCode}});assert.equal(redeemed.status,200);const cc=cookieOf(redeemed);assert.equal((await api('beasts/'+idA,{cookie:cc})).data.record.owner,a.data.owner);assert.equal((await api('beasts/'+idB,{cookie:cc})).status,404);assert.equal((await api('pair',{method:'POST',body:{action:'redeem',consent:true,pairCode:paired.data.pairCode}})).status,403);pass();
  check='actual Azure state survives a production server restart with the same credential';const before=(await api('beasts/'+idA,{cookie:cc})).data;await stop();await start();const after=await api('beasts/'+idA,{cookie:cc});assert.equal(after.status,200);assert.equal(hash(after.data.record),hash(before.record));pass();
