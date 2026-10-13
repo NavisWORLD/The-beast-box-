@@ -39,6 +39,21 @@ async function popupFits(page) {
  assert.ok(measurements.documentWidth<=Math.ceil(viewport.width)+1,'popup does not widen the document');
  return measurements;
 }
+async function clickTalkAfterReload(page){
+ try{await page.locator('#talk').click({timeout:5000});return;}
+ catch(error){
+  // If the locator loses the reloaded control, retry with real pointer input
+  // only when hit-testing confirms the button is enabled and unobstructed.
+  const hit=await page.evaluate(()=>{
+   const el=document.getElementById('talk');if(!el||el.disabled)return null;
+   const r=el.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
+   const target=document.elementFromPoint(x,y);
+   return r.width>0&&r.height>0&&x>=0&&y>=0&&x<innerWidth&&y<innerHeight&&(target===el||el.contains(target))?{x,y}:null;
+  });
+  if(!hit)throw error;
+  await page.mouse.click(hit.x,hit.y);
+ }
+}
 (async()=>{
  const hosted=await serve();
  const engine=process.env.BEAST_TEST_BROWSER==='webkit'?'webkit':'chromium';
@@ -135,7 +150,7 @@ async function popupFits(page) {
    const identity=await page.locator('#view').getAttribute('data-creature-id');
    await page.reload();
    await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId==='bb-4a61a8d5');
-   try{await page.locator('#talk').click();}catch(error){console.error('STATIC_RELOAD_DIAGNOSTIC',JSON.stringify({url:page.url(),viewport,...await page.evaluate(()=>({ready:document.readyState,title:document.title,talk:!!document.querySelector('#talk'),talkDetails:(()=>{const el=document.querySelector('#talk');if(!el)return null;const r=el.getBoundingClientRect(),s=getComputedStyle(el);return {display:s.display,visibility:s.visibility,pointerEvents:s.pointerEvents,rect:{x:r.x,y:r.y,width:r.width,height:r.height},disabled:el.disabled,hidden:el.hidden,closestInert:el.closest('[inert]')?.tagName,closestHidden:el.closest('[hidden]')?.tagName,ariaHidden:el.closest('[aria-hidden="true"]')?.tagName,bodyStyle:document.body.getAttribute('style')};})(),inert:document.querySelector('main')?.inert,dialogHidden:document.querySelector('#spark-chat')?.hidden,history:history.state,body:document.body?.innerText.slice(0,300)}))}));throw error;}
+   try{await clickTalkAfterReload(page);}catch(error){console.error('STATIC_RELOAD_DIAGNOSTIC',JSON.stringify({url:page.url(),viewport,...await page.evaluate(()=>({ready:document.readyState,title:document.title,talk:!!document.querySelector('#talk'),talkDetails:(()=>{const el=document.querySelector('#talk');if(!el)return null;const r=el.getBoundingClientRect(),s=getComputedStyle(el);return {display:s.display,visibility:s.visibility,pointerEvents:s.pointerEvents,rect:{x:r.x,y:r.y,width:r.width,height:r.height},disabled:el.disabled,hidden:el.hidden,closestInert:el.closest('[inert]')?.tagName,closestHidden:el.closest('[hidden]')?.tagName,ariaHidden:el.closest('[aria-hidden="true"]')?.tagName,bodyStyle:document.body.getAttribute('style')};})(),inert:document.querySelector('main')?.inert,dialogHidden:document.querySelector('#spark-chat')?.hidden,history:history.state,body:document.body?.innerText.slice(0,300)}))}));throw error;}
    assert.equal(await page.locator('#talk-text').inputValue(),draft,'device draft survives reload for the same canonical Beast');
    await page.getByText('Conversation settings',{exact:true}).click();
    await page.getByLabel('Keep this conversation',{exact:true}).selectOption('session');
@@ -171,7 +186,7 @@ async function popupFits(page) {
     localStorage.setItem('beastbox-talk-log-v1:spark:bb-4a61a8d5',JSON.stringify(Array.from({length:24},(_,i)=>({role:i%2?'beast':'you',text:'Previously stored conversation '+i+' '+('star '.repeat(25)),...(i%2?{model:'previously verified provider'}:{})}))));
    });
    await page.reload();await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId==='bb-4a61a8d5');
-   await page.locator('#talk').click();
+   await clickTalkAfterReload(page);
    assert.equal(await page.locator('[data-talk-turn]').count(),24,'loads shared bounded history');
    assert.equal(await page.locator('#talk-scroll').evaluate(node=>node.scrollHeight>node.clientHeight),true,'conversation history is scrollable');
    await popupFits(page);
