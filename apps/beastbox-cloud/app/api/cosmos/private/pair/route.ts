@@ -1,6 +1,6 @@
 import {createHash} from 'node:crypto';
 import {cookies} from 'next/headers';
-import {privateBody,privateConfig,privateContext,privateError,privateJson,privateStore} from '@/lib/cosmos/private-api';
+import {privateBody,privatePrecondition,privateConfig,privateContext,privateError,privateJson,privateStore} from '@/lib/cosmos/private-api';
 import {CREDENTIAL_AGE,PRIVATE_COOKIE,issueCredential,verifyCredential} from '@/lib/cosmos/private-owner.mjs';
 export const runtime='nodejs';export const dynamic='force-dynamic';
 const digest=(value:string)=>createHash('sha256').update(value).digest('hex');
@@ -8,7 +8,7 @@ export async function POST(req:Request){try{
  const body=await privateBody(req),config=privateConfig();if(!config)throw Object.assign(Error('UNCONFIGURED'),{status:503});
  const store=privateStore(config.cfg);
  if(body.action==='issue'){
-  const {subject}=await privateContext(),issued=issueCredential(config.secret,{subject,kind:'pair',age:300}),claim=verifyCredential(config.secret,issued.token,{kind:'pair'})!;
+  const {subject}=await privateContext();privatePrecondition(subject,body);const issued=issueCredential(config.secret,{subject,kind:'pair',age:300}),claim=verifyCredential(config.secret,issued.token,{kind:'pair'})!;
   const blob=await store.assertOwner(subject),account=JSON.parse(blob.text);
   await store.io.put(store.ownerPath(subject),JSON.stringify({...account,pair:{nonceHash:digest(claim.nonce),expiry:claim.expiry,consumed:false}}),{ifMatch:blob.etag});
   return privateJson({ok:true,pairCode:issued.token,expiresAt:claim.expiry,singleUse:true});

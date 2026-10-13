@@ -153,7 +153,7 @@ function sessionHarness({io,credential}){
  const env={BEASTBOX_CLOUD_AUTH_SECRET:secret,NODE_ENV:'production'};
  const api=loadTs('../lib/cosmos/private-api.ts',{'next/headers':cookieModule,'./azure-blob.mjs':{storageConfig:()=>({synthetic:true})},'./private-owner.mjs':ownerModule,'./private-memory.mjs':{...memoryModule,azurePrivateIO:()=>io},'./private-origin.mjs':originModule},env);
  const session=loadTs('../app/api/cosmos/private/session/route.ts',{'next/headers':cookieModule,'@/lib/cosmos/private-api':api,'@/lib/cosmos/private-owner.mjs':ownerModule},env);
- const req=()=>new Request('https://fixture.invalid/api/cosmos/private/session',{method:'DELETE',headers:{origin:'https://fixture.invalid',host:'fixture.invalid','Content-Type':'application/json'},body:'{}'});
+ const req=()=>new Request('https://fixture.invalid/api/cosmos/private/session',{method:'DELETE',headers:{origin:'https://fixture.invalid',host:'fixture.invalid','Content-Type':'application/json'},body:JSON.stringify({expectedOwner:credential.subject})});
  return {api,session,deleted,req};
 }
 test('signed inactive session advertises pending erasure and can retry deletion without read authority',async()=>{

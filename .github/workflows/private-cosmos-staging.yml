@@ -7,7 +7,7 @@ on:
         type: boolean
         default: false
   push:
-    branches: [feature/issue-323-private-cosmos-20261013]
+    branches: [feature/issue-323-private-cosmos-20261013, feature/issue-323-game-continuity-20261013]
     paths:
       - apps/beastbox-cloud/lib/cosmos/private-*
       - apps/beastbox-cloud/scripts/private-cosmos-cloud-probe.mjs
