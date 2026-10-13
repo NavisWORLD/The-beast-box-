@@ -261,5 +261,8 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
  window.addEventListener('beastbox:open-chat',event=>{openChat(trigger);if(typeof event.detail?.draft==='string')editDraft(event.detail.draft);});
  window.addEventListener('storage',event=>{if(event.key===PREFS_KEY){abandon();prefs=readPrefs(device);renderBrain();}});
  syncPersona();renderBrain();viewport();
+ // A selected creature can render before this popup finishes wiring its event handlers.
+ // Expose a narrow readiness contract so a tap or browser test is never mistaken for a failed chat.
+ trigger.dataset.chatReady='true';
  return {open:openChat,close:()=>dismiss(),syncPersona,setDraft:value=>{syncPersona();editDraft(value);},send:()=>form.requestSubmit()};
 }
