@@ -1,0 +1,118 @@
+name: Zeref 012D bounded separate language and game training
+on:
+  pull_request:
+    paths:
+      - 'scripts/zeref_012d_dual_route_training.py'
+      - 'scripts/zeref_012d_router.py'
+      - 'tests/test_zeref_012d_task_router.py'
+      - '.github/workflows/zeref-012d-dual-route.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: zeref-012d-research-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  true-dual-training:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '3'
+      MKL_NUM_THREADS: '3'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Check explicit task routing and immutable readout syntax
+        run: |
+          set -Eeuo pipefail
+          python -m unittest discover -s tests -p test_zeref_012d_task_router.py -v
+          python -m unittest discover -s tests -p test_zeref_012c_dialogue.py -v
+          python -m py_compile scripts/zeref_012d_dual_route_training.py scripts/zeref_012d_router.py
+      - name: Download exact pinned prior measurements, emulator receipts and BOTH neural training lineages
+        run: |
+          set -Eeuo pipefail
+          gh run download 38179059173 --repo "${{ github.repository }}" \
+            -n zeref-006-canonical-37ca3f8f -D build/zeref-012d/input/approved
+          gh run download 38321516632 --repo "${{ github.repository }}" \
+            -n zeref-012b-game-alignment-38321516632 -D build/zeref-012d/input/game
+          gh run download 38191707756 --repo "${{ github.repository }}" \
+            -n zeref-011-evidence-38191707756 -D build/zeref-012d/input/native
+          gh run download 38322635113 --repo "${{ github.repository }}" \
+            -n zeref-012c-joint-language-game-research-38322635113 -D build/zeref-012d/input/previous
+          P="$(find build/zeref-012d/input/approved -name accepted-checkpoint -type d -print -quit)"
+          G="$(dirname "$(find build/zeref-012d/input/game -name pocket-outcome-selected-train.jsonl -type f -print -quit)")"
+          N="$(dirname "$(find build/zeref-012d/input/native -name native-evidence-manifest.json -type f -print -quit)")"
+          L="$(dirname "$(find build/zeref-012d/input/previous -name report.json -type f -print -quit)")"
+          test -n "$P" && test -f "$(dirname "$P")/approval.json"
+          test -f "$G/manifest.json" && test -f "$N/native-observation-actions.jsonl"
+          test -f "$L/shadow-joint-checkpoint/manifest.json"
+          test "$(sha256sum "$P/model.safetensors" | cut -d' ' -f1)" = d0df90ea090b410aa5da5051b20e21ae5728236f7371450807f1af662fb02445
+          test "$(sha256sum "$L/report.json" | cut -d' ' -f1)" = 347345a6aaccb21a7b693c9932e52ec3a3f3bbeffb89145f842b1ea689bde032
+          echo "ZEREF_012D_PARENT=$P" >> "$GITHUB_ENV"
+          echo "ZEREF_012D_GAME=$G" >> "$GITHUB_ENV"
+          echo "ZEREF_012D_NATIVE=$N" >> "$GITHUB_ENV"
+          echo "ZEREF_012D_PREVIOUS=$L" >> "$GITHUB_ENV"
+      - name: Install CPU only RAWRPHOS model runtime and verify old optimizer moments
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e ./models/rawrphos
+      - name: Actually train game and language neural branches separately and replay unseen pocket layouts
+        run: |
+          set -Eeuo pipefail
+          python -u scripts/zeref_012d_dual_route_training.py \
+            --parent "$ZEREF_012D_PARENT" \
+            --previous "$ZEREF_012D_PREVIOUS" \
+            --game "$ZEREF_012D_GAME" \
+            --native "$ZEREF_012D_NATIVE" \
+            --out build/zeref-012d/out \
+            --game-steps 160 --language-steps 64 --eval-count 8 --seed 12026
+      - name: Verify actual model-weight updates, independent checkpoints, guard attribution and research-only boundary
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          o=Path('build/zeref-012d/out')
+          r=json.loads((o/'report.json').read_text())
+          assert r['schema']=='zeref-012d-dual-route-research/v1'
+          assert r['research_qbeast_id']=='bb-deada969'
+          assert r['approved_parent_weights_unchanged'] is True
+          assert r['training_executed'] and r['model_weights_updated_in_isolated_branches']
+          assert r['game_branch_updates_from_approved_parent']==160
+          assert r['language_continuation_updates']==64
+          assert r['total_new_optimizer_updates']==224
+          assert r['game_parameter_sha256_after']!=r['game_parameter_sha256_before']
+          assert r['language_parameter_sha256_after']!=r['language_parameter_sha256_before']
+          assert r['saved_research_game_checkpoint']!=r['saved_research_language_checkpoint']
+          assert r['route']['task_to_branch']=={'pocket':'game','native':'game','dialogue':'language'}
+          assert r['canonical_descendant_approved'] is False and r['production_promoted'] is False
+          assert r['model_live_guest_switch'] is False
+          assert r['user_private_chat_data_used'] is False
+          assert r['new_quantum_jobs']==0 and r['verified_quantum_action_pairs']==0
+          assert len(r['acceptance_gates'])==10
+          assert (o/'game-checkpoint/manifest.json').exists()
+          assert (o/'language-checkpoint/manifest.json').exists()
+          print('ZEREF_012D_TRUE_TWO_BRANCH_NEURAL_TRAINING_VERIFIED')
+          print(json.dumps(r['acceptance_gates'],sort_keys=True))
+          PY
+      - name: Upload honest reports + separately hash-verified research-only neural weights
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-012d-dual-branch-research-${{ github.run_id }}
+          path: |
+            build/zeref-012d/out/report.json
+            build/zeref-012d/out/game-checkpoint/
+            build/zeref-012d/out/language-checkpoint/
+          retention-days: 60
+          if-no-files-found: warn
