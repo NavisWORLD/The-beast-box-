@@ -40,19 +40,12 @@ async function popupFits(page) {
  return measurements;
 }
 async function clickTalkAfterReload(page){
- try{await page.locator('#talk').click({timeout:5000});return;}
- catch(error){
-  // If the locator loses the reloaded control, retry with real pointer input
-  // only when hit-testing confirms the button is enabled and unobstructed.
-  const hit=await page.evaluate(()=>{
-   const el=document.getElementById('talk');if(!el||el.disabled)return null;
-   const r=el.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
-   const target=document.elementFromPoint(x,y);
-   return r.width>0&&r.height>0&&x>=0&&y>=0&&x<innerWidth&&y<innerHeight&&(target===el||el.contains(target))?{x,y}:null;
-  });
-  if(!hit)throw error;
-  await page.mouse.click(hit.x,hit.y);
- }
+ // The selected creature can render before the popup event handler is wired.
+ // Require the real ready signal and a visible modal after a real click.
+ const talk=page.locator('#talk[data-chat-ready="true"]');
+ await talk.waitFor({state:'visible'});
+ await talk.click();
+ await page.getByRole('dialog',{name:'Talk to Wraith',exact:true}).waitFor({state:'visible'});
 }
 (async()=>{
  const hosted=await serve();
@@ -72,7 +65,7 @@ async function clickTalkAfterReload(page){
    await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId==='bb-4a61a8d5');
    await page.evaluate(()=>history.replaceState({sparkPageMarker:'keep this page state'},''));
    const pageUrl=page.url(),historyLength=await page.evaluate(()=>history.length);
-   await page.locator('#talk').click();
+   await page.locator('#talk[data-chat-ready="true"]').click();
    const dialog=page.getByRole('dialog',{name:'Talk to Wraith',exact:true});
    await dialog.waitFor({state:'visible'});
    assert.equal(await dialog.getAttribute('aria-modal'),'true');
