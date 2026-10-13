@@ -1,0 +1,51 @@
+{
+ "beast_id": "test-115a8cc226496019",
+ "counts": {
+  "000": 7,
+  "001": 16,
+  "010": 26,
+  "011": 8,
+  "100": 33,
+  "101": 67,
+  "110": 65,
+  "111": 34
+ },
+ "job_id": "5a5cfa50-c6ff-11f1-ae67-6045bdae5396",
+ "job_name": "private-qvm-4ace010be966a2fabd641283",
+ "ok": true,
+ "provider": "azure-quantum/rigetti",
+ "quotas": [
+  {
+   "dimension": "emulator_hours",
+   "holds": 0.0,
+   "limit": 5.0,
+   "period": "Monthly",
+   "provider_id": null,
+   "scope": "Subscription",
+   "utilization": 0.0
+  },
+  {
+   "dimension": "ehqc",
+   "holds": 0.0,
+   "limit": 1000.0,
+   "period": "Infinite",
+   "provider_id": null,
+   "scope": "Subscription",
+   "utilization": 0.0
+  }
+ ],
+ "seconds": 15.6,
+ "shots": 256,
+ "simulated": true,
+ "storage_check": {
+  "carries_storage_credential": false,
+  "connection_string_keys": [
+   "ApiKey",
+   "QuantumEndpoint",
+   "ResourceGroupName",
+   "SubscriptionId",
+   "WorkspaceName"
+  ]
+ },
+ "target": "rigetti.sim.qvm"
+}

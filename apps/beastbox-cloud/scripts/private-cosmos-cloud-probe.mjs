@@ -21,6 +21,7 @@ try{
  const reread=await new PrivateCosmos(io,{scope}).read(a.subject,id);assert.equal(reread.record.memory.length,1);assert.equal((await store.read(b.subject,other)).record.memory.length,0);report.checks.push('write/read-back, restart, idempotency and distinct worlds verified');
  await assert.rejects(store.update(a.subject,id,{kind:'memory',text:'stale'},randomUUID(),first.version));report.checks.push('stale version rejected');
  const consent=await store.update(a.subject,id,{kind:'growth-consent',enabled:true,schedule:false},randomUUID(),reread.version);
+ if(process.env.BEASTBOX_PRIVATE_QVM_SMOKE==='true'){
  const plan=privateGrowthPlan(consent.record,randomUUID());writeFileSync(out+'/plan.json',JSON.stringify(plan,null,2));
  const startedAt=new Date().toISOString();
  // Reuse the existing authenticated Rigetti executor; one fixed free target,256shots.
@@ -29,6 +30,7 @@ try{
  const receipt=sealWorkerReceipt(secret,plan,raw,{startedAt,completedAt:new Date().toISOString()});
  const applied=await store.applyQvm(a.subject,id,plan,receipt,plan.event_id,consent.version,secret);assert.equal(applied.record.simulationReceipts.at(-1).receipt_hash,receipt.receipt_hash);assert.equal((await store.read(b.subject,other)).record.simulationReceipts.length,0);
  report.qvm=receipt.status;report.receipt={hash:receipt.receipt_hash,job_id:receipt.job_id,target:receipt.target,shots:receipt.shots,counts:receipt.counts,startedAt:receipt.startedAt,completedAt:receipt.completedAt,source:'remote simulator, never physical QPU'};
+ }else report.qvm='NOT_REQUESTED';
  await store.remove(a.subject,id);await assert.rejects(store.read(a.subject,id));await store.revoke(b.subject);await assert.rejects(store.read(b.subject,other));report.checks.push('real conditional private deletion and credential revocation verified');report.azure='PASSED';
 }catch(error){report.error=error?.code||'PRIVATE_ACCEPTANCE_FAILED';}
 finally{

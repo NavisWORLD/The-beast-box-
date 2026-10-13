@@ -1,11 +1,17 @@
 name: Private Cosmos isolated Azure and QVM acceptance
 on:
   workflow_dispatch:
+    inputs:
+      run_qvm:
+        description: 'Attempt one authorized free 256-shot Rigetti cloud QVM smoke'
+        type: boolean
+        default: false
   push:
     branches: [feature/issue-323-private-cosmos-20261013]
     paths:
       - apps/beastbox-cloud/lib/cosmos/private-*
       - apps/beastbox-cloud/scripts/private-cosmos-cloud-probe.mjs
+      - apps/beastbox-cloud/scripts/private-cosmos-http-probe.mjs
       - apps/beastbox-cloud/tests/private-cosmos.test.mjs
       - .github/workflows/private-cosmos-staging.yml
 permissions:
@@ -39,7 +45,22 @@ jobs:
           AZURE_STORAGE_CONTAINER_SAS_URL: ${{ secrets.AZURE_STORAGE_CONTAINER_SAS_URL }}
           AZURE_STORAGE_CONTAINER: beastbox
           AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+          BEASTBOX_PRIVATE_QVM_SMOKE: ${{ github.event_name == 'workflow_dispatch' && inputs.run_qvm && 'true' || 'false' }}
         run: node scripts/private-cosmos-cloud-probe.mjs build/private-cosmos
+      - name: Build the existing production application
+        working-directory: apps/beastbox-cloud
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+      - name: Actual signed ownership, pairing, cross-user denial and restart over HTTP
+        working-directory: apps/beastbox-cloud
+        env:
+          BEASTBOX_PRIVATE_PROBE_APPROVAL: YES_ISOLATED_PRIVATE_TEST
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          AZURE_STORAGE_CONTAINER_SAS_URL: ${{ secrets.AZURE_STORAGE_CONTAINER_SAS_URL }}
+          AZURE_STORAGE_CONTAINER: beastbox
+        run: node scripts/private-cosmos-http-probe.mjs build/private-cosmos
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -48,5 +69,6 @@ jobs:
             apps/beastbox-cloud/build/private-cosmos/report.json
             apps/beastbox-cloud/build/private-cosmos/plan.json
             apps/beastbox-cloud/build/private-cosmos/qvm-raw.json
+            apps/beastbox-cloud/build/private-cosmos/http-report.json
           if-no-files-found: error
           retention-days: 14
