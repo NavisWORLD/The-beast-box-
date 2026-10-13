@@ -1,5 +1,5 @@
 'use client';
-import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePathname} from 'next/navigation';
 import {useBeastSession} from './beast-session';
@@ -46,7 +46,8 @@ export default function BeastChatOverlay(){
   return()=>{media.removeEventListener('change',resize);window.removeEventListener('resize',resize);window.visualViewport?.removeEventListener('resize',resize);window.visualViewport?.removeEventListener('scroll',resize);};
  },[]);
  const close=useCallback(()=>{reopenQueued.current=false;setOpen(false);if(panel.current?.contains(document.activeElement)&&(document.activeElement instanceof HTMLElement))document.activeElement.blur();if(history.state?.beastboxChat===marker.current){historyLeaving.current=true;history.back();}restore.current?.focus({preventScroll:true});},[]);
- useEffect(()=>{
+ // Inert the background before paint, so the modal never exposes page navigation to assistive technology.
+ useLayoutEffect(()=>{
   if(!open||!mobile)return;
   if(history.state?.beastboxChat!==marker.current)history.pushState({...history.state,beastboxChat:marker.current},'');
   const body=document.body,html=document.documentElement,x=window.scrollX,y=window.scrollY,previous={body:body.getAttribute('style'),html:html.style.overflow,behavior:html.style.scrollBehavior};
