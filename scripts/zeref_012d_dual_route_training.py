@@ -22,7 +22,7 @@ from rawrphos.training.checkpoint import load_checkpoint,save_checkpoint,paramet
 SCHEMA="zeref-012d-dual-route-research/v1"
 LANG_SOURCE_REPORT_SHA="347345a6aaccb21a7b693c9932e52ec3a3f3bbeffb89145f842b1ea689bde032"
 PARENT=E.PARENT_SHA
-ROLE_BRANCH={"pocket":"game","native":"game","dialogue":"language"}
+from zeref_012d_router import ROLE_BRANCH
 NEW_DIALOGUE_PROBES=(
  ("Can you explain what a saved model is?","It is a recorded checkpoint of a model's learned parameters."),
  ("What if you did not see the screen?","I should ask for the current observation instead of guessing."),
@@ -38,25 +38,7 @@ NEW_DIALOGUE_PROBES=(
  ("What is the difference between a game policy and chat?","A game policy chooses actions; chat generates conversational replies."),
 )
 
-def route(task:str)->str:
-    if task not in ROLE_BRANCH:
-        raise ValueError("Explicit trusted task type required; no guessed or owner-memory routing")
-    return ROLE_BRANCH[task]
-
-def guarded_choice(raw:str,obs:dict):
-    key=B.valid_action(raw,B.POCKET_KEYS)
-    neighbors=obs.get("neighbors",{})
-    if key=="WAIT": return "WAIT","model_wait"
-    if key in neighbors and neighbors[key].get("kind")=="open":
-        return key,"model_safe"
-    open_=[k for k in ("UP","DOWN","LEFT","RIGHT")
-           if neighbors.get(k,{}).get("kind")=="open"]
-    if not open_: return "WAIT","no_open_neighbor"
-    frontier=obs.get("frontier")
-    if frontier in open_:
-        return frontier,"guard_frontier"
-    ranked=sorted(open_,key=lambda k:(neighbors[k].get("visits",999),k))
-    return ranked[0],"guard_unvisited_first"
+from zeref_012d_router import route, guarded_choice
 
 def run_guarded(pocket,keys,model,tok):
     episodes=[];overrides=0;legal=0;total=0;decisions={}
