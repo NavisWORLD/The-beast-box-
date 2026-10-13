@@ -28,7 +28,7 @@ async function start(){
 async function stop(){if(server&&server.exitCode===null){const closed=once(server,'close');server.kill('SIGTERM');await closed;}}
 async function api(path,{cookie='',method='GET',body,requestOrigin=origin}={}){
  const response=await fetch(origin+'/api/cosmos/private/'+path,{method,headers:{...(cookie?{Cookie:cookie}:{}),...(body===undefined?{}:{Origin:requestOrigin,'Content-Type':'application/json'})},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(30000)});
- return {response,status:response.status,data:await response.json()};
+ const data=await response.json();report.lastOperation={path,method,status:response.status,apiStatus:data.status||null,cookieIssued:response.headers.has('set-cookie')};return {response,status:response.status,data};
 }
 const pass=()=>report.checks.push({name:check,status:'PASSED'});
 function creature(){const run=expandRun(JSON.parse(readFileSync('public/spark/ibm-zeref-heart-sound-20261010.json')).runs[0]),genome=buildGenome({focus:80,calm:20,spark:100},run,'P-'+randomBytes(10).toString('hex'),10),snapshot=buildQbeast(genome);return {profile:publicProfileFromBeast({genome,qbeast:snapshot,displayName:'Same Name'}),qbeastText:serializeQbeast(snapshot),eventId:randomUUID()};}
@@ -48,7 +48,7 @@ try{
  check='reset retains immutable genesis while deletion removes all private commit history';const reset=await api('beasts/'+idA,{cookie:ca,method:'PUT',body:{action:{kind:'reset'},eventId:randomUUID(),version:changed.data.version}});assert.equal(reset.status,200);assert.equal(reset.data.record.conversations.length,0);assert.equal(hash(reset.data.record.quantumGenesis),report.identities.genesisA);assert.equal((await api('beasts/'+idA,{cookie:ca,method:'DELETE',body:{}})).status,200);assert.equal((await api('beasts/'+idA,{cookie:ca})).status,410);assert.equal((await io.list(base+'/commits/')).length,0);assert.equal((await api('beasts/'+idB,{cookie:cb})).status,200);pass();
  check='revocation invalidates all paired credentials and erases private data';assert.equal((await api('session',{cookie:ca,method:'DELETE',body:{}})).status,200);assert.equal((await api('beasts',{cookie:cc})).status,403);assert.equal((await api('session',{cookie:cb,method:'DELETE',body:{}})).status,200);assert.equal((await api('beasts',{cookie:cb})).status,403);pass();
  report.status='PASSED';
-}catch(error){report.failedCheck=check;report.failureClass=error?.code||error?.name||'HTTP_ACCEPTANCE_FAILED';}
+}catch(error){report.status='FAILED';report.failedCheck=check;report.failureClass=error?.code||error?.name||'HTTP_ACCEPTANCE_FAILED';}
 finally{
  await stop();try{for(const name of await io.list(scope+'/')){const blob=await io.get(name);if(blob)await io.delete(name,{ifMatch:blob.etag});}assert.equal((await io.list(scope+'/')).length,0);report.cleanup=true;}catch{report.cleanupError='ISOLATED_CLEANUP_FAILED';}
  writeFileSync(out+'/http-report.json',JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,checks:report.checks.length,cleanup:report.cleanup,failedCheck:report.failedCheck||null}));
