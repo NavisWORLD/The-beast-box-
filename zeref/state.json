@@ -10,17 +10,17 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 5,
- "xp": 397,
+ "tick": 6,
+ "xp": 460,
  "stage": 2,
  "stage_name": "Duskwing",
  "signals": {
-  "energy": 100,
-  "signal": 65,
-  "memory": 67,
-  "resonance": 97
+  "energy": 95,
+  "signal": 63,
+  "memory": 68,
+  "resonance": 98
  },
- "bond": 1.25,
+ "bond": 1.5,
  "care_total": 0,
  "combos_known": [
   "idle|still|moon-pool|folded|sway|open|smile",
@@ -135,12 +135,30 @@
   "walk|walk|open-pocket|folded|sway|half|grin",
   "walk|walk|crystal|folded|sway|closed|smile",
   "charge|still|crystal|folded|sway|open|smile",
-  "walk|walk|crystal|folded|lash|open|smile"
+  "walk|walk|crystal|folded|lash|open|smile",
+  "hover|hover|moon-pool|full-spread|flick|open|grin",
+  "hover|hover|moon-pool|folded|sway|open|grin",
+  "pounce|pounce|crystal|folded|sway|open|smile",
+  "hover|hover|crystal|folded|flick|open|grin",
+  "hover|hover|portal|full-spread|sway|open|grin",
+  "hover|hover|portal|folded|flick|closed|grin",
+  "hover|hover|portal|full-spread|flick|open|grin",
+  "pounce|still|open-pocket|folded|sway|open|smile",
+  "hover|hover|crystal|beating|sway|open|grin",
+  "blink|still|moon-pool|folded|sway|open|smile",
+  "blink|still|moon-pool|folded|sway|closed|smile",
+  "blink|still|moon-pool|folded|sway|half|smile",
+  "charge|still|moon-pool|folded|flick|closed|grin",
+  "charge|still|moon-pool|beating|flick|half|grin",
+  "charge|still|moon-pool|folded|sway|half|grin",
+  "pounce|pounce|moon-pool|beating|flick|open|grin",
+  "hover|hover|open-pocket|beating|flick|closed|grin"
  ],
  "places": {
-  "Rift Gate": 2,
+  "Rift Gate": 3,
   "Lattice Arch": 2,
-  "Echo Prism": 5
+  "Echo Prism": 6,
+  "Tidewell": 1
  },
  "learner": {
   "schema": "pocket-learner/v1",
@@ -148,8 +166,8 @@
    1,
    1,
    1,
+   3,
    2,
-   1,
    1,
    1,
    1,
@@ -157,31 +175,31 @@
    3,
    2,
    2,
-   4,
-   4,
-   1,
-   2,
-   0,
-   2,
-   0,
-   3,
    5,
+   4,
+   1,
+   2,
+   0,
+   2,
+   0,
+   5,
+   8,
    3,
    3,
    1,
-   1,
-   6,
-   4,
-   3,
-   4,
+   2,
+   8,
+   7,
+   5,
+   5,
    0,
    2,
    2,
-   1,
-   5,
+   2,
+   7,
+   9,
    6,
-   4,
-   4,
+   5,
    2,
    2,
    1
@@ -192,31 +210,32 @@
    29
   ],
   "moves": {
-   "succeeded": 91,
+   "succeeded": 117,
    "blocked": 4
   },
   "value": {
-   "portal-6": 0.4167,
+   "portal-6": 0.4575,
    "portal-5": 0.4156,
    "moon-pool-0": 0.156,
-   "crystal-4": 0.5832
+   "crystal-4": 0.6132,
+   "moon-pool-1": 0.282
   },
   "prefs": {
-   "explore": 0.937,
-   "visit": 0.8485,
+   "explore": 0.874,
+   "visit": 0.9379,
    "rest": 0.215,
-   "play": 0.6414
+   "play": 0.8409
   },
   "goals": {
-   "explore": 35,
-   "visit": 11,
+   "explore": 37,
+   "visit": 14,
    "rest": 5,
-   "play": 6,
+   "play": 11,
    "come": 0
   },
-  "goal": "visit",
-  "decisions": 57
+  "goal": "play",
+  "decisions": 67
  },
- "last_tick_at": "2026-10-13T03:30:54.965Z",
- "last_entry_hash": "bb0ea0db2ad395a3c88bcff9bf6fa3a28214e6d5b64eb4b5773cae33a57dd232"
+ "last_tick_at": "2026-10-13T11:03:54.896Z",
+ "last_entry_hash": "32ea1b6ff5902eda3faddde6c013cd4846b851af5c6a96eef1ae4ff8b1eec212"
 }
