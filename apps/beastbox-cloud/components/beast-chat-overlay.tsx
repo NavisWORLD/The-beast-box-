@@ -45,17 +45,20 @@ export default function BeastChatOverlay(){
   media.addEventListener('change',resize);window.addEventListener('resize',resize);window.visualViewport?.addEventListener('resize',resize);window.visualViewport?.addEventListener('scroll',resize);
   return()=>{media.removeEventListener('change',resize);window.removeEventListener('resize',resize);window.visualViewport?.removeEventListener('resize',resize);window.visualViewport?.removeEventListener('scroll',resize);};
  },[]);
- const close=useCallback(()=>{reopenQueued.current=false;setOpen(false);if(panel.current?.contains(document.activeElement)&&(document.activeElement instanceof HTMLElement))document.activeElement.blur();if(history.state?.beastboxChat===marker.current){historyLeaving.current=true;history.back();}restore.current?.focus({preventScroll:true});},[]);
+ const close=useCallback(()=>{reopenQueued.current=false;setOpen(false);if(panel.current?.contains(document.activeElement)&&(document.activeElement instanceof HTMLElement))document.activeElement.blur();if(history.state?.beastboxChat===marker.current){historyLeaving.current=true;history.back();}},[]);
  // Inert the background before paint, so the modal never exposes page navigation to assistive technology.
  useLayoutEffect(()=>{
   if(!open||!mobile)return;
   if(history.state?.beastboxChat!==marker.current)history.pushState({...history.state,beastboxChat:marker.current},'');
   const body=document.body,html=document.documentElement,x=window.scrollX,y=window.scrollY,previous={body:body.getAttribute('style'),html:html.style.overflow,behavior:html.style.scrollBehavior};
-  const container=document.fullscreenElement||body,inert=Array.from(container.children).filter(node=>node!==host&&node instanceof HTMLElement).map(node=>({node:node as HTMLElement,value:(node as HTMLElement).inert}));
-  for(const item of inert)item.node.inert=true;
+  // Focus the dialog before hiding siblings, preventing focus inside an aria-hidden ancestor.
+  panel.current?.querySelector<HTMLElement>('button')?.focus({preventScroll:true});
+  const container=document.fullscreenElement||body,inert=Array.from(container.children).filter(node=>node!==host&&node instanceof HTMLElement).map(node=>({node:node as HTMLElement,value:(node as HTMLElement).inert,ariaHidden:(node as HTMLElement).getAttribute('aria-hidden')}));
+  for(const item of inert){item.node.inert=true;item.node.setAttribute('aria-hidden','true');}
   Object.assign(body.style,{position:'fixed',top:-y+'px',left:-x+'px',width:'100%',overflow:'hidden'});html.style.overflow='hidden';
-  return()=>{for(const item of inert)item.node.inert=item.value;if(previous.body===null)body.removeAttribute('style');else body.setAttribute('style',previous.body);html.style.overflow=previous.html;html.style.scrollBehavior='auto';window.scrollTo(x,y);html.style.scrollBehavior=previous.behavior;};
+  return()=>{for(const item of inert){item.node.inert=item.value;if(item.ariaHidden===null)item.node.removeAttribute('aria-hidden');else item.node.setAttribute('aria-hidden',item.ariaHidden);}if(previous.body===null)body.removeAttribute('style');else body.setAttribute('style',previous.body);html.style.overflow=previous.html;html.style.scrollBehavior='auto';window.scrollTo(x,y);html.style.scrollBehavior=previous.behavior;};
  },[open,mobile,host]);
+ useLayoutEffect(()=>{if(!open)restore.current?.focus({preventScroll:true});},[open]);
  useEffect(()=>{
   if(!open)return;panel.current?.querySelector<HTMLElement>('button')?.focus({preventScroll:true});
   const keyboard=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();close();return;}if(!mobile||event.key!=='Tab')return;
