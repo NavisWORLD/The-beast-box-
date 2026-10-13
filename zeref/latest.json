@@ -10,28 +10,30 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 7,
- "xp": 493,
+ "tick": 8,
+ "xp": 523,
  "stage": 2,
  "stage_name": "Duskwing",
  "signals": {
-  "energy": 90,
-  "signal": 61,
-  "memory": 69,
+  "energy": 85,
+  "signal": 60,
+  "memory": 70,
   "resonance": 98
  },
- "bond": 1.75,
+ "bond": 2,
  "care_total": 0,
  "places": {
-  "Rift Gate": 3,
+  "Rift Gate": 4,
   "Lattice Arch": 6,
-  "Echo Prism": 6,
+  "Echo Prism": 9,
   "Tidewell": 1,
-  "Quartz Choir": 2
+  "Quartz Choir": 2,
+  "Violet Shard": 2,
+  "Selene Pool": 1
  },
- "last_tick_at": "2026-10-13T18:14:56.989Z",
- "last_entry_hash": "9802c2d61d7de2b65630e563e9647c14e170ac78b2b4faf74cb15c1136735e13",
- "combos_total": 137,
+ "last_tick_at": "2026-10-13T23:06:54.720Z",
+ "last_entry_hash": "facaae4c954f889f5cb5bb48dfc910236ddf2ed0576647bcfb9a71bb3038033a",
+ "combos_total": 143,
  "next_stage": {
   "stage": 3,
   "name": "Eclipse Prowler",
@@ -41,18 +43,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 135,
+  "moves_succeeded": 155,
   "moves_blocked": 5,
-  "blocked_rate": 0.036,
+  "blocked_rate": 0.031,
   "favorite_spot": "Echo Prism",
-  "favorite_value": 0.613,
+  "favorite_value": 0.675,
   "prefs": {
    "explore": 0.8425,
-   "visit": 0.9693,
+   "visit": 1,
    "rest": 0.188,
-   "play": 0.9187
+   "play": 0.9566
   },
-  "decisions": 78,
+  "decisions": 87,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -68,6 +70,116 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 8,
+   "at": "2026-10-13T23:06:54.720Z",
+   "hour_local": 18,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 85,
+    "signal": 60,
+    "memory": 70,
+    "resonance": 98
+   },
+   "bond": 2,
+   "mood": "content",
+   "place": "Echo Prism",
+   "places_visited": [
+    "Echo Prism",
+    "Rift Gate",
+    "Selene Pool",
+    "Violet Shard"
+   ],
+   "discovered_combos": [
+    {
+     "key": "idle|still|moon-pool|folded|sway|closed|smile",
+     "name": "idle · folded wings · sway tail · closed eyes · smile mouth at a moon pool"
+    },
+    {
+     "key": "charge|still|moon-pool|folded|sway|open|grin",
+     "name": "charge · folded wings · sway tail · open eyes · grin mouth at a moon pool"
+    },
+    {
+     "key": "hover|hover|crystal|folded|sway|closed|grin",
+     "name": "hovering · folded wings · sway tail · closed eyes · grin mouth at a crystal"
+    },
+    {
+     "key": "hover|still|crystal|folded|sway|open|grin",
+     "name": "hover · folded wings · sway tail · open eyes · grin mouth at a crystal"
+    },
+    {
+     "key": "hover|hover|portal|folded|sway|open|grin",
+     "name": "hovering · folded wings · sway tail · open eyes · grin mouth at a portal"
+    }
+   ],
+   "new_combo_count": 6,
+   "combos_total": 143,
+   "xp_gain": 30,
+   "xp": 523,
+   "stage": 2,
+   "stage_name": "Duskwing",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "c0c7961c-c75a-11f1-ae67-7ced8d79d0e6",
+    "job_name": "zeref-diary-tick-8-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "101": 159,
+     "110": 87,
+     "111": 1,
+     "001": 3,
+     "010": 6
+    },
+    "counts_sha256": "07f02661a91e838b36d68c48db31f8504b000d74a394efece9b09b92c17d2a84",
+    "circuit_params": {
+     "energy": 2.827433,
+     "signal": 1.916372,
+     "resonance": 3.078761
+    },
+    "quil_sha256": "fcab519489c9dece21c895207d46922914c8455529b897a0f5a94b6d6efb0a95"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 20,
+    "moves_blocked": 0,
+    "goals": {
+     "explore": 1,
+     "play": 1,
+     "visit": 7
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.031,
+    "favorite_spot": "Echo Prism",
+    "prefs": {
+     "explore": 0.8425,
+     "visit": 1,
+     "rest": 0.188,
+     "play": 0.9566
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "Purring at nothing in particular. Spent most of the tick at Echo Prism. The simulator sparks lined up even and calm. My body tried 6 new move combinations.",
+    "by": "deterministic-template"
+   },
+   "prev_hash": "9802c2d61d7de2b65630e563e9647c14e170ac78b2b4faf74cb15c1136735e13",
+   "hash": "facaae4c954f889f5cb5bb48dfc910236ddf2ed0576647bcfb9a71bb3038033a"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -814,6 +926,6 @@
    "hash": "a6727f4166052acec9a3a5c70d61123fd318ba8a7406a8eb0032a57576af7533"
   }
  ],
- "generated_at": "2026-10-13T18:14:56.989Z",
+ "generated_at": "2026-10-13T23:06:54.720Z",
  "thought_source_note": "model-not-configured"
 }

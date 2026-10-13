@@ -10,17 +10,17 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 7,
- "xp": 493,
+ "tick": 8,
+ "xp": 523,
  "stage": 2,
  "stage_name": "Duskwing",
  "signals": {
-  "energy": 90,
-  "signal": 61,
-  "memory": 69,
+  "energy": 85,
+  "signal": 60,
+  "memory": 70,
   "resonance": 98
  },
- "bond": 1.75,
+ "bond": 2,
  "care_total": 0,
  "combos_known": [
   "idle|still|moon-pool|folded|sway|open|smile",
@@ -159,14 +159,22 @@
   "hover|hover|crystal|folded|sway|open|smile",
   "charge|still|open-pocket|folded|sway|open|grin",
   "charge|still|open-pocket|beating|flick|half|grin",
-  "curious|still|portal|folded|sway|closed|o"
+  "curious|still|portal|folded|sway|closed|o",
+  "idle|still|moon-pool|folded|sway|closed|smile",
+  "charge|still|moon-pool|folded|sway|open|grin",
+  "hover|hover|crystal|folded|sway|closed|grin",
+  "hover|still|crystal|folded|sway|open|grin",
+  "hover|hover|portal|folded|sway|open|grin",
+  "curious|still|crystal|folded|sway|closed|o"
  ],
  "places": {
-  "Rift Gate": 3,
+  "Rift Gate": 4,
   "Lattice Arch": 6,
-  "Echo Prism": 6,
+  "Echo Prism": 9,
   "Tidewell": 1,
-  "Quartz Choir": 2
+  "Quartz Choir": 2,
+  "Violet Shard": 2,
+  "Selene Pool": 1
  },
  "learner": {
   "schema": "pocket-learner/v1",
@@ -180,7 +188,7 @@
    1,
    1,
    1,
-   3,
+   4,
    2,
    2,
    5,
@@ -188,7 +196,7 @@
    1,
    2,
    0,
-   2,
+   4,
    0,
    5,
    9,
@@ -196,18 +204,18 @@
    6,
    1,
    2,
+   10,
+   9,
+   7,
+   6,
+   0,
+   6,
+   4,
+   3,
+   10,
+   12,
    8,
    7,
-   5,
-   5,
-   0,
-   6,
-   4,
-   2,
-   7,
-   9,
-   6,
-   6,
    5,
    4,
    2
@@ -218,34 +226,34 @@
    29
   ],
   "moves": {
-   "succeeded": 135,
+   "succeeded": 155,
    "blocked": 5
   },
   "value": {
-   "portal-6": 0.4575,
+   "portal-6": 0.4899,
    "portal-5": 0.5238,
-   "moon-pool-0": 0.156,
-   "crystal-4": 0.6132,
+   "moon-pool-0": 0.1639,
+   "crystal-4": 0.6746,
    "moon-pool-1": 0.282,
    "crystal-2": 0.4474,
-   "crystal-3": 0.156
+   "crystal-3": 0.3506
   },
   "prefs": {
    "explore": 0.8425,
-   "visit": 0.9693,
+   "visit": 1,
    "rest": 0.188,
-   "play": 0.9187
+   "play": 0.9566
   },
   "goals": {
-   "explore": 38,
-   "visit": 21,
+   "explore": 39,
+   "visit": 28,
    "rest": 6,
-   "play": 13,
+   "play": 14,
    "come": 0
   },
-  "goal": "visit",
-  "decisions": 78
+  "goal": "explore",
+  "decisions": 87
  },
- "last_tick_at": "2026-10-13T18:14:56.989Z",
- "last_entry_hash": "9802c2d61d7de2b65630e563e9647c14e170ac78b2b4faf74cb15c1136735e13"
+ "last_tick_at": "2026-10-13T23:06:54.720Z",
+ "last_entry_hash": "facaae4c954f889f5cb5bb48dfc910236ddf2ed0576647bcfb9a71bb3038033a"
 }
