@@ -1,0 +1,11 @@
+// Server-only route adapter; credentials are never serialized to the browser.
+import {cookies} from 'next/headers';
+import {storageConfig} from './azure-blob.mjs';
+import {PRIVATE_COOKIE,verifyCredential} from './private-owner.mjs';
+import {PrivateCosmos,azurePrivateIO} from './private-memory.mjs';
+export const privateJson=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'private, no-store','Vary':'Cookie','X-Content-Type-Options':'nosniff'}});
+export function privateConfig(){const secret=process.env.BEASTBOX_CLOUD_AUTH_SECRET,cfg=storageConfig();return process.env.BEASTBOX_PRIVATE_MEMORY_ENABLED==='true'&&secret&&secret.length>=32&&cfg?{secret,cfg}:null;}
+export function privateStore(cfg:any){return new PrivateCosmos(azurePrivateIO(cfg),{scope:process.env.BEASTBOX_PRIVATE_MEMORY_PREFIX||''});}
+export async function privateContext(){const config=privateConfig();if(!config)throw Object.assign(Error('UNCONFIGURED'),{status:503});const credential=verifyCredential(config.secret,(await cookies()).get(PRIVATE_COOKIE)?.value);if(!credential)throw Object.assign(Error('PRIVATE_SESSION_REQUIRED'),{status:401});const store=privateStore(config.cfg);await store.assertOwner(credential.subject);return {...config,store,subject:credential.subject};}
+export async function privateBody(req:Request){const origin=req.headers.get('origin');if(origin!==new URL(req.url).origin)throw Object.assign(Error('SAME_ORIGIN_REQUIRED'),{status:403});if(Number(req.headers.get('content-length')||0)>32768)throw Object.assign(Error('REQUEST_TOO_LARGE'),{status:413});const raw=await req.text();if(Buffer.byteLength(raw)>32768)throw Object.assign(Error('REQUEST_TOO_LARGE'),{status:413});let body:any;try{body=JSON.parse(raw);}catch{throw Object.assign(Error('INVALID_JSON'),{status:400});}if(!body||Array.isArray(body)||typeof body!=='object'||'userId' in body||'owner' in body||'subject' in body)throw Object.assign(Error('CLIENT_AUTHORITY_FORBIDDEN'),{status:403});return body;}
+export function privateError(error:any){const status=Number.isInteger(error?.status)?error.status:502;const code=typeof error?.code==='string'?error.code:/^[A-Z_]+$/.test(error?.message||'')?error.message:'BLOCKED_EXTERNAL';return privateJson({ok:false,status:code},status);}

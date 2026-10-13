@@ -1,3 +1,4 @@
+import {personalRecipeLabel} from './personal-genesis.mjs';
 import {blit,renderBeast,SPRITE} from './draw.mjs';
 import {BODIES,buildGenome,bucketTraits} from './genome.mjs';
 import {expandQvmReceipt,growthFromQvmBatch,scenarioRuns} from './qvm-growth.mjs';
@@ -79,7 +80,7 @@ function updatePlate(){if(!current)return;const beast=session.beast;$('nameplate
 function showCreature(entry,nextSession,spawn=true){
  const run=byKey.get(entry.run);if(!run)throw Error('Recorded seed is unavailable.');
  const gen=buildGenome(entry.traits,run,entry.user||null,10);current={entry,gen,run};session=nextSession;stage=session.beast.nativeStage||1;preview=false;
- cacheEyes(gen);showTraits(entry.traits);$('keeper').value=entry.user||'';
+ cacheEyes(gen);showTraits(entry.traits);$('keeper').value=session.beast.creatorLabel||entry.user||'';
  $('meta').textContent=`${gen.temperament} · ${gen.element} · ${gen.body} · ${gen.island}`;
  $('quantum').textContent=`${run.qvm?'SIMULATOR SEED':'RECORDED QUANTUM SEED'} · ${run.backend} · ${run.counts_sha256.slice(0,12)}…`;
  $('provenance').textContent=`Job ${run.job_id} · pub ${run.pub_index} · ${run.num_bits}-bit · ${run.shots} recorded shots · counts SHA-256 ${run.counts_sha256}`;
@@ -151,8 +152,10 @@ function deviceDownload(text,name){const url=URL.createObjectURL(new Blob([text]
 async function spark(from='sliders'){
  const traits=from==='profile'?simulateStable($('profile').value):bucketTraits(readTraits(),10),user=$('keeper').value.trim();
  if(user&&!/^[A-Za-z0-9 ._-]{1,24}$/.test(user))throw Error('Keeper label must be 1–24 public characters.');
- const entry={traits:{focus:traits.focus,calm:traits.calm,spark:traits.spark},run:selectedRun().key,user:user||null};
+ const entry={traits:{focus:traits.focus,calm:traits.calm,spark:traits.spark},run:selectedRun().key,user:personalRecipeLabel()};
  await adopt(entry);
+ await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast.seed!==current.gen.seed)throw Error('Creature selection changed.');next.beast.creatorLabel=user;saveSparkSession(localStorage,next);session=next;});
+ $('keeper').value=user;
  bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();$('status').textContent='Spawned and saved on this device. The same QBEAST is ready for Beast Box and LOST COSMOS.';
 }
 async function sparkFinalDragon(){
