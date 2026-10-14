@@ -247,6 +247,30 @@ test("Safari UI can distinguish configured audio from the actual context readine
   assert.equal(audio.getSnapshot().sparkMuted,true);
 });
 
+test("repeated healthy audio gestures keep one snapshot and do not notify controls",()=>{
+  const {audio}=engine();audio.unlock();
+  const before=audio.getSnapshot();let updates=0;
+  const unsubscribe=audio.subscribe(()=>updates++);
+  for(let n=0;n<5;n++)audio.unlock();
+  assert.equal(updates,0,"unchanged audio must not synchronously reset controlled form inputs");
+  assert.equal(audio.getSnapshot(),before);
+  audio.setVolume(.3);assert.equal(updates,1);
+  assert.equal(audio.getSnapshot().volume,.3);
+  unsubscribe();
+});
+
+test("unchanged unavailable audio is stable while a suspended context still resumes",async()=>{
+  const unavailable=createBeastAudio();unavailable.unlock();
+  const before=unavailable.getSnapshot();unavailable.unlock();
+  assert.equal(unavailable.getSnapshot(),before);
+  const context=fakeContext([]);let resumes=0;
+  context.resume=async()=>{resumes++;context.state="running";};
+  const audio=createBeastAudio({createContext:()=>context});audio.unlock();
+  context.state="suspended";audio.unlock();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(resumes,1);assert.equal(audio.getSnapshot().contextState,"running");
+});
+
 test("public Spark first sound tap enables audio instead of muting a ready speaker",()=>{
   const app=read("public/spark/app.mjs");
   assert.match(app,/SOUND READY must activate on the first tap/);

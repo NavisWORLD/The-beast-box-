@@ -1,12 +1,17 @@
 name: Shared companion popup Chrome and WebKit
 on:
   push:
-    branches: [feature/living-beastbox-shared-chat-20261012]
+    branches: [feature/living-beastbox-shared-chat-20261012, feature/production-memory-verification-20261014]
   pull_request:
     paths:
       - apps/beastbox-cloud/components/beast-chat-*
       - apps/beastbox-cloud/components/beast-talk-*
       - apps/beastbox-cloud/lib/companion/private-chat.*
+      - apps/beastbox-cloud/lib/companion/beast-audio-engine.mjs
+      - apps/beastbox-cloud/components/private-cosmos-panel.*
+      - apps/beastbox-cloud/tests/private-consent-browser.cjs
+      - apps/beastbox-cloud/tests/beast-audio.test.mjs
+      - apps/beastbox-cloud/scripts/private-cosmos-production-browser.cjs
       - apps/beastbox-cloud/public/spark/chat-popup.mjs
       - apps/beastbox-cloud/tests/*chat*browser*
       - .github/workflows/companion-popup-browser.yml
@@ -76,6 +81,7 @@ jobs:
           mkdir -p "$BEAST_EVIDENCE_DIR"
           node tests/brain-world.cjs http://127.0.0.1:3000 | tee "$output/$BEAST_TEST_BROWSER/rooms.log"
           node tests/settings-ready-browser.cjs http://127.0.0.1:3000 | tee "$output/$BEAST_TEST_BROWSER/settings.log"
+          BEAST_EVIDENCE_DIR="$output/$BEAST_TEST_BROWSER/private-consent" node tests/private-consent-browser.cjs http://127.0.0.1:3000 | tee "$output/$BEAST_TEST_BROWSER/private-consent.log"
           BEAST_POPUP_SCREENSHOTS="$output/$BEAST_TEST_BROWSER/spark" node tests/spark-chat-popup-browser.cjs | tee "$output/$BEAST_TEST_BROWSER/spark.log"
       - uses: actions/upload-artifact@v4
         if: always()
