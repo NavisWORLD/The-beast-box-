@@ -1,6 +1,8 @@
 'use client';
 import {ARTIST_RESIDENTS} from '../lib/companion/artist-residents.mjs';
 import {addPocketResidents} from './pocket-residents';
+import {addPocketSand} from './pocket-sand-layer';
+import {SAND_LABEL} from '../lib/pocket-sand.mjs';
 import {useEffect,useRef,useState} from 'react';
 import {createPocketSky,orbitPosition} from '../lib/pocket-sky.mjs';
 import {DEFAULT_POCKET_3D,POCKET_3D_KEY,POCKET_3D_EVENT,POCKET_3D_CAMERA_RESET,devicePocket3D} from '../lib/companion/pocket-3d-settings.mjs';
@@ -12,6 +14,7 @@ type Props={
  seed:string|null; qbeastId:string|null; stage:number; reduced:boolean;
  behaviorPosition:{x:number;y:number}|null; state:string;
  onActiveChange:(active:boolean)=>void;
+ qvmCounts?:Record<string,number>|null;
 };
 const clamp=(x:number,low:number,high:number)=>Math.min(high,Math.max(low,x));
 const visualSeed=(s:string)=>{let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);return h>>>0;};
@@ -27,7 +30,8 @@ const randomFor=(s:string)=>{let v=visualSeed(s)||1;return()=>{v^=v<<13;v^=v>>>1
  * The existing SparkBeastArena remains visible and interactive IN FRONT of
  * this canvas, with exactly the original canonical QBEAST sprite/voice/saves.
  */
-export default function CagePocketDimension({seed,qbeastId,stage,reduced,behaviorPosition,state,onActiveChange}:Props){
+export default function CagePocketDimension({seed,qbeastId,stage,reduced,behaviorPosition,state,onActiveChange,qvmCounts=null}:Props){
+ const sandSource=qvmCounts?'receipt':'seed';
  const canvasRef=useRef<HTMLCanvasElement>(null);
  const motion=useRef({position:behaviorPosition,state,stage,impulse:0});
  const cameraView=useRef<View>({theta:.7,phi:1.05,zoom:10.6});
@@ -207,7 +211,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const nebula=new THREE.Mesh(new THREE.SphereGeometry(30,24,12),new THREE.MeshBasicMaterial({color:0x2a1650,transparent:true,opacity:.35,side:THREE.BackSide,fog:false,depthWrite:false}));
     scene.add(nebula);
     // Artist-drawn residents (separate creatures, never the active Beast) roam the pocket.
-    const {stepResidents,texCache}=addPocketResidents(THREE,scene,seedRandom,reduced);
+    const {stepResidents,texCache,disturbers}=addPocketResidents(THREE,scene,seedRandom,reduced);
+    const sand=addPocketSand(THREE,scene,{seed:key,low,reduced});
+    sand.field.setCounts(qvmCounts);
     const resize=()=>{
      if(disposed)return;
      const rect=canvas.getBoundingClientRect();
@@ -251,6 +257,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      }
      const v=cameraView.current;
      stepResidents(elapsed,v.theta);
+     sand.update(dt,[{x:glow.position.x,z:glow.position.z,r:1.2,s:1.6+motion.current.impulse*3},{x:0,z:0,r:1.1,s:1.2},...disturbers()]);
      camera.position.set(v.zoom*Math.sin(v.phi)*Math.sin(v.theta),v.zoom*Math.cos(v.phi),v.zoom*Math.sin(v.phi)*Math.cos(v.theta));
      camera.lookAt(focus);
      try{renderer.render(scene,camera);}catch{setReady(false);setFailed(true);return;}
@@ -268,20 +275,21 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
        const m=o.material;(Array.isArray(m)?m:[m]).forEach(k=>materials.add(k));
       }
      });
-     texCache.forEach(t=>t.dispose());geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();
+     texCache.forEach(t=>t.dispose());sand.dispose();geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();
     };
    }catch{
     if(!disposed){setFailed(true);setReady(false);}
    }
   })();
   return()=>{disposed=true;cancelAnimationFrame(frame);cleanup();releaseListeners();};
- },[key,failed,reduced,visualSettings.enabled,visualSettings.quality]);
+ },[key,failed,reduced,visualSettings.enabled,visualSettings.quality,qvmCounts]);
  return <div className={styles.root} data-pocket-dimension="true"
   data-world-source="genesis-nightops-core-visual-v1"
   data-pocket-state={!visualSettings.enabled?'disabled':failed?'fallback':ready?'ready':'loading'} data-creature-id={id}>
   {visualSettings.enabled&&!failed?<canvas data-pocket-webgl="true" className={styles.canvas} ref={canvasRef}
    aria-hidden="true"/>:null}
   {!visualSettings.enabled?<span className={styles.sr} role="status">3D scenery is off. Your Beast and game remain available.</span>:!failed&&!ready?<span className={styles.sr} role="status">Opening the dimensional world behind your Beast…</span>:null}
+ <p className={styles.sandLabel} data-sand-source={sandSource}>{SAND_LABEL} · {sandSource==='receipt'?'recorded seed + this Beast\u2019s recorded Azure simulator counts':'recorded seed only · no simulator receipt for this Beast'}</p>
  <ul className={styles.residents} aria-label="Artist-drawn Pocket residents" data-artist-residents={ARTIST_RESIDENTS.length}>
   {ARTIST_RESIDENTS.map(r=><li key={r.id} data-resident-id={r.id} data-resident-kind={r.kind}><img src={r.views.front} alt={`${r.name}: ${r.look}`} width={44} height={44} loading="lazy"/><span><b>{r.name}</b><small>{r.kind==='trainer'?'Trainer':'Beast'} · {r.origin}</small></span></li>)}
  </ul>
