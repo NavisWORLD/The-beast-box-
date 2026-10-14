@@ -4,3 +4,9 @@
 .canvas{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit;pointer-events:none}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media(prefers-reduced-motion:reduce){.root,.canvas{animation:none!important;transition:none!important}}
+/* Artist-drawn residents legend (Living Cosmos). */
+.residents{pointer-events:auto;position:absolute;left:50%;bottom:6%;transform:translateX(-50%);z-index:3;display:flex;gap:6px;margin:0;padding:5px 8px;list-style:none;max-width:88%;overflow-x:auto;border:1px solid #9b8cf355;border-radius:14px;background:#0a1028b8;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);scrollbar-width:none}
+.residents li{display:flex;align-items:center;gap:5px;flex:0 0 auto;color:#e9e6ff;font:600 10px system-ui}
+.residents img{width:30px;height:30px;object-fit:contain}
+.residents span{display:flex;flex-direction:column}.residents small{font-size:7.5px;opacity:.7;letter-spacing:.04em}
+@media(max-width:480px){.residents small{display:none}.residents img{width:26px;height:26px}}

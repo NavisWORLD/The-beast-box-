@@ -1,4 +1,6 @@
 'use client';
+import {ARTIST_RESIDENTS} from '../lib/companion/artist-residents.mjs';
+import {addPocketResidents} from './pocket-residents';
 import {useEffect,useRef,useState} from 'react';
 import {createPocketSky,orbitPosition} from '../lib/pocket-sky.mjs';
 import {DEFAULT_POCKET_3D,POCKET_3D_KEY,POCKET_3D_EVENT,POCKET_3D_CAMERA_RESET,devicePocket3D} from '../lib/companion/pocket-3d-settings.mjs';
@@ -204,6 +206,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     rim.rotation.x=-Math.PI/2;rim.position.y=-.04;scene.add(rim);
     const nebula=new THREE.Mesh(new THREE.SphereGeometry(30,24,12),new THREE.MeshBasicMaterial({color:0x2a1650,transparent:true,opacity:.35,side:THREE.BackSide,fog:false,depthWrite:false}));
     scene.add(nebula);
+    // Artist-drawn residents (separate creatures, never the active Beast) roam the pocket.
+    const {stepResidents,texCache}=addPocketResidents(THREE,scene,seedRandom,reduced);
     const resize=()=>{
      if(disposed)return;
      const rect=canvas.getBoundingClientRect();
@@ -246,6 +250,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       object.position.set(xyz.x,xyz.y,xyz.z);
      }
      const v=cameraView.current;
+     stepResidents(elapsed,v.theta);
      camera.position.set(v.zoom*Math.sin(v.phi)*Math.sin(v.theta),v.zoom*Math.cos(v.phi),v.zoom*Math.sin(v.phi)*Math.cos(v.theta));
      camera.lookAt(focus);
      try{renderer.render(scene,camera);}catch{setReady(false);setFailed(true);return;}
@@ -257,12 +262,13 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      canvas.removeEventListener('webglcontextlost',onContextLost);
      const geometries=new Set<import('three').BufferGeometry>(),materials=new Set<import('three').Material>();
      scene.traverse(o=>{
+      if(o instanceof THREE.Sprite){materials.add(o.material);}
       if(o instanceof THREE.Mesh||o instanceof THREE.LineSegments||o instanceof THREE.Points){
        geometries.add(o.geometry);
        const m=o.material;(Array.isArray(m)?m:[m]).forEach(k=>materials.add(k));
       }
      });
-     geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();
+     texCache.forEach(t=>t.dispose());geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();
     };
    }catch{
     if(!disposed){setFailed(true);setReady(false);}
@@ -276,5 +282,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   {visualSettings.enabled&&!failed?<canvas data-pocket-webgl="true" className={styles.canvas} ref={canvasRef}
    aria-hidden="true"/>:null}
   {!visualSettings.enabled?<span className={styles.sr} role="status">3D scenery is off. Your Beast and game remain available.</span>:!failed&&!ready?<span className={styles.sr} role="status">Opening the dimensional world behind your Beast…</span>:null}
+ <ul className={styles.residents} aria-label="Artist-drawn Pocket residents" data-artist-residents={ARTIST_RESIDENTS.length}>
+  {ARTIST_RESIDENTS.map(r=><li key={r.id} data-resident-id={r.id} data-resident-kind={r.kind}><img src={r.views.front} alt={`${r.name}: ${r.look}`} width={44} height={44} loading="lazy"/><span><b>{r.name}</b><small>{r.kind==='trainer'?'Trainer':'Beast'} · {r.origin}</small></span></li>)}
+ </ul>
  </div>;
 }
