@@ -11,3 +11,5 @@
 @media(min-width:500px){.handheld{padding:14px 22px 16px}.face{max-width:470px}.actions{gap:16px}.handheld .actions button{width:62px;height:62px}}
 @media(max-height:560px) and (orientation:landscape){.handheld{padding:8px}.brand{margin-bottom:5px;font-size:8px}.face{gap:7px}.systemKeys{margin-top:6px}.shoulders{margin-bottom:3px}}
 @media(prefers-reduced-motion:reduce){.handheld button{transition:none}}
+/* Living Cosmos depth polish (additive): lift the handheld off the page and give buttons a tactile top light. */
+.handheld{filter:drop-shadow(0 16px 26px #05021299) drop-shadow(0 2px 0 #a778d922)}
