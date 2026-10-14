@@ -10,17 +10,17 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 9,
- "xp": 550,
+ "tick": 10,
+ "xp": 590,
  "stage": 2,
  "stage_name": "Duskwing",
  "signals": {
-  "energy": 79,
-  "signal": 59,
-  "memory": 71,
+  "energy": 100,
+  "signal": 58,
+  "memory": 72,
   "resonance": 98
  },
- "bond": 2.25,
+ "bond": 2.5,
  "care_total": 0,
  "combos_known": [
   "idle|still|moon-pool|folded|sway|open|smile",
@@ -170,11 +170,20 @@
   "pounce|pounce|moon-pool|beating|lash|closed|grin",
   "hover|hover|moon-pool|folded|sway|open|smile",
   "hover|hover|crystal|beating|sway|open|smile",
-  "curious|still|portal|folded|sway|open|smile"
+  "curious|still|portal|folded|sway|open|smile",
+  "sleep|still|open-pocket|folded|sway|closed|sleepy",
+  "sleep|still|portal|folded|sway|closed|sleepy",
+  "sleep|still|portal|folded|flick|closed|sleepy",
+  "sleep|still|portal|beating|flick|closed|sleepy",
+  "sleep|still|portal|beating|lash|closed|sleepy",
+  "sleep|still|portal|folded|lash|closed|sleepy",
+  "pounce|pounce|portal|folded|sway|closed|grin",
+  "idle|still|portal|folded|sway|closed|smile",
+  "charge|still|portal|folded|sway|half|grin"
  ],
  "places": {
   "Rift Gate": 5,
-  "Lattice Arch": 6,
+  "Lattice Arch": 7,
   "Echo Prism": 11,
   "Tidewell": 1,
   "Quartz Choir": 2,
@@ -196,8 +205,8 @@
    4,
    2,
    2,
+   6,
    5,
-   4,
    1,
    2,
    0,
@@ -205,24 +214,24 @@
    0,
    5,
    9,
-   4,
-   6,
-   1,
+   5,
+   7,
+   2,
    2,
    10,
    10,
-   8,
+   9,
    6,
    0,
-   6,
-   4,
+   7,
+   5,
    4,
    13,
    16,
    11,
-   9,
+   10,
+   6,
    5,
-   4,
    2
   ],
   "known_blocked": [
@@ -231,12 +240,12 @@
    29
   ],
   "moves": {
-   "succeeded": 170,
+   "succeeded": 181,
    "blocked": 5
   },
   "value": {
    "portal-6": 0.5161,
-   "portal-5": 0.5238,
+   "portal-5": 0.5435,
    "moon-pool-0": 0.1639,
    "crystal-4": 0.6993,
    "moon-pool-1": 0.282,
@@ -244,21 +253,21 @@
    "crystal-3": 0.3506
   },
   "prefs": {
-   "explore": 0.8425,
+   "explore": 0.811,
    "visit": 1,
    "rest": 0.107,
    "play": 1
   },
   "goals": {
-   "explore": 39,
-   "visit": 32,
+   "explore": 40,
+   "visit": 34,
    "rest": 9,
-   "play": 19,
+   "play": 26,
    "come": 0
   },
   "goal": "visit",
-  "decisions": 99
+  "decisions": 109
  },
- "last_tick_at": "2026-10-14T01:54:52.866Z",
- "last_entry_hash": "37d8a551115544dc462e238844029d4374f117413ba661f0683df8fd42cc81d6"
+ "last_tick_at": "2026-10-14T07:32:00.248Z",
+ "last_entry_hash": "a547d5b86314d405389da132799724c94b83582d0af4033a291c3c74c780a7c9"
 }
