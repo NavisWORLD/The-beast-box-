@@ -33,6 +33,7 @@ export default function Home(){
    <Link href="/sol-game" prefetch={false}><span className="journey-icon" aria-hidden="true">🎮</span>Lost COSMOS</Link>
    <Link href="/brain-bay" prefetch={false}><span className="journey-icon" aria-hidden="true">🧠</span>Brain Bay</Link>
    <Link href="/research" prefetch={false}><span className="journey-icon" aria-hidden="true">🔬</span>Lab</Link>
+   <Link href="/workspace" prefetch={false}><span className="journey-icon" aria-hidden="true">🛠️</span>Workstation</Link>
   </nav>
   <span className="pill"><span className="pulse"/> DREAMERS · IDLERS · PLAYERS · BUILDERS</span>
   <Link className="header-enter" href="/settings">Settings <ArrowUpRight size={16}/></Link>

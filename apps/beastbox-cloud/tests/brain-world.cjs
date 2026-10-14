@@ -66,7 +66,7 @@ async function checkRooms(page){
   // preserved for screen readers and the visible identity heading is checked below.
   await expect(dialog.getByText(/Showing Zeref, the site Beast/)).toHaveCount(1);
   await expect(dialog.getByRole('heading',{name:'Talk to Zeref'})).toBeVisible();
-  await expect(dialog.getByText(/Brain: RAWRPHØS guest/)).toBeVisible();
+  await expect(dialog.getByText(/teacher: Beast Box free host/)).toBeVisible();
   assert.equal(guestCalls.length,0);assert.equal(loopbackCalls.length,0);
   const visibleNavCount=await page.getByRole('navigation',{name:'Universe rooms'}).count();
   if(visibleNavCount){
@@ -134,7 +134,7 @@ async function checkRooms(page){
   assert.deepEqual(invariant(await readSession(page)),invariant(before),'failed requests never change the Beast');
 
   // Local Ollama: explicit choice, persona as system text, honest connection help.
-  await dialog.getByRole('button',{name:'Change brain'}).click();
+  await dialog.getByRole('button',{name:'Change teacher'}).click();
   // Selecting the exact native radio is required: a generic label click can
   // hit nested descriptive text and leave the provider unchanged.
   const ollamaChoice=dialog.locator('input[type="radio"][value="local-ollama"]');
@@ -152,7 +152,7 @@ async function checkRooms(page){
   assert.equal(loopbackCalls.length,0,'Selecting a brain must not send a message');
   await page.reload();
   dialog=await openSharedChat(page);
-  await expect(dialog.getByText(/Brain: My local Ollama/)).toBeVisible();
+  await expect(dialog.getByText(/teacher: My local Ollama/)).toBeVisible();
   await dialog.getByLabel(/^Message to /).fill('quiet star');
   await dialog.getByRole('button',{name:'Send',exact:true}).click();
   await expect(dialog.locator('[data-talk-state="offline"]')).toBeVisible();

@@ -88,6 +88,7 @@ export default function BeastCagePortal(){
     <Link href="/sol-game">Lost COSMOS</Link>
     <Link href="/brain-bay">Brain Bay</Link>
     <Link href="/research">Lab</Link>
+    <Link href="/workspace">Workstation</Link>
     <Link className="cage-nav-cta" href="/settings">Settings <ArrowRight size={15}/></Link>
    </nav>
   </header>

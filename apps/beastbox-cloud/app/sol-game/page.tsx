@@ -15,6 +15,7 @@ export default function SolGame(){return <main style={{minHeight:'100vh',backgro
   <span aria-current="page" style={{padding:'8px 10px',borderRadius:9,background:'#17314c',color:'#7ee7ff'}}>Lost COSMOS</span>
   <Link href="/brain-bay" style={{padding:'8px 10px'}}>Brain Bay</Link>
   <Link href="/research" style={{padding:'8px 10px'}}>Lab</Link>
+  <Link href="/workspace" style={{padding:'8px 10px'}}>Workstation</Link>
   <Link href="/settings" style={{padding:'8px 10px'}}>Settings</Link>
  </nav>
  <p style={{fontSize:11,letterSpacing:'.14em',color:'#7ee7ff',fontWeight:800}}>YOUR BEAST · YOUR CARTRIDGE · SAME IDENTITY</p>

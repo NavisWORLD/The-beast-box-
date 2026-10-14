@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+const r=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+test('talk header names the creature and its teacher; RAWRPHØS detail only in the advanced view',()=>{const s=r('components/beast-talk-panel.tsx');
+ assert.match(s,/\{persona\.name\}&apos;s teacher: \{TEACHER_LABEL\[route\]\|\|info\.label\}/);assert.match(s,/href="\/workspace">Workstation →/);
+ const bar=s.slice(s.indexOf('data-teacher-header'),s.indexOf('Change teacher'));assert.doesNotMatch(bar,/RAWRPH/);
+ assert.match(s,/data-advanced-brain>Advanced · Brain: \{info\.label\}/);
+ const sp=r('public/spark/chat-popup.mjs');assert.match(sp,/Teacher: \$\{TEACHER_LABEL\[route\]\|\|info\.label\}/);});
+test('workstation groups every model in collapsible sections and keeps honesty labels',()=>{const s=r('components/model-switcher.tsx');
+ for(const k of ['home-brain','teachers','engines','hf-inventory','engine-notes'])assert.ok(s.includes(`data-ws-section="${k}"`),k);
+ assert.match(s,/Choose your brain/);assert.match(s,/rawrphos_native_18k_experimental/);assert.match(s,/Ollama cloud models/);
+ for(const p of ['app/page.tsx','components/universe-settings.tsx','components/beast-cage-portal.tsx'])assert.match(r(p),/href="\/workspace"/,p);});
