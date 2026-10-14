@@ -30,6 +30,7 @@ with sync_playwright() as p:
         # ZEREF the Moonwraith is the default live guide; the procedural 3D guide stays one tap away.
         page.locator(".beast-landing-creature .zeref-stage").wait_for(timeout=16000)
         if page.evaluate("!!document.createElement('canvas').getContext('webgl')"):
+            page.locator(".beast-landing-creature .cosmos-home-viewmenu > summary").click()  # 3D toggles live in the View menu
             page.locator(".beast-landing-creature").get_by_role("button",name="3D model",exact=True).click()
             page.locator(".beast-landing-creature [data-graphics='procedural-3d']").wait_for(timeout=16000)
         if width in (1440,390,320):

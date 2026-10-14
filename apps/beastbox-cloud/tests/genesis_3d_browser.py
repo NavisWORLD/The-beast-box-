@@ -27,6 +27,7 @@ with sync_playwright() as p:
   load(page,"/")
   # ZEREF is the default live guide; the real procedural 3D guide is under "3D model".
   expect(page.locator(".zeref-stage").first).to_be_visible()
+  page.locator(".cosmos-home-viewmenu > summary").first.click()  # 3D toggles live in the View menu
   page.get_by_role("button",name="3D model",exact=True).click()
   expect(page.get_by_role("button",name="Rotate 360°")).to_be_visible()
   hero=page.get_by_label("Interactive cosmic companion observatory")

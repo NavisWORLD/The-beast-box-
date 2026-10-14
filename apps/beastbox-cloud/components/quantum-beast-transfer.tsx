@@ -73,11 +73,14 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
   <div><span className={css.kicker}>QUANTUM BEAST BRIDGE</span><h3>One Beast. Many brains.</h3>
    <p>Carry this creature’s identity, appearance and approved memories to a compatible runtime. Its host approves every new event.</p></div>
   <div className={css.actions}>
+   <button type="button" className={css.playGame} disabled={!profile||busy||!ready||Boolean(snapshot&&!matches)} onClick={()=>void run(openLostCosmos)}>PLAY THIS BEAST IN LOST COSMOS</button>
+   <input ref={input} disabled={busy||!ready} className={css.file} type="file" accept=".qbeast,application/json" aria-label="Quantum Beast file" onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)void run(()=>importFile(file));}}/>
+  </div>
+  <details className={css.details} data-bridge-advanced><summary>Advanced settings</summary>
+  <div className={css.actions}>
    <button type="button" disabled={!profile||busy||!ready} onClick={()=>void run(exportPortable)}>DOWNLOAD QUANTUM BEAST</button>
    <button type="button" disabled={busy||!ready} onClick={()=>input.current?.click()}>IMPORT QUANTUM BEAST</button>
-   <button type="button" className={css.playGame} disabled={!profile||busy||!ready||Boolean(snapshot&&!matches)} onClick={()=>void run(openLostCosmos)}>PLAY THIS BEAST IN LOST COSMOS</button>
    {snapshot&&matches?<button type="button" disabled={busy||!ready} onClick={()=>void run(async()=>{const pack=await exportGba(snapshot,verifiedKey?{trustedPublicKey:verifiedKey}:{});download(Uint8Array.from(pack.zip).buffer,snapshot.profile.id+'-gba.zip','application/zip');setStatus('Exported original BCG1 art and BCP1 seeded stats for offline LOST COSMOS import.');})}>Export this Beast to GBA</button>:null}
-   <input ref={input} disabled={busy||!ready} className={css.file} type="file" accept=".qbeast,application/json" aria-label="Quantum Beast file" onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)void run(()=>importFile(file));}}/>
   </div>
   {snapshot?<div className={css.receipt} aria-label="Portable Beast verification">
    <strong>{snapshot.profile.name} · {snapshot.profile.id}</strong>
@@ -89,8 +92,9 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
   </div>:null}
   {snapshot&&!matches&&profile?<><p>To start another portable life, generate a different seed and creature ID.</p><button type="button" disabled={busy||!ready||profile.id===snapshot.profile.id} className={css.newLife} onClick={()=>void run(async()=>{if(profile.id===snapshot.profile.id)throw Error('A new life requires a different creature ID.');const previous=await serializeSnapshot(snapshot,verifiedKey?{trustedPublicKey:verifiedKey}:{});download(previous,snapshot.profile.id+'-previous.qbeast','application/json');const s=await createSnapshot(profile);await remember(s);setKey('');setStatus('Previous Beast backed up. Started a separate portable life for the selected genome.');})}>Start a new portable life (backs up previous Beast)</button></>:null}
   <details className={css.details}><summary>Verify a trusted publisher</summary><label>Publisher public key (optional)<input value={key} maxLength={64} placeholder="Externally verified 64-character public key" onChange={e=>setKey(e.target.value)} /></label><p>A checksum proves integrity. A source signature is trusted only when its public key matches a key you supply independently.</p></details>
+  <small>Quantum-inspired game identity; no quantum hardware or cloud inference runs here. Portable files contain public data only. Lost COSMOS handoff targets native source {LOST_COSMOS_SOURCE_SHA.slice(0,8)} with the same QBEAST identity and a stable one-cage transfer ID; host permissions never travel.</small>
+  </details>
   {error?<p className={css.error} role="alert">{error}</p>:null}
   {status?<p className={css.status} role="status">{status}</p>:null}
-  <small>Quantum-inspired game identity; no quantum hardware or cloud inference runs here. Portable files contain public data only. Lost COSMOS handoff targets native source {LOST_COSMOS_SOURCE_SHA.slice(0,8)} with the same QBEAST identity and a stable one-cage transfer ID; host permissions never travel.</small>
  </section>;
 }

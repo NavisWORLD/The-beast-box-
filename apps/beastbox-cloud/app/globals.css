@@ -641,3 +641,15 @@ html[data-beastbox-reduced-motion="true"] *,html[data-beastbox-reduced-motion="t
 }
 /* Phones: leave room at the end of every page for the fixed companion/sound/chat lane. */
 @media(max-width:480px){body{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}}
+/* Living Cosmos: home shows the Cage's dimensional pocket behind the creature (view-only). */
+.home-pocket-layer{position:absolute;inset:0;z-index:0;border-radius:inherit;overflow:hidden;pointer-events:none}
+.home-pocket-layer>*{pointer-events:none!important}
+.beast-landing-creature{z-index:2}
+/* Tuck the 3D view toggles away so they stop crowding the creature. */
+.cosmos-home-viewmenu{position:absolute;z-index:4;left:4px;bottom:4px;pointer-events:auto}
+.cosmos-home-viewmenu>summary{list-style:none;cursor:pointer;min-height:36px;display:inline-flex;align-items:center;padding:6px 12px;border:1px solid #9fb2ff55;border-radius:14px;background:#0b1230cc;color:#dfe6ff;font:600 11px system-ui;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.cosmos-home-viewmenu>summary::-webkit-details-marker{display:none}
+.cosmos-home-viewmenu .cosmos-home-controls{position:absolute;bottom:calc(100% + 6px);left:0;width:max-content;max-width:min(320px,80vw);padding:6px;border-radius:14px;background:#0b1230ee}
+.home-pocket-layer ul{display:none}
+.cosmos-home-viewmenu{bottom:auto;top:8px;left:10px}
+.cosmos-home-viewmenu .cosmos-home-controls{bottom:auto;top:calc(100% + 6px)}
