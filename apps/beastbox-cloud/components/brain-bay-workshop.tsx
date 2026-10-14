@@ -43,6 +43,6 @@ export default function BrainBayWorkshop(){
     <BeastTalkPanel title={beast?`Talk to ${name}`:undefined}/>
    </div>
   </div>
-  <footer className={styles.footer}><p>Your Beast&apos;s story stays in this browser. A model only receives the message you send, framed by your Beast&apos;s name and personality.</p><Link href="/beast-cage/talk">Full Talk to Beast room <ArrowUpRight size={14} aria-hidden="true"/></Link><Link href="/workspace#brain-bay">Open owner workstation <ArrowUpRight size={14} aria-hidden="true"/></Link><Link href="/research">Read the Lab receipts <ArrowUpRight size={14} aria-hidden="true"/></Link></footer>
+  <footer className={styles.footer}><p>Your Beast&apos;s story stays in this browser. A model only receives the message you send, framed by your Beast&apos;s name and personality.</p><Link prefetch={false} href="/beast-cage/talk">Full Talk to Beast room <ArrowUpRight size={14} aria-hidden="true"/></Link><Link prefetch={false} href="/workspace#brain-bay">Open owner workstation <ArrowUpRight size={14} aria-hidden="true"/></Link><Link prefetch={false} href="/research">Read the Lab receipts <ArrowUpRight size={14} aria-hidden="true"/></Link></footer>
  </main>;
 }

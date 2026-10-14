@@ -220,11 +220,13 @@ async function checkRooms(page){
   assert.deepEqual(privateCalls,[],'Public rooms must not call private APIs');
   assert.ok(cloudConfigurationReads.every(method=>method==='GET'),'Passive optional cloud configuration checks must never issue ownership credentials or write private data');
   const publicPrivateRequests=privateCalls.length;
-  await page.goto(origin+'/workspace#brain-bay');
+  assert.equal(rscTrace.filter(row=>row.event==='started'&&new URL(row.url).pathname==='/sol-game').length,0,'An unstarted Game Boy never speculatively loads its route while the visitor talks elsewhere');
+  assert.equal(rscTrace.filter(row=>row.event==='started'&&['/beast-cage/talk','/workspace','/research'].includes(new URL(row.url).pathname)).length,0,'Optional footer destinations load on actual navigation, never speculative requests during conversation');
+  await page.getByRole('link',{name:'Open owner workstation',exact:true}).click();
+  await page.waitForURL(origin+'/workspace#brain-bay');
   await expect(page.getByLabel('OWNER PASSWORD')).toBeVisible();
   await expect(page.getByRole('button',{name:/Unlock workstation/})).toBeVisible();
   assert.equal(sensorCalls,0);
-  assert.equal(rscTrace.filter(row=>row.event==='started'&&new URL(row.url).pathname==='/sol-game').length,0,'An unstarted Game Boy never speculatively loads its route while the visitor talks elsewhere');
   assert.deepEqual(errors,[]);
   console.log(JSON.stringify({passed:true,browserEngine,physicalDevice:false,widths:[320,375,390,430,1280],guestFailureRequests:guestCalls.length,explicitLoopbackRequests:loopbackCalls.length,publicPrivateRequests,ownerLoginRequests:privateCalls,liveInferenceVerified:false}));
  }finally{await context.close();await browser.close();}

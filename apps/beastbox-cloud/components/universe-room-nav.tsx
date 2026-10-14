@@ -8,7 +8,7 @@ import RoomLink from './room-link';
 export const UNIVERSE_ROOMS = ROOMS.map(room => [room.label.toUpperCase(), room.href]);
 export default function UniverseRoomNav({current}:{current:string}){
  return <header className={styles.header}>
-  <Link href="/" className={styles.brand} aria-label="Beast Box home"><BrandCrest className={styles.crest} size={28} decorative/> BEAST BOX <small>AWAKENS</small></Link>
+  <Link prefetch={false} href="/" className={styles.brand} aria-label="Beast Box home"><BrandCrest className={styles.crest} size={28} decorative/> BEAST BOX <small>AWAKENS</small></Link>
   <nav className={styles.nav} aria-label="Universe rooms">{ROOMS.map(room=>
    <RoomLink key={room.href} href={room.href} prefetch={false} aria-current={room.href===current?'page':undefined}><span aria-hidden="true">{room.icon}</span> {room.label.toUpperCase()}</RoomLink>
   )}</nav>
