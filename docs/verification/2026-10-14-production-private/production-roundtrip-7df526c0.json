@@ -1,0 +1,121 @@
+{
+  "schema": "beastbox-production-private-browser/v1",
+  "startedAt": "2026-10-14T14:10:54.459Z",
+  "expectedRevision": "7df526c0f33e79936487913e41448a71bcfdc129",
+  "physicalDevice": false,
+  "engine": "chromium",
+  "storage": "Azure Blob",
+  "quantumJobs": 0,
+  "paidInference": 0,
+  "gates": [
+    {
+      "name": "exact production release and original cartridge bytes",
+      "status": "PASSED"
+    },
+    {
+      "name": "same-name creatures have independent canonical identities and private notes",
+      "status": "PASSED",
+      "ids": [
+        "bb-8149e38e",
+        "bb-877aa9d4"
+      ]
+    },
+    {
+      "name": "signed private ownership stays in Secure HttpOnly SameSite=Strict cookies",
+      "status": "PASSED"
+    },
+    {
+      "name": "cross-owner reads writes and deletion fail closed with valid preconditions",
+      "status": "PASSED",
+      "deniedRequests": 6
+    },
+    {
+      "name": "actual free guest reply saved atomically only in the owning creature’s private history",
+      "status": "PASSED"
+    },
+    {
+      "name": "close reopen reload and explicit cloud restore retain conversation without sharing history",
+      "status": "PASSED"
+    },
+    {
+      "name": "real original ROM identity and complete 32 KB battery persist through Azure without changing genesis",
+      "status": "PASSED"
+    },
+    {
+      "name": "one-use pairing restores exact identity notes chat and full battery on independent browser session",
+      "status": "PASSED",
+      "pairReplayDenied": true
+    },
+    {
+      "name": "native cold boot on paired session preserves earned progress and SRAM identity",
+      "status": "PASSED"
+    },
+    {
+      "name": "no unauthorized sensors paid models or extra inference",
+      "status": "PASSED"
+    }
+  ],
+  "cleanup": [
+    {
+      "revoked": true,
+      "accessDenied": true
+    },
+    {
+      "revoked": true,
+      "accessDenied": true
+    },
+    {
+      "inactive": true,
+      "accessDenied": true
+    }
+  ],
+  "limitations": [
+    "Paired independent browser contexts model separate devices; no physical second device.",
+    "VisualViewport keyboard geometry is simulated; no physical iPhone keyboard or audible speaker verification."
+  ],
+  "rom": {
+    "status": 200,
+    "bytes": 2097152,
+    "sha256": "425e2ace92a7c2c3d15db9b1cdd61ef538ddf46510255a2857afa27e613657c2"
+  },
+  "revision": "7df526c0f33e79936487913e41448a71bcfdc129",
+  "firstDeviceBeforeFocus": {
+    "focused": true,
+    "hidden": false
+  },
+  "consentBefore": {
+    "checked": false,
+    "defaultChecked": false,
+    "reactChecked": false,
+    "reactHandler": "function",
+    "tracked": "false",
+    "type": "checkbox",
+    "disabled": false,
+    "html": "<input type=\"checkbox\">"
+  },
+  "inference": {
+    "model": "rawrphos-native",
+    "step": 14000,
+    "checkpoint": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
+    "replySha256": "77f3e1fe0acdc2f71473054cd58754d2c705141aed38f0bdba7204d7a0f06c25",
+    "requests": 1,
+    "displayedReplySha256": "a333b13b82d4d43c30f5dbc517b0ae2f3b7543673fd421a137382ad71c2ec761"
+  },
+  "native": {
+    "bytes": 32768,
+    "sha256": "0a935a75abb0dd43d4fadfb15b1e17e86ad45c5e637d2b5cb67f7b4bbe4ec7fe",
+    "identity": {
+      "expectedId": 2169103246,
+      "expectedSeed": 1136345260,
+      "id": 2169103246,
+      "seed": 1136345260,
+      "bytes": 32768,
+      "art": "SPK1"
+    }
+  },
+  "status": "PASSED",
+  "completedAt": "2026-10-14T14:12:29.502Z",
+  "inferenceRequests": 1,
+  "sensorCalls": 0,
+  "pageErrors": []
+}

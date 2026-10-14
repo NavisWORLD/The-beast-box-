@@ -56,4 +56,10 @@ Two harness failures are preserved rather than relabeled passed:
 
 The live mobile screenshot also exposed a product defect: a long reply could paint into the following options. The scrolling flex body was shrinking text blocks while overflow remained visible. A five-line CSS fix keeps intrinsic message/settings heights and allows the body to scroll, with the composer pinned. The corrected browser geometry regression fails on the original compiled CSS and passes with the repair at 390×844, 320×568 and 844×390. Imported layout text is explicitly a synthetic unverified fixture, not model inference or Azure evidence.
 
-The complete paired-session battery round trip remains pending the layout release and a fresh exact-revision live run. Physical-device gates remain open.
+The final harness also waits for the pair-issuance acknowledgment and a nonempty password field before reading the one-use code. An immediate input-value read had raced the asynchronous request; no ownership or replay-denial assertion was relaxed.
+
+The complete production browser round trip then passed **10/10 gates** on `7df526c0` at 2026-10-14 14:12:29 UTC. Its immutable report is `2026-10-14-production-private/production-roundtrip-7df526c0.json`, SHA-256 `0a205ff6d37bf0eabfb58d9969a00fa1feef6d4ddb4ffa403931ea15faa54ede`. Two disposable visitors owned distinct same-name QBEASTs; a fresh third browser context paired with the first owner and restored the exact canonical creature, nickname, notes, conversation and complete battery. Pair-code replay returned 403. The original ROM loaded on the paired context, with the saved `LCR1` record retained byte-for-byte. This verifies save continuity, not additional quest completion. The 32 KB battery SHA-256 was `0a935a75abb0dd43d4fadfb15b1e17e86ad45c5e637d2b5cb67f7b4bbe4ec7fe`.
+
+The served cartridge itself hashed to the pinned V11.9 SHA-256 above. One real stateless guest-model request ran; no extra inference, sensor request, paid model or quantum submission occurred. Both private test owners were revoked; the paired context also lost access. No page errors were observed. This success does not relabel the retained earlier failed attempts.
+
+The layout revision still needs its READY production verification. Physical iPhone audio/keyboard and physical second-device gates remain open.
