@@ -69,6 +69,7 @@ export default function HomepageCreature(){
     <small>Guide reaction is visual only. Your own Beast begins when you create one.</small>
    </>}
   </div>
+  <details className="cosmos-home-viewmenu"><summary aria-label="View options">⚙ View</summary>
   <div className="cosmos-home-controls" aria-label={genome?'Choose who appears in the observatory':'Guide view and real 3D rotation controls'}>
    {genome?<>
     <button type="button" aria-pressed={savedView==='mine'} onClick={()=>setSavedView('mine')}>My Beast</button>
@@ -84,5 +85,6 @@ export default function HomepageCreature(){
     </>:null}
    </>}
   </div>
+  </details>
  </div>;
 }
