@@ -16,7 +16,8 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
   await page.locator('#generate').click();await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Spawned'));
   const snapshot=await page.evaluate(()=>JSON.parse(JSON.parse(localStorage.getItem('beastbox-quantum-beast-public-v1')).text));
   await page.goto(root+'/beast-cage/go');await page.locator('[data-handheld-controls="game-boy"]').waitFor({state:'visible'});const player=page.locator('[data-lost-cosmos-dock] [data-spark-player]');await player.getByRole('button',{name:'SEND BEAST',exact:true}).click();
-  await player.getByRole('status').filter({hasText:'same Beast verified'}).waitFor({timeout:60000});
+  await player.getByRole('status').filter({hasText:'identity validated. Ready to start Lost COSMOS'}).waitFor({timeout:60000});
+  assert.equal(await player.getByRole('button',{name:'START LOST COSMOS',exact:true}).isEnabled(),true,'a validated mailbox permits starting the original cartridge; native identity is checked separately below');
   const gate=player.frameLocator('iframe'),hand=gate.frameLocator('#handheld');
   await player.getByRole('button',{name:'START LOST COSMOS',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('[data-lost-cosmos-player-shell]')?.dataset.running==='true',null,{timeout:90000});
@@ -44,10 +45,11 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
   assert.equal(verified.id,verified.nativeId);assert.equal(verified.seed,verified.nativeSeed);assert.equal(verified.art,'SPK1');assert.equal(verified.bytes,32768);
   await hand.locator('#game canvas').first().screenshot({path:out+'/native-public-title.png'});
   assert.deepEqual(modelRequests,[],'opening the cartridge never automatically calls a model');
-  const talk=player.locator('[data-spark-game-talk]'),before=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')));
-  await talk.getByRole('button',{name:/^TALK TO /}).click();
+  const launcher=player.locator('[data-spark-game-talk]'),talk=page.locator('[data-companion-chat-overlay]'),before=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')));
+  await launcher.click();await talk.waitFor({state:'visible'});
+  await talk.getByText('Conversation & observation settings',{exact:true}).click();
   await talk.getByRole('button',{name:'PET',exact:true}).click();
-  await talk.locator('[data-game-care]').filter({hasText:'Care XP '+(before.beast.xp+4)}).waitFor();
+  await talk.locator('p').filter({hasText:'Care XP '+(before.beast.xp+4)}).waitFor();
   // This is an explicit response-contract fixture. Production model inference
   // is checked separately against the live, existing RAWRPHØS guest host.
   let sent;
@@ -55,8 +57,8 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
    sent=route.request().postDataJSON();
    await route.fulfill({json:{provider:'rawrphos-local',model:'rawrphos-native',step:14000,guest_stateless:true,reply:'Cartridge chat contract confirmed.'}});
   });
-  await talk.getByRole('textbox').fill('Hello from the cartridge');await talk.getByRole('button',{name:'SEND TO MODEL',exact:true}).click();
-  try{await talk.getByRole('status').filter({hasText:'reply saved with this Beast'}).waitFor({timeout:30000});}
+  await talk.getByRole('textbox').fill('Hello from the cartridge');await talk.getByRole('button',{name:'Send',exact:true}).click();
+  try{await talk.locator('[data-talk-state="replied"]').waitFor({timeout:30000});await talk.getByText('Cartridge chat contract confirmed.',{exact:true}).waitFor();}
   catch(error){
    const message=await talk.getByRole('status').allTextContents().catch(()=>[]);
    const state=await page.evaluate(()=>({stored:!!localStorage.getItem('beastbox-companion-session-v1'),url:location.pathname}));
@@ -68,24 +70,25 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
   assert.deepEqual(afterTalk.beast.qbeast,snapshot);assert.equal(afterTalk.beast.stage,1);assert.equal(afterTalk.beast.xp,before.beast.xp+7);
   assert.equal(afterTalk.chat.at(-1).text,'Cartridge chat contract confirmed.');
   assert.equal(page.frames().find(f=>f.url().includes('/sol-spark-gate/handheld.html')),core,'chat never remounts the native game');
-  await talk.getByRole('button',{name:'CLOSE TALK',exact:true}).click();await talk.getByRole('button',{name:/^TALK TO /}).click();
+  await talk.getByRole('button',{name:'Close chat',exact:true}).click();await launcher.click();await talk.waitFor({state:'visible'});
   assert.equal(page.frames().find(f=>f.url().includes('/sol-spark-gate/handheld.html')),core);
   await context.route(root+'/api/guest',async route=>route.fulfill({json:{reply:'Unverified fake answer'}}));
-  await talk.getByRole('textbox').fill('A second message');await talk.getByRole('button',{name:'SEND TO MODEL',exact:true}).click();
-  await talk.getByRole('status').filter({hasText:'no verified text'}).waitFor();
+  await talk.getByRole('textbox').fill('A second message');await talk.getByRole('button',{name:'Send',exact:true}).click();
+  await talk.locator('[data-talk-state="offline"]').waitFor();await talk.getByText('Model offline: no reply was received',{exact:true}).waitFor();
   assert.equal(await talk.getByText('Unverified fake answer',{exact:true}).count(),0);
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast.xp),afterTalk.beast.xp);
   await context.route(root+'/api/guest',async route=>{
    await new Promise(resolve=>setTimeout(resolve,500));
    try{await route.fulfill({json:{provider:'rawrphos-local',model:'rawrphos-native',step:14000,guest_stateless:true,reply:'Canceled response must not be remembered.'}});}catch{/* browser canceled the request */}
   });
-  await talk.getByRole('textbox').fill('Cancel this request');await talk.getByRole('button',{name:'SEND TO MODEL',exact:true}).click();
-  await talk.getByRole('button',{name:'CANCEL',exact:true}).click();await page.waitForTimeout(600);
+  await talk.getByRole('textbox').fill('Cancel this request');await talk.getByRole('button',{name:'Send',exact:true}).click();
+  await talk.getByRole('button',{name:'Cancel',exact:true}).click();await page.waitForTimeout(600);
   assert.equal(await talk.getByText('Canceled response must not be remembered.',{exact:true}).count(),0);
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast.xp),afterTalk.beast.xp);
   assert.equal(page.frames().find(f=>f.url().includes('/sol-spark-gate/handheld.html')),core);
   assert.ok(modelRequests.every(url=>url===root+'/api/guest'));
   await page.screenshot({path:out+'/native-game-cage-talk.png',fullPage:true});
+  await talk.getByRole('button',{name:'Close chat',exact:true}).click();await talk.waitFor({state:'hidden'});
   // Force a browser without WebGL after a real native-cartridge round trip.
   // The homepage must paint the *same* QBEAST's local sprite, not a new preview.
   await page.addInitScript(()=>{Object.defineProperty(window,'WebGLRenderingContext',{configurable:true,value:undefined});});

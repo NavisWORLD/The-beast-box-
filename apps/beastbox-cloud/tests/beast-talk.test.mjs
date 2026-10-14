@@ -32,6 +32,12 @@ test('framed prompt always keeps the keeper\'s words and fits the 700-character 
  assert.match(framePrompt(p,[{role:'you',text:'hi'},{role:'beast',text:'purr'}],'how are you?'),/Keeper: hi\nZeref: purr\nKeeper: how are you\?/);
 });
 
+test('long messages keep verified optical limits even when personal context competes for prompt space',()=>{
+ const observation={status:'observed',source:'native-emulator-display',brightness:48,contrast:85,dominant:'blue',frameChange:15};
+ const prompt=framePrompt(talkPersona(),[],"x".repeat(400),700,'OWN CONSENTED CONTEXT '.repeat(20),observation);
+ assert.ok(prompt.length<=700);assert.match(prompt,/does NOT identify objects/);assert.match(prompt,/brightness 48\/100/);assert.match(prompt,/Keeper: x{400}/);
+});
+
 test('guest route sends one framed message and returns only a verified reply',async()=>{
  const calls=[];
  const result=await talkToBeast({text:'Hi!',persona:talkPersona({}),fetchImpl:async(url,init)=>{calls.push({url,init});return json(verified);}});
@@ -108,5 +114,7 @@ test('talk is reachable from Home, My Beast, Cage and Brain Bay; status route ex
  assert.match(read('components/brain-bay-workshop.tsx'),/<BeastTalkPanel/);
  const status=read('app/api/talk/route.ts');
  assert.doesNotMatch(status,/BRIDGE_URL|BRIDGE_TOKEN|fetch\(/);
- assert.match(read('public/spark/app.mjs'),/guestModelTalk/);
+ assert.match(read('public/spark/app.mjs'),/createSparkChatPopup/);
+ assert.match(read('public/spark/chat-popup.mjs'),/talkToBeast/);
+ assert.match(read('public/spark/chat-popup.mjs'),/shared\/beast-talk\.mjs/);
 });

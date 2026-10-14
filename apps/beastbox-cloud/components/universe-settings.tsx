@@ -19,10 +19,11 @@ export default function UniverseSettings(){
  const motion=useUniverseMotion(),beast=session?.beast;
  const [notice,setNotice]=useState('');
  const [pocket3d,setPocket3d]=useState({...DEFAULT_POCKET_3D});
+ const [pocketReady,setPocketReady]=useState(false);
  useEffect(()=>{
   const sync=()=>{try{setPocket3d(readPocket3D(window.localStorage));}catch{setPocket3d({...DEFAULT_POCKET_3D});}};
   const changed=(event:StorageEvent)=>{if(event.key===POCKET_3D_KEY)sync();};
-  sync();window.addEventListener('storage',changed);
+  sync();setPocketReady(true);window.addEventListener('storage',changed);
   return()=>window.removeEventListener('storage',changed);
  },[]);
  function changePocket3D(next:{enabled:boolean;quality:string}){
@@ -71,25 +72,25 @@ export default function UniverseSettings(){
      <div className={styles.settingRow}>
       <div className={styles.icon}><Sparkles size={19} aria-hidden="true"/></div>
       <div><h3 id="pocket-3d-label">Three.js pocket scenery</h3><p>Turn the 3D background on or off. Your original creature sprite, care, audio and native cartridge remain intact.</p></div>
-      <button type="button" role="switch" aria-checked={pocket3d.enabled} aria-labelledby="pocket-3d-label" className={styles.toggle} onClick={()=>changePocket3D({...pocket3d,enabled:!pocket3d.enabled})}><span/></button>
+      <button type="button" role="switch" aria-checked={pocket3d.enabled} aria-labelledby="pocket-3d-label" className={styles.toggle} disabled={!pocketReady} onClick={()=>changePocket3D({...pocket3d,enabled:!pocket3d.enabled})}><span/></button>
      </div>
      <div className={styles.volume}>
       <label htmlFor="pocket-3d-quality">3D rendering quality</label>
-      <select id="pocket-3d-quality" className={styles.qualitySelect} value={pocket3d.quality} onChange={event=>changePocket3D({...pocket3d,quality:event.target.value})} disabled={!pocket3d.enabled}>
+      <select id="pocket-3d-quality" className={styles.qualitySelect} value={pocket3d.quality} aria-busy={!pocketReady||undefined} onChange={event=>changePocket3D({...pocket3d,quality:event.target.value})} disabled={!pocketReady||!pocket3d.enabled}>
        <option value="auto">Auto · adapts on mobile</option>
        <option value="low">Low · fewer effects</option>
        <option value="high">High · detailed scenery</option>
       </select>
      </div>
      <p className={styles.hint}>Your system reduced-motion choice always takes priority. These are local visual settings, not quantum or model settings, and they do not modify the native Game Boy ROM.</p>
-     <div className={styles.advancedLinks}><Link href="/beast-cage#habitat"><Eye size={18} aria-hidden="true"/><span><strong>Open 3D Beast Cage</strong><small>Drag, pinch or use the arrow keys to orbit the existing world.</small></span><ArrowUpRight size={16} aria-hidden="true"/></Link><Link href="/beast-cage/turntable"><Sparkles size={18} aria-hidden="true"/><span><strong>Open original 3D turntable</strong><small>The existing Cursor-era character mesh and camera presets.</small></span><ArrowUpRight size={16} aria-hidden="true"/></Link></div>
+     <div className={styles.advancedLinks}><Link prefetch={false} href="/beast-cage#habitat"><Eye size={18} aria-hidden="true"/><span><strong>Open 3D Beast Cage</strong><small>Drag, pinch or use the arrow keys to orbit the existing world.</small></span><ArrowUpRight size={16} aria-hidden="true"/></Link><Link prefetch={false} href="/beast-cage/turntable"><Sparkles size={18} aria-hidden="true"/><span><strong>Open original 3D turntable</strong><small>The existing Cursor-era character mesh and camera presets.</small></span><ArrowUpRight size={16} aria-hidden="true"/></Link></div>
     </section>
     <details className={styles.advanced}>
      <summary>Advanced rooms <span>OPEN WHEN YOU NEED THEM</span></summary>
      <div className={styles.advancedLinks}>
-      <Link href="/brain-bay"><BrainCircuit size={20} aria-hidden="true"/><span><strong>Brain Bay</strong><small>Choose pattern, guest or explicit local Ollama.</small></span><ArrowUpRight size={16} aria-hidden="true"/></Link>
-      <Link href="/beast-cage/talk"><Eye size={20} aria-hidden="true"/><span><strong>Sensors &amp; conversation</strong><small>Open the explicit camera and microphone controls.</small></span><ArrowUpRight size={16} aria-hidden="true"/></Link>
-      <Link href="/workspace#settings"><LockKeyhole size={20} aria-hidden="true"/><span><strong>Owner workstation</strong><small>Existing credentials, provider and device controls.</small></span><ArrowUpRight size={16} aria-hidden="true"/></Link>
+      <Link prefetch={false} href="/brain-bay"><BrainCircuit size={20} aria-hidden="true"/><span><strong>Brain Bay</strong><small>Choose pattern, guest or explicit local Ollama.</small></span><ArrowUpRight size={16} aria-hidden="true"/></Link>
+      <Link prefetch={false} href="/beast-cage/talk"><Eye size={20} aria-hidden="true"/><span><strong>Sensors &amp; conversation</strong><small>Open the explicit camera and microphone controls.</small></span><ArrowUpRight size={16} aria-hidden="true"/></Link>
+      <Link prefetch={false} href="/workspace#settings"><LockKeyhole size={20} aria-hidden="true"/><span><strong>Owner workstation</strong><small>Existing credentials, provider and device controls.</small></span><ArrowUpRight size={16} aria-hidden="true"/></Link>
      </div>
     </details>
    </div>
@@ -104,7 +105,7 @@ export default function UniverseSettings(){
      <span>YOUR SPACE, YOUR CHOICE</span>
      <p>These controls change sound and motion. Camera, microphone and model connections require their own explicit action.</p>
      <p>Your local Beast history stays in this browser. Owner credentials stay in the owner workstation.</p>
-     <Link href="/research">Read the research receipts <ArrowUpRight size={14} aria-hidden="true"/></Link>
+     <Link prefetch={false} href="/research">Read the research receipts <ArrowUpRight size={14} aria-hidden="true"/></Link>
     </section>
    </aside>
   </div>

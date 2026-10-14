@@ -15,10 +15,12 @@ import {rememberExchange,nameBeast} from './shared/adventure.mjs';
 import {loadSparkRuns,validateQvmReceipt} from './runs.mjs';
 import {readDeviceJourney,restoreDeviceJourney,serializeDeviceJourney} from './device-journey.mjs';
 import {applyRecordedQvmStimulus,validateRecordedQvmStimulus,recordedQvmStimulusPath} from './shared/recorded-qvm-stimulus.mjs';
+import {createSparkChatPopup} from './chat-popup.mjs';
 const STORE='spark-beasts-bestiary-v1',QVM_STORE='spark-qvm-growth-v1',SOUND_KEY='spark-beast-sound-v2',SCALE=4,$=id=>document.getElementById(id);
 const media=matchMedia('(prefers-reduced-motion: reduce)');
 const beastAudio=getBeastAudio();
 let reduceMotion=media.matches,runs=[],qvmRuns=[],byKey=new Map(),current=null,muse=null,voiceOn=false,soundWanted=true,voiceBus=null,stage=1,preview=false,drift=false,runtime=null,cache={},bestiary=[],session=null,busy=false,starterCache=[],qvmGrowth=0,lastViewportWidth=innerWidth,coreTimer=0;
+let chatPopup=null;
 let micStream=null,micContext=null,micSource=null,micAnalyser=null,micData=null,micEnabled=false,micLevel=0,micLastReaction=-20,micEpoch=0;
 const target={focus:30,calm:30,spark:20},felt={...target};
 function syncMotion(){let saved=false;try{saved=localStorage.getItem('beastbox-reduced-motion-v1')==='true';}catch{}reduceMotion=media.matches||saved;document.documentElement.dataset.beastboxReducedMotion=String(reduceMotion);}
@@ -76,7 +78,7 @@ function readQvmGrowth(seed){try{const saved=JSON.parse(localStorage.getItem(QVM
 function saveQvmGrowth(){if(!current)return;try{localStorage.setItem(QVM_STORE,JSON.stringify({seed:current.gen.seed,growth:qvmGrowth,source_sha256:'7ef23c00005a2053d1fc830985330f4db322b3bf6144fd79fd1561d14c425599'}));}catch{}}
 function updateQvmGrowth(){const label=$('qvm-growth'),bar=$('qvm-growth-bar');if(!label||!bar)return;const pct=Math.round(qvmGrowth*100);bar.style.width=`${pct}%`;label.textContent=`SIM GROWTH ${pct}% · browser-local · native stage unchanged`;label.parentElement?.setAttribute('aria-valuenow',String(pct));}
 function updatePlate(){if(!current)return;const beast=session.beast;$('nameplate').textContent=shownName(beast);$('form').textContent=`${current.gen.names[stage]} · ${preview?'PREVIEW ':''}STAGE ${'I'.repeat(stage)}`;$('care-stats').textContent=`Care XP ${beast.xp} · Bond ${beast.bond} · Energy ${beast.energy}`;$('identity').textContent=`QBEAST ${beast.qbeast.profile.id}`;$('view').dataset.creatureId=beast.qbeast.profile.id;$('view').dataset.stage=String(stage);$(
-'view').dataset.simGrowth=qvmGrowth.toFixed(3);for(const which of [1,2,3])$(`pick${which}`).setAttribute('aria-pressed',String(stage===which));updateQvmGrowth();}
+'view').dataset.simGrowth=qvmGrowth.toFixed(3);for(const which of [1,2,3])$(`pick${which}`).setAttribute('aria-pressed',String(stage===which));updateQvmGrowth();chatPopup?.syncPersona();}
 function showCreature(entry,nextSession,spawn=true){
  const run=byKey.get(entry.run);if(!run)throw Error('Recorded seed is unavailable.');
  const gen=buildGenome(entry.traits,run,entry.user||null,10);current={entry,gen,run};session=nextSession;stage=session.beast.nativeStage||1;preview=false;
@@ -309,7 +311,13 @@ function starterEntries(){
  if(starterCache.length)return starterCache;
  const profiles=['serene','focused','sparky','balanced','dreamy','steady','restless','mock'];
  const pool=runs.filter(row=>row.num_bits>=2),candidates=[];
- for(const profile of profiles){const traits=(({focus,calm,spark})=>({focus,calm,spark}))(simulateStable(profile));for(const seedRun of pool){try{const entry={traits,run:seedRun.key,user:null},gen=buildGenome(traits,seedRun,null,10);candidates.push({entry,gen});}catch{}}}
+ // The ordered prefix already determines all three selection passes once
+ // it contains every body, eight islands and eighteen distinct recipes.
+ const availableBodies=new Set(),availableIslands=new Set(),availableEntries=new Set();
+ scan:for(const profile of profiles){const traits=(({focus,calm,spark})=>({focus,calm,spark}))(simulateStable(profile));for(const seedRun of pool){try{
+  const entry={traits,run:seedRun.key,user:null},gen=buildGenome(traits,seedRun,null,10);candidates.push({entry,gen});availableBodies.add(gen.body);availableIslands.add(gen.island);availableEntries.add(JSON.stringify(entry));
+  if(availableBodies.size===BODIES.length&&availableIslands.size>=8&&availableEntries.size>=18)break scan;
+ }catch{}}}
  const picked=[],used=new Set(),bodies=new Set(),islands=new Set();
  const take=item=>{const key=JSON.stringify(item.entry);if(used.has(key))return false;used.add(key);picked.push(item.entry);bodies.add(item.gen.body);islands.add(item.gen.island);return true;};
  for(const item of candidates){if(!bodies.has(item.gen.body))take(item);if(bodies.size===BODIES.length)break;}
@@ -359,7 +367,7 @@ function drawBestiary(){
     if(item.create)await item.create();else await adopt(entry);
     if(mode==='play'){location.assign('/sol-game');return;}
     document.getElementById('habitat')?.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'});
-    if(mode==='talk'){$('talk-form').hidden=false;$('talk-text').focus();}
+    if(mode==='talk')chatPopup?.open($('talk'));
    };
    for(const [mode,label] of [['select','Select'],['play','Play 🎮'],['talk','Talk']]){
     const button=document.createElement('button');button.type='button';button.textContent=label;
@@ -470,73 +478,29 @@ async function interaction(kind){
  if(kind==='play'||kind==='train')beastAudio.battle(kind==='play'?1.8:1.2);
  runtime.state=kind==='rest'?'rest':kind==='train'?'train':'celebrate';runtime.until=runtime.T+(kind==='rest'?12:2.6);updatePlate();say(kind==='rest'?'calm':kind==='train'?'focus':'spark',kind==='rest'?'Curling up for a little rest.':kind==='pet'?'A soft pat. We are getting closer.':kind==='care'?'A snack and a little care.':kind==='train'?'Tap in the bright window. Six tries!':'Catch the spark!');
 }
-function setTalkSource(label,remote=false){const node=$('talk-source');if(!node)return;node.textContent=label;node.classList.toggle('remote',remote);}
-/** Free public brain. Same request /beast-cage/talk makes; only a verified native 14K reply is accepted. */
-function guestFrame(text){
- const g=current.gen,name=shownName(session.beast);
- const head=`You are ${name}, a ${[g.element,g.body].filter(Boolean).join(' ')} from ${g.island||'the Lost Cosmos'}, the keeper's Beast Box companion. Personality: ${String(g.temperament||'gentle').toLowerCase()}, loyal, curious. You are a small game companion, not a person. Reply in one or two short, kind sentences as ${name}.`;
- const tail=`\nKeeper: ${text.slice(0,400)}\n${name}:`;
- return (head.slice(0,700-tail.length)+tail).slice(0,700);
-}
-async function guestModelTalk(text){
- if(!current||!session?.beast)return null;
- const response=await fetch('/api/guest',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:'rawrphos-local',text:guestFrame(text)})});
- const data=await response.json().catch(()=>({}));
- if(!response.ok)throw Error(response.status===429?'the free guest brain is resting ('+(data.error||'usage limit reached')+')':typeof data.error==='string'?data.error:'guest brain unavailable');
- if(data.provider!=='rawrphos-local'||data.model!=='rawrphos-native'||data.step!==14000||data.guest_stateless!==true||typeof data.reply!=='string'||!data.reply.trim())throw Error('the guest brain sent no verified reply');
- return {reply:data.reply.trim(),model:'rawrphos-native 14K',guest:true};
-}
-async function activeModelTalk(text){
- if(!current||!session?.beast)return null;
- // Only the signed-in owner has an active Brain Bay model; visitors skip straight to the guest brain (no 401 noise).
- const routes=await fetch('/api/talk',{cache:'no-store',credentials:'same-origin'}).then(r=>r.ok?r.json():null).catch(()=>null);
- if(routes?.owner!==true)return null;
- const beast={
-  name:shownName(session.beast),seed:current.gen.seed,stage:session.beast.nativeStage||session.beast.stage||1,
-  body:current.gen.body,element:current.gen.element,island:current.gen.island
- };
- const start=await fetch('/api/spark/chat',{
-  method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({text,beast})
+// Only the shared chat client verifies providers. These hooks apply that
+// exchange to this selected creature and its existing habitat/audio runtime.
+async function recordModelReply({persona,text,reply,retention,model}){
+ if(!current||!runtime)return;
+ if(retention==='device')await withSparkLock(()=>{
+  const next=readSparkSession(localStorage);
+  if(next.beast?.seed!==current.gen.seed||`spark:${next.beast?.qbeast?.profile?.id}`!==persona.key)throw Error('The selected Beast changed. This reply did not update its saved care or memories.');
+  rememberExchange(next,text,reply);saveSparkSession(localStorage,next);session=next;notifyNativeBridge();
  });
- const first=await start.json().catch(()=>({error:'Invalid Spark model response'}));
- if(start.status===401)return null;
- if(!start.ok)throw Error(typeof first.error==='string'?first.error:'Active Brain Bay model unavailable');
- if(typeof first.job_id!=='string')throw Error('COSMOS returned no Spark chat job');
- const deadline=Date.now()+90_000;
- while(Date.now()<deadline){
-  await new Promise(resolve=>setTimeout(resolve,950));
-  const poll=await fetch('/api/spark/chat?id='+encodeURIComponent(first.job_id),{credentials:'same-origin',cache:'no-store'});
-  const state=await poll.json().catch(()=>({error:'Invalid Spark model response'}));
-  if(poll.status===401)return null;
-  if(!poll.ok)throw Error(typeof state.error==='string'?state.error:'Active Brain Bay model failed');
-  if(state.state==='running')continue;
-  if(state.state==='complete'&&typeof state.reply==='string'&&state.reply.trim())
-   return {reply:state.reply.trim(),model:typeof state.model==='string'?state.model:'active Brain Bay model',persistent:state.persistent===true};
-  throw Error('Active Brain Bay model returned no usable reply');
- }
- throw Error('The active model is still processing. Try again after it finishes.');
+ runtime.state='listen';runtime.until=runtime.T+3;updatePlate();say('focus',reply.slice(0,900));audioSfx('confirm');
+ $('status').textContent=`Verified reply via ${model}. ${retention==='device'?'The exchange stays with this Beast on this device.':'This conversation stays in this tab.'}`;
 }
-async function speak(event){
- event.preventDefault();const text=$('talk-text').value.trim();if(!text)return;
- await run(async()=>{
-  $('talk-reply').textContent='Connecting to the active Brain Bay model…';setTalkSource('CHECKING COSMOS');
-  let remote=null,remoteError=null;
-  try{remote=await activeModelTalk(text);}catch(error){remoteError=error instanceof Error?error:Error('Active model unavailable');}
-  // Public visitors: the free RAWRPHØS guest brain voices this same Beast (identity framed in the message).
-  if(!remote&&!remoteError){$('talk-reply').textContent='Asking the free RAWRPHØS guest brain…';setTalkSource('CHECKING GUEST BRAIN');try{remote=await guestModelTalk(text);}catch(error){remoteError=error instanceof Error?error:Error('Guest model unavailable');}}
-  let reply='';
-  await withSparkLock(()=>{
-   session=readSparkSession(localStorage);if(session.beast?.seed!==current.gen.seed)throw Error('Reload the current Beast before talking.');
-   if(remote?.reply){rememberExchange(session,text,remote.reply);reply=remote.reply;}
-   else reply=talk(session,text).reply;
-   saveSparkSession(localStorage,session);notifyNativeBridge();
-  });
-  runtime.state='listen';runtime.until=runtime.T+3;updatePlate();say('focus',reply.slice(0,900));$('talk-reply').textContent=reply;$('talk-text').value='';
-  if(remote?.guest){setTalkSource('RAWRPHØS GUEST · 14K',true);audioSfx('confirm');$('status').textContent='The free RAWRPHØS guest model replied as your Beast. This browser kept the exchange with the same Beast.';}
-  else if(remote){setTalkSource('COSMOS · '+remote.model,true);audioSfx('confirm');$('status').textContent=remote.persistent?'Active Brain Bay model replied through COSMOS and the host confirmed persistence.':'Active Brain Bay model replied through COSMOS. This browser also kept the exchange with the same Beast.';}
-  else{setTalkSource('LOCAL PATTERN · MODEL OFFLINE');$('status').textContent='Model offline: '+(remoteError?remoteError.message:'no model answered')+'. The on-device pattern companion replied instead (not a model reply). Connect a brain in Talk to Beast: /beast-cage/talk';}
+async function localPatternReply({persona,text,retention}){
+ let reply='';
+ await withSparkLock(()=>{
+  const next=readSparkSession(localStorage);
+  if(next.beast?.seed!==current?.gen?.seed||`spark:${next.beast?.qbeast?.profile?.id}`!==persona.key)throw Error('The selected Beast changed. Open its conversation again.');
+  reply=talk(next,text).reply;
+  if(retention==='device'){saveSparkSession(localStorage,next);session=next;notifyNativeBridge();}
  });
+ runtime.state='listen';runtime.until=runtime.T+3;updatePlate();say('focus',reply.slice(0,900));
+ $('status').textContent='On-device pattern replied by your choice. This is scripted companion behavior; no model answered.';
+ return reply;
 }
 async function museClick(){if(!$('consent').checked){$('status').textContent='Check consent before connecting your headband.';return}try{muse?.stop();muse=await connectMuse(traits=>{showTraits(traits);$('status').textContent='Derived traits updated locally. Raw samples discarded.'});$('status').textContent=`Connected to ${muse.name}. Derived AF7 traits stay here.`;}catch(e){$('status').textContent=e.message||'Muse connection cancelled.'}}
 function qvmScenarioForCurrent(){if(!current||!qvmRuns.length)return 1;return 1+(parseInt(current.gen.seed.slice(0,8),16)%8);}
@@ -577,7 +541,6 @@ function wirePageNavigation(){
  if('IntersectionObserver'in window){const observer=new IntersectionObserver(entries=>{const visible=entries.filter(entry=>entry.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];if(visible)activate('#'+visible.target.id);},{rootMargin:'-18% 0px -58% 0px',threshold:[.08,.25,.5]});for(const section of sections)observer.observe(section);}
  if(location.hash&&document.querySelector(location.hash))requestAnimationFrame(()=>jump(location.hash,false));
  document.addEventListener('keydown',event=>{
-  if(event.key==='Escape'){const form=$('talk-form');if(form&&!form.hidden){form.hidden=true;$('talk').focus();}}
   if(event.altKey&&['1','2','3'].includes(event.key)){event.preventDefault();jump(['#habitat','#seed-lab','#bestiary-section'][Number(event.key)-1]);}
  });
 }
@@ -600,11 +563,8 @@ function nativeCommand(cmd){
  if(command==='play'){void run(()=>interaction('play'));return true;}
  if(command==='attack'){void run(()=>interaction('train'));return true;}
  if(command==='talk'){
-  $('talk-form').hidden=false;
-  const input=$('talk-text');input.value=String(cmd.text||'Hi from Android').slice(0,120);
-  input.dispatchEvent(new Event('input',{bubbles:true}));
-  if(typeof $('talk-form').requestSubmit==='function')$('talk-form').requestSubmit();
-  else $('talk-form').dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));
+  chatPopup?.open($('talk'));
+  chatPopup?.setDraft(String(cmd.text||'Hi from Android').slice(0,120));
   return true;
  }
  return false;
@@ -631,7 +591,7 @@ async function main(){
  else await adopt(bestiary[0]&&byKey.has(bestiary[0].run)?bestiary[0]:starterEntries()[0]);
  window.addEventListener('pointerdown',unlockPreferredSound,{capture:true});window.addEventListener('touchstart',unlockPreferredSound,{capture:true,passive:true});window.addEventListener('click',unlockPreferredSound,{capture:true});window.addEventListener('keydown',unlockPreferredSound,{capture:true});
  $('generate').addEventListener('click',()=>void run(async()=>{surpriseRun();audioSfx('charge');await spark()}));$('regenerate').addEventListener('click',()=>void run(()=>spark('sliders',{replayCurrent:true})));$('use-profile').addEventListener('click',()=>void run(async()=>{showTraits(simulateStable($('profile').value));await spark('profile')}));$('surprise').addEventListener('click',()=>{surpriseRun();audioSfx('blip')});$('roster-search').addEventListener('input',drawBestiary);$('q').addEventListener('input',searchRuns);$('download').addEventListener('click',download);$('voice').addEventListener('click',()=>void enableVoice());$('music').addEventListener('click',toggleMusic);$('mic-react').addEventListener('click',()=>void toggleMicReaction());$('music-volume').addEventListener('input',setMusicVolume);$('drift').addEventListener('click',()=>{drift=!drift;$('drift').classList.toggle('on',drift);audioSfx('blip')});$('muse').addEventListener('click',()=>void museClick());$('stop-muse').addEventListener('click',()=>{muse?.stop();muse=null;$('status').textContent='Muse disconnected. Samples cleared.'});$('qvm-replay').addEventListener('click',()=>void run(()=>replayQvmScenario()));
- for(const k of ['focus','calm','spark'])$(k).addEventListener('input',()=>showTraits(readTraits()));for(const kind of ['pet','play','train','rest','care'])$(kind).addEventListener('click',()=>void run(()=>interaction(kind)));$('view').addEventListener('click',()=>void run(()=>interaction('pet')));$('talk').addEventListener('click',()=>{$('talk-form').hidden=!$('talk-form').hidden;if(!$('talk-form').hidden)$('talk-text').focus()});$('talk-form').addEventListener('submit',speak);
+ for(const k of ['focus','calm','spark'])$(k).addEventListener('input',()=>showTraits(readTraits()));for(const kind of ['pet','play','train','rest','care'])$(kind).addEventListener('click',()=>void run(()=>interaction(kind)));$('view').addEventListener('click',()=>void run(()=>interaction('pet')));chatPopup=createSparkChatPopup({getBeast:()=>session?.beast,getAvatar:()=>cache[stage]?.open,onVerified:recordModelReply,onPattern:localPatternReply});
  $('name-form').addEventListener('submit',event=>{event.preventDefault();void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');const named=nameBeast(next,$('beast-name').value);if(!named.ok)throw Error('Choose a name of up to 24 characters.');saveSparkSession(localStorage,next);session=next;});updatePlate();$('status').textContent=`Named ${shownName(session.beast)}. Same QBEAST, saved on this device.`;runtime.state='celebrate';runtime.until=runtime.T+1.5;});});
  $('save-here').addEventListener('click',()=>void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');saveSparkSession(localStorage,next);session=next;});$('save-state').textContent='SAVED ON THIS DEVICE';audioSfx('confirm');}));
  $('download-journey').addEventListener('click',()=>void run(async()=>{const next=readSparkSession(localStorage);deviceDownload(serializeDeviceJourney(next,byKey),shownName(next.beast)+'.beastjourney');$('status').textContent='Device journey created. Local memory and behavior are unsigned; native authority is unchanged.';}));

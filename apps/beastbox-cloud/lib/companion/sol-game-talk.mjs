@@ -10,6 +10,9 @@ export function gameBeastKey(session) {
     ? `${beast.qbeast.profile.id}:${beast.seed}` : '';
 }
 
+/** Known application context is separate from opt-in framebuffer measurements. */
+export function knownGameContext(session,key){const current=gameBeastKey(session);return current&&key===current?'App environment: Lost COSMOS player. Native map location and objectives are unverified.':'';}
+
 /**
  * A verified, opt-in optical measurement; not object recognition or native
  * player/world state. Never send raw pixels or invent enemies, items, position.

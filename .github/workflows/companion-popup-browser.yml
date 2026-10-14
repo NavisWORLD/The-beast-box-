@@ -1,0 +1,86 @@
+name: Shared companion popup Chrome and WebKit
+on:
+  push:
+    branches: [feature/living-beastbox-shared-chat-20261012]
+  pull_request:
+    paths:
+      - apps/beastbox-cloud/components/beast-chat-*
+      - apps/beastbox-cloud/components/beast-talk-*
+      - apps/beastbox-cloud/lib/companion/private-chat.*
+      - apps/beastbox-cloud/public/spark/chat-popup.mjs
+      - apps/beastbox-cloud/tests/*chat*browser*
+      - .github/workflows/companion-popup-browser.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: shared-companion-popup-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser-popup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Install isolated real browser engines
+        run: |
+          npm install --prefix "$RUNNER_TEMP/companion-browser" --no-audit --no-fund playwright@1.62.1
+          "$RUNNER_TEMP/companion-browser/node_modules/.bin/playwright" install --with-deps "${{ matrix.browser }}"
+      - name: Preserve official browser runtime for reproducible isolated debugging
+        if: github.event_name == 'push'
+        env:
+          ENGINE: ${{ matrix.browser }}
+        run: |
+          browser_dir=$(node -e "const fs=require('fs'),path=require('path'),p=require('$RUNNER_TEMP/companion-browser/node_modules/playwright');const engine=process.env.ENGINE;const cache=path.dirname(path.dirname(path.dirname(p.chromium.executablePath())));process.stdout.write(path.join(cache,fs.readdirSync(cache).find(n=>n.startsWith(engine==='webkit'?'webkit-':'chromium_headless_shell-'))))")
+          tar -czf "$RUNNER_TEMP/companion-$ENGINE.tgz" -C "$browser_dir" .
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push'
+        with:
+          name: official-companion-${{ matrix.browser }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/companion-${{ matrix.browser }}.tgz
+          retention-days: 2
+      - name: Actual popup and room flows (offline failure fixtures, no fabricated replies)
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export NODE_PATH="$RUNNER_TEMP/companion-browser/node_modules"
+          export BEAST_TEST_BROWSER="${{ matrix.browser }}"
+          output="$GITHUB_WORKSPACE/apps/beastbox-cloud/browser-evidence/shared-chat"
+          mkdir -p "$output"
+          npm start -- -H 127.0.0.1 -p 3000 > "$output/server.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for n in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/ > /dev/null; then break; fi
+            sleep 1
+          done
+          export BEAST_EVIDENCE_DIR="$output/$BEAST_TEST_BROWSER/rooms"
+          mkdir -p "$BEAST_EVIDENCE_DIR"
+          node tests/brain-world.cjs http://127.0.0.1:3000 | tee "$output/$BEAST_TEST_BROWSER/rooms.log"
+          node tests/settings-ready-browser.cjs http://127.0.0.1:3000 | tee "$output/$BEAST_TEST_BROWSER/settings.log"
+          BEAST_POPUP_SCREENSHOTS="$output/$BEAST_TEST_BROWSER/spark" node tests/spark-chat-popup-browser.cjs | tee "$output/$BEAST_TEST_BROWSER/spark.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shared-chat-browser-${{ matrix.browser }}-${{ github.run_id }}
+          path: apps/beastbox-cloud/browser-evidence/shared-chat/
+          if-no-files-found: error
+          retention-days: 30

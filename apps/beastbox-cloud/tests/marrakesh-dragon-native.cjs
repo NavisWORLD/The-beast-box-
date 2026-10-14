@@ -54,7 +54,9 @@ const sourcePath=process.argv[7]||'/spark/ibm-marrakesh-reality-probe-20261009.j
   }
   await sendButton.click();
   try{
-   await shell.getByRole('status').filter({hasText:'same Beast verified'}).waitFor({timeout:25000});
+   // Canonical mailbox identity ACK does not claim native cartridge roster import.
+   // Real native-SPK1 marker, public ID/seed, 32KB battery and A/Start assertions remain below.
+   await shell.getByRole('status').filter({hasText:'identity validated'}).waitFor({timeout:25000});
   }catch(e){
    const diag=await page.evaluate(()=>({
     playerStatus:[...document.querySelectorAll('[data-lost-cosmos-player-shell] [role="status"]')].map(x=>x.textContent?.slice(0,350)),

@@ -39,7 +39,7 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   // Do not block the real cartridge handshake script before admission.
   // Only intercept the subsequent START phase, which the test intentionally fails.
   await shell.getByRole('button',{name:'SEND BEAST',exact:true}).click();
-  await shell.getByRole('status').filter({hasText:'same Beast verified'}).waitFor({timeout:60000});
+  await shell.getByRole('status').filter({hasText:'identity validated. Ready to start Lost COSMOS'}).waitFor({timeout:60000});
   let releaseLoader;const loaderGate=new Promise(resolve=>{releaseLoader=resolve;});
   const loaderPattern='**/arcade/sol-spark-gate/handheld.mjs?**';
   await context.route(loaderPattern,async route=>{await loaderGate;await route.fallback();});
@@ -58,6 +58,8 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   assert.equal(await core.evaluate(()=>!!EJS_emulator.elements.menuToggle),true,'touch fixture exposes the actual emulator menu toggle');
   assert.equal(await core.evaluate(()=>['menu','menuToggle'].every(key=>!EJS_emulator.elements[key]||getComputedStyle(EJS_emulator.elements[key]).display==='none')),true,'embedded cartridge leaves controls and fullscreen ownership to the player shell');
   await core.evaluate(()=>{window.__originalCore=EJS_emulator;const gm=EJS_emulator.gameManager,sim=gm.simulateInput.bind(gm);window.__shellInputs=[];gm.simulateInput=(p,i,v)=>{window.__shellInputs.push([p,i,v]);return sim(p,i,v);};});
+  const verified=await core.evaluate(async snapshot=>{const {importPayload}=await import('../spark-beasts/trade.mjs');const record=await importPayload(new TextEncoder().encode(JSON.stringify(snapshot))),save=EJS_emulator.gameManager.getSaveFile(false),dv=new DataView(save.buffer,save.byteOffset,save.byteLength);return {id:record.publicId,seed:record.profile.gameSeed,nativeId:dv.getUint32(24712,true),nativeSeed:dv.getUint32(24716,true),bytes:save.length,art:String.fromCharCode(...save.subarray(24704,24708))};},qbeast);
+  assert.equal(verified.id,verified.nativeId);assert.equal(verified.seed,verified.nativeSeed);assert.equal(verified.bytes,32768);assert.equal(verified.art,'SPK1');
   const identity=await core.evaluate(()=>Array.from(EJS_emulator.gameManager.getSaveFile(false).subarray(24704,24832)));
   const continuity=async label=>{
    assert.equal(await shell.locator('iframe').evaluate((node,original)=>node===original,iframe),true,label+' keeps the iframe node');
@@ -82,18 +84,22 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   // Fullscreen owns both native pixels and the real model chat. Do not hide
   // the composer behind the emulator or unmount it when docking the player.
   await shell.getByRole('button',{name:/^TALK TO /}).click();
-  const gameComposer=shell.locator('textarea');
+  const chat=page.locator('[data-companion-chat-overlay]'),gameComposer=chat.locator('textarea');
+  const composerNode=await gameComposer.elementHandle();
   const draft='Same Beast, same story through the Game Boy.';
   await gameComposer.fill(draft);
   await gameComposer.scrollIntoViewIfNeeded();
   assert.equal(await gameComposer.evaluate(node=>{const rect=node.getBoundingClientRect();return rect.top>=0&&rect.bottom<=innerHeight+2;}),true,'fullscreen conversation composer is viewport-reachable');
+  await chat.getByRole('button',{name:'Minimize chat',exact:true}).click();await chat.waitFor({state:'hidden'});
   await shell.getByRole('button',{name:'MINIMIZE',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('[data-lost-cosmos-player-shell]')?.dataset.playerMode==='minimized');
   await continuity('chat minimized');
   await shell.getByRole('button',{name:'RESTORE GAME',exact:true}).click();
   await continuity('chat restored');
+  await shell.getByRole('button',{name:/^TALK TO /}).click();await chat.waitFor({state:'visible'});
+  assert.equal(await gameComposer.evaluate((node,original)=>node===original,composerNode),true,'chat composer remains mounted');
   assert.equal(await gameComposer.inputValue(),draft,'minimize/restore keeps the same unsent message and chat instance');
-  await shell.getByRole('button',{name:'CLOSE TALK',exact:true}).click();
+  await chat.getByRole('button',{name:'Close chat',exact:true}).click();await chat.waitFor({state:'hidden'});
   const resize=async(width,height)=>{
    if(await page.evaluate(()=>!!document.fullscreenElement))await page.evaluate(()=>document.exitFullscreen());
    else if(await shell.getAttribute('data-player-mode')==='immersive')await shell.getByRole('button',{name:'RETURN',exact:true}).click();
@@ -142,7 +148,9 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n,n+2),before),[[0,7,1],[0,7,0]],'keyboard reaches native core after restore');
   before=await core.evaluate(()=>window.__shellInputs.length);await page.keyboard.down('z');await control('A').tap();await page.keyboard.up('z');await core.waitForFunction(n=>window.__shellInputs.length>=n+2,before);
   assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n),before),[[0,8,1],[0,8,0]],'touch release never cancels a keyboard-held A');
-  await shell.getByRole('button',{name:/^TALK TO /}).click();
+  await resize(1280,900);
+  await shell.getByRole('button',{name:/^TALK TO /}).click();await chat.waitFor({state:'visible'});
+  // Desktop chat is modeless; the player remains an accessible focus target.
   // Focus a real, keyboard-accessible player target. A nonfocusable <strong>
   // does not reliably reclaim focus after using Talk in all browser engines.
   await shell.focus();
@@ -154,7 +162,7 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   // The native Left-UP may race the diagnostic snapshot immediately after
   // the verified key-down. Observe it relative to the pre-keydown baseline,
   // rather than accidentally discarding a valid early release.
-  await shell.locator('textarea').focus();
+  await gameComposer.focus();
   // Require an actual native LEFT-UP event before issuing keyboard.up.
   // This still checks the physical emulator signal, never a mocked release.
   // Poll on a wall-clock interval: the emulator iframe may suspend requestAnimationFrame
@@ -164,7 +172,8 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   }
   await page.keyboard.up('ArrowLeft');
   assert.deepEqual(await core.evaluate(n=>window.__shellInputs.slice(n),before),[[0,6,1],[0,6,0]],'focus transfer releases held native Left exactly once, even after keyboard up');
-  await shell.getByRole('button',{name:'CLOSE TALK',exact:true}).click();
+  await chat.getByRole('button',{name:'Close chat',exact:true}).click();await chat.waitFor({state:'hidden'});
+  await resize(390,844);
   // A controlled standard Gamepad API fixture; this is not a physical-controller receipt.
   before=await core.evaluate(()=>window.__shellInputs.length);await page.evaluate(()=>{window.__testPad.buttons[0]={pressed:true,value:1};});await core.waitForFunction(n=>window.__shellInputs.length>n,before);
   await page.evaluate(()=>{window.__testPad.buttons[0]={pressed:false,value:0};});await core.waitForFunction(n=>window.__shellInputs.length>=n+2,before);
