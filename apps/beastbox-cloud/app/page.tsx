@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import HomepageCreature from '../components/homepage-creature';
+import HomePocket from '../components/home-pocket';
 import CosmicSupportWidget from '../components/cosmic-support-widget';
 import { ArrowUpRight, BrainCircuit, Orbit, Sparkles } from 'lucide-react';
 import BrandCrest from '@/components/brand-crest';
@@ -50,7 +51,7 @@ export default function Home(){
    </div>
    <div className="hero-foot"><span>✹ NO LOGIN TO MEET YOUR BEAST</span><span>◇ LOCAL-FIRST</span><span>◌ DEEP TOOLS WHEN YOU WANT THEM</span></div>
   </div>
-  <div className="beast-landing-art" aria-label="Original cosmic habitat artwork with the galaxy companion"><div className="beast-landing-habitat"/><div className="beast-landing-creature"><HomepageCreature/></div><span className="beast-landing-caption">YOUR OWN LITTLE UNIVERSE · VISUAL PREVIEW</span></div>
+  <div className="beast-landing-art" aria-label="Original cosmic habitat artwork with the galaxy companion"><div className="beast-landing-habitat"/><HomePocket/><div className="beast-landing-creature"><HomepageCreature/></div><span className="beast-landing-caption">YOUR OWN LITTLE UNIVERSE · VISUAL PREVIEW</span></div>
  </section>
 
  <section className="value-strip"><span>MODEL ≠ MEMORY</span><span>MODEL ≠ STATE</span><span>MODEL ≠ AUTHORITY</span></section>
