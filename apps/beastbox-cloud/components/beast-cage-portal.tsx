@@ -9,6 +9,8 @@ import GenesisForge from './genesis-forge';
 import BeastCareDeck from './beast-care-deck';
 import CreatureHabitat from './creature-habitat';
 import {visualStateFromBeast} from '../lib/companion/creature-visual-state.mjs';
+import {recordedQvmStimulusPath} from '../lib/companion/recorded-qvm-stimulus.mjs';
+import {useOwnQvmCounts} from './use-own-qvm-counts';
 import {useUniverseMotion} from './use-universe-motion';
 import QbeastMenagerie from './qbeast-menagerie';
 import {useBeastSession} from './beast-session';
@@ -47,6 +49,7 @@ export default function BeastCagePortal(){
  const [ambient,setAmbient]=useState<AmbientAction>('hover');
  const {session}=useBeastSession();
  const sameSpark=!!session?.beast?.qbeast;
+ const qvmCounts=useOwnQvmCounts(session?.beast?.qbeast?.profile?.id?recordedQvmStimulusPath(session.beast):null);
  const creatureName=sameSpark?shownName(session.beast):creature?.name;
  // The model/persona and the companion starter profile do not override the verified saved QBEAST.
  const savedVisual=sameSpark?creatureVisual({id:session.beast.qbeast.profile.id,genome:session.beast.genome}):null;
@@ -104,7 +107,8 @@ export default function BeastCagePortal(){
      stage={sameSpark?(session.beast.nativeStage||1):1}
      behaviorPosition={sameSpark?session.beast.behavior?.position||null:null}
      state={sameSpark?visualStateFromBeast(session.beast):ambient}
-     reduced={prefersReduced} onActiveChange={onPocketActive}/>
+     reduced={prefersReduced} onActiveChange={onPocketActive}
+     qvmCounts={qvmCounts}/>
     <SparkBeastArena profile={creature} fallbackLook={look}
      state={sameSpark?visualStateFromBeast(session.beast):ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
      label="Active Spark Beast companion" preferSavedBeast={sameSpark}

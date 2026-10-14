@@ -23,5 +23,6 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
       a.sprite.scale.x=Math.abs(a.sprite.scale.x)*(view.flip?-1:1);
      }
     };
-    return {stepResidents,texCache};
+    const disturbers=()=>residents.map(a=>({x:a.x,z:a.z,r:.75*a.r.scale,s:2.4}));
+    return {stepResidents,texCache,disturbers};
 }
