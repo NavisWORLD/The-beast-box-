@@ -53,7 +53,26 @@ async function clickTalkAfterReload(page){
  let browser;
  const results=[];
  try {
-  browser=await (engine==='webkit'?webkit:chromium).launch({headless:true,...(engine==='chromium'?{executablePath:process.env.BEAST_BROWSER_EXECUTABLE,args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']}: {})});
+  // This Canvas2D page does not require a forced software WebGL backend.
+  browser=await (engine==='webkit'?webkit:chromium).launch({headless:true,...(engine==='chromium'?{executablePath:process.env.BEAST_BROWSER_EXECUTABLE,args:['--no-sandbox','--disable-dev-shm-usage']}: {})});
+  const startupContext=await browser.newContext({viewport:{width:390,height:844}}),startupPage=await startupContext.newPage();
+  startupPage.setDefaultTimeout(7000);
+  let releaseArchive;const archiveGate=new Promise(resolve=>{releaseArchive=resolve;});
+  await startupContext.route('**/spark/user-seeds-20261004.json',async route=>{await archiveGate;if(!startupPage.isClosed())await route.fallback();});
+  try{
+   // Delay a real archive response; do not substitute fake model/state data.
+   await Promise.all([startupPage.waitForRequest(request=>request.url().endsWith('/spark/user-seeds-20261004.json')),startupPage.goto(hosted.url+'/spark/index.html')]);
+   const trigger=startupPage.locator('#talk');
+   assert.equal(await trigger.isVisible(),true);
+   assert.equal(await trigger.isDisabled(),true,'unwired Talk must be disabled during delayed archive startup');
+   assert.equal(await trigger.getAttribute('aria-busy'),'true');
+   assert.equal(await trigger.getAttribute('data-chat-ready'),null);
+   releaseArchive();await startupPage.locator('#talk[data-chat-ready="true"]').waitFor({state:'visible'});
+   assert.equal(await trigger.isDisabled(),false);assert.equal(await trigger.getAttribute('aria-busy'),null);
+   await trigger.click();await startupPage.getByRole('dialog').waitFor({state:'visible'});
+   await startupPage.getByRole('button',{name:'Close conversation',exact:true}).click();
+   assert.equal(hosted.requests.filter(request=>request.method!=='GET').length,0,'startup cannot infer or opt in to cloud');
+  }finally{releaseArchive();await startupContext.close();}
   for(const viewport of [{width:320,height:740},{width:375,height:812},{width:390,height:844},{width:430,height:932},{width:844,height:390},{width:1280,height:820}]) {
    const context=await browser.newContext({viewport,hasTouch:viewport.width<850,isMobile:viewport.width<850});
    const page=await context.newPage(),errors=[];page.setDefaultTimeout(7000);

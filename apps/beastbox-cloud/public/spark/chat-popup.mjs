@@ -263,6 +263,6 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
  syncPersona();renderBrain();viewport();
  // A selected creature can render before this popup finishes wiring its event handlers.
  // Expose a narrow readiness contract so a tap or browser test is never mistaken for a failed chat.
- trigger.dataset.chatReady='true';
+ trigger.disabled=false;trigger.removeAttribute('aria-busy');trigger.dataset.chatReady='true';
  return {open:openChat,close:()=>dismiss(),syncPersona,setDraft:value=>{syncPersona();editDraft(value);},send:()=>form.requestSubmit()};
 }
