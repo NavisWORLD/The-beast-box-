@@ -1,0 +1,111 @@
+{
+  "schema": "beastbox-production-private-browser/v1",
+  "startedAt": "2026-10-14T13:45:38.463Z",
+  "expectedRevision": "7df526c0f33e79936487913e41448a71bcfdc129",
+  "physicalDevice": false,
+  "engine": "chromium",
+  "storage": "Azure Blob",
+  "quantumJobs": 0,
+  "paidInference": 0,
+  "gates": [
+    {
+      "name": "exact production release and original cartridge pin",
+      "status": "PASSED"
+    },
+    {
+      "name": "same-name creatures have independent canonical identities and private notes",
+      "status": "PASSED",
+      "ids": [
+        "bb-adbd13be",
+        "bb-0b67efc4"
+      ]
+    },
+    {
+      "name": "signed private ownership stays in Secure HttpOnly SameSite=Strict cookies",
+      "status": "PASSED"
+    },
+    {
+      "name": "cross-owner reads writes and deletion fail closed with valid preconditions",
+      "status": "PASSED",
+      "deniedRequests": 6
+    }
+  ],
+  "cleanup": [
+    {
+      "revoked": true,
+      "accessDenied": true
+    },
+    {
+      "revoked": true,
+      "accessDenied": true
+    }
+  ],
+  "limitations": [
+    "Paired independent browser contexts model separate devices; no physical second device.",
+    "VisualViewport keyboard geometry is simulated; no physical iPhone keyboard or audible speaker verification."
+  ],
+  "revision": "7df526c0f33e79936487913e41448a71bcfdc129",
+  "firstDeviceBeforeFocus": {
+    "focused": true,
+    "hidden": false
+  },
+  "consentBefore": {
+    "checked": false,
+    "defaultChecked": false,
+    "reactChecked": false,
+    "reactHandler": "function",
+    "tracked": "false",
+    "type": "checkbox",
+    "disabled": false,
+    "html": "<input type=\"checkbox\">"
+  },
+  "inference": {
+    "model": "rawrphos-native",
+    "step": 14000,
+    "checkpoint": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
+    "replySha256": "074b58ad6161d877c1a67ae8aa35e8a56b17d5bc2fac3adbe5c19580c5cc3aab",
+    "requests": 1
+  },
+  "consentTrace": [
+    {
+      "event": "request",
+      "enabled": true,
+      "version": 2,
+      "ownerPrecondition": true
+    },
+    {
+      "event": "response",
+      "status": 200,
+      "version": 3,
+      "enabled": true
+    }
+  ],
+  "visibleStatus": [],
+  "consentInputEvents": [
+    {
+      "type": "click",
+      "checked": true,
+      "trusted": true,
+      "defaultPrevented": false
+    },
+    {
+      "type": "input",
+      "checked": false,
+      "trusted": true,
+      "defaultPrevented": false
+    },
+    {
+      "type": "change",
+      "checked": false,
+      "trusted": true,
+      "defaultPrevented": false
+    }
+  ],
+  "status": "FAILED",
+  "failedPhase": "free guest and private chat",
+  "failure": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'Many people have a great time, and you can try to find a great way to learn more about the best time to learn more about the game.'\n- ' Many people have a great time, and you can try to find a great way to learn more about the best time to learn more about the game.'\n\n    at /workspace/scratch/7dffb665bbc0/production-roundtrip-20261014/apps/beastbox-cloud/scripts/private-cosmos-production-browser.cjs:55:167",
+  "completedAt": "2026-10-14T13:47:12.042Z",
+  "inferenceRequests": 1,
+  "sensorCalls": 0,
+  "pageErrors": []
+}

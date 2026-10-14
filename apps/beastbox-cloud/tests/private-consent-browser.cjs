@@ -36,10 +36,15 @@ const origin=process.argv[2]||'http://127.0.0.1:3000',owner='u_'+'1'.repeat(32);
   await page.goto(origin+'/spark/index.html');
   await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId);
   await page.locator('#generate').click();await expect(page.locator('#status')).toContainText('Spawned');
+  await page.locator('#beast-name').fill('Release Test Beast');
+  await page.getByRole('button',{name:'NAME MY BEAST',exact:true}).click();
+  await expect(page.locator('#status')).toContainText('Named Release Test Beast');
   const beast=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast);
   record={owner,beastId:beast.qbeast.profile.id,
    profile:{name:'PRIVATE PROTOCOL FIXTURE',provenance:{seed:beast.seed}},
-   identity:{qbeastId:beast.qbeast.profile.id,seed:beast.seed},memory:[],conversations:[],
+   identity:{qbeastId:beast.qbeast.profile.id,seed:beast.seed},memory:[],
+   conversations:[{role:'you',id:'layout-fixture-you',text:'PRIVATE LAYOUT FIXTURE: check the conversation and options bounds.'},
+    {role:'beast',id:'layout-fixture-beast',text:'PRIVATE LAYOUT FIXTURE ONLY. '.repeat(14)}],
    personalityState:{curiosity:50,engagement:0},growth:{status:'OFF',optedIn:false,schedule:false},
    sync:{conversationConsent:false}};
   await page.goto(origin+'/settings');
@@ -79,6 +84,20 @@ const origin=process.argv[2]||'http://127.0.0.1:3000',owner='u_'+'1'.repeat(32);
   await dialog.getByRole('button',{name:'Close chat',exact:true}).click();await expect(dialog).toBeHidden();
   await page.locator('button[data-critical-control][aria-controls="beast-chat-overlay"]').click();
   await expect(saving).toBeChecked();await saving.click();await expect(saving).not.toBeChecked();
+  // Real long text exposed flex shrinking that let replies paint into options.
+  // These imported fixture rows are unverified text, never fabricated inference.
+  for(const viewport of [{width:390,height:844},{width:320,height:568},{width:844,height:390}]){
+   await page.setViewportSize(viewport);
+   await expect.poll(()=>dialog.locator('[aria-label^="Conversation with"]').evaluate(log=>{
+    const rect=log.getBoundingClientRect(),rows=Array.from(log.children).filter(node=>node.textContent.trim());
+    const summary=Array.from(log.parentElement.querySelectorAll('details>summary'))
+     .find(node=>node.textContent==='Conversation & observation settings').getBoundingClientRect();
+    return rows.every(node=>node.getBoundingClientRect().bottom<=rect.bottom+1)&&rect.bottom<=summary.top+1;
+   })).toBe(true);
+   const composer=dialog.locator('form');
+   await expect.poll(()=>composer.evaluate(node=>{const r=node.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight+1;})).toBe(true);
+  }
+  await page.setViewportSize({width:390,height:844});
   assert.equal(mutations.length,6,'Popup preference controls never write cloud data by themselves');
   assert.equal(inference.length,0);assert.deepEqual(errors,[]);
   if(process.env.BEAST_EVIDENCE_DIR){
@@ -86,6 +105,12 @@ const origin=process.argv[2]||'http://127.0.0.1:3000',owner='u_'+'1'.repeat(32);
    await page.screenshot({path:path.join(process.env.BEAST_EVIDENCE_DIR,'private-consent-390.png')});
   }
   console.log(JSON.stringify({status:'PASSED',engine,viewport:'390x844',classification:'SYNTHETIC_PRIVATE_API_FIXTURE',mutations:6,inference:0,
-   gates:['conversation enable/revoke acknowledged','growth/schedule dependency','independent popup saving','provider-history opt-in/revoke','close/reopen retains saving','no unsolicited writes or inference']}));
+   gates:['conversation enable/revoke acknowledged','growth/schedule dependency','independent popup saving','provider-history opt-in/revoke','close/reopen retains saving','no text overlap in portrait/landscape','pinned composer','no unsolicited writes or inference']}));
+ }catch(error){
+  if(process.env.BEAST_EVIDENCE_DIR){
+   await fs.mkdir(process.env.BEAST_EVIDENCE_DIR,{recursive:true});
+   await page.screenshot({path:path.join(process.env.BEAST_EVIDENCE_DIR,'failure.png')});
+  }
+  throw error;
  }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});
