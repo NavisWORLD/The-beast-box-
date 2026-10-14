@@ -29,7 +29,7 @@ test("the field route is full screen and every other page keeps the cartridge pa
   assert.match(dock, /data-cosmos-mode=\{mode\}/);
   assert.match(dock, /EJS_gameUrl = '\/api\/gba-rom'/);
   assert.match(dock, /data-rom-source="\/api\/gba-rom"/);
-  assert.match(dock, /V11\.2 Spark/);
+  assert.match(dock, /V11\.9/);
   assert.doesNotMatch(dock, /1\.11|11\.1/);
   assert.match(dock, /id="lost-cosmos-screen"/);
   assert.match(read("components/lost-cosmos-dock.module.css"), /left:-240vw/);

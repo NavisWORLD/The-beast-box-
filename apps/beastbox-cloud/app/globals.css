@@ -639,3 +639,5 @@ html[data-beastbox-reduced-motion="true"] *,html[data-beastbox-reduced-motion="t
  /* Room for the fixed sound dock and mini player so the last text can scroll clear of them. */
  .cage-universe{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 }
+/* Phones: leave room at the end of every page for the fixed companion/sound/chat lane. */
+@media(max-width:480px){body{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}}

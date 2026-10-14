@@ -12,3 +12,5 @@
 @media(max-width:700px){.panel,.panel[data-expanded]{width:100%;right:0;bottom:var(--chat-bottom,0px);height:min(700px,calc(var(--chat-vh,100dvh) - max(8px,env(safe-area-inset-top))));max-height:calc(var(--chat-vh,100dvh) - max(8px,env(safe-area-inset-top)));border-radius:22px 22px 0 0}.panel[data-expanded]{height:calc(var(--chat-vh,100dvh) - max(8px,env(safe-area-inset-top)))}.header{padding:8px max(8px,env(safe-area-inset-right)) 8px max(10px,env(safe-area-inset-left))}.name h2{font-size:15px}}
 @media(max-height:500px){.header{padding-block:4px}.name small{font-size:9px}}
 @media(prefers-reduced-motion:reduce){.panel{scroll-behavior:auto}}
+/* Phones: keep the launcher in the bottom control lane, above the sound dock and Lost COSMOS pill, so it never covers page CTAs (e.g. home "Play LOST COSMOS"). */
+@media(max-width:480px){.launcher{bottom:calc(58px + env(safe-area-inset-bottom));right:max(8px,env(safe-area-inset-right));min-height:40px;padding:9px 14px;font-size:11px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}}
