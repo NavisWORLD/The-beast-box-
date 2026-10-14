@@ -41,3 +41,25 @@ node scripts/private-cosmos-production-browser.cjs EXACT_PRODUCTION_COMMIT \
 ## Device and closure boundaries
 
 Paired independent browser contexts establish cross-session transfer behavior, not physical second-device evidence. WebKit and simulated VisualViewport geometry establish automated coverage, not a physical iPhone keyboard or audible speaker test. No real iPhone is connected to this runtime. Issue #323 must remain open until its remaining real-device and applicable live acceptance gates have evidence. No research weights were promoted and no recorded quantum genesis was changed.
+
+## Deployed follow-up — `7df526c0`
+
+PR #328 merged as `7df526c0f33e79936487913e41448a71bcfdc129` after all 44 checks passed, including Chromium/WebKit and native SRAM acceptance. Vercel production `dpl_Gi5unE3zfouhpN7hzyNbyBE5hT8Q` was READY at that revision.
+
+The fresh real production test now passed consent acknowledgment, one actual stateless RAWRPHØS native 14K reply, atomic two-turn Azure storage, per-creature isolation, close/reopen, reload and explicit cloud conversation restore. Provider history remained disabled and records remained ineligible for training. Both temporary accounts were revoked with subsequent access denied. The model checkpoint was `4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5`; no optimizer update or checkpoint promotion occurred.
+
+Two harness failures are preserved rather than relabeled passed:
+
+- `2026-10-14-production-private/leading-space-harness-failure.json`: SHA-256 `92a4c17cff89383df8de2cfb832a0cf64f46601c0b4f04fae999c36839c24533`. The test incorrectly compared raw provider boundary whitespace with the existing `brain.mjs` trimmed display contract. The corrected assertion checks the exact displayed text against both cloud turns and records raw/display reply hashes.
+- `2026-10-14-production-private/instant-tap-harness-failure.json`: SHA-256 `9356c26f30ea0e544e62e31a4d21f0e9a24f67b12afb567d3514261422483d5b`. The instantaneous automated tap did not advance the title flow. The test now uses actual held touch events (150 ms) through the real controls, as the existing native acceptance does.
+- `2026-10-14-production-private/native-held-touch-probe.json`: SHA-256 `10f02802e622ee3b28429347a12440a58f803e15a42d3f91b8113fffe125c4b0`. A separate production probe performed no cloud writes or inference; actual A/START press/release events reached the original cartridge and created its own `LCR1` record with matching native ID/seed and 32 KB battery.
+
+The live mobile screenshot also exposed a product defect: a long reply could paint into the following options. The scrolling flex body was shrinking text blocks while overflow remained visible. A five-line CSS fix keeps intrinsic message/settings heights and allows the body to scroll, with the composer pinned. The corrected browser geometry regression fails on the original compiled CSS and passes with the repair at 390×844, 320×568 and 844×390. Imported layout text is explicitly a synthetic unverified fixture, not model inference or Azure evidence.
+
+The final harness also waits for the pair-issuance acknowledgment and a nonempty password field before reading the one-use code. An immediate input-value read had raced the asynchronous request; no ownership or replay-denial assertion was relaxed.
+
+The complete production browser round trip then passed **10/10 gates** on `7df526c0` at 2026-10-14 14:12:29 UTC. Its immutable report is `2026-10-14-production-private/production-roundtrip-7df526c0.json`, SHA-256 `0a205ff6d37bf0eabfb58d9969a00fa1feef6d4ddb4ffa403931ea15faa54ede`. Two disposable visitors owned distinct same-name QBEASTs; a fresh third browser context paired with the first owner and restored the exact canonical creature, nickname, notes, conversation and complete battery. Pair-code replay returned 403. The original ROM loaded on the paired context, with the saved `LCR1` record retained byte-for-byte. This verifies save continuity, not additional quest completion. The 32 KB battery SHA-256 was `0a935a75abb0dd43d4fadfb15b1e17e86ad45c5e637d2b5cb67f7b4bbe4ec7fe`.
+
+The served cartridge itself hashed to the pinned V11.9 SHA-256 above. One real stateless guest-model request ran; no extra inference, sensor request, paid model or quantum submission occurred. Both private test owners were revoked; the paired context also lost access. No page errors were observed. This success does not relabel the retained earlier failed attempts.
+
+The layout revision still needs its READY production verification. Physical iPhone audio/keyboard and physical second-device gates remain open.

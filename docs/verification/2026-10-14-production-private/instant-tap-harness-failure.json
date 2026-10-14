@@ -1,0 +1,101 @@
+{
+  "schema": "beastbox-production-private-browser/v1",
+  "startedAt": "2026-10-14T13:48:49.481Z",
+  "expectedRevision": "7df526c0f33e79936487913e41448a71bcfdc129",
+  "physicalDevice": false,
+  "engine": "chromium",
+  "storage": "Azure Blob",
+  "quantumJobs": 0,
+  "paidInference": 0,
+  "gates": [
+    {
+      "name": "exact production release and original cartridge pin",
+      "status": "PASSED"
+    },
+    {
+      "name": "same-name creatures have independent canonical identities and private notes",
+      "status": "PASSED",
+      "ids": [
+        "bb-df73a517",
+        "bb-831682cc"
+      ]
+    },
+    {
+      "name": "signed private ownership stays in Secure HttpOnly SameSite=Strict cookies",
+      "status": "PASSED"
+    },
+    {
+      "name": "cross-owner reads writes and deletion fail closed with valid preconditions",
+      "status": "PASSED",
+      "deniedRequests": 6
+    },
+    {
+      "name": "actual free guest reply saved atomically only in the owning creature’s private history",
+      "status": "PASSED"
+    },
+    {
+      "name": "close reopen reload and explicit cloud restore retain conversation without sharing history",
+      "status": "PASSED"
+    }
+  ],
+  "cleanup": [
+    {
+      "revoked": true,
+      "accessDenied": true
+    },
+    {
+      "revoked": true,
+      "accessDenied": true
+    }
+  ],
+  "limitations": [
+    "Paired independent browser contexts model separate devices; no physical second device.",
+    "VisualViewport keyboard geometry is simulated; no physical iPhone keyboard or audible speaker verification."
+  ],
+  "revision": "7df526c0f33e79936487913e41448a71bcfdc129",
+  "firstDeviceBeforeFocus": {
+    "focused": true,
+    "hidden": false
+  },
+  "consentBefore": {
+    "checked": false,
+    "defaultChecked": false,
+    "reactChecked": false,
+    "reactHandler": "function",
+    "tracked": "false",
+    "type": "checkbox",
+    "disabled": false,
+    "html": "<input type=\"checkbox\">"
+  },
+  "inference": {
+    "model": "rawrphos-native",
+    "step": 14000,
+    "checkpoint": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
+    "replySha256": "074b58ad6161d877c1a67ae8aa35e8a56b17d5bc2fac3adbe5c19580c5cc3aab",
+    "requests": 1,
+    "displayedReplySha256": "09a2472fbbb51ae30b1a830435d031b51878ba3ae4ed53a5f400c4b82aa7b44b"
+  },
+  "consentTrace": [
+    {
+      "event": "request",
+      "enabled": true,
+      "version": 2,
+      "ownerPrecondition": true
+    },
+    {
+      "event": "response",
+      "status": 200,
+      "version": 3,
+      "enabled": true
+    }
+  ],
+  "visibleStatus": [],
+  "consentInputEvents": [],
+  "status": "FAILED",
+  "failedPhase": "native game and real SRAM",
+  "failure": "frame.waitForFunction: Timeout 90000ms exceeded.\n    at /workspace/scratch/7dffb665bbc0/production-roundtrip-20261014/apps/beastbox-cloud/scripts/private-cosmos-production-browser.cjs:60:314",
+  "completedAt": "2026-10-14T13:51:41.625Z",
+  "inferenceRequests": 1,
+  "sensorCalls": 0,
+  "pageErrors": []
+}
