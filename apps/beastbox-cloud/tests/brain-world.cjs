@@ -12,7 +12,7 @@ const key='beastbox-companion-session-v1';
 const rooms=['/','/spark/index.html','/beast-cage','/sol-game','/brain-bay','/research','/settings'];
 async function readSession(page){return page.evaluate(k=>JSON.parse(localStorage.getItem(k)||'null'),key);}
 async function openSharedChat(page){
- await page.locator('button[aria-controls="beast-chat-overlay"]').click();
+ await page.locator('button[data-critical-control][aria-controls="beast-chat-overlay"]').click();
  const dialog=page.locator('[data-companion-chat-overlay]');
  await expect(dialog).toBeVisible();
  return dialog;
@@ -22,6 +22,7 @@ function invariant(session){
 }
 async function checkRooms(page){
  const nav=page.getByRole('navigation',{name:'Universe rooms'});
+ await expect(nav).toBeVisible();
  const hrefs=await nav.getByRole('link').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('href')));
  assert.deepEqual(hrefs,rooms);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Page must fit the viewport');
@@ -75,6 +76,29 @@ async function checkRooms(page){
   }
   await dialog.getByRole('button',{name:'Close chat',exact:true}).click();await expect(dialog).toBeHidden();
   await checkRooms(page);
+  const launcher=page.locator('button[data-critical-control][aria-controls="beast-chat-overlay"]');
+  await expect(launcher).toBeFocused();
+  dialog=await openSharedChat(page);
+  for(let i=0;i<14;i++){await page.keyboard.press('Tab');assert.equal(await dialog.evaluate(node=>node.contains(document.activeElement)),true,'mobile focus stays inside the dialog');}
+  await page.goBack();await expect(dialog).toBeHidden();await checkRooms(page);await expect(launcher).toBeFocused();
+  dialog=await openSharedChat(page);
+  // Representative keyboard geometry, not a physical iPhone keyboard test.
+  await page.evaluate(()=>{Object.defineProperty(visualViewport,'height',{configurable:true,value:300});Object.defineProperty(visualViewport,'offsetTop',{configurable:true,value:90});visualViewport.dispatchEvent(new Event('resize'));});
+  await expect.poll(()=>dialog.locator('form').evaluate(node=>{const r=node.getBoundingClientRect();return r.top>=90&&r.bottom<=390;})).toBe(true);
+  assert.ok(await dialog.locator('[aria-label^="Conversation with"]').evaluate(node=>node.getBoundingClientRect().height)>=40,'keyboard leaves scrollable conversation space');
+  if(process.env.BEAST_EVIDENCE_DIR){await fs.mkdir(process.env.BEAST_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.BEAST_EVIDENCE_DIR,'react-keyboard-390.png')});}
+  await page.evaluate(()=>{delete visualViewport.height;delete visualViewport.offsetTop;visualViewport.dispatchEvent(new Event('resize'));});
+  await page.keyboard.press('Escape');await expect(dialog).toBeHidden();await expect(launcher).toBeFocused();
+  // Browser Fullscreen API transitions must relocate the same live popup host.
+  // Page fullscreen includes its real chat launcher. Player-owned fullscreen
+  // is exercised separately through the actual Game Boy controls.
+  await page.locator('html').evaluate(node=>node.requestFullscreen());
+  dialog=await openSharedChat(page);
+  await expect.poll(()=>dialog.evaluate(node=>!!document.fullscreenElement?.contains(node)&&!node.closest('[inert]'))).toBe(true);
+  await page.evaluate(()=>document.exitFullscreen());await expect(dialog).toBeVisible();
+  await expect(page.getByRole('navigation',{name:'Universe rooms'})).toHaveCount(0);
+  assert.equal(await dialog.evaluate(node=>!!node.closest('[inert]')),false);
+  await page.keyboard.press('Escape');await expect(dialog).toBeHidden();await expect(launcher).toBeFocused();
 
   // Use the actual public generator/identity modules and shared storage path.
   const selectedId=await page.evaluate(async()=>{

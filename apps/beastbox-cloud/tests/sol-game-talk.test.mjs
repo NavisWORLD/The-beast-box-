@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSession, adoptBeast } from '../lib/companion/session.mjs';
-import { askGameBeast, gameChatContext, gameRelevantMemories, gameObservationLine, gameBeastKey, rememberGameReply } from '../lib/companion/sol-game-talk.mjs';
+import { knownGameContext, askGameBeast, gameChatContext, gameRelevantMemories, gameObservationLine, gameBeastKey, rememberGameReply } from '../lib/companion/sol-game-talk.mjs';
 
 function spark() {
  const session = createSession();
@@ -161,3 +161,5 @@ test('game registers one shared persistent chat without creating model requests'
  const panel=readFileSync(new URL('../components/beast-talk-panel.tsx',import.meta.url),'utf8');
  assert.match(panel,/shareHistory,observation/);assert.match(panel,/gameBridge\?\.key===gameBeastKey/);
 });
+
+test('shared conversation gets only matching known app environment, no invented native perception or private identity',()=>{const session=spark(),key=gameBeastKey(session),text=knownGameContext(session,key);assert.match(text,/Lost COSMOS player/);assert.match(text,/unverified/);assert.equal(knownGameContext(session,'other-creature'),'');assert.equal(knownGameContext(null,key),'');assert.ok(!text.includes(session.beast.qbeast.profile.id));assert.ok(!text.includes('PRIVATE OLD CHAT'));});

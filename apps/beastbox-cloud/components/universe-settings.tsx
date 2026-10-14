@@ -19,10 +19,11 @@ export default function UniverseSettings(){
  const motion=useUniverseMotion(),beast=session?.beast;
  const [notice,setNotice]=useState('');
  const [pocket3d,setPocket3d]=useState({...DEFAULT_POCKET_3D});
+ const [pocketReady,setPocketReady]=useState(false);
  useEffect(()=>{
   const sync=()=>{try{setPocket3d(readPocket3D(window.localStorage));}catch{setPocket3d({...DEFAULT_POCKET_3D});}};
   const changed=(event:StorageEvent)=>{if(event.key===POCKET_3D_KEY)sync();};
-  sync();window.addEventListener('storage',changed);
+  sync();setPocketReady(true);window.addEventListener('storage',changed);
   return()=>window.removeEventListener('storage',changed);
  },[]);
  function changePocket3D(next:{enabled:boolean;quality:string}){
@@ -71,11 +72,11 @@ export default function UniverseSettings(){
      <div className={styles.settingRow}>
       <div className={styles.icon}><Sparkles size={19} aria-hidden="true"/></div>
       <div><h3 id="pocket-3d-label">Three.js pocket scenery</h3><p>Turn the 3D background on or off. Your original creature sprite, care, audio and native cartridge remain intact.</p></div>
-      <button type="button" role="switch" aria-checked={pocket3d.enabled} aria-labelledby="pocket-3d-label" className={styles.toggle} onClick={()=>changePocket3D({...pocket3d,enabled:!pocket3d.enabled})}><span/></button>
+      <button type="button" role="switch" aria-checked={pocket3d.enabled} aria-labelledby="pocket-3d-label" className={styles.toggle} disabled={!pocketReady} onClick={()=>changePocket3D({...pocket3d,enabled:!pocket3d.enabled})}><span/></button>
      </div>
      <div className={styles.volume}>
       <label htmlFor="pocket-3d-quality">3D rendering quality</label>
-      <select id="pocket-3d-quality" className={styles.qualitySelect} value={pocket3d.quality} onChange={event=>changePocket3D({...pocket3d,quality:event.target.value})} disabled={!pocket3d.enabled}>
+      <select id="pocket-3d-quality" className={styles.qualitySelect} value={pocket3d.quality} aria-busy={!pocketReady||undefined} onChange={event=>changePocket3D({...pocket3d,quality:event.target.value})} disabled={!pocketReady||!pocket3d.enabled}>
        <option value="auto">Auto · adapts on mobile</option>
        <option value="low">Low · fewer effects</option>
        <option value="high">High · detailed scenery</option>

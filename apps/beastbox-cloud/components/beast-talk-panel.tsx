@@ -5,9 +5,10 @@ import {useCompanion} from './companion-provider';
 import {rememberExchange} from '../lib/companion/adventure.mjs';
 import type {GameChatBridge} from './beast-chat-types';
 import GameChatTools from './game-chat-tools';
-import {gameBeastKey} from '../lib/companion/sol-game-talk.mjs';
+import {gameBeastKey,knownGameContext} from '../lib/companion/sol-game-talk.mjs';
 import {useBeastAudio} from './use-beast-audio';
-import {loadPrivateChat,savePrivateExchange,mergePrivateChat} from '../lib/companion/private-chat.mjs';
+import {loadPrivateChat,createPrivateChatQueue,mergePrivateChat} from '../lib/companion/private-chat.mjs';
+import type {PrivateChatBinding,PrivateChatQueueState} from '../lib/companion/private-chat.mjs';
 import {getOrCreateVisitorId,freshGrowth,readVisitorGrowth,writeVisitorGrowth,advanceVisitorGrowth,growthModelContext} from '../lib/companion/visitor-growth.mjs';
 import type {VisitorGrowth} from '../lib/companion/visitor-growth.mjs';
 import {beastIdentity} from '../lib/companion/session.mjs';
@@ -20,7 +21,7 @@ import styles from './beast-talk-panel.module.css';
 
 export type TalkState='idle'|'thinking'|'listening'|'speaking'|'replied'|'offline';
 type Route=TalkRoute;
-type Turn={role:'you'|'beast';text:string;model?:string;route?:string;at?:number;id?:string};
+type Turn={role:'you'|'beast';text:string;model?:string;route?:string;at?:number;id?:string;cloudImported?:boolean;verified?:boolean};
 type Offline={error:string;help:string[];route:string};
 type Prefs={route:Route;ollamaUrl:string;ollamaModel:string;hfModel:string};
 type Status={routes?:Record<string,{configured:boolean|string}>;default?:string};
@@ -43,7 +44,7 @@ export default function BeastTalkPanel(props:PanelProps){
  const persona=talkPersona({beast:session?.beast,cage:profile});
  useEffect(()=>{if(props.surface==='panel'||!props.onState)return;const report=(event:Event)=>props.onState?.((event as CustomEvent).detail.state);window.addEventListener('beastbox:talk-state',report);return()=>window.removeEventListener('beastbox:talk-state',report);},[props.surface,props.onState]);
  if(props.surface==='panel')return <BeastTalkContent {...props}/>;
- return <button type="button" className={styles.openChat} onClick={()=>window.dispatchEvent(new Event('beastbox:open-chat'))}>{props.title||`Talk to ${persona.name}`}</button>;
+ return <button type="button" className={styles.openChat} aria-controls="beast-chat-overlay" onClick={event=>window.dispatchEvent(new CustomEvent('beastbox:open-chat',{detail:{opener:event.currentTarget}}))}>{props.title||`Talk to ${persona.name}`}</button>;
 }
 function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
  const {ready,session,change}=useBeastSession();
@@ -59,8 +60,15 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
  const [text,setText]=useState(''),[busy,setBusy]=useState(false),[offline,setOffline]=useState<Offline|null>(null);
  const [verifiedAt,setVerifiedAt]=useState<number|null>(null),[listening,setListening]=useState(false),[speaking,setSpeaking]=useState(false);
  const [showBrains,setShowBrains]=useState(false);
- const [cloudStatus,setCloudStatus]=useState('Private cloud is optional. Restore your own conversation before saving.'),[cloudOwner,setCloudOwner]=useState(''),[cloudSync,setCloudSync]=useState(false),[cloudBusy,setCloudBusy]=useState(false);
- const privatePending=useRef<any>(null),cloudOwnerRef=useRef('');cloudOwnerRef.current=cloudOwner;
+ const [cloudStatus,setCloudStatus]=useState('Private cloud is optional. Restore your own conversation before saving.'),[cloudOwner,setCloudOwner]=useState(''),[cloudSync,setCloudSync]=useState(false),[cloudRestoring,setCloudRestoring]=useState(false);
+ const [queueState,setQueueState]=useState<PrivateChatQueueState>({busy:false,pending:0,paused:false,error:null,lastSavedEvent:null});
+ const privateQueue=useRef<ReturnType<typeof createPrivateChatQueue>|null>(null),privateBinding=useRef<PrivateChatBinding|null>(null),restoreAbort=useRef<AbortController|null>(null);
+ const cloudBusy=cloudRestoring||queueState.busy;
+ const selectionKey=JSON.stringify([persona.key,beastIdentity(session?.beast||null),session?.beast?.genome?.seed,session?.beast?.seed,session?.beast?.qbeast?.profile?.seed]);
+ const privateSelection=useRef(selectionKey);privateSelection.current=selectionKey;
+ const [prefsLoaded,setPrefsLoaded]=useState(false),[loadedConversation,setLoadedConversation]=useState('');
+ const conversationKey=JSON.stringify([selectionKey,retention]),conversationReady=ready&&prefsLoaded&&loadedConversation===conversationKey;
+ useEffect(()=>{const queue=createPrivateChatQueue({onChange:setQueueState});privateQueue.current=queue;return()=>{queue.dispose();privateQueue.current=null;restoreAbort.current?.abort();};},[]);
  const [cloudConsented,setCloudConsented]=useState(false);
  const [visitorId,setVisitorId]=useState<string|null>(null),[growth,setGrowth]=useState<VisitorGrowth|null>(null),[shareGrowth,setShareGrowth]=useState(false);
  const pending=useRef<AbortController|null>(null),speech=useRef<Recognition|null>(null),logEnd=useRef<HTMLDivElement>(null);
@@ -71,16 +79,29 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   try{const raw=localStorage.getItem(PREFS_KEY);if(raw){const saved=JSON.parse(raw);setPrefs(p=>({...p,...saved,route:TALK_ROUTES.includes(saved?.route)?saved.route:p.route}));}}catch{/* defaults */}
   try{setHfKey(sessionStorage.getItem(HF_KEY)||'');}catch{/* private mode */}
   try{setShareGrowth(localStorage.getItem(GROWTH_CONSENT_KEY)==='yes');}catch{/* private by default */}
+  setPrefsLoaded(true);
   const controller=new AbortController();
   fetch('/api/talk',{cache:'no-store',signal:controller.signal}).then(r=>r.ok?r.json():null).then(setStatus).catch(()=>setStatus({}));
   return()=>controller.abort();
  },[]);
  // Each Beast keeps its own conversation. Switching Beasts never mixes logs.
- useEffect(()=>{pending.current?.abort();pending.current=null;setBusy(false);speech.current?.stop();setListening(false);window.speechSynthesis?.cancel();setSpeaking(false);storage.current=retention==='device'?localStorage:sessionStorage;setLog(readTalkLog(storage.current,persona.key));setText(readTalkDraft(storage.current,persona.key));setOffline(null);setVerifiedAt(null);setShareHistory(false);setIncludeGame(false);const id=getOrCreateVisitorId(storage.current);setVisitorId(id);setGrowth(id?readVisitorGrowth(storage.current,id,persona.key):null);},[persona.key,retention]);
+ useEffect(()=>{pending.current?.abort();pending.current=null;setBusy(false);speech.current?.stop();setListening(false);window.speechSynthesis?.cancel();setSpeaking(false);storage.current=retention==='device'?localStorage:sessionStorage;setLog(readTalkLog(storage.current,persona.key));setText(readTalkDraft(storage.current,persona.key));setOffline(null);setVerifiedAt(null);setShareHistory(false);setIncludeGame(false);const id=getOrCreateVisitorId(storage.current);setVisitorId(id);setGrowth(id?readVisitorGrowth(storage.current,id,persona.key):null);setLoadedConversation(conversationKey);},[selectionKey,retention]);
  function editText(value:string){const draft=value.slice(0,MAX_MESSAGE);setText(draft);writeTalkDraft(storage.current,persona.key,draft);}
- useEffect(()=>{setCloudOwner('');setCloudConsented(false);setCloudSync(false);setCloudStatus('Private cloud is optional. Restore your own conversation before saving.');privatePending.current=null;},[persona.key]);
- async function restorePrivate(){if(busy||cloudBusy||!session?.beast)return;const captured=persona.key;setCloudBusy(true);try{const result=await loadPrivateChat(session.beast);if(personaKey.current!==captured)return;const restored=mergePrivateChat(log,result.rows);setLog(restored);writeTalkLog(storage.current,captured,restored);setCloudOwner(result.owner);setCloudConsented(result.consented);setCloudSync(false);setVerifiedAt(null);setCloudStatus(result.consented?'Restored this Beast’s private conversation. You can enable private saving below.':'Restored this Beast’s private history. Enable conversation persistence for it in Settings before saving new exchanges.');}catch(error){if(personaKey.current===captured)setCloudStatus(error instanceof Error?error.message:'Private cloud unavailable.');}finally{setCloudBusy(false);}}
- async function persistPrivate(saved:any){if(!saved||personaKey.current!==saved.key||cloudOwnerRef.current!==saved.owner)return;setCloudBusy(true);try{await savePrivateExchange(saved.beast,saved.exchange,{expectedOwner:saved.owner});if(personaKey.current===saved.key){privatePending.current=null;setCloudStatus('Both turns were saved in one private cloud revision. Model weights and native saves are unchanged.');}}catch(error){if(personaKey.current===saved.key)setCloudStatus((error instanceof Error?error.message:'Cloud write failed.')+' The verified reply remains in your selected local storage.');}finally{setCloudBusy(false);}}
+ useEffect(()=>{restoreAbort.current?.abort();restoreAbort.current=null;privateBinding.current=null;privateQueue.current?.select(null);setCloudRestoring(false);setCloudOwner('');setCloudConsented(false);setCloudSync(false);setCloudStatus('Private cloud is optional. Restore your own conversation before saving.');},[selectionKey]);
+ useEffect(()=>{const binding=privateBinding.current;privateQueue.current?.select(binding?{...binding,enabled:cloudSync,consented:cloudConsented}:null);},[cloudSync,cloudConsented,cloudOwner,selectionKey]);
+ useEffect(()=>{if(queueState.error)setCloudStatus(queueState.error+' The completed reply remains in your selected local storage. Retry explicitly.');else if(queueState.lastSavedEvent)setCloudStatus('Both turns were saved in one private cloud revision. Model weights and native saves are unchanged.');},[queueState.error,queueState.lastSavedEvent]);
+ async function restorePrivate(){
+  if(busy||cloudBusy||!conversationReady||!session?.beast)return;
+  const captured=selectionKey,key=persona.key,target=storage.current,beast=structuredClone(session.beast),owner=cloudOwner||undefined,controller=new AbortController();
+  restoreAbort.current?.abort();restoreAbort.current=controller;setCloudRestoring(true);setShareHistory(false);setCloudSync(false);privateQueue.current?.select(null);
+  try{const result=await loadPrivateChat(beast,{signal:controller.signal,expectedOwner:owner});if(controller.signal.aborted||privateSelection.current!==captured||restoreAbort.current!==controller)return;
+   const restored=mergePrivateChat(readTalkLog(target,key),result.rows);setLog(restored);writeTalkLog(target,key,restored);setShareHistory(false);setCloudOwner(result.owner);setCloudConsented(result.consented);setVerifiedAt(null);
+   privateBinding.current={key,owner:result.owner,beast,enabled:false,consented:result.consented};privateQueue.current?.select(privateBinding.current);
+   setCloudStatus(result.consented?'Restored this Beast’s private conversation. Imported text is not live inference. You can enable private saving below.':'Restored this Beast’s private history. Enable conversation persistence for it in Settings before saving new exchanges.');
+  }catch(error){if(!controller.signal.aborted&&privateSelection.current===captured)setCloudStatus(error instanceof Error?error.message:'Private cloud unavailable.');}
+  finally{if(restoreAbort.current===controller){restoreAbort.current=null;setCloudRestoring(false);}}
+ }
+ function togglePrivateSync(value:boolean){setCloudSync(value);const binding=privateBinding.current;privateQueue.current?.select(binding?{...binding,enabled:value,consented:cloudConsented}:null);}
  useEffect(()=>()=>{pending.current?.abort();speech.current?.stop();if(typeof window!=='undefined')window.speechSynthesis?.cancel();},[]);
  useEffect(()=>{logEnd.current?.scrollIntoView({block:'nearest'});},[log.length]);
  const state:TalkState=busy?'thinking':listening?'listening':speaking?'speaking':offline?'offline':verifiedAt?'replied':'idle';
@@ -116,25 +137,25 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
  async function send(event:FormEvent<HTMLFormElement>){
   event.preventDefault();
   const saying=text.trim();
-  if(busy||!ready||!saying||saying.length>MAX_MESSAGE)return;
+  if(pending.current||busy||cloudRestoring||!conversationReady||!saying||saying.length>MAX_MESSAGE)return;
   speech.current?.stop();window.speechSynthesis?.cancel();setSpeaking(false);
   const controller=new AbortController();pending.current=controller;
   // A model on the visitor's own CPU can take minutes on a slow or busy computer; Cancel is always shown.
   const timeout=window.setTimeout(()=>controller.abort(),route==='local-ollama'?180000:65000);
-  const forKey=persona.key,beastId=beastIdentity(session?.beast||null);
+  const forKey=persona.key,forSelection=selectionKey,beastId=beastIdentity(session?.beast||null),boundForCloud=cloudSync&&cloudConsented&&privateBinding.current?{...privateBinding.current,beast:structuredClone(privateBinding.current.beast),enabled:true,consented:true}:null;
   setBusy(true);setOffline(null);
   try{
    const observation=includeGame&&gameBridge?.key===gameBeastKey(session)?await gameBridge.observeGame?.():null;
-   if(controller.signal.aborted||personaKey.current!==forKey)return;
-   const result=await talkToBeast({route,persona,history:log,text:saying,shareHistory,observation,context:shareGrowth?growthModelContext(growth):'',signal:controller.signal,
+   if(controller.signal.aborted||personaKey.current!==forKey||privateSelection.current!==forSelection)return;
+   const result=await talkToBeast({route,persona,history:log,text:saying,shareHistory,observation,context:[knownGameContext(session,gameBridge?.key),shareGrowth?growthModelContext(growth):''].filter(Boolean).join('\n'),signal:controller.signal,
     ollama:{url:prefs.ollamaUrl,model:prefs.ollamaModel},hf:{key:hfKey,model:prefs.hfModel,spendConfirmed:spend}});
-   if(pending.current!==controller||personaKey.current!==forKey)return;
+   if(pending.current!==controller||controller.signal.aborted||personaKey.current!==forKey||privateSelection.current!==forSelection)return;
    if(!result.ok){setOffline({error:result.error,help:result.help,route:result.route});return;}
    const exchangeId=crypto.randomUUID(),at=Date.now();
    const next=[...log,{role:'you' as const,text:saying,at,id:exchangeId+'-you'},{role:'beast' as const,text:result.reply,model:result.model,route:result.route,at:result.at,id:exchangeId+'-beast'}];
    setLog(next);writeTalkLog(storage.current,forKey,next);setVerifiedAt(result.at);editText('');
    if(visitorId&&storage.current){const prior=growth?.beastKey===forKey?growth:freshGrowth(visitorId,forKey);const updated=advanceVisitorGrowth(prior,{text:saying,reply:result.reply,verified:true});writeVisitorGrowth(storage.current,updated);setGrowth(updated);}
-   if(cloudSync&&cloudOwner&&session?.beast){const saved={key:forKey,owner:cloudOwner,beast:session.beast,exchange:{eventId:exchangeId,text:saying,reply:result.reply,provider:result.route,model:result.model,at}};privatePending.current=saved;void persistPrivate(saved);}
+   if(boundForCloud){try{privateQueue.current?.enqueue({...boundForCloud,exchange:{eventId:exchangeId,text:saying,reply:result.reply,provider:result.route,model:result.model,at}});}catch(error){setCloudStatus((error instanceof Error?error.message:'Private queue unavailable.')+' The completed reply remains in local storage.');}}
    // Same Beast, same growth: a verified exchange adds to the saved Beast's chat and bond.
    if(retention==='device'&&beastId&&session?.beast)void change(draft=>{if(beastIdentity(draft.beast)===beastId)rememberExchange(draft,saying,result.reply);});
   }finally{
@@ -232,9 +253,9 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   </div>:null}
 
   <details className={styles.options}><summary>Conversation & observation settings</summary>
-   <p role="status">{cloudStatus}</p><button type="button" disabled={busy||cloudBusy||!session?.beast} onClick={()=>void restorePrivate()}>Restore my private cloud conversation</button>
-   <label><input type="checkbox" checked={cloudSync} disabled={!cloudOwner||!cloudConsented||cloudBusy} onChange={e=>setCloudSync(e.target.checked)}/> Save new verified exchanges to my private cloud. Requires this Beast’s separate cloud consent in Settings.</label>
-   {privatePending.current?<button type="button" disabled={cloudBusy} onClick={()=>void persistPrivate(privatePending.current)}>Retry private save</button>:null}
+   <p role="status">{cloudStatus}</p><button type="button" disabled={busy||cloudBusy||!conversationReady||!session?.beast} onClick={()=>void restorePrivate()}>Restore my private cloud conversation</button>
+   <label><input type="checkbox" checked={cloudSync} disabled={!cloudOwner||!cloudConsented||cloudBusy} onChange={e=>togglePrivateSync(e.target.checked)}/> Save new verified exchanges to my private cloud. Requires this Beast’s separate cloud consent in Settings.</label>
+   {queueState.pending>0?<button type="button" disabled={cloudBusy||!cloudSync||!cloudConsented} onClick={()=>void privateQueue.current?.retry()}>Retry private save ({queueState.pending})</button>:null}
    <label>Keep this conversation <select value={retention} onChange={e=>{const next=e.target.value==='session'?'session':'device';const target=next==='session'?sessionStorage:localStorage;writeTalkLog(target,persona.key,log);writeTalkDraft(target,persona.key,text);if(next==='session'){localStorage.removeItem(LOG_PREFIX+persona.key);localStorage.removeItem(DRAFT_PREFIX+persona.key);}setRetention(next);try{localStorage.setItem(TALK_RETENTION_KEY,next);}catch{/* optional */}}}><option value="device">On this device</option><option value="session">In this tab only</option></select></label>
    <label><input type="checkbox" checked={shareHistory} onChange={e=>setShareHistory(e.target.checked)}/> Share recent conversation with the selected provider</label>
    {gameBridge&&gameBridge.key===gameBeastKey(session)?<><label><input type="checkbox" checked={includeGame} onChange={e=>setIncludeGame(e.target.checked)}/> Include measured game screen brightness, contrast and color</label><GameChatTools bridge={gameBridge} busy={busy} route={route} optedIn={includeGame}/></>:<p>Observation mode: creature identity and your message. No live game vision bridge is connected.</p>}
@@ -243,14 +264,14 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   </div>
   <form data-companion-chat-form className={styles.form} onSubmit={send}>
    <label htmlFor="beast-talk-input" className={styles.srOnly}>Message to {persona.name}</label>
-   <textarea id="beast-talk-input" value={text} onChange={e=>editText(e.target.value)} rows={compact?2:3} maxLength={MAX_MESSAGE} disabled={busy}
+   <textarea id="beast-talk-input" value={conversationReady?text:''} onChange={e=>editText(e.target.value)} rows={compact?2:3} maxLength={MAX_MESSAGE} disabled={busy||cloudRestoring||!conversationReady}
     placeholder={`Say something to ${persona.name}…`} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();e.currentTarget.form?.requestSubmit();}}}/>
    <div className={styles.actions}>
     <button type="button" className={styles.ghost} onClick={listen} aria-pressed={listening} disabled={busy}>{listening?'Stop':'🎙 Voice'}</button>
     {lastReply?<button type="button" className={styles.ghost} onClick={speak} aria-pressed={speaking}>{speaking?'Stop voice':'🔊 Hear reply'}</button>:null}
     {log.length?<button type="button" className={styles.ghost} onClick={clearLog} disabled={busy}>Clear</button>:null}
     {busy?<button type="button" className={styles.ghost} onClick={cancel}>Cancel</button>:null}
-    <button type="submit" className={styles.send} disabled={busy||!ready||!text.trim()}>{busy?'Waiting…':'Send'}</button>
+    <button type="submit" className={styles.send} disabled={busy||cloudRestoring||!conversationReady||!text.trim()}>{busy?'Waiting…':'Send'}</button>
    </div>
    <small className={styles.count}>{text.length}/{MAX_MESSAGE} · {retention==='device'?'Saved on this device':'Kept in this tab'} · {persona.name}.</small>
   </form>

@@ -11,5 +11,5 @@ export default function SolGameTalk({active=true,observeGame,applyGameAction,can
   register();window.addEventListener('beastbox:request-game-chat-bridge',register);
   return()=>{window.removeEventListener('beastbox:request-game-chat-bridge',register);window.dispatchEvent(new CustomEvent('beastbox:game-chat-release',{detail:token.current}));};
  },[active,observeGame,applyGameAction,canGuide,gameKey]);
- return <div data-spark-game-talk><button type="button" onClick={()=>window.dispatchEvent(new Event('beastbox:open-chat'))}>TALK TO {shownName(session?.beast)||'Zeref'}</button></div>;
+ return <div data-spark-game-talk><button type="button" aria-controls="beast-chat-overlay" onClick={event=>window.dispatchEvent(new CustomEvent('beastbox:open-chat',{detail:{opener:event.currentTarget}}))}>TALK TO {shownName(session?.beast)||'Zeref'}</button></div>;
 }

@@ -73,6 +73,7 @@ jobs:
           export BEAST_EVIDENCE_DIR="$output/$BEAST_TEST_BROWSER/rooms"
           mkdir -p "$BEAST_EVIDENCE_DIR"
           node tests/brain-world.cjs http://127.0.0.1:3000 | tee "$output/$BEAST_TEST_BROWSER/rooms.log"
+          node tests/settings-ready-browser.cjs http://127.0.0.1:3000 | tee "$output/$BEAST_TEST_BROWSER/settings.log"
           BEAST_POPUP_SCREENSHOTS="$output/$BEAST_TEST_BROWSER/spark" node tests/spark-chat-popup-browser.cjs | tee "$output/$BEAST_TEST_BROWSER/spark.log"
       - uses: actions/upload-artifact@v4
         if: always()
