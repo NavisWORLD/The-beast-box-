@@ -128,7 +128,7 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
      {catalog.active.model==='rawrphos-native'&&catalog.active.loaded_step?' Loaded native step: '+catalog.active.loaded_step+'.':null}
      {catalog.reapproval_required?' Remote model needs owner approval after restart.':null}
     </p>
-    {catalog.choices.map(option=>{
+    {(()=>{const renderChoice=(option:typeof catalog.choices[number])=>{
      const active=catalog.active.model===option.model&&
       (option.kind==='local'?!catalog.active.remote:catalog.active.remote)&&
       (option.choice==='rawrphos_native'?catalog.active.experimental!==true:
@@ -172,7 +172,15 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
         </>:null}
       </div>}
      </div>;
-    })}
+    };
+    const isHome=(c:string)=>c==='rawrphos_native'||c==='rawrphos_native_18k_experimental'||c==='rawrphos_hf';
+    const isEngine=(c:string)=>c==='qc67_phos'||c==='qc67_samgo';
+    return <>
+     <details className="ws-section" open data-ws-section="home-brain"><summary>RAWRPHØS · home brain (stable 14K is the default)</summary>{catalog.choices.filter(o=>isHome(o.choice)).map(renderChoice)}</details>
+     <details className="ws-section" data-ws-section="teachers"><summary>Teachers · local, Ollama cloud &amp; Hugging Face providers</summary>{catalog.choices.filter(o=>!isHome(o.choice)&&!isEngine(o.choice)).map(renderChoice)}</details>
+     <details className="ws-section" data-ws-section="engines"><summary>COSMOS custom engines · PHOS / SAMGO (experimental)</summary>{catalog.choices.filter(o=>isEngine(o.choice)).map(renderChoice)}</details>
+    </>;})()}
+    <details className="ws-section" data-ws-section="hf-inventory"><summary>My Hugging Face models · phera-ra</summary>
     <div className="record" aria-label="My Hugging Face models">
      <h3>My Hugging Face models · phera-ra</h3>
      <p>Read-only public inventory. Research checkpoints are listed, but custom PHOS/SAMGO architectures need their own tested serving adapters. A Transformers tag is only a candidate, not proof the Router will serve it.</p>
@@ -200,6 +208,8 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
        </>}
       </>}
     </div>
+    </details>
+    <details className="ws-section" data-ws-section="engine-notes"><summary>About the COSMOS custom engines</summary>
     <div className="record" aria-label="COSMOS custom engines">
      <h3>Existing COSMOS custom models &amp; engines</h3>
      <p><strong>PHOS / dyn12</strong> and <strong>SAMGO / 54D</strong> — original pinned native PyTorch models when their verified loopback sidecar is installed; otherwise unavailable. Published provenance:
@@ -208,6 +218,7 @@ export default function ModelSwitcher({backendReachable,onSwitched}:{
      <p><strong>COSMIC.CYPHER</strong> — installed coding-agent engine, not a separate language-model checkpoint. Its CLI can register these two local model endpoints (or RAWRPHØS/SmolLM2) with explicit workspace permissions. Experimental PHOS/SAMGO may not reliably produce tool-action JSON.</p>
      <p>RAWRPHØS stable/experimental native options and the private hosted checkpoint remain separate above. No research weights are substituted or discarded.</p>
     </div>
+    </details>
     {catalog.choices.some(x=>x.requires_spend_approval)?<label className="cloud-spend">
       <input type="checkbox" checked={spendApproved} disabled={busy}
        onChange={e=>setSpendApproved(e.target.checked)}/>

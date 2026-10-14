@@ -29,6 +29,7 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
  $('talk-share-growth').checked=shareGrowth;
  input.maxLength=MAX_MESSAGE;
 
+ const TEACHER_LABEL={'guest-rawrphos':'Beast Box free host','connected-brain-bay':'Brain Bay','local-ollama':'My local Ollama','hf-byok':'My Hugging Face key'};
  for(const route of TALK_ROUTES){
   const label=document.createElement('label'),radio=document.createElement('input'),copy=document.createElement('span'),name=document.createElement('strong'),detail=document.createElement('small');
   radio.type='radio';radio.name='talk-route';radio.value=route;radio.id='talk-route-'+route;radio.setAttribute('aria-label',ROUTE_INFO[route].label);
@@ -37,8 +38,8 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
  }
  function status(){
   const route=prefs.route,info=ROUTE_INFO[route],model=route==='local-ollama'?prefs.ollamaModel:route==='hf-byok'?prefs.hfModel:info.model;
-  $('talk-source').textContent=`Selected brain: ${info.label} · ${model}`;
-  $('talk-source').title=$('talk-source').textContent;
+  $('talk-source').textContent=`Teacher: ${TEACHER_LABEL[route]||info.label}`;
+  $('talk-source').title=`Advanced · Brain: ${info.label} · ${model}`;
   $('talk-reply').textContent=pending?'Asking the selected model…':offline?'Model offline · no reply received':verified?`Connected · real reply verified ${time(verified.at)}`:'Not connected yet · each model reply is checked';
   $('talk-brain-bar').dataset.tone=pending?'busy':offline?'offline':verified?'verified':'ready';
   dialog.dataset.talkState=pending?'thinking':offline?'offline':verified?'replied':'idle';dialog.dataset.talkRoute=route;
@@ -226,7 +227,7 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
  input.addEventListener('input',()=>{pattern='';$('talk-pattern-reply').hidden=true;editDraft(input.value);});
  input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();form.requestSubmit();}});
  form.addEventListener('submit',send);$('talk-cancel').addEventListener('click',cancel);
- $('talk-change-brain').addEventListener('click',()=>{const show=$('talk-brains').hidden;$('talk-brains').hidden=!show;$('talk-change-brain').textContent=show?'Done':'Change brain';$('talk-change-brain').setAttribute('aria-expanded',String(show));if(show)scroll.scrollTop=0;});
+ $('talk-change-brain').addEventListener('click',()=>{const show=$('talk-brains').hidden;$('talk-brains').hidden=!show;$('talk-change-brain').textContent=show?'Done':'Change teacher';$('talk-change-brain').setAttribute('aria-expanded',String(show));if(show)scroll.scrollTop=0;});
  for(const [id,key]of [['talk-ollama-url','ollamaUrl'],['talk-ollama-model','ollamaModel'],['talk-hf-model','hfModel']])$(id).addEventListener('input',()=>{abandon();prefs={...prefs,[key]:$(id).value.trim()};try{device?.setItem(PREFS_KEY,JSON.stringify(prefs));}catch{}status();});
  $('talk-hf-key').addEventListener('input',()=>{abandon();try{if($('talk-hf-key').value)tab?.setItem(HF_KEY,$('talk-hf-key').value.trim());else tab?.removeItem(HF_KEY);}catch{}});
  $('talk-retention').value=retention;

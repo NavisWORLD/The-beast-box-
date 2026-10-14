@@ -39,6 +39,7 @@ const time=(at?:number)=>at?new Date(at).toLocaleTimeString([], {hour:'numeric',
  * Replies appear only after a successful, verified request.
  */
 type PanelProps={onState?:(state:TalkState)=>void;compact?:boolean;title?:string;surface?:'panel';gameBridge?:GameChatBridge|null};
+const TEACHER_LABEL:Record<string,string>={'guest-rawrphos':'Beast Box free host','connected-brain-bay':'Brain Bay','local-ollama':'My local Ollama','hf-byok':'My Hugging Face key'};
 export default function BeastTalkPanel(props:PanelProps){
  const {session}=useBeastSession(),{profile}=useCompanion();
  const persona=talkPersona({beast:session?.beast,cage:profile});
@@ -201,10 +202,11 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   <div className={styles.brainBar} data-tone={connection.tone}>
    <span className={styles.light} aria-hidden="true"/>
    <div className={styles.brainText} role="status" aria-live="polite">
-    <strong>Brain: {info.label} · <code>{modelName}</code></strong>
+    <strong data-teacher-header>{persona.name}&apos;s teacher: {TEACHER_LABEL[route]||info.label}</strong>
     <span>{connection.text}</span>
+    <a className={styles.workstationLink} href="/workspace">Workstation →</a>
    </div>
-   <button type="button" className={styles.ghost} aria-expanded={showBrains} onClick={()=>setShowBrains(v=>!v)}>{showBrains?'Done':'Change brain'}</button>
+   <button type="button" className={styles.ghost} aria-expanded={showBrains} onClick={()=>setShowBrains(v=>!v)}>{showBrains?'Done':'Change teacher'}</button>
   </div>
 
   <details className={styles.brains} data-visitor-growth>
@@ -217,7 +219,8 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   </details>
 
   {showBrains?<fieldset className={styles.brains}>
-   <legend>Choose which model gives {persona.name} a voice</legend>
+   <legend>Choose {persona.name}&apos;s teacher</legend>
+   <p className={styles.advancedBrain} data-advanced-brain>Advanced · Brain: {info.label} · <code>{modelName}</code>. Your Beast&apos;s name, story and memory stay the same; the teacher only supplies the reply.</p>
    {TALK_ROUTES.map(key=><label key={key} className={styles.brainChoice} data-selected={route===key||undefined}>
     <input type="radio" name="talk-brain" value={key} checked={route===key} onClick={()=>savePrefs({route:key as Route})} onChange={()=>savePrefs({route:key as Route})}/>
     <span><strong>{ROUTE_INFO[key].label}</strong><small>{ROUTE_INFO[key].detail}</small></span>
@@ -249,7 +252,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    <strong>Model offline: no reply was received</strong>
    <p>{offline.error}</p>
    {offline.help.length?<><span>How to connect a brain:</span><ul>{offline.help.map(line=><li key={line}>{line}</li>)}</ul></>:null}
-   {!showBrains&&offline.help.length?<button type="button" className={styles.ghost} onClick={()=>setShowBrains(true)}>Pick another brain</button>:null}
+   {!showBrains&&offline.help.length?<button type="button" className={styles.ghost} onClick={()=>setShowBrains(true)}>Pick another teacher</button>:null}
   </div>:null}
 
   <details className={styles.options}><summary>Conversation & observation settings</summary>

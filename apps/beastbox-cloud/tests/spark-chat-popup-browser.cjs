@@ -142,7 +142,7 @@ async function clickTalkAfterReload(page){
    await page.getByRole('button',{name:'Try on-device pattern',exact:true}).click();
    assert.ok((await page.locator('[data-talk-pattern]').textContent()).includes('scripted'),'pattern output is explicitly labeled');
    assert.equal(await page.locator('[data-talk-turn]').count(),0,'scripted patterns stay out of verified model history');
-   await page.getByRole('button',{name:'Change brain',exact:true}).click();
+   await page.getByRole('button',{name:'Change teacher',exact:true}).click();
    await page.getByLabel('My local Ollama',{exact:true}).check();
    await page.getByLabel('Ollama address',{exact:true}).fill('https://example.com');
    await page.getByRole('button',{name:'Send message',exact:true}).click();
