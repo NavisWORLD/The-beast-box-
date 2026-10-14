@@ -1,0 +1,31 @@
+{
+  "schema": "private-cosmos-cloud-acceptance/v1",
+  "azure": "PASSED",
+  "qvm": "RIGETTI_QVM_REMOTE",
+  "checks": [
+    "actual cross-owner namespace read denied",
+    "write/read-back, restart, idempotency and distinct worlds verified",
+    "stale version rejected",
+    "real conditional private deletion and credential revocation verified"
+  ],
+  "cleanup": true,
+  "receipt": {
+    "hash": "a4e218fc0619b5812954c1904b79808106e3e1914ca16c579ed760db1a44daf5",
+    "job_id": "5a5cfa50-c6ff-11f1-ae67-6045bdae5396",
+    "target": "rigetti.sim.qvm",
+    "shots": 256,
+    "counts": {
+      "100": 33,
+      "101": 67,
+      "110": 65,
+      "111": 34,
+      "000": 7,
+      "001": 16,
+      "010": 26,
+      "011": 8
+    },
+    "startedAt": "2026-10-13T12:12:25.343Z",
+    "completedAt": "2026-10-13T12:12:44.875Z",
+    "source": "remote simulator, never physical QPU"
+  }
+}

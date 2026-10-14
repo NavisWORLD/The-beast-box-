@@ -1,0 +1,65 @@
+{
+  "schema": "private-cosmos-http-acceptance/v1",
+  "status": "PASSED",
+  "checks": [
+    {
+      "name": "anonymous local default and explicit cloud consent",
+      "status": "PASSED"
+    },
+    {
+      "name": "two securely issued owners create distinct canonical creatures with identical names",
+      "status": "PASSED"
+    },
+    {
+      "name": "cross-account reads, updates, simulator control and deletion fail closed",
+      "status": "PASSED"
+    },
+    {
+      "name": "client owner claims, foreign origins, forged credentials and expired credentials are rejected",
+      "status": "PASSED"
+    },
+    {
+      "name": "private conversation writes are idempotent and never leak across creatures",
+      "status": "PASSED"
+    },
+    {
+      "name": "stale and simultaneous conditional writes cannot overwrite one another",
+      "status": "PASSED"
+    },
+    {
+      "name": "explicit one-use device pairing restores only the issued private owner",
+      "status": "PASSED"
+    },
+    {
+      "name": "actual Azure state survives a production server restart with the same credential",
+      "status": "PASSED"
+    },
+    {
+      "name": "corrupt cloud checkpoint fails closed and explicit recovery advances its version",
+      "status": "PASSED"
+    },
+    {
+      "name": "reset retains immutable genesis while deletion removes all private commit history",
+      "status": "PASSED"
+    },
+    {
+      "name": "revocation invalidates all paired credentials and erases private data",
+      "status": "PASSED"
+    }
+  ],
+  "cleanup": true,
+  "physicalDevice": false,
+  "lastOperation": {
+    "path": "beasts",
+    "method": "GET",
+    "status": 403,
+    "apiStatus": "OWNER_REVOKED_OR_UNKNOWN",
+    "cookieIssued": false
+  },
+  "identities": {
+    "a": "bb-7a650a0c",
+    "b": "bb-1498757e",
+    "genesisA": "7a6d0c0db913158ea7aa90daf17d2feabe91647ac97d95264f8fc32969e8a7c0",
+    "genesisB": "66555443b8d474e368072915772a44c2d1a66dc0023b37c3b0e7beda241e49c9"
+  }
+}

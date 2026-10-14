@@ -23,7 +23,7 @@ export async function savePrivateExchange(beast,exchange,{fetchImpl=globalThis.f
  if(!expectedOwner)throw Error('Restore or select your own private conversation before saving.');
  const state=await loadPrivateChat(beast,{fetchImpl,signal,expectedOwner});if(!state.consented)throw Error('Private conversation storage is off in Settings. This exchange remains on the selected device or tab.');
  if(!/^[A-Za-z0-9_-]{8,96}$/.test(exchange?.eventId||'')||!routes.includes(exchange.provider)||typeof exchange.text!=='string'||!exchange.text.trim()||exchange.text.length>400||typeof exchange.reply!=='string'||!exchange.reply.trim()||exchange.reply.length>6000)throw Error('Only a bounded completed conversation can be saved.');
- const result=await api(fetchImpl,'beasts/'+encodeURIComponent(state.id),{signal,body:{eventId:exchange.eventId,version:state.version,action:{kind:'conversation-exchange',text:exchange.text,reply:exchange.reply,provider:exchange.provider,model:exchange.model,clientAt:exchange.at}}});
+ const result=await api(fetchImpl,'beasts/'+encodeURIComponent(state.id),{signal,body:{expectedOwner:state.owner,expectedSeed:state.seed,eventId:exchange.eventId,version:state.version,action:{kind:'conversation-exchange',text:exchange.text,reply:exchange.reply,provider:exchange.provider,model:exchange.model,clientAt:exchange.at}}});
  if(result.record?.owner!==state.owner||result.record?.beastId!==state.id)throw Error('Private conversation acknowledgement changed identity.');return {owner:state.owner,id:state.id,version:result.version};
 }
 export function mergePrivateChat(local,remote){

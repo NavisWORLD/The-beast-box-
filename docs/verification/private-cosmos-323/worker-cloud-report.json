@@ -1,0 +1,43 @@
+{
+  "schema": "private-cosmos-cloud-acceptance/v1",
+  "azure": "PASSED",
+  "qvm": "RIGETTI_QVM_REMOTE",
+  "checks": [
+    "actual cross-owner namespace read denied",
+    "write/read-back, restart, idempotency and distinct worlds verified",
+    "stale version rejected",
+    "real conditional private deletion and credential revocation verified"
+  ],
+  "cleanup": true,
+  "worker": {
+    "schema": "private-growth-worker-report/v1",
+    "completed": 1,
+    "blocked": 0,
+    "canceled": 0,
+    "pending": 0,
+    "unknown": 0,
+    "attempted": 1,
+    "target": "rigetti.sim.qvm",
+    "maximumShotsPerJob": 256,
+    "costCapUsd": 0
+  },
+  "receipt": {
+    "hash": "22afe7c7508a0e592bdbf0251465771c410f4cccd16787753f8cd98825df57ea",
+    "job_id": "7cb776f4-c702-11f1-ae67-7ced8dc0ee29",
+    "target": "rigetti.sim.qvm",
+    "shots": 256,
+    "counts": {
+      "100": 32,
+      "101": 69,
+      "110": 78,
+      "111": 29,
+      "000": 8,
+      "001": 22,
+      "010": 11,
+      "011": 7
+    },
+    "startedAt": "2026-10-13T12:34:51.479Z",
+    "completedAt": "2026-10-13T12:35:03.134Z",
+    "source": "remote simulator, never physical QPU"
+  }
+}

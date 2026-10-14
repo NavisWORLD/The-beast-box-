@@ -35,7 +35,8 @@ export function publicProfileFromBeast(beast,{name}={}){
  return {schema:COSMOS_PROFILE_SCHEMA,id,name:String(name||beast.displayName||g.names?.['1']||'Beast').replace(/[^a-z0-9 _-]/gi,'').slice(0,24)||'Beast',
   provenance:{kind:'recorded-quantum-genome',backend:String(q.backend||''),job_id:String(q.job_id||''),counts_sha256:String(q.counts_sha256||''),seed:String(g.seed||'')},
   traits:{island:g.island,element:g.element,body:g.body,ears:g.ears,tail:g.tail,wings:g.wings,pattern:g.pattern,eye_style:g.eye_style,mouth:g.mouth,
-   marginals:Array.isArray(q.marginals)?q.marginals.slice(0,8):[],entropy_norm:q.entropy_norm,stats:stats(g.stats)}};
+   marginals:Array.isArray(q.marginals)?q.marginals.slice(0,8):[],entropy_norm:q.entropy_norm,
+   stats:stats(g.stats?.[String(beast.stage||1)]||g.stats)}};
 }
 
 /** From a Beast Cage classical-seeded creature. */

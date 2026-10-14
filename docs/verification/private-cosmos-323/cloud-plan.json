@@ -1,0 +1,21 @@
+{
+  "schema": "private-growth-plan/v1",
+  "tick": 1,
+  "target": "rigetti.sim.qvm",
+  "shots": 256,
+  "params": {
+    "energy": 2.199115,
+    "signal": 1.570796,
+    "resonance": 1.884956
+  },
+  "quil": "DECLARE ro BIT[3]\nRY(2.199115) 0\nRY(1.570796) 1\nRX(1.884956) 2\nCNOT 0 1\nCNOT 1 2\nMEASURE 0 ro[0]\nMEASURE 1 ro[1]\nMEASURE 2 ro[2]\n",
+  "quil_sha256": "a0a7cd29f4bc8ccf5f3fd77c0e51e7d949b8474461e98be74d337780210430b0",
+  "job_name": "private-qvm-4ace010be966a2fabd641283",
+  "scope": "private-cosmos",
+  "owner": "u_96d634c12ac6e5c8711ff43c58995f21",
+  "beast_id": "test-115a8cc226496019",
+  "event_id": "6635119e-459a-45bc-bf16-463559609022",
+  "input_hash": "ca6cb6be1f4ecd2c43b40bf91cbdab737ea4ac9f12dd0141425298da21d2865c",
+  "planned_at": "2026-10-13T12:12:25.341Z",
+  "cost_cap_usd": 0
+}

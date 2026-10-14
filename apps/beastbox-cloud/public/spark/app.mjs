@@ -1,3 +1,4 @@
+import {personalRecipeLabel} from './personal-genesis.mjs';
 import {blit,renderBeast,SPRITE} from './draw.mjs';
 import {BODIES,buildGenome,bucketTraits} from './genome.mjs';
 import {expandQvmReceipt,growthFromQvmBatch,scenarioRuns} from './qvm-growth.mjs';
@@ -81,7 +82,7 @@ function updatePlate(){if(!current)return;const beast=session.beast;$('nameplate
 function showCreature(entry,nextSession,spawn=true){
  const run=byKey.get(entry.run);if(!run)throw Error('Recorded seed is unavailable.');
  const gen=buildGenome(entry.traits,run,entry.user||null,10);current={entry,gen,run};session=nextSession;stage=session.beast.nativeStage||1;preview=false;
- cacheEyes(gen);showTraits(entry.traits);$('keeper').value=entry.user||'';
+ cacheEyes(gen);showTraits(entry.traits);$('keeper').value=session.beast.creatorLabel||entry.user||'';
  $('meta').textContent=`${gen.temperament} · ${gen.element} · ${gen.body} · ${gen.island}`;
  $('quantum').textContent=`${run.qvm?'SIMULATOR SEED':'RECORDED QUANTUM SEED'} · ${run.backend} · ${run.counts_sha256.slice(0,12)}…`;
  $('provenance').textContent=`Job ${run.job_id} · pub ${run.pub_index} · ${run.num_bits}-bit · ${run.shots} recorded shots · counts SHA-256 ${run.counts_sha256}`;
@@ -150,11 +151,13 @@ async function activityTick(){
  });});
 }
 function deviceDownload(text,name){const url=URL.createObjectURL(new Blob([text],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-async function spark(from='sliders'){
+async function spark(from='sliders',{replayCurrent=false}={}){
  const traits=from==='profile'?simulateStable($('profile').value):bucketTraits(readTraits(),10),user=$('keeper').value.trim();
  if(user&&!/^[A-Za-z0-9 ._-]{1,24}$/.test(user))throw Error('Keeper label must be 1–24 public characters.');
- const entry={traits:{focus:traits.focus,calm:traits.calm,spark:traits.spark},run:selectedRun().key,user:user||null};
+ const entry={traits:{focus:traits.focus,calm:traits.calm,spark:traits.spark},run:selectedRun().key,user:replayCurrent?(current?.gen?.inputs?.user_id??user):personalRecipeLabel()};
  await adopt(entry);
+ await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast.seed!==current.gen.seed)throw Error('Creature selection changed.');next.beast.creatorLabel=user;saveSparkSession(localStorage,next);session=next;});
+ $('keeper').value=user;
  bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();$('status').textContent='Spawned and saved on this device. The same QBEAST is ready for Beast Box and LOST COSMOS.';
 }
 async function sparkFinalDragon(){
@@ -308,7 +311,13 @@ function starterEntries(){
  if(starterCache.length)return starterCache;
  const profiles=['serene','focused','sparky','balanced','dreamy','steady','restless','mock'];
  const pool=runs.filter(row=>row.num_bits>=2),candidates=[];
- for(const profile of profiles){const traits=(({focus,calm,spark})=>({focus,calm,spark}))(simulateStable(profile));for(const seedRun of pool){try{const entry={traits,run:seedRun.key,user:null},gen=buildGenome(traits,seedRun,null,10);candidates.push({entry,gen});}catch{}}}
+ // The ordered prefix already determines all three selection passes once
+ // it contains every body, eight islands and eighteen distinct recipes.
+ const availableBodies=new Set(),availableIslands=new Set(),availableEntries=new Set();
+ scan:for(const profile of profiles){const traits=(({focus,calm,spark})=>({focus,calm,spark}))(simulateStable(profile));for(const seedRun of pool){try{
+  const entry={traits,run:seedRun.key,user:null},gen=buildGenome(traits,seedRun,null,10);candidates.push({entry,gen});availableBodies.add(gen.body);availableIslands.add(gen.island);availableEntries.add(JSON.stringify(entry));
+  if(availableBodies.size===BODIES.length&&availableIslands.size>=8&&availableEntries.size>=18)break scan;
+ }catch{}}}
  const picked=[],used=new Set(),bodies=new Set(),islands=new Set();
  const take=item=>{const key=JSON.stringify(item.entry);if(used.has(key))return false;used.add(key);picked.push(item.entry);bodies.add(item.gen.body);islands.add(item.gen.island);return true;};
  for(const item of candidates){if(!bodies.has(item.gen.body))take(item);if(bodies.size===BODIES.length)break;}
@@ -581,7 +590,7 @@ async function main(){
  if(raw){const active=replaySpark(JSON.parse(raw).text,byKey);const saved=await withSparkLock(()=>selectSpark(localStorage,active.gen));showCreature(active.entry,saved,false);}
  else await adopt(bestiary[0]&&byKey.has(bestiary[0].run)?bestiary[0]:starterEntries()[0]);
  window.addEventListener('pointerdown',unlockPreferredSound,{capture:true});window.addEventListener('touchstart',unlockPreferredSound,{capture:true,passive:true});window.addEventListener('click',unlockPreferredSound,{capture:true});window.addEventListener('keydown',unlockPreferredSound,{capture:true});
- $('generate').addEventListener('click',()=>void run(async()=>{surpriseRun();audioSfx('charge');await spark()}));$('regenerate').addEventListener('click',()=>void run(()=>spark()));$('use-profile').addEventListener('click',()=>void run(async()=>{showTraits(simulateStable($('profile').value));await spark('profile')}));$('surprise').addEventListener('click',()=>{surpriseRun();audioSfx('blip')});$('roster-search').addEventListener('input',drawBestiary);$('q').addEventListener('input',searchRuns);$('download').addEventListener('click',download);$('voice').addEventListener('click',()=>void enableVoice());$('music').addEventListener('click',toggleMusic);$('mic-react').addEventListener('click',()=>void toggleMicReaction());$('music-volume').addEventListener('input',setMusicVolume);$('drift').addEventListener('click',()=>{drift=!drift;$('drift').classList.toggle('on',drift);audioSfx('blip')});$('muse').addEventListener('click',()=>void museClick());$('stop-muse').addEventListener('click',()=>{muse?.stop();muse=null;$('status').textContent='Muse disconnected. Samples cleared.'});$('qvm-replay').addEventListener('click',()=>void run(()=>replayQvmScenario()));
+ $('generate').addEventListener('click',()=>void run(async()=>{surpriseRun();audioSfx('charge');await spark()}));$('regenerate').addEventListener('click',()=>void run(()=>spark('sliders',{replayCurrent:true})));$('use-profile').addEventListener('click',()=>void run(async()=>{showTraits(simulateStable($('profile').value));await spark('profile')}));$('surprise').addEventListener('click',()=>{surpriseRun();audioSfx('blip')});$('roster-search').addEventListener('input',drawBestiary);$('q').addEventListener('input',searchRuns);$('download').addEventListener('click',download);$('voice').addEventListener('click',()=>void enableVoice());$('music').addEventListener('click',toggleMusic);$('mic-react').addEventListener('click',()=>void toggleMicReaction());$('music-volume').addEventListener('input',setMusicVolume);$('drift').addEventListener('click',()=>{drift=!drift;$('drift').classList.toggle('on',drift);audioSfx('blip')});$('muse').addEventListener('click',()=>void museClick());$('stop-muse').addEventListener('click',()=>{muse?.stop();muse=null;$('status').textContent='Muse disconnected. Samples cleared.'});$('qvm-replay').addEventListener('click',()=>void run(()=>replayQvmScenario()));
  for(const k of ['focus','calm','spark'])$(k).addEventListener('input',()=>showTraits(readTraits()));for(const kind of ['pet','play','train','rest','care'])$(kind).addEventListener('click',()=>void run(()=>interaction(kind)));$('view').addEventListener('click',()=>void run(()=>interaction('pet')));chatPopup=createSparkChatPopup({getBeast:()=>session?.beast,getAvatar:()=>cache[stage]?.open,onVerified:recordModelReply,onPattern:localPatternReply});
  $('name-form').addEventListener('submit',event=>{event.preventDefault();void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');const named=nameBeast(next,$('beast-name').value);if(!named.ok)throw Error('Choose a name of up to 24 characters.');saveSparkSession(localStorage,next);session=next;});updatePlate();$('status').textContent=`Named ${shownName(session.beast)}. Same QBEAST, saved on this device.`;runtime.state='celebrate';runtime.until=runtime.T+1.5;});});
  $('save-here').addEventListener('click',()=>void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');saveSparkSession(localStorage,next);session=next;});$('save-state').textContent='SAVED ON THIS DEVICE';audioSfx('confirm');}));

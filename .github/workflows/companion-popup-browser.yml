@@ -20,6 +20,10 @@ jobs:
   browser-popup:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
     defaults:
       run:
         working-directory: apps/beastbox-cloud
@@ -39,14 +43,14 @@ jobs:
       - name: Install isolated real browser engines
         run: |
           npm install --prefix "$RUNNER_TEMP/companion-browser" --no-audit --no-fund playwright@1.62.1
-          "$RUNNER_TEMP/companion-browser/node_modules/.bin/playwright" install --with-deps chromium webkit
+          "$RUNNER_TEMP/companion-browser/node_modules/.bin/playwright" install --with-deps "${{ matrix.browser }}"
       - name: Preserve official Chromium runtime for reproducible isolated local debugging
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && matrix.browser == 'chromium'
         run: |
           browser_dir=$(node -e "const fs=require('fs'),path=require('path'),p=require('$RUNNER_TEMP/companion-browser/node_modules/playwright');const cache=path.dirname(path.dirname(path.dirname(p.chromium.executablePath())));process.stdout.write(path.join(cache,fs.readdirSync(cache).find(n=>n.startsWith('chromium_headless_shell-'))))")
           tar -czf "$RUNNER_TEMP/companion-chromium.tgz" -C "$browser_dir" .
       - uses: actions/upload-artifact@v4
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && matrix.browser == 'chromium'
         with:
           name: official-companion-chromium-${{ github.run_id }}
           path: ${{ runner.temp }}/companion-chromium.tgz
@@ -56,6 +60,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           export NODE_PATH="$RUNNER_TEMP/companion-browser/node_modules"
+          export BEAST_TEST_BROWSER="${{ matrix.browser }}"
           output="$GITHUB_WORKSPACE/apps/beastbox-cloud/browser-evidence/shared-chat"
           mkdir -p "$output"
           npm start -- -H 127.0.0.1 -p 3000 > "$output/server.log" 2>&1 &
@@ -65,17 +70,14 @@ jobs:
             if curl -fsS http://127.0.0.1:3000/ > /dev/null; then break; fi
             sleep 1
           done
-          for engine in chromium webkit; do
-            export BEAST_TEST_BROWSER="$engine"
-            export BEAST_EVIDENCE_DIR="$output/$engine/rooms"
-            mkdir -p "$BEAST_EVIDENCE_DIR"
-            node tests/brain-world.cjs http://127.0.0.1:3000 | tee "$output/$engine/rooms.log"
-            node tests/spark-chat-popup-browser.cjs "$output/$engine/spark" | tee "$output/$engine/spark.log"
-          done
+          export BEAST_EVIDENCE_DIR="$output/$BEAST_TEST_BROWSER/rooms"
+          mkdir -p "$BEAST_EVIDENCE_DIR"
+          node tests/brain-world.cjs http://127.0.0.1:3000 | tee "$output/$BEAST_TEST_BROWSER/rooms.log"
+          BEAST_POPUP_SCREENSHOTS="$output/$BEAST_TEST_BROWSER/spark" node tests/spark-chat-popup-browser.cjs | tee "$output/$BEAST_TEST_BROWSER/spark.log"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: shared-chat-browser-${{ github.run_id }}
+          name: shared-chat-browser-${{ matrix.browser }}-${{ github.run_id }}
           path: apps/beastbox-cloud/browser-evidence/shared-chat/
           if-no-files-found: error
           retention-days: 30
