@@ -145,6 +145,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:!low,powerPreference:'low-power'});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?1:1.4));
     renderer.outputColorSpace=THREE.SRGBColorSpace;
+    // Living Cosmos polish: filmic tone mapping for deeper, less flat contrast.
+    renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
     const scene=new THREE.Scene();
     scene.background=new THREE.Color(0x070e22);
     scene.fog=new THREE.FogExp2(0x0c1730,.035);
@@ -192,6 +194,16 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     for(let i=0;i<(low?55:120);i++)points.push((seedRandom()-.5)*8.8,.5+seedRandom()*4.5,(seedRandom()-.5)*8.8);
     starsGeom.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
     scene.add(new THREE.Points(starsGeom,new THREE.PointsMaterial({color:0xb2dfff,size:.042,transparent:true,opacity:.75})));
+    // Living Cosmos depth polish (visual only): far star shell for parallax,
+    // a soft portal rim at the pocket floor, and a nebula backdrop.
+    const farGeom=new THREE.BufferGeometry(),far:number[]=[];
+    for(let i=0;i<(low?70:180);i++){const t=seedRandom()*Math.PI*2,u=seedRandom()*.9+.05,r=26;far.push(Math.cos(t)*Math.sin(u*Math.PI)*r,Math.cos(u*Math.PI)*r*.6+6,Math.sin(t)*Math.sin(u*Math.PI)*r);}
+    farGeom.setAttribute('position',new THREE.Float32BufferAttribute(far,3));
+    scene.add(new THREE.Points(farGeom,new THREE.PointsMaterial({color:0xe6d9ff,size:.16,transparent:true,opacity:.55,fog:false,depthWrite:false})));
+    const rim=new THREE.Mesh(new THREE.RingGeometry(4.25,4.75,low?48:96),new THREE.MeshBasicMaterial({color:0x7fe6ff,transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+    rim.rotation.x=-Math.PI/2;rim.position.y=-.04;scene.add(rim);
+    const nebula=new THREE.Mesh(new THREE.SphereGeometry(30,24,12),new THREE.MeshBasicMaterial({color:0x2a1650,transparent:true,opacity:.35,side:THREE.BackSide,fog:false,depthWrite:false}));
+    scene.add(nebula);
     const resize=()=>{
      if(disposed)return;
      const rect=canvas.getBoundingClientRect();
