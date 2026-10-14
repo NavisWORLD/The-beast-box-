@@ -64,7 +64,7 @@ test('Quantum Beast bridge launches the same portable identity into current Lost
  const bridge=read('../../packages/quantum-beast/src/lost_cosmos.ts');
  assert.match(transfer,/PLAY THIS BEAST IN LOST COSMOS/);
  assert.match(transfer,/lostCosmosShareUrl/);
- assert.match(transfer,/window\.location\.assign\(url\)/);
+ assert.match(transfer,/window\.location\.assign\('\/sol-game\?import='/);assert.match(transfer,/window\.location\.assign\(await lostCosmosShareUrl/);
  assert.match(bridge,/5dd5ea0081ef61922f0a7b4b394736c9ac321629/);
  assert.match(bridge,/beastbox-lost-cosmos-transfer-v1/);
  assert.match(bridge,/LCSHARE1/);

@@ -36,3 +36,5 @@
  /* Home phones: stack just above the support Beast, both options kept. */
  :global(body:has(.cosmic-support:not(.is-open))) .dock{left:max(12px,env(safe-area-inset-left,0px));bottom:max(84px,calc(env(safe-area-inset-bottom,0px) + 80px))}
 }
+/* /sol-game: keep the site dock clear of the player MINIMIZE/PAUSE row on phones (player has its own sound). */
+@media(max-width:700px){.dock.game{left:auto;right:max(10px,env(safe-area-inset-right,0px));bottom:auto;top:max(4px,env(safe-area-inset-top,0px));z-index:90;transform:scale(.82);transform-origin:top right}}

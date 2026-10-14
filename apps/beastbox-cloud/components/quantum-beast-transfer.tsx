@@ -5,6 +5,8 @@ import {createSnapshot,parseSnapshot,serializeSnapshot,verifySnapshot,MAX_BYTES,
 import {exportGba} from '../../../packages/quantum-beast/src/gba_export';
 import {lostCosmosShareUrl,LOST_COSMOS_SOURCE_SHA} from '../../../packages/quantum-beast/src/lost_cosmos';
 import css from './quantum-beast-transfer.module.css';
+import {createGameHandoff} from '../lib/companion/game-handoff.mjs';
+import {NO_CARD} from '../lib/companion/game-import.mjs';
 import {useBeastSession} from './beast-session';
 const KEY='beastbox-quantum-beast-public-v1';
 function assertContinuation(next:Snapshot,previous:Snapshot){
@@ -55,8 +57,14 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
   if(snapshot&&!matches)throw Error('The selected genome differs from the saved Beast. Import its file or start a new portable life first.');
   const s=snapshot??await createSnapshot(profile);
   if(!snapshot)await remember(s);
-  const url=await lostCosmosShareUrl(s,verifiedKey?{trustedPublicKey:verifiedKey}:{});
-  window.location.assign(url);
+  try{createGameHandoff({qbeast:s,seed:s.profile.seed});}catch{throw Error(NO_CARD);}
+  window.location.assign('/sol-game?import='+encodeURIComponent(s.profile.id));
+ }
+ async function openSynapseShare(){
+  if(!profile)return;
+  const s=snapshot??await createSnapshot(profile);
+  if(!snapshot)await remember(s);
+  window.location.assign(await lostCosmosShareUrl(s,verifiedKey?{trustedPublicKey:verifiedKey}:{}));
  }
  async function importFile(file:File){
   if(file.size>MAX_BYTES)throw Error('Quantum Beast files must be at most 512 KiB.');
@@ -77,6 +85,7 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
    <input ref={input} disabled={busy||!ready} className={css.file} type="file" accept=".qbeast,application/json" aria-label="Quantum Beast file" onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)void run(()=>importFile(file));}}/>
   </div>
   <details className={css.details} data-bridge-advanced><summary>Advanced settings</summary>
+   <button type="button" disabled={!profile||busy||!ready||Boolean(snapshot&&!matches)} onClick={()=>void run(openSynapseShare)}>Open the web Synapse share (github.io)</button>
   <div className={css.actions}>
    <button type="button" disabled={!profile||busy||!ready} onClick={()=>void run(exportPortable)}>DOWNLOAD QUANTUM BEAST</button>
    <button type="button" disabled={busy||!ready} onClick={()=>input.current?.click()}>IMPORT QUANTUM BEAST</button>

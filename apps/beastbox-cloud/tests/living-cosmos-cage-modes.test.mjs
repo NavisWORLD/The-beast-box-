@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+const r=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+test('cage Friendly default with Advanced toggle; advanced panels hidden not removed',()=>{const s=r('components/beast-cage-portal.tsx'),c=r('app/globals.css');
+ assert.match(s,/useState<'friendly'\|'advanced'>\('friendly'\)/);assert.match(s,/data-cage-mode=\{cageMode\}/);assert.match(s,/<QbeastMenagerie \/>/);assert.match(s,/data-advanced-only/);
+ assert.match(c,/\[data-cage-mode=friendly\] \[data-advanced-only\]\{display:none\}/);});
+test('every saved creature gets an automatic dashboard; cloud growth stays one explicit tap',()=>{const d=r('components/creature-dashboard.tsx'),g=r('components/grow-in-cosmos.tsx');
+ for(const k of ['Folder','Brain state','Growth loop','<GrowInCosmos'])assert.ok(d.includes(k));assert.doesNotMatch(d,/fetch\(/);
+ assert.match(g,/onClick=\{\(\)=>void join\(\)\}/);assert.match(r('components/beast-cage-portal.tsx'),/<CreatureDashboard beast=\{session\.beast\}/);});
+test('arena sound tools collapse on phone; attack stays visible; game-room sound dock moves clear of player row',()=>{const a=r('components/spark-beast-arena.tsx');
+ assert.match(a,/Show sound controls/);assert.doesNotMatch(a,/className=\{styles\.tool\+' '\+styles\.soundTool\} onClick=\{onTap\}/);
+ assert.match(r('components/site-sound-dock.module.css'),/\.dock\.game\{/);});
