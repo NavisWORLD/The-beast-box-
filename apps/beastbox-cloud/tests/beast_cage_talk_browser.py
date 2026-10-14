@@ -19,7 +19,7 @@ with sync_playwright() as p:
   assert response and response.status==200
   expect(page.get_by_role("heading",name="Talk to your Beast.")).to_be_visible()
   # The shared composer is deliberately hidden until the visitor opens it.
-  page.locator('button[aria-controls="beast-chat-overlay"]').click()
+  page.locator('button[data-critical-control][aria-controls="beast-chat-overlay"]').click()
   overlay=page.locator('[data-companion-chat-overlay]')
   expect(overlay).to_be_visible()
   expect(overlay.get_by_text("Brain: RAWRPHØS guest")).to_be_visible()
