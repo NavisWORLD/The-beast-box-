@@ -39,9 +39,13 @@ async function checkRooms(page){
  const page=await context.newPage(),errors=[],privateCalls=[],guestCalls=[],loopbackCalls=[],cloudConfigurationReads=[];
  const anonymousCloudMetadata=await context.request.get(origin+'/api/cosmos/private/session');
  if(anonymousCloudMetadata.status()===200){const metadata=await anonymousCloudMetadata.json();assert.notEqual(metadata.authorized,true);assert.equal(metadata.owner,undefined);assert.equal(metadata.record,undefined);assert.equal(metadata.conversations,undefined);assert.equal(anonymousCloudMetadata.headers()['set-cookie'],undefined);}
- page.on('pageerror',error=>errors.push(error.message));
+ const rscTrace=[];
+ page.on('pageerror',error=>errors.push({message:error.message,stack:error.stack,page:page.url(),rscTrace:rscTrace.slice(-12)}));
+ page.on('requestfailed',request=>{if(new URL(request.url()).searchParams.has('_rsc'))rscTrace.push({event:'failed',url:request.url(),page:page.url(),error:request.failure()?.errorText});});
+ page.on('requestfinished',request=>{if(new URL(request.url()).searchParams.has('_rsc'))rscTrace.push({event:'finished',url:request.url(),page:page.url()});});
  page.on('request',request=>{
   const url=new URL(request.url());
+  if(url.searchParams.has('_rsc'))rscTrace.push({event:'started',url:request.url(),page:page.url()});
   if(url.origin===new URL(origin).origin&&url.pathname==='/api/cosmos/private/session'&&request.method()==='GET'){cloudConfigurationReads.push(request.method());return;}
   if(url.origin===new URL(origin).origin&&url.pathname.startsWith('/api/')&&!['/api/guest','/api/talk'].includes(url.pathname))privateCalls.push(url.pathname);
  });
@@ -220,6 +224,7 @@ async function checkRooms(page){
   await expect(page.getByLabel('OWNER PASSWORD')).toBeVisible();
   await expect(page.getByRole('button',{name:/Unlock workstation/})).toBeVisible();
   assert.equal(sensorCalls,0);
+  assert.equal(rscTrace.filter(row=>row.event==='started'&&new URL(row.url).pathname==='/sol-game').length,0,'An unstarted Game Boy never speculatively loads its route while the visitor talks elsewhere');
   assert.deepEqual(errors,[]);
   console.log(JSON.stringify({passed:true,browserEngine,physicalDevice:false,widths:[320,375,390,430,1280],guestFailureRequests:guestCalls.length,explicitLoopbackRequests:loopbackCalls.length,publicPrivateRequests,ownerLoginRequests:privateCalls,liveInferenceVerified:false}));
  }finally{await context.close();await browser.close();}

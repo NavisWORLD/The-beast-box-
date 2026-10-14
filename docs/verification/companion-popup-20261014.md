@@ -25,3 +25,11 @@ Baseline: PR head `5be8b4801d1e3e07c60aedf46375b0edc1001656`, incorporating main
 Native handoff/player continuity, WebKit, required hosted CI and deployed private cloud/chat/game acceptance must be evaluated on this commit before release. Local native tests use the existing pinned source `e823f5fb01efabc7b2ecae2b0d85940db44714f7` and exact production cartridge SHA-256 `425e2ace92a7c2c3d15db9b1cdd61ef538ddf46510255a2857afa27e613657c2` (2,097,152 bytes). Historical Azure 13/13 acceptance is preserved separately; it does not establish the new popup's deployed flow.
 
 Issue 323 remains open. Physical iPhone/Android, audible cartridge output, authorized cross-device private recovery and combined production acceptance are not certified by these browser fixtures.
+
+## WebKit route cancellation repair
+
+Hosted `e21412af` and `d980408c` functional popup flows progressed to the strict page-error check but intermittently rejected a speculative `/sol-game?_rsc=…` fetch. A local WebKit 26.5 / r2336 diagnostic with real RSC requests delayed 1,200 ms reproduced the same access-control error during document replacement. Request traces identified the unstarted persistent player's default-prefetch OPEN GAME link. The existing room navigation already avoids prefetch.
+
+Set only that OPEN GAME link's `prefetch={false}`. The exact delayed-request reproduction then passed with all error assertions intact; Chromium also passed. No exception filtering, forced clicks or increased acceptance deadlines were used. The browser regression now asserts zero speculative game-route requests while chatting elsewhere. Keep request diagnostics and official browser artifacts to support reproduction. Upstream lifecycle reports: https://github.com/microsoft/playwright/issues/42823 and https://github.com/microsoft/playwright/issues/43120. These reports do not establish a Beast Box CORS-policy defect; local request evidence is the basis for the focused application repair.
+
+Original cartridge handoff/player continuity passed locally in Chromium; static Spark and settings-readiness suites passed in Chromium and WebKit. WebKit checks are automated browser evidence, not a physical iPhone test. Fresh hosted checks and production verification are still required on the repaired head.
