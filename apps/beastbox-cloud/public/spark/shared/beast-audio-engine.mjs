@@ -34,8 +34,15 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
   const save = () => { try { storage && storage.setItem(MUSIC_STORAGE_KEY, JSON.stringify({ musicOn: state.musicOn, volume: state.volume, focus: state.focus })); } catch { /* optional */ } };
   const saveSite = (enabled) => { try { storage && storage.setItem(SITE_SOUND_STORAGE_KEY, enabled ? "on" : "off"); } catch { /* optional */ } };
   const snapshot = () => ({ ...state, contextState: ctx?.state || (state.unlocked ? 'unavailable' : 'locked'), audioError: state.audioError || null, scene: state.scene ? { ...state.scene } : null, playing: Boolean(timer) });
-  let cached = snapshot();
-  const emit = () => { cached = snapshot(); for (const fn of listeners) fn(); };
+  let cached = snapshot(), snapshotKey = JSON.stringify(cached);
+  const emit = () => {
+    const next = snapshot(), nextKey = JSON.stringify(next);
+    // useSyncExternalStore flushes synchronously. Repeated gesture unlocks
+    // must not publish a new snapshot when the audio state has not changed.
+    if (nextKey === snapshotKey) return;
+    cached = next; snapshotKey = nextKey;
+    for (const fn of listeners) fn();
+  };
 
   const musicAudible = () => state.unlocked && !state.sparkMuted && !state.hidden && state.musicOn && Boolean(state.scene && state.scene.enabled);
   const sfxAudible = () => state.unlocked && !state.sparkMuted && !state.hidden;
@@ -189,7 +196,10 @@ export function getBeastAudio() {
   try { if (window.localStorage.getItem(SITE_SOUND_STORAGE_KEY) === "off") shared.sparkMute(); }
   catch { /* storage unavailable: the user still controls mute in this document */ }
   const unlock = () => { try { shared.unlock(); } catch { /* audio is optional */ } };
-  for (const type of ["pointerdown", "touchstart", "touchend", "click", "keydown"]) window.addEventListener(type, unlock, { capture: true, passive: true });
+  // A checkbox toggles before click dispatch. Its React change handler must
+  // run before an audio update can rerender it; bubble click-only gestures.
+  // Pointer/touch/key gestures still unlock promptly inside user activation.
+  for (const type of ["pointerdown", "touchstart", "touchend", "click", "keydown"]) window.addEventListener(type, unlock, { capture: type !== "click", passive: true });
   window.addEventListener("beastbox:spark-mute", () => shared.sparkMute());
   window.addEventListener("beastbox:spark-unmute", () => shared.sparkUnmute());
   window.addEventListener("beastbox:gba-running", (event) => shared.setGameRunning(Boolean(event.detail)));
