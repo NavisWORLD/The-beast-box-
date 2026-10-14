@@ -1,5 +1,5 @@
 'use client';
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
 import Link from 'next/link';
 import CosmicCompanion3D from './cosmic-companion-3d';
 import ZerefMoonwraith from './zeref-moonwraith';
@@ -33,8 +33,12 @@ export default function HomepageCreature(){
  const waveMood=waved?'observing':'idle';
  const showZeref=genome?savedView==='zeref':view==='zeref';
  const zerefStats=ZEREF_PROFILE.stats;
+ // Panels start collapsed on phones so nothing covers the creature; always reopenable.
+ const [cardOpen,setCardOpen]=useState(true);
+ useEffect(()=>{if(window.matchMedia('(max-width:560px)').matches)setCardOpen(false);},[]);
+ const turn=spin?undefined:(angle??0);
  return <div className="cosmos-home-hero" aria-label="Interactive cosmic companion observatory" data-home-view={showZeref?'zeref':genome?'my-beast':'3d-model'}>
-  {showZeref?<ZerefMoonwraith greet={greet} showCaption={false} onMood={mood=>{setLine(mood.line);setZMood(mood.mood);}}/>:
+  {showZeref?<div className={'cosmos-zeref-turn'+(spin?' is-spinning':'')} data-zeref-turn={spin?'spin':String(turn)} style={spin?undefined:{transform:'rotateY('+turn+'deg)'}}><ZerefMoonwraith greet={greet} showCaption={false} onMood={mood=>{setLine(mood.line);setZMood(mood.mood);}}/></div>:
   <CosmicCompanion3D quality="low" profile={profile}
    preferSprite={Boolean(genome)} spriteGenome={genome}
    spriteStage={savedBeast?.nativeStage||savedBeast?.stage||1}
@@ -44,7 +48,7 @@ export default function HomepageCreature(){
    look={profile?.baseLook??'nebula'}
    label={genome?activeName+' · QBEAST '+savedBeast.qbeast.profile.id:'Original procedural cosmic dragon workshop guide'}
    turntable={spin} turntableAngle={angle}/>}
-  <div className={styles.bubble} role="status" aria-live="polite">
+  <details className={styles.bubble+' cosmos-home-card'} open={cardOpen} onToggle={e=>setCardOpen((e.currentTarget as HTMLDetailsElement).open)}><summary className="cosmos-home-cardsum" aria-label={cardOpen?'Minimize card':'Open card'}>{cardOpen?'–':'✦ Hi!'}</summary><div role="status" aria-live="polite">
    {genome?<><strong>✦ YOUR BEAST IS HERE</strong>
     <p>{activeName} · the same QBEAST you saved on this device.</p>
     <small>QBEAST {savedBeast.qbeast.profile.id}</small>
@@ -68,7 +72,7 @@ export default function HomepageCreature(){
     </div>
     <small>Guide reaction is visual only. Your own Beast begins when you create one.</small>
    </>}
-  </div>
+  </div></details>
   <details className="cosmos-home-viewmenu"><summary aria-label="View options">⚙ View</summary>
   <div className="cosmos-home-controls" aria-label={genome?'Choose who appears in the observatory':'Guide view and real 3D rotation controls'}>
    {genome?<>
@@ -76,13 +80,13 @@ export default function HomepageCreature(){
     <button type="button" aria-pressed={savedView==='zeref'} onClick={()=>setSavedView('zeref')}>Zeref</button>
    </>:<>
     <button type="button" aria-pressed={view==='zeref'} onClick={()=>{setView('zeref');setSpin(false);}}>Zeref</button>
-    <button type="button" aria-pressed={view==='model'} onClick={()=>setView('model')}>3D model</button>
-    {view==='model'?<>
+    <button type="button" aria-pressed={view==='model'} onClick={()=>setView('model')}>Classic 3D guide</button>
+    {<>
      <button type="button" aria-pressed={spin} onClick={()=>{setSpin(x=>!x);setAngle(null);}}>Rotate 360°</button>
      <button type="button" onClick={()=>{setSpin(false);setAngle(0);}}>Front</button>
      <button type="button" onClick={()=>{setSpin(false);setAngle(90);}}>Side</button>
      <button type="button" onClick={()=>{setSpin(false);setAngle(180);}}>Back</button>
-    </>:null}
+    </>}
    </>}
   </div>
   </details>

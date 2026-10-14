@@ -658,3 +658,16 @@ html[data-beastbox-reduced-motion="true"] *,html[data-beastbox-reduced-motion="t
 .ws-section>summary{cursor:pointer;min-height:40px;display:flex;align-items:center;font-weight:700;color:#e6ecff}
 /* Kid-friendly tap targets for the Cage's "more ways to explore" links on phones. */
 @media(max-width:480px){.cage-quiet{flex-wrap:wrap;font-size:12px;line-height:2.2}.cage-quiet a{display:inline-block;padding:6px 2px;min-height:36px}}
+
+/* Zeref turntable + collapsible home card (phone: collapsed by default) */
+.cosmos-home-hero>.cosmos-zeref-turn{width:100%;height:100%;transition:transform .5s ease;transform-style:preserve-3d;perspective:900px}
+.cosmos-zeref-turn>.zeref-moonwraith{width:100%;height:100%}
+.cosmos-zeref-turn.is-spinning{animation:cosmosZerefSpin 8s linear infinite}
+@keyframes cosmosZerefSpin{to{transform:rotateY(360deg)}}
+.cosmos-home-card>summary{list-style:none;cursor:pointer;float:right;min-width:44px;min-height:32px;margin:-4px -4px 0 6px;display:grid;place-items:center;border-radius:12px;border:1px solid #ccbbeb66;color:#e8dcff;font:700 12px system-ui}
+.cosmos-home-card>summary::-webkit-details-marker{display:none}
+.cosmos-home-card:not([open]){width:auto!important;right:6px!important;padding:2px!important;background:#241b3dcc}
+.cosmos-home-card:not([open])>summary{float:none;margin:0}
+@media(max-width:560px){.cosmos-home-viewmenu[open] .cosmos-home-controls{top:auto;bottom:calc(100% + 6px)}.cosmos-home-viewmenu{top:auto;bottom:8px}}
+@media(prefers-reduced-motion:reduce){.cosmos-zeref-turn.is-spinning{animation:none}}
+.home-pocket-layer details{display:none}
