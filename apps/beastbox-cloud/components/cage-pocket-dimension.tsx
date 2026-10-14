@@ -43,6 +43,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   return()=>{window.removeEventListener(POCKET_3D_EVENT,sync);window.removeEventListener('storage',onStorage);};
  },[]);
  const [ready,setReady]=useState(false),[failed,setFailed]=useState(false);
+ const [residentsOpen,setResidentsOpen]=useState(true);
+ useEffect(()=>{if(window.matchMedia('(max-width:560px)').matches)setResidentsOpen(false);},[]);
  const id=qbeastId||'visual-preview';
  const key=seed||'beastbox-visual-preview';
  useEffect(()=>{motion.current.position=behaviorPosition;motion.current.state=state;motion.current.stage=stage;},[behaviorPosition?.x,behaviorPosition?.y,state,stage]);
@@ -283,15 +285,16 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   })();
   return()=>{disposed=true;cancelAnimationFrame(frame);cleanup();releaseListeners();};
  },[key,failed,reduced,visualSettings.enabled,visualSettings.quality,qvmCounts]);
- return <div className={styles.root} data-pocket-dimension="true"
+  return <div className={styles.root} data-pocket-dimension="true"
   data-world-source="genesis-nightops-core-visual-v1"
   data-pocket-state={!visualSettings.enabled?'disabled':failed?'fallback':ready?'ready':'loading'} data-creature-id={id}>
   {visualSettings.enabled&&!failed?<canvas data-pocket-webgl="true" className={styles.canvas} ref={canvasRef}
    aria-hidden="true"/>:null}
   {!visualSettings.enabled?<span className={styles.sr} role="status">3D scenery is off. Your Beast and game remain available.</span>:!failed&&!ready?<span className={styles.sr} role="status">Opening the dimensional world behind your Beast…</span>:null}
  <p className={styles.sandLabel} data-sand-source={sandSource}>{SAND_LABEL} · {sandSource==='receipt'?'recorded seed + this Beast\u2019s recorded Azure simulator counts':'recorded seed only · no simulator receipt for this Beast'}</p>
+ <details className={styles.residentsBox} open={residentsOpen} onToggle={e=>setResidentsOpen((e.currentTarget as HTMLDetailsElement).open)}><summary aria-label={residentsOpen?"Minimize residents":"Show residents"}>{residentsOpen?"– Residents":"✦ Who lives here"}</summary>
  <ul className={styles.residents} aria-label="Artist-drawn Pocket residents" data-artist-residents={ARTIST_RESIDENTS.length}>
   {ARTIST_RESIDENTS.map(r=><li key={r.id} data-resident-id={r.id} data-resident-kind={r.kind}><img src={r.views.front} alt={`${r.name}: ${r.look}`} width={44} height={44} loading="lazy"/><span><b>{r.name}</b><small>{r.kind==='trainer'?'Trainer':'Beast'} · {r.origin}</small></span></li>)}
- </ul>
+ </ul></details>
  </div>;
 }
