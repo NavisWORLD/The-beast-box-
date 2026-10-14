@@ -61,7 +61,7 @@ export default function GbaControls({enabled=true,onMenu,shoulders=false}:{enabl
  const button=(name:keyof typeof GBA_KEYS,label:string,className?:string)=><button type="button" disabled={!enabled} className={className} aria-label={GBA_KEYS[name].label} data-game-action={GBA_ACTIONS[name]} data-pressed={pressed.has(name)||undefined} onPointerDown={event=>hold(name,event)} onKeyDown={event=>key(name,event,true)} onKeyUp={event=>key(name,event,false)} onBlur={()=>controllerInput(name,false,'keyboard')}>{label}</button>;
  return <div className={css.handheld} data-handheld-controls="game-boy" aria-label="Lost COSMOS controls">
   <div className={css.brand} aria-hidden="true">BEAST BOY <span>•</span> LOST COSMOS</div>
-  {shoulders?<div className={css.shoulders}>{button('l','L')}<span>BEAST BOY · LOST COSMOS</span>{button('r','R')}</div>:null}
+  {shoulders?<div className={css.shoulders}>{button('l','L')}{button('r','R')}</div>:null}
   <div className={css.face}>
    <div className={css.pad} aria-label="D-pad">{button('up','▲',css.up)}{button('left','◀',css.left)}<i aria-hidden="true"/>{button('right','▶',css.right)}{button('down','▼',css.down)}</div>
    <div className={css.actions}>{button('b','B',css.b)}{button('a','A',css.a)}</div>
