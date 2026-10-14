@@ -239,7 +239,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   </fieldset>:null}
 
   <div className={styles.log} aria-label={`Conversation with ${persona.name}`} aria-live="polite">
-   {log.length===0?<p className={styles.empty}>Say hi to {persona.name}. Replies come from the brain shown above, never from a script.</p>:
+   {log.length===0?<p className={styles.empty}>Say hi to {persona.name}! 👋 Type below, then tap Send.<small> Replies come from the teacher shown above, never from a script.</small></p>:
     log.map((turn,i)=><div key={i} className={turn.role==='you'?styles.you:styles.beast}>
      <span className={styles.speaker}>{turn.role==='you'?'You':persona.name}{turn.role==='beast'&&turn.model?<em> · via {turn.model}</em>:null}</span>
      <p>{turn.text}</p>

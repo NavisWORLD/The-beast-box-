@@ -656,3 +656,5 @@ html[data-beastbox-reduced-motion="true"] *,html[data-beastbox-reduced-motion="t
 /* Workstation: collapsible model sections. */
 .ws-section{margin:10px 0;border:1px solid #8fa2ff33;border-radius:14px;padding:4px 10px;background:#0b123066}
 .ws-section>summary{cursor:pointer;min-height:40px;display:flex;align-items:center;font-weight:700;color:#e6ecff}
+/* Kid-friendly tap targets for the Cage's "more ways to explore" links on phones. */
+@media(max-width:480px){.cage-quiet{flex-wrap:wrap;font-size:12px;line-height:2.2}.cage-quiet a{display:inline-block;padding:6px 2px;min-height:36px}}
