@@ -1,5 +1,6 @@
 'use client';
-import {ARTIST_RESIDENTS,residentView} from '../lib/companion/artist-residents.mjs';
+import {ARTIST_RESIDENTS} from '../lib/companion/artist-residents.mjs';
+import {addPocketResidents} from './pocket-residents';
 import {useEffect,useRef,useState} from 'react';
 import {createPocketSky,orbitPosition} from '../lib/pocket-sky.mjs';
 import {DEFAULT_POCKET_3D,POCKET_3D_KEY,POCKET_3D_EVENT,POCKET_3D_CAMERA_RESET,devicePocket3D} from '../lib/companion/pocket-3d-settings.mjs';
@@ -205,27 +206,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     rim.rotation.x=-Math.PI/2;rim.position.y=-.04;scene.add(rim);
     const nebula=new THREE.Mesh(new THREE.SphereGeometry(30,24,12),new THREE.MeshBasicMaterial({color:0x2a1650,transparent:true,opacity:.35,side:THREE.BackSide,fog:false,depthWrite:false}));
     scene.add(nebula);
-    // Artist-drawn residents roam the pocket (Cory's own art; no quantum seed).
-    const loader=new THREE.TextureLoader(),texCache=new Map<string,import('three').Texture>();
-    const tex=(src:string)=>{let t=texCache.get(src);if(!t){t=loader.load(src);t.colorSpace=THREE.SRGBColorSpace;texCache.set(src,t);}return t;};
-    const residents=ARTIST_RESIDENTS.map((r,i)=>{
-     const mat=new THREE.SpriteMaterial({map:tex(r.views.front),transparent:true,depthWrite:false});
-     const sprite=new THREE.Sprite(mat);const h=.95*r.scale;sprite.scale.set(h,h,1);sprite.name=r.id;
-     const shadow=new THREE.Mesh(new THREE.CircleGeometry(.32*r.scale,20),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.32,depthWrite:false}));
-     shadow.rotation.x=-Math.PI/2;shadow.position.y=-.03;scene.add(sprite);scene.add(shadow);
-     return {r,sprite,shadow,h,phase:i*1.37+seedRandom()*2,radius:r.kind==='trainer'?2.2:2.7+seedRandom()*1.1,speed:(r.kind==='trainer'?.05:.09+seedRandom()*.06)*(i%2?1:-1),src:r.views.front,x:0,z:0};
-    });
-    const stepResidents=(t:number,theta:number)=>{
-     for(const a of residents){
-      const ang=a.phase+t*a.speed,x=Math.cos(ang)*a.radius+Math.sin(t*.31+a.phase)*.35,z=Math.sin(ang)*a.radius*.85;
-      const heading=Math.atan2(x-a.x,z-a.z);a.x=x;a.z=z;
-      const bob=reduced?0:Math.abs(Math.sin(t*3+a.phase))*.06;
-      a.sprite.position.set(x,a.h/2+bob,z);a.shadow.position.set(x,-.03,z);
-      const view=residentView(a.r,heading,theta);const m=a.sprite.material;
-      if(view.src!==a.src){m.map=tex(view.src);m.needsUpdate=true;a.src=view.src;}
-      a.sprite.scale.x=Math.abs(a.sprite.scale.x)*(view.flip?-1:1);
-     }
-    };
+    // Artist-drawn residents (separate creatures, never the active Beast) roam the pocket.
+    const {stepResidents,texCache}=addPocketResidents(THREE,scene,seedRandom,reduced);
     const resize=()=>{
      if(disposed)return;
      const rect=canvas.getBoundingClientRect();
