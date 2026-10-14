@@ -46,6 +46,14 @@ export default function CosmicCompanion3D({state='idle',look='nebula',intensity=
     const rig=createCreatureRig(profile,look,quality);
     const {group:creature,body,bodyMaterial,fins,halo,motes}=rig;
     scene.add(creature);
+    // Living Cosmos depth polish: grounded contact shadow + soft back glow, slight low-angle perspective.
+    const bounds=new THREE.Box3().setFromObject(creature);
+    const shadowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');if(g){const r=g.createRadialGradient(32,32,2,32,32,32);r.addColorStop(0,'rgba(4,2,16,.62)');r.addColorStop(1,'rgba(4,2,16,0)');g.fillStyle=r;g.fillRect(0,0,64,64);}return new THREE.CanvasTexture(c);})();
+    const shadow=new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.1),new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false}));
+    shadow.rotation.x=-Math.PI/2;shadow.position.y=Number.isFinite(bounds.min.y)?bounds.min.y-.04:-1.3;scene.add(shadow);
+    const backGlow=new THREE.Mesh(new THREE.CircleGeometry(1.9,48),new THREE.MeshBasicMaterial({color:0x6b4fd8,transparent:true,opacity:.16,depthWrite:false,blending:THREE.AdditiveBlending}));
+    backGlow.position.set(0,.1,-1.6);scene.add(backGlow);
+    camera.position.set(0,-.35,7.6);camera.lookAt(0,.05,0);
     const onLost=(event:Event)=>{event.preventDefault();cancelAnimationFrame(animation);setReady(false);setFallback(true);};
     element.addEventListener('webglcontextlost',onLost);
     const resize=()=>{
@@ -80,6 +88,7 @@ export default function CosmicCompanion3D({state='idle',look='nebula',intensity=
       rotationRef.current.angle!==null?rotationRef.current.angle*Math.PI/180:
       Math.sin(t*.42)*.13+(mood==='observing'?.16:0);
      creature.rotation.z=Math.sin(t*.73)*.055;
+     shadow.scale.setScalar(1-Math.min(.25,Math.max(0,creature.position.y)*.9));
      body.scale.y=.99+energy*.08+(mood==='thinking'?.034*Math.sin(t*4):0);
      halo.rotation.y=t*.57;
      fins.forEach((p,i)=>{p.rotation.z=-i*Math.PI*2/fins.length+Math.sin(t*1.4+i*.82)*(.04+energy*.06);});
@@ -102,6 +111,7 @@ export default function CosmicCompanion3D({state='idle',look='nebula',intensity=
      observer.disconnect();document.removeEventListener('visibilitychange',visibility);
      element.removeEventListener('webglcontextlost',onLost);
      rig.dispose();
+     shadow.geometry.dispose();(shadow.material as import('three').Material).dispose();shadowTex.dispose();backGlow.geometry.dispose();(backGlow.material as import('three').Material).dispose();
      renderer.dispose();
     };
    }catch{
