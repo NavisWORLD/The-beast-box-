@@ -10,17 +10,17 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 8,
- "xp": 523,
+ "tick": 9,
+ "xp": 550,
  "stage": 2,
  "stage_name": "Duskwing",
  "signals": {
-  "energy": 85,
-  "signal": 60,
-  "memory": 70,
+  "energy": 79,
+  "signal": 59,
+  "memory": 71,
   "resonance": 98
  },
- "bond": 2,
+ "bond": 2.25,
  "care_total": 0,
  "combos_known": [
   "idle|still|moon-pool|folded|sway|open|smile",
@@ -165,12 +165,17 @@
   "hover|hover|crystal|folded|sway|closed|grin",
   "hover|still|crystal|folded|sway|open|grin",
   "hover|hover|portal|folded|sway|open|grin",
-  "curious|still|crystal|folded|sway|closed|o"
+  "curious|still|crystal|folded|sway|closed|o",
+  "pounce|pounce|open-pocket|folded|sway|closed|grin",
+  "pounce|pounce|moon-pool|beating|lash|closed|grin",
+  "hover|hover|moon-pool|folded|sway|open|smile",
+  "hover|hover|crystal|beating|sway|open|smile",
+  "curious|still|portal|folded|sway|open|smile"
  ],
  "places": {
-  "Rift Gate": 4,
+  "Rift Gate": 5,
   "Lattice Arch": 6,
-  "Echo Prism": 9,
+  "Echo Prism": 11,
   "Tidewell": 1,
   "Quartz Choir": 2,
   "Violet Shard": 2,
@@ -205,17 +210,17 @@
    1,
    2,
    10,
-   9,
-   7,
+   10,
+   8,
    6,
    0,
    6,
    4,
-   3,
-   10,
-   12,
-   8,
-   7,
+   4,
+   13,
+   16,
+   11,
+   9,
    5,
    4,
    2
@@ -226,14 +231,14 @@
    29
   ],
   "moves": {
-   "succeeded": 155,
+   "succeeded": 170,
    "blocked": 5
   },
   "value": {
-   "portal-6": 0.4899,
+   "portal-6": 0.5161,
    "portal-5": 0.5238,
    "moon-pool-0": 0.1639,
-   "crystal-4": 0.6746,
+   "crystal-4": 0.6993,
    "moon-pool-1": 0.282,
    "crystal-2": 0.4474,
    "crystal-3": 0.3506
@@ -241,19 +246,19 @@
   "prefs": {
    "explore": 0.8425,
    "visit": 1,
-   "rest": 0.188,
-   "play": 0.9566
+   "rest": 0.107,
+   "play": 1
   },
   "goals": {
    "explore": 39,
-   "visit": 28,
-   "rest": 6,
-   "play": 14,
+   "visit": 32,
+   "rest": 9,
+   "play": 19,
    "come": 0
   },
-  "goal": "explore",
-  "decisions": 87
+  "goal": "visit",
+  "decisions": 99
  },
- "last_tick_at": "2026-10-13T23:06:54.720Z",
- "last_entry_hash": "facaae4c954f889f5cb5bb48dfc910236ddf2ed0576647bcfb9a71bb3038033a"
+ "last_tick_at": "2026-10-14T01:54:52.866Z",
+ "last_entry_hash": "37d8a551115544dc462e238844029d4374f117413ba661f0683df8fd42cc81d6"
 }
