@@ -103,7 +103,7 @@ test('reduced motion: no locomotion, zero motion amplitudes, taps still change e
 test('the home hero and support mascot use Zeref while keeping existing systems',()=>{
  const hero=read('components/homepage-creature.tsx');
  assert.match(hero,/<ZerefMoonwraith/);
- assert.match(hero,/useState<View>\('zeref'\)/,'Zeref is the default guide');
+ assert.match(hero,/useState<View>\('zeref3d'\)/,'3D Zeref is the default guide');
  assert.match(hero,/CosmicCompanion3D quality="low"/,'3D guide kept one tap away');
  assert.match(hero,/preferSprite=\{Boolean\(genome\)\}/,'saved QBEAST keeps its own sprite');
  assert.match(hero,/not a live quantum link/);

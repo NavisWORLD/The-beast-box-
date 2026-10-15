@@ -15,6 +15,8 @@ type Props={
  behaviorPosition:{x:number;y:number}|null; state:string;
  onActiveChange:(active:boolean)=>void;
  qvmCounts?:Record<string,number>|null;
+ /** Slow camera auto-orbit (home pocket). Drag still takes over; paused in reduced motion. */
+ autoOrbit?:boolean;
 };
 const clamp=(x:number,low:number,high:number)=>Math.min(high,Math.max(low,x));
 const visualSeed=(s:string)=>{let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);return h>>>0;};
@@ -30,7 +32,9 @@ const randomFor=(s:string)=>{let v=visualSeed(s)||1;return()=>{v^=v<<13;v^=v>>>1
  * The existing SparkBeastArena remains visible and interactive IN FRONT of
  * this canvas, with exactly the original canonical QBEAST sprite/voice/saves.
  */
-export default function CagePocketDimension({seed,qbeastId,stage,reduced,behaviorPosition,state,onActiveChange,qvmCounts=null}:Props){
+export default function CagePocketDimension({seed,qbeastId,stage,reduced,behaviorPosition,state,onActiveChange,qvmCounts=null,autoOrbit=false}:Props){
+ const autoOrbitRef=useRef(autoOrbit);autoOrbitRef.current=autoOrbit;const lastDragAt=useRef(0);
+ useEffect(()=>{if(autoOrbit)cameraView.current={...cameraView.current,zoom:13.4,phi:1.12};},[autoOrbit]);
  const sandSource=qvmCounts?'receipt':'seed';
  const canvasRef=useRef<HTMLCanvasElement>(null);
  const motion=useRef({position:behaviorPosition,state,stage,impulse:0});
@@ -69,7 +73,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    const dx=event.clientX-prev.x,dy=event.clientY-prev.y;
    if(Math.abs(dx)+Math.abs(dy)>3)moved=true;
    if(activePointers.size===1){
-    cameraView.current.theta-=dx*.009;
+    cameraView.current.theta-=dx*.009;lastDragAt.current=performance.now();
     cameraView.current.phi=clamp(cameraView.current.phi+dy*.008,.35,1.47);
    }else if(activePointers.size===2){
     const other=[...activePointers.entries()].find(([id])=>id!==event.pointerId)?.[1];
@@ -156,24 +160,27 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // Living Cosmos polish: filmic tone mapping for deeper, less flat contrast.
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
     const scene=new THREE.Scene();
-    scene.background=new THREE.Color(0x070e22);
-    scene.fog=new THREE.FogExp2(0x0c1730,.035);
+    scene.background=new THREE.Color(0x05040f);
+    scene.fog=new THREE.FogExp2(0x0d0a26,.032);
     const camera=new THREE.PerspectiveCamera(46,1,.1,70);
     scene.add(new THREE.HemisphereLight(0x94d9ff,0x20113b,1.8));
     const moonlight=new THREE.PointLight(0xa8eaff,24,12);
     moonlight.position.set(0,4,1);scene.add(moonlight);
     const glow=new THREE.PointLight(0xba82f4,13,11);glow.position.set(-2,2,-3);scene.add(glow);
-    const stone=new THREE.MeshStandardMaterial({color:0x19304d,roughness:.9,metalness:.06});
-    const floraMat=new THREE.MeshStandardMaterial({color:0x3fa8a0,emissive:0x0c5b6a,emissiveIntensity:.24,roughness:.52});
-    const crystalMat=new THREE.MeshStandardMaterial({color:0x9b9cf6,emissive:0x554b9e,emissiveIntensity:.3,metalness:.2,roughness:.32});
+    // Lost COSMOS look: dark cosmic sand floor instead of blue stone.
+    const stone=new THREE.MeshStandardMaterial({color:0x1c1530,emissive:0x0a0618,roughness:1,metalness:.02});
+    const floraMat=new THREE.MeshStandardMaterial({color:0x6fe7ff,emissive:0x2aa6d6,emissiveIntensity:.9,metalness:.3,roughness:.18,transparent:true,opacity:.9});
+    const crystalMat=new THREE.MeshStandardMaterial({color:0xc6a2ff,emissive:0x7a4fe0,emissiveIntensity:.95,metalness:.3,roughness:.18,transparent:true,opacity:.92});
     const ground=new THREE.Mesh(new THREE.BoxGeometry(9.1,.22,9.1),stone);
     ground.position.y=-.17;scene.add(ground);
     const grid=new THREE.GridHelper(9,12,0x4983a4,0x284c74);
     grid.position.y=-.05;scene.add(grid);
+    // Faded, not deleted: the grid now only whispers under the sand.
+    (grid.material as import('three').Material).transparent=true;(grid.material as import('three').Material).opacity=.07;
     // Dimensional pocket: finite cubic world occupying only the circle.
     const bounds=new THREE.LineSegments(
       new THREE.EdgesGeometry(new THREE.BoxGeometry(9.2,5.2,9.2)),
-      new THREE.LineBasicMaterial({color:0x718dcc,transparent:true,opacity:.27}));
+      new THREE.LineBasicMaterial({color:0x8f7ad8,transparent:true,opacity:.06}));
     bounds.position.y=2.45;scene.add(bounds);
     const seedRandom=randomFor(key),flora:import('three').Object3D[]=[];
     for(let i=0;i<(low?17:34);i++){
@@ -184,8 +191,10 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(.14+seedRandom()*.22,0),crystalMat);
       crystal.position.set(x,.3,z);scene.add(crystal);flora.push(crystal);
      }else{
-      const trunk=new THREE.Mesh(new THREE.ConeGeometry(.14+seedRandom()*.15,height,5),floraMat);
-      trunk.position.set(x,height*.5,z);scene.add(trunk);flora.push(trunk);
+      // Glowing crystal spire cluster (was a cone tree): 2-3 stretched shards per site.
+      const cluster=new THREE.Group();cluster.position.set(x,0,z);
+      for(let k=0;k<2+(i%2);k++){const r=.07+seedRandom()*.08;const shard=new THREE.Mesh(new THREE.OctahedronGeometry(1,0),k%2?crystalMat:floraMat);shard.scale.set(r,height*(.45+k*.18),r);shard.position.set((seedRandom()-.5)*.22,height*(.42+k*.12),(seedRandom()-.5)*.22);shard.rotation.set((seedRandom()-.5)*.5,seedRandom()*3,(seedRandom()-.5)*.5);cluster.add(shard);}
+      scene.add(cluster);flora.push(cluster);
      }
     }
     // The second CodePen's cyrb128/sfc32-based small celestial generator;
@@ -210,8 +219,31 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     scene.add(new THREE.Points(farGeom,new THREE.PointsMaterial({color:0xe6d9ff,size:.16,transparent:true,opacity:.55,fog:false,depthWrite:false})));
     const rim=new THREE.Mesh(new THREE.RingGeometry(4.25,4.75,low?48:96),new THREE.MeshBasicMaterial({color:0x7fe6ff,transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
     rim.rotation.x=-Math.PI/2;rim.position.y=-.04;scene.add(rim);
-    const nebula=new THREE.Mesh(new THREE.SphereGeometry(30,24,12),new THREE.MeshBasicMaterial({color:0x2a1650,transparent:true,opacity:.35,side:THREE.BackSide,fog:false,depthWrite:false}));
+    // Nebula shader adapted from Cory's "Genesis Engine: The Definitive Core" (createNebula: fbm noise,
+    // additive, BackSide sphere) and tinted to the Lost COSMOS violet/cyan palette.
+    const nebulaMat=new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,fog:false,blending:THREE.AdditiveBlending,
+     uniforms:{time:{value:0},baseColor:{value:new THREE.Color(0x5b2fb0)},altColor:{value:new THREE.Color(0x1f8fb8)},noiseScale:{value:.09},density:{value:.85}},
+     vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+     fragmentShader:'uniform float time;uniform vec3 baseColor;uniform vec3 altColor;uniform float noiseScale;uniform float density;varying vec3 vP;'+
+      'float h(vec3 p){p=fract(p*.3183099+.1);p*=17.0;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}'+
+      'float n(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.0-2.0*f);return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z);}'+
+      'float fbm(vec3 p){float v=0.0,a=.5;for(int i=0;i<5;i++){v+=a*n(p);p*=2.02;a*=.5;}return v;}'+
+      'void main(){vec3 p=vP*noiseScale+vec3(time*.015,0.0,time*.01);float f=fbm(p);float g=fbm(p*2.3+f);float m=smoothstep(.38,.9,f*.7+g*.5)*density;'+
+      'vec3 c=mix(baseColor,altColor,smoothstep(.3,.8,g));gl_FragColor=vec4(c*m,m*.8);}'});
+    const nebula=new THREE.Mesh(new THREE.SphereGeometry(30,low?24:40,low?12:24),nebulaMat);
     scene.add(nebula);
+    // Cosmic dust (Lost COSMOS particles): additive motes drifting up through the pocket.
+    const dustN=low?90:220,dustGeom=new THREE.BufferGeometry(),dust=new Float32Array(dustN*3);
+    for(let i=0;i<dustN;i++){dust[i*3]=(seedRandom()-.5)*8.6;dust[i*3+1]=seedRandom()*4.8;dust[i*3+2]=(seedRandom()-.5)*8.6;}
+    dustGeom.setAttribute('position',new THREE.BufferAttribute(dust,3));
+    const dustPts=new THREE.Points(dustGeom,new THREE.PointsMaterial({color:0xd7b8ff,size:.07,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false}));
+    scene.add(dustPts);
+    // Shimmering fluid pool: a small cosmic spring off to one side of the creature.
+    const poolMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{time:{value:0}},
+     vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+     fragmentShader:'uniform float time;varying vec2 vU;void main(){vec2 q=vU-.5;float r=length(q)*2.0;if(r>1.0)discard;float w=.5+.5*sin(r*18.0-time*2.2)*sin(atan(q.y,q.x)*3.0+time*.7);'+
+      'vec3 c=mix(vec3(.12,.55,.85),vec3(.65,.4,1.0),w);gl_FragColor=vec4(c*(1.0-r*.7),(1.0-r)*.55+.08);}'});
+    const pool=new THREE.Mesh(new THREE.CircleGeometry(1,low?32:64),poolMat);pool.rotation.x=-Math.PI/2;pool.position.set(2.15,-.03,-1.7);pool.scale.setScalar(.95);scene.add(pool);
     // Artist-drawn residents (separate creatures, never the active Beast) roam the pocket.
     const {stepResidents,texCache,disturbers}=addPocketResidents(THREE,scene,seedRandom,reduced);
     const sand=addPocketSand(THREE,scene,{seed:key,low,reduced});
@@ -238,6 +270,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      if(document.hidden||!visible||now-lastPaint<(low?55:33))return;
      lastPaint=now;
      if(!reduced)elapsed+=dt;
+     nebulaMat.uniforms.time.value=elapsed;poolMat.uniforms.time.value=elapsed;
+     if(!reduced){for(let i=0;i<dustN;i++){let y=dust[i*3+1]+dt*(.12+(i%5)*.03);if(y>4.8)y=0;dust[i*3+1]=y;dust[i*3]+=Math.sin(elapsed*.4+i)*dt*.05;}dustGeom.attributes.position.needsUpdate=true;}
+     if(autoOrbitRef.current&&!reduced&&now-lastDragAt.current>2500)cameraView.current.theta+=dt*.09;
      motion.current.impulse=Math.max(0,motion.current.impulse-dt*.35);
      const pulse=motion.current.impulse;
      // World vegetation responds to the recorded/native stage and actual
