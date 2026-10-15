@@ -36,6 +36,7 @@ def ref_nll(path):
    x=torch.tensor([n[:-1]]);y=torch.tensor([[-100]*(len(front)-1)+tail])
    tot+=float(m(x,targets=y)["loss"])
  return tot/len(PAIRS)
+GAME_WORDS=re.compile(r"ACTION:|\b(UP|DOWN|LEFT|RIGHT|WAIT)\b|^\s*[AB]\s*\.?\s*$")
 def reply_ok(r):
  s=r.strip();words=s.split()
  if not s or len(s)>400 or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f]",s):return False
@@ -45,7 +46,9 @@ def replies(path):
  e=Engine(path,max_new_tokens=40,threads=2);out=[]
  for i,p in enumerate(CHAT):
   r=e.complete(fmt(p),max_tokens=40,temperature=0,seed=7+i,timeout=60)
-  out.append({"prompt":p,"reply":r,"ok":reply_ok(r),"action_leak":bool(re.search(r"ACTION:",r))})
+  # A game-key word (UP/DOWN/LEFT/RIGHT/WAIT, a bare A/B, or ACTION:) in a chat
+  # reply counts as a leak; a one-word reply is not an OK conversational reply.
+  out.append({"prompt":p,"reply":r,"ok":reply_ok(r) and len(r.split())>=2,"action_leak":bool(GAME_WORDS.search(r))})
  return out
 def score(path):
  rs=replies(path)
@@ -53,7 +56,7 @@ def score(path):
   "action_leaks":sum(r["action_leak"] for r in rs),"replies":rs}
 def main(base,cand,out):
  b,c=score(base),score(cand)
- gate={"ref_nll_not_worse_than_2pct":c["ref_nll"]<=b["ref_nll"]*1.02,
+ gate={"ref_nll_not_worse":c["ref_nll"]<=b["ref_nll"],
   "ok_replies_not_fewer":c["ok_replies"]>=b["ok_replies"],
   "no_more_game_action_leaks":c["action_leaks"]<=b["action_leaks"]}
  res={"schema":"rawrphos-chat-eval-v1","prompts_ref":len(PAIRS),"prompts_chat":len(CHAT),
