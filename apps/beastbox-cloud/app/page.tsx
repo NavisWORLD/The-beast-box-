@@ -4,6 +4,7 @@ import HomePocket from '../components/home-pocket';
 import CosmicSupportWidget from '../components/cosmic-support-widget';
 import { ArrowUpRight, BrainCircuit, Orbit, Sparkles } from 'lucide-react';
 import BrandCrest from '@/components/brand-crest';
+import KidJourneyRail from '@/components/kid-journey-rail';
 import { ROOMS } from '@/lib/rooms';
 import RoomLink from '@/components/room-link';
 
@@ -56,6 +57,7 @@ export default function Home(){
  </section>
 
  <section className="value-strip"><span>MODEL ≠ MEMORY</span><span>MODEL ≠ STATE</span><span>MODEL ≠ AUTHORITY</span></section>
+ <section aria-label="Your Beast journey" style={{maxWidth:1100,margin:'0 auto',padding:'6px 20px 0',width:'100%'}}><KidJourneyRail/></section>
  <section className="feature-section">
   <div><p className="eyebrow">START SIMPLE · GO DEEP WHEN YOU WANT</p><h2>There is a door<br/><em>for however you think.</em></h2></div>
   <div className="feature-grid">{P.map(x=><RoomLink key={x.title} href={x.href} className="feature-card" data-tone={P.indexOf(x)}><x.icon size={27}/><h3>{x.title}</h3><p>{x.copy}</p><span className="secondary-link">Open →</span></RoomLink>)}</div>

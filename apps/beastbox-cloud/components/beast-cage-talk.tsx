@@ -8,10 +8,11 @@ import BeastTalkPanel,{type TalkState} from './beast-talk-panel';
 import ZerefMoonwraith from './zeref-moonwraith';
 import {useCompanion} from './companion-provider';
 import {useBeastSession} from './beast-session';
+import {SCENE_CAPTION} from './beast-talk-scene-caption';
 import styles from './beast-cage-talk.module.css';
 
 const CREATURE:Record<TalkState,CreatureState>={idle:'idle',thinking:'thinking',listening:'listening',speaking:'celebrating',replied:'observing',offline:'idle'};
-const CAPTION:Record<TalkState,string>={idle:'WAITING FOR YOUR MESSAGE',thinking:'MODEL REQUEST PENDING',listening:'LISTENING',speaking:'READING THE REPLY ALOUD',replied:'REPLY VERIFIED',offline:'MODEL OFFLINE · NO REPLY INVENTED'};
+const CAPTION=SCENE_CAPTION;
 
 /** Talk to Beast page: the animated habitat reacts to the real request state of the shared talk panel. */
 export default function BeastCageTalk(){
