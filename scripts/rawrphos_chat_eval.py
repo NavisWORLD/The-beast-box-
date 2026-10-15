@@ -26,12 +26,13 @@ PAIRS=[("Say hello.","Hello."),("What is two plus two?","Four."),
 CHAT=["Hi! Who are you?","How is your day going?","Tell me something fun.",
  "What do you like to do?","Can you be my friend?","What is a dragon?",
  "Say something kind.","What should we explore today?"]
-def fmt(p):return f"User: {p}\nAssistant: "
+# Exactly the RAWRPHOS server chat template (models/rawrphos/inference/server.py).
+def fmt(p):return f"user: {p}\nassistant:"
 def ref_nll(path):
  c=load_checkpoint(path,load_training_state=False);m,t=c["model"],c["tokenizer"];m.eval();tot=0.
  with torch.inference_mode():
   for p,a in PAIRS:
-   front=t.encode(fmt(p),add_bos=True);tail=t.encode(a,add_eos=True);n=front+tail
+   front=t.encode(fmt(p),add_bos=True);tail=t.encode(" "+a,add_eos=True);n=front+tail
    x=torch.tensor([n[:-1]]);y=torch.tensor([[-100]*(len(front)-1)+tail])
    tot+=float(m(x,targets=y)["loss"])
  return tot/len(PAIRS)
