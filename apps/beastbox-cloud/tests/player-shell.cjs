@@ -200,16 +200,16 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/p
   const battery=await core.evaluate(()=>{EJS_emulator.pause();const gm=EJS_emulator.gameManager;gm.saveSaveFiles();return Array.from(gm.getSaveFile(false));});
   await shell.getByRole('button',{name:'FULL SCREEN',exact:true}).click();await shell.getByRole('button',{name:'MINIMIZE',exact:true}).click();await shell.getByRole('button',{name:'RESTORE GAME',exact:true}).click();
   assert.equal(digest(await core.evaluate(()=>{const gm=EJS_emulator.gameManager;gm.saveSaveFiles();return Array.from(gm.getSaveFile(false));})),digest(battery),'layout transitions preserve every native battery byte at a fixed CPU checkpoint');
-  await shell.getByRole('button',{name:'SAVE JOURNEY',exact:true}).click();await shell.getByRole('status').filter({hasText:'journey saved to the same Beast'}).waitFor({timeout:15000});
+  await (async()=>{const m=shell.getByRole('button',{name:'☰ MENU',exact:true}).last();if(await m.getAttribute('aria-expanded')!=='true')await m.click();})();await shell.getByRole('button',{name:'SAVE JOURNEY',exact:true}).click();await shell.getByRole('status').filter({hasText:'journey saved to the same Beast'}).waitFor({timeout:15000});
   const returned=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')));
   assert.equal(returned.beast.localGrowth.status,'unsigned-local');assert.deepEqual(returned.beast.qbeast,qbeast);
   assert.equal(digest(Buffer.from(returned.beast.game.native_save,'base64')),digest(battery),'same Beast receives actual native battery after resize/minimize/restore');
   const applied=returned.beast.localGrowth.applied.length;
-  await shell.getByRole('button',{name:'SAVE JOURNEY',exact:true}).click();await shell.getByRole('status').filter({hasText:'journey saved to the same Beast'}).waitFor();
+  await (async()=>{const m=shell.getByRole('button',{name:'☰ MENU',exact:true}).last();if(await m.getAttribute('aria-expanded')!=='true')await m.click();})();await shell.getByRole('button',{name:'SAVE JOURNEY',exact:true}).click();await shell.getByRole('status').filter({hasText:'journey saved to the same Beast'}).waitFor();
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast.localGrowth.applied.length),applied,'identical native return is replay protected');
   await core.evaluate(()=>EJS_emulator.play());
   // Client-side browsing must not remount the persistent dock's native iframe.
-  await shell.getByRole('link',{name:'BEAST BOX ↗',exact:true}).click();await page.waitForURL(root+'/beast-cage');await continuity('browse Beast Box');
+  await (async()=>{const m=shell.getByRole('button',{name:'☰ MENU',exact:true}).last();if(await m.getAttribute('aria-expanded')!=='true')await m.click();})();await shell.getByRole('link',{name:'BEAST BOX ↗',exact:true}).click();await page.waitForURL(root+'/beast-cage');await continuity('browse Beast Box');
   await page.getByRole('link',{name:'Home',exact:true}).click();await page.waitForURL(root+'/');await continuity('browse homepage');
   for(const width of [320,375,390,430]){
    await page.setViewportSize({width,height:844});
