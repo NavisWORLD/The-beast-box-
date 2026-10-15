@@ -21,6 +21,6 @@ export default function HomePocket(){
  return <div className="home-pocket-layer" aria-hidden="true" data-home-pocket={own?'saved-beast':zeref?'zeref-bb-deada969':'guide'}>
   <CagePocketDimension seed={beast?beast.genome?.seed||beast.seed:null} qbeastId={beast?beast.qbeast.profile.id:null}
    stage={beast?(beast.nativeStage||1):1} behaviorPosition={beast?beast.behavior?.position||null:null}
-   state={beast?visualStateFromBeast(beast):'idle'} reduced={reduced} onActiveChange={noop} qvmCounts={qvmCounts}/>
+   state={beast?visualStateFromBeast(beast):'idle'} reduced={reduced} onActiveChange={noop} qvmCounts={qvmCounts} autoOrbit/>
  </div>;
 }
