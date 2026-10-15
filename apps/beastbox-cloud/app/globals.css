@@ -699,3 +699,14 @@ body:has(.zeref-sprite3d) .cosmic-support{transform:scale(.7);transform-origin:b
  .beast-landing-creature:has(.zeref-sprite3d){left:24%;width:52%;top:10%;height:56%}
  .beast-landing-creature:has(.zeref-sprite3d) .cosmos-home-viewmenu{top:auto;bottom:-78px;left:50%;transform:translateX(-50%)}
 }
+/* OPEN THE LIVING COSMOS — one overlay placement system for the Lost COSMOS player.
+   The player publishes html[data-game-player]; fixed docks yield to it here only. */
+html[data-game-player=immersive] aside[aria-label="Cosmic sound controls"],
+html[data-game-player=fullscreen] aside[aria-label="Cosmic sound controls"],
+html[data-game-player=immersive] .companion-dock,
+html[data-game-player=fullscreen] .companion-dock,
+html[data-game-player=immersive] button[aria-controls=beast-chat-overlay][data-critical-control],
+html[data-game-player=fullscreen] button[aria-controls=beast-chat-overlay][data-critical-control]{display:none!important}
+@media(max-width:480px){
+ html[data-game-player=minimized] button[aria-controls=beast-chat-overlay][data-critical-control]{bottom:calc(72px + env(safe-area-inset-bottom))!important}
+}

@@ -15,3 +15,11 @@
  .shell[data-player-mode=minimized] .header{flex-direction:row;align-items:center;gap:6px}
  .shell[data-player-mode=minimized] .open,.shell[data-player-mode=minimized] .header>button{min-height:40px;padding:6px 10px;font-size:11px}}
 .status details>summary{min-height:36px;display:flex;align-items:center}
+/* OPEN THE LIVING COSMOS: expanded portrait play gives the framebuffer the full width
+   (edge to edge, thin bezel) instead of a ~7% bump, and drops the status line. */
+@media(orientation:portrait){
+ .shell[data-player-mode=fullscreen],.shell[data-player-mode=immersive]{padding-left:0;padding-right:0;gap:6px}
+ .shell[data-player-mode=fullscreen]>.screen,.shell[data-player-mode=immersive]>.screen{max-width:none;border-width:2px;border-bottom-width:2px;border-radius:0}
+ .shell[data-player-mode=fullscreen]>:not(.screen),.shell[data-player-mode=immersive]>:not(.screen){padding-inline:max(10px,env(safe-area-inset-left))}
+ .shell[data-player-mode=fullscreen] .status,.shell[data-player-mode=immersive] .status{display:none}
+}
