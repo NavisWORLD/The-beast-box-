@@ -1,5 +1,6 @@
 'use client';
 import GrowInCosmos from './grow-in-cosmos';
+import FamilyExplain from './family-explain';
 import {shownName} from '../lib/companion/session.mjs';
 import type {CosmosProfile} from '../public/spark/cosmos-profile.mjs';
 
@@ -21,6 +22,9 @@ export default function CreatureDashboard({beast,cosmosProfile}:{beast:any;cosmo
   <details><summary>🧠 Brain state</summary>
    <ul><li>Mood: {beast.mood||g.mood||'calm'}</li><li>XP {Number(beast.xp)||0} · Bond {Number(beast.bond)||0} · Energy {Number(beast.energy)||0}</li>
     <li>Memories learned: {steps}</li><li data-advanced-only>Local model: {typeof g.model==='string'?g.model:g.model?.name||'browser-local'} · stage {beast.stage||1}</li></ul>
+  </details>
+  <details><summary>👪 Explain {name} to my family</summary>
+   <FamilyExplain input={beast}/>
   </details>
   <details><summary>🌱 Growth loop</summary>
    <p>{name} grows here every time you play, feed and talk. To keep growing while you&apos;re away, tap once below.</p>
