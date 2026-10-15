@@ -1,0 +1,81 @@
+name: Zeref 012E observed collision learning (negative examples + heldout)
+on:
+  pull_request:
+    paths:
+      - 'scripts/zeref_012e_collision_dataset.mjs'
+      - 'scripts/zeref_012e_collision_head.py'
+      - 'apps/beastbox-cloud/tests/zeref-012e-negative-outcomes.test.mjs'
+      - 'tests/test_zeref_012e_collision_head.py'
+      - '.github/workflows/zeref-012e-collision-learning.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: zeref-012e-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  risk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Replay canonical pocket rules; hash-verify all known failures and outcomes
+        run: |
+          set -Eeuo pipefail
+          node --test apps/beastbox-cloud/tests/zeref-012e-negative-outcomes.test.mjs
+          node scripts/zeref_012e_collision_dataset.mjs --write
+          node scripts/zeref_012e_collision_dataset.mjs --check
+      - name: Install bounded CPU-only safety head dependencies
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e ./models/rawrphos
+          python -m py_compile scripts/zeref_012e_collision_head.py
+          python -m unittest discover -s tests -p test_zeref_012e_collision_head.py -v
+      - name: Train 128-update positive and negative outcome risk head with shuffled control
+        run: |
+          set -Eeuo pipefail
+          python -u scripts/zeref_012e_collision_head.py --updates 128 --prospective 16 \
+            --data build/zeref-012e-negative-outcomes --out build/zeref-012e-risk-head
+      - name: Independently enforce frozen lineage and explicit negative-result reporting
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          o=Path('build/zeref-012e-risk-head')
+          p=json.loads((o/'report.json').read_text())
+          assert p['schema']=='zeref-012e-collision-head/v1'
+          assert p['training_performed'] and p['real_auxiliary_neural_risk_weights_updated']
+          assert p['approved_zeref_parent_unchanged'] and p['language_012d_branch_unchanged']
+          assert p['game_012d_branch_unchanged'] and p['not_012d_game_model_weight_training']
+          assert p['no_quantum_to_action_training_pairs'] and not p['visitor_memory_used']
+          assert not p['production_promoted'] and not p['native_game_objectives_claimed']
+          assert len(p['pilot_gates'])==6
+          assert p['steps_per_arm']==128
+          assert len(p['prospective_layouts'])==16
+          assert (o/'observed_outcomes.safetensors').exists()
+          assert (o/'shuffled_labels.safetensors').exists()
+          print('ZEREF_012E_REAL_AUXILIARY_RISK_TRAINING_AND_SEPARATE_HELDOUT_REPORT_OK')
+          print('Gates (may be false):',json.dumps(p['pilot_gates'],sort_keys=True))
+          PY
+      - name: Archive collision proof and separately trained research-only head
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-012e-collision-evidence-${{ github.run_id }}
+          path: |
+            build/zeref-012e-negative-outcomes/
+            build/zeref-012e-risk-head/
+          retention-days: 60
+          if-no-files-found: warn
