@@ -1,10 +1,10 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import CosmicCompanion3D from './cosmic-companion-3d';
+import PixelBeast from './pixel-beast';
+import Link from 'next/link';
 import {useCompanion} from './companion-provider';
 import {useBeastSession} from './beast-session';
 import {shownName} from '../lib/companion/session.mjs';
-import {talkPersona} from '../lib/companion/beast-talk.mjs';
 import {deriveEmotions,emotionLine} from '../lib/companion/emotion.mjs';
 import {createActor,motionPersona,stepActor} from '../lib/companion/film-motion.mjs';
 
@@ -16,21 +16,22 @@ import {createActor,motionPersona,stepActor} from '../lib/companion/film-motion.
  */
 type Phase='idle'|'asking'|'live'|'denied'|'unsupported'|'error';
 const W=2.2; // world half-width the actor wanders in
-export default function CameraField({fullscreen=false,autoStart=false,floorPx=0}:{fullscreen?:boolean;autoStart?:boolean;floorPx?:number}){
+export default function CameraField({fullscreen=false,autoStart=false,floorPx=0,onLive}:{fullscreen?:boolean;autoStart?:boolean;floorPx?:number;onLive?:(live:boolean)=>void}){
  const {profile}=useCompanion();const {session}=useBeastSession();
- const beast:any=session?.beast?.qbeast?.profile?.id?session.beast:(session?.beast||null);
- const name=beast?shownName(beast):talkPersona({beast:null,cage:profile}).name;
- const em:any=deriveEmotions(beast);
+ // The user's own selected creature: the same saved QBEAST the /spark picker, Surprise Me and the Cage write.
+ const beast:any=session?.beast?.genome?.seed?session.beast:null;
+ const name=beast?shownName(beast):'your creature';
+ const em:any=deriveEmotions(beast);void Link;
  const video=useRef<HTMLVideoElement>(null),stream=useRef<MediaStream|null>(null);
  const stage=useRef<HTMLDivElement>(null),body=useRef<HTMLDivElement>(null);
  const [phase,setPhase]=useState<Phase>('idle'),[msg,setMsg]=useState(''),[react,setReact]=useState('');
  const actor=useRef<any>(null),look=useRef<{x:number;z:number}|null>(null);
- function stop(){stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;if(video.current)video.current.srcObject=null;setPhase(p=>p==='live'||p==='asking'?'idle':p);}
+ function stop(){stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;if(video.current)video.current.srcObject=null;setPhase(p=>p==='live'||p==='asking'?'idle':p);onLive?.(false);}
  async function start(){
   setMsg('');
   if(typeof navigator==='undefined'||!navigator.mediaDevices?.getUserMedia){setPhase('unsupported');setMsg('This browser has no camera access here (it needs HTTPS and a camera). The creature still wanders on the starfield.');return;}
   setPhase('asking');
-  try{const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});stream.current=s;const v=video.current;if(v){v.setAttribute('playsinline','');v.muted=true;v.srcObject=s;await v.play().catch(()=>{});}setPhase('live');}
+  try{const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});stream.current=s;const v=video.current;if(v){v.setAttribute('playsinline','');v.muted=true;v.srcObject=s;await v.play().catch(()=>{});}setPhase('live');onLive?.(true);}
   catch(e:any){stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;const denied=e?.name==='NotAllowedError'||e?.name==='SecurityError';setPhase(denied?'denied':'error');setMsg(denied?'Camera permission was not granted. Nothing was recorded. The creature keeps exploring the starfield instead; you can allow the camera in Safari settings (aA → Website Settings → Camera) and tap Start camera again.':`Camera could not start (${e?.name||'error'}). The creature keeps exploring the starfield.`);}
  }
  useEffect(()=>{const hide=()=>{if(document.hidden)stop();};document.addEventListener('visibilitychange',hide);window.addEventListener('pagehide',stop);return()=>{document.removeEventListener('visibilitychange',hide);window.removeEventListener('pagehide',stop);stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;};},[]);
@@ -49,7 +50,7 @@ export default function CameraField({fullscreen=false,autoStart=false,floorPx=0}
     const z=Math.max(-1,Math.min(1,ps.z/W));const depth=.75+.25*(z+1)/2; // z>0 nearer the viewer → lower and bigger
     const left=50+Math.max(-1,Math.min(1,ps.x/W))*38;const bottom=4+(1-(z+1)/2)*16;
     el.style.left=`${left}%`;el.style.bottom=`calc(${floorPx}px + ${bottom}%)`;
-    el.style.transform=`translateX(-50%) translateY(${-ps.lift*90}px) scale(${depth*(ps.sx||1)},${depth*(ps.sy||1)}) scaleX(${Math.sin(ps.heading)<0?-1:1})`;
+    el.style.transform=`translateX(-50%) translateY(${-ps.lift*90}px) scale(${depth*(ps.sx||1)},${depth*(ps.sy||1)}) rotateY(${Math.sin(ps.heading)<0?180:0}deg) rotateX(8deg)`;
     el.dataset.state=ps.state;}
    raf=requestAnimationFrame(tick);};
   raf=requestAnimationFrame(tick);return()=>cancelAnimationFrame(raf);
@@ -70,8 +71,8 @@ export default function CameraField({fullscreen=false,autoStart=false,floorPx=0}
   <div ref={stage} onPointerDown={onTap} data-field-stage style={{position:'relative',width:'100%',height:fullscreen?'100dvh':'min(70dvh,620px)',borderRadius:fullscreen?0:18,overflow:'hidden',touchAction:'manipulation',background:'radial-gradient(circle at 50% 30%,#2a1d55,#050914 70%)'}}>
    <video ref={video} playsInline muted autoPlay aria-label="Live camera preview (not recorded)" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:live?1:0}}/>
    <div aria-hidden style={{position:'absolute',left:0,right:0,bottom:0,height:'26%',background:'linear-gradient(transparent,#0006)',pointerEvents:'none'}}/>
-   <div ref={body} data-field-creature style={{position:'absolute',left:'50%',bottom:'8%',width:'min(46vw,230px)',height:'min(46vw,230px)',transformOrigin:'50% 100%',willChange:'transform,left,bottom'}}>
-    <CosmicCompanion3D quality="low" profile={beast?null:profile} preferSprite={false} spriteGenome={beast?.genome||null} spriteStage={beast?.nativeStage||beast?.stage||1} spriteName={name} spriteId={beast?.qbeast?.profile?.id||''} state={em.choice.state as any} label={`${name} exploring ${live?'your camera view':'the starfield'}`}/>
+   <div ref={body} data-field-creature style={{display:beast?'block':'none',perspective:600,position:'absolute',left:'50%',bottom:'8%',width:'min(46vw,230px)',height:'min(46vw,230px)',transformOrigin:'50% 100%',willChange:'transform,left,bottom'}}>
+    {beast?<div data-field-sprite={beast?.qbeast?.profile?.id||beast.genome.seed} style={{width:'100%',height:'100%',transformStyle:'preserve-3d',filter:'drop-shadow(0 10px 12px #0009)'}}><PixelBeast genome={beast.genome} stage={beast.nativeStage||beast.stage||1} publicSpark pose={em.dominant==='fear'?'emote':em.dominant==='joy'||em.dominant==='mischief'?'react':'idle'} emote={em.dominant==='fear'?'sleep':em.dominant==='joy'?'spark':'watch'} label={`${name} · same recorded-seed sprite as the catalogue`}/></div>:null}
     <span aria-hidden style={{position:'absolute',left:'22%',right:'22%',bottom:2,height:10,borderRadius:'50%',background:'#0008',filter:'blur(4px)',zIndex:-1}}/>
    </div>
    <div style={{position:'absolute',top:fullscreen?'max(100px,calc(env(safe-area-inset-top) + 92px))':10,left:10,right:10,display:'flex',flexWrap:'wrap',gap:6,alignItems:'center',pointerEvents:'none'}}>
@@ -79,6 +80,7 @@ export default function CameraField({fullscreen=false,autoStart=false,floorPx=0}
     <span data-field-emotion={em.dominant} style={{padding:'3px 9px',borderRadius:999,background:'#000a',fontSize:11}}>{name} feels {em.dominant} · {em.choice.motion}</span>
    </div>
    {react?<p role="status" style={{position:'absolute',left:12,right:12,bottom:fullscreen?`calc(${floorPx}px + 34%)`:'28%',margin:0,padding:'6px 10px',borderRadius:12,background:'#0c1228d9',fontSize:13,textAlign:'center',pointerEvents:'none'}}>{react}</p>:null}
+   {!beast?<div data-field-no-creature style={{position:'absolute',left:'50%',bottom:`calc(${floorPx}px + 8%)`,transform:'translateX(-50%)',width:'min(300px,84%)',padding:12,borderRadius:16,background:'#0c1228ee',border:'1px solid #7dd9ea66',textAlign:'center',fontSize:13}} onPointerDown={e=>e.stopPropagation()}>No creature picked yet. <a href="/spark/index.html#catalog-picker" style={{color:'#9aefff',fontWeight:700}}>Pick one in the Spark Lab catalogue</a> and it will explore here.</div>:null}
    {!live?<div data-camera-prompt style={{position:'absolute',left:'50%',top:'40%',transform:'translate(-50%,-50%)',width:'min(320px,86%)',padding:14,borderRadius:18,background:'#0c1228ee',border:'1px solid #7dd9ea66',textAlign:'center',boxShadow:'0 12px 36px #0008'}} onPointerDown={e=>e.stopPropagation()}>
     <strong style={{display:'block',fontSize:15}}>📷 Let {name} explore your world</strong>
     <p style={{fontSize:12,color:'#c6d2ee',margin:'6px 0 10px'}}>Your camera becomes the open field. The picture stays on this phone: nothing is recorded or uploaded, and the camera turns off when you leave.</p>
