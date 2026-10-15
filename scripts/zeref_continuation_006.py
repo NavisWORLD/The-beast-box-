@@ -37,11 +37,11 @@ def expected_steps(cycle):
 # (539/840) history could never move the RIGHT-only parent. Labels are now
 # sampled action-balanced, older real captures are replayed, and an L2 anchor
 # to the approved parent bounds drift (catastrophic-forgetting guard).
-LR=float(os.environ.get("ZEREF_006_LR","0.0001"))
+LR=float(os.environ.get("ZEREF_006_LR","0.00005"))
 BATCH=8
 TEACHER_VERSION="visible-signals-v2"
 CHAT_MIX=Path(os.environ.get("ZEREF_006_CHAT_MIX","build/zeref-006/chat-mix.jsonl"))
-CHAT_PER_BATCH=int(os.environ.get("ZEREF_006_CHAT_PER_BATCH","4"))  # mode-mixed: game + chat in every batch
+CHAT_PER_BATCH=int(os.environ.get("ZEREF_006_CHAT_PER_BATCH","5"))  # mode-mixed: game + chat in every batch
 DECISION_INDEX=7  # tokens of "ACTION: " are 0..6; index 7 names the key
 DECISION_WEIGHT=float(os.environ.get("ZEREF_006_DECW","1.0"))
 REPLAY_MAX_DATASETS=12
