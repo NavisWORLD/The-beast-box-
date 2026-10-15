@@ -583,6 +583,30 @@ function quarantineSaved(raw,err){
  try{const list=JSON.parse(localStorage.getItem(RECOVERY_KEY)||'[]');const keep=Array.isArray(list)?list:[];keep.push({at:new Date().toISOString(),reason,raw});localStorage.setItem(RECOVERY_KEY,JSON.stringify(keep.slice(-5)));localStorage.removeItem(QBEAST_KEY);}catch{}
  return `Your saved Beast could not be opened (${reason}). The original was kept in recovery on this device, and a starter habitat opened instead. Import your Beast file to bring it back.`;
 }
+// Surprise Me: a pure draft (no storage, permissions or spending). Only "Create" adopts it, once.
+let draft=null;
+function rollDraft(){
+ const pick=new Uint32Array(4);crypto.getRandomValues(pick);
+ const pool=runs.filter(r=>r.num_bits>=2);const run=(pool.length?pool:runs)[pick[0]%(pool.length||runs.length)];
+ const traits={focus:pick[1]%101,calm:pick[2]%101,spark:pick[3]%101};
+ const b=bucketTraits(traits,10),user=personalRecipeLabel(),gen=buildGenome(b,run,user,10);
+ draft={traits:{focus:b.focus,calm:b.calm,spark:b.spark},run:run.key,user,gen};
+ const art=$('draft-art');paintStage(art,gen,1);art.hidden=false;
+ $('draft-text').textContent=`${gen.names[1]} · ${[gen.element,gen.body].filter(Boolean).join(' ')} · seed run ${run.key}${/qvm|simulat/i.test(run.backend||run.key)?' (simulated)':''}. Reroll as often as you like.`;
+ $('draft-keep').disabled=false;
+}
+async function keepDraft(){
+ if(!draft)throw Error('Roll a draft first.');
+ const nick=$('draft-nick').value.trim(),chosen=draft;draft=null;$('draft-keep').disabled=true;
+ showTraits(chosen.traits);
+ // Adopt exactly the previewed recipe (same seed run, traits and recipe nonce), once.
+ const entry={traits:chosen.traits,run:chosen.run,user:chosen.user};
+ await adopt(entry);
+ if(current.gen.seed!==chosen.gen.seed)throw Error('The created Beast does not match the draft.');
+ bestiary=[entry,...bestiary.filter(item=>JSON.stringify(item)!==JSON.stringify(entry))].slice(0,24);localStorage.setItem(STORE,JSON.stringify(bestiary));drawBestiary();
+ if(nick){await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');const named=nameBeast(next,nick);if(!named.ok)throw Error('Choose a nickname of up to 24 characters.');saveSparkSession(localStorage,next);session=next;});updatePlate();}
+ $('draft-text').textContent=`${shownName(session.beast)} is yours, saved on this device. Rename any time under "Give your Beast a name".`;
+}
 async function main(){
  soundWanted=readSoundWanted();if(soundWanted)beastAudio.sparkUnmute();else beastAudio.sparkMute();updateVoiceButton();syncAudioUi();wirePageNavigation();installNativeBridge();
  $('btnote').textContent=bluetoothNote()||'';for(const key of Object.keys(PROFILES)){const opt=document.createElement('option');opt.value=opt.textContent=key;$('profile').append(opt)}$('profile').value='balanced';
@@ -601,7 +625,7 @@ async function main(){
  if(!raw||recovered){try{await adopt(bestiary[0]&&byKey.has(bestiary[0].run)?bestiary[0]:starterEntries()[0]);}catch(err){$('nameplate').textContent='Habitat needs recovery';$('status').textContent=`Your saved Beast could not be opened (${err.message||err}). Nothing was deleted; import a Beast file or pick a creature below.`;}}
  if(recovered)$('status').textContent=recovered;
  window.addEventListener('pointerdown',unlockPreferredSound,{capture:true});window.addEventListener('touchstart',unlockPreferredSound,{capture:true,passive:true});window.addEventListener('click',unlockPreferredSound,{capture:true});window.addEventListener('keydown',unlockPreferredSound,{capture:true});
- $('generate').addEventListener('click',()=>void run(async()=>{surpriseRun();audioSfx('charge');await spark()}));$('regenerate').addEventListener('click',()=>void run(()=>spark('sliders',{replayCurrent:true})));$('use-profile').addEventListener('click',()=>void run(async()=>{showTraits(simulateStable($('profile').value));await spark('profile')}));$('surprise').addEventListener('click',()=>{surpriseRun();audioSfx('blip')});$('roster-search').addEventListener('input',drawBestiary);$('q').addEventListener('input',searchRuns);$('download').addEventListener('click',download);$('voice').addEventListener('click',()=>void enableVoice());$('music').addEventListener('click',toggleMusic);$('mic-react').addEventListener('click',()=>void toggleMicReaction());$('music-volume').addEventListener('input',setMusicVolume);$('drift').addEventListener('click',()=>{drift=!drift;$('drift').classList.toggle('on',drift);audioSfx('blip')});$('muse').addEventListener('click',()=>void museClick());$('stop-muse').addEventListener('click',()=>{muse?.stop();muse=null;$('status').textContent='Muse disconnected. Samples cleared.'});$('qvm-replay').addEventListener('click',()=>void run(()=>replayQvmScenario()));
+ $('generate').addEventListener('click',()=>void run(async()=>{surpriseRun();audioSfx('charge');await spark()}));$('regenerate').addEventListener('click',()=>void run(()=>spark('sliders',{replayCurrent:true})));$('use-profile').addEventListener('click',()=>void run(async()=>{showTraits(simulateStable($('profile').value));await spark('profile')}));$('surprise').addEventListener('click',()=>{surpriseRun();audioSfx('blip')});$('draft-roll').addEventListener('click',()=>{rollDraft();audioSfx('blip');});$('draft-keep').addEventListener('click',()=>void run(()=>keepDraft()));$('roster-search').addEventListener('input',drawBestiary);$('q').addEventListener('input',searchRuns);$('download').addEventListener('click',download);$('voice').addEventListener('click',()=>void enableVoice());$('music').addEventListener('click',toggleMusic);$('mic-react').addEventListener('click',()=>void toggleMicReaction());$('music-volume').addEventListener('input',setMusicVolume);$('drift').addEventListener('click',()=>{drift=!drift;$('drift').classList.toggle('on',drift);audioSfx('blip')});$('muse').addEventListener('click',()=>void museClick());$('stop-muse').addEventListener('click',()=>{muse?.stop();muse=null;$('status').textContent='Muse disconnected. Samples cleared.'});$('qvm-replay').addEventListener('click',()=>void run(()=>replayQvmScenario()));
  for(const k of ['focus','calm','spark'])$(k).addEventListener('input',()=>showTraits(readTraits()));for(const kind of ['pet','play','train','rest','care'])$(kind).addEventListener('click',()=>void run(()=>interaction(kind)));$('view').addEventListener('click',()=>void run(()=>interaction('pet')));chatPopup=createSparkChatPopup({getBeast:()=>session?.beast,getAvatar:()=>cache[stage]?.open,onVerified:recordModelReply,onPattern:localPatternReply});
  $('name-form').addEventListener('submit',event=>{event.preventDefault();void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');const named=nameBeast(next,$('beast-name').value);if(!named.ok)throw Error('Choose a name of up to 24 characters.');saveSparkSession(localStorage,next);session=next;});updatePlate();$('status').textContent=`Named ${shownName(session.beast)}. Same QBEAST, saved on this device.`;runtime.state='celebrate';runtime.until=runtime.T+1.5;});});
  $('save-here').addEventListener('click',()=>void run(async()=>{await withSparkLock(()=>{const next=readSparkSession(localStorage);if(next.beast?.seed!==current.gen.seed)throw Error('The selected Beast changed.');saveSparkSession(localStorage,next);session=next;});$('save-state').textContent='SAVED ON THIS DEVICE';audioSfx('confirm');}));
