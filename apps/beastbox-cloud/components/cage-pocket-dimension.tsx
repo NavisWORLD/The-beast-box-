@@ -1,4 +1,5 @@
 'use client';
+import {addGodView,ZOOM_MIN,ZOOM_MAX} from './pocket-god-view';
 import {ARTIST_RESIDENTS} from '../lib/companion/artist-residents.mjs';
 import {addPocketResidents} from './pocket-residents';
 import {addPocketSand} from './pocket-sand-layer';
@@ -74,13 +75,13 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    if(Math.abs(dx)+Math.abs(dy)>3)moved=true;
    if(activePointers.size===1){
     cameraView.current.theta-=dx*.009;lastDragAt.current=performance.now();
-    cameraView.current.phi=clamp(cameraView.current.phi+dy*.008,.35,1.47);
+    cameraView.current.phi=clamp(cameraView.current.phi+dy*.008,.06,3.08);
    }else if(activePointers.size===2){
     const other=[...activePointers.entries()].find(([id])=>id!==event.pointerId)?.[1];
     if(other){
      const before=Math.hypot(prev.x-other.x,prev.y-other.y);
      const after=Math.hypot(event.clientX-other.x,event.clientY-other.y);
-     if(before>18&&after>18)cameraView.current.zoom=clamp(cameraView.current.zoom*before/after,5.9,14.2);
+     if(before>18&&after>18)cameraView.current.zoom=clamp(cameraView.current.zoom*before/after,ZOOM_MIN,ZOOM_MAX);
     }
    }
    activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
@@ -99,18 +100,18 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   const wheel=(event:WheelEvent)=>{
    if(isControl(event.target))return;
    event.preventDefault();
-   cameraView.current.zoom=clamp(cameraView.current.zoom+event.deltaY*.013,5.9,14.2);
+   cameraView.current.zoom=clamp(cameraView.current.zoom*Math.exp(event.deltaY*.0016),ZOOM_MIN,ZOOM_MAX);
   };
   const keyboard=(event:KeyboardEvent)=>{
    if(event.target!==parent||isControl(event.target))return;
    if(event.key==='ArrowLeft'||event.key==='ArrowRight'){
     event.preventDefault();cameraView.current.theta+=(event.key==='ArrowLeft'?.17:-.17);
    }else if(event.key==='ArrowUp'||event.key==='ArrowDown'){
-    event.preventDefault();cameraView.current.phi=clamp(cameraView.current.phi+(event.key==='ArrowUp'?-.14:.14),.35,1.47);
+    event.preventDefault();cameraView.current.phi=clamp(cameraView.current.phi+(event.key==='ArrowUp'?-.14:.14),.06,3.08);
    }else if(event.key==='+'||event.key==='='){
-    event.preventDefault();cameraView.current.zoom=clamp(cameraView.current.zoom-.7,5.9,14.2);
+    event.preventDefault();cameraView.current.zoom=clamp(cameraView.current.zoom/1.3,ZOOM_MIN,ZOOM_MAX);
    }else if(event.key==='-'){
-    event.preventDefault();cameraView.current.zoom=clamp(cameraView.current.zoom+.7,5.9,14.2);
+    event.preventDefault();cameraView.current.zoom=clamp(cameraView.current.zoom*1.3,ZOOM_MIN,ZOOM_MAX);
    }else if(event.key==='Home'){
     event.preventDefault();cameraView.current={theta:.7,phi:1.05,zoom:10.6};
    }
@@ -154,7 +155,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     if(disposed)return;
     // User quality never overrides the OS reduced-motion safety boundary.
     const low=reduced||visualSettings.quality==='low'||(visualSettings.quality==='auto'&&window.innerWidth<600);
-    const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:!low,powerPreference:'low-power'});
+    const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:!low,powerPreference:'low-power',logarithmicDepthBuffer:true});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?1:1.4));
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     // Living Cosmos polish: filmic tone mapping for deeper, less flat contrast.
@@ -162,7 +163,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const scene=new THREE.Scene();
     scene.background=new THREE.Color(0x05040f);
     scene.fog=new THREE.FogExp2(0x0d0a26,.032);
-    const camera=new THREE.PerspectiveCamera(46,1,.1,70);
+    const camera=new THREE.PerspectiveCamera(46,1,.1,30000);
     scene.add(new THREE.HemisphereLight(0x94d9ff,0x20113b,1.8));
     const moonlight=new THREE.PointLight(0xa8eaff,24,12);
     moonlight.position.set(0,4,1);scene.add(moonlight);
@@ -246,6 +247,10 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const pool=new THREE.Mesh(new THREE.CircleGeometry(1,low?32:64),poolMat);pool.rotation.x=-Math.PI/2;pool.position.set(2.15,-.03,-1.7);pool.scale.setScalar(.95);scene.add(pool);
     // Artist-drawn residents (separate creatures, never the active Beast) roam the pocket.
     const {stepResidents,texCache,disturbers}=addPocketResidents(THREE,scene,seedRandom,reduced);
+    // God view: habitat on a small planet, orbiting its suns, inside a galaxy (Genesis Engine, recoloured).
+    const god=addGodView(THREE,scene,{rand:randomFor(key+':system'),low,counts:qvmCounts,stage:motion.current.stage||stage||1});
+    const godFocus=new THREE.Vector3();
+    if(typeof window!=='undefined')(window as any).__pocketCamera=cameraView;
     const sand=addPocketSand(THREE,scene,{seed:key,low,reduced});
     sand.field.setCounts(qvmCounts);
     const resize=()=>{
@@ -295,8 +300,11 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      const v=cameraView.current;
      stepResidents(elapsed,v.theta);
      sand.update(dt,[{x:glow.position.x,z:glow.position.z,r:1.2,s:1.6+motion.current.impulse*3},{x:0,z:0,r:1.1,s:1.2},...disturbers()]);
-     camera.position.set(v.zoom*Math.sin(v.phi)*Math.sin(v.theta),v.zoom*Math.cos(v.phi),v.zoom*Math.sin(v.phi)*Math.cos(v.theta));
-     camera.lookAt(focus);
+     const f=god.update(elapsed,v.zoom,focus,godFocus);
+     (scene.fog as import('three').FogExp2).density=.032*Math.min(1,12/v.zoom);
+     camera.near=Math.max(.05,v.zoom*.01);camera.updateProjectionMatrix();
+     camera.position.set(f.x+v.zoom*Math.sin(v.phi)*Math.sin(v.theta),f.y+v.zoom*Math.cos(v.phi),f.z+v.zoom*Math.sin(v.phi)*Math.cos(v.theta));
+     camera.lookAt(f);
      try{renderer.render(scene,camera);}catch{setReady(false);setFailed(true);return;}
      if(!rendered){rendered=true;setReady(true);}
     };
