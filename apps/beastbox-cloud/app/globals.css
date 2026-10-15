@@ -720,3 +720,6 @@ html[data-game-player=fullscreen] button[aria-controls=beast-chat-overlay][data-
 @media(max-width:480px){
  html[data-game-player=minimized] button[aria-controls=beast-chat-overlay][data-critical-control]{bottom:calc(72px + env(safe-area-inset-bottom))!important}
 }
+/* Cory (Oct 15): on phones the home pocket stays clear. The roaming companion parks above the
+   TALK TO launcher instead of floating over the pocket, the My Beast/Zeref toggle and the game dock. */
+@media(max-width:560px){body:has(.beast-landing-art) .companion-dock,body:has(.beast-landing-art) [data-companion-overlay][data-roaming="active"]{left:auto!important;top:auto!important;right:max(8px,env(safe-area-inset-right))!important;bottom:calc(214px + env(safe-area-inset-bottom))!important;transition:none!important}}

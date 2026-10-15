@@ -96,7 +96,7 @@ export default function CosmicCompanionDock({model,connected,camera,speech,chatA
   const width=viewport?.width||window.innerWidth;
   const height=viewport?.height||window.innerHeight;
   const avoid:Rect[]=[];
-  const targets=document.querySelectorAll<HTMLElement>('main button, main a, main input, main textarea, [role="dialog"], aside.sidebar, header button');
+  const targets=document.querySelectorAll<HTMLElement>('main button, main a, main input, main textarea, [role="dialog"], aside.sidebar, header button, .beast-landing-art, [data-lost-cosmos-player-shell], [aria-controls="beast-chat-overlay"]');
   for(const element of targets){
    if(avoid.length>=160)break;
    if(element.closest('.companion-dock'))continue;

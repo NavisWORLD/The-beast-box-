@@ -52,3 +52,5 @@
 @media(max-width:370px){.face{grid-template-columns:92px 1fr 94px;gap:2px}.pad{transform:scale(.8);transform-origin:left center}.actions{transform:rotate(-10deg) scale(.86);transform-origin:right center}.systemKeys button{font-size:7px;padding:6px 4px}.shoulders{grid-template-columns:48px 1fr 48px;gap:6px}.shoulders button{height:28px}.shoulders span{font-size:7px}}
 @media(min-width:900px){.handheld{left:50%;right:auto;width:min(680px,70vw);transform:translateX(-50%);border-radius:34px 34px 0 0}}
 @media(prefers-reduced-motion:reduce){.sheet{transition:none}}
+
+.cameraLayer{position:absolute;inset:0;z-index:0;pointer-events:auto}

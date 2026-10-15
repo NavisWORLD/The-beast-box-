@@ -6,7 +6,7 @@ test('home guide is a visual-only reaction, not a second QBEAST or new care stor
  const src=read('components/homepage-creature.tsx');
  assert.match(src,/setWaved\(value=>!value\)/);
  assert.match(src,/state=\{genome\?visualStateFromBeast\(savedBeast\):waveMood\}/);
- assert.match(src,/preferSprite=\{Boolean\(genome\)\}/);
+ assert.match(src,/data-home-active-billboard="removed"/);
  assert.match(src,/spriteId=\{savedBeast\?\.qbeast\?\.profile\?\.id\|\|''\}/);
  assert.match(src,/same QBEAST you saved/);
  assert.match(src,/Guide reaction is visual only/);

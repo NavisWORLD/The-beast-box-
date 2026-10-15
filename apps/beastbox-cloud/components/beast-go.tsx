@@ -18,6 +18,7 @@ import SparkFieldRoster from './spark-field-roster';
 import SparkMachine from './spark-machine';
 import SparkWanderer from './spark-wanderer';
 import MetaMusePanel from './meta-muse-panel';
+import CameraField from './camera-field';
 import css from './beast-go.module.css';
 import GbaControls, {controllerInput as normalizedControllerInput} from './gba-controls';
 
@@ -290,6 +291,7 @@ export default function BeastGo() {
 
   return <main className={css.field} data-go-screen="true">
     <h1 className={css.sr}>Lost Cosmos field</h1>
+    <div className={css.cameraLayer} data-go-camera-field="true"><CameraField fullscreen floorPx={!nativePlayer && touch && !sheet ? 270 : 0} /></div>
     {guestMode && guestOpen ? <p className={css.guestNote} data-guest-play="true" id="go-guest-note">Guests play with a beast saved in this browser. No owner authority and no private memory. Talk uses the guest-safe brain.</p> : null}
     <div className={css.card} ref={cardRef}>
       <span className={css.portrait}>

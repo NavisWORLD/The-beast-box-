@@ -13,7 +13,7 @@ test('QBEAST fallback uses the real shared seeded sprite and stage',()=>{
  assert.match(scene,/renderer\.render\(scene,camera\)/);
  assert.match(home,/useBeastSession\(\)/);
  assert.match(home,/savedBeast\.qbeast\.profile\.id/);
- assert.match(home,/preferSprite=\{Boolean\(genome\)\}/);
+ assert.match(home,/data-home-active-billboard="removed"/);
  assert.match(home,/nativeStage\|\|savedBeast\?\.stage/);
 });
 test('fallback never mutates identity, growth or native battery',()=>{
