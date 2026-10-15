@@ -2,6 +2,8 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
 import {useBeastSession} from './beast-session';
+import {useCompanion} from './companion-provider';
+import {talkPersona} from '../lib/companion/beast-talk.mjs';
 import {createGameHandoff} from '../lib/companion/game-handoff.mjs';
 import {GBA_KEYS,gamepadButtons} from '../lib/companion/go-hud.mjs';
 import {applyGameReturn,shownName} from '../lib/companion/session.mjs';
@@ -18,6 +20,7 @@ type Mode='normal'|'fullscreen'|'immersive'|'minimized';
 
 export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean;stage?:boolean}) {
  const {ready,session,change}=useBeastSession();
+ const {profile:cageProfile}=useCompanion();
  const frame=useRef<HTMLIFrameElement>(null),shell=useRef<HTMLElement>(null);
  const display=useRef<ReturnType<typeof createPlayerDisplay>|null>(null);
  // Bind once on SEND BEAST. Care, navigation and layout never resend a starter save.
@@ -34,7 +37,8 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
  const expanded=mode==='fullscreen'||mode==='immersive';
  const inputEnabled=running&&!paused&&!pausePending&&!reloading&&!minimized&&active;
  const inputLive=useRef(inputEnabled);inputLive.current=inputEnabled;
- const name=shownName(bound||session?.beast),id=bound?.qbeast?.profile.id||session?.beast?.qbeast?.profile.id||'';
+ // Header names the same creature the Talk launcher and chat use (Cory 825654e1: header said 'Beast' while chat said Mirayx).
+ const name=(bound||session?.beast)?shownName(bound||session?.beast):talkPersona({beast:null,cage:cageProfile}).name,id=bound?.qbeast?.profile.id||session?.beast?.qbeast?.profile.id||'';
  const post=useCallback((data:Record<string,unknown>)=>frame.current?.contentWindow?.postMessage(data,ROOT),[]);
  // Optical state comes only from the running native framebuffer on explicit tap.
  // Never treat these numbers as semantic recognition, gameplay authority or a save.
@@ -65,6 +69,9 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
  },[release]);
  useEffect(()=>{if(!inputEnabled)release();},[inputEnabled,release]);
  useEffect(()=>{if(!stage&&bound)void display.current?.minimize();},[stage,bound]);
+ // One overlay placement system: publish the player mode so fixed docks (sound, Talk launcher,
+ // companion pill) move out of the controls instead of each guessing.
+ useEffect(()=>{const root=document.documentElement;root.dataset.gamePlayer=minimized?'minimized':mode;return()=>{delete root.dataset.gamePlayer;};},[minimized,mode]);
  useEffect(()=>{
   if(mode!=='immersive')return;
   const body=document.body,html=document.documentElement,x=window.scrollX,y=window.scrollY;
