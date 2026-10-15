@@ -19,6 +19,7 @@ const TEX=512;
  * Full 360° orbit: sculpted volumes fitted to each part's sprite bounds give the
  * sides and back; double-sided membranes (wings, ears, tail) show from behind.
  */
+const FACE=['irisL','irisR','pupilL','pupilR','lidL','lidR','lowL','lowR','browL','browR','blushL','blushR','mouth-smile','mouth-grin','mouth-o','mouth-frown','mouth-sleepy','.zeref-eye'];
 export default function ZerefSprite3D({className='',autoRotate=false,turntable=false,turntableAngle=null,greet=0,label='Zeref in 3D, built from the Moonwraith sprite'}:Props){
  const id='zs'+useId().replace(/[^a-zA-Z0-9]/g,'');
  const svgRef=useRef<SVGSVGElement>(null),canvasRef=useRef<HTMLCanvasElement>(null),wrapRef=useRef<HTMLDivElement>(null);
@@ -59,7 +60,7 @@ export default function ZerefSprite3D({className='',autoRotate=false,turntable=f
      (n as SVGElement).style.transform='none';n.removeAttribute('transform');(n as SVGElement).style.opacity='1';n.setAttribute('opacity','1');
      const par=n.parentElement;if(par)[...par.children].forEach(sib=>{if(sib!==n&&sib.tagName.toLowerCase()!=='defs'&&!sib.querySelector('defs'))sib.remove();});
     }
-    exclude.forEach(x=>{clone.querySelector(`[data-part="${x}"]`)?.remove();});
+    exclude.forEach(x=>{clone.querySelectorAll(x.startsWith('.')?x:`[data-part="${x}"]`).forEach(e=>e.remove());});
     const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)],{type:'image/svg+xml'}));
     try{const img=new Image();img.decoding='async';img.src=url;await Promise.race([img.decode(),new Promise((_,no)=>setTimeout(()=>no(new Error('decode timeout')),4000))]);const c=document.createElement('canvas');c.width=c.height=TEX;c.getContext('2d')!.drawImage(img,0,0,TEX,TEX);return c;}
     finally{URL.revokeObjectURL(url);}
@@ -79,7 +80,21 @@ export default function ZerefSprite3D({className='',autoRotate=false,turntable=f
     const rim=new THREE.Mesh(geo,rimM);rim.position.z=L.z-0.01;rim.scale.setScalar(1.012);rim.renderOrder=order++;if(L.thick)inner.add(rim);
     // Sculpted volume from this part's own sprite bounds, behind its face plane (sides/back read solid).
     const vol=volumeFor(L.part,(P[L.part] as SVGGraphicsElement|undefined)?.getBBox?.()||null);
-    if(vol){const m=new THREE.Mesh(vol.kind==='cone'?cone:sphere,fur);m.scale.set(vol.rx,vol.kind==='cone'?vol.ry*2.1:vol.ry,vol.rz);m.position.set(vol.cx,vol.cy,L.z-0.04-vol.rz);m.renderOrder=-10;inner.add(m);}
+    if(vol){
+     // Painted volume: the part's own sprite art is projected front-to-back onto the sculpted shape
+     // (back half gets the "back" cut: same fur, crescent, stripes and silhouette, no face), and the
+     // art's alpha clips the volume to Zeref's real silhouette (ears, crown spikes, tail curl).
+     const back=L.part==='head'?await cut('head',['earL','earR',...FACE]):L.part==='body'?await cut('body',['pawL','pawR']):c;if(disposed)return;
+     const backTex=back===c?tex:new THREE.CanvasTexture(back!);backTex.colorSpace=THREE.SRGBColorSpace;
+     const zc=L.z-0.04-vol.rz;
+     for(const half of [0,1]){
+      const g=vol.kind==='cone'?new THREE.ConeGeometry(1,1,18,1,true,half?Math.PI:0,Math.PI):new THREE.SphereGeometry(1,32,22,half?Math.PI:0,Math.PI);
+      const sy=vol.kind==='cone'?vol.ry*2.1:vol.ry,pos=g.attributes.position,uv=g.attributes.uv;
+      for(let i=0;i<pos.count;i++){const x=vol.cx+pos.getX(i)*vol.rx,y=vol.cy+pos.getY(i)*sy;uv.setXY(i,(x+2)/4,(y+2)/4);}uv.needsUpdate=true;
+      const mm=new THREE.MeshStandardMaterial({map:half?backTex:tex,alphaTest:.45,roughness:.7,metalness:.05,emissive:0x140a26,side:THREE.DoubleSide});
+      const m=new THREE.Mesh(g,mm);m.scale.set(vol.rx,sy,vol.rz);m.position.set(vol.cx,vol.cy,zc);m.renderOrder=-10;inner.add(m);
+     }
+    }
     const two=!!(L.wing||L.part==='tail'||L.part==='earL'||L.part==='earR'||L.floor||L.part==='aura'||L.part==='ring');
     const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,premultipliedAlpha:true,depthTest:true,depthWrite:false,side:two?THREE.DoubleSide:THREE.FrontSide});
     const mesh=new THREE.Mesh(geo,mat);mesh.position.z=L.z;mesh.renderOrder=order++;inner.add(mesh);
