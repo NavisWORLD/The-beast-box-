@@ -5,7 +5,7 @@
  * phenotypes, and a display name never selects one.
  *
  * Moonwraith display persona bb-7f9c2a03: black moon-cat/dragon, violet
- * accents, star eyes, crescent horns.
+ * accents, star eyes, crescent horns, sculpted ear pinna, gem collar.
  * Saved Zeref bb-deada969: a different dragonling silhouette. It must not
  * wear the Moonwraith body.
  */
@@ -20,12 +20,28 @@ export const SAVED_ZEREF_ID = 'bb-deada969';
 
 const PALETTE = {
   'moonwraith-artistic': {
-    fur: 0x140c22, lit: 0x3a2460, accent: 0xb57bff, eye: 0xe4d2ff,
-    wing: 0x6d3ec8, belly: 0x2a1848, horn: 0xf4ecff, pupil: 0x2a0d5e,
+    fur: 0x160d2a,
+    lit: 0x422870,
+    accent: 0xc288ff,
+    eye: 0xf0e2ff,
+    wing: 0x7c44dc,
+    belly: 0x2f1a52,
+    horn: 0xf8f0ff,
+    pupil: 0x260b58,
+    gem: 0xff66cc,
+    pink: 0xff88cc,
   },
   'dragonling-artistic': {
-    fur: 0x8a3b22, lit: 0xe09a55, accent: 0xf2c14e, eye: 0xffe7a8,
-    wing: 0x5a2744, belly: 0xf3d2b4, horn: 0x5c241c, pupil: 0x2a1208,
+    fur: 0x8e3d24,
+    lit: 0xe69f58,
+    accent: 0xf6c854,
+    eye: 0xffebb2,
+    wing: 0x62294a,
+    belly: 0xf6d8bc,
+    horn: 0x5c241c,
+    pupil: 0x2a1208,
+    gem: 0xff9933,
+    pink: 0xe07a5f,
   },
 };
 
@@ -56,10 +72,13 @@ export function dimensionalAttribution(kind) {
 }
 
 function material(THREE, color, extra = {}) {
-  return new THREE.MeshStandardMaterial({
+  const Mat = THREE.MeshPhysicalMaterial || THREE.MeshStandardMaterial;
+  return new Mat({
     color,
-    roughness: extra.roughness ?? 0.46,
-    metalness: extra.metalness ?? 0.06,
+    roughness: extra.roughness ?? 0.38,
+    metalness: extra.metalness ?? 0.08,
+    clearcoat: extra.clearcoat ?? 0.42,
+    clearcoatRoughness: 0.2,
     emissive: extra.emissive ?? 0x000000,
     emissiveIntensity: extra.emissiveIntensity ?? 0,
   });
@@ -73,23 +92,104 @@ function joint(THREE, parent, name, x, y, z) {
   return group;
 }
 
-function put(parent, mesh, name, x, y, z, scale) {
+function put(parent, mesh, name, x, y, z, scale, rot) {
   mesh.name = name;
   mesh.position.set(x, y, z);
   if (scale) mesh.scale.set(scale[0], scale[1], scale[2]);
+  if (rot) mesh.rotation.set(rot[0], rot[1], rot[2]);
   parent.add(mesh);
   return mesh;
+}
+
+function buildSculptedDimensionalSkull(THREE, moon, seg) {
+  const g = new THREE.SphereGeometry(1, seg[0], seg[1]);
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const ax = Math.abs(x);
+    if (y > 0) {
+      y *= 0.86;
+      x *= 1 + 0.06 * (1 - y);
+    } else {
+      const cheek = Math.max(0, 1 - Math.abs(y + 0.24) * 2.5) * (moon ? 0.22 : 0.14);
+      x *= 1 + cheek;
+      z *= 1 + cheek * 0.4;
+      if (y < -0.55) y *= 0.88;
+    }
+    if (z > 0.2 && y < 0.08 && y > -0.65 && ax < 0.55) {
+      const muzzle = (1 - ax / 0.55) * Math.max(0, 1 - Math.abs(y + 0.22) * 2.4);
+      z += muzzle * (moon ? 0.18 : 0.30);
+    }
+    if (z < 0) z *= 0.88;
+    pos.setXYZ(i, x, y, z);
+  }
+  pos.needsUpdate = true;
+  g.computeVertexNormals();
+  return g;
+}
+
+function buildSculptedDimensionalTorso(THREE, moon, seg) {
+  const g = new THREE.SphereGeometry(1, seg[0], seg[1]);
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    if (moon) {
+      const hipFlare = y < 0 ? 1 + Math.abs(y) * 0.18 : 1 - y * 0.10;
+      x *= hipFlare;
+      if (z > 0 && y > -0.25) z *= 1.12;
+      if (y < -0.68) y = -0.68 + (y + 0.68) * 0.35;
+    } else {
+      const chestPower = z > 0 ? 1.12 : 0.90;
+      x *= chestPower;
+      y *= z > 0 ? 1.08 : 0.88;
+    }
+    pos.setXYZ(i, x, y, z);
+  }
+  pos.needsUpdate = true;
+  g.computeVertexNormals();
+  return g;
+}
+
+function buildSculptedEar(THREE, low) {
+  const g = new THREE.ConeGeometry(0.14, 0.36, low ? 10 : 16, low ? 4 : 6);
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const t = Math.max(0, Math.min(1, (y + 0.18) / 0.36));
+    const widthCurve = Math.sin(t * Math.PI * 0.85) * 0.35 + (1 - t) * 0.85;
+    x *= widthCurve;
+    if (z > 0 && Math.abs(x) < 0.08 && t > 0.15 && t < 0.85) z *= 0.42;
+    z -= t * t * 0.04;
+    pos.setXYZ(i, x, y, z);
+  }
+  pos.needsUpdate = true;
+  g.computeVertexNormals();
+  return g;
+}
+
+function buildStar4Geo(THREE, radius = 0.048) {
+  const shape = new THREE.Shape();
+  for (let i = 0; i < 8; i++) {
+    const r = i % 2 === 0 ? radius : radius * 0.28;
+    const a = (i * Math.PI) / 4;
+    const x = Math.cos(a) * r;
+    const y = Math.sin(a) * r;
+    if (i === 0) shape.moveTo(x, y);
+    else shape.lineTo(x, y);
+  }
+  shape.closePath();
+  return new THREE.ExtrudeGeometry(shape, {depth: 0.012, bevelEnabled: false});
 }
 
 function wingShape(THREE, span, lift) {
   const shape = new THREE.Shape();
   shape.moveTo(0, 0);
-  shape.bezierCurveTo(span * 0.25, lift, span * 0.7, lift * 1.15, span, lift * 0.35);
-  shape.lineTo(span * 0.82, -lift * 0.15);
-  shape.lineTo(span * 0.42, -lift * 0.45);
-  shape.lineTo(0.02, -0.06);
+  shape.bezierCurveTo(span * 0.25, lift * 1.18, span * 0.7, lift * 1.22, span, lift * 0.38);
+  shape.quadraticCurveTo(span * 0.84, 0.04, span * 0.76, -lift * 0.22);
+  shape.quadraticCurveTo(span * 0.56, 0.0, span * 0.42, -lift * 0.45);
+  shape.quadraticCurveTo(span * 0.20, -0.04, 0.02, -0.06);
   shape.closePath();
-  return new THREE.ExtrudeGeometry(shape, {depth: 0.055, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 1});
+  return new THREE.ExtrudeGeometry(shape, {depth: 0.052, bevelEnabled: true, bevelThickness: 0.014, bevelSize: 0.012, bevelSegments: 2});
 }
 
 /**
@@ -102,64 +202,102 @@ export function buildDimensionalRig(THREE, kind, {quality = 'auto'} = {}) {
   const moon = kind === 'moonwraith-artistic';
   const colors = PALETTE[kind];
   const low = quality === 'low';
-  const seg = low ? [12, 8] : [20, 14];
+  const seg = low ? [14, 10] : [20, 16];
   const geometries = [];
   const materials = [];
   const trackGeo = geometry => {geometries.push(geometry); return geometry;};
   const trackMat = value => {materials.push(value); return value;};
-  const fur = trackMat(material(THREE, colors.fur));
-  const lit = trackMat(material(THREE, colors.lit, {emissive: colors.accent, emissiveIntensity: 0.08}));
-  const belly = trackMat(material(THREE, colors.belly));
-  const accent = trackMat(material(THREE, colors.accent, {emissive: colors.accent, emissiveIntensity: moon ? 0.35 : 0.22, roughness: 0.28}));
-  const eyeWhite = trackMat(material(THREE, colors.eye, {emissive: colors.eye, emissiveIntensity: moon ? 0.85 : 0.45, roughness: 0.18}));
-  const pupil = trackMat(material(THREE, colors.pupil, {roughness: 0.2}));
-  const wingMat = trackMat(material(THREE, colors.wing, {emissive: colors.accent, emissiveIntensity: 0.16, roughness: 0.4, transparent: true, opacity: 0.92}));
+  const fur = trackMat(material(THREE, colors.fur, {emissive: colors.lit, emissiveIntensity: 0.14}));
+  const lit = trackMat(material(THREE, colors.lit, {emissive: colors.accent, emissiveIntensity: 0.16}));
+  const belly = trackMat(material(THREE, colors.belly, {emissive: colors.belly, emissiveIntensity: 0.08}));
+  const accent = trackMat(material(THREE, colors.accent, {emissive: colors.accent, emissiveIntensity: moon ? 0.52 : 0.34, roughness: 0.22, clearcoat: 0.8}));
+  const gemMat = trackMat(material(THREE, colors.gem, {emissive: colors.gem, emissiveIntensity: 0.78, roughness: 0.12, clearcoat: 1.0}));
+  const pinkMat = trackMat(material(THREE, colors.pink, {emissive: colors.pink, emissiveIntensity: 0.35, roughness: 0.35}));
+  const eyeWhite = trackMat(material(THREE, colors.eye, {emissive: colors.eye, emissiveIntensity: moon ? 0.92 : 0.55, roughness: 0.12, clearcoat: 1.0}));
+  const pupil = trackMat(material(THREE, colors.pupil, {roughness: 0.12, clearcoat: 1.0}));
+  const wingMat = trackMat(material(THREE, colors.wing, {emissive: colors.accent, emissiveIntensity: 0.26, roughness: 0.32, clearcoat: 0.7, transparent: true, opacity: 0.94}));
   wingMat.transparent = true;
-  wingMat.opacity = 0.92;
+  wingMat.opacity = 0.94;
   wingMat.side = THREE.DoubleSide;
-  const sphere = trackGeo(new THREE.SphereGeometry(1, seg[0], seg[1]));
-  const cone = trackGeo(new THREE.ConeGeometry(0.12, moon ? 0.34 : 0.16, low ? 6 : 10));
-  const star = trackGeo(new THREE.OctahedronGeometry(moon ? 0.045 : 0.02, 0));
+
+  const sphere = trackGeo(new THREE.SphereGeometry(1, low ? 12 : 16, low ? 10 : 12));
+  const skullGeo = trackGeo(buildSculptedDimensionalSkull(THREE, moon, seg));
+  const torsoGeo = trackGeo(buildSculptedDimensionalTorso(THREE, moon, seg));
+  const earGeo = trackGeo(buildSculptedEar(THREE, low));
+  const cone = trackGeo(new THREE.ConeGeometry(0.12, moon ? 0.34 : 0.18, low ? 8 : 12));
+  const star = trackGeo(moon ? buildStar4Geo(THREE, 0.048) : new THREE.OctahedronGeometry(0.022, 0));
+  const octGem = trackGeo(new THREE.OctahedronGeometry(0.065, 0));
   const wingGeo = trackGeo(wingShape(THREE, moon ? 0.92 : 0.62, moon ? 0.42 : 0.28));
-  const crescent = moon ? trackGeo(new THREE.TorusGeometry(0.11, 0.028, low ? 6 : 8, low ? 12 : 18, Math.PI * 1.25)) : null;
+  const crescent = moon ? trackGeo(new THREE.TorusGeometry(0.115, 0.030, low ? 8 : 10, low ? 14 : 20, Math.PI * 1.28)) : null;
+  const collarTorus = moon ? trackGeo(new THREE.TorusGeometry(0.24, 0.026, 8, 18)) : null;
+
   const root = new THREE.Group();
   root.name = 'DimensionalCreature';
   root.userData = {...attribution, triangles: 0};
 
   const spine = joint(THREE, root, 'Spine', 0, moon ? 0.78 : 0.62, 0);
-  const chest = put(spine, new THREE.Mesh(sphere, fur), 'Body', 0, 0, 0, moon ? [0.52, 0.46, 0.4] : [0.34, 0.3, 0.78]);
-  put(spine, new THREE.Mesh(sphere, belly), 'Belly', 0, moon ? -0.08 : -0.06, moon ? 0.12 : 0.18, moon ? [0.28, 0.22, 0.16] : [0.2, 0.14, 0.36]);
+  put(spine, new THREE.Mesh(torsoGeo, fur), 'Body', 0, 0, 0, moon ? [0.52, 0.46, 0.4] : [0.34, 0.3, 0.78]);
+  put(spine, new THREE.Mesh(sphere, belly), 'Belly', 0, moon ? -0.06 : -0.06, moon ? 0.16 : 0.18, moon ? [0.32, 0.26, 0.22] : [0.22, 0.16, 0.38]);
+
+  if (moon) {
+    put(spine, new THREE.Mesh(sphere, lit), 'ChestRuff', 0, 0.16, 0.24, [0.28, 0.16, 0.18]);
+    const collar = put(spine, new THREE.Mesh(collarTorus, lit), 'Collar', 0, 0.25, 0.06, [1, 1, 0.9], [Math.PI * 0.48, 0, 0]);
+    void collar;
+    put(spine, new THREE.Mesh(octGem, gemMat), 'GemChoker', 0, 0.22, 0.30, [1.0, 1.25, 0.7]);
+  } else {
+    for (let i = 0; i < 4; i++) {
+      put(spine, new THREE.Mesh(cone, accent), 'DorsalSpike_' + i, 0, 0.28 - i * 0.03, 0.18 - i * 0.22, [0.45, 0.65, 0.55], [-0.32, 0, 0]);
+    }
+  }
+
   const neck = joint(THREE, spine, 'Neck', 0, moon ? 0.28 : 0.16, moon ? 0.06 : 0.48);
   const head = joint(THREE, neck, 'Head', 0, moon ? 0.22 : 0.08, moon ? 0.02 : 0.16);
-  put(head, new THREE.Mesh(sphere, fur), 'Skull', 0, 0, 0, moon ? [0.36, 0.32, 0.34] : [0.24, 0.2, 0.28]);
-  const nose = put(head, new THREE.Mesh(sphere, lit), 'Nose', 0, moon ? -0.04 : -0.02, moon ? 0.28 : 0.42, moon ? [0.12, 0.09, 0.14] : [0.1, 0.08, 0.28]);
+  put(head, new THREE.Mesh(skullGeo, fur), 'Skull', 0, 0, 0, moon ? [0.37, 0.33, 0.34] : [0.25, 0.21, 0.29]);
+
+  if (moon) {
+    put(head, new THREE.Mesh(earGeo, lit), 'CrownTuft', 0, 0.32, 0.06, [0.45, 0.42, 0.45], [-0.25, 0, 0]);
+    put(head, new THREE.Mesh(octGem, accent), 'ForeheadStar', 0, 0.15, 0.32, [0.45, 0.65, 0.30]);
+  }
+
+  const nose = put(head, new THREE.Mesh(sphere, lit), 'Nose', 0, moon ? -0.04 : -0.02, moon ? 0.29 : 0.42, moon ? [0.13, 0.095, 0.14] : [0.11, 0.085, 0.28]);
+  put(head, new THREE.Mesh(sphere, pinkMat), 'NoseTip', 0, moon ? -0.01 : 0.01, moon ? 0.41 : 0.66, [0.038, 0.028, 0.03]);
+
   const jaw = joint(THREE, head, 'Jaw', 0, -0.08, moon ? 0.12 : 0.2);
-  put(jaw, new THREE.Mesh(sphere, belly), 'JawMesh', 0, 0, 0.06, moon ? [0.1, 0.04, 0.08] : [0.08, 0.035, 0.12]);
+  put(jaw, new THREE.Mesh(sphere, belly), 'JawMesh', 0, 0, 0.06, moon ? [0.11, 0.045, 0.09] : [0.085, 0.038, 0.13]);
 
   const eyeGeoParent = head;
   for (const side of [-1, 1]) {
-    const eye = joint(THREE, eyeGeoParent, side < 0 ? 'Eye_L' : 'Eye_R', side * (moon ? 0.14 : 0.1), moon ? 0.06 : 0.04, moon ? 0.24 : 0.18);
-    put(eye, new THREE.Mesh(sphere, eyeWhite), side < 0 ? 'EyeWhite_L' : 'EyeWhite_R', 0, 0, 0, moon ? [0.075, 0.09, 0.04] : [0.055, 0.07, 0.035]);
-    if (moon) put(eye, new THREE.Mesh(star, accent), side < 0 ? 'Star_L' : 'Star_R', 0, 0, 0.04);
-    else put(eye, new THREE.Mesh(star, pupil), side < 0 ? 'Slit_L' : 'Slit_R', 0, 0, 0.03, [0.35, 1.4, 0.4]);
-    const lid = joint(THREE, eye, side < 0 ? 'Lid_L' : 'Lid_R', 0, 0.02, 0.03);
-    put(lid, new THREE.Mesh(sphere, fur), side < 0 ? 'LidMesh_L' : 'LidMesh_R', 0, 0, 0, [0.09, 0.035, 0.03]);
+    const eye = joint(THREE, eyeGeoParent, side < 0 ? 'Eye_L' : 'Eye_R', side * (moon ? 0.145 : 0.105), moon ? 0.055 : 0.04, moon ? 0.25 : 0.19);
+    put(eye, new THREE.Mesh(sphere, pupil), side < 0 ? 'EyeSocket_L' : 'EyeSocket_R', 0, 0, -0.006, moon ? [0.088, 0.102, 0.042] : [0.064, 0.08, 0.038]);
+    put(eye, new THREE.Mesh(sphere, eyeWhite), side < 0 ? 'EyeWhite_L' : 'EyeWhite_R', 0, 0, 0, moon ? [0.078, 0.092, 0.042] : [0.056, 0.072, 0.036]);
+    if (moon) {
+      put(eye, new THREE.Mesh(sphere, gemMat), side < 0 ? 'IrisRing_L' : 'IrisRing_R', 0, -0.005, 0.024, [0.055, 0.065, 0.025]);
+      put(eye, new THREE.Mesh(star, accent), side < 0 ? 'Star_L' : 'Star_R', -side * 0.012, 0.014, 0.042);
+    } else {
+      put(eye, new THREE.Mesh(star, pupil), side < 0 ? 'Slit_L' : 'Slit_R', 0, 0, 0.032, [0.35, 1.4, 0.4]);
+    }
+    const lid = joint(THREE, eye, side < 0 ? 'Lid_L' : 'Lid_R', 0, 0.022, 0.032);
+    put(lid, new THREE.Mesh(sphere, fur), side < 0 ? 'LidMesh_L' : 'LidMesh_R', 0, 0, 0, [0.092, 0.036, 0.032]);
+    put(head, new THREE.Mesh(sphere, pinkMat), side < 0 ? 'CheekGlow_L' : 'CheekGlow_R', side * (moon ? 0.22 : 0.15), -0.03, moon ? 0.22 : 0.16, [0.045, 0.028, 0.025]);
   }
 
   if (moon) {
     for (const side of [-1, 1]) {
-      const ear = joint(THREE, head, side < 0 ? 'Ear_L' : 'Ear_R', side * 0.2, 0.26, -0.02);
-      const earMesh = put(ear, new THREE.Mesh(cone, fur), side < 0 ? 'EarMesh_L' : 'EarMesh_R', 0, 0.12, 0);
+      const ear = joint(THREE, head, side < 0 ? 'Ear_L' : 'Ear_R', side * 0.21, 0.26, -0.02);
+      const earMesh = put(ear, new THREE.Mesh(earGeo, fur), side < 0 ? 'EarMesh_L' : 'EarMesh_R', 0, 0.13, 0);
       earMesh.rotation.z = side * -0.25;
+      const earInner = put(ear, new THREE.Mesh(earGeo, pinkMat), side < 0 ? 'EarInner_L' : 'EarInner_R', 0, 0.12, 0.018, [0.58, 0.76, 0.45]);
+      earInner.rotation.z = side * -0.25;
       const horn = joint(THREE, head, side < 0 ? 'Crescent_L' : 'Crescent_R', side * 0.16, 0.18, 0.02);
       const crescentMesh = put(horn, new THREE.Mesh(crescent, accent), side < 0 ? 'CrescentMesh_L' : 'CrescentMesh_R', 0, 0.08, 0);
       crescentMesh.rotation.z = side * 0.6;
       crescentMesh.rotation.y = side * -0.4;
     }
   } else {
+    const hornMat = trackMat(material(THREE, colors.horn, {roughness: 0.3, clearcoat: 0.5}));
     for (const side of [-1, 1]) {
       const horn = joint(THREE, head, side < 0 ? 'Horn_L' : 'Horn_R', side * 0.1, 0.16, 0.02);
-      put(horn, new THREE.Mesh(cone, trackMat(material(THREE, colors.horn))), side < 0 ? 'HornMesh_L' : 'HornMesh_R', 0, 0.08, 0, [0.7, 1, 0.7]);
+      put(horn, new THREE.Mesh(cone, hornMat), side < 0 ? 'HornMesh_L' : 'HornMesh_R', 0, 0.08, 0, [0.7, 1.05, 0.7], [-0.28, 0, side * -0.18]);
     }
     put(spine, new THREE.Mesh(sphere, accent), 'TailSpade', 0, 0.08, -1.28, [0.16, 0.1, 0.2]);
   }
@@ -179,10 +317,13 @@ export function buildDimensionalRig(THREE, kind, {quality = 'auto'} = {}) {
     : [[-0.16, -0.18, 0.42, 'FL'], [0.16, -0.18, 0.42, 'FR'], [-0.16, -0.18, -0.28, 'BL'], [0.16, -0.18, -0.28, 'BR']];
   for (const [x, y, z, label] of legLayout) {
     const hip = joint(THREE, spine, 'Leg_' + label, x, y, z);
-    put(hip, new THREE.Mesh(sphere, fur), 'Thigh_' + label, 0, -0.12, 0, moon ? [0.09, 0.16, 0.09] : [0.07, 0.12, 0.08]);
+    put(hip, new THREE.Mesh(sphere, fur), 'Thigh_' + label, 0, -0.12, 0, moon ? [0.095, 0.16, 0.095] : [0.075, 0.12, 0.08]);
     const knee = joint(THREE, hip, 'Knee_' + label, 0, -0.24, 0.02);
-    put(knee, new THREE.Mesh(sphere, lit), 'Shin_' + label, 0, -0.1, 0, [0.07, 0.12, 0.07]);
-    put(knee, new THREE.Mesh(sphere, accent), 'Paw_' + label, 0, -0.2, 0.03, moon ? [0.1, 0.05, 0.12] : [0.08, 0.04, 0.1]);
+    put(knee, new THREE.Mesh(sphere, lit), 'Shin_' + label, 0, -0.1, 0, [0.072, 0.12, 0.072]);
+    put(knee, new THREE.Mesh(sphere, accent), 'Paw_' + label, 0, -0.2, 0.03, moon ? [0.105, 0.052, 0.125] : [0.082, 0.042, 0.105]);
+    for (const toeIdx of [-1, 0, 1]) {
+      put(knee, new THREE.Mesh(sphere, pinkMat), `Toe_${label}_${toeIdx + 2}`, toeIdx * 0.032, -0.21, 0.11, [0.024, 0.020, 0.032]);
+    }
     legs[label] = hip;
   }
 
@@ -190,9 +331,13 @@ export function buildDimensionalRig(THREE, kind, {quality = 'auto'} = {}) {
   const tailZ = moon ? -0.32 : -0.7;
   for (let i = 1; i <= (moon ? 3 : 4); i++) {
     tail = joint(THREE, tail, 'Tail_' + i, 0, moon ? 0.02 : 0.04, i === 1 ? tailZ : -0.22);
-    put(tail, new THREE.Mesh(sphere, i === (moon ? 3 : 4) ? accent : fur), 'TailMesh_' + i, 0, 0, -0.08, [0.1 - i * 0.012, 0.08 - i * 0.01, 0.16]);
+    put(tail, new THREE.Mesh(sphere, i === (moon ? 3 : 4) ? accent : fur), 'TailMesh_' + i, 0, 0, -0.08, [0.11 - i * 0.012, 0.09 - i * 0.01, 0.17]);
   }
-  if (!moon) put(tail, new THREE.Mesh(sphere, accent), 'TailSpadeTip', 0, 0.02, -0.28, [0.14, 0.08, 0.16]);
+  if (moon) {
+    put(tail, new THREE.Mesh(octGem, gemMat), 'TailStarTip', 0, 0.02, -0.22, [0.95, 0.95, 1.3]);
+  } else {
+    put(tail, new THREE.Mesh(sphere, accent), 'TailSpadeTip', 0, 0.02, -0.28, [0.14, 0.08, 0.16]);
+  }
 
   root.updateMatrixWorld(true);
   const bounds = new THREE.Box3().setFromObject(root);
@@ -203,7 +348,7 @@ export function buildDimensionalRig(THREE, kind, {quality = 'auto'} = {}) {
     seed: attribution.identityId,
     element: moon ? 'umbral' : 'ember',
     tailSegments: moon ? 3 : 4,
-    particleCount: low ? 14 : 22,
+    particleCount: low ? 16 : 26,
   });
   const fluidProf = ELEMENT_FLUID_PROFILES[moon ? 'umbral' : 'ember'];
   const ptArr = new Float32Array(secondary.fluid.particles.length * 3);
@@ -216,9 +361,9 @@ export function buildDimensionalRig(THREE, kind, {quality = 'auto'} = {}) {
   ptGeo.setAttribute('position', new THREE.BufferAttribute(ptArr, 3));
   const ptMat = trackMat(new THREE.PointsMaterial({
     color: fluidProf.colorA,
-    size: 0.055,
+    size: 0.06,
     transparent: true,
-    opacity: 0.82,
+    opacity: 0.88,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
   }));

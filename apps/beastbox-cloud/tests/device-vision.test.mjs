@@ -53,6 +53,23 @@ test('analyzeRgbaFrame detects room light, temporal motion, and on-device face c
   assert.ok(r2.motionX > 0.1, `motion localized on right (${r2.motionX})`);
   assert.equal(r2.face.detected, true, 'detected face cluster');
   assert.ok(r2.face.x > 0.1, `face localized on right (${r2.face.x})`);
+
+  // Frame 3: clear horizontal tabletop/floor plane in lower half (row >= 30 bright wooden/lit table)
+  const surfaceFrame = new Uint8ClampedArray(total * 4);
+  for (let y = 0; y < VISION_HEIGHT; y++) {
+    const isTable = y >= 31;
+    for (let x = 0; x < VISION_WIDTH; x++) {
+      const p = (y * VISION_WIDTH + x) * 4;
+      surfaceFrame[p] = isTable ? 195 : 32;
+      surfaceFrame[p + 1] = isTable ? 175 : 34;
+      surfaceFrame[p + 2] = isTable ? 148 : 42;
+      surfaceFrame[p + 3] = 255;
+    }
+  }
+  const r3 = analyzeRgbaFrame(surfaceFrame, st);
+  assert.equal(r3.surface.detected, true, 'detected horizontal surface boundary');
+  assert.ok(r3.surface.confidence > 0.6, `high surface confidence (${r3.surface.confidence})`);
+  assert.ok(r3.surface.floorPct >= 6 && r3.surface.floorPct <= 32, `valid floorPct (${r3.surface.floorPct})`);
 });
 
 test('visionReaction maps motion, faces, and light + creature emotions to look, approach, or flee', () => {

@@ -1,12 +1,15 @@
 /**
  * ON-DEVICE BROWSER VISION FOR OPEN FIELD (/beast-cage/field and /beast-cage/go)
  *
- * The user's camera is the creature's eyes onto reality.
+ * The user's camera is a pocket dimension portal opening into reality:
  * Uses free, on-device browser vision only:
  * 1. Downsampled 64x48 luminance & temporal frame-differencing for motion & light detection.
  * 2. Browser Shape Detection API (window.FaceDetector) when available + deterministic on-device
  *    YCbCr skin-chrominance & bilateral upper-frame head-region detector.
- * 3. Deterministic emotion-driven behavioural reaction (look, approach, flee, curious lean,
+ * 3. On-device horizontal surface / tabletop / floor plane detection (Sobel vertical gradient +
+ *    lower-region homogeneous plane coherence + left/right horizon tilt) so the pocket dimension
+ *    rift anchors onto real surfaces in front of you.
+ * 4. Deterministic emotion-driven behavioural reaction (look, approach, flee, curious lean,
  *    happy zoomies, scared scoot) driven by deriveEmotions(beast).
  *
  * Privacy guarantee: frames are processed in a tiny offscreen memory buffer and discarded
@@ -23,6 +26,8 @@ export function createVisionState({ width = VISION_WIDTH, height = VISION_HEIGHT
     prevLuma: new Float32Array(width * height),
     hasPrev: false,
     prevMeanLuma: 0.5,
+    smoothSurfaceY: 0.42,
+    smoothSurfaceTilt: 0,
     faceDetector: null,
     faceDetectorChecked: false,
     cachedHwFace: null,
@@ -34,6 +39,7 @@ export function createVisionState({ width = VISION_WIDTH, height = VISION_HEIGHT
       motionX: 0,
       motionY: 0,
       face: { detected: false, x: 0, y: 0, size: 0, confidence: 0, method: 'none' },
+      surface: { detected: true, y: 0.42, floorPct: 14, tilt: 0, confidence: 0.5, kind: 'pocket-plane' },
       mode: 'not-ar-on-device',
     },
   };
@@ -66,8 +72,21 @@ export function analyzeRgbaFrame(rgba, state = createVisionState(), { hwFace = n
   let skinY = 0;
   let skinMinX = w, skinMaxX = 0, skinMinY = h, skinMaxY = 0;
 
+  // Row luminance & horizontal variance for on-device floor / tabletop surface plane detection
+  const rowMeanLuma = new Float32Array(h);
+  const rowMeanLeft = new Float32Array(h);
+  const rowMeanRight = new Float32Array(h);
+  const rowHorizDiff = new Float32Array(h);
+  const halfW = Math.max(1, w >> 1);
+
   for (let y = 0; y < h; y++) {
     const ny = (y / (h - 1)) * 2 - 1; // -1 (top) .. +1 (bottom)
+    let rSum = 0;
+    let rLeft = 0;
+    let rRight = 0;
+    let hDiffSum = 0;
+    let prevX = 0;
+
     for (let x = 0; x < w; x++) {
       const idx = y * w + x;
       const p = idx * 4;
@@ -78,6 +97,11 @@ export function analyzeRgbaFrame(rgba, state = createVisionState(), { hwFace = n
       // Rec. 601 luminance (0..1)
       const luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
       lumaSum += luma;
+      rSum += luma;
+      if (x < halfW) rLeft += luma;
+      else rRight += luma;
+      if (x > 0) hDiffSum += Math.abs(luma - prevX);
+      prevX = luma;
 
       const nx = (x / (w - 1)) * 2 - 1; // -1 (left) .. +1 (right)
 
@@ -107,6 +131,11 @@ export function analyzeRgbaFrame(rgba, state = createVisionState(), { hwFace = n
         }
       }
     }
+
+    rowMeanLuma[y] = rSum / w;
+    rowMeanLeft[y] = rLeft / halfW;
+    rowMeanRight[y] = rRight / Math.max(1, w - halfW);
+    rowHorizDiff[y] = hDiffSum / Math.max(1, w - 1);
   }
 
   state.hasPrev = true;
@@ -150,6 +179,58 @@ export function analyzeRgbaFrame(rgba, state = createVisionState(), { hwFace = n
     }
   }
 
+  // On-device horizontal surface / tabletop / ground plane detector:
+  // Scans the lower 62% of the frame (rows 38%..88%) for the strongest horizontal boundary
+  // backed by a coherent ground/table plane underneath.
+  const yStart = Math.max(2, Math.floor(h * 0.38));
+  const yEnd = Math.min(h - 3, Math.floor(h * 0.88));
+  let bestRow = Math.floor(h * 0.72);
+  let bestScore = 0;
+  let bestLeftRow = bestRow;
+  let bestRightRow = bestRow;
+  let maxLeftGrad = 0;
+  let maxRightGrad = 0;
+
+  for (let y = yStart; y <= yEnd; y++) {
+    const vGrad = Math.abs(rowMeanLuma[y + 1] - rowMeanLuma[y - 1]);
+    const lGrad = Math.abs(rowMeanLeft[y + 1] - rowMeanLeft[y - 1]);
+    const rGrad = Math.abs(rowMeanRight[y + 1] - rowMeanRight[y - 1]);
+    if (lGrad > maxLeftGrad) { maxLeftGrad = lGrad; bestLeftRow = y; }
+    if (rGrad > maxRightGrad) { maxRightGrad = rGrad; bestRightRow = y; }
+
+    // Lower plane smoothness bonus (tables/floors have lower horizontal clutter than upper background)
+    const smoothness = Math.max(0, 1 - rowHorizDiff[y] * 4.5);
+    const score = vGrad * 2.4 + smoothness * 0.08;
+    if (score > bestScore) {
+      bestScore = score;
+      bestRow = y;
+    }
+  }
+
+  const rawSurfaceY = (bestRow / (h - 1)) * 2 - 1; // -1..+1 (typical floor/table: +0.15 .. +0.76)
+  const rawTilt = Math.max(-12, Math.min(12, ((bestRightRow - bestLeftRow) / h) * 45));
+  const edgeStrength = Math.min(1, bestScore * 4.2);
+  const surfaceDetected = edgeStrength >= 0.22;
+
+  const prevSurfY = typeof state.smoothSurfaceY === 'number' ? state.smoothSurfaceY : 0.42;
+  const prevTilt = typeof state.smoothSurfaceTilt === 'number' ? state.smoothSurfaceTilt : 0;
+  const targetY = surfaceDetected ? rawSurfaceY : 0.42;
+  const smoothY = Math.round((prevSurfY * 0.55 + targetY * 0.45) * 1000) / 1000;
+  const smoothTilt = Math.round((prevTilt * 0.6 + (surfaceDetected ? rawTilt : 0) * 0.4) * 100) / 100;
+  state.smoothSurfaceY = smoothY;
+  state.smoothSurfaceTilt = smoothTilt;
+
+  // Convert normalized Y (-0.24..+0.78) to bottom CSS percentage (6%..32%) for anchoring the pocket portal
+  const floorPct = Math.round(Math.max(6, Math.min(32, (1 - (smoothY + 1) / 2) * 52)));
+  const surface = {
+    detected: surfaceDetected,
+    y: smoothY,
+    floorPct,
+    tilt: smoothTilt,
+    confidence: Math.round(Math.max(0.35, Math.min(0.98, 0.35 + edgeStrength * 0.63)) * 1000) / 1000,
+    kind: surfaceDetected ? (smoothY < 0.32 ? 'tabletop-plane' : 'ground-plane') : 'pocket-plane',
+  };
+
   const res = {
     light,
     lightDelta,
@@ -158,6 +239,7 @@ export function analyzeRgbaFrame(rgba, state = createVisionState(), { hwFace = n
     motionX,
     motionY,
     face,
+    surface,
     mode: 'not-ar-on-device',
   };
   state.lastResult = res;
@@ -325,13 +407,14 @@ export function visionReaction(vision, emotion = {}, { worldWidth = 2.2, name = 
     };
   }
 
-  // 4. Ambient light response (dark room -> calm/dozy look; bright light -> warm look)
+  // 4. Ambient light + surface plane response
+  const surfTag = vision.surface?.detected ? `surface locked (${vision.surface.kind})` : 'pocket rift active';
   return {
     action: 'look',
     cue: null,
     lookAt: { x: 0, z: worldWidth * 0.5 },
     target: null,
-    summary: `light: ${vision.lighting} (${Math.round(vision.light * 100)}%) · calm watch`,
+    summary: `light: ${vision.lighting} (${Math.round(vision.light * 100)}%) · ${surfTag}`,
     noticeLine: '',
   };
 }

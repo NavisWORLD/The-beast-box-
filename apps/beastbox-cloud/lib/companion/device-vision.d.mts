@@ -1,6 +1,7 @@
 export const VISION_WIDTH: number;
 export const VISION_HEIGHT: number;
 export type VisionFace = { detected: boolean; x: number; y: number; size: number; confidence: number; method: string };
+export type VisionSurface = { detected: boolean; y: number; floorPct: number; tilt: number; confidence: number; kind: string };
 export type VisionFrameResult = {
   light: number;
   lightDelta: number;
@@ -9,6 +10,7 @@ export type VisionFrameResult = {
   motionX: number;
   motionY: number;
   face: VisionFace;
+  surface: VisionSurface;
   mode: 'not-ar-on-device';
 };
 export function createVisionState(opts?: { width?: number; height?: number }): any;

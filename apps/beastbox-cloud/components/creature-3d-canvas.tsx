@@ -62,21 +62,29 @@ export default function Creature3DCanvas({
         const THREE = await import('three');
         if (disposed) return;
         const renderer = new THREE.WebGLRenderer({ canvas: el, alpha: true, antialias: quality !== 'low', powerPreference: 'low-power' });
-        renderer.setPixelRatio(Math.min(quality === 'low' ? 1 : 1.5, window.devicePixelRatio || 1));
+        renderer.setPixelRatio(Math.min(quality === 'low' ? 1 : 1.75, window.devicePixelRatio || 1));
         renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.38;
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 30);
-        camera.position.set(0, 0.72, 2.55);
+        camera.position.set(0, 0.72, 2.52);
         camera.lookAt(0, 0.48, 0);
 
-        scene.add(new THREE.AmbientLight(0xd8e8ff, 1.45));
-        const key = new THREE.DirectionalLight(0xfff4e0, 1.55);
-        key.position.set(1.8, 2.6, 2.8);
+        scene.add(new THREE.AmbientLight(0xdceaff, 1.55));
+        const key = new THREE.DirectionalLight(0xfff5e4, 2.1);
+        key.position.set(2.0, 2.8, 3.0);
         scene.add(key);
-        const rim = new THREE.PointLight(0x88e5ff, 8, 8);
-        rim.position.set(-1.8, 1.2, -2.0);
+        const fill = new THREE.DirectionalLight(0x88b8ff, 0.85);
+        fill.position.set(-2.2, 0.8, 2.0);
+        scene.add(fill);
+        const rim = new THREE.PointLight(0x7ff5ff, 12, 9);
+        rim.position.set(-1.8, 1.4, -2.0);
         scene.add(rim);
+        const rimWarm = new THREE.PointLight(0xff77e9, 9, 8);
+        rimWarm.position.set(1.8, 1.1, -1.8);
+        scene.add(rimWarm);
 
         const rig = buildCatalogCreatureRig(THREE, genome, { stage, quality });
         scene.add(rig.root);
