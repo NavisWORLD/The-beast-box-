@@ -1,0 +1,24 @@
+name: RAWRPHOS closed-loop adapter (CPU tests)
+on:
+  pull_request:
+    paths:
+      - 'models/rawrphos/architecture/closed_loop.py'
+      - 'models/rawrphos/evaluation/closed_loop_eval.py'
+      - 'models/rawrphos/tests/test_closed_loop.py'
+      - '.github/workflows/rawrphos-closed-loop-ci.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 && python -m pip install -e ./models/rawrphos pytest==8.4.2
+      - run: python -m pytest -o addopts= -q models/rawrphos/tests/test_closed_loop.py models/rawrphos/tests/test_architecture.py
+      - run: python -m py_compile models/rawrphos/evaluation/closed_loop_eval.py
