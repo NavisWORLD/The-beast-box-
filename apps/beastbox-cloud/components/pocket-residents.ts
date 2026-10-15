@@ -32,9 +32,11 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
       const view=residentView(a.r,p.heading+p.head,theta);const m=a.sprite.material;
       if(view.src!==a.src){m.map=tex(view.src);m.needsUpdate=true;a.src=view.src;}
       a.sprite.scale.set(a.h*p.sx*(view.flip?-1:1),hy,1);m.rotation=-p.lean*(view.flip?-1:1);
-      const mesh=a.slot.mesh;if(mesh){mesh.position.set(p.x,p.lift,p.z);mesh.scale.set(a.h*1.15*p.sx,a.h*1.15*p.sy,a.h*1.15*p.sx);mesh.rotation.set(p.lean,p.heading+p.head,0,'YXZ');}
+      const mesh=a.slot.mesh;if(mesh){mesh.position.set(p.x,p.lift,p.z);const k=a.h*1.55;mesh.scale.set(k*p.sx,k*p.sy,k*p.sx);mesh.rotation.set(p.lean,p.heading+p.head,0,'YXZ');}
      });
     };
     const disturbers=()=>residents.map(a=>({x:a.x,z:a.z,r:.75*a.r.scale,s:2.4}));
-    return {stepResidents,texCache,disturbers};
+    // Tap-to-focus targets: the 3D mesh once loaded, else the sprite.
+    const pickables=()=>residents.map(a=>({id:a.r.id,obj:(a.slot.mesh??a.sprite) as import('three').Object3D}));
+    return {stepResidents,texCache,disturbers,pickables};
 }

@@ -20,13 +20,19 @@ export function loadResident3D(THREE:T,id:string):Promise<import('three').Mesh|n
   for(let t=0;t<I.length;t+=3){const k=I[t+1];I[t+1]=I[t+2];I[t+2]=k;}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(P,3));g.setAttribute('normal',new THREE.BufferAttribute(N,3));g.setIndex(new THREE.BufferAttribute(I,1));
   const r=(v:Rect)=>new THREE.Vector4(v.u0,v.u1,v.v0,v.v1);const V=meta.views as Record<string,Rect>;
-  const mat=new THREE.ShaderMaterial({toneMapped:false,fog:false,uniforms:{tF:{value:tF},tS:{value:tS},tB:{value:tB},rF:{value:r(V.front)},rS:{value:r(V.side)},rB:{value:r(V.back)},sideFlip:{value:V.side.flip?1:0}},
-   vertexShader:'varying vec3 vP;varying vec3 vN;void main(){vP=position;vN=normal;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-   fragmentShader:'uniform sampler2D tF;uniform sampler2D tS;uniform sampler2D tB;uniform vec4 rF;uniform vec4 rS;uniform vec4 rB;uniform float sideFlip;varying vec3 vP;varying vec3 vN;'+
+  // Rim light so dark Nyxbean / pale Frostmitt separate from the night pocket; per-resident tint.
+  const rim=id==='art-nyxbean'?new THREE.Color(.72,.45,1.0):new THREE.Color(.6,.85,1.0);
+  const mat=new THREE.ShaderMaterial({toneMapped:false,fog:false,uniforms:{tF:{value:tF},tS:{value:tS},tB:{value:tB},rF:{value:r(V.front)},rS:{value:r(V.side)},rB:{value:r(V.back)},sideFlip:{value:V.side.flip?1:0},rimColor:{value:rim},rimStrength:{value:id==='art-nyxbean'?.7:.45},lift:{value:id==='art-nyxbean'?1.35:1.04}},
+   vertexShader:'varying vec3 vP;varying vec3 vN;varying vec3 vVN;varying vec3 vV;void main(){vP=position;vN=normal;vec4 mv=modelViewMatrix*vec4(position,1.0);vVN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
+   fragmentShader:'uniform sampler2D tF;uniform sampler2D tS;uniform sampler2D tB;uniform vec4 rF;uniform vec4 rS;uniform vec4 rB;uniform float sideFlip;uniform vec3 rimColor;uniform float rimStrength;uniform float lift;varying vec3 vP;varying vec3 vN;varying vec3 vVN;varying vec3 vV;'+
     'vec4 at(sampler2D t,vec4 r,float u){vec2 uv=vec2((u-r.x)/(r.y-r.x),(vP.y-r.z)/(r.w-r.z));return texture2D(t,clamp(uv,0.0,1.0));}'+
-    'void main(){vec3 n=normalize(vN);float wf=pow(max(n.z,0.0),3.0),wb=pow(max(-n.z,0.0),3.0),ws=pow(abs(n.x),3.0);'+
+    // Seam blend: soft (power 2) normal weights, each view also gated by its own matte so no view paints outside its silhouette.
+    'void main(){vec3 n=normalize(vN);float wf=smoothstep(-.15,1.0,n.z),wb=smoothstep(-.15,1.0,-n.z),ws=smoothstep(.05,1.0,abs(n.x));wf*=wf;wb*=wb;ws*=ws*1.15;'+
     'vec4 f=at(tF,rF,vP.x),b=at(tB,rB,-vP.x),s=at(tS,rS,sideFlip>.5?-vP.z:vP.z);'+
-    'float a=wf*f.a+wb*b.a+ws*s.a+1e-4;vec3 c=(f.rgb*wf*f.a+b.rgb*wb*b.a+s.rgb*ws*s.a)/a;gl_FragColor=vec4(c*1.08,1.0);\n#include <colorspace_fragment>\n}'});
+    'float a=wf*f.a+wb*b.a+ws*s.a;vec3 c=(f.rgb*wf*f.a+b.rgb*wb*b.a+s.rgb*ws*s.a)/max(a,1e-3);'+
+    'if(a<1e-3)c=(f.rgb+b.rgb+s.rgb)/3.0;'+
+    'float rim=pow(1.0-max(dot(normalize(vVN),normalize(vV)),0.0),3.2);c=c*lift+rimColor*rim*rimStrength;'+
+    'gl_FragColor=vec4(c,1.0);\n#include <colorspace_fragment>\n}'});
   const m=new THREE.Mesh(g,mat);m.name=id+'-3d';return m;
  }).catch(()=>null);
 }
