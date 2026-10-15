@@ -30,6 +30,8 @@ export default function ZerefSprite3D({className='',autoRotate=false,turntable=f
  useEffect(()=>{
   const svg=svgRef.current,canvas=canvasRef.current;if(!svg||!canvas)return;
   let disposed=false,raf=0,cleanup=()=>{};
+  // Never hang in 'loading': if the layers are not cut within 9s, show the flat sprite fallback.
+  const guard=setTimeout(()=>{if(!disposed)setState(st=>st==='loading'?'fallback':st);},9000);
   void (async()=>{try{
    const THREE=await import('three');if(disposed)return;
    const P=rigParts(svg);const mind=createMind({profile:ZEREF_PROFILE,reduced,hour:new Date().getHours()});mindRef.current=mind;
@@ -59,7 +61,7 @@ export default function ZerefSprite3D({className='',autoRotate=false,turntable=f
     }
     exclude.forEach(x=>{clone.querySelector(`[data-part="${x}"]`)?.remove();});
     const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)],{type:'image/svg+xml'}));
-    try{const img=new Image();img.decoding='async';img.src=url;await img.decode();const c=document.createElement('canvas');c.width=c.height=TEX;c.getContext('2d')!.drawImage(img,0,0,TEX,TEX);return c;}
+    try{const img=new Image();img.decoding='async';img.src=url;await Promise.race([img.decode(),new Promise((_,no)=>setTimeout(()=>no(new Error('decode timeout')),4000))]);const c=document.createElement('canvas');c.width=c.height=TEX;c.getContext('2d')!.drawImage(img,0,0,TEX,TEX);return c;}
     finally{URL.revokeObjectURL(url);}
    };
    const layers:any[]=[];let order=0;
@@ -113,7 +115,7 @@ export default function ZerefSprite3D({className='',autoRotate=false,turntable=f
     renderer.render(scene,camera);
     if(!reduced||dragRef.current)raf=requestAnimationFrame(frame);
    };
-   setState('ready');raf=requestAnimationFrame(frame);
+   clearTimeout(guard);setState('ready');raf=requestAnimationFrame(frame);
    const kick=()=>{if(!raf)raf=requestAnimationFrame(frame);};
    const down=(e:PointerEvent)=>{dragRef.current={x:e.clientX,yaw:yawRef.current};kick();};
    const move=(e:PointerEvent)=>{if(!dragRef.current)return;const w=canvas.getBoundingClientRect().width||1;yawRef.current=clampYaw(dragRef.current.yaw+(e.clientX-dragRef.current.x)/w*360);kick();};
@@ -122,7 +124,7 @@ export default function ZerefSprite3D({className='',autoRotate=false,turntable=f
    cleanup=()=>{ro.disconnect();canvas.removeEventListener('pointerdown',down);window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);layers.forEach(x=>{x.tex.dispose();x.mat.dispose();x.rim.material.dispose();x.shells.forEach((s:any)=>s.material.dispose());});geo.dispose();renderer.dispose();};
    (window as any).__zerefSprite3D={yaw:(d:number|null)=>{if(d===null){holdRef.current=false;return yawRef.current;}holdRef.current=true;yawRef.current=clampYaw(d);kick();return clampYaw(d);},layers:layers.map(x=>x.L.part),scene};
   }catch{if(!disposed)setState('fallback');}})();
-  return()=>{disposed=true;if(raf)cancelAnimationFrame(raf);cleanup();};
+  return()=>{disposed=true;clearTimeout(guard);if(raf)cancelAnimationFrame(raf);cleanup();};
  },[reduced]);
  return <div ref={wrapRef} className={'zeref-sprite3d '+className} data-zeref-sprite3d={state} data-max-yaw={MAX_YAW_DEG} aria-label={label} role="img">
   <svg ref={svgRef} className="zeref-svg zeref-sprite3d-source" viewBox="0 0 400 400" fill="none" aria-hidden="true" focusable="false"><g data-sprite-ref=""/><ZerefFigure id={id}/></svg>
