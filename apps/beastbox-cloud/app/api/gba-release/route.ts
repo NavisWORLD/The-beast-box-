@@ -16,7 +16,7 @@ export function GET(){
   same_cage_transfer:true,
   features:['guest-visual-test','download-gba-4bpp','qbeast-to-lost-cosmos-share','stable-one-cage-transfer','play-current-lost-cosmos','persistent-gba-player','shared-spark-care-ledger','model-bay-care','optional-explicit-owner-dyn12','in-page-v11-2-spark','lost-cosmos-field','continuous-public-spark','gesture-generated-voice','same-qbeast-native-art','procedural-beast-music','beast-boy-controller-bridge','beast-boy-android-touch-direct','cache-busted-controller-receiver','iphone-safari-audio-unlock','explicit-game-audio-consent','vercel-preview-controller-origin','fullscreen-player-with-controls','immersive-api-fallback','minimize-without-remount','native-save-return','act-ii-quest-sram-continuity'],
   rom_release:'current-verified-v11.9',
-  rom_sha256:'425e2ace92a7c2c3d15db9b1cdd61ef538ddf46510255a2857afa27e613657c2',
+  rom_sha256:'69a6705c5007d5b42aa0fe957a3ef326569b8932c87a4e3b1f390e63e5413854',
   rom_asset:'lost-cosmos-v11.9.gba',
   rom_bytes:2097152,
   rom_url:'/api/gba-rom',
