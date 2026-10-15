@@ -9,6 +9,12 @@
  * Saved Zeref bb-deada969: a different dragonling silhouette. It must not
  * wear the Moonwraith body.
  */
+import {
+  createSecondaryMotion,
+  stepSecondaryMotion,
+  ELEMENT_FLUID_PROFILES,
+} from './companion/fluid-motion.mjs';
+
 export const MOONWRAITH_DISPLAY_ID = 'bb-7f9c2a03';
 export const SAVED_ZEREF_ID = 'bb-deada969';
 
@@ -193,7 +199,34 @@ export function buildDimensionalRig(THREE, kind, {quality = 'auto'} = {}) {
   root.position.y -= bounds.min.y;
   root.updateMatrixWorld(true);
 
-  const joints = {spine, neck, head, jaw, wings, legs};
+  const secondary = createSecondaryMotion({
+    seed: attribution.identityId,
+    element: moon ? 'umbral' : 'ember',
+    tailSegments: moon ? 3 : 4,
+    particleCount: low ? 14 : 22,
+  });
+  const fluidProf = ELEMENT_FLUID_PROFILES[moon ? 'umbral' : 'ember'];
+  const ptArr = new Float32Array(secondary.fluid.particles.length * 3);
+  secondary.fluid.particles.forEach((p, idx) => {
+    ptArr[idx * 3] = p.x;
+    ptArr[idx * 3 + 1] = p.y;
+    ptArr[idx * 3 + 2] = p.z;
+  });
+  const ptGeo = trackGeo(new THREE.BufferGeometry());
+  ptGeo.setAttribute('position', new THREE.BufferAttribute(ptArr, 3));
+  const ptMat = trackMat(new THREE.PointsMaterial({
+    color: fluidProf.colorA,
+    size: 0.055,
+    transparent: true,
+    opacity: 0.82,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  }));
+  const cosmicParticles = new THREE.Points(ptGeo, ptMat);
+  cosmicParticles.name = 'CosmicParticles';
+  root.add(cosmicParticles);
+
+  const joints = {spine, neck, head, jaw, wings, legs, cosmicParticles};
   let disposed = false;
   function dispose() {
     if (disposed) return;
@@ -204,12 +237,12 @@ export function buildDimensionalRig(THREE, kind, {quality = 'auto'} = {}) {
   let triangles = 0;
   root.traverse(object => {
     const geo = object.geometry;
-    if (!geo) return;
+    if (!geo || object.isPoints) return;
     const pos = geo.getAttribute('position');
     triangles += geo.index ? geo.index.count / 3 : (pos ? pos.count / 3 : 0);
   });
   root.userData.triangles = triangles;
-  return {kind, attribution, root, joints, materials: {fur, accent, eyeWhite}, dispose};
+  return {kind, attribution, root, joints, secondary, materials: {fur, accent, eyeWhite}, dispose};
 }
 
 function setLid(root, amount) {
@@ -220,21 +253,28 @@ function setLid(root, amount) {
 }
 
 /** Visual pose only. `time` is seconds of animation, not a trusted clock. */
-export function poseDimensional(rig, {state = 'idle', time = 0, reduced = false, speaking = false} = {}) {
+export function poseDimensional(rig, {state = 'idle', time = 0, reduced = false, speaking = false, emotion = null} = {}) {
   const root = rig.root;
-  const {spine, neck, head, jaw, wings, legs} = rig.joints;
+  const {spine, neck, head, jaw, wings, legs, cosmicParticles} = rig.joints;
   const moon = rig.kind === 'moonwraith-artistic';
   const t = reduced ? 0 : time;
   const asleep = state === 'sleeping' || state === 'halted';
   const listening = state === 'listening' || speaking;
-  const reacting = state === 'celebrating';
-  const looking = state === 'observing' || state === 'thinking' || state === 'remembering' || listening;
-  const walking = !reduced && !asleep && (state === 'observing' || state === 'walk');
+  const reacting = state === 'celebrating' || state === 'zoomies' || state === 'hop';
+  const looking = state === 'observing' || state === 'thinking' || state === 'remembering' || state === 'curious' || listening;
+  const walking = !reduced && !asleep && (state === 'observing' || state === 'walk' || state === 'zoomies' || state === 'scared');
   const blink = reduced || asleep ? (asleep ? 1 : 0) : (Math.sin(t * 2.6) > 0.93 ? 1 : 0);
   const breathe = reduced ? 1 : 1 + Math.sin(t * 1.6) * (asleep ? 0.015 : 0.035);
+  const sec = rig.secondary ? stepSecondaryMotion(rig.secondary, 1 / 60, {
+    position: {x: walking ? Math.sin(t * 2) * 0.1 : 0, y: 0, z: 0},
+    lift: reacting && !reduced ? Math.abs(Math.sin(t * 6)) * 0.18 : 0,
+    targetSy: breathe,
+    emotion,
+    reduced: reduced || asleep,
+  }) : null;
   spine.scale.set(1, breathe, 1);
-  spine.rotation.x = asleep ? 0.35 : reacting ? -0.08 + Math.sin(t * 6) * 0.04 : 0;
-  neck.rotation.x = asleep ? 0.4 : listening ? -0.18 : 0;
+  spine.rotation.x = asleep ? 0.35 : state === 'curious' ? 0.2 : state === 'scared' ? -0.16 : reacting ? -0.08 + Math.sin(t * 6) * 0.04 : 0;
+  neck.rotation.x = asleep ? 0.4 : listening || state === 'curious' ? -0.18 : 0;
   head.rotation.y = reduced ? 0 : looking ? Math.sin(t * 0.8) * 0.35 : Math.sin(t * 0.35) * 0.08;
   head.rotation.z = reacting ? Math.sin(t * 5) * 0.08 : 0;
   jaw.rotation.x = speaking && !reduced ? 0.25 + Math.sin(t * 14) * 0.18 : asleep ? 0.05 : 0;
@@ -242,7 +282,7 @@ export function poseDimensional(rig, {state = 'idle', time = 0, reduced = false,
   const earL = root.getObjectByName('Ear_L');
   const earR = root.getObjectByName('Ear_R');
   if (earL && earR) {
-    const perk = reduced ? 0 : listening ? -0.35 : Math.sin(t * 1.2) * 0.06;
+    const perk = reduced ? 0 : listening ? -0.35 : Math.sin(t * 1.2) * 0.06 + (sec ? sec.earL.yaw * 0.35 : 0);
     earL.rotation.z = perk;
     earR.rotation.z = -perk;
   }
@@ -258,8 +298,22 @@ export function poseDimensional(rig, {state = 'idle', time = 0, reduced = false,
   for (let i = 1; i <= 4; i++) {
     const segment = root.getObjectByName('Tail_' + i);
     if (!segment) continue;
-    segment.rotation.y = reduced ? 0 : Math.sin(t * 1.8 + i) * (asleep ? 0.04 : 0.18);
+    const verletYaw = sec && sec.tailAngles[i - 1] ? sec.tailAngles[i - 1].yaw * 0.35 : 0;
+    segment.rotation.y = reduced ? 0 : Math.sin(t * 1.8 + i) * (asleep ? 0.04 : 0.18) + verletYaw;
     segment.rotation.x = moon ? 0 : -0.12;
+  }
+  if (sec && cosmicParticles?.geometry) {
+    const attr = cosmicParticles.geometry.getAttribute('position');
+    if (attr) {
+      const arr = attr.array;
+      for (let i = 0; i < sec.particles.length; i++) {
+        const pt = sec.particles[i];
+        arr[i * 3] = pt.x;
+        arr[i * 3 + 1] = pt.y;
+        arr[i * 3 + 2] = pt.z;
+      }
+      attr.needsUpdate = true;
+    }
   }
   return {
     kind: rig.kind,
@@ -277,6 +331,8 @@ export function poseDimensional(rig, {state = 'idle', time = 0, reduced = false,
 export function measureSilhouette(THREE, rig) {
   const root = rig.root;
   const nose = root.getObjectByName('Nose');
+  const particles = root.getObjectByName('CosmicParticles');
+  if (particles) particles.visible = false;
   const views = {};
   for (const [name, yaw] of [['front', 0], ['side', Math.PI / 2], ['back', Math.PI], ['threeQuarter', Math.PI / 4]]) {
     root.rotation.y = yaw;
@@ -291,6 +347,7 @@ export function measureSilhouette(THREE, rig) {
     };
   }
   root.rotation.y = 0;
+  if (particles) particles.visible = true;
   root.updateMatrixWorld(true);
   return views;
 }

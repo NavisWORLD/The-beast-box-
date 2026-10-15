@@ -1,12 +1,13 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import PixelBeast from './pixel-beast';
+import Creature3DCanvas from './creature-3d-canvas';
 import Link from 'next/link';
 import {useCompanion} from './companion-provider';
 import {useBeastSession} from './beast-session';
 import {shownName} from '../lib/companion/session.mjs';
 import {deriveEmotions,emotionLine} from '../lib/companion/emotion.mjs';
-import {createActor,motionPersona,stepActor} from '../lib/companion/film-motion.mjs';
+import {createActor,motionPersona,stepActor,triggerCue} from '../lib/companion/film-motion.mjs';
+import {createVisionState,sampleVideoFrame,visionReaction} from '../lib/companion/device-vision.mjs';
 
 /**
  * Camera field: the device camera feed IS the open field, and the selected creature
@@ -23,9 +24,11 @@ export default function CameraField({fullscreen=false,autoStart=false,floorPx=0,
  const name=beast?shownName(beast):'your creature';
  const em:any=deriveEmotions(beast);void Link;
  const video=useRef<HTMLVideoElement>(null),stream=useRef<MediaStream|null>(null);
- const stage=useRef<HTMLDivElement>(null),body=useRef<HTMLDivElement>(null);
+ const visionCanvas=useRef<HTMLCanvasElement|null>(null),visionState=useRef<any>(null);
+ const stage=useRef<HTMLDivElement>(null),body=useRef<HTMLDivElement>(null),shadowRef=useRef<HTMLSpanElement>(null);
  const [phase,setPhase]=useState<Phase>('idle'),[msg,setMsg]=useState(''),[react,setReact]=useState('');
- const actor=useRef<any>(null),look=useRef<{x:number;z:number}|null>(null);
+ const [visionSummary,setVisionSummary]=useState('on-device eyes ready · not AR');
+ const actor=useRef<any>(null),actorPose=useRef<any>(null),look=useRef<{x:number;z:number}|null>(null);
  function stop(){stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;if(video.current)video.current.srcObject=null;setPhase(p=>p==='live'||p==='asking'?'idle':p);onLive?.(false);}
  async function start(){
   setMsg('');
@@ -36,6 +39,26 @@ export default function CameraField({fullscreen=false,autoStart=false,floorPx=0,
  }
  useEffect(()=>{const hide=()=>{if(document.hidden)stop();};document.addEventListener('visibilitychange',hide);window.addEventListener('pagehide',stop);return()=>{document.removeEventListener('visibilitychange',hide);window.removeEventListener('pagehide',stop);stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;};},[]);
  useEffect(()=>{if(autoStart)void start();},[autoStart]);// eslint-disable-line react-hooks/exhaustive-deps
+ // On-device browser vision loop (~8Hz while camera is live): notices motion, faces and light locally.
+ useEffect(()=>{
+  if(phase!=='live')return;
+  if(!visionCanvas.current&&typeof document!=='undefined')visionCanvas.current=document.createElement('canvas');
+  if(!visionState.current)visionState.current=createVisionState();
+  const id=window.setInterval(()=>{
+   const v=video.current,c=visionCanvas.current,st=visionState.current;
+   if(!v||!c||!st)return;
+   const obs=sampleVideoFrame(v,c,st);
+   const rx=visionReaction(obs,em,{worldWidth:W,name});
+   setVisionSummary(rx.summary);
+   if(rx.lookAt)look.current=rx.lookAt;
+   const a=actor.current;
+   if(a&&rx.cue&&(rx.action==='approach'||rx.action==='flee')){
+    triggerCue(a,rx.cue,rx.target||rx.lookAt);
+    if(rx.noticeLine)setReact(rx.noticeLine);
+   }
+  },140);
+  return()=>window.clearInterval(id);
+ },[phase,em,name]);
  // Film-style wander loop. Seeded by the creature's own seed so each creature moves its own way.
  useEffect(()=>{
   const seed=String(beast?.genome?.seed||beast?.seed||profile?.seed||name);
@@ -46,12 +69,13 @@ export default function CameraField({fullscreen=false,autoStart=false,floorPx=0,
   const reduced=typeof matchMedia!=='undefined'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
   let raf=0,last=performance.now();
   const tick=(t:number)=>{const dt=(t-last)/1000;last=t;const a=actor.current;const el=body.current;
-   if(a&&el){const ps=stepActor(a,dt,{lookAt:look.current,reduced});
+   if(a&&el){const ps=stepActor(a,dt,{lookAt:look.current,emotion:em,reduced});actorPose.current=ps;
     const z=Math.max(-1,Math.min(1,ps.z/W));const depth=.75+.25*(z+1)/2; // z>0 nearer the viewer → lower and bigger
     const left=50+Math.max(-1,Math.min(1,ps.x/W))*38;const bottom=4+(1-(z+1)/2)*16;
     el.style.left=`${left}%`;el.style.bottom=`calc(${floorPx}px + ${bottom}%)`;
     el.style.transform=`translateX(-50%) translateY(${-ps.lift*90}px) scale(${depth*(ps.sx||1)},${depth*(ps.sy||1)}) rotateY(${Math.sin(ps.heading)<0?180:0}deg) rotateX(8deg)`;
-    el.dataset.state=ps.state;}
+    el.dataset.state=ps.state;
+    if(shadowRef.current){shadowRef.current.style.transform=`scale(${ps.shadowScale??1})`;shadowRef.current.style.opacity=String(ps.shadowOpacity??0.55);}}
    raf=requestAnimationFrame(tick);};
   raf=requestAnimationFrame(tick);return()=>cancelAnimationFrame(raf);
  },[beast?.seed,profile?.seed,name,em.dominant,floorPx]);// eslint-disable-line react-hooks/exhaustive-deps
@@ -62,7 +86,9 @@ export default function CameraField({fullscreen=false,autoStart=false,floorPx=0,
   const onBeast=(e.target as HTMLElement).closest('[data-field-creature]');
   if(onBeast){setReact(`${name} looks up at you. ${emotionLine(name,em)}`);look.current=null;actor.current.state='anticipate';actor.current.t=0;actor.current.dur=.2;actor.current.target={x:actor.current.x,z:actor.current.z};}
   else{const scared=em.dominant==='fear';const tx=scared?actor.current.x-(x-actor.current.x)*.5:x,tz=scared?actor.current.z:z;
-   actor.current.target={x:Math.max(-W,Math.min(W,tx)),z:Math.max(-W,Math.min(W,tz))};actor.current.home={...actor.current.target};actor.current.state='walk';actor.current.t=0;actor.current.dur=1.6;
+   const target={x:Math.max(-W,Math.min(W,tx)),z:Math.max(-W,Math.min(W,tz))};
+   actor.current.target=target;actor.current.home={...target};
+   triggerCue(actor.current,scared?'scared':em.dominant==='curiosity'?'curious':em.dominant==='mischief'?'zoomies':'walk',target);
    setReact(scared?`${name} is shy and scoots away from the tap.`:em.dominant==='curiosity'?`${name} goes to sniff what you tapped.`:em.dominant==='mischief'?`${name} zooms over to the spot!`:`${name} heads over to look.`);}
   window.setTimeout(()=>setReact(''),3200);
  }
@@ -72,12 +98,13 @@ export default function CameraField({fullscreen=false,autoStart=false,floorPx=0,
    <video ref={video} playsInline muted autoPlay aria-label="Live camera preview (not recorded)" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:live?1:0}}/>
    <div aria-hidden style={{position:'absolute',left:0,right:0,bottom:0,height:'26%',background:'linear-gradient(transparent,#0006)',pointerEvents:'none'}}/>
    <div ref={body} data-field-creature style={{display:beast?'block':'none',perspective:600,position:'absolute',left:'50%',bottom:'8%',width:'min(46vw,230px)',height:'min(46vw,230px)',transformOrigin:'50% 100%',willChange:'transform,left,bottom'}}>
-    {beast?<div data-field-sprite={beast?.qbeast?.profile?.id||beast.genome.seed} style={{width:'100%',height:'100%',transformStyle:'preserve-3d',filter:'drop-shadow(0 10px 12px #0009)'}}><PixelBeast genome={beast.genome} stage={beast.nativeStage||beast.stage||1} publicSpark pose={em.dominant==='fear'?'emote':em.dominant==='joy'||em.dominant==='mischief'?'react':'idle'} emote={em.dominant==='fear'?'sleep':em.dominant==='joy'?'spark':'watch'} label={`${name} · same recorded-seed sprite as the catalogue`}/></div>:null}
-    <span aria-hidden style={{position:'absolute',left:'22%',right:'22%',bottom:2,height:10,borderRadius:'50%',background:'#0008',filter:'blur(4px)',zIndex:-1}}/>
+    {beast?<div data-field-sprite={beast?.qbeast?.profile?.id||beast.genome.seed} style={{width:'100%',height:'100%',transformStyle:'preserve-3d',filter:'drop-shadow(0 10px 12px #0009)'}}><Creature3DCanvas genome={beast.genome} stage={beast.nativeStage||beast.stage||1} emotion={em} actorPoseRef={actorPose} lookAtRef={look} label={`${name} · 3D living companion from recorded-seed sprite`}/></div>:null}
+    <span ref={shadowRef} data-contact-shadow aria-hidden style={{position:'absolute',left:'22%',right:'22%',bottom:2,height:10,borderRadius:'50%',background:'#0008',filter:'blur(4px)',zIndex:-1,transition:'transform 60ms linear'}}/>
    </div>
    <div style={{position:'absolute',top:fullscreen?'max(100px,calc(env(safe-area-inset-top) + 92px))':10,left:10,right:10,display:'flex',flexWrap:'wrap',gap:6,alignItems:'center',pointerEvents:'none'}}>
     <span style={{padding:'3px 9px',borderRadius:999,background:'#000a',fontSize:11,fontWeight:700}}>{live?'● LIVE CAMERA · NOT RECORDED':'✦ STARFIELD'} · not AR</span>
     <span data-field-emotion={em.dominant} style={{padding:'3px 9px',borderRadius:999,background:'#000a',fontSize:11}}>{name} feels {em.dominant} · {em.choice.motion}</span>
+    <span data-field-vision style={{padding:'3px 9px',borderRadius:999,background:'#000a',fontSize:11}}>{live?`👁 ${visionSummary}`:'👁 on-device vision (motion, faces, light · not AR)'}</span>
    </div>
    {react?<p role="status" style={{position:'absolute',left:12,right:12,bottom:fullscreen?`calc(${floorPx}px + 34%)`:'28%',margin:0,padding:'6px 10px',borderRadius:12,background:'#0c1228d9',fontSize:13,textAlign:'center',pointerEvents:'none'}}>{react}</p>:null}
    {!beast?<div data-field-no-creature style={{position:'absolute',left:'50%',bottom:`calc(${floorPx}px + 8%)`,transform:'translateX(-50%)',width:'min(300px,84%)',padding:12,borderRadius:16,background:'#0c1228ee',border:'1px solid #7dd9ea66',textAlign:'center',fontSize:13}} onPointerDown={e=>e.stopPropagation()}>No creature picked yet. <a href="/spark/index.html#catalog-picker" style={{color:'#9aefff',fontWeight:700}}>Pick one in the Spark Lab catalogue</a> and it will explore here.</div>:null}
@@ -88,6 +115,6 @@ export default function CameraField({fullscreen=false,autoStart=false,floorPx=0,
     {msg?<p role="alert" style={{fontSize:12,color:'#ffd2d2',margin:'8px 0 0'}}>{msg}</p>:null}
    </div>:<button type="button" onPointerDown={e=>e.stopPropagation()} onClick={stop} style={{position:'absolute',right:10,top:fullscreen?'max(100px,calc(env(safe-area-inset-top) + 92px))':10,minHeight:36,padding:'4px 12px',borderRadius:999,border:'1px solid #78ddea88',background:'#0c1228e0',color:'#d7faff',fontWeight:700,fontSize:12}}>Stop camera</button>}
   </div>
-  {!fullscreen?<p style={{fontSize:11,color:'#9fc6d8',margin:'6px 4px'}}>Tap anywhere and {name} reacts. Emotions come from its seed and real care events only (see the Spark Lab for the why). Camera preview + 3D overlay, not AR: there is no tracking or surface detection.</p>:null}
+  {!fullscreen?<p style={{fontSize:11,color:'#9fc6d8',margin:'6px 4px'}}>Tap anywhere and {name} reacts. On-device vision notices motion, faces and room light locally (never uploaded or recorded). Camera preview + 3D overlay, not AR: there is no tracking or surface detection.</p>:null}
  </section>;
 }

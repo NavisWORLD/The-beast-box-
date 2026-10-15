@@ -5,6 +5,7 @@ import {rigParts,paintRig} from './zeref-paint';
 import {useUniverseMotion} from './use-universe-motion';
 import {ZEREF_PROFILE,createMind,frameFor,stepMind,tapMind,greetMind} from '../lib/zeref/zeref-mind.mjs';
 import {LAYERS,clampYaw,ctmToMatrix4,faceKey,depthPose,MAX_YAW_DEG,volumeFor} from '../lib/zeref/sprite-layers.mjs';
+import {createSecondaryMotion,stepSecondaryMotion} from '../lib/companion/fluid-motion.mjs';
 
 type Props={className?:string;
  /** Live inside the home pocket's three.js world (the pocket renders him); falls back to own canvas. */
@@ -116,6 +117,12 @@ export default function ZerefSprite3D({className='',embed=false,autoRotate=false
     layers.push({L,el:P[L.part],bone,depth,mesh,mat,tex,shells,rim,canvas:c});
    }
    const head=layers.find(x=>x.L.live);let lastFace='',cutting=false;
+   const sec=createSecondaryMotion({seed:ZEREF_PROFILE.id,element:'umbral',tailSegments:3,particleCount:20});
+   const ptArr=new Float32Array(sec.fluid.particles.length*3);
+   sec.fluid.particles.forEach((p:any,i:number)=>{ptArr[i*3]=p.x*1.6;ptArr[i*3+1]=(p.y-.45)*1.6;ptArr[i*3+2]=p.z*0.9;});
+   const ptGeo=new THREE.BufferGeometry();ptGeo.setAttribute('position',new THREE.BufferAttribute(ptArr,3));
+   const ptMat=new THREE.PointsMaterial({color:0xb57bff,size:0.06,transparent:true,opacity:0.75,depthWrite:false,blending:THREE.AdditiveBlending});
+   const cosmicPts=new THREE.Points(ptGeo,ptMat);cosmicPts.name='ZerefCosmicParticles';root.add(cosmicPts);
    const resize=()=>{const r=canvas.getBoundingClientRect();renderer.setSize(Math.max(1,r.width),Math.max(1,r.height),false);};
    resize();const ro=new ResizeObserver(resize);ro.observe(canvas);
    let prev=performance.now();
@@ -132,6 +139,9 @@ export default function ZerefSprite3D({className='',embed=false,autoRotate=false
     if(inWorld)yawRef.current=clampYaw(ze.viewYaw||0);
     const yaw=clampYaw(yawRef.current);root.rotation.y=inWorld?0:yaw*Math.PI/180;
     const dp=depthPose(yaw,mind.t,reduced);
+    const secSnap=stepSecondaryMotion(sec,dt,{position:{x:(yaw/180)*0.4,y:0,z:0},lift:inWorld?(ze.motion?.lift||0):0,reduced});
+    const posAttr=ptGeo.getAttribute('position');
+    if(posAttr){const arr=posAttr.array as Float32Array;for(let i=0;i<secSnap.particles.length;i++){const p=secSnap.particles[i];arr[i*3]=p.x*1.6;arr[i*3+1]=(p.y-.45)*1.6;arr[i*3+2]=p.z*0.9;}posAttr.needsUpdate=true;}
     // Near the front the sprite layers paint in sprite order over the volumes (front == sprite);
     // once the view turns, the planes depth-test against the sculpted volumes.
     const paintOrder=Math.abs(yaw)<=25;
@@ -141,8 +151,9 @@ export default function ZerefSprite3D({className='',embed=false,autoRotate=false
      if(ctm){x.bone.matrix.fromArray(ctmToMatrix4(ctm));x.bone.matrixWorldNeedsUpdate=true;}
      const op=x.el?Number(getComputedStyle(x.el).opacity||1)*Number(x.el.getAttribute('opacity')||1):1;x.mat.opacity=op;x.mat.depthTest=!paintOrder;
      x.shells.forEach((s:any,i:number)=>{s.material.opacity=op*dp.shell*(0.55+0.4*i/Math.max(1,x.shells.length));});x.rim.material.opacity=op*dp.rim;
-     if(x.L.wing)x.depth.rotation.y=dp.wingFold;
-     if(x.L.part==='tail')x.depth.rotation.y=dp.tailYaw+(inWorld?(ze.motion?.tail||0):0);
+     if(x.L.wing)x.depth.rotation.y=dp.wingFold+(secSnap.wingL.pitch*0.25*(x.L.wing>0?1:-1));
+     if(x.L.part==='tail')x.depth.rotation.y=dp.tailYaw+(secSnap.tailAngles[0]?.yaw||0)*0.3+(inWorld?(ze.motion?.tail||0):0);
+     if(x.L.part==='earL'||x.L.part==='earR')x.depth.rotation.z=(x.L.part==='earL'?secSnap.earL.yaw:-secSnap.earR.yaw)*0.22;
      if(inWorld&&x.L.wing)x.depth.rotation.y+=(ze.motion?.ear||0)*.6*(x.L.wing>0?1:-1);
     }
     const key=faceKey(f);
@@ -157,7 +168,7 @@ export default function ZerefSprite3D({className='',embed=false,autoRotate=false
    const move=(e:PointerEvent)=>{if(!dragRef.current)return;const w=canvas.getBoundingClientRect().width||1;yawRef.current=clampYaw(dragRef.current.yaw+(e.clientX-dragRef.current.x)/w*360);kick();};
    const up=()=>{if(dragRef.current&&Math.abs(yawRef.current-dragRef.current.yaw)<2)tapMind(mind);if(dragRef.current)idleRef.current=performance.now()+2500;dragRef.current=null;kick();};
    canvas.addEventListener('pointerdown',down);window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);
-   cleanup=()=>{ro.disconnect();canvas.removeEventListener('pointerdown',down);window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);layers.forEach(x=>{x.tex.dispose();x.mat.dispose();x.rim.material.dispose();x.shells.forEach((s:any)=>s.material.dispose());});geo.dispose();renderer.dispose();};
+   cleanup=()=>{ro.disconnect();canvas.removeEventListener('pointerdown',down);window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);layers.forEach(x=>{x.tex.dispose();x.mat.dispose();x.rim.material.dispose();x.shells.forEach((s:any)=>s.material.dispose());});ptGeo.dispose();ptMat.dispose();geo.dispose();renderer.dispose();};
    (window as any).__zerefSprite3D={yaw:(d:number|null)=>{if(d===null){holdRef.current=false;return yawRef.current;}holdRef.current=true;yawRef.current=clampYaw(d);kick();return clampYaw(d);},layers:layers.map(x=>x.L.part),scene};
   }catch{if(!disposed)setState('fallback');}})();
   return()=>{if((window as any).__zerefEmbed?.root&&embedded){(window as any).__zerefEmbed.root.removeFromParent();(window as any).__zerefEmbed=null;}disposed=true;clearTimeout(guard);if(raf)cancelAnimationFrame(raf);cleanup();};

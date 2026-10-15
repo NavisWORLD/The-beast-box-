@@ -1,8 +1,12 @@
 export type Persona={hop:number;walk:number;curiosity:number;fidget:number;tempo:number;source:'seed+labelled-counts'|'recorded-seed'|'id-only'};
-export type Pose={x:number;z:number;lift:number;sx:number;sy:number;heading:number;head:number;lean:number;tail:number;ear:number;state:string};
+export type Pose={x:number;z:number;lift:number;sx:number;sy:number;heading:number;head:number;lean:number;tail:number;ear:number;state:string;prevState?:string;blend?:number;shadowScale?:number;shadowOpacity?:number;grounded?:boolean};
 export function prng(seed:string):()=>number;
 export function countsEntropy(counts:Record<string,number>|null|undefined):number|null;
 export function motionPersona(o?:{id?:string;seed?:string|null;counts?:Record<string,number>|null}):Persona;
 export function createActor(p:Persona,o?:{x?:number;z?:number;radius?:number;seed?:string}):any;
-export function stepActor(a:any,dt:number,ctx?:{lookAt?:{x:number;z:number}|null;reduced?:boolean}):Pose;
+export function triggerCue(a:any,cue:string,target?:{x:number;z:number}|null):any;
+export function contactShadow(o?:{lift?:number;sy?:number}):{scale:number;opacity:number;blurPx:number;grounded:boolean};
+export function blendPose(prev:Pose|null,next:Pose,alpha?:number):Pose;
+export function stepActor(a:any,dt:number,ctx?:{lookAt?:{x:number;z:number}|null;emotion?:any;cue?:string|null;reduced?:boolean}):Pose;
 export const STATES:string[];
+export const FILM_CLIPS:Record<string,string>;

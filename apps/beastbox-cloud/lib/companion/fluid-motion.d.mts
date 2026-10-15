@@ -1,0 +1,26 @@
+export type VerletAngle = { yaw: number; pitch: number; x?: number; y?: number; z?: number };
+export type SoftBodyPose = { sx: number; sy: number; sz: number; jiggle: number; landed: boolean };
+export type FluidParticle = { x: number; y: number; z: number; vx: number; vy: number; vz: number; ox: number; oy: number; oz: number; phase: number; life: number; size: number; density: number };
+export const ELEMENT_FLUID_PROFILES: Record<string, { kind: string; buoyancy: number; curlFreq: number; curlAmp: number; sphRepel: number; viscosity: number; drag: number; radius: number; colorA: number; colorB: number }>;
+export function seededPrng(seed: string): () => number;
+export function emotionFluidParams(emotion?: any): { dominant: string; speedScale: number; radiusScale: number; buoyancyBias: number; springStiffScale: number; tailWagAmp: number; tailWagFreq: number; earPerk: number };
+export function curlNoise3D(x: number, y: number, z: number, t?: number, phase?: number, freq?: number): { vx: number; vy: number; vz: number };
+export function createVerletChain(opts?: { segments?: number; segmentLength?: number; dir?: { x: number; y: number; z: number }; gravity?: number; damping?: number; stiffness?: number; constraintPasses?: number }): any;
+export function stepVerletChain(chain: any, dt: number, opts?: { rootVelocity?: { x: number; y: number; z: number }; wind?: { x: number; y: number; z: number }; stiffnessScale?: number; reduced?: boolean }): VerletAngle[];
+export function createSoftBody(opts?: { stiffness?: number; damping?: number }): any;
+export function stepSoftBody(sb: any, dt: number, opts?: { lift?: number; targetSy?: number; speed?: number; reduced?: boolean }): SoftBodyPose;
+export function createElementFluid(opts?: { seed?: string; element?: string; count?: number }): any;
+export function stepElementFluid(fluid: any, dt: number, opts?: { emotion?: any; rootVelocity?: { x: number; y: number; z: number }; lookAt?: { x: number; z: number } | null; reduced?: boolean }): FluidParticle[];
+export function createSecondaryMotion(opts?: { seed?: string; element?: string; tailSegments?: number; particleCount?: number }): any;
+export function stepSecondaryMotion(sec: any, dt: number, opts?: { position?: { x: number; y?: number; z: number }; lift?: number; targetSy?: number; emotion?: any; lookAt?: { x: number; z: number } | null; reduced?: boolean }): {
+  tailAngles: VerletAngle[];
+  earL: VerletAngle;
+  earR: VerletAngle;
+  wingL: VerletAngle;
+  wingR: VerletAngle;
+  fur: VerletAngle;
+  wisp: VerletAngle[];
+  softBody: SoftBodyPose;
+  particles: FluidParticle[];
+  emotionParams: ReturnType<typeof emotionFluidParams>;
+};
