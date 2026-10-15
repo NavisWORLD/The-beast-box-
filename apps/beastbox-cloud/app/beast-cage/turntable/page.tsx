@@ -19,7 +19,7 @@ export default function CreatureTurntable(){
  const [look,setLook]=useState<CreatureLook>(profile?.baseLook??'nebula');
  const [spin,setSpin]=useState(true),[angle,setAngle]=useState<number>(0);
  const [showProcess,setShowProcess]=useState(false);
- const [subject,setSubject]=useState<Subject>('moonwraith');
+ const [subject,setSubject]=useState<Subject>('workshop');
  const [pose,setPose]=useState<CreatureState>('idle');
  const [speaking,setSpeaking]=useState(false);
  useEffect(()=>{if(profile)setLook(profile.baseLook);},[profile?.id,profile?.baseLook]);

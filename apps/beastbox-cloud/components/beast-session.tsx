@@ -5,7 +5,6 @@ import {openIndexedDb} from '../lib/companion/learn.mjs';
 import {advanceCreature,exportSession,importSession} from '../lib/companion/session.mjs';
 import {selectedIdentity,updateDeviceSession,recoverMirroredSession} from '../lib/companion/session-store.mjs';
 import {environmentFor} from '../lib/companion/behavior.mjs';
-import {catchUpRecordedBehavior,stampIdleClock} from '../lib/companion/idle-life.mjs';
 import {replaySpark,readSparkSession,withSparkLock,SESSION_KEY} from '../public/spark/identity.mjs';
 import {serializeQbeast} from '../public/spark/qbeast.mjs';
 import {loadSparkRuns} from '../public/spark/runs.mjs';
@@ -77,11 +76,8 @@ export function BeastSessionProvider({children}:{children:React.ReactNode}){
  useEffect(()=>{
   if(!ready)return;
   // Fixed simulation tick, independent of display FPS. Hidden time invents no experiences.
-  const paused=()=>{try{return localStorage.getItem('beastbox-behavior-paused-v1')==='true';}catch{return true;}};
-  const timer=setInterval(()=>{if(document.hidden||busy.current||!current.current?.beast?.seed||paused())return;void change(draft=>{if(!document.hidden&&!paused()){advanceCreature(draft,environment.current);if(draft.beast?.behavior)stampIdleClock(draft.beast.behavior,Date.now(),draft.beast.qbeast?.profile?.id);}});},8000);
-  const onVisible=()=>{if(document.hidden||!current.current?.beast?.seed||paused())return;void change(draft=>{const beast=draft.beast;if(!beast?.behavior)return;const result=catchUpRecordedBehavior(beast.behavior,beast.qbeast?.profile?.id,environment.current,Date.now(),false);if(result.ok&&result.life)beast.behavior=result.life;});};
-  document.addEventListener('visibilitychange',onVisible);
-  return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',onVisible);};
+  const timer=setInterval(()=>{if(document.hidden||busy.current||!current.current?.beast?.seed)return;try{if(localStorage.getItem('beastbox-behavior-paused-v1')==='true')return;}catch{return;}void change(draft=>{if(!document.hidden&&localStorage.getItem('beastbox-behavior-paused-v1')!=='true')advanceCreature(draft,environment.current);});},8000);
+  return()=>clearInterval(timer);
  },[ready,change]);
  const value=useMemo(()=>({ready,session,trail,sensorLog,storageStatus,change,setTrail,noteSensor}),[ready,session,trail,sensorLog,storageStatus,change,setTrail,noteSensor]);
  return <Context.Provider value={value}>{children}</Context.Provider>;
