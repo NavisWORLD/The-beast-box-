@@ -3,6 +3,9 @@ import {useEffect,useState} from 'react';
 import Link from 'next/link';
 import JourneyLinks from '@/components/journey-links';
 import CosmicCompanion3D,{type CreatureLook,type CreatureState} from '@/components/cosmic-companion-3d';
+import dynamic from 'next/dynamic';
+import type {ZerefMood} from '@/components/zeref-glb-3d';
+const ZerefGlb3D=dynamic(()=>import('@/components/zeref-glb-3d'),{ssr:false});
 import FamilyExplain from '@/components/family-explain';
 import {useCompanion} from '@/components/companion-provider';
 import {MOONWRAITH_DISPLAY_ID,SAVED_ZEREF_ID,dimensionalAttribution} from '@/lib/creature-dimensional.mjs';
@@ -13,6 +16,7 @@ import styles from './turntable.module.css';
 const ANGLES=[0,90,180,270] as const;
 const POSES:CreatureState[]=['idle','listening','observing','sleeping','celebrating'];
 type Subject='workshop'|'moonwraith'|'dragonling';
+const MOODS:ZerefMood[]=['calm','happy','curious','scared','sleepy','angry'];
 const heartRun=heartSound.runs[0];
 export default function CreatureTurntable(){
  const {profile}=useCompanion();
@@ -23,6 +27,9 @@ export default function CreatureTurntable(){
  const [pose,setPose]=useState<CreatureState>('idle');
  const [speaking,setSpeaking]=useState(false);
  useEffect(()=>{if(profile)setLook(profile.baseLook);},[profile?.id,profile?.baseLook]);
+ // Preview flag: ?glb=1 shows the sculpted, rigged Zeref GLB (CST spring bones) while it is reviewed.
+ const [glb,setGlb]=useState(false),[mood,setMood]=useState<ZerefMood>('calm');
+ useEffect(()=>{setGlb(new URLSearchParams(window.location.search).get('glb')==='1');},[]);
  const dimensionalId=subject==='moonwraith'?MOONWRAITH_DISPLAY_ID:subject==='dragonling'?SAVED_ZEREF_ID:null;
  const attribution=dimensionalId?dimensionalAttribution(subject==='moonwraith'?'moonwraith-artistic':'dragonling-artistic'):null;
  const explain=subject==='moonwraith'?{
@@ -44,7 +51,7 @@ export default function CreatureTurntable(){
   </section>
   <div className={styles.stage} data-stage="real-3d-turntable" data-subject={subject} data-view-angle={spin?'spinning':angle} aria-label="Actual rotating Three.js creature">
     <span className={styles.star} aria-hidden="true">✧</span>
-    <CosmicCompanion3D profile={subject==='workshop'?profile:null} dimensionalId={dimensionalId} look={look} state={pose} speaking={speaking&&pose==='listening'} turntable={spin} turntableAngle={spin?null:angle} quality="auto" className={styles.model} label={(attribution?attribution.label:'Real 3D '+(profile?.name||'companion'))+(spin?' · rotating':' · '+angle+' degrees')}/>
+    {glb?<ZerefGlb3D spin={spin} angle={angle} mood={mood}/>:<><CosmicCompanion3D profile={subject==='workshop'?profile:null} dimensionalId={dimensionalId} look={look} state={pose} speaking={speaking&&pose==='listening'} turntable={spin} turntableAngle={spin?null:angle} quality="auto" className={styles.model} label={(attribution?attribution.label:'Real 3D '+(profile?.name||'companion'))+(spin?' · rotating':' · '+angle+' degrees')}/></>}
     <div className={styles.stageLabel}>{spin?'LIVE GEOMETRY • FULL 360° ROTATION':'LIVE GEOMETRY • '+angle+'° VIEW'}</div>
   </div>
   <section className={styles.controls} aria-label="3D turntable camera controls">
@@ -57,6 +64,9 @@ export default function CreatureTurntable(){
       <button className={spin?styles.active:''} aria-pressed={spin} onClick={()=>setSpin(true)}>↻ Rotate 360°</button>
       {ANGLES.map(a=><button key={a} className={!spin&&angle===a?styles.active:''} aria-pressed={!spin&&angle===a} onClick={()=>{setAngle(a);setSpin(false)}}>{a}° {a===0?'front':a===90?'side':a===180?'back':'side'}</button>)}
     </div>
+    {glb?<div className={styles.buttons} role="group" aria-label="Zeref GLB mood (drives CST motion + expressions)">
+      {MOODS.map(m=><button key={m} type="button" className={mood===m?styles.active:''} aria-pressed={mood===m} onClick={()=>setMood(m)}>{m}</button>)}
+    </div>:null}
     <div className={styles.buttons} role="group" aria-label="Animation pose">
       {POSES.map(item=><button key={item} type="button" className={pose===item?styles.active:''} aria-pressed={pose===item} onClick={()=>setPose(item)}>{item}</button>)}
       <button type="button" className={speaking?styles.active:''} aria-pressed={speaking} onClick={()=>setSpeaking(value=>!value)}>Speaking</button>

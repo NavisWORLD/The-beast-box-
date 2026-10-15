@@ -8,8 +8,9 @@
  * Nothing is measured live and no receipt is invented.
  */
 export const SAND_LABEL='Simulated world seeded from recorded measurements';
-const hash=s=>{let h=2166136261>>>0;for(const c of String(s))h=Math.imul(h^c.charCodeAt(0),16777619)>>>0;return h||1;};
-export const rngFrom=s=>{let v=hash(s);return()=>{v^=v<<13;v^=v>>>17;v^=v<<5;return(v>>>0)/4294967296;};};
+import {seededRng,clampDt,genesisDrag} from './physics/cst-integrator.mjs';
+/** Seeded PRNG: the shared CST integrator one (bit-identical to the previous local copy). */
+export const rngFrom=seededRng;
 /** Adaptive particle budget: phones and reduced-motion get far fewer. */
 export function sandBudget({width=1024,low=false,reduced=false,cores=4}={}){
  if(reduced)return 260;if(low||width<600)return 700;return cores>=8&&width>=1200?2400:1500;
@@ -27,7 +28,7 @@ export function createSandField({seed,count,half=4.3,counts=null}){
  const field={pos,vel,home,kind,wells,count,half,receipt:false,
   setCounts(c){const w=wellWeights(c);wells.forEach((well,i)=>well.w=w[i]);field.receipt=Boolean(c);},
   step(dt,disturbers=[]){
-   const d=Math.min(.05,Math.max(0,dt)),drag=Math.pow(.99,d*60),damp=1-.1*d;
+   const d=clampDt(dt),k=genesisDrag(d);
    for(let i=0;i<count;i++){
     const j=i*3;let x=pos[j],y=pos[j+1],z=pos[j+2],vx=vel[j],vy=vel[j+1],vz=vel[j+2];
     // nearest attractor pull (Genesis Engine gravity-to-nearest), weighted by recorded counts
@@ -40,7 +41,7 @@ export function createSandField({seed,count,half=4.3,counts=null}){
     vx+=(home[j]-x)*.35*d;vz+=(home[j+2]-z)*.35*d;vy+=(home[j+1]-y)*(kind[i]?.9:1.6)*d-(kind[i]?0:.6)*d;
     // creatures disturb the field
     for(const c of disturbers){const dx=x-c.x,dz=z-c.z,q=dx*dx+dz*dz,R=c.r*c.r;if(q<R&&q>1e-6){const f=(1-q/R)*c.s*d/Math.sqrt(q);vx+=dx*f;vz+=dz*f;vy+=f*.6;}}
-    vx*=drag*damp;vy*=drag*damp;vz*=drag*damp;x+=vx*d;y+=vy*d;z+=vz*d;
+    vx*=k;vy*=k;vz*=k;x+=vx*d;y+=vy*d;z+=vz*d;
     if(y<0){y=0;vy=Math.abs(vy)*.2;}
     if(x<-half||x>half){vx=-vx*.5;x=Math.max(-half,Math.min(half,x));}
     if(z<-half||z>half){vz=-vz*.5;z=Math.max(-half,Math.min(half,z));}
