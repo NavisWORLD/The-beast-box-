@@ -689,7 +689,7 @@ html[data-beastbox-reduced-motion="true"] *,html[data-beastbox-reduced-motion="t
 /* Home pocket UI cleanup (Cory, Oct 14): the 3D Zeref IS the guide here, so the floating mini
    companion steps aside, and the
    TALK TO launcher sits clear above the Lost COSMOS dock. Scoped to pages showing the 3D Zeref. */
-body:has(.zeref-sprite3d) .cosmic-support{display:none}
+body:has(.zeref-sprite3d) .cosmic-support{transform:scale(.7);transform-origin:bottom left}
 @media(max-width:480px){
  body:has(.zeref-sprite3d) button[class*="beast-chat-overlay-module"][class*="launcher"]{bottom:calc(68px + env(safe-area-inset-bottom))}
 }
