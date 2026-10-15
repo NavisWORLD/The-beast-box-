@@ -686,3 +686,11 @@ html[data-beastbox-reduced-motion="true"] *,html[data-beastbox-reduced-motion="t
 .zeref-sprite3d[data-zeref-sprite3d=fallback] .zeref-sprite3d-source{opacity:1}
 .zeref-sprite3d-canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:pan-y;cursor:grab;filter:drop-shadow(0 0 10px #a77bffa0) drop-shadow(0 14px 22px #05020caa)}
 .cosmos-home-hero>.zeref-sprite3d{width:100%;height:100%}
+/* Home pocket UI cleanup (Cory, Oct 14): the 3D Zeref IS the guide here, so the floating mini
+   companion steps aside, the sound controls leave the scene for the top-right corner, and the
+   TALK TO launcher sits clear above the Lost COSMOS dock. Scoped to pages showing the 3D Zeref. */
+body:has(.zeref-sprite3d) .cosmic-support{display:none}
+@media(max-width:480px){
+ body:has(.zeref-sprite3d) aside[class*="site-sound-dock-module"][class*="dock"]{top:max(10px,env(safe-area-inset-top,0px));bottom:auto;left:auto;right:max(10px,env(safe-area-inset-right,0px));transform:scale(.82);transform-origin:top right}
+ body:has(.zeref-sprite3d) button[class*="beast-chat-overlay-module"][class*="launcher"]{bottom:calc(68px + env(safe-area-inset-bottom))}
+}
