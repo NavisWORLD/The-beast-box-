@@ -58,7 +58,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   const canvas=canvasRef.current;
   if(!canvas||failed||!visualSettings.enabled)return;
   let disposed=false,frame=0,cleanup=()=>{};
-  const parent=canvas.closest('.cage-habitat-visual') as HTMLElement|null;
+  // Cage habitat, or the home pocket art (home: the god view is driven from the whole pocket).
+  const parent=canvas.closest('.cage-habitat-visual,.beast-landing-art') as HTMLElement|null;
   const activePointers=new Map<number,Pointer>();
   let moved=false,suppressClick=false;
   const isControl=(target:EventTarget|null)=>target instanceof Element&&Boolean(
@@ -155,7 +156,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     if(disposed)return;
     // User quality never overrides the OS reduced-motion safety boundary.
     const low=reduced||visualSettings.quality==='low'||(visualSettings.quality==='auto'&&window.innerWidth<600);
-    const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:!low,powerPreference:'low-power',logarithmicDepthBuffer:true});
+    const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:!low,powerPreference:'low-power'});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?1:1.4));
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     // Living Cosmos polish: filmic tone mapping for deeper, less flat contrast.
@@ -305,6 +306,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      camera.near=Math.max(.05,v.zoom*.01);camera.updateProjectionMatrix();
      camera.position.set(f.x+v.zoom*Math.sin(v.phi)*Math.sin(v.theta),f.y+v.zoom*Math.cos(v.phi),f.z+v.zoom*Math.sin(v.phi)*Math.cos(v.theta));
      camera.lookAt(f);
+     // The DOM 3D Zeref (home) lives on the habitat: he shrinks with distance and hands off to the sim.
+     const zs=Math.min(1.25,13.4/Math.max(1,v.zoom));const host=canvas.closest('.beast-landing-art') as HTMLElement|null;
+     if(host){host.style.setProperty('--pocket-zoom-scale',String(zs.toFixed(3)));host.style.setProperty('--pocket-zoom-fade',String(Math.max(0,Math.min(1,(zs-.06)/.2)).toFixed(3)));}
      try{renderer.render(scene,camera);}catch{setReady(false);setFailed(true);return;}
      if(!rendered){rendered=true;setReady(true);}
     };

@@ -706,3 +706,5 @@ body:has(.zeref-sprite3d) aside[class*="companion-provider-module"][class*="shel
 @media(max-width:480px){
  body:has(.zeref-sprite3d) aside[class*="site-sound-dock-module"][class*="dock"]:not([class*="game"]){left:calc(max(8px,env(safe-area-inset-left,0px)) + 52px)!important;bottom:calc(env(safe-area-inset-bottom,0px) + 12px)!important;transform:scale(.84);transform-origin:bottom left}
 }
+/* God view: the home 3D Zeref stands on the habitat, so he scales/fades with the pocket camera zoom. */
+.beast-landing-art .beast-landing-creature:has(.zeref-sprite3d){transform:scale(var(--pocket-zoom-scale,1));opacity:var(--pocket-zoom-fade,1);transition:transform .12s linear,opacity .2s}
