@@ -164,15 +164,15 @@ jobs:
             [ -n "$src" ] && [ -s "$src/native-evidence-manifest.json" ] && cp -r "$src" "build/zeref-006/replay/$id" || true
           done
           echo "ZEREF_006_REPLAY_DATASETS=$(ls build/zeref-006/replay | wc -l)"
+      - name: Install real native model CPU runtime
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos
       - name: Build bounded chat mix (reviewed Zeref dialogue + Dolly-15k CC BY-SA 3.0, pinned)
         run: |
           set -Eeuo pipefail
           curl -fsSL --retry 3 -o build/zeref-006/dolly.jsonl "https://huggingface.co/datasets/databricks/databricks-dolly-15k/resolve/bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a/databricks-dolly-15k.jsonl"
           python scripts/zeref_chat_corpus.py build/zeref-006/dolly.jsonl build/zeref-006/chat-mix.jsonl
-      - name: Install real native model CPU runtime
-        run: |
-          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
-          python -m pip install -e . -e ./models/rawrphos
       - name: Resume exact AdamW state, perform up to 64 new CPU updates and test heldout/retention
         run: |
           set -Eeuo pipefail
