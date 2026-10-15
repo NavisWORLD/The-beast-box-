@@ -1,29 +1,51 @@
 {
- "vertices": 7640,
- "triangles": 15276,
+ "vertices": 20744,
+ "triangles": 41484,
  "index": "u16",
  "views": {
   "front": {
-   "u0": -0.3174,
-   "u1": 0.3189,
+   "u0": -0.2948,
+   "u1": 0.2965,
    "v0": 0.0,
-   "v1": 1.0,
+   "v1": 1.0135,
    "flip": false
   },
   "side": {
-   "u0": -0.3182,
-   "u1": 0.3197,
+   "u0": -0.3606,
+   "u1": 0.3606,
    "v0": 0.0,
-   "v1": 0.9742,
+   "v1": 0.9764,
    "flip": false
   },
   "back": {
-   "u0": -0.3182,
-   "u1": 0.3197,
+   "u0": -0.315,
+   "u1": 0.3167,
    "v0": 0.0,
-   "v1": 0.9985,
+   "v1": 1.0,
    "flip": true
   }
  },
- "source": "Cory-provided AI turntable video (artist-drawn resident, no quantum seed); visual hull from front/side/back silhouettes"
+ "frames": {
+  "used_times_s": [
+   0.0,
+   0.1,
+   0.2,
+   0.3,
+   0.4,
+   0.5,
+   0.6,
+   0.7,
+   0.8,
+   0.9,
+   1.0,
+   1.1
+  ],
+  "consensus_frames_per_view": {
+   "front": 5,
+   "side": 5,
+   "back": 5
+  },
+  "matte": "rembg isnet-general-use + u2net max (local CPU) + temporal median"
+ },
+ "source": "Cory-provided AI turntable video (artist-drawn resident, no quantum seed); rounded visual hull from multi-frame front/side/back mattes"
 }

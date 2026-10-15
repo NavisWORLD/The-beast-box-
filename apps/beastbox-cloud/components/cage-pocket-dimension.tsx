@@ -41,6 +41,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
  const canvasRef=useRef<HTMLCanvasElement>(null);
  const motion=useRef({position:behaviorPosition,state,stage,impulse:0});
  const cameraView=useRef<View>({theta:.7,phi:1.05,zoom:10.6});
+ // Tap-a-creature: set once the scene exists; a tap (no drag) raycasts and focuses the camera on what it hits.
+ const pickRef=useRef<((x:number,y:number)=>void)|null>(null);
  const [visualSettings,setVisualSettings]=useState<{enabled:boolean;quality:'auto'|'low'|'high'}>({...DEFAULT_POCKET_3D});
  useEffect(()=>{
   const sync=()=>setVisualSettings(devicePocket3D());
@@ -89,8 +91,10 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
   };
   const pointerEnd=(event:PointerEvent)=>{
+   const tap=activePointers.has(event.pointerId)&&!moved&&activePointers.size===1;
    if(activePointers.has(event.pointerId)&&moved)suppressClick=true;
    activePointers.delete(event.pointerId);
+   if(tap)pickRef.current?.(event.clientX,event.clientY);
   };
   const clickCapture=(event:MouseEvent)=>{
    // A camera drag on the companion must not turn into an accidental attack.
@@ -122,7 +126,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   // of external microphone hearing or physical quantum/natural growth.
   const chirp=(e:Event)=>{const raw=Number((e as CustomEvent)?.detail?.intensity);motion.current.impulse=clamp(motion.current.impulse+(Number.isFinite(raw)?raw:.35)*.32,0,1.25);};
   const mute=()=>{motion.current.impulse=0;};
-  const resetCamera=()=>{cameraView.current={theta:.7,phi:1.05,zoom:10.6};};
+  const resetCamera=()=>{cameraView.current={theta:.7,phi:1.05,zoom:10.6};pickRef.current?.(-1e6,-1e6);};
   const option={passive:true} as AddEventListenerOptions;
   if(parent){
    parent.addEventListener('pointerdown',pointerDown,option);
@@ -253,7 +257,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       'vec3 c=mix(vec3(.12,.55,.85),vec3(.65,.4,1.0),w);gl_FragColor=vec4(c*(1.0-r*.7),(1.0-r)*.55+.08);}'});
     const pool=new THREE.Mesh(new THREE.CircleGeometry(1,low?32:64),poolMat);pool.rotation.x=-Math.PI/2;pool.position.set(2.15,-.03,-1.7);pool.scale.setScalar(.95);scene.add(pool);
     // Artist-drawn residents (separate creatures, never the active Beast) roam the pocket.
-    const {stepResidents,texCache,disturbers}=addPocketResidents(THREE,scene,seedRandom,reduced);
+    const {stepResidents,texCache,disturbers,pickables}=addPocketResidents(THREE,scene,seedRandom,reduced);
     // God view: habitat on a small planet, orbiting its suns, inside a galaxy (Genesis Engine, recoloured).
     const god=addGodView(THREE,scene,{rand:randomFor(key+':system'),low,counts:qvmCounts,stage:motion.current.stage||stage||1});
     const godFocus=new THREE.Vector3();
@@ -279,7 +283,25 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     io?.observe(canvas);
     const onContextLost=(e:Event)=>{e.preventDefault();setReady(false);setFailed(true);};
     canvas.addEventListener('webglcontextlost',onContextLost);
-    const focus=new THREE.Vector3(0,.85,0);
+    const focus=new THREE.Vector3(0,.85,0),homeFocus=new THREE.Vector3(0,.85,0);
+    // Tap-a-creature focus: the camera eases onto the tapped creature and follows it; tap empty space to let go.
+    let focused:{id:string;obj:import('three').Object3D}|null=null;const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),tgt=new THREE.Vector3();
+    pickRef.current=(cx,cy)=>{
+     const rect=canvas.getBoundingClientRect();if(cx<rect.left||cx>rect.right||cy<rect.top||cy>rect.bottom){focused=null;(window as any).__pocketFocus={id:null};return;}
+     ndc.set((cx-rect.left)/rect.width*2-1,-((cy-rect.top)/rect.height*2-1));ray.setFromCamera(ndc,camera);
+     const list:{id:string;obj:import('three').Object3D}[]=[...pickables()];const ze=(window as any).__zerefEmbed;if(ze?.claimed&&ze.root)list.push({id:'zeref',obj:ze.root});
+     let best:{id:string;obj:import('three').Object3D}|null=null,bestD=Infinity;
+     for(const c of list){if(!c.obj.visible&&c.id!=='zeref')continue;const h=ray.intersectObject(c.obj,true)[0];if(h&&h.distance<bestD){bestD=h.distance;best=c;}}
+     if(!best){
+      // forgiving finger: nearest creature to the ray within ~0.6 world units
+      for(const c of list){c.obj.getWorldPosition(tgt);const d=ray.ray.distanceToPoint(tgt);if(d<.6&&d<bestD){bestD=d;best=c;}}
+     }
+     focused=best;if(best)cameraView.current.zoom=Math.min(cameraView.current.zoom,4.6);
+     (window as any).__pocketFocus={id:best?.id??null};
+    };
+    (window as any).__pocketFocus={id:null};
+    // Test/QA hook: where each tappable creature currently is on screen (client px).
+    (window as any).__pocketTargets=()=>{const rect=canvas.getBoundingClientRect();return pickables().map(c=>{c.obj.getWorldPosition(tgt);tgt.y+=.25;tgt.project(camera);return {id:c.id,x:rect.left+(tgt.x+1)/2*rect.width,y:rect.top+(1-tgt.y)/2*rect.height,on:tgt.z<1&&Math.abs(tgt.x)<.95&&Math.abs(tgt.y)<.95};});};
     const animate=(now:number)=>{
      if(disposed)return;
      frame=requestAnimationFrame(animate);
@@ -319,6 +341,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       zHolder.position.set(zp.x,-.07+zp.lift,zp.z);zHolder.rotation.y=.7+zp.heading*.5+zp.head;
       zActorNode.scale.set(zp.sx,zp.sy,zp.sx);zActorNode.rotation.x=zp.lean;ze.motion={tail:zp.tail,ear:zp.ear};
       let d=-(v.theta-zHolder.rotation.y)*180/Math.PI;d=((d%360)+540)%360-180;ze.viewYaw=d;}
+     if(focused){focused.obj.getWorldPosition(tgt);tgt.y+=.35;focus.lerp(tgt,Math.min(1,dt*4));}else focus.lerp(homeFocus,Math.min(1,dt*3));
      const f=god.update(elapsed,v.zoom,focus,godFocus);
      (scene.fog as import('three').FogExp2).density=.032*Math.min(1,12/v.zoom);
      camera.near=Math.max(.05,v.zoom*.01);camera.updateProjectionMatrix();
@@ -329,6 +352,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     };
     frame=requestAnimationFrame(animate);
     cleanup=()=>{
+     pickRef.current=null;
      {const ze=(window as any).__zerefEmbed;if(ze?.root?.parent===zActorNode){zActorNode.remove(ze.root);ze.root.position.y=0;ze.claimed=false;}}
      cancelAnimationFrame(frame);ro?.disconnect();io?.disconnect();
      canvas.removeEventListener('webglcontextlost',onContextLost);
