@@ -699,6 +699,15 @@ body:has(.zeref-sprite3d) .cosmic-support{transform:scale(.7);transform-origin:b
  .beast-landing-creature:has(.zeref-sprite3d){left:24%;width:52%;top:10%;height:56%}
  .beast-landing-creature:has(.zeref-sprite3d) .cosmos-home-viewmenu{top:auto;bottom:-78px;left:50%;transform:translateX(-50%)}
 }
+/* Oct 14 iPhone review: one bottom control band on phones (support · sound · Lost COSMOS), Talk above
+   it on the right, nothing floating mid-screen over the pocket or the MODEL ≠ MEMORY row. The roaming
+   companion (its own hide/pause/mute toolbar + mini sprite) steps aside where the 3D Zeref already lives. */
+body:has(.zeref-sprite3d) aside[class*="companion-provider-module"][class*="shell"]{display:none!important}
+@media(max-width:480px){
+ body:has(.zeref-sprite3d) aside[class*="site-sound-dock-module"][class*="dock"]:not([class*="game"]){left:calc(max(8px,env(safe-area-inset-left,0px)) + 52px)!important;bottom:calc(env(safe-area-inset-bottom,0px) + 12px)!important;transform:scale(.84);transform-origin:bottom left}
+}
+/* God view: the home 3D Zeref stands on the habitat, so he scales/fades with the pocket camera zoom. */
+.beast-landing-art .beast-landing-creature:has(.zeref-sprite3d){transform:scale(var(--pocket-zoom-scale,1));opacity:var(--pocket-zoom-fade,1);transition:transform .12s linear,opacity .2s}
 /* OPEN THE LIVING COSMOS — one overlay placement system for the Lost COSMOS player.
    The player publishes html[data-game-player]; fixed docks yield to it here only. */
 html[data-game-player=immersive] aside[aria-label="Cosmic sound controls"],
