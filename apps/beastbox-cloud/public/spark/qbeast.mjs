@@ -148,6 +148,10 @@ export function serializeQbeast(snapshot) {
 export function loadQbeast(text) {
   if (new TextEncoder().encode(text).length > 524288) throw new Error("Beast file is too large");
   const snapshot = JSON.parse(text);
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) throw new Error("Beast file is not a QBEAST record");
+  if (!Array.isArray(snapshot.events) || snapshot.events.length < 1) throw new Error("Beast file has no birth record (empty history)");
+  if (!snapshot.profile || typeof snapshot.profile !== "object" || !snapshot.public_state || !snapshot.progress) throw new Error("Beast file is missing its profile (old or corrupt schema)");
+  if (typeof snapshot.events[0]?.payload?.summary !== "string") throw new Error("Beast file birth record is malformed");
   if (snapshot.format !== "QBEAST1" || snapshot.version !== 1) throw new Error("Unsupported QBEAST format");
   const { digest, ...body } = snapshot;
   if (hashObject(body) !== digest) throw new Error("QBEAST digest mismatch");
