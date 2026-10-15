@@ -155,9 +155,12 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const THREE=await import('three');
     if(disposed)return;
     // User quality never overrides the OS reduced-motion safety boundary.
-    const low=reduced||visualSettings.quality==='low'||(visualSettings.quality==='auto'&&window.innerWidth<600);
+    let low=reduced||visualSettings.quality==='low'||(visualSettings.quality==='auto'&&window.innerWidth<600);
     const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:!low,powerPreference:'low-power'});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?1:1.4));
+    // Software GL (CI SwiftShader, very old phones): force the low tier so the main thread never starves.
+    let soft=false;try{const gl=renderer.getContext();const dbg=gl.getExtension('WEBGL_debug_renderer_info');soft=!!dbg&&/swiftshader|llvmpipe|software/i.test(String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)));}catch{}
+    if(soft){low=true;renderer.setPixelRatio(1);}
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     // Living Cosmos polish: filmic tone mapping for deeper, less flat contrast.
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
@@ -273,7 +276,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      if(disposed)return;
      frame=requestAnimationFrame(animate);
      const dt=clamp((now-last)/1000,0,.06);last=now;
-     if(document.hidden||!visible||now-lastPaint<(low?55:33))return;
+     if(document.hidden||!visible||now-lastPaint<(soft?120:low?55:33))return;
      lastPaint=now;
      if(!reduced)elapsed+=dt;
      nebulaMat.uniforms.time.value=elapsed;poolMat.uniforms.time.value=elapsed;

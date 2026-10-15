@@ -29,7 +29,7 @@ export function addGodView(THREE:T,scene:import('three').Scene,o:{rand:()=>numbe
    'float fbm(vec3 p){float v=0.0,s=.5;for(int i=0;i<5;i++){v+=s*n(p);p*=2.03;s*=.5;}return v;}'+
    'void main(){vec3 q=normalize(vP);float f=fbm(q*3.2);float g=fbm(q*9.0+f);vec3 col=mix(a,b,smoothstep(.35,.7,f));'+
    'float glowv=smoothstep(.62,.8,g)*(.25+bloom);col+=c*glowv;float l=max(dot(vN,normalize(vec3(.6,.7,.4))),0.0)*.75+.45;gl_FragColor=vec4(col*l,1.0);}'});
- const planet=new THREE.Mesh(new THREE.SphereGeometry(PLANET_R,low?48:96,low?32:64),planetMat);planet.position.set(0,-PLANET_R-.3,0);scene.add(planet);
+ const planet=new THREE.Mesh(new THREE.SphereGeometry(PLANET_R,low?32:72,low?20:48),planetMat);planet.position.set(0,-PLANET_R-.3,0);scene.add(planet);
  // Atmosphere (Genesis createAtmosphere: fresnel rim, additive, BackSide).
  const atm=new THREE.Mesh(new THREE.SphereGeometry(PLANET_R*1.08,48,32),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,
   uniforms:{color:{value:new THREE.Color(0x8f6bff)}},vertexShader:'varying vec3 vN;varying vec3 vV;void main(){vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.0);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
@@ -82,8 +82,10 @@ export function addGodView(THREE:T,scene:import('three').Scene,o:{rand:()=>numbe
    for(const p of others){const t=elapsed*p.sp+p.ph;p.m.position.set(Math.cos(t)*p.r,0,Math.sin(t)*p.r);}
    const sysMix=scaleMix(zoom,60,700),galMix=scaleMix(zoom,900,6000);
    galaxyMat.opacity=.85*galMix;galaxy.visible=galMix>0.01;
+   // LOD: the star system only exists for the GPU once you zoom out past the planet.
+   sys.visible=zoom>34;atm.visible=zoom>8;
    ringMat.opacity=.4*scaleMix(zoom,40,260);
-   const lod=zoom>120;groves.visible=zoom<900;atm.visible=true;planet.visible=true;
+   const lod=zoom>120;groves.visible=zoom<900;
    void lod;
    out.copy(habitatFocus).lerp(barycenter,sysMix*.92);return out;
   },
