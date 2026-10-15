@@ -1,0 +1,8 @@
+{
+ "schema": "rawrphos-public-pin-v1",
+ "model_id": "rawrphos-native",
+ "training_steps": 14000,
+ "checkpoint_sha256": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
+ "promotion": null,
+ "rule": "Changes ONLY through a reviewed PR whose promotion block cites an approved checkpoint release and a rawrphos-chat-eval-v1 report with chat_not_worse=true versus 14000. Otherwise the 14000 pin stays."
+}

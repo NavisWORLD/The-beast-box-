@@ -1,5 +1,8 @@
 import {createHmac} from 'node:crypto';
 import {bridgeConfigured,safeJson} from '@/lib/security';
+import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
+// Reviewed public checkpoint pin (14000 unless a chat-not-worse promotion PR changed it).
+const PIN_STEP:number=PUBLIC_PIN.training_steps,PIN_SHA:string=PUBLIC_PIN.checkpoint_sha256;
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 const HF_ENDPOINT='https://router.huggingface.co/v1/chat/completions';
@@ -71,11 +74,11 @@ export async function POST(request:Request){
     return safeJson([400,403,429,503].includes(res.status)?res.status:502,
       {error:typeof result.error==='string'&&result.error.length<128?result.error:'Local guest inference unavailable'});
    if(result.schema!=='beastbox-guest-local-v1'||result.model!=='rawrphos-native'||
-      result.step!==14000||result.memory_used!==false||result.owner_tools_used!==false||
+      result.step!==PIN_STEP||result.checkpoint_sha256!==PIN_SHA||result.memory_used!==false||result.owner_tools_used!==false||
       result.provider_key_shared!==false||typeof result.reply!=='string'||result.reply.length>6000)
     return safeJson(502,{error:'Unverified guest model response'});
    return safeJson(200,{provider:'rawrphos-local',model:'rawrphos-native',
-    step:14000,checkpoint_sha256:result.checkpoint_sha256,reply:result.reply,
+    step:PIN_STEP,checkpoint_sha256:PIN_SHA,reply:result.reply,
     guest_stateless:true});
   }catch{return safeJson(502,{error:'Local guest inference unavailable or timed out'});}
  }

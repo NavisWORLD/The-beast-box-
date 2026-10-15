@@ -23,8 +23,24 @@ ORIGINAL_CANDIDATE="86d9084ee3d302fdf37980e89eef60c86be90bc4538f0bfc9e7c3b39db92
 CANONICAL_APPROVED_ROOT="37ca3f8fc9cdc0e78175508fc816ed02d5a12da1f3b106505715b7366fde5a48"
 ZEREF="bb-deada969"
 IBM="db4q484vf2bc73cuuuag"
-UPDATES=64
-LR=0.000009
+LEGACY_UPDATES=64      # cycles 1..5 used 64 updates each (14000+128+64*cycle)
+LEGACY_CYCLES=5
+UPDATES=int(os.environ.get("ZEREF_006_UPDATES","512"))  # bounded growth-fix cycle size
+def expected_steps(cycle):
+ if cycle<=LEGACY_CYCLES:return 14000+128+LEGACY_UPDATES*cycle
+ return 14000+128+LEGACY_UPDATES*LEGACY_CYCLES+512*(cycle-LEGACY_CYCLES)
+# Growth-fix (2026-10-15): the 9e-6 LR with uniform sampling over a RIGHT-heavy
+# (539/840) history could never move the RIGHT-only parent. Labels are now
+# sampled action-balanced, older real captures are replayed, and an L2 anchor
+# to the approved parent bounds drift (catastrophic-forgetting guard).
+LR=float(os.environ.get("ZEREF_006_LR","0.0001"))
+BATCH=8
+DECISION_INDEX=7  # tokens of "ACTION: " are 0..6; index 7 names the key
+DECISION_WEIGHT=float(os.environ.get("ZEREF_006_DECW","1.0"))
+REPLAY_MAX_DATASETS=12
+ANCHOR=float(os.environ.get("ZEREF_006_ANCHOR","0.5"))
+RIGETTI=Path(os.environ.get("ZEREF_006_RIGETTI_JSON","apps/beastbox-cloud/public/spark/rigetti-qvm-sim.json"))
+REPLAY=Path(os.environ.get("BEAST_006_REPLAY_DIR","build/zeref-006/replay"))
 SEED=20261011
 MIN_ACTUAL_OBSERVATIONS=3
 def sha(raw):return hashlib.sha256(raw).hexdigest()
@@ -109,6 +125,76 @@ def inspect_source():
  if manifest.get("scripted_teacher_action_histogram") != dict(sorted(actual_actions.items())):
   raise ValueError("Native teacher distribution receipt disagrees with real action rows")
  return manifest,digest,rows
+def replay_rows(current_digest):
+ """Older REAL native captures (every episode; none is the current heldout).
+ Each must carry its own manifest whose digest matches the rows."""
+ out=[];used=[]
+ if not REPLAY.is_dir():return out,used
+ for d in sorted(p for p in REPLAY.iterdir() if p.is_dir()):
+  m,f=d/"native-evidence-manifest.json",d/"native-observation-actions.jsonl"
+  if not(m.is_file() and f.is_file()):continue
+  raw=f.read_bytes();digest=sha(raw);man=json.loads(m.read_text())
+  if (digest==current_digest or digest in used or man.get("jsonl_sha256")!=digest or
+      man.get("qbeast_id")!=ZEREF or man.get("source_class")!="ORIGINAL_EMULATOR_NATIVE_PIXEL_OBSERVATIONS"):continue
+  rows=[json.loads(x) for x in raw.splitlines() if x]
+  if any(r.get("qbeast_id")!=ZEREF or r.get("action") not in "UP DOWN LEFT RIGHT A B WAIT".split() for r in rows):continue
+  out+=rows;used.append(digest)
+  if len(used)>=REPLAY_MAX_DATASETS:break
+ return out,used
+def rigetti_order_seed(cycle):
+ """Batch-order seed from RECORDED Rigetti SIMULATOR counts (rigetti.sim.qvm,
+ NOT QPU, NOT quantum training). Picks one recorded job by cycle and hashes its
+ counts with the real IBM spark id. Only affects sampling order."""
+ d=json.loads(RIGETTI.read_text())
+ if d.get("physical_hardware_jobs_permitted")!=0 or "rigetti.sim.qvm" not in d.get("backend_exact_allowlist",[]):
+  raise ValueError("Rigetti source must be simulator-only")
+ jobs=[b for s in d["scenario_records"] for b in s["batches"] if b.get("target")=="rigetti.sim.qvm"]
+ job=jobs[cycle%len(jobs)]
+ h=sha(json.dumps({"ibm":IBM,"cycle":cycle,"job":job["job_id"],"counts":job["counts"]},sort_keys=True).encode())
+ return int(h[:15],16),{"rigetti_sim_job_id":job["job_id"],"counts":job["counts"],
+   "order_seed_sha256":h,"source_class":d.get("source_class"),"label":"SIMULATED"}
+def train_variant(parent_path,tokenizer,pool,seed):
+ """64 bounded AdamW updates with action-balanced sampling and parent anchor."""
+ from collections import defaultdict
+ parent=load_checkpoint(parent_path,load_training_state=True)
+ model=parent["model"]
+ anchor=[p.detach().clone() for p in model.parameters()]
+ opt=torch.optim.AdamW(model.parameters(),lr=LR,weight_decay=.01)
+ opt.load_state_dict(parent["state"]["optimizer"])
+ for group in opt.param_groups:group["lr"]=LR
+ by=defaultdict(list)
+ for i,(a,_) in enumerate(pool):by[a].append(i)
+ classes=sorted(by)
+ g=torch.Generator().manual_seed(seed)
+ logs=[]
+ for n in range(UPDATES):
+  opt.zero_grad(set_to_none=True)
+  idx=[]
+  for _ in range(BATCH):
+   c=classes[int(torch.randint(len(classes),(1,),generator=g))]
+   idx.append(by[c][int(torch.randint(len(by[c]),(1,),generator=g))])
+  x,y,m=collate([pool[i][1] for i in idx])
+  out=model(x,targets=y,attention_mask=m);loss=out["loss"]
+  # Decision-token loss: the shared "ACTION: " prefix dominated the mean
+  # token loss, so the one token that names the key barely trained.
+  dec=[]
+  for k in range(y.shape[0]):
+   pos=(y[k]!=-100).nonzero().flatten()
+   dec.append((k,int(pos[DECISION_INDEX]),int(y[k,pos[DECISION_INDEX]])))
+  logits=out["logits"]
+  dec_loss=torch.nn.functional.cross_entropy(torch.stack([logits[k,j] for k,j,_ in dec]),
+     torch.tensor([t for _,_,t in dec]))
+  loss=loss+DECISION_WEIGHT*dec_loss
+  drift=sum(((p-a)**2).sum() for p,a in zip(model.parameters(),anchor))
+  total=loss+ANCHOR*drift
+  if not bool(torch.isfinite(total)):raise FloatingPointError("Nonfinite Zeref CPU training loss")
+  total.backward()
+  grad=torch.nn.utils.clip_grad_norm_(model.parameters(),1.,error_if_nonfinite=True)
+  opt.step()
+  if (n+1)%16==0:
+   row={"step":n+1,"train_loss":float(loss.detach()),"anchor_drift":float(drift.detach()),"grad_norm":float(grad)}
+   logs.append(row);print("ZEREF_006_REAL_CPU_UPDATE="+json.dumps(row),flush=True)
+ return model,opt,g,logs
 def parent_proof():
  if not PARENT.is_dir():
   raise FileNotFoundError("Last approved canonical Zeref checkpoint unavailable; no fallback or model reset")
@@ -130,7 +216,7 @@ def parent_proof():
      approval.get("dataset_sha256")!=metadata.get("dataset_sha256") or
      type(cycle) is not int or cycle<1 or cycle>64 or
      approval.get("approved_cycle_count")!=cycle or
-     metadata.get("training_steps")!=14000+128+64*cycle):
+     metadata.get("training_steps")!=expected_steps(cycle)):
   raise ValueError("Invalid signed original Zeref 006 CPU checkpoint lineage/approval")
  if digest==CANONICAL_APPROVED_ROOT:
   # Original independent 006 cycle has no explicit root field; exact SHA
@@ -174,25 +260,20 @@ def main():
  original_ret=nll(model,retention)
  parent_out=exact_model_replies(PARENT,heldout)
  baseline=counts(parent_out)
- # Continue real optimizer moments and weights from prior approved run.
- opt=torch.optim.AdamW(model.parameters(),lr=LR,weight_decay=.01)
- opt.load_state_dict(parent["state"]["optimizer"])
- for group in opt.param_groups:group["lr"]=LR
- torch_generator=torch.Generator().manual_seed(SEED+cycle*1009+8)
- logs=[]
- for n in range(UPDATES):
-  opt.zero_grad(set_to_none=True)
-  idx=torch.randint(len(train_t),(4,),generator=torch_generator).tolist()
-  x,y,m=collate([train_t[i] for i in idx])
-  loss=model(x,targets=y,attention_mask=m)["loss"]
-  if not bool(torch.isfinite(loss)):raise FloatingPointError("Nonfinite Zeref CPU training loss")
-  loss.backward()
-  grad=torch.nn.utils.clip_grad_norm_(model.parameters(),1.,error_if_nonfinite=True)
-  opt.step()
-  if (n+1)%16==0:
-   row={"step":n+1,"train_loss":float(loss.detach()),"grad_norm":float(grad)}
-   logs.append(row)
-   print("ZEREF_006_REAL_CPU_UPDATE="+json.dumps(row),flush=True)
+ replay,replay_digests=replay_rows(source_digest)
+ pool=[(r["action"],tokens(tokenizer,prompt(r),"ACTION: "+r["action"])) for r in train+replay]
+ order_seed,rigetti=rigetti_order_seed(cycle)
+ control_seed=SEED+cycle*1009+8
+ # On/off comparison: identical recipe, only the batch-order seed differs.
+ # The Rigetti-ordered model is ALWAYS the candidate (no cherry-picking).
+ ctrl,_,_,_=train_variant(PARENT,tokenizer,pool,control_seed)
+ ctrl_dir=ROOT/"control-off";meta_c={"schema":"control-not-a-candidate","production_promoted":False,"training_steps":1}
+ save_checkpoint(ctrl_dir,ctrl,tokenizer,meta_c,{})
+ control_out=exact_model_replies(ctrl_dir,heldout)
+ control={"heldout_nll":nll(ctrl,held_t),"retention_nll":nll(ctrl,retention),**counts(control_out),
+   "unique_actions":len({r["legal_action"] for r in control_out if r["legal_action"]})}
+ import shutil;shutil.rmtree(ctrl_dir);del ctrl
+ model,opt,torch_generator,logs=train_variant(PARENT,tokenizer,pool,order_seed)
  if parameter_hash(model)==before_hash:raise AssertionError("Zeref weights never changed")
  new_held=nll(model,held_t)
  new_ret=nll(model,retention)
@@ -209,7 +290,8 @@ def main():
   "qbeast_id":ZEREF,"original_ibm_job_id":IBM,
   "not_new_ibm_hardware":True,"not_quantum_training":True,
   "teacher":"OBSERVATION_CONDITIONED_SCRIPTED_HEURISTIC_NOT_HUMAN_NOT_MODEL",
-  "production_promoted":False,"learned_game_progress_proven":False}
+  "production_promoted":False,"learned_game_progress_proven":False,
+  "growth_recipe":"action_balanced+replay+l2_anchor+rigetti_sim_order"}
  saved=save_checkpoint(temp,model,tokenizer,meta,
   {"optimizer":opt.state_dict(),"rng":rng_state(),"data_rng":torch_generator.get_state()})
  load_checkpoint(temp,expected_checkpoint_sha256=saved["checkpoint_sha256"],load_training_state=True)
@@ -247,6 +329,12 @@ def main():
   "candidate_literal_heldout_replies":trial_out,
   "parent_literal_heldout_replies":parent_out,
   "gate":guard,"accepted_as_next_training_parent":accepted,
+  "recipe":{"lr":LR,"batch":BATCH,"anchor_l2":ANCHOR,"decision_token_weight":DECISION_WEIGHT,"sampling":"action_balanced",
+    "replay_datasets":replay_digests,"replay_rows":len(replay),"fresh_train_rows":len(train)},
+  "rigetti_batch_order":rigetti,
+  "rigetti_on_off":{"on_candidate":{"heldout_nll":new_held,"retention_nll":new_ret,**trial,
+      "unique_actions":len({r["legal_action"] for r in trial_out if r["legal_action"]})},
+    "off_control_torch_seed":control,"off_seed":control_seed},
   "production_promoted":False,"measured_objective_game_progress":None,
   "native_game_progress_demonstrated":False,
   "teacher_is_scripted_not_human":True,

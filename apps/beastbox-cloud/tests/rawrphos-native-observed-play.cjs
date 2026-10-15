@@ -15,6 +15,7 @@ const PROFILE=process.env.NAVISWORLD_NATIVE_TRAINING_BEAST==='zeref'
  ?{selector:'zeref',id:'bb-deada969',alias:'Zeref',source_job:'db4q484vf2bc73cuuuag',seed:'8e2e927e2cfaf489cb7c10172836286bb08869cfff0c2508b5c6371e052e54ed'}
  :{selector:'lumenwisp',id:'bb-983f386b',alias:'Lumenwisp',source_job:'db4sba4lf4us73c36910'};
 if(process.env.NAVISWORLD_NATIVE_TRAINING_BEAST&&!['zeref','lumenwisp'].includes(process.env.NAVISWORLD_NATIVE_TRAINING_BEAST))throw Error('Unapproved native model training identity');
+const VISIBLE_KEYS=['UP','DOWN','LEFT','RIGHT','A','B'];
 const actions=['RIGHT','UP','LEFT','DOWN','A','B','RIGHT','RIGHT','UP','LEFT','A','DOWN','RIGHT','B'];
 // Every 006 capture is a new real emulator run; rotate only the explicit
 // SCRIPTED demonstrator's fallback actions, never the framebuffer evidence.
@@ -27,12 +28,15 @@ function teacher(o,episode,step){
  if(o.brightness<20)return 'A';
  // Static screens previously forced RIGHT for ~95% of all observations.
  // Try diverse legal keys on static scenes; do not call these inputs successful navigation.
- if(o.frameChange<5)return actions[(episode*3+step+cycle)%actions.length];
+ // Growth-fix 2026-10-15: the static-screen fallback used a hidden step/cycle
+ // counter the student never sees, so its labels were unlearnable noise and every
+ // cycle collapsed to one key. It now depends ONLY on the visible screen signals.
+ if(o.frameChange<5)return VISIBLE_KEYS[(o.contrast+o.brightness)%VISIBLE_KEYS.length];
  if(o.contrast>70)return 'LEFT';
  if(o.dominant==='blue')return 'UP';
  if(o.dominant==='green')return 'DOWN';
  if(o.brightness>70)return 'B';
- return actions[(episode*3+step+cycle)%actions.length];
+ return VISIBLE_KEYS[(o.contrast+o.brightness)%VISIBLE_KEYS.length];
 }
 const nativeIndex={UP:4,DOWN:5,LEFT:6,RIGHT:7,A:8,B:0};
 const safe=o=>o&&o.status==='observed'&&o.source==='native-emulator-display'

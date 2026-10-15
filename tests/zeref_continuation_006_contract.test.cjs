@@ -13,7 +13,7 @@ test('Zeref real native capture keeps canonical QBEAST, original ROM and real ke
 });
 test('Bounded optimizer resumes actual checkpoint and fails closed without fresh observations',()=>{
  const s=read('scripts/zeref_continuation_006.py');
- for(const needle of ['load_training_state=True','opt.load_state_dict(parent["state"]["optimizer"])','UPDATES=64',
+ for(const needle of ['load_training_state=True','opt.load_state_dict(parent["state"]["optimizer"])','LEGACY_UPDATES=64','UPDATES=int(os.environ.get("ZEREF_006_UPDATES","512"))','expected_steps(cycle)',
    'source_digest==prior_digest','accepted_as_next_training_parent','teacher_agreement_not_worse',
    'no_new_qpu_job','production_promoted','native_game_progress_demonstrated',
    'CANONICAL_APPROVED_ROOT','canonical_lineage_root_sha256']){
@@ -57,7 +57,8 @@ test('Observation diagnostics distinguish teacher imitation from verified game p
 test('Static native screen no longer creates a RIGHT-only teacher distribution',()=>{
  const cap=read('apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs');
  const train=read('scripts/zeref_continuation_006.py');
- assert.match(cap,/if\(o\.frameChange<5\)return actions\[\(episode\*3\+step\+cycle\)%actions\.length\]/);
+ assert.match(cap,/if\(o\.frameChange<5\)return VISIBLE_KEYS\[\(o\.contrast\+o\.brightness\)%VISIBLE_KEYS\.length\]/);
+ assert.doesNotMatch(cap,/episode\*3\+step\+cycle/);
  assert.doesNotMatch(cap,/if\(o\.frameChange<5\)return 'RIGHT'/);
  for(const needle of ['scripted_teacher_action_histogram',
                       'scripted_teacher_dominant_action_fraction',
