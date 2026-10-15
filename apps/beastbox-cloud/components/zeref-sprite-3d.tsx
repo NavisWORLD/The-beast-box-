@@ -6,7 +6,9 @@ import {useUniverseMotion} from './use-universe-motion';
 import {ZEREF_PROFILE,createMind,frameFor,stepMind,tapMind,greetMind} from '../lib/zeref/zeref-mind.mjs';
 import {LAYERS,clampYaw,ctmToMatrix4,faceKey,depthPose,MAX_YAW_DEG,volumeFor} from '../lib/zeref/sprite-layers.mjs';
 
-type Props={className?:string;autoRotate?:boolean;turntable?:boolean;turntableAngle?:number|null;greet?:number;label?:string};
+type Props={className?:string;
+ /** Live inside the home pocket's three.js world (the pocket renders him); falls back to own canvas. */
+ embed?:boolean;autoRotate?:boolean;turntable?:boolean;turntableAngle?:number|null;greet?:number;label?:string};
 const TEX=512;
 
 /**
@@ -20,17 +22,18 @@ const TEX=512;
  * sides and back; double-sided membranes (wings, ears, tail) show from behind.
  */
 const FACE=['irisL','irisR','pupilL','pupilR','lidL','lidR','lowL','lowR','browL','browR','blushL','blushR','mouth-smile','mouth-grin','mouth-o','mouth-frown','mouth-sleepy','.zeref-eye'];
-export default function ZerefSprite3D({className='',autoRotate=false,turntable=false,turntableAngle=null,greet=0,label='Zeref in 3D, built from the Moonwraith sprite'}:Props){
+export default function ZerefSprite3D({className='',embed=false,autoRotate=false,turntable=false,turntableAngle=null,greet=0,label='Zeref in 3D, built from the Moonwraith sprite'}:Props){
  const id='zs'+useId().replace(/[^a-zA-Z0-9]/g,'');
  const svgRef=useRef<SVGSVGElement>(null),canvasRef=useRef<HTMLCanvasElement>(null),wrapRef=useRef<HTMLDivElement>(null);
  const yawRef=useRef(0),dragRef=useRef<{x:number;yaw:number}|null>(null),mindRef=useRef<any>(null);
  const rotRef=useRef({turntable:turntable||autoRotate,angle:turntableAngle});rotRef.current={turntable:turntable||autoRotate,angle:turntableAngle};const idleRef=useRef(0);const holdRef=useRef(false);
  const {reduced}=useUniverseMotion();
  const [state,setState]=useState<'loading'|'ready'|'fallback'>('loading');
+ const [embedOn,setEmbedOn]=useState(false);
  useEffect(()=>{if(greet&&mindRef.current)greetMind(mindRef.current);},[greet]);
  useEffect(()=>{
   const svg=svgRef.current,canvas=canvasRef.current;if(!svg||!canvas)return;
-  let disposed=false,raf=0,cleanup=()=>{};
+  let disposed=false,raf=0,cleanup=()=>{};let embedded=false,embedDeadline=0;
   // Never hang in 'loading': if the layers are not cut within 9s, show the flat sprite fallback.
   const guard=setTimeout(()=>{if(!disposed)setState(st=>st==='loading'?'fallback':st);},9000);
   void (async()=>{try{
@@ -77,8 +80,8 @@ export default function ZerefSprite3D({className='',autoRotate=false,turntable=f
     const depth=new THREE.Group();depth.position.set(hinge[0],hinge[1],0);bone.add(depth);
     const inner=new THREE.Group();inner.position.set(-hinge[0],-hinge[1],0);depth.add(inner);
     const shells:any[]=[];
-    for(let i=(L.thick||0);i>0;i--){const m=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:true,depthWrite:false,color:0x2a1748,opacity:0,side:THREE.DoubleSide});const s=new THREE.Mesh(geo,m);s.position.z=L.z-i*0.018;s.renderOrder=order++;inner.add(s);shells.push(s);}
-    const rimM=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:true,side:THREE.DoubleSide,depthWrite:false,color:0xb98aff,opacity:0,blending:THREE.AdditiveBlending});
+    for(let i=(L.thick||0);i>0;i--){const m=new THREE.MeshBasicMaterial({toneMapped:false,fog:false,map:tex,transparent:true,depthTest:true,depthWrite:false,color:0x2a1748,opacity:0,side:THREE.DoubleSide});const s=new THREE.Mesh(geo,m);s.position.z=L.z-i*0.018;s.renderOrder=order++;inner.add(s);shells.push(s);}
+    const rimM=new THREE.MeshBasicMaterial({toneMapped:false,fog:false,map:tex,transparent:true,depthTest:true,side:THREE.DoubleSide,depthWrite:false,color:0xb98aff,opacity:0,blending:THREE.AdditiveBlending});
     const rim=new THREE.Mesh(geo,rimM);rim.position.z=L.z-0.01;rim.scale.setScalar(1.012);rim.renderOrder=order++;if(L.thick)inner.add(rim);
     // Sculpted volume from this part's own sprite bounds, behind its face plane (sides/back read solid).
     const vol=volumeFor(L.part,(P[L.part] as SVGGraphicsElement|undefined)?.getBBox?.()||null);
@@ -103,12 +106,12 @@ export default function ZerefSprite3D({className='',autoRotate=false,turntable=f
        pos.needsUpdate=true;g.computeVertexNormals();
       }
       for(let i=0;i<pos.count;i++){const x=vol.cx+pos.getX(i)*vol.rx,y=vol.cy+pos.getY(i)*sy;uv.setXY(i,(x+2)/4,(y+2)/4);}uv.needsUpdate=true;
-      const mm=new THREE.MeshStandardMaterial({map:half?backTex:frontTex,alphaTest:.45,roughness:.7,metalness:.05,emissive:0x140a26,side:THREE.DoubleSide});
+      const mm=new THREE.MeshStandardMaterial({fog:false,map:half?backTex:frontTex,alphaTest:.45,roughness:.7,metalness:.05,emissive:0x140a26,side:THREE.DoubleSide});
       const m=new THREE.Mesh(g,mm);m.scale.set(vol.rx,sy,vol.rz);m.position.set(vol.cx,vol.cy,zc);m.renderOrder=-10;inner.add(m);
      }
     }
     const two=!!(L.wing||L.part==='tail'||L.part==='earL'||L.part==='earR'||L.floor||L.part==='aura'||L.part==='ring');
-    const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,premultipliedAlpha:true,depthTest:true,depthWrite:false,side:two?THREE.DoubleSide:THREE.FrontSide});
+    const mat=new THREE.MeshBasicMaterial({toneMapped:false,fog:false,map:tex,transparent:true,premultipliedAlpha:true,depthTest:true,depthWrite:false,side:two?THREE.DoubleSide:THREE.FrontSide});
     const mesh=new THREE.Mesh(geo,mat);mesh.position.z=L.z;mesh.renderOrder=order++;inner.add(mesh);
     layers.push({L,el:P[L.part],bone,depth,mesh,mat,tex,shells,rim,canvas:c});
    }
@@ -123,7 +126,11 @@ export default function ZerefSprite3D({className='',autoRotate=false,turntable=f
     const rot=rotRef.current;
     if(holdRef.current){}else if(rot.turntable&&!reduced&&!dragRef.current&&now>idleRef.current){yawRef.current=clampYaw(yawRef.current+dt*24);}
     else if(typeof rot.angle==='number'&&!dragRef.current)yawRef.current=clampYaw(rot.angle>180?rot.angle-360:rot.angle);
-    const yaw=clampYaw(yawRef.current);root.rotation.y=yaw*Math.PI/180;
+    const ze=embedded?(window as any).__zerefEmbed:null;
+    if(embedded&&!ze?.claimed&&now>embedDeadline){embedded=false;setEmbedOn(false);if((window as any).__zerefEmbed?.root===root)(window as any).__zerefEmbed=null;scene.add(root);}
+    const inWorld=!!(embedded&&ze?.claimed);
+    if(inWorld)yawRef.current=clampYaw(ze.viewYaw||0);
+    const yaw=clampYaw(yawRef.current);root.rotation.y=inWorld?0:yaw*Math.PI/180;
     const dp=depthPose(yaw,mind.t,reduced);
     // Near the front the sprite layers paint in sprite order over the volumes (front == sprite);
     // once the view turns, the planes depth-test against the sculpted volumes.
@@ -139,9 +146,10 @@ export default function ZerefSprite3D({className='',autoRotate=false,turntable=f
     }
     const key=faceKey(f);
     if(head&&key!==lastFace&&!cutting){cutting=true;lastFace=key;void cut('head',['earL','earR']).then(c=>{if(c&&!disposed){head.tex.image=c;head.tex.needsUpdate=true;}}).finally(()=>{cutting=false;});}
-    renderer.render(scene,camera);
-    if(!reduced||dragRef.current)raf=requestAnimationFrame(frame);
+    if(!inWorld)renderer.render(scene,camera);
+    if(!reduced||dragRef.current||embedded)raf=requestAnimationFrame(frame);
    };
+   if(embed){embedded=true;embedDeadline=performance.now()+14000;(window as any).__zerefEmbed={root,claimed:false,viewYaw:0};setEmbedOn(true);}
    clearTimeout(guard);setState('ready');raf=requestAnimationFrame(frame);
    const kick=()=>{if(!raf)raf=requestAnimationFrame(frame);};
    const down=(e:PointerEvent)=>{dragRef.current={x:e.clientX,yaw:yawRef.current};kick();};
@@ -151,9 +159,9 @@ export default function ZerefSprite3D({className='',autoRotate=false,turntable=f
    cleanup=()=>{ro.disconnect();canvas.removeEventListener('pointerdown',down);window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);layers.forEach(x=>{x.tex.dispose();x.mat.dispose();x.rim.material.dispose();x.shells.forEach((s:any)=>s.material.dispose());});geo.dispose();renderer.dispose();};
    (window as any).__zerefSprite3D={yaw:(d:number|null)=>{if(d===null){holdRef.current=false;return yawRef.current;}holdRef.current=true;yawRef.current=clampYaw(d);kick();return clampYaw(d);},layers:layers.map(x=>x.L.part),scene};
   }catch{if(!disposed)setState('fallback');}})();
-  return()=>{disposed=true;clearTimeout(guard);if(raf)cancelAnimationFrame(raf);cleanup();};
+  return()=>{if((window as any).__zerefEmbed?.root&&embedded){(window as any).__zerefEmbed.root.removeFromParent();(window as any).__zerefEmbed=null;}disposed=true;clearTimeout(guard);if(raf)cancelAnimationFrame(raf);cleanup();};
  },[reduced]);
- return <div ref={wrapRef} className={'zeref-sprite3d '+className} data-zeref-sprite3d={state} data-max-yaw={MAX_YAW_DEG} aria-label={label} role="img">
+ return <div ref={wrapRef} className={'zeref-sprite3d '+className} data-zeref-sprite3d={state} data-embed={embedOn?'on':'off'} data-max-yaw={MAX_YAW_DEG} aria-label={label} role="img">
   <svg ref={svgRef} className="zeref-svg zeref-sprite3d-source" viewBox="0 0 400 400" fill="none" aria-hidden="true" focusable="false"><g data-sprite-ref=""/><ZerefFigure id={id}/></svg>
   <canvas ref={canvasRef} className="zeref-sprite3d-canvas" aria-hidden="true"/>
  </div>;

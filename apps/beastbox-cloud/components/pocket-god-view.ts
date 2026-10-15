@@ -21,14 +21,14 @@ const PAL=[0x8f5bff,0x5fd4ff,0xff7fd6,0x7ef0c8,0xffd27a];
 export function addGodView(THREE:T,scene:import('three').Scene,o:{rand:()=>number;low:boolean;counts:Record<string,number>|null;stage:number}){
  const {rand,low}=o;const weights=countWeights(o.counts);
  // ---- Planet under the habitat (habitat sits on its north pole) ----
- const planetMat=new THREE.ShaderMaterial({uniforms:{time:{value:0},a:{value:new THREE.Color(0x3a2c6e)},b:{value:new THREE.Color(0x7b55c8)},c:{value:new THREE.Color(0x4fe0f0)},bloom:{value:0}},
-  vertexShader:'varying vec3 vP;varying vec3 vN;void main(){vP=position;vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:'uniform float time;uniform vec3 a;uniform vec3 b;uniform vec3 c;uniform float bloom;varying vec3 vP;varying vec3 vN;'+
+ const planetMat=new THREE.ShaderMaterial({uniforms:{time:{value:0},a:{value:new THREE.Color(0x3a2c6e)},b:{value:new THREE.Color(0x7b55c8)},c:{value:new THREE.Color(0x4fe0f0)},bloom:{value:0},sunDir:{value:new THREE.Vector3(1,.4,0)},rimCol:{value:new THREE.Color(0x9f7bff)}},
+  vertexShader:'varying vec3 vP;varying vec3 vW;varying vec3 vV;void main(){vP=position;vW=normalize(mat3(modelMatrix)*normal);vec4 wp=modelMatrix*vec4(position,1.0);vV=normalize(cameraPosition-wp.xyz);gl_Position=projectionMatrix*viewMatrix*wp;}',
+  fragmentShader:'uniform float time;uniform vec3 a;uniform vec3 b;uniform vec3 c;uniform float bloom;uniform vec3 sunDir;uniform vec3 rimCol;varying vec3 vP;varying vec3 vW;varying vec3 vV;'+
    'float h(vec3 p){p=fract(p*.3183099+.1);p*=17.0;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}'+
    'float n(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.0-2.0*f);return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z);}'+
    'float fbm(vec3 p){float v=0.0,s=.5;for(int i=0;i<5;i++){v+=s*n(p);p*=2.03;s*=.5;}return v;}'+
    'void main(){vec3 q=normalize(vP);float f=fbm(q*3.2);float g=fbm(q*9.0+f);vec3 col=mix(a,b,smoothstep(.35,.7,f));'+
-   'float glowv=smoothstep(.62,.8,g)*(.25+bloom);col+=c*glowv;float l=max(dot(vN,normalize(vec3(.6,.7,.4))),0.0)*.75+.45;gl_FragColor=vec4(col*l,1.0);}'});
+   'float glowv=smoothstep(.62,.8,g)*(.25+bloom);col+=c*glowv;float d=dot(vW,normalize(sunDir));float l=smoothstep(-.35,1.0,d)*1.3+.34;float rim=pow(1.0-max(dot(vW,vV),0.0),2.6);vec3 o=col*l+rimCol*rim*(.35+.9*smoothstep(-.3,.6,d))+c*glowv*.6*(1.0-smoothstep(-.2,.3,d));gl_FragColor=vec4(o,1.0);}'});
  const planet=new THREE.Mesh(new THREE.SphereGeometry(PLANET_R,low?32:72,low?20:48),planetMat);planet.position.set(0,-PLANET_R-.3,0);scene.add(planet);
  // Atmosphere (Genesis createAtmosphere: fresnel rim, additive, BackSide).
  const atm=new THREE.Mesh(new THREE.SphereGeometry(PLANET_R*1.08,48,32),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,
@@ -74,7 +74,9 @@ export function addGodView(THREE:T,scene:import('three').Scene,o:{rand:()=>numbe
   planet,
   /** Per frame: orbit the planet (i.e. place the system around it), fade tiers by zoom. Returns camera focus. */
   update(elapsed:number,zoom:number,habitatFocus:import('three').Vector3,out:import('three').Vector3){
-   planetMat.uniforms.time.value=elapsed;planetMat.uniforms.bloom.value=Math.min(.6,(o.stage||1)*.12);
+   planetMat.uniforms.time.value=elapsed;
+   // Sun-side lighting: light comes from the system barycentre (where the suns are).
+   planetMat.uniforms.sunDir.value.copy(barycenter).sub(planet.position).normalize().add(new THREE.Vector3(0,.7,0)).normalize();planetMat.uniforms.bloom.value=Math.min(.6,(o.stage||1)*.12);
    const a=elapsed*orbitSpeed+.9;
    // Planet sits at the scene origin; the system's barycentre is placed so the planet is on its orbit.
    barycenter.set(-Math.cos(a)*orbitR,-PLANET_R-.3,-Math.sin(a)*orbitR);sys.position.copy(barycenter);
