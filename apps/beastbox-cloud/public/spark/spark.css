@@ -292,3 +292,6 @@ footer nav{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}footer 
 .spark-chat-private{margin:14px 0;padding:12px;border:1px solid #789ac34d;border-radius:13px;background:#0d1d30}.spark-chat-private h3{margin:0 0 10px;color:#c8dcf2;font-size:12px}.spark-chat-private>button{min-height:44px;width:100%;font-size:12px}.spark-chat-private[aria-busy=true]{border-color:#88dce478}.spark-chat-private .spark-chat-check{margin-bottom:8px}.spark-chat-private #talk-cloud-status{color:#b9d1e8}.talk-cloud-import{color:#d5c2a7!important}
 /* Living Cosmos depth polish (additive): floating glass for the phone nav. */
 @media (max-width:760px){.mobile-nav{-webkit-backdrop-filter:blur(10px) saturate(1.2);backdrop-filter:blur(10px) saturate(1.2);filter:drop-shadow(0 10px 22px #02051899)}}
+
+/* One navigation bar on phones: the bottom mobile nav carries the same journey links (Cory IMG 286ac1a8, two nav bars). Desktop keeps the top route nav. */
+@media(max-width:680px){.route-nav{display:none!important}}
