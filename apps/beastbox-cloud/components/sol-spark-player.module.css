@@ -33,3 +33,7 @@
 /* Page-level pre-boot poster over the dark native frame (the ROM is untouched); cleared once the cartridge reports running. */
 .preboot{position:absolute;inset:0 0 44px 0;z-index:2;display:grid;place-content:center;justify-items:center;gap:6px;text-align:center;pointer-events:none;background:radial-gradient(circle at 50% 40%,#2a1d55cc,#050914f2 70%);color:#e9e4ff}
 .preboot span{font-size:30px}.preboot strong{font-size:14px;letter-spacing:.08em}.preboot small{max-width:240px;font-size:11px;color:#b5c3e6}
+
+/* The native frame no longer shows its own sound row inside Beast Box (sound lives in ☰ MENU). */
+.screen[data-has-frame=true]{padding-bottom:0}
+.preboot{inset:0}

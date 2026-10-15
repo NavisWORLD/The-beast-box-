@@ -12,3 +12,8 @@ test('pre-boot poster is page-level and clears when the cartridge reports runnin
  assert.match(src,/\{bound&&!running&&!starting\?<div className=\{css\.preboot\} data-preboot-poster/);
  assert.match(src,/Tap START LOST COSMOS/);
 });
+test('sound lives in the handheld MENU: mute toggle posts to the cartridge, no stray in-frame sound row space',()=>{
+ assert.match(src,/post\(\{type:'sol-spark-audio-mute',muted:audio\.wanted\}\)/);
+ const css=readFileSync(new URL('../components/sol-spark-player.module.css',import.meta.url),'utf8');
+ assert.match(css,/\.screen\[data-has-frame=true\]\{padding-bottom:0\}\s*$/m);
+});
