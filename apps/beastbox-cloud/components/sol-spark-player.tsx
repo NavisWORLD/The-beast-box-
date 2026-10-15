@@ -5,6 +5,7 @@ import {useBeastSession} from './beast-session';
 import {createGameHandoff} from '../lib/companion/game-handoff.mjs';
 import {GBA_KEYS,gamepadButtons} from '../lib/companion/go-hud.mjs';
 import {applyGameReturn,shownName} from '../lib/companion/session.mjs';
+import {importIdFromSearch,readImportedBeast} from '../lib/companion/game-import.mjs';
 import {createPlayerDisplay} from '../lib/companion/player-display.mjs';
 import GbaControls,{controllerInput} from './gba-controls';
 import SolGameTalk from './sol-game-talk';
@@ -20,6 +21,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
  const frame=useRef<HTMLIFrameElement>(null),shell=useRef<HTMLElement>(null);
  const display=useRef<ReturnType<typeof createPlayerDisplay>|null>(null);
  // Bind once on SEND BEAST. Care, navigation and layout never resend a starter save.
+ const [visiting,setVisiting]=useState<any>(null);
  const [bound,setBound]=useState<any>(null),[admitted,setAdmitted]=useState(false),[running,setRunning]=useState(false);
  const [mode,setMode]=useState<Mode>('normal'),[note,setNote]=useState('Your Beast has a cartridge to explore.');
  const [paused,setPaused]=useState(false),[pausePending,setPausePending]=useState(false),[reloading,setReloading]=useState(false),[bridgeStatus,setBridgeStatus]=useState('No saved companion has been sent.');
@@ -201,8 +203,13 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
  useEffect(()=>{
   if(!starting)return;const timer=setTimeout(()=>{setStarting(false);setNote('Lost COSMOS is taking longer to load. Keep the game open, or try START LOST COSMOS again.');},90000);return()=>clearTimeout(timer);
  },[starting]);
+ useEffect(()=>{const id=importIdFromSearch(window.location.search);if(!id||id===session?.beast?.qbeast?.profile?.id)return;
+  try{const beast=readImportedBeast(window.localStorage,id);setVisiting(beast);setNote(shownName(beast)+' is visiting from the bridge. Tap SEND BEAST to play. Journeys save only to your active Beast.');}
+  catch(error){setNote(error instanceof Error?error.message:'That Beast could not be imported.');}
+ },[session?.beast?.qbeast?.profile?.id]);
  function bind() {
-  try{createGameHandoff(session.beast);setBound(JSON.parse(JSON.stringify(session.beast)));setNote('Sending your Beast…');void display.current?.normal();}
+  const source=visiting||session?.beast;
+  try{if(visiting)createGameHandoff(visiting);else createGameHandoff(session.beast);setBound(JSON.parse(JSON.stringify(source)));setNote('Sending your Beast…');void display.current?.normal();}
   catch(error){setNote(error instanceof Error?error.message:'Choose your Beast first.');}
  }
  const applyGameAction=useCallback(async(button:string,expectedKey:string):Promise<boolean>=>{
@@ -233,7 +240,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
   </header>
   <div className={css.status}><p role="status">{ready?note:'Finding your saved Beast…'}</p><details><summary>Companion connection</summary><p>{bridgeStatus}</p><code>{id||'No canonical saved identity selected'}</code><p>Saved identities, display personas and local snapshots remain separate. Native palette/body representations use the recorded seed; web sprite accents may differ.</p>{!bound||bridgeStatus.startsWith('No matching')?<a href="/spark/index.html">Choose or recover a compatible Spark Beast</a>:null}</details></div>
   <div className={css.screen} data-has-frame={!!bound}>
-   {bound?<iframe ref={frame} title="Native LOST COSMOS cartridge" src={GAME} onLoad={send} allow="autoplay; fullscreen; gamepad; screen-wake-lock" allowFullScreen/>:<div className={css.poster}><span aria-hidden="true">🐉 🎮</span><p>Same Beast. New adventure.</p><button type="button" disabled={!ready||!session?.beast?.qbeast} onClick={bind}>SEND BEAST</button>{!session?.beast?.qbeast?<a href="/spark/index.html">Choose your Spark Beast</a>:null}</div>}
+   {bound?<iframe ref={frame} title="Native LOST COSMOS cartridge" src={GAME} onLoad={send} allow="autoplay; fullscreen; gamepad; screen-wake-lock" allowFullScreen/>:<div className={css.poster}><span aria-hidden="true">🐉 🎮</span><p>Same Beast. New adventure.</p><button type="button" disabled={!ready||!(visiting||session?.beast)?.qbeast} onClick={bind} data-visiting={visiting?visiting.qbeast.profile.id:undefined}>SEND BEAST</button>{!session?.beast?.qbeast?<a href="/spark/index.html">Choose your Spark Beast</a>:null}</div>}
   </div>
   {running&&!minimized?<p className={css.gameAudioHint} role="status">{!audio.wanted?'🔊 iPhone: tap ENABLE GAME SOUND inside the Game Boy. Use 🔔 Test speaker there to check device output separately.':!audio.running?'🔊 Safari game sound is still unverified. In the Game Boy tap RESUME SOUND, then 🔔 TEST SPEAKER. A test chirp alone does not prove cartridge audio.':'🔊 The native emulator AudioContext is running. If silent, check the cartridge audio menu, iPhone media volume, Silent Mode and Bluetooth output.'}</p>:null}
   <div className={css.playAction}>{admitted&&!running?<button type="button" disabled={starting} onClick={()=>{setStarting(true);setNote('Starting Lost COSMOS…');post({type:'sol-spark-start'});}}>{starting?'STARTING…':'START LOST COSMOS'}</button>:null}</div>

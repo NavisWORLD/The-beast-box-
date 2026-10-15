@@ -13,6 +13,7 @@ import {recordedQvmStimulusPath} from '../lib/companion/recorded-qvm-stimulus.mj
 import {useOwnQvmCounts} from './use-own-qvm-counts';
 import {useUniverseMotion} from './use-universe-motion';
 import QbeastMenagerie from './qbeast-menagerie';
+import CreatureDashboard from './creature-dashboard';
 import {useBeastSession} from './beast-session';
 import {shownName} from '../lib/companion/session.mjs';
 import {publicProfileFromBeast,publicProfileFromCreature,type CosmosProfile} from '../public/spark/cosmos-profile.mjs';
@@ -55,6 +56,9 @@ export default function BeastCagePortal(){
  const savedVisual=sameSpark?creatureVisual({id:session.beast.qbeast.profile.id,genome:session.beast.genome}):null;
  // Default view: the ZEREF rig exploring the dimensional pocket. The original pixel sprite stays one tap away.
  const [view,setView]=useState<'pocket'|'classic'>('pocket');
+ const [cageMode,setCageMode]=useState<'friendly'|'advanced'>('friendly');
+ useEffect(()=>{try{if(window.localStorage.getItem('beastbox-cage-mode-v1')==='advanced'||/^#(menagerie)/.test(window.location.hash))setCageMode('advanced');}catch{}},[]);
+ const chooseMode=(next:'friendly'|'advanced')=>{setCageMode(next);try{window.localStorage.setItem('beastbox-cage-mode-v1',next);}catch{}};
  useEffect(()=>{try{if(window.localStorage.getItem(VIEW_STORAGE)==='classic')setView('classic');}catch{}},[]);
  const chooseView=(next:'pocket'|'classic')=>{setView(next);try{window.localStorage.setItem(VIEW_STORAGE,next);}catch{}};
  const pocketName=creatureName||'Zeref';
@@ -78,7 +82,11 @@ export default function BeastCagePortal(){
   clearProfile();setLook('nebula');setSaved(false);
  }
  const current=LOOKS.find(x=>x.id===look)||LOOKS[0];
- return <main className="cage-universe" data-reduced-motion={prefersReduced}>
+ return <main className="cage-universe" data-reduced-motion={prefersReduced} data-cage-mode={cageMode}>
+  <div className="cage-mode-toggle" role="group" aria-label="Cage view mode">
+   <button type="button" aria-pressed={cageMode==='friendly'} onClick={()=>chooseMode('friendly')}>✦ Friendly</button>
+   <button type="button" aria-pressed={cageMode==='advanced'} onClick={()=>chooseMode('advanced')}>⚙ Advanced</button>
+  </div>
   <div className="cage-sky" aria-hidden="true"/>
   <header className="cage-topbar"><Link href="/" aria-label="Beast Box homepage" className="cage-brand"><BrandCrest className="cage-brand-crest" size={40} decorative/><span>BEAST BOX<small>NAVISWORLD / COSMOS</small></span></Link>
    <nav aria-label="Beast Box journey">
@@ -123,6 +131,7 @@ export default function BeastCagePortal(){
     <a href="#zeref-diary">Zeref&apos;s Diary ↓</a>
    </div>
   </section>
+  {sameSpark?<CreatureDashboard beast={session.beast} cosmosProfile={cosmosProfile}/>:null}
   <ZerefDiaryPanel journalId={sameSpark?session.beast.qbeast.profile.id:creature?creature.id:ZEREF_PROFILE.id} beastName={pocketName} cosmosProfile={cosmosProfile}/>
   {!sameSpark?<GenesisForge value={creature} onChange={next=>{selectProfile(next);setLook(next.baseLook);}}
    onAmbient={setAmbient}/>:<div className="cage-generated-status"><span>{creatureName} · same recorded genome and QBEAST</span><Link href="/sol-game">Play this Beast in LOST COSMOS 🎮</Link></div>}
@@ -132,8 +141,8 @@ export default function BeastCagePortal(){
   </div>:null}
   <CreatureHabitat />
   <BeastCareDeck />
-  <QbeastMenagerie />
-  <section className="cage-invariants"><span>MODEL ≠ MEMORY</span><span>MODEL ≠ IDENTITY</span><span>MODEL ≠ AUTHORITY</span></section>
+  <div data-advanced-only><QbeastMenagerie />
+  <section className="cage-invariants"><span>MODEL ≠ MEMORY</span><span>MODEL ≠ IDENTITY</span><span>MODEL ≠ AUTHORITY</span></section></div>
   <section className="cage-customize" id="customize" aria-labelledby="customize-title">
    <div className="cage-section-heading"><span className="cage-eyebrow"><SlidersHorizontal size={13}/> A LOOK THAT FEELS LIKE YOURS</span>
     <h2 id="customize-title">Meet the first<br/><em>little constellations.</em></h2>

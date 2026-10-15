@@ -41,6 +41,8 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
  const {session,change}=useBeastSession();
  const root=useRef<HTMLDivElement>(null),fxCanvas=useRef<HTMLCanvasElement>(null),flash=useRef<HTMLDivElement>(null);
  const [genome,setGenome]=useState<Genome|null>(null);
+ const [toolsOpen,setToolsOpen]=useState(true);
+ useEffect(()=>{if(window.matchMedia('(max-width:560px)').matches)setToolsOpen(false);},[]);
  const [sound,setSound]=useState(false),soundRef=useRef(false),userMuted=useRef(false);
  const {reduced}=useUniverseMotion();
  const [visible,setVisible]=useState(true);
@@ -412,7 +414,7 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
   attack('tap');
  }
 
- return <div ref={root} className={styles.arena} data-beast-arena="true" data-phase={phase}
+  return <div ref={root} className={styles.arena} data-beast-arena="true" data-phase={phase}
    data-rig={rig?'true':'false'} data-pocket-place={pocketPlace?.name||''} data-pocket-poi-kind={pocketPlace?.kind||''}
    data-behavior-action={core?.lastAction||'visual-preview'} data-attack-style={fx.current?.move.style||'none'} data-reduced-motion={reduced} data-sound={sound?'on':'off'}>
   {pocket?<div className={styles.pois} aria-hidden="true">{pocket.pois.map((poi:any)=><span key={poi.id} className={styles.poi} data-poi-kind={poi.kind}
@@ -424,8 +426,9 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
   <div ref={flash} className={styles.flash} aria-hidden="true"/>
   <button type="button" className={styles.hit} onClick={onTap} disabled={!moveset}
    aria-label={`Tap ${name} to attack`}/>
-  <div className={styles.tools}>
-   <button type="button" className={styles.tool} aria-pressed={sound}
+  <div className={styles.tools} data-tools-open={toolsOpen?'true':'false'}>
+   <button type="button" className={styles.tool+' '+styles.toolsToggle} aria-expanded={toolsOpen} aria-label={toolsOpen?'Hide sound controls':'Show sound controls'} onClick={()=>setToolsOpen(v=>!v)}>{toolsOpen?'–':'♪'}</button>
+   <button type="button" className={styles.tool+' '+styles.soundTool} aria-pressed={sound}
     aria-label={sound?'Mute the habitat beast':'Turn on the habitat beast sound'}
     onClick={()=>{const next=!sound;userMuted.current=!next;setSoundOn(next);}}>
     {sound?<Volume2 size={14}/>:<VolumeX size={14}/>}<span>{sound?'Sound on':'Sound off'}</span>
@@ -436,12 +439,12 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
    {pocket?<button type="button" className={styles.tool} aria-label={`Call ${name} over`} onClick={()=>{callBeast(pocket);recordCare(journalId,'taps');}}>
     <Hand size={14}/><span>Call</span>
    </button>:null}
-   <button type="button" className={styles.tool} aria-pressed={musicState.musicOn}
+   <button type="button" className={styles.tool+' '+styles.soundTool} aria-pressed={musicState.musicOn}
     aria-label={musicState.musicOn?'Turn the beast music off':'Turn the beast music on'}
     onClick={()=>{music.unlock();music.setMusic(!musicState.musicOn);}}>
     <Music size={14}/><span>{musicState.musicOn?'Music on':'Music off'}</span>
    </button>
-   <label className={styles.volume}>
+   <label className={styles.volume+' '+styles.soundTool}>
     <span className={styles.sr}>Beast music volume</span>
     <input type="range" min={0} max={100} step={5} value={Math.round(musicState.volume*100)}
      aria-label="Beast music volume" onChange={e=>music.setVolume(Number(e.target.value)/100)}/>

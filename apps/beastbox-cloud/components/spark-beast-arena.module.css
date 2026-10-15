@@ -46,3 +46,5 @@
  .poi i{scale:.8}
 }
 @media(prefers-reduced-motion:reduce){.poi i{transition:none}}
+.toolsToggle{display:none}
+@media(max-width:560px){.toolsToggle{display:inline-flex;min-width:44px;justify-content:center}.tools[data-tools-open=false] .soundTool{display:none}}

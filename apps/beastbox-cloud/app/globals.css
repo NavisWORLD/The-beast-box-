@@ -671,3 +671,12 @@ html[data-beastbox-reduced-motion="true"] *,html[data-beastbox-reduced-motion="t
 @media(max-width:560px){.cosmos-home-viewmenu[open] .cosmos-home-controls{top:auto;bottom:calc(100% + 6px)}.cosmos-home-viewmenu{top:auto;bottom:8px}}
 @media(prefers-reduced-motion:reduce){.cosmos-zeref-turn.is-spinning{animation:none}}
 .home-pocket-layer details{display:none}
+/* Cage Friendly/Advanced: same Cage, Friendly hides only the deep archive/jargon panels. */
+.cage-mode-toggle{position:relative;z-index:5;display:flex;gap:6px;justify-content:flex-end;margin:8px 12px 0}
+.cage-mode-toggle button{min-height:40px;padding:6px 14px;border-radius:14px;border:1px solid #9fb2ff66;background:#0b1230cc;color:#dfe6ff;font:700 12px system-ui}
+.cage-mode-toggle button[aria-pressed=true]{background:#b2f2ff;color:#14213f}
+.cage-universe[data-cage-mode=friendly] [data-advanced-only]{display:none}
+.creature-dashboard{margin:18px auto;max-width:720px;padding:14px 16px;border:1px solid #9fb2ff44;border-radius:18px;background:#0b1230b8;color:#e8ecff}
+.creature-dashboard h2{margin:0 0 4px;font-size:18px}.creature-dashboard-lede{margin:0 0 10px;font-size:13px;opacity:.85}
+.creature-dashboard details{border-top:1px solid #9fb2ff33;padding:6px 0}.creature-dashboard summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:700}
+.creature-dashboard code{overflow-wrap:anywhere}
