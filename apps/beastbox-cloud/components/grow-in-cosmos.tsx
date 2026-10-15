@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 import type {CosmosProfile} from '../public/spark/cosmos-profile.mjs';
+import ProvenanceExplainer from './provenance-explainer';
 import styles from './zeref-diary-panel.module.css';
 
 type Status={configured:boolean;registered?:boolean;diary?:any;error?:string};
@@ -36,11 +37,12 @@ export default function GrowInCosmos({profile}:{profile:CosmosProfile|null}){
   :st?.registered?<>
     <p className={styles.small} data-cosmos-state="registered">✓ <b>{profile.name}</b> is growing in the cosmos{st.diary?` · tick ${st.diary.tick} · stage ${st.diary.stage} ${st.diary.stage_name}`:' · waiting for its first loop tick'}.</p>
     {latest?<blockquote className={styles.thought}>“{latest.thought?.text}”</blockquote>:null}
-    {latest?.growth_source?<p className={styles.small}>{latest.growth_source.kind==='rigetti-qvm-simulated'?`⚛ growth: Rigetti simulator (simulated) · job ${latest.growth_source.job_id}`:`growth: deterministic step${latest.growth_source.error?' · '+latest.growth_source.error:''}`}</p>:null}
+    {latest?.growth_source?<><p className={styles.small}>{latest.growth_source.kind==='rigetti-qvm-simulated'?`⚛ growth: Rigetti simulator (simulated) · job ${latest.growth_source.job_id}`:`growth: deterministic step${latest.growth_source.error?' · '+latest.growth_source.error:''}`}</p><ProvenanceExplainer variant="growth" data={latest.growth_source}/></>:null}
    </>
   :<>
     <p className={styles.small}>Let the scheduled loop grow <b>{profile.name}</b> while you are away: each turn runs a small circuit on the free Rigetti simulator (simulated) from its signals and writes a diary entry to its own folder.</p>
     <p className={styles.small}>Shared (public profile only): id, name, seed provenance ({profile.provenance?.kind==='recorded-quantum-genome'?`recorded ${profile.provenance.backend} run`:'classical seed'}), visual traits and game stats. Never shared: chats, owner memory, keeper names or anything else in your save.</p>
+    <ProvenanceExplainer variant="genesis" data={profile}/>
     <button type="button" className={styles.hear} disabled={busy||!st} onClick={()=>void join()} data-cosmos-join>{busy?'Registering…':'✦ Grow in the cosmos'}</button>
    </>}
   {msg?<p className={styles.small} role="status">{msg}</p>:null}

@@ -1,0 +1,7 @@
+.wrap{width:100%}
+.summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:.08em;color:#cfc6f5;padding:8px 4px;list-style:none}
+.summary::-webkit-details-marker{display:none}
+.summary::before{content:'▸';color:#8b5cf6;font-size:14px}
+.wrap[open]>.summary::before{content:'▾'}
+.summary:focus-visible{outline:2px solid #a8eef9;outline-offset:2px;border-radius:8px}
+.body{display:flex;flex-direction:column;gap:12px;padding:4px 0 8px}

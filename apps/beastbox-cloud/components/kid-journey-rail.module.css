@@ -1,0 +1,10 @@
+.rail{width:100%;overflow-x:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.rail ol{display:flex;gap:10px;list-style:none;margin:0;padding:6px 2px 10px;min-width:max-content}
+.rail li{flex:0 0 auto}
+.step{display:flex;flex-direction:column;gap:2px;min-width:132px;max-width:168px;padding:10px 12px;border-radius:14px;text-decoration:none;color:#f1edff;background:rgba(24,20,52,.72);border:1px solid rgba(139,92,246,.35);min-height:44px}
+.step:hover{border-color:rgba(139,92,246,.7)}
+.step:focus-visible{outline:2px solid #a8eef9;outline-offset:2px}
+.num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:12px;font-weight:800;color:#0b0620;background:linear-gradient(135deg,#a8eef9,#8b5cf6)}
+.step strong{font-size:14px;letter-spacing:.04em}
+.step small{font-size:12px;line-height:1.35;color:#cfc6f5}
+@media (max-width:560px){.step{min-width:124px}}
