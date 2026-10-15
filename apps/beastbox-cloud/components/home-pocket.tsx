@@ -6,6 +6,10 @@ import {visualStateFromBeast} from '../lib/companion/creature-visual-state.mjs';
 import {recordedQvmStimulusPath} from '../lib/companion/recorded-qvm-stimulus.mjs';
 import {useOwnQvmCounts} from './use-own-qvm-counts';
 import {useEffect,useState} from 'react';
+import FluidSwirlLayer from './fluid-swirl-layer';
+import {stormChaos} from '../lib/companion/fluid-swirl.mjs';
+import {deriveEmotions} from '../lib/companion/emotion.mjs';
+import {useChshGame} from './use-chsh-game';
 /** Guest default: Zeref bb-deada969's own recorded session record (display only; never adopted, never merged with the Moonwraith display guide). */
 export const ZEREF_HOME_DEFAULT={id:'bb-deada969',src:'/spark/zeref-live-20261010/unsigned-session.json'};
 /** Home shows the same dimensional pocket as the Cage, view-only (explore it in the Cage).
@@ -17,10 +21,12 @@ export default function HomePocket(){
  const [zeref,setZeref]=useState<any>(null);
  useEffect(()=>{if(own||zeref)return;let live=true;fetch(ZEREF_HOME_DEFAULT.src).then(r=>r.ok?r.json():null).then(d=>{const b=d?.beast;if(live&&b?.qbeast?.profile?.id===ZEREF_HOME_DEFAULT.id)setZeref(b);}).catch(()=>{});return()=>{live=false;};},[own,zeref]);
  const beast=own||zeref;
+ const game=useChshGame();const sc=stormChaos(deriveEmotions(beast),game);
  const qvmCounts=useOwnQvmCounts(beast?recordedQvmStimulusPath(beast):null);
  return <div className="home-pocket-layer" aria-hidden="true" data-home-pocket={own?'saved-beast':zeref?'zeref-bb-deada969':'guide'}>
   <CagePocketDimension seed={beast?beast.genome?.seed||beast.seed:null} qbeastId={beast?beast.qbeast.profile.id:null}
    stage={beast?(beast.nativeStage||1):1} behaviorPosition={beast?beast.behavior?.position||null:null}
    state={beast?visualStateFromBeast(beast):'idle'} reduced={reduced} onActiveChange={noop} qvmCounts={qvmCounts} autoOrbit/>
+  {reduced?null:<FluidSwirlLayer storm={sc.storm} chaos={sc.chaos} count={60}/>}
  </div>;
 }
