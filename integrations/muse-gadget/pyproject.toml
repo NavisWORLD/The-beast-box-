@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "beastbox-musegadget"
+version = "0.1.0"
+description = "Beast Box gadget for the Meta Muse Linux Device SDK (community gadget, not made or endorsed by Meta)"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.9"
+# Standard library only, so it installs into the SDK's venv with --no-deps.
+dependencies = []
+
+[project.scripts]
+musegadget-beastbox = "beastbox_musegadget.cli:main"
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.setuptools]
+packages = ["beastbox_musegadget"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
