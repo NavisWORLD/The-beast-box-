@@ -210,11 +210,14 @@ export async function talkToBeast(input) {
       let payload=await readJson(response);
       if(!response.ok)return failure(route,payload?.error||"Brain Bay did not accept the request.",response.status);
       const until=Date.now()+55000;
-      while(payload?.state!=="done"&&payload?.state!=="failed"&&payload?.job_id&&Date.now()<until){
+      const TERMINAL=new Set(["done","failed","cancelled","canceled","expired","error"]);
+      const jobId=payload?.job_id;
+      if(payload?.state!=="done"&&(typeof jobId!=="string"||!/^[A-Za-z0-9_-]{32}$/.test(jobId)))return failure(route,"Brain Bay returned no valid chat job. No reply was received.");
+      while(!TERMINAL.has(payload?.state)&&jobId&&Date.now()<until){
         await new Promise((resolve,reject)=>{if(signal?.aborted){reject(new Error("Cancelled"));return;}const abort=()=>{clearTimeout(timer);reject(new Error("Cancelled"));};const timer=setTimeout(()=>{signal?.removeEventListener("abort",abort);resolve();},1000);signal?.addEventListener("abort",abort,{once:true});});
-        const job=await fetchImpl("/api/bridge/chat-job?job_id="+encodeURIComponent(payload.job_id),{cache:"no-store",signal});payload=await readJson(job);if(!job.ok)return failure(route,payload?.error||"Brain Bay job unavailable.",job.status);
+        const job=await fetchImpl("/api/bridge/chat-job?id="+encodeURIComponent(jobId),{cache:"no-store",signal});payload=await readJson(job);if(job.status===404||job.status===403)return failure(route,"This chat job belongs to another session or has expired. Send your message again.",job.status);if(!job.ok)return failure(route,payload?.error||"Brain Bay job unavailable.",job.status);if(payload?.job_id&&payload.job_id!==jobId)return failure(route,"Brain Bay answered for a different chat job. No reply was used.");
       }
-      if(payload?.state!=="done")return failure(route,payload?.error||"Brain Bay did not finish. No reply was received.");
+      if(payload?.state!=="done")return failure(route,payload?.error||(TERMINAL.has(payload?.state)?`Brain Bay chat job ${payload.state}. No reply was received.`:"Brain Bay did not finish within 55 seconds. No reply was received."));
       const read=interpretModelResult("owner-bridge",payload);
       if(!read.ok||!read.reply||read.reply.length>6000)return failure(route,read.reason||"No verified Brain Bay reply.");
       return {ok:true,route,reply:read.reply,model:clean(status.providerKind||"Brain Bay",80),label:ROUTE_INFO[route].label,at:Date.now()};
