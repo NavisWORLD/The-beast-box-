@@ -106,6 +106,11 @@
    </div>
 
    <button type="button" id="generate" class="primary generate">GENERATE NEW BEAST ⚛</button>
+   <section id="surprise-draft" class="talk-card" aria-label="Surprise Me draft">
+    <div class="talk-head"><label>🎲 SURPRISE ME</label><span>DRAFT · NOTHING SAVED UNTIL YOU CONFIRM</span></div>
+    <div class="row"><canvas id="draft-art" width="96" height="96" aria-label="Draft creature preview" hidden></canvas><p id="draft-text" role="status">Roll a random creature from the recorded quantum seeds. Rerolling uses no camera, mic or paid service.</p></div>
+    <div class="row"><input id="draft-nick" maxlength="24" autocomplete="off" placeholder="Nickname (optional)" aria-label="Nickname for the draft creature"><button type="button" id="draft-roll">🎲 Surprise me</button><button type="button" id="draft-keep" disabled>✓ Create this Beast</button></div>
+   </section>
 
    <div class="identity-card">
     <div class="provenance"><p id="quantum">RECORDED QUANTUM SEED</p><code id="identity"></code></div>
