@@ -8,8 +8,34 @@ from beastbox.providers import _local_opener
 from beastbox.cgroup_memory import available_bytes, MIN_HEADROOM_BYTES
 
 MODEL = "rawrphos-native"
-STEP = 14000
-SHA = "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5"
+BASE_STEP = 14000
+BASE_SHA = "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5"
+PIN_PATH = Path(__file__).resolve().parent.parent / "apps/beastbox-cloud/lib/rawrphos-public-pin.json"
+
+
+def _public_pin():
+    """Serve the reviewed public pin; any malformed/unproven promotion keeps 14000."""
+    try:
+        pin = json.loads(PIN_PATH.read_text())
+        promo = pin.get("promotion")
+        if pin.get("schema") != "rawrphos-public-pin-v1" or pin.get("model_id") != MODEL:
+            raise ValueError
+        if promo is None:
+            if (pin.get("training_steps"), pin.get("checkpoint_sha256")) != (BASE_STEP, BASE_SHA):
+                raise ValueError
+            return BASE_STEP, BASE_SHA
+        step, sha = pin.get("training_steps"), pin.get("checkpoint_sha256")
+        if (type(step) is not int or step <= BASE_STEP or not isinstance(sha, str) or len(sha) != 64
+                or promo.get("chat_not_worse") is not True or promo.get("baseline_sha256") != BASE_SHA
+                or promo.get("candidate_sha256") != sha or not str(promo.get("release_tag", "")).startswith("zeref-006-cycle-")
+                or len(str(promo.get("chat_eval_sha256", ""))) != 64):
+            raise ValueError
+        return step, sha
+    except (OSError, ValueError, TypeError, AttributeError):
+        return BASE_STEP, BASE_SHA
+
+
+STEP, SHA = _public_pin()
 URL = "http://127.0.0.1:8767/v1"
 
 
@@ -20,7 +46,7 @@ def profile():
 
 def status():
     result = {"choice": "rawrphos_native", "model": MODEL,
-              "label": "RAWRPHØS Native — Local CPU (14K)", "kind": "local",
+              "label": "RAWRPHØS Native — Local CPU (14K)" if STEP == BASE_STEP else f"RAWRPHØS Native — Local CPU (step {STEP})", "kind": "local",
               "configured": False, "requires_spend_approval": False,
               "readiness": "AVAILABLE_NOT_INSTALLED", "loaded_step": None}
     path = os.environ.get("RAWRPHOS_CHECKPOINT_PATH", "")
