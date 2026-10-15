@@ -93,16 +93,10 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
   // The homepage must paint the *same* QBEAST's local sprite, not a new preview.
   await page.addInitScript(()=>{Object.defineProperty(window,'WebGLRenderingContext',{configurable:true,value:undefined});});
   await page.goto(root+'/');
-  await page.locator('.cosmos-home-hero [data-graphics="qbeast-sprite"]').waitFor({timeout:20000});
-  await page.waitForFunction(()=>{
-    const canvas=document.querySelector('.cosmos-home-hero [data-fallback="same-qbeast-sprite"] canvas');
-    if(!canvas)return false;
-    try{const rgba=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;return Array.from(rgba).some((n,i)=>i%4===3&&n>0);}
-    catch{return false;}
-  },null,{timeout:20000});
-  const visual=await page.locator('.cosmos-home-hero [data-graphics="qbeast-sprite"]').evaluate(node=>({id:node.getAttribute('data-creature-id'),stage:node.querySelector('[data-fallback="same-qbeast-sprite"] canvas')?.getAttribute('aria-label')}));
-  assert.equal(visual.id,snapshot.profile.id,'same QBEAST ID survives missing WebGL');
-  assert.match(visual.stage||'',/recorded-seed sprite/);
+  // Cory (Oct 15): the round active-Beast billboard is removed from the home pocket.
+  // The home must still recognise the same saved QBEAST (My Beast view) without painting a new preview.
+  await page.locator('.cosmos-home-hero[data-home-view="my-beast"] [data-home-active-billboard="removed"]').waitFor({state:'attached',timeout:20000});
+  assert.equal(await page.locator('.cosmos-home-hero [data-graphics="qbeast-sprite"]').count(),0,'no round billboard on the home pocket');
   assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')).beast.qbeast),snapshot);
   await page.goto(root+'/beast-cage');await page.waitForFunction(id=>document.querySelector('[data-spark-beast][data-creature-id="'+id+'"]'),snapshot.profile.id);
   const afterNavigation=await page.evaluate(()=>JSON.parse(localStorage.getItem('beastbox-companion-session-v1')));
