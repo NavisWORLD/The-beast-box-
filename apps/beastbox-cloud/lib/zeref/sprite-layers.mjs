@@ -34,7 +34,7 @@ export function volumeFor(part,bbox){
  const cx=(bbox.x+bbox.width/2-200)/100,cy=(200-(bbox.y+bbox.height/2))/100;
  const fit=part==='tail'?.3:part==='head'?.4:.42;
  // Thick side volumes (Oct 14 review): depth follows the wider axis so 90°/135° read as a full body.
- const rx=bbox.width/100*fit,ry=bbox.height/100*fit,rz=part==='head'?rx*.78:part==='body'?rx*.82:part==='tail'?Math.min(rx,ry)*.9:Math.max(rx,ry)*.7;
+ const rx=bbox.width/100*fit,ry=bbox.height/100*fit,rz=part==='head'?rx*.95:part==='body'?rx*1.02:part==='tail'?Math.min(rx,ry)*.9:Math.max(rx,ry)*.7;
  return {kind,cx,cy,rx,ry,rz};
 }
 /** Map an SVG CTM (a,b,c,d,e,f in viewBox px) to a column-major 4x4 for a plane whose texture spans the 400x400 viewBox, world units = px/100, y up, origin at viewBox centre. */

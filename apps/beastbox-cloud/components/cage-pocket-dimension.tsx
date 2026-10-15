@@ -35,7 +35,7 @@ const randomFor=(s:string)=>{let v=visualSeed(s)||1;return()=>{v^=v<<13;v^=v>>>1
  */
 export default function CagePocketDimension({seed,qbeastId,stage,reduced,behaviorPosition,state,onActiveChange,qvmCounts=null,autoOrbit=false}:Props){
  const autoOrbitRef=useRef(autoOrbit);autoOrbitRef.current=autoOrbit;const lastDragAt=useRef(0);
- useEffect(()=>{if(autoOrbit)cameraView.current={...cameraView.current,zoom:13.4,phi:1.12};},[autoOrbit]);
+ useEffect(()=>{if(autoOrbit)cameraView.current={...cameraView.current,zoom:8.5,phi:1.18};},[autoOrbit]);
  const sandSource=qvmCounts?'receipt':'seed';
  const canvasRef=useRef<HTMLCanvasElement>(null);
  const motion=useRef({position:behaviorPosition,state,stage,impulse:0});
@@ -256,6 +256,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // God view: habitat on a small planet, orbiting its suns, inside a galaxy (Genesis Engine, recoloured).
     const god=addGodView(THREE,scene,{rand:randomFor(key+':system'),low,counts:qvmCounts,stage:motion.current.stage||stage||1});
     const godFocus=new THREE.Vector3();
+    // Home: the sprite-built 3D Zeref lives here, standing on the habitat floor (one world, one camera).
+    const zHolder=new THREE.Group();zHolder.scale.setScalar(.45);zHolder.position.set(0,1.68*.45-.07,0);zHolder.rotation.y=.7;scene.add(zHolder);
     if(typeof window!=='undefined')(window as any).__pocketCamera=cameraView;
     const sand=addPocketSand(THREE,scene,{seed:key,low,reduced});
     sand.field.setCounts(qvmCounts);
@@ -306,19 +308,20 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      const v=cameraView.current;
      stepResidents(elapsed,v.theta);
      sand.update(dt,[{x:glow.position.x,z:glow.position.z,r:1.2,s:1.6+motion.current.impulse*3},{x:0,z:0,r:1.1,s:1.2},...disturbers()]);
+     const ze=(window as any).__zerefEmbed;
+     if(ze?.root&&ze.root.parent!==zHolder){zHolder.add(ze.root);ze.claimed=true;}
+     if(ze?.claimed){let d=-(v.theta-zHolder.rotation.y)*180/Math.PI;d=((d%360)+540)%360-180;ze.viewYaw=d;}
      const f=god.update(elapsed,v.zoom,focus,godFocus);
      (scene.fog as import('three').FogExp2).density=.032*Math.min(1,12/v.zoom);
      camera.near=Math.max(.05,v.zoom*.01);camera.updateProjectionMatrix();
      camera.position.set(f.x+v.zoom*Math.sin(v.phi)*Math.sin(v.theta),f.y+v.zoom*Math.cos(v.phi),f.z+v.zoom*Math.sin(v.phi)*Math.cos(v.theta));
      camera.lookAt(f);
-     // The DOM 3D Zeref (home) lives on the habitat: he shrinks with distance and hands off to the sim.
-     const zs=Math.min(1.25,13.4/Math.max(1,v.zoom));const host=canvas.closest('.beast-landing-art') as HTMLElement|null;
-     if(host){host.style.setProperty('--pocket-zoom-scale',String(zs.toFixed(3)));host.style.setProperty('--pocket-zoom-fade',String(Math.max(0,Math.min(1,(zs-.06)/.2)).toFixed(3)));}
      try{renderer.render(scene,camera);}catch{setReady(false);setFailed(true);return;}
      if(!rendered){rendered=true;setReady(true);}
     };
     frame=requestAnimationFrame(animate);
     cleanup=()=>{
+     {const ze=(window as any).__zerefEmbed;if(ze?.root?.parent===zHolder){zHolder.remove(ze.root);ze.claimed=false;}}
      cancelAnimationFrame(frame);ro?.disconnect();io?.disconnect();
      canvas.removeEventListener('webglcontextlost',onContextLost);
      const geometries=new Set<import('three').BufferGeometry>(),materials=new Set<import('three').Material>();

@@ -10,3 +10,8 @@ test('free orbit + multi-scale zoom from close-up to galaxy',()=>{
 test('quantum honesty: only the labelled counts feed growth; nothing is invented',()=>{
  assert.match(src,/countWeights\(o\.counts\)/);assert.ok(!/Math\.random/.test(src));assert.ok(!/fetch\(|localStorage/.test(src));
  assert.ok(!/hardware/.test(src.replace(/never hardware/,'')));});
+test('Zeref lives inside the pocket world (embedded root) and the planet is sun-lit with a rim',()=>{
+ const z=readFileSync(new URL('../components/zeref-sprite-3d.tsx',import.meta.url),'utf8');
+ assert.match(z,/__zerefEmbed=\{root,claimed:false/);assert.match(z,/if\(!inWorld\)renderer\.render/);
+ assert.match(pd,/zHolder\.add\(ze\.root\)/);assert.match(pd,/zHolder\.remove\(ze\.root\)/);
+ assert.match(src,/uniform vec3 sunDir/);assert.match(src,/rimCol\*rim/);});
