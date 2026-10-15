@@ -14,7 +14,11 @@ import torch
 from rawrphos.inference.engine import Engine
 from rawrphos.training.checkpoint import (load_checkpoint,save_checkpoint,
                                             parameter_hash,rng_state,hash_file)
-from train_rawrphos_from_observed_native_play import prompt,tokens,collate,nll,valid
+from train_rawrphos_from_observed_native_play import prompt as _native_prompt,tokens,collate,nll,valid
+GAME_MODE_TAG="[mode: game]\n"
+def prompt(row):
+ # Explicit mode tag: game rows are never confused with "user:/assistant:" chat.
+ return GAME_MODE_TAG+_native_prompt(row)
 
 ROOT=Path("build/zeref-006")
 IN=ROOT/"inputs"
