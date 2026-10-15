@@ -86,12 +86,22 @@ export default function ZerefSprite3D({className='',autoRotate=false,turntable=f
      // art's alpha clips the volume to Zeref's real silhouette (ears, crown spikes, tail curl).
      const back=L.part==='head'?await cut('head',['earL','earR',...FACE]):L.part==='body'?await cut('body',['pawL','pawR']):c;if(disposed)return;
      const backTex=back===c?tex:new THREE.CanvasTexture(back!);backTex.colorSpace=THREE.SRGBColorSpace;
+     // The face lives only on the front sprite plane; the head volume is painted with the face-free cut
+     // on both halves so eyes/mouth never smear onto the sides.
+     const frontTex=L.part==='head'?backTex:tex;
      const zc=L.z-0.04-vol.rz;
      for(const half of [0,1]){
       const g=vol.kind==='cone'?new THREE.ConeGeometry(1,1,18,1,true,half?Math.PI:0,Math.PI):new THREE.SphereGeometry(1,32,22,half?Math.PI:0,Math.PI);
       const sy=vol.kind==='cone'?vol.ry*2.1:vol.ry,pos=g.attributes.position,uv=g.attributes.uv;
+      if(L.part==='head'&&vol.kind!=='cone'){
+       // Cat skull, not a ball: flatter crown, fuller cheeks, slight muzzle push, flatter back of head.
+       for(let i=0;i<pos.count;i++){let x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+        if(y>0)y*=.82;else{x*=1+.16*Math.min(1,-y*1.6);}
+        if(z>0&&y<0&&y>-.6)z*=1+.18*(1-Math.abs(x));if(z<0)z*=.86;pos.setXYZ(i,x,y,z);}
+       pos.needsUpdate=true;g.computeVertexNormals();
+      }
       for(let i=0;i<pos.count;i++){const x=vol.cx+pos.getX(i)*vol.rx,y=vol.cy+pos.getY(i)*sy;uv.setXY(i,(x+2)/4,(y+2)/4);}uv.needsUpdate=true;
-      const mm=new THREE.MeshStandardMaterial({map:half?backTex:tex,alphaTest:.45,roughness:.7,metalness:.05,emissive:0x140a26,side:THREE.DoubleSide});
+      const mm=new THREE.MeshStandardMaterial({map:half?backTex:frontTex,alphaTest:.45,roughness:.7,metalness:.05,emissive:0x140a26,side:THREE.DoubleSide});
       const m=new THREE.Mesh(g,mm);m.scale.set(vol.rx,sy,vol.rz);m.position.set(vol.cx,vol.cy,zc);m.renderOrder=-10;inner.add(m);
      }
     }
