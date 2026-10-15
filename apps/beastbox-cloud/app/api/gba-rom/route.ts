@@ -2,7 +2,7 @@ import {NextResponse} from 'next/server';
 import {createHash} from 'node:crypto';
 export const dynamic='force-dynamic';
 const RELEASE='https://navisworld.github.io/Cosmic-synapse-the-living-universe-sim-engine-/arcade/lost-cosmos/rom/lost-cosmos.gba';
-const SHA='425e2ace92a7c2c3d15db9b1cdd61ef538ddf46510255a2857afa27e613657c2';
+const SHA='69a6705c5007d5b42aa0fe957a3ef326569b8932c87a4e3b1f390e63e5413854';
 export async function GET(){
  try{
   const upstream=await fetch(RELEASE+'?v='+SHA,{cache:'no-store',signal:AbortSignal.timeout(20000)});
