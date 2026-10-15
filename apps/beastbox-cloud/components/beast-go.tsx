@@ -38,6 +38,8 @@ export default function BeastGo() {
   const [guestMode, setGuestMode] = useState(true);
   const [label, setLabel] = useState('Guests play with a beast saved in this browser. No owner authority and no private memory. Talk uses the guest-safe brain.');
   const [guestOpen, setGuestOpen] = useState(false);
+  const [camLive, setCamLive] = useState(false);
+  const [padOpen, setPadOpen] = useState(true);
   const drag = useRef<{ y: number; id: number } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<HTMLDivElement>(null);
@@ -291,7 +293,7 @@ export default function BeastGo() {
 
   return <main className={css.field} data-go-screen="true">
     <h1 className={css.sr}>Lost Cosmos field</h1>
-    <div className={css.cameraLayer} data-go-camera-field="true"><CameraField fullscreen floorPx={!nativePlayer && touch && !sheet ? 270 : 0} /></div>
+    <div className={css.cameraLayer} data-go-camera-field="true"><CameraField fullscreen floorPx={!nativePlayer && touch && !sheet && !(camLive && !padOpen) ? 270 : 0} onLive={(on) => { setCamLive(on); setPadOpen(!on); }} /></div>
     {guestMode && guestOpen ? <p className={css.guestNote} data-guest-play="true" id="go-guest-note">Guests play with a beast saved in this browser. No owner authority and no private memory. Talk uses the guest-safe brain.</p> : null}
     <div className={css.card} ref={cardRef}>
       <span className={css.portrait}>
@@ -299,7 +301,7 @@ export default function BeastGo() {
       </span>
       <button type="button" className={css.identity} onClick={() => toggle('beasts')}>
         <span className={css.meta}>
-          <strong>{ready ? (profile?.name || 'Spark Beast') : 'Loading save'}</strong>
+          <strong>{ready ? (beast?.genome?.seed ? shownName(beast) : (profile?.name || 'Pick a creature')) : 'Loading save'}</strong>
           <span>Lv {card.stage} · {card.mood}</span>
           <span className={css.xp} role="meter" aria-label={`Experience ${card.xp}`} aria-valuemin={0} aria-valuemax={card.goal || card.xp || 1} aria-valuenow={card.xp}><i style={{ width: `${Math.round(card.ratio * 100)}%` }} /></span>
         </span>
@@ -307,7 +309,9 @@ export default function BeastGo() {
       {guestMode ? <button type="button" className={css.guestChip} data-guest-play="true" aria-expanded={guestOpen} aria-controls="go-guest-note"
         aria-label={guestOpen ? 'Hide the guest play note' : 'Show the guest play note'} onClick={() => setGuestOpen((value) => !value)}>Guest {guestOpen ? '▴' : 'ⓘ'}</button> : null}
     </div>
-    {!nativePlayer && touch && !sheet ? <div className={css.handheld} ref={deckRef}>
+    {!nativePlayer && touch && !sheet && camLive && !padOpen ? <button type="button" className={css.padToggle} data-pad-toggle="show" onClick={() => setPadOpen(true)}>🎮 Controls</button> : null}
+    {!nativePlayer && touch && !sheet && !(camLive && !padOpen) ? <div className={css.handheld} ref={deckRef}>
+      {camLive ? <button type="button" className={css.padToggle} data-pad-toggle="hide" style={{position:'absolute',top:-44,right:12}} onClick={() => setPadOpen(false)}>Hide controls</button> : null}
       <GbaControls shoulders onMenu={() => toggle('menu')} />
     </div> : <div className={css.screenMenu} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
       <button type="button" className={css.handle} aria-label="Swipe up for the menu" onClick={() => toggle('menu')}><i /></button>
