@@ -1,0 +1,74 @@
+{
+ "schema": "spark-beasts-public-seed-shard-v1",
+ "source_class": "RECORDED_IBM_HARDWARE",
+ "label": "REAL IBM QUANTUM HARDWARE RUN",
+ "job_id": "db8iu85ckpjs73b13msg",
+ "backend": "ibm_marrakesh",
+ "counts_digest_sha256": "08163a698580c2a3ee42849491cc67b7e8b3e33d87a8bbb1f3d30722595a11cc",
+ "source_run_id": 38797391738,
+ "recorded_at": "2026-10-15T19:58:09.175422+00:00",
+ "chsh": {
+  "settings_rad": {
+   "a0": 0,
+   "a1": 1.5707963267948966,
+   "b0": 0.7853981633974483,
+   "b1": -0.7853981633974483
+  },
+  "E": {
+   "a0b0": 0.703125,
+   "a0b1": 0.689453125,
+   "a1b0": 0.646484375,
+   "a1b1": -0.71875
+  },
+  "S": 2.7578125,
+  "S_standard_error": 0.04523944556191646,
+  "sigma_above_2": 16.751144727510606,
+  "limitations": [
+   "Single run; no loophole-free Bell test (locality and detection loopholes open).",
+   "Readout error not mitigated."
+  ]
+ },
+ "notice": "Bell |Phi+> at the four CHSH settings, one owner-authorized Open Plan job (4x1024 shots). Not a loophole-free Bell test. Creature behaviour derived from it is classical software. Provenance: run 38797391738",
+ "runs": [
+  {
+   "k": "db8iu85ckpjs73b13msg:chsh-a0b0",
+   "b": "ibm_marrakesh",
+   "j": "db8iu85ckpjs73b13msg",
+   "p": 0,
+   "n": 2,
+   "s": 1024,
+   "c": "00:458,01:81,10:71,11:414",
+   "h": "5e0527087efa037ad09f4ffad7d71c8c20c36bc06d0106a44cbdc4df9184fcd7"
+  },
+  {
+   "k": "db8iu85ckpjs73b13msg:chsh-a0b1",
+   "b": "ibm_marrakesh",
+   "j": "db8iu85ckpjs73b13msg",
+   "p": 1,
+   "n": 2,
+   "s": 1024,
+   "c": "00:445,01:77,10:82,11:420",
+   "h": "851cfb4f88d931b101db3d8bef8e837afb7da542710f9812fa4bb65569645176"
+  },
+  {
+   "k": "db8iu85ckpjs73b13msg:chsh-a1b0",
+   "b": "ibm_marrakesh",
+   "j": "db8iu85ckpjs73b13msg",
+   "p": 2,
+   "n": 2,
+   "s": 1024,
+   "c": "00:433,01:91,10:90,11:410",
+   "h": "04bcdbc5b927627245c1269082563d8e7738adebdabe132f210d0ce1c160400b"
+  },
+  {
+   "k": "db8iu85ckpjs73b13msg:chsh-a1b1",
+   "b": "ibm_marrakesh",
+   "j": "db8iu85ckpjs73b13msg",
+   "p": 3,
+   "n": 2,
+   "s": 1024,
+   "c": "00:78,01:435,10:445,11:66",
+   "h": "0877d2fd64704703ca339c9ad80a6ad6cc873e2b2762b98112b1920709989941"
+  }
+ ]
+}
