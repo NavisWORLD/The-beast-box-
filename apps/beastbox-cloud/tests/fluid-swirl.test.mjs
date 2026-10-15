@@ -14,3 +14,8 @@ test('CHSH game wins grow biosphere and calm the storm; labelled honestly',()=>{
  assert.equal(w.label,'CHSH game (Bell nonlocality)');assert.equal(w.loopholeFree,false);
  assert.ok(w.biosphereDelta>0&&w.stormDelta<0);assert.equal(chshGameWorld(null),null);
  const sc=stormChaos({joy:30,curiosity:50,fear:20,calm:40,mischief:20},w);assert.ok(sc.storm>=0&&sc.storm<=1);});
+import {historyRows} from '../lib/companion/chsh-game-world.mjs';
+test('history rows newest first with fallback to bundled shard',()=>{
+ const r=historyRows({entries:[{date_utc:'20261015',job_id:'a',win_rate:.81,standard_error:.012},{date_utc:'20261016',job_id:'b',win_rate:.83,standard_error:.012}]});
+ assert.equal(r[0].job,'b');assert.equal(r[1].date,'2026-10-15');
+ assert.equal(historyRows(null,{date_utc:'20261015',job_id:'x',quantum:{win_rate:.8,standard_error:.01}}).length,1);});

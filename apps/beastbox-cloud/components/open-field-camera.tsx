@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 import CameraField from './camera-field';
+import {useChshHistory} from './use-chsh-game';
 import {useCompanion} from './companion-provider';
 import {useBeastSession} from './beast-session';
 import {shownName} from '../lib/companion/session.mjs';
@@ -22,6 +23,7 @@ export default function OpenFieldCamera(){
  const {profile}=useCompanion();const {session}=useBeastSession();
  const beast=session?.beast?.qbeast?.profile?.id?session.beast:null;
  const name=beast?shownName(beast):talkPersona({beast:null,cage:profile}).name;
+ const hist=useChshHistory();
  const [msg,setMsg]=useState(''),[caps,setCaps]=useState<Caps|null>(null),[grok,setGrok]=useState('checking…');
  useEffect(()=>{setCaps(detect());void voiceStatus().then(v=>setGrok(v.grok.configured?'configured (backend key)':'not set up'));},[]);
  const label=(k:keyof Caps,t:string)=>caps?<li key={k} data-cap={k} data-available={caps[k]}>{t}: {caps[k]?'available':'not in this browser'}</li>:null;
@@ -30,6 +32,9 @@ export default function OpenFieldCamera(){
 </header>
   <CameraField />
   {msg?<p role="alert" style={{fontSize:13,color:'#ffd2d2'}}>{msg}</p>:null}
+  {hist&&hist.length?<details data-chsh-history open style={{marginTop:8,fontSize:12}}><summary>CHSH game (Bell nonlocality) · daily history</summary>
+   <table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr><th align='left'>Date (UTC)</th><th align='left'>IBM job</th><th align='right'>Win rate</th></tr></thead><tbody>{hist.map(r=><tr key={r.job} data-chsh-row={r.job}><td>{r.date}</td><td style={{fontFamily:'monospace',fontSize:11}}>{r.job}</td><td align='right'>{(r.winRate*100).toFixed(1)}% ± {(r.se*100).toFixed(1)}</td></tr>)}</tbody></table>
+   <small style={{color:'#9fc6d8'}}>Real IBM hardware, settings hash-committed before each run. Classical bound 75%, ideal quantum 85.4%. Not loophole-free: no space-like separation (one chip, one controller).</small></details>:null}
   <details style={{marginTop:8,fontSize:12}}><summary>What this device can sense</summary><ul>
    {label('camera','Camera')}{label('mic','Microphone')}{label('motion','Motion sensors')}{label('bluetooth','Web Bluetooth (Muse)')}{label('webgl','3D graphics')}
    <li>Voice: browser speech available{caps?'':'…'} · Grok voice: {grok}</li>

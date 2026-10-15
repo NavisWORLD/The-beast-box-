@@ -22,4 +22,13 @@ class T(unittest.TestCase):
             self.assertEqual(json.loads((d / "answers_quantum.json").read_text())["answers"], q)
     def test_budget(self):
         self.assertLessEqual(R.QPU_CAP, 30); self.assertEqual(R.RESERVE, 60)
+    def test_publish_verifies_and_appends_once(self):
+        import publish as P
+        src = Path("apps/beastbox-cloud/public/spark/chsh-game/latest.json")
+        with tempfile.TemporaryDirectory() as t:
+            self.assertTrue(P.publish(src, Path(t))); self.assertFalse(P.publish(src, Path(t)))
+            h = json.loads((Path(t) / "history.json").read_text()); self.assertEqual(len(h["entries"]), 1)
+            bad = json.loads(src.read_text()); bad["questions"]["bob"] = "1" + bad["questions"]["bob"][1:] if bad["questions"]["bob"][0] == "0" else "0" + bad["questions"]["bob"][1:]
+            (Path(t) / "bad.json").write_text(json.dumps(bad))
+            with self.assertRaises(AssertionError): P.publish(Path(t) / "bad.json", Path(t) / "o2")
 if __name__ == "__main__": unittest.main()
