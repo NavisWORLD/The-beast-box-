@@ -38,10 +38,11 @@ export function addGodView(THREE:T,scene:import('three').Scene,o:{rand:()=>numbe
  // Growth on the planet: crystal groves around the habitat, count from the native stage; each grove's
  // colour band comes from one labelled simulator outcome (weights only when a receipt exists).
  const groves=new THREE.Group();scene.add(groves);
+ const gm=new Map<number,import('three').MeshBasicMaterial>();const groveMat=(c:number)=>{let m=gm.get(c);if(!m){m=new THREE.MeshBasicMaterial({color:c,fog:false});gm.set(c,m);}return m;};
  const grovesN=Math.min(low?40:90,12+Math.round((o.stage||1)*14));
  for(let i=0;i<grovesN;i++){const lat=.5+rand()*1.0,lon=rand()*Math.PI*2;const w=weights.length?weights[i%weights.length]:null;
   const col=new THREE.Color(PAL[w?Math.abs([...w.key].reduce((s,ch)=>s*31+ch.charCodeAt(0),7))%PAL.length:i%2]);
-  const m=new THREE.Mesh(new THREE.OctahedronGeometry(.14+(w?w.w*.9:0.08)+rand()*.14,0),new THREE.MeshBasicMaterial({color:col,fog:false}));
+  const m=new THREE.Mesh(new THREE.OctahedronGeometry(.14+(w?w.w*.9:0.08)+rand()*.14,0),groveMat(col.getHex()));
   const dir=new THREE.Vector3(Math.sin(lat)*Math.cos(lon),Math.cos(lat),Math.sin(lat)*Math.sin(lon));
   m.position.copy(planet.position).addScaledVector(dir,PLANET_R+.2);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);m.scale.y=2.4;groves.add(m);}
  // ---- Star system: planet orbits 1–2 suns (binary from the seed) ----
@@ -52,7 +53,6 @@ export function addGodView(THREE:T,scene:import('three').Scene,o:{rand:()=>numbe
   uniforms:{c:{value:new THREE.Color(color)}},vertexShader:'varying vec3 vN;varying vec3 vV;void main(){vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.0);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
   fragmentShader:'uniform vec3 c;varying vec3 vN;varying vec3 vV;void main(){float i=pow(max(0.0,-dot(vN,vV)),2.2);gl_FragColor=vec4(c*i*1.4,i);}'}));
  for(let s=0;s<(binary?2:1);s++){const size=18+rand()*14;const sun=new THREE.Mesh(new THREE.SphereGeometry(size,32,24),new THREE.MeshBasicMaterial({color:sunCols[s],fog:false}));sun.add(corona(sunCols[s],size));sun.userData.size=size;sys.add(sun);suns.push(sun);}
- const sunLight=new THREE.PointLight(0xffe0b0,0,0,0);sys.add(sunLight);
  // Sibling planets on their own orbits (Genesis createPlanet, simplified), with orbit rings.
  const others:{m:import('three').Mesh;r:number;sp:number;ph:number}[]=[];
  const ringMat=new THREE.LineBasicMaterial({color:0x6f5bd8,transparent:true,opacity:.35,fog:false});
@@ -60,7 +60,7 @@ export function addGodView(THREE:T,scene:import('three').Scene,o:{rand:()=>numbe
  sys.add(ring(orbitR));
  const nOthers=3+Math.floor(rand()*(low?2:4));
  for(let i=0;i<nOthers;i++){const r=orbitR*(.45+i*.42+rand()*.15);if(Math.abs(r-orbitR)<40)continue;const size=4+rand()*12;
-  const m=new THREE.Mesh(new THREE.SphereGeometry(size,24,16),new THREE.MeshStandardMaterial({color:PAL[i%PAL.length],roughness:.8,emissive:PAL[i%PAL.length],emissiveIntensity:.12,fog:false}));
+  const m=new THREE.Mesh(new THREE.SphereGeometry(size,24,16),new THREE.MeshBasicMaterial({color:PAL[i%PAL.length],fog:false}));
   sys.add(m);sys.add(ring(r));others.push({m,r,sp:orbitSpeed*Math.pow(orbitR/r,1.5),ph:rand()*Math.PI*2});}
  // ---- Galaxy: capped spiral of stars far out, around the system ----
  const gN=low?900:2400,gp=new Float32Array(gN*3),gc=new Float32Array(gN*3);const arms=2+Math.floor(rand()*3);const tmp=new THREE.Color();
