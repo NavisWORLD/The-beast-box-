@@ -1,0 +1,47 @@
+name: CHSH game (Bell nonlocality) - small daily IBM batch (owner-authorized 2026-10-15)
+on:
+  schedule:
+    - cron: '17 14 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/chsh-game-daily-ibm.yml'
+      - 'scripts/chsh_game/**'
+permissions:
+  contents: read
+concurrency:
+  group: chsh-game-daily-qpu
+  cancel-in-progress: false
+jobs:
+  chsh-game:
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/chsh-game-daily') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest tests/test_chsh_game.py -v
+      - run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+      - name: One small CHSH-game job per UTC day (20 QPU s cap, 60 s plan reserve)
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_CHSH_GAME_DAILY: YES_DAILY_SMALL_BATCH
+        run: python scripts/chsh_game/referee.py
+      - name: Read-only quota after
+        if: always()
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: chsh-game-${{ github.run_id }}
+          path: |
+            _chsh_game/
+            _ibm_open_plan_preflight/receipt.json
+          retention-days: 90
+          if-no-files-found: warn
