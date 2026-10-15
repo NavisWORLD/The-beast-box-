@@ -34,6 +34,7 @@ const randomFor=(s:string)=>{let v=visualSeed(s)||1;return()=>{v^=v<<13;v^=v>>>1
  */
 export default function CagePocketDimension({seed,qbeastId,stage,reduced,behaviorPosition,state,onActiveChange,qvmCounts=null,autoOrbit=false}:Props){
  const autoOrbitRef=useRef(autoOrbit);autoOrbitRef.current=autoOrbit;const lastDragAt=useRef(0);
+ useEffect(()=>{if(autoOrbit)cameraView.current={...cameraView.current,zoom:13.4,phi:1.12};},[autoOrbit]);
  const sandSource=qvmCounts?'receipt':'seed';
  const canvasRef=useRef<HTMLCanvasElement>(null);
  const motion=useRef({position:behaviorPosition,state,stage,impulse:0});
