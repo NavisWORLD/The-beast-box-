@@ -16,6 +16,8 @@ import {loadSparkRuns,validateQvmReceipt} from './runs.mjs';
 import {readDeviceJourney,restoreDeviceJourney,serializeDeviceJourney} from './device-journey.mjs';
 import {applyRecordedQvmStimulus,validateRecordedQvmStimulus,recordedQvmStimulusPath} from './shared/recorded-qvm-stimulus.mjs';
 import {createSparkChatPopup} from './chat-popup.mjs';
+import {CATALOG_PATH,mountPicker} from './catalog-picker.mjs';
+import {deriveEmotions,diaryEntry,EMOTIONS} from './shared/emotion.mjs';
 const STORE='spark-beasts-bestiary-v1',QVM_STORE='spark-qvm-growth-v1',SOUND_KEY='spark-beast-sound-v2',SCALE=4,$=id=>document.getElementById(id);
 const media=matchMedia('(prefers-reduced-motion: reduce)');
 const beastAudio=getBeastAudio();
@@ -79,6 +81,35 @@ function saveQvmGrowth(){if(!current)return;try{localStorage.setItem(QVM_STORE,J
 function updateQvmGrowth(){const label=$('qvm-growth'),bar=$('qvm-growth-bar');if(!label||!bar)return;const pct=Math.round(qvmGrowth*100);bar.style.width=`${pct}%`;label.textContent=`SIM GROWTH ${pct}% · browser-local · native stage unchanged`;label.parentElement?.setAttribute('aria-valuenow',String(pct));}
 function updatePlate(){if(!current)return;const beast=session.beast;$('nameplate').textContent=shownName(beast);$('form').textContent=`${current.gen.names[stage]} · ${preview?'PREVIEW ':''}STAGE ${'I'.repeat(stage)}`;$('care-stats').textContent=`Care XP ${beast.xp} · Bond ${beast.bond} · Energy ${beast.energy}`;$('identity').textContent=`QBEAST ${beast.qbeast.profile.id}`;$('view').dataset.creatureId=beast.qbeast.profile.id;$('view').dataset.stage=String(stage);$(
 'view').dataset.simGrowth=qvmGrowth.toFixed(3);for(const which of [1,2,3])$(`pick${which}`).setAttribute('aria-pressed',String(stage===which));updateQvmGrowth();chatPopup?.syncPersona();}
+
+// ---- Emotions (deterministic; only real events and archived SIMULATED Rigetti runs change them) ----
+const DIARY_KEY=seed=>`beastbox-emotion-diary-v1:${seed}`;
+const EMO_VOICE={joy:'spark',mischief:'spark',curiosity:'focus',calm:'calm',fear:'calm'};
+function currentEmotions(){if(!session?.beast)return null;return deriveEmotions(session.beast,{simGrowth:qvmGrowth,chatTurns:(session.chat||[]).filter(m=>m.role==='you').length});}
+function readDiary(seed){try{const d=JSON.parse(localStorage.getItem(DIARY_KEY(seed))||'[]');return Array.isArray(d)?d.slice(-30):[];}catch{return [];}}
+function drawEmotions(){
+ const em=currentEmotions();if(!em||!$('emotion-bars'))return em;
+ $('emotion-dominant').textContent=em.dominant;
+ $('emotion-bars').replaceChildren(...EMOTIONS.map(k=>{const li=document.createElement('li');li.dataset.emotion=k;const b=document.createElement('b');b.textContent=k;const bar=document.createElement('i');bar.style.width=`${em[k]}%`;const v=document.createElement('span');v.textContent=String(em[k]);li.append(b,bar,v);return li;}));
+ $('emotion-choice').textContent=`Choice: ${em.choice.motion} · chat tone ${em.choice.tone}`;
+ $('emotion-why').textContent=em.topWhy.map(w=>`${w.reason} (${w.delta>0?'+':''}${w.delta})`).join(' · ');
+ $('emotion-diary').replaceChildren(...readDiary(session.beast.seed).slice().reverse().map(d=>{const li=document.createElement('li');li.textContent=`${d.event}: feels ${d.dominant}, chose ${d.choice}${d.changed?.length?' ('+d.changed.join(', ')+')':''} — because ${d.why.join('; ')}`;return li;}));
+ $('view').dataset.emotion=em.dominant;return em;
+}
+function emotionEvent(event,before){
+ const after=drawEmotions();if(!after)return;const entry=diaryEntry(before,after,event);
+ if(entry){try{const d=readDiary(session.beast.seed);d.push(entry);localStorage.setItem(DIARY_KEY(session.beast.seed),JSON.stringify(d.slice(-30)));}catch{}drawEmotions();}
+ if(runtime)runtime.emotionNext={state:after.choice.state,from:runtime.until};
+ $('line').textContent=`${$('line').textContent} ${shownName(session.beast)} ${after.choice.line}`;
+}
+// ---- Quantum catalogue picker ----
+async function mountCatalog(){
+ const root=$('catalog-picker');if(!root)return;
+ try{const res=await fetch(CATALOG_PATH,{cache:'force-cache'});if(!res.ok)throw Error();const cat=await res.json();
+  mountPicker(root,cat,{owned:()=>bestiary.map(e=>{const r=byKey.get(e.run);try{return r?buildGenome(e.traits,r,e.user||null,10):null;}catch{return null;}}).filter(Boolean).concat(session?.beast?.genome?[session.beast.genome]:[]),
+   onPick:(row,how)=>void run(async()=>{if(!byKey.has(row.key))throw Error('That recorded seed is unavailable here.');const traits=simulateStable('balanced');await adopt({traits:{focus:traits.focus,calm:traits.calm,spark:traits.spark},run:row.key,user:null});$('status').textContent=`${how==='random'?'Random':how==='unique'?'Unique':'Picked'}: ${row.name} · recorded IBM seed ${row.key} · SIMULATED balanced signal · ${row.bits} rarity bits.`;drawEmotions();document.getElementById('habitat')?.scrollIntoView({behavior:reduceMotion?'auto':'smooth'});})});
+ }catch{root.textContent='Catalogue unavailable right now. Existing creation still works below.';}
+}
 function showCreature(entry,nextSession,spawn=true){
  const run=byKey.get(entry.run);if(!run)throw Error('Recorded seed is unavailable.');
  const gen=buildGenome(entry.traits,run,entry.user||null,10);current={entry,gen,run};session=nextSession;stage=session.beast.nativeStage||1;preview=false;
@@ -90,7 +121,7 @@ function showCreature(entry,nextSession,spawn=true){
  qvmGrowth=readQvmGrowth(gen.seed);
  const scene=audioSceneFor(gen);if(scene)beastAudio.setScene(scene);syncAudioUi();
  runtime={rnd:mulberry32(gen.behavior.prng_seed),T:0,nextBlink:2,blinkUntil:-1,utt:0,lastSay:-20,nextVoice:12,state:spawn?'spawn':'idle',until:spawn?1.2:0,spawn:spawn?0:1,qvmPulseUntil:-1,qvmStep:0};
- Object.assign(felt,target);updatePlate();drawBestiary();notifyNativeBridge();void renderCosmos(session.beast,shownName(session.beast)).catch(()=>{});say('neutral',spawn?`${shownName(session.beast)} just sparked in. Let's explore!`:`${shownName(session.beast)} is back. Same paws, same seed.`);
+ Object.assign(felt,target);updatePlate();drawBestiary();notifyNativeBridge();void renderCosmos(session.beast,shownName(session.beast)).catch(()=>{});say('neutral',spawn?`${shownName(session.beast)} just sparked in. Let's explore!`:`${shownName(session.beast)} is back. Same paws, same seed.`);drawEmotions();
 }
 async function adopt(entry,spawn=true){const gen=buildGenome(entry.traits,byKey.get(entry.run),entry.user||null,10);const next=await withSparkLock(()=>selectSpark(localStorage,gen));showCreature(entry,next,spawn);}
 function drive(){
@@ -121,9 +152,11 @@ function tick(dt){
  const kf=1-Math.exp(-dt/be.latency_s);for(const k of ['focus','calm','spark'])felt[k]+=(target[k]-felt[k])*kf;
  const drv=drive();let mood='neutral',best=.25;for(const k of ['focus','calm','spark'])if(drv[k]>best){best=drv[k];mood=k;}
  if(runtime.state!=='idle'&&runtime.T>runtime.until)runtime.state='idle';
+ if(runtime.state==='idle'&&runtime.emotionNext){const n=runtime.emotionNext;runtime.emotionNext=null;if(n.state!=='idle'){runtime.state=n.state;runtime.until=runtime.T+(n.state==='rest'?2.5:1.8);}}
  if(runtime.state==='idle'&&session.beast.energy<30){runtime.state='rest';runtime.until=runtime.T+8;}
  const core=session.beast.behavior;
  if(runtime.state==='idle'&&core){if(core.lastAction==='rest')mood='calm';else if(core.lastAction==='play')mood='spark';else if(['listen','inspect','explore'].includes(core.lastAction))mood='focus';}
+ if(runtime.state==='idle'&&!core&&mood==='neutral'&&$('view').dataset.emotion)mood=EMO_VOICE[$('view').dataset.emotion]||mood;
  if(runtime.state==='rest')mood='calm';else if(runtime.state==='celebrate'||runtime.state==='spawn')mood='spark';else if(runtime.state==='train'||runtime.state==='listen')mood='focus';
  if(runtime.T>=runtime.nextVoice){runtime.nextVoice=runtime.T+12+runtime.rnd()*16;if(voiceOn&&runtime.T-runtime.lastSay>6)say(mood);}
  let eye='open';if(runtime.T>runtime.nextBlink){runtime.blinkUntil=runtime.T+.14;runtime.nextBlink=runtime.T+be.blink_mean_s*(.7+runtime.rnd());}
@@ -464,6 +497,7 @@ async function toggleMicReaction(){
 }
 let training=null;
 async function interaction(kind){
+ const emoBefore=currentEmotions();
  let completedTraining=false;
  await withSparkLock(()=>{const latest=readSparkSession(localStorage);if(latest.beast?.seed!==current.gen.seed)throw Error('Another page selected a different Beast. Reload to continue.');session=latest;
   if(kind==='train'){
@@ -476,22 +510,23 @@ async function interaction(kind){
  });
  const cue={pet:'blip',play:'burst',train:completedTraining?'levelup':'charge',rest:'faint',care:'confirm'}[kind]||'blip';audioSfx(cue);
  if(kind==='play'||kind==='train')beastAudio.battle(kind==='play'?1.8:1.2);
- runtime.state=kind==='rest'?'rest':kind==='train'?'train':'celebrate';runtime.until=runtime.T+(kind==='rest'?12:2.6);updatePlate();say(kind==='rest'?'calm':kind==='train'?'focus':'spark',kind==='rest'?'Curling up for a little rest.':kind==='pet'?'A soft pat. We are getting closer.':kind==='care'?'A snack and a little care.':kind==='train'?'Tap in the bright window. Six tries!':'Catch the spark!');
+ runtime.state=kind==='rest'?'rest':kind==='train'?'train':'celebrate';runtime.until=runtime.T+(kind==='rest'?12:2.6);updatePlate();say(kind==='rest'?'calm':kind==='train'?'focus':'spark',kind==='rest'?'Curling up for a little rest.':kind==='pet'?'A soft pat. We are getting closer.':kind==='care'?'A snack and a little care.':kind==='train'?'Tap in the bright window. Six tries!':'Catch the spark!');if(kind!=='train'||completedTraining)emotionEvent(kind==='train'?'training':kind,emoBefore);
 }
 // Only the shared chat client verifies providers. These hooks apply that
 // exchange to this selected creature and its existing habitat/audio runtime.
 async function recordModelReply({persona,text,reply,retention,model}){
  if(!current||!runtime)return;
+ const emoBefore=currentEmotions();
  if(retention==='device')await withSparkLock(()=>{
   const next=readSparkSession(localStorage);
   if(next.beast?.seed!==current.gen.seed||`spark:${next.beast?.qbeast?.profile?.id}`!==persona.key)throw Error('The selected Beast changed. This reply did not update its saved care or memories.');
   rememberExchange(next,text,reply);saveSparkSession(localStorage,next);session=next;notifyNativeBridge();
  });
- runtime.state='listen';runtime.until=runtime.T+3;updatePlate();say('focus',reply.slice(0,900));audioSfx('confirm');
+ runtime.state='listen';runtime.until=runtime.T+3;updatePlate();say('focus',reply.slice(0,900));audioSfx('confirm');emotionEvent('chat',emoBefore);
  $('status').textContent=`Verified reply via ${model}. ${retention==='device'?'The exchange stays with this Beast on this device.':'This conversation stays in this tab.'}`;
 }
 async function localPatternReply({persona,text,retention}){
- let reply='';
+ let reply='';const emoBefore=currentEmotions();
  await withSparkLock(()=>{
   const next=readSparkSession(localStorage);
   if(next.beast?.seed!==current?.gen?.seed||`spark:${next.beast?.qbeast?.profile?.id}`!==persona.key)throw Error('The selected Beast changed. Open its conversation again.');
@@ -499,15 +534,16 @@ async function localPatternReply({persona,text,retention}){
   if(retention==='device'){saveSparkSession(localStorage,next);session=next;notifyNativeBridge();}
  });
  runtime.state='listen';runtime.until=runtime.T+3;updatePlate();say('focus',reply.slice(0,900));
- $('status').textContent='On-device pattern replied by your choice. This is scripted companion behavior; no model answered.';
+ $('status').textContent='On-device pattern replied by your choice. This is scripted companion behavior; no model answered.';emotionEvent('chat',emoBefore);
  return reply;
 }
 async function museClick(){if(!$('consent').checked){$('status').textContent='Check consent before connecting your headband.';return}try{muse?.stop();muse=await connectMuse(traits=>{showTraits(traits);$('status').textContent='Derived traits updated locally. Raw samples discarded.'});$('status').textContent=`Connected to ${muse.name}. Derived AF7 traits stay here.`;}catch(e){$('status').textContent=e.message||'Muse connection cancelled.'}}
 function qvmScenarioForCurrent(){if(!current||!qvmRuns.length)return 1;return 1+(parseInt(current.gen.seed.slice(0,8),16)%8);}
 async function processQvmBatch(row){
  if(!current||!runtime)throw Error('Spark a Beast before replaying the simulator.');
+ const emoBefore=currentEmotions();
  const metrics=growthFromQvmBatch(row);qvmGrowth=Math.min(1,qvmGrowth+metrics.delta);saveQvmGrowth();runtime.qvmPulseUntil=runtime.T+1.35;runtime.state='celebrate';runtime.until=runtime.T+1.6;runtime.qvmStep++;audioSfx(runtime.qvmStep%3===0?'confirm':'beam');
- updatePlate();say('spark',`Rigetti QVM simulator · scenario ${row.qvm.scenario} · ${row.qvm.phase} processed. Visual growth is now ${Math.round(qvmGrowth*100)}%.`);
+ updatePlate();say('spark',`Rigetti QVM simulator · scenario ${row.qvm.scenario} · ${row.qvm.phase} processed. Visual growth is now ${Math.round(qvmGrowth*100)}%.`);emotionEvent('SIMULATED Rigetti QVM batch',emoBefore);
  $('status').textContent=`Processed archived Azure-hosted Rigetti QVM simulator job ${row.job_id}. No QPU and no new cloud job was used.`;
  await new Promise(resolve=>setTimeout(resolve,620));
 }
@@ -624,6 +660,7 @@ async function main(){
  if(raw){try{const active=replaySpark(JSON.parse(raw).text,byKey);const saved=await withSparkLock(()=>selectSpark(localStorage,active.gen));showCreature(active.entry,saved,false);}catch(err){recovered=quarantineSaved(raw,err);}}
  if(!raw||recovered){try{await adopt(bestiary[0]&&byKey.has(bestiary[0].run)?bestiary[0]:starterEntries()[0]);}catch(err){$('nameplate').textContent='Habitat needs recovery';$('status').textContent=`Your saved Beast could not be opened (${err.message||err}). Nothing was deleted; import a Beast file or pick a creature below.`;}}
  if(recovered)$('status').textContent=recovered;
+ void mountCatalog();
  window.addEventListener('pointerdown',unlockPreferredSound,{capture:true});window.addEventListener('touchstart',unlockPreferredSound,{capture:true,passive:true});window.addEventListener('click',unlockPreferredSound,{capture:true});window.addEventListener('keydown',unlockPreferredSound,{capture:true});
  $('generate').addEventListener('click',()=>void run(async()=>{surpriseRun();audioSfx('charge');await spark()}));$('regenerate').addEventListener('click',()=>void run(()=>spark('sliders',{replayCurrent:true})));$('use-profile').addEventListener('click',()=>void run(async()=>{showTraits(simulateStable($('profile').value));await spark('profile')}));$('surprise').addEventListener('click',()=>{surpriseRun();audioSfx('blip')});$('draft-roll').addEventListener('click',()=>{rollDraft();audioSfx('blip');});$('draft-keep').addEventListener('click',()=>void run(()=>keepDraft()));$('roster-search').addEventListener('input',drawBestiary);$('q').addEventListener('input',searchRuns);$('download').addEventListener('click',download);$('voice').addEventListener('click',()=>void enableVoice());$('music').addEventListener('click',toggleMusic);$('mic-react').addEventListener('click',()=>void toggleMicReaction());$('music-volume').addEventListener('input',setMusicVolume);$('drift').addEventListener('click',()=>{drift=!drift;$('drift').classList.toggle('on',drift);audioSfx('blip')});$('muse').addEventListener('click',()=>void museClick());$('stop-muse').addEventListener('click',()=>{muse?.stop();muse=null;$('status').textContent='Muse disconnected. Samples cleared.'});$('qvm-replay').addEventListener('click',()=>void run(()=>replayQvmScenario()));
  for(const k of ['focus','calm','spark'])$(k).addEventListener('input',()=>showTraits(readTraits()));for(const kind of ['pet','play','train','rest','care'])$(kind).addEventListener('click',()=>void run(()=>interaction(kind)));$('view').addEventListener('click',()=>void run(()=>interaction('pet')));chatPopup=createSparkChatPopup({getBeast:()=>session?.beast,getAvatar:()=>cache[stage]?.open,onVerified:recordModelReply,onPattern:localPatternReply});
