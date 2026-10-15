@@ -152,6 +152,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   void(async()=>{
    try{
     if(!window.WebGLRenderingContext)throw Error('WebGL unavailable');
+    // Home: let the 3D Zeref finish cutting his layers first (both share one main thread on phones).
+    if(autoOrbitRef.current){const t0=performance.now();while(!disposed&&performance.now()-t0<10000&&document.querySelector('[data-zeref-sprite3d="loading"]'))await new Promise(r=>setTimeout(r,250));if(disposed)return;}
     const THREE=await import('three');
     if(disposed)return;
     // User quality never overrides the OS reduced-motion safety boundary.
