@@ -39,7 +39,9 @@ export default function ZerefSprite3D({className='',autoRotate=false,turntable=f
    paintRig(P,frameFor(mind),mind.t);
    const ref=svg.querySelector('[data-sprite-ref]') as SVGGElement;
    const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,premultipliedAlpha:true});
-   renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));renderer.outputColorSpace=THREE.SRGBColorSpace;
+   renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+   // Software GL (CI, old phones): drop to 1x so frames stay cheap.
+   try{const gl=renderer.getContext();const dbg=gl.getExtension('WEBGL_debug_renderer_info');if(dbg&&/swiftshader|llvmpipe|software/i.test(String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL))))renderer.setPixelRatio(1);}catch{}renderer.outputColorSpace=THREE.SRGBColorSpace;
    const scene=new THREE.Scene();const camera=new THREE.OrthographicCamera(-2,2,2,-2,-20,20);camera.position.set(0,0,10);camera.lookAt(0,0,0);
    const root=new THREE.Group();scene.add(root);
    scene.add(new THREE.AmbientLight(0x8f7ad8,1.1));
@@ -91,7 +93,7 @@ export default function ZerefSprite3D({className='',autoRotate=false,turntable=f
      const frontTex=L.part==='head'?backTex:tex;
      const zc=L.z-0.04-vol.rz;
      for(const half of [0,1]){
-      const g=vol.kind==='cone'?new THREE.ConeGeometry(1,1,18,1,true,half?Math.PI:0,Math.PI):new THREE.SphereGeometry(1,32,22,half?Math.PI:0,Math.PI);
+      const g=vol.kind==='cone'?new THREE.ConeGeometry(1,1,18,1,true,half?Math.PI:0,Math.PI):new THREE.SphereGeometry(1,24,16,half?Math.PI:0,Math.PI);
       const sy=vol.kind==='cone'?vol.ry*2.1:vol.ry,pos=g.attributes.position,uv=g.attributes.uv;
       if(L.part==='head'&&vol.kind!=='cone'){
        // Cat skull, not a ball: flatter crown, fuller cheeks, slight muzzle push, flatter back of head.

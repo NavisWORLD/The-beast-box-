@@ -28,7 +28,7 @@ with sync_playwright() as p:
         expect(page.get_by_role("heading",level=1)).to_contain_text("A place for every person.")
         no_overflow(page,str(width)+" homepage")
         # Home shows the sprite-built 3D Zeref (Cory, Oct 14).
-        page.wait_for_function("""() => ['ready','fallback'].includes(document.querySelector('.beast-landing-creature [data-zeref-sprite3d]')?.dataset.zerefSprite3d)""",timeout=16000)
+        page.wait_for_function("""() => ['ready','fallback'].includes(document.querySelector('.beast-landing-creature [data-zeref-sprite3d]')?.dataset.zerefSprite3d)""",timeout=30000,polling=500)
         if width in (1440,390,320):
             page.screenshot(path=str(OUT/f"homepage-{width}.png"),full_page=True,animations="disabled")
         response=page.goto(ROOT+"/beast-cage",wait_until="domcontentloaded",timeout=30000)

@@ -26,7 +26,7 @@ with sync_playwright() as p:
   page.on("request",lambda req:private_requests.append(req.url) if "/api/bridge" in req.url else None)
   load(page,"/")
   # Home shows the sprite-built 3D Zeref (Cory, Oct 14); the procedural guide lives on /beast-cage/turntable.
-  page.wait_for_function("""() => ['ready','fallback'].includes(document.querySelector('[data-zeref-sprite3d]')?.dataset.zerefSprite3d)""",timeout=23000)
+  page.wait_for_function("""() => ['ready','fallback'].includes(document.querySelector('[data-zeref-sprite3d]')?.dataset.zerefSprite3d)""",timeout=30000,polling=500)
   page.locator(".cosmos-home-viewmenu > summary").first.click()  # view controls live in the View menu
   expect(page.get_by_role("button",name="Rotate 360°")).to_be_visible()
   page.get_by_role("button",name="Rotate 360°").click()
