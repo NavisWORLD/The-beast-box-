@@ -13,6 +13,7 @@ export default function SolGame(){return <main style={{minHeight:'100vh',backgro
   <a href="/spark/index.html" style={{padding:'8px 10px'}}>My Beast</a>
   <Link href="/beast-cage" style={{padding:'8px 10px'}}>Beast Cage</Link>
   <span aria-current="page" style={{padding:'8px 10px',borderRadius:9,background:'#17314c',color:'#7ee7ff'}}>Lost COSMOS</span>
+  <Link href="/beast-cage/field" style={{padding:'8px 10px'}}>Open Field</Link>
   <Link href="/brain-bay" style={{padding:'8px 10px'}}>Brain Bay</Link>
   <Link href="/research" style={{padding:'8px 10px'}}>Lab</Link>
   <Link href="/workspace" style={{padding:'8px 10px'}}>Workstation</Link>

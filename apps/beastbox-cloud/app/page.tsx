@@ -31,6 +31,7 @@ export default function Home(){
    <a href="/spark/index.html"><span className="journey-icon" aria-hidden="true">🐣</span>My Beast</a>
    <Link href="/beast-cage" prefetch={false}><span className="journey-icon" aria-hidden="true">🏰</span>Beast Cage</Link>
    <Link href="/sol-game" prefetch={false}><span className="journey-icon" aria-hidden="true">🎮</span>Lost COSMOS</Link>
+   <Link href="/beast-cage/field" prefetch={false}><span className="journey-icon" aria-hidden="true">📷</span>Open Field</Link>
    <Link href="/brain-bay" prefetch={false}><span className="journey-icon" aria-hidden="true">🧠</span>Brain Bay</Link>
    <Link href="/research" prefetch={false}><span className="journey-icon" aria-hidden="true">🔬</span>Lab</Link>
    <Link href="/workspace" prefetch={false}><span className="journey-icon" aria-hidden="true">🛠️</span>Workstation</Link>

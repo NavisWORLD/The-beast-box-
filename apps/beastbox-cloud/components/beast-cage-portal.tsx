@@ -94,6 +94,7 @@ export default function BeastCagePortal(){
     <a href="/spark/index.html">My Beast</a>
     <Link href="/beast-cage" aria-current="page">Beast Cage</Link>
     <Link href="/sol-game">Lost COSMOS</Link>
+    <Link href="/beast-cage/field">Open Field</Link>
     <Link href="/brain-bay">Brain Bay</Link>
     <Link href="/research">Lab</Link>
     <Link href="/workspace">Workstation</Link>
@@ -106,7 +107,7 @@ export default function BeastCagePortal(){
     <h1 id="cage-title">A small companion.<br/><em>An entire universe.</em></h1>
     <p>For dreamers, idlers, players, builders and anyone with a strange little idea: this is the place to live with your Beast. Care for it, talk to it, shape its look, then take the same identity into LOST COSMOS.</p>
     <div className="cage-hero-actions"><Link className="cage-primary" href="/beast-cage/talk">Talk to My Beast <ArrowRight size={17}/></Link><a className="cage-secondary" href="#customize">Customize</a><Link className="cage-secondary" href="/sol-game">Enter LOST COSMOS 🎮</Link></div>
-    <p className="cage-quiet"><LockKeyhole size={13}/><span>One Beast stays at the center. More ways to explore: <Link href="/beast-cage/turntable">3D model</Link> · <Link href="/beast-cage/play">Adventure</Link> · <Link href="/beast-cage/guest">Game lab</Link> · <a href="/spark/index.html">Open Public Beast Generator</a> · <Link href="/workspace">Owner deck</Link>.</span></p>
+    <p className="cage-quiet"><LockKeyhole size={13}/><span>One Beast stays at the center. More ways to explore: <Link href="/beast-cage/turntable">3D model</Link> · <Link href="/beast-cage/play">Adventure</Link> · <Link href="/beast-cage/field">📷 Open Field (camera)</Link> · <Link href="/beast-cage/guest">Game lab</Link> · <a href="/spark/index.html">Open Public Beast Generator</a> · <Link href="/workspace">Owner deck</Link>.</span></p>
    </div>
    <div className={'cage-habitat-visual'+(pocketReady?' cage-pocket-active':'')} role="group" aria-label="Circular dimensional world behind the original Spark Beast; drag or pinch to explore, or focus and use arrow keys and plus/minus to move the view" tabIndex={0}>
     <div className="cage-orbit cage-orbit-one" aria-hidden="true"/><div className="cage-orbit cage-orbit-two" aria-hidden="true"/>
