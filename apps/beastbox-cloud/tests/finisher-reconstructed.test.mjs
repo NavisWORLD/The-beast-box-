@@ -11,5 +11,6 @@ test('only one grow button per saved creature; Spark eyebrow is plain words',()=
  assert.match(r('components/beast-cage-portal.tsx'),/showGrow=\{!sameSpark\}/);assert.match(r('components/zeref-diary-panel.tsx'),/showGrow\?<GrowInCosmos/);
  assert.doesNotMatch(r('public/spark/index.html'),/ACTIVE QBEAST/);assert.match(r('components/creature-dashboard.tsx'),/<FamilyExplain input=\{beast\}\/>/);});
 test('turntable keeps the procedural guide as default subject',()=>{assert.match(r('app/beast-cage/turntable/page.tsx'),/useState<Subject>\('workshop'\)/);});
-test('3D Zeref toggle on home; flat-art and classic guide toggles kept',()=>{const h=r('components/homepage-creature.tsx');
- for(const k of ['>Zeref<','>3D Zeref<','>Classic 3D guide<'])assert.ok(h.includes(k),k);assert.match(h,/dimensionalId=/);});
+test('home defaults to the sprite-built 3D Zeref; flat sprite + classic guide removed from home only (code kept)',()=>{const h=r('components/homepage-creature.tsx');
+ assert.match(h,/useState<View>\('zeref3d'\)/);assert.match(h,/<ZerefSprite3D/);assert.ok(!h.includes('>Classic 3D guide<'));assert.ok(h.includes('<CosmicCompanion3D')&&h.includes('<ZerefMoonwraith'));
+ assert.match(r('app/beast-cage/turntable/page.tsx'),/useState<Subject>\('workshop'\)/);});

@@ -6,6 +6,7 @@ import BeastCareDeck from './beast-care-deck';
 import SparkWanderer from './spark-wanderer';
 import BeastTalkPanel,{type TalkState} from './beast-talk-panel';
 import ZerefMoonwraith from './zeref-moonwraith';
+import ZerefSprite3D from './zeref-sprite-3d';
 import {useCompanion} from './companion-provider';
 import {MOONWRAITH_DISPLAY_ID,SAVED_ZEREF_ID} from '../lib/creature-dimensional.mjs';
 import {useBeastSession} from './beast-session';
@@ -37,7 +38,7 @@ export default function BeastCageTalk(){
   <div className={styles.main}>
    <section className={styles.scene} aria-label="Animated cosmic companion">
     <div className={styles.orbit} aria-hidden="true"/>
-    {zeref&&!solid?<div className={styles.zeref}><ZerefMoonwraith greet={greet} showCaption={false}/></div>:
+    {zeref&&solid?<div className={styles.zeref}><ZerefSprite3D greet={greet}/></div>:zeref&&!solid?<div className={styles.zeref}><ZerefMoonwraith greet={greet} showCaption={false}/></div>:
      <CosmicCompanion3D state={motion&&!reduced?CREATURE[talk]:'idle'} speaking={talk==='speaking'} look="nebula" profile={dimensionalId?null:profile} dimensionalId={dimensionalId} preferSprite={!dimensionalId&&Boolean(session?.beast?.genome?.seed)} spriteGenome={session?.beast?.genome?.seed?session.beast.genome:null} spriteStage={session?.beast?.nativeStage||session?.beast?.stage||1} className={styles.creature} label={(dimensionalId?'Artistic 3D '+dimensionalId+' · ':'Your creature: ')+CREATURE[talk]}/>}
     <div className={styles.caption}>✧ {CAPTION[talk]}</div>
     <button className={styles.motion} type="button" aria-pressed={motion} onClick={()=>setMotion(v=>!v)}>{motion?'Pause':'Enable'} reactive animation</button>

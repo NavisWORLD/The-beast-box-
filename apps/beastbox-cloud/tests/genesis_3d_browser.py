@@ -25,13 +25,10 @@ with sync_playwright() as p:
   page.on("pageerror",lambda error:errors.append(str(error)))
   page.on("request",lambda req:private_requests.append(req.url) if "/api/bridge" in req.url else None)
   load(page,"/")
-  # ZEREF is the default live guide; the real procedural 3D guide is under "3D model".
-  expect(page.locator(".zeref-stage").first).to_be_visible()
-  page.locator(".cosmos-home-viewmenu > summary").first.click()  # 3D toggles live in the View menu
-  page.get_by_role("button",name="Classic 3D guide",exact=True).click()
+  # Home shows the sprite-built 3D Zeref (Cory, Oct 14); the procedural guide lives on /beast-cage/turntable.
+  page.wait_for_function("""() => ['ready','fallback'].includes(document.querySelector('[data-zeref-sprite3d]')?.dataset.zerefSprite3d)""",timeout=23000)
+  page.locator(".cosmos-home-viewmenu > summary").first.click()  # view controls live in the View menu
   expect(page.get_by_role("button",name="Rotate 360°")).to_be_visible()
-  hero=page.get_by_label("Interactive cosmic companion observatory")
-  expect(hero.locator('[data-graphics="procedural-3d"]')).to_be_visible(timeout=23000)
   page.get_by_role("button",name="Rotate 360°").click()
   expect(page.get_by_role("button",name="Rotate 360°")).to_have_attribute("aria-pressed","true")
   page.get_by_role("button",name="Side").click()

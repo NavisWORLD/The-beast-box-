@@ -680,3 +680,9 @@ html[data-beastbox-reduced-motion="true"] *,html[data-beastbox-reduced-motion="t
 .creature-dashboard h2{margin:0 0 4px;font-size:18px}.creature-dashboard-lede{margin:0 0 10px;font-size:13px;opacity:.85}
 .creature-dashboard details{border-top:1px solid #9fb2ff33;padding:6px 0}.creature-dashboard summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:700}
 .creature-dashboard code{overflow-wrap:anywhere}
+/* Sprite-built 3D Zeref: the hidden source SVG is posed like the 2D guide; the canvas shows the layered 3D build. */
+.zeref-sprite3d{position:relative;width:100%;height:100%;aspect-ratio:1;max-height:100%;margin:auto}
+.zeref-sprite3d-source{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none}
+.zeref-sprite3d[data-zeref-sprite3d=fallback] .zeref-sprite3d-source{opacity:1}
+.zeref-sprite3d-canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:pan-y;cursor:grab;filter:drop-shadow(0 0 10px #a77bffa0) drop-shadow(0 14px 22px #05020caa)}
+.cosmos-home-hero>.zeref-sprite3d{width:100%;height:100%}

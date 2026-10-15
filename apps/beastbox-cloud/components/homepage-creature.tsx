@@ -3,6 +3,7 @@ import {useEffect,useState} from 'react';
 import Link from 'next/link';
 import CosmicCompanion3D from './cosmic-companion-3d';
 import ZerefMoonwraith from './zeref-moonwraith';
+import ZerefSprite3D from './zeref-sprite-3d';
 import ZerefLatestThought from './zeref-latest-thought';
 import {useCompanion} from './companion-provider';
 import {useBeastSession} from './beast-session';
@@ -26,7 +27,7 @@ export default function HomepageCreature(){
  const genome=savedBeast?.genome?.seed?savedBeast.genome:null;
  const [spin,setSpin]=useState(false),[angle,setAngle]=useState<number|null>(null);
  const [waved,setWaved]=useState(false),[greet,setGreet]=useState(0);
- const [view,setView]=useState<View>('zeref');
+ const [view,setView]=useState<View>('zeref3d');
  const [savedView,setSavedView]=useState<'mine'|'zeref'>('mine');
  const [line,setLine]=useState(''),[zMood,setZMood]=useState('content');
  const activeName=savedBeast?shownName(savedBeast):'';
@@ -39,7 +40,7 @@ export default function HomepageCreature(){
  useEffect(()=>{if(window.matchMedia('(max-width:560px)').matches)setCardOpen(false);},[]);
  const turn=spin?undefined:(angle??0);
  return <div className="cosmos-home-hero" aria-label="Interactive cosmic companion observatory" data-home-view={showZeref?'zeref':showDimensional?'zeref-3d':genome?'my-beast':'3d-model'}>
-  {showZeref?<div className={'cosmos-zeref-turn'+(spin?' is-spinning':'')} data-zeref-turn={spin?'spin':String(turn)} style={spin?undefined:{transform:'rotateY('+turn+'deg)'}}><ZerefMoonwraith greet={greet} showCaption={false} onMood={mood=>{setLine(mood.line);setZMood(mood.mood);}}/></div>:
+  {showDimensional?<ZerefSprite3D greet={greet} autoRotate={angle===null} turntable={spin} turntableAngle={angle}/>:showZeref?<div className={'cosmos-zeref-turn'+(spin?' is-spinning':'')} data-zeref-turn={spin?'spin':String(turn)} style={spin?undefined:{transform:'rotateY('+turn+'deg)'}}><ZerefMoonwraith greet={greet} showCaption={false} onMood={mood=>{setLine(mood.line);setZMood(mood.mood);}}/></div>:
   <CosmicCompanion3D quality="low" profile={showDimensional?null:profile}
    dimensionalId={showDimensional?ZEREF_PROFILE.id:null}
    preferSprite={Boolean(genome)} spriteGenome={genome}
@@ -82,9 +83,7 @@ export default function HomepageCreature(){
     <button type="button" aria-pressed={savedView==='mine'} onClick={()=>setSavedView('mine')}>My Beast</button>
     <button type="button" aria-pressed={savedView==='zeref'} onClick={()=>setSavedView('zeref')}>Zeref</button>
    </>:<>
-    <button type="button" aria-pressed={view==='zeref'} onClick={()=>{setView('zeref');setSpin(false);}}>Zeref</button>
-    <button type="button" aria-pressed={view==='zeref3d'} onClick={()=>setView('zeref3d')}>3D Zeref</button>
-    <button type="button" aria-pressed={view==='model'} onClick={()=>setView('model')}>Classic 3D guide</button>
+    {/* Cory (Oct 14): home shows only the real 3D Zeref; the flat sprite and the classic puff guide stay in the Cage/turntable. */}
     {<>
      <button type="button" aria-pressed={spin} onClick={()=>{setSpin(x=>!x);setAngle(null);}}>Rotate 360°</button>
      <button type="button" onClick={()=>{setSpin(false);setAngle(0);}}>Front</button>
