@@ -193,7 +193,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const seedRandom=randomFor(key),flora:import('three').Object3D[]=[];
     for(let i=0;i<(low?17:34);i++){
      const x=(seedRandom()-.5)*7.8,z=(seedRandom()-.5)*7.8;
-     if(Math.hypot(x,z)<1.4)continue;
+     if(Math.hypot(x,z)<2.1)continue;// keep Zeref's walking patch clear
      const height=.24+seedRandom()*.76;
      if(i%4===0){
       const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(.14+seedRandom()*.22,0),crystalMat);
