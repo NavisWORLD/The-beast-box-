@@ -1,22 +1,30 @@
-name: CHSH game (Bell nonlocality) - small daily IBM batch (owner-authorized 2026-10-15)
+name: CHSH game (Bell nonlocality) - small daily IBM batch, self-publishing (owner-authorized 2026-10-15)
+# One job per UTC day (20 QPU s server cap, skips when plan remaining < cap + 60 s reserve, no rerun resubmits).
+# Verified results are appended to the data-only branch `chsh-game-data` (history.json + latest.json),
+# which the site reads; main is never pushed and no deploy is triggered. Not a loophole-free Bell test.
 on:
   schedule:
     - cron: '17 14 * * *'
+    - cron: '47 18 * * *'   # sanity retry if GitHub dropped the first; date-tag guard means no second job
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Publish the already-recorded bundled result only (no IBM call, 0 QPU s)'
+        type: boolean
+        default: false
   pull_request:
     paths:
       - '.github/workflows/chsh-game-daily-ibm.yml'
       - 'scripts/chsh_game/**'
+      - 'tests/test_chsh_game.py'
 permissions:
   contents: read
 concurrency:
   group: chsh-game-daily-qpu
   cancel-in-progress: false
 jobs:
-  chsh-game:
-    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/chsh-game-daily') }}
+  tests:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,14 +33,59 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m unittest tests/test_chsh_game.py -v
-      - run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+  chsh-game:
+    needs: tests
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - if: ${{ !inputs.dry_run }}
+        run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+      - name: Already published today? (no-rerun guard, before any IBM call)
+        id: guard
+        if: ${{ !inputs.dry_run }}
+        run: |
+          d=$(date -u +%Y%m%d)
+          if curl -fsS "https://raw.githubusercontent.com/${{ github.repository }}/chsh-game-data/history.json" 2>/dev/null | grep -q "\"date_utc\": \"$d\""; then echo "done=1" >> "$GITHUB_OUTPUT"; echo "Already published $d"; fi
       - name: One small CHSH-game job per UTC day (20 QPU s cap, 60 s plan reserve)
+        if: ${{ !inputs.dry_run && steps.guard.outputs.done != '1' }}
         env:
           IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
           BEAST_CHSH_GAME_DAILY: YES_DAILY_SMALL_BATCH
         run: python scripts/chsh_game/referee.py
+      - name: Verify and publish to the data-only branch (append-only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY: ${{ inputs.dry_run && '1' || '0' }}
+        run: |
+          set -Eeuo pipefail
+          if [ "$DRY" = 1 ]; then src=apps/beastbox-cloud/public/spark/chsh-game/latest.json; else src=_chsh_game/chsh_game_result.json; fi
+          [ -f "$src" ] || { echo "No new result to publish"; exit 0; }
+          git config --global user.name 'chsh-game[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$remote" chsh-game-data >/dev/null 2>&1; then
+            git clone --quiet --depth 1 --branch chsh-game-data "$remote" data
+          else
+            mkdir data && cd data && git init -q -b chsh-game-data && git remote add origin "$remote" && cd ..
+            printf '# CHSH game (Bell nonlocality) results\nData-only branch written by the daily workflow. Not loophole-free (no space-like separation).\n' > data/README.md
+          fi
+          python scripts/chsh_game/publish.py "$src" data | tee publish.log
+          cd data; git add -A
+          git diff --cached --quiet && { echo "nothing new"; exit 0; }
+          git commit -q -m "chsh game: $(cat ../publish.log) [skip ci]"
+          for i in 1 2 3; do git push -q origin HEAD:chsh-game-data && exit 0; sleep 5; git pull -q --rebase origin chsh-game-data || true; done
+          exit 1
       - name: Read-only quota after
-        if: always()
+        if: ${{ always() && !inputs.dry_run }}
         env:
           IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
         run: python scripts/ibm_open_plan_preflight.py || true
@@ -44,4 +97,4 @@ jobs:
             _chsh_game/
             _ibm_open_plan_preflight/receipt.json
           retention-days: 90
-          if-no-files-found: warn
+          if-no-files-found: ignore
