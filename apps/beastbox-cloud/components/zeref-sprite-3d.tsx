@@ -142,7 +142,8 @@ export default function ZerefSprite3D({className='',embed=false,autoRotate=false
      const op=x.el?Number(getComputedStyle(x.el).opacity||1)*Number(x.el.getAttribute('opacity')||1):1;x.mat.opacity=op;x.mat.depthTest=!paintOrder;
      x.shells.forEach((s:any,i:number)=>{s.material.opacity=op*dp.shell*(0.55+0.4*i/Math.max(1,x.shells.length));});x.rim.material.opacity=op*dp.rim;
      if(x.L.wing)x.depth.rotation.y=dp.wingFold;
-     if(x.L.part==='tail')x.depth.rotation.y=dp.tailYaw;
+     if(x.L.part==='tail')x.depth.rotation.y=dp.tailYaw+(inWorld?(ze.motion?.tail||0):0);
+     if(inWorld&&x.L.wing)x.depth.rotation.y+=(ze.motion?.ear||0)*.6*(x.L.wing>0?1:-1);
     }
     const key=faceKey(f);
     if(head&&key!==lastFace&&!cutting){cutting=true;lastFace=key;void cut('head',['earL','earR']).then(c=>{if(c&&!disposed){head.tex.image=c;head.tex.needsUpdate=true;}}).finally(()=>{cutting=false;});}

@@ -1,4 +1,5 @@
 'use client';
+import {motionPersona,createActor,stepActor} from '../lib/companion/film-motion.mjs';
 import {addGodView,ZOOM_MIN,ZOOM_MAX} from './pocket-god-view';
 import {ARTIST_RESIDENTS} from '../lib/companion/artist-residents.mjs';
 import {addPocketResidents} from './pocket-residents';
@@ -257,7 +258,10 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const god=addGodView(THREE,scene,{rand:randomFor(key+':system'),low,counts:qvmCounts,stage:motion.current.stage||stage||1});
     const godFocus=new THREE.Vector3();
     // Home: the sprite-built 3D Zeref lives here, standing on the habitat floor (one world, one camera).
-    const zHolder=new THREE.Group();zHolder.scale.setScalar(.45);zHolder.position.set(0,1.68*.45-.07,0);zHolder.rotation.y=.7;scene.add(zHolder);
+    const zHolder=new THREE.Group();zHolder.scale.setScalar(.45);zHolder.position.set(0,-.07,0);zHolder.rotation.y=.7;scene.add(zHolder);
+    // Film motion for Zeref (bb-7f9c2a03 persona: no recorded seed of his own here → id-only persona).
+    const zActorNode=new THREE.Group();zHolder.add(zActorNode);
+    const zActor=createActor(motionPersona({id:'bb-7f9c2a03'}),{radius:1.1,seed:'bb-7f9c2a03'});
     if(typeof window!=='undefined')(window as any).__pocketCamera=cameraView;
     const sand=addPocketSand(THREE,scene,{seed:key,low,reduced});
     sand.field.setCounts(qvmCounts);
@@ -306,11 +310,15 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       object.position.set(xyz.x,xyz.y,xyz.z);
      }
      const v=cameraView.current;
-     stepResidents(elapsed,v.theta);
+     stepResidents(elapsed,v.theta,{x:camera.position.x,z:camera.position.z});
      sand.update(dt,[{x:glow.position.x,z:glow.position.z,r:1.2,s:1.6+motion.current.impulse*3},{x:0,z:0,r:1.1,s:1.2},...disturbers()]);
      const ze=(window as any).__zerefEmbed;
-     if(ze?.root&&ze.root.parent!==zHolder){zHolder.add(ze.root);ze.claimed=true;}
-     if(ze?.claimed){let d=-(v.theta-zHolder.rotation.y)*180/Math.PI;d=((d%360)+540)%360-180;ze.viewYaw=d;}
+     if(ze?.root&&ze.root.parent!==zActorNode){zActorNode.add(ze.root);ze.root.position.y=1.68;ze.claimed=true;}
+     if(ze?.claimed){
+      const zp=stepActor(zActor,reduced?0:dt,{lookAt:{x:camera.position.x,z:camera.position.z},reduced});
+      zHolder.position.set(zp.x,-.07+zp.lift,zp.z);zHolder.rotation.y=.7+zp.heading*.5+zp.head;
+      zActorNode.scale.set(zp.sx,zp.sy,zp.sx);zActorNode.rotation.x=zp.lean;ze.motion={tail:zp.tail,ear:zp.ear};
+      let d=-(v.theta-zHolder.rotation.y)*180/Math.PI;d=((d%360)+540)%360-180;ze.viewYaw=d;}
      const f=god.update(elapsed,v.zoom,focus,godFocus);
      (scene.fog as import('three').FogExp2).density=.032*Math.min(1,12/v.zoom);
      camera.near=Math.max(.05,v.zoom*.01);camera.updateProjectionMatrix();
@@ -321,7 +329,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     };
     frame=requestAnimationFrame(animate);
     cleanup=()=>{
-     {const ze=(window as any).__zerefEmbed;if(ze?.root?.parent===zHolder){zHolder.remove(ze.root);ze.claimed=false;}}
+     {const ze=(window as any).__zerefEmbed;if(ze?.root?.parent===zActorNode){zActorNode.remove(ze.root);ze.root.position.y=0;ze.claimed=false;}}
      cancelAnimationFrame(frame);ro?.disconnect();io?.disconnect();
      canvas.removeEventListener('webglcontextlost',onContextLost);
      const geometries=new Set<import('three').BufferGeometry>(),materials=new Set<import('three').Material>();
