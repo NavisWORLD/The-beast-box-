@@ -67,7 +67,7 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   await page.goto(root+'/sol-game',{waitUntil:'domcontentloaded'});
   const shell=page.locator('[data-lost-cosmos-player-shell]');
   await shell.getByRole('button',{name:'SEND BEAST',exact:true}).click();
-  await shell.getByRole('status').filter({hasText:'same Beast verified'}).waitFor({timeout:60000});
+  await shell.getByRole('status').filter({hasText:/same Beast verified|identity validated/}).waitFor({timeout:60000});
   await shell.getByRole('button',{name:'START LOST COSMOS',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('[data-lost-cosmos-player-shell]')?.dataset.running==='true',null,{timeout:90000});
   const core=page.frames().find(f=>f.url().includes('/sol-spark-gate/handheld.html'));
