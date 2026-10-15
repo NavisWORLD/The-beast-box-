@@ -35,6 +35,7 @@ def expected_steps(cycle):
 # to the approved parent bounds drift (catastrophic-forgetting guard).
 LR=float(os.environ.get("ZEREF_006_LR","0.0001"))
 BATCH=8
+TEACHER_VERSION="visible-signals-v2"
 DECISION_INDEX=7  # tokens of "ACTION: " are 0..6; index 7 names the key
 DECISION_WEIGHT=float(os.environ.get("ZEREF_006_DECW","1.0"))
 REPLAY_MAX_DATASETS=12
@@ -135,7 +136,8 @@ def replay_rows(current_digest):
   if not(m.is_file() and f.is_file()):continue
   raw=f.read_bytes();digest=sha(raw);man=json.loads(m.read_text())
   if (digest==current_digest or digest in used or man.get("jsonl_sha256")!=digest or
-      man.get("qbeast_id")!=ZEREF or man.get("source_class")!="ORIGINAL_EMULATOR_NATIVE_PIXEL_OBSERVATIONS"):continue
+      man.get("qbeast_id")!=ZEREF or man.get("source_class")!="ORIGINAL_EMULATOR_NATIVE_PIXEL_OBSERVATIONS" or
+      man.get("teacher_version")!=TEACHER_VERSION):continue  # older hidden-counter labels contradict the current teacher
   rows=[json.loads(x) for x in raw.splitlines() if x]
   if any(r.get("qbeast_id")!=ZEREF or r.get("action") not in "UP DOWN LEFT RIGHT A B WAIT".split() for r in rows):continue
   out+=rows;used.append(digest)
@@ -165,13 +167,16 @@ def train_variant(parent_path,tokenizer,pool,seed):
  by=defaultdict(list)
  for i,(a,_) in enumerate(pool):by[a].append(i)
  classes=sorted(by)
+ class_w=torch.tensor([len(by[c])**0.5 for c in classes],dtype=torch.float)
  g=torch.Generator().manual_seed(seed)
  logs=[]
  for n in range(UPDATES):
   opt.zero_grad(set_to_none=True)
   idx=[]
   for _ in range(BATCH):
-   c=classes[int(torch.randint(len(classes),(1,),generator=g))]
+   # sqrt-balanced: rare keys are up-weighted (count**0.5) without letting
+   # a 2-example key dominate, which flipped the policy to that key.
+   c=classes[int(torch.multinomial(class_w,1,generator=g))]
    idx.append(by[c][int(torch.randint(len(by[c]),(1,),generator=g))])
   x,y,m=collate([pool[i][1] for i in idx])
   out=model(x,targets=y,attention_mask=m);loss=out["loss"]
@@ -329,7 +334,7 @@ def main():
   "candidate_literal_heldout_replies":trial_out,
   "parent_literal_heldout_replies":parent_out,
   "gate":guard,"accepted_as_next_training_parent":accepted,
-  "recipe":{"lr":LR,"batch":BATCH,"anchor_l2":ANCHOR,"decision_token_weight":DECISION_WEIGHT,"sampling":"action_balanced",
+  "recipe":{"lr":LR,"batch":BATCH,"anchor_l2":ANCHOR,"decision_token_weight":DECISION_WEIGHT,"sampling":"sqrt_action_balanced",
     "replay_datasets":replay_digests,"replay_rows":len(replay),"fresh_train_rows":len(train)},
   "rigetti_batch_order":rigetti,
   "rigetti_on_off":{"on_candidate":{"heldout_nll":new_held,"retention_nll":new_ret,**trial,

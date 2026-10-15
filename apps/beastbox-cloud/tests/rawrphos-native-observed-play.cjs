@@ -157,7 +157,7 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
    episodes,events:raw.length,jsonl_sha256:sha(jsonl),
    dataset_has_human_labels:false,goal_reward_observed:false,
    training_is_behavioral_cloning_of_scripted_controller:true,
-   scripted_teacher_action_histogram:counts,
+   scripted_teacher_action_histogram:counts,teacher_version:'visible-signals-v2',
    scripted_teacher_dominant_action_fraction:dominantShare,
    teacher_cycle_offset:cycle,cycle_source:'GitHub Actions run ID mod scripted fallback length',
    native_game_progress_proven:false,
