@@ -1,0 +1,27 @@
+name: IBM Long CHSH — Offline Circuit Design Check
+on:
+  pull_request:
+    paths:
+      - 'scripts/ibm_beast_long_chsh_probe.py'
+      - 'tests/test_ibm_long_chsh_probe.py'
+      - '.github/workflows/ibm-long-chsh-design-check.yml'
+permissions:
+  contents: read
+jobs:
+  design-without-qpu:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Qiskit locally, no IBM account
+        run: python -m pip install 'qiskit>=2.1,<2.5'
+      - name: Validate static Python and analytical CHSH design
+        run: |
+          python -m py_compile scripts/ibm_beast_long_chsh_probe.py
+          python -m unittest discover -s tests -p test_ibm_long_chsh_probe.py -v
+          python -m unittest discover -s tests -p test_ibm_open_plan_preflight.py -v
