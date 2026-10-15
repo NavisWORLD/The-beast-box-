@@ -3,6 +3,7 @@ import {useEffect,useState} from 'react';
 import Link from 'next/link';
 import JourneyLinks from '@/components/journey-links';
 import CosmicCompanion3D,{type CreatureLook} from '@/components/cosmic-companion-3d';
+import ZerefTrue3D from '@/components/zeref-true3d';
 import {useCompanion} from '@/components/companion-provider';
 import styles from './turntable.module.css';
 
@@ -12,6 +13,7 @@ export default function CreatureTurntable(){
  const [look,setLook]=useState<CreatureLook>(profile?.baseLook??'nebula');
  const [spin,setSpin]=useState(true),[angle,setAngle]=useState<number>(0);
  const [showProcess,setShowProcess]=useState(false);
+ const [zeref3d,setZeref3d]=useState(false);
  useEffect(()=>{if(profile)setLook(profile.baseLook);},[profile?.id,profile?.baseLook]);
  return <main className={styles.page}>
   <header className={styles.header}><Link href="/beast-cage">← BEAST CAGE</Link><span>CORY DAVIS / NAVISWORLD</span><Link href="/beast-cage/talk">TALK TO THE BEAST ↗</Link></header>
@@ -38,7 +40,13 @@ export default function CreatureTurntable(){
     </div>
   </section>
   <section className={styles.process}>
-    <h2>The actual creation process</h2>
+   <h2>Zeref dimensional preview</h2>
+   <p>An opt-in artistic mesh for the Moonwraith guide, posed by the same deterministic mind as the SVG — not a new phenotype. Off by default until its browser evidence lands.</p>
+   <button type="button" onClick={()=>setZeref3d(v=>!v)} aria-expanded={zeref3d} data-zeref-3d-toggle>{zeref3d?'Hide':'Show'} Zeref true-3D</button>
+   {zeref3d?<div className={styles.stage} data-stage="zeref-true3d-preview" aria-label="Dimensional Zeref mesh preview"><ZerefTrue3D turntable={spin} turntableAngle={spin?null:angle} label="Zeref dimensional preview"/></div>:null}
+  </section>
+  <section className={styles.process}>
+   <h2>The actual creation process</h2>
     <p>Original character concept → source-editable vector reference → Three.js procedural geometry → textured galaxy material, 11 extruded fins, 3D star eyes and golden orbital star → browser-tested rotating model.</p>
     <button type="button" onClick={()=>setShowProcess(v=>!v)} aria-expanded={showProcess}>{showProcess?'Hide':'Show'} source prompt / process</button>
     {showProcess?<div className={styles.source}>
