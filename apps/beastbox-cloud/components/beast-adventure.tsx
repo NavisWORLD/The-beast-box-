@@ -10,6 +10,7 @@ import { shownName } from '../lib/companion/session.mjs';
 import { MuseLink, mockTraits } from '../lib/companion/spark/muse.mjs';
 import BeastCareDeck from './beast-care-deck';
 import { useBeastSession } from './beast-session';
+import { useCompanion } from './companion-provider';
 import PixelBeast from './pixel-beast';
 import css from './beast-adventure.module.css';
 
@@ -37,6 +38,11 @@ export default function BeastAdventure() {
   const [busy, setBusy] = useState(false);
   const [answer, setAnswer] = useState('');
   const [label, setLabel] = useState('No message yet.');
+  // Sensor problems (e.g. no Web Bluetooth on iPhone Safari) get their own line and never replace the chat.
+  const [sensorNote, setSensorNote] = useState('');
+  const { profile: companion } = useCompanion();
+  const [bluetooth, setBluetooth] = useState<boolean | null>(null);
+  useEffect(() => { setBluetooth(typeof navigator !== 'undefined' && 'bluetooth' in navigator); }, []);
   const [reduced, setReduced] = useState(false);
   const video = useRef<HTMLVideoElement>(null);
   const cameraStream = useRef<MediaStream | null>(null);
@@ -194,6 +200,8 @@ export default function BeastAdventure() {
       noteSensor('simulated headband on');
       return;
     }
+    if (!('bluetooth' in navigator)) { setSensorNote('Muse needs Web Bluetooth (Chrome or Edge). This browser does not have it; the simulated headband still works.'); return; }
+    setSensorNote('');
     try {
       const link = new MuseLink((traits: { focus: number; calm: number; spark: number }) => {
         setSensors((current) => ({ ...current, signal: readSignal({ museTraits: traits }) }));
@@ -205,7 +213,7 @@ export default function BeastAdventure() {
     } catch (error) {
       setSignalMode('off');
       setSensors((current) => ({ ...current, signal: readSignal({ enabled: false }) }));
-      setLabel(error instanceof Error ? error.message : 'Muse did not connect. The simulated headband stays off until you choose it.');
+      setSensorNote(error instanceof Error ? error.message : 'Muse did not connect. The simulated headband stays off until you choose it.');
     }
   }
 
@@ -301,7 +309,7 @@ export default function BeastAdventure() {
         <div className={css.beast} style={{ left: `${trail.beast.x}%`, top: `${trail.beast.y}%` }}>
           {beast ? <PixelBeast publicSpark={!!beast?.qbeast} genome={{ ...beast.genome, facing: trail.facing }} stage={beast.stage} pose={reaction.pose === 'emote' ? 'emote' : reaction.pose} emote={reaction.emote} facing={trail.facing} reduced={reduced} label={`${shownName(beast)} ${reaction.pose}, ${reaction.reason}`} /> : null}
         </div>
-        <p className={css.emote} style={{ left: `${trail.beast.x}%`, top: `${trail.beast.y}%` }}>{beast ? reaction.reason : 'Meet a spark beast in the care deck.'}</p>
+        <p className={css.emote} style={{ left: `${trail.beast.x}%`, top: `${trail.beast.y}%` }}>{beast ? reaction.reason : companion?.name ? `${companion.name} is your companion. Bring ${companion.name} onto the trail from the care deck below.` : 'Meet a spark beast in the care deck.'}</p>
         <video ref={video} muted playsInline style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }} aria-hidden="true" />
       </section>
       <section className={css.side} aria-label="Adventure talk">
@@ -311,16 +319,17 @@ export default function BeastAdventure() {
           <button type="button" className={cameraOn ? css.on : ''} aria-pressed={cameraOn} onClick={() => void toggleCamera()}>Camera {cameraOn ? 'on' : 'off'}</button>
           <button type="button" className={micOn ? css.on : ''} aria-pressed={micOn} onClick={() => void toggleMic()}>Mic {micOn ? 'on' : 'off'}</button>
           <button type="button" className={signalMode === 'simulated' ? css.on : ''} aria-pressed={signalMode === 'simulated'} onClick={() => void toggleSignal('simulated')}>Simulated signal {signalMode === 'simulated' ? 'on' : 'off'}</button>
-          <button type="button" className={signalMode === 'muse' ? css.on : ''} aria-pressed={signalMode === 'muse'} onClick={() => void toggleSignal('muse')}>Muse {signalMode === 'muse' ? 'on' : 'off'}</button>
+          <button type="button" className={signalMode === 'muse' ? css.on : ''} aria-pressed={signalMode === 'muse'} onClick={() => void toggleSignal('muse')} disabled={bluetooth === false} title={bluetooth === false ? 'Web Bluetooth is not available in this browser' : undefined}>Muse {bluetooth === false ? 'unavailable' : signalMode === 'muse' ? 'on' : 'off'}</button>
         </div>
         <p className={css.note}>Each sensor starts off. Seeing is motion and brightness. Hearing is loudness and onset. The simulated headband is labeled and does not replace a Muse.</p>
+        {sensorNote ? <p className={css.note} role="note" data-sensor-note>{sensorNote}</p> : null}
         <div className={css.chat} role="status">
           <strong>{label}</strong>
           <p>{busy ? 'Waiting for a verified reply…' : answer || 'Type to your beast. If Brain Bay or the RAWRPHØS guest host is quiet, the on-device pattern memory answers and says so.'}</p>
         </div>
         <form onSubmit={(event) => void send(event)}>
           <label htmlFor="adventure-talk">Talk on the trail</label>
-          <textarea id="adventure-talk" value={text} maxLength={400} disabled={busy || !beast} onChange={(event) => setText(event.target.value)} placeholder={beast ? 'What do you see here?' : 'Meet a beast first'} />
+          <textarea id="adventure-talk" value={text} maxLength={400} disabled={busy || !beast} onChange={(event) => setText(event.target.value)} placeholder={beast ? 'What do you see here?' : companion?.name ? `Bring ${companion.name} onto the trail first` : 'Meet a beast first'} />
           <button className={css.send} type="submit" disabled={busy || !text.trim() || !beast}>{busy ? 'Waiting…' : 'Send'}</button>
         </form>
         <p className={css.note}>Eyes: {eyesFor(reaction)}. Pose: {reaction.pose}. This movement comes from spark traits, care needs, and the sensors that are actually on.</p>
