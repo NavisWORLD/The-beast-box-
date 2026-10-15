@@ -9,6 +9,6 @@ test('essentials stay on the toolbar; settings move into the handheld MENU drawe
  assert.match(src,/onMenu=\{\(\)=>setMenuOpen/);
 });
 test('pre-boot poster is page-level and clears when the cartridge reports running',()=>{
- assert.match(src,/\{bound&&!running\?<div className=\{css\.preboot\} data-preboot-poster/);
+ assert.match(src,/\{bound&&!running&&!starting\?<div className=\{css\.preboot\} data-preboot-poster/);
  assert.match(src,/Tap START LOST COSMOS/);
 });
