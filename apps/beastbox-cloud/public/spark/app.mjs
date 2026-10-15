@@ -574,6 +574,15 @@ function installNativeBridge(){
 }
 function notifyNativeBridge(){window.dispatchEvent(new Event('beastbox:session-changed'));}
 function loop(prev){const now=performance.now();tick(Math.min(.05,(now-prev)/1000)||.016);requestAnimationFrame(()=>loop(now));}
+const RECOVERY_KEY='beastbox-quantum-beast-recovery-v1';
+// A saved record that no longer validates must never brick the habitat. Keep the
+// original bytes untouched under a recovery key, clear only the active pointer, and
+// let the page open a valid starter so Talk and care remain usable.
+function quarantineSaved(raw,err){
+ const reason=String(err?.message||err||'unreadable').slice(0,160);
+ try{const list=JSON.parse(localStorage.getItem(RECOVERY_KEY)||'[]');const keep=Array.isArray(list)?list:[];keep.push({at:new Date().toISOString(),reason,raw});localStorage.setItem(RECOVERY_KEY,JSON.stringify(keep.slice(-5)));localStorage.removeItem(QBEAST_KEY);}catch{}
+ return `Your saved Beast could not be opened (${reason}). The original was kept in recovery on this device, and a starter habitat opened instead. Import your Beast file to bring it back.`;
+}
 async function main(){
  soundWanted=readSoundWanted();if(soundWanted)beastAudio.sparkUnmute();else beastAudio.sparkMute();updateVoiceButton();syncAudioUi();wirePageNavigation();installNativeBridge();
  $('btnote').textContent=bluetoothNote()||'';for(const key of Object.keys(PROFILES)){const opt=document.createElement('option');opt.value=opt.textContent=key;$('profile').append(opt)}$('profile').value='balanced';
@@ -587,8 +596,10 @@ async function main(){
  try{bestiary=JSON.parse(localStorage.getItem(STORE)||'[]')}catch{bestiary=[]}if(!Array.isArray(bestiary))bestiary=[];
  fillRunSelect(runs.filter(r=>r.num_bits>=2).slice(0,12));showTraits(simulateStable('balanced'));
  const raw=localStorage.getItem(QBEAST_KEY);
- if(raw){const active=replaySpark(JSON.parse(raw).text,byKey);const saved=await withSparkLock(()=>selectSpark(localStorage,active.gen));showCreature(active.entry,saved,false);}
- else await adopt(bestiary[0]&&byKey.has(bestiary[0].run)?bestiary[0]:starterEntries()[0]);
+ let recovered='';
+ if(raw){try{const active=replaySpark(JSON.parse(raw).text,byKey);const saved=await withSparkLock(()=>selectSpark(localStorage,active.gen));showCreature(active.entry,saved,false);}catch(err){recovered=quarantineSaved(raw,err);}}
+ if(!raw||recovered){try{await adopt(bestiary[0]&&byKey.has(bestiary[0].run)?bestiary[0]:starterEntries()[0]);}catch(err){$('nameplate').textContent='Habitat needs recovery';$('status').textContent=`Your saved Beast could not be opened (${err.message||err}). Nothing was deleted; import a Beast file or pick a creature below.`;}}
+ if(recovered)$('status').textContent=recovered;
  window.addEventListener('pointerdown',unlockPreferredSound,{capture:true});window.addEventListener('touchstart',unlockPreferredSound,{capture:true,passive:true});window.addEventListener('click',unlockPreferredSound,{capture:true});window.addEventListener('keydown',unlockPreferredSound,{capture:true});
  $('generate').addEventListener('click',()=>void run(async()=>{surpriseRun();audioSfx('charge');await spark()}));$('regenerate').addEventListener('click',()=>void run(()=>spark('sliders',{replayCurrent:true})));$('use-profile').addEventListener('click',()=>void run(async()=>{showTraits(simulateStable($('profile').value));await spark('profile')}));$('surprise').addEventListener('click',()=>{surpriseRun();audioSfx('blip')});$('roster-search').addEventListener('input',drawBestiary);$('q').addEventListener('input',searchRuns);$('download').addEventListener('click',download);$('voice').addEventListener('click',()=>void enableVoice());$('music').addEventListener('click',toggleMusic);$('mic-react').addEventListener('click',()=>void toggleMicReaction());$('music-volume').addEventListener('input',setMusicVolume);$('drift').addEventListener('click',()=>{drift=!drift;$('drift').classList.toggle('on',drift);audioSfx('blip')});$('muse').addEventListener('click',()=>void museClick());$('stop-muse').addEventListener('click',()=>{muse?.stop();muse=null;$('status').textContent='Muse disconnected. Samples cleared.'});$('qvm-replay').addEventListener('click',()=>void run(()=>replayQvmScenario()));
  for(const k of ['focus','calm','spark'])$(k).addEventListener('input',()=>showTraits(readTraits()));for(const kind of ['pet','play','train','rest','care'])$(kind).addEventListener('click',()=>void run(()=>interaction(kind)));$('view').addEventListener('click',()=>void run(()=>interaction('pet')));chatPopup=createSparkChatPopup({getBeast:()=>session?.beast,getAvatar:()=>cache[stage]?.open,onVerified:recordModelReply,onPattern:localPatternReply});
