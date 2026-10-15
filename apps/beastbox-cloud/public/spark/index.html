@@ -74,6 +74,15 @@
     <p id="line" role="status">A little companion, ready to explore.</p>
    </div>
 
+   <details class="emotion-card" id="emotion-card" open>
+    <summary>Feelings · <b id="emotion-dominant">—</b></summary>
+    <ul id="emotion-bars" class="emotion-bars" aria-label="Emotion levels"></ul>
+    <p id="emotion-choice" class="hint"></p>
+    <p class="hint"><b>Why:</b> <span id="emotion-why"></span></p>
+    <p class="hint">Deterministic: from the recorded historical IBM seed counts, this Beast's own recorded care, training and chat, and archived Rigetti QVM runs (SIMULATED). Feelings never change while the page is closed.</p>
+    <details><summary>Emotion diary (real events only)</summary><ol id="emotion-diary" class="emotion-diary"></ol></details>
+   </details>
+
    <div class="interactions" role="group" aria-label="Care for your Beast">
     <button type="button" id="pet"><span>♡</span>PET</button>
     <button type="button" id="play"><span>✦</span>PLAY</button>
@@ -148,6 +157,12 @@
     <h2>Signal + seed lab</h2>
     <p class="hint">The companion works without sensors. Tune drives, pick an approved recorded seed, or leave everything alone and just play.</p>
    </div>
+
+   <details class="recipe catalog" id="catalog" open>
+    <summary>Quantum catalogue · pick a Beast</summary>
+    <p class="hint">Every Beast sparked from the recorded historical IBM hardware counts with the default SIMULATED signal (balanced). Filter, search, sort by rarity, or let Random / Unique choose.</p>
+    <div id="catalog-picker"><p class="hint">Loading the catalogue…</p></div>
+   </details>
 
    <details class="recipe" open>
     <summary>Signal drives</summary>
