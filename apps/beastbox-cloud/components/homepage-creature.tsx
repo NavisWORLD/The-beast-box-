@@ -41,9 +41,9 @@ export default function HomepageCreature(){
  const turn=spin?undefined:(angle??0);
  return <div className="cosmos-home-hero" aria-label="Interactive cosmic companion observatory" data-home-view={showZeref?'zeref':showDimensional?'zeref-3d':genome?'my-beast':'3d-model'}>
   {showDimensional?<ZerefSprite3D embed greet={greet} autoRotate={angle===null} turntable={spin} turntableAngle={angle}/>:showZeref?<div className={'cosmos-zeref-turn'+(spin?' is-spinning':'')} data-zeref-turn={spin?'spin':String(turn)} style={spin?undefined:{transform:'rotateY('+turn+'deg)'}}><ZerefMoonwraith greet={greet} showCaption={false} onMood={mood=>{setLine(mood.line);setZMood(mood.mood);}}/></div>:
-  <CosmicCompanion3D quality="low" profile={showDimensional?null:profile}
+  genome?<span className="cosmos-home-nobillboard" data-home-active-billboard="removed" aria-hidden="true"/>:<CosmicCompanion3D quality="low" profile={showDimensional?null:profile}
    dimensionalId={showDimensional?ZEREF_PROFILE.id:null}
-   preferSprite={Boolean(genome)} spriteGenome={genome}
+   preferSprite={false} spriteGenome={genome}
    spriteStage={savedBeast?.nativeStage||savedBeast?.stage||1}
    spriteName={activeName}
    state={genome?visualStateFromBeast(savedBeast):waveMood}
@@ -52,6 +52,7 @@ export default function HomepageCreature(){
    look={profile?.baseLook??'nebula'}
    label={showDimensional?'Artistic 3D Moonwraith '+ZEREF_PROFILE.id+' · not saved Zeref':genome?activeName+' · QBEAST '+savedBeast.qbeast.profile.id:'Original procedural cosmic dragon workshop guide'}
    turntable={spin} turntableAngle={angle}/>}
+  {/* Cory (Oct 15): the big round flower billboard of the active Beast is removed from the home pocket. */}
   <details className={styles.bubble+' cosmos-home-card'} open={cardOpen} onToggle={e=>setCardOpen((e.currentTarget as HTMLDetailsElement).open)}><summary className="cosmos-home-cardsum" aria-label={cardOpen?'Minimize card':'Open card'}>{cardOpen?'–':'✦ Hi!'}</summary><div role="status" aria-live="polite">
    {genome?<><strong>✦ YOUR BEAST IS HERE</strong>
     <p>{activeName} · the same QBEAST you saved on this device.</p>

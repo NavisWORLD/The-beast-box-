@@ -12,7 +12,9 @@
 /* Phones: the minimized player is a small pill (name + OPEN/RESTORE) so it never covers page buttons. */
 @media(max-width:480px){.shell[data-player-mode=minimized]{width:auto;max-width:calc(100vw - 120px);max-height:54px;bottom:max(8px,env(safe-area-inset-bottom));right:auto;left:80px;max-width:calc(100vw - 180px);padding:4px 6px;border-radius:999px}
  .shell[data-player-mode=minimized] .identity small,.shell[data-player-mode=minimized] .sound,.shell[data-player-mode=minimized] .status,.shell[data-player-mode=minimized] .screen{display:none}
- .shell[data-player-mode=minimized] .header{flex-direction:row;align-items:center;gap:6px}
+ .shell[data-player-mode=minimized] .header{flex-direction:row;flex-wrap:nowrap;align-items:center;gap:6px}
+ .shell[data-player-mode=minimized] .identity{flex-basis:auto;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+ .shell[data-player-mode=minimized] .header>button,.shell[data-player-mode=minimized] .open{width:auto}
  .shell[data-player-mode=minimized] .open,.shell[data-player-mode=minimized] .header>button{min-height:40px;padding:6px 10px;font-size:11px}}
 .status details>summary{min-height:36px;display:flex;align-items:center}
 /* OPEN THE LIVING COSMOS: expanded portrait play gives the framebuffer the full width

@@ -105,7 +105,7 @@ test('the home hero and support mascot use Zeref while keeping existing systems'
  assert.match(hero,/<ZerefMoonwraith/);
  assert.match(hero,/useState<View>\('zeref3d'\)/,'3D Zeref is the default guide');
  assert.match(hero,/CosmicCompanion3D quality="low"/,'3D guide kept one tap away');
- assert.match(hero,/preferSprite=\{Boolean\(genome\)\}/,'saved QBEAST keeps its own sprite');
+ assert.match(hero,/data-home-active-billboard="removed"/,'saved QBEAST keeps its own sprite');
  assert.match(hero,/not a live quantum link/);
  const live=read('components/zeref-moonwraith.tsx');
  assert.match(live,/requestAnimationFrame/);assert.match(live,/visibilitychange/);assert.match(live,/useUniverseMotion/);
