@@ -1,4 +1,5 @@
 import {ARTIST_RESIDENTS,residentView} from '../lib/companion/artist-residents.mjs';
+import {loadResident3D} from './resident-3d';
 import {motionPersona,createActor,stepActor} from '../lib/companion/film-motion.mjs';
 type Three=typeof import('three');
 /** Cory's artist-drawn residents (no quantum seed). They are separate creatures and never the
@@ -14,7 +15,10 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
      // Film motion: artist-drawn → no quantum seed, so the persona comes from the resident's own id only.
      const home=(i/ARTIST_RESIDENTS.length)*Math.PI*2+.6,hr=r.kind==='trainer'?2.2:2.8;
      const actor=createActor(motionPersona({id:r.id}),{x:Math.cos(home)*hr,z:Math.sin(home)*hr*.85,radius:.9,seed:r.id});
-     return {r,sprite,shadow,h,actor,phase:i*1.37+seedRandom()*2,radius:r.kind==='trainer'?2.2:2.7+seedRandom()*1.1,speed:(r.kind==='trainer'?.05:.09+seedRandom()*.06)*(i%2?1:-1),src:r.views.front,x:0,z:0};
+     const slot:{mesh:import('three').Mesh|null}={mesh:null};
+     // Frostmitt/Nyxbean: swap the flat sprite for the true-3D visual-hull model once it loads.
+     void loadResident3D(THREE,r.id).then(m=>{if(!m)return;slot.mesh=m;scene.add(m);sprite.visible=false;});
+     return {r,sprite,shadow,h,actor,slot,phase:i*1.37+seedRandom()*2,radius:r.kind==='trainer'?2.2:2.7+seedRandom()*1.1,speed:(r.kind==='trainer'?.05:.09+seedRandom()*.06)*(i%2?1:-1),src:r.views.front,x:0,z:0};
     });
     let lastT=0;
     const stepResidents=(t:number,theta:number,cam?:{x:number;z:number})=>{
@@ -28,6 +32,7 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
       const view=residentView(a.r,p.heading+p.head,theta);const m=a.sprite.material;
       if(view.src!==a.src){m.map=tex(view.src);m.needsUpdate=true;a.src=view.src;}
       a.sprite.scale.set(a.h*p.sx*(view.flip?-1:1),hy,1);m.rotation=-p.lean*(view.flip?-1:1);
+      const mesh=a.slot.mesh;if(mesh){mesh.position.set(p.x,p.lift,p.z);mesh.scale.set(a.h*1.15*p.sx,a.h*1.15*p.sy,a.h*1.15*p.sx);mesh.rotation.set(p.lean,p.heading+p.head,0,'YXZ');}
      });
     };
     const disturbers=()=>residents.map(a=>({x:a.x,z:a.z,r:.75*a.r.scale,s:2.4}));
