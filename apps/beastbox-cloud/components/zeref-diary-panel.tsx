@@ -26,7 +26,7 @@ function GrowthBadge({g}:{g?:Entry['growth_source']}){
 }
 
 /** ZEREF'S DIARY on the Beast Cage: loop-written entries, growth, discovered combos, and this device's pocket journal. */
-export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null}:{journalId:string;beastName:string;cosmosProfile?:CosmosProfile|null}){
+export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null,showGrow=true}:{journalId:string;beastName:string;cosmosProfile?:CosmosProfile|null;showGrow?:boolean}){
  const [diary,setDiary]=useState<Diary|null>(null),[failed,setFailed]=useState(false);
  const [journal,setJournal]=useState<Journal|null>(null);
  useEffect(()=>{
@@ -78,7 +78,7 @@ export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null}
    </div>
    <PocketLearningCard journalId={journalId} beastName={beastName} loop={journalId==='bb-7f9c2a03'?diary?.learning||null:null}/>
    <ZerefKnowledgeDiagnostics beastId={journalId} loop={journalId==='bb-7f9c2a03'?diary?.learning||null:null}/>
-   <GrowInCosmos profile={cosmosProfile}/>
+   {showGrow?<GrowInCosmos profile={cosmosProfile}/>:null}
   </div>
   {diary?.recent?.length?<ol className={styles.entries} aria-label="Recent diary entries">{diary.recent.slice(0,6).map(e=><li key={e.hash}>
    <span className={styles.when}>#{e.tick} · {when(e.at)}</span>

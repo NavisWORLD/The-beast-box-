@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dimensional creature capture</title>
+<style>html,body{margin:0;background:#070b18;color:#d7e7ff;font:14px ui-monospace,monospace}canvas{width:100vw;height:100vh;display:block}pre{position:absolute;left:8px;bottom:8px;margin:0;max-width:calc(100% - 16px);white-space:pre-wrap}</style>
+<script type="importmap">
+{"imports":{"three":"../node_modules/three/build/three.module.js"}}
+</script>
+</head>
+<body>
+<canvas id="view"></canvas>
+<pre id="stats">loading</pre>
+<script type="module">
+import * as THREE from 'three';
+import {buildDimensionalRig, poseDimensional} from '../lib/creature-dimensional.mjs';
+const params = new URLSearchParams(location.search);
+const kind = params.get('kind') === 'dragonling-artistic' ? 'dragonling-artistic' : 'moonwraith-artistic';
+const yaw = Number(params.get('yaw') || 0);
+const state = params.get('state') || 'idle';
+const time = Number(params.get('time') || 0);
+const speaking = params.get('speaking') === '1';
+const reduced = params.get('reduced') === '1';
+const bench = params.get('bench') === '1';
+const canvas = document.querySelector('#view');
+const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: false, powerPreference: 'low-power'});
+renderer.setPixelRatio(1);
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.setClearColor(0x070b18, 1);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 50);
+camera.position.set(0.15, 1.05, 4.35);
+camera.lookAt(0, 0.95, 0);
+scene.add(new THREE.AmbientLight(0xaacfff, 1.45));
+const warm = new THREE.PointLight(0xffd6ef, 22, 14);
+warm.position.set(-1.8, 2.4, 3.2);
+scene.add(warm);
+const rim = new THREE.PointLight(0x7ae7ff, 18, 14);
+rim.position.set(2.1, 0.6, -2);
+scene.add(rim);
+const rig = buildDimensionalRig(THREE, kind, {quality: 'auto'});
+poseDimensional(rig, {state, time, reduced, speaking});
+rig.root.rotation.y = yaw * Math.PI / 180;
+scene.add(rig.root);
+const floor = new THREE.Mesh(new THREE.CircleGeometry(1.35, 48), new THREE.MeshBasicMaterial({color: 0x140a24}));
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = 0.001;
+scene.add(floor);
+let benchMs = 0;
+if (bench) {
+  const geos = [];
+  const start = performance.now();
+  for (let i = 0; i < 90; i++) {
+    poseDimensional(rig, {state: 'observing', time: i / 30, reduced: false, speaking: i % 20 > 15});
+    renderer.render(scene, camera);
+  }
+  benchMs = performance.now() - start;
+  for (let i = 0; i < 6; i++) {
+    const extra = buildDimensionalRig(THREE, kind, {quality: 'low'});
+    geos.push(renderer.info.memory.geometries);
+    extra.dispose();
+  }
+  poseDimensional(rig, {state, time, reduced, speaking});
+  rig.root.rotation.y = yaw * Math.PI / 180;
+}
+renderer.render(scene, camera);
+const report = {
+  kind,
+  identity: rig.attribution.identityId,
+  phenotype: rig.attribution.phenotype,
+  yaw, state, time, speaking, reduced,
+  triangles: rig.root.userData.triangles,
+  drawCalls: renderer.info.render.calls,
+  geometries: renderer.info.memory.geometries,
+  benchFrames: bench ? 90 : 0,
+  benchMs: Math.round(benchMs),
+  benchFps: bench ? Math.round(90 / (benchMs / 1000)) : null,
+  userAgent: navigator.userAgent,
+};
+document.querySelector('#stats').textContent = JSON.stringify(report);
+document.body.dataset.ready = '1';
+window.__dimensional = report;
+</script>
+</body>
+</html>
