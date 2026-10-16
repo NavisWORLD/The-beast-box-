@@ -50,20 +50,24 @@ def replies(path):
   # reply counts as a leak; a one-word reply is not an OK conversational reply.
   out.append({"prompt":p,"reply":r,"ok":reply_ok(r) and len(r.split())>=2,"action_leak":bool(GAME_WORDS.search(r))})
  return out
+# Supplemental, REPORT-ONLY warmth heuristic (simple lexicon count; not a gate,
+# not a human rating). Fraction of chat replies with >=1 warm/kind marker.
+WARM=re.compile(r"\b(love|glad|happy|proud|friend|kind|thanks|thank you|together|you got this|here for you|okay|aw|yay|fun|lol)\b|[😂💀❤🙂😊]",re.I)
+def warmth(rs):return round(sum(bool(WARM.search(r["reply"])) for r in rs)/max(1,len(rs)),4)
 def score(path):
  rs=replies(path)
  return {"ref_nll":ref_nll(path),"ok_replies":sum(r["ok"] for r in rs),
-  "action_leaks":sum(r["action_leak"] for r in rs),"replies":rs}
+  "action_leaks":sum(r["action_leak"] for r in rs),"warmth_report_only":warmth(rs),"replies":rs}
 def main(base,cand,out):
  b,c=score(base),score(cand)
  gate={"ref_nll_not_worse":c["ref_nll"]<=b["ref_nll"],
   "ok_replies_not_fewer":c["ok_replies"]>=b["ok_replies"],
   "no_more_game_action_leaks":c["action_leaks"]<=b["action_leaks"]}
- res={"schema":"rawrphos-chat-eval-v1","prompts_ref":len(PAIRS),"prompts_chat":len(CHAT),
+ res={"schema":"rawrphos-chat-eval-v2","decoding":{"repetition_penalty":Engine.REPETITION_PENALTY,"no_repeat_ngram":Engine.NO_REPEAT_NGRAM,"same_for_baseline_and_candidate":True},"prompts_ref":len(PAIRS),"prompts_chat":len(CHAT),
   "baseline":b,"candidate":c,"gate":gate,"chat_not_worse":all(gate.values())}
  Path(out).write_text(json.dumps(res,indent=1,sort_keys=True)+"\n")
  print("RAWRPHOS_CHAT_EVAL="+json.dumps({"baseline_ref_nll":b["ref_nll"],"candidate_ref_nll":c["ref_nll"],
-  "baseline_ok":b["ok_replies"],"candidate_ok":c["ok_replies"],"candidate_leaks":c["action_leaks"],
+  "baseline_ok":b["ok_replies"],"candidate_ok":c["ok_replies"],"candidate_leaks":c["action_leaks"],"baseline_warmth":b["warmth_report_only"],"candidate_warmth":c["warmth_report_only"],
   "gate":gate,"chat_not_worse":res["chat_not_worse"]}),flush=True)
  return res
 if __name__=="__main__":main(*sys.argv[1:4])
