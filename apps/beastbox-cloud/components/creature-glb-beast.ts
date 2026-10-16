@@ -19,9 +19,9 @@ const TAIL_V:Record<string,string>={fluffy:'tail_fluffy',plume:'tail_fluffy',lea
 const WING_V:Record<string,string>={feather:'wing_feather',leaf:'wing_feather',bat:'wing_bat',flame:'wing_bat',vanes:'wing_bat',moth:'wing_moth',crystal:'wing_moth'};
 const GLOWING=new Set(['crystal','flame']);
 /** species identity parts always shown (the genome still paints them); fur = coat length multiplier, scales = belly scale plates */
-const SPECIES:Record<string,{ears?:string[];tail?:string;wings?:string;fur?:number;scales?:boolean;stone?:boolean;prop?:number;propGlow?:number;crystal?:boolean;faceY?:number}>={
+const SPECIES:Record<string,{ears?:string[];tail?:string;wings?:string;fur?:number;scales?:boolean;stone?:boolean;prop?:number;propGlow?:number;crystal?:boolean;crystalBody?:boolean;faceY?:number}>={
  res_frostmitt:{ears:['ear_pointy'],tail:'tail_fluffy',fur:1.5,prop:0x5b2fa8},res_nyxbean:{ears:['ear_pointy'],tail:'tail_thin',fur:1.1,prop:0x3a1f6e},
- res_shardhowl:{ears:['ear_fox'],tail:'tail_brush',fur:.35,prop:0x9a6cff,crystal:true},res_velvetcoil:{ears:['ear_horns'],tail:'tail_thin',fur:.1,scales:true,prop:0x2a1240},
+ res_shardhowl:{ears:['ear_fox'],tail:'tail_brush',fur:0,prop:0x9a6cff,crystal:true,crystalBody:true},res_velvetcoil:{ears:['ear_horns'],tail:'tail_thin',fur:.1,scales:true,prop:0x2a1240},
  res_kairo:{ears:[],fur:0,prop:0x16121f,faceY:.7},
  fox:{ears:['ear_fox'],tail:'tail_brush',fur:1.25},dragonling:{ears:['ear_dhorn'],wings:'wing_dragon',fur:.55,scales:true},axolotl:{ears:['ear_frill'],tail:'tail_axfin',fur:.22},
  bird:{wings:'wing_feather',fur:.8},moth:{ears:['ear_feelers'],wings:'wing_moth',fur:1.35},golem:{ears:['ear_horns'],fur:0,stone:true},sprout:{ears:['ear_leaf'],fur:.3},
@@ -115,7 +115,8 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
    if(n.startsWith('ear_dhorn'))o.material=new THREE.MeshPhysicalMaterial({color:C.accent.clone().lerp(new THREE.Color(.95,.9,.8),.55),roughness:.3,clearcoat:.8,sheen:.3});
    else if(n.startsWith('wing_dragon')){const wm=new THREE.MeshPhysicalMaterial({vertexColors:true,roughness:.5,transmission:.0,side:THREE.DoubleSide,sheen:.5,sheenColor:C.glow,emissive:C.glow,emissiveIntensity:.08});furPatch(wm,null);o.material=wm;}
    else if(n.startsWith('ear_crown'))o.material=new THREE.MeshPhysicalMaterial({color:C.accent.clone().lerp(new THREE.Color(1,.82,.4),.6),metalness:1,roughness:.22,clearcoat:.6,emissive:C.glow,emissiveIntensity:.15});
-   else if(n.startsWith('ear_')&&!SP.ears&&GLOWING.has(gen.ears)||n==='tail_flame'&&GLOWING.has(gen.tail))o.material=glowMat;else o.material=m;if(n.startsWith('wing_'))o.material.side=THREE.DoubleSide;if(n.startsWith('body'))body=o;}
+   else if(n.startsWith('ear_')&&!SP.ears&&GLOWING.has(gen.ears)||n==='tail_flame'&&GLOWING.has(gen.tail))o.material=glowMat;else if(SP.crystalBody&&(n.startsWith('body')||n.startsWith('ear_')||n.startsWith('tail_')))o.material=new THREE.MeshPhysicalMaterial({color:C.base.clone().lerp(C.alt,.35),flatShading:true,roughness:.12,metalness:.15,clearcoat:1,clearcoatRoughness:.05,iridescence:1,iridescenceIOR:1.6,emissive:C.glow,emissiveIntensity:.12,sheen:.6,sheenColor:C.accent});
+   else o.material=m;if(n.startsWith('wing_'))o.material.side=THREE.DoubleSide;if(n.startsWith('body'))body=o;}
   else if(mn==='prop'){const pc=new THREE.Color(SP.prop??0x5b2fa8);o.material=SP.crystal?new THREE.MeshPhysicalMaterial({color:pc,roughness:.08,metalness:.1,transmission:.35,thickness:.2,iridescence:1,emissive:C.glow,emissiveIntensity:.5,clearcoat:1})
    :new THREE.MeshPhysicalMaterial({color:pc,roughness:.85,sheen:1,sheenColor:new THREE.Color(0xb48cff),sheenRoughness:.5,emissive:C.glow,emissiveIntensity:.06});}
   else if(mn==='eye'){o.material=eyeMat;o.geometry.computeBoundingBox();const bb=o.geometry.boundingBox;const w=(bb.max.x-bb.min.x)/2;eyeC.value.set(bb.max.x-w/2,(bb.max.y+bb.min.y)/2,(bb.max.z+bb.min.z)/2-(bb.max.z-bb.min.z)*.3);}else if(mn==='iris'){o.material=new THREE.MeshBasicMaterial({color:C.glow,transparent:true,opacity:.0});}

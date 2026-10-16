@@ -191,13 +191,14 @@ SPECS={
  'res_nyxbean':lambda:quad(dict(body=(.3,.18,.19),head_z=.8,head_r=.31,leg=.16,muzzle=.02,cheek=.9,tail_len=.36,tail_r=.07,eye=.4)),
  'res_shardhowl':lambda:quad(dict(body=(.46,.17,.16),head_z=.95,head_r=.24,leg=.32,leg_t=.85,muzzle=.04,muz_w=.75,muz_h=.8,cheek=.6,tail_len=.6,tail_r=.09,eye=.22,tail_dir=(0,1,.3),tail_in=.15,extra=fox_x)),
  'res_velvetcoil':lambda:long_(dict(kind='serpent',len=1.25,r=.1,head_r=.22,eye=.27,tail_len=.55,tail_dir=(-.4,1,.0),extra=serp_x)),
- 'res_kairo':lambda:upright(dict(body_h=.25,body_w=.16,body_d=.12,leg=.36,leg_t=.8,head_r=.25,arm=.42,eye=.2,neck=.5,nose=False,mouth_w=.55,tail_len=.04,tail_r=.015)),
+ 'res_kairo':lambda:upright(dict(body_h=.24,body_w=.15,body_d=.11,leg=.42,leg_t=.5,head_r=.23,arm=.5,eye=.19,neck=.55,nose=False,mouth_w=.5,tail_len=.04,tail_r=.015)),
  'axolotl':lambda:quad(dict(body=(.5,.13,.19),head_z=.36,head_r=.27,leg=.1,leg_t=.8,muzzle=.0,muz_w=1.6,muz_h=.7,cheek=.4,tail_len=.6,tail_r=.09,eye=.17,tail_dir=(0,1,.05),extra=axo_x)),
 }
 if PLAN not in SPECS:raise SystemExit('plan not built yet: '+PLAN)
 P,B,FACE,EARS,TAIL,WINGS=SPECS[PLAN]()
+if PLAN=='res_shardhowl':BODY_TRIS=2400   # big crystal facets (flat-shaded at runtime)
 parts={k:fn(k,*a) for k,(fn,a) in P.items()}
-body,labels=fuse(parts,'body')
+body,labels=fuse(parts,'body',tris=BODY_TRIS)
 print('body tris',tris_of(body))
 body_bvh=bvh(body)
 
@@ -463,7 +464,15 @@ if PLAN in('res_frostmitt','res_nyxbean','res_kairo'):
         hat=[ell('hood',(0,hcv.y+hrx*.45,hcv.z+hrz*.1),(hrx*1.2,hrx*1.0,hrz*1.18),seg=40,ring=20)]
         for k in range(7):  # spiky fringe of black hair peeking out of the hood
             x=(k-3)*hrx*.22;hat.append(cone('hair',(x,hcv.y-hrx*.55,hcv.z+hrz*.62),(x*1.15+.01*(k%2),hcv.y-hrx*.95,hcv.z+hrz*(.25+.08*(k%2))),hrx*.16,.6,8))
-        for s_ in (-1,1):hat.append(ell('shoe',(s_*.16*.45,-.035,.035),(.06,.1,.045)))
+        for s_ in (-1,1):hat.append(ell('shoe',(s_*.15*.45,-.04,.035),(.055,.1,.045)));hat.append(ell('sole',(s_*.15*.45,-.04,.012),(.06,.105,.016)))
+    if PLAN=='res_kairo':
+        # hoodie details from his art: hood rim, drawstrings, kangaroo pocket, zipper, sleeve cuffs, trouser cuffs
+        bz_=.42+.24
+        for s_ in (-1,1):hat.append(tube('str',[(s_*.04,-.12,bz_+.2),(s_*.045,-.125,bz_+.08),(s_*.05,-.12,bz_+.0)],[.006,.006,.008],res=4))
+        hat.append(ell('pocket',(0,-.105,bz_-.12),(.1,.025,.055)))
+        hat.append(tube('zip',[(0,-.118,bz_+.2),(0,-.122,bz_),(0,-.11,bz_-.2)],[.005]*3,res=4))
+        for s_ in (-1,1):
+            hat.append(tube('pcuff',[(s_*.0675+math.cos(a)*.04,math.sin(a)*.04,.1) for a in [k/12*2*math.pi for k in range(13)]],[.012]*13,res=4))
     for s_ in (-1,1):hat.append(cone('horn',(s_*hrx*.55,hcv.y,bz+hrz*.35),(s_*hrx*.75,hcv.y+hrx*.1,bz+hrz*.95),hrz*.14,1))
     prop('prop_hat',hat,'head')
 if PLAN=='res_shardhowl':
