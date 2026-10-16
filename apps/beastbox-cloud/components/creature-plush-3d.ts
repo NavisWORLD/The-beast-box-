@@ -56,13 +56,13 @@ export function buildPlush(THREE:Three,gen:PlushGenome,{low=false}={}){
  let headY=0,headZ=0,bodyH=0;const legs:O3[]=[];const arms:O3[]=[];
  // ---------- body
  if(quad){const len=plan==='fox'?.5:plan==='axolotl'?.55:.42,ht=plan==='axolotl'?.16:.28;bodyH=(plan==='axolotl'?.18:.3)*legL+ht;
-  blob(body,.27*chub,ht*chub,len*chub,{y:bodyH});headY=bodyH+ht*.9;headZ=len*chub*.85;
+  blob(body,.27*chub,ht*chub,len*chub,{y:bodyH});headY=bodyH+ht*.35;headZ=len*chub*.8;
   for(const [sx,sz] of [[-1,1],[1,1],[-1,-1],[1,-1]]){const leg=J('leg',body,sx*.16*chub,bodyH-.05,sz*len*.55*chub);const l=bodyH-.04;
    blob(leg,.075,l*.55,.075,{y:-l*.5,belly:false,pat:false});blob(leg,.085,.05,.1,{y:-l+.02,z:.02,belly:false,pat:false,tint:C.light});legs.push(leg);}}
  else if(biped){const ht=plan==='golem'?.36:plan==='bird'?.3:.28;bodyH=.16*legL+ht;
   if(plan==='golem'){const geo=new THREE.BoxGeometry(.62,ht*2,.46,4,4,4);const p=geo.attributes.position;for(let i=0;i<p.count;i++){const v=new THREE.Vector3().fromBufferAttribute(p,i);const s=v.clone().normalize().multiply(new THREE.Vector3(.31,ht,.23));v.lerp(s,.35);p.setXYZ(i,v.x,v.y,v.z);}geo.computeVertexNormals();paint(geo);geos.push(geo);const m=new THREE.Mesh(geo,fur);m.position.y=bodyH;body.add(m);}
   else blob(body,.27*chub,ht*chub,.24*chub,{y:bodyH});
-  headY=bodyH+ht*(plan==='bird'?.7:1.05);headZ=.03;
+  headY=bodyH+ht*(plan==='bird'?.45:.7);headZ=.03;
   for(const sx of [-1,1]){const leg=J('leg',body,sx*.13*chub,bodyH-ht*.6,0);const l=bodyH-ht*.6;blob(leg,.08,l*.6,.08,{y:-l*.45,belly:false,pat:false,tint:plan==='bird'?C.accent:C.base});blob(leg,.09,.045,.12,{y:-l+.02,z:.03,belly:false,pat:false,tint:plan==='bird'?C.accent:C.light});legs.push(leg);}
   if(plan!=='bird')for(const sx of [-1,1]){const arm=J('arm',body,sx*.27*chub,bodyH+ht*.25,0);blob(arm,.07,.17,.07,{y:-.13,x:sx*.03,belly:false,pat:false});arms.push(arm);}}
  else if(plan==='serpent'){bodyH=.14;headY=.28;headZ=.0;}

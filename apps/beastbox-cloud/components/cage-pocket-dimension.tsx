@@ -289,7 +289,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     let plush:ReturnType<typeof buildPlush>|null=null;const beastNode=new THREE.Group();beastNode.name='beast-3d';scene.add(beastNode);
     const syncPlush=()=>{const gen=(window as any).__beastGenome as PlushGenome|null;const want=!!gen&&!pixelRef.current;
      if(plush&&(!want||plush.root.userData.seed!==gen?.seed)){beastNode.remove(plush.root);plush.dispose();plush=null;}
-     if(want&&!plush&&gen){plush=buildPlush(THREE,gen,{low});plush.root.userData.seed=gen.seed;plush.root.scale.setScalar(1.7);beastNode.add(plush.root);}
+     if(want&&!plush&&gen){plush=buildPlush(THREE,gen,{low});plush.root.userData.seed=gen.seed;plush.root.scale.setScalar(1.3);beastNode.add(plush.root);}
      if(plush)document.documentElement.setAttribute('data-beast-3d','');else document.documentElement.removeAttribute('data-beast-3d');};
     syncPlush();window.addEventListener('beastbox:genome',syncPlush);window.addEventListener('beastbox:pixel-mode',syncPlush);
     const lifeRand=randomFor(key+':god');const camXZ=()=>({x:camera.position.x,z:camera.position.z});
