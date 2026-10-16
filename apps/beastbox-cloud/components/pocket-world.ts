@@ -31,9 +31,9 @@ export function addPocketWorld(THREE:Three,scene:import('three').Scene,{seed='po
   fragmentShader:`${NOISE}uniform float uNight,uRain,uT;uniform vec3 uSun;varying vec3 vW;varying float vH;
    #include <fog_pars_fragment>
    void main(){vec3 n=normalize(cross(dFdx(vW),dFdy(vW)));if(n.y<0.0)n=-n;float sand=smoothstep(${(SEA+.35).toFixed(2)},${(SEA+.05).toFixed(2)},vH);
-    vec3 grass=mix(vec3(.12,.34,.38),vec3(.32,.16,.58),fbm(vW*.5));grass=mix(grass,vec3(.55,.5,.85),smoothstep(.6,1.4,vH)*.6);vec3 c=mix(grass,vec3(.62,.52,.7),sand);c=mix(c,c*.55,uRain*.5);   // wet when raining
+    vec3 grass=mix(vec3(.12,.34,.38),vec3(.32,.16,.58),fbm(vW*.5));grass=mix(grass,vec3(.42,.3,.7),smoothstep(.6,1.4,vH)*.5);vec3 c=mix(grass,vec3(.4,.32,.48),sand);c=mix(c,c*.55,uRain*.5);   // wet when raining
     float sunL=max(0.0,dot(n,normalize(uSun)))*(1.0-uNight);float moonL=max(0.0,n.y)*uNight*.35;
-    float sky=.35+.25*n.y;c*=sky+sunL*1.4+moonL*1.8;float rim=pow(1.0-max(0.0,dot(n,normalize(cameraPosition-vW))),3.0);c+=mix(vec3(.5,.3,1.0),vec3(.2,.8,1.0),uNight)*rim*.25;gl_FragColor=vec4(c,1.0);
+    float sky=.35+.25*n.y;c*=sky*.8+sunL*.9+moonL*1.0;float rim=pow(1.0-max(0.0,dot(n,normalize(cameraPosition-vW))),3.0);c+=mix(vec3(.5,.3,1.0),vec3(.2,.8,1.0),uNight)*rim*.05;gl_FragColor=vec4(c,1.0);
     #include <fog_fragment>
    }`})));
  terr.rotation.x=-Math.PI/2;group.add(terr);
@@ -63,7 +63,7 @@ export function addPocketWorld(THREE:Three,scene:import('three').Scene,{seed='po
     float d=length(vW.xz);vec3 c=mix(shal,deep,smoothstep(7.0,14.0,d));
     vec3 sky=mix(vec3(.35,.4,.85),vec3(.12,.06,.3),uNight);c=mix(c,sky,fres);
     vec3 L=normalize(uNight>.5?uMoon:uSun);vec3 hh=normalize(L+v);c+=mix(vec3(1.0,.85,.6),vec3(.7,.8,1.0),uNight)*pow(max(0.0,dot(n,hh)),180.0)*(uNight>.5?1.2:3.0);
-    float foam=smoothstep(.55,1.0,vCrest)*.6+smoothstep(8.6,7.4,d)*(.6+.4*sin(d*9.0-uT*2.0))*.7;foam*=.6+.4*n3(vec3(vW.xz*3.0,uT*.3));c=mix(c,vec3(.85,.9,1.0)*(1.0-uNight*.6),clamp(foam,0.0,1.0));
+    float foam=smoothstep(.55,1.0,vCrest)*.6+smoothstep(6.4,7.3,d)*smoothstep(9.0,7.8,d)*(.6+.4*sin(d*9.0-uT*2.0))*.7;foam*=.6+.4*n3(vec3(vW.xz*3.0,uT*.3));c=mix(c,vec3(.85,.9,1.0)*(1.0-uNight*.6),clamp(foam,0.0,1.0));
     gl_FragColor=vec4(c,1.0);
     #include <fog_fragment>
    }`}));
