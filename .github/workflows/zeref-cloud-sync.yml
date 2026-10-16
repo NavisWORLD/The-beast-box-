@@ -9,10 +9,15 @@ jobs:
   sync:
     runs-on: ubuntu-24.04
     steps:
-      - name: Persist profile, live model pin, approved cycles to beasts/bb-deada969
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Persist profile, live model pin, approved cycles and lessons to beasts/bb-deada969
+        working-directory: apps/beastbox-cloud
         env:
-          ZEREF_DISTILL_EXPORT_TOKEN: ${{ secrets.ZEREF_DISTILL_EXPORT_TOKEN }}
-        run: |
-          set -Eeuo pipefail
-          if [ -z "${ZEREF_DISTILL_EXPORT_TOKEN:-}" ]; then echo 'ZEREF_CLOUD_SYNC_NOT_CONFIGURED'; exit 0; fi
-          curl -fsS --max-time 60 -X POST -H "Authorization: Bearer ${ZEREF_DISTILL_EXPORT_TOKEN}" https://www.beastboxcosmos.xyz/api/zeref/cloud-sync
+          AZURE_STORAGE_CONTAINER_SAS_URL: ${{ secrets.AZURE_STORAGE_CONTAINER_SAS_URL }}
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          AZURE_STORAGE_CONTAINER: ${{ secrets.AZURE_STORAGE_CONTAINER }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/zeref-cloud-sync.mjs
