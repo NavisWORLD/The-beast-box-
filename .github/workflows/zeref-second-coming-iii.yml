@@ -1,0 +1,73 @@
+name: The Second Coming III - Big Quantum Boom (God Core Boom), up to 67 s (one-off, owner-authorized 2026-10-16)
+# Owner (Cory) authorized ONE extra real IBM run on 2026-10-16: <=10 QPU s cap, fails closed unless plan remaining >= cap + 60 s.
+# Tag-idempotent: reruns recover the same job, never resubmit. Plus ONE Rigetti QVM SIMULATOR job seeded by heartbeat features.
+# The Bell test itself keeps fresh os.urandom questions (heartbeat only names/tags the run and is mixed into Zeref's seed afterwards).
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: chsh-game-daily-qpu
+  cancel-in-progress: false
+jobs:
+  boom:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5' 'qdk[azure]'
+      - name: Real IBM hardware CHSH (The Second Coming), 67 s cap, 120000 rounds, best calibrated pair, 60 s reserve
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_CHSH_GAME_DAILY: YES_SECOND_COMING_ONCE
+          CHSH_QPU_CAP: '67'
+          CHSH_GAME_ROUNDS: '120000'
+          CHSH_BEST_PAIR: '1'
+          CHSH_RUN_TAG: navisworld-second-coming-iii-2dc13dd8780d
+          CHSH_GAME_OUT: _second_coming_iii
+        run: python scripts/chsh_game/referee.py
+      - name: Rigetti QVM (SIMULATED) seeded by heartbeat features
+        if: always()
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+          BEAST_AZURE_QVM_ONE_JOB: YES_ONE_FREE_SIMULATOR
+          HB_QVM_PACKET: evidence/zeref-second-coming-iii/ecosystem-input.json
+          HB_QVM_OUT: _second_coming_iii_qvm
+          HB_QVM_SHOTS: '4096'
+          HB_QVM_VECTOR_KEY: ecosystem_vector_12
+          HB_QVM_PREFIX: beastbox-second-coming-iii-
+        run: PYTHONPATH=scripts python scripts/zeref_heartbeat_qvm.py
+      - name: Read-only quota after
+        if: always()
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py || true
+      - name: Public summary (no private questions)
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,pathlib
+          r=pathlib.Path('_second_coming_iii/chsh_game_result.json')
+          if r.exists():
+            d=json.loads(r.read_text());print('SECOND_COMING='+json.dumps({k:d[k] for k in ('job_id','backend','quantum_seconds','job_tag')}|{'win_rate':d['quantum']['win_rate'],'se':d['quantum']['standard_error'],'classical':d['classical_control']['win_rate'],'outcomes_sha256':d['outcomes_sha256']}))
+          q=pathlib.Path('_ibm_open_plan_preflight/receipt.json')
+          if q.exists():print('QUOTA_AFTER='+q.read_text().replace('\n',' '))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: second-coming-iii-${{ github.run_id }}
+          path: |
+            _second_coming_iii/chsh_game_result.json
+            _second_coming_iii/submission.json
+            _second_coming_iii/commitments.json
+            _second_coming_iii_qvm/
+            _second_coming_iii/pair_choice.json
+            _ibm_open_plan_preflight/receipt.json
+          retention-days: 90
+          if-no-files-found: ignore
