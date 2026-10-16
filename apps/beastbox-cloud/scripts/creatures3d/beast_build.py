@@ -189,7 +189,7 @@ SPECS={
  'serpent':lambda:long_(dict(kind='serpent',len=1.1,r=.11,head_r=.24,eye=.26,tail_len=.45,tail_dir=(-.4,1,.0),extra=serp_x)),
  'fish':lambda:long_(dict(kind='fish',len=.75,r=.2,head_r=.25,float=.45,eye=.26,tail_len=.22,tail_dir=(0,1,0),extra=fish_x)),
  'res_frostmitt':lambda:quad(dict(body=(.34,.2,.21),head_z=.86,head_r=.31,leg=.18,muzzle=.03,cheek=.9,tail_len=.4,tail_r=.08,eye=.33)),
- 'res_nyxbean':lambda:quad(dict(body=(.3,.18,.19),head_z=.8,head_r=.31,leg=.16,muzzle=.02,cheek=.9,tail_len=.36,tail_r=.07,eye=.4)),
+ 'res_nyxbean':lambda:quad(dict(body=(.26,.16,.16),head_z=.66,head_r=.36,leg=.15,muzzle=.02,cheek=.9,tail_len=.4,tail_r=.055,eye=.42,extra=lambda by,bh,bw,hz,hr,leg,hy:{'ruff':(ell,((0,-by*.85,leg+bh*1.35),(bw*.95,bw*.75,bh*.95)))})),
  'res_shardhowl':lambda:quad(dict(body=(.46,.17,.16),head_z=.95,head_r=.24,leg=.32,leg_t=.85,muzzle=.04,muz_w=.75,muz_h=.8,cheek=.6,tail_len=.6,tail_r=.09,eye=.22,tail_dir=(0,1,.3),tail_in=.15,extra=fox_x)),
  'res_velvetcoil':lambda:long_(dict(kind='serpent',len=1.25,r=.1,head_r=.22,eye=.27,tail_len=.55,tail_dir=(-.4,1,.0),extra=serp_x)),
  'res_kairo':lambda:upright(dict(body_h=.24,body_w=.15,body_d=.11,leg=.42,leg_t=.5,head_r=.23,arm=.5,eye=.19,neck=.55,nose=False,mouth_w=.5,tail_len=.04,tail_r=.015)),
@@ -211,6 +211,8 @@ def surf(x,z,y0=-3):
 face_objs=[];groups={}
 GNAMES=['eyeL','eyeR','irisL','irisR','shineL','shineR','mouth','mouthin','nose','tongue']
 def add_face(o,group):
+    if PLAN in('res_frostmitt','res_nyxbean','res_kairo') and group[:3] in('eye','iri','shi'):
+        D.objects.remove(o,do_unlink=True);return
     face_objs.append(o);groups.setdefault(group,[]).append(o.name)
     a=o.data.attributes.new('grp','INT','POINT')
     for i in range(len(o.data.vertices)):a.data[i].value=GNAMES.index(group)
@@ -512,8 +514,10 @@ def ring(name,c,rx,ry,r,n=24,dz=0):return tube(name,[(c[0]+math.cos(a)*rx,c[1]+m
 def beanie(c,rx,ry,rz,crown,slouch,bands,band_m,body_m,knit=14):
     """knit/puffy beanie: cuff ring stack + slouched crown + rib cords; bands = list of (z frac, material)"""
     hat=[];cuff=[]
-    for k in range(4):cuff.append(ring('cuff',(c[0],c[1],c[2]+k*rz*.09),rx*(1.02+.01*k),ry*(1.02+.01*k),rz*.07,32))
-    addp(joinm(cuff,'prop_cuff'),body_m)
+    puffy_=knit<10
+    for k in range(4):cuff.append(ring('cuff',(c[0],c[1],c[2]+k*rz*(.075 if puffy_ else .09)),rx*(1.02+.01*k),ry*(1.02+.01*k),rz*(.1 if puffy_ else .07),32))
+    addp(joinm(cuff,'prop_cuff'),band_m if puffy_ else body_m,n=900 if puffy_ else None)
+    if puffy_:bands=[]
     for z,bm_ in bands:addp(ring('prop_band',(c[0],c[1],c[2]+z*rz),rx*1.06,ry*1.06,rz*.045,40),bm_)
     cr=[ell('crown',(c[0],c[1]+slouch*.35,c[2]+rz*.55),(rx*.98,ry*.98,rz*crown),seg=48,ring=24),
         ell('slouch',(c[0],c[1]+slouch,c[2]+rz*(crown*.9)),(rx*.75,ry*.8,rz*crown*.55),seg=40,ring=20)]
@@ -532,7 +536,7 @@ def beanie(c,rx,ry,rz,crown,slouch,bands,band_m,body_m,knit=14):
     pmat('seam',(.02,.008,.04,1),.7);addp(joinm(seams,'prop_seams'),'seam',n=500)
     st=[]  # glowing ribbed band: vertical stripe ribs
     for k in range(28):
-        a=k/28*2*math.pi;st.append(ell('rib',(c[0]+math.cos(a)*rx*1.08,c[1]+math.sin(a)*ry*1.08,c[2]+rz*.12),(rx*.06,rx*.06,rz*.16),seg=8,ring=6))
+        a=k/28*2*math.pi;st.append(ell('rib',(c[0]+math.cos(a)*rx*1.1,c[1]+math.sin(a)*ry*1.1,c[2]+rz*.12),(rx*.07,rx*.07,rz*.2),seg=8,ring=6))
     addp(joinm(st,'prop_bandribs'),'trim',n=900);return o
 NEW_OUTFIT=PLAN in('res_frostmitt','res_nyxbean','res_kairo')
 if NEW_OUTFIT:
@@ -541,10 +545,10 @@ if NEW_OUTFIT:
     pmat('horn_grey',(.62,.6,.66,1),.35,coat=.8)
     hb=Vector((0,hcv.y+hrx*.05,hcv.z+hrz*.18))
     if PLAN=='res_nyxbean':
-        hb=hb+Vector((0,0,hrz*.22));PM['trim']=None;del PM['trim'];pmat('trim',(.5,.15,1,1),.35,emit=(.55,.18,1,1),es=2.2)
-        pmat('puffy',(.06,.025,.13,1),.45,sheen=.4,coat=.15)
-        beanie(hb,hrx*1.18,hrx*1.12,hrz*1.25,1.05,hrx*.85,[(.0,'trim'),(.25,'trim')],'trim','puffy',knit=0)
-        for s_ in (-1,1):addp(cone('prop_horn',(s_*hrx*.38,hcv.y-hrx*.78,hcv.z+hrz*.32),(s_*hrx*.46,hcv.y-hrx*1.0,hcv.z+hrz*.62),hrz*.1,1,16),'horn_purple')
+        hb=hb+Vector((0,hrx*.18,hrz*.46));del PM['trim'];pmat('trim',(.25,.045,1,1),.5,emit=(.25,.045,1,1),es=.9)
+        pmat('puffy',(.03,.011,.065,1),.85,sheen=.35)
+        beanie(hb,hrx*1.12,hrx*1.08,hrz*1.1,1.15,hrx*1.15,[(.0,'trim'),(.25,'trim')],'trim','puffy',knit=0)
+        for s_ in (-1,1):addp(cone('prop_horn',(s_*hrx*.34,hcv.y-hrx*.82,hcv.z+hrz*.32),(s_*hrx*.4,hcv.y-hrx*1.02,hcv.z+hrz*.6),hrz*.12,1,16),'horn_purple')
     if PLAN=='res_frostmitt':
         pmat('knit',(.07,.03,.2,1),.85,sheen=.3)
         pmat('magenta',(.8,.15,.9,1),.5,emit=(.85,.2,1,1),es=2.5)
@@ -652,7 +656,7 @@ if NEW_OUTFIT:
     m=D.materials.new('pm_cornea');m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(1,1,1,1);b.inputs['Roughness'].default_value=.02
     b.inputs['Transmission Weight'].default_value=1;b.inputs['IOR'].default_value=1.38;b.inputs['Coat Weight'].default_value=1;PM['cornea']=m
     pmat('lash',(.01,.008,.015,1),.5)
-    SC={'res_nyxbean':1.2,'res_kairo':1.05,'res_frostmitt':1.0}[PLAN]
+    SC={'res_nyxbean':.92,'res_kairo':1.05,'res_frostmitt':1.0}[PLAN]
     eyes=[];corn=[];lash=[]
     for n,c in eye_c.items():
         s=-1 if n=='L' else 1;rx,ry,rz=ER*.95*SC,ER*.42,ER*1.05*SC*(.92 if PLAN=='res_kairo' else 1)
