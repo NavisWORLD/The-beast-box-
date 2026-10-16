@@ -184,7 +184,11 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // User quality never overrides the OS reduced-motion safety boundary.
     let low=reduced||visualSettings.quality==='low'||(visualSettings.quality==='auto'&&window.innerWidth<600);
     // Phones with a real GPU (iPhone etc.) are 'low' only for world density; they still get AA, a crisper ratio and the sculpted GLBs.
-    const phoneGpu=low&&!reduced&&visualSettings.quality!=='low';
+    // Probe for software GL (CI SwiftShader, GPU-less VMs) BEFORE creating the renderer: MSAA + a high pixel ratio on a
+    // CPU rasteriser starves the main thread (taps, sound dock, game shell all time out), and antialias can't be undone later.
+    let softProbe=false;try{const pc=document.createElement('canvas');const pg=(pc.getContext('webgl2')||pc.getContext('webgl')) as WebGLRenderingContext|null;
+     if(pg){const dbg=pg.getExtension('WEBGL_debug_renderer_info');softProbe=!!dbg&&/swiftshader|llvmpipe|software/i.test(String(pg.getParameter(dbg.UNMASKED_RENDERER_WEBGL)));pg.getExtension('WEBGL_lose_context')?.loseContext();}}catch{}
+    const phoneGpu=low&&!reduced&&!softProbe&&visualSettings.quality!=='low';
     const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:!low||phoneGpu,powerPreference:phoneGpu?'default':'low-power'});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?(phoneGpu?1.6:1):1.5));
     // Software GL (CI SwiftShader, very old phones): force the low tier so the main thread never starves.
