@@ -739,8 +739,3 @@ html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],
  [data-spark-player][data-player-mode=minimized] [class*=identity]{display:none}
  [data-spark-player][data-player-mode=minimized]{padding:3px!important;background:#0c1228cc!important}
 }
-/* Zeref's voice dock sits bottom-left and the Lost Cosmos dock bottom-right; on narrow screens they share the
-   same strip, so the voice dock (z 60) covered the player launcher. Stack it above the player's row instead. */
-/* The bottom row on phones (support, sound, player, chat launcher) is full, so the voice dock sits clear above it
-   (sound dock is ~52px tall at bottom 8px) and stays left of the chat launcher (48px at right 8px). */
-@media (max-width:640px){[data-zeref-voice-dock]{bottom:calc(92px + env(safe-area-inset-bottom,0px))!important;max-width:calc(100vw - 80px)!important}}

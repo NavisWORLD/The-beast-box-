@@ -41,9 +41,18 @@ export default function ZerefVoiceDock(){
    setTimeout(()=>setBubble(null),20000);
   }finally{busy.current=false;}
  }
+ // The bottom-left corner is shared with the sound, support, Spark and Lost Cosmos docks, whose heights and stacking
+ // change with the page and the selected Spark. Sit just above whichever of them shares our column instead of on top.
+ const dockRef=useRef<HTMLDivElement|null>(null);const [lift,setLift]=useState(12);
+ useEffect(()=>{if(!prefs)return;const sel='[class*="site-sound-dock"],.cosmic-support,[data-lost-cosmos-dock],[class*="sol-spark-player"],[class*="beast-chat-overlay"]';
+  const place=()=>{const me=dockRef.current;if(!me)return;const w=me.getBoundingClientRect().width,H=innerHeight;let top=H;
+   for(const el of document.querySelectorAll<HTMLElement>(sel)){if(me.contains(el)||el.contains(me))continue;const r=el.getBoundingClientRect();
+    if(!r.width||!r.height||r.top<H*.45||r.right<12||r.left>12+w)continue;top=Math.min(top,r.top);}
+   const next=Math.max(12,Math.round(H-top+8));setLift(v=>v===next?v:next);};
+  place();const t=setInterval(place,800);addEventListener('resize',place);return ()=>{clearInterval(t);removeEventListener('resize',place);};},[prefs]);
  if(!prefs)return null;
- const box:React.CSSProperties={position:'fixed',left:12,bottom:12,zIndex:60,maxWidth:300,font:'12px system-ui',color:'#e8ecff'};
- return <div style={box} data-zeref-voice-dock>
+ const box:React.CSSProperties={position:'fixed',left:12,bottom:lift,maxWidth:'min(300px, calc(100vw - 80px))',zIndex:60,font:'12px system-ui',color:'#e8ecff'};
+ return <div ref={dockRef} style={box} data-zeref-voice-dock>
   {bubble?<div role="status" data-zeref-reach-out style={{background:'#121833ee',border:'1px solid #6b5bd6',borderRadius:12,padding:'8px 10px',marginBottom:6}}>
    <small style={{opacity:.75}}>💬 {REACH_OUT_LABEL} · {bubble.by}</small><div>{bubble.text}</div>
    <button type="button" onClick={()=>setBubble(null)} style={{fontSize:11,marginTop:4}}>Dismiss</button></div>:null}
