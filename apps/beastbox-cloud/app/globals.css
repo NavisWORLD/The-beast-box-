@@ -755,5 +755,5 @@ html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],
  .cosmic-support:not(.is-open) .cosmic-support-launcher{min-height:44px;height:44px;padding:0 10px 0 2px;border-radius:22px;gap:4px}
  .cosmic-support:not(.is-open) .support-beast-shell{width:40px;height:40px}
  .cosmic-support:not(.is-open) .support-launcher-copy{display:none}
- [aria-label="Cosmic sound controls"]{top:auto!important;left:max(12px,env(safe-area-inset-left,0px))!important;bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 64px)!important;max-width:calc(100vw - 84px)!important}
+ [aria-label="Cosmic sound controls"]:not([data-sound-room="game"]){top:auto!important;left:max(12px,env(safe-area-inset-left,0px))!important;bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 64px)!important;max-width:calc(100vw - 84px)!important}
 }
