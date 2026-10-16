@@ -11,6 +11,10 @@ def sel(objs,act):
     for o in objs:o.select_set(True)
     C.view_layer.objects.active=act
 def uv(o):
+    if os.environ.get('BAKE_UV') and o.data.uv_layers and 'BakeUV' not in o.data.uv_layers:  # projected UVs overlap: unwrap a dedicated bake UV
+        rl=[l for l in o.data.uv_layers if l.active_render][0].name;nl=o.data.uv_layers.new(name='BakeUV');o.data.uv_layers.active=nl
+        sel([o],o);bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.uv.smart_project(angle_limit=1.15,island_margin=.004);bpy.ops.object.mode_set(mode='OBJECT')
+        o.data.uv_layers[rl].active_render=True;return
     if o.data.uv_layers:return
     sel([o],o);bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.uv.smart_project(angle_limit=1.15,island_margin=.004);bpy.ops.object.mode_set(mode='OBJECT')
 def tex(name,kind,size,**kw):
@@ -71,7 +75,7 @@ def bake(lo,hi,kind,path,extr=.02):
         if s:out=[n for n in m.node_tree.nodes if n.type=='OUTPUT_MATERIAL'][0];m.node_tree.links.new(s,out.inputs[0])
     print('baked',kind,path)
 # --- Nyxbean sculpt recipe ---
-body=D.objects['body'];uv(body)
+body=D.objects[os.environ.get('BODY_OBJ','body')];uv(body)
 clump=tex('clump','VORONOI',.018,distance_metric='DISTANCE',noise_intensity=1)      # fur clumps (cell tufts)
 fine=tex('fine','CLOUDS',.006,noise_depth=2)                                         # strand-group grain
 crease=tex('crease','MARBLE',.05,marble_type='SHARPER',noise_depth=3,turbulence=6)    # paw/face skin creases, comb lines
@@ -91,6 +95,8 @@ if hat:
     for k in ('NORMAL','CURV'):bake(hat,HH,k,os.path.join(OUT,'%s_hat_%s.png'%(PLAN,k.lower())))
     bake(hat,HH,'AO',os.path.join(OUT,'%s_hat_ao.png'%PLAN),extr=.012)  # AO from the sculpt: dark stitched seams
     D.objects.remove(HH,do_unlink=True)
+for o in sc.objects:
+    if o.type=='MESH' and '_render_uv' in o.keys():o.data.uv_layers[o['_render_uv']].active_render=True  # restore the shading UV after baking
 if os.environ.get('EXPORT'):
     # carry the bake into the game GLB: hat normal goes into its authored material (runtime keeps pm_* maps);
     # body gets UVs here and the runtime loads tex/bake maps onto its fur shader (SPECIES.baked)

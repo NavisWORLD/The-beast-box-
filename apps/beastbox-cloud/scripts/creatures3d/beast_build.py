@@ -808,7 +808,7 @@ if NEW_OUTFIT:
                 off=Vector((R3.uniform(-.008,.008),R3.uniform(-.008,.008),0))
                 ic.append(cone('ice',tuple(p+off),tuple(p+off+Vector((v.normal.x*.01,v.normal.y*.01,-L*(1-.35*j)))),R3.uniform(.006,.012),1,5))
         m=D.materials.new('pm_iceclear');m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(.75,.9,1,1);b.inputs['Roughness'].default_value=.04
-        b.inputs['Transmission Weight'].default_value=.7;b.inputs['Emission Color'].default_value=(.4,.65,1,1);b.inputs['Emission Strength'].default_value=.3;PM['iceclear']=m
+        b.inputs['Transmission Weight'].default_value=1;b.inputs['IOR'].default_value=1.31;b.inputs['Coat Weight'].default_value=1;b.inputs['Emission Color'].default_value=(.4,.65,1,1);b.inputs['Emission Strength'].default_value=.12;PM['iceclear']=m
         for o_ in [x for x in props if x.name.startswith('prop_icicles')]:props.remove(o_);D.objects.remove(o_,do_unlink=True)
         o=joinm(ic,'prop_icicles');cap(o,900);setmat(o,PM['iceclear']);o['bone']='spine';props.append(o)
         m=D.materials.new('pm_mist');m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(.85,.9,1,1);b.inputs['Alpha'].default_value=.28

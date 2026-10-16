@@ -49,7 +49,9 @@ chest=light('chest','AREA',(0,-1.6,.15),60,(.7,.5,1),1.2)  # low violet rim on t
 if os.environ.get('VT','AgX')=='AgX':
     sc.view_settings.view_transform='AgX';sc.view_settings.look='AgX - Medium High Contrast'
     rim.data.energy=320;rim.data.color=(.62,.42,1);rim2.data.energy=120;rim2.data.color=(.8,.85,1);key.data.energy=170;key.data.color=(1,.98,.95);fill.data.color=(1,1,1);chest.data.energy=20;chest.data.color=(.85,.8,1)
-if PLAN=='res_nyxbean':b.inputs['Sheen Weight'].default_value=.35;b.inputs['Sheen Tint'].default_value=(.6,.5,.9,1)
+if PLAN=='res_nyxbean':  # neutral black coat: desaturate palette base, grey sheen (violet only from the rim light)
+    b.inputs['Sheen Weight'].default_value=.3;b.inputs['Sheen Tint'].default_value=(.55,.55,.6,1)
+    hs=nt.nodes.new('ShaderNodeHueSaturation');hs.inputs['Saturation'].default_value=.35;nt.links.new(mx2.outputs[2],hs.inputs['Color']);nt.links.new(hs.outputs[0],b.inputs['Base Color'])
 if PLAN=='res_frostmitt':  # white coat: no lavender sheen blowout, albedo kept under 0.6 (pro value-check)
     b.inputs['Sheen Weight'].default_value=.2;b.inputs['Roughness'].default_value=.8
     vm=nt.nodes.new('ShaderNodeMix');vm.data_type='RGBA';vm.blend_type='MULTIPLY';vm.inputs[0].default_value=1;vm.inputs[7].default_value=(.62,.64,.7,1)
@@ -72,7 +74,10 @@ def bakemaps(o,pre):
         m1=t.nodes.new('ShaderNodeMix');m1.data_type='RGBA';m1.blend_type='MULTIPLY';m1.inputs[0].default_value=.85 if PLAN=='res_nyxbean' else .5
         if src:t.links.new(src,m1.inputs[6])
         else:m1.inputs[6].default_value=bs.inputs['Base Color'].default_value
-        t.links.new(ao.outputs[0],m1.inputs[7])
+        if PLAN=='res_frostmitt' and pre.endswith('_body'):  # icy blue creases: mix(ice blue, white) by AO
+            ic=t.nodes.new('ShaderNodeMix');ic.data_type='RGBA';t.links.new(ao.outputs[0],ic.inputs[0]);ic.inputs[6].default_value=(.18,.35,.75,1);ic.inputs[7].default_value=(1,1,1,1)
+            m1.blend_type='MULTIPLY';m1.inputs[0].default_value=1;t.links.new(ic.outputs[2],m1.inputs[7])
+        else:t.links.new(ao.outputs[0],m1.inputs[7])
         m2=t.nodes.new('ShaderNodeMix');m2.data_type='RGBA';m2.blend_type='MULTIPLY' if pre.endswith('_hat') else 'OVERLAY';m2.inputs[0].default_value=.5 if pre.endswith('_hat') else (0 if PLAN in('res_kairo','res_frostmitt') else .35);t.links.new(m1.outputs[2],m2.inputs[6]);t.links.new(cv.outputs[0],m2.inputs[7])
         t.links.new(m2.outputs[2],bs.inputs['Base Color'])
     print('BAKED maps on',o.name)
@@ -84,7 +89,7 @@ if BK:
 if os.environ.get('CYCLES','1')=='1':
     # offline look: Cycles + OIDN, strand fur (clumped children + flyaways) on the coat meshes, SSS ears
     sc.render.engine='CYCLES';sc.cycles.samples=int(os.environ.get('SAMPLES','64'));sc.cycles.use_denoising=True;sc.cycles.denoiser='OPENIMAGEDENOISE';sc.cycles.device='CPU'
-    FUR={'res_nyxbean':(.024,(.02,.012,.03)),'res_frostmitt':(.03,(.5,.55,.66)),'res_kairo':(0,None)}[PLAN]
+    FUR={'res_nyxbean':(.024,(.016,.015,.018)),'res_frostmitt':(.05,(.62,.68,.8)),'res_kairo':(0,None)}[PLAN]
     if FUR[0]>0:
         hm=bpy.data.materials.new('furhair');hm.use_nodes=True;nt2=hm.node_tree;out=nt2.nodes['Material Output']
         for n_ in list(nt2.nodes):
@@ -95,7 +100,7 @@ if os.environ.get('CYCLES','1')=='1':
         hb.inputs['Roughness'].default_value=.35;nt2.links.new(hb.outputs[0],out.inputs['Surface'])
         for o in [o for o in sc.objects if o.type=='MESH' and not o.hide_render and (o.name.startswith(('body','prop_catears')) or o.name.split('.')[0] in SHOW)]:
             o.data.materials.append(hm);slot=len(o.data.materials)
-            md=o.modifiers.new('fur','PARTICLE_SYSTEM');ps=md.particle_system.settings;ps.type='HAIR';ps.count=int(22000 if o.name.startswith('body') else 3000)
+            md=o.modifiers.new('fur','PARTICLE_SYSTEM');ps=md.particle_system.settings;ps.type='HAIR';ps.count=int((34000 if PLAN=='res_frostmitt' else 22000) if o.name.startswith('body') else 3000)
             vgl=o.vertex_groups.new(name='furlen');zt_=max(v.co.z for v in o.data.vertices)
             for v in o.data.vertices:vgl.add([v.index],max(.25,min(1,(v.co.z/zt_-.12)*2.2)),'REPLACE')
             md.particle_system.vertex_group_length='furlen'
