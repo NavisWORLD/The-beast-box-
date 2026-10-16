@@ -162,7 +162,10 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    const [teacherResult,result]=await Promise.all([teaching?talkToBeast({...ask,route}).catch(()=>null):Promise.resolve(null),talkToBeast({...ask,route:'guest-rawrphos'})]);
    if(pending.current!==controller||controller.signal.aborted||personaKey.current!==forKey||privateSelection.current!==forSelection)return;
    if(teacherResult&&teacherResult.ok&&teacherResult.route!=='shared-ollama')recordTeacherPair(saying,{text:teacherResult.reply,label:TEACHER_LABEL[teacherResult.route]||teacherResult.label,model:teacherResult.model,route:teacherResult.route});
-   if(!result.ok){setOffline({error:`${persona.name} is resting, try again.`,help:[],route:'guest-rawrphos'});return;}
+   // A teacher that couldn't connect is reported honestly (with setup help) but never blocks Zeref's own reply.
+   const teacherDown=teacherResult&&!teacherResult.ok?{error:'Teacher not connected: '+teacherResult.error,help:teacherResult.help,route:teacherResult.route}:null;
+   if(!result.ok){setOffline({error:`${persona.name} is resting, try again.`+(teacherDown?' '+teacherDown.error:''),help:teacherDown?.help||[],route:'guest-rawrphos'});return;}
+   if(teacherDown)setOffline(teacherDown);
    const exchangeId=crypto.randomUUID(),at=Date.now();
    const coachedBy=teacherResult&&teacherResult.ok?TEACHER_LABEL[teacherResult.route]||teacherResult.label:undefined;
    const youTurn={role:'you' as const,text:saying,at,id:exchangeId+'-you'};

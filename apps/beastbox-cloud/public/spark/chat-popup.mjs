@@ -208,7 +208,8 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
    if(teacher&&teacherResult.route!=='shared-ollama'){const local=optionalStorage('localStorage'),pair=makePair({prompt:text,reply:teacherResult.reply,route:teacher.route,model:teacherResult.model,beast:forPersona.name});rememberPair(local,pair);
     const body=(readContribute(local)||teacher.route==='connected-brain-bay')?contributionBody(pair):null;
     if(body)fetch('/api/teacher-pairs',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).catch(()=>{});}
-   if(!result.ok){offline={...result,error:`${forPersona.name} is resting, try again.`,help:[]};renderError();if(open)scroll.scrollTop=scroll.scrollHeight;return;}
+   const teacherDown=teacherResult&&!teacherResult.ok?teacherResult:null;
+   if(!result.ok){offline={...result,error:`${forPersona.name} is resting, try again.`+(teacherDown?' Teacher not connected: '+teacherDown.error:''),help:teacherDown?.help||[]};renderError();if(open)scroll.scrollTop=scroll.scrollHeight;return;}
    let careError='';try{await onVerified?.({persona:forPersona,text,reply:result.reply,retention:forRetention,model:result.model});}catch(error){careError=error.message||'The creature care save was not confirmed.';}
    if(pending!==controller||persona.key!==forKey)return;
    const exchangeId=crypto.randomUUID(),at=result.at||Date.now();
@@ -216,7 +217,7 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
    const saved=writeTalkLog(forStorage,forKey,log);verified=result;editDraft('');
    if(visitorId){growth=advanceVisitorGrowth(growth||freshGrowth(visitorId,forKey),{text,reply:result.reply,verified:true});writeVisitorGrowth(forStorage,growth);renderGrowth();}
    $('talk-save-note').textContent=careError||(!saved?'The model replied, but this browser could not save the conversation.':'');
-   renderHistory();if(open)scroll.scrollTop=scroll.scrollHeight;
+   renderHistory();if(teacherDown){offline={...teacherDown,error:'Teacher not connected: '+teacherDown.error};renderError();}if(open)scroll.scrollTop=scroll.scrollHeight;
    if(forCloud&&cloudEnabled&&cloudState?.consented&&cloudState.owner===forCloud.owner)queueCloudExchange(forKey,forBeast,{eventId:exchangeId,text,reply:result.reply,provider:result.route,model:result.model,at},forCloud.owner);
   }finally{window.clearTimeout(timeout);if(pending===controller){pending=null;status();}}
  }
