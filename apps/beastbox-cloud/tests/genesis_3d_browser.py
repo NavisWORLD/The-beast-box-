@@ -56,6 +56,9 @@ with sync_playwright() as p:
     document.querySelector('[data-pocket-dimension]')?.dataset.pocketState)""",timeout=30000)
   pocket_state=pocket.get_attribute("data-pocket-state")
   expect(page.locator('.cage-habitat-visual [data-spark-beast="true"]')).to_be_visible()
+  # Phones: the habitat controls are tucked behind the quiet "⋯" pill (declutter, Oct 15); open it, then the attack control must show.
+  more=page.get_by_role("button",name="Show controls")
+  if more.count() and more.first.is_visible():more.first.click()
   expect(page.get_by_role("button",name=re.compile("Make the beast attack"))).to_be_visible()
   assert page.locator('[data-pocket-settings]').count()==0
   if pocket_state=="ready":

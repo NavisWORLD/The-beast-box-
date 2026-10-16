@@ -684,7 +684,7 @@ html[data-beastbox-reduced-motion="true"] *,html[data-beastbox-reduced-motion="t
 .zeref-sprite3d{position:relative;width:100%;height:100%;aspect-ratio:1;max-height:100%;margin:auto}
 .zeref-sprite3d-source{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none}
 .zeref-sprite3d[data-zeref-sprite3d=fallback] .zeref-sprite3d-source{opacity:1}
-.zeref-sprite3d-canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:pan-y;cursor:grab;filter:drop-shadow(0 0 10px #a77bffa0) drop-shadow(0 14px 22px #05020caa)}
+.zeref-sprite3d-canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;filter:drop-shadow(0 0 10px #a77bffa0) drop-shadow(0 14px 22px #05020caa)}
 .cosmos-home-hero>.zeref-sprite3d{width:100%;height:100%}
 /* Home pocket UI cleanup (Cory, Oct 14): the 3D Zeref IS the guide here, so the floating mini
    companion steps aside, and the
@@ -724,3 +724,8 @@ html[data-game-player=fullscreen] button[aria-controls=beast-chat-overlay][data-
    TALK TO launcher instead of floating over the pocket, the My Beast/Zeref toggle and the game dock. */
 @media(max-width:560px){body:has(.beast-landing-art) .companion-dock,body:has(.beast-landing-art) [data-companion-overlay][data-roaming="active"]{left:auto!important;top:auto!important;right:max(8px,env(safe-area-inset-right))!important;bottom:calc(214px + env(safe-area-inset-bottom))!important;transition:none!important}}
 @media(max-width:560px){[data-companion-overlay] [class*="toolbar"]{left:auto!important;right:0!important;justify-content:flex-end!important;max-width:calc(100vw - 16px)}}
+/* Dock dodge (the sound dock is exempt: its controls must always stay clickable): fixed bottom bars slide out while a cage caption is in the bottom band (see lib/three/dock-dodge.ts). */
+[data-spark-player][data-player-mode=minimized],[class*=beast-chat-overlay][class*=launcher]{transition:transform .28s ease,opacity .28s ease}
+html[data-dock-dodge] [data-spark-player][data-player-mode=minimized],html[data-dock-dodge] [class*=beast-chat-overlay][class*=launcher]{transform:translateY(160%);opacity:0;pointer-events:none}
+/* 3D Beast active in the pocket: the pixel sprite stays mounted (voice, hit target, saves) but is visually replaced. Classic pixel toggle removes data-beast-3d. */
+html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],html[data-beast-3d] .beast-landing-art [data-spark-beast] [data-beast-sprite]{opacity:0!important}

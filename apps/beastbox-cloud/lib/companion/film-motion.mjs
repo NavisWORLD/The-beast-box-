@@ -8,8 +8,9 @@
  * so they use their id only. Nothing here invents counts or receipts. Pure: no DOM, clock or network;
  * randomness is a seeded PRNG.
  */
-function fnv(str){let h=0x811c9dc5;for(const ch of String(str)){h^=ch.charCodeAt(0);h=Math.imul(h,0x01000193)>>>0;}return h>>>0;}
-export function prng(seed){let a=fnv(seed)||1;return()=>{a^=a<<13;a>>>=0;a^=a>>>17;a^=a<<5;a>>>=0;return a/4294967296;};}
+import {seededRng,springStep,clampDt} from '../physics/cst-integrator.mjs';
+/** Seeded PRNG: the shared CST integrator one (bit-identical to the previous local copy). */
+export const prng=seededRng;
 /** Shannon entropy (0..1) of the creature's own counts, or null when there is no receipt. */
 export function countsEntropy(counts){
  if(!counts||typeof counts!=='object')return null;const v=Object.values(counts).filter(n=>Number.isFinite(n)&&n>0);
@@ -24,7 +25,7 @@ export function motionPersona({id,seed=null,counts=null}={}){
  if(e!==null){base.walk=Math.min(1,base.walk*.6+e*.5);base.hop=Math.min(1,base.hop*.7+(1-e)*.35);}
  return Object.freeze({...base,source:e!==null?'seed+labelled-counts':seed?'recorded-seed':'id-only'});
 }
-const spring=(s,target,k,d,dt)=>{const a=(target-s.x)*k-s.v*d;s.v+=a*dt;s.x+=s.v*dt;return s.x;};
+const spring=springStep;
 export function createActor(persona,{x=0,z=0,radius=1.6,seed='actor'}={}){
  return {p:persona,rand:prng(seed+':acts'),state:'idle',t:0,dur:1.2,x,z,home:{x,z},radius,heading:0,target:null,
   sq:{x:1,v:0},lean:{x:0,v:0},tail:{x:0,v:0},ear:{x:0,v:0},head:{x:0,v:0},lift:0,fid:0};
@@ -32,7 +33,7 @@ export function createActor(persona,{x=0,z=0,radius=1.6,seed='actor'}={}){
 const STATES=['idle','walk','anticipate','hop','land'];export {STATES};
 /** Advance one actor. ctx: {lookAt:{x,z}|null, reduced}. Returns the pose to apply. */
 export function stepActor(a,dt,ctx={}){
- dt=Math.min(.05,Math.max(0,dt));const {reduced=false}=ctx;a.t+=dt;
+ dt=clampDt(dt);const {reduced=false}=ctx;a.t+=dt;
  if(reduced){a.state='idle';a.lift=0;a.sq.x=1;return pose(a,0,ctx);}
  const p=a.p;let squash=1;
  const next=()=>{const r=a.rand();a.t=0;

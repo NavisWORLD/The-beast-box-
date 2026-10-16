@@ -1,10 +1,15 @@
 import {ARTIST_RESIDENTS,residentView} from '../lib/companion/artist-residents.mjs';
 import {loadResident3D} from './resident-3d';
+import {loadBeastGlb} from './creature-glb-beast';
+import RES_PAINTS from '../lib/creatures3d/resident-paints.json';
 import {motionPersona,createActor,stepActor} from '../lib/companion/film-motion.mjs';
 type Three=typeof import('three');
 /** Cory's artist-drawn residents (no quantum seed). They are separate creatures and never the
  * player's active Beast, which stays rendered by the Cage arena in front of the pocket. */
-export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedRandom:()=>number,reduced:boolean){
+export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedRandom:()=>number,reduced:boolean,low=false){
+ /* Low tier (phones, software GL such as CI SwiftShader): sculpted GLBs (fur shells, coat shader) stay off so the
+    main thread never starves; the visual-hull model / sprite render instead. ?beastglb=1 forces them for review. */
+ const glbOk=!reduced&&(!low||(typeof location!=='undefined'&&new URLSearchParams(location.search).get('beastglb')==='1'));
     const loader=new THREE.TextureLoader(),texCache=new Map<string,import('three').Texture>();
     const tex=(src:string)=>{let t=texCache.get(src);if(!t){t=loader.load(src);t.colorSpace=THREE.SRGBColorSpace;texCache.set(src,t);}return t;};
     const residents=ARTIST_RESIDENTS.map((r,i)=>{
@@ -15,9 +20,12 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
      // Film motion: artist-drawn → no quantum seed, so the persona comes from the resident's own id only.
      const home=(i/ARTIST_RESIDENTS.length)*Math.PI*2+.6,hr=r.kind==='trainer'?2.2:2.8;
      const actor=createActor(motionPersona({id:r.id}),{x:Math.cos(home)*hr,z:Math.sin(home)*hr*.85,radius:.9,seed:r.id});
-     const slot:{mesh:import('three').Mesh|null}={mesh:null};
-     // Frostmitt/Nyxbean: swap the flat sprite for the true-3D visual-hull model once it loads.
-     void loadResident3D(THREE,r.id).then(m=>{if(!m)return;slot.mesh=m;scene.add(m);sprite.visible=false;});
+     const slot:{mesh:any;glb:any}={mesh:null,glb:null};
+     // Zeref-pipeline sculpted resident GLB (Oct 15) with its artist palette + props; the visual-hull model / sprite stay as fallback.
+     const stub=(RES_PAINTS as any[]).find(x=>x.body==='res_'+r.id.replace('art-',''));
+     const hull=()=>loadResident3D(THREE,r.id).then(m=>{if(!m)return;slot.mesh=m;scene.add(m);sprite.visible=false;});
+     if(stub&&glbOk)void loadBeastGlb(THREE,stub,{tier:'med',paint:stub.paint}).then(gb=>{if(!gb){void hull();return;}slot.glb=gb;slot.mesh=gb.root;gb.root.userData.glb=true;scene.add(gb.root);sprite.visible=false;}).catch(()=>void hull());
+     else void hull();
      return {r,sprite,shadow,h,actor,slot,phase:i*1.37+seedRandom()*2,radius:r.kind==='trainer'?2.2:2.7+seedRandom()*1.1,speed:(r.kind==='trainer'?.05:.09+seedRandom()*.06)*(i%2?1:-1),src:r.views.front,x:0,z:0};
     });
     let lastT=0;
@@ -32,7 +40,9 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
       const view=residentView(a.r,p.heading+p.head,theta);const m=a.sprite.material;
       if(view.src!==a.src){m.map=tex(view.src);m.needsUpdate=true;a.src=view.src;}
       a.sprite.scale.set(a.h*p.sx*(view.flip?-1:1),hy,1);m.rotation=-p.lean*(view.flip?-1:1);
-      const mesh=a.slot.mesh;if(mesh){mesh.position.set(p.x,p.lift,p.z);const k=a.h*1.55;mesh.scale.set(k*p.sx,k*p.sy,k*p.sx);mesh.rotation.set(p.lean,p.heading+p.head,0,'YXZ');}
+      const gb=a.slot.glb;if(gb){gb.drive(reduced?0:dt,{speed:Math.min(1,Math.hypot(p.x-(a as any).px||0,p.z-(a as any).pz||0)/Math.max(dt,1e-3)),mode:'wander',sleep:0,lookCam:0,bob:t*6,heading:p.heading},null,null);(a as any).px=p.x;(a as any).pz=p.z;
+       gb.root.position.set(p.x,p.lift,p.z);gb.root.scale.setScalar(.95*a.r.scale);gb.root.rotation.set(0,p.heading+p.head,0);}
+      const mesh=gb?null:a.slot.mesh;if(mesh){mesh.position.set(p.x,p.lift,p.z);const k=a.h*1.55;mesh.scale.set(k*p.sx,k*p.sy,k*p.sx);mesh.rotation.set(p.lean,p.heading+p.head,0,'YXZ');}
      });
     };
     const disturbers=()=>residents.map(a=>({x:a.x,z:a.z,r:.75*a.r.scale,s:2.4}));

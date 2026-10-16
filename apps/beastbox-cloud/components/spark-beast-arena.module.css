@@ -47,4 +47,10 @@
 }
 @media(prefers-reduced-motion:reduce){.poi i{transition:none}}
 .toolsToggle{display:none}
-@media(max-width:560px){.toolsToggle{display:inline-flex;min-width:44px;justify-content:center}.tools[data-tools-open=false] .soundTool{display:none}}
+@media(max-width:560px){.toolsToggle{display:inline-flex;justify-content:center}.tools[data-tools-open=false] .tool:not(.toolsToggle),.tools[data-tools-open=false] .soundTool{display:none}
+ /* declutter: one quiet pill tucked at the top-right edge; tapping the Beast still attacks */
+ .tools{top:10px;left:auto;right:10px;margin:0;width:auto;flex-direction:column;align-items:flex-end;gap:6px}
+ .tools .tool{width:44px!important;min-width:44px!important;height:44px!important;padding:0!important;opacity:.82}.tools[data-tools-open=false] .toolsToggle{opacity:.6;background:#101a3199}}
+
+/* idle = invisible: no empty toast pill floating over the world */
+.toast:empty{display:none}

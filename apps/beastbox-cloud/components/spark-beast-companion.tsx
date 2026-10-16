@@ -8,6 +8,7 @@ import {blit,renderBeast,SPRITE} from '../public/spark/draw.mjs';
 import {buildGenome} from '../public/spark/genome.mjs';
 import {Voice} from '../public/spark/voice.mjs';
 import styles from './spark-beast-companion.module.css';
+import {dockDodge} from '../lib/three/dock-dodge';
 import {useBeastSession} from './beast-session';
 import {loadSparkRuns} from '../public/spark/runs.mjs';
 import SparkRig,{type RigDriver} from './spark-rig';
@@ -102,6 +103,8 @@ export default function SparkBeastCompanion({
  const active=profile??fallback;
  const {session}=useBeastSession();
  const sameSpark=session?.beast?.qbeast&&(preferSavedBeast||session.beast.qbeast.profile.id===active.id)?session.beast:null;
+ const dodgeOff=useRef<(()=>void)|null>(null);
+ const metaRef=useCallback((el:HTMLElement|null)=>{dodgeOff.current?.();dodgeOff.current=el?dockDodge(el):null;},[]);
  const canvas=useRef<HTMLCanvasElement>(null),mover=useRef<HTMLDivElement>(null);
  const frame=useRef<number>(0),lastEye=useRef(''),utterance=useRef(0);
  const voiceNodes=useRef(new Map<GainNode,ReturnType<typeof setTimeout>>());
@@ -236,6 +239,8 @@ export default function SparkBeastCompanion({
  const name=sameSpark?.displayName||gen?.names?.[stage]||active.name;
  // Rig mode with no chosen Beast: the site guide Zeref lives in the habitat (same rule as the home page).
  const guide=rig&&!profile&&!sameSpark;
+ // Publish the Beast genome for the 3D pocket (plush creature). Guide/compact views never publish.
+ useEffect(()=>{if(compact||!gen)return;(window as any).__beastGenome=guide?null:gen;window.dispatchEvent(new Event('beastbox:genome'));},[gen,guide,compact]);
  const rigName=guide?ZEREF_PROFILE.name:name;
  const rigStats=active.game?.stats as unknown as Record<string,number>|undefined;
  return <figure className={[styles.root,compact?styles.compact:'',rig?styles.rigMode:'',className].filter(Boolean).join(' ')}
@@ -247,12 +252,12 @@ export default function SparkBeastCompanion({
      state={state} reduced={reduced} channel={audioChannel||'habitat'} driver={rigDriver} className={styles.rig}/>:<span className={styles.rigWait} aria-hidden="true"/>)
     :<canvas ref={canvas} className={styles.canvas} data-beast-sprite="true" aria-label={name+' pixel creature sprite'}/>}
   </div>
-  {!compact?<figcaption className={styles.meta}>
+  {!compact?<figcaption ref={metaRef} className={styles.meta}>
    <strong>{guide?'Zeref':name}</strong>
    {guide?<span>Moonwraith · site guide · exploring the pocket</span>:<span>{gen?gen.temperament+' · '+gen.body+' · '+gen.island:'Building Spark genome…'}</span>}
-   {guide?<small>RECORDED QUANTUM SEED · {ZEREF_RECORDED_SOURCE.backend} · job {ZEREF_RECORDED_SOURCE.job_id.slice(0,8)}…</small>
-    :run?<small>RECORDED QUANTUM SEED · {run.backend} · {run.num_bits}-bit · {run.counts_sha256.slice(0,10)}…</small>:null}
-   <small>Recorded counts seed the game art. No live quantum link, awareness, or sensor authority.</small>
+   {guide?<small className={styles.seedLine}>RECORDED QUANTUM SEED · {ZEREF_RECORDED_SOURCE.backend} · job {ZEREF_RECORDED_SOURCE.job_id.slice(0,8)}…</small>
+    :run?<small className={styles.seedLine}>RECORDED QUANTUM SEED · {run.backend} · {run.num_bits}-bit · {run.counts_sha256.slice(0,10)}…</small>:null}
+   <small className={styles.disclaimer}>Recorded counts seed the game art. No live quantum link, awareness, or sensor authority.</small>
   </figcaption>:null}
   {controls&&!compact?<div className={styles.controls}>
    <div className={styles.stages} role="group" aria-label="Preview evolution stage">

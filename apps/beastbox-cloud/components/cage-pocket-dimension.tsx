@@ -5,10 +5,19 @@ import {ARTIST_RESIDENTS} from '../lib/companion/artist-residents.mjs';
 import {addPocketResidents} from './pocket-residents';
 import {addPocketSand} from './pocket-sand-layer';
 import {SAND_LABEL} from '../lib/pocket-sand.mjs';
+import {guardCanvasTouch} from '../lib/three/touch-guard';
 import {useEffect,useRef,useState} from 'react';
 import {createPocketSky,orbitPosition} from '../lib/pocket-sky.mjs';
-import {DEFAULT_POCKET_3D,POCKET_3D_KEY,POCKET_3D_EVENT,POCKET_3D_CAMERA_RESET,devicePocket3D} from '../lib/companion/pocket-3d-settings.mjs';
+import {DEFAULT_POCKET_3D,POCKET_3D_KEY,POCKET_3D_EVENT,POCKET_3D_CAMERA_RESET,devicePocket3D,deviceClassicPixel,saveClassicPixel} from '../lib/companion/pocket-3d-settings.mjs';
 import styles from './cage-pocket-dimension.module.css';
+import {addPocketLife,type Weather} from './pocket-life';
+import {buildPlush,type PlushGenome} from './creature-plush-3d';
+import {loadBeastGlb,GLB_PLANS} from './creature-glb-beast';
+import {addPocketWorld} from './pocket-world';
+import {createLife,stepLife,pokeLife} from '../lib/creatures3d/life-brain.mjs';
+type God={weather:(w:Weather)=>void;time:(t:number|null)=>void;treat:()=>void;flower:()=>void;poke:()=>void};
+const WEATHERS:Weather[]=['auto','sun','rain','storm'];const WEATHER_ICON:Record<Weather,string>={auto:'✦',sun:'☀',rain:'☂',storm:'⚡'};
+const TIMES:(number|null)[]=[null,0,.3,.5];const TIME_ICON=['◐','☀','🌇','☾'];
 
 type View={theta:number;phi:number;zoom:number};
 type Pointer={x:number;y:number};
@@ -40,7 +49,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
  const sandSource=qvmCounts?'receipt':'seed';
  const canvasRef=useRef<HTMLCanvasElement>(null);
  const motion=useRef({position:behaviorPosition,state,stage,impulse:0});
- const cameraView=useRef<View>({theta:.7,phi:1.05,zoom:10.6});
+ const cameraView=useRef<View>({theta:.7,phi:1.28,zoom:10.6});
  // Tap-a-creature: set once the scene exists; a tap (no drag) raycasts and focuses the camera on what it hits.
  const pickRef=useRef<((x:number,y:number)=>void)|null>(null);
  const [visualSettings,setVisualSettings]=useState<{enabled:boolean;quality:'auto'|'low'|'high'}>({...DEFAULT_POCKET_3D});
@@ -51,6 +60,11 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   return()=>{window.removeEventListener(POCKET_3D_EVENT,sync);window.removeEventListener('storage',onStorage);};
  },[]);
  const [ready,setReady]=useState(false),[failed,setFailed]=useState(false);
+ // Living pocket: play-god toolbar + classic pixel toggle + collapsible info (LIVE feed framing).
+ const godRef=useRef<God|null>(null);const [weatherI,setWeatherI]=useState(0),[timeI,setTimeI]=useState(0),[infoOpen,setInfoOpen]=useState(false);
+ const [pixel,setPixel]=useState(false);const pixelRef=useRef(false);pixelRef.current=pixel;
+ useEffect(()=>{setPixel(deviceClassicPixel());},[]);
+ const togglePixel=()=>{const v=!pixel;setPixel(v);saveClassicPixel(v);window.dispatchEvent(new Event('beastbox:pixel-mode'));};
  const [residentsOpen,setResidentsOpen]=useState(true);
  useEffect(()=>{if(window.matchMedia('(max-width:560px)').matches)setResidentsOpen(false);},[]);
  const id=qbeastId||'visual-preview';
@@ -119,15 +133,16 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    }else if(event.key==='-'){
     event.preventDefault();cameraView.current.zoom=clamp(cameraView.current.zoom*1.3,ZOOM_MIN,ZOOM_MAX);
    }else if(event.key==='Home'){
-    event.preventDefault();cameraView.current={theta:.7,phi:1.05,zoom:10.6};
+    event.preventDefault();cameraView.current={theta:.7,phi:1.28,zoom:10.6};
    }
   };
   // Existing sound-generator events: sound is a *visual stimulus*, not proof
   // of external microphone hearing or physical quantum/natural growth.
   const chirp=(e:Event)=>{const raw=Number((e as CustomEvent)?.detail?.intensity);motion.current.impulse=clamp(motion.current.impulse+(Number.isFinite(raw)?raw:.35)*.32,0,1.25);};
   const mute=()=>{motion.current.impulse=0;};
-  const resetCamera=()=>{cameraView.current={theta:.7,phi:1.05,zoom:10.6};pickRef.current?.(-1e6,-1e6);};
+  const resetCamera=()=>{cameraView.current={theta:.7,phi:1.28,zoom:10.6};pickRef.current?.(-1e6,-1e6);};
   const option={passive:true} as AddEventListenerOptions;
+  const unguard=parent?guardCanvasTouch(parent,{hint:parent.classList.contains('beast-landing-art')?'☝ Drag to spin the universe':'☝ Drag to explore · pinch to zoom'}):()=>{};
   if(parent){
    parent.addEventListener('pointerdown',pointerDown,option);
    parent.addEventListener('pointermove',pointerMove,option);
@@ -141,6 +156,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   window.addEventListener('beastbox:spark-mute',mute);
   window.addEventListener(POCKET_3D_CAMERA_RESET,resetCamera);
   const releaseListeners=()=>{
+   unguard();
    if(parent){
     parent.removeEventListener('pointerdown',pointerDown);
     parent.removeEventListener('pointermove',pointerMove);
@@ -157,8 +173,11 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   void(async()=>{
    try{
     if(!window.WebGLRenderingContext)throw Error('WebGL unavailable');
-    // Home: let the 3D Zeref finish cutting his layers first (both share one main thread on phones).
-    if(autoOrbitRef.current){const t0=performance.now();while(!disposed&&performance.now()-t0<10000&&document.querySelector('[data-zeref-sprite3d="loading"]'))await new Promise(r=>setTimeout(r,250));if(disposed)return;}
+    // Home: let the 3D Zeref finish cutting his layers first (both share one main thread on phones / software GL).
+    // The pocket's first frame links its shader programs synchronously; starting it while Zeref is still loading
+    // starves his 9s fallback guard too, so neither ever settles on slow machines. His guard (main thread free while
+    // we wait) always ends 'loading', so wait for that; the 60s cap is only a safety net.
+    if(autoOrbitRef.current){const t0=performance.now();while(!disposed&&performance.now()-t0<60000&&document.querySelector('[data-zeref-sprite3d="loading"]'))await new Promise(r=>setTimeout(r,250));if(disposed)return;}
     const THREE=await import('three');
     if(disposed)return;
     // User quality never overrides the OS reduced-motion safety boundary.
@@ -173,9 +192,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
     const scene=new THREE.Scene();
     scene.background=new THREE.Color(0x05040f);
-    scene.fog=new THREE.FogExp2(0x0d0a26,.032);
+    scene.fog=new THREE.FogExp2(0x0d0a26,.017);
     const camera=new THREE.PerspectiveCamera(46,1,.1,30000);
-    scene.add(new THREE.HemisphereLight(0x94d9ff,0x20113b,1.8));
+    const hemi=new THREE.HemisphereLight(0x94d9ff,0x20113b,1.8);scene.add(hemi);
     const moonlight=new THREE.PointLight(0xa8eaff,24,12);
     moonlight.position.set(0,4,1);scene.add(moonlight);
     const glow=new THREE.PointLight(0xba82f4,13,11);glow.position.set(-2,2,-3);scene.add(glow);
@@ -257,7 +276,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       'vec3 c=mix(vec3(.12,.55,.85),vec3(.65,.4,1.0),w);gl_FragColor=vec4(c*(1.0-r*.7),(1.0-r)*.55+.08);}'});
     const pool=new THREE.Mesh(new THREE.CircleGeometry(1,low?32:64),poolMat);pool.rotation.x=-Math.PI/2;pool.position.set(2.15,-.03,-1.7);pool.scale.setScalar(.95);scene.add(pool);
     // Artist-drawn residents (separate creatures, never the active Beast) roam the pocket.
-    const {stepResidents,texCache,disturbers,pickables}=addPocketResidents(THREE,scene,seedRandom,reduced);
+    const {stepResidents,texCache,disturbers,pickables}=addPocketResidents(THREE,scene,seedRandom,reduced,low);
     // God view: habitat on a small planet, orbiting its suns, inside a galaxy (Genesis Engine, recoloured).
     const god=addGodView(THREE,scene,{rand:randomFor(key+':system'),low,counts:qvmCounts,stage:motion.current.stage||stage||1});
     const godFocus=new THREE.Vector3();
@@ -269,6 +288,31 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     if(typeof window!=='undefined')(window as any).__pocketCamera=cameraView;
     const sand=addPocketSand(THREE,scene,{seed:key,low,reduced});
     sand.field.setCounts(qvmCounts);
+    // ---- LIVING POCKET (CST-driven world) + the Beast as a plush 3D creature living its own life
+    const life=addPocketLife(THREE,scene,{seed:key,low,reduced,counts:qvmCounts,hemi,soft});
+    // Software GL (CI SwiftShader, GPU-less VMs): the terrain/ocean/nebula-sky shaders take tens of seconds to link there and
+    // starve the main thread, so the classic pocket stays and the world layer is skipped. Real GPUs (incl. phones) keep it.
+    const world=soft?{update:(..._a:any[])=>{},dispose:()=>{}}:addPocketWorld(THREE,scene,{seed:key,low});
+    const brain:any=createLife(key,{x:.8,z:.6} as any);const shelterAt=flora[0]?{x:flora[0].position.x*.8,z:flora[0].position.z*.8}:{x:2,z:-1.4};
+    let plush:ReturnType<typeof buildPlush>|null=null;const beastNode=new THREE.Group();beastNode.name='beast-3d';scene.add(beastNode);
+    const syncPlush=()=>{const gen=(window as any).__beastGenome as PlushGenome|null;const want=!!gen&&!pixelRef.current;
+     if(plush&&(!want||plush.root.userData.seed!==gen?.seed)){beastNode.remove(plush.root);plush.dispose();plush=null;}
+     if(want&&!plush&&gen){plush=buildPlush(THREE,gen,{low});plush.root.userData.seed=gen.seed;plush.root.scale.setScalar(1.3);beastNode.add(plush.root);
+      // Zeref-pipeline sculpted GLB replaces the plush when available (plush stays as low tier / fallback while loading or on failure)
+      if((!low||new URLSearchParams(location.search).get('beastglb')==='1')&&GLB_PLANS.includes(gen.body)){const mine=plush;loadBeastGlb(THREE,gen,{tier:'med'}).then(gb=>{
+        if(!gb||disposed||plush!==mine){gb?.dispose();return;}gb.root.scale.setScalar(1.15);mine.root.visible=false;beastNode.add(gb.root);
+        const pd=mine.drive,pdis=mine.dispose;const lp=new THREE.Vector3();
+        (mine as any).drive=(dt:number,b:any,mp:any,look:any)=>{let ll=null;if(look){lp.set(look.x,look.y,look.z);gb.root.worldToLocal(lp);ll={yaw:Math.atan2(lp.x,lp.z),pitch:Math.atan2(lp.y-.6,Math.hypot(lp.x,lp.z))};}gb.drive(dt,b,mp,ll);};
+        (mine as any).dispose=()=>{beastNode.remove(gb.root);gb.dispose();pdis();};(mine as any).tris=gb.tris;void pd;}).catch(()=>{});}}
+     if(plush)document.documentElement.setAttribute('data-beast-3d','');else document.documentElement.removeAttribute('data-beast-3d');};
+    syncPlush();window.addEventListener('beastbox:genome',syncPlush);window.addEventListener('beastbox:pixel-mode',syncPlush);
+    const lifeRand=randomFor(key+':god');const camXZ=()=>({x:camera.position.x,z:camera.position.z});
+    const near=(r:number)=>{const a=brain.heading+(lifeRand()-.5)*1.6,d=.9+lifeRand()*r;let x=brain.x+Math.cos(a)*d,z=brain.z+Math.sin(a)*d;const m=Math.hypot(x,z);if(m>3.2){x*=3.2/m;z*=3.2/m;}return {x,z};};
+    const pokeBeast=()=>{const mood=life.update(0,null,null).mood;pokeLife(brain,mood as any,camXZ() as any);life.poke(brain.x,brain.z);};
+    godRef.current={weather:w=>life.setWeather(w),time:t=>life.setTime(t),treat:()=>{const p=near(1.2);life.dropTreat(p.x,p.z);},flower:()=>{const p=near(1.5);life.plantFlower(p.x,p.z);},poke:pokeBeast};
+    const onTalk=(e:Event)=>{const raw=Number((e as CustomEvent)?.detail?.intensity);life.talk(Number.isFinite(raw)?raw:.4);if(brain.mode!=='nap'&&brain.mode!=='shelter'){brain.mode='glance';brain.timer=1.6;}};
+    window.addEventListener('beastbox:spark-chirp',onTalk);
+    let attn:{x:number;y:number;z:number}|null=null;
     const resize=()=>{
      if(disposed)return;
      const rect=canvas.getBoundingClientRect();
@@ -289,13 +333,14 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     pickRef.current=(cx,cy)=>{
      const rect=canvas.getBoundingClientRect();if(cx<rect.left||cx>rect.right||cy<rect.top||cy>rect.bottom){focused=null;(window as any).__pocketFocus={id:null};return;}
      ndc.set((cx-rect.left)/rect.width*2-1,-((cy-rect.top)/rect.height*2-1));ray.setFromCamera(ndc,camera);
-     const list:{id:string;obj:import('three').Object3D}[]=[...pickables()];const ze=(window as any).__zerefEmbed;if(ze?.claimed&&ze.root)list.push({id:'zeref',obj:ze.root});
+     const list:{id:string;obj:import('three').Object3D}[]=[...pickables()];if(plush)list.push({id:'beast',obj:plush.root});const ze=(window as any).__zerefEmbed;if(ze?.claimed&&ze.root)list.push({id:'zeref',obj:ze.root});
      let best:{id:string;obj:import('three').Object3D}|null=null,bestD=Infinity;
      for(const c of list){if(!c.obj.visible&&c.id!=='zeref')continue;const h=ray.intersectObject(c.obj,true)[0];if(h&&h.distance<bestD){bestD=h.distance;best=c;}}
      if(!best){
       // forgiving finger: nearest creature to the ray within ~0.6 world units
       for(const c of list){c.obj.getWorldPosition(tgt);const d=ray.ray.distanceToPoint(tgt);if(d<.6&&d<bestD){bestD=d;best=c;}}
      }
+     if(best?.id==='beast'){pokeBeast();return;}
      focused=best;if(best)cameraView.current.zoom=Math.min(cameraView.current.zoom,4.6);
      (window as any).__pocketFocus={id:best?.id??null};
     };
@@ -306,7 +351,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      if(disposed)return;
      frame=requestAnimationFrame(animate);
      const dt=clamp((now-last)/1000,0,.06);last=now;
-     if(document.hidden||!visible||now-lastPaint<(soft?120:low?55:33))return;
+     if(document.hidden||(!visible&&rendered)||now-lastPaint<(soft?120:low?55:33))return;
      lastPaint=now;
      if(!reduced)elapsed+=dt;
      nebulaMat.uniforms.time.value=elapsed;poolMat.uniforms.time.value=elapsed;
@@ -341,6 +386,17 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       zHolder.position.set(zp.x,-.07+zp.lift,zp.z);zHolder.rotation.y=.7+zp.heading*.5+zp.head;
       zActorNode.scale.set(zp.sx,zp.sy,zp.sx);zActorNode.rotation.x=zp.lean;ze.motion={tail:zp.tail,ear:zp.ear};
       let d=-(v.theta-zHolder.rotation.y)*180/Math.PI;d=((d%360)+540)%360-180;ze.viewYaw=d;}
+     // living pocket step: CST world → life brain → plush rig
+     {const cp=plush?{x:brain.x,y:.45,z:brain.z}:null;const L=life.update(reduced?0:dt,cp,plush?attn:null);world.update(reduced?0:dt,L.env,L.cst.ch,camera.position);
+      if(plush){stepLife(brain,reduced?0:dt,{...L.env,mood:L.mood,cam:camXZ(),residents:disturbers(),shelter:shelterAt,onEat:(id:string)=>life.eat(id)});
+       attn=brain.attn?{x:brain.attn.x,y:brain.attn.y,z:brain.attn.z}:null;
+       beastNode.position.set(brain.x,0,brain.z);beastNode.rotation.y=Math.PI/2-brain.heading;
+       plush.drive(reduced?0:dt,brain,L.mp,brain.lookCam>.3?{x:camera.position.x,y:camera.position.y,z:camera.position.z}:attn);
+       // observer camera: a gentle side/away drift that keeps the Beast framed, never forced into its face
+       if(!autoOrbitRef.current&&!focused&&!reduced&&now-lastDragAt.current>4000){const want=-brain.heading+Math.PI/2+.5*Math.PI+(brain.lookCam>.5?Math.PI*.35:0);
+        let dth=((want-v.theta)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI;v.theta+=dth*Math.min(1,dt*.12);v.zoom+=(9.4-v.zoom)*Math.min(1,dt*.2);v.phi+=(1.36-v.phi)*Math.min(1,dt*.2);
+        homeFocus.set(brain.x*.6,1.05,brain.z*.6);/* lower + pulled back so the pocket world shows behind the Beast */}else homeFocus.set(0,.85,0);
+       (window as any).__beastLife={mode:brain.mode,x:brain.x,z:brain.z,attn:brain.attn?.kind??null,weather:life.getWeather(),coherence:L.cst.ch.coherence,chaos:L.cst.ch.chaos,hebb:L.cst.hebb,rain:L.env.rain,night:L.env.night,tris:plush.tris};}}
      if(focused){focused.obj.getWorldPosition(tgt);tgt.y+=.35;focus.lerp(tgt,Math.min(1,dt*4));}else focus.lerp(homeFocus,Math.min(1,dt*3));
      const f=god.update(elapsed,v.zoom,focus,godFocus);
      (scene.fog as import('three').FogExp2).density=.032*Math.min(1,12/v.zoom);
@@ -350,9 +406,23 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      try{renderer.render(scene,camera);}catch{setReady(false);setFailed(true);return;}
      if(!rendered){rendered=true;setReady(true);}
     };
+    // Link every shader program off the main thread before the first frame where the browser can (KHR_parallel_shader_compile):
+    // a synchronous first-frame link of the whole pocket takes many seconds on software GL / weak GPUs and freezes the page
+    // (taps, Zeref, the rest of the UI). Bounded so a driver that never reports completion still starts.
+    if(renderer.extensions.get('KHR_parallel_shader_compile')){try{await Promise.race([renderer.compileAsync(scene,camera),new Promise(r=>setTimeout(r,8000))]);}catch{}if(disposed)return;}
+    else{
+     // No parallel link (SwiftShader/llvmpipe, some mobile drivers): warm up progressively. Reveal the drawables a few at
+     // a time and render, yielding between batches, so each frame only links a handful of programs and input, Zeref and
+     // the rest of the page keep running. Visibility is restored exactly before the real loop starts.
+     const drawn:any[]=[];scene.traverse((o:any)=>{if(o.visible&&o.material&&(o.isMesh||o.isPoints||o.isLine||o.isSprite))drawn.push(o);});
+     drawn.forEach(o=>{o.visible=false;});
+     try{for(let i=0;i<drawn.length&&!disposed;i+=4){for(let j=i;j<Math.min(drawn.length,i+4);j++)drawn[j].visible=true;renderer.render(scene,camera);await new Promise(r=>setTimeout(r,0));}}
+     catch{}finally{drawn.forEach(o=>{o.visible=true;});}
+     if(disposed)return;
+    }
     frame=requestAnimationFrame(animate);
     cleanup=()=>{
-     pickRef.current=null;
+     pickRef.current=null;godRef.current=null;world.dispose();window.removeEventListener('beastbox:genome',syncPlush);window.removeEventListener('beastbox:pixel-mode',syncPlush);window.removeEventListener('beastbox:spark-chirp',onTalk);document.documentElement.removeAttribute('data-beast-3d');life.dispose();plush?.dispose();
      {const ze=(window as any).__zerefEmbed;if(ze?.root?.parent===zActorNode){zActorNode.remove(ze.root);ze.root.position.y=0;ze.claimed=false;}}
      cancelAnimationFrame(frame);ro?.disconnect();io?.disconnect();
      canvas.removeEventListener('webglcontextlost',onContextLost);
@@ -378,10 +448,20 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   {visualSettings.enabled&&!failed?<canvas data-pocket-webgl="true" className={styles.canvas} ref={canvasRef}
    aria-hidden="true"/>:null}
   {!visualSettings.enabled?<span className={styles.sr} role="status">3D scenery is off. Your Beast and game remain available.</span>:!failed&&!ready?<span className={styles.sr} role="status">Opening the dimensional world behind your Beast…</span>:null}
- <p className={styles.sandLabel} data-sand-source={sandSource}>{SAND_LABEL} · {sandSource==='receipt'?'recorded seed + this Beast\u2019s recorded Azure simulator counts':'recorded seed only · no simulator receipt for this Beast'}</p>
- <details className={styles.residentsBox} open={residentsOpen} onToggle={e=>setResidentsOpen((e.currentTarget as HTMLDetailsElement).open)}><summary aria-label={residentsOpen?"Minimize residents":"Show residents"}>{residentsOpen?"– Residents":"✦ Who lives here"}</summary>
+ {ready?<div className={styles.live} aria-hidden="true"><i/>LIVE · CST</div>:null}
+ {ready?<div className={styles.godbar} role="toolbar" aria-label="Pocket controls">
+  <button type="button" aria-label={'Weather: '+WEATHERS[weatherI]} title={'Weather: '+WEATHERS[weatherI]} onClick={()=>{const i=(weatherI+1)%4;setWeatherI(i);godRef.current?.weather(WEATHERS[i]);}}>{WEATHER_ICON[WEATHERS[weatherI]]}</button>
+  <button type="button" aria-label="Time of day" title={['Time: live cycle','Time: day','Time: dusk','Time: night'][timeI]} onClick={()=>{const i=(timeI+1)%4;setTimeI(i);godRef.current?.time(TIMES[i]);}}>{TIME_ICON[timeI]}</button>
+  <button type="button" aria-label="Drop a treat" title="Drop a treat" onClick={()=>godRef.current?.treat()}>●</button>
+  <button type="button" aria-label="Plant a flower" title="Plant a flower" onClick={()=>godRef.current?.flower()}>✿</button>
+  <button type="button" aria-label="Poke your Beast" title="Poke" onClick={()=>godRef.current?.poke()}>☝</button>
+  <button type="button" aria-label={pixel?'Show 3D Beast':'Show classic pixel Beast'} title={pixel?'3D Beast':'Classic pixel'} aria-pressed={pixel} onClick={togglePixel}>{pixel?'3D':'▦'}</button>
+  <button type="button" aria-label="About this world" aria-expanded={infoOpen} onClick={()=>setInfoOpen(o=>!o)}>ⓘ</button>
+ </div>:null}
+ <p className={styles.sandLabel} data-open={infoOpen||!ready} data-sand-source={sandSource}>{SAND_LABEL} · {sandSource==='receipt'?'recorded seed + this Beast\u2019s recorded Azure simulator counts':'recorded seed only · no simulator receipt for this Beast'}</p>
+ {infoOpen?<details className={styles.residentsBox} open={residentsOpen} onToggle={e=>setResidentsOpen((e.currentTarget as HTMLDetailsElement).open)}><summary aria-label={residentsOpen?"Minimize residents":"Show residents"}>{residentsOpen?"– Residents":"✦ Who lives here"}</summary>
  <ul className={styles.residents} aria-label="Artist-drawn Pocket residents" data-artist-residents={ARTIST_RESIDENTS.length}>
   {ARTIST_RESIDENTS.map(r=><li key={r.id} data-resident-id={r.id} data-resident-kind={r.kind}><img src={r.views.front} alt={`${r.name}: ${r.look}`} width={44} height={44} loading="lazy"/><span><b>{r.name}</b><small>{r.kind==='trainer'?'Trainer':'Beast'} · {r.origin}</small></span></li>)}
- </ul></details>
+ </ul></details>:null}
  </div>;
 }

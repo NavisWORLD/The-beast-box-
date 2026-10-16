@@ -27,3 +27,7 @@ export function savePocket3D(storage,next){
  storage.setItem(POCKET_3D_KEY,JSON.stringify(value));
  return value;
 }
+/** Classic pixel Beast toggle for the 3D pocket (presentation-only, device-local). */
+export const CLASSIC_PIXEL_KEY='beastbox-classic-pixel-v1';
+export function deviceClassicPixel(){try{return globalThis.localStorage?.getItem(CLASSIC_PIXEL_KEY)==='1';}catch{return false;}}
+export function saveClassicPixel(on){try{globalThis.localStorage?.setItem(CLASSIC_PIXEL_KEY,on?'1':'0');}catch{}return !!on;}

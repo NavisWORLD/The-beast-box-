@@ -6,6 +6,6 @@ test('cage Friendly default with Advanced toggle; advanced panels hidden not rem
 test('every saved creature gets an automatic dashboard; cloud growth stays one explicit tap',()=>{const d=r('components/creature-dashboard.tsx'),g=r('components/grow-in-cosmos.tsx');
  for(const k of ['Folder','Brain state','Growth loop','<GrowInCosmos'])assert.ok(d.includes(k));assert.doesNotMatch(d,/fetch\(/);
  assert.match(g,/onClick=\{\(\)=>void join\(\)\}/);assert.match(r('components/beast-cage-portal.tsx'),/<CreatureDashboard beast=\{session\.beast\}/);});
-test('arena sound tools collapse on phone; attack stays visible; game-room sound dock moves clear of player row',()=>{const a=r('components/spark-beast-arena.tsx');
- assert.match(a,/Show sound controls/);assert.doesNotMatch(a,/className=\{styles\.tool\+' '\+styles\.soundTool\} onClick=\{onTap\}/);
+test('arena tools collapse on phone into one quiet pill (Oct 15 declutter; tapping the Beast still attacks); game-room sound dock moves clear of player row',()=>{const a=r('components/spark-beast-arena.tsx');
+ assert.match(a,/Show controls/);assert.match(a,/onClick=\{onTap\}/);assert.doesNotMatch(a,/className=\{styles\.tool\+' '\+styles\.soundTool\} onClick=\{onTap\}/);
  assert.match(r('components/site-sound-dock.module.css'),/\.dock\.game\{/);});
