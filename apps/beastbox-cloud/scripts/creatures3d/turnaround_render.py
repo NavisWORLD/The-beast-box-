@@ -69,11 +69,11 @@ def bakemaps(o,pre):
         t.links.new(nm.outputs[0],mp.inputs['Color']);t.links.new(mp.outputs[0],bs.inputs['Normal'])
         ao=im('_ao.png','Non-Color');cv=im('_curv.png','Non-Color')
         src=bs.inputs['Base Color'].links[0].from_socket if bs.inputs['Base Color'].links else None
-        m1=t.nodes.new('ShaderNodeMix');m1.data_type='RGBA';m1.blend_type='MULTIPLY';m1.inputs[0].default_value=.85
+        m1=t.nodes.new('ShaderNodeMix');m1.data_type='RGBA';m1.blend_type='MULTIPLY';m1.inputs[0].default_value=.85 if PLAN=='res_nyxbean' else .5
         if src:t.links.new(src,m1.inputs[6])
         else:m1.inputs[6].default_value=bs.inputs['Base Color'].default_value
         t.links.new(ao.outputs[0],m1.inputs[7])
-        m2=t.nodes.new('ShaderNodeMix');m2.data_type='RGBA';m2.blend_type='OVERLAY';m2.inputs[0].default_value=.35;t.links.new(m1.outputs[2],m2.inputs[6]);t.links.new(cv.outputs[0],m2.inputs[7])
+        m2=t.nodes.new('ShaderNodeMix');m2.data_type='RGBA';m2.blend_type='MULTIPLY' if pre.endswith('_hat') else 'OVERLAY';m2.inputs[0].default_value=.5 if pre.endswith('_hat') else (0 if PLAN in('res_kairo','res_frostmitt') else .35);t.links.new(m1.outputs[2],m2.inputs[6]);t.links.new(cv.outputs[0],m2.inputs[7])
         t.links.new(m2.outputs[2],bs.inputs['Base Color'])
     print('BAKED maps on',o.name)
 if BK:

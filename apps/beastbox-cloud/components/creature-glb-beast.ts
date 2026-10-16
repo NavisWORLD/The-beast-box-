@@ -20,9 +20,9 @@ const WING_V:Record<string,string>={feather:'wing_feather',leaf:'wing_feather',b
 const GLOWING=new Set(['crystal','flame']);
 /** species identity parts always shown (the genome still paints them); fur = coat length multiplier, scales = belly scale plates */
 const SPECIES:Record<string,{ears?:string[];tail?:string;wings?:string;fur?:number;scales?:boolean;stone?:boolean;prop?:number;propGlow?:number;crystal?:boolean;crystalBody?:boolean;baked?:string;faceY?:number;cstFur?:string}>={
- res_frostmitt:{ears:['ear_pointy'],tail:'tail_fluffy',fur:1.5,prop:0x5b2fa8},res_nyxbean:{cstFur:'nyx',baked:'res_nyxbean',ears:[],tail:'tail_thin',fur:1.25,prop:0x3a1f6e},
+ res_frostmitt:{baked:'res_frostmitt',ears:['ear_pointy'],tail:'tail_fluffy',fur:1.5,prop:0x5b2fa8},res_nyxbean:{cstFur:'nyx',baked:'res_nyxbean',ears:[],tail:'tail_thin',fur:1.25,prop:0x3a1f6e},
  res_shardhowl:{ears:['ear_fox'],tail:'tail_brush',fur:0,prop:0x9a6cff,crystal:true,crystalBody:true},res_velvetcoil:{ears:['ear_horns'],tail:'tail_thin',fur:.1,scales:true,prop:0x2a1240},
- res_kairo:{ears:[],fur:0,prop:0x16121f,faceY:.7},
+ res_kairo:{baked:'res_kairo',ears:[],fur:0,prop:0x16121f,faceY:.7},
  fox:{ears:['ear_fox'],tail:'tail_brush',fur:1.25},dragonling:{ears:['ear_dhorn'],wings:'wing_dragon',fur:.55,scales:true},axolotl:{ears:['ear_frill'],tail:'tail_axfin',fur:.22},
  bird:{wings:'wing_feather',fur:.8},moth:{ears:['ear_feelers'],wings:'wing_moth',fur:1.35},golem:{ears:['ear_horns'],fur:0,stone:true},sprout:{ears:['ear_leaf'],fur:.3},
  serpent:{tail:'tail_thin',fur:.12,scales:true},fish:{tail:'tail_fin',fur:.1,scales:true},biped:{fur:1}};
@@ -124,7 +124,9 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
     bm.normalMap=bt('normal');bm.normalScale=new THREE.Vector2(.7,.7);bm.aoMap=bt('ao');bm.aoMapIntensity=.8;bm.needsUpdate=true;o.material=bm;}}}
   else if(mn.startsWith('pm_')){/* turnaround outfits: keep authored PBR (+maps) and add fabric sheen / glossy cornea / soft mist */const am:any=o.material;if(am&&am.isMeshStandardMaterial){const pm=new THREE.MeshPhysicalMaterial({color:am.color,map:am.map,normalMap:am.normalMap,normalScale:am.normalScale,roughness:am.roughness,metalness:am.metalness,emissive:am.emissive,emissiveMap:am.emissiveMap,emissiveIntensity:am.emissiveIntensity,transparent:am.transparent,opacity:am.opacity,depthWrite:!am.transparent,side:am.side,
    sheen:am.roughness>.5?.8:0,sheenColor:new THREE.Color(0xb48cff),sheenRoughness:.5,clearcoat:am.roughness<.3?.8:0,transmission:(am as any).transmission||0,ior:(am as any).ior||1.5,thickness:.02});
-   if(mn==='pm_cornea'){pm.transparent=true;pm.opacity=.18;pm.transmission=0;pm.roughness=.02;pm.clearcoat=1;pm.depthWrite=false;}
+   if(mn==='pm_eyeball'){pm.emissiveIntensity=1.15;pm.emissive=new THREE.Color(1,1,1);}/* playbook: iris glow <=1.2x its colour */
+   if(SP.baked&&n.startsWith('prop_crown')&&o.geometry.attributes.uv){const t=new THREE.TextureLoader().load(`/creatures3d/bake/${SP.baked}_hat_ao.png`);t.flipY=false;pm.aoMap=t;pm.aoMapIntensity=1;}
+   if(mn==='pm_cornea'){pm.transparent=true;pm.opacity=.05;pm.transmission=0;pm.roughness=.02;pm.clearcoat=1;pm.depthWrite=false;}
    if(mn==='pm_mist'){pm.transparent=true;pm.opacity=.3;pm.depthWrite=false;pm.side=THREE.DoubleSide;}
    if(mn==='pm_puffy'){/* 4D surface: CST turbulence over (xyz, t) gently breathes the quilt normal */pm.onBeforeCompile=(sh:any)=>{sh.uniforms.uT=U.uT;sh.uniforms.uChaos=U.uChaos;
     sh.vertexShader='varying vec3 vP4;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvP4=position;');

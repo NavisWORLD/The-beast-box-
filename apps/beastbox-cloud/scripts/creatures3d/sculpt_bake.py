@@ -64,6 +64,8 @@ def bake(lo,hi,kind,path,extr=.02):
     if kind=='AO' and sc.world:sc.world.light_settings.distance=.12
     bpy.ops.object.bake(type=t)
     img.filepath_raw=path;img.file_format='PNG';img.save()
+    if kind in('AO','CURV'):  # de-speckle low-spp bakes (pro: denoise/blur AO before use)
+        import subprocess;subprocess.run(['python3','-c',"from PIL import Image,ImageFilter;import sys;Image.open(sys.argv[1]).filter(ImageFilter.GaussianBlur(float(sys.argv[2]))).save(sys.argv[1])",path,'2' if kind=='AO' else '1'],check=False)
     for m,n in nodes:m.node_tree.nodes.remove(n)
     for m,s in sav.items():
         if s:out=[n for n in m.node_tree.nodes if n.type=='OUTPUT_MATERIAL'][0];m.node_tree.links.new(s,out.inputs[0])
@@ -73,7 +75,9 @@ body=D.objects['body'];uv(body)
 clump=tex('clump','VORONOI',.018,distance_metric='DISTANCE',noise_intensity=1)      # fur clumps (cell tufts)
 fine=tex('fine','CLOUDS',.006,noise_depth=2)                                         # strand-group grain
 crease=tex('crease','MARBLE',.05,marble_type='SHARPER',noise_depth=3,turbulence=6)    # paw/face skin creases, comb lines
-H=high(body,float(os.environ.get('VOXEL_HI','.0045')),[(clump,.010,.5),(fine,.004,.5),(crease,.003,.5)])
+BODY_LAYERS={'res_kairo':[(tex('pore','CLOUDS',.0015,noise_depth=1),.0006,.5),(crease,.0012,.5)],   # skin: pores + soft creases, no fur clumps
+ 'res_frostmitt':[(clump,.006,.5),(fine,.0025,.5),(crease,.0015,.5)]}.get(PLAN,[(clump,.010,.5),(fine,.004,.5),(crease,.003,.5)])
+H=high(body,float(os.environ.get('VOXEL_HI','.0045')),BODY_LAYERS)
 for k in ('NORMAL','CURV'):bake(body,H,k,os.path.join(OUT,'%s_body_%s.png'%(PLAN,k.lower())))
 bake(body,None,'AO',os.path.join(OUT,'%s_body_ao.png'%PLAN))
 D.objects.remove(H,do_unlink=True)
@@ -85,7 +89,7 @@ if hat:
     HH=high(hat,.004,[(knitg,.0012,.5)])
     if PLAN=='res_nyxbean':quilt(HH,hat)
     for k in ('NORMAL','CURV'):bake(hat,HH,k,os.path.join(OUT,'%s_hat_%s.png'%(PLAN,k.lower())))
-    bake(hat,None,'AO',os.path.join(OUT,'%s_hat_ao.png'%PLAN))
+    bake(hat,HH,'AO',os.path.join(OUT,'%s_hat_ao.png'%PLAN),extr=.012)  # AO from the sculpt: dark stitched seams
     D.objects.remove(HH,do_unlink=True)
 if os.environ.get('EXPORT'):
     # carry the bake into the game GLB: hat normal goes into its authored material (runtime keeps pm_* maps);
