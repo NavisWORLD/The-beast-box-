@@ -427,7 +427,7 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
   <button type="button" className={styles.hit} onClick={onTap} disabled={!moveset}
    aria-label={`Tap ${name} to attack`}/>
   <div className={styles.tools} data-tools-open={toolsOpen?'true':'false'}>
-   <button type="button" className={styles.tool+' '+styles.toolsToggle} aria-expanded={toolsOpen} aria-label={toolsOpen?'Hide sound controls':'Show sound controls'} onClick={()=>setToolsOpen(v=>!v)}>{toolsOpen?'–':'♪'}</button>
+   <button type="button" className={styles.tool+' '+styles.toolsToggle} aria-expanded={toolsOpen} aria-label={toolsOpen?'Hide controls':'Show controls'} onClick={()=>setToolsOpen(v=>!v)}>{toolsOpen?'–':'⋯'}</button>
    <button type="button" className={styles.tool+' '+styles.soundTool} aria-pressed={sound}
     aria-label={sound?'Mute the habitat beast':'Turn on the habitat beast sound'}
     onClick={()=>{const next=!sound;userMuted.current=!next;setSoundOn(next);}}>

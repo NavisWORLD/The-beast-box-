@@ -438,9 +438,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   <button type="button" aria-label="About this world" aria-expanded={infoOpen} onClick={()=>setInfoOpen(o=>!o)}>ⓘ</button>
  </div>:null}
  <p className={styles.sandLabel} data-open={infoOpen||!ready} data-sand-source={sandSource}>{SAND_LABEL} · {sandSource==='receipt'?'recorded seed + this Beast\u2019s recorded Azure simulator counts':'recorded seed only · no simulator receipt for this Beast'}</p>
- <details className={styles.residentsBox} open={residentsOpen} onToggle={e=>setResidentsOpen((e.currentTarget as HTMLDetailsElement).open)}><summary aria-label={residentsOpen?"Minimize residents":"Show residents"}>{residentsOpen?"– Residents":"✦ Who lives here"}</summary>
+ {infoOpen?<details className={styles.residentsBox} open={residentsOpen} onToggle={e=>setResidentsOpen((e.currentTarget as HTMLDetailsElement).open)}><summary aria-label={residentsOpen?"Minimize residents":"Show residents"}>{residentsOpen?"– Residents":"✦ Who lives here"}</summary>
  <ul className={styles.residents} aria-label="Artist-drawn Pocket residents" data-artist-residents={ARTIST_RESIDENTS.length}>
   {ARTIST_RESIDENTS.map(r=><li key={r.id} data-resident-id={r.id} data-resident-kind={r.kind}><img src={r.views.front} alt={`${r.name}: ${r.look}`} width={44} height={44} loading="lazy"/><span><b>{r.name}</b><small>{r.kind==='trainer'?'Trainer':'Beast'} · {r.origin}</small></span></li>)}
- </ul></details>
+ </ul></details>:null}
  </div>;
 }
