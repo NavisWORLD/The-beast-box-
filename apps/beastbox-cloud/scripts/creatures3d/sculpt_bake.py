@@ -2,7 +2,7 @@
 High-res: voxel remesh of the game mesh + layered displacement (fur clumps, paws/face creases,
 hat quilting puffs), then Cycles bakes normal (tangent), AO and curvature (pointiness) back onto
 the <=25k game mesh's UVs. The game mesh itself is the retopo (fused voxel body, decimated)."""
-import bpy,sys,os,math
+import bpy,sys,os,math,functools;print=functools.partial(print,flush=True)
 a=sys.argv[sys.argv.index('--')+1:];PLAN,OUT=a[0],a[1];os.makedirs(OUT,exist_ok=True)
 RES=int(os.environ.get('BAKE_RES','1024'));C=bpy.context;D=bpy.data;sc=C.scene
 sc.render.engine='CYCLES';sc.cycles.device='CPU';sc.cycles.samples=int(os.environ.get('BAKE_SAMPLES','16'))
@@ -29,6 +29,22 @@ def high(o,voxel,layers):
     sel([h],h)
     for m in list(h.modifiers):bpy.ops.object.modifier_apply(modifier=m.name)
     print('high',h.name,len(h.data.polygons));return h
+def quilt(h,lo,mer=8,rows=4,A=.007,G=.0035):
+    """stitched puffer pillows: seams follow the build's 8 meridian channels + horizontal rows; each cell inflates
+    like a pressurised pillow (sqrt-sine profile), seams are pinched grooves (playbook #5)."""
+    import mathutils
+    vs=[lo.matrix_world@v.co for v in lo.data.vertices];c=sum(vs,mathutils.Vector())/len(vs)
+    zmin=min(v.z for v in vs);zmax=max(v.z for v in vs)
+    R=mathutils.Matrix.Rotation(.26,3,'X')  # undo the build's hat tilt so meridians are vertical
+    import numpy as np
+    n=len(h.data.vertices);N=np.zeros(n*3);h.data.vertices.foreach_get('normal',N);P=np.zeros(n*3);h.data.vertices.foreach_get('co',P);N=N.reshape(-1,3);P=P.reshape(-1,3)
+    for i,v in enumerate(h.data.vertices):
+        p=R@(v.co-c);az=math.atan2(p.y,p.x);t=(v.co.z-zmin)/max(1e-6,zmax-zmin)
+        if t<.18:continue  # band region stays (separate rolled band mesh)
+        u=abs(math.sin(az*mer/2));w=abs(math.sin((t-.18)/.82*rows*math.pi))
+        pill=(u**.45)*(w**.45);seam=max(0,1-u/.12)+max(0,1-w/.15)
+        P[i]+=N[i]*(A*pill-G*min(1,seam))
+    h.data.vertices.foreach_set('co',P.ravel());h.data.update()
 def bake(lo,hi,kind,path,extr=.02):
     img=D.images.new(os.path.basename(path),RES,RES,float_buffer=False);img.colorspace_settings.name='Non-Color' if kind!='AO' else 'sRGB'
     mats=[s.material for s in lo.material_slots if s.material]
@@ -44,7 +60,7 @@ def bake(lo,hi,kind,path,extr=.02):
     sel([hi,lo] if hi else [lo],lo)
     bk=sc.render.bake;bk.use_selected_to_active=hi is not None;bk.cage_extrusion=extr;bk.max_ray_distance=extr*2;bk.margin=6
     t={'NORMAL':'NORMAL','AO':'AO','CURV':'EMIT'}[kind]
-    sc.cycles.samples=96 if kind=='AO' else 16
+    sc.cycles.samples=32 if kind=='AO' else 8
     if kind=='AO' and sc.world:sc.world.light_settings.distance=.12
     bpy.ops.object.bake(type=t)
     img.filepath_raw=path;img.file_format='PNG';img.save()
@@ -66,9 +82,25 @@ if hat:
     hat=hat[0];uv(hat)
     puff=tex('puff','VORONOI',.03,distance_metric='DISTANCE_SQUARED')               # quilted pillows between stitches
     knitg=tex('knitg','STUCCI',.004,stucci_type='WALL_OUT')                           # nylon micro-wrinkle
-    HH=high(hat,.004,[(puff,-.005,.5),(knitg,.0012,.5)])
+    HH=high(hat,.004,[(knitg,.0012,.5)])
+    if PLAN=='res_nyxbean':quilt(HH,hat)
     for k in ('NORMAL','CURV'):bake(hat,HH,k,os.path.join(OUT,'%s_hat_%s.png'%(PLAN,k.lower())))
     bake(hat,None,'AO',os.path.join(OUT,'%s_hat_ao.png'%PLAN))
     D.objects.remove(HH,do_unlink=True)
+if os.environ.get('EXPORT'):
+    # carry the bake into the game GLB: hat normal goes into its authored material (runtime keeps pm_* maps);
+    # body gets UVs here and the runtime loads tex/bake maps onto its fur shader (SPECIES.baked)
+    if hat:
+        m=hat.material_slots[0].material.copy();hat.material_slots[0].material=m;bs=[n for n in m.node_tree.nodes if n.type=='BSDF_PRINCIPLED'][0]
+        nm=[n for n in m.node_tree.nodes if n.type=='NORMAL_MAP']
+        if not nm:nm=[m.node_tree.nodes.new('ShaderNodeNormalMap')];m.node_tree.links.new(nm[0].outputs[0],bs.inputs['Normal'])
+        ti=m.node_tree.nodes.new('ShaderNodeTexImage');ti.image=D.images.load(os.path.join(OUT,'%s_hat_normal.png'%PLAN));ti.image.colorspace_settings.name='Non-Color'
+        m.node_tree.links.new(ti.outputs[0],nm[0].inputs['Color']);nm[0].inputs['Strength'].default_value=1
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in sc.objects:
+        if o.type in('MESH','ARMATURE') and not o.name.endswith('_hi'):o.select_set(True)
+    C.view_layer.objects.active=[o for o in sc.objects if o.type=='ARMATURE'][0]
+    bpy.ops.export_scene.gltf(filepath=os.environ['EXPORT'],export_format='GLB',use_selection=True,export_skins=True,export_morph=True,export_morph_normal=False,export_animations=False,export_yup=True,export_vertex_color='ACTIVE')
+    print('EXPORTED',os.environ['EXPORT'])
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.dirname(bpy.data.filepath),'%s_baked.blend'%PLAN))
 print('SAVED baked blend')

@@ -48,7 +48,7 @@ chest=light('chest','AREA',(0,-1.6,.15),60,(.7,.5,1),1.2)  # low violet rim on t
 # playbook #8: AgX + strong violet rim (Standard via VT=Standard)
 if os.environ.get('VT','AgX')=='AgX':
     sc.view_settings.view_transform='AgX';sc.view_settings.look='AgX - Medium High Contrast'
-    rim.data.energy=300;rim.data.color=(.55,.3,1);rim2.data.energy=150;rim2.data.color=(.45,.3,1);key.data.energy=150;chest.data.energy=30
+    rim.data.energy=320;rim.data.color=(.62,.42,1);rim2.data.energy=120;rim2.data.color=(.8,.85,1);key.data.energy=170;key.data.color=(1,.98,.95);fill.data.color=(1,1,1);chest.data.energy=20;chest.data.color=(.85,.8,1)
 if PLAN=='res_nyxbean':b.inputs['Sheen Weight'].default_value=.35;b.inputs['Sheen Tint'].default_value=(.6,.5,.9,1)
 if PLAN=='res_frostmitt':  # white coat: no lavender sheen blowout, albedo kept under 0.6 (pro value-check)
     b.inputs['Sheen Weight'].default_value=.2;b.inputs['Roughness'].default_value=.8

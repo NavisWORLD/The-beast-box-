@@ -19,8 +19,8 @@ const TAIL_V:Record<string,string>={fluffy:'tail_fluffy',plume:'tail_fluffy',lea
 const WING_V:Record<string,string>={feather:'wing_feather',leaf:'wing_feather',bat:'wing_bat',flame:'wing_bat',vanes:'wing_bat',moth:'wing_moth',crystal:'wing_moth'};
 const GLOWING=new Set(['crystal','flame']);
 /** species identity parts always shown (the genome still paints them); fur = coat length multiplier, scales = belly scale plates */
-const SPECIES:Record<string,{ears?:string[];tail?:string;wings?:string;fur?:number;scales?:boolean;stone?:boolean;prop?:number;propGlow?:number;crystal?:boolean;crystalBody?:boolean;faceY?:number;cstFur?:string}>={
- res_frostmitt:{ears:['ear_pointy'],tail:'tail_fluffy',fur:1.5,prop:0x5b2fa8},res_nyxbean:{cstFur:'nyx',ears:[],tail:'tail_thin',fur:1.25,prop:0x3a1f6e},
+const SPECIES:Record<string,{ears?:string[];tail?:string;wings?:string;fur?:number;scales?:boolean;stone?:boolean;prop?:number;propGlow?:number;crystal?:boolean;crystalBody?:boolean;baked?:string;faceY?:number;cstFur?:string}>={
+ res_frostmitt:{ears:['ear_pointy'],tail:'tail_fluffy',fur:1.5,prop:0x5b2fa8},res_nyxbean:{cstFur:'nyx',baked:'res_nyxbean',ears:[],tail:'tail_thin',fur:1.25,prop:0x3a1f6e},
  res_shardhowl:{ears:['ear_fox'],tail:'tail_brush',fur:0,prop:0x9a6cff,crystal:true,crystalBody:true},res_velvetcoil:{ears:['ear_horns'],tail:'tail_thin',fur:.1,scales:true,prop:0x2a1240},
  res_kairo:{ears:[],fur:0,prop:0x16121f,faceY:.7},
  fox:{ears:['ear_fox'],tail:'tail_brush',fur:1.25},dragonling:{ears:['ear_dhorn'],wings:'wing_dragon',fur:.55,scales:true},axolotl:{ears:['ear_frill'],tail:'tail_axfin',fur:.22},
@@ -119,7 +119,9 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
    else if(n.startsWith('wing_dragon')){const wm=new THREE.MeshPhysicalMaterial({vertexColors:true,roughness:.5,transmission:.0,side:THREE.DoubleSide,sheen:.5,sheenColor:C.glow,emissive:C.glow,emissiveIntensity:.08});furPatch(wm,null);o.material=wm;}
    else if(n.startsWith('ear_crown'))o.material=new THREE.MeshPhysicalMaterial({color:C.accent.clone().lerp(new THREE.Color(1,.82,.4),.6),metalness:1,roughness:.22,clearcoat:.6,emissive:C.glow,emissiveIntensity:.15});
    else if(n.startsWith('ear_')&&!SP.ears&&GLOWING.has(gen.ears)||n==='tail_flame'&&GLOWING.has(gen.tail))o.material=glowMat;else if(SP.crystalBody&&(n.startsWith('body')||n.startsWith('ear_')||n.startsWith('tail_')))o.material=new THREE.MeshPhysicalMaterial({color:C.base.clone().lerp(C.alt,.35),flatShading:true,roughness:.12,metalness:.15,clearcoat:1,clearcoatRoughness:.05,iridescence:1,iridescenceIOR:1.6,emissive:C.glow,emissiveIntensity:.12,sheen:.6,sheenColor:C.accent});
-   else o.material=m;if(n.startsWith('wing_'))o.material.side=THREE.DoubleSide;if(n.startsWith('body'))body=o;}
+   else o.material=m;if(n.startsWith('wing_'))o.material.side=THREE.DoubleSide;if(n.startsWith('body')){body=o;if(SP.baked&&o.geometry.attributes.uv){/* playbook #1: sculpt->bake normal + AO from the high-res sculpt */
+    const bm:any=o.material.clone();bm.onBeforeCompile=o.material.onBeforeCompile;bm.customProgramCacheKey=()=>'beast-fur-baked';const TL=new THREE.TextureLoader(),bt=(k:string)=>{const t=TL.load(`/creatures3d/bake/${SP.baked}_body_${k}.png`);t.flipY=false;return t;};
+    bm.normalMap=bt('normal');bm.normalScale=new THREE.Vector2(.7,.7);bm.aoMap=bt('ao');bm.aoMapIntensity=.8;bm.needsUpdate=true;o.material=bm;}}}
   else if(mn.startsWith('pm_')){/* turnaround outfits: keep authored PBR (+maps) and add fabric sheen / glossy cornea / soft mist */const am:any=o.material;if(am&&am.isMeshStandardMaterial){const pm=new THREE.MeshPhysicalMaterial({color:am.color,map:am.map,normalMap:am.normalMap,normalScale:am.normalScale,roughness:am.roughness,metalness:am.metalness,emissive:am.emissive,emissiveMap:am.emissiveMap,emissiveIntensity:am.emissiveIntensity,transparent:am.transparent,opacity:am.opacity,depthWrite:!am.transparent,side:am.side,
    sheen:am.roughness>.5?.8:0,sheenColor:new THREE.Color(0xb48cff),sheenRoughness:.5,clearcoat:am.roughness<.3?.8:0,transmission:(am as any).transmission||0,ior:(am as any).ior||1.5,thickness:.02});
    if(mn==='pm_cornea'){pm.transparent=true;pm.opacity=.18;pm.transmission=0;pm.roughness=.02;pm.clearcoat=1;pm.depthWrite=false;}
