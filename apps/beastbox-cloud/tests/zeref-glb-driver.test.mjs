@@ -34,3 +34,9 @@ test('the shipped GLB is meshopt-compressed, rigged, has every expression, mouth
  const tris=j.meshes[0].primitives.reduce((s,p)=>s+j.accessors[p.indices].count/3,0);assert.ok(tris<=25000,'tris '+tris);
  assert.ok(statSync(u).size<1.5e6);
 });
+test('blinks stay stable and brief at low frame rates (30 and 20 fps): no flicker, no stuck lids',()=>{
+ for(const fps of [30,20,60]){const {root,mesh}=rig();const d=createZerefDriver(THREE,root,{seed:'zeref',mood:'calm'});const bi=mesh.morphTargetDictionary.blink;
+  let closed=0,runs=0,prev=false,frames=fps*20;
+  for(let i=0;i<frames;i++){d.update(1/fps);const c=mesh.morphTargetInfluences[bi]>.5;if(c){closed++;if(!prev)runs++;}prev=c;}
+  assert.ok(runs>=3&&runs<=12,fps+'fps blink count '+runs);assert.ok(closed/frames<.12,fps+'fps closed fraction '+closed/frames);}
+});

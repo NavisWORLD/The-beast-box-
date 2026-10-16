@@ -53,21 +53,21 @@ export function createZerefDriver(THREE,root,{seed='zeref',mood='calm'}={}){
  const limbs=['paw.L','paw.R','leg.L','leg.R'].map(n=>byName[n]).filter(Boolean);
  const bind=new Map();for(const b of [head,spine,chest,rootB,...limbs].filter(Boolean))bind.set(b,{q:b.quaternion.clone(),s:b.scale.clone(),p:b.position.clone()});
  const weights={};for(const k of ZEREF_MORPHS)weights[k]={x:0,v:0};
- const st={mood,blinkT:1.5+rng()*2.5,blink:0,mp:motionParams(S),t:0,steps:0};
+ const st={mood,blinkT:1.5+rng()*2.5,blink:0,mp:motionParams(S),t:0,steps:0,walkW:0,angW:0,sleepW:0,scaredW:0,walkPh:0};
  const tmp=new THREE.Vector3(),e=new THREE.Euler(),q=new THREE.Quaternion();
  function poseBody(){
   const mp=st.mp,m=mp.mood,ph=mp.phase;
   if(spine&&bind.has(spine)){const b=bind.get(spine);const br=1+.018*Math.sin(st.t*(1.6+S.ch.arousal*1.4));spine.scale.set(b.s.x*br,b.s.y*(2-br),b.s.z*br);}
   if(head&&bind.has(head)){const b=bind.get(head);
-   const tilt=(m.curiosity-.4)*.22*Math.sin(st.t*.7)+mp.wind.x*.05,nod=.04*Math.sin(st.t*1.3)-(st.mood==='sleepy'?.18:0)+(st.mood==='scared'?.08:0);
+   const tilt=(m.curiosity-.4)*.22*Math.sin(st.t*.7)+mp.wind.x*.05,nod=.04*Math.sin(st.t*1.3)-.18*st.sleepW+.08*st.scaredW;
    // story pose: caught mid-thought, a resting head tilt that the CST mood modulates
-   const think=-.13*(1-m.fear)+(st.mood==='angry'?.1:0);
+   const think=-.13*(1-m.fear)+.1*st.angW;
    e.set(nod,.12*Math.sin(st.t*.45+ph*.1)*m.curiosity,tilt+think);head.quaternion.copy(b.q).multiply(q.setFromEuler(e));}
-  const md=ZEREF_MOODS[st.mood]||ZEREF_MOODS.calm,walk=!!md.walk,w=st.t*(5.5+2*S.ch.arousal);
-  if(rootB&&bind.has(rootB)){const b=bind.get(rootB);rootB.position.copy(b.p);if(walk){rootB.position.y+=Math.abs(Math.sin(w))*.035;}
-   e.set(0,walk?.06*Math.sin(w):0,walk?.05*Math.sin(w):0);rootB.quaternion.copy(b.q).multiply(q.setFromEuler(e));}
+  const ww=st.walkW,walk=ww>.001,w=st.walkPh;
+  if(rootB&&bind.has(rootB)){const b=bind.get(rootB);rootB.position.copy(b.p);if(walk){rootB.position.y+=Math.abs(Math.sin(w))*.035*ww;}
+   e.set(0,walk?.06*ww*Math.sin(w):0,walk?.05*ww*Math.sin(w):0);rootB.quaternion.copy(b.q).multiply(q.setFromEuler(e));}
   for(const L of limbs){const b=bind.get(L);const side=L.name.endsWith('L')?0:Math.PI,front=L.name.startsWith('paw')?0:Math.PI;
-   e.set(walk?.45*Math.sin(w+side+front):0,0,0);L.quaternion.copy(b.q).multiply(q.setFromEuler(e));}
+   e.set(walk?.45*ww*Math.sin(w+side+front):0,0,0);L.quaternion.copy(b.q).multiply(q.setFromEuler(e));}
  }
  function wingFlap(c){
   if(!c.def.name.startsWith('wing'))return;const side=c.def.name.endsWith('L')?-1:1;const b0=c.all[0];
@@ -82,7 +82,19 @@ export function createZerefDriver(THREE,root,{seed='zeref',mood='calm'}={}){
   get params(){return st.mp;},
   update(dt){
    const md=ZEREF_MOODS[st.mood]||ZEREF_MOODS.calm;
-   const n=clock.tick(dt,h=>{stepCSTState(S,h,md.emotion);st.t+=h;st.steps++;});
+   const n=clock.tick(dt,h=>{stepCSTState(S,h,md.emotion);st.t+=h;st.steps++;
+    // pose blends eased on the fixed clock so mood switches don't pop
+    const a=1-Math.exp(-h*4);st.walkW+=((md.walk?1:0)-st.walkW)*a;st.angW+=((st.mood==='angry'?1:0)-st.angW)*a;
+    st.sleepW+=((st.mood==='sleepy'?1:0)-st.sleepW)*a;st.scaredW+=((st.mood==='scared'?1:0)-st.scaredW)*a;
+    st.walkPh+=h*(5.5+2*S.ch.arousal);
+    // expressions: seeded blinks + morph springs integrated at the fixed step (stable at any frame rate)
+    st.blinkT-=h;if(st.blinkT<=0){st.blink=.16;st.blinkT=1.8+rng()*3.2*(1-S.ch.arousal*.5);}
+    st.blink=Math.max(0,st.blink-h);
+    for(const name of ZEREF_MORPHS){
+     let target=md.morph[name]||0;
+     if(name==='blink')target=st.blink>0&&st.mood!=='sleepy'?1:0;
+     springStep(weights[name],target,name==='blink'?900:60*st.mp.stiffness,name==='blink'?50:12*st.mp.damping,h);
+    }});
    st.mp=motionParams(S);
    poseBody();
    for(const c of chains){
@@ -97,13 +109,7 @@ export function createZerefDriver(THREE,root,{seed='zeref',mood='calm'}={}){
     applyToBones(THREE,c.ch,c.all);
    }
    // expressions: target morph weights + seeded blinks (no blinking while sleepy-closed)
-   st.blinkT-=Math.max(0,dt);if(st.blinkT<=0){st.blink=.16;st.blinkT=1.8+rng()*3.2*(1-S.ch.arousal*.5);}
-   st.blink=Math.max(0,st.blink-Math.max(0,dt));
-   const k=Math.min(.05,Math.max(0,dt));
    for(const name of ZEREF_MORPHS){
-    let target=md.morph[name]||0;
-    if(name==='blink')target=st.blink>0&&st.mood!=='sleepy'?1:0;
-    springStep(weights[name],target,name==='blink'?900:60*st.mp.stiffness,name==='blink'?50:12*st.mp.damping,k);
     const w=Math.min(1,Math.max(0,weights[name].x));
     for(const mesh of meshes){const i=mesh.morphTargetDictionary[name];if(i!==undefined)mesh.morphTargetInfluences[i]=w;}
    }

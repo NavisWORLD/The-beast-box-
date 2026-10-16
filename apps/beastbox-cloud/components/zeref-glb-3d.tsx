@@ -71,14 +71,17 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
   let last=performance.now(),yaw=qYaw?THREE.MathUtils.degToRad(Number(qYaw)):0;
   (window as any).__zerefReview={setYaw:(d:number)=>{live.current={...live.current,spin:false,angle:d};yaw=THREE.MathUtils.degToRad(d);},
    morphs:()=>{const o:any={};gltf0?.scene.traverse((m:any)=>{if(m.morphTargetDictionary&&!o[m.name]){o[m.name]=Object.fromEntries(Object.entries(m.morphTargetDictionary).map(([k,i]:any)=>[k,+m.morphTargetInfluences[i].toFixed(2)]).filter(([,v])=>v));}});return o;}};
+  const qManual=qp.get('manual')==='1';let manualDt=0,manualMood:any=null;
+  (window as any).__zerefReview.step=(dt:number,mood?:string,yawDeg?:number)=>{manualDt=dt;if(mood)manualMood=mood;if(yawDeg!==undefined){live.current={...live.current,spin:false,angle:yawDeg};yaw=THREE.MathUtils.degToRad(yawDeg);}tick(0);return !!driver;};
   const tick=(now:number)=>{
-   const dt=Math.min(.1,(now-last)/1000);last=now;const L=live.current;
+   if(qManual&&now!==0){raf=requestAnimationFrame(tick);return;}
+   const dt=qManual?manualDt:Math.min(.1,(now-last)/1000);last=now;const L=live.current;
    starT.value+=reduced?0:dt;
    if(L.spin&&!reduced)yaw+=dt*.5;else yaw+=(THREE.MathUtils.degToRad(L.angle)-yaw)*Math.min(1,dt*6);
    pivot.rotation.y=-yaw;
    camera.position.set(0,.85,3.9);camera.lookAt(0,.68,0);
-   if(driver){driver.setMood((qMood as ZerefMood)||L.mood);driver.update(reduced?0:dt);if(qNoBlink)gltf0?.scene.traverse((m:any)=>{const i=m.morphTargetDictionary?.blink;if(i!==undefined)m.morphTargetInfluences[i]=0;});}
-   renderer.render(scene,camera);raf=requestAnimationFrame(tick);
+   if(driver){driver.setMood((manualMood as ZerefMood)||(qMood as ZerefMood)||L.mood);driver.update(reduced?0:dt);if(qNoBlink)gltf0?.scene.traverse((m:any)=>{const i=m.morphTargetDictionary?.blink;if(i!==undefined)m.morphTargetInfluences[i]=0;});}
+   renderer.render(scene,camera);if(!(qManual&&now===0))raf=requestAnimationFrame(tick);
   };
   raf=requestAnimationFrame(tick);
   return ()=>{disposed=true;cancelAnimationFrame(raf);ro.disconnect();renderer.dispose();renderer.domElement.remove();};
