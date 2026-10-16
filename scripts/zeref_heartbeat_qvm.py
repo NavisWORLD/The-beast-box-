@@ -6,9 +6,10 @@ import hashlib,json,math,os
 from pathlib import Path
 from azure_final_ibm_qvm import parse_counts
 ROOT=Path(__file__).resolve().parents[1]
-PACKET=ROOT/'evidence/zeref-heartbeat-001/features.json'
-OUT=ROOT/'_zeref_heartbeat_qvm'
-TARGET='rigetti.sim.qvm';SHOTS=512
+PACKET=ROOT/os.environ.get('HB_QVM_PACKET','evidence/zeref-heartbeat-001/features.json')
+OUT=ROOT/os.environ.get('HB_QVM_OUT','_zeref_heartbeat_qvm')
+TARGET='rigetti.sim.qvm';SHOTS=min(4096,int(os.environ.get('HB_QVM_SHOTS','512')))
+VEC=os.environ.get('HB_QVM_VECTOR_KEY','heartbeat_vector_12');PREFIX=os.environ.get('HB_QVM_PREFIX','beastbox-zeref-heartbeat-')
 def canonical(v):return json.dumps(v,sort_keys=True,separators=(',',':'))
 def write(n,v):OUT.mkdir(parents=True,exist_ok=True);(OUT/n).write_text(json.dumps(v,sort_keys=True,indent=2)+'\n')
 def build_quil(vec):
@@ -19,9 +20,9 @@ def build_quil(vec):
  return '\n'.join(lines+['MEASURE 0 ro[0]','MEASURE 1 ro[1]'])+'\n'
 def main():
  p=json.loads(PACKET.read_text())
- if p.get('raw_audio_published') is not False or len(p['heartbeat_vector_12'])!=12:raise ValueError('bad packet')
- quil=build_quil(p['heartbeat_vector_12']);name='beastbox-zeref-heartbeat-'+p['packet_sha256'][:12]+'-qvm'
- src={'heartbeat_packet_sha256':p['packet_sha256'],'wav_sha256':p['files']['wav']['file_sha256'],'mp3_sha256':p['files']['mp3']['file_sha256'],'quil_sha256':hashlib.sha256(quil.encode()).hexdigest()}
+ if p.get('raw_audio_published') is not False or len(p[VEC])!=12:raise ValueError('bad packet')
+ quil=build_quil(p[VEC]);name=PREFIX+p['packet_sha256'][:12]+'-qvm'
+ src={'packet_sha256':p['packet_sha256'],'quil_sha256':hashlib.sha256(quil.encode()).hexdigest()}
  write('input.json',{'job_name':name,'target':TARGET,'shots':SHOTS,'quil':quil,'source':src})
  if os.getenv('BEAST_AZURE_QVM_ONE_JOB')!='YES_ONE_FREE_SIMULATOR' or not os.environ.get('AZURE_QUANTUM_CONNECTION_STRING'):raise RuntimeError('Missing explicit Azure simulator authorization')
  from qdk.azure import Workspace

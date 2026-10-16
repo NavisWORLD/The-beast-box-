@@ -61,6 +61,26 @@ def circuit():
     qc = QuantumCircuit(2); qc.h(0); qc.cx(0, 1); qc.ry(-ta, 0); qc.ry(-tb, 1); qc.measure_all()
     return qc
 
+def best_pair(svc):
+    """Optional (CHSH_BEST_PAIR=1): pick the operational hardware backend + connected qubit pair with the
+    lowest (2-qubit gate error + both readout errors) from published calibration data."""
+    best = None
+    for be in svc.backends(simulator=False, operational=True, min_num_qubits=2):
+        try:
+            t = be.target
+            g2 = next((g for g in ("cz", "ecr", "cx") if g in t.operation_names), None)
+            if not g2: continue
+            for (a, b), pr in t[g2].items():
+                if pr is None or pr.error is None: continue
+                ra, rb = t["measure"][(a,)], t["measure"][(b,)]
+                if ra is None or rb is None or ra.error is None or rb.error is None: continue
+                cost = pr.error + ra.error + rb.error
+                if best is None or cost < best[0]: best = (cost, be, [a, b], g2, pr.error, ra.error, rb.error)
+        except Exception:
+            continue
+    if best is None: raise RuntimeError("no calibrated pair found")
+    return best
+
 def run(out: Path):
     out.mkdir(parents=True, exist_ok=True)
     save = lambda n, c: (out / n).write_text(json.dumps(c, indent=2, sort_keys=True) + "\n")
@@ -93,9 +113,15 @@ def run(out: Path):
         print(f"COMMIT_ALICE={ca}\nCOMMIT_BOB={cb}", flush=True)  # public, before submission
         x = json.loads((alice / "private_questions.json").read_text())["questions"]
         y = json.loads((bob / "private_questions.json").read_text())["questions"]
-        backend = svc.least_busy(simulator=False, operational=True, min_num_qubits=2)
+        layout, pick = None, None
+        if os.environ.get("CHSH_BEST_PAIR") == "1":
+            cost, backend, layout, g2, e2, ea, eb = best_pair(svc)
+            pick = {"backend": backend.name, "qubits": layout, "two_qubit_gate": g2, "gate_error": e2, "readout_errors": [ea, eb], "cost": cost}
+            save("pair_choice.json", pick); print("PAIR_CHOICE=" + json.dumps(pick), flush=True)
+        else:
+            backend = svc.least_busy(simulator=False, operational=True, min_num_qubits=2)
         if backend.configuration().simulator: raise RuntimeError("simulator refused")
-        pm = generate_preset_pass_manager(backend=backend, optimization_level=1, seed_transpiler=20261015)
+        pm = generate_preset_pass_manager(backend=backend, optimization_level=1, seed_transpiler=20261015, initial_layout=layout)
         isa = pm.run(circuit())
         order = [p.name for p in isa.parameters]
         vals = [[{"ta": A_ANG[xi], "tb": B_ANG[yi]}[n] for n in order] for xi, yi in zip(x, y)]
