@@ -12,6 +12,7 @@ import {DEFAULT_POCKET_3D,POCKET_3D_KEY,POCKET_3D_EVENT,POCKET_3D_CAMERA_RESET,d
 import styles from './cage-pocket-dimension.module.css';
 import {addPocketLife,type Weather} from './pocket-life';
 import {buildPlush,type PlushGenome} from './creature-plush-3d';
+import {loadBeastGlb,GLB_PLANS} from './creature-glb-beast';
 import {createLife,stepLife,pokeLife} from '../lib/creatures3d/life-brain.mjs';
 type God={weather:(w:Weather)=>void;time:(t:number|null)=>void;treat:()=>void;flower:()=>void;poke:()=>void};
 const WEATHERS:Weather[]=['auto','sun','rain','storm'];const WEATHER_ICON:Record<Weather,string>={auto:'✦',sun:'☀',rain:'☂',storm:'⚡'};
@@ -289,7 +290,13 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     let plush:ReturnType<typeof buildPlush>|null=null;const beastNode=new THREE.Group();beastNode.name='beast-3d';scene.add(beastNode);
     const syncPlush=()=>{const gen=(window as any).__beastGenome as PlushGenome|null;const want=!!gen&&!pixelRef.current;
      if(plush&&(!want||plush.root.userData.seed!==gen?.seed)){beastNode.remove(plush.root);plush.dispose();plush=null;}
-     if(want&&!plush&&gen){plush=buildPlush(THREE,gen,{low});plush.root.userData.seed=gen.seed;plush.root.scale.setScalar(1.3);beastNode.add(plush.root);}
+     if(want&&!plush&&gen){plush=buildPlush(THREE,gen,{low});plush.root.userData.seed=gen.seed;plush.root.scale.setScalar(1.3);beastNode.add(plush.root);
+      // Zeref-pipeline sculpted GLB replaces the plush when available (plush stays as low tier / fallback while loading or on failure)
+      if((!low||new URLSearchParams(location.search).get('beastglb')==='1')&&GLB_PLANS.includes(gen.body)){const mine=plush;loadBeastGlb(THREE,gen,{tier:'med'}).then(gb=>{
+        if(!gb||disposed||plush!==mine){gb?.dispose();return;}gb.root.scale.setScalar(1.15);mine.root.visible=false;beastNode.add(gb.root);
+        const pd=mine.drive,pdis=mine.dispose;const lp=new THREE.Vector3();
+        (mine as any).drive=(dt:number,b:any,mp:any,look:any)=>{let ll=null;if(look){lp.set(look.x,look.y,look.z);gb.root.worldToLocal(lp);ll={yaw:Math.atan2(lp.x,lp.z),pitch:Math.atan2(lp.y-.6,Math.hypot(lp.x,lp.z))};}gb.drive(dt,b,mp,ll);};
+        (mine as any).dispose=()=>{beastNode.remove(gb.root);gb.dispose();pdis();};(mine as any).tris=gb.tris;void pd;}).catch(()=>{});}}
      if(plush)document.documentElement.setAttribute('data-beast-3d','');else document.documentElement.removeAttribute('data-beast-3d');};
     syncPlush();window.addEventListener('beastbox:genome',syncPlush);window.addEventListener('beastbox:pixel-mode',syncPlush);
     const lifeRand=randomFor(key+':god');const camXZ=()=>({x:camera.position.x,z:camera.position.z});
