@@ -88,6 +88,8 @@ def bakemaps(o,pre):
             mr=t.nodes.new('ShaderNodeMapRange');mr.inputs[1].default_value=.3;mr.inputs[2].default_value=.55;t.links.new(cv.outputs[0],mr.inputs[0])  # sculpt curvature: concave -> ice blue
             mn_=t.nodes.new('ShaderNodeMath');mn_.operation='MINIMUM';t.links.new(mr.outputs[0],mn_.inputs[0]);t.links.new(cr_.outputs[0],mn_.inputs[1])
             ic=t.nodes.new('ShaderNodeMix');ic.data_type='RGBA';t.links.new(mn_.outputs[0],ic.inputs[0]);ic.inputs[6].default_value=(.18,.35,.75,1);ic.inputs[7].default_value=(1,1,1,1)
+            at_=t.nodes.new('ShaderNodeAttribute');at_.attribute_name='frostmask';inv_=t.nodes.new('ShaderNodeMath');inv_.operation='SUBTRACT';inv_.inputs[0].default_value=1;t.links.new(at_.outputs['Fac'],inv_.inputs[1])
+            fq=t.nodes.new('ShaderNodeMath');fq.operation='MAXIMUM';t.links.new(mn_.outputs[0],fq.inputs[0]);t.links.new(inv_.outputs[0],fq.inputs[1])  # factor 1 = white;t.links.new(fq.outputs[0],ic.inputs[0])  # no blue frost on the face
             m1.blend_type='MULTIPLY';m1.inputs[0].default_value=1;t.links.new(ic.outputs[2],m1.inputs[7])
         else:t.links.new(ao.outputs[0],m1.inputs[7])
         m2=t.nodes.new('ShaderNodeMix');m2.data_type='RGBA';m2.blend_type='MULTIPLY' if pre.endswith('_hat') else 'OVERLAY';m2.inputs[0].default_value=(.85 if PLAN=='res_frostmitt' else .5) if pre.endswith('_hat') else (0 if PLAN in('res_kairo','res_frostmitt') else .35);t.links.new(m1.outputs[2],m2.inputs[6]);t.links.new(cv.outputs[0],m2.inputs[7])
@@ -117,12 +119,15 @@ if os.environ.get('CYCLES','1')=='1':
             for v in o.data.vertices:vgl.add([v.index],max(.25,min(1,(v.co.z/zt_-.12)*2.2)),'REPLACE')
             md.particle_system.vertex_group_length='furlen'
             if PLAN=='res_frostmitt' and o.name.startswith('body'):  # keep the face readable: thin, short fur on the front of the face
-                vgd=o.vertex_groups.new(name='furdens')
+                vgd=o.vertex_groups.new(name='furdens');vgf=o.vertex_groups.new(name='facefur');fm_=o.data.attributes.new('frostmask','FLOAT','POINT')
                 for v in o.data.vertices:
                     face_=v.co.z>zt_*.55 and v.normal.y<.15 and abs(v.co.x)<zt_*.36  # whole front of the head
-                    vgd.add([v.index],.45 if face_ else 1,'REPLACE')  # short, sparse face fur (not bald)
+                    vgd.add([v.index],0 if face_ else 1,'REPLACE');vgf.add([v.index],1 if face_ else 0,'REPLACE');fm_.data[v.index].value=0 if face_ else 1
                     if face_:vgl.add([v.index],.18,'REPLACE')
                 md.particle_system.vertex_group_density='furdens'
+                mf=o.modifiers.new('facefur','PARTICLE_SYSTEM');pf=mf.particle_system.settings;mf.particle_system.vertex_group_density='facefur'
+                pf.type='HAIR';pf.count=16000;pf.hair_length=.011;pf.material=slot;pf.child_type='INTERPOLATED';pf.child_percent=4;pf.rendered_child_count=6
+                pf.clump_factor=.2;pf.roughness_2=.004;pf.radius_scale=.0012;pf.root_radius=1;pf.tip_radius=0;pf.render_step=3  # short dense velvet face coat (reference: smooth white face)
             ps.hair_length=FUR[0]*(.7 if o.name.startswith('ear') else 1);ps.material=slot;ps.child_type='INTERPOLATED';ps.child_percent=6;ps.rendered_child_count=10
             ps.clump_factor=.55;ps.clump_shape=.3;ps.roughness_1=.012;ps.roughness_2=.025;ps.roughness_2_threshold=.85;ps.roughness_endpoint=.006
             ps.use_advanced_hair=False;ps.kink='CURL';ps.kink_amplitude=.002;ps.kink_frequency=3
