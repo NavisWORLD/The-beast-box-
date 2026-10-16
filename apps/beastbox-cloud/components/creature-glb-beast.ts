@@ -154,6 +154,8 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
  const MK=face?.morphTargetDictionary||{};const W=face?.morphTargetInfluences||[];const setM=(k:string,v:number)=>{const i=MK[k];if(i!=null)W[i]=clamp(v);};
  const ex={blink:0,happy:0,sleepy:0,curious:0,scared:0,angry:0,grin:0,o:0,w:0};let blinkT=1+R()*3,t=0,prevH=0;
  let tris=0;root.traverse((o:any)=>{if(o.isMesh&&o.visible&&!o.userData.shell){const gg=o.geometry;tris+=(gg.index?gg.index.count:gg.attributes.position.count)/3;}});
+ const anim={lookT:0,lookY:0,lookP:0,sy:{x:0,v:0},sp:{x:0,v:0},jp:-1,jt:2.5,sq:{x:0,v:0},st:6+R()*6,sp2:-1,hat:{x:0,v:0},hy:{x:0,v:0},pl:0,py:0};
+ const rootRest=bones.root?bones.root.position.clone():null;
  function drive(dt:number,life:{speed:number;mode:string;sleep:number;lookCam:number;bob:number;heading:number;startle?:number},mp:any,lookLocal:{yaw:number;pitch:number}|null){
   t+=dt;U.uT.value=t;const mood=mp?.mood||{joy:.5,fear:.1,curiosity:.5,calm:.6,mischief:.3};const k=60*(mp?.stiffness||1),d=8*(mp?.damping||1),turb=mp?.turbulence||0,wind=mp?.wind||{x:0,y:0,z:0};
   U.uWind.value.set(wind.x*.4,wind.y*.2,wind.z*.4);U.uChaos.value=turb;
@@ -161,8 +163,25 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
   const st=clamp(life.speed*1.6),ph=life.bob,nap=life.sleep;
   legs.forEach((b,i)=>pose(b,Math.sin(ph+(i===0||i===3?0:Math.PI))*.55*st-nap*1.2*(i<2?1:-.6)));knees.forEach((b,i)=>pose(b,Math.max(0,-Math.sin(ph+(i===0||i===3?0:Math.PI)))*.6*st+nap*(i<2?1.6:-1.4)));
   const breathe=Math.sin(t*(1.6-mood.calm*.5))*.025;
-  pose(bones.hips,0,0,Math.sin(ph)*.05*st);pose(bones.spine,-nap*.15+breathe,yr*.04,0);
-  const yaw=lookLocal?clamp(lookLocal.yaw,-1,1):Math.sin(t*.4)*.3,pit=lookLocal?clamp(lookLocal.pitch,-.5,.5):nap*.5;
+  pose(bones.hips,0,Math.sin(t*.55)*.05*(1-st)*(1-nap),Math.sin(ph)*.05*st+Math.sin(t*.55+1)*.03*(1-st));pose(bones.spine,-nap*.15+nap*.3+breathe,yr*.04+nap*.35,0);
+  // ---- animation pass (CST + springs): look-around saccades, jump anticipation/squash/landing, happy bounce, stretch+yawn, hat follow-through
+  anim.lookT-=dt;if(anim.lookT<=0){anim.lookT=1.1+R()*2.6*(.6+mood.calm*.8);anim.lookY=(R()-.5)*1.2*(1-nap)*(.5+mood.curiosity);anim.lookP=(R()-.5)*.35-nap*.1;}
+  springStep(anim.sy,anim.lookY,55*(mp?.stiffness||1),11,dt);springStep(anim.sp,anim.lookP,55,11,dt);
+  const playing=life.mode==='play';
+  if(anim.jp<0){anim.jt-=dt;if((life as any).jump||(playing&&anim.jt<=0)||(life.startle||0)>.6){anim.jp=0;anim.jt=1.8+R()*3;}}
+  let lift=0,sqT=0;if(anim.jp>=0){anim.jp+=dt/.95;const p=anim.jp;
+   if(p<.24)sqT=-.2*Math.sin(p/.24*Math.PI/2);else if(p<.78){const q=(p-.24)/.54;lift=Math.sin(q*Math.PI)*(.18+.1*mood.joy);sqT=.12*(1-q*2);}else if(p<1)sqT=-.17*Math.sin((p-.78)/.22*Math.PI);else anim.jp=-1;}
+  springStep(anim.sq,sqT,140,13,dt);
+  const hop=lift+(playing?Math.abs(Math.sin(t*5.5))*.035*(.4+mood.joy):0)+(life.startle||0)*.04;
+  if(bones.root&&rootRest){bones.root.position.copy(rootRest);bones.root.position.y+=hop;const q_=anim.sq.x;bones.root.scale.set(1-q_*.45,1+q_,1-q_*.45);}
+  // stretch + yawn when idle and calm
+  let stretch=0;if(life.speed<.05&&nap<.2){anim.st-=dt;if(anim.st<=0&&anim.sp2<0){anim.sp2=0;anim.st=9+R()*10;}}
+  if(anim.sp2>=0){anim.sp2+=dt/2.6;stretch=Math.sin(Math.min(1,anim.sp2)*Math.PI);if(anim.sp2>=1)anim.sp2=-1;}
+  // hat sack: spring driven by vertical velocity (hop) and head yaw velocity -> jiggle + band follow-through
+  const vl=(hop-anim.pl)/Math.max(dt,1e-3),vy=(anim.sy.x-anim.py)/Math.max(dt,1e-3);anim.pl=hop;anim.py=anim.sy.x;
+  springStep(anim.hat,clamp(-vl*.12,-.5,.5),70,5,dt);springStep(anim.hy,clamp(-vy*.06,-.4,.4)+wind.x*.1,60,5,dt);pose(bones.hat,anim.hat.x,anim.hy.x,Math.sin(t*1.3)*.02*turb);
+  if(stretch>0){pose(bones.spine,-stretch*.28,0,0);ex.o=Math.max(ex.o,stretch>.6?(stretch-.6)*2.4:0);}
+  const yaw=lookLocal?clamp(lookLocal.yaw,-1,1):anim.sy.x,pit=lookLocal?clamp(lookLocal.pitch,-.5,.5):nap*.5+anim.sp.x-stretch*.35;
   pose(bones.neck,pit*.4,yaw*.4,0);pose(bones.head,pit*.6+(life.startle||0)*-.2,yaw*.6,Math.sin(t*.7)*.06*mood.curiosity+ex.curious*.2);
   ears.forEach((b,i)=>{const s=i?1:-1;springStep(sp.ear[i],-yr*.08+wind.x*s*.3+Math.sin(t*9+i)*turb*.15-ex.scared*.7+ex.happy*.15,k,d,dt);springStep(sp.ear2[i],Math.abs(Math.sin(ph))*st*.3+ex.curious*.3-nap*.5,k,d,dt);
    pose(b,sp.ear2[i].x,0,sp.ear[i].x*s);pose(ears1[i],sp.ear2[i].x*.6,0,sp.ear[i].x*s*.6);});

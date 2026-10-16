@@ -449,7 +449,7 @@ dk=DETAIL.get(PLAN,'comet')
 if dk=='comet':dt=[ell('d',tuple(Vector(TP[-1])+td*trad*1.4),(trad*.55,trad*.55,trad*.55),seg=20,ring=10)]+[ell('d',tuple(Vector(TP[-1])+td*trad*(2.2+k*.9)-Vector((0,0,k*.02))),(trad*.3*(1-k*.25),)*3,seg=10,ring=6) for k in range(3)]
 elif dk=='foxfire':dt=[ell('d',tuple(Vector(TP[-1])+Vector((s*.12,0,.15))),(.04,.04,.07),seg=14,ring=8) for s in (-1,0,1)]
 elif dk=='ember_heart':dt=[ell('d',FACE.get('heart',(0,-.1,.62)),(.06,.03,.06),seg=16,ring=8)]
-elif dk=='none':dt=[ell('d',(0,0,-5),(.001,.001,.001),seg=4,ring=3)]
+elif dk=='none':dt=[ell('d',(0,0,.3),(.001,.001,.001),seg=4,ring=3)]
 else:dt=[tube('d',[(math.cos(a)*.22,EARS['head'][1]+math.sin(a)*.22,EARS['head'][2]+.36) for a in [k/16*2*math.pi for k in range(17)]],[.012]*17)]
 detail=join(dt,'detail');setmat(detail,M['glow'])
 # ---- resident props (beanie, crystal shards, hoodie+horns, coil spikes): own materials, rigged to head/spine
@@ -777,7 +777,7 @@ if NEW_OUTFIT:
         from mathutils import Matrix
         hatp=[o_ for o_ in props if o_.name.split('.')[0] in('prop_cuff','prop_crown','prop_seams','prop_bandribs','prop_band')]
         Rm=Matrix.Translation(hb)@Matrix.Rotation(-.26,4,'X')@Matrix.Translation(-hb)
-        for o_ in hatp:o_.data.transform(Rm)
+        for o_ in hatp:o_.data.transform(Rm);o_['bone']='hat'  # spring bone: sack jiggle + band follow-through
         
         pmat('earfur',(.012,.009,.02,1),.7,sheen=.6);pmat('earin',(.6,.22,.45,1),.5,emit=(.5,.15,.4,1),es=.3)
         eo_,ei_=[],[]
@@ -867,6 +867,7 @@ def bone(name,h,t,parent=None):
     if parent:b.parent=EB[parent]
     return b
 for n,h,t,par in B:bone(n,h,t,par)
+if PLAN=='res_nyxbean':bone('hat',tuple(hb),tuple(hb+Vector((0,.09,.12))),'head')
 for s,n,a in zip((-1,1),('L','R'),EA):
     bone('ear.0.'+n,a,ear_tip(a,s,ehr*.5),'head');bone('ear.1.'+n,ear_tip(a,s,ehr*.5),ear_tip(a,s,ehr*1.0),'ear.0.'+n)
 prev=TAIL['parent']
