@@ -113,11 +113,33 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
    });
   }
   // A real cartridge may need its own title/start sequence before gameplay.
-  await delay(1600);await input('A');await delay(650);
-  await page.evaluate(()=>window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button:'start',down:true,source:'agent'}})));
-  await delay(150);
-  await page.evaluate(()=>window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button:'start',down:false,source:'agent'}})));
-  await delay(1700);
+  // Boot-race fix 2026-10-16: fixed delays sometimes captured only the title
+  // screen. Wait until the native framebuffer actually changes (gameplay), with a
+  // bounded timeout, before episode 0. Fails closed instead of recording a title.
+  async function pressStart(){
+   await page.evaluate(()=>window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button:'start',down:true,source:'agent'}})));
+   await delay(150);
+   await page.evaluate(()=>window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button:'start',down:false,source:'agent'}})));
+  }
+  async function waitForGameplay(timeoutMs=Number(process.env.ZEREF_GAMEPLAY_WAIT_MS||75000)){
+   // frameChange is intra-sample motion (static gameplay reads 0), and a title
+   // screen can flicker between two looks. Gameplay is "live" only once probe
+   // presses produce >=3 distinct screens (the same bar the dataset must pass).
+   // Probe presses are NOT recorded as training rows.
+   const t0=Date.now(),PROBE=['RIGHT','DOWN','LEFT','UP'];let seen=new Set(),moving=0,tries=0;
+   while(Date.now()-t0<timeoutMs){
+    let o=null;try{o=await optics();}catch{}
+    if(o){seen.add(JSON.stringify([o.brightness,o.contrast,o.dominant]));if(o.frameChange>=5)moving++;
+     if(tries>0&&seen.size>=3)return {waited_ms:Date.now()-t0,distinct_screens:seen.size,probe_presses:tries,motion_samples:moving};}
+    if(tries%5===0){await input('A');await delay(250);await pressStart();await delay(900);seen=new Set();}
+    else await input(PROBE[tries%PROBE.length]);
+    tries++;await delay(450);
+   }
+   throw Error('Native game never reached varied gameplay frames within '+timeoutMs+'ms (boot race); refusing title-screen capture');
+  }
+  await delay(800);
+  const gameplayReady=await waitForGameplay();
+  console.log('NATIVE_GAMEPLAY_READY='+JSON.stringify(gameplayReady));
   const init=await optics();
   assert.ok(init,'Native optical observations must succeed before writing any dataset');
   for(let episode=0;episode<4;episode++){
@@ -160,7 +182,7 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
    scripted_teacher_action_histogram:counts,teacher_version:'visible-signals-v2',
    scripted_teacher_dominant_action_fraction:dominantShare,
    teacher_cycle_offset:cycle,cycle_source:'GitHub Actions run ID mod scripted fallback length',
-   native_game_progress_proven:false,
+   native_game_progress_proven:false,gameplay_ready:gameplayReady,
    errors,source_native_ref:process.env.NATIVE_GAME_HEAD||'native main at workflow checkout',
    source_web_ref:process.env.WEB_APP_HEAD||'current PR checkout'};
   await fs.writeFile(output+'/native-evidence-manifest.json',JSON.stringify(manifest,null,2)+'\n');

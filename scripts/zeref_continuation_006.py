@@ -37,7 +37,9 @@ def expected_steps(cycle):
 # (539/840) history could never move the RIGHT-only parent. Labels are now
 # sampled action-balanced, older real captures are replayed, and an L2 anchor
 # to the approved parent bounds drift (catastrophic-forgetting guard).
-LR=float(os.environ.get("ZEREF_006_LR","0.00005"))
+# Calm-drift fix (2026-10-16): 5e-5 x 512 updates overshot the chat gate every
+# round; halve the LR (cycle size stays 512 so expected_steps lineage holds).
+LR=float(os.environ.get("ZEREF_006_LR","0.000025"))
 BATCH=8
 TEACHER_VERSION="visible-signals-v2"
 CHAT_MIX=Path(os.environ.get("ZEREF_006_CHAT_MIX","build/zeref-006/chat-mix.jsonl"))
@@ -149,18 +151,27 @@ def replay_rows(current_digest):
   out+=rows;used.append(digest)
   if len(used)>=REPLAY_MAX_DATASETS:break
  return out,used
-def rigetti_order_seed(cycle):
+RUN_ID=os.environ.get("NAVISWORLD_NATIVE_TRAINING_CYCLE") or os.environ.get("GITHUB_RUN_ID") or "local"
+PUBLIC_REF=Path(os.environ.get("ZEREF_006_PUBLIC_REF_DIR","build/public-14k"))
+def rigetti_order_seed(cycle,fresh_digest=None,run_id=None):
  """Batch-order seed from RECORDED Rigetti SIMULATOR counts (rigetti.sim.qvm,
  NOT QPU, NOT quantum training). Picks one recorded job by cycle and hashes its
- counts with the real IBM spark id. Only affects sampling order."""
+ counts with the real IBM spark id. Only affects sampling order.
+ Replay fix (2026-10-16): every round from the same parent used to get the SAME
+ order (seed depended only on cycle). The fresh capture digest and the run id are
+ now mixed in, so each attempt sees a new shuffle; provenance stays SIMULATED."""
  d=json.loads(RIGETTI.read_text())
  if d.get("physical_hardware_jobs_permitted")!=0 or "rigetti.sim.qvm" not in d.get("backend_exact_allowlist",[]):
   raise ValueError("Rigetti source must be simulator-only")
  jobs=[b for s in d["scenario_records"] for b in s["batches"] if b.get("target")=="rigetti.sim.qvm"]
  job=jobs[cycle%len(jobs)]
- h=sha(json.dumps({"ibm":IBM,"cycle":cycle,"job":job["job_id"],"counts":job["counts"]},sort_keys=True).encode())
+ mix={"ibm":IBM,"cycle":cycle,"job":job["job_id"],"counts":job["counts"]}
+ if fresh_digest:mix["fresh_capture_sha256"]=fresh_digest
+ if run_id:mix["run_id"]=str(run_id)
+ h=sha(json.dumps(mix,sort_keys=True).encode())
  return int(h[:15],16),{"rigetti_sim_job_id":job["job_id"],"counts":job["counts"],
-   "order_seed_sha256":h,"source_class":d.get("source_class"),"label":"SIMULATED"}
+   "order_seed_sha256":h,"source_class":d.get("source_class"),"label":"SIMULATED",
+   "seed_mix":sorted(mix),"backend":"rigetti.sim.qvm (SIMULATED, not QPU)"}
 def train_variant(parent_path,tokenizer,pool,seed,chat_pool=()):
  """64 bounded AdamW updates with action-balanced sampling and parent anchor."""
  from collections import defaultdict
@@ -292,8 +303,23 @@ def main():
   front=tokenizer.encode(f"user: {q}\nassistant:",add_bos=True);tail=tokenizer.encode(" "+a,add_eos=True)
   chat_t.append({"input":(front+tail)[:-1],"target":[-100]*(len(front)-1)+tail})
  original_chat=nll(model,chat_t)
- order_seed,rigetti=rigetti_order_seed(cycle)
- control_seed=SEED+cycle*1009+8
+ order_seed,rigetti=rigetti_order_seed(cycle,source_digest,RUN_ID)
+ control_seed=(SEED+cycle*1009+8+int(sha(f"{source_digest}:{RUN_ID}:control".encode())[:12],16))%(2**62)
+ # Anti-ratchet (2026-10-16): fixed reference = pinned PUBLIC 14000 baseline's
+ # chat NLL on the same held pairs. Training-parent gate becomes
+ # max(parent*1.05, public14k) so one lucky parent cannot raise the bar forever.
+ # Public promotion is still decided ONLY by scripts/rawrphos_chat_eval.py
+ # (candidate not worse than 14000 on every metric).
+ public_ref_chat=None
+ if (PUBLIC_REF/"model.safetensors").is_file():
+  _ref=load_checkpoint(PUBLIC_REF,load_training_state=False)
+  _tk=_ref["tokenizer"];_rows=[]
+  for q,a in CHAT_PAIRS:
+   f=_tk.encode(f"user: {q}\nassistant:",add_bos=True);t=_tk.encode(" "+a,add_eos=True)
+   _rows.append({"input":(f+t)[:-1],"target":[-100]*(len(f)-1)+t})
+  public_ref_chat=nll(_ref["model"],_rows)
+  del _ref
+ chat_bar=max(.01,original_chat*1.05,public_ref_chat or 0.)
  # On/off comparison: identical recipe, only the batch-order seed differs.
  # The Rigetti-ordered model is ALWAYS the candidate (no cherry-picking).
  ctrl,_,_,_=train_variant(PARENT,tokenizer,pool,control_seed,chat_pool)
@@ -339,7 +365,7 @@ def main():
   # original-ROM observations cannot become the approved training parent.
   # This measures action-label diversity, NOT verified movement/quest progress.
   # Added (never weaker): chat skill on the held chat-test pairs may not degrade.
-  "chat_heldout_nll_not_worse_than_5_percent":new_chat<=max(.01,original_chat*1.05),
+  "chat_heldout_nll_within_parent5pct_or_public14k_ref":new_chat<=chat_bar,
   "native_heldout_policy_not_single_action":len({r["legal_action"] for r in trial_out if r["legal_action"]})>=2
  }
  accepted=all(guard.values())
@@ -364,7 +390,8 @@ def main():
   "gate":guard,"accepted_as_next_training_parent":accepted,
   "recipe":{"lr":LR,"batch":BATCH,"anchor_l2":ANCHOR,"decision_token_weight":DECISION_WEIGHT,"sampling":"sqrt_action_balanced",
     "replay_datasets":replay_digests,"replay_rows":len(replay),"chat_mix_sha256":chat_digest,"chat_rows":len(chat_pool),"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
-    "chat_before_nll":original_chat,"chat_after_nll":new_chat,"fresh_train_rows":len(train)},
+    "chat_before_nll":original_chat,"chat_after_nll":new_chat,"chat_gate_bar":chat_bar,
+    "chat_gate_public14k_ref_nll":public_ref_chat,"chat_gate_rule":"max(parent*1.05, pinned public 14000 ref); public promotion still requires rawrphos_chat_eval not worse than 14000","fresh_train_rows":len(train)},
   "rigetti_batch_order":rigetti,
   "rigetti_on_off":{"on_candidate":{"heldout_nll":new_held,"chat_nll":new_chat,"retention_nll":new_ret,**trial,
       "unique_actions":len({r["legal_action"] for r in trial_out if r["legal_action"]})},

@@ -17,11 +17,13 @@ import {
  DEFAULT_HF_MODEL,DEFAULT_OLLAMA_MODEL,DEFAULT_OLLAMA_URL,DEFAULT_ROUTE,MAX_MESSAGE,ROUTE_INFO,TALK_ROUTES,
  connectHelp,readTalkLog,talkPersona,talkToBeast,writeTalkLog,LOG_PREFIX,DRAFT_PREFIX,readTalkDraft,writeTalkDraft,readTalkRetention,TALK_RETENTION_KEY
 } from '../lib/companion/beast-talk.mjs';
+import {isTeacherRoute,makePair,rememberPair,readContribute,writeContribute,contributionBody,readPairs} from '../lib/companion/teacher-distill.mjs';
 import styles from './beast-talk-panel.module.css';
 
 export type TalkState='idle'|'thinking'|'listening'|'speaking'|'replied'|'offline';
 type Route=TalkRoute;
-type Turn={role:'you'|'beast';text:string;model?:string;route?:string;at?:number;id?:string;cloudImported?:boolean;verified?:boolean};
+type TeacherHint={text:string;label:string;model?:string;route:string};
+type Turn={role:'you'|'beast';text:string;model?:string;route?:string;at?:number;id?:string;cloudImported?:boolean;verified?:boolean;teacher?:TeacherHint;beastMissing?:string};
 type Offline={error:string;help:string[];route:string};
 type Prefs={route:Route;ollamaUrl:string;ollamaModel:string;hfModel:string};
 type Status={routes?:Record<string,{configured:boolean|string}>;default?:string};
@@ -61,6 +63,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
  const [text,setText]=useState(''),[busy,setBusy]=useState(false),[offline,setOffline]=useState<Offline|null>(null);
  const [verifiedAt,setVerifiedAt]=useState<number|null>(null),[listening,setListening]=useState(false),[speaking,setSpeaking]=useState(false);
  const [showBrains,setShowBrains]=useState(false);
+ const [contribute,setContribute]=useState(false),[pairCount,setPairCount]=useState(0),[contribStatus,setContribStatus]=useState('');
  const [cloudStatus,setCloudStatus]=useState('Private cloud is optional. Restore your own conversation before saving.'),[cloudOwner,setCloudOwner]=useState(''),[cloudSync,setCloudSync]=useState(false),[cloudRestoring,setCloudRestoring]=useState(false);
  const [queueState,setQueueState]=useState<PrivateChatQueueState>({busy:false,pending:0,paused:false,error:null,lastSavedEvent:null});
  const privateQueue=useRef<ReturnType<typeof createPrivateChatQueue>|null>(null),privateBinding=useRef<PrivateChatBinding|null>(null),restoreAbort=useRef<AbortController|null>(null);
@@ -80,6 +83,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   try{const raw=localStorage.getItem(PREFS_KEY);if(raw){const saved=JSON.parse(raw);setPrefs(p=>({...p,...saved,route:TALK_ROUTES.includes(saved?.route)?saved.route:p.route}));}}catch{/* defaults */}
   try{setHfKey(sessionStorage.getItem(HF_KEY)||'');}catch{/* private mode */}
   try{setShareGrowth(localStorage.getItem(GROWTH_CONSENT_KEY)==='yes');}catch{/* private by default */}
+  setContribute(readContribute(localStorage));setPairCount(readPairs(localStorage).length);
   setPrefsLoaded(true);
   const controller=new AbortController();
   fetch('/api/talk',{cache:'no-store',signal:controller.signal}).then(r=>r.ok?r.json():null).then(setStatus).catch(()=>setStatus({}));
@@ -148,13 +152,24 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   try{
    const observation=includeGame&&gameBridge?.key===gameBeastKey(session)?await gameBridge.observeGame?.():null;
    if(controller.signal.aborted||personaKey.current!==forKey||privateSelection.current!==forSelection)return;
-   const result=await talkToBeast({route,persona,history:log,text:saying,shareHistory,observation,context:[knownGameContext(session,gameBridge?.key),shareGrowth?growthModelContext(growth):''].filter(Boolean).join('\n'),signal:controller.signal,
-    ollama:{url:prefs.ollamaUrl,model:prefs.ollamaModel},hf:{key:hfKey,model:prefs.hfModel,spendConfirmed:spend}});
+   const ask={persona,history:log,text:saying,shareHistory,observation,context:[knownGameContext(session,gameBridge?.key),shareGrowth?growthModelContext(growth):''].filter(Boolean).join('\n'),signal:controller.signal,
+    ollama:{url:prefs.ollamaUrl,model:prefs.ollamaModel},hf:{key:hfKey,model:prefs.hfModel,spendConfirmed:spend}};
+   // Teacher design: any non-RAWRPHOS brain is a TEACHER. RAWRPHOS still writes the
+   // Beast's own reply; the teacher's answer is shown separately and labeled.
+   const teaching=isTeacherRoute(route);
+   const teacherResult=teaching?await talkToBeast({...ask,route}):null;
    if(pending.current!==controller||controller.signal.aborted||personaKey.current!==forKey||privateSelection.current!==forSelection)return;
-   if(!result.ok){setOffline({error:result.error,help:result.help,route:result.route});return;}
+   if(teacherResult&&!teacherResult.ok){setOffline({error:teacherResult.error,help:teacherResult.help,route:teacherResult.route});return;}
+   const result=await talkToBeast({...ask,route:'guest-rawrphos'});
+   if(pending.current!==controller||controller.signal.aborted||personaKey.current!==forKey||privateSelection.current!==forSelection)return;
+   if(!result.ok&&!teacherResult){setOffline({error:result.error,help:result.help,route:result.route});return;}
    const exchangeId=crypto.randomUUID(),at=Date.now();
-   const next=[...log,{role:'you' as const,text:saying,at,id:exchangeId+'-you'},{role:'beast' as const,text:result.reply,model:result.model,route:result.route,at:result.at,id:exchangeId+'-beast'}];
-   setLog(next);writeTalkLog(storage.current,forKey,next);setVerifiedAt(result.at);editText('');
+   const teacher=teacherResult&&teacherResult.ok?{text:teacherResult.reply,label:TEACHER_LABEL[teacherResult.route]||teacherResult.label,model:teacherResult.model,route:teacherResult.route}:undefined;
+   const youTurn={role:'you' as const,text:saying,at,id:exchangeId+'-you',teacher,beastMissing:result.ok?undefined:result.error};
+   const next=result.ok?[...log,youTurn,{role:'beast' as const,text:result.reply,model:result.model,route:result.route,at:result.at,id:exchangeId+'-beast'}]:[...log,youTurn];
+   setLog(next);writeTalkLog(storage.current,forKey,next);setVerifiedAt(result.ok?result.at:at);editText('');
+   if(teacher)recordTeacherPair(saying,teacher);
+   if(!result.ok)return;
    if(visitorId&&storage.current){const prior=growth?.beastKey===forKey?growth:freshGrowth(visitorId,forKey);const updated=advanceVisitorGrowth(prior,{text:saying,reply:result.reply,verified:true});writeVisitorGrowth(storage.current,updated);setGrowth(updated);}
    if(boundForCloud){try{privateQueue.current?.enqueue({...boundForCloud,exchange:{eventId:exchangeId,text:saying,reply:result.reply,provider:result.route,model:result.model,at}});}catch(error){setCloudStatus((error instanceof Error?error.message:'Private queue unavailable.')+' The completed reply remains in local storage.');}}
    // Same Beast, same growth: a verified exchange adds to the saved Beast's chat and bond.
@@ -164,6 +179,21 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    if(pending.current===controller){pending.current=null;setBusy(false);}
   }
  }
+ function recordTeacherPair(prompt:string,teacher:TeacherHint){
+  // Distillation candidate: kept on THIS device by default; never shared across visitors.
+  const pair=makePair({prompt,reply:teacher.text,route:teacher.route,model:teacher.model,beast:persona.name});
+  const rows=rememberPair(localStorage,pair);setPairCount(rows.length);
+  // Shared training only with explicit opt-in. Brain Bay is the owner's own paired
+  // provider (owner-only route), so the owner path auto-contributes.
+  const owner=teacher.route==='connected-brain-bay';
+  if(!pair||!(contribute||owner))return;
+  const body=contributionBody(pair);
+  if(!body){setContribStatus('This teacher pair looked like it had private info, so it stayed on your device only.');return;}
+  void fetch('/api/teacher-pairs',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+   .then(async r=>{const j=await r.json().catch(()=>null);setContribStatus(r.ok?`Shared for review (${j?.review_status||'pending'}).`:(j?.error||'Not shared; kept on this device.'));})
+   .catch(()=>setContribStatus('Not shared; kept on this device.'));
+ }
+ function toggleContribute(on:boolean){setContribute(on);writeContribute(localStorage,on);setContribStatus(on?'Future teacher answers will be shared for training review after a privacy filter.':'Teacher answers stay on this device only.');}
  function cancel(){pending.current?.abort();}
  function clearLog(){setLog([]);writeTalkLog(storage.current,persona.key,[]);}
  function listen(){
@@ -220,7 +250,9 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
 
   {showBrains?<fieldset className={styles.brains}>
    <legend>Choose {persona.name}&apos;s teacher</legend>
-   <p className={styles.advancedBrain} data-advanced-brain>Advanced · Brain: {info.label} · <code>{modelName}</code>. Your Beast&apos;s name, story and memory stay the same; the teacher only supplies the reply.</p>
+   <p className={styles.advancedBrain} data-advanced-brain>Advanced · Brain: {info.label} (teacher) · <code>{modelName}</code>. {persona.name}&apos;s own voice is always RAWRPHØS. Another teacher&apos;s answer is shown next to it, clearly labeled, and never spoken as {persona.name}.</p>
+   <label className={styles.check} data-teacher-contribute><input type="checkbox" checked={contribute} onChange={e=>toggleContribute(e.target.checked)}/> Help train RAWRPHØS: share my teacher answers (not my key, not my history) for review. Off by default. Private info is filtered out and pairs are rate-limited.</label>
+   <small data-teacher-pairs>{pairCount} teacher pair{pairCount===1?'':'s'} saved on this device only.{contribStatus?' '+contribStatus:''}</small>
    {TALK_ROUTES.map(key=><label key={key} className={styles.brainChoice} data-selected={route===key||undefined}>
     <input type="radio" name="talk-brain" value={key} checked={route===key} onClick={()=>savePrefs({route:key as Route})} onChange={()=>savePrefs({route:key as Route})}/>
     <span><strong>{ROUTE_INFO[key].label}</strong><small>{ROUTE_INFO[key].detail}</small></span>
@@ -239,10 +271,16 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   </fieldset>:null}
 
   <div className={styles.log} aria-label={`Conversation with ${persona.name}`} aria-live="polite">
-   {log.length===0?<p className={styles.empty}>Say hi to {persona.name}! 👋 Type below, then tap Send.<small> Replies come from the teacher shown above, never from a script.</small></p>:
-    log.map((turn,i)=><div key={i} className={turn.role==='you'?styles.you:styles.beast}>
+   {log.length===0?<p className={styles.empty}>Say hi to {persona.name}! 👋 Type below, then tap Send.<small> {persona.name}&apos;s replies come from RAWRPHØS, never from a script. Other teachers appear as labeled hints.</small></p>:
+    log.map((turn,i)=><div key={i} style={{display:'contents'}}><div className={turn.role==='you'?styles.you:styles.beast}>
      <span className={styles.speaker}>{turn.role==='you'?'You':persona.name}{turn.role==='beast'&&turn.model?<em> · via {turn.model}</em>:null}</span>
      <p>{turn.text}</p>
+    </div>
+    {turn.role==='you'&&turn.teacher?<div className={styles.beast} data-teacher-hint data-teacher-route={turn.teacher.route} style={{opacity:.82,borderStyle:'dashed'}}>
+     <span className={styles.speaker}>Teacher hint · {turn.teacher.label}{turn.teacher.model?<em> · {turn.teacher.model}</em>:null} · not {persona.name}&apos;s voice</span>
+     <p>{turn.teacher.text}</p>
+    </div>:null}
+    {turn.role==='you'&&turn.beastMissing?<p className={styles.empty} data-beast-missing>{persona.name}&apos;s own RAWRPHØS voice didn&apos;t answer this time ({turn.beastMissing}). Only the teacher&apos;s hint is shown.</p>:null}
     </div>)}
    {busy?<div className={styles.beast}><span className={styles.speaker}>{persona.name}</span><p className={styles.thinking}>thinking<span>.</span><span>.</span><span>.</span></p></div>:null}
    <div ref={logEnd}/>

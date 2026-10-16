@@ -4,7 +4,7 @@
 Sources (public, reviewed, no private transcripts):
  1. evidence/final-whole-organism-001/corpus/TRAIN.jsonl: supervised_dialogue rows
     with training_allowed=true, memory_scope=none, review_status=REVIEWED_CLEAN.
- 2. evidence/zeref-dad-voice-001/dialogue.jsonl: original warm dad-voice pairs (x3).
+ 2. evidence/zeref-dad-voice-001/dialogue.jsonl: original warm dad-voice pairs (x2).
  3. databricks-dolly-15k pinned revision (CC BY-SA 3.0, Databricks), short
     no-context instructions only. Attribution kept in the manifest.
 Chat-test prompts (scripts/rawrphos_chat_eval.py) are excluded from training.
@@ -18,7 +18,7 @@ DOLLY_SHA="2df9083338b4abd6bceb5635764dab5d833b393b55759dffb0959b6fcbf794ec"
 DOLLY_REV="bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a"
 MAX_DOLLY=1200
 DAD_VOICE=Path("evidence/zeref-dad-voice-001/dialogue.jsonl")
-DAD_REPEAT=3  # chat-heavier: Cory-requested warm dad voice is upweighted
+DAD_REPEAT=2  # 2026-10-16: 3x->2x calms drift/repetition; still upweighted
 held={p.strip().lower() for p,_ in PAIRS}|{p.strip().lower() for p in CHAT}
 def main(dolly,out):
  rows=[]
