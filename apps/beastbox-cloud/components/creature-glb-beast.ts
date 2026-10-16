@@ -71,7 +71,9 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
    { vec3 np=vObjP*3.2+uSeed*.1+vec3(0.0,uT*.03,0.0);float nb=fbm3(np);float nb2=fbm3(np*1.9+4.0);
      vec3 neb=mix(uGlow,mix(vec3(.45,.2,1.0),vec3(.1,.85,1.0),nb2),.45);
      c=pow(c,vec3(1.7))*1.1;c=mix(c,neb*.9,smoothstep(.3,.7,nb)*.85*(1.0-vMask.r*.5));
-     float l=dot(c,vec3(.299,.587,.114));c=max(vec3(0.0),mix(vec3(l),c,1.7)); }
+     float l=dot(c,vec3(.299,.587,.114));float sat=max(c.r,max(c.g,c.b))-min(c.r,min(c.g,c.b));
+     vec3 hue=mix(mix(vec3(.55,.28,1.0),vec3(.12,.78,1.0),nb2),uAccent,.25);c=mix(c,hue*(.45+.6*l),clamp((.34-sat)*2.8,0.0,.8)*(1.0-vMask.r*.45));   // pastel/grey coats get a vivid cosmic hue
+     c=max(vec3(0.0),mix(vec3(dot(c,vec3(.299,.587,.114))),c,1.6)); }
    float hgt=${shell?'clamp(uS/vLenN,0.0,1.0)':'0.0'};
    diffuseColor.rgb=c*mix(.35,1.0,hgt);                                       // root AO -> bright tips
    vec3 sp3=vObjP*58.0+vec3(0.0,0.0,uT*.25);float star=step(.985,h31(floor(sp3)))*smoothstep(.35,.0,length(fract(sp3)-.5))*(.6+.4*sin(uT*3.0+h31(floor(sp3))*40.0));
@@ -90,7 +92,7 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
    vec2 sp=vec2(cos(a),sin(a))*r;float neb=fbm3(vec3(sp*1.6,uSeed.x+uT*.04));float arm=.5+.5*sin(a*2.0-r*5.0);
    vec3 deep=vec3(.05,.02,.14),vio=vec3(.48,.24,1.0);vec3 nc=mix(deep,mix(vio,uGlow,arm),smoothstep(.35,.85,neb*.7+arm*.4))*smoothstep(1.25,.2,r);
    nc+=uGlow*smoothstep(.35,.0,abs(r-.9))*.25;nc*=smoothstep(.18,.32,r)*.85+.15;
-   float stars=step(.992,h31(floor(nv*180.0)))*smoothstep(1.1,.3,r);totalEmissiveRadiance=nc*2.2+vec3(1.0)*stars*1.4;`);};
+   float stars=step(.992,h31(floor(nv*180.0)))*smoothstep(1.1,.3,r);nc+=mix(vec3(.4,.2,1.0),vec3(.2,.9,1.0),.5+.5*sin(a*3.0))*smoothstep(.12,.0,abs(r-.62))*.6;totalEmissiveRadiance=nc*3.4+vec3(1.0)*stars*1.6;`);};
  eyeMat.customProgramCacheKey=()=>'beast-eye-v2';
  let face:any=null,body:any=null;const shells:any[]=[];const SP=SPECIES[plan]||{};const shown=new Set<string>(['body','face','detail',...(SP.ears||EAR_V[gen.ears]||['ear_pointy'])]);
  if(gen.ears==='crown')shown.add('ear_crown');

@@ -98,7 +98,7 @@ def quad(p):
     return P,B,face,ears,tail,wings
 def fox_x(by,bh,bw,hz,hr,leg,hy):
     # long tapering snout + chest ruff
-    return {'snout':(cone,((0,hy-hr*.6,hz-hr*.18),(0,hy-hr*1.6,hz-hr*.36),hr*.42,.85,28,.07)),
+    return {'snout':(tube,([(0,hy-hr*.45,hz-hr*.16),(0,hy-hr*1.0,hz-hr*.26),(0,hy-hr*1.45,hz-hr*.34),(0,hy-hr*1.62,hz-hr*.36)],[hr*.4,hr*.3,hr*.2,hr*.12])),
             'ruff':(ell,((0,-by*.8,leg+bh*1.25),(bw*1.15,bw*1.0,bh*1.25))),
             'nape':(ell,((0,hy+hr*.2,hz-hr*.55),(hr*.62,hr*.7,hr*.62))),
             'waist':(ell,((0,0,leg+bh*.9),(bw*1.05,by*.75,bh*1.05)))}

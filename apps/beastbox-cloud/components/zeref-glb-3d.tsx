@@ -120,7 +120,7 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
       ${shell?`if(vFurUv.x<0.||uT>vLenN)discard;float sd=texture2D(uStrands,vFurUv*15.).r*.75+texture2D(uStrands,vFurUv*41.).r*.25;
        float need=mix(.18,.96,clamp(uT/vLenN,0.,1.));if(sd<need)discard;`:''}
       float hgt=${shell?'clamp(uT/vLenN,0.,1.)':'0.'};
-      diffuseColor.rgb*=mix(.45,1.25,hgt);   // self-shadowing toward the roots, lighter tips
+      diffuseColor.rgb*=mix(.4,1.05,hgt);   // self-shadowing toward the roots, lighter tips
       float earM=smoothstep(1.06,1.16,vObjP.y)*smoothstep(.15,.25,abs(vObjP.x)),pawM=1.-smoothstep(.04,.13,vObjP.y);float warmM=max(earM,pawM);`)
       .replace('#include <emissivemap_fragment>',`#ifdef USE_EMISSIVEMAP
        // live CST starlight: the field swirls with chaos + Lorenz energy, twinkles harder when chaotic, and settles into
@@ -135,12 +135,12 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
       #endif
       vec3 vd=normalize(vViewPosition),nn=normalize(vNormal);float fres=pow(1.-abs(dot(nn,vd)),3.);
       float back=pow(clamp(dot(-vd,normalize(uRimView))*.5+.5,0.,1.),2.);
-      totalEmissiveRadiance+=vec3(.5,.6,1.)*fres*fres*(.05+.3*hgt);                       // rim sheen on the coat
+      totalEmissiveRadiance+=mix(vec3(.55,.25,1.),vec3(.15,.9,1.),.5+.5*nn.y)*fres*fres*(.12+.35*hgt);                       // rim sheen on the coat
       totalEmissiveRadiance+=diffuseColor.rgb*vec3(1.,.55,.8)*warmM*(.25+.9*back*fres+.25*back);  // subsurface-like warmth (ears, paws)`);};
     mat.customProgramCacheKey=()=>'zeref-fur-'+(shell?shell.t.toFixed(3):'base');mat.needsUpdate=true;};
    const furMeshes:any[]=[];
    gltf.scene.traverse((o:any)=>{if(!(o.isMesh&&o.material))return;const mat=o.material,n=mat.name;
-    if(n==='zeref_fur'){mat.color.setRGB(.85,.8,1.0);if('sheen' in mat){mat.sheen=.55;mat.sheenColor=new THREE.Color(0xc7a4ff);mat.sheenRoughness=.45;}mat.envMapIntensity=.9;furPatch(mat,null,.004);furMeshes.push(o);}
+    if(n==='zeref_fur'){mat.color.setRGB(.85,.8,1.0);if('sheen' in mat){mat.sheen=.55;mat.sheenColor=new THREE.Color(0xc7a4ff);mat.sheenRoughness=.45;}mat.envMapIntensity=.6;furPatch(mat,null,.004);furMeshes.push(o);}
     else if(n==='zeref_eye'){eyeMat=new THREE.MeshPhysicalMaterial({map:mat.map,emissive:0xffffff,emissiveMap:mat.emissiveMap,emissiveIntensity:2.7,roughness:.25,clearcoat:1,clearcoatRoughness:.03,ior:1.4,envMapIntensity:.55});
      eyeMat.name='zeref_eye';o.material=eyeMat;happyMesh=o;
      eyeMat.onBeforeCompile=(sh:any)=>{Object.assign(sh.uniforms,{uHappy,uStarT:starT,uSwirl,uChaos});
