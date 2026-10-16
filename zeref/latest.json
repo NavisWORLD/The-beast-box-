@@ -10,30 +10,30 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 22,
- "xp": 847,
+ "tick": 23,
+ "xp": 873,
  "stage": 2,
  "stage_name": "Duskwing",
  "signals": {
-  "energy": 69,
+  "energy": 92,
   "signal": 52,
-  "memory": 84,
-  "resonance": 92
+  "memory": 85,
+  "resonance": 91
  },
- "bond": 5.5,
+ "bond": 5.75,
  "care_total": 0,
  "places": {
-  "Rift Gate": 11,
-  "Lattice Arch": 9,
+  "Rift Gate": 12,
+  "Lattice Arch": 11,
   "Echo Prism": 36,
   "Tidewell": 5,
-  "Quartz Choir": 4,
+  "Quartz Choir": 5,
   "Violet Shard": 11,
   "Selene Pool": 5
  },
- "last_tick_at": "2026-10-16T01:16:40.335Z",
- "last_entry_hash": "a6276aaea54f8eb81f16281e0b57f2d668dcdfb0906b3842874ec327de20bfa7",
- "combos_total": 193,
+ "last_tick_at": "2026-10-16T04:31:42.469Z",
+ "last_entry_hash": "de7b5c7738ac17106aeade37253bf5a09532a1b8e86ff70ad29797eeaadf456b",
+ "combos_total": 197,
  "next_stage": {
   "stage": 3,
   "name": "Eclipse Prowler",
@@ -43,18 +43,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 360,
-  "moves_blocked": 13,
-  "blocked_rate": 0.035,
-  "favorite_spot": "Violet Shard",
-  "favorite_value": 0.683,
+  "moves_succeeded": 374,
+  "moves_blocked": 16,
+  "blocked_rate": 0.041,
+  "favorite_spot": "Echo Prism",
+  "favorite_value": 0.639,
   "prefs": {
    "explore": 0.5905,
-   "visit": 0.9955,
+   "visit": 0.9119,
    "rest": 0.05,
    "play": 1
   },
-  "decisions": 218,
+  "decisions": 230,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -70,6 +70,112 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 23,
+   "at": "2026-10-16T04:31:42.469Z",
+   "hour_local": 23,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 92,
+    "signal": 52,
+    "memory": 85,
+    "resonance": 91
+   },
+   "bond": 5.8,
+   "mood": "content",
+   "place": "Lattice Arch",
+   "places_visited": [
+    "Lattice Arch",
+    "Quartz Choir",
+    "Rift Gate"
+   ],
+   "discovered_combos": [
+    {
+     "key": "hover|hover|open-pocket|beating|sway|open|o",
+     "name": "hovering · beating wings · sway tail · open eyes · o mouth in the open pocket"
+    },
+    {
+     "key": "hover|hover|open-pocket|folded|sway|closed|smile",
+     "name": "hovering · folded wings · sway tail · closed eyes · smile mouth in the open pocket"
+    },
+    {
+     "key": "pounce|pounce|portal|beating|flick|open|grin",
+     "name": "pouncing · beating wings · flick tail · open eyes · grin mouth at a portal"
+    },
+    {
+     "key": "pounce|pounce|open-pocket|folded|sway|half|sleepy",
+     "name": "pouncing · folded wings · sway tail · half eyes · sleepy mouth in the open pocket"
+    }
+   ],
+   "new_combo_count": 4,
+   "combos_total": 197,
+   "xp_gain": 26,
+   "xp": 873,
+   "stage": 2,
+   "stage_name": "Duskwing",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "6e49b6f7-c91a-11f1-a9dd-7ced8d4e8c63",
+    "job_name": "zeref-diary-tick-23-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "100": 2,
+     "101": 98,
+     "110": 93,
+     "111": 2,
+     "000": 1,
+     "001": 30,
+     "010": 30
+    },
+    "counts_sha256": "833f97d44dc56e04c718d9c7f50a42352319be732175f41cc05b7ff70dd23c39",
+    "circuit_params": {
+     "energy": 2.167699,
+     "signal": 1.633628,
+     "resonance": 2.890265
+    },
+    "quil_sha256": "0dc7a61ae1f2dd2d8e6a085ede194d8a7aac02de08a2fa4ae1c4d9a0765939dc"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 14,
+    "moves_blocked": 3,
+    "goals": {
+     "play": 5,
+     "visit": 7
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.041,
+    "favorite_spot": "Echo Prism",
+    "prefs": {
+     "explore": 0.5905,
+     "visit": 0.9119,
+     "rest": 0.05,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "Just being here is nice. Spent most of the tick at Lattice Arch. Bumped into a void rift. I will remember where it is. The simulator sparks lined up even and calm. My body tried 4 new move combinations.",
+    "by": "deterministic-template"
+   },
+   "prev_hash": "a6276aaea54f8eb81f16281e0b57f2d668dcdfb0906b3842874ec327de20bfa7",
+   "hash": "de7b5c7738ac17106aeade37253bf5a09532a1b8e86ff70ad29797eeaadf456b"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1148,113 +1254,8 @@
    },
    "prev_hash": "703c1a26541f7f1d876668557c86559b06ad377d050f4a5d36ca9ae711a48971",
    "hash": "492bbaf659d5b876e194b3611eefa802256de954cc66889bafa8110a5ba9ecb2"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 11,
-   "at": "2026-10-14T13:04:58.030Z",
-   "hour_local": 8,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 95,
-    "signal": 57,
-    "memory": 73,
-    "resonance": 99
-   },
-   "bond": 2.8,
-   "mood": "content",
-   "place": "Quartz Choir",
-   "places_visited": [
-    "Quartz Choir",
-    "Tidewell"
-   ],
-   "discovered_combos": [
-    {
-     "key": "pounce|pounce|open-pocket|folded|sway|open|o",
-     "name": "pouncing · folded wings · sway tail · open eyes · o mouth in the open pocket"
-    },
-    {
-     "key": "hover|hover|open-pocket|folded|sway|half|grin",
-     "name": "hovering · folded wings · sway tail · half eyes · grin mouth in the open pocket"
-    },
-    {
-     "key": "walk|still|moon-pool|folded|sway|open|smile",
-     "name": "walk · folded wings · sway tail · open eyes · smile mouth at a moon pool"
-    },
-    {
-     "key": "walk|still|moon-pool|folded|sway|closed|smile",
-     "name": "walk · folded wings · sway tail · closed eyes · smile mouth at a moon pool"
-    },
-    {
-     "key": "walk|still|moon-pool|folded|flick|open|smile",
-     "name": "walk · folded wings · flick tail · open eyes · smile mouth at a moon pool"
-    }
-   ],
-   "new_combo_count": 5,
-   "combos_total": 162,
-   "xp_gain": 27,
-   "xp": 617,
-   "stage": 2,
-   "stage_name": "Duskwing",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "cfce30da-c7cf-11f1-ae67-000d3aed8b7e",
-    "job_name": "zeref-diary-tick-11-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "101": 165,
-     "110": 91
-    },
-    "counts_sha256": "75ea710cd6363b57e252533ae15a4a42e984e764ff0c3637b2cf596b4def1696",
-    "circuit_params": {
-     "energy": 3.141593,
-     "signal": 1.822124,
-     "resonance": 3.078761
-    },
-    "quil_sha256": "74c38d2938e70ed712b9a0c2c67572485f427056a1e6854b4fdf27cc093e527e"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 12,
-    "moves_blocked": 4,
-    "goals": {
-     "play": 9,
-     "rest": 1,
-     "visit": 3
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.045,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.811,
-     "visit": 0.9865,
-     "rest": 0.08,
-     "play": 0.937
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "thought": {
-    "text": "Quiet tick. I like quiet ticks. Spent most of the tick at Quartz Choir. Bumped into a void rift. I will remember where it is. The simulator sparks lined up even and calm. My body tried 5 new move combinations.",
-    "by": "deterministic-template"
-   },
-   "prev_hash": "a547d5b86314d405389da132799724c94b83582d0af4033a291c3c74c780a7c9",
-   "hash": "703c1a26541f7f1d876668557c86559b06ad377d050f4a5d36ca9ae711a48971"
   }
  ],
- "generated_at": "2026-10-16T01:16:40.335Z",
+ "generated_at": "2026-10-16T04:31:42.469Z",
  "thought_source_note": "model-not-configured"
 }
