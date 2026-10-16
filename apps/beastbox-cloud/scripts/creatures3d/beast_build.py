@@ -813,10 +813,10 @@ if NEW_OUTFIT:
             if len(ic)>=18:break  # fewer, longer, thicker: read as icicles, not speckles
             v=body.data.vertices[R3.randrange(len(body.data.vertices))]
             if v.normal.y>-.45 or v.normal.z>.15 or not(.18<v.co.z<.55):continue  # chest front edge, rooted outside the fur
-            L=R3.uniform(.12,.2);p=v.co+v.normal*.06
+            L=R3.uniform(.12,.2);p=v.co+v.normal*.075
             for j in range(R3.choice((1,2))):
                 off=Vector((R3.uniform(-.008,.008),R3.uniform(-.008,.008),0))
-                ic.append(cone('ice',tuple(p+off),tuple(p+off+Vector((v.normal.x*.01,v.normal.y*.01,-L*(1-.35*j)))),R3.uniform(.015,.022),1,8))
+                ic.append(cone('ice',tuple(p+off),tuple(p+off+Vector((v.normal.x*.01,v.normal.y*.01,-L*(1-.35*j)))),R3.uniform(.022,.032),1,10))
         def drip(p,L,r,n=8):ic.append(cone('ice',tuple(p),tuple(Vector(p)+Vector((0,0,-L))),r,1,n))
         for x in (-.55,-.2,.15,.5):  # chin fringe
             p=surf(x*ER,FACE['eye_z']-ER*2.2)+Vector((0,.01,0));drip(p,R3.uniform(.05,.08),R3.uniform(.009,.013))
@@ -825,9 +825,9 @@ if NEW_OUTFIT:
             a=-math.pi/2+math.radians(55)+k*(2*math.pi-math.radians(110))/11
             drip(Vector((cxy.x+math.cos(a)*brx,cxy.y+math.sin(a)*bry,hb.z-.004)),R3.uniform(.04,.09),R3.uniform(.008,.012))
         m=D.materials.new('pm_iceclear');m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(.62,.82,1,1);b.inputs['Roughness'].default_value=.12
-        b.inputs['Transmission Weight'].default_value=.35;b.inputs['IOR'].default_value=1.31;b.inputs['Subsurface Weight'].default_value=.4;b.inputs['Coat Weight'].default_value=1;b.inputs['Emission Color'].default_value=(.35,.62,1,1);b.inputs['Emission Strength'].default_value=.3;PM['iceclear']=m
+        b.inputs['Transmission Weight'].default_value=.12;b.inputs['IOR'].default_value=1.31;b.inputs['Subsurface Weight'].default_value=.4;b.inputs['Coat Weight'].default_value=1;b.inputs['Emission Color'].default_value=(.35,.62,1,1);b.inputs['Emission Strength'].default_value=.3;PM['iceclear']=m
         for o_ in [x for x in props if x.name.startswith('prop_icicles')]:props.remove(o_);D.objects.remove(o_,do_unlink=True)
-        o=joinm(ic,'prop_icicles');cap(o,900);setmat(o,PM['iceclear']);o['bone']='spine';props.append(o)
+        o=joinm(ic,'prop_icicles');cap(o,2400);setmat(o,PM['iceclear']);o['bone']='spine';props.append(o)
         m=D.materials.new('pm_mist');m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(.85,.9,1,1);b.inputs['Alpha'].default_value=.28
         b.inputs['Emission Color'].default_value=(.6,.7,1,1);b.inputs['Emission Strength'].default_value=.12;m.blend_method='BLEND';PM['mist']=m
         ms=[]
