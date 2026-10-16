@@ -165,7 +165,7 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
   setM('mouth_grin',ex.grin*(1-ex.o));setM('mouth_o',ex.o);setM('mouth_w',ex.w*(1-ex.o));
   U.uBeat.value=Math.pow(Math.max(0,Math.sin(t*(1+(mp?mp.stiffness:1)*.9)*Math.PI*2)),12);glowMat.emissiveIntensity=1.6+U.uBeat.value*1.4+mood.joy*.4;
  }
- return {root,drive,tris:Math.round(tris),shells:shells.length,plan,expr:ex,setTier(tr:Tier){const n=SHELLS[tr];shells.forEach((s,i)=>{s.visible=n>=12||(i%12)%Math.ceil(12/Math.max(1,n))===0&&n>0;});},
+ return {root,drive,tris:Math.round(tris),shells:shells.length,plan,expr:ex,colors:C,setTier(tr:Tier){const n=SHELLS[tr];shells.forEach((s,i)=>{s.visible=n>=12||(i%12)%Math.ceil(12/Math.max(1,n))===0&&n>0;});},
   dispose(){root.traverse((o:any)=>{if(o.isMesh){o.geometry?.dispose();(Array.isArray(o.material)?o.material:[o.material]).forEach((m:any)=>m?.dispose());}});}};
 }
 

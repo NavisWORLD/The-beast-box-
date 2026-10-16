@@ -6,6 +6,7 @@ import {addPocketResidents} from './pocket-residents';
 import {addPocketSand} from './pocket-sand-layer';
 import {SAND_LABEL} from '../lib/pocket-sand.mjs';
 import {guardCanvasTouch} from '../lib/three/touch-guard';
+import {createHop,stepHop} from '../lib/physics/ground-hop.mjs';
 import {useEffect,useRef,useState} from 'react';
 import {createPocketSky,orbitPosition} from '../lib/pocket-sky.mjs';
 import {DEFAULT_POCKET_3D,POCKET_3D_KEY,POCKET_3D_EVENT,POCKET_3D_CAMERA_RESET,devicePocket3D,deviceClassicPixel,saveClassicPixel} from '../lib/companion/pocket-3d-settings.mjs';
@@ -142,7 +143,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   const mute=()=>{motion.current.impulse=0;};
   const resetCamera=()=>{cameraView.current={theta:.7,phi:1.28,zoom:10.6};pickRef.current?.(-1e6,-1e6);};
   const option={passive:true} as AddEventListenerOptions;
-  const unguard=parent?guardCanvasTouch(parent,{hint:parent.classList.contains('beast-landing-art')?'☝ Drag to spin the universe':'☝ Drag to explore · pinch to zoom'}):()=>{};
+  const unguard=parent?guardCanvasTouch(parent,{hint:parent.classList.contains('beast-landing-art')?'↔ Drag sideways to spin · swipe to scroll':'↔ Drag sideways to explore · pinch to zoom'}):()=>{};
   if(parent){
    parent.addEventListener('pointerdown',pointerDown,option);
    parent.addEventListener('pointermove',pointerMove,option);
@@ -182,11 +183,14 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     if(disposed)return;
     // User quality never overrides the OS reduced-motion safety boundary.
     let low=reduced||visualSettings.quality==='low'||(visualSettings.quality==='auto'&&window.innerWidth<600);
-    const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:!low,powerPreference:'low-power'});
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?1:1.4));
+    // Phones with a real GPU (iPhone etc.) are 'low' only for world density; they still get AA, a crisper ratio and the sculpted GLBs.
+    const phoneGpu=low&&!reduced&&visualSettings.quality!=='low';
+    const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:!low||phoneGpu,powerPreference:phoneGpu?'default':'low-power'});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?(phoneGpu?1.6:1):1.5));
     // Software GL (CI SwiftShader, very old phones): force the low tier so the main thread never starves.
     let soft=false;try{const gl=renderer.getContext();const dbg=gl.getExtension('WEBGL_debug_renderer_info');soft=!!dbg&&/swiftshader|llvmpipe|software/i.test(String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)));}catch{}
     if(soft){low=true;renderer.setPixelRatio(1);}
+    const glbTier:'med'|'low'|null=soft?null:!low?'med':phoneGpu?'med':null;(window as any).__pocketGlbTier=glbTier;
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     // Living Cosmos polish: filmic tone mapping for deeper, less flat contrast.
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
@@ -204,6 +208,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const crystalMat=new THREE.MeshStandardMaterial({color:0xc6a2ff,emissive:0x7a4fe0,emissiveIntensity:.95,metalness:.3,roughness:.18,transparent:true,opacity:.92});
     const ground=new THREE.Mesh(new THREE.BoxGeometry(9.1,.22,9.1),stone);
     ground.position.y=-.17;scene.add(ground);
+    // Feet on the world: a real downward raycast against the habitat floor (cached on a coarse grid; the floor is static).
+    const gRay=new THREE.Raycaster(),gO=new THREE.Vector3(),gD=new THREE.Vector3(0,-1,0),gCache=new Map<number,number>();
+    const groundAt=(x:number,z:number)=>{const k=Math.round(x*20)*4096+Math.round(z*20);let y=gCache.get(k);if(y===undefined){ground.updateMatrixWorld();gO.set(x,5,z);gRay.set(gO,gD);const h=gRay.intersectObject(ground,false)[0];y=h?h.point.y+.02:0;gCache.set(k,y);}return y;};
     const grid=new THREE.GridHelper(9,12,0x4983a4,0x284c74);
     grid.position.y=-.05;scene.add(grid);
     // Faded, not deleted: the grid now only whispers under the sand.
@@ -276,7 +283,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       'vec3 c=mix(vec3(.12,.55,.85),vec3(.65,.4,1.0),w);gl_FragColor=vec4(c*(1.0-r*.7),(1.0-r)*.55+.08);}'});
     const pool=new THREE.Mesh(new THREE.CircleGeometry(1,low?32:64),poolMat);pool.rotation.x=-Math.PI/2;pool.position.set(2.15,-.03,-1.7);pool.scale.setScalar(.95);scene.add(pool);
     // Artist-drawn residents (separate creatures, never the active Beast) roam the pocket.
-    const {stepResidents,texCache,disturbers,pickables}=addPocketResidents(THREE,scene,seedRandom,reduced,low);
+    const {stepResidents,texCache,disturbers,pickables}=addPocketResidents(THREE,scene,seedRandom,reduced,low,glbTier,groundAt);
     // God view: habitat on a small planet, orbiting its suns, inside a galaxy (Genesis Engine, recoloured).
     const god=addGodView(THREE,scene,{rand:randomFor(key+':system'),low,counts:qvmCounts,stage:motion.current.stage||stage||1});
     const godFocus=new THREE.Vector3();
@@ -294,13 +301,13 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // starve the main thread, so the classic pocket stays and the world layer is skipped. Real GPUs (incl. phones) keep it.
     const world=soft?{update:(..._a:any[])=>{},dispose:()=>{}}:addPocketWorld(THREE,scene,{seed:key,low});
     const brain:any=createLife(key,{x:.8,z:.6} as any);const shelterAt=flora[0]?{x:flora[0].position.x*.8,z:flora[0].position.z*.8}:{x:2,z:-1.4};
-    let plush:ReturnType<typeof buildPlush>|null=null;const beastNode=new THREE.Group();beastNode.name='beast-3d';scene.add(beastNode);
+    let plush:ReturnType<typeof buildPlush>|null=null;let beastFoot=0;const hop=createHop(key);const beastNode=new THREE.Group();beastNode.name='beast-3d';scene.add(beastNode);
     const syncPlush=()=>{const gen=(window as any).__beastGenome as PlushGenome|null;const want=!!gen&&!pixelRef.current;
      if(plush&&(!want||plush.root.userData.seed!==gen?.seed)){beastNode.remove(plush.root);plush.dispose();plush=null;}
      if(want&&!plush&&gen){plush=buildPlush(THREE,gen,{low});plush.root.userData.seed=gen.seed;plush.root.scale.setScalar(1.3);beastNode.add(plush.root);
       // Zeref-pipeline sculpted GLB replaces the plush when available (plush stays as low tier / fallback while loading or on failure)
-      if((!low||new URLSearchParams(location.search).get('beastglb')==='1')&&GLB_PLANS.includes(gen.body)){const mine=plush;loadBeastGlb(THREE,gen,{tier:'med'}).then(gb=>{
-        if(!gb||disposed||plush!==mine){gb?.dispose();return;}gb.root.scale.setScalar(1.15);mine.root.visible=false;beastNode.add(gb.root);
+      if((glbTier||new URLSearchParams(location.search).get('beastglb')==='1')&&GLB_PLANS.includes(gen.body)){const mine=plush;loadBeastGlb(THREE,gen,{tier:glbTier||'med'}).then(gb=>{
+        if(!gb||disposed||plush!==mine){gb?.dispose();return;}gb.root.scale.setScalar(1.15);mine.root.visible=false;beastNode.add(gb.root);beastNode.updateMatrixWorld(true);{const bb=new THREE.Box3().setFromObject(gb.root);beastFoot=beastNode.position.y-bb.min.y;}
         const pd=mine.drive,pdis=mine.dispose;const lp=new THREE.Vector3();
         (mine as any).drive=(dt:number,b:any,mp:any,look:any)=>{let ll=null;if(look){lp.set(look.x,look.y,look.z);gb.root.worldToLocal(lp);ll={yaw:Math.atan2(lp.x,lp.z),pitch:Math.atan2(lp.y-.6,Math.hypot(lp.x,lp.z))};}gb.drive(dt,b,mp,ll);};
         (mine as any).dispose=()=>{beastNode.remove(gb.root);gb.dispose();pdis();};(mine as any).tris=gb.tris;void pd;}).catch(()=>{});}}
@@ -390,13 +397,14 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      {const cp=plush?{x:brain.x,y:.45,z:brain.z}:null;const L=life.update(reduced?0:dt,cp,plush?attn:null);world.update(reduced?0:dt,L.env,L.cst.ch,camera.position);
       if(plush){stepLife(brain,reduced?0:dt,{...L.env,mood:L.mood,cam:camXZ(),residents:disturbers(),shelter:shelterAt,onEat:(id:string)=>life.eat(id)});
        attn=brain.attn?{x:brain.attn.x,y:brain.attn.y,z:brain.attn.z}:null;
-       beastNode.position.set(brain.x,0,brain.z);beastNode.rotation.y=Math.PI/2-brain.heading;
+       {const hp=stepHop(hop,reduced?0:dt,{mode:brain.mode,speed:brain.speed,startle:brain.startle||0,mp:L.mp,scale:1.3,groundY:groundAt(brain.x,brain.z)});const sq=hp.squash;
+        beastNode.position.set(brain.x,hp.y+beastFoot,brain.z);beastNode.scale.set(1-sq*.5,1+sq,1-sq*.5);(brain as any).air=hp.air;}beastNode.rotation.y=Math.PI/2-brain.heading;
        plush.drive(reduced?0:dt,brain,L.mp,brain.lookCam>.3?{x:camera.position.x,y:camera.position.y,z:camera.position.z}:attn);
        // observer camera: a gentle side/away drift that keeps the Beast framed, never forced into its face
        if(!autoOrbitRef.current&&!focused&&!reduced&&now-lastDragAt.current>4000){const want=-brain.heading+Math.PI/2+.5*Math.PI+(brain.lookCam>.5?Math.PI*.35:0);
         let dth=((want-v.theta)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI;v.theta+=dth*Math.min(1,dt*.12);v.zoom+=(9.4-v.zoom)*Math.min(1,dt*.2);v.phi+=(1.36-v.phi)*Math.min(1,dt*.2);
         homeFocus.set(brain.x*.6,1.05,brain.z*.6);/* lower + pulled back so the pocket world shows behind the Beast */}else homeFocus.set(0,.85,0);
-       (window as any).__beastLife={mode:brain.mode,x:brain.x,z:brain.z,attn:brain.attn?.kind??null,weather:life.getWeather(),coherence:L.cst.ch.coherence,chaos:L.cst.ch.chaos,hebb:L.cst.hebb,rain:L.env.rain,night:L.env.night,tris:plush.tris};}}
+       (window as any).__beastLife={y:+beastNode.position.y.toFixed(3),ground:+groundAt(brain.x,brain.z).toFixed(3),air:!!(brain as any).air,mode:brain.mode,x:brain.x,z:brain.z,attn:brain.attn?.kind??null,weather:life.getWeather(),coherence:L.cst.ch.coherence,chaos:L.cst.ch.chaos,hebb:L.cst.hebb,rain:L.env.rain,night:L.env.night,tris:plush.tris};}}
      if(focused){focused.obj.getWorldPosition(tgt);tgt.y+=.35;focus.lerp(tgt,Math.min(1,dt*4));}else focus.lerp(homeFocus,Math.min(1,dt*3));
      const f=god.update(elapsed,v.zoom,focus,godFocus);
      (scene.fog as import('three').FogExp2).density=.032*Math.min(1,12/v.zoom);
