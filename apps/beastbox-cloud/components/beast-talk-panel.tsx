@@ -17,13 +17,14 @@ import {
  DEFAULT_HF_MODEL,DEFAULT_OLLAMA_MODEL,DEFAULT_OLLAMA_URL,DEFAULT_ROUTE,MAX_MESSAGE,ROUTE_INFO,TALK_ROUTES,
  connectHelp,readTalkLog,talkPersona,talkToBeast,writeTalkLog,LOG_PREFIX,DRAFT_PREFIX,readTalkDraft,writeTalkDraft,readTalkRetention,TALK_RETENTION_KEY
 } from '../lib/companion/beast-talk.mjs';
+import {speakSeeded,speakableText,voiceProfile,ZEREF_VOICE_SEED,REACH_OUT_LABEL} from '../lib/companion/seeded-voice.mjs';
 import {isTeacherRoute,makePair,rememberPair,readContribute,writeContribute,contributionBody,readPairs} from '../lib/companion/teacher-distill.mjs';
 import styles from './beast-talk-panel.module.css';
 
 export type TalkState='idle'|'thinking'|'listening'|'speaking'|'replied'|'offline';
 type Route=TalkRoute;
 type TeacherHint={text:string;label:string;model?:string;route:string};
-type Turn={role:'you'|'beast';text:string;model?:string;route?:string;at?:number;id?:string;cloudImported?:boolean;verified?:boolean;teacher?:TeacherHint;beastMissing?:string;coachedBy?:string};
+type Turn={role:'you'|'beast';text:string;model?:string;route?:string;at?:number;id?:string;cloudImported?:boolean;verified?:boolean;teacher?:TeacherHint;beastMissing?:string;coachedBy?:string;reachOut?:string};
 type Offline={error:string;help:string[];route:string};
 type Prefs={route:Route;ollamaUrl:string;ollamaModel:string;hfModel:string};
 type Status={routes?:Record<string,{configured:boolean|string}>;default?:string};
@@ -94,6 +95,10 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
  function editText(value:string){const draft=value.slice(0,MAX_MESSAGE);setText(draft);writeTalkDraft(storage.current,persona.key,draft);}
  useEffect(()=>{restoreAbort.current?.abort();restoreAbort.current=null;privateBinding.current=null;privateQueue.current?.select(null);setCloudRestoring(false);setCloudOwner('');setCloudConsented(false);setCloudSync(false);setCloudStatus('Private cloud is optional. Restore your own conversation before saving.');},[selectionKey]);
  useEffect(()=>{const binding=privateBinding.current;privateQueue.current?.select(binding?{...binding,enabled:cloudSync,consented:cloudConsented}:null);},[cloudSync,cloudConsented,cloudOwner,selectionKey]);
+ // Zeref's own unprompted messages (RAWRPHOS or his diary line) appear in chat, labeled.
+ useEffect(()=>{const on=(e:Event)=>{const d=(e as CustomEvent).detail||{};if(!d.text||persona.name!=='Zeref')return;
+  setLog(prev=>[...prev,{role:'beast',text:String(d.text),at:d.at,id:'reach-'+d.at,reachOut:String(d.by||'RAWRPHØS')}]);};
+  window.addEventListener('zeref:reach-out',on);return()=>window.removeEventListener('zeref:reach-out',on);},[persona.name]);
  useEffect(()=>{if(queueState.error)setCloudStatus(queueState.error+' The completed reply remains in your selected local storage. Retry explicitly.');else if(queueState.lastSavedEvent)setCloudStatus('Both turns were saved in one private cloud revision. Model weights and native saves are unchanged.');},[queueState.error,queueState.lastSavedEvent]);
  async function restorePrivate(){
   if(busy||cloudBusy||!conversationReady||!session?.beast)return;
@@ -215,9 +220,9 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   if(speaking){window.speechSynthesis?.cancel();setSpeaking(false);return;}
   if(!lastReply||!('speechSynthesis' in window)){setOffline({error:'Speech playback is unavailable in this browser.',help:[],route});return;}
   if(audioState.sparkMuted){setOffline({error:'Unmute sound in Settings to hear a reply.',help:[],route});return;}audio.unlock();
-  const utterance=new SpeechSynthesisUtterance(lastReply.text.slice(0,600));utterance.lang='en-US';utterance.pitch=1.15;utterance.volume=audioState.volume;
-  utterance.onend=()=>setSpeaking(false);utterance.onerror=()=>setSpeaking(false);
-  try{window.speechSynthesis.cancel();window.speechSynthesis.speak(utterance);setSpeaking(true);}catch{setSpeaking(false);}
+  // Seeded synthetic voice; only the Beast's own RAWRPHOS turn is ever spoken (never teacher text).
+  const line=speakableText(lastReply);if(!line)return;
+  const r=speakSeeded(line,voiceProfile(persona.key||ZEREF_VOICE_SEED),{volume:audioState.volume,onend:()=>setSpeaking(false)});setSpeaking(r.ok);
  }
 
  return <section className={styles.panel} data-compact={compact||undefined} data-overlay data-talk-state={state} data-talk-route={route} aria-label={`Talk to ${persona.name}`}>
@@ -277,6 +282,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
     log.map((turn,i)=><div key={i} style={{display:'contents'}}><div className={turn.role==='you'?styles.you:styles.beast}>
      <span className={styles.speaker}>{turn.role==='you'?'You':persona.name}{turn.role==='beast'&&turn.model?<em> · via {turn.model}</em>:null}</span>
      <p>{turn.text}</p>
+     {turn.reachOut?<small data-reach-out>💬 {REACH_OUT_LABEL} · {turn.reachOut}</small>:null}
      {turn.role==='beast'&&turn.coachedBy?<small data-coached-by>Coached by: {turn.coachedBy}</small>:null}
     </div>
     </div>)}
