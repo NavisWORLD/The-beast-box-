@@ -812,7 +812,7 @@ if NEW_OUTFIT:
         for k in range(400):
             if len(ic)>=26:break  # fewer, longer, thicker: read as icicles, not speckles
             v=body.data.vertices[R3.randrange(len(body.data.vertices))]
-            if v.normal.z>-.25 or v.co.z<.1:continue
+            if v.normal.z>-.2 or v.normal.z<-.75 or v.co.z<.1 or max(abs(v.normal.x),-v.normal.y)<.3:continue  # downward-facing outer edges (chest/belly/leg silhouette) so they hang in view
             L=R3.uniform(.05,.11);p=v.co+v.normal*.003
             for j in range(R3.choice((1,2))):
                 off=Vector((R3.uniform(-.008,.008),R3.uniform(-.008,.008),0))

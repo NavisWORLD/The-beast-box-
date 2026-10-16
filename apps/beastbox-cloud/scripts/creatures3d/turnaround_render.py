@@ -62,6 +62,10 @@ if PLAN=='res_frostmitt':  # white fur: albedo ~0.7, tamer key, punchier AgX so 
     key.data.energy*=.6;fill.data.energy*=.5;sc.view_settings.exposure=-.35
     if sc.view_settings.view_transform=='AgX':sc.view_settings.look='AgX - High Contrast'
 # playbook #1: sculpt->bake maps (normal/AO/curvature) from sculpt_bake.py onto the game mesh
+if os.environ.get('FUR_NOEMIT'):  # diagnostic: fur material without emission
+    for m_ in bpy.data.materials:
+        b_=m_.node_tree.nodes.get('Principled BSDF') if m_.use_nodes and m_.name.startswith(('fur','pm_fur')) else None
+        if b_:b_.inputs['Emission Strength'].default_value=0
 BK=os.environ.get('BAKED')
 def bakemaps(o,pre):
     if not o.data.uv_layers or not os.path.exists(pre+'_normal.png'):return
@@ -98,7 +102,7 @@ if os.environ.get('CYCLES','1')=='1':
     # offline look: Cycles + OIDN, strand fur (clumped children + flyaways) on the coat meshes, SSS ears
     sc.render.engine='CYCLES';sc.cycles.samples=int(os.environ.get('SAMPLES','64'));sc.cycles.use_denoising=True;sc.cycles.denoiser='OPENIMAGEDENOISE';sc.cycles.device='CPU'
     FUR={'res_nyxbean':(.024,(.016,.015,.018)),'res_frostmitt':(.038,(.62,.68,.8)),'res_kairo':(0,None)}[PLAN]
-    if FUR[0]>0:
+    if FUR[0]>0 and not os.environ.get('NOFUR'):
         hm=bpy.data.materials.new('furhair');hm.use_nodes=True;nt2=hm.node_tree;out=nt2.nodes['Material Output']
         for n_ in list(nt2.nodes):
             if n_!=out:nt2.nodes.remove(n_)
@@ -116,8 +120,8 @@ if os.environ.get('CYCLES','1')=='1':
                 vgd=o.vertex_groups.new(name='furdens')
                 for v in o.data.vertices:
                     face_=v.co.z>zt_*.55 and v.normal.y<.15 and abs(v.co.x)<zt_*.36  # whole front of the head
-                    vgd.add([v.index],0 if face_ else 1,'REPLACE')
-                    if face_:vgl.add([v.index],.25,'REPLACE')
+                    vgd.add([v.index],.45 if face_ else 1,'REPLACE')  # short, sparse face fur (not bald)
+                    if face_:vgl.add([v.index],.18,'REPLACE')
                 md.particle_system.vertex_group_density='furdens'
             ps.hair_length=FUR[0]*(.7 if o.name.startswith('ear') else 1);ps.material=slot;ps.child_type='INTERPOLATED';ps.child_percent=6;ps.rendered_child_count=10
             ps.clump_factor=.55;ps.clump_shape=.3;ps.roughness_1=.012;ps.roughness_2=.025;ps.roughness_2_threshold=.85;ps.roughness_endpoint=.006
@@ -132,10 +136,10 @@ if os.environ.get('CYCLES','1')=='1':
                     if inf=='rough':s2.use_map_rough=True;s2.rough_factor=1.0
                     else:s2.use_map_twist=True;s2.twist_factor=.6;ps.twist=.4
             except Exception as e:print('cst clump slot',e)
-            if o.name.startswith('body'):  # long clumped chest + cheek fluff
+            if o.name.startswith('body') and not os.environ.get('NORUFF'):  # long clumped chest + cheek fluff
                 vg=o.vertex_groups.new(name='ruffd');hc_=max(v.co.z for v in o.data.vertices)*.62
                 for v in o.data.vertices:
-                    w_=max(0,min(1,(-v.normal.y-.2)*2))*(1 if v.co.z<hc_*1.15 else (0 if PLAN=='res_frostmitt' else .6))  # Frostmitt: chest ruff only, no cheek fluff over the face
+                    w_=max(0,min(1,(-v.normal.y-.2)*2))*((1 if v.co.z<hc_*.8 else 0) if PLAN=='res_frostmitt' else (1 if v.co.z<hc_*1.15 else .6))  # Frostmitt: the long ruff rose over the muzzle = the face haze; keep it on the chest  # Frostmitt: chest ruff only, no cheek fluff over the face
                     if w_>0:vg.add([v.index],w_,'REPLACE')
                 md2=o.modifiers.new('ruff','PARTICLE_SYSTEM');p2=md2.particle_system.settings;md2.particle_system.vertex_group_density='ruffd'
                 p2.type='HAIR';p2.count=5000;p2.hair_length=FUR[0]*3.8;p2.material=slot;p2.child_type='INTERPOLATED';p2.child_percent=8;p2.rendered_child_count=12
@@ -154,5 +158,5 @@ for i,ang in enumerate((0,90,180)):
     cam.location=tgt+Vector((math.sin(r)*dist,-math.cos(r)*dist,top*.12));cam.rotation_euler=(tgt-cam.location).to_track_quat('-Z','Y').to_euler()
     for L,base in ((chest,(0,-1.6,.15)),(key,(-1.6,-2.2,2.2)),(rim,(1.8,2.0,1.6)),(rim2,(-1.9,1.6,1.0)),(fill,(2,-2,.6))):
         x,y,z=base;L.location=(x*math.cos(r)-y*math.sin(r),x*math.sin(r)+y*math.cos(r),z);L.rotation_euler=(Vector((0,0,.5))-L.location).to_track_quat('-Z','Y').to_euler()
-    f='/tmp/ta_%s_%d.png'%(PLAN,i);sc.render.filepath=f;bpy.ops.render.render(write_still=True);frames.append(f)
+    f='/tmp/ta_%s%s_%d.png'%(PLAN,os.environ.get('OUTTAG',''),i);sc.render.filepath=f;bpy.ops.render.render(write_still=True);frames.append(f)
 print('FRAMES',' '.join(frames))
