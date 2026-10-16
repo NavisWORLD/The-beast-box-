@@ -97,8 +97,9 @@ export async function createArStage(host:HTMLElement,gen:PlushGenome,{onMode,onP
   r.render(scene,cam);
   host.dataset.arLife=life.mode;host.dataset.arAir=String(hp.air);host.dataset.arKind=kind;onState?.(life.mode);
  };
- r.setAnimationLoop(frameFn);
- (window as any).__arStage={step:(dt:number)=>{manual=dt;},mode:()=>mode,kind:()=>kind,life:()=>({mode:life.mode,x:life.x*k,z:life.z*k,y:body.position.y}),place};
+ // ?manual=1 (QA captures): no free-running loop; __arStage.step(dt) advances the life + renders one frame deterministically.
+ const qManual=new URLSearchParams(location.search).get('manual')==='1';if(!qManual)r.setAnimationLoop(frameFn);
+ (window as any).__arStage={step:(dt:number)=>{manual=dt;frameFn(performance.now());},mode:()=>mode,kind:()=>kind,life:()=>({mode:life.mode,x:life.x*k,z:life.z*k,y:body.position.y}),place};
  return {place,enableOrientation,startXR,xrSupported,exportUsdz,ready,get mode(){return mode;},
   dispose(){disposed=true;r.setAnimationLoop(null);ro.disconnect();window.removeEventListener('deviceorientation',onOri);try{xrSession?.end();}catch{}dispose();r.dispose();cv.remove();}};
 }
