@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {talkToBeast} from '../lib/companion/beast-talk.mjs';
+import {autonomyTickMs,beatMs,HEART_FALLBACK} from '../lib/companion/zeref-heart.mjs';
 import {voiceProfile,speakSeeded,readPrefs,writePrefs,armOnFirstTap,canReachOut,recordReachOut,reachOutPrompt,REACH_OUT_LABEL,VOICE_LABEL,ZEREF_VOICE_SEED} from '../lib/companion/seeded-voice.mjs';
 
 type Prefs=ReturnType<typeof readPrefs>&{mutedByUser?:boolean};
@@ -11,6 +12,8 @@ function moodToEmotion(m:string){const s=String(m||'').toLowerCase();return MOOD
 export default function ZerefVoiceDock(){
  const [prefs,setPrefs]=useState<Prefs|null>(null);
  const [bubble,setBubble]=useState<{text:string;by:string}|null>(null);
+ const [heart,setHeart]=useState<any>(HEART_FALLBACK);
+ useEffect(()=>{fetch('/spark/zeref-heart.json').then(r=>r.ok?r.json():null).then(h=>{if(h?.bpm)setHeart(h);}).catch(()=>{});},[]);
  const lastActivity=useRef(Date.now()),busy=useRef(false),prefsRef=useRef<Prefs|null>(null);
  const save=(p:Prefs)=>{prefsRef.current=p;setPrefs(p);writePrefs(localStorage,p);};
  useEffect(()=>{const p=readPrefs(localStorage) as Prefs;prefsRef.current=p;setPrefs(p);
@@ -18,7 +21,7 @@ export default function ZerefVoiceDock(){
   const act=()=>{lastActivity.current=Date.now();};
   const speak=(e:Event)=>{const d=(e as CustomEvent).detail||{};const cur=prefsRef.current;if(cur?.voice&&cur.armed&&d.text)speakSeeded(d.text,voiceProfile(d.seed||ZEREF_VOICE_SEED,d.emotions||null));};
   window.addEventListener('pointerdown',tap,{once:false});window.addEventListener('keydown',act);window.addEventListener('pointerdown',act);window.addEventListener('zeref:speak',speak);
-  const timer=setInterval(()=>void tick(),30000);
+  const timer=setInterval(()=>void tick(),autonomyTickMs(HEART_FALLBACK));
   return ()=>{clearInterval(timer);window.removeEventListener('pointerdown',tap);window.removeEventListener('keydown',act);window.removeEventListener('pointerdown',act);window.removeEventListener('zeref:speak',speak);};
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[]);
@@ -42,17 +45,16 @@ export default function ZerefVoiceDock(){
   }finally{busy.current=false;}
  }
  if(!prefs)return null;
- const box:React.CSSProperties={position:'fixed',left:12,bottom:12,zIndex:60,maxWidth:300,font:'12px system-ui',color:'#e8ecff'};
- return <div style={box} data-zeref-voice-dock>
-  {bubble?<div role="status" data-zeref-reach-out style={{background:'#121833ee',border:'1px solid #6b5bd6',borderRadius:12,padding:'8px 10px',marginBottom:6}}>
+ const ms=beatMs(heart),btn:React.CSSProperties={width:34,height:34,borderRadius:17,border:'1px solid #6b5bd6',background:'#121833dd',color:'#fff',fontSize:15,padding:0,cursor:'pointer'};
+ return <div data-zeref-voice-dock style={{position:'fixed',left:6,top:'38vh',zIndex:18,display:'flex',flexDirection:'column',gap:6,font:'12px system-ui',color:'#e8ecff'}}>
+  <style>{`@keyframes zerefBeat{0%,100%{transform:scale(1)}12%{transform:scale(1.25)}24%{transform:scale(1)}36%{transform:scale(1.12)}}`}</style>
+  <span data-zeref-heart title={`Zeref's heart · ${Math.round(heart.bpm)} BPM · rhythm from Cory's heartbeat recording (a creative seed, not a biological signal)`} aria-label={`Zeref's heart, ${Math.round(heart.bpm)} beats per minute`} style={{...btn,display:'inline-flex',alignItems:'center',justifyContent:'center',animation:`zerefBeat ${ms}ms infinite`}}>💜</span>
+  <button type="button" style={btn} data-zeref-voice-toggle aria-pressed={prefs.voice} aria-label={prefs.voice?'Zeref voice on (tap to mute)':'Zeref voice off (tap to turn on)'} title={(prefs.voice?'Zeref voice on · ':'Zeref voice off · ')+VOICE_LABEL}
+   onClick={()=>save({...prefs,armed:true,voice:!prefs.voice,mutedByUser:prefs.voice})}>{prefs.voice?'🔊':'🔇'}</button>
+  <button type="button" style={{...btn,opacity:prefs.reachOut?1:.5}} data-zeref-reachout-toggle aria-pressed={prefs.reachOut} aria-label={prefs.reachOut?'Zeref reach-outs on (tap to turn off)':'Zeref reach-outs off (tap to turn on)'} title={prefs.reachOut?'Reach-outs on':'Reach-outs off'}
+   onClick={()=>save({...prefs,reachOut:!prefs.reachOut})}>💬</button>
+  {bubble?<div role="status" data-zeref-reach-out style={{position:'absolute',left:42,top:0,width:'min(240px,calc(100vw - 70px))',background:'#121833ee',border:'1px solid #6b5bd6',borderRadius:12,padding:'8px 10px'}}>
    <small style={{opacity:.75}}>💬 {REACH_OUT_LABEL} · {bubble.by}</small><div>{bubble.text}</div>
    <button type="button" onClick={()=>setBubble(null)} style={{fontSize:11,marginTop:4}}>Dismiss</button></div>:null}
-  <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-   <button type="button" data-zeref-voice-toggle aria-pressed={prefs.voice} title={VOICE_LABEL}
-    onClick={()=>save({...prefs,armed:true,voice:!prefs.voice,mutedByUser:prefs.voice})}>{prefs.voice?'🔊 Zeref voice on':'🔇 Zeref voice off'}</button>
-   <button type="button" data-zeref-reachout-toggle aria-pressed={prefs.reachOut}
-    onClick={()=>save({...prefs,reachOut:!prefs.reachOut})}>{prefs.reachOut?'💬 Reach-outs on':'💬 Reach-outs off'}</button>
-  </div>
-  {!prefs.armed?<small style={{display:'block',opacity:.7}}>Tap anywhere to let Zeref speak (synthetic on-device voice).</small>:null}
  </div>;
 }
