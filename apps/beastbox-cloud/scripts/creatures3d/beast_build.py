@@ -812,8 +812,8 @@ if NEW_OUTFIT:
         for k in range(400):
             if len(ic)>=18:break  # fewer, longer, thicker: read as icicles, not speckles
             v=body.data.vertices[R3.randrange(len(body.data.vertices))]
-            if v.normal.z>-.2 or v.normal.z<-.75 or v.co.z<.1 or max(abs(v.normal.x),-v.normal.y)<.3:continue  # downward-facing outer edges (chest/belly/leg silhouette) so they hang in view
-            L=R3.uniform(.13,.21);p=v.co+v.normal*.003
+            if v.normal.y>-.45 or v.normal.z>.15 or not(.18<v.co.z<.55):continue  # chest front edge, rooted outside the fur
+            L=R3.uniform(.12,.2);p=v.co+v.normal*.06
             for j in range(R3.choice((1,2))):
                 off=Vector((R3.uniform(-.008,.008),R3.uniform(-.008,.008),0))
                 ic.append(cone('ice',tuple(p+off),tuple(p+off+Vector((v.normal.x*.01,v.normal.y*.01,-L*(1-.35*j)))),R3.uniform(.015,.022),1,8))

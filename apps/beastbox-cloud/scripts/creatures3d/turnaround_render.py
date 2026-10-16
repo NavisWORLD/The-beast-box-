@@ -120,19 +120,23 @@ if os.environ.get('CYCLES','1')=='1':
             for v in o.data.vertices:vgl.add([v.index],(max(.8,min(1,.8+(v.co.z/zt_-.3))) if PLAN=='res_frostmitt' else max(.25,min(1,(v.co.z/zt_-.12)*2.2))),'REPLACE')  # Frostmitt: the old ramp left the torso at ~30% length (bald from the side)
             md.particle_system.vertex_group_length='furlen'
             if PLAN=='res_frostmitt' and o.name.startswith('body'):  # keep the face readable: thin, short fur on the front of the face
-                vgd=o.vertex_groups.new(name='furdens');vgf=o.vertex_groups.new(name='facefur');fm_=o.data.attributes.new('frostmask','FLOAT','POINT')
+                vgd=o.vertex_groups.new(name='furdens');vgf=o.vertex_groups.new(name='facefur');vgh=o.vertex_groups.new(name='headfl');fm_=o.data.attributes.new('frostmask','FLOAT','POINT')
                 for v in o.data.vertices:
                     face_=v.co.z>zt_*.55 and v.normal.y<-.45 and abs(v.co.x)<zt_*.3  # true front of the face only; cheeks/head sides keep the long coat  # whole front of the head
-                    vgd.add([v.index],0 if face_ else 1,'REPLACE');vgf.add([v.index],1 if face_ else 0,'REPLACE');fm_.data[v.index].value=0 if face_ else 1
+                    vgd.add([v.index],0 if face_ else 1,'REPLACE');vgf.add([v.index],1 if face_ else 0,'REPLACE');fm_.data[v.index].value=0 if face_ else 1;vgh.add([v.index],(1 if (v.co.z>zt_*.58 and not face_) else 0),'REPLACE')
                     if face_:vgl.add([v.index],.18,'REPLACE')
                 md.particle_system.vertex_group_density='furdens'
                 mf=o.modifiers.new('facefur','PARTICLE_SYSTEM');pf=mf.particle_system.settings;mf.particle_system.vertex_group_density='facefur'
                 pf.type='HAIR';pf.count=30000;pf.hair_length=.036;pf.material=slot;pf.child_type='INTERPOLATED';pf.child_percent=6;pf.rendered_child_count=10
+                mh=o.modifiers.new('headfl','PARTICLE_SYSTEM');ph=mh.particle_system.settings;mh.particle_system.vertex_group_density='headfl'  # head/cheek fluff: the main coat lies flat on the head
+                ph.type='HAIR';ph.count=9000;ph.hair_length=.075;ph.material=slot;ph.child_type='INTERPOLATED';ph.child_percent=8;ph.rendered_child_count=12
+                ph.clump_factor=.6;ph.clump_shape=.2;ph.roughness_1=.03;ph.roughness_2=.1;ph.roughness_2_threshold=.5;ph.child_length=.5;ph.child_length_threshold=.5;ph.use_clump_noise=True;ph.clump_noise_size=.4;ph.roughness_endpoint=.015;ph.radius_scale=.002;ph.root_radius=1;ph.tip_radius=0;ph.render_step=4
                 pf.clump_factor=.2;pf.roughness_2=.004;pf.radius_scale=.0012;pf.root_radius=1;pf.tip_radius=0;pf.render_step=3  # short dense velvet face coat (reference: smooth white face)
             ps.hair_length=FUR[0]*(.7 if o.name.startswith('ear') else 1);ps.material=slot;ps.child_type='INTERPOLATED';ps.child_percent=6;ps.rendered_child_count=10
             ps.clump_factor=.55;ps.clump_shape=.3;ps.roughness_1=.012;ps.roughness_2=.025;ps.roughness_2_threshold=.85;ps.roughness_endpoint=.006
             if PLAN=='res_frostmitt':ps.clump_factor=.7;ps.roughness_2=.05;ps.roughness_endpoint=.012;ps.radius_scale=.0021  # fluffy, clumped coat that breaks the silhouette
             ps.use_advanced_hair=False;ps.kink='CURL';ps.kink_amplitude=.002;ps.kink_frequency=3
+            if PLAN=='res_frostmitt':ps.radius_scale=.0024;ps.roughness_1=.03;ps.roughness_2=.09;ps.roughness_2_threshold=.6;ps.child_length=.55;ps.child_length_threshold=.45;ps.use_clump_noise=True;ps.clump_noise_size=.4  # uneven clumps break the even shell into a fluffy silhouette
             ps.radius_scale=.0016;ps.root_radius=1;ps.tip_radius=0;ps.display_step=3;ps.render_step=4
             if os.environ.get('NOCST'):raise_=0
             try:
