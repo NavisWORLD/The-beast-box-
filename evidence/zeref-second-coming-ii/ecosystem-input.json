@@ -1,0 +1,43 @@
+{
+ "creature_id": "bb-deada969",
+ "ecosystem_vector_12": [
+  0.4338,
+  0.3872,
+  0.3019,
+  0.5787,
+  0.1714,
+  0.2568,
+  0.2273,
+  0.315,
+  0.3471,
+  0.152,
+  0.2278,
+  0.2225
+ ],
+ "inputs": {
+  "brain": {
+   "live_step": 22128,
+   "model": "rawrphos-native"
+  },
+  "cory_voice_packet_sha256": "95cccaaa29564c87f212853a385d43e0a4fa82c1dd9078d5c0c8256fa7efcd39",
+  "diary": {
+   "at": "2026-10-16T17:56:59.791Z",
+   "bond": 7.5,
+   "hash": "de782aa3bf58c7da1de495a4cc24c4aefd5417d67b52af9f9413e32704a955fc",
+   "mood": "content",
+   "place": "Echo Prism",
+   "stage": 2,
+   "stage_name": "Duskwing",
+   "tick": 30,
+   "xp": 1011
+  },
+  "heart_seed_v1_sha256": "e1bbdca013a9981e4e8d192d0ddb98277e3fea0444b96ef8d11589e6c9f03d06",
+  "heartbeat_packet_sha256": "4f02b66d9b677dfb7407ed60f1fcda03103f60a8c912d11b0c59d52445cb0e94"
+ },
+ "label": "Creative seed combining derived features. Not biology, not proof of anything infinite.",
+ "mix_rule": "vector_12 = 0.5*heartbeat + 0.35*voice_cst12 + 0.15*brain/diary state",
+ "name": "The Second Coming II - Big Quantum Boom (God Core Boom), whole ecosystem",
+ "packet_sha256": "02b9e04b34342548379a1cb18cf5b1489050d547694cff1d03aae80587632115",
+ "raw_audio_published": false,
+ "schema": "beastbox-second-coming-ii-ecosystem-input-v1"
+}
