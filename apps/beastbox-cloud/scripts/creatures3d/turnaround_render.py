@@ -51,6 +51,7 @@ chest=light('chest','AREA',(0,-1.6,.15),60,(.7,.5,1),1.2)  # low violet rim on t
 if os.environ.get('VT','AgX')=='AgX':
     sc.view_settings.view_transform='AgX';sc.view_settings.look='AgX - Medium High Contrast'
     rim.data.energy=320;rim.data.color=(.62,.42,1);rim2.data.energy=120;rim2.data.color=(.8,.85,1);key.data.energy=170;key.data.color=(1,.98,.95);fill.data.color=(1,1,1);chest.data.energy=20;chest.data.color=(.85,.8,1)
+if os.environ.get('NEUTRAL_RIM'):rim.data.color=(1,1,1);rim2.data.color=(1,1,1)
 if PLAN=='res_nyxbean':  # neutral black coat: desaturate palette base, grey sheen (violet only from the rim light)
     b.inputs['Sheen Weight'].default_value=.3;b.inputs['Sheen Tint'].default_value=(.55,.55,.6,1)
     hs=nt.nodes.new('ShaderNodeHueSaturation');hs.inputs['Saturation'].default_value=.35;nt.links.new(mx2.outputs[2],hs.inputs['Color']);nt.links.new(hs.outputs[0],b.inputs['Base Color'])
@@ -87,7 +88,7 @@ def bakemaps(o,pre):
             cr_=t.nodes.new('ShaderNodeMath');cr_.operation='MULTIPLY';t.links.new(ao.outputs[0],cr_.inputs[0]);cr_.inputs[1].default_value=1
             mr=t.nodes.new('ShaderNodeMapRange');mr.inputs[1].default_value=.3;mr.inputs[2].default_value=.55;t.links.new(cv.outputs[0],mr.inputs[0])  # sculpt curvature: concave -> ice blue
             mn_=t.nodes.new('ShaderNodeMath');mn_.operation='MINIMUM';t.links.new(mr.outputs[0],mn_.inputs[0]);t.links.new(cr_.outputs[0],mn_.inputs[1])
-            ic=t.nodes.new('ShaderNodeMix');ic.data_type='RGBA';t.links.new(mn_.outputs[0],ic.inputs[0]);ic.inputs[6].default_value=(.18,.35,.75,1);ic.inputs[7].default_value=(1,1,1,1)
+            ic=t.nodes.new('ShaderNodeMix');ic.data_type='RGBA';t.links.new(mn_.outputs[0],ic.inputs[0]);ic.inputs[6].default_value=(.55,.68,.92,1);ic.inputs[7].default_value=(1,1,1,1)
             at_=t.nodes.new('ShaderNodeAttribute');at_.attribute_name='frostmask';inv_=t.nodes.new('ShaderNodeMath');inv_.operation='SUBTRACT';inv_.inputs[0].default_value=1;t.links.new(at_.outputs['Fac'],inv_.inputs[1])
             fq=t.nodes.new('ShaderNodeMath');fq.operation='MAXIMUM';t.links.new(mn_.outputs[0],fq.inputs[0]);t.links.new(inv_.outputs[0],fq.inputs[1])  # factor 1 = white;t.links.new(fq.outputs[0],ic.inputs[0])  # no blue frost on the face
             m1.blend_type='MULTIPLY';m1.inputs[0].default_value=1;t.links.new(ic.outputs[2],m1.inputs[7])
@@ -103,20 +104,20 @@ if BK:
 if os.environ.get('CYCLES','1')=='1':
     # offline look: Cycles + OIDN, strand fur (clumped children + flyaways) on the coat meshes, SSS ears
     sc.render.engine='CYCLES';sc.cycles.samples=int(os.environ.get('SAMPLES','64'));sc.cycles.use_denoising=True;sc.cycles.denoiser='OPENIMAGEDENOISE';sc.cycles.device='CPU'
-    FUR={'res_nyxbean':(.024,(.016,.015,.018)),'res_frostmitt':(.038,(.62,.68,.8)),'res_kairo':(0,None)}[PLAN]
+    FUR={'res_nyxbean':(.024,(.016,.015,.018)),'res_frostmitt':(.085,(.66,.7,.8)),'res_kairo':(0,None)}[PLAN]
     if FUR[0]>0 and not os.environ.get('NOFUR'):
         hm=bpy.data.materials.new('furhair');hm.use_nodes=True;nt2=hm.node_tree;out=nt2.nodes['Material Output']
         for n_ in list(nt2.nodes):
             if n_!=out:nt2.nodes.remove(n_)
         hb=nt2.nodes.new('ShaderNodeBsdfHairPrincipled');hb.parametrization='COLOR' if hasattr(hb,'parametrization') else None
-        try:hb.inputs['Color'].default_value=FUR[1]+(1,)
+        try:hb.inputs['Color'].default_value=((1,0,0) if os.environ.get('FURDBG') else FUR[1])+(1,)
         except Exception:pass
         hb.inputs['Roughness'].default_value=.35;nt2.links.new(hb.outputs[0],out.inputs['Surface'])
         for o in [o for o in sc.objects if o.type=='MESH' and not o.hide_render and (o.name.startswith(('body','prop_catears')) or o.name.split('.')[0] in SHOW)]:
             o.data.materials.append(hm);slot=len(o.data.materials)
             md=o.modifiers.new('fur','PARTICLE_SYSTEM');ps=md.particle_system.settings;ps.type='HAIR';ps.count=int((34000 if PLAN=='res_frostmitt' else 22000) if o.name.startswith('body') else 3000)
             vgl=o.vertex_groups.new(name='furlen');zt_=max(v.co.z for v in o.data.vertices)
-            for v in o.data.vertices:vgl.add([v.index],max(.25,min(1,(v.co.z/zt_-.12)*2.2)),'REPLACE')
+            for v in o.data.vertices:vgl.add([v.index],(max(.8,min(1,.8+(v.co.z/zt_-.3))) if PLAN=='res_frostmitt' else max(.25,min(1,(v.co.z/zt_-.12)*2.2))),'REPLACE')  # Frostmitt: the old ramp left the torso at ~30% length (bald from the side)
             md.particle_system.vertex_group_length='furlen'
             if PLAN=='res_frostmitt' and o.name.startswith('body'):  # keep the face readable: thin, short fur on the front of the face
                 vgd=o.vertex_groups.new(name='furdens');vgf=o.vertex_groups.new(name='facefur');fm_=o.data.attributes.new('frostmask','FLOAT','POINT')
@@ -126,13 +127,16 @@ if os.environ.get('CYCLES','1')=='1':
                     if face_:vgl.add([v.index],.18,'REPLACE')
                 md.particle_system.vertex_group_density='furdens'
                 mf=o.modifiers.new('facefur','PARTICLE_SYSTEM');pf=mf.particle_system.settings;mf.particle_system.vertex_group_density='facefur'
-                pf.type='HAIR';pf.count=16000;pf.hair_length=.011;pf.material=slot;pf.child_type='INTERPOLATED';pf.child_percent=4;pf.rendered_child_count=6
+                pf.type='HAIR';pf.count=30000;pf.hair_length=.028;pf.material=slot;pf.child_type='INTERPOLATED';pf.child_percent=6;pf.rendered_child_count=10
                 pf.clump_factor=.2;pf.roughness_2=.004;pf.radius_scale=.0012;pf.root_radius=1;pf.tip_radius=0;pf.render_step=3  # short dense velvet face coat (reference: smooth white face)
             ps.hair_length=FUR[0]*(.7 if o.name.startswith('ear') else 1);ps.material=slot;ps.child_type='INTERPOLATED';ps.child_percent=6;ps.rendered_child_count=10
             ps.clump_factor=.55;ps.clump_shape=.3;ps.roughness_1=.012;ps.roughness_2=.025;ps.roughness_2_threshold=.85;ps.roughness_endpoint=.006
+            if PLAN=='res_frostmitt':ps.clump_factor=.7;ps.roughness_2=.05;ps.roughness_endpoint=.012;ps.radius_scale=.0021  # fluffy, clumped coat that breaks the silhouette
             ps.use_advanced_hair=False;ps.kink='CURL';ps.kink_amplitude=.002;ps.kink_frequency=3
             ps.radius_scale=.0016;ps.root_radius=1;ps.tip_radius=0;ps.display_step=3;ps.render_step=4
-            try:  # CST Lorenz clump map drives strand length + clumping
+            if os.environ.get('NOCST'):raise_=0
+            try:
+                if os.environ.get('NOCST'):raise RuntimeError('NOCST')  # CST Lorenz clump map drives strand length + clumping
                 tx=bpy.data.textures.get('cstclump') or bpy.data.textures.new('cstclump','IMAGE');tx.image=bpy.data.images.load(os.path.join(here,'tex','nyx_fur_clump.png'),check_existing=True)
                 sl=ps.texture_slots.add();sl.texture=tx;sl.texture_coords='UV';sl.use_map_time=False;sl.use_map_length=True;sl.length_factor=.6;sl.use_map_clump=True;sl.clump_factor=.8
                 for nm_,inf in (('flyaway','rough'),('flow','twist')):  # CST Lorenz flyaway -> strand roughness, Lorenz flow -> twist/comb
