@@ -6,6 +6,7 @@ import {addPocketResidents} from './pocket-residents';
 import {addPocketSand} from './pocket-sand-layer';
 import {SAND_LABEL} from '../lib/pocket-sand.mjs';
 import {guardCanvasTouch} from '../lib/three/touch-guard';
+import {isSoftwareGL} from '../lib/three/soft-gl';
 import {createHop,stepHop} from '../lib/physics/ground-hop.mjs';
 import {useEffect,useRef,useState} from 'react';
 import {createPocketSky,orbitPosition} from '../lib/pocket-sky.mjs';
@@ -186,10 +187,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // Phones with a real GPU (iPhone etc.) are 'low' only for world density; they still get AA, a crisper ratio and the sculpted GLBs.
     // Probe for software GL (CI SwiftShader, GPU-less VMs) BEFORE creating the renderer: MSAA + a high pixel ratio on a
     // CPU rasteriser starves the main thread (taps, sound dock, game shell all time out), and antialias can't be undone later.
-    let softProbe=false;try{const pc=document.createElement('canvas');const pg=(pc.getContext('webgl2')||pc.getContext('webgl')) as WebGLRenderingContext|null;
-     if(pg){const dbg=pg.getExtension('WEBGL_debug_renderer_info');softProbe=!!dbg&&/swiftshader|llvmpipe|software/i.test(String(pg.getParameter(dbg.UNMASKED_RENDERER_WEBGL)));pg.getExtension('WEBGL_lose_context')?.loseContext();}}catch{}
+    const softProbe=isSoftwareGL();
     const phoneGpu=low&&!reduced&&!softProbe&&visualSettings.quality!=='low';
-    const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:!low||phoneGpu,powerPreference:phoneGpu?'default':'low-power'});
+    const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:(!low||phoneGpu)&&!softProbe,powerPreference:phoneGpu?'default':'low-power'});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?(phoneGpu?1.6:1):1.5));
     // Software GL (CI SwiftShader, very old phones): force the low tier so the main thread never starves.
     let soft=false;try{const gl=renderer.getContext();const dbg=gl.getExtension('WEBGL_debug_renderer_info');soft=!!dbg&&/swiftshader|llvmpipe|software/i.test(String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)));}catch{}

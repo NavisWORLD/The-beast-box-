@@ -20,8 +20,7 @@ export async function createArStage(host:HTMLElement,gen:PlushGenome,{onMode,onP
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
  // Software GL (CI SwiftShader, GPU-less devices): no MSAA, 1x pixels, no shadow map, light fur. Probed BEFORE the renderer
  // exists because antialias can't be turned off later; a CPU rasteriser at 2x + MSAA starves rAF (game input polling, taps).
- let soft=false;try{const pc=document.createElement('canvas');const pg=(pc.getContext('webgl2')||pc.getContext('webgl')) as WebGLRenderingContext|null;
-  if(pg){const dbg=pg.getExtension('WEBGL_debug_renderer_info');soft=!!dbg&&/swiftshader|llvmpipe|software/i.test(String(pg.getParameter(dbg.UNMASKED_RENDERER_WEBGL)));pg.getExtension('WEBGL_lose_context')?.loseContext();}}catch{}
+ const soft=(await import('../lib/three/soft-gl')).isSoftwareGL();
  const r=new THREE.WebGLRenderer({antialias:!soft,alpha:true,powerPreference:soft?'low-power':'default'});r.setPixelRatio(soft?1:Math.min(devicePixelRatio||1,2));r.outputColorSpace=THREE.SRGBColorSpace;
  r.setClearColor(0x000000,0);r.shadowMap.enabled=!soft;r.shadowMap.type=THREE.PCFSoftShadowMap;
  const cv=r.domElement;cv.dataset.arCanvas='';Object.assign(cv.style,{position:'absolute',inset:'0',width:'100%',height:'100%',touchAction:'manipulation'});host.appendChild(cv);

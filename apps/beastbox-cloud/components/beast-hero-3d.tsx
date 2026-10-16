@@ -11,7 +11,7 @@ export default function BeastHero3D({genome,label}:{genome:PlushGenome;label:str
   (async()=>{
    const THREE=await import('three');const [{loadBeastGlb,beastStudio},{buildPlush},cst]=await Promise.all([import('./creature-glb-beast'),import('./creature-plush-3d'),import('../lib/physics/cst-integrator.mjs')]);
    if(disposed)return;
-   const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;const low=reduced||window.innerWidth<420&&(navigator.hardwareConcurrency||4)<4;
+   const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;const {isSoftwareGL}=await import('../lib/three/soft-gl');const low=reduced||isSoftwareGL()||window.innerWidth<420&&(navigator.hardwareConcurrency||4)<4;
    const r=new THREE.WebGLRenderer({antialias:!low,alpha:true,powerPreference:'low-power'});r.setPixelRatio(Math.min(window.devicePixelRatio||1,low?1:1.5));r.outputColorSpace=THREE.SRGBColorSpace;
    el.appendChild(r.domElement);r.domElement.style.width='100%';r.domElement.style.height='100%';
    const scene=new THREE.Scene();beastStudio(THREE,r,scene);const cam=new THREE.PerspectiveCamera(30,1,.05,50);
