@@ -155,7 +155,7 @@ export default function BeastCagePortal(){
     const starter=generateCreature('beastbox-starter-'+item.id,item.id);
     setLook(item.id);selectProfile(starter);setSaved(false);
    }}>
-    <span className="cage-look-art" aria-hidden="true">✦</span>
+    <span className="cage-look-art" aria-hidden="true"><img src="/cosmic-creature.svg" alt=""/></span>
     <strong>{item.label}</strong><small>{item.detail}</small><span className="cage-select-label">{look===item.id?'✓ Active family':'Choose starter'} →</span>
    </button>)}</div>:<p className="cage-quiet">This Beast’s palette and body belong to its recorded genome. Preview its forms above, or name and care for it in the shared deck.</p>}
    <div className="cage-save-panel"><p><strong>{creatureName||current.label} is ready to explore.</strong><br/>The active game profile is browser-local. Real memory, model choice and permissions remain in COSMOS.</p><div><button type="button" className="cage-primary" onClick={save}>Save visual family</button><button type="button" className="cage-secondary" onClick={clear}>Clear active Beast</button></div><span role="status" className="cage-save-status">{saved?'Visual family saved locally. The active Beast profile is also retained locally.':'Generate or choose a starter to keep one Beast across the site.'}</span></div>

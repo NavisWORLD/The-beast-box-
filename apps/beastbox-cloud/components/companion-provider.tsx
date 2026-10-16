@@ -229,7 +229,7 @@ export default function CompanionProvider({children}:{children:ReactNode}){
     data-anchored={canShow?'true':undefined}
     data-side={canShow&&spot&&spot.left<(typeof window==='undefined'?0:window.innerWidth/2)?'left':'right'}
     style={canShow&&spot?{left:spot.left,top:spot.top,width:spot.width,['--pet-w' as string]:spot.width+'px',['--sprite-top' as string]:String(spriteTop)}:undefined}>
-    <div className={styles.toolbar}>
+    <div className={styles.toolbar} data-companion-toolbar>
      <button type="button" className={styles.control}
        onClick={()=>{petSfx(hidden?'confirm':'flee');setHidden(x=>!x);}} aria-label={hidden?'Show roaming companion':'Hide roaming companion'}>
       {hidden?<Eye size={15}/>:<EyeOff size={15}/>}

@@ -739,3 +739,21 @@ html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],
  [data-spark-player][data-player-mode=minimized] [class*=identity]{display:none}
  [data-spark-player][data-player-mode=minimized]{padding:3px!important;background:#0c1228cc!important}
 }
+
+/* CORNER LAUNCHER // phone-first declutter: one corner, nothing over content */
+.corner-launcher{display:none}
+@media(max-width:760px){
+ body{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+ .corner-launcher{display:grid;place-items:center;position:fixed;z-index:72;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 64px);width:44px;height:44px;border-radius:22px;border:1px solid #9fc9e475;background:#111a32ee;color:#dfc9ff;font-size:18px;box-shadow:0 8px 28px #0009;backdrop-filter:blur(12px);cursor:pointer}
+ html:not([data-docks-open]) :is([data-zeref-voice-dock],.companion-dock){display:none!important}
+ html[data-docks-open] [data-zeref-voice-dock]{top:auto!important;left:auto!important;right:max(16px,env(safe-area-inset-right,0px))!important;bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 112px)!important;z-index:71!important}
+ [data-corner-tuck]{right:max(12px,env(safe-area-inset-right,0px))!important;bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 116px)!important;min-height:44px;padding:8px 12px!important;font-size:11px!important;max-width:calc(100vw - 140px)!important}
+ html:not([data-docks-open]) [data-companion-overlay] [data-companion-toolbar]:not(:focus-within){opacity:0;pointer-events:none}
+ html:not([data-docks-open]) [data-companion-overlay] [data-companion-toolbar]{pointer-events:none}
+ /* support + sound become one compact bottom-left chip row */
+ .cosmic-support:not(.is-open){left:max(12px,env(safe-area-inset-left,0px));bottom:max(12px,calc(env(safe-area-inset-bottom,0px) + 8px))}
+ .cosmic-support:not(.is-open) .cosmic-support-launcher{min-height:44px;height:44px;padding:0 10px 0 2px;border-radius:22px;gap:4px}
+ .cosmic-support:not(.is-open) .support-beast-shell{width:40px;height:40px}
+ .cosmic-support:not(.is-open) .support-launcher-copy{display:none}
+ [aria-label="Cosmic sound controls"]:not([data-sound-room="game"]){top:auto!important;left:max(12px,env(safe-area-inset-left,0px))!important;bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 64px)!important;max-width:calc(100vw - 84px)!important}
+}
