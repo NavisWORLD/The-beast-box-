@@ -108,6 +108,7 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
  if(SP.tail)shown.add(SP.tail);else if(gen.tail!=='none')shown.add(TAIL_V[gen.tail]||'tail_thin');
  if(SP.wings)shown.add(SP.wings);else if(gen.wings&&gen.wings!=='none')shown.add(WING_V[gen.wings]||'wing_feather');
  const glowMat=new THREE.MeshStandardMaterial({color:C.glow,emissive:C.glow,emissiveIntensity:2.2,roughness:.3});
+ const pblink:any[]=[],floaters:any[]=[];
  root.traverse((o:any)=>{if(!o.isMesh)return;const n=(o.name||'').replace(/_\d+$/,'');const key=['body','face','detail'].find(k=>n.startsWith(k))||n;
   o.castShadow=true;o.frustumCulled=false;
   if(n.startsWith('ear_')||n.startsWith('tail_')||n.startsWith('wing_')){o.visible=shown.has(n.replace(/\.\d+$/,''));}
@@ -118,7 +119,12 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
    else if(n.startsWith('ear_crown'))o.material=new THREE.MeshPhysicalMaterial({color:C.accent.clone().lerp(new THREE.Color(1,.82,.4),.6),metalness:1,roughness:.22,clearcoat:.6,emissive:C.glow,emissiveIntensity:.15});
    else if(n.startsWith('ear_')&&!SP.ears&&GLOWING.has(gen.ears)||n==='tail_flame'&&GLOWING.has(gen.tail))o.material=glowMat;else if(SP.crystalBody&&(n.startsWith('body')||n.startsWith('ear_')||n.startsWith('tail_')))o.material=new THREE.MeshPhysicalMaterial({color:C.base.clone().lerp(C.alt,.35),flatShading:true,roughness:.12,metalness:.15,clearcoat:1,clearcoatRoughness:.05,iridescence:1,iridescenceIOR:1.6,emissive:C.glow,emissiveIntensity:.12,sheen:.6,sheenColor:C.accent});
    else o.material=m;if(n.startsWith('wing_'))o.material.side=THREE.DoubleSide;if(n.startsWith('body'))body=o;}
-  else if(mn.startsWith('pm_')){/* turnaround outfits: keep the authored PBR (knit, trim glow, horns, ice) and add fabric sheen */const am:any=o.material;if(am&&am.isMeshStandardMaterial){const pm=new THREE.MeshPhysicalMaterial({color:am.color,roughness:am.roughness,metalness:am.metalness,emissive:am.emissive,emissiveIntensity:am.emissiveIntensity,sheen:am.roughness>.5?.8:0,sheenColor:new THREE.Color(0xb48cff),sheenRoughness:.5,clearcoat:am.roughness<.3?.8:0});pm.name=mn;o.material=pm;}}
+  else if(mn.startsWith('pm_')){/* turnaround outfits: keep authored PBR (+maps) and add fabric sheen / glossy cornea / soft mist */const am:any=o.material;if(am&&am.isMeshStandardMaterial){const pm=new THREE.MeshPhysicalMaterial({color:am.color,map:am.map,normalMap:am.normalMap,normalScale:am.normalScale,roughness:am.roughness,metalness:am.metalness,emissive:am.emissive,emissiveMap:am.emissiveMap,emissiveIntensity:am.emissiveIntensity,transparent:am.transparent,opacity:am.opacity,depthWrite:!am.transparent,side:am.side,
+   sheen:am.roughness>.5?.8:0,sheenColor:new THREE.Color(0xb48cff),sheenRoughness:.5,clearcoat:am.roughness<.3?.8:0,transmission:(am as any).transmission||0,ior:(am as any).ior||1.5,thickness:.02});
+   if(mn==='pm_cornea'){pm.transparent=true;pm.opacity=.18;pm.transmission=0;pm.roughness=.02;pm.clearcoat=1;pm.depthWrite=false;}
+   if(mn==='pm_mist'){pm.transparent=true;pm.opacity=.3;pm.depthWrite=false;pm.side=THREE.DoubleSide;}
+   pm.name=mn;o.material=pm;}
+   if(o.morphTargetDictionary&&'pblink' in o.morphTargetDictionary)pblink.push(o);if(/^prop_(pixels|mist)/.test(n))floaters.push(o);}
   else if(mn==='prop'){const pc=new THREE.Color(SP.prop??0x5b2fa8);o.material=SP.crystal?new THREE.MeshPhysicalMaterial({color:pc,roughness:.08,metalness:.1,transmission:.35,thickness:.2,iridescence:1,emissive:C.glow,emissiveIntensity:.5,clearcoat:1})
    :new THREE.MeshPhysicalMaterial({color:pc,roughness:.85,sheen:1,sheenColor:new THREE.Color(0xb48cff),sheenRoughness:.5,emissive:C.glow,emissiveIntensity:.06});}
   else if(mn==='eye'){o.material=eyeMat;o.geometry.computeBoundingBox();const bb=o.geometry.boundingBox;const w=(bb.max.x-bb.min.x)/2;eyeC.value.set(bb.max.x-w/2,(bb.max.y+bb.min.y)/2,(bb.max.z+bb.min.z)/2-(bb.max.z-bb.min.z)*.3);}else if(mn==='iris'){o.material=new THREE.MeshBasicMaterial({color:C.glow,transparent:true,opacity:.0});}
@@ -164,6 +170,8 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
   tw('sleepy',nap);tw('happy',life.mode==='play'||life.mode==='approach'?mood.joy:mood.joy*.25);tw('curious',life.mode==='glance'||life.mode==='sniff'?.8:mood.curiosity*.15);
   tw('scared',(life.startle||0)+mood.fear*.25);tw('angry',mood.mischief>.8?.4:0);tw('grin',life.mode==='play'?.8:mood.joy*.3);tw('o',life.mode==='sniff'&&life.speed<.05?.5+.4*Math.abs(Math.sin(t*6)):0,8);tw('w',life.mode==='approach'?.7:0);
   setM('blink',Math.max(ex.blink,ex.sleepy*.2));setM('happy',ex.happy*(1-ex.blink));setM('sleepy',ex.sleepy);setM('curious',ex.curious);setM('scared',ex.scared);setM('angry',ex.angry);
+  pblink.forEach(m=>{m.morphTargetInfluences[m.morphTargetDictionary.pblink]=clamp(Math.max(ex.blink,ex.sleepy*.2));});
+  floaters.forEach((m,i)=>{m.position.y=Math.sin(t*1.3+i)*.012;m.rotation.y=Math.sin(t*.35+i)*.25;});
   setM('mouth_grin',ex.grin*(1-ex.o));setM('mouth_o',ex.o);setM('mouth_w',ex.w*(1-ex.o));
   U.uBeat.value=Math.pow(Math.max(0,Math.sin(t*(1+(mp?mp.stiffness:1)*.9)*Math.PI*2)),12);glowMat.emissiveIntensity=1.6+U.uBeat.value*1.4+mood.joy*.4;
  }

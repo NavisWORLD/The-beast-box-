@@ -13,6 +13,7 @@ from mathutils.bvhtree import BVHTree
 argv=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else ['pup','/tmp/pup.glb']
 PLAN,OUT=argv[0],argv[1]
 VOXEL=float(os.environ.get('VOXEL','0.011'));BODY_TRIS=int(os.environ.get('BODY_TRIS','11000'))
+if sys.argv[-2:-1] and sys.argv[-2] in('res_frostmitt','res_nyxbean'):BODY_TRIS=int(os.environ.get('BODY_TRIS','7000' if sys.argv[-2]=='res_nyxbean' else '7000'))
 bpy.ops.wm.read_factory_settings(use_empty=True)
 C=bpy.context;D=bpy.data
 def active(o):
@@ -196,7 +197,8 @@ SPECS={
 }
 if PLAN not in SPECS:raise SystemExit('plan not built yet: '+PLAN)
 P,B,FACE,EARS,TAIL,WINGS=SPECS[PLAN]()
-if PLAN=='res_shardhowl':BODY_TRIS=2400   # big crystal facets (flat-shaded at runtime)
+if PLAN=='res_shardhowl':BODY_TRIS=2400
+if PLAN=='res_kairo':BODY_TRIS=6000   # mostly under clothes/hair   # big crystal facets (flat-shaded at runtime)
 parts={k:fn(k,*a) for k,(fn,a) in P.items()}
 body,labels=fuse(parts,'body',tris=BODY_TRIS)
 print('body tris',tris_of(body))
@@ -484,8 +486,8 @@ CL={}
 def cap(o,n):
     active(o);m=o.modifiers.new('t','TRIANGULATE');bpy.ops.object.modifier_apply(modifier='t')
     if len(o.data.polygons)>n:m=o.modifiers.new('d','DECIMATE');m.ratio=n/len(o.data.polygons);bpy.ops.object.modifier_apply(modifier='d')
-def addp(o,m,bone_='head'):
-    cap(o,int(os.environ.get('PROP_TRIS','700')))
+def addp(o,m,bone_='head',n=None):
+    cap(o,n or int(os.environ.get('PROP_TRIS','450')))
     setmat(o,PM[m]) if isinstance(m,str) else setmat(o,m);o['bone']=bone_;props.append(o);return o
 def joinm(objs,name):return join(objs,name) if len(objs)>1 else objs[0]
 def clothes(name,labs,off,m,zmin=-9,zmax=9,ymax=9,xmin=0):
@@ -513,12 +515,25 @@ def beanie(c,rx,ry,rz,crown,slouch,bands,band_m,body_m,knit=14):
     for k in range(4):cuff.append(ring('cuff',(c[0],c[1],c[2]+k*rz*.09),rx*(1.02+.01*k),ry*(1.02+.01*k),rz*.07,32))
     addp(joinm(cuff,'prop_cuff'),body_m)
     for z,bm_ in bands:addp(ring('prop_band',(c[0],c[1],c[2]+z*rz),rx*1.06,ry*1.06,rz*.045,40),bm_)
-    cr=[ell('crown',(c[0],c[1]+slouch*.35,c[2]+rz*.55),(rx*.98,ry*.98,rz*crown),seg=40,ring=20),
-        ell('slouch',(c[0],c[1]+slouch,c[2]+rz*(crown*.9)),(rx*.75,ry*.8,rz*crown*.55),seg=32,ring=16)]
-    for k in range(knit):  # knit/puff rows hugging the crown ellipsoid
-        t=(k+.5)/knit;zz=c[2]+rz*.55+rz*crown*t*.92;f=math.sqrt(max(.02,1-t*t))
-        cr.append(ring('row',(c[0],c[1]+slouch*.35*t,zz),rx*.99*f,ry*.99*f,rz*.055*(1.4 if knit<10 else 1),32))
-    o=joinm(cr,'prop_crown');addp(o,body_m);return o
+    cr=[ell('crown',(c[0],c[1]+slouch*.35,c[2]+rz*.55),(rx*.98,ry*.98,rz*crown),seg=48,ring=24),
+        ell('slouch',(c[0],c[1]+slouch,c[2]+rz*(crown*.9)),(rx*.75,ry*.8,rz*crown*.55),seg=40,ring=20)]
+    if knit>=10:
+        for k in range(knit):  # knit rows hugging the crown ellipsoid
+            t=(k+.5)/knit;zz=c[2]+rz*.55+rz*crown*t*.92;f=math.sqrt(max(.02,1-t*t))
+            cr.append(ring('row',(c[0],c[1]+slouch*.35*t,zz),rx*.99*f,ry*.99*f,rz*.035,40))
+        o=joinm(cr,'prop_crown');addp(o,body_m,n=2600);return o
+    o=joinm(cr,'prop_crown');addp(o,body_m,n=2400)
+    seams=[]  # puffer quilting: dark seam meridians pressed into the dome
+    for k in range(6):
+        a=k/6*2*math.pi;pts=[]
+        for t in [i/10 for i in range(11)]:
+            el=t*math.pi/2;pts.append((c[0]+math.cos(a)*rx*.985*math.cos(el),c[1]+slouch*.35+math.sin(a)*ry*.985*math.cos(el),c[2]+rz*.55+rz*crown*.985*math.sin(el)))
+        seams.append(tube('seam',pts,[rz*.02]*11,res=3))
+    pmat('seam',(.02,.008,.04,1),.7);addp(joinm(seams,'prop_seams'),'seam',n=500)
+    st=[]  # glowing ribbed band: vertical stripe ribs
+    for k in range(28):
+        a=k/28*2*math.pi;st.append(ell('rib',(c[0]+math.cos(a)*rx*1.08,c[1]+math.sin(a)*ry*1.08,c[2]+rz*.12),(rx*.06,rx*.06,rz*.16),seg=8,ring=6))
+    addp(joinm(st,'prop_bandribs'),'trim',n=900);return o
 NEW_OUTFIT=PLAN in('res_frostmitt','res_nyxbean','res_kairo')
 if NEW_OUTFIT:
     pmat('trim',(.55,.15,1,1),.3,emit=(.62,.2,1,1),es=6)
@@ -526,8 +541,9 @@ if NEW_OUTFIT:
     pmat('horn_grey',(.62,.6,.66,1),.35,coat=.8)
     hb=Vector((0,hcv.y+hrx*.05,hcv.z+hrz*.18))
     if PLAN=='res_nyxbean':
-        pmat('puffy',(.05,.02,.1,1),.5,sheen=.25,coat=.3)
-        beanie(hb,hrx*1.12,hrx*1.08,hrz*1.25,.95,hrx*.55,[(.1,'trim'),(.2,'trim')],'trim','puffy',knit=8)
+        hb=hb+Vector((0,0,hrz*.22));PM['trim']=None;del PM['trim'];pmat('trim',(.5,.15,1,1),.35,emit=(.55,.18,1,1),es=2.2)
+        pmat('puffy',(.06,.025,.13,1),.45,sheen=.4,coat=.15)
+        beanie(hb,hrx*1.18,hrx*1.12,hrz*1.25,1.05,hrx*.85,[(.0,'trim'),(.25,'trim')],'trim','puffy',knit=0)
         for s_ in (-1,1):addp(cone('prop_horn',(s_*hrx*.38,hcv.y-hrx*.78,hcv.z+hrz*.32),(s_*hrx*.46,hcv.y-hrx*1.0,hcv.z+hrz*.62),hrz*.1,1,16),'horn_purple')
     if PLAN=='res_frostmitt':
         pmat('knit',(.07,.03,.2,1),.85,sheen=.3)
@@ -553,7 +569,7 @@ if NEW_OUTFIT:
     if PLAN=='res_kairo':
         pmat('cloth',(.01,.009,.013,1),.7,sheen=.2)
         pmat('tee',(.04,.035,.045,1),.85,sheen=.4)
-        pmat('hair',(.008,.007,.01,1),.4,sheen=.3,coat=.2)
+        pmat('hair',(.006,.005,.008,1),.62,sheen=.15)
         pmat('ear_in',(.55,.2,.9,1),.5,emit=(.4,.1,.8,1),es=.4)
         pmat('sole',(.6,.25,1,1),.4,emit=(.55,.2,1,1),es=1.5)
         pmat('zip',(.8,.8,.85,1),.25,metal=1)
@@ -592,7 +608,7 @@ if NEW_OUTFIT:
             hr_.append(cone('lock',tuple(base),tuple(tip),hrx*.17,.55,8))
         for k in range(7):
             x=(k-3)*hrx*.2;hr_.append(cone('fringe',(x,hcv.y-hrx*.7,hcv.z+hrz*.55),(x*1.2,hcv.y-hrx*1.0,hcv.z+hrz*(.12+.07*(k%2))),hrx*.15,.5,8))
-        addp(joinm(hr_,'prop_hair'),'hair')
+        addp(joinm(hr_[-7:],'prop_hair'),'hair')  # fringe only; dense tufts in pass 2
         ears=[];ein=[]
         for s_ in (-1,1):
             b0=(s_*hrx*.62,hcv.y+hrx*.05,hcv.z+hrz*.95)
@@ -613,6 +629,107 @@ if NEW_OUTFIT:
             tt.append(tube('tt',pts,[.0022]*16,res=3))
         for k in range(6):tt.append(ell('fr',tuple(onb(R.choice((-1,1))*R.uniform(.05,.1),hcv.z-hrz*R.uniform(.2,.4),off=.002)),(.004,.002,.004),seg=6,ring=4))
         addp(joinm(tt,'prop_tattoo'),'tattoo')
+# ================= pass 2: layered glossy eyes, Kairo face + dense hair, knit/fabric maps, frost FX, kitten tips/whiskers
+TEX=os.path.join(os.path.dirname(os.path.abspath(__file__)),'tex')
+def img(n,data=False):
+    im=D.images.load(os.path.join(TEX,n+'.png'),check_existing=True)
+    if data:im.colorspace_settings.name='Non-Color'
+    return im
+def add_normal(m,n,scale,strength=1.0):
+    nt=m.node_tree;b=nt.nodes['Principled BSDF'];t=nt.nodes.new('ShaderNodeTexImage');t.image=img(n,True)
+    mp=nt.nodes.new('ShaderNodeMapping');mp.inputs['Scale'].default_value=(scale,scale,1);tc=nt.nodes.new('ShaderNodeTexCoord')
+    nt.links.new(tc.outputs['UV'],mp.inputs['Vector']);nt.links.new(mp.outputs['Vector'],t.inputs['Vector'])
+    nm=nt.nodes.new('ShaderNodeNormalMap');nm.inputs['Strength'].default_value=strength;nt.links.new(t.outputs['Color'],nm.inputs['Color']);nt.links.new(nm.outputs['Normal'],b.inputs['Normal'])
+def uvp(o):
+    active(o);bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.uv.smart_project(angle_limit=1.15,island_margin=.01);bpy.ops.object.mode_set(mode='OBJECT')
+def eye_mat(n,tex):
+    m=D.materials.new('pm_'+n);m.use_nodes=True;nt=m.node_tree;b=nt.nodes['Principled BSDF'];t=nt.nodes.new('ShaderNodeTexImage');t.image=img(tex)
+    nt.links.new(t.outputs['Color'],b.inputs['Base Color']);nt.links.new(t.outputs['Color'],b.inputs['Emission Color']);b.inputs['Emission Strength'].default_value=2.2;b.inputs['Roughness'].default_value=.1
+    PM[n]=m;return m
+if NEW_OUTFIT:
+    etex={'res_nyxbean':'eye_galaxy','res_kairo':'eye_galaxy','res_frostmitt':'eye_lavender'}[PLAN]
+    eye_mat('eyeball',etex)
+    m=D.materials.new('pm_cornea');m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(1,1,1,1);b.inputs['Roughness'].default_value=.02
+    b.inputs['Transmission Weight'].default_value=1;b.inputs['IOR'].default_value=1.38;b.inputs['Coat Weight'].default_value=1;PM['cornea']=m
+    pmat('lash',(.01,.008,.015,1),.5)
+    SC={'res_nyxbean':1.2,'res_kairo':1.05,'res_frostmitt':1.0}[PLAN]
+    eyes=[];corn=[];lash=[]
+    for n,c in eye_c.items():
+        s=-1 if n=='L' else 1;rx,ry,rz=ER*.95*SC,ER*.42,ER*1.05*SC*(.92 if PLAN=='res_kairo' else 1)
+        cc=c+Vector((0,-ER*.1,0));e=ell('eyeb',cc,(rx,ry,rz),seg=32,ring=16)
+        uv=e.data.uv_layers.new(name='UVMap') if not e.data.uv_layers else e.data.uv_layers[0]
+        for lp in e.data.loops:
+            co=e.data.vertices[lp.vertex_index].co;uv.data[lp.index].uv=(.5+(co.x-cc.x)/(2*rx)*s*-1*-1,.5+(co.z-cc.z)/(2*rz))
+        eyes.append(e);corn.append(ell('corn',cc+Vector((0,-ER*.05,0)),(rx*1.04,ry*1.25,rz*1.04),seg=32,ring=16))
+        lash.append(tube('lash',[tuple(cc+Vector((x*rx*1.05,-ry*.6,math.sqrt(max(0,1-x*x))*rz*1.02))) for x in (-1,-.6,0,.6,1)],[ER*.03,ER*.05,ER*.06,ER*.05,ER*.025],res=4))
+    eo=joinm(eyes,'prop_eyes');co_=joinm(corn,'prop_cornea')
+    for o_,nm_ in ((eo,'eyeball'),(co_,'cornea')):
+        # pblink: squash each eye vertically onto its centre line (runtime drives it with the face blink)
+        o_.shape_key_add(name='Basis');k=o_.shape_key_add(name='pblink',from_mix=False)
+        for i,v in enumerate(o_.data.vertices):
+            c=eye_c['L' if v.co.x<0 else 'R'];k.data[i].co=Vector((v.co.x,v.co.y,c.z+(v.co.z-c.z)*.08))
+        setmat(o_,PM[nm_]);o_['bone']='head';props.append(o_)
+    addp(joinm(lash,'prop_lash'),'lash')
+    if PLAN=='res_kairo':
+        pmat('skin_d',(.55,.32,.24,1),.5);pmat('brow',(.01,.008,.012,1),.6)
+        ns=surf(0,FACE['eye_z']-ER*1.15);addp(ell('prop_nose',tuple(ns+Vector((0,-.004,0))),(ER*.22,ER*.2,ER*.3),seg=12,ring=8),'skin_d')
+        bw_=[]
+        for n,c in eye_c.items():
+            s=-1 if n=='L' else 1;bw_.append(tube('brow',[tuple(surf(c.x+s*x*ER,c.z+ER*1.35+ER*.15*(1-x*x))+Vector((0,-.004,0))) for x in (-.9,0,.9)],[ER*.07,ER*.1,ER*.05],res=4))
+        addp(joinm(bw_,'prop_brows'),'brow')
+        # dense hair: scalp cap over back/top of the head + ~150 tufts
+        me=body.data.copy();cap_o=D.objects.new('prop_scalp',me);C.collection.objects.link(cap_o);bm=bmesh.new();bm.from_mesh(me);bm.verts.ensure_lookup_table()
+        kill=[v for v in bm.verts if (labels[v.index] or '')!='head' or (v.co.y<hcv.y-hrx*.25 and v.co.z<hcv.z+hrz*.55) or v.co.z<hcv.z-hrz*.45]
+        bmesh.ops.delete(bm,geom=kill,context='VERTS')
+        for v in bm.verts:v.co+=v.normal*.01
+        bm.to_mesh(me);bm.free();addp(cap_o,'hair')
+        R2=__import__('random').Random(9);tf=[]
+        for k in range(150):
+            a=R2.uniform(-math.pi,math.pi);el=R2.uniform(-.55,1.4);d=Vector((math.sin(a)*math.cos(el),-math.cos(a)*math.cos(el),math.sin(el)))
+            if d.y<-.35 and el<.6:continue
+            base=hcv+Vector((d.x*hrx*.95,d.y*hrx*.95,d.z*hrz*.95))
+            tip=base+d*hrx*R2.uniform(.18,.4)+Vector((R2.uniform(-.02,.02),R2.uniform(0,.02),-R2.uniform(.03,.08)))
+            tf.append(cone('tuft',tuple(base),tuple(tip),hrx*R2.uniform(.1,.16),.5,6))
+        o=joinm(tf,'prop_tufts');cap(o,1500);setmat(o,PM['hair']);o['bone']='head';props.append(o)
+    if PLAN=='res_frostmitt':
+        R3=__import__('random').Random(21);ic=[]
+        for k in range(400):
+            if len(ic)>=36:break
+            v=body.data.vertices[R3.randrange(len(body.data.vertices))]
+            if v.normal.z>-.15 or v.co.z<.08:continue
+            L=R3.uniform(.025,.065);p=v.co+v.normal*.003
+            for j in range(R3.choice((1,2))):
+                off=Vector((R3.uniform(-.008,.008),R3.uniform(-.008,.008),0))
+                ic.append(cone('ice',tuple(p+off),tuple(p+off+Vector((v.normal.x*.01,v.normal.y*.01,-L*(1-.35*j)))),R3.uniform(.006,.012),1,5))
+        m=D.materials.new('pm_iceclear');m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(.75,.9,1,1);b.inputs['Roughness'].default_value=.04
+        b.inputs['Transmission Weight'].default_value=.7;b.inputs['Emission Color'].default_value=(.4,.65,1,1);b.inputs['Emission Strength'].default_value=.3;PM['iceclear']=m
+        for o_ in [x for x in props if x.name.startswith('prop_icicles')]:props.remove(o_);D.objects.remove(o_,do_unlink=True)
+        o=joinm(ic,'prop_icicles');cap(o,900);setmat(o,PM['iceclear']);o['bone']='spine';props.append(o)
+        m=D.materials.new('pm_mist');m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(.85,.9,1,1);b.inputs['Alpha'].default_value=.28
+        b.inputs['Emission Color'].default_value=(.6,.7,1,1);b.inputs['Emission Strength'].default_value=.6;m.blend_method='BLEND';PM['mist']=m
+        ms=[]
+        for k in range(7):  # curling frost-mist ribbons around legs and tail
+            a0=R3.uniform(0,2*math.pi);r0=R3.uniform(.18,.3);z0=R3.uniform(.05,.35)
+            pts=[(math.cos(a0+t*2.2)*r0*(1+t*.4),math.sin(a0+t*2.2)*r0*(1+t*.4),z0+t*.25+.03*math.sin(t*9)) for t in [i/7 for i in range(8)]]
+            ms.append(tube('mist',pts,[.004,.012,.018,.02,.018,.014,.008,.002],res=5))
+        addp(joinm(ms,'prop_mist'),'mist','root')
+    if PLAN=='res_nyxbean':
+        pmat('pink',(1,.42,.75,1),.4,emit=(1,.35,.75,1),es=1.6);pmat('whisker',(.92,.9,1,1),.3)
+        pk=[]
+        for a,s in zip(EA,(-1,1)):
+            t_=Vector(ear_tip(a,s,ehr*1.0));pk.append(cone('pt',tuple(Vector(ear_tip(a,s,ehr*.7))),tuple(t_+Vector((0,0,.012))),ehr*.15,.5,10))
+        pk.append(ell('tt',tuple(Vector(TP[-1])),(trad*.75,)*3,seg=16,ring=8))
+        addp(joinm(pk[:-1],'prop_eartips'),'pink');o=pk[-1];o.name='prop_tailtip';cap(o,400);setmat(o,PM['pink']);o['bone']='tail.%d'%(len(TP)-2);props.append(o)
+        wk=[]
+        for s in (-1,1):
+            for j in range(3):
+                b0=surf(s*ER*.9,FACE['mouth_z']+ER*(.35-.2*j))
+                wk.append(tube('wk',[tuple(b0),tuple(b0+Vector((s*.09,-.01,.012-.012*j))),tuple(b0+Vector((s*.18,.01,.0-.03*j)))],[.0022,.0016,.0006],res=4))
+        addp(joinm(wk,'prop_whiskers'),'whisker')
+    for n_,(tx,sc_) in {'knit':('knit_normal',3),'knit_k':('knit_normal',3),'cloth':('fabric_normal',4)}.items():
+        if n_ in PM:add_normal(PM[n_],tx,sc_,.3)
+    for o_ in props:
+        if o_.data.materials and o_.data.materials[0].name[3:] in ('knit','knit_k','puffy','cloth','hair'):uvp(o_)
 if PLAN=='res_shardhowl':
     import random;rnd=random.Random(7);sh=[]
     for i in range(34):

@@ -23,13 +23,17 @@ if PLAN=='res_kairo':b.inputs['Sheen Weight'].default_value=.2;b.inputs['Subsurf
 ey=bpy.data.materials.get('eye')
 if ey:
     be=ey.node_tree.nodes['Principled BSDF'];be.inputs['Base Color'].default_value=lin(c(P['glow']));be.inputs['Emission Color'].default_value=lin(c(P['glow']));be.inputs['Emission Strength'].default_value=1.2
+cm=bpy.data.materials.get('pm_cornea')
+if cm:
+    bc=cm.node_tree.nodes['Principled BSDF'];bc.inputs['Transmission Weight'].default_value=0;bc.inputs['Alpha'].default_value=.04;cm.blend_method='BLEND'
+sc.eevee.use_raytracing=True
 ir=bpy.data.materials.get('iris')
 if ir:
     bi=ir.node_tree.nodes['Principled BSDF'];g=lin(c(P['glow']));bi.inputs['Base Color'].default_value=g;bi.inputs['Emission Color'].default_value=g;bi.inputs['Emission Strength'].default_value=4
 gl=bpy.data.materials.get('glow')
 if gl:
     bg=gl.node_tree.nodes['Principled BSDF'];g=lin(c(P['glow']));bg.inputs['Emission Color'].default_value=g
-sc.render.engine='BLENDER_EEVEE_NEXT';sc.render.resolution_x=640;sc.render.resolution_y=800;sc.render.film_transparent=False
+sc.render.engine='BLENDER_EEVEE_NEXT';sc.render.resolution_x=int(os.environ.get('RX','640'));sc.render.resolution_y=int(int(os.environ.get('RX','640'))*1.25);sc.render.film_transparent=False
 sc.view_settings.view_transform='AgX';sc.view_settings.look='AgX - High Contrast'
 w=bpy.data.worlds.new('w');sc.world=w;w.use_nodes=True;w.node_tree.nodes['Background'].inputs[0].default_value=(.035,.03,.05,1);w.node_tree.nodes['Background'].inputs[1].default_value=1
 def light(n,t,loc,e,col,size=1):
@@ -40,6 +44,30 @@ key=light('key','AREA',(-1.6,-2.2,2.2),260,(1,.93,.98),1.5)
 rim=light('rim','AREA',(1.8,2.0,1.6),420,(.55,.35,1),1.2)
 rim2=light('rim2','AREA',(-1.9,1.6,1.0),220,(.3,.5,1),1)
 fill=light('fill','AREA',(2,-2,.6),70,(.7,.6,1),2)
+if os.environ.get('CYCLES','1')=='1':
+    # offline look: Cycles + OIDN, strand fur (clumped children + flyaways) on the coat meshes, SSS ears
+    sc.render.engine='CYCLES';sc.cycles.samples=int(os.environ.get('SAMPLES','64'));sc.cycles.use_denoising=True;sc.cycles.denoiser='OPENIMAGEDENOISE';sc.cycles.device='CPU'
+    FUR={'res_nyxbean':(.034,(.02,.012,.03)),'res_frostmitt':(.03,(.85,.88,.95)),'res_kairo':(0,None)}[PLAN]
+    if FUR[0]>0:
+        hm=bpy.data.materials.new('furhair');hm.use_nodes=True;nt2=hm.node_tree;out=nt2.nodes['Material Output']
+        for n_ in list(nt2.nodes):
+            if n_!=out:nt2.nodes.remove(n_)
+        hb=nt2.nodes.new('ShaderNodeBsdfHairPrincipled');hb.parametrization='COLOR' if hasattr(hb,'parametrization') else None
+        try:hb.inputs['Color'].default_value=FUR[1]+(1,)
+        except Exception:pass
+        hb.inputs['Roughness'].default_value=.35;nt2.links.new(hb.outputs[0],out.inputs['Surface'])
+        for o in [o for o in sc.objects if o.type=='MESH' and not o.hide_render and (o.name.startswith('body') or o.name.split('.')[0] in SHOW)]:
+            o.data.materials.append(hm);slot=len(o.data.materials)
+            md=o.modifiers.new('fur','PARTICLE_SYSTEM');ps=md.particle_system.settings;ps.type='HAIR';ps.count=int(22000 if o.name.startswith('body') else 3000)
+            ps.hair_length=FUR[0]*(.7 if o.name.startswith('ear') else 1);ps.material=slot;ps.child_type='INTERPOLATED';ps.child_percent=6;ps.rendered_child_count=10
+            ps.clump_factor=.55;ps.clump_shape=.3;ps.roughness_1=.012;ps.roughness_2=.025;ps.roughness_2_threshold=.85;ps.roughness_endpoint=.006
+            ps.use_advanced_hair=False;ps.kink='CURL';ps.kink_amplitude=.002;ps.kink_frequency=3
+            ps.radius_scale=.0016;ps.root_radius=1;ps.tip_radius=0;ps.display_step=3;ps.render_step=4
+            if 'Col' in o.data.color_attributes:pass
+    for m_ in bpy.data.materials:
+        if m_.name in('pm_pink','fur','pm_skin_d') and m_.use_nodes:
+            bb=m_.node_tree.nodes.get('Principled BSDF')
+            if bb:bb.inputs['Subsurface Weight'].default_value=.35;bb.inputs['Subsurface Radius'].default_value=(1,.3,.3)
 bpy.ops.mesh.primitive_plane_add(size=20);fl=bpy.context.active_object;m=bpy.data.materials.new('fl');m.use_nodes=True;m.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value=(.05,.045,.07,1);m.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value=.6;fl.data.materials.append(m)
 ms=[o for o in sc.objects if o.type=='MESH' and not o.hide_render and o!=fl]
 zs=[(o.matrix_world@Vector(cn)).z for o in ms for cn in o.bound_box];top=max(zs)
