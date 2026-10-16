@@ -175,17 +175,16 @@ jobs:
           python scripts/zeref_chat_corpus.py build/zeref-006/dolly.jsonl build/zeref-006/chat-mix.jsonl
       - name: Teacher distillation stage (approved teacher pairs only; teachers inform knowledge, not Zeref's voice)
         env:
-          ZEREF_DISTILL_EXPORT_TOKEN: ${{ secrets.ZEREF_DISTILL_EXPORT_TOKEN }}
+          AZURE_STORAGE_CONTAINER_SAS_URL: ${{ secrets.AZURE_STORAGE_CONTAINER_SAS_URL }}
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          AZURE_STORAGE_CONTAINER: ${{ secrets.AZURE_STORAGE_CONTAINER }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
           : > build/zeref-006/teacher-pairs.jsonl
-          if [ -n "${ZEREF_DISTILL_EXPORT_TOKEN:-}" ]; then
-            curl -fsS --max-time 60 -H "Authorization: Bearer ${ZEREF_DISTILL_EXPORT_TOKEN}" \
-              -o build/zeref-006/teacher-pairs.jsonl https://www.beastboxcosmos.xyz/api/teacher-pairs \
-              || { echo 'TEACHER_PAIRS_EXPORT_UNAVAILABLE (continuing without shared pairs)'; : > build/zeref-006/teacher-pairs.jsonl; }
-          else
-            echo 'TEACHER_PAIRS_EXPORT_NOT_CONFIGURED (repo-reviewed pairs only)'
-          fi
+          # Reads approved lessons straight from Azure (existing secrets) and syncs Zeref's folder.
+          (cd apps/beastbox-cloud && node scripts/zeref-cloud-sync.mjs --pairs-out "$GITHUB_WORKSPACE/build/zeref-006/teacher-pairs.jsonl") \
+            || { echo 'ZEREF_CLOUD_SYNC_UNAVAILABLE (continuing with repo-reviewed pairs only)'; : > build/zeref-006/teacher-pairs.jsonl; }
           python scripts/zeref_teacher_distill.py build/zeref-006/chat-mix.jsonl build/zeref-006/teacher-pairs.jsonl evidence/teacher-distill/approved.jsonl
       - name: Install pinned PUBLIC 14000 (fixed anti-ratchet chat reference + promotion baseline)
         run: |
