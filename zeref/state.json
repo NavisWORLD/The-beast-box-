@@ -10,17 +10,17 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 30,
- "xp": 1011,
+ "tick": 31,
+ "xp": 1037,
  "stage": 2,
  "stage_name": "Duskwing",
  "signals": {
-  "energy": 79,
+  "energy": 73,
   "signal": 51,
-  "memory": 92,
+  "memory": 93,
   "resonance": 86
  },
- "bond": 7.5,
+ "bond": 7.75,
  "care_total": 0,
  "combos_known": [
   "idle|still|moon-pool|folded|sway|open|smile",
@@ -236,13 +236,17 @@
   "hover|still|moon-pool|folded|sway|open|grin",
   "hover|still|moon-pool|full-spread|sway|open|grin",
   "walk|walk|moon-pool|folded|sway|open|grin",
-  "charge|still|crystal|folded|flick|open|grin"
+  "charge|still|crystal|folded|flick|open|grin",
+  "walk|walk|crystal|folded|sway|half|grin",
+  "charge|still|portal|folded|sway|open|smile",
+  "walk|walk|crystal|folded|flick|open|o",
+  "hover|still|portal|full-spread|flick|closed|grin"
  ],
  "places": {
-  "Rift Gate": 21,
+  "Rift Gate": 24,
   "Lattice Arch": 13,
-  "Echo Prism": 46,
-  "Tidewell": 8,
+  "Echo Prism": 47,
+  "Tidewell": 9,
   "Quartz Choir": 8,
   "Violet Shard": 13,
   "Selene Pool": 5
@@ -269,25 +273,25 @@
    0,
    13,
    0,
-   10,
-   20,
+   11,
+   21,
    10,
    14,
    3,
    4,
    28,
-   36,
    37,
-   11,
+   40,
+   12,
    0,
    14,
    8,
    6,
-   43,
-   55,
-   38,
-   35,
-   16,
+   44,
+   57,
+   41,
+   37,
+   17,
    11,
    4
   ],
@@ -297,34 +301,34 @@
    29
   ],
   "moves": {
-   "succeeded": 478,
-   "blocked": 17
+   "succeeded": 494,
+   "blocked": 19
   },
   "value": {
-   "portal-6": 0.6161,
+   "portal-6": 0.6176,
    "portal-5": 0.5414,
    "moon-pool-0": 0.0606,
-   "crystal-4": 0.7347,
-   "moon-pool-1": 0.2204,
+   "crystal-4": 0.7375,
+   "moon-pool-1": 0.2167,
    "crystal-2": 0.5912,
    "crystal-3": 0.4444
   },
   "prefs": {
-   "explore": 0.559,
+   "explore": 0.496,
    "visit": 1,
    "rest": 0.05,
-   "play": 1
+   "play": 0.937
   },
   "goals": {
-   "explore": 49,
-   "visit": 129,
+   "explore": 50,
+   "visit": 135,
    "rest": 14,
-   "play": 106,
+   "play": 110,
    "come": 0
   },
-  "goal": "explore",
-  "decisions": 298
+  "goal": "visit",
+  "decisions": 309
  },
- "last_tick_at": "2026-10-16T17:56:59.791Z",
- "last_entry_hash": "de782aa3bf58c7da1de495a4cc24c4aefd5417d67b52af9f9413e32704a955fc"
+ "last_tick_at": "2026-10-16T19:42:45.827Z",
+ "last_entry_hash": "e04a3336d13265fdd183cab7a929852ca4a18af5c3ceeb0fa05ed2a540aaa1e7"
 }
