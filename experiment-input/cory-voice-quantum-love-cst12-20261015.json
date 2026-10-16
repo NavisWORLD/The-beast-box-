@@ -1,0 +1,142 @@
+{
+  "audio_packet_sha256": "95cccaaa29564c87f212853a385d43e0a4fa82c1dd9078d5c0c8256fa7efcd39",
+  "cst12_aggregated": [
+    0.406800307,
+    0.263521048,
+    0.405395132,
+    0.524762332,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.585200329,
+    0.0,
+    0.371873027,
+    0.213277524
+  ],
+  "cst12_channel_names": [
+    "voice_energy",
+    "pitch_lock",
+    "phrase_flux",
+    "tempo_coherence",
+    "motion_energy",
+    "tilt_x",
+    "tilt_y",
+    "rotation_flux",
+    "pulse_phase",
+    "pulse_stability",
+    "harmonic_tension",
+    "synaptic_memory"
+  ],
+  "cst12_last_frame": [
+    0.656168618,
+    0.32588717,
+    0.663807534,
+    0.579741827,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.591821053,
+    0.0,
+    0.419510796,
+    0.331020363
+  ],
+  "cst12_quarter_means": [
+    [
+      0.17598893,
+      0.174856902,
+      0.163435574,
+      0.380022846,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.348267434,
+      0.0,
+      0.253617321,
+      0.076687082
+    ],
+    [
+      0.387606299,
+      0.244707632,
+      0.396334939,
+      0.561322177,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.676222697,
+      0.0,
+      0.411234843,
+      0.197455745
+    ],
+    [
+      0.48971874,
+      0.285516995,
+      0.516883028,
+      0.578077871,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.65917796,
+      0.0,
+      0.417066223,
+      0.266016895
+    ],
+    [
+      0.573887259,
+      0.349002661,
+      0.544926987,
+      0.579626433,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.657133224,
+      0.0,
+      0.405573722,
+      0.312950373
+    ]
+  ],
+  "decoded_pcm_s16le_8khz_sha256": "b89307d1e86fa1f9b2473c7c4ca5ed20f74e45758d6e10bba716e6da4fc88ab9",
+  "duration_seconds": 423.9735,
+  "embedded_text_track_published": false,
+  "original_size_bytes": 7282186,
+  "original_song_media_uploaded_to_public_git": false,
+  "provenance": {
+    "data_source": "Cory's own voice/music recording, locally decoded, 48 consecutive windows",
+    "engine_commit": "deebc53ad34d028e8a9bcaeab8d2a73b310c75f2",
+    "engine_file": "COSMOS_MUSIC_SUITE/python/src/cosmos_music/state.py",
+    "engine_repository": "NavisWORLD/infinite-adaptive-audio-12d-universe-engine",
+    "extractor": "scripts/cory_voice_cst12_features.py",
+    "hardware_audio_type": "numerical 12-channel rotation parameter controls, NOT digitized audio loaded as quantum state",
+    "scope": "musical numeric parameters only; not sensor/physiological values"
+  },
+  "sample_rate": 8000,
+  "schema": "beastbox-cosmos-music-derived-12d-audio-qpu-input-v1",
+  "song_original_file_sha256": "a88bb03daab51300b68f33cb2749a0433989eae34e085db1a075882f8a1109a9",
+  "summary": {
+    "band_energy_share": {
+      "high_2500_4000": 0.0839,
+      "low_0_250": 0.34,
+      "lowmid_250_1000": 0.3311,
+      "mid_1000_2500": 0.2449
+    },
+    "estimated_bpm": 63.158,
+    "loud_frame_fraction_above_-30dbfs": 0.8742,
+    "rms_mean_dbfs": -19.53,
+    "rms_peak_dbfs": -9.44,
+    "spectral_centroid_hz_mean": 823.4,
+    "tempo_autocorr_coherence": 0.5798
+  },
+  "unobserved_sensor_slots": [
+    4,
+    5,
+    6,
+    7,
+    9
+  ],
+  "window_count": 48
+}
