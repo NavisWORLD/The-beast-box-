@@ -388,7 +388,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       object.position.set(xyz.x,xyz.y,xyz.z);
      }
      const v=cameraView.current;
-     stepResidents(elapsed,v.theta,{x:camera.position.x,z:camera.position.z});
+     stepResidents(elapsed,v.theta,{x:camera.position.x,z:camera.position.z},plush?{x:brain.x,z:brain.z,moment:brain.moment}:null);
      sand.update(dt,[{x:glow.position.x,z:glow.position.z,r:1.2,s:1.6+motion.current.impulse*3},{x:0,z:0,r:1.1,s:1.2},...disturbers()]);
      const ze=(window as any).__zerefEmbed;
      if(ze?.root&&ze.root.parent!==zActorNode){zActorNode.add(ze.root);ze.root.position.y=1.68;ze.claimed=true;}
@@ -402,13 +402,14 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       if(plush){stepLife(brain,reduced?0:dt,{...L.env,mood:L.mood,cam:camXZ(),residents:disturbers(),shelter:shelterAt,onEat:(id:string)=>life.eat(id)});
        attn=brain.attn?{x:brain.attn.x,y:brain.attn.y,z:brain.attn.z}:null;
        {const hp=stepHop(hop,reduced?0:dt,{mode:brain.mode,speed:brain.speed,startle:brain.startle||0,mp:L.mp,scale:1.3,groundY:groundAt(brain.x,brain.z)});const sq=hp.squash;
-        beastNode.position.set(brain.x,hp.y+beastFoot,brain.z);beastNode.scale.set(1-sq*.5,1+sq,1-sq*.5);(brain as any).air=hp.air;}beastNode.rotation.y=Math.PI/2-brain.heading;
+        beastNode.position.set(brain.x,hp.y+beastFoot,brain.z);beastNode.scale.set(1-sq*.5,1+sq,1-sq*.5);(brain as any).air=hp.air;
+        if(brain.moment==='splash')life.splashStep(brain.x,brain.z,brain.speed,reduced?0:dt);if(hp.air===false&&(brain as any).wasAir&&brain.inPuddle)life.splash(brain.x,brain.z,1.4);(brain as any).wasAir=hp.air;}beastNode.rotation.y=Math.PI/2-brain.heading;
        plush.drive(reduced?0:dt,brain,L.mp,brain.lookCam>.3?{x:camera.position.x,y:camera.position.y,z:camera.position.z}:attn);
        // observer camera: a gentle side/away drift that keeps the Beast framed, never forced into its face
        if(!autoOrbitRef.current&&!focused&&!reduced&&now-lastDragAt.current>4000){const want=-brain.heading+Math.PI/2+.5*Math.PI+(brain.lookCam>.5?Math.PI*.35:0);
         let dth=((want-v.theta)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI;v.theta+=dth*Math.min(1,dt*.12);v.zoom+=(9.4-v.zoom)*Math.min(1,dt*.2);v.phi+=(1.36-v.phi)*Math.min(1,dt*.2);
         homeFocus.set(brain.x*.6,1.05,brain.z*.6);/* lower + pulled back so the pocket world shows behind the Beast */}else homeFocus.set(0,.85,0);
-       (window as any).__beastLife={y:+beastNode.position.y.toFixed(3),ground:+groundAt(brain.x,brain.z).toFixed(3),air:!!(brain as any).air,mode:brain.mode,x:brain.x,z:brain.z,attn:brain.attn?.kind??null,weather:life.getWeather(),coherence:L.cst.ch.coherence,chaos:L.cst.ch.chaos,hebb:L.cst.hebb,rain:L.env.rain,night:L.env.night,tris:plush.tris};}}
+       (window as any).__beastLife={moment:brain.moment??null,y:+beastNode.position.y.toFixed(3),ground:+groundAt(brain.x,brain.z).toFixed(3),air:!!(brain as any).air,mode:brain.mode,x:brain.x,z:brain.z,attn:brain.attn?.kind??null,weather:life.getWeather(),coherence:L.cst.ch.coherence,chaos:L.cst.ch.chaos,hebb:L.cst.hebb,rain:L.env.rain,night:L.env.night,tris:plush.tris};}}
      if(focused){focused.obj.getWorldPosition(tgt);tgt.y+=.35;focus.lerp(tgt,Math.min(1,dt*4));}else focus.lerp(homeFocus,Math.min(1,dt*3));
      const f=god.update(elapsed,v.zoom,focus,godFocus);
      (scene.fog as import('three').FogExp2).density=.032*Math.min(1,12/v.zoom);

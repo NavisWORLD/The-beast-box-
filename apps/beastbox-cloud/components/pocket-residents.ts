@@ -29,11 +29,13 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
      return {r,sprite,shadow,h,actor,slot,phase:i*1.37+seedRandom()*2,radius:r.kind==='trainer'?2.2:2.7+seedRandom()*1.1,speed:(r.kind==='trainer'?.05:.09+seedRandom()*.06)*(i%2?1:-1),src:r.views.front,x:0,z:0};
     });
     let lastT=0;
-    const stepResidents=(t:number,theta:number,cam?:{x:number;z:number})=>{
+    const stepResidents=(t:number,theta:number,cam?:{x:number;z:number},beast?:{x:number;z:number;moment?:string|null}|null)=>{
+     // creature-to-creature moments: the resident the Beast greets / tussles with / follows turns to it (and backs off a little in a tussle)
+     let meet=-1;if(beast?.moment&&beast.moment!=='splash'&&beast.moment!=='to-nap-spot'){let bd=1.3;residents.forEach((a,i)=>{const d=Math.hypot(a.x-beast.x,a.z-beast.z);if(d<bd){bd=d;meet=i;}});}
      const dt=Math.max(0,Math.min(.05,t-lastT));lastT=t;
      residents.forEach((a,i)=>{
       // Curious ones turn to the camera; the others turn toward the creature at the habitat centre.
-      const look=i%2===0&&cam?cam:{x:0,z:0};
+      const look=i===meet&&beast?beast:i%2===0&&cam?cam:{x:0,z:0};if(i===meet&&beast&&a.actor){(a.actor as any).target={x:a.x+(a.x-beast.x)*(beast.moment==='play-fight'?.4:.05),z:a.z+(a.z-beast.z)*(beast.moment==='play-fight'?.4:.05)};}
       const p=stepActor(a.actor,reduced?0:dt,{lookAt:look,reduced});a.x=p.x;a.z=p.z;
       const hy=a.h*p.sy;const gy=groundAt(p.x,p.z);a.sprite.position.set(p.x,gy+hy/2+p.lift,p.z);a.shadow.position.set(p.x,gy+.005,p.z);
       a.shadow.scale.setScalar(1-Math.min(.5,p.lift*.9));
@@ -45,7 +47,7 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
       const mesh=gb?null:a.slot.mesh;if(mesh){mesh.position.set(p.x,gy+p.lift,p.z);const k=a.h*1.55;mesh.scale.set(k*p.sx,k*p.sy,k*p.sx);mesh.rotation.set(p.lean,p.heading+p.head,0,'YXZ');}
      });
     };
-    const disturbers=()=>residents.map(a=>({x:a.x,z:a.z,r:.75*a.r.scale,s:2.4}));
+    const disturbers=()=>residents.map(a=>({x:a.x,z:a.z,r:.75*a.r.scale,s:2.4,id:a.r.id}));
     // Tap-to-focus targets: the 3D mesh once loaded, else the sprite.
     const pickables=()=>residents.map(a=>({id:a.r.id,obj:(a.slot.mesh??a.sprite) as import('three').Object3D}));
     return {stepResidents,texCache,disturbers,pickables};

@@ -8,8 +8,8 @@
  */
 import {seededRng,clamp} from '../physics/cst-integrator.mjs';
 
-export const LIFE_MODES=Object.freeze(['wander','nap','sniff','chase','shelter','play','glance','approach']);
-const SPEED={wander:.55,nap:0,sniff:.4,chase:1.25,shelter:.95,play:.9,glance:0,approach:.7};
+export const LIFE_MODES=Object.freeze(['wander','nap','sniff','chase','shelter','play','glance','approach','splash','greet','follow']);
+const SPEED={wander:.55,nap:0,sniff:.4,chase:1.25,shelter:.95,play:.9,glance:0,approach:.7,splash:.8,greet:.5,follow:.6};
 export const POCKET_RADIUS=3.4;
 
 export function createLife(seed,{x=0,z=0}={}){
@@ -19,6 +19,7 @@ export function createLife(seed,{x=0,z=0}={}){
   sleep:0,poked:0,startle:0,lastMode:'',bob:0,t:0,history:[]};
 }
 
+const night0=env=>(env.night??0)<.5;
 function pickTarget(L,R=POCKET_RADIUS*.85){const a=L.r()*Math.PI*2,d=Math.sqrt(L.r())*R;return {x:Math.cos(a)*d,z:Math.sin(a)*d};}
 const nearest=(L,list)=>{let b=null,bd=Infinity;for(const o of list||[]){const d=Math.hypot(o.x-L.x,o.z-L.z);if(d<bd){bd=d;b=o;}}return b?{...b,d:bd}:null;};
 
@@ -34,7 +35,13 @@ export function modeWeights(L,env){
   play:m.joy*.9*((env.residents?.length||0)>0?1:0),
   glance:.05+m.curiosity*.08,            // rare: it is living its own life
   approach:.02+m.joy*m.curiosity*.08,
+  // lived-in pocket (Oct 16): puddles after rain, sniff-hello and following other creatures
+  splash:(env.puddles?.some(p=>p.wet>.3)?1:0)*(m.joy*1.1+m.mischief*.6)*(rain<.3?1:0),
+  greet:(env.residents?.length?1:0)*(L.t-(L.lastGreet??-99)>20?.3+m.curiosity*.5:0),
+  follow:(env.residents?.length?1:0)*(m.calm*.25+m.joy*.2),
  };
+ // sunny favourite spot makes daytime naps more likely
+ if(env.spots?.length&&night<.5)w.nap*=1.4;
  if(rain>.25){w.nap*=.4;w.chase=0;w.play*=.3;}
  return w;
 }
@@ -71,14 +78,18 @@ export function stepLife(L,dt,env={}){
   case 'sniff':{const f=treat||nearest(L,env.flowers);if(f){tgt={x:f.x-Math.cos(L.heading)*.25,z:f.z-Math.sin(L.heading)*.25};attn={kind:treat?'treat':'flower',x:f.x,y:.1,z:f.z,id:f.id};}break;}
   case 'chase':{const f=nearest(L,env.fireflies);if(f){tgt=f;attn={kind:'firefly',x:f.x,y:f.y??.8,z:f.z};}break;}
   case 'shelter':{const s=env.shelter||{x:0,z:0};tgt=s;attn={kind:'sky',x:L.x,y:3,z:L.z};break;}
-  case 'play':{const o=nearest(L,env.residents);if(o){tgt=o.d<.9?L.target:o;attn={kind:'resident',x:o.x,y:.5,z:o.z};}break;}
+  case 'play':{const o=nearest(L,env.residents);if(o){if(o.d<.9){const a=Math.atan2(L.z-o.z,L.x-o.x)+.9;tgt={x:o.x+Math.cos(a)*.55,z:o.z+Math.sin(a)*.55};}else tgt=o;attn={kind:'resident',x:o.x,y:.5,z:o.z,id:o.id};}break;}
   case 'approach':case 'glance':{const c=env.cam;if(c){attn={kind:'camera',x:c.x,y:1,z:c.z};if(L.mode==='approach'){const a=Math.atan2(c.z-L.z,c.x-L.x);tgt={x:L.x+Math.cos(a)*.6,z:L.z+Math.sin(a)*.6};const r=Math.hypot(tgt.x,tgt.z);if(r>POCKET_RADIUS*.8){tgt.x*=POCKET_RADIUS*.8/r;tgt.z*=POCKET_RADIUS*.8/r;}}}break;}
+  case 'nap':{const s=night0(env)&&nearest(L,env.spots);if(s&&s.d>.25){tgt={x:s.x,z:s.z};attn={kind:'spot',x:s.x,y:0,z:s.z};}break;}
+  case 'splash':{const p=nearest(L,(env.puddles||[]).filter(q=>q.wet>.3));if(p){if(p.d<p.r*.8){if(Math.hypot(tgt.x-L.x,tgt.z-L.z)<.15||Math.hypot(tgt.x-p.x,tgt.z-p.z)>p.r)L.target=tgt={x:p.x+(L.r()-.5)*p.r*1.4,z:p.z+(L.r()-.5)*p.r*1.4};}else tgt={x:p.x,z:p.z};attn={kind:'puddle',x:p.x,y:0,z:p.z};}break;}
+  case 'greet':{const o=nearest(L,env.residents);if(o){const a=Math.atan2(L.z-o.z,L.x-o.x);tgt={x:o.x+Math.cos(a)*.5,z:o.z+Math.sin(a)*.5};attn={kind:'resident',x:o.x,y:.35,z:o.z,id:o.id};if(o.d<.65){L.lastGreet=L.t;}}break;}
+  case 'follow':{const o=nearest(L,env.residents);if(o){const a=Math.atan2(L.z-o.z,L.x-o.x);tgt={x:o.x+Math.cos(a)*.75,z:o.z+Math.sin(a)*.75};attn={kind:'resident',x:o.x,y:.4,z:o.z,id:o.id};}break;}
   case 'wander':{if(Math.hypot(tgt.x-L.x,tgt.z-L.z)<.3)L.target=tgt=pickTarget(L);attn={kind:'ground',x:tgt.x,y:0,z:tgt.z};break;}
  }
  L.attn=attn;
  // locomotion: steer, ease speed (CST calm → smoother), stay in the pocket
  const dx=tgt.x-L.x,dz=tgt.z-L.z,d=Math.hypot(dx,dz);
- const want=(L.mode==='nap'||L.mode==='glance')?0:d<.12?0:(SPEED[L.mode]||.5)*(L.startle>0?1.8:1)*(.75+m.mischief*.5)*Math.min(1,d*1.5);
+ const napWalk=L.mode==='nap'&&L.attn?.kind==='spot';const want=(L.mode==='nap'&&!napWalk||L.mode==='glance')?0:d<.12?0:(SPEED[L.mode]||.5)*(L.startle>0?1.8:1)*(.75+m.mischief*.5)*Math.min(1,d*1.5);
  L.speed+=(want-L.speed)*Math.min(1,dt*(1.5+m.calm));
  if(d>.05&&want>0){const h=Math.atan2(dz,dx);let dh=((h-L.heading+Math.PI*3)%(Math.PI*2))-Math.PI;L.heading+=dh*Math.min(1,dt*(2.2+m.curiosity));}
  L.x+=Math.cos(L.heading)*L.speed*dt;L.z+=Math.sin(L.heading)*L.speed*dt;
@@ -86,6 +97,9 @@ export function stepLife(L,dt,env={}){
  // eat a treat on arrival
  if(treat&&treat.d<.35&&env.onEat){env.onEat(treat.id);L.hunger=clamp(L.hunger-.4);}
  L.sleep+=((L.mode==='nap'&&L.speed<.05?1:0)-L.sleep)*Math.min(1,dt*.8);
+ // moments other systems react to (splash particles, resident turns, tussle hops)
+ {const p=nearest(L,(env.puddles||[]).filter(q=>q.wet>.3));L.inPuddle=!!(p&&p.d<p.r);}
+ L.moment=L.mode==='splash'&&L.inPuddle&&L.speed>.15?'splash':L.mode==='greet'&&L.attn&&Math.hypot(L.attn.x-L.x,L.attn.z-L.z)<.7?'sniff-hello':L.mode==='play'&&L.attn&&Math.hypot(L.attn.x-L.x,L.attn.z-L.z)<.9?'play-fight':L.mode==='follow'?'follow':L.mode==='nap'&&L.attn?.kind==='spot'?'to-nap-spot':null;
  L.lookCam+=(((L.mode==='glance'||L.mode==='approach')?1:0)-L.lookCam)*Math.min(1,dt*3);
  L.bob+=dt*(2+L.speed*7);
  return L;
