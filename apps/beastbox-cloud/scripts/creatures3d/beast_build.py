@@ -645,6 +645,22 @@ if NEW_OUTFIT:
             t=k/29;a=t*math.pi*3;r=.055*(1-t*.8);sw.append(tuple(onb(math.cos(a)*r,(zb+zt)/2+math.sin(a)*r,False,.022)))
         trl.append(tube('t',sw,[.0045]*30,res=3))
         addp(joinm(trl,'prop_trim'),'trim','spine')
+        # folded hood behind the neck (sheet: hood rests on the shoulders) + purple edge trim
+        hp=[(-.1,-.0,.83),(-.085,.06,.87),(0,.1,.9),(.085,.06,.87),(.1,-.0,.83)]
+        addp(tube('prop_hood',hp,[.022,.034,.04,.034,.022],res=10),'cloth','spine')
+        addp(tube('prop_hoodtrim',[(x*1.04,y+.012*(1 if y>0 else 0),z+.03) for x,y,z in hp],[.0035]*5,res=4),'trim','spine')
+        # ribbed elbow cuffs on the short sleeves (3 ribs each) + pixel glyph patch on the left shoulder
+        for side,bx in (('L',-.16),('R',.16)):
+            cf=[ring('cuff',(bx,-.012,.665+k*.011),.036,.034,.0045,18) for k in range(3)]
+            addp(joinm(cf,'prop_slcuff'+side),'trim','legF.0.'+side)
+        R6=__import__('random').Random(4);px=[]
+        for i in range(5):
+            for j in range(4):
+                if R6.random()<.45:continue
+                z=.80-j*.016;y=-.03+i*.014;hh=h.ray_cast(Vector((-.6,y,z)),Vector((1,0,0)))
+                if not hh[0]:continue
+                bpy.ops.mesh.primitive_cube_add(size=.012,location=tuple(hh[0]+Vector((-.003,0,0))));px.append(C.active_object)
+        if px:addp(joinm(px,'prop_patch'),'trim','legF.0.L',n=300)
         rib=[ring('rib',(0,0,zb-.06+k*.012),.16,.12,.006,28) for k in range(3)]
         addp(joinm(rib,'prop_hem'),'trim','hips')
         # hair: messy black locks + cat ears (purple inner) + purple horns + striped beanie
@@ -765,7 +781,7 @@ if NEW_OUTFIT:
             s_=R2.choice((-1,1));a=R2.uniform(.2,1.6);base=hcv+Vector((s_*math.sin(a)*hrx*.98,math.cos(a)*hrx*.6,R2.uniform(-.1,.5)*hrz))
             tip=base+Vector((s_*R2.uniform(.02,.05),R2.uniform(0,.04),-hrz*R2.uniform(.35,.6)))
             tf.append(cone('lock',tuple(base),tuple(tip),hrx*R2.uniform(.1,.14),.35,6))
-        o=joinm(tf,'prop_tufts');active(o);bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.mesh.remove_doubles(threshold=.0005);bpy.ops.mesh.normals_make_consistent(inside=False);bpy.ops.object.mode_set(mode='OBJECT');cap(o,2600);setmat(o,PM['hair']);o['bone']='head';props.append(o)
+        o=joinm(tf,'prop_tufts');active(o);bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.mesh.remove_doubles(threshold=.0005);bpy.ops.mesh.normals_make_consistent(inside=False);bpy.ops.object.mode_set(mode='OBJECT');cap(o,2350);setmat(o,PM['hair']);o['bone']='head';props.append(o)
         pmat('lip',(.42,.18,.16,1),.45,coat=.3);pmat('skin_ear',(.62,.38,.28,1),.5);pmat('freckle',(.18,.09,.06,1),.7)
         lz=FACE['mouth_z'];lp=[]
         lp.append(tube('lipU',[tuple(surf(x*ER*.55,lz+ER*.12+abs(x)*-ER*.06)+Vector((0,-.003,0))) for x in (-1,-.5,0,.5,1)],[ER*.03,ER*.07,ER*.06,ER*.07,ER*.03],res=4))
@@ -868,13 +884,13 @@ if NEW_OUTFIT:
         pmat('tuftcard',{'res_nyxbean':(.016,.011,.03,1),'res_frostmitt':(.72,.76,.86,1)}[PLAN],.85,sheen=.4)
         R4=__import__('random').Random(33);cd=[];ck=[]
         for k in range(40):  # cheek fins (sideways) + chest ruff cards (downward) for silhouette
-            if k<16:s_=-1 if k%2 else 1;z=FACE['eye_z']-ER*R4.uniform(.8,1.8);base=surf(s_*hrx*.8,z);base=Vector((s_*hrx*R4.uniform(.88,.98),base.y+hrx*.25,z));d=Vector((s_*1,.2,-.35))
+            if k<16:s_=-1 if k%2 else 1;z=FACE['eye_z']-ER*R4.uniform(.6,2.0);base=surf(s_*hrx*.8,z);base=Vector((s_*hrx*R4.uniform(.9,1.0),base.y+hrx*.3,z));d=Vector((s_*1,.35,-.25+R4.uniform(-.2,.2)))
             else:
                 x=R4.uniform(-.09,.09);z=R4.uniform(hcv.z-hrz*1.35,hcv.z-hrz*.9);h_=body_bvh.ray_cast(Vector((x,-2,z)),Vector((0,1,0)))
                 if not h_[0]:continue
                 base=h_[0];d=Vector((x*2,-.5,-1))
-            d.normalize();L=hrx*R4.uniform(.18,.32)
-            (ck if k<16 else cd).append(cone('card',tuple(base),tuple(base+d*L),hrx*R4.uniform(.07,.11),.22,6))
+            d.normalize();L=hrx*(R4.uniform(.42,.62) if k<16 else R4.uniform(.22,.36))
+            (ck if k<16 else cd).append(cone('card',tuple(base),tuple(base+d*L),hrx*(R4.uniform(.13,.18) if k<16 else R4.uniform(.08,.12)),.22,6))
         addp(joinm(ck,'prop_cheekcards'),'tuftcard','head',n=400)
         if cd:addp(joinm(cd,'prop_chestcards'),'tuftcard','spine',n=600)
     pmat('lid',{'res_nyxbean':(.018,.012,.035,1),'res_kairo':(.03,.03,.06,1),'res_frostmitt':(.55,.6,.75,1)}[PLAN],.85)
