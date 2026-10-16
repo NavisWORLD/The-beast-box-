@@ -34,9 +34,25 @@ const chain=verifyChain(entries,state.identity);
 if(!chain.ok)throw Error('Diary chain invalid at tick '+chain.tick+': '+chain.reason);
 if(chain.tick!==state.tick||(chain.head??null)!==state.last_entry_hash)throw Error('state.json does not match the diary head.');
 
+// Free fallback: Zeref's own public RAWRPHOS brain (the promoted chat checkpoint on the live site). $0, no paid inference.
+// The line is raw and unedited model output, labeled with the exact step; it is not a claim of consciousness.
+async function rawrphosThought(entry){
+ if(process.env.ZEREF_DIARY_RAWRPHOS==='off')return {thought:null,note:'model-not-configured'};
+ const site=process.env.ZEREF_DIARY_SITE||'https://www.beastboxcosmos.xyz';
+ try{
+  const res=await fetch(site+'/api/guest',{method:'POST',signal:AbortSignal.timeout(20000),
+   headers:{'Content-Type':'application/json',Origin:site},
+   body:JSON.stringify({provider:'rawrphos-local',text:`Diary: I am ${entry.mood} at ${entry.place||'home'}. Today I`})});
+  if(!res.ok)return {thought:null,note:'rawrphos-http-'+res.status};
+  const d=await res.json();const text=String(d?.reply||'').replace(/\s+/g,' ').trim().slice(0,160);
+  if(!text||!Number.isFinite(d?.step))return {thought:null,note:'rawrphos-empty'};
+  return {thought:{text,by:`rawrphos-native:step-${d.step} (raw model output, unedited)`},note:'rawrphos-ok'};
+ }catch{return {thought:null,note:'rawrphos-error'};}
+}
+
 async function modelThought(entry){
  const model=process.env.ZEREF_DIARY_MODEL,approved=process.env.ZEREF_DIARY_MODEL_BILLING_APPROVED==='yes',token=process.env.HF_TOKEN;
- if(!model||!approved||!token)return {thought:null,note:'model-not-configured'};
+ if(!model||!approved||!token)return rawrphosThought(entry);
  const facts={mood:entry.mood,place:entry.place,new_combos:entry.new_combo_count,stage_name:entry.stage_name,grew:entry.grew,signals:entry.signals,local_hour:entry.hour_local};
  try{
   const res=await fetch('https://router.huggingface.co/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(20000),
