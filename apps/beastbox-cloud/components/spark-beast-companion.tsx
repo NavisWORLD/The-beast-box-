@@ -239,6 +239,8 @@ export default function SparkBeastCompanion({
  const name=sameSpark?.displayName||gen?.names?.[stage]||active.name;
  // Rig mode with no chosen Beast: the site guide Zeref lives in the habitat (same rule as the home page).
  const guide=rig&&!profile&&!sameSpark;
+ // Publish the Beast genome for the 3D pocket (plush creature). Guide/compact views never publish.
+ useEffect(()=>{if(compact||!gen)return;(window as any).__beastGenome=guide?null:gen;window.dispatchEvent(new Event('beastbox:genome'));},[gen,guide,compact]);
  const rigName=guide?ZEREF_PROFILE.name:name;
  const rigStats=active.game?.stats as unknown as Record<string,number>|undefined;
  return <figure className={[styles.root,compact?styles.compact:'',rig?styles.rigMode:'',className].filter(Boolean).join(' ')}

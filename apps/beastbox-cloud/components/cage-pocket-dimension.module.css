@@ -18,3 +18,14 @@
 .residentsBox[open]>summary{position:absolute;bottom:calc(100% + 4px);left:0;min-height:30px}
 .residentsBox .residents{position:static;transform:none;max-width:100%}
 @media(max-width:560px){.residentsBox{left:8%;bottom:auto;top:44%;transform:none}.residentsBox[open]{left:50%;top:auto;bottom:6%;transform:translateX(-50%)}.residentsBox:not([open])>summary{padding:4px 9px;font-size:10px}}
+/* Living pocket: LIVE feed badge + tidy play-god toolbar; the source label folds into ⓘ once live. */
+.live{position:absolute;left:50%;top:5%;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;background:#0a0818a8;border:1px solid #ffffff1f;color:#e8e4ff;font:700 9px/1.4 'Space Grotesk',system-ui,sans-serif;letter-spacing:.14em;pointer-events:none}
+.live i{width:6px;height:6px;border-radius:50%;background:#ff4d6d;box-shadow:0 0 6px #ff4d6d;animation:livePulse 1.6s ease-in-out infinite}
+@keyframes livePulse{50%{opacity:.35}}
+.godbar{position:absolute;right:3.5%;top:50%;transform:translateY(-50%);z-index:4;display:flex;flex-direction:column;gap:2px;padding:3px;border-radius:999px;background:#0a0818c4;border:1px solid #ffffff1c;pointer-events:auto;backdrop-filter:blur(6px)}
+.godbar button{all:unset;cursor:pointer;box-sizing:border-box!important;width:28px!important;height:28px!important;min-width:0!important;min-height:0!important;max-height:28px!important;padding:0!important;margin:0!important;flex:0 0 28px!important;display:grid;place-items:center;border-radius:50%;color:#e6e0ff;font:600 13px/1 system-ui,sans-serif;transition:background .2s}
+.godbar button:hover,.godbar button:focus-visible{background:#ffffff1f}.godbar button[aria-pressed=true],.godbar button[aria-expanded=true]{background:#8b6cff55}
+.sandLabel[data-open=false]{opacity:0;pointer-events:none;transform:translateX(-50%) translateY(-6px)}
+.sandLabel{transition:opacity .25s,transform .25s}
+.sandLabel[data-open=true]{top:12%}
+@media(prefers-reduced-motion:reduce){.live i{animation:none}}

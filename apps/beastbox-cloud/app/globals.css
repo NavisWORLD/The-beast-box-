@@ -727,3 +727,5 @@ html[data-game-player=fullscreen] button[aria-controls=beast-chat-overlay][data-
 /* Dock dodge: fixed bottom bars slide out while a cage caption is in the bottom band (see lib/three/dock-dodge.ts). */
 [data-spark-player][data-player-mode=minimized],[class*=site-sound-dock][class*=dock],[class*=beast-chat-overlay][class*=launcher]{transition:transform .28s ease,opacity .28s ease}
 html[data-dock-dodge] [data-spark-player][data-player-mode=minimized],html[data-dock-dodge] [class*=site-sound-dock][class*=dock],html[data-dock-dodge] [class*=beast-chat-overlay][class*=launcher]{transform:translateY(160%);opacity:0;pointer-events:none}
+/* 3D Beast active in the pocket: the pixel sprite stays mounted (voice, hit target, saves) but is visually replaced. Classic pixel toggle removes data-beast-3d. */
+html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],html[data-beast-3d] .beast-landing-art [data-spark-beast] [data-beast-sprite]{opacity:0!important}
