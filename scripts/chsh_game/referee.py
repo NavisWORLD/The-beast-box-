@@ -23,7 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 ROUNDS = int(os.environ.get("CHSH_GAME_ROUNDS", "1024"))
-QPU_CAP = 20          # seconds per day, hard cap (server enforced)
+QPU_CAP = min(20, int(os.environ.get("CHSH_QPU_CAP", "20")))  # seconds per job, hard cap (server enforced, never above 20)
 RESERVE = 60          # stop when plan remaining would drop below this
 CLASSICAL_BOUND = 0.75
 QUANTUM_IDEAL = (2 + math.sqrt(2)) / 4
@@ -64,7 +64,7 @@ def circuit():
 def run(out: Path):
     out.mkdir(parents=True, exist_ok=True)
     save = lambda n, c: (out / n).write_text(json.dumps(c, indent=2, sort_keys=True) + "\n")
-    tag = f"navisworld-chsh-game-{day()}"
+    tag = os.environ.get("CHSH_RUN_TAG") or f"navisworld-chsh-game-{day()}"
     from qiskit.transpiler import generate_preset_pass_manager
     from qiskit_ibm_runtime import QiskitRuntimeService, SamplerV2
     from ibm_open_plan_preflight import quota_receipt
@@ -85,7 +85,7 @@ def run(out: Path):
         if q["remaining_seconds"] < QPU_CAP + RESERVE:
             save("skipped.json", {"reason": "Open Plan remaining below cap + 60 s reserve", "remaining_seconds": q["remaining_seconds"], "utc": stamp()})
             print("SKIPPED_RESERVE remaining=%s" % q["remaining_seconds"]); return
-        if os.environ.get("BEAST_CHSH_GAME_DAILY") != "YES_DAILY_SMALL_BATCH": raise RuntimeError("daily flag not set")
+        if os.environ.get("BEAST_CHSH_GAME_DAILY") not in ("YES_DAILY_SMALL_BATCH", "YES_SECOND_COMING_ONCE"): raise RuntimeError("daily flag not set")
         party("commit", alice, ROUNDS); party("commit", bob, ROUNDS)
         ca, cb = (alice / "commitment.txt").read_text().strip(), (bob / "commitment.txt").read_text().strip()
         save("commitments.json", {"alice_sha256": ca, "bob_sha256": cb, "rounds": ROUNDS, "committed_utc": stamp(),
