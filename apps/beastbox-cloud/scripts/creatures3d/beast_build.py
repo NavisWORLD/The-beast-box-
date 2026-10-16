@@ -454,7 +454,7 @@ def prop(name,objs,bone_,tris=2400):
     o=join(objs,name);active(o);m=o.modifiers.new('t','TRIANGULATE');bpy.ops.object.modifier_apply(modifier='t')
     if len(o.data.polygons)>tris:m=o.modifiers.new('d','DECIMATE');m.ratio=tris/len(o.data.polygons);bpy.ops.object.modifier_apply(modifier='d')
     setmat(o,M['prop']);o['bone']=bone_;props.append(o);return o
-if PLAN in('res_frostmitt','res_nyxbean','res_kairo'):
+if PLAN in('res_frostmitt','res_nyxbean','res_kairo') and os.environ.get('LEGACY_PROPS'):
     bz=hcv.z+hrz*.58
     hat=[ell('h',(0,hcv.y+hrx*.12,bz),(hrx*.98,hrx*.95,hrz*.62),seg=40,ring=20),
          tube('b',[(math.cos(a)*hrx*.99,hcv.y+hrx*.12+math.sin(a)*hrx*.96,bz-hrz*.2) for a in [k/24*2*math.pi for k in range(25)]],[hrz*.13]*25,res=4)]
@@ -475,6 +475,144 @@ if PLAN in('res_frostmitt','res_nyxbean','res_kairo'):
             hat.append(tube('pcuff',[(s_*.0675+math.cos(a)*.04,math.sin(a)*.04,.1) for a in [k/12*2*math.pi for k in range(13)]],[.012]*13,res=4))
     for s_ in (-1,1):hat.append(cone('horn',(s_*hrx*.55,hcv.y,bz+hrz*.35),(s_*hrx*.75,hcv.y+hrx*.1,bz+hrz*.95),hrz*.14,1))
     prop('prop_hat',hat,'head')
+# ---- turnaround-faithful outfits (Cory's sheets): authored PBR 'pm_*' materials the runtime keeps as-is
+PM={}
+def pmat(n,base,rough=.6,emit=None,es=0,coat=0,sheen=0,metal=0):
+    if n not in PM:PM[n]=mat('pm_'+n,base,rough,metal,emit,es,coat=coat,sheen=sheen)
+    return PM[n]
+CL={}
+def cap(o,n):
+    active(o);m=o.modifiers.new('t','TRIANGULATE');bpy.ops.object.modifier_apply(modifier='t')
+    if len(o.data.polygons)>n:m=o.modifiers.new('d','DECIMATE');m.ratio=n/len(o.data.polygons);bpy.ops.object.modifier_apply(modifier='d')
+def addp(o,m,bone_='head'):
+    cap(o,int(os.environ.get('PROP_TRIS','700')))
+    setmat(o,PM[m]) if isinstance(m,str) else setmat(o,m);o['bone']=bone_;props.append(o);return o
+def joinm(objs,name):return join(objs,name) if len(objs)>1 else objs[0]
+def clothes(name,labs,off,m,zmin=-9,zmax=9,ymax=9,xmin=0):
+    """fitted garment: copy of the fused body limited to labels, pushed out along normals; skinned like the body."""
+    me=body.data.copy();o=D.objects.new(name,me);C.collection.objects.link(o)
+    bm=bmesh.new();bm.from_mesh(me);bm.verts.ensure_lookup_table()
+    keep=[v for v in bm.verts if (labels[v.index] or '') .rstrip('LR0123') in labs and zmin<v.co.z<zmax and v.co.y<ymax and abs(v.co.x)>=xmin]
+    ks=set(v.index for v in keep);lab=[labels[v.index] for v in bm.verts if v.index in ks]
+    bmesh.ops.delete(bm,geom=[v for v in bm.verts if v.index not in ks],context='VERTS')
+    for v in bm.verts:v.co+=v.normal*off
+    bm.to_mesh(me);bm.free();m_=o.modifiers.new('s','SOLIDIFY');m_.thickness=off*.6;m_.offset=-1;active(o);bpy.ops.object.modifier_apply(modifier='s')
+    # solidify duplicates verts in order: originals then copies
+    n=len(lab);lab=lab+lab[:max(0,len(o.data.vertices)-n)]
+    for p in o.data.polygons:p.use_smooth=True
+    o.vertex_groups.clear();CL[name]=lab
+    cap(o,1400)
+    from mathutils.kdtree import KDTree
+    kd=KDTree(len(body.data.vertices))
+    for v in body.data.vertices:kd.insert(v.co,v.index)
+    kd.balance();CL[name]=[labels[kd.find(v.co)[1]] for v in o.data.vertices];setmat(o,PM[m]);o['bone']='*';props.append(o);return o
+def ring(name,c,rx,ry,r,n=24,dz=0):return tube(name,[(c[0]+math.cos(a)*rx,c[1]+math.sin(a)*ry,c[2]+dz*math.sin(a*2)) for a in [k/n*2*math.pi for k in range(n+1)]],[r]*(n+1),res=3)
+def beanie(c,rx,ry,rz,crown,slouch,bands,band_m,body_m,knit=14):
+    """knit/puffy beanie: cuff ring stack + slouched crown + rib cords; bands = list of (z frac, material)"""
+    hat=[];cuff=[]
+    for k in range(4):cuff.append(ring('cuff',(c[0],c[1],c[2]+k*rz*.09),rx*(1.02+.01*k),ry*(1.02+.01*k),rz*.07,32))
+    addp(joinm(cuff,'prop_cuff'),body_m)
+    for z,bm_ in bands:addp(ring('prop_band',(c[0],c[1],c[2]+z*rz),rx*1.06,ry*1.06,rz*.045,40),bm_)
+    cr=[ell('crown',(c[0],c[1]+slouch*.35,c[2]+rz*.55),(rx*.98,ry*.98,rz*crown),seg=40,ring=20),
+        ell('slouch',(c[0],c[1]+slouch,c[2]+rz*(crown*.9)),(rx*.75,ry*.8,rz*crown*.55),seg=32,ring=16)]
+    for k in range(knit):  # knit/puff rows hugging the crown ellipsoid
+        t=(k+.5)/knit;zz=c[2]+rz*.55+rz*crown*t*.92;f=math.sqrt(max(.02,1-t*t))
+        cr.append(ring('row',(c[0],c[1]+slouch*.35*t,zz),rx*.99*f,ry*.99*f,rz*.055*(1.4 if knit<10 else 1),32))
+    o=joinm(cr,'prop_crown');addp(o,body_m);return o
+NEW_OUTFIT=PLAN in('res_frostmitt','res_nyxbean','res_kairo')
+if NEW_OUTFIT:
+    pmat('trim',(.55,.15,1,1),.3,emit=(.62,.2,1,1),es=6)
+    pmat('horn_purple',(.35,.1,.7,1),.25,emit=(.4,.1,.9,1),es=.6,coat=1)
+    pmat('horn_grey',(.62,.6,.66,1),.35,coat=.8)
+    hb=Vector((0,hcv.y+hrx*.05,hcv.z+hrz*.18))
+    if PLAN=='res_nyxbean':
+        pmat('puffy',(.05,.02,.1,1),.5,sheen=.25,coat=.3)
+        beanie(hb,hrx*1.12,hrx*1.08,hrz*1.25,.95,hrx*.55,[(.1,'trim'),(.2,'trim')],'trim','puffy',knit=8)
+        for s_ in (-1,1):addp(cone('prop_horn',(s_*hrx*.38,hcv.y-hrx*.78,hcv.z+hrz*.32),(s_*hrx*.46,hcv.y-hrx*1.0,hcv.z+hrz*.62),hrz*.1,1,16),'horn_purple')
+    if PLAN=='res_frostmitt':
+        pmat('knit',(.07,.03,.2,1),.85,sheen=.3)
+        pmat('magenta',(.8,.15,.9,1),.5,emit=(.85,.2,1,1),es=2.5)
+        pmat('ice',(.72,.88,1,1),.05,emit=(.35,.6,1,1),es=.35,coat=1)
+        beanie(hb,hrx*1.15,hrx*1.1,hrz*1.3,1.05,hrx*.75,[(.08,'magenta'),(.28,'magenta')],'magenta','knit',knit=16)
+        for s_ in (-1,1):
+            addp(cone('prop_horn',(s_*hrx*.45,hcv.y-hrx*.75,hcv.z+hrz*.3),(s_*hrx*.6,hcv.y-hrx*1.05,hcv.z+hrz*.72),hrz*.12,1,16),'horn_grey')
+            addp(cone('prop_horn',(s_*hrx*1.05,hcv.y,hcv.z+hrz*.9),(s_*hrx*1.35,hcv.y-.02,hcv.z+hrz*1.3),hrz*.09,1,12),'horn_grey')
+        import random;R=random.Random(11);ic=[]
+        bvb=body_bvh
+        for k in range(26):  # icicles hanging from chest/legs/cheeks
+            a=R.uniform(0,2*math.pi);z=R.uniform(.12,hcv.z-hrz*.2);o_=Vector((math.cos(a)*.5,math.sin(a)*.5-.1,z))
+            h=bvb.find_nearest(o_)
+            if h[0] is None or h[1].z>-.1 and z>.35 and R.random()<.5:continue
+            p=h[0];L=R.uniform(.03,.07);ic.append(cone('ice',tuple(p+h[1]*.004),tuple(p+Vector((h[1].x*.01,h[1].y*.01,-L))),R.uniform(.008,.014),1,6))
+        addp(joinm(ic,'prop_icicles'),'ice','spine')
+        cubes=[]
+        for k in range(14):  # floating pixel cubes (frost data)
+            a=R.uniform(0,2*math.pi);r=R.uniform(.28,.45);bpy.ops.mesh.primitive_cube_add(size=R.uniform(.014,.026),location=(math.cos(a)*r,math.sin(a)*r,R.uniform(.15,.9)),rotation=(R.random(),R.random(),R.random()))
+            cubes.append(C.active_object);apply_all(cubes[-1])
+        addp(joinm(cubes,'prop_pixels'),'ice','root')
+    if PLAN=='res_kairo':
+        pmat('cloth',(.01,.009,.013,1),.7,sheen=.2)
+        pmat('tee',(.04,.035,.045,1),.85,sheen=.4)
+        pmat('hair',(.008,.007,.01,1),.4,sheen=.3,coat=.2)
+        pmat('ear_in',(.55,.2,.9,1),.5,emit=(.4,.1,.8,1),es=.4)
+        pmat('sole',(.6,.25,1,1),.4,emit=(.55,.2,1,1),es=1.5)
+        pmat('zip',(.8,.8,.85,1),.25,metal=1)
+        pmat('tattoo',(.45,.15,.75,1),.5,emit=(.5,.2,.9,1),es=.8)
+        # garments fitted to the sculpted body
+        clothes('prop_hoodie',('body','belly','neck','legF'),.014,'cloth',zmin=.36)
+        clothes('prop_joggers',('legB','shinB'),.012,'cloth',zmin=.07)
+        clothes('prop_shoes',('pawB','toeB'),.012,'cloth')
+        bz_=FACE['head_c'][2]
+        trl=[]
+        sp_=[b for b in B if b[0]=='spine'][0];zt=sp_[2][2];zb=sp_[1][2]
+        h=body_bvh
+        def onb(x,z,front=True,off=.018):
+            r=h.ray_cast(Vector((x,-2 if front else 2,z)),Vector((0,1 if front else -1,0)));return (r[0]+r[1]*off) if r[0] else Vector((x,0,z))
+        # zipper, neon trim lines, hem/cuff ribbing, back swirl emblem, chest glyph patch
+        addp(tube('prop_zip',[tuple(onb(0,z,off=.02)) for z in (zt-.02,zb+(zt-zb)*.4,zb-.1)],[.004]*3,res=4),'zip','spine')
+        for s_ in (-1,1):
+            trl.append(tube('t',[tuple(onb(s_*.05,zt,off=.022)),tuple(onb(s_*.11,zt-.06,off=.022)),tuple(onb(s_*.12,zb-.05,off=.022))],[.0035]*3,res=4))
+            trl.append(tube('t',[tuple(onb(s_*.06,zb,off=.022)),tuple(onb(s_*.1,zb-.03,off=.022))],[.004]*2,res=4))
+            trl.append(tube('t',[tuple(onb(s_*.04,zb+.05,False,.022)),tuple(onb(s_*.12,zt-.04,False,.022))],[.0035]*2,res=4))
+            for z in (.11,.25,.38):trl.append(tube('t',[(s_*.068,-.03,z),(s_*.07,-.035,z-.05)],[.003]*2,res=3))  # jogger piping
+        sw=[]
+        for k in range(30):
+            t=k/29;a=t*math.pi*3;r=.055*(1-t*.8);sw.append(tuple(onb(math.cos(a)*r,(zb+zt)/2+math.sin(a)*r,False,.022)))
+        trl.append(tube('t',sw,[.0045]*30,res=3))
+        addp(joinm(trl,'prop_trim'),'trim','spine')
+        rib=[ring('rib',(0,0,zb-.06+k*.012),.16,.12,.006,28) for k in range(3)]
+        addp(joinm(rib,'prop_hem'),'trim','hips')
+        # hair: messy black locks + cat ears (purple inner) + purple horns + striped beanie
+        R=__import__('random').Random(5);hr_=[]
+        for k in range(40):
+            a=R.uniform(-math.pi,math.pi);el=R.uniform(-.2,.9);d=Vector((math.sin(a)*math.cos(el),-math.cos(a)*math.cos(el),math.sin(el)))
+            base=hcv+Vector((d.x*hrx*.9,d.y*hrx*.9,d.z*hrz*.9))
+            if d.y<-.5 and el<.45:continue  # keep the face clear (fringe added below)
+            tip=base+d*hrx*.35+Vector((R.uniform(-.03,.03),R.uniform(-.02,.02),-.06))
+            hr_.append(cone('lock',tuple(base),tuple(tip),hrx*.17,.55,8))
+        for k in range(7):
+            x=(k-3)*hrx*.2;hr_.append(cone('fringe',(x,hcv.y-hrx*.7,hcv.z+hrz*.55),(x*1.2,hcv.y-hrx*1.0,hcv.z+hrz*(.12+.07*(k%2))),hrx*.15,.5,8))
+        addp(joinm(hr_,'prop_hair'),'hair')
+        ears=[];ein=[]
+        for s_ in (-1,1):
+            b0=(s_*hrx*.62,hcv.y+hrx*.05,hcv.z+hrz*.95)
+            ears.append(cone('cear',b0,(s_*hrx*.82,hcv.y+hrx*.1,hcv.z+hrz*1.55),hrz*.28,.45,16))
+            ein.append(cone('cin',(b0[0]*.98,b0[1]-hrz*.08,b0[2]+.01),(s_*hrx*.8,hcv.y,hcv.z+hrz*1.45),hrz*.18,.25,12))
+            ears.append(cone('elf',(s_*hrx*.95,hcv.y+hrx*.05,hcv.z-hrz*.05),(s_*hrx*1.35,hcv.y+hrx*.2,hcv.z+hrz*.25),hrz*.12,.4,10))
+        addp(joinm(ears,'prop_ears'),'hair');addp(joinm(ein,'prop_earin'),'ear_in')
+        pmat('knit_k',(.012,.01,.016,1),.85,sheen=.2)
+        bn=Vector((0,hcv.y+hrx*.05,hcv.z+hrz*.42))
+        beanie(bn,hrx*1.04,hrx*1.0,hrz*.8,.6,hrx*.12,[(.15,'trim'),(.42,'trim')],'trim','knit_k',knit=14)
+        for s_ in (-1,1):
+            hs=[(s_*hrx*.4,hcv.y-hrx*.1,hcv.z+hrz*.95),(s_*hrx*.55,hcv.y-hrx*.05,hcv.z+hrz*1.3),(s_*hrx*.48,hcv.y+hrx*.12,hcv.z+hrz*1.55)]
+            addp(tube('prop_horn',hs,[hrz*.11,hrz*.07,hrz*.012],res=6),'horn_purple')
+        # tattoos: swirl on cheek + neck, freckles
+        tt=[]
+        for s_,(x,z,r_) in ((1,(hrx*.55,hcv.z-hrz*.35,.022)),(1,(.03,hcv.z-hrz*1.05,.02))):
+            pts=[tuple(onb(x+math.cos(t*9)*r_*(1-t*.7),z+math.sin(t*9)*r_*(1-t*.7),off=.003)) for t in [k/15 for k in range(16)]]
+            tt.append(tube('tt',pts,[.0022]*16,res=3))
+        for k in range(6):tt.append(ell('fr',tuple(onb(R.choice((-1,1))*R.uniform(.05,.1),hcv.z-hrz*R.uniform(.2,.4),off=.002)),(.004,.002,.004),seg=6,ring=4))
+        addp(joinm(tt,'prop_tattoo'),'tattoo')
 if PLAN=='res_shardhowl':
     import random;rnd=random.Random(7);sh=[]
     for i in range(34):
@@ -564,8 +702,9 @@ def skin(o,cands_fn,smooth_it=8):
                 G[b].add([i],w/t,'REPLACE')
     o.parent=rig;m=o.modifiers.new('rig','ARMATURE');m.object=rig
 legb=[b for b in bones if b.startswith('leg')]
-def body_cands(i,co):
-    lab=labels[i] or ''
+def body_cands(i,co):return body_cands_l(labels[i],co)
+def body_cands_l(lab,co):
+    lab=lab or ''
     if lab.startswith('toe'):lab='paw'+lab[3:5]
     if lab.startswith('shin'):lab='leg'+lab[4:]
     if lab.startswith('leg') or lab.startswith('paw'):
@@ -586,7 +725,10 @@ for nm,o in variants.items():
     if nm.startswith('ear'):skin(o,lambda i,co:['head']+(['ear.0.L','ear.1.L'] if co.x<0 else ['ear.0.R','ear.1.R']) if nm not in('ear_crown','ear_gills','ear_dhorn','ear_frill') else ['head'],4)
     elif nm.startswith('tail'):skin(o,lambda i,co:[TAIL['parent']]+['tail.%d'%k for k in range(len(TP)-1)],6)
     else:skin(o,lambda i,co:[WINGS['parent']]+(['wing.0.L','wing.1.L'] if co.x<0 else ['wing.0.R','wing.1.R']),4)
-for o in props:skin(o,(lambda b_:(lambda i,co:[b_]))(o['bone']),0)
+for o in props:
+    if o['bone']=='*':
+        L_=CL[o.name];skin(o,(lambda L_:(lambda i,co:body_cands_l(L_[i],co)))(L_),4)
+    else:skin(o,(lambda b_:(lambda i,co:[b_]))(o['bone']),0)
 skin(detail,lambda i,co:(['tail.%d'%(len(TP)-2)] if dk in('comet','foxfire') else ['spine'] if dk=='ember_heart' else ['head']),0)
 for o in [body,face,detail]+props+list(variants.values()):
     for p in o.data.polygons:p.use_smooth=True
