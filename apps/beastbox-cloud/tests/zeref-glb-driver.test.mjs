@@ -6,6 +6,7 @@ function rig(){
  const r=mk('root',root,0,0,0),sp=mk('spine',r,0,.1,0),ch=mk('chest',sp,0,.3,0),hd=mk('head',ch,0,.15,0);
  for(const s of ['L','R']){const k=s==='L'?-1:1;const e0=mk('ear.0.'+s,hd,k*.28,.4,0);mk('ear.1.'+s,e0,0,.2,0);
   const w0=mk('wing.0.'+s,ch,k*.15,0,-.15);const w1=mk('wing.1.'+s,w0,0,.3,0);mk('wing.2.'+s,w1,0,.3,0);}
+ for(const s of ['L','R']){const k=s==='L'?-1:1;mk('leg.'+s,sp,k*.2,-.1,-.05);mk('paw.'+s,sp,k*.12,.1,.15);}
  let p=sp;for(let i=0;i<5;i++)p=mk('tail.'+i,p,0,i?.15:-.05,i?0:-.2);
  const mesh=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial());
  mesh.morphTargetDictionary=Object.fromEntries(ZEREF_MORPHS.map((n,i)=>[n,i]));mesh.morphTargetInfluences=ZEREF_MORPHS.map(()=>0);root.add(mesh);
@@ -39,4 +40,23 @@ test('blinks stay stable and brief at low frame rates (30 and 20 fps): no flicke
   let closed=0,runs=0,prev=false,frames=fps*20;
   for(let i=0;i<frames;i++){d.update(1/fps);const c=mesh.morphTargetInfluences[bi]>.5;if(c){closed++;if(!prev)runs++;}prev=c;}
   assert.ok(runs>=3&&runs<=12,fps+'fps blink count '+runs);assert.ok(closed/frames<.12,fps+'fps closed fraction '+closed/frames);}
+});
+test('walk gait: stance paws are locked to the scrolling floor (no sliding), swing paws lift, tail counterbalances',()=>{
+ const {root}=rig();const d=createZerefDriver(THREE,root,{seed:'zeref',mood:'walk'});
+ for(let i=0;i<240;i++)d.update(1/60);  // walk blend settles
+ let maxSlip=0,maxLift=0,prev=null;
+ for(let i=0;i<180;i++){d.update(1/60);const f=d.feet(),tr=d.travel;
+  if(prev)for(let j=0;j<f.length;j++){if(f[j].lift<1e-4&&prev.f[j].lift<1e-4){const slip=Math.abs((f[j].z+tr)-(prev.f[j].z+prev.tr));maxSlip=Math.max(maxSlip,slip);}maxLift=Math.max(maxLift,f[j].lift);}
+  prev={f,tr};}
+ assert.ok(maxSlip<.004,'stance slip '+maxSlip);assert.ok(maxLift>.03,'lift '+maxLift);assert.ok(d.travel>.3,'travel '+d.travel);
+});
+test('bones are found under GLTFLoader-sanitized names (tail0, earR... dots stripped): chains and feet bind',()=>{
+ const {root}=rig();root.traverse(o=>{o.name=o.name.replace(/\./g,'');});
+ const d=createZerefDriver(THREE,root,{seed:'zeref',mood:'walk'});assert.equal(d.chains.length,5);assert.equal(d.feet().length,4);
+});
+test('cosmic drive: deterministic per seed; scared stirs the beast, calm settles; heartbeat is faster when aroused',()=>{
+ const go=(m,n=600)=>{const {root}=rig();const d=createZerefDriver(THREE,root,{seed:'zeref',mood:m});const beats=[];for(let i=0;i<n;i++){d.update(1/60);beats.push(d.cosmic().beat);}return {c:d.cosmic(),beats};};
+ const a=go('scared'),b=go('scared'),k=go('calm');
+ assert.deepEqual(a.c,b.c);assert.ok(a.c.stir>.8,'scared stir '+a.c.stir);assert.ok(k.c.stir<.3,'calm stir '+k.c.stir);
+ const peaks=bs=>bs.filter((v,i)=>i&&v>.9&&bs[i-1]<=.9).length;assert.ok(peaks(a.beats)>=peaks(k.beats),'beats');
 });

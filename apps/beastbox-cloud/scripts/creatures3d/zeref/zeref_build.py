@@ -107,11 +107,11 @@ def lid_edge(kind,side,u,state):
     top=math.sqrt(max(0,1-u*u))*.995; bot=-top
     inner=-u*side   # +1 toward the nose
     if kind=='U':
-        e={'rest':top-.035,'blink':-.12-.22*(1-u*u),'sleepy':.05+.06*u*u,'angry':.42-.38*inner,'happy':-.31+.5*(1-u*u),
+        e={'rest':top-.035,'blink':-.12-.22*(1-u*u),'sleepy':.05+.06*u*u,'angry':.42-.38*inner,'happy':top-.035,
            'scared':top-.035,'curious':top-.035}[state]
         return max(bot+.02,min(top-.02,e))
     else:
-        e={'rest':bot+.035,'happy':-.24+.5*(1-u*u),'blink':bot+.035,'sleepy':bot+.035,'angry':-.55,'scared':bot+.035,'curious':bot+.035}[state]
+        e={'rest':bot+.035,'happy':bot+.035,'blink':bot+.035,'sleepy':bot+.035,'angry':-.55,'scared':bot+.035,'curious':bot+.035}[state]
         return max(bot+.02,min(top-.02,e))
 lid_objs=[];lid_meta=[]
 for s,n in ((-1,'L'),(1,'R')):
@@ -501,7 +501,7 @@ def make_key(name,state,ears=None,brows=None,eyes_k=None,mouth=None,extra=None):
             for i,p in brow_move(n,*brows[n]).items():sk.data[i].co=p
     if mouth:
         for i,p in mouth_move(*mouth).items():sk.data[i].co=p
-    if state=='happy':  # ^^ : both lavender lid lines slide onto the closed-lid arc
+    if False:  # v4: ^^ is drawn by the eye shader (crisp, matches the rig) : both lavender lid lines slide onto the closed-lid arc
         for n in 'LR':
             cx,cy,cz=eyes[n]
             for zs,ln in ((1,'lidlineU'),(-1,'lidlineD')):
@@ -543,7 +543,7 @@ def bone(name,h,t,parent=None):
     if parent:b.parent=EB[parent];b.use_connect=(Vector(EB[parent].tail)-Vector(h)).length<1e-4
     return b
 bone('root',(0,0,0),(0,0,.3));bone('spine',(0,0,.3),(0,0,1.0),'root');bone('chest',(0,0,1.0),(0,0,1.32),'spine')
-bone('head',(0,0,1.32),(0,0,2.7),'chest')
+bone('neck',(0,0,1.16),(0,0,1.56),'chest');bone('head',(0,0,1.56),(0,0,2.7),'neck')
 for s,n in ((-1,'L'),(1,'R')):
     bone('ear.0.'+n,(s*.66,.04,2.36),(s*.78,.05,2.81),'head');bone('ear.1.'+n,(s*.78,.05,2.81),(s*.9,.06,3.26),'ear.0.'+n)
 for s_,n_ in ((-1,'L'),(1,'R')):
@@ -573,15 +573,15 @@ def cands(i,co):
         if g in('P_wisps',):return ['tail.3','tail.4']
         if g=='P_charm':return ['chest']
         if g in('P_beansL','P_beansR'):return ['paw.'+g[-1]]
-        if g=='P_choker' or g=='P_gem':return ['chest']
+        if g=='P_choker' or g=='P_gem':return ['chest','neck']
         return ['head']
     if lab is None:return ['spine']
     if lab.startswith('ear'):return ['head','ear.0.'+lab[-1],'ear.1.'+lab[-1]]
-    if lab in('head','jaw','muzzle') or lab.startswith('cheek') or lab.startswith('tuft'):return ['head']+(['chest'] if co.z<1.5 else [])
+    if lab in('head','jaw','muzzle') or lab.startswith('cheek') or lab.startswith('tuft'):return ['head']+(['neck'] if co.z<1.85 else [])+(['chest'] if co.z<1.4 else [])
     if lab=='tail':return ['spine']+['tail.%d'%k for k in range(len(tp)-1)]
     if lab.startswith('paw') or lab.startswith('toe'):return ['spine','paw.'+lab[-1]]
     if lab.startswith('haunch'):return ['root','spine','leg.'+lab[-1]]
-    if lab=='neck':return ['chest','head','spine']
+    if lab=='neck':return ['chest','neck','head','spine']
     return ['root','spine','chest']
 rig_groups={b:zer.vertex_groups.new(name=b) for b in bones};WT={}
 for v in V:

@@ -28,3 +28,13 @@ an emissive starfield. Total is 24.4k tris (budget 25k). Runtime: `lib/creatures
 - Adds haunches, paws with toes and leg/paw bones (walk), a 9-point 'w' mouth with grin cavity and tongue, bulging eyes, ^^ happy lids
   (with the lid lines morphing onto the closed arc), and forward-facing lid normals (morph normals aren't exported).
 - Review URL: `/beast-cage/turntable?glb=1&mood=happy&yaw=30&blink=0&fur=0`.
+
+## v4 notes (in-browser quality)
+- Rig: added a `neck` bone (chest → neck → head); head/neck weights blend over the neck so 60° turns don't crease.
+  The driver splits head motion 40/60 across neck/head; `render.py ... pose60` splits 24°/36°.
+- Happy ^^ is no longer a lid shape: lids stay put and the eye shader draws the rig's lavender arc (`uHappy`).
+- Runtime look lives in `components/zeref-glb-3d.tsx`: PMREM violet/blue environment, AgX, bloom, 12-shell fur
+  (length noise, tapered strands, root AO, rim sheen, wind), ear/paw warmth, wing backlight, refracting cornea,
+  contact shadows per paw. Quality tiers high/med/low (`?tier=`), auto-downgrade on slow frames.
+- Gait: `zeref-glb-driver.mjs` locks paws to a scrolling floor during stance (treadmill), swings them in arcs,
+  shifts the hips and counter-swings the tail. Review: `?glb=1&manual=1` + `window.__zerefReview.step(dt,mood,yaw)`.

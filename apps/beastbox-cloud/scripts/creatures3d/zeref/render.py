@@ -25,7 +25,7 @@ if KEY=='pose60':
     import math as _m
     rig=D.objects['ZerefRig'];pb=rig.pose.bones
     for b in pb:b.rotation_mode='XYZ'
-    pb['head'].rotation_euler=(0,_m.radians(60),0) if True else (0,0,_m.radians(60))
+    pb['neck'].rotation_euler=(0,_m.radians(24),0);pb['head'].rotation_euler=(0,_m.radians(36),0)   # 60 deg split neck/head
 if KEY=='pose':
     import math as _m
     rig=D.objects['ZerefRig'];pb=rig.pose.bones
