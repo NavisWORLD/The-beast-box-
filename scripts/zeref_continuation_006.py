@@ -168,6 +168,10 @@ def rigetti_order_seed(cycle,fresh_digest=None,run_id=None):
  mix={"ibm":IBM,"cycle":cycle,"job":job["job_id"],"counts":job["counts"]}
  if fresh_digest:mix["fresh_capture_sha256"]=fresh_digest
  if run_id:mix["run_id"]=str(run_id)
+ # Heartbeat (2026-10-16): Cory's heartbeat-derived feature packet is mixed in as an extra
+ # creative seed input (sha only; raw audio never used). Order-only; gates unchanged.
+ hb=Path(__file__).resolve().parents[1]/"evidence/zeref-heartbeat-001/features.json"
+ if hb.exists():mix["heartbeat_packet_sha256"]=json.loads(hb.read_text()).get("packet_sha256")
  h=sha(json.dumps(mix,sort_keys=True).encode())
  return int(h[:15],16),{"rigetti_sim_job_id":job["job_id"],"counts":job["counts"],
    "order_seed_sha256":h,"source_class":d.get("source_class"),"label":"SIMULATED",
