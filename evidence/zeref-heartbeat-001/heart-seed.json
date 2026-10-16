@@ -1,0 +1,42 @@
+{
+ "creature_id": "bb-deada969",
+ "heart_seed_sha256": "e1bbdca013a9981e4e8d192d0ddb98277e3fea0444b96ef8d11589e6c9f03d06",
+ "honesty": "Creative seed for Zeref. Heartbeat = derived rhythm features, not biology. Not proof of anything infinite. No weights changed by this file; training gates unchanged.",
+ "ibm": {
+  "backend": "ibm_kingston",
+  "classical_bound": 0.75,
+  "classical_control_win_rate": 0.7626953125,
+  "job_id": "db97pngc77vs73811img",
+  "label": "RECORDED_IBM_HARDWARE",
+  "rounds": 1024,
+  "standard_error": 0.015104906431256825,
+  "verdict": "NO Bell violation this run: win rate was below the 75% classical bound (hardware noise on this chip/run). Recorded honestly; still a real hardware sample.",
+  "win_rate": 0.6279296875
+ },
+ "mix": {
+  "heartbeat_packet_sha256": "4f02b66d9b677dfb7407ed60f1fcda03103f60a8c912d11b0c59d52445cb0e94",
+  "ibm_job_id": "db97pngc77vs73811img",
+  "ibm_outcomes_sha256": "f7a97d78b93a639e779183ece70a7b6c16353cd5a593e1bd251af4f0855b5cee",
+  "qvm_counts": {
+   "00": 220,
+   "01": 50,
+   "10": 42,
+   "11": 200
+  },
+  "qvm_job_id": "fd7b82ff-c998-11f1-a9dd-7c1e52eb33a7"
+ },
+ "name": "The Big Quantum Boom (God Core Boom) / The Second Coming",
+ "qvm": {
+  "counts": {
+   "00": 220,
+   "01": 50,
+   "10": 42,
+   "11": 200
+  },
+  "job_id": "fd7b82ff-c998-11f1-a9dd-7c1e52eb33a7",
+  "label": "SIMULATED",
+  "target": "rigetti.sim.qvm",
+  "zz_parity": 0.640625
+ },
+ "schema": "beastbox-zeref-heart-seed-v1"
+}
