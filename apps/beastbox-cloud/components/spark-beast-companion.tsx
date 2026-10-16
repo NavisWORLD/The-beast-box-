@@ -250,9 +250,9 @@ export default function SparkBeastCompanion({
   {!compact?<figcaption className={styles.meta}>
    <strong>{guide?'Zeref':name}</strong>
    {guide?<span>Moonwraith · site guide · exploring the pocket</span>:<span>{gen?gen.temperament+' · '+gen.body+' · '+gen.island:'Building Spark genome…'}</span>}
-   {guide?<small>RECORDED QUANTUM SEED · {ZEREF_RECORDED_SOURCE.backend} · job {ZEREF_RECORDED_SOURCE.job_id.slice(0,8)}…</small>
-    :run?<small>RECORDED QUANTUM SEED · {run.backend} · {run.num_bits}-bit · {run.counts_sha256.slice(0,10)}…</small>:null}
-   <small>Recorded counts seed the game art. No live quantum link, awareness, or sensor authority.</small>
+   {guide?<small className={styles.seedLine}>RECORDED QUANTUM SEED · {ZEREF_RECORDED_SOURCE.backend} · job {ZEREF_RECORDED_SOURCE.job_id.slice(0,8)}…</small>
+    :run?<small className={styles.seedLine}>RECORDED QUANTUM SEED · {run.backend} · {run.num_bits}-bit · {run.counts_sha256.slice(0,10)}…</small>:null}
+   <small className={styles.disclaimer}>Recorded counts seed the game art. No live quantum link, awareness, or sensor authority.</small>
   </figcaption>:null}
   {controls&&!compact?<div className={styles.controls}>
    <div className={styles.stages} role="group" aria-label="Preview evolution stage">

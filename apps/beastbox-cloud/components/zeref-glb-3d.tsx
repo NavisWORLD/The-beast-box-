@@ -13,6 +13,7 @@ import {useEffect,useRef} from 'react';
 import * as THREE from 'three';
 import {createZerefDriver,ZEREF_GLB_URL} from '@/lib/creatures3d/zeref-glb-driver.mjs';
 import {seededRng} from '@/lib/physics/cst-integrator.mjs';
+import {guardCanvasTouch} from '@/lib/three/touch-guard';
 
 export type ZerefMood='calm'|'happy'|'curious'|'scared'|'sleepy'|'angry'|'walk';
 type Tier='high'|'med'|'low';
@@ -207,6 +208,10 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
    bloomPass?.resolution.set(r.width/2,r.height/2);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();
    uMoteScale.value=r.height*renderer.getPixelRatio()/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)));}
   const ro=new ResizeObserver(resize);ro.observe(el);resize();
+  // one-finger / mouse drag spins him (page scroll is untouched outside the stage)
+  const unguard=guardCanvasTouch(el,{hint:'☝ Drag to spin Zeref'});let drag:{x:number,yaw:number}|null=null;
+  const pd=(e:PointerEvent)=>{drag={x:e.clientX,yaw};};const pm=(e:PointerEvent)=>{if(!drag)return;const w=el.getBoundingClientRect().width||1;yaw=drag.yaw-(e.clientX-drag.x)/w*Math.PI*2;live.current={...live.current,spin:false,angle:THREE.MathUtils.radToDeg(yaw)};};
+  const pu=()=>{drag=null;};el.addEventListener('pointerdown',pd);el.addEventListener('pointermove',pm);el.addEventListener('pointerup',pu);el.addEventListener('pointercancel',pu);
   let last=performance.now(),yaw=qYaw?THREE.MathUtils.degToRad(Number(qYaw)):0,perfN=0,perfAcc=0;
   const qManual=qp.get('manual')==='1';let manualDt=0,manualMood:any=null;
   const review:any={setYaw:(d:number)=>{live.current={...live.current,spin:false,angle:d};yaw=THREE.MathUtils.degToRad(d);},
@@ -239,7 +244,7 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
    if(!(qManual&&now===0))raf=requestAnimationFrame(tick);
   }
   raf=requestAnimationFrame(tick);
-  return ()=>{disposed=true;cancelAnimationFrame(raf);ro.disconnect();composer?.dispose?.();renderer.dispose();renderer.domElement.remove();};
+  return ()=>{disposed=true;unguard();el.removeEventListener('pointerdown',pd);el.removeEventListener('pointermove',pm);el.removeEventListener('pointerup',pu);el.removeEventListener('pointercancel',pu);cancelAnimationFrame(raf);ro.disconnect();composer?.dispose?.();renderer.dispose();renderer.domElement.remove();};
  },[seed]);
  return <div ref={host} data-testid="zeref-glb-3d" style={{width:'100%',height:'100%',minHeight:360}} aria-label="Sculpted 3D Zeref, rotating"/>;
 }

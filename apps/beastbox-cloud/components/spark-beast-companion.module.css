@@ -20,3 +20,6 @@
 .rigMode .aura{display:none}
 .rigMode .meta{padding-bottom:6px;gap:2px}
 @media(max-width:680px){.rigMode{min-height:0;margin-top:64px}.rig,.rigWait{width:min(178px,48vw)}.rigMode .meta small{display:none}.rigMode .meta span{font-size:10px}.rigMode .meta strong{font-size:13px}}
+
+/* Phones: one clean caption stack inside the round habitat (no overlap with the pocket's sand label or the circle edge). */
+@media(max-width:680px){.meta .seedLine{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:78vw;font-size:10px}.meta .disclaimer{display:none}}

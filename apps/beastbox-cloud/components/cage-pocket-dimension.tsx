@@ -5,6 +5,7 @@ import {ARTIST_RESIDENTS} from '../lib/companion/artist-residents.mjs';
 import {addPocketResidents} from './pocket-residents';
 import {addPocketSand} from './pocket-sand-layer';
 import {SAND_LABEL} from '../lib/pocket-sand.mjs';
+import {guardCanvasTouch} from '../lib/three/touch-guard';
 import {useEffect,useRef,useState} from 'react';
 import {createPocketSky,orbitPosition} from '../lib/pocket-sky.mjs';
 import {DEFAULT_POCKET_3D,POCKET_3D_KEY,POCKET_3D_EVENT,POCKET_3D_CAMERA_RESET,devicePocket3D} from '../lib/companion/pocket-3d-settings.mjs';
@@ -128,6 +129,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   const mute=()=>{motion.current.impulse=0;};
   const resetCamera=()=>{cameraView.current={theta:.7,phi:1.05,zoom:10.6};pickRef.current?.(-1e6,-1e6);};
   const option={passive:true} as AddEventListenerOptions;
+  const unguard=parent?guardCanvasTouch(parent,{hint:parent.classList.contains('beast-landing-art')?'☝ Drag to spin the universe':'☝ Drag to explore · pinch to zoom'}):()=>{};
   if(parent){
    parent.addEventListener('pointerdown',pointerDown,option);
    parent.addEventListener('pointermove',pointerMove,option);
@@ -141,6 +143,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   window.addEventListener('beastbox:spark-mute',mute);
   window.addEventListener(POCKET_3D_CAMERA_RESET,resetCamera);
   const releaseListeners=()=>{
+   unguard();
    if(parent){
     parent.removeEventListener('pointerdown',pointerDown);
     parent.removeEventListener('pointermove',pointerMove);
