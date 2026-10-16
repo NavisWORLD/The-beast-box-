@@ -705,6 +705,22 @@ if NEW_OUTFIT:
             c=eye_c['L' if v.co.x<0 else 'R'];k.data[i].co=Vector((v.co.x,v.co.y,c.z+(v.co.z-c.z)*.08))
         setmat(o_,PM[nm_]);o_['bone']='head';props.append(o_)
     addp(joinm(lash,'prop_lash'),'lash')
+    def eye_keys(o_):
+        # Zeref expression set on the layered eye props (life brain drives p<name>): blink, happy ^^, sleepy, curious, scared, angry
+        if not o_.data.shape_keys:o_.shape_key_add(name='Basis')
+        def K(name,f):
+            if name in o_.data.shape_keys.key_blocks:return
+            k=o_.shape_key_add(name=name,from_mix=False)
+            for i,v in enumerate(o_.data.vertices):
+                n='L' if v.co.x<0 else 'R';c=eye_c[n];s=-1 if n=='L' else 1;k.data[i].co=f(v.co.copy(),c,s)
+        R_=ER*1.05*SC
+        K('pblink',lambda co,c,s:Vector((co.x,co.y,c.z+(co.z-c.z)*.08)))
+        K('phappy',lambda co,c,s:Vector((co.x,co.y,c.z+(co.z-c.z)*.16+R_*.42*(1-min(1,((co.x-c.x)/(R_*.95))**2))-R_*.18)))
+        K('psleepy',lambda co,c,s:Vector((co.x,co.y,min(co.z,c.z+R_*.12)-max(0,co.z-c.z-R_*.12)*.0)))
+        K('pcurious',lambda co,c,s:c+(co-c)*(1.16 if s<0 else .9))
+        K('pscared',lambda co,c,s:c+(co-c)*1.2)
+        K('pangry',lambda co,c,s:Vector((co.x,co.y,min(co.z,c.z+R_*.5-(co.x-c.x)*s*.9))))
+
     if PLAN=='res_kairo':
         pmat('skin_d',(.55,.32,.24,1),.5);pmat('brow',(.01,.008,.012,1),.6)
         ns=surf(0,FACE['eye_z']-ER*1.15);addp(ell('prop_nose',tuple(ns+Vector((0,-.004,0))),(ER*.22,ER*.2,ER*.3),seg=12,ring=8),'skin_d')
@@ -808,6 +824,8 @@ if NEW_OUTFIT:
         nt=PM['puffy'].node_tree;t=nt.nodes.new('ShaderNodeTexImage');t.image=img('nyx_puffer_rough',True);mr=nt.nodes.new('ShaderNodeMapRange');mr.inputs[3].default_value=.82;mr.inputs[4].default_value=1;nt.links.new(t.outputs['Color'],mr.inputs[0]);nt.links.new(mr.outputs[0],nt.nodes['Principled BSDF'].inputs['Roughness'])
         uvp_list=[o_ for o_ in props if o_.data.materials and o_.data.materials[0].name=='pm_puffy']
         for o_ in uvp_list:uvp(o_)
+    for o_ in props:
+        if o_.name.split('.')[0] in('prop_eyes','prop_cornea','prop_eyerim','prop_catch','prop_lash'):eye_keys(o_)
     for n_,(tx,sc_) in {'knit':('knit_normal',3),'knit_k':('knit_normal',3),'cloth':('fabric_normal',4)}.items():
         if n_ in PM:add_normal(PM[n_],tx,sc_,.3)
     for o_ in props:

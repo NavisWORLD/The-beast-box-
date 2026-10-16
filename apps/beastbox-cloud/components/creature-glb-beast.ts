@@ -198,7 +198,8 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
   tw('sleepy',nap);tw('happy',life.mode==='play'||life.mode==='approach'?mood.joy:mood.joy*.25);tw('curious',life.mode==='glance'||life.mode==='sniff'?.8:mood.curiosity*.15);
   tw('scared',(life.startle||0)+mood.fear*.25);tw('angry',mood.mischief>.8?.4:0);tw('grin',life.mode==='play'?.8:mood.joy*.3);tw('o',life.mode==='sniff'&&life.speed<.05?.5+.4*Math.abs(Math.sin(t*6)):0,8);tw('w',life.mode==='approach'?.7:0);
   setM('blink',Math.max(ex.blink,ex.sleepy*.2));setM('happy',ex.happy*(1-ex.blink));setM('sleepy',ex.sleepy);setM('curious',ex.curious);setM('scared',ex.scared);setM('angry',ex.angry);
-  pblink.forEach(m=>{m.morphTargetInfluences[m.morphTargetDictionary.pblink]=clamp(Math.max(ex.blink,ex.sleepy*.2));});
+  pblink.forEach(m=>{const D_=m.morphTargetDictionary,I_=m.morphTargetInfluences,S_=(k:string,v:number)=>{const i=D_[k];if(i!=null)I_[i]=clamp(v);};
+   S_('pblink',Math.max(ex.blink,ex.sleepy*.2));S_('phappy',ex.happy*(1-ex.blink));S_('psleepy',ex.sleepy*(1-ex.blink));S_('pcurious',ex.curious);S_('pscared',ex.scared);S_('pangry',ex.angry);});
   floaters.forEach((m,i)=>{m.position.y=Math.sin(t*1.3+i)*.012;m.rotation.y=Math.sin(t*.35+i)*.25;});
   setM('mouth_grin',ex.grin*(1-ex.o));setM('mouth_o',ex.o);setM('mouth_w',ex.w*(1-ex.o));
   U.uBeat.value=Math.pow(Math.max(0,Math.sin(t*(1+(mp?mp.stiffness:1)*.9)*Math.PI*2)),12);glowMat.emissiveIntensity=1.6+U.uBeat.value*1.4+mood.joy*.4;
