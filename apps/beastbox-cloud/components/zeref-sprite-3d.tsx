@@ -41,10 +41,15 @@ export default function ZerefSprite3D({className='',embed=false,autoRotate=false
    const P=rigParts(svg);const mind=createMind({profile:ZEREF_PROFILE,reduced,hour:new Date().getHours()});mindRef.current=mind;
    paintRig(P,frameFor(mind),mind.t);
    const ref=svg.querySelector('[data-sprite-ref]') as SVGGElement;
-   const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,premultipliedAlpha:true});
-   renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
-   // Software GL (CI, old phones): drop to 1x so frames stay cheap.
-   try{const gl=renderer.getContext();const dbg=gl.getExtension('WEBGL_debug_renderer_info');if(dbg&&/swiftshader|llvmpipe|software/i.test(String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL))))renderer.setPixelRatio(1);}catch{}renderer.outputColorSpace=THREE.SRGBColorSpace;
+   // His own WebGL context is created lazily. Embedded on home he is drawn by the pocket's renderer, so a second
+   // context (a long synchronous main-thread block on software GL / weak phones) is only made if the pocket never claims him.
+   let renderer:import('three').WebGLRenderer|null=null;
+   const ensureRenderer=()=>{if(renderer)return renderer;
+    const r=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,premultipliedAlpha:true});
+    r.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+    // Software GL (CI, old phones): drop to 1x so frames stay cheap.
+    try{const gl=r.getContext();const dbg=gl.getExtension('WEBGL_debug_renderer_info');if(dbg&&/swiftshader|llvmpipe|software/i.test(String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL))))r.setPixelRatio(1);}catch{}r.outputColorSpace=THREE.SRGBColorSpace;
+    renderer=r;resize();return r;};
    const scene=new THREE.Scene();const camera=new THREE.OrthographicCamera(-2,2,2,-2,-20,20);camera.position.set(0,0,10);camera.lookAt(0,0,0);
    const root=new THREE.Group();scene.add(root);
    scene.add(new THREE.AmbientLight(0x8f7ad8,1.1));
@@ -119,7 +124,7 @@ export default function ZerefSprite3D({className='',embed=false,autoRotate=false
     layers.push({L,el:P[L.part],bone,depth,mesh,mat,tex,shells,rim,canvas:c});
    }
    const head=layers.find(x=>x.L.live);let lastFace='',cutting=false;
-   const resize=()=>{const r=canvas.getBoundingClientRect();renderer.setSize(Math.max(1,r.width),Math.max(1,r.height),false);};
+   const resize=()=>{if(!renderer)return;const r=canvas.getBoundingClientRect();renderer.setSize(Math.max(1,r.width),Math.max(1,r.height),false);};
    resize();const ro=new ResizeObserver(resize);ro.observe(canvas);
    let prev=performance.now();
    const frame=(now:number)=>{
@@ -150,9 +155,11 @@ export default function ZerefSprite3D({className='',embed=false,autoRotate=false
     }
     const key=faceKey(f);
     if(head&&key!==lastFace&&!cutting){cutting=true;lastFace=key;void cut('head',['earL','earR']).then(c=>{if(c&&!disposed){head.tex.image=c;head.tex.needsUpdate=true;}}).finally(()=>{cutting=false;});}
-    if(!inWorld)renderer.render(scene,camera);
+    // Waiting to be claimed by the pocket: draw nothing yet (the deadline above falls back to his own canvas).
+    if(!inWorld&&!embedded)ensureRenderer().render(scene,camera);
     if(!reduced||dragRef.current||embedded)raf=requestAnimationFrame(frame);
    };
+   if(!embed)ensureRenderer();
    if(embed){embedded=true;embedDeadline=performance.now()+14000;(window as any).__zerefEmbed={root,claimed:false,viewYaw:0};setEmbedOn(true);}
    clearTimeout(guard);setState('ready');raf=requestAnimationFrame(frame);
    const kick=()=>{if(!raf)raf=requestAnimationFrame(frame);};
@@ -160,7 +167,7 @@ export default function ZerefSprite3D({className='',embed=false,autoRotate=false
    const move=(e:PointerEvent)=>{if(!dragRef.current)return;const w=canvas.getBoundingClientRect().width||1;yawRef.current=clampYaw(dragRef.current.yaw+(e.clientX-dragRef.current.x)/w*360);kick();};
    const up=()=>{if(dragRef.current&&Math.abs(yawRef.current-dragRef.current.yaw)<2)tapMind(mind);if(dragRef.current)idleRef.current=performance.now()+2500;dragRef.current=null;kick();};
    canvas.addEventListener('pointerdown',down);window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);
-   cleanup=()=>{ro.disconnect();canvas.removeEventListener('pointerdown',down);window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);layers.forEach(x=>{x.tex.dispose();x.mat.dispose();x.rim.material.dispose();x.shells.forEach((s:any)=>s.material.dispose());});geo.dispose();renderer.dispose();};
+   cleanup=()=>{ro.disconnect();canvas.removeEventListener('pointerdown',down);window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);layers.forEach(x=>{x.tex.dispose();x.mat.dispose();x.rim.material.dispose();x.shells.forEach((s:any)=>s.material.dispose());});geo.dispose();renderer?.dispose();};
    (window as any).__zerefSprite3D={yaw:(d:number|null)=>{if(d===null){holdRef.current=false;return yawRef.current;}holdRef.current=true;yawRef.current=clampYaw(d);kick();return clampYaw(d);},layers:layers.map(x=>x.L.part),scene};
   }catch{if(!disposed)setState('fallback');}})();
   return()=>{if((window as any).__zerefEmbed?.root&&embedded){(window as any).__zerefEmbed.root.removeFromParent();(window as any).__zerefEmbed=null;}disposed=true;clearTimeout(guard);if(raf)cancelAnimationFrame(raf);cleanup();};

@@ -12,6 +12,6 @@ test('quantum honesty: only the labelled counts feed growth; nothing is invented
  assert.ok(!/hardware/.test(src.replace(/never hardware/,'')));});
 test('Zeref lives inside the pocket world (embedded root) and the planet is sun-lit with a rim',()=>{
  const z=readFileSync(new URL('../components/zeref-sprite-3d.tsx',import.meta.url),'utf8');
- assert.match(z,/__zerefEmbed=\{root,claimed:false/);assert.match(z,/if\(!inWorld\)renderer\.render/);
+ assert.match(z,/__zerefEmbed=\{root,claimed:false/);assert.match(z,/if\(!inWorld&&!embedded\)ensureRenderer\(\)\.render/);
  assert.match(pd,/zActorNode\.add\(ze\.root\)/);assert.match(pd,/zActorNode\.remove\(ze\.root\)/);
  assert.match(src,/uniform vec3 sunDir/);assert.match(src,/rimCol\*rim/);});

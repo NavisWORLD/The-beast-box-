@@ -173,9 +173,11 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   void(async()=>{
    try{
     if(!window.WebGLRenderingContext)throw Error('WebGL unavailable');
-    // Home: let the 3D Zeref finish cutting his layers first (both share one main thread on phones / software GL);
-    // his own 9s guard flips him to the flat fallback, so this wait always ends.
-    if(autoOrbitRef.current){const t0=performance.now();while(!disposed&&performance.now()-t0<20000&&document.querySelector('[data-zeref-sprite3d="loading"]'))await new Promise(r=>setTimeout(r,250));if(disposed)return;}
+    // Home: let the 3D Zeref finish cutting his layers first (both share one main thread on phones / software GL).
+    // The pocket's first frame links its shader programs synchronously; starting it while Zeref is still loading
+    // starves his 9s fallback guard too, so neither ever settles on slow machines. His guard (main thread free while
+    // we wait) always ends 'loading', so wait for that; the 60s cap is only a safety net.
+    if(autoOrbitRef.current){const t0=performance.now();while(!disposed&&performance.now()-t0<60000&&document.querySelector('[data-zeref-sprite3d="loading"]'))await new Promise(r=>setTimeout(r,250));if(disposed)return;}
     const THREE=await import('three');
     if(disposed)return;
     // User quality never overrides the OS reduced-motion safety boundary.
@@ -404,6 +406,20 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      try{renderer.render(scene,camera);}catch{setReady(false);setFailed(true);return;}
      if(!rendered){rendered=true;setReady(true);}
     };
+    // Link every shader program off the main thread before the first frame where the browser can (KHR_parallel_shader_compile):
+    // a synchronous first-frame link of the whole pocket takes many seconds on software GL / weak GPUs and freezes the page
+    // (taps, Zeref, the rest of the UI). Bounded so a driver that never reports completion still starts.
+    if(renderer.extensions.get('KHR_parallel_shader_compile')){try{await Promise.race([renderer.compileAsync(scene,camera),new Promise(r=>setTimeout(r,8000))]);}catch{}if(disposed)return;}
+    else{
+     // No parallel link (SwiftShader/llvmpipe, some mobile drivers): warm up progressively. Reveal the drawables a few at
+     // a time and render, yielding between batches, so each frame only links a handful of programs and input, Zeref and
+     // the rest of the page keep running. Visibility is restored exactly before the real loop starts.
+     const drawn:any[]=[];scene.traverse((o:any)=>{if(o.visible&&o.material&&(o.isMesh||o.isPoints||o.isLine||o.isSprite))drawn.push(o);});
+     drawn.forEach(o=>{o.visible=false;});
+     try{for(let i=0;i<drawn.length&&!disposed;i+=4){for(let j=i;j<Math.min(drawn.length,i+4);j++)drawn[j].visible=true;renderer.render(scene,camera);await new Promise(r=>setTimeout(r,0));}}
+     catch{}finally{drawn.forEach(o=>{o.visible=true;});}
+     if(disposed)return;
+    }
     frame=requestAnimationFrame(animate);
     cleanup=()=>{
      pickRef.current=null;godRef.current=null;world.dispose();window.removeEventListener('beastbox:genome',syncPlush);window.removeEventListener('beastbox:pixel-mode',syncPlush);window.removeEventListener('beastbox:spark-chirp',onTalk);document.documentElement.removeAttribute('data-beast-3d');life.dispose();plush?.dispose();
