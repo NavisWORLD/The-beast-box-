@@ -14,6 +14,7 @@ function unit(seed,salt){return hash32(seed+'|'+salt)/4294967295;}
 const r3=n=>Math.round(n*1000)/1000;
 const EMO={joy:{pitch:.12,rate:.08,growl:-.15},curiosity:{pitch:.06,rate:.03,growl:-.05},fear:{pitch:.1,rate:-.08,growl:-.25,volume:-.2},calm:{pitch:-.06,rate:-.1,growl:-.1},mischief:{pitch:.04,rate:.12,growl:.2}};
 /** Deterministic voice profile: same seed + emotions => same voice. */
+/** @param {string} [seed] @param {{dominant?:string}|null} [emotions] */
 export function voiceProfile(seed=ZEREF_VOICE_SEED,emotions=null){
  const s=String(seed||ZEREF_VOICE_SEED);
  const base={pitch:.75+.6*unit(s,'pitch'),rate:.82+.3*unit(s,'rate'),growl:.25+.6*unit(s,'growl'),purrHz:22+18*unit(s,'purr'),formantHz:380+520*unit(s,'formant'),voicePick:unit(s,'voice'),volume:.9};
@@ -52,6 +53,7 @@ export function reachOutPrompt({mood='',place='',event='',idleMin=0}={}){
 }
 export const REACH_OUT_LABEL='Zeref reached out on his own';
 /** Browser playback: device TTS with seeded params + WebAudio growl/purr. */
+/** @param {string} text @param {any} profile @param {{volume?:number,onend?:()=>void}} [opts] */
 export function speakSeeded(text,profile,{volume=1,onend}={}){
  const g=globalThis,line=String(text||'').slice(0,400);
  if(!line||typeof g.speechSynthesis==='undefined'||typeof g.SpeechSynthesisUtterance==='undefined')return {ok:false,error:'No speech voice on this device.'};
