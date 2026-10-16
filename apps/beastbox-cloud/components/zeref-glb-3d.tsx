@@ -9,6 +9,7 @@
  * wing backlight, glossy refracting cornea, shader-drawn ^^ happy eyes, contact shadows that follow the paws.
  * Adaptive quality tier: high / med / low (?tier= to force), downgraded live if frames are slow.
  */
+import {createCSTTurntable} from '@/lib/physics/cst-turntable.mjs';
 import {useEffect,useRef} from 'react';
 import * as THREE from 'three';
 import {createZerefDriver,ZEREF_GLB_URL} from '@/lib/creatures3d/zeref-glb-driver.mjs';
@@ -101,7 +102,7 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
    const loader=new GLTFLoader();loader.setMeshoptDecoder(MeshoptDecoder);
    const gltf=await loader.loadAsync(ZEREF_GLB_URL);if(disposed)return;
    composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));
-   bloomPass=new UnrealBloomPass(new THREE.Vector2(256,256),.24,.4,.95);composer.addPass(bloomPass);composer.addPass(new OutputPass());
+   bloomPass=new UnrealBloomPass(new THREE.Vector2(256,256),.3,.35,1.0);composer.addPass(bloomPass);composer.addPass(new OutputPass());
    gltf.scene.traverse((o:any)=>{if(o.isMesh){o.frustumCulled=false;}});
    const strands=await new THREE.TextureLoader().loadAsync('/creatures3d/zeref-fur-strands.png');strands.wrapS=strands.wrapT=THREE.RepeatWrapping;
    // shared fur shading: starlight twinkle (the ONE impossible detail), root AO + tip sheen for shells, ear/paw warmth, rim sheen
@@ -140,7 +141,10 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
     mat.customProgramCacheKey=()=>'zeref-fur-'+(shell?shell.t.toFixed(3):'base');mat.needsUpdate=true;};
    const furMeshes:any[]=[];
    gltf.scene.traverse((o:any)=>{if(!(o.isMesh&&o.material))return;const mat=o.material,n=mat.name;
-    if(n==='zeref_fur'){mat.color.setRGB(.85,.8,1.0);if('sheen' in mat){mat.sheen=.55;mat.sheenColor=new THREE.Color(0xc7a4ff);mat.sheenRoughness=.45;}mat.envMapIntensity=.6;furPatch(mat,null,.004);furMeshes.push(o);}
+    if(n==='zeref_fur'){mat.color.setRGB(.85,.8,1.0);if('sheen' in mat){mat.sheen=.55;mat.sheenColor=new THREE.Color(0xc7a4ff);mat.sheenRoughness=.45;}mat.envMapIntensity=.6;
+     if(o.geometry.attributes.uv1){/* realism v5: sculpt->bake normal + AO on the dedicated bake UV (TEXCOORD_1) */const TL=new THREE.TextureLoader(),bt=(k:string)=>{const t=TL.load(`/creatures3d/bake/zeref_body_${k}.png`);t.flipY=false;t.channel=1;return t;};
+      mat.normalMap=bt('normal');mat.normalScale=new THREE.Vector2(.6,.6);mat.aoMap=bt('ao');mat.aoMapIntensity=.5;}
+     furPatch(mat,null,.004);furMeshes.push(o);}
     else if(n==='zeref_eye'){eyeMat=new THREE.MeshPhysicalMaterial({map:mat.map,emissive:0xffffff,emissiveMap:mat.emissiveMap,emissiveIntensity:2.7,roughness:.25,clearcoat:1,clearcoatRoughness:.03,ior:1.4,envMapIntensity:.55});
      eyeMat.name='zeref_eye';o.material=eyeMat;happyMesh=o;
      eyeMat.onBeforeCompile=(sh:any)=>{Object.assign(sh.uniforms,{uHappy,uStarT:starT,uSwirl,uChaos});
@@ -212,6 +216,7 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
   const unguard=guardCanvasTouch(el,{hint:'↔ Drag sideways to spin Zeref'});let drag:{x:number,yaw:number}|null=null;
   const pd=(e:PointerEvent)=>{drag={x:e.clientX,yaw};};const pm=(e:PointerEvent)=>{if(!drag)return;const w=el.getBoundingClientRect().width||1;yaw=drag.yaw-(e.clientX-drag.x)/w*Math.PI*2;live.current={...live.current,spin:false,angle:THREE.MathUtils.radToDeg(yaw)};};
   const pu=()=>{drag=null;};el.addEventListener('pointerdown',pd);el.addEventListener('pointermove',pm);el.addEventListener('pointerup',pu);el.addEventListener('pointercancel',pu);
+  const cstTT=createCSTTurntable(seed,{speed:.5});// CST inertia + damping + Lorenz sway instead of a linear spin
   let last=performance.now(),yaw=qYaw?THREE.MathUtils.degToRad(Number(qYaw)):0,perfN=0,perfAcc=0;
   const qManual=qp.get('manual')==='1';let manualDt=0,manualMood:any=null;
   const review:any={setYaw:(d:number)=>{live.current={...live.current,spin:false,angle:d};yaw=THREE.MathUtils.degToRad(d);},
@@ -226,7 +231,7 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
    // adaptive tier: if frames run slow for ~2 s, step down (never in manual/forced mode)
    if(!qManual&&!tierLocked&&driver&&tier!=='low'){perfAcc+=dt;perfN++;if(perfN>=120){if(perfAcc/perfN>1/38){tier=tier==='high'?'med':'low';applyTier();el!.dataset.zerefTier=tier;}perfN=0;perfAcc=0;}}
    starT.value+=reduced?0:dt;
-   if(L.spin&&!reduced)yaw+=dt*.5;else yaw+=(THREE.MathUtils.degToRad(L.angle)-yaw)*Math.min(1,qManual?1:dt*6);
+   if(L.spin&&!reduced){const p0=cstTT.yaw;cstTT.step(dt);yaw+=cstTT.yaw-p0;}else yaw+=(THREE.MathUtils.degToRad(L.angle)-yaw)*Math.min(1,qManual?1:dt*6);
    pivot.rotation.y=-yaw;
    camera.position.set(0,.85,3.9);camera.lookAt(0,.66,0);
    if(driver){driver.setMood((manualMood as ZerefMood)||(qMood as ZerefMood)||L.mood);driver.update(reduced?0:dt);

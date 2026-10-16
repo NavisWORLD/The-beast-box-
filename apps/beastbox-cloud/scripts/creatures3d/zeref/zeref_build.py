@@ -401,7 +401,7 @@ def mat(name,base=(0,0,0,1),rough=.6,metal=0,emit=None,emit_str=0,tex=None,emit_
     return m
 T=HERE
 MAT={
- 'fur':mat('zeref_fur',vc=True,rough=.62,sheen=.45,normal_tex=T+'/fur_normal.png',normal_str=.22,emit_tex=T+'/fur_emit.png',emit_str=1.3),
+ 'fur':mat('zeref_fur',vc=True,rough=.7,sheen=.48,normal_tex=T+'/fur_normal.png',normal_str=.35,emit_tex=T+'/fur_emit.png',emit_str=1.35),  # realism v5: matte, less gloss
  'eye':mat('zeref_eye',tex=T+'/eye_base.png',emit_tex=T+'/eye_emit.png',emit_str=1.8,rough=.08,coat=1.0),
  'wing':mat('zeref_wing',tex=T+'/wing_base.png',emit_tex=T+'/wing_emit.png',emit_str=.9,rough=.5,coat=.2,alpha=.86),
  'moon':mat('zeref_moon',base=hx('#e9dcff'),rough=.25,coat=.8,emit=hx('#bfa0ff'),emit_str=1.4),
@@ -418,6 +418,8 @@ MAT={
  'rib':mat('zeref_rib',base=hx('#140a28'),rough=.4,coat=.5),
  'wisp':mat('zeref_wisp',base=hx('#8fe8ff'),emit=hx('#8fe8ff'),emit_str=4),
 }
+_fb=MAT['fur'].node_tree.nodes['Principled BSDF']  # realism v5: subsurface (warm thin-ear/skin scatter), no specular sheen plastic
+_fb.inputs['Subsurface Weight'].default_value=.18;_fb.inputs['Subsurface Radius'].default_value=(1,.45,.7);_fb.inputs['Subsurface Scale'].default_value=.02;_fb.inputs['Specular IOR Level'].default_value=.3
 def setmat(o,m):o.data.materials.clear();o.data.materials.append(m)
 setmat(fur,MAT['fur'])
 for o,*_ in lid_meta:setmat(o,MAT['fur'])
