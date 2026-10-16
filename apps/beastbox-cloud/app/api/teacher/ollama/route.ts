@@ -6,12 +6,23 @@
 import {createHash,randomUUID} from 'node:crypto';
 import {safeJson} from '@/lib/security';
 import {storageConfig,getBlob,putBlob} from '@/lib/cosmos/azure-blob.mjs';
+import {storeLesson} from '@/lib/cosmos/zeref-cloud.mjs';
+import {pickTeachers} from '@/lib/companion/teacher-router.mjs';
 import {screenText,clean,MAX_PROMPT,MAX_REPLY} from '@/lib/companion/teacher-distill.mjs';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 const PER_VISITOR_HOUR=20;
 const dailyCap=()=>Math.max(1,Math.min(5000,Number(process.env.BEASTBOX_SHARED_OLLAMA_DAILY_CAP)||300));
 const model=()=>clean(process.env.BEASTBOX_SHARED_OLLAMA_MODEL||'gpt-oss:20b',80);
+let catalog:{at:number;names:string[]}={at:0,names:[]};
+async function available(key:string){
+ // Models the key can use (ollama.com /api/tags), cached 1h; falls back to the configured default.
+ if(Date.now()-catalog.at<3_600_000&&catalog.names.length)return catalog.names;
+ try{const r=await fetch('https://ollama.com/api/tags',{headers:{Authorization:'Bearer '+key},signal:AbortSignal.timeout(8000)});const j=await r.json();
+  const names=(Array.isArray(j?.models)?j.models:[]).map((m:{name?:unknown;model?:unknown})=>clean(m?.name||m?.model,80)).filter(Boolean);
+  if(names.length)catalog={at:Date.now(),names};}catch{/* keep cache */}
+ return catalog.names.length?catalog.names:[model()];
+}
 const hits=new Map<string,number[]>();let day='',local=0;
 const SYSTEM='You are a kind, patient TEACHER helping a young cosmic creature named Zeref learn. You are not Zeref. Answer the visitor\'s message in 1-3 short, factual, friendly sentences. Never ask for or repeat personal information.';
 async function globalCount(today:string){
@@ -41,22 +52,29 @@ export async function POST(req:Request){
  if(recent.length>=PER_VISITOR_HOUR||local>=dailyCap())return safeJson(429,{error:'The Ollama teacher needs a rest; try again later.'});
  const used=await globalCount(today);if(used!==null&&used>=dailyCap())return safeJson(429,{error:'The Ollama teacher hit today\'s limit; back tomorrow.'});
  recent.push(now);hits.set(visitor,recent);local++;if(hits.size>5000)hits.clear();
- let reply='';
- try{
-  const r=await fetch('https://ollama.com/api/chat',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model:model(),stream:false,messages:[{role:'system',content:SYSTEM},{role:'user',content:prompt}],options:{num_predict:200,temperature:0.5}}),signal:AbortSignal.timeout(25000)});
-  const j=await r.json().catch(()=>null);
-  if(!r.ok)return safeJson(502,{error:'The Ollama teacher could not answer ('+r.status+').'});
-  reply=clean(j?.message?.content,MAX_REPLY);
- }catch{return safeJson(502,{error:'The Ollama teacher is unreachable right now.'});}
- if(!reply)return safeJson(502,{error:'The Ollama teacher sent no answer.'});
+ let reply='',taught='',kind='',tried:string[]=[];
+ const plan=pickTeachers(prompt,await available(key),{preferred:process.env.BEASTBOX_SHARED_OLLAMA_MODELS||'',fallback:model()});
+ kind=plan.kind;
+ for(const m of plan.order.slice(0,3)){
+  tried.push(m);
+  try{
+   const r=await fetch('https://ollama.com/api/chat',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model:m,stream:false,messages:[{role:'system',content:SYSTEM},{role:'user',content:prompt}],options:{num_predict:200,temperature:0.5}}),signal:AbortSignal.timeout(20000)});
+   const j=await r.json().catch(()=>null);
+   const text=r.ok?clean(j?.message?.content,MAX_REPLY):'';
+   if(text){reply=text;taught=m;break;}
+  }catch{/* try next teacher */}
+ }
+ if(!reply)return safeJson(502,{error:'The Ollama teachers could not answer right now.'});
  // Auto-feed distillation only when both sides pass the secret/PII filter.
  let fed=false;const cfg=storageConfig();
  if(cfg&&screened.ok&&screenText(reply).ok){
   const id=randomUUID();
-  const record={schema:'beastbox-teacher-pair-contribution-v1',id,prompt,teacher_reply:reply,provider:'shared-ollama',model:model(),
+  const record={schema:'beastbox-teacher-pair-contribution-v1',id,prompt,teacher_reply:reply,provider:'shared-ollama',model:taught,teacher_route:{kind,explored:plan.explored,tried},
    role:'TEACHER_NOT_BEAST_VOICE',review_status:'SHARED_TEACHER_AUTO',source:'cory-shared-ollama',consent:'site-shared-teacher',
    privacy_filter:'secrets+pii-regex-v1',client_ref_not_stored:true,received_at:new Date().toISOString()};
   fed=!!(await putBlob(cfg,`teacher-distill/approved/${today}/${id}.json`,JSON.stringify(record),{ifNoneMatch:'*'}).catch(()=>null));
+  // Lesson also joins Zeref's Azure cloud memory folder.
+  if(fed)await storeLesson(cfg,record).catch(()=>false);
  }
- return safeJson(200,{ok:true,reply,model:model(),teacher:'Ollama',role:'TEACHER_NOT_BEAST_VOICE',distill:fed?'queued':'skipped'});
+ return safeJson(200,{ok:true,reply,model:taught,teacher:'Ollama',role:'TEACHER_NOT_BEAST_VOICE',distill:fed?'queued':'skipped'});
 }
