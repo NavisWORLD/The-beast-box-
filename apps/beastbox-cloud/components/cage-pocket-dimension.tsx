@@ -317,7 +317,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
         (mine as any).dispose=()=>{beastNode.remove(gb.root);gb.dispose();pdis();};(mine as any).tris=gb.tris;void pd;}).catch(()=>{});}}
      if(plush)document.documentElement.setAttribute('data-beast-3d','');else document.documentElement.removeAttribute('data-beast-3d');};
     syncPlush();window.addEventListener('beastbox:genome',syncPlush);window.addEventListener('beastbox:pixel-mode',syncPlush);
-    if(new URLSearchParams(location.search).get('qa')==='1')(window as any).__pocketQA={brain,life};// QA captures only: force a life mode
+    if(new URLSearchParams(location.search).get('qa')==='1')(window as any).__pocketQA={brain,life,view:cameraView};// QA captures only: force a life mode
     const lifeRand=randomFor(key+':god');const camXZ=()=>({x:camera.position.x,z:camera.position.z});
     const near=(r:number)=>{const a=brain.heading+(lifeRand()-.5)*1.6,d=.9+lifeRand()*r;let x=brain.x+Math.cos(a)*d,z=brain.z+Math.sin(a)*d;const m=Math.hypot(x,z);if(m>3.2){x*=3.2/m;z*=3.2/m;}return {x,z};};
     const pokeBeast=()=>{const mood=life.update(0,null,null).mood;pokeLife(brain,mood as any,camXZ() as any);life.poke(brain.x,brain.z);};

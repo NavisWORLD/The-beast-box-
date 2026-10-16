@@ -81,7 +81,7 @@ export function stepLife(L,dt,env={}){
   case 'play':{const o=nearest(L,env.residents);if(o){if(o.d<.9){const a=Math.atan2(L.z-o.z,L.x-o.x)+.9;tgt={x:o.x+Math.cos(a)*.55,z:o.z+Math.sin(a)*.55};}else tgt=o;attn={kind:'resident',x:o.x,y:.5,z:o.z,id:o.id};}break;}
   case 'approach':case 'glance':{const c=env.cam;if(c){attn={kind:'camera',x:c.x,y:1,z:c.z};if(L.mode==='approach'){const a=Math.atan2(c.z-L.z,c.x-L.x);tgt={x:L.x+Math.cos(a)*.6,z:L.z+Math.sin(a)*.6};const r=Math.hypot(tgt.x,tgt.z);if(r>POCKET_RADIUS*.8){tgt.x*=POCKET_RADIUS*.8/r;tgt.z*=POCKET_RADIUS*.8/r;}}}break;}
   case 'nap':{const s=night0(env)&&nearest(L,env.spots);if(s&&s.d>.25){tgt={x:s.x,z:s.z};attn={kind:'spot',x:s.x,y:0,z:s.z};}break;}
-  case 'splash':{const p=nearest(L,(env.puddles||[]).filter(q=>q.wet>.3));if(p){if(p.d<p.r*.8){if(Math.hypot(tgt.x-L.x,tgt.z-L.z)<.15||Math.hypot(tgt.x-p.x,tgt.z-p.z)>p.r)L.target=tgt={x:p.x+(L.r()-.5)*p.r*1.4,z:p.z+(L.r()-.5)*p.r*1.4};}else tgt={x:p.x,z:p.z};attn={kind:'puddle',x:p.x,y:0,z:p.z};}break;}
+  case 'splash':{const p=nearest(L,(env.puddles||[]).filter(q=>q.wet>.3));if(p){if(p.d<p.r*.8){if(Math.hypot(tgt.x-L.x,tgt.z-L.z)<.15||Math.hypot(tgt.x-p.x,tgt.z-p.z)>p.r)L.target=tgt={x:p.x+(L.r()-.5)*p.r*1.4,z:p.z+(L.r()-.5)*p.r*1.4};}else tgt={x:p.x,z:p.z};attn={kind:'puddle',x:p.x,y:0,z:p.z};}else L.timer=0;break;}
   case 'greet':{const o=nearest(L,env.residents);if(o){const a=Math.atan2(L.z-o.z,L.x-o.x);tgt={x:o.x+Math.cos(a)*.5,z:o.z+Math.sin(a)*.5};attn={kind:'resident',x:o.x,y:.35,z:o.z,id:o.id};if(o.d<.65){L.lastGreet=L.t;}}break;}
   case 'follow':{const o=nearest(L,env.residents);if(o){const a=Math.atan2(L.z-o.z,L.x-o.x);tgt={x:o.x+Math.cos(a)*.75,z:o.z+Math.sin(a)*.75};attn={kind:'resident',x:o.x,y:.4,z:o.z,id:o.id};}break;}
   case 'wander':{if(Math.hypot(tgt.x-L.x,tgt.z-L.z)<.3)L.target=tgt=pickTarget(L);attn={kind:'ground',x:tgt.x,y:0,z:tgt.z};break;}
@@ -89,7 +89,7 @@ export function stepLife(L,dt,env={}){
  L.attn=attn;
  // locomotion: steer, ease speed (CST calm → smoother), stay in the pocket
  const dx=tgt.x-L.x,dz=tgt.z-L.z,d=Math.hypot(dx,dz);
- const napWalk=L.mode==='nap'&&L.attn?.kind==='spot';const want=(L.mode==='nap'&&!napWalk||L.mode==='glance')?0:d<.12?0:(SPEED[L.mode]||.5)*(L.startle>0?1.8:1)*(.75+m.mischief*.5)*Math.min(1,d*1.5);
+ const napWalk=L.mode==='nap'&&L.attn?.kind==='spot';const want=(L.mode==='nap'&&!napWalk||L.mode==='glance')?0:d<.12?0:(napWalk?.45:SPEED[L.mode]||.5)*(L.startle>0?1.8:1)*(.75+m.mischief*.5)*Math.min(1,d*1.5);
  L.speed+=(want-L.speed)*Math.min(1,dt*(1.5+m.calm));
  if(d>.05&&want>0){const h=Math.atan2(dz,dx);let dh=((h-L.heading+Math.PI*3)%(Math.PI*2))-Math.PI;L.heading+=dh*Math.min(1,dt*(2.2+m.curiosity));}
  L.x+=Math.cos(L.heading)*L.speed*dt;L.z+=Math.sin(L.heading)*L.speed*dt;

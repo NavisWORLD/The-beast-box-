@@ -17,3 +17,8 @@ test('lived-in pocket: puddle splashing, greeting/following residents and sunny 
  for(let i=0;i<60*600;i++){L.energy=i%7000<3500?.9:.1;stepLife(L,1/60,env);seen.add(L.mode);if(L.moment)moments.add(L.moment);}
  for(const m of ['splash','greet','follow','nap'])assert.ok(seen.has(m),m);for(const m of ['splash','sniff-hello','follow'])assert.ok(moments.has(m),m);
 });
+test('nap walks to the sunny spot and splash ends once puddles are dry',async()=>{
+ const {createLife,stepLife}=await import('../lib/creatures3d/life-brain.mjs');const L=createLife('nap-walk',{x:1.5,z:0});L.mode='nap';L.timer=60;
+ const env={night:0,spots:[{x:-1.5,z:0}],puddles:[]};for(let i=0;i<60*20;i++)stepLife(L,1/60,env);assert.ok(Math.hypot(L.x+1.5,L.z)<.4,'reached the rock '+L.x);
+ L.mode='splash';L.timer=60;stepLife(L,1/60,env);assert.ok(L.timer<=0||L.mode!=='splash');
+});
