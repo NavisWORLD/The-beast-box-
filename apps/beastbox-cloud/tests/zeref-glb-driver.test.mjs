@@ -23,13 +23,13 @@ test('deterministic per seed, different across seeds, finite poses',()=>{
 });
 test('moods drive expression morphs; chain lengths are preserved',()=>{
  for(const m of Object.keys(ZEREF_MOODS)){const {mesh,d}=run('zeref',m,300);
-  const target=Object.keys(ZEREF_MOODS[m].morph)[0];if(target)assert.ok(mesh.morphTargetInfluences[mesh.morphTargetDictionary[target]]>.9,m);
+  for(const [k,v] of Object.entries(ZEREF_MOODS[m].morph))assert.ok(Math.abs(mesh.morphTargetInfluences[mesh.morphTargetDictionary[k]]-v)<.08,m+':'+k);
   for(const c of d.chains)for(let i=1;i<c.ch.pts.length;i++){const p=c.ch.pts[i],q=c.ch.pts[i-1];assert.ok(Math.abs(Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z)-c.ch.len[i-1])<.02);}}
 });
-test('the shipped GLB is meshopt-compressed, rigged, has all 6 morph targets and stays under the mobile budget',()=>{
+test('the shipped GLB is meshopt-compressed, rigged, has every expression, mouth and brow morph target and stays under the mobile budget',()=>{
  const u=new URL('../public/creatures3d/zeref.glb',import.meta.url);const b=readFileSync(u);assert.equal(b.toString('ascii',0,4),'glTF');
  const n=b.readUInt32LE(12);const j=JSON.parse(b.subarray(20,20+n).toString('utf8'));
- assert.ok(j.extensionsUsed.includes('EXT_meshopt_compression'));assert.deepEqual(j.meshes[0].extras.targetNames,ZEREF_MORPHS);
+ assert.ok(j.extensionsUsed.includes('EXT_meshopt_compression'));for(const k of ZEREF_MORPHS)assert.ok(j.meshes[0].extras.targetNames.includes(k),k);
  const names=j.nodes.map(x=>x.name);for(const k of ['head','spine','tail.4','wing.2.L','ear.1.R'])assert.ok(names.includes(k),k);
  const tris=j.meshes[0].primitives.reduce((s,p)=>s+j.accessors[p.indices].count/3,0);assert.ok(tris<=25000,'tris '+tris);
  assert.ok(statSync(u).size<1.5e6);

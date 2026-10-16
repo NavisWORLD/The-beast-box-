@@ -5,9 +5,18 @@ OUT=a[0];MODE=a[1] if len(a)>1 else 'sheet';RES=int(a[2]) if len(a)>2 else 640;K
 bpy.ops.wm.open_mainfile(filepath=os.path.dirname(os.path.abspath(__file__))+'/zeref.blend')
 C=bpy.context;S=C.scene;D=bpy.data
 z=D.objects['Zeref']
-if KEY and z.data.shape_keys:
-    for k in z.data.shape_keys.key_blocks:k.value=1.0 if k.name==KEY else 0
-S.render.engine='CYCLES';S.cycles.device='CPU';S.cycles.samples=int(os.environ.get('SAMPLES','48'));S.cycles.use_denoising=False
+if KEY and KEY!='pose' and z.data.shape_keys:
+    want=dict((kv.split('=')[0],float(kv.split('=')[1])) if '=' in kv else (kv,1.0) for kv in KEY.split(','))
+    for k in z.data.shape_keys.key_blocks:k.value=want.get(k.name,0)
+if KEY=='pose':
+    import math as _m
+    rig=D.objects['ZerefRig'];pb=rig.pose.bones
+    for b in pb:b.rotation_mode='XYZ'
+    pb['head'].rotation_euler=(_m.radians(-18),_m.radians(30),_m.radians(22))
+    for i in range(5):pb['tail.%d'%i].rotation_euler=(_m.radians(18),0,_m.radians(25))
+    pb['wing.0.L'].rotation_euler=(0,0,_m.radians(-35));pb['wing.0.R'].rotation_euler=(0,0,_m.radians(35))
+    pb['ear.0.L'].rotation_euler=(_m.radians(30),0,0)
+S.render.engine='CYCLES';S.cycles.device='CPU';S.cycles.samples=int(os.environ.get('SAMPLES','48'));S.cycles.use_denoising=True
 try:S.cycles.denoiser='OPENIMAGEDENOISE'
 except:pass
 S.render.resolution_x=RES;S.render.resolution_y=RES;S.render.film_transparent=False
@@ -32,7 +41,7 @@ if MODE=='sheet':
     for yaw in range(0,360,45):
         place(yaw);S.render.filepath=f'{OUT}/angle_{yaw:03d}.png';bpy.ops.render.render(write_still=True)
 elif MODE=='front':
-    place(0);S.render.filepath=f'{OUT}/front{("_"+KEY) if KEY else ""}.png';bpy.ops.render.render(write_still=True)
+    place(0);S.render.filepath=f'{OUT}/front{("_"+KEY.replace(",","+").replace("=","")) if KEY else ""}.png';bpy.ops.render.render(write_still=True)
 elif MODE=='spin':
     n=int(os.environ.get('FRAMES','48'))
     for i in range(n):

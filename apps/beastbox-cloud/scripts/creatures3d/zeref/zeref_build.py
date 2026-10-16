@@ -5,7 +5,7 @@ from mathutils import Vector, Matrix
 from mathutils.bvhtree import BVHTree
 HERE=os.path.dirname(os.path.abspath(__file__))
 OUT=sys.argv[sys.argv.index('--')+1] if '--' in sys.argv else HERE+'/zeref.glb'
-VOXEL=float(os.environ.get('VOXEL','0.022')); BODY_TRIS=int(os.environ.get('BODY_TRIS','12000'))
+VOXEL=float(os.environ.get('VOXEL','0.022')); BODY_TRIS=int(os.environ.get('BODY_TRIS','9500'))
 bpy.ops.wm.read_factory_settings(use_empty=True)
 C=bpy.context; D=bpy.data
 def hx(h,a=1.0):
@@ -45,16 +45,16 @@ for s,n in ((-1,'L'),(1,'R')):
     parts['haunch'+n]=ell('haunch'+n,(s*.56,.14,.24),(.3,.4,.24))
     parts['paw'+n]=ell('paw'+n,(s*.3,-.44,.15),(.22,.26,.15))
 parts['neck']=ell('neck',(0,0,1.18),(.56,.5,.28))
-parts['head']=ell('head',(0,-.02,1.95),(1.14,.84,.82))
+parts['head']=ell('head',(0,-.02,1.97),(1.1,.84,.84))
 parts['jaw']=ell('jaw',(0,-.1,1.6),(1.0,.68,.42))
 parts['muzzle']=ell('muzzle',(0,-.66,1.6),(.3,.18,.18))
 for s,n in ((-1,'L'),(1,'R')):
     # jagged cheek fluff (head path tufts at x≈±1.1, z≈1.5)
-    parts['cheekA'+n]=cone('cheekA'+n,(s*.92,-.05,1.7),(s*1.36,-.02,1.48),.22,flat=.6)
-    parts['cheekB'+n]=cone('cheekB'+n,(s*.84,-.08,1.52),(s*1.14,-.06,1.3),.17,flat=.6)
+    parts['cheekA'+n]=cone('cheekA'+n,(s*.9,-.05,1.72),(s*1.34,-.02,1.5),.2,flat=.55,tipr=.012)
+    parts['cheekB'+n]=cone('cheekB'+n,(s*.82,-.08,1.54),(s*1.16,-.06,1.34),.15,flat=.55,tipr=.012)
     parts['ear'+n]=cone('ear'+n,(s*.66,.04,2.36),(s*.9,.06,3.26),.44,flat=.38,tipr=.03)
-for i,(x,h) in enumerate(((-.2,2.98),(0,3.1),(.2,2.96))):
-    parts['tuft%d'%i]=cone('tuft%d'%i,(x,-.05,2.55),(x*1.15,-.06,h),.12,flat=.6,tipr=.01)
+for i,(x,h,r) in enumerate(((-.17,3.0,.1),(.04,3.08,.11),(.22,2.98,.09),(-.32,2.86,.07),(.36,2.84,.06))):
+    parts['tuft%d'%i]=cone('tuft%d'%i,(x*.8,-.12,2.6),(x,-.16,h),r,flat=.55,tipr=.004)
 TAIL=[(.5,.42,.32),(1.0,.62,.34),(1.42,.55,.7),(1.55,.4,1.25),(1.4,.25,1.62),(1.15,.18,1.72)]
 parts['tail']=tube('tail',TAIL,[.2,.21,.2,.17,.14,.11])
 names=list(parts.keys())
@@ -81,11 +81,11 @@ def surf_y(x,z):
     hit=fur_bvh.ray_cast(Vector((x,-3,z)),Vector((0,1,0)))
     return hit[0] if hit[0] else Vector((x,-.7,z))
 # =================================================================== eyes + lids
-EYE_RX,EYE_RZ,EYE_DEPTH=.37,.41,.13
+EYE_RX,EYE_RZ,EYE_DEPTH=.4,.44,.14
 eyes={}
 for s,n in ((-1,'L'),(1,'R')):
     cx,cz=s*.47,1.9; p=surf_y(cx,cz)
-    cy=p.y+EYE_DEPTH*.78   # sphere center so front cap bulges just out of the face
+    cy=p.y+EYE_DEPTH*.6   # sphere center so front cap bulges just out of the face
     eyes[n]=(cx,cy,cz)
     e=ell('eye'+n,(cx,cy,cz),(EYE_RX,EYE_DEPTH,EYE_RZ),seg=36,ring=18)
     # planar UV from front
@@ -100,7 +100,7 @@ for s,n in ((-1,'L'),(1,'R')):
 def lid_point(cx,cy,cz,u,h,scale=1.06):
     a,b,c=EYE_RX*scale,EYE_DEPTH*scale,EYE_RZ*scale
     q=max(0.0,1-u*u-h*h); return Vector((cx+a*u,cy-b*math.sqrt(q),cz+c*h))
-NU,NS=26,8
+NU,NS=32,8
 def lid_edge(kind,side,u,state):
     """returns the h (normalized height) of the moving lid edge for a given state"""
     top=math.sqrt(max(0,1-u*u))*.995; bot=-top
@@ -110,7 +110,7 @@ def lid_edge(kind,side,u,state):
            'scared':top-.035,'curious':top-.035}[state]
         return max(bot+.02,min(top-.02,e))
     else:
-        e={'rest':bot+.035,'happy':-.08+.12*u*u*0-.0,'blink':bot+.035,'sleepy':bot+.035,'angry':-.55,'scared':bot+.035,'curious':bot+.035}[state]
+        e={'rest':bot+.035,'happy':-.3+.42*(1-u*u),'blink':bot+.035,'sleepy':bot+.035,'angry':-.55,'scared':bot+.035,'curious':bot+.035}[state]
         return max(bot+.02,min(top-.02,e))
 lid_objs=[];lid_meta=[]
 for s,n in ((-1,'L'),(1,'R')):
@@ -136,7 +136,7 @@ def lid_positions(kind,s,n,state):
         for j in range(NS):
             t=j/(NS-1)
             h=(top+(edge-top)*t) if kind=='U' else (-top+(edge+top)*t)
-            pts.append(lid_point(cx,cy,cz,u,h,1.06+.01*(1-t)))
+            pts.append(lid_point(cx,cy,cz,u,h,(.9 if state=='rest' else 1.055+.008*(1-t))))
     return pts
 for o,kind,s,n in lid_meta:
     for v,p in zip(o.data.vertices,lid_positions(kind,s,n,'rest')):v.co=p
@@ -152,10 +152,57 @@ feat={}
 for s,n in ((-1,'L'),(1,'R')):
     xs=[s*.66,s*.47,s*.28];zs=[2.36,2.43,2.39]
     feat['brow'+n]=tube('brow'+n,frontpts(list(zip(xs,zs))),[.022,.028,.022],bev=8);wrap(feat['brow'+n],.02)
+# rig lid lines: lavender arcs hugging the top and bottom of each eye
+for s_,n_ in ((-1,'L'),(1,'R')):
+    cx_,cy_,cz_=s_*.47,0,1.9
+    for nm,zs,bulge in (('lidlineU'+n_,1,.0),('lidlineD'+n_,-1,.0)):
+        pts=[];rad=[]
+        for k in range(7):
+            u=-.6+1.2*k/6
+            X=cx_+EYE_RX*u;Z=cz_+zs*(EYE_RZ*1.0+.035-.09*u*u);pts.append((X,surf_y(X,Z).y-.01,Z));rad.append(.013*(1-abs(u)*.8))
+        feat[nm]=tube(nm,pts,rad,res=3,bev=8);wrap(feat[nm],.012)
 # nose + mouth (w)
 feat['nose']=cone('nose',(0,surf_y(0,1.66).y-.01,1.69),(0,surf_y(0,1.6).y-.01,1.6),.07,flat=.5,seg=3,tipr=.005)
 mw=[(-.17,1.53),(-.09,1.45),(0,1.53),(.09,1.45),(.17,1.53)]
 feat['mouth']=tube('mouth',frontpts(mw),[.016,.02,.018,.02,.016],bev=8);wrap(feat['mouth'],.015)
+CAV_R,CAV_S=5,24
+def cavity_mesh(name):
+    bm=bmesh.new();c=bm.verts.new((0,0,0));rings=[]
+    for r in range(1,CAV_R+1):
+        rings.append([bm.verts.new((0,0,0)) for k in range(CAV_S)])
+    for k in range(CAV_S):
+        bm.faces.new([c,rings[0][(k+1)%CAV_S],rings[0][k]])
+    for r in range(CAV_R-1):
+        for k in range(CAV_S):
+            bm.faces.new([rings[r][k],rings[r][(k+1)%CAV_S],rings[r+1][(k+1)%CAV_S],rings[r+1][k]])
+    me=D.meshes.new(name);bm.to_mesh(me);bm.free();o=D.objects.new(name,me);C.collection.objects.link(o);return o
+def cavity_shape(kind):
+    pts=[(0.0,0.0)]
+    for r in range(1,CAV_R+1):
+        f=r/CAV_R
+        for k in range(CAV_S):
+            a=2*math.pi*k/CAV_S;x=math.cos(a);z=math.sin(a)
+            if kind=='grin':   # wide D: flat top under the w-line, round bottom
+                X=x*.24;Z=(1.52+(z*.02 if z>0 else z*.2))
+            elif kind=='o':
+                X=x*.075;Z=1.44+z*.095
+            elif kind=='tongue_grin':
+                X=x*.12;Z=1.38+z*.06
+            elif kind=='tongue_o':
+                X=x*.04;Z=1.38+z*.025
+            else:
+                X=x*.01;Z=1.5+z*.004
+            pts.append((X*f, (Z-1.5)*f+1.5 if kind!='rest' else Z))
+    # centre point = centroid of ring
+    ring=pts[-CAV_S:];pts[0]=(sum(p[0] for p in ring)/CAV_S,sum(p[1] for p in ring)/CAV_S)
+    out=[]
+    for X,Z in pts:
+        y=surf_y(X,Z).y
+        out.append(Vector((X,y+(-.006 if kind!='rest' else .06)-(.003 if kind.startswith('tongue') else 0),Z)))
+    return out
+feat['cavity']=cavity_mesh('cavity');feat['tongue']=cavity_mesh('tongue')
+for v,p in zip(feat['cavity'].data.vertices,cavity_shape('rest')):v.co=p
+for v,p in zip(feat['tongue'].data.vertices,cavity_shape('rest')):v.co=p+Vector((0,.01,0))
 # blush
 for s,n in ((-1,'L'),(1,'R')):
     p=surf_y(s*.82,1.56);feat['blush'+n]=ell('blush'+n,(p.x,p.y+.03,p.z),(.17,.05,.085),seg=16,ring=8)
@@ -178,7 +225,24 @@ for k in range(17):
     ck.append((.6*math.cos(a),.5*math.sin(a)-.03,1.2-.06*math.cos(a+math.pi/2)*0+(-.05 if math.sin(a)<0 else .02)))
 feat['choker']=tube('choker',ck,[.045]*17,res=3,bev=8)
 gy=surf_y(0,1.08).y
-bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1,radius=1,location=(0,gy-.06,1.06));g=C.active_object;g.name='gem';g.scale=(.07,.04,.1);apply_all(g);feat['gem']=g
+def diamond(name,loc,w,d,h):
+    bm=bmesh.new();top=bm.verts.new((0,0,h));bot=bm.verts.new((0,0,-h*1.15))
+    ring=[bm.verts.new((w*math.cos(a),d*math.sin(a),0)) for a in [k*math.pi/3 for k in range(6)]]
+    for k in range(6):
+        bm.faces.new([top,ring[k],ring[(k+1)%6]]);bm.faces.new([bot,ring[(k+1)%6],ring[k]])
+    me=D.meshes.new(name);bm.to_mesh(me);bm.free();o=D.objects.new(name,me);C.collection.objects.link(o)
+    o.location=loc;apply_all(o);return o
+feat['gem']=diamond('gem',(0,gy-.075,1.04),.085,.05,.105)
+cp2=crescent_pts(.25,1.0,.05)
+feat['charm']=tube('charm',[(x,surf_y(x,z).y-.03,z) for x,z in cp2],[.008,.014,.018,.02,.02,.02,.02,.02,.02,.018,.014,.01,.005],res=2,bev=6)
+# 3D catchlights (rig: 4-point star upper-left + dot lower-right on each eye)
+cls=[]
+for n in 'LR':
+    cx,cy,cz=eyes[n]
+    for u,h,r in ((-.32,.36,.075),(.34,-.36,.04),(.4,.2,.018)):
+        P=lid_point(cx,cy,cz,u,h,1.012)
+        cls.append(ell('cl',(P.x,P.y,P.z),(r*1.0,.006,r*1.0),seg=10,ring=5))
+feat['catch']=join(cls,'catch')
 # paw beans (front of front paws)
 for s,n in ((-1,'L'),(1,'R')):
     x0=s*.32;objs=[]
@@ -191,35 +255,68 @@ for (x,y,z,r) in ((1.62,.18,1.55,.06),(1.7,.15,1.78,.045),(1.55,.12,1.95,.035),(
     wisps.append(ell('wisp',(x,y,z),(r,r,r),seg=12,ring=6))
 feat['wisps']=join(wisps,'wisps')
 # =================================================================== wings (membrane, scalloped)
-WING2D=[(0,0),(.08,.3),(.3,.62),(.62,.8),(.98,.9),(.86,.72),(.84,.66),(1.02,.5),(.8,.44),(.74,.4),(.82,.16),(.6,.2),(.54,.16),(.52,-.08),(.34,.02),(.28,0),(.06,-.12)]
+def bez(p0,p1,p2,p3,n=10):
+    out=[]
+    for k in range(n):
+        t=k/n;a=(1-t)**3;b=3*(1-t)**2*t;c=3*(1-t)*t*t;d=t**3
+        out.append((a*p0[0]+b*p1[0]+c*p2[0]+d*p3[0],a*p0[1]+b*p1[1]+c*p2[1]+d*p3[1]))
+    return out
+# right wing outline straight from ZerefFigure <Wing> path (viewBox px)
+WPATH=[((244,252),(262,206),(300,176),(344,168)),((344,168),(334,186),(338,200),(350,210)),((350,210),(332,213),(324,226),(330,242)),
+       ((330,242),(312,238),(298,250),(298,266)),((298,266),(282,256),(264,258),(250,270)),((250,270),(248,264),(246,258),(244,252))]
+WRIBS=[((250,262),(276,222),(306,196),(344,170)),((262,262),(290,238),(312,226),(330,224)),((276,266),(290,256),(300,254),(312,252)),((256,266),(300,240),(330,222),(350,210))]
+WSCALE=float(os.environ.get('WSCALE','1.5'))
+def wpos(x,y,s,lift=0.0):
+    X=(x-200)/100;Z=(368-y)/100
+    X=.42+(X-.42)*WSCALE;Z=1.0+(Z-1.0)*WSCALE
+    u=max(0,X-.42)
+    return Vector((s*X,.26+.32*u*u+lift,Z-.1))
 def wing(s,n):
-    bm=bmesh.new();vs=[bm.verts.new((u,0,v)) for u,v in WING2D];f=bm.faces.new(vs)
-    bmesh.ops.triangulate(bm,faces=[f])
-    bmesh.ops.subdivide_edges(bm,edges=bm.edges[:],cuts=4,use_grid_fill=True)
-    bmesh.ops.triangulate(bm,faces=bm.faces[:])
+    from mathutils.geometry import delaunay_2d_cdt
+    outline=[]
+    for seg in WPATH:outline+=bez(*seg,n=12)
+    pts=[Vector((x,y)) for x,y in outline];m=len(pts)
+    xs=[p.x for p in pts];ys=[p.y for p in pts]
+    def inside(x,y):
+        c=False
+        for k in range(m):
+            a=pts[k];b=pts[(k+1)%m]
+            if (a.y>y)!=(b.y>y) and x<(b.x-a.x)*(y-a.y)/(b.y-a.y+1e-12)+a.x:c=not c
+        return c
+    extra=[]
+    st=7
+    for gx in range(int(min(xs)),int(max(xs)),st):
+        for gy in range(int(min(ys)),int(max(ys)),st):
+            if inside(gx+.5,gy+.5) and min((q-Vector((gx+.5,gy+.5))).length for q in pts)>3.5:extra.append(Vector((gx+.5,gy+.5)))
+    allp=pts+extra
+    res=delaunay_2d_cdt(allp,[(k,(k+1)%m) for k in range(m)],[],1,1e-5)
+    vco,edges,faces=res[0],res[1],res[2]
+    bm=bmesh.new();bv=[]
+    for v in vco:
+        P=wpos(v.x,v.y,1);bv.append(bm.verts.new(P))
+    for f in faces:
+        try:bm.faces.new([bv[k] for k in f])
+        except ValueError:pass
     me=D.meshes.new('wing'+n);bm.to_mesh(me);bm.free()
     o=D.objects.new('wing'+n,me);C.collection.objects.link(o)
     uv=me.uv_layers.new(name='UVMap')
     for poly in me.polygons:
         for li in poly.loop_indices:
-            v=me.vertices[me.loops[li].vertex_index].co;uv.data[li].uv=(v.x/1.05,(v.z+.12)/1.0)
-    active(o);sm=o.modifiers.new('sol','SOLIDIFY');sm.thickness=.035;sm.offset=0
+            vi=me.loops[li].vertex_index;v=vco[vi]
+            uv.data[li].uv=((v.x-244)/106,(270-v.y)/102)
+    # gentle membrane sag between ribs + thickness
+    for k,v in enumerate(me.vertices):
+        q=vco[k];v.co.y+=.03*math.sin((q.x-244)/106*math.pi)*math.sin((270-q.y)/102*math.pi)
+    active(o);sm=o.modifiers.new('sol','SOLIDIFY');sm.thickness=.022;sm.offset=0
     bpy.ops.object.modifier_apply(modifier='sol')
-    # bend: arc the membrane back + mirror for left; scale & place at shoulder
-    for v in me.vertices:
-        u=v.co.x;v.co.y+=.35*u*u
     ribs=[]
-    for (eu,ev),r0 in (((.98,.9),.045),((1.02,.5),.03),((.82,.16),.026),((.52,-.08),.022)):
-        pts=[];rad=[]
-        for k in range(5):
-            t=k/4;u=eu*t;v=ev*t+(.06*math.sin(t*math.pi) if ev>.6 else 0)
-            pts.append((u,.35*u*u-.012,v));rad.append(r0*(1-.65*t))
-        ribs.append(tube('rib',pts,rad,res=4,bev=8))
+    for seg in WRIBS+[WPATH[0]]:
+        pp=bez(*seg,n=6)+[seg[3]];lead=seg is WPATH[0]
+        r0=.04 if lead else .026
+        ribs.append(tube('rib',[tuple(wpos(x,y,1,-.012)) for x,y in pp],[r0*(1-.7*k/len(pp)) for k in range(len(pp))],res=3,bev=8))
     rb=join(ribs,'ribs'+n)
-    for x in (o,rb):
-        x.scale=(1.5,1.5,1.4);x.rotation_euler=(0,math.radians(14),math.radians(-30));x.location=(.36,.34,.8)
-        apply_all(x)
-        if s<0:
+    if s<0:
+        for x in (o,rb):
             for v in x.data.vertices:v.co.x=-v.co.x
             x.data.flip_normals()
     feat['ribs'+n]=rb
@@ -270,7 +367,7 @@ print('INNER',sum(1 for i,v in enumerate(fur.data.vertices) if fur_labels[i] and
 for o,kind,s,n in lid_meta:
     vcol(o,lambda vi,co,nn:LASH if vi%NS==NS-1 else LID)
 # =================================================================== materials
-def mat(name,base=(0,0,0,1),rough=.6,metal=0,emit=None,emit_str=0,tex=None,emit_tex=None,vc=False,sheen=0,coat=0,uvname='UVMap'):
+def mat(name,base=(0,0,0,1),rough=.6,metal=0,emit=None,emit_str=0,tex=None,emit_tex=None,vc=False,sheen=0,coat=0,uvname='UVMap',normal_tex=None,normal_str=.5,alpha=1.0):
     m=D.materials.new(name);m.use_nodes=True;nt=m.node_tree;b=nt.nodes['Principled BSDF']
     b.inputs['Base Color'].default_value=base;b.inputs['Roughness'].default_value=rough;b.inputs['Metallic'].default_value=metal
     if sheen:b.inputs['Sheen Weight'].default_value=sheen;b.inputs['Sheen Tint'].default_value=hx('#b98aff')
@@ -279,6 +376,13 @@ def mat(name,base=(0,0,0,1),rough=.6,metal=0,emit=None,emit_str=0,tex=None,emit_
         a=nt.nodes.new('ShaderNodeVertexColor');a.layer_name='Col';nt.links.new(a.outputs['Color'],b.inputs['Base Color'])
     if tex:
         t=nt.nodes.new('ShaderNodeTexImage');t.image=D.images.load(tex);nt.links.new(t.outputs['Color'],b.inputs['Base Color'])
+    if normal_tex:
+        t=nt.nodes.new('ShaderNodeTexImage');t.image=D.images.load(normal_tex);t.image.colorspace_settings.name='Non-Color'
+        nm=nt.nodes.new('ShaderNodeNormalMap');nm.inputs['Strength'].default_value=normal_str;nt.links.new(t.outputs['Color'],nm.inputs['Color']);nt.links.new(nm.outputs['Normal'],b.inputs['Normal'])
+    if alpha<1:
+        b.inputs['Alpha'].default_value=alpha
+        try:m.surface_render_method='BLENDED'
+        except Exception:m.blend_method='BLEND'
     if emit_tex:
         t=nt.nodes.new('ShaderNodeTexImage');t.image=D.images.load(emit_tex);nt.links.new(t.outputs['Color'],b.inputs['Emission Color'])
         b.inputs['Emission Strength'].default_value=emit_str or 1
@@ -287,9 +391,9 @@ def mat(name,base=(0,0,0,1),rough=.6,metal=0,emit=None,emit_str=0,tex=None,emit_
     return m
 T=HERE
 MAT={
- 'fur':mat('zeref_fur',vc=True,rough=.62,sheen=.35,emit_tex=T+'/fur_emit.png',emit_str=1.3),
+ 'fur':mat('zeref_fur',vc=True,rough=.62,sheen=.45,normal_tex=T+'/fur_normal.png',normal_str=.22,emit_tex=T+'/fur_emit.png',emit_str=1.3),
  'eye':mat('zeref_eye',tex=T+'/eye_base.png',emit_tex=T+'/eye_emit.png',emit_str=1.8,rough=.08,coat=1.0),
- 'wing':mat('zeref_wing',tex=T+'/wing_base.png',emit_tex=T+'/wing_emit.png',emit_str=.7,rough=.6,coat=0),
+ 'wing':mat('zeref_wing',tex=T+'/wing_base.png',emit_tex=T+'/wing_emit.png',emit_str=.9,rough=.5,coat=.2,alpha=.86),
  'moon':mat('zeref_moon',base=hx('#e9dcff'),rough=.25,coat=.8,emit=hx('#bfa0ff'),emit_str=1.4),
  'glow':mat('zeref_glow',base=hx('#b98aff'),rough=.3,emit=hx('#b98aff'),emit_str=2.5),
  'line':mat('zeref_line',base=hx('#d6b8ff'),rough=.4,emit=hx('#d6b8ff'),emit_str=.8),
@@ -297,6 +401,9 @@ MAT={
  'nose':mat('zeref_nose',base=hx('#7b4fc4'),rough=.4),
  'blush':mat('zeref_blush',base=hx('#5c2a4c'),rough=.65,emit=hx('#ff7fd6'),emit_str=.15),
  'choker':mat('zeref_choker',base=hx('#0a0612'),rough=.35,metal=.3),
+ 'catch':mat('zeref_catch',base=(1,1,1,1),emit=(1,1,1,1),emit_str=4),
+ 'mouthin':mat('zeref_mouth',base=hx('#2a0b2e'),rough=.6),
+ 'tongue':mat('zeref_tongue',base=hx('#ff7aa8'),rough=.45,emit=hx('#ff7aa8'),emit_str=.2),
  'gem':mat('zeref_gem',base=hx('#b57bff'),rough=.05,coat=1,emit=hx('#b57bff'),emit_str=2.2),
  'rib':mat('zeref_rib',base=hx('#140a28'),rough=.4,coat=.5),
  'wisp':mat('zeref_wisp',base=hx('#8fe8ff'),emit=hx('#8fe8ff'),emit_str=4),
@@ -308,7 +415,7 @@ for n in 'LR':
     setmat(parts['eye'+n],MAT['eye']);setmat(feat['wing'+n],MAT['wing']);setmat(feat['ribs'+n],MAT['rib']);setmat(feat['horn'+n],MAT['moon'])
     setmat(feat['brow'+n],MAT['brow']);setmat(feat['blush'+n],MAT['blush']);setmat(feat['beans'+n],MAT['glow'])
 setmat(feat['crescent'],MAT['moon']);setmat(feat['mouth'],MAT['line']);setmat(feat['nose'],MAT['nose'])
-setmat(feat['choker'],MAT['choker']);setmat(feat['gem'],MAT['gem']);setmat(feat['wisps'],MAT['wisp'])
+setmat(feat['choker'],MAT['choker']);[setmat(feat[k],MAT['line']) for k in feat if k.startswith('lidline')];setmat(feat['catch'],MAT['catch']);setmat(feat['cavity'],MAT['mouthin']);setmat(feat['tongue'],MAT['tongue']);setmat(feat['charm'],MAT['moon']);setmat(feat['gem'],MAT['gem']);setmat(feat['wisps'],MAT['wisp'])
 # fur UV (smart project) for the starfield
 active(fur);bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT')
 bpy.ops.uv.smart_project(angle_limit=math.radians(66),island_margin=.004);bpy.ops.object.mode_set(mode='OBJECT')
@@ -389,6 +496,24 @@ make_key('happy','happy',ears=(math.radians(-6),0,math.radians(-8)),brows={'L':(
 make_key('scared',None,ears=(math.radians(28),math.radians(38),math.radians(-30)),brows={'L':(.1,.02,.04),'R':(.1,.02,.04)},eyes_k=1.12,mouth=(.8,-.03,-.02))
 make_key('curious',None,ears=(math.radians(-14),math.radians(-6),math.radians(8)),brows={'L':(.02,.08,.05),'R':(0,0,0)},eyes_k=1.05,mouth=(.85,0,0))
 make_key('sleepy','sleepy',ears=(math.radians(10),math.radians(10),math.radians(-38)),brows={'L':(-.03,-.02),'R':(-.03,-.02)},mouth=(.7,0,0))
+def make_mouth_key(name,kind,wline):
+    sk=zer.shape_key_add(name=name,from_mix=False)
+    for i,p in zip(group_verts('P_cavity'),cavity_shape(kind)):sk.data[i].co=p
+    for i,p in zip(group_verts('P_tongue'),cavity_shape('tongue_'+kind if kind in('grin','o') else 'rest')):sk.data[i].co=p+(Vector((0,-.001,0)) if kind in('grin','o') else Vector((0,.01,0)))
+    for i in group_verts('P_mouth'):
+        co=BASE[i]
+        if wline=='hide':sk.data[i].co=Vector((co.x*.3,co.y+.05,co.z))
+        elif wline=='lift':sk.data[i].co=Vector((co.x*1.08,co.y,co.z+.03*(abs(co.x)/.17)**2))
+        elif wline=='flat':sk.data[i].co=Vector((co.x*1.1,co.y,1.53))
+make_mouth_key('mouth_grin','grin','flat')
+make_mouth_key('mouth_o','o','hide')
+make_mouth_key('mouth_smile','rest','lift')
+def make_brow_key(name,inner,outer,dz=0):
+    sk=zer.shape_key_add(name=name,from_mix=False)
+    for n in 'LR':
+        for i,p in brow_move(n,inner,outer,dz).items():sk.data[i].co=p
+make_brow_key('brows_up',.07,.04,.03)
+make_brow_key('brows_angry',-.1,.06)
 make_key('angry','angry',ears=(math.radians(30),math.radians(20),math.radians(-12)),brows={'L':(-.11,.05),'R':(-.11,.05)},mouth=(.95,-.06,0))
 # =================================================================== armature
 arm=D.armatures.new('ZerefRig');rig=D.objects.new('ZerefRig',arm);C.collection.objects.link(rig)
@@ -409,7 +534,7 @@ for i in range(len(tp)-1):
 # wings: shoulder -> elbow -> tip along leading edge (from wing mesh extremes)
 WINGB={}
 for s,n in ((-1,'L'),(1,'R')):
-    pts=[Vector((s*.38,.34,.82)),Vector((s*.86,.62,1.15)),Vector((s*1.3,.95,1.45)),Vector((s*1.62,1.2,1.62))]
+    pts=[wpos(x,y,s) for x,y in ((248,256),(272,214),(306,186),(344,170))]
     prev='chest';WINGB[n]=[]
     for i in range(3):
         nm='wing.%d.%s'%(i,n);bone(nm,pts[i],pts[i+1],prev);prev=nm;WINGB[n].append(nm)
@@ -424,6 +549,7 @@ def cands(i,co):
     if g!='P_fur':
         if g.startswith('P_wing') or g.startswith('P_ribs'):return ['chest']+WINGB[g[-1]]
         if g in('P_wisps',):return ['tail.3','tail.4']
+        if g=='P_charm':return ['chest']
         if g in('P_beansL','P_beansR'):return ['spine','root']
         if g=='P_choker' or g=='P_gem':return ['chest']
         return ['head']
@@ -433,13 +559,31 @@ def cands(i,co):
     if lab=='tail':return ['spine']+['tail.%d'%k for k in range(len(tp)-1)]
     if lab=='neck':return ['chest','head','spine']
     return ['root','spine','chest']
-rig_groups={b:zer.vertex_groups.new(name=b) for b in bones}
+rig_groups={b:zer.vertex_groups.new(name=b) for b in bones};WT={}
 for v in V:
     cs=cands(v.index,v.co);ws=[]
     for b in cs:
         d=seg_d(v.co,*bones[b]);ws.append((1/((d+.02)**4),b))
-    ws.sort(reverse=True);ws=ws[:3];tot=sum(w for w,_ in ws)
-    for w,b in ws:rig_groups[b].add([v.index],w/tot,'REPLACE')
+    ws.sort(reverse=True);ws=ws[:4];tot=sum(w for w,_ in ws)
+    WT[v.index]={b:w/tot for w,b in ws}
+adj=[[] for _ in V]
+for e in me.edges:
+    a,b=e.vertices
+    if a<nfur and b<nfur:adj[a].append(b);adj[b].append(a)
+for it in range(int(os.environ.get('WSMOOTH','10'))):
+    new={}
+    for i in range(nfur):
+        lab=labels[i]
+        if lab and (lab.startswith('ear')):continue
+        acc={}
+        for j in adj[i]+[i,i]:
+            for b,w in WT[j].items():acc[b]=acc.get(b,0)+w
+        tot=sum(acc.values());new[i]={b:w/tot for b,w in acc.items()}
+    WT.update(new)
+for i,d in WT.items():
+    top=sorted(d.items(),key=lambda x:-x[1])[:4];tot=sum(w for _,w in top)
+    for b,w in top:
+        if w/tot>.002:rig_groups[b].add([i],w/tot,'REPLACE')
 # remove P_ tag groups (keep data clean for export)
 for g in list(zer.vertex_groups):
     if g.name.startswith('P_'):zer.vertex_groups.remove(g)

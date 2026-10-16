@@ -18,7 +18,7 @@ def star(d,x,y,r,fill):
     d.polygon(pts,fill=fill)
 # ---- eye (front planar UV, square = eye ellipse bbox)
 N=1024;im=Image.new('RGB',(N,N),hx('#05030b'));px=im.load()
-iris=[(0,hx('#f0e2ff')),(.25,hx('#c69bff')),(.6,hx('#7b3cf0')),(1,hx('#2a0d5e'))]
+iris=[(0,hx('#f4ebff')),(.2,hx('#cfa6ff')),(.5,hx('#8a48f5')),(.8,hx('#4a17a8')),(1,hx('#1e0848'))]
 c=N/2
 for y in range(N):
     for x in range(N):
@@ -31,16 +31,14 @@ d=ImageDraw.Draw(im)
 d.ellipse([c-N*.17,c-N*.17+N*.05,c+N*.17,c+N*.24+N*.05],fill=hx('#1a0638'))
 d.ellipse([c-N*.06,c-N*.01,c+N*.14,c+N*.2],fill=lerp(hx('#1a0638'),hx('#c9a6ff'),.45))
 d.ellipse([c-N*.02,c-N*.01,c+N*.16,c+N*.17],fill=hx('#1a0638'))
-star(d,c-N*.15,c-N*.19,N*.13,(255,255,255))
-d.ellipse([c+N*.11,c+N*.13,c+N*.22,c+N*.24],fill=(255,255,255))
 d.ellipse([c+N*.18,c-N*.1,c+N*.23,c-N*.05],fill=hx('#e9dcff'))
-im=im.filter(ImageFilter.GaussianBlur(1.2));im.save(out+'/eye_base.png')
+im=im.filter(ImageFilter.GaussianBlur(.6));im.save(out+'/eye_base.png')
 # eye emissive: iris glow + highlights
 e=np.asarray(im).astype(float);lum=e.mean(2,keepdims=True)/255
 em=(e*np.clip((lum-.35)*1.6,0,1)).astype(np.uint8);Image.fromarray(em).save(out+'/eye_emit.png')
 # ---- wing (planar UV over the outline bbox; u outward, v up)
 N=1024;w=Image.new('RGB',(N,N));wp=w.load()
-ws=[(0,hx('#1e0d48')),(.4,hx('#3c1d78')),(.8,hx('#8a4ff0')),(1,hx('#9c86ff'))]
+ws=[(0,hx('#2a1260')),(.35,hx('#5a2fb8')),(.7,hx('#8a4ff0')),(1,hx('#7fb8ff'))]
 for y in range(N):
     for x in range(N):
         u=x/N;v=1-y/N;t=(u*.65+v*.55)/1.05
@@ -79,4 +77,16 @@ for i in range(380):
 for i in range(8):
     x=rng.random()*N;y=rng.random()*N;star(d,x,y,rng.choice([5,7,9]),(240,230,255))
 im.save(out+'/fur_emit.png')
+# fur strand normal map (tileable)
+N=1024;rng=np.random.default_rng(5);hgt=Image.new('L',(N,N),128);hd=ImageDraw.Draw(hgt)
+for i in range(9000):
+    x=rng.random()*N;y=rng.random()*N;a=rng.normal(1.57,.35);L=rng.uniform(8,22);v=int(rng.uniform(150,235))
+    for ox in (-N,0,N):
+        for oy in (-N,0,N):
+            hd.line([x+ox,y+oy,x+ox+L*math.cos(a),y+oy+L*math.sin(a)],fill=v,width=1)
+h=np.asarray(hgt.filter(ImageFilter.GaussianBlur(.8))).astype(float)/255
+gx=(np.roll(h,-1,1)-np.roll(h,1,1))*2.0;gy=(np.roll(h,-1,0)-np.roll(h,1,0))*2.0
+nz=np.ones_like(h);l=np.sqrt(gx**2+gy**2+nz**2)
+nm=np.stack([(-gx/l)*.5+.5,(gy/l)*.5+.5,(nz/l)*.5+.5],-1)
+Image.fromarray((nm*255).astype(np.uint8)).save(out+'/fur_normal.png')
 print('textures ok')

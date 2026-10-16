@@ -4,22 +4,22 @@
  * a fixed 120 Hz seeded clock advances Cory's CST state (Lorenz, coherence, mood), whose
  * motion params (arousal→stiffness, Lorenz→wind, coherence→damping, chaos→turbulence,
  * phi→phase) drive spring-bone chains for the tail, ears and wings, plus breathing, the head bob
- * and expression morph targets (blink, happy, scared, curious, sleepy, angry).
+ * and expression morph targets (blink, happy, scared, curious, sleepy, angry, mouth grin/o/smile, brows up/angry).
  * Pure three.js math: no DOM, so it can be unit-tested with a synthetic skeleton.
  */
 import {createCSTClock,createCSTState,stepCSTState,motionParams,seededRng,springStep} from '../physics/cst-integrator.mjs';
 import {createSpringChain,stepSpringChain,applyToBones} from '../physics/spring-bones.mjs';
 
 export const ZEREF_GLB_URL='/creatures3d/zeref.glb';
-export const ZEREF_MORPHS=Object.freeze(['blink','happy','scared','curious','sleepy','angry']);
+export const ZEREF_MORPHS=Object.freeze(['blink','happy','scared','curious','sleepy','angry','mouth_grin','mouth_o','mouth_smile','brows_up','brows_angry']);
 /** Mood presets → CST emotion inputs + expression morph targets. */
 export const ZEREF_MOODS=Object.freeze({
- calm:{emotion:{valence:.6,arousal:.3,curiosity:.4,fear:.05},morph:{}},
- happy:{emotion:{valence:.95,arousal:.65,curiosity:.5,fear:0},morph:{happy:1}},
- curious:{emotion:{valence:.7,arousal:.55,curiosity:.95,fear:.05},morph:{curious:1}},
- scared:{emotion:{valence:.15,arousal:.9,curiosity:.2,fear:.95},morph:{scared:1}},
+ calm:{emotion:{valence:.6,arousal:.3,curiosity:.4,fear:.05},morph:{mouth_smile:.6}},
+ happy:{emotion:{valence:.95,arousal:.65,curiosity:.5,fear:0},morph:{happy:1,mouth_grin:.85}},
+ curious:{emotion:{valence:.7,arousal:.55,curiosity:.95,fear:.05},morph:{curious:1,brows_up:.5,mouth_smile:.4}},
+ scared:{emotion:{valence:.15,arousal:.9,curiosity:.2,fear:.95},morph:{scared:1,mouth_o:1,brows_up:1}},
  sleepy:{emotion:{valence:.55,arousal:.05,curiosity:.1,fear:0},morph:{sleepy:1}},
- angry:{emotion:{valence:.1,arousal:.85,curiosity:.2,fear:.3},morph:{angry:1}},
+ angry:{emotion:{valence:.1,arousal:.85,curiosity:.2,fear:.3},morph:{angry:1,brows_angry:1}},
 });
 const CHAINS=[
  {name:'tail',bones:['tail.0','tail.1','tail.2','tail.3','tail.4'],stiffness:.06,drag:.1,gravity:-.25},
