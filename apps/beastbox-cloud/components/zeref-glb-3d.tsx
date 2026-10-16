@@ -141,7 +141,10 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
     mat.customProgramCacheKey=()=>'zeref-fur-'+(shell?shell.t.toFixed(3):'base');mat.needsUpdate=true;};
    const furMeshes:any[]=[];
    gltf.scene.traverse((o:any)=>{if(!(o.isMesh&&o.material))return;const mat=o.material,n=mat.name;
-    if(n==='zeref_fur'){mat.color.setRGB(.85,.8,1.0);if('sheen' in mat){mat.sheen=.55;mat.sheenColor=new THREE.Color(0xc7a4ff);mat.sheenRoughness=.45;}mat.envMapIntensity=.6;furPatch(mat,null,.004);furMeshes.push(o);}
+    if(n==='zeref_fur'){mat.color.setRGB(.85,.8,1.0);if('sheen' in mat){mat.sheen=.55;mat.sheenColor=new THREE.Color(0xc7a4ff);mat.sheenRoughness=.45;}mat.envMapIntensity=.6;
+     if(o.geometry.attributes.uv1){/* realism v5: sculpt->bake normal + AO on the dedicated bake UV (TEXCOORD_1) */const TL=new THREE.TextureLoader(),bt=(k:string)=>{const t=TL.load(`/creatures3d/bake/zeref_body_${k}.png`);t.flipY=false;t.channel=1;return t;};
+      mat.normalMap=bt('normal');mat.normalScale=new THREE.Vector2(.6,.6);mat.aoMap=bt('ao');mat.aoMapIntensity=.5;}
+     furPatch(mat,null,.004);furMeshes.push(o);}
     else if(n==='zeref_eye'){eyeMat=new THREE.MeshPhysicalMaterial({map:mat.map,emissive:0xffffff,emissiveMap:mat.emissiveMap,emissiveIntensity:2.7,roughness:.25,clearcoat:1,clearcoatRoughness:.03,ior:1.4,envMapIntensity:.55});
      eyeMat.name='zeref_eye';o.material=eyeMat;happyMesh=o;
      eyeMat.onBeforeCompile=(sh:any)=>{Object.assign(sh.uniforms,{uHappy,uStarT:starT,uSwirl,uChaos});

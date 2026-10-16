@@ -113,7 +113,7 @@ if os.environ.get('CYCLES','1')=='1':
                 vgd=o.vertex_groups.new(name='furdens')
                 for v in o.data.vertices:
                     face_=v.co.z>zt_*.5 and v.normal.y<-.05 and abs(v.co.x)<zt_*.3
-                    vgd.add([v.index],.08 if face_ else 1,'REPLACE')
+                    vgd.add([v.index],0 if face_ else 1,'REPLACE')
                     if face_:vgl.add([v.index],.25,'REPLACE')
                 md.particle_system.vertex_group_density='furdens'
             ps.hair_length=FUR[0]*(.7 if o.name.startswith('ear') else 1);ps.material=slot;ps.child_type='INTERPOLATED';ps.child_percent=6;ps.rendered_child_count=10

@@ -714,7 +714,7 @@ def eye_mat(n,tex):
 if NEW_OUTFIT:
     etex={'res_nyxbean':'eye_galaxy','res_kairo':'eye_galaxy','res_frostmitt':'eye_lavender'}[PLAN]
     eye_mat('eyeball','nyx_eye' if PLAN=='res_nyxbean' else etex)
-    if PLAN=='res_nyxbean':PM['eyeball'].node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value=.55
+    if PLAN in('res_nyxbean','res_frostmitt'):PM['eyeball'].node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value=.55
     m=D.materials.new('pm_cornea');m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(1,1,1,1);b.inputs['Roughness'].default_value=.02
     b.inputs['Transmission Weight'].default_value=1;b.inputs['IOR'].default_value=1.38;b.inputs['Coat Weight'].default_value=1;PM['cornea']=m
     pmat('lash',(.01,.008,.015,1),.5)
