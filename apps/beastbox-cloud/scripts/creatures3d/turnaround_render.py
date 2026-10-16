@@ -44,6 +44,7 @@ key=light('key','AREA',(-1.6,-2.2,2.2),110,(1,.97,1),4)
 rim=light('rim','AREA',(1.8,2.0,1.6),200,(.6,.4,1),2)
 rim2=light('rim2','AREA',(-1.9,1.6,1.0),220,(.3,.5,1),1)
 fill=light('fill','AREA',(2,-2,.6),90,(.9,.9,1),4)
+chest=light('chest','AREA',(0,-1.6,.15),60,(.7,.5,1),1.2)  # low violet rim on the chest tuft
 if os.environ.get('CYCLES','1')=='1':
     # offline look: Cycles + OIDN, strand fur (clumped children + flyaways) on the coat meshes, SSS ears
     sc.render.engine='CYCLES';sc.cycles.samples=int(os.environ.get('SAMPLES','64'));sc.cycles.use_denoising=True;sc.cycles.denoiser='OPENIMAGEDENOISE';sc.cycles.device='CPU'
@@ -81,7 +82,7 @@ if os.environ.get('CYCLES','1')=='1':
                     w_=max(0,min(1,(-v.normal.y-.2)*2))*(1 if v.co.z<hc_*1.15 else .6)
                     if w_>0:vg.add([v.index],w_,'REPLACE')
                 md2=o.modifiers.new('ruff','PARTICLE_SYSTEM');p2=md2.particle_system.settings;md2.particle_system.vertex_group_density='ruffd'
-                p2.type='HAIR';p2.count=5000;p2.hair_length=FUR[0]*3.0;p2.material=slot;p2.child_type='INTERPOLATED';p2.child_percent=8;p2.rendered_child_count=12
+                p2.type='HAIR';p2.count=5000;p2.hair_length=FUR[0]*3.8;p2.material=slot;p2.child_type='INTERPOLATED';p2.child_percent=8;p2.rendered_child_count=12
                 p2.clump_factor=.85;p2.clump_shape=.5;p2.roughness_2=.03;p2.roughness_2_threshold=.8;p2.roughness_endpoint=.01;p2.radius_scale=.0018;p2.root_radius=1;p2.tip_radius=0;p2.render_step=5
     for m_ in bpy.data.materials:
         if m_.name in('pm_pink','fur','pm_skin_d') and m_.use_nodes:
@@ -95,7 +96,7 @@ frames=[]
 for i,ang in enumerate((0,90,180)):
     r=math.radians(ang);dist=top*float(os.environ.get('FRAME','4.0'));tgt=Vector((0,0,top*.5))
     cam.location=tgt+Vector((math.sin(r)*dist,-math.cos(r)*dist,top*.12));cam.rotation_euler=(tgt-cam.location).to_track_quat('-Z','Y').to_euler()
-    for L,base in ((key,(-1.6,-2.2,2.2)),(rim,(1.8,2.0,1.6)),(rim2,(-1.9,1.6,1.0)),(fill,(2,-2,.6))):
+    for L,base in ((chest,(0,-1.6,.15)),(key,(-1.6,-2.2,2.2)),(rim,(1.8,2.0,1.6)),(rim2,(-1.9,1.6,1.0)),(fill,(2,-2,.6))):
         x,y,z=base;L.location=(x*math.cos(r)-y*math.sin(r),x*math.sin(r)+y*math.cos(r),z);L.rotation_euler=(Vector((0,0,.5))-L.location).to_track_quat('-Z','Y').to_euler()
     f='/tmp/ta_%s_%d.png'%(PLAN,i);sc.render.filepath=f;bpy.ops.render.render(write_still=True);frames.append(f)
 print('FRAMES',' '.join(frames))

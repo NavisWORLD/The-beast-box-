@@ -520,7 +520,7 @@ def beanie(c,rx,ry,rz,crown,slouch,bands,band_m,body_m,knit=14):
     addp(joinm(cuff,'prop_cuff'),band_m if puffy_ else body_m,n=900 if puffy_ else None)
     if puffy_:bands=[]
     for z,bm_ in bands:addp(ring('prop_band',(c[0],c[1],c[2]+z*rz),rx*1.06,ry*1.06,rz*.045,40),bm_)
-    cr=[ell('crown',(c[0],c[1]+slouch*.35,c[2]+rz*.55),(rx*(1.1 if knit<10 else .98),ry*(1.1 if knit<10 else .98),rz*crown),seg=48,ring=24),
+    cr=[ell('crown',(c[0],c[1]+slouch*.35,c[2]+rz*.55),(rx*(1.0 if knit<10 else .98),ry*(1.0 if knit<10 else .98),rz*crown),seg=48,ring=24),
         ell('slouch',(c[0],c[1]+slouch,c[2]+rz*(crown*.9)),(rx*.75,ry*.8,rz*crown*.55),seg=40,ring=20)]
     if knit>=10:
         for k in range(knit):  # knit rows hugging the crown ellipsoid
@@ -533,7 +533,7 @@ def beanie(c,rx,ry,rz,crown,slouch,bands,band_m,body_m,knit=14):
             a=math.atan2(v.y-c[1],v.x-c[0]);d=min(abs(((a-k*math.pi/4)+math.pi)%(2*math.pi)-math.pi) for k in range(8))
             pin_=(.22*rx*math.exp(-(d/.12)**2)-.05*rx*(1-math.exp(-(d/.3)**2)))*min(1,t*3)*(1-t*.6);r_=Vector((v.x-c[0],v.y-c[1],0))
             if r_.length>1e-6:v.x-=r_.x/r_.length*pin_;v.y-=r_.y/r_.length*pin_
-        v.y+=t*t*rx*.6;v.z-=t*t*t*rz*.12;v.x*=1+.06*t
+        v.y+=t*t*rx*(.35 if knit<10 else .6);v.z-=t*t*t*rz*.12;v.x*=1+.06*t
         if knit<10 and v.y<c[1]:v.y-=(c[1]-v.y)*.18*min(1,t*2.5);v.z-=(c[1]-v.y)*.12*min(1,t*2.5) if knit<10 and v.y<c[1] else 0
     for o_ in cr:
         for v in o_.data.vertices:droop(v.co)
@@ -687,7 +687,7 @@ if NEW_OUTFIT:
     m=D.materials.new('pm_cornea');m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(1,1,1,1);b.inputs['Roughness'].default_value=.02
     b.inputs['Transmission Weight'].default_value=1;b.inputs['IOR'].default_value=1.38;b.inputs['Coat Weight'].default_value=1;PM['cornea']=m
     pmat('lash',(.01,.008,.015,1),.5)
-    SC={'res_nyxbean':.98,'res_kairo':1.05,'res_frostmitt':1.0}[PLAN]
+    SC={'res_nyxbean':1.15,'res_kairo':1.05,'res_frostmitt':1.0}[PLAN]
     eyes=[];corn=[];lash=[]
     for n,c in eye_c.items():
         s=-1 if n=='L' else 1;rx,ry,rz=ER*.95*SC,ER*.42,ER*1.05*SC*(.92 if PLAN=='res_kairo' else 1)

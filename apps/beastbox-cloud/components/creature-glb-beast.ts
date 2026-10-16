@@ -109,7 +109,7 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
  if(SP.tail)shown.add(SP.tail);else if(gen.tail!=='none')shown.add(TAIL_V[gen.tail]||'tail_thin');
  if(SP.wings)shown.add(SP.wings);else if(gen.wings&&gen.wings!=='none')shown.add(WING_V[gen.wings]||'wing_feather');
  const glowMat=new THREE.MeshStandardMaterial({color:C.glow,emissive:C.glow,emissiveIntensity:2.2,roughness:.3});
- const pblink:any[]=[],floaters:any[]=[];
+ const pblink:any[]=[],floaters:any[]=[],eyeMats:any[]=[];
  root.traverse((o:any)=>{if(!o.isMesh)return;const n=(o.name||'').replace(/_\d+$/,'');const key=['body','face','detail'].find(k=>n.startsWith(k))||n;
   o.castShadow=true;o.frustumCulled=false;
   if(n.startsWith('ear_')||n.startsWith('tail_')||n.startsWith('wing_')){o.visible=shown.has(n.replace(/\.\d+$/,''));}
@@ -127,6 +127,7 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
    if(mn==='pm_puffy'){/* 4D surface: CST turbulence over (xyz, t) gently breathes the quilt normal */pm.onBeforeCompile=(sh:any)=>{sh.uniforms.uT=U.uT;sh.uniforms.uChaos=U.uChaos;
     sh.vertexShader='varying vec3 vP4;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvP4=position;');
     sh.fragmentShader='uniform float uT,uChaos;varying vec3 vP4;\n'+sh.fragmentShader.replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nvec3 q=vP4*40.0;normal=normalize(normal+.06*(.5+uChaos)*vec3(sin(q.y*1.7+uT*1.3)+.5*sin(q.z*2.3-uT*.7),sin(q.z*1.9+uT*1.1)+.5*sin(q.x*2.1+uT*.5),0.0));');};}
+   if(mn==='pm_eyeball'&&pm.map){pm.map=pm.map.clone();pm.map.needsUpdate=true;pm.emissiveMap=pm.map;eyeMats.push(pm);}
    pm.name=mn;o.material=pm;}
    if(o.morphTargetDictionary&&'pblink' in o.morphTargetDictionary)pblink.push(o);if(/^prop_(pixels|mist)/.test(n))floaters.push(o);}
   else if(mn==='prop'){const pc=new THREE.Color(SP.prop??0x5b2fa8);o.material=SP.crystal?new THREE.MeshPhysicalMaterial({color:pc,roughness:.08,metalness:.1,transmission:.35,thickness:.2,iridescence:1,emissive:C.glow,emissiveIntensity:.5,clearcoat:1})
@@ -154,25 +155,29 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
  const MK=face?.morphTargetDictionary||{};const W=face?.morphTargetInfluences||[];const setM=(k:string,v:number)=>{const i=MK[k];if(i!=null)W[i]=clamp(v);};
  const ex={blink:0,happy:0,sleepy:0,curious:0,scared:0,angry:0,grin:0,o:0,w:0};let blinkT=1+R()*3,t=0,prevH=0;
  let tris=0;root.traverse((o:any)=>{if(o.isMesh&&o.visible&&!o.userData.shell){const gg=o.geometry;tris+=(gg.index?gg.index.count:gg.attributes.position.count)/3;}});
- const anim={lookT:0,lookY:0,lookP:0,sy:{x:0,v:0},sp:{x:0,v:0},jp:-1,jt:2.5,sq:{x:0,v:0},st:6+R()*6,sp2:-1,hat:{x:0,v:0},hy:{x:0,v:0},pl:0,py:0};
+ const anim={eT:0,eX:0,eY:0,ex:{x:0,v:0},ey:{x:0,v:0},mvJ:3,lookT:0,lookY:0,lookP:0,sy:{x:0,v:0},sp:{x:0,v:0},jp:-1,jt:2.5,sq:{x:0,v:0},st:3+R()*3,sp2:-1,hat:{x:0,v:0},hy:{x:0,v:0},pl:0,py:0};
  const rootRest=bones.root?bones.root.position.clone():null;
  function drive(dt:number,life:{speed:number;mode:string;sleep:number;lookCam:number;bob:number;heading:number;startle?:number},mp:any,lookLocal:{yaw:number;pitch:number}|null){
   t+=dt;U.uT.value=t;const mood=mp?.mood||{joy:.5,fear:.1,curiosity:.5,calm:.6,mischief:.3};const k=60*(mp?.stiffness||1),d=8*(mp?.damping||1),turb=mp?.turbulence||0,wind=mp?.wind||{x:0,y:0,z:0};
   U.uWind.value.set(wind.x*.4,wind.y*.2,wind.z*.4);U.uChaos.value=turb;
   let dh=life.heading-prevH;dh=((dh+Math.PI*3)%(Math.PI*2))-Math.PI;prevH=life.heading;const yr=clamp(dh/Math.max(dt,1e-3),-4,4);
   const st=clamp(life.speed*1.6),ph=life.bob,nap=life.sleep;
-  legs.forEach((b,i)=>pose(b,Math.sin(ph+(i===0||i===3?0:Math.PI))*.55*st-nap*1.2*(i<2?1:-.6)));knees.forEach((b,i)=>pose(b,Math.max(0,-Math.sin(ph+(i===0||i===3?0:Math.PI)))*.6*st+nap*(i<2?1.6:-1.4)));
+  legs.forEach((b,i)=>{const s_=Math.sin(ph+(i===0||i===3?0:Math.PI));const stance=s_>0?1:0;pose(b,(stance?s_*.45:s_*.62)*st-nap*1.2*(i<2?1:-.6));});knees.forEach((b,i)=>pose(b,Math.max(0,-Math.sin(ph+(i===0||i===3?0:Math.PI)))*.6*st+nap*(i<2?1.6:-1.4)));
   const breathe=Math.sin(t*(1.6-mood.calm*.5))*.025;
   pose(bones.hips,0,Math.sin(t*.55)*.05*(1-st)*(1-nap),Math.sin(ph)*.05*st+Math.sin(t*.55+1)*.03*(1-st));pose(bones.spine,-nap*.15+nap*.3+breathe,yr*.04+nap*.35,0);
   // ---- animation pass (CST + springs): look-around saccades, jump anticipation/squash/landing, happy bounce, stretch+yawn, hat follow-through
   anim.lookT-=dt;if(anim.lookT<=0){anim.lookT=1.1+R()*2.6*(.6+mood.calm*.8);anim.lookY=(R()-.5)*1.2*(1-nap)*(.5+mood.curiosity);anim.lookP=(R()-.5)*.35-nap*.1;}
   springStep(anim.sy,anim.lookY,55*(mp?.stiffness||1),11,dt);springStep(anim.sp,anim.lookP,55,11,dt);
+  // eye saccades: fast spring-snapped iris shifts (UV offset on the galaxy eye), independent of the slower head look
+  anim.eT-=dt;if(anim.eT<=0){anim.eT=.25+R()*1.1;anim.eX=(R()-.5)*.12+anim.lookY*.05;anim.eY=(R()-.5)*.07;}
+  springStep(anim.ex,anim.eX,900,60,dt);springStep(anim.ey,anim.eY,900,60,dt);eyeMats.forEach(m=>m.map.offset.set(-anim.ex.x,anim.ey.x));
   const playing=life.mode==='play';
+  if(life.speed>.3){anim.mvJ-=dt;if(anim.mvJ<=0&&anim.jp<0){anim.jp=0;anim.mvJ=3+R()*3;}}  // jumps while moving
   if(anim.jp<0){anim.jt-=dt;if((life as any).jump||(playing&&anim.jt<=0)||(life.startle||0)>.6){anim.jp=0;anim.jt=1.8+R()*3;}}
   let lift=0,sqT=0;if(anim.jp>=0){anim.jp+=dt/.95;const p=anim.jp;
    if(p<.24)sqT=-.2*Math.sin(p/.24*Math.PI/2);else if(p<.78){const q=(p-.24)/.54;lift=Math.sin(q*Math.PI)*(.18+.1*mood.joy);sqT=.12*(1-q*2);}else if(p<1)sqT=-.17*Math.sin((p-.78)/.22*Math.PI);else anim.jp=-1;}
   springStep(anim.sq,sqT,140,13,dt);
-  const hop=lift+(playing?Math.abs(Math.sin(t*5.5))*.035*(.4+mood.joy):0)+(life.startle||0)*.04;
+  const hop=lift+Math.abs(Math.sin(ph))*.014*st*(1-nap)+(playing?Math.abs(Math.sin(t*5.5))*.035*(.4+mood.joy):0)+(life.startle||0)*.04;
   if(bones.root&&rootRest){bones.root.position.copy(rootRest);bones.root.position.y+=hop;const q_=anim.sq.x;bones.root.scale.set(1-q_*.45,1+q_,1-q_*.45);}
   // stretch + yawn when idle and calm
   let stretch=0;if(life.speed<.05&&nap<.2){anim.st-=dt;if(anim.st<=0&&anim.sp2<0){anim.sp2=0;anim.st=9+R()*10;}}
@@ -186,7 +191,7 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
   ears.forEach((b,i)=>{const s=i?1:-1;springStep(sp.ear[i],-yr*.08+wind.x*s*.3+Math.sin(t*9+i)*turb*.15-ex.scared*.7+ex.happy*.15,k,d,dt);springStep(sp.ear2[i],Math.abs(Math.sin(ph))*st*.3+ex.curious*.3-nap*.5,k,d,dt);
    pose(b,sp.ear2[i].x,0,sp.ear[i].x*s);pose(ears1[i],sp.ear2[i].x*.6,0,sp.ear[i].x*s*.6);});
   tail.forEach((b,i)=>{const wag=Math.sin(t*(4+mood.joy*6)-i*.7)*(.12+mood.joy*.4)*(1-nap*.8);springStep(sp.tail[i],wag-yr*.12*(i+1)/tail.length+wind.x*.2+Math.sin(t*7+i)*turb*.12,k*.8,d*.8,dt);
-   springStep(sp.tail2[i],(i===0?.25-nap*.5:-.04)+st*.08,k*.8,d,dt);pose(b,-sp.tail2[i].x,sp.tail[i].x,0);});
+   springStep(sp.tail2[i],(i===0?.25-nap*.5:-.04)+st*.08,k*.8,d,dt);pose(b,-sp.tail2[i].x+nap*.25,sp.tail[i].x+nap*.55,0);});
   wings.forEach((b,i)=>{const s=i?1:-1;springStep(sp.wing[i],Math.sin(t*1.5)*.08+(life.speed>.9?Math.sin(t*12)*.5:0)+wind.z*.1,k*1.5,d,dt);pose(b,0,0,s*sp.wing[i].x);});
   blinkT-=dt;if(blinkT<=0){blinkT=2+((t*7919)%1)*4;ex.blink=1;}ex.blink=Math.max(0,ex.blink-dt*7);
   const tw=(key:keyof typeof ex,v:number,r=4)=>{ex[key]+=(v-ex[key])*Math.min(1,dt*r);};
