@@ -48,7 +48,7 @@ function cosmicEnvironment(renderer:THREE.WebGLRenderer){
  panel(0x5a7bff,1.6,6,3,[6,1,4]);        // blue fill
  const pm=new THREE.PMREMGenerator(renderer);const rt=pm.fromScene(env,.03);pm.dispose();return rt.texture;
 }
-export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:{spin?:boolean;angle?:number;mood?:ZerefMood;seed?:string}){
+export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref',transparent=false}:{spin?:boolean;angle?:number;mood?:ZerefMood;seed?:string;transparent?:boolean}){
  const host=useRef<HTMLDivElement>(null);
  const live=useRef({spin,angle,mood});
  useEffect(()=>{live.current={spin,angle,mood};},[spin,angle,mood]);
@@ -57,12 +57,12 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
   const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const qp=new URLSearchParams(window.location.search);const qYaw=qp.get('yaw');const qMood=qp.get('mood');const qNoBlink=qp.get('blink')==='0';
   let tier:Tier=pickTier(qp.get('tier'),reduced);const tierLocked=!!qp.get('tier');
-  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
+  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:transparent,powerPreference:'high-performance'});
   renderer.setPixelRatio(Math.min(TIERS[tier].dpr,window.devicePixelRatio||1));renderer.outputColorSpace=THREE.SRGBColorSpace;
   renderer.toneMapping=THREE.AgXToneMapping;renderer.toneMappingExposure=1.0;
   el.appendChild(renderer.domElement);renderer.domElement.style.width='100%';renderer.domElement.style.height='100%';
   const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(32,1,.05,50);
-  scene.background=gradientTex([[0,'#3a2370'],[.55,'#1a1546'],[1,'#07061a']],4,256,true);
+  if(!transparent)scene.background=gradientTex([[0,'#3a2370'],[.55,'#1a1546'],[1,'#07061a']],4,256,true);
   scene.environment=cosmicEnvironment(renderer);scene.environmentIntensity=.5;
   // cinematic light rig: key + strong cyan/violet rims + soft blue fill
   scene.add(new THREE.HemisphereLight(0xa996ff,0x0a0618,.2));
@@ -251,5 +251,5 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
   raf=requestAnimationFrame(tick);
   return ()=>{disposed=true;unguard();el.removeEventListener('pointerdown',pd);el.removeEventListener('pointermove',pm);el.removeEventListener('pointerup',pu);el.removeEventListener('pointercancel',pu);cancelAnimationFrame(raf);ro.disconnect();composer?.dispose?.();renderer.dispose();renderer.domElement.remove();};
  },[seed]);
- return <div ref={host} data-testid="zeref-glb-3d" style={{width:'100%',height:'100%',minHeight:360}} aria-label="Sculpted 3D Zeref, rotating"/>;
+ return <div ref={host} data-testid="zeref-glb-3d" style={{width:'100%',height:'100%',minHeight:transparent?0:360}} aria-label="Sculpted 3D Zeref, rotating"/>;
 }

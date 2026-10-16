@@ -241,6 +241,7 @@ export default function SparkBeastCompanion({
  const guide=rig&&!profile&&!sameSpark;
  // Publish the Beast genome for the 3D pocket (plush creature). Guide/compact views never publish.
  useEffect(()=>{if(compact||!gen)return;(window as any).__beastGenome=guide?null:gen;window.dispatchEvent(new Event('beastbox:genome'));},[gen,guide,compact]);
+ const noPick=!profile&&!sameSpark;
  const rigName=guide?ZEREF_PROFILE.name:name;
  const rigStats=active.game?.stats as unknown as Record<string,number>|undefined;
  return <figure className={[styles.root,compact?styles.compact:'',rig?styles.rigMode:'',className].filter(Boolean).join(' ')}
@@ -253,8 +254,8 @@ export default function SparkBeastCompanion({
     :<canvas ref={canvas} className={styles.canvas} data-beast-sprite="true" aria-label={name+' pixel creature sprite'}/>}
   </div>
   {!compact?<figcaption ref={metaRef} className={styles.meta}>
-   <strong>{guide?'Zeref':name}</strong>
-   {guide?<span>Moonwraith · site guide · exploring the pocket</span>:<span>{gen?gen.temperament+' · '+gen.body+' · '+gen.island:'Building Spark genome…'}</span>}
+   <strong>{guide||noPick?'Zeref':name}</strong>
+   {guide||noPick?<span>Site guide · exploring the pocket</span>:<span>{gen?gen.temperament+' · '+gen.body+' · '+gen.island:'Building Spark genome…'}</span>}
    {guide?<small className={styles.seedLine}>RECORDED QUANTUM SEED · {ZEREF_RECORDED_SOURCE.backend} · job {ZEREF_RECORDED_SOURCE.job_id.slice(0,8)}…</small>
     :run?<small className={styles.seedLine}>RECORDED QUANTUM SEED · {run.backend} · {run.num_bits}-bit · {run.counts_sha256.slice(0,10)}…</small>:null}
    <small className={styles.disclaimer}>Recorded counts seed the game art. No live quantum link, awareness, or sensor authority.</small>
