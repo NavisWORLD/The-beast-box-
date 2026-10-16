@@ -6,6 +6,7 @@
 import {createHash,randomUUID,timingSafeEqual} from 'node:crypto';
 import {isOwner,safeJson} from '@/lib/security';
 import {storageConfig,putBlob,getBlob,listBlobs} from '@/lib/cosmos/azure-blob.mjs';
+import {storeLesson} from '@/lib/cosmos/zeref-cloud.mjs';
 import {screenText,clean,isTeacherRoute,MAX_PROMPT,MAX_REPLY} from '@/lib/companion/teacher-distill.mjs';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -50,6 +51,8 @@ export async function POST(request:Request){
  const name=`${PREFIX}${owner?'approved':'pending'}/${date}/${id}.json`;
  try{const etag=await putBlob(cfg,name,JSON.stringify(record),{contentType:'application/json',ifNoneMatch:'*'});if(!etag)throw 0;}
  catch{return safeJson(502,{error:'Could not store the pair. It stays on your device.'});}
+ // Approved (owner) lessons also join Zeref's own cloud memory folder.
+ if(owner)await storeLesson(cfg,record).catch(()=>false);
  return safeJson(201,{ok:true,id,review_status:status});
 }
 /** Approved pairs as JSONL for the training workflow. Bearer ZEREF_DISTILL_EXPORT_TOKEN only. */
