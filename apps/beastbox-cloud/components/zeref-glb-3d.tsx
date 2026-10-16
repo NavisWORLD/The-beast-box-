@@ -9,6 +9,7 @@
  * wing backlight, glossy refracting cornea, shader-drawn ^^ happy eyes, contact shadows that follow the paws.
  * Adaptive quality tier: high / med / low (?tier= to force), downgraded live if frames are slow.
  */
+import {createCSTTurntable} from '@/lib/physics/cst-turntable.mjs';
 import {useEffect,useRef} from 'react';
 import * as THREE from 'three';
 import {createZerefDriver,ZEREF_GLB_URL} from '@/lib/creatures3d/zeref-glb-driver.mjs';
@@ -212,6 +213,7 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
   const unguard=guardCanvasTouch(el,{hint:'↔ Drag sideways to spin Zeref'});let drag:{x:number,yaw:number}|null=null;
   const pd=(e:PointerEvent)=>{drag={x:e.clientX,yaw};};const pm=(e:PointerEvent)=>{if(!drag)return;const w=el.getBoundingClientRect().width||1;yaw=drag.yaw-(e.clientX-drag.x)/w*Math.PI*2;live.current={...live.current,spin:false,angle:THREE.MathUtils.radToDeg(yaw)};};
   const pu=()=>{drag=null;};el.addEventListener('pointerdown',pd);el.addEventListener('pointermove',pm);el.addEventListener('pointerup',pu);el.addEventListener('pointercancel',pu);
+  const cstTT=createCSTTurntable(seed,{speed:.5});// CST inertia + damping + Lorenz sway instead of a linear spin
   let last=performance.now(),yaw=qYaw?THREE.MathUtils.degToRad(Number(qYaw)):0,perfN=0,perfAcc=0;
   const qManual=qp.get('manual')==='1';let manualDt=0,manualMood:any=null;
   const review:any={setYaw:(d:number)=>{live.current={...live.current,spin:false,angle:d};yaw=THREE.MathUtils.degToRad(d);},
@@ -226,7 +228,7 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
    // adaptive tier: if frames run slow for ~2 s, step down (never in manual/forced mode)
    if(!qManual&&!tierLocked&&driver&&tier!=='low'){perfAcc+=dt;perfN++;if(perfN>=120){if(perfAcc/perfN>1/38){tier=tier==='high'?'med':'low';applyTier();el!.dataset.zerefTier=tier;}perfN=0;perfAcc=0;}}
    starT.value+=reduced?0:dt;
-   if(L.spin&&!reduced)yaw+=dt*.5;else yaw+=(THREE.MathUtils.degToRad(L.angle)-yaw)*Math.min(1,qManual?1:dt*6);
+   if(L.spin&&!reduced){const p0=cstTT.yaw;cstTT.step(dt);yaw+=cstTT.yaw-p0;}else yaw+=(THREE.MathUtils.degToRad(L.angle)-yaw)*Math.min(1,qManual?1:dt*6);
    pivot.rotation.y=-yaw;
    camera.position.set(0,.85,3.9);camera.lookAt(0,.66,0);
    if(driver){driver.setMood((manualMood as ZerefMood)||(qMood as ZerefMood)||L.mood);driver.update(reduced?0:dt);

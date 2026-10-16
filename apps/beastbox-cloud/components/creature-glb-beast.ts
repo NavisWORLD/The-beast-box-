@@ -19,8 +19,8 @@ const TAIL_V:Record<string,string>={fluffy:'tail_fluffy',plume:'tail_fluffy',lea
 const WING_V:Record<string,string>={feather:'wing_feather',leaf:'wing_feather',bat:'wing_bat',flame:'wing_bat',vanes:'wing_bat',moth:'wing_moth',crystal:'wing_moth'};
 const GLOWING=new Set(['crystal','flame']);
 /** species identity parts always shown (the genome still paints them); fur = coat length multiplier, scales = belly scale plates */
-const SPECIES:Record<string,{ears?:string[];tail?:string;wings?:string;fur?:number;scales?:boolean;stone?:boolean;prop?:number;propGlow?:number;crystal?:boolean;crystalBody?:boolean;faceY?:number}>={
- res_frostmitt:{ears:['ear_pointy'],tail:'tail_fluffy',fur:1.5,prop:0x5b2fa8},res_nyxbean:{ears:[],tail:'tail_thin',fur:1.25,prop:0x3a1f6e},
+const SPECIES:Record<string,{ears?:string[];tail?:string;wings?:string;fur?:number;scales?:boolean;stone?:boolean;prop?:number;propGlow?:number;crystal?:boolean;crystalBody?:boolean;faceY?:number;cstFur?:string}>={
+ res_frostmitt:{ears:['ear_pointy'],tail:'tail_fluffy',fur:1.5,prop:0x5b2fa8},res_nyxbean:{cstFur:'nyx',ears:[],tail:'tail_thin',fur:1.25,prop:0x3a1f6e},
  res_shardhowl:{ears:['ear_fox'],tail:'tail_brush',fur:0,prop:0x9a6cff,crystal:true,crystalBody:true},res_velvetcoil:{ears:['ear_horns'],tail:'tail_thin',fur:.1,scales:true,prop:0x2a1240},
  res_kairo:{ears:[],fur:0,prop:0x16121f,faceY:.7},
  fox:{ears:['ear_fox'],tail:'tail_brush',fur:1.25},dragonling:{ears:['ear_dhorn'],wings:'wing_dragon',fur:.55,scales:true},axolotl:{ears:['ear_frill'],tail:'tail_axfin',fur:.22},
@@ -42,7 +42,8 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
  const C=paint?{base:new THREE.Color(paint.base),dark:new THREE.Color(paint.dark??paint.base).multiplyScalar(paint.dark?1:.45),light:new THREE.Color(paint.light??0xffffff),alt:new THREE.Color(paint.alt),belly:new THREE.Color(paint.belly),accent:new THREE.Color(paint.accent),glow:new THREE.Color(paint.glow)}
   :{base:col(pal.base.mid),dark:col(pal.base.sh),light:col(pal.base.li),alt:col(pal.alt.mid),belly:col(pal.belly.mid),accent:col(pal.accent.mid),glow:col(pal.glow.mid)};
  const R=seededRng('beast-paint:'+gen.seed);const pat=['spots','stripes','belly','stars','facets','moss','plates','cracks','circuits'].indexOf(gen.pattern);
- const U={uT:{value:0},uWind:{value:new THREE.Vector3()},uChaos:{value:.2},uBeat:{value:0},uSeed:{value:new THREE.Vector3(R()*50,R()*50,R()*50)},
+ const cstTex=(n:string)=>{const t=new THREE.TextureLoader().load(`/creatures3d/cst/${SP.cstFur}_fur_${n}.png`);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;};
+ const U={uCst:{value:SP.cstFur?1:0},uFlow:{value:SP.cstFur?cstTex('flow'):null},uFly:{value:SP.cstFur?cstTex('flyaway'):null},uT:{value:0},uWind:{value:new THREE.Vector3()},uChaos:{value:.2},uBeat:{value:0},uSeed:{value:new THREE.Vector3(R()*50,R()*50,R()*50)},
   uBase:{value:C.base},uAlt:{value:C.alt},uBelly:{value:C.belly},uAccent:{value:C.accent},uGlow:{value:C.glow},uDark:{value:C.dark},uLight:{value:C.light},
   uPat:{value:pat<0?0:pat},uPd:{value:g('pattern_density')},uPs:{value:6+g('pattern_scale')*9},uStrands:{value:strands(THREE)},uScales:{value:SPECIES[plan]?.scales?1:0},uStone:{value:SPECIES[plan]?.stone?1:0},uVivid:{value:paint?0:1},uFaceY:{value:SPECIES[plan]?.faceY??-9}};
  const NOISE='float h31(vec3 p){p=fract(p*.3183099+.1);p*=17.0;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}'+
@@ -50,13 +51,13 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
   'float fbm3(vec3 p){return n3(p)*.55+n3(p*2.1)*.3+n3(p*4.3)*.15;}\n';
  // coat painter: palette + seeded pattern + masks (R belly, G accent, B glow) + fur shading
  const furPatch=(mat:any,shell:{t:number,len:number}|null)=>{mat.onBeforeCompile=(sh:any)=>{Object.assign(sh.uniforms,U,{uS:{value:shell?shell.t:0},uLen:{value:shell?shell.len:0}});
-  sh.vertexShader='uniform float uS,uLen,uT;uniform vec3 uWind;uniform float uChaos;varying vec3 vObjP;varying vec2 vFurUv;varying float vLenN;varying vec3 vMask;varying float vFurL;\n'+NOISE+sh.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+  sh.vertexShader='uniform float uS,uLen,uT,uCst;uniform sampler2D uFlow,uFly;uniform vec3 uWind;uniform float uChaos;varying vec3 vObjP;varying vec2 vFurUv;varying float vLenN;varying vec3 vMask;varying float vFurL;\n'+NOISE+sh.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
    vObjP=position;vFurUv=uv;vMask=vec3(1.0);vFurL=1.0;
    #ifdef USE_COLOR
    vMask=color.rgb;vFurL=color.a*1.6;
    #endif
    vLenN=.5+.7*n3(position*38.0)*(.7+.3*n3(position*110.0));
-   ${shell?`float L=uLen*vLenN*(1.0-vMask.b)*vFurL;vec3 comb=normalize(vec3(0.0,-.5,-1.0));transformed+=objectNormal*L*uS+(comb*.7+uWind+vec3(sin(uT*7.0+position.x*20.0),0.0,cos(uT*6.0+position.z*20.0))*uChaos*.15)*L*uS*uS;`:''}`)
+   ${shell?`float L=uLen*vLenN*(1.0-vMask.b)*vFurL;vec3 comb=normalize(vec3(0.0,-.5,-1.0));if(uCst>.5){vec2 fl=texture2D(uFlow,uv*2.0).rg*2.0-1.0;comb=normalize(comb+vec3(fl.x,0.0,fl.y)*.8);L*=1.0+texture2D(uFly,uv*2.0).r*.9;}transformed+=objectNormal*L*uS+(comb*.7+uWind+vec3(sin(uT*7.0+position.x*20.0),0.0,cos(uT*6.0+position.z*20.0))*uChaos*.15)*L*uS*uS;`:''}`)
    .replace('#include <color_vertex>','');
   sh.fragmentShader='uniform float uS,uT,uBeat,uPat,uPd,uPs;uniform vec3 uSeed,uBase,uAlt,uBelly,uAccent,uGlow,uDark,uLight;uniform sampler2D uStrands;uniform float uScales,uStone,uVivid,uFaceY;varying vec3 vObjP;varying vec2 vFurUv;varying float vLenN;varying vec3 vMask;varying float vFurL;\n'+NOISE+
    sh.fragmentShader.replace('#include <color_fragment>',`
@@ -123,6 +124,9 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
    sheen:am.roughness>.5?.8:0,sheenColor:new THREE.Color(0xb48cff),sheenRoughness:.5,clearcoat:am.roughness<.3?.8:0,transmission:(am as any).transmission||0,ior:(am as any).ior||1.5,thickness:.02});
    if(mn==='pm_cornea'){pm.transparent=true;pm.opacity=.18;pm.transmission=0;pm.roughness=.02;pm.clearcoat=1;pm.depthWrite=false;}
    if(mn==='pm_mist'){pm.transparent=true;pm.opacity=.3;pm.depthWrite=false;pm.side=THREE.DoubleSide;}
+   if(mn==='pm_puffy'){/* 4D surface: CST turbulence over (xyz, t) gently breathes the quilt normal */pm.onBeforeCompile=(sh:any)=>{sh.uniforms.uT=U.uT;sh.uniforms.uChaos=U.uChaos;
+    sh.vertexShader='varying vec3 vP4;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvP4=position;');
+    sh.fragmentShader='uniform float uT,uChaos;varying vec3 vP4;\n'+sh.fragmentShader.replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nvec3 q=vP4*40.0;normal=normalize(normal+.06*(.5+uChaos)*vec3(sin(q.y*1.7+uT*1.3)+.5*sin(q.z*2.3-uT*.7),sin(q.z*1.9+uT*1.1)+.5*sin(q.x*2.1+uT*.5),0.0));');};}
    pm.name=mn;o.material=pm;}
    if(o.morphTargetDictionary&&'pblink' in o.morphTargetDictionary)pblink.push(o);if(/^prop_(pixels|mist)/.test(n))floaters.push(o);}
   else if(mn==='prop'){const pc=new THREE.Color(SP.prop??0x5b2fa8);o.material=SP.crystal?new THREE.MeshPhysicalMaterial({color:pc,roughness:.08,metalness:.1,transmission:.35,thickness:.2,iridescence:1,emissive:C.glow,emissiveIntensity:.5,clearcoat:1})

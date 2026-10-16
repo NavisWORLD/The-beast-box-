@@ -59,6 +59,9 @@ if os.environ.get('CYCLES','1')=='1':
         for o in [o for o in sc.objects if o.type=='MESH' and not o.hide_render and (o.name.startswith(('body','prop_catears')) or o.name.split('.')[0] in SHOW)]:
             o.data.materials.append(hm);slot=len(o.data.materials)
             md=o.modifiers.new('fur','PARTICLE_SYSTEM');ps=md.particle_system.settings;ps.type='HAIR';ps.count=int(22000 if o.name.startswith('body') else 3000)
+            vgl=o.vertex_groups.new(name='furlen');zt_=max(v.co.z for v in o.data.vertices)
+            for v in o.data.vertices:vgl.add([v.index],max(.25,min(1,(v.co.z/zt_-.12)*2.2)),'REPLACE')
+            md.particle_system.vertex_group_length='furlen'
             ps.hair_length=FUR[0]*(.7 if o.name.startswith('ear') else 1);ps.material=slot;ps.child_type='INTERPOLATED';ps.child_percent=6;ps.rendered_child_count=10
             ps.clump_factor=.55;ps.clump_shape=.3;ps.roughness_1=.012;ps.roughness_2=.025;ps.roughness_2_threshold=.85;ps.roughness_endpoint=.006
             ps.use_advanced_hair=False;ps.kink='CURL';ps.kink_amplitude=.002;ps.kink_frequency=3
@@ -66,6 +69,11 @@ if os.environ.get('CYCLES','1')=='1':
             try:  # CST Lorenz clump map drives strand length + clumping
                 tx=bpy.data.textures.get('cstclump') or bpy.data.textures.new('cstclump','IMAGE');tx.image=bpy.data.images.load(os.path.join(here,'tex','nyx_fur_clump.png'),check_existing=True)
                 sl=ps.texture_slots.add();sl.texture=tx;sl.texture_coords='UV';sl.use_map_time=False;sl.use_map_length=True;sl.length_factor=.6;sl.use_map_clump=True;sl.clump_factor=.8
+                for nm_,inf in (('flyaway','rough'),('flow','twist')):  # CST Lorenz flyaway -> strand roughness, Lorenz flow -> twist/comb
+                    t2=bpy.data.textures.get('cst'+nm_) or bpy.data.textures.new('cst'+nm_,'IMAGE');t2.image=bpy.data.images.load(os.path.join(here,'tex','nyx_fur_%s.png'%nm_),check_existing=True)
+                    s2=ps.texture_slots.add();s2.texture=t2;s2.texture_coords='UV';s2.use_map_time=False
+                    if inf=='rough':s2.use_map_rough=True;s2.rough_factor=1.0
+                    else:s2.use_map_twist=True;s2.twist_factor=.6;ps.twist=.4
             except Exception as e:print('cst clump slot',e)
             if o.name.startswith('body'):  # long clumped chest + cheek fluff
                 vg=o.vertex_groups.new(name='ruffd');hc_=max(v.co.z for v in o.data.vertices)*.62
@@ -73,7 +81,7 @@ if os.environ.get('CYCLES','1')=='1':
                     w_=max(0,min(1,(-v.normal.y-.2)*2))*(1 if v.co.z<hc_*1.15 else .6)
                     if w_>0:vg.add([v.index],w_,'REPLACE')
                 md2=o.modifiers.new('ruff','PARTICLE_SYSTEM');p2=md2.particle_system.settings;md2.particle_system.vertex_group_density='ruffd'
-                p2.type='HAIR';p2.count=5000;p2.hair_length=FUR[0]*2.2;p2.material=slot;p2.child_type='INTERPOLATED';p2.child_percent=8;p2.rendered_child_count=12
+                p2.type='HAIR';p2.count=5000;p2.hair_length=FUR[0]*3.0;p2.material=slot;p2.child_type='INTERPOLATED';p2.child_percent=8;p2.rendered_child_count=12
                 p2.clump_factor=.85;p2.clump_shape=.5;p2.roughness_2=.03;p2.roughness_2_threshold=.8;p2.roughness_endpoint=.01;p2.radius_scale=.0018;p2.root_radius=1;p2.tip_radius=0;p2.render_step=5
     for m_ in bpy.data.materials:
         if m_.name in('pm_pink','fur','pm_skin_d') and m_.use_nodes:
