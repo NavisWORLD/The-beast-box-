@@ -15,15 +15,12 @@ export function useTalkTarget(){
  return [target,choose] as const;
 }
 
-/** One stable companion per guest: the first companion seen on this device stays theirs across pages. */
+/** One companion per guest: their saved Spark Beast (the one with memory) always wins; otherwise
+ * the first Beast Cage creature this device picked stays theirs across pages. */
 export function stableCompanionPersona(beast:any,profile:any){
- const a=beast?.genome?talkPersona({beast}):null,b=profile?talkPersona({cage:profile}):null;
- if(!a&&!b)return null;
- const stored=read(COMPANION_KEY);
- if(stored&&a?.key===stored)return a;if(stored&&b?.key===stored)return b;
- const pick=(a||b)!;
- if(typeof window!=='undefined')write(COMPANION_KEY,pick.key);
- return pick;
+ const a=beast?.genome?talkPersona({beast}):null;
+ if(a){if(typeof window!=='undefined')write(COMPANION_KEY,a.key);return a;}
+ return profile?talkPersona({cage:profile}):null;
 }
 
 export function useTalkPersona(beast:any,profile:any){

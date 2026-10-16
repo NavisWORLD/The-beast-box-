@@ -742,3 +742,4 @@ html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],
 /* 2026-10-16 guest test: the open greeting card must not be covered by the View button. */
 *:has(>.cosmos-home-card[open])>.cosmos-home-viewmenu:not([open]){top:auto;bottom:8px}
 .cosmos-home-card[open]{z-index:6}
+.cosmos-home-viewmenu[open]{z-index:7}
