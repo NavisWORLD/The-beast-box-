@@ -273,7 +273,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       'vec3 c=mix(vec3(.12,.55,.85),vec3(.65,.4,1.0),w);gl_FragColor=vec4(c*(1.0-r*.7),(1.0-r)*.55+.08);}'});
     const pool=new THREE.Mesh(new THREE.CircleGeometry(1,low?32:64),poolMat);pool.rotation.x=-Math.PI/2;pool.position.set(2.15,-.03,-1.7);pool.scale.setScalar(.95);scene.add(pool);
     // Artist-drawn residents (separate creatures, never the active Beast) roam the pocket.
-    const {stepResidents,texCache,disturbers,pickables}=addPocketResidents(THREE,scene,seedRandom,reduced);
+    const {stepResidents,texCache,disturbers,pickables}=addPocketResidents(THREE,scene,seedRandom,reduced,low);
     // God view: habitat on a small planet, orbiting its suns, inside a galaxy (Genesis Engine, recoloured).
     const god=addGodView(THREE,scene,{rand:randomFor(key+':system'),low,counts:qvmCounts,stage:motion.current.stage||stage||1});
     const godFocus=new THREE.Vector3();
@@ -286,8 +286,10 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const sand=addPocketSand(THREE,scene,{seed:key,low,reduced});
     sand.field.setCounts(qvmCounts);
     // ---- LIVING POCKET (CST-driven world) + the Beast as a plush 3D creature living its own life
-    const life=addPocketLife(THREE,scene,{seed:key,low,reduced,counts:qvmCounts,hemi});
-    const world=addPocketWorld(THREE,scene,{seed:key,low});
+    const life=addPocketLife(THREE,scene,{seed:key,low,reduced,counts:qvmCounts,hemi,soft});
+    // Software GL (CI SwiftShader, GPU-less VMs): the terrain/ocean/nebula-sky shaders take tens of seconds to link there and
+    // starve the main thread, so the classic pocket stays and the world layer is skipped. Real GPUs (incl. phones) keep it.
+    const world=soft?{update:(..._a:any[])=>{},dispose:()=>{}}:addPocketWorld(THREE,scene,{seed:key,low});
     const brain:any=createLife(key,{x:.8,z:.6} as any);const shelterAt=flora[0]?{x:flora[0].position.x*.8,z:flora[0].position.z*.8}:{x:2,z:-1.4};
     let plush:ReturnType<typeof buildPlush>|null=null;const beastNode=new THREE.Group();beastNode.name='beast-3d';scene.add(beastNode);
     const syncPlush=()=>{const gen=(window as any).__beastGenome as PlushGenome|null;const want=!!gen&&!pixelRef.current;
@@ -403,7 +405,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     };
     frame=requestAnimationFrame(animate);
     cleanup=()=>{
-     pickRef.current=null;godRef.current=null;window.removeEventListener('beastbox:genome',syncPlush);window.removeEventListener('beastbox:pixel-mode',syncPlush);window.removeEventListener('beastbox:spark-chirp',onTalk);document.documentElement.removeAttribute('data-beast-3d');life.dispose();plush?.dispose();
+     pickRef.current=null;godRef.current=null;world.dispose();window.removeEventListener('beastbox:genome',syncPlush);window.removeEventListener('beastbox:pixel-mode',syncPlush);window.removeEventListener('beastbox:spark-chirp',onTalk);document.documentElement.removeAttribute('data-beast-3d');life.dispose();plush?.dispose();
      {const ze=(window as any).__zerefEmbed;if(ze?.root?.parent===zActorNode){zActorNode.remove(ze.root);ze.root.position.y=0;ze.claimed=false;}}
      cancelAnimationFrame(frame);ro?.disconnect();io?.disconnect();
      canvas.removeEventListener('webglcontextlost',onContextLost);

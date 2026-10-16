@@ -6,7 +6,10 @@ import {motionPersona,createActor,stepActor} from '../lib/companion/film-motion.
 type Three=typeof import('three');
 /** Cory's artist-drawn residents (no quantum seed). They are separate creatures and never the
  * player's active Beast, which stays rendered by the Cage arena in front of the pocket. */
-export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedRandom:()=>number,reduced:boolean){
+export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedRandom:()=>number,reduced:boolean,low=false){
+ /* Low tier (phones, software GL such as CI SwiftShader): sculpted GLBs (fur shells, coat shader) stay off so the
+    main thread never starves; the visual-hull model / sprite render instead. ?beastglb=1 forces them for review. */
+ const glbOk=!reduced&&(!low||(typeof location!=='undefined'&&new URLSearchParams(location.search).get('beastglb')==='1'));
     const loader=new THREE.TextureLoader(),texCache=new Map<string,import('three').Texture>();
     const tex=(src:string)=>{let t=texCache.get(src);if(!t){t=loader.load(src);t.colorSpace=THREE.SRGBColorSpace;texCache.set(src,t);}return t;};
     const residents=ARTIST_RESIDENTS.map((r,i)=>{
@@ -21,7 +24,7 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
      // Zeref-pipeline sculpted resident GLB (Oct 15) with its artist palette + props; the visual-hull model / sprite stay as fallback.
      const stub=(RES_PAINTS as any[]).find(x=>x.body==='res_'+r.id.replace('art-',''));
      const hull=()=>loadResident3D(THREE,r.id).then(m=>{if(!m)return;slot.mesh=m;scene.add(m);sprite.visible=false;});
-     if(stub&&!reduced)void loadBeastGlb(THREE,stub,{tier:'med',paint:stub.paint}).then(gb=>{if(!gb){void hull();return;}slot.glb=gb;slot.mesh=gb.root;gb.root.userData.glb=true;scene.add(gb.root);sprite.visible=false;}).catch(()=>void hull());
+     if(stub&&glbOk)void loadBeastGlb(THREE,stub,{tier:'med',paint:stub.paint}).then(gb=>{if(!gb){void hull();return;}slot.glb=gb;slot.mesh=gb.root;gb.root.userData.glb=true;scene.add(gb.root);sprite.visible=false;}).catch(()=>void hull());
      else void hull();
      return {r,sprite,shadow,h,actor,slot,phase:i*1.37+seedRandom()*2,radius:r.kind==='trainer'?2.2:2.7+seedRandom()*1.1,speed:(r.kind==='trainer'?.05:.09+seedRandom()*.06)*(i%2?1:-1),src:r.views.front,x:0,z:0};
     });

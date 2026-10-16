@@ -25,7 +25,10 @@ const SWAY='vec2 sway(vec2 wp,float h){vec2 f=flow(wp,uTime,uFlow);float gust=.6
  'd+=vec2(sin(uTime*7.0+wp.x*9.0),cos(uTime*6.3+wp.y*8.0))*uChaos*.05*h;'+
  'for(int i=0;i<4;i++){vec2 o=wp-uRip[i].xy;float r=length(o);float age=uTime-uRip[i].z;float ring=exp(-pow((r-age*2.2)*2.5,2.0))*exp(-age*1.2)*uRip[i].w;d+=normalize(o+1e-4)*ring*.35*h;}return d;}';
 
-export function addPocketLife(THREE:Three,scene:import('three').Scene,opts:{seed:string;low:boolean;reduced:boolean;counts?:Record<string,number>|null;hemi?:import('three').HemisphereLight;lights?:import('three').Light[]}){
+export function addPocketLife(THREE:Three,scene:import('three').Scene,opts:{seed:string;low:boolean;reduced:boolean;counts?:Record<string,number>|null;hemi?:import('three').HemisphereLight;lights?:import('three').Light[];soft?:boolean}){
+ // soft = software GL (SwiftShader/llvmpipe): every pixel is CPU-shaded, so the full-screen fbm layers (sky dome, ink
+ // currents) are skipped and the meadow thinned; weather, flowers, rain, fireflies and the life brain all still run.
+ const soft=!!opts.soft;
  const {seed,low,reduced}=opts;const rnd=seededRng('pocket-life:'+seed);
  const cst=createCSTState(seed,{counts:(opts.counts??null) as any});const clock=createCSTClock({seed,hz:60});
  const emo={valence:cst.ch.valence,arousal:cst.ch.arousal,curiosity:cst.ch.curiosity,fear:cst.ch.avoid};
@@ -50,7 +53,7 @@ export function addPocketLife(THREE:Three,scene:import('three').Scene,opts:{seed
    // poke/talk ripples
    'for(int i=0;i<4;i++){float age=uTime-uRip[i].z;float d=length(vW-uRip[i].xy);col+=vec3(.75,.55,1.0)*exp(-pow((d-age*2.2)*3.0,2.0))*exp(-age*1.1)*uRip[i].w*.6;}'+
    'gl_FragColor=vec4(col*(1.0-smoothstep(3.8,4.5,r)),1.0);}'}));
- const ink=new THREE.Mesh(keep(new THREE.CircleGeometry(4.5,low?48:96)),inkMat);ink.rotation.x=-Math.PI/2;ink.position.y=-.035;ink.renderOrder=1;group.add(ink);
+ const ink=new THREE.Mesh(keep(new THREE.CircleGeometry(4.5,low?48:96)),inkMat);ink.rotation.x=-Math.PI/2;ink.position.y=-.035;ink.renderOrder=1;ink.visible=!soft;group.add(ink);
 
  // ---- sky ink + day/night dome
  const skyMat=keep(new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,fog:false,uniforms:U,
@@ -61,13 +64,13 @@ export function addPocketLife(THREE:Three,scene:import('three').Scene,opts:{seed
    'vec3 base=mix(day,night,uNight);base=mix(base,storm,clamp(uRain*1.2,0.0,.85));'+
    'vec3 c=base+mix(vec3(.35,.25,.9),vec3(.2,.8,1.0),s)*line*(.05+.1*uChaos)*(.4+uNight*.6);'+
    'gl_FragColor=vec4(c,.6*smoothstep(.12,.55,vD.y));}'}));   // fades out toward the horizon so the pocket world (shore, ocean, far sky) shows through
- const dome=new THREE.Mesh(keep(new THREE.SphereGeometry(14,low?24:40,low?12:20)),skyMat);dome.renderOrder=-2;group.add(dome);
+ const dome=new THREE.Mesh(keep(new THREE.SphereGeometry(14,low?24:40,low?12:20)),skyMat);dome.renderOrder=-2;dome.visible=!soft;group.add(dome);
 
  // ---- grass (GPU instanced, wind-swayed by the shared field)
  const blade=keep(new THREE.BufferGeometry());
  {const seg=low?2:3,pos:number[]=[],idx:number[]=[],hh:number[]=[];for(let i=0;i<=seg;i++){const t=i/seg,w=.035*(1-t*.85);pos.push(-w,t,0,w,t,0);hh.push(t,t);if(i<seg){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}}
   blade.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));blade.setAttribute('aH',new THREE.Float32BufferAttribute(hh,1));blade.setIndex(idx);}
- const grassN=reduced?400:low?1300:3600;
+ const grassN=reduced||soft?400:low?1300:3600;
  const grassMat=keep(new THREE.ShaderMaterial({side:THREE.DoubleSide,uniforms:U,
   vertexShader:UNI+NOISE+SWAY+'attribute float aH;attribute vec3 aTint;varying float vH;varying vec3 vT;void main(){vec4 w=modelMatrix*instanceMatrix*vec4(position,1.0);vec2 root=(modelMatrix*instanceMatrix*vec4(0,0,0,1)).xz;vec2 d=sway(root,aH);w.xz+=d;w.y-=dot(d,d)*.5;vH=aH;vT=aTint;gl_Position=projectionMatrix*viewMatrix*w;}',
   fragmentShader:UNI+'varying float vH;varying vec3 vT;void main(){vec3 c=mix(vT*.35,vT,vH);c=mix(c,c*vec3(.45,.5,.9),uNight*.6);c+=vec3(.2,.5,.6)*pow(vH,4.0)*.25*(1.0-uNight*.5);gl_FragColor=vec4(c,1.0);\n#include <colorspace_fragment>\n}'}));
