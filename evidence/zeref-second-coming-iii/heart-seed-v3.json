@@ -1,0 +1,50 @@
+{
+ "creature_id": "bb-deada969",
+ "heart_seed_sha256": "2e8c12d9dae4212d5fc1a315bc5e286453fcb0cb2b728d829f16b8dd4683ea44",
+ "honesty": "Creative seed for Zeref. Not biology, not proof of anything infinite. Training gates unchanged.",
+ "ibm": {
+  "S_equivalent": 2.74,
+  "backend": "ibm_kingston",
+  "classical_control_win_rate": 0.7486666666666667,
+  "failed_attempt": "db98of8c77vs73812mq0 (timeout, no result)",
+  "job_id": "db98qos24mrc7383l7f0",
+  "label": "RECORDED_IBM_HARDWARE",
+  "qubits": [
+   105,
+   117
+  ],
+  "rounds": 30000,
+  "sigma_above_classical": 43.96,
+  "standard_error": 0.002103303609580432,
+  "verdict": "PASS: above the 75% classical bound (Bell/CHSH violation, not loophole-free).",
+  "win_rate": 0.8424666666666667
+ },
+ "mix": {
+  "ecosystem_packet_sha256": "2dc13dd8780d6cee5cf03e68f4445cf10cc01ad3684ed80a3835711b1d673a04",
+  "heart_seed_v2_sha256": "52a0d7a4680e4595622b408d2f80b6d66d9cddaa85056c40e41636de8fb4c3c7",
+  "ibm_job_id": "db98qos24mrc7383l7f0",
+  "ibm_outcomes_sha256": "fdc791e2f9242c670703c68c60cef6fd37a5f5bd52134b42bdc3ed7680cfbd0f",
+  "qvm_counts": {
+   "00": 1860,
+   "01": 171,
+   "10": 179,
+   "11": 1886
+  },
+  "qvm_job_id": "6034737b-c9a2-11f1-a9dd-7ced8dd63f3f"
+ },
+ "name": "The Second Coming III - Big Quantum Boom (God Core Boom)",
+ "qvm": {
+  "counts": {
+   "00": 1860,
+   "01": 171,
+   "10": 179,
+   "11": 1886
+  },
+  "job_id": "6034737b-c9a2-11f1-a9dd-7ced8dd63f3f",
+  "label": "SIMULATED",
+  "shots": 4096,
+  "target": "rigetti.sim.qvm",
+  "zz_parity": 0.8291015625
+ },
+ "schema": "beastbox-zeref-heart-seed-v3"
+}
