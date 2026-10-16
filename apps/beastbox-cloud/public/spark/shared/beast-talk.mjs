@@ -235,9 +235,9 @@ export async function talkToBeast(input) {
       });
       const payload = await readJson(response).catch(() => null);
       if (!response.ok) return failure(route, typeof payload?.error === "string" ? payload.error : `The Ollama teacher did not answer (${response.status}).`, response.status);
-      const reply = typeof payload?.reply === "string" ? payload.reply.trim() : "";
-      if (payload?.role !== "TEACHER_NOT_BEAST_VOICE" || !reply || reply.length > 6000) return failure(route, "The Ollama teacher sent no usable reply.");
-      return { ok: true, route, reply, model: clean(payload.model || "", 80), label: ROUTE_INFO[route].label, at: Date.now() };
+      // Server keeps the lesson; teacher text never comes back to the chat.
+      if (payload?.role !== "TEACHER_NOT_BEAST_VOICE" || payload?.coached !== true) return failure(route, "The Ollama teacher did not coach this time.");
+      return { ok: true, route, reply: "", lesson: payload.distill, model: clean(payload.model || "", 80), label: ROUTE_INFO[route].label, at: Date.now() };
     }
     if (route === "local-ollama") {
       const base = String(input?.ollama?.url || DEFAULT_OLLAMA_URL).replace(/\/+$/, "");

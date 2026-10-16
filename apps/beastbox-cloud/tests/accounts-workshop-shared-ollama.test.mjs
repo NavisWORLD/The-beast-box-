@@ -30,3 +30,8 @@ test('teacher router picks per message type, explores, and falls back',async()=>
  assert.deepEqual(pickTeachers('hi',[],{random:()=>0.9}).order,['gpt-oss:20b']);
  assert.match(readFileSync(new URL('../app/api/teacher/ollama/route.ts',import.meta.url),'utf8'),/storeLesson/);
 });
+test('Talk to Beast shows only RAWRPHOS text; teachers coach in the background',()=>{
+ const panel=read('components/beast-talk-panel.tsx'),popup=read('public/spark/chat-popup.mjs'),srv=read('app/api/teacher/ollama/route.ts');
+ for(const s of [panel,popup]){assert.doesNotMatch(s,/Teacher hint ·/);assert.doesNotMatch(s,/turn\.teacher\.text/);assert.match(s,/Coached by: /);assert.match(s,/is resting, try again/);}
+ assert.doesNotMatch(srv,/safeJson\(200,\{ok:true,reply/);assert.match(srv,/coached:true/);
+});
