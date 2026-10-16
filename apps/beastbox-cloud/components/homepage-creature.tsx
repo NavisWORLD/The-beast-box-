@@ -4,6 +4,7 @@ import Link from 'next/link';
 import CosmicCompanion3D from './cosmic-companion-3d';
 import ZerefMoonwraith from './zeref-moonwraith';
 import ZerefSprite3D from './zeref-sprite-3d';
+import BeastHero3D from './beast-hero-3d';
 import ZerefLatestThought from './zeref-latest-thought';
 import {useCompanion} from './companion-provider';
 import {useBeastSession} from './beast-session';
@@ -41,7 +42,7 @@ export default function HomepageCreature(){
  const turn=spin?undefined:(angle??0);
  return <div className="cosmos-home-hero" aria-label="Interactive cosmic companion observatory" data-home-view={showZeref?'zeref':showDimensional?'zeref-3d':genome?'my-beast':'3d-model'}>
   {showDimensional?<ZerefSprite3D embed greet={greet} autoRotate={angle===null} turntable={spin} turntableAngle={angle}/>:showZeref?<div className={'cosmos-zeref-turn'+(spin?' is-spinning':'')} data-zeref-turn={spin?'spin':String(turn)} style={spin?undefined:{transform:'rotateY('+turn+'deg)'}}><ZerefMoonwraith greet={greet} showCaption={false} onMood={mood=>{setLine(mood.line);setZMood(mood.mood);}}/></div>:
-  genome?<span className="cosmos-home-nobillboard" data-home-active-billboard="removed" aria-hidden="true"/>:<CosmicCompanion3D quality="low" profile={showDimensional?null:profile}
+  genome?<><span className="cosmos-home-nobillboard" data-home-active-billboard="removed" aria-hidden="true"/><BeastHero3D genome={genome as any} label={activeName+' in 3D'}/></>:<CosmicCompanion3D quality="low" profile={showDimensional?null:profile}
    dimensionalId={showDimensional?ZEREF_PROFILE.id:null}
    preferSprite={false} spriteGenome={genome}
    spriteStage={savedBeast?.nativeStage||savedBeast?.stage||1}
