@@ -351,7 +351,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      if(disposed)return;
      frame=requestAnimationFrame(animate);
      const dt=clamp((now-last)/1000,0,.06);last=now;
-     if(document.hidden||!visible||now-lastPaint<(soft?120:low?55:33))return;
+     if(document.hidden||(!visible&&rendered)||now-lastPaint<(soft?120:low?55:33))return;
      lastPaint=now;
      if(!reduced)elapsed+=dt;
      nebulaMat.uniforms.time.value=elapsed;poolMat.uniforms.time.value=elapsed;
