@@ -173,7 +173,27 @@ jobs:
           set -Eeuo pipefail
           curl -fsSL --retry 3 -o build/zeref-006/dolly.jsonl "https://huggingface.co/datasets/databricks/databricks-dolly-15k/resolve/bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a/databricks-dolly-15k.jsonl"
           python scripts/zeref_chat_corpus.py build/zeref-006/dolly.jsonl build/zeref-006/chat-mix.jsonl
+      - name: Teacher distillation stage (approved teacher pairs only; teachers inform knowledge, not Zeref's voice)
+        env:
+          ZEREF_DISTILL_EXPORT_TOKEN: ${{ secrets.ZEREF_DISTILL_EXPORT_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          : > build/zeref-006/teacher-pairs.jsonl
+          if [ -n "${ZEREF_DISTILL_EXPORT_TOKEN:-}" ]; then
+            curl -fsS --max-time 60 -H "Authorization: Bearer ${ZEREF_DISTILL_EXPORT_TOKEN}" \
+              -o build/zeref-006/teacher-pairs.jsonl https://www.beastboxcosmos.xyz/api/teacher-pairs \
+              || { echo 'TEACHER_PAIRS_EXPORT_UNAVAILABLE (continuing without shared pairs)'; : > build/zeref-006/teacher-pairs.jsonl; }
+          else
+            echo 'TEACHER_PAIRS_EXPORT_NOT_CONFIGURED (repo-reviewed pairs only)'
+          fi
+          python scripts/zeref_teacher_distill.py build/zeref-006/chat-mix.jsonl build/zeref-006/teacher-pairs.jsonl evidence/teacher-distill/approved.jsonl
+      - name: Install pinned PUBLIC 14000 (fixed anti-ratchet chat reference + promotion baseline)
+        run: |
+          set -Eeuo pipefail
+          python models/rawrphos/scripts/install_pinned_14k.py --destination build/public-14k > build/zeref-006/public-14k-receipt.json
       - name: Resume exact AdamW state, perform up to 64 new CPU updates and test heldout/retention
+        env:
+          ZEREF_006_PUBLIC_REF_DIR: build/public-14k
         run: |
           set -Eeuo pipefail
           python -u scripts/zeref_continuation_006.py
@@ -198,7 +218,7 @@ jobs:
         if: success() && hashFiles('build/zeref-006/approval.json') != ''
         run: |
           set -Eeuo pipefail
-          python models/rawrphos/scripts/install_pinned_14k.py --destination build/public-14k > build/zeref-006/public-14k-receipt.json
+          test -s build/public-14k/model.safetensors
           python -u scripts/rawrphos_chat_eval.py build/public-14k build/zeref-006/accepted-checkpoint build/zeref-006/chat-eval.json
       - name: Persist ONLY the approved model and optimizer to resume on next six-hour cycle
         if: success()

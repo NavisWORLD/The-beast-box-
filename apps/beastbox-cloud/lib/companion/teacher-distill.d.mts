@@ -1,0 +1,14 @@
+export const TEACHER_ROUTES:readonly string[];export const PAIRS_KEY:string;export const CONTRIBUTE_KEY:string;
+export const MAX_LOCAL_PAIRS:number;export const MAX_PROMPT:number;export const MAX_REPLY:number;
+export type TeacherPair={schema:'beastbox-teacher-pair-v1';prompt:string;teacher_reply:string;provider:string;model:string|null;beast:string|null;role:'TEACHER_NOT_BEAST_VOICE';at:number;contributed:boolean};
+export function isTeacherRoute(route:string):boolean;
+export function clean(value:unknown,max:number):string;
+export function screenText(text:unknown):{ok:boolean;reason?:string};
+export function makePair(input:{prompt:string;reply:string;route:string;model?:string;beast?:string}):TeacherPair|null;
+export function readPairs(storage:Storage|null):TeacherPair[];
+export function writePairs(storage:Storage|null,rows:TeacherPair[]):boolean;
+export function rememberPair(storage:Storage|null,pair:TeacherPair|null):TeacherPair[];
+export function readContribute(storage:Storage|null):boolean;
+export function writeContribute(storage:Storage|null,on:boolean):void;
+export function contributionBody(pair:TeacherPair|null):{consent:true;prompt:string;teacher_reply:string;provider:string;model:string|null}|null;
+export function personaStyle(reply:string):string|null;

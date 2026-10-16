@@ -74,3 +74,17 @@ test('Static native screen no longer creates a RIGHT-only teacher distribution',
  assert.match(train,/"native_game_progress_demonstrated":False/);
  assert.match(train,/"teacher_is_scripted_not_human":True/);
 });
+
+test('2026-10-16 fixes: fresh order per attempt, anti-ratchet chat gate, calmer drift, boot-race wait',()=>{
+ const t=read('scripts/zeref_continuation_006.py'),w=read('.github/workflows/zeref-continuous-learning-006.yml');
+ const cap=read('apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs'),mix=read('scripts/zeref_chat_corpus.py');
+ assert.ok(t.includes('rigetti_order_seed(cycle,source_digest,RUN_ID)'));
+ assert.ok(t.includes('"label":"SIMULATED"'));
+ assert.ok(t.includes('chat_bar=max(.01,original_chat*1.05,public_ref_chat or 0.)'));
+ assert.ok(t.includes('LR=float(os.environ.get("ZEREF_006_LR","0.000025"))'));
+ assert.ok(mix.includes('DAD_REPEAT=2'));
+ assert.ok(w.includes('ZEREF_006_PUBLIC_REF_DIR: build/public-14k'));
+ assert.ok(w.includes('scripts/rawrphos_chat_eval.py build/public-14k'),'14000 public chat test stays the promotion check');
+ assert.ok(w.includes('scripts/zeref_teacher_distill.py'));
+ assert.ok(cap.includes('await waitForGameplay()'));
+});
