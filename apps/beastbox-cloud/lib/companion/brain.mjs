@@ -1,3 +1,16 @@
+
+// Public RAWRPHOS pin, mirrored from lib/rawrphos-public-pin.json (a test enforces equality).
+// 14000 stays accepted as the documented rollback baseline.
+export const RAWRPHOS_PUBLIC_PIN = Object.freeze({ step: 21616, checkpoint_sha256: "e92e0c0da36a02ade01ce4bc2f93d9f74c0e2b937313c896f1b81fe9eb32a2d1" });
+const RAWRPHOS_BASE_PIN = Object.freeze({ step: 14000, checkpoint_sha256: "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5" });
+function pinnedGuestStep(payload) {
+  for (const pin of [RAWRPHOS_PUBLIC_PIN, RAWRPHOS_BASE_PIN]) {
+    if (payload?.step !== pin.step) continue;
+    const sha = payload?.checkpoint_sha256;
+    if (sha === undefined || sha === pin.checkpoint_sha256) return pin.step;
+  }
+  return null;
+}
 /**
  * Model routing for the adventure chat.
  * A missing or unverified model result is a failure, not a substitute sentence.
@@ -15,7 +28,7 @@ export function chooseBrain({ ownerReady = false, providerKind = "", guestReady 
   if (guestReady) {
     return {
       route: "guest-rawrphos",
-      label: "RAWRPHØS guest 14K (stateless host). Context is sent only inside this message.",
+      label: `RAWRPHØS guest ${RAWRPHOS_PUBLIC_PIN.step} (stateless host). Context is sent only inside this message.`,
       endpoint: "/api/guest",
     };
   }
@@ -52,9 +65,9 @@ export function interpretModelResult(route, payload) {
     return { ok: false, reason: textOf(payload?.error) || "Brain Bay returned no verified text" };
   }
   if (route === "guest-rawrphos") {
-    if (payload?.provider === "rawrphos-local" && payload?.model === "rawrphos-native" && payload?.step === 14000 && payload?.guest_stateless === true) {
+    if (payload?.provider === "rawrphos-local" && payload?.model === "rawrphos-native" && pinnedGuestStep(payload) !== null && payload?.guest_stateless === true) {
       const reply = textOf(payload.reply);
-      if (reply) return { ok: true, reply: String(reply), source: "guest-rawrphos", model: "rawrphos-native", step: 14000 };
+      if (reply) return { ok: true, reply: String(reply), source: "guest-rawrphos", model: "rawrphos-native", step: pinnedGuestStep(payload) };
     }
     return { ok: false, reason: textOf(payload?.error) || "RAWRPHØS guest returned no verified text" };
   }

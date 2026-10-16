@@ -4,6 +4,7 @@ import JourneyLinks from '@/components/journey-links';
 import Link from 'next/link';
 import {ArrowLeft,ArrowRight,BrainCircuit,Globe,ShieldCheck,KeyRound} from 'lucide-react';
 import BrandCrest from '@/components/brand-crest';
+import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
 type Provider='rawrphos-local'|'huggingface-byok';
 type Reply={provider?:Provider;model?:string;step?:number;reply?:string;guest_stateless?:boolean;charged_to?:string;error?:string};
 export default function TryBeastBox(){
@@ -37,7 +38,7 @@ export default function TryBeastBox(){
    <h2>Choose your brain</h2>
    <div className="guest-options" role="group" aria-label="Guest model provider">
     <label className={provider==='rawrphos-local'?'selected':''}><input type="radio" name="guest-provider" checked={provider==='rawrphos-local'} onChange={()=>{setProvider('rawrphos-local');setReply(null);setError('');setHfKey('');setConfirm(false);}} disabled={busy}/>
-     <BrainCircuit size={26}/><strong>RAWRPHØS · Local CPU</strong><small>Cory&apos;s hosted stable 14K checkpoint. Limited public trial and queue; no Hugging Face key required.</small></label>
+     <BrainCircuit size={26}/><strong>RAWRPHØS · Local CPU</strong><small>Cory&apos;s hosted public checkpoint (step {PUBLIC_PIN.training_steps}). Limited public trial and queue; no Hugging Face key required.</small></label>
     <label className={provider==='huggingface-byok'?'selected':''}><input type="radio" name="guest-provider" checked={provider==='huggingface-byok'} onChange={()=>{setProvider('huggingface-byok');setReply(null);setError('');setHfKey('');setConfirm(false);}} disabled={busy}/>
      <Globe size={26}/><strong>Hugging Face · Your key</strong><small>Uses your account and its quotas/billing, never Cory&apos;s HF key. The selected HF model is not RAWRPHØS.</small></label>
    </div>
@@ -55,7 +56,7 @@ export default function TryBeastBox(){
     <button type="submit" disabled={busy||!text.trim()||(provider==='huggingface-byok'&&(!hfKey||!confirm))}>{busy?'Generating…':'Send to model'} <ArrowRight size={16}/></button>
    </div>
    {error?<p role="alert" className="guest-error">{error}</p>:null}
-   {reply?<section className="guest-reply" role="status"><strong>{reply.provider==='rawrphos-local'?'RAWRPHØS · stable 14K':reply.model||'Hugging Face model'}</strong><p>{reply.reply}</p><small>Real model response · stateless guest session · answers may be wrong</small></section>:null}
+   {reply?<section className="guest-reply" role="status"><strong>{reply.provider==='rawrphos-local'?`RAWRPHØS · step ${PUBLIC_PIN.training_steps}`:reply.model||'Hugging Face model'}</strong><p>{reply.reply}</p><small>Real model response · stateless guest session · answers may be wrong</small></section>:null}
   </form>
   <footer className="guest-bottom"><BrandCrest size={14} decorative style={{verticalAlign:'-2px',marginRight:6}}/>BEAST BOX COSMOS · MODEL ≠ MEMORY ≠ AUTHORITY <Link href="https://github.com/NavisWORLD/The-beast-box-" target="_blank" rel="noopener noreferrer">Open source ↗</Link></footer>
  </main>;
