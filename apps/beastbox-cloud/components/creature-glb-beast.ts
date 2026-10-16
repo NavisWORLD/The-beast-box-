@@ -20,7 +20,7 @@ const WING_V:Record<string,string>={feather:'wing_feather',leaf:'wing_feather',b
 const GLOWING=new Set(['crystal','flame']);
 /** species identity parts always shown (the genome still paints them); fur = coat length multiplier, scales = belly scale plates */
 const SPECIES:Record<string,{ears?:string[];tail?:string;wings?:string;fur?:number;scales?:boolean;stone?:boolean;prop?:number;propGlow?:number;crystal?:boolean;crystalBody?:boolean;faceY?:number}>={
- res_frostmitt:{ears:['ear_pointy'],tail:'tail_fluffy',fur:1.5,prop:0x5b2fa8},res_nyxbean:{ears:['ear_pointy'],tail:'tail_thin',fur:1.25,prop:0x3a1f6e},
+ res_frostmitt:{ears:['ear_pointy'],tail:'tail_fluffy',fur:1.5,prop:0x5b2fa8},res_nyxbean:{ears:[],tail:'tail_thin',fur:1.25,prop:0x3a1f6e},
  res_shardhowl:{ears:['ear_fox'],tail:'tail_brush',fur:0,prop:0x9a6cff,crystal:true,crystalBody:true},res_velvetcoil:{ears:['ear_horns'],tail:'tail_thin',fur:.1,scales:true,prop:0x2a1240},
  res_kairo:{ears:[],fur:0,prop:0x16121f,faceY:.7},
  fox:{ears:['ear_fox'],tail:'tail_brush',fur:1.25},dragonling:{ears:['ear_dhorn'],wings:'wing_dragon',fur:.55,scales:true},axolotl:{ears:['ear_frill'],tail:'tail_axfin',fur:.22},

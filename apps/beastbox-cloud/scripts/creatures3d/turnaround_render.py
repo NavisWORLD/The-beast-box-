@@ -7,7 +7,7 @@ here=os.path.dirname(os.path.abspath(__file__))
 P=[r for r in json.load(open(os.path.join(here,'../../lib/creatures3d/resident-paints.json'))) if r['seed']==PLAN][0]['paint']
 def c(h):return tuple(((h>>s)&255)/255 for s in (16,8,0))
 def lin(t):return tuple(x**2.2 for x in t)+(1,)
-SHOW={'res_frostmitt':('ear_pointy','tail_fluffy'),'res_nyxbean':('ear_pointy','tail_thin'),'res_kairo':()}[PLAN]
+SHOW={'res_frostmitt':('ear_pointy','tail_fluffy'),'res_nyxbean':('tail_thin',),'res_kairo':()}[PLAN]
 sc=bpy.context.scene
 for o in list(sc.objects):
     if o.type=='MESH' and (o.name.startswith(('ear_','tail_','wing_'))) and o.name.split('.')[0] not in SHOW:o.hide_render=True
@@ -56,14 +56,21 @@ if os.environ.get('CYCLES','1')=='1':
         try:hb.inputs['Color'].default_value=FUR[1]+(1,)
         except Exception:pass
         hb.inputs['Roughness'].default_value=.35;nt2.links.new(hb.outputs[0],out.inputs['Surface'])
-        for o in [o for o in sc.objects if o.type=='MESH' and not o.hide_render and (o.name.startswith('body') or o.name.split('.')[0] in SHOW)]:
+        for o in [o for o in sc.objects if o.type=='MESH' and not o.hide_render and (o.name.startswith(('body','prop_catears')) or o.name.split('.')[0] in SHOW)]:
             o.data.materials.append(hm);slot=len(o.data.materials)
             md=o.modifiers.new('fur','PARTICLE_SYSTEM');ps=md.particle_system.settings;ps.type='HAIR';ps.count=int(22000 if o.name.startswith('body') else 3000)
             ps.hair_length=FUR[0]*(.7 if o.name.startswith('ear') else 1);ps.material=slot;ps.child_type='INTERPOLATED';ps.child_percent=6;ps.rendered_child_count=10
             ps.clump_factor=.55;ps.clump_shape=.3;ps.roughness_1=.012;ps.roughness_2=.025;ps.roughness_2_threshold=.85;ps.roughness_endpoint=.006
             ps.use_advanced_hair=False;ps.kink='CURL';ps.kink_amplitude=.002;ps.kink_frequency=3
             ps.radius_scale=.0016;ps.root_radius=1;ps.tip_radius=0;ps.display_step=3;ps.render_step=4
-            if 'Col' in o.data.color_attributes:pass
+            if o.name.startswith('body'):  # long clumped chest + cheek fluff
+                vg=o.vertex_groups.new(name='ruffd');hc_=max(v.co.z for v in o.data.vertices)*.62
+                for v in o.data.vertices:
+                    w_=max(0,min(1,(-v.normal.y-.2)*2))*(1 if v.co.z<hc_*1.15 else .6)
+                    if w_>0:vg.add([v.index],w_,'REPLACE')
+                md2=o.modifiers.new('ruff','PARTICLE_SYSTEM');p2=md2.particle_system.settings;md2.particle_system.vertex_group_density='ruffd'
+                p2.type='HAIR';p2.count=5000;p2.hair_length=FUR[0]*2.2;p2.material=slot;p2.child_type='INTERPOLATED';p2.child_percent=8;p2.rendered_child_count=12
+                p2.clump_factor=.85;p2.clump_shape=.5;p2.roughness_2=.03;p2.roughness_2_threshold=.8;p2.roughness_endpoint=.01;p2.radius_scale=.0018;p2.root_radius=1;p2.tip_radius=0;p2.render_step=5
     for m_ in bpy.data.materials:
         if m_.name in('pm_pink','fur','pm_skin_d') and m_.use_nodes:
             bb=m_.node_tree.nodes.get('Principled BSDF')

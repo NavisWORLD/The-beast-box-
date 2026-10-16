@@ -189,7 +189,7 @@ SPECS={
  'serpent':lambda:long_(dict(kind='serpent',len=1.1,r=.11,head_r=.24,eye=.26,tail_len=.45,tail_dir=(-.4,1,.0),extra=serp_x)),
  'fish':lambda:long_(dict(kind='fish',len=.75,r=.2,head_r=.25,float=.45,eye=.26,tail_len=.22,tail_dir=(0,1,0),extra=fish_x)),
  'res_frostmitt':lambda:quad(dict(body=(.34,.2,.21),head_z=.86,head_r=.31,leg=.18,muzzle=.03,cheek=.9,tail_len=.4,tail_r=.08,eye=.33)),
- 'res_nyxbean':lambda:quad(dict(body=(.26,.16,.16),head_z=.66,head_r=.36,leg=.15,muzzle=.02,cheek=.9,tail_len=.4,tail_r=.055,eye=.42,extra=lambda by,bh,bw,hz,hr,leg,hy:{'ruff':(ell,((0,-by*.85,leg+bh*1.35),(bw*.95,bw*.75,bh*.95)))})),
+ 'res_nyxbean':lambda:quad(dict(body=(.26,.16,.16),head_z=.72,head_r=.36,leg=.2,muzzle=.02,cheek=.9,tail_len=.4,tail_r=.055,eye=.42,extra=lambda by,bh,bw,hz,hr,leg,hy:{'ruff':(ell,((0,-by*.85,leg+bh*1.35),(bw*.95,bw*.75,bh*.95)))})),
  'res_shardhowl':lambda:quad(dict(body=(.46,.17,.16),head_z=.95,head_r=.24,leg=.32,leg_t=.85,muzzle=.04,muz_w=.75,muz_h=.8,cheek=.6,tail_len=.6,tail_r=.09,eye=.22,tail_dir=(0,1,.3),tail_in=.15,extra=fox_x)),
  'res_velvetcoil':lambda:long_(dict(kind='serpent',len=1.25,r=.1,head_r=.22,eye=.27,tail_len=.55,tail_dir=(-.4,1,.0),extra=serp_x)),
  'res_kairo':lambda:upright(dict(body_h=.24,body_w=.15,body_d=.11,leg=.42,leg_t=.5,head_r=.23,arm=.5,eye=.19,neck=.55,nose=False,mouth_w=.5,tail_len=.04,tail_r=.015)),
@@ -211,7 +211,7 @@ def surf(x,z,y0=-3):
 face_objs=[];groups={}
 GNAMES=['eyeL','eyeR','irisL','irisR','shineL','shineR','mouth','mouthin','nose','tongue']
 def add_face(o,group):
-    if PLAN in('res_frostmitt','res_nyxbean','res_kairo') and group[:3] in('eye','iri','shi'):
+    if PLAN in('res_frostmitt','res_nyxbean','res_kairo') and group[:3] in('eye','iri','shi') or PLAN=='res_nyxbean' and group in('mouthin','tongue'):
         D.objects.remove(o,do_unlink=True);return
     face_objs.append(o);groups.setdefault(group,[]).append(o.name)
     a=o.data.attributes.new('grp','INT','POINT')
@@ -444,11 +444,12 @@ if PLAN=='moth':
             ang=.3+k*.35;tip=Vector(a)+Vector((s*math.cos(ang)*ws*.9,.08*ws,math.sin(ang)*ws*.8));mo_.append(tube('v',[a,tuple((Vector(a)+tip)/2),tuple(tip)],[.007,.005,.002],res=4))
     raw_variant('wing_moth',mo_,tris=3000)
 # IMPOSSIBLE DETAIL (per species): a tiny comet for the pup's tail tip, ember-heart for dragonling, etc.
-DETAIL={'res_frostmitt':'tide_halo','res_nyxbean':'comet','res_shardhowl':'ember_heart','res_velvetcoil':'comet','res_kairo':'ember_heart','pup':'comet','fox':'foxfire','dragonling':'ember_heart','axolotl':'tide_halo','biped':'tide_halo','bird':'comet','golem':'ember_heart','sprout':'foxfire','moth':'tide_halo','serpent':'comet','fish':'foxfire'}
+DETAIL={'res_frostmitt':'tide_halo','res_nyxbean':'none','res_shardhowl':'ember_heart','res_velvetcoil':'comet','res_kairo':'ember_heart','pup':'comet','fox':'foxfire','dragonling':'ember_heart','axolotl':'tide_halo','biped':'tide_halo','bird':'comet','golem':'ember_heart','sprout':'foxfire','moth':'tide_halo','serpent':'comet','fish':'foxfire'}
 dk=DETAIL.get(PLAN,'comet')
 if dk=='comet':dt=[ell('d',tuple(Vector(TP[-1])+td*trad*1.4),(trad*.55,trad*.55,trad*.55),seg=20,ring=10)]+[ell('d',tuple(Vector(TP[-1])+td*trad*(2.2+k*.9)-Vector((0,0,k*.02))),(trad*.3*(1-k*.25),)*3,seg=10,ring=6) for k in range(3)]
 elif dk=='foxfire':dt=[ell('d',tuple(Vector(TP[-1])+Vector((s*.12,0,.15))),(.04,.04,.07),seg=14,ring=8) for s in (-1,0,1)]
 elif dk=='ember_heart':dt=[ell('d',FACE.get('heart',(0,-.1,.62)),(.06,.03,.06),seg=16,ring=8)]
+elif dk=='none':dt=[ell('d',(0,0,-5),(.001,.001,.001),seg=4,ring=3)]
 else:dt=[tube('d',[(math.cos(a)*.22,EARS['head'][1]+math.sin(a)*.22,EARS['head'][2]+.36) for a in [k/16*2*math.pi for k in range(17)]],[.012]*17)]
 detail=join(dt,'detail');setmat(detail,M['glow'])
 # ---- resident props (beanie, crystal shards, hoodie+horns, coil spikes): own materials, rigged to head/spine
@@ -519,7 +520,7 @@ def beanie(c,rx,ry,rz,crown,slouch,bands,band_m,body_m,knit=14):
     addp(joinm(cuff,'prop_cuff'),band_m if puffy_ else body_m,n=900 if puffy_ else None)
     if puffy_:bands=[]
     for z,bm_ in bands:addp(ring('prop_band',(c[0],c[1],c[2]+z*rz),rx*1.06,ry*1.06,rz*.045,40),bm_)
-    cr=[ell('crown',(c[0],c[1]+slouch*.35,c[2]+rz*.55),(rx*.98,ry*.98,rz*crown),seg=48,ring=24),
+    cr=[ell('crown',(c[0],c[1]+slouch*.35,c[2]+rz*.55),(rx*(1.1 if knit<10 else .98),ry*(1.1 if knit<10 else .98),rz*crown),seg=48,ring=24),
         ell('slouch',(c[0],c[1]+slouch,c[2]+rz*(crown*.9)),(rx*.75,ry*.8,rz*crown*.55),seg=40,ring=20)]
     if knit>=10:
         for k in range(knit):  # knit rows hugging the crown ellipsoid
@@ -541,14 +542,14 @@ def beanie(c,rx,ry,rz,crown,slouch,bands,band_m,body_m,knit=14):
 NEW_OUTFIT=PLAN in('res_frostmitt','res_nyxbean','res_kairo')
 if NEW_OUTFIT:
     pmat('trim',(.55,.15,1,1),.3,emit=(.62,.2,1,1),es=6)
-    pmat('horn_purple',(.35,.1,.7,1),.25,emit=(.4,.1,.9,1),es=.6,coat=1)
+    pmat('horn_purple',(.45,.15,.95,1),.12,emit=(.45,.12,1,1),es=1.1,coat=1)
     pmat('horn_grey',(.62,.6,.66,1),.35,coat=.8)
     hb=Vector((0,hcv.y+hrx*.05,hcv.z+hrz*.18))
     if PLAN=='res_nyxbean':
-        hb=hb+Vector((0,hrx*.18,hrz*.46));del PM['trim'];pmat('trim',(.25,.045,1,1),.5,emit=(.25,.045,1,1),es=.9)
+        hb=hb+Vector((0,hrx*.14,hrz*.4));del PM['trim'];pmat('trim',(.25,.045,1,1),.5,emit=(.25,.045,1,1),es=.9)
         pmat('puffy',(.03,.011,.065,1),.85,sheen=.35)
-        beanie(hb,hrx*1.12,hrx*1.08,hrz*1.1,1.15,hrx*1.15,[(.0,'trim'),(.25,'trim')],'trim','puffy',knit=0)
-        for s_ in (-1,1):addp(cone('prop_horn',(s_*hrx*.34,hcv.y-hrx*.82,hcv.z+hrz*.32),(s_*hrx*.4,hcv.y-hrx*1.02,hcv.z+hrz*.6),hrz*.12,1,16),'horn_purple')
+        beanie(hb,hrx*1.2,hrx*1.14,hrz*1.2,1.05,hrx*.9,[(.0,'trim'),(.25,'trim')],'trim','puffy',knit=0)
+        for s_ in (-1,1):addp(cone('prop_horn',(s_*hrx*.3,hcv.y-hrx*.82,hcv.z+hrz*.46),(s_*hrx*.36,hcv.y-hrx*1.02,hcv.z+hrz*.74),hrz*.12,1,16),'horn_purple')
     if PLAN=='res_frostmitt':
         pmat('knit',(.07,.03,.2,1),.85,sheen=.3)
         pmat('magenta',(.8,.15,.9,1),.5,emit=(.85,.2,1,1),es=2.5)
@@ -656,7 +657,7 @@ if NEW_OUTFIT:
     m=D.materials.new('pm_cornea');m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(1,1,1,1);b.inputs['Roughness'].default_value=.02
     b.inputs['Transmission Weight'].default_value=1;b.inputs['IOR'].default_value=1.38;b.inputs['Coat Weight'].default_value=1;PM['cornea']=m
     pmat('lash',(.01,.008,.015,1),.5)
-    SC={'res_nyxbean':.92,'res_kairo':1.05,'res_frostmitt':1.0}[PLAN]
+    SC={'res_nyxbean':.82,'res_kairo':1.05,'res_frostmitt':1.0}[PLAN]
     eyes=[];corn=[];lash=[]
     for n,c in eye_c.items():
         s=-1 if n=='L' else 1;rx,ry,rz=ER*.95*SC,ER*.42,ER*1.05*SC*(.92 if PLAN=='res_kairo' else 1)
@@ -730,6 +731,38 @@ if NEW_OUTFIT:
                 b0=surf(s*ER*.9,FACE['mouth_z']+ER*(.35-.2*j))
                 wk.append(tube('wk',[tuple(b0),tuple(b0+Vector((s*.09,-.01,.012-.012*j))),tuple(b0+Vector((s*.18,.01,.0-.03*j)))],[.0022,.0016,.0006],res=4))
         addp(joinm(wk,'prop_whiskers'),'whisker')
+
+    if PLAN=='res_nyxbean':
+        # --- pass 4: sack hat tilt (band follows the head), ears out through the hat sides, kitten face, glossy horns
+        from mathutils import Matrix
+        hatp=[o_ for o_ in props if o_.name.split('.')[0] in('prop_cuff','prop_crown','prop_seams','prop_bandribs','prop_band')]
+        Rm=Matrix.Translation(hb)@Matrix.Rotation(-.22,4,'X')@Matrix.Translation(-hb)
+        for o_ in hatp:o_.data.transform(Rm)
+        
+        pmat('earfur',(.012,.009,.02,1),.7,sheen=.6);pmat('earin',(.6,.22,.45,1),.5,emit=(.5,.15,.4,1),es=.3)
+        eo_,ei_=[],[]
+        for s_ in (-1,1):
+            b0=(s_*hrx*1.0,hcv.y+hrx*.1,hcv.z+hrz*.75);t0=(s_*hrx*1.45,hcv.y+hrx*.15,hcv.z+hrz*1.5)
+            eo_.append(cone('cear',b0,t0,hrz*.36,.42,16));ei_.append(cone('cin',(b0[0]*1.02,b0[1]-hrz*.09,b0[2]+.01),(t0[0]*.97,t0[1]-hrz*.06,t0[2]-.02),hrz*.2,.22,12))
+        addp(joinm(eo_,'prop_catears'),'earfur',n=900);addp(joinm(ei_,'prop_catearin'),'earin')
+        for o_ in [x for x in props if x.name.startswith('prop_eartips')]:
+            for v in o_.data.vertices:pass
+        tp=[]
+        for s_ in (-1,1):tp.append(cone('tip',(s_*hrx*1.38,hcv.y+hrx*.14,hcv.z+hrz*1.33),(s_*hrx*1.47,hcv.y+hrx*.15,hcv.z+hrz*1.56),hrz*.07,.5,10))
+        addp(joinm(tp,'prop_eartips2'),'pink')
+        for o_ in [x for x in props if x.name.startswith('prop_eartips') and not x.name.startswith('prop_eartips2')]:props.remove(o_);D.objects.remove(o_,do_unlink=True)
+        # kitten face: rimmed eyes, crisp catchlights, tiny pink nose + w mouth
+        pmat('rim',(.004,.003,.006,1),.3,coat=1);pmat('catch',(1,1,1,1),.1,emit=(1,1,1,1),es=6);pmat('nosepk',(.75,.35,.5,1),.3,coat=.6)
+        rims,cat=[],[]
+        for n,c in eye_c.items():
+            s=-1 if n=='L' else 1;rx,rz=ER*.95*.92,ER*1.05*.92;cc=c+Vector((0,-ER*.1,0))
+            rims.append(tube('rim',[(cc.x+math.cos(a)*rx*1.02,cc.y-ER*.18,cc.z+math.sin(a)*rz*1.02) for a in [k/28*2*math.pi for k in range(29)]],[ER*.07]*29,res=3))
+            cat.append(ell('c1',(cc.x-s*rx*.3,cc.y-ER*.5,cc.z+rz*.38),(rx*.17,ER*.04,rz*.17),seg=12,ring=6))
+            cat.append(ell('c2',(cc.x+s*rx*.3,cc.y-ER*.5,cc.z-rz*.35),(rx*.07,ER*.03,rz*.07),seg=8,ring=4))
+        addp(joinm(rims,'prop_eyerim'),'rim');addp(joinm(cat,'prop_catch'),'catch')
+        np_=surf(0,FACE['eye_z']-ER*1.2);addp(ell('prop_knose',tuple(np_+Vector((0,-.006,0))),(ER*.2,ER*.12,ER*.13),seg=12,ring=8),'nosepk')
+        w=[tuple(surf(x*ER*.4,FACE['eye_z']-ER*1.55+abs(x)*ER*.12*(1 if abs(x)>.5 else -1))+Vector((0,-.004,0))) for x in (-1,-.5,0,.5,1)]
+        addp(tube('prop_kmouth',w,[ER*.025]*5,res=3),'rim')
     for n_,(tx,sc_) in {'knit':('knit_normal',3),'knit_k':('knit_normal',3),'cloth':('fabric_normal',4)}.items():
         if n_ in PM:add_normal(PM[n_],tx,sc_,.3)
     for o_ in props:
