@@ -12,7 +12,7 @@ import {screenText,clean,MAX_PROMPT,MAX_REPLY} from '@/lib/companion/teacher-dis
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 const PER_VISITOR_HOUR=20;
-const dailyCap=()=>Math.max(1,Math.min(5000,Number(process.env.BEASTBOX_SHARED_OLLAMA_DAILY_CAP)||300));
+const dailyCap=()=>Math.max(1,Math.min(20000,Number(process.env.BEASTBOX_SHARED_OLLAMA_DAILY_CAP)||3000));
 const model=()=>clean(process.env.BEASTBOX_SHARED_OLLAMA_MODEL||'gpt-oss:20b',80);
 let catalog:{at:number;names:string[]}={at:0,names:[]};
 async function available(key:string){
