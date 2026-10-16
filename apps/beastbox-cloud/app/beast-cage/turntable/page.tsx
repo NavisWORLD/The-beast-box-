@@ -16,7 +16,7 @@ import styles from './turntable.module.css';
 const ANGLES=[0,90,180,270] as const;
 const POSES:CreatureState[]=['idle','listening','observing','sleeping','celebrating'];
 type Subject='workshop'|'moonwraith'|'dragonling';
-const MOODS:ZerefMood[]=['calm','happy','curious','scared','sleepy','angry'];
+const MOODS:ZerefMood[]=['calm','happy','curious','scared','sleepy','angry','walk'];
 const heartRun=heartSound.runs[0];
 export default function CreatureTurntable(){
  const {profile}=useCompanion();

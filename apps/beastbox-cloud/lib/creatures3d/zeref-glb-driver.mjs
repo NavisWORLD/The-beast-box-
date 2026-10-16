@@ -19,6 +19,7 @@ export const ZEREF_MOODS=Object.freeze({
  curious:{emotion:{valence:.7,arousal:.55,curiosity:.95,fear:.05},morph:{curious:1,brows_up:.5,mouth_smile:.4}},
  scared:{emotion:{valence:.15,arousal:.9,curiosity:.2,fear:.95},morph:{scared:1,mouth_o:1,brows_up:1}},
  sleepy:{emotion:{valence:.55,arousal:.05,curiosity:.1,fear:0},morph:{sleepy:1}},
+ walk:{emotion:{valence:.75,arousal:.55,curiosity:.6,fear:0},morph:{mouth_smile:.6,curious:.2},walk:true},
  angry:{emotion:{valence:.1,arousal:.85,curiosity:.2,fear:.3},morph:{angry:1,brows_angry:1}},
 });
 const CHAINS=[
@@ -48,8 +49,9 @@ export function createZerefDriver(THREE,root,{seed='zeref',mood='calm'}={}){
   const rest=all.map(b=>{const v=new THREE.Vector3().setFromMatrixPosition(b.matrixWorld);return {x:v.x,y:v.y,z:v.z};});
   chains.push({def,all,ch:createSpringChain(rest,{name:def.name,stiffness:def.stiffness,drag:def.drag,gravity:def.gravity})});
  }
- const head=byName.head,spine=byName.spine,chest=byName.chest;
- const bind=new Map();for(const b of [head,spine,chest].filter(Boolean))bind.set(b,{q:b.quaternion.clone(),s:b.scale.clone()});
+ const head=byName.head,spine=byName.spine,chest=byName.chest,rootB=byName.root;
+ const limbs=['paw.L','paw.R','leg.L','leg.R'].map(n=>byName[n]).filter(Boolean);
+ const bind=new Map();for(const b of [head,spine,chest,rootB,...limbs].filter(Boolean))bind.set(b,{q:b.quaternion.clone(),s:b.scale.clone(),p:b.position.clone()});
  const weights={};for(const k of ZEREF_MORPHS)weights[k]={x:0,v:0};
  const st={mood,blinkT:1.5+rng()*2.5,blink:0,mp:motionParams(S),t:0,steps:0};
  const tmp=new THREE.Vector3(),e=new THREE.Euler(),q=new THREE.Quaternion();
@@ -58,12 +60,20 @@ export function createZerefDriver(THREE,root,{seed='zeref',mood='calm'}={}){
   if(spine&&bind.has(spine)){const b=bind.get(spine);const br=1+.018*Math.sin(st.t*(1.6+S.ch.arousal*1.4));spine.scale.set(b.s.x*br,b.s.y*(2-br),b.s.z*br);}
   if(head&&bind.has(head)){const b=bind.get(head);
    const tilt=(m.curiosity-.4)*.22*Math.sin(st.t*.7)+mp.wind.x*.05,nod=.04*Math.sin(st.t*1.3)-(st.mood==='sleepy'?.18:0)+(st.mood==='scared'?.08:0);
-   e.set(nod,.12*Math.sin(st.t*.45+ph*.1)*m.curiosity,tilt);head.quaternion.copy(b.q).multiply(q.setFromEuler(e));}
+   // story pose: caught mid-thought, a resting head tilt that the CST mood modulates
+   const think=-.13*(1-m.fear)+(st.mood==='angry'?.1:0);
+   e.set(nod,.12*Math.sin(st.t*.45+ph*.1)*m.curiosity,tilt+think);head.quaternion.copy(b.q).multiply(q.setFromEuler(e));}
+  const md=ZEREF_MOODS[st.mood]||ZEREF_MOODS.calm,walk=!!md.walk,w=st.t*(5.5+2*S.ch.arousal);
+  if(rootB&&bind.has(rootB)){const b=bind.get(rootB);rootB.position.copy(b.p);if(walk){rootB.position.y+=Math.abs(Math.sin(w))*.035;}
+   e.set(0,walk?.06*Math.sin(w):0,walk?.05*Math.sin(w):0);rootB.quaternion.copy(b.q).multiply(q.setFromEuler(e));}
+  for(const L of limbs){const b=bind.get(L);const side=L.name.endsWith('L')?0:Math.PI,front=L.name.startsWith('paw')?0:Math.PI;
+   e.set(walk?.45*Math.sin(w+side+front):0,0,0);L.quaternion.copy(b.q).multiply(q.setFromEuler(e));}
  }
  function wingFlap(c){
   if(!c.def.name.startsWith('wing'))return;const side=c.def.name.endsWith('L')?-1:1;const b0=c.all[0];
-  const amp=.05+.16*S.ch.arousal,f=1.0+2.0*S.ch.arousal;
-  e.set(0,0,side*amp*Math.sin(st.t*f*Math.PI));b0.quaternion.copy(b0.userData.bindQuat).multiply(q.setFromEuler(e));
+  const amp=.05+.16*S.ch.arousal,f=1.0+2.0*S.ch.arousal,ph=st.t*f*Math.PI+(side>0?.35:0);
+  // organic flap: lift + slight sweep/twist, quicker downstroke
+  const stroke=Math.sin(ph)+.25*Math.sin(2*ph);e.set(.06*Math.cos(ph),side*.08*Math.sin(ph+.6),side*amp*stroke);b0.quaternion.copy(b0.userData.bindQuat).multiply(q.setFromEuler(e));
  }
  return {
   chains,state:S,clock,
@@ -77,6 +87,7 @@ export function createZerefDriver(THREE,root,{seed='zeref',mood='calm'}={}){
    poseBody();
    for(const c of chains){
     c.all.forEach(b=>b.quaternion.copy(b.userData.bindQuat));wingFlap(c);
+    if(c.def.name==='earR'){e.set(-.22*(1-st.mp.mood.fear),0,.16);c.all[0].quaternion.multiply(q.setFromEuler(e));}  // one ear cocked
    }
    root.updateMatrixWorld(true);
    for(const c of chains){
