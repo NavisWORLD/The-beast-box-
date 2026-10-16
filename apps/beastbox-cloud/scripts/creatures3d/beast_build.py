@@ -191,7 +191,7 @@ SPECS={
  'res_nyxbean':lambda:quad(dict(body=(.3,.18,.19),head_z=.8,head_r=.31,leg=.16,muzzle=.02,cheek=.9,tail_len=.36,tail_r=.07,eye=.4)),
  'res_shardhowl':lambda:quad(dict(body=(.46,.17,.16),head_z=.95,head_r=.24,leg=.32,leg_t=.85,muzzle=.04,muz_w=.75,muz_h=.8,cheek=.6,tail_len=.6,tail_r=.09,eye=.22,tail_dir=(0,1,.3),tail_in=.15,extra=fox_x)),
  'res_velvetcoil':lambda:long_(dict(kind='serpent',len=1.25,r=.1,head_r=.22,eye=.27,tail_len=.55,tail_dir=(-.4,1,.0),extra=serp_x)),
- 'res_kairo':lambda:upright(dict(body_h=.26,body_w=.17,body_d=.13,leg=.3,leg_t=.85,head_r=.22,arm=.45,eye=.24,neck=.55,tail_len=.05,tail_r=.02)),
+ 'res_kairo':lambda:upright(dict(body_h=.25,body_w=.16,body_d=.12,leg=.36,leg_t=.8,head_r=.25,arm=.42,eye=.2,neck=.5,nose=False,mouth_w=.55,tail_len=.04,tail_r=.015)),
  'axolotl':lambda:quad(dict(body=(.5,.13,.19),head_z=.36,head_r=.27,leg=.1,leg_t=.8,muzzle=.0,muz_w=1.6,muz_h=.7,cheek=.4,tail_len=.6,tail_r=.09,eye=.17,tail_dir=(0,1,.05),extra=axo_x)),
 }
 if PLAN not in SPECS:raise SystemExit('plan not built yet: '+PLAN)
@@ -225,8 +225,8 @@ MW=FACE.get('mouth_w',.75)*ER
 mpts=[]
 for k in range(9):
     u=k/8*2-1;x=u*MW;z=mz+ER*.18*(u*u)-ER*.1*math.exp(-(u*u)/.04)*0+ER*.07*math.cos(u*math.pi*2)*.6
-    mpts.append(tuple(surf(x,z)+Vector((0,-.011,0))))
-mo=tube('mouth',mpts,[ER*.1]*9,res=6,bev=8);add_face(mo,'mouth')
+    mpts.append(tuple(surf(x,z)+Vector((0,-.016,0))))
+mo=tube('mouth',mpts,[ER*.13]*9,res=6,bev=8);add_face(mo,'mouth')
 mi=ell('mouthin',mouth_c+Vector((0,.012,-ER*.12)),(MW*.42,ER*.06,ER*.16),seg=20,ring=10);add_face(mi,'mouthin')
 tg=ell('tongue',mouth_c+Vector((0,.014,-ER*.2)),(MW*.26,ER*.05,ER*.09),seg=14,ring=8);add_face(tg,'tongue')
 if FACE.get('nose'):
@@ -299,7 +299,7 @@ variant('ear_pointy',[cone('e',a,ear_tip(a,s,ehr*1.0),ehr*.42,flat=.42) for a,s 
 variant('ear_round',[ell('e',(a[0]+s*ehr*.12,a[1],a[2]+ehr*.28),(ehr*.38,ehr*.16,ehr*.36)) for a,s in zip(EA,(-1,1))])
 variant('ear_floppy',[tube('e',[a,(a[0]+s*ehr*.45,a[1]-ehr*.05,a[2]+ehr*.05),(a[0]+s*ehr*.62,a[1]-ehr*.12,a[2]-ehr*.45)],[ehr*.2,ehr*.24,ehr*.16]) for a,s in zip(EA,(-1,1))])
 variant('ear_horns',[cone('e',a,ear_tip(a,s,ehr*.85,.5),ehr*.16,flat=1) for a,s in zip(EA,(-1,1))])
-variant('ear_leaf',[ell('e',(a[0]+s*ehr*.2,a[1],a[2]+ehr*.45),(ehr*.18,ehr*.06,ehr*.5),rot=(0,s*-.4,0)) for a,s in zip(EA,(-1,1))])
+LEAF_ARGS=[(a,s) for a,s in zip(EA,(-1,1))]
 variant('ear_feelers',[tube('e',[a,(a[0]+s*ehr*.2,a[1]-ehr*.2,a[2]+ehr*.7),(a[0]+s*ehr*.45,a[1]-ehr*.45,a[2]+ehr*1.1)],[ehr*.05,ehr*.04,ehr*.1]) for a,s in zip(EA,(-1,1))])
 variant('ear_gills',[cone('e',(s*ehr*1.0,EARS['head'][1],EARS['head'][2]-ehr*.1+k*ehr*.25),(s*ehr*1.6,EARS['head'][1]+ehr*.15,EARS['head'][2]+k*ehr*.45),ehr*.08,flat=.5) for s in (-1,1) for k in (-1,0,1)])
 # crown: ring of five points on the head (accent metal, glow tips)
@@ -411,6 +411,33 @@ if PLAN=='axolotl':
         u=k/9;c_=Vector(FP[0]).lerp(Vector(FP[-1]),u);hh=trad*(2.2*math.sin(min(1,u*1.3)*math.pi*.9)+.4)
         fin.append(ell('fin',tuple(c_+Vector((0,0,0))),(trad*.12,tl*.07,hh)))
     variant('tail_axfin',fin,voxel=VOXEL*.6,tris=2600)
+def leaf_mesh(a,s,L_,W_):
+    me=D.meshes.new('leaf');bm=bmesh.new();n=10;vs=[];base=Vector(a);d=Vector((s*.55,.05,1)).normalized();side=Vector((s,0,-s*.55)).normalized()*0+Vector((1,0,0))
+    rows=[]
+    for i in range(n+1):
+        u=i/n;w=W_*math.sin(math.pi*min(1,u*1.05))**.8;c=base+d*L_*u+Vector((0,-.04*math.sin(u*math.pi)*L_,0))
+        rows.append([bm.verts.new(tuple(c+Vector((k*w*.5,0,0))+Vector((0,abs(k)*w*.12,0)))) for k in (-1,-.5,0,.5,1)])
+    for i in range(n):
+        for j in range(4):bm.faces.new((rows[i][j],rows[i][j+1],rows[i+1][j+1],rows[i+1][j]))
+    bm.to_mesh(me);bm.free();o=D.objects.new('leaf',me);C.collection.objects.link(o)
+    m=o.modifiers.new('s','SOLIDIFY');m.thickness=.008;active(o);bpy.ops.object.modifier_apply(modifier='s');return o
+raw_variant('ear_leaf',[leaf_mesh(a,s,ehr*1.05,ehr*.5) for a,s in LEAF_ARGS]+[tube('rib',[a,tuple(Vector(a)+Vector((s*.55,.05,1)).normalized()*ehr*.9)],[.006,.003],res=4) for a,s in LEAF_ARGS],tris=1600)
+# moth wings: real fore+hind wing membranes with scalloped edges and veins
+def moth_wing(a,s,fore=True):
+    me=D.meshes.new('mw');bm=bmesh.new();base=Vector(a);c0=bm.verts.new(tuple(base));ring=[]
+    for k in range(25):
+        t=k/24;ang=(.15+t*1.35) if fore else (-.95+t*1.0);r_=ws*(1.05 if fore else .7)*(.55+.45*math.sin(t*math.pi))*(1+.06*math.sin(t*math.pi*7))
+        ring.append(bm.verts.new(tuple(base+Vector((s*math.cos(ang)*r_,.04+.12*t*ws,math.sin(ang)*r_*.9)))))
+    for k in range(24):bm.faces.new((c0,ring[k],ring[k+1]))
+    bmesh.ops.subdivide_edges(bm,edges=bm.edges[:],cuts=2,use_grid_fill=True);bmesh.ops.triangulate(bm,faces=bm.faces[:])
+    bm.to_mesh(me);bm.free();o=D.objects.new('mw',me);C.collection.objects.link(o);m=o.modifiers.new('s','SOLIDIFY');m.thickness=.006;active(o);bpy.ops.object.modifier_apply(modifier='s');return o
+if PLAN=='moth':
+    D.objects.remove(variants.pop('wing_moth'),do_unlink=True)
+    mo_=[moth_wing(a,s,f) for a,s in zip(WA,(-1,1)) for f in (True,False)]
+    for a,s in zip(WA,(-1,1)):
+        for k in range(4):
+            ang=.3+k*.35;tip=Vector(a)+Vector((s*math.cos(ang)*ws*.9,.08*ws,math.sin(ang)*ws*.8));mo_.append(tube('v',[a,tuple((Vector(a)+tip)/2),tuple(tip)],[.007,.005,.002],res=4))
+    raw_variant('wing_moth',mo_,tris=3000)
 # IMPOSSIBLE DETAIL (per species): a tiny comet for the pup's tail tip, ember-heart for dragonling, etc.
 DETAIL={'res_frostmitt':'tide_halo','res_nyxbean':'comet','res_shardhowl':'ember_heart','res_velvetcoil':'comet','res_kairo':'ember_heart','pup':'comet','fox':'foxfire','dragonling':'ember_heart','axolotl':'tide_halo','biped':'tide_halo','bird':'comet','golem':'ember_heart','sprout':'foxfire','moth':'tide_halo','serpent':'comet','fish':'foxfire'}
 dk=DETAIL.get(PLAN,'comet')
@@ -432,18 +459,22 @@ if PLAN in('res_frostmitt','res_nyxbean','res_kairo'):
          tube('b',[(math.cos(a)*hrx*.99,hcv.y+hrx*.12+math.sin(a)*hrx*.96,bz-hrz*.2) for a in [k/24*2*math.pi for k in range(25)]],[hrz*.13]*25,res=4)]
     for k in range(10):  # knit ribs
         a=k/10*2*math.pi;hat.append(ell('r',(math.cos(a)*hrx*.72,hcv.y+hrx*.12+math.sin(a)*hrx*.7,bz+hrz*.15),(hrx*.08,hrx*.08,hrz*.4),seg=10,ring=8))
-    if PLAN=='res_kairo':hat=[ell('hood',(0,hcv.y+hrx*.4,hcv.z+hrz*.12),(hrx*1.18,hrx*1.08,hrz*1.16),seg=40,ring=20)]
+    if PLAN=='res_kairo':
+        hat=[ell('hood',(0,hcv.y+hrx*.45,hcv.z+hrz*.1),(hrx*1.2,hrx*1.0,hrz*1.18),seg=40,ring=20)]
+        for k in range(7):  # spiky fringe of black hair peeking out of the hood
+            x=(k-3)*hrx*.22;hat.append(cone('hair',(x,hcv.y-hrx*.55,hcv.z+hrz*.62),(x*1.15+.01*(k%2),hcv.y-hrx*.95,hcv.z+hrz*(.25+.08*(k%2))),hrx*.16,.6,8))
+        for s_ in (-1,1):hat.append(ell('shoe',(s_*.16*.45,-.035,.035),(.06,.1,.045)))
     for s_ in (-1,1):hat.append(cone('horn',(s_*hrx*.55,hcv.y,bz+hrz*.35),(s_*hrx*.75,hcv.y+hrx*.1,bz+hrz*.95),hrz*.14,1))
     prop('prop_hat',hat,'head')
 if PLAN=='res_shardhowl':
     import random;rnd=random.Random(7);sh=[]
     for i in range(34):
         y=rnd.uniform(-.48,.45);side=rnd.choice((-1,1));x=side*rnd.uniform(0,.12);z=.6-abs(y+.05)*.25+rnd.uniform(-.03,.02)
-        L_=rnd.uniform(.12,.28)*(1.3 if y<-.2 else 1);d=Vector((side*rnd.uniform(.3,.9),rnd.uniform(.2,.8),rnd.uniform(.6,1.2))).normalized()
-        sh.append(cone('s',(x,y,z-.04),tuple(Vector((x,y,z))+d*L_),rnd.uniform(.035,.06),rnd.uniform(.5,.9),5))
+        L_=rnd.uniform(.2,.42)*(1.3 if y<-.2 else 1);d=Vector((side*rnd.uniform(.3,.9),rnd.uniform(.2,.8),rnd.uniform(.6,1.2))).normalized()
+        sh.append(cone('s',(x,y,z-.06),tuple(Vector((x,y,z))+d*L_),rnd.uniform(.05,.09),rnd.uniform(.5,.9),5))
     for k in range(5):  # crown of shards on the head
         a=(k-2)*.35;b=Vector(FACE['head_c'])+Vector((math.sin(a)*.12,.06,.18));sh.append(cone('s',tuple(b),tuple(b+Vector((math.sin(a)*.1,.14,.22))),.04,.6,5))
-    prop('prop_shard',sh,'spine',tris=1600)
+    prop('prop_shard',sh,'spine',tris=2400)
 if PLAN=='res_velvetcoil':
     sp=[cone('s',(0,FACE['head_c'][1]+.05+i*.09,FACE['head_c'][2]+.12-i*.09),(0,FACE['head_c'][1]+.1+i*.09,FACE['head_c'][2]+.24-i*.09),.035,.4,8) for i in range(5)]
     prop('prop_spikes',sp,'neck')
@@ -473,7 +504,7 @@ me=body.data;a=me.color_attributes.new('Col','FLOAT_COLOR','POINT')
 for v in me.vertices:a.data[v.index].color=body_mask(v.co,v.normal,v.index)
 me.color_attributes.active_color=a;setmat(body,M['fur'])
 for nm,o in variants.items():
-    FL={'ear_leaf':0,'ear_dhorn':0,'wing_dragon':0,'ear_horns':0,'ear_crown':0,'ear_frill':.5,'tail_brush':1.0,'ear_fox':.55}.get(nm,.62)
+    FL={'wing_moth':0,'ear_leaf':0,'ear_dhorn':0,'wing_dragon':0,'ear_horns':0,'ear_crown':0,'ear_frill':.5,'tail_brush':1.0,'ear_fox':.55}.get(nm,.62)
     if nm.startswith('ear'):masks(o,lambda co,n:(0,1.0 if (n.y<-.4 and nm in('ear_pointy','ear_round','ear_floppy','ear_fox')) else (.6 if nm in('ear_crown','ear_frill') else 0),1.0 if nm in('ear_crown',) and co.z>EARS['head'][2]+ehr*1.1 else 0,FL*(.2 if n.y<-.4 and nm=='ear_fox' else 1)))
     elif nm.startswith('tail'):masks(o,lambda co,n:(0,max(0,min(1,((co-tr).dot(td)/tl-(.62 if nm=='tail_brush' else .75))*4)),1.0 if nm=='tail_flame' and (co-tr).dot(td)/tl>.8 else 0,FL))
     else:masks(o,lambda co,n:(0,.5 if nm=='wing_moth' else (.35 if nm=='wing_dragon' else 0),0,FL))

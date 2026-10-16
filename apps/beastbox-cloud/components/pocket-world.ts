@@ -16,24 +16,24 @@ float fbm(vec3 p){float a=.5,s=0.0;for(int i=0;i<5;i++){s+=a*n3(p);p=p*2.03+vec3
 export function addPocketWorld(THREE:Three,scene:import('three').Scene,{seed='pocket',low=false}:{seed?:string;low?:boolean}={}){
  const R=seededRng('world:'+seed);const group=new THREE.Group();group.name='pocket-world';scene.add(group);const keep:any[]=[];const k=<T,>(x:T)=>{keep.push(x);return x;};
  const U={uT:{value:0},uNight:{value:.6},uRain:{value:0},uChaos:{value:.2},uCoh:{value:.5},uSun:{value:new THREE.Vector3(0,1,0)},uMoon:{value:new THREE.Vector3(0,-1,0)},
-  uBH:{value:new THREE.Vector3(-.55,.42,-.72).normalize()},uSeed:{value:new THREE.Vector3(R()*40,R()*40,R()*40)},uCam:{value:new THREE.Vector3()}};
+  uBH:{value:new THREE.Vector3(-.45,.2,-.87).normalize()},uSeed:{value:new THREE.Vector3(R()*40,R()*40,R()*40)},uCam:{value:new THREE.Vector3()}};
  const SEA=-.55;
  // ---- terrain: a ring that rolls away from the habitat and dips under the sea
  const tg=k(new THREE.RingGeometry(4.0,13,low?72:160,low?24:56));
  const terr=new THREE.Mesh(tg,k(new THREE.ShaderMaterial({uniforms:{...U,fogColor:{value:new THREE.Color()},fogDensity:{value:.03}},fog:true,
   vertexShader:`${NOISE}uniform vec3 uSeed;varying vec3 vW;varying float vH;
    #include <fog_pars_vertex>
-   void main(){vec3 p=position;float r=length(p.xy);float hills=fbm(vec3(p.xy*.35,0.0)+uSeed)*.9-.25;float fall=smoothstep(5.2,9.5,r);
-    float h=mix(-.06+hills*smoothstep(4.0,5.5,r)*.8,${SEA.toFixed(2)}-1.2,fall);vH=h;vec4 w=modelMatrix*vec4(p.x,p.y,h,1.0);vW=w.xyz;
+   void main(){vec3 p=position;float r=length(p.xy);float hills=fbm(vec3(p.xy*.28,0.0)+uSeed);float ridge=1.0-abs(n3(vec3(p.xy*.18,3.0)+uSeed)*2.0-1.0);float fall=smoothstep(6.5,10.5,r);
+    float h=mix(-.06+(hills*1.9+ridge*ridge*1.6-.9)*smoothstep(4.1,6.0,r),${SEA.toFixed(2)}-1.4,fall);vH=h;vec4 w=modelMatrix*vec4(p.x,p.y,h,1.0);vW=w.xyz;
     vec4 mvPosition=viewMatrix*w;gl_Position=projectionMatrix*mvPosition;
     #include <fog_vertex>
    }`,
   fragmentShader:`${NOISE}uniform float uNight,uRain,uT;uniform vec3 uSun;varying vec3 vW;varying float vH;
    #include <fog_pars_fragment>
    void main(){vec3 n=normalize(cross(dFdx(vW),dFdy(vW)));if(n.y<0.0)n=-n;float sand=smoothstep(${(SEA+.35).toFixed(2)},${(SEA+.05).toFixed(2)},vH);
-    vec3 grass=mix(vec3(.10,.22,.30),vec3(.20,.12,.42),fbm(vW*.6));vec3 c=mix(grass,vec3(.42,.36,.55),sand);c=mix(c,c*.55,uRain*.5);   // wet when raining
+    vec3 grass=mix(vec3(.12,.34,.38),vec3(.32,.16,.58),fbm(vW*.5));grass=mix(grass,vec3(.55,.5,.85),smoothstep(.6,1.4,vH)*.6);vec3 c=mix(grass,vec3(.62,.52,.7),sand);c=mix(c,c*.55,uRain*.5);   // wet when raining
     float sunL=max(0.0,dot(n,normalize(uSun)))*(1.0-uNight);float moonL=max(0.0,n.y)*uNight*.35;
-    c*=.5+sunL*1.2+moonL*1.6;c+=vec3(.3,.2,.6)*.05;gl_FragColor=vec4(c,1.0);
+    float sky=.35+.25*n.y;c*=sky+sunL*1.4+moonL*1.8;float rim=pow(1.0-max(0.0,dot(n,normalize(cameraPosition-vW))),3.0);c+=mix(vec3(.5,.3,1.0),vec3(.2,.8,1.0),uNight)*rim*.25;gl_FragColor=vec4(c,1.0);
     #include <fog_fragment>
    }`})));
  terr.rotation.x=-Math.PI/2;group.add(terr);

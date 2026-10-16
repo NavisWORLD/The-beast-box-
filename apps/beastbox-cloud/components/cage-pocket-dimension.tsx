@@ -49,7 +49,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
  const sandSource=qvmCounts?'receipt':'seed';
  const canvasRef=useRef<HTMLCanvasElement>(null);
  const motion=useRef({position:behaviorPosition,state,stage,impulse:0});
- const cameraView=useRef<View>({theta:.7,phi:1.05,zoom:10.6});
+ const cameraView=useRef<View>({theta:.7,phi:1.28,zoom:10.6});
  // Tap-a-creature: set once the scene exists; a tap (no drag) raycasts and focuses the camera on what it hits.
  const pickRef=useRef<((x:number,y:number)=>void)|null>(null);
  const [visualSettings,setVisualSettings]=useState<{enabled:boolean;quality:'auto'|'low'|'high'}>({...DEFAULT_POCKET_3D});
@@ -133,14 +133,14 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    }else if(event.key==='-'){
     event.preventDefault();cameraView.current.zoom=clamp(cameraView.current.zoom*1.3,ZOOM_MIN,ZOOM_MAX);
    }else if(event.key==='Home'){
-    event.preventDefault();cameraView.current={theta:.7,phi:1.05,zoom:10.6};
+    event.preventDefault();cameraView.current={theta:.7,phi:1.28,zoom:10.6};
    }
   };
   // Existing sound-generator events: sound is a *visual stimulus*, not proof
   // of external microphone hearing or physical quantum/natural growth.
   const chirp=(e:Event)=>{const raw=Number((e as CustomEvent)?.detail?.intensity);motion.current.impulse=clamp(motion.current.impulse+(Number.isFinite(raw)?raw:.35)*.32,0,1.25);};
   const mute=()=>{motion.current.impulse=0;};
-  const resetCamera=()=>{cameraView.current={theta:.7,phi:1.05,zoom:10.6};pickRef.current?.(-1e6,-1e6);};
+  const resetCamera=()=>{cameraView.current={theta:.7,phi:1.28,zoom:10.6};pickRef.current?.(-1e6,-1e6);};
   const option={passive:true} as AddEventListenerOptions;
   const unguard=parent?guardCanvasTouch(parent,{hint:parent.classList.contains('beast-landing-art')?'☝ Drag to spin the universe':'☝ Drag to explore · pinch to zoom'}):()=>{};
   if(parent){
@@ -389,8 +389,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
        plush.drive(reduced?0:dt,brain,L.mp,brain.lookCam>.3?{x:camera.position.x,y:camera.position.y,z:camera.position.z}:attn);
        // observer camera: a gentle side/away drift that keeps the Beast framed, never forced into its face
        if(!autoOrbitRef.current&&!focused&&!reduced&&now-lastDragAt.current>4000){const want=-brain.heading+Math.PI/2+.5*Math.PI+(brain.lookCam>.5?Math.PI*.35:0);
-        let dth=((want-v.theta)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI;v.theta+=dth*Math.min(1,dt*.12);v.zoom+=(7.2-v.zoom)*Math.min(1,dt*.2);v.phi+=(1.12-v.phi)*Math.min(1,dt*.2);
-        homeFocus.set(brain.x*.7,.6,brain.z*.7);}else homeFocus.set(0,.85,0);
+        let dth=((want-v.theta)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI;v.theta+=dth*Math.min(1,dt*.12);v.zoom+=(9.4-v.zoom)*Math.min(1,dt*.2);v.phi+=(1.36-v.phi)*Math.min(1,dt*.2);
+        homeFocus.set(brain.x*.6,1.05,brain.z*.6);/* lower + pulled back so the pocket world shows behind the Beast */}else homeFocus.set(0,.85,0);
        (window as any).__beastLife={mode:brain.mode,x:brain.x,z:brain.z,attn:brain.attn?.kind??null,weather:life.getWeather(),coherence:L.cst.ch.coherence,chaos:L.cst.ch.chaos,hebb:L.cst.hebb,rain:L.env.rain,night:L.env.night,tris:plush.tris};}}
      if(focused){focused.obj.getWorldPosition(tgt);tgt.y+=.35;focus.lerp(tgt,Math.min(1,dt*4));}else focus.lerp(homeFocus,Math.min(1,dt*3));
      const f=god.update(elapsed,v.zoom,focus,godFocus);
