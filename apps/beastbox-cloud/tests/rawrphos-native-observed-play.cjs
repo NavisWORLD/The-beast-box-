@@ -121,21 +121,21 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
    await delay(150);
    await page.evaluate(()=>window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button:'start',down:false,source:'agent'}})));
   }
-  async function waitForGameplay(timeoutMs=Number(process.env.ZEREF_GAMEPLAY_WAIT_MS||60000)){
-   // frameChange is intra-sample motion (a static gameplay screen reads 0), so
-   // readiness = the framebuffer is readable AND, after a START/A nudge, the
-   // screen differs from its boot/title signature (or shows real motion).
-   const t0=Date.now(),seen=new Set();let title=null,moving=0,tries=0;
+  async function waitForGameplay(timeoutMs=Number(process.env.ZEREF_GAMEPLAY_WAIT_MS||75000)){
+   // frameChange is intra-sample motion (static gameplay reads 0), and a title
+   // screen can flicker between two looks. Gameplay is "live" only once probe
+   // presses produce >=3 distinct screens (the same bar the dataset must pass).
+   // Probe presses are NOT recorded as training rows.
+   const t0=Date.now(),PROBE=['RIGHT','DOWN','LEFT','UP'];let seen=new Set(),moving=0,tries=0;
    while(Date.now()-t0<timeoutMs){
     let o=null;try{o=await optics();}catch{}
-    if(o){const sig=JSON.stringify([o.brightness,o.contrast,o.dominant]);seen.add(sig);
-     if(title===null)title=sig;
-     if(o.frameChange>=5)moving++;
-     if(tries>0&&(sig!==title||moving>=2))return {waited_ms:Date.now()-t0,distinct_screens:seen.size,nudges:tries,motion_samples:moving};}
-    if(tries%3===0){await input('A');await delay(250);await pressStart();}
-    tries++;await delay(700);
+    if(o){seen.add(JSON.stringify([o.brightness,o.contrast,o.dominant]));if(o.frameChange>=5)moving++;
+     if(tries>0&&seen.size>=3)return {waited_ms:Date.now()-t0,distinct_screens:seen.size,probe_presses:tries,motion_samples:moving};}
+    if(tries%5===0){await input('A');await delay(250);await pressStart();await delay(900);seen=new Set();}
+    else await input(PROBE[tries%PROBE.length]);
+    tries++;await delay(450);
    }
-   throw Error('Native game never left its boot/title frame within '+timeoutMs+'ms (boot race); refusing title-screen capture');
+   throw Error('Native game never reached varied gameplay frames within '+timeoutMs+'ms (boot race); refusing title-screen capture');
   }
   await delay(800);
   const gameplayReady=await waitForGameplay();
