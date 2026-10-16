@@ -1,0 +1,34 @@
+name: Zeref idle teachers
+# Cory's Ollama teachers generate lessons while Zeref is idle. Key: ZEREFS_TEACHERS secret.
+on:
+  schedule:
+    - cron: '41 */4 * * *'
+  workflow_dispatch:
+    inputs:
+      cap:
+        description: 'Lessons this run (max 60)'
+        default: '24'
+permissions:
+  contents: read
+concurrency:
+  group: zeref-idle-teachers
+  cancel-in-progress: false
+jobs:
+  teach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/beastbox-cloud
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate teacher lessons (daily cap 6 runs x cap)
+        env:
+          ZEREFS_TEACHERS: ${{ secrets.ZEREFS_TEACHERS }}
+          AZURE_STORAGE_CONTAINER_SAS_URL: ${{ secrets.AZURE_STORAGE_CONTAINER_SAS_URL }}
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          IDLE_TEACHER_CAP: ${{ github.event.inputs.cap || '24' }}
+        run: node scripts/idle-teacher-lessons.mjs

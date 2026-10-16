@@ -11,7 +11,7 @@
  *  - training consumes only APPROVED pairs, style-filtered toward Zeref's persona,
  *    behind the same chat gates. Teachers inform knowledge, not personality.
  */
-export const TEACHER_ROUTES=Object.freeze(["local-ollama","hf-byok","connected-brain-bay"]);
+export const TEACHER_ROUTES=Object.freeze(["shared-ollama","local-ollama","hf-byok","connected-brain-bay"]);
 export const PAIRS_KEY="beastbox-teacher-pairs-v1";
 export const CONTRIBUTE_KEY="beastbox-teacher-contribute-v1";
 export const MAX_LOCAL_PAIRS=200;

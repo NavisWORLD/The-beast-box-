@@ -41,7 +41,7 @@ const time=(at?:number)=>at?new Date(at).toLocaleTimeString([], {hour:'numeric',
  * Replies appear only after a successful, verified request.
  */
 type PanelProps={onState?:(state:TalkState)=>void;compact?:boolean;title?:string;surface?:'panel';gameBridge?:GameChatBridge|null};
-const TEACHER_LABEL:Record<string,string>={'guest-rawrphos':'Beast Box free host','connected-brain-bay':'Brain Bay','local-ollama':'My local Ollama','hf-byok':'My Hugging Face key'};
+const TEACHER_LABEL:Record<string,string>={'shared-ollama':'Ollama','guest-rawrphos':'Beast Box free host','connected-brain-bay':'Brain Bay','local-ollama':'My local Ollama','hf-byok':'My Hugging Face key'};
 export default function BeastTalkPanel(props:PanelProps){
  const {session}=useBeastSession(),{profile}=useCompanion();
  const persona=talkPersona({beast:session?.beast,cage:profile});
@@ -186,7 +186,8 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   // Shared training only with explicit opt-in. Brain Bay is the owner's own paired
   // provider (owner-only route), so the owner path auto-contributes.
   const owner=teacher.route==='connected-brain-bay';
-  if(!pair||!(contribute||owner))return;
+  // Cory's shared Ollama is fed to distillation server-side; never re-sent from the browser.
+  if(!pair||teacher.route==='shared-ollama'||!(contribute||owner))return;
   const body=contributionBody(pair);
   if(!body){setContribStatus('This teacher pair looked like it had private info, so it stayed on your device only.');return;}
   void fetch('/api/teacher-pairs',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})

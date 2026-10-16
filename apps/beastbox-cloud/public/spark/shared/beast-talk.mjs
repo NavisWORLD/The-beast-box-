@@ -11,7 +11,7 @@ import { beastIdentity, shownName } from "./session.mjs";
 import { gameObservationLine } from "./native-optics.mjs";
 import { ownerChatBody, interpretModelResult, RAWRPHOS_PUBLIC_PIN } from "./brain.mjs";
 
-export const TALK_ROUTES = Object.freeze(["guest-rawrphos", "local-ollama", "hf-byok", "connected-brain-bay"]);
+export const TALK_ROUTES = Object.freeze(["guest-rawrphos", "shared-ollama", "local-ollama", "hf-byok", "connected-brain-bay"]);
 export const DEFAULT_ROUTE = "guest-rawrphos";
 export const DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434";
 export const DEFAULT_OLLAMA_MODEL = "companion-glacecoil";
@@ -29,6 +29,11 @@ export const ROUTE_INFO = Object.freeze({
     label: "RAWRPHØS guest",
     model: `rawrphos-native · step ${RAWRPHOS_PUBLIC_PIN.step} checkpoint`,
     detail: "Free Beast Box host. Small native model, stateless, daily quota.",
+  },
+  "shared-ollama": {
+    label: "Ollama",
+    model: "Cory's shared Ollama teacher",
+    detail: "Free for everyone, guests too. A teacher hint shown next to Zeref's own RAWRPHØS reply; daily limit.",
   },
   "local-ollama": {
     label: "My local Ollama",
@@ -221,6 +226,18 @@ export async function talkToBeast(input) {
       const read=interpretModelResult("owner-bridge",payload);
       if(!read.ok||!read.reply||read.reply.length>6000)return failure(route,read.reason||"No verified Brain Bay reply.");
       return {ok:true,route,reply:read.reply,model:clean(status.providerKind||"Brain Bay",80),label:ROUTE_INFO[route].label,at:Date.now()};
+    }
+    if (route === "shared-ollama") {
+      const response = await fetchImpl("/api/teacher/ollama", {
+        method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: text }),
+      });
+      const payload = await readJson(response).catch(() => null);
+      if (!response.ok) return failure(route, typeof payload?.error === "string" ? payload.error : `The Ollama teacher did not answer (${response.status}).`, response.status);
+      const reply = typeof payload?.reply === "string" ? payload.reply.trim() : "";
+      if (payload?.role !== "TEACHER_NOT_BEAST_VOICE" || !reply || reply.length > 6000) return failure(route, "The Ollama teacher sent no usable reply.");
+      return { ok: true, route, reply, model: clean(payload.model || "", 80), label: ROUTE_INFO[route].label, at: Date.now() };
     }
     if (route === "local-ollama") {
       const base = String(input?.ollama?.url || DEFAULT_OLLAMA_URL).replace(/\/+$/, "");

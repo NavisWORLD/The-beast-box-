@@ -64,6 +64,6 @@ export async function GET(request:Request){
  const cfg=storageConfig();if(!cfg)return safeJson(503,{error:'Storage not configured'});
  const names=(await listBlobs(cfg,PREFIX+'approved/',{max:2000})).sort().slice(-1500);
  const rows:string[]=[];
- for(const n of names){const blob=await getBlob(cfg,n).catch(()=>null);if(!blob)continue;try{const r=JSON.parse(blob.text);if(r.review_status==='OWNER_AUTO_APPROVED'||r.review_status==='APPROVED')rows.push(JSON.stringify(r));}catch{/* skip */}}
+ for(const n of names){const blob=await getBlob(cfg,n).catch(()=>null);if(!blob)continue;try{const r=JSON.parse(blob.text);if(r.review_status==='OWNER_AUTO_APPROVED'||r.review_status==='APPROVED'||r.review_status==='SHARED_TEACHER_AUTO')rows.push(JSON.stringify(r));}catch{/* skip */}}
  return new Response(rows.join('\n')+(rows.length?'\n':''),{headers:{'Content-Type':'application/x-ndjson','Cache-Control':'no-store'}});
 }
