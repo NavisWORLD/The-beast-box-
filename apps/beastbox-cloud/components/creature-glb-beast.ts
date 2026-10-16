@@ -10,7 +10,7 @@ import {springStep,clamp,seededRng} from '../lib/physics/cst-integrator.mjs';
 import {paletteOf} from '../public/spark/draw.mjs';
 import type {PlushGenome} from './creature-plush-3d';
 type Three=typeof import('three');
-export const GLB_PLANS=Object.freeze(['pup','fox','dragonling','axolotl','biped','bird','golem','sprout','moth','serpent','fish']);
+export const GLB_PLANS=Object.freeze(['pup','fox','dragonling','axolotl','biped','bird','golem','sprout','moth','serpent','fish','res_frostmitt','res_nyxbean','res_shardhowl','res_velvetcoil','res_kairo']);
 export type Tier='high'|'med'|'low';
 const SHELLS:Record<Tier,number>={high:12,med:7,low:0};
 const EAR_V:Record<string,string[]>={pointy:['ear_pointy'],round:['ear_round'],crown:['ear_pointy','ear_crown'],horns:['ear_horns'],crystal:['ear_horns'],flame:['ear_horns'],
@@ -19,27 +19,32 @@ const TAIL_V:Record<string,string>={fluffy:'tail_fluffy',plume:'tail_fluffy',lea
 const WING_V:Record<string,string>={feather:'wing_feather',leaf:'wing_feather',bat:'wing_bat',flame:'wing_bat',vanes:'wing_bat',moth:'wing_moth',crystal:'wing_moth'};
 const GLOWING=new Set(['crystal','flame']);
 /** species identity parts always shown (the genome still paints them); fur = coat length multiplier, scales = belly scale plates */
-const SPECIES:Record<string,{ears?:string[];tail?:string;wings?:string;fur?:number;scales?:boolean}>={
+const SPECIES:Record<string,{ears?:string[];tail?:string;wings?:string;fur?:number;scales?:boolean;stone?:boolean;prop?:number;propGlow?:number;crystal?:boolean;faceY?:number}>={
+ res_frostmitt:{ears:['ear_pointy'],tail:'tail_fluffy',fur:1.5,prop:0x5b2fa8},res_nyxbean:{ears:['ear_pointy'],tail:'tail_thin',fur:1.1,prop:0x3a1f6e},
+ res_shardhowl:{ears:['ear_fox'],tail:'tail_brush',fur:.35,prop:0x9a6cff,crystal:true},res_velvetcoil:{ears:['ear_horns'],tail:'tail_thin',fur:.1,scales:true,prop:0x2a1240},
+ res_kairo:{ears:[],fur:0,prop:0x16121f,faceY:.7},
  fox:{ears:['ear_fox'],tail:'tail_brush',fur:1.25},dragonling:{ears:['ear_dhorn'],wings:'wing_dragon',fur:.55,scales:true},axolotl:{ears:['ear_frill'],tail:'tail_axfin',fur:.22},
- bird:{wings:'wing_feather',fur:.8},moth:{ears:['ear_feelers'],wings:'wing_moth',fur:1.35},golem:{ears:['ear_horns'],fur:0,scales:true},sprout:{ears:['ear_leaf'],fur:.3},
+ bird:{wings:'wing_feather',fur:.8},moth:{ears:['ear_feelers'],wings:'wing_moth',fur:1.35},golem:{ears:['ear_horns'],fur:0,stone:true},sprout:{ears:['ear_leaf'],fur:.3},
  serpent:{tail:'tail_thin',fur:.12,scales:true},fish:{tail:'tail_fin',fur:.1,scales:true},biped:{fur:1}};
 let strandsTex:any=null;
 function strands(THREE:Three){if(strandsTex)return strandsTex;const n=256,d=new Uint8Array(n*n*4),r=seededRng('strands');
  for(let i=0;i<n*n;i++){d[i*4+3]=255;}for(let k=0;k<5200;k++){const x=(r()*n)|0,y=(r()*n)|0,v=150+r()*105,rad=r()<.2?2:1;for(let a=-rad;a<=rad;a++)for(let b=-rad;b<=rad;b++){const xx=(x+a+n)%n,yy=(y+b+n)%n,f=1-Math.hypot(a,b)/(rad+1);const j=(yy*n+xx)*4;d[j]=Math.max(d[j],v*f);}}
  strandsTex=new THREE.DataTexture(d,n,n,THREE.RGBAFormat);strandsTex.wrapS=strandsTex.wrapT=THREE.RepeatWrapping;strandsTex.magFilter=THREE.LinearFilter;strandsTex.minFilter=THREE.LinearMipmapLinearFilter;strandsTex.generateMipmaps=true;strandsTex.needsUpdate=true;return strandsTex;}
 
-export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as Tier,base='/creatures3d/beasts/'}={}){
+export type Paint={base:number;alt:number;belly:number;accent:number;glow:number;dark?:number;light?:number};
+export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as Tier,base='/creatures3d/beasts/',paint=null as Paint|null}={}){
  const plan=gen.body;if(!GLB_PLANS.includes(plan))return null;
  const {GLTFLoader}=await import('three/examples/jsm/loaders/GLTFLoader.js');const {MeshoptDecoder}=await import('three/examples/jsm/libs/meshopt_decoder.module.js');
  const loader=new GLTFLoader();loader.setMeshoptDecoder(MeshoptDecoder);
  const gltf=await loader.loadAsync(base+plan+'.glb');const root=gltf.scene;root.name='beast-glb-'+plan;
- const G=gen.genes||{},g=(k:string,d=.5)=>Number.isFinite(G[k])?G[k]:d;const pal=paletteOf(gen as any) as any;
+ const SP=SPECIES[plan]||{};const G=gen.genes||{},g=(k:string,d=.5)=>Number.isFinite(G[k])?G[k]:d;const pal=paint?null:paletteOf(gen as any) as any;
  const col=(r:number[])=>new THREE.Color(r[0]/255,r[1]/255,r[2]/255);
- const C={base:col(pal.base.mid),dark:col(pal.base.sh),light:col(pal.base.li),alt:col(pal.alt.mid),belly:col(pal.belly.mid),accent:col(pal.accent.mid),glow:col(pal.glow.mid)};
+ const C=paint?{base:new THREE.Color(paint.base),dark:new THREE.Color(paint.dark??paint.base).multiplyScalar(paint.dark?1:.45),light:new THREE.Color(paint.light??0xffffff),alt:new THREE.Color(paint.alt),belly:new THREE.Color(paint.belly),accent:new THREE.Color(paint.accent),glow:new THREE.Color(paint.glow)}
+  :{base:col(pal.base.mid),dark:col(pal.base.sh),light:col(pal.base.li),alt:col(pal.alt.mid),belly:col(pal.belly.mid),accent:col(pal.accent.mid),glow:col(pal.glow.mid)};
  const R=seededRng('beast-paint:'+gen.seed);const pat=['spots','stripes','belly','stars','facets','moss','plates','cracks','circuits'].indexOf(gen.pattern);
  const U={uT:{value:0},uWind:{value:new THREE.Vector3()},uChaos:{value:.2},uBeat:{value:0},uSeed:{value:new THREE.Vector3(R()*50,R()*50,R()*50)},
   uBase:{value:C.base},uAlt:{value:C.alt},uBelly:{value:C.belly},uAccent:{value:C.accent},uGlow:{value:C.glow},uDark:{value:C.dark},uLight:{value:C.light},
-  uPat:{value:pat<0?0:pat},uPd:{value:g('pattern_density')},uPs:{value:6+g('pattern_scale')*9},uStrands:{value:strands(THREE)},uScales:{value:SPECIES[plan]?.scales?1:0}};
+  uPat:{value:pat<0?0:pat},uPd:{value:g('pattern_density')},uPs:{value:6+g('pattern_scale')*9},uStrands:{value:strands(THREE)},uScales:{value:SPECIES[plan]?.scales?1:0},uStone:{value:SPECIES[plan]?.stone?1:0},uVivid:{value:paint?0:1},uFaceY:{value:SPECIES[plan]?.faceY??-9}};
  const NOISE='float h31(vec3 p){p=fract(p*.3183099+.1);p*=17.0;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}'+
   'float n3(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.0-2.0*f);return mix(mix(mix(h31(i),h31(i+vec3(1,0,0)),f.x),mix(h31(i+vec3(0,1,0)),h31(i+vec3(1,1,0)),f.x),f.y),mix(mix(h31(i+vec3(0,0,1)),h31(i+vec3(1,0,1)),f.x),mix(h31(i+vec3(0,1,1)),h31(i+vec3(1,1,1)),f.x),f.y),f.z);}'+
   'float fbm3(vec3 p){return n3(p)*.55+n3(p*2.1)*.3+n3(p*4.3)*.15;}\n';
@@ -53,34 +58,35 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
    vLenN=.5+.7*n3(position*38.0)*(.7+.3*n3(position*110.0));
    ${shell?`float L=uLen*vLenN*(1.0-vMask.b)*vFurL;vec3 comb=normalize(vec3(0.0,-.5,-1.0));transformed+=objectNormal*L*uS+(comb*.7+uWind+vec3(sin(uT*7.0+position.x*20.0),0.0,cos(uT*6.0+position.z*20.0))*uChaos*.15)*L*uS*uS;`:''}`)
    .replace('#include <color_vertex>','');
-  sh.fragmentShader='uniform float uS,uT,uBeat,uPat,uPd,uPs;uniform vec3 uSeed,uBase,uAlt,uBelly,uAccent,uGlow,uDark,uLight;uniform sampler2D uStrands;uniform float uScales;varying vec3 vObjP;varying vec2 vFurUv;varying float vLenN;varying vec3 vMask;varying float vFurL;\n'+NOISE+
+  sh.fragmentShader='uniform float uS,uT,uBeat,uPat,uPd,uPs;uniform vec3 uSeed,uBase,uAlt,uBelly,uAccent,uGlow,uDark,uLight;uniform sampler2D uStrands;uniform float uScales,uStone,uVivid,uFaceY;varying vec3 vObjP;varying vec2 vFurUv;varying float vLenN;varying vec3 vMask;varying float vFurL;\n'+NOISE+
    sh.fragmentShader.replace('#include <color_fragment>',`
    ${shell?`if(uS>vLenN||vMask.b>.5||vFurL<.05)discard;vec3 sc=vObjP*230.0;float cell=h31(floor(sc));float cd=length(fract(sc)-.5);float strand=cell*smoothstep(.5,.15,cd);float sd=max(strand,texture2D(uStrands,vFurUv*14.0).r*.55+texture2D(uStrands,vFurUv*37.0).r*.25);if(sd<mix(.08,.85,clamp(uS/vLenN,0.0,1.0)))discard;`:''}
    vec3 p=vObjP*uPs+uSeed;float v=fbm3(p);float m=0.0;
    if(uPat<.5)m=smoothstep(.62-uPd*.12,.66-uPd*.12,v);                       // spots
    else if(uPat<1.5)m=smoothstep(.55,.6,abs(sin(vObjP.z*uPs*1.4+vObjP.y*3.0+v*4.0)));   // stripes
    else if(uPat<2.5)m=smoothstep(.7,1.15,vObjP.y)*.55+smoothstep(.55,.9,fbm3(p*.35))*.25;        // belly: soft points on crown/back
-   else if(uPat<3.5)m=step(.86,h31(floor(p*2.0)));                             // stars
+   else if(uPat<3.5)m=step(.93,h31(floor(p*2.0)))*smoothstep(.3,.0,length(fract(p*2.0)-.5));                             // stars (round)
    else if(uPat<4.5)m=step(.5,fract(v*6.0))*.5;                                // facets
    else if(uPat<5.5)m=smoothstep(.5,.75,fbm3(p*.6))*.8;                        // moss
    else if(uPat<6.5)m=step(.9,max(fract(p.x*.5),fract(p.y*.5)))*.6;            // plates
    else if(uPat<7.5)m=smoothstep(.02,.0,abs(v-.5))*.9;                         // cracks (glow)
    else m=step(.94,max(fract(p.x),fract(p.z)))*.7;                             // circuits
    vec3 c=mix(uBase,uAlt,m*(uPat>6.5&&uPat<7.5?0.0:1.0));
-   c=mix(c,uLight,smoothstep(.1,.9,vObjP.y)*.12);c=mix(c,uBelly,vMask.r*.9);c=mix(c,uAccent,vMask.g*.85);
+   c=mix(c,uLight,smoothstep(.1,.9,vObjP.y)*.12);c=mix(c,uBelly,vMask.r*.9*(uFaceY>-5.0?step(uFaceY,vObjP.y):1.0));c=mix(c,uAccent,vMask.g*.85);
    if(uScales>.5&&vMask.r>.35&&vFurL<.05){vec2 q=vec2(vObjP.x*26.0,vObjP.y*22.0+vObjP.z*8.0);q.x+=floor(q.y)*.5;vec2 f=fract(q)-vec2(.5,.2);float e=length(f*vec2(1.0,1.3));
      c=mix(uBelly*1.15,uAccent*.55,smoothstep(.38,.55,e))*(.85+.25*(1.0-f.y));}
    { vec3 np=vObjP*3.2+uSeed*.1+vec3(0.0,uT*.03,0.0);float nb=fbm3(np);float nb2=fbm3(np*1.9+4.0);
      vec3 neb=mix(uGlow,mix(vec3(.45,.2,1.0),vec3(.1,.85,1.0),nb2),.45);
      c=pow(c,vec3(1.7))*1.1;c=mix(c,neb*.9,smoothstep(.3,.7,nb)*.85*(1.0-vMask.r*.5));
      float l=dot(c,vec3(.299,.587,.114));float sat=max(c.r,max(c.g,c.b))-min(c.r,min(c.g,c.b));
-     vec3 hue=mix(mix(vec3(.55,.28,1.0),vec3(.12,.78,1.0),nb2),uAccent,.25);c=mix(c,hue*(.45+.6*l),clamp((.34-sat)*2.8,0.0,.8)*(1.0-vMask.r*.45));   // pastel/grey coats get a vivid cosmic hue
+     vec3 hue=mix(mix(vec3(.55,.28,1.0),vec3(.12,.78,1.0),nb2),uAccent,.25);c=mix(c,hue*(.45+.6*l),clamp((.34-sat)*2.8,0.0,.8)*(1.0-vMask.r*.45)*uVivid);   // pastel/grey coats get a vivid cosmic hue
      c=max(vec3(0.0),mix(vec3(dot(c,vec3(.299,.587,.114))),c,1.6)); }
    float hgt=${shell?'clamp(uS/vLenN,0.0,1.0)':'0.0'};
    diffuseColor.rgb=c*mix(.35,1.0,hgt);                                       // root AO -> bright tips
    vec3 sp3=vObjP*58.0+vec3(0.0,0.0,uT*.25);float star=step(.985,h31(floor(sp3)))*smoothstep(.35,.0,length(fract(sp3)-.5))*(.6+.4*sin(uT*3.0+h31(floor(sp3))*40.0));
    vec3 rp=vObjP*7.0+uSeed*.3;vec3 rc=floor(rp);float rh=h31(rc);float rune=rh>.82?smoothstep(.06,.0,abs(length(fract(rp)-.5)-.28))+smoothstep(.04,.0,abs(fract(rp).x-.5))*step(.92,rh):0.0;
-   float glowM=vMask.b+star*2.0+smoothstep(.55,.8,fbm3(vObjP*3.2+uSeed*.1))*.25+rune*.55*(1.0-vMask.r)+(uPat>6.5&&uPat<7.5?m*.35:0.0)+(uPat>2.5&&uPat<3.5?m*.6:0.0);`)
+   float stoneCr=0.0;if(uStone>.5){float sv=fbm3(vObjP*7.0+uSeed);stoneCr=smoothstep(.035,.0,abs(sv-.5));c=mix(uDark*.7,uBase*1.05,fbm3(vObjP*22.0+uSeed))*(1.0-stoneCr*.6);}
+   float glowM=stoneCr*1.4+vMask.b+star*2.0+smoothstep(.55,.8,fbm3(vObjP*3.2+uSeed*.1))*.25+rune*.55*(1.0-vMask.r)+(uPat>6.5&&uPat<7.5?m*.35:0.0)+(uPat>2.5&&uPat<3.5?m*.6:0.0);`)
    .replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
    vec3 vd=normalize(vViewPosition),nn=normalize(vNormal);float fres=pow(1.0-abs(dot(nn,vd)),3.0);
    totalEmissiveRadiance+=uGlow*glowM*(1.2+uBeat*1.5)+c*vec3(1.0,.6,.8)*vMask.g*.25+mix(vec3(.55,.3,1.0),vec3(.2,.95,1.0),.5+.5*sin(dot(nn,vd)*9.0+uT))*fres*.35;`);};
@@ -96,7 +102,7 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
    nc+=uGlow*smoothstep(.35,.0,abs(r-.9))*.25;nc*=smoothstep(.18,.32,r)*.85+.15;
    float stars=step(.992,h31(floor(nv*180.0)))*smoothstep(1.1,.3,r);nc+=mix(vec3(.4,.2,1.0),vec3(.2,.9,1.0),.5+.5*sin(a*3.0))*smoothstep(.12,.0,abs(r-.62))*.6;totalEmissiveRadiance=nc*3.4+vec3(1.0)*stars*1.6;`);};
  eyeMat.customProgramCacheKey=()=>'beast-eye-v2';
- let face:any=null,body:any=null;const shells:any[]=[];const SP=SPECIES[plan]||{};const shown=new Set<string>(['body','face','detail',...(SP.ears||EAR_V[gen.ears]||['ear_pointy'])]);
+ let face:any=null,body:any=null;const shells:any[]=[];const shown=new Set<string>(['body','face','detail',...(SP.ears||EAR_V[gen.ears]||['ear_pointy'])]);
  if(gen.ears==='crown')shown.add('ear_crown');
  if(SP.tail)shown.add(SP.tail);else if(gen.tail!=='none')shown.add(TAIL_V[gen.tail]||'tail_thin');
  if(SP.wings)shown.add(SP.wings);else if(gen.wings&&gen.wings!=='none')shown.add(WING_V[gen.wings]||'wing_feather');
@@ -110,6 +116,8 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
    else if(n.startsWith('wing_dragon')){const wm=new THREE.MeshPhysicalMaterial({vertexColors:true,roughness:.5,transmission:.0,side:THREE.DoubleSide,sheen:.5,sheenColor:C.glow,emissive:C.glow,emissiveIntensity:.08});furPatch(wm,null);o.material=wm;}
    else if(n.startsWith('ear_crown'))o.material=new THREE.MeshPhysicalMaterial({color:C.accent.clone().lerp(new THREE.Color(1,.82,.4),.6),metalness:1,roughness:.22,clearcoat:.6,emissive:C.glow,emissiveIntensity:.15});
    else if(n.startsWith('ear_')&&!SP.ears&&GLOWING.has(gen.ears)||n==='tail_flame'&&GLOWING.has(gen.tail))o.material=glowMat;else o.material=m;if(n.startsWith('body'))body=o;}
+  else if(mn==='prop'){const pc=new THREE.Color(SP.prop??0x5b2fa8);o.material=SP.crystal?new THREE.MeshPhysicalMaterial({color:pc,roughness:.08,metalness:.1,transmission:.35,thickness:.2,iridescence:1,emissive:C.glow,emissiveIntensity:.5,clearcoat:1})
+   :new THREE.MeshPhysicalMaterial({color:pc,roughness:.85,sheen:1,sheenColor:new THREE.Color(0xb48cff),sheenRoughness:.5,emissive:C.glow,emissiveIntensity:.06});}
   else if(mn==='eye'){o.material=eyeMat;o.geometry.computeBoundingBox();const bb=o.geometry.boundingBox;const w=(bb.max.x-bb.min.x)/2;eyeC.value.set(bb.max.x-w/2,(bb.max.y+bb.min.y)/2,(bb.max.z+bb.min.z)/2-(bb.max.z-bb.min.z)*.3);}else if(mn==='iris'){o.material=new THREE.MeshBasicMaterial({color:C.glow,transparent:true,opacity:.0});}
   else if(mn==='shine')o.material=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false});else if(mn==='glow')o.material=glowMat;
   else if(mn==='mouth')o.material=new THREE.MeshStandardMaterial({color:0x1c0812,roughness:.55});else if(mn==='mouthin')o.material=new THREE.MeshStandardMaterial({color:0x2a0614,roughness:.7});else if(mn==='tongue')o.material=new THREE.MeshPhysicalMaterial({color:0xe0687e,roughness:.35,clearcoat:.5});else if(mn==='nose')o.material=new THREE.MeshPhysicalMaterial({color:0x1a1222,roughness:.25,clearcoat:.8});
@@ -169,8 +177,9 @@ export function beastStudio(THREE:Three,renderer:any,scene:any){
  const panel=(col:number,s:number,w:number,h:number,p:[number,number,number])=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({color:new THREE.Color(col).multiplyScalar(s),side:THREE.DoubleSide}));m.position.set(...p);m.lookAt(0,0,0);env.add(m);};
  panel(0xf1e6ff,6,5,4,[-5,6,6]);panel(0x7fe6ff,9,1.2,7,[4,3,-6]);panel(0xb88cff,7,1.2,7,[-5,3,-5]);panel(0x5a7bff,1.6,6,3,[6,1,4]);
  const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(env,.03).texture;pm.dispose();scene.environmentIntensity=.3;
- renderer.toneMapping=THREE.AgXToneMapping;renderer.toneMappingExposure=1.0;
- const L:any[]=[new THREE.HemisphereLight(0xa996ff,0x0a0618,.25)];
+ // ACES keeps saturation (AgX greyed the coats out)
+ renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.9;
+ const L:any[]=[new THREE.HemisphereLight(0xa996ff,0x0a0618,.15)];
  const key=new THREE.DirectionalLight(0xfff1ff,2.8);key.position.set(-2.2,3.2,3);key.castShadow=true;key.shadow.mapSize.set(1024,1024);key.shadow.bias=-.0005;L.push(key);
  const fill=new THREE.DirectionalLight(0x6f8cff,.7);fill.position.set(2.6,1,2.4);L.push(fill);
  const rim=new THREE.DirectionalLight(0x8fe8ff,4.2);rim.position.set(1.8,2.3,-3);L.push(rim);const rim2=new THREE.DirectionalLight(0xc08cff,3.2);rim2.position.set(-2.2,2.6,-2.4);L.push(rim2);
