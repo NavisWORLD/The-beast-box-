@@ -122,12 +122,12 @@ if os.environ.get('CYCLES','1')=='1':
             if PLAN=='res_frostmitt' and o.name.startswith('body'):  # keep the face readable: thin, short fur on the front of the face
                 vgd=o.vertex_groups.new(name='furdens');vgf=o.vertex_groups.new(name='facefur');fm_=o.data.attributes.new('frostmask','FLOAT','POINT')
                 for v in o.data.vertices:
-                    face_=v.co.z>zt_*.55 and v.normal.y<.15 and abs(v.co.x)<zt_*.36  # whole front of the head
+                    face_=v.co.z>zt_*.55 and v.normal.y<-.45 and abs(v.co.x)<zt_*.3  # true front of the face only; cheeks/head sides keep the long coat  # whole front of the head
                     vgd.add([v.index],0 if face_ else 1,'REPLACE');vgf.add([v.index],1 if face_ else 0,'REPLACE');fm_.data[v.index].value=0 if face_ else 1
                     if face_:vgl.add([v.index],.18,'REPLACE')
                 md.particle_system.vertex_group_density='furdens'
                 mf=o.modifiers.new('facefur','PARTICLE_SYSTEM');pf=mf.particle_system.settings;mf.particle_system.vertex_group_density='facefur'
-                pf.type='HAIR';pf.count=30000;pf.hair_length=.028;pf.material=slot;pf.child_type='INTERPOLATED';pf.child_percent=6;pf.rendered_child_count=10
+                pf.type='HAIR';pf.count=30000;pf.hair_length=.036;pf.material=slot;pf.child_type='INTERPOLATED';pf.child_percent=6;pf.rendered_child_count=10
                 pf.clump_factor=.2;pf.roughness_2=.004;pf.radius_scale=.0012;pf.root_radius=1;pf.tip_radius=0;pf.render_step=3  # short dense velvet face coat (reference: smooth white face)
             ps.hair_length=FUR[0]*(.7 if o.name.startswith('ear') else 1);ps.material=slot;ps.child_type='INTERPOLATED';ps.child_percent=6;ps.rendered_child_count=10
             ps.clump_factor=.55;ps.clump_shape=.3;ps.roughness_1=.012;ps.roughness_2=.025;ps.roughness_2_threshold=.85;ps.roughness_endpoint=.006

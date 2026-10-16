@@ -813,10 +813,10 @@ if NEW_OUTFIT:
             if len(ic)>=18:break  # fewer, longer, thicker: read as icicles, not speckles
             v=body.data.vertices[R3.randrange(len(body.data.vertices))]
             if v.normal.z>-.2 or v.normal.z<-.75 or v.co.z<.1 or max(abs(v.normal.x),-v.normal.y)<.3:continue  # downward-facing outer edges (chest/belly/leg silhouette) so they hang in view
-            L=R3.uniform(.07,.14);p=v.co+v.normal*.003
+            L=R3.uniform(.13,.21);p=v.co+v.normal*.003
             for j in range(R3.choice((1,2))):
                 off=Vector((R3.uniform(-.008,.008),R3.uniform(-.008,.008),0))
-                ic.append(cone('ice',tuple(p+off),tuple(p+off+Vector((v.normal.x*.01,v.normal.y*.01,-L*(1-.35*j)))),R3.uniform(.011,.018),1,8))
+                ic.append(cone('ice',tuple(p+off),tuple(p+off+Vector((v.normal.x*.01,v.normal.y*.01,-L*(1-.35*j)))),R3.uniform(.015,.022),1,8))
         def drip(p,L,r,n=8):ic.append(cone('ice',tuple(p),tuple(Vector(p)+Vector((0,0,-L))),r,1,n))
         for x in (-.55,-.2,.15,.5):  # chin fringe
             p=surf(x*ER,FACE['eye_z']-ER*2.2)+Vector((0,.01,0));drip(p,R3.uniform(.05,.08),R3.uniform(.009,.013))
@@ -832,10 +832,11 @@ if NEW_OUTFIT:
         b.inputs['Emission Color'].default_value=(.6,.7,1,1);b.inputs['Emission Strength'].default_value=.12;m.blend_method='BLEND';PM['mist']=m
         ms=[]
         for k in range(7):  # curling frost-mist ribbons around legs and tail
-            a0=R3.uniform(0,2*math.pi);r0=R3.uniform(.18,.3);z0=R3.uniform(.05,.35)
+            a0=R3.uniform(0,2*math.pi);r0=R3.uniform(.42,.55);z0=R3.uniform(.05,.35)  # mist kept clear of the body (it read as white streaks on his sides)
             pts=[(math.cos(a0+t*2.2)*r0*(1+t*.4),math.sin(a0+t*2.2)*r0*(1+t*.4),z0+t*.25+.03*math.sin(t*9)) for t in [i/7 for i in range(8)]]
             ms.append(tube('mist',pts,[.004,.012,.018,.02,.018,.014,.008,.002],res=5))
-        addp(joinm(ms,'prop_mist'),'mist','root')
+        if os.environ.get('FROST_MIST'):addp(joinm(ms,'prop_mist'),'mist','root')  # off: the thin tubes read as white streaks/lines on his sides
+        else:[D.objects.remove(m_,do_unlink=True) for m_ in ms]
     if PLAN=='res_nyxbean':
         pmat('pink',(1,.42,.75,1),.4,emit=(1,.35,.75,1),es=1.6);pmat('whisker',(.92,.9,1,1),.3)
         pk=[]
