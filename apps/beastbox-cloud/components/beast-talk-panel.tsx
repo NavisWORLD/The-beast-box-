@@ -23,7 +23,7 @@ import styles from './beast-talk-panel.module.css';
 export type TalkState='idle'|'thinking'|'listening'|'speaking'|'replied'|'offline';
 type Route=TalkRoute;
 type TeacherHint={text:string;label:string;model?:string;route:string};
-type Turn={role:'you'|'beast';text:string;model?:string;route?:string;at?:number;id?:string;cloudImported?:boolean;verified?:boolean;teacher?:TeacherHint;beastMissing?:string};
+type Turn={role:'you'|'beast';text:string;model?:string;route?:string;at?:number;id?:string;cloudImported?:boolean;verified?:boolean;teacher?:TeacherHint;beastMissing?:string;coachedBy?:string};
 type Offline={error:string;help:string[];route:string};
 type Prefs={route:Route;ollamaUrl:string;ollamaModel:string;hfModel:string};
 type Status={routes?:Record<string,{configured:boolean|string}>;default?:string};
@@ -157,19 +157,20 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    // Teacher design: any non-RAWRPHOS brain is a TEACHER. RAWRPHOS still writes the
    // Beast's own reply; the teacher's answer is shown separately and labeled.
    const teaching=isTeacherRoute(route);
-   const teacherResult=teaching?await talkToBeast({...ask,route}):null;
+   // Cory (2026-10-16): chat is ALWAYS Zeref's own RAWRPHOS voice. Teachers run in the
+   // background only to make distillation lessons; their text is never shown.
+   const [teacherResult,result]=await Promise.all([teaching?talkToBeast({...ask,route}).catch(()=>null):Promise.resolve(null),talkToBeast({...ask,route:'guest-rawrphos'})]);
    if(pending.current!==controller||controller.signal.aborted||personaKey.current!==forKey||privateSelection.current!==forSelection)return;
-   if(teacherResult&&!teacherResult.ok){setOffline({error:teacherResult.error,help:teacherResult.help,route:teacherResult.route});return;}
-   const result=await talkToBeast({...ask,route:'guest-rawrphos'});
-   if(pending.current!==controller||controller.signal.aborted||personaKey.current!==forKey||privateSelection.current!==forSelection)return;
-   if(!result.ok&&!teacherResult){setOffline({error:result.error,help:result.help,route:result.route});return;}
+   if(teacherResult&&teacherResult.ok&&teacherResult.route!=='shared-ollama')recordTeacherPair(saying,{text:teacherResult.reply,label:TEACHER_LABEL[teacherResult.route]||teacherResult.label,model:teacherResult.model,route:teacherResult.route});
+   // A teacher that couldn't connect is reported honestly (with setup help) but never blocks Zeref's own reply.
+   const teacherDown=teacherResult&&!teacherResult.ok?{error:'Teacher not connected: '+teacherResult.error,help:teacherResult.help,route:teacherResult.route}:null;
+   if(!result.ok){setOffline({error:`${persona.name} is resting, try again.`+(teacherDown?' '+teacherDown.error:''),help:teacherDown?.help||[],route:'guest-rawrphos'});return;}
+   if(teacherDown)setOffline(teacherDown);
    const exchangeId=crypto.randomUUID(),at=Date.now();
-   const teacher=teacherResult&&teacherResult.ok?{text:teacherResult.reply,label:TEACHER_LABEL[teacherResult.route]||teacherResult.label,model:teacherResult.model,route:teacherResult.route}:undefined;
-   const youTurn={role:'you' as const,text:saying,at,id:exchangeId+'-you',teacher,beastMissing:result.ok?undefined:result.error};
-   const next=result.ok?[...log,youTurn,{role:'beast' as const,text:result.reply,model:result.model,route:result.route,at:result.at,id:exchangeId+'-beast'}]:[...log,youTurn];
+   const coachedBy=teacherResult&&teacherResult.ok?TEACHER_LABEL[teacherResult.route]||teacherResult.label:undefined;
+   const youTurn={role:'you' as const,text:saying,at,id:exchangeId+'-you'};
+   const next=[...log,youTurn,{role:'beast' as const,text:result.reply,model:result.model,route:result.route,at:result.at,id:exchangeId+'-beast',coachedBy}];
    setLog(next);writeTalkLog(storage.current,forKey,next);setVerifiedAt(result.ok?result.at:at);editText('');
-   if(teacher)recordTeacherPair(saying,teacher);
-   if(!result.ok)return;
    if(visitorId&&storage.current){const prior=growth?.beastKey===forKey?growth:freshGrowth(visitorId,forKey);const updated=advanceVisitorGrowth(prior,{text:saying,reply:result.reply,verified:true});writeVisitorGrowth(storage.current,updated);setGrowth(updated);}
    if(boundForCloud){try{privateQueue.current?.enqueue({...boundForCloud,exchange:{eventId:exchangeId,text:saying,reply:result.reply,provider:result.route,model:result.model,at}});}catch(error){setCloudStatus((error instanceof Error?error.message:'Private queue unavailable.')+' The completed reply remains in local storage.');}}
    // Same Beast, same growth: a verified exchange adds to the saved Beast's chat and bond.
@@ -251,7 +252,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
 
   {showBrains?<fieldset className={styles.brains}>
    <legend>Choose {persona.name}&apos;s teacher</legend>
-   <p className={styles.advancedBrain} data-advanced-brain>Advanced · Brain: {info.label} (teacher) · <code>{modelName}</code>. {persona.name}&apos;s own voice is always RAWRPHØS. Another teacher&apos;s answer is shown next to it, clearly labeled, and never spoken as {persona.name}.</p>
+   <p className={styles.advancedBrain} data-advanced-brain>Advanced · Brain: {info.label} (teacher) · <code>{modelName}</code>. {persona.name}&apos;s own voice is always RAWRPHØS. A teacher only coaches in the background; its answer becomes a lesson and is never shown or spoken as {persona.name}.</p>
    <label className={styles.check} data-teacher-contribute><input type="checkbox" checked={contribute} onChange={e=>toggleContribute(e.target.checked)}/> Help train RAWRPHØS: share my teacher answers (not my key, not my history) for review. Off by default. Private info is filtered out and pairs are rate-limited.</label>
    <small data-teacher-pairs>{pairCount} teacher pair{pairCount===1?'':'s'} saved on this device only.{contribStatus?' '+contribStatus:''}</small>
    {TALK_ROUTES.map(key=><label key={key} className={styles.brainChoice} data-selected={route===key||undefined}>
@@ -272,16 +273,12 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   </fieldset>:null}
 
   <div className={styles.log} aria-label={`Conversation with ${persona.name}`} aria-live="polite">
-   {log.length===0?<p className={styles.empty}>Say hi to {persona.name}! 👋 Type below, then tap Send.<small> {persona.name}&apos;s replies come from RAWRPHØS, never from a script. Other teachers appear as labeled hints.</small></p>:
+   {log.length===0?<p className={styles.empty}>Say hi to {persona.name}! 👋 Type below, then tap Send.<small> {persona.name}&apos;s replies come from RAWRPHØS, never from a script. Teachers coach RAWRPHØS in the background; their words are never shown as {persona.name}&apos;s.</small></p>:
     log.map((turn,i)=><div key={i} style={{display:'contents'}}><div className={turn.role==='you'?styles.you:styles.beast}>
      <span className={styles.speaker}>{turn.role==='you'?'You':persona.name}{turn.role==='beast'&&turn.model?<em> · via {turn.model}</em>:null}</span>
      <p>{turn.text}</p>
+     {turn.role==='beast'&&turn.coachedBy?<small data-coached-by>Coached by: {turn.coachedBy}</small>:null}
     </div>
-    {turn.role==='you'&&turn.teacher?<div className={styles.beast} data-teacher-hint data-teacher-route={turn.teacher.route} style={{opacity:.82,borderStyle:'dashed'}}>
-     <span className={styles.speaker}>Teacher hint · {turn.teacher.label}{turn.teacher.model?<em> · {turn.teacher.model}</em>:null} · not {persona.name}&apos;s voice</span>
-     <p>{turn.teacher.text}</p>
-    </div>:null}
-    {turn.role==='you'&&turn.beastMissing?<p className={styles.empty} data-beast-missing>{persona.name}&apos;s own RAWRPHØS voice didn&apos;t answer this time ({turn.beastMissing}). Only the teacher&apos;s hint is shown.</p>:null}
     </div>)}
    {busy?<div className={styles.beast}><span className={styles.speaker}>{persona.name}</span><p className={styles.thinking}>thinking<span>.</span><span>.</span><span>.</span></p></div>:null}
    <div ref={logEnd}/>

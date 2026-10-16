@@ -30,8 +30,8 @@ test('persona style filter drops teacher identity, keeps short knowledge',()=>{
 test('Talk panel never presents teacher output as the Beast voice',()=>{
  const ui=fs.readFileSync(new URL('../components/beast-talk-panel.tsx',import.meta.url),'utf8');
  assert.match(ui,/route:'guest-rawrphos'/);
- assert.match(ui,/data-teacher-hint/);
- assert.match(ui,/not \{persona\.name\}&apos;s voice/);
+ assert.doesNotMatch(ui,/data-teacher-hint/);
+ assert.match(ui,/data-coached-by/);
  assert.match(ui,/useState\(false\),\[pairCount/);
  const api=fs.readFileSync(new URL('../app/api/teacher-pairs/route.ts',import.meta.url),'utf8');
  assert.match(api,/consent!==true/);assert.match(api,/PENDING_REVIEW/);assert.match(api,/limited\(client\)/);

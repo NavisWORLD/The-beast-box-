@@ -1,4 +1,4 @@
-export type TalkRoute = 'guest-rawrphos' | 'local-ollama' | 'hf-byok' | 'connected-brain-bay';
+export type TalkRoute = 'guest-rawrphos' | 'shared-ollama' | 'local-ollama' | 'hf-byok' | 'connected-brain-bay';
 export type TalkPersona = { key: string; name: string; kind: string; traits: string[]; catchphrase: string; habit: string; source: 'spark' | 'cage' | 'zeref' };
 export type TalkTurn = { role: 'you' | 'beast'; text: string; model?: string; route?: string; at?: number };
 export type TalkSuccess = { ok: true; route: TalkRoute; reply: string; model: string; label: string; at: number };

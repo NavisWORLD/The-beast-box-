@@ -76,5 +76,5 @@ export async function POST(req:Request){
   // Lesson also joins Zeref's Azure cloud memory folder.
   if(fed)await storeLesson(cfg,record).catch(()=>false);
  }
- return safeJson(200,{ok:true,reply,model:taught,teacher:'Ollama',role:'TEACHER_NOT_BEAST_VOICE',distill:fed?'queued':'skipped'});
+ return safeJson(200,{ok:true,coached:true,model:taught,teacher:'Ollama',role:'TEACHER_NOT_BEAST_VOICE',distill:fed?'queued':'skipped'});
 }
