@@ -193,7 +193,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
   if(nativeOwned)return <aside className={css.sparkDock} style={navClear!==null?({'--nav-clear':`${navClear}px`} as React.CSSProperties):undefined} aria-label={`Lost Cosmos cartridge connected to ${connectedName}`} data-lost-cosmos-dock="true" data-cosmos-mode={mode} data-dock-state="native" data-rom-source="/api/gba-rom" data-creature-id={session?.beast?.qbeast?.profile.id||''}>
     <SolSparkPlayer stage={mode==='full'} />
   </aside>;
-  return <aside ref={shell} className={className} data-corner-tuck-game={floating?'':undefined} data-dock-pill={pill ? (tucked ? 'tucked' : 'pill') : undefined} data-cosmos-mode={mode} data-rom-source="/api/gba-rom" aria-hidden={shown ? undefined : true} aria-label={`Lost Cosmos cartridge connected to ${connectedName}`}
+  return <aside ref={shell} className={className} data-dock-pill={pill ? (tucked ? 'tucked' : 'pill') : undefined} data-cosmos-mode={mode} data-rom-source="/api/gba-rom" aria-hidden={shown ? undefined : true} aria-label={`Lost Cosmos cartridge connected to ${connectedName}`}
     data-lost-cosmos-dock="true" data-dock-state={state} data-creature-id={creature?.id || 'fallback'}>
     {mode === 'mini' && closed ? <button type="button" className={css.launcher} onClick={() => setClosed(false)}
       aria-label="Open Lost Cosmos player"><span>🎮</span><strong>LOST COSMOS</strong><small>Open</small></button> : null}

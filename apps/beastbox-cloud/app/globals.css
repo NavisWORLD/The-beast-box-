@@ -744,8 +744,8 @@ html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],
 .corner-launcher{display:none}
 @media(max-width:760px){
  body{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
- .corner-launcher{display:grid;place-items:center;position:fixed;z-index:72;right:max(12px,env(safe-area-inset-right,0px));bottom:max(12px,calc(env(safe-area-inset-bottom,0px) + 8px));width:44px;height:44px;border-radius:22px;border:1px solid #9fc9e475;background:#111a32ee;color:#dfc9ff;font-size:18px;box-shadow:0 8px 28px #0009;backdrop-filter:blur(12px);cursor:pointer}
- html:not([data-docks-open]) :is([data-corner-tuck-game],[data-zeref-voice-dock],[data-corner-tuck],[data-companion-overlay],.companion-dock){display:none!important}
+ .corner-launcher{display:grid;place-items:center;position:fixed;z-index:72;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 64px);width:44px;height:44px;border-radius:22px;border:1px solid #9fc9e475;background:#111a32ee;color:#dfc9ff;font-size:18px;box-shadow:0 8px 28px #0009;backdrop-filter:blur(12px);cursor:pointer}
+ html:not([data-docks-open]) :is([data-zeref-voice-dock],[data-corner-tuck],.companion-dock){display:none!important}
  html[data-docks-open] [data-zeref-voice-dock]{top:auto!important;left:auto!important;right:max(16px,env(safe-area-inset-right,0px))!important;bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 112px)!important;z-index:71!important}
  html[data-docks-open] [data-corner-tuck]{right:calc(max(12px,env(safe-area-inset-right,0px)) + 52px)!important;bottom:max(12px,calc(env(safe-area-inset-bottom,0px) + 8px))!important;min-height:44px}
  html[data-docks-open] [data-companion-overlay]{bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 60px)!important}
@@ -756,5 +756,4 @@ html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],
  .cosmic-support:not(.is-open) .support-launcher-copy{display:none}
  [aria-label="Cosmic sound controls"]{top:auto!important;left:calc(max(12px,env(safe-area-inset-left,0px)) + 96px)!important;bottom:max(12px,calc(env(safe-area-inset-bottom,0px) + 8px))!important;max-width:calc(100vw - 172px)!important}
  [aria-label="Sound options"]{left:-84px!important}
- html[data-docks-open] [data-corner-tuck-game]{bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 60px)!important}
 }

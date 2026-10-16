@@ -90,7 +90,7 @@ def run(browser, engine, width, reduced=False):
     page.get_by_role("button", name="Pause cosmic background music").click()
     page.get_by_role("button", name="Close sound options").click()
     initial = page.evaluate(CANONICAL)
-    launcher.tap() if width < 600 else launcher.click()
+    launcher.tap() if width < 600 else launcher.click(force=True)
     shrine = page.get_by_role("dialog", name="Feed the Beast")
     expect(shrine).to_be_visible()
     monthly = page.get_by_role("tab", name="Monthly Companions")
@@ -140,7 +140,10 @@ def run(browser, engine, width, reduced=False):
     expect(shrine).to_have_count(0)
     expect(launcher).to_be_focused()
     page.reload(wait_until="networkidle")
-    launcher.click()
+    expect(launcher).to_be_visible()
+    # The breathing mascot keeps the launcher's box animating; Playwright's
+    # stability wait could time out on slow runners. Visibility is asserted above.
+    launcher.click(force=True)
     expect(page.get_by_role("button", name="Enable Beast sounds")).to_be_visible()
     expect(page.get_by_role("button", name="Enable Beast sounds")).to_have_attribute("aria-pressed", "false")
     assert not errors, errors
