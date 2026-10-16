@@ -56,8 +56,11 @@ if PLAN=='res_nyxbean':  # neutral black coat: desaturate palette base, grey she
     hs=nt.nodes.new('ShaderNodeHueSaturation');hs.inputs['Saturation'].default_value=.35;nt.links.new(mx2.outputs[2],hs.inputs['Color']);nt.links.new(hs.outputs[0],b.inputs['Base Color'])
 if PLAN=='res_frostmitt':  # white coat: no lavender sheen blowout, albedo kept under 0.6 (pro value-check)
     b.inputs['Sheen Weight'].default_value=.2;b.inputs['Roughness'].default_value=.8
-    vm=nt.nodes.new('ShaderNodeMix');vm.data_type='RGBA';vm.blend_type='MULTIPLY';vm.inputs[0].default_value=1;vm.inputs[7].default_value=(.62,.64,.7,1)
+    vm=nt.nodes.new('ShaderNodeMix');vm.data_type='RGBA';vm.blend_type='MULTIPLY';vm.inputs[0].default_value=1;vm.inputs[7].default_value=(.8,.81,.84,1)
     nt.links.new(mx2.outputs[2],vm.inputs[6]);nt.links.new(vm.outputs[2],b.inputs['Base Color'])
+if PLAN=='res_frostmitt':  # white fur: albedo ~0.7, tamer key, punchier AgX so the face reads (no haze)
+    key.data.energy*=.6;fill.data.energy*=.5;sc.view_settings.exposure=-.35
+    if sc.view_settings.view_transform=='AgX':sc.view_settings.look='AgX - High Contrast'
 # playbook #1: sculpt->bake maps (normal/AO/curvature) from sculpt_bake.py onto the game mesh
 BK=os.environ.get('BAKED')
 def bakemaps(o,pre):
