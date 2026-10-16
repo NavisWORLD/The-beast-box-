@@ -202,6 +202,19 @@ if PLAN=='res_kairo':BODY_TRIS=6000   # mostly under clothes/hair   # big crysta
 parts={k:fn(k,*a) for k,(fn,a) in P.items()}
 body,labels=fuse(parts,'body',tris=BODY_TRIS)
 print('body tris',tris_of(body))
+if PLAN=='res_kairo':
+    # sculpted chibi human face on the fused head: cheeks, brow ridge, nose bridge, narrowed chin (gaussian brushes along normals)
+    _hc=Vector(FACE['head_c']);_hr=Vector(FACE['head_r']);_ez=FACE['eye_z'];_ex=FACE['eye_x'];_er=FACE['eye_r']
+    def _g(p,c,r):return math.exp(-((p-c).length/r)**2)
+    for i,v in enumerate(body.data.vertices):
+        if (labels[i] or '')!='head':continue
+        p=v.co;n=v.normal;fr=max(0,-n.y)  # front-facing weight
+        d=0
+        for sx in (-1,1):d+=.010*_g(p,Vector((sx*_ex*1.15,p.y,_ez-_er*1.5)),_hr.x*.32)*fr        # cheeks
+        d+=.006*math.exp(-((p.z-(_ez+_er*1.3))/(_er*.35))**2)*max(0,1-abs(p.x)/(_hr.x*.75))*fr**2  # brow ridge
+        d+=.005*math.exp(-(p.x/(_er*.28))**2)*(1 if _ez-_er*1.2<p.z<_ez+_er*.2 else 0)*fr**3     # nose bridge
+        if p.z<_ez-_er*1.6:v.co.x*=1-.12*min(1,(_ez-_er*1.6-p.z)/(_hr.z*.5))                  # chibi chin taper
+        v.co+=n*d
 body_bvh=bvh(body)
 
 # ============================================================ face (eyes, catchlights, nose, mouth) with shape keys
@@ -605,7 +618,7 @@ if NEW_OUTFIT:
     if PLAN=='res_kairo':
         pmat('cloth',(.01,.009,.013,1),.7,sheen=.2)
         pmat('tee',(.04,.035,.045,1),.85,sheen=.4)
-        pmat('hair',(.006,.005,.008,1),.55)
+        pmat('hair',(.006,.005,.008,1),.82);PM['hair'].node_tree.nodes['Principled BSDF'].inputs['Specular IOR Level'].default_value=.15
         pmat('ear_in',(.55,.2,.9,1),.5,emit=(.4,.1,.8,1),es=.4)
         pmat('sole',(.6,.25,1,1),.4,emit=(.55,.2,1,1),es=1.5)
         pmat('zip',(.8,.8,.85,1),.25,metal=1)
@@ -743,7 +756,31 @@ if NEW_OUTFIT:
             base=hcv+Vector((d.x*hrx*.95,d.y*hrx*.95,d.z*hrz*.95))
             tip=base+d*hrx*R2.uniform(.18,.4)+Vector((R2.uniform(-.02,.02),R2.uniform(0,.02),-R2.uniform(.03,.08)))
             tf.append(cone('tuft',tuple(base),tuple(tip),hrx*R2.uniform(.1,.16),.5,6))
-        o=joinm(tf,'prop_tufts');cap(o,1500);setmat(o,PM['hair']);o['bone']='head';props.append(o)
+        # fringe: flattened clump cards from the hairline down over the brow, alternating length (sheet: messy bangs)
+        for k in range(16):
+            x=(k/15*2-1)*hrx*.85;base=surf(x,hcv.z+hrz*.62)+Vector((0,-.004,0));L=hrz*R2.uniform(.42,.62)
+            pts=[tuple(base),tuple(base+Vector((x*.06,-.03,-L*.5))),tuple(base+Vector((x*.12+R2.uniform(-.01,.01),-.028,-L)))]
+            c_=tube('fr',pts,[hrx*.07,hrx*.05,hrx*.006],res=4);c_.scale=(1,.45,1) if False else (1,1,1);tf.append(c_)
+        for k in range(26):  # side + nape locks (cards hanging down)
+            s_=R2.choice((-1,1));a=R2.uniform(.2,1.6);base=hcv+Vector((s_*math.sin(a)*hrx*.98,math.cos(a)*hrx*.6,R2.uniform(-.1,.5)*hrz))
+            tip=base+Vector((s_*R2.uniform(.02,.05),R2.uniform(0,.04),-hrz*R2.uniform(.35,.6)))
+            tf.append(cone('lock',tuple(base),tuple(tip),hrx*R2.uniform(.1,.14),.35,6))
+        o=joinm(tf,'prop_tufts');active(o);bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.mesh.remove_doubles(threshold=.0005);bpy.ops.mesh.normals_make_consistent(inside=False);bpy.ops.object.mode_set(mode='OBJECT');cap(o,2600);setmat(o,PM['hair']);o['bone']='head';props.append(o)
+        pmat('lip',(.42,.18,.16,1),.45,coat=.3);pmat('skin_ear',(.62,.38,.28,1),.5);pmat('freckle',(.18,.09,.06,1),.7)
+        lz=FACE['mouth_z'];lp=[]
+        lp.append(tube('lipU',[tuple(surf(x*ER*.55,lz+ER*.12+abs(x)*-ER*.06)+Vector((0,-.003,0))) for x in (-1,-.5,0,.5,1)],[ER*.03,ER*.07,ER*.06,ER*.07,ER*.03],res=4))
+        lp.append(tube('lipL',[tuple(surf(x*ER*.45,lz-ER*.12)+Vector((0,-.004,0))) for x in (-1,0,1)],[ER*.04,ER*.09,ER*.04],res=4))
+        addp(joinm(lp,'prop_lips'),'lip')
+        el=[]
+        for s_ in (-1,1):  # pointed elf ears from the side of the head, sweeping back/up
+            b0=hcv+Vector((s_*hrx*.97,hrx*.05,-hrz*.05));el.append(cone('elf',tuple(b0),tuple(b0+Vector((s_*hrx*.45,hrx*.3,hrz*.42))),hrz*.17,.35,12))
+        addp(joinm(el,'prop_elfears'),'skin_ear',n=400)
+        fk=[]
+        for k in range(14):
+            sx=R2.choice((-1,1));x=sx*R2.uniform(.25,.75)*FACE['eye_x']*1.5;z=FACE['eye_z']-ER*R2.uniform(1.1,1.8)
+            fk.append(ell('fk',tuple(surf(x,z)+Vector((0,.0005,0))),(ER*.05,ER*.02,ER*.05),seg=6,ring=3))
+        for d_ in ((-1.05,-1.3),(-1.25,-1.45),(-.9,-1.55)):fk.append(ell('mole',tuple(surf(d_[0]*FACE['eye_x'],FACE['eye_z']+d_[1]*ER)+Vector((0,.0002,0))),(ER*.075,ER*.03,ER*.075),seg=8,ring=4))
+        addp(joinm(fk,'prop_freckles'),'freckle',n=500)
     if PLAN=='res_frostmitt':
         R3=__import__('random').Random(21);ic=[]
         for k in range(400):
@@ -827,6 +864,19 @@ if NEW_OUTFIT:
         uvp_list=[o_ for o_ in props if o_.data.materials and o_.data.materials[0].name=='pm_puffy']
         for o_ in uvp_list:uvp(o_)
     # eyelids (upper+lower shells over each eye); basis = retracted to pole, keys close them along expression curves
+    if PLAN in('res_nyxbean','res_frostmitt'):
+        pmat('tuftcard',{'res_nyxbean':(.016,.011,.03,1),'res_frostmitt':(.72,.76,.86,1)}[PLAN],.85,sheen=.4)
+        R4=__import__('random').Random(33);cd=[];ck=[]
+        for k in range(40):  # cheek fins (sideways) + chest ruff cards (downward) for silhouette
+            if k<16:s_=-1 if k%2 else 1;z=FACE['eye_z']-ER*R4.uniform(.8,1.8);base=surf(s_*hrx*.8,z);base=Vector((s_*hrx*R4.uniform(.88,.98),base.y+hrx*.25,z));d=Vector((s_*1,.2,-.35))
+            else:
+                x=R4.uniform(-.09,.09);z=R4.uniform(hcv.z-hrz*1.35,hcv.z-hrz*.9);h_=body_bvh.ray_cast(Vector((x,-2,z)),Vector((0,1,0)))
+                if not h_[0]:continue
+                base=h_[0];d=Vector((x*2,-.5,-1))
+            d.normalize();L=hrx*R4.uniform(.18,.32)
+            (ck if k<16 else cd).append(cone('card',tuple(base),tuple(base+d*L),hrx*R4.uniform(.07,.11),.22,6))
+        addp(joinm(ck,'prop_cheekcards'),'tuftcard','head',n=400)
+        if cd:addp(joinm(cd,'prop_chestcards'),'tuftcard','spine',n=600)
     pmat('lid',{'res_nyxbean':(.018,.012,.035,1),'res_kairo':(.03,.03,.06,1),'res_frostmitt':(.55,.6,.75,1)}[PLAN],.85)
     def mklid(name,upper,lines):
         Rl=ER*1.05*SC*1.12;N=13 if PLAN=='res_nyxbean' else 10;vs=[];fs=[];base=[]
@@ -986,6 +1036,8 @@ for o in [body,face,detail]+props+list(variants.values()):
     for p in o.data.polygons:p.use_smooth=True
 tot=tris_of(body)+tris_of(face)+tris_of(detail)
 print('TRIS body',tris_of(body),'face',tris_of(face),'detail',tris_of(detail),{k:tris_of(v) for k,v in variants.items()})
+_keep=set([body,face,detail]+props+list(variants.values()))
+for o in [o for o in C.scene.objects if o.type=='MESH' and o not in _keep]:D.objects.remove(o,do_unlink=True)  # stray build scraps (were rendering as white flecks)
 for o in C.scene.objects:o.select_set(False)
 rig.select_set(True)
 for o in [body,face,detail]+props+list(variants.values()):o.select_set(True)

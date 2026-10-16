@@ -102,7 +102,7 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
    const loader=new GLTFLoader();loader.setMeshoptDecoder(MeshoptDecoder);
    const gltf=await loader.loadAsync(ZEREF_GLB_URL);if(disposed)return;
    composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));
-   bloomPass=new UnrealBloomPass(new THREE.Vector2(256,256),.24,.4,.95);composer.addPass(bloomPass);composer.addPass(new OutputPass());
+   bloomPass=new UnrealBloomPass(new THREE.Vector2(256,256),.3,.35,1.0);composer.addPass(bloomPass);composer.addPass(new OutputPass());
    gltf.scene.traverse((o:any)=>{if(o.isMesh){o.frustumCulled=false;}});
    const strands=await new THREE.TextureLoader().loadAsync('/creatures3d/zeref-fur-strands.png');strands.wrapS=strands.wrapT=THREE.RepeatWrapping;
    // shared fur shading: starlight twinkle (the ONE impossible detail), root AO + tip sheen for shells, ear/paw warmth, rim sheen
