@@ -13,6 +13,7 @@ import styles from './cage-pocket-dimension.module.css';
 import {addPocketLife,type Weather} from './pocket-life';
 import {buildPlush,type PlushGenome} from './creature-plush-3d';
 import {loadBeastGlb,GLB_PLANS} from './creature-glb-beast';
+import {addPocketWorld} from './pocket-world';
 import {createLife,stepLife,pokeLife} from '../lib/creatures3d/life-brain.mjs';
 type God={weather:(w:Weather)=>void;time:(t:number|null)=>void;treat:()=>void;flower:()=>void;poke:()=>void};
 const WEATHERS:Weather[]=['auto','sun','rain','storm'];const WEATHER_ICON:Record<Weather,string>={auto:'✦',sun:'☀',rain:'☂',storm:'⚡'};
@@ -286,6 +287,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     sand.field.setCounts(qvmCounts);
     // ---- LIVING POCKET (CST-driven world) + the Beast as a plush 3D creature living its own life
     const life=addPocketLife(THREE,scene,{seed:key,low,reduced,counts:qvmCounts,hemi});
+    const world=addPocketWorld(THREE,scene,{seed:key,low});
     const brain:any=createLife(key,{x:.8,z:.6} as any);const shelterAt=flora[0]?{x:flora[0].position.x*.8,z:flora[0].position.z*.8}:{x:2,z:-1.4};
     let plush:ReturnType<typeof buildPlush>|null=null;const beastNode=new THREE.Group();beastNode.name='beast-3d';scene.add(beastNode);
     const syncPlush=()=>{const gen=(window as any).__beastGenome as PlushGenome|null;const want=!!gen&&!pixelRef.current;
@@ -380,7 +382,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       zActorNode.scale.set(zp.sx,zp.sy,zp.sx);zActorNode.rotation.x=zp.lean;ze.motion={tail:zp.tail,ear:zp.ear};
       let d=-(v.theta-zHolder.rotation.y)*180/Math.PI;d=((d%360)+540)%360-180;ze.viewYaw=d;}
      // living pocket step: CST world → life brain → plush rig
-     {const cp=plush?{x:brain.x,y:.45,z:brain.z}:null;const L=life.update(reduced?0:dt,cp,plush?attn:null);
+     {const cp=plush?{x:brain.x,y:.45,z:brain.z}:null;const L=life.update(reduced?0:dt,cp,plush?attn:null);world.update(reduced?0:dt,L.env,L.cst.ch,camera.position);
       if(plush){stepLife(brain,reduced?0:dt,{...L.env,mood:L.mood,cam:camXZ(),residents:disturbers(),shelter:shelterAt,onEat:(id:string)=>life.eat(id)});
        attn=brain.attn?{x:brain.attn.x,y:brain.attn.y,z:brain.attn.z}:null;
        beastNode.position.set(brain.x,0,brain.z);beastNode.rotation.y=Math.PI/2-brain.heading;
