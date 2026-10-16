@@ -35,10 +35,10 @@ async function globalCount(today:string){
  }
  return dailyCap();
 }
-export async function GET(){return safeJson(200,{teacher:'Ollama',configured:!!process.env.OLLAMA_API_KEY,model:model(),role:'TEACHER_NOT_BEAST_VOICE'});}
+export async function GET(){return safeJson(200,{teacher:'Ollama',configured:!!(process.env.ZEREFS_TEACHERS||process.env.OLLAMA_API_KEY),model:model(),role:'TEACHER_NOT_BEAST_VOICE'});}
 export async function POST(req:Request){
  if(req.headers.get('origin')!==new URL(req.url).origin)return safeJson(403,{error:'Same-origin request required'});
- const key=process.env.OLLAMA_API_KEY;
+ const key=process.env.ZEREFS_TEACHERS||process.env.OLLAMA_API_KEY;
  if(!key)return safeJson(503,{error:'The shared Ollama teacher is resting right now.'});
  const raw=await req.text();if(raw.length>2000)return safeJson(413,{error:'Too large'});
  let prompt='';try{prompt=clean(JSON.parse(raw)?.prompt,MAX_PROMPT);}catch{return safeJson(400,{error:'Invalid JSON'});}
