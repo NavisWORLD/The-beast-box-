@@ -71,8 +71,11 @@ export default function ZerefSprite3D({className='',embed=false,autoRotate=false
     finally{URL.revokeObjectURL(url);}
    };
    const layers:any[]=[];let order=0;
-   for(const L of LAYERS){
-    const c=await cut(L.part,L.exclude);if(disposed)return;if(!c)continue;
+   // Decode every layer cut in parallel (image decode is off-thread), so the ready signal is not a serial chain of decodes
+   // competing with the pocket for the main thread on slow / software-GL machines.
+   const cuts=await Promise.all(LAYERS.map(L=>cut(L.part,L.exclude).catch(()=>null)));if(disposed)return;
+   for(const [li,L] of LAYERS.entries()){
+    const c=cuts[li];if(!c)continue;
     const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.premultiplyAlpha=true;tex.generateMipmaps=false;tex.minFilter=THREE.LinearFilter;
     const bone=new THREE.Group();bone.matrixAutoUpdate=false;root.add(bone);
     // Hinge (local sprite px -> plane units): wings at their root, tail at its base; other parts hinge at centre.
