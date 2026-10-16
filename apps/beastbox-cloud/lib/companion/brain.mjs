@@ -1,7 +1,7 @@
 
 // Public RAWRPHOS pin, mirrored from lib/rawrphos-public-pin.json (a test enforces equality).
 // 14000 stays accepted as the documented rollback baseline.
-export const RAWRPHOS_PUBLIC_PIN = Object.freeze({ step: 21616, checkpoint_sha256: "e92e0c0da36a02ade01ce4bc2f93d9f74c0e2b937313c896f1b81fe9eb32a2d1" });
+export const RAWRPHOS_PUBLIC_PIN = Object.freeze({ step: 22128, checkpoint_sha256: "fa74b998c7043757d84bb5956c93037c1aa27797b8a43bf090968cf37e730e07" });
 const RAWRPHOS_BASE_PIN = Object.freeze({ step: 14000, checkpoint_sha256: "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5" });
 function pinnedGuestStep(payload) {
   for (const pin of [RAWRPHOS_PUBLIC_PIN, RAWRPHOS_BASE_PIN]) {
