@@ -45,6 +45,42 @@ rim=light('rim','AREA',(1.8,2.0,1.6),200,(.6,.4,1),2)
 rim2=light('rim2','AREA',(-1.9,1.6,1.0),220,(.3,.5,1),1)
 fill=light('fill','AREA',(2,-2,.6),90,(.9,.9,1),4)
 chest=light('chest','AREA',(0,-1.6,.15),60,(.7,.5,1),1.2)  # low violet rim on the chest tuft
+# playbook #8: AgX + strong violet rim (Standard via VT=Standard)
+if os.environ.get('VT','AgX')=='AgX':
+    sc.view_settings.view_transform='AgX';sc.view_settings.look='AgX - Medium High Contrast'
+    rim.data.energy=300;rim.data.color=(.55,.3,1);rim2.data.energy=150;rim2.data.color=(.45,.3,1);key.data.energy=150;chest.data.energy=30
+if PLAN=='res_nyxbean':b.inputs['Sheen Weight'].default_value=.35;b.inputs['Sheen Tint'].default_value=(.6,.5,.9,1)
+if PLAN=='res_frostmitt':  # white coat: no lavender sheen blowout, albedo kept under 0.6 (pro value-check)
+    b.inputs['Sheen Weight'].default_value=.2;b.inputs['Roughness'].default_value=.8
+    vm=nt.nodes.new('ShaderNodeMix');vm.data_type='RGBA';vm.blend_type='MULTIPLY';vm.inputs[0].default_value=1;vm.inputs[7].default_value=(.62,.64,.7,1)
+    nt.links.new(mx2.outputs[2],vm.inputs[6]);nt.links.new(vm.outputs[2],b.inputs['Base Color'])
+# playbook #1: sculpt->bake maps (normal/AO/curvature) from sculpt_bake.py onto the game mesh
+BK=os.environ.get('BAKED')
+def bakemaps(o,pre):
+    if not o.data.uv_layers or not os.path.exists(pre+'_normal.png'):return
+    for i,sl in enumerate(o.material_slots):
+        if not sl.material or not sl.material.use_nodes:continue
+        m=sl.material.copy();sl.material=m;t=m.node_tree;bs=[n for n in t.nodes if n.type=='BSDF_PRINCIPLED']
+        if not bs:continue
+        bs=bs[0]
+        def im(f,cs):
+            n=t.nodes.new('ShaderNodeTexImage');n.image=bpy.data.images.load(pre+f,check_existing=True);n.image.colorspace_settings.name=cs;return n
+        nm=im('_normal.png','Non-Color');mp=t.nodes.new('ShaderNodeNormalMap');mp.inputs[0].default_value=.7
+        t.links.new(nm.outputs[0],mp.inputs['Color']);t.links.new(mp.outputs[0],bs.inputs['Normal'])
+        ao=im('_ao.png','Non-Color');cv=im('_curv.png','Non-Color')
+        src=bs.inputs['Base Color'].links[0].from_socket if bs.inputs['Base Color'].links else None
+        m1=t.nodes.new('ShaderNodeMix');m1.data_type='RGBA';m1.blend_type='MULTIPLY';m1.inputs[0].default_value=.85
+        if src:t.links.new(src,m1.inputs[6])
+        else:m1.inputs[6].default_value=bs.inputs['Base Color'].default_value
+        t.links.new(ao.outputs[0],m1.inputs[7])
+        m2=t.nodes.new('ShaderNodeMix');m2.data_type='RGBA';m2.blend_type='OVERLAY';m2.inputs[0].default_value=.35;t.links.new(m1.outputs[2],m2.inputs[6]);t.links.new(cv.outputs[0],m2.inputs[7])
+        t.links.new(m2.outputs[2],bs.inputs['Base Color'])
+    print('BAKED maps on',o.name)
+if BK:
+    for o in list(sc.objects):
+        if o.type!='MESH':continue
+        if o.name=='body':bakemaps(o,os.path.join(BK,PLAN+'_body'))
+        elif o.name.startswith('prop_crown'):bakemaps(o,os.path.join(BK,PLAN+'_hat'))
 if os.environ.get('CYCLES','1')=='1':
     # offline look: Cycles + OIDN, strand fur (clumped children + flyaways) on the coat meshes, SSS ears
     sc.render.engine='CYCLES';sc.cycles.samples=int(os.environ.get('SAMPLES','64'));sc.cycles.use_denoising=True;sc.cycles.denoiser='OPENIMAGEDENOISE';sc.cycles.device='CPU'
@@ -87,7 +123,7 @@ if os.environ.get('CYCLES','1')=='1':
     for m_ in bpy.data.materials:
         if m_.name in('pm_pink','fur','pm_skin_d') and m_.use_nodes:
             bb=m_.node_tree.nodes.get('Principled BSDF')
-            if bb:bb.inputs['Subsurface Weight'].default_value=.35;bb.inputs['Subsurface Radius'].default_value=(1,.3,.3)
+            if bb:bb.inputs['Subsurface Weight'].default_value=.06 if PLAN=='res_frostmitt' else .35;bb.inputs['Subsurface Radius'].default_value=(1,.3,.3)
 bpy.ops.mesh.primitive_plane_add(size=20);fl=bpy.context.active_object;m=bpy.data.materials.new('fl');m.use_nodes=True;m.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value=(.09,.09,.09,1);m.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value=.95;fl.data.materials.append(m);fl.is_shadow_catcher=True;sc.render.film_transparent=True
 ms=[o for o in sc.objects if o.type=='MESH' and not o.hide_render and o!=fl]
 zs=[(o.matrix_world@Vector(cn)).z for o in ms for cn in o.bound_box];top=max(zs)

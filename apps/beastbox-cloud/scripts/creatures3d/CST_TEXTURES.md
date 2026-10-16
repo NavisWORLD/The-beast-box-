@@ -24,3 +24,10 @@ Existing math reused (no separate 4D/12D projection module exists in the repo): 
 | **Rotation**: `lib/physics/cst-turntable.mjs`, used by `zeref-glb-3d.tsx` spin; test in `tests/cst-turntable.test.mjs` | The yaw is a damped spring (k from CST stiffness, d from coherence damping) chasing a target that drifts faster when calm, with Lorenz-x sway on top. Pitch gets a small Lorenz-y wobble. It replaces the linear `yaw+=dt*.5`. |
 | **Fur in the app**: shell-fur vertex shader | `*_fur_flow.png` (Lorenz trail direction) bends the comb direction, and `*_fur_flyaway.png` lengthens stray shells. Served from `public/creatures3d/cst/`. Nyxbean only (`cstFur:'nyx'`). |
 | **Fur in Cycles**: `turnaround_render.py` | The clump map drives strand length and clumping, flyaway drives strand roughness, and the flow map drives twist. Height-weighted length gives shorter fur on the legs, and a second longer clumped layer forms the chest tuft. |
+
+## Sculpt → retopo → bake (playbook #1)
+`sculpt_bake.py` takes a built `.blend`: the fused voxel game mesh is the retopo; a voxel-remeshed copy (~170k body / ~380k hat tris)
+gets layered displacement (Voronoi fur clumps + cloud grain + marble creases on the body; quilt puffs + stucci micro-wrinkle on the hat),
+then Cycles bakes tangent normal, AO (96 spp, 0.12 m) and curvature (pointiness) onto the game mesh UVs → `tex/bake/<plan>_{body,hat}_{normal,ao,curv}.png`.
+`turnaround_render.py` with `BAKED=<dir>` wires them in (normal 0.7, AO multiply 0.85, curvature overlay 0.35), AgX Medium High Contrast + violet rim.
+Runtime GLB does not carry these maps yet.
