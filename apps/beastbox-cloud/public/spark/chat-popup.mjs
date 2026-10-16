@@ -119,9 +119,7 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
    if(turn.cloudImported){const imported=document.createElement('small');imported.className='talk-cloud-import';imported.textContent=' · cloud history, unverified';speaker.append(imported);}
    else if(turn.role==='beast'&&turn.model){const via=document.createElement('small');via.textContent=' · via '+turn.model;speaker.append(via);}
    text.textContent=turn.text;row.append(speaker,text);
-   // Teacher design: a teacher's answer is a labeled hint, never the Beast's voice.
-   if(turn.role==='you'&&turn.teacher){const hint=document.createElement('div'),label=document.createElement('small'),body=document.createElement('p');hint.className='talk-teacher-hint';hint.dataset.teacherHint=turn.teacher.route;hint.style.cssText='opacity:.82;border:1px dashed currentColor;border-radius:10px;padding:6px 8px;margin-top:6px';label.textContent=`Teacher hint · ${turn.teacher.label}${turn.teacher.model?' · '+turn.teacher.model:''} · not ${persona.name}'s voice`;body.textContent=turn.teacher.text;hint.append(label,body);row.append(hint);}
-   if(turn.role==='you'&&turn.beastMissing){const miss=document.createElement('small');miss.dataset.beastMissing='';miss.textContent=` ${persona.name}'s own RAWRPHØS voice didn't answer (${turn.beastMissing}). Only the teacher hint is shown.`;row.append(miss);}
+   if(turn.role==='beast'&&turn.coachedBy){const c=document.createElement('small');c.dataset.coachedBy='';c.textContent=' Coached by: '+String(turn.coachedBy).slice(0,40);row.append(c);}
    return row;
   }));
   $('talk-empty').hidden=!!log.length;$('talk-empty').textContent=`Say hi to ${persona.name}. A model reply appears here only after the selected brain answers.`;
@@ -203,25 +201,23 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
    const ask={persona:forPersona,text,history:forLog,shareHistory,context:shareGrowth?growthModelContext(growth):'',signal:controller.signal,
     ollama:{url:prefs.ollamaUrl,model:prefs.ollamaModel},hf:{key:$('talk-hf-key').value.trim(),model:prefs.hfModel,spendConfirmed:$('talk-hf-spend').checked}};
    // Non-RAWRPHOS brains are TEACHERS: RAWRPHOS still writes the Beast's own reply.
-   const teacherResult=isTeacherRoute(prefs.route)?await talkToBeast({...ask,route:prefs.route}):null;
+   // Cory (2026-10-16): chat is ALWAYS the Beast's own RAWRPHOS voice; teachers only make background lessons.
+   const [teacherResult,result]=await Promise.all([isTeacherRoute(prefs.route)?talkToBeast({...ask,route:prefs.route}).catch(()=>null):Promise.resolve(null),talkToBeast({...ask,route:'guest-rawrphos'})]);
    if(pending!==controller||persona.key!==forKey)return;
-   if(teacherResult&&!teacherResult.ok){offline=teacherResult;renderError();if(open)scroll.scrollTop=scroll.scrollHeight;return;}
-   const result=await talkToBeast({...ask,route:'guest-rawrphos'});
-   if(pending!==controller||persona.key!==forKey)return;
-   const teacher=teacherResult?{text:teacherResult.reply,label:ROUTE_INFO[teacherResult.route]?.label||teacherResult.label,model:teacherResult.model,route:teacherResult.route}:null;
-   if(teacher){const local=optionalStorage('localStorage'),pair=makePair({prompt:text,reply:teacher.text,route:teacher.route,model:teacher.model,beast:forPersona.name});rememberPair(local,pair);
+   const teacher=teacherResult&&teacherResult.ok?{label:ROUTE_INFO[teacherResult.route]?.label||teacherResult.label,route:teacherResult.route}:null;
+   if(teacher&&teacherResult.route!=='shared-ollama'){const local=optionalStorage('localStorage'),pair=makePair({prompt:text,reply:teacherResult.reply,route:teacher.route,model:teacherResult.model,beast:forPersona.name});rememberPair(local,pair);
     const body=(readContribute(local)||teacher.route==='connected-brain-bay')?contributionBody(pair):null;
     if(body)fetch('/api/teacher-pairs',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).catch(()=>{});}
-   if(!result.ok&&teacher){const exchangeId=crypto.randomUUID();log=[...forLog,{id:exchangeId+'-you',role:'you',text,at:Date.now(),teacher,beastMissing:result.error}].slice(-MAX_LOG);writeTalkLog(forStorage,forKey,log);editDraft('');renderHistory();if(open)scroll.scrollTop=scroll.scrollHeight;return;}
-   if(!result.ok){offline=result;renderError();if(open)scroll.scrollTop=scroll.scrollHeight;return;}
+   const teacherDown=teacherResult&&!teacherResult.ok?teacherResult:null;
+   if(!result.ok){offline={...result,error:`${forPersona.name} is resting, try again.`+(teacherDown?' Teacher not connected: '+teacherDown.error:''),help:teacherDown?.help||[]};renderError();if(open)scroll.scrollTop=scroll.scrollHeight;return;}
    let careError='';try{await onVerified?.({persona:forPersona,text,reply:result.reply,retention:forRetention,model:result.model});}catch(error){careError=error.message||'The creature care save was not confirmed.';}
    if(pending!==controller||persona.key!==forKey)return;
    const exchangeId=crypto.randomUUID(),at=result.at||Date.now();
-   log=[...forLog,{id:exchangeId+'-you',role:'you',text,at,...(teacher?{teacher}:{})},{id:exchangeId+'-beast',role:'beast',text:result.reply,route:result.route,model:result.model,at}].slice(-MAX_LOG);
+   log=[...forLog,{id:exchangeId+'-you',role:'you',text,at},{id:exchangeId+'-beast',role:'beast',text:result.reply,route:result.route,model:result.model,at,...(teacher?{coachedBy:teacher.label}:{})}].slice(-MAX_LOG);
    const saved=writeTalkLog(forStorage,forKey,log);verified=result;editDraft('');
    if(visitorId){growth=advanceVisitorGrowth(growth||freshGrowth(visitorId,forKey),{text,reply:result.reply,verified:true});writeVisitorGrowth(forStorage,growth);renderGrowth();}
    $('talk-save-note').textContent=careError||(!saved?'The model replied, but this browser could not save the conversation.':'');
-   renderHistory();if(open)scroll.scrollTop=scroll.scrollHeight;
+   renderHistory();if(teacherDown){offline={...teacherDown,error:'Teacher not connected: '+teacherDown.error};renderError();}if(open)scroll.scrollTop=scroll.scrollHeight;
    if(forCloud&&cloudEnabled&&cloudState?.consented&&cloudState.owner===forCloud.owner)queueCloudExchange(forKey,forBeast,{eventId:exchangeId,text,reply:result.reply,provider:result.route,model:result.model,at},forCloud.owner);
   }finally{window.clearTimeout(timeout);if(pending===controller){pending=null;status();}}
  }

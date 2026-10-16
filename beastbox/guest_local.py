@@ -1,4 +1,4 @@
-"""Separate, quota-bound PUBLIC guest path for pinned stable RAWRPHOS CPU.
+"""Separate, burst-guarded (no daily cap) PUBLIC guest path for pinned stable RAWRPHOS CPU.
 
 Never opens the owner's COSMOS runtime, key vault, cloud provider, memory or tools.
 Only called *after* the Vercel BFF authenticates to the existing private host bridge.
@@ -22,10 +22,8 @@ from .rawrphos_local import MODEL, SHA, STEP, status as native_status
 SCHEMA = "beastbox-guest-local-v1"
 MAX_PROMPT = 700
 MAX_OUTPUT_TOKENS = 64
-TRIAL_SECONDS = 30 * 86400
-_DAILY_DEFAULT = 30
-_PER_GUEST_DEFAULT = 5
-_TOTAL_DEFAULT = 300
+_PER_GUEST_MINUTE_DEFAULT = 6
+_GLOBAL_MINUTE_DEFAULT = 120
 _GUEST_ID = re.compile(r"[a-f0-9]{64}\Z")
 
 
@@ -48,50 +46,47 @@ class GuestQuota:
             return 400, "", "Invalid guest identity"
         if os.environ.get("BEASTBOX_GUEST_LOCAL_ENABLED", "no") != "yes":
             return 503, "", "Public local guest inference is disabled"
+        # Cory (2026-10-16): no daily / total / trial caps on RAWRPHOS guest replies.
+        # Only a short per-minute burst guard against floods remains.
         try:
-            day_max = _limit(os.environ.get("BEASTBOX_GUEST_DAILY_MAX", str(_DAILY_DEFAULT)), 500)
-            per_max = _limit(os.environ.get("BEASTBOX_GUEST_PER_CLIENT_DAILY_MAX", str(_PER_GUEST_DEFAULT)), 100)
-            total_max = _limit(os.environ.get("BEASTBOX_GUEST_TOTAL_MAX", str(_TOTAL_DEFAULT)), 5000)
+            per_min = _limit(os.environ.get("BEASTBOX_GUEST_PER_CLIENT_MINUTE_MAX", str(_PER_GUEST_MINUTE_DEFAULT)), 120)
+            global_min = _limit(os.environ.get("BEASTBOX_GUEST_GLOBAL_MINUTE_MAX", str(_GLOBAL_MINUTE_DEFAULT)), 2000)
         except ValueError:
             return 503, "", "Public guest capacity is misconfigured"
         clock = int(time.time()) if now is None else now
-        day = time.strftime("%Y-%m-%d", time.gmtime(clock))
+        minute = clock // 60
         token = secrets.token_hex(16)
         try:
             with sqlite3.connect(self.path, isolation_level=None, timeout=2) as db:
                 db.execute("PRAGMA busy_timeout=2000")
-                db.execute("""CREATE TABLE IF NOT EXISTS guest_global
-                    (id INTEGER PRIMARY KEY CHECK(id=1), started_at INTEGER NOT NULL,
-                     total_used INTEGER NOT NULL, day TEXT NOT NULL,
-                     day_used INTEGER NOT NULL, active_token TEXT NOT NULL,
-                     active_until INTEGER NOT NULL)""")
-                db.execute("""CREATE TABLE IF NOT EXISTS guest_day
-                    (day TEXT NOT NULL, identity TEXT NOT NULL, used INTEGER NOT NULL,
-                     PRIMARY KEY(day,identity))""")
+                db.execute("""CREATE TABLE IF NOT EXISTS guest_burst
+                    (id INTEGER PRIMARY KEY CHECK(id=1), minute INTEGER NOT NULL,
+                     used INTEGER NOT NULL, active_token TEXT NOT NULL, active_until INTEGER NOT NULL)""")
+                db.execute("""CREATE TABLE IF NOT EXISTS guest_minute
+                    (minute INTEGER NOT NULL, identity TEXT NOT NULL, used INTEGER NOT NULL,
+                     PRIMARY KEY(minute,identity))""")
                 db.execute("BEGIN IMMEDIATE")
-                row = db.execute("SELECT started_at,total_used,day,day_used,active_until FROM guest_global WHERE id=1").fetchone()
+                row = db.execute("SELECT minute,used,active_until FROM guest_burst WHERE id=1").fetchone()
                 if row is None:
-                    db.execute("INSERT INTO guest_global VALUES(1,?,?,?,0,'',0)", (clock, 0, day))
-                    row = (clock, 0, day, 0, 0)
-                started, total, previous_day, day_used, active_until = row
-                if clock >= started + TRIAL_SECONDS:
-                    db.execute("ROLLBACK")
-                    return 403, "", "30-day public trial expired"
+                    db.execute("INSERT INTO guest_burst VALUES(1,?,0,'',0)", (minute,))
+                    row = (minute, 0, 0)
+                prev_minute, used, active_until = row
                 if active_until > clock:
                     db.execute("ROLLBACK")
-                    return 429, "", "Local guest model is busy; retry later"
-                if total >= total_max or (day_used if previous_day == day else 0) >= day_max:
+                    return 429, "", "Local guest model is busy; retry in a moment"
+                used = used if prev_minute == minute else 0
+                if used >= global_min:
                     db.execute("ROLLBACK")
-                    return 429, "", "Public guest usage limit reached"
-                user_row = db.execute("SELECT used FROM guest_day WHERE day=? AND identity=?", (day, identity)).fetchone()
-                if user_row and user_row[0] >= per_max:
+                    return 429, "", "Too many messages this minute; retry shortly"
+                user_row = db.execute("SELECT used FROM guest_minute WHERE minute=? AND identity=?", (minute, identity)).fetchone()
+                if user_row and user_row[0] >= per_min:
                     db.execute("ROLLBACK")
-                    return 429, "", "This guest's daily quota is exhausted"
-                db.execute("UPDATE guest_global SET total_used=total_used+1,day=?,day_used=?,active_token=?,active_until=? WHERE id=1",
-                           (day, (day_used if previous_day == day else 0) + 1, token, clock + 180))
-                db.execute("""INSERT INTO guest_day(day,identity,used) VALUES(?,?,1)
-                    ON CONFLICT(day,identity) DO UPDATE SET used=used+1""", (day, identity))
-                db.execute("DELETE FROM guest_day WHERE day < ?", (day,))
+                    return 429, "", "Slow down a little; retry in a minute"
+                db.execute("UPDATE guest_burst SET minute=?,used=?,active_token=?,active_until=? WHERE id=1",
+                           (minute, used + 1, token, clock + 180))
+                db.execute("""INSERT INTO guest_minute(minute,identity,used) VALUES(?,?,1)
+                    ON CONFLICT(minute,identity) DO UPDATE SET used=used+1""", (minute, identity))
+                db.execute("DELETE FROM guest_minute WHERE minute < ?", (minute,))
                 db.execute("COMMIT")
                 os.chmod(self.path, 0o600)
                 return 200, token, "reserved"
@@ -103,7 +98,7 @@ class GuestQuota:
             return
         try:
             with sqlite3.connect(self.path, timeout=2) as db:
-                db.execute("UPDATE guest_global SET active_token='',active_until=0 WHERE id=1 AND active_token=?", (token,))
+                db.execute("UPDATE guest_burst SET active_token='',active_until=0 WHERE id=1 AND active_token=?", (token,))
         except (OSError, sqlite3.Error):
             pass
 
