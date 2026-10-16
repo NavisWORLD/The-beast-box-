@@ -28,7 +28,7 @@ export const ROUTE_INFO = Object.freeze({
   "guest-rawrphos": {
     label: "RAWRPHØS guest",
     model: `rawrphos-native · step ${RAWRPHOS_PUBLIC_PIN.step} checkpoint`,
-    detail: "Free Beast Box host. Small native model, stateless, daily quota.",
+    detail: "Free Beast Box host. Small native model, stateless, no daily limit.",
   },
   "shared-ollama": {
     label: "Ollama",
@@ -171,7 +171,7 @@ export function connectHelp(route) {
     ...common,
   ];
   return [
-    "The free RAWRPHØS guest brain has a small daily quota per visitor and may be busy or switched off.",
+    "The free RAWRPHØS guest brain has no daily limit, only a short per-minute flood guard, and may be busy or switched off.",
     "Try again later, or pick My local Ollama or My Hugging Face key above to use your own model.",
     ...common,
   ];

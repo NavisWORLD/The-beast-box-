@@ -52,7 +52,8 @@ test('owner homepage links guest but keeps private workstation',()=>{
  assert.match(bridge,/self\.chat_jobs\.acquire_guest\(\)/);
  assert.match(bridge,/self\.chat_jobs\.release_guest\(\)/);
  assert.match(read('../../beastbox/guest_local.py'),/sqlite3\.connect/);
- assert.match(read('../../beastbox/guest_local.py'),/TRIAL_SECONDS = 30 \* 86400/);
+ assert.match(read('../../beastbox/guest_local.py'),/_PER_GUEST_MINUTE_DEFAULT = \d+/);
+ assert.doesNotMatch(read('../../beastbox/guest_local.py'),/TRIAL_SECONDS|_DAILY_DEFAULT|guest_global/);
  assert.match(read('../../beastbox/guest_local.py'),/native_status\(\)/);
  assert.doesNotMatch(read('../../beastbox/guest_local.py'),/DurableRuntime|CosmicApp|ConnectionVault|HF_TOKEN/);
 });
