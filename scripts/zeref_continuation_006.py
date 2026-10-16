@@ -174,6 +174,8 @@ def rigetti_order_seed(cycle,fresh_digest=None,run_id=None):
  if hb.exists():mix["heartbeat_packet_sha256"]=json.loads(hb.read_text()).get("packet_sha256")
  hs2=Path(__file__).resolve().parents[1]/"evidence/zeref-second-coming-ii/heart-seed-v2.json"
  if hs2.exists():mix["heart_seed_v2_sha256"]=json.loads(hs2.read_text()).get("heart_seed_sha256")
+ hs3=Path(__file__).resolve().parents[1]/"evidence/zeref-second-coming-iii/heart-seed-v3.json"
+ if hs3.exists():mix["heart_seed_v3_sha256"]=json.loads(hs3.read_text()).get("heart_seed_sha256")
  h=sha(json.dumps(mix,sort_keys=True).encode())
  return int(h[:15],16),{"rigetti_sim_job_id":job["job_id"],"counts":job["counts"],
    "order_seed_sha256":h,"source_class":d.get("source_class"),"label":"SIMULATED",
