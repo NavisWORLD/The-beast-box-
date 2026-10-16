@@ -18,8 +18,12 @@ export async function createArStage(host:HTMLElement,gen:PlushGenome,{onMode,onP
  const [{loadBeastGlb,beastStudio,GLB_PLANS},{buildPlush},cst,{createLife,stepLife,POCKET_RADIUS},{createHop,stepHop}]=await Promise.all([
   import('./creature-glb-beast'),import('./creature-plush-3d'),import('../lib/physics/cst-integrator.mjs'),import('../lib/creatures3d/life-brain.mjs'),import('../lib/physics/ground-hop.mjs')]);
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
- const r=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'default'});r.setPixelRatio(Math.min(devicePixelRatio||1,2));r.outputColorSpace=THREE.SRGBColorSpace;
- r.setClearColor(0x000000,0);r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;
+ // Software GL (CI SwiftShader, GPU-less devices): no MSAA, 1x pixels, no shadow map, light fur. Probed BEFORE the renderer
+ // exists because antialias can't be turned off later; a CPU rasteriser at 2x + MSAA starves rAF (game input polling, taps).
+ let soft=false;try{const pc=document.createElement('canvas');const pg=(pc.getContext('webgl2')||pc.getContext('webgl')) as WebGLRenderingContext|null;
+  if(pg){const dbg=pg.getExtension('WEBGL_debug_renderer_info');soft=!!dbg&&/swiftshader|llvmpipe|software/i.test(String(pg.getParameter(dbg.UNMASKED_RENDERER_WEBGL)));pg.getExtension('WEBGL_lose_context')?.loseContext();}}catch{}
+ const r=new THREE.WebGLRenderer({antialias:!soft,alpha:true,powerPreference:soft?'low-power':'default'});r.setPixelRatio(soft?1:Math.min(devicePixelRatio||1,2));r.outputColorSpace=THREE.SRGBColorSpace;
+ r.setClearColor(0x000000,0);r.shadowMap.enabled=!soft;r.shadowMap.type=THREE.PCFSoftShadowMap;
  const cv=r.domElement;cv.dataset.arCanvas='';Object.assign(cv.style,{position:'absolute',inset:'0',width:'100%',height:'100%',touchAction:'manipulation'});host.appendChild(cv);
  const scene=new THREE.Scene();const studio=beastStudio(THREE,r,scene);r.toneMappingExposure=1.05;scene.environmentIntensity=.55;
  studio.key.position.set(-1.2,3,1.4);studio.key.shadow.camera.left=studio.key.shadow.camera.bottom=-1;studio.key.shadow.camera.right=studio.key.shadow.camera.top=1;studio.key.shadow.camera.near=.1;studio.key.shadow.camera.far=8;studio.key.shadow.radius=6;
@@ -36,7 +40,7 @@ export async function createArStage(host:HTMLElement,gen:PlushGenome,{onMode,onP
  const fit=(o:any)=>{o.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(o);const h=Math.max(.01,bb.max.y-bb.min.y);o.scale.multiplyScalar(HEIGHT/h);o.updateMatrixWorld(true);bb.setFromObject(o);foot=-bb.min.y+o.position.y;o.position.y=foot;};
  const plush=buildPlush(THREE,gen as any,{low:true});body.add(plush.root);fit(plush.root);drive=(dt,l,mp,lk)=>plush.drive(dt,l,mp,lk);dispose=()=>plush.dispose();
  let kind='plush';
- const ready=GLB_PLANS.includes(gen.body)?loadBeastGlb(THREE,gen,{tier:'high'}).then(gb=>{if(!gb||disposed){gb?.dispose();return;}plush.root.visible=false;body.add(gb.root);fit(gb.root);glbRef=gb;kind='glb';
+ const ready=GLB_PLANS.includes(gen.body)?loadBeastGlb(THREE,gen,{tier:soft?'low':'high'}).then(gb=>{if(!gb||disposed){gb?.dispose();return;}plush.root.visible=false;body.add(gb.root);fit(gb.root);glbRef=gb;kind='glb';
    drive=(dt,l,mp,lk)=>gb.drive(dt,l,mp,lk);const pd=dispose;dispose=()=>{gb.dispose();pd();};}).catch(()=>{}):Promise.resolve();
  const S=cst.createCSTState(gen.seed);const life:any=createLife(gen.seed,{x:.4,z:.3});const hop=createHop(gen.seed);const k=ROAM/POCKET_RADIUS;
  // ---- camera pose
@@ -80,8 +84,10 @@ export async function createArStage(host:HTMLElement,gen:PlushGenome,{onMode,onP
   // the rear camera in portrait shows ~70° vertically; object-fit:cover on a tall screen keeps that, on wide boxes it crops vertically
   cam.fov=w/h<3/4?66:THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(33))*(3/4)/(w/h)));cam.updateProjectionMatrix();};
  size();const ro=new ResizeObserver(size);ro.observe(host);
- let disposed=false,last=performance.now(),manual=-1;const lookV={x:0,y:0,z:0},lp=new THREE.Vector3(),wp=new THREE.Vector3();
- const frameFn=(now:number,frame?:any)=>{if(disposed)return;const dt=manual>=0?manual:Math.min(.05,(now-last)/1000);last=now;if(manual>=0)manual=-1;
+ let disposed=false,last=performance.now(),manual=-1,lastPaint=0;const lookV={x:0,y:0,z:0},lp=new THREE.Vector3(),wp=new THREE.Vector3();
+ const frameFn=(now:number,frame?:any)=>{if(disposed)return;
+  // Background use (no live camera, e.g. behind the /go field game) or software GL: cap at ~15 fps so the page's own loops keep their frames.
+  if(manual<0&&!frame&&(soft||host.dataset.live!=='1')&&now-lastPaint<66)return;lastPaint=now;const dt=manual>=0?manual:Math.min(.05,(now-last)/1000);last=now;if(manual>=0)manual=-1;
   if(frame&&hitSource){const res=frame.getHitTestResults(hitSource);if(res.length){const p=res[0].getPose(r.xr.getReferenceSpace());if(p){ring.matrix.fromArray(p.transform.matrix);ring.visible=true;}}else ring.visible=false;}
   else poseCam();
   const d=reduced?0:dt;cst.stepCSTState(S,d);const mp=cst.motionParams(S);

@@ -59,7 +59,7 @@ function stop(){stream.current?.getTracks().forEach(t=>t.stop());stream.current=
   <div ref={stage} onPointerDown={onTap} data-field-stage style={{position:'relative',width:'100%',height:fullscreen?'100dvh':'min(70dvh,620px)',borderRadius:fullscreen?0:18,overflow:'hidden',touchAction:'manipulation',background:'radial-gradient(circle at 50% 30%,#2a1d55,#050914 70%)'}}>
    <video ref={video} playsInline muted autoPlay aria-label="Live camera preview (not recorded)" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:live?1:0}}/>
    <div aria-hidden style={{position:'absolute',left:0,right:0,bottom:0,height:'26%',background:'linear-gradient(transparent,#0006)',pointerEvents:'none'}}/>
-   <div ref={host} data-field-creature data-ar-host role="img" aria-label={`${name} in 3D on your floor`} style={{display:beast?'block':'none',position:'absolute',inset:0,bottom:floorPx}}/>
+   <div ref={host} data-field-creature data-ar-host data-live={live?'1':'0'} role="img" aria-label={`${name} in 3D on your floor`} style={{display:beast?'block':'none',position:'absolute',inset:0,bottom:floorPx}}/>
    <div data-field-chips style={{position:'absolute',top:fullscreen?'max(100px,calc(env(safe-area-inset-top) + 92px))':10,left:10,right:live?124:10,display:'flex',flexWrap:'wrap',gap:6,alignItems:'center',pointerEvents:'none'}}>
     <span data-ar-mode={mode} style={{padding:'3px 9px',borderRadius:999,background:'#000a',fontSize:11,fontWeight:700}}>{live?'● LIVE CAMERA · NOT RECORDED':'✦ STARFIELD'} · {MODE_LABEL[mode]}</span>
     <span data-field-emotion={em.dominant} style={{padding:'3px 9px',borderRadius:999,background:'#000a',fontSize:11}}>{name} feels {em.dominant}</span>
