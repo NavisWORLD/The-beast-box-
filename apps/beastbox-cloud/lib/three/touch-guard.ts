@@ -1,19 +1,20 @@
 /**
- * Touch guard for draggable 3D canvases (iPhone fix, Oct 2026).
- * Inside the element a one-finger drag rotates/explores and must not scroll the page:
- *  - touch-action:none so Safari doesn't start a pan/zoom gesture,
+ * Touch guard for draggable 3D canvases (iPhone fix, Oct 2026; scroll-through revision Oct 16).
+ * A vertical one-finger swipe over the canvas scrolls the page (touch-action:pan-y: Safari owns vertical pans and sends
+ * pointercancel), so you can scroll while the creatures keep animating. A horizontal drag or a two-finger gesture rotates/zooms:
+ *  - touch-action:pan-y (vertical pan → page scroll, everything else → our pointer handlers),
  *  - pointer capture so the drag keeps tracking when the finger leaves the canvas,
  *  - a non-passive touchmove that preventDefaults only while a drag that began inside is active.
  * Outside the element the page scrolls normally. Adds a small "drag to spin" affordance that fades after first use.
  */
-export function guardCanvasTouch(el:HTMLElement,{hint='☝ Drag to spin · scroll outside the circle'}:{hint?:string|false}={}){
- el.style.touchAction='none';(el.style as any).webkitUserSelect='none';el.style.userSelect='none';el.dataset.touchGuard='on';
+export function guardCanvasTouch(el:HTMLElement,{hint='↔ Drag sideways to spin · swipe up/down to scroll'}:{hint?:string|false}={}){
+ el.style.touchAction='pan-y';(el.style as any).webkitUserSelect='none';el.style.userSelect='none';el.dataset.touchGuard='on';
  let dragging=false;let chip:HTMLSpanElement|null=null;
  const fade=()=>{if(chip){chip.style.opacity='0';const c=chip;chip=null;setTimeout(()=>c.remove(),600);}};
  const isControl=(t:EventTarget|null)=>t instanceof Element&&!!t.closest('button,a,summary,input,select,textarea,label,[role="button"]');
  const down=(e:PointerEvent)=>{if(e.pointerType==='mouse'&&e.button!==0)return;if(isControl(e.target)){dragging=false;return;}dragging=true;try{el.setPointerCapture(e.pointerId);}catch{}fade();};
  const up=(e:PointerEvent)=>{dragging=false;try{if(el.hasPointerCapture?.(e.pointerId))el.releasePointerCapture(e.pointerId);}catch{}};
- const touchmove=(e:TouchEvent)=>{if(dragging&&e.cancelable)e.preventDefault();};
+ const touchmove=(e:TouchEvent)=>{if(dragging&&e.touches.length>1&&e.cancelable)e.preventDefault();};
  el.addEventListener('pointerdown',down);el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);
  el.addEventListener('touchmove',touchmove,{passive:false});
  let timer=0;

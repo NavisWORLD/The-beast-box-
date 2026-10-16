@@ -15,9 +15,9 @@ function detect():Caps{
  return {camera:!!n.mediaDevices?.getUserMedia,mic:!!n.mediaDevices?.getUserMedia,motion:typeof window!=='undefined'&&'DeviceOrientationEvent' in window,bluetooth:'bluetooth' in n,webgl};
 }
 /**
- * Open Field: the live camera preview with the selected creature's 3D model drawn on top.
- * Honest label: this is NOT AR. There is no tracking, depth or surface detection;
- * the creature floats over the preview. Camera frames are never stored or uploaded.
+ * Open Field: the selected creature's real 3D model standing on your floor over the live camera.
+ * Honest labels: WebXR AR (hit-test) where supported; on iPhone Safari a motion-anchored overlay (rotation only, assumed floor,
+ * not full AR) plus Quick Look for true ARKit AR. Camera frames are never stored or uploaded.
  */
 export default function OpenFieldCamera(){
  const {profile}=useCompanion();const {session}=useBeastSession();
@@ -28,7 +28,7 @@ export default function OpenFieldCamera(){
  useEffect(()=>{setCaps(detect());void voiceStatus().then(v=>setGrok(v.grok.configured?'configured (backend key)':'not set up'));},[]);
  const label=(k:keyof Caps,t:string)=>caps?<li key={k} data-cap={k} data-available={caps[k]}>{t}: {caps[k]?'available':'not in this browser'}</li>:null;
  return <section aria-label="Open Field camera" data-open-field style={{position:'relative',margin:'12px auto',maxWidth:560,padding:12,border:'1px solid #7dd9ea55',borderRadius:20,background:'#0c1329',color:'#e8f4ff'}}>
-  <header style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}><div><strong>✦ OPEN FIELD</strong><small style={{display:'block',color:'#9fc6d8'}}>Camera preview + 3D overlay · not AR (no tracking or surface detection)</small></div>
+  <header style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}><div><strong>✦ OPEN FIELD</strong><small style={{display:'block',color:'#9fc6d8'}}>3D creature on your floor · WebXR AR where supported, motion-anchored on iPhone (+ Quick Look AR)</small></div>
 </header>
   <CameraField />
   {msg?<p role="alert" style={{fontSize:13,color:'#ffd2d2'}}>{msg}</p>:null}

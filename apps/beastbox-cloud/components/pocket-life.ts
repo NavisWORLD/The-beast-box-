@@ -119,6 +119,21 @@ export function addPocketLife(THREE:Three,scene:import('three').Scene,opts:{seed
  const ffMat=keep(new THREE.PointsMaterial({color:0xfff2a0,size:low?.09:.075,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
  const fireflies=new THREE.Points(ffGeo,ffMat);fireflies.frustumCulled=false;group.add(fireflies);
 
+ // ---- lived-in pocket (Oct 16): a sunny favourite rock, rain puddles that linger and dry, splash particles
+ const srand=seededRng('pocket-spots:'+seed);const ra=srand()*Math.PI*2,rr=1.9+srand()*.8;
+ const rock=new THREE.Mesh(keep(new THREE.DodecahedronGeometry(.32,low?0:1)),keep(new THREE.MeshStandardMaterial({color:0x8a7f9a,roughness:.85,flatShading:true})));
+ rock.scale.set(1.25,.42,1);rock.position.set(Math.cos(ra)*rr,.06,Math.sin(ra)*rr);rock.rotation.y=srand()*3;rock.name='sunny-rock';group.add(rock);
+ const spots=[{x:rock.position.x,z:rock.position.z,kind:'sunrock'}];
+ const pudGeo=keep(new THREE.CircleGeometry(1,low?20:40));
+ const puddles=Array.from({length:3},(_,i)=>{const a=srand()*Math.PI*2,d=.8+srand()*2;const m=keep(new THREE.MeshStandardMaterial({color:0x1a2a55,roughness:.05,metalness:.6,transparent:true,opacity:0,depthWrite:false}));
+  const mesh=new THREE.Mesh(pudGeo,m);mesh.rotation.x=-Math.PI/2;const r=.32+srand()*.25;mesh.position.set(Math.cos(a)*d,-.028,Math.sin(a)*d);mesh.scale.set(r*1.3,r,1);mesh.renderOrder=2;group.add(mesh);
+  return {x:mesh.position.x,z:mesh.position.z,r,wet:0,mesh,m,i};});
+ const spN=low?40:90;const spPos=new Float32Array(spN*3).fill(-9);const spVel=new Float32Array(spN*3);const spLife=new Float32Array(spN);let spI=0;
+ const spGeo=keep(new THREE.BufferGeometry());spGeo.setAttribute('position',new THREE.BufferAttribute(spPos,3));
+ const spMat=keep(new THREE.PointsMaterial({color:0xbfe8ff,size:low?.07:.05,transparent:true,opacity:.85,depthWrite:false}));const splashPts=new THREE.Points(spGeo,spMat);splashPts.frustumCulled=false;group.add(splashPts);
+ let splashAcc=0,spDirty=false;
+ function splash(x:number,z:number,k=1){for(let n=0;n<Math.ceil(6*k);n++){const i=spI++%spN;const a=rnd()*Math.PI*2,v=.6+rnd()*.9;spPos[i*3]=x;spPos[i*3+1]=0;spPos[i*3+2]=z;spVel[i*3]=Math.cos(a)*v*.6;spVel[i*3+1]=1.4+rnd()*1.2;spVel[i*3+2]=Math.sin(a)*v*.6;spLife[i]=.8;}spDirty=true;ripple(x,z,.35*k);}
+
  // ---- constellations: seeded stars that settle into linked figures as coherence rises
  const starN=low?28:48;const stars=Array.from({length:starN},()=>{const a=rnd()*Math.PI*2,u=.25+rnd()*.6;return new THREE.Vector3(Math.cos(a)*Math.cos(u)*11,Math.sin(u)*11,Math.sin(a)*Math.cos(u)*11);});
  const starHome=stars.map(s=>s.clone()),starJit=stars.map(()=>new THREE.Vector3((rnd()-.5)*2.4,(rnd()-.5)*2.4,(rnd()-.5)*2.4));
@@ -187,10 +202,17 @@ export function addPocketLife(THREE:Three,scene:import('three').Scene,opts:{seed
    thrGeo.attributes.position.needsUpdate=true;thrMat.opacity+=((.15+cst.hebb*.6)-thrMat.opacity)*Math.min(1,dt*3);}else thrMat.opacity*=Math.exp(-dt*3);
   // treats bob + expire
   for(const tr of treats){tr.t+=dt;tr.mesh.position.y=.06+.04*Math.abs(Math.sin(tr.t*3));}
+  // puddles fill while it rains and dry slowly afterwards; splash droplets are ballistic
+  for(const p of puddles){p.wet=clamp(p.wet+rainAmt*dt*.12-(1-rainAmt)*dt*.008);p.m.opacity=p.wet*.75;p.mesh.visible=p.wet>.02;}
+  let live=false;for(let i=0;i<spN;i++){if(spLife[i]<=0)continue;live=true;spLife[i]-=dt;spVel[i*3+1]-=9.8*dt;spPos[i*3]+=spVel[i*3]*dt;spPos[i*3+1]+=spVel[i*3+1]*dt;spPos[i*3+2]+=spVel[i*3+2]*dt;if(spPos[i*3+1]<0||spLife[i]<=0){spLife[i]=0;spPos[i*3+1]=-9;}}
+  if(live||spDirty)spGeo.attributes.position.needsUpdate=true;spDirty=live;
+  (env as any).spots=spots;(env as any).puddles=puddles;
   env.night=night;env.rain=rainAmt;env.storm=stormAmt;env.treats=treats;env.flowers=flowerList.filter(f=>f.thr<U.uCoh.value);
   return {cst,mp,mood:mp.mood,env};
  }
- return {update,env,cst,
+ return {update,env,cst,splash,
+  /** called while a creature runs through a puddle */
+  splashStep(x:number,z:number,speed:number,dt:number){splashAcc+=dt*speed*14;while(splashAcc>1){splashAcc-=1;splash(x+(rnd()-.5)*.2,z+(rnd()-.5)*.2,.6);}},
   setWeather:(w:Weather)=>{weather=w;},getWeather:()=>weather,
   setTime:(x:number|null)=>{tod=x;},getTime:()=>tod,
   ripple,

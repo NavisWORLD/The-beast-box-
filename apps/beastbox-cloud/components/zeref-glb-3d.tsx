@@ -209,7 +209,7 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
    uMoteScale.value=r.height*renderer.getPixelRatio()/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)));}
   const ro=new ResizeObserver(resize);ro.observe(el);resize();
   // one-finger / mouse drag spins him (page scroll is untouched outside the stage)
-  const unguard=guardCanvasTouch(el,{hint:'☝ Drag to spin Zeref'});let drag:{x:number,yaw:number}|null=null;
+  const unguard=guardCanvasTouch(el,{hint:'↔ Drag sideways to spin Zeref'});let drag:{x:number,yaw:number}|null=null;
   const pd=(e:PointerEvent)=>{drag={x:e.clientX,yaw};};const pm=(e:PointerEvent)=>{if(!drag)return;const w=el.getBoundingClientRect().width||1;yaw=drag.yaw-(e.clientX-drag.x)/w*Math.PI*2;live.current={...live.current,spin:false,angle:THREE.MathUtils.radToDeg(yaw)};};
   const pu=()=>{drag=null;};el.addEventListener('pointerdown',pd);el.addEventListener('pointermove',pm);el.addEventListener('pointerup',pu);el.addEventListener('pointercancel',pu);
   let last=performance.now(),yaw=qYaw?THREE.MathUtils.degToRad(Number(qYaw)):0,perfN=0,perfAcc=0;

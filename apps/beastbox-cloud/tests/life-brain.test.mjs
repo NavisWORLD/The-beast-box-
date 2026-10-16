@@ -11,3 +11,9 @@ test('rain sends it to shelter; poke with joy makes it approach',()=>{const L=cr
  const M=createLife('bb-5');pokeLife(M,{joy:.8,fear:.1});stepLife(M,1/30,env());assert.equal(M.mode,'approach');assert.equal(M.attn.kind,'camera');});
 test('treats get eaten',()=>{const L=createLife('bb-6',{x:0,z:0});let eaten=null;const treats=[{x:.6,z:.2,id:'t1'}];for(let i=0;i<600&&!eaten;i++)stepLife(L,1/30,env({treats,onEat:id=>{eaten=id;}}));assert.equal(eaten,'t1');});
 test('night + mischief favours chasing fireflies; storms forbid it',()=>{const L=createLife('x');const w=modeWeights(L,env({night:1,mood:{joy:.5,curiosity:.5,fear:0,calm:.5,mischief:1}}));assert.ok(w.chase>w.glance);assert.equal(modeWeights(L,env({rain:.9})).chase,0);});
+test('lived-in pocket: puddle splashing, greeting/following residents and sunny nap spot all happen',async()=>{
+ const {createLife,stepLife}=await import('../lib/creatures3d/life-brain.mjs');const L=createLife('lived-in');const seen=new Set(),moments=new Set();
+ const env={mood:{joy:.8,curiosity:.7,fear:.05,calm:.7,mischief:.6},night:.2,rain:0,puddles:[{x:1,z:0,r:.5,wet:1}],spots:[{x:-1.5,z:1,kind:'sunrock'}],residents:[{x:0,z:-1.5,id:'r1'}]};
+ for(let i=0;i<60*600;i++){L.energy=i%7000<3500?.9:.1;stepLife(L,1/60,env);seen.add(L.mode);if(L.moment)moments.add(L.moment);}
+ for(const m of ['splash','greet','follow','nap'])assert.ok(seen.has(m),m);for(const m of ['splash','sniff-hello','follow'])assert.ok(moments.has(m),m);
+});
