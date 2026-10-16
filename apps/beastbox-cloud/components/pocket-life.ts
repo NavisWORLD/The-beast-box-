@@ -60,7 +60,7 @@ export function addPocketLife(THREE:Three,scene:import('three').Scene,opts:{seed
    'vec3 day=mix(vec3(.30,.36,.78),vec3(.55,.42,.92),up);vec3 night=mix(vec3(.03,.02,.10),vec3(.06,.03,.16),up);vec3 storm=vec3(.08,.07,.16);'+
    'vec3 base=mix(day,night,uNight);base=mix(base,storm,clamp(uRain*1.2,0.0,.85));'+
    'vec3 c=base+mix(vec3(.35,.25,.9),vec3(.2,.8,1.0),s)*line*(.05+.1*uChaos)*(.4+uNight*.6);'+
-   'gl_FragColor=vec4(c,.92);}'}));
+   'gl_FragColor=vec4(c,.6*smoothstep(.12,.55,vD.y));}'}));   // fades out toward the horizon so the pocket world (shore, ocean, far sky) shows through
  const dome=new THREE.Mesh(keep(new THREE.SphereGeometry(14,low?24:40,low?12:20)),skyMat);dome.renderOrder=-2;group.add(dome);
 
  // ---- grass (GPU instanced, wind-swayed by the shared field)

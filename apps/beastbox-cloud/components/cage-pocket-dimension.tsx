@@ -189,7 +189,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
     const scene=new THREE.Scene();
     scene.background=new THREE.Color(0x05040f);
-    scene.fog=new THREE.FogExp2(0x0d0a26,.032);
+    scene.fog=new THREE.FogExp2(0x0d0a26,.017);
     const camera=new THREE.PerspectiveCamera(46,1,.1,30000);
     const hemi=new THREE.HemisphereLight(0x94d9ff,0x20113b,1.8);scene.add(hemi);
     const moonlight=new THREE.PointLight(0xa8eaff,24,12);
