@@ -79,20 +79,20 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   // Cage habitat, or the home pocket art (home: the god view is driven from the whole pocket).
   const parent=canvas.closest('.cage-habitat-visual,.beast-landing-art') as HTMLElement|null;
   const activePointers=new Map<number,Pointer>();
-  let moved=false,suppressClick=false;
+  let moved=false,suppressClick=false,pinching=false; // pinching: once two fingers are down, the gesture only zooms until every finger lifts
   const isControl=(target:EventTarget|null)=>target instanceof Element&&Boolean(
    target.closest('input,select,textarea,a,summary,[contenteditable="true"]')||
    target.closest('button:not([aria-label^="Tap "])')
   );
   const pointerDown=(event:PointerEvent)=>{
    if(isControl(event.target)||event.button!==0&&event.pointerType==='mouse')return;
-   activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});moved=false;
+   activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});moved=false;if(activePointers.size>=2)pinching=true;
   };
   const pointerMove=(event:PointerEvent)=>{
    const prev=activePointers.get(event.pointerId);if(!prev)return;
    const dx=event.clientX-prev.x,dy=event.clientY-prev.y;
    if(Math.abs(dx)+Math.abs(dy)>3)moved=true;
-   if(activePointers.size===1){
+   if(activePointers.size===1&&!pinching){
     cameraView.current.theta-=dx*.009;lastDragAt.current=performance.now();
     cameraView.current.phi=clamp(cameraView.current.phi+dy*.008,.06,3.08);
    }else if(activePointers.size===2){
@@ -108,7 +108,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   const pointerEnd=(event:PointerEvent)=>{
    const tap=activePointers.has(event.pointerId)&&!moved&&activePointers.size===1;
    if(activePointers.has(event.pointerId)&&moved)suppressClick=true;
-   activePointers.delete(event.pointerId);
+   activePointers.delete(event.pointerId);if(activePointers.size===0)pinching=false;
    if(tap)pickRef.current?.(event.clientX,event.clientY);
   };
   const clickCapture=(event:MouseEvent)=>{

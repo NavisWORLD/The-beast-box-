@@ -729,3 +729,13 @@ html[data-game-player=fullscreen] button[aria-controls=beast-chat-overlay][data-
 html[data-dock-dodge] [data-spark-player][data-player-mode=minimized],html[data-dock-dodge] [class*=beast-chat-overlay][class*=launcher]{transform:translateY(160%);opacity:0;pointer-events:none}
 /* 3D Beast active in the pocket: the pixel sprite stays mounted (voice, hit target, saves) but is visually replaced. Classic pixel toggle removes data-beast-3d. */
 html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],html[data-beast-3d] .beast-landing-art [data-spark-beast] [data-beast-sprite]{opacity:0!important}
+/* Compact companion docks on phones (Oct 16): TALK TO becomes a 48px chat bubble (its accessible name keeps the full
+   "TALK TO <name>" text) and the minimized Lost COSMOS player shrinks to just its OPEN/RESTORE GAME button, so neither
+   card sits over page content; the page gets bottom room so nothing is ever trapped under the dock row. */
+@media(max-width:480px){
+ body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+ button[aria-controls=beast-chat-overlay][data-critical-control]{font-size:0!important;width:48px;height:48px;min-height:48px!important;padding:0!important;border-radius:50%!important;display:grid;place-items:center;letter-spacing:0}
+ button[aria-controls=beast-chat-overlay][data-critical-control]::before{content:'💬';font-size:20px;line-height:1}
+ [data-spark-player][data-player-mode=minimized] [class*=identity]{display:none}
+ [data-spark-player][data-player-mode=minimized]{padding:3px!important;background:#0c1228cc!important}
+}
