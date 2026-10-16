@@ -48,7 +48,7 @@ chest=light('chest','AREA',(0,-1.6,.15),60,(.7,.5,1),1.2)  # low violet rim on t
 if os.environ.get('CYCLES','1')=='1':
     # offline look: Cycles + OIDN, strand fur (clumped children + flyaways) on the coat meshes, SSS ears
     sc.render.engine='CYCLES';sc.cycles.samples=int(os.environ.get('SAMPLES','64'));sc.cycles.use_denoising=True;sc.cycles.denoiser='OPENIMAGEDENOISE';sc.cycles.device='CPU'
-    FUR={'res_nyxbean':(.024,(.02,.012,.03)),'res_frostmitt':(.03,(.85,.88,.95)),'res_kairo':(0,None)}[PLAN]
+    FUR={'res_nyxbean':(.024,(.02,.012,.03)),'res_frostmitt':(.03,(.5,.55,.66)),'res_kairo':(0,None)}[PLAN]
     if FUR[0]>0:
         hm=bpy.data.materials.new('furhair');hm.use_nodes=True;nt2=hm.node_tree;out=nt2.nodes['Material Output']
         for n_ in list(nt2.nodes):
