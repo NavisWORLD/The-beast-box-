@@ -24,6 +24,7 @@ COPY pyproject.toml README.md LICENSE ./
 COPY beastbox/ beastbox/
 COPY apps/beastbox-cloud/bridge/ apps/beastbox-cloud/bridge/
 COPY models/rawrphos/ models/rawrphos/
+COPY apps/beastbox-cloud/lib/rawrphos-public-pin.json apps/beastbox-cloud/lib/rawrphos-public-pin.json
 COPY models/qc67/ models/qc67/
 # Formatting changes whitespace only; Railway still terminates HTTPS upstream.
 RUN caddy fmt --overwrite apps/beastbox-cloud/bridge/deploy/Caddyfile
@@ -46,6 +47,7 @@ RUN python -m pip install --no-cache-dir --no-compile 'torch==2.6.0+cpu' \
       --destination /opt/beastbox/rawrphos/step-00014000 \
  && python models/rawrphos/scripts/install_pinned_18k.py \
       --destination /opt/beastbox/rawrphos/step-00018000 \
+ && python -m beastbox.install_promoted_rawrphos /opt/beastbox/rawrphos/public-promoted \
  && chown -R beastbox:beastbox /opt/beastbox/rawrphos \
  && chmod 0755 apps/beastbox-cloud/bridge/deploy/start_rawrphos.sh
 # Build-time only immutable public originals. They are *not* loaded until the

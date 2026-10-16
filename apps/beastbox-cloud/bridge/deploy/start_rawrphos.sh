@@ -13,10 +13,16 @@ if [[ ${#RAWRPHOS_API_KEY} -lt 32 ]]; then
   echo "Native host key must be at least 32 characters" >&2
   exit 70
 fi
+# Public pin: 14000 unless a reviewed promotion was installed at build time.
+PUBLIC_SHA="$(python -c 'from beastbox.rawrphos_local import SHA;print(SHA)')"
+if [[ "$PUBLIC_SHA" != "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5" ]]; then
+  RAWRPHOS_CHECKPOINT_PATH=/opt/beastbox/rawrphos/public-promoted
+  export RAWRPHOS_CHECKPOINT_PATH
+fi
 # The model itself verifies each manifest member and parameter hash on load.
 PORT=8767 HOST=127.0.0.1 gosu beastbox python -m rawrphos.inference.server \
   --checkpoint "$RAWRPHOS_CHECKPOINT_PATH" --port 8767 \
-  --expected-sha256 4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5 &
+  --expected-sha256 "$PUBLIC_SHA" &
 native_pid=$!
 # Same host-only key, separate authenticated loopback port and model instance.
 PORT=8768 HOST=127.0.0.1 gosu beastbox python -m rawrphos.inference.server \
@@ -49,6 +55,7 @@ import time
 import urllib.request
 import json
 from beastbox.providers import _local_opener
+from beastbox.rawrphos_local import STEP as PIN_STEP, SHA as PIN_SHA
 key = os.environ["RAWRPHOS_API_KEY"]
 url = "http://127.0.0.1:8767/model/info"
 for _ in range(120):
@@ -57,9 +64,9 @@ for _ in range(120):
         with _local_opener().open(request, timeout=2) as response:
             info = json.loads(response.read(16384))
         if (info.get("ready") is True and info.get("model_id") == "rawrphos-native"
-                and info.get("training_steps") == 14000
-                and info.get("checkpoint_sha256") == "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5"):
-            print("Verified RAWRPHOS native 14K on private loopback", flush=True)
+                and info.get("training_steps") == PIN_STEP
+                and info.get("checkpoint_sha256") == PIN_SHA):
+            print(f"Verified RAWRPHOS native public pin step {PIN_STEP} on private loopback", flush=True)
             raise SystemExit(0)
     except (OSError, ValueError, TypeError):
         pass

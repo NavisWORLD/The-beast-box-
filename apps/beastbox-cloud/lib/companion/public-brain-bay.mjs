@@ -67,7 +67,7 @@ export async function runPublicBrain(session,text,{fetcher=globalThis.fetch,olla
   }
   const result=interpretModelResult('guest-rawrphos',payload);
   if(!result.ok||!result.reply||result.reply.length>6000)throw Error('Unverified guest response');
-  return {...result,label:'RAWRPHØS guest · verified stateless native 14K response',moduleReady:true,fallback:false,failure:''};
+  return {...result,label:`RAWRPHØS guest · verified stateless native step ${result.step} response`,moduleReady:true,fallback:false,failure:''};
  }catch{
   return pattern(session,saying,local?'Local Ollama is unavailable, or the browser blocked its loopback connection.':'RAWRPHØS guest is unavailable or returned unverified text.');
  }

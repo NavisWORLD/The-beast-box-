@@ -11,6 +11,10 @@ from pathlib import Path
 from rawrphos.architecture.generation import generate
 
 class Engine:
+    # Chat decoding anti-repetition, shared by the served path and the chat eval
+    # (baseline and candidate identically). Probes call generate() directly.
+    REPETITION_PENALTY=1.15
+    NO_REPEAT_NGRAM=3
     def __init__(self,checkpoint,max_new_tokens=256,threads=4,expected_sha256=None,device='cpu'):
         if type(max_new_tokens) is not int or not 1<=max_new_tokens<=1024: raise ValueError('invalid host token budget')
         if device not in {'cpu', 'cuda'}: raise ValueError('unsupported inference device')
@@ -36,7 +40,9 @@ class Engine:
             'release_status':m.get('release_status','trained-candidate'),'ready':True,
             'load_seconds':self.load_seconds,'last_successful_inference':self.last_success,
             'weight_bytes':sum(p.numel()*p.element_size() for p in self.model.parameters())}
-    def tokens(self,prompt,max_tokens=64,temperature=.8,seed=67,use_cache=True,timeout=60,cancelled=None,control_vector=None):
+    def tokens(self,prompt,max_tokens=64,temperature=.8,seed=67,use_cache=True,timeout=60,cancelled=None,control_vector=None,repetition_penalty=None,no_repeat_ngram=None):
+        rp=self.REPETITION_PENALTY if repetition_penalty is None else repetition_penalty
+        nr=self.NO_REPEAT_NGRAM if no_repeat_ngram is None else no_repeat_ngram
         if not isinstance(prompt,str) or len(prompt.encode('utf-8'))>65536: raise ValueError('invalid or oversized prompt')
         if type(max_tokens) is not int or not 1<=max_tokens<=self.max_new_tokens: raise ValueError('token budget exceeds host limit')
         cv=None if control_vector is None else torch.tensor([self.validate_control(control_vector)],dtype=torch.float32,device=self.device)
@@ -48,7 +54,7 @@ class Engine:
             for token,full in generate(self.model,torch.tensor([ids],device=self.device),max_new_tokens=max_tokens,
                     temperature=temperature,top_k=min(40,self.tokenizer.vocab_size),eos_token_id=self.tokenizer.eos_id,
                     generator=gen,use_cache=use_cache,deadline=time.monotonic()+timeout,cancelled=cancelled,
-                    control_vector=cv):
+                    control_vector=cv,repetition_penalty=rp,no_repeat_ngram=nr):
                 if first is None: first=time.perf_counter()-started
                 generated.append(token); decoded=self.tokenizer.decode(generated); stable=decoded.rstrip('\ufffd')
                 delta=stable[len(emitted):]; emitted=stable
