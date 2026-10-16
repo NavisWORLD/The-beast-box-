@@ -1,8 +1,28 @@
 {
  "schema": "rawrphos-public-pin-v1",
  "model_id": "rawrphos-native",
- "training_steps": 14000,
- "checkpoint_sha256": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
- "promotion": null,
- "rule": "Changes ONLY through a reviewed PR whose promotion block cites an approved checkpoint release and a rawrphos-chat-eval-v1 report with chat_not_worse=true versus 14000. Otherwise the 14000 pin stays."
+ "training_steps": 21616,
+ "checkpoint_sha256": "e92e0c0da36a02ade01ce4bc2f93d9f74c0e2b937313c896f1b81fe9eb32a2d1",
+ "promotion": {
+  "release_tag": "zeref-006-cycle-19-e92e0c0da36a",
+  "release_asset_sha256": "7b44149b92cfdad8b3e16732ba59e4a62d93ce0bc08a625ed61705938f16838e",
+  "workflow_run": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/38831645431",
+  "chat_eval_schema": "rawrphos-chat-eval-v2",
+  "chat_eval_sha256": "d1c7b8fe74d42cc24c8187f461913f35cf1fc991733886f22491d38ed2ba776f",
+  "chat_not_worse": true,
+  "baseline_sha256": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
+  "candidate_sha256": "e92e0c0da36a02ade01ce4bc2f93d9f74c0e2b937313c896f1b81fe9eb32a2d1",
+  "baseline_ref_nll": 4.048708426952362,
+  "candidate_ref_nll": 3.948000764846802,
+  "baseline_ok": 8,
+  "candidate_ok": 8,
+  "candidate_leaks": 0,
+  "decoding": {
+   "no_repeat_ngram": 3,
+   "repetition_penalty": 1.15,
+   "same_for_baseline_and_candidate": true
+  },
+  "rollback": "set promotion to null and training_steps/checkpoint_sha256 back to 14000"
+ },
+ "rule": "Changes ONLY through a reviewed PR whose promotion block cites an approved checkpoint release and a rawrphos-chat-eval-v1/v2 report with chat_not_worse=true versus 14000. Otherwise the 14000 pin stays."
 }
