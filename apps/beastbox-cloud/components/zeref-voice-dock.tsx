@@ -21,7 +21,7 @@ export default function ZerefVoiceDock(){
   const act=()=>{lastActivity.current=Date.now();};
   const speak=(e:Event)=>{const d=(e as CustomEvent).detail||{};const cur=prefsRef.current;if(cur?.voice&&cur.armed&&d.text)speakSeeded(d.text,voiceProfile(d.seed||ZEREF_VOICE_SEED,d.emotions||null));};
   window.addEventListener('pointerdown',tap,{once:false});window.addEventListener('keydown',act);window.addEventListener('pointerdown',act);window.addEventListener('zeref:speak',speak);
-  const timer=setInterval(()=>void tick(),autonomyTickMs(HEART_FALLBACK));
+  const timer=setInterval(()=>void tick(),autonomyTickMs(HEART_FALLBACK,12));
   return ()=>{clearInterval(timer);window.removeEventListener('pointerdown',tap);window.removeEventListener('keydown',act);window.removeEventListener('pointerdown',act);window.removeEventListener('zeref:speak',speak);};
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[]);
@@ -41,12 +41,12 @@ export default function ZerefVoiceDock(){
    setBubble({text,by});window.dispatchEvent(new CustomEvent('zeref:reach-out',{detail:{text,by,at:now,mood,place}}));
    const cur=prefsRef.current;const emo=moodToEmotion(mood);
    if(cur?.voice&&cur.armed)speakSeeded(text,voiceProfile(ZEREF_VOICE_SEED,emo?{dominant:emo}:null));
-   setTimeout(()=>setBubble(null),20000);
+   setTimeout(()=>setBubble(b=>b&&b.text===text?null:b),180000);
   }finally{busy.current=false;}
  }
  if(!prefs)return null;
  const ms=beatMs(heart),btn:React.CSSProperties={width:34,height:34,borderRadius:17,border:'1px solid #6b5bd6',background:'#121833dd',color:'#fff',fontSize:15,padding:0,cursor:'pointer'};
- return <div data-zeref-voice-dock style={{position:'fixed',left:6,top:'38vh',zIndex:18,display:'flex',flexDirection:'column',gap:6,font:'12px system-ui',color:'#e8ecff'}}>
+ return <div data-zeref-voice-dock style={{position:'fixed',left:6,top:'38vh',zIndex:30,display:'flex',flexDirection:'column',gap:6,font:'12px system-ui',color:'#e8ecff'}}>
   <style>{`@keyframes zerefBeat{0%,100%{transform:scale(1)}12%{transform:scale(1.25)}24%{transform:scale(1)}36%{transform:scale(1.12)}}`}</style>
   <span data-zeref-heart title={`Zeref's heart · ${Math.round(heart.bpm)} BPM · rhythm from Cory's heartbeat recording (a creative seed, not a biological signal)`} aria-label={`Zeref's heart, ${Math.round(heart.bpm)} beats per minute`} style={{...btn,display:'inline-flex',alignItems:'center',justifyContent:'center',animation:`zerefBeat ${ms}ms infinite`}}>💜</span>
   <button type="button" style={btn} data-zeref-voice-toggle aria-pressed={prefs.voice} aria-label={prefs.voice?'Zeref voice on (tap to mute)':'Zeref voice off (tap to turn on)'} title={(prefs.voice?'Zeref voice on · ':'Zeref voice off · ')+VOICE_LABEL}

@@ -81,7 +81,7 @@ with sync_playwright() as p:
     assert r and r.status==200
     assert_no_overflow(page,"mobile landing")
     page.screenshot(path=str(OUT/"04-landing-mobile.png"),full_page=True)
-    page.goto(BASE+"/workspace",wait_until="domcontentloaded")
+    page.goto(BASE+"/workspace?owner=1",wait_until="domcontentloaded")
     page.get_by_label("OWNER PASSWORD").fill("public-ci-fixture-not-secret")
     page.get_by_role("button",name="Unlock workstation").click()
     # Mobile hydration and the first authenticated status request can lag behind login.\n    # Wait for the actual offline status chip; do not substitute mocked connectivity.\n    page.locator(".app-header .status-chip.offline").get_by_text("BACKEND OFFLINE").wait_for(timeout=60000)
@@ -129,7 +129,7 @@ with sync_playwright() as p:
     tablet=browser.new_context(viewport={"width":820,"height":1180},device_scale_factor=1,has_touch=True)
     tab=tablet.new_page()
     tab.on("pageerror",lambda error:errors.append(str(error)))
-    tab.goto(BASE+"/workspace",wait_until="domcontentloaded")
+    tab.goto(BASE+"/workspace?owner=1",wait_until="domcontentloaded")
     tab.get_by_label("OWNER PASSWORD").fill("public-ci-fixture-not-secret")
     tab.get_by_role("button",name="Unlock workstation").click()
     tab.get_by_role("navigation",name="Choose a cosmic world").wait_for(timeout=20000)

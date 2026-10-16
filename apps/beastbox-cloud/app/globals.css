@@ -739,3 +739,6 @@ html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],
  [data-spark-player][data-player-mode=minimized] [class*=identity]{display:none}
  [data-spark-player][data-player-mode=minimized]{padding:3px!important;background:#0c1228cc!important}
 }
+/* 2026-10-16 guest test: the open greeting card must not be covered by the View button. */
+*:has(>.cosmos-home-card[open])>.cosmos-home-viewmenu:not([open]){display:none}
+.cosmos-home-card[open]{z-index:6}

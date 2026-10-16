@@ -16,20 +16,21 @@ export default function AccountPanel({verified}:{verified?:string}){
    setPw('');await load();
   }finally{setBusy(false);}
  }
- return <main data-account-page style={{maxWidth:460,margin:'48px auto',padding:20,display:'grid',gap:14}}>
-  <h1>Your Beast Box account</h1>
+ return <main data-account-page className="login-screen"><div className="login-stars" aria-hidden="true"/><Link href="/" className="back-home">← BACK TO THE COSMOS</Link><section className="login-card" style={{display:'grid',gap:12}}>
+  <span className="eyebrow">BEAST BOX / ACCOUNT</span>
+  <h1>Your Beast Box <em>account</em></h1>
   {verified==='yes'?<p data-verified>Email verified 💚</p>:verified?<p>That verification link didn&apos;t work. Try signing in again.</p>:null}
   <p>An account is optional. <Link href="/">Continue as a guest</Link> to experience everything except the Workshop.</p>
   {me?.signedIn?<>
    <p data-signed-in>You&apos;re signed in.{me.workshop?' You have Workshop access.':' Workshop access is granted by Cory — message him to ask.'}</p>
    <button disabled={busy} onClick={()=>go('signout')}>Sign out</button>
   </>:<form onSubmit={e=>{e.preventDefault();void go('signup');}} style={{display:'grid',gap:10}}>
-   <label>Email <input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>
-   <label>Password <input type="password" required minLength={8} autoComplete="new-password" value={pw} onChange={e=>setPw(e.target.value)}/></label>
+   <label>EMAIL<input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>
+   <label>PASSWORD<input type="password" required minLength={8} autoComplete="new-password" value={pw} onChange={e=>setPw(e.target.value)}/></label>
    <button type="submit" disabled={busy}>Create account</button>
-   <button type="button" disabled={busy} onClick={()=>go('signin')}>Sign in</button>
+   <button type="button" className="outline-action" disabled={busy} onClick={()=>go('signin')}>Sign in</button>
   </form>}
   {me&&!me.accountsReady?<small>Accounts are still being set up. Guest mode works now.</small>:null}
   {msg?<p role="status">{msg}</p>:null}
- </main>;
+ </section></main>;
 }

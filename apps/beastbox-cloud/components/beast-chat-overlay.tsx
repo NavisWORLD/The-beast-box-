@@ -9,6 +9,7 @@ import {talkPersona} from '../lib/companion/beast-talk.mjs';
 import {chatViewport} from '../lib/companion/chat-viewport.mjs';
 import type {GameChatBridge} from './beast-chat-types';
 import styles from './beast-chat-overlay.module.css';
+import {useTalkPersona} from './use-talk-target';
 import PixelBeast from './pixel-beast';
 import ZerefFigure from './zeref-figure';
 import {useUniverseMotion} from './use-universe-motion';
@@ -17,7 +18,7 @@ import {useUniverseMotion} from './use-universe-motion';
 export default function BeastChatOverlay(){
  const {session}=useBeastSession(),{profile}=useCompanion(),path=usePathname();
  const {reduced}=useUniverseMotion();
- const persona=useMemo(()=>talkPersona({beast:session?.beast,cage:profile}),[session?.beast,profile]);
+ const {persona}=useTalkPersona(session?.beast,profile);
  const [open,setOpen]=useState(false),[expanded,setExpanded]=useState(false),[mobile,setMobile]=useState(false),[focusReturn,setFocusReturn]=useState(0);
  const [geometry,setGeometry]=useState({height:720,bottom:0}),[game,setGame]=useState<GameChatBridge|null>(null);
  const [host,setHost]=useState<HTMLDivElement|null>(null),[modalRoot,setModalRoot]=useState<Element|null>(null);
