@@ -25,7 +25,7 @@ if ey:
     be=ey.node_tree.nodes['Principled BSDF'];be.inputs['Base Color'].default_value=lin(c(P['glow']));be.inputs['Emission Color'].default_value=lin(c(P['glow']));be.inputs['Emission Strength'].default_value=1.2
 cm=bpy.data.materials.get('pm_cornea')
 if cm:
-    bc=cm.node_tree.nodes['Principled BSDF'];bc.inputs['Transmission Weight'].default_value=0;bc.inputs['Alpha'].default_value=.015;cm.blend_method='BLEND'
+    bc=cm.node_tree.nodes['Principled BSDF'];bc.inputs['Transmission Weight'].default_value=0;bc.inputs['Alpha'].default_value=.006;bc.inputs['Roughness'].default_value=0;cm.blend_method='BLEND'
 sc.eevee.use_raytracing=True
 ir=bpy.data.materials.get('iris')
 if ir:

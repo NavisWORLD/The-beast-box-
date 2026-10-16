@@ -189,7 +189,7 @@ SPECS={
  'serpent':lambda:long_(dict(kind='serpent',len=1.1,r=.11,head_r=.24,eye=.26,tail_len=.45,tail_dir=(-.4,1,.0),extra=serp_x)),
  'fish':lambda:long_(dict(kind='fish',len=.75,r=.2,head_r=.25,float=.45,eye=.26,tail_len=.22,tail_dir=(0,1,0),extra=fish_x)),
  'res_frostmitt':lambda:quad(dict(body=(.34,.2,.21),head_z=.86,head_r=.31,leg=.18,muzzle=.03,cheek=.9,tail_len=.4,tail_r=.08,eye=.33)),
- 'res_nyxbean':lambda:quad(dict(body=(.25,.13,.125),head_z=.8,head_r=.36,leg=.27,tail_dir=(0,1,1.7),muzzle=.05,muz_w=.8,muz_h=.7,cheek=.9,tail_len=.4,tail_r=.055,eye=.42,extra=lambda by,bh,bw,hz,hr,leg,hy:{'ruff':(ell,((0,-by*.85,leg+bh*1.35),(bw*.95,bw*.75,bh*.95)))})),
+ 'res_nyxbean':lambda:quad(dict(body=(.24,.11,.1),head_z=.86,head_r=.36,leg=.33,leg_t=.75,tail_dir=(0,1,1.7),muzzle=.05,muz_w=.8,muz_h=.7,cheek=.9,tail_len=.4,tail_r=.055,eye=.42,extra=lambda by,bh,bw,hz,hr,leg,hy:{'ruff':(ell,((0,-by*.85,leg+bh*1.35),(bw*.95,bw*.75,bh*.95)))})),
  'res_shardhowl':lambda:quad(dict(body=(.46,.17,.16),head_z=.95,head_r=.24,leg=.32,leg_t=.85,muzzle=.04,muz_w=.75,muz_h=.8,cheek=.6,tail_len=.6,tail_r=.09,eye=.22,tail_dir=(0,1,.3),tail_in=.15,extra=fox_x)),
  'res_velvetcoil':lambda:long_(dict(kind='serpent',len=1.25,r=.1,head_r=.22,eye=.27,tail_len=.55,tail_dir=(-.4,1,.0),extra=serp_x)),
  'res_kairo':lambda:upright(dict(body_h=.24,body_w=.15,body_d=.11,leg=.42,leg_t=.5,head_r=.23,arm=.5,eye=.19,neck=.55,nose=False,mouth_w=.5,tail_len=.04,tail_r=.015)),
@@ -528,7 +528,12 @@ def beanie(c,rx,ry,rz,crown,slouch,bands,band_m,body_m,knit=14):
             cr.append(ring('row',(c[0],c[1]+slouch*.35*t,zz),rx*.99*f,ry*.99*f,rz*.035,40))
         o=joinm(cr,'prop_crown');addp(o,body_m,n=2600);return o
     def droop(v):
-        t=max(0,(v.z-c[2])/(rz*(crown+.6)));v.y+=t*t*rx*.45;v.z-=t*t*t*rz*.15;v.x*=1+.06*t
+        t=max(0,(v.z-c[2])/(rz*(crown+.6)))
+        if knit<10 and t>0:  # deep puffy channels: pinch inward along 8 sewn meridians before the cloth settle
+            a=math.atan2(v.y-c[1],v.x-c[0]);d=min(abs(((a-k*math.pi/4)+math.pi)%(2*math.pi)-math.pi) for k in range(8))
+            pin_=.13*rx*math.exp(-(d/.13)**2)*min(1,t*3)*(1-t*.6);r_=Vector((v.x-c[0],v.y-c[1],0))
+            if r_.length>1e-6:v.x-=r_.x/r_.length*pin_;v.y-=r_.y/r_.length*pin_
+        v.y+=t*t*rx*.6;v.z-=t*t*t*rz*.12;v.x*=1+.06*t
     for o_ in cr:
         for v in o_.data.vertices:droop(v.co)
     if PLAN=='res_nyxbean' and os.environ.get('CST_SOFT','1')=='1':
@@ -565,14 +570,14 @@ def beanie(c,rx,ry,rz,crown,slouch,bands,band_m,body_m,knit=14):
 NEW_OUTFIT=PLAN in('res_frostmitt','res_nyxbean','res_kairo')
 if NEW_OUTFIT:
     pmat('trim',(.55,.15,1,1),.3,emit=(.62,.2,1,1),es=6)
-    pmat('horn_purple',(.45,.15,.95,1),.12,emit=(.45,.12,1,1),es=1.1,coat=1)
+    pmat('horn_purple',(.28,.06,.8,1),.12,emit=(.3,.06,.95,1),es=.7,coat=1)
     pmat('horn_grey',(.62,.6,.66,1),.35,coat=.8)
     hb=Vector((0,hcv.y+hrx*.05,hcv.z+hrz*.18))
     if PLAN=='res_nyxbean':
-        hb=hb+Vector((0,hrx*.14,hrz*.4));del PM['trim'];pmat('trim',(.25,.045,1,1),.5,emit=(.25,.045,1,1),es=.9)
+        hb=hb+Vector((0,hrx*.14,hrz*.52));del PM['trim'];pmat('trim',(.25,.045,1,1),.5,emit=(.25,.045,1,1),es=.9)
         pmat('puffy',(.03,.011,.065,1),.85,sheen=.35)
-        pmat('bandbase',(.07,.012,.25,1),.6,emit=(.2,.03,.7,1),es=.25);beanie(hb,hrx*1.2,hrx*1.14,hrz*1.2,1.05,hrx*.9,[],'bandbase','puffy',knit=0)
-        for s_ in (-1,1):addp(cone('prop_horn',(s_*hrx*.3,hcv.y-hrx*.8,hcv.z+hrz*.86),(s_*hrx*.42,hcv.y-hrx*1.2,hcv.z+hrz*1.4),hrz*.22,1,16),'horn_purple')
+        pmat('bandbase',(.07,.012,.25,1),.6,emit=(.2,.03,.7,1),es=.25);beanie(hb,hrx*1.2,hrx*1.14,hrz*1.2,1.2,hrx*.9,[],'bandbase','puffy',knit=0)
+        for s_ in (-1,1):addp(tube('prop_horn',[(s_*hrx*.26,hcv.y-hrx*.82,hcv.z+hrz*.46),(s_*hrx*.36,hcv.y-hrx*1.0,hcv.z+hrz*.66),(s_*hrx*.3,hcv.y-hrx*1.08,hcv.z+hrz*.88)],[hrz*.16,hrz*.1,hrz*.015],res=8),'horn_purple',n=500)
     if PLAN=='res_frostmitt':
         pmat('knit',(.07,.03,.2,1),.85,sheen=.3)
         pmat('magenta',(.8,.15,.9,1),.5,emit=(.85,.2,1,1),es=2.5)
@@ -677,7 +682,7 @@ def eye_mat(n,tex):
 if NEW_OUTFIT:
     etex={'res_nyxbean':'eye_galaxy','res_kairo':'eye_galaxy','res_frostmitt':'eye_lavender'}[PLAN]
     eye_mat('eyeball','nyx_eye' if PLAN=='res_nyxbean' else etex)
-    if PLAN=='res_nyxbean':PM['eyeball'].node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value=.9
+    if PLAN=='res_nyxbean':PM['eyeball'].node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value=1.5
     m=D.materials.new('pm_cornea');m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(1,1,1,1);b.inputs['Roughness'].default_value=.02
     b.inputs['Transmission Weight'].default_value=1;b.inputs['IOR'].default_value=1.38;b.inputs['Coat Weight'].default_value=1;PM['cornea']=m
     pmat('lash',(.01,.008,.015,1),.5)
@@ -689,7 +694,7 @@ if NEW_OUTFIT:
         uv=e.data.uv_layers.new(name='UVMap') if not e.data.uv_layers else e.data.uv_layers[0]
         for lp in e.data.loops:
             co=e.data.vertices[lp.vertex_index].co;uv.data[lp.index].uv=(.5+(co.x-cc.x)/(2*rx)*s*-1*-1,.5+(co.z-cc.z)/(2*rz))
-        eyes.append(e);corn.append(ell('corn',cc+Vector((0,-ER*.05,0)),(rx*1.04,ry*1.25,rz*1.04),seg=32,ring=16))
+        eyes.append(e);corn.append(ell('corn',cc+Vector((0,-ER*.03,0)),(rx*1.02,ry*1.08,rz*1.02),seg=32,ring=16))
         lash.append(tube('lash',[tuple(cc+Vector((x*rx*1.05,-ry*.6,math.sqrt(max(0,1-x*x))*rz*1.02))) for x in (-1,-.6,0,.6,1)],[ER*.03,ER*.05,ER*.06,ER*.05,ER*.025],res=4))
     eo=joinm(eyes,'prop_eyes');co_=joinm(corn,'prop_cornea')
     for o_,nm_ in ((eo,'eyeball'),(co_,'cornea')):
