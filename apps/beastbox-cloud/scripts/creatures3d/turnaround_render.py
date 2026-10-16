@@ -47,7 +47,7 @@ fill=light('fill','AREA',(2,-2,.6),90,(.9,.9,1),4)
 if os.environ.get('CYCLES','1')=='1':
     # offline look: Cycles + OIDN, strand fur (clumped children + flyaways) on the coat meshes, SSS ears
     sc.render.engine='CYCLES';sc.cycles.samples=int(os.environ.get('SAMPLES','64'));sc.cycles.use_denoising=True;sc.cycles.denoiser='OPENIMAGEDENOISE';sc.cycles.device='CPU'
-    FUR={'res_nyxbean':(.034,(.02,.012,.03)),'res_frostmitt':(.03,(.85,.88,.95)),'res_kairo':(0,None)}[PLAN]
+    FUR={'res_nyxbean':(.024,(.02,.012,.03)),'res_frostmitt':(.03,(.85,.88,.95)),'res_kairo':(0,None)}[PLAN]
     if FUR[0]>0:
         hm=bpy.data.materials.new('furhair');hm.use_nodes=True;nt2=hm.node_tree;out=nt2.nodes['Material Output']
         for n_ in list(nt2.nodes):
@@ -63,6 +63,10 @@ if os.environ.get('CYCLES','1')=='1':
             ps.clump_factor=.55;ps.clump_shape=.3;ps.roughness_1=.012;ps.roughness_2=.025;ps.roughness_2_threshold=.85;ps.roughness_endpoint=.006
             ps.use_advanced_hair=False;ps.kink='CURL';ps.kink_amplitude=.002;ps.kink_frequency=3
             ps.radius_scale=.0016;ps.root_radius=1;ps.tip_radius=0;ps.display_step=3;ps.render_step=4
+            try:  # CST Lorenz clump map drives strand length + clumping
+                tx=bpy.data.textures.get('cstclump') or bpy.data.textures.new('cstclump','IMAGE');tx.image=bpy.data.images.load(os.path.join(here,'tex','nyx_fur_clump.png'),check_existing=True)
+                sl=ps.texture_slots.add();sl.texture=tx;sl.texture_coords='UV';sl.use_map_time=False;sl.use_map_length=True;sl.length_factor=.6;sl.use_map_clump=True;sl.clump_factor=.8
+            except Exception as e:print('cst clump slot',e)
             if o.name.startswith('body'):  # long clumped chest + cheek fluff
                 vg=o.vertex_groups.new(name='ruffd');hc_=max(v.co.z for v in o.data.vertices)*.62
                 for v in o.data.vertices:
