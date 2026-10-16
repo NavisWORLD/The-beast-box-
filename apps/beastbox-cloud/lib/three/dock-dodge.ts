@@ -2,7 +2,7 @@
  * Keeps the fixed bottom bars (mini player, sound dock, chat launcher) from covering a caption:
  * while `el` sits inside the bottom band of the viewport, <html data-dock-dodge> slides them away.
  */
-const BARS='[data-spark-player][data-player-mode=minimized],[class*=site-sound-dock][class*=dock],[class*=beast-chat-overlay][class*=launcher]';
+const BARS='[data-spark-player][data-player-mode=minimized],[class*=beast-chat-overlay][class*=launcher]';
 const hits=new Set<HTMLElement>();
 const sync=()=>{const r=document.documentElement;if(hits.size)r.setAttribute('data-dock-dodge','');else r.removeAttribute('data-dock-dodge');};
 export function dockDodge(el:HTMLElement,band=140):()=>void{
