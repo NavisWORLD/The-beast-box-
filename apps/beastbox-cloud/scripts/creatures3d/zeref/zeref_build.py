@@ -401,7 +401,7 @@ def mat(name,base=(0,0,0,1),rough=.6,metal=0,emit=None,emit_str=0,tex=None,emit_
     return m
 T=HERE
 MAT={
- 'fur':mat('zeref_fur',vc=True,rough=.74,sheen=.4,normal_tex=T+'/fur_normal.png',normal_str=.35,emit_tex=T+'/fur_emit.png',emit_str=1.0),  # realism v5: matte, less gloss
+ 'fur':mat('zeref_fur',vc=True,rough=.7,sheen=.48,normal_tex=T+'/fur_normal.png',normal_str=.35,emit_tex=T+'/fur_emit.png',emit_str=1.35),  # realism v5: matte, less gloss
  'eye':mat('zeref_eye',tex=T+'/eye_base.png',emit_tex=T+'/eye_emit.png',emit_str=1.8,rough=.08,coat=1.0),
  'wing':mat('zeref_wing',tex=T+'/wing_base.png',emit_tex=T+'/wing_emit.png',emit_str=.9,rough=.5,coat=.2,alpha=.86),
  'moon':mat('zeref_moon',base=hx('#e9dcff'),rough=.25,coat=.8,emit=hx('#bfa0ff'),emit_str=1.4),

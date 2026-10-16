@@ -10,7 +10,7 @@ if os.environ.get('BAKED'):  # realism v5: sculpt->bake normal + AO (sculpt_bake
     if _nm:_t.links.new(_i.outputs[0],_nm[0].inputs['Color'])
     _a=_t.nodes.new('ShaderNodeTexImage');_a.image=bpy.data.images.load(_pre+'_ao.png');_a.image.colorspace_settings.name='Non-Color';_t.links.new(_uv.outputs[0],_a.inputs['Vector'])
     _src=_b.inputs['Base Color'].links[0].from_socket
-    _mx=_t.nodes.new('ShaderNodeMix');_mx.data_type='RGBA';_mx.blend_type='MULTIPLY';_mx.inputs[0].default_value=.35
+    _mx=_t.nodes.new('ShaderNodeMix');_mx.data_type='RGBA';_mx.blend_type='MULTIPLY';_mx.inputs[0].default_value=.2
     _t.links.new(_src,_mx.inputs[6]);_t.links.new(_a.outputs[0],_mx.inputs[7]);_t.links.new(_mx.outputs[2],_b.inputs['Base Color'])
 C=bpy.context;S=C.scene;D=bpy.data
 z=D.objects['Zeref']
@@ -47,7 +47,7 @@ if os.environ.get('FUR','1')=='1':
     # shell fur (same technique as the runtime three.js shells): offset shells, strand alpha rising per shell, combed down/back
     zz=D.objects['Zeref'];HERE_=os.path.dirname(os.path.abspath(__file__))
     tex=D.images.load(HERE_+'/fur_strands.png');tex.colorspace_settings.name='Non-Color'
-    SH=int(os.environ.get('SHELLS','12'));L=float(os.environ.get('FURLEN','.015'))  # realism v5: denser, longer shells
+    SH=int(os.environ.get('SHELLS','8'));L=float(os.environ.get('FURLEN','.016'))  # realism v5: denser, longer shells
     base=zz.copy();base.data=zz.data.copy();C.collection.objects.link(base)
     import bmesh as _bm
     if base.data.shape_keys:base.shape_key_clear()
@@ -63,14 +63,14 @@ if os.environ.get('FUR','1')=='1':
         vc=nt.nodes.new('ShaderNodeVertexColor');vc.layer_name='Col'
         mul=nt.nodes.new('ShaderNodeMixRGB');mul.blend_type='MULTIPLY';mul.inputs[0].default_value=1;mul.inputs[2].default_value=(1.0+.7*t,1.0+.7*t,1.15+.8*t,1)
         nt.links.new(vc.outputs['Color'],mul.inputs[1]);nt.links.new(mul.outputs[0],b.inputs['Base Color'])
-        b.inputs['Roughness'].default_value=.8;b.inputs['Sheen Weight'].default_value=.3
+        b.inputs['Roughness'].default_value=.66;b.inputs['Sheen Weight'].default_value=.6;b.inputs['Sheen Tint'].default_value=(.72,.55,1,1)
         uv=nt.nodes.new('ShaderNodeTexCoord');mp=nt.nodes.new('ShaderNodeMapping');mp.inputs['Scale'].default_value=(18,18,18)
         tx=nt.nodes.new('ShaderNodeTexImage');tx.image=tex
         nt.links.new(uv.outputs['UV'],mp.inputs['Vector']);nt.links.new(mp.outputs[0],tx.inputs['Vector'])
         gt=nt.nodes.new('ShaderNodeMath');gt.operation='GREATER_THAN';gt.inputs[1].default_value=.22+.72*t
         nt.links.new(tx.outputs['Color'],gt.inputs[0]);nt.links.new(gt.outputs[0],b.inputs['Alpha'])
         et=nt.nodes.new('ShaderNodeTexImage');et.image=D.images.load(HERE_+'/fur_emit.png');nt.links.new(uv.outputs['UV'],et.inputs['Vector'])
-        nt.links.new(et.outputs['Color'],b.inputs['Emission Color']);b.inputs['Emission Strength'].default_value=1.1
+        nt.links.new(et.outputs['Color'],b.inputs['Emission Color']);b.inputs['Emission Strength'].default_value=1.4
         o.data.materials.clear();o.data.materials.append(m)
     D.objects.remove(base)
 S.render.engine='CYCLES';S.cycles.device='CPU';S.cycles.samples=int(os.environ.get('SAMPLES','48'));S.cycles.use_denoising=True

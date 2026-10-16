@@ -797,7 +797,17 @@ if NEW_OUTFIT:
             fk.append(ell('fk',tuple(surf(x,z)+Vector((0,.0005,0))),(ER*.05,ER*.02,ER*.05),seg=6,ring=3))
         for d_ in ((-1.05,-1.3),(-1.25,-1.45),(-.9,-1.55)):fk.append(ell('mole',tuple(surf(d_[0]*FACE['eye_x'],FACE['eye_z']+d_[1]*ER)+Vector((0,.0002,0))),(ER*.075,ER*.03,ER*.075),seg=8,ring=4))
         addp(joinm(fk,'prop_freckles'),'freckle',n=500)
-    if PLAN=='res_frostmitt':
+    if PLAN=='res_frostmitt':  # defined face: slate eye rims, catchlights, blue-grey nose + w mouth, muzzle shadow (sheet)
+        pmat('rimf',(.16,.2,.32,1),.35,coat=.8);pmat('catchf',(1,1,1,1),.1,emit=(1,1,1,1),es=2.2);pmat('nosef',(.32,.36,.55,1),.35,coat=.6)
+        rims,cat=[],[]
+        for n,c in eye_c.items():
+            s=-1 if n=='L' else 1;rx,rz=ER*.95*.95,ER*1.05*.95;cc=c+Vector((0,-ER*.1,0))
+            rims.append(tube('rim',[(cc.x+math.cos(a)*rx*1.03,cc.y-ER*.16,cc.z+math.sin(a)*rz*1.03) for a in [k/28*2*math.pi for k in range(29)]],[ER*.08]*29,res=3))
+            cat.append(ell('c1',(cc.x-s*rx*.3,cc.y-ER*.5,cc.z+rz*.38),(rx*.15,ER*.04,rz*.15),seg=12,ring=6))
+        addp(joinm(rims,'prop_eyerim'),'rimf');addp(joinm(cat,'prop_catch'),'catchf')
+        np_=surf(0,FACE['eye_z']-ER*1.25);addp(ell('prop_knose',tuple(np_+Vector((0,-.006,0))),(ER*.24,ER*.14,ER*.15),seg=12,ring=8),'nosef')
+        w=[tuple(surf(x*ER*.42,FACE['eye_z']-ER*1.65+abs(x)*ER*.12*(1 if abs(x)>.5 else -1))+Vector((0,-.004,0))) for x in (-1,-.5,0,.5,1)]
+        addp(tube('prop_kmouth',w,[ER*.028]*5,res=3),'rimf')
         R3=__import__('random').Random(21);ic=[]
         for k in range(400):
             if len(ic)>=36:break

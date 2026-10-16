@@ -11,6 +11,8 @@ SHOW={'res_frostmitt':('ear_pointy','tail_fluffy'),'res_nyxbean':('tail_thin',),
 sc=bpy.context.scene
 for o in list(sc.objects):
     if o.type=='MESH' and (o.name.startswith(('ear_','tail_','wing_'))) and o.name.split('.')[0] not in SHOW:o.hide_render=True
+for o in list(sc.objects):
+    if os.environ.get('HIDE') and o.name.startswith(tuple(os.environ['HIDE'].split(','))):o.hide_render=True
 fur=bpy.data.materials.get('fur');nt=fur.node_tree;b=nt.nodes['Principled BSDF']
 vc=[n for n in nt.nodes if n.type=='VERTEX_COLOR'][0]
 sep=nt.nodes.new('ShaderNodeSeparateColor');nt.links.new(vc.outputs['Color'],sep.inputs[0])
@@ -75,7 +77,10 @@ def bakemaps(o,pre):
         if src:t.links.new(src,m1.inputs[6])
         else:m1.inputs[6].default_value=bs.inputs['Base Color'].default_value
         if PLAN=='res_frostmitt' and pre.endswith('_body'):  # icy blue creases: mix(ice blue, white) by AO
-            ic=t.nodes.new('ShaderNodeMix');ic.data_type='RGBA';t.links.new(ao.outputs[0],ic.inputs[0]);ic.inputs[6].default_value=(.18,.35,.75,1);ic.inputs[7].default_value=(1,1,1,1)
+            cr_=t.nodes.new('ShaderNodeMath');cr_.operation='MULTIPLY';t.links.new(ao.outputs[0],cr_.inputs[0]);cr_.inputs[1].default_value=1
+            mr=t.nodes.new('ShaderNodeMapRange');mr.inputs[1].default_value=.3;mr.inputs[2].default_value=.55;t.links.new(cv.outputs[0],mr.inputs[0])  # sculpt curvature: concave -> ice blue
+            mn_=t.nodes.new('ShaderNodeMath');mn_.operation='MINIMUM';t.links.new(mr.outputs[0],mn_.inputs[0]);t.links.new(cr_.outputs[0],mn_.inputs[1])
+            ic=t.nodes.new('ShaderNodeMix');ic.data_type='RGBA';t.links.new(mn_.outputs[0],ic.inputs[0]);ic.inputs[6].default_value=(.18,.35,.75,1);ic.inputs[7].default_value=(1,1,1,1)
             m1.blend_type='MULTIPLY';m1.inputs[0].default_value=1;t.links.new(ic.outputs[2],m1.inputs[7])
         else:t.links.new(ao.outputs[0],m1.inputs[7])
         m2=t.nodes.new('ShaderNodeMix');m2.data_type='RGBA';m2.blend_type='MULTIPLY' if pre.endswith('_hat') else 'OVERLAY';m2.inputs[0].default_value=.5 if pre.endswith('_hat') else (0 if PLAN in('res_kairo','res_frostmitt') else .35);t.links.new(m1.outputs[2],m2.inputs[6]);t.links.new(cv.outputs[0],m2.inputs[7])
@@ -89,7 +94,7 @@ if BK:
 if os.environ.get('CYCLES','1')=='1':
     # offline look: Cycles + OIDN, strand fur (clumped children + flyaways) on the coat meshes, SSS ears
     sc.render.engine='CYCLES';sc.cycles.samples=int(os.environ.get('SAMPLES','64'));sc.cycles.use_denoising=True;sc.cycles.denoiser='OPENIMAGEDENOISE';sc.cycles.device='CPU'
-    FUR={'res_nyxbean':(.024,(.016,.015,.018)),'res_frostmitt':(.05,(.62,.68,.8)),'res_kairo':(0,None)}[PLAN]
+    FUR={'res_nyxbean':(.024,(.016,.015,.018)),'res_frostmitt':(.038,(.62,.68,.8)),'res_kairo':(0,None)}[PLAN]
     if FUR[0]>0:
         hm=bpy.data.materials.new('furhair');hm.use_nodes=True;nt2=hm.node_tree;out=nt2.nodes['Material Output']
         for n_ in list(nt2.nodes):
@@ -104,6 +109,13 @@ if os.environ.get('CYCLES','1')=='1':
             vgl=o.vertex_groups.new(name='furlen');zt_=max(v.co.z for v in o.data.vertices)
             for v in o.data.vertices:vgl.add([v.index],max(.25,min(1,(v.co.z/zt_-.12)*2.2)),'REPLACE')
             md.particle_system.vertex_group_length='furlen'
+            if PLAN=='res_frostmitt' and o.name.startswith('body'):  # keep the face readable: thin, short fur on the front of the face
+                vgd=o.vertex_groups.new(name='furdens')
+                for v in o.data.vertices:
+                    face_=v.co.z>zt_*.5 and v.normal.y<-.05 and abs(v.co.x)<zt_*.3
+                    vgd.add([v.index],.08 if face_ else 1,'REPLACE')
+                    if face_:vgl.add([v.index],.25,'REPLACE')
+                md.particle_system.vertex_group_density='furdens'
             ps.hair_length=FUR[0]*(.7 if o.name.startswith('ear') else 1);ps.material=slot;ps.child_type='INTERPOLATED';ps.child_percent=6;ps.rendered_child_count=10
             ps.clump_factor=.55;ps.clump_shape=.3;ps.roughness_1=.012;ps.roughness_2=.025;ps.roughness_2_threshold=.85;ps.roughness_endpoint=.006
             ps.use_advanced_hair=False;ps.kink='CURL';ps.kink_amplitude=.002;ps.kink_frequency=3
