@@ -189,7 +189,7 @@ SPECS={
  'serpent':lambda:long_(dict(kind='serpent',len=1.1,r=.11,head_r=.24,eye=.26,tail_len=.45,tail_dir=(-.4,1,.0),extra=serp_x)),
  'fish':lambda:long_(dict(kind='fish',len=.75,r=.2,head_r=.25,float=.45,eye=.26,tail_len=.22,tail_dir=(0,1,0),extra=fish_x)),
  'res_frostmitt':lambda:quad(dict(body=(.34,.2,.21),head_z=.86,head_r=.31,leg=.18,muzzle=.03,cheek=.9,tail_len=.4,tail_r=.08,eye=.33)),
- 'res_nyxbean':lambda:quad(dict(body=(.24,.11,.1),head_z=.86,head_r=.36,leg=.33,leg_t=.75,tail_dir=(0,1,1.7),muzzle=.05,muz_w=.8,muz_h=.7,cheek=.9,tail_len=.4,tail_r=.055,eye=.42,extra=lambda by,bh,bw,hz,hr,leg,hy:{'ruff':(ell,((0,-by*.85,leg+bh*1.35),(bw*.95,bw*.75,bh*.95)))})),
+ 'res_nyxbean':lambda:quad(dict(body=(.24,.11,.1),head_z=.86,head_r=.36,leg=.33,leg_t=.75,tail_dir=(0,1,1.7),muzzle=.05,muz_w=.8,muz_h=.7,cheek=.9,tail_len=.4,tail_r=.055,eye=.42,extra=lambda by,bh,bw,hz,hr,leg,hy:{'ruff':(ell,((0,-by*.85,leg+bh*1.35),(bw*.95,bw*.75,bh*.95))),'tuft':(cone,((0,-by*.95,leg+bh*1.5),(0,-by*1.25,leg+bh*.55),bw*.5,.6,16)),'bellyb':(ell,((0,-by*.1,leg+bh*.55),(bw*.9,by*.75,bh*.7)))})),
  'res_shardhowl':lambda:quad(dict(body=(.46,.17,.16),head_z=.95,head_r=.24,leg=.32,leg_t=.85,muzzle=.04,muz_w=.75,muz_h=.8,cheek=.6,tail_len=.6,tail_r=.09,eye=.22,tail_dir=(0,1,.3),tail_in=.15,extra=fox_x)),
  'res_velvetcoil':lambda:long_(dict(kind='serpent',len=1.25,r=.1,head_r=.22,eye=.27,tail_len=.55,tail_dir=(-.4,1,.0),extra=serp_x)),
  'res_kairo':lambda:upright(dict(body_h=.24,body_w=.15,body_d=.11,leg=.42,leg_t=.5,head_r=.23,arm=.5,eye=.19,neck=.55,nose=False,mouth_w=.5,tail_len=.04,tail_r=.015)),
@@ -516,7 +516,7 @@ def beanie(c,rx,ry,rz,crown,slouch,bands,band_m,body_m,knit=14):
     """knit/puffy beanie: cuff ring stack + slouched crown + rib cords; bands = list of (z frac, material)"""
     hat=[];cuff=[]
     puffy_=knit<10
-    for k in range(4):cuff.append(ring('cuff',(c[0],c[1],c[2]+k*rz*(.09 if puffy_ else .09)),rx*(1.04+.01*k),ry*(1.04+.01*k),rz*(.14 if puffy_ else .07),32))
+    for k in range(5 if knit<10 else 4):cuff.append(ring('cuff',(c[0],c[1],c[2]+k*rz*(.085 if puffy_ else .09)),rx*(1.06+.012*math.sin(k/5*math.pi)),ry*(1.06+.012*math.sin(k/5*math.pi)),rz*(.15 if puffy_ else .07),32))
     addp(joinm(cuff,'prop_cuff'),band_m if puffy_ else body_m,n=900 if puffy_ else None)
     if puffy_:bands=[]
     for z,bm_ in bands:addp(ring('prop_band',(c[0],c[1],c[2]+z*rz),rx*1.06,ry*1.06,rz*.045,40),bm_)
@@ -531,9 +531,10 @@ def beanie(c,rx,ry,rz,crown,slouch,bands,band_m,body_m,knit=14):
         t=max(0,(v.z-c[2])/(rz*(crown+.6)))
         if knit<10 and t>0:  # deep puffy channels: pinch inward along 8 sewn meridians before the cloth settle
             a=math.atan2(v.y-c[1],v.x-c[0]);d=min(abs(((a-k*math.pi/4)+math.pi)%(2*math.pi)-math.pi) for k in range(8))
-            pin_=.13*rx*math.exp(-(d/.13)**2)*min(1,t*3)*(1-t*.6);r_=Vector((v.x-c[0],v.y-c[1],0))
+            pin_=(.22*rx*math.exp(-(d/.12)**2)-.05*rx*(1-math.exp(-(d/.3)**2)))*min(1,t*3)*(1-t*.6);r_=Vector((v.x-c[0],v.y-c[1],0))
             if r_.length>1e-6:v.x-=r_.x/r_.length*pin_;v.y-=r_.y/r_.length*pin_
         v.y+=t*t*rx*.6;v.z-=t*t*t*rz*.12;v.x*=1+.06*t
+        if knit<10 and v.y<c[1]:v.y-=(c[1]-v.y)*.18*min(1,t*2.5);v.z-=(c[1]-v.y)*.12*min(1,t*2.5) if knit<10 and v.y<c[1] else 0
     for o_ in cr:
         for v in o_.data.vertices:droop(v.co)
     if PLAN=='res_nyxbean' and os.environ.get('CST_SOFT','1')=='1':
@@ -565,19 +566,19 @@ def beanie(c,rx,ry,rz,crown,slouch,bands,band_m,body_m,knit=14):
     pmat('seam',(.02,.008,.04,1),.7);addp(joinm(seams,'prop_seams'),'seam',n=500)
     st=[]  # glowing ribbed band: vertical stripe ribs
     for k in range(28):
-        a=k/28*2*math.pi;st.append(ell('rib',(c[0]+math.cos(a)*rx*1.1,c[1]+math.sin(a)*ry*1.1,c[2]+rz*.12),(rx*.07,rx*.07,rz*.2),seg=8,ring=6))
+        a=k/28*2*math.pi;st.append(ell('rib',(c[0]+math.cos(a)*rx*1.14,c[1]+math.sin(a)*ry*1.14,c[2]+rz*.13),(rx*.06,rx*.06,rz*.3),seg=8,ring=6))
     addp(joinm(st,'prop_bandribs'),'trim',n=900);return o
 NEW_OUTFIT=PLAN in('res_frostmitt','res_nyxbean','res_kairo')
 if NEW_OUTFIT:
     pmat('trim',(.55,.15,1,1),.3,emit=(.62,.2,1,1),es=6)
-    pmat('horn_purple',(.28,.06,.8,1),.12,emit=(.3,.06,.95,1),es=.7,coat=1)
+    pmat('horn_purple',(.16,.02,.62,1),.1,emit=(.22,.02,.85,1),es=.45,coat=1)
     pmat('horn_grey',(.62,.6,.66,1),.35,coat=.8)
     hb=Vector((0,hcv.y+hrx*.05,hcv.z+hrz*.18))
     if PLAN=='res_nyxbean':
-        hb=hb+Vector((0,hrx*.14,hrz*.52));del PM['trim'];pmat('trim',(.25,.045,1,1),.5,emit=(.25,.045,1,1),es=.9)
-        pmat('puffy',(.03,.011,.065,1),.85,sheen=.35)
-        pmat('bandbase',(.07,.012,.25,1),.6,emit=(.2,.03,.7,1),es=.25);beanie(hb,hrx*1.2,hrx*1.14,hrz*1.2,1.2,hrx*.9,[],'bandbase','puffy',knit=0)
-        for s_ in (-1,1):addp(tube('prop_horn',[(s_*hrx*.26,hcv.y-hrx*.82,hcv.z+hrz*.46),(s_*hrx*.36,hcv.y-hrx*1.0,hcv.z+hrz*.66),(s_*hrx*.3,hcv.y-hrx*1.08,hcv.z+hrz*.88)],[hrz*.16,hrz*.1,hrz*.015],res=8),'horn_purple',n=500)
+        hb=hb+Vector((0,hrx*.14,hrz*.7));del PM['trim'];pmat('trim',(.25,.045,1,1),.5,emit=(.25,.045,1,1),es=.9)
+        pmat('puffy',(.03,.011,.065,1),.92,sheen=.12)
+        pmat('bandbase',(.07,.012,.25,1),.6,emit=(.2,.03,.7,1),es=.25);beanie(hb,hrx*1.2,hrx*1.14,hrz*1.2,1.45,hrx*.9,[],'bandbase','puffy',knit=0)
+        for s_ in (-1,1):addp(tube('prop_horn',[(s_*hrx*.26,hcv.y-hrx*.82,hcv.z+hrz*.46),(s_*hrx*.36,hcv.y-hrx*1.0,hcv.z+hrz*.66),(s_*hrx*.3,hcv.y-hrx*1.08,hcv.z+hrz*.88)],[hrz*.19,hrz*.12,hrz*.018],res=8),'horn_purple',n=500)
     if PLAN=='res_frostmitt':
         pmat('knit',(.07,.03,.2,1),.85,sheen=.3)
         pmat('magenta',(.8,.15,.9,1),.5,emit=(.85,.2,1,1),es=2.5)
@@ -804,7 +805,7 @@ if NEW_OUTFIT:
         addp(tube('prop_kmouth',w,[ER*.025]*5,res=3),'rim')
     if PLAN=='res_nyxbean':
         add_normal(PM['puffy'],'nyx_puffer_normal',1,.9)
-        nt=PM['puffy'].node_tree;t=nt.nodes.new('ShaderNodeTexImage');t.image=img('nyx_puffer_rough',True);nt.links.new(t.outputs['Color'],nt.nodes['Principled BSDF'].inputs['Roughness'])
+        nt=PM['puffy'].node_tree;t=nt.nodes.new('ShaderNodeTexImage');t.image=img('nyx_puffer_rough',True);mr=nt.nodes.new('ShaderNodeMapRange');mr.inputs[3].default_value=.82;mr.inputs[4].default_value=1;nt.links.new(t.outputs['Color'],mr.inputs[0]);nt.links.new(mr.outputs[0],nt.nodes['Principled BSDF'].inputs['Roughness'])
         uvp_list=[o_ for o_ in props if o_.data.materials and o_.data.materials[0].name=='pm_puffy']
         for o_ in uvp_list:uvp(o_)
     for n_,(tx,sc_) in {'knit':('knit_normal',3),'knit_k':('knit_normal',3),'cloth':('fabric_normal',4)}.items():
