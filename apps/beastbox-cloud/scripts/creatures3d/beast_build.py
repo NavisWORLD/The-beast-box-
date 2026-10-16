@@ -96,6 +96,71 @@ def quad(p):
     tail=dict(root=(0,by*(1.0-p.get('tail_in',0)),leg+bh*1.05),dir=p.get('tail_dir',(0,1,1.1)),len=p['tail_len'],r=p['tail_r'],parent='hips')
     wings=dict(at=[(s*bw*.6,-by*.15,leg+bh*1.6) for s in (-1,1)],parent='spine',size=p.get('wing',.3))
     return P,B,face,ears,tail,wings
+def upright(p):
+    """Upright family: biped, bird, golem, sprout, moth. Arms reuse the front-leg chain (legF.*), legs the back chain (legB.*)."""
+    bh=p['body_h'];bw=p['body_w'];bd=p.get('body_d',bw*.9);leg=p['leg'];hr=p['head_r'];arm=p.get('arm',.5);lt=p.get('leg_t',1.0)
+    bz=leg+bh;hz=bz+bh*.85+hr*.75*p.get('neck',1.0);hy=-bd*.15
+    P={'body':(ell,((0,0,bz),(bw,bd,bh))),'belly':(ell,((0,-bd*.25,bz-bh*.15),(bw*.85,bd*.8,bh*.8))),
+       'neck':(ell,((0,hy*.6,bz+bh*.8),(bw*.55,bd*.55,bh*.35))),'head':(ell,((0,hy,hz),(hr*1.05,hr*.95,hr*.95)))}
+    if p.get('muzzle',0)>0:P['muzzle']=(ell,((0,hy-hr*.8,hz-hr*.25),(hr*.32,hr*.25+p['muzzle'],hr*.22)))
+    B=[('root',(0,0,0),(0,0,.1),None),('hips',(0,0,leg+bh*.3),(0,0,bz),'root'),('spine',(0,0,bz),(0,0,bz+bh*.75),'hips'),
+       ('neck',(0,0,bz+bh*.75),(0,hy,hz-hr*.6),'spine'),('head',(0,hy,hz-hr*.6),(0,hy,hz+hr*.9),'neck')]
+    for s_,n in ((-1,'L'),(1,'R')):
+        x=s_*bw*.45;pr=(leg*.22+.035)*lt
+        P['legB'+n]=(ell,((x,0,leg+bh*.15),(bw*.4*lt,bd*.45*lt,bh*.4)))
+        P['shinB'+n]=(tube,([(x,0,leg+bh*.1),(x,-.01,leg*.5),(x,0,.06)],[(leg*.3+.035)*lt,(leg*.22+.025)*lt,(leg*.2+.02)*lt]))
+        P['pawB'+n]=(ell,((x,-pr*.4,pr*.6),(pr*1.1,pr*1.45,pr*.62)))
+        for k in (-1,0,1):P['toeB%s%d'%(n,k+1)]=(ell,((x+k*pr*.55,-pr*1.35,pr*.42),(pr*.36,pr*.4,pr*.38)))
+        sx=s_*bw*.92;sz=bz+bh*.5;hx=s_*(bw*1.05);hzz=bz-bh*.35*arm*2
+        if arm>0:
+            P['legF'+n]=(tube,([(sx,0,sz),(s_*bw*1.08,-bd*.15,bz),(hx,-bd*.3,hzz)],[bw*.2*arm*1.6,bw*.16*arm*1.6,bw*.13*arm*1.6]))
+            P['pawF'+n]=(ell,((hx,-bd*.32,hzz-.02),(bw*.17*arm*1.6,bw*.17*arm*1.6,bw*.19*arm*1.6)))
+            B+=[('legF.0.'+n,(sx,0,sz),(s_*bw*1.08,-bd*.15,bz),'spine'),('legF.1.'+n,(s_*bw*1.08,-bd*.15,bz),(hx,-bd*.3,hzz-.03),'legF.0.'+n)]
+        B+=[('legB.0.'+n,(x,0,leg+bh*.2),(x,-.01,leg*.5),'hips'),('legB.1.'+n,(x,-.01,leg*.5),(x,-.02,.03),'legB.0.'+n)]
+        P['cheek'+n]=(ell,((s_*hr*.5,hy-hr*.55,hz-hr*.22),(hr*.32,hr*.26,hr*.28)))
+    for k,v in p.get('extra',lambda **a:{})(bh=bh,bw=bw,bd=bd,bz=bz,hz=hz,hr=hr,leg=leg,hy=hy).items():P[k]=v
+    face=dict(head_c=(0,hy,hz),head_r=(hr*1.05,hr*.95,hr*.95),eye_z=hz+hr*.08,eye_x=hr*.44,eye_r=hr*p.get('eye',.26),mouth_z=hz-hr*.42,nose=p.get('nose',True),heart=(0,-bd*.9,bz+bh*.2),mouth_w=p.get('mouth_w',.75))
+    ears=dict(at=[(s_*hr*.55,hy+hr*.05,hz+hr*.72) for s_ in (-1,1)],head=(0,hy,hz),hr=hr)
+    tail=dict(root=(0,bd*.8,leg+bh*.55),dir=p.get('tail_dir',(0,1,.5)),len=p.get('tail_len',.35),r=p.get('tail_r',.07),parent='hips')
+    wings=dict(at=[(s_*bw*.5,bd*.55,bz+bh*.55) for s_ in (-1,1)],parent='spine',size=p.get('wing',.42))
+    return P,B,face,ears,tail,wings
+def long_(p):
+    """Legless family: serpent (raised S-coil), fish (floating, finned). Tail chain continues the body."""
+    L_=p['len'];r=p['r'];hr=p['head_r'];z0=p.get('float',0)
+    if p.get('kind')=='serpent':
+        pts=[(0,-L_*.05,hr*1.9+z0),(0,L_*.02,hr*1.2+z0),(r*.6,L_*.18,r*1.05+z0),(-r*1.4,L_*.36,r+z0),(r*1.2,L_*.55,r*.95+z0)]
+        rad=[r*.8,r*.95,r,r*.95,r*.8]
+    else:
+        pts=[(0,-L_*.25,z0),(0,0,z0+.01),(0,L_*.25,z0)];rad=[r*.8,r,r*.75]
+    hy=pts[0][1]-hr*.35;hz=pts[0][2]+hr*.35
+    P={'body':(tube,(pts,rad)),'head':(ell,((0,hy,hz),(hr*1.08,hr*1.0,hr*.92))),'neck':(ell,((0,(pts[0][1]+pts[1][1])/2,(pts[0][2]+pts[1][2])/2+r*.1),(r*.9,r*.9,r*.9)))}
+    if p.get('kind')=='fish':P['body']=(ell,((0,0,z0),(r*.9,L_*.42,r*1.15)))
+    for s_,n in ((-1,'L'),(1,'R')):P['cheek'+n]=(ell,((s_*hr*.5,hy-hr*.55,hz-hr*.22),(hr*.32,hr*.26,hr*.28)))
+    for k,v in p.get('extra',lambda **a:{})(pts=pts,r=r,hr=hr,hy=hy,hz=hz,z0=z0,L=L_).items():P[k]=v
+    tip=pts[-1]
+    B=[('root',(0,0,0),(0,0,.1),None),('hips',tip,(0,(pts[-2][1]+tip[1])/2,pts[-2][2]),'root'),('spine',(0,(pts[-2][1]+tip[1])/2,pts[-2][2]),pts[1],'hips'),
+       ('neck',pts[1],pts[0],'spine'),('head',pts[0],(0,hy,hz+hr*.9),'neck')]
+    face=dict(head_c=(0,hy,hz),head_r=(hr*1.08,hr*1.0,hr*.92),eye_z=hz+hr*.1,eye_x=hr*.46,eye_r=hr*p.get('eye',.26),mouth_z=hz-hr*.4,nose=False,heart=(0,pts[1][1]-r*.9,pts[1][2]),mouth_w=.8)
+    ears=dict(at=[(s_*hr*.55,hy+hr*.05,hz+hr*.72) for s_ in (-1,1)],head=(0,hy,hz),hr=hr)
+    tail=dict(root=tip,dir=p.get('tail_dir',(0,1,.15)),len=p.get('tail_len',.4),r=r*.7,parent='hips')
+    wings=dict(at=[(s_*r*.9,0,z0+r*.6) for s_ in (-1,1)],parent='spine',size=p.get('wing',.3))
+    return P,B,face,ears,tail,wings
+def beak_x(bh,bw,bd,bz,hz,hr,leg,hy):
+    return {'beak':(cone,((0,hy-hr*.75,hz-hr*.15),(0,hy-hr*1.35,hz-hr*.28),hr*.26,.75,24,.02)),'chest':(ell,((0,-bd*.55,bz+bh*.15),(bw*.8,bd*.6,bh*.75)))}
+def golem_x(bh,bw,bd,bz,hz,hr,leg,hy):
+    d={}
+    for i,(x,z,sc) in enumerate(((-.6,.65,.32),(.65,.55,.28),(-.2,-.4,.26),(.4,-.2,.24),(0,.9,.3))):
+        d['rock%d'%i]=(ell,((x*bw,bd*.35,bz+z*bh),(bw*sc,bd*sc*.9,bh*sc*.8),(.4*i,.3*i,.2*i),10,6))
+    d['shoulderL']=(ell,((-bw*.95,0,bz+bh*.55),(bw*.42,bd*.5,bh*.35)));d['shoulderR']=(ell,((bw*.95,0,bz+bh*.55),(bw*.42,bd*.5,bh*.35)))
+    return d
+def sprout_x(bh,bw,bd,bz,hz,hr,leg,hy):
+    return {'bulb':(ell,((0,0,bz-bh*.2),(bw*1.15,bd*1.1,bh*.9))),'stem':(tube,([(0,0,hz+hr*.8),(.03,.02,hz+hr*1.15),(.07,.04,hz+hr*1.35)],[.03,.022,.014]))}
+def moth_x(bh,bw,bd,bz,hz,hr,leg,hy):
+    return {'ruff':(ell,((0,0,bz+bh*.75),(bw*1.25,bd*1.15,bh*.5)))}
+def fish_x(pts,r,hr,hy,hz,z0,L):
+    return {'dorsal':(ell,((0,.02,z0+r*1.1),(r*.12,L*.2,r*.55))),'finL':(ell,((-r*.95,-L*.05,z0-r*.3),(r*.45,r*.3,r*.1),(0,.5,0))),'finR':(ell,((r*.95,-L*.05,z0-r*.3),(r*.45,r*.3,r*.1),(0,-.5,0)))}
+def serp_x(pts,r,hr,hy,hz,z0,L):
+    return {'hood':(ell,((0,hy+hr*.35,hz-hr*.35),(hr*1.25,hr*.5,hr*.9)))}
 def fox_x(by,bh,bw,hz,hr,leg,hy):
     # long tapering snout + chest ruff
     return {'snout':(tube,([(0,hy-hr*.45,hz-hr*.16),(0,hy-hr*1.0,hz-hr*.26),(0,hy-hr*1.45,hz-hr*.34),(0,hy-hr*1.62,hz-hr*.36)],[hr*.4,hr*.3,hr*.2,hr*.12])),
@@ -115,6 +180,13 @@ SPECS={
  'pup':lambda:quad(dict(body=(.36,.2,.21),head_z=.86,head_r=.3,leg=.2,muzzle=.05,tail_len=.36,tail_r=.08,eye=.3)),
  'fox':lambda:quad(dict(body=(.44,.15,.145),head_z=.9,head_r=.24,leg=.3,leg_t=.72,muzzle=.04,muz_w=.75,muz_h=.8,cheek=.75,tail_len=.78,tail_r=.13,eye=.24,tail_dir=(0,1,.35),tail_in=.22,extra=fox_x)),
  'dragonling':lambda:quad(dict(body=(.40,.2,.21),head_z=.84,head_r=.27,leg=.2,leg_t=1.15,muzzle=.14,muz_w=1.05,cheek=.6,tail_len=.7,tail_r=.09,eye=.24,tail_dir=(0,1,.18),wing=.55,extra=dragon_x)),
+ 'biped':lambda:upright(dict(body_h=.2,body_w=.19,leg=.2,head_r=.3,arm=.5,eye=.28,tail_len=.3)),
+ 'bird':lambda:upright(dict(body_h=.22,body_w=.21,body_d=.24,leg=.17,leg_t=.6,head_r=.26,arm=0,eye=.27,nose=False,neck=.6,tail_len=.3,tail_dir=(0,1,.2),wing=.5,extra=beak_x)),
+ 'golem':lambda:upright(dict(body_h=.27,body_w=.28,body_d=.24,leg=.18,leg_t=1.5,head_r=.22,arm=.85,eye=.24,neck=.4,tail_len=.2,extra=golem_x)),
+ 'sprout':lambda:upright(dict(body_h=.2,body_w=.22,leg=.12,leg_t=.9,head_r=.28,arm=.35,eye=.28,neck=.6,tail_len=.2,extra=sprout_x)),
+ 'moth':lambda:upright(dict(body_h=.21,body_w=.19,leg=.16,leg_t=.7,head_r=.27,arm=.35,eye=.3,neck=.5,tail_len=.25,wing=.6,extra=moth_x)),
+ 'serpent':lambda:long_(dict(kind='serpent',len=1.1,r=.11,head_r=.24,eye=.26,tail_len=.45,tail_dir=(-.4,1,.0),extra=serp_x)),
+ 'fish':lambda:long_(dict(kind='fish',len=.75,r=.2,head_r=.25,float=.45,eye=.26,tail_len=.22,tail_dir=(0,1,0),extra=fish_x)),
  'axolotl':lambda:quad(dict(body=(.5,.13,.19),head_z=.36,head_r=.27,leg=.1,leg_t=.8,muzzle=.0,muz_w=1.6,muz_h=.7,cheek=.4,tail_len=.6,tail_r=.09,eye=.17,tail_dir=(0,1,.05),extra=axo_x)),
 }
 if PLAN not in SPECS:raise SystemExit('plan not built yet: '+PLAN)
@@ -335,11 +407,11 @@ if PLAN=='axolotl':
         fin.append(ell('fin',tuple(c_+Vector((0,0,0))),(trad*.12,tl*.07,hh)))
     variant('tail_axfin',fin,voxel=VOXEL*.6,tris=2600)
 # IMPOSSIBLE DETAIL (per species): a tiny comet for the pup's tail tip, ember-heart for dragonling, etc.
-DETAIL={'pup':'comet','fox':'foxfire','dragonling':'ember_heart','axolotl':'tide_halo'}
+DETAIL={'pup':'comet','fox':'foxfire','dragonling':'ember_heart','axolotl':'tide_halo','biped':'tide_halo','bird':'comet','golem':'ember_heart','sprout':'foxfire','moth':'tide_halo','serpent':'comet','fish':'foxfire'}
 dk=DETAIL.get(PLAN,'comet')
 if dk=='comet':dt=[ell('d',tuple(Vector(TP[-1])+td*trad*1.4),(trad*.55,trad*.55,trad*.55),seg=20,ring=10)]+[ell('d',tuple(Vector(TP[-1])+td*trad*(2.2+k*.9)-Vector((0,0,k*.02))),(trad*.3*(1-k*.25),)*3,seg=10,ring=6) for k in range(3)]
 elif dk=='foxfire':dt=[ell('d',tuple(Vector(TP[-1])+Vector((s*.12,0,.15))),(.04,.04,.07),seg=14,ring=8) for s in (-1,0,1)]
-elif dk=='ember_heart':dt=[ell('d',(0,-.1,.62),(.06,.03,.06),seg=16,ring=8)]
+elif dk=='ember_heart':dt=[ell('d',FACE.get('heart',(0,-.1,.62)),(.06,.03,.06),seg=16,ring=8)]
 else:dt=[tube('d',[(math.cos(a)*.22,EARS['head'][1]+math.sin(a)*.22,EARS['head'][2]+.36) for a in [k/16*2*math.pi for k in range(17)]],[.012]*17)]
 detail=join(dt,'detail');setmat(detail,M['glow'])
 
@@ -426,6 +498,9 @@ def body_cands(i,co):
     if lab.startswith('leg') or lab.startswith('paw'):
         fb,n=lab[3],lab[4];return ['leg%s.0.%s'%(fb,n),'leg%s.1.%s'%(fb,n)]+(['spine'] if fb=='F' else ['hips'])
     if lab.startswith('spike'):return ['spine','hips','neck']
+    if lab.startswith('rock') or lab.startswith('shoulder') or lab in('chest','belly','bulb'):return ['spine','hips']
+    if lab in('beak','hood','stem'):return ['head','neck']
+    if lab in('dorsal','finL','finR'):return ['spine']
     if lab in('ruff','nape'):return ['neck','spine','head']
     if lab=='waist':return ['spine','hips']
     if lab in('head','muzzle','snout','jaw') or lab.startswith('cheek') or lab.startswith('brow'):return ['head']+(['neck'] if co.z<FACE['head_c'][2]-hr.z*.5 else [])

@@ -10,7 +10,7 @@ import {springStep,clamp,seededRng} from '../lib/physics/cst-integrator.mjs';
 import {paletteOf} from '../public/spark/draw.mjs';
 import type {PlushGenome} from './creature-plush-3d';
 type Three=typeof import('three');
-export const GLB_PLANS=Object.freeze(['pup','fox','dragonling','axolotl']);
+export const GLB_PLANS=Object.freeze(['pup','fox','dragonling','axolotl','biped','bird','golem','sprout','moth','serpent','fish']);
 export type Tier='high'|'med'|'low';
 const SHELLS:Record<Tier,number>={high:12,med:7,low:0};
 const EAR_V:Record<string,string[]>={pointy:['ear_pointy'],round:['ear_round'],crown:['ear_pointy','ear_crown'],horns:['ear_horns'],crystal:['ear_horns'],flame:['ear_horns'],
@@ -20,7 +20,9 @@ const WING_V:Record<string,string>={feather:'wing_feather',leaf:'wing_feather',b
 const GLOWING=new Set(['crystal','flame']);
 /** species identity parts always shown (the genome still paints them); fur = coat length multiplier, scales = belly scale plates */
 const SPECIES:Record<string,{ears?:string[];tail?:string;wings?:string;fur?:number;scales?:boolean}>={
- fox:{ears:['ear_fox'],tail:'tail_brush',fur:1.25},dragonling:{ears:['ear_dhorn'],wings:'wing_dragon',fur:.55,scales:true},axolotl:{ears:['ear_frill'],tail:'tail_axfin',fur:.22}};
+ fox:{ears:['ear_fox'],tail:'tail_brush',fur:1.25},dragonling:{ears:['ear_dhorn'],wings:'wing_dragon',fur:.55,scales:true},axolotl:{ears:['ear_frill'],tail:'tail_axfin',fur:.22},
+ bird:{wings:'wing_feather',fur:.8},moth:{ears:['ear_feelers'],wings:'wing_moth',fur:1.35},golem:{ears:['ear_horns'],fur:0,scales:true},sprout:{ears:['ear_leaf'],fur:.3},
+ serpent:{tail:'tail_thin',fur:.12,scales:true},fish:{tail:'tail_fin',fur:.1,scales:true},biped:{fur:1}};
 let strandsTex:any=null;
 function strands(THREE:Three){if(strandsTex)return strandsTex;const n=256,d=new Uint8Array(n*n*4),r=seededRng('strands');
  for(let i=0;i<n*n;i++){d[i*4+3]=255;}for(let k=0;k<5200;k++){const x=(r()*n)|0,y=(r()*n)|0,v=150+r()*105,rad=r()<.2?2:1;for(let a=-rad;a<=rad;a++)for(let b=-rad;b<=rad;b++){const xx=(x+a+n)%n,yy=(y+b+n)%n,f=1-Math.hypot(a,b)/(rad+1);const j=(yy*n+xx)*4;d[j]=Math.max(d[j],v*f);}}
@@ -113,7 +115,7 @@ export async function loadBeastGlb(THREE:Three,gen:PlushGenome,{tier='high' as T
   else if(mn==='mouth')o.material=new THREE.MeshStandardMaterial({color:0x1c0812,roughness:.55});else if(mn==='mouthin')o.material=new THREE.MeshStandardMaterial({color:0x2a0614,roughness:.7});else if(mn==='tongue')o.material=new THREE.MeshPhysicalMaterial({color:0xe0687e,roughness:.35,clearcoat:.5});else if(mn==='nose')o.material=new THREE.MeshPhysicalMaterial({color:0x1a1222,roughness:.25,clearcoat:.8});
   if(o.morphTargetDictionary&&'blink' in o.morphTargetDictionary)face=o;});
  // 12-layer shell fur on the visible coat meshes (body + active fur variants)
- const N=SHELLS[tier],len=.036*(.8+g('chub')*.4)*(SP.fur??1);
+ const N=(SP.fur===0?0:SHELLS[tier]),len=.036*(.8+g('chub')*.4)*(SP.fur??1);
  if(N>0)root.traverse((o:any)=>{if(!o.isSkinnedMesh||o.userData.shell)return;const mn=(o.material as any);if(!(mn&&mn.isMeshPhysicalMaterial&&mn.vertexColors))return;if(!o.visible)return;
   for(let k=1;k<=N;k++){const t=k/N;const m=new THREE.MeshPhysicalMaterial({vertexColors:true,roughness:.9,sheen:.5,sheenColor:new THREE.Color(.45,.35,1),transparent:false});furPatch(m,{t,len});
    const s=new THREE.SkinnedMesh(o.geometry,m);s.bind(o.skeleton,o.bindMatrix);s.userData.shell=true;s.position.copy(o.position);s.quaternion.copy(o.quaternion);s.scale.copy(o.scale);s.frustumCulled=false;s.renderOrder=k;o.parent.add(s);shells.push(s);}});
