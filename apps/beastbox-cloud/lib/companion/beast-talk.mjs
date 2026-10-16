@@ -9,7 +9,7 @@
 import { Stream } from "../../public/spark/engine.mjs";
 import { beastIdentity, shownName } from "./session.mjs";
 import { gameObservationLine } from "./native-optics.mjs";
-import { ownerChatBody, interpretModelResult } from "./brain.mjs";
+import { ownerChatBody, interpretModelResult, RAWRPHOS_PUBLIC_PIN } from "./brain.mjs";
 
 export const TALK_ROUTES = Object.freeze(["guest-rawrphos", "local-ollama", "hf-byok", "connected-brain-bay"]);
 export const DEFAULT_ROUTE = "guest-rawrphos";
@@ -27,7 +27,7 @@ export const ROUTE_INFO = Object.freeze({
   "connected-brain-bay": {label:"Connected Brain Bay",model:"configured owner provider",detail:"Your paired Brain Bay provider. No automatic fallback or weight transfer."},
   "guest-rawrphos": {
     label: "RAWRPHØS guest",
-    model: "rawrphos-native · 14K checkpoint",
+    model: `rawrphos-native · step ${RAWRPHOS_PUBLIC_PIN.step} checkpoint`,
     detail: "Free Beast Box host. Small native model, stateless, daily quota.",
   },
   "local-ollama": {
@@ -280,7 +280,7 @@ export async function talkToBeast(input) {
     }
     const read = interpretModelResult("guest-rawrphos", payload);
     if (!read.ok || !read.reply || read.reply.length > 6000) return failure(route, read.reason || "The guest brain sent no verified reply.");
-    return { ok: true, route, reply: read.reply, model: "rawrphos-native · 14K", label: ROUTE_INFO[route].label, at: Date.now() };
+    return { ok: true, route, reply: read.reply, model: `rawrphos-native · step ${read.step ?? RAWRPHOS_PUBLIC_PIN.step}`, label: ROUTE_INFO[route].label, at: Date.now() };
   } catch (error) {
     if (signal?.aborted) return failure(route, "The request was cancelled or timed out. No reply was received.");
     if (fetchFailed(error)) {
