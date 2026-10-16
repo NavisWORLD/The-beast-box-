@@ -595,7 +595,7 @@ if NEW_OUTFIT:
     if PLAN=='res_kairo':del PM['trim'];pmat('trim',(.45,.12,.9,1),.4,emit=(.5,.15,1,1),es=1.4)
     if PLAN=='res_frostmitt':
         hb=hb+Vector((0,hrx*.1,hrz*.5))
-        pmat('knit',(.07,.03,.2,1),.9,sheen=.5)
+        pmat('knit',(.07,.03,.2,1),.92,sheen=.22)
         pmat('magenta',(.8,.15,.9,1),.5,emit=(.85,.2,1,1),es=2.5)
         pmat('ice',(.72,.88,1,1),.05,emit=(.35,.6,1,1),es=.35,coat=1)
         beanie(hb,hrx*1.15,hrx*1.1,hrz*1.3,1.05,hrx*.75,[(.08,'magenta'),(.28,'magenta')],'magenta','knit',knit=16)
@@ -798,7 +798,7 @@ if NEW_OUTFIT:
         for d_ in ((-1.05,-1.3),(-1.25,-1.45),(-.9,-1.55)):fk.append(ell('mole',tuple(surf(d_[0]*FACE['eye_x'],FACE['eye_z']+d_[1]*ER)+Vector((0,.0002,0))),(ER*.075,ER*.03,ER*.075),seg=8,ring=4))
         addp(joinm(fk,'prop_freckles'),'freckle',n=500)
     if PLAN=='res_frostmitt':  # defined face: slate eye rims, catchlights, blue-grey nose + w mouth, muzzle shadow (sheet)
-        pmat('rimf',(.16,.2,.32,1),.35,coat=.8);pmat('catchf',(1,1,1,1),.1,emit=(1,1,1,1),es=2.2);pmat('nosef',(.32,.36,.55,1),.35,coat=.6)
+        pmat('rimf',(.035,.04,.09,1),.3,coat=.9);pmat('catchf',(1,1,1,1),.08,emit=(1,1,1,1),es=3.2);pmat('nosef',(.12,.13,.26,1),.28,coat=.8)
         rims,cat=[],[]
         for n,c in eye_c.items():
             s=-1 if n=='L' else 1;rx,rz=ER*.95*.95,ER*1.05*.95;cc=c+Vector((0,-ER*.1,0))
@@ -807,18 +807,18 @@ if NEW_OUTFIT:
         addp(joinm(rims,'prop_eyerim'),'rimf');addp(joinm(cat,'prop_catch'),'catchf')
         np_=surf(0,FACE['eye_z']-ER*1.25);addp(ell('prop_knose',tuple(np_+Vector((0,-.006,0))),(ER*.24,ER*.14,ER*.15),seg=12,ring=8),'nosef')
         w=[tuple(surf(x*ER*.42,FACE['eye_z']-ER*1.65+abs(x)*ER*.12*(1 if abs(x)>.5 else -1))+Vector((0,-.004,0))) for x in (-1,-.5,0,.5,1)]
-        addp(tube('prop_kmouth',w,[ER*.028]*5,res=3),'rimf')
+        addp(tube('prop_kmouth',w,[ER*.042]*5,res=4),'rimf')
         R3=__import__('random').Random(21);ic=[]
         for k in range(400):
-            if len(ic)>=36:break
+            if len(ic)>=26:break  # fewer, longer, thicker: read as icicles, not speckles
             v=body.data.vertices[R3.randrange(len(body.data.vertices))]
-            if v.normal.z>-.15 or v.co.z<.08:continue
-            L=R3.uniform(.025,.065);p=v.co+v.normal*.003
+            if v.normal.z>-.25 or v.co.z<.1:continue
+            L=R3.uniform(.05,.11);p=v.co+v.normal*.003
             for j in range(R3.choice((1,2))):
                 off=Vector((R3.uniform(-.008,.008),R3.uniform(-.008,.008),0))
-                ic.append(cone('ice',tuple(p+off),tuple(p+off+Vector((v.normal.x*.01,v.normal.y*.01,-L*(1-.35*j)))),R3.uniform(.006,.012),1,5))
-        m=D.materials.new('pm_iceclear');m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(.75,.9,1,1);b.inputs['Roughness'].default_value=.04
-        b.inputs['Transmission Weight'].default_value=1;b.inputs['IOR'].default_value=1.31;b.inputs['Coat Weight'].default_value=1;b.inputs['Emission Color'].default_value=(.4,.65,1,1);b.inputs['Emission Strength'].default_value=.12;PM['iceclear']=m
+                ic.append(cone('ice',tuple(p+off),tuple(p+off+Vector((v.normal.x*.01,v.normal.y*.01,-L*(1-.35*j)))),R3.uniform(.011,.018),1,8))
+        m=D.materials.new('pm_iceclear');m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(.5,.78,1,1);b.inputs['Roughness'].default_value=.02
+        b.inputs['Transmission Weight'].default_value=1;b.inputs['IOR'].default_value=1.31;b.inputs['Coat Weight'].default_value=1;b.inputs['Emission Color'].default_value=(.35,.62,1,1);b.inputs['Emission Strength'].default_value=.3;PM['iceclear']=m
         for o_ in [x for x in props if x.name.startswith('prop_icicles')]:props.remove(o_);D.objects.remove(o_,do_unlink=True)
         o=joinm(ic,'prop_icicles');cap(o,900);setmat(o,PM['iceclear']);o['bone']='spine';props.append(o)
         m=D.materials.new('pm_mist');m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(.85,.9,1,1);b.inputs['Alpha'].default_value=.28

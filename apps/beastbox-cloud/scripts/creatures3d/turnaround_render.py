@@ -86,7 +86,7 @@ def bakemaps(o,pre):
             ic=t.nodes.new('ShaderNodeMix');ic.data_type='RGBA';t.links.new(mn_.outputs[0],ic.inputs[0]);ic.inputs[6].default_value=(.18,.35,.75,1);ic.inputs[7].default_value=(1,1,1,1)
             m1.blend_type='MULTIPLY';m1.inputs[0].default_value=1;t.links.new(ic.outputs[2],m1.inputs[7])
         else:t.links.new(ao.outputs[0],m1.inputs[7])
-        m2=t.nodes.new('ShaderNodeMix');m2.data_type='RGBA';m2.blend_type='MULTIPLY' if pre.endswith('_hat') else 'OVERLAY';m2.inputs[0].default_value=.5 if pre.endswith('_hat') else (0 if PLAN in('res_kairo','res_frostmitt') else .35);t.links.new(m1.outputs[2],m2.inputs[6]);t.links.new(cv.outputs[0],m2.inputs[7])
+        m2=t.nodes.new('ShaderNodeMix');m2.data_type='RGBA';m2.blend_type='MULTIPLY' if pre.endswith('_hat') else 'OVERLAY';m2.inputs[0].default_value=(.85 if PLAN=='res_frostmitt' else .5) if pre.endswith('_hat') else (0 if PLAN in('res_kairo','res_frostmitt') else .35);t.links.new(m1.outputs[2],m2.inputs[6]);t.links.new(cv.outputs[0],m2.inputs[7])
         t.links.new(m2.outputs[2],bs.inputs['Base Color'])
     print('BAKED maps on',o.name)
 if BK:
@@ -115,7 +115,7 @@ if os.environ.get('CYCLES','1')=='1':
             if PLAN=='res_frostmitt' and o.name.startswith('body'):  # keep the face readable: thin, short fur on the front of the face
                 vgd=o.vertex_groups.new(name='furdens')
                 for v in o.data.vertices:
-                    face_=v.co.z>zt_*.5 and v.normal.y<-.05 and abs(v.co.x)<zt_*.3
+                    face_=v.co.z>zt_*.55 and v.normal.y<.15 and abs(v.co.x)<zt_*.36  # whole front of the head
                     vgd.add([v.index],0 if face_ else 1,'REPLACE')
                     if face_:vgl.add([v.index],.25,'REPLACE')
                 md.particle_system.vertex_group_density='furdens'
@@ -135,7 +135,7 @@ if os.environ.get('CYCLES','1')=='1':
             if o.name.startswith('body'):  # long clumped chest + cheek fluff
                 vg=o.vertex_groups.new(name='ruffd');hc_=max(v.co.z for v in o.data.vertices)*.62
                 for v in o.data.vertices:
-                    w_=max(0,min(1,(-v.normal.y-.2)*2))*(1 if v.co.z<hc_*1.15 else .6)
+                    w_=max(0,min(1,(-v.normal.y-.2)*2))*(1 if v.co.z<hc_*1.15 else (0 if PLAN=='res_frostmitt' else .6))  # Frostmitt: chest ruff only, no cheek fluff over the face
                     if w_>0:vg.add([v.index],w_,'REPLACE')
                 md2=o.modifiers.new('ruff','PARTICLE_SYSTEM');p2=md2.particle_system.settings;md2.particle_system.vertex_group_density='ruffd'
                 p2.type='HAIR';p2.count=5000;p2.hair_length=FUR[0]*3.8;p2.material=slot;p2.child_type='INTERPOLATED';p2.child_percent=8;p2.rendered_child_count=12
