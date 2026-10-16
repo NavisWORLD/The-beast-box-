@@ -8,6 +8,7 @@ import {blit,renderBeast,SPRITE} from '../public/spark/draw.mjs';
 import {buildGenome} from '../public/spark/genome.mjs';
 import {Voice} from '../public/spark/voice.mjs';
 import styles from './spark-beast-companion.module.css';
+import {dockDodge} from '../lib/three/dock-dodge';
 import {useBeastSession} from './beast-session';
 import {loadSparkRuns} from '../public/spark/runs.mjs';
 import SparkRig,{type RigDriver} from './spark-rig';
@@ -102,6 +103,8 @@ export default function SparkBeastCompanion({
  const active=profile??fallback;
  const {session}=useBeastSession();
  const sameSpark=session?.beast?.qbeast&&(preferSavedBeast||session.beast.qbeast.profile.id===active.id)?session.beast:null;
+ const dodgeOff=useRef<(()=>void)|null>(null);
+ const metaRef=useCallback((el:HTMLElement|null)=>{dodgeOff.current?.();dodgeOff.current=el?dockDodge(el):null;},[]);
  const canvas=useRef<HTMLCanvasElement>(null),mover=useRef<HTMLDivElement>(null);
  const frame=useRef<number>(0),lastEye=useRef(''),utterance=useRef(0);
  const voiceNodes=useRef(new Map<GainNode,ReturnType<typeof setTimeout>>());
@@ -247,7 +250,7 @@ export default function SparkBeastCompanion({
      state={state} reduced={reduced} channel={audioChannel||'habitat'} driver={rigDriver} className={styles.rig}/>:<span className={styles.rigWait} aria-hidden="true"/>)
     :<canvas ref={canvas} className={styles.canvas} data-beast-sprite="true" aria-label={name+' pixel creature sprite'}/>}
   </div>
-  {!compact?<figcaption className={styles.meta}>
+  {!compact?<figcaption ref={metaRef} className={styles.meta}>
    <strong>{guide?'Zeref':name}</strong>
    {guide?<span>Moonwraith · site guide · exploring the pocket</span>:<span>{gen?gen.temperament+' · '+gen.body+' · '+gen.island:'Building Spark genome…'}</span>}
    {guide?<small className={styles.seedLine}>RECORDED QUANTUM SEED · {ZEREF_RECORDED_SOURCE.backend} · job {ZEREF_RECORDED_SOURCE.job_id.slice(0,8)}…</small>
