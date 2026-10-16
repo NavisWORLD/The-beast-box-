@@ -5,6 +5,8 @@ import {useBeastSession} from './beast-session';
 import {shownName} from '../lib/companion/session.mjs';
 import {deriveEmotions,emotionLine} from '../lib/companion/emotion.mjs';
 import type {ArMode} from './ar-creature-stage';
+import dynamic from 'next/dynamic';
+const ZerefGlb3D=dynamic(()=>import('./zeref-glb-3d'),{ssr:false});
 
 /**
  * Camera field (Oct 16 2026 AR rewrite): the device camera feed is the open field and the selected creature is its real
@@ -65,10 +67,10 @@ function stop(){stream.current?.getTracks().forEach(t=>t.stop());stream.current=
     <span data-field-emotion={em.dominant} style={{padding:'3px 9px',borderRadius:999,background:'#000a',fontSize:11}}>{name} feels {em.dominant}</span>
    </div>
    {react?<p role="status" style={{position:'absolute',left:12,right:12,bottom:`calc(${floorPx}px + 12px)`,margin:0,padding:'6px 10px',borderRadius:12,background:'#0c1228d9',fontSize:13,textAlign:'center',pointerEvents:'none'}}>{react}</p>:null}
-   {!beast?<div data-field-no-creature style={{position:'absolute',left:'50%',bottom:`calc(${floorPx}px + 8%)`,transform:'translateX(-50%)',width:'min(300px,84%)',padding:12,borderRadius:16,background:'#0c1228ee',border:'1px solid #7dd9ea66',textAlign:'center',fontSize:13}} onPointerDown={e=>e.stopPropagation()}>No creature picked yet. <a href="/spark/index.html#catalog-picker" style={{color:'#9aefff',fontWeight:700}}>Pick one in the Spark Lab catalogue</a> and it will explore here.</div>:null}
-   {!live?<div data-camera-prompt style={{position:'absolute',left:'50%',top:'40%',transform:'translate(-50%,-50%)',width:'min(320px,86%)',padding:14,borderRadius:18,background:'#0c1228ee',border:'1px solid #7dd9ea66',textAlign:'center',boxShadow:'0 12px 36px #0008'}} onPointerDown={e=>e.stopPropagation()}>
+   {!beast?<><div data-field-default-zeref aria-label="Zeref wandering the open field" style={{position:'absolute',left:0,right:0,bottom:`calc(${floorPx}px + 4%)`,height:'62%',pointerEvents:'none',animation:'bbFieldWander 26s ease-in-out infinite alternate'}}><ZerefGlb3D spin={false} angle={20} mood="calm"/></div><style>{'@keyframes bbFieldWander{0%{transform:translateX(-18%)}45%{transform:translateX(14%) translateY(-3%)}100%{transform:translateX(-6%)}}@media(prefers-reduced-motion:reduce){[data-field-default-zeref]{animation:none!important}}'}</style><a data-field-no-creature href="/spark/index.html#catalog-picker" onPointerDown={e=>e.stopPropagation()} style={{position:'absolute',right:10,top:fullscreen?'max(132px,calc(env(safe-area-inset-top) + 124px))':40,padding:'4px 10px',borderRadius:999,background:'#000a',color:'#9aefff',fontSize:11,fontWeight:700}}>Pick your own creature →</a></>:null}
+   {!live?<div data-camera-prompt style={{position:'absolute',left:'50%',bottom:`calc(${floorPx}px + 12px)`,transform:'translateX(-50%)',width:'min(320px,calc(100% - 24px))',padding:10,borderRadius:18,background:'#0c1228ee',border:'1px solid #7dd9ea66',textAlign:'center',boxShadow:'0 12px 36px #0008'}} onPointerDown={e=>e.stopPropagation()}>
     <strong style={{display:'block',fontSize:15}}>📷 Let {name} explore your world</strong>
-    <p style={{fontSize:12,color:'#c6d2ee',margin:'6px 0 10px'}}>Your camera becomes the open field. The picture stays on this phone: nothing is recorded or uploaded, and the camera turns off when you leave.</p>
+    <p style={{fontSize:11,color:'#c6d2ee',margin:'4px 0 8px'}}>Your camera becomes the open field. The picture stays on this phone: nothing is recorded or uploaded, and the camera turns off when you leave.</p>
     <button type="button" data-start-camera onClick={()=>void start()} disabled={phase==='asking'} style={{minHeight:44,width:'100%',borderRadius:12,border:'1px solid #78ddea88',background:'#17364a',color:'#d7faff',fontWeight:800}}>{phase==='asking'?'Waiting for permission…':phase==='denied'||phase==='error'?'Try camera again':'Start camera'}</button>
     {msg?<p role="alert" style={{fontSize:12,color:'#ffd2d2',margin:'8px 0 0'}}>{msg}</p>:null}
    </div>:<><div data-ar-actions style={{position:'absolute',left:10,right:10,bottom:`calc(${floorPx}px + 56px)`,display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}} onPointerDown={e=>e.stopPropagation()}>
