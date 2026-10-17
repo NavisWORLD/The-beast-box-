@@ -1,3 +1,4 @@
+// CI rerun marker: river-flow layer for the Cage universe.
 /** "Every atom flows like a river": a GPU-only stream layer for the Cage universe.
  *  Capped particle count (phones / software GL 900, else 2400). All motion runs in the vertex shader (no per-frame CPU loop).
  *  Streams follow sine-wave river paths bent by a curl-like flow field whose phases come from the 12 CST channels.
