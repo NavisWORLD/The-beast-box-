@@ -13,3 +13,5 @@
 .group a[aria-current=page]{background:#173a4f;font-weight:700}
 .group small{margin-left:auto;font-size:10px;opacity:.6}
 @media(min-width:760px){.sheet{left:auto;top:0;bottom:0;width:380px;max-height:none;border-radius:20px 0 0 20px;align-content:start}}
+/* desktop: no full-width band (keeps every page's own layout); one centred Menu button in the free top-centre slot */
+@media(min-width:760px){.bar{position:absolute;top:0;left:50%;transform:translateX(-50%);background:none;border:0;min-height:0;padding:max(8px,env(safe-area-inset-top)) 0 0}.brand{display:none}}
