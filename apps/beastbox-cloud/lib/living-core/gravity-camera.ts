@@ -14,7 +14,13 @@ export function createGravityCam(THREE:T,{camera,scene,renderer,low,dof}:{camera
  const N=low?28:64,pos=new Float32Array(N*3),seed=new Float32Array(N);for(let i=0;i<N;i++){seed[i]=Math.random();pos[i*3]=(Math.random()-.5)*1.6;pos[i*3+1]=(Math.random()-.5)*1.1;pos[i*3+2]=-(.55+Math.random()*1.4);}
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));
  const near=new THREE.Points(g,new THREE.PointsMaterial({size:.012,color:0xb9a2ff,transparent:true,opacity:.32,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,fog:false}));
- near.renderOrder=20;near.frustumCulled=false;camera.add(near);if(!camera.parent)scene.add(camera);
+ near.renderOrder=20;near.frustumCulled=false;camera.add(near);
+ // a few faint glyph motes (code / CST symbols) share the same drifting positions
+ const gc=typeof document!=='undefined'?document.createElement('canvas'):null;let gm:any=null,glyphs:any=null;
+ if(gc){gc.width=gc.height=64;const x=gc.getContext('2d')!;x.fillStyle='#fff';x.font='44px monospace';x.textAlign='center';x.textBaseline='middle';x.fillText('φ',32,34);
+  const gg=new THREE.BufferGeometry();gg.setAttribute('position',new THREE.BufferAttribute(pos,3));gg.setDrawRange(0,Math.ceil(N/5));
+  gm=new THREE.PointsMaterial({size:.05,map:new THREE.CanvasTexture(gc),color:0xc9b6ff,transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,fog:false});
+  glyphs=new THREE.Points(gg,gm);glyphs.renderOrder=21;glyphs.frustumCulled=false;camera.add(glyphs);}if(!camera.parent)scene.add(camera);
  const base=pos.slice();let lastCam=new THREE.Vector3().copy(camera.position);
  // optional desktop DOF
  let comp:any=null,bokeh:any=null;
@@ -41,8 +47,8 @@ export function createGravityCam(THREE:T,{camera,scene,renderer,low,dof}:{camera
    for(let i=0;i<N;i++){const k=i*3;base[k]-=d.x*.25;base[k+1]-=d.y*.25+dt*.01*(seed[i]-.5);
     base[k]=((base[k]+.8)%1.6+1.6)%1.6-.8;base[k+1]=((base[k+1]+.55)%1.1+1.1)%1.1-.55;
     pos[k]=base[k]+Math.sin(t*.4+seed[i]*9)*.03;pos[k+1]=base[k+1]+Math.cos(t*.3+seed[i]*7)*.02;pos[k+2]=base[k+2];}
-   g.attributes.position.needsUpdate=true;},
+   g.attributes.position.needsUpdate=true;if(glyphs)glyphs.geometry.attributes.position.needsUpdate=true;},
   render(focusDist:number){if(comp&&bokeh){bokeh.uniforms.focus.value=focusDist;comp.render();}else renderer.render(scene,camera);},
   resize(w:number,h:number){comp?.setSize(w,h);},
-  dispose(){camera.remove(near);g.dispose();(near.material as any).dispose();comp?.dispose?.();}};
+  dispose(){camera.remove(near);if(glyphs){camera.remove(glyphs);glyphs.geometry.dispose();gm.map?.dispose();gm.dispose();}g.dispose();(near.material as any).dispose();comp?.dispose?.();}};
 }

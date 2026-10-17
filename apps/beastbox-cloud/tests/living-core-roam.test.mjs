@@ -27,8 +27,7 @@ test('universe roamers leave their home zone but stay inside the universe limit'
 });
 
 test('surface life: Lorenz chaos stays bounded and never repeats; heartbeat + spring are sane', async () => {
-  const {lorenzStep,heartbeat,springStep}=await import('../lib/living-core/surface-life.ts').catch(()=>({}));
-  if(!lorenzStep) return; // TS module not loadable under plain node in this runner
+  const {lorenzStep,heartbeat,springStep}=await import('../lib/living-core/surface-math.mjs');
   const s=[1,1,20];const seen=new Set();for(let i=0;i<20000;i++){lorenzStep(s,1/240,.2);assert.ok(Math.abs(s[0])<60&&Math.abs(s[2])<80);if(i%500===0)seen.add(s.map(v=>v.toFixed(3)).join());}
   assert.equal(seen.size,40);
   let mx=0;for(let t=0;t<2;t+=.01)mx=Math.max(mx,heartbeat(t));assert.ok(mx>.9&&mx<=1);
@@ -47,5 +46,10 @@ test('gravity camera: dolly zoom keeps subject size while FOV widens 46→60', a
   const dolly=(d,a,b)=>d*Math.tan(a*Math.PI/360)/Math.tan(b*Math.PI/360);
   const d=dolly(10,46,60);assert.ok(d<10&&d>7);
   const cage=(await import('node:fs')).readFileSync(new URL('../components/cage-pocket-dimension.tsx',import.meta.url),'utf8');
-  assert.match(cage,/density=\.012\*/);assert.match(cage,/dof:!low&&!soft&&!phoneGpu/);
+  assert.match(cage,/density=\.012\*/);assert.match(cage,/dof:\(!low&&!soft&&!phoneGpu\)/);
+});
+
+test('music level is 0 until sound is unlocked and audible', async () => {
+  const src=(await import('node:fs')).readFileSync(new URL('../lib/companion/beast-audio-engine.mjs',import.meta.url),'utf8');
+  assert.match(src,/level\(\) \{\s*if \(!ctx \|\| !master \|\| !musicAudible\(\)\) return 0;/);
 });

@@ -316,7 +316,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const zActor=createActor(motionPersona({id:'bb-7f9c2a03'}),{x:-1.15,z:.75,radius:1.1,seed:'bb-7f9c2a03',universe:UNIVERSE_R});// offset so Zeref never stands inside the active Beast
     // ---- Oct 16 living-core: Zeref as the true-3D living-core body (same actor, same pocket look) + life layer on top.
     const lcId=qbeastId||'bb-deada969';const lcS:any={LC:null,syn:null,goal:null,pause:2,mood:'calm',ov:null,ovT:0,visits:{},r:lcRng(lcId+':roam')};
-    const gcam=createGravityCam(THREE,{camera,scene,renderer,low:low||soft,dof:!low&&!soft&&!phoneGpu});let zr=0;
+    const gcam=createGravityCam(THREE,{camera,scene,renderer,low:low||soft,dof:(!low&&!soft&&!phoneGpu)||(lcForced&&new URLSearchParams(location.search).get('dof')==='1')});let zr=0;
     const extras=addRoamExtras(THREE,scene,{beastId:lcId,low:low||soft,onDoing:(d:string)=>{lcS.doing=d;}});
     const lcWords=(text:string)=>{const w:any=extras.words(text);if(w.emotion){lcS.ov=w.emotion;lcS.ovT=5;}lcS.syn?.kick(.4+w.burst*.6);extras.river.kick(.5+w.burst*.5);extras.burst(zHolder.position.x,.5,zHolder.position.z);if(w.shape)extras.create(w.shape,zHolder.position.x+.3,zHolder.position.z+.3,'chat');};
     lcBus.current={words:lcWords};
