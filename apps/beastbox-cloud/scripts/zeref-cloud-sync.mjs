@@ -13,10 +13,17 @@ try{const h={Accept:'application/vnd.github+json'};if(process.env.GITHUB_TOKEN)h
  const r=await fetch('https://api.github.com/repos/NavisWORLD/The-beast-box-/releases?per_page=100',{headers:h});if(r.ok)releases=await r.json();}catch{}
 const result=await syncZerefCloud(cfg,{pin,releases});
 // Approved shared lessons (owner auto-approved or reviewed) also join Zeref's own folder.
+const OK=new Set(['OWNER_AUTO_APPROVED','APPROVED','SHARED_TEACHER_AUTO']);
 const approved=[];
 for(const n of (await listBlobs(cfg,'teacher-distill/approved/',{max:2000})).sort().slice(-1500)){
  const b=await getBlob(cfg,n).catch(()=>null);if(!b)continue;
- try{const r=JSON.parse(b.text);if(r.review_status==='OWNER_AUTO_APPROVED'||r.review_status==='APPROVED'){approved.push(r);await storeLesson(cfg,r);}}catch{}
+ try{const r=JSON.parse(b.text);if(OK.has(r.review_status)){approved.push(r);await storeLesson(cfg,r);}}catch{}
+}
+// Fix 002: Zeref's own lessons/ folder is read too (create-only lessons; deduped by id).
+const seenIds=new Set(approved.map(r=>r.id));
+for(const n of (await listBlobs(cfg,ZEREF_DIR+'/lessons/',{max:3000})).sort().slice(-1500)){
+ const b=await getBlob(cfg,n).catch(()=>null);if(!b)continue;
+ try{const r=JSON.parse(b.text);if(OK.has(r.review_status)&&!seenIds.has(r.id)){seenIds.add(r.id);approved.push(r);}}catch{}
 }
 const pending=(await listBlobs(cfg,'teacher-distill/pending/',{max:5000})).length;
 const i=process.argv.indexOf('--pairs-out');

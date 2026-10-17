@@ -39,14 +39,18 @@ def main(dolly,out):
  d=[x for x in d if not x["context"] and len(x["response"])<=160 and len(x["instruction"])<=160
     and x["category"] in ("open_qa","general_qa","brainstorming","creative_writing","classification")
     and x["instruction"].strip().lower() not in held]
- random.Random(20261015).shuffle(d)
+ # Fix 002: rotate a FRESH Dolly sample each cycle (seeded by the run id) so the same
+ # 1200 rows are not replayed ~26x across cycles (overfit -> chat ref_nll rise).
+ import os
+ rot=os.environ.get("ZEREF_CHAT_ROTATE_SEED","20261015")
+ random.Random(f"dolly:{rot}").shuffle(d)
  for x in d[:MAX_DOLLY]:
   rows.append({"mode":"chat","source":"dolly-15k-cc-by-sa-3.0","user":x["instruction"].strip(),"assistant":x["response"].strip()})
  body="".join(json.dumps(r,sort_keys=True)+"\n" for r in rows).encode()
  Path(out).write_bytes(body)
  man={"schema":"zeref-chat-mix-v2","rows":len(rows),"jsonl_sha256":hashlib.sha256(body).hexdigest(),
   "zeref_dialogue_rows":sum(r["source"]=="zeref-reviewed-dialogue" for r in rows),
-  "dad_voice_rows":sum(r["source"]=="zeref-dad-voice-001" for r in rows),"dad_voice_repeat":DAD_REPEAT,
+  "dad_voice_rows":sum(r["source"]=="zeref-dad-voice-001" for r in rows),"dad_voice_repeat":DAD_REPEAT,"dolly_rotation_seed":rot,
   "dad_voice_provenance":"evidence/zeref-dad-voice-001 (original pairs written 2026-10-15 for Cory)",
   "dolly":{"revision":DOLLY_REV,"sha256":DOLLY_SHA,"license":"CC-BY-SA-3.0",
    "attribution":"Databricks, databricks-dolly-15k (Conover et al. 2023)",
