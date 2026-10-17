@@ -1,6 +1,7 @@
 'use client';
 import {flowStars,flowGrid} from '../lib/living-core/river-flow';
 import {capScenePoints,pushCameraOut} from '../lib/living-core/near-lens';
+import {buildWorlds} from '../lib/worlds/worlds';
 import {createGravityCam} from '../lib/living-core/gravity-camera';
 import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles,LC_WORLD_H} from '../lib/living-core/core-cache';
 import {attachSynapse,addRoamExtras,synapseClick} from '../lib/living-core/roam-extras';
@@ -312,6 +313,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const godFocus=new THREE.Vector3();
     // Home: the sprite-built 3D Zeref lives here, standing on the habitat floor (one world, one camera).
     const zHolder=new THREE.Group();zHolder.scale.setScalar(.45);zHolder.position.set(0,-.07,0);zHolder.rotation.y=.7;scene.add(zHolder);
+    // Universe of worlds: home trees/clouds/sky dome/parallax haze + distant worlds with gravity wells; Zeref travels between them.
+    const uw=buildWorlds(THREE,scene,{low,universe:UNIVERSE_R});let uwPose:any=null;if(lcForced){(window as any).__lcWorlds=uw;(window as any).__lcTravel=(i:number)=>uw.startTrip(i,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z});}
     // Film motion for Zeref (bb-7f9c2a03 persona: no recorded seed of his own here → id-only persona).
     const zActorNode=new THREE.Group();zHolder.add(zActorNode);
     const zActor=createActor(motionPersona({id:'bb-7f9c2a03'}),{x:-1.15,z:.75,radius:1.1,seed:'bb-7f9c2a03',universe:UNIVERSE_R});// offset so Zeref never stands inside the active Beast
@@ -434,10 +437,12 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       if(lcS.goal)(zActor as any).target={x:lcS.goal.x,z:lcS.goal.z};
       stepLivingCore(lcS.LC,reduced?0:dt);lcS.syn?.step(reduced?0:dt);}
      flowU.uTime.value+=reduced?0:dt;
+     uwPose=uw.update(reduced?0:dt,elapsed,camera,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z},!reduced&&!!(ze?.claimed||lcS.LC));
      extras.step(reduced?0:dt,{x:zHolder.position.x,z:zHolder.position.z});
      if(ze?.claimed||lcS.LC){
       const zp=stepActor(zActor,reduced?0:dt,{lookAt:{x:camera.position.x,z:camera.position.z},reduced});
       zHolder.position.set(zp.x,-.07+zp.lift,zp.z);zHolder.rotation.y=.7+zp.heading*.5+zp.head;
+      if(uwPose)zHolder.position.set(uwPose.pos.x,uwPose.pos.y,uwPose.pos.z);
       zActorNode.scale.set(zp.sx,zp.sy,zp.sx);zActorNode.rotation.x=zp.lean;if(ze){ze.motion={tail:zp.tail,ear:zp.ear};
       let d=-(v.theta-zHolder.rotation.y)*180/Math.PI;d=((d%360)+540)%360-180;ze.viewYaw=d;}}
      // living pocket step: CST world → life brain → plush rig
@@ -454,13 +459,14 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
         homeFocus.set(brain.x*.6,1.05,brain.z*.6);/* lower + pulled back so the pocket world shows behind the Beast */}else homeFocus.set(0,.85,0);
        (window as any).__beastLife={moment:brain.moment??null,y:+beastNode.position.y.toFixed(3),ground:+groundAt(brain.x,brain.z).toFixed(3),air:!!(brain as any).air,mode:brain.mode,x:brain.x,z:brain.z,attn:brain.attn?.kind??null,weather:life.getWeather(),coherence:L.cst.ch.coherence,chaos:L.cst.ch.chaos,hebb:L.cst.hebb,rain:L.env.rain,night:L.env.night,tris:plush.tris};}}
      {zr=Math.hypot(zHolder.position.x,zHolder.position.z);const capZ=lcForced&&(window as any).__lcFocusZeref;const pull=focused?0:capZ?1:(now-lastDragAt.current>2500?Math.min(1,Math.max(0,(zr-3)/4)):0);
-      homeFocus.copy(gcam.focus(reduced?0:dt,homeFocus,{x:zHolder.position.x,z:zHolder.position.z},extras.spots,pull));}// gravity-well follow across the universe
+      homeFocus.copy(gcam.focus(reduced?0:dt,homeFocus,{x:zHolder.position.x,z:zHolder.position.z},extras.spots,pull));}
+     if(uwPose&&!focused)homeFocus.set(zHolder.position.x,zHolder.position.y+.6,zHolder.position.z);// camera rides the gravity tunnel with Zeref// gravity-well follow across the universe
      if(focused){focused.obj.getWorldPosition(tgt);tgt.y+=.35;focus.lerp(tgt,Math.min(1,dt*4));}else focus.lerp(homeFocus,Math.min(1,dt*3));
      const f=god.update(elapsed,v.zoom,focus,godFocus);
-     (scene.fog as import('three').FogExp2).density=.012*Math.min(1.6,12/v.zoom);// cage-purple fog, tuned for the expanded universe
+     (scene.fog as import('three').FogExp2).density=.012*Math.min(1.6,12/v.zoom)*(uwPose?.45:1);// cage-purple fog, tuned for the expanded universe
      const lens=gcam.lens(reduced?0:dt,v.zoom,zr,reduced?0:Math.min(1,(lcS.LC?.__surf?.U.uFlowA.value||0)*.5));const zd=lens.zoom;camera.fov=lens.fov;
      camera.near=Math.max(.05,zd*.01);camera.updateProjectionMatrix();
-     camera.position.set(f.x+zd*Math.sin(v.phi)*Math.sin(v.theta),f.y+zd*Math.cos(v.phi),f.z+zd*Math.sin(v.phi)*Math.cos(v.theta));{const bods:any[]=[{x:zHolder.position.x,y:zHolder.position.y+.3,z:zHolder.position.z,r:.4},{x:beastNode.position.x,y:beastNode.position.y+.3,z:beastNode.position.z,r:.45}];for(const r of ((window as any).__lcResidents||[]))bods.push({x:r.x,y:.35,z:r.z,r:.4});
+     camera.position.set(f.x+zd*Math.sin(v.phi)*Math.sin(v.theta),f.y+zd*Math.cos(v.phi),f.z+zd*Math.sin(v.phi)*Math.cos(v.theta));{const bods:any[]=[{x:zHolder.position.x,y:zHolder.position.y+.3,z:zHolder.position.z,r:.4},{x:beastNode.position.x,y:beastNode.position.y+.3,z:beastNode.position.z,r:.45}];for(const r of ((window as any).__lcResidents||[]))bods.push({x:r.x,y:.35,z:r.z,r:.4});for(const b of uw.bodies())bods.push(b);
       if(pushCameraOut(camera.position,bods)>0)camera.lookAt(f);}// creatures can never get inside the lens
      if(elapsed-((camera as any).__capT||-9)>1){(camera as any).__capT=elapsed;capScenePoints(scene);}
      gcam.step(reduced?0:dt);
