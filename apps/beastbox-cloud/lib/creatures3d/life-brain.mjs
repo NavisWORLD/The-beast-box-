@@ -60,6 +60,9 @@ export function pokeLife(L,{fear=.1,joy=.5}={},cam=null){
  */
 export function stepLife(L,dt,env={}){
  if(!(dt>0))return L;L.t+=dt;L.timer-=dt;
+ // universe roaming (opt-in): a real urge to travel — far journeys start often and are not cut short by the mode timer
+ if(env.universe){if(L.mode==='wander'&&L.target&&Math.hypot(L.target.x-L.x,L.target.z-L.z)>1)L.timer=Math.max(L.timer,.5);
+  else if(L.timer<=0&&L.r()<.45){L.mode='wander';L.timer=12;L.target=pickTarget(L,env.universe*.9);}}
  const m=env.mood||{joy:.5,curiosity:.5,fear:.1,calm:.6,mischief:.3};
  L.energy=clamp(L.energy+(L.mode==='nap'?dt*.05:-dt*.006*(1+(SPEED[L.mode]||0))));
  L.hunger=clamp(L.hunger+dt*.004-(L.mode==='sniff'&&L.speed<.05?dt*.05:0));
@@ -84,7 +87,7 @@ export function stepLife(L,dt,env={}){
   case 'splash':{const p=nearest(L,(env.puddles||[]).filter(q=>q.wet>.3));if(p){if(p.d<p.r*.8){if(Math.hypot(tgt.x-L.x,tgt.z-L.z)<.15||Math.hypot(tgt.x-p.x,tgt.z-p.z)>p.r)L.target=tgt={x:p.x+(L.r()-.5)*p.r*1.4,z:p.z+(L.r()-.5)*p.r*1.4};}else tgt={x:p.x,z:p.z};attn={kind:'puddle',x:p.x,y:0,z:p.z};}break;}
   case 'greet':{const o=nearest(L,env.residents);if(o){const a=Math.atan2(L.z-o.z,L.x-o.x);tgt={x:o.x+Math.cos(a)*.5,z:o.z+Math.sin(a)*.5};attn={kind:'resident',x:o.x,y:.35,z:o.z,id:o.id};if(o.d<.65){L.lastGreet=L.t;}}break;}
   case 'follow':{const o=nearest(L,env.residents);if(o){const a=Math.atan2(L.z-o.z,L.x-o.x);tgt={x:o.x+Math.cos(a)*.75,z:o.z+Math.sin(a)*.75};attn={kind:'resident',x:o.x,y:.4,z:o.z,id:o.id};}break;}
-  case 'wander':{if(Math.hypot(tgt.x-L.x,tgt.z-L.z)<.3)L.target=tgt=pickTarget(L,env.universe&&L.r()<.35?env.universe*.9:undefined);attn={kind:'ground',x:tgt.x,y:0,z:tgt.z};break;}
+  case 'wander':{if(Math.hypot(tgt.x-L.x,tgt.z-L.z)<.3)L.target=tgt=pickTarget(L,env.universe&&L.r()<.7?env.universe*.9:undefined);attn={kind:'ground',x:tgt.x,y:0,z:tgt.z};break;}
  }
  L.attn=attn;
  // locomotion: steer, ease speed (CST calm → smoother), stay in the pocket
