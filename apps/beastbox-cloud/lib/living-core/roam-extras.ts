@@ -26,9 +26,11 @@ export function synapseClick(ch:number,strength=.5){
 
 // ---------------------------------------------------------------- synapse + vibration layer
 export function attachSynapse(THREE:T,LC:any,seed:string,low:boolean){
- const body=LC.body;const geo=body?.geometry;const P=geo?.attributes?.position?.array as Float32Array|undefined;
+ // LC.body is a Group holding the marching-cubes mesh(es); take the biggest mesh and its real vertex count.
+ let src:any=null;(LC.body?.isMesh?[LC.body]:LC.body?.children||[]).forEach((o:any)=>{if(o.isMesh&&o.geometry?.attributes?.position&&(!src||o.geometry.attributes.position.count>src.geometry.attributes.position.count))src=o;});
+ const body=src?src.parent:LC.body;const geo=src?.geometry;const P=geo?.attributes?.position?.array as Float32Array|undefined;
  const Nn=geo?.attributes?.normal?.array as Float32Array|undefined;
- const count=Math.min(P?P.length/3:0,Number.isFinite(body?.count)&&body.count>0?body.count:Number.isFinite(geo?.drawRange?.count)?geo.drawRange.count:(P?P.length/3:0));
+ let count=0;if(P){const dr=geo.drawRange?.count;if(Number.isFinite(dr)&&dr>0)count=Math.min(dr,P.length/3);else if(geo.index)count=P.length/3;else{let n=P.length/3;while(n>0&&P[n*3-1]===0&&P[n*3-2]===0&&P[n*3-3]===0)n--;count=n;}}
  const fire=new Float32Array(12);const U={uTime:{value:0},uFire:{value:fire},uRipA:{value:0},uRipHz:{value:1.2},uTap:{value:new THREE.Vector3(0,0,0)},uTapT:{value:-10}};
  const group=new THREE.Group();group.name='lc-synapse';
  if(P&&count>50){
@@ -36,14 +38,14 @@ export function attachSynapse(THREE:T,LC:any,seed:string,low:boolean){
   const chF=new Float32Array(net.count);net.ch.forEach((c,i)=>chF[i]=c);
   const vs='attribute float aCh;uniform float uTime;uniform float uFire[12];uniform float uRipA;uniform float uRipHz;varying float vB;varying float vC;'+
    'void main(){int c=int(aCh+.5);float f=0.;for(int i=0;i<12;i++){if(i==c)f=uFire[i];}vec3 p=position;float w=sin(dot(p,vec3(5.1,7.3,4.2))-uTime*uRipHz*6.2832);p+=normalize(p+1e-4)*w*uRipA*.6;'+
-   'vB=.16+f*.84+max(0.,w)*uRipA*4.;vC=aCh/11.;vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=(2.+f*4.)*(300./-mv.z)*.012;gl_Position=projectionMatrix*mv;}';
-  const fsP='varying float vB;varying float vC;void main(){vec2 q=gl_PointCoord-.5;float a=smoothstep(.5,0.,length(q));vec3 col=mix(vec3(.78,.64,1.),vec3(.44,.9,1.),vC);gl_FragColor=vec4(col*vB,a*vB*.55);}';
-  const fsL='varying float vB;varying float vC;void main(){vec3 col=mix(vec3(.7,.55,1.),vec3(.44,.9,1.),vC);gl_FragColor=vec4(col*vB,vB*.22);}';
-  const mk=(fs:string)=>new THREE.ShaderMaterial({uniforms:U as any,vertexShader:vs,fragmentShader:fs,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+   'vB=.34+f*.9+max(0.,w)*min(1.,uRipA*30.)*.5;vC=aCh/11.;vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=(3.+f*5.)*clamp(7./-mv.z,.7,2.2);gl_Position=projectionMatrix*mv;}';
+  const fsP='varying float vB;varying float vC;void main(){vec2 q=gl_PointCoord-.5;float a=smoothstep(.5,0.,length(q));vec3 col=mix(vec3(.78,.64,1.),vec3(.44,.9,1.),vC);gl_FragColor=vec4(col*vB,a*min(1.,vB)*.8);}';
+  const fsL='varying float vB;varying float vC;void main(){vec3 col=mix(vec3(.7,.55,1.),vec3(.44,.9,1.),vC);gl_FragColor=vec4(col*vB,min(1.,vB)*.42);}';
+  const mk=(fs:string)=>new THREE.ShaderMaterial({uniforms:U as any,vertexShader:vs,fragmentShader:fs,transparent:true,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending});
   const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(net.nodes,3));pg.setAttribute('aCh',new THREE.BufferAttribute(chF,1));
   group.add(new THREE.Points(pg,mk(fsP)));
   const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.BufferAttribute(net.nodes,3));lg.setAttribute('aCh',new THREE.BufferAttribute(chF,1));lg.setIndex(new THREE.BufferAttribute(net.edges,1));
-  group.add(new THREE.LineSegments(lg,mk(fsL)));body.add(group);
+  group.add(new THREE.LineSegments(lg,mk(fsL)));group.renderOrder=5;group.children.forEach(c=>c.renderOrder=5);group.position.copy(src.position);group.quaternion.copy(src.quaternion);group.scale.copy(src.scale);body.add(group);
  }
  // Soft-body ripple through the body and fur: chain onto each lit material's shader (keeps the living-core patches).
  const patched:any[]=[];LC.group.traverse((o:any)=>{const m=o.material;if(!o.isMesh||!m||m.isShaderMaterial||patched.includes(m))return;if(!(m.isMeshStandardMaterial||m.isMeshPhysicalMaterial||m.isMeshLambertMaterial))return;
@@ -60,7 +62,7 @@ export function attachSynapse(THREE:T,LC:any,seed:string,low:boolean){
   step(dt:number){if(!(dt>0))return;U.uTime.value+=dt;const ev=(EMO_VIBE as any)[emo];(stepCSTState as any)(S,dt,{arousal:.3+ev.ex*.6});
    const fired=fireStep(acc,channelValues(S),dt,excite+ev.ex);for(let i=0;i<12;i++)fire[i]*=Math.exp(-dt*5);
    for(const c of fired){fire[c]=1;listeners.forEach(f=>f(c));}
-   excite*=Math.exp(-dt*.7);rip*=Math.exp(-dt*1.1);U.uRipHz.value+=(ev.hz-U.uRipHz.value)*Math.min(1,dt*2);U.uRipA.value=.004+.02*Math.min(1,rip+ev.ex*.25);},
+   excite*=Math.exp(-dt*.7);rip*=Math.exp(-dt*1.1);U.uRipHz.value+=(ev.hz-U.uRipHz.value)*Math.min(1,dt*2);U.uRipA.value=.008+.03*Math.min(1,rip+ev.ex*.35);},
   dispose(){group.parent?.remove(group);group.traverse((o:any)=>{o.geometry?.dispose?.();o.material?.dispose?.();});},
  };
 }

@@ -46,5 +46,21 @@ CREATURES.shardhowl={src:'shardhowl_ref_cutout.png',light:{hemiS:0x2a2830,hemiG:
 CREATURES.velvetcoil.opts={...CREATURES.kitten.opts,furBlack:false,targetH:230,eye:'manual',eyes:[{x:331,y:110,r:17},{x:402,y:110,r:15}],eyeFixed:true,eyeStyle:'stars',sparkleK:1.3,irisColor:'#b88cff',eyeShift:[0,0],rim:['#9a6aff','#8a5af0'],rimK:.7,sheen:'#a07aff',envI:.15,creaseK:.6,tailAmp:.9,whiskers:false,hatSway:false};
 // FINAL effective overrides: shardhowl
 CREATURES.shardhowl.opts={...CREATURES.kitten.opts,furBlack:false,targetH:230,eye:'manual',eyes:[{x:492,y:135,r:7}],eyeFixed:true,eyeStyle:'glow',eyeDarken:false,irisColor:'#c8a0ff',eyeShift:[0,0],rim:['#b07aff','#9a6aff'],rimK:.8,sheen:'#b090ff',envI:.18,creaseK:.7,whiskers:false,hatSway:false,glowSpots:[{cx:400,cy:250,rx:30,ry:30,color:'#c8a8ff',a:.55,lift:1.5}]};
+// FINAL sdfParts (Oct 16 pass 3): hand-sculpted volumes so the pixel-art residents have real side depth.
+// Profile creatures: z = across the body (near legs +, far legs -).
+CREATURES.shardhowl.opts.sdfParts={true3D:true,trim:1,k:20,fallback:5,deltaBlur:3,parts:[
+ {c:[280,262,0],r:[150,72,64]},{c:[395,245,0],r:[72,86,66],k:26},{c:[490,150,0],r:[52,46,42],k:22},
+ {type:'cap',pts:[[500,158,0],[558,176,0]],r:[26,13],k:12},
+ {type:'cap',pts:[[455,110,8],[440,22,6]],r:[16,3],k:10},{type:'cap',pts:[[485,110,-8],[478,30,-6]],r:[15,3],k:10},
+ {type:'cap',pts:[[345,300,26],[340,400,28],[338,492,30]],r:[22,15],k:12},{type:'cap',pts:[[400,300,-26],[402,400,-28],[408,492,-30]],r:[22,15],k:12},
+ {type:'cap',pts:[[150,300,26],[132,400,28],[120,492,30]],r:[26,15],k:12},{type:'cap',pts:[[215,300,-26],[222,400,-28],[228,492,-30]],r:[24,15],k:12},
+ {type:'cap',pts:[[140,232,0],[80,300,0],[20,390,0]],r:[26,8],k:14},
+ {type:'cap',pts:[[330,190,0],[300,80,0]],r:[30,4],k:12},{type:'cap',pts:[[390,180,0],[380,60,0]],r:[26,4],k:12}]};
+CREATURES.velvetcoil.opts.sdfParts={true3D:true,trim:1,k:18,fallback:5,deltaBlur:3,parts:[
+ {c:[362,112,0],r:[62,48,46],k:22},{type:'cap',pts:[[300,95,-10],[300,40,-8]],r:[14,4],k:8},{type:'cap',pts:[[375,60,-10],[372,20,-8]],r:[13,4],k:8},
+ {type:'cap',pts:[[300,140,0],[262,200,6],[262,260,12],[285,320,14],[300,380,10],[310,430,4]],r:[40,36],k:16},
+ {type:'cap',pts:[[320,260,-18],[400,300,-22],[455,360,-20],[450,430,-14],[390,475,-6],[290,470,0],[190,480,6]],r:[30,22],k:14},
+ {type:'cap',pts:[[230,280,18],[150,250,20],[70,230,16],[25,170,10],[55,95,6],[105,60,2]],r:[28,8],k:14},
+ {type:'cap',pts:[[230,330,-12],[150,335,-14],[90,325,-10]],r:[26,14],k:12}]};
 // Universe ids -> living-core configs
 export const RESIDENT_LC={'art-frostmitt':'frost','art-nyxbean':'kittenref','art-kairo':'kairo','art-velvetcoil':'velvetcoil','art-shardhowl':'shardhowl',zeref:'zeref'};

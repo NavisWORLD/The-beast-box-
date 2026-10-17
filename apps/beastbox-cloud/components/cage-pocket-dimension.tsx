@@ -1,5 +1,5 @@
 'use client';
-import {getLivingCore,stepLivingCore,livingCoreScale} from '../lib/living-core/core-cache';
+import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles} from '../lib/living-core/core-cache';
 import {attachSynapse,addRoamExtras,synapseClick} from '../lib/living-core/roam-extras';
 import {nextGoal,rng as lcRng,SHAPES} from '../lib/living-core/roam-brain.mjs';
 import {recordArrival} from '../lib/zeref/pocket-journal';
@@ -302,7 +302,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const zHolder=new THREE.Group();zHolder.scale.setScalar(.45);zHolder.position.set(0,-.07,0);zHolder.rotation.y=.7;scene.add(zHolder);
     // Film motion for Zeref (bb-7f9c2a03 persona: no recorded seed of his own here → id-only persona).
     const zActorNode=new THREE.Group();zHolder.add(zActorNode);
-    const zActor=createActor(motionPersona({id:'bb-7f9c2a03'}),{radius:1.1,seed:'bb-7f9c2a03'});
+    const zActor=createActor(motionPersona({id:'bb-7f9c2a03'}),{x:-1.15,z:.75,radius:1.1,seed:'bb-7f9c2a03'});// offset so Zeref never stands inside the active Beast
     // ---- Oct 16 living-core: Zeref as the true-3D living-core body (same actor, same pocket look) + life layer on top.
     const lcId=qbeastId||'bb-deada969';const lcS:any={LC:null,syn:null,goal:null,pause:2,mood:'calm',ov:null,ovT:0,visits:{},r:lcRng(lcId+':roam')};
     const extras=addRoamExtras(THREE,scene,{beastId:lcId,low,onDoing:(d:string)=>{lcS.doing=d;}});
@@ -311,7 +311,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const onLcChat=(e:any)=>lcWords(String(e?.detail?.text||'hi'));const onLcLevel=(e:any)=>{const l=Number(e?.detail?.level)||0;if(l>.05)lcS.syn?.kick(Math.min(.5,l*.6));};const onLcChirp=(e:any)=>lcS.syn?.kick(.25*(Number(e?.detail?.intensity)||.5));
     const onLcTap=()=>{lcS.syn?.kick(.9);lcS.ov=lcS.ov||'happy';lcS.ovT=Math.max(lcS.ovT,2);};
     window.addEventListener('beastbox:beast-chat',onLcChat);window.addEventListener('beastbox:local-sensor-level',onLcLevel);window.addEventListener('beastbox:spark-chirp',onLcChirp);renderer.domElement.addEventListener('pointerdown',onLcTap);
-    if(lcOk)void getLivingCore(THREE,'zeref',low).then(({LC})=>{if(disposed)return;const g=new THREE.Group();const k=livingCoreScale(LC,2.6);g.scale.setScalar(k);g.position.y=-LC.footY*k;g.add(LC.group);zActorNode.add(g);lcS.LC=LC;lcS.g=g;
+    if(lcOk)void getLivingCore(THREE,'zeref',low).then(({LC})=>{if(disposed)return;const g=new THREE.Group();const k=livingCoreScale(LC,2.6);g.scale.setScalar(k);fitLivingCoreParticles(LC,k*.45,renderer.domElement.height);g.position.y=-LC.footY*k;g.add(LC.group);zActorNode.add(g);lcS.LC=LC;lcS.g=g;(window as any).__lcPocket={lcS,zHolder,zActorNode,camera};
      lcS.syn=attachSynapse(THREE,LC,lcId,low);lcS.syn.onFire((c:number)=>{synapseClick(c,.35);});}).catch(()=>{});
     if(typeof window!=='undefined')(window as any).__pocketCamera=cameraView;
     const sand=addPocketSand(THREE,scene,{seed:key,low,reduced});

@@ -4,7 +4,7 @@ import {loadBeastGlb} from './creature-glb-beast';
 import RES_PAINTS from '../lib/creatures3d/resident-paints.json';
 import {motionPersona,createActor,stepActor} from '../lib/companion/film-motion.mjs';
 import {RESIDENT_LC} from '../lib/living-core/creatures.js';
-import {getLivingCore,stepLivingCore,livingCoreScale,LC_FLYERS} from '../lib/living-core/core-cache';
+import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles,LC_FLYERS} from '../lib/living-core/core-cache';
 type Three=typeof import('three');
 /** Cory's artist-drawn residents (no quantum seed). They are separate creatures and never the
  * player's active Beast, which stays rendered by the Cage arena in front of the pocket. */
@@ -31,7 +31,7 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
      // cached); GLB / visual hull / sprite stay as the fallback chain.
      const lcName=(RESIDENT_LC as Record<string,string>)[r.id];
      const legacy=()=>{if(stub&&glbOk)void loadBeastGlb(THREE,stub,{tier:glbTier||'med',paint:stub.paint}).then(gb=>{if(!gb){void hull();return;}slot.glb=gb;gb.root.scale.setScalar(.95*r.scale);gb.root.updateMatrixWorld(true);slot.foot=-new THREE.Box3().setFromObject(gb.root).min.y;slot.mesh=gb.root;gb.root.userData.glb=true;scene.add(gb.root);sprite.visible=false;}).catch(()=>void hull());else void hull();};
-     if(lcName&&lcOk){lcQueue=lcQueue.catch(()=>{}).then(()=>getLivingCore(THREE,lcName)).then(({LC})=>{const root=new THREE.Group();const body=new THREE.Group();const k=livingCoreScale(LC,1.25*r.scale);body.scale.setScalar(k);body.position.y=-LC.footY*k;body.add(LC.group);root.add(body);if(LC.shadow)root.add(LC.shadow);root.name=r.id+'-living-core';scene.add(root);slot.lc=LC;slot.lcName=lcName;slot.lcK=k;slot.mesh=root;sprite.visible=false;shadow.visible=false;}).catch(()=>legacy());}
+     if(lcName&&lcOk){lcQueue=lcQueue.catch(()=>{}).then(()=>getLivingCore(THREE,lcName)).then(({LC})=>{const root=new THREE.Group();const body=new THREE.Group();const k=livingCoreScale(LC,1.25*r.scale);body.scale.setScalar(k);fitLivingCoreParticles(LC,k,700);body.position.y=-LC.footY*k;body.add(LC.group);root.add(body);if(LC.shadow)root.add(LC.shadow);root.name=r.id+'-living-core';scene.add(root);slot.lc=LC;slot.lcName=lcName;slot.lcK=k;slot.mesh=root;sprite.visible=false;shadow.visible=false;}).catch(()=>legacy());}
      else legacy();
      return {r,sprite,shadow,h,actor,slot,phase:i*1.37+seedRandom()*2,radius:r.kind==='trainer'?2.2:2.7+seedRandom()*1.1,speed:(r.kind==='trainer'?.05:.09+seedRandom()*.06)*(i%2?1:-1),src:r.views.front,x:0,z:0};
     });
@@ -52,7 +52,8 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
       const gb=a.slot.glb;if(gb){gb.drive(reduced?0:dt,{speed:Math.min(1,Math.hypot(p.x-(a as any).px||0,p.z-(a as any).pz||0)/Math.max(dt,1e-3)),mode:'wander',sleep:0,lookCam:0,bob:t*6,heading:p.heading},null,null);(a as any).px=p.x;(a as any).pz=p.z;
        gb.root.position.set(p.x,gy+a.slot.foot+p.lift,p.z);gb.root.scale.setScalar(.95*a.r.scale);gb.root.rotation.set(0,p.heading+p.head,0);}
       if(a.slot.lc){const L=a.slot.lc,fly=LC_FLYERS.includes(a.slot.lcName||'');const hover=fly?.55+Math.sin(t*1.1*Math.PI*2*.35)*.08:0;
-       a.slot.mesh.position.set(p.x,gy+p.lift+hover,p.z);a.slot.mesh.rotation.set(0,p.heading+p.head,0);a.slot.mesh.children[0].scale.set(a.slot.lcK!*p.sx,a.slot.lcK!*p.sy,a.slot.lcK!*p.sx);
+       a.slot.mesh.position.set(p.x,gy+p.lift+hover,p.z);a.slot.mesh.rotation.set(0,p.heading+p.head,0);// Near-camera cap: a resident walking right up to the lens shrinks a little so it never fills the pocket.
+       const camD=cam?Math.hypot(p.x-cam.x,p.z-cam.z):9,near=Math.min(1,Math.max(.5,(camD-2.5)/4))*(a.slot.lcName==="kittenref"?.8:1);const kk=a.slot.lcK!*near;a.slot.mesh.children[0].scale.set(kk*p.sx,kk*p.sy,kk*p.sx);
        const sp=Math.hypot(p.x-((a as any).lx??p.x),p.z-((a as any).lz??p.z))/Math.max(dt,1e-3);(a as any).lx=p.x;(a as any).lz=p.z;
        const mood=i===meet&&beast?.moment==='play-fight'?'angry':i===meet?'happy':sp>.6?'happy':p.lift>.02?'happy':(Math.sin(t*.07+i*2)>.85?'curious':Math.sin(t*.05+i)>.92?'sleepy':'calm');
        if((a as any).mood!==mood){(a as any).mood=mood;L.setEmotion?.(mood);}stepLivingCore(L,reduced?0:dt);a.sprite.visible=false;return;}
