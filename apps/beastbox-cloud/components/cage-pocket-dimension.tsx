@@ -1,5 +1,6 @@
 'use client';
-import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles} from '../lib/living-core/core-cache';
+import {flowStars,flowGrid} from '../lib/living-core/river-flow';
+import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles,LC_WORLD_H} from '../lib/living-core/core-cache';
 import {attachSynapse,addRoamExtras,synapseClick} from '../lib/living-core/roam-extras';
 import {nextGoal,UNIVERSE_R,rng as lcRng,SHAPES} from '../lib/living-core/roam-brain.mjs';
 import {recordArrival} from '../lib/zeref/pocket-journal';
@@ -201,7 +202,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     if(soft){low=true;renderer.setPixelRatio(1);}
     const glbTier:'med'|'low'|null=soft?null:!low?'med':phoneGpu?'med':null;(window as any).__pocketGlbTier=glbTier;
     // Living-core bodies: real GPUs (incl. phones). Software GL keeps the classic pocket like the GLBs; ?livingcore=1 forces it for review.
-    const lcOk=!reduced&&(!soft||new URLSearchParams(location.search).get('livingcore')==='1');
+    const lcForced=new URLSearchParams(location.search).get('livingcore')==='1';
+    const lcOk=!reduced&&(!soft||lcForced);
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     // Living Cosmos polish: filmic tone mapping for deeper, less flat contrast.
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
@@ -222,6 +224,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // Feet on the world: a real downward raycast against the habitat floor (cached on a coarse grid; the floor is static).
     const gRay=new THREE.Raycaster(),gO=new THREE.Vector3(),gD=new THREE.Vector3(0,-1,0),gCache=new Map<number,number>();
     const groundAt=(x:number,z:number)=>{const k=Math.round(x*20)*4096+Math.round(z*20);let y=gCache.get(k);if(y===undefined){ground.updateMatrixWorld();gO.set(x,5,z);gRay.set(gO,gD);const h=gRay.intersectObject(ground,false)[0];y=h?h.point.y+.02:0;gCache.set(k,y);}return y;};
+    const flowU={uTime:{value:0}};// gentle river drift for stars + grid glow (look unchanged)
     const grid=new THREE.GridHelper(9,12,0x4983a4,0x284c74);
     grid.position.y=-.05;scene.add(grid);
     // Faded, not deleted: the grid now only whispers under the sand.
@@ -259,7 +262,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const starsGeom=new THREE.BufferGeometry(),points:number[]=[];
     for(let i=0;i<(low?55:120);i++)points.push((seedRandom()-.5)*8.8,.5+seedRandom()*4.5,(seedRandom()-.5)*8.8);
     starsGeom.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
-    scene.add(new THREE.Points(starsGeom,new THREE.PointsMaterial({color:0xb2dfff,size:.042,transparent:true,opacity:.75})));
+    const starMat=new THREE.PointsMaterial({color:0xb2dfff,size:.042,transparent:true,opacity:.75});
+    flowStars(starMat,flowU);flowGrid(grid.material as import('three').Material,flowU);
+    scene.add(new THREE.Points(starsGeom,starMat));
     // Living Cosmos depth polish (visual only): far star shell for parallax,
     // a soft portal rim at the pocket floor, and a nebula backdrop.
     const farGeom=new THREE.BufferGeometry(),far:number[]=[];
@@ -311,7 +316,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const onLcChat=(e:any)=>lcWords(String(e?.detail?.text||'hi'));const onLcLevel=(e:any)=>{const l=Number(e?.detail?.level)||0;if(l>.05)lcS.syn?.kick(Math.min(.5,l*.6));};const onLcChirp=(e:any)=>lcS.syn?.kick(.25*(Number(e?.detail?.intensity)||.5));
     const onLcTap=()=>{lcS.syn?.kick(.9);extras.river.kick(.4);lcS.ov=lcS.ov||'happy';lcS.ovT=Math.max(lcS.ovT,2);};
     window.addEventListener('beastbox:beast-chat',onLcChat);window.addEventListener('beastbox:local-sensor-level',onLcLevel);window.addEventListener('beastbox:spark-chirp',onLcChirp);renderer.domElement.addEventListener('pointerdown',onLcTap);
-    if(lcOk)void getLivingCore(THREE,'zeref',low).then(({LC})=>{if(disposed)return;const g=new THREE.Group();const k=livingCoreScale(LC,2.6);g.scale.setScalar(k);fitLivingCoreParticles(LC,k*.45,renderer.domElement.height);g.position.y=-LC.footY*k;g.add(LC.group);zActorNode.add(g);lcS.LC=LC;lcS.g=g;(window as any).__lcPocket={lcS,zHolder,zActorNode,camera};
+    if(lcOk)void getLivingCore(THREE,'zeref',low).then(({LC})=>{if(disposed)return;const g=new THREE.Group();const k=livingCoreScale(LC,LC_WORLD_H*1.1/.45);g.scale.setScalar(k);fitLivingCoreParticles(LC,k*.45,renderer.domElement.height);g.position.y=-LC.footY*k;g.add(LC.group);zActorNode.add(g);lcS.LC=LC;lcS.g=g;if(lcForced)(window as any).__lcPocket={lcS,zHolder,zActorNode,camera};// capture hook only with ?livingcore=1
      lcS.syn=attachSynapse(THREE,LC,lcId,low);lcS.syn.onFire((c:number)=>{synapseClick(c,.35);});}).catch(()=>{});
     if(typeof window!=='undefined')(window as any).__pocketCamera=cameraView;
     const sand=addPocketSand(THREE,scene,{seed:key,low,reduced});
@@ -420,6 +425,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
        else if(g.id!=='wander'){try{recordArrival(lcId,g.id);}catch{}}}
       if(lcS.goal)(zActor as any).target={x:lcS.goal.x,z:lcS.goal.z};
       stepLivingCore(lcS.LC,reduced?0:dt);lcS.syn?.step(reduced?0:dt);}
+     flowU.uTime.value+=reduced?0:dt;
      extras.step(reduced?0:dt,{x:zHolder.position.x,z:zHolder.position.z});
      if(ze?.claimed||lcS.LC){
       const zp=stepActor(zActor,reduced?0:dt,{lookAt:{x:camera.position.x,z:camera.position.z},reduced});

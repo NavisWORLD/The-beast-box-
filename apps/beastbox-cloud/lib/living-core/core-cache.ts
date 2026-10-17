@@ -16,6 +16,8 @@ export function stepLivingCore(LC:any,d:number){if(!(d>1e-4))return;const n=Math
 /** World scale so a living-core body stands `h` units tall (particle pools park at -999, so no Box3). */
 export const livingCoreScale=(LC:any,h=1.7)=>h/2/Math.max(.5,Math.abs(LC.footY||2.5));
 /** Creatures that fly/float in the pocket (wings or serpent levitation). */
+/** Believable world height for every living-core creature (cage grid cell = 0.75; library pedestal ≈ 0.3). */
+export const LC_WORLD_H=.62;
 export const LC_FLYERS=Object.freeze(['zeref','velvetcoil']);
 /** Birth/morph particles are sized in screen pixels for the full-screen prototype; refit them to this body's world scale. */
 export function fitLivingCoreParticles(LC:any,k:number,viewH:number){const u=LC?.pmat?.uniforms?.uSize;if(u)u.value=0.045*1.55*Math.max(200,viewH)*.85*k*.9;}

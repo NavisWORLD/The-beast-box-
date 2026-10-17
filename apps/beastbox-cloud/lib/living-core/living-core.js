@@ -263,7 +263,7 @@ const M2Ws=(px,py,pz)=>{const h=hAt(px,py);return M2W(px,py,h).add(nAt(px,py).mu
  if(TB){TBL=M2W(TB[0],TB[1],0);let tl=0;for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(tailM[y*W+x])tl=Math.max(tl,Math.hypot(x-TB[0],y-TB[1]));const tlL=tl/cellPx/(RES/2);
   for(let v=0;v<bg.drawRange.count;v++){const x=tp.getX(v),y=tp.getY(v);const px=W/2+x*(RES/2)*cellPx,py=H/2-y*(RES/2)*cellPx;const md=tailMd[Math.min(H-1,Math.max(0,Math.round(py)))*W+Math.min(W-1,Math.max(0,Math.round(px)))];
    if(md>.15){const lk=o.tailLock??0;let w=clamp((Math.hypot(x-TBL.x,y-TBL.y)/(tlL*.6)-lk)/(1-lk))*clamp((md-.15)/.4);w=w*w*(3-2*w);tailV.push([v,x,y,tp.getZ(v),tn.getX(v),tn.getY(v),w]);}}}
- function bendTail(a){for(const [v,x,y,z,nx,ny,w] of tailV){const b=a*w,c=Math.cos(b),s=Math.sin(b),dx=x-TBL.x,dy=y-TBL.y;tp.setXY(v,TBL.x+dx*c-dy*s,TBL.y+dx*s+dy*c);tp.setZ(v,z+Math.sin(b*2)*.02*w);tn.setXY(v,nx*c-ny*s,nx*s+ny*c);}if(tailV.length){tp.needsUpdate=true;tn.needsUpdate=true;}}
+ function bendTail(a){for(const [v,x,y,z,nx,ny,w] of tailV){const b=a*w+Math.sin(tailPh*1.3-w*4.2)*.22*w*w,c=Math.cos(b),s=Math.sin(b),dx=x-TBL.x,dy=y-TBL.y;tp.setXY(v,TBL.x+dx*c-dy*s,TBL.y+dx*s+dy*c);tp.setZ(v,z+Math.sin(b*2)*.02*w);tn.setXY(v,nx*c-ny*s,nx*s+ny*c);}if(tailV.length){tp.needsUpdate=true;tn.needsUpdate=true;}}
  // whiskers from the pad
  const WMat=new THREE.LineBasicMaterial({color:0xd9ccff,transparent:true,opacity:.85});const wantW=o.whiskers===true||(o.whiskers==='auto'&&eyes.length&&!frontal);
  if(wantW){const sides=frontal?[-1,1]:[fdx];for(const sd of sides){const rx=mz[0]+sd*(eR*(o.whiskerK??1))*(frontal?.5:0),ry=mz[1],rz=hAt(rx,ry);for(let k=0;k<3;k++){const pts=[];const ang=(k-1)*.28;
@@ -376,9 +376,9 @@ const wireMat=new THREE.MeshBasicMaterial({color:o.dataColor||0x4fe6ff,transpare
  // ---- state ----
  let t=0,morph=0,morphT=0,hopT=-1,birthT=1e9,nextBlink=1.5,blinkT=-1,tailPh=0,nextTilt=1,tilt0=0,tiltTgt=0,tiltNow=0,tiltT=-1;const sparkle=new Float32Array(N);const fl=[0,0,0];
  const away=new Float32Array(N);const awayTgt=new Int32Array(N).fill(-1);const born=new Float32Array(N).fill(1);
- function birth(){birthT=0;for(let n=0;n<N;n++){const r=11+seed[n]*9,a=seed[n]*977.1,b=Math.acos(2*((seed[n]*7919)%1)-1);pos[n*3]=Math.sin(b)*Math.cos(a)*r;pos[n*3+1]=Math.cos(b)*r*.55;pos[n*3+2]=-3-Math.abs(Math.sin(b)*Math.sin(a))*r*.6;born[n]=0;}vel.fill(0);}
+ function birth(){birthT=0;for(let n=0;n<N;n++){/* cluster-scatter birth: particles arrive from 14 drifting clusters (glyph-like knots) instead of a uniform shell */const K=14,ci=(n*7)%K,cr=11+((ci*.618)%1)*9,ca=ci*2.39996,cb=Math.acos(2*((ci*.381+.13)%1)-1),j=.9+seed[n]*1.4,ja=seed[n]*977.1,jb=(seed[n]*7919)%1*6.2832;pos[n*3]=Math.sin(cb)*Math.cos(ca)*cr+Math.cos(ja)*Math.sin(jb)*j;pos[n*3+1]=Math.cos(cb)*cr*.55+Math.cos(jb)*j;pos[n*3+2]=-3-Math.abs(Math.sin(cb)*Math.sin(ca))*cr*.6+Math.sin(ja)*Math.sin(jb)*j;born[n]=0;}vel.fill(0);}
  let happyT=-1,scattered=false;function hop(){if(hopT>=0)return;hopT=0;scattered=false;S.arousal=1;}
- function scatter(){for(let n=0;n<N;n++)if(seed[n]<.10&&!parts[n].eye){const a=seed[n]*400,b=seed[n]*970;vel[n*3]+=Math.cos(a)*1.6;vel[n*3+1]+=1.0+Math.sin(b);vel[n*3+2]+=Math.sin(a)*1.6;sparkle[n]=1;}}
+ function scatter(){for(let n=0;n<N;n++)if(seed[n]<.10&&!parts[n].eye){const ci=(n*7)%14,a=ci*2.39996+seed[n]*.5,b=ci*1.7+seed[n]*.5;vel[n*3]+=Math.cos(a)*1.6;vel[n*3+1]+=1.0+Math.sin(b);vel[n*3+2]+=Math.sin(a)*1.6;sparkle[n]=1;}}
  const eyeY=L2W(0,ey,0)[1],eyeRw=eR*.9*PX;
  function step(dt){t+=dt;S.step(dt);
   emoT+=dt;const ant=emoT<BB.anticipate?Math.sin(Math.PI*emoT/BB.anticipate):0;if(emoT>=BB.anticipate){const a=1-Math.exp(-dt/((BB.snapIn+BB.settle)*.35));for(const k2 in P)P[k2]+=(emoTgt[k2]-P[k2])*a;}

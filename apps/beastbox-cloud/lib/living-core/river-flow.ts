@@ -40,3 +40,13 @@ export function addRiverFlow(THREE:T,parent:import('three').Object3D,{low,seed='
    const v:any[]=Object.values(S.ch||{});for(let i=0;i<12;i++){const x=(Number(v[i%Math.max(1,v.length)])||0)*(1+i*.13);cst[i]+=(Math.tanh(x)-cst[i])*Math.min(1,dt*.5);}U.uExcite.value*=Math.exp(-dt*.5);},
   dispose(){parent.remove(pts);g.dispose();m.dispose();tex.dispose();}};
 }
+
+/** Stars drift in a slow river swirl (same colour/size/opacity). */
+export function flowStars(m:import('three').Material,U:{uTime:{value:number}}){m.onBeforeCompile=(sh:any)=>{sh.uniforms.uTime=U.uTime;
+ sh.vertexShader='uniform float uTime;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n{float r=length(transformed.xz);float an=uTime*.012*(1.+.5*sin(r*.35))+sin(uTime*.05+r*.2)*.02;float c=cos(an),s=sin(an);transformed.xz=mat2(c,-s,s,c)*transformed.xz;transformed.y+=sin(uTime*.18+transformed.x*.3+transformed.z*.2)*.06;}');};
+ m.customProgramCacheKey=()=>'lc-flow-stars';m.needsUpdate=true;}
+/** Grid glow: a soft brightness current travels across the existing lines (opacity/palette untouched otherwise). */
+export function flowGrid(m:import('three').Material,U:{uTime:{value:number}}){m.onBeforeCompile=(sh:any)=>{sh.uniforms.uTime=U.uTime;
+ sh.vertexShader='varying vec3 vFlowP;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvFlowP=position;');
+ sh.fragmentShader='uniform float uTime;varying vec3 vFlowP;\n'+sh.fragmentShader.replace('#include <opaque_fragment>','outgoingLight*=.8+.9*smoothstep(.55,1.,.5+.5*sin(vFlowP.x*.8+vFlowP.z*.55+sin(vFlowP.z*.4+uTime*.2)*1.2-uTime*.5));\n#include <opaque_fragment>');};
+ m.customProgramCacheKey=()=>'lc-flow-grid';m.needsUpdate=true;}

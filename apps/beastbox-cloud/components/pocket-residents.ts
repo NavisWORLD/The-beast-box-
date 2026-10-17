@@ -5,7 +5,7 @@ import RES_PAINTS from '../lib/creatures3d/resident-paints.json';
 import {motionPersona,createActor,stepActor} from '../lib/companion/film-motion.mjs';
 import {UNIVERSE_R} from '../lib/living-core/roam-brain.mjs';
 import {RESIDENT_LC} from '../lib/living-core/creatures.js';
-import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles,LC_FLYERS} from '../lib/living-core/core-cache';
+import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles,LC_FLYERS,LC_WORLD_H} from '../lib/living-core/core-cache';
 type Three=typeof import('three');
 /** Cory's artist-drawn residents (no quantum seed). They are separate creatures and never the
  * player's active Beast, which stays rendered by the Cage arena in front of the pocket. */
@@ -32,7 +32,7 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
      // cached); GLB / visual hull / sprite stay as the fallback chain.
      const lcName=(RESIDENT_LC as Record<string,string>)[r.id];
      const legacy=()=>{if(stub&&glbOk)void loadBeastGlb(THREE,stub,{tier:glbTier||'med',paint:stub.paint}).then(gb=>{if(!gb){void hull();return;}slot.glb=gb;gb.root.scale.setScalar(.95*r.scale);gb.root.updateMatrixWorld(true);slot.foot=-new THREE.Box3().setFromObject(gb.root).min.y;slot.mesh=gb.root;gb.root.userData.glb=true;scene.add(gb.root);sprite.visible=false;}).catch(()=>void hull());else void hull();};
-     if(lcName&&lcOk){lcQueue=lcQueue.catch(()=>{}).then(()=>getLivingCore(THREE,lcName)).then(({LC})=>{const root=new THREE.Group();const body=new THREE.Group();const k=livingCoreScale(LC,1.25*r.scale);body.scale.setScalar(k);fitLivingCoreParticles(LC,k,700);body.position.y=-LC.footY*k;body.add(LC.group);root.add(body);if(LC.shadow)root.add(LC.shadow);root.name=r.id+'-living-core';scene.add(root);slot.lc=LC;slot.lcName=lcName;slot.lcK=k;slot.mesh=root;sprite.visible=false;shadow.visible=false;}).catch(()=>legacy());}
+     if(lcName&&lcOk){lcQueue=lcQueue.catch(()=>{}).then(()=>getLivingCore(THREE,lcName)).then(({LC})=>{const root=new THREE.Group();const body=new THREE.Group();const k=livingCoreScale(LC,LC_WORLD_H*Math.min(1.2,Math.max(.85,r.scale)));body.scale.setScalar(k);fitLivingCoreParticles(LC,k,700);body.position.y=-LC.footY*k;body.add(LC.group);root.add(body);if(LC.shadow)root.add(LC.shadow);root.name=r.id+'-living-core';scene.add(root);slot.lc=LC;slot.lcName=lcName;slot.lcK=k;slot.mesh=root;sprite.visible=false;shadow.visible=false;}).catch(()=>legacy());}
      else legacy();
      return {r,sprite,shadow,h,actor,slot,phase:i*1.37+seedRandom()*2,radius:r.kind==='trainer'?2.2:2.7+seedRandom()*1.1,speed:(r.kind==='trainer'?.05:.09+seedRandom()*.06)*(i%2?1:-1),src:r.views.front,x:0,z:0};
     });
