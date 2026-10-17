@@ -40,3 +40,12 @@ test('active Beast roams the universe when the Cage opts in', async () => {
   const L=createLife('bb-test');let mx=0;for(let i=0;i<30*240;i++){stepLife(L,1/30,{universe:30});mx=Math.max(mx,Math.hypot(L.x,L.z));}
   assert.ok(mx>8,'reached '+mx);assert.ok(mx<=30+1e-9);
 });
+
+test('gravity camera: dolly zoom keeps subject size while FOV widens 46→60', async () => {
+  const src=(await import('node:fs')).readFileSync(new URL('../lib/living-core/gravity-camera.ts',import.meta.url),'utf8');
+  assert.match(src,/FOV_BASE=46,FOV_WIDE=60/);
+  const dolly=(d,a,b)=>d*Math.tan(a*Math.PI/360)/Math.tan(b*Math.PI/360);
+  const d=dolly(10,46,60);assert.ok(d<10&&d>7);
+  const cage=(await import('node:fs')).readFileSync(new URL('../components/cage-pocket-dimension.tsx',import.meta.url),'utf8');
+  assert.match(cage,/density=\.012\*/);assert.match(cage,/dof:!low&&!soft&&!phoneGpu/);
+});

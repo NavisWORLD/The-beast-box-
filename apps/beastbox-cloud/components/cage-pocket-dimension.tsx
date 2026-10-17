@@ -1,5 +1,6 @@
 'use client';
 import {flowStars,flowGrid} from '../lib/living-core/river-flow';
+import {createGravityCam} from '../lib/living-core/gravity-camera';
 import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles,LC_WORLD_H} from '../lib/living-core/core-cache';
 import {attachSynapse,addRoamExtras,synapseClick} from '../lib/living-core/roam-extras';
 import {nextGoal,UNIVERSE_R,rng as lcRng,SHAPES} from '../lib/living-core/roam-brain.mjs';
@@ -315,6 +316,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const zActor=createActor(motionPersona({id:'bb-7f9c2a03'}),{x:-1.15,z:.75,radius:1.1,seed:'bb-7f9c2a03',universe:UNIVERSE_R});// offset so Zeref never stands inside the active Beast
     // ---- Oct 16 living-core: Zeref as the true-3D living-core body (same actor, same pocket look) + life layer on top.
     const lcId=qbeastId||'bb-deada969';const lcS:any={LC:null,syn:null,goal:null,pause:2,mood:'calm',ov:null,ovT:0,visits:{},r:lcRng(lcId+':roam')};
+    const gcam=createGravityCam(THREE,{camera,scene,renderer,low:low||soft,dof:!low&&!soft&&!phoneGpu});let zr=0;
     const extras=addRoamExtras(THREE,scene,{beastId:lcId,low:low||soft,onDoing:(d:string)=>{lcS.doing=d;}});
     const lcWords=(text:string)=>{const w:any=extras.words(text);if(w.emotion){lcS.ov=w.emotion;lcS.ovT=5;}lcS.syn?.kick(.4+w.burst*.6);extras.river.kick(.5+w.burst*.5);extras.burst(zHolder.position.x,.5,zHolder.position.z);if(w.shape)extras.create(w.shape,zHolder.position.x+.3,zHolder.position.z+.3,'chat');};
     lcBus.current={words:lcWords};
@@ -357,7 +359,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      const rect=canvas.getBoundingClientRect();
      if(rect.width<2||rect.height<2)return;
      renderer.setSize(Math.floor(rect.width),Math.floor(rect.height),false);
-     camera.aspect=rect.width/rect.height;camera.updateProjectionMatrix();
+     camera.aspect=rect.width/rect.height;camera.updateProjectionMatrix();gcam.resize(Math.floor(rect.width),Math.floor(rect.height));
     };
     const ro=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;
     ro?.observe(canvas);resize();
@@ -450,14 +452,16 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
         let dth=((want-v.theta)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI;v.theta+=dth*Math.min(1,dt*.12);v.zoom+=(9.4-v.zoom)*Math.min(1,dt*.2);v.phi+=(1.36-v.phi)*Math.min(1,dt*.2);
         homeFocus.set(brain.x*.6,1.05,brain.z*.6);/* lower + pulled back so the pocket world shows behind the Beast */}else homeFocus.set(0,.85,0);
        (window as any).__beastLife={moment:brain.moment??null,y:+beastNode.position.y.toFixed(3),ground:+groundAt(brain.x,brain.z).toFixed(3),air:!!(brain as any).air,mode:brain.mode,x:brain.x,z:brain.z,attn:brain.attn?.kind??null,weather:life.getWeather(),coherence:L.cst.ch.coherence,chaos:L.cst.ch.chaos,hebb:L.cst.hebb,rain:L.env.rain,night:L.env.night,tris:plush.tris};}}
-     {const zr=Math.hypot(zHolder.position.x,zHolder.position.z);if(!focused&&zr>3&&now-lastDragAt.current>2500){const w=Math.min(1,(zr-3)/4);homeFocus.set(homeFocus.x+(zHolder.position.x-homeFocus.x)*w,homeFocus.y,homeFocus.z+(zHolder.position.z-homeFocus.z)*w);}}// follow Zeref across the universe
+     {zr=Math.hypot(zHolder.position.x,zHolder.position.z);const capZ=lcForced&&(window as any).__lcFocusZeref;const pull=focused?0:capZ?1:(now-lastDragAt.current>2500?Math.min(1,Math.max(0,(zr-3)/4)):0);
+      homeFocus.copy(gcam.focus(reduced?0:dt,homeFocus,{x:zHolder.position.x,z:zHolder.position.z},extras.spots,pull));}// gravity-well follow across the universe
      if(focused){focused.obj.getWorldPosition(tgt);tgt.y+=.35;focus.lerp(tgt,Math.min(1,dt*4));}else focus.lerp(homeFocus,Math.min(1,dt*3));
      const f=god.update(elapsed,v.zoom,focus,godFocus);
-     (scene.fog as import('three').FogExp2).density=.032*Math.min(1,12/v.zoom);
-     camera.near=Math.max(.05,v.zoom*.01);camera.updateProjectionMatrix();
-     camera.position.set(f.x+v.zoom*Math.sin(v.phi)*Math.sin(v.theta),f.y+v.zoom*Math.cos(v.phi),f.z+v.zoom*Math.sin(v.phi)*Math.cos(v.theta));
+     (scene.fog as import('three').FogExp2).density=.012*Math.min(1.6,12/v.zoom);// cage-purple fog, tuned for the expanded universe
+     const lens=gcam.lens(reduced?0:dt,v.zoom,zr,reduced?0:Math.min(1,(lcS.LC?.__surf?.U.uFlowA.value||0)*.5));const zd=lens.zoom;camera.fov=lens.fov;
+     camera.near=Math.max(.05,zd*.01);camera.updateProjectionMatrix();
+     camera.position.set(f.x+zd*Math.sin(v.phi)*Math.sin(v.theta),f.y+zd*Math.cos(v.phi),f.z+zd*Math.sin(v.phi)*Math.cos(v.theta));gcam.step(reduced?0:dt);
      camera.lookAt(f);
-     try{renderer.render(scene,camera);}catch{setReady(false);setFailed(true);return;}
+     try{gcam.render(camera.position.distanceTo(zHolder.position));}catch{setReady(false);setFailed(true);return;}
      if(!rendered){rendered=true;setReady(true);}
     };
     // Link every shader program off the main thread before the first frame where the browser can (KHR_parallel_shader_compile):
@@ -477,7 +481,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     frame=requestAnimationFrame(animate);
     cleanup=()=>{
      window.removeEventListener('beastbox:beast-chat',onLcChat);window.removeEventListener('beastbox:local-sensor-level',onLcLevel);window.removeEventListener('beastbox:spark-chirp',onLcChirp);renderer.domElement.removeEventListener('pointerdown',onLcTap);
-     lcS.syn?.dispose();if(lcS.g){lcS.g.remove(lcS.LC.group);zActorNode.remove(lcS.g);}extras.dispose();lcBus.current=null;
+     lcS.syn?.dispose();if(lcS.g){lcS.g.remove(lcS.LC.group);zActorNode.remove(lcS.g);}extras.dispose();gcam.dispose();lcBus.current=null;
      pickRef.current=null;godRef.current=null;world.dispose();window.removeEventListener('beastbox:genome',syncPlush);window.removeEventListener('beastbox:pixel-mode',syncPlush);window.removeEventListener('beastbox:spark-chirp',onTalk);document.documentElement.removeAttribute('data-beast-3d');life.dispose();plush?.dispose();
      {const ze=(window as any).__zerefEmbed;if(ze?.root?.parent===zActorNode){zActorNode.remove(ze.root);ze.root.position.y=0;ze.claimed=false;}}
      cancelAnimationFrame(frame);ro?.disconnect();io?.disconnect();
