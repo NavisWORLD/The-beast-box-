@@ -1,5 +1,6 @@
 'use client';
 import {flowStars,flowGrid} from '../lib/living-core/river-flow';
+import {capScenePoints,pushCameraOut} from '../lib/living-core/near-lens';
 import {createGravityCam} from '../lib/living-core/gravity-camera';
 import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles,LC_WORLD_H} from '../lib/living-core/core-cache';
 import {attachSynapse,addRoamExtras,synapseClick} from '../lib/living-core/roam-extras';
@@ -459,7 +460,10 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      (scene.fog as import('three').FogExp2).density=.012*Math.min(1.6,12/v.zoom);// cage-purple fog, tuned for the expanded universe
      const lens=gcam.lens(reduced?0:dt,v.zoom,zr,reduced?0:Math.min(1,(lcS.LC?.__surf?.U.uFlowA.value||0)*.5));const zd=lens.zoom;camera.fov=lens.fov;
      camera.near=Math.max(.05,zd*.01);camera.updateProjectionMatrix();
-     camera.position.set(f.x+zd*Math.sin(v.phi)*Math.sin(v.theta),f.y+zd*Math.cos(v.phi),f.z+zd*Math.sin(v.phi)*Math.cos(v.theta));gcam.step(reduced?0:dt);
+     camera.position.set(f.x+zd*Math.sin(v.phi)*Math.sin(v.theta),f.y+zd*Math.cos(v.phi),f.z+zd*Math.sin(v.phi)*Math.cos(v.theta));{const bods:any[]=[{x:zHolder.position.x,y:zHolder.position.y+.3,z:zHolder.position.z,r:.4},{x:beastNode.position.x,y:beastNode.position.y+.3,z:beastNode.position.z,r:.45}];for(const r of ((window as any).__lcResidents||[]))bods.push({x:r.x,y:.35,z:r.z,r:.4});
+      if(pushCameraOut(camera.position,bods)>0)camera.lookAt(f);}// creatures can never get inside the lens
+     if(elapsed-((camera as any).__capT||-9)>1){(camera as any).__capT=elapsed;capScenePoints(scene);}
+     gcam.step(reduced?0:dt);
      camera.lookAt(f);
      try{gcam.render(camera.position.distanceTo(zHolder.position));}catch{setReady(false);setFailed(true);return;}
      if(!rendered){rendered=true;setReady(true);}

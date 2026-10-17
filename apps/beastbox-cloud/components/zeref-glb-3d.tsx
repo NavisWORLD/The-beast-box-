@@ -202,7 +202,7 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
        vec3 p=vec3(0.,.62,0.)+d*vec3(.40,.52,.34)+(d*.3+vec3(0.,.55,0.))*life*(.45+.6*uChaos);
        float a=uSwirl*.5*life+aSeed.x*6.2831*.05;p.xz=mat2(cos(a),-sin(a),sin(a),cos(a))*p.xz;
        vA=uStir*smoothstep(0.,.12,life)*(1.-life)*(.5+.5*aSeed.y);vC=mix(vec3(.65,.4,1.),vec3(.45,.9,1.),aSeed.x);
-       vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=(.012+.02*aSeed.y)*uScale*(1.-.4*life)/-mv.z;gl_Position=projectionMatrix*mv;}`,
+       vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=min((.012+.02*aSeed.y)*uScale*(1.-.4*life)/-mv.z,40.)*smoothstep(.35,1.1,-mv.z);gl_Position=projectionMatrix*mv;}`,
      fragmentShader:`varying float vA;varying vec3 vC;void main(){vec2 c=gl_PointCoord-.5;float d=length(c);if(d>.5)discard;float k=smoothstep(.5,0.,d);gl_FragColor=vec4(vC*k*k*vA*1.6,1.);}`});
     motes=new THREE.Points(g,m);motes.frustumCulled=false;motes.renderOrder=30;pivot.add(motes);}
    gltf0=gltf;pivot.add(gltf.scene);driver=createZerefDriver(THREE,gltf.scene,{seed,mood:live.current.mood});

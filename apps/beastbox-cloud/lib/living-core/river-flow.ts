@@ -26,7 +26,7 @@ export function addRiverFlow(THREE:T,parent:import('three').Object3D,{low,seed='
   p+=vec3(sin(p.z*1.6+uTime*.6+c)*cos(p.y*1.1),sin(p.x*1.2-uTime*.45+c2)*.5,-cos(p.x*1.7+uTime*.5)*sin(p.y*1.3+c))*.16;
   vec4 mv=modelViewMatrix*vec4(p,1.);vG=aSeed.w;vS=min(1.,s/5.);
   vA=(.35+.4*aSeed.y)*smoothstep(34.,22.,length(p.xz));
-  gl_PointSize=(vG>0.?9.:2.4+aSeed.y*2.2)*clamp(6./-mv.z,.5,2.);gl_Position=projectionMatrix*mv;}`;
+  gl_PointSize=(vG>0.?9.:2.4+aSeed.y*2.2)*clamp(6./-mv.z,.5,2.)*smoothstep(.35,1.1,-mv.z);gl_Position=projectionMatrix*mv;}`;
  const fs=`uniform sampler2D uAtlas;varying float vG;varying float vA;varying float vS;
  void main(){vec3 col=mix(vec3(.62,.48,1.),vec3(.45,.85,1.),vS);float a;
   if(vG>0.){vec2 uv=vec2((vG-1.+gl_PointCoord.x)/16.,1.-gl_PointCoord.y);a=texture2D(uAtlas,uv).a*.38;}
