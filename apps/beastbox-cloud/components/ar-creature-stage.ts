@@ -132,6 +132,6 @@ export async function createArStage(host:HTMLElement,gen:PlushGenome,opts:{onMod
  // ?manual=1 (QA captures): no free-running loop; __arStage.step(dt) advances the life + renders one frame deterministically.
  const qManual=new URLSearchParams(location.search).get('manual')==='1';if(!qManual)r.setAnimationLoop(frameFn);
  (window as any).__arStage={step:(dt:number)=>{manual=dt;frameFn(performance.now());},mode:()=>mode,kind:()=>kind,life:()=>({mode:pets[0].life.mode,x:pets[0].life.x*k,z:pets[0].life.z*k,y:pets[0].body.position.y}),pets:()=>pets.map(p=>({name:p.name,mode:p.life.mode,x:p.life.x*k,z:p.life.z*k})),place,call,feed,toss,pet};
- return {place,enableOrientation,startXR,xrSupported,exportUsdz,ready,get mode(){return mode;},
+ return {place,call,feed,toss,pet,enableOrientation,startXR,xrSupported,exportUsdz,ready,get mode(){return mode;},
   dispose(){disposed=true;r.setAnimationLoop(null);ro.disconnect();window.removeEventListener('deviceorientation',onOri);try{xrSession?.end();}catch{}pets.forEach(p=>p.dispose());r.dispose();cv.remove();}};
 }

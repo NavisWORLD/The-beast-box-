@@ -5,6 +5,7 @@ import {useBeastSession} from './beast-session';
 import {shownName} from '../lib/companion/session.mjs';
 import {deriveEmotions,emotionLine} from '../lib/companion/emotion.mjs';
 import type {ArMode} from './ar-creature-stage';
+import {ZEREF_GENOME} from '../lib/companion/zeref-genome'; // bb-deada969
 
 /**
  * Camera field (Oct 16 2026 AR rewrite): the device camera feed is the open field and the selected creature is its real
@@ -17,7 +18,6 @@ type Phase='idle'|'asking'|'live'|'denied'|'unsupported'|'error';
 type Stage=Awaited<ReturnType<typeof import('./ar-creature-stage').createArStage>>;
 const MODE_LABEL:Record<ArMode,string>={xr:'True AR tracking · WebXR AR · real surface tracking',anchored:'Camera overlay · motion look-around, floor assumed ~1.35 m below (not full AR tracking)',preview:'Camera overlay · fixed view, no motion tracking'};
 // Zeref (bb-deada969) walks the room with your companion: the artistic dragonling body, seeded from his id.
-const ZEREF_GENOME={seed:'bb-deada969',body:'dragonling',island:'ember',element:'umbral',ears:'horns',tail:'flame',wings:'bat',pattern:'stars',genes:{}};
 export default function CameraField({fullscreen=false,autoStart=false,floorPx=0,onLive}:{fullscreen?:boolean;autoStart?:boolean;floorPx?:number;onLive?:(live:boolean)=>void}){
  const {profile}=useCompanion();const {session}=useBeastSession();void profile;
  // The user's own selected creature: the same saved QBEAST the /spark picker, Surprise Me and the Cage write.
@@ -43,7 +43,7 @@ function stop(){stream.current?.getTracks().forEach(t=>t.stop());stream.current=
   void import('./ar-creature-stage').then(async({createArStage})=>{if(gone)return;
    st=await createArStage(el,(beast?.genome||ZEREF_GENOME) as any,{name,friend:beast&&withZeref?{genome:ZEREF_GENOME as any,name:'Zeref'}:undefined,onEvent:t=>say(t),onMode:setMode,onPlaced:()=>setPlaced(true)});if(gone){st.dispose();return;}ar.current=st;
    setXrOk(await st.xrSupported());const a=document.createElement('a');setQlOk(!!a.relList?.supports?.('ar'));
-  }).catch(()=>setMsg('3D could not start on this device.'));
+  }).catch(e=>{console.error('ar-stage',e);setMsg('3D could not start on this device.');});
   return()=>{gone=true;st?.dispose();ar.current=null;};
  },[beast?.genome?.seed,withZeref]);// eslint-disable-line react-hooks/exhaustive-deps
  async function startXR(){const st=ar.current;if(!st)return;const ok=await st.startXR(stage.current||undefined);if(!ok)setMsg('WebXR AR could not start here; using the camera overlay instead.');}
@@ -53,7 +53,7 @@ function stop(){stream.current?.getTracks().forEach(t=>t.stop());stream.current=
  function onTap(e:React.PointerEvent){
   if((e.target as HTMLElement).closest('button,a,[data-camera-prompt]'))return;
   const st=ar.current;if(!st||mode==='xr')return;
-  const petted=(st as any).pet?.(e.clientX,e.clientY);if(petted){say(`${petted} leans into the pet and does a happy hop.`);return;}
+  const petted=st.pet(e.clientX,e.clientY);if(petted){say(`${petted} leans into the pet and does a happy hop.`);return;}
   if(st.place(e.clientX,e.clientY)){const scared=em.dominant==='fear';say(scared?`${name} is shy and edges over to the new spot.`:em.dominant==='mischief'?`${name} zooms over to the spot!`:`${name} trots over to explore. ${emotionLine(name,em)}`);}
   else say('Tap the floor (below the horizon) to place '+name+'.');
  }
@@ -77,7 +77,7 @@ function stop(){stream.current?.getTracks().forEach(t=>t.stop());stream.current=
    </div>:<><div data-ar-actions style={{position:'absolute',left:10,right:10,bottom:`calc(${floorPx}px + 56px)`,display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}} onPointerDown={e=>e.stopPropagation()}>
      {xrOk&&mode!=='xr'?<button type="button" data-start-xr onClick={()=>void startXR()} style={{minHeight:44,padding:'0 14px',borderRadius:999,border:'1px solid #78ddea88',background:'#17364aee',color:'#d7faff',fontWeight:800}}>Start AR (surface tracking)</button>:null}
      {qlOk&&beast?<button type="button" data-quick-look onClick={()=>void quickLook()} disabled={busy} style={{minHeight:44,padding:'0 14px',borderRadius:999,border:'1px solid #b9a2ff88',background:'#2a1d55ee',color:'#efe6ff',fontWeight:800}}>{busy?'Preparing…':'View in your room (Quick Look AR)'}</button>:null}
-     <div data-ar-play role="group" aria-label="Play" style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'center',width:'100%'}}>{([['call','📣 Call',()=>{const n=(ar.current as any)?.call?.()||[];say(`${n.join(' and ')} come${n.length>1?'':'s'} running to you!`);}],['feed','🍖 Feed',()=>{(ar.current as any)?.feed?.();say('A treat lands in front of you…');}],['toy','🎾 Throw toy',()=>{(ar.current as any)?.toss?.();say('Fetch!');}]] as [string,string,()=>void][]).map(([k,t,f])=><button key={k} type="button" data-ar-action={k} onClick={f} style={{minHeight:44,padding:'0 14px',borderRadius:999,border:'1px solid #78ddea88',background:'#0c1228e0',color:'#d7faff',fontWeight:800}}>{t}</button>)}{beast?<button type="button" data-ar-zeref={withZeref?'on':'off'} aria-pressed={withZeref} onClick={()=>setWithZeref(v=>!v)} style={{minHeight:44,padding:'0 12px',borderRadius:999,border:'1px solid #b9a2ff88',background:'#2a1d55e0',color:'#efe6ff',fontWeight:700}}>{withZeref?'🌙 Zeref is here':'🌙 Invite Zeref'}</button>:null}</div>
+     <div data-ar-play role="group" aria-label="Play" style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'center',width:'100%'}}>{([['call','📣 Call',()=>{const n=ar.current?.call()||[];say(`${n.join(' and ')} come${n.length>1?'':'s'} running to you!`);}],['feed','🍖 Feed',()=>{ar.current?.feed();say('A treat lands in front of you…');}],['toy','🎾 Throw toy',()=>{ar.current?.toss();say('Fetch!');}]] as [string,string,()=>void][]).map(([k,t,f])=><button key={k} type="button" data-ar-action={k} onClick={f} style={{minHeight:44,padding:'0 14px',borderRadius:999,border:'1px solid #78ddea88',background:'#0c1228e0',color:'#d7faff',fontWeight:800}}>{t}</button>)}{beast?<button type="button" data-ar-zeref={withZeref?'on':'off'} aria-pressed={withZeref} onClick={()=>setWithZeref(v=>!v)} style={{minHeight:44,padding:'0 12px',borderRadius:999,border:'1px solid #b9a2ff88',background:'#2a1d55e0',color:'#efe6ff',fontWeight:700}}>{withZeref?'🌙 Zeref is here':'🌙 Invite Zeref'}</button>:null}</div>
      {!placed&&mode!=='xr'?<span style={{padding:'6px 10px',borderRadius:999,background:'#000a',fontSize:12}}>Point at the floor and tap to place {name}. Tap a creature to pet it</span>:null}
     </div><button type="button" onPointerDown={e=>e.stopPropagation()} onClick={stop} style={{position:'absolute',right:10,top:fullscreen?'max(100px,calc(env(safe-area-inset-top) + 92px))':10,minHeight:36,padding:'4px 12px',borderRadius:999,border:'1px solid #78ddea88',background:'#0c1228e0',color:'#d7faff',fontWeight:700,fontSize:12}}>Stop camera</button></>}
   </div>

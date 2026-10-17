@@ -55,3 +55,5 @@
 
 .cameraLayer{position:absolute;inset:0;z-index:0;pointer-events:auto}
 .padToggle{position:absolute;z-index:6;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));min-height:40px;padding:6px 14px;border-radius:999px;border:1px solid #78ddea88;background:#0c1228e8;color:#d7faff;font-weight:700;font-size:12px;pointer-events:auto}
+/* site nav bar sits above the field HUD (Oct 16 2026) */
+.field{top:calc(43px + max(6px,env(safe-area-inset-top,0px)))}.card,.screenMenu{top:10px}.guestNote{top:96px}
