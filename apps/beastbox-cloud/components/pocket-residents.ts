@@ -3,6 +3,8 @@ import {loadResident3D} from './resident-3d';
 import {loadBeastGlb} from './creature-glb-beast';
 import RES_PAINTS from '../lib/creatures3d/resident-paints.json';
 import {motionPersona,createActor,stepActor} from '../lib/companion/film-motion.mjs';
+import {RESIDENT_LC} from '../lib/living-core/creatures.js';
+import {getLivingCore,stepLivingCore,livingCoreScale,LC_FLYERS} from '../lib/living-core/core-cache';
 type Three=typeof import('three');
 /** Cory's artist-drawn residents (no quantum seed). They are separate creatures and never the
  * player's active Beast, which stays rendered by the Cage arena in front of the pocket. */
@@ -12,6 +14,7 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
  const glbOk=!reduced&&(!!glbTier||(typeof location!=='undefined'&&new URLSearchParams(location.search).get('beastglb')==='1'));
     const loader=new THREE.TextureLoader(),texCache=new Map<string,import('three').Texture>();
     const tex=(src:string)=>{let t=texCache.get(src);if(!t){t=loader.load(src);t.colorSpace=THREE.SRGBColorSpace;texCache.set(src,t);}return t;};
+    let lcQueue:Promise<any>=Promise.resolve();
     const residents=ARTIST_RESIDENTS.map((r,i)=>{
      const mat=new THREE.SpriteMaterial({map:tex(r.views.front),transparent:true,depthWrite:false});
      const sprite=new THREE.Sprite(mat);const h=.95*r.scale;sprite.scale.set(h,h,1);sprite.name=r.id;
@@ -20,12 +23,16 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
      // Film motion: artist-drawn → no quantum seed, so the persona comes from the resident's own id only.
      const home=(i/ARTIST_RESIDENTS.length)*Math.PI*2+.6,hr=r.kind==='trainer'?2.2:2.8;
      const actor=createActor(motionPersona({id:r.id}),{x:Math.cos(home)*hr,z:Math.sin(home)*hr*.85,radius:.9,seed:r.id});
-     const slot:{mesh:any;glb:any;foot:number}={mesh:null,glb:null,foot:0};
+     const slot:{mesh:any;glb:any;foot:number;lc?:any;lcName?:string;lcK?:number}={mesh:null,glb:null,foot:0};
      // Zeref-pipeline sculpted resident GLB (Oct 15) with its artist palette + props; the visual-hull model / sprite stay as fallback.
      const stub=(RES_PAINTS as any[]).find(x=>x.body==='res_'+r.id.replace('art-',''));
      const hull=()=>loadResident3D(THREE,r.id).then(m=>{if(!m)return;slot.mesh=m;scene.add(m);sprite.visible=false;});
-     if(stub&&glbOk)void loadBeastGlb(THREE,stub,{tier:glbTier||'med',paint:stub.paint}).then(gb=>{if(!gb){void hull();return;}slot.glb=gb;gb.root.scale.setScalar(.95*r.scale);gb.root.updateMatrixWorld(true);slot.foot=-new THREE.Box3().setFromObject(gb.root).min.y;slot.mesh=gb.root;gb.root.userData.glb=true;scene.add(gb.root);sprite.visible=false;}).catch(()=>void hull());
-     else void hull();
+     // Oct 16 living-core rollout: residents with a living-core config get the true-3D body (built one at a time,
+     // cached); GLB / visual hull / sprite stay as the fallback chain.
+     const lcName=(RESIDENT_LC as Record<string,string>)[r.id];
+     const legacy=()=>{if(stub&&glbOk)void loadBeastGlb(THREE,stub,{tier:glbTier||'med',paint:stub.paint}).then(gb=>{if(!gb){void hull();return;}slot.glb=gb;gb.root.scale.setScalar(.95*r.scale);gb.root.updateMatrixWorld(true);slot.foot=-new THREE.Box3().setFromObject(gb.root).min.y;slot.mesh=gb.root;gb.root.userData.glb=true;scene.add(gb.root);sprite.visible=false;}).catch(()=>void hull());else void hull();};
+     if(lcName&&!reduced){lcQueue=lcQueue.catch(()=>{}).then(()=>getLivingCore(THREE,lcName)).then(({LC})=>{const root=new THREE.Group();const body=new THREE.Group();const k=livingCoreScale(LC,1.25*r.scale);body.scale.setScalar(k);body.position.y=-LC.footY*k;body.add(LC.group);root.add(body);if(LC.shadow)root.add(LC.shadow);root.name=r.id+'-living-core';scene.add(root);slot.lc=LC;slot.lcName=lcName;slot.lcK=k;slot.mesh=root;sprite.visible=false;shadow.visible=false;}).catch(()=>legacy());}
+     else if(!lcName||reduced)legacy();
      return {r,sprite,shadow,h,actor,slot,phase:i*1.37+seedRandom()*2,radius:r.kind==='trainer'?2.2:2.7+seedRandom()*1.1,speed:(r.kind==='trainer'?.05:.09+seedRandom()*.06)*(i%2?1:-1),src:r.views.front,x:0,z:0};
     });
     let lastT=0;
@@ -44,6 +51,11 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
       a.sprite.scale.set(a.h*p.sx*(view.flip?-1:1),hy,1);m.rotation=-p.lean*(view.flip?-1:1);
       const gb=a.slot.glb;if(gb){gb.drive(reduced?0:dt,{speed:Math.min(1,Math.hypot(p.x-(a as any).px||0,p.z-(a as any).pz||0)/Math.max(dt,1e-3)),mode:'wander',sleep:0,lookCam:0,bob:t*6,heading:p.heading},null,null);(a as any).px=p.x;(a as any).pz=p.z;
        gb.root.position.set(p.x,gy+a.slot.foot+p.lift,p.z);gb.root.scale.setScalar(.95*a.r.scale);gb.root.rotation.set(0,p.heading+p.head,0);}
+      if(a.slot.lc){const L=a.slot.lc,fly=LC_FLYERS.includes(a.slot.lcName||'');const hover=fly?.55+Math.sin(t*1.1*Math.PI*2*.35)*.08:0;
+       a.slot.mesh.position.set(p.x,gy+p.lift+hover,p.z);a.slot.mesh.rotation.set(0,p.heading+p.head,0);a.slot.mesh.children[0].scale.set(a.slot.lcK!*p.sx,a.slot.lcK!*p.sy,a.slot.lcK!*p.sx);
+       const sp=Math.hypot(p.x-((a as any).lx??p.x),p.z-((a as any).lz??p.z))/Math.max(dt,1e-3);(a as any).lx=p.x;(a as any).lz=p.z;
+       const mood=i===meet&&beast?.moment==='play-fight'?'angry':i===meet?'happy':sp>.6?'happy':p.lift>.02?'happy':(Math.sin(t*.07+i*2)>.85?'curious':Math.sin(t*.05+i)>.92?'sleepy':'calm');
+       if((a as any).mood!==mood){(a as any).mood=mood;L.setEmotion?.(mood);}stepLivingCore(L,reduced?0:dt);a.sprite.visible=false;return;}
       const mesh=gb?null:a.slot.mesh;if(mesh){mesh.position.set(p.x,gy+p.lift,p.z);const k=a.h*1.55;mesh.scale.set(k*p.sx,k*p.sy,k*p.sx);mesh.rotation.set(p.lean,p.heading+p.head,0,'YXZ');}
      });
     };

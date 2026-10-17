@@ -81,7 +81,7 @@ test('homepage truly renders the procedural galaxy creature, not merely a static
  const hero=read('components/homepage-creature.tsx');
  // Oct 16: guests get the roaming living-core Zeref; a saved QBEAST still gets HomepageCreature via the slot.
  assert.match(home,/HomeCreatureSlot/);assert.match(read('components/home-creature-slot.tsx'),/HomepageCreature/);
- assert.match(read('components/home-pocket.tsx'),/LivingCoreRoamer creature="zeref"/);
+ assert.match(read('components/home-pocket.tsx'),/chatLine=\{lastYou\}/);assert.match(read('components/cage-pocket-dimension.tsx'),/getLivingCore\(THREE,'zeref'/);
  assert.match(hero,/CosmicCompanion3D quality="low"/);
  assert.match(hero,/turntable=\{spin\}/);
  assert.match(home,/Enter the Beast Cage/);
