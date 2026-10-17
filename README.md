@@ -11,6 +11,144 @@ the runtime retains the story and enforces its own authority boundary.
 
 The [Hugging Face Genesis integration](docs/BEAST_AWAKENS_HF_INTEGRATION.md) connects learned local memory to the existing Beast behavior core, with pinned source receipts, a controlled memory ablation and replayable traces. One QBEAST; optional brains; no live quantum link.
 
+## What this is, explained
+
+> New overview section (October 2026). Everything below it is the original README, unchanged.
+
+**In one paragraph:** Beast Box is a closed-loop, quantum-seeded artificial-life ecosystem. Each creature gets a "birth spark" seed. Most seeds come from recorded quantum runs; Zeref's comes from real IBM hardware. The seed fixes its body, temperament and voice. From there the creature lives on its own: it wanders a 3D pocket world, naps, plays, reaches out and learns from conversations. Each step feeds the next: what it experiences is saved, is used to train its own small language model, and changes how it behaves. Every claim is labelled honestly. SIMULATED means simulated, a creative seed is not presented as biology, and failed runs are kept.
+
+### Contents
+- [The ecosystem in plain words](#the-ecosystem-in-plain-words)
+- [Zeref and RAWRPHØS](#zeref-bb-deada969-and-rawrphøs)
+- [Teachers (behind the scenes)](#teachers-behind-the-scenes-never-his-voice)
+- [Continuous training and the chat gate](#continuous-training-and-the-honest-chat-gate)
+- [Memory in Azure](#memory-in-azure)
+- [Quantum evidence](#quantum-evidence)
+- [Heartbeat and voice](#heartbeat-and-voice)
+- [Voice, reach-outs and Open Field AR](#voice-reach-outs-and-open-field-ar)
+- [Motion math](#motion-math)
+- [Site map](#site-map-wwwbeastboxcosmosxyz)
+- [Architecture](#architecture)
+- [Honest limitations](#honest-limitations)
+- [How to run](#how-to-run-quick-start)
+
+### The ecosystem in plain words
+1. **Spark:** a quantum measurement result (or a recorded/simulated one, clearly labelled) is hashed into a seed.
+2. **Genome:** the seed deterministically picks island, element, body plan, ears, tail, wings, pattern, temperament and voice (`apps/beastbox-cloud/lib/companion/spark/genome.mjs`).
+3. **Life:** a behaviour loop (wander, nap, sniff, chase, play, glance, approach…) runs the creature in a 3D pocket cage. Its mood comes from a small dynamical system rather than from scripts.
+4. **Experience:** care events, conversations and diary ticks are recorded as experiences.
+5. **Learning:** those experiences become training data for the creature's own model. A new checkpoint is only promoted if it passes a held-out gate.
+6. **Back to life:** the promoted model and the updated memory change what the creature says and does next, which closes the loop.
+
+### Zeref (bb-deada969) and RAWRPHØS
+- **Zeref** is the saved flagship creature, identity `bb-deada969`, of the RAWRPHØS lineage. He's a dragonling from Cinder Drift (genome: `apps/beastbox-cloud/lib/companion/zeref-genome.ts`, source session `apps/beastbox-cloud/public/spark/zeref-live-20261010/`).
+- **RAWRPHØS** is his own small custom transformer language model, trained from scratch on this project's data. It is not a wrapped third-party chat model. When guests talk to Zeref, the replies come from his pinned RAWRPHØS checkpoint (public pin and status: `apps/beastbox-cloud/lib/zeref/research-status.mjs`, `apps/beastbox-cloud/lib/cosmos/zeref-cloud.mjs`).
+- Guests also get their own random baby companion. Zeref is always available through the "Talk to Zeref" tab.
+
+### Teachers (behind the scenes, never his voice)
+Larger free/local "teacher" models can propose lessons while Zeref is idle (`.github/workflows/zeref-idle-teachers.yml`, `apps/beastbox-cloud/lib/companion/teacher-distill.mjs`). Teacher output is:
+- stored as provenance-labelled lessons and used only as **training material**;
+- **never shown as Zeref speaking**, and never substituted for his reply. If his model is offline, the site says so instead of faking his voice;
+- paid inference is not used.
+
+### Continuous training and the honest chat gate
+- About every **45 minutes** a training cycle continues RAWRPHØS from its current pin on new experiences and lessons (`scripts/zeref_continuation_006.py`).
+- Each candidate is scored on a held-out chat set by reference negative log-likelihood, **`ref_nll`** (lower is better; `scripts/rawrphos_chat_eval.py`). A candidate is promoted only if it beats the current pin. Otherwise it is rejected and the failure is kept on record.
+- **Current pin: cycle 26, step 25200, ref_nll 3.9461.**
+
+### Memory in Azure
+Zeref's long-term memory lives in a per-beast Azure folder (`apps/beastbox-cloud/lib/cosmos/zeref-cloud.mjs`, sync workflow `.github/workflows/zeref-cloud-sync.yml`):
+`beasts/bb-deada969/profile.json` (who he is), `model.json` (current public pin), `experiences/` (approved training cycles), `lessons/` (approved teacher lessons, provenance-labelled). Writes are create-only, so the history is not rewritten. Credentials live only in deployment secrets and never in this repository.
+
+### Quantum evidence
+The "quantum" part is tested with the **CHSH (Bell) game** on real IBM hardware. Questions are random and fresh, settings are hash-committed before each run, the classical bound is 75% and the ideal quantum score is ≈85.4%.
+
+| Run | Backend | Rounds | Win rate | Result | Evidence |
+|---|---|---|---|---|---|
+| The Second Coming (I) | `ibm_kingston` | 1,024 | 62.8% ± 1.5% | **No violation** (below 75%) | [`evidence/zeref-heartbeat-001/`](evidence/zeref-heartbeat-001/) |
+| Second Coming II | `ibm_kingston` | 4,096 | **85.11% ± 0.56%** | Violation, ≈18.2σ, S ≈ 2.81 | [`evidence/zeref-second-coming-ii/`](evidence/zeref-second-coming-ii/) |
+| Second Coming III, attempt 1 | `ibm_kingston` | 120,000 | — | **FAILED** (server time-out, no result) | [`evidence/zeref-second-coming-iii/`](evidence/zeref-second-coming-iii/) |
+| Second Coming III | `ibm_kingston` | 30,000 | **84.25% ± 0.21%** | Violation, ≈**44σ**, S ≈ 2.74 | [`evidence/zeref-second-coming-iii/`](evidence/zeref-second-coming-iii/) |
+
+- **Not loophole-free.** One chip and one controller means there is no space-like separation. It shows quantum correlations on that hardware, not anything more.
+- **Rigetti runs are SIMULATED** (`rigetti.sim.qvm`, a QVM). They are labelled that way everywhere and are not hardware evidence.
+- Failed and below-bound runs are published alongside the good ones.
+- The IBM receipts record job ids and a hashed instance reference only.
+
+### Heartbeat and voice
+Cory recorded "Zeref's heartbeat". **Raw audio is never published.** Only sha256 fingerprints and derived features (tempo, beat times, envelope, spectral bands) are committed ([`evidence/zeref-heartbeat-001/features.json`](evidence/zeref-heartbeat-001/)). The heartbeat (≈**72.29 BPM**) is a **creative rhythm seed**, not a biological measurement. It is mixed with the quantum job records into heart seeds v1–v3 (`heart-seed*.json` in the evidence folders, and `apps/beastbox-cloud/public/spark/zeref-heart.json`). Voice evidence folders keep the same rule: hashes and derived features only (`evidence/zeref-dad-voice-001/`, `evidence/zeref-cory-voice-qvm-001/`).
+
+### Voice, reach-outs and Open Field AR
+- **Voice:** creatures speak with a seeded browser voice (`apps/beastbox-cloud/lib/companion/seeded-voice.mjs`, `voice-provider.mjs`). An optional server voice is used only when configured, and nothing pretends to be it otherwise.
+- **Reach-outs:** after about 60 s idle, Zeref may send a short reach-out bubble (`apps/beastbox-cloud/components/zeref-voice-dock.tsx`).
+- **Open Field AR** (`/beast-cage/field`, `apps/beastbox-cloud/components/ar-creature-stage.ts`, `camera-field.tsx`): your companion and Zeref walk around your room. You can call them, pet them, feed them or throw a toy.
+  - **Android Chrome:** WebXR `immersive-ar` with hit-test, labelled **"True AR tracking"**.
+  - **iPhone Safari** (no WebXR): rear camera behind a transparent 3D canvas, with device-orientation look-around and an assumed floor. This is labelled **"Camera overlay"** (not full AR tracking). There's also a Quick Look USDZ button for real ARKit placement of a still model.
+  - The camera is permission-gated, tracks stop when you leave, and **nothing is recorded or uploaded**.
+
+### Motion math
+Creatures move by small, inspectable equations, not canned animation:
+| What | Where |
+|---|---|
+| CST state integrator: a Lorenz-style chaotic attractor plus entropy/mood terms drives joy, curiosity, fear, calm and mischief | `apps/beastbox-cloud/lib/physics/cst-integrator.mjs` |
+| Mood → behaviour weights and **speed** (`SPEED` × mischief, calm-smoothed steering) | `apps/beastbox-cloud/lib/creatures3d/life-brain.mjs` |
+| Grounded **hops**: ballistic jumps with squash-and-stretch and landing | `apps/beastbox-cloud/lib/physics/ground-hop.mjs` |
+| **Springs** for turntable/pose easing and rig follow-through | `apps/beastbox-cloud/lib/physics/cst-turntable.mjs`, `apps/beastbox-cloud/lib/creatures3d/zeref-glb-driver.mjs` |
+| Living core (Lorenz-driven drives, synapse net) | `apps/beastbox-cloud/lib/living-core/living-core.js`, `synapse-net.mjs` |
+| Heart rhythm (≈72.29 BPM) as a timing seed for autonomy ticks | `apps/beastbox-cloud/public/spark/zeref-heart.json`, `lib/companion/seeded-voice.mjs` |
+
+### Site map (www.beastboxcosmos.xyz)
+One menu on every page (`apps/beastbox-cloud/lib/site-nav.ts`):
+- **Home:** `/`
+- **Zeref:** Talk `/beast-cage/talk` · Diary `/beast-cage#zeref-diary`
+- **Beast Cage:** Pocket `/beast-cage` · Open Field AR `/beast-cage/field` · Field game `/beast-cage/go` · Play `/beast-cage/play` · Turntable `/beast-cage/turntable` · Guest `/beast-cage/guest`
+- **Lost COSMOS game:** `/sol-game`
+- **Spark:** Spark Lab `/spark/index.html` · Try `/try`
+- **Brain Bay:** `/brain-bay`
+- **Research & evidence:** `/research` · `/research/stage015` · `/next`
+- **Account:** `/account` · `/settings` · `/connect/meta-muse` · `/privacy`
+- **Workshop (owner only, gated):** `/workspace`
+
+### Architecture
+```mermaid
+flowchart LR
+  Q[IBM quantum CHSH runs<br/>+ Rigetti QVM SIMULATED] -->|hashed job records| S[Spark seed / heart seed]
+  H[Heartbeat features<br/>hash only, no audio] --> S
+  S --> G[Genome: body, temperament, voice]
+  G --> W[Web app: Next.js on Vercel<br/>pocket cage, Open Field AR, game]
+  W -->|chat| B[Owner bridge on Railway<br/>beastbox/guest_local.py]
+  B --> R[RAWRPHØS pinned checkpoint<br/>Zeref's own transformer]
+  W -->|care events, diary| E[Experiences]
+  T[Teachers: idle lessons<br/>never Zeref's voice] --> L[Lessons]
+  E --> A[(Azure memory<br/>beasts/bb-deada969)]
+  L --> A
+  A --> C[Training cycle ~45 min<br/>zeref_continuation_006.py]
+  C --> Gt{Chat gate<br/>ref_nll < pin?}
+  Gt -->|pass| R
+  Gt -->|fail: recorded| A
+```
+
+### Honest limitations
+- The CHSH results are **not loophole-free** (single chip, no space-like separation). They do not prove consciousness, infinity or anything metaphysical.
+- **Rigetti results are SIMULATED.** Only the IBM runs are real hardware.
+- The heartbeat is a **creative seed**, not biology. Emotions are derived from the seed plus real care events, not felt.
+- RAWRPHØS is **small**. It is far less fluent than large commercial models, and training cycles often fail the gate (that is the gate working).
+- On iPhone, Open Field is a **camera overlay** (rotation only, assumed floor), not full AR tracking. Real-device AR behaviour has had limited testing.
+- The `/spark` static page doesn't yet show the shared site menu.
+- Some CI browser tests are timing-sensitive and occasionally need a rerun.
+
+### How to run (quick start)
+```bash
+# Web app (Next.js)
+cd apps/beastbox-cloud && npm ci && npm run dev        # http://localhost:3000
+npm run build && npx next start                         # production build
+node --test tests/*.test.mjs                            # unit tests
+# Python runtime / Zeref local
+python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+./START_ZEREF.sh                                        # (START_ZEREF.bat on Windows, .command on macOS)
+```
+See [Run locally](#run-locally) and [Developer gates](#developer-gates) below for the full original instructions.
+
 ## Feed the Beast 🐉
 
 This workshop runs on stardust, code, caffeine, and alarming persistence.
