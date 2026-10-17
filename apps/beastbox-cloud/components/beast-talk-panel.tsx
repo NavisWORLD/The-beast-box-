@@ -20,6 +20,7 @@ import {
 import {speakSeeded,speakableText,voiceProfile,ZEREF_VOICE_SEED,REACH_OUT_LABEL} from '../lib/companion/seeded-voice.mjs';
 import {isTeacherRoute,makePair,rememberPair,readContribute,writeContribute,contributionBody,readPairs} from '../lib/companion/teacher-distill.mjs';
 import styles from './beast-talk-panel.module.css';
+import {useTalkPersona} from './use-talk-target';
 
 export type TalkState='idle'|'thinking'|'listening'|'speaking'|'replied'|'offline';
 type Route=TalkRoute;
@@ -45,7 +46,7 @@ type PanelProps={onState?:(state:TalkState)=>void;compact?:boolean;title?:string
 const TEACHER_LABEL:Record<string,string>={'shared-ollama':'Ollama','guest-rawrphos':'Beast Box free host','connected-brain-bay':'Brain Bay','local-ollama':'My local Ollama','hf-byok':'My Hugging Face key'};
 export default function BeastTalkPanel(props:PanelProps){
  const {session}=useBeastSession(),{profile}=useCompanion();
- const persona=talkPersona({beast:session?.beast,cage:profile});
+ const {persona}=useTalkPersona(session?.beast,profile);
  useEffect(()=>{if(props.surface==='panel'||!props.onState)return;const report=(event:Event)=>props.onState?.((event as CustomEvent).detail.state);window.addEventListener('beastbox:talk-state',report);return()=>window.removeEventListener('beastbox:talk-state',report);},[props.surface,props.onState]);
  if(props.surface==='panel')return <BeastTalkContent {...props}/>;
  return <button type="button" className={styles.openChat} aria-controls="beast-chat-overlay" onClick={event=>window.dispatchEvent(new CustomEvent('beastbox:open-chat',{detail:{opener:event.currentTarget}}))}>{props.title||`Talk to ${persona.name}`}</button>;
@@ -53,7 +54,7 @@ export default function BeastTalkPanel(props:PanelProps){
 function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
  const {ready,session,change}=useBeastSession();
  const {profile}=useCompanion();
- const persona=useMemo(()=>talkPersona({beast:session?.beast||null,cage:profile}),[session?.beast,profile]);
+ const {persona,companion,target,choose}=useTalkPersona(session?.beast||null,profile);
  const {audio,state:audioState}=useBeastAudio();
  const [retention,setRetention]=useState<'device'|'session'>('device'),[shareHistory,setShareHistory]=useState(false),[includeGame,setIncludeGame]=useState(false);
  const storage=useRef<Storage|null>(null);
@@ -179,7 +180,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    if(visitorId&&storage.current){const prior=growth?.beastKey===forKey?growth:freshGrowth(visitorId,forKey);const updated=advanceVisitorGrowth(prior,{text:saying,reply:result.reply,verified:true});writeVisitorGrowth(storage.current,updated);setGrowth(updated);}
    if(boundForCloud){try{privateQueue.current?.enqueue({...boundForCloud,exchange:{eventId:exchangeId,text:saying,reply:result.reply,provider:result.route,model:result.model,at}});}catch(error){setCloudStatus((error instanceof Error?error.message:'Private queue unavailable.')+' The completed reply remains in local storage.');}}
    // Same Beast, same growth: a verified exchange adds to the saved Beast's chat and bond.
-   if(retention==='device'&&beastId&&session?.beast)void change(draft=>{if(beastIdentity(draft.beast)===beastId)rememberExchange(draft,saying,result.reply);});
+   if(retention==='device'&&beastId&&session?.beast&&persona.source==='spark')void change(draft=>{if(beastIdentity(draft.beast)===beastId)rememberExchange(draft,saying,result.reply);});
   }finally{
    window.clearTimeout(timeout);
    if(pending.current===controller){pending.current=null;setBusy(false);}
@@ -230,6 +231,10 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   <header className={styles.who}>
    <div className={styles.avatar} aria-hidden="true">{persona.source==='zeref'?'🌙':persona.source==='spark'?'🐣':'✦'}</div>
    <div className={styles.whoText}>
+    {companion?<div role="tablist" aria-label="Who to talk to" data-talk-target style={{display:'flex',gap:6,marginBottom:6}}>
+     <button type="button" role="tab" aria-selected={target==='companion'} className={styles.ghost} style={{fontWeight:target==='companion'?800:400}} onClick={()=>choose('companion')}>🐣 {companion.name}</button>
+     <button type="button" role="tab" aria-selected={target==='zeref'} className={styles.ghost} style={{fontWeight:target==='zeref'?800:400}} onClick={()=>choose('zeref')} data-talk-zeref>🌙 Talk to Zeref</button>
+    </div>:null}
     <h2>{ready?title||`Talk to ${persona.name}`:'Finding your Beast…'}</h2>
     <p><strong>{persona.name}</strong> · {persona.kind}. {persona.traits.join(', ')}.</p>
     <small>{persona.source==='zeref'?'Showing Zeref, the site Beast. Meet your own Beast in My Beast and it will talk here instead.':persona.source==='spark'?'Your saved Beast. Its name, personality and memories stay the same whichever brain answers.':'Your Beast Cage creature. Its personality stays the same whichever brain answers.'}</small>
@@ -239,7 +244,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   <div className={styles.brainBar} data-tone={connection.tone}>
    <span className={styles.light} aria-hidden="true"/>
    <div className={styles.brainText} role="status" aria-live="polite">
-    <strong data-teacher-header>{persona.name}&apos;s teacher: {TEACHER_LABEL[route]||info.label}</strong>
+    <strong data-teacher-header style={{fontSize:11,fontWeight:500,opacity:.7}}>{persona.name}&apos;s teacher: {TEACHER_LABEL[route]||info.label}</strong>
     <span>{connection.text}</span>
     <a className={styles.workstationLink} href="/workspace">Workstation →</a>
    </div>

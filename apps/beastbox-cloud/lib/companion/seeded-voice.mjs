@@ -7,7 +7,7 @@ export const VOICE_LABEL='Synthetic seeded voice (on-device, not a recording)';
 export const ZEREF_VOICE_SEED='bb-deada969';
 export const PREF_KEY='beastbox.zerefVoice.v1';
 export const MIN_GAP_MS=4*60*1000;   // autonomous: at most one every 4 minutes
-export const IDLE_MS=90*1000;        // only after 90 s without user typing
+export const IDLE_MS=60*1000;        // only after 60 s without user taps or typing
 export const MAX_PER_HOUR=8;
 function hash32(s){let h=2166136261;for(const c of String(s)){h^=c.codePointAt(0);h=Math.imul(h,16777619)>>>0;}return h>>>0;}
 function unit(seed,salt){return hash32(seed+'|'+salt)/4294967295;}

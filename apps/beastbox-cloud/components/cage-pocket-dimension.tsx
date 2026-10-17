@@ -190,7 +190,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const softProbe=isSoftwareGL();
     const phoneGpu=low&&!reduced&&!softProbe&&visualSettings.quality!=='low';
     const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:(!low||phoneGpu)&&!softProbe,powerPreference:phoneGpu?'default':'low-power'});
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?(phoneGpu?1.6:1):1.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?(phoneGpu?1.25:1):1.5));
     // Software GL (CI SwiftShader, very old phones): force the low tier so the main thread never starves.
     let soft=false;try{const gl=renderer.getContext();const dbg=gl.getExtension('WEBGL_debug_renderer_info');soft=!!dbg&&/swiftshader|llvmpipe|software/i.test(String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)));}catch{}
     if(soft){low=true;renderer.setPixelRatio(1);}
@@ -275,7 +275,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const nebula=new THREE.Mesh(new THREE.SphereGeometry(30,low?24:40,low?12:24),nebulaMat);
     scene.add(nebula);
     // Cosmic dust (Lost COSMOS particles): additive motes drifting up through the pocket.
-    const dustN=low?90:220,dustGeom=new THREE.BufferGeometry(),dust=new Float32Array(dustN*3);
+    const dustN=low?60:220,dustGeom=new THREE.BufferGeometry(),dust=new Float32Array(dustN*3);
     for(let i=0;i<dustN;i++){dust[i*3]=(seedRandom()-.5)*8.6;dust[i*3+1]=seedRandom()*4.8;dust[i*3+2]=(seedRandom()-.5)*8.6;}
     dustGeom.setAttribute('position',new THREE.BufferAttribute(dust,3));
     const dustPts=new THREE.Points(dustGeom,new THREE.PointsMaterial({color:0xd7b8ff,size:.07,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false}));
@@ -363,7 +363,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      if(disposed)return;
      frame=requestAnimationFrame(animate);
      const dt=clamp((now-last)/1000,0,.06);last=now;
-     if(document.hidden||(!visible&&rendered)||now-lastPaint<(soft?120:low?55:33))return;
+     if(document.hidden||(!visible&&rendered)||now-lastPaint<(soft?120:low?66:33))return;
      lastPaint=now;
      if(!reduced)elapsed+=dt;
      nebulaMat.uniforms.time.value=elapsed;poolMat.uniforms.time.value=elapsed;
