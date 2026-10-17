@@ -20,3 +20,6 @@
 @keyframes lcSheetRise{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
 /* Keep the Lost COSMOS mini-player (bottom-right, ~284px) visible beside the chat on wide screens. */
 @media(min-width:1000px){.panel:not([data-expanded]){right:calc(min(284px,calc(100vw - 84px)) + 28px)}}
+
+/* Oct 16 declutter: on phones the Talk launcher is a compact pill above the game card, never covering OPEN GAME. */
+@media(max-width:560px){.launcher{bottom:calc(214px + env(safe-area-inset-bottom));min-height:40px;padding:8px 12px;font-size:11px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}

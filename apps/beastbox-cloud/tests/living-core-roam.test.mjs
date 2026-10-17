@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {reactToWords,nextGoal,rng,SPOTS,addCreation,MAX_CREATIONS,constructPoints,hopPose,flap,baseMood,loadCreations,saveCreations} from '../lib/living-core/roam-brain.mjs';
+import {CREATURES,RESIDENT_LC} from '../lib/living-core/creatures.js';
+test('chat words drive mood and creations',()=>{assert.equal(reactToWords('I love you').emotion,'happy');assert.equal(reactToWords('I love you').shape,'heart');assert.equal(reactToWords('why is that?').emotion,'curious');assert.equal(reactToWords('time to sleep').emotion,'sleepy');assert.equal(reactToWords('').emotion,null);});
+test('goals: sleepy goes to nap moss, curious to a library',()=>{const r=rng(3);assert.equal(nextGoal(r,'sleepy').id,'nap-moss');assert.equal(nextGoal(r,'curious').kind,'library');assert.equal(SPOTS.filter(s=>s.kind==='library').length,3);});
+test('creations persist capped',()=>{let l=[];for(let i=0;i<20;i++)l=addCreation(l,{shape:'star',x:i,z:0,seed:i});assert.equal(l.length,MAX_CREATIONS);assert.equal(l.at(-1).x,19);
+ const m=new Map();const s={getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v)};saveCreations(s,'bb-x',l);assert.equal(loadCreations(s,'bb-x').length,MAX_CREATIONS);});
+test('construct points finite',()=>{for(const sh of ['spiral','ring','star','heart','helix','bloom']){const p=constructPoints(sh,7,64);assert.ok(p.every(Number.isFinite));}});
+test('motion bible: squash .82 stretch 1.18, 35% downstroke',()=>{assert.ok(Math.abs(hopPose(.5).sy-1.18)<1e-9);assert.ok(Math.abs(hopPose(0).sy-.82)<1e-9);assert.equal(flap(0),1);assert.ok(Math.abs(flap(.35/1.1)+1)<1e-9);});
+test('mood from beast state',()=>{assert.equal(baseMood({emotions:{joy:.9,calm:.1}},'idle'),'happy');assert.equal(baseMood(null,'sleeping'),'sleepy');});
+test('every universe resident has a living-core config with one final block',()=>{for(const [id,c] of Object.entries(RESIDENT_LC)){assert.ok(CREATURES[c],id);assert.ok(CREATURES[c].src.endsWith('.png'));assert.ok((CREATURES[c].opts.eyes||[]).length>0,id);}});

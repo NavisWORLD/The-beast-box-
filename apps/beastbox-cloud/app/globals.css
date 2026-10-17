@@ -743,3 +743,10 @@ html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],
 *:has(>.cosmos-home-card[open])>.cosmos-home-viewmenu:not([open]){top:auto;bottom:8px}
 .cosmos-home-card[open]{z-index:6}
 .cosmos-home-viewmenu[open]{z-index:7}
+/* Oct 16 living-core rollout: bigger pocket universe with the roaming 3D creature as the focus. */
+.home-pocket-layer.is-roamer{pointer-events:auto}
+.beast-landing-art:has(.is-roamer){height:clamp(420px,46vw,680px)}
+.lc-roamer-doing{position:absolute;left:50%;bottom:7%;transform:translateX(-50%);padding:4px 10px;border-radius:999px;background:#0c0820aa;border:1px solid #8f6bff55;color:#dccfff;font:600 10px system-ui;letter-spacing:.06em;white-space:nowrap;pointer-events:none}
+@media(max-width:560px){.beast-landing-art:has(.is-roamer){height:clamp(380px,112vw,540px);border-radius:30%}}
+/* The roaming living-core creature IS the companion on Home: the separate floating pet + its eye/pause/mute toolbar step aside. */
+body:has(.is-roamer) [data-pet-dragon="true"]{display:none!important}
