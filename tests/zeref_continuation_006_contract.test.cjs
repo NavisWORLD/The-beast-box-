@@ -80,11 +80,22 @@ test('2026-10-16 fixes: fresh order per attempt, anti-ratchet chat gate, calmer 
  const cap=read('apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs'),mix=read('scripts/zeref_chat_corpus.py');
  assert.ok(t.includes('rigetti_order_seed(cycle,source_digest,RUN_ID)'));
  assert.ok(t.includes('"label":"SIMULATED"'));
- assert.ok(t.includes('chat_bar=max(.01,original_chat*1.05,public_ref_chat or 0.)'));
- assert.ok(t.includes('LR=float(os.environ.get("ZEREF_006_LR","0.000025"))'));
+ assert.ok(t.includes('chat_bar=max(.01,original_chat)'),'fix 002: absolute chat bar vs the pin parent');
+ assert.ok(t.includes('LR=float(os.environ.get("ZEREF_006_LR","0.00001"))'));assert.ok(t.includes('math.cos(math.pi*n/UPDATES)'));
  assert.ok(mix.includes('DAD_REPEAT=2'));
  assert.ok(w.includes('ZEREF_006_PUBLIC_REF_DIR: build/public-14k'));
  assert.ok(w.includes('scripts/rawrphos_chat_eval.py build/public-14k'),'14000 public chat test stays the promotion check');
  assert.ok(w.includes('scripts/zeref_teacher_distill.py'));
  assert.ok(cap.includes('await waitForGameplay()'));
+});
+
+test('2026-10-17 fix 002: pin parent, promotion bar, Dolly rotation, lessons, best-in-cycle, boot retries',()=>{
+ const t=read('scripts/zeref_continuation_006.py'),w=read('.github/workflows/zeref-continuous-learning-006.yml');
+ assert.ok(w.includes('RESUME_PUBLIC_PIN_RELEASE='),'parent = public pin release');
+ assert.ok(w.includes("ZEREF_PROMOTION_DECISION="),'absolute promotion bar vs current pin');
+ assert.ok(w.includes('ZEREF_CHAT_ROTATE_SEED='),'fresh Dolly sample per cycle');
+ assert.ok(w.includes('for attempt in 1 2 3 4'),'boot-race retries');
+ assert.ok(t.includes('best_in_cycle_step'));
+ const d=read('scripts/zeref_teacher_distill.py');assert.ok(d.includes('"SHARED_TEACHER_AUTO"')&&d.includes('"shared-ollama"'));assert.ok(d.includes('MAX_FRACTION=0.15'));
+ const c=read('apps/beastbox-cloud/scripts/zeref-cloud-sync.mjs');assert.ok(c.includes("ZEREF_DIR+'/lessons/'"));
 });

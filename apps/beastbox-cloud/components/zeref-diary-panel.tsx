@@ -50,6 +50,7 @@ export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null,
   <div className={styles.head}>
    <p className={styles.tag}>✦ MAINFRAME MEMORY · DIMENSIONAL POCKET</p>
    <h2 id="zeref-diary-title">Zeref&apos;s Diary</h2>
+   <small data-diary-identity style={{display:"block",opacity:.7,fontSize:11}}>Diary keyed to the Moonwraith display persona (bb-7f9c2a03). Zeref&apos;s model, chat and training identity is bb-deada969 (RAWRPHØS); the two are kept separate.</small>
    <p className={styles.lede}>While the page is closed, a scheduled loop lets Zeref keep exploring his pocket. His birth spark is a recorded IBM quantum run; each tick about every 30 minutes, a small circuit built from his current signals runs on the free Rigetti simulator, and its counts nudge his signals, mood and growth before his seeded mind replays a walk and writes one entry.</p>
   </div>
   <div className={styles.grid}>
