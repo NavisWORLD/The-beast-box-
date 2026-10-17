@@ -1,4 +1,9 @@
 'use client';
+import {flowStars,flowGrid} from '../lib/living-core/river-flow';
+import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles,LC_WORLD_H} from '../lib/living-core/core-cache';
+import {attachSynapse,addRoamExtras,synapseClick} from '../lib/living-core/roam-extras';
+import {nextGoal,UNIVERSE_R,rng as lcRng,SHAPES} from '../lib/living-core/roam-brain.mjs';
+import {recordArrival} from '../lib/zeref/pocket-journal';
 import {motionPersona,createActor,stepActor} from '../lib/companion/film-motion.mjs';
 import {addGodView,ZOOM_MIN,ZOOM_MAX} from './pocket-god-view';
 import {ARTIST_RESIDENTS} from '../lib/companion/artist-residents.mjs';
@@ -45,7 +50,8 @@ const randomFor=(s:string)=>{let v=visualSeed(s)||1;return()=>{v^=v<<13;v^=v>>>1
  * The existing SparkBeastArena remains visible and interactive IN FRONT of
  * this canvas, with exactly the original canonical QBEAST sprite/voice/saves.
  */
-export default function CagePocketDimension({seed,qbeastId,stage,reduced,behaviorPosition,state,onActiveChange,qvmCounts=null,autoOrbit=false}:Props){
+export default function CagePocketDimension({seed,qbeastId,stage,reduced,behaviorPosition,state,onActiveChange,qvmCounts=null,autoOrbit=false,chatLine=null}:Props&{chatLine?:string|null}){
+ const lcBus=useRef<any>(null);useEffect(()=>{if(chatLine)lcBus.current?.words(chatLine);},[chatLine]);
  const autoOrbitRef=useRef(autoOrbit);autoOrbitRef.current=autoOrbit;const lastDragAt=useRef(0);
  useEffect(()=>{if(autoOrbit)cameraView.current={...cameraView.current,zoom:8.5,phi:1.18};},[autoOrbit]);
  const sandSource=qvmCounts?'receipt':'seed';
@@ -195,6 +201,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     let soft=false;try{const gl=renderer.getContext();const dbg=gl.getExtension('WEBGL_debug_renderer_info');soft=!!dbg&&/swiftshader|llvmpipe|software/i.test(String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)));}catch{}
     if(soft){low=true;renderer.setPixelRatio(1);}
     const glbTier:'med'|'low'|null=soft?null:!low?'med':phoneGpu?'med':null;(window as any).__pocketGlbTier=glbTier;
+    // Living-core bodies: real GPUs (incl. phones). Software GL keeps the classic pocket like the GLBs; ?livingcore=1 forces it for review.
+    const lcForced=new URLSearchParams(location.search).get('livingcore')==='1';
+    const lcOk=!reduced&&(!soft||lcForced);
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     // Living Cosmos polish: filmic tone mapping for deeper, less flat contrast.
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
@@ -215,6 +224,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // Feet on the world: a real downward raycast against the habitat floor (cached on a coarse grid; the floor is static).
     const gRay=new THREE.Raycaster(),gO=new THREE.Vector3(),gD=new THREE.Vector3(0,-1,0),gCache=new Map<number,number>();
     const groundAt=(x:number,z:number)=>{const k=Math.round(x*20)*4096+Math.round(z*20);let y=gCache.get(k);if(y===undefined){ground.updateMatrixWorld();gO.set(x,5,z);gRay.set(gO,gD);const h=gRay.intersectObject(ground,false)[0];y=h?h.point.y+.02:0;gCache.set(k,y);}return y;};
+    const flowU={uTime:{value:0}};// gentle river drift for stars + grid glow (look unchanged)
     const grid=new THREE.GridHelper(9,12,0x4983a4,0x284c74);
     grid.position.y=-.05;scene.add(grid);
     // Faded, not deleted: the grid now only whispers under the sand.
@@ -252,7 +262,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const starsGeom=new THREE.BufferGeometry(),points:number[]=[];
     for(let i=0;i<(low?55:120);i++)points.push((seedRandom()-.5)*8.8,.5+seedRandom()*4.5,(seedRandom()-.5)*8.8);
     starsGeom.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
-    scene.add(new THREE.Points(starsGeom,new THREE.PointsMaterial({color:0xb2dfff,size:.042,transparent:true,opacity:.75})));
+    const starMat=new THREE.PointsMaterial({color:0xb2dfff,size:.042,transparent:true,opacity:.75});
+    flowStars(starMat,flowU);flowGrid(grid.material as import('three').Material,flowU);
+    scene.add(new THREE.Points(starsGeom,starMat));
     // Living Cosmos depth polish (visual only): far star shell for parallax,
     // a soft portal rim at the pocket floor, and a nebula backdrop.
     const farGeom=new THREE.BufferGeometry(),far:number[]=[];
@@ -287,7 +299,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       'vec3 c=mix(vec3(.12,.55,.85),vec3(.65,.4,1.0),w);gl_FragColor=vec4(c*(1.0-r*.7),(1.0-r)*.55+.08);}'});
     const pool=new THREE.Mesh(new THREE.CircleGeometry(1,low?32:64),poolMat);pool.rotation.x=-Math.PI/2;pool.position.set(2.15,-.03,-1.7);pool.scale.setScalar(.95);scene.add(pool);
     // Artist-drawn residents (separate creatures, never the active Beast) roam the pocket.
-    const {stepResidents,texCache,disturbers,pickables}=addPocketResidents(THREE,scene,seedRandom,reduced,low,glbTier,groundAt);
+    const {stepResidents,texCache,disturbers,pickables}=addPocketResidents(THREE,scene,seedRandom,reduced,low,glbTier,groundAt,lcOk);
     // God view: habitat on a small planet, orbiting its suns, inside a galaxy (Genesis Engine, recoloured).
     const god=addGodView(THREE,scene,{rand:randomFor(key+':system'),low,counts:qvmCounts,stage:motion.current.stage||stage||1});
     const godFocus=new THREE.Vector3();
@@ -295,7 +307,17 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const zHolder=new THREE.Group();zHolder.scale.setScalar(.45);zHolder.position.set(0,-.07,0);zHolder.rotation.y=.7;scene.add(zHolder);
     // Film motion for Zeref (bb-7f9c2a03 persona: no recorded seed of his own here → id-only persona).
     const zActorNode=new THREE.Group();zHolder.add(zActorNode);
-    const zActor=createActor(motionPersona({id:'bb-7f9c2a03'}),{radius:1.1,seed:'bb-7f9c2a03'});
+    const zActor=createActor(motionPersona({id:'bb-7f9c2a03'}),{x:-1.15,z:.75,radius:1.1,seed:'bb-7f9c2a03',universe:UNIVERSE_R});// offset so Zeref never stands inside the active Beast
+    // ---- Oct 16 living-core: Zeref as the true-3D living-core body (same actor, same pocket look) + life layer on top.
+    const lcId=qbeastId||'bb-deada969';const lcS:any={LC:null,syn:null,goal:null,pause:2,mood:'calm',ov:null,ovT:0,visits:{},r:lcRng(lcId+':roam')};
+    const extras=addRoamExtras(THREE,scene,{beastId:lcId,low:low||soft,onDoing:(d:string)=>{lcS.doing=d;}});
+    const lcWords=(text:string)=>{const w:any=extras.words(text);if(w.emotion){lcS.ov=w.emotion;lcS.ovT=5;}lcS.syn?.kick(.4+w.burst*.6);extras.river.kick(.5+w.burst*.5);extras.burst(zHolder.position.x,.5,zHolder.position.z);if(w.shape)extras.create(w.shape,zHolder.position.x+.3,zHolder.position.z+.3,'chat');};
+    lcBus.current={words:lcWords};
+    const onLcChat=(e:any)=>lcWords(String(e?.detail?.text||'hi'));const onLcLevel=(e:any)=>{const l=Number(e?.detail?.level)||0;if(l>.05)lcS.syn?.kick(Math.min(.5,l*.6));};const onLcChirp=(e:any)=>lcS.syn?.kick(.25*(Number(e?.detail?.intensity)||.5));
+    const onLcTap=()=>{lcS.syn?.kick(.9);extras.river.kick(.4);lcS.ov=lcS.ov||'happy';lcS.ovT=Math.max(lcS.ovT,2);};
+    window.addEventListener('beastbox:beast-chat',onLcChat);window.addEventListener('beastbox:local-sensor-level',onLcLevel);window.addEventListener('beastbox:spark-chirp',onLcChirp);renderer.domElement.addEventListener('pointerdown',onLcTap);
+    if(lcOk)void getLivingCore(THREE,'zeref',low).then(({LC})=>{if(disposed)return;const g=new THREE.Group();const k=livingCoreScale(LC,LC_WORLD_H*1.1/.45);g.scale.setScalar(k);fitLivingCoreParticles(LC,k*.45,renderer.domElement.height);g.position.y=-LC.footY*k;g.add(LC.group);zActorNode.add(g);lcS.LC=LC;lcS.g=g;if(lcForced)(window as any).__lcPocket={lcS,zHolder,zActorNode,camera};// capture hook only with ?livingcore=1
+     lcS.syn=attachSynapse(THREE,LC,lcId,low);lcS.syn.onFire((c:number)=>{synapseClick(c,.35);});}).catch(()=>{});
     if(typeof window!=='undefined')(window as any).__pocketCamera=cameraView;
     const sand=addPocketSand(THREE,scene,{seed:key,low,reduced});
     sand.field.setCounts(qvmCounts);
@@ -308,10 +330,10 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     let plush:ReturnType<typeof buildPlush>|null=null;let beastFoot=0;const hop=createHop(key);const beastNode=new THREE.Group();beastNode.name='beast-3d';scene.add(beastNode);
     const syncPlush=()=>{const gen=(window as any).__beastGenome as PlushGenome|null;const want=!!gen&&!pixelRef.current;
      if(plush&&(!want||plush.root.userData.seed!==gen?.seed)){beastNode.remove(plush.root);plush.dispose();plush=null;}
-     if(want&&!plush&&gen){plush=buildPlush(THREE,gen,{low});plush.root.userData.seed=gen.seed;plush.root.scale.setScalar(1.3);beastNode.add(plush.root);
+     if(want&&!plush&&gen){plush=buildPlush(THREE,gen,{low});plush.root.userData.seed=gen.seed;plush.root.scale.setScalar(.78);beastNode.add(plush.root);
       // Zeref-pipeline sculpted GLB replaces the plush when available (plush stays as low tier / fallback while loading or on failure)
       if((glbTier||new URLSearchParams(location.search).get('beastglb')==='1')&&GLB_PLANS.includes(gen.body)){const mine=plush;loadBeastGlb(THREE,gen,{tier:glbTier||'med'}).then(gb=>{
-        if(!gb||disposed||plush!==mine){gb?.dispose();return;}gb.root.scale.setScalar(1.15);mine.root.visible=false;beastNode.add(gb.root);beastNode.updateMatrixWorld(true);{const bb=new THREE.Box3().setFromObject(gb.root);beastFoot=beastNode.position.y-bb.min.y;}
+        if(!gb||disposed||plush!==mine){gb?.dispose();return;}gb.root.scale.setScalar(.69);mine.root.visible=false;beastNode.add(gb.root);beastNode.updateMatrixWorld(true);{const bb=new THREE.Box3().setFromObject(gb.root);beastFoot=beastNode.position.y-bb.min.y;}
         const pd=mine.drive,pdis=mine.dispose;const lp=new THREE.Vector3();
         (mine as any).drive=(dt:number,b:any,mp:any,look:any)=>{let ll=null;if(look){lp.set(look.x,look.y,look.z);gb.root.worldToLocal(lp);ll={yaw:Math.atan2(lp.x,lp.z),pitch:Math.atan2(lp.y-.6,Math.hypot(lp.x,lp.z))};}gb.drive(dt,b,mp,ll);};
         (mine as any).dispose=()=>{beastNode.remove(gb.root);gb.dispose();pdis();};(mine as any).tris=gb.tris;void pd;}).catch(()=>{});}}
@@ -393,11 +415,23 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      sand.update(dt,[{x:glow.position.x,z:glow.position.z,r:1.2,s:1.6+motion.current.impulse*3},{x:0,z:0,r:1.1,s:1.2},...disturbers()]);
      const ze=(window as any).__zerefEmbed;
      if(ze?.root&&ze.root.parent!==zActorNode){zActorNode.add(ze.root);ze.root.position.y=1.68;ze.claimed=true;}
-     if(ze?.claimed){
+     if(lcS.LC&&ze?.root)ze.root.visible=false;
+     if(lcS.LC){// roam brain: favorite spots / mini libraries / free wander; arrival = learn + make a CST construct
+      const mood=lcS.ov||(state==='sleeping'?'sleepy':'calm');if(lcS.ovT>0){lcS.ovT-=dt;if(lcS.ovT<=0)lcS.ov=null;}
+      if(lcS.mood!==mood){lcS.mood=mood;lcS.LC.setEmotion?.(mood);lcS.syn?.setEmotion(mood);}
+      if(!lcS.goal){lcS.pause-=dt;if(lcS.pause<=0){let g:any=nextGoal(lcS.r,mood,lcS.visits);const others=(window as any).__lcResidents as any[]|undefined;if(others?.length&&lcS.r()<.25){const o=others[Math.floor(lcS.r()*others.length)];g={id:'visit-'+o.r.id,kind:'favorite',x:o.x+.6,z:o.z+.6};}lcS.goal=g.kind==='wander'?g:extras.spots.find((s:any)=>s.id===g.id)||g;(zActor as any).target={x:lcS.goal.x,z:lcS.goal.z};}}
+      else if(Math.hypot(zHolder.position.x-lcS.goal.x,zHolder.position.z-lcS.goal.z)<.35){const g=lcS.goal;lcS.goal=null;lcS.visits[g.id]=(lcS.visits[g.id]||0)+1;lcS.pause=g.kind==='library'?4:2.5;
+       if(g.kind==='library'){lcS.ov='curious';lcS.ovT=4;lcS.syn?.kick(.7);try{recordArrival(lcId,'library:'+g.topic);}catch{}const sh=SHAPES[(lcS.visits[g.id]+g.topic.length)%SHAPES.length];setTimeout(()=>{if(!disposed)extras.create(sh,g.x+.25,g.z+.25,'library:'+g.topic);},2200);}
+       else if(g.id!=='wander'){try{recordArrival(lcId,g.id);}catch{}}}
+      if(lcS.goal)(zActor as any).target={x:lcS.goal.x,z:lcS.goal.z};
+      stepLivingCore(lcS.LC,reduced?0:dt);lcS.syn?.step(reduced?0:dt);}
+     flowU.uTime.value+=reduced?0:dt;
+     extras.step(reduced?0:dt,{x:zHolder.position.x,z:zHolder.position.z});
+     if(ze?.claimed||lcS.LC){
       const zp=stepActor(zActor,reduced?0:dt,{lookAt:{x:camera.position.x,z:camera.position.z},reduced});
       zHolder.position.set(zp.x,-.07+zp.lift,zp.z);zHolder.rotation.y=.7+zp.heading*.5+zp.head;
-      zActorNode.scale.set(zp.sx,zp.sy,zp.sx);zActorNode.rotation.x=zp.lean;ze.motion={tail:zp.tail,ear:zp.ear};
-      let d=-(v.theta-zHolder.rotation.y)*180/Math.PI;d=((d%360)+540)%360-180;ze.viewYaw=d;}
+      zActorNode.scale.set(zp.sx,zp.sy,zp.sx);zActorNode.rotation.x=zp.lean;if(ze){ze.motion={tail:zp.tail,ear:zp.ear};
+      let d=-(v.theta-zHolder.rotation.y)*180/Math.PI;d=((d%360)+540)%360-180;ze.viewYaw=d;}}
      // living pocket step: CST world → life brain → plush rig
      {const cp=plush?{x:brain.x,y:.45,z:brain.z}:null;const L=life.update(reduced?0:dt,cp,plush?attn:null);world.update(reduced?0:dt,L.env,L.cst.ch,camera.position);
       if(plush){stepLife(brain,reduced?0:dt,{...L.env,mood:L.mood,cam:camXZ(),residents:disturbers(),shelter:shelterAt,onEat:(id:string)=>life.eat(id)});
@@ -436,6 +470,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     }
     frame=requestAnimationFrame(animate);
     cleanup=()=>{
+     window.removeEventListener('beastbox:beast-chat',onLcChat);window.removeEventListener('beastbox:local-sensor-level',onLcLevel);window.removeEventListener('beastbox:spark-chirp',onLcChirp);renderer.domElement.removeEventListener('pointerdown',onLcTap);
+     lcS.syn?.dispose();if(lcS.g){lcS.g.remove(lcS.LC.group);zActorNode.remove(lcS.g);}extras.dispose();lcBus.current=null;
      pickRef.current=null;godRef.current=null;world.dispose();window.removeEventListener('beastbox:genome',syncPlush);window.removeEventListener('beastbox:pixel-mode',syncPlush);window.removeEventListener('beastbox:spark-chirp',onTalk);document.documentElement.removeAttribute('data-beast-3d');life.dispose();plush?.dispose();
      {const ze=(window as any).__zerefEmbed;if(ze?.root?.parent===zActorNode){zActorNode.remove(ze.root);ze.root.position.y=0;ze.claimed=false;}}
      cancelAnimationFrame(frame);ro?.disconnect();io?.disconnect();

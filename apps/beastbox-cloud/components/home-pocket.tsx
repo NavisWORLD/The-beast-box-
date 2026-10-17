@@ -23,10 +23,13 @@ export default function HomePocket(){
  const beast=own||zeref;
  const game=useChshGame();const sc=stormChaos(deriveEmotions(beast),game);
  const qvmCounts=useOwnQvmCounts(beast?recordedQvmStimulusPath(beast):null);
- return <div className="home-pocket-layer" aria-hidden="true" data-home-pocket={own?'saved-beast':zeref?'zeref-bb-deada969':'guide'}>
+ const chat=Array.isArray(session?.chat)?session.chat:[];const lastYou=[...chat].reverse().find((m:any)=>m?.role==='you')?.text||null;
+ // Oct 16: the same cage look Cory loves; living-core Zeref + life layer live inside it. The ⋯ button tucks sound/game/help on phones.
+ return <div className="home-pocket-layer is-roamer" data-home-pocket={own?'saved-beast':zeref?'zeref-bb-deada969':'guide'}>
   <CagePocketDimension seed={beast?beast.genome?.seed||beast.seed:null} qbeastId={beast?beast.qbeast.profile.id:null}
    stage={beast?(beast.nativeStage||1):1} behaviorPosition={beast?beast.behavior?.position||null:null}
-   state={beast?visualStateFromBeast(beast):'idle'} reduced={reduced} onActiveChange={noop} qvmCounts={qvmCounts} autoOrbit/>
+   state={beast?visualStateFromBeast(beast):'idle'} reduced={reduced} onActiveChange={noop} qvmCounts={qvmCounts} autoOrbit chatLine={lastYou}/>
+  <button type="button" className="lc-roamer-tools" aria-label="Show sound, game and help controls" onClick={()=>document.body.classList.toggle('lc-tools-open')}>⋯</button>
   {reduced?null:<FluidSwirlLayer storm={sc.storm} chaos={sc.chaos} count={60}/>}
  </div>;
 }

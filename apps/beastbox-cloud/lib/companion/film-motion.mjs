@@ -26,8 +26,8 @@ export function motionPersona({id,seed=null,counts=null}={}){
  return Object.freeze({...base,source:e!==null?'seed+labelled-counts':seed?'recorded-seed':'id-only'});
 }
 const spring=springStep;
-export function createActor(persona,{x=0,z=0,radius=1.6,seed='actor'}={}){
- return {p:persona,rand:prng(seed+':acts'),state:'idle',t:0,dur:1.2,x,z,home:{x,z},radius,heading:0,target:null,
+export function createActor(persona,{x=0,z=0,radius=1.6,seed='actor',universe=0}={}){
+ return {universe,p:persona,rand:prng(seed+':acts'),state:'idle',t:0,dur:1.2,x,z,home:{x,z},radius,heading:0,target:null,
   sq:{x:1,v:0},lean:{x:0,v:0},tail:{x:0,v:0},ear:{x:0,v:0},head:{x:0,v:0},lift:0,fid:0};
 }
 const STATES=['idle','walk','anticipate','hop','land'];export {STATES};
@@ -46,7 +46,7 @@ export function stepActor(a,dt,ctx={}){
  const u=Math.min(1,a.t/a.dur);
  if(a.state==='walk'||a.state==='hop'){
   const tg=a.target||a.home,dx=tg.x-a.x,dz=tg.z-a.z,dist=Math.hypot(dx,dz);
-  const speed=(a.state==='hop'?1.6:.55)*p.tempo;if(dist>.02){const s=Math.min(dist,speed*dt);a.x+=dx/dist*s;a.z+=dz/dist*s;a.heading=Math.atan2(dx,dz);}
+  const speed=(a.state==='hop'?1.6:.55)*p.tempo;if(dist>.02){const s=Math.min(dist,speed*dt);a.x+=dx/dist*s;a.z+=dz/dist*s;if(a.universe){const rr=Math.hypot(a.x,a.z);if(rr>a.universe){a.x*=a.universe/rr;a.z*=a.universe/rr;}}a.heading=Math.atan2(dx,dz);}
  }
  if(a.state==='anticipate'){squash=1-.22*Math.sin(u*Math.PI/2);a.lift=0;}
  else if(a.state==='hop'){a.lift=Math.sin(u*Math.PI)*.55;squash=1+.26*Math.cos(u*Math.PI);}
@@ -56,7 +56,14 @@ export function stepActor(a,dt,ctx={}){
  spring(a.sq,squash,a.state==='land'||a.state==='anticipate'?260:a.state==='hop'?200:90,a.state==='hop'?14:9,dt);
  return pose(a,a.state==='walk'||a.state==='hop'?1:0,ctx);
 }
-function pickTarget(a,step){const ang=a.rand()*Math.PI*2,d=step*(.5+a.rand()*.5);let x=a.x+Math.cos(ang)*d,z=a.z+Math.sin(ang)*d;const r=Math.hypot(x-a.home.x,z-a.home.z);if(r>a.radius){x=a.home.x+(x-a.home.x)*a.radius/r;z=a.home.z+(z-a.home.z)*a.radius/r;}a.target={x,z};}
+function pickTarget(a,step){
+ // Universe roamers: no home-zone clamp. Keep an unfinished journey; sometimes set off across the whole universe.
+ if(a.universe){const R=a.universe;if(a.target&&a.journey&&Math.hypot(a.target.x-a.x,a.target.z-a.z)>.3)return;
+  if(a.rand()<.4){const ang=a.rand()*Math.PI*2,d=R*Math.sqrt(a.rand())*.97;a.target={x:Math.cos(ang)*d,z:Math.sin(ang)*d};a.journey=true;return;}
+  a.journey=false;const ang=a.rand()*Math.PI*2,d=step*(.5+a.rand()*.5);let x=a.x+Math.cos(ang)*d,z=a.z+Math.sin(ang)*d;const r=Math.hypot(x,z);
+  if(r>R*.97){x=-x*.3;z=-z*.3;a.journey=true;}// true universe limit: turn back inward
+  a.target={x,z};return;}
+const ang=a.rand()*Math.PI*2,d=step*(.5+a.rand()*.5);let x=a.x+Math.cos(ang)*d,z=a.z+Math.sin(ang)*d;const r=Math.hypot(x-a.home.x,z-a.home.z);if(r>a.radius){x=a.home.x+(x-a.home.x)*a.radius/r;z=a.home.z+(z-a.home.z)*a.radius/r;}a.target={x,z};}
 function pose(a,moving,ctx){
  const dt=1/60;
  // Head turn: toward the camera/neighbour when idle (curiosity), else along travel.

@@ -12,6 +12,7 @@ function moodToEmotion(m:string){const s=String(m||'').toLowerCase();return MOOD
 export default function ZerefVoiceDock(){
  const [prefs,setPrefs]=useState<Prefs|null>(null);
  const [bubble,setBubble]=useState<{text:string;by:string}|null>(null);
+ const [openDock,setOpenDock]=useState(false);
  const [heart,setHeart]=useState<any>(HEART_FALLBACK);
  useEffect(()=>{fetch('/spark/zeref-heart.json').then(r=>r.ok?r.json():null).then(h=>{if(h?.bpm)setHeart(h);}).catch(()=>{});},[]);
  const lastActivity=useRef(Date.now()),busy=useRef(false),prefsRef=useRef<Prefs|null>(null);
@@ -45,15 +46,16 @@ export default function ZerefVoiceDock(){
   }finally{busy.current=false;}
  }
  if(!prefs)return null;
+ const narrow=typeof window!=='undefined'&&window.matchMedia?.('(max-width:560px)').matches;
  const ms=beatMs(heart),btn:React.CSSProperties={width:34,height:34,borderRadius:17,border:'1px solid #6b5bd6',background:'#121833dd',color:'#fff',fontSize:15,padding:0,cursor:'pointer'};
- return <div data-zeref-voice-dock style={{position:'fixed',left:6,top:'38vh',zIndex:30,display:'flex',flexDirection:'column',gap:6,font:'12px system-ui',color:'#e8ecff'}}>
+ return <div data-zeref-voice-dock style={{position:'fixed',left:6,top:narrow?'auto':'38vh',bottom:narrow?'calc(150px + env(safe-area-inset-bottom))':'auto',zIndex:30,display:'flex',flexDirection:'column',gap:6,font:'12px system-ui',color:'#e8ecff'}}>
   <style>{`@keyframes zerefBeat{0%,100%{transform:scale(1)}12%{transform:scale(1.25)}24%{transform:scale(1)}36%{transform:scale(1.12)}}`}</style>
-  <span data-zeref-heart title={`Zeref's heart · ${Math.round(heart.bpm)} BPM · rhythm from Cory's heartbeat recording (a creative seed, not a biological signal)`} aria-label={`Zeref's heart, ${Math.round(heart.bpm)} beats per minute`} style={{...btn,display:'inline-flex',alignItems:'center',justifyContent:'center',animation:`zerefBeat ${ms}ms infinite`}}>💜</span>
-  <button type="button" style={btn} data-zeref-voice-toggle aria-pressed={prefs.voice} aria-label={prefs.voice?'Zeref voice on (tap to mute)':'Zeref voice off (tap to turn on)'} title={(prefs.voice?'Zeref voice on · ':'Zeref voice off · ')+VOICE_LABEL}
+  <span data-zeref-heart role={narrow?'button':undefined} tabIndex={narrow?0:undefined} onClick={narrow?()=>setOpenDock(o=>!o):undefined} title={`Zeref's heart · ${Math.round(heart.bpm)} BPM · rhythm from Cory's heartbeat recording (a creative seed, not a biological signal)`} aria-label={`Zeref's heart, ${Math.round(heart.bpm)} beats per minute`} style={{...btn,display:'inline-flex',alignItems:'center',justifyContent:'center',animation:`zerefBeat ${ms}ms infinite`}}>💜</span>
+  {(!narrow||openDock)?<><button type="button" style={btn} data-zeref-voice-toggle aria-pressed={prefs.voice} aria-label={prefs.voice?'Zeref voice on (tap to mute)':'Zeref voice off (tap to turn on)'} title={(prefs.voice?'Zeref voice on · ':'Zeref voice off · ')+VOICE_LABEL}
    onClick={()=>save({...prefs,armed:true,voice:!prefs.voice,mutedByUser:prefs.voice})}>{prefs.voice?'🔊':'🔇'}</button>
   <button type="button" style={{...btn,opacity:prefs.reachOut?1:.5}} data-zeref-reachout-toggle aria-pressed={prefs.reachOut} aria-label={prefs.reachOut?'Zeref reach-outs on (tap to turn off)':'Zeref reach-outs off (tap to turn on)'} title={prefs.reachOut?'Reach-outs on':'Reach-outs off'}
-   onClick={()=>save({...prefs,reachOut:!prefs.reachOut})}>💬</button>
-  {bubble?<div role="status" data-zeref-reach-out style={{position:'absolute',left:42,top:0,width:'min(240px,calc(100vw - 70px))',background:'#121833ee',border:'1px solid #6b5bd6',borderRadius:12,padding:'8px 10px'}}>
+   onClick={()=>save({...prefs,reachOut:!prefs.reachOut})}>💬</button></>:null}
+  {bubble&&(!narrow||openDock)?<div role="status" data-zeref-reach-out style={{position:'absolute',left:42,top:0,width:'min(240px,calc(100vw - 70px))',background:'#121833ee',border:'1px solid #6b5bd6',borderRadius:12,padding:'8px 10px'}}>
    <small style={{opacity:.75}}>💬 {REACH_OUT_LABEL} · {bubble.by}</small><div>{bubble.text}</div>
    <button type="button" onClick={()=>setBubble(null)} style={{fontSize:11,marginTop:4}}>Dismiss</button></div>:null}
  </div>;
