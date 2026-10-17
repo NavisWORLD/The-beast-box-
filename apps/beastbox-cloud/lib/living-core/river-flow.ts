@@ -7,12 +7,12 @@ import {createCSTState,stepCSTState} from '../physics/cst-integrator.mjs';
 type T=typeof import('three');
 const GLYPHS='01φψΣ∞<>{}λ∂Ω12D';
 export function addRiverFlow(THREE:T,parent:import('three').Object3D,{low,seed='cage',floorY=-.05}:{low:boolean;seed?:string;floorY?:number}){
- const N=low?900:2400,STREAMS=6;
+ const N=low?1100:2800,STREAMS=9;// inner streams hug the pocket, outer ones span the wide universe
  const f=(x:number)=>{const v=Math.sin(x)*43758.5453;return v-Math.floor(v);};
  const a=new Float32Array(N*4),pos=new Float32Array(N*3);
  for(let i=0;i<N;i++){a[i*4]=f(i*1.17+seed.length);a[i*4+1]=f(i*2.31+.7);a[i*4+2]=Math.floor(f(i*3.7+1.3)*STREAMS);a[i*4+3]=f(i*5.3+2.1)<.12?Math.floor(f(i*7.1)*GLYPHS.length)+1:0;}
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('aSeed',new THREE.BufferAttribute(a,4));
- g.boundingSphere=new THREE.Sphere(new THREE.Vector3(),12);
+ g.boundingSphere=new THREE.Sphere(new THREE.Vector3(),40);
  const cv=document.createElement('canvas');cv.width=512;cv.height=32;const cx=cv.getContext('2d')!;cx.fillStyle='#fff';cx.font='26px monospace';cx.textAlign='center';cx.textBaseline='middle';
  [...GLYPHS].forEach((ch,i)=>cx.fillText(ch,i*32+16,17));const tex=new THREE.CanvasTexture(cv);
  const cst=new Float32Array(12);const U={uTime:{value:0},uCst:{value:cst},uAtlas:{value:tex},uFloor:{value:floorY},uExcite:{value:0}};
@@ -21,11 +21,11 @@ export function addRiverFlow(THREE:T,parent:import('three').Object3D,{low,seed='
  void main(){float s=aSeed.z;int si=int(s+.5);float c=cs(si),c2=cs(si+6);
   float sp=(.035+.02*s)*(mod(s,2.)<.5?1.:-1.)*(1.+uExcite*.8);
   float th=aSeed.x*6.2832+uTime*sp;
-  float R=1.2+s*1.05+sin(th*3.+uTime*.25+c*2.)*.35+(aSeed.y-.5)*.45;
-  vec3 p=vec3(cos(th)*R,uFloor+.18+s*.42+sin(th*2.+uTime*.4+c2*2.)*.28+(aSeed.y-.5)*.25,sin(th)*R*.92);
+  float R=1.2+s*1.05+s*s*.22+sin(th*3.+uTime*.25+c*2.)*.35+(aSeed.y-.5)*.45;
+  vec3 p=vec3(cos(th)*R,uFloor+.18+min(s,5.)*.42+sin(th*2.+uTime*.4+c2*2.)*.28+(aSeed.y-.5)*.25,sin(th)*R*.92);
   p+=vec3(sin(p.z*1.6+uTime*.6+c)*cos(p.y*1.1),sin(p.x*1.2-uTime*.45+c2)*.5,-cos(p.x*1.7+uTime*.5)*sin(p.y*1.3+c))*.16;
-  vec4 mv=modelViewMatrix*vec4(p,1.);vG=aSeed.w;vS=s/5.;
-  vA=(.35+.4*aSeed.y)*smoothstep(11.,6.,length(p.xz));
+  vec4 mv=modelViewMatrix*vec4(p,1.);vG=aSeed.w;vS=min(1.,s/5.);
+  vA=(.35+.4*aSeed.y)*smoothstep(34.,22.,length(p.xz));
   gl_PointSize=(vG>0.?9.:2.4+aSeed.y*2.2)*clamp(6./-mv.z,.5,2.);gl_Position=projectionMatrix*mv;}`;
  const fs=`uniform sampler2D uAtlas;varying float vG;varying float vA;varying float vS;
  void main(){vec3 col=mix(vec3(.62,.48,1.),vec3(.45,.85,1.),vS);float a;
