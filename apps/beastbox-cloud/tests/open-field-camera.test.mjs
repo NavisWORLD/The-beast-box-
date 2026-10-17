@@ -8,6 +8,7 @@ test('Grok voice slot reports not configured without a key and never speaks a fa
  assert.equal(speakWith('grok-tts','hi').ok,false);
  const route=readFileSync(new URL('../app/api/voice/route.ts',import.meta.url),'utf8');assert.match(route,/grok:key\.length>=20/);assert.doesNotMatch(route,/key[,}]\s*\)/);
 });
+test('Open Field AR: true AR tracking vs camera overlay labels, Zeref + companion, play actions',()=>{const st=readFileSync(new URL('../components/ar-creature-stage.ts',import.meta.url),'utf8');assert.match(src,/True AR tracking/);assert.match(src,/Camera overlay/);assert.match(src,/bb-deada969/);for(const a of ['call','feed','toy'])assert.match(src,new RegExp(`data-ar-action|'${a}'`));assert.match(st,/function call\(/);assert.match(st,/function feed\(/);assert.match(st,/function toss\(/);assert.match(st,/function pet\(/);assert.match(st,/friend/);});
 test('camera field: environment camera, playsinline, grounded creature with emotions, wired into the /go field',()=>{
  const f=readFileSync(new URL('../components/camera-field.tsx',import.meta.url),'utf8');
  assert.match(f,/facingMode:\{ideal:'environment'\}/);assert.match(f,/playsInline/);assert.match(f,/setAttribute\('playsinline',''\)/);
