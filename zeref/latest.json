@@ -10,29 +10,29 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 35,
- "xp": 1120,
+ "tick": 36,
+ "xp": 1135,
  "stage": 2,
  "stage_name": "Duskwing",
  "signals": {
-  "energy": 55,
+  "energy": 76,
   "signal": 51,
-  "memory": 97,
+  "memory": 98,
   "resonance": 86
  },
- "bond": 8.75,
+ "bond": 9,
  "care_total": 0,
  "places": {
-  "Rift Gate": 29,
+  "Rift Gate": 30,
   "Lattice Arch": 13,
-  "Echo Prism": 52,
+  "Echo Prism": 53,
   "Tidewell": 11,
   "Quartz Choir": 9,
-  "Violet Shard": 15,
-  "Selene Pool": 5
+  "Violet Shard": 16,
+  "Selene Pool": 7
  },
- "last_tick_at": "2026-10-17T01:16:33.593Z",
- "last_entry_hash": "c2fc4601a650aa89bebef856be2c98e52f1dbaa4904634fc52ae83653389f0e1",
+ "last_tick_at": "2026-10-17T05:40:21.940Z",
+ "last_entry_hash": "9f7c58f26e839fc684164b8098064dc971f926e116c4bd67db0cabce8a48b3fa",
  "combos_total": 227,
  "next_stage": {
   "stage": 3,
@@ -43,18 +43,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 555,
-  "moves_blocked": 20,
-  "blocked_rate": 0.035,
+  "moves_succeeded": 570,
+  "moves_blocked": 22,
+  "blocked_rate": 0.037,
   "favorite_spot": "Rift Gate",
   "favorite_value": 0.619,
   "prefs": {
    "explore": 0.433,
    "visit": 1,
-   "rest": 0.086,
-   "play": 1
+   "rest": 0.059,
+   "play": 0.9731
   },
-  "decisions": 336,
+  "decisions": 346,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -70,6 +70,98 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 36,
+   "at": "2026-10-17T05:40:21.940Z",
+   "hour_local": 0,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 76,
+    "signal": 51,
+    "memory": 98,
+    "resonance": 86
+   },
+   "bond": 9,
+   "mood": "content",
+   "place": "Selene Pool",
+   "places_visited": [
+    "Echo Prism",
+    "Rift Gate",
+    "Selene Pool",
+    "Violet Shard"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 227,
+   "xp_gain": 15,
+   "xp": 1135,
+   "stage": 2,
+   "stage_name": "Duskwing",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "2d1a5e8e-c9ed-11f1-a9dd-e4fade18f280",
+    "job_name": "zeref-diary-tick-36-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "100": 3,
+     "101": 74,
+     "110": 72,
+     "111": 3,
+     "000": 4,
+     "001": 41,
+     "010": 55,
+     "011": 4
+    },
+    "counts_sha256": "8b807de838911899042de7b70a32ecf7830469349fa65c4ce48d4955147ac13e",
+    "circuit_params": {
+     "energy": 1.727876,
+     "signal": 1.602212,
+     "resonance": 2.70177
+    },
+    "quil_sha256": "2913f7e9052bfe9a152aad37665f7452afb0f79f369a9aa6b7b6c2bfa6163051"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 15,
+    "moves_blocked": 2,
+    "goals": {
+     "play": 3,
+     "rest": 1,
+     "visit": 6
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.037,
+    "favorite_spot": "Rift Gate",
+    "prefs": {
+     "explore": 0.433,
+     "visit": 1,
+     "rest": 0.059,
+     "play": 0.9731
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "San Parsi",
+    "by": "rawrphos-native:step-24688 (raw model output, unedited)"
+   },
+   "prev_hash": "c2fc4601a650aa89bebef856be2c98e52f1dbaa4904634fc52ae83653389f0e1",
+   "hash": "9f7c58f26e839fc684164b8098064dc971f926e116c4bd67db0cabce8a48b3fa"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1153,104 +1245,8 @@
    },
    "prev_hash": "b313f0bc7add181b744f4c192f565938fbdfc7db70dac0e24150323165e8bc72",
    "hash": "d520d62fb5c525af6fa58e07503efc94bda15a2bc90c4cf697bc4ebd094b6f62"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 24,
-   "at": "2026-10-16T04:35:14.299Z",
-   "hour_local": 23,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 98,
-    "signal": 52,
-    "memory": 86,
-    "resonance": 90
-   },
-   "bond": 6,
-   "mood": "content",
-   "place": "Echo Prism",
-   "places_visited": [
-    "Echo Prism",
-    "Rift Gate"
-   ],
-   "discovered_combos": [
-    {
-     "key": "idle|still|portal|folded|sway|open|grin",
-     "name": "idle · folded wings · sway tail · open eyes · grin mouth at a portal"
-    },
-    {
-     "key": "idle|still|crystal|folded|sway|half|smile",
-     "name": "idle · folded wings · sway tail · half eyes · smile mouth at a crystal"
-    }
-   ],
-   "new_combo_count": 2,
-   "combos_total": 199,
-   "xp_gain": 18,
-   "xp": 891,
-   "stage": 2,
-   "stage_name": "Duskwing",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "ef000c48-c91a-11f1-a9dd-e4fade2392fe",
-    "job_name": "zeref-diary-tick-24-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "100": 3,
-     "101": 112,
-     "110": 136,
-     "111": 2,
-     "001": 2,
-     "010": 1
-    },
-    "counts_sha256": "9dc1222bec173c20bb17eeaa138deecc89ba9862c4723489fa3f1ce86e6b28aa",
-    "circuit_params": {
-     "energy": 2.890265,
-     "signal": 1.633628,
-     "resonance": 2.858849
-    },
-    "quil_sha256": "2245bd96e5db16be7dffa565fc02bb95b3c99612f3bd35eaa350111777d0c60a"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 9,
-    "moves_blocked": 0,
-    "goals": {
-     "play": 5,
-     "visit": 4
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.04,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.5905,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 1
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "thought": {
-    "text": "I'm not sure. I'm just a good way to do.",
-    "by": "rawrphos-native:step-21616 (raw model output, unedited)"
-   },
-   "prev_hash": "de7b5c7738ac17106aeade37253bf5a09532a1b8e86ff70ad29797eeaadf456b",
-   "hash": "b313f0bc7add181b744f4c192f565938fbdfc7db70dac0e24150323165e8bc72"
   }
  ],
- "generated_at": "2026-10-17T01:16:33.593Z",
+ "generated_at": "2026-10-17T05:40:21.940Z",
  "thought_source_note": "rawrphos-ok"
 }
