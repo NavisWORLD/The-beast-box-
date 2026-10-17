@@ -25,3 +25,31 @@ test('universe roamers leave their home zone but stay inside the universe limit'
   let far=0;for(let i=0;i<20000;i++){const p=stepActor(a,1/30,{});far=Math.max(far,Math.hypot(p.x-2,p.z));assert.ok(Math.hypot(p.x,p.z)<=UNIVERSE_R+1e-6);}
   assert.ok(far>3,'left home zone: '+far);
 });
+
+test('surface life: Lorenz chaos stays bounded and never repeats; heartbeat + spring are sane', async () => {
+  const {lorenzStep,heartbeat,springStep}=await import('../lib/living-core/surface-math.mjs');
+  const s=[1,1,20];const seen=new Set();for(let i=0;i<20000;i++){lorenzStep(s,1/240,.2);assert.ok(Math.abs(s[0])<60&&Math.abs(s[2])<80);if(i%500===0)seen.add(s.map(v=>v.toFixed(3)).join());}
+  assert.equal(seen.size,40);
+  let mx=0;for(let t=0;t<2;t+=.01)mx=Math.max(mx,heartbeat(t));assert.ok(mx>.9&&mx<=1);
+  const sp={x:0,v:-1.4};for(let i=0;i<120;i++)springStep(sp,1/120);assert.ok(Math.abs(sp.x)<.02);
+});
+
+test('active Beast roams the universe when the Cage opts in', async () => {
+  const {createLife,stepLife}=await import('../lib/creatures3d/life-brain.mjs');
+  const L=createLife('bb-test');let mx=0;for(let i=0;i<30*240;i++){stepLife(L,1/30,{universe:30});mx=Math.max(mx,Math.hypot(L.x,L.z));}
+  assert.ok(mx>8,'reached '+mx);assert.ok(mx<=30+1e-9);
+});
+
+test('gravity camera: dolly zoom keeps subject size while FOV widens 46→60', async () => {
+  const src=(await import('node:fs')).readFileSync(new URL('../lib/living-core/gravity-camera.ts',import.meta.url),'utf8');
+  assert.match(src,/FOV_BASE=46,FOV_WIDE=60/);
+  const dolly=(d,a,b)=>d*Math.tan(a*Math.PI/360)/Math.tan(b*Math.PI/360);
+  const d=dolly(10,46,60);assert.ok(d<10&&d>7);
+  const cage=(await import('node:fs')).readFileSync(new URL('../components/cage-pocket-dimension.tsx',import.meta.url),'utf8');
+  assert.match(cage,/density=\.012\*/);assert.match(cage,/dof:\(!low&&!soft&&!phoneGpu\)/);
+});
+
+test('music level is 0 until sound is unlocked and audible', async () => {
+  const src=(await import('node:fs')).readFileSync(new URL('../lib/companion/beast-audio-engine.mjs',import.meta.url),'utf8');
+  assert.match(src,/level\(\) \{\s*if \(!ctx \|\| !master \|\| !musicAudible\(\)\) return 0;/);
+});

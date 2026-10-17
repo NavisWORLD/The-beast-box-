@@ -14,6 +14,12 @@ export const SPOTS=Object.freeze([
  {id:'lib-stars',kind:'library',label:'Star library',topic:'stars',x:-3.4,z:-1.6,color:'#c8a8ff'},
  {id:'lib-quantum',kind:'library',label:'Quantum library',topic:'quantum',x:3.5,z:-1.2,color:'#7af0ff'},
  {id:'lib-creatures',kind:'library',label:'Creature library',topic:'creatures',x:-.6,z:3.4,color:'#ff9ad8'},
+ // Distant points of interest (unit coords ×0.55 in the Cage ≈ 9–26 world units out): reasons to travel the whole universe.
+ {id:'far-crystal-arch',kind:'far',label:'Crystal arch',x:18,z:-24,color:'#c8a8ff'},
+ {id:'far-nebula-well',kind:'far',label:'Nebula well',x:-30,z:-14,color:'#7af0ff'},
+ {id:'far-old-signal',kind:'far',label:'Old signal tower',x:34,z:20,color:'#ffd27a'},
+ {id:'far-dream-reef',kind:'far',label:'Dream reef',x:-16,z:36,color:'#ff9ad8'},
+ {id:'far-edge-lantern',kind:'far',label:'Edge lantern',x:4,z:-46,color:'#9a7cff'},
 ]);
 export const SHAPES=Object.freeze(['spiral','ring','star','heart','helix','bloom']);
 const WORDS=[
@@ -39,10 +45,11 @@ export function baseMood(emo,state){
 export function rng(seed){let a=(typeof seed==='number'?seed:[...String(seed||'bb')].reduce((h,c)=>Math.imul(h^c.charCodeAt(0),16777619),2166136261))>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
 /** Next goal: sleepy -> nap moss, curious -> a library, else weighted spots / free wander. */
 /** True universe limit (pocket edge is ~4.6): creatures may roam past the pocket, turning back only here. */
-export const UNIVERSE_R=7.5;
+export const UNIVERSE_R=30;
 export function nextGoal(r,mood,visits={}){
  if(mood==='sleepy')return SPOTS.find(s=>s.id==='nap-moss');
  const libs=SPOTS.filter(s=>s.kind==='library');
+ if(r()<.3){const far=SPOTS.filter(s=>s.kind==='far');return far[Math.floor(r()*far.length)];}
  if(mood==='curious'||r()<.35){const least=[...libs].sort((a,b)=>(visits[a.id]||0)-(visits[b.id]||0));return least[r()<.7?0:Math.floor(r()*least.length)];}
  if(r()<.55){const f=SPOTS.filter(s=>s.kind==='favorite');return f[Math.floor(r()*f.length)];}
  const a=r()*Math.PI*2,d=1+r()*(UNIVERSE_R-1.4);return {id:'wander',kind:'wander',x:Math.cos(a)*d,z:Math.sin(a)*d};
