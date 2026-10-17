@@ -1,0 +1,4 @@
+// Zeref (bb-deada969) creature genome, copied from public/spark/zeref-live-20261010/unsigned-session.json (his saved IBM-seeded spark).
+// Used to render him in the Open Field next to the guest's own companion.
+export const ZEREF_ID='bb-deada969';
+export const ZEREF_GENOME={"seed":"8e2e927e2cfaf489cb7c10172836286bb08869cfff0c2508b5c6371e052e54ed","island":"Cinder Drift","element":"ember","body":"dragonling","ears":"flame","tail":"flame","wings":"bat","pattern":"stripes","pattern_variant":22,"eye_style":"round","mouth":"open","glow":"native","temperament":"Fierce","genes":{"chub":0.6454,"head":0.4748,"legs":0.1821,"ear_size":0.7874,"tail_size":0.7446,"wing_size":0.6288,"eye_size":0.3908,"eye_gap":0.6437,"hue":0.6052,"sat":0.5774,"val":0.4982,"pattern_density":0.5399,"pattern_scale":0.3394,"glow_amount":0.5972},"names":{"1":"Scorchwyrm","2":"Magmaclaw","3":"Pyretyrant"}} as const;
