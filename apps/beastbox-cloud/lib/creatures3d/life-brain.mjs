@@ -84,7 +84,7 @@ export function stepLife(L,dt,env={}){
   case 'splash':{const p=nearest(L,(env.puddles||[]).filter(q=>q.wet>.3));if(p){if(p.d<p.r*.8){if(Math.hypot(tgt.x-L.x,tgt.z-L.z)<.15||Math.hypot(tgt.x-p.x,tgt.z-p.z)>p.r)L.target=tgt={x:p.x+(L.r()-.5)*p.r*1.4,z:p.z+(L.r()-.5)*p.r*1.4};}else tgt={x:p.x,z:p.z};attn={kind:'puddle',x:p.x,y:0,z:p.z};}break;}
   case 'greet':{const o=nearest(L,env.residents);if(o){const a=Math.atan2(L.z-o.z,L.x-o.x);tgt={x:o.x+Math.cos(a)*.5,z:o.z+Math.sin(a)*.5};attn={kind:'resident',x:o.x,y:.35,z:o.z,id:o.id};if(o.d<.65){L.lastGreet=L.t;}}break;}
   case 'follow':{const o=nearest(L,env.residents);if(o){const a=Math.atan2(L.z-o.z,L.x-o.x);tgt={x:o.x+Math.cos(a)*.75,z:o.z+Math.sin(a)*.75};attn={kind:'resident',x:o.x,y:.4,z:o.z,id:o.id};}break;}
-  case 'wander':{if(Math.hypot(tgt.x-L.x,tgt.z-L.z)<.3)L.target=tgt=pickTarget(L);attn={kind:'ground',x:tgt.x,y:0,z:tgt.z};break;}
+  case 'wander':{if(Math.hypot(tgt.x-L.x,tgt.z-L.z)<.3)L.target=tgt=pickTarget(L,env.universe&&L.r()<.35?env.universe*.9:undefined);attn={kind:'ground',x:tgt.x,y:0,z:tgt.z};break;}
  }
  L.attn=attn;
  // locomotion: steer, ease speed (CST calm → smoother), stay in the pocket
@@ -93,7 +93,8 @@ export function stepLife(L,dt,env={}){
  L.speed+=(want-L.speed)*Math.min(1,dt*(1.5+m.calm));
  if(d>.05&&want>0){const h=Math.atan2(dz,dx);let dh=((h-L.heading+Math.PI*3)%(Math.PI*2))-Math.PI;L.heading+=dh*Math.min(1,dt*(2.2+m.curiosity));}
  L.x+=Math.cos(L.heading)*L.speed*dt;L.z+=Math.sin(L.heading)*L.speed*dt;
- const r=Math.hypot(L.x,L.z);if(r>POCKET_RADIUS){L.x*=POCKET_RADIUS/r;L.z*=POCKET_RADIUS/r;L.target=pickTarget(L);}
+ const RL=env.universe||POCKET_RADIUS;// opt-in universe roaming (Cage); AR keeps the pocket radius
+ const r=Math.hypot(L.x,L.z);if(r>RL){L.x*=RL/r;L.z*=RL/r;L.target=pickTarget(L);}
  // eat a treat on arrival
  if(treat&&treat.d<.35&&env.onEat){env.onEat(treat.id);L.hunger=clamp(L.hunger-.4);}
  L.sleep+=((L.mode==='nap'&&L.speed<.05?1:0)-L.sleep)*Math.min(1,dt*.8);

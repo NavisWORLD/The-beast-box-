@@ -227,6 +227,10 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const flowU={uTime:{value:0}};// gentle river drift for stars + grid glow (look unchanged)
     const grid=new THREE.GridHelper(9,12,0x4983a4,0x284c74);
     grid.position.y=-.05;scene.add(grid);
+    // Bigger universe: the same grid continues far out (same colours, even fainter) on a wide dark floor.
+    const farGrid=new THREE.GridHelper(UNIVERSE_R*2.2,low?40:72,0x4983a4,0x284c74);farGrid.position.y=-.06;
+    (farGrid.material as import('three').Material).transparent=true;(farGrid.material as import('three').Material).opacity=.05;scene.add(farGrid);
+    const farFloor=new THREE.Mesh(new THREE.CircleGeometry(UNIVERSE_R*1.1,low?48:96),new THREE.MeshBasicMaterial({color:0x0b0820,transparent:true,opacity:.92,depthWrite:false}));farFloor.rotation.x=-Math.PI/2;farFloor.position.y=-.075;farFloor.renderOrder=-1;scene.add(farFloor);
     // Faded, not deleted: the grid now only whispers under the sand.
     (grid.material as import('three').Material).transparent=true;(grid.material as import('three').Material).opacity=.07;
     // Dimensional pocket: finite cubic world occupying only the circle.
@@ -261,9 +265,10 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     });
     const starsGeom=new THREE.BufferGeometry(),points:number[]=[];
     for(let i=0;i<(low?55:120);i++)points.push((seedRandom()-.5)*8.8,.5+seedRandom()*4.5,(seedRandom()-.5)*8.8);
+    for(let i=0;i<(low?140:320);i++){const a=seedRandom()*Math.PI*2,rr=5+Math.sqrt(seedRandom())*UNIVERSE_R;points.push(Math.cos(a)*rr,.5+seedRandom()*9,Math.sin(a)*rr);}// far stars over the wide universe
     starsGeom.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
     const starMat=new THREE.PointsMaterial({color:0xb2dfff,size:.042,transparent:true,opacity:.75});
-    flowStars(starMat,flowU);flowGrid(grid.material as import('three').Material,flowU);
+    flowStars(starMat,flowU);flowGrid(grid.material as import('three').Material,flowU);flowGrid(farGrid.material as import('three').Material,flowU);
     scene.add(new THREE.Points(starsGeom,starMat));
     // Living Cosmos depth polish (visual only): far star shell for parallax,
     // a soft portal rim at the pocket floor, and a nebula backdrop.
@@ -434,7 +439,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       let d=-(v.theta-zHolder.rotation.y)*180/Math.PI;d=((d%360)+540)%360-180;ze.viewYaw=d;}}
      // living pocket step: CST world → life brain → plush rig
      {const cp=plush?{x:brain.x,y:.45,z:brain.z}:null;const L=life.update(reduced?0:dt,cp,plush?attn:null);world.update(reduced?0:dt,L.env,L.cst.ch,camera.position);
-      if(plush){stepLife(brain,reduced?0:dt,{...L.env,mood:L.mood,cam:camXZ(),residents:disturbers(),shelter:shelterAt,onEat:(id:string)=>life.eat(id)});
+      if(plush){stepLife(brain,reduced?0:dt,{...L.env,universe:UNIVERSE_R,mood:L.mood,cam:camXZ(),residents:disturbers(),shelter:shelterAt,onEat:(id:string)=>life.eat(id)});
        attn=brain.attn?{x:brain.attn.x,y:brain.attn.y,z:brain.attn.z}:null;
        {const hp=stepHop(hop,reduced?0:dt,{mode:brain.mode,speed:brain.speed,startle:brain.startle||0,mp:L.mp,scale:1.3,groundY:groundAt(brain.x,brain.z)});const sq=hp.squash;
         beastNode.position.set(brain.x,hp.y+beastFoot,brain.z);beastNode.scale.set(1-sq*.5,1+sq,1-sq*.5);(brain as any).air=hp.air;
@@ -445,6 +450,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
         let dth=((want-v.theta)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI;v.theta+=dth*Math.min(1,dt*.12);v.zoom+=(9.4-v.zoom)*Math.min(1,dt*.2);v.phi+=(1.36-v.phi)*Math.min(1,dt*.2);
         homeFocus.set(brain.x*.6,1.05,brain.z*.6);/* lower + pulled back so the pocket world shows behind the Beast */}else homeFocus.set(0,.85,0);
        (window as any).__beastLife={moment:brain.moment??null,y:+beastNode.position.y.toFixed(3),ground:+groundAt(brain.x,brain.z).toFixed(3),air:!!(brain as any).air,mode:brain.mode,x:brain.x,z:brain.z,attn:brain.attn?.kind??null,weather:life.getWeather(),coherence:L.cst.ch.coherence,chaos:L.cst.ch.chaos,hebb:L.cst.hebb,rain:L.env.rain,night:L.env.night,tris:plush.tris};}}
+     {const zr=Math.hypot(zHolder.position.x,zHolder.position.z);if(!focused&&zr>3&&now-lastDragAt.current>2500){const w=Math.min(1,(zr-3)/4);homeFocus.set(homeFocus.x+(zHolder.position.x-homeFocus.x)*w,homeFocus.y,homeFocus.z+(zHolder.position.z-homeFocus.z)*w);}}// follow Zeref across the universe
      if(focused){focused.obj.getWorldPosition(tgt);tgt.y+=.35;focus.lerp(tgt,Math.min(1,dt*4));}else focus.lerp(homeFocus,Math.min(1,dt*3));
      const f=god.update(elapsed,v.zoom,focus,godFocus);
      (scene.fog as import('three').FogExp2).density=.032*Math.min(1,12/v.zoom);

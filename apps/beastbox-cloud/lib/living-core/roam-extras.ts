@@ -73,6 +73,7 @@ export function addRoamExtras(THREE:T,scene:import('three').Scene,{beastId,low,s
  const root=new THREE.Group();root.name='lc-roam-extras';scene.add(root);
  const spots=SPOTS.map((s:any,i:number)=>{const g=new THREE.Group();g.position.set(s.x*scale,floorY,s.z*scale);root.add(g);const col=PAL[i%PAL.length];
   const ring=new THREE.Mesh(new THREE.RingGeometry(.16,.2,36),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.45,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.01;g.add(ring);
+  if(s.kind==='far'){const beam=new THREE.Mesh(new THREE.CylinderGeometry(.04,.12,6,8,1,true),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));beam.position.y=3;g.add(beam);ring.scale.setScalar(3);}// distant beacon
   let tome:any=null;if(s.kind==='library'){const ped=new THREE.Mesh(new THREE.CylinderGeometry(.06,.085,.2,8),new THREE.MeshStandardMaterial({color:0x1c1530,emissive:col,emissiveIntensity:.35,roughness:.6}));ped.position.y=.1;g.add(ped);
    tome=new THREE.Mesh(new THREE.BoxGeometry(.12,.025,.09),new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:.9}));tome.position.y=.3;g.add(tome);}
   return {s:{...s,x:s.x*scale,z:s.z*scale},g,ring,tome};});
