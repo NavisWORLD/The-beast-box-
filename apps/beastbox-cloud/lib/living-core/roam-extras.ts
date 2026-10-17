@@ -39,7 +39,7 @@ export function attachSynapse(THREE:T,LC:any,seed:string,low:boolean){
   const chF=new Float32Array(net.count);net.ch.forEach((c,i)=>chF[i]=c);
   const vs='attribute float aCh;uniform float uTime;uniform float uFire[12];uniform float uRipA;uniform float uRipHz;varying float vB;varying float vC;'+
    'void main(){int c=int(aCh+.5);float f=0.;for(int i=0;i<12;i++){if(i==c)f=uFire[i];}vec3 p=position;float w=sin(dot(p,vec3(5.1,7.3,4.2))-uTime*uRipHz*6.2832);p+=normalize(p+1e-4)*w*uRipA*.6;'+
-   'vB=.34+f*.9+max(0.,w)*min(1.,uRipA*30.)*.5;vC=aCh/11.;vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=(3.+f*5.)*clamp(7./-mv.z,.7,2.2);gl_Position=projectionMatrix*mv;}';
+   'vB=.34+f*.9+max(0.,w)*min(1.,uRipA*30.)*.5;vC=aCh/11.;vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=(3.+f*5.)*clamp(7./-mv.z,.7,2.2)*smoothstep(.35,1.1,-mv.z);gl_Position=projectionMatrix*mv;}';
   const fsP='varying float vB;varying float vC;void main(){vec2 q=gl_PointCoord-.5;float a=smoothstep(.5,0.,length(q));vec3 col=mix(vec3(.78,.64,1.),vec3(.44,.9,1.),vC);gl_FragColor=vec4(col*vB,a*min(1.,vB)*.8);}';
   const fsL='varying float vB;varying float vC;void main(){vec3 col=mix(vec3(.7,.55,1.),vec3(.44,.9,1.),vC);gl_FragColor=vec4(col*vB,min(1.,vB)*.42);}';
   const mk=(fs:string)=>new THREE.ShaderMaterial({uniforms:U as any,vertexShader:vs,fragmentShader:fs,transparent:true,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending});
