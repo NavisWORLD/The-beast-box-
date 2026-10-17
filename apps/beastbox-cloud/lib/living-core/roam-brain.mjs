@@ -38,12 +38,14 @@ export function baseMood(emo,state){
 }
 export function rng(seed){let a=(typeof seed==='number'?seed:[...String(seed||'bb')].reduce((h,c)=>Math.imul(h^c.charCodeAt(0),16777619),2166136261))>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
 /** Next goal: sleepy -> nap moss, curious -> a library, else weighted spots / free wander. */
+/** True universe limit (pocket edge is ~4.6): creatures may roam past the pocket, turning back only here. */
+export const UNIVERSE_R=7.5;
 export function nextGoal(r,mood,visits={}){
  if(mood==='sleepy')return SPOTS.find(s=>s.id==='nap-moss');
  const libs=SPOTS.filter(s=>s.kind==='library');
  if(mood==='curious'||r()<.35){const least=[...libs].sort((a,b)=>(visits[a.id]||0)-(visits[b.id]||0));return least[r()<.7?0:Math.floor(r()*least.length)];}
  if(r()<.55){const f=SPOTS.filter(s=>s.kind==='favorite');return f[Math.floor(r()*f.length)];}
- const a=r()*Math.PI*2,d=1+r()*3.6;return {id:'wander',kind:'wander',x:Math.cos(a)*d,z:Math.sin(a)*d};
+ const a=r()*Math.PI*2,d=1+r()*(UNIVERSE_R-1.4);return {id:'wander',kind:'wander',x:Math.cos(a)*d,z:Math.sin(a)*d};
 }
 /** Construct points (unit scale, local), deterministic per seed. */
 export function constructPoints(shape,seed,n=160){

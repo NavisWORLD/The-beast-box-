@@ -3,6 +3,7 @@
  * this only adds favorite spots, three mini libraries, ambient wisps + fireflies, persistent CST particle
  * creations, and the living-core synapse layer (12-channel sensor/wire net + soft-body ripples + quiet clicks).
  */
+import {addRiverFlow} from './river-flow';
 import {SPOTS,constructPoints,addCreation,loadCreations,saveCreations,reactToWords} from './roam-brain.mjs';
 import {buildSynapseNet,channelValues,fireStep,EMO_VIBE} from './synapse-net.mjs';
 import {createCSTState,stepCSTState} from '../physics/cst-integrator.mjs';
@@ -79,18 +80,19 @@ export function addRoamExtras(THREE:T,scene:import('three').Scene,{beastId,low,s
  ffG.setAttribute('position',new THREE.BufferAttribute(ffA,3));const ffBase=ffA.slice();const ff=new THREE.Points(ffG,new THREE.PointsMaterial({size:.035,color:0xa8eaff,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false}));root.add(ff);
  const wisps=Array.from({length:low?4:7},(_,i)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),new THREE.MeshBasicMaterial({color:PAL[i%PAL.length],transparent:true,opacity:.8,blending:THREE.AdditiveBlending}));root.add(m);return {m,a:i*1.3,r:1+(i%4)*.6,h:.35+(i%3)*.35,s:(.12+(i%5)*.04)*(i%2?1:-1)};});
  const store=typeof window!=='undefined'?window.localStorage:null as any;let creations=store?loadCreations(store,beastId):[];const cg=new THREE.Group();root.add(cg);
- const draw=(c:any,born=false)=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(constructPoints(c.shape,c.seed,low?80:140),3));const p=new THREE.Points(g,new THREE.PointsMaterial({size:.03,color:PAL[c.seed%PAL.length],transparent:true,opacity:born?0:.85,blending:THREE.AdditiveBlending,depthWrite:false}));p.position.set(c.x,floorY,c.z);p.scale.setScalar(.45);p.userData={born:born?0:1};cg.add(p);while(cg.children.length>12){const o:any=cg.children[0];o.geometry.dispose();cg.remove(o);}};
+ const draw=(c:any,born=false)=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(constructPoints(c.shape,c.seed,low?80:140),3));const p=new THREE.Points(g,new THREE.PointsMaterial({size:.03,color:PAL[c.seed%PAL.length],transparent:true,opacity:born?0:.85,blending:THREE.AdditiveBlending,depthWrite:false}));p.position.set(c.x,floorY,c.z);p.scale.setScalar(.45);p.userData={born:born?0:1,tgt:born?(g.attributes.position.array as Float32Array).slice():null};cg.add(p);while(cg.children.length>12){const o:any=cg.children[0];o.geometry.dispose();cg.remove(o);}};
  creations.forEach((c:any)=>draw(c));
  const NB=low?60:120,bG=new THREE.BufferGeometry(),bA=new Float32Array(NB*3).fill(-50),bv=new Float32Array(NB*3);bG.setAttribute('position',new THREE.BufferAttribute(bA,3));const burst=new THREE.Points(bG,new THREE.PointsMaterial({size:.03,color:0xc6a2ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));root.add(burst);let bLife=0;
  const doBurst=(x:number,y:number,z:number)=>{for(let i=0;i<NB;i++){bA[i*3]=x;bA[i*3+1]=y;bA[i*3+2]=z;const u=Math.random()*6.28,v=Math.random()*2-1,s=Math.sqrt(1-v*v);bv[i*3]=Math.cos(u)*s*.7;bv[i*3+1]=Math.abs(v)*.9+.2;bv[i*3+2]=Math.sin(u)*s*.7;}bLife=1.2;};
  const create=(shape:string,x:number,z:number,from:string)=>{const c={shape,x,z,seed:(Math.random()*2**31)>>>0,from};creations=addCreation(creations,c);if(store)saveCreations(store,beastId,creations);draw(creations[creations.length-1],true);doBurst(x,.3,z);onDoing('made a '+shape+' ✦');};
+ const river=addRiverFlow(THREE,root,{low,seed:beastId,floorY});
  let t=0;
- return {spots:spots.map(s=>s.s),create,burst:doBurst,count:()=>creations.length,
-  step(dt:number,who:{x:number;z:number}|null){t+=dt;
-   for(let i=0;i<NF;i++){ffA[i*3]=ffBase[i*3]+Math.sin(t*.5+i)*.2;ffA[i*3+1]=ffBase[i*3+1]+Math.sin(t*.8+i*1.7)*.12;ffA[i*3+2]=ffBase[i*3+2]+Math.cos(t*.4+i)*.2;}ffG.attributes.position.needsUpdate=true;
-   wisps.forEach(w=>{w.a+=w.s*dt;let x=Math.cos(w.a)*w.r,z=Math.sin(w.a)*w.r;if(who){const d=Math.hypot(x-who.x,z-who.z);if(d<.6&&d>1e-3){x+=(x-who.x)/d*(.6-d);z+=(z-who.z)/d*(.6-d);}}w.m.position.set(x,w.h+Math.sin(t*1.3+w.a)*.08,z);});
+ return {river,spots:spots.map(s=>s.s),create,burst:doBurst,count:()=>creations.length,
+  step(dt:number,who:{x:number;z:number}|null){t+=dt;river.step(dt);
+   for(let i=0;i<NF;i++){{const th=Math.atan2(ffBase[i*3+2],ffBase[i*3])+t*.06*(i%2?1:-1),rr=Math.hypot(ffBase[i*3],ffBase[i*3+2])*(1+.12*Math.sin(th*3+t*.3));ffA[i*3]=Math.cos(th)*rr;ffA[i*3+2]=Math.sin(th)*rr;}ffA[i*3+1]=ffBase[i*3+1]+Math.sin(t*.8+i*1.7)*.12;}ffG.attributes.position.needsUpdate=true;
+   wisps.forEach(w=>{w.a+=w.s*dt;const wr=w.r*(1+.18*Math.sin(w.a*3+t*.4));let x=Math.cos(w.a)*wr,z=Math.sin(w.a)*wr;if(who){const d=Math.hypot(x-who.x,z-who.z);if(d<.6&&d>1e-3){x+=(x-who.x)/d*(.6-d);z+=(z-who.z)/d*(.6-d);}}w.m.position.set(x,w.h+Math.sin(t*1.3+w.a)*.08,z);});
    spots.forEach((o,i)=>{(o.ring.material as any).opacity=.25+.2*Math.sin(t*1.5+i);if(o.tome){o.tome.position.y=.3+Math.sin(t*1.2+i)*.02;o.tome.rotation.y=t*.4;}});
-   cg.children.forEach((p:any)=>{p.rotation.y+=dt*.25;if(p.userData.born<1){p.userData.born=Math.min(1,p.userData.born+dt*.6);p.material.opacity=.85*p.userData.born;}});
+   cg.children.forEach((p:any)=>{p.rotation.y+=dt*.25;if(p.userData.born<1){p.userData.born=Math.min(1,p.userData.born+dt*.6);p.material.opacity=.85*p.userData.born;const b=p.userData.born,e=1-(1-b)*(1-b)*(1-b);const A=p.geometry.attributes.position.array,T0=p.userData.tgt;if(T0){for(let j=0;j<A.length;j+=3){const k=Math.floor(j/24);const sx=Math.sin(k*7.1)*.9,sy=Math.sin(k*3.3)*.6+.4,sz=Math.cos(k*5.7)*.9;A[j]=T0[j]+(sx-T0[j])*(1-e);A[j+1]=T0[j+1]+(sy-T0[j+1])*(1-e);A[j+2]=T0[j+2]+(sz-T0[j+2])*(1-e);}p.geometry.attributes.position.needsUpdate=true;}}});
    if(bLife>0){bLife-=dt;for(let i=0;i<NB;i++){bA[i*3]+=bv[i*3]*dt;bA[i*3+1]+=bv[i*3+1]*dt;bA[i*3+2]+=bv[i*3+2]*dt;bv[i*3+1]-=.9*dt;}bG.attributes.position.needsUpdate=true;(burst.material as any).opacity=Math.max(0,bLife/1.2);}},
   words:(text:string)=>reactToWords(text),
   dispose(){scene.remove(root);root.traverse((o:any)=>{o.geometry?.dispose?.();o.material?.dispose?.();});}};

@@ -17,3 +17,11 @@ test('synapse net: 12 CST channel families, wired, firing scales with excitation
  const net=buildSynapseNet(p,q,n,{perChannel:6});assert.equal(net.count,72);assert.equal(new Set(net.ch).size,12);assert.ok(net.edges.length>=72);
  const v=channelValues({ch:{valence:.8,arousal:.6,coherence:.5}});assert.equal(v.length,12);
  const a=new Float32Array(12),b=new Float32Array(12);let fa=0,fb=0;for(let i=0;i<200;i++){fa+=fireStep(a,v,.05,0).length;fb+=fireStep(b,v,.05,1).length;}assert.ok(fb>fa*2);assert.ok(EMO_VIBE.scared.hz>EMO_VIBE.sleepy.hz);});
+
+test('universe roamers leave their home zone but stay inside the universe limit', async () => {
+  const {createActor,stepActor,motionPersona}=await import('../lib/companion/film-motion.mjs');
+  const {UNIVERSE_R}=await import('../lib/living-core/roam-brain.mjs');
+  const a=createActor(motionPersona({id:'art-kairo'}),{x:2,z:0,radius:.9,seed:'u',universe:UNIVERSE_R});
+  let far=0;for(let i=0;i<20000;i++){const p=stepActor(a,1/30,{});far=Math.max(far,Math.hypot(p.x-2,p.z));assert.ok(Math.hypot(p.x,p.z)<=UNIVERSE_R+1e-6);}
+  assert.ok(far>3,'left home zone: '+far);
+});

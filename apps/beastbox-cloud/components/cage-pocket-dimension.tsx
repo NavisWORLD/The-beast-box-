@@ -1,7 +1,7 @@
 'use client';
 import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles} from '../lib/living-core/core-cache';
 import {attachSynapse,addRoamExtras,synapseClick} from '../lib/living-core/roam-extras';
-import {nextGoal,rng as lcRng,SHAPES} from '../lib/living-core/roam-brain.mjs';
+import {nextGoal,UNIVERSE_R,rng as lcRng,SHAPES} from '../lib/living-core/roam-brain.mjs';
 import {recordArrival} from '../lib/zeref/pocket-journal';
 import {motionPersona,createActor,stepActor} from '../lib/companion/film-motion.mjs';
 import {addGodView,ZOOM_MIN,ZOOM_MAX} from './pocket-god-view';
@@ -302,14 +302,14 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const zHolder=new THREE.Group();zHolder.scale.setScalar(.45);zHolder.position.set(0,-.07,0);zHolder.rotation.y=.7;scene.add(zHolder);
     // Film motion for Zeref (bb-7f9c2a03 persona: no recorded seed of his own here → id-only persona).
     const zActorNode=new THREE.Group();zHolder.add(zActorNode);
-    const zActor=createActor(motionPersona({id:'bb-7f9c2a03'}),{x:-1.15,z:.75,radius:1.1,seed:'bb-7f9c2a03'});// offset so Zeref never stands inside the active Beast
+    const zActor=createActor(motionPersona({id:'bb-7f9c2a03'}),{x:-1.15,z:.75,radius:1.1,seed:'bb-7f9c2a03',universe:UNIVERSE_R});// offset so Zeref never stands inside the active Beast
     // ---- Oct 16 living-core: Zeref as the true-3D living-core body (same actor, same pocket look) + life layer on top.
     const lcId=qbeastId||'bb-deada969';const lcS:any={LC:null,syn:null,goal:null,pause:2,mood:'calm',ov:null,ovT:0,visits:{},r:lcRng(lcId+':roam')};
-    const extras=addRoamExtras(THREE,scene,{beastId:lcId,low,onDoing:(d:string)=>{lcS.doing=d;}});
-    const lcWords=(text:string)=>{const w:any=extras.words(text);if(w.emotion){lcS.ov=w.emotion;lcS.ovT=5;}lcS.syn?.kick(.4+w.burst*.6);extras.burst(zHolder.position.x,.5,zHolder.position.z);if(w.shape)extras.create(w.shape,zHolder.position.x+.3,zHolder.position.z+.3,'chat');};
+    const extras=addRoamExtras(THREE,scene,{beastId:lcId,low:low||soft,onDoing:(d:string)=>{lcS.doing=d;}});
+    const lcWords=(text:string)=>{const w:any=extras.words(text);if(w.emotion){lcS.ov=w.emotion;lcS.ovT=5;}lcS.syn?.kick(.4+w.burst*.6);extras.river.kick(.5+w.burst*.5);extras.burst(zHolder.position.x,.5,zHolder.position.z);if(w.shape)extras.create(w.shape,zHolder.position.x+.3,zHolder.position.z+.3,'chat');};
     lcBus.current={words:lcWords};
     const onLcChat=(e:any)=>lcWords(String(e?.detail?.text||'hi'));const onLcLevel=(e:any)=>{const l=Number(e?.detail?.level)||0;if(l>.05)lcS.syn?.kick(Math.min(.5,l*.6));};const onLcChirp=(e:any)=>lcS.syn?.kick(.25*(Number(e?.detail?.intensity)||.5));
-    const onLcTap=()=>{lcS.syn?.kick(.9);lcS.ov=lcS.ov||'happy';lcS.ovT=Math.max(lcS.ovT,2);};
+    const onLcTap=()=>{lcS.syn?.kick(.9);extras.river.kick(.4);lcS.ov=lcS.ov||'happy';lcS.ovT=Math.max(lcS.ovT,2);};
     window.addEventListener('beastbox:beast-chat',onLcChat);window.addEventListener('beastbox:local-sensor-level',onLcLevel);window.addEventListener('beastbox:spark-chirp',onLcChirp);renderer.domElement.addEventListener('pointerdown',onLcTap);
     if(lcOk)void getLivingCore(THREE,'zeref',low).then(({LC})=>{if(disposed)return;const g=new THREE.Group();const k=livingCoreScale(LC,2.6);g.scale.setScalar(k);fitLivingCoreParticles(LC,k*.45,renderer.domElement.height);g.position.y=-LC.footY*k;g.add(LC.group);zActorNode.add(g);lcS.LC=LC;lcS.g=g;(window as any).__lcPocket={lcS,zHolder,zActorNode,camera};
      lcS.syn=attachSynapse(THREE,LC,lcId,low);lcS.syn.onFire((c:number)=>{synapseClick(c,.35);});}).catch(()=>{});
@@ -414,7 +414,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      if(lcS.LC){// roam brain: favorite spots / mini libraries / free wander; arrival = learn + make a CST construct
       const mood=lcS.ov||(state==='sleeping'?'sleepy':'calm');if(lcS.ovT>0){lcS.ovT-=dt;if(lcS.ovT<=0)lcS.ov=null;}
       if(lcS.mood!==mood){lcS.mood=mood;lcS.LC.setEmotion?.(mood);lcS.syn?.setEmotion(mood);}
-      if(!lcS.goal){lcS.pause-=dt;if(lcS.pause<=0){const g:any=nextGoal(lcS.r,mood,lcS.visits);lcS.goal=g.kind==='wander'?{...g,x:g.x*.5,z:g.z*.5}:extras.spots.find((s:any)=>s.id===g.id)||g;(zActor as any).target={x:lcS.goal.x,z:lcS.goal.z};}}
+      if(!lcS.goal){lcS.pause-=dt;if(lcS.pause<=0){let g:any=nextGoal(lcS.r,mood,lcS.visits);const others=(window as any).__lcResidents as any[]|undefined;if(others?.length&&lcS.r()<.25){const o=others[Math.floor(lcS.r()*others.length)];g={id:'visit-'+o.r.id,kind:'favorite',x:o.x+.6,z:o.z+.6};}lcS.goal=g.kind==='wander'?g:extras.spots.find((s:any)=>s.id===g.id)||g;(zActor as any).target={x:lcS.goal.x,z:lcS.goal.z};}}
       else if(Math.hypot(zHolder.position.x-lcS.goal.x,zHolder.position.z-lcS.goal.z)<.35){const g=lcS.goal;lcS.goal=null;lcS.visits[g.id]=(lcS.visits[g.id]||0)+1;lcS.pause=g.kind==='library'?4:2.5;
        if(g.kind==='library'){lcS.ov='curious';lcS.ovT=4;lcS.syn?.kick(.7);try{recordArrival(lcId,'library:'+g.topic);}catch{}const sh=SHAPES[(lcS.visits[g.id]+g.topic.length)%SHAPES.length];setTimeout(()=>{if(!disposed)extras.create(sh,g.x+.25,g.z+.25,'library:'+g.topic);},2200);}
        else if(g.id!=='wander'){try{recordArrival(lcId,g.id);}catch{}}}

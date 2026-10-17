@@ -3,6 +3,7 @@ import {loadResident3D} from './resident-3d';
 import {loadBeastGlb} from './creature-glb-beast';
 import RES_PAINTS from '../lib/creatures3d/resident-paints.json';
 import {motionPersona,createActor,stepActor} from '../lib/companion/film-motion.mjs';
+import {UNIVERSE_R} from '../lib/living-core/roam-brain.mjs';
 import {RESIDENT_LC} from '../lib/living-core/creatures.js';
 import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles,LC_FLYERS} from '../lib/living-core/core-cache';
 type Three=typeof import('three');
@@ -22,7 +23,7 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
      shadow.rotation.x=-Math.PI/2;shadow.position.y=-.03;scene.add(sprite);scene.add(shadow);
      // Film motion: artist-drawn → no quantum seed, so the persona comes from the resident's own id only.
      const home=(i/ARTIST_RESIDENTS.length)*Math.PI*2+.6,hr=r.kind==='trainer'?2.2:2.8;
-     const actor=createActor(motionPersona({id:r.id}),{x:Math.cos(home)*hr,z:Math.sin(home)*hr*.85,radius:.9,seed:r.id});
+     const actor=createActor(motionPersona({id:r.id}),{x:Math.cos(home)*hr,z:Math.sin(home)*hr*.85,radius:.9,seed:r.id,universe:UNIVERSE_R});
      const slot:{mesh:any;glb:any;foot:number;lc?:any;lcName?:string;lcK?:number}={mesh:null,glb:null,foot:0};
      // Zeref-pipeline sculpted resident GLB (Oct 15) with its artist palette + props; the visual-hull model / sprite stay as fallback.
      const stub=(RES_PAINTS as any[]).find(x=>x.body==='res_'+r.id.replace('art-',''));
@@ -63,5 +64,6 @@ export function addPocketResidents(THREE:Three,scene:import('three').Scene,seedR
     const disturbers=()=>residents.map(a=>({x:a.x,z:a.z,r:.75*a.r.scale,s:2.4,id:a.r.id}));
     // Tap-to-focus targets: the 3D mesh once loaded, else the sprite.
     const pickables=()=>residents.map(a=>({id:a.r.id,obj:(a.slot.mesh??a.sprite) as import('three').Object3D}));
+    if(typeof window!=='undefined')(window as any).__lcResidents=residents;// lets roamers visit each other's spots
     return {stepResidents,texCache,disturbers,pickables};
 }
