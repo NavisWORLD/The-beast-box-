@@ -7,11 +7,21 @@ type T=typeof import('three');type V3={x:number;y:number;z:number};
 const SWAY_VS=`
  vec4 wpS=modelMatrix*instanceMatrix*vec4(transformed,1.);float hS=max(0.,wpS.y+.05);
  vec2 swS=uFlow*hS*hS*.012*(sin(uTime*.9+wpS.x*.21+wpS.z*.17)+.45*sin(uTime*1.7+wpS.z*.4));
- wpS.xz+=swS;vec4 mvPosition=viewMatrix*wpS;gl_Position=projectionMatrix*mvPosition;`;
-function swayMat(THREE:T,U:any,opts:any){const m=new THREE.MeshStandardMaterial(opts);
+ wpS.xz+=swS;vec4 mvPosition=viewMatrix*wpS;gl_Position=projectionMatrix*mvPosition;
+ vec3 nS=normalize(mat3(viewMatrix)*mat3(modelMatrix)*mat3(instanceMatrix)*objectNormal);vRimS=1.-abs(dot(nS,normalize(-mvPosition.xyz)));
+ vHS=wpS.y;vNearS=smoothstep(NEAR_A,NEAR_B,-mvPosition.z);`;
+/** Near-lens rules for foliage: fully faded inside NEAR_A, full from NEAR_B (world units in view depth). */
+export const CANOPY_NEAR=Object.freeze({a:2.5,b:7});
+function swayMat(THREE:T,U:any,opts:any,{rim=0,shade=0,fade=false,key='bark'}:{rim?:number;shade?:number;fade?:boolean;key?:string}={}){const m=new THREE.MeshStandardMaterial(opts);
   m.onBeforeCompile=(sh:any)=>{sh.uniforms.uTime=U.uTime;sh.uniforms.uFlow=U.uFlow;
-   sh.vertexShader='uniform float uTime;uniform vec2 uFlow;\n'+sh.vertexShader.replace('#include <project_vertex>',SWAY_VS);};
-  m.customProgramCacheKey=()=>'bbsway';return m;}
+   const vs=SWAY_VS.replace('NEAR_A',CANOPY_NEAR.a.toFixed(2)).replace('NEAR_B',CANOPY_NEAR.b.toFixed(2));
+   sh.vertexShader='uniform float uTime;uniform vec2 uFlow;varying float vRimS,vHS,vNearS;\n'+sh.vertexShader.replace('#include <project_vertex>',vs);
+   sh.fragmentShader='varying float vRimS,vHS,vNearS;\n'+sh.fragmentShader.replace('#include <dithering_fragment>',
+    `#include <dithering_fragment>
+     gl_FragColor.rgb*=mix(1.,mix(.45,1.18,clamp(vHS/7.,0.,1.)),${shade.toFixed(2)});// depth shading: darker low/inner, lit crown
+     gl_FragColor.rgb+=vec3(.55,.75,1.)*pow(vRimS,2.4)*${rim.toFixed(2)};// cool rim light from the cage glow
+     ${fade?'gl_FragColor.a*=vNearS;if(gl_FragColor.a<.02)discard;':''}`);};
+  m.customProgramCacheKey=()=>'bbsway-'+key;return m;}
 
 export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30}:{low:boolean;universe?:number}){
   const U={uTime:{value:0},uFlow:{value:new THREE.Vector2(.8,.35)}};const rnd=seededRng('worlds');
@@ -29,32 +39,36 @@ export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30
   sky.renderOrder=-10;sky.frustumCulled=false;root.add(sky);
   // ---- parallax depth layers: three silhouette rings with soft haze (move at different apparent rates)
   const layers:import('three').Mesh[]=[];
-  [[universe*2.1,7,.55,0x2a1a52],[universe*3.8,15,.42,0x221646],[universe*6.5,28,.3,0x1a1238]].forEach(([R,H,a,col],i)=>{
+  [[universe*2.1,6,.2,0x3a2a6a],[universe*3.8,13,.15,0x30225e],[universe*6.5,24,.11,0x281c52]].forEach(([R,H,a,col],i)=>{
    const g=new THREE.CylinderGeometry(R,R,H,low?64:128,1,true);g.translate(0,H/2-.2,0);
    const mat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,fog:false,uniforms:{uC:{value:new THREE.Color(col)},uA:{value:a},uS:{value:i*7.1}},
     vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
     fragmentShader:`varying vec2 vU;uniform vec3 uC;uniform float uA,uS;
      float n(float x){return sin(x)*.5+sin(x*2.3+uS)*.3+sin(x*5.1+uS*2.)*.15;}
-     void main(){float x=vU.x*6.2831*6.;float ridge=.45+.35*n(x+uS);float m=1.-smoothstep(ridge-.04,ridge,vU.y);
-      float haze=(1.-vU.y)*.35;gl_FragColor=vec4(uC*(1.+vU.y*.6),clamp(m*uA+haze*uA,0.,1.));}`});
+     void main(){float x=vU.x*6.2831*6.;float ridge=.45+.35*n(x+uS);float m=1.-smoothstep(ridge-.28,ridge+.06,vU.y);
+      float haze=pow(1.-vU.y,2.)*.5;gl_FragColor=vec4(uC*(1.+vU.y*.6),clamp(m*uA+haze*uA,0.,1.));}`});
    const ring=new THREE.Mesh(g,mat);ring.renderOrder=-9+i*0;ring.frustumCulled=false;root.add(ring);layers.push(ring);});
   // ---- home trees: one instanced mesh for all branches, one for canopy puffs (CST branching, flow sway)
   const nT=low?LIMITS.homeTreesLow:LIMITS.homeTreesHigh,depth=low?LIMITS.treeDepthLow:LIMITS.treeDepthHigh;
   const trees:{x:number;z:number;s:number;segs:any[]}[]=[];
-  for(let i=0;i<nT;i++){const a=i*2.39996+rnd()*.4,r=9+rnd()*(universe*.55);trees.push({x:Math.cos(a)*r,z:Math.sin(a)*r,s:3.2+rnd()*2.6,segs:cstTree('home'+i,{depth,scale:1})});}
+  for(let i=0;i<nT;i++){const a=i*2.39996+rnd()*.4,r=7+rnd()*(universe*.4);trees.push({x:Math.cos(a)*r,z:Math.sin(a)*r,s:5.5+rnd()*3,segs:cstTree('home'+i,{depth,scale:1})});}
   const segTotal=Math.min(LIMITS.maxSegments,trees.reduce((n,t)=>n+t.segs.length,0));
-  const tips=trees.map(t=>treeTips(t.segs));const tipTotal=tips.reduce((n,t)=>n+t.length,0);
+  const tips=trees.map(t=>treeTips(t.segs));const CLUMP=low?2:3;const tipTotal=tips.reduce((n,t)=>n+t.length,0)*CLUMP;
   const branchGeo=new THREE.CylinderGeometry(.7,1,1,low?5:7,1,true);branchGeo.translate(0,.5,0);
-  const bark=swayMat(THREE,U,{color:0x2a1d4a,emissive:0x3b1f6e,emissiveIntensity:.35,roughness:.8,flatShading:true});
+  const bark=swayMat(THREE,U,{color:0x6a4a9a,emissive:0x3a2068,emissiveIntensity:.7,roughness:.85,flatShading:true},{rim:.35,shade:.6,key:'bark'});
   const branches=new THREE.InstancedMesh(branchGeo,bark,segTotal);branches.name='cst-trees';
   const leafGeo=new THREE.IcosahedronGeometry(1,low?0:1);
-  const leaf=swayMat(THREE,U,{color:0x5b3fa8,emissive:0x7c4dff,emissiveIntensity:.55,roughness:.5,flatShading:true,transparent:true,opacity:.92});
+  const leaf=swayMat(THREE,U,{color:0x6b4fc0,emissive:0x6a3fe0,emissiveIntensity:.5,roughness:.6,flatShading:true,transparent:true,opacity:1},{rim:.55,shade:1,fade:true,key:'leaf'});
   const canopy=new THREE.InstancedMesh(leafGeo,leaf,tipTotal);canopy.name='cst-canopy';
   const tc=new THREE.Color();let si=0,li=0;
   trees.forEach((t,ti)=>{for(const s of t.segs){if(si>=segTotal)break;va.set(t.x+s.a[0]*t.s,-.06+s.a[1]*t.s,t.z+s.a[2]*t.s);vb.set(t.x+s.b[0]*t.s,-.06+s.b[1]*t.s,t.z+s.b[2]*t.s);
-    const L=va.distanceTo(vb);q.setFromUnitVectors(up,vb.clone().sub(va).normalize());vs.set(s.r*t.s,L,s.r*t.s);m4.compose(va,q,vs);branches.setMatrixAt(si++,m4);}
-   for(const p of tips[ti]){va.set(t.x+p[0]*t.s,-.06+p[1]*t.s,t.z+p[2]*t.s);q.identity();vs.setScalar(t.s*(.09+rnd()*.06));m4.compose(va,q,vs);canopy.setMatrixAt(li,m4);
-    tc.setHSL(.72+rnd()*.12-(ti%3===0?.25:0),.6,.45+rnd()*.15);canopy.setColorAt(li++,tc);}});
+    const L=va.distanceTo(vb);q.setFromUnitVectors(up,vb.clone().sub(va).normalize());const th=s.r*t.s*(s.d===1?1.7:1.25);vs.set(th,L,th);m4.compose(va,q,vs);branches.setMatrixAt(si++,m4);}
+   const hue=ti%3===0?.47:ti%3===1?.74:.8;
+   for(const p of tips[ti])for(let c=0;c<CLUMP;c++){// layered clumps: inner dark big, outer lighter smaller, lifted
+    const o=c*.6;va.set(t.x+(p[0]+(rnd()-.5)*.12*o)*t.s,-.06+(p[1]+.04*c)*t.s,t.z+(p[2]+(rnd()-.5)*.12*o)*t.s);q.setFromEuler(new THREE.Euler(rnd()*3,rnd()*3,0));
+    vs.set(1,.8,1).multiplyScalar(t.s*(.15-.03*c)*(.85+rnd()*.3));m4.compose(va,q,vs);canopy.setMatrixAt(li,m4);
+    tc.setHSL(hue+(rnd()-.5)*.05,.6+.1*c,.42+.12*c+rnd()*.06);canopy.setColorAt(li++,tc);}});
+  const treeBodies=trees.flatMap(t=>[{x:t.x,y:t.s*.35,z:t.z,r:t.s*.12+.5},{x:t.x,y:t.s*.85,z:t.z,r:t.s*.42}]);// trunk + crown push the lens out
   branches.instanceMatrix.needsUpdate=true;canopy.instanceMatrix.needsUpdate=true;root.add(branches,canopy);
   // ---- soft clouds: billboarded instanced quads, radial soft alpha with drift
   const nC=low?LIMITS.cloudsLow:LIMITS.cloudsHigh,nP=nC*LIMITS.puffs;
@@ -96,7 +110,7 @@ export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30
    const others=wellsNow().filter((_,j)=>j!==i%worlds.length);trip={i:i%worlds.length,out:tunnelPath({x:from.x,y:from.y,z:from.z},top,others,{n:TRAIL_N})};tripT=0;lastWorld=trip.i;
    const a=trailGeo.attributes.position as any;trip.out.forEach((p:V3,k:number)=>a.setXYZ(k,p.x,p.y,p.z));a.needsUpdate=true;return trip;}
   return {root,worlds,U,
-   bodies:()=>worlds.map(o=>({x:o.g.position.x,y:o.g.position.y,z:o.g.position.z,r:o.w.radius*1.1+.6})),
+   bodies:()=>[...worlds.map(o=>({x:o.g.position.x,y:o.g.position.y,z:o.g.position.z,r:o.w.radius*1.1+.6})),...treeBodies],
    startTrip,get trip(){return trip;},
    /** advance; returns travel pose for the traveller or null when home. */
    update(dt:number,t:number,cam:import('three').Camera,traveller:V3,canAuto:boolean){
