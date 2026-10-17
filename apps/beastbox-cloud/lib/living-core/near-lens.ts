@@ -1,3 +1,4 @@
+// Near-lens guard: keeps point sprites and the camera out of the lens radius.
 /** Near-lens safety for every dot particle in a scene:
  *  - PointsMaterial points get a hard pixel cap and shrink to nothing inside the lens radius;
  *  - pushCameraOut keeps the camera outside a minimum radius around each creature.
