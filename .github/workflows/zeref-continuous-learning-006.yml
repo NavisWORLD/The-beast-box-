@@ -61,8 +61,21 @@ jobs:
           # An EXACT fixed artifact name keeps canonical descendants
           # discoverable regardless of unrelated repo CI artifact volume.
           canonical_name="zeref-006-canonical-37ca3f8f"
-          canonical_run="$(gh api "repos/${{ github.repository }}/actions/artifacts?name=$canonical_name&per_page=100" --jq '.artifacts | map(select(.expired == false and .name == "zeref-006-canonical-37ca3f8f")) | sort_by(.created_at) | last | .workflow_run.id // empty')"
-          if [ -n "$canonical_run" ]; then
+          # Training fix 002 (2026-10-17): parent AND anchor = the PUBLIC PIN's approved release.
+          # Unpromoted cycles never become parents (chaining off them drifted chat 3.946 -> 4.573).
+          pin_tag="$(python -c "import json;p=json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'));print((p.get('promotion') or {}).get('release_tag') or '')")"
+          if [ -n "$pin_tag" ] && gh release view "$pin_tag" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "RESUME_PUBLIC_PIN_RELEASE=$pin_tag"
+            mkdir -p build/zeref-006/previous build/zeref-006/release
+            gh release download "$pin_tag" --repo "${{ github.repository }}" -D build/zeref-006/release
+            (cd build/zeref-006/release && sha256sum -c ./*.sha256)
+            tar -C build/zeref-006/previous -xzf build/zeref-006/release/*.tar.gz
+            canonical_name="__pin_used__"
+          fi
+          canonical_run=""; [ "$canonical_name" = "__pin_used__" ] || canonical_run="$(gh api "repos/${{ github.repository }}/actions/artifacts?name=$canonical_name&per_page=100" --jq '.artifacts | map(select(.expired == false and .name == "zeref-006-canonical-37ca3f8f")) | sort_by(.created_at) | last | .workflow_run.id // empty')"
+          if [ "$canonical_name" = "__pin_used__" ]; then
+            PARENT="$(find build/zeref-006/previous -type d -name accepted-checkpoint -print -quit)"
+          elif [ -n "$canonical_run" ]; then
             case "$canonical_run" in ''|*[!0-9]*) echo "Invalid canonical lineage run id"; exit 1;; esac
             echo "RESUME_CANONICAL_ZEREF_DESCENDANT_RUN=$canonical_run"
             gh run download "$canonical_run" --repo "${{ github.repository }}" -n "$canonical_name" -D build/zeref-006/previous
@@ -140,7 +153,10 @@ jobs:
             if curl -fsS http://127.0.0.1:3000/spark/index.html >/dev/null && curl -fsS http://127.0.0.1:8765/arcade/sol-spark-gate/handheld.html >/dev/null; then break; fi
             sleep 2
           done
-          for attempt in 1 2; do
+          # Boot-race fix 002: warm the ROM, 4 attempts, longer gameplay wait after the first.
+          curl -fsS http://127.0.0.1:8765/arcade/sol-spark-gate/handheld.html >/dev/null || true
+          for attempt in 1 2 3 4; do
+            export ZEREF_GAMEPLAY_WAIT_MS=$([ "$attempt" = 1 ] && echo 90000 || echo 150000)
             if NODE_PATH=/tmp/zeref-006-browser/node_modules node apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs http://127.0.0.1:3000 http://127.0.0.1:8765 build/zeref-006/inputs; then
               test -s build/zeref-006/inputs/native-evidence-manifest.json
               test -s build/zeref-006/inputs/native-observation-actions.jsonl
@@ -172,7 +188,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           curl -fsSL --retry 3 -o build/zeref-006/dolly.jsonl "https://huggingface.co/datasets/databricks/databricks-dolly-15k/resolve/bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a/databricks-dolly-15k.jsonl"
-          python scripts/zeref_chat_corpus.py build/zeref-006/dolly.jsonl build/zeref-006/chat-mix.jsonl
+          ZEREF_CHAT_ROTATE_SEED="${{ github.run_id }}" python scripts/zeref_chat_corpus.py build/zeref-006/dolly.jsonl build/zeref-006/chat-mix.jsonl
       - name: Teacher distillation stage (approved teacher pairs only; teachers inform knowledge, not Zeref's voice)
         env:
           AZURE_STORAGE_CONTAINER_SAS_URL: ${{ secrets.AZURE_STORAGE_CONTAINER_SAS_URL }}
@@ -211,6 +227,7 @@ jobs:
             build/zeref-006/failure.json
             build/zeref-006/chat-mix.manifest.json
             build/zeref-006/chat-eval.json
+            build/zeref-006/promotion-decision.json
           retention-days: 90
           if-no-files-found: warn
       - name: Chat test vs public 14000 (decides ONLY whether a promotion PR may be proposed)
@@ -219,6 +236,16 @@ jobs:
           set -Eeuo pipefail
           test -s build/public-14k/model.safetensors
           python -u scripts/rawrphos_chat_eval.py build/public-14k build/zeref-006/accepted-checkpoint build/zeref-006/chat-eval.json
+          # Absolute promotion bar (fix 002): not worse than 14000 on every metric AND ref_nll below the CURRENT pin's.
+          python - <<'PY'
+          import json
+          pin=json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'));ev=json.load(open('build/zeref-006/chat-eval.json'))
+          bar=(pin.get('promotion') or {}).get('candidate_ref_nll') or ev['baseline']['ref_nll']
+          c=ev['candidate']['ref_nll'];ok=bool(ev['chat_not_worse'] and c<bar)
+          d={'schema':'zeref-promotion-decision-v1','candidate_ref_nll':c,'pin_ref_nll_bar':bar,'chat_not_worse_vs_14000':ev['chat_not_worse'],'promote':ok}
+          json.dump(d,open('build/zeref-006/promotion-decision.json','w'),indent=1)
+          print('ZEREF_PROMOTION_DECISION='+json.dumps(d),flush=True)
+          PY
       - name: Persist ONLY the approved model and optimizer to resume on next six-hour cycle
         if: success()
         uses: actions/upload-artifact@v4

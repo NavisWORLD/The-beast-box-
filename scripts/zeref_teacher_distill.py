@@ -17,8 +17,8 @@ import hashlib,json,re,sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).parent))
 from rawrphos_chat_eval import PAIRS,CHAT
-APPROVED={"OWNER_AUTO_APPROVED","APPROVED"}
-PROVIDERS={"local-ollama","hf-byok","connected-brain-bay"}
+APPROVED={"OWNER_AUTO_APPROVED","APPROVED","SHARED_TEACHER_AUTO"}  # fix 002: shared-ollama auto lessons (still style/secret filtered, 15% cap)
+PROVIDERS={"local-ollama","hf-byok","connected-brain-bay","shared-ollama"}
 MAX_FRACTION=0.15; MAX_ROWS=300
 ASSISTANTISM=re.compile(r"\b(as an ai|language model|i am an ai|i'm an ai|ai assistant|openai|chatgpt|llama|qwen|mistral|anthropic|claude|gemini|i cannot browse|my training data)\b",re.I)
 GAME=re.compile(r"ACTION:|\b(UP|DOWN|LEFT|RIGHT|WAIT)\b")

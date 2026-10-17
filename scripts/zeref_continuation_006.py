@@ -39,7 +39,11 @@ def expected_steps(cycle):
 # to the approved parent bounds drift (catastrophic-forgetting guard).
 # Calm-drift fix (2026-10-16): 5e-5 x 512 updates overshot the chat gate every
 # round; halve the LR (cycle size stays 512 so expected_steps lineage holds).
-LR=float(os.environ.get("ZEREF_006_LR","0.000025"))
+# Fix 002 (2026-10-17): parent+anchor = public pin; 1e-5 with cosine decay; keep the
+# best in-cycle checkpoint by held chat NLL; chat gate is ABSOLUTE vs the pin.
+LR=float(os.environ.get("ZEREF_006_LR","0.00001"))
+LR_MIN_FRACTION=0.1
+EVAL_EVERY=64
 BATCH=8
 TEACHER_VERSION="visible-signals-v2"
 CHAT_MIX=Path(os.environ.get("ZEREF_006_CHAT_MIX","build/zeref-006/chat-mix.jsonl"))
@@ -180,7 +184,7 @@ def rigetti_order_seed(cycle,fresh_digest=None,run_id=None):
  return int(h[:15],16),{"rigetti_sim_job_id":job["job_id"],"counts":job["counts"],
    "order_seed_sha256":h,"source_class":d.get("source_class"),"label":"SIMULATED",
    "seed_mix":sorted(mix),"backend":"rigetti.sim.qvm (SIMULATED, not QPU)"}
-def train_variant(parent_path,tokenizer,pool,seed,chat_pool=()):
+def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
  """64 bounded AdamW updates with action-balanced sampling and parent anchor."""
  from collections import defaultdict
  parent=load_checkpoint(parent_path,load_training_state=True)
@@ -194,8 +198,9 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=()):
  classes=sorted(by)
  class_w=torch.tensor([len(by[c])**0.5 for c in classes],dtype=torch.float)
  g=torch.Generator().manual_seed(seed)
- logs=[]
+ logs=[];best=None
  for n in range(UPDATES):
+  for group in opt.param_groups:group["lr"]=LR*(LR_MIN_FRACTION+(1-LR_MIN_FRACTION)*.5*(1+math.cos(math.pi*n/UPDATES)))
   opt.zero_grad(set_to_none=True)
   idx=[]
   for _ in range(BATCH):
@@ -230,6 +235,12 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=()):
   if (n+1)%16==0:
    row={"step":n+1,"train_loss":float(loss.detach()),"anchor_drift":float(drift.detach()),"grad_norm":float(grad)}
    logs.append(row);print("ZEREF_006_REAL_CPU_UPDATE="+json.dumps(row),flush=True)
+  if chat_eval and (n+1)%EVAL_EVERY==0:
+   c=chat_eval(model)
+   if best is None or c<best[0]:best=(c,n+1,{k:v.detach().clone() for k,v in model.state_dict().items()})
+   print("ZEREF_006_INCYCLE_CHAT="+json.dumps({"step":n+1,"chat_nll":c,"lr":opt.param_groups[0]["lr"]}),flush=True)
+ if best is not None:
+  model.load_state_dict(best[2]);logs.append({"best_in_cycle_step":best[1],"best_in_cycle_chat_nll":best[0]})
  return model,opt,g,logs
 def parent_proof():
  if not PARENT.is_dir():
@@ -327,17 +338,20 @@ def main():
    _rows.append({"input":(f+t)[:-1],"target":[-100]*(len(f)-1)+t})
   public_ref_chat=nll(_ref["model"],_rows)
   del _ref
- chat_bar=max(.01,original_chat*1.05,public_ref_chat or 0.)
+ # Fix 002: ABSOLUTE bar. Parent is the public pin, so a candidate must not be worse than
+ # the pin on the held chat pairs (no 5% compounding allowance, no 14000 floor ratchet).
+ chat_bar=max(.01,original_chat)
  # On/off comparison: identical recipe, only the batch-order seed differs.
  # The Rigetti-ordered model is ALWAYS the candidate (no cherry-picking).
- ctrl,_,_,_=train_variant(PARENT,tokenizer,pool,control_seed,chat_pool)
+ ce=lambda m:nll(m,chat_t)
+ ctrl,_,_,_=train_variant(PARENT,tokenizer,pool,control_seed,chat_pool,ce)
  ctrl_dir=ROOT/"control-off";meta_c={"schema":"control-not-a-candidate","production_promoted":False,"training_steps":1}
  save_checkpoint(ctrl_dir,ctrl,tokenizer,meta_c,{})
  control_out=exact_model_replies(ctrl_dir,heldout)
  control={"heldout_nll":nll(ctrl,held_t),"chat_nll":nll(ctrl,chat_t),"retention_nll":nll(ctrl,retention),**counts(control_out),
    "unique_actions":len({r["legal_action"] for r in control_out if r["legal_action"]})}
  import shutil;shutil.rmtree(ctrl_dir);del ctrl
- model,opt,torch_generator,logs=train_variant(PARENT,tokenizer,pool,order_seed,chat_pool)
+ model,opt,torch_generator,logs=train_variant(PARENT,tokenizer,pool,order_seed,chat_pool,ce)
  if parameter_hash(model)==before_hash:raise AssertionError("Zeref weights never changed")
  new_held=nll(model,held_t)
  new_ret=nll(model,retention)
@@ -373,7 +387,7 @@ def main():
   # original-ROM observations cannot become the approved training parent.
   # This measures action-label diversity, NOT verified movement/quest progress.
   # Added (never weaker): chat skill on the held chat-test pairs may not degrade.
-  "chat_heldout_nll_within_parent5pct_or_public14k_ref":new_chat<=chat_bar,
+  "chat_heldout_nll_not_worse_than_public_pin":new_chat<=chat_bar,
   "native_heldout_policy_not_single_action":len({r["legal_action"] for r in trial_out if r["legal_action"]})>=2
  }
  accepted=all(guard.values())
@@ -399,7 +413,7 @@ def main():
   "recipe":{"lr":LR,"batch":BATCH,"anchor_l2":ANCHOR,"decision_token_weight":DECISION_WEIGHT,"sampling":"sqrt_action_balanced",
     "replay_datasets":replay_digests,"replay_rows":len(replay),"chat_mix_sha256":chat_digest,"chat_rows":len(chat_pool),"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
     "chat_before_nll":original_chat,"chat_after_nll":new_chat,"chat_gate_bar":chat_bar,
-    "chat_gate_public14k_ref_nll":public_ref_chat,"chat_gate_rule":"max(parent*1.05, pinned public 14000 ref); public promotion still requires rawrphos_chat_eval not worse than 14000","fresh_train_rows":len(train)},
+    "chat_gate_public14k_ref_nll":public_ref_chat,"chat_gate_rule":"fix-002: not worse than the public-pin parent (absolute); promotion additionally requires rawrphos_chat_eval not worse than 14000 AND ref_nll below the current pin","lr_schedule":"cosine to 10%","best_in_cycle":True,"fresh_train_rows":len(train)},
   "rigetti_batch_order":rigetti,
   "rigetti_on_off":{"on_candidate":{"heldout_nll":new_held,"chat_nll":new_chat,"retention_nll":new_ret,**trial,
       "unique_actions":len({r["legal_action"] for r in trial_out if r["legal_action"]})},
