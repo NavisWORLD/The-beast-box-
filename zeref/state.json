@@ -10,17 +10,17 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 33,
- "xp": 1065,
+ "tick": 34,
+ "xp": 1103,
  "stage": 2,
  "stage_name": "Duskwing",
  "signals": {
-  "energy": 63,
+  "energy": 55,
   "signal": 51,
-  "memory": 95,
+  "memory": 96,
   "resonance": 86
  },
- "bond": 8.25,
+ "bond": 8.5,
  "care_total": 0,
  "combos_known": [
   "idle|still|moon-pool|folded|sway|open|smile",
@@ -240,15 +240,23 @@
   "walk|walk|crystal|folded|sway|half|grin",
   "charge|still|portal|folded|sway|open|smile",
   "walk|walk|crystal|folded|flick|open|o",
-  "hover|still|portal|full-spread|flick|closed|grin"
+  "hover|still|portal|full-spread|flick|closed|grin",
+  "hover|hover|open-pocket|beating|sway|closed|grin",
+  "pounce|pounce|crystal|folded|sway|open|o",
+  "sleep|still|moon-pool|folded|sway|closed|sleepy",
+  "sleep|still|moon-pool|folded|flick|closed|sleepy",
+  "sleep|still|moon-pool|folded|lash|closed|sleepy",
+  "sleep|still|moon-pool|beating|flick|closed|sleepy",
+  "sleep|still|moon-pool|beating|lash|closed|sleepy",
+  "idle|still|moon-pool|folded|sway|half|sleepy"
  ],
  "places": {
   "Rift Gate": 27,
   "Lattice Arch": 13,
   "Echo Prism": 51,
-  "Tidewell": 10,
+  "Tidewell": 11,
   "Quartz Choir": 9,
-  "Violet Shard": 14,
+  "Violet Shard": 15,
   "Selene Pool": 5
  },
  "learner": {
@@ -260,38 +268,38 @@
    4,
    3,
    3,
-   2,
-   1,
-   2,
-   10,
-   4,
-   4,
-   10,
-   8,
    3,
    2,
+   2,
+   10,
+   4,
+   4,
+   10,
+   9,
+   4,
+   3,
    0,
    13,
    0,
    11,
-   21,
-   10,
-   14,
-   3,
+   22,
+   11,
+   15,
    4,
-   30,
-   41,
-   44,
-   13,
-   0,
+   4,
+   31,
+   42,
+   45,
    14,
+   0,
+   15,
    8,
    7,
    48,
    62,
    45,
-   40,
-   18,
+   41,
+   19,
    11,
    4
   ],
@@ -301,34 +309,34 @@
    29
   ],
   "moves": {
-   "succeeded": 523,
-   "blocked": 19
+   "succeeded": 539,
+   "blocked": 20
   },
   "value": {
    "portal-6": 0.6183,
    "portal-5": 0.5414,
    "moon-pool-0": 0.0606,
    "crystal-4": 0.6363,
-   "moon-pool-1": 0.2137,
-   "crystal-2": 0.5118,
-   "crystal-3": 0.4994
+   "moon-pool-1": 0.3282,
+   "crystal-2": 0.3297,
+   "crystal-3": 0.5445
   },
   "prefs": {
-   "explore": 0.496,
-   "visit": 0.991,
+   "explore": 0.4645,
+   "visit": 1,
    "rest": 0.05,
-   "play": 0.9705
+   "play": 1
   },
   "goals": {
-   "explore": 50,
-   "visit": 146,
+   "explore": 51,
+   "visit": 149,
    "rest": 14,
-   "play": 111,
+   "play": 115,
    "come": 0
   },
   "goal": "visit",
-  "decisions": 321
+  "decisions": 329
  },
- "last_tick_at": "2026-10-16T22:48:15.049Z",
- "last_entry_hash": "3699924cff204b5639ffa6f343d280095779cc972bca60663f07e9454dea5890"
+ "last_tick_at": "2026-10-17T01:12:57.341Z",
+ "last_entry_hash": "6981676ad04b5cb2fc2588b7a52c99c50a63fb070fff818ce5ae3460f9f6da9b"
 }
