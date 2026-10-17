@@ -748,14 +748,15 @@ html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],
 .beast-landing-art:has(.is-roamer){height:clamp(420px,46vw,680px)}
 @media(max-width:560px){.beast-landing-art:has(.is-roamer){height:clamp(380px,112vw,540px);border-radius:30%}}
 /* The roaming living-core creature IS the companion on Home: the separate floating pet + its eye/pause/mute toolbar step aside. */
-body:has(.is-roamer) [data-pet-dragon="true"]{display:none!important}
+@media(max-width:560px){body:has(.is-roamer) [data-pet-dragon="true"]{display:none!important}}
 /* Oct 16 declutter pass 2: on phones the Home pocket keeps the creature as the only focus. Sound, the support Beast and the
    LOST COSMOS card tuck behind one ⋯ button in the pocket (tap again to hide). Desktop is unchanged. */
 .lc-roamer-tools{display:none}
 @media(max-width:560px){
  .lc-roamer-tools{display:block;position:absolute;right:9%;bottom:6%;width:34px;height:34px;border-radius:17px;border:1px solid #8f6bff77;background:#0c0820cc;color:#e6dcff;font:700 16px system-ui;line-height:1;cursor:pointer;z-index:3}
- body:has(.is-roamer):not(.lc-tools-open) aside[data-site-sound],
- body:has(.is-roamer):not(.lc-tools-open) .cosmic-support-launcher,
  body:has(.is-roamer):not(.lc-tools-open) aside[data-lost-cosmos],
  body:has(.is-roamer):not(.lc-tools-open) aside[data-dock-pill]{display:none!important}
 }
+/* Guests: the Zeref embed still mounts (the pocket claims its root and the living-core body replaces it), but its
+   Hi! card and View menu stay out of the way so the roaming creature is the focus. Saved Beasts keep theirs. */
+@media(max-width:560px){.beast-landing-art:has(.is-roamer) .cosmos-home-hero[data-home-view="zeref-3d"] .cosmos-home-card{display:none!important}}
