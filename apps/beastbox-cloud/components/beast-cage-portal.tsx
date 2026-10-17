@@ -4,8 +4,8 @@ import Link from 'next/link';
 import {ArrowRight,BrainCircuit,DatabaseZap,LockKeyhole,Orbit,ShieldCheck,SlidersHorizontal,Sparkles,Volume2} from 'lucide-react';
 import SparkBeastCompanion from './spark-beast-companion';
 import dynamic from 'next/dynamic';
+import SparkBeastArena from './spark-beast-arena';
 // Code-split the heavy WebGL/animation scenes so the Beast Cage paints fast on phones.
-const SparkBeastArena=dynamic(()=>import('./spark-beast-arena'),{ssr:false,loading:()=><div style={{minHeight:240}} aria-busy="true"/>});
 const CagePocketDimension=dynamic(()=>import('./cage-pocket-dimension'),{ssr:false,loading:()=><div style={{minHeight:320}} aria-busy="true"/>});
 import GenesisForge from './genesis-forge';
 import BeastCareDeck from './beast-care-deck';
