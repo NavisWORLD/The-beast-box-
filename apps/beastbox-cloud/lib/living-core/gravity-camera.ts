@@ -24,8 +24,8 @@ export function createGravityCam(THREE:T,{camera,scene,renderer,low,dof}:{camera
  const base=pos.slice();let lastCam=new THREE.Vector3().copy(camera.position);
  // optional desktop DOF
  let comp:any=null,bokeh:any=null;
- if(dof)void Promise.all([import('three/examples/jsm/postprocessing/EffectComposer.js'),import('three/examples/jsm/postprocessing/RenderPass.js'),import('three/examples/jsm/postprocessing/BokehPass.js')]).then(([E,R,B])=>{
-  comp=new E.EffectComposer(renderer);comp.addPass(new R.RenderPass(scene,camera));bokeh=new B.BokehPass(scene,camera,{focus:6,aperture:.0018,maxblur:.0045});comp.addPass(bokeh);}).catch(()=>{comp=null;});
+ if(dof)void Promise.all([import('three/examples/jsm/postprocessing/EffectComposer.js'),import('three/examples/jsm/postprocessing/RenderPass.js'),import('three/examples/jsm/postprocessing/BokehPass.js'),import('three/examples/jsm/postprocessing/OutputPass.js')]).then(([E,R,B,O])=>{
+  comp=new E.EffectComposer(renderer);comp.addPass(new R.RenderPass(scene,camera));bokeh=new B.BokehPass(scene,camera,{focus:6,aperture:.0018,maxblur:.0045});comp.addPass(bokeh);comp.addPass(new O.OutputPass());/* keeps the cage colour/tone mapping identical */}).catch(()=>{comp=null;});
  return {
   /** Returns the eased focus point; `pull` 0..1 is how much the wells own the camera. */
   focus(dt:number,home:any,z:{x:number;z:number}|null,wells:{x:number;z:number}[],pull:number){
