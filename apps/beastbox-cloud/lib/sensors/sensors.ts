@@ -67,3 +67,5 @@ export function bodyDims(LC:any){let src:any=null;(LC?.body?.isMesh?[LC.body]:LC
   for(let i=0;i<n;i+=7){const x=P.getX(i),y=P.getY(i),z=P.getZ(i);if(y===0&&x===0&&z===0)continue;const dx=x-heart.x,dy=y-heart.y,dz=z-heart.z;const sec=(Math.atan2(dz,dx)+Math.PI)/(2*Math.PI)*4|0;const k=(dy>0?0:4)+Math.min(3,sec);const d=dx*dx+dy*dy+dz*dz;
    if(!best[k]||d>best[k].d)best[k]={d,p:{x,y,z}};}
   const limbs=best.filter(Boolean).map(o=>o.p);void ex;void ez;return {host:src,dims:{heart,head,tail,limbs}};}
+/** Device-local nerve palette choice: ?nerve=warm or localStorage beastbox-nerve-palette=warm. */
+export function nervePaletteChoice():'warm'|undefined{try{if(new URLSearchParams(location.search).get('nerve')==='warm'||window.localStorage.getItem('beastbox-nerve-palette')==='warm')return 'warm';}catch{}return undefined;}

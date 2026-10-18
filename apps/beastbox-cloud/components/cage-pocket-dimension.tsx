@@ -3,7 +3,7 @@ import {flowStars,flowGrid} from '../lib/living-core/river-flow';
 import {capScenePoints,pushCameraOut} from '../lib/living-core/near-lens';
 import {buildWorlds} from '../lib/worlds/worlds';
 import {createCompanions} from '../lib/companions/companions';
-import {createSensors,bodyDims} from '../lib/sensors/sensors';
+import {createSensors,bodyDims,nervePaletteChoice} from '../lib/sensors/sensors';
 import {neonPatch,neonUniforms,neonDistGain,makeFilaments} from '../lib/worlds/neon-wire';
 import {createGravityCam} from '../lib/living-core/gravity-camera';
 import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles,LC_WORLD_H} from '../lib/living-core/core-cache';
@@ -324,7 +324,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const contact=new THREE.Mesh(new THREE.CircleGeometry(.55,24),new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false,opacity:.5}));contact.name='contact-shadow';contact.renderOrder=1;scene.add(contact);
     const fil=makeFilaments(THREE,scene,{count:low?2:3,len:low?10:14});const _Y=new THREE.Vector3(0,1,0),_Z=new THREE.Vector3(0,0,1),_n=new THREE.Vector3(),_q=new THREE.Quaternion(),_q2=new THREE.Quaternion(),_e=new THREE.Euler(),_tip=new THREE.Vector3();let filK=0;
     // wireframe companion critters: one per creature, feeding on universe motes
-    const comps=createCompanions(THREE,scene,{low});const compOwners:any[]=[];comps.onFeed((id:string,e:number)=>{uw.pulseNear({x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z},Math.min(1,e*6));if(id==='zeref')lcS.syn?.kick(Math.min(1,e*4));extras.river.kick(e*2);});const nervePal=(new URLSearchParams(location.search).get('nerve')==='warm'||(()=>{try{return localStorage.getItem('beastbox-nerve-palette')==='warm';}catch{return false;}})())?'warm' as const:undefined;
+    const comps=createCompanions(THREE,scene,{low});const compOwners:any[]=[];comps.onFeed((id:string,e:number)=>{uw.pulseNear({x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z},Math.min(1,e*6));if(id==='zeref')lcS.syn?.kick(Math.min(1,e*4));extras.river.kick(e*2);});const nervePal=nervePaletteChoice();
     const sensors=createSensors(THREE,scene,{low,points:uw.sensorPoints(low?60:140)});
     if(lcForced){(window as any).__lcComps=comps;(window as any).__lcPlasma=uw;(window as any).__lcSensors=sensors;}let uwPose:any=null;if(lcForced){(window as any).__lcWorlds=uw;(window as any).__lcTravel=(i:number)=>uw.startTrip(i,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z});}
     // Film motion for Zeref (bb-7f9c2a03 persona: no recorded seed of his own here → id-only persona).
