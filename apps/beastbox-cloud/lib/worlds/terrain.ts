@@ -34,8 +34,7 @@ export function buildTerrain(THREE:T,scene:import('three').Scene,{low}:{low:bool
     const curve=new THREE.CatmullRomCurve3(pts);const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,low?16:32,c.w*.95,low?8:14,false),new THREE.MeshStandardMaterial({color:0x140c26,emissive:new THREE.Color(c.color).multiplyScalar(.08),side:THREE.BackSide,roughness:1}));tube.name=c.id;
     const arch=new THREE.Mesh(new THREE.TorusGeometry(c.w*1.02,.06,8,low?20:36,Math.PI*1.15),new THREE.MeshBasicMaterial({color:c.color,transparent:true,opacity:.85,blending:THREE.AdditiveBlending}));
     arch.position.set(ux*(c.r-.5),.25,uz*(c.r-.5));arch.lookAt(0,.25,0);arch.rotateZ(-Math.PI*.075);
-    const glow=new THREE.PointLight(new THREE.Color(c.color),low?0:2.2,c.len*1.4,2);glow.position.set(ux*(c.r+c.len*.6),.5,uz*(c.r+c.len*.6));
-    const g=new THREE.Group();g.add(tube,arch);if(!low)g.add(glow);root.add(g);return {c,g,arch};});
+        const g=new THREE.Group();g.add(tube,arch);root.add(g);return {c,g,arch};});
   // keep the cage floor feel: terrain edge hides under fog; nothing here touches the cage floor itself
   return {root,caves,trees,U,
     update(t:number,cam:import('three').Camera){U.uTime.value=t;for(const l of lods)l.update(cam);wire.opacity=(low?.16:.22)*(.8+.2*Math.sin(t*.6));for(const k of caves)(k.arch.material as any).opacity=.65+.25*Math.sin(t*1.7+k.c.a);},

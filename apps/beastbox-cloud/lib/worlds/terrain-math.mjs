@@ -1,7 +1,7 @@
 /** Home-world terrain (pure, no three.js): a large analytic heightfield that stays flat under the cage,
  * rolls into gentle hills where creatures roam (r 20..30) and swells into big hills/valleys out to the horizon.
  * Caves are carved hill mounds whose tunnel floors stay walkable so creatures can roam inside. */
-export const TERRAIN=Object.freeze({flatR:19,roamR:30,size:280,chunks:8,segHigh:48,segLow:20,treesHigh:900,treesLow:260});
+export const TERRAIN=Object.freeze({flatR:19,roamR:30,size:280,chunks:8,segHigh:36,segLow:20,treesHigh:900,treesLow:260});
 const h1=(x,z)=>Math.sin(x*.061+1.3)*Math.cos(z*.053-.7)+.5*Math.sin(x*.137-z*.11+2.1)+.25*Math.sin(x*.29+z*.31);
 /** World-unit cave sites (entrance faces the centre; tunnel runs outward and down). */
 export const CAVES=Object.freeze([
