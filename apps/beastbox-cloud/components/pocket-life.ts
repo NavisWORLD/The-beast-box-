@@ -19,7 +19,7 @@ const NOISE='float h21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);
  'float fbm(vec2 p){float v=0.0,a=.5;for(int i=0;i<4;i++){v+=a*vn(p);p=p*2.03+vec2(1.7,9.2);a*=.5;}return v;}'+
  // flow field: curl of fbm, phase-advected by the Lorenz state (uFlow.xy) and time
  'vec2 flow(vec2 p,float t,vec3 F){vec2 q=p*.45+F.xy*.6+vec2(t*.05,-t*.035);float e=.08;float n1=fbm(q+vec2(0,e)),n2=fbm(q-vec2(0,e)),n3=fbm(q+vec2(e,0)),n4=fbm(q-vec2(e,0));return vec2(n1-n2,-(n3-n4))/(2.0*e);}';
-const UNI='uniform float uTime;uniform vec2 uWind;uniform float uChaos;uniform float uCoh;uniform float uRain;uniform float uNight;uniform vec3 uFlow;uniform vec4 uRip[4];';
+const UNI='uniform float uTime;uniform vec2 uWind;uniform float uChaos;uniform float uCoh;uniform float uRain;uniform float uNight;uniform vec3 uFlow;uniform vec4 uRip[4];uniform vec4 uHush;';
 // shared sway: wind (Lorenz) + flow field + turbulence (chaos) + ripple push. h = height factor 0..1
 const SWAY='vec2 sway(vec2 wp,float h){vec2 f=flow(wp,uTime,uFlow);float gust=.6+.4*sin(uTime*1.3+wp.x*.7+wp.y*.4);vec2 d=(uWind*gust*.9+f*(.18+uChaos*.5))*h*h;'+
  'd+=vec2(sin(uTime*7.0+wp.x*9.0),cos(uTime*6.3+wp.y*8.0))*uChaos*.05*h;'+
@@ -35,7 +35,7 @@ export function addPocketLife(THREE:Three,scene:import('three').Scene,opts:{seed
  const baseEmo={...emo};
  const R=4.3;// planting radius (pocket floor is 9×9)
  const rips=[0,1,2,3].map(()=>new THREE.Vector4(0,0,-99,0));let ripI=0;
- const U={uTime:{value:0},uWind:{value:new THREE.Vector2()},uChaos:{value:.2},uCoh:{value:.6},uRain:{value:0},uNight:{value:.6},uFlow:{value:new THREE.Vector3()},uRip:{value:rips}};
+ const U={uTime:{value:0},uWind:{value:new THREE.Vector2()},uChaos:{value:.2},uCoh:{value:.6},uRain:{value:0},uNight:{value:.6},uFlow:{value:new THREE.Vector3()},uRip:{value:rips},uHush:{value:new THREE.Vector4(0,0,0,0)}};
  const group=new THREE.Group();group.name='pocket-life';scene.add(group);
  const disposables:{dispose():void}[]=[];const keep=<T extends {dispose():void}>(x:T)=>{disposables.push(x);return x;};
 
@@ -72,7 +72,7 @@ export function addPocketLife(THREE:Three,scene:import('three').Scene,opts:{seed
   blade.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));blade.setAttribute('aH',new THREE.Float32BufferAttribute(hh,1));blade.setIndex(idx);}
  const grassN=reduced||soft?400:low?1300:3600;
  const grassMat=keep(new THREE.ShaderMaterial({side:THREE.DoubleSide,uniforms:U,
-  vertexShader:UNI+NOISE+SWAY+'attribute float aH;attribute vec3 aTint;varying float vH;varying vec3 vT;void main(){vec4 w=modelMatrix*instanceMatrix*vec4(position,1.0);vec2 root=(modelMatrix*instanceMatrix*vec4(0,0,0,1)).xz;vec2 d=sway(root,aH);w.xz+=d;w.y-=dot(d,d)*.5;vH=aH;vT=aTint;gl_Position=projectionMatrix*viewMatrix*w;}',
+  vertexShader:UNI+NOISE+SWAY+'attribute float aH;attribute vec3 aTint;varying float vH;varying vec3 vT;void main(){vec4 w=modelMatrix*instanceMatrix*vec4(position,1.0);vec2 root=(modelMatrix*instanceMatrix*vec4(0,0,0,1)).xz;vec2 d=sway(root,aH);w.xz+=d;w.y-=dot(d,d)*.5;float hu=uHush.w*(1.-smoothstep(.55,1.05,distance(root,uHush.xz)));w.y=mix(w.y,-.06,hu);vH=aH;vT=aTint;gl_Position=projectionMatrix*viewMatrix*w;}',
   fragmentShader:UNI+'varying float vH;varying vec3 vT;void main(){vec3 c=mix(vT*.35,vT,vH);c=mix(c,c*vec3(.45,.5,.9),uNight*.6);c+=vec3(.2,.5,.6)*pow(vH,4.0)*.25*(1.0-uNight*.5);gl_FragColor=vec4(c,1.0);\n#include <colorspace_fragment>\n}'}));
  const grass=new THREE.InstancedMesh(blade,grassMat,grassN);const tint=new Float32Array(grassN*3);
  const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),v=new THREE.Vector3(),sc=new THREE.Vector3();
@@ -211,6 +211,8 @@ export function addPocketLife(THREE:Three,scene:import('three').Scene,opts:{seed
   return {cst,mp,mood:mp.mood,env};
  }
  return {update,env,cst,splash,
+  /** flatten grass within ~1 unit of a flaring creature (a=0..1) so its nervous system reads */
+  hush(x:number,z:number,a:number){U.uHush.value.set(x,0,z,a);},
   /** called while a creature runs through a puddle */
   splashStep(x:number,z:number,speed:number,dt:number){splashAcc+=dt*speed*14;while(splashAcc>1){splashAcc-=1;splash(x+(rnd()-.5)*.2,z+(rnd()-.5)*.2,.6);}},
   setWeather:(w:Weather)=>{weather=w;},getWeather:()=>weather,

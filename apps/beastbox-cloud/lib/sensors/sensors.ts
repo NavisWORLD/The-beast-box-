@@ -15,7 +15,7 @@ export function fatLineGeometry(THREE:T,segs:{a:V3;b:V3;d:number}[],cols:Float32
    I.set([i*4,i*4+1,i*4+2,i*4+1,i*4+3,i*4+2],i*6);});
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(P,3));g.setAttribute('aA',new THREE.BufferAttribute(A,3));g.setAttribute('aB',new THREE.BufferAttribute(B,3));g.setAttribute('aSide',new THREE.BufferAttribute(S,1));g.setAttribute('aEnd',new THREE.BufferAttribute(E,1));g.setAttribute('aWt',new THREE.BufferAttribute(W,1));g.setAttribute('color',new THREE.BufferAttribute(C,3));g.setIndex(new THREE.BufferAttribute(I,1));return g;}
 /** Rest/flare widths in CSS px (multiplied by device pixel ratio via uRes). */
-export const NERVE_WIDTH=Object.freeze({rest:2,flare:3.6});
+export const NERVE_WIDTH=Object.freeze({rest:2.6,flare:6.5});
 export function createSensors(THREE:T,scene:import('three').Scene,{low,points}:{low:boolean;points:V3[]}){
   const xp:Record<string,number>=typeof window!=='undefined'?loadXP(window.localStorage):{};
   // ---- hidden universe nodes (billboards, invisible until stimulated; chromatic refraction ring + bloom core)
@@ -23,8 +23,8 @@ export function createSensors(THREE:T,scene:import('three').Scene,{low,points}:{
   const g=new THREE.InstancedBufferGeometry();const pg=new THREE.PlaneGeometry(1,1);g.index=pg.index;g.attributes.position=pg.attributes.position;g.attributes.uv=pg.attributes.uv;
   const aP=new Float32Array(N*3),aS=new Float32Array(N);nodes.forEach((p,i)=>{aP[i*3]=p.x;aP[i*3+1]=p.y;aP[i*3+2]=p.z;});
   g.setAttribute('aP',new THREE.InstancedBufferAttribute(aP,3));const stimA=new THREE.InstancedBufferAttribute(aS,1);stimA.setUsage(THREE.DynamicDrawUsage);g.setAttribute('aS',stimA);g.instanceCount=N;
-  const mat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,uniforms:{uTime:{value:0}},
-   vertexShader:`attribute vec3 aP;attribute float aS;varying vec2 vU;varying float vS;uniform float uTime;void main(){vU=uv-.5;vS=aS;vec4 mv=viewMatrix*vec4(aP,1.);float sz=(.25+aS*.9);mv.xy+=position.xy*sz*step(.01,aS);gl_Position=projectionMatrix*mv;}`,
+  const mat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,uniforms:{uTime:{value:0},uHush:{value:new THREE.Vector4(0,0,0,0)}},
+   vertexShader:`attribute vec3 aP;attribute float aS;varying vec2 vU;varying float vS;uniform float uTime;uniform vec4 uHush;void main(){vU=uv-.5;vS=aS*(1.-uHush.w*(1.-smoothstep(.7,1.1,distance(aP,uHush.xyz))));vec4 mv=viewMatrix*vec4(aP,1.);float sz=(.25+aS*.9);mv.xy+=position.xy*sz*step(.01,aS);gl_Position=projectionMatrix*mv;}`,
    fragmentShader:`varying vec2 vU;varying float vS;uniform float uTime;float ring(float r,float o){return exp(-pow((r-.62-o)*14.,2.));}
     void main(){float r=length(vU)*2.;if(vS<.01)discard;vec3 c=vec3(ring(r,-.04),ring(r,0.),ring(r,.04))*.9;// refraction: rgb-split ring
     c+=vec3(.75,.9,1.)*exp(-r*r*9.)*1.3;gl_FragColor=vec4(c*vS,vS*max(c.r,max(c.g,c.b)));}`});
@@ -53,22 +53,29 @@ export function createSensors(THREE:T,scene:import('three').Scene,{low,points}:{
    /** drawing-buffer half-size in px (NDC→px), call on resize */
    setResolution(w:number,h:number){RES.value.set(w/2,h/2);},
    /** dim a creature's white dot body while its network flares (chained onBeforeCompile on its points shader) */
-   dimBody(id:string,LC:any){const n=nerves.get(id);const m=LC?.pmat;if(!n||!m||m.__nerveDim)return;const U={value:1};m.__nerveDim=U;(n.host as any).__nerveDim=U;const prev=m.onBeforeCompile;
-    m.onBeforeCompile=(sh:any,r:any)=>{prev?.call(m,sh,r);sh.uniforms.uNerveDim=U;sh.fragmentShader='uniform float uNerveDim;\n'+sh.fragmentShader.replace(/\}\s*$/,'gl_FragColor.rgb*=uNerveDim;}');};m.needsUpdate=true;},
-   flareLevel:(id:string)=>{const n=nerves.get(id);return n?n.flare:0;},
+   dimBody(id:string,LC:any){const n=nerves.get(id);if(!n||(n.host as any).__nerveDim)return;const U={value:1};(n.host as any).__nerveDim=U;
+    const mats=new Set<any>([LC?.pmat,(n.host as any).material,...bodyFamily(LC).flatMap((o:any)=>Array.isArray(o.material)?o.material:[o.material])].filter(Boolean));
+    for(const m of mats){if(m.__nerveDim)continue;m.__nerveDim=U;const prev=m.onBeforeCompile;const pk=m.customProgramCacheKey?.bind(m);
+     m.onBeforeCompile=(sh:any,r:any)=>{prev?.call(m,sh,r);sh.uniforms.uNerveDim=U;sh.fragmentShader='uniform float uNerveDim;\n'+sh.fragmentShader.replace(/\}\s*$/,'gl_FragColor.rgb*=uNerveDim;}');};
+     m.customProgramCacheKey=()=>(pk?pk():'')+':nervedim';m.needsUpdate=true;}},
+   flareLevel:(id:string)=>{const n=nerves.get(id);return n?Math.max(n.flare,(n as any).emo||0):0;},
    xp:(id:string)=>xp[id]||0,
    /** words: light pulses leave the nearest sensor nodes and travel to the creature; onArrive = vibration. */
    signal(id:string,to:V3,strength:number,onArrive:()=>void){for(const i of nearestNodes(nodes,to,3)){stim[i]=1;if(pulses.length<PM)pulses.push({a:{...nodes[i]},b:{...to},t:0,id,on:onArrive});}},
    stimulate(p:V3,r=1.5,a=.6){for(let i=0;i<N;i++){const n=nodes[i];const d=Math.hypot(n.x-p.x,n.y-p.y,n.z-p.z);if(d<r)stim[i]=Math.max(stim[i],a*(1-d/r));}},
    experience(id:string,amt=1){xp[id]=(xp[id]||0)+amt;const n=nerves.get(id);if(n){const L=growthLevel(xp[id]);if(L!==n.level){n.level=L;rebuild(n);}n.flare=Math.min(1,n.flare+.35);}},
+   /** fade sensor blooms within ~1 unit of p while a creature flares */
+   hush(p:V3|null,a:number){const u=(mat.uniforms as any).uHush.value;if(p)u.set(p.x,p.y,p.z,a);else u.w=a;},
+   /** strongest flaring creature: world centre and world-space height of its visible body */
+   topFlare(){let best:any=null;for(const n of nerves.values()){const f=Math.max(n.flare,(n as any).emo||0);if(f>.05&&(!best||f>best.f)){const d=n.dims;const c=n.host.localToWorld(new THREE.Vector3(d.heart.x,d.heart.y,d.heart.z));const ws=n.host.getWorldScale(new THREE.Vector3()).y;best={id:n.id,f,x:c.x,y:c.y,z:c.z,h:Math.max(.15,(d.head.y-d.tail.y)/.6*ws)};}}return best;},
    flare(id:string,a=1){const n=nerves.get(id);if(n)n.flare=Math.min(1,Math.max(n.flare,a));},
    update(dt:number,t:number,emotion:Record<string,number>={}){mat.uniforms.uTime.value=t;
     for(let i=0;i<N;i++){stim[i]=Math.max(0,stim[i]-dt*.35);aS[i]=stim[i];}stimA.needsUpdate=true;
     let k=0;for(let i=pulses.length-1;i>=0;i--){const p=pulses[i];p.t+=dt*.9;const q=pulseAt(p,p.t);if(!q){const done=pulses.splice(i,1)[0];done.on?.();this.flare(done.id,1);this.experience(done.id,.34);continue;}
      pp[k*3]=q.x;pp[k*3+1]=q.y;pp[k*3+2]=q.z;k++;}
     for(;k<PM;k++){pp[k*3+1]=-999;}(pgeo.attributes.position as any).needsUpdate=true;
-    for(const n of nerves.values()){const e=emotion[n.id]||0;n.flare=Math.max(0,n.flare-dt*.6);const f=Math.max(n.flare,e*.6);
-     {const u=(n.lines.material as any).uniforms;u.uOp.value=.5+.6*f;u.uW.value=NERVE_WIDTH.rest+(NERVE_WIDTH.flare-NERVE_WIDTH.rest)*f;}const dimU=(n.host as any).__nerveDim;if(dimU)dimU.value=1-.5*f;(n.nodes.material as any).opacity=.45+.55*f;(n.seed.material as any).opacity=.5+.5*f;n.seed.scale.setScalar(1+f*.35+Math.sin(t*3)*.06);
+    for(const n of nerves.values()){const e=emotion[n.id]||0;(n as any).emo=e*.6;n.flare=Math.max(0,n.flare-dt*.6);const f=Math.max(n.flare,e*.6);
+     {const u=(n.lines.material as any).uniforms;u.uOp.value=.5+.6*f;u.uW.value=NERVE_WIDTH.rest+(NERVE_WIDTH.flare-NERVE_WIDTH.rest)*f;}const dimU=(n.host as any).__nerveDim;if(dimU)dimU.value=1-.82*f;(n.nodes.material as any).opacity=.45+.55*f;(n.seed.material as any).opacity=.5+.5*f;n.seed.scale.setScalar(1+f*1.6+Math.sin(t*3)*.06);
      // electric arcs at tips (re-jittered every frame, only visible when flaring)
      const A=(n.arcs.geometry.attributes.position as any);const r=entityRng(n.id+':'+Math.floor(t*12));let j=0;
      for(const tp of n.tips){let ax=tp.x,ay=tp.y,az=tp.z;for(let s=0;s<2;s++){const bx=ax+(r()-.5)*.06,by=ay+(r()-.5)*.06,bz=az+(r()-.5)*.06;A.setXYZ(j++,ax,ay,az);A.setXYZ(j++,bx,by,bz);ax=bx;ay=by;az=bz;}}
@@ -77,8 +84,18 @@ export function createSensors(THREE:T,scene:import('three').Scene,{low,points}:{
     saveT+=dt;if(saveT>5&&typeof window!=='undefined'){saveT=0;saveXP(window.localStorage,xp);}}};
 }
 /** Body dims from a living-core: heart seed at the chest, spine head↔tail along the long axis, limb tips = extremal vertices. */
-export function bodyDims(LC:any){let src:any=null;(LC?.body?.isMesh?[LC.body]:LC?.body?.children||[]).forEach((o:any)=>{if(o.isMesh&&o.geometry?.attributes?.position&&(!src||o.geometry.attributes.position.count>src.geometry.attributes.position.count))src=o;});
-  if(!src)return null;const g=src.geometry;g.computeBoundingBox();const b=g.boundingBox;const c={x:(b.min.x+b.max.x)/2,y:(b.min.y+b.max.y)/2,z:(b.min.z+b.max.z)/2};
+/** The visible body: walk the whole living-core group, keep visible meshes whose drawn range is non-empty, prefer the last-drawn (highest renderOrder, then most drawn verts). */
+export function visibleBody(LC:any){let src:any=null,best=-1;const root=LC?.group||LC?.body;if(!root)return null;
+  const seen=(o:any)=>{for(let q=o;q;q=q.parent){if(!q.visible)return false;if(q===root)return true;}return true;};
+  root.traverse?.((o:any)=>{const P=o.geometry?.attributes?.position;if(!o.isMesh||!P||P.count<1000||!seen(o))return;const drawn=Math.min(P.count,o.geometry.drawRange?.count??P.count);if(drawn<=0)return;const sc=(o.renderOrder||0)*1e9+(o.material?.transparent?0:5e8)+drawn;if(sc>best){best=sc;src=o;}});
+  if(!src)(LC?.body?.isMesh?[LC.body]:LC?.body?.children||[]).forEach((o:any)=>{if(o.isMesh&&o.geometry?.attributes?.position&&(!src||o.geometry.attributes.position.count>src.geometry.attributes.position.count))src=o;});
+  return src;}
+/** All body-family meshes (core + fur/neon shells) that share the body silhouette, so dimming covers what the eye sees. */
+export function bodyFamily(LC:any){const out:any[]=[];const root=LC?.group||LC?.body;root?.traverse?.((o:any)=>{const P=o.geometry?.attributes?.position;if(o.isMesh&&o.visible&&P&&P.count>=1e5)out.push(o);});return out;}
+function drawnBox(g:any){const P=g.attributes.position;const n=Math.min(P.count,g.drawRange?.count??P.count);const mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];for(let i=0;i<n;i+=3){const x=P.getX(i),y=P.getY(i),z=P.getZ(i);if(x===0&&y===0&&z===0)continue;if(x<mn[0])mn[0]=x;if(y<mn[1])mn[1]=y;if(z<mn[2])mn[2]=z;if(x>mx[0])mx[0]=x;if(y>mx[1])mx[1]=y;if(z>mx[2])mx[2]=z;}
+  if(mn[0]>mx[0]){g.computeBoundingBox();return g.boundingBox;}return {min:{x:mn[0],y:mn[1],z:mn[2]},max:{x:mx[0],y:mx[1],z:mx[2]}};}
+export function bodyDims(LC:any){const src:any=visibleBody(LC);
+  if(!src)return null;const g=src.geometry;const b:any=drawnBox(g);const c={x:(b.min.x+b.max.x)/2,y:(b.min.y+b.max.y)/2,z:(b.min.z+b.max.z)/2};
   const ex=b.max.x-b.min.x,ez=b.max.z-b.min.z,h=b.max.y-b.min.y;const P=g.attributes.position;const n=Math.min(P.count,g.drawRange?.count||P.count);
   const head={x:c.x,y:b.max.y-h*.18,z:c.z},tail={x:c.x,y:b.min.y+h*.22,z:c.z};
   // limbs: farthest vertices from the heart in 8 directional sectors (excluding the top/head cap)
