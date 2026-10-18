@@ -209,7 +209,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     if(soft){low=true;renderer.setPixelRatio(1);}
     const glbTier:'med'|'low'|null=soft?null:!low?'med':phoneGpu?'med':null;(window as any).__pocketGlbTier=glbTier;
     // Living-core bodies: real GPUs (incl. phones). Software GL keeps the classic pocket like the GLBs; ?livingcore=1 forces it for review.
-    const lcForced=new URLSearchParams(location.search).get('livingcore')==='1';
+    const lcForced=new URLSearchParams(location.search).get('livingcore')==='1';const lcBody=new URLSearchParams(location.search).get('lcbody')==='1';// ?lcbody=1 shows the living-core particle body instead of the original sculpt
     const lcOk=!reduced&&(!soft||lcForced);
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     // Living Cosmos polish: filmic tone mapping for deeper, less flat contrast.
@@ -311,7 +311,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       'vec3 c=mix(vec3(.12,.55,.85),vec3(.65,.4,1.0),w);gl_FragColor=vec4(c*(1.0-r*.7),(1.0-r)*.55+.08);}'});
     const pool=new THREE.Mesh(new THREE.CircleGeometry(1,low?32:64),poolMat);pool.rotation.x=-Math.PI/2;pool.position.set(2.15,-.03,-1.7);pool.scale.setScalar(.95);scene.add(pool);
     // Artist-drawn residents (separate creatures, never the active Beast) roam the pocket.
-    const {stepResidents,texCache,disturbers,pickables}=addPocketResidents(THREE,scene,seedRandom,reduced,low,glbTier,groundAt,lcOk&&lcForced);
+    const {stepResidents,texCache,disturbers,pickables}=addPocketResidents(THREE,scene,seedRandom,reduced,low,glbTier,groundAt,lcOk&&lcBody);
     // God view: habitat on a small planet, orbiting its suns, inside a galaxy (Genesis Engine, recoloured).
     const god=addGodView(THREE,scene,{rand:randomFor(key+':system'),low,counts:qvmCounts,stage:motion.current.stage||stage||1});
     const godFocus=new THREE.Vector3();
@@ -440,7 +440,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      const ze=(window as any).__zerefEmbed;
      if(ze?.root&&ze.root.parent!==zActorNode){zActorNode.add(ze.root);ze.root.position.y=1.68;ze.claimed=true;}
      // cute & creepy again: Zeref's original sculpted body is the one you see; the living core keeps running underneath (brain, roam, hidden nerves) and only shows as a fallback or with ?livingcore=1
-     if(lcS.LC&&lcS.g){const orig=!!ze?.root&&!lcForced;lcS.g.visible=!orig;if(ze?.root)ze.root.visible=orig;}
+     if(lcS.LC&&lcS.g){const orig=!!ze?.root&&!lcBody;lcS.g.visible=!orig;if(ze?.root)ze.root.visible=orig;}
      if(lcS.LC){// roam brain: favorite spots / mini libraries / free wander; arrival = learn + make a CST construct
       const mood=lcS.ov||(state==='sleeping'?'sleepy':'calm');if(lcS.ovT>0){lcS.ovT-=dt;if(lcS.ovT<=0)lcS.ov=null;}
       if(lcS.mood!==mood){lcS.mood=mood;lcS.LC.setEmotion?.(mood);lcS.syn?.setEmotion(mood);}
