@@ -1,0 +1,47 @@
+{
+ "creature_id": "bb-deada969",
+ "heart_seed_sha256": "5370fd05193e8c1d8b29409bc37073103c531aec9a6383dc02cd8782eb9ed60c",
+ "honesty": "Alien corpus features only seed/tag the run; quantum hardware cannot learn text. Creative seed for Zeref, not biology or proof of anything infinite. Training gates unchanged.",
+ "ibm": {
+  "S_equivalent": 2.711,
+  "backend": "ibm_kingston",
+  "classical_control_win_rate": 0.7495555555555555,
+  "failed_attempt": "dba0u11gv2cc73e66oog (100k rounds, max-time timeout, no result)",
+  "job_id": "dba11mvi0auc7391bpbg",
+  "label": "RECORDED_IBM_HARDWARE",
+  "qubits": [
+   91,
+   98
+  ],
+  "rounds": 45000,
+  "sigma_above_classical": 51.26,
+  "standard_error": 0.0017332336027022879,
+  "verdict": "PASS: above the 75% classical bound (Bell/CHSH violation, not loophole-free).",
+  "win_rate": 0.8388444444444444
+ },
+ "mix": {
+  "alien_packet_sha256": "b6e65b73d4db477f4f67b53a34a9215859dce1d18aadcba0dc3a5e2a6668cdb8",
+  "heart_seed_v3_sha256": "2e8c12d9dae4212d5fc1a315bc5e286453fcb0cb2b728d829f16b8dd4683ea44",
+  "ibm_job_id": "dba11mvi0auc7391bpbg",
+  "ibm_outcomes_sha256": "f7328490f6c7409871a5d441243a3f47284ab5da60c4733b5f12b0330ee9ac98",
+  "qvm_counts": {
+   "00": 1245,
+   "01": 825,
+   "10": 748,
+   "11": 1278
+  },
+  "qvm_job_id": "e783686e-ca89-11f1-a9dd-70a8a53d5b23"
+ },
+ "rigetti": {
+  "counts": {
+   "00": 1245,
+   "01": 825,
+   "10": 748,
+   "11": 1278
+  },
+  "job_id": "e783686e-ca89-11f1-a9dd-70a8a53d5b23",
+  "label": "SIMULATED",
+  "target": "rigetti.sim.qvm"
+ },
+ "schema": "zeref-heart-seed-v4"
+}
