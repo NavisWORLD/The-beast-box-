@@ -323,7 +323,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const contact=new THREE.Mesh(new THREE.CircleGeometry(.55,24),new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false,opacity:.5}));contact.name='contact-shadow';contact.renderOrder=1;scene.add(contact);
     const fil=makeFilaments(THREE,scene,{count:low?2:3,len:low?10:14});const _Y=new THREE.Vector3(0,1,0),_Z=new THREE.Vector3(0,0,1),_n=new THREE.Vector3(),_q=new THREE.Quaternion(),_q2=new THREE.Quaternion(),_e=new THREE.Euler(),_tip=new THREE.Vector3();let filK=0;
     // wireframe companion critters: one per creature, feeding on universe motes
-    const comps=createCompanions(THREE,scene,{low});const compOwners:any[]=[];comps.onFeed((id:string,e:number)=>{if(id==='zeref')lcS.syn?.kick(Math.min(1,e*4));extras.river.kick(e*2);});if(lcForced)(window as any).__lcComps=comps;let uwPose:any=null;if(lcForced){(window as any).__lcWorlds=uw;(window as any).__lcTravel=(i:number)=>uw.startTrip(i,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z});}
+    const comps=createCompanions(THREE,scene,{low});const compOwners:any[]=[];comps.onFeed((id:string,e:number)=>{uw.pulseNear({x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z},Math.min(1,e*6));if(id==='zeref')lcS.syn?.kick(Math.min(1,e*4));extras.river.kick(e*2);});if(lcForced){(window as any).__lcComps=comps;(window as any).__lcPlasma=uw;}let uwPose:any=null;if(lcForced){(window as any).__lcWorlds=uw;(window as any).__lcTravel=(i:number)=>uw.startTrip(i,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z});}
     // Film motion for Zeref (bb-7f9c2a03 persona: no recorded seed of his own here → id-only persona).
     const zActorNode=new THREE.Group();zHolder.add(zActorNode);
     const zActor=createActor(motionPersona({id:'bb-7f9c2a03'}),{x:-1.15,z:.75,radius:1.1,seed:'bb-7f9c2a03',universe:UNIVERSE_R});// offset so Zeref never stands inside the active Beast
@@ -493,6 +493,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       if(plush)compOwners.push({id:key,x:brain.x,y:-.05,z:brain.z});if(lcForced&&Array.isArray((window as any).__lcCompShow))(window as any).__lcCompShow.forEach((id:string,i:number)=>compOwners.push({id,x:zHolder.position.x+(i-2.5)*.35,y:-.05,z:zHolder.position.z+.5}));
       for(const r of ((window as any).__lcResidents||[]))if(r?.r?.id)compOwners.push({id:r.r.id,x:r.x,y:-.05,z:r.z});
       if(elapsed-((comps as any).__syncT??-9)>1){(comps as any).__syncT=elapsed;comps.sync(compOwners);}comps.step(reduced?0:dt,elapsed,compOwners,(p:any)=>uw.ground(p));}
+     {const fl=uw.flash();renderer.toneMappingExposure=1.25+fl*2.2;const inv=fl>.55;if(inv!==(renderer.domElement as any).__inv){(renderer.domElement as any).__inv=inv;renderer.domElement.style.filter=inv?'invert(1) hue-rotate(180deg)':'';}
+      nebula.rotation.y+=(reduced?0:dt)*(.01+fl*2.5+(uwPose?.06:0));}// tunneling flash + inversion, nebula swirl reacts
      neonU.uNeon.value=neonOn.current?1:0;neonU.uNeonDist.value=neonDistGain(camera.position.distanceTo(zHolder.position));// farther = brighter wire network
      gcam.step(reduced?0:dt);
      camera.lookAt(f);

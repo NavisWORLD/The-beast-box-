@@ -3,6 +3,7 @@
 import {LIMITS,WORLDS,cstTree,treeTips,worldAnchor,moonPeriod,tunnelPath,travelPose} from './worlds-math.mjs';
 import {seededRng} from '../physics/cst-integrator.mjs';
 import {groundRay,planetWalk} from './grounding.mjs';
+import {buildPlasmaPlanet,sectorSprite,sectorLabel,flashEnv} from './plasma';
 import {neonPatch,neonUniforms,type NeonU} from './neon-wire';
 type T=typeof import('three');type V3={x:number;y:number;z:number};
 
@@ -97,7 +98,7 @@ export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30
      rock.rotation.x=Math.PI;rock.position.y=-w.radius*.9;const top=new THREE.Mesh(new THREE.CylinderGeometry(w.radius,w.radius*.96,.3,det?28:12),new THREE.MeshStandardMaterial({color:w.color,emissive:w.color,emissiveIntensity:.5,flatShading:true,fog:false}));
      isl.add(rock,top);if(det){const gr=new THREE.GridHelper(w.radius*1.8,8,0x4983a4,0x284c74);gr.position.y=.17;(gr.material as any).fog=false;isl.add(gr);}return isl;};
    const lvls=[mk(low?2:3),mk(low?1:2),mk(0)];lvls.forEach(l=>l.traverse((m:any)=>{if(m.isMesh&&m.material?.isMeshStandardMaterial)neonPatch(m.material,neon,{mode:'lat',freq:w.kind==='planet'?7:3,amt:.5});if(m.isLineSegments)(m.material as any).color?.setHex?.(0x9ff4ff);}));
-   lod.addLevel(lvls[0],0);lod.addLevel(lvls[1],60);lod.addLevel(lvls[2],130);/*lod.addLevel(mk(low?1:2),60);*/g.add(lod);
+   if(w.kind!=='planet'){lod.addLevel(lvls[0],0);lod.addLevel(lvls[1],60);lod.addLevel(lvls[2],130);}/*lod.addLevel(mk(low?1:2),60);*/g.add(lod);
    const atmo=new THREE.Mesh(new THREE.SphereGeometry(w.radius*(w.kind==='planet'?1.32:1.5),low?20:32,low?12:20),atmoMat(w.atmo));g.add(atmo);
    const glow=new THREE.PointLight(w.atmo,low?0:6,w.radius*5);if(!low)g.add(glow);
    let moon:import('three').Mesh|null=null;if(w.moon){moon=new THREE.Mesh(new THREE.IcosahedronGeometry(w.radius*.22,1),new THREE.MeshStandardMaterial({color:0xd9ccff,emissive:w.atmo,emissiveIntensity:.35,flatShading:true,fog:false}));g.add(moon);}
@@ -105,18 +106,24 @@ export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30
     for(let t=0;t<3;t++){const ox=(t-1)*w.radius*.45,oz=(t%2?.4:-.3)*w.radius,s=1.3+t*.3;for(const sg of segs){va.set(ox+sg.a[0]*s,.15+sg.a[1]*s,oz+sg.a[2]*s);vb.set(ox+sg.b[0]*s,.15+sg.b[1]*s,oz+sg.b[2]*s);
      q.setFromUnitVectors(up,vb.clone().sub(va).normalize());vs.set(sg.r*s,va.distanceTo(vb),sg.r*s);m4.compose(va,q,vs);im.setMatrixAt(k++,m4);}}
     im.instanceMatrix.needsUpdate=true;g.add(im);}
-   root.add(g);return {w,g,moon,lod,anchor:worldAnchor(w,0),mass:w.mass};});
+   const plasma=w.kind==='planet'?buildPlasmaPlanet(THREE,g,{radius:w.radius,color:w.color,atmo:w.atmo,low,seed:wi}):null;
+   const label=sectorSprite(THREE,sectorLabel(wi,w.id));label.position.set(0,w.radius*2.3,0);g.add(label);
+   root.add(g);return {w,g,moon,lod,plasma,label,labelT:-99,anchor:worldAnchor(w,0),mass:w.mass};});
   // ---- gravity-tunneling trail
   const TRAIL_N=64;const trailGeo=new THREE.BufferGeometry();trailGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array((TRAIL_N+1)*3),3));
   const trail=new THREE.Line(trailGeo,new THREE.LineBasicMaterial({color:0xc79cff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));trail.frustumCulled=false;root.add(trail);
   let trip:any=null,tripT=0,next=40+rnd()*20,lastWorld=-1;
   const wellsNow=()=>worlds.map(o=>({...o.anchor,mass:o.mass}));
   function startTrip(i:number,from:V3){const o=worlds[i%worlds.length];const top={x:o.anchor.x,y:o.anchor.y+o.w.radius*(o.w.kind==='planet'?1:.12)+.25,z:o.anchor.z};
-   const others=wellsNow().filter((_,j)=>j!==i%worlds.length);trip={i:i%worlds.length,out:tunnelPath({x:from.x,y:from.y,z:from.z},top,others,{n:TRAIL_N})};tripT=0;lastWorld=trip.i;
+   const others=wellsNow().filter((_,j)=>j!==i%worlds.length);trip={i:i%worlds.length,out:tunnelPath({x:from.x,y:from.y,z:from.z},top,others,{n:TRAIL_N})};tripT=0;lastWorld=trip.i;trip.ph='go';worlds[trip.i].plasma?.tunnel(U.uTime.value);
    const a=trailGeo.attributes.position as any;trip.out.forEach((p:V3,k:number)=>a.setXYZ(k,p.x,p.y,p.z));a.needsUpdate=true;return trip;}
   return {root,worlds,U,
    bodies:()=>[...worlds.map(o=>({x:o.g.position.x,y:o.g.position.y,z:o.g.position.z,r:o.w.radius*1.1+.6})),...treeBodies],
    startTrip,get trip(){return trip;},neon,
+   /** tunneling flash level 0..1 (white flash + inversion window) */
+   flash:()=>{let f=0;for(const o of worlds)if(o.plasma)f=Math.max(f,o.plasma.flash(U.uTime.value));return f;},
+   /** core pulse of the nearest plasma world (companions feeding) */
+   pulseNear(p:V3,a=.6){let best:any=null,bd=1e9;for(const o of worlds){if(!o.plasma)continue;const d=Math.hypot(o.g.position.x-p.x,o.g.position.y-p.y,o.g.position.z-p.z);if(d<bd){bd=d;best=o;}}if(best&&bd<best.w.radius*10)best.plasma.pulse(a);},
    /** downward ray against floor, island tops, planet spheres and walkable tree limbs */
    ground:(p:V3)=>groundRay(p,{worlds:worlds.map(o=>({x:o.g.position.x,y:o.g.position.y,z:o.g.position.z,r:o.w.radius,kind:o.w.kind,top:.15})),branches:walkBranches}),
    /** advance; returns travel pose for the traveller or null when home. */
@@ -125,12 +132,15 @@ export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30
     sky.position.copy(cam.position);// dome at infinity
     layers.forEach((l,i)=>{l.position.set(cam.position.x*(.25+i*.25),0,cam.position.z*(.25+i*.25));});// parallax: farther layers trail the camera more
     for(const o of worlds){o.anchor=worldAnchor(o.w,t);o.g.position.set(o.anchor.x,o.anchor.y,o.anchor.z);o.g.rotation.y=t*.03*(o.w.kind==='planet'?1:.4);
-     if(o.moon){const P=moonPeriod(o.w),a=t*2*Math.PI/P,R=o.w.radius*1.9;o.moon.position.set(Math.cos(a)*R,Math.sin(a*.5)*R*.25,Math.sin(a)*R);}o.lod.update(cam);}
+     if(o.moon){const P=moonPeriod(o.w),a=t*2*Math.PI/P,R=o.w.radius*1.9;o.moon.position.set(Math.cos(a)*R,Math.sin(a*.5)*R*.25,Math.sin(a)*R);}o.lod.update(cam);
+     if(o.plasma){const tp=traveller,dn=Math.hypot(tp.x-o.g.position.x,tp.y-o.g.position.y,tp.z-o.g.position.z);o.plasma.update(t,dt,{level:.3+.25*Math.sin(t*.7+o.w.mass),near:dn<o.w.radius*8?tp:null});}
+     const lt=t-o.labelT;(o.label.material as any).opacity=lt<0||lt>6?0:Math.min(1,lt/.8)*Math.min(1,(6-lt)/1.2)*.75;}
     const tm=trail.material as any;
     if(!trip){next-=dt;tm.opacity=Math.max(0,tm.opacity-dt*.5);if(canAuto&&next<=0){next=55+rnd()*25;startTrip((lastWorld+1+Math.floor(rnd()*2))%worlds.length,traveller);}else return null;}
     tripT+=dt;const P=travelPose(trip,tripT);tm.opacity=Math.min(.55,tm.opacity+dt*.8)*(P.phase==='stay'?.9:1);
     const o=worlds[trip.i],k=trip.out.length-1,end=trip.out[k];// keep the far end glued to the moving world
     const dx=o.anchor.x-(end.__ax??o.anchor.x),dy=o.anchor.y-(end.__ay??o.anchor.y);end.__ax=o.anchor.x;end.__ay=o.anchor.y;if(dx||dy){end.x+=dx;end.y+=dy;}
+    if(P.phase!==trip.ph){if(P.phase==='stay'){o.plasma?.tunnel(t);o.labelT=t;}if(P.phase==='back')o.plasma?.tunnel(t);trip.ph=P.phase;}
     if(P.done){trip=null;return null;}
     let pos=P.pos,n={x:0,y:1,z:0};
     if(P.phase==='stay'){if(o.w.kind==='planet'){const W=planetWalk(o.anchor,o.w.radius,Math.min(.95,(tripT-9)*.14),trip.h??(trip.h=rnd()*6.283));pos=W.pos;n=W.n;}
