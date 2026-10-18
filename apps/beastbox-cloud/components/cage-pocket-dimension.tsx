@@ -326,7 +326,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // wireframe companion critters: one per creature, feeding on universe motes
     const comps=createCompanions(THREE,scene,{low});const compOwners:any[]=[];comps.onFeed((id:string,e:number)=>{uw.pulseNear({x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z},Math.min(1,e*6));if(id==='zeref')lcS.syn?.kick(Math.min(1,e*4));extras.river.kick(e*2);});const nervePal=nervePaletteChoice();
     const sensors=createSensors(THREE,scene,{low,points:uw.sensorPoints(low?60:140)});
-    if(lcForced){(window as any).__lcComps=comps;(window as any).__lcPlasma=uw;(window as any).__lcSensors=sensors;}let uwPose:any=null;if(lcForced){(window as any).__lcWorlds=uw;(window as any).__lcTravel=(i:number)=>uw.startTrip(i,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z});}
+    if(lcForced){(window as any).__lcComps=comps;(window as any).__lcPlasma=uw;(window as any).__lcSensors=sensors;(window as any).__lcCamera=camera;}let uwPose:any=null;if(lcForced){(window as any).__lcWorlds=uw;(window as any).__lcTravel=(i:number)=>uw.startTrip(i,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z});}
     // Film motion for Zeref (bb-7f9c2a03 persona: no recorded seed of his own here → id-only persona).
     const zActorNode=new THREE.Group();zHolder.add(zActorNode);
     const zActor=createActor(motionPersona({id:'bb-7f9c2a03'}),{x:-1.15,z:.75,radius:1.1,seed:'bb-7f9c2a03',universe:UNIVERSE_R});// offset so Zeref never stands inside the active Beast
@@ -335,7 +335,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const gcam=createGravityCam(THREE,{camera,scene,renderer,low:low||soft,dof:(!low&&!soft&&!phoneGpu)||(lcForced&&new URLSearchParams(location.search).get('dof')==='1')});let zr=0;
     const extras=addRoamExtras(THREE,scene,{beastId:lcId,low:low||soft,onDoing:(d:string)=>{lcS.doing=d;}});
     const lcWords=(text:string)=>{const w:any=extras.words(text);if(w.emotion){lcS.ov=w.emotion;lcS.ovT=5;}lcS.syn?.kick(.4+w.burst*.6);extras.river.kick(.5+w.burst*.5);extras.burst(zHolder.position.x,.5,zHolder.position.z);if(w.shape){extras.create(w.shape,zHolder.position.x+.3,zHolder.position.z+.3,'chat');comps.remnant({x:zHolder.position.x+.3,y:0,z:zHolder.position.z+.3});}comps.glyph({x:zHolder.position.x,y:.4,z:zHolder.position.z});
-      sensors.signal('zeref',{x:zHolder.position.x,y:zHolder.position.y+.35,z:zHolder.position.z},.5+w.burst*.5,()=>{lcS.syn?.kick(.6);synapseClick(2,.4);extras.river.kick(.6);});};// words → light pulses → vibration
+      sensors.flare('zeref',.8);sensors.signal('zeref',{x:zHolder.position.x,y:zHolder.position.y+.35,z:zHolder.position.z},.5+w.burst*.5,()=>{lcS.syn?.kick(.6);synapseClick(2,.4);extras.river.kick(.6);});};// words → light pulses → vibration
     lcBus.current={words:lcWords};if(lcForced)(window as any).__lcWords=lcWords;
     const onLcChat=(e:any)=>lcWords(String(e?.detail?.text||'hi'));const onLcLevel=(e:any)=>{const l=Number(e?.detail?.level)||0;if(l>.05)lcS.syn?.kick(Math.min(.5,l*.6));};const onLcChirp=(e:any)=>lcS.syn?.kick(.25*(Number(e?.detail?.intensity)||.5));
     const onLcTap=()=>{lcS.syn?.kick(.9);extras.river.kick(.4);lcS.ov=lcS.ov||'happy';lcS.ovT=Math.max(lcS.ovT,2);};
@@ -481,13 +481,16 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
         let dth=((want-v.theta)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI;v.theta+=dth*Math.min(1,dt*.12);v.zoom+=(9.4-v.zoom)*Math.min(1,dt*.2);v.phi+=(1.36-v.phi)*Math.min(1,dt*.2);
         homeFocus.set(brain.x*.6,1.05,brain.z*.6);/* lower + pulled back so the pocket world shows behind the Beast */}else homeFocus.set(0,.85,0);
        (window as any).__beastLife={moment:brain.moment??null,y:+beastNode.position.y.toFixed(3),ground:+groundAt(brain.x,brain.z).toFixed(3),air:!!(brain as any).air,mode:brain.mode,x:brain.x,z:brain.z,attn:brain.attn?.kind??null,weather:life.getWeather(),coherence:L.cst.ch.coherence,chaos:L.cst.ch.chaos,hebb:L.cst.hebb,rain:L.env.rain,night:L.env.night,tris:plush.tris};}}
-     {zr=Math.hypot(zHolder.position.x,zHolder.position.z);const capZ=lcForced&&(window as any).__lcFocusZeref;const pull=focused?0:capZ?1:(now-lastDragAt.current>2500?Math.min(1,Math.max(0,(zr-3)/4)):0);
+     {zr=Math.hypot(zHolder.position.x,zHolder.position.z);const capZ=lcForced&&(window as any).__lcFocusZeref;const pull=focused?0:capZ||(lcS.camEase??0)>.05?Math.max(capZ?1:0,lcS.camEase??0):(now-lastDragAt.current>2500?Math.min(1,Math.max(0,(zr-3)/4)):0);
       homeFocus.copy(gcam.focus(reduced?0:dt,homeFocus,{x:zHolder.position.x,z:zHolder.position.z},extras.spots,pull));}
      if(uwPose&&!focused)homeFocus.set(zHolder.position.x,zHolder.position.y+.6,zHolder.position.z);// camera rides the gravity tunnel with Zeref// gravity-well follow across the universe
      if(focused){focused.obj.getWorldPosition(tgt);tgt.y+=.35;focus.lerp(tgt,Math.min(1,dt*4));}else focus.lerp(homeFocus,Math.min(1,dt*3));
-     const f=god.update(elapsed,v.zoom,focus,godFocus);
+     const f0=god.update(elapsed,v.zoom,focus,godFocus);const f=new THREE.Vector3(f0.x,f0.y,f0.z);
      (scene.fog as import('three').FogExp2).density=.012*Math.min(1.6,12/v.zoom)*(uwPose?.45:1);// cage-purple fog, tuned for the expanded universe
-     const lens=gcam.lens(reduced?0:dt,v.zoom,zr,reduced?0:Math.min(1,(lcS.LC?.__surf?.U.uFlowA.value||0)*.5));const zd=lens.zoom;camera.fov=lens.fov;
+     const lens=gcam.lens(reduced?0:dt,v.zoom,zr,reduced?0:Math.min(1,(lcS.LC?.__surf?.U.uFlowA.value||0)*.5));{const tf=sensors.topFlare();if(tf&&tf.f>.45){lcS.nerveHold=4.5;lcS.flareT=tf;}else if(tf&&lcS.flareT&&tf.id===lcS.flareT.id)lcS.flareT=tf;}lcS.nerveHold=Math.max(0,(lcS.nerveHold??0)-dt);lcS.camEase=(lcS.camEase??0)+(((lcS.nerveHold>0&&now-lastDragAt.current>2500)?1:0)-(lcS.camEase??0))*Math.min(1,(reduced?1:dt)*1.5);let zd=lens.zoom;camera.fov=lens.fov;
+     {const e=lcS.camEase,T=lcS.flareT;if(e>.005&&T){// ease toward the flaring creature: centre it and frame ~2.5x its height, then return; drag cancels (camEase follows nerveHold && no recent drag)
+       const k=e*e*(3-2*e);f.set(f.x+(T.x-f.x)*k,f.y+(T.y-f.y)*k,f.z+(T.z-f.z)*k);const zt=Math.max(.9,2.5*T.h/(2*Math.tan(lens.fov*Math.PI/360)));zd=zd+(Math.min(zd,zt)-zd)*k;}
+      sensors.hush(T?{x:T.x,y:T.y,z:T.z}:null,T?Math.min(1,(lcS.nerveHold>0?1:0)*Math.max(sensors.flareLevel(T.id),e)):0);life.hush?.(T?T.x:0,T?T.z:0,T?Math.min(1,(lcS.nerveHold>0?1:0)*Math.max(sensors.flareLevel(T.id),e)):0);if(lcS.nerveHold<=0&&e<.01)lcS.flareT=null;}
      camera.near=Math.max(.05,zd*.01);camera.updateProjectionMatrix();
      camera.position.set(f.x+zd*Math.sin(v.phi)*Math.sin(v.theta),f.y+zd*Math.cos(v.phi),f.z+zd*Math.sin(v.phi)*Math.cos(v.theta));{const bods:any[]=[{x:zHolder.position.x,y:zHolder.position.y+.3,z:zHolder.position.z,r:.4},{x:beastNode.position.x,y:beastNode.position.y+.3,z:beastNode.position.z,r:.45}];for(const r of ((window as any).__lcResidents||[]))bods.push({x:r.x,y:.35,z:r.z,r:.4});for(const b of uw.bodies())bods.push(b);
       if(pushCameraOut(camera.position,bods)>0)camera.lookAt(f);}// creatures can never get inside the lens
@@ -499,7 +502,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       if(elapsed-((comps as any).__syncT??-9)>1){(comps as any).__syncT=elapsed;comps.sync(compOwners);}comps.step(reduced?0:dt,elapsed,compOwners,(p:any)=>uw.ground(p));}
      {const fl=uw.flash();renderer.toneMappingExposure=1.25+fl*2.2;const inv=fl>.55;if(inv!==(renderer.domElement as any).__inv){(renderer.domElement as any).__inv=inv;renderer.domElement.style.filter=inv?'invert(1) hue-rotate(180deg)':'';}
       nebula.rotation.y+=(reduced?0:dt)*(.01+fl*2.5+(uwPose?.06:0));}// tunneling flash + inversion, nebula swirl reacts
-     if(elapsed-((sensors as any).__attT??-9)>1){(sensors as any).__attT=elapsed;const att=(id:string,L:any)=>{if(!L||sensors.nerves.has(id))return;const d=bodyDims(L);if(d)sensors.attach(id,d.host,d.dims,nervePal);};att('zeref',lcS.LC);for(const r of ((window as any).__lcResidents||[]))if(r?.r?.id)att(r.r.id,r.slot?.lc);}
+     if(elapsed-((sensors as any).__attT??-9)>1){(sensors as any).__attT=elapsed;const att=(id:string,L:any)=>{if(!L||sensors.nerves.has(id))return;const d=bodyDims(L);if(d){sensors.attach(id,d.host,d.dims,nervePal);sensors.dimBody(id,L);}};const sz=renderer.getDrawingBufferSize(new THREE.Vector2());sensors.setResolution(sz.x,sz.y);att('zeref',lcS.LC);for(const r of ((window as any).__lcResidents||[]))if(r?.r?.id)att(r.r.id,r.slot?.lc);}
      {const emo:Record<string,number>={zeref:lcS.ovT>0?1:0};if(!reduced)sensors.update(dt,elapsed,emo);if(((sensors as any).__k=((sensors as any).__k||0)+1)%6===0)for(const c of comps.list.values())sensors.stimulate({x:c.x,y:c.y,z:c.z},.9,.5);}
      neonU.uNeon.value=neonOn.current?1:0;neonU.uNeonDist.value=neonDistGain(camera.position.distanceTo(zHolder.position));// farther = brighter wire network
      gcam.step(reduced?0:dt);

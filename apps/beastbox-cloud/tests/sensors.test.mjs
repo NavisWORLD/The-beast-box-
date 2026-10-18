@@ -13,3 +13,8 @@ test('wiring: hidden nodes, cage chain words→light→vibration, iPhone caps, w
  assert.ok(SENSOR_LIMITS.nodesLow<=60&&SENSOR_LIMITS.pulsesMax<=12);});
 test('sensor node shader declares helpers at global scope (no nested GLSL functions)',()=>{const s=fs.readFileSync(new URL('../lib/sensors/sensors.ts',import.meta.url),'utf8');
  assert.doesNotMatch(s,/void main\(\)\{[^`]*float ring\(float/);assert.match(s,/float ring\(float r,float o\)/);});
+test('legibility: screen-space fat nerve lines, body dim while flaring, camera ease respects drag',()=>{const s=fs.readFileSync(new URL('../lib/sensors/sensors.ts',import.meta.url),'utf8'),c=fs.readFileSync(new URL('../components/cage-pocket-dimension.tsx',import.meta.url),'utf8');
+ assert.match(s,/p\.xy\+=nrm\*aSide\*uW\*aWt\/uRes\*p\.w/);assert.match(s,/NERVE_WIDTH=Object\.freeze\(\{rest:2\.6,flare:6\.5\}\)/);assert.match(s,/gl_FragColor\.rgb\*=uNerveDim/);assert.match(s,/nerve-aura/);
+ assert.match(c,/lcS\.nerveHold>0&&now-lastDragAt\.current>2500/);assert.match(c,/sensors\.dimBody\(id,L\)/);assert.doesNotMatch(c,/localStorage/);
+ assert.match(s,/export function visibleBody/);assert.match(s,/bodyFamily\(LC\)/);assert.match(s,/topFlare\(\)/);assert.match(s,/uHush/);assert.match(c,/2\.5\*T\.h/);assert.match(c,/life\.hush/);
+ assert.match(fs.readFileSync(new URL('../components/pocket-life.ts',import.meta.url),'utf8'),/uHush\.w\*\(1\.-smoothstep/);});
