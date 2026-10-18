@@ -3,6 +3,7 @@ import {flowStars,flowGrid} from '../lib/living-core/river-flow';
 import {capScenePoints,pushCameraOut} from '../lib/living-core/near-lens';
 import {buildWorlds} from '../lib/worlds/worlds';
 import {buildTerrain} from '../lib/worlds/terrain';
+import {addHeaven,HEAVEN} from '../lib/worlds/heaven';
 import {terrainHeight} from '../lib/worlds/terrain-math.mjs';
 import {createCompanions} from '../lib/companions/companions';
 import {createSensors,bodyDims,nervePaletteChoice} from '../lib/sensors/sensors';
@@ -215,7 +216,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const lcOk=!reduced&&(!soft||lcForced);
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     // Living Cosmos polish: filmic tone mapping for deeper, less flat contrast.
-    renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
+    renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=HEAVEN.exposure;
     const scene=new THREE.Scene();
     scene.background=new THREE.Color(0x05040f);
     scene.fog=new THREE.FogExp2(0x0d0a26,.017);
@@ -224,6 +225,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const moonlight=new THREE.PointLight(0xa8eaff,24,12);
     moonlight.position.set(0,4,1);scene.add(moonlight);
     const glow=new THREE.PointLight(0xba82f4,13,11);glow.position.set(-2,2,-3);scene.add(glow);
+    const heaven=addHeaven(THREE,scene,{low});// the user's heaven: warm divine light, endless depth, serene flow
     // Lost COSMOS look: dark cosmic sand floor instead of blue stone.
     const stone=new THREE.MeshStandardMaterial({color:0x1c1530,emissive:0x0a0618,roughness:1,metalness:.02});
     const floraMat=new THREE.MeshStandardMaterial({color:0x6fe7ff,emissive:0x2aa6d6,emissiveIntensity:.9,metalness:.3,roughness:.18,transparent:true,opacity:.9});
@@ -417,7 +419,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      if(!reduced)elapsed+=dt;
      nebulaMat.uniforms.time.value=elapsed;poolMat.uniforms.time.value=elapsed;
      if(!reduced){for(let i=0;i<dustN;i++){let y=dust[i*3+1]+dt*(.12+(i%5)*.03);if(y>4.8)y=0;dust[i*3+1]=y;dust[i*3]+=Math.sin(elapsed*.4+i)*dt*.05;}dustGeom.attributes.position.needsUpdate=true;}
-     if(autoOrbitRef.current&&!reduced&&now-lastDragAt.current>2500)cameraView.current.theta+=dt*.09;
+     if(autoOrbitRef.current&&!reduced&&now-lastDragAt.current>2500)cameraView.current.theta+=dt*.09*HEAVEN.orbit;
      motion.current.impulse=Math.max(0,motion.current.impulse-dt*.35);
      const pulse=motion.current.impulse;
      // World vegetation responds to the recorded/native stage and actual
@@ -453,9 +455,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
        else if(g.id!=='wander'){try{recordArrival(lcId,g.id);}catch{}}}
       if(lcS.goal)(zActor as any).target={x:lcS.goal.x,z:lcS.goal.z};
       stepLivingCore(lcS.LC,reduced?0:dt);lcS.syn?.step(reduced?0:dt);}
-     flowU.uTime.value+=reduced?0:dt;
+     flowU.uTime.value+=reduced?0:dt*HEAVEN.flow;heaven.update(elapsed);
      land?.update(elapsed,camera);uwPose=uw.update(reduced?0:dt,elapsed,camera,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z},!reduced&&!!(ze?.claimed||lcS.LC));
-     extras.step(reduced?0:dt,{x:zHolder.position.x,z:zHolder.position.z});
+     extras.step(reduced?0:dt*HEAVEN.flow,{x:zHolder.position.x,z:zHolder.position.z});
      if(ze?.claimed||lcS.LC){
       const zp=stepActor(zActor,reduced?0:dt,{lookAt:{x:camera.position.x,z:camera.position.z},reduced});
       zHolder.position.set(zp.x,-.07+zp.lift,zp.z);zHolder.rotation.y=.7+zp.heading*.5+zp.head;
@@ -506,7 +508,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       if(plush)compOwners.push({id:key,x:brain.x,y:-.05,z:brain.z});if(lcForced&&Array.isArray((window as any).__lcCompShow))(window as any).__lcCompShow.forEach((id:string,i:number)=>compOwners.push({id,x:zHolder.position.x+(i-2.5)*.35,y:-.05,z:zHolder.position.z+.5}));
       for(const r of ((window as any).__lcResidents||[]))if(r?.r?.id)compOwners.push({id:r.r.id,x:r.x,y:-.05,z:r.z});
       if(elapsed-((comps as any).__syncT??-9)>1){(comps as any).__syncT=elapsed;comps.sync(compOwners);}comps.step(reduced?0:dt,elapsed,compOwners,(p:any)=>uw.ground(p));}
-     {const fl=uw.flash();renderer.toneMappingExposure=1.25+fl*2.2;const inv=fl>.55;if(inv!==(renderer.domElement as any).__inv){(renderer.domElement as any).__inv=inv;renderer.domElement.style.filter=inv?'invert(1) hue-rotate(180deg)':'';}
+     {const fl=uw.flash();renderer.toneMappingExposure=HEAVEN.exposure+fl*2.2;const inv=fl>.55;if(inv!==(renderer.domElement as any).__inv){(renderer.domElement as any).__inv=inv;renderer.domElement.style.filter=inv?'invert(1) hue-rotate(180deg)':'';}
       nebula.rotation.y+=(reduced?0:dt)*(.01+fl*2.5+(uwPose?.06:0));}// tunneling flash + inversion, nebula swirl reacts
      if(elapsed-((sensors as any).__attT??-9)>1){(sensors as any).__attT=elapsed;const att=(id:string,L:any)=>{if(!L||sensors.nerves.has(id))return;const d=bodyDims(L);if(d){sensors.attach(id,d.host,d.dims,nervePal);}};const sz=renderer.getDrawingBufferSize(new THREE.Vector2());sensors.setResolution(sz.x,sz.y);att('zeref',lcS.LC);for(const r of ((window as any).__lcResidents||[]))if(r?.r?.id)att(r.r.id,r.slot?.lc);}
      {const emo:Record<string,number>={zeref:lcS.ovT>0?1:0};if(!reduced)sensors.update(dt,elapsed,emo);if(((sensors as any).__k=((sensors as any).__k||0)+1)%6===0)for(const c of comps.list.values())sensors.stimulate({x:c.x,y:c.y,z:c.z},.9,.5);}

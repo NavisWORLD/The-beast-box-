@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+test('heaven pass: warm divine light, endless depth, slower flow, calmer camera; cage kept',()=>{const h=readFileSync(new URL('../lib/worlds/heaven.ts',import.meta.url),'utf8'),c=readFileSync(new URL('../components/cage-pocket-dimension.tsx',import.meta.url),'utf8'),g=readFileSync(new URL('../lib/living-core/gravity-camera.ts',import.meta.url),'utf8');
+ assert.match(h,/DirectionalLight\(HEAVEN\.sun/);assert.match(h,/flow:\.62/);assert.match(c,/addHeaven\(THREE,scene,\{low\}\)/);assert.match(c,/dt\*HEAVEN\.flow/);assert.match(c,/dt\*\.09\*HEAVEN\.orbit/);assert.match(g,/const k=2\.1/);assert.match(c,/new THREE\.BoxGeometry\(9\.1,\.22,9\.1\)/);});

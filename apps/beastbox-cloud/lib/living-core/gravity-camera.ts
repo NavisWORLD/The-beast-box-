@@ -34,7 +34,7 @@ export function createGravityCam(THREE:T,{camera,scene,renderer,low,dof}:{camera
    if(z&&pull>0){let wx=z.x*3,wz=z.z*3,m=3;for(const w of wells){const d2=(w.x-z.x)**2+(w.z-z.z)**2;const mw=1.2*Math.exp(-d2/18);wx+=w.x*mw;wz+=w.z*mw;m+=mw;}
     tgt.x+=(wx/m-tgt.x)*pull;tgt.z+=(wz/m-tgt.z)*pull;}
    // underdamped spring → inertia + small overshoot (ζ≈0.55)
-   const k=3.2,c=2*.55*Math.sqrt(k);V.addScaledVector(tgt.clone().sub(F),k*dt).multiplyScalar(Math.max(0,1-c*dt));F.addScaledVector(V,dt);
+   const k=2.1,c=2*.7*Math.sqrt(k);// calmer: softer spring, more damping (heaven pass)V.addScaledVector(tgt.clone().sub(F),k*dt).multiplyScalar(Math.max(0,1-c*dt));F.addScaledVector(V,dt);
    if(z){if(prev){const v=Math.hypot(z.x-prev.x,z.z-prev.z)/Math.max(dt,1e-3);spd+=(v-spd)*Math.min(1,dt*3);}prev={x:z.x,z:z.z};}
    return F;},
   /** Dolly zoom + depth ripple. Returns camera distance and FOV. */
