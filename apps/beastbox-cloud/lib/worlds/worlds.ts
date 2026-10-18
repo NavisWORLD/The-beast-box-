@@ -120,6 +120,14 @@ export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30
   return {root,worlds,U,
    bodies:()=>[...worlds.map(o=>({x:o.g.position.x,y:o.g.position.y,z:o.g.position.z,r:o.w.radius*1.1+.6})),...treeBodies],
    startTrip,get trip(){return trip;},neon,
+   /** hidden sensor sites: canopy tips, clouds, river floor, open air, world surfaces (shared seed) */
+   sensorPoints(n:number){const out:V3[]=[];const r2=seededRng('cst-root:sensors');
+    tips.forEach((tt,ti)=>tt.slice(0,6).forEach((p:any)=>{const t=trees[ti];out.push({x:t.x+p[0]*t.s,y:-.06+p[1]*t.s,z:t.z+p[2]*t.s});}));
+    for(let c=0;c<nC;c++){const k=c*LIMITS.puffs*4;out.push({x:aP[k],y:aP[k+1],z:aP[k+2]});}
+    for(let i=0;i<24;i++){const a=r2()*6.283,r=1+r2()*universe*.8;out.push({x:Math.cos(a)*r,y:.05,z:Math.sin(a)*r});}// river floor
+    for(let i=0;i<20;i++){const a=r2()*6.283,r=2+r2()*universe;out.push({x:Math.cos(a)*r,y:1+r2()*6,z:Math.sin(a)*r});}// air
+    for(const o of worlds)for(let i=0;i<6;i++){const a=r2()*6.283,b=r2()*1.2;const p=worldAnchor(o.w,0);out.push({x:p.x+Math.cos(a)*Math.sin(b)*o.w.radius*1.1,y:p.y+Math.cos(b)*o.w.radius*1.1,z:p.z+Math.sin(a)*Math.sin(b)*o.w.radius*1.1});}
+    for(let i=out.length-1;i>0;i--){const j=Math.floor(r2()*(i+1));[out[i],out[j]]=[out[j],out[i]];}return out.slice(0,n);},
    /** tunneling flash level 0..1 (white flash + inversion window) */
    flash:()=>{let f=0;for(const o of worlds)if(o.plasma)f=Math.max(f,o.plasma.flash(U.uTime.value));return f;},
    /** core pulse of the nearest plasma world (companions feeding) */
