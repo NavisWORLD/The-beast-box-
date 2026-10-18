@@ -311,7 +311,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       'vec3 c=mix(vec3(.12,.55,.85),vec3(.65,.4,1.0),w);gl_FragColor=vec4(c*(1.0-r*.7),(1.0-r)*.55+.08);}'});
     const pool=new THREE.Mesh(new THREE.CircleGeometry(1,low?32:64),poolMat);pool.rotation.x=-Math.PI/2;pool.position.set(2.15,-.03,-1.7);pool.scale.setScalar(.95);scene.add(pool);
     // Artist-drawn residents (separate creatures, never the active Beast) roam the pocket.
-    const {stepResidents,texCache,disturbers,pickables}=addPocketResidents(THREE,scene,seedRandom,reduced,low,glbTier,groundAt,lcOk);
+    const {stepResidents,texCache,disturbers,pickables}=addPocketResidents(THREE,scene,seedRandom,reduced,low,glbTier,groundAt,lcOk&&lcForced);
     // God view: habitat on a small planet, orbiting its suns, inside a galaxy (Genesis Engine, recoloured).
     const god=addGodView(THREE,scene,{rand:randomFor(key+':system'),low,counts:qvmCounts,stage:motion.current.stage||stage||1});
     const godFocus=new THREE.Vector3();
@@ -439,7 +439,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      sand.update(dt,[{x:glow.position.x,z:glow.position.z,r:1.2,s:1.6+motion.current.impulse*3},{x:0,z:0,r:1.1,s:1.2},...disturbers()]);
      const ze=(window as any).__zerefEmbed;
      if(ze?.root&&ze.root.parent!==zActorNode){zActorNode.add(ze.root);ze.root.position.y=1.68;ze.claimed=true;}
-     if(lcS.LC&&ze?.root)ze.root.visible=false;
+     // cute & creepy again: Zeref's original sculpted body is the one you see; the living core keeps running underneath (brain, roam, hidden nerves) and only shows as a fallback or with ?livingcore=1
+     if(lcS.LC&&lcS.g){const orig=!!ze?.root&&!lcForced;lcS.g.visible=!orig;if(ze?.root)ze.root.visible=orig;}
      if(lcS.LC){// roam brain: favorite spots / mini libraries / free wander; arrival = learn + make a CST construct
       const mood=lcS.ov||(state==='sleeping'?'sleepy':'calm');if(lcS.ovT>0){lcS.ovT-=dt;if(lcS.ovT<=0)lcS.ov=null;}
       if(lcS.mood!==mood){lcS.mood=mood;lcS.LC.setEmotion?.(mood);lcS.syn?.setEmotion(mood);}
@@ -497,7 +498,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      camera.position.set(f.x+zd*Math.sin(v.phi)*Math.sin(v.theta),f.y+zd*Math.cos(v.phi),f.z+zd*Math.sin(v.phi)*Math.cos(v.theta));{const bods:any[]=[{x:zHolder.position.x,y:zHolder.position.y+.3,z:zHolder.position.z,r:.4},{x:beastNode.position.x,y:beastNode.position.y+.3,z:beastNode.position.z,r:.45}];for(const r of ((window as any).__lcResidents||[]))bods.push({x:r.x,y:.35,z:r.z,r:.4});for(const b of uw.bodies())bods.push(b);
       if(pushCameraOut(camera.position,bods)>0)camera.lookAt(f);}// creatures can never get inside the lens
      if(elapsed-((camera as any).__capT||-9)>1){(camera as any).__capT=elapsed;capScenePoints(scene);
-      const lcs=[lcS.LC,...(((window as any).__lcResidents||[]).map((r:any)=>r.slot?.lc))];for(const L of lcs)L?.group?.traverse((o:any)=>{const m=o.material;if(o.isMesh&&m&&(m.isMeshStandardMaterial||m.isMeshPhysicalMaterial))neonPatch(m,neonU,{mode:'body',freq:11,amt:1.6});});}
+      const lcs=[lcS.LC,...(((window as any).__lcResidents||[]).map((r:any)=>r.slot?.lc))];for(const L of lcs)L?.group?.traverse((o:any)=>{const m=o.material;if(o.isMesh&&m&&(m.isMeshStandardMaterial||m.isMeshPhysicalMaterial))neonPatch(m,neonU,{mode:'body',freq:11,amt:.35});});}
      {compOwners.length=0;if(lcS.LC||ze?.claimed)compOwners.push({id:'zeref',x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z,air:lcS.air||0});
       if(plush)compOwners.push({id:key,x:brain.x,y:-.05,z:brain.z});if(lcForced&&Array.isArray((window as any).__lcCompShow))(window as any).__lcCompShow.forEach((id:string,i:number)=>compOwners.push({id,x:zHolder.position.x+(i-2.5)*.35,y:-.05,z:zHolder.position.z+.5}));
       for(const r of ((window as any).__lcResidents||[]))if(r?.r?.id)compOwners.push({id:r.r.id,x:r.x,y:-.05,z:r.z});
