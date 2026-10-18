@@ -6,8 +6,8 @@ export function buildTerrain(THREE:T,scene:import('three').Scene,{low}:{low:bool
   const root=new THREE.Group();root.name='home-terrain';scene.add(root);
   const U={uTime:{value:0}};
   // land reads through the cage fog: thinner fog (40% density, capped at 80%) only on terrain materials; the cage keeps its fog
-  const landFog=(m:any)=>{m.onBeforeCompile=(sh:any)=>{sh.fragmentShader=sh.fragmentShader.replace('#include <fog_fragment>','#if defined(USE_FOG)&&defined(FOG_EXP2)\n float lfD=fogDensity*.4;float lfF=min(.8,1.0-exp(-lfD*lfD*vFogDepth*vFogDepth));gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,lfF);\n#endif');};m.customProgramCacheKey=()=>'landfog';return m;};
-  const land=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95,metalness:.02,emissive:0x1a1038,emissiveIntensity:1.4,flatShading:true});landFog(land);
+  const landFog=(m:any,rim=false)=>{m.onBeforeCompile=(sh:any)=>{sh.fragmentShader=sh.fragmentShader.replace('#include <fog_fragment>',(rim?'{float rimK=pow(1.0-abs(dot(normalize(normal),normalize(vViewPosition))),3.0);gl_FragColor.rgb+=vec3(.62,.55,1.0)*rimK*.9;}\n':'')+'#if defined(USE_FOG)&&defined(FOG_EXP2)\n float lfD=fogDensity*.25;float lfF=min(.7,1.0-exp(-lfD*lfD*vFogDepth*vFogDepth));gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,lfF);\n#endif');};m.customProgramCacheKey=()=>rim?'landfog-rim':'landfog';return m;};
+  const land=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95,metalness:.02,emissive:0x1a1038,emissiveIntensity:1.4,flatShading:true});landFog(land,true);// hilltop rim light
   const wire=new THREE.LineBasicMaterial({color:0x7af0ff,transparent:true,opacity:low?.26:.34,blending:THREE.AdditiveBlending,depthWrite:false});
   const S=TERRAIN.size,N=TERRAIN.chunks,cs=S/N,ca=new THREE.Color(0x2a2048),cb=new THREE.Color(0x4a3790),cc=new THREE.Color(0x7656c8);
   function chunkGeo(cx:number,cz:number,seg:number){const g=new THREE.PlaneGeometry(cs,cs,seg,seg);g.rotateX(-Math.PI/2);const P=g.attributes.position as any;const col=new Float32Array(P.count*3);
