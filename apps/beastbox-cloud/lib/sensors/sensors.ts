@@ -13,8 +13,8 @@ export function createSensors(THREE:T,scene:import('three').Scene,{low,points}:{
   g.setAttribute('aP',new THREE.InstancedBufferAttribute(aP,3));const stimA=new THREE.InstancedBufferAttribute(aS,1);stimA.setUsage(THREE.DynamicDrawUsage);g.setAttribute('aS',stimA);g.instanceCount=N;
   const mat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,uniforms:{uTime:{value:0}},
    vertexShader:`attribute vec3 aP;attribute float aS;varying vec2 vU;varying float vS;uniform float uTime;void main(){vU=uv-.5;vS=aS;vec4 mv=viewMatrix*vec4(aP,1.);float sz=(.25+aS*.9);mv.xy+=position.xy*sz*step(.01,aS);gl_Position=projectionMatrix*mv;}`,
-   fragmentShader:`varying vec2 vU;varying float vS;uniform float uTime;void main(){float r=length(vU)*2.;if(vS<.01)discard;
-    float ring(float o){return exp(-pow((r-.62-o)*14.,2.));}vec3 c=vec3(ring(-.04),ring(0.),ring(.04))*.9;// refraction: rgb-split ring
+   fragmentShader:`varying vec2 vU;varying float vS;uniform float uTime;float ring(float r,float o){return exp(-pow((r-.62-o)*14.,2.));}
+    void main(){float r=length(vU)*2.;if(vS<.01)discard;vec3 c=vec3(ring(r,-.04),ring(r,0.),ring(r,.04))*.9;// refraction: rgb-split ring
     c+=vec3(.75,.9,1.)*exp(-r*r*9.)*1.3;gl_FragColor=vec4(c*vS,vS*max(c.r,max(c.g,c.b)));}`});
   const mesh=new THREE.Mesh(g,mat);mesh.frustumCulled=false;mesh.renderOrder=5;mesh.name='sensor-nodes';scene.add(mesh);
   // ---- nerve networks per creature
