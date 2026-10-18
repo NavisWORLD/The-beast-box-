@@ -2,6 +2,7 @@
 import {flowStars,flowGrid} from '../lib/living-core/river-flow';
 import {capScenePoints,pushCameraOut} from '../lib/living-core/near-lens';
 import {buildWorlds} from '../lib/worlds/worlds';
+import {neonPatch,neonUniforms,neonDistGain,makeFilaments} from '../lib/worlds/neon-wire';
 import {createGravityCam} from '../lib/living-core/gravity-camera';
 import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles,LC_WORLD_H} from '../lib/living-core/core-cache';
 import {attachSynapse,addRoamExtras,synapseClick} from '../lib/living-core/roam-extras';
@@ -63,7 +64,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
  const cameraView=useRef<View>({theta:.7,phi:1.28,zoom:10.6});
  // Tap-a-creature: set once the scene exists; a tap (no drag) raycasts and focuses the camera on what it hits.
  const pickRef=useRef<((x:number,y:number)=>void)|null>(null);
- const [visualSettings,setVisualSettings]=useState<{enabled:boolean;quality:'auto'|'low'|'high'}>({...DEFAULT_POCKET_3D});
+ const [visualSettings,setVisualSettings]=useState<{enabled:boolean;quality:'auto'|'low'|'high';neonWire?:boolean}>({...DEFAULT_POCKET_3D});
+ const neonOn=useRef(true);neonOn.current=visualSettings.neonWire!==false;
  useEffect(()=>{
   const sync=()=>setVisualSettings(devicePocket3D());
   const onStorage=(event:StorageEvent)=>{if(event.key===POCKET_3D_KEY)sync();};
@@ -314,7 +316,11 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // Home: the sprite-built 3D Zeref lives here, standing on the habitat floor (one world, one camera).
     const zHolder=new THREE.Group();zHolder.scale.setScalar(.45);zHolder.position.set(0,-.07,0);zHolder.rotation.y=.7;scene.add(zHolder);
     // Universe of worlds: home trees/clouds/sky dome/parallax haze + distant worlds with gravity wells; Zeref travels between them.
-    const uw=buildWorlds(THREE,scene,{low,universe:UNIVERSE_R});let uwPose:any=null;if(lcForced){(window as any).__lcWorlds=uw;(window as any).__lcTravel=(i:number)=>uw.startTrip(i,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z});}
+    const neonU=neonUniforms();const uw=buildWorlds(THREE,scene,{low,universe:UNIVERSE_R,neon:neonU});
+    // grounding + contact shadow + jellyfish tail filaments (neon wire language)
+    const shadowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d')!;const g=x.createRadialGradient(32,32,2,32,32,32);g.addColorStop(0,'rgba(0,0,0,.75)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
+    const contact=new THREE.Mesh(new THREE.CircleGeometry(.55,24),new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false,opacity:.5}));contact.name='contact-shadow';contact.renderOrder=1;scene.add(contact);
+    const fil=makeFilaments(THREE,scene,{count:low?2:3,len:low?10:14});const _Y=new THREE.Vector3(0,1,0),_Z=new THREE.Vector3(0,0,1),_n=new THREE.Vector3(),_q=new THREE.Quaternion(),_q2=new THREE.Quaternion(),_e=new THREE.Euler(),_tip=new THREE.Vector3();let filK=0;let uwPose:any=null;if(lcForced){(window as any).__lcWorlds=uw;(window as any).__lcTravel=(i:number)=>uw.startTrip(i,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z});}
     // Film motion for Zeref (bb-7f9c2a03 persona: no recorded seed of his own here → id-only persona).
     const zActorNode=new THREE.Group();zHolder.add(zActorNode);
     const zActor=createActor(motionPersona({id:'bb-7f9c2a03'}),{x:-1.15,z:.75,radius:1.1,seed:'bb-7f9c2a03',universe:UNIVERSE_R});// offset so Zeref never stands inside the active Beast
@@ -443,6 +449,16 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       const zp=stepActor(zActor,reduced?0:dt,{lookAt:{x:camera.position.x,z:camera.position.z},reduced});
       zHolder.position.set(zp.x,-.07+zp.lift,zp.z);zHolder.rotation.y=.7+zp.heading*.5+zp.head;
       if(uwPose)zHolder.position.set(uwPose.pos.x,uwPose.pos.y,uwPose.pos.z);
+      {const yaw=zHolder.rotation.y;const airT=uwPose&&(uwPose.phase==='go'||uwPose.phase==='back')?1:0;lcS.air=(lcS.air??0)+(airT-(lcS.air??0))*Math.min(1,dt*2.5);const air=lcS.air;
+       const g=uwPose&&uwPose.phase==='stay'?{y:0,n:uwPose.n,kind:'world'}:uw.ground({x:zHolder.position.x,y:zHolder.position.y+.25,z:zHolder.position.z});
+       if(!uwPose&&g.kind!=='floor'&&air<.5)zHolder.position.y=g.y;// foot plant on island tops / tree limbs
+       _n.set(g.n.x,g.n.y,g.n.z).normalize();_q.setFromUnitVectors(_Y,_n);// up vector = surface normal (walks on curved worlds)
+       _e.set(Math.sin(elapsed*2.1)*.22*air,yaw,Math.sin(elapsed*1.6+1)*.18*air);_q2.setFromEuler(_e);zHolder.quaternion.copy(_q).multiply(_q2);// swim roll/pitch when airborne
+       const gy=uwPose&&uwPose.phase==='stay'?null:(g.kind==='world'?null:g.y);const gap=gy===null?0:Math.max(0,zHolder.position.y-gy);
+       if(gy===null)contact.position.copy(zHolder.position).addScaledVector(_n,.012);else contact.position.set(zHolder.position.x,gy+.012,zHolder.position.z);
+       contact.quaternion.setFromUnitVectors(_Z,_n);(contact.material as any).opacity=.5*Math.max(0,1-gap/2.5);contact.scale.setScalar(1+gap*.25);
+       const tp=(filK++%2===0)&&lcS.LC?.tailProbe?.();if(tp?.tip)_tip.fromArray(tp.tip);else if(filK<3)_tip.copy(zHolder.position);
+       fil.step(_tip,elapsed,air,neonOn.current&&!!lcS.LC,reduced?0:dt);}
       zActorNode.scale.set(zp.sx,zp.sy,zp.sx);zActorNode.rotation.x=zp.lean;if(ze){ze.motion={tail:zp.tail,ear:zp.ear};
       let d=-(v.theta-zHolder.rotation.y)*180/Math.PI;d=((d%360)+540)%360-180;ze.viewYaw=d;}}
      // living pocket step: CST world → life brain → plush rig
@@ -468,7 +484,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      camera.near=Math.max(.05,zd*.01);camera.updateProjectionMatrix();
      camera.position.set(f.x+zd*Math.sin(v.phi)*Math.sin(v.theta),f.y+zd*Math.cos(v.phi),f.z+zd*Math.sin(v.phi)*Math.cos(v.theta));{const bods:any[]=[{x:zHolder.position.x,y:zHolder.position.y+.3,z:zHolder.position.z,r:.4},{x:beastNode.position.x,y:beastNode.position.y+.3,z:beastNode.position.z,r:.45}];for(const r of ((window as any).__lcResidents||[]))bods.push({x:r.x,y:.35,z:r.z,r:.4});for(const b of uw.bodies())bods.push(b);
       if(pushCameraOut(camera.position,bods)>0)camera.lookAt(f);}// creatures can never get inside the lens
-     if(elapsed-((camera as any).__capT||-9)>1){(camera as any).__capT=elapsed;capScenePoints(scene);}
+     if(elapsed-((camera as any).__capT||-9)>1){(camera as any).__capT=elapsed;capScenePoints(scene);
+      const lcs=[lcS.LC,...(((window as any).__lcResidents||[]).map((r:any)=>r.slot?.lc))];for(const L of lcs)L?.group?.traverse((o:any)=>{const m=o.material;if(o.isMesh&&m&&(m.isMeshStandardMaterial||m.isMeshPhysicalMaterial))neonPatch(m,neonU,{mode:'body',freq:11,amt:1.6});});}
+     neonU.uNeon.value=neonOn.current?1:0;neonU.uNeonDist.value=neonDistGain(camera.position.distanceTo(zHolder.position));// farther = brighter wire network
      gcam.step(reduced?0:dt);
      camera.lookAt(f);
      try{gcam.render(camera.position.distanceTo(zHolder.position));}catch{setReady(false);setFailed(true);return;}

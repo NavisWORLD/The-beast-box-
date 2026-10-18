@@ -2,6 +2,8 @@
 // atmospheres, moons and gravity wells, and gravity-tunneling trips. Everything instanced and count-capped.
 import {LIMITS,WORLDS,cstTree,treeTips,worldAnchor,moonPeriod,tunnelPath,travelPose} from './worlds-math.mjs';
 import {seededRng} from '../physics/cst-integrator.mjs';
+import {groundRay,planetWalk} from './grounding.mjs';
+import {neonPatch,neonUniforms,type NeonU} from './neon-wire';
 type T=typeof import('three');type V3={x:number;y:number;z:number};
 
 const SWAY_VS=`
@@ -23,7 +25,7 @@ function swayMat(THREE:T,U:any,opts:any,{rim=0,shade=0,fade=false,key='bark'}:{r
      ${fade?'gl_FragColor.a*=vNearS;if(gl_FragColor.a<.02)discard;':''}`);};
   m.customProgramCacheKey=()=>'bbsway-'+key;return m;}
 
-export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30}:{low:boolean;universe?:number}){
+export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30,neon=neonUniforms()}:{low:boolean;universe?:number;neon?:NeonU}){
   const U={uTime:{value:0},uFlow:{value:new THREE.Vector2(.8,.35)}};const rnd=seededRng('worlds');
   const root=new THREE.Group();root.name='universe-of-worlds';scene.add(root);
   const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0),va=new THREE.Vector3(),vb=new THREE.Vector3(),vs=new THREE.Vector3();
@@ -57,6 +59,7 @@ export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30
   const branchGeo=new THREE.CylinderGeometry(.7,1,1,low?5:7,1,true);branchGeo.translate(0,.5,0);
   const bark=swayMat(THREE,U,{color:0x6a4a9a,emissive:0x3a2068,emissiveIntensity:.7,roughness:.85,flatShading:true},{rim:.35,shade:.6,key:'bark'});
   const branches=new THREE.InstancedMesh(branchGeo,bark,segTotal);branches.name='cst-trees';
+  neonPatch(bark,neon,{mode:'rim',amt:.45});// branch outlines
   const leafGeo=new THREE.IcosahedronGeometry(1,low?0:1);
   const leaf=swayMat(THREE,U,{color:0x6b4fc0,emissive:0x6a3fe0,emissiveIntensity:.5,roughness:.6,flatShading:true,transparent:true,opacity:1},{rim:.55,shade:1,fade:true,key:'leaf'});
   const canopy=new THREE.InstancedMesh(leafGeo,leaf,tipTotal);canopy.name='cst-canopy';
@@ -68,6 +71,7 @@ export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30
     const o=c*.6;va.set(t.x+(p[0]+(rnd()-.5)*.12*o)*t.s,-.06+(p[1]+.04*c)*t.s,t.z+(p[2]+(rnd()-.5)*.12*o)*t.s);q.setFromEuler(new THREE.Euler(rnd()*3,rnd()*3,0));
     vs.set(1,.8,1).multiplyScalar(t.s*(.15-.03*c)*(.85+rnd()*.3));m4.compose(va,q,vs);canopy.setMatrixAt(li,m4);
     tc.setHSL(hue+(rnd()-.5)*.05,.6+.1*c,.42+.12*c+rnd()*.06);canopy.setColorAt(li++,tc);}});
+  const walkBranches=trees.flatMap(t=>t.segs.filter((s:any)=>s.d===2||s.d===3).map((s:any)=>({a:{x:t.x+s.a[0]*t.s,y:-.06+s.a[1]*t.s,z:t.z+s.a[2]*t.s},b:{x:t.x+s.b[0]*t.s,y:-.06+s.b[1]*t.s,z:t.z+s.b[2]*t.s},r:s.r*t.s*1.25})));
   const treeBodies=trees.flatMap(t=>[{x:t.x,y:t.s*.35,z:t.z,r:t.s*.12+.5},{x:t.x,y:t.s*.85,z:t.z,r:t.s*.42}]);// trunk + crown push the lens out
   branches.instanceMatrix.needsUpdate=true;canopy.instanceMatrix.needsUpdate=true;root.add(branches,canopy);
   // ---- soft clouds: billboarded instanced quads, radial soft alpha with drift
@@ -92,7 +96,8 @@ export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30
      const isl=new THREE.Group();const rock=new THREE.Mesh(new THREE.ConeGeometry(w.radius,w.radius*1.8,det?14:7,det?3:1),new THREE.MeshStandardMaterial({color:0x241840,emissive:w.color,emissiveIntensity:.25,flatShading:true,fog:false}));
      rock.rotation.x=Math.PI;rock.position.y=-w.radius*.9;const top=new THREE.Mesh(new THREE.CylinderGeometry(w.radius,w.radius*.96,.3,det?28:12),new THREE.MeshStandardMaterial({color:w.color,emissive:w.color,emissiveIntensity:.5,flatShading:true,fog:false}));
      isl.add(rock,top);if(det){const gr=new THREE.GridHelper(w.radius*1.8,8,0x4983a4,0x284c74);gr.position.y=.17;(gr.material as any).fog=false;isl.add(gr);}return isl;};
-   lod.addLevel(mk(low?2:3),0);lod.addLevel(mk(low?1:2),60);lod.addLevel(mk(0),130);g.add(lod);
+   const lvls=[mk(low?2:3),mk(low?1:2),mk(0)];lvls.forEach(l=>l.traverse((m:any)=>{if(m.isMesh&&m.material?.isMeshStandardMaterial)neonPatch(m.material,neon,{mode:'lat',freq:w.kind==='planet'?7:3,amt:.5});if(m.isLineSegments)(m.material as any).color?.setHex?.(0x9ff4ff);}));
+   lod.addLevel(lvls[0],0);lod.addLevel(lvls[1],60);lod.addLevel(lvls[2],130);/*lod.addLevel(mk(low?1:2),60);*/g.add(lod);
    const atmo=new THREE.Mesh(new THREE.SphereGeometry(w.radius*(w.kind==='planet'?1.32:1.5),low?20:32,low?12:20),atmoMat(w.atmo));g.add(atmo);
    const glow=new THREE.PointLight(w.atmo,low?0:6,w.radius*5);if(!low)g.add(glow);
    let moon:import('three').Mesh|null=null;if(w.moon){moon=new THREE.Mesh(new THREE.IcosahedronGeometry(w.radius*.22,1),new THREE.MeshStandardMaterial({color:0xd9ccff,emissive:w.atmo,emissiveIntensity:.35,flatShading:true,fog:false}));g.add(moon);}
@@ -111,7 +116,9 @@ export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30
    const a=trailGeo.attributes.position as any;trip.out.forEach((p:V3,k:number)=>a.setXYZ(k,p.x,p.y,p.z));a.needsUpdate=true;return trip;}
   return {root,worlds,U,
    bodies:()=>[...worlds.map(o=>({x:o.g.position.x,y:o.g.position.y,z:o.g.position.z,r:o.w.radius*1.1+.6})),...treeBodies],
-   startTrip,get trip(){return trip;},
+   startTrip,get trip(){return trip;},neon,
+   /** downward ray against floor, island tops, planet spheres and walkable tree limbs */
+   ground:(p:V3)=>groundRay(p,{worlds:worlds.map(o=>({x:o.g.position.x,y:o.g.position.y,z:o.g.position.z,r:o.w.radius,kind:o.w.kind,top:.15})),branches:walkBranches}),
    /** advance; returns travel pose for the traveller or null when home. */
    update(dt:number,t:number,cam:import('three').Camera,traveller:V3,canAuto:boolean){
     U.uTime.value=t;U.uFlow.value.set(.8+Math.sin(t*.13)*.25,.35+Math.cos(t*.09)*.2);
@@ -125,6 +132,9 @@ export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30
     const o=worlds[trip.i],k=trip.out.length-1,end=trip.out[k];// keep the far end glued to the moving world
     const dx=o.anchor.x-(end.__ax??o.anchor.x),dy=o.anchor.y-(end.__ay??o.anchor.y);end.__ax=o.anchor.x;end.__ay=o.anchor.y;if(dx||dy){end.x+=dx;end.y+=dy;}
     if(P.done){trip=null;return null;}
-    return {...P,world:o.w.id,s:Math.min(1,tripT/9)};},
+    let pos=P.pos,n={x:0,y:1,z:0};
+    if(P.phase==='stay'){if(o.w.kind==='planet'){const W=planetWalk(o.anchor,o.w.radius,Math.min(.95,(tripT-9)*.14),trip.h??(trip.h=rnd()*6.283));pos=W.pos;n=W.n;}
+     else pos={x:o.anchor.x+Math.sin(tripT*.5)*o.w.radius*.4,y:o.anchor.y+.15,z:o.anchor.z+Math.cos(tripT*.4)*o.w.radius*.3};}
+    return {phase:P.phase,pos,n,world:o.w.id,s:Math.min(1,tripT/9)};},
    dispose(){scene.remove(root);root.traverse((o:any)=>{o.geometry?.dispose?.();o.material?.dispose?.();});}};
 }

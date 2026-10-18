@@ -23,9 +23,9 @@ test('3D settings fail closed to visual defaults when storage is absent, corrupt
 test('quality and visibility persist only typed, allowlisted 3D fields',()=>{
  const local=storage();
  const saved=savePocket3D(local,{enabled:false,quality:'low',battery:'forged',model:'overridden'});
- assert.deepEqual(saved,{enabled:false,quality:'low'});
+ assert.deepEqual(saved,{enabled:false,quality:'low',neonWire:true});
  assert.deepEqual(readPocket3D(local),saved);
- assert.deepEqual(normalizePocket3D({enabled:true,quality:'high'}),{enabled:true,quality:'high'});
+ assert.deepEqual(normalizePocket3D({enabled:true,quality:'high'}),{enabled:true,quality:'high',neonWire:true});
  assert.deepEqual(JSON.parse(local.raw.get(POCKET_3D_KEY)),saved);
 });
 test('site settings and original Cage renderer use one presentation-only preference contract',()=>{
