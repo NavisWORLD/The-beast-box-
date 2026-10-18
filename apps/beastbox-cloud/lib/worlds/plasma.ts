@@ -15,14 +15,14 @@ const CORE_FS=`varying vec3 vP;varying vec3 vN;varying vec3 vV;uniform float uTi
  float h(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
  float n3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
   return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z);}
- void main(){vec3 p=vP*2.2;float w=0.,a=.55;for(int i=0;i<4;i++){float r=1.-abs(n3(p+uTime*.35)*2.-1.);w+=pow(r,6.)*a;p=p*2.03+vec3(1.7,9.2,3.1);a*=.55;}
+ void main(){vec3 p=vP*2.2;float w=0.,a=.55;for(int i=0;i<OCT;i++){float r=1.-abs(n3(p+uTime*.35)*2.-1.);w+=pow(r,6.)*a;p=p*2.03+vec3(1.7,9.2,3.1);a*=.55;}
   float fr=pow(1.-abs(dot(normalize(vN),normalize(vV))),2.);vec3 c=mix(uCol*.25,uCol,w)+vec3(1.)*pow(w,3.)*1.6+uCol*fr*.8;c*=1.+uPulse*1.2;
   gl_FragColor=vec4(c,1.);}`;
 const CORE_VS=`varying vec3 vP;varying vec3 vN;varying vec3 vV;void main(){vP=position;vN=normalMatrix*normal;vec4 mv=modelViewMatrix*vec4(position,1.);vV=-mv.xyz;gl_Position=projectionMatrix*mv;}`;
 export function buildPlasmaPlanet(THREE:T,parent:import('three').Object3D,{radius,color,atmo,low,seed=1}:{radius:number;color:number;atmo:number;low:boolean;seed?:number}){
   const g=new THREE.Group();g.name='plasma-planet';parent.add(g);
   const U={uTime:{value:0},uPulse:{value:0},uCol:{value:new THREE.Color(atmo)}};
-  const core=new THREE.Mesh(new THREE.IcosahedronGeometry(radius*.62,low?3:4),new THREE.ShaderMaterial({uniforms:U,vertexShader:CORE_VS,fragmentShader:CORE_FS,fog:false}));g.add(core);
+  const core=new THREE.Mesh(new THREE.IcosahedronGeometry(radius*.62,low?3:4),new THREE.ShaderMaterial({uniforms:U,vertexShader:CORE_VS,fragmentShader:'#define OCT '+(low?2:4)+'\n'+CORE_FS,fog:false}));g.add(core);
   // bloom halo (billboard, additive)
   const halo=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,uniforms:{uCol:U.uCol,uPulse:U.uPulse},
    vertexShader:'varying vec2 vU;void main(){vU=uv-.5;vec4 mv=modelViewMatrix*vec4(0.,0.,0.,1.);mv.xy+=position.xy*'+(radius*3.2).toFixed(2)+';gl_Position=projectionMatrix*mv;}',
