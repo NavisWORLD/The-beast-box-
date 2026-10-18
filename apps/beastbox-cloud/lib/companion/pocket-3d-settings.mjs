@@ -4,14 +4,16 @@
 export const POCKET_3D_KEY='beastbox-pocket-3d-settings-v1';
 export const POCKET_3D_EVENT='beastbox:pocket-3d-settings';
 export const POCKET_3D_CAMERA_RESET='beastbox:pocket-3d-reset-camera';
-export const DEFAULT_POCKET_3D=Object.freeze({enabled:true,quality:'auto',neonWire:true});
+export const DEFAULT_POCKET_3D=Object.freeze({enabled:true,quality:'auto'});
+/** Neon wireframe overlay: on unless explicitly saved as false (field only stored once the user flips it). */
+export const neonWireOn=v=>v?.neonWire!==false;
 
 export function normalizePocket3D(value){
  const object=value&&typeof value==='object'&&!Array.isArray(value)?value:{};
  return {
   enabled:typeof object.enabled==='boolean'?object.enabled:true,
   quality:['auto','low','high'].includes(object.quality)?object.quality:'auto',
-  neonWire:typeof object.neonWire==='boolean'?object.neonWire:true
+  ...(typeof object.neonWire==='boolean'?{neonWire:object.neonWire}:{})
  };
 }
 export function readPocket3D(storage){
