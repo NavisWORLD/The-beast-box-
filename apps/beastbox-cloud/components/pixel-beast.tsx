@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { eyesFor } from '../lib/companion/adventure.mjs';
 import {renderBeast} from '../public/spark/draw.mjs';
 import { renderSprite } from '../lib/companion/spark/render.mjs';
+import { drawPixelCompanion } from '../lib/companions/pixel-companion.mjs';
 
 type Pose = 'idle' | 'walk' | 'follow' | 'react' | 'emote' | string;
 type Genome = { seed?: string; facing?: string };
@@ -30,6 +31,8 @@ function paint(canvas: HTMLCanvasElement, genome: Genome, stage: number, eyes: s
   ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.drawImage(sheet,16+dx,8+dy,256,256);
   if(flash>0){ctx.fillStyle=`rgba(184,238,255,${flash})`;ctx.fillRect(0,0,canvas.width,canvas.height);}
+  // wireframe pixel companion critter, themed to this creature
+  try{drawPixelCompanion(ctx,String(genome.seed||'beast'),performance.now()/1000,{w:canvas.width,h:canvas.height});}catch{}
 }
 
 export default function PixelBeast({

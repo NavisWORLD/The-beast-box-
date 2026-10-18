@@ -2,6 +2,7 @@
 import {flowStars,flowGrid} from '../lib/living-core/river-flow';
 import {capScenePoints,pushCameraOut} from '../lib/living-core/near-lens';
 import {buildWorlds} from '../lib/worlds/worlds';
+import {createCompanions} from '../lib/companions/companions';
 import {neonPatch,neonUniforms,neonDistGain,makeFilaments} from '../lib/worlds/neon-wire';
 import {createGravityCam} from '../lib/living-core/gravity-camera';
 import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles,LC_WORLD_H} from '../lib/living-core/core-cache';
@@ -320,7 +321,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // grounding + contact shadow + jellyfish tail filaments (neon wire language)
     const shadowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d')!;const g=x.createRadialGradient(32,32,2,32,32,32);g.addColorStop(0,'rgba(0,0,0,.75)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
     const contact=new THREE.Mesh(new THREE.CircleGeometry(.55,24),new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false,opacity:.5}));contact.name='contact-shadow';contact.renderOrder=1;scene.add(contact);
-    const fil=makeFilaments(THREE,scene,{count:low?2:3,len:low?10:14});const _Y=new THREE.Vector3(0,1,0),_Z=new THREE.Vector3(0,0,1),_n=new THREE.Vector3(),_q=new THREE.Quaternion(),_q2=new THREE.Quaternion(),_e=new THREE.Euler(),_tip=new THREE.Vector3();let filK=0;let uwPose:any=null;if(lcForced){(window as any).__lcWorlds=uw;(window as any).__lcTravel=(i:number)=>uw.startTrip(i,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z});}
+    const fil=makeFilaments(THREE,scene,{count:low?2:3,len:low?10:14});const _Y=new THREE.Vector3(0,1,0),_Z=new THREE.Vector3(0,0,1),_n=new THREE.Vector3(),_q=new THREE.Quaternion(),_q2=new THREE.Quaternion(),_e=new THREE.Euler(),_tip=new THREE.Vector3();let filK=0;
+    // wireframe companion critters: one per creature, feeding on universe motes
+    const comps=createCompanions(THREE,scene,{low});const compOwners:any[]=[];comps.onFeed((id:string,e:number)=>{if(id==='zeref')lcS.syn?.kick(Math.min(1,e*4));extras.river.kick(e*2);});if(lcForced)(window as any).__lcComps=comps;let uwPose:any=null;if(lcForced){(window as any).__lcWorlds=uw;(window as any).__lcTravel=(i:number)=>uw.startTrip(i,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z});}
     // Film motion for Zeref (bb-7f9c2a03 persona: no recorded seed of his own here → id-only persona).
     const zActorNode=new THREE.Group();zHolder.add(zActorNode);
     const zActor=createActor(motionPersona({id:'bb-7f9c2a03'}),{x:-1.15,z:.75,radius:1.1,seed:'bb-7f9c2a03',universe:UNIVERSE_R});// offset so Zeref never stands inside the active Beast
@@ -328,7 +331,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const lcId=qbeastId||'bb-deada969';const lcS:any={LC:null,syn:null,goal:null,pause:2,mood:'calm',ov:null,ovT:0,visits:{},r:lcRng(lcId+':roam')};
     const gcam=createGravityCam(THREE,{camera,scene,renderer,low:low||soft,dof:(!low&&!soft&&!phoneGpu)||(lcForced&&new URLSearchParams(location.search).get('dof')==='1')});let zr=0;
     const extras=addRoamExtras(THREE,scene,{beastId:lcId,low:low||soft,onDoing:(d:string)=>{lcS.doing=d;}});
-    const lcWords=(text:string)=>{const w:any=extras.words(text);if(w.emotion){lcS.ov=w.emotion;lcS.ovT=5;}lcS.syn?.kick(.4+w.burst*.6);extras.river.kick(.5+w.burst*.5);extras.burst(zHolder.position.x,.5,zHolder.position.z);if(w.shape)extras.create(w.shape,zHolder.position.x+.3,zHolder.position.z+.3,'chat');};
+    const lcWords=(text:string)=>{const w:any=extras.words(text);if(w.emotion){lcS.ov=w.emotion;lcS.ovT=5;}lcS.syn?.kick(.4+w.burst*.6);extras.river.kick(.5+w.burst*.5);extras.burst(zHolder.position.x,.5,zHolder.position.z);if(w.shape){extras.create(w.shape,zHolder.position.x+.3,zHolder.position.z+.3,'chat');comps.remnant({x:zHolder.position.x+.3,y:0,z:zHolder.position.z+.3});}comps.glyph({x:zHolder.position.x,y:.4,z:zHolder.position.z});};
     lcBus.current={words:lcWords};
     const onLcChat=(e:any)=>lcWords(String(e?.detail?.text||'hi'));const onLcLevel=(e:any)=>{const l=Number(e?.detail?.level)||0;if(l>.05)lcS.syn?.kick(Math.min(.5,l*.6));};const onLcChirp=(e:any)=>lcS.syn?.kick(.25*(Number(e?.detail?.intensity)||.5));
     const onLcTap=()=>{lcS.syn?.kick(.9);extras.river.kick(.4);lcS.ov=lcS.ov||'happy';lcS.ovT=Math.max(lcS.ovT,2);};
@@ -486,6 +489,10 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       if(pushCameraOut(camera.position,bods)>0)camera.lookAt(f);}// creatures can never get inside the lens
      if(elapsed-((camera as any).__capT||-9)>1){(camera as any).__capT=elapsed;capScenePoints(scene);
       const lcs=[lcS.LC,...(((window as any).__lcResidents||[]).map((r:any)=>r.slot?.lc))];for(const L of lcs)L?.group?.traverse((o:any)=>{const m=o.material;if(o.isMesh&&m&&(m.isMeshStandardMaterial||m.isMeshPhysicalMaterial))neonPatch(m,neonU,{mode:'body',freq:11,amt:1.6});});}
+     {compOwners.length=0;if(lcS.LC||ze?.claimed)compOwners.push({id:'zeref',x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z,air:lcS.air||0});
+      if(plush)compOwners.push({id:key,x:brain.x,y:-.05,z:brain.z});if(lcForced&&Array.isArray((window as any).__lcCompShow))(window as any).__lcCompShow.forEach((id:string,i:number)=>compOwners.push({id,x:zHolder.position.x+(i-2.5)*.35,y:-.05,z:zHolder.position.z+.5}));
+      for(const r of ((window as any).__lcResidents||[]))if(r?.r?.id)compOwners.push({id:r.r.id,x:r.x,y:-.05,z:r.z});
+      if(elapsed-((comps as any).__syncT??-9)>1){(comps as any).__syncT=elapsed;comps.sync(compOwners);}comps.step(reduced?0:dt,elapsed,compOwners,(p:any)=>uw.ground(p));}
      neonU.uNeon.value=neonOn.current?1:0;neonU.uNeonDist.value=neonDistGain(camera.position.distanceTo(zHolder.position));// farther = brighter wire network
      gcam.step(reduced?0:dt);
      camera.lookAt(f);
