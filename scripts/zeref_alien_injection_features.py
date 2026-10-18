@@ -26,7 +26,7 @@ def main():
  vec=[round(min(.95,max(.05,v)),4) for v in nums]
  body={"schema":"beastbox-alien-injection-features-v1","creature_id":"bb-deada969","features":feat,"alien_vector_12":vec,
   "label":"Alien corpus features SEED and TAG the quantum run only. Quantum hardware cannot learn text. Unusual style is model behaviour, not alien intelligence.",
-  "raw_dialogue_in_packet":False}
+  "raw_dialogue_in_packet":False,"raw_audio_published":False}
  raw=json.dumps(body,sort_keys=True).encode();body["packet_sha256"]=sha(raw)
  OUT.mkdir(parents=True,exist_ok=True);(OUT/"alien-features.json").write_text(json.dumps(body,indent=1,sort_keys=True)+"\n")
  print("ALIEN_PACKET="+json.dumps({"packet_sha256":body["packet_sha256"],"examples":feat["examples"],"vector":vec}))
