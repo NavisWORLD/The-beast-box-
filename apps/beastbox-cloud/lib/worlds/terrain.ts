@@ -1,6 +1,6 @@
 // Home-world land (three side): chunked LOD heightfield (cage purples + glowing wireframe light layer),
 // dense instanced forest of large trees on the hills, and explorable caves (mouth arch + walkable tunnel).
-import {TERRAIN,CAVES,caveLocal,terrainHeight,forest} from './terrain-math.mjs';
+import {TERRAIN,CAVES,caveLocal,terrainHeight,forest,PLANET_R,planetDrop} from './terrain-math.mjs';
 type T=typeof import('three');
 export function buildTerrain(THREE:T,scene:import('three').Scene,{low}:{low:boolean}){
   const root=new THREE.Group();root.name='home-terrain';scene.add(root);
@@ -33,11 +33,19 @@ export function buildTerrain(THREE:T,scene:import('three').Scene,{low}:{low:bool
     for(let k=0;k<2;k++){const cy=t.y+t.s*(.7+k*.32),cr=t.s*(.55-k*.17);m4.compose(v.set(t.x,cy,t.z),q,s.set(cr*1.25,cr,cr*1.25));crowns.setMatrixAt(i*2+k,m4);if(k===0&&shells){m4.compose(v.set(t.x,cy,t.z),q,s.set(cr*1.4,cr*1.15,cr*1.4));shells.setMatrixAt(i,m4);}}});
   [trunks,crowns,shells].forEach(m=>{if(!m)return;m.instanceMatrix.needsUpdate=true;m.computeBoundingSphere();root.add(m);});
   // ---- caves: dark tunnel interior (back faces) + glowing mouth arch + inner glow motes
-  const caves=CAVES.map(c=>{const ux=Math.cos(c.a),uz=Math.sin(c.a);const pts:import('three').Vector3[]=[];for(let k=0;k<=8;k++){const sd=-.6+k/8*(c.len+.6);pts.push(new THREE.Vector3(ux*(c.r+sd),c.w*.9-.06-Math.max(0,sd)*.05,uz*(c.r+sd)));}
+  const caves=CAVES.map(c=>{const ux=Math.cos(c.a),uz=Math.sin(c.a);const pts:import('three').Vector3[]=[];for(let k=0;k<=8;k++){const sd=-.6+k/8*(c.len+.6);pts.push(new THREE.Vector3(ux*(c.r+sd),c.w*.9-.06-Math.max(0,sd)*.05+planetDrop(c.r+sd),uz*(c.r+sd)));}
     const curve=new THREE.CatmullRomCurve3(pts);const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,low?16:32,c.w*.95,low?8:14,false),new THREE.MeshStandardMaterial({color:0x140c26,emissive:new THREE.Color(c.color).multiplyScalar(.08),side:THREE.BackSide,roughness:1}) as any);tube.name=c.id;
     const arch=new THREE.Mesh(new THREE.TorusGeometry(c.w*1.02,.06,8,low?20:36,Math.PI*1.15),new THREE.MeshBasicMaterial({color:c.color,transparent:true,opacity:.85,blending:THREE.AdditiveBlending}));
-    arch.position.set(ux*(c.r-.5),.25,uz*(c.r-.5));arch.lookAt(0,.25,0);arch.rotateZ(-Math.PI*.075);
+    const ay=.25+planetDrop(c.r-.5);arch.position.set(ux*(c.r-.5),ay,uz*(c.r-.5));arch.lookAt(0,ay,0);arch.rotateZ(-Math.PI*.075);
         const g=new THREE.Group();g.add(tube,arch);root.add(g);return {c,g,arch};});
+  // ---- the whole home planet: the land above is a patch of this sphere; zooming out reveals the globe + atmosphere
+  const cy=-Math.sqrt(PLANET_R*PLANET_R-361)-.6;// sphere surface meets the curved land edge (y=planetDrop(r)), sunk 0.6 to avoid z-fighting
+  const globeM=landFog(new THREE.MeshStandardMaterial({color:0x3a2a70,emissive:0x1a1038,emissiveIntensity:1.4,roughness:.95,flatShading:true}),true);
+  const globe=new THREE.Mesh(new THREE.IcosahedronGeometry(PLANET_R,low?5:7),globeM);globe.position.set(0,cy,0);globe.name='home-planet';root.add(globe);
+  const globeW=new THREE.LineSegments(new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(PLANET_R+.4,low?3:4)),wire);globeW.position.copy(globe.position);root.add(globeW);
+  const atmo=new THREE.Mesh(new THREE.SphereGeometry(PLANET_R*1.08,low?32:64,low?16:32),new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.BackSide,blending:THREE.AdditiveBlending,fog:false,
+   vertexShader:'varying vec3 vN;varying vec3 vV;void main(){vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
+   fragmentShader:'varying vec3 vN;varying vec3 vV;void main(){float f=pow(1.-abs(dot(vN,vV)),2.5);gl_FragColor=vec4(vec3(.62,.5,1.)*f*.9,f);}'}));atmo.position.copy(globe.position);atmo.name='home-atmosphere';root.add(atmo);
   // keep the cage floor feel: terrain edge hides under fog; nothing here touches the cage floor itself
   return {root,caves,trees,U,
     update(t:number,cam:import('three').Camera){U.uTime.value=t;for(const l of lods)l.update(cam);wire.opacity=(low?.26:.34)*(.8+.2*Math.sin(t*.6));for(const k of caves)(k.arch.material as any).opacity=.65+.25*Math.sin(t*1.7+k.c.a);},
