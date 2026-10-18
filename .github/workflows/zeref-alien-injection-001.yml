@@ -1,5 +1,5 @@
-name: Zeref Alien Injection 001 - real IBM CHSH seeded/tagged by TALK-006 alien corpus features (owner-authorized 2026-10-17, 10 s cap)
-# Owner (Cory) authorized ONE real IBM run on 2026-10-17: 10 QPU s cap, fails closed unless plan remaining >= cap + 60 s.
+name: Zeref Alien Injection 001 - real IBM CHSH seeded/tagged by TALK-006 alien corpus features (owner-authorized 2026-10-17, FULL run up to 67 s)
+# Owner (Cory) authorized ONE FULL real IBM run on 2026-10-17: 67 QPU s cap, fails closed unless plan remaining >= cap + 60 s.
 # Honest label: quantum hardware cannot learn text; the alien corpus feature packet only names/tags the run and is mixed into heart seed v4.
 # Tag-idempotent: reruns recover the same job, never resubmit. Plus ONE Rigetti QVM SIMULATOR job seeded by heartbeat features.
 # The Bell test itself keeps fresh os.urandom questions (heartbeat only names/tags the run and is mixed into Zeref's seed afterwards).
@@ -22,12 +22,12 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5' 'qdk[azure]'
-      - name: Real IBM hardware CHSH (Alien Injection), 10 s cap, 4096 rounds, best calibrated pair, 60 s reserve
+      - name: Real IBM hardware CHSH (Alien Injection), FULL run, 67 s cap, 100000 rounds (30k took ~11 s in III), best calibrated pair, 60 s reserve
         env:
           IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
-          BEAST_CHSH_GAME_DAILY: YES_DAILY_SMALL_BATCH
-          CHSH_QPU_CAP: '10'
-          CHSH_GAME_ROUNDS: '4096'
+          BEAST_CHSH_GAME_DAILY: YES_SECOND_COMING_ONCE
+          CHSH_QPU_CAP: '67'
+          CHSH_GAME_ROUNDS: '100000'
           CHSH_BEST_PAIR: '1'
           CHSH_RUN_TAG: navisworld-alien-injection-001-bfbebef0ea6b
           CHSH_GAME_OUT: _alien_injection
