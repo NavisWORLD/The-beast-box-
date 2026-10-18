@@ -18,7 +18,7 @@ export default function UniverseSettings(){
  const {session}=useBeastSession();
  const motion=useUniverseMotion(),beast=session?.beast;
  const [notice,setNotice]=useState('');
- const [pocket3d,setPocket3d]=useState({...DEFAULT_POCKET_3D});
+ const [pocket3d,setPocket3d]=useState<{enabled:boolean;quality:string;neonWire?:boolean}>({...DEFAULT_POCKET_3D});
  const [pocketReady,setPocketReady]=useState(false);
  useEffect(()=>{
   const sync=()=>{try{setPocket3d(readPocket3D(window.localStorage));}catch{setPocket3d({...DEFAULT_POCKET_3D});}};
@@ -26,7 +26,7 @@ export default function UniverseSettings(){
   sync();setPocketReady(true);window.addEventListener('storage',changed);
   return()=>window.removeEventListener('storage',changed);
  },[]);
- function changePocket3D(next:{enabled:boolean;quality:string}){
+ function changePocket3D(next:{enabled:boolean;quality:string;neonWire?:boolean}){
   try{
    const saved=savePocket3D(window.localStorage,next);
    setPocket3d(saved);window.dispatchEvent(new Event(POCKET_3D_EVENT));
@@ -73,6 +73,11 @@ export default function UniverseSettings(){
       <div className={styles.icon}><Sparkles size={19} aria-hidden="true"/></div>
       <div><h3 id="pocket-3d-label">Three.js pocket scenery</h3><p>Turn the 3D background on or off. Your original creature sprite, care, audio and native cartridge remain intact.</p></div>
       <button type="button" role="switch" aria-checked={pocket3d.enabled} aria-labelledby="pocket-3d-label" className={styles.toggle} disabled={!pocketReady} onClick={()=>changePocket3D({...pocket3d,enabled:!pocket3d.enabled})}><span/></button>
+     </div>
+     <div className={styles.settingRow}>
+      <div className={styles.icon}><Sparkles size={19} aria-hidden="true"/></div>
+      <div><h3 id="pocket-3d-neon-label">Neon wireframe</h3><p>Glowing line overlay on creatures and worlds.</p></div>
+      <button type="button" role="switch" aria-checked={pocket3d.neonWire!==false} aria-labelledby="pocket-3d-neon-label" className={styles.toggle} disabled={!pocketReady||!pocket3d.enabled} onClick={()=>changePocket3D({...pocket3d,neonWire:pocket3d.neonWire===false})}><span/></button>
      </div>
      <div className={styles.volume}>
       <label htmlFor="pocket-3d-quality">3D rendering quality</label>
