@@ -11,3 +11,5 @@ test('signal pulse path + nearest nodes',()=>{const p={a:{x:0,y:0,z:0},b:{x:2,y:
 test('wiring: hidden nodes, cage chain words→light→vibration, iPhone caps, warm palette option',()=>{const s=fs.readFileSync(new URL('../lib/sensors/sensors.ts',import.meta.url),'utf8'),c=fs.readFileSync(new URL('../components/cage-pocket-dimension.tsx',import.meta.url),'utf8');
  assert.match(s,/if\(vS<\.01\)discard/);assert.match(s,/warm:\[0xffb020,0xff3b1f\]/);assert.match(c,/sensors\.signal\('zeref'/);assert.match(c,/synapseClick\(2,\.4\)/);assert.match(c,/uw\.sensorPoints\(low\?60:140\)/);
  assert.ok(SENSOR_LIMITS.nodesLow<=60&&SENSOR_LIMITS.pulsesMax<=12);});
+test('sensor node shader declares helpers at global scope (no nested GLSL functions)',()=>{const s=fs.readFileSync(new URL('../lib/sensors/sensors.ts',import.meta.url),'utf8');
+ assert.doesNotMatch(s,/void main\(\)\{[^`]*float ring\(float/);assert.match(s,/float ring\(float r,float o\)/);});
