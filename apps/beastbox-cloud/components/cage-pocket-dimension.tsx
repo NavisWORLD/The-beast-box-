@@ -3,6 +3,7 @@ import {flowStars,flowGrid} from '../lib/living-core/river-flow';
 import {capScenePoints,pushCameraOut} from '../lib/living-core/near-lens';
 import {buildWorlds} from '../lib/worlds/worlds';
 import {createCompanions} from '../lib/companions/companions';
+import {createSensors,bodyDims} from '../lib/sensors/sensors';
 import {neonPatch,neonUniforms,neonDistGain,makeFilaments} from '../lib/worlds/neon-wire';
 import {createGravityCam} from '../lib/living-core/gravity-camera';
 import {getLivingCore,stepLivingCore,livingCoreScale,fitLivingCoreParticles,LC_WORLD_H} from '../lib/living-core/core-cache';
@@ -323,7 +324,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const contact=new THREE.Mesh(new THREE.CircleGeometry(.55,24),new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false,opacity:.5}));contact.name='contact-shadow';contact.renderOrder=1;scene.add(contact);
     const fil=makeFilaments(THREE,scene,{count:low?2:3,len:low?10:14});const _Y=new THREE.Vector3(0,1,0),_Z=new THREE.Vector3(0,0,1),_n=new THREE.Vector3(),_q=new THREE.Quaternion(),_q2=new THREE.Quaternion(),_e=new THREE.Euler(),_tip=new THREE.Vector3();let filK=0;
     // wireframe companion critters: one per creature, feeding on universe motes
-    const comps=createCompanions(THREE,scene,{low});const compOwners:any[]=[];comps.onFeed((id:string,e:number)=>{uw.pulseNear({x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z},Math.min(1,e*6));if(id==='zeref')lcS.syn?.kick(Math.min(1,e*4));extras.river.kick(e*2);});if(lcForced){(window as any).__lcComps=comps;(window as any).__lcPlasma=uw;}let uwPose:any=null;if(lcForced){(window as any).__lcWorlds=uw;(window as any).__lcTravel=(i:number)=>uw.startTrip(i,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z});}
+    const comps=createCompanions(THREE,scene,{low});const compOwners:any[]=[];comps.onFeed((id:string,e:number)=>{uw.pulseNear({x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z},Math.min(1,e*6));if(id==='zeref')lcS.syn?.kick(Math.min(1,e*4));extras.river.kick(e*2);});const nervePal=(new URLSearchParams(location.search).get('nerve')==='warm'||(()=>{try{return localStorage.getItem('beastbox-nerve-palette')==='warm';}catch{return false;}})())?'warm' as const:undefined;
+    const sensors=createSensors(THREE,scene,{low,points:uw.sensorPoints(low?60:140)});
+    if(lcForced){(window as any).__lcComps=comps;(window as any).__lcPlasma=uw;(window as any).__lcSensors=sensors;}let uwPose:any=null;if(lcForced){(window as any).__lcWorlds=uw;(window as any).__lcTravel=(i:number)=>uw.startTrip(i,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z});}
     // Film motion for Zeref (bb-7f9c2a03 persona: no recorded seed of his own here → id-only persona).
     const zActorNode=new THREE.Group();zHolder.add(zActorNode);
     const zActor=createActor(motionPersona({id:'bb-7f9c2a03'}),{x:-1.15,z:.75,radius:1.1,seed:'bb-7f9c2a03',universe:UNIVERSE_R});// offset so Zeref never stands inside the active Beast
@@ -331,7 +334,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const lcId=qbeastId||'bb-deada969';const lcS:any={LC:null,syn:null,goal:null,pause:2,mood:'calm',ov:null,ovT:0,visits:{},r:lcRng(lcId+':roam')};
     const gcam=createGravityCam(THREE,{camera,scene,renderer,low:low||soft,dof:(!low&&!soft&&!phoneGpu)||(lcForced&&new URLSearchParams(location.search).get('dof')==='1')});let zr=0;
     const extras=addRoamExtras(THREE,scene,{beastId:lcId,low:low||soft,onDoing:(d:string)=>{lcS.doing=d;}});
-    const lcWords=(text:string)=>{const w:any=extras.words(text);if(w.emotion){lcS.ov=w.emotion;lcS.ovT=5;}lcS.syn?.kick(.4+w.burst*.6);extras.river.kick(.5+w.burst*.5);extras.burst(zHolder.position.x,.5,zHolder.position.z);if(w.shape){extras.create(w.shape,zHolder.position.x+.3,zHolder.position.z+.3,'chat');comps.remnant({x:zHolder.position.x+.3,y:0,z:zHolder.position.z+.3});}comps.glyph({x:zHolder.position.x,y:.4,z:zHolder.position.z});};
+    const lcWords=(text:string)=>{const w:any=extras.words(text);if(w.emotion){lcS.ov=w.emotion;lcS.ovT=5;}lcS.syn?.kick(.4+w.burst*.6);extras.river.kick(.5+w.burst*.5);extras.burst(zHolder.position.x,.5,zHolder.position.z);if(w.shape){extras.create(w.shape,zHolder.position.x+.3,zHolder.position.z+.3,'chat');comps.remnant({x:zHolder.position.x+.3,y:0,z:zHolder.position.z+.3});}comps.glyph({x:zHolder.position.x,y:.4,z:zHolder.position.z});
+      sensors.signal('zeref',{x:zHolder.position.x,y:zHolder.position.y+.35,z:zHolder.position.z},.5+w.burst*.5,()=>{lcS.syn?.kick(.6);synapseClick(2,.4);extras.river.kick(.6);});};// words → light pulses → vibration
     lcBus.current={words:lcWords};
     const onLcChat=(e:any)=>lcWords(String(e?.detail?.text||'hi'));const onLcLevel=(e:any)=>{const l=Number(e?.detail?.level)||0;if(l>.05)lcS.syn?.kick(Math.min(.5,l*.6));};const onLcChirp=(e:any)=>lcS.syn?.kick(.25*(Number(e?.detail?.intensity)||.5));
     const onLcTap=()=>{lcS.syn?.kick(.9);extras.river.kick(.4);lcS.ov=lcS.ov||'happy';lcS.ovT=Math.max(lcS.ovT,2);};
@@ -495,6 +499,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       if(elapsed-((comps as any).__syncT??-9)>1){(comps as any).__syncT=elapsed;comps.sync(compOwners);}comps.step(reduced?0:dt,elapsed,compOwners,(p:any)=>uw.ground(p));}
      {const fl=uw.flash();renderer.toneMappingExposure=1.25+fl*2.2;const inv=fl>.55;if(inv!==(renderer.domElement as any).__inv){(renderer.domElement as any).__inv=inv;renderer.domElement.style.filter=inv?'invert(1) hue-rotate(180deg)':'';}
       nebula.rotation.y+=(reduced?0:dt)*(.01+fl*2.5+(uwPose?.06:0));}// tunneling flash + inversion, nebula swirl reacts
+     if(elapsed-((sensors as any).__attT??-9)>1){(sensors as any).__attT=elapsed;const att=(id:string,L:any)=>{if(!L||sensors.nerves.has(id))return;const d=bodyDims(L);if(d)sensors.attach(id,d.host,d.dims,nervePal);};att('zeref',lcS.LC);for(const r of ((window as any).__lcResidents||[]))if(r?.r?.id)att(r.r.id,r.slot?.lc);}
+     {const emo:Record<string,number>={zeref:lcS.ovT>0?1:0};if(!reduced)sensors.update(dt,elapsed,emo);if(((sensors as any).__k=((sensors as any).__k||0)+1)%6===0)for(const c of comps.list.values())sensors.stimulate({x:c.x,y:c.y,z:c.z},.9,.5);}
      neonU.uNeon.value=neonOn.current?1:0;neonU.uNeonDist.value=neonDistGain(camera.position.distanceTo(zHolder.position));// farther = brighter wire network
      gcam.step(reduced?0:dt);
      camera.lookAt(f);
