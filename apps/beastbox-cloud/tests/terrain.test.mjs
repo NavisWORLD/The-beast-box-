@@ -1,0 +1,8 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+import {terrainHeight,surfaceHeight,caveSpots,caveFloor,forest,TERRAIN,CAVES} from '../lib/worlds/terrain-math.mjs';
+import {SPOTS} from '../lib/living-core/roam-brain.mjs';
+test('terrain: flat under the cage, hills beyond, big land to the horizon',()=>{assert.equal(terrainHeight(0,0),0);assert.equal(terrainHeight(10,-12),0);assert.ok(terrainHeight(120,40)>8);assert.ok(TERRAIN.size>=250);});
+test('caves: walkable floors inside, roam goals reachable, mound above',()=>{for(const s of caveSpots()){assert.ok(caveFloor(s.x,s.z));assert.ok(terrainHeight(s.x,s.z)<0&&terrainHeight(s.x,s.z)>-1);assert.ok(Math.hypot(s.x,s.z)<30);assert.ok(SPOTS.some(p=>p.id===s.id));}
+ const c=CAVES[0];const x=Math.cos(c.a)*(c.r+c.len/2)+Math.cos(c.a+1.57)*(c.w*2.5),z=Math.sin(c.a)*(c.r+c.len/2)+Math.sin(c.a+1.57)*(c.w*2.5);assert.ok(surfaceHeight(x,z)>2);});
+test('forest: dense, off the play floor, deterministic',()=>{const f=forest(TERRAIN.treesHigh);assert.ok(f.length>600);assert.ok(f.every(t=>Math.hypot(t.x,t.z)>20&&!caveFloor(t.x,t.z)));assert.deepEqual(forest(50)[3],forest(50)[3]);});
+test('wired: chunked LOD + wireframe light layer + groundAt falls back to terrain',()=>{const s=readFileSync(new URL('../lib/worlds/terrain.ts',import.meta.url),'utf8'),c=readFileSync(new URL('../components/cage-pocket-dimension.tsx',import.meta.url),'utf8');assert.match(s,/new THREE\.LOD\(\)/);assert.match(s,/WireframeGeometry/);assert.match(s,/InstancedMesh/);assert.match(c,/terrainHeight\(x,z\)\+\.02/);assert.match(c,/land\.update\(elapsed,camera\)/);});
