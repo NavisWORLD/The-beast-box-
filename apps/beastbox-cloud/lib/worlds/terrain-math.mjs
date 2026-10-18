@@ -1,6 +1,9 @@
 /** Home-world terrain (pure, no three.js): a large analytic heightfield that stays flat under the cage,
  * rolls into gentle hills where creatures roam (r 20..30) and swells into big hills/valleys out to the horizon.
  * Caves are carved hill mounds whose tunnel floors stay walkable so creatures can roam inside. */
+export const PLANET_R=420;
+/** Planet curvature: flat under the cage, the ground then falls away on a sphere of radius PLANET_R. */
+export function planetDrop(r){if(r<=19)return 0;const R=PLANET_R,rr=Math.min(r,R*.98);return (Math.sqrt(R*R-rr*rr)-R)-(Math.sqrt(R*R-361)-R);}
 export const TERRAIN=Object.freeze({flatR:19,roamR:30,size:280,chunks:8,segHigh:36,segLow:20,treesHigh:900,treesLow:260});
 const h1=(x,z)=>Math.sin(x*.061+1.3)*Math.cos(z*.053-.7)+.5*Math.sin(x*.137-z*.11+2.1)+.25*Math.sin(x*.29+z*.31);
 /** World-unit cave sites (entrance faces the centre; tunnel runs outward and down). */
@@ -11,10 +14,10 @@ export const CAVES=Object.freeze([
 ]);
 /** local cave coords: s along tunnel (0 = mouth), t across. */
 export function caveLocal(c,x,z){const ux=Math.cos(c.a),uz=Math.sin(c.a),ox=ux*c.r,oz=uz*c.r;const dx=x-ox,dz=z-oz;return {s:dx*ux+dz*uz,t:-dx*uz+dz*ux};}
-function hillRaw(x,z){const r=Math.hypot(x,z);if(r<=TERRAIN.flatR)return 0;const k=Math.min(1,(r-TERRAIN.flatR)/11),e=k*k*(3-2*k);
- const near=e*(.9+.6*h1(x,z));const far=Math.max(0,r-TERRAIN.roamR);return Math.max(0,near+far*far*.0042*(1.3+h1(x*.5,z*.5))+far*.06*h1(x*1.7,z*1.7));}
+function hillRaw(x,z){const r=Math.hypot(x,z);if(r<=TERRAIN.flatR)return 0;const pd=planetDrop(r);const k=Math.min(1,(r-TERRAIN.flatR)/11),e=k*k*(3-2*k);
+ const near=e*(.9+.6*h1(x,z));const far=Math.max(0,r-TERRAIN.roamR);return pd+Math.max(0,near+far*far*.0042*(1.3+h1(x*.5,z*.5))+far*.06*h1(x*1.7,z*1.7));}
 /** Cave tunnel floor depth (negative) inside a footprint, else null. */
-export function caveFloor(x,z){for(const c of CAVES){const L=caveLocal(c,x,z);if(L.s>-.4&&L.s<c.len&&Math.abs(L.t)<c.w)return {cave:c,y:-.06-Math.max(0,L.s)*.05};}return null;}
+export function caveFloor(x,z){for(const c of CAVES){const L=caveLocal(c,x,z);if(L.s>-.4&&L.s<c.len&&Math.abs(L.t)<c.w)return {cave:c,y:-.06-Math.max(0,L.s)*.05+planetDrop(Math.hypot(x,z))};}return null;}
 /** Walkable ground height (cave floors override the mound above them). */
 export function terrainHeight(x,z){const f=caveFloor(x,z);if(f)return f.y;return hillRaw(x,z)+caveMound(x,z);}
 /** Visible hill height (mound included, used for the mesh). */
