@@ -242,6 +242,20 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
  if best is not None:
   model.load_state_dict(best[2]);logs.append({"best_in_cycle_step":best[1],"best_in_cycle_chat_nll":best[0]})
  return model,opt,g,logs
+def pair_nll(model,rows):
+ """Fix 003: per-pair mean NLL, the EXACT formula of rawrphos_chat_eval.ref_nll
+ (each pair scored alone, averaged over pairs). The old batched token-weighted
+ nll() gave the same pin 3.868 while the public pin records 3.9461, so the
+ training gate and the public pin used different yardsticks."""
+ model.eval();tot=0.
+ with torch.inference_mode():
+  for r in rows:
+   x=torch.tensor([r["input"]]);y=torch.tensor([r["target"]])
+   v=float(model(x,targets=y)["loss"])
+   if not math.isfinite(v):raise FloatingPointError("Actual chat NLL is nonfinite")
+   tot+=v
+ model.train()
+ return tot/len(rows)
 def parent_proof():
  if not PARENT.is_dir():
   raise FileNotFoundError("Last approved canonical Zeref checkpoint unavailable; no fallback or model reset")
@@ -321,7 +335,7 @@ def main():
  for q,a in CHAT_PAIRS:
   front=tokenizer.encode(f"user: {q}\nassistant:",add_bos=True);tail=tokenizer.encode(" "+a,add_eos=True)
   chat_t.append({"input":(front+tail)[:-1],"target":[-100]*(len(front)-1)+tail})
- original_chat=nll(model,chat_t)
+ original_chat=pair_nll(model,chat_t)  # pin re-measured on the same held chat set, same formula as the public pin
  order_seed,rigetti=rigetti_order_seed(cycle,source_digest,RUN_ID)
  control_seed=(SEED+cycle*1009+8+int(sha(f"{source_digest}:{RUN_ID}:control".encode())[:12],16))%(2**62)
  # Anti-ratchet (2026-10-16): fixed reference = pinned PUBLIC 14000 baseline's
@@ -336,26 +350,26 @@ def main():
   for q,a in CHAT_PAIRS:
    f=_tk.encode(f"user: {q}\nassistant:",add_bos=True);t=_tk.encode(" "+a,add_eos=True)
    _rows.append({"input":(f+t)[:-1],"target":[-100]*(len(f)-1)+t})
-  public_ref_chat=nll(_ref["model"],_rows)
+  public_ref_chat=pair_nll(_ref["model"],_rows)
   del _ref
  # Fix 002: ABSOLUTE bar. Parent is the public pin, so a candidate must not be worse than
  # the pin on the held chat pairs (no 5% compounding allowance, no 14000 floor ratchet).
  chat_bar=max(.01,original_chat)
  # On/off comparison: identical recipe, only the batch-order seed differs.
  # The Rigetti-ordered model is ALWAYS the candidate (no cherry-picking).
- ce=lambda m:nll(m,chat_t)
+ ce=lambda m:pair_nll(m,chat_t)  # best-in-cycle picked on the SAME yardstick as the gate
  ctrl,_,_,_=train_variant(PARENT,tokenizer,pool,control_seed,chat_pool,ce)
  ctrl_dir=ROOT/"control-off";meta_c={"schema":"control-not-a-candidate","production_promoted":False,"training_steps":1}
  save_checkpoint(ctrl_dir,ctrl,tokenizer,meta_c,{})
  control_out=exact_model_replies(ctrl_dir,heldout)
- control={"heldout_nll":nll(ctrl,held_t),"chat_nll":nll(ctrl,chat_t),"retention_nll":nll(ctrl,retention),**counts(control_out),
+ control={"heldout_nll":nll(ctrl,held_t),"chat_nll":pair_nll(ctrl,chat_t),"retention_nll":nll(ctrl,retention),**counts(control_out),
    "unique_actions":len({r["legal_action"] for r in control_out if r["legal_action"]})}
  import shutil;shutil.rmtree(ctrl_dir);del ctrl
  model,opt,torch_generator,logs=train_variant(PARENT,tokenizer,pool,order_seed,chat_pool,ce)
  if parameter_hash(model)==before_hash:raise AssertionError("Zeref weights never changed")
  new_held=nll(model,held_t)
  new_ret=nll(model,retention)
- new_chat=nll(model,chat_t)
+ new_chat=pair_nll(model,chat_t)
  # Candidate evaluation must NEVER use the heldout actions as training targets.
  temp=ROOT/"unreviewed-candidate"
  meta={"schema":"rawrphos-zeref-resumable-native-006",
@@ -376,6 +390,11 @@ def main():
  load_checkpoint(temp,expected_checkpoint_sha256=saved["checkpoint_sha256"],load_training_state=True)
  trial_out=exact_model_replies(temp,heldout)
  trial=counts(trial_out)
+ # Fix 003 character check (report warmth; block only a rude/unsafe regression).
+ from zeref_character_check import run as char_run,compare as char_compare
+ character=char_compare(char_run(PARENT),char_run(temp))
+ save_json(ROOT/"character-check.json",character)
+ print("ZEREF_006_CHARACTER="+json.dumps({k:character[k] for k in("warmth_delta","no_rude_or_unsafe_regression")}|{"parent_warmth":character["parent"]["warmth"],"candidate_warmth":character["candidate"]["warmth"]}),flush=True)
  # STOP A BAD MODEL FROM BEING THE NEXT TRAINING PARENT.
  # We do not expect every cycle to be promoted; poor results are honest data.
  guard={
@@ -388,7 +407,8 @@ def main():
   # This measures action-label diversity, NOT verified movement/quest progress.
   # Added (never weaker): chat skill on the held chat-test pairs may not degrade.
   "chat_heldout_nll_not_worse_than_public_pin":new_chat<=chat_bar,
-  "native_heldout_policy_not_single_action":len({r["legal_action"] for r in trial_out if r["legal_action"]})>=2
+  "native_heldout_policy_not_single_action":len({r["legal_action"] for r in trial_out if r["legal_action"]})>=2,
+  "character_no_rude_or_unsafe_regression":character["no_rude_or_unsafe_regression"]
  }
  accepted=all(guard.values())
  report={"schema":"beastbox-zeref-resumable-training-cycle-006",
@@ -413,7 +433,7 @@ def main():
   "recipe":{"lr":LR,"batch":BATCH,"anchor_l2":ANCHOR,"decision_token_weight":DECISION_WEIGHT,"sampling":"sqrt_action_balanced",
     "replay_datasets":replay_digests,"replay_rows":len(replay),"chat_mix_sha256":chat_digest,"chat_rows":len(chat_pool),"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
     "chat_before_nll":original_chat,"chat_after_nll":new_chat,"chat_gate_bar":chat_bar,
-    "chat_gate_public14k_ref_nll":public_ref_chat,"chat_gate_rule":"fix-002: not worse than the public-pin parent (absolute); promotion additionally requires rawrphos_chat_eval not worse than 14000 AND ref_nll below the current pin","lr_schedule":"cosine to 10%","best_in_cycle":True,"fresh_train_rows":len(train)},
+    "chat_gate_public14k_ref_nll":public_ref_chat,"chat_metric":"fix-003 per-pair mean (same as rawrphos_chat_eval.ref_nll), no margin","character_check":{k:character[k] for k in("warmth_delta","no_rude_or_unsafe_regression")},"chat_gate_rule":"fix-002: not worse than the public-pin parent (absolute); promotion additionally requires rawrphos_chat_eval not worse than 14000 AND ref_nll below the current pin","lr_schedule":"cosine to 10%","best_in_cycle":True,"fresh_train_rows":len(train)},
   "rigetti_batch_order":rigetti,
   "rigetti_on_off":{"on_candidate":{"heldout_nll":new_held,"chat_nll":new_chat,"retention_nll":new_ret,**trial,
       "unique_actions":len({r["legal_action"] for r in trial_out if r["legal_action"]})},
