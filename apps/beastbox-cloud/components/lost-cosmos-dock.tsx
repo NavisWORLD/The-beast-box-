@@ -32,7 +32,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
   // Fresh game visits show the same player and Beast chooser before a cartridge exists.
   // An already booted legacy cartridge retains its owner through navigation.
   useEffect(()=>{if(session?.beast?.qbeast||pathname==='/sol-game'&&!booted)setNativeOwned(true);},[session?.beast?.qbeast,pathname,booted]);
-  const [note, setNote] = useState('Lost Cosmos V12.0 is ready.');
+  const [note, setNote] = useState('Lost Cosmos V12.1 is ready.');
   const [narrow, setNarrow] = useState(false);
   const [tucked, setTucked] = useState(false);
   // Desktop: the preview card collapses to the same pill when it would cover a page control.
@@ -48,7 +48,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
   const floating = mode === 'mini' && !closed && !wide;
   const pill = floating && (narrow || crowded);
   const connectedName = spark ? shownName(session.beast) : creature?.name || 'Spark Beast';
-  const readyText = `V12.0 is ready for ${connectedName}. The cartridge stays mounted while you move around Beast Box.`;
+  const readyText = `V12.1 is ready for ${connectedName}. The cartridge stays mounted while you move around Beast Box.`;
 
   useEffect(() => {
     const host = window as WindowEmu;
@@ -182,10 +182,10 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
     const script = document.createElement('script');
     script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
     script.async = true;
-    script.onerror = () => setNote('The emulator script did not load. The V12.0 ROM route is still available at /api/gba-rom.');
+    script.onerror = () => setNote('The emulator script did not load. The V12.1 ROM route is still available at /api/gba-rom.');
     document.body.appendChild(script);
     setBooted(true);
-    setNote(`Playing V12.0 with ${connectedName}. The emulator remains mounted when this dock is minimized or closed.`);
+    setNote(`Playing V12.1 with ${connectedName}. The emulator remains mounted when this dock is minimized or closed.`);
   }
 
   const state = mode === 'full' ? 'full' : closed ? 'closed' : wide ? 'expanded' : 'mini';
@@ -201,7 +201,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
       {pill && tucked ? <button type="button" className={css.tab} onClick={() => { pinned.current = true; setTucked(false); setCrowded(false); }}
         aria-label="Show Lost Cosmos player">🎮</button> : null}
       <strong>LOST COSMOS</strong>
-      <span title={connectedName}>V12.0 · {connectedName}</span>
+      <span title={connectedName}>V12.1 · {connectedName}</span>
       <div className={css.actions}>
         <a href="/spark/index.html" className={css.generate}>Generate Beast</a>
         {mode === 'mini' ? <button type="button" onClick={() => setExpanded((value) => !value)}
@@ -214,7 +214,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
       <div id="lost-cosmos-screen" className={css.game} />
       {!spark && !booted && shown ? <div className={css.poster}>
         <p>{readyText}</p>
-        <button type="button" onClick={play}>Play V12.0</button>
+        <button type="button" onClick={play}>Play V12.1</button>
       </div> : null}
     </div>
     {shown && booted && mode !== 'full' ? <p className={css.status}>{note}</p> : null}
