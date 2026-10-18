@@ -20,6 +20,21 @@ MAX_DOLLY=1200
 DAD_VOICE=Path("evidence/zeref-dad-voice-001/dialogue.jsonl")
 DAD_REPEAT=2  # 2026-10-16: 3x->2x calms drift/repetition; still upweighted
 held={p.strip().lower() for p,_ in PAIRS}|{p.strip().lower() for p in CHAT}
+ALIEN_MAX_FRACTION=0.06;ALIEN_REPEAT=2
+def alien_slice(base_rows,held):
+ import subprocess,tempfile
+ from zeref_teacher_distill import persona_style,SECRET
+ tmp=Path(tempfile.mkdtemp())
+ subprocess.run([sys.executable,str(Path(__file__).parent/"build_zeref_talk006_alien_corpus.py"),"--out-dir",str(tmp)],check=True,capture_output=True)
+ out=[]
+ for r in map(json.loads,(tmp/"train.jsonl").read_text().splitlines()):
+  if r.get("split")!="train" or "\nZeref: " not in r.get("text",""):continue
+  q,a=r["text"].split("\nZeref: ",1);q=q.removeprefix("Dad: ").strip();a=a.strip()
+  w=a.split()
+  if q.lower() in held or SECRET.search(q+" "+a) or persona_style(a)!=a or (len(w)>=4 and len(set(w))/len(w)<.4):continue
+  out+=[{"mode":"chat","source":"talk006-alien-authored","user":q,"assistant":a,"alien_category":r["category"]}]*ALIEN_REPEAT
+ cap=int((base_rows+len(out))*ALIEN_MAX_FRACTION)
+ return out[:cap]
 def main(dolly,out):
  rows=[]
  for r in map(json.loads,open("evidence/final-whole-organism-001/corpus/TRAIN.jsonl")):
@@ -46,6 +61,11 @@ def main(dolly,out):
  random.Random(f"dolly:{rot}").shuffle(d)
  for x in d[:MAX_DOLLY]:
   rows.append({"mode":"chat","source":"dolly-15k-cc-by-sa-3.0","user":x["instruction"].strip(),"assistant":x["response"].strip()})
+ # Alien Injection 001 (2026-10-17): a small capped slice of the TALK-006 authored alien
+ # dialogues (train split only), each passing the persona style filter, secret filter,
+ # held-prompt exclusion and a degeneracy check. <=6% of the mix. Gates unchanged.
+ alien=alien_slice(len(rows),held)
+ rows+=alien
  body="".join(json.dumps(r,sort_keys=True)+"\n" for r in rows).encode()
  Path(out).write_bytes(body)
  man={"schema":"zeref-chat-mix-v2","rows":len(rows),"jsonl_sha256":hashlib.sha256(body).hexdigest(),
@@ -55,6 +75,7 @@ def main(dolly,out):
   "dolly":{"revision":DOLLY_REV,"sha256":DOLLY_SHA,"license":"CC-BY-SA-3.0",
    "attribution":"Databricks, databricks-dolly-15k (Conover et al. 2023)",
    "license_url":"https://creativecommons.org/licenses/by-sa/3.0/"},
+  "alien_injection_rows":len(alien),"alien_injection_max_fraction":ALIEN_MAX_FRACTION,"alien_source":"scripts/build_zeref_talk006_alien_corpus.py (authored supervision, train split)",
   "private_transcripts":False,"chat_test_prompts_excluded":True}
  Path(out).with_suffix(".manifest.json").write_text(json.dumps(man,indent=1,sort_keys=True)+"\n")
  print("ZEREF_CHAT_MIX="+json.dumps({k:man[k] for k in("rows","zeref_dialogue_rows","dad_voice_rows","jsonl_sha256")}))

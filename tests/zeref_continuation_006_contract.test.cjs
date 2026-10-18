@@ -99,3 +99,8 @@ test('2026-10-17 fix 002: pin parent, promotion bar, Dolly rotation, lessons, be
  const d=read('scripts/zeref_teacher_distill.py');assert.ok(d.includes('"SHARED_TEACHER_AUTO"')&&d.includes('"shared-ollama"'));assert.ok(d.includes('MAX_FRACTION=0.15'));
  const c=read('apps/beastbox-cloud/scripts/zeref-cloud-sync.mjs');assert.ok(c.includes("ZEREF_DIR+'/lessons/'"));
 });
+
+test('2026-10-17 Alien Injection 001: capped filtered TALK-006 slice in the chat mix; quantum run only seeded/tagged',()=>{
+ const mix=read('scripts/zeref_chat_corpus.py');assert.ok(mix.includes('ALIEN_MAX_FRACTION=0.06'));assert.ok(mix.includes('persona_style(a)!=a'));assert.ok(mix.includes('r.get("split")!="train"'));
+ const w=read('.github/workflows/zeref-alien-injection-001.yml');assert.ok(w.includes("CHSH_QPU_CAP: '10'"));assert.ok(w.includes('cannot learn text'));assert.ok(w.includes('YES_ONE_FREE_SIMULATOR'));
+});
