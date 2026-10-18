@@ -21,6 +21,18 @@ DAD_VOICE=Path("evidence/zeref-dad-voice-001/dialogue.jsonl")
 DAD_REPEAT=2  # 2026-10-16: 3x->2x calms drift/repetition; still upweighted
 held={p.strip().lower() for p,_ in PAIRS}|{p.strip().lower() for p in CHAT}
 ALIEN_MAX_FRACTION=0.06;ALIEN_REPEAT=2
+# Zeref Music 001 (2026-10-17): authored dialogues about Cory's own songs (titles and
+# themes only, no lyrics). Capped at 4% of the mix, separate from the 6% alien cap.
+MUSIC=Path("evidence/zeref-music-001/dialogue.jsonl");MUSIC_MAX_FRACTION=0.04;MUSIC_REPEAT=2
+def music_slice(base_rows,held):
+ if not MUSIC.is_file():return []
+ from zeref_teacher_distill import persona_style,SECRET
+ out=[]
+ for r in map(json.loads,MUSIC.read_text().splitlines()):
+  q,a=r["user"].strip(),r["assistant"].strip()
+  if q.lower() in held or SECRET.search(q+" "+a) or persona_style(a)!=a:continue
+  out+=[{"mode":"chat","source":"zeref-music-001","user":q,"assistant":a}]*MUSIC_REPEAT
+ return out[:int((base_rows+len(out))*MUSIC_MAX_FRACTION)]
 def alien_slice(base_rows,held):
  import subprocess,tempfile
  from zeref_teacher_distill import persona_style,SECRET
@@ -66,6 +78,8 @@ def main(dolly,out):
  # held-prompt exclusion and a degeneracy check. <=6% of the mix. Gates unchanged.
  alien=alien_slice(len(rows),held)
  rows+=alien
+ music=music_slice(len(rows),held)
+ rows+=music
  body="".join(json.dumps(r,sort_keys=True)+"\n" for r in rows).encode()
  Path(out).write_bytes(body)
  man={"schema":"zeref-chat-mix-v2","rows":len(rows),"jsonl_sha256":hashlib.sha256(body).hexdigest(),
@@ -76,6 +90,7 @@ def main(dolly,out):
    "attribution":"Databricks, databricks-dolly-15k (Conover et al. 2023)",
    "license_url":"https://creativecommons.org/licenses/by-sa/3.0/"},
   "alien_injection_rows":len(alien),"alien_injection_max_fraction":ALIEN_MAX_FRACTION,"alien_source":"scripts/build_zeref_talk006_alien_corpus.py (authored supervision, train split)",
+  "music_rows":len(music),"music_max_fraction":MUSIC_MAX_FRACTION,"music_source":"evidence/zeref-music-001/dialogue.jsonl (authored, themes of Cory's own songs, no lyrics)",
   "private_transcripts":False,"chat_test_prompts_excluded":True}
  Path(out).with_suffix(".manifest.json").write_text(json.dumps(man,indent=1,sort_keys=True)+"\n")
  print("ZEREF_CHAT_MIX="+json.dumps({k:man[k] for k in("rows","zeref_dialogue_rows","dad_voice_rows","jsonl_sha256")}))
