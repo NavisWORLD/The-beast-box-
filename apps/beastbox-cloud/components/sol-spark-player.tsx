@@ -273,7 +273,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
     <button type="button" onClick={()=>{setMenuOpen(false);expanded?void display.current?.normal():void display.current?.expand();}}>{expanded?'RETURN TO PAGE':'FULL SCREEN'}</button>
     <button type="button" onClick={()=>{setMenuOpen(false);void display.current?.minimize();}}>MINIMIZE (keeps playing)</button>
    </section>
-   <section aria-label="Cartridge"><span>CARTRIDGE</span><p>Lost COSMOS V12.0 · original ROM, unchanged · {name}{id?' · '+id:''}</p></section>
+   <section aria-label="Cartridge"><span>CARTRIDGE</span><p>Lost COSMOS V12.1 · original ROM, unchanged · {name}{id?' · '+id:''}</p></section>
    <section aria-label="Input help"><span>INPUT</span><p>D-pad moves · A confirms/acts · B cancels · START opens the game menu · SELECT / L / R where the cartridge maps them. Keyboard: arrows, Z = A, X = B, Enter = START, V = SELECT, Q / E = L / R.</p></section>
    <Link href="/beast-cage" onClick={()=>{setMenuOpen(false);void display.current?.minimize();}}>BEAST BOX ↗</Link>
   </div>:null}
