@@ -43,7 +43,7 @@ export function createSensors(THREE:T,scene:import('three').Scene,{low,points}:{
    const arcs=new THREE.LineSegments(new THREE.BufferGeometry(),nerveMat(pal[1],.0));arcs.geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array((low?10:24)*2*2*3),3));arcs.renderOrder=6;arcs.frustumCulled=false;
    const seed=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),new THREE.MeshBasicMaterial({color:pal[1],transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthTest:false,fog:false}));seed.position.set(dims.heart.x,dims.heart.y,dims.heart.z);seed.renderOrder=7;
    const nodes=new THREE.Points(new THREE.BufferGeometry(),new THREE.PointsMaterial({size:.035,vertexColors:true,transparent:true,opacity:.45,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,fog:false}));nodes.renderOrder=6;nodes.frustumCulled=false;
-   const aura=new THREE.Group();aura.name='nerve-aura';aura.position.set(dims.heart.x,dims.heart.y,dims.heart.z);const inner=new THREE.Group();inner.position.set(-dims.heart.x,-dims.heart.y,-dims.heart.z);aura.add(inner);aura.scale.setScalar(1.22);// filaments reach just past the silhouette
+   const aura=new THREE.Group();aura.name='nerve-aura';aura.position.set(dims.heart.x,dims.heart.y,dims.heart.z);const inner=new THREE.Group();inner.position.set(-dims.heart.x,-dims.heart.y,-dims.heart.z);aura.add(inner);aura.scale.setScalar(1.22);aura.visible=false;// hidden substrate: loop/entanglement signals run underneath, never drawn// filaments reach just past the silhouette
    inner.add(lines,nodes,arcs,seed);host.add(aura);const n:Nerve={pal,id,lines,nodes,arcs,level:growthLevel(xp[id]||0),tips:[],heart:dims.heart,flare:0,host,dims,seed};rebuild(n);nerves.set(id,n);return n;}
   // ---- signal pulses (words → light)
   const PM=SENSOR_LIMITS.pulsesMax;const pp=new Float32Array(PM*3);const pgeo=new THREE.BufferGeometry();pgeo.setAttribute('position',new THREE.BufferAttribute(pp,3));
@@ -75,7 +75,7 @@ export function createSensors(THREE:T,scene:import('three').Scene,{low,points}:{
      pp[k*3]=q.x;pp[k*3+1]=q.y;pp[k*3+2]=q.z;k++;}
     for(;k<PM;k++){pp[k*3+1]=-999;}(pgeo.attributes.position as any).needsUpdate=true;
     for(const n of nerves.values()){const e=emotion[n.id]||0;(n as any).emo=e*.6;n.flare=Math.max(0,n.flare-dt*.6);const f=Math.max(n.flare,e*.6);
-     {const u=(n.lines.material as any).uniforms;u.uOp.value=.5+.6*f;u.uW.value=NERVE_WIDTH.rest+(NERVE_WIDTH.flare-NERVE_WIDTH.rest)*f;}const dimU=(n.host as any).__nerveDim;if(dimU)dimU.value=1-.82*f;(n.nodes.material as any).opacity=.45+.55*f;(n.seed.material as any).opacity=.5+.5*f;n.seed.scale.setScalar(1+f*1.6+Math.sin(t*3)*.06);
+     {const u=(n.lines.material as any).uniforms;u.uOp.value=.5+.6*f;u.uW.value=NERVE_WIDTH.rest+(NERVE_WIDTH.flare-NERVE_WIDTH.rest)*f;}(n.nodes.material as any).opacity=.45+.55*f;(n.seed.material as any).opacity=.5+.5*f;n.seed.scale.setScalar(1+f*1.6+Math.sin(t*3)*.06);
      // electric arcs at tips (re-jittered every frame, only visible when flaring)
      const A=(n.arcs.geometry.attributes.position as any);const r=entityRng(n.id+':'+Math.floor(t*12));let j=0;
      for(const tp of n.tips){let ax=tp.x,ay=tp.y,az=tp.z;for(let s=0;s<2;s++){const bx=ax+(r()-.5)*.06,by=ay+(r()-.5)*.06,bz=az+(r()-.5)*.06;A.setXYZ(j++,ax,ay,az);A.setXYZ(j++,bx,by,bz);ax=bx;ay=by;az=bz;}}
