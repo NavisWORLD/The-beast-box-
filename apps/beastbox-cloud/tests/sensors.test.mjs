@@ -4,7 +4,7 @@ const D={heart:{x:0,y:.5,z:0},head:{x:0,y:1,z:.1},tail:{x:0,y:.1,z:-.2},limbs:[{
 test('nerve tree: spine + fractal filaments, deterministic per entity, grows with level, capped',()=>{const a=nerveTree('zeref',D,1),b=nerveTree('zeref',D,1);assert.deepEqual(a,b);
  assert.equal(a.segs.filter(s=>s.d===0).length,6);const hi=nerveTree('zeref',D,4);assert.ok(hi.segs.length>a.segs.length&&hi.segs.length<=SENSOR_LIMITS.nerveSegsMax);
  assert.notDeepEqual(nerveTree('art-nyxbean',D,2).segs,nerveTree('zeref',D,2).segs);assert.ok(entityRng('x')()!==entityRng('y')());});
-test('growth levels + persistence',()=>{assert.equal(growthLevel(0),1);assert.ok(growthLevel(40)>growthLevel(5));assert.equal(growthLevel(1e9),SENSOR_LIMITS.maxLevel);
+test('growth levels + persistence',()=>{assert.equal(growthLevel(0),2);assert.ok(growthLevel(40)>growthLevel(5));assert.equal(growthLevel(1e9),SENSOR_LIMITS.maxLevel);
  const st={v:'',getItem(){return this.v},setItem(k,v){this.v=v}};saveXP(st,{zeref:3,bad:-1,x:'y'});assert.deepEqual(loadXP(st),{zeref:3});});
 test('signal pulse path + nearest nodes',()=>{const p={a:{x:0,y:0,z:0},b:{x:2,y:0,z:0}};assert.deepEqual(pulseAt(p,0),{x:0,y:0,z:0});assert.equal(pulseAt(p,1.1),null);assert.ok(pulseAt(p,.5).y>.3);
  assert.deepEqual(nearestNodes([{x:9,y:0,z:0},{x:1,y:0,z:0},{x:2,y:0,z:0}],{x:0,y:0,z:0},2),[1,2]);});

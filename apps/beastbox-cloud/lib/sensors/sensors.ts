@@ -18,19 +18,20 @@ export function createSensors(THREE:T,scene:import('three').Scene,{low,points}:{
     c+=vec3(.75,.9,1.)*exp(-r*r*9.)*1.3;gl_FragColor=vec4(c*vS,vS*max(c.r,max(c.g,c.b)));}`});
   const mesh=new THREE.Mesh(g,mat);mesh.frustumCulled=false;mesh.renderOrder=5;mesh.name='sensor-nodes';scene.add(mesh);
   // ---- nerve networks per creature
-  type Nerve={id:string;lines:import('three').LineSegments;arcs:import('three').LineSegments;level:number;tips:V3[];heart:V3;flare:number;host:import('three').Object3D;dims:any;seed:import('three').Mesh};
+  type Nerve={pal:[number,number];id:string;lines:import('three').LineSegments;nodes:import('three').Points;arcs:import('three').LineSegments;level:number;tips:V3[];heart:V3;flare:number;host:import('three').Object3D;dims:any;seed:import('three').Mesh};
   const nerves=new Map<string,Nerve>();
   function nerveMat(c:number,o:number){return new THREE.LineBasicMaterial({color:c,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,fog:false});}
-  function rebuild(n:Nerve){const tr=nerveTree(n.id,n.dims,n.level);const P=new Float32Array(tr.segs.length*6),C=new Float32Array(tr.segs.length*6);const pal=(NERVE_PALETTES as any)[n.id]||NERVE_PALETTES.default;const ca=new THREE.Color(pal[1]),cb=new THREE.Color(pal[0]);
+  function rebuild(n:Nerve){const tr=nerveTree(n.id,n.dims,n.level);const P=new Float32Array(tr.segs.length*6),C=new Float32Array(tr.segs.length*6);const pal=(n as any).pal;const ca=new THREE.Color(pal[1]),cb=new THREE.Color(pal[0]);
    tr.segs.forEach((s:any,i:number)=>{P.set([s.a.x,s.a.y,s.a.z,s.b.x,s.b.y,s.b.z],i*6);const c=ca.clone().lerp(cb,Math.min(1,s.d/2));const k=s.d===0?1.3:1;C.set([c.r*k,c.g*k,c.b*k,c.r*k,c.g*k,c.b*k],i*6);});
-   n.lines.geometry.dispose();const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(P,3));geo.setAttribute('color',new THREE.BufferAttribute(C,3));n.lines.geometry=geo;n.tips=tr.tips.slice(0,low?10:24);}
+   n.lines.geometry.dispose();const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(P,3));geo.setAttribute('color',new THREE.BufferAttribute(C,3));n.lines.geometry=geo;n.nodes.geometry=geo;/* junction glints share the buffer */n.tips=tr.tips.slice(0,low?10:24);}
   /** Attach to a creature host (local space). dims from its body box: heart seed, head, tail, limb tips. */
   function attach(id:string,host:import('three').Object3D,dims:{heart:V3;head:V3;tail:V3;limbs:V3[]},palette?:'warm'){
    if(nerves.has(id))return nerves.get(id)!;const pal=palette==='warm'?NERVE_PALETTES.warm:((NERVE_PALETTES as any)[id]||NERVE_PALETTES.default);
    const lines=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:.2,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,fog:false}));lines.renderOrder=6;lines.frustumCulled=false;
    const arcs=new THREE.LineSegments(new THREE.BufferGeometry(),nerveMat(pal[1],.0));arcs.geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array((low?10:24)*2*2*3),3));arcs.renderOrder=6;arcs.frustumCulled=false;
    const seed=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),new THREE.MeshBasicMaterial({color:pal[1],transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthTest:false,fog:false}));seed.position.set(dims.heart.x,dims.heart.y,dims.heart.z);seed.renderOrder=7;
-   host.add(lines,arcs,seed);const n:Nerve={id,lines,arcs,level:growthLevel(xp[id]||0),tips:[],heart:dims.heart,flare:0,host,dims,seed};rebuild(n);nerves.set(id,n);return n;}
+   const nodes=new THREE.Points(new THREE.BufferGeometry(),new THREE.PointsMaterial({size:.035,vertexColors:true,transparent:true,opacity:.45,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,fog:false}));nodes.renderOrder=6;nodes.frustumCulled=false;
+   host.add(lines,nodes,arcs,seed);const n:Nerve={pal,id,lines,nodes,arcs,level:growthLevel(xp[id]||0),tips:[],heart:dims.heart,flare:0,host,dims,seed};rebuild(n);nerves.set(id,n);return n;}
   // ---- signal pulses (words → light)
   const PM=SENSOR_LIMITS.pulsesMax;const pp=new Float32Array(PM*3);const pgeo=new THREE.BufferGeometry();pgeo.setAttribute('position',new THREE.BufferAttribute(pp,3));
   const pts=new THREE.Points(pgeo,new THREE.PointsMaterial({color:0xffffff,size:.16,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));pts.frustumCulled=false;scene.add(pts);
@@ -48,7 +49,7 @@ export function createSensors(THREE:T,scene:import('three').Scene,{low,points}:{
      pp[k*3]=q.x;pp[k*3+1]=q.y;pp[k*3+2]=q.z;k++;}
     for(;k<PM;k++){pp[k*3+1]=-999;}(pgeo.attributes.position as any).needsUpdate=true;
     for(const n of nerves.values()){const e=emotion[n.id]||0;n.flare=Math.max(0,n.flare-dt*.6);const f=Math.max(n.flare,e*.6);
-     (n.lines.material as any).opacity=.2+.65*f;(n.seed.material as any).opacity=.5+.5*f;n.seed.scale.setScalar(1+f*.8+Math.sin(t*3)*.08);
+     (n.lines.material as any).opacity=.4+.6*f;(n.nodes.material as any).opacity=.45+.55*f;(n.seed.material as any).opacity=.5+.5*f;n.seed.scale.setScalar(1+f*.35+Math.sin(t*3)*.06);
      // electric arcs at tips (re-jittered every frame, only visible when flaring)
      const A=(n.arcs.geometry.attributes.position as any);const r=entityRng(n.id+':'+Math.floor(t*12));let j=0;
      for(const tp of n.tips){let ax=tp.x,ay=tp.y,az=tp.z;for(let s=0;s<2;s++){const bx=ax+(r()-.5)*.06,by=ay+(r()-.5)*.06,bz=az+(r()-.5)*.06;A.setXYZ(j++,ax,ay,az);A.setXYZ(j++,bx,by,bz);ax=bx;ay=by;az=bz;}}

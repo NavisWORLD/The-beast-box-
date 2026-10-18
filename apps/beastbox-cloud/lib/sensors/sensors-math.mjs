@@ -4,7 +4,7 @@ export const SENSOR_LIMITS=Object.freeze({nodesLow:60,nodesHigh:140,maxLevel:4,n
 export const CST_SEED='cst-root';
 /** Shared CST seed with per-entity variation. */
 export const entityRng=id=>seededRng(CST_SEED+':'+id);
-export const growthLevel=xp=>Math.min(SENSOR_LIMITS.maxLevel,1+Math.floor(Math.log2(1+Math.max(0,xp)/5)));
+export const growthLevel=xp=>Math.min(SENSOR_LIMITS.maxLevel,2+Math.floor(Math.log2(1+Math.max(0,xp)/5)));
 /** Nervous system in body-local space: spine through the heart seed, fractal filaments to `limbs`. */
 export function nerveTree(id,{heart,head,tail,limbs},level=1){
   const r=entityRng(id),segs=[];const push=(a,b,w,d)=>{if(segs.length<SENSOR_LIMITS.nerveSegsMax)segs.push({a,b,w,d});};
@@ -15,9 +15,11 @@ export function nerveTree(id,{heart,head,tail,limbs},level=1){
   const L=Math.hypot(head.x-tail.x,head.y-tail.y,head.z-tail.z)||1;
   const branch=(a,b,w,d)=>{if(d>level+1)return;const n=2+(d<2?1:0);let prev=a;
     for(let k=1;k<=n;k++){const p=k===n?b:jit(lerp(a,b,k/n),L*.06/(d+1));push(prev,p,w,d);
-      if(d<level&&r()<.75){const az=k*GOLDEN_ANGLE+r(),len=Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z)/PHI/(n);
-        branch(p,{x:p.x+Math.cos(az)*len,y:p.y+(r()-.4)*len,z:p.z+Math.sin(az)*len},w*.6,d+1);}
+      if(d<level)for(let q=0;q<(d<2?2:1);q++){if(r()>.85)continue;const az=(k+q*2)*GOLDEN_ANGLE+r(),len=Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z)/PHI/(n)*(1.2+r()*.6);
+        branch(p,{x:p.x+Math.cos(az)*len,y:p.y+(r()-.45)*len,z:p.z+Math.sin(az)*len*.5},w*.6,d+1);}
       prev=p;}};
+  // ribs: paired side nerves off every interior spine vertebra (the reference's dense torso web)
+  for(let i=1;i<spineN;i++)for(const sd of [-1,1]){const s0=spine[i];branch(s0,{x:s0.x+sd*L*(.18+r()*.12),y:s0.y+(r()-.6)*L*.12,z:s0.z+(r()-.5)*L*.05},.5,2);}
   for(const lm of limbs){let best=spine[0],bd=1e9;for(const s of spine){const d=Math.hypot(s.x-lm.x,s.y-lm.y,s.z-lm.z);if(d<bd){bd=d;best=s;}}branch(best,lm,.7,1);}
   return {segs,heart,tips:segs.filter(s=>s.d>=level).map(s=>s.b)};
 }

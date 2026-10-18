@@ -336,7 +336,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const extras=addRoamExtras(THREE,scene,{beastId:lcId,low:low||soft,onDoing:(d:string)=>{lcS.doing=d;}});
     const lcWords=(text:string)=>{const w:any=extras.words(text);if(w.emotion){lcS.ov=w.emotion;lcS.ovT=5;}lcS.syn?.kick(.4+w.burst*.6);extras.river.kick(.5+w.burst*.5);extras.burst(zHolder.position.x,.5,zHolder.position.z);if(w.shape){extras.create(w.shape,zHolder.position.x+.3,zHolder.position.z+.3,'chat');comps.remnant({x:zHolder.position.x+.3,y:0,z:zHolder.position.z+.3});}comps.glyph({x:zHolder.position.x,y:.4,z:zHolder.position.z});
       sensors.signal('zeref',{x:zHolder.position.x,y:zHolder.position.y+.35,z:zHolder.position.z},.5+w.burst*.5,()=>{lcS.syn?.kick(.6);synapseClick(2,.4);extras.river.kick(.6);});};// words → light pulses → vibration
-    lcBus.current={words:lcWords};
+    lcBus.current={words:lcWords};if(lcForced)(window as any).__lcWords=lcWords;
     const onLcChat=(e:any)=>lcWords(String(e?.detail?.text||'hi'));const onLcLevel=(e:any)=>{const l=Number(e?.detail?.level)||0;if(l>.05)lcS.syn?.kick(Math.min(.5,l*.6));};const onLcChirp=(e:any)=>lcS.syn?.kick(.25*(Number(e?.detail?.intensity)||.5));
     const onLcTap=()=>{lcS.syn?.kick(.9);extras.river.kick(.4);lcS.ov=lcS.ov||'happy';lcS.ovT=Math.max(lcS.ovT,2);};
     window.addEventListener('beastbox:beast-chat',onLcChat);window.addEventListener('beastbox:local-sensor-level',onLcLevel);window.addEventListener('beastbox:spark-chirp',onLcChirp);renderer.domElement.addEventListener('pointerdown',onLcTap);
