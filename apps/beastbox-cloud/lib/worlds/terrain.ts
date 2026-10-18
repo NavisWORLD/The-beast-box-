@@ -26,7 +26,7 @@ export function buildTerrain(THREE:T,scene:import('three').Scene,{low}:{low:bool
   const trunkM=new THREE.MeshStandardMaterial({color:0x2a1f45,roughness:1,emissive:0x0c0820});
   const crownM=new THREE.MeshStandardMaterial({color:0x2c6a78,roughness:.8,emissive:0x15607a,emissiveIntensity:1.1,flatShading:true});
   const crownW=new THREE.MeshBasicMaterial({color:0x9ff4ff,wireframe:true,transparent:true,opacity:.26,blending:THREE.AdditiveBlending,depthWrite:false});
-  [wire,trunkM,crownM,crownW].forEach(landFog);
+  [wire,trunkM,crownM,crownW].forEach(m=>landFog(m));
   const trunks=new THREE.InstancedMesh(trunkG,trunkM,trees.length),crowns=new THREE.InstancedMesh(crownG,crownM,trees.length*2),shells=low?null:new THREE.InstancedMesh(crownG,crownW,trees.length);
   const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),v=new THREE.Vector3(),s=new THREE.Vector3();
   trees.forEach((t,i)=>{q.setFromEuler(e.set(0,t.rot,0));m4.compose(v.set(t.x,t.y-.1,t.z),q,s.set(t.s*.9,t.s,t.s*.9));trunks.setMatrixAt(i,m4);
