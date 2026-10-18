@@ -22,14 +22,14 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5' 'qdk[azure]'
-      - name: Real IBM hardware CHSH (Alien Injection), FULL run, 67 s cap, 100000 rounds (30k took ~11 s in III), best calibrated pair, 60 s reserve
+      - name: Real IBM hardware CHSH (Alien Injection), FULL run, 67 s cap, 45000 rounds (retry after 100k timed out; 30k took ~11 s in III), best calibrated pair, 60 s reserve
         env:
           IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
           BEAST_CHSH_GAME_DAILY: YES_SECOND_COMING_ONCE
           CHSH_QPU_CAP: '67'
-          CHSH_GAME_ROUNDS: '100000'
+          CHSH_GAME_ROUNDS: '45000'
           CHSH_BEST_PAIR: '1'
-          CHSH_RUN_TAG: navisworld-alien-injection-001-bfbebef0ea6b
+          CHSH_RUN_TAG: navisworld-alien-injection-001-r2-b6e65b73d4db
           CHSH_GAME_OUT: _alien_injection
         run: python scripts/chsh_game/referee.py
       - name: Rigetti QVM (SIMULATED) seeded by alien corpus features
