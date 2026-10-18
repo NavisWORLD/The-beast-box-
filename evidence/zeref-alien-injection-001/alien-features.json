@@ -1,0 +1,73 @@
+{
+ "alien_vector_12": [
+  0.2287,
+  0.094,
+  0.2291,
+  0.275,
+  0.95,
+  0.6632,
+  0.6925,
+  0.5493,
+  0.75,
+  0.45,
+  0.3006,
+  0.1318
+ ],
+ "creature_id": "bb-deada969",
+ "features": {
+  "bytes_holdout": 7175,
+  "bytes_train": 36273,
+  "categories": {
+   "alien_perspective": 6,
+   "anti_mush": 6,
+   "compressed_symbolic": 6,
+   "dad_banter_alien": 6,
+   "provenance_alien": 6,
+   "retention": 6,
+   "scale_shift": 6,
+   "strange_metaphor": 6,
+   "uncertainty_alien": 6
+  },
+  "corpus_holdout_sha256": "21be68663abdeaa1ce65684fee225aa2f7d8ff09535a528f0fb163e4ae827b6b",
+  "corpus_train_sha256": "4cf5d8bce64a0c175fd85016be5c0de4146d9a61eff616ea2f9d99954cddc9a4",
+  "examples": 54,
+  "null_runs": [
+   {
+    "file": "NULL_RUN_001.json",
+    "selection_status": "TRAINED_NO_SAFE_ALIEN_PROMOTION"
+   },
+   {
+    "file": "NULL_RUN_002.json",
+    "selection_status": "TRAINED_NO_SAFE_ALIEN_V2_PROMOTION"
+   }
+  ],
+  "reply_chars": {
+   "max": 73,
+   "mean": 54.981
+  },
+  "reply_words": {
+   "max": 12,
+   "mean": 9.148,
+   "min": 4,
+   "stdev": 1.88
+  },
+  "style_score_stats": {
+   "candidates": [
+    1.253081,
+    1.34125,
+    1.385
+   ],
+   "max": 1.385,
+   "mean": 1.326444,
+   "parent": 1.098636,
+   "source": "experiments/zeref/talk006-alien/NULL_RUN_001.json"
+  },
+  "train_examples": 45,
+  "type_token_ratio_mean": 0.9688,
+  "vocab_size": 275
+ },
+ "label": "Alien corpus features SEED and TAG the quantum run only. Quantum hardware cannot learn text. Unusual style is model behaviour, not alien intelligence.",
+ "packet_sha256": "bfbebef0ea6b1df39113a13e57a22ab04508d9f26782a0757924bca098cd7b7e",
+ "raw_dialogue_in_packet": false,
+ "schema": "beastbox-alien-injection-features-v1"
+}
