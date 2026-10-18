@@ -228,6 +228,7 @@ jobs:
             build/zeref-006/chat-mix.manifest.json
             build/zeref-006/chat-eval.json
             build/zeref-006/promotion-decision.json
+            build/zeref-006/character-check.json
           retention-days: 90
           if-no-files-found: warn
       - name: Chat test vs public 14000 (decides ONLY whether a promotion PR may be proposed)

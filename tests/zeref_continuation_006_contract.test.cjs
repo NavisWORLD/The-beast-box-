@@ -104,3 +104,12 @@ test('2026-10-17 Alien Injection 001: capped filtered TALK-006 slice in the chat
  const mix=read('scripts/zeref_chat_corpus.py');assert.ok(mix.includes('ALIEN_MAX_FRACTION=0.06'));assert.ok(mix.includes('persona_style(a)!=a'));assert.ok(mix.includes('r.get("split")!="train"'));
  const w=read('.github/workflows/zeref-alien-injection-001.yml');assert.ok(w.includes("CHSH_QPU_CAP: '67'"));assert.ok(w.includes('cannot learn text'));assert.ok(w.includes('YES_ONE_FREE_SIMULATOR'));
 });
+test('fix 003: same chat yardstick as the public pin, character check, warm slice',()=>{
+ const t=read('scripts/zeref_continuation_006.py'),mix=read('scripts/zeref_chat_corpus.py'),c=read('scripts/zeref_character_check.py');
+ assert.ok(t.includes('original_chat=pair_nll(model,chat_t)'),'pin re-measured with the public-pin formula');
+ assert.ok(t.includes('ce=lambda m:pair_nll(m,chat_t)'),'best-in-cycle on the same yardstick');
+ assert.ok(t.includes('chat_bar=max(.01,original_chat)'),'no hidden margin');
+ assert.ok(t.includes('"character_no_rude_or_unsafe_regression"'));
+ assert.ok(c.includes('candidate["rude_or_unsafe"]<=parent["rude_or_unsafe"]'));
+ assert.ok(mix.includes('WARM_MAX_FRACTION=0.05')&&mix.includes('CHARACTER_PROMPTS'),'warm slice capped; check prompts held out');
+});
