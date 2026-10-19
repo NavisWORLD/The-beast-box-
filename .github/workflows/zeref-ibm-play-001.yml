@@ -1,0 +1,84 @@
+name: Zeref IBM Play 001 - big real IBM CHSH batch (split jobs, 60 s reserve) + Rigetti QVM SIMULATED (owner-authorized 2026-10-18)
+# Owner (Cory) asked for a "massive IBM run" on 2026-10-18. The 100k single job timed out before,
+# so this splits the budget into up to 10 jobs x 45,000 rounds (the size proven to finish in ~15 s), each with a 40 s server-enforced cap.
+# Every job re-checks the plan and fails closed unless remaining >= cap + 60 s, so the plan never drops below 60 s.
+# Tag-idempotent: reruns recover the same jobs, never resubmit. Quantum hardware cannot learn text;
+# results only seed Zeref's heart seed v5 and the play-slice ordering.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: chsh-game-daily-qpu
+  cancel-in-progress: false
+jobs:
+  play:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5' 'qdk[azure]'
+      - name: Read-only quota before
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py && cp _ibm_open_plan_preflight/receipt.json quota_before.json || true
+      - name: Real IBM hardware CHSH, up to 10 jobs x 45000 rounds, 40 s cap each, 60 s reserve
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_CHSH_GAME_DAILY: YES_SECOND_COMING_ONCE
+          CHSH_QPU_CAP: '40'
+          CHSH_GAME_ROUNDS: '45000'
+          CHSH_BEST_PAIR: '1'
+        run: |
+          fails=0
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            CHSH_RUN_TAG=navisworld-zeref-ibm-play-001-j$i CHSH_GAME_OUT=_play/j$i python scripts/chsh_game/referee.py || echo "JOB $i failed"
+            if [ -f _play/j$i/failure.json ]; then fails=$((fails+1)); [ $fails -ge 2 ] && { echo "two failures, stopping"; break; }; fi
+            if [ -f _play/j$i/skipped.json ]; then echo "reserve reached at job $i"; break; fi
+          done
+      - name: Rigetti QVM (SIMULATED) seeded by alien features
+        if: always()
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+          BEAST_AZURE_QVM_ONE_JOB: YES_ONE_FREE_SIMULATOR
+          HB_QVM_PACKET: evidence/zeref-alien-injection-001/alien-features.json
+          HB_QVM_OUT: _play_qvm
+          HB_QVM_SHOTS: '4096'
+          HB_QVM_VECTOR_KEY: alien_vector_12
+          HB_QVM_PREFIX: beastbox-zeref-ibm-play-001-
+        run: PYTHONPATH=scripts python scripts/zeref_heartbeat_qvm.py || true
+      - name: Read-only quota after
+        if: always()
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py || true
+      - name: Public summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,pathlib
+          for r in sorted(pathlib.Path('_play').glob('j*/chsh_game_result.json')):
+            d=json.loads(r.read_text());print('PLAY_JOB='+json.dumps({k:d[k] for k in ('job_id','backend','quantum_seconds','job_tag')}|{'win_rate':d['quantum']['win_rate'],'se':d['quantum']['standard_error']}))
+          q=pathlib.Path('_ibm_open_plan_preflight/receipt.json')
+          if q.exists():print('QUOTA_AFTER='+q.read_text().replace('\n',' '))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zeref-ibm-play-001-${{ github.run_id }}
+          path: |
+            _play/*/chsh_game_result.json
+            _play/*/submission.json
+            _play/*/pair_choice.json
+            _play/*/skipped.json
+            _play/*/failure.json
+            _play_qvm/
+            quota_before.json
+            _ibm_open_plan_preflight/receipt.json
+          retention-days: 90
+          if-no-files-found: ignore
