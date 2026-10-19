@@ -9,6 +9,8 @@ export function GET(){
   // Public Git source receipt only. Local builds report null; no owner settings are exposed.
   frontend_commit_sha:commit&&/^[0-9a-f]{40}$/i.test(commit)?commit:null,
   lost_cosmos_commit:'5dd5ea0081ef61922f0a7b4b394736c9ac321629',
+  lost_cosmos_rom_commit:'7658689a1faa816531f02d2213a7ffa3604846fa',
+  // V12.2 CST-12 EMERGENT (game PR #72): 12-D CST core, emergent traits from QSEED, LCQ1 (SIMULATED Rigetti growth in) / LCE1 (experience out) ecosystem bridge.
   // V12.1 LIVING WORLD (game PR #71): Cosmo art v3b, items_b palette, all cast frames, wisp_dark sprite, walking cast, STATS label fix, Living World save moved out of journal bank 1.
   // V12.0 LIVING WORLD (game PR #70, merge d8462353): 16 MB cartridge, items/stats, classical QSEED-seeded idle life, Cosmo art v2, Emeth text.
   // Native Act II PR #65 passed controller-only quest/SRAM and two cold-boot gates. The 2 MB V11.9 runtime is independently hash checked. Historical V11.8 source follows: PRs #44/#45 add native start/return and shell presentation; ROM bytes are V11.8 (game PR #63, merge 62075285: LEASH OFF autonomous field beast with a native field record; PR #62 Act I The First Heart Q05-Q09 plus world/menu sweep; PR #61 added the first-person 3D VIEW, PR #60 the Beast Home, PR #59 the PROLOGUE).
@@ -16,10 +18,10 @@ export function GET(){
   lost_cosmos_main_prs:[33,34,35,38,39,40,41,44,45,46,47,65],
   lost_cosmos_page:'https://navisworld.github.io/Cosmic-synapse-the-living-universe-sim-engine-/arcade/sol-spark-gate/?mode=handheld',
   same_cage_transfer:true,
-  features:['guest-visual-test','download-gba-4bpp','qbeast-to-lost-cosmos-share','stable-one-cage-transfer','play-current-lost-cosmos','persistent-gba-player','shared-spark-care-ledger','model-bay-care','optional-explicit-owner-dyn12','in-page-v11-2-spark','lost-cosmos-field','continuous-public-spark','gesture-generated-voice','same-qbeast-native-art','procedural-beast-music','beast-boy-controller-bridge','beast-boy-android-touch-direct','cache-busted-controller-receiver','iphone-safari-audio-unlock','explicit-game-audio-consent','vercel-preview-controller-origin','fullscreen-player-with-controls','immersive-api-fallback','minimize-without-remount','native-save-return','act-ii-quest-sram-continuity','v12-living-world'],
-  rom_release:'current-verified-v12.1',
-  rom_sha256:'42cf6a470990cffaabcc3d205b2ac502e4c0c5610fcaeeb5b1b044efaf531b6b',
-  rom_asset:'lost-cosmos-v12.1.gba',
+  features:['guest-visual-test','download-gba-4bpp','qbeast-to-lost-cosmos-share','stable-one-cage-transfer','play-current-lost-cosmos','persistent-gba-player','shared-spark-care-ledger','model-bay-care','optional-explicit-owner-dyn12','in-page-v11-2-spark','lost-cosmos-field','continuous-public-spark','gesture-generated-voice','same-qbeast-native-art','procedural-beast-music','beast-boy-controller-bridge','beast-boy-android-touch-direct','cache-busted-controller-receiver','iphone-safari-audio-unlock','explicit-game-audio-consent','vercel-preview-controller-origin','fullscreen-player-with-controls','immersive-api-fallback','minimize-without-remount','native-save-return','act-ii-quest-sram-continuity','v12-living-world','v12-2-cst12-emergent','lcq1-simulated-rigetti-growth','lce1-experience-export'],
+  rom_release:'current-verified-v12.2',
+  rom_sha256:'0f5c91554d03aa0facfb41b6af472e948f62fa2c0cad53e33019fe9eb8f661e7',
+  rom_asset:'lost-cosmos-v12.2.gba',
   rom_bytes:16777216,
   rom_url:'/api/gba-rom',
   sim_earth_embedded:false,

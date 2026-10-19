@@ -82,15 +82,15 @@ test('public Spark game path points to Lost COSMOS and never the retired SIM wor
  assert.doesNotMatch(bridge,/SIM_EARTH|Pocket Reality|standalone\//);
 });
 
-test('the dock and GO serve V12.1 plus controller and iPhone audio bridges',()=>{
+test('the dock and GO serve V12.2 plus controller and iPhone audio bridges',()=>{
  const rom=read('app/api/gba-rom/route.ts');
- assert.match(rom,/const SHA='42cf6a470990cffaabcc3d205b2ac502e4c0c5610fcaeeb5b1b044efaf531b6b'/);
+ assert.match(rom,/const SHA='0f5c91554d03aa0facfb41b6af472e948f62fa2c0cad53e33019fe9eb8f661e7'/);
  assert.match(rom,/arcade\/lost-cosmos\/rom\/lost-cosmos\.gba/);
  const api=read('app/api/gba-release/route.ts');
  assert.match(api,/lost_cosmos_main_commit:'e823f5fb01efabc7b2ecae2b0d85940db44714f7'/);
  assert.match(api,/lost_cosmos_main_prs:\[33,34,35,38,39,40,41,44,45,46,47,65\]/);
  assert.ok(read('../../.github/workflows/sol-spark-public.yml').includes("ref: e823f5fb01efabc7b2ecae2b0d85940db44714f7"),'CI boots the native bridge named by the public receipt');
- assert.match(api,/rom_sha256:'42cf6a470990cffaabcc3d205b2ac502e4c0c5610fcaeeb5b1b044efaf531b6b'/);
+ assert.match(api,/rom_sha256:'0f5c91554d03aa0facfb41b6af472e948f62fa2c0cad53e33019fe9eb8f661e7'/);
  assert.match(api,/beast-boy-controller-bridge/);
  assert.match(api,/cache-busted-controller-receiver/);
  assert.match(api,/iphone-safari-audio-unlock/);
