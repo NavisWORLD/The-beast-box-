@@ -1,5 +1,6 @@
 'use client';
 import {useCallback,useEffect,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 import Link from 'next/link';
 import {useBeastSession} from './beast-session';
 import {useCompanion} from './companion-provider';
@@ -284,5 +285,5 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
    <section aria-label="Input help"><span>INPUT</span><p>D-pad moves · A confirms/acts · B cancels · START opens the game menu · SELECT / L / R where the cartridge maps them. Keyboard: arrows, Z = A, X = B, Enter = START, V = SELECT, Q / E = L / R.</p></section>
    <Link href="/beast-cage" onClick={()=>{setMenuOpen(false);void display.current?.minimize();}}>BEAST BOX ↗</Link>
   </div>:null}
- </section>{dismissed?<button type="button" className={css.reopenTab} aria-label="Show game card" onClick={()=>hideCard(false)}>🎮</button>:null}</>;
+ </section>{dismissed&&typeof document!=='undefined'?createPortal(<button type="button" className={css.reopenTab} aria-label="Show game card" onClick={()=>hideCard(false)}>🎮</button>,document.body):null}</>;
 }
