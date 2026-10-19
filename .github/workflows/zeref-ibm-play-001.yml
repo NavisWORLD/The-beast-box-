@@ -1,6 +1,6 @@
 name: Zeref IBM Play 001 - big real IBM CHSH batch (split jobs, 60 s reserve) + Rigetti QVM SIMULATED (owner-authorized 2026-10-18)
 # Owner (Cory) asked for a "massive IBM run" on 2026-10-18. The 100k single job timed out before,
-# so this splits the budget into up to 8 jobs x 60,000 rounds, each with a 40 s server-enforced cap.
+# so this splits the budget into up to 10 jobs x 45,000 rounds (the size proven to finish in ~15 s), each with a 40 s server-enforced cap.
 # Every job re-checks the plan and fails closed unless remaining >= cap + 60 s, so the plan never drops below 60 s.
 # Tag-idempotent: reruns recover the same jobs, never resubmit. Quantum hardware cannot learn text;
 # results only seed Zeref's heart seed v5 and the play-slice ordering.
@@ -27,16 +27,18 @@ jobs:
         env:
           IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
         run: python scripts/ibm_open_plan_preflight.py && cp _ibm_open_plan_preflight/receipt.json quota_before.json || true
-      - name: Real IBM hardware CHSH, up to 8 jobs x 60000 rounds, 40 s cap each, 60 s reserve
+      - name: Real IBM hardware CHSH, up to 10 jobs x 45000 rounds, 40 s cap each, 60 s reserve
         env:
           IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
           BEAST_CHSH_GAME_DAILY: YES_SECOND_COMING_ONCE
           CHSH_QPU_CAP: '40'
-          CHSH_GAME_ROUNDS: '60000'
+          CHSH_GAME_ROUNDS: '45000'
           CHSH_BEST_PAIR: '1'
         run: |
-          for i in 1 2 3 4 5 6 7 8; do
+          fails=0
+          for i in 1 2 3 4 5 6 7 8 9 10; do
             CHSH_RUN_TAG=navisworld-zeref-ibm-play-001-j$i CHSH_GAME_OUT=_play/j$i python scripts/chsh_game/referee.py || echo "JOB $i failed"
+            if [ -f _play/j$i/failure.json ]; then fails=$((fails+1)); [ $fails -ge 2 ] && { echo "two failures, stopping"; break; }; fi
             if [ -f _play/j$i/skipped.json ]; then echo "reserve reached at job $i"; break; fi
           done
       - name: Rigetti QVM (SIMULATED) seeded by alien features
