@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+const r=p=>readFileSync(new URL(p,import.meta.url),'utf8');
+test('cage: companion card backdrop removed inside the pocket (creatures live in the universe)',()=>{assert.match(r('../app/globals.css'),/\.cage-pocket-active \[data-spark-beast="true"\]\{background:none!important/);});
+test('mini-player card: closable per session with a reopen tab, cartridge stays mounted',()=>{const s=r('../components/sol-spark-player.tsx');assert.match(s,/aria-label="Close game card"/);assert.match(s,/aria-label="Show game card"/);assert.match(s,/sessionStorage\.setItem\(MINI_HIDDEN_KEY,'1'\)/);assert.match(r('../components/sol-spark-player.module.css'),/\.shell\[data-dismissed="true"\]\{visibility:hidden/);});

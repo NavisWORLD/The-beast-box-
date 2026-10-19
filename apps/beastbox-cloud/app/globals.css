@@ -760,3 +760,7 @@ html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],
 /* Guests: the Zeref embed still mounts (the pocket claims its root and the living-core body replaces it), but its
    Hi! card and View menu stay out of the way so the roaming creature is the focus. Saved Beasts keep theirs. */
 @media(max-width:560px){.beast-landing-art:has(.is-roamer) .cosmos-home-hero[data-home-view="zeref-3d"] .cosmos-home-card{display:none!important}}
+
+/* Oct 19 (Cory): creatures live in the universe, not on a screen: no card backdrop behind the companion inside the cage pocket. */
+.cage-pocket-active [data-spark-beast="true"]{background:none!important;border-color:transparent!important;box-shadow:none!important}
+.cage-pocket-active [data-spark-beast="true"] [class*="aura"]{display:none}

@@ -13,6 +13,7 @@ import GbaControls,{controllerInput} from './gba-controls';
 import SolGameTalk from './sol-game-talk';
 import {gameBeastKey} from '../lib/companion/sol-game-talk.mjs';
 import css from './sol-spark-player.module.css';
+export const MINI_HIDDEN_KEY='beastbox-mini-player-hidden';
 
 const ROOT='https://navisworld.github.io';
 const GAME=ROOT+'/Cosmic-synapse-the-living-universe-sim-engine-/arcade/sol-spark-gate/?mode=handheld&controller=previeworigin41&player=shell45&bridge=return44&audiofix=42&optical=01';
@@ -25,6 +26,10 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
  const display=useRef<ReturnType<typeof createPlayerDisplay>|null>(null);
  // Bind once on SEND BEAST. Care, navigation and layout never resend a starter save.
  const [visiting,setVisiting]=useState<any>(null);
+ // Floating mini-player card can be closed (per session) and reopened from a small tab; the cartridge stays mounted.
+ const [cardHidden,setCardHidden]=useState(false);
+ useEffect(()=>{try{setCardHidden(sessionStorage.getItem(MINI_HIDDEN_KEY)==='1');}catch{}},[]);
+ const hideCard=(v:boolean)=>{setCardHidden(v);try{v?sessionStorage.setItem(MINI_HIDDEN_KEY,'1'):sessionStorage.removeItem(MINI_HIDDEN_KEY);}catch{}};
  const [bound,setBound]=useState<any>(null),[admitted,setAdmitted]=useState(false),[running,setRunning]=useState(false);
  const [menuOpen,setMenuOpen]=useState(false);
  const [mode,setMode]=useState<Mode>('normal'),[note,setNote]=useState('Your Beast has a cartridge to explore.');
@@ -240,9 +245,11 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
  function pause(){release();setPausePending(true);post({type:'sol-spark-player-state',active:active&&!minimized,paused:!paused});}
  function reload(){release();setReloading(true);post({type:'sol-spark-reload-request'});}
  function saveJourney(){setReturning(true);setNote('Saving your native journey…');post({type:'sol-spark-return-request'});}
- return <section ref={shell} tabIndex={0} className={css.shell} data-lost-cosmos-player-shell data-spark-player data-creature-id={id} data-running={running} data-player-mode={minimized?'minimized':mode} data-player-stage={stage} aria-label={`Lost COSMOS player · ${name}`}>
+ const dismissed=minimized&&cardHidden;
+ return <><section ref={shell} tabIndex={0} className={css.shell} data-dismissed={dismissed} aria-hidden={dismissed||undefined} data-lost-cosmos-player-shell data-spark-player data-creature-id={id} data-running={running} data-player-mode={minimized?'minimized':mode} data-player-stage={stage} aria-label={`Lost COSMOS player · ${name}`}>
   <header className={css.header}><div className={css.identity}><span className={css.light} data-lit={running} aria-hidden="true"/><div><strong>{name}</strong><small>LOST COSMOS · {running?'RUNNING':admitted?'BEAST VERIFIED':'YOUR BEAST / YOUR GAME'}</small></div></div>
    {minimized?(bound?<button type="button" onClick={()=>void display.current?.restore()}>RESTORE GAME</button>:<Link className={css.open} href="/sol-game" prefetch={false} onClick={()=>void display.current?.restore()}>OPEN GAME</Link>):null}
+   {minimized?<button type="button" className={css.closeCard} aria-label="Close game card" onClick={()=>hideCard(true)}>×</button>:null}
    {minimized?<span className={css.sound}>{audio.wanted?(audio.running?'SOUND ON':'SOUND ARMED'):'SOUND OFF'}</span>:null}
    {!minimized?<div className={css.talk}><SolGameTalk active={active} observeGame={observeGame} applyGameAction={applyGameAction} canGuide={inputEnabled} gameKey={bound?.qbeast?.profile.id&&bound.seed?bound.qbeast.profile.id+':'+bound.seed:''}/></div>:null}
   </header>
@@ -277,5 +284,5 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
    <section aria-label="Input help"><span>INPUT</span><p>D-pad moves · A confirms/acts · B cancels · START opens the game menu · SELECT / L / R where the cartridge maps them. Keyboard: arrows, Z = A, X = B, Enter = START, V = SELECT, Q / E = L / R.</p></section>
    <Link href="/beast-cage" onClick={()=>{setMenuOpen(false);void display.current?.minimize();}}>BEAST BOX ↗</Link>
   </div>:null}
- </section>;
+ </section>{dismissed?<button type="button" className={css.reopenTab} aria-label="Show game card" onClick={()=>hideCard(false)}>🎮</button>:null}</>;
 }
