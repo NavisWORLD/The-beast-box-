@@ -57,6 +57,18 @@ def play_slice(base_rows,held):
   if q.lower() in held or SECRET.search(q+" "+a) or persona_style(a)!=a:continue
   out+=[{"mode":"chat","source":"zeref-ibm-play-001","user":q,"assistant":a}]*PLAY_REPEAT
  return out[:int((base_rows+len(out))*PLAY_MAX_FRACTION)]
+# Zeref Knowledge 001 (2026-10-18, "give him the Apple"): authored fact-checked general knowledge,
+# answer-first and short (the held chat test scores short factual answers + end-of-reply). Capped at 10%.
+KNOW=Path("evidence/zeref-knowledge-001/dialogue.jsonl");KNOW_MAX_FRACTION=0.10;KNOW_REPEAT=2
+def knowledge_slice(base_rows,held):
+ if not KNOW.is_file():return []
+ from zeref_teacher_distill import persona_style,SECRET
+ out=[]
+ for r in map(json.loads,KNOW.read_text().splitlines()):
+  q,a=r["user"].strip(),r["assistant"].strip()
+  if q.lower() in held or SECRET.search(q+" "+a) or persona_style(a)!=a:continue
+  out+=[{"mode":"chat","source":"zeref-knowledge-001","user":q,"assistant":a}]*KNOW_REPEAT
+ return out[:int((base_rows+len(out))*KNOW_MAX_FRACTION)]
 def alien_slice(base_rows,held):
  import subprocess,tempfile
  from zeref_teacher_distill import persona_style,SECRET
@@ -108,6 +120,8 @@ def main(dolly,out):
  rows+=warm
  play=play_slice(len(rows),held)
  rows+=play
+ knowledge=knowledge_slice(len(rows),held)
+ rows+=knowledge
  body="".join(json.dumps(r,sort_keys=True)+"\n" for r in rows).encode()
  Path(out).write_bytes(body)
  man={"schema":"zeref-chat-mix-v2","rows":len(rows),"jsonl_sha256":hashlib.sha256(body).hexdigest(),
@@ -121,6 +135,7 @@ def main(dolly,out):
   "music_rows":len(music),"music_max_fraction":MUSIC_MAX_FRACTION,"music_source":"evidence/zeref-music-001/dialogue.jsonl (authored, themes of Cory's own songs, no lyrics)",
   "warm_rows":len(warm),"warm_max_fraction":WARM_MAX_FRACTION,"warm_source":"evidence/zeref-warm-001/dialogue.jsonl (authored, no private transcripts)",
   "play_rows":len(play),"play_max_fraction":PLAY_MAX_FRACTION,"play_source":"evidence/zeref-ibm-play-001/dialogue.jsonl (authored, seeded by IBM heart seed v5)",
+  "knowledge_rows":len(knowledge),"knowledge_max_fraction":KNOW_MAX_FRACTION,"knowledge_source":"evidence/zeref-knowledge-001/dialogue.jsonl (authored, fact-checked, held-prompt near-duplicates removed)",
   "private_transcripts":False,"chat_test_prompts_excluded":True}
  Path(out).with_suffix(".manifest.json").write_text(json.dumps(man,indent=1,sort_keys=True)+"\n")
  print("ZEREF_CHAT_MIX="+json.dumps({k:man[k] for k in("rows","zeref_dialogue_rows","dad_voice_rows","jsonl_sha256")}))
