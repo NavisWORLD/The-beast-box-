@@ -1,0 +1,96 @@
+{
+ "endpoint": "https://www.beastboxcosmos.xyz/api/teacher/ollama (sanctioned shared Ollama teacher route, same-origin, per-visitor caps)",
+ "note": "The route coaches/queues teacher pairs into the existing teacher-distill review pipeline and returns no answer text, so it could not cross-check facts here. Facts were authored and verified directly.",
+ "calls": [
+  {
+   "q": "What is the capital of Canada?",
+   "ours": "Ottawa.",
+   "teacher_model": "gemma4:31b",
+   "result": "queued"
+  },
+  {
+   "q": "What happens in the Lost Cosmos ending The Passenger Seat?",
+   "ours": "As A, but Malakar redraws the corner sketch: a cart, two seats, one soft figure.",
+   "teacher_model": "gemma4:31b",
+   "result": "queued"
+  },
+  {
+   "q": "What does the brain do?",
+   "ours": "It thinks, feels and controls your body.",
+   "teacher_model": "nemotron-3-nano:30b",
+   "result": "queued"
+  },
+  {
+   "q": "What is the capital of Zimbabwe?",
+   "ours": "Harare.",
+   "teacher_model": "gemma4:31b",
+   "result": "queued"
+  },
+  {
+   "q": "What kind of animal is a butterfly?",
+   "ours": "An insect.",
+   "teacher_model": "gemma4:31b",
+   "result": "queued"
+  },
+  {
+   "q": "What is a black hole?",
+   "ours": "A place where gravity is so strong not even light escapes.",
+   "teacher_model": "gemma4:31b",
+   "result": "queued"
+  },
+  {
+   "q": "How many letters are in the English alphabet?",
+   "ours": "Twenty-six.",
+   "teacher_model": "gpt-oss:20b",
+   "result": "queued"
+  },
+  {
+   "q": "What is the plural of person?",
+   "ours": "People.",
+   "teacher_model": "gemma4:31b",
+   "result": "queued"
+  },
+  {
+   "q": "What is a baby horse called?",
+   "ours": "A foal.",
+   "teacher_model": "gemma4:31b",
+   "result": "queued"
+  },
+  {
+   "q": "What color are most leaves in summer?",
+   "ours": "Green.",
+   "teacher_model": "gemma4:31b",
+   "result": "queued"
+  },
+  {
+   "q": "What is the capital of Switzerland?",
+   "ours": "Bern.",
+   "teacher_model": "gemma4:31b",
+   "result": "queued"
+  },
+  {
+   "q": "What kind of animal is a fox?",
+   "ours": "A mammal.",
+   "teacher_model": "gemma4:31b",
+   "result": "queued"
+  },
+  {
+   "q": "Is seven an odd or even number?",
+   "ours": "Odd.",
+   "teacher_model": "gemma4:31b",
+   "result": "queued"
+  },
+  {
+   "q": "Is 21 a prime number?",
+   "ours": "No.",
+   "teacher_model": "gemma4:31b",
+   "result": "queued"
+  },
+  {
+   "q": "Which planet is fourth from the Sun?",
+   "ours": "Mars.",
+   "teacher_model": "gemma4:31b",
+   "result": "queued"
+  }
+ ]
+}
