@@ -2,9 +2,9 @@ import {NextResponse} from 'next/server';
 import {createHash} from 'node:crypto';
 export const dynamic='force-dynamic';
 const RELEASE='https://navisworld.github.io/Cosmic-synapse-the-living-universe-sim-engine-/arcade/lost-cosmos/rom/lost-cosmos.gba';
-const SHA='42cf6a470990cffaabcc3d205b2ac502e4c0c5610fcaeeb5b1b044efaf531b6b';
-// V12.0 stays accepted only so the site does not error while GitHub Pages switches to V12.1.
-const ACCEPTED=new Set([SHA,'9fe250897d5f1d1bba2a1f5d018d7d29fb7e4368756321ccba87d3dd1c313db7']);
+const SHA='0f5c91554d03aa0facfb41b6af472e948f62fa2c0cad53e33019fe9eb8f661e7';
+// V12.1 stays accepted only so the site does not error if a Pages cache still serves it.
+const ACCEPTED=new Set([SHA,'42cf6a470990cffaabcc3d205b2ac502e4c0c5610fcaeeb5b1b044efaf531b6b']);
 export async function GET(){
  try{
   const upstream=await fetch(RELEASE+'?v='+SHA,{cache:'no-store',signal:AbortSignal.timeout(20000)});
