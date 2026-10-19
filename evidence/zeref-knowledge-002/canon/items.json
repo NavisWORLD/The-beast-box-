@@ -1,0 +1,758 @@
+[
+ {
+  "id": "healing_herbs",
+  "name": "Heal Herbs",
+  "description": "Bitter leaves. Still work. +40 HP.",
+  "category": "consumable",
+  "rarity": "common",
+  "stat": {
+   "hp": 40
+  },
+  "art_note": "Heal Herbs: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "herb_poultice",
+  "name": "Poultice",
+  "description": "Herbs, mashed with hope. +80 HP.",
+  "category": "consumable",
+  "rarity": "common",
+  "stat": {
+   "hp": 80
+  },
+  "art_note": "Poultice: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "grove_honey",
+  "name": "Grove Honey",
+  "description": "Sticky gold from a healed grove. Cures poison.",
+  "category": "consumable",
+  "rarity": "uncommon",
+  "stat": {
+   "hp": 60
+  },
+  "art_note": "Grove Honey: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "warm_ale",
+  "name": "Warm Ale",
+  "description": "Ravenswood's pride. Tastes like a boot.",
+  "category": "consumable",
+  "rarity": "common",
+  "stat": {
+   "atk": 3,
+   "focus": -2
+  },
+  "art_note": "Warm Ale: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "lamp_oil",
+  "name": "Lamp Oil",
+  "description": "Feed the light. The dark hates this.",
+  "category": "consumable",
+  "rarity": "common",
+  "stat": {
+   "focus": 5,
+   "mood": 2
+  },
+  "art_note": "Lamp Oil: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "flint_wick",
+  "name": "Flint+Wick",
+  "description": "Relights a dead lantern. Never leave home without.",
+  "category": "consumable",
+  "rarity": "common",
+  "stat": {
+   "mood": 5
+  },
+  "art_note": "Flint+Wick: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "ink_pot",
+  "name": "Ink Pot",
+  "description": "Fresh ink for drawing bridges out of nothing.",
+  "category": "consumable",
+  "rarity": "common",
+  "stat": {
+   "focus": 6
+  },
+  "art_note": "Ink Pot: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "nard_balm",
+  "name": "Nard Balm",
+  "description": "Spice balm. Unfreezes a Stilled beast.",
+  "category": "consumable",
+  "rarity": "rare",
+  "stat": {
+   "spd": 4,
+   "mood": 6
+  },
+  "art_note": "Nard Balm: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "crocus_tea",
+  "name": "Crocus Tea",
+  "description": "Warm cup. Light comes back faster.",
+  "category": "consumable",
+  "rarity": "uncommon",
+  "stat": {
+   "focus": 4,
+   "energy": 10
+  },
+  "art_note": "Crocus Tea: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "calaminth",
+  "name": "Calaminth",
+  "description": "Chew it. Fear and confusion bounce off.",
+  "category": "consumable",
+  "rarity": "uncommon",
+  "stat": {
+   "def": 3,
+   "mood": 4
+  },
+  "art_note": "Calaminth: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "cinnamon",
+  "name": "Cinnamon",
+  "description": "Most beasts love it. Zoom zoom.",
+  "category": "consumable",
+  "rarity": "uncommon",
+  "stat": {
+   "spd": 3,
+   "mood": 8,
+   "hunger": 5
+  },
+  "art_note": "Cinnamon: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "soup_simmer",
+  "name": "Simmer Soup",
+  "description": "Quillan spell #1. Slow heal. Tastes fine.",
+  "category": "consumable",
+  "rarity": "uncommon",
+  "stat": {
+   "hp": 30,
+   "hunger": 20
+  },
+  "art_note": "Simmer Soup: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "soup_thicken",
+  "name": "Thick Soup",
+  "description": "Quillan spell #2. So thick it blocks hits.",
+  "category": "consumable",
+  "rarity": "uncommon",
+  "stat": {
+   "def": 4,
+   "hunger": 20
+  },
+  "art_note": "Thick Soup: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "soup_season",
+  "name": "Spicy Soup",
+  "description": "Quillan spell #3. Crits taste like pepper.",
+  "category": "consumable",
+  "rarity": "uncommon",
+  "stat": {
+   "atk": 4,
+   "hunger": 20
+  },
+  "art_note": "Spicy Soup: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "soup_serve",
+  "name": "Shared Soup",
+  "description": "Quillan spell #4. Everybody eats.",
+  "category": "consumable",
+  "rarity": "rare",
+  "stat": {
+   "hp": 20,
+   "hunger": 30,
+   "mood": 10
+  },
+  "art_note": "Shared Soup: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "dream_orb",
+  "name": "Dream Orb",
+  "description": "Drop it. A tiny light lives here a while.",
+  "category": "consumable",
+  "rarity": "rare",
+  "stat": {
+   "mood": 12,
+   "focus": 4
+  },
+  "art_note": "Lavender orb, tiny galaxy swirling inside"
+ },
+ {
+  "id": "star_shard",
+  "name": "Star Shard",
+  "description": "Fell from a wish. Rerolls one fate roll.",
+  "category": "consumable",
+  "rarity": "legendary",
+  "stat": {
+   "focus": 10
+  },
+  "art_note": "Jagged star piece, rainbow trail, flickers between colors"
+ },
+ {
+  "id": "sunseed_snack",
+  "name": "Sunseed",
+  "description": "Crunchy. Beast runs faster all page.",
+  "category": "food",
+  "rarity": "common",
+  "stat": {
+   "spd": 2,
+   "hunger": 15
+  },
+  "art_note": "Sunseed: tiny snack, 16x16, soft pastel on black, one shine dot"
+ },
+ {
+  "id": "wet_sock",
+  "name": "Wet Sock",
+  "description": "Beasts adore it. Nobody knows why. Rawr.",
+  "category": "food",
+  "rarity": "common",
+  "stat": {
+   "hunger": 10,
+   "mood": 15
+  },
+  "art_note": "Droopy striped sock, single drip falling, beast bite marks"
+ },
+ {
+  "id": "glowcap",
+  "name": "Glowcap",
+  "description": "Glowing mushroom. Brewed into potions.",
+  "category": "material",
+  "rarity": "uncommon",
+  "stat": {},
+  "art_note": "Glowcap: small glowing icon, 16x16, charcoal outline"
+ },
+ {
+  "id": "cave_moss",
+  "name": "Moss",
+  "description": "Grumbleback's favorite. Damp. Chewy.",
+  "category": "food",
+  "rarity": "common",
+  "stat": {
+   "hunger": 18,
+   "mood": -2
+  },
+  "art_note": "Moss: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "golden_wheat",
+  "name": "Golden Wheat",
+  "description": "Garran's field, grown back. Filling.",
+  "category": "food",
+  "rarity": "uncommon",
+  "stat": {
+   "hp": 20
+  },
+  "art_note": "Golden Wheat: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "frost_tea",
+  "name": "Frost Tea",
+  "description": "Cold drain can't touch you.",
+  "category": "consumable",
+  "rarity": "uncommon",
+  "stat": {
+   "def": 2,
+   "energy": 5
+  },
+  "art_note": "Frost Tea: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "ember_pepper",
+  "name": "Ember Pep",
+  "description": "Hot! Heat drain can't touch you.",
+  "category": "consumable",
+  "rarity": "uncommon",
+  "stat": {
+   "atk": 2,
+   "energy": 5
+  },
+  "art_note": "Ember Pep: small glowing vial or bundle, 16x16, charcoal outline"
+ },
+ {
+  "id": "golem_grease",
+  "name": "Golem Grease",
+  "description": "Fixes tools. Smells like old songs.",
+  "category": "material",
+  "rarity": "uncommon",
+  "stat": {
+   "def": 1
+  },
+  "art_note": "Golem Grease: 16x16 lump, rough charcoal texture"
+ },
+ {
+  "id": "hammer_blade",
+  "name": "Hammer Blade",
+  "description": "Arin's forge hammer. Also a sword. Mostly.",
+  "category": "weapon",
+  "rarity": "common",
+  "stat": {
+   "atk": 6
+  },
+  "art_note": "Hammer Blade: 32x16 side view, soot-black metal, one bright edge glint"
+ },
+ {
+  "id": "rune_maul",
+  "name": "Cragstone Maul",
+  "description": "Heavy swings stagger Golems.",
+  "category": "weapon",
+  "rarity": "uncommon",
+  "stat": {
+   "atk": 10,
+   "spd": -2
+  },
+  "art_note": "Rune Maul: 32x16 side view, soot-black metal, one bright edge glint"
+ },
+ {
+  "id": "hearthsteel",
+  "name": "Hearthsteel",
+  "description": "Forged in ember slag. Warm to hold.",
+  "category": "weapon",
+  "rarity": "rare",
+  "stat": {
+   "atk": 14,
+   "def": 2
+  },
+  "art_note": "Hearthsteel: 32x16 side view, soot-black metal, one bright edge glint"
+ },
+ {
+  "id": "fiddle_bow",
+  "name": "Fiddle-Bow",
+  "description": "Arrows play notes. 3 notes: Chorus.",
+  "category": "weapon",
+  "rarity": "rare",
+  "stat": {
+   "atk": 22
+  },
+  "art_note": "Fiddle-Bow: small glowing icon, 16x16, charcoal outline"
+ },
+ {
+  "id": "mercy_branch",
+  "name": "Mercy Branch",
+  "description": "Staff that heals friends as it hits.",
+  "category": "weapon",
+  "rarity": "legendary",
+  "stat": {
+   "atk": 9,
+   "hp": 20,
+   "mood": 5
+  },
+  "art_note": "Mercy Branch: 32x16 side view, soot-black metal, one bright edge glint"
+ },
+ {
+  "id": "dream_lyre",
+  "name": "Dream Lyre",
+  "description": "Every 4th note calms a creature.",
+  "category": "weapon",
+  "rarity": "legendary",
+  "stat": {
+   "atk": 7,
+   "focus": 8,
+   "mood": 6
+  },
+  "art_note": "Dream Lyre: 32x16 side view, soot-black metal, one bright edge glint"
+ },
+ {
+  "id": "forge_lantern",
+  "name": "Forge Lamp",
+  "description": "The one light in the valley. Starter.",
+  "category": "lantern",
+  "rarity": "common",
+  "stat": {
+   "focus": 2
+  },
+  "art_note": "Forge Lamp: 16x24 lantern, warm core glow, 2-frame flicker"
+ },
+ {
+  "id": "edric_lantern",
+  "name": "Edric Lamp",
+  "description": "Shows First-Hand runes. Slightly sooty.",
+  "category": "lantern",
+  "rarity": "uncommon",
+  "stat": {
+   "focus": 5
+  },
+  "art_note": "Edric Lamp: 16x24 lantern, warm core glow, 2-frame flicker"
+ },
+ {
+  "id": "crystal_lantern",
+  "name": "Crystal Lamp",
+  "description": "Thorne's gift. Burns through wraiths.",
+  "category": "lantern",
+  "rarity": "rare",
+  "stat": {
+   "focus": 10,
+   "atk": 3
+  },
+  "art_note": "Crystal Lamp: 16x24 lantern, warm core glow, 2-frame flicker"
+ },
+ {
+  "id": "sunseed_lamp",
+  "name": "Sunseed Lamp",
+  "description": "Sunflowers turn to watch you pass.",
+  "category": "lantern",
+  "rarity": "uncommon",
+  "stat": {
+   "focus": 6,
+   "mood": 3
+  },
+  "art_note": "Sunseed Lamp: 16x24 lantern, warm core glow, 2-frame flicker"
+ },
+ {
+  "id": "lighthouse",
+  "name": "Lighthouse",
+  "description": "Slow beam. Sweeps the dark by itself.",
+  "category": "lantern",
+  "rarity": "legendary",
+  "stat": {
+   "focus": 14
+  },
+  "art_note": "Lighthouse: 16x24 lantern, warm core glow, 2-frame flicker"
+ },
+ {
+  "id": "forge_apron",
+  "name": "Forge Apron",
+  "description": "Soot-proof. Always worth keeping.",
+  "category": "armor",
+  "rarity": "common",
+  "stat": {
+   "def": 3
+  },
+  "art_note": "Forge Apron: 16x16 folded garment icon, muted tones, stitched line"
+ },
+ {
+  "id": "climber_boots",
+  "name": "Climb Boots",
+  "description": "Cragstone Climber set. Climbs cost less Ink.",
+  "category": "armor",
+  "rarity": "uncommon",
+  "stat": {
+   "def": 2,
+   "spd": 2
+  },
+  "art_note": "Climb Boots: 16x16 folded garment icon, muted tones, stitched line"
+ },
+ {
+  "id": "sentinel_down",
+  "name": "Sentinel Dn",
+  "description": "Hesper's feathers. Immune to fear.",
+  "category": "armor",
+  "rarity": "rare",
+  "stat": {
+   "def": 5,
+   "spd": 3
+  },
+  "art_note": "Sentinel Dn: 16x16 folded garment icon, muted tones, stitched line"
+ },
+ {
+  "id": "grotto_fur",
+  "name": "Grotto Fur",
+  "description": "Given by Rime. Never taken.",
+  "category": "armor",
+  "rarity": "rare",
+  "stat": {
+   "def": 6,
+   "energy": 5
+  },
+  "art_note": "Grotto Fur: 16x16 folded garment icon, muted tones, stitched line"
+ },
+ {
+  "id": "ember_silk",
+  "name": "Ember Silk",
+  "description": "Cinderwake approved. Very dramatic.",
+  "category": "armor",
+  "rarity": "rare",
+  "stat": {
+   "def": 5,
+   "atk": 2
+  },
+  "art_note": "Ember Silk: 16x16 folded garment icon, muted tones, stitched line"
+ },
+ {
+  "id": "dusk_silk",
+  "name": "Dusk Silk",
+  "description": "Twilight lasts twice as long.",
+  "category": "armor",
+  "rarity": "rare",
+  "stat": {
+   "def": 4,
+   "focus": 4
+  },
+  "art_note": "Dusk Silk: 16x16 folded garment icon, muted tones, stitched line"
+ },
+ {
+  "id": "festival_fin",
+  "name": "Festival Fit",
+  "description": "Fairy-made. Tales pay out more.",
+  "category": "armor",
+  "rarity": "uncommon",
+  "stat": {
+   "def": 2,
+   "mood": 6
+  },
+  "art_note": "Festival Fit: 16x16 folded garment icon, muted tones, stitched line"
+ },
+ {
+  "id": "tiny_scarf",
+  "name": "Tiny Scarf",
+  "description": "For the beast. It looks so proud.",
+  "category": "accessory",
+  "rarity": "common",
+  "stat": {
+   "mood": 8
+  },
+  "art_note": "Tiny Scarf: 16x16 cute trinket, round shapes, tiny sparkle"
+ },
+ {
+  "id": "leaf_hat",
+  "name": "Leaf Hat",
+  "description": "A frog gave it. Do not ask the frog.",
+  "category": "accessory",
+  "rarity": "uncommon",
+  "stat": {
+   "def": 1,
+   "mood": 5
+  },
+  "art_note": "Leaf Hat: 16x16 cute trinket, round shapes, tiny sparkle"
+ },
+ {
+  "id": "pebble",
+  "name": "Pebble",
+  "description": "It already has one. Now it has two.",
+  "category": "accessory",
+  "rarity": "common",
+  "stat": {
+   "mood": 4
+  },
+  "art_note": "Pebble: 16x16 cute trinket, round shapes, tiny sparkle"
+ },
+ {
+  "id": "grumble_plush",
+  "name": "Grumble Toy",
+  "description": "Soft Grumbleback. Sleep buddy.",
+  "category": "accessory",
+  "rarity": "uncommon",
+  "stat": {
+   "energy": 8,
+   "mood": 6
+  },
+  "art_note": "Grumble Toy: 16x16 cute trinket, round shapes, tiny sparkle"
+ },
+ {
+  "id": "the_bear",
+  "name": "The Bear",
+  "description": "Finally out of the tree. Hug it.",
+  "category": "accessory",
+  "rarity": "legendary",
+  "stat": {
+   "energy": 12,
+   "mood": 15
+  },
+  "art_note": "Worn teddy, one button eye, leaf still stuck on its head"
+ },
+ {
+  "id": "heart_eridoria",
+  "name": "Heart",
+  "description": "Cracked from inside. Still beats.",
+  "category": "key",
+  "rarity": "legendary",
+  "stat": {
+   "focus": 5
+  },
+  "art_note": "Crystal heart, thin crack glowing from inside, slow beat"
+ },
+ {
+  "id": "sacred_crystal",
+  "name": "Sacred Crys",
+  "description": "Opens the citadel in the mist.",
+  "category": "key",
+  "rarity": "rare",
+  "stat": {},
+  "art_note": "Sacred Crys: 16x16 relic, pulsing 2-frame glow, gold or crystal hue"
+ },
+ {
+  "id": "silver_page",
+  "name": "Silver Page",
+  "description": "Proof: the answer was Light.",
+  "category": "key",
+  "rarity": "rare",
+  "stat": {},
+  "art_note": "Silver Page: 16x16 relic, pulsing 2-frame glow, gold or crystal hue"
+ },
+ {
+  "id": "wisdom_petal",
+  "name": "Petal: Wis",
+  "description": "One word on a petal: Wisdom.",
+  "category": "key",
+  "rarity": "rare",
+  "stat": {},
+  "art_note": "Petal: Wis: 16x16 relic, pulsing 2-frame glow, gold or crystal hue"
+ },
+ {
+  "id": "harmony_shard",
+  "name": "Harmony Shd",
+  "description": "Hear your beast think in doodles.",
+  "category": "key",
+  "rarity": "rare",
+  "stat": {
+   "focus": 3
+  },
+  "art_note": "Harmony Shd: 16x16 relic, pulsing 2-frame glow, gold or crystal hue"
+ },
+ {
+  "id": "twilight_mark",
+  "name": "Dusk Mark",
+  "description": "Blue-green glow on your palm. Dusk walk.",
+  "category": "key",
+  "rarity": "legendary",
+  "stat": {},
+  "art_note": "Palm with blue-green spiral glow, half light half dark"
+ },
+ {
+  "id": "crys_balance",
+  "name": "Crys:Balance",
+  "description": "Restarts the Geonwater river.",
+  "category": "key",
+  "rarity": "legendary",
+  "stat": {},
+  "art_note": "Crys:Balance: 16x16 relic, pulsing 2-frame glow, gold or crystal hue"
+ },
+ {
+  "id": "crys_clarity",
+  "name": "Crys:Clarity",
+  "description": "Restarts the Tigra river.",
+  "category": "key",
+  "rarity": "legendary",
+  "stat": {},
+  "art_note": "Crys:Clarity: 16x16 relic, pulsing 2-frame glow, gold or crystal hue"
+ },
+ {
+  "id": "crys_passion",
+  "name": "Crys:Passion",
+  "description": "Restarts the Euphra river.",
+  "category": "key",
+  "rarity": "legendary",
+  "stat": {},
+  "art_note": "Crys:Passion: 16x16 relic, pulsing 2-frame glow, gold or crystal hue"
+ },
+ {
+  "id": "crys_harmony",
+  "name": "Crys:Harmony",
+  "description": "Restarts the Phison Run.",
+  "category": "key",
+  "rarity": "legendary",
+  "stat": {},
+  "art_note": "Crys:Harmony: 16x16 relic, pulsing 2-frame glow, gold or crystal hue"
+ },
+ {
+  "id": "heart_eldoria",
+  "name": "Heart Eldor",
+  "description": "Wakes the guardians. Saves the crops.",
+  "category": "key",
+  "rarity": "legendary",
+  "stat": {},
+  "art_note": "Heart Eldor: 16x16 relic, pulsing 2-frame glow, gold or crystal hue"
+ },
+ {
+  "id": "wooden_box",
+  "name": "Carved Box",
+  "description": "A poem about silent gales inside.",
+  "category": "key",
+  "rarity": "rare",
+  "stat": {},
+  "art_note": "Carved Box: 16x16 relic, pulsing 2-frame glow, gold or crystal hue"
+ },
+ {
+  "id": "spice_pouch",
+  "name": "Spice Pouch",
+  "description": "Nard, crocus, calaminth, cinnamon.",
+  "category": "key",
+  "rarity": "rare",
+  "stat": {},
+  "art_note": "Spice Pouch: 16x16 relic, pulsing 2-frame glow, gold or crystal hue"
+ },
+ {
+  "id": "thorne_tablet",
+  "name": "Thorne Tabs",
+  "description": "A life carved in stone. Survives floods.",
+  "category": "key",
+  "rarity": "legendary",
+  "stat": {},
+  "art_note": "Thorne Tabs: 16x16 relic, pulsing 2-frame glow, gold or crystal hue"
+ },
+ {
+  "id": "corner_sketch",
+  "name": "Corner Skt",
+  "description": "A cart. Two seats. One filled.",
+  "category": "key",
+  "rarity": "legendary",
+  "stat": {},
+  "art_note": "Pencil sketch of a two-seat cart, one seat filled"
+ },
+ {
+  "id": "last_map",
+  "name": "Last Map",
+  "description": "Malakar's. Shows where you rested most.",
+  "category": "key",
+  "rarity": "legendary",
+  "stat": {},
+  "art_note": "Last Map: 16x16 relic, pulsing 2-frame glow, gold or crystal hue"
+ },
+ {
+  "id": "kneaded_eraser",
+  "name": "Kneaded Eraser",
+  "description": "Erases Counterfeit smudges. 3x dmg.",
+  "category": "weapon",
+  "rarity": "uncommon",
+  "stat": {
+   "atk": 8
+  },
+  "art_note": "Kneaded Eraser: small glowing icon, 16x16, charcoal outline"
+ },
+ {
+  "id": "courage_petal",
+  "name": "Petal: Cour",
+  "description": "One word on a petal: Courage.",
+  "category": "key",
+  "rarity": "key",
+  "stat": {},
+  "art_note": "Petal: Cour: small glowing icon, 16x16, charcoal outline"
+ },
+ {
+  "id": "unity_petal",
+  "name": "Petal: Unity",
+  "description": "One word on a petal: Unity.",
+  "category": "key",
+  "rarity": "key",
+  "stat": {},
+  "art_note": "Petal: Unity: small glowing icon, 16x16, charcoal outline"
+ },
+ {
+  "id": "crys_earth",
+  "name": "Crys:Earth",
+  "description": "Marks the path to the garden.",
+  "category": "key",
+  "rarity": "key",
+  "stat": {},
+  "art_note": "Crys:Earth: small glowing icon, 16x16, charcoal outline"
+ },
+ {
+  "id": "small_branch",
+  "name": "Small Branch",
+  "description": "From the garden gate. Plant it.",
+  "category": "key",
+  "rarity": "key",
+  "stat": {},
+  "art_note": "Small Branch: small glowing icon, 16x16, charcoal outline"
+ }
+]

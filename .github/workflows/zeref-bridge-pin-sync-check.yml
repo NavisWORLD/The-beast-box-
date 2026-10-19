@@ -1,0 +1,26 @@
+name: Zeref bridge pin sync check (live guest model must match the public pin)
+# After a promotion merges, Railway rebuilds cosmos-owner-bridge (watch pattern includes the pin JSON).
+# This polls the live guest endpoint for up to 25 min and fails loudly if the bridge never serves the new pin,
+# so a disconnected Railway source is caught instead of silently breaking guest chat.
+on:
+  push:
+    branches: [main]
+    paths: ['apps/beastbox-cloud/lib/rawrphos-public-pin.json']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          want=$(python -c "import json;print(json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))['training_steps'])")
+          for i in $(seq 1 50); do
+            got=$(curl -s -m 60 -X POST https://www.beastboxcosmos.xyz/api/guest -H 'content-type: application/json' -H 'origin: https://www.beastboxcosmos.xyz' -H 'referer: https://www.beastboxcosmos.xyz/' -H 'sec-fetch-site: same-origin' -d '{"provider":"rawrphos-local","text":"Say hi."}' | python -c "import json,sys;print(json.load(sys.stdin).get('step',''))" 2>/dev/null || true)
+            echo "attempt $i: live step=$got want=$want"; [ "$got" = "$want" ] && { echo BRIDGE_IN_SYNC; exit 0; }; sleep 30
+          done
+          echo "::error::Live bridge never served pin step $want. Reconnect cosmos-owner-bridge to NavisWORLD/The-beast-box- main in Railway and redeploy."; exit 1

@@ -115,6 +115,11 @@ jobs:
            assert m['approved_cycle_count']==1 and a['approved_cycle_count']==1
           else:
            assert m['canonical_lineage_root_sha256']==a['canonical_lineage_root_sha256']==root
+          # Always-latest-pin guard (2026-10-19): when a public pin exists the parent MUST be exactly that checkpoint.
+          pin=json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))
+          if (pin.get('promotion') or {}).get('release_tag'):
+           assert actual==pin['checkpoint_sha256'],'parent is not the current public pin; refusing to train from a stale checkpoint'
+          print('ZEREF_PARENT_IS_CURRENT_PIN='+json.dumps({'pin_steps':pin.get('training_steps'),'sha256':actual}),flush=True)
           print('ZEREF_010_VERIFIED_CANONICAL_PARENT='+json.dumps({
            'sha256':actual,'canonical_root':root,'approved_cycle_count':m['approved_cycle_count']}),flush=True)
           PY

@@ -1,0 +1,24 @@
+# Zeref Knowledge 002: "give him all knowledge" (2026-10-19)
+
+- **1,265 distinct facts → 2,518 rows** (`dialogue.jsonl`, built by `scripts/build_zeref_knowledge2_corpus.py`).
+  - Every fact gets a short answer-first row.
+  - Most facts also get a warm or goofy variant. Each variant either opens with a happy line ("Ooh, I know this!", "Yay, a fun one!") or ends with a friendly tail.
+  - 12 happy-feelings pairs ("Are you happy today?" → "I'm so happy, you're here!") counter the "I'm not happy" opener habit.
+- **Domains:** math, animals, geography, language, science, lore, space, music, nature, kindness, history, how things work, health and art.
+- **Sources:**
+  - `tables.py`: capitals, elements, planets, animals, words, music.
+  - `facts.psv`: hand-written facts.
+  - Knowledge 001 facts.
+  - `canon/*.json`: Emeth's ERIDORIA canon characters, items and endings.
+  - Arithmetic generated in Python, so it's correct by construction.
+  - Values that change over time, like moon counts for the giant planets, were left out.
+- **Filters:**
+  - Persona style, secrets, the word AI, and duplicates.
+  - Exact and near-duplicate matches (token Jaccard ≥ 0.6) of the chat-eval prompts **and** the character-check prompts. 95 were dropped.
+- **Teacher:** we called the sanctioned shared Ollama teacher route on the site (`teacher-calls.json`, 15 sampled questions, models such as gemma4:31b).
+  - It queues teacher pairs into the existing review pipeline but returns no answer text. So the facts here were authored and verified directly, and the teacher stays behind the scenes. No paid inference was used.
+- **Mix:** Knowledge 001 at 10% moved held chat from 3.946 to 3.52 to 3.367 (cycles 27–28) with language retention intact. So 002 takes **25%** of the chat mix, with each row used once.
+  - Each round sees a different rotating window of facts, seeded per run.
+  - The retention guard (10%) and all gates are unchanged.
+- **Workflow:** training now refuses to start unless the parent checkpoint is exactly the current public pin.
+  - `zeref-bridge-pin-sync-check.yml` fails loudly if the live Railway bridge doesn't serve a newly merged pin within 25 minutes.
