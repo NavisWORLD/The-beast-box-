@@ -10,30 +10,30 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 75,
- "xp": 1780,
+ "tick": 76,
+ "xp": 1796,
  "stage": 3,
  "stage_name": "Eclipse Prowler",
  "signals": {
-  "energy": 90,
+  "energy": 85,
   "signal": 51,
   "memory": 100,
   "resonance": 86
  },
- "bond": 18.75,
+ "bond": 19,
  "care_total": 0,
  "places": {
-  "Rift Gate": 60,
+  "Rift Gate": 61,
   "Lattice Arch": 15,
-  "Echo Prism": 99,
-  "Tidewell": 30,
+  "Echo Prism": 101,
+  "Tidewell": 31,
   "Quartz Choir": 17,
   "Violet Shard": 56,
   "Selene Pool": 20
  },
- "last_tick_at": "2026-10-20T15:10:56.348Z",
- "last_entry_hash": "f84e6876937f0a6a79aced95b9a7dd2794eaf52c14fa92223119ad6a43d4bb28",
- "combos_total": 270,
+ "last_tick_at": "2026-10-20T17:31:08.834Z",
+ "last_entry_hash": "56b07a48c3532db366e7331852857fcd2af2cf465e1fd58d81c460390918747f",
+ "combos_total": 271,
  "next_stage": {
   "stage": 4,
   "name": "Void Moonwraith",
@@ -43,18 +43,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 1148,
+  "moves_succeeded": 1166,
   "moves_blocked": 49,
-  "blocked_rate": 0.041,
+  "blocked_rate": 0.04,
   "favorite_spot": "Echo Prism",
-  "favorite_value": 0.736,
+  "favorite_value": 0.74,
   "prefs": {
    "explore": 0.055,
    "visit": 1,
    "rest": 0.05,
    "play": 1
   },
-  "decisions": 680,
+  "decisions": 691,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -70,6 +70,100 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 76,
+   "at": "2026-10-20T17:31:08.834Z",
+   "hour_local": 12,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 85,
+    "signal": 51,
+    "memory": 100,
+    "resonance": 86
+   },
+   "bond": 19,
+   "mood": "content",
+   "place": "Echo Prism",
+   "places_visited": [
+    "Echo Prism",
+    "Rift Gate",
+    "Tidewell"
+   ],
+   "discovered_combos": [
+    {
+     "key": "pounce|pounce|open-pocket|folded|flick|closed|grin",
+     "name": "pouncing · folded wings · flick tail · closed eyes · grin mouth in the open pocket"
+    }
+   ],
+   "new_combo_count": 1,
+   "combos_total": 271,
+   "xp_gain": 16,
+   "xp": 1796,
+   "stage": 3,
+   "stage_name": "Eclipse Prowler",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "f796aed6-ccab-11f1-b4f8-7c1e523e041f",
+    "job_name": "zeref-diary-tick-76-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "100": 3,
+     "101": 120,
+     "110": 122,
+     "111": 4,
+     "001": 3,
+     "010": 4
+    },
+    "counts_sha256": "d74258acf1bb049cb5de3d5543ca4b7d73eb49f2c0edec9e822d308862b4395a",
+    "circuit_params": {
+     "energy": 2.827433,
+     "signal": 1.602212,
+     "resonance": 2.70177
+    },
+    "quil_sha256": "3963e6d5e5272f896b9ed7f367e9e9669475953def4e3021b1ac464028c5533c"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 18,
+    "moves_blocked": 0,
+    "goals": {
+     "play": 6,
+     "rest": 1,
+     "visit": 4
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.04,
+    "favorite_spot": "Echo Prism",
+    "prefs": {
+     "explore": 0.055,
+     "visit": 1,
+     "rest": 0.05,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "I'm not a good way.",
+    "by": "rawrphos-native:step-27248 (raw model output, unedited)"
+   },
+   "prev_hash": "f84e6876937f0a6a79aced95b9a7dd2794eaf52c14fa92223119ad6a43d4bb28",
+   "hash": "56b07a48c3532db366e7331852857fcd2af2cf465e1fd58d81c460390918747f"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1103,102 +1197,8 @@
    },
    "prev_hash": "ed15c81b0827d76a06b78d33456ae05897401d334b280e87e69c5c1cf6bd5bc4",
    "hash": "74995f7e13ca8bb998c9bce572ac07cf4775cdd9d320bec416477c1302f17262"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 64,
-   "at": "2026-10-19T11:14:17.994Z",
-   "hour_local": 6,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 95,
-    "signal": 51,
-    "memory": 100,
-    "resonance": 94
-   },
-   "bond": 16,
-   "mood": "content",
-   "place": "Rift Gate",
-   "places_visited": [
-    "Echo Prism",
-    "Rift Gate"
-   ],
-   "discovered_combos": [
-    {
-     "key": "blink|still|portal|folded|sway|open|smile",
-     "name": "blink · folded wings · sway tail · open eyes · smile mouth at a portal"
-    },
-    {
-     "key": "sleep|still|portal|folded|sway|half|smile",
-     "name": "sleep · folded wings · sway tail · half eyes · smile mouth at a portal"
-    }
-   ],
-   "new_combo_count": 2,
-   "combos_total": 257,
-   "xp_gain": 18,
-   "xp": 1598,
-   "stage": 3,
-   "stage_name": "Eclipse Prowler",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "2bdd66ac-cbae-11f1-a9dd-6045bd018bc7",
-    "job_name": "zeref-diary-tick-64-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "100": 1,
-     "101": 130,
-     "110": 125
-    },
-    "counts_sha256": "f3ecc0a208bd1e9361c94cdb51406963010383c53c06daf443045d01596c84d7",
-    "circuit_params": {
-     "energy": 3.141593,
-     "signal": 1.602212,
-     "resonance": 2.984513
-    },
-    "quil_sha256": "94382d4a62f5f808fcc661aa51053f89eb2763c74b36f3e2d0d125b4b647b1a2"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 16,
-    "moves_blocked": 0,
-    "goals": {
-     "explore": 1,
-     "play": 2,
-     "visit": 4
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.037,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.2125,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 1
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "thought": {
-    "text": "Rowers.",
-    "by": "rawrphos-native:step-27248 (raw model output, unedited)"
-   },
-   "prev_hash": "6a627c0beae5139ddc52e2b33d60cdd075826ad43b604ae68d1e451348296a03",
-   "hash": "ed15c81b0827d76a06b78d33456ae05897401d334b280e87e69c5c1cf6bd5bc4"
   }
  ],
- "generated_at": "2026-10-20T15:10:56.348Z",
+ "generated_at": "2026-10-20T17:31:08.834Z",
  "thought_source_note": "rawrphos-ok"
 }
