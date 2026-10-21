@@ -10,29 +10,29 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 85,
- "xp": 1948,
+ "tick": 86,
+ "xp": 1960,
  "stage": 3,
  "stage_name": "Eclipse Prowler",
  "signals": {
-  "energy": 95,
+  "energy": 90,
   "signal": 51,
   "memory": 100,
   "resonance": 90
  },
- "bond": 21.25,
+ "bond": 21.5,
  "care_total": 0,
  "places": {
   "Rift Gate": 68,
   "Lattice Arch": 18,
-  "Echo Prism": 114,
-  "Tidewell": 37,
+  "Echo Prism": 116,
+  "Tidewell": 38,
   "Quartz Choir": 20,
-  "Violet Shard": 60,
+  "Violet Shard": 62,
   "Selene Pool": 22
  },
- "last_tick_at": "2026-10-21T11:11:57.119Z",
- "last_entry_hash": "db620abdb7c6b36cde0dfe97a06ff8fecfbdb485b7e96dd110e00eba4140ccb1",
+ "last_tick_at": "2026-10-21T15:11:29.700Z",
+ "last_entry_hash": "c115f67c7f2e5bffab148f70b33ef452a869a082adcdf43ea179073feb2161f6",
  "combos_total": 281,
  "next_stage": {
   "stage": 4,
@@ -43,18 +43,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 1297,
+  "moves_succeeded": 1304,
   "moves_blocked": 54,
   "blocked_rate": 0.04,
   "favorite_spot": "Echo Prism",
-  "favorite_value": 0.727,
+  "favorite_value": 0.735,
   "prefs": {
    "explore": 0.05,
    "visit": 1,
    "rest": 0.095,
    "play": 1
   },
-  "decisions": 762,
+  "decisions": 769,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -70,6 +70,91 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 86,
+   "at": "2026-10-21T15:11:29.700Z",
+   "hour_local": 10,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 90,
+    "signal": 51,
+    "memory": 100,
+    "resonance": 90
+   },
+   "bond": 21.5,
+   "mood": "content",
+   "place": "Echo Prism",
+   "places_visited": [
+    "Echo Prism",
+    "Tidewell",
+    "Violet Shard"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 281,
+   "xp_gain": 12,
+   "xp": 1960,
+   "stage": 3,
+   "stage_name": "Eclipse Prowler",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "9e9861a6-cd61-11f1-a9dd-002248bff19f",
+    "job_name": "zeref-diary-tick-86-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "100": 2,
+     "101": 111,
+     "110": 143
+    },
+    "counts_sha256": "4e53887f01b2b86af74895d9f6f24d65f9865f626d1b24dd370d1b701274468f",
+    "circuit_params": {
+     "energy": 2.984513,
+     "signal": 1.602212,
+     "resonance": 2.827433
+    },
+    "quil_sha256": "bcf5e989c62786f342d5c63263f2f03233cafcd87e792117537ba45b0fa98243"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 7,
+    "moves_blocked": 0,
+    "goals": {
+     "play": 2,
+     "visit": 5
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.04,
+    "favorite_spot": "Echo Prism",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.095,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "I'm not a good way.",
+    "by": "rawrphos-native:step-27248 (raw model output, unedited)"
+   },
+   "prev_hash": "db620abdb7c6b36cde0dfe97a06ff8fecfbdb485b7e96dd110e00eba4140ccb1",
+   "hash": "c115f67c7f2e5bffab148f70b33ef452a869a082adcdf43ea179073feb2161f6"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1097,95 +1182,8 @@
    },
    "prev_hash": "8847cf760c8a4b4e0bd308a64621141dbdfcc389b21cac33e21d835d02d2fe7b",
    "hash": "f84e6876937f0a6a79aced95b9a7dd2794eaf52c14fa92223119ad6a43d4bb28"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 74,
-   "at": "2026-10-20T12:09:55.183Z",
-   "hour_local": 7,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 95,
-    "signal": 51,
-    "memory": 100,
-    "resonance": 87
-   },
-   "bond": 18.5,
-   "mood": "floaty",
-   "place": "Echo Prism",
-   "places_visited": [
-    "Echo Prism",
-    "Lattice Arch",
-    "Violet Shard"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 270,
-   "xp_gain": 12,
-   "xp": 1767,
-   "stage": 3,
-   "stage_name": "Eclipse Prowler",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "1aaa93c4-cc7f-11f1-a9dd-7ced8dc0fd75",
-    "job_name": "zeref-diary-tick-74-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "100": 1,
-     "101": 126,
-     "110": 120,
-     "111": 9
-    },
-    "counts_sha256": "ff031bfdc55fceb57e2b614d4d46caeb2d84373b9fc76c2ef87d5885820d2742",
-    "circuit_params": {
-     "energy": 3.141593,
-     "signal": 1.602212,
-     "resonance": 2.733186
-    },
-    "quil_sha256": "a6ee119fb281516c28a6716228f302a9a7be9acf476c3d52a8bfe29c5a5c8736"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 27,
-    "moves_blocked": 2,
-    "goals": {
-     "explore": 1,
-     "play": 2,
-     "visit": 6
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.041,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.055,
-     "visit": 0.9612,
-     "rest": 0.05,
-     "play": 1
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "thought": {
-    "text": "Dau is a good way to do.",
-    "by": "rawrphos-native:step-27248 (raw model output, unedited)"
-   },
-   "prev_hash": "7cc9ab740ac0e62f59eeacc780487b1f7cf5a927e0a2fb9edcda97c3bce1994a",
-   "hash": "8847cf760c8a4b4e0bd308a64621141dbdfcc389b21cac33e21d835d02d2fe7b"
   }
  ],
- "generated_at": "2026-10-21T11:11:57.119Z",
+ "generated_at": "2026-10-21T15:11:29.700Z",
  "thought_source_note": "rawrphos-ok"
 }
