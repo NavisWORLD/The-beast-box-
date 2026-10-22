@@ -184,15 +184,51 @@ def rigetti_order_seed(cycle,fresh_digest=None,run_id=None):
  return int(h[:15],16),{"rigetti_sim_job_id":job["job_id"],"counts":job["counts"],
    "order_seed_sha256":h,"source_class":d.get("source_class"),"label":"SIMULATED",
    "seed_mix":sorted(mix),"backend":"rigetti.sim.qvm (SIMULATED, not QPU)"}
+# 2026-10-22 (007): optional in-context Hebbian fast weights, trained end-to-end.
+# Upgrading copies every approved tensor exactly and adds zero-output hebbian.* params.
+HEBBIAN=os.environ.get("ZEREF_HEBBIAN","0")=="1"
+HEBBIAN_DIM=int(os.environ.get("ZEREF_HEBBIAN_DIM","32"))
+HEBBIAN_LR=float(os.environ.get("ZEREF_HEBBIAN_LR","0.0003"))  # new params start from zero; base LR unchanged
+def extend_optimizer_state(sd,n_base,n_hebb):
+ """Parent AdamW state (1 group) -> [base, hebbian] groups; new params get fresh moments."""
+ import copy;sd=copy.deepcopy(sd);groups=sd["param_groups"]
+ if len(groups)==2 or n_hebb==0:return sd
+ if len(groups)!=1 or len(groups[0]["params"])!=n_base:raise ValueError("optimizer/parameter mismatch")
+ g2=dict(groups[0]);g2["params"]=list(range(n_base,n_base+n_hebb));sd["param_groups"]=[groups[0],g2]
+ return sd
+# 2026-10-22 (007): free pretraining text slice (TinyStories beyond the first 50k
+# 14k-corpus stories, CDLA-Sharing-1.0), full-token LM loss, appended to each batch.
+PRETRAIN=Path(os.environ.get("ZEREF_006_PRETRAIN","build/zeref-006/pretrain-slice.jsonl"))
+PRETRAIN_PER_BATCH=int(os.environ.get("ZEREF_006_PRETRAIN_PER_BATCH","2"))
+PRETRAIN_POOL=[]
+IDENTITY_HELD=Path("evidence/zeref-identity-001/heldout.json")
+def identity_probe(path):
+ """REPORTED, NOT GATED: guest-route decoding (seed 67, T=0.3, 48 tokens) on held identity + controls."""
+ import re
+ if not IDENTITY_HELD.is_file():return None
+ spec=json.loads(IDENTITY_HELD.read_text());e=Engine(path);out={"identity":[],"controls":[]}
+ for kind in("identity","controls"):
+  for item in spec[kind]:
+   r=e.complete(f"user: {item['prompt']}\nassistant:",max_tokens=48,temperature=0.3,seed=67)
+   out[kind].append({"prompt":item["prompt"],"reply":r,"hit":bool(re.search(item["expect_regex"],r,re.I))})
+ for kind in("identity","controls"):out[kind+"_hits"]=sum(x["hit"] for x in out[kind])
+ out["hebbian"]=bool(e.model.config.hebbian);del e
+ return out
 def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
  """64 bounded AdamW updates with action-balanced sampling and parent anchor."""
  from collections import defaultdict
  parent=load_checkpoint(parent_path,load_training_state=True)
  model=parent["model"]
- anchor=[p.detach().clone() for p in model.parameters()]
- opt=torch.optim.AdamW(model.parameters(),lr=LR,weight_decay=.01)
- opt.load_state_dict(parent["state"]["optimizer"])
- for group in opt.param_groups:group["lr"]=LR
+ if HEBBIAN and not model.config.hebbian:
+  from rawrphos.architecture.model import upgrade_to_hebbian
+  torch.manual_seed(seed);model=upgrade_to_hebbian(model,HEBBIAN_DIM)  # zero-output start: identical logits
+ base=model.base_parameters();hebb=model.hebbian_parameters()
+ anchor=[p.detach().clone() for p in base]  # L2 anchor on the approved parent's weights only
+ groups=[{"params":base}]+([{"params":hebb}] if hebb else [])
+ opt=torch.optim.AdamW(groups,lr=LR,weight_decay=.01)
+ if not hebb:opt.load_state_dict(parent["state"]["optimizer"])  # flag off: exact old resume
+ else:opt.load_state_dict(extend_optimizer_state(parent["state"]["optimizer"],len(base),len(hebb)))
+ for gi,group in enumerate(opt.param_groups):group["lr"]=HEBBIAN_LR if gi==1 else LR
  by=defaultdict(list)
  for i,(a,_) in enumerate(pool):by[a].append(i)
  classes=sorted(by)
@@ -200,7 +236,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
  g=torch.Generator().manual_seed(seed)
  logs=[];best=None
  for n in range(UPDATES):
-  for group in opt.param_groups:group["lr"]=LR*(LR_MIN_FRACTION+(1-LR_MIN_FRACTION)*.5*(1+math.cos(math.pi*n/UPDATES)))
+  for gi,group in enumerate(opt.param_groups):group["lr"]=(HEBBIAN_LR if gi==1 else LR)*(LR_MIN_FRACTION+(1-LR_MIN_FRACTION)*.5*(1+math.cos(math.pi*n/UPDATES)))
   opt.zero_grad(set_to_none=True)
   idx=[]
   for _ in range(BATCH):
@@ -214,6 +250,8 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
   batch=[pool[i][1] for i in idx]
   if chat_pool:
    batch+=[chat_pool[int(torch.randint(len(chat_pool),(1,),generator=g))] for _ in range(CHAT_PER_BATCH)]
+  if PRETRAIN_POOL and PRETRAIN_PER_BATCH>0:
+   batch+=[PRETRAIN_POOL[int(torch.randint(len(PRETRAIN_POOL),(1,),generator=g))] for _ in range(PRETRAIN_PER_BATCH)]
   x,y,m=collate(batch)
   out=model(x,targets=y,attention_mask=m);loss=out["loss"]
   # Decision-token loss: the shared "ACTION: " prefix dominated the mean
@@ -226,7 +264,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
   dec_loss=torch.nn.functional.cross_entropy(torch.stack([logits[k,j] for k,j,_ in dec]),
      torch.tensor([t for _,_,t in dec]))
   loss=loss+DECISION_WEIGHT*dec_loss
-  drift=sum(((p-a)**2).sum() for p,a in zip(model.parameters(),anchor))
+  drift=sum(((p-a)**2).sum() for p,a in zip(base,anchor))
   total=loss+ANCHOR*drift
   if not bool(torch.isfinite(total)):raise FloatingPointError("Nonfinite Zeref CPU training loss")
   total.backward()
@@ -330,6 +368,13 @@ def main():
    if r.get("mode")!="chat":continue
    front=tokenizer.encode(f"user: {r['user']}\nassistant:",add_bos=True);tail=tokenizer.encode(" "+r["assistant"],add_eos=True)
    if len(front)+len(tail)<=256:chat_pool.append({"input":(front+tail)[:-1],"target":[-100]*(len(front)-1)+tail})
+ PRETRAIN_POOL.clear();pretrain_digest=None
+ if PRETRAIN.is_file():
+  raw_pre=PRETRAIN.read_bytes();pretrain_digest=sha(raw_pre)
+  for r in map(json.loads,raw_pre.splitlines()):
+   ids=tokenizer.encode(r["text"],add_bos=True,add_eos=True)[:257]
+   if len(ids)>=16:PRETRAIN_POOL.append({"input":ids[:-1],"target":ids[1:]})
+ print("ZEREF_PRETRAIN_SLICE="+json.dumps({"rows":len(PRETRAIN_POOL),"tokens":sum(len(r["target"]) for r in PRETRAIN_POOL),"sha256":pretrain_digest,"per_batch":PRETRAIN_PER_BATCH}),flush=True)
  from rawrphos_chat_eval import PAIRS as CHAT_PAIRS
  chat_t=[]
  for q,a in CHAT_PAIRS:
@@ -402,6 +447,12 @@ def main():
   {"optimizer":opt.state_dict(),"rng":rng_state(),"data_rng":torch_generator.get_state()})
  load_checkpoint(temp,expected_checkpoint_sha256=saved["checkpoint_sha256"],load_training_state=True)
  trial_out=exact_model_replies(temp,heldout)
+ # 007: reported-only identity/home + control replies (parent vs candidate). Never a gate input.
+ try:
+  ident={"schema":"zeref-identity-probe-v1","reported_not_gated":True,"parent":identity_probe(PARENT),"candidate":identity_probe(temp)}
+ except Exception as exc:ident={"schema":"zeref-identity-probe-v1","error":type(exc).__name__}
+ save_json(ROOT/"identity-probe.json",ident)
+ print("ZEREF_IDENTITY_PROBE="+json.dumps({k:{"identity_hits":(v or {}).get("identity_hits"),"control_hits":(v or {}).get("controls_hits"),"hebbian":(v or {}).get("hebbian")} for k,v in ident.items() if k in("parent","candidate")}),flush=True)
  trial=counts(trial_out)
  # Fix 003 character check (report warmth; block only a rude/unsafe regression).
  from zeref_character_check import run as char_run,compare as char_compare
@@ -445,7 +496,7 @@ def main():
   "parent_literal_heldout_replies":parent_out,
   "gate":guard,"accepted_as_next_training_parent":accepted,
   "recipe":{"lr":LR,"batch":BATCH,"anchor_l2":ANCHOR,"decision_token_weight":DECISION_WEIGHT,"sampling":"sqrt_action_balanced",
-    "replay_datasets":replay_digests,"replay_rows":len(replay),"chat_mix_sha256":chat_digest,"chat_rows":len(chat_pool),"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
+    "replay_datasets":replay_digests,"replay_rows":len(replay),"chat_mix_sha256":chat_digest,"chat_rows":len(chat_pool),"pretrain_rows":len(PRETRAIN_POOL),"pretrain_sha256":pretrain_digest,"pretrain_per_batch":PRETRAIN_PER_BATCH if PRETRAIN_POOL else 0,"hebbian":bool(model.config.hebbian),"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
     "chat_before_nll":original_chat,"chat_after_nll":new_chat,"chat_gate_bar":chat_bar,"chat_gate_bar_with_tolerance":chat_bar_a,"chat_a_tolerance":CHAT_A_TOLERANCE,
     "chat_b_before_nll":original_chat_b,"chat_b_after_nll":new_chat_b,"chat_b_rule":"fresh set B (scripts/zeref_heldout_b.py), never trained or selected on; candidate must not be worse than the pin",
     "chat_gate_public14k_ref_nll":public_ref_chat,"chat_metric":"fix-003 per-pair mean (same as rawrphos_chat_eval.ref_nll), no margin","character_check":{k:character[k] for k in("warmth_delta","no_rude_or_unsafe_regression")},"chat_gate_rule":"fix-002: not worse than the public-pin parent (absolute); promotion additionally requires rawrphos_chat_eval not worse than 14000 AND ref_nll below the current pin","lr_schedule":"cosine to 10%","best_in_cycle":True,"fresh_train_rows":len(train)},

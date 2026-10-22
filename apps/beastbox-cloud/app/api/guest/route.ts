@@ -79,6 +79,7 @@ export async function POST(request:Request){
     return safeJson(502,{error:'Unverified guest model response'});
    return safeJson(200,{provider:'rawrphos-local',model:'rawrphos-native',
     step:PIN_STEP,checkpoint_sha256:PIN_SHA,reply:result.reply,
+    hebbian:result.hebbian===true,
     guest_stateless:true});
   }catch{return safeJson(502,{error:'Local guest inference unavailable or timed out'});}
  }

@@ -25,8 +25,17 @@ class RawrphosConfig:
     sigma_init: float = 0.2
     state_dt: float = 0.1
     dropout: float = 0.0
+    # 2026-10-22 additive: optional in-context Hebbian fast weights (off = exact old model).
+    hebbian: bool = False
+    hebbian_dim: int = 32
+    hebbian_decay: float = 0.9
+    hebbian_rate: float = 0.1
 
     def __post_init__(self):
+        if type(self.hebbian) is not bool or type(self.hebbian_dim) is not int or self.hebbian_dim<1:
+            raise ValueError('invalid hebbian configuration')
+        if not 0<self.hebbian_decay<1 or not 0<self.hebbian_rate<=1:
+            raise ValueError('invalid hebbian decay/rate')
         for name in ['vocab_size','d_model','n_heads','n_layers','max_seq_len','state_dim']:
             if type(getattr(self,name)) is not int or getattr(self,name)<1:
                 raise ValueError(f'invalid {name}')
@@ -40,7 +49,11 @@ class RawrphosConfig:
         if not 0 <= self.dropout < 1 or not 0 < self.state_dt <= 1:
             raise ValueError('invalid dropout or state time step')
 
-    def to_dict(self): return asdict(self)
+    def to_dict(self):
+        d=asdict(self)
+        if not self.hebbian:  # keep config.json byte-identical for non-Hebbian checkpoints
+            for k in ('hebbian','hebbian_dim','hebbian_decay','hebbian_rate'): d.pop(k)
+        return d
     @classmethod
     def from_dict(cls, value): return cls(**value)
 
@@ -124,6 +137,32 @@ class StateAttention(nn.Module):
         return y,omega,{'key':k,'value':v,'state':keys,'key_mask':mask},telemetry
 
 
+class HebbianFastWeights(nn.Module):
+    """Per-sequence fast-weight memory (ported from closed_loop.py):
+    F_t = decay*F_{t-1} + rate * v_t k_t^T, Frobenius-bounded to <=1; read_t = F_{t-1} q_t (causal).
+    F is an activation carried in the KV cache: it starts at zero for every new prompt/session and
+    is never written back to parameters. The output projection is zero-initialised and scaled by a
+    learned gate starting at sigmoid(-4)~0.018, so an upgraded checkpoint starts at identical logits."""
+    def __init__(self,c):
+        super().__init__(); n=c.hebbian_dim; self.decay=c.hebbian_decay; self.rate=c.hebbian_rate
+        self.norm=RMSNorm(c.d_model)
+        self.q=nn.Linear(c.d_model,n,bias=False); self.k=nn.Linear(c.d_model,n,bias=False); self.v=nn.Linear(c.d_model,n,bias=False)
+        self.out=nn.Linear(n,c.d_model,bias=False)
+        self.gate_logit=nn.Parameter(torch.tensor(-4.0))
+    def reset_out(self): nn.init.zeros_(self.out.weight)
+    def forward(self,x,fast=None):
+        b,t,_=x.shape; n=self.q.out_features
+        h=self.norm(x); q=torch.tanh(self.q(h)); k=torch.tanh(self.k(h)); v=torch.tanh(self.v(h))
+        F_=torch.zeros(b,n,n,device=x.device,dtype=q.dtype) if fast is None else fast
+        reads=[]
+        for i in range(t):
+            reads.append(torch.einsum('bij,bj->bi',F_,q[:,i]))
+            F_=self.decay*F_+self.rate*torch.einsum('bi,bj->bij',v[:,i],k[:,i])
+            F_=F_/F_.flatten(1).norm(dim=-1).clamp(min=1.0)[:,None,None]
+        y=torch.sigmoid(self.gate_logit)*self.out(torch.stack(reads,1))
+        return x+y,F_,{'hebbian_gate':torch.sigmoid(self.gate_logit).detach(),'fast_weight_norm':F_.detach().flatten(1).norm(dim=-1).mean()}
+
+
 class Block(nn.Module):
     def __init__(self,c,final=False):
         super().__init__(); self.n1=RMSNorm(c.d_model); self.n2=RMSNorm(c.d_model)
@@ -148,12 +187,21 @@ class RawrphosLM(nn.Module):
         self.blocks=nn.ModuleList(Block(config,final=i==config.n_layers-1) for i in range(config.n_layers))
         self.norm=RMSNorm(config.d_model)
         self.apply(self._init)
+        # Registered LAST so non-Hebbian parameter order (and optimizer indices) are unchanged.
+        if config.hebbian:
+            self.hebbian=HebbianFastWeights(config); self.hebbian.reset_out()
     @staticmethod
     def _init(m):
         if isinstance(m,(nn.Linear,nn.Embedding)):
             nn.init.normal_(m.weight,std=.02)
             if getattr(m,'bias',None) is not None: nn.init.zeros_(m.bias)
     def parameter_count(self): return sum(p.numel() for p in self.parameters())
+    def hebbian_parameters(self):
+        return list(self.hebbian.parameters()) if self.config.hebbian else []
+    def base_parameters(self):
+        ids={id(p) for p in self.hebbian_parameters()}
+        return [p for p in self.parameters() if id(p) not in ids]
+
     def forward(self,input_ids,targets=None,attention_mask=None,past_key_values=None,use_cache=False,
                 control_vector=None,return_attention=False):
         c=self.config
@@ -188,6 +236,12 @@ class RawrphosLM(nn.Module):
             x,state,cache,tel=block(x,state,attention_mask,None if past_key_values is None else past_key_values[i],return_attention)
             if use_cache: caches.append(cache)
             telemetry.append(tel)
+        if c.hebbian:
+            fast=None if past_key_values is None else past_key_values[-1].get('hebbian_fast')
+            if past_key_values is not None and fast is None: raise ValueError('hebbian cache missing fast weights')
+            x,fast,htel=self.hebbian(x,fast)
+            if use_cache: caches[-1]=dict(caches[-1],hebbian_fast=fast)
+            telemetry.append(htel)
         logits=F.linear(self.norm(x),self.token.weight)
         loss=None
         if targets is not None:
@@ -195,3 +249,15 @@ class RawrphosLM(nn.Module):
             if not bool((targets!=-100).any()): raise ValueError('no supervised tokens')
             loss=F.cross_entropy(logits.float().reshape(-1,c.vocab_size),targets.reshape(-1),ignore_index=-100)
         return {'logits':logits,'loss':loss,'past_key_values':caches if use_cache else None,'telemetry':telemetry}
+
+
+def upgrade_to_hebbian(model,dim=32):
+    """Return a Hebbian-enabled copy of a non-Hebbian model. Every existing tensor is copied
+    exactly; only hebbian.* is new (zero output => identical logits at upgrade time)."""
+    if model.config.hebbian: return model
+    cfg=RawrphosConfig.from_dict(dict(asdict(model.config),hebbian=True,hebbian_dim=dim))
+    new=RawrphosLM(cfg)
+    missing,unexpected=new.load_state_dict(model.state_dict(),strict=False)
+    if unexpected or any(not k.startswith('hebbian.') for k in missing):
+        raise ValueError('hebbian upgrade may only add hebbian.* parameters')
+    return new

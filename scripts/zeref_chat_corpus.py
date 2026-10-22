@@ -96,7 +96,8 @@ def alien_slice(base_rows,held):
 #  lyrics-001: Cory's lyrics (Rainbows clean text; others whisper machine-transcribed, labeled)
 #  music-features-002: numbers MEASURED from audio + heartbeat bpm (no raw audio)
 EXTRA=[("evidence/zeref-warm-002/dialogue.jsonl",0.05,2),("evidence/zeref-voice-guide-001/dialogue.jsonl",0.02,2),
- ("evidence/zeref-lyrics-001/dialogue.jsonl",0.05,1),("evidence/zeref-music-features-002/dialogue.jsonl",0.02,2)]
+ ("evidence/zeref-lyrics-001/dialogue.jsonl",0.05,1),("evidence/zeref-music-features-002/dialogue.jsonl",0.02,2),
+ ("evidence/zeref-identity-001/dialogue.jsonl",0.06,2)]  # 007: canon-only identity/home rows; held prompts excluded
 def extra_slice(path,frac,repeat,base_rows,held):
  p=Path(path)
  if not p.is_file():return []
