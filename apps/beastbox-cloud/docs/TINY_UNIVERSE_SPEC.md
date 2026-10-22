@@ -19,3 +19,14 @@ Samples for rendering: `public/universe/tiny-universe-genesis.json`, `public/uni
 
 ## Events (history[].events)
 `supernova {star}`, `abiogenesis {planet}`. history keeps the last 64 ticks: `{tick, source, sim_E, counts, events}`.
+
+## View fields (additive, Oct 22 2026)
+None of these draw from the growth stream, so stars/planets/storms are byte-identical to before.
+- `pairs: [{a,b,E}]` — entangled planet pairs. Fisher-Yates over sorted planet ids keyed by `sha256(seed+':pairs:'+i)`, consecutive ids pair. `E` is the measured hardware `entanglement_E` (shared by all pairs).
+- `life[].complexity_norm` = 1 − exp(−complexity / K), **K = 2** (raw complexity is unbounded).
+- `life[].stage` from complexity_norm: Glimmer <0.3, Drifters <0.6, Choirs <0.9, Dreamers ≥0.9 (Emeth's bible).
+- `life[].scars` counts ticks a storm sat on that life's planet; `life[].scarred = scars > 0`.
+- Samples: `tiny-universe-storm-sample.json` is the first tick (searched in order) with a live storm (tick 19). Regenerate with `node scripts/tiny-universe-samples.mjs`.
+
+## View (/universe)
+`components/tiny-universe-view.tsx` + `lib/universe/tiny-universe-view.mjs`. Renders only engine bodies with Cosmo's atlas (`public/universe/atlas.json`, sprites in `public/universe/sprites/`). Home cage = Hearth (first life world; placeholder name) or the most habitable planet before life; Zeref perches on the home planet's star. No comets are drawn (the engine has none).
