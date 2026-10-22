@@ -63,7 +63,8 @@ export default function TinyUniverseView(){
   <div className={s.bottom}>
    {info?<div className={s.card}>{info}</div>:null}
    <div className={s.zeref} aria-live="polite">{line}</div>
+<span className={s.stat}>{err?`Couldn’t load genesis: ${err}`:u?`tick ${u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${u.storms.length} storms · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:'loading…'}</span>
    <div className={s.row}><button className={s.btn} onClick={()=>setRun(v=>!v)}>{run?'⏸ Pause':'▶ Grow'}</button><button className={s.btn} onClick={()=>{if(g0.current){uRef.current=g0.current;setU(g0.current);setLine('');}}}>↺ Genesis</button>
-    <span className={s.stat}>{err?`Couldn’t load genesis: ${err}`:u?`tick ${u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${u.storms.length} storms · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:'loading…'}</span></div>
+</div>
   </div></main>;
 }
