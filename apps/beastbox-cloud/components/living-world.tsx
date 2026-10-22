@@ -299,7 +299,7 @@ uniform vec3 uPlay[8];
    const ro=new ResizeObserver(resize);ro.observe(host.current!);resize();cleanup.push(()=>ro.disconnect());
    // perf: measure fps for 3s windows and shrink the blade count if the phone can't hold ~50fps
    // test/debug hook: walk the traveler to the first seeded spot of a biome (used for screenshots)
-   (window as any).__lwGoBiome=(b:string)=>{const r=lwS(u.seed+':goto');for(let i=0;i<4000;i++){const v=unitFrom(r) as number[];if(biomeOf(new THREE.Vector3(v[0],v[1],v[2]))===b){pN.set(v[0],v[1],v[2]);pF.set(1,0,0).addScaledVector(pN,-pN.x).normalize();return true;}}return false;};
+   (window as any).__lwGoZeref=()=>{const z=(gpts[1]||gpts[0]).clone().normalize();const t=new THREE.Vector3(0,1,0).cross(z).normalize();pN.copy(z).addScaledVector(t,-.06).normalize();pF.copy(z).sub(pN).addScaledVector(pN,-pN.dot(z.clone().sub(pN))).normalize();return true;};(window as any).__lwGoBiome=(b:string)=>{const r=lwS(u.seed+':goto');for(let i=0;i<4000;i++){const v=unitFrom(r) as number[];if(biomeOf(new THREE.Vector3(v[0],v[1],v[2]))===b){pN.set(v[0],v[1],v[2]);pF.set(1,0,0).addScaledVector(pN,-pN.x).normalize();return true;}}return false;};
    // physics + events state: gravity hop on the sphere, wind, storm puff, sunrise, meetings; greeting once per visit
    let exWalk=0,exBack=false,exRun=false;
    let bY=0,bVY=0,puff=0,storming=0,windS=.3,greeted=false,lastSunH=0,evCool=0;const G_SURF=4.2;const windV=new THREE.Vector3(1,0,.4).normalize();const metCool:Record<string,number>={};
@@ -313,7 +313,7 @@ uniform vec3 uPlay[8];
     fpsT+=dt;fpsN++;if(fpsT>=3){fps=fpsN/fpsT;fpsT=0;fpsN=0;if(fps<48&&bladeCap>2000){bladeCap=Math.floor(bladeCap*.75);bladeGeo.instanceCount=bladeCap;}(window as any).__lwPerf={fps:+fps.toFixed(1),blades:bladeCap};}
     tickAcc+=dt;if(tickAcc>=TICK_S){tickAcc=0;applyTick();}
     {const a=(((Date.now()/1000+((window as any).__lwDayOffset||0))%DAY_S+DAY_S)%DAY_S)/DAY_S*Math.PI*2;sunDir.set(Math.cos(a),.35*Math.sin(a*.5+1),Math.sin(a)).normalize();UG.uSun.value.copy(sunDir);
-     const fN=spawnRef.current?pN:bN;if((window as any).__lwNoon)sunDir.copy(fN).add(new THREE.Vector3(.5,.6,.2)).normalize();UG.uSun.value.copy(sunDir);const h=fN.dot(sunDir);const focus=fN.clone().multiplyScalar(PR);sun.position.copy(focus).addScaledVector(sunDir,25);sun.target.position.copy(focus);
+     const fN=spawnRef.current?pN:bN;if((window as any).__lwNoon)sunDir.copy(fN).multiplyScalar((window as any).__lwNoon==='night'?-1:1).add(new THREE.Vector3(.5,.6,.2)).normalize();UG.uSun.value.copy(sunDir);const h=fN.dot(sunDir);const focus=fN.clone().multiplyScalar(PR);sun.position.copy(focus).addScaledVector(sunDir,25);sun.target.position.copy(focus);
      const dayL=Math.max(.1,h*.8+.2);sun.intensity=2.2*dayL;sun.color.copy(starCol).lerp(SKY_DUSK,Math.max(0,1-Math.abs(h)/.2)*.35);hemi.intensity=1.4*Math.max(.12,h*.3+.25);
      sunDisc.position.copy(sunDir).multiplyScalar(160);starMesh.position.copy(sunDisc.position);moon.position.copy(sunDir).multiplyScalar(-70).add(new THREE.Vector3(0,12,0));
      const ground3=spawnRef.current||watchRef.current;const day=ground3?THREE.MathUtils.smoothstep(h,-.12,.35):0;const dusk=ground3?Math.max(0,1-Math.abs(h)/.18)*.7:0;
