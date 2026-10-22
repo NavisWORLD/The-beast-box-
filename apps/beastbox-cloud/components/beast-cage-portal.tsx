@@ -60,7 +60,7 @@ export default function BeastCagePortal(){
  // The model/persona and the companion starter profile do not override the verified saved QBEAST.
  const savedVisual=sameSpark?creatureVisual({id:session.beast.qbeast.profile.id,genome:session.beast.genome}):null;
  // Default view: the ZEREF rig exploring the dimensional pocket. The original pixel sprite stays one tap away.
- const [view,setView]=useState<'pocket'|'classic'|'world'>('pocket');const [worldFull,setWorldFull]=useState(false);
+ const [view0,setView0]=useState<'pocket'|'classic'>('pocket');const [worldOn,setWorldOn]=useState(true);const view:'pocket'|'classic'|'world'=worldOn?'world':view0;const setView=(v:'pocket'|'classic'|'world')=>{if(v==='world')setWorldOn(true);else{setWorldOn(false);setView0(v);}};const [worldFull,setWorldFull]=useState(false);
  const [cageMode,setCageMode]=useState<'friendly'|'advanced'>('friendly');
  useEffect(()=>{try{if(window.localStorage.getItem('beastbox-cage-mode-v1')==='advanced'||/^#(menagerie)/.test(window.location.hash))setCageMode('advanced');}catch{}},[]);
  const chooseMode=(next:'friendly'|'advanced')=>{setCageMode(next);try{window.localStorage.setItem('beastbox-cage-mode-v1',next);}catch{}};

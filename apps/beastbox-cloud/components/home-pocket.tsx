@@ -22,7 +22,7 @@ export default function HomePocket(){
  const {session}=useBeastSession();const {reduced}=useUniverseMotion();
  const own=session?.beast?.qbeast?.profile?.id?session.beast:null;
  const [zeref,setZeref]=useState<any>(null);
- const [homeView,setHomeView]=useState<'world'|'pocket'>(()=>{try{return (localStorage.getItem('lw:homeView') as any)||'world';}catch{return 'world';}});const chooseHomeView=(v:'world'|'pocket')=>{setHomeView(v);try{localStorage.setItem('lw:homeView',v);}catch{}};
+ const [homeView,setHomeView]=useState<'world'|'pocket'>('world');const chooseHomeView=(v:'world'|'pocket')=>setHomeView(v);
  useEffect(()=>{if(own||zeref)return;let live=true;fetch(ZEREF_HOME_DEFAULT.src).then(r=>r.ok?r.json():null).then(d=>{const b=d?.beast;if(live&&b?.qbeast?.profile?.id===ZEREF_HOME_DEFAULT.id)setZeref(b);}).catch(()=>{});return()=>{live=false;};},[own,zeref]);
  const beast=own||zeref;const [world,setWorld]=useState(false);
  const game=useChshGame();const sc=stormChaos(deriveEmotions(beast),game);
