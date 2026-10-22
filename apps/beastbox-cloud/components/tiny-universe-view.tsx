@@ -26,7 +26,7 @@ export default function TinyUniverseView(){
   const draw=(ms:number)=>{const U=uRef.current;const dpr=Math.min(2,devicePixelRatio||1);const W=c.clientWidth,H=c.clientHeight;if(c.width!==W*dpr){c.width=W*dpr;c.height=H*dpr;}
    ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#05030f';ctx.fillRect(0,0,W,H);if(!U){raf=requestAnimationFrame(draw);return;}
    const t=reduce?0:ms/1000;const r=rand(U.seed);for(let i=0;i<160;i++){ctx.globalAlpha=0.25+r()*0.6;ctx.fillStyle='#fff';ctx.fillRect(r()*W,r()*H,r()<0.1?1.6:0.9,r()<0.1?1.6:0.9);}ctx.globalAlpha=1;
-   const padX=36,padT=110,padB=150;const S=(x:number,y:number)=>({x:padX+x*(W-2*padX),y:padT+y*(H-padT-padB)});const unit=Math.min(W,H)/38;
+   const padX=36,padT=110,padB=W<900?235:170;const S=(x:number,y:number)=>({x:padX+x*(W-2*padX),y:padT+y*(H-padT-padB)});const unit=Math.min(W,H)/38;
    const P=pos.current;P.clear();
    for(const st of U.stars){const p=S(st.x,st.y);P.set(st.id,{x:p.x,y:p.y,r:0});
     if(st.age<25&&!st.remnant&&!spr(ctx,'nebula_256','nebula.v'+(parseInt(st.id.slice(5))%4),p.x,p.y,unit*12,0.7*(1-st.age/25))){const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,unit*6);g.addColorStop(0,`hsla(${st.hue*360},80%,65%,${0.35*(1-st.age/25)})`);g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.fillRect(p.x-unit*6,p.y-unit*6,unit*12,unit*12);}}
@@ -59,11 +59,12 @@ export default function TinyUniverseView(){
  const last=u?.history?.[u.history.length-1];
  return <main className={s.wrap} data-tiny-universe>
   <canvas ref={cv} className={s.canvas} onPointerDown={tap} aria-label="Tiny Universe map"/>
-  <div className={s.hud}><div className={s.title}>✦ TINY UNIVERSE</div><span className={s.tag} data-genesis-label>{GENESIS_LABEL}</span><span className={`${s.tag} ${s.sim}`} data-growth-label>{GROWTH_LABEL}</span><span className={s.tag} style={{opacity:.7}}>Sprites by Cosmo · threads: SIMULATED per-pair Bell samples · tap a world · Hearth* is a placeholder name</span></div>
+  <div className={s.hud}><div className={s.title}>✦ TINY UNIVERSE</div><span className={s.tag} data-genesis-label>{GENESIS_LABEL}</span><span className={`${s.tag} ${s.sim}`} data-growth-label>{GROWTH_LABEL}</span></div>
   <div className={s.bottom}>
    {info?<div className={s.card}>{info}</div>:null}
    <div className={s.zeref} aria-live="polite">{line}</div>
 <span className={s.stat}>{err?`Couldn’t load genesis: ${err}`:u?`tick ${u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${u.storms.length} storms · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:'loading…'}</span>
+   <span className={s.stat} data-credit-line>Threads SIMULATED · art Cosmo · Hearth* placeholder</span>
    <div className={s.row}><button className={s.btn} onClick={()=>setRun(v=>!v)}>{run?'⏸ Pause':'▶ Grow'}</button><button className={s.btn} onClick={()=>{if(g0.current){uRef.current=g0.current;setU(g0.current);setLine('');}}}>↺ Genesis</button>
 </div>
   </div></main>;
